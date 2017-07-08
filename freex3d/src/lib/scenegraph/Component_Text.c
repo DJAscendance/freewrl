@@ -436,7 +436,8 @@ void render_Text (struct X3D_Text * node)
 			render_screentext(node);
 		}else{
 			COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL);
-			DISABLE_CULL_FACE;
+			//DISABLE_CULL_FACE;
+			CULL_FACE(node->solid)
 			render_polyrep(node);
 		}
 	}
@@ -1025,7 +1026,7 @@ static void FW_draw_outline (FT_OutlineGlyph oglyph)
 	p = (ppComponent_Text)tg->Component_Text.prv;
 
     /* gluTessBeginPolygon(global_tessobj,NULL); */
-
+	gluTessNormal(tg->Tess.global_tessobj,0.0,0.0,1.0);
    // FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
     //p->FW_rep_->actualCoord[p->FW_pointctr*3+0] = (float) (OUT2GLB(p->last_point.x,p->shrink_x) + p->pen_x);
 	cbdata.coords = p->FW_rep_->actualCoord;
