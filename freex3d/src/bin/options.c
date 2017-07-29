@@ -37,6 +37,13 @@
 #include <getopt.h>
 #endif
 
+#if !defined(min)
+    #define min(A,B)	({ __typeof__(A) __a = (A); __typeof__(B) __b = (B); __a < __b ? __a : __b; })
+#endif
+
+#if !defined(max)
+    #define max(A,B)	({ __typeof__(A) __a = (A); __typeof__(B) __b = (B); __a < __b ? __b : __a; })
+#endif
 
 void fv_print_version()
 {
@@ -46,7 +53,7 @@ void fv_print_version()
     progver = freewrl_get_version();
     
     printf("Program version: %s\nLibrary version: %s\n", progver, libver);
-    printf("\nFreeWRL VRML/X3D browser from CRC Canada (http://www.crc.ca)\n");
+    printf("\nFreeWRL VRML/X3D browser from (http://freewrl.sf.net)\n");
     printf("   type \"man freewrl\" to view man pages\n\n");
 }
 
@@ -93,7 +100,10 @@ void fv_usage()
 		"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
 		"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
 		"    panel,menuIcon,statusText,messageText ie \"#3D4557,#00FFFF,#00FFFF.#00FFFF\" \n"
-		"  -I|--pin TF             Pin statusbar(T/F) menubar(T/F)\n"				
+		"  -I|--pin TF             Pin statusbar(T/F) menubar(T/F)\n"	
+		"  -w|--want TF            Want statusbar(T/F) menubar(T/F)\n"	
+		"  -E|--FPS <int>          Target Maximum Frames Per Second\n"	
+		"  =^|--shadingStyle <int> 0=Flat 1=gouraud 2=phong 3=wire\n"
 		"  -N|--nametest <string>  Set name of .fwplay test file\n"
 	    "\nInternal options:\n"
 	    "  -i|--plugin <string>    Called from plugin.\n"
@@ -119,7 +129,9 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"version", no_argument, 0, 'v'},
 
 	{"fullscreen", no_argument, 0, 'c'},
+	{"FPS", required_argument, 0, 'E'},
 	{"pin", required_argument, 0, 'I'},
+	{"want", required_argument, 0, 'w'},
 	{"geometry", required_argument, 0, 'g'},
 	{"big", no_argument, 0, 'b'},
 
@@ -161,6 +173,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"nametest", required_argument, 0, 'N'},
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
+	{"shadingStyle",required_argument,0,'^'},
 	{0, 0, 0, 0}
     };
 
@@ -187,7 +200,7 @@ int fv_find_opt_for_optopt(char c) {
 
 int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 {
-    int c;
+    int c, itmp;
     float ftmp;
     long int ldtmp;
     int option_index = 0;
@@ -213,10 +226,12 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 
 #if defined(_MSC_VER)
 #define strncasecmp _strnicmp
+#ifdef _DEBUG
 	for(c=0;c<argc;c++)
 	{
 		printf("argv[%d]=%s\n",c,argv[c]);
 	}
+#endif
 	c =	_getopt_internal (argc, argv, optstring, long_options, &option_index, 0);
 #else
 	c = getopt_long(argc, argv, optstring, long_options, &option_index);
@@ -268,7 +283,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 
 	case 'c': /* --fullscreen, no argument */
 
-#if !defined(TARGET_AQUA) 
+// OLD_IPHONE_AQUA  #if !defined(TARGET_AQUA) 
 #ifdef _MSC_VER
 		fv_params->fullscreen = TRUE; //win32 will look at this in its internal code
 #else
@@ -283,7 +298,8 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	    fv_params->fullscreen = FALSE;
 #endif /* HAVE_XF86_VMODE */
 #endif
-#endif /* TARGET_AQUA */
+
+// OLD_IPHONE_AQUA #endif /* TARGET_AQUA */
 
 
 	    break;
@@ -415,6 +431,19 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	case 'I': /* --pin TF */
 		fwl_set_sbh_pin_option(optarg);
 		break;
+	case 'w': /* --want TF */
+		fwl_set_sbh_want_option(optarg);
+		break;
+	case '^': /* --shadingStyle 0=Flat 1=Gouraud 2=Phong 3=wire */
+		{ 
+			int ival = optarg[0] - '0';
+			fwl_setShadingStyle(max(min(ival,3),0));
+		}
+		break;
+	case 'E': /* --FPS, required argument: int */
+	    sscanf(optarg,"%d", &itmp);
+	    fwl_set_target_fps(itmp);
+	    break;
 
 /* Internal options */
 
@@ -441,6 +470,8 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	    }
 	    break;
 
+#ifdef USE_SNAPSHOT_TESTING  
+	// link to lib/main/SnapshotTesting.c
 	case 'R': /* --record, no arg */
 		fwl_set_modeRecord();
 		break;
@@ -453,7 +484,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
 		fwl_set_nameTest(optarg);
 		break;
-
+#endif
 
 #ifdef HAVE_LIBCURL
 	case 'C': /* --curl, no argument */

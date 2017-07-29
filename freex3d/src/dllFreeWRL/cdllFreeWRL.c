@@ -10,34 +10,19 @@
 */ 
 #include "cdllFreeWRL.h"
 
-#ifdef _MSC_VER
-#include "stdafx.h"
-#include <windows.h>
-#include <WinUser.h>
-#if _MSC_VER > 1700
-#ifdef WINAPI_FAMILY
-#include "winapifamily.h"
-#endif
-#endif
-#endif
 #include <config.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <wtypes.h>
-#include <sys/types.h>
 #include "system.h"
-
 #include "libFreeWRL.h"
-#include "ui/statusbar.h"
 // a few function prototypes from around libfreewrl
 void fwl_setConsole_writePrimitive(int ibool);
 void statusbar_set_window_size(int width, int height);
-void statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
+int statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
 int getCursorStyle();
 void *fwl_frontenditem_dequeue();
 char* fwl_resitem_getURL(void *res);
 int	fwl_resitem_getStatus(void *res);
 int	fwl_resitem_getType(void *res);
+int	fwl_resitem_getMediaType(void *res);
 void fwl_resitem_enqueuNextMulti(void *res);
 void fwl_resitem_setLocalPath(void *res, char* path);
 void fwl_resitem_enqueue(void *res);
@@ -48,7 +33,7 @@ void SSRserver_enqueue_request_and_wait(void *fwctx, void *request);
 #endif //SSR_SERVER
 
 #include <malloc.h>
-#include <stdlib.h>
+
 
 // This is the constructor of a class that has been exported.
 // see dllFreeWRL.h for the class definition
@@ -73,6 +58,13 @@ DLLFREEWRL_API void * dllFreeWRL_dllFreeWRL()
 	//this->globalcontexthandle = 0;
 	return fwl_init_instance(); //before setting any structs we need a struct allocated
 }
+DLLFREEWRL_API void dllFreeWRL_setDensityFactor(void *fwctx, float density_factor){
+	fwl_setCurrentHandle(fwctx, __FILE__, __LINE__);
+	fwl_setDensityFactor(density_factor);
+	fwl_clearCurrentHandle();
+	return;
+}
+
 //	handle - window handle or null
 //		- if you have a window already created, you should pass in the handle, 
 //		- else pass null and a window will be created for you
@@ -99,11 +91,11 @@ DLLFREEWRL_API void dllFreeWRL_onInit(void *fwctx, int width, int height, void* 
 		if(!frontend_handles_display_thread)
 			fwl_initializeDisplayThread();
 #endif
-#ifdef STATUSBAR_HUD
-	statusbar_set_window_size(width, height);
-#else
+//#ifdef STATUSBAR_HUD
+//	statusbar_set_window_size(width, height);
+//#else
 	fwl_setScreenDim(width, height);
-#endif
+//#endif
 	fwl_clearCurrentHandle();
 	return;
 }
@@ -140,7 +132,7 @@ DLLFREEWRL_API void *dllFreeWRL_dllFreeWRL2(char* scene_url, int width, int heig
 DLLFREEWRL_API void dllFreeWRL_onLoad(void *fwctx, char* scene_url)
 {
 	char * url;
-	url = _strdup(scene_url);
+	url = strdup(scene_url);
 	if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 		fwl_replaceWorldNeeded(url);
 	}
@@ -150,27 +142,60 @@ DLLFREEWRL_API void dllFreeWRL_onLoad(void *fwctx, char* scene_url)
 
 DLLFREEWRL_API void dllFreeWRL_onResize(void *fwctx, int width,int height){
 	if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
-#ifdef STATUSBAR_HUD
-		statusbar_set_window_size(width,height);
-#else
+//#ifdef STATUSBAR_HUD
+//		statusbar_set_window_size(width,height);
+//#else
 		fwl_setScreenDim(width,height);
-#endif
+//#endif
 	}
 	fwl_clearCurrentHandle();
 }
 
-DLLFREEWRL_API void dllFreeWRL_onMouse(void *fwctx, int mouseAction,int mouseButton,int x, int y){
+DLLFREEWRL_API int dllFreeWRL_onMouse(void *fwctx, int mouseAction,int mouseButton,int x, int y){
 
 	/*void fwl_handle_aqua(const int mev, const unsigned int button, int x, int y);*/
 	/* butnum=1 left butnum=3 right (butnum=2 middle, not used by freewrl) */
+	int cursorStyle = 0;
 	if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
-#ifdef STATUSBAR_HUD
-		statusbar_handle_mouse(mouseAction,mouseButton,x,y);
-#else
-		fwl_handle_aqua(mouseAction,mouseButton,x,y); 
-#endif
+		cursorStyle = fwl_handle_mouse(mouseAction,mouseButton,x,y,0); 
 	}
 	fwl_clearCurrentHandle();
+	return cursorStyle;
+}
+DLLFREEWRL_API int dllFreeWRL_onTouch(void *fwctx, int touchAction, unsigned int ID, int x, int y) {
+
+	/*void fwl_handle_aqua(const int mev, const unsigned int button, int x, int y);*/
+	/* butnum=1 left butnum=3 right (butnum=2 middle, not used by freewrl) */
+	int cursorStyle = 0;
+	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
+		cursorStyle = fwl_handle_touch(touchAction, ID, x, y, 0);
+	}
+	fwl_clearCurrentHandle();
+	return cursorStyle;
+}
+DLLFREEWRL_API void dllFreeWRL_onGyro(void *fwctx, float rx, float ry, float rz) {
+
+	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
+		fwl_handle_gyro(rx, ry, rz);
+	}
+	fwl_clearCurrentHandle();
+	return ;
+}
+DLLFREEWRL_API void dllFreeWRL_onAccelerometer(void *fwctx, float ax, float ay, float az) {
+
+	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
+		fwl_handle_accelerometer(ax, ay, az);
+	}
+	fwl_clearCurrentHandle();
+	return;
+}
+DLLFREEWRL_API void dllFreeWRL_onMagnetic(void *fwctx, float azimuth, float pitch, float roll) {
+
+	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
+		fwl_handle_magnetic(azimuth, pitch, roll);
+	}
+	fwl_clearCurrentHandle();
+	return;
 }
 DLLFREEWRL_API void dllFreeWRL_onKey(void *fwctx, int keyAction,int keyValue){
 	int kp = keyValue;
@@ -182,14 +207,14 @@ DLLFREEWRL_API void dllFreeWRL_onKey(void *fwctx, int keyAction,int keyValue){
 			if(kp & 1 << 30) 
 				break; //ignor - its an auto-repeat
 		case KEYUP: 
-			switch (kp) 
-			{ 
-				case VK_OEM_1:
-					kp = ';'; //could be : or ; but tolower won't lowercase it, but returns same character if it can't
-					break;
-				default:
-					break;
-			}
+			//switch (kp) 
+			//{ 
+			//	case VK_OEM_1:
+			//		kp = ';'; //could be : or ; but tolower won't lowercase it, but returns same character if it can't
+			//		break;
+			//	default:
+			//		break;
+			//}
 			fwl_do_keyPress(kp, ka); 
 			break; 
 
@@ -215,13 +240,14 @@ DLLFREEWRL_API void dllFreeWRL_onClose(void *fwctx)
 DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str)
 {
 	if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
+		ConsoleMessage(str);
 	}
 	fwl_clearCurrentHandle();
 }
 DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx)
 {
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
-		int more = fwl_draw();
+		fwl_draw();
 	}
 	fwl_clearCurrentHandle();
 }
@@ -263,6 +289,13 @@ DLLFREEWRL_API int dllFreeWRL_resitem_getStatus(void *fwctx, void *res){
 	fwl_clearCurrentHandle();
 	return status;
 }
+DLLFREEWRL_API void dllFreeWRL_resitem_setStatus(void *fwctx, void *res, int status){
+	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
+		fwl_resitem_setStatus(res, status);
+	}
+	fwl_clearCurrentHandle();
+
+}
 DLLFREEWRL_API int dllFreeWRL_resitem_getType(void *fwctx, void *res){
 	int status;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
@@ -271,6 +304,15 @@ DLLFREEWRL_API int dllFreeWRL_resitem_getType(void *fwctx, void *res){
 	fwl_clearCurrentHandle();
 	return status;
 }
+DLLFREEWRL_API int dllFreeWRL_resitem_getMediaType(void *fwctx, void *res) {
+	int status;
+	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
+		status = fwl_resitem_getMediaType(res);
+	}
+	fwl_clearCurrentHandle();
+	return status;
+}
+
 DLLFREEWRL_API void dllFreeWRL_resitem_enqueuNextMulti(void *fwctx, void *res){
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 		fwl_resitem_enqueuNextMulti(res);
@@ -312,3 +354,4 @@ DLLFREEWRL_API void dllFreeWRL_commandline(void *fwctx, char *cmdline){
 	}
 	fwl_clearCurrentHandle();
 }
+

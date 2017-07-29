@@ -24,229 +24,320 @@ use warnings;
 # used for the X3D Parser only. Return type of node.
 
 our %defaultContainerType = (
-	Proto			=>"children",
+	Proto			=>["children"],  #max 3 in list, 10 bits each < 32bits
 
-	ContourPolyLine2D	=>"children",
-	NurbsCurve		=>"geometry",
-	NurbsCurve2D		=>"children",
-	Contour2D 		=>"trimmingContour",
-	NurbsPositionInterpolator	=>"children",
-	NurbsTrimmedSurface	=>"geometry",
-	CoordinateDouble	=>"children",
-	NurbsOrientationInterpolator	=>"children",
-	NurbsPatchSurface	=>"geometry",
-	NurbsSet		=>"children",
-	NurbsSurfaceInterpolator	=>"children",
-	NurbsSweptSurface	=>"children",
-	NurbsSwungSurface	=>"children",
-	NurbsTextureCoordinate	=>"children",
-
-
-	PointPickSensor		=>"children",
-	OSC_Sensor		=>"children",
-
-	Arc2D			=>"geometry",
-	ArcClose2D		=>"geometry",
-	Circle2D		=>"geometry",
-	Disk2D			=>"geometry",
-	Polyline2D		=>"geometry",
-	Polypoint2D		=>"geometry",
-	Rectangle2D		=>"geometry",
-	TriangleSet2D		=>"geometry",
-
-	IndexedQuadSet		=>"geometry",
-	QuadSet			=>"geometry",
-	CADLayer		=>"children",
-	CADFace			=>"children",
-	CADAssembly		=>"children",
-	CADPart			=>"children",
+	ContourPolyline2D	=>["children"],
+	NurbsCurve		=>["geometry"],
+	NurbsCurve2D		=>["children"],
+	Contour2D 		=>["trimmingContour"],
+	NurbsPositionInterpolator	=>["children"],
+	NurbsTrimmedSurface	=>["geometry"],
+	CoordinateDouble	=>["controlPoint"],
+	NurbsOrientationInterpolator	=>["children"],
+	NurbsPatchSurface	=>["geometry"],
+	NurbsSet		=>["children"],
+	NurbsSurfaceInterpolator	=>["children"],
+	NurbsSweptSurface	=>["geometry"],
+	NurbsSwungSurface	=>["geometry"],
+	NurbsTextureCoordinate	=>["texCoord"],
 
 
-	Anchor 			=>"children",
-	Appearance 		=>"appearance",
-	AudioClip 		=>"source",
-	Background 		=>"children",
-	Billboard 		=>"children",
-	Box 			=>"geometry",
-	ClipPlane 		=>"children",
-	Collision 		=>"children",
-	Color 			=>"color",
-	ColorInterpolator 	=>"children",
-	ColorRGBA 		=>"color",
-	Cone 			=>"geometry",
-	Coordinate 		=>"coord",
-	FogCoordinate 		=>"coord",
-	CoordinateDeformer 	=>"children",
-	CoordinateInterpolator 	=>"children",
-	CoordinateInterpolator2D 	=>"children",
-	Cylinder 		=>"geometry",
-	CylinderSensor 		=>"children",
-	DirectionalLight 	=>"children",
-	ElevationGrid 		=>"geometry",
-	Extrusion 		=>"geometry",
-	FillProperties		=>"fillProperties",
-	Fog 			=>"children",
-	LocalFog 		=>"children",
-	FontStyle 		=>"fontStyle",
-	GeoCoordinate 		=>"coord",
-	GeoElevationGrid 	=>"geometry",
-	GeoLocation 		=>"children",
-	GeoLOD 			=>"children",
-	GeoMetadata		=>"children",
-	GeoOrigin 		=>"geoOrigin",
-	GeoPositionInterpolator	=>"children",
-	GeoProximitySensor 	=>"children",
-	GeoTouchSensor		=>"children",
-	GeoTransform		=>"children",
-	GeoViewpoint 		=>"children",
-	Group 			=>"children",
-	ViewpointGroup		=>"children",
-	HAnimDisplacer		=>"children",
-	HAnimHumanoid		=>"children",
-	HAnimJoint		=>"joints",
-	HAnimSegment		=>"segments",
-	HAnimSite		=>"sites",
-	ImageTexture 		=>"texture",
-	ImageCubeMapTexture 	=>"texture",
-	GeneratedCubeMapTexture	=>"texture",
-	ComposedCubeMapTexture	=>"texture",
-	IndexedFaceSet 		=>"geometry",
-	IndexedLineSet 		=>"geometry",
-	IndexedTriangleFanSet 	=>"geometry",
-	IndexedTriangleSet 	=>"geometry",
-	IndexedTriangleStripSet	=>"geometry",
-	Inline 			=>"children",
-	KeySensor		=>"children",
-	LineSet 		=>"geometry",
-	LineProperties		=>"lineProperties",
-	LineSensor 		=>"children",
-	LoadSensor		=>"children",
-	LOD 			=>"children",
-	Material 		=>"material",
-	TwoSidedMaterial	=>"material",
-	MultiTexture		=>"texture",
-	MultiTextureCoordinate  =>"texCoord",
-	MultiTextureTransform	=>"textureTransform",
-	MovieTexture 		=>"texture",
-	NavigationInfo 		=>"children",
-	Normal 			=>"normal",
-	NormalInterpolator 	=>"children",
-	OrientationInterpolator	=>"children",
-	PickableGroup 		=>"children",
-	PixelTexture 		=>"texture",
-	PlaneSensor 		=>"children",
-	PointLight 		=>"children",
-	PointSet 		=>"geometry",
-	PositionInterpolator 	=>"children",
-	PositionInterpolator2D 	=>"children",
-	ProximitySensor 	=>"children",
-	ScalarInterpolator 	=>"children",
-	Scene 			=>"children",
-	Script 			=>"children",
-	Shape 			=>"children",
-	Sound 			=>"children",
-	Sphere 			=>"geometry",
-	SphereSensor 		=>"children",
-	SpotLight 		=>"children",
-	StaticGroup		=>"children",
-	StringSensor		=>"children",
-	Switch 			=>"children",
-	Text 			=>"geometry",
-	TextureBackground 	=>"children",
-	TextureCoordinate 	=>"texCoord",
-	TextureCoordinateGenerator  =>"texCoord",
-	TextureTransform 	=>"textureTransform",
-	TextureProperties	=>"children",
-	TimeSensor 		=>"children",
-	TouchSensor 		=>"children",
-	Transform 		=>"children",
-	TriangleFanSet 		=>"geometry",
-	TriangleSet 		=>"geometry",
-	TriangleStripSet 	=>"geometry",
-	TrimmedSurface 		=>"children",
-	Viewpoint 		=>"children",
-	OrthoViewpoint 		=>"children",
-	VisibilitySensor 	=>"children",
-	WorldInfo 		=>"children",
+	PointPickSensor		=>["children"],
+	LinePickSensor		=>["children"],
+	PrimitivePickSensor	=>["children"],
+	VolumePickSensor	=>["children"],
+	OSC_Sensor		=>["children"],
 
-	BooleanFilter		=>"children",
-	BooleanSequencer	=>"children",
-	BooleanToggle		=>"children",
-	BooleanTrigger		=>"children",
-	IntegerSequencer	=>"children",
-	IntegerTrigger		=>"children",
-	TimeTrigger		=>"children",
+	Arc2D			=>["geometry"],
+	ArcClose2D		=>["geometry"],
+	Circle2D		=>["geometry"],
+	Disk2D			=>["geometry"],
+	Polyline2D		=>["geometry"],
+	Polypoint2D		=>["geometry"],
+	Rectangle2D		=>["geometry"],
+	TriangleSet2D		=>["geometry"],
 
-	ComposedShader		=>"shaders",
-	ProgramShader		=>"shaders",
-	PackagedShader		=>"shaders",
-	FloatVertexAttribute	=>"children",
-	Matrix3VertexAttribute	=>"children",
-	Matrix4VertexAttribute	=>"children",
-	ShaderPart		=>"parts",
-	ShaderProgram		=>"programs",
-
-	MetadataSet		=>"metadata",
-	MetadataInteger		=>"metadata",
-	MetadataDouble		=>"metadata",
-	MetadataFloat		=>"metadata",
-	MetadataString		=>"metadata",
+	IndexedQuadSet		=>["geometry"],
+	QuadSet			=>["geometry"],
+	CADLayer		=>["children"],
+	CADFace			=>["children"],
+	CADAssembly		=>["children"],
+	CADPart			=>["children"],
 
 
-	MetadataSFFloat		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFFloat		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFRotation	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFRotation	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFVec3f		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFVec3f		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFBool		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFBool		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFInt32		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFInt32		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFNode		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFNode		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFColor		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFColor		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFColorRGBA	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFColorRGBA	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFTime		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFTime		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFString	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFString	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFVec2f		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFVec2f		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFImage		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataFreeWRLPTR	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFVec3d		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFVec3d		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFDouble	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFDouble	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFMatrix3f	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFMatrix3f	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFMatrix3d	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFMatrix3d	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFMatrix4f	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFMatrix4f	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFMatrix4d	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFMatrix4d	=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFVec2d		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFVec2d		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFVec4f		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFVec4f		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataSFVec4d		=>"FreeWRL_PROTOInterfaceNodes",
-	MetadataMFVec4d		=>"FreeWRL_PROTOInterfaceNodes",
+	Anchor 			=>["children"],
+	Appearance 		=>["appearance"],
+	AudioClip 		=>["source"],
+	Background 		=>["children"],
+	Billboard 		=>["children"],
+	Box 			=>["geometry"],
+	ClipPlane 		=>["children"],
+	Collision 		=>["children"],
+	Color 			=>["color"],
+	ColorInterpolator 	=>["children"],
+	ColorRGBA 		=>["color"],
+	Cone 			=>["geometry"],
+	Coordinate 		=>["coord","skinCoord"],
+	FogCoordinate 		=>["fogCoord"],
+	CoordinateDeformer 	=>["children"],
+	CoordinateInterpolator 	=>["children"],
+	CoordinateInterpolator2D 	=>["children"],
+	Cylinder 		=>["geometry"],
+	CylinderSensor 		=>["children"],
+	DirectionalLight 	=>["children"],
+	ElevationGrid 		=>["geometry"],
+	Extrusion 		=>["geometry"],
+	FillProperties		=>["fillProperties"],
+	Fog 			=>["children"],
+	LocalFog 		=>["children"],
+	FontStyle 		=>["fontStyle"],
+	GeoCoordinate 		=>["coord"],
+	GeoElevationGrid 	=>["geometry"],
+	GeoLocation 		=>["children"],
+	GeoLOD 			=>["children"],
+	GeoMetadata		=>["children"],
+	GeoOrigin 		=>["geoOrigin"],
+	GeoPositionInterpolator	=>["children"],
+	GeoProximitySensor 	=>["children"],
+	GeoTouchSensor		=>["children"],
+	GeoTransform		=>["children"],
+	GeoViewpoint 		=>["children"],
+	Group 			=>["children"],
+	ViewpointGroup		=>["children"],
+	HAnimDisplacer		=>["displacers"],
+	HAnimHumanoid		=>["children"],
+	HAnimJoint		=>["joints"],
+	HAnimSegment		=>["segments"],
+	HAnimSite		=>["sites"],
+	ImageTexture 		=>["texture"],
+	ImageCubeMapTexture 	=>["texture"],
+	GeneratedCubeMapTexture	=>["texture"],
+	ComposedCubeMapTexture	=>["texture"],
+	IndexedFaceSet 		=>["geometry"],
+	IndexedLineSet 		=>["geometry"],
+	IndexedTriangleFanSet 	=>["geometry"],
+	IndexedTriangleSet 	=>["geometry"],
+	IndexedTriangleStripSet	=>["geometry"],
+	Inline 			=>["children"],
+	KeySensor		=>["children"],
+	LineSet 		=>["geometry"],
+	LineProperties		=>["lineProperties"],
+	LineSensor 		=>["children"],
+	LoadSensor		=>["children"],
+	LOD 			=>["children"],
+	Material 		=>["material"],
+	TwoSidedMaterial	=>["material"],
+	MultiTexture		=>["texture"],
+	MultiTextureCoordinate  =>["texCoord"],
+	MultiTextureTransform	=>["textureTransform"],
+	MovieTexture 		=>["texture","source"], #or source aka SoundSource like AudioClip
+	NavigationInfo 		=>["children"],
+	Normal 			=>["normal"],
+	NormalInterpolator 	=>["children"],
+	OrientationInterpolator	=>["children"],
+	PickableGroup 		=>["children"],
+	PixelTexture 		=>["texture"],
+	PlaneSensor 		=>["children"],
+	PointLight 		=>["children"],
+	PointSet 		=>["geometry"],
+	PositionInterpolator 	=>["children"],
+	PositionInterpolator2D 	=>["children"],
+	ProximitySensor 	=>["children"],
+	ScalarInterpolator 	=>["children"],
+	Scene 			=>["children"],
+	Script 			=>["children"],
+	Shape 			=>["children","shape"],
+	Sound 			=>["children"],
+	Sphere 			=>["geometry"],
+	SphereSensor 		=>["children"],
+	SpotLight 		=>["children"],
+	StaticGroup		=>["children"],
+	StringSensor		=>["children"],
+	Switch 			=>["children"],
+	Teapot 			=>["geometry"],
+	Text 			=>["geometry"],
+	TextureBackground 	=>["children"],
+	TextureCoordinate 	=>["texCoord"],
+	TextureCoordinateGenerator  =>["texCoord"],
+	TextureTransform 	=>["textureTransform"],
+	TextureProperties	=>["textureProperties"],
+	TimeSensor 		=>["children"],
+	TouchSensor 		=>["children"],
+	Transform 		=>["children"],
+	TransformSensor		=>["children"],
+	TriangleFanSet 		=>["geometry"],
+	TriangleSet 		=>["geometry"],
+	TriangleStripSet 	=>["geometry"],
+	TrimmedSurface 		=>["children"],
+	Viewpoint 		=>["children"],
+	OrthoViewpoint 		=>["children"],
+	VisibilitySensor 	=>["children"],
+	WorldInfo 		=>["children"],
 
-	EaseInEaseOut 	=>"children",
-	SplinePositionInterpolator 	=>"children",
-	SplinePositionInterpolator2D 	=>"children",
-	SplineScalarInterpolator 	=>"children",
-	SquadOrientationInterpolator 	=>"children",
-	DISEntityManager	=>"children",
-	DISEntityTypeMapping	=>"children",
-	EspduTransform		=>"children",
-	ReceiverPdu		=>"children",
-	SignalPdu		=>"children",
-	TransmitterPdu		=>"children",
+	BooleanFilter		=>["children"],
+	BooleanSequencer	=>["children"],
+	BooleanToggle		=>["children"],
+	BooleanTrigger		=>["children"],
+	IntegerSequencer	=>["children"],
+	IntegerTrigger		=>["children"],
+	TimeTrigger		=>["children"],
+
+	ComposedShader		=>["shaders"],
+	ProgramShader		=>["shaders"],
+	PackagedShader		=>["shaders"],
+	FloatVertexAttribute	=>["children"],
+	Matrix3VertexAttribute	=>["children"],
+	Matrix4VertexAttribute	=>["children"],
+	ShaderPart		=>["parts"],
+	ShaderProgram		=>["programs"],
+
+	Viewport		=>["viewport"],
+	Layer			=>["layers"],
+	LayerSet		=>["children"],
+
+	Layout			=>["layout"],
+	LayoutGroup		=>["children"],
+	LayoutLayer		=>["layers"],
+	ScreenFontStyle		=>["fontStyle"],
+	ScreenGroup		=>["children"],
+
+	BallJoint		=>["joints"],
+	CollidableOffset	=>["collidables","geometry","collidable"],
+	CollidableShape		=>["collidables","geometry","collidable"],
+	CollisionCollection	=>["collider"],
+	CollisionSensor		=>["children"],
+	CollisionSpace		=>["collidables"],
+	Contact			=>["children"],
+	DoubleAxisHingeJoint	=>["joints"],
+	MotorJoint		=>["joints"],
+	RigidBody		=>["bodies"],
+	RigidBodyCollection	=>["children"],
+	SingleAxisHingeJoint	=>["joints"],
+	SliderJoint		=>["joints"],
+	UniversalJoint		=>["joints"],
+
+	ColorChaser		=>["children"],
+	ColorDamper		=>["children"],
+	CoordinateChaser	=>["children"],
+	CoordinateDamper	=>["children"],
+	OrientationChaser	=>["children"],
+	OrientationDamper	=>["children"],
+	PositionChaser		=>["children"],
+	PositionDamper		=>["children"],
+	PositionChaser2D	=>["children"],
+	PositionDamper2D	=>["children"],
+	ScalarChaser		=>["children"],
+	ScalarDamper		=>["children"],
+	TexCoordChaser2D	=>["children"],
+	TexCoordDamper2D	=>["children"],
+
+	ConeEmitter		=>["emitter"],
+	ExplosionEmitter	=>["emitter"],
+	PointEmitter		=>["emitter"],
+	PolylineEmitter		=>["emitter"],
+	SurfaceEmitter		=>["emitter"],
+	VolumeEmitter		=>["emitter"],
+	WindPhysicsModel	=>["physics"],
+	BoundedPhysicsModel	=>["physics"],
+	ForcePhysicsModel	=>["physics"],
+	ParticleSystem		=>["shape"],
+
+	
+	MetadataSet		=>["metadata"],
+	MetadataBoolean		=>["metadata"],
+	MetadataInteger		=>["metadata"],
+	MetadataDouble		=>["metadata"],
+	MetadataFloat		=>["metadata"],
+	MetadataString		=>["metadata"],
+
+	#could re-direct these to "children" if/when troto target obsolete, and before all these are cut:
+	#Mar 2016 changed from =>["FreeWRL_PROTOInterfaceNodes"], to =>["metadata"],
+	MetadataSFFloat		=>["metadata"],
+	MetadataMFFloat		=>["metadata"],
+	MetadataSFRotation	=>["metadata"],
+	MetadataMFRotation	=>["metadata"],
+	MetadataSFVec3f		=>["metadata"],
+	MetadataMFVec3f		=>["metadata"],
+	MetadataSFBool		=>["metadata"],
+	MetadataMFBool		=>["metadata"],
+	MetadataSFInt32		=>["metadata"],
+	MetadataMFInt32		=>["metadata"],
+	MetadataSFNode		=>["metadata"],
+	MetadataMFNode		=>["metadata"],
+	MetadataSFColor		=>["metadata"],
+	MetadataMFColor		=>["metadata"],
+	MetadataSFColorRGBA	=>["metadata"],
+	MetadataMFColorRGBA	=>["metadata"],
+	MetadataSFTime		=>["metadata"],
+	MetadataMFTime		=>["metadata"],
+	MetadataSFString	=>["metadata"],
+	MetadataMFString	=>["metadata"],
+	MetadataSFVec2f		=>["metadata"],
+	MetadataMFVec2f		=>["metadata"],
+	MetadataSFImage		=>["metadata"],
+	MetadataFreeWRLPTR	=>["metadata"],
+	MetadataSFVec3d		=>["metadata"],
+	MetadataMFVec3d		=>["metadata"],
+	MetadataSFDouble	=>["metadata"],
+	MetadataMFDouble	=>["metadata"],
+	MetadataSFMatrix3f	=>["metadata"],
+	MetadataMFMatrix3f	=>["metadata"],
+	MetadataSFMatrix3d	=>["metadata"],
+	MetadataMFMatrix3d	=>["metadata"],
+	MetadataSFMatrix4f	=>["metadata"],
+	MetadataMFMatrix4f	=>["metadata"],
+	MetadataSFMatrix4d	=>["metadata"],
+	MetadataMFMatrix4d	=>["metadata"],
+	MetadataSFVec2d		=>["metadata"],
+	MetadataMFVec2d		=>["metadata"],
+	MetadataSFVec4f		=>["metadata"],
+	MetadataMFVec4f		=>["metadata"],
+	MetadataSFVec4d		=>["metadata"],
+	MetadataMFVec4d		=>["metadata"],
+
+
+	EaseInEaseOut 	=>["children"],
+	SplinePositionInterpolator 	=>["children"],
+	SplinePositionInterpolator2D 	=>["children"],
+	SplineScalarInterpolator 	=>["children"],
+	SquadOrientationInterpolator 	=>["children"],
+	DISEntityManager	=>["children"],
+	DISEntityTypeMapping	=>["children"],
+	EspduTransform		=>["children"],
+	ReceiverPdu		=>["children"],
+	SignalPdu		=>["children"],
+	TransmitterPdu		=>["children"],
+	
+	ComposedTexture3D	=>["texture"],
+	ImageTexture3D		=>["texture"],
+	PixelTexture3D		=>["texture"],
+	TextureCoordinate3D	=>["texCoord"],
+	TextureCoordinate4D	=>["texCoord"],
+	TextureTransformMatrix3D =>["textureTransform"],
+	TextureTransform3D	=>["textureTransform"],
+
+	OpacityMapVolumeStyle	=>["renderStyle"],
+	VolumeData		=>["children"],
+	SegmentedVolumeData	=>["children"],
+	IsoSurfaceVolumeData	=>["children"],
+	BoundaryEnhancementVolumeStyle =>["renderStyle"],
+	ComposedVolumeStyle	=>["renderStyle"],
+	EdgeEnhancementVolumeStyle =>["renderStyle"],
+	ProjectionVolumeStyle	=>["renderStyle"],
+	BlendedVolumeStyle	=>["renderStyle"],
+	CartoonVolumeStyle	=>["renderStyle"],
+	CompositeVolumeStyle	=>["renderStyle"],
+	ShadedVolumeStyle	=>["renderStyle"],
+	SilhouetteEnhancementVolumeStyle =>["renderStyle"],
+	ToneMappedVolumeStyle	=>["renderStyle"],
+	
+	
+	BackdropBackground	=>["children"],
+	ImageBackdropBackground	=>["children"],
+	CalibratedCameraSensor	=>["children"],
+	TrackingSensor		=>["children"],
+	Effect			=>["children"],
+	EffectPart		=>["parts"],
 );
 
 
@@ -265,7 +356,6 @@ our %defaultContainerType = (
 # All of these will have a render_xxx name associated with them.
 
 our %RendC = map {($_=>1)} qw/
-	NavigationInfo
 	Fog
 	Background
 	TextureBackground
@@ -274,6 +364,7 @@ our %RendC = map {($_=>1)} qw/
 	Cone
 	Sphere
 	IndexedFaceSet
+	Teapot
 	Extrusion
 	ElevationGrid
 	Arc2D
@@ -321,7 +412,13 @@ our %RendC = map {($_=>1)} qw/
 	QuadSet
 	NurbsCurve
 	NurbsPatchSurface
+	NurbsSwungSurface
+	NurbsSweptSurface	
 	NurbsTrimmedSurface
+	ComposedTexture3D
+	PixelTexture3D
+	ImageTexture3D
+	
 /;
 
 #######################################################################
@@ -378,6 +475,13 @@ our %PrepC = map {($_=>1)} qw/
 	GeoTransform
 	CADAssembly
 	CADPart
+	Viewport
+	LayoutGroup
+	ScreenGroup
+	Layer
+	LayoutLayer
+	CollidableOffset
+	CollidableShape
 /;
 
 #######################################################################
@@ -398,6 +502,13 @@ our %FinC = map {($_=>1)} qw/
 	HAnimJoint
 	GeoTransform
 	CADPart
+	Viewport
+	LayoutGroup
+	ScreenGroup
+	Layer
+	LayoutLayer	
+	CollidableOffset
+	CollidableShape	
 /;
 
 
@@ -438,7 +549,18 @@ our %ChildC = map {($_=>1)} qw/
 	Collision
 	Appearance
 	Shape
-	VisibilitySensor
+	Viewport
+	LayoutGroup
+	ScreenGroup
+	LayerSet
+	Layer
+	LayoutLayer	
+	CollidableOffset
+	CollidableShape
+	VolumeData
+	SegmentedVolumeData
+	IsoSurfaceVolumeData
+	ParticleSystem
 /;
 
 
@@ -451,6 +573,7 @@ our %ChildC = map {($_=>1)} qw/
 our %CompileC = map {($_=>1)} qw/
 	Shape
 	ImageCubeMapTexture
+	GeneratedCubeMapTexture
 	Transform
 	Group
 	Proto
@@ -475,6 +598,7 @@ our %CompileC = map {($_=>1)} qw/
 	Cone
 	Cylinder
 	Sphere
+	Teapot
 	GeoLocation
 	GeoCoordinate
 	GeoElevationGrid
@@ -490,6 +614,7 @@ our %CompileC = map {($_=>1)} qw/
 	ComposedShader
 	ProgramShader
 	PackagedShader
+	Effect
 	MetadataMFFloat
 	MetadataMFRotation
 	MetadataMFVec3f
@@ -533,6 +658,7 @@ our %CompileC = map {($_=>1)} qw/
 	MetadataSFVec4d
 	MetadataSet
 	MetadataInteger
+	MetadataBoolean
 	MetadataDouble
 	MetadataFloat
 	MetadataString
@@ -542,7 +668,22 @@ our %CompileC = map {($_=>1)} qw/
 	DirectionalLight
 	NurbsCurve
 	NurbsPatchSurface
+	NurbsSwungSurface
+	NurbsSweptSurface	
 	NurbsTrimmedSurface
+	ContourPolyline2D	
+	Layout
+	
+	CollidableOffset
+	CollidableShape
+	VolumeData
+	SegmentedVolumeData
+	IsoSurfaceVolumeData
+	
+	ParticleSystem
+	HAnimJoint
+	HAnimSite
+	HAnimHumanoid
 /;
 
 
@@ -572,6 +713,7 @@ our %OtherC = map {($_=>1)} qw/
 	PointPickSensor
 	PickableGroup
 	Sphere
+	VisibilitySensor
 /;
 
 
@@ -620,6 +762,7 @@ our %CollisionC = map {($_=>1)} qw/
 	Box
 	Cone
 	Cylinder
+	Teapot
 	ElevationGrid
 	IndexedFaceSet
 	IndexedQuadSet
@@ -634,6 +777,8 @@ our %CollisionC = map {($_=>1)} qw/
 	Text
 	GeoElevationGrid
 	NurbsPatchSurface
+	NurbsSwungSurface
+	NurbsSweptSurface	
 	NurbsTrimmedSurface	
 /;
 
@@ -713,6 +858,7 @@ our %RendRayC = map {($_=>1)} qw/
 	Sphere
 	Cylinder
 	Cone
+	Teapot
 	GeoElevationGrid
 	ElevationGrid
 	Text
@@ -727,7 +873,9 @@ our %RendRayC = map {($_=>1)} qw/
 	TriangleFanSet
 	TriangleStripSet
 	NurbsPatchSurface
-	NurbsTrimmedSurface	
+	NurbsSwungSurface
+	NurbsSweptSurface	
+	NurbsTrimmedSurface
 /;
 
 
@@ -750,6 +898,7 @@ our %KeywordC = map {($_=>1)} qw/
 	IMPORT
 	IS
 	META
+	UNIT
 	NULL
 	PROFILE
 	PROTO
@@ -799,7 +948,7 @@ our %ComponentC = map {($_=>1)} qw/
 	Networking
 	NURBS
 	ParticleSystems
-	PickingSensor
+	Picking
 	PointDeviceSensor
 	Shaders
 	Rendering
@@ -811,6 +960,7 @@ our %ComponentC = map {($_=>1)} qw/
 	Texturing
 	Texturing3D
 	Time
+	VolumeRendering
 /;
 
 
@@ -1007,24 +1157,26 @@ our %MultiTextureFunctionC = map {($_=>1)} qw/
 
 
 our %MultiTextureModeC = map {($_=>1)} qw/
+	MODULATE
+	REPLACE
 	MODULATE2X
 	MODULATE4X
+	ADD
+	ADDSIGNED
+	ADDSIGNED2X
+	SUBTRACT
 	ADDSMOOTH
 	BLENDDIFFUSEALPHA
+	BLENDTEXTUREALPHA
+	BLENDFACTORALPHA
 	BLENDCURRENTALPHA
 	MODULATEALPHA_ADDCOLOR
 	MODULATEINVALPHA_ADDCOLOR
 	MODULATEINVCOLOR_ADDALPHA
+	OFF
 	SELECTARG1
 	SELECTARG2
 	DOTPRODUCT3
-	MODULATE
-	REPLACE
-	SUBTRACT
-	ADDSIGNED2X
-	ADDSIGNED
-	ADD
-	OFF
 /;
 
 our %TextureCoordGenModeC = map {($_=>1)} qw/

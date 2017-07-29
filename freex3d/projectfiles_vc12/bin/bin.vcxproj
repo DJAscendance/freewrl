@@ -38,8 +38,8 @@
     <SRC>../../src</SRC>
     <SRCWIN>../../src_windows</SRCWIN>
     <LIBWIN>../../../../lib_windows_vc12</LIBWIN>
-    <ANGLELIB>$(LIBWIN)/angleproject/lib</ANGLELIB>
-    <ANGLELIB_HIDE>../../../../lib_windowsStore/angleproject_MSOpenTech_RT/src_desktopVC12</ANGLELIB_HIDE>
+    <ANGLELIB_HIDE>$(LIBWIN)/angleproject/lib</ANGLELIB_HIDE>
+    <ANGLELIB>../../../../angleproject2016/angle-ms-master</ANGLELIB>
   </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>freeWRL</ProjectName>
@@ -50,7 +50,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_glew|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v120_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
@@ -173,9 +173,9 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;fwlibGLESv2.lib;fwlibEGL.lib;pthreadd.lib;zlib.lib;libminizip.lib;gdiplus.lib;ws2_32.lib;freetype252MT_D.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;mozjs185-1.0.lib;OpenAL32.lib;alut.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;libANGLE.lib;libGLESv2.lib;libEGL.lib;pthreadd.lib;zlib.lib;libminizip.lib;gdiplus.lib;ws2_32.lib;freetype252MT_D.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;mozjs185-1.0.lib;OpenAL32.lib;alut.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(ANGLELIB)/Debug;$(LIBWIN)\js185\lib;$(LIBWIN)\pthread\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(ANGLELIB)\build\Debug_Win32\lib;$(LIBWIN)\js185\lib;$(LIBWIN)\pthread\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>MSVCRT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -219,8 +219,8 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;fwlibGLESv2.lib;fwlibEGL.lib;pthread.lib;zlib.lib;libminizip.lib;mozjs185-1.0.lib;gdiplus.lib;ws2_32.lib;freetype252.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;OpenAL32.lib;alut.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(ANGLELIB)/Release;$(LIBWIN)\js185\lib;$(LIBWIN)\pthread\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;libANGLE.lib;libGLESv2.lib;libEGL.lib;pthread.lib;zlib.lib;libminizip.lib;mozjs185-1.0.lib;gdiplus.lib;ws2_32.lib;freetype252.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;OpenAL32.lib;alut.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(ANGLELIB)\build\Release_Win32\lib;$(LIBWIN)\js185\lib;$(LIBWIN)\pthread\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -253,8 +253,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_glew|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SRCWIN);$(SRC)\bin;$(SRC)\lib;$(LIBWIN)\pthread\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>W_DEBUG;WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;STATUSBAR_HUD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SRCWIN);$(SRC)\bin;$(SRC)\lib;$(LIBWIN)\pthreads.2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>W_DEBUG;WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;STATUSBAR_HUD;USE_SNAPSHOT_TESTING_NO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -264,14 +264,15 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;glew32mx.lib;Opengl32.lib;pthreadd.lib;zlib.lib;libminizip.lib;gdiplus.lib;ws2_32.lib;freetype252.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;mozjs185-1.0.lib;OpenAL32.lib;alut.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libnurbs.lib;libFreeWRL.lib;glew32mx.lib;Opengl32.lib;pthreadVC2.lib;zlib.lib;libminizip.lib;gdiplus.lib;ws2_32.lib;freetype252.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;OpenAL32.lib;alut.lib;ode_doubled.lib;avcodec.lib;swscale.lib;avformat.lib;avutil.lib;avfilter.lib;swresample.lib;avdevice.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(LIBWIN)\MSopenGL\lib;$(LIBWIN)\glew\lib\Release MX\Win32;$(LIBWIN)\js185\lib;$(LIBWIN)\pthread\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Debug_glew;..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(LIBWIN)\MSopenGL\lib;$(LIBWIN)\glew\lib\Release MX\Win32;$(LIBWIN)\js185\lib;$(LIBWIN)\pthreadS.2;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;$(LIBWIN)\ODE\lib;$(LIBWIN)\ffmpeg\x86xp\lib;..\Debug_glew;..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>MSVCRT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_glew|x64'">
@@ -292,7 +293,7 @@
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(LIBWIN)\glew\lib\Release MX\x64;$(LIBWIN)\pthread4w\Pre-built.2\lib\x64;$(LIBWIN)\freetype2\x64\lib;$(LIBWIN)\zlib\x64\lib;$(LIBWIN)\libxml2\x64\lib;..\Debug_glew;..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <IgnoreSpecificDefaultLibraries>MSVCRT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[LIBCMT];%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -301,7 +302,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SRCWIN);$(SRC)\bin;$(SRC)\lib;$(LIBWIN)\pthread\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SRCWIN);$(SRC)\bin;$(SRC)\lib;$(LIBWIN)\pthreads.2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -310,13 +311,14 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;glew32mx.lib;Opengl32.lib;pthread.lib;zlib.lib;libminizip.lib;mozjs185-1.0.lib;gdiplus.lib;ws2_32.lib;freetype252.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;OpenAL32.lib;alut.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(LIBWIN)\MSopenGL\lib;$(LIBWIN)\glew\lib\Release MX\Win32;$(LIBWIN)\js185\lib;$(LIBWIN)\pthread\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Release_glew;..\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libtess.lib;libnurbs.lib;libFreeWRL.lib;glew32mx.lib;Opengl32.lib;pthreadVC2.lib;zlib.lib;libminizip.lib;mozjs185-1.0.lib;gdiplus.lib;ws2_32.lib;freetype252.lib;shlwapi.lib;windowscodecs.lib;libxml2.lib;Wininet.lib;Winmm.lib;OpenAL32.lib;alut.lib;ode_double.lib;avcodec.lib;swscale.lib;avformat.lib;avutil.lib;avfilter.lib;swresample.lib;avdevice.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBWIN)\pthreads.2;$(LIBWIN)\ODE\lib;$(LIBWIN)\ffmpeg\x86xp\lib;$(LIBWIN)\freeALUT\lib;$(LIBWIN)\openALsoft\lib;$(LIBWIN)\MSopenGL\lib;$(LIBWIN)\glew\lib\Release MX\Win32;$(LIBWIN)\js185\lib;$(LIBWIN)\freetype2\lib;$(LIBWIN)\zlib\lib;$(LIBWIN)\libxml2\lib;..\Release_glew;..\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_glew|x64'">

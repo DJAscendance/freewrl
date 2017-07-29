@@ -35,20 +35,23 @@ void process_x3z(resource_item_t *res);
 char* concat_path(const char *a, const char *b);
 char* remove_filename_from_path(const char *path);
 
+
 /* Simple functions for file/dir access */
 char *get_current_dir();
 bool do_file_exists(const char *filename);
 bool do_file_readable(const char *filename);
 bool do_dir_exists(const char *dir);
+int fw_mkdir(const char* path);
 
 typedef struct openned_file {
-	char *fileFileName;
+	const char *fileFileName;
 	int fileDescriptor;
 	int fileDataSize;
 	char *fileData;
 	int imageHeight;
 	int imageWidth;
 	bool imageAlpha;
+	int imageChannels;
 } openned_file_t;
 
 void of_dump(openned_file_t *of);

@@ -24,6 +24,7 @@
     along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 ****************************************************************************/
 
+
 #include <config.h>
 #include <system.h>
 #include <system_threads.h>
@@ -69,8 +70,13 @@
 #include "../scenegraph/RenderFuncs.h"
 
 #include "../ui/common.h"
+#include "../io_files.h"
 
 #include "ProdCon.h"
+#include "../scenegraph/quaternion.h"
+
+ivec2 ivec2_init(int x, int y);
+ivec4 ivec4_init(int x, int y, int w, int h);
 
 int getRayHitAndSetLookatTarget();
 void transformMBB(GLDOUBLE *rMBBmin, GLDOUBLE *rMBBmax, GLDOUBLE *matTransform, GLDOUBLE* inMBBmin, GLDOUBLE* inMBBmax);
@@ -88,12 +94,28 @@ void (*newResetGeometry) (void) = NULL;
 	#define USE_OSC 0
 #endif
 
-#if defined(_ANDROID )
-void  setAquaCursor(int ctype) { };
-
-#endif // _ANDROID
+#ifdef OLDCODE
+OLDCODE #if defined(_ANDROID )
+OLDCODE void  setAquaCursor(int ctype) { };
+OLDCODE 
+OLDCODE #endif // _ANDROID
+#endif //OLDCODE
 
 #include "MainLoop.h"
+
+static int debugging_trigger_state;
+void toggle_debugging_trigger(){
+	//set trigger with ',' keyboard command, 
+	debugging_trigger_state = 1 - debugging_trigger_state;
+}
+int get_debugging_trigger_once(){
+	int iret = debugging_trigger_state;
+	if(iret) debugging_trigger_state = 0;
+	return iret;
+}
+int get_debugging_trigger(){
+	return debugging_trigger_state;
+}
 
 double TickTime()
 {
@@ -110,38 +132,2864 @@ struct SensStruct {
         struct X3D_Node *datanode;
         void (*interpptr)(void *, int, int, int);
 };
+#define LMB 1
+#define RMB 3
+// and course #define MMB 2
+// but it gives a compiler warning on Linux...
+
+//conceptually a Touch isa Drag. A touch device will send in multiple coordinates, with the same ID,
+// and what that means is you are updating the terminal endpoint of a Touch or Drag. 
+// If its a new touch/drag ID then of course you also are setting the start point.
+//Drags don't inherently have a concept of isOver. Our backend needs to create that. 
+// For example the SHIFT key.
+//Funny as of May 2016 we don't store startpoint in the touch - it's state seems to be scattered
+enum {
+	TOUCHCLAIMANT_UNCLAIMED = 0, //means no one has looked at it yet to make a claim
+	TOUCHCLAIMANT_PEDAL = 1, // for | ORing 
+	TOUCHCLAIMANT_SENSOR = 2,
+	TOUCHCLAIMANT_NAVIGATION = 4,
+	TOUCHCLAIMANT_NONE = 8, //means something like hover
+};
 struct Touch
 {
-	int button; /*none down=0, LMB =1, MMB=2, RMB=3*/
-	bool isDown; /* false = up, true = down */
+	//int buttonState[4]; /*none down=0, LMB =1, MMB=2, RMB=3*/
+	int buttonState; //0 up, 1 down. For ^ hover mode, buttonstate will be 0 even when touch down
 	int mev; /* down/press=4, move/drag=6, up/release=5 */
-	int ID;  /* for multitouch: 0-20, represents one finger drag. Recycle after an up */
+	unsigned int ID;  /* for multitouch: 0-20, represents one finger drag. Recycle after an up */
+	int inUse; //flag for garbage collection/recycling = 0 not in use, else in use
 	float angle; /*some multitouch -like smarttech- track the angle of the finger */
-	int x;
-	int y;
+	int x; //coordinates as registered at scene level, after transformations in the contenttype stack
+	int y; //y-up
+	float fx,fy; //normalized coordinates ie -1 to 1 or 0 to 1 for navigation
+	int dragStart; //flag set generically on mouse down, and cleared by claimant when they've applied mousedown
+	int dragEnd; //flag set generically on mouse up, and cleared by claimant after cleaning up their drag state
+	int windex; //multi_window window index 0=default for regular freewrl
+	void* stageId; //unique ID for a stage, should be same for pick and render passes, otherwise in render not-for-me
+	int rx,ry; //raw input coords at emulation level, for finding and dragging and rendering
+	int claimant; // {unprocessed,pedal,sensor,navigation,none}
+	int passed; //which claimants have seen it and passed on claiming it {PEDAL | SENSOR | NAV }
+
+	struct X3D_Node* CursorOverSensitive;//=NULL;      /*  is Cursor over a Sensitive node?*/
+	struct X3D_Node* oldCOS;//=NULL;                   /*  which node was cursor over before this node?*/
+	struct X3D_Node* lastPressedOver;// = NULL;/*  the sensitive node that the mouse was last buttonpressed over.*/
+	struct X3D_Node* lastOver;// = NULL;       /*  the sensitive node that the mouse was last moused over.*/
+	int lastOverButtonPressed;// = FALSE;      /*  catch the 1 to 0 transition for button presses and isOver in TouchSensors */
+	
+	void *hypersensitive;
+	int hyperhit;
+	double justModel[16];
+	struct point_XYZ hp;
+
 };
-struct keypressTuple{
-	int key;
-	int type;
+
+//#ifdef ANGLEPROJECT
+//mysterious/funny: angleproject's gl2.h has GL_BACK 0x0405 like glew.h, 
+//but if I use it as a renderbuffer number angleproject blackscreens - it likes 0 for GL_BACK.
+#define FW_GL_BACK 0   
+//#endif
+
+void pushviewport(Stack *vpstack, ivec4 vp){
+	stack_push(ivec4,vpstack,vp);
+}
+void popviewport(Stack *vpstack){
+	stack_pop(ivec4,vpstack);
+}
+int overlapviewports(ivec4 vp1, ivec4 vp2){
+	//0 - outside, 1 - vp1 inside vp2 -1 vp2 inside vp1 2 overlapping
+	int inside = 0;
+	inside = vp1.X >= vp2.X && (vp1.X+vp1.W) <= (vp2.X+vp2.W) ? 1 : 0;
+	if(!inside){
+		inside = vp2.X >= vp1.X && (vp2.X+vp2.W) <= (vp1.X+vp1.W) ? -1 : 0;
+	}
+	if(!inside){
+		inside = vp1.X > (vp2.X+vp2.W) || vp1.X > (vp1.X+vp1.W) || vp1.Y > (vp2.Y+vp2.H) || vp2.Y > (vp1.Y+vp1.H) ? 0 : 2;
+	}
+	return inside;
+}
+ivec4 intersectviewports(ivec4 vp1, ivec4 vp2){
+	ivec4 vpo;
+	vpo.X = max(vp1.X,vp2.X);
+	vpo.W = min(vp1.X+vp1.W,vp2.X+vp2.W) - vpo.X;
+	vpo.Y = max(vp1.Y,vp2.Y);
+	vpo.H = min(vp1.Y+vp1.H,vp2.Y+vp2.H) - vpo.Y;
+	//printf("olap [%d %d %d %d] ^ [%d %d %d %d] = [%d %d %d %d]\n",vp1.X,vp1.Y,vp1.W,vp1.H,vp2.X,vp2.Y,vp2.W,vp2.H,vpo.X,vpo.Y,vpo.W,vpo.H);
+	return vpo;
+}
+int visibleviewport(ivec4 vp){
+	int ok = vp.W > 0 && vp.H > 0;
+	return ok;
+}
+int pointinsideviewport(ivec4 vp, ivec2 pt){
+	int inside = TRUE;
+	inside = inside && pt.X <= (vp.X + vp.W) && (pt.X >= vp.X);
+	inside = inside && pt.Y <= (vp.Y + vp.H) && (pt.Y >= vp.Y);
+	return inside;
+}
+int pointinsidecurrentviewport(Stack *vpstack, ivec2 pt){
+	ivec4 vp = stack_top(ivec4,vpstack);
+	return pointinsideviewport(vp,pt);
+}
+void intersectandpushviewport(Stack *vpstack, ivec4 childvp){
+	ivec4 currentvp = stack_top(ivec4,vpstack);
+	ivec4 olap = intersectviewports(childvp,currentvp);
+	pushviewport(vpstack, olap); //I need to unconditionally push, because I will be unconditionally popping later
+}
+ivec4 currentViewport(Stack *vpstack){
+	return stack_top(ivec4,vpstack);
+}
+int currentviewportvisible(Stack *vpstack){
+	ivec4 currentvp = stack_top(ivec4,vpstack);
+	return visibleviewport(currentvp);
+}
+void setcurrentviewport(Stack *_vpstack){
+	ivec4 vp = stack_top(ivec4,_vpstack);
+	glViewport(vp.X,vp.Y,vp.W,vp.H);
+}
+ivec4 viewportFraction(ivec4 vp, float *fraction){
+	/*
+	x3d specs > Layering > viewport 
+	MFFloat [in,out] clipBoundary   0 1 0 1  [0,1]
+	"The clipBoundary field is specified in fractions of the normal render surface in the sequence left/right/bottom/top. "
+	so my fraction calculation should be something like:
+	L = X + W*f0
+	R = X + W*f1
+	B = Y + H*f2
+	T = Y + H*f3
+	
+	W = R - L
+	H = T - B
+	X = L
+	Y = B
+	*/
+	ivec4 res;
+	int L,R,B,T; //left,right,bottom,top
+
+	L = (int)(vp.X + vp.W*fraction[0]);
+	R = (int)(vp.X + vp.W*fraction[1]);
+	B = (int)(vp.Y + vp.H*fraction[2]);
+	T = (int)(vp.Y + vp.H*fraction[3]);
+
+	res.W = R - L;
+	res.H = T - B;
+	res.X = L;
+	res.Y = B;
+
+	return res;
+}
+
+/* eye can be computed automatically from vp (viewpoint)
+	mono == vp
+	stereo - move left and right from vp by half-eyebase
+	front, top, right - use vp position and a primary direction
+*/
+//typedef struct eye {
+//	float *viewport; //fraction of parent viewport left, width, bottom, height
+//	void (*pick)(struct eye *e, float *ray); //pass in pickray (and tranform back to prior stage)
+//	float pickray[6]; //store transformed pickray
+//	void (*cursor)(struct eye *e, int *x, int *y); //return transformed cursor coords, in pixels
+//	//BOOL sbh; //true if render statusbarhud at this stage, eye
+//} eye;
+
+/* contenttype abstracts scene, statusbarhud, and HMD (head-mounted display) textured-distortion-grid
+	- each type has a prep and a render and some data, and a way to handle a pickray
+	- general idea comes from an opengl gui project (dug9gui). When you read 'contenttype' think 'gui widget'.
+*/
+//===========NEW=====Nov27,2015================>>>>>
+enum {
+	CONTENT_GENERIC,		//defaults, render and pick can be delegated to
+	CONTENT_SCENE,			//good old fashioned vrml / x3d scene 
+	CONTENT_STATUSBAR,		//statusbarHud.c (SBH) menu system
+	CONTENT_SWITCH,			//switch case on children, a child chooser
+	CONTENT_MULTITOUCH,		//touch display emulator, turn on with SBH > options > emulate multitouch
+	CONTENT_E3DMOUSE,		//emulate 3D mouse
+	CONTENT_TEXTUREGRID,	//texture-from-fbo-render over a planar mesh/grid, rendered with ortho and diffuse light
+	CONTENT_ORIENTATION,	//screen orientation widget for 'screenOrientation2' application of mobile device screen orientation 90, 180, 270
+	CONTENT_CAPTIONTEXT,	//text, but just one line 
+	CONTENT_TEXTPANEL,		//ConsoleMessage panel, using dual ring buffers: one for raw text stream, other for pointers to \n in first buffer
+	CONTENT_LAYER,			//children are rendered one over top of the other, with zbuffer clearing between children
+	CONTENT_SPLITTER,		//not implemented, a splitter widget
+	CONTENT_QUADRANT,		//semi- implemented, a quadrant panel where the scene viewpoint is altered to side, front, top for 3 panels
+	CONTENT_STAGE,			//opengl buffer to render to, GL_BACK or FBO (file buffer object), does clearcolor and clear depth before rendering children or self
+	CONTENT_STEREO_SIDEBYSIDE, //like quadrant, but 2 viewports, and view matrices parallel and separated by eyebase
+	CONTENT_STEREO_ANAGLYPH,//used with colored anaglyph lenses ie Amber/yellow left, Blue right, or Red left, Cyan right etc
+	CONTENT_STEREO_UPDOWN,	//like sidebyside, but with one viewport above the other (used for screen-interlace-LCD-eyewear and some HMDs)
+	CONTENT_STEREO_SHUTTER,	//like sidebyside or updown, but using opengl quadbuffer stereo, and shutter glasses
+	//CONTENT_TARGETWINDOW,	//(target windows aren't implemented as contenttype
+} content_types;
+
+//typedef struct eye {
+//	//int iyetype;
+//	void (*render)(void *self);
+//	void (*computeVP)(void *self, void *vp); //side, top, front, vp for quadrant or splitter
+//	void (*navigate)(void *self); //like handle0 except per-eye
+//	int (*pick)(void *self); //per-eye
+//} eye;
+//eye *new_eye(){
+//	return MALLOCV(sizeof(eye));
+//}
+int haveFrameBufferObject()
+{
+	int iret = TRUE;
+#if defined(GLEW) || defined(GLEW_MX)
+	iret = GLEW_ARB_framebuffer_object != 0;
+#endif
+	return iret;
+}
+
+void pushnset_framebuffer(int ibuffer){
+	Stack *framebufferstack;
+	//int jbuffer;
+	framebufferstack = (Stack *)gglobal()->Mainloop._framebufferstack;
+	//jbuffer = stack_top(int,framebufferstack);
+	stack_push(int,framebufferstack,ibuffer);
+
+	//before gl 3.1 fbos were an extension
+	if (haveFrameBufferObject() ){
+		glBindFramebuffer(GL_FRAMEBUFFER,0);
+		glBindFramebuffer(GL_FRAMEBUFFER, ibuffer);
+		//printf("pushframebuffer from %d to %d\n",jbuffer,ibuffer);
+	}
+}
+void popnset_framebuffer(){
+	int ibuffer;
+	//int jbuffer;
+	Stack *framebufferstack;
+	framebufferstack = (Stack *)gglobal()->Mainloop._framebufferstack;
+	//jbuffer = stack_top(int,framebufferstack);
+	stack_pop(int,framebufferstack);
+	ibuffer = stack_top(int,framebufferstack);
+	//before gl 3.1 fbos were an extension
+	if (haveFrameBufferObject()){
+		glBindFramebuffer(GL_FRAMEBUFFER,0);
+		glBindFramebuffer(GL_FRAMEBUFFER, ibuffer);
+	}
+	//printf("popframebuffer from %d to %d\n",jbuffer,ibuffer);
+}
+void pushnset_viewport(float *vpFraction){
+	//call this from render() function (not from pick function)
+	ivec4 ivport;
+	Stack *vportstack;
+	vportstack = (Stack *)gglobal()->Mainloop._vportstack;
+	ivport = currentViewport(vportstack);
+	ivport = viewportFraction(ivport, vpFraction);
+	pushviewport(vportstack,ivport);
+	setcurrentviewport(vportstack); //does opengl call
+}
+void popnset_viewport(){
+	//call this from render() function (not from pick function)
+	Stack *vportstack;
+	vportstack = (Stack *)gglobal()->Mainloop._vportstack;
+	popviewport(vportstack);
+	setcurrentviewport(vportstack); //does opengl call
+}
+int checknpush_viewport(float *vpfraction, int mouseX, int mouseY){
+	Stack *vportstack;
+	ivec4 ivport, ivport1;
+	ivec2 pt;
+	int iret;
+
+	vportstack = (Stack *)gglobal()->Mainloop._vportstack;
+	ivport = currentViewport(vportstack);
+	ivport1 = viewportFraction(ivport, vpfraction);
+	pt.X = mouseX;
+	pt.Y = mouseY;
+	iret = pointinsideviewport(ivport1,pt);
+	if(iret) pushviewport(vportstack,ivport1);
+	//else {
+	//	printf("in checknpush_viewport in:\n");
+	//	printf("ivp  %d %d %d %d fraction %f %f %f %f\n",ivport.X,ivport.W,ivport.Y,ivport.H,vpfraction[0],vpfraction[1],vpfraction[2],vpfraction[3],mouseX,mouseY);
+	//	printf("ivp1 %d %d %d %d mouse %d %d\n",ivport1.X,ivport1.W,ivport1.Y,ivport1.H,mouseX,mouseY);
+	//}
+	return iret;
+		
+}
+void pop_viewport(){
+	Stack *vportstack;
+	vportstack = (Stack *)gglobal()->Mainloop._vportstack;
+	popviewport(vportstack);
+	//printf("%d ",vportstack->n);
+}
+ivec4 get_current_viewport(){
+	Stack *vportstack;
+	vportstack = (Stack *)gglobal()->Mainloop._vportstack;
+	return stack_top(ivec4,vportstack);
+}
+float defaultClipBoundary [] = {0.0f, 1.0f, 0.0f, 1.0f}; //left,right,bottom,top fraction of pixel window
+
+
+/* abstract contenttype - like a widget, it has a render() and a pick()
+	- pick() uses the widget viewport to filter, and a contenttype can also process/play with the mouse buttons/xy
+		- pick bottoms out in a function that does navigation immediately, 
+			and stores the pick xy etc in a struct touch[] for later picking
+		- for contenttype_scene the 'real' picking happens on the render() pass, therefore there's no point 
+			setting fancy things on a stack to communicate between a pick function and the scene backend picking
+			because the picking stack isn't active during 'real' picking - the render stack is
+		- alternate / supplementary ideas not implemented:
+			- instead of passing xy down, it could pass a multi-touch[] array down, filtering the touches against
+				the viewports as it goes down the pick() stack
+			- combining the pick and render passes somehow 
+				(but should mouse navigation occur once per frame? or per-stereo/quad-window?)
+	- render() uses the widget viewport
+
+	specifc contenttypes and shaders
+	- the freewrl global shader system is the default. It's just when rendering 
+		- statusbarHud
+		- atlas text: contenttypes > captiontext, textpanel
+		- atlas text: Text > ScreenFontStyle
+		that we exit the globalshader system momentarily, to use a simpler shader, by calling
+		finishedwithglobalshader(), and restoreglobalshader() before and after gl_useProgram section
+*/
+
+typedef struct contenttype contenttype;
+void register_contenttype(void *ct);
+void free_contenttypes();
+typedef struct tcontenttype {
+	int itype; //enum content_types: 0 scene, 1 statusbarHud, 2 texture grid
+				// 3 layer 4 splitter 5 quadrant 6 fbo 10 stage 11 targetwindow
+	contenttype *contents; //iterate over concrete-type children using children->next, NULL at end of children list
+	contenttype *next; //helps parent iterate over its children including this
+	contenttype *pnext; //reverse list of next 
+	float viewport[4]; //fraction relative to parent, L,R,B,T as per x3d specs > Layering > Viewport > clipBoundary: "fractions of (parent surface) in the sequence left/right/bottom/top default 0 1 0 1
+	//ivec4 ipixels; //offset pixels left, right, bottom, top relative to parent, +right and +up
+	void (*render)(void *self); 
+	int (*pick)(void *self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex);  // a generalization of mouse. HMD IMU vs mouse?
+} tcontenttype;
+typedef struct contenttype {
+	tcontenttype t1; //superclass in abstract derived class
+}contenttype;
+void content_render(void *_self){
+	//generic render for intermediate level content types (leaf/terminal content types will have their own render())
+	contenttype *c, *self;
+
+	self = (contenttype *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	//FW_GL_CLEAR_COLOR(self->t1.cc.r,self->t1.cc.g,self->t1.cc.b,self->t1.cc.a);
+	while(c){
+		c->t1.render(c);
+		c = c->t1.next;
+	}
+	popnset_viewport();
+}
+int content_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//generic render for intermediate level content types (leaf/terminal content types will have their own render())
+	int iret;
+	contenttype *c, *self;
+
+	self = (contenttype *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		c = self->t1.contents;
+		while(c){
+			iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+			if(iret > 0) break; //handled 
+			c = c->t1.next;
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+void init_tcontenttype(tcontenttype *self){
+	self->itype = CONTENT_GENERIC;
+	self->contents = NULL;
+	self->render = content_render;
+	self->pick = content_pick;
+	memcpy(self->viewport,defaultClipBoundary,4*sizeof(float));
+	//self->ipixels = ivec4_init;
+	self->next = NULL;
+	self->pnext = NULL;
+}
+
+typedef struct contenttype_scene {
+	tcontenttype t1;
+	//int stereotype; // none, sxs, ud, an, quadbuf
+	//color anacolors[2];
+	//eye eyes[6]; //doesn't make sense yet to have eyes for general content type, does it?
+} contenttype_scene;
+static void render();
+int setup_pickside0(int x, int y, int *iside, ivec4 *vportleft, ivec4 *vportright);
+void scene_render(void *self){
+	render();
+}
+void setup_picking();
+void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x, int y, unsigned int ID, int windex);
+int scene_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	int iret;
+	contenttype *self;
+
+	self = (contenttype *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		ivec4 vport[2];
+		int iside, inside;
+		//printf("scene_pick mx %d my %d ",mouseX,mouseY);
+		inside = setup_pickside0(mouseX,mouseY,&iside,&vport[0],&vport[1]);
+		if(inside){
+			Stack *vpstack = (Stack*)gglobal()->Mainloop._vportstack;
+			pushviewport(vpstack,vport[iside]);
+			fwl_handle_aqua_multiNORMAL(mev,butnum,mouseX,mouseY,ID,windex);
+			iret = 1; //inside - should we set iret here?
+			popviewport(vpstack);
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+contenttype *new_contenttype_scene(){
+	contenttype_scene *self = MALLOCV(sizeof(contenttype_scene));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_SCENE;
+	self->t1.render = scene_render;
+	self->t1.pick = scene_pick;
+	return (contenttype*)self;
+}
+int statusbar_getClipPlane();
+typedef struct contenttype_statusbar {
+	tcontenttype t1;
+	int clipplane;
+} contenttype_statusbar;
+void render_statusbar0();
+void statusbar_render(void *_self){
+	//make this like layer, render contents first in clipplane-limited viewport, then sbh in whole viewport
+	Stack *vportstack;
+	int pushed;
+	contenttype_statusbar *self;
+	contenttype *c;
+
+	self = (contenttype_statusbar *)_self;
+	pushnset_viewport(self->t1.viewport);
+	self->clipplane = statusbar_getClipPlane();
+
+	vportstack = NULL;
+	pushed = 0;
+	if(self->clipplane != 0){
+		ivec4 ivport;
+		ttglobal tg;
+		tg = gglobal();
+
+		vportstack = (Stack*)tg->Mainloop._vportstack;
+		ivport = stack_top(ivec4,vportstack);
+		ivport.H -= self->clipplane;
+		ivport.Y += self->clipplane;
+		stack_push(ivec4,vportstack,ivport);
+		pushed = 1;
+	}
+	c = self->t1.contents;
+	//FW_GL_CLEAR_COLOR(self->t1.cc.r,self->t1.cc.g,self->t1.cc.b,self->t1.cc.a);
+	while(c){
+		c->t1.render(c);
+		c = c->t1.next;
+	}
+	if(pushed) { 
+		stack_pop(ivec4,vportstack);
+	}
+	render_statusbar0(); //draw statusbarHud
+	popnset_viewport();
+}
+int statusbar_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	contenttype *c;
+	contenttype_statusbar *self;
+	int iret = 0;
+
+	//make this like layer, checking sbh first, then if not handled try contents in clipplane-limited viewport
+
+	self = (contenttype_statusbar *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		iret = statusbar_handle_mouse1(mev,butnum,mouseX,mouseY,windex);
+		if(!iret){
+			int pushed;
+			Stack *vportstack;
+			vportstack = NULL;
+			pushed = 0;
+			if(self->clipplane != 0){
+				ivec4 ivport;
+				ttglobal tg;
+				tg = gglobal();
+
+				vportstack = (Stack*)tg->Mainloop._vportstack;
+				ivport = stack_top(ivec4,vportstack);
+				ivport.H -= self->clipplane;
+				ivport.Y += self->clipplane;
+				stack_push(ivec4,vportstack,ivport);
+				pushed = 1;
+			}
+
+			c = self->t1.contents;
+			while(c){
+				iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+				if(iret > 0) break; //handled 
+				c = c->t1.next;
+			}
+			if(pushed) { 
+				stack_pop(ivec4,vportstack);
+			}
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+contenttype *new_contenttype_statusbar(){
+	contenttype_statusbar *self = MALLOCV(sizeof(contenttype_statusbar));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_STATUSBAR;
+	self->t1.render = statusbar_render;
+	self->t1.pick = statusbar_pick;
+	self->clipplane = 0; //16; //can be 0 if nothing pinned, or 16+32=48 if both statusbar+menubar pinned
+	return (contenttype*)self;
+}
+
+
+//SWITCH
+typedef struct contenttype_switch {
+	tcontenttype t1;
+	int whichCase;
+	int *whichPtr;
+} contenttype_switch;
+void render_switch0();
+void switch_render(void *_self){
+	//make this like layer, render contents first in clipplane-limited viewport, then sbh in whole viewport
+	int i,iwhich;
+	contenttype_switch *self;
+	contenttype *c;
+
+	self = (contenttype_switch *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	i = 0;
+	while(c){
+		iwhich = *(self->whichPtr);
+		if(i == iwhich){
+			c->t1.render(c);
+		}
+		c = c->t1.next;
+		i++;
+	}
+	popnset_viewport();
+}
+int switch_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	contenttype *c;
+	contenttype_switch *self;
+	int iret = 0;
+
+	//make this like layer, checking sbh first, then if not handled try contents in clipplane-limited viewport
+
+	self = (contenttype_switch *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		int i = 0;
+		c = self->t1.contents;
+		while(c){
+			if(i == *(self->whichPtr)){
+				iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+				if(iret > 0) break; //handled 
+			}
+			c = c->t1.next;
+			i++;
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+contenttype *new_contenttype_switch(){
+	contenttype_switch *self = MALLOCV(sizeof(contenttype_switch));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_SWITCH;
+	self->t1.render = switch_render;
+	self->t1.pick = switch_pick;
+	self->whichCase = -1;
+	self->whichPtr = &self->whichCase;
+	return (contenttype*)self;
+}
+void contenttype_switch_set_which(contenttype *_self, int which){
+	contenttype_switch *self = (contenttype_switch *)_self;
+	self->whichCase = which;
+	self->whichPtr = &self->whichCase;
+}
+void contenttype_switch_set_which_ptr(contenttype *_self, int *whichPtr){
+	contenttype_switch *self = (contenttype_switch *)_self;
+	self->whichPtr = whichPtr;
+}
+
+
+
+
+
+
+
+typedef struct AtlasFont AtlasFont;
+typedef struct AtlasEntrySet AtlasEntrySet;
+AtlasFont *searchAtlasTableOrLoad(char *facename, int EMpixels);
+AtlasEntrySet* searchAtlasFontForSizeOrMake(AtlasFont *font,int EMpixels);
+typedef struct vec4 {float X; float Y; float Z; float W;} vec4;
+vec4 vec4_init(float x, float y, float z, float w);
+int render_captiontext(AtlasFont *font,  int *utf32, int len32, vec4 color);
+typedef struct contenttype_captiontext {
+	tcontenttype t1;
+	char *caption;
+	int len;
+	int *utf32;
+	int len32;
+	int nalloc;
+	AtlasFont *font;
+	char *fontname;
+	int fontSize;
+	AtlasEntrySet *set;
+	float percentSize;
+	int EMpixels;
+	int maxadvancepx;
+	float angle;
+	vec4 color;
+} contenttype_captiontext;
+void captiontext_render(void *_self){
+	contenttype_captiontext *self;
+
+	self = (contenttype_captiontext *)_self;
+	pushnset_viewport(self->t1.viewport);
+
+	render_captiontext(self->font, self->utf32, self->len32, self->color);
+	popnset_viewport();
+}
+int captiontext_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	int iret = 0;
+	return iret;
+}
+contenttype *new_contenttype_captiontext(char *fontname, int EMpixels, vec4 color){
+	contenttype_captiontext *self = MALLOCV(sizeof(contenttype_captiontext));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_CAPTIONTEXT;
+	self->t1.render = captiontext_render;
+	self->t1.pick = captiontext_pick;
+	self->set = NULL;
+	self->EMpixels = EMpixels;
+	self->font = NULL;
+	self->color = color;
+	self->fontname = fontname;
+	self->caption = NULL;
+	self->utf32 = NULL;
+	self->len = 0;
+	self->len32 = 0;
+	self->nalloc = 0;
+	self->font = (AtlasFont*)searchAtlasTableOrLoad(fontname,EMpixels);
+	if(!self->font){
+		printf("dug9gui: Can't find font %s do you have the wrong name?\n",fontname);
+	}
+	//self->set = (void *)self->font->set; //searchAtlasFontForSizeOrMake(self->font,EMpixels);
+	return (contenttype*)self;
+}
+
+// in ComponentTextures.c ... JAS 
+unsigned int *utf8_to_utf32(unsigned char *utf8string, unsigned int *str32, unsigned int *len32);
+void captiontext_setString(void *_self, char *utf8string){
+	int lenstr;
+	contenttype_captiontext *self = (contenttype_captiontext *)_self;
+	lenstr = strlen(utf8string);
+	if(self->nalloc < lenstr){
+		self->caption = realloc(self->caption,lenstr+1);
+		//in theory utf32 should always be <= utf8 length, make same size and extra room
+		self->utf32 = realloc(self->utf32,(lenstr+1)*sizeof(int));
+		self->nalloc = lenstr;
+	}
+	strcpy(self->caption,utf8string);
+	self->len = lenstr;
+	self->utf32 = utf8_to_utf32(self->caption,self->utf32,&self->len32);
+}
+
+
+//#ifdef DUALRINGBUFFER
+//DUAL RING BUFFER CONSOLEMESSAGE
+//our thanks go to dug9 for adapting/contributing this dual ringbuffer method from his dug9gui project
+#include "list.h"
+typedef struct consoleLine {
+	char *line;
+	int len;
+	int endline;
+} consoleLine;
+
+typedef struct BUTitem BUTitem;
+typedef struct BUTitem {
+	unsigned char *B;
+	BUTitem *prev;
+	BUTitem *next;
+}BUTitem;
+typedef struct contenttype_textpanel {
+	tcontenttype t1;
+	AtlasEntrySet *set;
+	AtlasFont *font;
+	char *fontname;
+	int fontSize;
+	int maxadvancepx;
+	vec4 color;
+	//float percentSize;
+	//float angle;
+
+	int maxlines;
+	int maxlen;
+	int wrap;
+
+	//blob method
+	unsigned char *Ablob;
+	int blobsize;
+	unsigned char *S, *E; //static pointers to BLOB start and end
+	unsigned char *Z,*z;  //start and end pointers of written non-stale BLOB data, move as more data written
+	BUTitem *Blist;  //storage for \n ring buffer
+	BUTitem *bhead;  //head of the \n ring buffer
+	int added;
+	int rowsize; //malloced size of *row
+	unsigned char *row;  //buffer for combining split rows for rendering
+	int initialized; //flag for initializing whatever update calls on each loop, so on first loop it can initialize backend/model of MVC
+} contenttype_textpanel;
+void textpanel_render(void *self);
+contenttype *new_contenttype_textpanel(char* fontname, int EMpixels, int maxlines, int maxlen, int wrap){
+	int i, iem;
+	contenttype_textpanel *self = MALLOCV(sizeof(contenttype_textpanel));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_TEXTPANEL;
+	self->t1.render = textpanel_render;
+	// default t1-> pick self->t1.pick = textpanel_pick;
+
+	self->color = vec4_init(1.0f,1.0f,1.0f,0.0f);
+	//self->super.super.type = GUI_TEXTPANEL;
+	self->maxlines = maxlines;
+	self->maxlen = maxlen; // max line length 
+	self->wrap = wrap; //bool if true, cut lines when too long, else render on one line up to maxlen and scroll in X
+	self->set = NULL;
+
+	//blob method
+	self->blobsize = self->maxlines * self->maxlen;
+	self->Ablob = (unsigned char*)MALLOCV(self->blobsize+1);
+	register_contenttype(self->Ablob);
+	memset(self->Ablob,0,self->blobsize+1); //the +1 is so Ablob ends in \0 and we can printf it for debuggin
+	self->Z = self->z = self->Ablob;
+	self->S = self->Ablob;
+	self->E = self->Ablob + self->blobsize;
+	self->Blist = MALLOCV(sizeof(BUTitem)*self->maxlines);
+	register_contenttype(self->Blist);
+	self->rowsize = self->maxlen;
+	self->row = MALLOCV(self->rowsize +1);
+	register_contenttype(self->row);
+
+	for(i=0;i<self->maxlines;i++){
+		int prev, next;
+		prev = i - 1;
+		next = i + 1;
+		if(prev < 0) prev = self->maxlines -1;
+		if(next > self->maxlines -1) next = 0;
+		 self->Blist[i].next = &self->Blist[next];
+		 self->Blist[i].prev = &self->Blist[prev];
+		 self->Blist[i].B = self->Z;
+	}
+	self->bhead = &self->Blist[0];
+	self->added = 0;
+	//ouch
+	self->fontname = fontname;
+	iem = (int)(EMpixels * fwl_getDensityFactor());
+	self->fontSize = iem;
+	self->maxadvancepx = iem/2; //use the one in atlasEntry which is more specific
+	self->initialized = FALSE; 
+	//self->font = 
+	self->fontname = fontname;
+	self->font = (AtlasFont*)searchAtlasTableOrLoad(fontname,iem);
+	if(!self->font){
+		printf("dug9gui: Can't find font %s do you have the wrong name?\n",fontname);
+	}
+	/*
+	AtlasFont *font = (AtlasFont*)searchGUItable(font_table,fontname);
+	if(font){
+		self->font = font;
+		if(font->atlasSizes.n){
+			for(int i=0;i<font->atlasSizes.n;i++){
+				AtlasEntrySet *aes = vector_get(AtlasEntrySet*,&font->atlasSizes,i);
+				if(aes->EMpixels == EMpixels){
+					self->set = aes;
+				}
+			}
+		}
+	}
+	*/
+	return (contenttype*)self;
+}
+
+
+/*	
+BLOB (binary large object) method for accumulating consoleMessages and wrapping/splitting 
+	for fixed width console rendering
+Net benefit of the BLOB algo (vs list-of-fixed-length-strings):
+- Rendering can wrap easily, recomputing wrap splits on each frame using pointer arithmetic, without iterating over string chars
+- line-length limit bigger: size of BLOB instead of maxlen
+- no per-frame mallocs/frees/strdups 
+
+More algo details: we are using 2 circular / ring buffers:
+- one for unsigned char* text bytes
+- one to record \n locations in the buffer, during incoming writes (makes it fast to render)
+http://en.wikipedia.org/wiki/Circular_buffer
+1. for generic ring buffers you need to store the length of the buffer, 
+	and/or both start and end of data, with start = end+1, so its possible to tell 
+	when the buffer is exactly empty vs full 
+	(for us self-z == self->Z when exactly empty, otherwise self->z == self->Z + 1 when full)
+2. our case differs from generic circular/ring buffer algos:
+a) we never 'get/take/remove' from either ring buffer during read/render. 
+	Instead it's up to the write to do all updates to the buffer, and keep overwriting stale data.
+b) because we do 2 circular buffers -\n struct list and char* blob- we must combine/union/min our 'limits' 
+	when reading backward from the newest data to the oldest, so that we don't hit stale 
+	pointers/over-written data.
+Arbitrary design choices: for the blob / char* ring buffer: a well known hassle is wrapping when we hit
+	the end of the buffer, and some algos have fancy techniques such as pointer mirroring or
+	'bip' 2-chunk method. We deal straighforwardly with the break in the data by detecting
+	where it is, and making 2 memcpys on write and 2 on read.
+
+Structs:
+- a circular blob buffer 128rows*128cols = 16k will work as an intermediary between 
+	consolemessage strings and word-wrapped display
+- Blist is a fixed-size (maxrows) circularly linked list of small structs with pointers into the blob
+- awkward part is split as a string wraps around to start of blobA 
+-- can be handled uniformly during render with B,T,U pointers
+
+ABLOB RING BUFFER
+S                     Zz                                        E
+================================================================
+                                                       A--------T
+U---------------------B                            last \n
+                   most recent char
+*static
+^singleton
+*^	S,E start and end pointers to BLOBA buffer, E = S + blobsize
+^	zZ moving border of wraparound buffer z=start, Z=end 
+	- starts out as z=S,Z=S, Z grows till == E, thereafter z=Z+1 and keeps moving
+B	ptr to last char received from consolemessage
+A	ptr to previous \n
+T,U	wraparound pointers: normally T=U=B, except when wrapping around then T=E, U=S
+sw	screen width in chars
+line - incoming string from ConsoleMessage which may or may not end in \n
+chunk - data between last char written and previous \n or (if no \n in blob) z
+		if there's a wraparound split, chunk = B-U + T-A otherwise chunk B-A
+row - screen-width (or less) slice of chunk
+
+Algo:
+To compute number of screen rows in chunk:
+n = ceil[(B-U + T-A)/sw]
+Thats for one chunk.
+The listB circularly linked list will hold maxline list of \n pointers into ABLOB
+Rendering will loop starting at the last char written, and work back to compute 
+number of screen rows and split points, stopping the iteration when listB is exhausted 
+or maxlines reached/exceeded, or ABLOB pointer == z 
+
+Updating ABLOB with a new incoming string:
+when receiving a string with no \n, and there was no \n on last string, the last Blist item is updated. 
+If prior string had a \n, a new Blist item is set, and the Blist head pointer is set to point to the new item.
+
+*/
+
+
+void TextPanel_AddLine_blobMethodB(contenttype_textpanel *self, char *line, int len, int endline){
+	unsigned char *T, *U, *B;
+	int lenT, lenU, haveTU;
+	BUTitem *BUTI;
+
+	T = min(self->Z + len, self->E);
+	U = T == self->E ? self->S : T;
+	lenT = T - self->Z;
+	lenU = len - lenT;
+	haveTU = lenU > 0;
+	memcpy(self->Z,line,lenT);
+	if(haveTU)
+		memcpy(U,&line[lenT],lenU);
+	B = U + lenU;
+	BUTI = endline? self->bhead->next : self->bhead;
+	BUTI->B = B;
+	self->bhead = BUTI;
+	self->Z = B;
+	self->added = min(self->added + len, self->blobsize + 1);
+	if(self->added > self->blobsize){
+		//buffer full, move start
+		self->z = self->z + 1;
+		if(self->z > self->E) self->z = self->S;
+	}
+}
+void TextPanel_AddString(void *_self, char *string){
+	//takes a printf string which may be long and have embedded \n, may or may not end on \n
+	//and splits it on \n, calls AddLine for each one.
+	contenttype_textpanel *self = (contenttype_textpanel *)_self;
+	int endline, endstring;
+	char *s = string;
+	if(s == NULL) return;
+	endstring = (*s) == '\0';
+	while(!endstring){
+		char *ln = s;
+		while( (*ln) != '\0' && (*ln) != '\n') ln++;
+		endline = (*ln) == '\n';
+		endstring = (*ln) == '\0';
+		TextPanel_AddLine_blobMethodB(self,s,ln-s,endline);
+		ln++;
+		s = ln;
+	}
+}
+void fwg_register_consolemessage_callbackB(void *data, void(*callback)(void*,char *));
+void textpanel_register_as_console(void *_self){
+	fwg_register_consolemessage_callbackB(_self,TextPanel_AddString);
+}
+ivec2 pixel2text(int x, int y, int rowheight, int maxadvancepx){
+	int h = rowheight;
+	int w = maxadvancepx;
+	ivec2 ret = ivec2_init(x/w,y/h);
+	return ret;
+}
+ivec2 text2pixel(int x, int y, int rowheight, int maxadvancepx){
+	int h = rowheight;
+	int w = maxadvancepx;
+	ivec2 ret = ivec2_init(x*w, y*h);
+	return ret;
+}
+
+void atlasfont_get_rowheight_charwidth_px(AtlasFont *font, int *rowheight, int *maxadvancepx);
+static int show_ringtext = 0;
+int before_textpanel_render_rows(AtlasFont *font, vec4 color);
+int textpanel_render_row(AtlasFont *font, char * cText, int len, int *pen_x, int *pen_y);
+void after_textpanel_render_rows();
+void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
+/*	completely re-renders the textpanel, from the ABLOB and Blist ringbuffers
+	- call once per frame
+	- re-splits lines on each frame
+	- if your textpanel starts small in Y, this will auto-expand its Y dimension till maxlines * rowheight in size
+	Benefit (vs. buffering split lines) - if you tilt your device to a new orientation ie portrait to landscape
+		then the text will be resplit and re-scrolled for the new panel shape automatically
+	Implementation Options:
+	- auto-resizing of panel up to a maxheight. Benefits:
+		a) always draw text from bottom of panel up, simplfying to one loop
+		b) panel scrolling can automatically turn on/off as needed (you need to assign the scrolling function)
+	- vs fixed size panel 
+		x to get top-down look to scrolling you need 2 loops, one to count lines, one to draw
+		x you could scroll same distance even when there's nothing to see
+*/
+	int jline, jrow, nrows, isFull, moredata, rowheight, maxadvancepx, atlasOK;
+
+	ivec2 panelsizechars;
+	BUTitem *BUTI, *LBUTI;
+	contenttype_textpanel *self;
+
+	self = (contenttype_textpanel *)_self;
+	//we'll assume this is a 'leaf' contenttype - no children worth rendering
+	if(self->t1.itype != CONTENT_TEXTPANEL) return;
+	if(!self->font ) return;
+
+	atlasfont_get_rowheight_charwidth_px(self->font,&rowheight,&maxadvancepx);
+	panelsizechars = ivec2_init(ivport.W / maxadvancepx, ivport.H / rowheight);
+	panelsizechars.X = min(panelsizechars.X,self->maxlen);
+	panelsizechars.Y = min(panelsizechars.Y,self->maxlines);
+	
+	//if(panelsizechars.X+1 > self->rowsize) {
+	//	self->rowsize = panelsizechars.X+1;
+	//	self->row = realloc(self->row,self->rowsize);
+	//}
+	BUTI = self->bhead;
+
+	//compute lines needed
+	jline = 0; //number of \n lines processed
+	jrow = 0; // number of screen rows processed
+	//work backward from bottom up the buffer, stopping at:
+	//a) maxrows (ie we have enough \n to fill our console rows)
+	//b) self->z (ie we hit stale data in the char* ring buffer)
+	// whichever is less
+	isFull = self->added > self->blobsize;
+	moredata = min(self->added,self->blobsize);
+	do{
+		int i, nchars, bchars, achars, hasTU, Trow;
+		unsigned char *B, *A,  *U, *T, *P;
+		LBUTI = BUTI->prev;
+		B = BUTI->B;
+		//calculate numbe of wordwrapped lines - we'll just split uncerimoniously like a console rather than looking for a space like a word processor
+		U = B;
+		T = B;
+		hasTU = FALSE;
+		A = LBUTI->B;
+		if(B < A){
+			U = self->S;
+			T = self->E;
+			hasTU = TRUE;
+		}
+		nchars = (B - U + T - A);
+		achars = T - A;
+		bchars = nchars - achars;
+
+		nrows = (int)ceil((float)nchars/(float)panelsizechars.X);
+		Trow = nrows -1 - (T - A)/panelsizechars.X; //if hasTU split, which panel row is it in?
+		//hasTU = B != T;  //is there a ABLOB buffer split (TU) in this \n delimited line?
+		//ABLOB - some scenarios it has to work with. The hard part: handling the ABLOB TU break
+		//S                     Zz                                        E
+		//======================================================\n=========
+		//U111222222222222333333B                                A11111111T
+		//3 textpanel rows 1,2 and 3, with 3 being a partial row, and 1 being split by circular buffer
+		//U111111111111111111111B                                A11111111T
+		//one partial row being split by circular buffer
+		//        A1111111111111TUB                                
+		//normal case, one row, no split
+		//        A1111222233333TUB                                
+		//normal case, 3 rows, no split
+		//
+		P = B;
+		atlasOK = before_textpanel_render_rows(self->font, self->color);
+		//printf("\rivport.Y %d ",ivport.Y);
+
+		if(atlasOK)
+		for(i=0;i<nrows;i++){
+			char *row;
+			int l0, l1, i0, lenrow, pen_x, pen_y;
+			ivec2 xy;
+
+			i0 = (nrows-i-1)*panelsizechars.X;
+			lenrow = min(nchars - i0,panelsizechars.X);
+			moredata -= lenrow;
+			if(moredata < 0) //was <= changed to < Mar 12, 2016 because skipping first line
+				break; //stale (overwritten) BLOB/ringbuffer data
+			jrow++;
+			if(jrow >  panelsizechars.Y) //would be rendered off-panel
+				break;
+			row = &P[-nchars + i0];
+			if(hasTU && Trow == i){
+				l0 = T - &A[i0];
+				l1 = lenrow - l0;
+				row = self->row;
+				memcpy(&row[l0],U,l1);
+				memcpy(row,&A[i0],l0);
+				P = &self->E[bchars];
+			}
+			if(0){
+				//debugging
+				if(!strncmp(row,"`~",2)){
+					//last row of my synthetic data
+					//lets see the blob ringbuffer
+					printf("===========\n");
+					printf("%s",self->Ablob);
+					printf("\n===========\n");
+
+				}
+			}
+			if(0){
+				int k;
+				//debugging
+				for(k=0;k<lenrow;k++){
+					if(row[k] != '.'){
+						printf("T-A=%d B-U=%d Z=%d S=%d E=%d A=%d B=%d &Aio= %d\n",(int)(T-A),(int)(B-U),(int)self->Z, (int)self->S,(int)self->E,(int)A,(int)B,(int)&A[i0]);
+						row[k] = '?';
+					}
+				}
+			}
+			//OK got row and lenrow, now render it
+			//textchars2panelpixel
+			xy = text2pixel(0,jrow,rowheight,maxadvancepx); 
+			//panelpixel2screenpixel?
+			//original, from dug9gui:
+			//pen_y = (int)me->super.proportions.botRight.Y; 
+			//pen_x = xy.X;
+			//pen_y -= xy.Y;
+
+			pen_y = ivport.Y;
+			pen_x = xy.X;
+			pen_y -= xy.Y;
+
+			//check if this line is visible, as measured by its bounding box. skip render if not
+			//ivec4 box = ivec4_init(pen_x,pen_y,lenrow*self->set->maxadvancepx,self->set->rowheight);
+			//ivec4 currentvp = stack_top(ivec4,_vpstack);
+			//if(overlapviewports(box, currentvp)) //seems not properly aligned, a little too aggressive
+			textpanel_render_row(self->font, row, lenrow,&pen_x, &pen_y); //&xy.X,&xy.Y);
+			if(show_ringtext){
+				//debugging
+				memcpy(self->row,row,lenrow);
+				self->row[lenrow] = '\n';
+				self->row[lenrow+1] = '\0';
+				printf("%s",self->row);
+			}
+			jline++;
+		}
+		//moredata -= nchars;
+		BUTI = BUTI->prev;
+	}while(jrow < panelsizechars.Y && moredata > 0); //nrows > 0); //jline < panelsizechars.Y
+	after_textpanel_render_rows();
+	if(0) printf("======================\n");
+	//if(jline >= panelsizechars.Y && panelsizechars.Y < self->maxlines){
+	//if(jrow >= panelsizechars.Y && panelsizechars.Y < self->maxlines){
+	//	//auto expand panel
+	//	//int newheight = (jline)*self->set->rowheight;
+	//	int newheight = (jrow)*self->set->rowheight;
+	//	GUIElement *el = &self->super;
+	//	el->dim.isize.Y = newheight;
+	//	el->needRebaked = TRUE;
+	//	//if(el->scroll.Y == GUI_SCROLL_LIMIT){
+	//		el->pos.offset.Y = min(el->pos.offset.Y,0);
+	//		//el->pos.offset.Y = max(el->pos.offset.Y,min(0,ph-mh));
+	//	//}
+
+	//}
+	show_ringtext = 0;
+}
+
+
+void textpanel_render(void *_self){
+	//like a layer?
+	contenttype *c;
+	ivec4 ivport;
+	Stack *vportstack;
+	ttglobal tg;
+
+	contenttype_textpanel *self;
+	self = (contenttype_textpanel *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	while(c){
+		c->t1.render(c);			// Q. HOW/WHERE TO SIGNAL TO CLEAR JUST Z BUFFER BETWEEN LAYERS
+		c = c->t1.next;
+	}
+	//render self last, as layer over children
+	if(getShowConsoleText()){
+		tg = gglobal();
+		vportstack = (Stack*)tg->Mainloop._vportstack;
+		ivport = stack_top(ivec4,vportstack);
+		textpanel_render_blobmethod(self,ivport);
+	}
+	popnset_viewport();
+}
+
+
+//#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct contenttype_layer {
+	tcontenttype t1;
+	//clears zbuffer between contents, but not clearcolor
+	//example statusbarHud (SBH) over scene: 
+	//	scene rendered first, then SBH; mouse caught first by SBH, if not handled then scene
+} contenttype_layer;
+void layer_render(void *_self){
+	//just the z-buffer cleared between content
+	contenttype *c, *self;
+	self = (contenttype *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	while(c){
+		c->t1.render(c);			// Q. HOW/WHERE TO SIGNAL TO CLEAR JUST Z BUFFER BETWEEN LAYERS
+		c = c->t1.next;
+	}
+	popnset_viewport();
+}
+int layer_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//layer pick works backward through layers
+	int iret, n,i;
+	contenttype *c, *self, *reverse[10];
+	self = (contenttype *)_self;
+	c = self->t1.contents;
+	n=0;
+	while(c){
+		reverse[n] = c;
+		n++;
+		c = c->t1.next;
+		if(n > 9) break; //ouch a problem with my fixed-length array technique
+	}
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		for(i=0;i<n;i++){
+			//push viewport
+			c = reverse[n-i-1];
+			iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID,windex);
+			//pop viewport
+			if(iret > 0) break; //handled 
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+contenttype *new_contenttype_layer(){
+	contenttype_layer *self = MALLOCV(sizeof(contenttype_layer));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_LAYER;
+	self->t1.render = layer_render;
+	self->t1.pick = layer_pick;
+	return (contenttype*)self;
+}
+
+int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex);
+void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle);
+int fwl_get_emulate_multitouch();
+//void render_multitouch();
+void render_multitouch2(struct Touch* touchlist, int ntouch);
+
+typedef struct contenttype_multitouch {
+	tcontenttype t1;
+	//clears zbuffer between contents, but not clearcolor
+	//example statusbarHud (SBH) over scene: 
+	//	scene rendered first, then SBH; mouse caught first by SBH, if not handled then scene
+	struct Touch touchlist[20]; //private touchlist here, separate from backend touchlist
+	int ntouch;
+	int IDD; //current drag ID - for LMB dragging a specific touch
+	int lastbut;
+} contenttype_multitouch;
+void multitouch_render(void *_self){
+	//just the z-buffer cleared between content
+	contenttype *c;
+	contenttype_multitouch *self;
+	self = (contenttype_multitouch *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	while(c){
+		c->t1.render(c);			// Q. HOW/WHERE TO SIGNAL TO CLEAR JUST Z BUFFER BETWEEN LAYERS
+		c = c->t1.next;
+	}
+	//render self last
+	// not needed - backend fiducialDraw works better //render_multitouch2(self->touchlist,self->ntouch);
+	popnset_viewport();
+}
+int multitouch_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//layer pick works backward through layers
+	int iret;
+	contenttype *c;
+	contenttype_multitouch *self;
+
+	self = (contenttype_multitouch *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		int ihandle;
+		//record for rendering
+		ihandle = 0;
+		if(fwl_get_emulate_multitouch()){
+			ihandle = emulate_multitouch2(self->touchlist,self->ntouch,&self->IDD,&self->lastbut,&mev,&butnum,mouseX,mouseY,&ID,windex);
+			iret = ihandle < 0 ? 0 : 1;
+		}
+		if(iret == 0){
+			//then pick children
+			c = self->t1.contents;
+			while(c){
+				//push viewport
+				iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID,windex);
+				//pop viewport
+				if(iret > 0) break; //handled 
+				c = c->t1.next;
+			}
+			record_multitouch(self->touchlist,mev,butnum,mouseX,mouseY,ID,windex,ihandle);
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+contenttype *new_contenttype_multitouch(){
+	//int i;
+	contenttype_multitouch *self = MALLOCV(sizeof(contenttype_multitouch));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_MULTITOUCH;
+	self->t1.render = multitouch_render;
+	self->t1.pick = multitouch_pick;
+	self->ntouch = 20;
+	//for(i=0;i<self->ntouch;i++) self->touchlist[i].ID = -1;
+	memset(self->touchlist,0,20*sizeof(struct Touch));
+	self->IDD = -1;
+	self->lastbut = 0;
+	return (contenttype*)self;
+}
+
+//emulate 3D mouse with normal navigation + spherical navigation
+//use RMB click to toggle between modes
+typedef struct contenttype_e3dmouse {
+	tcontenttype t1;
+	int sphericalmode;
+	int navigationMode;
+	int dragMode;
+	int waste;
+} contenttype_e3dmouse;
+void e3dmouse_render(void *_self){
+	//render + over contents
+	// OLDCODE contenttype_e3dmouse *self = (contenttype_e3dmouse*)_self;
+	content_render(_self);
+	//render self over top
+	if(1){
+		int x,y;
+		ivec4 ivport;
+		Stack *vportstack;
+		ttglobal tg;
+		tg = gglobal();
+		vportstack = (Stack*)tg->Mainloop._vportstack;
+		ivport = stack_top(ivec4,vportstack);
+		x = ivport.W/2 + ivport.X;
+		y = ivport.H/2 + ivport.Y;
+		//fiducialDraw(0, x, y, 0.0f);
+		fiducialDrawB(CURSOR_DOWN,x,y);
+
+	}
+}
+int e3dmouse_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//this messy thing is supposed to emulate the case of an HMD scenario:
+	// 1. the user looks at a drag sensor - centering it in their field of view 
+	// 2. pushing a button on a hand held device to signal 'select'
+	// 3. looking somewhere else to drag the sensor 
+	// 4. releasing the button to drop the drag sensor
+	// it emulates by using regular navigation for #1, spherical navigation for #3
+	//LMB - regular navigation, except with SHIFT to disable sensor nodes
+	//RMB - toggle on/off spherical 
+	//NONE - spherical navigation, mouseXY = .5
+	//LMB - in spherical mode: click, with mousexy = .5
+	int iret, but2, x,y;
+	unsigned int ID0, ID1;
+	ivec4 ivport;
+	Stack *vportstack;
+	ttglobal tg;
+	contenttype_e3dmouse *self = (contenttype_e3dmouse*)_self;
+	tg = gglobal();
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+
+	ivport = stack_top(ivec4,vportstack);
+	x = ivport.W/2 + ivport.X; //viewport center
+	y = ivport.H/2 + ivport.Y;
+
+
+	but2 = LMB;
+	ID0 = 0; //navigation
+	ID1 = 1; //sensor dragging
+	ivport = stack_top(ivec4,vportstack);
+	if(butnum == RMB){
+		if(mev == ButtonRelease){
+			 self->sphericalmode = 1 - self->sphericalmode;
+			 if(self->sphericalmode){
+				printf("turning on spherical mode\n");
+				self->navigationMode = fwl_getNavMode();
+				fwl_setNavMode("SPHERICAL");
+				//tg->Mainloop.AllowNavDrag = TRUE;
+				//start spherical navigation drag
+				iret = content_pick(_self,ButtonPress,but2,mouseX,mouseY,ID0,windex);
+			}else{
+				printf("turning off spherical mode\n");
+				fwl_set_viewer_type(self->navigationMode);
+				//tg->Mainloop.AllowNavDrag = FALSE;
+				//end spherical navigation drag
+				iret = content_pick(_self,ButtonRelease,but2,mouseX,mouseY,ID0,windex);
+			}
+			self->waste = FALSE;
+		}else if(mev == ButtonPress){
+			self->waste = TRUE;
+		}
+		return 1; //discard other RMBs
+	}
+	if(self->waste) return 1; //its an RMB motionNotify
+	if(self->sphericalmode){
+		iret = content_pick(_self,mev,butnum,x,y,ID1,windex);
+		//printf("mev %d butnum %d x %d y %d ID %d\n",mev,butnum,x,y,ID1);
+		//tg->Mainloop.SHIFT = TRUE;
+		iret = content_pick(_self,MotionNotify,0,mouseX,mouseY,ID0,windex);
+		//tg->Mainloop.SHIFT = FALSE;
+	}else{
+		//normal navigation and picking
+		iret = content_pick(_self,mev,butnum,mouseX,mouseY,ID0,windex);
+		//printf("mev %d butnum %d x %d y %d ID %d\n",mev,butnum,mouseX,mouseY,ID0);
+
+	}
+	
+	return iret;
+}
+contenttype *new_contenttype_e3dmouse(){
+	contenttype_e3dmouse *self = MALLOCV(sizeof(contenttype_e3dmouse));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_E3DMOUSE;
+	self->t1.render = e3dmouse_render;
+	self->t1.pick = e3dmouse_pick;
+	self->sphericalmode = 0;
+	self->dragMode = 0;
+	self->waste = 0;
+	return (contenttype*)self;
+}
+
+typedef struct contenttype_quadrant {
+	tcontenttype t1;
+	float offset_fraction[2];
+} contenttype_quadrant;
+void loadIdentityMatrix (double *mat);
+void get_view_matrix(double *savePosOri, double *saveView);
+static void set_view_matrix(double *savePosOri, double *saveView);
+
+static void set_quadrant_viewmatrix(double *savePosOri, double *saveView, int iq) {
+	//iq 2 3
+	//   0 1
+	//no comprendo - por que no veo difference.
+	double viewmatrix[16], tmat[16], pomat[16], vmat[16], bothinverse[16];
+	double xyz[3], zero[3];
+
+	get_view_matrix(savePosOri,saveView);
+	if(iq==0) return;
+	zero[0] = zero[1] = zero[2] = 0.0;
+	matmultiplyAFFINE(viewmatrix,saveView,savePosOri);
+	matinverseAFFINE(bothinverse,viewmatrix);
+
+	transformAFFINEd(xyz, zero, bothinverse);
+
+	loadIdentityMatrix (pomat);
+	loadIdentityMatrix (vmat);
+	if(0) mattranslate(vmat, -Viewer()->Dist,0.0,0.0);
+	
+	mattranslate(tmat,-xyz[0],-xyz[1],-xyz[2]);
+	matmultiplyAFFINE(vmat,tmat,vmat);
+
+	switch(iq){
+		case 0: break; //no change to vp
+		case 1: matrotate(tmat,    0.0, 0.0,0.0,1.0);
+		break;
+		case 2: matrotate(tmat, PI * .5, 1.0,0.0,0.0);
+		break;
+		case 3: matrotate(tmat, PI * .5, 0.0,1.0,0.0);
+		break;
+		default:
+		break;
+	}
+	matmultiplyAFFINE(vmat,vmat,tmat);
+	set_view_matrix(pomat,vmat);
+}
+void quadrant_render(void *_self){
+	//
+	int i;
+	contenttype *c;
+	contenttype_quadrant *self;
+
+	self = (contenttype_quadrant *)_self;
+	pushnset_viewport(self->t1.viewport); //generic viewport
+	c = self->t1.contents;
+	i=0;
+	while(c){
+		double savePosOri[16], saveView[16];
+		float viewport[4];
+		memcpy(viewport,defaultClipBoundary,4*sizeof(float));
+		//create quadrant subviewport and push
+		viewport[0] = i==0 || i==2 ? 0.0f : self->offset_fraction[0]; //left
+		viewport[1] = i==0 || i==2 ? self->offset_fraction[0] : 1.0f; //right
+		viewport[2] = i==0 || i==1 ? 0.0f : self->offset_fraction[1]; //bottom
+		viewport[3] = i==0 || i==1 ? self->offset_fraction[1] : 1.0f; //top
+		pushnset_viewport(viewport); //quadrant sub-viewport
+		//printf("quad viewport %f %f %f %f\n",viewport[0],viewport[1],viewport[2],viewport[3]);
+		//create quadrant viewpoint and push
+		set_quadrant_viewmatrix(savePosOri, saveView, i);	
+		c->t1.render(c);
+		//update saved viewpoint and pop quadrant viewpoint
+		set_view_matrix(savePosOri,saveView);
+		//pop quadrant subviewport
+		popnset_viewport();
+		c = c->t1.next;
+		i++;
+	}
+	popnset_viewport();
+}
+int quadrant_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//
+	int iret;
+	int i;
+	contenttype *c;
+	contenttype_quadrant *self;
+
+	self = (contenttype_quadrant *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){  //generic viewport
+		c = self->t1.contents;
+		i=0;
+		while(c){
+			//create quadrant subviewport and push
+			float viewport[4];
+			memcpy(viewport,defaultClipBoundary,4*sizeof(float));
+			//create quadrant subviewport and push
+			viewport[0] = i==0 || i==2 ? 0.0f : self->offset_fraction[0]; //left
+			viewport[1] = i==0 || i==2 ? self->offset_fraction[0] : 1.0f; //right
+			viewport[2] = i==0 || i==1 ? 0.0f : self->offset_fraction[1]; //bottom
+			viewport[3] = i==0 || i==1 ? self->offset_fraction[1] : 1.0f; //top
+			if(checknpush_viewport(viewport,mouseX,mouseY)){  //quadrant sub-viewport
+				//create quadrant viewpoint and push
+				iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+				if(iret > 0) break; //handled
+				//update saved viewpoint and pop quadrant viewpoint
+				//pop quadrant subviewport
+				pop_viewport();
+			}
+			c = c->t1.next;
+			i++;
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+contenttype *new_contenttype_quadrant(){
+	contenttype_quadrant *self = MALLOCV(sizeof(contenttype_quadrant));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_QUADRANT;
+	self->t1.render = quadrant_render;
+	self->t1.pick = quadrant_pick;
+	self->offset_fraction[0] = .5f;
+	self->offset_fraction[1] = .5f;
+	return (contenttype*)self;
+}
+
+
+
+
+//STEREO>>
+//SIDEBYSIDE >>
+typedef struct contenttype_stereo_sidebyside {
+	tcontenttype t1;
+	//in theory could put screenbase here, will get from old viewer for now
+} contenttype_stereo_sidebyside;
+void loadIdentityMatrix (double *mat);
+void get_view_matrix(double *savePosOri, double *saveView);
+static void set_view_matrix(double *savePosOri, double *saveView);
+void compute_sidebyside_viewport_and_fiducial(int iside, ivec4 *ivport, ivec2 *fidcenter){
+	int screenwidth2;
+	int iexpand;
+	double expansion;
+	ivec4 vport;
+	Stack *vportstack;
+	ttglobal tg = gglobal();
+	X3D_Viewer *viewer;
+
+	viewer = Viewer();
+
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+	vport = stack_top(ivec4,vportstack);
+
+	screenwidth2 = vport.W/2;
+	ivport->W = screenwidth2;
+	ivport->H = vport.H;
+	ivport->Y = vport.Y;
+	if(iside == 0){
+		ivport->X = vport.X;
+	}else{
+		ivport->X = vport.X + screenwidth2;
+	}
+	fidcenter->Y = vport.Y + vport.H;
+
+	//its just sidebyside that needs the screen distance adjusted to be slightly less than human eyebase
+	//(the others can center their viewpoints in the viewports, and center the viewports on the screen)
+	expansion = viewer->screendist - .5;
+	iexpand = (GLint)(expansion * ivport->W);
+
+	fidcenter->X = ivport->X + screenwidth2/2;
+	if(iside == 0)
+		fidcenter->X -= iexpand;
+	else
+		fidcenter->X += iexpand;
+
+}
+void stereo_sidebyside_render(void *_self){
+	//
+	int i;
+	contenttype *c;
+	contenttype_stereo_sidebyside *self;
+	X3D_Viewer *viewer;
+
+
+	self = (contenttype_stereo_sidebyside *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1; //we're using the B so old isStereo 
+
+	pushnset_viewport(self->t1.viewport); //generic viewport
+	c = self->t1.contents;
+	i=0;
+	while(c){
+		// OLDCODE ivec4 vport;
+		ivec4 ivport2;
+		ivec2 fidcenter;
+		Stack *vportstack;
+		ttglobal tg = gglobal();
+
+
+		viewer->isideB = i; //set_viewmatrix needs to know
+
+		vportstack = (Stack*)tg->Mainloop._vportstack;
+		// OLDCODE vport = stack_top(ivec4,vportstack);
+
+		compute_sidebyside_viewport_and_fiducial(viewer->isideB,&ivport2,&fidcenter);
+
+		{
+			int halfW, vpc;
+			halfW = ivport2.W / 2;
+			vpc = halfW + ivport2.X;
+			viewer->xcenter = (double)(fidcenter.X - vpc)/(double)halfW; //-1 to 1 range with 0 being center, -1 being viewpoint on left side of viewport
+			pushviewport(vportstack,ivport2);
+		}
+		setcurrentviewport(vportstack); //does opengl call
+
+		c->t1.render(c);
+		//fiducialDraw(1,fidcenter.X,fidcenter.Y,0.0f); //draw a fiducial mark where centre of viewpoint is
+		fiducialDrawB(CURSOR_FIDUCIALS,fidcenter.X,fidcenter.Y);
+		//pop stereo_sidebyside subviewport
+		popnset_viewport();
+		viewer->xcenter = 0.0;
+		c = c->t1.next;
+		i++;
+	}
+	viewer->isStereoB = 0;
+	popnset_viewport();
+}
+int stereo_sidebyside_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//
+	int iret;
+	int i;
+	contenttype *c;
+	contenttype_stereo_sidebyside *self;
+	X3D_Viewer *viewer;
+
+	self = (contenttype_stereo_sidebyside *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1;
+
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){  //generic viewport
+		c = self->t1.contents;
+		i=0;
+		//for each stereo side ..
+		while(c){
+			//.. create stereo_sidebyside subviewport, push, and render
+			ivec4 ivport2;
+			ivec2 fidcenter, pt;
+
+			viewer->isideB = i;
+			compute_sidebyside_viewport_and_fiducial(viewer->isideB,&ivport2,&fidcenter);
+			//if(checknpush_viewport(viewport,mouseX,mouseY)){   - can't use this convenience function, will do long way
+			//stereo_sidebyside sub-viewport
+			pt.X = mouseX;
+			pt.Y = mouseY;
+			iret = pointinsideviewport(ivport2,pt);
+			if(iret){
+				pushviewport(gglobal()->Mainloop._vportstack,ivport2);
+				iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+				if(iret > 0) break; //handled
+				pop_viewport();
+			}
+			c = c->t1.next;
+			i++;
+		}
+		pop_viewport();
+	}
+	viewer->isStereoB = 0;
+	return iret;
+}
+contenttype *new_contenttype_stereo_sidebyside(){
+	contenttype_stereo_sidebyside *self = MALLOCV(sizeof(contenttype_stereo_sidebyside));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_STEREO_SIDEBYSIDE;
+	self->t1.render = stereo_sidebyside_render;
+	self->t1.pick = stereo_sidebyside_pick;
+	return (contenttype*)self;
+}
+
+
+
+
+//ANAGLYPH >>
+typedef struct contenttype_stereo_anaglyph {
+	tcontenttype t1;
+	//in theory could put color sides here, will get from old viewer for now
+} contenttype_stereo_anaglyph;
+void loadIdentityMatrix (double *mat);
+void clear_shader_table();
+void setStereoBufferStyle(int);
+void stereo_anaglyph_render(void *_self){
+	//Feb 13, 2016 - anaglyph isn't rendering properly with FBO stage
+	// couldn't seem to make these hints work:
+	// http://www.gamedev.net/topic/664111-blending-problems-on-alpha-enabled-render-target/
+	//
+	int i;
+	contenttype *c;
+	contenttype_stereo_anaglyph *self;
+	X3D_Viewer *viewer;
+
+
+	self = (contenttype_stereo_anaglyph *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1; //we're using the B so old isStereo not activated, backend thinks its rendering a mono scene
+	viewer->anaglyphB = 1; //except we need the shader for luminance = f(R,G,B)
+	clear_shader_table(); //tiggers reconfiguring shader, so it looks for anaglyphB flag 
+	//setStereoBufferStyle(1);
+
+	pushnset_viewport(self->t1.viewport); //generic viewport
+	c = self->t1.contents;
+	i=0;
+	//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+	Viewer_anaglyph_clearSides(); //clear all channels
+	//glColorMask(1,1,1,1);
+	glClearColor(0.0f,0.0f,0.0f,1.0f);
+	BackEndClearBuffer(2); //scissor test in here
+	while(c){
+
+		viewer->isideB = i; //set_viewmatrix needs to know
+		Viewer_anaglyph_setSide(i); //clear just the channels we're going to draw to
+		viewer->xcenter = 0.0; //no screen shift or fiducials, just center
+		
+		c->t1.render(c); //scene will do another backnedclearbuffer but should be constrained to channel mask for side
+
+		c = c->t1.next;
+		i++;
+	}
+	Viewer_anaglyph_clearSides(); //clear all channels
+	//glColorMask(1,1,1,1);
+	clear_shader_table();
+
+	viewer->anaglyphB = 0;
+	viewer->isStereoB = 0;
+	popnset_viewport();
+}
+int stereo_anaglyph_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//
+	int iret;
+	int i;
+	contenttype *c;
+	contenttype_stereo_anaglyph *self;
+	X3D_Viewer *viewer;
+
+	self = (contenttype_stereo_anaglyph *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1;
+
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){  //generic viewport
+		c = self->t1.contents;
+		i=0;
+		//for each stereo side, but I'm assuming left side will get it first
+		while(c){
+			viewer->isideB = i;
+			iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+			if(iret > 0) break; //handled
+			c = c->t1.next;
+			i++;
+		}
+		pop_viewport();
+	}
+	viewer->isStereoB = 0;
+	return iret;
+}
+contenttype *new_contenttype_stereo_anaglyph(){
+	contenttype_stereo_anaglyph *self = MALLOCV(sizeof(contenttype_stereo_anaglyph));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_STEREO_ANAGLYPH;
+	self->t1.render = stereo_anaglyph_render;
+	self->t1.pick = stereo_anaglyph_pick;
+	return (contenttype*)self;
+}
+
+
+//UPDOWN >>
+typedef struct contenttype_stereo_updown {
+	tcontenttype t1;
+} contenttype_stereo_updown;
+
+
+void stereo_updown_render(void *_self){
+	//
+	int i;
+	contenttype *c;
+	contenttype_stereo_updown *self;
+	X3D_Viewer *viewer;
+	Stack *vportstack;
+	ttglobal tg = gglobal();
+
+	self = (contenttype_stereo_updown *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1; //we're using the B so old isStereo not activated, backend thinks its rendering a mono scene
+	viewer->updownB = 1; //let setup_projection know to squish the aspect by x 2
+
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+
+
+	pushnset_viewport(self->t1.viewport); //generic viewport
+	c = self->t1.contents;
+	i=0;
+	while(c){
+		ivec4 ivport;
+		ivport = stack_top(ivec4,vportstack);
+		ivport.H /= 2;
+		ivport.Y += (1-i)*ivport.H; //left on top
+		pushviewport(vportstack,ivport);
+		setcurrentviewport(vportstack); //does opengl call
+
+		//aspect squishing is still done in setup_projection
+		viewer->isideB = i; //set_viewmatrix needs to know
+		viewer->xcenter = 0.0; //no screen eyebase or fiducials, just center
+
+		c->t1.render(c);
+		popnset_viewport();
+
+		c = c->t1.next;
+		i++;
+	}
+	//glColorMask(1,1,1,1); /*restore, for statusbarHud etc*/ OR:
+	viewer->updownB = 0;
+	viewer->isStereoB = 0;
+	popnset_viewport();
+}
+int stereo_updown_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//
+	int iret;
+	int i;
+	contenttype *c;
+	contenttype_stereo_updown *self;
+	X3D_Viewer *viewer;
+	Stack *vportstack;
+	ttglobal tg = gglobal();
+
+	self = (contenttype_stereo_updown *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1;
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){  //generic viewport
+		c = self->t1.contents;
+		i=0;
+		//for each stereo side, but I'm assuming left side will get it first
+		while(c){
+			ivec4 ivport;
+			ivec2 pt;
+
+			viewer->isideB = i;
+			ivport = stack_top(ivec4,vportstack);
+			ivport.H /= 2;
+			ivport.Y += (1-i)*ivport.H; //left on top
+			pt.X = mouseX;
+			pt.Y = mouseY;
+			iret = pointinsideviewport(ivport,pt);
+			if(iret){
+
+				pushviewport(vportstack,ivport);
+				setcurrentviewport(vportstack); //does opengl call
+
+				iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+				popnset_viewport();
+				if(iret > 0) break; //handled
+			}
+			c = c->t1.next;
+			i++;
+		}
+		pop_viewport();
+	}
+	viewer->isStereoB = 0;
+	return iret;
+}
+contenttype *new_contenttype_stereo_updown(){
+	contenttype_stereo_updown *self = MALLOCV(sizeof(contenttype_stereo_updown));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_STEREO_UPDOWN;
+	self->t1.render = stereo_updown_render;
+	self->t1.pick = stereo_updown_pick;
+	return (contenttype*)self;
+}
+
+
+//SHUTTER >>
+typedef struct contenttype_stereo_shutter {
+	tcontenttype t1;
+} contenttype_stereo_shutter;
+
+void setStereoBufferStyleB(int itype, int iside, int ibuffer);
+void stereo_shutter_render(void *_self){
+	//
+	int i, shutterGlasses;
+	contenttype *c;
+	contenttype_stereo_shutter *self;
+	X3D_Viewer *viewer;
+	// OLDCODE Stack *vportstack;
+	static double shuttertime;
+	static int shutterside;
+	// OLDCODE ttglobal tg = gglobal();
+
+	self = (contenttype_stereo_shutter *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1; //we're using the B so old isStereo not activated, backend thinks its rendering a mono scene
+
+	// OLDCODE vportstack = (Stack*)tg->Mainloop._vportstack;
+	shutterGlasses = 2;
+	if(viewer->haveQuadbuffer)
+		shutterGlasses = 1;
+
+	pushnset_viewport(self->t1.viewport); //generic viewport
+	c = self->t1.contents;
+	i=0;
+	while(c){
+
+		viewer->isideB = i; //set_viewmatrix needs to know
+		viewer->xcenter = 0.0; //no screen eyebase or fiducials, just center
+		if(shutterGlasses == 2) /* flutter mode - like --shutter but no GL_STEREO so alternates */
+		{
+			if(TickTime() - shuttertime > 2.0)
+			{
+				shuttertime = TickTime();
+				shutterside = 1 - shutterside;
+			}
+			setStereoBufferStyleB(1,i,0);
+			//p->bufferarray[0]=FW_GL_BACK;
+		}else{
+			setStereoBufferStyleB(0,i,0);
+			shutterside = i;
+		}
+
+		if(i==shutterside){
+			c->t1.render(c);
+		}
+
+		c = c->t1.next;
+		i++;
+	}
+	setStereoBufferStyleB(1,0,0);
+	viewer->isStereoB = 0;
+	popnset_viewport();
+}
+int stereo_shutter_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//
+	int iret;
+	int i;
+	contenttype *c;
+	contenttype_stereo_shutter *self;
+	X3D_Viewer *viewer;
+	// OLDCODE Stack *vportstack;
+	// OLDCODE ttglobal tg = gglobal();
+
+	self = (contenttype_stereo_shutter *)_self;
+	viewer = Viewer();
+	viewer->isStereoB = 1;
+	// OLDCODE vportstack = (Stack*)tg->Mainloop._vportstack;
+
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){  //generic viewport
+		c = self->t1.contents;
+		i=0;
+		//for each stereo side, but I'm assuming left side will get it first
+		while(c){
+			iret = c->t1.pick(c,mev,butnum,mouseX,mouseY,ID, windex);
+			if(iret > 0) break; //handled
+
+			c = c->t1.next;
+			i++;
+		}
+		pop_viewport();
+	}
+	viewer->isStereoB = 0;
+	return iret;
+}
+contenttype *new_contenttype_stereo_shutter(){
+	contenttype_stereo_shutter *self = MALLOCV(sizeof(contenttype_stereo_shutter));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_STEREO_SHUTTER;
+	self->t1.render = stereo_shutter_render;
+	self->t1.pick = stereo_shutter_pick;
+	return (contenttype*)self;
+}
+
+
+//<<STEREO
+
+
+
+
+
+
+
+
+
+typedef struct contenttype_splitter {
+	tcontenttype t1;
+	float offset_fraction;
+	int offset_pixels;
+	int orientation; //vertical, horizontal
+} contenttype_splitter;
+contenttype *new_contenttype_splitter(){
+	contenttype_splitter *self = MALLOCV(sizeof(contenttype_splitter));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_SPLITTER;
+	return (contenttype*)self;
+}
+
+
+
+enum {
+	STAGETYPE_BACKBUF,
+	STAGETYPE_FBO
+} stage_type;
+typedef struct stage {
+	tcontenttype t1;
+	int type; // enum stage_type: fbo or backbuf
+	unsigned int ibuffer; //gl fbo or backbuffer GL_UINT
+	unsigned int itexturebuffer; //color buffer, if fbo
+	unsigned int idepthbuffer; //z-depth buffer, if fbo
+	//int width, height; //of texture buffer and render buffer
+	ivec4 ivport; //backbuf stage: sub-area of parent iviewport we are targeting left, width, bottom, height
+				//fbo stage: size to make the fbo buffer (0,0 offset)
+	//float[4] clearcolor; 	FW_GL_CLEAR_COLOR(clearcolor[0],clearcolor[1],clearcolor[2],clearcolor[3]);
+	BOOL clear_zbuffer;
+	int even_odd_frame; //just even/odd so we can tell if its already been rendered on this frame
+	//int initialized;
+} stage;
+
+//mouse coordinates are relative to a stage,
+//and because picking is done half in the pick() call stack, and
+//half in the render phase, we need to let the render phase know if a touch/pick is 
+//in its stage.
+// pick > touch->stage = current_stageId()
+// render > if(touch->stage != current_stageId()) not for me
+//So we give each stage an arbitrary unique ID (its void* pointer)
+//in theory we could pass it down the pick(,,,,stageId) call stack like windex,
+//but stages can be chained so aren't fixed for a pass, so we need a push-n-pop stack for render 
+//anyway, so we use a stack for pick too.
+void push_stageId(void *stageId){
+	Stack *stagestack = (Stack*)gglobal()->Mainloop._stagestack;
+	stack_push(void*,stagestack,stageId);
+}
+void *current_stageId(){
+	Stack *stagestack = (Stack*)gglobal()->Mainloop._stagestack;
+	return stack_top(void*,stagestack);
+}
+void pop_stageId(){
+	Stack *stagestack = (Stack*)gglobal()->Mainloop._stagestack;
+	stack_pop(void*,stagestack);
+}
+
+void stage_render(void *_self){
+	//just the z-buffer cleared between content
+	Stack *vportstack;
+
+	stage *self = (stage*)_self;
+	pushnset_framebuffer(self->ibuffer);
+	vportstack = (Stack*)gglobal()->Mainloop._vportstack;
+	pushviewport(vportstack,self->ivport);
+	push_stageId(self); 
+	setcurrentviewport(vportstack); //does opengl call
+	//for fun/testing, a different clear color for fbos vs gl_back, but not necessary
+
+	if(self->ibuffer != FW_GL_BACK)
+		glClearColor(.3f,.4f,.5f,1.0f);
+	else
+		glClearColor(1.0f,0.0f,0.0f,1.0f);
+	BackEndClearBuffer(2);
+	content_render(_self); //the rest of stage render is the same as content render, so we'll delegate
+	pop_stageId();
+	popnset_viewport();
+	popnset_framebuffer();
+}
+int stage_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	Stack *vportstack;
+	ivec4 ivport_parent;
+	int x,y;
+	int iret;
+	stage *self = (stage*)_self;
+
+	ivport_parent = get_current_viewport();
+	x = mouseX - ivport_parent.X;
+	y = mouseY - ivport_parent.Y;
+	//pick coords are relative to stage
+	x = x + self->ivport.X; //should be 0
+	y = y + self->ivport.Y; //should be 0
+	vportstack = (Stack*)gglobal()->Mainloop._vportstack;
+	pushviewport(vportstack,self->ivport);
+	push_stageId(self);
+	iret = content_pick(_self,mev,butnum,x,y,ID,windex);
+	pop_stageId();
+	pop_viewport();
+	return iret;
+}
+
+contenttype *new_contenttype_stage(){
+	stage *self = MALLOCV(sizeof(stage));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_STAGE;
+	self->t1.render = stage_render;
+	self->t1.pick = stage_pick;
+	self->type = STAGETYPE_BACKBUF;
+	self->ibuffer = FW_GL_BACK;
+	self->clear_zbuffer = TRUE;
+	self->ivport = ivec4_init(0,0,100,100);
+	return (contenttype*)self;
+}
+//mobile GLES2 via ANGLE has only 16bit depth buffer. not 24 or 32 as with desktop opengl
+#ifdef GL_DEPTH_COMPONENT32
+#define FW_GL_DEPTH_COMPONENT GL_DEPTH_COMPONENT32
+#else
+#define FW_GL_DEPTH_COMPONENT GL_DEPTH_COMPONENT16
+#endif
+contenttype *new_contenttype_stagefbo(int width, int height){
+	contenttype *_self;
+	stage *self;
+	int useMip;
+
+	_self = new_contenttype_stage();
+	self = (stage*)_self;
+	self->type = STAGETYPE_FBO;
+	self->ivport.W = width;
+	self->ivport.H = height; //can change during render pass
+
+	// before gl 3.1 fbos were an extension
+	// https://github.com/opengl-tutorials/ogl/blob/2.1_branch/tutorial14_render_to_texture/tutorial14.cpp#L167
+	if ( !haveFrameBufferObject() ) // GLEW_ARB_framebuffer_object 
+		return _self;
+	
+		glGenTextures(1, &self->itexturebuffer);
+		//bind to set some parameters
+		glBindTexture(GL_TEXTURE_2D, self->itexturebuffer);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+		useMip = 0;
+		if(useMip){
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+		}else{
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		}
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self->ivport.W, self->ivport.H, 0, GL_RGBA , GL_UNSIGNED_BYTE, 0);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		//unbind - will rebind during render to reset width, height as needed
+		glBindTexture(GL_TEXTURE_2D, 0); 
+
+	glGenFramebuffers(1, &self->ibuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, self->ibuffer);
+
+	// create a renderbuffer object to store depth info
+	// NOTE: A depth renderable image should be attached the FBO for depth test.
+	// If we don't attach a depth renderable image to the FBO, then
+	// the rendering output will be corrupted because of missing depth test.
+	// If you also need stencil test for your rendering, then you must
+	// attach additional image to the stencil attachement point, too.
+	glGenRenderbuffers(1, &self->idepthbuffer);
+		//bind to set some parameters
+		glBindRenderbuffer(GL_RENDERBUFFER, self->idepthbuffer);
+		glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, self->ivport.W, self->ivport.H);
+		//unbind
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	// attach a texture to FBO color attachement point
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self->itexturebuffer, 0);
+
+	// attach a renderbuffer to depth attachment point
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, self->idepthbuffer);
+	//unbind framebuffer till render
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return _self;
+}
+void stage_resize(void *_self,int width, int height){
+	stage *self;
+	self = (stage*)_self;
+	if(self->type == STAGETYPE_FBO){
+		if(width != self->ivport.W || height != self->ivport.H){
+			self->ivport.W = width;
+			self->ivport.H = height;
+			glBindTexture(GL_TEXTURE_2D, self->itexturebuffer);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self->ivport.W, self->ivport.H, 0, GL_RGBA , GL_UNSIGNED_BYTE, NULL);
+
+			glBindTexture(GL_TEXTURE_2D, 0); 
+
+			glBindRenderbuffer(GL_RENDERBUFFER, self->idepthbuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, self->ivport.W, self->ivport.H);
+
+			//unbind
+			glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			//printf("stage_resize to %d %d\n",self->ivport.W,self->ivport.H);
+			if(0){
+				glBindFramebuffer(GL_FRAMEBUFFER, self->ibuffer);
+				// attach a texture to FBO color attachement point
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self->itexturebuffer, 0);
+
+				// attach a renderbuffer to depth attachment point
+				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, self->idepthbuffer);
+				//unbind framebuffer till render
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+
+		}
+
+	}else{
+		//GL_BACK stage
+		self->ivport.W = width;
+		self->ivport.H = height;
+	}
+
+}
+
+
+typedef struct contenttype_texturegrid {
+	tcontenttype t1;
+	int nx, ny, nelements, nvert; //number of grid vertices
+	GLushort *index; //winRT needs short
+	GLfloat *vert, *vert2, *tex, *norm, dx, tx;
+	float k1,xc; //optionally used during distort and pick for radial/barrel distortion
+	int usingDistortions;
+	GLuint textureID;
+} contenttype_texturegrid;
+
+void render_texturegrid(void *_self);
+void texturegrid_render(void *_self){
+	contenttype *c, *self;
+	self = (contenttype *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	if(c){
+		//should be just the fbo texture to render
+		if(c->t1.itype == CONTENT_STAGE){
+			ivec4 ivport;
+			Stack* vpstack;
+			stage *s;
+
+			s = (stage*)c;
+			vpstack = (Stack*)gglobal()->Mainloop._vportstack;
+			ivport = stack_top(ivec4,vpstack);
+			if(s->ivport.W !=  ivport.W || s->ivport.H != ivport.H)
+				stage_resize(c,ivport.W,ivport.H);
+			c->t1.render(c);
+		}		
+	}
+	//render self last
+	render_texturegrid(_self);
+	popnset_viewport();
+}
+static GLfloat matrixIdentity[] = {
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
 };
-struct mouseTuple{
-	int mev;
-	unsigned int button;
-	float x;
-	float y;
-	int ix;
-	int iy;
-	int ID;
+int texturegrid_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex);
+contenttype *new_contenttype_texturegrid(int nx, int ny){
+	contenttype_texturegrid *self = MALLOCV(sizeof(contenttype_texturegrid));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_TEXTUREGRID;
+	self->t1.render = texturegrid_render;
+	self->t1.pick = texturegrid_pick;
+	self->k1 = 0.0f;
+	self->xc = 0.0f;
+	self->nx = nx;
+	self->ny = ny;
+	{
+		//generate an nxn grid, of object size [-1,1]x[-1,1] = 2x2, complete with vertices, normals, texture coords and triangles
+		int i,j,k; //,n;
+		GLushort *index;
+		GLfloat *vert, *vert2, *tex, *norm;
+		GLfloat dx,dy, tx,ty;
+		//n = p->ngridsize;
+		index = (GLushort*)MALLOCV((nx-1)*(ny-1)*2*3 *sizeof(GLushort));
+		vert = (GLfloat*)MALLOCV(nx*ny*3*sizeof(GLfloat));
+		vert2 = (GLfloat*)MALLOCV(nx*ny*3*sizeof(GLfloat));
+		tex = (GLfloat*)MALLOCV(nx*ny*2*sizeof(GLfloat));
+		norm = (GLfloat*)MALLOCV(nx*ny*3*sizeof(GLfloat));
+		register_contenttype(index);
+		register_contenttype(vert);
+		register_contenttype(vert2);
+		register_contenttype(tex);
+		register_contenttype(norm);
+
+		//generate vertices
+		dx = 2.0f / (float)(nx-1);
+		dy = 2.0f / (float)(ny-1);
+		tx = 1.0f / (float)(nx-1);
+		ty = 1.0f / (float)(ny-1);
+		for(i=0;i<nx;i++)
+			for(j=0;j<ny;j++){
+				vert[(i*nx + j)*3 + 0] = -1.0f + j*dy;
+				vert[(i*nx + j)*3 + 1] = -1.0f + i*dx;
+				vert[(i*nx + j)*3 + 2] = 0.0f;
+				tex[(i*nx + j)*2 + 0] = 0.0f + j*ty;
+				tex[(i*nx + j)*2 + 1] = 0.0f + i*tx;
+				norm[(i*nx + j)*3 + 0] = 0.0f;
+				norm[(i*nx + j)*3 + 1] = 0.0f;
+				norm[(i*nx + j)*3 + 2] = 1.0f;
+			}
+		
+
+		//generate triangle indices
+		k = 0;
+		for(i=0;i<nx-1;i++)
+			for(j=0;j<ny-1;j++){
+				//first triangle
+				index[k++] = i*nx + j;
+				index[k++] = i*nx + j + 1;
+				index[k++] = (i+1)*nx + j + 1;
+				//second triangle
+				index[k++] = i*nx + j;
+				index[k++] = (i+1)*nx + j + 1;
+				index[k++] = (i+1)*nx + j;
+			}
+		self->index = index;
+		self->norm = norm;
+		self->tex = tex;
+		self->vert = vert;
+		self->vert2 = vert2;
+		self->nelements = k;
+		self->nvert = nx*ny;
+		//copy standard vertices unmodified to vert2 which is used in render
+		for(i=0;i<self->nvert;i++){
+			self->vert2[i*3 +0] = self->vert[i*3 +0]; //x
+			self->vert2[i*3 +1] = self->vert[i*3 +1]; //y
+			self->vert2[i*3 +2] = self->vert[i*3 +2]; //z
+		}
+	}
+	return (contenttype*)self;
+}
+void texturegrid_barrel_distort(void *_self, float k1){
+	contenttype_texturegrid *self;
+	self = (contenttype_texturegrid *)_self;
+	//Modify your vertices here for weird things
+	if(1){
+		//barrel distortion used for googleCardboard-like devices with magnifying glass per eye
+		int i;
+		for(i=0;i<self->nvert;i++){
+			float radius2, x, y;
+			x = self->vert[i*3 +0];  //go back to original coords
+			y = self->vert[i*3 +1];
+			radius2 = x*x + y*y;
+			self->vert2[i*3 +0] = x*(1.0f - k1*radius2); 
+			self->vert2[i*3 +1] = y*(1.0f - k1*radius2);
+		}
+		self->k1 = k1;
+		self->xc = 0.0f;
+	}
+
+	if(0){
+		//some other example distortions, not used here
+		float aspect, scale, xshift, yshift;
+		int i;
+		aspect = 1.0; //we'll do window aspect ratio below, using projectionMatrix
+		xshift = 0.0; 
+		yshift = 0.0;
+		scale = 1.0; //window coords go from -1 to 1 in x and y, and so do our lazyvert
+
+		for(i=0;i<self->nvert;i++){
+			self->vert2[i*3 +0] += xshift; //x .0355 empirical
+			self->vert2[i*3 +1] += yshift; //y  .04 empirical
+			self->vert2[i*3 +0] *= 1.0; //x
+			self->vert2[i*3 +1] *= aspect; //y
+			self->vert2[i*3 +0] *= scale; //x
+			self->vert2[i*3 +1] *= scale; //y
+			self->vert2[i*3 +2] = self->vert[i*3 +2]; //z
+		}
+	}
+
+
+}
+void texturegrid_barrel_distort2(void *_self, float xc, float k1){
+	//xc - fiducial center as .% from left
+	// so radial/barrel distortion is centered on fiducial to counteract magnifying glass barrel distortion in googleCardboard lens
+	// this function needs to be called during/just after every adjustment to screendist eyebase
+	contenttype_texturegrid *self;
+	self = (contenttype_texturegrid *)_self;
+	//Modify your vertices here for weird things
+	if(1){
+		//barrel distortion used for googleCardboard-like devices with magnifying glass per eye
+		int i;
+		float xc2 = xc * 2.0f - 1.0f; // convert from .% * [0 to 1] to [-1 to 1]
+		for(i=0;i<self->nvert;i++){
+			float radius2, x, y;;
+			x = self->vert[i*3 +0];  //go back to original coords
+			y = self->vert[i*3 +1];
+			radius2 = (x-xc2)*(x-xc2) + y*y;
+			self->vert2[i*3 +0] = x*(1.0f - k1*radius2); 
+			self->vert2[i*3 +1] = y*(1.0f - k1*radius2);
+		}
+		self->k1 = k1;
+		self->xc = xc2;
+		self->usingDistortions = TRUE;
+	}
+}
+void texturegrid_barrel_undistort2(void *_self, ivec4 vport, ivec2 *xy){
+	//There are a few ways to back-transform/transform-backward (screen to scene) with texture grid:
+	//1. don't - instead rely on cursor drawn in model space from untransformed mouse
+	//2. bilinear interpolation using 2 more grids, one for x lookup, one for y lookup
+	//3. iteration of grid lookup going the other way
+	//4. iteration of original analytical distortion parameters -ie k1, xc
+	//each has pros and cons
+
+	contenttype_texturegrid *self;
+	float x,y,radius2;
+	self = (contenttype_texturegrid *)_self;
+	x = (float)(xy->X - vport.X) / (float)vport.W;
+	y = (float)(xy->Y - vport.Y) / (float)vport.H;
+	x = x*2.0f - 1.0f; //convert from 0-1 to -1 to 1
+	y = y*2.0f - 1.0f;
+	if(1){
+		//4. iterate using original analytical parameters and transform
+		int i;
+		float xb, yb, xa,ya, deltax, deltay, xc2, k1, tolerance;
+		xb = x; //initial guess: our mouse cursor position
+		yb = y;
+		xc2 = self->xc;
+		k1 = self->k1;
+		tolerance = .001f; //in [-1 to 1] .%
+		for(i=0;i<10;i++){
+			radius2 = (xb-xc2)*(xb-xc2) + yb*yb;
+			xa = xb*(1.0f - k1*radius2); //transform our guess forward (from scene to screen)
+			ya = yb*(1.0f - k1*radius2);
+			deltax = x - xa; //delta: how much we missed our mouse cursor by
+			deltay = y - ya;
+			xb += deltax; //next guess: old guess + delta
+			yb += deltay;
+			if(fabs(deltax) + fabs(deltay) < tolerance )break;
+		}
+		x = xb;
+		y = yb;
+	}
+	x = (x + 1.0f)*.5f; //convert from -1 to 1 to 0-1
+	y = (y + 1.0f)*.5f;
+	xy->X = (int)(x*vport.W) + vport.X;
+	xy->Y = (int)(y*vport.H) + vport.Y;
+}
+int texturegrid_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//convert windoow to fbo
+	int iret;
+	contenttype *c;
+	contenttype_texturegrid *self;
+
+	self = (contenttype_texturegrid *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		ivec4 ivport;
+		int x,y;
+		ivec2 xy;
+		//ttglobal tg = gglobal();
+		//ivport = stack_top(ivec4,(Stack*)tg->Mainloop._vportstack);
+		ivport = get_current_viewport();
+		//fbo = window - viewport
+		//x = mouseX;
+		//y = mouseY;
+		x = mouseX; // - ivport.X;
+		y = mouseY; // - ivport.Y;
+		xy.X = x;
+		xy.Y = y;
+		if(self->usingDistortions) texturegrid_barrel_undistort2(self, ivport, &xy );
+		x = xy.X;
+		y = xy.Y;
+		c = self->t1.contents;
+		while(c){
+			iret = c->t1.pick(c,mev,butnum,x,y,ID, windex);
+			if(iret > 0) break; //handled 
+			c = c->t1.next;
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+#include "../scenegraph/Component_Shape.h"
+void render_texturegrid(void *_self){
+	contenttype_texturegrid *self;
+	int useMip,haveTexture;
+	//float aspect, scale, xshift, yshift;
+	GLint  positionLoc, texCoordLoc, textureLoc;
+    GLint textureMatrix0;
+	GLuint textureID;
+	s_shader_capabilities_t *scap;
+	self = (contenttype_texturegrid *)_self;
+
+	haveTexture = FALSE;
+	if(self->t1.contents && self->t1.contents->t1.itype == CONTENT_STAGE){
+		stage *s = (stage*)self->t1.contents;
+		if(s->type == STAGETYPE_FBO){
+			textureID = s->itexturebuffer;
+			haveTexture = TRUE;
+		}
+	}
+	if(!haveTexture) return; //nothing worth drawing - could do a X texture
+	//now we load our textured geometry plane/grid to render it
+
+	FW_GL_DEPTHMASK(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
+
+//>>onResize
+	//Standard vertex process - both sides get this:
+	//for(i=0;i<self->nvert;i++){
+	//	self->vert2[i*3 +0] = self->vert[i*3 +0]; //x
+	//	self->vert2[i*3 +1] = self->vert[i*3 +1]; //y
+	//	self->vert2[i*3 +2] = self->vert[i*3 +2]; //z
+	//}
+
+	/*
+	//Modify your vertices here for weird things, depending on side
+	aspect = 1.0; //we'll do window aspect ratio below, using projectionMatrix
+	xshift = 0.0; 
+	yshift = 0.0;
+	scale = 1.0; //window coords go from -1 to 1 in x and y, and so do our lazyvert
+
+	for(i=0;i<self->nvert;i++){
+		self->vert2[i*3 +0] += xshift; //x .0355 empirical
+		self->vert2[i*3 +1] += yshift; //y  .04 empirical
+		self->vert2[i*3 +0] *= 1.0; //x
+		self->vert2[i*3 +1] *= aspect; //y
+		self->vert2[i*3 +0] *= scale; //x
+		self->vert2[i*3 +1] *= scale; //y
+		self->vert2[i*3 +2] = self->vert[i*3 +2]; //z
+	}
+	*/
+
+//	//standard vertex process - both sides get this:
+//	//scale = tg->display.screenRatio;
+//	scale = 1.0f; // 4.0f/3.0f;
+//	for(i=0;i<self->nvert;i++){
+//		self->vert2[i*3 +0] *= scale; //x
+//		self->vert2[i*3 +1] *= scale; //y
+//	}
+////<<onResize
+
+	//use FW shader pipeline
+	//we'll use a simplified shader -same one we use for DrawCursor- that 
+	//skips all the fancy lighting and material, and just shows texture as diffuse material
+	scap = getMyShader(ONE_TEX_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	positionLoc =  scap->Vertices; 
+	glVertexAttribPointer (positionLoc, 3, GL_FLOAT, 
+						   GL_FALSE, 0, self->vert2 );
+	// Load the texture coordinate
+	texCoordLoc = scap->TexCoords[0];
+	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
+	glEnableVertexAttribArray (positionLoc );
+	glEnableVertexAttribArray ( texCoordLoc);
+
+	// Bind the base map - see above
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, textureID );
+	useMip = 0;
+	if(useMip)
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+
+	// Set the base map sampler to texture unit to 0
+	textureLoc = scap->TextureUnit[0];
+	textureMatrix0 = scap->TextureMatrix[0];
+	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
+
+	glUniform1i ( textureLoc, 0 );
+	//window coordinates natively go from -1 to 1 in x and y
+	//but usually the window is rectangular, so to draw a perfect square
+	//you need to scale the coordinates differently in x and y
+
+	glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, matrixIdentity); 
+
+	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, matrixIdentity); //matrix90); //
+	
+	if(0){
+		glDrawArrays(GL_TRIANGLES,0,self->nelements);
+	}else{
+		glDrawElements(GL_TRIANGLES,self->nelements,GL_UNSIGNED_SHORT,self->index);
+	}
+
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+	FW_GL_DEPTHMASK(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+
+	return;
+}
+
+
+typedef struct contenttype_orientation {
+	tcontenttype t1;
+	int nx, ny, nelements, nvert; //number of grid vertices
+	GLushort *index; //winRT needs short
+	GLfloat *vert, *vert2, *tex, *norm, dx, tx;
+	GLuint textureID;
+} contenttype_orientation;
+
+void render_orientation(void *_self);
+void orientation_render(void *_self){
+	contenttype *c, *self;
+	self = (contenttype *)_self;
+	pushnset_viewport(self->t1.viewport);
+	c = self->t1.contents;
+	if(c){
+		//should be just the fbo texture to render
+		if(c->t1.itype == CONTENT_STAGE){
+			ivec4 ivport;
+			int fbowidth,fboheight;
+			Stack* vpstack;
+			stage *s;
+			ttglobal tg = gglobal();
+
+			s = (stage*)c;
+			vpstack = (Stack*)tg->Mainloop._vportstack;
+			ivport = stack_top(ivec4,vpstack);
+			switch(tg->Mainloop.screenOrientation2){
+				case 90:
+				case 270:
+					//portrait
+					fbowidth  = ivport.H;
+					fboheight = ivport.W;
+					break;
+				case 0:
+				case 180:
+				default:
+					//landscape
+					fbowidth  = ivport.W;
+					fboheight = ivport.H;
+					break;
+			}
+
+			if(s->ivport.W !=  fbowidth || s->ivport.H != fboheight)
+				stage_resize(c,fbowidth,fboheight);
+			c->t1.render(c);
+		}		
+	}
+	//render self last
+	render_orientation(_self);
+	popnset_viewport();
+}
+
+
+int orientation_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//generic render for intermediate level content types (leaf/terminal content types will have their own render())
+	int iret;
+	contenttype *c, *self;
+
+	self = (contenttype *)_self;
+	iret = 0;
+	if(checknpush_viewport(self->t1.viewport,mouseX,mouseY)){
+		ivec4 ivport;
+		int x,y;
+		ttglobal tg = gglobal();
+		ivport = stack_top(ivec4,(Stack*)tg->Mainloop._vportstack);
+		switch(tg->Mainloop.screenOrientation2){
+			case 90:
+				x = ivport.H - mouseY;
+				y = mouseX;
+				break;
+			case 180:
+				x = ivport.W - mouseX;
+				y = ivport.H - mouseY;
+				break;
+			case 270:
+				x = mouseY;
+				y = ivport.W - mouseX;
+				break;
+			case 0:
+			case 360:
+			default:
+				//landscape
+				x = mouseX;
+				y = mouseY;
+				break;
+		}
+		c = self->t1.contents;
+		while(c){
+			iret = c->t1.pick(c,mev,butnum,x,y,ID, windex);
+			if(iret > 0) break; //handled 
+			c = c->t1.next;
+		}
+		pop_viewport();
+	}
+	return iret;
+}
+void render_orientation(void *_self);
+//our grid generator goes columnwise. To draw we need indexes.
+//1--3
+//| /|
+//0--2
+GLfloat quad1Vert[] = {
+	-1.0f, -1.0f, 0.0f,
+	-1.0f,  1.0f, 0.0f,
+	 1.0f, -1.0f, 0.0f,
+	 1.0f,  1.0f, 0.0f,
 };
-struct playbackRecord {
-	int frame;
-	double dtime;
-	//should we use more general Touch instead of mouse-specific?
-	int *mousetuples; //x,y,button chord
-	int mouseCount; //# mouse tuples
-	char *keystrokes;
-	int keyCount;
+GLfloat quad1Tex[] = {
+	0.0f, 0.0f,
+	0.0f, 1.0f,
+	1.0f, 0.0f,
+	1.0f, 1.0f,
 };
+GLushort quad1TriangleInd[] = {
+	0, 1, 3, 3, 2, 0
+};
+
+contenttype *new_contenttype_orientation(){
+	contenttype_orientation *self = MALLOCV(sizeof(contenttype_orientation));
+	register_contenttype(self);
+	init_tcontenttype(&self->t1);
+	self->t1.itype = CONTENT_ORIENTATION;
+	self->t1.render = orientation_render;
+	self->t1.pick = orientation_pick;
+	self->nx = 2;
+	self->ny = 2;
+
+	//simple 2-triangle square
+	self->vert = quad1Vert;
+	self->tex = quad1Tex;
+	self->index = quad1TriangleInd;
+	self->nelements = 6;
+	self->nvert = 6;
+
+
+	return (contenttype*)self;
+}
+static GLfloat matrix180[] = {
+	-1.f, 0.0f, 0.0f, 0.0f,
+	0.0f,-1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+static GLfloat matrix270[] = {
+	0.0f, 1.0f, 0.0f, 0.0f,
+	-1.f, 0.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+static GLfloat matrix90[] = {
+	0.0f, -1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+
+
+unsigned int getCircleCursorTextureID();
+void render_orientation(void *_self){
+	contenttype_orientation *self;
+	int haveTexture;
+	GLint  positionLoc, texCoordLoc, textureLoc;
+    GLint textureMatrix0;
+	GLuint textureID;
+	float *orientationMatrix;
+	s_shader_capabilities_t *scap;
+	self = (contenttype_orientation *)_self;
+
+	haveTexture = FALSE;
+	if(self->t1.contents && self->t1.contents->t1.itype == CONTENT_STAGE){
+		stage *s = (stage*)self->t1.contents;
+		if(s->type == STAGETYPE_FBO){
+			
+			textureID = s->itexturebuffer;
+			//for testing when fbo isn't working (give it a known texture):
+			//if(0) textureID = getCircleCursorTextureID();
+			haveTexture = TRUE;
+		}
+	}
+	if(!haveTexture) 
+		return; //nothing worth drawing - could do a X texture
+	//now we load our textured geometry plane/grid to render it
+
+	switch(gglobal()->Mainloop.screenOrientation2){
+		case 180:  //landscape to upsidedown
+			orientationMatrix = matrix180;
+			break;
+		case 270:  //portrait upsidedown
+			orientationMatrix = matrix270;
+			break;
+		case 90: //portrait upsideright
+			orientationMatrix = matrix90;
+			break;
+		case 0:  //landscape upsideright
+		case 360:
+		default:
+			//landscape
+			orientationMatrix = matrixIdentity;
+			break;
+	}
+
+	FW_GL_DEPTHMASK(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
+
+
+	//use FW shader pipeline
+	//we'll use a simplified shader -same one we use for DrawCursor- that 
+	//skips all the fancy lighting and material, and just shows texture as diffuse material
+	scap = getMyShader(ONE_TEX_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	positionLoc =  scap->Vertices; 
+	glVertexAttribPointer (positionLoc, 3, GL_FLOAT, 
+						   GL_FALSE, 0, self->vert );
+	// Load the texture coordinate
+	texCoordLoc = scap->TexCoords[0];
+	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
+	glEnableVertexAttribArray (positionLoc );
+	glEnableVertexAttribArray ( texCoordLoc);
+
+	// Bind the base map - see above
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, textureID );
+
+	// Set the base map sampler to texture unit to 0
+	textureLoc = scap->TextureUnit[0];
+	textureMatrix0 = scap->TextureMatrix[0];
+	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
+
+	glUniform1i ( textureLoc, 0 );
+	//window coordinates natively go from -1 to 1 in x and y
+	//but usually the window is rectangular, so to draw a perfect square
+	//you need to scale the coordinates differently in x and y
+
+	glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, matrixIdentity); 
+	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, orientationMatrix); //matrix90); //
+	
+	//desktop glew, angleproject and winRT can do this:
+	glDrawElements(GL_TRIANGLES, self->nelements, GL_UNSIGNED_SHORT, self->index);// winRT needs GLushort indexes, can't do GL_QUADS
+
+
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+	FW_GL_DEPTHMASK(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+
+	return;
+}
+
+
+
+
+int frame_increment_even_odd_frame_count(int ieo){
+	ieo++;
+	ieo = ieo > 1 ? 0 : 1;
+	return ieo;
+}
+
+typedef struct targetwindow {
+	contenttype *stage;
+	//a target is a window. For example you could have an HMD as one target, 
+	//and desktop screen window as another target, both rendered to on the same frame
+	void *hwnd; //window handle
+	BOOL swapbuf; //true if we should swapbuffer on the target 
+	ivec4 ivport; //sub-area of window we are targeting left, width, bottom, height
+	freewrl_params_t params; //will have gl context switching parameters
+	struct targetwindow *next;
+} targetwindow;
+void init_targetwindow(void *_self){
+	targetwindow *self = (targetwindow *)_self;
+	self->stage = NULL;
+	self->next = NULL;
+	self->swapbuf = TRUE;
+	self->hwnd = NULL;
+}
+
+//int syntax_test_function(){
+//	targetwindow w;
+//	return w.t1.itype;
+//}
+
+
+//<<<<=====NEW==Nov27,2015=========
+struct pedal_state {
+	int x,y;
+	int rx,ry;
+	int isDown;
+	int initialized;
+};
+
 typedef struct pMainloop{
 	//browser
 	/* are we displayed, or iconic? */
@@ -162,16 +3010,6 @@ typedef struct pMainloop{
 	GLint viewPort2[10];
 	GLint viewpointScreenX[2], viewpointScreenY[2]; /*for stereo where we can adjust the viewpoint position on the screen */
 	/* screen width and height. */
-	struct X3D_Node* CursorOverSensitive;//=NULL;      /*  is Cursor over a Sensitive node?*/
-	struct X3D_Node* oldCOS;//=NULL;                   /*  which node was cursor over before this node?*/
-	int NavigationMode;//=FALSE;               /*  are we navigating or sensing?*/
-	int ButDown[20][8];// = {{FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE}};
-
-	int currentCursor;// = 0;
-	int lastMouseEvent;// = 0/*MapNotify*/;         /*  last event a mouse did; care about Button and Motion events only.*/
-	struct X3D_Node* lastPressedOver;// = NULL;/*  the sensitive node that the mouse was last buttonpressed over.*/
-	struct X3D_Node* lastOver;// = NULL;       /*  the sensitive node that the mouse was last moused over.*/
-	int lastOverButtonPressed;// = FALSE;      /*  catch the 1 to 0 transition for button presses and isOver in TouchSensors */
 
 	int maxbuffers;// = 1;                     /*  how many active indexes in bufferarray*/
 	int bufferarray[2];// = {GL_BACK,0};
@@ -186,6 +3024,7 @@ typedef struct pMainloop{
 	struct SensStruct *SensorEvents;// = 0;
 
     unsigned int loop_count;// = 0;
+	unsigned int once;
     unsigned int slowloop_count;// = 0;
 	//scene
 	//window
@@ -195,23 +3034,10 @@ typedef struct pMainloop{
 	int lastxx;
 	int lastyy;
 	int ntouch;// =0;
-	int currentTouch;// = -1;
+	unsigned int currentTouch;// = -1;
 	struct Touch touchlist[20];
 	int EMULATE_MULTITOUCH;// = 1;
-	FILE* recordingFile;
-	char* recordingFName;
-	int modeRecord;
-	int modeFixture;
-	int modePlayback;
-	int fwplayOpened;
-	char *nameTest;
-	int frameNum; //for Record, Playback - frame# =0 after scene loaded
-	struct playbackRecord* playback;
-	int playbackCount;
-	struct keypressTuple keypressQueue[50]; //for Record,Playback where keypresses are applied just once per frame for consistency
-	int keypressQueueCount;
-	struct mouseTuple mouseQueue[50];
-	int mouseQueueCount;
+
 	FILE* logfile;
 	FILE* logerr;
 	char* logfname;
@@ -221,6 +3047,23 @@ typedef struct pMainloop{
 	int keywait;
 	char keywaitstring[25];
 	int fps_sleep_remainder;
+	double screenorientationmatrix[16];
+	double viewtransformmatrix[16];
+	double posorimatrix[16];
+	double stereooffsetmatrix[2][16];
+	int targets_initialized;
+	targetwindow cwindows[4];
+	void *hyper_switch[4];
+	int hyper_case[4];
+	int nwindow;
+	int windex; //current window index into twoindows array, valid during render()
+	Stack *_vportstack;
+	Stack *_stagestack;
+	Stack *_framebufferstack;
+	struct Vector *contenttype_registry;
+	int mouseDown;
+	int mouseOver;
+	struct pedal_state pedalstate;
 }* ppMainloop;
 void *Mainloop_constructor(){
 	void *v = MALLOCV(sizeof(struct pMainloop));
@@ -254,6 +3097,7 @@ void Mainloop_init(struct tMainloop *t){
 	t->prv = Mainloop_constructor();
 	{
 		ppMainloop p = (ppMainloop)t->prv;
+		int i;
 		//browser
 		/* are we displayed, or iconic? */
 		p->onScreen = TRUE;
@@ -268,23 +3112,8 @@ void Mainloop_init(struct tMainloop *t){
 		//char* PluginFullPath;
 		p->num_SensorEvents = 0;
 
-		/* Viewport data */
-		//p->viewPort2[10];
-
-		/* screen width and height. */
-		p->CursorOverSensitive=NULL;      /*  is Cursor over a Sensitive node?*/
-		p->oldCOS=NULL;                   /*  which node was cursor over before this node?*/
-		p->NavigationMode=FALSE;               /*  are we navigating or sensing?*/
-		//p->ButDown[20][8] = {{FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE}}; nulls
-
-		p->currentCursor = 0;
-		p->lastMouseEvent = 0/*MapNotify*/;         /*  last event a mouse did; care about Button and Motion events only.*/
-		p->lastPressedOver = NULL;/*  the sensitive node that the mouse was last buttonpressed over.*/
-		p->lastOver = NULL;       /*  the sensitive node that the mouse was last moused over.*/
-		p->lastOverButtonPressed = FALSE;      /*  catch the 1 to 0 transition for button presses and isOver in TouchSensors */
-
 		p->maxbuffers = 1;                     /*  how many active indexes in bufferarray*/
-		p->bufferarray[0] = GL_BACK;
+		p->bufferarray[0] = FW_GL_BACK;
 		p->bufferarray[1] = 0;
 		/* current time and other time related stuff */
 		//p->BrowserStartTime;        /* start of calculating FPS     */
@@ -298,6 +3127,7 @@ void Mainloop_init(struct tMainloop *t){
 
         p->loop_count = 0;
         p->slowloop_count = 0;
+		p->once = 0;
 
 		//scene
 		//window
@@ -306,22 +3136,13 @@ void Mainloop_init(struct tMainloop *t){
 		p->lastDeltay = 50;
 		//p->lastxx;
 		//p->lastyy;
-		p->ntouch =0;
-		p->currentTouch = -1;
+		p->ntouch =20;
+		p->currentTouch = 0; //-1;
 		//p->touchlist[20];
 		p->EMULATE_MULTITOUCH = 0;
-		p->recordingFile = NULL;
-		p->recordingFName = NULL;
-		p->modeRecord = FALSE;
-		p->modeFixture = FALSE;
-		p->modePlayback = FALSE;
-		p->nameTest = NULL;
-		p->frameNum = 0;
-		p->playbackCount = 0;
-		p->playback = NULL;
-		p->fwplayOpened = 0;
-		p->keypressQueueCount=0;
-		p->mouseQueueCount=0;
+		memset(p->touchlist,0,20*sizeof(struct Touch));
+		// .inUse flag 0 //for(i=0;i<p->ntouch;i++) p->touchlist[i].ID = -1;
+
 		p->logfile = NULL;
 		p->logerr = NULL;
 		p->logfname = NULL;
@@ -331,6 +3152,22 @@ void Mainloop_init(struct tMainloop *t){
 		p->keywait = FALSE;
 		p->keywaitstring[0] = (char)0;
 		p->fps_sleep_remainder = 0;
+		p->nwindow = 1;
+		p->windex = 0;
+		p->targets_initialized = 0;
+		for(i=0;i<4;i++) init_targetwindow(&p->cwindows[i]);
+		//t->twindows = p->twindows;
+		p->_vportstack = newStack(ivec4);
+		t->_vportstack = (void *)p->_vportstack; //represents screen pixel area being drawn to
+		p->_stagestack = newStack(void*);
+		t->_stagestack = (void *)p->_stagestack; //represents screen pixel area being drawn to
+		p->_framebufferstack = newStack(int);
+		t->_framebufferstack = (void*)p->_framebufferstack;
+		stack_push(int,p->_framebufferstack,FW_GL_BACK);
+		p->contenttype_registry = NULL;
+		p->mouseDown = 0;
+		p->mouseOver = 0;
+		memset(&p->pedalstate,0,sizeof(struct pedal_state));
 	}
 }
 void Mainloop_clear(struct tMainloop *t){
@@ -341,28 +3178,110 @@ void Mainloop_clear(struct tMainloop *t){
 	{
 		ppMainloop p = (ppMainloop)t->prv;
 		FREE_IF_NZ(p->SensorEvents);
+		deleteVector(ivec4,p->_vportstack);
+		deleteVector(void*,p->_stagestack);
+		deleteVector(int,p->_framebufferstack);
+		free_contenttypes();
+		deleteVector(contenttype*,p->contenttype_registry);
 	}
 }
+
+//call hwnd_to_windex in frontend window creation and event handling,
+//to convert to more convenient int index.
+int getWindex(){
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	return p->windex;
+}
+int fwl_hwnd_to_windex(void *hWnd){
+	int i;
+	targetwindow *targets;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+
+	targets = (targetwindow*)p->cwindows;
+	for(i=0;i<4;i++){
+		//the following line assume hwnd is never natively null or 0
+		if(!targets[i].hwnd){
+			//not found, create
+			targets[i].hwnd = hWnd;
+			targets[i].swapbuf = TRUE;
+		}
+		if(targets[i].hwnd == hWnd) return i;
+	}
+	return 0;
+}
+
+void get_view_matrix(double *savePosOri, double *saveView) {
+	//iq 2 3
+	//   0 1
+	//no comprendo - por que no veo difference.
+	bindablestack *bstack;
+	// OLDCODE ppMainloop p;
+	ttglobal tg = gglobal();
+	// OLDCODE p = (ppMainloop)tg->Mainloop.prv;
+
+		bstack = getActiveBindableStacks(tg);
+		matcopy(saveView,bstack->viewtransformmatrix);
+		matcopy(savePosOri,bstack->posorimatrix);
+
+}
+static void set_view_matrix(double *savePosOri,double *saveView){
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+
+	if(0){
+		matcopy(p->viewtransformmatrix,saveView);
+		matcopy(p->posorimatrix,savePosOri);
+	}else{
+		bindablestack *bstack;
+		bstack = getActiveBindableStacks(tg);
+		matcopy(bstack->viewtransformmatrix,saveView);
+		matcopy(bstack->posorimatrix,savePosOri);
+	}
+
+}
+
+void fwl_getWindowSize(int *width, int *height){
+	//call this one when in target rendering loop (and setScreenDim0() 
+	// has been called with targetwindow-specific dimensions)
+	//the libfreewrl rendering loop should have setScreenDim0 to the appropriate values
+	ttglobal tg = gglobal();
+	*width = tg->display.screenWidth;
+	*height = tg->display.screenHeight;	
+}
+
+void fwl_getWindowSize1(int windex, int *width, int *height){
+	//call this one when recieving window events, ie mouse events
+	//windex: index (0-3, 0=default) of targetwindow the window event came in on
+	ivec4 ivport;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+
+	ivport = p->cwindows[windex].ivport;
+	*width = ivport.W;
+	*height = ivport.H;	
+}
+
+
 //true statics:
 int isBrowserPlugin = FALSE; //I can't think of a scenario where sharing this across instances would be a problem
-///* are we displayed, or iconic? */
-//static int onScreen = TRUE;
-//
-//
-///* do we do event propagation, proximity calcs?? */
-//static int doEvents = FALSE;
-//
-//#ifdef VERBOSE
-//static char debs[300];
-//#endif
-//
-//char* PluginFullPath;
-//
-///* linewidth for lines and points - passed in on command line */
-//float gl_linewidth = 1.0f;
-//
-///* what kind of file was just parsed? */
-//int currentFileVersion = 0;
+void fwl_set_emulate_multitouch(int ion){
+	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	p->EMULATE_MULTITOUCH = ion;
+	//clear up for a fresh start when toggling emulation on/off
+	//for(i=0;i<p->ntouch;i++)
+	//	p->touchlist[i].ID = -1;
+	//p->touchlist[0].ID = 0;
+}
+int fwl_get_emulate_multitouch(){
+	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	return p->EMULATE_MULTITOUCH;
+}
 
 /*
    we want to run initialize() from the calling thread. NOTE: if
@@ -384,18 +3303,21 @@ int isBrowserPlugin = FALSE; //I can't think of a scenario where sharing this ac
 
 
 
-static void setup_viewpoint();
+void setup_viewpoint();
+void set_viewmatrix();
 
 /* Function protos */
 static void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive);
 /* void fwl_do_keyPress(char kp, int type); Now in lib.h */
 void render_collisions(int Viewer_type);
-void slerp_viewpoint();
+int slerp_viewpoint(int itype);
 static void render_pre(void);
-static void render(void);
-static void setup_projection(int pick, int x, int y);
-static struct X3D_Node*  getRayHit(void);
-static void get_hyperhit(void);
+
+static int setup_pickside(int x, int y);
+void setup_projection();
+void setup_pickray(int x, int y);
+struct X3D_Node*  getRayHit(void);
+void get_hyperhit(void);
 static void sendSensorEvents(struct X3D_Node *COS,int ev, int butStatus, int status);
 #if USE_OSC
 void activate_OSCsensors();
@@ -409,84 +3331,6 @@ void activate_OSCsensors();
 
 */
 
-/* stop the display thread. Used (when this comment was made) by the OSX Safari plugin; keeps
-most things around, just stops display thread, when the user exits a world. */
-static void stopDisplayThread()
-{
-	ttglobal tg = gglobal();
-	if (!TEST_NULL_THREAD(tg->threads.DispThrd)) {
-		//((ppMainloop)(tg->Mainloop.prv))->quitThread = TRUE;
-		tg->threads.MainLoopQuit = max(1, tg->threads.MainLoopQuit); //make sure we don't go backwards in the quit process with a double 'q'
-		//pthread_join(tg->threads.DispThrd,NULL);
-		//ZERO_THREAD(tg->threads.DispThrd);
-	}
-}
-#ifndef SIGTERM
-#define SIGTERM SIG_TERM
-#endif
-
-
-
-
-
-#ifdef OLDSTOPCODE
-// stops the Texture loading thread - will either pthread_cancel or will send SIGUSR2 to
-// the thread, depending on platform.
-
-static void stopLoadThread()
-{
-	ttglobal tg = gglobal();
-	if (!TEST_NULL_THREAD(tg->threads.loadThread)) {
-
-		#if defined(HAVE_PTHREAD_CANCEL)
-			//pthread_cancel(tg->threads.loadThread);
-	 	#else
-
-		{
-			int status;
-			char me[200];
-			sprintf(me,"faking pthread cancel on thread %p",tg->threads.loadThread);
-			//ConsoleMessage(me);
-			if ((status = pthread_kill(tg->threads.loadThread, SIGUSR2)) != 0) {
-				ConsoleMessage("issue stopping thread");
-			}
-		}
-		#endif //HAVE_PTHREAD_CANCEL
-
-		pthread_join(tg->threads.loadThread,NULL);
-		ZERO_THREAD(tg->threads.loadThread);
-	}
-}
-
-
-// stops the source parsing thread - will either pthread_cancel or will send SIGUSR2 to
-// the thread, depending on platform.
-
-static void stopPCThread()
-{
-	ttglobal tg = gglobal();
-
-	if (!TEST_NULL_THREAD(tg->threads.PCthread)) {
-		#if defined(HAVE_PTHREAD_CANCEL)
-			//pthread_cancel(tg->threads.PCthread);
-	 	#else
-
-		{
-			int status;
-			char me[200];
-			sprintf(me,"faking pthread cancel on thread %p",tg->threads.PCthread);
-			//ConsoleMessage(me);
-			if ((status = pthread_kill(tg->threads.PCthread, SIGUSR2)) != 0) {
-				ConsoleMessage("issue stopping thread");
-			}
-		}
-	#endif //HAVE_PTHREAD_CANCEL
-
-		pthread_join(tg->threads.PCthread,NULL);
-		ZERO_THREAD(tg->threads.PCthread);
-	}
-}
-#endif
 
 #if !defined(_MSC_VER)
 
@@ -507,71 +3351,14 @@ double Time1970sec(void) {
 #define TID(_tv) ((double)_tv.tv_sec + (double)_tv.tv_usec/1000000.0)
 #endif
 
-int dequeueKeyPress(ppMainloop p,int *key, int *type){
-	if(p->keypressQueueCount > 0){
-		int i;
-		p->keypressQueueCount--;
-		*key = p->keypressQueue[0].key;
-		*type = p->keypressQueue[0].type;
-		for(i=0;i<p->keypressQueueCount;i++){
-			p->keypressQueue[i].key = p->keypressQueue[i+1].key;
-			p->keypressQueue[i].type = p->keypressQueue[i+1].type;
-		}
-		return 1;
-	}
-	return 0;
-}
-int dequeueMouse(ppMainloop p, int *mev, unsigned int *button, float *x, float *y){
-	if(p->mouseQueueCount > 0){
-		int i;
-		p->mouseQueueCount--;
-		*mev = p->mouseQueue[0].mev;
-		*button = p->mouseQueue[0].button;
-		*x = p->mouseQueue[0].x;
-		*y = p->mouseQueue[0].y;
-		for(i=0;i<p->mouseQueueCount;i++){
-			p->mouseQueue[i].mev = p->mouseQueue[i+1].mev;
-			p->mouseQueue[i].button = p->mouseQueue[i+1].button;
-			p->mouseQueue[i].x = p->mouseQueue[i+1].x;
-			p->mouseQueue[i].y = p->mouseQueue[i+1].y;
-		}
-		return 1;
-	}
-	return 0;
-}
-int dequeueMouseMulti(ppMainloop p, int *mev, unsigned int *button, int *ix, int *iy, int *ID){
-	if(p->mouseQueueCount > 0){
-		int i;
-		p->mouseQueueCount--;
-		*mev = p->mouseQueue[0].mev;
-		*button = p->mouseQueue[0].button;
-		*ix = p->mouseQueue[0].ix;
-		*iy = p->mouseQueue[0].iy;
-		*ID = p->mouseQueue[0].ID;
-		for(i=0;i<p->mouseQueueCount;i++){
-			p->mouseQueue[i].mev = p->mouseQueue[i+1].mev;
-			p->mouseQueue[i].button = p->mouseQueue[i+1].button;
-			p->mouseQueue[i].ix = p->mouseQueue[i+1].ix;
-			p->mouseQueue[i].iy = p->mouseQueue[i+1].iy;
-			p->mouseQueue[i].ID = p->mouseQueue[i+1].ID;
-		}
-		return 1;
-	}
-	return 0;
-}
 
 /* Main eventloop for FreeWRL!!! */
 void fwl_do_keyPress0(int key, int type);
 void handle0(const int mev, const unsigned int button, const float x, const float y);
-void fwl_handle_aqua_multi(const int mev, const unsigned int button, int x, int y, int ID);
-void fwl_handle_aqua_multi0(const int mev, const unsigned int button, int x, int y, int ID);
+void fwl_handle_aqua_multi(const int mev, const unsigned int button, int x, int y, int ID, int windex);
 
-#if !defined(FRONTEND_DOES_SNAPSHOTS)
 void fwl_RenderSceneUpdateScene0(double dtime);
-void set_snapshotModeTesting(int value);
-int isSnapshotModeTesting();
 void splitpath_local_suffix(const char *url, char **local_name, char **suff);
-#endif //FRONTEND_DOES_SNAPSHOTS
 int vpGroupActive(struct X3D_ViewpointGroup *vp_parent);
 void fwl_gotoCurrentViewPoint()
 {
@@ -583,7 +3370,7 @@ void fwl_gotoCurrentViewPoint()
 	/* printf ("NVP, %d of %d, looking at %d\n",ind, totviewpointnodes, t->currboundvpno);
 	printf ("looking at node :%s:\n",X3D_VIEWPOINT(cn)->description->strptr); */
 
-	if (vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
+	if (cn && vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
 		t->setViewpointBindInRender = vector_get(struct X3D_Node*,t->viewpointNodes, t->currboundvpno);
 		return;
 	}
@@ -596,416 +3383,1155 @@ int fw_exit(int val)
 	exit(val);
 }
 
-#if !defined(FRONTEND_DOES_SNAPSHOTS)
-int fw_mkdir(char* path);
-void fwl_RenderSceneUpdateScene() {
+void render_statusbar0(void){
+	#if defined(STATUSBAR_HUD)
+		/* status bar, if we have one */
+		finishedWithGlobalShader();
+		drawStatusBar();  // View update
+		restoreGlobalShader();
+	#endif
+}
+
+
+//static stage output_stages[2];
+//static int noutputstages = 2;
+//static contenttype contents[2];
+/*
+render_stage {
+	content *data;
+	//[set buffer ie if 1-buffer fbo technqiue]
+	//push buffer viewport
+	vport = childViewport(pvport,s->viewport);
+	pushviewport(vportstack, vport);
+	//[clear buffer]
+	glClear(GL_DEPTH);
+	data = s->data;
+	while(data){ // scene [,sbh]
+		//push content area viewport
+		for view in views //for now, just vp, future [,side, top, front]
+			push projection
+			push / alter view matrix
+			for eye in eyes
+				[set buffer ie if 2-buffer fbo technique]
+				push eye viewport
+				push or alter view matrix
+				render from last stage output to this stage output, applying stage-specific
+				pop
+			pop
+		pop
+		data = data->next;
+	}
+	popviewport(vportstack);
+	setcurrentviewport(vportstack);
+}
+*/
+
+void fwl_RenderSceneUpdateSceneNORMAL() {
 	double dtime;
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
 
 	dtime = Time1970sec();
-	if((p->modeRecord || p->modeFixture || p->modePlayback)) //commandline --record/-R and --playback/-P, for automated testing
-	{
-		//functional testing support options May 2013
-		//records frame#, dtime, keyboard, mouse to an ASCII .fwplay file for playback
-		//to record, run a scene file with -R or --record option
-		//copy the .fwplay between platforms
-		//before starting refactoring, run scenes with -F or --fixture option,
-		//  and hit the 'x' key to save a snapshot one or more times per fixture run
-		//after each refactoring step, run scenes with -P or --playback option,
-		//  and (with perl script) do a file compare(fixture_snapshot,playback_snapshot)
-		//
-		//on the command line use:
-		//-R to just record the .fwplay file
-		//-F to play recording and save as fixture
-		//-P to play recording and save as playback
-		//-R -F to record and save as fixture in one step
-		//command line long option equivalents: -R --record, -F --fixture, -P --playback
-		int key;
-		int type;
-		int mev,ix,iy,ID;
-		unsigned int button;
-		float x,y;
-		char buff[1000], keystrokes[200], mouseStr[1000];
-		int namingMethod;
-		char *folder;
-		char sceneName[1000];
-		//naming method for related files (and folders)
-		//0=default: recording.fwplay, fixture.bmp playback.bmp - will overwrite for each scene
-		//1=folders: 1_wrl/recording.fwplay, 1_wrl/fixture/17.bmp, 1_wrl/playback/17.bmp
-		//2=flattened: 1_wrl.fwplay, 1_wrl_fixture_17.bmp, 1_wrl_playback_17.bmp (17 is frame#)
-		//3=groupfolders: /tests, /recordings/*.fwplay, /fixtures/1_wrl_17.bmp /playbacks/1_wrl_17.bmp
-		//4=groupfolders: /tests, /recordings/*.fwplay, /fixtures/1_wrl_17.bmp /playbacks/1_wrl_17.bmp
-		//  - 4 same as 3, except done to harmonize with linux/aqua naming approach:
-		//  - fwl_set_SnapFile(path = {"fixture" | "playback" }); to set mytmp
-		//  -
-		folder = NULL;
-		namingMethod = 4;
-		//if(p->frameNum == 1){
-		if(!p->fwplayOpened){
-			char recordingName[1000];
-			int j,k;
-			p->fwplayOpened = 1;
-			recordingName[0] = '\0';
-			sceneName[0] = '\0';
-			if(tg->Mainloop.scene_name){
-				strcat(sceneName,tg->Mainloop.scene_name);
-				if(tg->Mainloop.scene_suff){
-					strcat(sceneName,".");
-					strcat(sceneName,tg->Mainloop.scene_suff);
-				}
-			}
-			if(namingMethod==3 || namingMethod==4){
-				strcpy(recordingName,"recording");
-				fw_mkdir(recordingName);
-				strcat(recordingName,"/");
-			}
-			if(namingMethod>0){
-				if(p->nameTest){
-					strcat(recordingName,p->nameTest);
-				}else{
-					strcat(recordingName,tg->Mainloop.scene_name);
-					k = strlen(recordingName);
-					if(k){
-						//1.wrl -> 1_wrl
-						j = strlen(tg->Mainloop.scene_suff);
-						if(j){
-							strcat(recordingName,"_");
-							strcat(recordingName,tg->Mainloop.scene_suff);
-						}
-					}
-				}
-			}
-			if(namingMethod==1){
-				fw_mkdir(recordingName);
-				strcat(recordingName,"/recording"); //recording.fwplay a generic name, in case there's no scene name
-			}
-			if(namingMethod==0)
-				strcat(recordingName,"recording");
-			strcat(recordingName,".fwplay"); //1_wrl.fwplay
-			p->recordingFName = STRDUP(recordingName);
+	fwl_RenderSceneUpdateScene0(dtime);
+	/* actual rendering */
+	if ( p->onScreen) {
+		render();
+	}
 
-			if(p->modeFixture  || p->modePlayback){
-				if(!p->modeRecord){
-					p->recordingFile = fopen(p->recordingFName, "r");
-					if(p->recordingFile == NULL){
-						printf("ouch recording file %s not found\n", p->recordingFName);
-						fw_exit(1);
-					}
-					if( fgets(buff, 1000, p->recordingFile) != NULL){
-						char window_widthxheight[100], equals[50];
-						int width, height;
-						//window_wxh = 600,400
-						if( sscanf(buff,"%s %s %d, %d\n",window_widthxheight,equals, &width,&height) == 4) {
-							if(width != tg->display.screenWidth || height != tg->display.screenHeight){
-								if(1){ //right now all we can do is passively complain
-									printf("Ouch - the test playback window size is different than recording:\n");
-									printf("recording %d x %d playback %d x %d\n",width,height,
-										tg->display.screenWidth,tg->display.screenHeight);
-									printf("hit Enter:");
-									getchar();
-								}
-								//if(0){
-								//	fwl_setScreenDim(width,height); //this doesn't actively set the window size except before window is created
-								//}
-							}
-						}
-					}
-					if( fgets(buff, 1000, p->recordingFile) != NULL){
-						char scenefile[100], equals[50];
-						//scenefile = 1.wrl
-						if( sscanf(buff,"%s %s %s \n",scenefile,equals, sceneName) == 3) {
-							if(!tg->Mainloop.scene_name){
-								char* suff = NULL;
-								char* local_name = NULL;
-								char* url = NULL;
-								if(strlen(sceneName)) url = STRDUP(sceneName);
-								if(url){
-									splitpath_local_suffix(url, &local_name, &suff);
-									gglobal()->Mainloop.url = url;
-									gglobal()->Mainloop.scene_name = local_name;
-									gglobal()->Mainloop.scene_suff = suff;
-									fwl_resource_push_single_request(url);
-								}
-							}
-						}
-					}
-				}
-			}
+}
+
+//viewport stuff - see Component_Layering.c
+ivec4 childViewport(ivec4 parentViewport, float *clipBoundary); 
+
+//#ifdef MULTI_WINDOW
+/* MULTI_WINDOW is for desktop configurations where 2 or more windows are rendered to.
+	- desktop (windows, linux, mac) only, because it relies on changing the opengl context, 
+		and those are desktop-platform-specific calls. GLES2 (opengl es 2) 
+		doesn't have those functions - assuming a single window - so can't do multi-window.
+	- an example multi-window configuration: 
+		1) HMD (head mounted display + 2) supervisors screen
+		- they would go through different stages, rendered to different size windows, different menuing
+		- and different pickrays -a mouse for supervisor, orientation sensor for HMD 
+	Design Option: instead of #ifdef here, all configs could supply 
+		fv_swapbuffers() and fwChangeGlContext() functions in the front-end modules,
+		including android/mobile/GLES2 which would stub or implement as appropriate
+*/
+
+
+/*
+for targetwindow in targets //supervisor screen, HMD
+	for stage in stages
+		[set buffer ie if 1-buffer fbo technqiue]
+		[clear buffer]
+		push buffer viewport
+		for content in contents // scene [,sbh]
+			push content area viewport
+			for view in views //for now, just vp, future [,side, top, front]
+				push projection
+				push / alter view matrix
+				for eye in eyes
+					[set buffer ie if 2-buffer fbo technique]
+					push eye viewport
+					push or alter view matrix
+					render from last stage output to this stage output, applying stage-specific
+					pop
+				pop
+			pop
+		pop
+	get final buffer, or swapbuffers	
+something similar for pickrays, except pick() instead of render()
+- or pickrays (3 per target: [left, right, forehead/mono]),  updated on same pass once per frame
+
+*/
+
+
+void targetwindow_set_params(int itargetwindow, freewrl_params_t* params){
+	targetwindow *twindows, *t;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	
+	twindows = p->cwindows;
+	twindows[itargetwindow].params = *params;
+	if(itargetwindow > 0){
+		twindows[itargetwindow -1].next = &twindows[itargetwindow];
+	}
+	p->nwindow = max(p->nwindow,itargetwindow+1);
+	if(0){
+		t = twindows;
+		while(t){
+			printf("windex=%d t->next = %p\n",itargetwindow,t->next);
+			t=t->next;
 		}
-		p->doEvents = (!fwl_isinputThreadParsing()) && (!fwl_isTextureParsing()) && fwl_isInputThreadInitialized();
-		//printf("frame %d doevents=%d\n",p->frameNum,p->doEvents);
-		if(!p->doEvents)
-			return; //for Record and Playback, don't start doing things until scene and textures are loaded
-		if(p->modeRecord)
-			if(dtime - tg->Mainloop.TickTime < .5) return; //slow down frame rate to 2fps to reduce empty meaningless records
-		p->frameNum++; //for record, frame relative to when scene is loaded
+		printf("hows that?\n");
+	}
+}
+freewrl_params_t* targetwindow_get_params(int itargetwindow){
+	targetwindow *twindows;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	
+	twindows = p->cwindows;
+	return &twindows[itargetwindow].params;
+}
 
-		if(p->modeRecord){
-			int i;
-			char temp[1000];
-			if(p->frameNum == 1){
-				p->recordingFile = fopen(p->recordingFName, "w");
-				if(p->recordingFile == NULL){
-					printf("ouch recording file %s not found\n", p->recordingFName);
-					fw_exit(1);
-				}
-				//put in a header record, passively showing window widthxheight
-				fprintf(p->recordingFile,"window_wxh = %d, %d \n",tg->display.screenWidth,tg->display.screenHeight);
-				fprintf(p->recordingFile,"scenefile = %s \n",tg->Mainloop.url); //sceneName);
-			}
-			strcpy(keystrokes,"\"");
-			while(dequeueKeyPress(p,&key,&type)){
-				sprintf(temp,"%d,%d,",key,type);
-				strcat(keystrokes,temp);
-			}
-			strcat(keystrokes,"\"");
-			strcpy(mouseStr,"\"");
-			i = 0;
-			if(0){
-				while(dequeueMouse(p,&mev, &button, &x, &y)){
-					sprintf(temp,"%d,%d,%.6f,%.6f;",mev,button,x,y);
-					strcat(mouseStr,temp);
-					i++;
-				}
-			}
+void fwl_setScreenDim1(int wi, int he, int itargetwindow){
+	targetwindow *twindows;
+	ivec4 window_rect;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	window_rect.X = 0;
+	window_rect.Y = 0;
+	window_rect.W = wi;
+	window_rect.H = he;
+
+	twindows = p->cwindows;
+	twindows[itargetwindow].ivport = window_rect;
+	//the rest is initialized in the target rendering loop, via fwl_setScreenDim(w,h)
+}
+
+
+//=====NEW====>>>
+//register contenttypes for automatic freeing at end of run
+void register_contenttype(void *ct){
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	if(!p->contenttype_registry)
+		p->contenttype_registry = newVector(void *,4);
+	//if(p->contenttype_registry->n >= p->contenttype_registry->allocn){
+	//	int nalloc = upper_power_of_two(p->contenttype_registry->n + 1);
+	//	p->contenttype_registry->data = REALLOC(p->contenttype_registry->data,nalloc);
+	//	p->contenttype_registry->allocn = nalloc;
+	//}
+	vector_pushBack(void*,p->contenttype_registry,ct);
+		
+}
+void free_contenttypes(){
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	if(p->contenttype_registry){
+		int i;
+		for(i=0;i<p->contenttype_registry->n;i++){
+			void *ct;
+			ct = vector_get(void*,p->contenttype_registry,i);
+			FREE_IF_NZ(ct);
+		}
+	}
+	//the vector itself will be freed by caller with deleteVector
+}
+
+
+
+void setup_stagesNORMAL(){
+	int i;
+	//OLDCODE targetwindow *twindows;
+	targetwindow *t;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	//OLDCODE twindows = p->cwindows;
+	//t = twindows;
+	//while(t){
+	for(i=0;i<p->nwindow;i++){
+		contenttype *cstage, *cswitch, **last; //*cscene, *csbh, *cmultitouch, *cstagefbo, *ctexturegrid, *corientation, *cquadrant;
+		freewrl_params_t *dp;
+		//ii = p->nwindow - i -1; //reverse order for experiment
+		t=&p->cwindows[i];
+
+		//FBOs must be created in the opengl window context where they are going to be used as texture
+		dp = (freewrl_params_t*)tg->display.params;
+		if(t->params.context != dp->context){
+			tg->display.params = (void*)&t->params;
+			fv_change_GLcontext((freewrl_params_t*)tg->display.params);
+			//printf("%ld %ld %ld\n",t->params.display,t->params.context,t->params.surface);
+		}
+
+		cstage = new_contenttype_stage();
+		cswitch = new_contenttype_switch();
+		p->hyper_switch[i] = cswitch;
+		cstage->t1.contents = cswitch;
+		last = &cswitch->t1.contents;
+		//contenttype_switch_set_which(cswitch,2); //set in big render loop below, based on hyper_case
+		p->hyper_case[i] = 8; //which block below 0 - 9
+
+		p->EMULATE_MULTITOUCH =	FALSE;
+		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
+		// (via chain of next pointers, via *last helper)
+		{
+			//0. normal: scene, statusbarHud, 
+			contenttype *cscene, *csbh;
+
+			csbh = new_contenttype_statusbar();
+			cscene = new_contenttype_scene();
+
+			csbh->t1.contents = cscene;
+
+			*last = csbh; //paste into switch.content
+			last = &csbh->t1.next;
+			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
+		}
+		{
+			//MAY 18, 2016 MULTITOUCH EMULATION DOESN'T WORK NOW after setup_picking() and onTouch() changes
+			//1. normal + multitouch emulation, scene, statusbarHud, 
+			contenttype *cmultitouch, *cscene, *csbh;
+
+			cmultitouch = new_contenttype_multitouch();
+			cscene = new_contenttype_scene();
+			csbh = new_contenttype_statusbar();
+			
+			cmultitouch->t1.contents = csbh;
+			csbh->t1.contents = cscene;
+
+			*last = cmultitouch; //paste into previous blocks top-level (just below switch) next
+			last = &cmultitouch->t1.next;
+			p->EMULATE_MULTITOUCH =	TRUE;
+
+			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
+		}
+		{
+			//2. TextPanel (dual-ringbuffer, for ConsoleMessage) + CaptionText
+			contenttype *csbh, *cscene, *ctextpanel, *ctext;
+			vec4 ccolor;
+
+			csbh = new_contenttype_statusbar();
+			cscene = new_contenttype_scene();
+			ctextpanel = new_contenttype_textpanel("VeraMono",8,60,120,TRUE);
+			ccolor = vec4_init(1.0f,.6f,0.0f,1.0f);
+			ctext = new_contenttype_captiontext("VeraMono",12,ccolor);
+			//ctext = new_contenttype_captiontext("freewrl_wingding",12,ccolor);
+			//ctext = new_contenttype_captiontext("VeraIt",10,ccolor);
+
+			captiontext_setString(ctext, "ABCDEDFGHIJKLMNOPQRSTUVWXYZabcd");
+			ctext->t1.viewport[0] = .1f;
+			ctext->t1.viewport[1] = .6f;
+			ctext->t1.viewport[2] = 1.0f;
+			ctext->t1.viewport[3] = .5f;
+
+			//ConsoleMessage("Going to register textpanel for ConsoleMessages\n"); //should not show in textpanel
+			textpanel_register_as_console(ctextpanel);
+			//ConsoleMessage("Registered textpanel for ConsoleMessages\n"); //should be first message to show in textpanel
+			
+			csbh->t1.contents = ctextpanel;
+			ctextpanel->t1.contents = cscene;
+			ctextpanel->t1.next = ctext;
+
+			*last = csbh; 
+			last = &csbh->t1.next;
+
+		}
+		{
+			//3. captiontext, scene, statusbarHud, 
+			contenttype *cscene, *csbh, *ctext;
+			vec4 ccolor;
+
+			csbh = new_contenttype_statusbar();
+			ccolor = vec4_init(1.0f,.6f,0.0f,1.0f);
+			//ctext = new_contenttype_captiontext("Vera",12,ccolor);
+			ctext = new_contenttype_captiontext("freewrl_wingding",10,ccolor);
+
+			cscene = new_contenttype_scene();
+
+
+			//can put regular and extended chars in the \x hex form (visual studio uses code-page system, not utf8)
+			//& \x0026
+			//e grave \x00e8
+			//e acute \x00e9
+			//msvc has problem embedding utf8 strings in C code even with \x. C++ better, includes u8"" strings
+			//captiontext_setString(ctext, "string from captiontext FReEgrl \x0026 Gréen");
+			captiontext_setString(ctext, "abcdABCDEDFGHIJKLMNOPQRSTUVWXYZ");
+
+			ctext->t1.viewport[0] = .1f;
+			ctext->t1.viewport[1] = .6f;
+			ctext->t1.viewport[2] = .4f;
+			ctext->t1.viewport[3] = .5f;
+
+			csbh->t1.contents = cscene;
+			cscene->t1.next = ctext;
+
+			*last = csbh; 
+			last = &csbh->t1.next;
+
+		}
+		{
+			//4. e3dmouse: multitouch emulation, layer, (e3dmouse > scene), statusbarHud, 
+			contenttype *csbh, *cscene, *ce3dmouse; // UNUSED cmultitouch
+
+			csbh = new_contenttype_statusbar();
+			ce3dmouse = new_contenttype_e3dmouse();
+			// UNUSED cmultitouch = new_contenttype_multitouch();
+			cscene = new_contenttype_scene();
+
+			csbh->t1.contents = ce3dmouse;
+			ce3dmouse->t1.contents = cscene;
+			cscene->t1.next = NULL;
+			*last = csbh; 
+			last = &csbh->t1.next;
+
+		}
+		{
+			//5. experimental render to fbo, then fbo to screen
+			//.. this will allow screen orientation to be re-implemented as a 2-stage render with rotation between
+			contenttype *csbh, *cscene, *cstagefbo, *ctexturegrid, *cmultitouch;
+
+			cmultitouch = new_contenttype_multitouch();
+			ctexturegrid = new_contenttype_texturegrid(2,2);
+			cstagefbo = new_contenttype_stagefbo(512,512);
+			csbh = new_contenttype_statusbar();
+			cscene = new_contenttype_scene();
+
+			cmultitouch->t1.contents = ctexturegrid;
+			ctexturegrid->t1.contents = cstagefbo;
+			cstagefbo->t1.contents = csbh;
+			csbh->t1.contents = cscene;
+
+			*last = cmultitouch; 
+			last = &cmultitouch->t1.next;
+
+		}
+		{
+			//6. multitouch emulation, orientation, fbo, layer { scene, statusbarHud }
+			contenttype *csbh, *cscene, *corientation, *cmultitouch, *cstagefbo;
+			
+			cmultitouch = new_contenttype_multitouch();
+			corientation = new_contenttype_orientation();
+			cstagefbo = new_contenttype_stagefbo(512,512);
+			csbh = new_contenttype_statusbar();
+			cscene = new_contenttype_scene();
+
+			cmultitouch->t1.contents = corientation;
+			corientation->t1.contents = cstagefbo;
+			cstagefbo->t1.contents = csbh;
+			csbh->t1.contents = cscene;
+
+			*last = cmultitouch; 
+			last = &cmultitouch->t1.next;
+
+		}
+		{
+			//7. rotates just the scene, leaves statusbar un-rotated
+			//multitouch emulation,  layer, {{orientation, fbo, scene}, statusbarHud }
+			contenttype *csbh, *cscene, *corientation, *cmultitouch, *cstagefbo;
+
+			cmultitouch = new_contenttype_multitouch();
+			csbh = new_contenttype_statusbar();
+			corientation = new_contenttype_orientation();
+			cstagefbo = new_contenttype_stagefbo(512,512);
+			cscene = new_contenttype_scene();
+
+			cmultitouch->t1.contents = csbh;
+			csbh->t1.contents = corientation;
+			corientation->t1.contents = cstagefbo;
+			cstagefbo->t1.contents = cscene;
+
+			*last = cmultitouch; 
+			last = &cmultitouch->t1.next;
+
+		}
+		{
+			//8. stereo chooser: switch + 4 stereo vision modes, sbh, textpanel
+			contenttype *cscene0, *cscene1, *cscene2;
+			contenttype *cstereo1, *cstereo2, *cstereo3, *cstereo4, *cswitch0;
+			contenttype *csbh, *ctextpanel;
+			
+			csbh = new_contenttype_statusbar();
+			ctextpanel = new_contenttype_textpanel("VeraMono",8,60,120,TRUE);
+			cswitch0 = new_contenttype_switch();
+			cstereo1 = new_contenttype_stereo_shutter();
+			cstereo2 = new_contenttype_stereo_sidebyside();
+			cstereo3 = new_contenttype_stereo_anaglyph(); //anaglyph appears to work
+			cstereo4 = new_contenttype_stereo_updown();
+			//0 mono 1 shutter 2 sidebyside 3 analgyph 4 updown
+			contenttype_switch_set_which_ptr(cswitch0,&tg->Viewer.stereotype);
+
+
+			//stereo scenes 0,1
+			cscene0 = new_contenttype_scene();
+			cscene1 = new_contenttype_scene();
+			cscene0->t1.next = cscene1;
+			//mono scene 2
+			cscene2 = new_contenttype_scene();
+
+
+			//ConsoleMessage("Going to register textpanel for ConsoleMessages\n"); //should not show in textpanel
+			textpanel_register_as_console(ctextpanel);
+			//ConsoleMessage("Registered textpanel for ConsoleMessages\n"); //should be first message to show in textpanel
+
+			csbh->t1.contents = ctextpanel;
+			ctextpanel->t1.contents = cswitch0;
+			cswitch0->t1.contents = cscene2; //mono scene
+			cscene2->t1.next = cstereo1;     //whichCase 0
+			cstereo1->t1.contents = cscene0; //same scene0,scene1 stereo pair
+			cstereo2->t1.contents = cscene0; //2
+			cstereo3->t1.contents = cscene0; //3
+			cstereo4->t1.contents = cscene0; //4
+			cstereo1->t1.next = cstereo2;
+			cstereo2->t1.next = cstereo3;
+			cstereo3->t1.next = cstereo4;
+
+			*last = csbh; 
+			last = &csbh->t1.next;
+
+		} 
+		{
+			//9. sidebyside stereo with per-eye fbo
+			contenttype *cscene0, *cscene1;
+			contenttype *cstereo;
+			contenttype *cstagefbo0, *cstagefbo1;
+			contenttype *ctexturegrid0, *ctexturegrid1;
+			contenttype *csbh;
+			
+			csbh = new_contenttype_statusbar();
+			cstereo = new_contenttype_stereo_sidebyside();
+
+			cstagefbo0 = new_contenttype_stagefbo(512,512);
+			ctexturegrid0 = new_contenttype_texturegrid(5,5);
+
+			cstagefbo1 = new_contenttype_stagefbo(512,512);
+			ctexturegrid1 = new_contenttype_texturegrid(5,5);
+			cscene0 = new_contenttype_scene();
+			cscene1 = new_contenttype_scene();
+
 			if(1){
-				while(dequeueMouseMulti(p,&mev, &button, &ix, &iy, &ID)){
-					sprintf(temp,"%d,%d,%d,%d,%d;",mev,button,ix,iy,ID);
-					strcat(mouseStr,temp);
-					i++;
-				}
-			}
-			strcat(mouseStr,"\"");
-			fprintf(p->recordingFile,"%d %.6lf %s %s\n",p->frameNum,dtime,keystrokes,mouseStr);
-			//in case we are -R -F together,
-			//we need to round dtime for -F like it will be coming out of .fwplay for -P
-			sprintf(temp,"%.6lf",dtime);
-			sscanf(temp,"%lf",&dtime);
-			//folder = "fixture";
-			folder = NULL;
-		}
-		if(p->modeFixture  || p->modePlayback){
-			if(!p->modeRecord){
-				/*
-				if(p->frameNum == 1){
-					p->recordingFile = fopen(p->recordingFName, "r");
-					if(p->recordingFile == NULL){
-						printf("ouch recording file %s not found\n", p->recordingFName);
-						exit(1);
-					}
-					if( fgets(buff, 1000, p->recordingFile) != NULL){
-						char window_widthxheight[100], equals[50];
-						int width, height;
-						//window_wxh = 600,400
-						if( sscanf(buff,"%s %s %d, %d\n",&window_widthxheight,&equals, &width,&height) == 4) {
-							if(width != tg->display.screenWidth || height != tg->display.screenHeight){
-								printf("Ouch - the test playback window size is different than recording:\n");
-								printf("recording %d x %d playback %d x %d\n",width,height,
-									tg->display.screenWidth,tg->display.screenHeight);
-								printf("hit Enter:");
-								getchar();
-							}
-						}
-					}
-					if( fgets(buff, 1000, p->recordingFile) != NULL){
-						char scenefile[100], equals[50];
-						//scenefile = 1.wrl
-						if( sscanf(buff,"%s %s %s \n",&scenefile,&equals, &sceneName) == 3) {
-						}
-					}
-				}
-				*/
-				// playback[i] = {iframe, dtime, keystrokes or NULL, mouse (xy,button sequence) or NULL, snapshot URL or NULL, scenegraph_dump URL or NULL, ?other?}
-				if( fgets( buff, 1000, p->recordingFile ) != NULL ) {
-					if(sscanf(buff,"%d %lf %s %s\n",&p->frameNum,&dtime,keystrokes,mouseStr) == 4){ //,snapshotURL,scenegraphURL) == 6){
-						if(0) printf("%d %lf %s %s\n",p->frameNum,dtime,keystrokes,mouseStr);
-					}
-				}
-			}
-			if(p->modeFixture)  folder = "fixture";
-			if(p->modePlayback) folder = "playback";
-		}
-		//for all 3 - read the keyboard string and the mouse string
-		if(p->modeRecord || p->modeFixture || p->modePlayback){
-			if(strlen(keystrokes)>2){ // "x,1," == 6
-				char *next,*curr;
-				//count the number of ','
-				//for(i=0,n=0;i<strlen(keystrokes);i++) if(keystrokes[i] == ',') n++; //(strlen(keystrokes) -2)/4;
-				//n /= 2; //each keystroke has 2 commas: (char),(type),
-				curr = &keystrokes[1]; //skip leading "
-				while(curr && strlen(curr)>1){
-					//for(i=0;i<n;i++){
-					//ii = i*4 +1;
-					//sscanf(&keystrokes[ii],"%d,%d",&key,&type);
-					sscanf(curr,"%d",&key);
-					next = strchr(curr,',');
-					curr = &next[1];
-					sscanf(curr,"%d",&type);
-					next = strchr(curr,',');
-					curr = &next[1];
-					if(p->modeFixture || p->modePlayback){
-						//we will catch the snapshot keybaord command and prepare the
-						//snapshot filename and folder/directory for fixture and playback
-						if(key == 'x'){
-							//prepare snapshot folder(scene/ + fixture ||playback)
-							// and file name(frame#)
-							char snapfile[5];
-#ifdef _MSC_VER
-							char *suff = ".bmp";
-#else
-							char *suff = ".snap";
-#endif
-							sprintf(snapfile,"%d",p->frameNum);
-							if(namingMethod == 0){
-								//default: recording.bmp, playback.bmp
-								char snappath[100];
-								strcpy(snappath,folder);
-								strcat(snappath,suff);
-								fwl_set_SnapFile(snappath);
-							}
-							if(namingMethod==1){
-								//nested folder approach
-								//1=folders: 1_wrl/recording.fwplay, 1_wrl/fixture/17.bmp, 1_wrl/playback/17.bmp
-								int k,j;
-								char snappath[100];
-								strcpy(snappath,tg->Mainloop.scene_name);
-								k = strlen(snappath);
-								if(k){
-									//1.wrl -> 1_wrl
-									j = strlen(tg->Mainloop.scene_suff);
-									if(j){
-										strcat(snappath,"_");
-										strcat(snappath,tg->Mainloop.scene_suff);
-									}
-								}
-								strcat(snappath,"/");
-								strcat(snappath,folder);
-								fw_mkdir(snappath); //1_wrl/fixture
-								//fwl_set_SnapTmp(snappath); //sets the folder for snaps
-								strcat(snappath,"/");
-								strcat(snappath,snapfile);
-								strcat(snappath,suff); //".bmp");
-								//fwl_set_SnapFile(snapfile);
-								fwl_set_SnapFile(snappath); //1_wrl/fixture/17.bmp
-							}
-							if(namingMethod == 2){
-								//flattened filename approach with '_'
-								//if snapshot 'x' is on frame 17, and fixture,
-								//   then 1_wrl_fixture_17.snap or .bmp
-								char snappath[100];
-								int j, k;
-								strcpy(snappath,tg->Mainloop.scene_name);
-								k = strlen(snappath);
-								if(k){
-									j= strlen(tg->Mainloop.scene_suff);
-									if(j){
-										strcat(snappath,"_");
-										strcat(snappath,tg->Mainloop.scene_suff);
-									}
-									strcat(snappath,"_");
-								}
-								strcat(snappath,folder);
-								strcat(snappath,"_");
-								strcat(snappath,snapfile);
-								strcat(snappath,suff); //".bmp");
-								fwl_set_SnapFile(snappath);
-							}
-							if(namingMethod == 3){
-								//group folder
-								//if snapshot 'x' is on frame 17, and fixture,
-								//   then fixture/1_wrl_17.snap or .bmp
-								char snappath[100];
-								int j, k;
-								strcpy(snappath,folder);
-								fw_mkdir(snappath); // /fixture
-								strcat(snappath,"/");
-								strcat(snappath,tg->Mainloop.scene_name); // /fixture/1
-								k = strlen(tg->Mainloop.scene_name);
-								if(k){
-									j= strlen(tg->Mainloop.scene_suff);
-									if(j){
-										strcat(snappath,"_");
-										strcat(snappath,tg->Mainloop.scene_suff);
-									}
-									strcat(snappath,"_");
-								}
-								strcat(snappath,snapfile);
-								strcat(snappath,suff); //".bmp");
-								fwl_set_SnapFile(snappath);  //  /fixture/1_wrl_17.bmp
-							}
-							if(namingMethod == 4){
-								//group folder
-								//if snapshot 'x' is the first one .0001, and fixture,
-								//   then fixture/1_wrl.0001.rgb or .bmp
-								char snappath[100];
-								char *sep = "_"; // "." or "_" or "/"
-								set_snapshotModeTesting(TRUE);
-								//if(isSnapshotModeTesting())
-								//	printf("testing\n");
-								//else
-								//	printf("not testing\n");
-								strcpy(snappath,folder);
-								fw_mkdir(snappath); // /fixture
-								fwl_set_SnapTmp(snappath);
+				//googleCardboard barrel distortions to counteract/compensate for magnifying lenses
+				float xc;
+				X3D_Viewer *viewer = Viewer();
 
-								snappath[0] = '\0';
-								if(p->nameTest){
-									strcat(snappath,p->nameTest);
-								}else{
-									if(tg->Mainloop.scene_name){
-										strcat(snappath,tg->Mainloop.scene_name); // /fixture/1
-										if(tg->Mainloop.scene_suff)
-										{
-											strcat(snappath,sep); // "." or "_");
-											strcat(snappath,tg->Mainloop.scene_suff);
-										}
-									}
-								}
-								fwl_set_SnapFile(snappath);  //  /fixture/1_wrl.001.bmp
-
-							}
-						}
-					}
-					fwl_do_keyPress0(key, type);
-				}
+				//ideally this gets run whenever screendist is changed
+				xc = 1.0f - (float) viewer->screendist;
+				texturegrid_barrel_distort2(ctexturegrid0, xc,.1f);
+				xc = (float)viewer->screendist;
+				texturegrid_barrel_distort2(ctexturegrid1, xc,.1f);
 			}
-			if(strlen(mouseStr)>2){
-				int i,ii,len;
-				int mev;
-				unsigned int button;
-				float x,y;
-				len = strlen(mouseStr);
-				ii=1;
-				do{
-					for(i=ii;i<len;i++)
-						if(mouseStr[i] == ';') break;
-					if(0){
-					sscanf(&mouseStr[ii],"%d,%d,%f,%f;",&mev,&button,&x,&y);
-					handle0(mev,button,x,y);
-					}
-					if(1){
-					sscanf(&mouseStr[ii],"%d,%d,%d,%d,%d;",&mev,&button,&ix,&iy,&ID);
-					fwl_handle_aqua_multi0(mev,button,ix,iy,ID);
-					}
-					//printf("%d,%d,%f,%f;",mev,button,x,y);
-					ii=i+1;
-				}while(ii<len-1);
+
+
+			csbh->t1.contents = cstereo;
+			cstereo->t1.contents = ctexturegrid0;
+			ctexturegrid0->t1.next = ctexturegrid1;
+			ctexturegrid0->t1.contents = cstagefbo0;
+			ctexturegrid1->t1.contents = cstagefbo1;
+			cstagefbo0->t1.contents = cscene0;
+			cstagefbo1->t1.contents = cscene1;
+
+			*last = csbh; 
+			last = &csbh->t1.next;
+
+		} 
+		{
+			//10. quadrant
+			contenttype *cscene0, *cscene1, *cscene2, *cscene3;
+			contenttype *csbh, *cquadrant; //, *cmultitouch;
+
+			csbh = new_contenttype_statusbar();
+			cquadrant = new_contenttype_quadrant();
+
+			cscene0 = new_contenttype_scene();
+			cscene1 = new_contenttype_scene();
+			cscene2 = new_contenttype_scene();
+			cscene3 = new_contenttype_scene();
+
+			csbh->t1.contents = cquadrant;
+			cquadrant->t1.contents = cscene0;
+			cscene0->t1.next = cscene1;
+			cscene1->t1.next = cscene2;
+			cscene2->t1.next = cscene3;
+
+			*last = csbh; 
+			last = &csbh->t1.next; //don't need this line if truely the last, but doesn't hurt to have the address
+
+		}
+
+		t->stage = cstage;
+//		t = t->next;
+	}
+}
+int fwl_hyper_option(char *val){
+	//keyboard on graphics window: ' ' (spacebar) will get : prompt
+	//then :hyper_otion,3[Enter] will change the hyperoption for all windows
+	int i,iopt;
+	//targetwindow *t;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	iopt = atoi(val);
+	if(iopt >= 0 && iopt <=10)
+	for(i=0;i<p->nwindow;i++){
+		p->hyper_case[i] = iopt;
+	}
+	return 1;
+}
+void initialize_targets_simple(){
+
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	targetwindow *t = p->cwindows;
+
+	if(!t->stage){
+		setup_stagesNORMAL();
+	}
+
+
+	p->targets_initialized = 1;
+
+}
+void update_navigation();
+void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
+	double dtime;
+	int i;
+	ivec4 defaultvport;
+	Stack *vportstack;
+	targetwindow *t;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	if(!p->targets_initialized)
+		initialize_targets_simple();
+
+	dtime = Time1970sec();
+	vportstack = (Stack *)tg->Mainloop._vportstack;
+	defaultvport = ivec4_init(0,0,100,100);
+	pushviewport(vportstack,defaultvport);
+	//update_navigation();
+	fwl_RenderSceneUpdateScene0(dtime);
+	popviewport(vportstack);
+
+	//twindows = p->cwindows;
+	//t = twindows;
+	p->windex = -1;
+	for(i=0;i<p->nwindow;i++){
+		//a targetwindow might be a supervisor's screen, or HMD
+		freewrl_params_t *dp;
+		stage *s;
+		void *hyper_switch;
+		int hyper_case;
+
+		hyper_switch = p->hyper_switch[i];
+		hyper_case = p->hyper_case[i];
+		contenttype_switch_set_which(hyper_switch,hyper_case);
+
+
+		t=&p->cwindows[i];
+		p->windex++;
+		s = (stage*)(t->stage); // assumes t->stage.t1.type == CONTENTTYPE_STAGE
+		if(s->type == STAGETYPE_BACKBUF){
+			s->ivport = t->ivport;
+		}else{ 
+			//if s->type == STAGETYPE_FBO
+			//s->ivport = f(twindow->ivport) ie you might resize the fbo if your target window is big/small
+		}
+		fwl_setScreenDim0(s->ivport.W, s->ivport.H); //or t2->ivport ?
+		dp = (freewrl_params_t*)tg->display.params;
+		if(t->params.context != dp->context){
+			tg->display.params = (void*)&t->params;
+			fv_change_GLcontext((freewrl_params_t*)tg->display.params);
+			//printf("%ld %ld %ld\n",t->params.display,t->params.context,t->params.surface);
+		}
+		//moved to render	doglClearColor();
+		vportstack = (Stack *)tg->Mainloop._vportstack;
+		pushviewport(vportstack,t->ivport);
+		s->t1.render(s);
+		//get final buffer, or swapbuffers	
+		popviewport(vportstack);
+		//setcurrentviewport(vportstack);
+		if(t->swapbuf) { FW_GL_SWAPBUFFERS }
+//		t = (targetwindow*) t->next;
+	}
+	p->windex = 0;
+}
+
+//<<<<<=====NEW=====
+int fwl_handle_mouse_multi_yup(int mev, int butnum, int mouseX, int yup, unsigned int ID, int windex){
+	//this is the pick() for the twindow level
+	int ihit;
+	Stack *vportstack;
+	targetwindow *t;
+	stage *s;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	if (mev == MotionNotify) butnum = 0; //a freewrl handle...multiNORMAL convention
+
+	t = &p->cwindows[windex];
+	s = (stage*)t->stage;
+	if(!s) return 0; //sometimes mouse events can start before a draw events (where stages are initialized)
+	if(s->type == STAGETYPE_BACKBUF)
+		s->ivport = t->ivport; //need to refresh every frame incase there was a resize on the window
+	vportstack = (Stack *)tg->Mainloop._vportstack;
+	pushviewport(vportstack,s->ivport);
+	ihit = s->t1.pick(s,mev,butnum,mouseX,yup,ID,windex);
+	popviewport(vportstack);
+	return ihit;
+}
+
+void emulate_multitouch(int mev, unsigned int button, int x, int ydown, int windex)
+{
+	/* CREATE/DELETE a touch with RMB down 
+	   GRAB/MOVE a touch with LMB down and drag
+	   ID=0 reserved for 'normal' cursor
+	*/
+    int i,ifound,ID,y;
+	struct Touch *touch;
+	static int buttons[4] = {0,0,0,0};
+	static int idone = 0;
+	ppMainloop p;
+	targetwindow *t;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+
+	t = &p->cwindows[windex];
+	//Nov. 2015 changed freewrl mouse from y-down to y-up from here on down:
+	//all y-up now: sesnsor/picking, explore, statusbarHud, handle0 > all navigations, emulate_multitouch, sidebyside fiducials
+	y = t->ivport.H - ydown; //screenHeight -y;
+	
+	if(!idone){
+		printf("Use RMB (right mouse button) to create and delete touches\n");
+		printf("Use LMB to drag touches (+- 5 pixel selection window)\n");
+		idone = 1;
+	}
+	buttons[button] = mev == ButtonPress;
+	ifound = 0;
+	ID = -1;
+	touch = NULL;
+
+	for(i=0;i<p->ntouch;i++){
+		touch = &p->touchlist[i];
+		if(touch->ID > -1){
+			if(touch->windex == windex && touch->stageId == current_stageId())
+			if((abs(x - touch->rx) < 10) && (abs(y - touch->ry) < 10)){
+				ifound = 1;
+				ID = i;
+				break;
 			}
 		}
 	}
-	fwl_RenderSceneUpdateScene0(dtime);
+
+	if( mev == ButtonPress && button == RMB )
+	{
+		//if near an existing one, delete
+		if(ifound && touch){
+			fwl_handle_mouse_multi_yup(ButtonRelease,LMB,x,y,ID,windex);
+			//delete
+			touch->ID = -1;
+			printf("delete ID=%d windex=%d\n",ID,windex);
+		}
+		//else create
+		if(!ifound){
+			//create!
+			for(i=0;i<p->ntouch;i++){
+				touch = &p->touchlist[i];
+				if(touch->ID < 0) {
+					fwl_handle_mouse_multi_yup(mev, LMB, x, y, i,windex);
+					touch->rx = x;
+					touch->ry = y;
+					printf("create ID=%d windex=%d\n",i,windex);
+					break;
+				}
+			}
+		}
+	}else if( mev == MotionNotify && buttons[LMB])	{
+		//if near an existing one, grab it and move it
+		if(ifound){
+			fwl_handle_mouse_multi_yup(MotionNotify,0,x,y,ID,windex);
+			touch = &p->touchlist[ID];
+			touch->rx = x;
+			touch->ry = y;
+			//printf("drag ID=%d \n",ID);
+		}
+	}
+}
+//void render_multitouch(){
+//	ppMainloop p;
+//	ttglobal tg = gglobal();
+//	p = (ppMainloop)tg->Mainloop.prv;
+//
+//	if(p->EMULATE_MULTITOUCH) {
+//		int i;
+//		for(i=0;i<p->ntouch;i++){
+//			if(p->touchlist[i].ID > -1)
+//				if(p->touchlist[i].windex == p->windex)
+//				{
+//					struct Touch *touch;
+//					touch = &p->touchlist[i];
+//					cursorDraw(touch->ID,touch->rx,touch->ry,touch->angle);
+//				}
+//		}
+//    }
+//}
+void render_multitouch2(struct Touch *touchlist, int ntouch){
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+
+	if(p->EMULATE_MULTITOUCH) {
+		int i;
+		for(i=0;i<ntouch;i++){
+			if(touchlist[i].ID > -1)
+				if(touchlist[i].windex == p->windex ) // && touchlist[i].stageId == current_stageId() )
+				{
+					struct Touch *touch;
+					touch = &touchlist[i];
+					cursorDraw(touch->ID,touch->rx,touch->ry,touch->angle);
+				}
+		}
+    }
+}
+void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle){
+	struct Touch *touch;
+	//ppMainloop p;
+	//ttglobal tg = gglobal();
+	//p = (ppMainloop)tg->Mainloop.prv;
+
+	touch = &touchlist[ID];
+	if(ihandle == -2){
+		touch->ID = -1;
+	}else{
+		touch->rx = mouseX;
+		touch->ry = mouseY;
+		touch->windex = windex;
+		touch->stageId = current_stageId();
+		touch->buttonState = mev == ButtonPress;
+		touch->ID = ID; /*will come in handy if we change from array[] to accordian list*/
+		touch->mev = mev;
+		touch->angle = 0.0f;
+		//p->currentTouch = ID;
+	}
+
 }
 
+int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex)
+{
+	/* CREATE/DELETE a touch with RMB down 
+	   GRAB/MOVE a touch with LMB down and drag
+	   ID=0 reserved for 'normal' cursor
+	*/
+    int i,ihandle;
+	struct Touch *touch;
+	static int idone = 0;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	
+	if(!idone){
+		printf("Use RMB (right mouse button) to create and delete touches\n");
+		printf("Use LMB to drag touches (+- 5 pixel selection window)\n");
+		idone = 1;
+	}
+	touch = NULL;
+	ihandle = 1;
+
+	if(*mev == ButtonPress && (*button == LMB || *button == RMB)){
+		//FIND
+		*IDD = -1;
+		*lastbut = *button;
+		for(i=0;i<ntouch;i++){
+			touch = &touchlist[i];
+			if(touch->inUse){
+				if(touch->windex == windex ) //&& touch->stageId == current_stageId())
+				if((abs(x - touch->rx) < 10) && (abs(y - touch->ry) < 10)){
+					*IDD = i;
+					printf("drag found ID %d\n",*IDD);
+					break;
+				}
+			}
+		}
+	}
+
+	if(*lastbut == LMB){
+		if( *mev == MotionNotify )	{
+			//if near an existing one, grab it and move it
+			if(*IDD > -1){
+				//fwl_handle_mouse_multi_yup(MotionNotify,0,x,y,ID,windex);
+				*mev = MotionNotify;
+				*button = 0;
+				*ID = *IDD;
+				ihandle = -1;
+				touch = &touchlist[*IDD];
+				touch->rx = x;
+				touch->ry = y;
+				printf("drag ID=%d \n",*IDD);
+			}
+		}else if(*mev == ButtonRelease){
+			*IDD = -1;
+		}
+	} else if(*lastbut == RMB){
+		if( *mev == ButtonPress )
+		{
+			//if near an existing one, delete
+			if(*IDD > -1 && touch){
+				//fwl_handle_mouse_multi_yup(ButtonRelease,LMB,x,y,ID,windex);
+				*mev = ButtonRelease;
+				*button = LMB;
+				*ID = *IDD;
+				ihandle = -2;  //caller must propagate handle_mouse, then set ID = -1;
+				//delete
+				//touch->ID = -1; //this gets overwritten
+				printf("delete ID=%d windex=%d ihandle=%d\n",*IDD,windex,ihandle);
+			}
+			//else create
+			if(*IDD == -1){
+				//create!
+				for(i=1;i<p->ntouch;i++){
+					touch = &touchlist[i];
+					if(touch->inUse == FALSE) {
+						//fwl_handle_mouse_multi_yup(mev, LMB, x, y, i,windex);
+						*button = LMB;
+						*ID = i;
+						*IDD = i;
+						ihandle = -1;
+						touch->rx = x;
+						touch->ry = y;
+						touch->inUse = TRUE;
+						printf("create ID=%d windex=%d\n",i,windex);
+						break;
+					}
+				}
+			}
+		}
+	}
+	//p->currentTouch = *ID;
+	return ihandle;
+}
+
+
+int fwl_handle_mouse_multi(int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
+	//this is the pick() for the twindow level
+	int yup;
+	targetwindow *t;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	t = &p->cwindows[windex];
+	//Nov. 2015 changed freewrl mouse from y-down to y-up from here on down:
+	//all y-up now: sesnsor/picking, explore, statusbarHud, handle0 > all navigations, emulate_multitouch, sidebyside fiducials
+	yup = t->ivport.H - mouseY; //screenHeight -y;
+	fwl_handle_mouse_multi_yup(mev,butnum,mouseX,yup,ID,windex);
+	return getCursorStyle();
+}
+int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
+	int cstyle, tactic_up_drag;
+	static unsigned int ID = 1;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	
+	//ConsoleMessage("mev %d butnum %d\n",mev,butnum);
+	ID = 1; //normal, 2=over
+	//if(mev == ButtonPress) ID++;
+	tactic_up_drag = 0;
+	if(tactic_up_drag){
+		//this was an attempt to restore isOver for desktop, by 
+		//creating a Touch/Drag for when the mouse buttons are up
+		// but didn't work well (H: can't send 2 mouse events on the same frame
+		// because we are flushing once per event rather than once per frame)
+		// Use the Hover button.
+		switch(mev){
+			case MotionNotify:
+			if(!p->mouseDown && !p->mouseOver){
+				//we are moving. Turn it into an up-drag
+				p->mouseOver = TRUE;
+				ID = 2;
+				mev = ButtonPress;
+				butnum = 0;
+			}
+			if(p->mouseOver){
+				ID = 2;
+				butnum = 0;
+			}
+			break;
+			case ButtonPress:
+			if(p->mouseOver){
+				//clean up up-drag
+				fwl_handle_mouse_multi(ButtonRelease, 0, mouseX, mouseY, 2, windex);
+				p->mouseOver = FALSE;
+			}
+			p->mouseDown = TRUE;
+			break;
+			default:
+			break;
+		}
+		cstyle = fwl_handle_mouse_multi(mev,butnum,mouseX,mouseY,ID,windex);
+		if(mev == ButtonRelease){
+			p->mouseDown = FALSE;
+		}
+	}else{
+		//no tactic up-drag, just normal
+		cstyle = fwl_handle_mouse_multi(mev,butnum,mouseX,mouseY,ID,windex);
+	}
+	return cstyle;
+}
+int fwl_handle_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
+	int cstyle;
+	int ibut;
+	// OLDCODE ttglobal tg = gglobal();
+	// OLDCODE ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	//mobile: touch drags only occur when something is down, so LMB is constant
+	//localhost: touch drags can have mev = move, with no Press preceding, for a mouse up drag
+	ibut = LMB;
+	//if(fwl_getHover()) ibut = 0;
+	cstyle = fwl_handle_mouse_multi(mev, ibut, mouseX, mouseY, ID, windex);
+	return cstyle;
+}
+// mobile devices with accelerometer or gyro pass the raw data in here
+// assumed axes: z pointing up from face, x to right on face, y pointing up on face
+// method of use: relative drags
+void viewer_getpose(double *quat4, double *vec3);
+void viewer_setpose(double *quat4, double *vec3);
+static int using_sensors_for_navigation = 1; //in theory we could use for other things, or turn off
+static int using_magnetic = 0;
+static int using_gyro = 1;
+//OLDCODE static int using_accelerometer = 0;
+
+void fwl_handle_gyro(float rx, float ry, float rz) {
+	if(using_sensors_for_navigation &&  using_gyro){
+		double axyz[3], dd[3], quat4[4], vec3[3]; //, ypr[3]; //Axyz[3], 
+		static double dt, lasttime, curtime;
+		Quaternion qq0, qq2, qq; //q1, 
+		static int initialized = 0;
+
+		if (!initialized) {
+			lasttime = Time1970sec();
+			initialized = 1;
+		}
+
+		curtime = Time1970sec();
+		dt = curtime - lasttime;
+		lasttime = curtime;
+
+		viewer_getpose(quat4, vec3);
+		double2quat(&qq0, quat4);
+		quaternion_normalize(&qq0);
+
+		axyz[0] = (double)rx;
+		axyz[2] = -(double)ry;
+		axyz[1] = -(double)rz;
+
+		//and take out driftie small accelerations
+		if (fabs(axyz[0]) < .01) axyz[0] = 0.0;
+		if (fabs(axyz[1]) < .01) axyz[1] = 0.0;
+		if (fabs(axyz[2]) < .01) axyz[2] = 0.0;
+		vecscaled(dd, axyz, dt); //funny this is working best
+		//vecscaled(dd, axyz, .01); //under-rotates - see it with roll
+		//vecscaled(dd,axyz,PI/180.0); //over-rotates .01745, so .015?
+
+		euler2quat(&qq2, dd[0], dd[1], dd[2]);
+		quaternion_multiply(&qq, &qq2, &qq0); //cumquat should be in world2vp sense like view
+		quaternion_normalize(&qq);
+
+		quat2double(quat4, &qq);
+		viewer_setpose(quat4, vec3);
+	}
+}
+
+void fwl_handle_accelerometer(float ax, float ay, float az){
+	//ConsoleMessage("hi from handle_accelerometer %f %f %f\n", ax, ay, az);
+}
+
+void fwl_handle_magnetic(float azimuth, float pitch, float roll) {
+	if (using_sensors_for_navigation &&  using_magnetic) {
+		//doesn't work, but the idea is to use magnetic bearing differences from startup pose
+		//to rotate the scene. (H: would be better to use sensor fusion, perhaps via bayes or
+		// kalman filtering or least squares updates)
+		double rxyz[3], dd[3], Rxyz[3], quat4[4], vec3[3]; //, ypr[3];
+		static double ddlast[3];
+		Quaternion qq0, qq2, qq, qqlast; //q1, 
+		static int initialized = 0;
+
+		if (!initialized) {
+			initialized = 1;
+			Rxyz[0] = (double)azimuth;
+			Rxyz[2] = -(double)roll;
+			Rxyz[1] = -(double)pitch;
+			vecscaled(ddlast,ddlast,0.0);
+		}
+
+
+		viewer_getpose(quat4, vec3);
+		double2quat(&qq0, quat4);
+		quaternion_normalize(&qq0);
+
+		rxyz[0] = (double)azimuth;
+		rxyz[2] = -(double)roll;
+		rxyz[1] = -(double)pitch;
+
+		vecdifd(dd,rxyz,Rxyz);
+		vecscaled(dd, dd, .05); 
+		//take off magnetic from last event
+		euler2quat(&qqlast,ddlast[0],ddlast[1],ddlast[2]);
+		quaternion_normalize(&qqlast);
+		quaternion_inverse(&qqlast,&qqlast);
+		quaternion_normalize(&qqlast);
+		quaternion_multiply(&qq0,&qqlast,&qq0);
+		quaternion_normalize(&qq0);
+
+		//add magnetic from this event
+		euler2quat(&qq2, dd[0], dd[1], dd[2]);
+		quaternion_multiply(&qq, &qq2, &qq0); //cumquat should be in world2vp sense like view
+		quaternion_normalize(&qq);
+
+		quat2double(quat4, &qq);
+		viewer_setpose(quat4, vec3);
+		veccopyd(ddlast,dd);
+	}
+}
+
+#ifdef OLDCODE 
+OLDCODE void fwl_handle_magnetic_old(float azimuth, float pitch, float roll) {
+OLDCODE 	ConsoleMessage("hi from handle_magnetic %f %f %f\n", azimuth, pitch, roll);
+OLDCODE 	if(using_sensors_for_navigation && using_magnetic){
+OLDCODE 		static int initialized = 0;
+OLDCODE 		static float home_azimuth = 0.0f, home_pitch = 0.0f, home_roll = 0.0f;
+OLDCODE 		static double lasttime, curtime, dt;
+OLDCODE 		Quaternion qq, qq2;
+OLDCODE 		static Quaternion qq0;
+OLDCODE 		float dazimuth,ddazimuth, dpitch, droll; //,ddroll;ddpitch,
+OLDCODE 		double quat4[4], vec3[3], rxyz[3];
+OLDCODE 		static double ypr[3];
+OLDCODE 		static float lazimuth, lpitch, lroll;
+OLDCODE 		//we'll use use azimuth relative * time, and pitch absolute
+OLDCODE 		//assume startup azimuth is home azimuth
+OLDCODE 		// x the axes are mixed up
+OLDCODE 		// x seems to depend on orientation
+OLDCODE 		// x my quat2yawpitch isn't comprehensive enought, need roll to understand
+OLDCODE 		if(!initialized){
+OLDCODE 			home_azimuth = azimuth;
+OLDCODE 			home_pitch = pitch;
+OLDCODE 			home_roll = roll;
+OLDCODE 			lazimuth = azimuth;
+OLDCODE 			lpitch = pitch;
+OLDCODE 			lroll = roll;
+OLDCODE 			lasttime = Time1970sec();
+OLDCODE 			initialized = 1;
+OLDCODE 			if(0){
+OLDCODE 			viewer_getpose(quat4, vec3);
+OLDCODE 			double2quat(&qq0, quat4);
+OLDCODE 			quaternion_normalize(&qq0);
+OLDCODE 			//quat2yawpitch(ypr, &qq0); 
+OLDCODE 			quat2euler(ypr,0,&qq0);
+OLDCODE 			//in thoery euler rotations can be extracted sequentially from quaternions:
+OLDCODE 			// qy = quat2yaw(q0) // gets yaw
+OLDCODE 			// q1 = qy.inverse()*q0 //gets pitch+roll
+OLDCODE 			// qp = quat2pitch(q1) // gets pitch
+OLDCODE 			// qr = qp.inverse()*q1 //gets roll 
+OLDCODE 			// yaw = qy.toEuler()
+OLDCODE 			// pitch = qp.toEuler()
+OLDCODE 			// roll = qr.toEuler()
+OLDCODE 			// and you would get different value depending on the sequence, 
+OLDCODE 			// but when multiplied back together in reverse sequence you would/should get original q0
+OLDCODE 			}
+OLDCODE 
+OLDCODE 		}
+OLDCODE 		curtime = Time1970sec();
+OLDCODE 		dt = curtime - lasttime;
+OLDCODE 		lasttime = curtime;
+OLDCODE 
+OLDCODE 		if(1){
+OLDCODE 		viewer_getpose(quat4, vec3);
+OLDCODE 		double2quat(&qq0,quat4);
+OLDCODE 		quaternion_normalize(&qq0);
+OLDCODE 		//quat2yawpitch(ypr,&qq0);
+OLDCODE 		quat2euler(ypr,0,&qq0);
+OLDCODE 		}
+OLDCODE 		//quat2euler(rxyz,0,&qq);
+OLDCODE 		dazimuth = (azimuth - home_azimuth);// * dt; // * .1;
+OLDCODE 		ddazimuth = dazimuth - lazimuth;
+OLDCODE 		lazimuth = dazimuth;
+OLDCODE 		if (fabs(ddazimuth) < .7f)
+OLDCODE 			dazimuth = 0.0;
+OLDCODE 		if(fabs(ddazimuth) < 2.0f)
+OLDCODE 			dazimuth = .01f * dazimuth;
+OLDCODE 		if(fabs(ddazimuth) < 10.0f)
+OLDCODE 			dazimuth = .1f * dazimuth;
+OLDCODE 
+OLDCODE 		dpitch = (pitch - home_pitch);
+OLDCODE 		droll = (roll - home_roll);
+OLDCODE 		//time based azimuth is doing nothing
+OLDCODE 		//roll throws it off, pitch crazy.
+OLDCODE 		// I don't have the right formula and not sure tinkering will help
+OLDCODE 		rxyz[2] = dazimuth*PI/180.0;
+OLDCODE 		rxyz[1] = (50.0 - droll )*PI/50.0*dt; //180.0;
+OLDCODE 		//rxyz[2] = 0.0;
+OLDCODE 		rxyz[0] = 0.0;
+OLDCODE 		rxyz[1] = 0.0;
+OLDCODE 		//rxyz[1] = droll; // dpitch;
+OLDCODE 		//rxyz[2] = dpitch;
+OLDCODE 		//rxyz[1] = roll*PI/180.0;
+OLDCODE 		//rxyz[0] = azimuth*PI/180.0;
+OLDCODE 		euler2quat(&qq2,rxyz[0],rxyz[1],-rxyz[2]);
+OLDCODE 		quaternion_multiply(&qq,&qq2,&qq0); //cumquat should be in world2vp sense like view
+OLDCODE 		quaternion_normalize(&qq);
+OLDCODE 
+OLDCODE 		quat2double(quat4,&qq);
+OLDCODE 		viewer_setpose(quat4,vec3);
+OLDCODE 		//home_azimuth = azimuth;
+OLDCODE 		home_pitch = pitch;
+OLDCODE 		//home_roll = roll;
+OLDCODE 
+OLDCODE 	}
+OLDCODE }
+#endif // OLDCODE
+
+void (*fwl_RenderSceneUpdateScenePTR)() = fwl_RenderSceneUpdateSceneTARGETWINDOWS;
+//#else //MULTI_WINDOW
+////void (*fwl_RenderSceneUpdateScenePTR)() = fwl_RenderSceneUpdateSceneNORMAL;
+//void (*fwl_RenderSceneUpdateScenePTR)() = fwl_RenderSceneUpdateSceneSTAGES;
+//#endif //MULTI_WINDOW
+
+/*rendersceneupdatescene overridden with SnapshotRegressionTesting.c  
+	fwl_RenderSceneUpdateSceneTESTING during regression testing runs
+*/
+void fwl_RenderSceneUpdateScene(void){
+
+	fwl_RenderSceneUpdateScenePTR();
+}
+void setup_picking();
+void setup_projection();
+void rbp_run_physics();
 void fwl_RenderSceneUpdateScene0(double dtime) {
-
-#else //FRONTEND_DOES_SNAPSHOTS
-
-void fwl_RenderSceneUpdateScene() {
-	double dtime = Time1970sec();
-
-#endif //FRONTEND_DOES_SNAPSHOTS
-
+	//Nov 2015 change: just viewport-independent, once-per-frame-scene-updates here
+	//-functionality relying on a viewport -setup_projection(), setup_picking()- has been 
+	//	moved to render() which is now called outside this function
+	//  this will allow quadrant displays and multiple windows to update the scene once per frame here,
+	//  then render to many viewports/windows, pickray from any viewport/window
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
 
@@ -1024,18 +4550,19 @@ void fwl_RenderSceneUpdateScene() {
 	/* should we do events, or maybe a parser is parsing? */
 	p->doEvents = (!fwl_isinputThreadParsing()) && (!fwl_isTextureParsing()) && fwl_isInputThreadInitialized();
 	/* First time through */
-	if (p->loop_count == 0) {
+	//if (p->loop_count == 0) {
+	if(!p->once){
 		p->BrowserStartTime = dtime; //Time1970sec();
 		tg->Mainloop.TickTime = p->BrowserStartTime;
 		tg->Mainloop.lastTime = tg->Mainloop.TickTime - 0.01; /* might as well not invoke the usleep below */
 		if(p->BrowserInitTime == 0.0)
 			p->BrowserInitTime = dtime;
+		p->once = TRUE;
 	} else {
 		/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
 			something goes totally wrong.
 			Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
-#ifndef FRONTEND_HANDLES_DISPLAY_THREAD
-		if(!tg->display.params.frontend_handles_display_thread){
+		if(!((freewrl_params_t*)(tg->display.params))->frontend_handles_display_thread){
 			/* 	some users report their device overheats if frame rate is a zillion, so this will limit it to a target number
 				statusbarHud options has an option to set.
 				we see how long it took to do the last loop; now that the frame rate is synced to the
@@ -1050,22 +4577,11 @@ void fwl_RenderSceneUpdateScene() {
 				if suggested_wait_time < 0 then we can't keep up, no wait time
 
 			*/
-			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, average_fps;
-			int wait_time_micro_sec, target_frames_per_second, kludgefactor;
+			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
+			int wait_time_micro_sec, target_frames_per_second;
 			kludgefactor = 2.0; //2 works on win8.1 with intel i5
 			target_frames_per_second = fwl_get_target_fps();
 			elapsed_time_per_frame = TickTime() - lastTime();
-			/*
-			if(1){
-				//do you trust the statusbar FPS? Here's a double-check.
-				static double cumulative_frame_time = 0.001;
-				static double cumulative_frames = 0.0;
-				cumulative_frames += 1.0;
-				cumulative_frame_time += elapsed_time_per_frame;
-				average_fps = cumulative_frames / cumulative_frame_time;
-				printf("\r%10.5lf",average_fps);
-			}
-			*/
 			if(target_frames_per_second > 0)
 				target_time_per_frame = 1.0/(double)target_frames_per_second;
 			else
@@ -1076,50 +4592,50 @@ void fwl_RenderSceneUpdateScene() {
 			wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
 			if(wait_time_micro_sec > 1)
 				usleep(wait_time_micro_sec);
-			//if (waitsec < 0.005) {
-			//	usleep(10000);
-			//}
 		}
-#endif /* FRONTEND_HANDLES_DISPLAY_THREAD */
 	}
 
-	/* Set the timestamp */
+	// Set the timestamp
 	tg->Mainloop.lastTime = tg->Mainloop.TickTime;
 	tg->Mainloop.TickTime = dtime; //Time1970sec();
 
-	/* any scripts to do?? */
+	#if !defined(FRONTEND_DOES_SNAPSHOTS)
+	// handle snapshots
+	if (tg->Snapshot.doSnapshot) {
+		Snapshot();
+	}
+	#endif //FRONTEND_DOES_SNAPSHOTS
+
+	OcclusionCulling();
+
+	// any scripts to do??
 #ifdef _MSC_VER
 	if(p->doEvents)
 #endif /* _MSC_VER */
 
-	#ifdef HAVE_JAVASCRIPT
-		initializeAnyScripts();
-	#endif
+	initializeAnyScripts();
 
 
-	/* BrowserAction required? eg, anchors, etc */
+
+	// BrowserAction required? eg, anchors, etc
 #ifndef DISABLER
 	if (tg->RenderFuncs.BrowserAction) {
 		tg->RenderFuncs.BrowserAction = doBrowserAction ();
 	}
 #endif
 
-	/* has the default background changed? */
-	if (tg->OpenGL_Utils.cc_changed) doglClearColor();
+	//doglClearColor();
 
 	OcclusionStartofRenderSceneUpdateScene();
+
 	startOfLoopNodeUpdates();
 
 	if (p->loop_count == 25) {
 		tg->Mainloop.BrowserFPS = 25.0 / (TickTime()-p->BrowserStartTime);
 		setMenuFps((float)tg->Mainloop.BrowserFPS); /*  tell status bar to refresh, if it is displayed*/
-		/* printf ("fps %f tris %d, rootnode children %d \n",p->BrowserFPS,p->trisThisLoop, X3D_GROUP(rootNode)->children.n);  */
-
+		// printf ("fps %f tris %d, rootnode children %d \n",p->BrowserFPS,p->trisThisLoop, X3D_GROUP(rootNode)->children.n);
 		//ConsoleMessage("fps %f tris %d\n",tg->Mainloop.BrowserFPS,tg->Mainloop.trisThisLoop);
-
-
-		 //printf ("MainLoop, nearPlane %lf farPlane %lf\n",Viewer.nearPlane, Viewer.farPlane);
-
+		//printf ("MainLoop, nearPlane %lf farPlane %lf\n",Viewer.nearPlane, Viewer.farPlane);
 		p->BrowserStartTime = TickTime();
 		p->loop_count = 1;
 	} else {
@@ -1144,18 +4660,18 @@ void fwl_RenderSceneUpdateScene() {
 
 	p->slowloop_count++ ;
 
-	/* handle any events provided on the command line - Robert Sim */
+	// handle any events provided on the command line - Robert Sim 
 	if (p->keypress_string && p->doEvents) {
 		if (p->keypress_wait_for_settle > 0) {
 			p->keypress_wait_for_settle--;
 		} else {
-			/* dont do the null... */
+			// dont do the null... 
 			if (*p->keypress_string) {
-				/* printf ("handling key %c\n",*p->keypress_string); */
-#if !defined( AQUA ) && !defined( _MSC_VER )  /*win32 - don't know whats it is suppsoed to do yet */
+				// printf ("handling key %c\n",*p->keypress_string); 
+#if !defined( _MSC_VER )  /*win32 - don't know whats it is suppsoed to do yet */
 				DEBUG_XEV("CMD LINE GEN EVENT: %c\n", *p->keypress_string);
 				fwl_do_keyPress(*p->keypress_string,KeyPress);
-#endif /* NOT AQUA and NOT WIN32 */
+#endif /* NOT WIN32 */
 				p->keypress_string++;
 			} else {
 				p->keypress_string=NULL;
@@ -1171,10 +4687,18 @@ void fwl_RenderSceneUpdateScene() {
 
 #if defined(TARGET_X11)
 	/* We are running our own bare window */
-	while (XPending(Xdpy)) {
-		XNextEvent(Xdpy, &event);
-		DEBUG_XEV("EVENT through XNextEvent\n");
-		handle_Xevents(event);
+	{
+		int kw;
+		for(kw=0;kw<p->nwindow;kw++)
+		{
+			void * xdpy = p->cwindows[kw].params.display;
+			//while (XPending(Xdpy)) {
+			while(XPending(xdpy)) {
+				XNextEvent(xdpy, &event);
+				DEBUG_XEV("EVENT through XNextEvent\n");
+				handle_Xevents(event);
+			}
+		}
 	}
 #endif /* TARGET_X11 */
 
@@ -1216,146 +4740,13 @@ void fwl_RenderSceneUpdateScene() {
 	handle_tick();
 
 	PRINT_GL_ERROR_IF_ANY("after handle_tick")
-
 	/* setup Projection and activate ProximitySensors */
 	if (p->onScreen)
-		{
-			render_pre();
-			slerp_viewpoint();
-		}
+	{
+		render_pre();
+		slerp_viewpoint(3); //does explore / lookat vp slerp
 
-#ifdef RENDERVERBOSE
-	printf("RENDER STEP----------\n");
-#endif
-
-	/* first events (clock ticks, etc) if we have other things to do, yield */
-	if (p->doEvents) do_first (); //else sched_yield();
-
-	/* ensure depth mask turned on here */
-	FW_GL_DEPTHMASK(GL_TRUE);
-
-	PRINT_GL_ERROR_IF_ANY("after depth")
-	/* actual rendering */
-	if (p->onScreen) {
-		render();
 	}
-
-	/* handle_mouse events if clicked on a sensitive node */
-	//printf("nav mode =%d sensitive= %d\n",p->NavigationMode, tg->Mainloop.HaveSensitive);
-	if (!p->NavigationMode && tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
-		p->currentCursor = 0;
-		setup_projection(TRUE,tg->Mainloop.currentX[p->currentCursor],tg->Mainloop.currentY[p->currentCursor]);
-		setup_viewpoint();
-		render_hier(rootNode(),VF_Sensitive  | VF_Geom);
-		p->CursorOverSensitive = getRayHit();
-
-		/* for nodes that use an "isOver" eventOut... */
-		if (p->lastOver != p->CursorOverSensitive) {
-			#ifdef VERBOSE
-				printf ("%lf over changed, p->lastOver %u p->cursorOverSensitive %u, p->butDown1 %d\n",
-					TickTime(), (unsigned int) p->lastOver, (unsigned int) p->CursorOverSensitive,
-					p->ButDown[p->currentCursor][1]);
-			#endif
-			if (p->ButDown[p->currentCursor][1]==0) {
-
-				/* ok, when the user releases a button, cursorOverSensitive WILL BE NULL
-					until it gets sensed again. So, we use the lastOverButtonPressed flag to delay
-					sending this flag by one event loop loop. */
-				if (!p->lastOverButtonPressed) {
-					sendSensorEvents(p->lastOver, overMark, 0, FALSE);
-					sendSensorEvents(p->CursorOverSensitive, overMark, 0, TRUE);
-					p->lastOver = p->CursorOverSensitive;
-				}
-				p->lastOverButtonPressed = FALSE;
-			} else {
-				p->lastOverButtonPressed = TRUE;
-			}
-		}
-		#ifdef VERBOSE
-		if (p->CursorOverSensitive != NULL)
-			printf("COS %d (%s)\n", (unsigned int) p->CursorOverSensitive, stringNodeType(p->CursorOverSensitive->_nodeType));
-		#endif /* VERBOSE */
-
-		/* did we have a click of button 1? */
-		if (p->ButDown[p->currentCursor][1] && (p->lastPressedOver==NULL)) {
-			/* printf ("Not Navigation and 1 down\n"); */
-			/* send an event of ButtonPress and isOver=true */
-			p->lastPressedOver = p->CursorOverSensitive;
-			sendSensorEvents(p->lastPressedOver, ButtonPress, p->ButDown[p->currentCursor][1], TRUE);
-		}
-		if ((p->ButDown[p->currentCursor][1]==0) && p->lastPressedOver!=NULL) {
-			/* printf ("Not Navigation and 1 up\n");  */
-			/* send an event of ButtonRelease and isOver=true;
-				an isOver=false event will be sent below if required */
-			sendSensorEvents(p->lastPressedOver, ButtonRelease, p->ButDown[p->currentCursor][1], TRUE);
-			p->lastPressedOver = NULL;
-		}
-		if (p->lastMouseEvent == MotionNotify) {
-			/* printf ("Not Navigation and motion - going into sendSensorEvents\n"); */
-			/* TouchSensor hitPoint_changed needs to know if we are over a sensitive node or not */
-			sendSensorEvents(p->CursorOverSensitive,MotionNotify, p->ButDown[p->currentCursor][1], TRUE);
-
-			/* PlaneSensors, etc, take the last sensitive node pressed over, and a mouse movement */
-			sendSensorEvents(p->lastPressedOver,MotionNotify, p->ButDown[p->currentCursor][1], TRUE);
-			p->lastMouseEvent = 0 ;
-		}
-
-		/* do we need to re-define cursor style? */
-		/* do we need to send an isOver event? */
-		if (p->CursorOverSensitive!= NULL) {
-			setSensorCursor();
-
-			/* is this a new node that we are now over?
-				don't change the node pointer if we are clicked down */
-			if ((p->lastPressedOver==NULL) && (p->CursorOverSensitive != p->oldCOS)) {
-				sendSensorEvents(p->oldCOS,MapNotify,p->ButDown[p->currentCursor][1], FALSE);
-				sendSensorEvents(p->CursorOverSensitive,MapNotify,p->ButDown[p->currentCursor][1], TRUE);
-				 p->oldCOS=p->CursorOverSensitive;
-				sendDescriptionToStatusBar(p->CursorOverSensitive);
-			}
-		} else {
-			/* hold off on cursor change if dragging a sensor */
-			if (p->lastPressedOver!=NULL) {
-				setSensorCursor();
-			} else {
-				setArrowCursor();
-			}
-			/* were we over a sensitive node? */
-			if ((p->oldCOS!=NULL)  && (p->ButDown[p->currentCursor][1]==0)) {
-				sendSensorEvents(p->oldCOS,MapNotify,p->ButDown[p->currentCursor][1], FALSE);
-				/* remove any display on-screen */
-				sendDescriptionToStatusBar(NULL);
-				p->oldCOS=NULL;
-			}
-		}
-	} /* (!NavigationMode && HaveSensitive) */
-	else if(Viewer()->LookatMode){
-		//pick a target object to travel to
-		if(Viewer()->LookatMode < 3)
-			setLookatCursor();
-		if(Viewer()->LookatMode == 2){
-			p->currentCursor = 0;
-			setup_projection(TRUE,tg->Mainloop.currentX[p->currentCursor],tg->Mainloop.currentY[p->currentCursor]);
-			setup_viewpoint();
-			render_hier(rootNode(),VF_Sensitive  | VF_Geom);
-			getRayHitAndSetLookatTarget();
-		}
-		if(Viewer()->LookatMode == 0) ///> 2)
-			setArrowCursor();
-	}else{
-		//normal or navigation mode
-		setArrowCursor();
-	}
-
-	#if !defined(FRONTEND_DOES_SNAPSHOTS)
-	/* handle snapshots */
-	if (tg->Snapshot.doSnapshot) {
-		Snapshot();
-	}
-	#endif //FRONTEND_DOES_SNAPSHOTS
-
-	/* do OcclusionCulling, etc */
-	OcclusionCulling();
 
 	if (p->doEvents) {
 		/* and just parsed nodes needing binding? */
@@ -1363,25 +4754,26 @@ void fwl_RenderSceneUpdateScene() {
 		SEND_BIND_IF_REQUIRED(tg->ProdCon.setFogBindInRender)
 		SEND_BIND_IF_REQUIRED(tg->ProdCon.setBackgroundBindInRender)
 		SEND_BIND_IF_REQUIRED(tg->ProdCon.setNavigationBindInRender)
+
 		/* handle ROUTES - at least the ones not generated in do_first() */
-		if(0) propagate_events();
-		if(1) do_first();
+		do_first(); //propagate events called from do_first
+
 		/* Javascript events processed */
 		process_eventsProcessed();
+
 		#if !defined(EXCLUDE_EAI)
-		/*
-			* Actions are now separate so that file IO is not tightly coupled
-			* via shared buffers and file descriptors etc. 'The core' now calls
-			* the fwlio_SCK* funcs to get data into the system, and calls the fwl_EAI*
-			* funcs to give the data to the EAI,nd the fwl_MIDI* funcs for MIDI
-			*
-			* Although the MIDI code and the EAI code are basically the same
-			* and one could compress them into a loop, for the moment keep
-			* them seperate to serve as a example for any extensions...
-			*/
-		/* handle_EAI(); */
+		// the fwlio_SCK* funcs to get data into the system, and calls the fwl_EAI*
+		// funcs to give the data to the EAI.
+		//
+		// Actions are now separate so that file IO is not tightly coupled
+		// via shared buffers and file descriptors etc. 'The core' now calls
+		// Although the MIDI code and the EAI code are basically the same
+		// and one could compress them into a loop, for the moment keep
+		// them seperate to serve as a example for any extensions...
+		// handle_EAI(); 
 		{
 		int socketVerbose = fwlio_RxTx_control(CHANNEL_EAI, RxTx_GET_VERBOSITY)  ;
+
 		if ( socketVerbose <= 1 || (socketVerbose > 1 && ((p->slowloop_count % 256) == 0)) ) {
 			if(fwlio_RxTx_control(CHANNEL_EAI, RxTx_REFRESH) == 0) {
 				/* Nothing to be done, maybe not even running */
@@ -1404,10 +4796,8 @@ void fwl_RenderSceneUpdateScene() {
 						if ( socketVerbose != 0 ) {
 							printf("%s:%d Something for EAI to do with buffer addr %p\n",__FILE__,__LINE__,tempEAIdata ) ;
 						}
-						/*
-							* Every incoming command has a reply,
-							* and the reply is synchronous.
-							*/
+						// Every incoming command has a reply,
+						// and the reply is synchronous.
 						replyData = fwl_EAI_handleBuffer(tempEAIdata);
 						FREE(tempEAIdata) ;
 						EAI_StillToDo = 1;
@@ -1415,11 +4805,9 @@ void fwl_RenderSceneUpdateScene() {
 							if(replyData != NULL && strlen(replyData) != 0) {
 								fwlio_RxTx_sendbuffer(__FILE__,__LINE__,CHANNEL_EAI, replyData) ;
 								FREE(replyData) ;
-								/*
-									* Note: fwlio_RxTx_sendbuffer() can also be called async
-									* due to a listener trigger within routing, but it is
-									* is up to that caller to clean out its own buffers.
-									*/
+								// Note: fwlio_RxTx_sendbuffer() can also be called async
+								// due to a listener trigger within routing, but it is
+								// is up to that caller to clean out its own buffers.
 							}
 							EAI_StillToDo = fwl_EAI_allDone();
 							if(EAI_StillToDo) {
@@ -1436,397 +4824,271 @@ void fwl_RenderSceneUpdateScene() {
 		}
 		#endif //EXCLUDE_EAI
 	} //doEvents
+
+#ifdef RENDERVERBOSE
+	printf("RENDER STEP----------\n");
+#endif
+
+	rbp_run_physics();
+
+	/* ensure depth mask turned on here */
+	//FW_GL_DEPTHMASK(GL_TRUE);
+	//PRINT_GL_ERROR_IF_ANY("after depth")
+
 }
+void set_viewmatrix0(int iplace);
+struct Touch *currentTouch();
+void setup_picking(){
+	/*	Dec 15, 2015 update: variables have been vectorized in this function to match multi-touch, 
+		however multitouch with touch sensors doesn't work yet - you can have ID=0 for navigation
+		and ID=1 for a single touch/drag. But you can't have 2 touches at the same time:
+		- sendSensorEvents > get_hyperhit Renderfuncs.hp,.hpp etc needs to also be vectorized 
+			somehow so each drag and hyperdrag is per-touch. Then you could have multiple simaltaneous touches
+	*/
+	int windex;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
 
+	windex = p->windex;
+	/* handle_mouse events if clicked on a sensitive node */
+	if (tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
+		struct X3D_Node *sensornode;
+		int x,yup,ktouch,priorclaimants;
+		struct Touch *touch;
 
-void queueMouseMulti(ppMainloop p, const int mev, const unsigned int button, const int ix, const int iy, int ID){
-	if(p->mouseQueueCount < 50){
-		p->mouseQueue[p->mouseQueueCount].mev = mev;
-		p->mouseQueue[p->mouseQueueCount].button = button;
-		p->mouseQueue[p->mouseQueueCount].ix = ix;
-		p->mouseQueue[p->mouseQueueCount].iy = iy;
-		p->mouseQueue[p->mouseQueueCount].ID = ID;
-		p->mouseQueueCount++;
+		priorclaimants = TOUCHCLAIMANT_PEDAL;
+		for(ktouch=0;ktouch<p->ntouch;ktouch++){
+			touch = &p->touchlist[ktouch];
+			if(!touch->inUse) continue;
+
+			if(touch->windex != windex) continue; //return;
+			if(touch->stageId != current_stageId()) continue;
+
+			x = touch->x;
+			yup = touch->y;
+			if(touch->claimant == TOUCHCLAIMANT_SENSOR || (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)) {
+				//ConsoleMessage("setup_picking x %d y %d ID %d but %d mev %d\n",touch->x,touch->y,touch->ID,touch->buttonState[LMB],touch->mev);
+				if(setup_pickside(x,yup)){
+					// There can be multiple paths to a parent transform of a sensor node:
+					// touch 1:M path M:1 transform/parent 1:M SensorEvent M:1 Sensor
+					// However, for a given touch, there is only one winning hit, 
+					// and only one winning path through the transform stack:
+					// touch 1:1 winning_path 1:1 winning-transform/parent 1:1 winning_hitpoint 1:M SensorEvent M:1 Sensor
+
+					setup_projection();
+					setup_pickray(x,yup);
+					//setup_viewpoint();
+					set_viewmatrix0(1);
+					tg->RenderFuncs.hypersensitive = touch->hypersensitive;
+					tg->RenderFuncs.hyperhit = touch->hyperhit;
+					//new shortcut way, skips render_hier on hyper pass
+					if(!touch->hyperhit){
+						//sensor pass: on ButtonPress, and isOver
+						render_hier(rootNode(),VF_Sensitive  | VF_Geom); 
+						touch->CursorOverSensitive = getRayHit();
+						memcpy( touch->justModel, ((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, 16 * sizeof(double));
+						memcpy( &touch->hp, tg->RenderFuncs.hp, sizeof(struct point_XYZ));
+					}else{
+						//hyperhit pass: already buttondown on a dragsensor and touch or viewpoint moves
+						touch->CursorOverSensitive = NULL; //hyper pass
+						memcpy(((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, touch->justModel, 16 * sizeof(double));
+						memcpy(  tg->RenderFuncs.hp, &touch->hp, sizeof(struct point_XYZ));
+					}
+
+					//double-check navigation, which may have already started
+					if(touch->dragStart){
+						if(touch->CursorOverSensitive || fwl_getHover()){
+							touch->claimant = TOUCHCLAIMANT_SENSOR;
+						}else{
+							touch->passed |= TOUCHCLAIMANT_SENSOR;
+						}
+					}
+					//if (p->CursorOverSensitive)
+					//	ConsoleMessage("setup_picking x %d y %d ID %d but %d mev %d\n", touch->x, touch->y, touch->ID, touch->buttonState[LMB], touch->mev);
+
+					/* for nodes that use an "isOver" eventOut... */
+					if (touch->lastOver != touch->CursorOverSensitive) {
+						#ifdef VERBOSE
+							printf ("%lf over changed, p->lastOver %u p->cursorOverSensitive %u, p->butDown1 %d\n",
+								TickTime(), (unsigned int) touch->lastOver, (unsigned int) touch->CursorOverSensitive,
+								touch->ButDown[p->currentCursor][1]);
+						#endif
+						//ConsoleMessage("isOver changing\n");
+						//if (p->ButDown[p->currentCursor][1]==0) {
+						if (touch->buttonState == 0) {  //touch->buttonState[LMB]==0) {
+
+							/* ok, when the user releases a button, cursorOverSensitive WILL BE NULL
+								until it gets sensed again. So, we use the lastOverButtonPressed flag to delay
+								sending this flag by one event loop loop. */
+							if (!touch->lastOverButtonPressed) {
+								sendSensorEvents(touch->lastOver, overMark, 0, FALSE);
+								sendSensorEvents(touch->CursorOverSensitive, overMark, 0, TRUE);
+								touch->lastOver = touch->CursorOverSensitive;
+							}
+							touch->lastOverButtonPressed = FALSE;
+						} else {
+							touch->lastOverButtonPressed = TRUE;
+						}
+					}
+					#ifdef VERBOSE
+					if (p->CursorOverSensitive != NULL)
+						printf("COS %d (%s)\n", (unsigned int) p->CursorOverSensitive, stringNodeType(p->CursorOverSensitive->_nodeType));
+					#endif /* VERBOSE */
+
+					if(touch->claimant != TOUCHCLAIMANT_SENSOR) continue; //navigation touch
+
+					/* did we have a click of button 1? */
+					//if (p->ButDown[p->currentCursor][1] && (p->lastPressedOver==NULL)) {
+					//if (touch->buttonState[LMB] && (touch->lastPressedOver==NULL)) {
+					if (touch->dragStart && touch->buttonState && (touch->lastPressedOver==NULL)) {
+						//ConsoleMessage("Not Navigation and 1 down\n"); 
+						/* send an event of ButtonPress and isOver=true */
+						touch->lastPressedOver = touch->CursorOverSensitive;
+						sendSensorEvents(touch->lastPressedOver, ButtonPress, touch->dragStart, TRUE); //p->ButDown[p->currentCursor][1], TRUE);
+					}
+					//if ((p->ButDown[p->currentCursor][1]==0) && p->lastPressedOver!=NULL) {
+					//if ((touch->buttonState[LMB]==0) && touch->lastPressedOver!=NULL) {
+					if(touch->dragEnd && touch->lastPressedOver!=NULL) {
+						//this shuts off hypersensitive
+						//ConsoleMessage ("Not Navigation and 1 up\n");
+						/* send an event of ButtonRelease and isOver=true;
+							an isOver=false event will be sent below if required */
+						sendSensorEvents(touch->lastPressedOver, ButtonRelease, touch->buttonState, TRUE); //p->ButDown[p->currentCursor][1], TRUE);
+						touch->lastPressedOver = NULL;
+					}
+
+					if (TRUE) { // || p->lastMouseEvent[ID] == MotionNotify) {
+						//ConsoleMessage ("Not Navigation and motion - going into sendSensorEvents\n");
+						//Dec 18, 2015: we should _always_ come through here even when no mouse motion or events
+						//  because if mouse is (already) down on a dragsensor (planesensor) and something animates
+						//  the viewpoint -keyboard navigation, script, 3D mouse, HMD (head mounted display) then
+						//  we won't have a mouse event but the view matrix will change, causing the pickray
+						//  to move with respect to the dragsensor - in which case the sensor should emit events.
+						/* TouchSensor hitPoint_changed needs to know if we are over a sensitive node or not */
+						sendSensorEvents(touch->CursorOverSensitive,MotionNotify, touch->buttonState, TRUE); //p->ButDown[p->currentCursor][1], TRUE);
+
+						/* PlaneSensors, etc, take the last sensitive node pressed over, and a mouse movement */
+						sendSensorEvents(touch->lastPressedOver,MotionNotify, touch->buttonState, TRUE); //p->ButDown[p->currentCursor][1], TRUE);
+						//p->lastMouseEvent[ID] = 0 ;
+					}
+
+					/* do we need to re-define cursor style? */
+					/* do we need to send an isOver event? */
+					sensornode = touch->lastPressedOver ? touch->lastPressedOver : touch->CursorOverSensitive;
+					sendDescriptionToStatusBar(sensornode);
+					if (touch->CursorOverSensitive!= NULL) {
+						//setSensorCursor();
+
+						/* is this a new node that we are now over?
+							don't change the node pointer if we are clicked down */
+						if ((touch->lastPressedOver==NULL) && (touch->CursorOverSensitive != touch->oldCOS)) {
+							//sendSensorEvents(p->oldCOS,MapNotify,p->ButDown[p->currentCursor][1], FALSE);
+							sendSensorEvents(touch->oldCOS,MapNotify,touch->buttonState, FALSE);
+							//sendSensorEvents(p->CursorOverSensitive,MapNotify,p->ButDown[p->currentCursor][1], TRUE);
+							sendSensorEvents(touch->CursorOverSensitive,MapNotify,touch->buttonState, TRUE);
+							 touch->oldCOS = touch->CursorOverSensitive;
+							// sendDescriptionToStatusBar(touch->CursorOverSensitive);
+							//ConsoleMessage("in oldCOS A\n");
+						}
+					} else {
+						/* hold off on cursor change if dragging a sensor */
+						//if (touch->lastPressedOver != NULL) {
+						//	setSensorCursor();
+						//} else {
+						//	setArrowCursor();
+						//}
+						/* were we over a sensitive node? */
+						//if ((p->oldCOS!=NULL)  && (p->ButDown[p->currentCursor][1]==0)) {
+						//if ((touch->oldCOS != NULL)  && (touch->buttonState[LMB]==0)) {
+						if ((touch->oldCOS != NULL)  && touch->buttonState == 0) {  // touch->dragEnd) {
+							sendSensorEvents(touch->oldCOS, MapNotify, touch->buttonState, FALSE); //p->ButDown[p->currentCursor][1], FALSE);
+							/* remove any display on-screen */
+							// sendDescriptionToStatusBar(NULL);
+							touch->oldCOS = NULL;
+							//ConsoleMessage("in oldCOS B\n");
+						}
+					}
+					touch->hypersensitive = tg->RenderFuncs.hypersensitive;
+					touch->hyperhit = tg->RenderFuncs.hyperhit;
+				} //setup_pickside
+				if(touch->dragStart){
+					touch->dragStart = FALSE; //handled buttonPress above
+				}
+				if(touch->dragEnd){
+					touch->dragEnd = FALSE; //handled buttonRelease above
+					touch->inUse = FALSE; //garbage collect
+					//setArrowCursor();
+				}
+			} //unclaimed or pick claimed
+		} //ktouch loop
+	} /* (!NavigationMode && HaveSensitive) */
+	else if(Viewer()->LookatMode){
+		//we need navigation to claim, so viewer_handle_lookat is called
+		int ktouch, kcount, priorclaimants;
+		int x, yup;
+		struct Touch *touch;
+		priorclaimants = TOUCHCLAIMANT_PEDAL;
+		kcount = 0;
+		//pick a target object to travel to
+		//if(Viewer()->LookatMode == 1)
+		//	setLookatCursor();
+		//else
+		//	setArrowCursor();
+		for(ktouch=0;ktouch<p->ntouch;ktouch++){
+			touch = &p->touchlist[ktouch];
+			if(!touch->inUse) continue;
+			if(touch->windex != windex) continue;
+			if(touch->stageId != current_stageId()) continue;
+			kcount++;
+			if(touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)
+				touch->passed |= TOUCHCLAIMANT_SENSOR;
+			
+			if(Viewer()->LookatMode == 2 ){
+				//p->currentCursor = 0;
+				x = touch->x;
+				yup = touch->y;
+				if(setup_pickside(x,yup)){ 
+					setup_projection();
+					setup_pickray(x,yup); 
+					setup_viewpoint();
+					set_viewmatrix();
+					render_hier(rootNode(),VF_Sensitive  | VF_Geom);
+					getRayHitAndSetLookatTarget();
+				}
+			}
+		}
+
+	}else{
+		//normal or navigation mode
+		int ktouch, priorclaimants;
+		struct Touch *touch;
+		priorclaimants = TOUCHCLAIMANT_PEDAL;
+		for(ktouch=0;ktouch<p->ntouch;ktouch++){
+			touch = &p->touchlist[ktouch];
+			if(!touch->inUse) continue;
+			if(touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)
+				touch->passed |= TOUCHCLAIMANT_SENSOR;
+		}
+		//setArrowCursor();
 	}
-}
-void queueMouse(ppMainloop p, const int mev, const unsigned int button, const float x, const float y){
-	if(p->mouseQueueCount < 50){
-		p->mouseQueue[p->mouseQueueCount].mev = mev;
-		p->mouseQueue[p->mouseQueueCount].button = button;
-		p->mouseQueue[p->mouseQueueCount].x = x;
-		p->mouseQueue[p->mouseQueueCount].y = y;
-		p->mouseQueueCount++;
-	}
+
 }
 
+
+void (*handlePTR)(const int mev, const unsigned int button, const float x, const float y) = handle0;
 void handle(const int mev, const unsigned int button, const float x, const float y)
 {
-	ppMainloop p;
-	ttglobal tg = gglobal();
-	p = (ppMainloop)tg->Mainloop.prv;
-
-	if(0)
-	if(p->modeRecord || p->modeFixture || p->modePlayback){
-		if(p->modeRecord){
-			queueMouse(p,mev,button,x,y);
-		}
-		//else ignor so test isn't ruined by random mouse movement during playback
-		return;
-	}
-	handle0(mev, button, x, y);
+	handlePTR(mev, button, x, y);
 }
-
-
-
-#if !defined( AQUA ) && !defined( _MSC_VER ) &&!defined (_ANDROID)
-//XK_ constants from /usr/include/X11/keysymdef.h
-#define PHOME_KEY XK_Home //80
-#define PPGDN_KEY XK_Page_Down //86
-#define PLEFT_KEY XK_Left //106
-#define PEND_KEY XK_End //87
-#define PUP_KEY XK_Up //112
-#define PRIGHT_KEY XK_Right //108
-#define PPGUP_KEY XK_Page_Up //85
-#define PDOWN_KEY XK_Down //59
-#define PF1_KEY  XK_F1 //0xFFBE
-//OLDCODE #define PF2_KEY  XK_F2 //0xFFBF
-//OLDCODE #define PF3_KEY  XK_F3 //0XFFC0
-//OLDCODE #define PF4_KEY  XK_F4 //0XFFC1
-//OLDCODE #define PF5_KEY  XK_F5 //0XFFC2
-//OLDCODE #define PF6_KEY  XK_F6 //0XFFC3
-//OLDCODE #define PF7_KEY  XK_F7 //0XFFC4
-//OLDCODE #define PF8_KEY  XK_F8 //0XFFC5
-//OLDCODE #define PF9_KEY  XK_F9 //0XFFC6
-//OLDCODE #define PF10_KEY XK_F10 //0XFFC7
-//OLDCODE #define PF11_KEY XK_F11 //0XFFC8
-#define PF12_KEY XK_F12 //0XFFC9
-#define PALT_KEY XK_Alt_L //0XFFE9 //left, and 0XFFEA   //0XFFE7
-#define PALT_KEYR XK_Alt_R //0XFFE9 //left, and 0XFFEA   //0XFFE7
-#define PCTL_KEY XK_Control_L //0XFFE3 //left, and 0XFFE4 on right
-#define PCTL_KEYR XK_Control_R //0XFFE3 //left, and 0XFFE4 on right
-#define PSFT_KEY XK_Shift_L //0XFFE1 //left, and 0XFFE2 on right
-#define PSFT_KEYR XK_Shift_R //0XFFE1 //left, and 0XFFE2 on right
-#define PDEL_KEY XK_Delete //0XFF9F //on numpad, and 0XFFFF near Insert //0x08
-//OLDCODE #define PRTN_KEY XK_Return //XK_KP_Enter //0xff0d 13
-#define PNUM0 XK_KP_Insert    //XK_KP_0
-#define PNUM1 XK_KP_End       //XK_KP_1
-#define PNUM2 XK_KP_Down      //XK_KP_2
-#define PNUM3 XK_KP_Page_Down //XK_KP_3
-#define PNUM4 XK_KP_Left      //XK_KP_4
-#define PNUM5 XK_KP_Begin     //XK_KP_5
-#define PNUM6 XK_KP_Right     //XK_KP_6
-#define PNUM7 XK_KP_Home      //XK_KP_7
-#define PNUM8 XK_KP_Up        //XK_KP_8
-#define PNUM9 XK_KP_Page_Up   //XK_KP_9
-#define PNUMDEC XK_KP_Delete //XK_KP_Decimal
-
-//OLDCODE #define KEYPRESS 1
-//OLDCODE #define KEYDOWN 2
-//OLDCODE #define KEYUP	3
-
-///* from http://www.web3d.org/x3d/specifications/ISO-IEC-19775-1.2-X3D-AbstractSpecification/index.html
-//section 21.4.1
-//Key Value
-//Home 13
-//End 14
-//PGUP 15
-//PGDN 16
-//UP 17
-//DOWN 18
-//LEFT 19
-//RIGHT 20
-//F1-F12  1 to 12
-//ALT,CTRL,SHIFT true/false
-//*/
-//#define F1_KEY  1
-//#define F2_KEY  2
-//#define F3_KEY  3
-//#define F4_KEY  4
-//#define F5_KEY  5
-//#define F6_KEY  6
-//#define F7_KEY  7
-//#define F8_KEY  8
-//#define F9_KEY  9
-//#define F10_KEY 10
-//#define F11_KEY 11
-//#define F12_KEY 12
-//#define HOME_KEY 13
-//#define END_KEY  14
-//#define PGUP_KEY 15
-//#define PGDN_KEY 16
-//#define UP_KEY   17
-//#define DOWN_KEY 18
-//#define LEFT_KEY 19
-//#define RIGHT_KEY 20
-//#define ALT_KEY	30 /* not available on OSX */
-//#define CTL_KEY 31 /* not available on OSX */
-//#define SFT_KEY 32 /* not available on OSX */
-//#define DEL_KEY 0XFFFF /* problem: I'm insterting this back into the translated char stream so 0XFFFF too high to clash with a latin? */
-//#define RTN_KEY 13  //what about 10 newline?
-
-
-int platform2web3dActionKeyLINUX(int platformKey)
-{
-	int key;
-
-	key = 0; //platformKey;
-	if(platformKey >= PF1_KEY && platformKey <= PF12_KEY)
-		key = platformKey - PF1_KEY + F1_KEY;
-	else
-		switch(platformKey)
-		{
-		case PHOME_KEY:
-			key = HOME_KEY; break;
-		case PEND_KEY:
-			key = END_KEY; break;
-		case PPGDN_KEY:
-			key = PGDN_KEY; break;
-		case PPGUP_KEY:
-			key = PGUP_KEY; break;
-		case PUP_KEY:
-			key = UP_KEY; break;
-		case PDOWN_KEY:
-			key = DOWN_KEY; break;
-		case PLEFT_KEY:
-			key = LEFT_KEY; break;
-		case PRIGHT_KEY:
-			key = RIGHT_KEY; break;
-		case PDEL_KEY:
-			key = DEL_KEY; break;
-		case PALT_KEY:
-		case PALT_KEYR:
-			key = ALT_KEY; break;
-		case PCTL_KEY:
-		case PCTL_KEYR:
-			key = CTL_KEY; break;
-		case PSFT_KEY:
-		case PSFT_KEYR:
-			key = SFT_KEY; break;
-		case PNUM0:
-			key = NUM0; break;
-		case PNUM1:
-			key = NUM1; break;
-		case PNUM2:
-			key = NUM2; break;
-		case PNUM3:
-			key = NUM3; break;
-		case PNUM4:
-			key = NUM4; break;
-		case PNUM5:
-			key = NUM5; break;
-		case PNUM6:
-			key = NUM6; break;
-		case PNUM7:
-			key = NUM7; break;
-		case PNUM8:
-			key = NUM8; break;
-		case PNUM9:
-			key = NUM9; break;
-		case PNUMDEC:
-			key = NUMDEC; break;
-		default:
-			key = 0;
-		}
-	return key;
-}
-
-
-void handle_Xevents(XEvent event) {
-
-	XEvent nextevent;
-	char buf[10];
-	KeySym ks, ksraw, ksupper, kslower;
-	KeySym *keysym;
-
-	int keysyms_per_keycode_return;
-
-	//int count;
-	int actionKey;
-	ppMainloop p;
-	ttglobal tg = gglobal();
-	p = (ppMainloop)tg->Mainloop.prv;
-	p->lastMouseEvent=event.type;
-
-#ifdef VERBOSE
-	switch (event.type) {
-		case ConfigureNotify: printf ("Event: ConfigureNotify\n"); break;
-		case ClientMessage: printf ("Event: ClientMessage\n"); break;
-		case KeyPress: printf ("Event: KeyPress\n"); break;
-		case KeyRelease: printf ("Event: KeyRelease\n"); break;
-		case ButtonPress: printf ("Event: ButtonPress\n"); break;
-		case ButtonRelease: printf ("Event: ButtonRelease\n"); break;
-		case MotionNotify: printf ("Event: MotionNotify\n"); break;
-		case MapNotify: printf ("Event: MapNotify\n"); break;
-		case UnmapNotify: printf ("Event: *****UnmapNotify\n"); break;
-		default: printf ("event, unknown %d\n", event.type);
-	}
-#endif
-
-	switch(event.type) {
-//#ifdef HAVE_NOTOOLKIT
-		/* Motif, etc, usually handles this. */
-		case ConfigureNotify:
-			/*  printf("%s,%d ConfigureNotify  %d %d\n",__FILE__,__LINE__,event.xconfigure.width,event.xconfigure.height); */
-#ifdef STATUSBAR_HUD
-			statusbar_set_window_size(event.xconfigure.width,event.xconfigure.height);
-#else
-			fwl_setScreenDim (event.xconfigure.width,event.xconfigure.height);
-#endif
-			break;
-//#endif
-		case ClientMessage:
-			if (event.xclient.data.l[0] == WM_DELETE_WINDOW && !RUNNINGASPLUGIN) {
-				#ifdef VERBOSE
-				printf("---XClient sent wmDeleteMessage, quitting freewrl\n");
-				#endif
-				fwl_doQuit();
-			}
-			break;
-		case KeyPress:
-		case KeyRelease:
-			XLookupString(&event.xkey,buf,sizeof(buf),&ks,0);
-			///*  Map keypad keys in - thanks to Aubrey Jaffer.*/
-			//if(0) switch(ks) {
-			//	/*  the non-keyboard arrow keys*/
-			//	case XK_Left: ks = XK_j; break;
-			//	case XK_Right: ks = XK_l; break;
-			//	case XK_Up: ks = XK_p; break;
-			//	case XK_Down: ks = XK_semicolon; break;
-			//	case XK_KP_0:
-			//	case XK_KP_Insert:
-			//		ks = XK_a; break;
-			//	case XK_KP_Decimal:
-			//	case XK_KP_Delete:
-			//		ks = XK_z; break;
-			//	case XK_KP_7:
-			//	case XK_KP_Home:
-			//		ks = XK_7; break;
-			//	case XK_KP_9:
-			//	case XK_KP_Page_Up:
-			//		ks = XK_9; break;
-			//	case XK_KP_8:
-			//	case XK_KP_Up:
-			//		ks = XK_k; break;
-			//	case XK_KP_2:
-			//	case XK_KP_Down:
-			//		ks = XK_8; break;
-			//	case XK_KP_4:
-			//	case XK_KP_Left:
-			//		ks = XK_u; break;
-			//	case XK_KP_6:
-			//	case XK_KP_Right:
-			//		ks = XK_o; break;
-			//	case XK_Num_Lock: ks = XK_h; break;
-			//		default: break;
-			//}
-
-			/* doubt that this is necessary */
-			buf[0]=(char)ks;buf[1]='\0';
-
-			DEBUG_XEV("Key type = %s\n", (event.type == KeyPress ? "KEY PRESS" : "KEY  RELEASE"));
-			//fwl_do_keyPress((char)ks,event.type);
-			//ksraw = (char)buf[0];
-
-
-			// deprecated:  ksraw = XKeycodeToKeysym(event.xkey.display, event.xkey.keycode, 0);
-
-			keysym = XGetKeyboardMapping(event.xkey.display,
-				event.xkey.keycode, 1, &keysyms_per_keycode_return);
-			ksraw = *keysym;
-			XFree(keysym);
-
-			XConvertCase(ksraw,&kslower,&ksupper);
-
-			ksraw = ksupper;
-			if(event.type == KeyRelease && !IsModifierKey(ks)
-				&& !IsFunctionKey(ks) && !IsMiscFunctionKey(ks) && !IsCursorKey(ks)){
-				fwl_do_rawKeyPress((int)ks,1);
-				//printf("ks=%c %d %o %x\n",ks,(int)ks,(int)ks,(int)ks);
-			}
-			//printf("ksraw=%c %d %o %x\n",ksraw,(int)ksraw,(int)ksraw,(int)ksraw);
-			actionKey = platform2web3dActionKeyLINUX(ksraw);
-			if(actionKey)
-				fwl_do_rawKeyPress(actionKey,event.type+10);
-			else
-				fwl_do_rawKeyPress(ksraw,event.type);
-			break;
-
-		case ButtonPress:
-		case ButtonRelease:
-#ifdef STATUSBAR_HUD
-			statusbar_handle_mouse(event.type,event.xbutton.button,event.xbutton.x,event.xbutton.y);
-#else
-			fwl_handle_aqua(event.type,event.xbutton.button,event.xbutton.x,event.xbutton.y);
-#endif
-			//if(0){
-			//	/* printf("got a button press or button release\n"); */
-			//	/*  if a button is pressed, we should not change state,*/
-			//	/*  so keep a record.*/
-			//	if(handleStatusbarHud(event.type, &tg->Mainloop.clipPlane))break;
-			//	if (event.xbutton.button>=5) break;  /* bounds check*/
-			//	p->ButDown[p->currentCursor][event.xbutton.button] = (event.type == ButtonPress);
-
-			//	/* if we are Not over an enabled sensitive node, and we do NOT
-			//		already have a button down from a sensitive node... */
-			//	/* printf("cursoroversensitive is %u lastPressedOver %u\n", p->CursorOverSensitive,p->lastPressedOver); */
-			//	if ((p->CursorOverSensitive==NULL) && (p->lastPressedOver==NULL))  {
-			//			p->NavigationMode=p->ButDown[p->currentCursor][1] || p->ButDown[p->currentCursor][3];
-			//			handle (event.type,event.xbutton.button,
-			//					(float) ((float)event.xbutton.x/tg->display.screenWidth),
-			//					(float) ((float)event.xbutton.y/tg->display.screenHeight));
-			//	}
-			//}
-			break;
-
-		case MotionNotify:
-#if KEEP_X11_INLIB
-			/* printf("got a motion notify\n"); */
-			/*  do we have more motion notify events queued?*/
-			if (XPending(Xdpy)) {
-					XPeekEvent(Xdpy,&nextevent);
-					if (nextevent.type==MotionNotify) { break;
-					}
-			}
-#endif /* KEEP_X11_INLIB */
-#ifdef STATUSBAR_HUD
-			statusbar_handle_mouse(event.type,event.xbutton.button,event.xbutton.x,event.xbutton.y);
-#else
-			fwl_handle_aqua(event.type,event.xbutton.button,event.xbutton.x,event.xbutton.y);
-#endif
-			//if(0){
-
-			//	/*  save the current x and y positions for picking.*/
-			//	tg->Mainloop.currentX[p->currentCursor] = event.xbutton.x;
-			//	tg->Mainloop.currentY[p->currentCursor] = event.xbutton.y;
-			//	/* printf("navigationMode is %d\n", NavigationMode); */
-			//	if(handleStatusbarHud(6, &tg->Mainloop.clipPlane))break;
-			//	if (p->NavigationMode) {
-			//			/*  find out what the first button down is*/
-			//			count = 0;
-			//			while ((count < 5) && (!p->ButDown[p->currentCursor][count])) count++;
-			//			if (count == 5) return; /*  no buttons down???*/
-
-			//			handle (event.type,(unsigned)count,
-			//					(float)((float)event.xbutton.x/tg->display.screenWidth),
-			//					(float)((float)event.xbutton.y/tg->display.screenHeight));
-			//	}
-			//}
-			break;
-	}
-}
-#endif
 
 /* get setup for rendering. */
-#ifdef DJTRACK_PICKSENSORS
-void do_pickSensors();
-int enabled_picksensors();
-#endif
+
 void SSR_test_cumulative_pose();
 static void render_pre() {
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
         /* 1. Set up projection */
-        setup_projection(FALSE,0,0);
+        // Nov 2015 moved render(): setup_projection(); //FALSE,0,0);
 
 
         /* 2. Headlight, initialized here where we have the modelview matrix to Identity.
@@ -1839,8 +5101,10 @@ static void render_pre() {
 	}
 
 
-        /* 3. Viewpoint */
-        setup_viewpoint();      /*  need this to render collisions correctly*/
+        ///* 3. Viewpoint */
+        //setup_viewpoint();      
+		/*  need this to render collisions correctly 
+				x Oct 2015 change: rely on last frame's results for this frames collision*/
 
 #ifdef SSR_SERVER
 		//just for a diagnostic test of transforms - replaces modelview matrix with one formed from cumQuat,cumTrans
@@ -1864,9 +5128,13 @@ static void render_pre() {
 			profile_start("collision");
                 render_collisions(Viewer()->type);
 				profile_end("collision");
-                setup_viewpoint(); /*  update viewer position after collision, to*/
-                                   /*  give accurate info to Proximity sensors.*/
+                // setup_viewpoint(); //see 5 lines below
         }
+
+		/* 3. Viewpoint */
+		/*  unconditionally update viewer position after collision, to*/
+		/*  give accurate info to Proximity sensors.*/
+		setup_viewpoint(); //Oct 2015: now this is the only setup_viewpoint per frame (set_viewmatrix() does shortcut)
 
         /* 5. render hierarchy - proximity */
         if (p->doEvents)
@@ -1874,47 +5142,116 @@ static void render_pre() {
 			profile_start("hier_prox");
 			render_hier(rootNode(), VF_Proximity);
 			profile_end("hier_prox");
-#ifdef DJTRACK_PICKSENSORS
-			{
-				/* find pickingSensors, record their world transform and picktargets */
-				save_viewpoint2world();
-				render_hier(rootNode(), VF_PickingSensor | VF_Other);
-				if( enabled_picksensors() )
-				{
-					/* find picktargets, transform to world and do pick test and save results */
-					render_hier(rootNode(), VF_inPickableGroup | VF_Other );
-					/* record results of picks to picksensor node fields and event outs*/
-					do_pickSensors();
-				}
-			}
-#endif
 		}
+
 		//drawStatusBar();
 		PRINT_GL_ERROR_IF_ANY("GLBackend::render_pre");
 }
-void setup_projection(int pick, int x, int y)
+int pointinsideviewport(ivec4 vp, ivec2 pt);
+int setup_pickside0(int x, int y, int *iside, ivec4 *vportleft, ivec4 *vportright){
+	/* Oct 2015 idea: change which stereo side the pickray is working on, 
+	   based on which stereo side the mouse is in
+	   - only makes a difference for updown and sidebyside
+	   - analgyph and quadbuffer use the whole screen, so can use either
+	   -- there's now an explicit userPrefferedPickSide (versus always using right)
+	*/
+	int sideleft, sideright, userPreferredPickSide, ieither;
+	ivec4 vport, vportscene;
+	ivec2 pt;
+	Stack *vportstack;
+	X3D_Viewer *viewer;
+
+	ttglobal tg = gglobal();
+	viewer = Viewer();
+	userPreferredPickSide = viewer->dominantEye; //0= left, 1= right
+	ieither = viewer->eitherDominantEye;
+
+	//pt = ivec2_init(x,tg->display.screenHeight - y);
+	pt = ivec2_init(x,y);
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+	vport = stack_top(ivec4,vportstack); //should be same as stack bottom, only one on stack here
+	vportscene = vport;
+	vportscene.Y = vport.Y + tg->Mainloop.clipPlane;
+	vportscene.H = vport.H - tg->Mainloop.clipPlane;
+
+	*vportleft = vportscene;
+	*vportright = vportscene;
+	if(viewer->isStereo)
+	{
+		if (viewer->sidebyside){
+			vportleft->W /= 2;
+			vportright->W /=2;
+			vportright->X = vportleft->X + vportleft->W;
+		}
+		if(viewer->updown) { //overunder
+			vportscene = vport;
+			vportscene.H /=2;
+			*vportright = vportscene;
+			vportright->Y += tg->Mainloop.clipPlane;
+			vportright->H -= tg->Mainloop.clipPlane;
+			*vportleft = *vportright;
+			//vportright.Y = vportleft.Y + vportright.H;
+			vportleft->Y += vportscene.H;
+		}
+		//analgyph and quadbuffer use full window
+	}
+	sideleft = sideright=0;
+	sideleft = pointinsideviewport(*vportleft,pt);
+	sideright = pointinsideviewport(*vportright,pt);;
+	if(sideleft && sideright) 
+		*iside = userPreferredPickSide; //analgyph, quadbuffer
+	else 
+		*iside = sideleft? 0 : sideright ? 1 : 0;
+	if(!ieither) *iside = userPreferredPickSide;
+	return sideleft || sideright; //if the mouse is outside graphics window, stop tracking it
+}
+static int setup_pickside(int x, int y){
+	ivec4 vpleft, vpright;
+	int iside, inside;
+	iside = 0;
+	inside = setup_pickside0(x,y,&iside,&vpleft,&vpright);
+	//Viewer()->iside = iside;
+	return inside;
+}
+void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+void setup_projection()
 {
+	/*	setup_project transfers values from viewer struct to gl_projection matrix
+		The values get into viewer 2 ways:
+		1. parsing > new viewer > defaults -> viewer
+		2. bound viewpoint -(prep_viewpoint)-> viewer 
+		Then here
+		viewer -> (setup_projection) -> projection matrix
+	*/
 	GLDOUBLE fieldofview2;
-	GLint xvp = 0;
+	GLint xvp;
 	GLint scissorxl,scissorxr;
+	Stack *vportstack;
+	ivec4 vport;
 	ppMainloop p;
 	X3D_Viewer *viewer;
 	ttglobal tg = gglobal();
-	GLsizei screenwidth2 = tg->display.screenWidth;
+	GLsizei screenwidth2; // = tg->display.screenWidth;
 	GLsizei screenheight, bottom, top;
-	GLDOUBLE aspect2 = tg->display.screenRatio;
+	static int counter = 0;
+	GLDOUBLE aspect2; // = tg->display.screenRatio;
 	p = (ppMainloop)tg->Mainloop.prv;
 	viewer = Viewer();
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+	vport = stack_top(ivec4,vportstack); //should be same as stack bottom, only one on stack here
 
+	screenwidth2 = vport.W; //tg->display.screenWidth
+	xvp = vport.X;
+	top = vport.Y + vport.H; //or .H - .Y?  CHANGE OF MEANING used to be 0 at top of screen, now its more like screenHeight
+	bottom = vport.Y + tg->Mainloop.clipPlane;
+	screenheight = top - bottom; //tg->display.screenHeight - bottom;
+	//printf("sw %d sh %d x %d y %d\n",screenwidth2,screenheight,xvp,bottom);
 	PRINT_GL_ERROR_IF_ANY("XEvents::start of setup_projection");
 
-	scissorxl = 0;
-	scissorxr = screenwidth2;
+	scissorxl = xvp;
+	scissorxr = xvp + screenwidth2;
 	fieldofview2 = viewer->fieldofview;
-	bottom = tg->Mainloop.clipPlane;
 
-	top = 0;
-	screenheight = tg->display.screenHeight - bottom;
 	aspect2 = (double)(scissorxr - scissorxl)/(double)(screenheight);
 
 	if(viewer->type==VIEWER_SPHERICAL)
@@ -1922,8 +5259,8 @@ void setup_projection(int pick, int x, int y)
 	if(viewer->isStereo)
 	{
 		GLint xl,xr;
-		xl = 0;
-		xr = screenwidth2;
+		xl = xvp;
+		xr = xvp + screenwidth2;
 
 		if (viewer->sidebyside){
 			GLint iexpand;
@@ -1951,7 +5288,7 @@ void setup_projection(int pick, int x, int y)
 
 			xr -= screenwidth2/4;
 			xl -= screenwidth2/4;
-			scissorxr = screenwidth2/2;
+			scissorxr = xvp + screenwidth2/2;
 			if(viewer->iside ==1)
 			{
 				xl += screenwidth2/2;
@@ -1971,29 +5308,37 @@ void setup_projection(int pick, int x, int y)
 				else
 					xr = xr + iexpand;
 			}
+
 		}
 		if(viewer->updown) //overunder
 		{
 			//if there's statusabarHud statusbar to be drawn, reserve space in both viewports
-			screenheight = tg->display.screenHeight;
+			screenheight = vport.H; // tg->display.screenHeight;
 			screenheight /= 2;
 			if (viewer->iside == 0){
 				bottom += screenheight;
 			}else{
-				top += screenheight;
+				top -= screenheight; //+=
 			}
 			screenheight -= tg->Mainloop.clipPlane;
 			scissorxl = xl;
 			scissorxr = xr;
+			counter++;
+			if(counter == 100)
+				printf("in setup_projection\n");
+
 		}
 		aspect2 = (double)(xr - xl)/(double)(screenheight);
 		xvp = xl;
 		screenwidth2 = xr-xl;
 	}
-
+	if(viewer->updownB)
+		aspect2 *= .5;
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
+
 	/* >>> statusbar hud */
-	if(tg->Mainloop.clipPlane != 0 || viewer->updown || viewer->sidebyside)
+	//if(tg->Mainloop.clipPlane != 0 || viewer->updown || viewer->sidebyside)
+	if(0) if(TRUE) //conttenttypes assume we're going to scissor: statusbar, quadrant
 	{   
 		/* scissor used to prevent mainloop from glClear()ing the wrong stereo side, and the statusbar area
 		 which is updated only every 10-25 loops */
@@ -2001,32 +5346,22 @@ void setup_projection(int pick, int x, int y)
 		FW_GL_SCISSOR(scissorxl,bottom,scissorxr-scissorxl,screenheight);
 		glEnable(GL_SCISSOR_TEST);
 	}
+
 	/* <<< statusbar hud */
+	// side-by-side eyebase fiducials (see fiducialDraw())
 	p->viewpointScreenX[viewer->iside] = xvp + screenwidth2/2;
-	p->viewpointScreenY[viewer->iside] = top;
+	p->viewpointScreenY[viewer->iside] = top; //yup now //tg->display.screenHeight - top; //fiducial draw still using top-down Y
 	if (viewer->updown){
         FW_GL_VIEWPORT(xvp - screenwidth2 / 2, bottom, screenwidth2 * 2, screenheight);
     }
     else{
         FW_GL_VIEWPORT(xvp, bottom, screenwidth2, screenheight);
     }
-	FW_GL_LOAD_IDENTITY();
-	if(pick) {
-		/* picking for mouse events */
-		//tg->RenderFuncs.usingAffinePickmatrix = 1 - tg->RenderFuncs.usingAffinePickmatrix; //toggle each pass for comparative testing
-		if(!tg->RenderFuncs.usingAffinePickmatrix){
-			//OLD WAY: modifies proj matrix to a narrow window around the mouse point (see below for NEW WAY)
-			FW_GL_GETINTEGERV(GL_VIEWPORT,p->viewPort2);
-			//x = (p->viewPort2[2]-p->viewPort2[0])*.5 + 100.0;
-			//y - (p->viewPort2[3]-p->viewPort2[1])*.5;
 
-			//FW_GLU_PICK_MATRIX((float)x,(float)p->viewPort2[3]-y + bottom, (float)100,(float)100,p->viewPort2);
-			FW_GLU_PICK_MATRIX((float)x,(float)p->viewPort2[3]  -y + bottom +top, (float)100,(float)100,p->viewPort2);
-		}
-	}
+	FW_GL_LOAD_IDENTITY();
 
 	/* ortho projection or perspective projection? */
-	if (Viewer()->ortho) {
+	if (viewer->ortho) {
 		double minX, maxX, minY, maxY;
 		double numerator;
 
@@ -2035,8 +5370,9 @@ void setup_projection(int pick, int x, int y)
 		maxX = viewer->orthoField[2];
 		maxY = viewer->orthoField[3];
 
-		if (tg->display.screenHeight != 0) {
-			numerator = (maxY - minY) * ((float) tg->display.screenWidth) / ((float) tg->display.screenHeight);
+		if (screenheight != 0) {
+			//aspect ratio correction for ortho
+			numerator = (maxY - minY) * ((float) screenwidth2) / ((float) screenheight);
 			maxX = numerator/2.0f;
 			minX = -(numerator/2.0f);
 		}
@@ -2050,137 +5386,174 @@ void setup_projection(int pick, int x, int y)
 			fieldofview2=45.0;
 		/* glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);  */
         //printf ("Before FW_GLU_PERSPECTIVE, np %f fp %f\n",viewer->nearPlane, viewer->farPlane);
-		FW_GLU_PERSPECTIVE(fieldofview2, aspect2, viewer->nearPlane,viewer->farPlane);
-	}
-	if(pick){
-		if(tg->RenderFuncs.usingAffinePickmatrix){
-			//feature-AFFINE_GLU_UNPROJECT
-			//NEW WAY: leaves proj matrix as normal, and creates a separate affine PICKMATRIX that when multiplied with modelview,
-			// will point down the pickray (see above for OLD WAY)
-			// method: uproject 2 points along the ray, one on nearside of frustum (window z = 0) 
-			//	one on farside of frustum (window z = 1)
-			// then the first one is A, second one is B
-			// create a translation matrix to get from 0,0,0 to A T
-			// create a rotation matrix R to get from A toward B
-			// pickmatrix = R * T
-			double mvident[16], pickMatrix[16], pmi[16], proj[16], R1[16], R2[16], R3[16], T[16];
-			int viewport[4];
-			double A[3], B[3], C[3], a[3], b[3];
-			double yaw, pitch, yy;
-			loadIdentityMatrix(mvident);
-			FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
-			FW_GL_GETINTEGERV(GL_VIEWPORT,viewport);
-			yy = (float)viewport[3]  -y + bottom +top;
-			//nearside point
-			a[0] = x; a[1] = yy;  a[2] = 0.0;
-			FW_GLU_UNPROJECT(a[0], a[1], a[2], mvident, proj, viewport,
-				 &A[0],&A[1],&A[2]);
-			mattranslate(T,A[0],A[1],A[2]);
-			//farside point
-			b[0] = x; b[1] = yy;  b[2] = 1.0;
-			FW_GLU_UNPROJECT(b[0], b[1], b[2], mvident, proj, viewport,
-				 &B[0],&B[1],&B[2]);
-			vecdifd(C,B,A);
-			vecnormald(C,C);
-			if(0) printf("Cdif %f %f %f\n",C[0],C[1],C[2]);
-			//if(1){
-			//	double hypotenuse = sqrt(C[0]*C[0] + C[2]*C[2]);
-			//	yaw = asin(C[0]/hypotenuse); 
-			//	hypotenuse = sqrt(C[1]*C[1] + C[2]*C[2]);
-			//	pitch = asin(C[1]/hypotenuse); 
-			//	if(1) printf("asin yaw=%f pitch=%f\n",yaw,pitch);
-			//}
-			yaw = atan2(C[0],-C[2]);
-			matrixFromAxisAngle4d(R1, -yaw, 0.0, 1.0, 0.0);
-			if(1){
-				transformAFFINEd(C,C,R1);
-				if(0) printf("Yawed Cdif %f %f %f\n",C[0],C[1],C[2]);
-				pitch = atan2(C[1],-C[2]);
-			}else{
-				double hypotenuse = sqrt(C[0]*C[0] + C[2]*C[2]);
-				pitch = atan2(C[1],hypotenuse);
-			}
-			if(0) printf("atan2 yaw=%f pitch=%f\n",yaw,pitch);
-
-			pitch = -pitch;
-			if(0) printf("[yaw=%f pitch=%f\n",yaw,pitch);
-			if(0){
-				matrotate(R1, -pitch, 1.0, 0.0, 0.0);
-				matrotate(R2, -yaw, 0.0, 1.0, 0.0);
-			}else{
-				matrixFromAxisAngle4d(R1, pitch, 1.0, 0.0, 0.0);
-				if(0) printmatrix2(R1,"pure R1");
-				matrixFromAxisAngle4d(R2, yaw, 0.0, 1.0, 0.0);
-				if(0) printmatrix2(R2,"pure R2");
-			}
-			matmultiplyAFFINE(R3,R1,R2);
-			if(0) printmatrix2(R3,"R3=R1*R2");
-			if(1){
-				matmultiplyAFFINE(pickMatrix,R3, T); 
-				matinverseAFFINE(pmi,pickMatrix);
-				//matinverseFULL(pmi,pickMatrix); //don't need extra FLOPS 
-			}else{
-				//direct hacking of matrix, can save a few FLOPs
-				R3[12] = A[0]; 
-				R3[13] = A[1]; 
-				R3[14] = A[2];
-				matcopy(pickMatrix,R3);
-				matinverseAFFINE(pmi,pickMatrix); //,R3);
-				if(0)printmatrix2(R3,"R3[12]=A");
-			}
-			if(0) printmatrix2(pmi,"inverted");
-			setPickrayMatrix(0,pickMatrix); //using pickmatrix in upd_ray and get_hyper
-			setPickrayMatrix(1,pmi); //if using pickmatrix_inverse in upd_ray and get_hyper
-			if(0){
-				//Test: transform A,B and they should come out 0,0,x
-				double rA[3], rB[3];
-				transformAFFINEd(rA,A,pmi);
-				transformAFFINEd(rB,B,pmi);
-				printf(" A %f %f %f  B %f %f %f \n",A[0],A[1],A[2],B[0],B[1],B[2]);
-				printf("rA %f %f %f rB %f %f %f \n",rA[0],rA[1],rA[2],rB[0],rB[1],rB[2]);
-			}
-		}
+		if(0) FW_GLU_PERSPECTIVE(fieldofview2, aspect2, viewer->nearPlane,viewer->farPlane);
+		if(1) fw_gluPerspective_2(viewer->xcenter,fieldofview2, aspect2, viewer->nearPlane,viewer->farPlane);
+		tg->Mainloop.fieldOfView = (float)fieldofview2;
 	}
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
 	PRINT_GL_ERROR_IF_ANY("XEvents::setup_projection");
 
 }
 
+void getPickrayXY(int *x, int *y){
+	ttglobal tg = gglobal();
+	*x = tg->Mainloop.pickray_x;
+	*y = tg->Mainloop.pickray_y;
+
+}
+void setPickrayXY(int x, int y){
+	ttglobal tg = gglobal();
+	tg->Mainloop.pickray_x = x;
+	tg->Mainloop.pickray_y = y;
+}
+
+void setup_pickray0()
+{
+	//feature-AFFINE_GLU_UNPROJECT
+	//2015: NEW WAY: leaves proj matrix as normal, and creates a separate affine PICKMATRIX that when multiplied with modelview,
+	// will point down the pickray (see above for OLD WAY)
+	// method: uproject 2 points along the ray, one on nearside of frustum (window z = 0) 
+	//	one on farside of frustum (window z = 1)
+	// then the first one is A, second one is B
+	// create a translation matrix T to get from 0,0,0 to A (non-zero for ortho viewpoint)
+	// create a rotation matrix R to get from A toward B
+	// pickmatrix = R * T
+	//Jan 2016 issue: with the new Layering/Layout component, all the unproject stuff changes
+	//  when traveling up/down the render_hier: viewport changes with Viewport standalone node
+	//  and viewport field of layer and layoutlayer; the projection matrix and viewpoint changes with
+	//  the push/pop of binding stacks for each Layer node; To get it working
+	//  I've had to call this at each layer on the way down and up, in prep_ and fin_Viewpoint
+	//  and likely in prep/fin of layer and layoutlayer for the projection and viewpoint changes
+	//  Therefore attempts below to avoid glu_unproject calls by capturing prepared matrices
+	//  may need more work to fully optimize.
+	//  Generally: opengl is optimized for transforming geometry into screen space, and when
+	//  going the other way -with a pickray- glu_uproject style inversions are needed.
+	//  Perhaps the function needs to be simplified to do just glu_unprojects, perhaps
+	//   doing a single inverse, and applying to both points ie glu_unproject_matrixOnly()?
+	double mvident[16], pickMatrix[16], pmi[16], proj[16], R1[16], R2[16], R3[16], T[16];
+	int viewport[4], x, y;
+	double A[3], B[3], C[3], a[3], b[3];
+	double yaw, pitch, yy,xx;
+	//OLDCODE ttglobal tg = gglobal();
+
+	getPickrayXY(&x,&y);
+	loadIdentityMatrix(mvident);
+	FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+	FW_GL_GETINTEGERV(GL_VIEWPORT,viewport);
+	//yy = (float)viewport[3]  -y + bottom +top;
+	//glu_unproject will subtract the viewport from the x,y, if they're all in y-up screen coords
+	//yy = (float)(tg->display.screenHeight - y); //y-up - bottom
+	yy = (float)y; //yup
+	xx = (float)x;
+	//printf("vp = %d %d %d %d\n",viewport[0],viewport[1],viewport[2],viewport[3]);
+	//printf("yy %lf vp3 %d y %d vp1 %d sh %d\n",
+	//	yy, viewport[3], y, viewport[1], tg->display.screenHeight);
+	//nearside point
+	a[0] = xx; a[1] = yy;  a[2] = 0.0;
+	FW_GLU_UNPROJECT(a[0], a[1], a[2], mvident, proj, viewport,
+			&A[0],&A[1],&A[2]);
+	mattranslate(T,A[0],A[1],A[2]);
+	//farside point
+	b[0] = xx; b[1] = yy;  b[2] = 1.0;
+	FW_GLU_UNPROJECT(b[0], b[1], b[2], mvident, proj, viewport,
+			&B[0],&B[1],&B[2]);
+	vecdifd(C,B,A);
+	vecnormald(C,C);
+	if(0) printf("Cdif %f %f %f\n",C[0],C[1],C[2]);
+	//if(1){
+	//	double hypotenuse = sqrt(C[0]*C[0] + C[2]*C[2]);
+	//	yaw = asin(C[0]/hypotenuse); 
+	//	hypotenuse = sqrt(C[1]*C[1] + C[2]*C[2]);
+	//	pitch = asin(C[1]/hypotenuse); 
+	//	if(1) printf("asin yaw=%f pitch=%f\n",yaw,pitch);
+	//}
+	yaw = atan2(C[0],-C[2]);
+	matrixFromAxisAngle4d(R1, -yaw, 0.0, 1.0, 0.0);
+	if(1){
+		transformAFFINEd(C,C,R1);
+		if(0) printf("Yawed Cdif %f %f %f\n",C[0],C[1],C[2]);
+		pitch = atan2(C[1],-C[2]);
+	}else{
+		double hypotenuse = sqrt(C[0]*C[0] + C[2]*C[2]);
+		pitch = atan2(C[1],hypotenuse);
+	}
+	if(0) printf("atan2 yaw=%f pitch=%f\n",yaw,pitch);
+
+	pitch = -pitch;
+	if(0) printf("[yaw=%f pitch=%f\n",yaw,pitch);
+	if(0){
+		matrotate(R1, -pitch, 1.0, 0.0, 0.0);
+		matrotate(R2, -yaw, 0.0, 1.0, 0.0);
+	}else{
+		matrixFromAxisAngle4d(R1, pitch, 1.0, 0.0, 0.0);
+		if(0) printmatrix2(R1,"pure R1");
+		matrixFromAxisAngle4d(R2, yaw, 0.0, 1.0, 0.0);
+		if(0) printmatrix2(R2,"pure R2");
+	}
+	matmultiplyAFFINE(R3,R1,R2);
+	if(0) printmatrix2(R3,"R3=R1*R2");
+	if(1){
+		matmultiplyAFFINE(pickMatrix,R3, T); 
+		matinverseAFFINE(pmi,pickMatrix);
+		//matinverseFULL(pmi,pickMatrix); //don't need extra FLOPS 
+	}else{
+		//direct hacking of matrix, can save a few FLOPs
+		R3[12] = A[0]; 
+		R3[13] = A[1]; 
+		R3[14] = A[2];
+		matcopy(pickMatrix,R3);
+		matinverseAFFINE(pmi,pickMatrix); //,R3);
+		if(0)printmatrix2(R3,"R3[12]=A");
+	}
+	if(0) printmatrix2(pmi,"inverted");
+	setPickrayMatrix(0,pickMatrix); //using pickmatrix in upd_ray and get_hyper
+	setPickrayMatrix(1,pmi); //if using pickmatrix_inverse in upd_ray and get_hyper
+	if(0){
+		//Test: transform A,B and they should come out 0,0,x
+		double rA[3], rB[3];
+		transformAFFINEd(rA,A,pmi);
+		transformAFFINEd(rB,B,pmi);
+		printf(" A %f %f %f  B %f %f %f \n",A[0],A[1],A[2],B[0],B[1],B[2]);
+		printf("rA %f %f %f rB %f %f %f \n",rA[0],rA[1],rA[2],rB[0],rB[1],rB[2]);
+	}
+
+}
+void upd_ray();
+void setup_pickray(int x, int y){
+	setPickrayXY(x,y);
+	setup_pickray0();
+}
+void generate_GeneratedCubeMapTextures();
 /* Render the scene */
 static void render()
 {
-//#if defined(FREEWRL_SHUTTER_GLASSES) || defined(FREEWRL_STEREO_RENDERING)
-    int count;
+	int count;
 	static double shuttertime;
 	static int shutterside;
-//#endif
-
+	X3D_Viewer *viewer;
 	ppMainloop p;
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
 
-//#if defined(FREEWRL_SHUTTER_GLASSES) || defined(FREEWRL_STEREO_RENDERING)
-	/*  profile*/
-    /* double xx,yy,zz,aa,bb,cc,dd,ee,ff;*/
+	generate_GeneratedCubeMapTextures();
+	setup_projection();
+	set_viewmatrix();
+	update_navigation();
+	setup_picking();
+	viewer = Viewer();
+	doglClearColor();
+
 
 	for (count = 0; count < p->maxbuffers; count++) {
 
-        /*set_buffer((unsigned)bufferarray[count],count); */              /*  in Viewer.c*/
+		viewer->buffer = (unsigned)p->bufferarray[count];
+		viewer->iside = count;
 
-		Viewer()->buffer = (unsigned)p->bufferarray[count];
-		Viewer()->iside = count;
-#ifdef OLDCODE
-OLDCODE#ifdef HAVE_GLEW_H //#ifndef GLES2
-OLDCODE		FW_GL_DRAWBUFFER((unsigned)p->bufferarray[count]);
-OLDCODE#endif
-#endif //OLDCODE
-
-        /*  turn lights off, and clear buffer bits*/
-
-		if(Viewer()->isStereo)
+		/*  turn lights off, and clear buffer bits*/
+		if(viewer->isStereo)
 		{
 
-			if(Viewer()->shutterGlasses == 2) /* flutter mode - like --shutter but no GL_STEREO so alternates */
+			if(viewer->shutterGlasses == 2) /* flutter mode - like --shutter but no GL_STEREO so alternates */
 			{
 				if(TickTime() - shuttertime > 2.0)
 				{
@@ -2190,7 +5563,7 @@ OLDCODE#endif
 				}
 				if(count != shutterside) continue;
 			}
-			if(Viewer()->anaglyph) //haveAnaglyphShader)
+			if(viewer->anaglyph)
 			{
 				//set the channels for backbuffer clearing
 				if(count == 0)
@@ -2198,161 +5571,359 @@ OLDCODE#endif
 				else
 					Viewer_anaglyph_setSide(count); //clear just the channels we're going to draw to
 			}
-			setup_projection(0, 0, 0); //scissor test in here
-			BackEndClearBuffer(2);
+			setup_projection(); 
+			BackEndClearBuffer(2); //scissor test in here
 			if(Viewer()->anaglyph)
 				Viewer_anaglyph_setSide(count); //set the channels for scenegraph drawing
-			setup_viewpoint();
+			//setup_viewpoint();
+			set_viewmatrix();
 		}
 		else
 			BackEndClearBuffer(2);
 		//BackEndLightsOff();
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
-//#else
-//
-//	BackEndClearBuffer(2); // no stereo, no shutter glasses: simple clear
-//
-//#endif // SHUTTER GLASSES or STEREO
 
-	/*  turn light #0 off only if it is not a headlight.*/
-	if (!fwl_get_headlight()) {
-		setLightState(HEADLIGHT_LIGHT,FALSE);
-		setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
-	}
+		/*  turn light #0 off only if it is not a headlight.*/
+		if (!fwl_get_headlight()) {
+			setLightState(HEADLIGHT_LIGHT,FALSE);
+			setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
+		}
 
-	/*  Other lights*/
-	PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
+		/*  Other lights*/
+		PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 
-	render_hier(rootNode(), VF_globalLight);
-	PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
+		render_hier(rootNode(), VF_globalLight );
+		PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
+		render_hier(rootNode(), VF_Other );
 
-	/*  4. Nodes (not the blended ones)*/
-	profile_start("hier_geom");
-	render_hier(rootNode(), VF_Geom);
-	profile_end("hier_geom");
-	PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
 
-	/*  5. Blended Nodes*/
-	if (tg->RenderFuncs.have_transparency) {
-		/*  render the blended nodes*/
-		render_hier(rootNode(), VF_Geom | VF_Blend);
+		/*  4. Nodes (not the blended ones)*/
+		profile_start("hier_geom");
+		render_hier(rootNode(), VF_Geom);
+		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-	}
 
-//#if defined(FREEWRL_SHUTTER_GLASSES) || defined(FREEWRL_STEREO_RENDERING)
-		if (Viewer()->isStereo) {
+		/*  5. Blended Nodes*/
+		if (tg->RenderFuncs.have_transparency) {
+			/*  render the blended nodes*/
+			render_hier(rootNode(), VF_Geom | VF_Blend);
+			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
+		}
+
+		if (viewer->isStereo) {
 #ifndef DISABLER
-			if (Viewer()->sidebyside){
+			if (viewer->sidebyside){
 				//cursorDraw(1, p->viewpointScreenX[count], p->viewpointScreenY[count], 0.0f); //draw a fiducial mark where centre of viewpoint is
-				fiducialDraw(1,p->viewpointScreenX[count],p->viewpointScreenY[count],0.0f); //draw a fiducial mark where centre of viewpoint is
+				//fiducialDraw(1,p->viewpointScreenX[count],p->viewpointScreenY[count],0.0f); //draw a fiducial mark where centre of viewpoint is
+				fiducialDrawB(CURSOR_FIDUCIALS,p->viewpointScreenX[count],p->viewpointScreenY[count]); //draw a fiducial mark where centre of viewpoint is
 			}
 #endif
-			if (Viewer()->anaglyph)
+			if (viewer->anaglyph)
 				glColorMask(1,1,1,1); /*restore, for statusbarHud etc*/
 		}
-		glDisable(GL_SCISSOR_TEST);
 	} /* for loop */
-
-	if (Viewer()->isStereo) {
-		Viewer()->iside = Viewer()->dominantEye; /*is used later in picking to set the cursor pick box on the (left=0 or right=1) viewport*/
+	if(1){
+		//render last known mouse position as seen by the backend
+		int ktouch;
+		//s_shader_capabilities_t *scap;
+		struct Touch *touch; // =  currentTouch(); //&p->touchlist[0];
+		for(ktouch=0;ktouch<p->ntouch;ktouch++){
+			touch = &p->touchlist[ktouch];
+			if(touch->inUse){
+				//if(touch->windex == current_windex)???
+				if(touch->stageId == current_stageId()){
+					//float angleDeg = fwl_getHover() ? 180.0f : 0.0f;
+					//fiducialDraw(0, touch->x, touch->y, angleDeg);
+					int cstyle;
+					cstyle = CURSOR_DOWN;
+					if(touch->buttonState == 0) cstyle = CURSOR_HOVER;
+					if(touch->lastOverButtonPressed || touch->CursorOverSensitive) 
+						cstyle = CURSOR_OVER; //could differentiate isOver from touching and picking
+					fiducialDrawB(cstyle,touch->x,touch->y);
+				}
+			}
+		}
 	}
 
-//#endif
-
-//	if(p->EMULATE_MULTITOUCH) {
-//        int i;
-//
-//		for(i=0;i<20;i++)
-//			if(p->touchlist[i].isDown > 0)
-//				cursorDraw(p->touchlist[i].ID,p->touchlist[i].x,p->touchlist[i].y,p->touchlist[i].angle);
-//    }
 }
+
+
 
 static int currentViewerLandPort = 0;
 static int rotatingCCW = FALSE;
 static double currentViewerAngle = 0.0;
 static double requestedViewerAngle = 0.0;
 
-static void setup_viewpoint() {
 
+void setup_viewpoint_part1() {
+/*
+	 Computes view part of modelview matrix and leaves it in modelview.
+	 You would call this before traversing the scenegraph to scene nodes
+	  with render() or render_hier().
+	 The view part includes:
+	 a) screen orientation ie on mobile devices landscape vs portrait (this function)
+	 b) stereovision +- 1/2 base offset (viewer_togl)
+	 c) viewpoint slerping interpolation (viewer_togl)
+	 d) .Pos and .Quat of viewpoint from: (viewer_togl)
+	        1) .position and .orientation specified in scenefile
+	        2) cumulative navigation away from initial bound pose
+	        3) gravity and collision (bumping and wall penetration) adjustments
+	 e) transform stack between scene root and currently bound viewpoint (render_hier(rootnode,VF_Viewpoint))
 
-        FW_GL_MATRIX_MODE(GL_MODELVIEW); /*  this should be assumed , here for safety.*/
-        FW_GL_LOAD_IDENTITY();
+*/
+	bindablestack *bstack;
+	X3D_Viewer *viewer;
+	// OLDCODE ppMainloop p;
+	ttglobal tg = gglobal();
+	// OLDCODE p = (ppMainloop)tg->Mainloop.prv;
 
-    // has a change happened?
-    if (Viewer()->screenOrientation != currentViewerLandPort) {
-        // 4 possible values; 0, 90, 180, 270
-        //
-        rotatingCCW = FALSE; // assume, unless told otherwise
-        switch (currentViewerLandPort) {
-            case 0: {
-                rotatingCCW= (Viewer()->screenOrientation == 270);
-                break;
-            }
-            case 90: {
-                rotatingCCW = (Viewer()->screenOrientation == 0);
-                break;
-            }
+	bstack = getActiveBindableStacks(tg);
+	viewer = Viewer();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW); /*  this should be assumed , here for safety.*/
+	FW_GL_LOAD_IDENTITY();
 
-            case 180: {
-                rotatingCCW = (Viewer()->screenOrientation != 270);
-                break;
-            }
-
-            case 270: {
-                rotatingCCW = (Viewer()->screenOrientation != 0);
-                break;
-
-            }
-
-
-        }
-
-        currentViewerLandPort = Viewer()->screenOrientation;
-        requestedViewerAngle = (double)Viewer()->screenOrientation;
-
-    }
-
-    if (!(APPROX(currentViewerAngle,requestedViewerAngle))) {
-
-        if (rotatingCCW) {
-            //printf ("ccw, cva %lf req %lf\n",currentViewerAngle, requestedViewerAngle);
-            currentViewerAngle -= 10.0;
-            if (currentViewerAngle < -5.0) currentViewerAngle = 360.0;
-        } else {
-            //printf ("cw, cva %lf req %lf\n",currentViewerAngle, requestedViewerAngle);
-            currentViewerAngle +=10.0;
-            if (currentViewerAngle > 365.0) currentViewerAngle = 0.0;
-        }
-
-    }
-        FW_GL_ROTATE_D (currentViewerAngle,0.0,0.0,1.0);
-
-
-
-
-        viewer_togl(Viewer()->fieldofview);
-		profile_start("vp_hier");
-        render_hier(rootNode(), VF_Viewpoint);
-		profile_end("vp_hier");
-        PRINT_GL_ERROR_IF_ANY("XEvents::setup_viewpoint");
-
-	/*
-	{ GLDOUBLE projMatrix[16];
-	fw_glGetDoublev(GL_PROJECTION_MATRIX, projMatrix);
-	printf ("\n");
-	printf ("setup_viewpoint, proj  %lf %lf %lf\n",projMatrix[12],projMatrix[13],projMatrix[14]);
-	fw_glGetDoublev(GL_MODELVIEW_MATRIX, projMatrix);
-	printf ("setup_viewpoint, model %lf %lf %lf\n",projMatrix[12],projMatrix[13],projMatrix[14]);
-	printf ("setup_viewpoint, currentPos %lf %lf %lf\n",        Viewer.currentPosInModel.x,
-	        Viewer.currentPosInModel.y ,
-	        Viewer.currentPosInModel.z);
+	// has a change happened?
+	if (viewer->screenOrientation != currentViewerLandPort) {
+		// 4 possible values; 0, 90, 180, 270
+		//
+		rotatingCCW = FALSE; // assume, unless told otherwise
+		switch (currentViewerLandPort) {
+			case 0: {
+				rotatingCCW= (Viewer()->screenOrientation == 270);
+				break;
+			}
+			case 90: {
+				rotatingCCW = (Viewer()->screenOrientation == 0);
+				break;
+			}
+			case 180: {
+				rotatingCCW = (Viewer()->screenOrientation != 270);
+				break;
+			}
+			case 270: {
+				rotatingCCW = (Viewer()->screenOrientation != 0);
+				break;
+			}
+		}
+		currentViewerLandPort = viewer->screenOrientation;
+		requestedViewerAngle = (double)viewer->screenOrientation;
 	}
-	*/
 
+	if (!(APPROX(currentViewerAngle,requestedViewerAngle))) {
+		if (rotatingCCW) {
+			//printf ("ccw, cva %lf req %lf\n",currentViewerAngle, requestedViewerAngle);
+			currentViewerAngle -= 10.0;
+			if (currentViewerAngle < -5.0) currentViewerAngle = 360.0;
+		} else {
+			//printf ("cw, cva %lf req %lf\n",currentViewerAngle, requestedViewerAngle);
+			currentViewerAngle +=10.0;
+			if (currentViewerAngle > 365.0) currentViewerAngle = 0.0;
+		}
+	}
+	FW_GL_ROTATE_D (currentViewerAngle,0.0,0.0,1.0);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->screenorientationmatrix);
+
+
+	//capture stereo 1/2 base offsets
+	//a) save current real stereo settings
+	bstack->isStereo = viewer->isStereo;
+	bstack->iside = viewer->iside;
+	//b) fake each stereo side, capture each side's stereo offset matrix
+		viewer->isStereo = 1;
+		viewer->iside = 0;
+		FW_GL_LOAD_IDENTITY();
+		set_stereo_offset0();
+			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->stereooffsetmatrix[0]);
+			
+		viewer->iside = 1;
+		FW_GL_LOAD_IDENTITY();
+		set_stereo_offset0();
+			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->stereooffsetmatrix[1]);
+		viewer->isStereo = 0;
+		FW_GL_LOAD_IDENTITY();
+
+	//capture cumulative .Pos, .Quat 
+	viewer_togl(viewer->fieldofview);
+			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->posorimatrix);
+
+		FW_GL_LOAD_IDENTITY();
+}
+struct X3D_Node *getActiveLayerBoundViewpoint(){
+	struct X3D_Node *boundvp;
+	bindablestack *bstack;
+	ttglobal tg = gglobal();
+	bstack = getActiveBindableStacks(tg);
+	boundvp = NULL;
+	if(bstack){
+		if(bstack->viewpoint){
+			if( vectorSize(bstack->viewpoint) > 0){
+				boundvp = vector_back(struct X3D_Node*,bstack->viewpoint);
+			}
+		}
+	}
+	return boundvp; //should be Viewpoint, OrthoViewpoint, or GeoViewpoint
+}
+int render_foundLayerViewpoint(){
+	//on render_VP pass we want to come out of render_hier as soon as we find our VP
+	//that will save embarrassing 'adding' effect when bound VP is DEF/USED in multiple 
+	// scenegraph branches, and should also save time on average by not traversing 
+	// the entire scengraph after the vp is found
+	int iret;
+	struct X3D_Viewpoint *boundvp;
+	//there can be a weird effect if the VP is DEF/USEd in 2 branches of the scenegraph
+	//freewrl adds the 2 positions together - weird no one else does
+	//so we'll set a flag on the viewpoint node, and if its already updated, we'll skip 2nd, third etc instances.
+	boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint(); 
+	//watch it - downcasting Node to one type of Viewpoint, 
+	// .. but could be any of Viewpoint, OrthoViewpoint, GeoViewpoint 
+	// - in perl the 3 types better have _donethispass at same offset, else figure the type and switch-case
+	// - verified in perl, same offset for _donethispass
+	iret = 0;
+	if(boundvp)
+		iret = boundvp->_donethispass;
+	return iret;
+}
+void setup_viewpoint_part2() {
+/*
+	 Computes view part of modelview matrix and leaves it in modelview.
+	 You would call this before traversing the scenegraph to scene nodes
+	  with render() or render_hier().
+	 The view part includes:
+	 a) screen orientation ie on mobile devices landscape vs portrait (this function)
+	 b) stereovision +- 1/2 base offset (viewer_togl)
+	 c) viewpoint slerping interpolation (viewer_togl)
+	 d) .Pos and .Quat of viewpoint from: (viewer_togl)
+	        1) .position and .orientation specified in scenefile
+	        2) cumulative navigation away from initial bound pose
+	        3) gravity and collision (bumping and wall penetration) adjustments
+	 e) transform stack between scene root and currently bound viewpoint (render_hier(rootnode,VF_Viewpoint))
+
+*/
+	// OLDCODE ppMainloop p;
+	struct X3D_Viewpoint *boundvp;
+	// OLDCODE ttglobal tg = gglobal();
+	// OLDCODE p = (ppMainloop)tg->Mainloop.prv;
+
+
+	//capture view part of modelview ie scenegraph transforms between scene root and bound viewpoint
+	profile_start("vp_hier");
+	//there can be a weird effect if the VP is DEF/USEd in 2 branches of the scenegraph
+	//freewrl adds the 2 positions together - weird no one else does
+	//so we'll set a flag on the viewpoint node, and if its already updated, we'll skip 2nd, third etc instances.
+	//printf("\npart2>>>\n");
+	boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint();
+	if(boundvp)
+		boundvp->_donethispass = 0; //used in prep_Viewpoint
+	render_hier(rootNode(), VF_Viewpoint);
+	if(boundvp)
+		boundvp->_donethispass = 0; //used in prep_Viewpoint
+	//printf("\n<<<part2\n");
+
+	profile_end("vp_hier");
 
 }
+
+void setup_viewpoint_part3() {
+/*
+	 Computes view part of modelview matrix and leaves it in modelview.
+	 You would call this before traversing the scenegraph to scene nodes
+	  with render() or render_hier().
+	 The view part includes:
+	 a) screen orientation ie on mobile devices landscape vs portrait (this function)
+	 b) stereovision +- 1/2 base offset (viewer_togl)
+	 c) viewpoint slerping interpolation (viewer_togl)
+	 d) .Pos and .Quat of viewpoint from: (viewer_togl)
+	        1) .position and .orientation specified in scenefile
+	        2) cumulative navigation away from initial bound pose
+	        3) gravity and collision (bumping and wall penetration) adjustments
+	 e) transform stack between scene root and currently bound viewpoint (render_hier(rootnode,VF_Viewpoint))
+
+*/
+	double viewmatrix[16];
+	bindablestack *bstack;
+	//OLDCODE X3D_Viewer *viewer;
+	//OLDCODE ppMainloop p;
+	ttglobal tg = gglobal();
+	//OLDCODE p = (ppMainloop)tg->Mainloop.prv;
+
+	bstack = getActiveBindableStacks(tg);
+	//OLDCODE viewer = Viewer();
+	PRINT_GL_ERROR_IF_ANY("XEvents::setup_viewpoint");
+			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
+
+	//if(0){
+	//	isStereo = bstack->isStereo;
+	//	iside = bstack->iside;
+
+	////restore real stereo settings for rendering
+	//	viewer->isStereo = bstack->isStereo;
+	//	viewer->iside = iside;
+	//}
+	//multiply it all together, and capture any slerp
+	//Feb 2016 - I think we should slerp the main/normal position of the viewpoint. 
+	// - then if its stereo, offset by half-base during rendernig or picking
+			matcopy(viewmatrix,bstack->screenorientationmatrix);
+		//if(0) if(isStereo)
+		//		matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
+			matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
+			matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+
+		if(slerp_viewpoint(2)) //just starting block, does vp-bind type slerp
+				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
+
+}
+void setup_viewpoint(){
+	//printf("\nsetup_viewpoint>>>>>\n");
+	setup_viewpoint_part1();
+	setup_viewpoint_part2();
+	setup_viewpoint_part3();
+	//printf("\n<<<<setup_viewpoint\n");
+
+}
+
+void set_viewmatrix0(int iplace) {
+	//if we already computed view matrix earlier in the frame via setup_viewpoint,
+	//and theoretically it hasn't changed since, 
+	//and just want to make sure its set, this is shorter than re-doing setup_viewpoint()
+	double viewmatrix[16];
+	bindablestack *bstack;
+	X3D_Viewer *viewer;
+	// OLDCODE ppMainloop p;
+	ttglobal tg = gglobal();
+	// OLDCODE p = (ppMainloop)tg->Mainloop.prv;
+
+	bstack = getActiveBindableStacks(tg);
+	viewer = Viewer();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW); /*  this should be assumed , here for safety.*/
+		matcopy(viewmatrix,bstack->screenorientationmatrix);
+		if(viewer->isStereoB){
+			int iside = Viewer()->isideB;
+			matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
+		}
+		if(viewer->isStereo){
+			int iside = Viewer()->iside;
+			matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
+		}
+		matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
+		matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
+		fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+}
+void set_viewmatrix() {
+	set_viewmatrix0(0);
+}
+
+
+char *nameLogFileFolderNORMAL(char *logfilename, int size){
+	strcat(logfilename,"freewrl_tmp");
+	fw_mkdir(logfilename);
+	strcat(logfilename,"/");
+	strcat(logfilename,"logfile");
+	return logfilename;
+}
+char * (*nameLogFileFolderPTR)(char *logfilename, int size) = nameLogFileFolderNORMAL;
+
 void toggleLogfile()
 {
 	ppMainloop p;
@@ -2376,30 +5947,7 @@ void toggleLogfile()
 			char logfilename[1000];
 			mode = "w";
 			logfilename[0] = '\0';
-			if(p->modePlayback || p->modeFixture){
-				if(p->modePlayback)
-					strcat(logfilename,"playback");
-				else
-					strcat(logfilename,"fixture");
-				fw_mkdir(logfilename);
-				strcat(logfilename,"/");
-				if(p->nameTest){
-					//  /fixture/test1.log
-					strcat(logfilename,p->nameTest);
-				}else if(tg->Mainloop.scene_name){
-					//  /fixture/1_wrl.log
-					strcat(logfilename,tg->Mainloop.scene_name);
-					if(tg->Mainloop.scene_suff){
-						strcat(logfilename,"_");
-						strcat(logfilename,tg->Mainloop.scene_suff);
-					}
-				}
-			}else{
-				strcat(logfilename,"freewrl_tmp");
-				fw_mkdir(logfilename);
-				strcat(logfilename,"/");
-				strcat(logfilename,"logfile");
-			}
+			nameLogFileFolderPTR(logfilename, 1000);
 			strcat(logfilename,".log");
 			p->logfname = STRDUP(logfilename);
 		}
@@ -2421,1019 +5969,16 @@ void fwl_set_logfile(char *lname){
 	} else {
 		p->logfname = STRDUP(lname);
 		toggleLogfile();
-	 //   printf ("FreeWRL: redirect stdout and stderr to %s\n", logFileName);
-	 //   fp = freopen(logFileName, "a", stdout);
-	 //   if (NULL == fp) {
-		//WARN_MSG("WARNING: Unable to reopen stdout to %s\n", logFileName) ;
-	 //   }
-	 //   fp = freopen(logFileName, "a", stderr);
-	 //   if (NULL == fp) {
-		//WARN_MSG("WARNING: Unable to reopen stderr to %s\n", logFileName) ;
-	 //   }
-	}
-
-}
-
-#define Boolean int
-
-/* Return DEFed name from its node, or NULL if not found */
-int isNodeDEFedYet(struct X3D_Node *node, Stack *DEFedNodes)
-{
-	int ind;
-	if(DEFedNodes == NULL) return 0;
-	for (ind=0; ind < DEFedNodes->n; ind++) {
-		/* did we find this index? */
-		if (vector_get(struct X3D_Node*, DEFedNodes, ind) == node) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-char * dontRecurseList [] = {
-	"_sortedChildren",
-	NULL,
-};
-int doRecurse(const char *fieldname){
-	int dont, j;
-	dont = 0;
-	j=0;
-	while(dontRecurseList[j] != NULL)
-	{
-		dont = dont || !strcmp(dontRecurseList[j],fieldname);
-		j++;
-	}
-	return dont == 0 ? 1 : 0;
-}
-void print_field_value(FILE *fp, int typeIndex, union anyVrml* value)
-{
-	int i;
-	switch(typeIndex)
-	{
-		case FIELDTYPE_FreeWRLPTR:
-		{
-			fprintf(fp," %p \n",(void *)value);
-			break;
-		}
-		case FIELDTYPE_SFNode:
-		{
-			fprintf(fp," %p \n",(void *)value);
-			break;
-		}
-		case FIELDTYPE_MFNode:
-		{
-			int j;
-			struct Multi_Node* mfnode;
-			mfnode = (struct Multi_Node*)value;
-			fprintf(fp,"{ ");
-			for(j=0;j<mfnode->n;j++)
-				fprintf(fp," %p, ",mfnode->p[j]);
-			break;
-		}
-		case FIELDTYPE_SFString:
-		{
-			struct Uni_String** sfstring = (struct Uni_String**)value;
-			fprintf (fp," %s ",(*sfstring)->strptr);
-			break;
-		}
-		case FIELDTYPE_MFString:
-		{
-			struct Multi_String* mfstring = (struct Multi_String*)value;
-			fprintf (fp," { ");
-			for (i=0; i<mfstring->n; i++) { fprintf (fp,"%s, ",mfstring->p[i]->strptr); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFFloat:
-		{
-			float *flt = (float*)value;
-			fprintf(fp," %4.3f ",*flt);
-			break;
-		}
-		case FIELDTYPE_MFFloat:
-		{
-			struct Multi_Float *mffloat = (struct Multi_Float*)value;
-			fprintf (fp,"{ ");
-			for (i=0; i<mffloat->n; i++) { fprintf (fp," %4.3f,",mffloat->p[i]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFTime:
-		case FIELDTYPE_SFDouble:
-		{
-			double *sftime = (double*)value;
-			fprintf (fp,"%4.3f",*sftime);
-			break;
-		}
-		case FIELDTYPE_MFTime:
-		case FIELDTYPE_MFDouble:
-		{
-			struct Multi_Double *mfdouble = (struct Multi_Double*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfdouble->n; i++) { fprintf (fp," %4.3f,",mfdouble->p[i]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFInt32:
-		case FIELDTYPE_SFBool:
-		{
-			int *sfint32 = (int*)(value);
-			fprintf (fp," \t%d\n",*sfint32);
-			break;
-		}
-		case FIELDTYPE_MFInt32:
-		case FIELDTYPE_MFBool:
-		{
-			struct Multi_Int32 *mfint32 = (struct Multi_Int32*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfint32->n; i++) { fprintf (fp," %d,",mfint32->p[i]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFVec2f:
-		{
-			struct SFVec2f * sfvec2f = (struct SFVec2f *)value;
-            for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",sfvec2f->c[i]); }
-			break;
-		}
-		case FIELDTYPE_MFVec2f:
-		{
-			struct Multi_Vec2f *mfvec2f = (struct Multi_Vec2f*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfvec2f->n; i++)
-				{ fprintf (fp,"[%4.3f, %4.3f],",mfvec2f->p[i].c[0], mfvec2f->p[i].c[1]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFVec2d:
-		{
-			struct SFVec2d * sfvec2d = (struct SFVec2d *)value;
-			for (i=0; i<2; i++) { fprintf (fp,"%4.3f,  ",sfvec2d->c[i]); }
-			break;
-		}
-		case FIELDTYPE_MFVec2d:
-		{
-			struct Multi_Vec2d *mfvec2d = (struct Multi_Vec2d*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfvec2d->n; i++)
-				{ fprintf (fp,"[%4.3f, %4.3f], ",mfvec2d->p[i].c[0], mfvec2d->p[i].c[1]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFVec3f:
-		case FIELDTYPE_SFColor:
-		{
-			struct SFVec3f * sfvec3f = (struct SFVec3f *)value;
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",sfvec3f->c[i]); }
-			break;
-		}
-		case FIELDTYPE_MFVec3f:
-		case FIELDTYPE_MFColor:
-		{
-			struct Multi_Vec3f *mfvec3f = (struct Multi_Vec3f*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfvec3f->n; i++)
-				{ fprintf (fp,"[%4.3f, %4.3f, %4.3f],",mfvec3f->p[i].c[0], mfvec3f->p[i].c[1],mfvec3f->p[i].c[2]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFVec3d:
-		{
-			struct SFVec3d * sfvec3d = (struct SFVec3d *)value;
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",sfvec3d->c[i]); }
-			break;
-		}
-		case FIELDTYPE_MFVec3d:
-		{
-			struct Multi_Vec3d *mfvec3d = (struct Multi_Vec3d*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfvec3d->n; i++)
-				{ fprintf (fp,"[%4.3f, %4.3f, %4.3f],",mfvec3d->p[i].c[0], mfvec3d->p[i].c[1],mfvec3d->p[i].c[2]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFVec4f:
-		case FIELDTYPE_SFColorRGBA:
-		case FIELDTYPE_SFRotation:
-		{
-			struct SFRotation * sfrot = (struct SFRotation *)value;
-			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",sfrot->c[i]); }
-			break;
-		}
-		case FIELDTYPE_MFVec4f:
-		case FIELDTYPE_MFColorRGBA:
-		case FIELDTYPE_MFRotation:
-		{
-			struct Multi_ColorRGBA *mfrgba = (struct Multi_ColorRGBA*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfrgba->n; i++)
-				{ fprintf (fp,"[%4.3f, %4.3f, %4.3f, %4.3f]\n",mfrgba->p[i].c[0], mfrgba->p[i].c[1],mfrgba->p[i].c[2],mfrgba->p[i].c[3]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFVec4d:
-		{
-			struct SFVec4d * sfvec4d = (struct SFVec4d *)value;
-			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",sfvec4d->c[i]); }
-			break;
-		}
-		case FIELDTYPE_MFVec4d:
-		{
-			struct Multi_Vec4d *mfvec4d = (struct Multi_Vec4d*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfvec4d->n; i++)
-				{ fprintf (fp,"[%4.3f, %4.3f, %4.3f, %4.3f],",mfvec4d->p[i].c[0], mfvec4d->p[i].c[1],mfvec4d->p[i].c[2],mfvec4d->p[i].c[3]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFMatrix3f:
-		{
-			struct SFMatrix3f *sfmat3f = (struct SFMatrix3f*)value;
-			fprintf (fp," [%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]\n",
-			sfmat3f->c[0],sfmat3f->c[1],sfmat3f->c[2],
-			sfmat3f->c[3],sfmat3f->c[4],sfmat3f->c[5],
-			sfmat3f->c[6],sfmat3f->c[7],sfmat3f->c[8]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix3f:
-		{
-			struct Multi_Matrix3f *mfmat3f = (struct Multi_Matrix3f*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfmat3f->n; i++) {
-				fprintf (fp,"[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ],",
-				mfmat3f->p[i].c[0],mfmat3f->p[i].c[1],mfmat3f->p[i].c[2],
-				mfmat3f->p[i].c[3],mfmat3f->p[i].c[4],mfmat3f->p[i].c[5],
-				mfmat3f->p[i].c[6],mfmat3f->p[i].c[7],mfmat3f->p[i].c[8]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFMatrix3d:
-		{
-			struct SFMatrix3d *sfmat3d = (struct SFMatrix3d*)value;
-			fprintf (fp," [%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]",
-			sfmat3d->c[0],sfmat3d->c[1],sfmat3d->c[2],
-			sfmat3d->c[3],sfmat3d->c[4],sfmat3d->c[5],
-			sfmat3d->c[6],sfmat3d->c[7],sfmat3d->c[8]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix3d:
-		{
-			struct Multi_Matrix3d *mfmat3d = (struct Multi_Matrix3d*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfmat3d->n; i++) {
-				fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]\n",i,
-				mfmat3d->p[i].c[0],mfmat3d->p[i].c[1],mfmat3d->p[i].c[2],
-				mfmat3d->p[i].c[3],mfmat3d->p[i].c[4],mfmat3d->p[i].c[5],
-				mfmat3d->p[i].c[6],mfmat3d->p[i].c[7],mfmat3d->p[i].c[8]); }
-			break;
-		}
-		case FIELDTYPE_SFMatrix4f:
-		{
-			struct SFMatrix4f *sfmat4f = (struct SFMatrix4f*)value;
-			fprintf (fp," \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ]\n",
-			sfmat4f->c[0],sfmat4f->c[1],sfmat4f->c[2],sfmat4f->c[3],
-			sfmat4f->c[4],sfmat4f->c[5],sfmat4f->c[6],sfmat4f->c[7],
-			sfmat4f->c[8],sfmat4f->c[9],sfmat4f->c[10],sfmat4f->c[11],
-			sfmat4f->c[12],sfmat4f->c[13],sfmat4f->c[14],sfmat4f->c[15]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix4f:
-		{
-			struct Multi_Matrix4f *mfmat4f = (struct Multi_Matrix4f*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfmat4f->n; i++) {
-				fprintf (fp,"[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ],",
-				mfmat4f->p[i].c[0],mfmat4f->p[i].c[1],mfmat4f->p[i].c[2],mfmat4f->p[i].c[3],
-				mfmat4f->p[i].c[4],mfmat4f->p[i].c[5],mfmat4f->p[i].c[6],mfmat4f->p[i].c[7],
-				mfmat4f->p[i].c[8],mfmat4f->p[i].c[9],mfmat4f->p[i].c[10],mfmat4f->p[i].c[11],
-				mfmat4f->p[i].c[12],mfmat4f->p[i].c[13],mfmat4f->p[i].c[14],mfmat4f->p[i].c[15]); }
-			fprintf(fp,"}");
-			break;
-		}
-		case FIELDTYPE_SFMatrix4d:
-		{
-			struct SFMatrix4d *sfmat4d = (struct SFMatrix4d*)value;
-			fprintf (fp," [%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ]",
-			sfmat4d->c[0],sfmat4d->c[1],sfmat4d->c[2],sfmat4d->c[3],
-			sfmat4d->c[4],sfmat4d->c[5],sfmat4d->c[6],sfmat4d->c[7],
-			sfmat4d->c[8],sfmat4d->c[9],sfmat4d->c[10],sfmat4d->c[11],
-			sfmat4d->c[12],sfmat4d->c[13],sfmat4d->c[14],sfmat4d->c[15]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix4d:	
-		{
-			struct Multi_Matrix4d *mfmat4d = (struct Multi_Matrix4d*)value;
-			fprintf (fp,"{");
-			for (i=0; i<mfmat4d->n; i++) {
-				fprintf (fp,"[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ],",
-				mfmat4d->p[i].c[0],mfmat4d->p[i].c[1],mfmat4d->p[i].c[2],mfmat4d->p[i].c[3],
-				mfmat4d->p[i].c[4],mfmat4d->p[i].c[5],mfmat4d->p[i].c[6],mfmat4d->p[i].c[7],
-				mfmat4d->p[i].c[8],mfmat4d->p[i].c[9],mfmat4d->p[i].c[10],mfmat4d->p[i].c[11],
-				mfmat4d->p[i].c[12],mfmat4d->p[i].c[13],mfmat4d->p[i].c[14],mfmat4d->p[i].c[15]); }
-			fprintf(fp,"}");
-			break;
-		}
-
-		case FIELDTYPE_SFImage:
-		{
-			fprintf(fp," %p ",(void *)value); //no SFImage struct defined
-			break;
-		}
-	}
-} //return print_field
-void dump_scene(FILE *fp, int level, struct X3D_Node* node);
-void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack *DEFedNodes);
-// print_field is used by dump_scene2() to pretty-print a single field.
-// recurses into dump_scene2 for SFNode and MFNodes to print them in detail.
-void print_field(FILE *fp,int level, int typeIndex, const char* fieldName, union anyVrml* value, Stack* DEFedNodes)
-{
-	int lc, i;
-	#define spacer	for (lc=0; lc<level; lc++) fprintf (fp," ");
-
-	switch(typeIndex)
-	{
-		case FIELDTYPE_FreeWRLPTR:
-		{
-			fprintf(fp," %p \n",(void *)value);
-			break;
-		}
-		case FIELDTYPE_SFNode:
-		{
-			int dore;
-			struct X3D_Node** sfnode = (struct X3D_Node**)value;
-			dore = doRecurse(fieldName);
-			fprintf (fp,":\n"); dump_scene2(fp,level+1,*sfnode,dore,DEFedNodes);
-			break;
-		}
-		case FIELDTYPE_MFNode:
-		{
-			int j, dore;
-			struct Multi_Node* mfnode;
-			dore = doRecurse(fieldName);
-			mfnode = (struct Multi_Node*)value;
-			fprintf(fp,":\n");
-			for(j=0;j<mfnode->n;j++)
-				dump_scene2(fp,level+1,mfnode->p[j],dore,DEFedNodes);
-			break;
-		}
-		case FIELDTYPE_SFString:
-		{
-			struct Uni_String** sfstring = (struct Uni_String**)value;
-			fprintf (fp," \t%s\n",(*sfstring)->strptr);
-			break;
-		}
-		case FIELDTYPE_MFString:
-		{
-			struct Multi_String* mfstring = (struct Multi_String*)value;
-			fprintf (fp," : \n");
-			for (i=0; i<mfstring->n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,mfstring->p[i]->strptr); }
-			break;
-		}
-		case FIELDTYPE_SFFloat:
-		{
-			float *flt = (float*)value;
-			fprintf (fp," \t%4.3f\n",*flt);
-			break;
-		}
-		case FIELDTYPE_MFFloat:
-		{
-			struct Multi_Float *mffloat = (struct Multi_Float*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mffloat->n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,mffloat->p[i]); }
-			break;
-		}
-		case FIELDTYPE_SFTime:
-		case FIELDTYPE_SFDouble:
-		{
-			double *sftime = (double*)value;
-			fprintf (fp," \t%4.3f\n",*sftime);
-			break;
-		}
-		case FIELDTYPE_MFTime:
-		case FIELDTYPE_MFDouble:
-		{
-			struct Multi_Double *mfdouble = (struct Multi_Double*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfdouble->n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,mfdouble->p[i]); }
-			break;
-		}
-		case FIELDTYPE_SFInt32:
-		case FIELDTYPE_SFBool:
-		{
-			int *sfint32 = (int*)(value);
-			fprintf (fp," \t%d\n",*sfint32);
-			break;
-		}
-		case FIELDTYPE_MFInt32:
-		case FIELDTYPE_MFBool:
-		{
-			struct Multi_Int32 *mfint32 = (struct Multi_Int32*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfint32->n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,mfint32->p[i]); }
-			break;
-		}
-		case FIELDTYPE_SFVec2f:
-		{
-			struct SFVec2f * sfvec2f = (struct SFVec2f *)value;
-			fprintf (fp,": \t");
-			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",sfvec2f->c[i]); }
-			fprintf (fp,"\n");
-			break;
-		}
-		case FIELDTYPE_MFVec2f:
-		{
-			struct Multi_Vec2f *mfvec2f = (struct Multi_Vec2f*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfvec2f->n; i++)
-				{ spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f]\n",i,mfvec2f->p[i].c[0], mfvec2f->p[i].c[1]); }
-			break;
-		}
-		case FIELDTYPE_SFVec2d:
-		{
-			struct SFVec2d * sfvec2d = (struct SFVec2d *)value;
-			fprintf (fp,": \t");
-			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",sfvec2d->c[i]); }
-			fprintf (fp,"\n");
-			break;
-		}
-		case FIELDTYPE_MFVec2d:
-		{
-			struct Multi_Vec2d *mfvec2d = (struct Multi_Vec2d*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfvec2d->n; i++)
-				{ spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f]\n",i,mfvec2d->p[i].c[0], mfvec2d->p[i].c[1]); }
-			break;
-		}
-		case FIELDTYPE_SFVec3f:
-		case FIELDTYPE_SFColor:
-		{
-			struct SFVec3f * sfvec3f = (struct SFVec3f *)value;
-			fprintf (fp,": \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",sfvec3f->c[i]); }
-			fprintf (fp,"\n");
-			break;
-		}
-		case FIELDTYPE_MFVec3f:
-		case FIELDTYPE_MFColor:
-		{
-			struct Multi_Vec3f *mfvec3f = (struct Multi_Vec3f*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfvec3f->n; i++)
-				{ spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,mfvec3f->p[i].c[0], mfvec3f->p[i].c[1],mfvec3f->p[i].c[2]); }
-			break;
-		}
-		case FIELDTYPE_SFVec3d:
-		{
-			struct SFVec3d * sfvec3d = (struct SFVec3d *)value;
-			fprintf (fp,": \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",sfvec3d->c[i]); }
-			fprintf (fp,"\n");
-			break;
-		}
-		case FIELDTYPE_MFVec3d:
-		{
-			struct Multi_Vec3d *mfvec3d = (struct Multi_Vec3d*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfvec3d->n; i++)
-				{ spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,mfvec3d->p[i].c[0], mfvec3d->p[i].c[1],mfvec3d->p[i].c[2]); }
-			break;
-		}
-		case FIELDTYPE_SFVec4f:
-		case FIELDTYPE_SFColorRGBA:
-		case FIELDTYPE_SFRotation:
-		{
-			struct SFRotation * sfrot = (struct SFRotation *)value;
-			fprintf (fp,": \t");
-			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",sfrot->c[i]); }
-			fprintf (fp,"\n");
-			break;
-		}
-		case FIELDTYPE_MFVec4f:
-		case FIELDTYPE_MFColorRGBA:
-		case FIELDTYPE_MFRotation:
-		{
-			struct Multi_ColorRGBA *mfrgba = (struct Multi_ColorRGBA*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfrgba->n; i++)
-				{ spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f]\n",i,mfrgba->p[i].c[0], mfrgba->p[i].c[1],mfrgba->p[i].c[2],mfrgba->p[i].c[3]); }
-			break;
-		}
-		case FIELDTYPE_SFVec4d:
-		{
-			struct SFVec4d * sfvec4d = (struct SFVec4d *)value;
-			fprintf (fp,": \t");
-			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",sfvec4d->c[i]); }
-			fprintf (fp,"\n");
-			break;
-		}
-		case FIELDTYPE_MFVec4d:
-		{
-			struct Multi_Vec4d *mfvec4d = (struct Multi_Vec4d*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfvec4d->n; i++)
-				{ spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f]\n",i,mfvec4d->p[i].c[0], mfvec4d->p[i].c[1],mfvec4d->p[i].c[2],mfvec4d->p[i].c[3]); }
-			break;
-		}
-		case FIELDTYPE_SFMatrix3f:
-		{
-			struct SFMatrix3f *sfmat3f = (struct SFMatrix3f*)value;
-			spacer fprintf (fp," \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]\n",
-			sfmat3f->c[0],sfmat3f->c[1],sfmat3f->c[2],
-			sfmat3f->c[3],sfmat3f->c[4],sfmat3f->c[5],
-			sfmat3f->c[6],sfmat3f->c[7],sfmat3f->c[8]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix3f:
-		{
-			struct Multi_Matrix3f *mfmat3f = (struct Multi_Matrix3f*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfmat3f->n; i++) {
-				spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]\n",i,
-				mfmat3f->p[i].c[0],mfmat3f->p[i].c[1],mfmat3f->p[i].c[2],
-				mfmat3f->p[i].c[3],mfmat3f->p[i].c[4],mfmat3f->p[i].c[5],
-				mfmat3f->p[i].c[6],mfmat3f->p[i].c[7],mfmat3f->p[i].c[8]); }
-			break;
-		}
-		case FIELDTYPE_SFMatrix3d:
-		{
-			struct SFMatrix3d *sfmat3d = (struct SFMatrix3d*)value;
-			spacer fprintf (fp," \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]\n",
-			sfmat3d->c[0],sfmat3d->c[1],sfmat3d->c[2],
-			sfmat3d->c[3],sfmat3d->c[4],sfmat3d->c[5],
-			sfmat3d->c[6],sfmat3d->c[7],sfmat3d->c[8]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix3d:
-		{
-			struct Multi_Matrix3d *mfmat3d = (struct Multi_Matrix3d*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfmat3d->n; i++) {
-				spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f ]\n",i,
-				mfmat3d->p[i].c[0],mfmat3d->p[i].c[1],mfmat3d->p[i].c[2],
-				mfmat3d->p[i].c[3],mfmat3d->p[i].c[4],mfmat3d->p[i].c[5],
-				mfmat3d->p[i].c[6],mfmat3d->p[i].c[7],mfmat3d->p[i].c[8]); }
-			break;
-		}
-		case FIELDTYPE_SFMatrix4f:
-		{
-			struct SFMatrix4f *sfmat4f = (struct SFMatrix4f*)value;
-			fprintf (fp," \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ]\n",
-			sfmat4f->c[0],sfmat4f->c[1],sfmat4f->c[2],sfmat4f->c[3],
-			sfmat4f->c[4],sfmat4f->c[5],sfmat4f->c[6],sfmat4f->c[7],
-			sfmat4f->c[8],sfmat4f->c[9],sfmat4f->c[10],sfmat4f->c[11],
-			sfmat4f->c[12],sfmat4f->c[13],sfmat4f->c[14],sfmat4f->c[15]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix4f:
-		{
-			struct Multi_Matrix4f *mfmat4f = (struct Multi_Matrix4f*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfmat4f->n; i++) {
-				spacer
-				fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ]\n",i,
-				mfmat4f->p[i].c[0],mfmat4f->p[i].c[1],mfmat4f->p[i].c[2],mfmat4f->p[i].c[3],
-				mfmat4f->p[i].c[4],mfmat4f->p[i].c[5],mfmat4f->p[i].c[6],mfmat4f->p[i].c[7],
-				mfmat4f->p[i].c[8],mfmat4f->p[i].c[9],mfmat4f->p[i].c[10],mfmat4f->p[i].c[11],
-				mfmat4f->p[i].c[12],mfmat4f->p[i].c[13],mfmat4f->p[i].c[14],mfmat4f->p[i].c[15]); }
-			break;
-		}
-		case FIELDTYPE_SFMatrix4d:
-		{
-			struct SFMatrix4d *sfmat4d = (struct SFMatrix4d*)value;
-			fprintf (fp," \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ]\n",
-			sfmat4d->c[0],sfmat4d->c[1],sfmat4d->c[2],sfmat4d->c[3],
-			sfmat4d->c[4],sfmat4d->c[5],sfmat4d->c[6],sfmat4d->c[7],
-			sfmat4d->c[8],sfmat4d->c[9],sfmat4d->c[10],sfmat4d->c[11],
-			sfmat4d->c[12],sfmat4d->c[13],sfmat4d->c[14],sfmat4d->c[15]);
-			break;
-		}
-		case FIELDTYPE_MFMatrix4d:	
-		{
-			struct Multi_Matrix4d *mfmat4d = (struct Multi_Matrix4d*)value;
-			fprintf (fp," :\n");
-			for (i=0; i<mfmat4d->n; i++) {
-				spacer
-				fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f,  %4.3f,  %4.3f, %4.3f, %4.3f, %4.3f, %4.3f, %4.3f,  %4.3f,  %4.3f ]\n",i,
-				mfmat4d->p[i].c[0],mfmat4d->p[i].c[1],mfmat4d->p[i].c[2],mfmat4d->p[i].c[3],
-				mfmat4d->p[i].c[4],mfmat4d->p[i].c[5],mfmat4d->p[i].c[6],mfmat4d->p[i].c[7],
-				mfmat4d->p[i].c[8],mfmat4d->p[i].c[9],mfmat4d->p[i].c[10],mfmat4d->p[i].c[11],
-				mfmat4d->p[i].c[12],mfmat4d->p[i].c[13],mfmat4d->p[i].c[14],mfmat4d->p[i].c[15]); }
-			break;
-		}
-
-		case FIELDTYPE_SFImage:
-		{
-			fprintf(fp," %p \n",(void *)value); //no SFImage struct defined
-			break;
-		}
-	}
-} //return print_field
-
-/*
-dump_scene2() is like dump_scene() - a way to printf all the nodes and their fields,
-when you hit a key on the keyboard ie '|'
-and recurse if a field is an SFNode or MFNode, tabbing in and out to show the recursion level
-- except dump_scene2 iterates over fields in a generic way to get all fields
-- could be used as an example for deep copying binary nodes
-- shows script/user fields and built-in fields
-*/
-void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack *DEFedNodes) {
-	#define spacer	for (lc=0; lc<level; lc++) fprintf (fp," ");
-	int lc;
-	int isDefed;
-	char *nodeName;
-	//(int) FIELDNAMES_children, (int) offsetof (struct X3D_Group, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	typedef struct field_info{
-		int nameIndex;
-		int offset;
-		int typeIndex;
-		int ioType;
-		int version;
-	} *finfo;
-	finfo offsets;
-	finfo field;
-	int ifield;
-
-	#ifdef FW_DEBUG
-		Boolean allFields;
-		if (fileno(fp) == fileno(stdout)) { allFields = TRUE; } else { allFields = FALSE; }
-	#else
-		Boolean allFields = TRUE; //FALSE;
-	#endif
-	/* See vi +/double_conditional codegen/VRMLC.pm */
-	if (node==NULL) return;
-
-	fflush(fp);
-	if (level == 0) fprintf (fp,"starting dump_scene2\n");
-	nodeName = parser_getNameFromNode(node) ;
-	isDefed = isNodeDEFedYet(node,DEFedNodes);
-	spacer fprintf (fp,"L%d: node (%p) (",level,node);
-	if(nodeName != NULL) {
-		if(isDefed)
-			fprintf(fp,"USE %s",nodeName);
-		else
-			fprintf(fp,"DEF %s",nodeName);
-	}
-	fprintf(fp,") type %s\n",stringNodeType(node->_nodeType));
-	//fprintf(fp,"recurse=%d ",recurse);
-	if(recurse && !isDefed)
-	{
-		vector_pushBack(struct X3D_Node*, DEFedNodes, node);
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
-		ifield = 0;
-		field = &offsets[ifield];
-		while( field->nameIndex > -1) //<< generalized for scripts and builtins?
-		{
-			int privat;
-			privat = FIELDNAMES[field->nameIndex][0] == '_';
-			privat = privat && strcmp(FIELDNAMES[field->nameIndex],"__scriptObj");
-			privat = privat && strcmp(FIELDNAMES[field->nameIndex],"__protoDef");
-			if(allFields || !privat)
-			{
-				spacer
-				fprintf(fp," %s",FIELDNAMES[field->nameIndex]); //[0]]);
-				fprintf(fp," (%s)",FIELDTYPES[field->typeIndex]); //field[2]]);
-				if(node->_nodeType == NODE_Script && !strcmp(FIELDNAMES[field->nameIndex],"__scriptObj") )
-				{
-					int k;
-					struct Vector *sfields;
-					struct ScriptFieldDecl *sfield;
-					struct FieldDecl *fdecl;
-					struct Shader_Script *sp;
-					struct CRjsnameStruct *JSparamnames = getJSparamnames();
-
-					sp = *(struct Shader_Script **)&((char*)node)[field->offset];
-					fprintf(fp,"loaded = %d\n",sp->loaded);
-					sfields = sp->fields;
-					//fprintf(fp,"sp->fields->n = %d\n",sp->fields->n);
-					for(k=0;k<sfields->n;k++)
-					{
-						char *fieldName;
-						sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
-						//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
-						fdecl = sfield->fieldDecl;
-						fieldName = fieldDecl_getShaderScriptName(fdecl);
-						fprintf(fp,"  %s",fieldName);
-						//fprintf(fp," (%s)",FIELDTYPES[field->typeIndex]); //field[2]]);
-						fprintf(fp," (%s)", stringFieldtypeType(fdecl->fieldType)); //fdecl->fieldType)
-						fprintf(fp," %s ",stringPROTOKeywordType(fdecl->PKWmode));
-
-						if(fdecl->PKWmode == PKW_initializeOnly)
-							print_field(fp,level,fdecl->fieldType,fieldName,&(sfield->value),DEFedNodes);
-						else
-							fprintf(fp,"\n");
-					}
-					level--;
-				}
-				else if(node->_nodeType == NODE_Proto && !strcmp(FIELDNAMES[field->nameIndex],"__protoDef") )
-				{
-					int k; //, mode;
-					struct ProtoFieldDecl* pfield;
-					struct X3D_Proto* pnode = (struct X3D_Proto*)node;
-					struct ProtoDefinition* pstruct = (struct ProtoDefinition*) pnode->__protoDef;
-					if(pstruct){
-						fprintf(fp," user fields:\n");
-						level++;
-						if(pstruct->iface)
-						for(k=0; k!=vectorSize(pstruct->iface); ++k)
-						{
-							const char *fieldName;
-							pfield= vector_get(struct ProtoFieldDecl*, pstruct->iface, k);
-							//mode = pfield->mode;
-							fieldName = pfield->cname;
-							spacer
-							fprintf(fp," %p ",(void*)pfield);
-							fprintf(fp,"  %s",fieldName);
-							fprintf(fp," (%s)", stringFieldtypeType(pfield->type)); //fdecl->fieldType)
-							fprintf(fp," %s ",stringPROTOKeywordType(pfield->mode));
-
-							if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
-								print_field(fp,level,pfield->type,fieldName,&(pfield->defaultVal),DEFedNodes);
-							else
-								fprintf(fp,"\n");
-						}
-						level--;
-					}
-				}else{
-					union anyVrml* any_except_PTR = (union anyVrml*)&((char*)node)[field->offset];
-					print_field(fp,level,field->typeIndex,FIELDNAMES[field->nameIndex],any_except_PTR,DEFedNodes);
-				}
-			}
-			ifield++;
-			field = &offsets[ifield];
-		}
-	}
-	fflush(fp) ;
-	spacer fprintf (fp,"L%d end\n",level);
-	if (level == 0) fprintf (fp,"ending dump_scene2\n");
-}
-
-/* deep_copy2() - experimental keyboard reachable deepcopy function */
-void deep_copy2(int iopt, char* defname)
-{
-	struct X3D_Node* node;
-	char *name2;
-	node = NULL;
-	ConsoleMessage("in deep_copy2 - for copying a node and its fields\n");
-	ConsoleMessage("got iopt=%d defname=%s\n",iopt,defname);
-	if(iopt == 0) return;
-	if(iopt == 1)
-	{
-		node = parser_getNodeFromName(defname);
-	}
-	if(iopt == 2)
-	{
-		node = (struct X3D_Node*)rootNode();
-	}
-	if(iopt == 3)
-	{
-		sscanf(defname,"%p",&node);
-	}
-	if( checkNode(node, NULL, 0) )
-	{
-		name2 = parser_getNameFromNode(node);
-		if(name2 != NULL)
-			ConsoleMessage("You entered %s\n",name2);
-		else
-			ConsoleMessage("Node exists!\n");
-	}else{
-		ConsoleMessage("Node does not exist.\n");
 	}
 }
 
-void print_DEFed_node_names_and_pointers(FILE* fp)
-{
-	int ind,j,jj,nstack,nvector;
-	char * name;
-	struct X3D_Node * node;
-	struct Vector *curNameStackTop;
-	struct Vector *curNodeStackTop;
-	struct VRMLParser *globalParser = (struct VRMLParser *)gglobal()->CParse.globalParser;
-
-	fprintf(fp,"DEFedNodes ");
-	if(!globalParser) return;
-	if(globalParser->DEFedNodes == NULL)
-	{
-		fprintf(fp," NULL\n");
-		return;
-	}
-	nstack = globalParser->lexer->userNodeNames->n;
-	fprintf(fp," lexer namespace vectors = %d\n",nstack);
-	for(j=0;j<nstack;j++)
-	{
-		curNameStackTop = vector_get(struct Vector *, globalParser->lexer->userNodeNames,j);
-		curNodeStackTop = vector_get(struct Vector *, globalParser->DEFedNodes,j);
-		if(curNameStackTop && curNodeStackTop)
-		{
-			nvector = vectorSize(curNodeStackTop);
-			for(jj=0;jj<j;jj++) fprintf(fp,"  ");
-			fprintf(fp,"vector %d name count = %d\n",j,nvector);
-			for (ind=0; ind < nvector; ind++)
-			{
-				for(jj=0;jj<j;jj++) fprintf(fp,"  ");
-				node = vector_get(struct X3D_Node*,curNodeStackTop, ind);
-				name = vector_get(char *,curNameStackTop, ind);
-				fprintf (fp,"L%d: node (%p) name (%s) \n",jj,node,name);
-			}
-		}
-	}
-}
-char *findFIELDNAMESfromNodeOffset0(struct X3D_Node *node, int offset)
-{
-	if( node->_nodeType != NODE_Script)
-	{
-		if( node->_nodeType == NODE_Proto )
-		{
-			//int mode;
-			struct ProtoFieldDecl* pfield;
-			struct X3D_Proto* pnode = (struct X3D_Proto*)node;
-			struct ProtoDefinition* pstruct = (struct ProtoDefinition*) pnode->__protoDef;
-			if(pstruct){
-				if(pstruct->iface) {
-				    if(offset < vectorSize(pstruct->iface))
-				    {
-					//JAS const char *fieldName;
-					pfield= vector_get(struct ProtoFieldDecl*, pstruct->iface, offset);
-					//mode = pfield->mode;
-					return pfield->cname;
-				    } else return NULL;
-				}
-			}else return NULL;
-		}
-		else
-		  //return (char *)FIELDNAMES[NODE_OFFSETS[node->_nodeType][offset*5]];
-		  return (char *)findFIELDNAMESfromNodeOffset(node,offset);
-	}
-  #ifdef HAVE_JAVASCRIPT
-	{
-		struct Vector* fields;
-		struct ScriptFieldDecl* curField;
-
-		struct Shader_Script *myObj = X3D_SCRIPT(node)->__scriptObj;
-		struct CRjsnameStruct *JSparamnames = getJSparamnames();
-
-		fields = myObj->fields;
-		curField = vector_get(struct ScriptFieldDecl*, fields, offset);
-		return fieldDecl_getShaderScriptName(curField->fieldDecl);
-	}
-  #else
-	return "script";
-  #endif
-
-}
-char *findFIELDNAMES0(struct X3D_Node *node, int offset)
-{
-	return findFIELDNAMESfromNodeOffset0(node,offset);
-}
-
-void print_routes_ready_to_register(FILE* fp);
-void print_routes(FILE* fp)
-{
-	int numRoutes;
-	int count;
-	struct X3D_Node *fromNode;
-	struct X3D_Node *toNode;
-	int fromOffset;
-	int toOffset;
-	char *fromName;
-	char *toName;
-
-	print_routes_ready_to_register(fp);
-	numRoutes = getRoutesCount();
-	fprintf(fp,"Number of Routes %d\n",numRoutes-2);
-	if (numRoutes < 2) {
-		return;
-	}
-
-	/* remember, in the routing table, the first and last entres are invalid, so skip them */
-	for (count = 1; count < (numRoutes-1); count++) {
-		getSpecificRoute (count,&fromNode, &fromOffset, &toNode, &toOffset);
-		fromName = parser_getNameFromNode(fromNode);
-		toName   = parser_getNameFromNode(toNode);
-
-		fprintf (fp, " %p %s.%s TO %p %s.%s \n",fromNode,fromName,
-			findFIELDNAMESfromNodeOffset0(fromNode,fromOffset),
-			toNode,toName,
-			findFIELDNAMESfromNodeOffset0(toNode,toOffset)
-			);
-	}
-}
-static struct consoleMenuState
-{
-	int active;
-	void (*f)(void*,char*);
-	char buf[100];
-	int len;
-	char *dfault;
-	void *yourData;
-} ConsoleMenuState;
-int consoleMenuActive()
-{
-	return ConsoleMenuState.active;
-}
-
-/*
-void addMenuChar(kp,type)
-{
-	char str[100];
-	void (*callback)(void*,char*);
-	void *yourData;
-#ifdef _MSC_VER
-	if(type == KEYPRESS) {
-#else
-	if(type == KEYDOWN) {
-#endif
-	if((kp == '\n') || (kp == '\r'))
-	{
-		ConsoleMessage("\n");
-		if(ConsoleMenuState.len == 0)
-			strcpy(str,ConsoleMenuState.dfault);
-		else
-			strcpy(str,ConsoleMenuState.buf);
-		callback = ConsoleMenuState.f;
-		yourData = ConsoleMenuState.yourData;
-		ConsoleMenuState.active = 0;
-		ConsoleMenuState.len = 0;
-		ConsoleMenuState.buf[0]= '\0';
-		ConsoleMenuState.dfault = NULL;
-		ConsoleMenuState.f = (void*)NULL;
-		callback(yourData,str);
-	}else{
-		ConsoleMessage("%c",kp);
-		ConsoleMenuState.buf[ConsoleMenuState.len] = kp;
-		ConsoleMenuState.len++;
-		ConsoleMenuState.buf[ConsoleMenuState.len] = '\0';
-	}
-	}
-}
-*/
-void setConsoleMenu(void *yourData, char *prompt, void (*callback), char* dfault)
-{
-	ConsoleMenuState.f = callback;
-	ConsoleMenuState.len = 0;
-	ConsoleMenuState.buf[0] = '\0';
-	ConsoleMenuState.active = TRUE;
-	ConsoleMenuState.dfault = dfault;
-	ConsoleMenuState.yourData = yourData;
-	ConsoleMessage(prompt);
-	ConsoleMessage("[%s]:",dfault);
-}
-void deep_copy_defname(void *myData, char *defname)
-{
-	int iopt;
-	ConsoleMessage("you entered defname: %s\n",defname);
-	memcpy(&iopt,myData,4);
-	deep_copy2(iopt,defname);
-	FREE(myData);
-}
-void deep_copy_option(void* yourData, char *opt)
-{
-	int iopt;
-	ConsoleMessage("you chose option %s\n",opt);
-	sscanf(opt,"%d",&iopt);
-	if(iopt == 0) return;
-	if(iopt == 1 || iopt == 3)
-	{
-		void* myData = MALLOC(void *, 4); //could store in gglobal->mainloop or wherever, then don't free in deep_copy_defname
-		memcpy(myData,&iopt,4);
-		setConsoleMenu(myData,"Enter DEFname or node address:", deep_copy_defname, "");
-	}
-	if(iopt == 2)
-		deep_copy2(iopt, NULL);
-}
-void dump_scenegraph(int method)
-{
-//#ifdef FW_DEBUG
-	if(method == 1) // '\\'
-		dump_scene(stdout, 0, (struct X3D_Node*) rootNode());
-	else if(method == 2) // '|'
-	{
-		Stack * DEFedNodes = newVector(struct X3D_Node*, 2);
-		dump_scene2(stdout, 0, (struct X3D_Node*) rootNode(),1,DEFedNodes);
-		deleteVector(struct X3D_Node*,DEFedNodes);
-	}
-	else if(method == 3) // '='
-	{
-		print_DEFed_node_names_and_pointers(stdout);
-	}
-	else if(method == 4) // '+'
-	{
-		print_routes(stdout);
-	}
-	else if(method == 5) // '-'
-	{
-		//ConsoleMenuState.active = 1; //deep_copy2();
-		setConsoleMenu(NULL,"0. Exit 1.DEFname 2.ROOTNODE 3.node address", deep_copy_option, "0");
-	}
-//#endif
-}
 int unload_broto(struct X3D_Proto* node);
 struct X3D_Proto *hasContext(struct X3D_Node* node);
 void fwl_clearWorld(){
 	//clear the scene to empty (and do cleanup on old scene);
 	int done = 0;
 	ttglobal tg = gglobal();
-	if(usingBrotos()){
+	{
 		struct X3D_Node *rn = rootNode();
 		if(hasContext(rn)){
 			unload_broto(X3D_PROTO(rn));
@@ -3443,7 +5988,7 @@ void fwl_clearWorld(){
 	}
 	if(!done){
 		tg->Mainloop.replaceWorldRequest = NULL;
-		tg->threads.flushing = 1;
+		tg->threads.flushing = true;
 	}
 	return;
 }
@@ -3454,16 +5999,17 @@ void sendKeyToKeySensor(const char key, int upDown);
 
 #define KEYDOWN 2
 #define KEYUP 3
-#ifdef AQUA
-#define KEYPRESS 2
-#define isAQUA 1
-#else
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA #define KEYPRESS 2
+// OLD_IPHONE_AQUA #define isAqua 1
+// OLD_IPHONE_AQUA #else
 #define KEYPRESS 1
-#define isAQUA 0
-#endif
+#define isAqua 0
+// OLD_IPHONE_AQUA #endif
+
 char lookup_fly_key(int key);
 //#endif
-
+void dump_scenegraph(int method);
 void fwl_do_keyPress0(int key, int type) {
 	int lkp;
 	ppMainloop p;
@@ -3480,7 +6026,8 @@ void fwl_do_keyPress0(int key, int type) {
 	if (p->keySensorMode && KeySensorNodePresent()) {
 		sendKeyToKeySensor(key,type); //some keysensor test files show no opengl graphics, so we need a logfile
 	} else {
-		int handled = isAQUA;
+		int handled = isAqua;
+
 		if(p->keywait){
 			if(type == KEYPRESS){
 				//key,value commands
@@ -3538,10 +6085,10 @@ void fwl_do_keyPress0(int key, int type) {
 				case '+': { dump_scenegraph(4); break; }
 				case '-': { dump_scenegraph(5); break; }
 				case '`': { toggleLogfile(); break; }
-				case '$': resource_tree_dump(0, tg->resources.root_res); break;
-				case '*': resource_tree_list_files(0, tg->resources.root_res); break;
+				case '$': resource_tree_dump(0, (resource_item_t*)tg->resources.root_res); break;
+				case '*': resource_tree_list_files(0, (resource_item_t*)tg->resources.root_res); break;
 				case 'q': { if (!RUNNINGASPLUGIN) {
-							fwl_doQuit();
+							fwl_doQuit(__FILE__,__LINE__);
 							}
 							break;
 						}
@@ -3550,12 +6097,12 @@ void fwl_do_keyPress0(int key, int type) {
 				case 'b': {fwl_Prev_ViewPoint(); break;}
 				case '.': {profile_print_all(); break;}
 				case ' ': p->keywait = TRUE; ConsoleMessage("\n%c",':'); p->keywaitstring[0] = '\0'; break;
-
+				case ',': toggle_debugging_trigger(); break; 
 #if !defined(FRONTEND_DOES_SNAPSHOTS)
 				case 's': {fwl_toggleSnapshot(); break;}
 				case 'x': {Snapshot(); break;} /* thanks to luis dias mas dec16,09 */
 #endif //FRONTEND_DOES_SNAPSHOTS
-
+				//case '[': resource_dump(gglobal()->resources.root_res); break; //doesn't show 'tree', just rootres
 				default:
 					printf("didn't handle key=[%c][%d] type=%d\n",lkp,(int)lkp,type);
 					handled = 0;
@@ -3576,6 +6123,11 @@ void fwl_do_keyPress0(int key, int type) {
 							tg->Mainloop.CTRL = keystate; break;
 						case SFT_KEY:
 							tg->Mainloop.SHIFT = keystate; break;
+						//unwritten convention for web3d browsers > viewpoint changes
+						case HOME_KEY: if(keystate) fwl_First_ViewPoint(); break;
+						case END_KEY:  if(keystate) fwl_Last_ViewPoint(); break;
+						case PGUP_KEY: if(keystate) fwl_Prev_ViewPoint(); break;
+						case PGDN_KEY: if(keystate) fwl_Next_ViewPoint(); break;
 						default:
 						break;
 					}
@@ -3617,69 +6169,22 @@ int fwl_getCtrl(){
 	return tg->Mainloop.CTRL;
 }
 
-void queueKeyPress(ppMainloop p, int key, int type){
-	if(p->keypressQueueCount < 50){
-		p->keypressQueue[p->keypressQueueCount].key = key;
-		p->keypressQueue[p->keypressQueueCount].type = type;
-		p->keypressQueueCount++;
-	}
-}
-int platform2web3dActionKey(int platformKey);
-//int isWeb3dDeleteKey(int web3dkey);
-//void fwl_do_rawKeyPress_OLD(int key, int type) {
-//	ppMainloop p;
-//	ttglobal tg = gglobal();
-//	p = (ppMainloop)tg->Mainloop.prv;
-//
-//	//for testing mode -R --record:
-//	//we need to translate non-ascii keys before saving to ascii file
-//	//so the .fwplay file can be replayed on any system (the action and control keys
-//	//will be already in web3d format)
-//	if(type>1){ //just the raw keys (the fully translated keys are already in ascii form)
-//		int actionKey = platform2web3dActionKey(key);
-//		if(actionKey){
-//			key = actionKey;
-//			type += 10; //pre-tranlated raw keys will have type 12 or 13
-//		}
-//	}
-//
-//	if(p->modeRecord){
-//		queueKeyPress(p,key,type);
-//	}else{
-//		fwl_do_keyPress0(key,type);
-//	}
-//	if(type==13 && isWeb3dDeleteKey(key))
-//	{
-//		//StringSensor likes DEL as a single char int the char stream,
-//		//but OSes usually only do the raw key so
-//		//here we add a DEL to the stream.
-//		type = 1;
-//		if(p->modeRecord){
-//			queueKeyPress(p,key,type);
-//		}else{
-//			fwl_do_keyPress0(key,type);
-//		}
-//	}
-//}
-void fwl_do_rawKeyPress(int key, int type) {
-	ppMainloop p;
-	ttglobal tg = gglobal();
-	p = (ppMainloop)tg->Mainloop.prv;
 
-	if(p->modeRecord){
-		queueKeyPress(p,key,type);
-	}else{
-		fwl_do_keyPress0(key,type);
-	}
+int platform2web3dActionKey(int platformKey);
+
+void (*fwl_do_rawKeyPressPTR)(int key, int type) = fwl_do_keyPress0;
+void fwl_do_rawKeyPress(int key, int type) {
+	fwl_do_rawKeyPressPTR(key,type);
 }
 
 void fwl_do_keyPress(char kp, int type) {
-	//call this from AQUA, ANDROID, QNX, IPHONE as always
+	//call this from ANDROID, QNX as always
 	//it will do the old-style action-key lookup
 	//(desktop win32 and linux can get finer tuning on the keyboard
 	// with per-platform platform2web3dActionKeyLINUX and WIN32 functions
 	int actionKey=0;
 	int key = (int) kp;
+	ConsoleMessage("key pressed decimal = %d\n",key);
 	if (type != KEYPRESS) //May 2014 added this if (I think just the raw keys would need virtual key lookup, I have a problem with '.')
 		actionKey = platform2web3dActionKey(key);
 	if(actionKey)
@@ -3788,7 +6293,7 @@ int getRayHitAndSetLookatTarget() {
 			} else if(Viewer()->type == VIEWER_EXPLORE){
 				//use the pickpoint (think of a large, continuous geospatial terrain shape,
 				// and you want to examine a specific geographic point on that shape)
-				pointxyz2double(center,&tg->RenderFuncs.hp);
+				pointxyz2double(center,tg->RenderFuncs.hp);
 				transformAFFINEd(center,center,getPickrayMatrix(0));
 				pivot_radius = 0.0;
 				vp_radius = .8 * veclengthd(center);
@@ -3799,577 +6304,280 @@ int getRayHitAndSetLookatTarget() {
     }
     return Viewer()->LookatMode;
 }
-
+void prepare_model_view_pickmatrix_inverse(GLDOUBLE *mvpi);
 struct X3D_Node* getRayHit() {
-        double x,y,z;
-        int i;
-		ppMainloop p;
-		ttglobal tg = gglobal();
-		p = (ppMainloop)tg->Mainloop.prv;
+	// call from setup_picking() after render_hier(,VF_SENSITIVE) > rayHit() > push_sensor(node*)
+	//	was there a pickray hit on a sensitive node? If so, returns node*, else NULL
+	//  1. get closest geometry intersection along pickray/bearing in sensor coords
+	//  2. transform the point from bearing/pickray space (near viewer mousexy) to sensor-local and save in ray_save_posn
+	//  2. see if its a sensitive node, if so return node*
+	//  4. if sensitive, split the modelview matrix into view and model, 
+	//		so later in get_hyperhit a more recent view matrix can be used with the frozen model matrix
+	// variables of note: 
+	//	ray_save_posn - intersection with scene geometry, in sensor-local coordinates 
+	//	- used in do_CyclinderSensor, do_SphereSensor for computing a radius  on mouse-down
+	//  RenderFuncs.hp - intersection with scene geometry found closes to viewpoint, in bearing/pickray space
 
-        if(tg->RenderFuncs.hitPointDist >= 0) {
-			struct currayhit * rh = (struct currayhit *)tg->RenderFuncs.rayHit;
-			if (rh->hitNode == NULL) return NULL;  //this prevents unnecessary matrix inversion non-singularity
+	//double x,y,z;
+	int i;
+	struct X3D_Node *retnode;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
 
-			if(!tg->RenderFuncs.usingAffinePickmatrix){
-				FW_GLU_UNPROJECT(tg->RenderFuncs.hp.x,tg->RenderFuncs.hp.y,tg->RenderFuncs.hp.z,rh->modelMatrix,rh->projMatrix,viewport,&x,&y,&z);
-			}
-			if(tg->RenderFuncs.usingAffinePickmatrix){
-				GLDOUBLE mvp[16], mvpi[16];
-				GLDOUBLE *pickMatrix = getPickrayMatrix(0);
-				GLDOUBLE *pickMatrixi = getPickrayMatrix(1);
-				//struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
-				struct point_XYZ tp; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
-
-				if(0){
-					//pickMatrix is inverted in setup_projection
-					matmultiplyAFFINE(mvp,rh->modelMatrix,pickMatrixi);
-					matinverseAFFINE(mvpi,mvp);
-				}else{
-					//pickMatrix is not inverted in setup_projection
-					double mvi[16];
-					matinverseAFFINE(mvi,rh->modelMatrix);
-					matmultiplyAFFINE(mvpi,pickMatrix,mvi);
-				}
-		
-				transform(&tp,&tg->RenderFuncs.hp,mvpi);
-				x = tp.x; y = tp.y, z = tp.z;
-			}
-            /* and save this globally */
-            tg->RenderFuncs.ray_save_posn.c[0] = (float) x; tg->RenderFuncs.ray_save_posn.c[1] = (float) y; tg->RenderFuncs.ray_save_posn.c[2] = (float) z;
-
-            /* we POSSIBLY are over a sensitive node - lets go through the sensitive list, and see
-                if it exists */
-
-            /* is the sensitive node not NULL? */
-            if (rh->hitNode == NULL) return NULL;
+	retnode = NULL;
+//	printf("@");
+	if(tg->RenderFuncs.hitPointDist >= 0) {
+		//GLDOUBLE mvpi[16];
+		//struct point_XYZ tp; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
+		struct currayhit * rh = (struct currayhit *)tg->RenderFuncs.rayHit;
+//		printf("#");
+		if (rh->hitNode == NULL){
+			return NULL;  //this prevents unnecessary matrix inversion non-singularity
+//			printf("!");
+		}
+		//if(0){
+		//prepare_model_view_pickmatrix_inverse(mvpi);
+		//transform(&tp,tg->RenderFuncs.hp,mvpi);
+		//x = tp.x; y = tp.y, z = tp.z;
 
 
+		///* and save this globally */
+		//tg->RenderFuncs.ray_save_posn[0] = (float) x; tg->RenderFuncs.ray_save_posn[1] = (float) y; tg->RenderFuncs.ray_save_posn[2] = (float) z;
+		//}
+		/* we POSSIBLY are over a sensitive node - lets go through the sensitive list, and see
+			if it exists */
+
+		/* is the sensitive node not NULL? */
+		if (rh->hitNode != NULL) 
+		{
 			/*
-            printf ("rayhit, we are over a node, have node %p (%s), posn %lf %lf %lf",
+			printf ("rayhit, we are over a node, have node %p (%s), posn %lf %lf %lf",
 				rh->hitNode, stringNodeType(rh->hitNode->_nodeType), x, y, z);
 			printf(" dist %f \n", rh->hitNode->_dist);
 			*/
+			for (i=0; i<p->num_SensorEvents; i++) {
+				if (p->SensorEvents[i].fromnode == rh->hitNode) {
+					/* printf ("found this node to be sensitive - returning %u\n",rayHit.hitNode); */
+					retnode = ((struct X3D_Node*) rh->hitNode);
+				}
+			}
+		}
+	}
+	//else -1
 
+	if(retnode != NULL){
+		//split modelview matrix into model + view for re-concatonation in getHyperHit
+		//assume we are at scene root, and have just done set_viewmatrix() or the equivalent render_hier(VF_VIEWPOINT) 
+		GLDOUBLE viewmatrix[16], viewinverse[16];
+		struct currayhit *rh;
+		rh = (struct currayhit *)tg->RenderFuncs.rayHit;
 
-            for (i=0; i<p->num_SensorEvents; i++) {
-                    if (p->SensorEvents[i].fromnode == rh->hitNode) {
-                            /* printf ("found this node to be sensitive - returning %u\n",rayHit.hitNode); */
-                            return ((struct X3D_Node*) rh->hitNode);
-                    }
-            }
-        }
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+		matinverseAFFINE(viewinverse,viewmatrix);
+		matmultiplyAFFINE(rh->justModel,rh->modelMatrix,viewinverse);
+//		printf("~");
 
-        /* no rayhit, or, node was "close" (scenegraph-wise) to a sensitive node, but is not one itself */
-        return(NULL);
+	}
+//	printf("^ ");
+	return retnode;
 }
 
 
-/* set a node to be sensitive, and record info for this node */
+/* set a node to be sensitive, and record info for this node 
+	A transform can have multiple sensor children.
+	A sensor can be DEF/USEd under multiple parent transforms.
+	SensorEvent is like a lookup table to go between them:
+	parentNode 1:M SensorEvent   M:1 sensorNode
+	               parent/sensor
+*/
 void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
-        void (*myp)(unsigned *);
+	void (*myp)(unsigned *);
 	int i;
-		ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-        switch (datanode->_nodeType) {
-                /* sibling sensitive nodes - we have a parent node, and we use it! */
-                case NODE_TouchSensor: myp = (void *)do_TouchSensor; break;
-                case NODE_GeoTouchSensor: myp = (void *)do_GeoTouchSensor; break;
-				case NODE_LineSensor: myp = (void *)do_LineSensor; break;
-                case NODE_PlaneSensor: myp = (void *)do_PlaneSensor; break;
-                case NODE_CylinderSensor: myp = (void *)do_CylinderSensor; break;
-                case NODE_SphereSensor: myp = (void *)do_SphereSensor; break;
-                case NODE_ProximitySensor: /* it is time sensitive only, NOT render sensitive */ return; break;
-                case NODE_GeoProximitySensor: /* it is time sensitive only, NOT render sensitive */ return; break;
+	switch (datanode->_nodeType) {
+		/* sibling sensitive nodes - we have a parent node, and we use it! */
+		case NODE_TouchSensor: myp = (void *)do_TouchSensor; break;
+		case NODE_GeoTouchSensor: myp = (void *)do_GeoTouchSensor; break;
+		case NODE_LineSensor: myp = (void *)do_LineSensor; break;
+		case NODE_PlaneSensor: myp = (void *)do_PlaneSensor; break;
+		case NODE_CylinderSensor: myp = (void *)do_CylinderSensor; break;
+		case NODE_SphereSensor: myp = (void *)do_SphereSensor; break;
+		case NODE_ProximitySensor: /* it is time sensitive only, NOT render sensitive */ return; break;
+		case NODE_GeoProximitySensor: /* it is time sensitive only, NOT render sensitive */ return; break;
 
-                /* Anchor is a special case, as it has children, so this is the "parent" node. */
-                case NODE_Anchor: myp = (void *)do_Anchor; parentNode = datanode; break;
-                default: return;
-        }
-        /* printf ("setSensitive parentNode %p  type %s data %p type %s\n",parentNode,
-                        stringNodeType(parentNode->_nodeType),datanode,stringNodeType (datanode->_nodeType)); */
+		/* Anchor is a special case, as it has children, so this is the "parent" node. */
+		case NODE_Anchor: myp = (void *)do_Anchor; parentNode = datanode; break;
+		default: return;
+	}
+	/* printf ("setSensitive parentNode %p  type %s data %p type %s\n",parentNode,
+					stringNodeType(parentNode->_nodeType),datanode,stringNodeType (datanode->_nodeType)); */
 
 	/* is this node already here? */
 	/* why would it be duplicate? When we parse, we add children to a temp group, then we
-	   pass things over to a rootNode; we could possibly have this duplicated */
+		pass things over to a rootNode; we could possibly have this duplicated */
 	for (i=0; i<p->num_SensorEvents; i++) {
 		if ((p->SensorEvents[i].fromnode == parentNode) &&
-		    (p->SensorEvents[i].datanode == datanode) &&
-		    (p->SensorEvents[i].interpptr == (void *)myp)) {
+			(p->SensorEvents[i].datanode == datanode) &&
+			(p->SensorEvents[i].interpptr == (void *)myp)) {
 			/* printf ("setSensitive, duplicate, returning\n"); */
 			return;
 		}
 	}
 
-        if (datanode == 0) {
-                printf ("setSensitive: datastructure is zero for type %s\n",stringNodeType(datanode->_nodeType));
-                return;
-        }
+	if (datanode == 0) {
+		printf ("setSensitive: datastructure is zero for type %s\n",stringNodeType(datanode->_nodeType));
+		return;
+	}
 
-        /* record this sensor event for clicking purposes */
-        p->SensorEvents = REALLOC(p->SensorEvents,sizeof (struct SensStruct) * (p->num_SensorEvents+1));
+	/* record this sensor event for clicking purposes */
+	p->SensorEvents = REALLOC(p->SensorEvents,sizeof (struct SensStruct) * (p->num_SensorEvents+1));
 
-        /* now, put the function pointer and data pointer into the structure entry */
-        p->SensorEvents[p->num_SensorEvents].fromnode = parentNode;
-        p->SensorEvents[p->num_SensorEvents].datanode = datanode;
-        p->SensorEvents[p->num_SensorEvents].interpptr = (void *)myp;
+	/* now, put the function pointer and data pointer into the structure entry */
+	p->SensorEvents[p->num_SensorEvents].fromnode = parentNode;
+	p->SensorEvents[p->num_SensorEvents].datanode = datanode;
+	p->SensorEvents[p->num_SensorEvents].interpptr = (void *)myp;
 
-        /* printf ("saved it in num_SensorEvents %d\n",p->num_SensorEvents);  */
-        p->num_SensorEvents++;
+	/* printf ("saved it in num_SensorEvents %d\n",p->num_SensorEvents);  */
+	p->num_SensorEvents++;
 }
 
 /* we have a sensor event changed, look up event and do it */
 /* note, (Geo)ProximitySensor events are handled during tick, as they are time-sensitive only */
 static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int status) {
-        int count;
-		int butStatus2;
-		ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	//COS - cursorOverSensitive - a parent transform node / hitPoint node
+	int count;
+	int butStatus2;
+	ttglobal tg;
+	ppMainloop p;
+	tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
 
-        /* if we are not calling a valid node, dont do anything! */
-        if (COS==NULL) return;
+	/* if we are not calling a valid node, dont do anything! */
+	if (COS==NULL) return;
 
-        for (count = 0; count < p->num_SensorEvents; count++) {
-                if (p->SensorEvents[count].fromnode == COS) {
-						butStatus2 = butStatus;
-                        /* should we set/use hypersensitive mode? */
-                        if (ev==ButtonPress) {
-                                gglobal()->RenderFuncs.hypersensitive = p->SensorEvents[count].fromnode;
-                                gglobal()->RenderFuncs.hyperhit = 0;
-                        } else if (ev==ButtonRelease) {
-                                gglobal()->RenderFuncs.hypersensitive = 0;
-                                gglobal()->RenderFuncs.hyperhit = 0;
-								butStatus2 = 1;
-                        } else if (ev==MotionNotify) {
-                                get_hyperhit();
-                        }
+	for (count = 0; count < p->num_SensorEvents; count++) {
+		if (p->SensorEvents[count].fromnode == COS) {
+			butStatus2 = butStatus;
+			/* should we set/use hypersensitive mode? */
+			if (ev==ButtonPress) {
+				tg->RenderFuncs.hypersensitive = p->SensorEvents[count].fromnode;
+				tg->RenderFuncs.hyperhit = 1; // 1 means we are starting a hypersensitive drag
+				get_hyperhit(); //added for touch devices which have no isOver preparation
+			} else if (ev==ButtonRelease) {
+				tg->RenderFuncs.hypersensitive = 0; 
+				tg->RenderFuncs.hyperhit = 0; //0 means we finished hypersensitive drag
+				butStatus2 = 1;
+			} else if (ev==MotionNotify) {
+				get_hyperhit();
+			}
 
 
-                        p->SensorEvents[count].interpptr(p->SensorEvents[count].datanode, ev,butStatus2, status);
-                        /* return; do not do this, incase more than 1 node uses this, eg,
-                                an Anchor with a child of TouchSensor */
-                }
-        }
+			p->SensorEvents[count].interpptr(p->SensorEvents[count].datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
+			/* return; do not do this, incase more than 1 node uses this, eg,
+							an Anchor with a child of TouchSensor */
+		}
+	}
 }
 
-/* POINTING DEVICE SENSOR CONMPONENT
-http://www.web3d.org/files/specifications/19775-1/V3.3/Part01/components/pointingsensor.html
-- this describes how the pointing device sensors:
- TouchSensor, DragSensors: CylinderSensor, SphereSensor, PlaneSensor, [LineSensor]
- work as seen by the user:
- - dragsensor - the parent's descendent geometry is used only to identify and activate the dragsensor node. 
-	After that it's the dragsensor's geometry (Cylinder/Sphere/Plane/Line) (not the parent's descendent geometry) 
-	that's intersected with the pointing device bearing/ray to generate trackpoint_changed 
-	and translation_ or rotation_changed events in sensor-local coordinates
-- touchsensor - generates events in touchsensor-local coordinates
+void prepare_model_view_pickmatrix_inverse0(GLDOUBLE *modelMatrix, GLDOUBLE *mvpi);
+void prepare_model_view_pickmatrix_inverse(GLDOUBLE *mvpi){
+	/*prepares a matrix to transform points from eye/pickray/bearing 
+		to gemoetry-local, using the modelview matrix of the pickray-scene intersection point
+		found closest to the viewer on the last render_hier(VF_SENSITIVE) pass
+		using the model matrix snapshotted/frozen at the time of the intersection, and the current view matrix
+		MVPI = inverse(pickray_frozen_model * view)
+	*/
+	struct currayhit * rh;
+	//GLDOUBLE *modelview;
+	GLDOUBLE viewmatrix[16],  mv[16]; //viewinverse[16],
+	ttglobal tg = gglobal();
 
-Terminology ([] denotes alternative design not yet implemented April 2014):
-<node>-local - coordinates relative to a given node
-modelview matrix - transforms coords from the current node-local into the current viewpoint-local
-proj matrix - projects points from viewpoint-local 3D to 2D normalized screen viewport (with Z in 0 to 1 range)
-pick-proj matrix - special projection matrix that aligns the mousexy (pickpoint) on the viewport center
-	- formed in setup_projection(pick=TRUE,,)
-view matrix - the view part of the modelview matrix, generated during setup_viewpoint()
-model matrix - the model part of the world modelview matrix, generated during
-	traversing the scenegraph in render_node()
-world - coordinates at the root node level ie with no transforms applied
-	viewport-local -[proj] - viewpoint-local - [view] - world - [model] - node-local
-modelview matrix: combined model * view matrices
-place - position in the scenegraph transform hierarchy (with DEF/USE, a node can be in multiple places)
-geometry_model: the model part of the modelview matrix at a geometry node's place
-sensor_model: the model part of the modelview matrix at a sensor node's place
-bearing: 2 points (A,B) defining a ray in 3D space going from A in the direction of B
-	1. For 2D screen-based pointing devices	like mouse, A is the viewpoint position 0,0,0 
-		in viewpoint-local, and for B mousexy is converted in setup_projection(pick=TRUE,,) 
-		to a special pick-proj matrix that centers the viewport on the mousexy, so B is 0,0,-1 in
-			pick-viewport-local coordinates	(glu_unproject produces pick-viewport-local)
-		[using normal projection matrix for the bearing, then B= mousex,mousey,-1 in 
-		normal viewport-local coordinates, and glu_unproject is used to get this bearing
-		into world coordinates for the remainder of PointingDeviceSensor activity]
-	[2.for a 3D pointing device, it would have its own A,B in world. And then that world bearing 
-		can be transformed into geometry-local and sensor-local and intersections with 
-		shape-geometry and sensor-geometry calculated. dug9 Sept 2, 2014: FLY keyboard is 6DOF/3D, and not in world]
-hit: an intersection between the bearing and geometry that is closer to A (supercedes previous cloest)
+	rh = (struct currayhit *)tg->RenderFuncs.rayHit;
+	//modelview = rh->modelMatrix;
 
-As seen by the developer, here's how I (dug9 Apr 2014) think they should work internally, on each frame 
- 0. during parsing, when adding a parent to a node, check the node type and if a sensor type, 
-		create a SensorEvent (by calling setSensitive(node,parent)) and set the SensorEvent[i].datanode=sensor
-		and SensorEvent[i].fromNode = parent
- 1. in startofloopnodeupdates() for each sensor node, flag its immediate Group/Transform parent 
-	with VF_Sensitive [the sensor's ID]	so when traversing the scenegraph, this 'sensitivity' 
-	can be pushed onto a state stack to affect descendent geometry nodes
- 2. from the scene root, traverse to the viewpoint to get the view part of the modelview matrix
-	-Set up 2 points in viewpoint space: A=0,0,0 (the viewpoint) and B=(mouse x, mouse y, z=-1) to represent the bearing
-	-apply a special pick-projection matrix, in setup_projection(pick=TRUE,,), so that glu_unproject 
-		is with respect to the mouse-xy bearing B point being at the center of the viewport 
-		[use normal projection, and minimize the use of glu_unproject by transforming viewport-local bearing
-		to world during setup, and use world for bearing for all subsequent PointingDeviceSensor activities
-		dug9 Sept 2014: or keep in avatar coords, and set up a avatar2pickray affine transform]
- 3. from the scene root, in in render_hier(VF_Sensitive) pass, tranverse the scenegraph looking for sensitive 
-	group/transform parent nodes, accumulating the model part of the modelview matrix as normal.
-	When we find a sensitive parent: 
-	a) save the current best-hit parent-node* to a C local variable, and set the current best node* to the 
-		current parent	[push the parent's sensor node ID onto a sensor_stack]
-	b) save the current hit modelview matrix to a C local variable, and set it to the parent's modelview matrix 
-		[snapshot the current modelview matrix, and push onto a sensor_model stack]
-	When we find descendent geometry to a sensitive (grand)parent:
-	a) use glu_unproject with the pick-proj and current modelview matrix to re-transform the bearing 
-		into geometry-local space [invert the cumulative model matrix, and use it to transform 
-		world bearing (A,B) into geometry-local]
-		-so we have a bearing (A',B') in geometry-local (this requires fewer math ops than 
-		transforming all geometry vertices into pick-viewport-local [bearing-world])
-	b) intersect the infinite line passing through A' and B' 
-		with the geometry to get a list of intersection points n,xyz[n] in geometry-local space, or for 
-		well-known geometry sphere,box,cylinder,rectangle2D... compute and test intersections one by one
-	c) for each intersection point:
-		- filter the intersection point to elliminate if in the -B direction from A (behind the viewpoint)
-		- transform using modelview and pick-proj matrix into pick-viewport-local coordinates 
-		  [transform using model into bearing-world coordinates]
-		- compare the remaining intersection point by distance from A, and choose it over 
-			the current one if closer to A (the other is 'occluded') to produce a new hit
-	d) if there was a new hit, record some details needed by the particular type of sensor node, (but don't
-		generate events yet - we have to search for even closer hits):
-		- sensor's parent (Group/Transform) node* [+ Sensor node* ]
-		- sensor's parent modelview and pick-proj matrices [sensor's parent model matrix]
-		- hit point on decendent geometry surface, in pick-viewport-local [sensor-local]
-			(the geometry node may be in descendant transform groups from the sensor's parent, so needs to be 
-			transformed up to the Sensor-local system at some point, using 
-			the sensor's modelview and pick-proj matrices [sensor_model matrix] we saved)
-		- TouchSensor: 
-			a) texture coordinates at the hitpoint
-			b) normal to surface at hitpoint [transformed into sensor-local system]
-  4. once finished searching for sensor nodes, and back in mainloop at the root level, if there 
-		was a hit, and the hit is on sensitive geometry, call a function to look up the sensor node* given
-		the parent node* in SensorEvents array, and generate events from the sensor node
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	fw_glGetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
 
-What's not shown above: 
-6. what happens when 2+ sensor nodes apply to the same geometry:
-	for example, parent [ sensor1, group [ sensor 2, shape ] ]
-	the specs say it's the sensor that's the nearest co-descendent (sibling or higher) to the geometry [sensor2,shape]
-	(it doesn't say what happens in a tie ie 2 different sensor nodes are siblings) [sensor1,sensor2,shape]
-	(it doesn't say what happens if you DEF a sensornode and USE it in various places)
-7. what happens on each frame during a Drag:
-	the successful dragsensor node is 'chosen' on the mouse-down
-	on mouse-move: intersections with other occluding geometry, and geometry sensitive to other sensor nodes, are ignored, 
-	- but intersection with the same dragsensor's geometry are updated for trackpoint_changed eventout
-	- but because typically you move the geometry you are dragging, it and the dragsensor are 
-		moved on each drag/mousemove, so you can't intersect the bearing with the updated sensor geometry position
-		because that would produce net zero movement. Rather you need to 'freeze' the pose of the dragsensor geometry in the scene
-		on mousdown, then on each mousemove/drag frame, intersect the new pointer bearing with 
-		the original/frozen/mousedown dragsensor geometry pose. Then on mouse-up you unfreeze so next mousedown 
-		you are starting fresh on the translated sensor geometry.
-8. where things are stored
-	The details for the hit are stored in a global hitCursor struct [struct array]
-	render_node() has some C local variables which get pushed onto the C call stack when recursing
-	[render_node() uses an explicit stack for sensor_model and sensor_parent_node* to apply to descendent geometry]
-9. any special conditions for touch devices: none [multiple bearings processed on the same pass, for multi-touch, 
-	PlaneSensor.rotation_changed, PlaneSensor.scale_changed, LineSensor.scale_changed events added to specs]
+	matmultiplyAFFINE(mv,rh->justModel,viewmatrix); //rh->justModel
 
-More implemnetation details - these may change, a snapshot April 2014
-Keywords:
-	Sensitive - all pointingdevice sensors
-	HyperSensitive - drag sensors in the middle of a drag
-Storage types:
-struct currayhit {
-	struct X3D_Node *hitNode; // What node hit at that distance? 
-	- It's the parent Group or Transform to the Sensor node (the sensor node* gets looked up from parent node*
-		in SensorEvents[] array, later in sendSensorEvents())
-	GLDOUBLE modelMatrix[16]; // What the matrices were at that node
-	- a snapshot of modelview at the sensornode or more precisely it's immediate parent Group or Transform
-	- it's the whole modelview matrix
-	GLDOUBLE projMatrix[16]; 
-	- snapshot of the pick-projection matrix at the same spot
-	-- it will include the pick-specific projection matrix aligned to the mousexy in setup_projection(pick=TRUE,,)
-};
-global variables:
-	struct point_XYZ r1 = {0,0,-1},r2 = {0,0,0},r3 = {0,1,0}; 
-		pick-viewport-local axes: r1- along pick-proj axis, r2 viewpoint, r3 y-up axis in case needed
-	hyp_save_posn, t_r2 - A - (viewpoint 0,0,0 transformed by modelviewMatrix.inverse() to geometry-local space)
-	hyp_save_norm, t_r1 - B - bearing point (viewport 0,0,-1 used with pick-proj bearing-specific projection matrix)
-		- norm is not a direction vector, its a point. To get a direction vector: v = (B - A) = (norm - posn)
-	ray_save_posn - intersection with scene geometry, in sensor-local coordinates 
-		- used in do_CyclinderSensor, do_SphereSensor for computing a radius  on mouse-down
-	t_r3 - viewport y-up in case needed
-call stacks:
-resource thread > parsing > setParent > setSensitive
-mainloop > setup_projection > glu_pick
-mainloop > render_hier(VF_Sensitive) > render_Node() > upd_ray(), (node)->rendray_<geom> > rayhit()
-mainloop > sendSensorEvent > get_hyperHit(), .interptr()={do_TouchSensor / do_<Drag>Sensor /..}
-funcion-specific variables:
-rayhit()
-	Renderfuncs.hp.xyz - current closest hit, in bearing-local system
-	RenderFuncs.hitPointDist - current distance to closest hit from viewpoint 0,0,0 to geometry intersection (in viewpoint scale)
-	rayHit - snapshot of sensor's modelview matrix to go with closest-hit-so-far
-	rayHitHyper - "
-render_node(): - a few variables acting as a stack by using automatic/local C variables in recursive calling
-	int srg - saves current renderstate.render_geom
-	int sch - saves current count of the hits from a single geometry node before trying to to intersect another geometry
-	struct currayhit *srh - saves the current best hit rayph on the call stack
-	rayph.modelMatrix- sensor-local snapshot of modelview matrix 
-	rayph.viewMatrix - " proj "
-		-- this could have been a stack, with a push for each direct parent of a pointingdevice sensor
-SIBLING_SENSITIVE(node) - macro that checks if a node is VF_Sensitive and if so, sets up a parent vector
-	n->_renderFlags = n->_renderFlags  | VF_Sensitive; - for each parent n, sets the parent sensitive
-		(which indirectly sensitizes the siblings)
-geometry nodes have virt->rendray_<shapenodetype>() functions called unconditionally on VF_Sensitive pass
-	- ie rendray_Box, rendray_Sphere, rendray_Circle2D
-	- called whether or not they are sensitized, to find an intersection and determine if they a) occlude 
-			or b) succeed other sensitized geometry along the bearing
-upd_ray() - keeps bearing A,B transformed to geometry-local A',B' - called after a push or pop to the modelview matrix stack.
-rayhit() - accepts intersection of A',B' line with geometry in geometry-local space, 
-	- filters if behind viewpoint,
-	- sees if it's closer to A' than current, if so 
-		- transforms hit xyz from geometry-local into bearing-local (pick-viewport-local) [model] and stores as hp.xyz
-		- snapshots the sensor-local modelview and stores as .rayHit, for possible use in get_hyperhit()
-get_hyperhit() for DragSensors: transforms the current-frame bearing from bearing-local 
-		into the sensor-local coordinate system of the winning sensor, in a generic way that works 
-		for all the DragSensor types in their do_<Drag>Sensor function. 
-		- ray_save_posn, hyp_save_posn, hyp_save_norm
-sendSensorEvents(node,event,button,status) - called from mainloop if there was a any pointing sensor hits
-	- looks up the sensor node* from the parent node*
-	- calls the do_<sensortype> function ie do_PlaneSensor(,,,)
-do_TouchSensor, do_<dragSensorType>: do_CylinderSensor, do_SphereSensor, do_PlaneSensor, [do_LineSensor not in specs, fw exclusive]
-	- compute output events and update any carryover sensor state variables
-		- these are called from mainloop ie mainloop > sendSensorEvents > do_PlaneSensor
-		- because its not called from the scenegraph where the SensorNode is, and because 
-			the Sensor evenouts need to be in sensor-local coordinates, the inbound variables
-			need to already be in sensor-local coordinates ie posn,norm are in sensor-local
+	//modelview = mv;
 
-
-What I think we could do better:
-1. world bearing coords:
-	Benefits of converting mousexy into world bearing(A,B) once per frame before sensitive pass:
-	a) 3D PointingDevices generate bearing(A,B) in world coordinates
-		dug9 Aug31, 2014: not really. FLY keyboard is 6DOF/3D, and works in current-viewpoint space, 
-			adding relative motions on each tick. If I had a 3D pointing device, I would use it the same way
-	b) separate PickingComponent (not yet fully implemented) works in world coordinates
-	- so these two can share code if PointingDevice bearing from mouse is in world
-	c) minimizes the use of glu_unproject (a compound convenience function with expensive 
-		matrix inverse)
-		dug9 Aug31, 2014: to do a ray_intersect_geometry you need to transform 2 points into local geometry
-			-and that requires a matrix inverse- or you need to transform all the geometry points into
-			a stable pickray coordinate system (like avatar collision) - requiring the transform of  lots of points
-			IDEA: when compile_transform do the inverse of the transform too - 2 matrix stacks 
-			- then for VF_Sensitive you'd matrix multiply down both stacks, use the inverse for transforming
-				pick ray points into local, and use modelview (or model if you want global) to transform
-				the near-side intersection back into stable pickray coordinates for eventual comparative 
-				distance sorting
-			- Q. would this be faster than inverting modelview (or model) at each shape (to transform 2 ray points to
-				local) or transforming all shape to viewpoint space to intersect there (like collision)? I ask because
-				I'm thinking of implementing web3d.org LOOKAT navigation type, which allows you to click on any shape
-				(and then your viewpoint transitions to EXAMINE distance near that shape). Unlike Sensitive -which
-				sensitize a few nodes- LOOKAT would allow any shape to be picked, so testing (transforming or inverting)
-				needs to be done at more shapes. For LOOKAT I'll use the collision approach (transform all shape
-				points to avatar/viewpoint space) and it already has a linesegment(A,B)_intersect_shape, 
-				with distance sorting for wall penetration detection and correction.
-	How:
-	after setup_viewpoint and before render_hier(VF_Sensitive), transform the mouse bearing (A,B) 
-	from viewpoint to world coordinates using the view matrix. 
-	dug9 Aug31, 2014: keep in mind points along the pickray need to be sorted along the pickray 
-			(all but the closest are occluded), and that might be simpler math in viewpoint coordinates (distance=z)
-			versus world coordinate (A,B) which requires a dot product distance=(C-A)dot(B-A)
-2. normal proj matrix (vs glu_pick modified proj matrix)
-	Benefits of using normal proj matrix for PointingDeviceSensor:
-	a) allows multiple bearings to be processed on the same pass for future multi-touch devices (no 
-		competition for the bearing-specific pick-proj matrix)
-	b) allows VF_Sensitive pass to be combined with other passes for optimization, if using
-		the same transform matrices
-	c) allows setup_viewpoint() and setup_projection() to be computed once for multiple passes
-	d) allows using world coordinates for the bearing because then bearing doesn't depend 
-		on a special proj matrix which only glu_project and glu_unproject can make use of,
-		and those functions transform to/from viewport space
-	How:
-	in setup_projection(pick=FALSE,,), and glu_unproject with the mousexy to get B in 
-	viewpoint-local, then use view to transform A,B from viewpoint-local to world. View is 
-	computed with setup_viewpoint()
-	
-	dug9 Aug31 2014: extent/Minimum Bounding Boxes (MBB) - if you transform the object shape MBB
-		directly into pickray-aligned coordinates in one step with pickray-aligned modelview, then exclusion can be done
-		with simple x < max type culling tests. Then once that test gets a hit you can do more expensive
-		operations. That's the benefit of pickray-aligned (modified) modelview: faster culling. Otherwise using
-		ordinary modelview or model, you have to do another matrix multiply on 8 points to get that MBB into
-		pickray-aligned space, or do a more general ray-intersect-unaligned-box which has more math.
-	dug9 Sept 2, 2014: if GLU_PROJECT, GLU_UNPROJECT are being used now to transform, then there is already
-		a matrix concatonation: modelview and projection. So substituting a pickray-aligned affine
-		matrix for the proj matrix won't add matrix multiplies, and since the combined would now be 
-		affine, further ops can also be affine, reducing FLOPs. 
-
-3. explicit sensor stack:
-	Benefits of an explicit sensor stack in render_node():
-	a) code will be easier to read (vs. current 'shuffling' on recusion)
-	b) minimizes C call stack size and minimizes memory fragmentation from malloc/free
-		by using a pre-allocaed (or infrequently realloced) heap stack
-	How: 
-	when visiting a VF_sensitive parent (Group/Transform), push parent's modelview [model] transform
-	onto a special sensor_viewmodel [sensor_model] stack that works like modelview matrix push and pop stack,
-	and push the parents node* onto a sensor_parent stack (and pop them both going back)
-3. minimize use of glu_unproject
-	glu_unproject is a compound convenience function doing an expensive 4x4 matrix inversion
-	Benefits of avoiding glu_unproject:
-	a) allows speed optimization by computing inverse once, and using it many times for a given
-		modelview [model] matrix
-	b) avoids reliance on any projection matrix
-	dug9 Sept 2, 2014: 
-	  c) without projection matrix, affine matrix ops can be used which cut FLOPs in half
-	How:
-	a) implement: 
-		FW_GL_GETDOUBLEV(GL_MODEL_MATRIX_INVERSE, modelMatrix);
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX_INVSERSE, modelviewMatrix);
-		and during modelview_push and _pop clear a state flag. Then when we call the above
-		we would test if !flag invert & set flag, else: re-use
-	b) for bearing, use world coordinates, which elliminates the dependency on pick-bearing-specific projmatrix
-		so we don't rely on glu_project/glu_unproject which are the only functions that can use the projMatrix.
-
-	we need the following transform capabilities:
-	a) bearing: transform A,B bearing from PointingDevice-local to world. If pointing device is:
-		- 2D mouse use pick-proj [normal proj] and view matrix
-		- 3D, leave in world coords, or do some uniform scale to world
-	b) sensor hits: 
-		- transform bearing from bearing-local (pick-viewport-local [world]) to geometry-local
-		- transform geometry-local hit xyz and surface normal vector to sensor-local 
-			for generating events, DragSensor: for intersecting with sensor geometry,
-				using modelview+pick-proj [using model]
-	c) DragSensor: snapshot/freeze the Sensor_model transform on mousedown 
-		for use during a drag/mousemove
-	d) Neither/Non-Sensitized geom nodes: transform geometry xyz hits to bearing-local
-		using modelview+pick-proj [model]
-	[viewport coordinates are only needed once per frame to project the mouse into bearing-world]
-
-Update May 2015 - dug9
-	- we've been using AffinePickMatrix method since fall 2014, 8 months, and with LOOKAT and EXPLORE navigation modes
-		and its been working fine.
-	- clarifications of some points above:
-		- we do our ray-geometry intersections in geometry-local coordinates. That requires us to 
-			transform (a copy of) the pick ray into geometry-local as we move down the transform stack in render_node()
-			we do that in upd_ray(), and it requires a matrix inverse. Currently we call upd_ray() during descent, and
-			also during ascent in render_node(). It could be a stack instead, pushed on the way down and popped on the way back 
-			to save an inverse. 
-		- We recompute upd_ray() on each vf_sensitive recursion into render_node. But in theory it should/could be just when 
-			we've chnaged the modelview transform by passing through a transform (or geotransform or group) node.
-			I'm not sure the best place/way to detect that. Perhaps just before ->children(node).
-					bool pushed_ray = false
-					if(node.type == transform type) pushed_ray = true
-					if(pushed_ray) upd_ray_and_push()
-					node->children(node)
-					if(pushed_ray) pop_ray()
-		- then if/when we have an intersection/hit point, we transform it back into bearing-local space for comparison
-			with the best-hit so far on the frame (which is closest/not occluded). This transform uses no inverse.
-		- One might argue whether it would be easier / somehow better to transform all geometry points 
-			into ray/bearing local space instead, requiring no inverse, and simplifying some of the intersection math.
-			For drawing, this transform is done on the gpu. I don't know which is better. 
-			OpenCL might help, transforming in parallel, analogous to drawing.
-		- Or for each transform when compile_transform the 4x4 from translation, rotation, scale, also compute its inverse and
-			store with the transform. Then when updating modelview during scengraph traversing, also multiply the inverses 
-			to get inverse(modelview). 49 FLOPS in an AFFINE inverse (ie inverting cumulative modelview at each level), 
-			vs. 36 in AFFINE matrix multiply. You save 13 FLOPS per transform level during VFSensitve pass, but need to
-			pre-compute the inverses, likely once for most, in compile_transform.
-		- we have to intersect _all_ geometry, not just sensitive. That's because non-sensitive geometry can occlude.
-			we do an extent/MBB (minimum bounding box) intersection test first, but we need the upd_ray() with inverse to do that.
-		- LOOKAT and EXPLORE use this intersecting all geometry to find the closest point of all geometry along the ray, 
-			even when no sensitive nodes in the scene. They only do it on passes where someone has indicated they 
-			want to pick a new location (for viewpoint slerping to) (versus sensitive nodes in scene which cause 
-			us to always be checking for hits)
-		- for dragsensor nodes, on mouse-down we want to save/snapshot the modelview matrix from viewpoint to sensor-local
-			- then use this sensor-local transform to place the sensor-geometry ie cylinder, sphere, plane [,line]
-				for intersecting as we move/drag with mousedown
-			- since we don't know if or which dragsensor hit will be the winner (on a frame) when visiting a sensor,
-				we save it if its the best-so-far and over-write with any subsequent better hits
-		- if there are multiple sensors in the same scengraph branch, the one closest to the hit emits the events
-			- there could/should be a stack for 'current sensor' pushed when descending, and popping on the way back
-	- An alternative to a cluttered render_node() function would be to change virt->children(node) functions
-		to accept a function pointer ie children(node,func). Same with normal_children(node,func).
-		Then use separate render_node(node), sensor_node(node), and collision_node(node) functions. 
-		They are done on separate passes now anyway.
-		On the other hand, someone may find a way to combine passes for better efficiency/reduced transform FLOPs per frame.
-	- Multitouch - there is currently nothing in the specs. But if there was, it might apply to (modfied / special) touch 
-		and drag sensors. And for us that might mean simulataneously or iterating over a list of touches.
-*/
+	prepare_model_view_pickmatrix_inverse0(mv, mvpi);
+}
 
 /*	get_hyperhit()
-	If we have successfully picked a DragSensor sensitive node, and we are on mousedown
-	or mousemove(drag) events:
+	If we have successfully picked a DragSensor sensitive node -intersection recorded in rayHit, and 
+	intersection closest to viewpoint transformed to geometry-local, and sensornode * returned from getRayHit()-
+	and we are on mousedown	or mousemove(drag) events on a dragsensor node:
    - transform the bearing/pick-ray from bearing-local^  to sensor-local coordinates
    - in a way that is generic for all DragSensor nodes in their do_<Drag>Sensor function
    - so they can intersect the bearing/pick-ray with their sensor geometry (Cylinder,Sphere,Plane[,Line])
    - and emit events in sensor-local coordinates
    - ^bearing-local: currently == pick-viewport-local 
-   -- unproject is used because to go from geometry-local to bearing-local, because
-		it's convenient, and includes the pick-viewport in the transform - see setup_projection(pick=TRUE,,) for details
 	  But it may be overkill if bearing-local is made to == world, for compatibility with 3D pointing devices
 */
-static void get_hyperhit() {
-    double x1,y1,z1,x2,y2,z2,x3,y3,z3;
-    GLDOUBLE projMatrix[16];
-	struct currayhit *rhh, *rh;
-	ttglobal tg = gglobal();
-	rhh = (struct currayhit *)tg->RenderFuncs.rayHitHyper;
-	rh = (struct currayhit *)tg->RenderFuncs.rayHit;
-
-	/*
-	printf ("hy %.2f %.2f %.2f, %.2f %.2f %.2f, %.2f %.2f %.2f\n",
-		r1.x, r1.y, r1.z, r2.x, r2.y, r2.z, 
-		tg->RenderFuncs.hp.x, tg->RenderFuncs.hp.y, tg->RenderFuncs.hp.z);
-	*/
-
-	if(!tg->RenderFuncs.usingAffinePickmatrix){
-		//FLOPS 588 double: 3x glu_unproject 196
-		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, projMatrix);
-		//FLOPs 588 double: 3 x glu_unproject 196
-		FW_GLU_UNPROJECT(r1.x, r1.y, r1.z, rhh->modelMatrix,
-				projMatrix, viewport, &x1, &y1, &z1);
-		FW_GLU_UNPROJECT(r2.x, r2.y, r2.z, rhh->modelMatrix,
-				projMatrix, viewport, &x2, &y2, &z2);
-		FW_GLU_UNPROJECT(tg->RenderFuncs.hp.x, tg->RenderFuncs.hp.y, tg->RenderFuncs.hp.z, rh->modelMatrix,
-				projMatrix,viewport, &x3, &y3, &z3);
-		if(0) printf("OLD ");
-	}
-	if(tg->RenderFuncs.usingAffinePickmatrix){
-		//feature-AFFINE_GLU_UNPROJECT
-		//FLOPs	112 double:	matmultiplyAFFINE 36, matinverseAFFINE 49, transform (affine) 3x9 =27
-		GLDOUBLE mvp[16], mvpi[16];
-		GLDOUBLE *pickMatrix = getPickrayMatrix(0);
-		GLDOUBLE *pickMatrixi = getPickrayMatrix(1);
-		struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
-		struct point_XYZ tp; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
-
-		if(0){
-			//pickMatrix is inverted in setup_projection
-			matmultiplyAFFINE(mvp,rhh->modelMatrix,pickMatrixi);
-			matinverseAFFINE(mvpi,mvp);
-		}else{
-			//pickMatrix is not inverted in setup_projection
-			double mvi[16];
-			matinverseAFFINE(mvi,rhh->modelMatrix);
-			matmultiplyAFFINE(mvpi,pickMatrix,mvi);
-		}
+void get_hyperhit() {
+	/* 
+		transforms the last known pickray intersection, and current frame pickray/bearing into sensor-local coordinates of the 
+		intersected geometry, using:
+		- current frame pickray view matrix (in case mouse has moved)
+		- current frame view matrix (in case its changed, ie keyboard navigation while mouse-down on a drag sensor, 
+			or HMD head mounted display/mobile motionsensor nav while button-down on a drag sensor: should drag)
+		- mouse-down-frozen model matrix between world and the sensor's parent (transform,..) node
+		sensor-local-pickray = frozen_justModel * current_view * pickray_matrix * unit_pickray 0,0,-1
+		modelviewMatrix =     |     M                 V                P       |
 		
-		transform(&tp,&r11,mvpi);
-		x1 = tp.x; y1 = tp.y; z1 = tp.z;
-		transform(&tp,&r2,mvpi);
-		x2 = tp.x; y2 = tp.y; z2 = tp.z;
-		if(0){
-			//pickMatrix is inverted in setup_projection
-			matmultiplyAFFINE(mvp,rh->modelMatrix,pickMatrix);
-			matinverseAFFINE(mvpi,mvp);
-		}else{
-			//pickMatrix is not inverted in setup_projection
-			double mvi[16];
-			matinverseAFFINE(mvi,rh->modelMatrix);
-			matmultiplyAFFINE(mvpi,pickMatrix,mvi);
-		}
+		variables:
+		struct point_XYZ r1 = {0,0,-1},r2 = {0,0,0},r3 = {0,1,0}; 
+			pick-viewport-local axes: r1- along pick-proj axis, r2 viewpoint, r3 y-up axis in case needed
+		hyp_save_posn, t_r2 - A - (viewpoint 0,0,0 transformed by modelviewMatrix.inverse() to geometry-local space)
+		hyp_save_norm, t_r1 - B - bearing point (viewport 0,0,-1 used with pick-proj bearing-specific projection matrix)
+			- norm is not a direction vector, its a point. To get a direction vector: v = (B - A) = (norm - posn)
+		ray_save_posn - intersection with scene geometry, transformed into in sensor-local coordinates 
+			- used in do_CyclinderSensor, do_SphereSensor for computing a radius  on mouse-down
+		t_r3 - viewport y-up in case needed
+	*/
+    double x1,y1,z1,x2,y2,z2,x3,y3,z3;
+	GLDOUBLE mvpi[16];
+	struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
+	struct point_XYZ tp;
 
-		transform(&tp,&tg->RenderFuncs.hp,mvpi);
-		x3 = tp.x; y3 = tp.y; z3 = tp.z;
-		if(0) printf("NEW ");
-	}
+	//OLDCODE struct currayhit *rh;  //*rhh,
+	ttglobal tg = gglobal();
+	//OLDCODE rh = (struct currayhit *)tg->RenderFuncs.rayHit;
+
+	//transform last bearing/pickray-local intersection to sensor-local space 
+	// using current?frozen? modelview and current pickmatrix
+	// so sensor node can emit events from its do_<sensor node> function in sensor-local coordinates
+
+	prepare_model_view_pickmatrix_inverse(mvpi);
+	//transform pickray from eye/pickray/bearing to geometry/sensor-local
+	transform(&tp,&r11,mvpi);
+	x1 = tp.x; y1 = tp.y; z1 = tp.z;
+	transform(&tp,&r2,mvpi);
+	x2 = tp.x; y2 = tp.y; z2 = tp.z;
+	//transform the last known pickray intersection from eye/pickray/bearling to geometry/sensor-local
+	transform(&tp,tg->RenderFuncs.hp,mvpi);
+	x3 = tp.x; y3 = tp.y; z3 = tp.z;
+	if(0) 
+		printf("get_hyperhit\n");
+
 	
-    if(0) printf ("get_hyper %f %f %f, %f %f %f, %f %f %f\n",
-        x1,y1,z1,x2,y2,z2,x3,y3,z3); 
+    //if(0) ConsoleMessage ("get_hyper %f %f %f, %f %f %f, %f %f %f\n",
+    //    x1,y1,z1,x2,y2,z2,x3,y3,z3); 
 	
     /* and save this globally */
-    tg->RenderFuncs.hyp_save_posn.c[0] = (float) x1; tg->RenderFuncs.hyp_save_posn.c[1] = (float) y1; tg->RenderFuncs.hyp_save_posn.c[2] = (float) z1;
-    tg->RenderFuncs.hyp_save_norm.c[0] = (float) x2; tg->RenderFuncs.hyp_save_norm.c[1] = (float) y2; tg->RenderFuncs.hyp_save_norm.c[2] = (float) z2;
-    tg->RenderFuncs.ray_save_posn.c[0] = (float) x3; tg->RenderFuncs.ray_save_posn.c[1] = (float) y3; tg->RenderFuncs.ray_save_posn.c[2] = (float) z3;
+	//last pickray/bearing ( (0,0,0) (0,0,1)) transformed from eye/pickray/bearing to geometry/sensor local coordinates:
+    tg->RenderFuncs.hyp_save_posn[0] = (float) x1; tg->RenderFuncs.hyp_save_posn[1] = (float) y1; tg->RenderFuncs.hyp_save_posn[2] = (float) z1;
+    tg->RenderFuncs.hyp_save_norm[0] = (float) x2; tg->RenderFuncs.hyp_save_norm[1] = (float) y2; tg->RenderFuncs.hyp_save_norm[2] = (float) z2;
+	//last known pickray intersection in geometry/sensor-local coords, ready for sensor emitting
+    tg->RenderFuncs.ray_save_posn[0] = (float) x3; tg->RenderFuncs.ray_save_posn[1] = (float) y3; tg->RenderFuncs.ray_save_posn[2] = (float) z3;
 }
+
+
 
 /* set stereo buffers, if required */
 void setStereoBufferStyle(int itype) /*setXEventStereo()*/
@@ -4385,11 +6593,28 @@ void setStereoBufferStyle(int itype) /*setXEventStereo()*/
 	else if(itype==1)
 	{
 		/*sidebyside and anaglyph type*/
-		p->bufferarray[0]=GL_BACK;
-		p->bufferarray[1]=GL_BACK;
+		p->bufferarray[0]=FW_GL_BACK;
+		p->bufferarray[1]=FW_GL_BACK;
 		p->maxbuffers=2;
 	}
 	printf("maxbuffers=%d\n",p->maxbuffers);
+}
+void setStereoBufferStyleB(int itype, int iside, int ibuffer) 
+{
+	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	if(itype==0)
+	{
+		/* quad buffer crystal eyes style */
+		if(iside == 0)
+			p->bufferarray[ibuffer]=GL_BACK_LEFT;
+		if(iside == 1)
+			p->bufferarray[ibuffer]=GL_BACK_RIGHT;
+	}
+	else if(itype==1)
+	{
+		/*sidebyside and anaglyph type*/
+		p->bufferarray[ibuffer]=FW_GL_BACK;
+	}
 }
 
 /* go to the first viewpoint */
@@ -4434,7 +6659,8 @@ static int moreThanOneValidViewpoint( void) {
 				/* printf ("parent found, it is a %s\n",stringNodeType(vp_parent->_nodeType)); */
 
 				/* sigh, find if the ViewpointGroup is active or not */
-				return vpGroupActive((struct X3D_ViewpointGroup *)vp_parent);
+				if(vp_parent)
+					return vpGroupActive((struct X3D_ViewpointGroup *)vp_parent);
 			   }
 			}
 		}
@@ -4465,7 +6691,7 @@ void fwl_Last_ViewPoint() {
 			/* printf ("NVP, %d of %d, looking at %d\n",ind, totviewpointnodes,vp_to_go_to);
 			printf ("looking at node :%s:\n",X3D_VIEWPOINT(cn)->description->strptr); */
 
-			if (vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
+			if (cn && vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
 				if(0){
 					/* whew, we have other vp nodes */
 					send_bind_to(vector_get(struct X3D_Node*, t->viewpointNodes,t->currboundvpno),0);
@@ -4513,7 +6739,7 @@ void fwl_First_ViewPoint() {
 			/* printf ("NVP, %d of %d, looking at %d\n",ind, totviewpointnodes,vp_to_go_to);
 			printf ("looking at node :%s:\n",X3D_VIEWPOINT(cn)->description->strptr); */
 
-			if (vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
+			if (cn && vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
 				if(0){
                 	/* whew, we have other vp nodes */
                 	send_bind_to(vector_get(struct X3D_Node*,t->viewpointNodes,t->currboundvpno),0);
@@ -4557,7 +6783,7 @@ void fwl_Prev_ViewPoint() {
 			/* printf ("NVP, %d of %d, looking at %d\n",ind, totviewpointnodes,vp_to_go_to);
 			printf ("looking at node :%s:\n",X3D_VIEWPOINT(cn)->description->strptr); */
 
-			if (vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
+			if (cn && vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
 
 				if(0){
                 	/* whew, we have other vp nodes */
@@ -4605,7 +6831,7 @@ void fwl_Next_ViewPoint() {
 			/* printf ("NVP, %d of %d, looking at %d\n",ind, totviewpointnodes,vp_to_go_to);
 			printf ("looking at node :%s:\n",X3D_VIEWPOINT(cn)->description->strptr); */
 
-			if (vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
+			if (cn && vpGroupActive((struct X3D_ViewpointGroup *) cn)) {
                 		/* whew, we have other vp nodes */
 				/* dug9 - using the display-thread-synchronous gotoViewpoint style
 					to help order-senstive slerp_viewpoint() process */
@@ -4624,9 +6850,9 @@ void fwl_Next_ViewPoint() {
 /* initialization for the OpenGL render, event processing sequence. Should be done in threat that has the OpenGL context */
 void fwl_initializeRenderSceneUpdateScene() {
 
-#ifndef AQUA
+// OLD_IPHONE_AQUA #ifndef AQUA
 	ttglobal tg = gglobal();
-#endif
+// OLD_IPHONE_AQUA #endif
 
 	/*
 	ConsoleMessage("fwl_initializeRenderSceneUpdateScene start\n");
@@ -4636,33 +6862,14 @@ void fwl_initializeRenderSceneUpdateScene() {
 		ConsoleMessage("fwl_initializeRenderSceneUpdateScene rootNode %d children \n",rootNode()->children.n);
 	}
 	*/
-
-#if KEEP_X11_INLIB
-	/* Hmm. display_initialize is really a frontend function. The frontend should call it before calling fwl_initializeRenderSceneUpdateScene */
-	/* Initialize display */
-	//if (!fv_display_initialize()) {
-	//       ERROR_MSG("initFreeWRL: error in display initialization.\n");
-	//       exit(1);
-	//}
-#endif /* KEEP_X11_INLIB */
-
 	new_tessellation();
-
-	fwl_set_viewer_type(VIEWER_EXAMINE);
-
+	//fwl_set_viewer_type(VIEWER_EXAMINE);
 	viewer_postGLinit_init();
 
-#ifndef AQUA
-	if (tg->display.params.fullscreen && newResetGeometry != NULL) newResetGeometry();
-	#endif
+// OLD_IPHONE_AQUA #ifndef AQUA
+	if( ((freewrl_params_t*)(tg->display.params))->fullscreen && newResetGeometry != NULL) newResetGeometry();
+// OLD_IPHONE_AQUA #endif
 
-	/* printf ("fwl_initializeRenderSceneUpdateScene finish\n"); */
-	// on OSX, this function is not called by the thread that holds the OpenGL
-	// context. Unsure if only Windows can do this one, but for now,
-	// do NOT do this on OSX.
-//#ifndef TARGET_AQUA
-//	drawStatusBar(); //just to get it initialized
-//#endif
 }
 
 /* phases to shutdown:
@@ -4675,18 +6882,19 @@ C. delete instance data
 */
 
 
-int workers_waiting(){
+static int workers_waiting(){
 	BOOL waiting;
 	ttglobal tg = gglobal();
 	waiting = tg->threads.ResourceThreadWaiting && tg->threads.TextureThreadWaiting;
+
 	return waiting;
 }
-void workers_stop()
+static void workers_stop()
 {
 	resitem_queue_exit();
 	texitem_queue_exit();
 }
-int workers_running(){
+static int workers_running(){
 	BOOL more;
 	ttglobal tg = gglobal();
 	more = tg->threads.ResourceThreadRunning || tg->threads.TextureThreadRunning;
@@ -4707,7 +6915,7 @@ int isSceneLoaded()
 	//		p->doEvents = (!fwl_isinputThreadParsing()) && (!fwl_isTextureParsing()) && fwl_isInputThreadInitialized();
 
 	int ret;
-	double dtime, curtime;
+	double dtime;
 	//ppProdCon p;
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
@@ -4742,16 +6950,14 @@ void end_of_run_tests(){
 	}
 }
 
-void finalizeRenderSceneUpdateScene() {
+static void finalizeRenderSceneUpdateScene() {
 	//C. delete instance data
 	struct X3D_Node* rn;
 	ttglobal tg = gglobal();
 	printf ("finalizeRenderSceneUpdateScene\n");
 
 	/* set geometry to normal size from fullscreen */
-#ifndef AQUA
 	if (newResetGeometry != NULL) newResetGeometry();
-#endif
 	/* kill any remaining children processes like sound processes or consoles */
 	killErrantChildren();
 	/* tested on win32 console program July9,2011 seems OK */
@@ -4773,14 +6979,10 @@ void finalizeRenderSceneUpdateScene() {
 }
 
 
-/* iphone front end handles the displayThread internally */
-//#ifndef FRONTEND_HANDLES_DISPLAY_THREAD
-
-
 int checkReplaceWorldRequest(){
 	ttglobal tg = gglobal();
 	if (tg->Mainloop.replaceWorldRequest || tg->Mainloop.replaceWorldRequestMulti){
-		tg->threads.flushing = 1;
+		tg->threads.flushing = true;
 	}
 	return tg->threads.flushing;
 }
@@ -4789,10 +6991,11 @@ int checkExitRequest(){
 	return exitRequest;
 }
 
-int checkQuitRequest(){
+static int checkQuitRequest(){
 	ttglobal tg = gglobal();
-	if (tg->threads.MainLoopQuit == 1){
-		tg->threads.flushing = 1;
+	if ((tg->threads.MainLoopQuit) == 1){
+		//printf ("checkQuitRequest, setting thread.flushing to true\n");
+		tg->threads.flushing = true;
 	}
 	return tg->threads.MainLoopQuit;
 }
@@ -4817,15 +7020,17 @@ void doReplaceWorldRequest()
 		tg->Mainloop.replaceWorldRequestMulti = NULL;
 		//kill_oldWorldB(__FILE__, __LINE__);
 		resm->new_root = true;
-		gglobal()->resources.root_res = resm;
+		gglobal()->resources.root_res = (void*)resm;
 		//send_resource_to_parser_async(resm);
 		resitem_enqueue(ml_new(resm));
 	}
-	tg->threads.flushing = 0;
+	tg->threads.flushing = false;
 }
 static int(*view_initialize)() = NULL;
-static void(*view_update)() = NULL;
-#if KEEP_FV_INLIB
+//
+//EGL/GLES2 winGLES2.exe with KEEP_FV_INLIB sets frontend_handles_display_thread=true, 
+// then calls fv_display_initialize() which only creates window in backend if false
+#if defined(_ANDROID) || defined(ANDROIDNDK) || defined(WINRT)
 int view_initialize0(void){
 	/* Initialize display - View initialize*/
 	if (!fv_display_initialize()) {
@@ -4834,39 +7039,17 @@ int view_initialize0(void){
 	}
 	return TRUE;
 }
-#endif /* KEEP_FV_INLIB */
-
-#ifdef _MSC_VER
-void updateCursorStyle0(int cstyle);
-void updateViewCursorStyle(int cstyle)
-{
-	updateCursorStyle0(cstyle);
-}
 #else
-/* Status variables */
-/* cursors are a 'shared resource' meanng you only need one cursor for n windows,
-not per-instance cursors (except multi-touch multi-cursors)
-However cursor style choice could/should be per-window/instance
-*/
-
-void updateViewCursorStyle(int cstyle)
-{
-#if !defined (_ANDROID)
-	/* ANDROID - no cursor style right now */
-	setCursor(cstyle);
+int view_initialize0(void){
+	/* Initialize display - View initialize*/
+	if (!fv_display_initialize_desktop()) {
+		ERROR_MSG("initFreeWRL: error in display initialization.\n");
+		return FALSE; //exit(1);
+	}
+	return TRUE;
+}
 #endif //ANDROID
-}
-#endif
 
-void view_update0(void){
-	#if defined(STATUSBAR_HUD)
-		/* status bar, if we have one */
-		finishedWithGlobalShader();
-		drawStatusBar();  // View update
-		restoreGlobalShader();
-	#endif
-	updateViewCursorStyle(getCursorStyle()); /* in fwWindow32 where cursors are loaded */
-}
 
 void killNodes();
 
@@ -4879,10 +7062,10 @@ int fwl_draw()
 	fwl_setCurrentHandle(tg, __FILE__, __LINE__);
 	p = (ppMainloop)tg->Mainloop.prv;
 
-	more = FALSE;
+	more = TRUE; //FALSE;
 	if (!p->draw_initialized){
+		more = FALSE;
 		view_initialize = view_initialize0; //defined above, with ifdefs
-		view_update = view_update0; //defined above with ifdefs
 		if (view_initialize)
 			more = view_initialize();
 
@@ -4891,14 +7074,15 @@ int fwl_draw()
 		}
 		p->draw_initialized = TRUE;
 	}
-	more = TRUE;
+	if(more) {//more = TRUE;
 	switch (tg->threads.MainLoopQuit){
 	case 0:
 	case 1:
 		//PRINTF("event loop\n");
-		switch (tg->threads.flushing)
+		//switch (tg->threads.flushing)
+		if (tg->threads.flushing ==false) 
 		{
-		case 0:
+		//case 0:
 			profile_end("frontend");
 			profile_start("mainloop");
 			//model: udate yourself
@@ -4906,76 +7090,58 @@ int fwl_draw()
 			profile_end("mainloop");
 			profile_start("frontend");
 
-			//view: poll model and update yourself >>
-			if (view_update) view_update();
-
-			//if (!tg->display.params.frontend_handles_display_thread){
-			//	/* swap the rendering area */
-			//	FW_GL_SWAPBUFFERS;
-			//}
 			PRINT_GL_ERROR_IF_ANY("XEvents::render");
-			checkReplaceWorldRequest(); //will set flushing=1
-			checkQuitRequest(); //will set flushing=1
-			break;
-		case 1:
+			checkReplaceWorldRequest(); //will set flushing=true
+			checkQuitRequest(); //will set flushing=true
+			//break;
+		} else {
+		//case 1:
 			if (workers_waiting()) //one way to tell if workers finished flushing is if their queues are empty, and they are not busy
 			{
-                //if (!tg->Mainloop.replaceWorldRequest || tg->threads.MainLoopQuit) //attn Disabler
+
 				//kill_oldWorldB(__FILE__, __LINE__); //cleans up old scene while leaving gglobal intact ready to load new scene
 				reset_Browser(); //rename
-				tg->threads.flushing = 0;
+				tg->threads.flushing = false;
 				if (tg->threads.MainLoopQuit)
 					tg->threads.MainLoopQuit++; //quiting takes priority over replacing
 				else
 					doReplaceWorldRequest();
+			} else {
+				//printf ("fwl_draw, mainLoopQuit %d, workers NOT waiting\n",tg->threads.MainLoopQuit);
+				tg->threads.MainLoopQuit++;
 			}
-		}
+		} // end of threads.flushing test
+
 		break;
 	case 2:
 		//tell worker threads to stop gracefully
 		workers_stop();
 		//killNodes(); //deallocates nodes MarkForDisposed
 		//killed above kill_oldWorldB(__FILE__,__LINE__);
+
 		tg->threads.MainLoopQuit++;
 		break;
 	case 3:
 		//check if worker threads have exited
 		more = workers_running();
-        if (more == 0)
-        {
-			//moved from desktop.c for disabler
-            finalizeRenderSceneUpdateScene();
-        }
+        	if (more == 0)
+        	{
+        	    finalizeRenderSceneUpdateScene();
+        	}
 		break;
-	}
+	} // end of case
+	} // end of if (more) clause 
+
+
 	return more;
 }
 
 
-//#endif /* FRONTEND_HANDLES_DISPLAY_THREAD */
-
-
-void fwl_setLastMouseEvent(int etype) {
-	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-	//printf ("fwl_setLastMouseEvent called\n");
-        p->lastMouseEvent = etype;
-}
-
 void fwl_initialize_parser()
 {
-	/* JAS
-		if (gglobal() == NULL) ConsoleMessage ("fwl_initialize_parser, gglobal() NULL");
-		if ((gglobal()->Mainloop.prv) == NULL) ConsoleMessage ("fwl_initialize_parser, gglobal()->Mainloop.prv NULL");
-	*/
-
-   //     ((ppMainloop)(gglobal()->Mainloop.prv))->quitThread = FALSE;
-
 	/* create the root node */
 	if (rootNode() == NULL) {
-		if(usingBrotos())
-			setRootNode( createNewX3DNode (NODE_Proto) );
-		else
-			setRootNode( createNewX3DNode (NODE_Group) );
+		setRootNode( createNewX3DNode (NODE_Proto) );
 		/*remove this node from the deleting list*/
 		doNotRegisterThisNodeForDestroy(X3D_NODE(rootNode()));
 	}
@@ -4999,26 +7165,7 @@ void fwl_set_KeyString(const char* kstring)
     p->keypress_string = STRDUP(kstring);
 }
 
-void fwl_set_modeRecord()
-{
-	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-    p->modeRecord = TRUE;
-}
-void fwl_set_modeFixture()
-{
-	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-    p->modeFixture = TRUE;
-}
-void fwl_set_modePlayback()
-{
-	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-    p->modePlayback = TRUE;
-}
-void fwl_set_nameTest(char *nameTest)
-{
-	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-    p->nameTest = STRDUP(nameTest);
-}
+
 
 /* if we had an exit(EXIT_FAILURE) anywhere in this C code - it means
    a memory error. So... print out a standard message to the
@@ -5030,41 +7177,17 @@ void outOfMemory(const char *msg) {
         exit(EXIT_FAILURE);
 }
 
-#ifdef OLDCODE
-void fwl_doQuitInstance()
-{
-#if !defined(FRONTEND_HANDLES_DISPLAY_THREAD)
-	if(!gglobal()->display.params.frontend_handles_display_thread)
-    	stopDisplayThread();
-#endif
-    kill_oldWorld(TRUE,TRUE,__FILE__,__LINE__); //must be done from this thread
-	stopLoadThread();
-	stopPCThread();
-
-	/* set geometry to normal size from fullscreen */
-#ifndef AQUA
-    if (newResetGeometry != NULL) newResetGeometry();
-#endif
-    /* kill any remaining children */
-    killErrantChildren();
-#ifdef DEBUG_MALLOC
-    void scanMallocTableOnQuit(void);
-    scanMallocTableOnQuit();
-#endif
-	/* tested on win32 console program July9,2011 seems OK */
-	iglobal_destructor(gglobal());
-}
-#endif
-//OLDCODE #endif //ANDROID
 void _disposeThread(void *globalcontext);
 
 /* quit key pressed, or Plugin sends SIGQUIT */
 void fwl_doQuitInstance(void *tg_remote)
 {
     ttglobal tg = gglobal();
+printf ("fwl_doQuitInstance called\n");
+
     if (tg_remote == tg)
     {
-        fwl_doQuit();
+        fwl_doQuit(__FILE__,__LINE__);
         fwl_draw();
         workers_stop();
         fwl_clearCurrentHandle();
@@ -5103,23 +7226,19 @@ void _disposeThread(void *globalcontext)
     }
 }
 
-void fwl_doQuit()
+void fwl_doQuit(char *fl, int ln)
 {
 	ttglobal tg = gglobal();
-//OLDCODE #if defined(_ANDROID)
-//OLDCODE 	fwl_Android_doQuitInstance();
-//OLDCODE #else //ANDROID
-	//fwl_doQuitInstance();
-//OLDCODE #endif //ANDROID
-    //exit(EXIT_SUCCESS);
 	tg->threads.MainLoopQuit = max(1,tg->threads.MainLoopQuit); //make sure we don't go backwards in the quit process with a double 'q'
+	// printf ("fwl_doQuit - setting MainLoopQuit to %d from file %s:%d\n", tg->threads.MainLoopQuit,
+	// fl,ln);
 }
 
 void fwl_doQuitAndWait(){
 	pthread_t displaythread;
 	ttglobal tg = gglobal();
 	displaythread = tg->threads.DispThrd;
-	fwl_doQuit();
+	fwl_doQuit(__FILE__,__LINE__);
 	pthread_join(displaythread,NULL);
 
 }
@@ -5136,242 +7255,288 @@ void fwl_tmpFileLocation(char *tmpFileLocation) {
 }
 
 void close_internetHandles();
-//int iglobal_instance_count();
-//void fwl_closeGlobals()
-//{
-//	//"last one out shut off the lights"
-//	//when there are no freewrl iglobal instances left, then call this to shut
-//	//down anything that's of per-process / per-application / static-global-shared
-//	//dug9 - not used yet as of Aug 3, 2011
-//	//if you call from the application main thread / message pump ie on_key > doQuit
-//	//then in theory there should be a way to iterate through all
-//	//instances, quitting each one in a nice way, say on freewrlDie or
-//	//(non-existant yet) doQuitAll or doQuitInstanceOrAllIfNoneLeft
-//	//for i = 1 to iglobal_instance_count
-//	//  set instance through window handle or index (no function yet to
-//	//       get window handle by index, or set instance by index )
-//	//  fwl_doQuitInstance
-//	//then call fwl_closeGlobals
-//	if(iglobal_instance_count() == 0)
-//	{
-//		close_internetHandles();
-//		//console window?
-//	}
-//}
 void freewrlDie (const char *format) {
         ConsoleMessage ("Catastrophic error: %s\n",format);
-        fwl_doQuit();
+        fwl_doQuit(__FILE__,__LINE__);
 }
 
-//int ntouch =0;
-//int currentTouch = -1;
-/* MIMIC what happens in handle_Xevents, but without the X events */
-void fwl_handle_aqua_multi0(const int mev, const unsigned int button, int x, int y, int ID);
-void fwl_handle_aqua_multi(const int mev, const unsigned int button, int x, int y, int ID)
-{
+//with multi-touch, touches are flowing in and around, but you normally have 20 or fewer fingers on the screen
+//at one time (IIRC smarttech has a touch table for kids that takes 20)
+//rather than fragment memory with a lot of malloc and free, these functions recycle touches
+struct Touch * AllocTouch(unsigned int ID){
+	//call on mouse/touch DOWN
+	int i;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	for(i=0;i<p->ntouch;i++)
+		if(p->touchlist[i].ID == ID && p->touchlist[i].inUse){
+			//memset(&p->touchlist[i],0,sizeof(struct Touch));
+			p->touchlist[i].inUse = 2; //2 == dragging
+			return &p->touchlist[i];
+		}
+	for(i=0;i<p->ntouch;i++)
+		if(!p->touchlist[i].inUse){
+			memset(&p->touchlist[i],0,sizeof(struct Touch));
+			p->touchlist[i].inUse = 2; //2 == dragging
+			p->touchlist[i].ID = ID;
+			return &p->touchlist[i];
+		}
+	return NULL;
+}
+struct Touch * GetTouch(unsigned int ID){
+	//call on mouse/touch MOVE
+	int i;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	for(i=0;i<p->ntouch;i++)
+		if(p->touchlist[i].ID == ID && (p->touchlist[i].inUse || ID == 0) ){
+			return &p->touchlist[i];
+		}
+	return NULL;
+}
+void ReleaseTouch(unsigned int ID){
+	//call on mouse/touch UP
+	//it needs to hang around for a frame for logic setup_picking
+	int i;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	for(i=0;i<p->ntouch;i++)
+		if(p->touchlist[i].ID == ID ){
+			p->touchlist[i].inUse = 0; 
+			return;
+		}
+}
+//void FreeTouches(){
+//	//call a frame after touch UP
+//	//cleans up released drags that hung around for a frame for setup_picking
+//	int i;
+//	ppMainloop p;
+//	ttglobal tg = gglobal();
+//	p = (ppMainloop)tg->Mainloop.prv;
+//	for(i=0;i<p->ntouch;i++)
+//		if(p->touchlist[i].inUse == 1){
+//			memset(&p->touchlist[i],0,sizeof(struct Touch));
+//		}
+//}
+// Definition of current touch:
+// when the event is DOWN / PRESS and there is no currentTouch, then the ID
+// of this DOWN event becomes the currentTouch until RELEASE/UP for its ID.
+// then currentTouch is free'ed up (set to 0)
+// ID is unsigned, and 0 means no touch is occuring, 1 to MAXINT (4 billion) is a valid touch ID
+void setCurrentTouchID(unsigned int ID){
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	p->currentTouch = ID;
+}
+struct Touch *currentTouch(){
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	//printf("currentTouch %d\n",p->currentTouch);
+	//if(p->currentTouch == -1) p->currentTouch = 0;
+	return GetTouch(p->currentTouch);
+}
+
+void handle_pedal(int mev, int x, int y, ivec4 vport){
+	ppMainloop p;
+	struct pedal_state *pstate;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	pstate = &p->pedalstate;
+	if(mev == ButtonPress) {
+		if(!pstate->initialized){
+			pstate->x = x;
+			pstate->y = y;
+			pstate->initialized = TRUE;
+		}
+		pstate->rx = x; //x;
+		pstate->ry = y; //y;
+		pstate->isDown = TRUE;
+	} else if (mev == MotionNotify) {
+		if(pstate->isDown){
+			pstate->x += x - pstate->rx;
+			pstate->y += y - pstate->ry;
+			pstate->rx = x;
+			pstate->ry = y;
+		}
+	} else if(mev == ButtonRelease) {
+		if(pstate->isDown){
+			pstate->x += x - pstate->rx;
+			pstate->y += y - pstate->ry;
+		}
+		pstate->isDown = FALSE;
+	}
+	//printf("hovpd %d %d\n",pstate->x,pstate->y);
+}
+void viewer_setNextDragChord();
+void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x, int y, unsigned int ID, int windex) {
+	int ibutton, passed, claimant;
+	float fx, fy;
+	struct Touch *touch;
+	Stack *vportstack;
+	ivec4 vport;
 	ppMainloop p;
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
 
-	if(p->modeRecord || p->modeFixture || p->modePlayback){
-		if(p->modeRecord){
-			queueMouseMulti(p,mev,button,x,y,ID);
+	//ID = 0; //good way to enforce single-touch for testing
+	/* save this one... This allows Sensors to get mouse movements if required. */
+	//p->lastMouseEvent[ID] = mev;
+	//ConsoleMessage("m %d b %d i %d x %d y %d\n",mev,button,ID,x,y);
+	//winRT but =1 when mev = motion, others but = 0 when mev = motion. 
+	//make winRT the same as the others:
+	if(button == RMB){
+		//May 2016 - officially no more RMB for any kind of navigation
+		//for fun, lets use desktop RMB to change fly chord
+		if(mev == ButtonPress){
+			viewer_setNextDragChord();
 		}
-		//else ignor so test isn't ruined by random mouse movement during playback
 		return;
 	}
-	fwl_handle_aqua_multi0(mev, button, x, y, ID);
-}
+	ibutton = button;
+	if(fwl_getHover()) ibutton = 0; //so called up-drag or isOver / hover mode
 
-void fwl_handle_aqua_multi0(const int mev, const unsigned int button, int x, int y, int ID) {
-        int count;
-		ppMainloop p;
-		ttglobal tg = gglobal();
-		p = (ppMainloop)tg->Mainloop.prv;
+	//if (mev == MotionNotify && ibutton !=0) 
+	//	ibutton = 0; //moved to fw_handle_mouse_multi_yup for winRT mouse
 
-  /* printf ("fwl_handle_aqua in MainLoop; but %d x %d y %d screenWidth %d screenHeight %d",
-                button, x,y,tg->display.screenWidth,tg->display.screenHeight);
-        if (mev == ButtonPress) printf ("ButtonPress\n");
-        else if (mev == ButtonRelease) printf ("ButtonRelease\n");
-        else if (mev == MotionNotify) printf ("MotionNotify\n");
-        else printf ("event %d\n",mev); */
-
-        /* save this one... This allows Sensors to get mouse movements if required. */
-        p->lastMouseEvent = mev;
-        /* save the current x and y positions for picking. */
-		tg->Mainloop.currentX[p->currentCursor] = x;
-		tg->Mainloop.currentY[p->currentCursor] = y;
-		p->touchlist[ID].x = x;
-		p->touchlist[ID].y = y;
-		p->touchlist[ID].button = button;
-		p->touchlist[ID].isDown = (mev == ButtonPress || mev == MotionNotify);
-		p->touchlist[ID].ID = ID; /*will come in handy if we change from array[] to accordian list*/
-		p->touchlist[ID].mev = mev;
-		p->touchlist[ID].angle = 0.0f;
-		p->currentTouch = ID;
-
-
-		//if( handleStatusbarHud(mev, &tg->Mainloop.clipPlane) )return; /* statusbarHud options screen should swallow mouse clicks */
-
-        if ((mev == ButtonPress) || (mev == ButtonRelease)) {
-                /* record which button is down */
-                p->ButDown[p->currentCursor][button] = (mev == ButtonPress);
-                /* if we are Not over an enabled sensitive node, and we do NOT already have a
-                   button down from a sensitive node... */
-
-                if (((p->CursorOverSensitive ==NULL) && (p->lastPressedOver ==NULL)) || Viewer()->LookatMode || tg->Mainloop.SHIFT) {
-                        p->NavigationMode=p->ButDown[p->currentCursor][1] || p->ButDown[p->currentCursor][3];
-                        handle(mev, button, (float) ((float)x/tg->display.screenWidth), (float) ((float)y/tg->display.screenHeight));
-                }
-        }
-
-        if (mev == MotionNotify) {
-                /* save the current x and y positions for picking. */
-                // above currentX[currentCursor] = x;
-                //currentY[currentCursor] = y;
-
-                if (p->NavigationMode) {
-                        /* find out what the first button down is */
-                        count = 0;
-                        while ((count < 8) && (!p->ButDown[p->currentCursor][count])) count++;
-                        if (count == 8) return; /* no buttons down???*/
-
-                        handle (mev, (unsigned) count, (float) ((float)x/tg->display.screenWidth), (float) ((float)y/tg->display.screenHeight));
-                }
-        }
-}
-//int lastDeltax = 50;
-//int lastDeltay = 50;
-//int lastxx;
-//int lastyy;
-void emulate_multitouch(const int mev, const unsigned int button, int x, int y)
-{
-	/* goal: when MMB draw a slave cursor pinned to last_distance,last_angle from real cursor
-		Note: if using a RMB+LMB = MMB chord with 2 button mice, you need to emulate in your code
-			and pass in button 2 here, after releasing your single button first ie:
-			fwl_handle_aqua(ButtonRelease, 1, x, y);
-			fwl_handle_aqua(ButtonRelease, 3, x, y);
-	*/
-	if( button == 2 )
-	{
-		ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-		if( mev == ButtonPress )
-		{
-			p->lastxx = x - p->lastDeltax;
-			p->lastyy = y - p->lastDeltay;
-		}else if(mev == MotionNotify || mev == ButtonRelease ){
-			p->lastDeltax = x - p->lastxx;
-			p->lastDeltay = y - p->lastyy;
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+	vport = stack_top(ivec4,vportstack);
+	if(0){
+		printf("multiNORMAL x %d y %d fx %f fy %f vp %d %d %d %d\n",x,y,fx,fy,vport.X,vport.W,vport.Y,vport.H);
+	}
+	if (0){
+		ConsoleMessage("fwl_handle_aqua in MainLoop; mev %d but %d x %d y %d ID %d ",
+			mev, ibutton, x, y, ID);
+		ConsoleMessage("wndx %d swi %d shi %d ", windex, vport.W, vport.H); //screenWidth, screenHeight);
+		if (mev == ButtonPress) ConsoleMessage("ButtonPress\n");
+		else if (mev == ButtonRelease) ConsoleMessage("ButtonRelease\n");
+		else if (mev == MotionNotify) ConsoleMessage("MotionNotify\n");
+		else ConsoleMessage("event %d\n", mev);
+	}
+	//FreeTouches(); //call often, once per event OK, or once per frame, to garbage collect isUsed = FALSE
+	// Order of new touch claimants: pedal, sensor, navigation, none/hover
+	//
+	//
+	passed = TOUCHCLAIMANT_PEDAL;
+	claimant = TOUCHCLAIMANT_UNCLAIMED;
+	if (fwl_getPedal()) {
+		handle_pedal(mev, x, y, vport);
+		if(fwl_getHover()){
+			ibutton = 0;
+			passed = 0;
+			claimant = TOUCHCLAIMANT_PEDAL;
 		}
-		fwl_handle_aqua_multi(mev, 1, x, y, 0);
-		fwl_handle_aqua_multi(mev, 1, p->lastxx, p->lastyy, 1);
+	}
+
+	/* save the current x and y positions for picking. */
+	if(mev == ButtonPress){
+		//welcome, a new touch / start of drag
+		//android multi_touch can send in two mev=4 and two mev=5 for the first touch when doing 2+ touches
+		// H: one is regular, and one POINTER
+		// if 2, then keep using the first one
+		touch = GetTouch(ID);
+		if(!touch){
+			//if(touch) touch->inUse = FALSE;
+			touch = AllocTouch(ID);
+			if(currentTouch()->ID == 0) {
+				//there is no other current touch that we are in the middle of,
+				//so this becomes the current touch
+				setCurrentTouchID(ID);
+			}
+			touch->windex = windex;
+			touch->stageId = current_stageId();
+			touch->buttonState = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
+			touch->claimant = claimant; 
+			touch->passed = passed;
+			touch->dragStart = TRUE; //cleared by claimant when they've consumed the start
+		}
 	}else{
-		/* normal, no need to emulate if there's no MMB or LMB+RMB */
-		fwl_handle_aqua_multi(mev,button,x,y,0);
+		touch = GetTouch(ID);
 	}
+	if(touch == NULL){
+		//May 4, 2016 change: we now ignore mouse-up mouse moves / hovers / isOver
+		//ConsoleMessage("null touch ");
+		return; 
+	}
+
+	//touch = &p->touchlist[ID];
+	if(fwl_getPedal()){
+		touch->x = p->pedalstate.x;
+		touch->y = p->pedalstate.y;
+		//printf("pedal %d %d\n",touch->x,touch->y);
+	}else {
+		touch->x = x;
+		touch->y = y;
+		//printf("norml %d %d\n",touch->x,touch->y);
+	}
+	fx = (float)(touch->x - vport.X) / (float)vport.W;
+	fy = (float)(touch->y - vport.Y) / (float)vport.H;
+	touch->fx = fx;
+	touch->fy = fy;
+	touch->mev = mev;
+	touch->angle = 0.0f;
+	// this isn't necessarily the current touch if there are multiple touches //p->currentTouch = ID; // pick/dragsensors can use 0-19
+	if(mev == ButtonRelease){
+		if(touch->ID == ID)
+			p->currentTouch = 0;
+		touch->dragEnd = TRUE;
+		if(touch->claimant == TOUCHCLAIMANT_PEDAL) touch->inUse = FALSE;
+	}
+	return;
 }
-/* old function should still work, with single mouse and ID=0 */
-void fwl_handle_aqua(const int mev, const unsigned int button, int x, int y) {
-    ttglobal tg = gglobal();
+void update_navigation(){
+	//update_navigation - this will be for unclaimed touches from last iteration
+	//this code should be called from a function once per frame (not once per event)
+	// (need to process ButtonRelease from previous event)
+	// Q. why is there no windex or stageId filtering in here?
+	int i;
+	struct Touch *curTouch;
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
 
-	/* printf ("fwl_handle_aqua, type %d, screen wid:%d height:%d, orig x,y %d %d\n",
-            mev,tg->display.screenWidth, tg->display.screenHeight,x,y); */
-
-	// do we have to worry about screen orientations (think mobile devices)
-	#if defined (IPHONE) || defined (_ANDROID)
-	{
-
-        // iPhone - with home button on bottom, in portrait mode,
-        // top left hand corner is x=0, y=0;
-        // bottom left, 0, 468)
-        // while standard opengl is (0,0) in lower left hand corner...
-		int ox = x;
-		int oy = y;
-
-		// these make sense for walk navigation
-		if (Viewer()->type == VIEWER_WALK) {
-			switch (Viewer()->screenOrientation) {
-				case 0:
-					x = tg->display.screenHeight-x;
-
-					break;
-				case 90:
-					x = oy;
-					y = ox;
-					break;
-				case 180:
-					x = x;
-					y = -y;
-					break;
-				case 270:
-					x = tg->display.screenWidth - oy;
-					y = tg->display.screenHeight - ox;
-					break;
-				default:{}
+	for(i=0;i<p->ntouch;i++){
+		curTouch = &p->touchlist[i];
+		if(curTouch->inUse){
+			//yes incoming touch _is_ the current touch
+			//nav always uses current touch //ID==0
+			int priorclaimants = TOUCHCLAIMANT_PEDAL | TOUCHCLAIMANT_SENSOR;
+			if(curTouch->claimant == TOUCHCLAIMANT_UNCLAIMED && curTouch->passed == priorclaimants ){
+				//see if we want to claim it for navigation
+				if(!fwl_getHover())
+					curTouch->claimant = TOUCHCLAIMANT_NAVIGATION;
+				else
+					curTouch->passed |= TOUCHCLAIMANT_NAVIGATION;
 			}
-
-		// these make sense for examine navigation
-		} else if (Viewer()->type == VIEWER_EXAMINE) {
-			switch (Viewer()->screenOrientation) {
-				case 0:
-					break;
-				case 90:
-					x = tg->display.screenWidth - oy;
-					y = ox;
-					break;
-				case 180:
-					x = tg->display.screenWidth -x;
-					y = tg->display.screenHeight -y;
-					break;
-				case 270:
-					// nope x = tg->display.screenWidth - oy;
-					// nope y = tg->display.screenHeight - ox;
-
-					x = tg->display.screenHeight - oy;
-					y = tg->display.screenWidth - ox;
-
-					//printf ("resulting in x %d  y %d\n",x,y);
-					break;
-				default:{}
+			if(curTouch->claimant == TOUCHCLAIMANT_NAVIGATION){
+				int imev, ibut;
+				ibut = curTouch->buttonState;
+				if (curTouch->dragStart || (curTouch->dragEnd)) {
+					if(curTouch->dragStart) imev = ButtonPress;
+					if(curTouch->dragEnd) imev = ButtonRelease;
+					handle(imev, ibut, curTouch->fx,curTouch->fy);
+					curTouch->dragStart = FALSE;
+					if(curTouch->dragEnd) curTouch->inUse = FALSE; //garbage collect
+					curTouch->dragEnd = FALSE;
+				} else {
+					imev = MotionNotify;
+					handle (imev, ibut, curTouch->fx, curTouch->fy); 
+				}
 			}
-
 		}
 	}
-
-	#endif
-
-	if(((ppMainloop)(tg->Mainloop.prv))->EMULATE_MULTITOUCH)
-		emulate_multitouch(mev,button,x, y);
-	else
-	{
-		fwl_handle_aqua_multi(mev,button,x,y,0);
-
-		//updateCursorStyle();
-	}
 }
-
-//#endif
-
-void fwl_setCurXY(int cx, int cy) {
-	ttglobal tg = gglobal();
-	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
-	/* printf ("fwl_setCurXY, have %d %d\n",p->currentX[p->currentCursor],p->currentY[p->currentCursor]); */
-        tg->Mainloop.currentX[p->currentCursor] = cx;
-        tg->Mainloop.currentY[p->currentCursor] = cy;
-}
-
-void fwl_setButDown(int button, int value) {
-	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-	/* printf ("fwl_setButDown called\n"); */
-        p->ButDown[p->currentCursor][button] = value;
-}
-
 
 /* mobile devices - set screen orientation */
 /* "0" is "normal" orientation; degrees clockwise; note that face up and face down not
    coded; assume only landscape/portrait style orientations */
 
 void fwl_setOrientation (int orient) {
+	//this original version affects the 3D view matrix 
 	switch (orient) {
 		case 0:
 		case 90:
@@ -5387,8 +7552,32 @@ void fwl_setOrientation (int orient) {
 		}
 	}
 }
+int fwl_getOrientation(){
+	return Viewer()->screenOrientation;
+}
 
-
+void fwl_setOrientation2 (int orient) {
+	//this Dec 2015 version affects 2D screen orientation via a contenttype_orientation widget
+	switch (orient) {
+		case 0:
+		case 90:
+		case 180:
+		case 270:
+			{
+			gglobal()->Mainloop.screenOrientation2 = orient;
+			//ConsoleMessage ("set orientation2 %d\n",orient);
+			break;
+		}
+		default: {
+			ConsoleMessage ("invalid orientation2 %d\n",orient);
+			gglobal()->Mainloop.screenOrientation2 = 0;
+		}
+	}
+}
+int fwl_getOrientation2(){
+	//ConsoleMessage ("get orientation2 %d\n",gglobal()->Mainloop.screenOrientation2);
+	return gglobal()->Mainloop.screenOrientation2;
+}
 
 void setIsPlugin() {
 
@@ -5418,14 +7607,14 @@ void setIsPlugin() {
 
 }
 
-#ifdef AQUA
-
-int aquaPrintVersion() {
-	printf ("FreeWRL version: %s\n", libFreeWRL_get_version());
-	exit(EXIT_SUCCESS);
-}
-
-#endif
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA 
+// OLD_IPHONE_AQUA int aquaPrintVersion() {
+// OLD_IPHONE_AQUA 	printf ("FreeWRL version: %s\n", libFreeWRL_get_version());
+// OLD_IPHONE_AQUA 	exit(EXIT_SUCCESS);
+// OLD_IPHONE_AQUA }
+// OLD_IPHONE_AQUA 
+// OLD_IPHONE_AQUA #endif
 
 /* if we are visible, draw the OpenGL stuff, if not, don not bother */
 void setDisplayed (int state) {
@@ -5447,13 +7636,14 @@ void fwl_init_EaiVerbose() {
 
 }
 
+#ifdef OLDCODE
 #if defined (_ANDROID)
 
 void fwl_Android_replaceWorldNeeded() {
 	int i;
-	#ifndef AQUA
+	// OLD_IPHONE_AQUA #ifndef AQUA
         char mystring[20];
-	#endif
+	// OLD_IPHONE_AQUA #endif
 	struct VRMLParser *globalParser = (struct VRMLParser *)gglobal()->CParse.globalParser;
 
 	/* get rid of sensor events */
@@ -5510,9 +7700,9 @@ void fwl_Android_replaceWorldNeeded() {
 	kill_userDefinedShaders();
 
 	/* free scripts */
-	#ifdef HAVE_JAVASCRIPT
+
 	kill_javascript();
-	#endif
+
 
 	#if !defined(EXCLUDE_EAI)
 	/* free EAI */
@@ -5522,10 +7712,10 @@ void fwl_Android_replaceWorldNeeded() {
 	}
 	#endif //EXCLUDE_EAI
 
-	#ifndef AQUA
+	// OLD_IPHONE_AQUA #ifndef AQUA
 		sprintf (mystring, "QUIT");
 		Sound_toserver(mystring);
-	#endif
+	// OLD_IPHONE_AQUA #endif
 
 	/* reset any VRML Parser data */
 	if (globalParser != NULL) {
@@ -5541,9 +7731,10 @@ void fwl_Android_replaceWorldNeeded() {
 	setMenuStatus("NONE");
 }
 #endif
+#endif //OLDCODE 
 
 
-#if !defined(_ANDROID)
+#if !defined(_ANDROID) || defined(ANDROIDNDK)
 
 // JAS - Do not know if these are still required.
 
@@ -5566,28 +7757,6 @@ void fwl_reload()
 }
 
 #endif //NOT _ANDROID
-
-
-/* OSX the Plugin is telling the displayThread to stop and clean everything up */
-void stopRenderingLoop(void) {
-	ttglobal tg = gglobal();
-	//printf ("stopRenderingLoop called\n");
-
-#if !defined(FRONTEND_HANDLES_DISPLAY_THREAD)
-	if(!tg->display.params.frontend_handles_display_thread)
-    	stopDisplayThread();
-#endif
-
-    	//killErrantChildren();
-	/* lets do an equivalent to replaceWorldNeeded, but with NULL for the new world */
-
-        setAnchorsAnchor( NULL );
-        tg->RenderFuncs.BrowserAction = TRUE;
-	#ifdef OLDCODE
-        OLDCODE FREE_IF_NZ(tg->RenderFuncs.OSX_replace_world_from_console);
-	#endif //OLDCODE
-	// printf ("stopRenderingLoop finished\n");
-}
 
 
 /* send the description to the statusbar line */
@@ -5626,122 +7795,24 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
 
 /* We have a new file to load, lets get rid of the old world sensor events, and run with it */
 void resetSensorEvents(void) {
+	int ktouch;
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-	if (p->oldCOS != NULL)
-		sendSensorEvents(p->oldCOS,MapNotify,p->ButDown[p->currentCursor][1], FALSE);
-       /* remove any display on-screen */
-       sendDescriptionToStatusBar(NULL);
-	p->CursorOverSensitive=NULL;
-
-	p->oldCOS=NULL;
-	p->lastMouseEvent = 0;
-	p->lastPressedOver = NULL;
-	p->lastOver = NULL;
-	FREE_IF_NZ(p->SensorEvents);
+	for(ktouch=0;ktouch<20;ktouch++){
+		struct Touch *touch;
+		touch = &p->touchlist[ktouch];
+		if(touch->inUse){
+			if (touch->oldCOS != NULL)
+			sendSensorEvents(touch->oldCOS,MapNotify,touch->buttonState, FALSE);
+			//sendSensorEvents(p->oldCOS,MapNotify,p->ButDown[p->currentCursor][1], FALSE);
+		}
+		/* remove any display on-screen */
+		sendDescriptionToStatusBar(NULL);
+		memset(touch,0,sizeof(struct Touch));
+		FREE_IF_NZ(p->SensorEvents);
+	}
 	p->num_SensorEvents = 0;
 	gglobal()->RenderFuncs.hypersensitive = NULL;
 	gglobal()->RenderFuncs.hyperhit = 0;
 
 }
-
-#if defined (_ANDROID) || defined (AQUA)
-
-struct X3D_IndexedLineSet *fwl_makeRootBoundingBox() {
-	struct X3D_Node *shape, *app, *mat, *ils = NULL;
-	struct X3D_Node *bbCoord = NULL;
-
-	struct X3D_Group *rn = rootNode(); //attn Disabler, rootNode() is now always X3D_Proto
-        float emis[] = {0.8, 1.0, 0.6};
-        float myp[] = {
-            -2.0, 1.0, 1.0,
-            2.0, 1.0, 1.0,
-            2.0, 1.0, -1.0,
-            -2.0, 1.0, -1.0,
-            -2.0, -1.0, 1.0,
-            2.0, -1.0, 1.0,
-            2.0, -1.0, -1.0,
-            -2.0, -1.0, -1.0
-        };
-        int myci[] = {
-            0, 1, 2, 3, 0, -1,
-            4, 5, 6, 7, 4, -1,
-            0, 4, -1,
-            1, 5, -1,
-            2, 6, -1,
-            3, 7, -1
-
-        };
-
-	if (rn == NULL) return NULL;
-
-	if (rn->children.n > 0) {
-		shape = createNewX3DNode(NODE_Shape);
-		app = createNewX3DNode(NODE_Appearance);
-		mat = createNewX3DNode(NODE_Material);
-		ils = createNewX3DNode(NODE_IndexedLineSet);
-		bbCoord = createNewX3DNode(NODE_Coordinate);
-		//ConsoleMessage ("adding shape to rootNode");
-
-		memcpy(X3D_MATERIAL(mat)->emissiveColor.c,emis,sizeof(float) * 3);
-		X3D_INDEXEDLINESET(ils)->coordIndex.p = MALLOC (int *, sizeof(int) * 24);
-		X3D_INDEXEDLINESET(ils)->coordIndex.n = 24;
-		memcpy(X3D_INDEXEDLINESET(ils)->coordIndex.p, myci, sizeof(int) * 24);
-
-		X3D_COORDINATE(bbCoord)->point.p = MALLOC( struct SFVec3f *, sizeof(struct SFVec3f) * 8);
-		X3D_COORDINATE(bbCoord)->point.n = 8;
-		memcpy(X3D_COORDINATE(bbCoord)->point.p, myp, sizeof (struct SFVec3f) * 8);
-
-		// MFNode field manipulation
-		AddRemoveChildren(X3D_NODE(rootNode()),
-			offsetPointer_deref(void *,rootNode(),
-			offsetof(struct X3D_Group, children)),
-			&shape,1,1,__FILE__,__LINE__);
-
-		// SFNode manipulation
-		X3D_SHAPE(shape)->appearance = app;
-		ADD_PARENT(app,shape);
-
-		X3D_SHAPE(shape)->geometry = ils;
-
-		// we break the back link, so that this IndexedLineSet does not affect the
-		// bounding box. Try this with the 1.wrl test, with a Transform, translation in
-		// it, and see the difference
-		//ADD_PARENT(ils,shape);
-
-		X3D_INDEXEDLINESET(ils)->coord = bbCoord;
-		ADD_PARENT(ils,bbCoord);
-
-		X3D_APPEARANCE(app)->material = mat;
-		ADD_PARENT(mat,app);
-
-		return X3D_INDEXEDLINESET(ils);
-	}
-	return NULL;
-}
-
-void fwl_update_boundingBox(struct X3D_IndexedLineSet* node) {
-
-	struct X3D_Group *rn = rootNode(); //attn Disabler, rootNode() is now always X3D_Proto
-	struct SFVec3f newbbc[8];
-
-	if (node==NULL) return;
-	if (rn != NULL) {
-		// x coordinate
-		newbbc[1].c[0] = newbbc[2].c[0]= newbbc[5].c[0] = newbbc[6].c[0]=rn->EXTENT_MAX_X;
-		newbbc[0].c[0] = newbbc[3].c[0]= newbbc[4].c[0] = newbbc[7].c[0]=rn->EXTENT_MIN_X;
-
-		// y coordinate
-		newbbc[0].c[1] = newbbc[1].c[1] = newbbc[2].c[1] = newbbc[3].c[1]=rn->EXTENT_MAX_Y;
-		newbbc[4].c[1] = newbbc[5].c[1] = newbbc[6].c[1] = newbbc[7].c[1]=rn->EXTENT_MIN_Y;
-
-		// z coordinate
-		newbbc[0].c[2] = newbbc[1].c[2] = newbbc[4].c[2] = newbbc[5].c[2]=rn->EXTENT_MAX_Z;
-		newbbc[2].c[2] = newbbc[3].c[2] = newbbc[6].c[2] = newbbc[7].c[2]=rn->EXTENT_MIN_Z;
-
-		memcpy(X3D_COORDINATE(node->coord)->point.p, newbbc, sizeof (struct SFVec3f) * 8);
-
-		node->_change++;
-	}
-}
-#endif // _ANDROID

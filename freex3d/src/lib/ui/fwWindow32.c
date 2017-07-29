@@ -23,8 +23,9 @@
 #include <libFreeWRL.h>
 #include <float.h>
 #include "common.h"
+#include <ui/statusbar.h>
 
-void fwSwapBuffers(freewrl_params_t * d);
+void fv_swapbuffers(freewrl_params_t * d);
 bool fv_create_and_bind_GLcontext(freewrl_params_t * d);
 BOOL fwDisplayChange();
 void fwCloseContext();
@@ -48,7 +49,7 @@ void fwCloseContext();
 //static EGLDisplay eglDisplay;
 //static EGLContext eglContext;
 //static EGLSurface eglSurface;
-void fwSwapBuffers(freewrl_params_t * d){
+void fv_swapbuffers(freewrl_params_t * d){
 	eglSwapBuffers((EGLDisplay)d->display,(EGLSurface)d->surface);
 }
 EGLBoolean fwCreateEGLContext ( EGLNativeWindowType hWnd, EGLDisplay* eglDisplay,
@@ -188,7 +189,9 @@ BOOL fwDisplayChange(){
 }
 void fwCloseContext(){
 }
-
+void fv_change_GLcontext(freewrl_params_t* d){
+	return; //stub for ANLGEPROJECT, EGL/GLES2, mobile which don't change context but need to link
+}
 
 #else //ANGLEPROJECT
 //desktop GL and wgl functions
@@ -202,7 +205,7 @@ void fwCloseContext(){
 #include "common.h"
 
 
-void fwSwapBuffers(freewrl_params_t * d)
+void fv_swapbuffers(freewrl_params_t * d)
 {
 	//HDC   ghDC; 
 	//ghDC = wglGetCurrentDC();
@@ -245,9 +248,9 @@ BOOL bSetupPixelFormat(HDC hdc)
 	/*  seems to fail stereo gracefully/quietly, allowing you to detect with glGetbooleanv(GL_STEREO,) in shared code
 	*/
 	DescribePixelFormat(hdc, pixelformat, sizeof(PIXELFORMATDESCRIPTOR), ppfd);
-	printf("Depth Bits = %d\n",(int)(ppfd->cDepthBits));
-	if(gglobal()->display.shutterGlasses > 0)
-		printf("got stereo? = %d\n",(int)(ppfd->dwFlags & PFD_STEREO));
+	//printf("Depth Bits = %d\n",(int)(ppfd->cDepthBits));
+	//if(gglobal()->display.shutterGlasses > 0)
+	//	printf("got stereo? = %d\n",(int)(ppfd->dwFlags & PFD_STEREO));
 	/**/
     if (SetPixelFormat(hdc, pixelformat, ppfd) == FALSE) 
     { 
@@ -257,6 +260,14 @@ BOOL bSetupPixelFormat(HDC hdc)
  
     return TRUE; 
 } 
+void fv_change_GLcontext(freewrl_params_t* d){
+	HDC hDC;
+	HGLRC hRC;
+	//HWND hWnd;
+	hDC = (HDC)d->display;
+	hRC = (HGLRC)d->context;
+	wglMakeCurrent(hDC, hRC);
+}
 
 bool fv_create_and_bind_GLcontext(freewrl_params_t* d)
 {
@@ -267,14 +278,14 @@ bool fv_create_and_bind_GLcontext(freewrl_params_t* d)
 
 	/* create GL context */
 	//fwl_thread_dump();
-	printf("starting createcontext32b\n");
+	//printf("starting createcontext32b\n");
 	hWnd = (HWND)d->winToEmbedInto;
 	hDC = GetDC(hWnd); 
-	printf("got hdc\n");
+	//printf("got hdc\n");
 	if (!bSetupPixelFormat(hDC))
 		printf("ouch - bSetupPixelFormat failed\n");
 	hRC = wglCreateContext(hDC); 
-	printf("created context\n");
+	//printf("created context\n");
 	/* bind GL context */
 
 	//fwl_thread_dump();
@@ -298,11 +309,11 @@ BOOL fwDisplayChange(){
 	HGLRC ghRC;
 	HDC ghDC;
 	ttglobal tg = gglobal();
-	hWnd = (HWND)tg->display.params.winToEmbedInto;
+	hWnd = (HWND)((freewrl_params_t*)tg->display.params)->winToEmbedInto;
 
 	ghDC = GetDC(hWnd); 
 	ret = bSetupPixelFormat(ghDC);
-	printf("WM_DISPLAYCHANGE happening now\n");
+	//printf("WM_DISPLAYCHANGE happening now\n");
 
 	/* ???? do we have to recreate an OpenGL context 
 	   when display mode changed ? */
@@ -318,7 +329,7 @@ void fwCloseContext(){
 	HGLRC ghRC;
 	HDC ghDC;
 	ttglobal tg = gglobal();
-	hWnd = (HWND)tg->display.params.winToEmbedInto;
+	hWnd = (HWND)((freewrl_params_t *)tg->display.params)->winToEmbedInto;
 	ghRC = wglGetCurrentContext();
 	if (ghRC) 
 	    wglDeleteContext(ghRC); 
@@ -340,7 +351,7 @@ void fwCloseContext(){
 //}
 HWND fw_window32_hwnd(){
 	ttglobal tg = (ttglobal)gglobal();
-	return (HWND)tg->display.params.winToEmbedInto;
+	return (HWND)((freewrl_params_t *)tg->display.params)->winToEmbedInto;
 }
 
 void fwl_do_keyPress(const char kp, int type);
@@ -558,10 +569,17 @@ void loadCursors()
 }
 void updateCursorStyle0(int cstyle)
 {
-	if(cstyle == SCURSE)
-		SetCursor(hSensor);
-	if(cstyle == ACURSE)
-		SetCursor(hArrow);
+	if(!hSensor) loadCursors();
+	switch(cstyle){
+		case SCURSE:
+			SetCursor(hSensor); break;
+		case ACURSE:
+			SetCursor(hArrow); break;
+		case NCURSE:
+			SetCursor(NULL); break;
+		default:
+			SetCursor(hArrow);
+	}
 }
 /* values from WinUser.h */
 #define PHOME_KEY  VK_HOME  //0x24
@@ -722,8 +740,9 @@ void printbitssimple(int n) {
 	}
 }
 void statusbar_set_window_size(int width, int height);
-void statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
-
+int statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
+int fwl_hwnd_to_windex(void *hWnd);
+void fwl_setScreenDim1(int wi, int he, int itargetwindow);
 LRESULT CALLBACK PopupWndProc( 
     HWND hWnd, 
     UINT msg, 
@@ -742,14 +761,17 @@ static int altState = 0;
 	int lkeydata;
 static int shiftState = 0;
 	HDC   ghDC; 
+	int windex;
+
     mev = 0;
     butnum = 0;
+	windex = fwl_hwnd_to_windex(hWnd); //sets it if doesn't exist
 
     //ghWnd = hWnd;
     switch( msg ) {
 
     case WM_CREATE: 
-	printf("wm_create\n");
+	//printf("wm_create\n");
 	//fv_create_GLcontext();
 	//fv_bind_GLcontext();
 	//((*LPCREATESTRUCT)lParam)->lpCreateParams;
@@ -761,11 +783,12 @@ static int shiftState = 0;
 	//gglobal()->display.screenWidth = rect.right; /*used in mainloop render_pre setup_projection*/
 	//gglobal()->display.screenHeight = rect.bottom;
 	//resize_GL(rect.right, rect.bottom); 
-#ifdef STATUSBAR_HUD
-	statusbar_set_window_size(rect.right, rect.bottom);
-#else
-	fwl_setScreenDim(rect.right, rect.bottom);
-#endif
+//#ifdef STATUSBAR_HUD
+//	statusbar_set_window_size(rect.right, rect.bottom);
+//#else
+//	fwl_setScreenDim(rect.right, rect.bottom);
+//#endif
+	fwl_setScreenDim1(rect.right, rect.bottom, windex);
 	break; 
 
     case WM_DISPLAYCHANGE:
@@ -781,7 +804,7 @@ static int shiftState = 0;
     case WM_CLOSE: 
 		//fwCloseContext();
 		//DestroyWindow (hWnd);
-		fwl_doQuit();
+		fwl_doQuit(__FILE__,__LINE__);
 	break; 
 
 
@@ -997,11 +1020,9 @@ static int shiftState = 0;
     {
 	/*void fwl_handle_aqua(const int mev, const unsigned int button, int x, int y);*/
 	/* butnum=1 left butnum=3 right (butnum=2 middle, not used by freewrl) */
-#ifdef STATUSBAR_HUD
-		statusbar_handle_mouse(mev, butnum, mouseX, mouseY);
-#else
-		fwl_handle_aqua(mev, butnum, mouseX, mouseY); /* ,gcWheelDelta); */
-#endif
+		int cursorStyle;
+		cursorStyle = fwl_handle_mouse(mev, butnum, mouseX, mouseY, windex); /* ,gcWheelDelta); */
+		updateCursorStyle0(cursorStyle);
     }
     return 0;
 }
@@ -1036,6 +1057,7 @@ void fv_setGeometry_from_cmdline(const char *gstring)
 {
 	int w,h,i;
 	char *tok[2];
+	freewrl_params_t *params;
 	char *str = MALLOC(void *, sizeof(gstring)+1);
 	strcpy(str,gstring);
 	tok[0] = str;
@@ -1048,8 +1070,9 @@ void fv_setGeometry_from_cmdline(const char *gstring)
 		}
 	sscanf(tok[0],"%d",&w);
 	sscanf(tok[1],"%d",&h);
-	gglobal()->display.params.width = w; 
-    gglobal()->display.params.height = h; 
+	params = (freewrl_params_t *)gglobal()->display.params;
+	params->width = w; 
+    params->height = h; 
 	FREE(str);
 
 }
@@ -1065,7 +1088,7 @@ void setWindowTitle() //char *window_title)
 	 // __in_opt  LPCTSTR lpString);
 	HWND  ghWnd;   
 	//SetWindowText(ghWnd,fwl_getWindowTitle());
-	ghWnd = (void*)gglobal()->display.params.winToEmbedInto;
+	ghWnd = (void*)((freewrl_params_t *)(gglobal()->display.params))->winToEmbedInto;
 	if(ghWnd)
 		SetWindowText(ghWnd,getWindowTitle()); //window_title);
 }
@@ -1113,16 +1136,17 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 {
     HINSTANCE hInstance; 
     WNDCLASS wc;
+	static int wc_defined = 0;
 	DWORD wStyle   = 0;
 	HWND  ghWnd;   
     //RECT rect; 
 	int width, height;
     int nCmdShow = SW_SHOW;
 	
-	printf("starting createWindow32\n"); 
+	//printf("starting createWindow32\n"); 
     /* I suspect hInstance should be get() and passed in from the console program not get() in the dll, but .lib maybe ok */
     hInstance = (HANDLE)GetModuleHandle(NULL); 
-	printf("hInstance=%d\n",hInstance);
+	//printf("hInstance=%p\n",hInstance);
     //gglobal()->display.window_title = "FreeWRL";
 	//d->window_title = "FreeWRL";
 
@@ -1152,22 +1176,25 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	//hArrow = LoadCursor( NULL, IDC_ARROW );
 	//loadCursors();
 
-    wc.lpszClassName = "FreeWrlAppClass";
-    wc.lpfnWndProc = PopupWndProc; //MainWndProc;
-    //wc.style = CS_VREDRAW | CS_HREDRAW; /* 0 CS_OWNDC |  */
-    wc.style = CS_OWNDC;
-    wc.hInstance = hInstance;
-    wc.hIcon = LoadIcon(wc.hInstance, "APPICON");
-    if (!wc.hIcon) {
-		wc.hIcon = LoadIcon( NULL, IDI_APPLICATION );
-	}
-    wc.hCursor = NULL; //hArrow;
-    wc.hbrBackground = (HBRUSH)( COLOR_WINDOW+1 );
-    wc.lpszMenuName = 0; /* "GenericAppMenu"; */
-    wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
+	if(!wc_defined){
+		wc.lpszClassName = "FreeWrlAppClass";
+		wc.lpfnWndProc = PopupWndProc; //MainWndProc;
+		//wc.style = CS_VREDRAW | CS_HREDRAW; /* 0 CS_OWNDC |  */
+		wc.style = CS_OWNDC;
+		wc.hInstance = hInstance;
+		wc.hIcon = LoadIcon(wc.hInstance, "APPICON");
+		if (!wc.hIcon) {
+			wc.hIcon = LoadIcon( NULL, IDI_APPLICATION );
+		}
+		wc.hCursor = NULL; //hArrow;
+		wc.hbrBackground = (HBRUSH)( COLOR_WINDOW+1 );
+		wc.lpszMenuName = 0; /* "GenericAppMenu"; */
+		wc.cbClsExtra = 0;
+		wc.cbWndExtra = 0;
 
-    RegisterClass( &wc );
+		RegisterClass( &wc );
+		wc_defined = TRUE;
+	}
 	//width  = gglobal()->display.width + 8;  //windows gui eats 4 on each side
 	//height = gglobal()->display.height + 34;  // and 26 for the menu bar
 	width = d->width;
@@ -1178,7 +1205,8 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	}
 	wStyle = WS_VISIBLE | WS_POPUP | WS_BORDER | WS_SYSMENU | WS_CAPTION;
 	wStyle |= WS_SIZEBOX; //makes it resizable 
-	wStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+	wStyle |= WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+	//wStyle |= WS_EX_ACCEPTFILES; //drag & drop target (but needs OLE32.dll etc https://msdn.microsoft.com/en-us/library/windows/desktop/bb776905(v=vs.85).aspx
 
 	ghWnd = CreateWindowEx( WS_EX_APPWINDOW, "FreeWrlAppClass", "freeWRL", 
 			    /* ghWnd = CreateWindow( "GenericAppClass", "Generic Application", */
@@ -1196,12 +1224,12 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
     if (!ghWnd) 
         return NULL; 
 
-    printf("made a window\n");
+    //printf("made a window\n");
 
     //GetClientRect(ghWnd, &rect); 
    
     ShowWindow( ghWnd, SW_SHOW); /* SW_SHOWNORMAL); /*nCmdShow );*/
-    printf("showed window\n");
+    //printf("showed window\n");
 	//d->winToEmbedInto = (long int)ghWnd;
 
 
@@ -1219,14 +1247,14 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 
 		SetWindowPos(ghWnd, HWND_TOP, d->xpos, d->ypos, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE);
 	}
-    printf("updated window - leaving createwindow\n");
+    //printf("updated window - leaving createwindow\n");
 	//setWindowTitle00();
 	//ShowCursor(0); //turns off hArrow, hHand cursors
 	setArrowCursor();
     return ghWnd;
 }
 
-int fv_create_main_window(freewrl_params_t * d) //int argc, char *argv[])
+int fv_create_main_window2(freewrl_params_t * d, freewrl_params_t *share) //int argc, char *argv[])
 {
 	loadCursors();
 #ifdef _DEBUG
@@ -1245,6 +1273,11 @@ int fv_create_main_window(freewrl_params_t * d) //int argc, char *argv[])
 			//fv_create_GLcontext();
 			//fv_bind_GLcontext();
 			fv_create_and_bind_GLcontext(d);
+#ifndef ANGLEPROJECT
+			//remember, ANGLEPROJECT emulates GLES2 over directX, and lacks some desktop wgl functions like wglShareLists
+			if(share)
+				wglShareLists((HGLRC) share->context,(HGLRC) d->context);
+#endif
 			return TRUE;
 		}
 		return FALSE;

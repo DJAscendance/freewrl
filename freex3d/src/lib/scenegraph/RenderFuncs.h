@@ -40,8 +40,10 @@ struct currayhit {
 	struct X3D_Node *hitNode; /* What node hit at that distance? */
 	GLDOUBLE modelMatrix[16]; /* What the matrices were at that node */
 	GLDOUBLE projMatrix[16];
+	GLDOUBLE justModel[16]; //view taken off, so transfroms from geometry-local to World
 };
 
+void get_current_ray(struct point_XYZ* p1, struct point_XYZ* p2);
 extern struct point_XYZ r1, r2;         /* in VRMLC.pm */
 
 
@@ -62,12 +64,35 @@ void setLightChangedFlag(GLint light);
 void fwglLightfv (int light, int pname, GLfloat *params);
 void fwglLightf (int light, int pname, GLfloat param);
 void initializeLightTables(void);
-void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, float *pointer, char*, int);
+void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, float *pointer, int, char*, int);
 void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);
-void sendElementsToGPU (int mode, int count, ushort *indices);
+void sendElementsToGPU (int mode, int count, unsigned short *indices);
 void render_hier(struct X3D_Node *p, int rwhat);
 void sendLightInfo (s_shader_capabilities_t *me);
 void restoreGlobalShader();
 
+
+typedef struct ivec4 {int X; int Y; int W; int H;} ivec4;
+typedef struct ivec2 {int X; int Y;} ivec2;
+void pushviewport(Stack *vpstack, ivec4 vp);
+void popviewport(Stack *vpstack);
+void setcurrentviewport(Stack *_vpstack);
+int currentviewportvisible(Stack *vpstack);
+
+typedef struct usehit {
+	struct X3D_Node *node;
+	double mvm[16];
+	void *userdata;
+} usehit;
+void usehit_add(struct X3D_Node *node, double *modelviewmatrix);
+void usehit_add2(struct X3D_Node *node, double *modelviewmatrix, void *userdata);
+usehit * usehit_next(struct X3D_Node *node, usehit* lasthit);
+void usehit_clear();
+void usehitB_add(struct X3D_Node *node, double *modelviewmatrix);
+void usehitB_add2(struct X3D_Node *node, double *modelviewmatrix, void *userdata);
+usehit * usehitB_next(struct X3D_Node *node, usehit* lasthit);
+Stack *getUseHitBStack();
+void usehitB_clear();
+bool setupShaderB();
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */

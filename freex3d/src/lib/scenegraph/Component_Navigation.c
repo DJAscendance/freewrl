@@ -45,9 +45,10 @@ X3D Navigation Component
 #include "../opengl/Frustum.h"
 #include "Children.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../scenegraph/RenderFuncs.h"
 
 
-
+struct X3D_Node *getActiveLayerBoundViewpoint();
 void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	double a1;
 	GLint viewPort[10];
@@ -71,54 +72,59 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
 	*/
+	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
+								 // this test takes the first one (and helps exit render_node early around virt->children)
+
+
+		/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
 	
-	/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
-	
 
-	/* perform Viewpoint translations */
-	if (viewer->SLERPing) {
+		/* perform Viewpoint translations */
+		if (viewer->SLERPing) {
 
-		double tickFrac;
-		Quaternion slerpedDiff;
+			double tickFrac;
+			Quaternion slerpedDiff;
 
-		struct point_XYZ antipos;
+			struct point_XYZ antipos;
 
-		/* printf ("slerping in togl, type %s\n", VIEWER_STRING(viewer_type)); */
-		tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
+			/* printf ("slerping in togl, type %s\n", VIEWER_STRING(viewer_type)); */
+			tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 
-		quaternion_slerp (&slerpedDiff,&viewer->startSLERPprepVPQuat,&viewer->prepVPQuat,tickFrac);
+			quaternion_slerp (&slerpedDiff,&viewer->startSLERPprepVPQuat,&viewer->prepVPQuat,tickFrac);
 
-		quaternion_togl(&slerpedDiff);
+			quaternion_togl(&slerpedDiff);
 
-		antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
-		antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
-		antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
+			antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
+			antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
+			antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
 
-		FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
+			FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
 
-	} else {
+		} else {
 
-		//quaternion_togl(&viewer->prepVPQuat);
-		{
-			//dug9slerp  this fix works with a test file VP_set_orientation.x3d
-			Quaternion q3;
-			vrmlrot_to_quaternion(&q3,node->orientation.c[0],node->orientation.c[1],node->orientation.c[2],-node->orientation.c[3]);
-			quaternion_togl(&q3);
+			//quaternion_togl(&viewer->prepVPQuat);
+			{
+				//dug9slerp  this fix works with a test file VP_set_orientation.x3d
+				Quaternion q3;
+				vrmlrot_to_quaternion(&q3,node->orientation.c[0],node->orientation.c[1],node->orientation.c[2],-node->orientation.c[3]);
+				quaternion_togl(&q3);
+			}
+			FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
 		}
-		FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
-	}
 
-	/* now, lets work on the Viewpoint fieldOfView */
-	FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
-	if(viewPort[2] > viewPort[3]) {
-		a1=0;
-		viewer->fieldofview = node->fieldOfView/3.1415926536*180;
-	} else {
-		a1 = node->fieldOfView;
-		a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
-		viewer->fieldofview = a1/3.1415926536*180;
+		/* now, lets work on the Viewpoint fieldOfView */
+		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
+		if(viewPort[2] > viewPort[3]) {
+			a1=0;
+			viewer->fieldofview = node->fieldOfView/3.1415926536*180;
+		} else {
+			a1 = node->fieldOfView;
+			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
+			viewer->fieldofview = a1/3.1415926536*180;
+		}
 	}
-	/* printf ("render_Viewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); */
+	// printf ("render_Viewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); 
 }
 
 
@@ -143,21 +149,25 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 	*/
 	
 	/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
+	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 	
 
-	/* perform OrthoViewpoint translations */
-	FW_GL_ROTATE_RADIANS(-node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],
-		node->orientation.c[2]);
-	FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
+		/* perform OrthoViewpoint translations */
+		FW_GL_ROTATE_RADIANS(-node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],
+			node->orientation.c[2]);
+		FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
 
-	/* now, lets work on the OrthoViewpoint fieldOfView */
-        if (node->fieldOfView.n == 4) {
-                for (ind=0; ind<4; ind++) {
-                        Viewer()->orthoField[ind] = (double) node->fieldOfView.p[ind];
-                }
+		/* now, lets work on the OrthoViewpoint fieldOfView */
+		if (node->fieldOfView.n == 4) {
+			for (ind=0; ind<4; ind++) {
+					Viewer()->orthoField[ind] = (double) node->fieldOfView.p[ind];
+			}
+			//Viewer()->ortho = TRUE;
+		}
+
+		// printf ("render_OrthoViewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); 
 	}
-
-	/* printf ("render_OrthoViewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); */
 }
 
 /******************************************************************************************/
@@ -248,7 +258,7 @@ void fin_Billboard (struct X3D_Billboard *node) {
 
 void  child_Billboard (struct X3D_Billboard *node) {
     int nc = node->children.n;
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 
 
 	/* any children at all? */
@@ -259,7 +269,8 @@ void  child_Billboard (struct X3D_Billboard *node) {
 	#endif
 
 	/* do we have a local light for a child? */
-	LOCAL_LIGHT_CHILDREN(node->children);
+	//LOCAL_LIGHT_CHILDREN(node->children);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
@@ -271,25 +282,36 @@ void  child_Billboard (struct X3D_Billboard *node) {
 	#ifdef CHILDVERBOSE
 	printf("RENDER BILLBOARD END %d\n",node);
 	#endif
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	LOCAL_LIGHT_OFF
+	//LOCAL_LIGHT_OFF
 }
 
 
 /******************************************************************************************/
 
+//
+//void render_NavigationInfo (struct X3D_NavigationInfo *node) {
+//	/* check the set_bind eventin to see if it is TRUE or FALSE */
+//	ttglobal tg = gglobal();
+//	if (node->set_bind < 100) {
+//		if (node->set_bind == 1) set_naviinfo(node);
+//		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->navigation);
+//	}
+//	if(!node->isBound) return;
+//}
 
-void render_NavigationInfo (struct X3D_NavigationInfo *node) {
-	/* check the set_bind eventin to see if it is TRUE or FALSE */
-	ttglobal tg = gglobal();
-	if (node->set_bind < 100) {
-		if (node->set_bind == 1) set_naviinfo(node);
-		bind_node (X3D_NODE(node), tg->Bindable.navigation_stack);
-	}
-	if(!node->isBound) return;
-}
 
-
+/*
+Nov 28, 2016 we aren't doing collision->proxy
+COLLISION_PROXY
+http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/navigation.html#Collision
+"""
+The collision proxy, defined in the proxy field, is any legal children node as described in 10.2.1 Grouping and children node types that is used as a substitute for the Collision node's children during collision detection. The proxy is used strictly for collision detection; it is not drawn.
+"""
+http://www.web3d.org/x3d/content/examples/Basic/development/ProxyShapeExampleIndex.html
+- example showing you can re-order / change the order / length of children field and proxy should still be proxy
+*/
 
 void child_Collision (struct X3D_Collision *node) {
     int nc = node->children.n;
@@ -326,20 +348,21 @@ void child_Collision (struct X3D_Collision *node) {
 				node->__hit = (node->__hit & 1) ? 2 : 0;
 
 		}
-        	if(node->proxy) {
+		if(node->proxy) {
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->proxy,tmpN)
-                       	render_node(tmpN);
+			render_node(tmpN);
 		}
 
 	} else { /*standard group behaviour*/
-		LOCAL_LIGHT_SAVE
+		//LOCAL_LIGHT_SAVE
 
 		#ifdef CHILDVERBOSE
 		printf("RENDER COLLISIONCHILD START %d (%d)\n",node, nc);
 		#endif
 
 		/* do we have a local light for a child? */
-		LOCAL_LIGHT_CHILDREN(node->children);
+		//LOCAL_LIGHT_CHILDREN(node->children);
+		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 		/* now, just render the non-directionalLight children */
 		normalChildren(node->children);
@@ -347,7 +370,9 @@ void child_Collision (struct X3D_Collision *node) {
 		#ifdef CHILDVERBOSE
 		printf("RENDER COLLISIONCHILD END %d\n",node);
 		#endif
-		LOCAL_LIGHT_OFF
+		//LOCAL_LIGHT_OFF
+		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 	}
 }
 
@@ -465,10 +490,8 @@ void compile_ViewpointGroup (struct X3D_ViewpointGroup *node) {
 	if (node->__proxNode == NULL) {
 		/* create proximity */
 		pn = (struct X3D_ProximitySensor *) createNewX3DNode(NODE_ProximitySensor);
-		if(usingBrotos()){
-			if(node->_executionContext)
-				add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(pn));
-		}
+		if(node->_executionContext)
+			add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(pn));
 
 		/* any changes needed here?? */
 		node->__proxNode = (void *)pn;

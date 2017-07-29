@@ -33,9 +33,9 @@
 #include <libFreeWRL.h>
 
 #include "vrml_parser/Structs.h"
-#include "opengl/Textures.h"
 #include "opengl/RasterFont.h"
 #include "opengl/OpenGL_Utils.h"
+#include "opengl/Textures.h"
 //JAS #include "scenegraph/Collision.h"
 
 #include "ui/common.h"
@@ -45,63 +45,90 @@
 #endif
 
 
-#if defined (TARGET_AQUA)
-/* display part specific to Mac */
+// OLD_IPHONE_AQUA #if defined (TARGET_AQUA)
+// OLD_IPHONE_AQUA #ifndef IPHONE
+// OLD_IPHONE_AQUA int PaneClipnpx;
+// OLD_IPHONE_AQUA int PaneClipnpy;
+// OLD_IPHONE_AQUA 
+// OLD_IPHONE_AQUA int PaneClipct;
+// OLD_IPHONE_AQUA int PaneClipcb;
+// OLD_IPHONE_AQUA int PaneClipcr;
+// OLD_IPHONE_AQUA int PaneClipcl;
+// OLD_IPHONE_AQUA int PaneClipwidth;
+// OLD_IPHONE_AQUA int PaneClipheight;
+// OLD_IPHONE_AQUA int PaneClipChanged = FALSE;
+// OLD_IPHONE_AQUA #endif
+// OLD_IPHONE_AQUA #endif
 
-#ifndef IPHONE
+//static Stack *_vpstack = NULL; //ivec4 in y-down pixel coords - viewport stack used for clipping drawing
 
-/* for handling Safari window changes at the top of the display event loop */
-int PaneClipnpx;
-int PaneClipnpy;
+typedef struct ivec4 {int X; int Y; int W; int H;} ivec4;
+typedef struct ivec2 {int X; int Y;} ivec2;
+ivec4 ivec4_init(int x, int y, int w, int h){
+	ivec4 ret;
+	ret.X = x, ret.Y = y;  ret.W = w; ret.H = h;
+	return ret;
+}
 
-int PaneClipct;
-int PaneClipcb;
-int PaneClipcr;
-int PaneClipcl;
-int PaneClipwidth;
-int PaneClipheight;
-int PaneClipChanged = FALSE;
-#endif
-#endif
+ivec2 ivec2_init(int x, int y){
+	ivec2 ret;
+	ret.X = x, ret.Y = y; 
+	return ret;
+}
 
-void display_init(struct tdisplay* d) 
+#define MAXSTAT 200
+typedef struct pdisplay{
+	freewrl_params_t params; //pre-allocated
+	s_renderer_capabilities_t rdr_caps;
+	char myMenuStatus[MAXSTAT];
+	int multi_window_capable;
+}* ppdisplay;
+void *display_constructor(){
+	void *v = MALLOCV(sizeof(struct pdisplay));
+	memset(v,0,sizeof(struct pdisplay));
+	return v;
+}
+void display_init(struct tdisplay* t) 
 {
 	//public
 	//freewrl_params_t p = d->params;
 
-	d->display_initialized = FALSE;
-	d->params.height = 0; /* window */
-	d->params.width = 0;
-	d->params.winToEmbedInto = INT_ID_UNDEFINED;
-	d->params.fullscreen = FALSE;
-	d->params.xpos = 0;
-	d->params.ypos = 0;
+	t->display_initialized = FALSE;
 
-	d->params.frontend_handles_display_thread = FALSE;
+	t->screenWidth = 0; /* screen */
+	t->screenHeight = 0;
+	t->window_title = NULL;
 
-	d->view_height = 0; /* viewport */
-	d->view_width = 0;
-	d->screenWidth = 0; /* screen */
-	d->screenHeight = 0;
-	d->screenRatio = 1.5;
-	d->window_title = NULL;
-
-	d->mouse_x = 0;
-	d->mouse_y = 0;
-	d->show_mouse = 0;
-	d->shutterGlasses = 0; /* stereo shutter glasses */
-	d->quadbuff_stereo_mode = 0;
-	memset(&d->rdr_caps,0,sizeof(d->rdr_caps));
-	d->myFps = (float) 0.0;
+	t->shutterGlasses = 0; /* stereo shutter glasses */
+	t->prv = display_constructor();
+	{
+		ppdisplay p = (ppdisplay)t->prv;
+		memset(&p->rdr_caps,0,sizeof(s_renderer_capabilities_t));
+		t->rdr_caps = &p->rdr_caps;
+		/*
+		p->params.height = 0; // window
+		p->params.width = 0;
+		p->params.winToEmbedInto = INT_ID_UNDEFINED;
+		p->params.fullscreen = FALSE;
+		p->params.xpos = 0;
+		p->params.ypos = 0;
+		p->params.frontend_handles_display_thread = FALSE;
+		*/
+// OLD_IPHONE_AQUA #if defined(ANGLEPROJECT) || defined(_ANDROID) || defined(QNX) || defined(IPHONE)
+#if defined(ANGLEPROJECT) || defined(_ANDROID) || defined(QNX)
+		p->multi_window_capable = 0; //single-window EGL/ANGLEPROJECT(GLES2)/MOBILE
+#else
+		p->multi_window_capable = 1;  //desktop opengl __linux__, _MSC_VER
+#endif
+		t->params = (void*)&p->params;
+	}
 }
 
 
 
-#if KEEP_FV_INLIB
-
-#if defined (_ANDROID)
-
-/* simple display initialize for Android (and, probably, iPhones, too) */
+/* simple display initialize for Android (and, probably, iPhones, too)
+	Nov 2015: now used for desktop backend opengl initialization
+*/
 
 int fv_display_initialize()
 {
@@ -137,86 +164,171 @@ int fv_display_initialize()
     
     return TRUE;
 }
-#else
-/**
- *  fv_display_initialize: takes care of all the initialization process, 
- *                      creates the display thread and wait for it to complete
- *                      the OpenGL initialization and the Window creation.
- */
-int fv_display_initialize()
-{
-	struct tdisplay* d = &gglobal()->display;
-#ifdef HAVE_OPENCL
-	struct tOpenCL_Utils *cl = &gglobal()->OpenCL_Utils;
-#endif //HAVE_OPENCL
 
-	if (d->display_initialized) return TRUE;
-
-	//memset(&d->rdr_caps, 0, sizeof(d->rdr_caps));
-
-	/* FreeWRL parameters */
-	//d->fullscreen = fwl_getp_fullscreen();
-	//d->width = fwl_getp_width();
-	//d->height = fwl_getp_height();
-	//d->winToEmbedInto = fwl_getp_winToEmbedInto();
-
- 	/* make the window, get the OpenGL context */
-// #if !defined(_MSC_VER) && !defined(_ANDROID) && !defined(QNX) && !defined(IPHONE)
-#if defined (__linux__)
-
-	if (!fv_open_display()) {
-		return FALSE;
-	}
-
-	if (!fv_create_GLcontext()) {
-		return FALSE;
-	}
-
- #endif //!MSC_VER && ! any OpenGL ES 2.0 device
-
-	if (0 != d->screenWidth)  d->params.width  = d->screenWidth;
-	if (0 != d->screenHeight) d->params.height = d->screenHeight;
-	fv_setScreenDim(d->params.width,d->params.height); /* recompute screenRatio */
-
-	//snprintf(window_title, sizeof(window_title), "FreeWRL");
-
-	if (!fv_create_main_window(&d->params)){ //0 /*argc*/, NULL /*argv*/)) {
-	//if (!fv_create_main_window((freewrl_params_t *)d)){ //0 /*argc*/, NULL /*argv*/)) {
-		return FALSE;
-	}
-
-	setWindowTitle0();
-
-#if ! ( defined(_MSC_VER) || defined(FRONTEND_HANDLES_DISPLAY_THREAD) )
-	
-	fv_bind_GLcontext();
+//void fv_swapbuffers(freewrl_params_t *d);
+#ifdef WINRT
+void fv_swapbuffers(freewrl_params_t *d){
+	return;
+}
 #endif
 
+//void fv_change_GLcontext(freewrl_params_t* d);
+// each config needs to populate:
+// ANGLEPROJECT(stub) and WIN32(wglSetContext) done in src/lib/ui/fwWindow32.c
+//void fv_change_GLcontext(freewrl_params_t* d){
+//	return; //stub for ANLGEPROJECT, EGL/GLES2, mobile which don't change context but need to link
+//}
+#if defined(WINRT) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(IOS)
+void fv_change_GLcontext(freewrl_params_t* d){
+	//stub for non-desktop configs (they can't do multiple windows anyway)
+}
+#elif _MSC_VER
+//win32 in fwWindow32.c
+#elif __linux__  //LINUX
+//void fv_change_GLcontext(freewrl_params_t* d){
+//	glXMakeCurrent(d->display,d->surface,d->context); 
+//}
 
-	if (!fwl_initialize_GL()) {
+// OLD_IPHONE_AQUA #elif AQUA
+// OLD_IPHONE_AQUA void fv_change_GLcontext(freewrl_params_t* d){
+// OLD_IPHONE_AQUA 	aglSetCurrentContext(d->context);
+// OLD_IPHONE_AQUA }
+
+#else
+void fv_change_GLcontext(freewrl_params_t* d){
+	//stub for non-desktop configs (they can't do multiple windows anyway)
+}
+#endif
+
+#if !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(WINRT)
+int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share);
+//#if defined (__linux__)
+//int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
+// 	/* make the window, create the OpenGL context, share the context if necessary 
+//		Nov 2015: linux desktop is still single windowed, with static GLXContext etc, no sharing
+//		- to get sharing, you need to populate params during creation of window and gl context
+//			d->display = Display *Xdpy;
+//			d->surface = Drawable or ???
+//			d->context = GLXContext GLcx;
+//			so when the targetwindow changes, there's enough info to do glXMakeCurrent and glXSwapBuffers
+//			- and when doing glCreateContext you have the previous window's GLXcontext to use as a shareList
+//	*/
+//
+//	if (!fv_open_display()) {
+//		printf("open_display failed\n");
+//		return FALSE;
+//	}
+//
+//	if (!fv_create_GLcontext()) {
+//		printf("create_GLcontext failed\n");
+//		return FALSE;
+//	}
+//	fv_bind_GLcontext();
+//	return TRUE;
+//}
+//#endif //__linux__
+
+#ifdef _MSC_VER 
+int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
+	if (!fv_create_main_window2(params,share)){ //0 /*argc*/, NULL /*argv*/)) {
 		return FALSE;
 	}
+	return TRUE;
+}
+#endif //_MSC_VER
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
+// OLD_IPHONE_AQUA  	/* make the window, create the OpenGL context, share the context if necessary 
+// OLD_IPHONE_AQUA 		Nov 2015: OSX desktop is still single windowed, with static AGLcontext etc, no sharing
+// OLD_IPHONE_AQUA 		- to get sharing, you need to populate params during creation of window and gl context
+// OLD_IPHONE_AQUA 			d->display = (don't need)
+// OLD_IPHONE_AQUA 			d->surface = (don't need)
+// OLD_IPHONE_AQUA 			d->context = AGLContext
+// OLD_IPHONE_AQUA 			so when the targetwindow changes, there's enough info to do aglSetCurrentContext and aglSwapBuffers
+// OLD_IPHONE_AQUA 			- and when doing aglCreateContext you have the previous window's AGLContext to use as a share
+// OLD_IPHONE_AQUA 
+// OLD_IPHONE_AQUA 	*/
+// OLD_IPHONE_AQUA 
+// OLD_IPHONE_AQUA 	if (!fv_create_main_window(params)){ //0 /*argc*/, NULL /*argv*/)) {
+// OLD_IPHONE_AQUA 		return FALSE;
+// OLD_IPHONE_AQUA 	}
+// OLD_IPHONE_AQUA 	fv_bind_GLcontext();
+// OLD_IPHONE_AQUA 	return TRUE;
+// OLD_IPHONE_AQUA }
+// OLD_IPHONE_AQUA #endif
+
+void targetwindow_set_params(int itargetwindow, freewrl_params_t* params);
+freewrl_params_t* targetwindow_get_params(int itargetwindow);
+/**
+ *  fv_display_initialize_desktop: 
+ *		creates window
+ *		creates opengl context, associates with window
+ *		sets sharing if multi-window
+ *      calls fv_display_initialize() for the backend generic OpenGL initialization 
+ */
+int fv_display_initialize_desktop(){
+	int nwindows;
+	struct tdisplay* d;
+	freewrl_params_t *dp;
+	ppdisplay p;
+	ttglobal tg = gglobal();
+	d = &tg->display;
+	p = (ppdisplay)tg->display.prv;
+
+	dp = (freewrl_params_t*)d->params;
+	if(dp->frontend_handles_display_thread){
+		//all configs are technically frontend handles display thread now, 
+		// as seen by the backend (not including desktop.c which is a frontend)
+		// the flag frontend_handles_display_thread here really means 
+		// frontend_handles_window_creation_and_opengl_context_creation
+		// for example: winGLES2.exe which uses an EGL kit for window/glcontext
+		return fv_display_initialize(); //display_initialize now really means initialize generic backend opengl
+	}
+
+	nwindows = 1; //1 is normal freewrl, 2 or 3 is freaky 2,3 windowed freewrl for experiments, search targetwindow and windex
+	if(!p->multi_window_capable) nwindows = 1;
+ 	/* make the window, get the OpenGL context */
+	if(!fv_create_window_and_context(dp, NULL)){
+		return FALSE;
+	}
+	d->display_initialized = fwl_initialize_GL();
+	targetwindow_set_params(0,dp);
+	if(nwindows > 1){
+		//2nd fun window! to challenge us!
+		freewrl_params_t *p0;
+		dp->winToEmbedInto = -1;
+		p0 = targetwindow_get_params(0);
+		if(!fv_create_window_and_context(dp,p0)){
+			return FALSE;
+		}
+		targetwindow_set_params(1,dp); 
+		fwl_initialize_GL(); //has context-specific initializations -like GL_BLEND- so repeat per-context
+	}
+	if(nwindows > 2){
+		freewrl_params_t *p1;
+		dp->winToEmbedInto = -1;
+		p1 = targetwindow_get_params(1);
+		if(!fv_create_window_and_context(dp, p1)){
+			return FALSE;
+		}
+		targetwindow_set_params(2,dp); 
+		fwl_initialize_GL();
+	}
+	setWindowTitle0();
 
         /* lets make sure everything is sync'd up */
 #if defined(TARGET_X11) || defined(TARGET_MOTIF)
         XFlush(Xdpy);
 #endif
 
-        /* initialize default font 
-           
-           TODO: this may be a configuration option (config file or command line)
-         */
-        //rf_xfont_init("fixed");
-
-	/* Display full initialized :P cool ! */
-	d->display_initialized = TRUE;
-	gglobal()->display.display_initialized = TRUE;
+	gglobal()->display.display_initialized = d->display_initialized;
 
 	DEBUG_MSG("FreeWRL: running as a plugin: %s\n", BOOL_STR(isBrowserPlugin));
 
     PRINT_GL_ERROR_IF_ANY ("end of fv_display_initialize");
     
-#if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID))
+// OLD_IPHONE_AQUA #if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID))
+#if !(defined(_MSC_VER) || defined(_ANDROID))
         
 	if (RUNNINGASPLUGIN) {
 #if defined(FREEWRL_PLUGIN) && (defined(TARGET_X11) || defined(TARGET_MOTIF))
@@ -225,19 +337,10 @@ int fv_display_initialize()
 	} else {
 		XMapWindow(Xdpy, Xwin);
 	}
-#endif /* IPHONE */
-
-#ifdef HAVE_OPENCL
-
-    if (!cl->OpenCL_Initialized) {
-	printf ("doing fwl_OpenCL_startup here in fv_display_inintialize\n");
-	fwl_OpenCL_startup(cl);
-    }
-
 #endif
 	return TRUE;
 }
-#endif //ANDROID
+#endif //!_ANDORID
 
 
 /**
@@ -266,19 +369,33 @@ int fwl_parse_geometry_string(const char *geometry, int *out_width, int *out_hei
 }
 
 void fv_setScreenDim(int wi, int he) { fwl_setScreenDim(wi,he); }
-#endif /* KEEP_FV_INLIB */
 
+void fwl_setScreenDim1(int wi, int he, int windex);
+void fwl_setScreenDim0(int wi, int he)
+{
+	//this one just sets the tg->display.screenWidth and is called in the targetwindow rendering loop
+	//this allows legacy code use of display.screenWidth etc to work normally in the render functions
+	ttglobal tg = gglobal();
+
+    tg->display.screenWidth = wi;  //width of the whole opengl surface in pixels
+    tg->display.screenHeight = he; //height of the whole opengl surface in pixels
+}
 /**
  *   fwl_setScreenDim: set internal variables for screen sizes, and calculate frustum
  */
 void fwl_setScreenDim(int wi, int he)
 {
-    gglobal()->display.screenWidth = wi;
-    gglobal()->display.screenHeight = he;
-    /* printf("%s,%d fwl_setScreenDim(int %d, int %d)\n",__FILE__,__LINE__,wi,he); */
-
-    if (gglobal()->display.screenHeight != 0) gglobal()->display.screenRatio = (double) gglobal()->display.screenWidth/(double) gglobal()->display.screenHeight;
-    else gglobal()->display.screenRatio =  gglobal()->display.screenWidth;
+	//this one is called from platform-specific window event handling code, and
+	//by default assumes there's only one window, windex=0
+	//and sets a windowtarget-specific viewport as well as tg.display.screenwidth/height 
+	fwl_setScreenDim0(wi,he);
+	fwl_setScreenDim1(wi,he,0);
+}
+double display_screenRatio(){
+	ttglobal tg = gglobal();
+	double ratio = 1.5;
+	if (tg->display.screenHeight != 0) ratio = (double) tg->display.screenWidth/(double) tg->display.screenHeight;
+	return ratio;
 }
 void fwl_setClipPlane(int height)
 {
@@ -310,10 +427,11 @@ void fwl_updateScreenDim(int wi, int he)
  */
 bool initialize_rdr_caps()
 {
-	s_renderer_capabilities_t rdr_caps;
+	//s_renderer_capabilities_t *rdr_caps;
 	/* Max texture size */
 	GLint tmp;  /* ensures that we pass pointers of same size across all platforms */
-		
+	ppdisplay p = (ppdisplay)gglobal()->display.prv;
+	
 #if defined(HAVE_GLEW_H) && !defined(ANGLEPROJECT)
 	/* Initialize GLEW */
 	{
@@ -330,79 +448,86 @@ bool initialize_rdr_caps()
 
 	/* OpenGL is initialized, context is created,
 	   get some info, for later use ...*/
-        rdr_caps.renderer   = (char *) FW_GL_GETSTRING(GL_RENDERER);
-        rdr_caps.version    = (char *) FW_GL_GETSTRING(GL_VERSION);
-        rdr_caps.vendor     = (char *) FW_GL_GETSTRING(GL_VENDOR);
-	rdr_caps.extensions = (char *) FW_GL_GETSTRING(GL_EXTENSIONS);
-    FW_GL_GETBOOLEANV(GL_STEREO,&(rdr_caps.quadBuffer));
+        p->rdr_caps.renderer   = (char *) FW_GL_GETSTRING(GL_RENDERER);
+        p->rdr_caps.version    = (char *) FW_GL_GETSTRING(GL_VERSION);
+        p->rdr_caps.vendor     = (char *) FW_GL_GETSTRING(GL_VENDOR);
+	p->rdr_caps.extensions = (char *) FW_GL_GETSTRING(GL_EXTENSIONS);
+    FW_GL_GETBOOLEANV(GL_STEREO,&(p->rdr_caps.quadBuffer));
     //if (rdr_caps.quadBuffer) ConsoleMessage("INIT HAVE QUADBUFFER"); else ConsoleMessage("INIT_ NO QUADBUFFER");
-    ConsoleMessage("openGL version %s\n",rdr_caps.version);
+    ConsoleMessage("openGL version %s\n",p->rdr_caps.version);
 
 	/* rdr_caps.version = "1.5.7"; //"1.4.1"; //for testing */
-    rdr_caps.versionf = (float) atof(rdr_caps.version); 
-    if (rdr_caps.versionf == 0) // can't parse output of GL_VERSION, generally in case it is smth. like "OpenGL ES 3.0 V@66.0 AU@ (CL@)". probably 3.x or bigger.
+	if (p->rdr_caps.version)
+		p->rdr_caps.versionf = (float) atof(p->rdr_caps.version); 
+    if (p->rdr_caps.versionf == 0) // can't parse output of GL_VERSION, generally in case it is smth. like "OpenGL ES 3.0 V@66.0 AU@ (CL@)". probably 3.x or bigger.
 	{
         const char *openGLPrefix = "OpenGL ES ";
-        if (NULL != rdr_caps.version && strstr(rdr_caps.version, openGLPrefix))
+        if (NULL != p->rdr_caps.version && strstr(p->rdr_caps.version, openGLPrefix))
         {
             char version[256], *versionPTR;
-            sprintf(version, "%s", rdr_caps.version);
+            sprintf(version, "%s", p->rdr_caps.version);
             versionPTR = version + strlen(openGLPrefix);
-            rdr_caps.versionf = (float) atof(versionPTR);
+            p->rdr_caps.versionf = (float) atof(versionPTR);
             //free(version);
         }
 #if defined(GL_ES_VERSION_2_0) && !defined(ANGLEPROJECT)
-        if (0 == rdr_caps.version)
+        if (0 == p->rdr_caps.version)
         {
             //Try define version with 3.x api
             GLint major = 0, minor = 0;
+			#if defined(GL_MAJOR_VERSION) && defined(GL_MINOR_VERSION)
             FW_GL_GETINTEGERV(GL_MAJOR_VERSION, &major);
             FW_GL_GETINTEGERV(GL_MINOR_VERSION, &minor);
+			#else
+			major = 2;
+			minor = 1;
+			#endif
             char *version;
             asprintf(&version, "%d.%d", major, minor);
-            rdr_caps.version = version;
-            rdr_caps.versionf = (float) atof(rdr_caps.version);
+            p->rdr_caps.version = version;
+            p->rdr_caps.versionf = (float) atof(p->rdr_caps.version);
             free(version);
         }
 #endif
 	}
 	/* atof technique: http://www.opengl.org/resources/faq/technical/extensions.htm */
-    rdr_caps.have_GL_VERSION_1_1 = rdr_caps.versionf >= 1.1f;
-    rdr_caps.have_GL_VERSION_1_2 = rdr_caps.versionf >= 1.2f;
-    rdr_caps.have_GL_VERSION_1_3 = rdr_caps.versionf >= 1.3f;
-    rdr_caps.have_GL_VERSION_1_4 = rdr_caps.versionf >= 1.4f;
-    rdr_caps.have_GL_VERSION_1_5 = rdr_caps.versionf >= 1.5f;
-    rdr_caps.have_GL_VERSION_2_0 = rdr_caps.versionf >= 2.0f;
-    rdr_caps.have_GL_VERSION_2_1 = rdr_caps.versionf >= 2.1f;
-    rdr_caps.have_GL_VERSION_3_0 = rdr_caps.versionf >= 3.0f;
+    p->rdr_caps.have_GL_VERSION_1_1 = p->rdr_caps.versionf >= 1.1f;
+    p->rdr_caps.have_GL_VERSION_1_2 = p->rdr_caps.versionf >= 1.2f;
+    p->rdr_caps.have_GL_VERSION_1_3 = p->rdr_caps.versionf >= 1.3f;
+    p->rdr_caps.have_GL_VERSION_1_4 = p->rdr_caps.versionf >= 1.4f;
+    p->rdr_caps.have_GL_VERSION_1_5 = p->rdr_caps.versionf >= 1.5f;
+    p->rdr_caps.have_GL_VERSION_2_0 = p->rdr_caps.versionf >= 2.0f;
+    p->rdr_caps.have_GL_VERSION_2_1 = p->rdr_caps.versionf >= 2.1f;
+    p->rdr_caps.have_GL_VERSION_3_0 = p->rdr_caps.versionf >= 3.0f;
 
 
 	/* Initialize renderer capabilities without GLEW */
 
 	/* Multitexturing */
-	rdr_caps.av_multitexture = (strstr (rdr_caps.extensions, "GL_ARB_multitexture")!=0);
+	if (p->rdr_caps.extensions){
+		p->rdr_caps.av_multitexture = (strstr(p->rdr_caps.extensions, "GL_ARB_multitexture") != 0);
 
-	/* Occlusion Queries */
-	rdr_caps.av_occlusion_q = ((strstr (rdr_caps.extensions, "GL_ARB_occlusion_query") !=0) ||
-                             (strstr(rdr_caps.extensions, "GL_EXT_occlusion_query_boolean") != 0) ||
-                             rdr_caps.have_GL_VERSION_3_0);
+		/* Occlusion Queries */
+		p->rdr_caps.av_occlusion_q = ((strstr(p->rdr_caps.extensions, "GL_ARB_occlusion_query") != 0) ||
+			(strstr(p->rdr_caps.extensions, "GL_EXT_occlusion_query_boolean") != 0) ||
+			p->rdr_caps.have_GL_VERSION_3_0);
 
 
-	/* Non-power-of-two textures */
-	rdr_caps.av_npot_texture = (strstr (rdr_caps.extensions, "GL_ARB_texture_non_power_of_two") !=0);
+		/* Non-power-of-two textures */
+		p->rdr_caps.av_npot_texture = (strstr(p->rdr_caps.extensions, "GL_ARB_texture_non_power_of_two") != 0);
 
-	/* Texture rectangle (x != y) */
-	rdr_caps.av_texture_rect = (strstr (rdr_caps.extensions, "GL_ARB_texture_rectangle") !=0);
-
+		/* Texture rectangle (x != y) */
+		p->rdr_caps.av_texture_rect = (strstr(p->rdr_caps.extensions, "GL_ARB_texture_rectangle") != 0);
+	}
 	/* if we are doing our own shading, force the powers of 2, because otherwise mipmaps are not possible. */
-	rdr_caps.av_npot_texture=FALSE;
+	p->rdr_caps.av_npot_texture=FALSE;
 
 	/* attempting multi-texture */
-	rdr_caps.av_multitexture = 1;
+	p->rdr_caps.av_multitexture = 1;
 
 	FW_GL_GETINTEGERV(GL_MAX_TEXTURE_SIZE, &tmp);
-	rdr_caps.runtime_max_texture_size = (int) tmp;
-	rdr_caps.system_max_texture_size = (int) tmp;
+	p->rdr_caps.runtime_max_texture_size = (int) tmp;
+	p->rdr_caps.system_max_texture_size = (int) tmp;
 
 	// GL_MAX_TEXTURE_UNITS is for fixed function, and should be deprecated.
 	// use GL_MAX_TEXTURE_IMAGE_UNITS now, according to the OpenGL.org wiki
@@ -414,35 +539,36 @@ bool initialize_rdr_caps()
 	FW_GL_GETINTEGERV(GL_MAX_TEXTURE_UNITS, &tmp);
 	#endif
 
-	rdr_caps.texture_units = (int) tmp;
+	p->rdr_caps.texture_units = (int) tmp;
 
 	/* max supported texturing anisotropicDegree- can be changed in TextureProperties */
 #ifdef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
-	FW_GL_GETFLOATV (GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &rdr_caps.anisotropicDegree);
+	FW_GL_GETFLOATV (GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &p->rdr_caps.anisotropicDegree);
 #endif
 	/* User settings in environment */
 
 	//ConsoleMessage ("Environment set texture size: %d", gglobal()->internalc.user_request_texture_size);
 	if (gglobal()->internalc.user_request_texture_size > 0) {
 		DEBUG_MSG("Environment set texture size: %d", gglobal()->internalc.user_request_texture_size);
-		rdr_caps.runtime_max_texture_size = gglobal()->internalc.user_request_texture_size;
+		p->rdr_caps.runtime_max_texture_size = gglobal()->internalc.user_request_texture_size;
 	}
 
 	/* Special drivers settings */
+	if (p->rdr_caps.renderer)
 	if (
-	strstr(rdr_caps.renderer, "Intel GMA 9") != NULL ||
-	strstr(rdr_caps.renderer, "Intel(R) 9") != NULL ||
-	strstr(rdr_caps.renderer, "i915") != NULL ||
-	strstr(rdr_caps.renderer, "NVIDIA GeForce2") != NULL
+	strstr(p->rdr_caps.renderer, "Intel GMA 9") != NULL ||
+	strstr(p->rdr_caps.renderer, "Intel(R) 9") != NULL ||
+	strstr(p->rdr_caps.renderer, "i915") != NULL ||
+	strstr(p->rdr_caps.renderer, "NVIDIA GeForce2") != NULL
 	) {
-		if (rdr_caps.runtime_max_texture_size > 1024) rdr_caps.runtime_max_texture_size = 1024;
+		if (p->rdr_caps.runtime_max_texture_size > 1024) p->rdr_caps.runtime_max_texture_size = 1024;
 	}
 
 	/* print some debug infos */
-	rdr_caps_dump(&rdr_caps);
+	rdr_caps_dump(&p->rdr_caps);
 
 	//make this the renderer caps for this thread.
-	memcpy(&gglobal()->display.rdr_caps,&rdr_caps,sizeof(rdr_caps));
+	//memcpy(&gglobal()->display.rdr_caps,&rdr_caps,sizeof(rdr_caps));
 	return TRUE;
 }
 

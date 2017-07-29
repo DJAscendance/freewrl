@@ -18,6 +18,7 @@ extern "C"
 //#endif
 #include <config.h>
 #include "display.h"
+//#include "opengl/OpenGL_Utils.h"
 #include "opengl/textures.h"
 #ifdef DEBUG_MALLOC
 void *freewrlMalloc(int line, char *file, size_t sz, int zeroData);
@@ -55,7 +56,6 @@ int shutdownImageLoader()
    GdiplusShutdown(gdiplusToken);
 	return 0;
 }
-void malloc_profile_add(char *use, int bytes);
 
 int loadImage(struct textureTableIndexStruct *tti, char *fname)
 {
@@ -69,6 +69,8 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
 	// convert to wide char http://msdn.microsoft.com/en-us/library/ms235631(VS.80).aspx   
 	//fname = "C:/source2/freewrl/freex3d/tests/helpers/brick.png";  
     //fname = "junk.jpg"; //test failure condition
+	int format;
+	int channels;
 	size_t origsize = strlen(fname) + 1;
 	char* fname2 = (char*) malloc(origsize);
 	strcpy(fname2,fname);
@@ -131,12 +133,27 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
 		bitmapData->Stride = -(int)bitmap->GetWidth()*4;
    else
 	   bitmapData->Stride = bitmap->GetWidth()*4;
+   ////https://msdn.microsoft.com/en-us/library/vs/alm/ms534410(v=vs.85).aspx
+   //stat = bitmap->GetRawFormat(&format);
+   //switch(format){
+   //}
+   //https://msdn.microsoft.com/en-us/library/vs/alm/ms534412(v=vs.85).aspx
+   format = bitmap->GetPixelFormat();
+   switch(format){
+	   case PixelFormat16bppGrayScale: channels = 1; break;
+	   //no intensity alpha?
+	   //case 2498570: channels = 2; break;
+	   case PixelFormat24bppRGB: channels = 3; break;
+	   case PixelFormat32bppARGB: channels = 4; break;
+	   default:
+		channels = 4; break;
+   }
    bitmapData->Width = bitmap->GetWidth();
    bitmapData->Height = bitmap->GetHeight();
-   bitmapData->PixelFormat = PixelFormat32bppARGB;
+   bitmapData->PixelFormat = PixelFormat32bppARGB; // BGRA
    int totalbytes = bitmap->GetWidth() * bitmap->GetHeight() * 4; //tti->depth;
-   malloc_profile_add("texture0",totalbytes);
    unsigned char * blob = (unsigned char*)MALLOCV(totalbytes);
+
    if(flipVertically)
 		bitmapData->Scan0 = &blob[bitmap->GetWidth()*bitmap->GetHeight()*4 + bitmapData->Stride]; 
    else
@@ -146,7 +163,7 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
    bitmap->LockBits(
       &rect,
       ImageLockModeRead|ImageLockModeUserInputBuf,
-	  PixelFormat32bppARGB, //PixelFormat24bppRGB, 
+	  PixelFormat32bppARGB, //PixelFormat24bppRGB,  // BGRA
       bitmapData);
 
 #ifdef verbose
@@ -177,6 +194,7 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
 	   printf("ouch in gdiplus image loader L140 - no image data\n");
    //tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmapData->PixelFormat)?1:0; 
    tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmap->GetPixelFormat())?1:0; 
+   tti->channels = channels; //Gdiplus::GetPixelFormatSize(bitmap->GetPixelFormat());
    //printf("fname=%s alpha=%ld\n",fname,tti->hasAlpha);
 
 #ifdef verbose

@@ -58,9 +58,9 @@
 #include "../opengl/Material.h"
 #include "../scenegraph/Component_Core.h"
 #include "../scenegraph/Component_Networking.h"
-#include "Textures.h"
 #include "LoadTextures.h"
 #include "OpenGL_Utils.h"
+#include "Textures.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "../scenegraph/Component_Shape.h"
 #include <float.h>
@@ -86,8 +86,9 @@ static void fw_glLoadMatrixd(GLDOUBLE *val);
 
 
 struct shaderTableEntry {
-    unsigned int whichOne;
-    s_shader_capabilities_t *myCapabilities;
+	//unsigned int whichOne;
+	shaderflagsstruct whichOne;
+	s_shader_capabilities_t *myCapabilities;
 
 };
 
@@ -95,7 +96,7 @@ int unload_broto(struct X3D_Proto* node);
 
 static void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
 static void getShaderCommonInterfaces (s_shader_capabilities_t *me);
-static void makeAndCompileShader(struct shaderTableEntry *,bool);
+static void makeAndCompileShader(struct shaderTableEntry *);
 
 ///* is this 24 bit depth? 16? 8?? Assume 24, unless set on opening */
 //int displayDepth = 24;
@@ -113,10 +114,69 @@ static void makeAndCompileShader(struct shaderTableEntry *,bool);
 
 /* OpenGL perform matrix state here */
 #define MAX_LARGE_MATRIX_STACK 256	/* depth of stacks */
-#define MAX_SMALL_MATRIX_STACK 2	/* depth of stacks */
+#define MAX_SMALL_MATRIX_STACK 9	/* depth of stacks */
 #define MATRIX_SIZE 16		/* 4 x 4 matrix */
 typedef GLDOUBLE MATRIX4[MATRIX_SIZE];
 
+#ifdef OLDCODE
+OLDCODE
+OLDCODE#ifdef DISABLER
+OLDCODEvoid fwl_glGenQueries(GLsizei n, GLuint* ids)
+OLDCODE{
+OLDCODE#if defined(IPHONE)
+OLDCODE	s_renderer_capabilities_t *rdr_caps;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	rdr_caps = tg->display.rdr_caps;
+OLDCODE	if (rdr_caps->have_GL_VERSION_3_0)
+OLDCODE	{
+OLDCODE		glGenQueries(n, ids);
+OLDCODE	}
+OLDCODE	else
+OLDCODE	{
+OLDCODE		glGenQueriesEXT(n, ids);
+OLDCODE	}
+OLDCODE#else
+OLDCODE	glGenQueries(n, ids);
+OLDCODE#endif
+OLDCODE}
+OLDCODEvoid fwl_glDeleteQueries(GLsizei n, const GLuint* ids)
+OLDCODE{
+OLDCODE#if defined(IPHONE)
+OLDCODE	s_renderer_capabilities_t *rdr_caps;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	rdr_caps = tg->display.rdr_caps;
+OLDCODE	if (rdr_caps->have_GL_VERSION_3_0)
+OLDCODE	{
+OLDCODE		glDeleteQueries(n, ids);
+OLDCODE	}
+OLDCODE	else
+OLDCODE	{
+OLDCODE		glDeleteQueriesEXT(n, ids);
+OLDCODE	}
+OLDCODE#else
+OLDCODE	glDeleteQueries(n, ids);
+OLDCODE#endif
+OLDCODE}
+OLDCODEvoid fwl_glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* params)
+OLDCODE{
+OLDCODE#if defined(IPHONE)
+OLDCODE	s_renderer_capabilities_t *rdr_caps;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	rdr_caps = tg->display.rdr_caps;
+OLDCODE	if (rdr_caps->have_GL_VERSION_3_0)
+OLDCODE	{
+OLDCODE		glGetQueryObjectuiv(id, pname, params);
+OLDCODE	}
+OLDCODE	else
+OLDCODE	{
+OLDCODE		glGetQueryObjectuivEXT(id, pname, params);
+OLDCODE	}
+OLDCODE#else
+OLDCODE	glGetQueryObjectuiv(id, pname, params);
+OLDCODE#endif
+OLDCODE}
+OLDCODE#endif
+#endif //OLDCODE
 
 
 typedef struct pOpenGL_Utils{
@@ -131,7 +191,6 @@ typedef struct pOpenGL_Utils{
 	MATRIX4 FW_ModelView[MAX_LARGE_MATRIX_STACK];
 	MATRIX4 FW_ProjectionView[MAX_SMALL_MATRIX_STACK];
 	MATRIX4 FW_TextureView[MAX_SMALL_MATRIX_STACK];
-	MATRIX4 FW_PickrayView[MAX_SMALL_MATRIX_STACK];
 
 	int modelviewTOS;// = 0;
 	int projectionviewTOS;// = 0;
@@ -144,72 +203,20 @@ typedef struct pOpenGL_Utils{
 	GLEWContext glewC;
 #endif
 
-    struct Vector *myShaderTable; /* list of all active shaders requested by input */
+	struct Vector *myShaderTable; /* list of all active shaders requested by input */
 	int userDefinedShaderCount;	/* if the user actually has a Shader node */
-    char *userDefinedFragmentShader[MAX_USER_DEFINED_SHADERS];
-    char *userDefinedVertexShader[MAX_USER_DEFINED_SHADERS];
+	char *userDefinedFragmentShader[MAX_USER_DEFINED_SHADERS];
+	char *userDefinedVertexShader[MAX_USER_DEFINED_SHADERS];
 
-    bool usePhongShaders; /* phong shaders == better rendering, but slower */
+	int shadingStyle; //0=flat, 1=gouraud, 2=phong 3=wireframe
 	int maxStackUsed;
 }* ppOpenGL_Utils;
-
-#ifdef DISABLER
-void fwl_glGenQueries(GLsizei n, GLuint* ids)
-{
-#if defined(IPHONE)
-    ttglobal tg = gglobal();
-    if (tg->display.rdr_caps.have_GL_VERSION_3_0)
-    {
-        glGenQueries(n, ids);
-    }
-    else
-    {
-        glGenQueriesEXT(n, ids);
-    }
-#else
-    glGenQueries(n, ids);
-#endif
-}
-void fwl_glDeleteQueries(GLsizei n, const GLuint* ids)
-{
-#if defined(IPHONE)
-    ttglobal tg = gglobal();
-    if (tg->display.rdr_caps.have_GL_VERSION_3_0)
-    {
-        glDeleteQueries(n, ids);
-    }
-    else
-    {
-        glDeleteQueriesEXT(n, ids);
-    }
-#else
-    glDeleteQueries(n, ids);
-#endif
-}
-void fwl_glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* params)
-{
-#if defined(IPHONE)
-    ttglobal tg = gglobal();
-    if (tg->display.rdr_caps.have_GL_VERSION_3_0)
-    {
-        glGetQueryObjectuiv(id, pname, params);
-    }
-    else
-    {
-        glGetQueryObjectuivEXT(id, pname, params);
-    }
-#else
-    glGetQueryObjectuiv(id, pname, params);
-#endif
-}
-#endif
 
 void *OpenGL_Utils_constructor(){
 	void *v = MALLOCV(sizeof(struct pOpenGL_Utils));
 	memset(v,0,sizeof(struct pOpenGL_Utils));
 	return v;
 }
-
 void OpenGL_Utils_init(struct tOpenGL_Utils *t)
 {
 	//public
@@ -225,9 +232,9 @@ void OpenGL_Utils_init(struct tOpenGL_Utils *t)
 		ppOpenGL_Utils p = (ppOpenGL_Utils)t->prv;
 		p->linearNodeTable = NULL;
 		p->potentialHoleCount = 0;
-		p->cc_red = 1.0f;
-		p->cc_green = 1.0f;
-		p->cc_blue = 1.0f;
+		p->cc_red = 0.0f;
+		p->cc_green = 0.0f;
+		p->cc_blue = 0.0f;
 		p->cc_alpha = 1.0f;
 		//p->memtablelock = PTHREAD_MUTEX_INITIALIZER;
 		pthread_mutex_init(&(p->memtablelock), NULL);
@@ -241,24 +248,21 @@ void OpenGL_Utils_init(struct tOpenGL_Utils *t)
 		p->whichMode = GL_MODELVIEW;
 		p->currentMatrix = p->FW_ModelView[0];
 
-        // load identity matricies in here
-        loadIdentityMatrix(p->FW_ModelView[0]);
-        loadIdentityMatrix(p->FW_ProjectionView[0]);
-        loadIdentityMatrix(p->FW_TextureView[0]);
-        loadIdentityMatrix(p->FW_PickrayView[0]);
+		// load identity matricies in here
+		loadIdentityMatrix(p->FW_ModelView[0]);
+		loadIdentityMatrix(p->FW_ProjectionView[0]);
+		loadIdentityMatrix(p->FW_TextureView[0]);
 
 
-        // create room for some shaders. The order in this table is
-        // the order in which they are first referenced.
-        p->myShaderTable = newVector(struct shaderTableEntry *, 8);
+		// create room for some shaders. The order in this table is
+		// the order in which they are first referenced.
+		p->myShaderTable = newVector(struct shaderTableEntry *, 8);
 
-        // userDefinedShaders - assume 0, unless the user is a geek.
-        p->userDefinedShaderCount = 0;
+		// userDefinedShaders - assume 0, unless the user is a geek.
+		p->userDefinedShaderCount = 0;
 
-        // usePhongShaders set to false for now. Can be changed
-        // during runtime, then re-build shaders.
-        p->usePhongShaders = false;
-        //ConsoleMessage ("setting usePhongShaders to true"); p->usePhongShaders=true;
+		p->shadingStyle = 1; //0=flat, 1=gouraud (default), 2=phong, 3=wireframe
+		//ConsoleMessage ("setting usePhongShaders to true"); p->usePhongShaders=true;
 		p->maxStackUsed = 0;
 	}
 }
@@ -290,17 +294,19 @@ GLEWContext * glewGetContext()
 
 GLDOUBLE *getPickrayMatrix(int index)
 {
-	//didn't do this in FW_GL_GETDOUBLEV(GL_PICKRAY_MATRIX,) because glew uses standard opengl stack names, 
-	//  although could I have squeezed it in to a known stack?
 	//feature-AFFINE_GLU_UNPROJECT
-	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
-	return p->FW_PickrayView[index];
+	bindablestack *bstack;
+	ttglobal tg = gglobal();
+	bstack = getActiveBindableStacks(tg);
+	return bstack->pickraymatrix[index];
 }
 void setPickrayMatrix(int index, GLDOUBLE *mat)
 {
 	//feature-AFFINE_GLU_UNPROJECT
-	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
-	memcpy(p->FW_PickrayView[index], mat, 16*sizeof(GLDOUBLE));
+	bindablestack *bstack;
+	ttglobal tg = gglobal();
+	bstack = getActiveBindableStacks(tg);
+	memcpy(bstack->pickraymatrix[index],mat,16*sizeof(GLDOUBLE));
 }
 
 // we have a new world, get rid of any old user defined shaders here
@@ -323,7 +329,7 @@ void kill_userDefinedShaders() {
 	}
 
 	for (i=0; i <vectorSize(p->myShaderTable); i++) {
-        	struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,p->myShaderTable, i);
+		struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,p->myShaderTable, i);
 		FREE_IF_NZ(me->myCapabilities);
 	
 		//me->whichOne = 0;
@@ -338,40 +344,40 @@ void kill_userDefinedShaders() {
 
 // we allow a certain number of user-defined shaders to (somehow) fit in here.
 int getNextFreeUserDefinedShaderSlot() {
-    int rv;
-    ppOpenGL_Utils p;
+	int rv;
+	ppOpenGL_Utils p;
 	ttglobal tg = gglobal();
 	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
 
-    if (p->userDefinedShaderCount == MAX_USER_DEFINED_SHADERS) return -1;
+	p->userDefinedShaderCount++;
+	if (p->userDefinedShaderCount == MAX_USER_DEFINED_SHADERS) return -1;
 
-    rv = p->userDefinedShaderCount;
-    p->userDefinedShaderCount++;
+	rv = p->userDefinedShaderCount;
 
-    return rv;
+	return rv;
 }
 
 // from a user defined shader, we capture the shader text here.
 void sendShaderTextToEngine(int ste, int parts, char ** vertSource, char ** fragSource) {
-    char *fs = NULL;
-    char *vs = NULL;
-    int i;
+	char *fs = NULL;
+	char *vs = NULL;
+	int i;
 
-    ppOpenGL_Utils p;
+	ppOpenGL_Utils p;
 	ttglobal tg = gglobal();
 	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
 
-    // find the non-null for each shader text.
-    for (i=0; i<parts; i++) {
-        //ConsoleMessage ("for ptr ind %d, :%s: :%s:",i,vertSource[i],fragSource[i]);
-        if (vertSource[i] != NULL) vs=vertSource[i];
-        if (fragSource[i] != NULL) fs=fragSource[i];
-    }
-    //ConsoleMessage ("sendShaderTextToEngine, saving in %d",ste);
+	// find the non-null for each shader text.
+	for (i=0; i<parts; i++) {
+		//ConsoleMessage ("for ptr ind %d, :%s: :%s:",i,vertSource[i],fragSource[i]);
+		if (vertSource[i] != NULL) vs=vertSource[i];
+		if (fragSource[i] != NULL) fs=fragSource[i];
+	}
+	//ConsoleMessage ("sendShaderTextToEngine, saving in %d",ste);
 
-    p->userDefinedFragmentShader[ste] = fs;
-    p->userDefinedVertexShader[ste] = vs;
-    //printf ("so for shaderTableEntry %d, we have %d %d\n",ste,strlen(fs),strlen(vs));
+	p->userDefinedFragmentShader[ste] = fs;
+	p->userDefinedVertexShader[ste] = vs;
+	//printf ("so for shaderTableEntry %d, we have %d %d\n",ste,strlen(fs),strlen(vs));
 }
 
 #if defined (_ANDROID)
@@ -434,7 +440,7 @@ int fwl_android_get_valid_shapeNodes(struct Vector **shapeNodes) {
 
 	struct Vector *me;
 	int tc;
-        ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
 
 	//ConsoleMessage ("fwl_android_get_valid_shapeNodes, passed in vector %p",*shapeNodes);
 
@@ -795,8 +801,8 @@ int fwl_get_FillPropColour(struct Vector **shapeNodes, int whichEntry) {
 
 	integer_colour = 0xFF000000 + (
 		((uint8_t)(255.0f *CLAMP(fp->hatchColor.c[0], 0.0, 1.0)) <<16) |
-               ((uint8_t)(255.0f *CLAMP(fp->hatchColor.c[1], 0.0, 1.0)) <<8) |
-               ((uint8_t)(255.0f *CLAMP(fp->hatchColor.c[2], 0.0, 1.0))));
+		((uint8_t)(255.0f *CLAMP(fp->hatchColor.c[1], 0.0, 1.0)) <<8) |
+		((uint8_t)(255.0f *CLAMP(fp->hatchColor.c[2], 0.0, 1.0))));
 
 	//ConsoleMessage ("fwl_get_fp, is %x",integer_colour);
 	return (integer_colour);
@@ -933,44 +939,44 @@ int fwl_set_MaterialExisting(struct Vector **shapeNodes, int whichEntry) {
 }
 
 /* fwl_get_MaterialColourValue(xx) - example usage:
-                <item>Front Diffuse</item>
-                <item>Front Emissive</item>
-                <item>Front Specular</item>
-                <item>Back Diffuse</item>
-                <item>Back Emissive</item>
-                <item>Back Specular</item>
+	<item>Front Diffuse</item>
+	<item>Front Emissive</item>
+	<item>Front Specular</item>
+	<item>Back Diffuse</item>
+	<item>Back Emissive</item>
+	<item>Back Specular</item>
 
-        int frontDiffuse = FreeX3DLib.getMaterialColourValue(0);
-        int frontEmissive = FreeX3DLib.getMaterialColourValue(1);
-        int frontSpecular = FreeX3DLib.getMaterialColourValue(2);
-        int backDiffuse = FreeX3DLib.getMaterialColourValue(3);
-        int backEmissive = FreeX3DLib.getMaterialColourValue(4);
-        int backSpecular = FreeX3DLib.getMaterialColourValue(5);
+	int frontDiffuse = FreeX3DLib.getMaterialColourValue(0);
+	int frontEmissive = FreeX3DLib.getMaterialColourValue(1);
+	int frontSpecular = FreeX3DLib.getMaterialColourValue(2);
+	int backDiffuse = FreeX3DLib.getMaterialColourValue(3);
+	int backEmissive = FreeX3DLib.getMaterialColourValue(4);
+	int backSpecular = FreeX3DLib.getMaterialColourValue(5);
 
 */
 
 int fwl_get_MaterialColourValue(struct Vector **shapeNodes, int whichEntry, int whichValue) {
-        struct X3D_FillProperties *fp;
-        struct X3D_LineProperties *lp;
-        struct X3D_Material *mat;
-        struct X3D_ImageTexture *tex;
-        struct X3D_TextureTransform *tt;
-        struct X3D_Node *geom;
-        struct X3D_Appearance *ap;
-        struct X3D_TwoSidedMaterial *tsm;
+	struct X3D_FillProperties *fp;
+	struct X3D_LineProperties *lp;
+	struct X3D_Material *mat;
+	struct X3D_ImageTexture *tex;
+	struct X3D_TextureTransform *tt;
+	struct X3D_Node *geom;
+	struct X3D_Appearance *ap;
+	struct X3D_TwoSidedMaterial *tsm;
 
-        // If we do not have any node entries, maybe this is a new scene, and we have to get
-        // the valid nodes?
-        if (vectorSize(*shapeNodes) == 0 ) {
-                if (fwl_android_get_valid_shapeNodes(shapeNodes) == 0) return 0;
-        }
+	// If we do not have any node entries, maybe this is a new scene, and we have to get
+	// the valid nodes?
+	if (vectorSize(*shapeNodes) == 0 ) {
+		if (fwl_android_get_valid_shapeNodes(shapeNodes) == 0) return 0;
+	}
 
-        // if we are here, we really do have at least one Shape node.
+	// if we are here, we really do have at least one Shape node.
 
-        struct X3D_Node *node = vector_get(struct X3D_Node *,*shapeNodes, whichEntry);
+	struct X3D_Node *node = vector_get(struct X3D_Node *,*shapeNodes, whichEntry);
 
-        //ConsoleMessage ("node %d is a %s",whichEntry,stringNodeType(node->_nodeType));
-        fwl_decomposeShape(X3D_SHAPE(node),&fp,&lp,&mat,&tex,&tt,&geom);
+	//ConsoleMessage ("node %d is a %s",whichEntry,stringNodeType(node->_nodeType));
+	fwl_decomposeShape(X3D_SHAPE(node),&fp,&lp,&mat,&tex,&tt,&geom);
 
 	if (mat == NULL) return 0;
 
@@ -990,8 +996,8 @@ int fwl_get_MaterialColourValue(struct Vector **shapeNodes, int whichEntry, int 
 			int integer_colour;
 			integer_colour = 0xFF000000 + (
 				((uint8_t)(255.0f *CLAMP(col->c[0], 0.0, 1.0)) <<16) |
-               			((uint8_t)(255.0f *CLAMP(col->c[1], 0.0, 1.0)) <<8) |
-               			((uint8_t)(255.0f *CLAMP(col->c[2], 0.0, 1.0))));
+				((uint8_t)(255.0f *CLAMP(col->c[1], 0.0, 1.0)) <<8) |
+				((uint8_t)(255.0f *CLAMP(col->c[2], 0.0, 1.0))));
 			//ConsoleMessage ("getMaterialValue, returning colour %d\n",integer_colour);
 			return integer_colour;
 		}
@@ -1077,29 +1083,29 @@ void fwl_set_MaterialColourValue (struct Vector **shapeNodes, int whichEntry, in
 	whichField - 1 - shininess, 2 transparency, 3- Ambient Intensity
 */
 int fwl_get_MaterialFloatValue(struct Vector **shapeNodes, int whichEntry, int whichSide, int whichField) {
-        struct X3D_FillProperties *fp;
-        struct X3D_LineProperties *lp;
-        struct X3D_Material *mat;
-        struct X3D_ImageTexture *tex;
-        struct X3D_TextureTransform *tt;
-        struct X3D_Node *geom;
-        struct X3D_Appearance *ap;
-        struct X3D_TwoSidedMaterial *tsm;
+	struct X3D_FillProperties *fp;
+	struct X3D_LineProperties *lp;
+	struct X3D_Material *mat;
+	struct X3D_ImageTexture *tex;
+	struct X3D_TextureTransform *tt;
+	struct X3D_Node *geom;
+	struct X3D_Appearance *ap;
+	struct X3D_TwoSidedMaterial *tsm;
 
-	//ConsoleMessage ("gwl_get_materialFloatValue, entry %d, side %d, value %d",whichEntry, whichSide, whichField);
+//ConsoleMessage ("gwl_get_materialFloatValue, entry %d, side %d, value %d",whichEntry, whichSide, whichField);
 
-        // If we do not have any node entries, maybe this is a new scene, and we have to get
-        // the valid nodes?
-        if (vectorSize(*shapeNodes) == 0 ) {
-                if (fwl_android_get_valid_shapeNodes(shapeNodes) == 0) return 0;
-        }
+	// If we do not have any node entries, maybe this is a new scene, and we have to get
+	// the valid nodes?
+	if (vectorSize(*shapeNodes) == 0 ) {
+		if (fwl_android_get_valid_shapeNodes(shapeNodes) == 0) return 0;
+	}
 
-        // if we are here, we really do have at least one Shape node.
+	// if we are here, we really do have at least one Shape node.
 
-        struct X3D_Node *node = vector_get(struct X3D_Node *,*shapeNodes, whichEntry);
+	struct X3D_Node *node = vector_get(struct X3D_Node *,*shapeNodes, whichEntry);
 
-        //ConsoleMessage ("node %d is a %s",whichEntry,stringNodeType(node->_nodeType));
-        fwl_decomposeShape(X3D_SHAPE(node),&fp,&lp,&mat,&tex,&tt,&geom);
+	//ConsoleMessage ("node %d is a %s",whichEntry,stringNodeType(node->_nodeType));
+	fwl_decomposeShape(X3D_SHAPE(node),&fp,&lp,&mat,&tex,&tt,&geom);
 
 	if (mat == NULL) return 0;
 
@@ -1137,29 +1143,29 @@ int fwl_get_MaterialFloatValue(struct Vector **shapeNodes, int whichEntry, int w
 }
 
 void fwl_set_MaterialFloatValue(struct Vector **shapeNodes, int whichEntry, int whichSide, int whichField, int nv) {
-        struct X3D_FillProperties *fp;
-        struct X3D_LineProperties *lp;
-        struct X3D_Material *mat;
-        struct X3D_ImageTexture *tex;
-        struct X3D_TextureTransform *tt;
-        struct X3D_Node *geom;
-        struct X3D_Appearance *ap;
-        struct X3D_TwoSidedMaterial *tsm;
+	struct X3D_FillProperties *fp;
+	struct X3D_LineProperties *lp;
+	struct X3D_Material *mat;
+	struct X3D_ImageTexture *tex;
+	struct X3D_TextureTransform *tt;
+	struct X3D_Node *geom;
+	struct X3D_Appearance *ap;
+	struct X3D_TwoSidedMaterial *tsm;
 
 	//ConsoleMessage ("gwl_set_materialFloatValue, entry %d, side %d, value %d new value %d",whichEntry, whichSide, whichField, nv);
 
-        // If we do not have any node entries, maybe this is a new scene, and we have to get
-        // the valid nodes?
-        if (vectorSize(*shapeNodes) == 0 ) {
-                if (fwl_android_get_valid_shapeNodes(shapeNodes) == 0) return;
-        }
+	// If we do not have any node entries, maybe this is a new scene, and we have to get
+	// the valid nodes?
+	if (vectorSize(*shapeNodes) == 0 ) {
+			if (fwl_android_get_valid_shapeNodes(shapeNodes) == 0) return;
+	}
 
-        // if we are here, we really do have at least one Shape node.
+	// if we are here, we really do have at least one Shape node.
 
-        struct X3D_Node *node = vector_get(struct X3D_Node *,*shapeNodes, whichEntry);
+	struct X3D_Node *node = vector_get(struct X3D_Node *,*shapeNodes, whichEntry);
 
-        //ConsoleMessage ("node %d is a %s",whichEntry,stringNodeType(node->_nodeType));
-        fwl_decomposeShape(X3D_SHAPE(node),&fp,&lp,&mat,&tex,&tt,&geom);
+	//ConsoleMessage ("node %d is a %s",whichEntry,stringNodeType(node->_nodeType));
+	fwl_decomposeShape(X3D_SHAPE(node),&fp,&lp,&mat,&tex,&tt,&geom);
 
 	if (mat == NULL) return;
 
@@ -1192,117 +1198,141 @@ void fwl_set_MaterialFloatValue(struct Vector **shapeNodes, int whichEntry, int 
 	}
 }
 
+#ifdef OLDCODE
+OLDCODE#undef JASTESTING
+OLDCODE#ifdef JASTESTING
+OLDCODE
+OLDCODE
+OLDCODE/* this is for looking at and manipulating the node memory table. Expect it to disappear sometime */
+OLDCODEvoid printNodeMemoryTable(void) {
+OLDCODE
+OLDCODE	int tc;
+OLDCODE	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+OLDCODE
+OLDCODE	int foundHoleCount = 0;
+OLDCODE
+OLDCODE	LOCK_MEMORYTABLE
+OLDCODE	for (tc=0; tc<vectorSize(p->linearNodeTable); tc++){
+OLDCODE		struct X3D_Node *node = vector_get(struct X3D_Node *,p->linearNodeTable,tc);
+OLDCODE
+OLDCODE		if (node != NULL) {
+OLDCODE		if (node->_nodeType == NODE_Shape)  {
+OLDCODE		//ConsoleMessage ("have shape/n");
+OLDCODE		struct X3D_Shape *sh = X3D_SHAPE(node);
+OLDCODE		if (sh->appearance != NULL) {
+OLDCODE			struct X3D_Appearance *ap = X3D_APPEARANCE(sh->appearance);
+OLDCODE					//ConsoleMessage ("have appearance\n");
+OLDCODE			if (ap->material != NULL) {
+OLDCODE				int i;
+OLDCODE				struct X3D_Material *mt = X3D_MATERIAL(ap->material);
+OLDCODE				//ConsoleMessage("have material\n");
+OLDCODE
+OLDCODE/*
+OLDCODE				for (i=0; i<3; i++) {
+OLDCODE				mt->diffuseColor.c[i] += 0.2;
+OLDCODE				if (mt->diffuseColor.c[i] > 0.95) mt->diffuseColor.c[i] = 0.2;
+OLDCODE				}
+OLDCODE*/
+OLDCODE
+OLDCODE				mt->transparency += 0.05;
+OLDCODE				if (mt->transparency > 1.0) mt->transparency=0.0;
+OLDCODE				mt->_change ++;
+OLDCODE			}
+OLDCODE
+OLDCODE		}
+OLDCODE
+OLDCODE/*
+OLDCODE		ConsoleMessage ("mem table %d is %s ref %d\n",tc,stringNodeType(node->_nodeType),node->referenceCount);
+OLDCODE		ConsoleMessage ("   shape appearance %p, geometry %p bbox %f %f %f bbcen %f %f %f\n",
+OLDCODE			sh->appearance, sh->geometry,sh->bboxSize.c[0],sh->bboxSize.c[1],sh->bboxSize.c[2],
+OLDCODE			sh->bboxCenter.c[0],sh->bboxCenter.c[1],sh->bboxCenter.c[2]);
+OLDCODE*/
+OLDCODE
+OLDCODE
+OLDCODE		}
+OLDCODE		} else {
+OLDCODE			foundHoleCount ++;
+OLDCODE		}
+OLDCODE	}
+OLDCODE
+OLDCODE	//ConsoleMessage ("potentialHoleCount %d, foundHoleCount %d",p->potentialHoleCount, foundHoleCount);
+OLDCODE
+OLDCODE	UNLOCK_MEMORYTABLE
+OLDCODE
+OLDCODE}
+OLDCODE#endif //JASTESTING
+#endif //OLDCODE
 
-#undef JASTESTING
-#ifdef JASTESTING
-
-
-/* this is for looking at and manipulating the node memory table. Expect it to disappear sometime */
-void printNodeMemoryTable(void) {
-
-        int tc;
-        ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
-
-	int foundHoleCount = 0;
-
-LOCK_MEMORYTABLE
-	for (tc=0; tc<vectorSize(p->linearNodeTable); tc++){
-		struct X3D_Node *node = vector_get(struct X3D_Node *,p->linearNodeTable,tc);
-
-		if (node != NULL) {
-		if (node->_nodeType == NODE_Shape)  {
-		//ConsoleMessage ("have shape/n");
-		struct X3D_Shape *sh = X3D_SHAPE(node);
-		if (sh->appearance != NULL) {
-			struct X3D_Appearance *ap = X3D_APPEARANCE(sh->appearance);
-					//ConsoleMessage ("have appearance\n");
-			if (ap->material != NULL) {
-				int i;
-				struct X3D_Material *mt = X3D_MATERIAL(ap->material);
-				//ConsoleMessage("have material\n");
-
-/*
-				for (i=0; i<3; i++) {
-				mt->diffuseColor.c[i] += 0.2;
-				if (mt->diffuseColor.c[i] > 0.95) mt->diffuseColor.c[i] = 0.2;
-				}
-*/
-
-				mt->transparency += 0.05;
-				if (mt->transparency > 1.0) mt->transparency=0.0;
-				mt->_change ++;
-			}
-
-		}
-
-/*
-		ConsoleMessage ("mem table %d is %s ref %d\n",tc,stringNodeType(node->_nodeType),node->referenceCount);
-		ConsoleMessage ("   shape appearance %p, geometry %p bbox %f %f %f bbcen %f %f %f\n",
-			sh->appearance, sh->geometry,sh->bboxSize.c[0],sh->bboxSize.c[1],sh->bboxSize.c[2],
-			sh->bboxCenter.c[0],sh->bboxCenter.c[1],sh->bboxCenter.c[2]);
-*/
-
-
-		}
-		} else {
-			foundHoleCount ++;
-		}
-        }
-
-	//ConsoleMessage ("potentialHoleCount %d, foundHoleCount %d",p->potentialHoleCount, foundHoleCount);
-
-
-
-UNLOCK_MEMORYTABLE
-
-}
-#endif //JASTESTING
 #endif //ANDROID
 
 #define TURN_OFF_SHOULDSORTCHILDREN node->_renderFlags = node->_renderFlags & (0xFFFF^ VF_shouldSortChildren);
-/******************************************************************/
-/* textureTransforms of all kinds */
 
-/* change the clear colour, selected from the GUI, but do the command in the
-   OpenGL thread */
 
-void fwl_set_glClearColor (float red , float green , float blue , float alpha) {
+#ifdef OLDCODE
+OLDCODE/******************************************************************/
+OLDCODE/* textureTransforms of all kinds */
+OLDCODE
+OLDCODE/* change the clear colour, selected from the GUI, but do the command in the
+OLDCODE   OpenGL thread */
+OLDCODE
+OLDCODEvoid fwl_set_glClearColor (float red , float green , float blue , float alpha) {
+OLDCODE	ppOpenGL_Utils p;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+OLDCODE	p->cc_red = red; p->cc_green = green ; p->cc_blue = blue ; p->cc_alpha = alpha ;
+OLDCODE	tg->OpenGL_Utils.cc_changed = TRUE;
+OLDCODE}
+OLDCODE
+OLDCODEvoid setglClearColor (float *val) {
+OLDCODE	ppOpenGL_Utils p;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+OLDCODE	p->cc_red = *val; val++;
+OLDCODE	p->cc_green = *val; val++;
+OLDCODE	p->cc_blue = *val;
+OLDCODE
+OLDCODE// OLD_IPHONE_AQUA #ifdef AQUA
+OLDCODE// OLD_IPHONE_AQUA 	val++;
+OLDCODE// OLD_IPHONE_AQUA 	p->cc_alpha = *val;
+OLDCODE// OLD_IPHONE_AQUA #endif
+OLDCODE
+OLDCODE	tg->OpenGL_Utils.cc_changed = TRUE;
+OLDCODE}
+OLDCODE
+#endif //OLDCODE
+
+void fwl_setShadingStyle(int val) {
+	//0=flat 1=gouraud 2=phong 3=wireframe
 	ppOpenGL_Utils p;
 	ttglobal tg = gglobal();
 	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-	p->cc_red = red; p->cc_green = green ; p->cc_blue = blue ; p->cc_alpha = alpha ;
-	tg->OpenGL_Utils.cc_changed = TRUE;
+	p->shadingStyle = val;
 }
-
-void setglClearColor (float *val) {
+int fwl_getShadingStyle() {
 	ppOpenGL_Utils p;
 	ttglobal tg = gglobal();
 	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-	p->cc_red = *val; val++;
-	p->cc_green = *val; val++;
-	p->cc_blue = *val;
-#ifdef AQUA
-	val++;
-	p->cc_alpha = *val;
-#endif
-	tg->OpenGL_Utils.cc_changed = TRUE;
+	return p->shadingStyle;
 }
 
-// use phong shading - better light reflectivity if set to true
-void fwl_set_phongShading (int val) {
-	ppOpenGL_Utils p;
-	ttglobal tg = gglobal();
-	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-	p->usePhongShaders = val;
-}
-
-
-int fwl_get_phongShading () {
-	ppOpenGL_Utils p;
-	ttglobal tg = gglobal();
-	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-	return p->usePhongShaders;
-}
+#ifdef OLDCODE
+OLDCODE
+OLDCODE// use phong shading - better light reflectivity if set to true
+OLDCODEvoid fwl_set_phongShading (int val) {
+OLDCODE	ppOpenGL_Utils p;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+OLDCODE	if(val) fwl_setShadingStyle(2);
+OLDCODE	else fwl_setShadingStyle(1);
+OLDCODE}
+OLDCODE
+OLDCODEint fwl_get_phongShading () {
+OLDCODE	ppOpenGL_Utils p;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+OLDCODE	return fwl_getShadingStyle() == 2 ? TRUE : FALSE;
+OLDCODE}
+#endif //OLDCODE
 
 
 
@@ -1335,16 +1365,16 @@ near plane is thus farPlane - highestPeak.
 
 
 static void shaderErrorLog(GLuint myShader, char *which) {
-        #if defined  (GL_VERSION_2_0) || defined (GL_ES_VERSION_2_0)
-#define MAX_INFO_LOG_SIZE 512
-                GLchar infoLog[MAX_INFO_LOG_SIZE];
+	#if defined  (GL_VERSION_2_0) || defined (GL_ES_VERSION_2_0)
+		#define MAX_INFO_LOG_SIZE 512
+		GLchar infoLog[MAX_INFO_LOG_SIZE];
 		char outline[MAX_INFO_LOG_SIZE*2];
-                glGetShaderInfoLog(myShader, MAX_INFO_LOG_SIZE, NULL, infoLog);
+		glGetShaderInfoLog(myShader, MAX_INFO_LOG_SIZE, NULL, infoLog);
 		sprintf(outline,"problem with %s shader: %s",which, infoLog);
-                ConsoleMessage (outline);
-        #else
-                ConsoleMessage ("Problem compiling shader");
-        #endif
+		ConsoleMessage (outline);
+	#else
+		ConsoleMessage ("Problem compiling shader");
+	#endif
 }
 
 
@@ -1353,66 +1383,74 @@ static void shaderErrorLog(GLuint myShader, char *which) {
 
 
 /* find a shader that matches the capabilities requested. If no match, recreate it */
-s_shader_capabilities_t *getMyShader(unsigned int rq_cap0) {
+s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned int rq_cap0) {
 
-    /* GL_ES_VERSION_2_0 has GL_SHADER_COMPILER */
-    #ifdef GL_SHADER_COMPILER
-    GLboolean b;
-    static bool haveDoneThis = false;
-    #endif
-	unsigned int rq_cap;
-    int i;
+	/* GL_ES_VERSION_2_0 has GL_SHADER_COMPILER */
+	#ifdef GL_SHADER_COMPILER
+	GLboolean b;
+	static bool haveDoneThis = false;
+	#endif
+	//unsigned int rq_cap;
+	shaderflagsstruct rq_cap;
+	int i;
 
 
 
-    ppOpenGL_Utils p = gglobal()->OpenGL_Utils.prv;
-    struct Vector *myShaderTable = p->myShaderTable;
-    struct shaderTableEntry *new = NULL;
+	ppOpenGL_Utils p = gglobal()->OpenGL_Utils.prv;
+	struct Vector *myShaderTable = p->myShaderTable;
+	struct shaderTableEntry *new = NULL;
 
 	rq_cap = rq_cap0;
 	//rq_cap = NO_APPEARANCE_SHADER; //for thunking to simplest when debugging
 
-    for (i=0; i<vectorSize(myShaderTable); i++) {
-        struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,myShaderTable, i);
-        if (me->whichOne == rq_cap) {
-            return me->myCapabilities;
-        }
-    }
+	for (i=0; i<vectorSize(myShaderTable); i++) {
+		struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,myShaderTable, i);
+		if(rq_cap0.volume){
+			if(me->whichOne.volume == rq_cap0.volume && me->whichOne.effects == rq_cap0.effects){
+				return me->myCapabilities;
+			}
+		}else{
+			if (me->whichOne.base == rq_cap0.base && me->whichOne.effects == rq_cap0.effects && me->whichOne.usershaders == rq_cap0.usershaders) {
+				//printf("getMyShaders chosen shader caps base %d effects %d user %d\n",me->whichOne.base,me->whichOne.effects,me->whichOne.usershaders);
+				return me->myCapabilities;
+			}
+		}
+	}
 
 
-    // if here, we did not find the shader already compiled for us.
+	// if here, we did not find the shader already compiled for us.
 
-    //ConsoleMessage ("getMyShader, looking for %x",rq_cap);
+	//ConsoleMessage ("getMyShader, looking for %x",rq_cap);
 
-    //ConsoleMessage ("getMyShader, not found, have to create");
-    //for (i=0; i<vectorSize(myShaderTable); i++) {
-        //struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,myShaderTable, i);
-        //ConsoleMessage ("getMyShader, i %d, rq_cap %x, me->whichOne %x myCap %p\n",i,rq_cap,me->whichOne,me->myCapabilities);
-     //}
-
-
+	//ConsoleMessage ("getMyShader, not found, have to create");
+	//for (i=0; i<vectorSize(myShaderTable); i++) {
+		//struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,myShaderTable, i);
+		//ConsoleMessage ("getMyShader, i %d, rq_cap %x, me->whichOne %x myCap %p\n",i,rq_cap,me->whichOne,me->myCapabilities);
+		//}
 
 
 
-    /* GL_ES_VERSION_2_0 has GL_SHADER_COMPILER */
+
+
+	/* GL_ES_VERSION_2_0 has GL_SHADER_COMPILER */
 #ifdef GL_SHADER_COMPILER
-      glGetBooleanv(GL_SHADER_COMPILER,&b);
-      if (!haveDoneThis) {
-          haveDoneThis = true;
-          if (!b) {
+		glGetBooleanv(GL_SHADER_COMPILER,&b);
+		if (!haveDoneThis) {
+			haveDoneThis = true;
+			if (!b) {
 			//I found desktop openGL version 2.1.2  comes in here, but does still render OK
 			//ConsoleMessage("NO SHADER COMPILER - have to sometime figure out binary shader distros");
 			ConsoleMessage("no shader compiler\n");
 			return NULL;
-          }
-      }
+			}
+		}
 #endif
 
-    // ConsoleMessage ("getMyShader, here now");
+	// ConsoleMessage ("getMyShader, here now");
 
 #ifdef VERBOSE
 #if defined (GL_SHADER_COMPILER) && defined (GL_HIGH_FLOAT)
-    /* GL_ES_VERSION_2_0 variables for shaders */
+	/* GL_ES_VERSION_2_0 variables for shaders */
 	{ /* debugging */
 	GLint range[2]; GLint precision;
 	GLboolean b;
@@ -1450,81 +1488,82 @@ s_shader_capabilities_t *getMyShader(unsigned int rq_cap0) {
 	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_MEDIUM_INT range [%d,%d],precision %d",range[0],range[1],precision);
 	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_INT, range, &precision);
 	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_HIGH_INT range [%d,%d],precision %d",range[0],range[1],precision);
-
-
-
 	}
 #endif // #ifdef GL_ES_VERSION_2_0 specific debugging
 #endif //VERBOSE
 
-    new = MALLOC(struct shaderTableEntry *, sizeof (struct shaderTableEntry));
+	new = MALLOC(struct shaderTableEntry *, sizeof (struct shaderTableEntry));
 
-    new ->whichOne = rq_cap;
-    new->myCapabilities = MALLOC(s_shader_capabilities_t*, sizeof (s_shader_capabilities_t));
+	new ->whichOne = rq_cap;
+	new->myCapabilities = MALLOC(s_shader_capabilities_t*, sizeof (s_shader_capabilities_t));
 
-    //ConsoleMessage ("going to compile new shader for %x",rq_cap);
-    makeAndCompileShader(new,p->usePhongShaders);
+	//ConsoleMessage ("going to compile new shader for %x",rq_cap);
+	makeAndCompileShader(new);
 
-    vector_pushBack(struct shaderTableEntry*, myShaderTable, new);
+	vector_pushBack(struct shaderTableEntry*, myShaderTable, new);
 
-    //ConsoleMessage ("going to return new %p",new);
-    //ConsoleMessage ("... myCapabilities is %p",new->myCapabilities);
-    return new->myCapabilities;
+	//ConsoleMessage ("going to return new %p",new);
+	//ConsoleMessage ("... myCapabilities is %p",new->myCapabilities);
+	return new->myCapabilities;
 }
 
-
-
+s_shader_capabilities_t *getMyShader(unsigned int rq_cap0) {
+	shaderflagsstruct rq_cap0s;
+	memset(&rq_cap0s,0,sizeof(shaderflagsstruct));
+	rq_cap0s.base = rq_cap0;
+	return getMyShaders(rq_cap0s);
+}
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 
 /* VERTEX inputs */
 
 static const GLchar *vertPosDec = "\
-    attribute      vec4 fw_Vertex; \n \
-    uniform         mat4 fw_ModelViewMatrix; \n \
-    uniform         mat4 fw_ProjectionMatrix; \n ";
+	attribute      vec4 fw_Vertex; \n \
+	uniform         mat4 fw_ModelViewMatrix; \n \
+	uniform         mat4 fw_ProjectionMatrix; \n ";
 
 static const GLchar *vertNormDec = " \
-    uniform        mat3 fw_NormalMatrix;\n \
-    attribute      vec3 fw_Normal; \n";
+	uniform        mat3 fw_NormalMatrix;\n \
+	attribute      vec3 fw_Normal; \n";
 
 static const GLchar *vertSimColDec = "\
-    attribute  vec4 fw_Color;\n ";
+	attribute  vec4 fw_Color;\n ";
 
 static const GLchar *vertTexMatrixDec = "\
-    uniform mat4 fw_TextureMatrix;\n";
+	uniform mat4 fw_TextureMatrix0;\n";
 
 static const GLchar *vertTexCoordGenDec ="\
-uniform int fw_textureCoordGenType;\n";
+	uniform int fw_textureCoordGenType;\n";
 
 static const GLchar *vertTexCoordDec = "\
-    attribute vec2 fw_MultiTexCoord0;\n";
+	attribute vec2 fw_MultiTexCoord0;\n";
 
 static const GLchar *vertOneMatDec = "\
-    uniform fw_MaterialParameters\n\
-    fw_FrontMaterial; \n";
+	uniform fw_MaterialParameters\n\
+	fw_FrontMaterial; \n";
 static const GLchar *vertBackMatDec = "\
-    uniform fw_MaterialParameters fw_BackMaterial; \n";
+	uniform fw_MaterialParameters fw_BackMaterial; \n";
 
 
 
 /* VERTEX outputs */
 
 static const GLchar *vecNormPos = " \
-    vec3 vertexNorm; \
-    vec4 vertexPos; \n";
+	vec3 vertexNorm; \
+	vec4 vertexPos; \n";
 
 static const GLchar *varyingNormPos = " \
-    varying vec3 vertexNorm; \
-    varying vec4 vertexPos; \n";
+	varying vec3 vertexNorm; \
+	varying vec4 vertexPos; \n";
 
 static const GLchar *varyingTexCoord = "\
-    varying vec3 v_texC;\n";
+	varying vec3 fw_TexCoord[4];\n";
 
 static const GLchar *varyingFrontColour = "\
-    varying vec4    v_front_colour; \n";
+	varying vec4    v_front_colour; \n";
 
 static const GLchar *varyingHatchPosition = "\
-    varying vec2 hatchPosition; \n";
+	varying vec2 hatchPosition; \n";
 
 /* VERTEX Calculations */
 
@@ -1541,14 +1580,14 @@ static const GLchar *vertNormPosCalc = "\
 static const GLchar *vertSimColUse = "v_front_colour = fw_Color; \n";
 
 static const GLchar *vertEmissionOnlyColourAss = "v_front_colour = fw_FrontMaterial.emission;\n";
-static const GLchar *vertSingTexCalc = "v_texC = vec3(vec4(fw_TextureMatrix *vec4(fw_MultiTexCoord0,0,0))).stp;\n";
+static const GLchar *vertSingTexCalc = "fw_TexCoord[0] = vec3(vec4(fw_TextureMatrix0 *vec4(fw_MultiTexCoord0,0,0))).stp;\n";
 
 static const GLchar *vertSingTexCubeCalc = "\
-    vec3 u=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */ \
-    /* vec3 n=normalize(vec3(fw_NormalMatrix*fw_Normal)); \
-    v_texC = reflect(u,n); myEyeNormal */ \n \
-    /* v_texC = reflect(normalize(vec3(vertexPos)),vertexNorm);\n */ \
-    v_texC = reflect(u,vertexNorm);\n";
+	vec3 u=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */ \
+	/* vec3 n=normalize(vec3(fw_NormalMatrix*fw_Normal)); \
+	fw_TexCoord[0] = reflect(u,n); myEyeNormal */ \n \
+	/* v_texC = reflect(normalize(vec3(vertexPos)),vertexNorm);\n */ \
+	fw_TexCoord[0] = reflect(u,vertexNorm);\n";
 
 
 /* TextureCoordinateGenerator mapping  */
@@ -1566,13 +1605,13 @@ vec3 u=normalize(vec3(vertexPos)); /* u is normalized position, used below more 
 vec3 r= reflect(u,vertexNorm); \n\
 if (fw_textureCoordGenType==TCGT_SPHERE) { /* TCGT_SPHERE  GL_SPHERE_MAP OpenGL Equiv */ \n\
     float m=2.0 * sqrt(r.x*r.x + r.y*r.y + (r.z*1.0)*(r.z*1.0)); \n\
-    v_texC = vec3(r.x/m+0.5,r.y/m+0.5,0.0); \n \
+    fw_TexCoord[0] = vec3(r.x/m+0.5,r.y/m+0.5,0.0); \n \
 }else if (fw_textureCoordGenType==TCGT_CAMERASPACENORMAL) /* GL_REFLECTION_MAP used for sampling cubemaps */ {\n \
 	float dotResult = 2.0 * dot(u,r); \n\
-	v_texC = vec3(u-r)*dotResult;\n\
+	fw_TexCoord[0] = vec3(u-r)*dotResult;\n\
 } else { /* default usage - like default CubeMaps */ \n\
     vec3 u=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */ \
-    v_texC = reflect(u,vertexNorm);\n \
+    fw_TexCoord[0] = reflect(u,vertexNorm);\n \
 }\n\
 ";
 
@@ -1603,9 +1642,8 @@ struct fw_LightSourceParameters { \n\
   vec4 position;   \n\
   vec4 halfVector;  \n\
   vec4 spotDirection; \n\
-  float spotExponent; \n\
+  float spotBeamWidth; \n\
   float spotCutoff; \n\
-  float spotCosCutoff; \n\
   vec3 Attenuations; \n\
   //float constantAttenuation; \n\
   //float linearAttenuation;  \n\
@@ -1663,19 +1701,19 @@ if (backFacing) { \n \
 \n\
   /* apply the lights to this material */\n\
   for (i=0; i<MAX_LIGHTS; i++) {\n\
-	if(i<lightcount) { /*weird but ANGLE needs constant loop*/ \n\
+    if(i<lightcount) { /*weird but ANGLE needs constant loop*/ \n\
       vec4 myLightDiffuse = fw_LightSource[i].diffuse;\n\
       vec4 myLightAmbient = fw_LightSource[i].ambient;\n\
       vec4 myLightSpecular = fw_LightSource[i].specular;\n\
       vec4 myLightPosition = fw_LightSource[i].position; \n\
-	  int myLightType = lightType[i]; //fw_LightSource[i].lightType;\n\
-	  vec3 myLightDir = fw_LightSource[i].spotDirection.xyz; \n\
+      int myLightType = lightType[i]; //fw_LightSource[i].lightType;\n\
+      vec3 myLightDir = fw_LightSource[i].spotDirection.xyz; \n\
       vec3 eyeVector = normalize(myPosition.xyz);\n\
       vec3  VP;     /* vector of light direction and distance */\n\
-	  VP = myLightPosition.xyz - myPosition.xyz;\n\
-	  vec3 L = myLightDir; /*directional light*/ \n\
-	  if(myLightType < 2) /*point and spot*/ \n\
-	    L = normalize(VP); \n\
+      VP = myLightPosition.xyz - myPosition.xyz;\n\
+      vec3 L = myLightDir; /*directional light*/ \n\
+      if(myLightType < 2) /*point and spot*/ \n\
+       L = normalize(VP); \n\
       float nDotL = max(dot(normal, L), 0.0);\n\
       vec3 halfVector = normalize(L - eyeVector);\n\
       /* normal dot light half vector */\n\
@@ -1689,41 +1727,41 @@ if (backFacing) { \n \
         float attenuation; /* computed attenuation factor */\n\
         float d;            /* distance to vertex */            \n\
         d = length(VP);\n\
-		if (nDotL > 0.0) {\n\
-		  powerFactor = pow(nDotL,myMat.shininess); \n\
+        if (nDotL > 0.0) {\n\
+          powerFactor = pow(nDotL,myMat.shininess); \n\
           /* tone down the power factor if myMat.shininess borders 0 */\n\
           if (myMat.shininess < 1.0) {\n\
-		    powerFactor *= myMat.shininess; \n\
+            powerFactor *= myMat.shininess; \n\
           } \n\
         } \n\
-		attenuation = 1.0/(fw_LightSource[i].Attenuations.x + (fw_LightSource[i].Attenuations.y * d) + (fw_LightSource[i].Attenuations.z *d *d));\n\
+        attenuation = 1.0/(fw_LightSource[i].Attenuations.x + (fw_LightSource[i].Attenuations.y * d) + (fw_LightSource[i].Attenuations.z *d *d));\n\
         spotDot = dot (-L,myLightDir);\n\
         /* check against spotCosCutoff */\n\
-		if (spotDot > fw_LightSource[i].spotCutoff) {\n\
-          spotAttenuation = pow(spotDot,fw_LightSource[i].spotExponent);\n\
+        if (spotDot > fw_LightSource[i].spotCutoff) {\n\
+          spotAttenuation = pow(spotDot,fw_LightSource[i].spotCutoff);\n\
         }\n\
         attenuation *= spotAttenuation;\n\
         /* diffuse light computation */\n\
-		diffuse += nDotL* matdiffuse*myLightDiffuse * attenuation;\n\
+        diffuse += nDotL* matdiffuse*myLightDiffuse * attenuation;\n\
         /* ambient light computation */\n\
         ambient += myMat.ambient*myLightAmbient;\n\
         /* specular light computation */\n\
         specular += myLightSpecular * powerFactor * attenuation;\n\
         \n\
-	  } else if (myLightType == 2) { \n\
+      } else if (myLightType == 2) { \n\
         /* DirectionalLight */ \n\
         float powerFactor = 0.0; /* for light dropoff */\n\
-		if (nDotL > 0.0) {\n\
-		  powerFactor = pow(nDotHV, myMat.shininess);\n\
+        if (nDotL > 0.0) {\n\
+          powerFactor = pow(nDotHV, myMat.shininess);\n\
           /* tone down the power factor if myMat.shininess borders 0 */\n\
           if (myMat.shininess < 1.0) {\n\
-		    powerFactor *= myMat.shininess;\n\
+           powerFactor *= myMat.shininess;\n\
           }\n\
         }\n\
         /* Specular light computation */\n\
         specular += myMat.specular *myLightSpecular*powerFactor;\n\
         /* diffuse light computation */\n\
-		diffuse += nDotL*matdiffuse*myLightDiffuse;\n\
+        diffuse += nDotL*matdiffuse*myLightDiffuse;\n\
         /* ambient light computation */\n\
         ambient += myMat.ambient*myLightAmbient; \n\
       } else {\n\
@@ -1734,11 +1772,11 @@ if (backFacing) { \n \
         /* are we within range? */\n\
         if (d <= fw_LightSource[i].lightRadius) {\n\
           if (nDotL > 0.0) {\n\
-		    powerFactor = pow(nDotL, myMat.shininess);\n\
+            powerFactor = pow(nDotL, myMat.shininess);\n\
             //attenuation = (myMat.shininess-128.0);\n\
           }\n\
           /* this is actually the SFVec3f attenuation field */\n\
-		  attenuation = 1.0/(fw_LightSource[i].Attenuations.x + (fw_LightSource[i].Attenuations.y * d) + (fw_LightSource[i].Attenuations.z *d *d));\n\
+          attenuation = 1.0/(fw_LightSource[i].Attenuations.x + (fw_LightSource[i].Attenuations.y * d) + (fw_LightSource[i].Attenuations.z *d *d));\n\
           /* diffuse light computation */\n\
           diffuse += nDotL* matdiffuse*myLightDiffuse * attenuation;\n\
           /* ambient light computation */\n\
@@ -1748,7 +1786,7 @@ if (backFacing) { \n \
           specular += myLightSpecular * powerFactor * attenuation;\n\
         }\n\
       }\n\
-	 }\n\
+    }\n\
   }\n\
   return clamp(vec4(vec3(ambient+diffuse+specular+emissive),myAlph), 0.0, 1.0);\n\
 }\n\
@@ -1774,9 +1812,8 @@ uniform vec4 lightspecular[MAX_LIGHTS]; \n\
 uniform vec4 lightposition[MAX_LIGHTS];   \n\
 uniform vec4 lighthalfVector[MAX_LIGHTS];  \n\
 uniform vec4 lightspotDirection[MAX_LIGHTS]; \n\
-uniform float lightspotExponent[MAX_LIGHTS]; \n\
+uniform float lightspotBeamWidth[MAX_LIGHTS]; \n\
 uniform float lightspotCutoff[MAX_LIGHTS]; \n\
-uniform float lightspotCosCutoff[MAX_LIGHTS]; \n\
 uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform vec3 lightAttenuations[MAX_LIGHTS]; \n\
 ";
@@ -1849,7 +1886,7 @@ if (backFacing) { \n \
         spotDot = dot (-L,myLightDir);\n\
         /* check against spotCosCutoff */\n\
         if (spotDot > lightspotCutoff[i]) {\n\
-          spotAttenuation = pow(spotDot,lightspotExponent[i]);\n\
+          spotAttenuation = pow(spotDot,lightspotBeamWidth[i]);\n\
         }\n\
         attenuation *= spotAttenuation;\n\
         /* diffuse light computation */\n\
@@ -1936,7 +1973,7 @@ if (backFacing) { \n \
 //dug9 Jan 5, 2014 static const GLchar *fragMainStart = "void main() { vec4 finalFrag = vec4(0.,0.,0.,0.);\n";
 static const GLchar *fragMainStart = "void main() { vec4 finalFrag = vec4(1.,1.,1.,1.);\n";
 static const GLchar *anaglyphGrayFragEnd =	"float gray = dot(finalFrag.rgb, vec3(0.299, 0.587, 0.114)); \n \
-                                              gl_FragColor = vec4(gray, gray, gray, finalFrag.a);}";
+        gl_FragColor = vec4(gray, gray, gray, finalFrag.a);}";
 
 /* discard operations needed for really doing a good job in transparent situations (FillProperties, filled = false,
    for instance - drawing operations preclude sorting individual triangles for best rendering, so when the user
@@ -1958,8 +1995,8 @@ const static GLchar *fragADSLAss = "finalFrag = ADSLightModel(vertexNorm,vertexP
 const static GLchar *vertADSLCalc = "v_front_colour = ADSLightModel(vertexNorm,vertexPos,true);";
 const static GLchar *vertADSLCalc0 = "v_front_colour = ADSLightModel(vertexNorm,vertexPos,false);";
 
-const static GLchar *fragSingTexAss = "finalFrag = texture2D(fw_Texture_unit0, v_texC.st) * finalFrag;\n";
-const static GLchar *fragSingTexCubeAss = "finalFrag = textureCube(fw_Texture_unit0, v_texC) * finalFrag;\n";
+const static GLchar *fragSingTexAss = "finalFrag = texture2D(fw_Texture_unit0, fw_TexCoord[0].st) * finalFrag;\n";
+const static GLchar *fragSingTexCubeAss = "finalFrag = textureCube(fw_Texture_unit0, fw_TexCoord[0]) * finalFrag;\n";
 
 
 /* MultiTexture stuff */
@@ -2110,15 +2147,15 @@ return rv; \
 } \n";
 
 const static GLchar *fragMulTexCalc = "\
-if(textureCount>=1) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode0,fw_Texture_unit0,v_texC.st);} \n\
-if(textureCount>=2) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode1,fw_Texture_unit1,v_texC.st);} \n\
-if(textureCount>=3) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode2,fw_Texture_unit2,v_texC.st);} \n\
+if(textureCount>=1) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode0,fw_Texture_unit0,fw_TexCoord[0].st);} \n\
+if(textureCount>=2) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode1,fw_Texture_unit1,fw_TexCoord[0].st);} \n\
+if(textureCount>=3) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode2,fw_Texture_unit2,fw_TexCoord[0].st);} \n\
 /* REMOVE these as shader compile takes long \
-if(textureCount>=4) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode3,fw_Texture_unit3,v_texC.st);} \n\
-if(textureCount>=5) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode4,fw_Texture_unit4,v_texC.st);} \n\
-if(textureCount>=6) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode5,fw_Texture_unit5,v_texC.st);} \n\
-if(textureCount>=7) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode6,fw_Texture_unit6,v_texC.st);} \n\
-if(textureCount>=8) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode7,fw_Texture_unit7,v_texC.st);} \n\
+if(textureCount>=4) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode3,fw_Texture_unit3,fw_TexCoord[0].st);} \n\
+if(textureCount>=5) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode4,fw_Texture_unit4,fw_TexCoord[0].st);} \n\
+if(textureCount>=6) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode5,fw_Texture_unit5,fw_TexCoord[0].st);} \n\
+if(textureCount>=7) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode6,fw_Texture_unit6,fw_TexCoord[0].st);} \n\
+if(textureCount>=8) {finalFrag=finalColCalc(finalFrag,fw_Texture_mode7,fw_Texture_unit7,fw_TexCoord[0].st);} \n\
 */ \n";
 
 
@@ -2128,9 +2165,10 @@ const static GLchar *pointSizeDeclare="uniform float pointSize;\n";
 const static GLchar *pointSizeAss="gl_PointSize = pointSize; \n";
 
 
-static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker], const GLchar *fragmentSource[fragmentEndMarker], unsigned int whichOne, int usePhongShading) {
+static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEndMarker], 
+	const GLchar *fragmentSource[fragmentEndMarker], shaderflagsstruct whichOne) { //unsigned int whichOne) {
 
-    bool doThis;
+	bool doThis;
 	bool didADSLmaterial;
 #ifdef USING_SHADER_LIGHT_ARRAY_METHOD
 	//for angleproject winRT d3d11 - can't do struct[] array for lights
@@ -2142,43 +2180,43 @@ static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker],
 #endif
 	
 	/* GL_ES - do we have medium precision, or just low precision?? */
-    /* Phong shading - use the highest we have */
-    /* GL_ES_VERSION_2_0 has these definitions */
+	/* Phong shading - use the highest we have */
+	/* GL_ES_VERSION_2_0 has these definitions */
 
 #if defined (GL_ES_VERSION_2_0)
-    bool haveHighPrecisionFragmentShaders = false;
+	bool haveHighPrecisionFragmentShaders = false;
 
 #ifdef VARY_VERTEX_PRECISION
-    bool haveHighPrecisionVertexShaders = false;
+	bool haveHighPrecisionVertexShaders = false;
 #endif
 
-    GLint range[2]; GLint precision;
+	GLint range[2]; GLint precision;
 
 	// see where we are doing the lighting. Use highest precision there, if we can.
-	if (usePhongShading) {
-        	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_FLOAT, range, &precision);
-        	if (precision!=0) {
-        	    haveHighPrecisionFragmentShaders=true;
-        	} else {
-        	    haveHighPrecisionFragmentShaders=false;
-        	    glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_MEDIUM_FLOAT, range, &precision);
-        	    if (precision == 0) {
-        	        ConsoleMessage("low precision Fragment shaders only available - view may not work so well");
-        	    }
-        	}
+	if (DESIRE(whichOne.base,SHADINGSTYLE_PHONG)) {
+		glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_FLOAT, range, &precision);
+		if (precision!=0) {
+			haveHighPrecisionFragmentShaders=true;
+		} else {
+			haveHighPrecisionFragmentShaders=false;
+			glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_MEDIUM_FLOAT, range, &precision);
+			if (precision == 0) {
+        		ConsoleMessage("low precision Fragment shaders only available - view may not work so well");
+			}
+		}
 #ifdef VARY_VERTEX_PRECISION
 	// if we do lighting on the Vertex shader side, do we have to worry about precision?
 	} else {
-        	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_HIGH_FLOAT, range, &precision);
-        	if (precision!=0) {
-        	    haveHighPrecisionVertexShaders=true;
-        	} else {
-        	    haveHighPrecisionVertexShaders=false;
-        	    glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_MEDIUM_FLOAT, range, &precision);
-        	    if (precision == 0) {
-        	        ConsoleMessage("low precision Vertex shaders only available - view may not work so well");
-        	    }
-        	}
+		glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_HIGH_FLOAT, range, &precision);
+		if (precision!=0) {
+			haveHighPrecisionVertexShaders=true;
+		} else {
+			haveHighPrecisionVertexShaders=false;
+			glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_MEDIUM_FLOAT, range, &precision);
+			if (precision == 0) {
+				ConsoleMessage("low precision Vertex shaders only available - view may not work so well");
+			}
+		}
 #endif //VARY_VERTEX_PRECISION
 
 	}
@@ -2187,56 +2225,56 @@ static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker],
 #endif // GL_ES_VERSION_2_0 for GL_HIGH_FLOAT or GL_MEDIUM_FLOAT
 
 	#if defined (VERBOSE) && defined (GL_ES_VERSION_2_0)
-        { /* debugging - only */
-        GLboolean b;
+	{ /* debugging - only */
+	GLboolean b;
 
-        glGetBooleanv(GL_SHADER_COMPILER,&b);
-        if (b) ConsoleMessage("have shader compiler"); else ConsoleMessage("NO SHADER COMPILER");
+	glGetBooleanv(GL_SHADER_COMPILER,&b);
+	if (b) ConsoleMessage("have shader compiler"); else ConsoleMessage("NO SHADER COMPILER");
 
 
-        glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_LOW_FLOAT, range, &precision);
-        ConsoleMessage ("GL_VERTEX_SHADER, GL_LOW_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_MEDIUM_FLOAT, range, &precision);
-        ConsoleMessage ("GL_VERTEX_SHADER, GL_MEDIUM_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_HIGH_FLOAT, range, &precision);
-        ConsoleMessage ("GL_VERTEX_SHADER, GL_HIGH_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_LOW_FLOAT, range, &precision);
+	ConsoleMessage ("GL_VERTEX_SHADER, GL_LOW_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_MEDIUM_FLOAT, range, &precision);
+	ConsoleMessage ("GL_VERTEX_SHADER, GL_MEDIUM_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_HIGH_FLOAT, range, &precision);
+	ConsoleMessage ("GL_VERTEX_SHADER, GL_HIGH_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
 
-        glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_LOW_INT, range, &precision);
-        ConsoleMessage ("GL_VERTEX_SHADER, GL_LOW_INT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_MEDIUM_INT, range, &precision);
-        ConsoleMessage ("GL_VERTEX_SHADER, GL_MEDIUM_INT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_HIGH_INT, range, &precision);
-        ConsoleMessage ("GL_VERTEX_SHADER, GL_HIGH_INT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_LOW_INT, range, &precision);
+	ConsoleMessage ("GL_VERTEX_SHADER, GL_LOW_INT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_MEDIUM_INT, range, &precision);
+	ConsoleMessage ("GL_VERTEX_SHADER, GL_MEDIUM_INT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_VERTEX_SHADER,GL_HIGH_INT, range, &precision);
+	ConsoleMessage ("GL_VERTEX_SHADER, GL_HIGH_INT range [%d,%d],precision %d",range[0],range[1],precision);
 
-        glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_LOW_FLOAT, range, &precision);
-        ConsoleMessage ("GL_FRAGMENT_SHADER, GL_LOW_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_MEDIUM_FLOAT, range, &precision);
-        ConsoleMessage ("GL_FRAGMENT_SHADER, GL_MEDIUM_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_FLOAT, range, &precision);
-        ConsoleMessage ("GL_FRAGMENT_SHADER, GL_HIGH_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_LOW_FLOAT, range, &precision);
+	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_LOW_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_MEDIUM_FLOAT, range, &precision);
+	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_MEDIUM_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_FLOAT, range, &precision);
+	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_HIGH_FLOAT range [%d,%d],precision %d",range[0],range[1],precision);
 
-        glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_LOW_INT, range, &precision);
-        ConsoleMessage ("GL_FRAGMENT_SHADER, GL_LOW_INT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_MEDIUM_INT, range, &precision);
-        ConsoleMessage ("GL_FRAGMENT_SHADER, GL_MEDIUM_INT range [%d,%d],precision %d",range[0],range[1],precision);
-        glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_INT, range, &precision);
-        ConsoleMessage ("GL_FRAGMENT_SHADER, GL_HIGH_INT range [%d,%d],precision %d",range[0],range[1],precision);
-        }
+	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_LOW_INT, range, &precision);
+	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_LOW_INT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_MEDIUM_INT, range, &precision);
+	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_MEDIUM_INT range [%d,%d],precision %d",range[0],range[1],precision);
+	glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER,GL_HIGH_INT, range, &precision);
+	ConsoleMessage ("GL_FRAGMENT_SHADER, GL_HIGH_INT range [%d,%d],precision %d",range[0],range[1],precision);
+	}
 	#endif //VERBOSE for GL_ES_VERSION_2_0
 
-    #ifdef VERBOSE
-    if DESIRE(whichOne,NO_APPEARANCE_SHADER) ConsoleMessage ("want NO_APPEARANCE_SHADER");
-    if DESIRE(whichOne,MATERIAL_APPEARANCE_SHADER) ConsoleMessage ("want MATERIAL_APPEARANCE_SHADER");
-    if DESIRE(whichOne,TWO_MATERIAL_APPEARANCE_SHADER) ConsoleMessage ("want TWO_MATERIAL_APPEARANCE_SHADER");
-    if DESIRE(whichOne,ONE_TEX_APPEARANCE_SHADER)ConsoleMessage("want ONE_TEX_APPEARANCE_SHADER");
-    if DESIRE(whichOne,MULTI_TEX_APPEARANCE_SHADER)ConsoleMessage("want MULTI_TEX_APPEARANCE_SHADER");
-    if DESIRE(whichOne,COLOUR_MATERIAL_SHADER)ConsoleMessage("want COLOUR_MATERIAL_SHADER");
-    if DESIRE(whichOne,FILL_PROPERTIES_SHADER)ConsoleMessage("want FILL_PROPERTIES_SHADER");
-    if DESIRE(whichOne,HAVE_LINEPOINTS_COLOR)ConsoleMessage ("want LINE_POINTS_COLOR");
-    if DESIRE(whichOne,HAVE_LINEPOINTS_APPEARANCE)ConsoleMessage ("want LINE_POINTS_APPEARANCE");
-    if DESIRE(whichOne,HAVE_TEXTURECOORDINATEGENERATOR) ConsoleMessage ("want HAVE_TEXTURECOORDINATEGENERATOR");
-    if DESIRE(whichOne,HAVE_CUBEMAP_TEXTURE) ConsoleMessage ("want HAVE_CUBEMAP_TEXTURE");
-    #endif //VERBOSE
+	#ifdef VERBOSE
+	if DESIRE(whichOne.base,NO_APPEARANCE_SHADER) ConsoleMessage ("want NO_APPEARANCE_SHADER");
+	if DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) ConsoleMessage ("want MATERIAL_APPEARANCE_SHADER");
+	if DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER) ConsoleMessage ("want TWO_MATERIAL_APPEARANCE_SHADER");
+	if DESIRE(whichOne.base,ONE_TEX_APPEARANCE_SHADER)ConsoleMessage("want ONE_TEX_APPEARANCE_SHADER");
+	if DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)ConsoleMessage("want MULTI_TEX_APPEARANCE_SHADER");
+	if DESIRE(whichOne.base,COLOUR_MATERIAL_SHADER)ConsoleMessage("want COLOUR_MATERIAL_SHADER");
+	if DESIRE(whichOne.base,FILL_PROPERTIES_SHADER)ConsoleMessage("want FILL_PROPERTIES_SHADER");
+	if DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR)ConsoleMessage ("want LINE_POINTS_COLOR");
+	if DESIRE(whichOne.base,HAVE_LINEPOINTS_APPEARANCE)ConsoleMessage ("want LINE_POINTS_APPEARANCE");
+	if DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) ConsoleMessage ("want HAVE_TEXTURECOORDINATEGENERATOR");
+	if DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE) ConsoleMessage ("want HAVE_CUBEMAP_TEXTURE");
+	#endif //VERBOSE
 #undef VERBOSE
 
 
@@ -2269,283 +2307,305 @@ static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker],
 	vertexSource[vertexGLSLVersion] = "#version 110\n"; //"#version 120\n";
 #endif
 
-    fragmentSource[fragMaxLightsDeclare] = maxLights;
-    vertexSource[vertMaxLightsDeclare] = maxLights;
-    vertexSource[vertexPositionDeclare] = vertPosDec;
+	fragmentSource[fragMaxLightsDeclare] = maxLights;
+	vertexSource[vertMaxLightsDeclare] = maxLights;
+	vertexSource[vertexPositionDeclare] = vertPosDec;
 
 
 
-    /* User defined shaders - only give the defines, let the user do the rest */
+	/* User defined shaders - only give the defines, let the user do the rest */
 
-    if ((whichOne & USER_DEFINED_SHADER_MASK) == 0) {
-	/* initialize */
+	if (!whichOne.usershaders) { // & USER_DEFINED_SHADER_MASK) == 0) {
+		/* initialize */
 
-    /* Generic things first */
+		/* Generic things first */
 
-    /* Cross shader Vertex bits */
+		/* Cross shader Vertex bits */
 
-    vertexSource[vertexMainStart] = vertMainStart;
-    vertexSource[vertexPositionCalculation] = vertPos;
-    vertexSource[vertexMainEnd] = vertEnd;
-
-
-    fragmentSource[fragmentMainStart] = fragMainStart;
-	if(Viewer()->anaglyph)
-		fragmentSource[fragmentMainEnd] = anaglyphGrayFragEnd;
-	else {
-        if (usePhongShading) fragmentSource[fragmentMainEnd] = discardInFragEnd;
-        else fragmentSource[fragmentMainEnd] = fragEnd;
-        //fragmentSource[fragmentMainEnd] = discardInFragEnd;
-    }
-
-    //ConsoleMessage ("whichOne %x mask %x",whichOne,~whichOne);
+		vertexSource[vertexMainStart] = vertMainStart;
+		vertexSource[vertexPositionCalculation] = vertPos;
+		vertexSource[vertexMainEnd] = vertEnd;
 
 
-    /* specific strings for specific shader capabilities */
+		fragmentSource[fragmentMainStart] = fragMainStart;
+		if(Viewer()->anaglyph || Viewer()->anaglyphB)
+			fragmentSource[fragmentMainEnd] = anaglyphGrayFragEnd;
+		else {
+			if (DESIRE(whichOne.base,SHADINGSTYLE_PHONG)) fragmentSource[fragmentMainEnd] = discardInFragEnd;
+			else fragmentSource[fragmentMainEnd] = fragEnd;
+			//fragmentSource[fragmentMainEnd] = discardInFragEnd;
+		}
 
-    if DESIRE(whichOne,COLOUR_MATERIAL_SHADER) {
-        vertexSource[vertexSimpleColourDeclare] = vertSimColDec;
-        vertexSource[vertFrontColourDeclare] = varyingFrontColour;
-        vertexSource[vertexSimpleColourCalculation] = vertSimColUse;
-	    vertexSource[vertexPointSizeDeclare] = pointSizeDeclare;
-	    vertexSource[vertexPointSizeAssign] = pointSizeAss;
-        fragmentSource[fragmentSimpleColourDeclare] = varyingFrontColour;
-        fragmentSource[fragmentSimpleColourAssign] = fragSimColAss;
-    }
-
-    if DESIRE(whichOne,NO_APPEARANCE_SHADER) {
-        fragmentSource[fragmentSimpleColourAssign] = fragNoAppAss;
-	    vertexSource[vertexPointSizeDeclare] = pointSizeDeclare;
-	    vertexSource[vertexPointSizeAssign] = pointSizeAss;
-
-    }
+		//ConsoleMessage ("whichOne %x mask %x",whichOne,~whichOne);
 
 
-    /* One or TWO material no texture shaders - one material, choose between
-     Phong shading (slower) or Gouraud shading (faster). */
+		/* specific strings for specific shader capabilities */
 
-    if (usePhongShading) {
-        doThis = (DESIRE(whichOne,MATERIAL_APPEARANCE_SHADER)) ||
-            (DESIRE(whichOne,TWO_MATERIAL_APPEARANCE_SHADER));
-    } else {
-        doThis = DESIRE(whichOne,TWO_MATERIAL_APPEARANCE_SHADER);
-    }
+		if DESIRE(whichOne.base,COLOUR_MATERIAL_SHADER) {
+			vertexSource[vertexSimpleColourDeclare] = vertSimColDec;
+			vertexSource[vertFrontColourDeclare] = varyingFrontColour;
+			vertexSource[vertexSimpleColourCalculation] = vertSimColUse;
+			vertexSource[vertexPointSizeDeclare] = pointSizeDeclare;
+			vertexSource[vertexPointSizeAssign] = pointSizeAss;
+			fragmentSource[fragmentSimpleColourDeclare] = varyingFrontColour;
+			fragmentSource[fragmentSimpleColourAssign] = fragSimColAss;
+		}
 
-    if (doThis) {
-        vertexSource[vertexNormPosOutput] = varyingNormPos;
-        vertexSource[vertexNormalDeclare] = vertNormDec;
-        vertexSource[vertexNormPosCalculation] = vertNormPosCalc;
+		if DESIRE(whichOne.base,NO_APPEARANCE_SHADER) {
+			fragmentSource[fragmentSimpleColourAssign] = fragNoAppAss;
+			vertexSource[vertexPointSizeDeclare] = pointSizeDeclare;
+			vertexSource[vertexPointSizeAssign] = pointSizeAss;
 
-        fragmentSource[fragmentLightDefines] = lightDefines0;
-        fragmentSource[fragmentOneColourDeclare] = vertOneMatDec;
-        fragmentSource[fragmentBackColourDeclare] = vertBackMatDec;
-        fragmentSource[fragmentNormPosDeclare] = varyingNormPos;
-        fragmentSource[fragmentADSLLightModel] = ADSLLightModel0;
-        fragmentSource[fragmentADSLAssign] = fragADSLAss;
-
-    }
+		}
 
 
-        /* TWO_MATERIAL_APPEARANCE_SHADER - this does not crop up
-         that often, so just use the PHONG shader. */
-	didADSLmaterial = false;
-    if((DESIRE(whichOne,MATERIAL_APPEARANCE_SHADER)) && (!usePhongShading)) {
-        vertexSource[vertexNormalDeclare] = vertNormDec;
-        vertexSource[vertexLightDefines] = lightDefines0;
-        vertexSource[vertexOneMaterialDeclare] = vertOneMatDec;
-        vertexSource[vertFrontColourDeclare] = varyingFrontColour;
-        vertexSource[vertexNormPosCalculation] = vertNormPosCalc;
-        vertexSource[vertexNormPosOutput] = vecNormPos;
-        vertexSource[vertexLightingEquation] = ADSLLightModel0;
-        vertexSource[vertexBackMaterialDeclare] = vertBackMatDec;
-        vertexSource[vertexADSLCalculation] = vertADSLCalc;
-		didADSLmaterial = true;
-        fragmentSource[fragmentOneColourDeclare] = varyingFrontColour;
-        fragmentSource[fragmentOneColourAssign] = fragFrontColAss;
-    }
+		/* One or TWO material no texture shaders - one material, choose between
+			Phong shading (slower) or Gouraud shading (faster). */
+
+		if (DESIRE(whichOne.base,SHADINGSTYLE_PHONG)) {
+			doThis = (DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER)) ||
+				(DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER));
+		} else {
+			doThis = DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER);
+		}
+
+		if (doThis) {
+			vertexSource[vertexNormPosOutput] = varyingNormPos;
+			vertexSource[vertexNormalDeclare] = vertNormDec;
+			vertexSource[vertexNormPosCalculation] = vertNormPosCalc;
+
+			fragmentSource[fragmentLightDefines] = lightDefines0;
+			fragmentSource[fragmentOneColourDeclare] = vertOneMatDec;
+			fragmentSource[fragmentBackColourDeclare] = vertBackMatDec;
+			fragmentSource[fragmentNormPosDeclare] = varyingNormPos;
+			fragmentSource[fragmentADSLLightModel] = ADSLLightModel0;
+			fragmentSource[fragmentADSLAssign] = fragADSLAss;
+
+		}
 
 
-        if DESIRE(whichOne,HAVE_LINEPOINTS_APPEARANCE) {
-            vertexSource[vertexLightDefines] = lightDefines0;
-            vertexSource[vertFrontColourDeclare] = varyingFrontColour;
-            vertexSource[vertexOneMaterialDeclare] = vertOneMatDec;
+		/* TWO_MATERIAL_APPEARANCE_SHADER - this does not crop up
+				that often, so just use the PHONG shader. */
+		didADSLmaterial = false;
+		if((DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER)) && (!DESIRE(whichOne.base,SHADINGSTYLE_PHONG))) {
+			vertexSource[vertexNormalDeclare] = vertNormDec;
+			vertexSource[vertexLightDefines] = lightDefines0;
+			vertexSource[vertexOneMaterialDeclare] = vertOneMatDec;
+			vertexSource[vertFrontColourDeclare] = varyingFrontColour;
+			vertexSource[vertexNormPosCalculation] = vertNormPosCalc;
+			vertexSource[vertexNormPosOutput] = vecNormPos;
+			vertexSource[vertexLightingEquation] = ADSLLightModel0;
+			vertexSource[vertexBackMaterialDeclare] = vertBackMatDec;
+			vertexSource[vertexADSLCalculation] = vertADSLCalc;
+			didADSLmaterial = true;
+			fragmentSource[fragmentOneColourDeclare] = varyingFrontColour;
+			fragmentSource[fragmentOneColourAssign] = fragFrontColAss;
+		}
 
-    		#if defined  (AQUA) || defined (GL_ES_VERSION_2_0)
-	    vertexSource[vertexPointSizeDeclare] = pointSizeDeclare;
-	    vertexSource[vertexPointSizeAssign] = pointSizeAss;
+
+		if DESIRE(whichOne.base,HAVE_LINEPOINTS_APPEARANCE) {
+			vertexSource[vertexLightDefines] = lightDefines0;
+			vertexSource[vertFrontColourDeclare] = varyingFrontColour;
+			vertexSource[vertexOneMaterialDeclare] = vertOneMatDec;
+
+    		#if defined (GL_ES_VERSION_2_0)
+		vertexSource[vertexPointSizeDeclare] = pointSizeDeclare;
+		vertexSource[vertexPointSizeAssign] = pointSizeAss;
 		#endif
 
-            vertexSource[vertexOneMaterialCalculation] = vertEmissionOnlyColourAss;
-            fragmentSource[fragmentSimpleColourDeclare] = varyingFrontColour;
-            fragmentSource[fragmentSimpleColourAssign] = fragSimColAss;
-        }
+			vertexSource[vertexOneMaterialCalculation] = vertEmissionOnlyColourAss;
+			fragmentSource[fragmentSimpleColourDeclare] = varyingFrontColour;
+			fragmentSource[fragmentSimpleColourAssign] = fragSimColAss;
+		}
 
 
-        /* texturing - MULTI_TEX builds on ONE_TEX */
-        if (DESIRE(whichOne,ONE_TEX_APPEARANCE_SHADER) ||
-            DESIRE(whichOne,HAVE_TEXTURECOORDINATEGENERATOR) ||
-            DESIRE(whichOne,HAVE_CUBEMAP_TEXTURE) ||
-            DESIRE(whichOne,MULTI_TEX_APPEARANCE_SHADER)) {
-            vertexSource[vertexTexCoordInputDeclare] = vertTexCoordDec;
-            vertexSource[vertexTexCoordOutputDeclare] = varyingTexCoord;
-            vertexSource[vertexTextureMatrixDeclare] = vertTexMatrixDec;
-            vertexSource[vertexSingleTextureCalculation] = vertSingTexCalc;
-            if(didADSLmaterial)
-            	vertexSource[vertexADSLCalculation] = vertADSLCalc0; //over-ride material diffuseColor with texture
+		/* texturing - MULTI_TEX builds on ONE_TEX */
+		if (DESIRE(whichOne.base,ONE_TEX_APPEARANCE_SHADER) ||
+			DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) ||
+			DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE) ||
+			DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)) {
+			vertexSource[vertexTexCoordInputDeclare] = vertTexCoordDec;
+			vertexSource[vertexTexCoordOutputDeclare] = varyingTexCoord;
+			vertexSource[vertexTextureMatrixDeclare] = vertTexMatrixDec;
+			vertexSource[vertexSingleTextureCalculation] = vertSingTexCalc;
+			if(didADSLmaterial)
+				vertexSource[vertexADSLCalculation] = vertADSLCalc0; //over-ride material diffuseColor with texture
 
-            fragmentSource[fragmentTexCoordDeclare] = varyingTexCoord;
-            fragmentSource[fragmentTex0Declare] = fragTex0Dec;
-            fragmentSource[fragmentTextureAssign] = fragSingTexAss;
-        }
+			fragmentSource[fragmentTexCoordDeclare] = varyingTexCoord;
+			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
+			fragmentSource[fragmentTextureAssign] = fragSingTexAss;
+		}
 
-        /* Cubemaps - do not multi-texture these yet */
-    if (DESIRE(whichOne,HAVE_CUBEMAP_TEXTURE)) {
-        vertexSource[vertexSingleTextureCalculation] = vertSingTexCubeCalc;
+		/* Cubemaps - do not multi-texture these yet */
+		if (DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE)) {
+			vertexSource[vertexSingleTextureCalculation] = vertSingTexCubeCalc;
 
-        fragmentSource[fragmentTex0Declare] = fragTex0CubeDec;
-        fragmentSource[fragmentTextureAssign] = fragSingTexCubeAss;
-    }
+			fragmentSource[fragmentTex0Declare] = fragTex0CubeDec;
+			fragmentSource[fragmentTextureAssign] = fragSingTexCubeAss;
+		}
 
-        /* MULTI_TEX builds on ONE_TEX */
-        if DESIRE(whichOne,MULTI_TEX_APPEARANCE_SHADER) {
-            /* we have to do the material params, in case we need to
-                modulate/play with this. */
+		/* MULTI_TEX builds on ONE_TEX */
+		if DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER) {
+			/* we have to do the material params, in case we need to
+				modulate/play with this. */
 
-            vertexSource[vertexOneMaterialDeclare] = vertOneMatDec;
-            vertexSource[vertexLightDefines] = lightDefines0;
-            vertexSource[vertexNormPosCalculation] = vertNormPosCalc;
-            vertexSource[vertexNormPosOutput] = vecNormPos;
-            vertexSource[vertexLightingEquation] = ADSLLightModel0;
-            vertexSource[vertexBackMaterialDeclare] = vertBackMatDec;
+			vertexSource[vertexOneMaterialDeclare] = vertOneMatDec;
+			vertexSource[vertexLightDefines] = lightDefines0;
+			vertexSource[vertexNormPosCalculation] = vertNormPosCalc;
+			vertexSource[vertexNormPosOutput] = vecNormPos;
+			vertexSource[vertexLightingEquation] = ADSLLightModel0;
+			vertexSource[vertexBackMaterialDeclare] = vertBackMatDec;
 
-            fragmentSource[fragmentMultiTexDefines]= fragMultiTexUniforms;
-            fragmentSource[fragmentMultiTexDeclare] = fragMultiTexDef;
-            fragmentSource[fragmentTex0Declare] = fragTex0Dec;
-            fragmentSource[fragmentMultiTexModel] = fragMulTexFunc;
-            fragmentSource[fragmentTextureAssign] = fragMulTexCalc;
-        }
+			fragmentSource[fragmentMultiTexDefines]= fragMultiTexUniforms;
+			fragmentSource[fragmentMultiTexDeclare] = fragMultiTexDef;
+			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
+			fragmentSource[fragmentMultiTexModel] = fragMulTexFunc;
+			fragmentSource[fragmentTextureAssign] = fragMulTexCalc;
+		}
 
-    /* TextureCoordinateGenerator - do calcs in Vertex, fragment like one texture */
-    if DESIRE(whichOne,HAVE_TEXTURECOORDINATEGENERATOR) {
-        /* the vertex single texture calculation is different from normal single texture */
-        /* pass in the type of generator, and do the calculations */
-        vertexSource[vertexTextureMatrixDeclare] = vertTexCoordGenDec;
-        vertexSource[vertexSingleTextureCalculation] = sphEnvMapCalc;
+		/* TextureCoordinateGenerator - do calcs in Vertex, fragment like one texture */
+		if DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) {
+			/* the vertex single texture calculation is different from normal single texture */
+			/* pass in the type of generator, and do the calculations */
+			vertexSource[vertexTextureMatrixDeclare] = vertTexCoordGenDec;
+			vertexSource[vertexSingleTextureCalculation] = sphEnvMapCalc;
 
-        vertexSource[vertexTCGTDefines] = fragTCGTDefs;
+			vertexSource[vertexTCGTDefines] = fragTCGTDefs;
 
-    }
+		}
 
-        if DESIRE(whichOne,FILL_PROPERTIES_SHADER) {
-            /* just add on top of the other shaders the fill properties "stuff" */
+			if DESIRE(whichOne.base,FILL_PROPERTIES_SHADER) {
+				/* just add on top of the other shaders the fill properties "stuff" */
 
-            vertexSource[vertexHatchPositionDeclare] = varyingHatchPosition;
-            vertexSource[vertexHatchPositionCalculation] = vertHatchPosCalc;
+				vertexSource[vertexHatchPositionDeclare] = varyingHatchPosition;
+				vertexSource[vertexHatchPositionCalculation] = vertHatchPosCalc;
 
-            fragmentSource[fragmentFillPropDefines] = fillPropDefines;
-            fragmentSource[fragmentHatchPositionDeclare] = varyingHatchPosition;
-            fragmentSource[fragmentFillPropModel] = fragFillPropFunc;
-            fragmentSource[fragmentFillPropAssign] = fragFillPropCalc;
-        }
+				fragmentSource[fragmentFillPropDefines] = fillPropDefines;
+				fragmentSource[fragmentHatchPositionDeclare] = varyingHatchPosition;
+				fragmentSource[fragmentFillPropModel] = fragFillPropFunc;
+				fragmentSource[fragmentFillPropAssign] = fragFillPropCalc;
+			}
 
-    } else {
-    // user defined shaders
-    if (whichOne >= USER_DEFINED_SHADER_START) {
-        int me = 0;
-        ppOpenGL_Utils p;
-        ttglobal tg = gglobal();
-        p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+	} else {  // user defined shaders
 
-        me = (whichOne / USER_DEFINED_SHADER_START) -1;
-        //ConsoleMessage ("HAVE USER DEFINED SHADER %x",whichOne);
+		if (whichOne.usershaders) { // >= USER_DEFINED_SHADER_START) {
+			int me = 0;
+			ppOpenGL_Utils p;
+			ttglobal tg = gglobal();
+			p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
 
-        // add the following:
-        // this has both Vertex manipulations, and lighting, etc.
-//                    #define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
-        vertexSource[vertexMainStart] = "  \n \
-					#define HEADLIGHT_LIGHT 0\n \
-					#define ftransform() (fw_ProjectionMatrix*fw_ModelViewMatrix*fw_Vertex)\n \
-                    #define gl_ModelViewProjectionMatrix (fw_ProjectionMatrix*fw_ModelViewMatrix)\n \
-                    #define gl_NormalMatrix fw_NormalMatrix\n \
-                    #define gl_ProjectionMatrix fw_ProjectionMatrix \n\
-                    #define gl_ModelViewMatrix fw_ModelViewMatrix \n\
-                    #define gl_TextureMatrix fw_TextureMatrix \n\
-                    #define gl_Vertex fw_Vertex \n \
-                    #define gl_Normal fw_Normal\n \
-                    #define gl_Texture_unit0 fw_Texture_unit0\n \
-                    #define gl_MultiTexCoord0 fw_MultiTexCoord0\n \
-                    #define gl_Texture_unit1 fw_Texture_unit1\n \
-                    #define gl_MultiTexCoord1 fw_MultiTexCoord1\n \
-                    #define gl_Texture_unit2 fw_Texture_unit2\n \
-                    #define gl_MultiTexCoord2 fw_MultiTexCoord2\n \
-                    #define gl_LightSource fw_LightSource\n ";
+			//me = (whichOne / USER_DEFINED_SHADER_START) -1;
+			me = whichOne.usershaders;
+			//ConsoleMessage ("HAVE USER DEFINED SHADER %x",whichOne);
 
-	// copy over the same defines, but for the fragment shader.
-    // Some GLSL compilers will complain about the "fttransform()"
-    // definition if defined in a Fragment shader, so we judiciously
-    // copy over things that are fragment-only.
+			// add the following:
+			// this has both Vertex manipulations, and lighting, etc.
+	//		#define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
+			vertexSource[vertexMainStart] = "  \n \
+			#define HEADLIGHT_LIGHT 0\n \
+			#define ftransform() (fw_ProjectionMatrix*fw_ModelViewMatrix*fw_Vertex)\n \
+			#define gl_ModelViewProjectionMatrix (fw_ProjectionMatrix*fw_ModelViewMatrix)\n \
+			#define gl_NormalMatrix fw_NormalMatrix\n \
+			#define gl_ProjectionMatrix fw_ProjectionMatrix \n\
+			#define gl_ModelViewMatrix fw_ModelViewMatrix \n\
+			#define fw_TextureMatrix fw_TextureMatrix0 \n\
+			#define gl_TextureMatrix fw_TextureMatrix0 \n\
+			#define gl_Vertex fw_Vertex \n \
+			#define gl_Normal fw_Normal\n \
+			#define gl_Texture_unit0 fw_Texture_unit0\n \
+			#define gl_MultiTexCoord0 fw_MultiTexCoord0\n \
+			#define gl_Texture_unit1 fw_Texture_unit1\n \
+			#define gl_MultiTexCoord1 fw_MultiTexCoord1\n \
+			#define gl_Texture_unit2 fw_Texture_unit2\n \
+			#define gl_MultiTexCoord2 fw_MultiTexCoord2\n \
+			#define gl_LightSource fw_LightSource\n ";
 
-//                   #define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
-	fragmentSource[fragmentMainStart] = " \
-					#define HEADLIGHT_LIGHT 0\n \
-                    #define gl_NormalMatrix fw_NormalMatrix\n \
-                    #define gl_Normal fw_Normal\n \
-                    #define gl_LightSource fw_LightSource\n ";
+		// copy over the same defines, but for the fragment shader.
+		// Some GLSL compilers will complain about the "fttransform()"
+		// definition if defined in a Fragment shader, so we judiciously
+		// copy over things that are fragment-only.
 
-
-
-
-        vertexSource[vertexLightDefines] = lightDefines0;
-        vertexSource[vertexSimpleColourDeclare] = vertSimColDec;
-        vertexSource[vertFrontColourDeclare] = varyingFrontColour;
+		//	#define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
+			fragmentSource[fragmentMainStart] = " \
+			#define HEADLIGHT_LIGHT 0\n \
+			#define gl_NormalMatrix fw_NormalMatrix\n \
+			#define gl_Normal fw_Normal\n \
+			#define gl_LightSource fw_LightSource\n ";
 
 
 
-        vertexSource[vertexNormalDeclare] = vertNormDec;
-        fragmentSource[fragmentLightDefines] = lightDefines0;
-        //ConsoleMessage ("sources here for %d are %p and %p", me, p->userDefinedVertexShader[me], p->userDefinedFragmentShader[me]);
 
-        if ((p->userDefinedVertexShader[me] == NULL) || (p->userDefinedFragmentShader[me]==NULL)) {
-            ConsoleMessage ("no Shader Source found for user defined shaders...");
-            return false;
-
-        }
-        fragmentSource[fragmentUserDefinedInput] = p->userDefinedFragmentShader[me];
-        vertexSource[vertexUserDefinedInput] = p->userDefinedVertexShader[me];
+			vertexSource[vertexLightDefines] = lightDefines0;
+			vertexSource[vertexSimpleColourDeclare] = vertSimColDec;
+			vertexSource[vertFrontColourDeclare] = varyingFrontColour;
 
 
-    }
-    }
 
-//#define VERBOSE
-    #ifdef VERBOSE
+			vertexSource[vertexNormalDeclare] = vertNormDec;
+			fragmentSource[fragmentLightDefines] = lightDefines0;
+			//ConsoleMessage ("sources here for %d are %p and %p", me, p->userDefinedVertexShader[me], p->userDefinedFragmentShader[me]);
+
+			if ((p->userDefinedVertexShader[me] == NULL) || (p->userDefinedFragmentShader[me]==NULL)) {
+				ConsoleMessage ("no Shader Source found for user defined shaders...");
+				return false;
+
+			}
+			fragmentSource[fragmentUserDefinedInput] = p->userDefinedFragmentShader[me];
+			vertexSource[vertexUserDefinedInput] = p->userDefinedVertexShader[me];
+
+		}
+	}
+
+//#define VERBOSE 1
+	#ifdef VERBOSE
 	/* print out the vertex source here */
 		{
 			vertexShaderResources_t x1;
 			fragmentShaderResources_t x2;
-            int i;
+			int i;
 
 			ConsoleMessage ("Vertex source:\n");
 			for (x1=vertexGLSLVersion; x1<vertexEndMarker; x1++) {
-                    if (strlen(vertexSource[x1])>0)
-				ConsoleMessage(vertexSource[x1]);
-        }
+				if (strlen(vertexSource[x1])>0)
+					ConsoleMessage("%s",vertexSource[x1]);
+			}
 			ConsoleMessage("Fragment Source:\n");
-            i=0;
+			i=0;
 			for (x2=fragmentGLSLVersion; x2<fragmentEndMarker; x2++) {
 				if (strlen(fragmentSource[x2])>0)
-                ConsoleMessage(fragmentSource[x2]);
-            }
+					ConsoleMessage("%s",fragmentSource[x2]);
+			}
 		}
 	#endif //VERBOSE
+//#undef VERBOSE
 	return TRUE;
 }
 #undef VERBOSE
 
+//see Composite_Shading.c for CastlePlugs details.
+int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne); 
+int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne);
+static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker], const GLchar *fragmentSource[fragmentEndMarker], 
+	shaderflagsstruct whichOne) {
+	int iret, userDefined, usingCastlePlugs = 1;
+	userDefined = whichOne.usershaders ? TRUE : FALSE;
 
-static void makeAndCompileShader(struct shaderTableEntry *me, bool phongShading) {
+	if(usingCastlePlugs && !userDefined) { // && !DESIRE(whichOne,SHADINGSTYLE_PHONG)) {
+		//new Aug 2016 castle plugs
+		if(whichOne.volume)
+			iret = getSpecificShaderSourceVolume(vertexSource, fragmentSource, whichOne);
+		else
+			iret = getSpecificShaderSourceCastlePlugs(vertexSource, fragmentSource, whichOne);
+	}else{
+		iret = getSpecificShaderSourceOriginal(vertexSource, fragmentSource, whichOne);
+	}
+	return iret;
+}
 
-    GLint success;
+
+static void makeAndCompileShader(struct shaderTableEntry *me) {
+
+	GLint success;
 	GLuint myVertexShader = 0;
 	GLuint myFragmentShader= 0;
 
@@ -2553,16 +2613,16 @@ static void makeAndCompileShader(struct shaderTableEntry *me, bool phongShading)
 	s_shader_capabilities_t *myShader = me->myCapabilities;
 	const GLchar *vertexSource[vertexEndMarker];
 	const GLchar  *fragmentSource[fragmentEndMarker];
-   	vertexShaderResources_t x1;
+	vertexShaderResources_t x1;
 	fragmentShaderResources_t x2;
 
 
 #ifdef VERBOSE
-        ConsoleMessage ("makeAndCompileShader called");
+	ConsoleMessage ("makeAndCompileShader called");
 #endif //VERBOSE
 #undef VERBOSE
 
-   	/* initialize shader sources to blank strings, later we'll fill it in */
+	/* initialize shader sources to blank strings, later we'll fill it in */
 	for (x1=vertexGLSLVersion; x1<vertexEndMarker; x1++)
 		vertexSource[x1] = "";
 	for (x2=fragmentGLSLVersion; x2<fragmentEndMarker; x2++)
@@ -2576,8 +2636,8 @@ static void makeAndCompileShader(struct shaderTableEntry *me, bool phongShading)
 	/* assume the worst... */
 	(*myShader).compiledOK = FALSE;
 
-    /* we put the sources in 2 formats, allows for differing GL/GLES prefixes */
-	if (!getSpecificShaderSource(vertexSource, fragmentSource, me->whichOne, phongShading)) {
+	/* we put the sources in 2 formats, allows for differing GL/GLES prefixes */
+	if (!getSpecificShaderSource(vertexSource, fragmentSource, me->whichOne)) {
 		return;
 	}
 
@@ -2613,7 +2673,7 @@ static void makeAndCompileShader(struct shaderTableEntry *me, bool phongShading)
 }
 static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	GLuint myProg = me->myShaderProgram;
-    int i;
+	int i;
 
 
 	#ifdef SHADERVERBOSE
@@ -2627,7 +2687,10 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 	printf ("getShaderCommonInterfaces, I am program %d\n",myProg);
 
-	if (glIsProgram(myProg)) printf ("getShaderCommonInterfaces, %d is a program\n",myProg); else printf ("hmmm - it is not a program!\n");
+	if (glIsProgram(myProg)) 
+		printf ("getShaderCommonInterfaces, %d is a program\n",myProg); 
+	else 
+		printf ("hmmm - it is not a program!\n");
 	glGetAttachedShaders(myProg,10,&count,shaders);
 	printf ("got %d attached shaders, they are: \n",count);
 	for (i=0; i<count; i++) {
@@ -2647,11 +2710,9 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	glGetProgramiv(myProg,GL_INFO_LOG_LENGTH, xxx);
 	if (xxx[0] != 0) {
 		#define MAX_INFO_LOG_SIZE 512
-                GLchar infoLog[MAX_INFO_LOG_SIZE];
-                glGetProgramInfoLog(myProg, MAX_INFO_LOG_SIZE, NULL, infoLog);
+		GLchar infoLog[MAX_INFO_LOG_SIZE];
+		glGetProgramInfoLog(myProg, MAX_INFO_LOG_SIZE, NULL, infoLog);
 		printf ("log: %s\n",infoLog);
-
-
 	}
 	}
 	#endif /* DEBUG */
@@ -2669,182 +2730,183 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
 	me->myMaterialBackSpecular = GET_UNIFORM(myProg,"fw_BackMaterial.specular");
 
-        //me->lightState = GET_UNIFORM(myProg,"lightState");
-        //me->lightType = GET_UNIFORM(myProg,"lightType");
-        //me->lightRadius = GET_UNIFORM(myProg,"lightRadius");
+	//me->lightState = GET_UNIFORM(myProg,"lightState");
+	//me->lightType = GET_UNIFORM(myProg,"lightType");
+	//me->lightRadius = GET_UNIFORM(myProg,"lightRadius");
 	me->lightcount = GET_UNIFORM(myProg,"lightcount");
 
-    /* get lights in a more normal OpenGL GLSL format */
+	/* get lights in a more normal OpenGL GLSL format */
 
-    /*
-     struct gl_LightSourceParameters
-     {
-        vec4 ambient;              // Aclarri
-        vec4 diffuse;              // Dcli
-        vec4 specular;             // Scli
-        vec4 position;             // Ppli
-        vec4 halfVector;           // Derived: Hi
-        vec4 spotDirection;        // Sdli
-        float spotExponent;        // Srli
-        float spotCutoff;          // Crli
-        float spotCosCutoff;       // Derived: cos(Crli)
+	/*
+		struct gl_LightSourceParameters
+		{
+		vec4 ambient;              // Aclarri
+		vec4 diffuse;              // Dcli
+		vec4 specular;             // Scli
+		vec4 position;             // Ppli
+		vec4 halfVector;           // Derived: Hi
+		vec4 spotDirection;        // Sdli
+		float spotExponent;        // Srli
+		float spotCutoff;          // Crli
+		float spotCosCutoff;       // Derived: cos(Crli)
 		vec3 Attenuations (const,lin,quad)
-        //float constantAttenuation; // K0
-        //float linearAttenuation;   // K1
-        //float quadraticAttenuation;// K2
+		//float constantAttenuation; // K0
+		//float linearAttenuation;   // K1
+		//float quadraticAttenuation;// K2
 		float lightRadius;
 		int lightType;
-     };
+		};
 
 
-     uniform gl_LightSourceParameters gl_LightSource[gl_MaxLights];
-     */
-		{
-			//using lighsource arrays - see shader
-			char uniformName[100];
-			me->haveLightInShader = false;
+		uniform gl_LightSourceParameters gl_LightSource[gl_MaxLights];
+	*/
+	{
+		//using lighsource arrays - see shader
+		char uniformName[100];
+		me->haveLightInShader = false;
 #ifdef USING_SHADER_LIGHT_ARRAY_METHOD
+		//char* sndx;
+		for (i = 0; i<MAX_LIGHTS; i++) {
 			char* sndx;
-			for (i = 0; i<MAX_LIGHTS; i++) {
-				char* sndx;
-				/* go through and modify the array for each variable */
-				strcpy(uniformName, "lightambient[0]");
-				sndx = strstr(uniformName, "["); 
-				sndx[1] = '0' + i;
-				me->lightAmbient[i] = GET_UNIFORM(myProg, uniformName);
+			/* go through and modify the array for each variable */
+			strcpy(uniformName, "lightambient[0]");
+			sndx = strstr(uniformName, "["); 
+			sndx[1] = '0' + i;
+			me->lightAmbient[i] = GET_UNIFORM(myProg, uniformName);
 
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightAmbient[i]);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightAmbient[i]);
 
-				strcpy(uniformName, "lightdiffuse[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightDiffuse[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightDiffuse[i]);
+			strcpy(uniformName, "lightdiffuse[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightDiffuse[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightDiffuse[i]);
 
 
-				strcpy(uniformName, "lightspecular[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightSpecular[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpecular[i]);
+			strcpy(uniformName, "lightspecular[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightSpecular[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpecular[i]);
 
 
-				strcpy(uniformName, "lightposition[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightPosition[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightPosition[i]);
+			strcpy(uniformName, "lightposition[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightPosition[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightPosition[i]);
 
 
-				// flag used to determine if we have to send light position info to this shader
-				if (me->lightPosition[i] != -1) me->haveLightInShader = true;
+			// flag used to determine if we have to send light position info to this shader
+			if (me->lightPosition[i] != -1) me->haveLightInShader = true;
 
-				strcpy(uniformName, "lightspotDirection[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightSpotDir[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotDir[i]);
-
-
-				strcpy(uniformName, "lightspotExponent[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightSpotBeamWidth[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotBeamWidth[i]);
+			strcpy(uniformName, "lightspotDirection[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightSpotDir[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotDir[i]);
 
 
-				strcpy(uniformName, "lightspotCutoff[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightSpotCutoffAngle[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotCutoffAngle[i]);
+			strcpy(uniformName, "lightspotExponent[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightSpotBeamWidth[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotBeamWidth[i]);
 
 
-				strcpy(uniformName, "lightAttenuations[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightAtten[i] = GET_UNIFORM(myProg, uniformName);
+			strcpy(uniformName, "lightspotCutoff[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightSpotCutoffAngle[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotCutoffAngle[i]);
 
-				strcpy(uniformName, "lightRadius[0]");
-				sndx = strstr(uniformName, "[");
-				sndx[1] = '0' + i;
-				me->lightRadius[i] = GET_UNIFORM(myProg, uniformName);
-				//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
 
-			}
+			strcpy(uniformName, "lightAttenuations[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightAtten[i] = GET_UNIFORM(myProg, uniformName);
+
+			strcpy(uniformName, "lightRadius[0]");
+			sndx = strstr(uniformName, "[");
+			sndx[1] = '0' + i;
+			me->lightRadius[i] = GET_UNIFORM(myProg, uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
+
+		}
 
 #else //USING_SHADER_LIGHT_ARRAY_METHOD
-        strcpy(uniformName,"fw_LightSource[0].");
-        for (i=0; i<MAX_LIGHTS; i++) {
-            /* go through and modify the array for each variable */
-            uniformName[15] = '0' + i;
+		strcpy(uniformName,"fw_LightSource[0].");
+		for (i=0; i<MAX_LIGHTS; i++) {
+			/* go through and modify the array for each variable */
+			uniformName[15] = '0' + i;
 
-            strcpy(&uniformName[18],"ambient");
+			strcpy(&uniformName[18],"ambient");
 
-            //ConsoleMessage ("have uniform name request :%s:",uniformName);
-            me->lightAmbient[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("have uniform name request :%s:",uniformName);
+			me->lightAmbient[i] = GET_UNIFORM(myProg,uniformName);
 
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightAmbient[i]);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightAmbient[i]);
 
-            strcpy(&uniformName[18],"diffuse");
-            me->lightDiffuse[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightDiffuse[i]);
-
-
-            strcpy(&uniformName[18],"specular");
-            me->lightSpecular[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpecular[i]);
+			strcpy(&uniformName[18],"diffuse");
+			me->lightDiffuse[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightDiffuse[i]);
 
 
-            strcpy(&uniformName[18],"position");
-            me->lightPosition[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightPosition[i]);
+			strcpy(&uniformName[18],"specular");
+			me->lightSpecular[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpecular[i]);
 
 
-            // flag used to determine if we have to send light position info to this shader
-            if (me->lightPosition[i] != -1) me->haveLightInShader = true;
-
-            strcpy(&uniformName[18],"spotDirection");
-            me->lightSpotDir[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotDir[i]);
+			strcpy(&uniformName[18],"position");
+			me->lightPosition[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightPosition[i]);
 
 
-            strcpy(&uniformName[18],"spotExponent");
-            me->lightSpotBeamWidth[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotBeamWidth[i]);
+			// flag used to determine if we have to send light position info to this shader
+			if (me->lightPosition[i] != -1) me->haveLightInShader = true;
+
+			strcpy(&uniformName[18],"spotDirection");
+			me->lightSpotDir[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotDir[i]);
 
 
-            strcpy(&uniformName[18],"spotCutoff");
-            me->lightSpotCutoffAngle[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotCutoffAngle[i]);
+			//strcpy(&uniformName[18],"spotExponent");
+			strcpy(&uniformName[18],"spotBeamWidth");
+			me->lightSpotBeamWidth[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotBeamWidth[i]);
 
 
-            strcpy(&uniformName[18],"Attenuations");
-            me->lightAtten[i] = GET_UNIFORM(myProg,uniformName);
+			strcpy(&uniformName[18],"spotCutoff");
+			me->lightSpotCutoffAngle[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotCutoffAngle[i]);
 
-	//strcpy(&uniformName[18],"constantAttenuation");
-            //me->lightConstAtten[i] = GET_UNIFORM(myProg,uniformName);
-            ////ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightConstAtten[i]);
-            //
 
-            //strcpy(&uniformName[18],"linearAttenuation");
-            //me->lightLinAtten[i] = GET_UNIFORM(myProg,uniformName);
-            ////ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightLinAtten[i]);
-            //
+			strcpy(&uniformName[18],"Attenuations");
+			me->lightAtten[i] = GET_UNIFORM(myProg,uniformName);
 
-            //strcpy(&uniformName[18],"quadraticAttenuation");
-            //me->lightQuadAtten[i] = GET_UNIFORM(myProg,uniformName);
-            ////ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
+		//strcpy(&uniformName[18],"constantAttenuation");
+			//me->lightConstAtten[i] = GET_UNIFORM(myProg,uniformName);
+			////ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightConstAtten[i]);
+			//
 
-            strcpy(&uniformName[18],"lightRadius");
-            me->lightRadius[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
+			//strcpy(&uniformName[18],"linearAttenuation");
+			//me->lightLinAtten[i] = GET_UNIFORM(myProg,uniformName);
+			////ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightLinAtten[i]);
+			//
+
+			//strcpy(&uniformName[18],"quadraticAttenuation");
+			//me->lightQuadAtten[i] = GET_UNIFORM(myProg,uniformName);
+			////ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
+
+			strcpy(&uniformName[18],"lightRadius");
+			me->lightRadius[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
 
 			//strcpy(&uniformName[18],"lightType");
-            //me->lightType[i] = GET_UNIFORM(myProg,uniformName);
-            //ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
+			//me->lightType[i] = GET_UNIFORM(myProg,uniformName);
+			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
 
-        }
+		}
 #endif // USING_SHADER_LIGHT_ARRAY_METHOD
 		strcpy(uniformName,"lightType[0]");
 		for (i = 0; i < MAX_LIGHTS; i++) {
@@ -2852,34 +2914,57 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 			uniformName[10] = '0' + i;
 			me->lightType[i] = GET_UNIFORM(myProg, uniformName);
 		}
-    }
+	}
 
-    //if (me->haveLightInShader) ConsoleMessage ("this shader HAS lightfields");
+	//if (me->haveLightInShader) ConsoleMessage ("this shader HAS lightfields");
 
 	me->ModelViewMatrix = GET_UNIFORM(myProg,"fw_ModelViewMatrix");
 	me->ProjectionMatrix = GET_UNIFORM(myProg,"fw_ProjectionMatrix");
 	me->NormalMatrix = GET_UNIFORM(myProg,"fw_NormalMatrix");
-	me->TextureMatrix = GET_UNIFORM(myProg,"fw_TextureMatrix");
+	me->ModelViewInverseMatrix = GET_UNIFORM(myProg,"fw_ModelViewInverseMatrix");
+	//for (i=0; i<MAX_MULTITEXTURE; i++) {
+	me->TextureMatrix[0] = GET_UNIFORM(myProg,"fw_TextureMatrix0");
+	me->TextureMatrix[1] = GET_UNIFORM(myProg,"fw_TextureMatrix1");
+	me->TextureMatrix[2] = GET_UNIFORM(myProg,"fw_TextureMatrix2");
+	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix3");
+
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
 
 	me->Normals = GET_ATTRIB(myProg,"fw_Normal");
 	me->Colours = GET_ATTRIB(myProg,"fw_Color");
+	me->FogCoords = GET_ATTRIB(myProg,"fw_FogCoords");
 
-	me->TexCoords = GET_ATTRIB(myProg,"fw_MultiTexCoord0");
+
+	//for (i=0; i<MAX_MULTITEXTURE; i++) {
+	me->TexCoords[0] = GET_ATTRIB(myProg,"fw_MultiTexCoord0");
+	me->TexCoords[1] = GET_ATTRIB(myProg,"fw_MultiTexCoord1");
+	me->TexCoords[2] = GET_ATTRIB(myProg,"fw_MultiTexCoord2");
+	me->TexCoords[3] = GET_ATTRIB(myProg,"fw_MultiTexCoord3");
 
 
-    for (i=0; i<MAX_MULTITEXTURE; i++) {
-        char line[200];
-        sprintf (line,"fw_Texture_unit%d",i);
-        me->TextureUnit[i]= GET_UNIFORM(myProg,line);
-        sprintf (line,"fw_Texture_mode%d",i);
-        me->TextureMode[i] = GET_UNIFORM(myProg,line);
-        //printf ("   i %d tu %d mode %d\n",i,me->TextureUnit[i],me->TextureMode[i]);
+	for (i=0; i<MAX_MULTITEXTURE; i++) {
+		char line[200];
+		sprintf (line,"fw_Texture_unit%d",i);
+		me->TextureUnit[i]= GET_UNIFORM(myProg,line);
+		sprintf (line,"fw_Texture_mode%d",i);
+		me->TextureMode[i] = GET_UNIFORM(myProg,line);
+		sprintf (line,"fw_Texture_source%d",i);
+		me->TextureSource[i] = GET_UNIFORM(myProg,line);
+		sprintf (line,"fw_Texture_function%d",i);
+		me->TextureFunction[i] = GET_UNIFORM(myProg,line);
+		//printf ("   i %d tu %d mode %d\n",i,me->TextureUnit[i],me->TextureMode[i]);
 
-    }
+	}
 
-    me->textureCount = GET_UNIFORM(myProg,"textureCount");
-    //printf ("GETUNIFORM for textureCount is %d\n",me->textureCount);
+	me->textureCount = GET_UNIFORM(myProg,"textureCount");
+	me->multitextureColor = GET_UNIFORM(myProg,"mt_Color");
+	//printf ("GETUNIFORM for textureCount is %d\n",me->textureCount);
+
+	//texture3D
+	me->tex3dTiles = GET_UNIFORM(myProg,"tex3dTiles");
+	me->tex3dUseVertex = GET_UNIFORM(myProg,"tex3dUseVertex");
+	me->magFilter = GET_UNIFORM(myProg,"magFilter");
+	me->repeatSTR = GET_UNIFORM(myProg,"repeatSTR");
 
 
 	/* for FillProperties */
@@ -2891,24 +2976,35 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->hatchedBool = GET_UNIFORM(myProg,"hatched");
 	me->algorithm = GET_UNIFORM(myProg,"algorithm");
 
-    /* TextureCoordinateGenerator */
-    me->texCoordGenType = GET_UNIFORM(myProg,"fw_textureCoordGenType");
+	me->fogColor = GET_UNIFORM(myProg,"fw_fogparams.fogColor");
+	me->fogvisibilityRange = GET_UNIFORM(myProg,"fw_fogparams.visibilityRange");
+	me->fogScale = GET_UNIFORM(myProg,"fw_fogparams.fogScale");
+	me->fogType = GET_UNIFORM(myProg,"fw_fogparams.fogType");
+
+	/* clipplane */
+	me->clipplanes = GET_UNIFORM(myProg,"fw_clipplanes");
+	me->nclipplanes = GET_UNIFORM(myProg,"fw_nclipplanes");
+
+	/* TextureCoordinateGenerator */
+	me->texCoordGenType = GET_UNIFORM(myProg,"fw_textureCoordGenType");
 
 
 	#ifdef VERBOSE
 	printf ("shader uniforms: vertex %d normal %d modelview %d projection %d\n",
 		me->Vertices, me->Normals, me->ModelViewMatrix, me->ProjectionMatrix);
-        printf ("hatchColour %d, hatchPercent %d",me->hatchColour, me->hatchPercent);
+    printf ("hatchColour %d, hatchPercent %d",me->hatchColour, me->hatchPercent);
 	#endif
 
 
 }
 
-
+void calculateViewingSpeed();
 static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	int oldInRange;
 	GLDOUBLE cx,cy,cz;
 	/* find the length of the line between the moved center and our current viewer position */
+	getCurrentPosInModel(FALSE);
+	calculateViewingSpeed();
 	cx = Viewer()->currentPosInModel.x - node->__movedCoords.c[0];
 	cy = Viewer()->currentPosInModel.y - node->__movedCoords.c[1];
 	cz = Viewer()->currentPosInModel.z - node->__movedCoords.c[2];
@@ -2918,7 +3014,7 @@ static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	/* try to see if we are closer than the range */
 	oldInRange = node->__inRange;
 
-    /* handle squares, as it is faster than doing square roots */
+	/* handle squares, as it is faster than doing square roots */
 	if((cx*cx+cy*cy+cz*cz) > (node->range * node->range)) {
 		node->__inRange = FALSE;
 	} else {
@@ -3048,31 +3144,31 @@ void drawBBOX(struct X3D_Node *node) {
 }
 #endif //DEBUGGING_CODE
 
-static void calculateNearFarplanes(struct X3D_Node *vpnode) {
+static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	struct point_XYZ bboxPoints[8];
 	GLDOUBLE cfp = -DBL_MAX;
 	GLDOUBLE cnp = DBL_MAX;
 	GLDOUBLE MM[16];
-    bool doingGeoSpatial = false;
-    double bboxMovedCentreZ = 0.0;
-    double bboxSphereRadius = 0.0;
+	bool doingGeoSpatial = false;
+	double bboxMovedCentreZ = 0.0;
+	double bboxSphereRadius = 0.0;
 
 #ifdef VERBOSE
-    int smooger = 0;
+	int smooger = 0;
 #endif
 
 	int ci;
-    struct X3D_Node* rn = rootNode();
+	struct X3D_Node* rn = rootNode();
 	ttglobal tg = gglobal();
-	X3D_Viewer *viewer = Viewer();
+	X3D_Viewer *viewer = ViewerByLayerId(layerid);
 
 
 
 	#ifdef VERBOSE
-    if (smooger == 0) {
-	printf ("have a bound viewpoint... lets calculate our near/far planes from it \n");
-	printf ("we are currently at %4.2f %4.2f %4.2f\n",Viewer()->currentPosInModel.x, Viewer()->currentPosInModel.y, Viewer()->currentPosInModel.z);
-    }
+	if (smooger == 0) {
+		printf ("have a bound viewpoint... lets calculate our near/far planes from it \n");
+		printf ("we are currently at %4.2f %4.2f %4.2f\n",Viewer()->currentPosInModel.x, Viewer()->currentPosInModel.y, Viewer()->currentPosInModel.z);
+	}
 	#endif
 
 
@@ -3087,79 +3183,79 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode) {
 		return;
 	}
 
-    if (vpnode->_nodeType == NODE_GeoViewpoint) {
-        doingGeoSpatial = true;
-    }
+	if (vpnode->_nodeType == NODE_GeoViewpoint) {
+		doingGeoSpatial = true;
+	}
 
 	if (rn == NULL) {
 		return; /* nothing to display yet */
 	}
 
-    /* if doing GeoSpatial, use radius to view model, rather than a rotated bounding box */
-    if (doingGeoSpatial) {
-        if ((rn->EXTENT_MAX_X - rn->EXTENT_MIN_X) > bboxSphereRadius) {
-            bboxSphereRadius = rn->EXTENT_MAX_X - rn->EXTENT_MIN_X;
-        }
-        if ((rn->EXTENT_MAX_Y - rn->EXTENT_MIN_Y) > bboxSphereRadius) {
-            bboxSphereRadius = rn->EXTENT_MAX_Y - rn->EXTENT_MIN_Y;
-        }
-        if ((rn->EXTENT_MAX_Z - rn->EXTENT_MIN_Z) > bboxSphereRadius) {
-            bboxSphereRadius = rn->EXTENT_MAX_Z - rn->EXTENT_MIN_Z;
-        }
-        bboxSphereRadius /=2.0; // diameter to radius
+	/* if doing GeoSpatial, use radius to view model, rather than a rotated bounding box */
+	if (doingGeoSpatial) {
+		if ((rn->EXTENT_MAX_X - rn->EXTENT_MIN_X) > bboxSphereRadius) {
+			bboxSphereRadius = rn->EXTENT_MAX_X - rn->EXTENT_MIN_X;
+		}
+		if ((rn->EXTENT_MAX_Y - rn->EXTENT_MIN_Y) > bboxSphereRadius) {
+			bboxSphereRadius = rn->EXTENT_MAX_Y - rn->EXTENT_MIN_Y;
+		}
+		if ((rn->EXTENT_MAX_Z - rn->EXTENT_MIN_Z) > bboxSphereRadius) {
+			bboxSphereRadius = rn->EXTENT_MAX_Z - rn->EXTENT_MIN_Z;
+		}
+		bboxSphereRadius /=2.0; // diameter to radius
 
 #ifdef VERBOSE
-        if (smooger == 0) {
-            ConsoleMessage ("bboxSphereRadius %lf",bboxSphereRadius);
-        }
+		if (smooger == 0) {
+			ConsoleMessage ("bboxSphereRadius %lf",bboxSphereRadius);
+		}
 #endif
 
-    }
+	}
 
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
 
-		#ifdef VERBOSE
-		printf ("rootNode extents x: %4.2f %4.2f  y:%4.2f %4.2f z: %4.2f %4.2f\n",rootNode()->EXTENT_MAX_X, rootNode()->EXTENT_MIN_X,rootNode()->EXTENT_MAX_Y, rootNode()->EXTENT_MIN_Y,rootNode()->EXTENT_MAX_Z, rootNode()->EXTENT_MIN_Z);
+	#ifdef VERBOSE
+	printf ("rootNode extents x: %4.2f %4.2f  y:%4.2f %4.2f z: %4.2f %4.2f\n",rootNode()->EXTENT_MAX_X, rootNode()->EXTENT_MIN_X,rootNode()->EXTENT_MAX_Y, rootNode()->EXTENT_MIN_Y,rootNode()->EXTENT_MAX_Z, rootNode()->EXTENT_MIN_Z);
+	#endif
+
+	/* make up 8 vertices for our bounding box, and place them within our view */
+	moveAndRotateThisPoint(&bboxPoints[0], rn->EXTENT_MIN_X, rn->EXTENT_MIN_Y, rn->EXTENT_MIN_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[1], rn->EXTENT_MIN_X, rn->EXTENT_MIN_Y, rn->EXTENT_MAX_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[2], rn->EXTENT_MIN_X, rn->EXTENT_MAX_Y, rn->EXTENT_MIN_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[3], rn->EXTENT_MIN_X, rn->EXTENT_MAX_Y, rn->EXTENT_MAX_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[4], rn->EXTENT_MAX_X, rn->EXTENT_MIN_Y, rn->EXTENT_MIN_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[5], rn->EXTENT_MAX_X, rn->EXTENT_MIN_Y, rn->EXTENT_MAX_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[6], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MIN_Z,MM);
+	moveAndRotateThisPoint(&bboxPoints[7], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MAX_Z,MM);
+
+
+
+	for (ci=0; ci<8; ci++) {
+		bboxMovedCentreZ += bboxPoints[ci].z;
+
+		#ifdef XXVERBOSE
+		if (smooger == 0)
+		printf ("moved bbox node %d is %4.2f %4.2f %4.2f\n",ci,bboxPoints[ci].x, bboxPoints[ci].y, bboxPoints[ci].z);
 		#endif
 
-		/* make up 8 vertices for our bounding box, and place them within our view */
-        moveAndRotateThisPoint(&bboxPoints[0], rn->EXTENT_MIN_X, rn->EXTENT_MIN_Y, rn->EXTENT_MIN_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[1], rn->EXTENT_MIN_X, rn->EXTENT_MIN_Y, rn->EXTENT_MAX_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[2], rn->EXTENT_MIN_X, rn->EXTENT_MAX_Y, rn->EXTENT_MIN_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[3], rn->EXTENT_MIN_X, rn->EXTENT_MAX_Y, rn->EXTENT_MAX_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[4], rn->EXTENT_MAX_X, rn->EXTENT_MIN_Y, rn->EXTENT_MIN_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[5], rn->EXTENT_MAX_X, rn->EXTENT_MIN_Y, rn->EXTENT_MAX_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[6], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MIN_Z,MM);
-        moveAndRotateThisPoint(&bboxPoints[7], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MAX_Z,MM);
-
-
-
-		for (ci=0; ci<8; ci++) {
-            bboxMovedCentreZ += bboxPoints[ci].z;
-
-			#ifdef XXVERBOSE
-            if (smooger == 0)
-			printf ("moved bbox node %d is %4.2f %4.2f %4.2f\n",ci,bboxPoints[ci].x, bboxPoints[ci].y, bboxPoints[ci].z);
-			#endif
-
-            if (!doingGeoSpatial) {
-                if (-(bboxPoints[ci].z) > cfp) cfp = -(bboxPoints[ci].z);
-                if (-(bboxPoints[ci].z) < cnp) cnp = -(bboxPoints[ci].z);
-            }
+		if (!doingGeoSpatial) {
+			if (-(bboxPoints[ci].z) > cfp) cfp = -(bboxPoints[ci].z);
+			if (-(bboxPoints[ci].z) < cnp) cnp = -(bboxPoints[ci].z);
 		}
+	}
 
-    bboxMovedCentreZ /= 8.0; // average of 8 z values from bbox
+	bboxMovedCentreZ /= 8.0; // average of 8 z values from bbox
 
-    if (doingGeoSpatial) {
-        cnp = -bboxMovedCentreZ - bboxSphereRadius;
-        cfp = -bboxMovedCentreZ; // + bboxSphereRadius;
-    }
+	if (doingGeoSpatial) {
+		cnp = -bboxMovedCentreZ - bboxSphereRadius;
+		cfp = -bboxMovedCentreZ; // + bboxSphereRadius;
+	}
 
 #ifdef VERBOSE
-    if (smooger==0) {
-        ConsoleMessage ("centre of bbox is %lf Z away",bboxMovedCentreZ);
-        ConsoleMessage ("bboxMovedCentreZ minus bboxRadius %lf",-bboxMovedCentreZ - bboxSphereRadius);
-    }
+	if (smooger==0) {
+		ConsoleMessage ("centre of bbox is %lf Z away",bboxMovedCentreZ);
+		ConsoleMessage ("bboxMovedCentreZ minus bboxRadius %lf",-bboxMovedCentreZ - bboxSphereRadius);
+	}
 #endif
 
 	/* lets bound check here, both must be positive, and farPlane more than DEFAULT_NEARPLANE */
@@ -3178,33 +3274,33 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode) {
 	#ifdef VERBOSE
 	if (smooger == 0) {
 
-        printf ("cnp %lf cfp before leaving room for Background %lf\n",cnp,cfp);
-        //cnp = 0.1; cfp = 75345215.0 * 2.0;
-    }
+		printf ("cnp %lf cfp before leaving room for Background %lf\n",cnp,cfp);
+		//cnp = 0.1; cfp = 75345215.0 * 2.0;
+	}
 #endif
 
-    /* do we have a GeoViewpoint, and is the near plane about zero?                     */
-    /* we CAN have the issue if we have the world in an AABB, and we have one of the    */
-    /* corners of the AABB behind us; the near plane will be <1, but the surface        */
-    /* will still be really far away                                                    */
-    /*      In this case, we try and use the elevation to give us a hand                */
-    if ((cnp<1.0) && (vpnode->_nodeType == NODE_GeoViewpoint)) {
+	/* do we have a GeoViewpoint, and is the near plane about zero?                     */
+	/* we CAN have the issue if we have the world in an AABB, and we have one of the    */
+	/* corners of the AABB behind us; the near plane will be <1, but the surface        */
+	/* will still be really far away                                                    */
+	/*      In this case, we try and use the elevation to give us a hand                */
+	if ((cnp<1.0) && (vpnode->_nodeType == NODE_GeoViewpoint)) {
 #ifdef VERBOSE
-        cnp = Viewer()->currentPosInModel.z/16.0;
-        if (smooger == 0) {
-            ConsoleMessage ("vp height %lf moved height %lf posinModel %f",X3D_GEOVIEWPOINT(vpnode)->position.c[2],
-                                    X3D_GEOVIEWPOINT(vpnode)->__movedPosition.c[2],Viewer()->currentPosInModel.z);
-            smooger ++; if (smooger == 100) smooger = 0;
-        }
+		cnp = Viewer()->currentPosInModel.z/16.0;
+		if (smooger == 0) {
+			ConsoleMessage ("vp height %lf moved height %lf posinModel %f",X3D_GEOVIEWPOINT(vpnode)->position.c[2],
+									X3D_GEOVIEWPOINT(vpnode)->__movedPosition.c[2],Viewer()->currentPosInModel.z);
+			smooger ++; if (smooger == 100) smooger = 0;
+		}
 #endif
 #undef VERBOSE
 
-    }
+	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
 	viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
 	/* backgroundPlane goes between the farthest geometry, and the farPlane */
-	if (vectorSize(tg->Bindable.background_stack)!= 0) {
+	if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
 		viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
 		viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
 	} else {
@@ -3225,48 +3321,6 @@ void doglClearColor() {
 
 
 
-/* did we have a TextureTransform in the Appearance node? */
-void do_textureTransform (struct X3D_Node *textureNode, int ttnum) {
-    FW_GL_MATRIX_MODE(GL_TEXTURE);
-	FW_GL_LOAD_IDENTITY();
-
-	/* is this a simple TextureTransform? */
-	if (textureNode->_nodeType == NODE_TextureTransform) {
-        //ConsoleMessage ("do_textureTransform, node is indeed a NODE_TextureTransform");
-		struct X3D_TextureTransform  *ttt = (struct X3D_TextureTransform *) textureNode;
-		/*  Render transformations according to spec.*/
-        	FW_GL_TRANSLATE_F(-((ttt->center).c[0]),-((ttt->center).c[1]), 0);		/*  5*/
-        	FW_GL_SCALE_F(((ttt->scale).c[0]),((ttt->scale).c[1]),1);			/*  4*/
-        	FW_GL_ROTATE_RADIANS(ttt->rotation,0,0,1);					/*  3*/
-        	FW_GL_TRANSLATE_F(((ttt->center).c[0]),((ttt->center).c[1]), 0);		/*  2*/
-        	FW_GL_TRANSLATE_F(((ttt->translation).c[0]), ((ttt->translation).c[1]), 0);	/*  1*/
-
-	/* is this a MultiTextureTransform? */
-	} else  if (textureNode->_nodeType == NODE_MultiTextureTransform) {
-		struct X3D_MultiTextureTransform *mtt = (struct X3D_MultiTextureTransform *) textureNode;
-		if (ttnum < mtt->textureTransform.n) {
-			struct X3D_TextureTransform *ttt = (struct X3D_TextureTransform *) mtt->textureTransform.p[ttnum];
-			/* is this a simple TextureTransform? */
-			if (ttt->_nodeType == NODE_TextureTransform) {
-				/*  Render transformations according to spec.*/
-        			FW_GL_TRANSLATE_F(-((ttt->center).c[0]),-((ttt->center).c[1]), 0);		/*  5*/
-        			FW_GL_SCALE_F(((ttt->scale).c[0]),((ttt->scale).c[1]),1);			/*  4*/
-        			FW_GL_ROTATE_RADIANS(ttt->rotation,0,0,1);					/*  3*/
-        			FW_GL_TRANSLATE_F(((ttt->center).c[0]),((ttt->center).c[1]), 0);		/*  2*/
-        			FW_GL_TRANSLATE_F(((ttt->translation).c[0]), ((ttt->translation).c[1]), 0);	/*  1*/
-			} else {
-				printf ("MultiTextureTransform expected a textureTransform for texture %d, got %d\n",
-					ttnum, ttt->_nodeType);
-			}
-		} else {
-			printf ("not enough textures in MultiTextureTransform....\n");
-        	}
-	} else {
-		printf ("expected a textureTransform node, got %d\n",textureNode->_nodeType);
-	}
-
-	FW_GL_MATRIX_MODE(GL_MODELVIEW);
-}
 
 void clear_shader_table()
 {
@@ -3282,9 +3336,9 @@ void clear_shader_table()
 		int i;
 
 		for (i=0; i<vectorSize(p->myShaderTable); i++) {
-        		struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,p->myShaderTable, i);
+			struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,p->myShaderTable, i);
 			FREE_IF_NZ(me);
-        	}
+		}
 		deleteVector (struct shaderTableEntry *,p->myShaderTable);
 		p->myShaderTable = newVector(struct shaderTableEntry *, 8);
 
@@ -3337,20 +3391,20 @@ bool fwl_initialize_GL()
 
 	gl_linewidth = gglobal()->Mainloop.gl_linewidth;
 
-    // dp pointSize in shaders on more modern OpenGL renderings
-    // keep Windows and Linux doing old way, as we have failures
-    // circa 2013 in this.
+	// dp pointSize in shaders on more modern OpenGL renderings
+	// keep Windows and Linux doing old way, as we have failures
+	// circa 2013 in this.
 
-    #if defined  (AQUA) || defined (GL_ES_VERSION_2_0)
-    	#if defined (GL_PROGRAM_POINT_SIZE)
-    	glEnable(GL_PROGRAM_POINT_SIZE);
-    	#endif
-    	#if defined (GL_PROGRAM_POINT_SIZE_EXT)
-    	glEnable(GL_PROGRAM_POINT_SIZE_EXT);
-    	#endif
-    #else
+	#if defined (GL_ES_VERSION_2_0)
+		#if defined (GL_PROGRAM_POINT_SIZE)
+		glEnable(GL_PROGRAM_POINT_SIZE);
+		#endif
+		#if defined (GL_PROGRAM_POINT_SIZE_EXT)
+		glEnable(GL_PROGRAM_POINT_SIZE_EXT);
+		#endif
+	#else
 	glPointSize (gl_linewidth);
-    #endif
+	#endif
 
 	glLineWidth(gl_linewidth);
 
@@ -3359,10 +3413,10 @@ bool fwl_initialize_GL()
 
 
 	/*
-     * JAS - ALPHA testing for textures - right now we just use 0/1 alpha
-     * JAS   channel for textures - true alpha blending can come when we sort
-     * JAS   nodes.
-	 */
+	* JAS - ALPHA testing for textures - right now we just use 0/1 alpha
+	* JAS   channel for textures - true alpha blending can come when we sort
+	* JAS   nodes.
+	*/
 
 	glEnable(GL_BLEND);
 	FW_GL_BLENDFUNC(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
@@ -3394,14 +3448,14 @@ bool fwl_initialize_GL()
 	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start c");
 
 
-        /* create an empty texture, defaultBlankTexture, to be used when a texture is loading, or if it fails */
-        FW_GL_GENTEXTURES (1,&tg->Textures.defaultBlankTexture);
-        glBindTexture (GL_TEXTURE_2D, tg->Textures.defaultBlankTexture);
-        FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        FW_GL_TEXIMAGE2D(GL_TEXTURE_2D, 0, GL_RGBA,  1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, blankTexture);
+	/* create an empty texture, defaultBlankTexture, to be used when a texture is loading, or if it fails */
+	FW_GL_GENTEXTURES (1,&tg->Textures.defaultBlankTexture);
+	glBindTexture (GL_TEXTURE_2D, tg->Textures.defaultBlankTexture);
+	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	FW_GL_TEXIMAGE2D(GL_TEXTURE_2D, 0, GL_RGBA,  1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, blankTexture);
 
-        PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start d");
+	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start d");
 
 	/* remove entries in the shader table, if they exist. Android, on "bring to front" will
 	   call this routine, and shaders will be re-created as they are needed to display geometry.
@@ -3412,9 +3466,9 @@ bool fwl_initialize_GL()
 		int i;
 
 		for (i=0; i<vectorSize(p->myShaderTable); i++) {
-        		struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,p->myShaderTable, i);
+			struct shaderTableEntry *me = vector_get(struct shaderTableEntry *,p->myShaderTable, i);
 			FREE_IF_NZ(me);
-        	}
+		}
 		deleteVector (struct shaderTableEntry *,p->myShaderTable);
 		p->myShaderTable = newVector(struct shaderTableEntry *, 8);
 
@@ -3422,8 +3476,11 @@ bool fwl_initialize_GL()
 	*/
 	return TRUE;
 }
-
+ivec4 get_current_viewport();
 void BackEndClearBuffer(int which) {
+	ivec4 vport = get_current_viewport();
+	FW_GL_SCISSOR(vport.X,vport.Y,vport.W,vport.H);
+	glEnable(GL_SCISSOR_TEST);	
 	if(which == 2) {
 		FW_GL_CLEAR(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	} else {
@@ -3431,6 +3488,7 @@ void BackEndClearBuffer(int which) {
 			FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
 		}
 	}
+	glDisable(GL_SCISSOR_TEST);
 }
 
 /* turn off all non-headlight lights; will turn them on if required. */
@@ -3460,7 +3518,6 @@ void fw_glMatrixMode(GLint mode) {
 		case GL_PROJECTION: p->currentMatrix = (GLDOUBLE *) &p->FW_ProjectionView[p->projectionviewTOS]; break;
 		case GL_MODELVIEW: p->currentMatrix = (GLDOUBLE *) &p->FW_ModelView[p->modelviewTOS]; break;
 		case GL_TEXTURE: p->currentMatrix = (GLDOUBLE *) &p->FW_TextureView[p->textureviewTOS]; break;
-		//case GL_PICKRAY: p->currentMatrix = (GLDOUBLE *) &p->FW_PickrayView[p->pickrayviewTOS]; break;
 		default: printf ("invalid mode sent in it is %d, expected one of %d %d %d\n",p->whichMode, GL_PROJECTION,GL_MODELVIEW,GL_TEXTURE);
 	}
 
@@ -3468,18 +3525,10 @@ void fw_glMatrixMode(GLint mode) {
 
 void fw_glLoadIdentity(void) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
-    //ConsoleMessage ("fw_glLoadIdentity, whichMode %d, tex %d",p->whichMode,GL_TEXTURE);
+	//ConsoleMessage ("fw_glLoadIdentity, whichMode %d, tex %d",p->whichMode,GL_TEXTURE);
 	loadIdentityMatrix(p->currentMatrix);
 	FW_GL_LOADMATRIX(p->currentMatrix);
 }
-
-//#define PUSHMAT(a,b,c,d) case a: \
-//	b++;\
-//	if (b>=c) {b=c-1; \
-//		printf ("stack overflow, whichmode %d\n",p->whichMode); } \
-//	memcpy ((void *)d[b], (void *)d[b-1],sizeof(GLDOUBLE)*16);\
-//	p->currentMatrix = d[b];\
-//	break;
 
 MATRIX4* PushMat( int a, int *b, int c, MATRIX4 *d){
 	(*b)++;
@@ -3500,11 +3549,10 @@ void fw_glPushMatrix(void) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
 
 	switch (p->whichMode) {
-	case GL_PROJECTION: p->currentMatrix = *PushMat(GL_PROJECTION, &p->projectionviewTOS, MAX_SMALL_MATRIX_STACK, p->FW_ProjectionView); break;
-	case GL_MODELVIEW:  p->currentMatrix = *PushMat(GL_MODELVIEW, &p->modelviewTOS, MAX_LARGE_MATRIX_STACK, p->FW_ModelView); break;
-	case GL_TEXTURE:	p->currentMatrix = *PushMat(GL_TEXTURE, &p->textureviewTOS, MAX_SMALL_MATRIX_STACK, p->FW_TextureView); break;
-	//case GL_PICKRAY:    p->currentMatrix = *PushMat(GL_PICKRAY, &p->pickrayviewTOS, MAX_SMALL_MATRIX_STACK, p->FW_PickrayView); break;
-	default:printf("wrong mode in popMatrix\n");
+		case GL_PROJECTION: p->currentMatrix = *PushMat(GL_PROJECTION, &p->projectionviewTOS, MAX_SMALL_MATRIX_STACK, p->FW_ProjectionView); break;
+		case GL_MODELVIEW:  p->currentMatrix = *PushMat(GL_MODELVIEW, &p->modelviewTOS, MAX_LARGE_MATRIX_STACK, p->FW_ModelView); break;
+		case GL_TEXTURE:	p->currentMatrix = *PushMat(GL_TEXTURE, &p->textureviewTOS, MAX_SMALL_MATRIX_STACK, p->FW_TextureView); break;
+		default:printf("wrong mode in popMatrix\n");
 	}
 	p->maxStackUsed = max(p->maxStackUsed, p->modelviewTOS);
 	FW_GL_LOADMATRIX(p->currentMatrix);
@@ -3536,12 +3584,11 @@ void fw_glPopMatrix(void) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
 
 	switch (p->whichMode) {
-	case GL_PROJECTION: p->currentMatrix = *PopMat(GL_PROJECTION, &p->projectionviewTOS, p->FW_ProjectionView); break;
-	case GL_MODELVIEW:  p->currentMatrix = *PopMat(GL_MODELVIEW, &p->modelviewTOS, p->FW_ModelView); break;
-	case GL_TEXTURE:   p->currentMatrix = *PopMat(GL_TEXTURE, &p->textureviewTOS, p->FW_TextureView); break;
-	//case GL_PICKRAY:   p->currentMatrix = *PopMat(GL_PICKRAY, &p->pickrayviewTOS, p->FW_PickrayView); break;
+		case GL_PROJECTION: p->currentMatrix = *PopMat(GL_PROJECTION, &p->projectionviewTOS, p->FW_ProjectionView); break;
+		case GL_MODELVIEW:  p->currentMatrix = *PopMat(GL_MODELVIEW, &p->modelviewTOS, p->FW_ModelView); break;
+		case GL_TEXTURE:   p->currentMatrix = *PopMat(GL_TEXTURE, &p->textureviewTOS, p->FW_TextureView); break;
 
-	default: printf ("wrong mode in popMatrix\n");
+		default: printf ("wrong mode in popMatrix\n");
 	}
 
  	FW_GL_LOADMATRIX(p->currentMatrix);
@@ -3693,14 +3740,14 @@ void fw_glScaled (GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 void fw_glScalef (float x, float y, float z) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
 
-//      printf ("glScalef(%5.4f %5.4f %5.4f)\n",x,y,z);
+//	printf ("glScalef(%5.4f %5.4f %5.4f)\n",x,y,z);
 
-        p->currentMatrix[0] *= x;   p->currentMatrix[4] *= y;   p->currentMatrix[8]  *= z;
-        p->currentMatrix[1] *= x;   p->currentMatrix[5] *= y;   p->currentMatrix[9]  *= z;
-        p->currentMatrix[2] *= x;   p->currentMatrix[6] *= y;   p->currentMatrix[10] *= z;
-        p->currentMatrix[3] *= x;   p->currentMatrix[7] *= y;   p->currentMatrix[11] *= z;
+	p->currentMatrix[0] *= x;   p->currentMatrix[4] *= y;   p->currentMatrix[8]  *= z;
+	p->currentMatrix[1] *= x;   p->currentMatrix[5] *= y;   p->currentMatrix[9]  *= z;
+	p->currentMatrix[2] *= x;   p->currentMatrix[6] *= y;   p->currentMatrix[10] *= z;
+	p->currentMatrix[3] *= x;   p->currentMatrix[7] *= y;   p->currentMatrix[11] *= z;
 
-        FW_GL_LOADMATRIX(p->currentMatrix);
+	FW_GL_LOADMATRIX(p->currentMatrix);
 }
 
 
@@ -3720,7 +3767,6 @@ void fw_glGetDoublev (int ty, GLDOUBLE *mat) {
 		case GL_PROJECTION_MATRIX: dp = p->FW_ProjectionView[p->projectionviewTOS]; break;
 		case GL_MODELVIEW_MATRIX: dp = p->FW_ModelView[p->modelviewTOS]; break;
 		case GL_TEXTURE_MATRIX: dp = p->FW_TextureView[p->textureviewTOS]; break;
-		//case GL_PICKRAY_MATRIX: dp = p->FW_PickrayView[p->pickrayviewTOS]; break;
 		default: {
 			loadIdentityMatrix(mat);
 		printf ("invalid mode sent in it is %d, expected one of %d %d %d\n",ty,GL_PROJECTION_MATRIX,GL_MODELVIEW_MATRIX,GL_TEXTURE_MATRIX);
@@ -3745,7 +3791,6 @@ void fw_glSetDoublev (int ty, GLDOUBLE *mat) {
 		case GL_PROJECTION_MATRIX: dp = p->FW_ProjectionView[p->projectionviewTOS]; break;
 		case GL_MODELVIEW_MATRIX: dp = p->FW_ModelView[p->modelviewTOS]; break;
 		case GL_TEXTURE_MATRIX: dp = p->FW_TextureView[p->textureviewTOS]; break;
-		//case GL_PICKRAY_MATRIX: dp = p->FW_PickrayView[p->pickrayviewTOS]; break;
 		default: {
 		printf ("invalid mode sent in it is %d, expected one of %d %d %d\n",ty,GL_PROJECTION_MATRIX,GL_MODELVIEW_MATRIX,GL_TEXTURE_MATRIX);
 			return;}
@@ -3772,11 +3817,10 @@ void killNodes();
 void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 	int i;
 	struct X3D_Node* rootnode;
-	#ifndef AQUA
-        char mystring[20];
-	#endif
 	struct VRMLParser *globalParser = (struct VRMLParser *)gglobal()->CParse.globalParser;
-    //printf ("kill_oldWorld called...\n");
+	char mystring[20];
+
+	//printf ("kill_oldWorld called...\n");
 
 
 #ifdef VERBOSE
@@ -3811,21 +3855,16 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 
 
 
-    /* mark all rootNode children for Dispose */
+	/* mark all rootNode children for Dispose */
 	rootnode = rootNode();
-    if (rootnode != NULL) {
-		if(usingBrotos()>1 && rootnode->_nodeType == NODE_Proto){
+	if (rootnode != NULL) {
+		if(rootnode->_nodeType == NODE_Proto){
 			unload_broto(X3D_PROTO(rootnode));
 		}else{
 			struct Multi_Node *children, *sortedChildren;
 
-			if(usingBrotos()>1) {
-				children = &X3D_PROTO(rootNode())->__children;
-				sortedChildren = &X3D_PROTO(rootNode())->_sortedChildren;
-			}else{
-				children = &X3D_GROUP(rootNode())->children;
-				sortedChildren = &X3D_GROUP(rootNode())->_sortedChildren;
-			}
+			children = &X3D_PROTO(rootNode())->__children;
+			sortedChildren = &X3D_PROTO(rootNode())->_sortedChildren;
 			//children = childrenField(rootNode());
 			if (children->n != 0) {
 				for (i=0; i<children->n; i++) {
@@ -3867,8 +3906,8 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 	//kill_status();
 	setMenuStatus(NULL);
 
-        /* any user defined Shader nodes - ComposedShader, PackagedShader, ProgramShader?? */
-        kill_userDefinedShaders();
+	/* any user defined Shader nodes - ComposedShader, PackagedShader, ProgramShader?? */
+	kill_userDefinedShaders();
 
 	/* free textures */
 /*
@@ -3876,22 +3915,22 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 */
 
 	/* free scripts */
-	#ifdef HAVE_JAVASCRIPT
+
 	kill_javascript();
-	#endif
+
 
 #if !defined(EXCLUDE_EAI)
 	/* free EAI */
 	if (kill_EAI) {
-	       	/* shutdown_EAI(); */
+		/* shutdown_EAI(); */
 		fwlio_RxTx_control(CHANNEL_EAI, RxTx_STOP) ;
 	}
 #endif
 
-	#ifndef AQUA
+// OLD_IPHONE_AQUA	#ifndef AQUA
 		sprintf (mystring, "QUIT");
 		Sound_toserver(mystring);
-	#endif
+// OLD_IPHONE_AQUA	#endif
 
 
 	/* reset any VRML Parser data */
@@ -3904,7 +3943,7 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 	kill_X3DDefs();
 
 	/* tell statusbar that we have none */
-	viewer_default();
+	//viewer_default();
 	setMenuStatus("NONE");
 }
 void unload_globalParser() {
@@ -3924,8 +3963,8 @@ void reset_Browser(){
 	// also don't erase browser metadata key,value pairs, which could be avatar state to be 
 	// carried over between room-scenes in multi-scene game
 	struct X3D_Node *rootnode = rootNode();
-    if (rootnode != NULL) {
-		if(usingBrotos()>1 && rootnode->_nodeType == NODE_Proto){
+	if (rootnode != NULL) {
+		if( rootnode->_nodeType == NODE_Proto){
 			unload_broto(X3D_PROTO(rootnode)); //we still want a rootnode: empty and waiting for parsing (destroy in finalizeRenderSceneUpdateScene only on exit)
 			unload_globalParser();
 			resource_tree_destroy();
@@ -4093,10 +4132,10 @@ void registerX3DNode(struct X3D_Node * tmp){
 	}
 
 
-/*
-if (filledHole) ConsoleMessage ("registerX3DNode, filled hole, now phc %d for type %s",p->potentialHoleCount,stringNodeType(tmp->_nodeType));
-if (!filledHole) ConsoleMessage ("registerX3DNode, no hole, phc %d for type %s",p->potentialHoleCount,stringNodeType(tmp->_nodeType));
-*/
+	/*
+	if (filledHole) ConsoleMessage ("registerX3DNode, filled hole, now phc %d for type %s",p->potentialHoleCount,stringNodeType(tmp->_nodeType));
+	if (!filledHole) ConsoleMessage ("registerX3DNode, no hole, phc %d for type %s",p->potentialHoleCount,stringNodeType(tmp->_nodeType));
+	*/
 
 	if (!filledHole) vector_pushBack(struct X3D_Node *, p->linearNodeTable, tmp);
 
@@ -4301,10 +4340,10 @@ void zeroVisibilityFlag(void) {
 			/* make THIS Sensitive - most nodes make the parents sensitive, Anchors have children...*/ \
 			anchorPtr = (struct X3D_Anchor *)node;
 
-#ifdef VIEWPOINT
-#undef VIEWPOINT /* defined for the EAI,SAI, does not concern us uere */
-#endif
-#define VIEWPOINT(thistype) \
+//#ifdef VIEWPOINT
+//#undef VIEWPOINT /* defined for the EAI,SAI, does not concern us uere */
+//#endif
+#define BINDABLE(thistype) \
 			setBindPtr = (int *)(((char*)(node))+offsetof (struct X3D_##thistype, set_bind)); \
 			if ((*setBindPtr) == 100) {setBindPtr = NULL; } //else {printf ("OpenGL, BINDING %d\n",*setBindPtr);}/* already done */
 
@@ -4367,15 +4406,27 @@ void zeroVisibilityFlag(void) {
 				((struct X3D_##thistype *)node)->thisfield.n = ((struct X3D_##thistype *)node)->set_##thisfield.n; \
 				((struct X3D_##thistype *)node)->set_##thisfield.n = 0; \
 				((struct X3D_##thistype *)node)->set_##thisfield.p = NULL; \
+				node->_change++; \
 			}
+			//above - polyrep needs to compile after set_coordIndex is copied to coordIndex
 
-/* just tell the parent (a grouping node) that there is a locally scoped light as a child */
-/* do NOT send this up the scenegraph! */
-#define LOCAL_LIGHT_PARENT_FLAG \
+#ifdef OLDCODE
+OLDCODE/* just tell the parent (a grouping node) that there is a locally scoped light as a child */
+OLDCODE/* do NOT send this up the scenegraph! */
+OLDCODE#define LOCAL_LIGHT_PARENT_FLAG \
+OLDCODE{ int i; \
+OLDCODE	for (i = 0; i < vectorSize(pnode->_parentVector); i++) { \
+OLDCODE		struct X3D_Node *n = vector_get(struct X3D_Node*, pnode->_parentVector, i); \
+OLDCODE		if( n != 0 ) n->_renderFlags = n->_renderFlags | VF_localLight; \
+OLDCODE	} \
+OLDCODE}
+#endif //OLDCODE
+
+#define ADD_TO_PARENT_SIBAFFECTORS \
 { int i; \
 	for (i = 0; i < vectorSize(pnode->_parentVector); i++) { \
 		struct X3D_Node *n = vector_get(struct X3D_Node*, pnode->_parentVector, i); \
-		if( n != 0 ) n->_renderFlags = n->_renderFlags | VF_localLight; \
+		if( n != 0 ) AddToSibAffectors(n,pnode); \
 	} \
 }
 
@@ -4434,34 +4485,19 @@ struct X3D_Node* getTypeNode(struct X3D_Node *node)
 	struct X3D_Node* dnode;
 	dnode = node; //for builtin types, the type node is just the node
 	if(node){
-		if(isProto(node))
+		if(node->_nodeType == NODE_Proto)
 		{
-			if(node->_nodeType == NODE_Group)
+			struct X3D_Proto *pn = (struct X3D_Proto*)node;
+			if(1) //some flag to say it's not the scene, but a protoInstance where only the first node is rendered - see isProto
 			{
-				struct X3D_Group *gpn = (struct X3D_Group*)node;
-				if(gpn->FreeWRL__protoDef != INT_ID_UNDEFINED)
-				{
-					//the first node in a protobody determines its type
-					if(gpn->children.n > 0)
-						dnode = getTypeNode(gpn->children.p[0]);
-					else
-						dnode = NULL;
-				}
-			}
-			else if(node->_nodeType == NODE_Proto)
-			{
-				struct X3D_Proto *pn = (struct X3D_Proto*)node;
-				//if(pn->FreeWRL__protoDef != INT_ID_UNDEFINED)
-				if(1) //some flag to say it's not the scene, but a protoInstance where only the first node is rendered - see isProto
-				{
-					//the first node in a protobody determines its type
-					if(pn->__children.n > 0)
-						dnode = getTypeNode(pn->__children.p[0]);
-					else
-						dnode = NULL;
-				}
+				//the first node in a protobody determines its type
+				if(pn->__children.n > 0)
+					dnode = getTypeNode(pn->__children.p[0]);
+				else
+					dnode = NULL;
 			}
 		}
+
 	}
 	return dnode;
 }
@@ -4499,6 +4535,122 @@ void killNodes()
 		}
 	}
 }
+//will have sibprep_ and sibfin_ functions:
+int isSiblingAffector(struct X3D_Node *node){
+	int ret = 0;
+	switch(node->_nodeType){
+		case NODE_DirectionalLight: //lights are always added, then global is checked on the local pass and skipped if not local
+		case NODE_SpotLight:
+		case NODE_PointLight:
+		case NODE_LocalFog:
+		case NODE_ClipPlane:
+		case NODE_Effect:
+			ret = 1; break;
+		default:
+			ret = 0; break;
+	}
+	return ret;
+}
+//has _siblingAffector field:
+//(in perl VRMLNodes.pm, __sibAffectors was added after all removeChildren)
+// Proto (scene), Inline, Group, Transform, Anchor, Billboard, Collision,
+// GeoLocation, GeoTransform, HAnimHumanoid, HAnimSite, EspduTransform, CADAssembly, CADLayer, CADPart, 
+// Viewport, Layer, LayoutLayer, LayoutGroup, ScreenGroup, PickableGroup
+// siblingAffector action, but no add/remove children: staticGroup
+//might have _siblingAffector field, but not used: LOD, Switch, HAnimJoint, HAnimSegment, CADLayer
+
+
+int hasSiblingAffectorField(struct X3D_Node *node, int whereFrom){
+	//assume everything with AddChildren, RemoveChildren fields qualifies 
+	// and this filter has already been applied ie we are inside AddRemoveChildren
+	int ret = 0;
+	// except:
+if (node==NULL) {
+	printf ("hasSiblingAffectorField, node %p from line %d\n",node,whereFrom);
+	return 0;
+}
+	switch(node->_nodeType){
+		case NODE_Proto:
+		case NODE_Inline:
+		case NODE_Group:
+		case NODE_Transform:
+		case NODE_Anchor:
+		case NODE_Billboard:
+		case NODE_Collision:
+		case NODE_GeoLocation:
+		case NODE_GeoTransform:
+		case NODE_HAnimSite:
+		case NODE_HAnimHumanoid:
+		//case NODE_HAnimSegment:
+		//case NODE_HAnimJoint:
+		case NODE_EspduTransform:
+		case NODE_CADAssembly:
+		//case NODE_CADLayer:
+		case NODE_CADPart:
+		case NODE_Viewport:
+		case NODE_Layer:
+		case NODE_LayoutLayer:
+		case NODE_LayoutGroup:
+		case NODE_ScreenGroup:
+		case NODE_PickableGroup:
+		case NODE_StaticGroup:
+			ret = 1; break;
+		default:
+			ret = 0; break;
+	}
+	return ret;
+}
+void *sibAffectorPtr(struct X3D_Node *node){
+	//gets the sibAffectors field from the X3DGrouping node (plus staticGroup)
+	// or returns null if not found
+	void *fieldPtr;
+	int *fieldOffsetsPtr;
+	fieldOffsetsPtr = (int*) NODE_OFFSETS[node->_nodeType];
+	fieldPtr = NULL;
+	while(fieldOffsetsPtr[0] > -1){
+		//printf("foff[0]=%d ft_sas=%d\n",fieldOffsetsPtr[0],FIELDNAMES___sibAffectors);
+		if(fieldOffsetsPtr[0] == FIELDNAMES___sibAffectors){
+			fieldPtr = offsetPointer_deref(char *, node,fieldOffsetsPtr[1]);
+			break;
+		}
+		fieldOffsetsPtr += 5; // &fieldOffsetsPtr[5]; //5 ints per table entry
+	}
+	return fieldPtr;
+}
+void AddToSibAffectors(struct X3D_Node *parent, struct X3D_Node *affector){
+	//called from 2nd, big loop in startofloopnodeupdates to accumulate 
+	// a list of nodes that affect their siblings, to store in parent
+	// as alternate to VK_ flagging parent, and doing 3 full loops over children[] in X3DGrouping child_ functions
+	// - a kind of short list so child_ functions do:
+	//   a short loop (prep_sibAffectors), full loop (normalChildren), short loop (fin_sibAffectors)
+
+//JAS
+if (parent==NULL) {
+printf ("in AddToSibAffectors, we have node parent NULL, node is a %s\n",stringNodeType(affector->_nodeType));
+}
+
+
+	if(hasSiblingAffectorField(parent,__LINE__) && isSiblingAffector(affector)){
+		struct Multi_Node *safs = sibAffectorPtr(parent);
+		if(safs){
+			safs->p = REALLOC(safs->p,(safs->n+1)*sizeof(struct X3D_Node*));
+			safs->p[safs->n] = affector;
+			safs->n += 1;
+		}
+	}
+}
+void zeroSibAffectors(struct X3D_Node *node){
+	//called from first loop in startofloopnodeupdates
+	//we clear on each frame, then re-populate
+	struct Multi_Node* saf = sibAffectorPtr(node);
+	saf->n = 0; //not freeing p, will realloc in AddToSibAffectors
+	// Q. fragging/memory fragmentation? Multi_Node.nalloc needed?
+	// alternate to reallocs and MF.nalloc: 
+	// 1. here go through p[] and set each one to NULL, but leave n.
+	// 2. then in Add, look for first null, realloc only if too short.
+	// 3. then in prep_sibAffectors and fin_sibAffectors check if entry is null and skip.
+}
+
 //dug9 dec 13 <<
 int needs_updating_Inline(struct X3D_Node *node);
 void update_Inline(struct X3D_Inline *node);
@@ -4509,7 +4661,7 @@ void startOfLoopNodeUpdates(void) {
 	struct X3D_Anchor* anchorPtr;
 	struct Vector *parentVector;
 	int nParents;
-	int i,j;
+	int i,j,k,foundbound;
 	int* setBindPtr;
 
 	struct Multi_Node *addChildren;
@@ -4555,6 +4707,9 @@ void startOfLoopNodeUpdates(void) {
 				// when cleaning up a scene - it calls unregisterX3Dnode()
 				//ConsoleMessage ("%d ref %d\n",i,node->referenceCount);
 				//killNode(i);
+
+				//JAS printf ("node %p has zero reference count...it is a %s\n",
+				//JAS node,stringNodeType(node->_nodeType));
 				FREE_IF_NZ(node);
 				vector_set(struct X3D_Node *,p->linearNodeTable,i,NULL);
 			} else {
@@ -4564,6 +4719,10 @@ void startOfLoopNodeUpdates(void) {
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_localLight);
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_globalLight);
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_Blend);
+//JAS - move this within the ELSE statement as node is free'd by this time.
+			if(hasSiblingAffectorField(node,__LINE__)){
+				zeroSibAffectors(node);
+			}
 			}
 		}
 	}
@@ -4580,7 +4739,6 @@ void startOfLoopNodeUpdates(void) {
 	/* sort the rootNode, if it is Not NULL */
 	/* remember, the rootNode is not in the linearNodeTable, so we have to do this outside
 	   of that loop */
-	//if (rootNode() != NULL && !usingBrotos()) {
 	if (rootNode() != NULL) {
 		struct Multi_Node *children, *_sortedChildren;
 		node = (struct X3D_Node*)rootNode();
@@ -4684,25 +4842,40 @@ void startOfLoopNodeUpdates(void) {
 					if (X3D_DIRECTIONALLIGHT(node)->on) {
 						if (X3D_DIRECTIONALLIGHT(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
-						else
-							LOCAL_LIGHT_PARENT_FLAG
+						else{
+							//LOCAL_LIGHT_PARENT_FLAG
+							ADD_TO_PARENT_SIBAFFECTORS
+						}
 					}
 				END_NODE
 				BEGIN_NODE(SpotLight)
 					if (X3D_SPOTLIGHT(node)->on) {
 						if (X3D_SPOTLIGHT(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
-						else
-							LOCAL_LIGHT_PARENT_FLAG
+						else{
+							//LOCAL_LIGHT_PARENT_FLAG
+							ADD_TO_PARENT_SIBAFFECTORS
+						}
 					}
 				END_NODE
 				BEGIN_NODE(PointLight)
 					if (X3D_POINTLIGHT(node)->on) {
 						if (X3D_POINTLIGHT(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
-						else
-							LOCAL_LIGHT_PARENT_FLAG
+						else{
+							//LOCAL_LIGHT_PARENT_FLAG
+							ADD_TO_PARENT_SIBAFFECTORS
+						}
 					}
+				END_NODE
+				BEGIN_NODE(LocalFog)
+					ADD_TO_PARENT_SIBAFFECTORS
+				END_NODE
+				BEGIN_NODE(ClipPlane)
+					ADD_TO_PARENT_SIBAFFECTORS
+				END_NODE
+				BEGIN_NODE(Effect)
+					ADD_TO_PARENT_SIBAFFECTORS
 				END_NODE
 
 
@@ -4790,12 +4963,13 @@ void startOfLoopNodeUpdates(void) {
 				END_NODE
 
 				/* maybe this is the current Viewpoint? */
-				BEGIN_NODE(Viewpoint) VIEWPOINT(Viewpoint) END_NODE
-				BEGIN_NODE(OrthoViewpoint) VIEWPOINT(OrthoViewpoint) END_NODE
-				BEGIN_NODE(GeoViewpoint) VIEWPOINT(GeoViewpoint) END_NODE
+				BEGIN_NODE(Viewpoint) BINDABLE(Viewpoint) END_NODE
+				BEGIN_NODE(OrthoViewpoint) BINDABLE(OrthoViewpoint) END_NODE
+				BEGIN_NODE(GeoViewpoint) BINDABLE(GeoViewpoint) END_NODE
 
 				BEGIN_NODE(NavigationInfo)
-					render_NavigationInfo ((struct X3D_NavigationInfo *)node);
+					//render_NavigationInfo ((struct X3D_NavigationInfo *)node);
+					BINDABLE(NavigationInfo)
 				END_NODE
 
 				BEGIN_NODE(StaticGroup)
@@ -4814,20 +4988,12 @@ void startOfLoopNodeUpdates(void) {
 					CHILDREN_NODE(Group)
 				END_NODE
 
-#ifdef DJTRACK_PICKSENSORS
-				/* DJTRACK_PICKSENSORS */
 				BEGIN_NODE(PickableGroup)
-					sortChildren (__LINE__,&X3D_PICKABLEGROUP(node)->children,&X3D_PICKABLEGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
-
+					//sortChildren (__LINE__,&X3D_PICKABLEGROUP(node)->children,&X3D_PICKABLEGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//TURN_OFF_SHOULDSORTCHILDREN
+					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(PickableGroup)
 				END_NODE
-				/* PointPickSensor needs its own flag sent up the chain */
-				BEGIN_NODE (PointPickSensor)
-							if (X3D_POINTPICKSENSOR(node)->enabled) update_renderFlag(pnode,VF_PickingSensor);
-				END_NODE
-
-#endif
 
 				BEGIN_NODE(Inline)
 					sortChildren (__LINE__,&X3D_INLINE(node)->__children,&X3D_INLINE(node)->_sortedChildren,node->_renderFlags & VF_shouldSortChildren);
@@ -4896,24 +5062,41 @@ void startOfLoopNodeUpdates(void) {
 				BEGIN_NODE(ImageTexture) CHECK_IMAGETEXTURE_TRANSPARENCY END_NODE
 				BEGIN_NODE(PixelTexture) CHECK_PIXELTEXTURE_TRANSPARENCY END_NODE
 				BEGIN_NODE(MovieTexture) CHECK_MOVIETEXTURE_TRANSPARENCY END_NODE
+				
+				BEGIN_NODE(VolumeData)
+					tg->RenderFuncs.have_transparency = TRUE;
+					update_renderFlag(X3D_NODE(pnode),VF_Blend | VF_shouldSortChildren);\
+				END_NODE
+				BEGIN_NODE(SegmentedVolumeData)
+					tg->RenderFuncs.have_transparency = TRUE;
+					update_renderFlag(X3D_NODE(pnode),VF_Blend | VF_shouldSortChildren);\
+				END_NODE
+				BEGIN_NODE(IsoSurfaceVolumeData)
+					tg->RenderFuncs.have_transparency = TRUE;
+					update_renderFlag(X3D_NODE(pnode),VF_Blend | VF_shouldSortChildren);\
+				END_NODE
 
 
 				/* Backgrounds, Fog */
 				BEGIN_NODE(Background)
-					if (X3D_BACKGROUND(node)->isBound) update_renderFlag (X3D_NODE(pnode),VF_hasVisibleChildren);
+					BINDABLE(Background)
+					//if (X3D_BACKGROUND(node)->isBound) update_renderFlag (X3D_NODE(pnode),VF_hasVisibleChildren);
 				END_NODE
 
 				BEGIN_NODE(TextureBackground)
-					if (X3D_TEXTUREBACKGROUND(node)->isBound) update_renderFlag (X3D_NODE(pnode),VF_hasVisibleChildren);
+					BINDABLE(TextureBackground)
+					//if (X3D_TEXTUREBACKGROUND(node)->isBound) update_renderFlag (X3D_NODE(pnode),VF_hasVisibleChildren);
 				END_NODE
 
 				BEGIN_NODE(Fog)
-					if (X3D_FOG(node)->isBound) update_renderFlag (X3D_NODE(pnode),VF_hasVisibleChildren);
+					BINDABLE(Fog)
+					//if (X3D_FOG(node)->isBound) update_renderFlag (X3D_NODE(pnode),VF_hasVisibleChildren);
 				END_NODE
 
 
 				/* VisibilitySensor needs its own flag sent up the chain */
 				BEGIN_NODE (VisibilitySensor)
+				#ifdef OCCLUSION_STUFF
 					/* send along a "look at me" flag if we are visible, or we should look again */
 					if ((X3D_VISIBILITYSENSOR(node)->__occludeCheckCount <=0) ||
 							(X3D_VISIBILITYSENSOR(node)->__visible)) {
@@ -4925,6 +5108,11 @@ void startOfLoopNodeUpdates(void) {
 					/* VisibilitySensors have a transparent bounding box we have to render */
 
 					update_renderFlag(pnode,VF_Blend & VF_shouldSortChildren);
+				#else //simple AABB
+					//pnode->_renderFlags = VF_Other;
+					//X3D_VISIBILITYSENSOR(node)->__Samples = 0; //cleared at end of do_visibilitysensor
+					update_renderFlag(pnode,VF_Other);
+				#endif
 				END_NODE
 
 				/* ProximitySensor needs its own flag sent up the chain */
@@ -5032,38 +5220,65 @@ void startOfLoopNodeUpdates(void) {
 			if (*setBindPtr < 100) {
 				/* up_vector is reset after a bind */
 				//if (*setBindPtr==1) reset_upvector();
-				bind_node (node, tg->Bindable.viewpoint_stack);
+				send_bind_to(node,*setBindPtr);
+				//if(0){
+				//bind_node (node, getActiveBindableStacks(tg)->viewpoint);
 
-				//dug9 added July 24, 2009: when you bind, it should set the
-				//avatar to the newly bound viewpoint pose and forget any
-				// cumulative avatar navigation from the last viewpoint parent
-				if (node->_nodeType==NODE_Viewpoint) {
-					struct X3D_Viewpoint* vp = (struct X3D_Viewpoint *) node;
-					bind_Viewpoint(vp);
-					setMenuStatusVP (vp->description->strptr);
-				} else if (node->_nodeType==NODE_OrthoViewpoint) {
-					struct X3D_OrthoViewpoint *ovp = (struct X3D_OrthoViewpoint *) node;
-					bind_OrthoViewpoint(ovp);
-					setMenuStatusVP (ovp->description->strptr);
-				} else {
-					struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *) node;
-					bind_GeoViewpoint(gvp);
-					setMenuStatusVP (gvp->description->strptr);
-				}
+				////dug9 added July 24, 2009: when you bind, it should set the
+				////avatar to the newly bound viewpoint pose and forget any
+				//// cumulative avatar navigation from the last viewpoint parent
+				//if (node->_nodeType==NODE_Viewpoint) {
+				//	struct X3D_Viewpoint* vp = (struct X3D_Viewpoint *) node;
+				//	bind_Viewpoint(vp);
+				//	setMenuStatusVP (vp->description->strptr);
+				//} else if (node->_nodeType==NODE_OrthoViewpoint) {
+				//	struct X3D_OrthoViewpoint *ovp = (struct X3D_OrthoViewpoint *) node;
+				//	bind_OrthoViewpoint(ovp);
+				//	setMenuStatusVP (ovp->description->strptr);
+				//} else {
+				//	struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *) node;
+				//	bind_GeoViewpoint(gvp);
+				//	setMenuStatusVP (gvp->description->strptr);
+				//}
+				//}
 			}
 			setBindPtr = NULL;
 		}
 
 		/* this node possibly has to do add/remove children? */
 		if (childrenPtr != NULL) {
+			//JAS printf ("ok, childrenPtr is NOT NULL in startOfLoopNodeUpdates\n");
 			if (addChildren != NULL) {
+				//int i;
+				//for (i=0; i<addChildren->n; i++) {
+					//struct X3D_Node *ch = X3D_NODE(addChildren->p[i]);
+					//printf ("SOLNU: adding child indx %d, is %p\n",i,ch);
+				//}
+
 				AddRemoveChildren(node,childrenPtr,(struct X3D_Node * *) addChildren->p,addChildren->n,1,__FILE__,__LINE__);
+
+				// now go through and tell the addChildren field that the
+				// event has been processed.
+				for (i=0; i<addChildren->n; i++) {
+					struct X3D_Node *ch = X3D_NODE(addChildren->p[i]);
+					remove_parent(ch,node);
+				}
+
 				addChildren->n=0;
 			}
+
 			if (removeChildren != NULL) {
 				AddRemoveChildren(node,childrenPtr,(struct X3D_Node * *) removeChildren->p,removeChildren->n,2,__FILE__,__LINE__);
+				// now go through and tell the addChildren field that the
+				// event has been processed.
+				for (i=0; i<removeChildren->n; i++) {
+					struct X3D_Node *ch = X3D_NODE(removeChildren->p[i]);
+					remove_parent(ch,node);
+				}
 				removeChildren->n=0;
 			}
+
+
 			/* printf ("OpenGL, marking children changed\n"); */
 			MARK_EVENT(node,offsetOfChildrenPtr);
 			childrenPtr = NULL;
@@ -5075,20 +5290,28 @@ void startOfLoopNodeUpdates(void) {
 	UNLOCK_MEMORYTABLE
 
 	/* now, we can go and tell the grouping nodes which ones are the lucky ones that contain the current Viewpoint node */
-	if (vectorSize(tg->Bindable.viewpoint_stack) > 0) {
-		//ConsoleMessage ("going to updateRF on viewpoint, stack is %d in size\n", vectorSize(tg->Bindable.viewpoint_stack));
+	foundbound = FALSE;
+	for(k=0;k<vectorSize(tg->Bindable.bstacks);k++){
+		bindablestack *bstack = vector_get(bindablestack*,tg->Bindable.bstacks,k);
+		//if (vectorSize(getActiveBindableStacks(tg)->viewpoint) > 0) {
+		if( vectorSize(bstack->viewpoint) > 0){
+			//ConsoleMessage ("going to updateRF on viewpoint, stack is %d in size\n", vectorSize(tg->Bindable.viewpoint_stack));
 
-		struct X3D_Node *boundvp = vector_back(struct X3D_Node*,tg->Bindable.viewpoint_stack);
-		update_renderFlag(boundvp, VF_Viewpoint);
-		calculateNearFarplanes(boundvp);
-		//update_renderFlag(vector_back(struct X3D_Node*,
-		//	tg->Bindable.viewpoint_stack), VF_Viewpoint);
-		//calculateNearFarplanes(vector_back(struct X3D_Node*, tg->Bindable.viewpoint_stack));
-	} else {
+			//struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+			struct X3D_Node *boundvp = vector_back(struct X3D_Node*,bstack->viewpoint);
+			update_renderFlag(boundvp, VF_Viewpoint);
+			calculateNearFarplanes(boundvp, bstack->layerId);
+			//update_renderFlag(vector_back(struct X3D_Node*,
+			//	tg->Bindable.viewpoint_stack), VF_Viewpoint);
+			//calculateNearFarplanes(vector_back(struct X3D_Node*, tg->Bindable.viewpoint_stack));
+		}
+	}
+	if(!foundbound){
 		/* keep these at the defaults, if no viewpoint is present. */
-		Viewer()->nearPlane = DEFAULT_NEARPLANE;
-		Viewer()->farPlane = DEFAULT_FARPLANE;
-		Viewer()->backgroundPlane = DEFAULT_BACKGROUNDPLANE;
+		X3D_Viewer *viewer = Viewer();
+		viewer->nearPlane = DEFAULT_NEARPLANE;
+		viewer->farPlane = DEFAULT_FARPLANE;
+		viewer->backgroundPlane = DEFAULT_BACKGROUNDPLANE;
 	}
 	profile_end("loopnodeupdt");
 
@@ -5214,62 +5437,63 @@ void markForDispose(struct X3D_Node *node, int recursive){
 }
 #undef VERBOSE
 
-#define DELETE_IF_IN_PRODCON(aaa) \
-	if (tg->ProdCon.aaa) { \
-		bool foundIt = FALSE; \
-		/* ConsoleMessage ("ProdCon stack is %d in size\n",vectorSize(tg->ProdCon.aaa)); */ \
-		for (i=0; i<vectorSize(tg->ProdCon.aaa); i++) { \
-			if (vector_get(struct X3D_Node*,tg->ProdCon.aaa, i) == structptr) { \
-				foundIt = TRUE; \
-				/* ConsoleMessage ("found it in the stack!\n"); */ \
-			} \
-		} \
-		if (foundIt) { \
-			struct Vector *newStack = newVector(struct X3D_Node*, 2); \
-			for (i=0; i<vectorSize(tg->ProdCon.aaa); i++) { \
-				if (vector_get(struct X3D_Node*,tg->ProdCon.aaa, i) != structptr) { \
-					vector_pushBack(struct X3D_Node*, newStack,  \
-						vector_get(struct X3D_Node*,tg->ProdCon.aaa,i)); \
-				} \
-			} \
-			deleteVector(struct X3D_Node*, tg->ProdCon.aaa); \
-			tg->ProdCon.aaa = newStack; \
-		} \
-	}
-
 #ifdef OLDCODE
-#define DELETE_IF_IN_STACK(aaa) \
-	if (tg->Bindable.aaa) { \
-		bool foundIt = FALSE; \
-		/* ConsoleMessage ("Bindable stack is %d in size\n",vectorSize(tg->Bindable.aaa)); */ \
-		for (i=0; i<vectorSize(tg->Bindable.aaa); i++) { \
-			if (vector_get(struct X3D_Node*,tg->Bindable.aaa, i) == structptr) { \
-				foundIt = TRUE; \
-				/* ConsoleMessage ("found it in the stack!\n"); */ \
-			} \
-		} \
-		if (foundIt) { \
-			struct Vector *newStack = newVector(struct X3D_Node*, 2); \
-			for (i=0; i<vectorSize(tg->Bindable.aaa); i++) { \
-				if (vector_get(struct X3D_Node*,tg->Bindable.aaa, i) != structptr) { \
-					vector_pushBack(struct X3D_Node*, newStack,  \
-						vector_get(struct X3D_Node*,tg->Bindable.aaa,i)); \
-				} \
-			} \
-			deleteVector(struct X3D_Node*, tg->Bindable.aaa); \
-			tg->Bindable.aaa = newStack; \
-		} \
-	}
-#endif
+OLDCODE #define DELETE_IF_IN_PRODCON(aaa) \
+OLDCODE 	if (tg->ProdCon.aaa) { \
+OLDCODE 		bool foundIt = FALSE; \
+OLDCODE 		/* ConsoleMessage ("ProdCon stack is %d in size\n",vectorSize(tg->ProdCon.aaa)); */ \
+OLDCODE 		for (i=0; i<vectorSize(tg->ProdCon.aaa); i++) { \
+OLDCODE 			if (vector_get(struct X3D_Node*,tg->ProdCon.aaa, i) == structptr) { \
+OLDCODE 				foundIt = TRUE; \
+OLDCODE 				/* ConsoleMessage ("found it in the stack!\n"); */ \
+OLDCODE 			} \
+OLDCODE 		} \
+OLDCODE 		if (foundIt) { \
+OLDCODE 			struct Vector *newStack = newVector(struct X3D_Node*, 2); \
+OLDCODE 			for (i=0; i<vectorSize(tg->ProdCon.aaa); i++) { \
+OLDCODE 				if (vector_get(struct X3D_Node*,tg->ProdCon.aaa, i) != structptr) { \
+OLDCODE 					vector_pushBack(struct X3D_Node*, newStack,  \
+OLDCODE 						vector_get(struct X3D_Node*,tg->ProdCon.aaa,i)); \
+OLDCODE 				} \
+OLDCODE 			} \
+OLDCODE 			deleteVector(struct X3D_Node*, tg->ProdCon.aaa); \
+OLDCODE 			tg->ProdCon.aaa = newStack; \
+OLDCODE 		} \
+OLDCODE 	}
+OLDCODE 
+OLDCODE #define DELETE_IF_IN_STACK(aaa) \
+OLDCODE 	if (tg->Bindable.aaa) { \
+OLDCODE 		bool foundIt = FALSE; \
+OLDCODE 		/* ConsoleMessage ("Bindable stack is %d in size\n",vectorSize(tg->Bindable.aaa)); */ \
+OLDCODE 		for (i=0; i<vectorSize(tg->Bindable.aaa); i++) { \
+OLDCODE 			if (vector_get(struct X3D_Node*,tg->Bindable.aaa, i) == structptr) { \
+OLDCODE 				foundIt = TRUE; \
+OLDCODE 				/* ConsoleMessage ("found it in the stack!\n"); */ \
+OLDCODE 			} \
+OLDCODE 		} \
+OLDCODE 		if (foundIt) { \
+OLDCODE 			struct Vector *newStack = newVector(struct X3D_Node*, 2); \
+OLDCODE 			for (i=0; i<vectorSize(tg->Bindable.aaa); i++) { \
+OLDCODE 				if (vector_get(struct X3D_Node*,tg->Bindable.aaa, i) != structptr) { \
+OLDCODE 					vector_pushBack(struct X3D_Node*, newStack,  \
+OLDCODE 						vector_get(struct X3D_Node*,tg->Bindable.aaa,i)); \
+OLDCODE 				} \
+OLDCODE 			} \
+OLDCODE 			deleteVector(struct X3D_Node*, tg->Bindable.aaa); \
+OLDCODE 			tg->Bindable.aaa = newStack; \
+OLDCODE 		} \
+OLDCODE 	}
+#endif //OLDCODE
 
 //#define WRLMODE(val) (((val) % 4)+4) //jan 2013 codegen PROTOKEYWORDS[] was ordered with x3d synonyms first, wrl last
 //#define X3DMODE(val)  ((val) % 4)
-#ifndef DISABLER
+
+// OLDCODE #ifndef DISABLER
 BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(), void* callbackData)
-#else
-BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(void *callbackData,struct X3D_Node* node,int jfield,union anyVrml *fieldPtr,
-                                            const char *fieldName, indexT mode, indexT type,int isource,BOOL publicfield), void* callbackData)
-#endif
+// OLDCODE #else
+// OLDCODE BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(void *callbackData,struct X3D_Node* node,int jfield,union anyVrml *fieldPtr,
+// OLDCODE                                             const char *fieldName, indexT mode, indexT type,int isource,BOOL publicfield), void* callbackData)
+// OLDCODE #endif
 {
 	//field isource: 0=builtin 1=script user field 2=shader_program user field 3=Proto/Broto user field 4=group __protoDef
 	int type,mode,source;
@@ -5326,6 +5550,7 @@ BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(void *callbackData,
 				case NODE_Script:
 				case NODE_ComposedShader:
 				case NODE_ShaderProgram :
+				case NODE_Effect :
 				case NODE_PackagedShader:
 					{
 						int j; //, nameIndex;
@@ -5334,10 +5559,11 @@ BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(void *callbackData,
 
 						switch(node->_nodeType)
 						{
-  							case NODE_Script:         shader =(struct Shader_Script *)(X3D_SCRIPT(node)->__scriptObj); break;
-  							case NODE_ComposedShader: shader =(struct Shader_Script *)(X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields); break;
-  							case NODE_ShaderProgram:  shader =(struct Shader_Script *)(X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields); break;
-  							case NODE_PackagedShader: shader =(struct Shader_Script *)(X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields); break;
+							case NODE_Script:         shader =(struct Shader_Script *)(X3D_SCRIPT(node)->__scriptObj); break;
+							case NODE_ComposedShader: shader =(struct Shader_Script *)(X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields); break;
+							case NODE_ShaderProgram:  shader =(struct Shader_Script *)(X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields); break;
+							case NODE_PackagedShader: shader =(struct Shader_Script *)(X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields); break;
+							case NODE_Effect: shader =(struct Shader_Script *)(X3D_EFFECT(node)->_shaderUserDefinedFields); break;
 						}
 						if (shader)
 							for(j=0; j!=vectorSize(shader->fields); ++j)
@@ -5670,20 +5896,22 @@ struct Shader_Script *getShader(struct X3D_Node *node){
 	struct Shader_Script *shader = NULL;
 	switch(node->_nodeType)
 	{
-  		case NODE_Script:         shader =(struct Shader_Script *)(X3D_SCRIPT(node)->__scriptObj); break;
-  		case NODE_ComposedShader: shader =(struct Shader_Script *)(X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields); break;
-  		case NODE_ShaderProgram:  shader =(struct Shader_Script *)(X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields); break;
-  		case NODE_PackagedShader: shader =(struct Shader_Script *)(X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields); break;
+		case NODE_Script:         shader =(struct Shader_Script *)(X3D_SCRIPT(node)->__scriptObj); break;
+		case NODE_ComposedShader: shader =(struct Shader_Script *)(X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields); break;
+		case NODE_Effect: shader =(struct Shader_Script *)(X3D_EFFECT(node)->_shaderUserDefinedFields); break;
+		case NODE_ShaderProgram:  shader =(struct Shader_Script *)(X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields); break;
+		case NODE_PackagedShader: shader =(struct Shader_Script *)(X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields); break;
 	}
 	return shader;
 }
 void setShader(struct X3D_Node *node, struct Shader_Script *shader){
 	switch(node->_nodeType)
 	{
-  		case NODE_Script:         X3D_SCRIPT(node)->__scriptObj = (void *)shader; break;
-  		case NODE_ComposedShader: X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields = (void *)shader;; break;
-  		case NODE_ShaderProgram:  X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields = (void *)shader;; break;
-  		case NODE_PackagedShader: X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields = (void *)shader;; break;
+		case NODE_Script:         X3D_SCRIPT(node)->__scriptObj = (void *)shader; break;
+		case NODE_ComposedShader: X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields = (void *)shader;; break;
+		case NODE_Effect: X3D_EFFECT(node)->_shaderUserDefinedFields = (void *)shader;; break;
+		case NODE_ShaderProgram:  X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields = (void *)shader;; break;
+		case NODE_PackagedShader: X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields = (void *)shader;; break;
 	}
 
 }
@@ -5752,242 +5980,247 @@ void freeMallocedNodeFields0(struct X3D_Node* node){
 //}
 void freeMallocedNodeFields(struct X3D_Node* node){
 	if(node){
-		deleteVector(sizeof(void*),node->_parentVector);
+		deleteVector(void*,node->_parentVector);
+		if(node->_gc) free_registered_node_gc(node);
 		freeMallocedNodeFields0(node);
 	}
 }
-/*delete node created
-static void killNode_hide_obsolete (int index) {
-	int j=0;
-	int *fieldOffsetsPtr;
-	char * fieldPtr;
-	struct X3D_Node* structptr;
-	struct Multi_Float* MFloat;
-	struct Multi_Rotation* MRotation;
-	struct Multi_Vec3f* MVec3f;
-	struct Multi_Bool* Mbool;
-	struct Multi_Int32* MInt32;
-	struct Multi_Node* MNode;
-	struct Multi_Color* MColor;
-	struct Multi_ColorRGBA* MColorRGBA;
-	struct Multi_Time* MTime;
-	struct Multi_String* MString;
-	struct Multi_Vec2f* MVec2f;
-	intptr_t * VPtr;
-	struct Uni_String *MyS;
- 	int i;
 
-	ppOpenGL_Utils p;
-	ttglobal tg = gglobal();
-	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+#ifdef OLDCODE
 
-	structptr = vector_get(struct X3D_Node *,p->linearNodeTable,index);
-	//ConsoleMessage("killNode - looking for node %p of type %s in one of the stacks\n", structptr,stringNodeType(structptr->_nodeType));
-
-	if( structptr->referenceCount > -1 ){
-		// unlinking the node from special arrays, parents and children
-		//   we just need to do this once, and early in the kill process
-		//   - I wish we had a sentinal value for 'unlinked' 
-		DELETE_IF_IN_STACK(viewpoint_stack);
-		DELETE_IF_IN_STACK(background_stack);
-		DELETE_IF_IN_STACK(fog_stack);
-		DELETE_IF_IN_STACK(navigation_stack);
-		DELETE_IF_IN_PRODCON(viewpointNodes);
-		delete_first(structptr);
-		//print_node_links(structptr);
-		unlink_node(structptr); //unlink before settledown deleting..
-		//printf("after: \n");
-		//print_node_links(structptr);
-	}
-
-	// give this time for things to "settle" in terms of rendering, etc
-	//JAS: "OpenGL - old code called flush() or finish(), but when the front-end does the actual rendering,
-	//what happens is that the GL calls get queued up for the GPU, then run when possible. So, there
-	//is a "hidden" multi-threading going on there. IIRC, I gave it 10 rendering loops for an unused
-	//node before deleting any of the items in it; really 1 or 2 loops should be fine. (1, but don't
-	//know about double buffering; 10 is a safe overkill) Without that, having OpenGL issues was a
-	//random certainty when removing nodes, and data from these nodes."
-	
-	structptr->referenceCount --;
-	if (structptr->referenceCount > -10) {
-		//ConsoleMessage ("ref count for %p is just %d, waiting\n",structptr,structptr->referenceCount);
-		return;
-	}
-	//ConsoleMessage ("kn %d %s\n",index,stringNodeType(structptr->_nodeType));
-
-	#ifdef VERBOSE
-	printf("killNode: Node pointer	= %p entry %d of %d ",structptr,i,vectorSize(p->linearNodeTable));
-	if (structptr) {
-	if (structptr->_parentVector)
-	printf (" number of parents %d ", vectorSize(structptr->_parentVector));
-	printf("Node Type	= %s",stringNodeType(structptr->_nodeType));
-	} printf ("\n");
-	#endif
-	// node must be already unlinked with unlink_node() when we get here 
-	// delete parent vector. 
- 	deleteVector(char*, structptr->_parentVector);
-	// clear child vector - done below 
-
-	fieldOffsetsPtr = (int *)NODE_OFFSETS[structptr->_nodeType];
-	//go thru all field
-	while (*fieldOffsetsPtr != -1) {
-		fieldPtr = offsetPointer_deref(char *, structptr,*(fieldOffsetsPtr+1));
-		#ifdef VERBOSE
-		printf ("looking at field %s type %s\n",FIELDNAMES[*fieldOffsetsPtr],FIELDTYPES[*(fieldOffsetsPtr+2)]);
-		#endif
-
-		// some fields we skip, as the pointers are duplicated, and we CAN NOT free both 
-		if (*fieldOffsetsPtr == FIELDNAMES_setValue)
-			break; // can be a duplicate SF/MFNode pointer 
-
-		if (*fieldOffsetsPtr == FIELDNAMES_valueChanged)
-			break; // can be a duplicate SF/MFNode pointer 
-
-		if (*fieldOffsetsPtr == FIELDNAMES__parentResource)
-			break; // can be a duplicate SF/MFNode pointer 
-
-
-		if (*fieldOffsetsPtr == FIELDNAMES___oldmetadata)
-			break; // can be a duplicate SFNode pointer 
-
-		if (*fieldOffsetsPtr == FIELDNAMES__selected)
-			break; // can be a duplicate SFNode pointer - field only in NODE_LOD and NODE_GeoLOD 
-
-		if (*fieldOffsetsPtr == FIELDNAMES___oldChildren)
-			break; // can be a duplicate SFNode pointer - field only in NODE_LOD and NODE_GeoLOD 
-
-		if (*fieldOffsetsPtr == FIELDNAMES___oldMFString)
-			break;
-
-		if (*fieldOffsetsPtr == FIELDNAMES___scriptObj)
-			break;
-
-		if (*fieldOffsetsPtr == FIELDNAMES___oldSFString)
-			break;
-
-		if (*fieldOffsetsPtr == FIELDNAMES___oldKeyPtr)
-			break; // used for seeing if interpolator values change 
-
-		if (*fieldOffsetsPtr == FIELDNAMES___oldKeyValuePtr)
-			break; // used for seeing if interpolator values change 
-
-
-		// GeoLOD nodes, the children field exports either the rootNode, or the list of child nodes 
-		if (structptr->_nodeType == NODE_GeoLOD) {
-			if (*fieldOffsetsPtr == FIELDNAMES_children) break;
-		}
-
-		// nope, not a special field, lets just get rid of it as best we can 
-		//	dug9 sept 2014: GC garbage collection: I wonder if it would be easier/simpler when we malloc something,
-		//	to put it into a flat scene-GC list (and inline-GC list?) - as we do for a few things already, like nodes - 
-		//	and don't GC here for fields on occassionally removed nodes, just when we change scenes
-		//	wipe out the whole GC table(s)?
-		//
-		switch(*(fieldOffsetsPtr+2)){
-			case FIELDTYPE_MFFloat:
-				MFloat=(struct Multi_Float *)fieldPtr;
-				MFloat->n=0;
-				FREE_IF_NZ(MFloat->p);
-				break;
-			case FIELDTYPE_MFRotation:
-				MRotation=(struct Multi_Rotation *)fieldPtr;
-				MRotation->n=0;
-				FREE_IF_NZ(MRotation->p);
-				break;
-			case FIELDTYPE_MFVec3f:
-				MVec3f=(struct Multi_Vec3f *)fieldPtr;
-				MVec3f->n=0;
-				FREE_IF_NZ(MVec3f->p);
-				break;
-			case FIELDTYPE_MFBool:
-				Mbool=(struct Multi_Bool *)fieldPtr;
-				Mbool->n=0;
-				FREE_IF_NZ(Mbool->p);
-				break;
-			case FIELDTYPE_MFInt32:
-				MInt32=(struct Multi_Int32 *)fieldPtr;
-				MInt32->n=0;
-				FREE_IF_NZ(MInt32->p);
-				break;
-			case FIELDTYPE_MFNode:
-				MNode=(struct Multi_Node *)fieldPtr;
-				#ifdef VERBOSE
-				//verify node structure. Each child should point back to me. 
-				{
-					int i;
-					struct X3D_Node *tp;
-					for (i=0; i<MNode->n; i++) {
-						tp = MNode->p[i];
-						printf ("	MNode field has child %p\n",tp);
-						if (tp!=NULL)
-						printf ("	ct %s\n",stringNodeType(tp->_nodeType));
-					}
-				}
-				#endif
-				MNode->n=0;
-				FREE_IF_NZ(MNode->p);
-				break;
-
-			case FIELDTYPE_MFColor:
-				MColor=(struct Multi_Color *)fieldPtr;
-				MColor->n=0;
-				FREE_IF_NZ(MColor->p);
-				break;
-			case FIELDTYPE_MFColorRGBA:
-				MColorRGBA=(struct Multi_ColorRGBA *)fieldPtr;
-				MColorRGBA->n=0;
-				FREE_IF_NZ(MColorRGBA->p);
-				break;
-			case FIELDTYPE_MFTime:
-				MTime=(struct Multi_Time *)fieldPtr;
-				MTime->n=0;
-				FREE_IF_NZ(MTime->p);
-				break;
-			case FIELDTYPE_MFString:
-				MString=(struct Multi_String *)fieldPtr;
-				{
-				struct Uni_String* ustr;
-				for (j=0; j<MString->n; j++) {
-					ustr=MString->p[j];
-					if (ustr != NULL) {
-					ustr->len=0;
-					ustr->touched=0;
-					FREE_IF_NZ(ustr->strptr);
-					}
-				}
-				MString->n=0;
-				FREE_IF_NZ(MString->p);
-				}
-				break;
-			case FIELDTYPE_MFVec2f:
-				MVec2f=(struct Multi_Vec2f *)fieldPtr;
-				MVec2f->n=0;
-				FREE_IF_NZ(MVec2f->p);
-				break;
-			case FIELDTYPE_FreeWRLPTR:
-				VPtr = (intptr_t *) fieldPtr;
-				VPtr = (intptr_t *) (*VPtr);
-				FREE_IF_NZ(VPtr);
-				break;
-			case FIELDTYPE_SFString:
-				VPtr = (intptr_t *) fieldPtr;
-				MyS = (struct Uni_String *) *VPtr;
-				MyS->len = 0;
-				FREE_IF_NZ(MyS->strptr);
-				FREE_IF_NZ(MyS);
-				break;
-
-			default:; // do nothing - field not malloc'd 
-		}
-		fieldOffsetsPtr+=5;
-	}
-
-	FREE_IF_NZ(structptr);
-	vector_set(struct X3D_Node *, p->linearNodeTable,index,NULL);
-	p->potentialHoleCount++;
-	//ConsoleMessage ("kill, index %d, phc %d",index,p->potentialHoleCount);
-}
-*/
+OLDCODE/*delete node created
+OLDCODEstatic void killNode_hide_obsolete (int index) {
+OLDCODE	int j=0;
+OLDCODE	int *fieldOffsetsPtr;
+OLDCODE	char * fieldPtr;
+OLDCODE	struct X3D_Node* structptr;
+OLDCODE	struct Multi_Float* MFloat;
+OLDCODE	struct Multi_Rotation* MRotation;
+OLDCODE	struct Multi_Vec3f* MVec3f;
+OLDCODE	struct Multi_Bool* Mbool;
+OLDCODE	struct Multi_Int32* MInt32;
+OLDCODE	struct Multi_Node* MNode;
+OLDCODE	struct Multi_Color* MColor;
+OLDCODE	struct Multi_ColorRGBA* MColorRGBA;
+OLDCODE	struct Multi_Time* MTime;
+OLDCODE	struct Multi_String* MString;
+OLDCODE	struct Multi_Vec2f* MVec2f;
+OLDCODE	intptr_t * VPtr;
+OLDCODE	struct Uni_String *MyS;
+OLDCODE 	int i;
+OLDCODE
+OLDCODE	ppOpenGL_Utils p;
+OLDCODE	ttglobal tg = gglobal();
+OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
+OLDCODE
+OLDCODE	structptr = vector_get(struct X3D_Node *,p->linearNodeTable,index);
+OLDCODE	//ConsoleMessage("killNode - looking for node %p of type %s in one of the stacks\n", structptr,stringNodeType(structptr->_nodeType));
+OLDCODE
+OLDCODE	if( structptr->referenceCount > -1 ){
+OLDCODE		// unlinking the node from special arrays, parents and children
+OLDCODE		//   we just need to do this once, and early in the kill process
+OLDCODE		//   - I wish we had a sentinal value for 'unlinked' 
+OLDCODE		DELETE_IF_IN_STACK(viewpoint_stack);
+OLDCODE		DELETE_IF_IN_STACK(background_stack);
+OLDCODE		DELETE_IF_IN_STACK(fog_stack);
+OLDCODE		DELETE_IF_IN_STACK(navigation_stack);
+OLDCODE		DELETE_IF_IN_PRODCON(viewpointNodes);
+OLDCODE		delete_first(structptr);
+OLDCODE		//print_node_links(structptr);
+OLDCODE		unlink_node(structptr); //unlink before settledown deleting..
+OLDCODE		//printf("after: \n");
+OLDCODE		//print_node_links(structptr);
+OLDCODE	}
+OLDCODE
+OLDCODE	// give this time for things to "settle" in terms of rendering, etc
+OLDCODE	//JAS: "OpenGL - old code called flush() or finish(), but when the front-end does the actual rendering,
+OLDCODE	//what happens is that the GL calls get queued up for the GPU, then run when possible. So, there
+OLDCODE	//is a "hidden" multi-threading going on there. IIRC, I gave it 10 rendering loops for an unused
+OLDCODE	//node before deleting any of the items in it; really 1 or 2 loops should be fine. (1, but don't
+OLDCODE	//know about double buffering; 10 is a safe overkill) Without that, having OpenGL issues was a
+OLDCODE	//random certainty when removing nodes, and data from these nodes."
+OLDCODE	
+OLDCODE	structptr->referenceCount --;
+OLDCODE	if (structptr->referenceCount > -10) {
+OLDCODE		//ConsoleMessage ("ref count for %p is just %d, waiting\n",structptr,structptr->referenceCount);
+OLDCODE		return;
+OLDCODE	}
+OLDCODE	//ConsoleMessage ("kn %d %s\n",index,stringNodeType(structptr->_nodeType));
+OLDCODE
+OLDCODE	#ifdef VERBOSE
+OLDCODE	printf("killNode: Node pointer	= %p entry %d of %d ",structptr,i,vectorSize(p->linearNodeTable));
+OLDCODE	if (structptr) {
+OLDCODE	if (structptr->_parentVector)
+OLDCODE	printf (" number of parents %d ", vectorSize(structptr->_parentVector));
+OLDCODE	printf("Node Type	= %s",stringNodeType(structptr->_nodeType));
+OLDCODE	} printf ("\n");
+OLDCODE	#endif
+OLDCODE	// node must be already unlinked with unlink_node() when we get here 
+OLDCODE	// delete parent vector. 
+OLDCODE 	deleteVector(char*, structptr->_parentVector);
+OLDCODE	// clear child vector - done below 
+OLDCODE
+OLDCODE	fieldOffsetsPtr = (int *)NODE_OFFSETS[structptr->_nodeType];
+OLDCODE	//go thru all field
+OLDCODE	while (*fieldOffsetsPtr != -1) {
+OLDCODE		fieldPtr = offsetPointer_deref(char *, structptr,*(fieldOffsetsPtr+1));
+OLDCODE		#ifdef VERBOSE
+OLDCODE		printf ("looking at field %s type %s\n",FIELDNAMES[*fieldOffsetsPtr],FIELDTYPES[*(fieldOffsetsPtr+2)]);
+OLDCODE		#endif
+OLDCODE
+OLDCODE		// some fields we skip, as the pointers are duplicated, and we CAN NOT free both 
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES_setValue)
+OLDCODE			break; // can be a duplicate SF/MFNode pointer 
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES_valueChanged)
+OLDCODE			break; // can be a duplicate SF/MFNode pointer 
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES__parentResource)
+OLDCODE			break; // can be a duplicate SF/MFNode pointer 
+OLDCODE
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___oldmetadata)
+OLDCODE			break; // can be a duplicate SFNode pointer 
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES__selected)
+OLDCODE			break; // can be a duplicate SFNode pointer - field only in NODE_LOD and NODE_GeoLOD 
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___oldChildren)
+OLDCODE			break; // can be a duplicate SFNode pointer - field only in NODE_LOD and NODE_GeoLOD 
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___oldMFString)
+OLDCODE			break;
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___scriptObj)
+OLDCODE			break;
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___oldSFString)
+OLDCODE			break;
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___oldKeyPtr)
+OLDCODE			break; // used for seeing if interpolator values change 
+OLDCODE
+OLDCODE		if (*fieldOffsetsPtr == FIELDNAMES___oldKeyValuePtr)
+OLDCODE			break; // used for seeing if interpolator values change 
+OLDCODE
+OLDCODE
+OLDCODE		// GeoLOD nodes, the children field exports either the rootNode, or the list of child nodes 
+OLDCODE		if (structptr->_nodeType == NODE_GeoLOD) {
+OLDCODE			if (*fieldOffsetsPtr == FIELDNAMES_children) break;
+OLDCODE		}
+OLDCODE
+OLDCODE		// nope, not a special field, lets just get rid of it as best we can 
+OLDCODE		//	dug9 sept 2014: GC garbage collection: I wonder if it would be easier/simpler when we malloc something,
+OLDCODE		//	to put it into a flat scene-GC list (and inline-GC list?) - as we do for a few things already, like nodes - 
+OLDCODE		//	and don't GC here for fields on occassionally removed nodes, just when we change scenes
+OLDCODE		//	wipe out the whole GC table(s)?
+OLDCODE		//
+OLDCODE		switch(*(fieldOffsetsPtr+2)){
+OLDCODE			case FIELDTYPE_MFFloat:
+OLDCODE				MFloat=(struct Multi_Float *)fieldPtr;
+OLDCODE				MFloat->n=0;
+OLDCODE				FREE_IF_NZ(MFloat->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFRotation:
+OLDCODE				MRotation=(struct Multi_Rotation *)fieldPtr;
+OLDCODE				MRotation->n=0;
+OLDCODE				FREE_IF_NZ(MRotation->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFVec3f:
+OLDCODE				MVec3f=(struct Multi_Vec3f *)fieldPtr;
+OLDCODE				MVec3f->n=0;
+OLDCODE				FREE_IF_NZ(MVec3f->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFBool:
+OLDCODE				Mbool=(struct Multi_Bool *)fieldPtr;
+OLDCODE				Mbool->n=0;
+OLDCODE				FREE_IF_NZ(Mbool->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFInt32:
+OLDCODE				MInt32=(struct Multi_Int32 *)fieldPtr;
+OLDCODE				MInt32->n=0;
+OLDCODE				FREE_IF_NZ(MInt32->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFNode:
+OLDCODE				MNode=(struct Multi_Node *)fieldPtr;
+OLDCODE				#ifdef VERBOSE
+OLDCODE				//verify node structure. Each child should point back to me. 
+OLDCODE				{
+OLDCODE					int i;
+OLDCODE					struct X3D_Node *tp;
+OLDCODE					for (i=0; i<MNode->n; i++) {
+OLDCODE						tp = MNode->p[i];
+OLDCODE						printf ("	MNode field has child %p\n",tp);
+OLDCODE						if (tp!=NULL)
+OLDCODE						printf ("	ct %s\n",stringNodeType(tp->_nodeType));
+OLDCODE					}
+OLDCODE				}
+OLDCODE				#endif
+OLDCODE				MNode->n=0;
+OLDCODE				FREE_IF_NZ(MNode->p);
+OLDCODE				break;
+OLDCODE
+OLDCODE			case FIELDTYPE_MFColor:
+OLDCODE				MColor=(struct Multi_Color *)fieldPtr;
+OLDCODE				MColor->n=0;
+OLDCODE				FREE_IF_NZ(MColor->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFColorRGBA:
+OLDCODE				MColorRGBA=(struct Multi_ColorRGBA *)fieldPtr;
+OLDCODE				MColorRGBA->n=0;
+OLDCODE				FREE_IF_NZ(MColorRGBA->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFTime:
+OLDCODE				MTime=(struct Multi_Time *)fieldPtr;
+OLDCODE				MTime->n=0;
+OLDCODE				FREE_IF_NZ(MTime->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFString:
+OLDCODE				MString=(struct Multi_String *)fieldPtr;
+OLDCODE				{
+OLDCODE				struct Uni_String* ustr;
+OLDCODE				for (j=0; j<MString->n; j++) {
+OLDCODE					ustr=MString->p[j];
+OLDCODE					if (ustr != NULL) {
+OLDCODE					ustr->len=0;
+OLDCODE					ustr->touched=0;
+OLDCODE					FREE_IF_NZ(ustr->strptr);
+OLDCODE					}
+OLDCODE				}
+OLDCODE				MString->n=0;
+OLDCODE				FREE_IF_NZ(MString->p);
+OLDCODE				}
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_MFVec2f:
+OLDCODE				MVec2f=(struct Multi_Vec2f *)fieldPtr;
+OLDCODE				MVec2f->n=0;
+OLDCODE				FREE_IF_NZ(MVec2f->p);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_FreeWRLPTR:
+OLDCODE				VPtr = (intptr_t *) fieldPtr;
+OLDCODE				VPtr = (intptr_t *) (*VPtr);
+OLDCODE				FREE_IF_NZ(VPtr);
+OLDCODE				break;
+OLDCODE			case FIELDTYPE_SFString:
+OLDCODE				VPtr = (intptr_t *) fieldPtr;
+OLDCODE				MyS = (struct Uni_String *) *VPtr;
+OLDCODE				MyS->len = 0;
+OLDCODE				FREE_IF_NZ(MyS->strptr);
+OLDCODE				FREE_IF_NZ(MyS);
+OLDCODE				break;
+OLDCODE
+OLDCODE			default:; // do nothing - field not malloc'd 
+OLDCODE		}
+OLDCODE		fieldOffsetsPtr+=5;
+OLDCODE	}
+OLDCODE
+OLDCODE	FREE_IF_NZ(structptr);
+OLDCODE	vector_set(struct X3D_Node *, p->linearNodeTable,index,NULL);
+OLDCODE	p->potentialHoleCount++;
+OLDCODE	//ConsoleMessage ("kill, index %d, phc %d",index,p->potentialHoleCount);
+OLDCODE}
+OLDCODE*/
+#endif //OLDCODE 
 
 #ifdef DEBUG_FW_LOADMAT
 	static void fw_glLoadMatrixd(GLDOUBLE *val,char *where, int line) {
@@ -6008,7 +6241,7 @@ static void killNode_hide_obsolete (int index) {
 }
 BOOL matrix3x3_inverse_float(float *inn, float *outt);
 
-static void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatrix, GLint NormalMatrix, GLint TextureMatrix)
+void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatrix, GLint NormalMatrix, GLint *TextureMatrix, GLint ModelViewInverseMatrix)
 
 {
 
@@ -6035,34 +6268,61 @@ static void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint Projecti
 	sp = spval;
 	dp = p->FW_ProjectionView[p->projectionviewTOS];
 
-	/* convert GLDOUBLE to float */
-	for (i=0; i<16; i++) {
-		*sp = (float) *dp;
-		sp ++; dp ++;
-	}
+	matdouble2float4(sp,dp);
+	///* convert GLDOUBLE to float */
+	//for (i=0; i<16; i++) {
+	//	*sp = (float) *dp;
+	//	sp ++; dp ++;
+	//}
 	profile_start("sendmtx");
 	GLUNIFORMMATRIX4FV(ProjectionMatrix,1,GL_FALSE,spval);
 	profile_end("sendmtx");
 	/* TextureMatrix */
-	if (TextureMatrix != -1) {
-		sp = spval;
-		dp = p->FW_TextureView[p->textureviewTOS];
+	if(TextureMatrix)
+	for(j=0;j<MAX_MULTITEXTURE;j++) {
+		int itexturestackposition = j+1;
+		if (TextureMatrix[j] != -1 && itexturestackposition <= p->textureviewTOS) {
+			sp = spval;
+			dp = p->FW_TextureView[itexturestackposition]; //[p->textureviewTOS];
 
-		//ConsoleMessage ("sendExplicitMatriciesToShader, sizeof GLDOUBLE %d, sizeof float %d",sizeof(GLDOUBLE), sizeof(float));
-		/* convert GLDOUBLE to float */
-		for (i=0; i<16; i++) {
-			*sp = (float) *dp;
-			sp ++; dp ++;
+			//ConsoleMessage ("sendExplicitMatriciesToShader, sizeof GLDOUBLE %d sizeof float %d\n",sizeof(GLDOUBLE), sizeof(float));
+			//printmatrix2(dp,"dp");
+			/* convert GLDOUBLE to float */
+			for (i=0; i<16; i++) {
+				*sp = (float) *dp;
+				sp ++; dp ++;
+			}
+			profile_start("sendmtx");
+			GLUNIFORMMATRIX4FV(TextureMatrix[j],1,GL_FALSE,spval);
+			profile_end("sendmtx");
 		}
-        profile_start("sendmtx");
-		GLUNIFORMMATRIX4FV(TextureMatrix,1,GL_FALSE,spval);
-		profile_end("sendmtx");
 	}
 
+	if( ModelViewInverseMatrix != -1){
+		//send in the inverse of the modelview matrix
+		//- handy for cube-map texturing
+		float spvali[16];
+		int ii; //,jj;
+		float *spi;
+		double *dpi, *dpp;
+		GLDOUBLE inverseMV[16];
+		//GLDOUBLE transInverseMV[16];
+		GLDOUBLE MV[16];
 
+		dpp = p->FW_ModelView[p->modelviewTOS];
+		memcpy(MV,dpp,sizeof(GLDOUBLE)*16);
+		matinverse (inverseMV,MV);
+		dpi = inverseMV;
+		spi = spvali;
+		for (ii=0; ii<16; ii++) {
+			*spi = (float) *dpi;
+			spi ++; dpi ++;
+		}
+		GLUNIFORMMATRIX4FV(ModelViewInverseMatrix,1,GL_FALSE,spvali);
+	}
 	/* send in the NormalMatrix */
 	/* Uniform mat3  gl_NormalMatrix;  transpose of the inverse of the upper
-                               		  leftmost 3x3 of gl_ModelViewMatrix */
+			  leftmost 3x3 of gl_ModelViewMatrix */
 	if (NormalMatrix != -1) {
 		float normMat[9];
 		dp = p->FW_ModelView[p->modelviewTOS];
@@ -6121,7 +6381,7 @@ normMat[6],normMat[7],normMat[8]);
 /* make this more generic, so that the non-OpenGL-ES 2.0 FillProperties, etc, still work */
 
 void sendMatriciesToShader(s_shader_capabilities_t *me) {
-	sendExplicitMatriciesToShader (me->ModelViewMatrix, me->ProjectionMatrix, me->NormalMatrix,me->TextureMatrix);
+	sendExplicitMatriciesToShader (me->ModelViewMatrix, me->ProjectionMatrix, me->NormalMatrix,me->TextureMatrix,me->ModelViewInverseMatrix);
 
 }
 #define SEND_VEC2(myMat,myVal) \
@@ -6137,32 +6397,59 @@ if (me->myMat != -1) { GLUNIFORM1F(me->myMat,myVal);}
 if (me->myMat != -1) { GLUNIFORM1I(me->myMat,myVal);}
 
 
+struct X3D_Node *getFogParams();
+void sendFogToShader(s_shader_capabilities_t *me) {
+	float color4[4];
+	struct X3D_Fog *fog = (struct X3D_Fog*) getFogParams(); //gets it from the fog stack, LocalFog and Fog are upcast to Fog: perl first fields in same order
+	if(!fog) return;
+
+	profile_start("sendvec");
+	memcpy(color4,fog->color.c,sizeof(float)*3);
+	color4[3] = 1.0;
+	SEND_VEC4(fogColor,color4);
+	SEND_FLOAT(fogvisibilityRange,fog->visibilityRange*fog->__fogScale);
+	SEND_FLOAT(fogScale,1.0f); //fog->__fogScale); 
+	SEND_INT(fogType,fog->__fogType);
+	//SEND_INT(fogHaveCoords,fogparams->haveCoords);
+	profile_end("sendvec");
+
+}
+float *getTransformedClipPlanes();
+int getClipPlaneCount();
+void sendClipplanesToShader(s_shader_capabilities_t *me){
+	int nsend; //i, 
+
+	float *clipplanes = getTransformedClipPlanes();
+	nsend = getClipPlaneCount();
+	GLUNIFORM4FV(me->clipplanes,nsend,clipplanes);
+	GLUNIFORM1I(me->nclipplanes,nsend);
+}
 
 void sendMaterialsToShader(s_shader_capabilities_t *me) {
-    struct matpropstruct *myap = getAppearanceProperties();
-    struct fw_MaterialParameters *fw_FrontMaterial;
+	struct matpropstruct *myap = getAppearanceProperties();
+	struct fw_MaterialParameters *fw_FrontMaterial;
 	struct fw_MaterialParameters *fw_BackMaterial;
 
-    if (!myap) return;
-    fw_FrontMaterial = &myap->fw_FrontMaterial;
-    fw_BackMaterial = &myap->fw_BackMaterial;
+	if (!myap) return;
+	fw_FrontMaterial = &myap->fw_FrontMaterial;
+	fw_BackMaterial = &myap->fw_BackMaterial;
 
 
 	/* go through all of the Uniforms for this shader */
 
-    /* ConsoleMessage ("sending in front diffuse %f %f %f %f ambient %f %f %f %f spec %f %f %f %f emission %f %f %f %f, shin %f",
-                    fw_FrontMaterial.diffuse[0],fw_FrontMaterial.diffuse[1],fw_FrontMaterial.diffuse[2],fw_FrontMaterial.diffuse[3],
-                    fw_FrontMaterial.ambient[0],fw_FrontMaterial.ambient[1],fw_FrontMaterial.ambient[2],fw_FrontMaterial.ambient[3],
-                    fw_FrontMaterial.specular[0],fw_FrontMaterial.specular[1],fw_FrontMaterial.specular[2],fw_FrontMaterial.specular[3],
-                    fw_FrontMaterial.emission[0],fw_FrontMaterial.emission[1],fw_FrontMaterial.emission[2],fw_FrontMaterial.emission[3],
-                    fw_FrontMaterial.shininess);
+	/* ConsoleMessage ("sending in front diffuse %f %f %f %f ambient %f %f %f %f spec %f %f %f %f emission %f %f %f %f, shin %f",
+					fw_FrontMaterial.diffuse[0],fw_FrontMaterial.diffuse[1],fw_FrontMaterial.diffuse[2],fw_FrontMaterial.diffuse[3],
+					fw_FrontMaterial.ambient[0],fw_FrontMaterial.ambient[1],fw_FrontMaterial.ambient[2],fw_FrontMaterial.ambient[3],
+					fw_FrontMaterial.specular[0],fw_FrontMaterial.specular[1],fw_FrontMaterial.specular[2],fw_FrontMaterial.specular[3],
+					fw_FrontMaterial.emission[0],fw_FrontMaterial.emission[1],fw_FrontMaterial.emission[2],fw_FrontMaterial.emission[3],
+					fw_FrontMaterial.shininess);
 
-ConsoleMessage ("sending in back diffuse %f %f %f %f ambient %f %f %f %f spec %f %f %f %f emission %f %f %f %f, shin %f",
-                fw_BackMaterial.diffuse[0],fw_BackMaterial.diffuse[1],fw_BackMaterial.diffuse[2],fw_BackMaterial.diffuse[3],
-                fw_BackMaterial.ambient[0],fw_BackMaterial.ambient[1],fw_BackMaterial.ambient[2],fw_BackMaterial.ambient[3],
-                fw_BackMaterial.specular[0],fw_BackMaterial.specular[1],fw_BackMaterial.specular[2],fw_BackMaterial.specular[3],
-                fw_BackMaterial.emission[0],fw_BackMaterial.emission[1],fw_BackMaterial.emission[2],fw_BackMaterial.emission[3],
-                fw_BackMaterial.shininess);
+	ConsoleMessage ("sending in back diffuse %f %f %f %f ambient %f %f %f %f spec %f %f %f %f emission %f %f %f %f, shin %f",
+				fw_BackMaterial.diffuse[0],fw_BackMaterial.diffuse[1],fw_BackMaterial.diffuse[2],fw_BackMaterial.diffuse[3],
+				fw_BackMaterial.ambient[0],fw_BackMaterial.ambient[1],fw_BackMaterial.ambient[2],fw_BackMaterial.ambient[3],
+				fw_BackMaterial.specular[0],fw_BackMaterial.specular[1],fw_BackMaterial.specular[2],fw_BackMaterial.specular[3],
+				fw_BackMaterial.emission[0],fw_BackMaterial.emission[1],fw_BackMaterial.emission[2],fw_BackMaterial.emission[3],
+				fw_BackMaterial.shininess);
 */
 
 PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
@@ -6184,91 +6471,91 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 	if (me->haveLightInShader) sendLightInfo(me);
 
-    /* FillProperties, LineProperty lineType */
-    #if defined  (AQUA) || defined (GL_ES_VERSION_2_0)
+	/* FillProperties, LineProperty lineType */
+	#if defined (GL_ES_VERSION_2_0)
 	SEND_FLOAT(myPointSize,myap->pointSize);
-    #else
+	#else
 	glPointSize(myap->pointSize > 0 ? myap->pointSize : 1);
-    #endif
+	#endif
 
 	profile_start("sendmat");
-    //ConsoleMessage ("rlp %d %d %d %d",me->hatchPercent,me->filledBool,me->hatchedBool,me->algorithm,me->hatchColour);
-    SEND_INT(filledBool,myap->filledBool);
-    SEND_INT(hatchedBool,myap->hatchedBool);
-    SEND_INT(algorithm,myap->algorithm);
-    SEND_VEC4(hatchColour,myap->hatchColour);
-    SEND_VEC2(hatchScale,myap->hatchScale);
-    SEND_VEC2(hatchPercent,myap->hatchPercent);
+	//ConsoleMessage ("rlp %d %d %d %d",me->hatchPercent,me->filledBool,me->hatchedBool,me->algorithm,me->hatchColour);
+	SEND_INT(filledBool,myap->filledBool);
+	SEND_INT(hatchedBool,myap->hatchedBool);
+	SEND_INT(algorithm,myap->algorithm);
+	SEND_VEC4(hatchColour,myap->hatchColour);
+	SEND_VEC2(hatchScale,myap->hatchScale);
+	SEND_VEC2(hatchPercent,myap->hatchPercent);
 
-    //TextureCoordinateGenerator
-    SEND_INT(texCoordGenType,myap->texCoordGeneratorType);
+	//TextureCoordinateGenerator
+	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);
 	profile_end("sendmat");
 	PRINT_GL_ERROR_IF_ANY("END sendMaterialsToShader");
 }
 
-static void __gluMultMatrixVecd(const GLDOUBLE matrix[16], const GLDOUBLE in[4],
-                      GLDOUBLE out[4])
+void __gluMultMatrixVecd(const GLDOUBLE matrix[16], const GLDOUBLE in[4],
+					GLDOUBLE out[4])
 {
-    int i;
+	int i;
 
-    for (i=0; i<4; i++) {
-        out[i] =
-            in[0] * matrix[0*4+i] +
-            in[1] * matrix[1*4+i] +
-            in[2] * matrix[2*4+i] +
-            in[3] * matrix[3*4+i];
-    }
+	for (i=0; i<4; i++) {
+		out[i] =
+			in[0] * matrix[0*4+i] +
+			in[1] * matrix[1*4+i] +
+			in[2] * matrix[2*4+i] +
+			in[3] * matrix[3*4+i];
+	}
 }
 
 
 void fw_gluProject
 (GLDOUBLE objx, GLDOUBLE objy, GLDOUBLE objz,
-	      const GLDOUBLE modelMatrix[16],
-	      const GLDOUBLE projMatrix[16],
-              const GLint viewport[4],
-	      GLDOUBLE *winx, GLDOUBLE *winy, GLDOUBLE *winz)
+		const GLDOUBLE modelMatrix[16],
+		const GLDOUBLE projMatrix[16],
+		const GLint viewport[4],
+		GLDOUBLE *winx, GLDOUBLE *winy, GLDOUBLE *winz)
 {
-    GLDOUBLE in[4];
-    GLDOUBLE out[4];
+	GLDOUBLE in[4];
+	GLDOUBLE out[4];
 
-    in[0]=objx;
-    in[1]=objy;
-    in[2]=objz;
-    in[3]=1.0;
-    __gluMultMatrixVecd(modelMatrix, in, out);
-    __gluMultMatrixVecd(projMatrix, out, in);
-    if (in[3] == 0.0) return;
-    in[0] /= in[3];
-    in[1] /= in[3];
-    in[2] /= in[3];
-    /* Map x, y and z to range 0-1 */
-    in[0] = in[0] * 0.5 + 0.5;
-    in[1] = in[1] * 0.5 + 0.5;
-    in[2] = in[2] * 0.5 + 0.5;
+	in[0]=objx;
+	in[1]=objy;
+	in[2]=objz;
+	in[3]=1.0;
+	__gluMultMatrixVecd(modelMatrix, in, out);
+	__gluMultMatrixVecd(projMatrix, out, in);
+	if (in[3] == 0.0) return;
+	in[0] /= in[3];
+	in[1] /= in[3];
+	in[2] /= in[3];
+	/* Map x, y and z to range 0-1 */
+	in[0] = in[0] * 0.5 + 0.5;
+	in[1] = in[1] * 0.5 + 0.5;
+	in[2] = in[2] * 0.5 + 0.5;
 
-    /* Map x,y to viewport */
-    in[0] = in[0] * viewport[2] + viewport[0];
-    in[1] = in[1] * viewport[3] + viewport[1];
+	/* Map x,y to viewport */
+	in[0] = in[0] * viewport[2] + viewport[0];
+	in[1] = in[1] * viewport[3] + viewport[1];
 
-    *winx=in[0];
-    *winy=in[1];
-    *winz=in[2];
+	*winx=in[0];
+	*winy=in[1];
+	*winz=in[2];
 }
 
-static void __gluMultMatricesd(const GLDOUBLE a[16], const GLDOUBLE b[16],
-                                GLDOUBLE r[16])
+void __gluMultMatricesd(const GLDOUBLE a[16], const GLDOUBLE b[16],
+					GLDOUBLE r[16])
 {
-    int i, j;
+	int i, j;
 
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 4; j++) {
-            r[i*4+j] =
-                a[i*4+0]*b[0*4+j] +
-                a[i*4+1]*b[1*4+j] +
-                a[i*4+2]*b[2*4+j] +
-                a[i*4+3]*b[3*4+j];
-        }
-    }
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < 4; j++) {
+			r[i*4+j] =
+				a[i*4+0]*b[0*4+j] +
+				a[i*4+1]*b[1*4+j] +
+				a[i*4+2]*b[2*4+j] +
+				a[i*4+3]*b[3*4+j];
+		}
+	}
 }
 
 
@@ -6276,54 +6563,54 @@ static void __gluMultMatricesd(const GLDOUBLE a[16], const GLDOUBLE b[16],
 ** Invert 4x4 matrix.
 ** Contributed by David Moore (See Mesa bug #6748)
 */
-static int __gluInvertMatrixd(const GLDOUBLE m[16], GLDOUBLE invOut[16])
+int __gluInvertMatrixd(const GLDOUBLE m[16], GLDOUBLE invOut[16])
 {
-    GLDOUBLE inv[16], det;
-    int i;
+	GLDOUBLE inv[16], det;
+	int i;
 
-    inv[0] =   m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15]
-             + m[9]*m[7]*m[14] + m[13]*m[6]*m[11] - m[13]*m[7]*m[10];
-    inv[4] =  -m[4]*m[10]*m[15] + m[4]*m[11]*m[14] + m[8]*m[6]*m[15]
-             - m[8]*m[7]*m[14] - m[12]*m[6]*m[11] + m[12]*m[7]*m[10];
-    inv[8] =   m[4]*m[9]*m[15] - m[4]*m[11]*m[13] - m[8]*m[5]*m[15]
-             + m[8]*m[7]*m[13] + m[12]*m[5]*m[11] - m[12]*m[7]*m[9];
-    inv[12] = -m[4]*m[9]*m[14] + m[4]*m[10]*m[13] + m[8]*m[5]*m[14]
-             - m[8]*m[6]*m[13] - m[12]*m[5]*m[10] + m[12]*m[6]*m[9];
-    inv[1] =  -m[1]*m[10]*m[15] + m[1]*m[11]*m[14] + m[9]*m[2]*m[15]
-             - m[9]*m[3]*m[14] - m[13]*m[2]*m[11] + m[13]*m[3]*m[10];
-    inv[5] =   m[0]*m[10]*m[15] - m[0]*m[11]*m[14] - m[8]*m[2]*m[15]
-             + m[8]*m[3]*m[14] + m[12]*m[2]*m[11] - m[12]*m[3]*m[10];
-    inv[9] =  -m[0]*m[9]*m[15] + m[0]*m[11]*m[13] + m[8]*m[1]*m[15]
-             - m[8]*m[3]*m[13] - m[12]*m[1]*m[11] + m[12]*m[3]*m[9];
-    inv[13] =  m[0]*m[9]*m[14] - m[0]*m[10]*m[13] - m[8]*m[1]*m[14]
-             + m[8]*m[2]*m[13] + m[12]*m[1]*m[10] - m[12]*m[2]*m[9];
-    inv[2] =   m[1]*m[6]*m[15] - m[1]*m[7]*m[14] - m[5]*m[2]*m[15]
-             + m[5]*m[3]*m[14] + m[13]*m[2]*m[7] - m[13]*m[3]*m[6];
-    inv[6] =  -m[0]*m[6]*m[15] + m[0]*m[7]*m[14] + m[4]*m[2]*m[15]
-             - m[4]*m[3]*m[14] - m[12]*m[2]*m[7] + m[12]*m[3]*m[6];
-    inv[10] =  m[0]*m[5]*m[15] - m[0]*m[7]*m[13] - m[4]*m[1]*m[15]
-             + m[4]*m[3]*m[13] + m[12]*m[1]*m[7] - m[12]*m[3]*m[5];
-    inv[14] = -m[0]*m[5]*m[14] + m[0]*m[6]*m[13] + m[4]*m[1]*m[14]
-             - m[4]*m[2]*m[13] - m[12]*m[1]*m[6] + m[12]*m[2]*m[5];
-    inv[3] =  -m[1]*m[6]*m[11] + m[1]*m[7]*m[10] + m[5]*m[2]*m[11]
-             - m[5]*m[3]*m[10] - m[9]*m[2]*m[7] + m[9]*m[3]*m[6];
-    inv[7] =   m[0]*m[6]*m[11] - m[0]*m[7]*m[10] - m[4]*m[2]*m[11]
-             + m[4]*m[3]*m[10] + m[8]*m[2]*m[7] - m[8]*m[3]*m[6];
-    inv[11] = -m[0]*m[5]*m[11] + m[0]*m[7]*m[9] + m[4]*m[1]*m[11]
-             - m[4]*m[3]*m[9] - m[8]*m[1]*m[7] + m[8]*m[3]*m[5];
-    inv[15] =  m[0]*m[5]*m[10] - m[0]*m[6]*m[9] - m[4]*m[1]*m[10]
-             + m[4]*m[2]*m[9] + m[8]*m[1]*m[6] - m[8]*m[2]*m[5];
+	inv[0] =   m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15]
+				+ m[9]*m[7]*m[14] + m[13]*m[6]*m[11] - m[13]*m[7]*m[10];
+	inv[4] =  -m[4]*m[10]*m[15] + m[4]*m[11]*m[14] + m[8]*m[6]*m[15]
+				- m[8]*m[7]*m[14] - m[12]*m[6]*m[11] + m[12]*m[7]*m[10];
+	inv[8] =   m[4]*m[9]*m[15] - m[4]*m[11]*m[13] - m[8]*m[5]*m[15]
+				+ m[8]*m[7]*m[13] + m[12]*m[5]*m[11] - m[12]*m[7]*m[9];
+	inv[12] = -m[4]*m[9]*m[14] + m[4]*m[10]*m[13] + m[8]*m[5]*m[14]
+				- m[8]*m[6]*m[13] - m[12]*m[5]*m[10] + m[12]*m[6]*m[9];
+	inv[1] =  -m[1]*m[10]*m[15] + m[1]*m[11]*m[14] + m[9]*m[2]*m[15]
+				- m[9]*m[3]*m[14] - m[13]*m[2]*m[11] + m[13]*m[3]*m[10];
+	inv[5] =   m[0]*m[10]*m[15] - m[0]*m[11]*m[14] - m[8]*m[2]*m[15]
+				+ m[8]*m[3]*m[14] + m[12]*m[2]*m[11] - m[12]*m[3]*m[10];
+	inv[9] =  -m[0]*m[9]*m[15] + m[0]*m[11]*m[13] + m[8]*m[1]*m[15]
+				- m[8]*m[3]*m[13] - m[12]*m[1]*m[11] + m[12]*m[3]*m[9];
+	inv[13] =  m[0]*m[9]*m[14] - m[0]*m[10]*m[13] - m[8]*m[1]*m[14]
+				+ m[8]*m[2]*m[13] + m[12]*m[1]*m[10] - m[12]*m[2]*m[9];
+	inv[2] =   m[1]*m[6]*m[15] - m[1]*m[7]*m[14] - m[5]*m[2]*m[15]
+				+ m[5]*m[3]*m[14] + m[13]*m[2]*m[7] - m[13]*m[3]*m[6];
+	inv[6] =  -m[0]*m[6]*m[15] + m[0]*m[7]*m[14] + m[4]*m[2]*m[15]
+				- m[4]*m[3]*m[14] - m[12]*m[2]*m[7] + m[12]*m[3]*m[6];
+	inv[10] =  m[0]*m[5]*m[15] - m[0]*m[7]*m[13] - m[4]*m[1]*m[15]
+				+ m[4]*m[3]*m[13] + m[12]*m[1]*m[7] - m[12]*m[3]*m[5];
+	inv[14] = -m[0]*m[5]*m[14] + m[0]*m[6]*m[13] + m[4]*m[1]*m[14]
+				- m[4]*m[2]*m[13] - m[12]*m[1]*m[6] + m[12]*m[2]*m[5];
+	inv[3] =  -m[1]*m[6]*m[11] + m[1]*m[7]*m[10] + m[5]*m[2]*m[11]
+				- m[5]*m[3]*m[10] - m[9]*m[2]*m[7] + m[9]*m[3]*m[6];
+	inv[7] =   m[0]*m[6]*m[11] - m[0]*m[7]*m[10] - m[4]*m[2]*m[11]
+				+ m[4]*m[3]*m[10] + m[8]*m[2]*m[7] - m[8]*m[3]*m[6];
+	inv[11] = -m[0]*m[5]*m[11] + m[0]*m[7]*m[9] + m[4]*m[1]*m[11]
+				- m[4]*m[3]*m[9] - m[8]*m[1]*m[7] + m[8]*m[3]*m[5];
+	inv[15] =  m[0]*m[5]*m[10] - m[0]*m[6]*m[9] - m[4]*m[1]*m[10]
+				+ m[4]*m[2]*m[9] + m[8]*m[1]*m[6] - m[8]*m[2]*m[5];
 
-    det = m[0]*inv[0] + m[1]*inv[4] + m[2]*inv[8] + m[3]*inv[12];
-    if (det == 0)
-        return GL_FALSE;
+	det = m[0]*inv[0] + m[1]*inv[4] + m[2]*inv[8] + m[3]*inv[12];
+	if (det == 0)
+		return GL_FALSE;
 
-    det = 1.0 / det;
+	det = 1.0 / det;
 
-    for (i = 0; i < 16; i++)
-        invOut[i] = inv[i] * det;
+	for (i = 0; i < 16; i++)
+		invOut[i] = inv[i] * det;
 
-    return GL_TRUE;
+	return GL_TRUE;
 }
 
 
@@ -6331,41 +6618,41 @@ static int __gluInvertMatrixd(const GLDOUBLE m[16], GLDOUBLE invOut[16])
 void fw_gluUnProject(GLDOUBLE winx, GLDOUBLE winy, GLDOUBLE winz,
 		const GLDOUBLE modelMatrix[16],
 		const GLDOUBLE projMatrix[16],
-                const GLint viewport[4],
-	        GLDOUBLE *objx, GLDOUBLE *objy, GLDOUBLE *objz)
+		const GLint viewport[4],
+		GLDOUBLE *objx, GLDOUBLE *objy, GLDOUBLE *objz)
 {
 	/* https://www.opengl.org/sdk/docs/man2/xhtml/gluUnProject.xml
 	FLOPs 196 double: full matmult 64, full mat inverse 102, full transform 16, miscalaneous 8
 	*/
-    GLDOUBLE finalMatrix[16];
-    GLDOUBLE in[4];
-    GLDOUBLE out[4];
+	GLDOUBLE finalMatrix[16];
+	GLDOUBLE in[4];
+	GLDOUBLE out[4];
 
-    __gluMultMatricesd(modelMatrix, projMatrix, finalMatrix);
-    if (!__gluInvertMatrixd(finalMatrix, finalMatrix)) return;
+	__gluMultMatricesd(modelMatrix, projMatrix, finalMatrix);
+	if (!__gluInvertMatrixd(finalMatrix, finalMatrix)) return;
 
-    in[0]=winx;
-    in[1]=winy;
-    in[2]=winz;
-    in[3]=1.0;
+	in[0]=winx;
+	in[1]=winy;
+	in[2]=winz;
+	in[3]=1.0;
 
-    /* Map x and y from window coordinates */
-    in[0] = (in[0] - viewport[0]) / viewport[2];
-    in[1] = (in[1] - viewport[1]) / viewport[3];
+	/* Map x and y from window coordinates */
+	in[0] = (in[0] - viewport[0]) / viewport[2];
+	in[1] = (in[1] - viewport[1]) / viewport[3];
 
-    /* Map to range -1 to 1 */
-    in[0] = in[0] * 2 - 1;
-    in[1] = in[1] * 2 - 1;
-    in[2] = in[2] * 2 - 1;
+	/* Map to range -1 to 1 */
+	in[0] = in[0] * 2 - 1;
+	in[1] = in[1] * 2 - 1;
+	in[2] = in[2] * 2 - 1;
 
-    __gluMultMatrixVecd(finalMatrix, in, out);
-    if (out[3] == 0.0) return;
-    out[0] /= out[3];
-    out[1] /= out[3];
-    out[2] /= out[3];
-    *objx = out[0];
-    *objy = out[1];
-    *objz = out[2];
+	__gluMultMatrixVecd(finalMatrix, in, out);
+	if (out[3] == 0.0) return;
+	out[0] /= out[3];
+	out[1] /= out[3];
+	out[2] /= out[3];
+	*objx = out[0];
+	*objy = out[1];
+	*objz = out[2];
 }
 
 
@@ -6435,29 +6722,29 @@ void fw_gluPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE 
 /* testing... */
 {
 	GLDOUBLE m[16];
-    GLDOUBLE sine, cotangent, deltaZ;
-    GLDOUBLE radians = fovy / 2.0 * M_PI / 180.0;
+	GLDOUBLE sine, cotangent, deltaZ;
+	GLDOUBLE radians = fovy / 2.0 * M_PI / 180.0;
 
-    deltaZ = zFar - zNear;
-    sine = sin(radians);
-    if ((deltaZ == 0) || (sine == 0) || (aspect == 0)) {
-        return;
-    }
-    cotangent = cos(radians) / sine;
+	deltaZ = zFar - zNear;
+	sine = sin(radians);
+	if ((deltaZ == 0) || (sine == 0) || (aspect == 0)) {
+		return;
+	}
+	cotangent = cos(radians) / sine;
 
 	loadIdentityMatrix(m); //(&m);
-    //__gluMakeIdentityd(&m[0][0]);
-    m[0*4+0] = cotangent / aspect;
-    m[1*4+1] = cotangent;
-    m[2*4+2] = -(zFar + zNear) / deltaZ;
-    m[2*4+3] = -1;
-    m[3*4+2] = -2 * zNear * zFar / deltaZ;
-    m[3*4+3] = 0;
+	//__gluMakeIdentityd(&m[0][0]);
+	m[0*4+0] = cotangent / aspect;
+	m[1*4+1] = cotangent;
+	m[2*4+2] = -(zFar + zNear) / deltaZ;
+	m[2*4+3] = -1;
+	m[3*4+2] = -2 * zNear * zFar / deltaZ;
+	m[3*4+3] = 0;
 	matmultiplyFULL(m,m,dp);
 	if(method==2)
-	  FW_GL_LOADMATRIX(m);
+		FW_GL_LOADMATRIX(m);
 
-    //glMultMatrixd(&m[0][0]);
+	//glMultMatrixd(&m[0][0]);
 }
 	#endif
 
@@ -6482,6 +6769,46 @@ void fw_gluPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE 
 
 }
 
+void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar) {
+	//xcenter is 0.0 if you want the perspective in the center of the viewport.
+	//		  -1.0 if you want it on the left edge
+	//        +1.0 if you want it on the right edge
+	GLDOUBLE xmin, xmax, ymin, ymax;
+
+	GLDOUBLE *dp;
+	GLDOUBLE ndp[16];
+	GLDOUBLE ndp2[16];
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+
+
+
+	ymax = zNear * tan(fovy * M_PI / 360.0);
+	ymin = -ymax;
+	xmin = ymin * aspect;
+	xmax = ymax * aspect;
+	xmin += xcenter * xmin;
+	xmax += xcenter * xmin;
+	/* do the glFrsutum on the top of the stack, and send that along */
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	//FW_GL_LOAD_IDENTITY();
+	dp = p->FW_ProjectionView[p->projectionviewTOS];
+
+	mesa_Frustum(xmin, xmax, ymin, ymax, zNear, zFar, ndp);
+	mattranspose(ndp2,ndp);
+
+	//printmatrix2(ndp,"ndp");
+	//printmatrix2(ndp2,"ndp2 = transpose(ndp)");
+	//JAS printmatrix2(dp,"dp");
+
+	matmultiplyFULL(ndp,ndp2,dp);
+
+	//printmatrix2(ndp,"ndp = ndp2*dp");
+
+	/* method = 1; */
+	 FW_GL_LOADMATRIX(ndp);
+	/* put the matrix back on our matrix stack */
+	memcpy (p->FW_ProjectionView[p->projectionviewTOS],ndp,16*sizeof (GLDOUBLE));
+}
 
 
 /* gluPickMatrix replacement */
@@ -6516,12 +6843,12 @@ static void
 mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m)
 {
  /* http://www.songho.ca/opengl/gl_projectionmatrix.html shows derivation*/
-   GLDOUBLE x = (2.0*nearZ) / (right-left);
-   GLDOUBLE y = (2.0*nearZ) / (top-bottom);
-   GLDOUBLE a = (right+left) / (right-left);
-   GLDOUBLE b = (top+bottom) / (top-bottom);
-   GLDOUBLE c = -(farZ+nearZ) / ( farZ-nearZ);
-   GLDOUBLE d = -(2.0F*farZ*nearZ) / (farZ-nearZ);
+	GLDOUBLE x = (2.0*nearZ) / (right-left);
+	GLDOUBLE y = (2.0*nearZ) / (top-bottom);
+	GLDOUBLE a = (right+left) / (right-left);
+	GLDOUBLE b = (top+bottom) / (top-bottom);
+	GLDOUBLE c = -(farZ+nearZ) / ( farZ-nearZ);
+	GLDOUBLE d = -(2.0F*farZ*nearZ) / (farZ-nearZ);
 
 	/* printf ("mesa_Frustum (%lf, %lf, %lf, %lf, %lf, %lf)\n",left,right,bottom,top,nearZ, farZ); */
 	m[0] = x;
@@ -6546,10 +6873,10 @@ mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOU
 /*
 
 #define M(row,col)  m[col*4+row]
-   M(0,0) = x;     M(0,1) = 0.0F;  M(0,2) = a;      M(0,3) = 0.0F;
-   M(1,0) = 0.0F;  M(1,1) = y;     M(1,2) = b;      M(1,3) = 0.0F;
-   M(2,0) = 0.0F;  M(2,1) = 0.0F;  M(2,2) = c;      M(2,3) = d;
-   M(3,0) = 0.0F;  M(3,1) = 0.0F;  M(3,2) = -1.0F;  M(3,3) = 0.0F;
+	M(0,0) = x;     M(0,1) = 0.0F;  M(0,2) = a;      M(0,3) = 0.0F;
+	M(1,0) = 0.0F;  M(1,1) = y;     M(1,2) = b;      M(1,3) = 0.0F;
+	M(2,0) = 0.0F;  M(2,1) = 0.0F;  M(2,2) = c;      M(2,3) = d;
+	M(3,0) = 0.0F;  M(3,1) = 0.0F;  M(3,2) = -1.0F;  M(3,3) = 0.0F;
 #undef M
 */
 }
@@ -6561,24 +6888,24 @@ static void
 mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m)
 {
 #define M(row,col)  m[col*4+row]
-   M(0,0) = 2.0F / (right-left);
-   M(0,1) = 0.0F;
-   M(0,2) = 0.0F;
-   M(0,3) = -(right+left) / (right-left);
+	M(0,0) = 2.0F / (right-left);
+	M(0,1) = 0.0F;
+	M(0,2) = 0.0F;
+	M(0,3) = -(right+left) / (right-left);
 
-   M(1,0) = 0.0F;
-   M(1,1) = 2.0F / (top-bottom);
-   M(1,2) = 0.0F;
-   M(1,3) = -(top+bottom) / (top-bottom);
+	M(1,0) = 0.0F;
+	M(1,1) = 2.0F / (top-bottom);
+	M(1,2) = 0.0F;
+	M(1,3) = -(top+bottom) / (top-bottom);
 
-   M(2,0) = 0.0F;
-   M(2,1) = 0.0F;
-   M(2,2) = -2.0F / (farZ-nearZ);
-   M(2,3) = -(farZ+nearZ) / (farZ-nearZ);
+	M(2,0) = 0.0F;
+	M(2,1) = 0.0F;
+	M(2,2) = -2.0F / (farZ-nearZ);
+	M(2,3) = -(farZ+nearZ) / (farZ-nearZ);
 
-   M(3,0) = 0.0F;
-   M(3,1) = 0.0F;
-   M(3,2) = 0.0F;
-   M(3,3) = 1.0F;
+	M(3,0) = 0.0F;
+	M(3,1) = 0.0F;
+	M(3,2) = 0.0F;
+	M(3,3) = 1.0F;
 #undef M
 }

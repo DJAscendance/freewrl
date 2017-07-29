@@ -98,6 +98,7 @@ our %Nodes = (
 		_sortedChildren => ["MFNode", [], "inputOutput", 0],
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__protoDeclares => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		__externProtoDeclares => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		__nodes => ["FreeWRLPTR", 0, "initializeOnly", 0],
@@ -123,6 +124,13 @@ our %Nodes = (
 		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__oldload => ["SFBool", "FALSE", "initializeOnly", 0],
 	],"X3DProtoInstance"),
+
+	"MetadataBoolean" => new VRML::NodeType("MetadataBoolean", [
+			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			name => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+			reference => ["SFString","","initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			value => ["MFBool",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],  # see note top of file
+	], "X3DChildNode"),
 
 	"MetadataInteger" => new VRML::NodeType("MetadataInteger", [
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -186,6 +194,7 @@ our %Nodes = (
 		# cycleTimer flag.
 		__ctflag =>["SFTime", 10, "inputOutput", 0],
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
+		__lasttime => ["SFTime", 0, "initializeOnly", 0],
 	],"X3DSensorNode"),
 
 	###################################################################################
@@ -197,6 +206,7 @@ our %Nodes = (
 	"Anchor" => new VRML::NodeType("Anchor", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -218,6 +228,7 @@ our %Nodes = (
 		_sortedChildren => ["MFNode", [], "inputOutput", 0],
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__protoDeclares => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		__externProtoDeclares => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		__nodes => ["FreeWRLPTR", 0, "initializeOnly", 0],
@@ -282,13 +293,11 @@ our %Nodes = (
 	"Group" => new VRML::NodeType("Group", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-
-		FreeWRL__protoDef => ["SFInt32", "INT_ID_UNDEFINED", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # tell renderer that this is a proto...
-		FreeWRL_PROTOInterfaceNodes =>["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		_sortedChildren => ["MFNode", [], "inputOutput", 0],
 	],"X3DGroupingNode"),
 
@@ -297,6 +306,7 @@ our %Nodes = (
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 
 		__transparency => ["SFInt32", -1, "initializeOnly", 0], # display list for transparencies
 		__solid => ["SFInt32", -1, "initializeOnly", 0],	 # display list for solid geoms.
@@ -306,6 +316,7 @@ our %Nodes = (
 	"Switch" => new VRML::NodeType("Switch", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		choice => ["MFNode", [], "inputOutput", "(SPEC_VRML)"],		# VRML nodes....
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],		# X3D nodes....
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -319,6 +330,7 @@ our %Nodes = (
 	"Transform" => new VRML::NodeType ("Transform", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		center => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -537,6 +549,7 @@ our %Nodes = (
 		material => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		shaders => ["MFNode", [], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		effects => ["MFNode", [], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		texture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		textureTransform => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 	],"X3DAppearanceNode"),
@@ -575,17 +588,19 @@ our %Nodes = (
 	],"X3DMaterialNode"),
 
 	"Shape" => new VRML::NodeType ("Shape", [
+		# shared with particlesystem, keep in same order as particlesystem:
 		appearance => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		geometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_shaderflags_base =>["SFInt32",0,"initializeOnly",0], # shaders
+		_shaderflags_effects =>["SFInt32",0,"initializeOnly",0], # shaders
+		_shaderflags_usershaders =>["SFInt32",0,"initializeOnly",0], # shaders
+		# shape-specific:
 		__visible =>["SFInt32",0,"initializeOnly", 0], # for Occlusion tests.
 		__occludeCheckCount =>["SFInt32",-1,"initializeOnly", 0], # for Occlusion tests.
 		__Samples =>["SFInt32",-1,"initializeOnly", 0],		# Occlude samples from last pass
-
-		_shaderTableEntry =>["SFInt32",0,"initializeOnly",0], # shaders
-
 
 	],"X3DBoundedObject"),
 
@@ -645,6 +660,7 @@ our %Nodes = (
 		 __normals =>["MFVec3f",[],"initializeOnly", 0],
 		__coneVBO =>["SFInt32",0,"initializeOnly",0],
 		__coneTriangles =>["SFInt32",0,"initializeOnly",0],
+		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0],
 	],"X3DGeometryNode"),
 
 	"Cylinder" => new VRML::NodeType ("Cylinder", [
@@ -659,6 +675,7 @@ our %Nodes = (
 		 __normals =>["MFVec3f",[],"initializeOnly", 0],
 		__cylinderVBO =>["SFInt32",0,"initializeOnly",0],
 		__cylinderTriangles =>["SFInt32",0,"initializeOnly",0],
+		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0],
 	],"X3DGeometryNode"),
 
 	"ElevationGrid" => new VRML::NodeType("ElevationGrid", [
@@ -732,7 +749,16 @@ our %Nodes = (
 		__points =>["MFVec3f",[],"initializeOnly", 0],
 		_sideVBO =>["SFInt32", 0, "initializeOnly", 0],
 		__SphereIndxVBO =>["SFInt32", 0, "initializeOnly", 0],
+		__pindices => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		__wireindicesVBO =>["SFInt32", 0, "initializeOnly", 0],
  	],"X3DGeometryNode"),
+
+	"Teapot" => new VRML::NodeType("Teapot", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		solid => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__ifsnode => ["FreeWRLPTR", 0, "initializeOnly", 0],
+ 	],"X3DGeometryNode"),
+
 
 
 	###################################################################################
@@ -778,6 +804,7 @@ our %Nodes = (
 		__texCoords  =>["MFVec2f",[],"initializeOnly", 0],
 		__numPoints =>["SFInt32",0,"initializeOnly", 0],
 		__simpleDisk => ["SFBool", "TRUE","initializeOnly", 0],
+		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0],
 	],"X3DGeometryNode"),
 
 	"Polyline2D" => new VRML::NodeType("Polyline2D", [
@@ -804,6 +831,7 @@ our %Nodes = (
 	    	vertices => ["MFVec2f", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		solid => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__texCoords  =>["MFVec2f",[],"initializeOnly", 0],
+		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0],
  	],"X3DGeometryNode"),
 
 	###################################################################################
@@ -822,7 +850,8 @@ our %Nodes = (
 		origin => ["SFVec3f", [0, 0, 0], "outputOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		solid => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		textBounds => ["SFVec2f", [0, 0], "outputOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		__rendersub => ["SFInt32", 0, "inputOutput", 0] # Function ptr hack
+		_isScreen => ["SFInt32", 0, "inputOutput", 0], # > 0 for screenfont
+		_screendata => ["FreeWRLPTR", 0, "initializeOnly", 0], # screentext rowvec
 	],"X3DTextNode"),
 
 	"FontStyle" => new VRML::NodeType("FontStyle", [
@@ -863,10 +892,11 @@ our %Nodes = (
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		# internal sequence number, openal buffer number
 		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0],
-		# local name, as received on system
-		__localFileName => ["FreeWRLPTR", 0,"initializeOnly", 0],
 		# time that we were initialized at
 		__inittime => ["SFTime", 0, "initializeOnly", 0],
+		__lasttime => ["SFTime", 0, "initializeOnly", 0],
+		# local name, as received on system
+		# old audio __localFileName => ["FreeWRLPTR", 0,"initializeOnly", 0],
 	],"X3DSoundSourceNode"),
 
 	"Sound" => new VRML::NodeType("Sound", [
@@ -958,30 +988,42 @@ our %Nodes = (
 	],"X3DTextureNode"),
 
 	"MovieTexture" => new VRML::NodeType ("MovieTexture", [
+		#SoundSource / AudioClip compatible section, keep in same order as AudioClip
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		loop => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		speed => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pitch => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		startTime => ["SFTime", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		stopTime => ["SFTime", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		url => ["MFString", [""], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		duration_changed => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		isPaused => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isPaused => ["SFBool","FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0],
+		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		# internal sequence number
+		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0],
+		# time that we were initialized at
+		__inittime => ["SFTime", 0, "initializeOnly", 0],
+		__lasttime => ["SFTime", 0, "initializeOnly", 0],
+		#Texture2D and Movie section
 		repeatS => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		repeatT => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		textureProperties => ["SFNode", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
+		speed => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		 __frac => ["SFFloat", 0.0, "initializeOnly", 0],		
 		 # which texture number is used
-		 #__ctex => ["SFInt32", 0, "initializeOnly", 0],
-		 # time that we were initialized at
-		 #__inittime => ["SFTime", 0, "initializeOnly", 0],
-		 # internal sequence number
-		 #__sourceNumber => ["SFInt32", -1, "initializeOnly", 0],
-		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+		 __ctex => ["SFInt32", 0, "initializeOnly", 0],
+		 # lowest frame
+		 __lowest => ["SFInt32", 0, "initializeOnly", 0],
+		 # highest frame
+		 __highest => ["SFInt32", 0, "initializeOnly", 0],
+		 __fw_movie  => ["FreeWRLPTR", 0, "initializeOnly", 0],
 	],"X3DTextureNode"),
 
 
@@ -1147,6 +1189,8 @@ our %Nodes = (
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		normalizeVelocity => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		value_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_T0 => ["MFVec3f", [], "initializeOnly", 0],
+		_T1 => ["MFVec3f", [], "initializeOnly", 0],
 	],"X3DInterpolatorNode"),
 
 	"SplinePositionInterpolator2D" => new VRML::NodeType("SplinePositionInterpolator2D", [
@@ -1158,6 +1202,8 @@ our %Nodes = (
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		normalizeVelocity => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		value_changed => ["SFVec2f", [0,0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_T0 => ["MFVec2f", [], "initializeOnly", 0],
+		_T1 => ["MFVec2f", [], "initializeOnly", 0],
 	],"X3DInterpolatorNode"),
 
 	"SplineScalarInterpolator" => new VRML::NodeType("SplineScalarInterpolator", [
@@ -1169,6 +1215,8 @@ our %Nodes = (
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		normalizeVelocity => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		value_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_T0 => ["MFFloat", [], "initializeOnly", 0],
+		_T1 => ["MFFloat", [], "initializeOnly", 0],
 	],"X3DInterpolatorNode"),
 
 	"SquadOrientationInterpolator" => new VRML::NodeType("SquadOrientationInterpolator", [
@@ -1177,8 +1225,11 @@ our %Nodes = (
 		keyValue => ["MFRotation", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		normalizeVelocity => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		closed => ["SFBool", "FALSE", "inputOutput", 0], #H: the specs made a mistake it should be 'closed' not 'normalizeVelocity' -dug9
 		value_changed => ["SFRotation", [0,0,1,0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-	],"X3DInterpolatorNode"),
+		_normkey => ["MFFloat", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_normkeyValue => ["MFRotation", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+  	],"X3DInterpolatorNode"),
 
 	###################################################################################
 
@@ -1200,20 +1251,24 @@ our %Nodes = (
 
 	"GeneratedCubeMapTexture" => new VRML::NodeType("GeneratedCubeMapTexture", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		update => ["SFString","NONE","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		size => ["SFInt32",128,"inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
-		textureProperties => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
-	],"X3DEnvironmentTextureNode"),
-
-	"ImageCubeMapTexture" => new VRML::NodeType("ImageCubeMapTexture", [
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		url => ["MFString",[],"inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		textureProperties => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
 		__subTextures => ["MFNode",[],"initializeOnly",0],
 		__regenSubTextures => ["SFBool","FALSE","initializeOnly",0],
+		update => ["SFString","NONE","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		size => ["SFInt32",128,"initializeOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+	],"X3DEnvironmentTextureNode"),
+
+	#same order of fields up to __regenSubtextures as GeneratedCubeMapTexture
+	"ImageCubeMapTexture" => new VRML::NodeType("ImageCubeMapTexture", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		textureProperties => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+		__subTextures => ["MFNode",[],"initializeOnly",0],
+		__regenSubTextures => ["SFBool","FALSE","initializeOnly",0],
+		url => ["MFString",[],"inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 	],"X3DEnvironmentTextureNode"),
 
 
@@ -1221,7 +1276,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		Pointing Device Component
+	#	20	Pointing Device Component
 
 	###################################################################################
 
@@ -1329,7 +1384,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		Key Device Component
+	#	21	Key Device Component
 
 	###################################################################################
 
@@ -1363,7 +1418,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		Environmental Sensor Component
+	#	22	Environmental Sensor Component
 
 	###################################################################################
 
@@ -1385,7 +1440,27 @@ our %Nodes = (
 			__t1 => ["SFVec3f", [10000000, 0, 0], "inputOutput", 0],
 			__t2 => ["SFRotation", [0, 1, 0, 0], "inputOutput", 0],
 			__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
-					   ],"X3DEnvironmentalSensorNode"),
+	],"X3DEnvironmentalSensorNode"),
+					   
+	"TransformSensor" => new VRML::NodeType("TransformSensor", [
+			center => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			size => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			position_changed => ["SFVec3f", [0, 0, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			orientation_changed => ["SFRotation", [0, 0, 1, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			enterTime => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			exitTime => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			targetObject => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+
+			# These fields are used for the info.
+			__hit => ["SFInt32", 0, "inputOutput", 0],
+			__t1 => ["SFVec3f", [10000000, 0, 0], "inputOutput", 0],
+			__t2 => ["SFRotation", [0, 1, 0, 0], "inputOutput", 0],
+			__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
+	],"X3DEnvironmentalSensorNode"),
+					   
 
 	"VisibilitySensor" => new VRML::NodeType("VisibilitySensor", [
 			center => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1400,19 +1475,20 @@ our %Nodes = (
 			__points  =>["MFVec3f",[],"initializeOnly", 0],	# for Occlude Box.
 			__Samples =>["SFInt32",0,"initializeOnly", 0],		# Occlude samples from last pass
 			__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
-					   ],"X3DEnvironmentalSensorNode"),
+	],"X3DEnvironmentalSensorNode"),
 
 
 
 	###################################################################################
 
-	#		Navigation Component
+	#	23	Navigation Component
 
 	###################################################################################
 
 	"LOD" => new VRML::NodeType("LOD", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		level => ["MFNode", [], "inputOutput", "(SPEC_VRML)"], 		# for VRML spec
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],		# for X3D spec
 		center => ["SFVec3f", [0, 0, 0],  "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
@@ -1429,6 +1505,7 @@ our %Nodes = (
 	"Billboard" => new VRML::NodeType("Billboard", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			axisOfRotation => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1441,6 +1518,7 @@ our %Nodes = (
 	"Collision" => new VRML::NodeType("Collision", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			collide => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1456,32 +1534,43 @@ our %Nodes = (
 			__hit => ["SFInt32", 0, "inputOutput", 0]
 					   ],"X3DEnvironmentalSensorNode"),
 
+
 	"Viewpoint" => new VRML::NodeType("Viewpoint", [
+		#generic Viewpoint fields
 		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		centerOfRotation =>["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
-		fieldOfView => ["SFFloat", 0.785398, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		jump => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fieldOfView => ["SFFloat", 0.785398, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		position => ["SFVec3f",[0, 0, 10], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_layerId => ["SFInt32",0,"initializeOnly",0],
+		_donethispass => ["SFInt32",0,"initializeOnly",0],
+		centerOfRotation =>["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		retainUserOffsets => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		# augmented reality extensions:
+		fovMode => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+		aspectRatio => ["SFFloat", 0.785398, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		
 	],"X3DBindableNode"),
 
 	"OrthoViewpoint" => new VRML::NodeType("OrthoViewpoint", [
+		#generic Viewpoint fields
 		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		centerOfRotation =>["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
-		fieldOfView => ["MFFloat", [-1.0, -1.0, 1.0, 1.0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		jump => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fieldOfView => ["MFFloat", [-1.0, -1.0, 1.0, 1.0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		position => ["SFVec3f",[0, 0, 10], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_layerId => ["SFInt32",0,"initializeOnly",0],
+		_donethispass => ["SFInt32",0,"initializeOnly",0],
+		centerOfRotation =>["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		retainUserOffsets => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 	],"X3DBindableNode"),
 
 
@@ -1494,6 +1583,7 @@ our %Nodes = (
 		type => ["MFString", ["EXAMINE", "ANY"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		visibilityLimit => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_layerId => ["SFInt32",0,"initializeOnly",0],
 		transitionType => ["MFString", [],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1516,7 +1606,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		Environmental Effects Component
+	#	24	Environmental Effects Component
 
 	###################################################################################
 
@@ -1528,6 +1618,7 @@ our %Nodes = (
 		skyColor => ["MFColor", [[0, 0, 0]], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bindTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_layerId => ["SFInt32",0,"initializeOnly",0],
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
 		__points =>["MFVec3f",[],"initializeOnly", 0],
 		__colours =>["MFColor",[],"initializeOnly", 0],
@@ -1556,14 +1647,19 @@ our %Nodes = (
 
 
 	"Fog" => new VRML::NodeType("Fog", [
-			set_bind => ["SFBool", 100, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			fogType => ["SFString", "LINEAR", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			visibilityRange => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		#Fog interface - keep same order, offsets as LocalFog
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fogType => ["SFString", "LINEAR", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		visibilityRange => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+                __fogScale => ["SFFloat", 1.0, "inputOutput", 0],
+                __fogType => ["SFInt32",1,"initializeOnly",0],
+                #Bindable interface
+		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_layerId => ["SFInt32",0,"initializeOnly",0],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-					   ],"X3DBindableNode"),
+	  ],"X3DBindableNode"),
 
 	"FogCoordinate" => new VRML::NodeType("FogCoordinate", [
 		depth => ["MFFloat", [], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1571,12 +1667,16 @@ our %Nodes = (
 					   ],"X3DGeometricPropertyNode"),
 
 	"LocalFog" => new VRML::NodeType("Fog", [
-			color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			fogType => ["SFString", "LINEAR", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			visibilityRange => ["SFFloat", 0, "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		#Fog interface - keep same order, offsets as Fog
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fogType => ["SFString", "LINEAR", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		visibilityRange => ["SFFloat", 0, "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+                __fogScale => ["SFFloat", 1.0, "inputOutput", 0],
+                __fogType => ["SFInt32",1,"initializeOnly",0],
+                #other
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-					   ],"X3DChildNode"),
+	],"X3DChildNode"),
 
 	"TextureBackground" => new VRML::NodeType("TextureBackground", [
 		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1586,6 +1686,7 @@ our %Nodes = (
 		skyColor => ["MFColor", [[0,0,0]], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		bindTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_layerId => ["SFInt32",0,"initializeOnly",0],
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
 		__points =>["MFVec3f",[],"initializeOnly", 0],
@@ -1602,9 +1703,12 @@ our %Nodes = (
 		transparency=> ["MFFloat",[0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 	],"X3DBackgroundNode"),
 
+	# see augmented reality for 2 more background nodes
+	
+	
 	###################################################################################
 
-	#		Geospatial Component
+	#	25	Geospatial Component
 
 	###################################################################################
 
@@ -1761,6 +1865,7 @@ our %Nodes = (
 	"GeoTransform" => new VRML::NodeType ("GeoTransform", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_X3D33)"],
 			geoCenter => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D33)"],
@@ -1790,22 +1895,25 @@ our %Nodes = (
 					],"X3DGroupingNode"),
 
 	"GeoViewpoint" => new VRML::NodeType("GeoViewpoint", [
+			# generic Viewpoint fields
 			set_bind => ["SFBool", 100, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			set_orientation => ["SFRotation", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			set_position => ["SFVec3d", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			fieldOfView => ["SFFloat", 0.785398, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			headlight => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			jump => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			navType => ["MFString", ["EXAMINE","ANY"],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-
-			geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			jump => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			fieldOfView => ["SFFloat", 0.785398, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
 			position => ["SFVec3d",[0, 0, 100000], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_layerId => ["SFInt32",0,"initializeOnly",0],
+			_donethispass => ["SFInt32",0,"initializeOnly",0],
+			set_orientation => ["SFRotation", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			set_position => ["SFVec3d", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			# GeoViewpoint fields
+			headlight => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			navType => ["MFString", ["EXAMINE","ANY"],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			speedFactor => ["SFFloat",1.0,"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 
 			# "compiled" versions of strings above
@@ -1819,8 +1927,7 @@ our %Nodes = (
 			__oldJump => ["SFBool", "TRUE", "inputOutput", 0],
 			__oldMFString => ["MFString", [],"inputOutput", 0], # the navType
 
-
-					   ],"X3DBindableNode"),
+	],"X3DBindableNode"),
 
 	"GeoOrigin" => new VRML::NodeType("GeoOrigin", [
 			geoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1841,6 +1948,7 @@ our %Nodes = (
 	"GeoLocation" => new VRML::NodeType("GeoLocation", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			geoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1861,7 +1969,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		H-Anim Component
+	#	26	H-Anim Component
 
 	###################################################################################
 
@@ -1871,7 +1979,7 @@ our %Nodes = (
 			name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			weight => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-					],"X3DGeometricPropertyNode"),
+	],"X3DGeometricPropertyNode"),
 
 	"HAnimHumanoid" => new VRML::NodeType("HAnimHumanoid", [
 			center => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1887,18 +1995,26 @@ our %Nodes = (
 			skin => ["MFNode",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			skinCoord => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			skinNormal => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			version => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			viewpoints => ["MFNode",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-					],"X3DChildNode"),
+			_JT => ["FreeWRLPTR",0,"initializeOnly", 0],
+			_PVI => ["FreeWRLPTR",0,"initializeOnly", 0],
+			_PVW => ["FreeWRLPTR",0,"initializeOnly", 0],	
+			_NV => ["SFInt32", 0, "initializeOnly", 0],
+			_origCoords => ["FreeWRLPTR",0,"initializeOnly", 0],
+			_origNorms => ["FreeWRLPTR",0,"initializeOnly", 0],
+	],"X3DChildNode"),
 
 	"HAnimJoint" => new VRML::NodeType("HAnimJoint", [
 
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			center => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			rotation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1917,17 +2033,19 @@ our %Nodes = (
 			bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 
-			 # fields for reducing redundant calls
-			 __do_center => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_trans => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_rotation => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_scaleO => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_scale => ["SFInt32", 0, "initializeOnly", 0],
-					],"X3DChildNode"),
+			# fields for reducing redundant calls
+			__do_center => ["SFInt32", 0, "initializeOnly", 0],
+			__do_trans => ["SFInt32", 0, "initializeOnly", 0],
+			__do_rotation => ["SFInt32", 0, "initializeOnly", 0],
+			__do_scaleO => ["SFInt32", 0, "initializeOnly", 0],
+			__do_scale => ["SFInt32", 0, "initializeOnly", 0],
+			__do_anything => ["SFInt32", 0, "initializeOnly", 0],
+	],"X3DChildNode"),
 
 	"HAnimSegment" => new VRML::NodeType("HAnimSegment", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1938,13 +2056,15 @@ our %Nodes = (
 			mass => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			momentsOfInertia =>["MFFloat", [0, 0, 0, 0, 0, 0, 0, 0, 0],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-					],"X3DChildNode"),
+			_origCoords => ["FreeWRLPTR",0,"initializeOnly", 0],
+	],"X3DChildNode"),
 
 
 
 	"HAnimSite" => new VRML::NodeType("HAnimSite", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -1956,32 +2076,35 @@ our %Nodes = (
 			translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 
-			 # fields for reducing redundant calls
-			 __do_center => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_trans => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_rotation => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_scaleO => ["SFInt32", 0, "initializeOnly", 0],
-			 __do_scale => ["SFInt32", 0, "initializeOnly", 0],
-					],"X3DGroupingNode"),
+			# fields for reducing redundant calls
+			__do_center => ["SFInt32", 0, "initializeOnly", 0],
+			__do_trans => ["SFInt32", 0, "initializeOnly", 0],
+			__do_rotation => ["SFInt32", 0, "initializeOnly", 0],
+			__do_scaleO => ["SFInt32", 0, "initializeOnly", 0],
+			__do_scale => ["SFInt32", 0, "initializeOnly", 0],
+			__do_anything => ["SFInt32", 0, "initializeOnly", 0],
+	],"X3DGroupingNode"),
 
 
 	###################################################################################
 
-	#		NURBS Component
+	#	27	NURBS Component
 
 	###################################################################################
 
 	"Contour2D" => new VRML::NodeType("Contour2D", [
 			addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		],"X3DSFNode"),
 
 
-	"ContourPolyLine2D" => new VRML::NodeType("ContourPolyline2D", [
+	"ContourPolyline2D" => new VRML::NodeType("ContourPolyline2D", [
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-			controlPoint => ["MFVec2d", [], "inputOutput","(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			controlPoint => ["MFVec2d", [], "inputOutput","( SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],  #v3.1 changed to this
+			point => ["MFVec2f", [], "inputOutput","(SPEC_X3D30 )"], #from this
 		],"X3DNurbsControlCurveNode"),
 
 	"CoordinateDouble" => new VRML::NodeType("CoordinateDouble", [
@@ -1996,6 +2119,8 @@ our %Nodes = (
 			knot => ["MFDouble",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			order => ["SFInt32",3,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			tessellation => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			closed => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_tscale => ["SFFloat",1.0,"initializeOnly", 0],
 			__points  =>["MFVec3f",[],"initializeOnly", 0],
 			__numPoints =>["SFInt32",0,"initializeOnly", 0],
 		],"X3DParametricGeometryNode"),
@@ -2007,6 +2132,8 @@ our %Nodes = (
 			knot => ["MFDouble",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			order => ["SFInt32",3,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			tessellation => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			closed => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_tscale => ["SFFloat",1.0,"initializeOnly", 0],
 		],"X3DNurbsControlCurveNode"),
 
 
@@ -2018,6 +2145,10 @@ our %Nodes = (
 			order => ["SFInt32",3,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			set_fraction => ["SFFloat",undef,"inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			value_changed => ["SFRotation",[0,0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_knot => ["MFFloat",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_xyzw => ["MFVec4f",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_OK => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_knotrange => ["SFVec2f", [0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		],"X3DChildNode"),
 
 	"NurbsPatchSurface" => new VRML::NodeType("NurbsPatchSurface", [
@@ -2036,6 +2167,7 @@ our %Nodes = (
 			vClosed => ["SFBool", "FALSE","initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			texCoord => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			solid => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_tscale => ["SFFloat",1.0,"initializeOnly", 0],
 		],"X3DNurbsSurfaceGeometryNode"),
 
 	"NurbsPositionInterpolator" => new VRML::NodeType("NurbsPositionInterpolator", [
@@ -2046,6 +2178,10 @@ our %Nodes = (
 			order => ["SFInt32",3,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			set_fraction => ["SFFloat",undef,"inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			value_changed => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_knot => ["MFFloat",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_xyzw => ["MFVec4f",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_OK => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_knotrange => ["SFVec2f", [0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		],"X3DChildNode"),
 
 	"NurbsSet" => new VRML::NodeType("NurbsSet", [
@@ -2071,6 +2207,10 @@ our %Nodes = (
 			set_fraction => ["SFVec2f",undef,"inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			position_changed => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			normal_changed => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_uKnot => ["MFFloat",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_vKnot => ["MFFloat",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_controlPoint =>["MFVec4f",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_OK => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		],"X3DChildNode"),
 
 	"NurbsSweptSurface" => new VRML::NodeType("NurbsSweptSurface", [
@@ -2079,6 +2219,9 @@ our %Nodes = (
 			trajectoryCurve => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			ccw => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			solid => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			method => ["SFString", "FULL", "inputOnly", 0], #TRANSLATE / FULL
+			_patch => ["SFNode", "NULL", "initializeOnly", 0],
+			_method => ["SFInt32",2,"initializeOnly",0], #1. Suv = Tv + Cu and delegate to patch 2. insert xsection at each profile tess point, and skin
 		],"X3DParametricGeometryNode"),
 
 	"NurbsSwungSurface" => new VRML::NodeType("NurbsSwungSurface", [
@@ -2087,6 +2230,7 @@ our %Nodes = (
 			trajectoryCurve => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			ccw => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			solid => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_patch => ["SFNode", "NULL", "initializeOnly", 0],
 		],"X3DParametricGeometryNode"),
 
 	"NurbsTextureCoordinate" => new VRML::NodeType("NurbsTextureCoordinate", [
@@ -2099,6 +2243,9 @@ our %Nodes = (
 			vKnot => ["MFDouble",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			vOrder => ["SFInt32",3,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			vDimension => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_uKnot => ["MFFloat",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_vKnot => ["MFFloat",[],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_controlPoint =>["MFVec4f",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		], "X3DSFNode"),
 
 	#TrimmedSurface == PatchSurface + trimmingContour - keep them in the same order so Trimmed can be downcast to Patch
@@ -2121,6 +2268,7 @@ our %Nodes = (
 			addTrimmingContour => ["MFNode",[],"inputOnly","(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			removeTrimmingContour => ["MFNode",[],"inputOnly","(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			trimmingContour =>["MFNode",[], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			_tscale => ["SFFloat",1.0,"initializeOnly", 0],
 		], "X3DNurbsSurfaceGeometryNode"),
 
 
@@ -2159,6 +2307,7 @@ our %Nodes = (
 	"EspduTransform" => new VRML::NodeType("EspduTransform", [
 		addChildren => ["MFNode", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		set_articulationParameterValue0 => ["SFFloat", 0.0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		set_articulationParameterValue1 => ["SFFloat", 0.0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		set_articulationParameterValue2 => ["SFFloat", 0.0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -2367,7 +2516,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		Scripting Component
+	#	29.	Scripting Component
 
 	###################################################################################
 	"Script" => new VRML::NodeType("Script",
@@ -2383,13 +2532,14 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		CAD Component
+	#	32.	CAD Component
 
 	###################################################################################
 
 	"CADAssembly" => new VRML::NodeType("CADAssembly", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -2411,6 +2561,7 @@ our %Nodes = (
 	"CADLayer" => new VRML::NodeType("CADLayer", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -2423,6 +2574,7 @@ our %Nodes = (
 	"CADPart" => new VRML::NodeType("CADPart", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		center => ["SFVec3f",[0,0,0],"inputOutput","(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -2483,7 +2635,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		EventUtilities Component
+	#	30.	EventUtilities Component
 
 	###################################################################################
 
@@ -2547,7 +2699,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	#		ProgrammableShaders Component
+	#	31.	ProgrammableShaders Component
 
 	###################################################################################
 
@@ -2635,22 +2787,1273 @@ our %Nodes = (
 			_shaderUserDefinedFields => ["SFNode", "NULL", "initializeOnly", 0],
 	], "X3DUrlObject"),
 
+	# castle EffectPart made from ShaderPart - fields in same order
+	"EffectPart" => new VRML::NodeType("EffectPart", [
+			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			url => ["MFString", [], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			type => ["SFString","VERTEX","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+			__loadstatus =>["SFInt32",0,"initializeOnly", 0],
+			_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+			__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0],
+			_shaderUserDefinedFields => ["SFNode", "NULL", "initializeOnly", 0],
+	], "X3DUrlObject"),
+
+	# castle Effect made from ComposedShader - fields in same order
+	"Effect" => new VRML::NodeType("Effect", [
+			activate =>["SFBool",undef,"inputOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			parts => ["MFNode",[],"inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			isSelected => ["SFBool", "TRUE","outputOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			isValid => ["SFBool", "TRUE","outputOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			language => ["SFString", "", "initializeOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+
+			_initialized => ["SFBool", "FALSE" ,"initializeOnly", 0],
+			_shaderUserDefinedFields => ["SFNode", "NULL", "initializeOnly", 0],
+			_shaderUserNumber => ["SFInt32",-1,"initializeOnly",0],
+			_shaderLoadThread => ["FreeWRLThread", 0, "initializeOnly",0],
+			_retrievedURLData => ["SFBool", "FALSE" ,"initializeOnly", 0],
+	],"X3DShaderNode"),
+
 
 	###################################################################################
 
-	#		EventUtilities Component
+	#	33.	Texturing3D Component
+
+	###################################################################################
+	"ImageTexture3D" => new VRML::NodeType("ImageTexture3D", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatS => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatT => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatR => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		textureProperties => ["SFNode", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+		_needs_gradient => ["SFBool", "FALSE", "initializeOnly", 0],
+	],"X3DTextureNode"),
+
+	"PixelTexture3D" => new VRML::NodeType("PixelTexture3D", [
+		image => ["MFInt32", "0, 0, 0, 0", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatS => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatT => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatR => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		textureProperties => ["SFNode", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+		_needs_gradient => ["SFBool", "FALSE", "initializeOnly", 0],
+	],"X3DTextureNode"),
+
+	"TextureCoordinate3D" => new VRML::NodeType("TextureCoordinate3D", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		point => ["MFVec3f", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DTextureCoordinateNode"),
+
+	"TextureCoordinate4D" => new VRML::NodeType("TextureCoordinate4D", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		point => ["MFVec4f", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DTextureCoordinateNode"),
+
+	"TextureTransformMatrix3D" => new VRML::NodeType("TextureTransformMatrix3D", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		matrix => ["SFMatrix4f", [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DTextureTransformNode"),
+
+	"TextureTransform3D" => new VRML::NodeType ("TextureTransform3D", [
+		center => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		rotation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		scale => ["SFVec3f", [1, 1, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DTextureTransformNode"),
+
+	"ComposedTexture3D" => new VRML::NodeType("ComposedTexture3D", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		texture=>["MFNode",undef,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		textureProperties => ["SFNode", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatS => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatT => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		repeatR => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0],
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0],
+	],"X3DTexture3DNode"),
+
 
 	###################################################################################
 
+	#	35.	Layering Component
+
 	###################################################################################
+
+	"Viewport" => new VRML::NodeType("Viewport", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		clipBoundary => ["MFFloat",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DViewportNode"),
+
+	"Layer" => new VRML::NodeType("Layer", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isPickable => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		viewport => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DLayerNode"),
+
+	"LayerSet" => new VRML::NodeType("LayerSet", [
+		activeLayer => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		layers => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["MFInt32",[0],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DLayerSetNode"),
+
+	###################################################################################
+
+	#	36.	Layout Component
+
+	###################################################################################
+	"Layout" => new VRML::NodeType("Layout", [
+		align => ["MFString", ["CENTER","CENTER"], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		offset => ["MFFloat",[0,0],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		offsetUnits => ["MFString", ["WORLD","WORLD"], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		scaleMode => ["MFString", ["NONE","NONE"], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		size => ["MFFloat",[1,1],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		sizeUnits => ["MFString", ["WORLD","WORLD"], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_align => ["MFInt32",[0,0],"initializeOnly", 0],
+		_offsetUnits => ["MFInt32",[0,0], "initializeOnly", 0],
+		_scaleMode => ["MFInt32",[0,0], "initializeOnly", 0],
+		_sizeUnits => ["MFInt32",[0,0], "initializeOnly", 0],
+		_scale => ["MFFloat",[1,1], "initializeOnly", 0],
+		], "X3DLayoutNode"),
+
+	"LayoutGroup" => new VRML::NodeType("LayoutGroup", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		layout => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		viewport => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DGroupingNode"),
+
+
+
+	"LayoutLayer" => new VRML::NodeType("LayoutLayer", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isPickable => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		viewport => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		layout => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DGroupingNode"),
+
+	"ScreenFontStyle" => new VRML::NodeType("ScreenFontStyle", [
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		family => ["MFString", ["SERIF"], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		horizontal => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		justify => ["MFString", ["BEGIN"], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		language => ["SFString", "", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		leftToRight => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pointSize => ["SFFloat", 12.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+		spacing => ["SFFloat", 1.0, "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		style => ["SFString", "PLAIN", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		topToBottom => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DFontStyleNode"),
+
+
+	"ScreenGroup" => new VRML::NodeType("ScreenGroup", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DGroupingNode"),
+
+	###################################################################################
+
+	#	37.	Rigid Body Physics Component
+
+	###################################################################################
+
+	"BallJoint" => new VRML::NodeType("BallJoint", [
+		anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forceOutput => ["MFString", ["NONE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_joint => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_forceout => ["SFInt32", 0, "initializeOnly", 0],
+		__old_anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DRigidJointNode"),
+
+	"CollidableOffset" => new VRML::NodeType("CollidableOffset", [
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		rotation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__do_trans => ["SFInt32", "FALSE", "initializeOnly", 0],
+		__do_rotation => ["SFInt32", "FALSE", "initializeOnly", 0],
+		collidable => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_geom => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_initialRotation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0], 
+		_initialTranslation => ["SFVec3f", [0, 0, 0], "initializeOnly", 0],
+		_initialized => ["SFBool",0,"initializeOnly",0],
+		_csensor => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		], "X3DNBodyCollidableNode"),
+
+	"CollidableShape" => new VRML::NodeType("CollidableShape", [
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		rotation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__do_trans => ["SFInt32", "FALSE", "initializeOnly", 0],
+		__do_rotation => ["SFInt32", "FALSE", "initializeOnly", 0],
+		shape => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_geom => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_initialRotation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0], 
+		_initialTranslation => ["SFVec3f", [0, 0, 0], "initializeOnly", 0],
+		_initialized => ["SFBool",0,"initializeOnly",0],
+		_csensor => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		], "X3DNBodyCollidableNode"),
+
+	"CollisionCollection" => new VRML::NodeType("CollisionCollection", [
+		appliedParameters => ["MFString", ["BOUNCE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bounce => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+		collidables => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		frictionCoefficients => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		minBounceSpeed => ["SFFloat", 0.1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+		slipFactors => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		softnessConstantForceMix => ["SFFloat", 0.0001, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+		softnessErrorCorrection => ["SFFloat", 0.8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+		surfaceSpeed => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_class => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_csensor => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_appliedParametersMask => ["SFInt32", 0, "initializeOnly", 0],
+		],"X3DChildNode"),
+
+	"CollisionSensor" => new VRML::NodeType("CollsionSensor", [
+		collider => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		intersections => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		contacts => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive => ["SFBool", "TRUE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DSensorNode"),
+
+	"CollisionSpace" => new VRML::NodeType("CollisionSpace", [
+		collidables => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		useGeometry => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_space => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		], "X3DNBodyCollidableNode"),
+
+	"Contact" => new VRML::NodeType("Contact", [
+		appliedParameters => ["MFString", ["BOUNCE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bounce => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		contactNormal => ["SFVec3f", [0,1,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		depth => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		frictionCoefficients => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		frictionDirection => ["SFVec3f", [0,1,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometry1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometry2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		minBounceSpeed => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		position => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		slipCoefficients => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		softnessConstantForceMix => ["SFFloat", 0.0001, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		softnessErrorCorrection => ["SFFloat", 0.8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceSpeed => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_appliedParameters => ["SFInt32", 0, "initializeOnly", 0],
+		], "X3DSFNode"),
+
+	"DoubleAxisHingeJoint" => new VRML::NodeType("DoubleAxisHingeJoint", [
+		anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis1 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis2 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		desiredAngularVelocity1 => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		desiredAngularVelocity2 => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forceOutput => ["MFString", ["NONE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxAngle1 => ["SFFloat", "PIF+", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxTorque1 => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxTorque2 => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		minAngle1 => ["SFFloat", "-PIF+", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopBounce1 => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopConstantForceMix1 => ["SFFloat", .001, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopErrorCorrection1 => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		suspensionErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		suspensionForce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		hinge1Angle=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		hinge1AngleRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		hinge2Angle=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		hinge2AngleRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_joint => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_forceout => ["SFInt32", 0, "initializeOnly", 0],
+		__old_anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis1 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis2 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_motor1 => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_motor2 => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		axis1Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DRigidJointNode"),
+
+	"MotorJoint" => new VRML::NodeType("MotorJoint", [
+		axis1Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis1Torque => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis2Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis2Torque => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis3Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis3Torque => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabledAxes => ["SFInt32", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forceOutput => ["MFString", ["NONE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor1Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor2Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor3Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop1Bounce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop1ErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop2Bounce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop2ErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop3Bounce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop3ErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		
+		motor1Angle=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor1AngleRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor2Angle=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor2AngleRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor3Angle=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		motor3AngleRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		autoCalc => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_joint => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_forceout => ["SFInt32", 0, "initializeOnly", 0],
+		__old_motor1Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_motor2Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_motor3Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis1Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis2Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis3Angle => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DRigidJointNode"),
+
+	"RigidBody" => new VRML::NodeType("RigidBody", [
+		angularDampingFactor => ["SFFloat", 0.001, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		angularVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		autoDamp => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		autoDisable => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		centerOfMass => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		disableAngularSpeed => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		disableLinearSpeed => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		disableTime => ["SFFloat", 0.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		finiteRotationAxis => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fixed => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forces => ["MFVec3f",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometry => ["MFNode",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		inertia => ["SFMatrix3f",[1,0,0,0,1,0,0,0,1],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		linearDampingFactor => ["SFFloat", 0.001, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		linearVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		massDensityModel => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		position => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		torques => ["MFVec3f",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		useFiniteRotation => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		useGlobalGravity => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_body => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		__old_angularVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_centerOfMass => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_finiteRotationAxis => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_linearVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_position => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_geomIdentityTransform => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		], "X3DSFNode"),
+
+	"RigidBodyCollection" => new VRML::NodeType("RigidBodyCollection", [
+		set_contacts =>["MFNode",[],"inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		autoDisable => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bodies => ["MFNode",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		constantForceMix => ["SFFloat", .0001, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		contactSurfaceThickness => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		disableAngularSpeed => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		disableLinearSpeed => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		disableTime => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		errorCorrection => ["SFFloat", 0.8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		gravity => ["SFVec3f", [0, -9.8, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		iterations => ["SFInt32",10,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		joints => ["MFNode",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxCorrectionSpeed => ["SFFloat", -1.8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		preferAccuracy => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		collider => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_world => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		#_space => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_group => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		], "X3DChildNode"),
+
+	"SingleAxisHingeJoint" => new VRML::NodeType("SingleAxisHingeJoint", [
+		anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis => ["SFVec3f", [0,0,1], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forceOutput => ["MFString", ["NONE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxAngle => ["SFFloat", "PIF+", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		minAngle => ["SFFloat", "-PIF+", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopBounce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		angle=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		angleRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_joint => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_forceout => ["SFInt32", 0, "initializeOnly", 0],
+		__old_anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DRigidJointNode"),
+
+	"SliderJoint" => new VRML::NodeType("SliderJoint", [
+		axis => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forceOutput => ["MFString", ["NONE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxSeparation => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		minSeparation => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		sliderForce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopBounce => ["SFFloat",  0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stopErrorCorrection => ["SFFloat",  1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		separation => ["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		separationRate=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_joint => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_forceout => ["SFInt32", 0, "initializeOnly", 0],
+		__old_axis => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DRigidJointNode"),
+	
+	"UniversalJoint" => new VRML::NodeType("UniversalJoint", [
+		anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis1 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		axis2 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		forceOutput => ["MFString", ["NONE"], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop1Bounce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop1ErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop2Bounce => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		stop2ErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body1Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		body2Axis => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_joint => ["FreeWRLPTR", 0, "initializeOnly", 0],
+		_forceout => ["SFInt32", 0, "initializeOnly", 0],
+		__old_anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis1 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_axis2 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__old_body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		], "X3DRigidJointNode"),
+	
+	
+	###################################################################################
+
+	#	38.	Picking Component
+
+	###################################################################################
+	
+	# A PickableGroup node is an X3DGroupingNode that contains children that are marked
+	# as being of a given classification of picking types, as well as the ability to enable or disable picking of the children.
+
+# DJTRACK_PICKSENSORS
+	"PickableGroup" => new VRML::NodeType("PickableGroup", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickable => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+
+		#FreeWRL__protoDef => ["SFInt32", "INT_ID_UNDEFINED", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # tell renderer that this is a proto...
+		#FreeWRL_PROTOInterfaceNodes =>["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DGroupingNode"),
+
+	# The PointPickSensor node tests one or more points in space as lying inside the provided target geometry.
+	# For each point that lies inside the geometry, the point coordinate is returned in the pickedGeometry field
+	# with the corresponding geometry inside which the point lies.
+	# Because points represent an infinitely small location in space, the "CLOSEST" and "ALL_SORTED" sort orders
+	# are defined to mean "ANY" and "ALL" respectively.
+
+	"PointPickSensor" => new VRML::NodeType("PointPickSensor", [
+		enabled => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickingGeometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		intersectionType => ["SFString","BOUNDS","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		sortOrder => ["SFString","CLOSEST","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		matchCriterion => ["SFString","MATCH_ANY","inputOutput", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		# These fields are used for the info.
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
+		pickedPoint => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		
+		#DJTRACK
+		_oldisActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_oldpickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_oldpickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_oldpickedPoint => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_intersectionType => ["SFString", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_sortOrder => ["SFString", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		
+	],"X3DSensorNode"),
+
+	"LinePickSensor" => new VRML::NodeType("LinePickSensor", [
+		enabled => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickingGeometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		intersectionType => ["SFString","BOUNDS","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		sortOrder => ["SFString","CLOSEST","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		matchCriterion => ["SFString","MATCH_ANY","inputOutput", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		# These fields are used for the info.
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
+		pickedPoint => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickedNormal => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickedTextureCoordinate => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DSensorNode"),
+	
+	#38.4.4 PrimitivePickSensor
+	"PrimitivePickSensor" => new VRML::NodeType("PrimitivePickSensor", [
+		enabled => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickingGeometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		intersectionType => ["SFString","BOUNDS","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		sortOrder => ["SFString","CLOSEST","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		matchCriterion => ["SFString","MATCH_ANY","inputOutput", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		# These fields are used for the info.
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
+	],"X3DSensorNode"),
+	
+	
+	#38.4.5 VolumePickSensor
+	"VolumePickSensor" => new VRML::NodeType("VolumePickSensor", [
+		enabled => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickingGeometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		pickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		intersectionType => ["SFString","BOUNDS","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		sortOrder => ["SFString","CLOSEST","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		matchCriterion => ["SFString","MATCH_ANY","inputOutput", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		# These fields are used for the info.
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0],
+	],"X3DSensorNode"),
+	
+	###################################################################################
+
+	#	39.	Followers Component
+
+	###################################################################################
+	
+	# value_changed is the first field-type-sepcific field so that offsetof(,value_changed) will be generic for all chasers, and for all dampers
+	"ColorChaser" => new VRML::NodeType("ColorChaser", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["SFColor", [0,0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFColor", [.8,.8,.8], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFColor", [.8,.8,.8], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFColor", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFColor", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["SFColor", [0,0,0], "initializeOnly", 0],
+		_destination => ["SFColor", [0,0,0], "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"ColorDamper" => new VRML::NodeType("ColorDamper", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["SFColor", [0,0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFColor", [.8,.8,.8], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFColor", [.8,.8,.8], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFColor", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFColor", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["SFColor", [0,0,0], "initializeOnly", 0],
+		
+	],"X3DDamperNode"),
+	
+	"CoordinateChaser" => new VRML::NodeType("CoordinateChaser", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["MFVec3f", [[0,0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["MFVec3f", [[0,0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["MFVec3f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["MFVec3f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["MFVec3f", [[0,0,0]], "initializeOnly", 0],
+		_destination => ["MFVec3f", [[0,0,0]], "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"CoordinateDamper" => new VRML::NodeType("CoordinateDamper", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["MFVec3f", [[0,0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["MFVec3f", [[0,0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["MFVec3f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["MFVec3f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["MFVec3f", [], "initializeOnly", 0],
+	],"X3DDamperNode"),
+
+	"OrientationChaser" => new VRML::NodeType("OrientationChaser", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["SFRotation", [0,1,0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFRotation", [0,1,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFRotation", [0,1,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFRotation", [0,1,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFRotation", [0,1,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["SFRotation", [0,1, 0,0], "initializeOnly", 0],
+		_destination => ["SFRotation", [0,1,0,0], "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"OrientationDamper" => new VRML::NodeType("OrientationDamper", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["SFRotation", [0,1,0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFRotation", [0,1,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFRotation", [0,1,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFRotation", [0,1,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFRotation", [0,1,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["SFRotation", [0,1,0,0], "initializeOnly", 0],
+	],"X3DDamperNode"),
+
+	"PositionChaser" => new VRML::NodeType("PositionChaser", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFVec3f", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFVec3f", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["SFVec3f", [0,0,0], "initializeOnly", 0],
+		_destination => ["SFVec3f", [0,0,0], "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"PositionDamper" => new VRML::NodeType("PositionDamper", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFVec3f", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFVec3f", [0,0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["SFVec3f", [0,0,0], "initializeOnly", 0],
+	],"X3DDamperNode"),
+
+	"PositionChaser2D" => new VRML::NodeType("PositionChaser2D", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["SFVec2f", [0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFVec2f", [0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFVec2f", [0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFVec2f", [0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFVec2f", [0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["SFVec2f", [0,0], "initializeOnly", 0],
+		_destination => ["SFVec2f", [0,0], "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"PositionDamper2D" => new VRML::NodeType("PositionDamper2D", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["SFVec2f", [0,0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFVec2f", [0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFVec2f", [0,0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFVec2f", [0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFVec2f", [0,0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["SFVec2f", [0,0], "initializeOnly", 0],
+	],"X3DDamperNode"),
+
+	"ScalarChaser" => new VRML::NodeType("ScalarChaser", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["SFFloat", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFFloat", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFFloat", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFFloat", 0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFFloat", 0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["SFFloat", 0, "initializeOnly", 0],
+		_destination => ["SFFloat", 0, "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"ScalarDamper" => new VRML::NodeType("ScalarDamper", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["SFFloat", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["SFFloat", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["SFFloat", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["SFFloat", 0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["SFFloat", 0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["SFFloat", 0, "initializeOnly", 0],
+	],"X3DDamperNode"),
+
+	"TexCoordChaser2D" => new VRML::NodeType("TexCoordChaser2D", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		duration  => ["SFTime", 1,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_bufferendtime  => ["SFTime", 0,"initializeOnly", 0],
+		_steptime  => ["SFTime", 0,"initializeOnly", 0],
+		value_changed => ["MFVec2f", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["MFVec2f", [[0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["MFVec2f", [[0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["MFVec2f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["MFVec2f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_buffer => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_previousvalue => ["MFVec2f", [[0,0]], "initializeOnly", 0],
+		_destination => ["MFVec2f", [[0,0]], "initializeOnly", 0],
+	],"X3DChaserNode"),
+	
+	"TexCoordDamper2D" => new VRML::NodeType("TexCoordDamper2D", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_p => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_t => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		tolerance => ["SFFloat", -1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		order => ["SFInt32", 3, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tau  => ["SFTime", .3,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_lasttick  => ["SFTime", 0,"initializeOnly", 0],
+		_takefirstinput => ["SFBool", "TRUE", "initializeOnly", 0],
+		value_changed => ["MFVec2f", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialDestination => ["MFVec2f", [[0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		initialValue => ["MFVec2f", [[0,0]], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_destination => ["MFVec2f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		set_value => ["MFVec2f", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_values => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_input => ["MFVec2f", [], "initializeOnly", 0],
+	],"X3DDamperNode"),
+
+
+	###################################################################################
+
+	#	40.	Particle Systems Component
+
+	###################################################################################
+	#40.4.1 BoundedPhysicsModel
+	"BoundedPhysicsModel" => new VRML::NodeType("BoundedPhysicsModel", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DParticlePhysicsModelNode"),
+	
+	# 40.4.2 ConeEmitter
+	"ConeEmitter" => new VRML::NodeType("ConeEmitter", [
+		angle  => ["SFFloat", "PIF*.25","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		direction  => ["SFVec3f", [0,1,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		position  => ["SFVec3f", [0,0,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DParticleEmitterNode"),
+	
+	# 40.4.3 ExplosionEmitter
+	"ExplosionEmitter" => new VRML::NodeType("ExplosionEmitter", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		position  => ["SFVec3f", [0,0,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DParticleEmitterNode"),
+	
+	# 40.4.4 ForcePhysicsModel
+	"ForcePhysicsModel" => new VRML::NodeType("ForcePhysicsModel", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		force => ["SFVec3f", [0,-9.8,0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DParticlePhysicsModelNode"),
+	
+	
+	# 40.4.5 ParticleSystem
+	"ParticleSystem" => new VRML::NodeType ("ParticleSystem", [
+		# shared with Shape, keep in same order as Shape:
+		appearance => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+                metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_shaderflags_base =>["SFInt32",0,"initializeOnly",0], # shaders
+		_shaderflags_effects =>["SFInt32",0,"initializeOnly",0], # shaders
+		_shaderflags_usershaders =>["SFInt32",0,"initializeOnly",0], # shaders
+		# particlesystem specific:
+		createParticles  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		lifetimeVariation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		maxParticles  => ["SFInt32", 200,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		particleLifetime  => ["SFFloat", 5,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		particleSize => ["SFVec2f", [.02,.02], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive  => ["SFBool", "TRUE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		colorRamp => ["SFNode", "NULL", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		colorKey => ["MFFloat", [], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		emitter => ["SFNode", "NULL", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometryType => ["SFString", "QUAD", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		physics => ["MFNode", [], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		texCoordRamp => ["SFNode", "NULL", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		texCoordKey => ["MFFloat", [], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_tris => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_ttex => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_ltex => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_particles => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_lasttime => ["SFDouble", 0.0, "initializeOnly", 0],
+		_geometryType =>["SFInt32",0,"initializeOnly",0],
+		_remainder =>["SFFloat",0.0,"initializeOnly",0],
+	],"X3DShapeNode"),
+	
+	# 40.4.6 PointEmitter
+	"PointEmitter" => new VRML::NodeType("PointEmitter", [
+		direction  => ["SFVec3f", [0,1,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		position  => ["SFVec3f", [0,0,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DParticleEmitterNode"),
+	
+	# 40.4.7 PolylineEmitter
+	"PolylineEmitter" => new VRML::NodeType("PolylineEmitter", [
+		set_coordIndex => ["MFInt32", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		coord => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		direction  => ["SFVec3f", [0,1,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		coordIndex => ["MFInt32", [-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_method =>["SFInt32",0,"initializeOnly",0],
+		_nseg =>["SFInt32",0,"initializeOnly",0],
+		_segs => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		_portions => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+	],"X3DParticleEmitterNode"),
+	
+	# 40.4.8 SurfaceEmitter
+	"SurfaceEmitter" => new VRML::NodeType("SurfaceEmitter", [
+		set_coordIndex => ["MFInt32", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		coordIndex => ["MFInt32", [-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surface => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		geometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_ifs => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+	],"X3DParticleEmitterNode"),
+	
+	# 40.4.9 VolumeEmitter
+	"VolumeEmitter" => new VRML::NodeType("VolumeEmitter", [
+		set_coordIndex => ["MFInt32", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		coord => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		direction  => ["SFVec3f", [0,1,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		coordIndex => ["MFInt32", [-1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		internal  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_ifs => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+	],"X3DParticleEmitterNode"),
+	
+	# 40.4.10 WindPhysicsModel
+	"WindPhysicsModel" => new VRML::NodeType("WindPhysicsModel", [
+		direction  => ["SFVec3f", [0,1,0],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		gustiness => ["SFFloat", .1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		speed  => ["SFFloat", .1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		turbulence  => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_frameSpeed =>["SFFloat",0.0,"initializeOnly",0],
+	],"X3DParticlePhysicsModelNode"),
+	
+
+	###################################################################################
+
+	#	41.	Volume Rendering Component
+
+	###################################################################################
+	# LEVEL 1
+	
+	"OpacityMapVolumeStyle" => new VRML::NodeType("OpacityMapVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		transferFunction => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	"VolumeData" => new VRML::NodeType("VolumeData", [
+		dimensions  => ["SFVec3f", [1,1,1],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		voxels => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_boxtris => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		renderStyle => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DVolumeDataNode"),
+
+
+	#level 2
+	# BoundaryEnhancementVolumeStyle	All fields fully supported.
+	"BoundaryEnhancementVolumeStyle" => new VRML::NodeType("BoundaryEnhancementVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		boundaryOpacity => ["SFFloat", .9,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		opacityFactor => ["SFFloat", 2.0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		retainedOpacity => ["SFFloat", .2,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# ComposedVolumeStyle	ordered field is always treated as FALSE. All other fields fully supported.
+	"ComposedVolumeStyle" => new VRML::NodeType("ComposedVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		renderStyle => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# EdgeEnhancementVolumeStyle	All fields fully supported.
+	"EdgeEnhancementVolumeStyle" => new VRML::NodeType("EdgeEnhancementVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		edgeColor=>["SFColorRGBA",[0,0,0,1],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		gradientThreshold => ["SFFloat", .4,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# IsoSurfaceVolumeData	All fields fully supported.
+	"IsoSurfaceVolumeData" => new VRML::NodeType("IsoSurfaceVolumeData", [
+		dimensions  => ["SFVec3f", [1,1,1],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		voxels => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_boxtris => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		renderStyle => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		contourStepSize => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		gradients => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceTolerance => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceValues => ["MFFloat",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # see note top of file
+	],"X3DVolumeDataNode"),
+	
+	# see level1: OpacityMapVolumeStyle	All fields fully supported. 3D transfer functions shall be supported.
+	# ProjectionVolumeStyle	All fields fully supported
+	"ProjectionVolumeStyle" => new VRML::NodeType("ProjectionVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		intensityThreshold => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		type => ["SFString", "MAX", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_type => ["SFInt32",0,"initializeOnly",0],		
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# SegmentedVolumeData	All fields fully supported.
+	"SegmentedVolumeData" => new VRML::NodeType("SegmentedVolumeData", [
+		dimensions  => ["SFVec3f", [1,1,1],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		voxels => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_boxtris => ["FreeWRLPTR", "NULL", "initializeOnly", 0],
+		renderStyle => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		segmentEnabled => ["MFBool",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],  # see note top of file
+		segmentIdentifiers => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DVolumeDataNode"),
+	
+	# SilhouetteEnhancementVolumeStyle	All fields fully supported.
+	"SilhouetteEnhancementVolumeStyle" => new VRML::NodeType("SilhouetteEnhancementVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		silhouetteBoundaryOpacity => ["SFFloat", 0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		silhouetteRetainedOpacity => ["SFFloat", 1,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		silhouetteSharpness => ["SFFloat", .5,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	
+	# ToneMappedVolumeStyle	All fields fully supported.
+	"ToneMappedVolumeStyle" => new VRML::NodeType("ToneMappedVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		coolColor=>["SFColorRGBA",[0,0,1,0],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		warmColor=>["SFColorRGBA",[1,1,0,1],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	#level 3
+	# BlendedVolumeStyle	All fields fully supported.
+	"BlendedVolumeStyle" => new VRML::NodeType("BlendedVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		renderStyle => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		voxels => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		weightConstant1 => ["SFFloat", 0.5,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		weightConstant2 => ["SFFloat", 0.5,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		weightFunction1 => ["SFString", "CONSTANT", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		weightFunction2 => ["SFString", "CONSTANT", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		weightTransferFunction1 => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		weightTransferFunction2 => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_fbohandles => ["MFInt32",[0,0,0],"initializeOnly",0],
+		_weightFunction1 => ["SFInt32",0,"initializeOnly",0],
+		_weightFunction2 => ["SFInt32",0,"initializeOnly",0],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# CartoonVolumeStyle	All fields fully supported.
+	"CartoonVolumeStyle" => new VRML::NodeType("CartoonVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		orthogonalColor=>["SFColorRGBA",[1,1,1,1],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		parallelColor=>["SFColorRGBA",[0,0,0,1],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		colorSteps => ["SFInt32", 4, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# CompositeVolumeStyle	All fields fully supported.
+	"CompositeVolumeStyle" => new VRML::NodeType("CompositeVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		#the other renderStyles are SF, this one MF
+		renderStyle => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DComposableVolumeRenderStyleNode"),
+	
+	# ShadedVolumeStyle	All fields fully supported except shadows. Shadows supported with at least Phong shading.
+	#level 4
+	# ShadedVolumeStyle	All fields fully supported with at least Phong shading and  Henyey-Greenstein phase function. Shadows fully supported.
+	"ShadedVolumeStyle" => new VRML::NodeType("ShadedVolumeStyle", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		surfaceNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		lighting  => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		shadows => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		material => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		phaseFunction => ["SFString", "Henyey-Greenstein", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		_phaseFunction => ["SFInt32",0,"initializeOnly",0],
+	],"X3DComposableVolumeRenderStyleNode"),
+
+
+	###################################################################################
+
+	# Augmented Reality - not in specs, proposed:
+	# http://www.web3d.org/wiki/index.php?title=AR_Proposal_Public_Review
+	
+	###################################################################################
+
+	"BackdropBackground" => new VRML::NodeType("BackdropBackground", [
+		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bindTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		transparency => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		color => ["SFColor", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__texture => ["SFInt32", 0, "inputOutput", 0],
+		__VBO=>["SFInt32",0,"initializeOnly",0],  # Vertex Buffer Object, if required.
+		url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DBackgroundNode"),
+	
+	"ImageBackdropBackground" => new VRML::NodeType("ImageBackdropBackground", [
+		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		bindTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		transparency => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		color => ["SFColor", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		__texture => ["SFInt32", 0, "inputOutput", 0],
+		__VBO=>["SFInt32",0,"initializeOnly",0],  # Vertex Buffer Object, if required.
+		image => ["SFImage", "0, 0, 0", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DBackgroundNode"),
+
+	"CalibratedCameraSensor" => new VRML::NodeType("CalibratedCameraSensor", [
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		image => ["SFImage", "0, 0, 0", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		focalPoint => ["SFVec2f", [0, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fieldOfView => ["SFFloat", 0.0, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		fovMode => ["SFString", "", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		aspectRatio => ["SFFloat", 0.0, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DSensorNode"),
+	
+	"TrackingSensor" => new VRML::NodeType("TrackingSensor", [
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		position => ["SFVec3f", [0, 0, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		rotation => ["SFRotation", [0, 0, 1, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isPositionAvailable => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		isRotationAvailable => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+	],"X3DSensorNode"),
+
 
 	# Metadata nodes ...
 
 	###################################################################################
 
-
-
-	#used mainly for PROTO invocation parameters
+	#used mainly for (pre-2014 era text-based PROTOs attached to Group nodes aka TROTO) PROTO invocation parameters
+	#(2014+ era: switched to binary PROTOs (aka Brotos) with their own (not Group) node, which uses routing to go from 
+	#  BrotoInterface to BrotoBody nodes - don't need the following now, or the __protoDEF thing in Group, 
+	#   except to compile left-over code)
 	"MetadataSFFloat" => new VRML::NodeType("MetadataSFFloat", [
 			value => ["SFFloat",0.0,"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 			valueChanged=>["SFFloat",0.0,"outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
@@ -3046,50 +4449,7 @@ our %Nodes = (
 	],"X3DNetworkSensorNode"),
 
 
-	# A PickableGroup node is an X3DGroupingNode that contains children that are marked
-	# as being of a given classification of picking types, as well as the ability to enable or disable picking of the children.
 
-# DJTRACK_PICKSENSORS
-	"PickableGroup" => new VRML::NodeType("PickableGroup", [
-		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		pickable => ["SFBool", "TRUE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-
-		FreeWRL__protoDef => ["SFInt32", "INT_ID_UNDEFINED", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"], # tell renderer that this is a proto...
-		FreeWRL_PROTOInterfaceNodes =>["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-	],"X3DGroupingNode"),
-
-	# The PointPickSensor node tests one or more points in space as lying inside the provided target geometry.
-	# For each point that lies inside the geometry, the point coordinate is returned in the pickedGeometry field
-	# with the corresponding geometry inside which the point lies.
-	# Because points represent an infinitely small location in space, the "CLOSEST" and "ALL_SORTED" sort orders
-	# are defined to mean "ANY" and "ALL" respectively.
-
-	"PointPickSensor" => new VRML::NodeType("PointPickSensor", [
-		enabled => ["SFBool", "FALSE","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		objectType => ["MFString", ["ALL","NONE","TERRAIN"],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		pickingGeometry => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		pickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		isActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		pickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		pickedPoint => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		set_intersectionType => ["SFString", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		intersectionType => ["SFString","BOUNDS","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		set_sortOrder => ["SFString", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		sortOrder => ["SFString","CLOSEST","initializeOnly", "(SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		_oldisActive  => ["SFBool", "FALSE","outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		_oldpickTarget => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		_oldpickedGeometry => ["MFNode", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		_oldpickedPoint => ["MFVec3f", [], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		_bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-		_bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
-	],"X3DSensorNode"),
 
 );
 

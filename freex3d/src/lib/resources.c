@@ -35,6 +35,7 @@
 
 #include "vrml_parser/Structs.h"
 #include "input/InputFunctions.h"
+#include "opengl/OpenGL_Utils.h"
 #include "opengl/Textures.h"		/* for finding a texture url in a multi url */
 #include "opengl/LoadTextures.h"	/* for finding a texture url in a multi url */
 
@@ -118,12 +119,12 @@ static void resource_tree_append(resource_item_t *item){
 
 	if (!gglobal()->resources.root_res) {
 		/* This is the first resource we try to load */
-		gglobal()->resources.root_res = item;
+		gglobal()->resources.root_res = (void*)item;
 		DEBUG_RES("setting root_res in resource_create_single for file %s\n",request);
 	} else {
 		/* Not the first, so keep it in the main list */
-		gglobal()->resources.root_res->children = ml_append(gglobal()->resources.root_res->children, ml_new(item));
-		item->parent = gglobal()->resources.root_res;
+		((resource_item_t*)gglobal()->resources.root_res)->children = ml_append(((resource_item_t*)gglobal()->resources.root_res)->children, ml_new(item));
+		item->parent = (resource_item_t*)gglobal()->resources.root_res;
 	}
 
 	/* Unlock the resource tree mutex */
@@ -270,7 +271,7 @@ bool checkNetworkFile(const char *fn)
  *	
  *
  */
-
+ static int res_id_error_once = 0;
 void resource_identify(resource_item_t *baseResource, resource_item_t *res)
 {
 	bool network;
@@ -316,8 +317,10 @@ void resource_identify(resource_item_t *baseResource, resource_item_t *res)
 			res->m_request = res->m_request->next;
 			ml_free(l);
 		} else {
-			/* list empty */
-			ERROR_MSG("resource_identify: ERROR: empty multi string as input\n");
+			/* list empty - this error can be caused by a wrong USE='name' on URL node */
+			if(!res_id_error_once)  //don't flood, there's probably a better error message before this
+				ERROR_MSG("resource_identify: ERROR: empty multi string as input\n");
+			res_id_error_once++;
 			return;
 		}
 	}
@@ -459,15 +462,7 @@ void resource_identify(resource_item_t *baseResource, resource_item_t *res)
 	res->URLbase = STRDUP(url);
 	removeFilenameFromPath(res->URLbase);
 
-//#ifdef FRONTEND_GETS_FILES
-//        DEBUG_RES ("FRONTEND_GETS_FILES set to true, always assume that the file is of network ty pe\n");
-//	res->network = TRUE;
-//	res->type = rest_url;
-//
-//#endif
-
-
-        // ok we should be good to go now        res->network = TRUE;
+    // ok we should be good to go now        res->network = TRUE;
 
 	DEBUG_RES("resource_identify (end): network=%s type=%s status=%s"
 		  " request=<%s> base=<%s> url=<%s> [parent %p, %s]\n", 
@@ -497,75 +492,7 @@ bool imagery_load(resource_item_t *res){
 	retval = FALSE;
 	return retval;
 }
-#ifdef FRONTEND_GETS_FILES
-/**
- *   resource_fetch: download remote url or check for local file access.
- */
-bool resource_fetch(resource_item_t *res)
-{
-	DEBUG_RES("fetching resource: %s, %s resource %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status) ,res->URLrequest);
 
-	ASSERT(res);
-
-	switch (res->type) {
-
-	case rest_invalid:
-		res->status = ress_invalid;
-		ERROR_MSG("resource_fetch: can't fetch an invalid resource: %s\n", res->URLrequest);
-		break;
-
-	case rest_url:
-		switch (res->status) {
-		case ress_none:
-		case ress_starts_good:
-			DEBUG_RES ("resource_fetch, calling download_url\n");
-			download_url(res);
-			break;
-		default:
-			/* error */
-			break;
-		}
-		break;
-
-	case rest_file:
-		switch (res->status) {
-		case ress_none:
-		case ress_starts_good:
-			/* SJD If this is a PROTO expansion, need to take of trailing part after # */
-#ifdef FRONTEND_GETS_FILES
-			res->status = ress_downloaded;
-			res->actual_file = STRDUP(res->parsed_request);
-			if (res->media_type == resm_image) {
-				res->_loadFunc = (int(*)(void*))imagery_load;
-			} else {
-				res->_loadFunc = (int(*)(void*))resource_load;
-			}
-
-			/* copy the name out, so that Anchors can go to correct Viewpoint */
-			res->afterPoundCharacters = '\0';
-#endif //FRONTEND_GETS_FILES
-
-			break;
-		default:
-			/* error */
-			break;
-		}
-		break;
-
-	case rest_multi:
-	case rest_string:
-		/* Nothing to do */
-		break;
-	}
-	DEBUG_RES ("resource_fetch (end): network=%s type=%s status=%s"
-		  " request=<%s> base=<%s> url=<%s> [parent %p, %s]\n",
-		  BOOL_STR(res->network), resourceTypeToString(res->type),
-		  resourceStatusToString(res->status), res->URLrequest,
-		  res->URLbase, res->parsed_request,
-		  res->parent, (res->parent ? res->parent->URLbase : "N/A"));
-	return (res->status == ress_downloaded);
-}
-#endif
 
 /**
  *   resource_load: load the actual file into memory, add it to openned files list.
@@ -586,54 +513,10 @@ bool resource_load(resource_item_t *res)
 		ERROR_MSG("resource_load: can't load not available resource: %s\n", res->URLrequest);
 		break;
 
-#ifdef FRONTEND_GETS_FILES
-	case ress_downloaded:
-		of = load_file(res->actual_file);
 
-		// of should never be null....
-
-		// printf ("XXXXX load_file, of filename %s, fd %d, dataSize %d, data %p\n",of->fileFileName, of->fileDescriptor, of->fileDataSize, of->fileData);
-
-		if (of) {
-			if (of->fileData) {
-
-			res->status = ress_loaded;
-			res->openned_files = ml_append( (s_list_t *) res->openned_files,
-							ml_new(of) );
-
-			/* If type is not specified by the caller try to identify it automatically */
-			if (res->media_type == resm_unknown) {
-				resource_identify_type(res);
-			}
-			} else {
-			res->status = ress_not_loaded;
-			ERROR_MSG("resource_load: can't load file: %s\n", res->actual_file);
-
-			// force this to return false
-			of = NULL;
-
-			}
-
-		} else {
-
-			// printf ("resource load, of failed, but fwg_frontEndWantsFilename is %s\n",fwg_frontEndWantsFileName());
-
-			if (fwg_frontEndWantsFileName() != NULL) {
-				/* printf ("resource still loading, lets yield here\n"); */
-			} else {
-
-
-			res->status = ress_not_loaded;
-			ERROR_MSG("resource_load: can't load file: %s\n", res->actual_file);
-		}
-		}
-
-		break;
-
-
-#else //FRONTEND_GETS_FILES
 
 	case ress_downloaded:
+		//if(1) printf("[%s]\n",res->parsed_request);  //to print successfully downloaded urls
 		of = load_file(res->actual_file);
 
 		if (of) {
@@ -653,8 +536,6 @@ bool resource_load(resource_item_t *res)
 		}
 
 		break;
-#endif //FRONTEND_GETS_FILES
-
 	
 	case ress_loaded:
 		ERROR_MSG("resource_load: MISTAKE: can't load already loaded resource: %s\n", res->URLrequest);
@@ -787,31 +668,7 @@ void resource_remove_cached_file(s_list_t *cfe)
  *   resource_destroy: destroy this object (and all contained allocated data).
  *                     It may not be used anymore.
  */
-#ifdef DISABLER
-void resource_on_did_not_parse(resource_item_t *res) {
-	s_list_t *of, *cf;
-	of = (s_list_t *) res->openned_files;
-	if (!of) {
-		/* error */
-		return;
-	}
 
-	ml_foreach(of, close_openned_file(__l->elem));
-
-	/* Remove cached file ? */
-	cf = (s_list_t *) res->cached_files;
-	if (cf) {
-		/* remove any cached file:
-		   TODO: reference counter on cached files...
-		 */
-		ml_foreach(cf, resource_remove_cached_file(__l->elem));
-	}
-
-	/* free the actual file  */
-	FREE(res->actual_file);
-	res->actual_file = NULL;
-}
-#endif
 void _resourceFreeCallback(void *resource);
 
 void resource_destroy(resource_item_t *res)
@@ -841,9 +698,6 @@ void resource_destroy(resource_item_t *res)
 		case ress_not_loaded:
 		case ress_parsed:
 		case ress_not_parsed:
-#ifdef DISABLER            
-            resource_on_did_not_parse(res);
-#else            
 		if(0){
 			/* Remove openned file ? */
 			//of = (s_list_t *) res->openned_files;
@@ -864,7 +718,6 @@ void resource_destroy(resource_item_t *res)
 		}
 			/* free the actual file  */
 			FREE_IF_NZ(res->actual_file);
-#endif			
 			break;
 		}
 
@@ -886,9 +739,6 @@ void resource_destroy(resource_item_t *res)
 		case ress_not_loaded:
 		case ress_parsed:
 		case ress_not_parsed:
-#ifdef DISABLER		
-			resource_on_did_not_parse(res);
-#else			
 			/* Remove openned file ? */
 			//of = (s_list_t *) res->openned_files;
 			//if (of) {
@@ -897,28 +747,24 @@ void resource_destroy(resource_item_t *res)
 
 			/* free the actual file  */
 			FREE(res->actual_file);
-#endif			
 			break;
 		}
 
 		/* free the parsed_request url */
 		FREE_IF_NZ(res->parsed_request);
 		break;
-#ifdef DISABLER
-	case rest_multi:
-		/* Free the list */
-		ml_delete_all2(res->m_request, &_resourceFreeCallback);
-		res->m_request = NULL;
-		break;
-#endif
 
 	case rest_string:
 		/* Nothing to do */
 		break;
+
+	case rest_multi:
+		/* JAS Apr 2017 - entry was not handled in case; do nothing? */
+		break;
 	}
 
 	/* Free the list */
-	ml_delete_all2(res->m_request, ml_free);
+	ml_delete_all2(res->m_request, (void (*)(void *))ml_free);
 	res->m_request = NULL;
 
 	FREE_IF_NZ(res->URLbase);
@@ -935,22 +781,6 @@ void resource_destroy(resource_item_t *res)
 	FREE_IF_NZ(res->URLrequest);
 	FREE_IF_NZ(res);
 }
-#ifdef DISABLER
-void _resourceFreeCallback(void *resource)
-{
-    FREE_IF_NZ(resource);
-}
-
-void close_openned_file(openned_file_t *file) {
-	if (file->fileDescriptor != 0) {
-		close(file->fileDescriptor );
-	}
-    FREE_IF_NZ(file->fileData);
-    file->fileData = NULL;
-    FREE_IF_NZ(file->fileFileName);
-    file->fileFileName = NULL;
-}
-#endif
 
 void resource_unlink_cachedfiles(resource_item_t *res)
 {
@@ -967,18 +797,13 @@ void resource_unlink_cachedfiles(resource_item_t *res)
 		/* remove any cached file:
 		   TODO: reference counter on cached files...
 		 */
-#ifdef DISABLER		 
-		ml_foreach(cf, resource_remove_cached_file(__l->elem));
-#else
 		ml_foreach(cf, resource_remove_cached_file(__l));
-#endif
 	}
 
 }
 
 void resource_close_files(resource_item_t *res)
 {
-	s_list_t *of;
 
 	if(!res) return;
 	DEBUG_RES("closing resource file: %d, %d\n", res->type, res->status);
@@ -986,13 +811,7 @@ void resource_close_files(resource_item_t *res)
 	ASSERT(res);
 
 	/* Remove openned file ? */
-#ifdef DISABLER	
-	of = (s_list_t *) res->openned_files;
-    if (NULL != of)
-        ml_foreach(of, close_openned_file(__l->elem));
-    FREE_IF_NZ(of);
-    res->openned_files = NULL;
-#endif
+
 }
 
 
@@ -1019,14 +838,14 @@ void resource_remove_child(resource_item_t *parent, resource_item_t *child)
  */
 void destroy_root_res()
 {
-	resource_destroy(gglobal()->resources.root_res);
+	resource_destroy((resource_item_t*)gglobal()->resources.root_res);
 	gglobal()->resources.root_res = NULL;
 }
 
 void resource_tree_destroy()
 {
 	resource_item_t* root;
-	root = gglobal()->resources.root_res;
+	root = (resource_item_t*)gglobal()->resources.root_res;
 	if(root){
 		ml_foreach(root->children,resource_close_files((resource_item_t*)ml_elem(__l)));
 		ml_foreach(root->children,resource_unlink_cachedfiles((resource_item_t*)ml_elem(__l)));
@@ -1067,13 +886,8 @@ void resource_dump(resource_item_t *res)
 	//of = (s_list_t *) res->openned_files;
 	ofv = res->openned_files;
 	if (ofv) {
-#ifdef DISABLER
-		s_list_t *of = (s_list_t*)ofv;	
-		ml_foreach(of, PRINTF("%s ", (char *) ((openned_file_t *)ml_elem(__l))->fileFileName));
-#else		
 		openned_file_t *of = (openned_file_t*)ofv;
 		PRINTF("%s ", of->fileFileName);
-#endif		
 	} else {
 		PRINTF("none");
 	}
@@ -1121,46 +935,6 @@ void resource_push_multi_request(struct Multi_String *request)
 	//send_resource_to_parser(res);
 }
 
-/**
- *   resource_wait: wait for parser to complete the resource fetch/download/load/...
- */
-//void resource_wait(resource_item_t *res)
-//{
-//	TRACE_MSG("resource_wait: starts waiting for res to complete: %s\n", res->URLrequest);
-//	/* Wait while parser is working */
-//	while (!res->complete) {
-//		usleep(50); /* thanks dave */
-//	}
-//}
-
-
-
-/* go through, and find the first valid url in a multi-url string */
-//void resource_get_valid_url_from_multi(resource_item_t *parentPath, resource_item_t *res) {
-//	do {
-//		DEBUG_RES("resource_get_valid_url_from_multi, status %s type %s res->m_request %p\n",
-//			resourceStatusToString(res->status),resourceTypeToString(res->type),res->m_request);
-//
-//		resource_identify(parentPath, res); 
-//
-//		///* have this resource, is it a good file? */
-//		//if (resource_fetch(res)) {
-//		//}
-//
-//		/* do we try the next url in the multi-url? */
-//		if ((res->status != ress_loaded) && (res->m_request != NULL)) {
-//			DEBUG_RES ("not found, lets try this again\n");
-//			res->status = ress_invalid; 
-//			res->type = rest_multi;
-//
-//		}
-//
-//		DEBUG_RES("resource_get_valid_url_from_multi, end  of do-while, status %s type %s res->m_request %p\n",
-//			resourceStatusToString(res->status),resourceTypeToString(res->type),res->m_request);
-//
-//	/* go through and try, try again if this one fails. */
-//	} while ((res->status != ress_loaded) && (res->m_request != NULL));
-//}
 
 /**
  *   resource_tree_dump: print the resource tree for debugging.
@@ -1281,7 +1055,7 @@ char *resourceMediaTypeToString (int mt) {
 
 
 #define SLASHDOTDOTSLASH "/../"
-#if defined(_MSC_VER) || defined(_ANDROID)
+#if defined(_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK)
 #define rindex strrchr
 #endif
 void removeFilenameFromPath (char *path) {
@@ -1334,7 +1108,7 @@ static void possiblyUnzip (openned_file_t *of) {
         if (((unsigned char) of->fileData[0] == 0x1f) && ((unsigned char) of->fileData[1] == 0x8b)) {
 		#define GZIP_BUFF_SIZE 2048
 
-		gzFile *source;
+		gzFile source;
 		FILE *dest;
 		char buffer[GZIP_BUFF_SIZE];
 		int num_read = 0;
@@ -1384,7 +1158,7 @@ static void possiblyUnzip (openned_file_t *of) {
 
 bool resource_is_root_loaded()
 {
-	return ((gglobal()->resources.root_res != NULL) && (gglobal()->resources.root_res->status == ress_parsed));
+	return ((gglobal()->resources.root_res != NULL) && (((resource_item_t*)gglobal()->resources.root_res)->status == ress_parsed));
 }
 
 /**
@@ -1475,6 +1249,23 @@ char* fwl_resitem_getURL(void *resp){
 	resource_item_t *res = (resource_item_t *)resp;
 	return res->parsed_request;
 }
+void fwl_resitem_setActualFile(void *resp, char *fname){
+	resource_item_t *res = (resource_item_t *)resp;
+	res->actual_file = STRDUP(fname);
+	if(strcmp(res->actual_file,res->parsed_request)){
+		//it's a temp file 
+		s_list_t *item;
+		item = ml_new(res->actual_file);
+		if (!res->cached_files)
+			res->cached_files = (void *)item;
+		else
+			res->cached_files = ml_append(res->cached_files,item);
+	}
+}
+char* fwl_resitem_getTempDir(void *resp){
+	resource_item_t *res = (resource_item_t *)resp;
+	return res->temp_dir;
+}
 void fwl_resitem_enqueuNextMulti(void *resp){
 	resource_item_t *res = (resource_item_t *)resp;
 	int more_multi = (res->status == ress_failed) && (res->m_request != NULL);
@@ -1489,7 +1280,7 @@ void fwl_resitem_enqueuNextMulti(void *resp){
 	}
 }
 char *strBackslash2fore(char *);
-int file2blob(resource_item_t *res);
+//int file2blob(resource_item_t *res);
 void fwl_resitem_setLocalPath(void *resp, char* path){
 	int delete_after_load;
 	resource_item_t *res = (resource_item_t *)resp;
@@ -1512,7 +1303,28 @@ int	fwl_resitem_getStatus(void *resp){
 	resource_item_t *res = (resource_item_t *)resp;
 	return res->status;
 }
+void fwl_resitem_setStatus(void *resp, int status) {
+	resource_item_t *res = (resource_item_t *)resp;
+	res->status = status;
+}
+
 int	fwl_resitem_getType(void *resp){
 	resource_item_t *res = (resource_item_t *)resp;
 	return res->type;
+}
+int	fwl_resitem_getMediaType(void *resp){
+	resource_item_t *res = (resource_item_t *)resp;
+	return res->media_type;
+}
+void fwl_resitem_setDownloadThread(void *resp, void *thread){
+	resource_item_t *res = (resource_item_t *)resp;
+	res->_loadThread = (pthread_t*)thread;
+}
+void * fwl_resitem_getDownloadThread(void *resp){
+	resource_item_t *res = (resource_item_t *)resp;
+	return res->_loadThread;
+}
+void * fwl_resitem_getGlobal(void *resp){
+	resource_item_t *res = (resource_item_t *)resp;
+	return res->tg;
 }

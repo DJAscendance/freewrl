@@ -40,6 +40,8 @@ CProto ???
 #include "LinearAlgebra.h"
 #include "quaternion.h"
 #include "Viewer.h"
+#include "../x3d_parser/Bindable.h"
+#include "ui/common.h" // for ppcommon
 
 //moved to libfreewrl.h
 //enum {
@@ -66,6 +68,7 @@ static void init_stereodefaults(X3D_Viewer *Viewer)
 		Viewer->screendist = 0.375; //was .8 
 		Viewer->stereoParameter = 0.01; //was .4 or toe-in. Toe-in can force your eyes wall-eyed esp. in side-by-side, so set near zero.
 		Viewer->dominantEye = 1; /*0=Left 1=Right used for picking*/
+		Viewer->eitherDominantEye = 1; //1=can pick with either eye depending on which stereoside mouse is in, see setup_pickside()
 		Viewer->iprog[0] = 0; /* left red */
 		Viewer->iprog[1] = 1; /* right green */
 		Viewer->haveQuadbuffer = 0;
@@ -86,7 +89,7 @@ typedef struct pViewer{
 	int exflyMethod; //0 or 1;  /* could be a user settable option, which kind of exfly to do */
 	int StereoInitializedOnce;//. = 0;
 	GLboolean acMask[3][3]; //anaglyphChannelMask
-	X3D_Viewer Viewer; /* has to be defined somewhere, so it found itself stuck here */
+	//X3D_Viewer Viewer; /* moved to Bindables.h > bindablestacks */
 	/* viewpoint slerping */
 	double viewpoint2rootnode[16];
 	double viewpointnew2rootnode[16];
@@ -107,10 +110,12 @@ void *Viewer_constructor(){
 }
 void Viewer_init(struct tViewer *t){
 	//public
+	t->stereotype = 0;
 	//private
 	t->prv = Viewer_constructor();
 	{
 		ppViewer p = (ppViewer)t->prv;
+
 		p->examineCounter = 5;
 
 		p->viewer_initialized = FALSE;
@@ -131,24 +136,17 @@ void Viewer_init(struct tViewer *t){
 		loadIdentityMatrix(p->old2new);
 		loadIdentityMatrix(p->identity);
 		p->tickFrac = 0.0; //for debugging slowly
-		init_stereodefaults(&p->Viewer);
+//init_stereodefaults(viewer);
 		p->StereoInitializedOnce = 1;
 		p->keychord = CHORD_XY; // default on startup
 		p->dragchord = CHORD_YAWZ;
 	}
 }
-//ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-//X3D_Viewer _Viewer; /* has to be defined somewhere, so it found itself stuck here */
-X3D_Viewer *Viewer()
-{
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	return &p->Viewer;
-}
 
 
 
 //static void handle_tick_walk(void);
-static void handle_tick_walk2(double dtime);
+//static void handle_tick_walk2(double dtime);
 static void handle_tick_fly(void);
 static void handle_tick_exfly(void);
 static void handle_tick_fly2(double dtime);
@@ -156,52 +154,102 @@ static void handle_tick_fly2(double dtime);
 /* used for EAI calls to get the current speed. Not used for general calcs */
 /* we DO NOT return as a float, as some gccs have trouble with this causing segfaults */
 void getCurrentSpeed() {
-	ppViewer p;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p;
 	ttglobal tg = gglobal();
-	p =  (ppViewer)tg->Viewer.prv;
-	tg->Mainloop.BrowserSpeed = tg->Mainloop.BrowserFPS * (fabs(p->Viewer.VPvelocity.x) + fabs(p->Viewer.VPvelocity.y) + fabs(p->Viewer.VPvelocity.z));
+	// OLDCODE UNUSED p =  (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	tg->Mainloop.BrowserSpeed = tg->Mainloop.BrowserFPS * (fabs(viewer->VPvelocity.x) + fabs(viewer->VPvelocity.y) + fabs(viewer->VPvelocity.z));
 }
 
-void viewer_default() {
+void viewer_default0(X3D_Viewer *viewer, int vpnodetype) {
 	Quaternion q_i;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 
-	p->Viewer.fieldofview = 45.0;
-	p->Viewer.fovZoom = 1.0;
+	viewer->fieldofview = 45.0;
+	viewer->fovZoom = 1.0;
 
-	p->Viewer.VPvelocity.x = 0.0; p->Viewer.VPvelocity.y = 0.0; p->Viewer.VPvelocity.z = 0.0; 
-	p->Viewer.Pos.x = 0; p->Viewer.Pos.y = 0; p->Viewer.Pos.z = 10;
-	p->Viewer.currentPosInModel.x = 0; p->Viewer.currentPosInModel.y = 0; p->Viewer.currentPosInModel.z = 10;
-	p->Viewer.AntiPos.x = 0; p->Viewer.AntiPos.y = 0; p->Viewer.AntiPos.z = 0;
+	viewer->VPvelocity.x = 0.0; viewer->VPvelocity.y = 0.0; viewer->VPvelocity.z = 0.0; 
+	viewer->Pos.x = 0; viewer->Pos.y = 0; viewer->Pos.z = 10;
+	viewer->currentPosInModel.x = 0; viewer->currentPosInModel.y = 0; viewer->currentPosInModel.z = 10;
+	viewer->AntiPos.x = 0; viewer->AntiPos.y = 0; viewer->AntiPos.z = 0;
 
-	vrmlrot_to_quaternion (&p->Viewer.Quat,1.0,0.0,0.0,0.0);
-	vrmlrot_to_quaternion (&p->Viewer.bindTimeQuat,1.0,0.0,0.0,0.0);
-	vrmlrot_to_quaternion (&p->Viewer.prepVPQuat,0.0,1.0,0.0,3.14);
+	vrmlrot_to_quaternion (&viewer->Quat,1.0,0.0,0.0,0.0);
+	vrmlrot_to_quaternion (&viewer->bindTimeQuat,1.0,0.0,0.0,0.0);
+	vrmlrot_to_quaternion (&viewer->prepVPQuat,0.0,1.0,0.0,3.14);
 	vrmlrot_to_quaternion (&q_i,1.0,0.0,0.0,0.0);
-	quaternion_inverse(&(p->Viewer.AntiQuat),&q_i);
+	quaternion_inverse(&(viewer->AntiQuat),&q_i);
 
-	p->Viewer.headlight = TRUE;
+	viewer->headlight = TRUE;
 	/* tell the menu buttons of the state of this headlight */
-	//setMenuButton_headlight(p->Viewer.headlight);
-	p->Viewer.speed = 1.0;
-	p->Viewer.Dist = 10.0;
-	memcpy (&p->Viewer.walk, &p->viewer_walk,sizeof (X3D_Viewer_Walk));
-	memcpy (&p->Viewer.examine, &p->viewer_examine, sizeof (X3D_Viewer_Examine));
-	memcpy (&p->Viewer.fly, &p->viewer_fly, sizeof (X3D_Viewer_Fly));
-	memcpy (&p->Viewer.ypz,&p->viewer_ypz, sizeof (X3D_Viewer_Spherical));
+	//setMenuButton_headlight(viewer->headlight);
+	viewer->speed = 1.0;
+	viewer->Dist = 10.0;
+	memcpy (&viewer->walk, &p->viewer_walk,sizeof (X3D_Viewer_Walk));
+	memcpy (&viewer->examine, &p->viewer_examine, sizeof (X3D_Viewer_Examine));
+	memcpy (&viewer->fly, &p->viewer_fly, sizeof (X3D_Viewer_Fly));
+	memcpy (&viewer->ypz,&p->viewer_ypz, sizeof (X3D_Viewer_Spherical));
 
-	fwl_set_viewer_type(VIEWER_EXAMINE);
-	p->Viewer.LookatMode = 0;
+	if(vpnodetype == NODE_OrthoViewpoint){
+		//for LayoutLayer default NONE, Ortho
+		fwl_set_viewer_type0(viewer,VIEWER_NONE); 
+		viewer->orthoField[0] = -1.0;
+		viewer->orthoField[1] = -1.0;
+		viewer->orthoField[2] =  1.0;
+		viewer->orthoField[3] =  1.0;
+		viewer->nearPlane = 0.1;
+		viewer->farPlane = 210000.0;
+		viewer->ortho = TRUE;
+	}else{
+		//all other viewpoint types - Viewpoint, GeoViewpoint ...
+		fwl_set_viewer_type0(viewer,VIEWER_EXAMINE);
+	}
+	viewer->LookatMode = 0;
 	//set_eyehalf( Viewer.eyedist/2.0,
 	//	atan2(Viewer.eyedist/2.0,Viewer.screendist)*360.0/(2.0*3.1415926));
 
 	/* assume we are not bound to a GeoViewpoint */
-	p->Viewer.GeoSpatialNode = NULL;
+	viewer->GeoSpatialNode = NULL;
 
+}
+//ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+//X3D_Viewer _Viewer; /* has to be defined somewhere, so it found itself stuck here */
+X3D_Viewer *ViewerByLayerId(int layerid)
+{
+	X3D_Viewer *viewer;
+	bindablestack *bstack;
+	ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	//per-layer viewer
+	bstack = getBindableStacksByLayer(tg,layerid);
+	if(!bstack->viewer){
+		int vpnodetype;
+		viewer = MALLOCV(sizeof(X3D_Viewer));
+		memset(viewer,0,sizeof(X3D_Viewer));
+		vpnodetype = bstack->nodetype == NODE_LayoutLayer ? NODE_OrthoViewpoint : NODE_Viewpoint;
+		viewer_default0(viewer,vpnodetype);
+		init_stereodefaults(viewer);
+		bstack->viewer = viewer;
+	}
+	return bstack->viewer;
+}
+X3D_Viewer *Viewer()
+{
+	ttglobal tg;
+	tg = gglobal();
+	return ViewerByLayerId(tg->Bindable.activeLayer);
+}
+
+void viewer_default() {
+	X3D_Viewer *viewer;
+	viewer = Viewer();
+	viewer_default0(viewer,NODE_Viewpoint);
 }
 
 
-
+void resolve_pos20(X3D_Viewer *viewer);
 void viewer_init (X3D_Viewer *viewer, int type) {
 	Quaternion q_i;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
@@ -218,11 +266,11 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		viewer->AntiPos.x = 0; viewer->AntiPos.y = 0; viewer->AntiPos.z = 0;
 
 
-		vrmlrot_to_quaternion (&p->Viewer.Quat,1.0,0.0,0.0,0.0);
-		vrmlrot_to_quaternion (&p->Viewer.bindTimeQuat,1.0,0.0,0.0,0.0);
-		vrmlrot_to_quaternion (&p->Viewer.prepVPQuat,1.0,0.0,0.0,0.0);
+		vrmlrot_to_quaternion (&viewer->Quat,1.0,0.0,0.0,0.0);
+		vrmlrot_to_quaternion (&viewer->bindTimeQuat,1.0,0.0,0.0,0.0);
+		vrmlrot_to_quaternion (&viewer->prepVPQuat,1.0,0.0,0.0,0.0);
 		vrmlrot_to_quaternion (&q_i,1.0,0.0,0.0,0.0);
-		quaternion_inverse(&(p->Viewer.AntiQuat),&q_i);
+		quaternion_inverse(&(viewer->AntiQuat),&q_i);
 
 		viewer->headlight = TRUE;
 		viewer->collision = FALSE;
@@ -260,7 +308,8 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		viewer->wasBound = FALSE;
 	}
 
-	resolve_pos();
+	resolve_pos20(viewer);
+
 }
 
 
@@ -270,14 +319,7 @@ void printStatsRoutes()
 	ConsoleMessage("%25s %d\n","Routes count", getCRouteCount());
 }
 
-void printStatsBindingStacks()
-{
-	ttglobal tg = gglobal();
-	ConsoleMessage("%25s %d\n","Background stack count", tg->Bindable.background_stack->n);
-	ConsoleMessage("%25s %d\n","Fog stack count", tg->Bindable.fog_stack->n);
-	ConsoleMessage("%25s %d\n","Navigation stack count", tg->Bindable.navigation_stack->n);	
-	ConsoleMessage("%25s %d\n","Viewpoint stack count", tg->Bindable.viewpoint_stack->n);	
-}
+void printStatsBindingStacks();
 void printStatsResources();
 void printStatsEvents();
 void printStatsNodes();
@@ -294,18 +336,20 @@ void printStats()
 void
 print_viewer()
 {
-	
-	struct orient_XYZA ori;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
 
-	quaternion_to_vrmlrot(&(p->Viewer.Quat), &(ori.x),&(ori.y),&(ori.z), &(ori.a));
+	struct orient_XYZA ori;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+
+	quaternion_to_vrmlrot(&(viewer->Quat), &(ori.x),&(ori.y),&(ori.z), &(ori.a));
 	ConsoleMessage("Viewpoint local{\n");
-	ConsoleMessage("\tPosition[%.4f, %.4f, %.4f]\n", (p->Viewer.Pos).x, (p->Viewer.Pos).y, (p->Viewer.Pos).z);
-	ConsoleMessage("\tQuaternion[%.4f, %.4f, %.4f, %.4f]\n", (p->Viewer.Quat).w, (p->Viewer.Quat).x, (p->Viewer.Quat).y, (p->Viewer.Quat).z);
+	ConsoleMessage("\tPosition[%.4f, %.4f, %.4f]\n", (viewer->Pos).x, (viewer->Pos).y, (viewer->Pos).z);
+	ConsoleMessage("\tQuaternion[%.4f, %.4f, %.4f, %.4f]\n", (viewer->Quat).w, (viewer->Quat).x, (viewer->Quat).y, (viewer->Quat).z);
 	ConsoleMessage("\tOrientation[%.4f, %.4f, %.4f, %.4f]\n", ori.x, ori.y, ori.z, ori.a);
 	ConsoleMessage("}\n");
 	getCurrentPosInModel(FALSE);
-	ConsoleMessage("World Coordinates of Avatar [%.4f, %.4f %.4f]\n",p->Viewer.currentPosInModel.x,p->Viewer.currentPosInModel.y,p->Viewer.currentPosInModel.z);
+	ConsoleMessage("World Coordinates of Avatar [%.4f, %.4f %.4f]\n",viewer->currentPosInModel.x,viewer->currentPosInModel.y,viewer->currentPosInModel.z);
 	printStats();
 }
 
@@ -314,72 +358,86 @@ int fwl_get_headlight() {
 }
 
 void fwl_toggle_headlight() {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	if (p->Viewer.headlight == TRUE) {
-		p->Viewer.headlight = FALSE;
+	if (viewer->headlight == TRUE) {
+		viewer->headlight = FALSE;
 	} else {
-		p->Viewer.headlight = TRUE;
+		viewer->headlight = TRUE;
 	}
 	/* tell the menu buttons of the state of this headlight */
-	//setMenuButton_headlight(p->Viewer.headlight);
+	//setMenuButton_headlight(viewer->headlight);
 
 }
 /* July 7, 2012 I moved .collision from params to x3d_viewer struct, 
 	so its like headlight and navmode */
 void setNoCollision() {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	p->Viewer.collision = 0;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	viewer->collision = 0;
 	//fwl_setp_collision(0);
-	//setMenuButton_collision(p->Viewer.collision); //fwl_getp_collision());
+	//setMenuButton_collision(viewer->collision); //fwl_getp_collision());
 }
 int get_collision() { 
 	return fwl_getCollision(); //fwl_getp_collision();
 }
 void toggle_collision() {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	p->Viewer.collision = 1 - p->Viewer.collision;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	viewer->collision = 1 - viewer->collision;
 
 	//fwl_setp_collision(!fwl_getp_collision()); 
-	//setMenuButton_collision(p->Viewer.collision); //fwl_getp_collision());
+	//setMenuButton_collision(viewer->collision); //fwl_getp_collision());
 }
 
 int fwl_getCollision(){
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	return p->Viewer.collision;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	return viewer->collision;
 }
 void fwl_setCollision(int state) {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	p->Viewer.collision = state;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	viewer->collision = state;
 }
 
 void fwl_init_StereoDefaults()
 {
+	X3D_Viewer *viewer;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 	if(!p->StereoInitializedOnce)
-		init_stereodefaults(&p->Viewer);
+		init_stereodefaults(viewer);
 	p->StereoInitializedOnce = 1;
 }
 
 
 void set_eyehalf(const double eyehalf, const double eyehalfangle) {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	p->Viewer.eyehalf = eyehalf;
-	p->Viewer.eyehalfangle = eyehalfangle;
-	p->Viewer.isStereo = 1;
+	viewer->eyehalf = eyehalf;
+	viewer->eyehalfangle = eyehalfangle;
+	//viewer->isStereo = 1;
 }
 void resolve_pos2();
-void fwl_set_viewer_type(const int type) {
+void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type) {
 	ttglobal tg = gglobal();
-	ppViewer p = (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
 
-	if(p->Viewer.type != type){
+	if(viewer->type != type){
 		tg->Mainloop.CTRL = FALSE; //turn off any leftover 3-state toggle
-		switch(p->Viewer.type){
+		switch(viewer->type){
 			case VIEWER_LOOKAT:
 			case VIEWER_EXPLORE:
-				p->Viewer.LookatMode = 0; //turn off leftover lookatMode
+				viewer->LookatMode = 0; //turn off leftover lookatMode
 				break;
 			default:
 				break;
@@ -388,7 +446,7 @@ void fwl_set_viewer_type(const int type) {
 
 	switch(type) {
 	case VIEWER_EXAMINE:
-		resolve_pos2();
+		resolve_pos20(viewer);
 	case VIEWER_NONE:
 	case VIEWER_WALK:
 	case VIEWER_EXFLY:
@@ -399,11 +457,11 @@ void fwl_set_viewer_type(const int type) {
 	case VIEWER_TURNTABLE:
 	case VIEWER_DIST:
 	case VIEWER_FLY:
-		p->Viewer.type = type;
+		viewer->type = type;
 		break;
 	case VIEWER_SPHERICAL:
 		//3 state toggle stack
-		if(p->Viewer.type == type){
+		if(viewer->type == type){
 			//this is a request to toggle on/off FOV (field-of-view) adjustment for SPHERICAL mode
 			if(tg->Mainloop.CTRL){
 				tg->Mainloop.CTRL = FALSE;
@@ -412,72 +470,82 @@ void fwl_set_viewer_type(const int type) {
 			}
 		}else{
 			//request to toggle on EXPLORE mode
-			p->Viewer.type = type;
+			viewer->type = type;
 		}
 		break;
 
 	case VIEWER_EXPLORE:
 		//3 state toggle stack
-		if(p->Viewer.type == type){
+		if(viewer->type == type){
 			//this is a request to toggle on/off CTRL for EXPLORE mode
 			if(tg->Mainloop.CTRL){
 				tg->Mainloop.CTRL = FALSE;
-				p->Viewer.LookatMode = 0;
+				viewer->LookatMode = 0;
 			}else{
 				tg->Mainloop.CTRL = TRUE;
-				p->Viewer.LookatMode = 1; //tells mainloop to turn off sensitive
+				viewer->LookatMode = 1; //tells mainloop to turn off sensitive
 			}
 		}else{
 			//request to toggle on EXPLORE mode
-			p->Viewer.type = type;
+			viewer->type = type;
 		}
 		break;
 	case VIEWER_LOOKAT:
 		//2 state toggle
-		if(p->Viewer.type == type){
+		if(viewer->type == type){
 			//this is a request to toggle off LOOKAT mode
-			p->Viewer.type = p->Viewer.lastType;
-			p->Viewer.LookatMode = 0;
+			viewer->type = viewer->lastType;
+			viewer->LookatMode = 0;
 		}else{
 			//request to toggle on LOOKAT mode
-			p->Viewer.lastType = p->Viewer.type;
-			p->Viewer.LookatMode = 1; //tells mainloop to turn off sensitive
-			p->Viewer.type = type;
+			viewer->lastType = viewer->type;
+			viewer->LookatMode = 1; //tells mainloop to turn off sensitive
+			viewer->type = type;
 		}
 		break;
 	default:
 		ConsoleMessage ("Viewer type %d is not supported. See Viewer.h.\n", type);
-		p->Viewer.type = VIEWER_NONE;
+		viewer->type = VIEWER_NONE;
 		break;
 	}
 
 	/* set velocity array to zero again - used only for EAI */
-	p->Viewer.VPvelocity.x=0.0; p->Viewer.VPvelocity.y=0.0; p->Viewer.VPvelocity.z=0.0;
+	viewer->VPvelocity.x=0.0; viewer->VPvelocity.y=0.0; viewer->VPvelocity.z=0.0;
 
 	/* can the currently bound viewer type handle this */
 	/* if there is no bound viewer, just ignore (happens on initialization) */
-	if (vectorSize(tg->Bindable.navigation_stack) >0)
-		if (p->Viewer.oktypes[type]==FALSE) {
-			//setMenuButton_navModes(p->Viewer.type);
+	if (vectorSize(getActiveBindableStacks(tg)->navigation) >0)
+		if (viewer->oktypes[type]==FALSE) {
+			//setMenuButton_navModes(viewer->type);
 			return;
 		}
 
-	if(1) viewer_init(&p->Viewer,type);  //feature-EXPLORE
+	if(1) viewer_init(viewer,type);  //feature-EXPLORE
 
 	/* tell the window menu what we are */
-	//setMenuButton_navModes(p->Viewer.type);
+	//setMenuButton_navModes(viewer->type);
 
+}
+void fwl_set_viewer_type(const int type) {
+	X3D_Viewer *viewer;
+	viewer = Viewer();
+
+	fwl_set_viewer_type0(viewer, type);
 }
 
 
-//#define VIEWER_STRING(type) ( \
-//	type == VIEWER_NONE ? "NONE" : ( \
-//	type == VIEWER_EXAMINE ? "EXAMINE" : ( \
-//	type == VIEWER_WALK ? "WALK" : ( \
-//	type == VIEWER_EXFLY ? "EXFLY" : ( \
-//	type == VIEWER_SPHERICAL ? "SPHERICAL" : (\
-//	type == VIEWER_TURNTABLE ? "TURNTABLE" : (\
-//	type == VIEWER_FLY ? "FLY" : "UNKNOWN"))))))
+
+#ifdef VERBOSE
+#define VIEWER_STRING(type) ( \
+	type == VIEWER_NONE ? "NONE" : ( \
+	type == VIEWER_EXAMINE ? "EXAMINE" : ( \
+	type == VIEWER_WALK ? "WALK" : ( \
+	type == VIEWER_EXFLY ? "EXFLY" : ( \
+	type == VIEWER_SPHERICAL ? "SPHERICAL" : (\
+	type == VIEWER_TURNTABLE ? "TURNTABLE" : (\
+	type == VIEWER_FLY ? "FLY" : "UNKNOWN"))))))
+#endif //VERBOSE
+
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
 #endif
@@ -536,10 +604,12 @@ int lookup_navmode(char *cmode){
 }
 char* fwl_getNavModeStr()
 {
-	ttglobal tg = gglobal();
-	ppViewer p = (ppViewer)tg->Viewer.prv;
-	return lookup_navmodestring(p->Viewer.type);
-	//switch(p->Viewer.type) {
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg = gglobal();
+	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	return lookup_navmodestring(viewer->type);
+	//switch(viewer->type) {
 	//case VIEWER_NONE:
 	//	return "NONE";
 	//case VIEWER_EXAMINE:
@@ -573,9 +643,11 @@ char* fwl_getNavModeStr()
 }
 int fwl_getNavMode()
 {
-	ttglobal tg = gglobal();
-	ppViewer p = (ppViewer)tg->Viewer.prv;
-	return p->Viewer.type;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg = gglobal();
+	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	return viewer->type;
 }
 int fwl_setNavMode(char *mode){
 	int imode = lookup_navmode(mode);
@@ -586,42 +658,47 @@ int fwl_setNavMode(char *mode){
 //int use_keys() {
 //	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 //
-//	if (p->Viewer.type == VIEWER_FLY) {
+//	if (viewer->type == VIEWER_FLY) {
 //		return TRUE;
 //	}
 //	return TRUE; //FALSE; //Navigation-key_and_drag
 //}
 
 void resolve_pos(){}
-void resolve_pos2() {
+void resolve_pos20(X3D_Viewer *viewer) {
 	/* my($this) = @_; */
 	struct point_XYZ rot, z_axis = { 0, 0, 1 };
 	Quaternion q_inv;
 	//double dist = 0;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 
-	X3D_Viewer_Examine *examine = &p->Viewer.examine;
+	X3D_Viewer_Examine *examine = &viewer->examine;
 
 
-	//if (p->Viewer.type == VIEWER_EXAMINE  || (p->Viewer.type == VIEWER_LOOKAT && p->Viewer.lastType == VIEWER_EXAMINE) ) {
+	//if (viewer->type == VIEWER_EXAMINE  || (viewer->type == VIEWER_LOOKAT && viewer->lastType == VIEWER_EXAMINE) ) {
 		/* my $z = $this->{Quat}->invert->rotate([0,0,1]); */
-		quaternion_inverse(&q_inv, &(p->Viewer.Quat));
+		quaternion_inverse(&q_inv, &(viewer->Quat));
 		quaternion_rotation(&rot, &q_inv, &z_axis);
 
 		/* my $d = 0; for(0..2) {$d += $this->{Pos}[$_] * $z->[$_]} */
-		//dist = VECPT(p->Viewer.Pos, rot);
+		//dist = VECPT(viewer->Pos, rot);
 
 		/* $this->{Origin} = [ map {$this->{Pos}[$_] - $d * $z->[$_]} 0..2 ]; */
 /*
 printf ("RP, before orig calc %4.3f %4.3f %4.3f\n",examine->Origin.x, examine->Origin.y,examine->Origin.z);
 */
-		(examine->Origin).x = (p->Viewer.Pos).x - p->Viewer.Dist * rot.x;
-		(examine->Origin).y = (p->Viewer.Pos).y - p->Viewer.Dist * rot.y;
-		(examine->Origin).z = (p->Viewer.Pos).z - p->Viewer.Dist * rot.z;
+		(examine->Origin).x = (viewer->Pos).x - viewer->Dist * rot.x;
+		(examine->Origin).y = (viewer->Pos).y - viewer->Dist * rot.y;
+		(examine->Origin).z = (viewer->Pos).z - viewer->Dist * rot.z;
 /*
 printf ("RP, aft orig calc %4.3f %4.3f %4.3f\n",examine->Origin.x, examine->Origin.y,examine->Origin.z);
 */
 	//}
+}
+void resolve_pos2() {
+	X3D_Viewer *viewer;
+	viewer = Viewer();
+	resolve_pos20(viewer);
 }
 double vecangle2(struct point_XYZ* V1, struct point_XYZ* V2, struct point_XYZ* rotaxis) {
 	/* similar full circle angle computation as:
@@ -655,12 +732,14 @@ void avatar2BoundViewpointVerticalAvatar(GLDOUBLE *matA2BVVA, GLDOUBLE *matBVVA2
 	/* goal: make 2 transform matrices to go back and forth from Avatar A to 
 	   Bound-Viewpoint-Vertical aligned Avatar-centric (no translations or scales - just 2 tilts) coordinates
     */
+	X3D_Viewer *viewer;
 	struct point_XYZ tilted;
 	struct point_XYZ downvec = {0.0,-1.0,0.0};
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	//downvec is in bound viewpoint space
-	quaternion_rotation(&tilted, &p->Viewer.Quat, &downvec);
+	quaternion_rotation(&tilted, &viewer->Quat, &downvec);
 	//tilted is in avatar space.
 	matrotate2v(matA2BVVA,downvec,tilted); 
 	matrotate2v(matBVVA2A,tilted,downvec); 
@@ -716,10 +795,12 @@ ViewerUpVector computation - see RenderFuncs.c L595
 	struct point_XYZ rotaxis, tilted;
 	Quaternion q, Quat; //, AntiQuat;
 	double angle;
+	X3D_Viewer *viewer;
 	struct point_XYZ downvec = {0.0,-1.0,0.0};
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 
-	Quat = p->Viewer.Quat;
+	viewer = Viewer();
+	Quat = viewer->Quat;
 	//AntiQuat = Viewer.AntiQuat;
 	quaternion_rotation(&tilted, &Quat, &downvec);
 	//tilted is in avatar space.
@@ -727,8 +808,8 @@ ViewerUpVector computation - see RenderFuncs.c L595
 	if( APPROX(angle,0.0) ) return; //we're level already
 	vrmlrot_to_quaternion(&q, rotaxis.x, rotaxis.y, rotaxis.z, -angle );
 	quaternion_normalize(&q);
-	quaternion_multiply(&(p->Viewer.Quat), &q, &Quat);
-	quaternion_normalize(&(p->Viewer.Quat));
+	quaternion_multiply(&(viewer->Quat), &q, &Quat);
+	quaternion_normalize(&(viewer->Quat));
 
 	/* make sure Viewer.Dist is configured properly for Examine mode */
 	//CALCULATE_EXAMINE_DISTANCE
@@ -757,12 +838,17 @@ void viewer_togl(double fieldofview)
 				(AntiPos,AntiQuat) and (vp.position,vp.orientation) are equal and cancel
 				leaving the .Pos, .Quat -initially with .position, .orientation- in the modelview matrix stack
     */
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
 
-	if (p->Viewer.isStereo) /* buffer != GL_BACK)  */
+	viewer = Viewer();
+	if (viewer->isStereo) /* buffer != GL_BACK)  */
 		set_stereo_offset0(); /*Viewer.iside, Viewer.eyehalf, Viewer.eyehalfangle);*/
 
-	if (p->Viewer.SLERPing) {
+	if (viewer->SLERPing) {
 		double tickFrac;
 		Quaternion slerpedDiff;
 		struct point_XYZ pos, antipos;
@@ -776,33 +862,33 @@ printf ("\t	AntiPos           %lf %lf %lf\n",Viewer.AntiPos.x,Viewer.AntiPos.y,V
 */
 
 		/* printf ("slerping in togl, type %s\n", VIEWER_STRING(Viewer.type)); */
-		tickFrac = (TickTime() - p->Viewer.startSLERPtime)/p->Viewer.transitionTime;
+		tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 		//tickFrac = tickFrac/4.0;
 		//printf ("tick frac %lf\n",tickFrac); 
 
-		pos.x = p->Viewer.Pos.x * tickFrac + (p->Viewer.startSLERPPos.x * (1.0 - tickFrac));
-		pos.y = p->Viewer.Pos.y * tickFrac + (p->Viewer.startSLERPPos.y * (1.0 - tickFrac));
-		pos.z = p->Viewer.Pos.z * tickFrac + (p->Viewer.startSLERPPos.z * (1.0 - tickFrac));
+		pos.x = viewer->Pos.x * tickFrac + (viewer->startSLERPPos.x * (1.0 - tickFrac));
+		pos.y = viewer->Pos.y * tickFrac + (viewer->startSLERPPos.y * (1.0 - tickFrac));
+		pos.z = viewer->Pos.z * tickFrac + (viewer->startSLERPPos.z * (1.0 - tickFrac));
 		/* printf("ticfrac= %lf pos.xyz= %lf %lf %lf\n",tickFrac,pos.x,pos.y,pos.z); */
-		antipos.x = p->Viewer.AntiPos.x * tickFrac + (p->Viewer.startSLERPAntiPos.x * (1.0 - tickFrac));
-		antipos.y = p->Viewer.AntiPos.y * tickFrac + (p->Viewer.startSLERPAntiPos.y * (1.0 - tickFrac));
-		antipos.z = p->Viewer.AntiPos.z * tickFrac + (p->Viewer.startSLERPAntiPos.z * (1.0 - tickFrac));
+		antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
+		antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
+		antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
 
-		quaternion_slerp (&slerpedDiff,&p->Viewer.startSLERPQuat,&p->Viewer.Quat,tickFrac);
+		quaternion_slerp (&slerpedDiff,&viewer->startSLERPQuat,&viewer->Quat,tickFrac);
 
 		quaternion_togl(&slerpedDiff);
 		FW_GL_TRANSLATE_D(-pos.x, -pos.y, -pos.z);
 		FW_GL_TRANSLATE_D(antipos.x, antipos.y, antipos.z);
-		quaternion_slerp (&slerpedDiff,&p->Viewer.startSLERPAntiQuat,&p->Viewer.AntiQuat,tickFrac);
+		quaternion_slerp (&slerpedDiff,&viewer->startSLERPAntiQuat,&viewer->AntiQuat,tickFrac);
 		quaternion_togl(&slerpedDiff);
 
 
-		if (tickFrac >= 1.0) p->Viewer.SLERPing = FALSE;
+		if (tickFrac >= 1.0) viewer->SLERPing = FALSE;
 	} else {
-		quaternion_togl(&p->Viewer.Quat);
-		FW_GL_TRANSLATE_D(-(p->Viewer.Pos).x, -(p->Viewer.Pos).y, -(p->Viewer.Pos).z);
-		FW_GL_TRANSLATE_D((p->Viewer.AntiPos).x, (p->Viewer.AntiPos).y, (p->Viewer.AntiPos).z);
-		quaternion_togl(&p->Viewer.AntiQuat);
+		quaternion_togl(&viewer->Quat);
+		FW_GL_TRANSLATE_D(-(viewer->Pos).x, -(viewer->Pos).y, -(viewer->Pos).z);
+		FW_GL_TRANSLATE_D((viewer->AntiPos).x, (viewer->AntiPos).y, (viewer->AntiPos).z);
+		quaternion_togl(&viewer->AntiQuat);
 
 	}
 
@@ -819,12 +905,14 @@ printf ("\t	AntiPos           %lf %lf %lf\n",Viewer.AntiPos.x,Viewer.AntiPos.y,V
 
 
 void getCurrentPosInModel (int addInAntiPos) {
+	X3D_Viewer *viewer;
 	struct point_XYZ rp;
 	struct point_XYZ tmppt;
 
 	GLDOUBLE modelMatrix[16];
 	GLDOUBLE inverseMatrix[16];
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	/* "Matrix Quaternion FAQ: 8.050
 	Given the current ModelView matrix, how can I determine the object-space location of the camera?
@@ -870,20 +958,20 @@ printf ("togl, after inverse, %lf %lf %lf\n",inverseMatrix[12],inverseMatrix[13]
 
 	if (addInAntiPos) {
 		/* printf ("going to do rotation on %f %f %f\n",tmppt.x, tmppt.y, tmppt.z); */
-		quaternion_rotation(&rp, &p->Viewer.bindTimeQuat, &tmppt);
+		quaternion_rotation(&rp, &viewer->bindTimeQuat, &tmppt);
 		/* printf ("new inverseMatrix  after rotation %4.2f %4.2f %4.2f\n",rp.x, rp.y, rp.z); */
 
-		p->Viewer.currentPosInModel.x = p->Viewer.AntiPos.x + rp.x;
-		p->Viewer.currentPosInModel.y = p->Viewer.AntiPos.y + rp.y;
-		p->Viewer.currentPosInModel.z = p->Viewer.AntiPos.z + rp.z;
+		viewer->currentPosInModel.x = viewer->AntiPos.x + rp.x;
+		viewer->currentPosInModel.y = viewer->AntiPos.y + rp.y;
+		viewer->currentPosInModel.z = viewer->AntiPos.z + rp.z;
 	} else {
 		//at scene root level, after setup_viewpoint(), modelview matrix is the view matrix, and has all transforms 
 		// including .orientation, .position anti-pos, antiquat applied
-		if(0) quaternion_rotation(&rp, &p->Viewer.bindTimeQuat, &tmppt);
+		if(0) quaternion_rotation(&rp, &viewer->bindTimeQuat, &tmppt);
 		if(1) {rp.x = tmppt.x; rp.y = tmppt.y; rp.z = tmppt.z;}
-		p->Viewer.currentPosInModel.x = rp.x;
-		p->Viewer.currentPosInModel.y = rp.y;
-		p->Viewer.currentPosInModel.z = rp.z;
+		viewer->currentPosInModel.x = rp.x;
+		viewer->currentPosInModel.y = rp.y;
+		viewer->currentPosInModel.z = rp.z;
 	}
 
 	
@@ -916,13 +1004,15 @@ static void handle_walk(const int mev, const unsigned int button, const float x,
  * walk.rd is an angle in the global/scene horizontal plane (around vertical axis)
 */
 	ttglobal tg;
-	ppViewer p;
+	// OLDCODE UNUSED ppViewer p;
+	X3D_Viewer *viewer;
 
 	X3D_Viewer_Walk *walk; 
 	double frameRateAdjustment = 1.0;
 	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
-	walk = &p->Viewer.walk;
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	walk = &viewer->walk;
 
 	if( tg->Mainloop.BrowserFPS > 0)
 		frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; /* lets say 20FPS is our speed benchmark for developing tuning parameters */
@@ -944,13 +1034,13 @@ static void handle_walk(const int mev, const unsigned int button, const float x,
 			   dug9: button 1 ZD: .05 5.0 0.0  RD: .1 .5 0.0
 				     button 3 XD: 5.0 10.0 0.0 YD: 5.0 10.0 0.0
 			*/
-			walk->ZD = xsign_quadratic(y - walk->SY,.05,5.0,0.0)*p->Viewer.speed * frameRateAdjustment;
+			walk->ZD = -xsign_quadratic(y - walk->SY,.05,5.0,0.0)*viewer->speed * frameRateAdjustment;
 			walk->RD = xsign_quadratic(x - walk->SX,0.1,0.5,0.0)*frameRateAdjustment;
 			//walk->ZD = (y - walk->SY) * Viewer.speed;
 			//walk->RD = (x - walk->SX) * 0.1;
 		} else if (button == 3) {
-			walk->XD =  xsign_quadratic(x - walk->SX,5.0,10.0,0.0)*p->Viewer.speed * frameRateAdjustment;
-			walk->YD = -xsign_quadratic(y - walk->SY,5.0,10.0,0.0)*p->Viewer.speed * frameRateAdjustment;
+			walk->XD =  xsign_quadratic(x - walk->SX,5.0,10.0,0.0)*viewer->speed * frameRateAdjustment;
+			walk->YD =  xsign_quadratic(y - walk->SY,5.0,10.0,0.0)*viewer->speed * frameRateAdjustment;
 			//walk->XD = (x - walk->SX) * Viewer.speed;
 			//walk->YD = -(y - walk->SY) * Viewer.speed;
 		}
@@ -982,11 +1072,13 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 	Quaternion q, q_i, arc;
 	struct point_XYZ pp = { 0, 0, 0};
 	double squat_norm;
-	ppViewer p;
+	// OLDCODE UNUSED ppViewer p;
+	X3D_Viewer *viewer;
 	X3D_Viewer_Examine *examine;
-	p = (ppViewer)gglobal()->Viewer.prv;
-	examine = &p->Viewer.examine;
-	pp.z=p->Viewer.Dist;
+	// OLDCODE UNUSED p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	examine = &viewer->examine;
+	pp.z=viewer->Dist;
 
 	if (mev == ButtonPress) {
 		if (button == 1) {
@@ -1000,7 +1092,7 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 			printf ("bp, before, aps %4.3f %4.3f %4.3f\n",Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z);
 */
 			xy2qua(&(examine->SQuat), x, y);
-			quaternion_set(&(examine->OQuat), &(p->Viewer.Quat));
+			quaternion_set(&(examine->OQuat), &(viewer->Quat));
 /*
 			printf ("bp, after SQ %4.3f %4.3f %4.3f %4.3f\n",examine->SQuat.x, examine->SQuat.y, examine->SQuat.z, examine->SQuat.w);
 			printf ("bp, after OQ %4.3f %4.3f %4.3f %4.3f\n",examine->OQuat.x, examine->OQuat.y, examine->OQuat.z, examine->OQuat.w);
@@ -1011,7 +1103,7 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 
 		} else if (button == 3) {
 			examine->SY = y;
-			examine->ODist = max(0.1,p->Viewer.Dist);
+			examine->ODist = max(0.1,viewer->Dist);
 		}
 	} else if (mev == MotionNotify) {
 		if (button == 1) {
@@ -1022,7 +1114,7 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 				/* 			$this->{SQuat} = $this->xy2qua($mx,$my); */
 				xy2qua(&(examine->SQuat), x, y);
 				/* 			$this->{OQuat} = $this->{Quat}; */
-				quaternion_set(&(examine->OQuat), &(p->Viewer.Quat));
+				quaternion_set(&(examine->OQuat), &(viewer->Quat));
 			} else {
 				/* my $q = $this->xy2qua($mx,$my); */
 				xy2qua(&q, x, y);
@@ -1032,88 +1124,98 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 
 
 				/* $this->{Quat} = $arc->multiply($this->{OQuat}); */
-				quaternion_multiply(&(p->Viewer.Quat), &arc, &(examine->OQuat));
+				quaternion_multiply(&(viewer->Quat), &arc, &(examine->OQuat));
 			}
 		} else if (button == 3) {
 			#ifndef DISABLER
-			p->Viewer.Dist = examine->ODist * exp(examine->SY - y);
+			viewer->Dist = examine->ODist * exp(examine->SY - y);
 			#else
-			p->Viewer.Dist = (0 != y) ? examine->ODist * examine->SY / y : 0;
+			viewer->Dist = (0 != y) ? examine->ODist * examine->SY / y : 0;
 			#endif
 		}
  	}
 
-	quaternion_inverse(&q_i, &(p->Viewer.Quat));
-	quaternion_rotation(&(p->Viewer.Pos), &q_i, &pp);
+	quaternion_inverse(&q_i, &(viewer->Quat));
+	quaternion_rotation(&(viewer->Pos), &q_i, &pp);
 /*
 	printf ("bp, after quat rotation, pos %4.3f %4.3f %4.3f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z);
 */
-	p->Viewer.Pos.x += (examine->Origin).x;
-	p->Viewer.Pos.y += (examine->Origin).y;
-	p->Viewer.Pos.z += (examine->Origin).z;
+	viewer->Pos.x += (examine->Origin).x;
+	viewer->Pos.y += (examine->Origin).y;
+	viewer->Pos.z += (examine->Origin).z;
 /*
 printf ("examine->origin %4.3f %4.3f %4.3f\n",examine->Origin.x, examine->Origin.y, examine->Origin.z);
 */
 }
 
+double get_viewer_dist(){
+	return Viewer()->Dist;
+}
+
 void handle_dist(const int mev, const unsigned int button, float x, float y) {
-	/* different than z, this adjusts the viewer.Dist value for examine, turntable, explore, lookat
+	/* different than z, this adjusts the viewer->Dist value for examine, turntable, explore, lookat
 		- all without using RMB (right mouse button), so mobile friendly
 	*/
 	//examine variant - doesn't move the vp/.pos
 	Quaternion q_i;
 	struct point_XYZ pp = { 0, 0, 0};
 	double yy;
-	ppViewer p;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p;
 	X3D_Viewer_Examine *examine;
-	p = (ppViewer)gglobal()->Viewer.prv;
-	examine = &p->Viewer.examine;
-	pp.z=p->Viewer.Dist;
+	// OLDCODE UNUSED p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	examine = &viewer->examine;
+	pp.z=viewer->Dist;
 
-	yy = 1.0 - y;
+	//ConsoleMessage("handle_dist but %d mev %d\n", button, mev);
+	//yy = 1.0 - y;
+	yy = y;
 	if (mev == ButtonPress) {
 		if (button == 1) {
 			resolve_pos2();
 			examine->SY = yy;
-			examine->ODist = max(0.1,p->Viewer.Dist);
+			examine->ODist = max(0.1,viewer->Dist);
 		}
 	} else if (mev == MotionNotify) {
 		if (button == 1) {
 			#ifndef DISABLER
-			p->Viewer.Dist = examine->ODist * exp(2.0 * (examine->SY - yy));
+			viewer->Dist = examine->ODist * exp(2.0 * (examine->SY - yy));
 			#else
-			p->Viewer.Dist = (0 != yy) ? examine->ODist * examine->SY / yy : 0;
+			viewer->Dist = (0 != yy) ? examine->ODist * examine->SY / yy : 0;
 			#endif
-			//printf("v.dist=%lf\n",p->Viewer.Dist);
+			//printf("v.dist=%lf\n",viewer->Dist);
 		}
 	}
-	quaternion_inverse(&q_i, &(p->Viewer.Quat));
-	quaternion_rotation(&(p->Viewer.Pos), &q_i, &pp);
+	quaternion_inverse(&q_i, &(viewer->Quat));
+	quaternion_rotation(&(viewer->Pos), &q_i, &pp);
 /*
 	printf ("bp, after quat rotation, pos %4.3f %4.3f %4.3f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z);
 */
-	p->Viewer.Pos.x += (examine->Origin).x;
-	p->Viewer.Pos.y += (examine->Origin).y;
-	p->Viewer.Pos.z += (examine->Origin).z;
+	viewer->Pos.x += (examine->Origin).x;
+	viewer->Pos.y += (examine->Origin).y;
+	viewer->Pos.z += (examine->Origin).z;
 
 }
 
-
+double display_screenRatio();
 void handle_turntable(const int mev, const unsigned int button, float x, float y) {
 	/*
 	Like handle_spherical, except:
-	move the viewer.Pos in the opposite direction from where we are looking
+	move the viewer->Pos in the opposite direction from where we are looking
 	*/
 	double frameRateAdjustment;
 	X3D_Viewer_Spherical *ypz;
-	ppViewer p;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p;
 	ttglobal tg = gglobal();
-	p = (ppViewer)gglobal()->Viewer.prv;
-	ypz = &p->Viewer.ypz; //just a place to store last mouse xy during drag
+	// OLDCODE UNUSED p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	ypz = &viewer->ypz; //just a place to store last mouse xy during drag
 
-	if(APPROX(p->Viewer.Dist,0.0)){
+	if(APPROX(viewer->Dist,0.0)){
 		//no pivot point yet
-		p->Viewer.Dist = 10.0;
+		viewer->Dist = 10.0;
 	}
 
 	if( tg->Mainloop.BrowserFPS > 0)
@@ -1141,23 +1243,23 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 			struct point_XYZ dd,ddr;
 			yaxis.x = yaxis.z = 0.0;
 			yaxis.y = 1.0;
-			//pp = p->Viewer.Pos;
+			//pp = viewer->Pos;
 			//if(0) resolve_pos2();
 			//if(1) {
-				//(examine->Origin).x = (p->Viewer.Pos).x - p->Viewer.Dist * rot.x;
-				dd.x = dd.y = 0.0; dd.z = p->Viewer.Dist; //exploreDist;
-				quat = p->Viewer.Quat;
+				//(examine->Origin).x = (viewer->Pos).x - viewer->Dist * rot.x;
+				dd.x = dd.y = 0.0; dd.z = viewer->Dist; //exploreDist;
+				quat = viewer->Quat;
 				quaternion_inverse(&quat,&quat);
 				quaternion_rotation(&ddr, &quat, &dd);
-				vecdiff(&p->Viewer.examine.Origin,&p->Viewer.Pos,&ddr);
+				vecdiff(&viewer->examine.Origin,&viewer->Pos,&ddr);
 			//}
 
-			//if(0) vecdiff(&pp,&p->Viewer.examine.Origin,&p->Viewer.Pos);
-			//if(1) vecdiff(&pp,&p->Viewer.Pos,&p->Viewer.examine.Origin);
+			//if(0) vecdiff(&pp,&viewer->examine.Origin,&viewer->Pos);
+			//if(1) vecdiff(&pp,&viewer->Pos,&viewer->examine.Origin);
 			pp = ddr;
-			//if(0) printf("D=%f O=%f %f %f P=%f %f %f pp=%f %f %f\n", p->Viewer.Dist,
-			//p->Viewer.examine.Origin.x,p->Viewer.examine.Origin.y,p->Viewer.examine.Origin.z,
-			//p->Viewer.Pos.x,p->Viewer.Pos.y,p->Viewer.Pos.z,
+			//if(0) printf("D=%f O=%f %f %f P=%f %f %f pp=%f %f %f\n", viewer->Dist,
+			//viewer->examine.Origin.x,viewer->examine.Origin.y,viewer->examine.Origin.z,
+			//viewer->Pos.x,viewer->Pos.y,viewer->Pos.z,
 			//pp.x,pp.y,pp.z
 			//);
 			//dist = veclength(pp);
@@ -1166,8 +1268,8 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 			pitch = -(acos(vecdot(&pp, &yaxis)) - PI*.5);
 		}
 		if (button == 1) {
-			dyaw = -(ypz->x - x) * p->Viewer.fieldofview*PI / 180.0*p->Viewer.fovZoom * tg->display.screenRatio;
-			dpitch = -(ypz->y - y) * p->Viewer.fieldofview*PI / 180.0*p->Viewer.fovZoom;
+			dyaw = -(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
+			dpitch = (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
 			//if(0){
 			//	dyaw = -dyaw;
 			//	dpitch = -dpitch;
@@ -1188,13 +1290,13 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 					fac = ((d * .5) + (1.0 - d) * 1.0);
 				}
 				//dist *= fac;
-				p->Viewer.Dist *= fac;
+				viewer->Dist *= fac;
 			}
 			if(1) {
 				//handle_tick_explore quadratic
 				//double quadratic = -xsign_quadratic(y - ypz->y,5.0,10.0,0.0);
-				ypz->ypz[1] = xsign_quadratic(y - ypz->y,100.0,10.0,0.0)*p->Viewer.speed * frameRateAdjustment *.15;
-				//printf("quad=%f y-y %f s=%f fra=%f\n",quadratic,y-ypz->y,p->Viewer.speed,frameRateAdjustment);
+				ypz->ypz[1] = -xsign_quadratic(y - ypz->y,100.0,10.0,0.0)*viewer->speed * frameRateAdjustment *.15;
+				//printf("quad=%f y-y %f s=%f fra=%f\n",quadratic,y-ypz->y,viewer->speed,frameRateAdjustment);
 			}
 		}
 		if (button == 1 || button == 3)
@@ -1204,15 +1306,15 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 			quaternion_multiply(&quat, &qpitch, &qyaw);
 			quaternion_normalize(&quat);
 
-			quaternion_set(&(p->Viewer.Quat), &quat);
-			//move the viewer.pos in the opposite direction that we are looking
+			quaternion_set(&(viewer->Quat), &quat);
+			//move the viewer->pos in the opposite direction that we are looking
 			quaternion_inverse(&quat, &quat);
 			pp.x = 0.0;
 			pp.y = 0.0;
-			pp.z = p->Viewer.Dist; //dist;
-			quaternion_rotation(&(p->Viewer.Pos), &quat, &pp);
+			pp.z = viewer->Dist; //dist;
+			quaternion_rotation(&(viewer->Pos), &quat, &pp);
 			//remember the last drag coords for next motion
-			vecadd(&p->Viewer.Pos,&p->Viewer.examine.Origin,&p->Viewer.Pos);
+			vecadd(&viewer->Pos,&viewer->examine.Origin,&viewer->Pos);
 		}
 		if( button == 1){
 			ypz->x = x;
@@ -1232,11 +1334,13 @@ void handle_spherical(const int mev, const unsigned int button, float x, float y
 	Quaternion qyaw, qpitch;
 	double dyaw,dpitch;
 	/* unused double dzoom; */
+	X3D_Viewer *viewer;
 	X3D_Viewer_Spherical *ypz;
-	ppViewer p;
+	// OLDCODE UNUSED ppViewer p;
 	ttglobal tg = gglobal();
-	p = (ppViewer)gglobal()->Viewer.prv;
-	ypz = &p->Viewer.ypz;
+	// OLDCODE UNUSED p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	ypz = &viewer->ypz;
 	ibutton = button;
 	if(ibutton == 1 && tg->Mainloop.CTRL) ibutton = 3; //RMB method for mobile/touch
 
@@ -1256,15 +1360,15 @@ void handle_spherical(const int mev, const unsigned int button, float x, float y
 			yaxis.y = 1.0;
 
 			dd.x = dd.y = 0.0; dd.z = 1.0; 
-			quat = p->Viewer.Quat;
+			quat = viewer->Quat;
 			quaternion_inverse(&quat,&quat);
 			quaternion_rotation(&ddr, &quat, &dd);
 			yaw = -atan2(ddr.x,ddr.z);
 			pitch = -(acos(vecdot(&ddr, &yaxis)) - PI*.5);
 
 			//step 2 add on any mouse motion as yaw,pitch chord
-			dyaw   = (ypz->x - x) * p->Viewer.fieldofview*PI/180.0*p->Viewer.fovZoom * tg->display.screenRatio; 
-			dpitch = (ypz->y - y) * p->Viewer.fieldofview*PI/180.0*p->Viewer.fovZoom;
+			dyaw   = (ypz->x - x) * viewer->fieldofview*PI/180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio; 
+			dpitch = -(ypz->y - y) * viewer->fieldofview*PI/180.0*viewer->fovZoom;
 			yaw += dyaw;
 			pitch += dpitch;
 
@@ -1274,14 +1378,14 @@ void handle_spherical(const int mev, const unsigned int button, float x, float y
 			quaternion_multiply(&quat, &qpitch, &qyaw);
 			quaternion_normalize(&quat);
 
-			quaternion_set(&(p->Viewer.Quat), &quat);
+			quaternion_set(&(viewer->Quat), &quat);
 
 		} else if (ibutton == 3) {
 			double d, fac;
-			d = (y - ypz->y)*.5;
+			d = -(y - ypz->y)*.5;
 			fac = pow(10.0,d);
-			p->Viewer.fovZoom = p->Viewer.fovZoom * fac;
-			//p->Viewer.fovZoom = DOUBLE_MIN(2.0,DOUBLE_MAX(.125,p->Viewer.fovZoom));  
+			viewer->fovZoom = viewer->fovZoom * fac;
+			//viewer->fovZoom = DOUBLE_MIN(2.0,DOUBLE_MAX(.125,viewer->fovZoom));  
 		}
 		if(ibutton == 1 || ibutton == 3){
 			ypz->x = x;
@@ -1304,12 +1408,14 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 	/* there's a handle_tick_fly2() so handle_fly2() must turn on/off the
 		tick action based on mev (mouse up/down/move)
 	*/
-	ttglobal tg;
-	ppViewer p;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
 	X3D_Viewer_InPlane *inplane;
-	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
-	inplane = &p->Viewer.inplane;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	inplane = &viewer->inplane;
 	
 	if (mev == ButtonPress) {
 		inplane->x = x;
@@ -1330,14 +1436,16 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 
 void handle_tick_fly2(double dtime) {
 	ttglobal tg;
-	ppViewer p;
+	// OLDCODE UNUSED ppViewer p;
 	X3D_Viewer_InPlane *inplane;
 	double frameRateAdjustment, xx, yy, zz, rot;
 	struct point_XYZ xyz;
 	Quaternion q, nq;
+	X3D_Viewer *viewer;
 	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
-	inplane = &p->Viewer.inplane;
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	inplane = &viewer->inplane;
 
 	if( tg->Mainloop.BrowserFPS > 0)
 		frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; 
@@ -1347,7 +1455,7 @@ void handle_tick_fly2(double dtime) {
 	if (inplane->on) {
 		xx = inplane->xx - inplane->x;
 		yy = inplane->yy - inplane->y;
-		zz = xsign_quadratic(yy,.05,5.0,0.0)*p->Viewer.speed * frameRateAdjustment;
+		zz = -xsign_quadratic(yy,.05,5.0,0.0)*viewer->speed * frameRateAdjustment;
 		zz *= 0.15;
 
 		xyz.x = 0.0;
@@ -1356,10 +1464,10 @@ void handle_tick_fly2(double dtime) {
 
 		rot = xsign_quadratic(xx,0.1,0.5,0.0)*frameRateAdjustment;
 		//printf("rot=%lf zz=%lf\n",rot,zz);
-		memcpy(&q,&p->Viewer.Quat,sizeof(Quaternion));
+		memcpy(&q,&viewer->Quat,sizeof(Quaternion));
 		vrmlrot_to_quaternion (&nq,0.0,1.0,0.0,0.4*rot);
 		viewer_lastQ_set(&nq); //wall penetration - last avatar pose is stored before updating
-		quaternion_multiply(&(p->Viewer.Quat), &nq, &q); //Quat = walk->RD * Quat
+		quaternion_multiply(&(viewer->Quat), &nq, &q); //Quat = walk->RD * Quat
 		//does the Z gets transformed by the quat?
 		increment_pos(&xyz);
 		//inplane->x = x;
@@ -1373,29 +1481,45 @@ void handle_lookat(const int mev, const unsigned int button, float x, float y) {
 	/* do nothing on mouse down or mouse move
 		on mouse up, trigger node picking action in mainloop
 	*/
-	ttglobal tg;
-	ppViewer p;
-	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 	
 	switch(mev){
 		case  ButtonPress:
+		//trigger a node pick in mainloop, followed by viewpoint transition
+		viewer->LookatMode = 2;
+		//printf("lookat press\n");
+		break;
 		case MotionNotify:
 		//do nothing
+		//printf("lookat motion\n");
 		break;
 		case ButtonRelease:
-		//trigger a node pick in mainloop, followed by viewpoint transition
-		p->Viewer.LookatMode = 2;
+		//printf("looat release\n");
+		//viewer->lookatmode should == 3 coming in here
+		if(viewer->type == VIEWER_LOOKAT)
+			fwl_set_viewer_type(VIEWER_LOOKAT); //toggle off LOOKAT
+		if(viewer->type == VIEWER_EXPLORE)
+			fwl_set_viewer_type(VIEWER_EXPLORE); //toggle off LOOKAT
+		viewer->LookatMode = 0; //VIEWER_EXPLORE
+
+		break;
 	}
 	
 }
 void handle_tick_lookat() {
-	ttglobal tg;
-	ppViewer p;
-	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
 	//stub in case we need the viewer or viewpoint transition here	
-	switch(p->Viewer.LookatMode){
+	viewer = Viewer();
+	switch(viewer->LookatMode){
 		case 0: //not in use
 		case 1: //someone set viewer to lookat mode: mainloop shuts off sensitive, turns on lookat cursor
 		case 2: //mouseup tells mainloop to pick a node at current mousexy, turn off lookatcursor
@@ -1408,14 +1532,16 @@ void handle_tick_lookat() {
 void handle_explore(const int mev, const unsigned int button, float x, float y) {
 	/*
 	Like handle_spherical, except:
-	move the viewer.Pos in the opposite direction from where we are looking
+	move the viewer->Pos in the opposite direction from where we are looking
 	*/
 	int ctrl;
-	X3D_Viewer_Spherical *ypz;
-	ppViewer p;
+	// OLDCODE UNUSED X3D_Viewer_Spherical *ypz;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p;
 	ttglobal tg = gglobal();
-	p = (ppViewer)gglobal()->Viewer.prv;
-	ypz = &p->Viewer.ypz; //just a place to store last mouse xy during drag
+	// OLDCODE UNUSED p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	// OLDCODE UNUSED ypz = &viewer->ypz; //just a place to store last mouse xy during drag
 	ctrl = tg->Mainloop.CTRL;
 
 
@@ -1424,7 +1550,7 @@ void handle_explore(const int mev, const unsigned int button, float x, float y) 
 		handle_lookat(mev,button,x,y);
 		return;
 	}
-	if(APPROX(p->Viewer.Dist,0.0)){
+	if(APPROX(viewer->Dist,0.0)){
 		//no pivot point yet
 		handle_spherical(mev,button,x,y);
 		return;
@@ -1438,13 +1564,15 @@ void handle_tplane(const int mev, const unsigned int button, float x, float y) {
 	   do the X,Y shifts and rotation in the plane of the camera screen 
 	   (about camera-axis/Z)
 	*/
+	X3D_Viewer *viewer;
 	X3D_Viewer_InPlane *inplane;
 	//double frameRateAdjustment;//,xx,yy;
 	//struct point_XYZ xyz;
-	ppViewer p;
+	// OLDCODE UNUSED ppViewer p;
 	//ttglobal tg = gglobal();
-	p = (ppViewer)gglobal()->Viewer.prv;
-	inplane = &p->Viewer.inplane;
+	// OLDCODE UNUSED p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	inplane = &viewer->inplane;
 
 	//if( tg->Mainloop.BrowserFPS > 0)
 	//	frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; /* lets say 20FPS is our speed benchmark for developing tuning parameters */
@@ -1456,8 +1584,8 @@ void handle_tplane(const int mev, const unsigned int button, float x, float y) {
 		inplane->y = y; //y;
 		inplane->on = 1;
 	} else if (mev == MotionNotify) {
-		inplane->xx =  x; //.15 * xsign_quadratic(x - inplane->x,5.0,10.0,0.0)*p->Viewer.speed * frameRateAdjustment;
-		inplane->yy =  y; //-.15f * xsign_quadratic(y - inplane->y,5.0,10.0,0.0)*p->Viewer.speed * frameRateAdjustment;
+		inplane->xx =  x; //.15 * xsign_quadratic(x - inplane->x,5.0,10.0,0.0)*viewer->speed * frameRateAdjustment;
+		inplane->yy =  y; //-.15f * xsign_quadratic(y - inplane->y,5.0,10.0,0.0)*viewer->speed * frameRateAdjustment;
  	} else if(mev == ButtonRelease){
 		inplane->xx = 0.0f;
 		inplane->yy = 0.0f;
@@ -1465,20 +1593,27 @@ void handle_tplane(const int mev, const unsigned int button, float x, float y) {
 	}
 }
 void handle_tick_tplane(double dtime){
+	X3D_Viewer *viewer;
 	X3D_Viewer_InPlane *inplane;
 	//Quaternion quatr, quatt, quat;
 	struct point_XYZ pp;
-	ttglobal tg;
-	ppViewer p;
-	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 
-	inplane = &p->Viewer.inplane;
+	inplane = &viewer->inplane;
 	if(inplane->on){
+		if(0){
 		pp.x =  xsign_quadratic(inplane->xx - inplane->x,300.0,100.0,0.0) *dtime;
-		pp.y = -xsign_quadratic(inplane->yy - inplane->y,300.0,100.0,0.0) *dtime;
+		pp.y =  xsign_quadratic(inplane->yy - inplane->y,300.0,100.0,0.0) *dtime;
+		}else{
+			pp.x =  xsign_quadratic(inplane->xx - inplane->x,3.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
+			pp.y =  xsign_quadratic(inplane->yy - inplane->y,3.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
+		}
 		pp.z = 0.0;
-		//vecadd(&p->Viewer.Pos,&p->Viewer.Pos,&pp);
+		//vecadd(&viewer->Pos,&viewer->Pos,&pp);
 		increment_pos(&pp);
 	}
 }
@@ -1489,13 +1624,15 @@ void handle_rtplane(const int mev, const unsigned int button, float x, float y) 
 	   do the X,Y shifts and rotation in the plane of the camera screen 
 	   (about camera-axis/Z)
 	*/
+	X3D_Viewer *viewer;
 	X3D_Viewer_InPlane *inplane;
 	Quaternion nq, q_v;
 	double xx,yy, frameRateAdjustment;
-	ppViewer p;
+	// OLDCODE UNUSED ppViewer p;
 	ttglobal tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
-	inplane = &p->Viewer.inplane;
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	inplane = &viewer->inplane;
 
 	if( tg->Mainloop.BrowserFPS > 0)
 		frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; /* lets say 20FPS is our speed benchmark for developing tuning parameters */
@@ -1510,9 +1647,9 @@ void handle_rtplane(const int mev, const unsigned int button, float x, float y) 
 			//static drag
 			double drot = atan2(yy,xx) - atan2(inplane->y,inplane->x); 
 			//printf("y=%lf x=%lf inplane-y=%lf inplanex=%lf\n",yy,xx,inplane->y,inplane->x);
-			quaternion_set(&q_v, &(p->Viewer.Quat));
+			quaternion_set(&q_v, &(viewer->Quat));
 			vrmlrot_to_quaternion(&nq, 0.0, 0.0, 1.0, drot);
-			quaternion_multiply(&(p->Viewer.Quat), &nq, &q_v);
+			quaternion_multiply(&(viewer->Quat), &nq, &q_v);
 			inplane->x = xx;
 			inplane->y = yy;
 			//CALCULATE_EXAMINE_DISTANCE
@@ -1532,97 +1669,102 @@ void handle_rtplane(const int mev, const unsigned int button, float x, float y) 
 }
 
 void handle_tick_rplane(double dtime){
+	X3D_Viewer *viewer;
 	X3D_Viewer_InPlane *inplane;
 	Quaternion quatr;
 	//struct point_XYZ pp;
 	double roll;
-	ttglobal tg;
-	ppViewer p;
-	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 
-	inplane = &p->Viewer.inplane;
+	inplane = &viewer->inplane;
 	if(inplane->on){
 		roll = xsign_quadratic(inplane->xx - inplane->x,2.0,2.0,0.0)*dtime;
 		vrmlrot_to_quaternion (&quatr,0.0,0.0,1.0,roll); //roll about z axis
-		quaternion_multiply(&(p->Viewer.Quat), &quatr,  &(p->Viewer.Quat)); 
-		quaternion_normalize(&(p->Viewer.Quat));
+		quaternion_multiply(&(viewer->Quat), &quatr,  &(viewer->Quat)); 
+		quaternion_normalize(&(viewer->Quat));
 	}
 
 }
 void handle_tick_tilt(double dtime) {
+	X3D_Viewer *viewer;
 	X3D_Viewer_InPlane *inplane;
 	Quaternion quatt;
 	//struct point_XYZ pp;
 	double yaw, pitch;
-	ttglobal tg;
-	ppViewer p;
-	tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED ttglobal tg;
+	// OLDCODE UNUSED ppViewer p;
+	// OLDCODE UNUSED tg = gglobal();
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 
-	inplane = &p->Viewer.inplane;
+	inplane = &viewer->inplane;
 	if(inplane->on){
 		yaw = xsign_quadratic(inplane->xx - inplane->x,2.0,2.0,0.0)*dtime;
 		vrmlrot_to_quaternion (&quatt,0.0,1.0,0.0,yaw); //tilt about x axis
-		quaternion_multiply(&(p->Viewer.Quat), &quatt, &(p->Viewer.Quat)); 
-		pitch = xsign_quadratic(inplane->yy - inplane->y,2.0,2.0,0.0)*dtime;
+		quaternion_multiply(&(viewer->Quat), &quatt, &(viewer->Quat)); 
+		pitch = -xsign_quadratic(inplane->yy - inplane->y,2.0,2.0,0.0)*dtime;
 		vrmlrot_to_quaternion (&quatt,1.0,0.0,0.0,pitch); //tilt about x axis
-		quaternion_multiply(&(p->Viewer.Quat), &quatt, &(p->Viewer.Quat)); 
-		quaternion_normalize(&(p->Viewer.Quat));
+		quaternion_multiply(&(viewer->Quat), &quatt, &(viewer->Quat)); 
+		quaternion_normalize(&(viewer->Quat));
 	}
 }
 
 /************************************************************************************/
 
 
-void handle0(const int mev, const unsigned int button, const float x, const float y)
+void handle0(const int mev, const unsigned int button, const float x, const float yup)
 {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	/* printf("Viewer handle: viewer_type %s, mouse event %d, button %u, x %f, y %f\n", 
-	   VIEWER_STRING(Viewer.type), mev, button, x, y); */
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	/* ConsoleMessage("Viewer handle: viewer_type %s, mouse event %d, button %u, x %f, y %f\n", 
+	   lookup_navmodestring(viewer->type), mev, button, x, yup); */
 
 	if (button == 2) {
 		return;
 	}
-
-	switch(p->Viewer.type) {
+	switch(viewer->type) {
 	case VIEWER_NONE:
 		break;
 	case VIEWER_EXAMINE:
-		handle_examine(mev, button, ((float) x), ((float) y));
+		handle_examine(mev, button, ((float) x), ((float) yup));
 		break;
 	case VIEWER_WALK:
-		handle_walk(mev, button, ((float) x), ((float) y));
+		handle_walk(mev, button, ((float) x), ((float) yup));
 		break;
 	case VIEWER_EXFLY:
 		break;
 	case VIEWER_FLY:
-		handle_fly2(mev, button, ((float) x), ((float) y)); //feature-Navigation_key_and_drag
+		handle_fly2(mev, button, ((float) x), ((float) yup)); //feature-Navigation_key_and_drag
 		break;
 	case VIEWER_FLY2:
-		handle_fly2(mev,button,((float) x),((float)y)); 
+		handle_fly2(mev,button,((float) x),((float)yup)); 
 		break;
 	case VIEWER_TILT:
 	case VIEWER_RPLANE:
-		handle_rtplane(mev,button,((float) x),((float)y)); //roll, tilt: one uses x, one uses y - separate handle_ticks though
+		handle_rtplane(mev,button,((float) x),((float)yup)); //roll, tilt: one uses x, one uses y - separate handle_ticks though
 		break;
 	case VIEWER_TPLANE:
-		handle_tplane(mev,button,((float) x),((float)y)); //translation in the viewer plane
+		handle_tplane(mev,button,((float) x),((float)yup)); //translation in the viewer plane
 		break;
 	case VIEWER_SPHERICAL:
-		handle_spherical(mev,button,((float) x),((float)y)); //spherical panorama
+		handle_spherical(mev,button,((float) x),((float)yup)); //spherical panorama
 		break;
 	case VIEWER_TURNTABLE:
-		handle_turntable(mev, button, ((float)x), ((float)y));  //examine without roll around world 0,0,0 origin - like a 3D editor with authoring plane
+		handle_turntable(mev, button, ((float)x), ((float)yup));  //examine without roll around world 0,0,0 origin - like a 3D editor with authoring plane
 		break;
 	case VIEWER_LOOKAT:
-		handle_lookat(mev, button, ((float)x), ((float)y)); //as per navigationInfo specs, you toggle on, then click an object and it flys you there
+		handle_lookat(mev, button, ((float)x), ((float)yup)); //as per navigationInfo specs, you toggle on, then click an object and it flys you there
 		break;
 	case VIEWER_EXPLORE:
-		handle_explore(mev, button, ((float)x), ((float)y)); //as per specs, like turntable around any point you pick with CTRL click
+		handle_explore(mev, button, ((float)x), ((float)yup)); //as per specs, like turntable around any point you pick with CTRL click
 		break;
 	case VIEWER_DIST:
-		handle_dist(mev,button,(float)x,(float)y);
+		handle_dist(mev,button,(float)x,(float)yup);
 	default:
 		break;
 	}
@@ -1740,6 +1882,10 @@ void viewer_setDragChord(int chord){
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	p->dragchord = chord;
 }
+void viewer_setNextDragChord(){
+	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	p->dragchord = p->dragchord == CHORD_XY ? CHORD_YAWZ : p->dragchord + 1;
+}
 char *fwl_getDragChord(){
 	return chordnames[viewer_getDragChord()];
 }
@@ -1843,13 +1989,15 @@ void handle_key(const char key, double keytime)
 {
 	char _key;
 	//int i;
+	X3D_Viewer *viewer;
 	X3D_Viewer_Fly *fly; 
 	struct flykey_lookup_type *flykey;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	fly = &p->Viewer.fly;
+	fly = &viewer->fly;
 	//printf("%c",key);
-	//if (p->Viewer.type == VIEWER_FLY) {   //Navigation-key_and_drag
+	//if (viewer->type == VIEWER_FLY) {   //Navigation-key_and_drag
 		/* $key = lc $key; */
 		_key = (char) tolower((int) key);
 		if(!isFlyKey(_key)){
@@ -1874,14 +2022,16 @@ void handle_keyrelease(const char key, double keytime)
 {
 	char _key;
 	//int i;
+	X3D_Viewer *viewer;
 	X3D_Viewer_Fly *fly;
 	struct flykey_lookup_type *flykey;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLD UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 	/* my($this,$time,$key) = @_; */
 
-	fly = &p->Viewer.fly;
+	fly = &viewer->fly;
 
-	//if (p->Viewer.type == VIEWER_FLY) { //Navigation-key_and_drag
+	//if (viewer->type == VIEWER_FLY) { //Navigation-key_and_drag
 		/* $key = lc $key; */
 		_key = (char) tolower((int) key);
 		if(!isFlyKey(_key)) return;
@@ -1961,11 +2111,13 @@ struct point_XYZ viewer_get_lastP()
 
 static void handle_tick_walk()
 {
+	X3D_Viewer *viewer;
 	X3D_Viewer_Walk *walk; 
 	Quaternion q, nq;
 	struct point_XYZ pp;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	walk = &p->Viewer.walk;
+	// OLD UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	walk = &viewer->walk;
 
 	//for normal walking with left button down, only walk->ZD and walk->RD are non-zero
 	pp.x = 0.15 * walk->XD;
@@ -2018,10 +2170,10 @@ static void handle_tick_walk()
 
 	*/
 
-	q.w = (p->Viewer.Quat).w;
-	q.x = (p->Viewer.Quat).x;
-	q.y = (p->Viewer.Quat).y;
-	q.z = (p->Viewer.Quat).z;
+	q.w = (viewer->Quat).w;
+	q.x = (viewer->Quat).x;
+	q.y = (viewer->Quat).y;
+	q.z = (viewer->Quat).z;
 	vrmlrot_to_quaternion (&nq,0.0,1.0,0.0,0.4*walk->RD);
 	//quaternion_to_vrmlrot(&nq,&ff[0],&ff[1],&ff[2],&ff[3]);
 	//if(walk->RD != 0.0)
@@ -2031,8 +2183,8 @@ static void handle_tick_walk()
 	// .Quat = .Quat * walk->RD (if I reverse the order, the tilts don't rotate with the avatar)
 	// .Pos += inverse(planar_part(.Quat)) * walk->ZD
 	//this should rotate the tilts with the avatar
-	quaternion_multiply(&(p->Viewer.Quat), &q, &nq); //Quat = walk->RD * Quat
-	quaternion_normalize(&(p->Viewer.Quat));
+	quaternion_multiply(&(viewer->Quat), &q, &nq); //Quat = walk->RD * Quat
+	quaternion_normalize(&(viewer->Quat));
 	{
 		double angle;
 		struct point_XYZ tilted;
@@ -2061,16 +2213,16 @@ static void handle_tick_walk()
 			viewer_lastP_add(&vec); //wall penetration - last avatar pose is stored before updating
 
 			/* bound-viewpoint-space > Viewer.Pos,Viewer.Quat > avatar-space */
-			//quaternion_inverse(&q_i, &(p->Viewer.Quat));  //<<increment_pos(vec)
+			//quaternion_inverse(&q_i, &(viewer->Quat));  //<<increment_pos(vec)
 			quaternion_inverse(&q_i, &qplanar); //<< I need this in increment_pos
 			quaternion_rotation(&nv, &q_i, &vec);
 
 			/* save velocity calculations for this mode; used for EAI calls only */
-			p->Viewer.VPvelocity.x = nv.x; p->Viewer.VPvelocity.y = nv.y; p->Viewer.VPvelocity.z = nv.z;
+			viewer->VPvelocity.x = nv.x; viewer->VPvelocity.y = nv.y; viewer->VPvelocity.z = nv.z;
 			/* and, act on this change of location. */
-			p->Viewer.Pos.x += nv.x;  /* Viewer.Pos must be in bound-viewpoint space */
-			p->Viewer.Pos.y += nv.y; 
-			p->Viewer.Pos.z += nv.z;
+			viewer->Pos.x += nv.x;  /* Viewer.Pos must be in bound-viewpoint space */
+			viewer->Pos.y += nv.y; 
+			viewer->Pos.z += nv.z;
 			
 
 			/* printf ("increment_pos; oldpos %4.2f %4.2f %4.2f, anti %4.2f %4.2f %4.2f nv %4.2f %4.2f %4.2f \n",
@@ -2093,13 +2245,15 @@ void viewer_setpose( double *quat4, double *vec3){
 		+Quat goes in direction world2vp
 		-Pos goes in direction world2vp
 	*/
+	X3D_Viewer *viewer;
 	double vec[3];
-	ttglobal tg = (ttglobal) gglobal();
-	ppViewer p = (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED ttglobal tg = (ttglobal) gglobal();
+	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 	veccopyd(vec,vec3);
 	if(negate_pos) vecnegated(vec,vec);
-	double2pointxyz(&p->Viewer.Pos,vec);
-	double2quat(&p->Viewer.Quat,quat4);
+	double2pointxyz(&viewer->Pos,vec);
+	double2quat(&viewer->Quat,quat4);
 }
 void viewer_getpose( double *quat4, double *vec3){
 	/*	Freewrl initializes .Quat, .Pos from viewpoint.position, viewpoint.orientation during viewpoint binding
@@ -2107,12 +2261,14 @@ void viewer_getpose( double *quat4, double *vec3){
 		Viewer.Quat = inverse(vp.orientation) //changes sense from x3d vp2world, to opengl sense world2vp
 		Viewer.Pos = vp.position //remains in x3d sense vp2world
 	*/
-	ttglobal tg = (ttglobal) gglobal();
-	ppViewer p = (ppViewer)tg->Viewer.prv;
-	pointxyz2double(vec3,&p->Viewer.Pos);
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ttglobal tg = (ttglobal) gglobal();
+	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	pointxyz2double(vec3,&viewer->Pos);
 	if(negate_pos)
 		vecnegated(vec3,vec3);
-	quat2double(quat4,&p->Viewer.Quat);
+	quat2double(quat4,&viewer->Quat);
 }
 void viewer_getbindpose( double *quat4, double *vec3){
 /*	The bind-time-equivalent viewpoint pose can be got 
@@ -2120,13 +2276,15 @@ void viewer_getbindpose( double *quat4, double *vec3){
 	which copies the .position, .orientation values from the viewpoint node fields
 	(if a viewpoint is bound, otherwise defaults are set during startup)
 */
+	X3D_Viewer *viewer;
 	Quaternion q_i;
-	ttglobal tg = (ttglobal) gglobal();
-	ppViewer p = (ppViewer)tg->Viewer.prv;
-	pointxyz2double(vec3,&p->Viewer.AntiPos); //.Pos
+	// OLDCODE UNUSED ttglobal tg = (ttglobal) gglobal();
+	//OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	pointxyz2double(vec3,&viewer->AntiPos); //.Pos
 	if(negate_pos)
 		vecnegated(vec3,vec3);
-	quaternion_inverse(&q_i,&p->Viewer.AntiQuat);
+	quaternion_inverse(&q_i,&viewer->AntiQuat);
 	quat2double(quat4,&q_i);
 }
 void viewer_getview( double *viewMatrix){
@@ -2169,11 +2327,13 @@ void viewer_setview( double *viewMatrix){
 static void
 handle_tick_exfly()
 {
+	X3D_Viewer *viewer;
 	size_t len = 0;
 	char string[STRING_SIZE];
 	float px,py,pz,q1,q2,q3,q4;
 	size_t rv; /* unused, but here for compile warnings */
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	UNUSED(rv);  // mitigate compiler warnings
 
@@ -2197,8 +2357,8 @@ handle_tick_exfly()
 				IN_FILE);
 
 		/* allow the user to continue in default Viewer mode */
-		p->Viewer.type = VIEWER_EXAMINE;
-		//setMenuButton_navModes(p->Viewer.type);
+		viewer->type = VIEWER_EXAMINE;
+		//setMenuButton_navModes(viewer->type);
 		return;
 	}
 	rv = fread(string, sizeof(char), IN_FILE_BYTES, p->exfly_in_file);
@@ -2222,14 +2382,14 @@ handle_tick_exfly()
 			/* read error? */
 			if (len != 7) return;
 
-			(p->Viewer.Pos).x = px;
-			(p->Viewer.Pos).y = py;
-			(p->Viewer.Pos).z = pz;
+			(viewer->Pos).x = px;
+			(viewer->Pos).y = py;
+			(viewer->Pos).z = pz;
 
-			(p->Viewer.Quat).w = q1;
-			(p->Viewer.Quat).x = q2;
-			(p->Viewer.Quat).y = q3;
-			(p->Viewer.Quat).z = q4;
+			(viewer->Quat).w = q1;
+			(viewer->Quat).x = q2;
+			(viewer->Quat).y = q3;
+			(viewer->Quat).z = q4;
 		}else if(p->exflyMethod == 1){
 			//dug9 WiiMote data written from a C# program
 			static int lastbut = 0;
@@ -2268,13 +2428,16 @@ handle_tick_exfly()
 
 static void handle_tick_fly()
 {
+	X3D_Viewer *viewer;
 	X3D_Viewer_Fly *fly;
 	Quaternion q_v, nq = { 1, 0, 0, 0 };
 	struct point_XYZ v;
 	double changed = 0.0, time_diff = -1.0;
 	int i;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	fly = &p->Viewer.fly;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+
+	fly = &viewer->fly;
 
 	//sleep(400); //slow frame rate to test frame-rate-dependent actions
 	if (fly->lasttime < 0) {
@@ -2308,7 +2471,7 @@ static void handle_tick_fly()
 		//if key action, add new velocity
 		if(fly->down[0][i].direction){ 
 			//key is currently down
-			fly->Velocity[0][i] += (fly->ndown[0][i]+fly->down[0][i].once)*fly->down[0][i].direction * p->Viewer.speed;
+			fly->Velocity[0][i] += (fly->ndown[0][i]+fly->down[0][i].once)*fly->down[0][i].direction * viewer->speed * .1 * max(viewer->Dist,1.0);
 			fly->down[0][i].once = 0;
 			fly->ndown[0][i] = 0; //p->translaten[i] = 0; 
 			//fly->ttransition[i][0] = fly->lasttime; //save time of last [i] translate, for delaying decay
@@ -2317,7 +2480,7 @@ static void handle_tick_fly()
 	}
 
 	/* if we do NOT have a GeoViewpoint node, constrain all 3 axis */
-	if (p->Viewer.GeoSpatialNode == NULL) 
+	if (viewer->GeoSpatialNode == NULL) 
 		if(0) for (i = 0; i < 3; i++) {
 			if (fabs(fly->Velocity[0][i]) >9.0) 
 				fly->Velocity[0][i] /= (fabs(fly->Velocity[0][i]) /9.0);
@@ -2382,9 +2545,9 @@ static void handle_tick_fly()
 	nq.z = fly->Velocity[1][2]; // * time_diff;
 	quaternion_normalize(&nq);
 
-	quaternion_set(&q_v, &(p->Viewer.Quat));
-	quaternion_multiply(&(p->Viewer.Quat), &nq, &q_v);
-	quaternion_normalize(&(p->Viewer.Quat));
+	quaternion_set(&q_v, &(viewer->Quat));
+	quaternion_multiply(&(viewer->Quat), &nq, &q_v);
+	quaternion_normalize(&(viewer->Quat));
 
 	/* make sure Viewer.Dist is configured properly for Examine mode */
 	//CALCULATE_EXAMINE_DISTANCE
@@ -2394,26 +2557,28 @@ static void handle_tick_fly()
 void
 handle_tick()
 {
+	X3D_Viewer *viewer;
 	double lasttime, dtime, time_diff;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	lasttime = p->Viewer.lasttime;
+	viewer = Viewer();
+	lasttime = viewer->lasttime;
 
 	time_diff = 0.0; 
 	//sleep(400); //slow frame rate to test frame-rate-dependent actions
 	if (lasttime < 0) {
-		p->Viewer.lasttime = TickTime(); 
+		viewer->lasttime = TickTime(); 
 		return;
 	} else {
 		dtime = TickTime();
-		time_diff = dtime - p->Viewer.lasttime; //TickTime is computed once per frame, and handle_tick() is called once per frame
+		time_diff = dtime - viewer->lasttime; //TickTime is computed once per frame, and handle_tick() is called once per frame
 		if (APPROX(time_diff, 0)) {
 			return;
 		}
-		p->Viewer.lasttime = dtime;
+		viewer->lasttime = dtime;
 		if(time_diff < 0.0) return; //skip a frame if the clock wraps around
 	}
 	 
-	switch(p->Viewer.type) {
+	switch(viewer->type) {
 	case VIEWER_NONE:
 		break;
 	case VIEWER_EXAMINE:
@@ -2468,10 +2633,10 @@ handle_tick()
 	default:
 		break;
 	}
-	if(p->Viewer.type != VIEWER_NONE){
+	if(viewer->type != VIEWER_NONE){
 		handle_tick_fly(); //Navigation-key_and_drag
 	}
-	if (p->Viewer.doExamineModeDistanceCalculations) {
+	if (viewer->doExamineModeDistanceCalculations) {
 		/*
 		printf ("handle_tick - doing calculations\n");
 		*/
@@ -2480,7 +2645,7 @@ handle_tick()
 		p->examineCounter --;
 
 		if (p->examineCounter < 0) {
-			p->Viewer.doExamineModeDistanceCalculations = FALSE;
+			viewer->doExamineModeDistanceCalculations = FALSE;
 			p->examineCounter = 5;
 		}
 	}
@@ -2502,7 +2667,7 @@ xy2qua(Quaternion *ret, const double x, const double y)
 {
 	double _x = x - 0.5, _y = y - 0.5, _z, dist;
 	_x *= 2;
-	_y *= -2;
+	_y *= 2;
 
 	dist = sqrt((_x * _x) + (_y * _y));
 
@@ -2575,15 +2740,17 @@ void setAnaglyphPrimarySide(int primary, int iside){
 }
 void setAnaglyphSideColor(char val, int iside)
 {
+	X3D_Viewer *viewer;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	p->Viewer.iprog[iside] = indexRGBACM(val);
-	if(p->Viewer.iprog[iside] == -1 )
+	viewer = Viewer();
+	viewer->iprog[iside] = indexRGBACM(val);
+	if(viewer->iprog[iside] == -1 )
 	{
 		printf ("warning, command line anaglyph parameter incorrect - was %c need something like RG\n",val);
-		p->Viewer.iprog[iside] = iside;
+		viewer->iprog[iside] = iside;
 	}
 	/* used for anaglyphMethod==2 */
-	switch (p->Viewer.iprog[iside]) {
+	switch (viewer->iprog[iside]) {
 		case 0: //'R':
 		   setmask(p->acMask[iside],1,0,0);
 		   break;
@@ -2608,9 +2775,11 @@ void fwl_set_AnaglyphParameter(const char *optArg) {
 /*
   NOTE: "const char" means that you wont modify it in the function :)
  */
+	X3D_Viewer *viewer;
 	const char* glasses;
 	int len;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	glasses = optArg;
 	len = (int) strlen(optArg);
@@ -2643,11 +2812,11 @@ void fwl_set_AnaglyphParameter(const char *optArg) {
 	//	Viewer.iprog[0] = 0;
 	//	Viewer.iprog[1] = 1;
 	//}
-	p->Viewer.anaglyph = 1; /*0=none 1=active */
-	p->Viewer.shutterGlasses = 0;
-	p->Viewer.sidebyside = 0;
-	p->Viewer.updown = 0;
-	p->Viewer.isStereo = 1;
+	viewer->anaglyph = 1; /*0=none 1=active */
+	viewer->shutterGlasses = 0;
+	viewer->sidebyside = 0;
+	viewer->updown = 0;
+	viewer->isStereo = 1;
 	setStereoBufferStyle(1);
 }
 /* shutter glasses, stereo view  from Mufti@rus */
@@ -2658,72 +2827,83 @@ void fwl_init_Shutter (void)
 	  first: from options.c but haveQuadbuffer will == 0 because we haven't init gl yet, so don't know
 	  second: post_gl_init - we'll know haveQuadbuffer which might = 1 (if not it goes into flutter mode)
     */
-	ppViewer p; 
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p; 
 	ttglobal tg = gglobal();
-	p= (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED p= (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 
 	tg->display.shutterGlasses = 2;
-	p->Viewer.shutterGlasses = 2;
+	viewer->shutterGlasses = 2;
 	setStereoBufferStyle(1); 
-	if(p->Viewer.haveQuadbuffer)
+	if(viewer->haveQuadbuffer)
 	{
 		tg->display.shutterGlasses = 1; /* platform specific pixelformat/window initialization code should hint PRF_STEREO */
-		p->Viewer.shutterGlasses = 1;
+		viewer->shutterGlasses = 1;
 		setStereoBufferStyle(0); 
 	}
-	p->Viewer.isStereo = 1;
+	viewer->isStereo = 1;
 
 }
 
 void fwl_init_SideBySide()
 {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	setStereoBufferStyle(1); 
-	p->Viewer.isStereo = 1;
-	p->Viewer.sidebyside = 1;
-	p->Viewer.screendist = min(p->Viewer.screendist,.375);
-	p->Viewer.stereoParameter = min(p->Viewer.stereoParameter,.01);
+	viewer->isStereo = 1;
+	viewer->sidebyside = 1;
+	viewer->screendist = min(viewer->screendist,.375);
+	viewer->stereoParameter = min(viewer->stereoParameter,.01);
 }
 void fwl_init_UpDown()
 {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	setStereoBufferStyle(1); 
-	p->Viewer.isStereo = 1;
-	p->Viewer.updown = 1;
-	p->Viewer.screendist = min(p->Viewer.screendist,.375);
-	p->Viewer.stereoParameter = min(p->Viewer.stereoParameter,.01);
+	viewer->isStereo = 1;
+	viewer->updown = 1;
+	viewer->screendist = min(viewer->screendist,.375);
+	viewer->stereoParameter = min(viewer->stereoParameter,.01);
 }
 
 void clear_shader_table();
 void setAnaglyph()
 {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	/* called from post_gl_init and hud/options (option.c calls fwl_set_AnaglyphParameter above) */
-	p->Viewer.anaglyph = 1; 
-	p->Viewer.isStereo = 1;
+	viewer->anaglyph = 1; 
+	viewer->isStereo = 1;
 	clear_shader_table();
 	setStereoBufferStyle(1);
 }
 void setMono()
 {
-	ppViewer p; 
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p; 
 	ttglobal tg = gglobal();
-	p = (ppViewer)tg->Viewer.prv;
+	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
 
-	p->Viewer.isStereo = 0;
-	if(p->Viewer.anaglyph)
+	viewer->isStereo = 0;
+	if(viewer->anaglyph)
 	{
 		glColorMask(1,1,1,1);
 		clear_shader_table();
 	}
-	p->Viewer.anaglyph = 0;
-	p->Viewer.sidebyside = 0;
-	p->Viewer.updown = 0;
-	p->Viewer.shutterGlasses = 0;
+	viewer->anaglyph = 0;
+	viewer->sidebyside = 0;
+	viewer->updown = 0;
+	viewer->shutterGlasses = 0;
 	tg->display.shutterGlasses = 0;
+
 }
 
 /*
@@ -2739,14 +2919,15 @@ static void setStereo(int type)
 	/* type: 0 off  1 shutterglasses 2 sidebyside 3 analgyph */
 	/* can only be called after opengl is initialized */
 	//initStereoDefaults(); 
+	gglobal()->Viewer.stereotype = type;
 	setMono();
 	switch(type)
 	{
 	case VIEWER_STEREO_OFF: {/*setMono()*/;break;}
 	case VIEWER_STEREO_SHUTTERGLASSES: {fwl_init_Shutter(); break;}
 	case VIEWER_STEREO_SIDEBYSIDE: {fwl_init_SideBySide(); break;}
-	case VIEWER_STEREO_UPDOWN: {fwl_init_UpDown(); break;}
 	case VIEWER_STEREO_ANAGLYPH: {setAnaglyph(); break;}
+	case VIEWER_STEREO_UPDOWN: {fwl_init_UpDown(); break;}
 	default: break;
 	}
 }
@@ -2754,26 +2935,48 @@ void toggleOrSetStereo(int type)
 {
 	/* if user clicks the active stereovision type on a HUD, then it should turn it off - back to mono
 	if it's not active, then it should be set active*/
+	X3D_Viewer *viewer;
 	int curtype, shut;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	shut = p->Viewer.shutterGlasses ? 1 : 0;
-	curtype = p->Viewer.isStereo*( (shut)*1 + p->Viewer.sidebyside*2 + p->Viewer.anaglyph*3 + p->Viewer.updown*4);
-	if(type != curtype) 
+	shut = viewer->shutterGlasses ? 1 : 0;
+	curtype = viewer->isStereo*( (shut)*1 + viewer->sidebyside*2 + viewer->anaglyph*3 + viewer->updown*4);
+	if(type != curtype) {
 		setStereo(type);
-	else
+	} else {
 		setMono();
+		gglobal()->Viewer.stereotype = 0;
+	}
+
+}
+void fwl_setPickraySide(int ipreferredSide, int either){
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	viewer->dominantEye = ipreferredSide;
+	viewer->eitherDominantEye = either;
+
+}
+void fwl_getPickraySide(int *ipreferredSide, int *either){
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	*ipreferredSide = viewer->dominantEye ;
+	*either = viewer->eitherDominantEye;
 }
 void updateEyehalf()
 {
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-	if( p->Viewer.screendist != 0.0)
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
+	if( viewer->screendist != 0.0)
 	{
 		//old semantics (variable meanings)
 		//eyedist - object space distance between left and right viewpoints
 		//screendist - distance to toe-in target
 		//stereoParameter - distance from infinity line to toe-in target
-		//set_eyehalf( p->Viewer.eyedist/2.0,atan2(p->Viewer.eyedist/2.0,p->Viewer.screendist)*360.0/(2.0*3.1415926));
+		//set_eyehalf( viewer->eyedist/2.0,atan2(viewer->eyedist/2.0,viewer->screendist)*360.0/(2.0*3.1415926));
 		
 		//new semantics as of March 12, 2012
 		//eyedist - object space distance between left and right viewpoints
@@ -2789,7 +2992,7 @@ void updateEyehalf()
 		//	 = .5 - for shutterglasses and anaglyph, both sides are centered on the screen
 		//        - for sidebyside, both sides are centered on their respective left and right viewports
 		//				average human eyebase 65mm or 2.5" - we prefer 2.25" or 57mm. For a 6" screen 2.25/6 = .375
-		set_eyehalf( p->Viewer.eyedist/2.0,atan(p->Viewer.stereoParameter)*180.0/3.1415926);
+		set_eyehalf( viewer->eyedist/2.0,atan(viewer->stereoParameter)*180.0/3.1415926);
 	}
 }
 
@@ -2797,27 +3000,32 @@ void viewer_postGLinit_init(void)
 {
 
 //#if defined(FREEWRL_SHUTTER_GLASSES) || defined(FREEWRL_STEREO_RENDERING)
+	X3D_Viewer *viewer;
 	int type;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	s_renderer_capabilities_t *rdr_caps;
+    ttglobal tg = gglobal();
+	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
+	viewer = Viewer();
+	rdr_caps = tg->display.rdr_caps;
     
     // see if we can use quad buffer here or not.
-    p->Viewer.haveQuadbuffer = (gglobal()->display.rdr_caps.quadBuffer== GL_TRUE);
+    viewer->haveQuadbuffer = (rdr_caps->quadBuffer== GL_TRUE);
     
-    //if (p->Viewer.haveQuadbuffer) ConsoleMessage ("viewer_postGLinit_init, HAVE quad buffer"); else ConsoleMessage ("viewer_postGLinit, no quad buffer");
+    //if (viewer->haveQuadbuffer) ConsoleMessage ("viewer_postGLinit_init, HAVE quad buffer"); else ConsoleMessage ("viewer_postGLinit, no quad buffer");
     
 	updateEyehalf();
 
 	type = VIEWER_STEREO_OFF;
-	if( p->Viewer.shutterGlasses ) type = VIEWER_STEREO_SHUTTERGLASSES;
-	if( p->Viewer.sidebyside ) type = VIEWER_STEREO_SIDEBYSIDE;
-	if( p->Viewer.updown ) type = VIEWER_STEREO_UPDOWN;
-	if( p->Viewer.anaglyph ==1 ) type = VIEWER_STEREO_ANAGLYPH;
+	if( viewer->shutterGlasses ) type = VIEWER_STEREO_SHUTTERGLASSES;
+	if( viewer->sidebyside ) type = VIEWER_STEREO_SIDEBYSIDE;
+	if( viewer->updown ) type = VIEWER_STEREO_UPDOWN;
+	if( viewer->anaglyph ==1 ) type = VIEWER_STEREO_ANAGLYPH;
 
 	if(type==VIEWER_STEREO_SHUTTERGLASSES)
 	{
 		// does this opengl driver/hardware support GL_STEREO? p.469, p.729 RedBook and
 		//   WhiteDune > swt.c L1306
-		if (!p->Viewer.haveQuadbuffer ) {
+		if (!viewer->haveQuadbuffer ) {
 			ConsoleMessage("Unable to get quadbuffer stereo visual, switching to flutter mode\n");
 		}
 	}
@@ -2832,13 +3040,15 @@ void viewer_postGLinit_init(void)
 
 void fwl_set_StereoParameter (const char *optArg) {
 
+	X3D_Viewer *viewer;
 	int i;
 
 	//if(Viewer.isStereo == 0)
 	//	initStereoDefaults();
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	i = sscanf(optArg,"%lf",&p->Viewer.stereoParameter);
+	i = sscanf(optArg,"%lf",&viewer->stereoParameter);
 	if (i==0) printf ("warning, command line stereo parameter incorrect - was %s\n",optArg);
 	else updateEyehalf();
 }
@@ -2847,9 +3057,11 @@ void fwl_set_EyeDist (const char *optArg) {
 	int i;
 	//if(Viewer.isStereo == 0)
 	//	initStereoDefaults();
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	i= sscanf(optArg,"%lf",&p->Viewer.eyedist);
+	i= sscanf(optArg,"%lf",&viewer->eyedist);
 	if (i==0) printf ("warning, command line eyedist parameter incorrect - was %s\n",optArg);
 	else updateEyehalf();
 }
@@ -2858,9 +3070,11 @@ void fwl_set_ScreenDist (const char *optArg) {
 	int i;
 	//if(Viewer.isStereo == 0)
 	//	initStereoDefaults();
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	i= sscanf(optArg,"%lf",&p->Viewer.screendist);
+	i= sscanf(optArg,"%lf",&viewer->screendist);
 	if (i==0) printf ("warning, command line screendist parameter incorrect - was %s\n",optArg);
 	else updateEyehalf();
 }
@@ -2868,40 +3082,44 @@ void fwl_set_ScreenDist (const char *optArg) {
 
 void set_stereo_offset0() /*int iside, double eyehalf, double eyehalfangle)*/
 {
-      double x = 0.0, angle = 0.0;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	double x = 0.0, angle = 0.0;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-      if (p->Viewer.iside == 0) {
-		      /* left */
-              x = p->Viewer.eyehalf;
-              angle = p->Viewer.eyehalfangle; //old semantics: * p->Viewer.stereoParameter; /*stereoparamter: 0-1 1=toe in to cross-over at Screendist 0=look at infinity, eyes parallel*/
-      } else if (p->Viewer.iside == 1) {
-		      /* right */
-              x = -p->Viewer.eyehalf;
-              angle = -p->Viewer.eyehalfangle; //old semantics: * p->Viewer.stereoParameter;
-      }
-      FW_GL_TRANSLATE_D(x, 0.0, 0.0);
-      FW_GL_ROTATE_D(angle, 0.0, 1.0, 0.0);
+	if (viewer->iside == 0) {
+		/* left */
+		x = viewer->eyehalf;
+		angle = viewer->eyehalfangle; //old semantics: * viewer->stereoParameter; /*stereoparamter: 0-1 1=toe in to cross-over at Screendist 0=look at infinity, eyes parallel*/
+	} else if (viewer->iside == 1) {
+		/* right */
+		x = -viewer->eyehalf;
+		angle = -viewer->eyehalfangle; //old semantics: * viewer->stereoParameter;
+	}
+	FW_GL_TRANSLATE_D(x, 0.0, 0.0);
+	FW_GL_ROTATE_D(angle, 0.0, 1.0, 0.0);
 }
 
 /* used to move, in WALK, FLY modes. */
 void increment_pos(struct point_XYZ *vec) {
 	struct point_XYZ nv;
 	Quaternion q_i;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
 	viewer_lastP_add(vec);
 
 	/* bound-viewpoint-space > Viewer.Pos,Viewer.Quat > avatar-space */
-	quaternion_inverse(&q_i, &(p->Viewer.Quat));
+	quaternion_inverse(&q_i, &(viewer->Quat));
 	quaternion_rotation(&nv, &q_i, vec);
 
 	/* save velocity calculations for this mode; used for EAI calls only */
-	p->Viewer.VPvelocity.x = nv.x; p->Viewer.VPvelocity.y = nv.y; p->Viewer.VPvelocity.z = nv.z;
+	viewer->VPvelocity.x = nv.x; viewer->VPvelocity.y = nv.y; viewer->VPvelocity.z = nv.z;
 	/* and, act on this change of location. */
-	p->Viewer.Pos.x += nv.x;  /* Viewer.Pos must be in bound-viewpoint space */
-	p->Viewer.Pos.y += nv.y; 
-	p->Viewer.Pos.z += nv.z;
+	viewer->Pos.x += nv.x;  /* Viewer.Pos must be in bound-viewpoint space */
+	viewer->Pos.y += nv.y; 
+	viewer->Pos.z += nv.z;
 	
 
 	/* printf ("increment_pos; oldpos %4.2f %4.2f %4.2f, anti %4.2f %4.2f %4.2f nv %4.2f %4.2f %4.2f \n",
@@ -2915,7 +3133,9 @@ void increment_pos(struct point_XYZ *vec) {
 void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 	Quaternion q_i;
 	float xd, yd,zd;
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = ViewerByLayerId(vp->_layerId);
 
 
 	/* did bind_node tell us we could bind this guy? */
@@ -2929,26 +3149,26 @@ void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 	INITIATE_POSITION
 
 	/* assume Perspective, unless Otrho set */
-	p->Viewer.ortho=TRUE;
+	viewer->ortho=TRUE;
 	if (vp->fieldOfView.n == 4) {
 			/* Ortho mapping - glOrtho order left/right/bottom/top
 			   assume X3D says left bottom right top */
-		p->Viewer.orthoField[0] = (double) vp->fieldOfView.p[0];
-		p->Viewer.orthoField[1] = (double) vp->fieldOfView.p[2];
-		p->Viewer.orthoField[2] = (double) vp->fieldOfView.p[1];
-		p->Viewer.orthoField[3] = (double) vp->fieldOfView.p[3];
+		viewer->orthoField[0] = (double) vp->fieldOfView.p[0];
+		viewer->orthoField[1] = (double) vp->fieldOfView.p[1];
+		viewer->orthoField[2] = (double) vp->fieldOfView.p[2];
+		viewer->orthoField[3] = (double) vp->fieldOfView.p[3];
 	} else {
 		ERROR_MSG("OrthoViewpoint - fieldOfView must have 4 parameters");
-		p->Viewer.orthoField[0] = 0.0;
-		p->Viewer.orthoField[1] = 0.0;
-		p->Viewer.orthoField[2] = 0.0;
-		p->Viewer.orthoField[3] = 0.0;
+		viewer->orthoField[0] = -1.0;
+		viewer->orthoField[1] = -1.0;
+		viewer->orthoField[2] =  1.0;
+		viewer->orthoField[3] =  1.0;
 	}
 
 	/* printf ("orthoviewpoint binding distance %f\n",Viewer.Dist);  */
 
 	/* since this is not a bind to a GeoViewpoint node... */
-	p->Viewer.GeoSpatialNode = NULL;
+	viewer->GeoSpatialNode = NULL;
 
 	/* set the examine mode rotation origin */
 	INITIATE_ROTATION_ORIGIN
@@ -2997,29 +3217,37 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 
 	viewer_lastP_clear();
 	resolve_pos();
+	setMenuStatusVP (vp->description->strptr);
+
 }
 
 /* called from main, after the new viewpoint is setup */
-void slerp_viewpoint()
+int slerp_viewpoint(int itype)
 {
+	int iret;
+	X3D_Viewer *viewer;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
 
-	if(p->Viewer.SLERPing3){
+	iret = 0; 
+	if(viewer->SLERPing3 && itype==3){
 		//navigation 'm' LOOKAT and 'g' EXPLORE non-vp-bind slerping comes through here
-		// slerps: viewer.pos, .quat, .dist 
+		// slerps: viewer->pos, .quat, .dist 
 		double tickFrac;
-		tickFrac = (TickTime() - p->Viewer.startSLERPtime)/p->Viewer.transitionTime;
+		tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 		tickFrac = min(1.0,tickFrac); //clamp to max 1.0 otherwise a slow frame rate will overshoot
-		quaternion_slerp(&p->Viewer.Quat,&p->Viewer.startSLERPQuat,&p->Viewer.endSLERPQuat,tickFrac);
-		point_XYZ_slerp(&p->Viewer.Pos,&p->Viewer.startSLERPPos,&p->Viewer.endSLERPPos,tickFrac);
-		general_slerp(&p->Viewer.Dist,&p->Viewer.startSLERPDist,&p->Viewer.endSLERPDist,1,tickFrac);
+		quaternion_slerp(&viewer->Quat,&viewer->startSLERPQuat,&viewer->endSLERPQuat,tickFrac);
+		point_XYZ_slerp(&viewer->Pos,&viewer->startSLERPPos,&viewer->endSLERPPos,tickFrac);
+		general_slerp(&viewer->Dist,&viewer->startSLERPDist,&viewer->endSLERPDist,1,tickFrac);
 		if(tickFrac >= 1.0) {
-			p->Viewer.SLERPing3 = 0;
+			viewer->SLERPing3 = 0;
 			resolve_pos2(); //may not need this if examine etc do it
 		}
+		iret = 1;
 		//now we let normal rendering use the viewer quat, pos, dist during rendering
-	}else if(p->Viewer.SLERPing2 && p->vp2rnSaved) {
-		if(p->Viewer.SLERPing2justStarted)
+	}else if(viewer->SLERPing2 && p->vp2rnSaved && itype==2) {
+		//viewpoint slerp-on-bind comes through here
+		if(viewer->SLERPing2justStarted)
 		{
 			//rn rootnode space, vpo/vpn old and new viewpoint space
 			double vpo2rn[16];
@@ -3028,7 +3256,7 @@ void slerp_viewpoint()
             //double rn2rn[16];
             double diffrn[16];
 			memcpy(vpo2rn,p->viewpoint2rootnode,sizeof(double)*16);
-			if(p->Viewer.LookatMode==3){
+			if(viewer->LookatMode==3){
 				memcpy(vpn2rn,p->viewpointnew2rootnode,sizeof(double)*16);
 			}else{
 				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
@@ -3052,7 +3280,7 @@ void slerp_viewpoint()
 			p->sp[1] = diffrn[13];
 			p->sp[2] = diffrn[14];
 
-			p->Viewer.SLERPing2justStarted = FALSE;
+			viewer->SLERPing2justStarted = FALSE;
 			//p->tickFrac = 0.0;
 			//printf("in slerping2juststarted ");
 		}
@@ -3062,7 +3290,7 @@ void slerp_viewpoint()
 			Quaternion qdif,qzero;
 			double vzero[3], vshift[3];
 
-			tickFrac = (TickTime() - p->Viewer.startSLERPtime)/p->Viewer.transitionTime;
+			tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 			/*
 			if(0){ //debugging slowly
 				p->tickFrac += .1;
@@ -3082,11 +3310,13 @@ void slerp_viewpoint()
 			}
 			if(tickFrac > .99)
 			{
-				p->Viewer.SLERPing2 = FALSE;
+				viewer->SLERPing2 = FALSE;
 				//printf(" done\n");
 			}
 		}
+		iret = 1;
 	}
+	return iret;
 }
 void setup_viewpoint_slerp(double* center, double pivot_radius, double vp_radius){
 	/* when you don't have a  new viewpoint to bind to, but know where you want the viewer to go
@@ -3103,33 +3333,35 @@ void setup_viewpoint_slerp(double* center, double pivot_radius, double vp_radius
 	Quaternion qyaw, qpitch, qtmp;
 	struct point_XYZ PC;
 
-	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	X3D_Viewer *viewer;
+	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 
 	double  pos[3] = {0.0,0.0,0.0}; //rpos[3],
 	struct point_XYZ pp,qq;
+	viewer = Viewer();
 
 	veccopyd(pos,center);
 
-	//dradius = max(p->Viewer.Dist, radius + 5.0);
+	//dradius = max(viewer->Dist, radius + 5.0);
 	//distance = veclengthd(pos);
 	//distance = (distance - dradius)/distance;
 	vecnormald(pos,pos);
 	vecscaled(pos,pos,vp_radius); //distance);
 	//dradius = veclengthd(pos);
 
-	p->Viewer.SLERPing3 = 1;
+	viewer->SLERPing3 = 1;
 
 	//Dec 2014 another attempt at non-bind viewpoint slerping 
 	//method: 
-	// 1. snapshot the current viewer.quat, viewer.pos, viewer.dist as startSLERP 
+	// 1. snapshot the current viewer->quat, viewer->pos, viewer->dist as startSLERP 
 	// 2. compute ending pos, quat, dist and set as endSLERP .Pos, .Quat .Dist
 	// 3. in viewpoint_slerp(), slerp from starting to ending
 
 	// 1. snapshot current viewer quat,pos,dist as startSLERP
-	p->Viewer.startSLERPPos = p->Viewer.Pos;
-	p->Viewer.startSLERPQuat = p->Viewer.Quat;
-	p->Viewer.startSLERPDist = p->Viewer.Dist;
-	p->Viewer.startSLERPtime = TickTime();
+	viewer->startSLERPPos = viewer->Pos;
+	viewer->startSLERPQuat = viewer->Quat;
+	viewer->startSLERPDist = viewer->Dist;
+	viewer->startSLERPtime = TickTime();
 		
 	// 2. compute end pos,quat,dist as endSLERP
 	// generally we have a vector center, and a pitch,roll 
@@ -3144,16 +3376,16 @@ void setup_viewpoint_slerp(double* center, double pivot_radius, double vp_radius
 	Order of transforms:
 		.Pos += inverse(.Quat)*center
 	*/
-	p->Viewer.endSLERPDist = vp_radius;
+	viewer->endSLERPDist = vp_radius;
 
 	// end = start + ...
 	// endPos = startPos + inverse(startQuat)*center
-	quaternion_normalize(&p->Viewer.startSLERPQuat);
-	quaternion_inverse( &q_i,&p->Viewer.startSLERPQuat);
+	quaternion_normalize(&viewer->startSLERPQuat);
+	quaternion_inverse( &q_i,&viewer->startSLERPQuat);
 	vecdifd(pos,center,pos);
 	double2pointxyz(&pp,pos);
 	quaternion_rotation(&qq, &q_i, &pp);
-	vecadd(&p->Viewer.endSLERPPos,&p->Viewer.startSLERPPos,&qq);
+	vecadd(&viewer->endSLERPPos,&viewer->startSLERPPos,&qq);
 
 	// endQuat = startQuat*toQuat(yaw)*toQuat(pitch)
 	//when you pick, your pickray and shape object isn't usually dead center in the viewport. In that case,
@@ -3176,14 +3408,14 @@ void setup_viewpoint_slerp(double* center, double pivot_radius, double vp_radius
 	vrmlrot_to_quaternion(&qpitch,1.0,0.0,0.0,pitch);
 	//quatEnd = quatPitch*quatYaw*quatStart
 	quaternion_multiply(&qtmp,&qyaw,&qpitch);
-	quaternion_multiply(&p->Viewer.endSLERPQuat,&qtmp,&p->Viewer.startSLERPQuat);
-	if(p->Viewer.LookatMode == 3){
-		if(p->Viewer.type == VIEWER_LOOKAT)
-			fwl_set_viewer_type(VIEWER_LOOKAT); //toggle off LOOKAT
-		if(p->Viewer.type == VIEWER_EXPLORE)
-			fwl_set_viewer_type(VIEWER_EXPLORE); //toggle off LOOKAT
-		p->Viewer.LookatMode = 0; //VIEWER_EXPLORE
-	}
+	quaternion_multiply(&viewer->endSLERPQuat,&qtmp,&viewer->startSLERPQuat);
+	//if(0) if(viewer->LookatMode == 3){ moved to handle_lookat
+	//	if(viewer->type == VIEWER_LOOKAT)
+	//		fwl_set_viewer_type(VIEWER_LOOKAT); //toggle off LOOKAT
+	//	if(viewer->type == VIEWER_EXPLORE)
+	//		fwl_set_viewer_type(VIEWER_EXPLORE); //toggle off LOOKAT
+	//	viewer->LookatMode = 0; //VIEWER_EXPLORE
+	//}
 	//viewer_lastP_clear(); //not sure I need this - its for wall penetration
 }
 
@@ -3193,6 +3425,7 @@ void setup_viewpoint_slerp(double* center, double pivot_radius, double vp_radius
 void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	Quaternion q_i;
 	float xd, yd,zd;
+	X3D_Viewer *viewer;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 
 	/* did bind_node tell us we could bind this guy? */
@@ -3320,7 +3553,7 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 								- starts as .position, updated in getCurrentPosInModel()
 			No-slerping use of variables in prep_Viewpoint():
 					rotate(prepVPQuat)
-					translate(viewer.position)
+					translate(viewer->position)
 		New process: =======================================================
 		Goal: get both the old and new modelview matrices together, so pose_difference can be
 			computed and applied to new viewpoint orientation/position before render() on the
@@ -3345,42 +3578,43 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	*/
 	//INITIATE_SLERP
 	//if(false){
-	if (p->Viewer.transitionType != VIEWER_TRANSITION_TELEPORT && p->Viewer.wasBound) { 
-        p->Viewer.SLERPing = FALSE; //TRUE; 
-        p->Viewer.startSLERPtime = TickTime(); 
-        memcpy (&p->Viewer.startSLERPPos, &p->Viewer.Pos, sizeof (struct point_XYZ)); 
-        memcpy (&p->Viewer.startSLERPAntiPos, &p->Viewer.AntiPos, sizeof (struct point_XYZ)); 
-        memcpy (&p->Viewer.startSLERPQuat, &p->Viewer.Quat, sizeof (Quaternion)); 
-        memcpy (&p->Viewer.startSLERPAntiQuat, &p->Viewer.AntiQuat, sizeof (Quaternion));  
-        memcpy (&p->Viewer.startSLERPbindTimeQuat, &p->Viewer.bindTimeQuat, sizeof (Quaternion)); 
-        memcpy (&p->Viewer.startSLERPprepVPQuat, &p->Viewer.prepVPQuat, sizeof (Quaternion)); 
+	viewer = ViewerByLayerId(vp->_layerId);
+	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
+        viewer->SLERPing = FALSE; //TRUE; 
+        viewer->startSLERPtime = TickTime(); 
+        memcpy (&viewer->startSLERPPos, &viewer->Pos, sizeof (struct point_XYZ)); 
+        memcpy (&viewer->startSLERPAntiPos, &viewer->AntiPos, sizeof (struct point_XYZ)); 
+        memcpy (&viewer->startSLERPQuat, &viewer->Quat, sizeof (Quaternion)); 
+        memcpy (&viewer->startSLERPAntiQuat, &viewer->AntiQuat, sizeof (Quaternion));  
+        memcpy (&viewer->startSLERPbindTimeQuat, &viewer->bindTimeQuat, sizeof (Quaternion)); 
+        memcpy (&viewer->startSLERPprepVPQuat, &viewer->prepVPQuat, sizeof (Quaternion)); 
 
 		/* slerp Mark II */
-		p->Viewer.SLERPing2 = TRUE;
-		p->Viewer.SLERPing2justStarted = TRUE;
+		viewer->SLERPing2 = TRUE;
+		viewer->SLERPing2justStarted = TRUE;
 		//printf("binding\n");
 		//save for future slerps
 		p->vp2rnSaved = TRUE; //I probably don't need this flag, I always bind before prep_viewpoint()
 		//printf("S");
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);  //we bind from the root, so this would be just pos, rot of viewpoint in matrix form?
 		//printf("S");
 
 	} else { 
-		p->Viewer.SLERPing = FALSE; 
-		p->Viewer.SLERPing2 = FALSE;
+		viewer->SLERPing = FALSE; 
+		viewer->SLERPing2 = FALSE;
 	}
 	
-	p->Viewer.wasBound = TRUE;
+	viewer->wasBound = TRUE;
 	/* calculate distance between the node position and defined centerOfRotation */
 	INITIATE_POSITION
 
 	/* assume Perspective, unless Otrho set */
-	p->Viewer.ortho=FALSE;
+	viewer->ortho=FALSE;
 
 	/* printf ("viewpoint binding distance %f\n",Viewer.Dist);  */
 
 	/* since this is not a bind to a GeoViewpoint node... */
-	p->Viewer.GeoSpatialNode = NULL;
+	viewer->GeoSpatialNode = NULL;
 
 	/* set the examine mode rotation origin */
 	INITIATE_ROTATION_ORIGIN
@@ -3417,6 +3651,7 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 
 	viewer_lastP_clear();
 	resolve_pos();
+	setMenuStatusVP (vp->description->strptr);
 }
 
 int fwl_getAnaglyphSide(int whichSide) {
@@ -3448,10 +3683,16 @@ int fwl_getAnaglyphSide(int whichSide) {
 void Android_reset_viewer_to_defaults() {
 	//ConsoleMessage("********** Android_reset_viewer_to_defaults");
         // reset the viewer to initial mode.
+	X3D_Viewer *viewer;
         ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	viewer = Viewer();
         p->viewer_initialized = FALSE;
 
 	viewer_default();
-	p->Viewer.SLERPing2 = FALSE;
-	p->Viewer.SLERPing = FALSE;
+	viewer->SLERPing2 = FALSE;
+	viewer->SLERPing = FALSE;
+}
+
+int viewer_iside(){
+	return Viewer()->iside;
 }

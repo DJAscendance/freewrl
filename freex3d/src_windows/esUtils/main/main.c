@@ -42,25 +42,25 @@ void fwOnKey( ESContext* esContext, unsigned char c, int updown, int ishift)
 		fwl_do_keyPress(c, updown); 
 }
 void statusbar_set_window_size(int width, int height);
-void statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
+int statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
+int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex);
+void fwl_setScreenDim(int wi, int he);
 void fwOnMouse( ESContext* esContext, int mev, int button, int ix, int iy)
 {
 	if(more){
-#ifdef STATUSBAR_HUD
-		statusbar_handle_mouse(mev,button,ix,iy);
-#else
-		fwl_handle_aqua(mev,button,ix,iy); 
-#endif
+		fwl_handle_mouse(mev,button,ix,iy,0); 
 	}
 }
+
 void fwOnResize( ESContext* esContext, int screenWidth, int screenHeight)
 {
 
-#ifdef STATUSBAR_HUD
-	statusbar_set_window_size(screenWidth,screenHeight);
-#else
+//#ifdef STATUSBAR_HUD
+//	statusbar_set_window_size(screenWidth,screenHeight);
+//#else
+//	fwl_setScreenDim(screenWidth,screenHeight);
+//#endif
 	fwl_setScreenDim(screenWidth,screenHeight);
-#endif
 
 }
 char *getWindowTitle();
@@ -136,8 +136,8 @@ int main ( int argc, char *argv[] )
    fwl_setOrientation (0); //int: 0, 90, 180, 270
    setDisplayed(1); //0=not 1=displayed
    if( retval == GL_FALSE ) printf("ouch - esCreateWindow returns false\n");
-   printf("%s\n",glGetString(GL_VERSION));
-   printf("%s\n",glGetString(GL_SHADING_LANGUAGE_VERSION));
+   //printf("%s\n",glGetString(GL_VERSION));
+   //printf("%s\n",glGetString(GL_SHADING_LANGUAGE_VERSION));
    
    if ( !fwInit ( &esContext ) )
       return 0;

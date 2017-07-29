@@ -31,6 +31,7 @@
 #include "vrml_parser/Structs.h"
 #include "scenegraph/Viewer.h"
 #include "scenegraph/Component_Shape.h"
+#include "opengl/OpenGL_Utils.h"
 #include "opengl/Textures.h"
 #include "opengl/LoadTextures.h"
 #include "main/MainLoop.h"
@@ -212,7 +213,8 @@ XY mouse2screen2(int x, int y)
 {
 	XY xy;
 	xy.x = x;
-	xy.y = gglobal()->display.screenHeight -y;
+	//xy.y = gglobal()->display.screenHeight -y;
+	xy.y = y;
 	return xy;
 }
 typedef struct {GLfloat x; GLfloat y;} FXY;
@@ -229,11 +231,113 @@ static GLfloat cursIdentity[] = {
 	0.0f, 0.0f, 1.0f, 0.0f,
 	0.0f, 0.0f, 0.0f, 1.0f
 };
+struct cline {
+	int n;  //0 means no more lines
+	GLfloat p[6]; //max 3 xy points, fill unused with 0f
+};
+static struct cline cur_fiducials [] = {
+	{3,{-.02f,.0f, 0.0f,-.02f, .02f,.0f}}, // v offset downward a bit to get on the screen at the top
+	{0,{0.0f,0.0f,0.0f,0.0f,0.0f,0.0f}},
+};
+static struct cline cur_down [] = {
+	{3,{-.02f,.02f, .0f,.0f, .02f,.02f}}, // v
+	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
+};
+static struct cline cur_up [] = {
+	{3,{-.02f,-.02f, .0f,.0f, .02f,-.02f}}, // ^
+	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
+};
+static struct cline cur_hover [] = {
+	{2,{-.02f,.0f, .02f,.0f, .0f,.0f}}, // +
+	{2,{.0f,-.02f, .0f,.02f, .0f,.0f}},
+	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
+};
+static struct cline cur_over [] = {
+	{2,{.0f,.0f, .0f,.005f, .0f,.0f}}, // !
+	{2,{.0f,.008f, .0f,.02f, .0f,.0f}},
+	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
+};
+/* - in CursorDraw.h
+enum cursor_type {
+	CURSOR_UP = 0,
+	CURSOR_DOWN,
+	CURSOR_HOVER,
+	CURSOR_OVER,
+	CURSOR_FIDUCIALS
+};
+*/
+static struct cline *cursor_array [] = {
+	cur_up,
+	cur_down,
+	cur_hover,
+	cur_over,
+	cur_fiducials,
+	NULL,
+};
 /* attempt to draw fiducials with lines - draws wrong place */
-void fiducialDraw(int ID, int x, int y, float angle)
+s_shader_capabilities_t *getMyShader(unsigned int rq_cap0);
+void fiducialDrawB(int cursortype, int x, int y)
 {
 	XY xy;
 	FXY fxy;
+	int i,k;
+	GLfloat p[3][2];
+	float aspect;
+	GLint  positionLoc;
+	struct cline *cur, *line;
+	s_shader_capabilities_t *scap;
+	ttglobal tg = gglobal();
+
+	//as of May 2016 the mouse/touch events come in the pick() stack relative to the whole window
+	// -not shifted relative to the current vport in the vport stack.
+	// if that changes, then the following few lines would also need to change
+	xy = mouse2screen2(x,y);
+	FW_GL_VIEWPORT(0, 0, tg->display.screenWidth, tg->display.screenHeight);
+	fxy = screen2normalized((GLfloat)xy.x,(GLfloat)xy.y);
+	aspect = (float)tg->display.screenHeight/(float)tg->display.screenWidth;
+
+
+	FW_GL_DEPTHMASK(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, cursIdentity); 
+	glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, cursIdentity);
+
+
+	//FW_GL_VERTEX_POINTER(2, GL_FLOAT, 0, (GLfloat *)p);
+	//sendArraysToGPU(GL_LINE_STRIP, 0, 3);
+	positionLoc =  scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+
+	cur = cursor_array[cursortype];
+	k = 0;
+	line = &cur[k];
+	while(line->n){
+		for(i=0;i<line->n;i++){
+			p[i][0] = line->p[i*2]*aspect + fxy.x;
+			p[i][1] = line->p[i*2 + 1] + fxy.y;
+		}
+		glVertexAttribPointer (positionLoc, 2, GL_FLOAT, 
+							   GL_FALSE, 0, p );
+		glDrawArrays(GL_LINE_STRIP,0,line->n);
+		k++;
+		line = &cur[k];
+	}
+	
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+	glEnable(GL_DEPTH_TEST);
+	FW_GL_DEPTHMASK(GL_TRUE);
+	restoreGlobalShader();
+}
+void fiducialDraw(int ID, int x, int y, float angleDeg)
+{
+	//pre- may 8, 2016
+	XY xy;
+	FXY fxy;
+	int i;
 	GLfloat p[3][2];
 	GLint  positionLoc;
 	s_shader_capabilities_t *scap;
@@ -242,19 +346,40 @@ void fiducialDraw(int ID, int x, int y, float angle)
 	xy = mouse2screen2(x,y);
 	FW_GL_VIEWPORT(0, 0, tg->display.screenWidth, tg->display.screenHeight);
 	fxy = screen2normalized((GLfloat)xy.x,(GLfloat)xy.y);
-
 	//I was hoping for a little v at the top
-	p[0][0] = fxy.x - .01f;
-	p[0][1] = fxy.y;
-	p[1][0] = fxy.x ;
-	p[1][1] = fxy.y - .01f;
-	p[2][0] = fxy.x + .01f;
-	p[2][1] = fxy.y;
+
+	p[0][0] = -.01f;
+	p[0][1] =  .01f;
+	p[1][0] =  .00f;
+	p[1][1] =  .00f;
+	p[2][0] =  .01f;
+	p[2][1] =  .01f;
+	if(angleDeg != 0.0f){
+		GLfloat cosine, sine, angleRad, xx,yy;
+		angleRad = angleDeg * (float)PI / 180.0f;
+		cosine = cosf(angleRad);
+		sine = sinf(angleRad);
+		for(i=0;i<3;i++){
+			xx = cosine*p[i][0] + sine*p[i][1];
+			yy = -sine*p[i][0] + cosine*p[i][1];
+			p[i][0]=xx;
+			p[i][1]=yy;
+		}
+	}
+	if(ID == 1){
+		for(i=0;i<3;i++)
+			p[i][1] -= .01f;
+	}
+	for(i=0;i<3;i++){
+		p[i][0] += fxy.x;
+		p[i][1] += fxy.y;
+	}
+
 	FW_GL_DEPTHMASK(GL_FALSE);
 	glDisable(GL_DEPTH_TEST);
 	scap = getMyShader(NO_APPEARANCE_SHADER);
 	enableGlobalShader(scap);
-	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, cursIdentity);
+	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, cursIdentity); 
 	glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, cursIdentity);
 
 
@@ -279,6 +404,24 @@ void fiducialDraw(int ID, int x, int y, float angle)
    as of March 14, 2012 I'm using this only in stereovision mode, to draw
    viewport alignment fiducials
    */
+void statusbarHud_DrawCursor(GLint textureID,int x,int y);
+
+unsigned int getCircleCursorTextureID(){
+	//not bad texture for use in testing elsewhere
+	ppCursorDraw p;
+	ttglobal tg = gglobal();
+	p = (ppCursorDraw)tg->CursorDraw.prv;
+	if(!p->done)
+	{
+		glGenTextures(1, &p->textureID);
+		glBindTexture(GL_TEXTURE_2D, p->textureID);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, circleCursor.width, circleCursor.height, 0, GL_RGBA , GL_UNSIGNED_BYTE, circleCursor.pixel_data);
+		p->done = 1; 
+	}
+	return p->textureID;
+}
 void cursorDraw(int ID, int x, int y, float angle) 
 {
 	XY xy;
@@ -287,7 +430,7 @@ void cursorDraw(int ID, int x, int y, float angle)
 	//GLint shader;
 	GLint  positionLoc, texCoordLoc, textureLoc;
     //GLint textureCount;
-    GLint textureMatrix;
+    GLint textureMatrix0;
 	ppCursorDraw p;
 	GLfloat cursorVert2[18];
 	//GLushort ind[] = {0,1,2,3,4,5};
@@ -307,11 +450,13 @@ void cursorDraw(int ID, int x, int y, float angle)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, circleCursor.width, circleCursor.height, 0, GL_RGBA , GL_UNSIGNED_BYTE, circleCursor.pixel_data);
 		p->done = 1; 
 	}
-#ifdef STATUSBAR_HUD_HIDE
+#ifdef STATUSBAR_HUD
+	//Nov 2015: I find this works with emulate_multitouch and multi_window
 	statusbarHud_DrawCursor(p->textureID,x,y);
 	return;
 #endif
 #ifndef NEWWAY_COPIED_FROM_STATUSBARHUD_CURSORDRAW
+	//Nov 2015: I find this does NOT work 100% with emulate_multitouch and multi_window - it sometimes makes regular scene geometry invisible
 	FW_GL_DEPTHMASK(GL_FALSE);
 	glDisable(GL_DEPTH_TEST);
 	//if(p->programObject == 0) initProgramObject();
@@ -336,7 +481,7 @@ void cursorDraw(int ID, int x, int y, float angle)
 						   GL_FALSE, 0, cursorVert2 );
 	// Load the texture coordinate
 	//texCoordLoc =  glGetAttribLocation ( shader, "fw_MultiTexCoord0"); //"fw_TexCoords" );
-	texCoordLoc = scap->TexCoords;
+	texCoordLoc = scap->TexCoords[0];
 	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,
 						   GL_FALSE, 0, cursorTex );  //fails - p->texCoordLoc is 429xxxxx - garbage
 	//glUniform4f(p->color4fLoc,0.7f,0.7f,0.9f,1.0f);
@@ -352,8 +497,8 @@ void cursorDraw(int ID, int x, int y, float angle)
 	textureLoc = scap->TextureUnit[0];
 	//textureCount = scap->textureCount;
 	//glUniform1i(textureCount,(GLint)1);
-	textureMatrix = scap->TextureMatrix;
-	glUniformMatrix4fv(textureMatrix, 1, GL_FALSE, cursIdentity);
+	textureMatrix0 = scap->TextureMatrix[0];
+	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, cursIdentity);
 
 	glUniform1i ( textureLoc, 0 );
 	//glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); //just render the active ones

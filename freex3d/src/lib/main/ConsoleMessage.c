@@ -47,7 +47,7 @@ for loosing the reference. Also, most if it is found in
 #include <iglobal.h>
 
 
-#define STRING_LENGTH 2000	/* something 'safe'	*/
+#define STRING_LENGTH 4096	/* something 'safe'	*/
 #define MAX_ANDROID_CONSOLE_MESSAGE_SLOTS 100 //5 max number of message lines per frame
 #define MAX_LINE_LENGTH 80  //wrap text here to make it easy for GUI frontends
 #define TAB_SPACES 1
@@ -61,6 +61,9 @@ typedef struct pConsoleMessage{
 	int maxLines;
 	int tabSpaces;
 	void(*callback[2])(char *);
+	void(*callbackB[4])(void*,char*);
+	void *dataB[4];
+	int nbackB;
 }* ppConsoleMessage;
 static void *ConsoleMessage_constructor(){
 	void *v = MALLOCV(sizeof(struct pConsoleMessage));
@@ -83,6 +86,7 @@ void ConsoleMessage_init(struct tConsoleMessage *t){
 		for (i = 0; i < p->maxLines; i++) p->androidMessageSlot[i] = (char*)NULL;
 		p->callback[0] = NULL;
 		p->callback[1] = NULL;
+		p->nbackB = 0;
 	}
 }
 
@@ -97,6 +101,7 @@ void closeConsoleMessage() {
 //View / UI part 
 void fwg_updateConsoleStatus()
 {
+	//old android method
 	//if you desire to see ConsoleMessages in the View/UI
 	//a) if your View/UI is a console program - call this function once per frame
 	//b) if your View/UI is a GUI program, do something similar in your View/UI code to fetch and display lines in GUI
@@ -122,6 +127,8 @@ char *fwg_get_last_message();
 int fwl_StringConsoleMessage(char* consoleBuffer);
 void fwg_updateConsoleStatus(); //for console programs only - sent to printf
 void fwg_register_consolemessage_callback(void(*callback)(char *));
+void fwg_register_consolemessage_callbackB(void* data, void(*callback)(void *data, char *));
+
 
 void fwg_setConsoleParam_maxLines(int maxLines)
 {
@@ -158,6 +165,7 @@ void fwg_setConsoleParam_replaceTabs(int tabSpaces)
 }
 void fwg_register_consolemessage_callback(void(*callback)(char *))
 {
+	//new method
 	//if your frontend is in C, you can register something like printf here as a callback
 	//advantage over polling once per loop: when debugging you may want to see console output
 	//more often during a single loop - this should come out as soon as written in the program
@@ -173,9 +181,28 @@ void fwg_register_consolemessage_callback(void(*callback)(char *))
 	if (p->callback[iback]) iback++;
 	p->callback[iback] = callback;
 }
+void fwg_register_consolemessage_callbackB(void* data, void(*callback)(void*,char *))
+{
+	//new method
+	//this version of callback registration takes an arbitrary data pointer
+	//if your frontend is in C, you can register something like printf here as a callback
+	//advantage over polling once per loop: when debugging you may want to see console output
+	//more often during a single loop - this should come out as soon as written in the program
+	//if message ends in \n
+	//you can call 0,1 or 2 times during program run ie to set a printf and a logfile
+	// \t and \n will still be in the string (it won't be pre-split)
+	ppConsoleMessage p;
+	ttglobal tg = gglobal();
+	if (!tg) return;
+	p = (ppConsoleMessage)tg->ConsoleMessage.prv;
+	p->callbackB[p->nbackB] = callback;
+	p->dataB[p->nbackB] = data;
+	p->nbackB++;
 
+}
 // tell the UI how many unread console messages we have.
 int fwg_get_unread_message_count() {
+	//old android method
 	ppConsoleMessage p;
 	ttglobal tg = gglobal();
 	if (!tg) return 0;
@@ -185,6 +212,7 @@ int fwg_get_unread_message_count() {
 
 char *fwg_get_last_message() {
 	/*
+	old android method
 	Transfers ownership of a ConsoleMessage line to the View/UI caller
 	- returns NULL if no more messages waiting on this frame (check again next frame)
 	- there is no \n in string, it has already been split into screen lines
@@ -223,6 +251,7 @@ int fwl_StringConsoleMessage(char* consoleBuffer) {
 // Model (backend) internal part
 static void android_save_log(char *thislog) {
 	/*
+	old android method
 	processes thislog, and accumulates an array simple lines:
 	- splits thislog on each \n
 	- if no \n, holds the pointer on the current line
@@ -455,12 +484,18 @@ int ConsoleMessage0(const char *fmt, va_list args){
 			p->callback[0](p->FWbuffer);
 		if (p->callback[1])
 			p->callback[1](p->FWbuffer);
-    #ifdef _ANDROID
-            DROIDDEBUG(STRDUP(p->FWbuffer)); //passing ownerhsip in
-	#else
-		android_save_log(strdup(p->FWbuffer)); //passing ownerhsip in
-    #endif
-        }
+		if(p->nbackB){
+			//this type used by contenttype_textpanel in mainloop
+			int i;
+			for(i=0;i<p->nbackB;i++)
+				p->callbackB[i](p->dataB[i],p->FWbuffer);
+		}
+//    #ifdef _ANDROID
+//            DROIDDEBUG(STRDUP(p->FWbuffer)); //passing ownerhsip in
+//	#else
+////		android_save_log(strdup(p->FWbuffer)); //passing ownerhsip in old android method
+//    #endif
+      }
     }
 	return retval;
 }

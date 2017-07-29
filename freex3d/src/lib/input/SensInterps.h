@@ -41,7 +41,8 @@ do_active_inactive(int *act,
 				   double *stopt,
 				   int loop,
 				   double myDuration,
-				   double speed);
+				   double speed,
+				   double elapsedTime);
 
 int
 find_key(int kin, float frac, float *keys);
@@ -58,9 +59,14 @@ void do_OintPos2D(void *node);
 void do_PositionInterpolator(void *node);
 void do_ColorInterpolator(void *node);
 void do_GeoPositionInterpolator(void *node);
+void do_Oint4(void *node);
+void do_EaseInEaseOut(void *node);
+void do_SplinePositionInterpolator(void *node);
+void do_SplinePositionInterpolator2D(void *node);
+void do_SplineScalarInterpolator(void *node);
+void do_SquadOrientationInterpolator(void *node);
 
-void
-do_Oint4(void *node);
+
 
 void do_CollisionTick(void *ptr);
 void do_AudioTick(void *ptr);
@@ -69,8 +75,8 @@ void do_ProximitySensorTick(void *ptr);
 void do_GeoProximitySensorTick(void *ptr);
 void do_MovieTextureTick(void *ptr);
 void do_VisibilitySensorTick(void *ptr);
-/* DJTRACK_PICKSENSORS */
-void do_PickSensorTickDUMMY(void *ptr);
+void do_TransformSensorTick(void *ptr);
+void do_PickSensorTick(void *ptr);
 
 void do_Anchor( void *ptr, int typ, int but1, int over);
 void do_TouchSensor( void *ptr, int typ, int but1, int over);
@@ -80,5 +86,7 @@ void do_LineSensor(void *ptr, int typ, int but1, int over);
 void do_CylinderSensor(void *ptr, int typ, int but1, int over);
 void do_SphereSensor(void *ptr, int typ, int but1, int over);
 
+/* DJTRACK_PICKSENSORS */
+void do_PickSensorTickDUMMY(void *ptr);
 
 #endif /* __FREEWRL_SENS_INTERPS_H__ */

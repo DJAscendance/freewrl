@@ -52,7 +52,7 @@ Javascript C language binding.
 #include "fieldSet.h"
 #include "fieldGet.h"
 
-#ifdef HAVE_JAVASCRIPT
+
 /********************************************************************
 
 getField_ToJavascript.
@@ -84,17 +84,25 @@ void getField_ToJavascript (int num, int fromoffset) {
 		setScriptECMAtype(num);
 		break;
 	case FIELDTYPE_SFColor:
+	case FIELDTYPE_SFColorRGBA:
 	case FIELDTYPE_SFNode:
 	case FIELDTYPE_SFVec2f:
 	case FIELDTYPE_SFVec3f:
+	case FIELDTYPE_SFVec4f:
+	case FIELDTYPE_SFVec2d:
 	case FIELDTYPE_SFVec3d:
+	case FIELDTYPE_SFVec4d:
 	case FIELDTYPE_SFRotation:
 		setScriptMultiElementtype(num);
 		break;
 	case FIELDTYPE_MFColor:
-	case FIELDTYPE_MFVec3f:
-	case FIELDTYPE_MFVec3d:
+	case FIELDTYPE_MFColorRGBA:
 	case FIELDTYPE_MFVec2f:
+	case FIELDTYPE_MFVec3f:
+	case FIELDTYPE_MFVec4f:
+	case FIELDTYPE_MFVec2d:
+	case FIELDTYPE_MFVec3d:
+	case FIELDTYPE_MFVec4d:
 	case FIELDTYPE_MFFloat:
 	case FIELDTYPE_MFTime:
 	case FIELDTYPE_MFInt32:
@@ -135,17 +143,25 @@ void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union an
 		set_one_ECMAtype(shader_num, fieldOffset, type, any, len);
 		break;
 	case FIELDTYPE_SFColor:
+	case FIELDTYPE_SFColorRGBA:
 	case FIELDTYPE_SFNode:
 	case FIELDTYPE_SFVec2f:
 	case FIELDTYPE_SFVec3f:
+	case FIELDTYPE_SFVec4f:
+	case FIELDTYPE_SFVec2d:
 	case FIELDTYPE_SFVec3d:
+	case FIELDTYPE_SFVec4d:
 	case FIELDTYPE_SFRotation:
 		set_one_MultiElementType(shader_num, fieldOffset, any, len);
 		break;
 	case FIELDTYPE_MFColor:
-	case FIELDTYPE_MFVec3f:
-	case FIELDTYPE_MFVec3d:
+	case FIELDTYPE_MFColorRGBA:
 	case FIELDTYPE_MFVec2f:
+	case FIELDTYPE_MFVec3f:
+	case FIELDTYPE_MFVec4f:
+	case FIELDTYPE_MFVec2d:
+	case FIELDTYPE_MFVec3d:
+	case FIELDTYPE_MFVec4d:
 	case FIELDTYPE_MFFloat:
 	case FIELDTYPE_MFTime:
 	case FIELDTYPE_MFInt32:
@@ -306,7 +322,7 @@ void setScriptMultiElementtype (int num)
 }
 
 
-#endif /* HAVE_JAVASCRIPT */
+
 
 /* convert a number in memory to a printable type. Used to send back EVents, or replies to
    the SAI/EAI client program. */

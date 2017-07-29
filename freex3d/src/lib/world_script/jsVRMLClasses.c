@@ -26,8 +26,8 @@
 
 
 #include <config.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <system.h>
+#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <system_threads.h>
 #include <display.h>
 #include <internal.h>
@@ -51,7 +51,7 @@
 #include "jsNative.h"
 #include "jsVRMLClasses.h"
 
-#ifdef HAVE_JAVASCRIPT
+
 
 /********************************************************/
 /*							*/
@@ -2135,5 +2135,5 @@ setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 
 	return JS_TRUE;
 }
-#endif /* HAVE_JAVASCRIPT */
+
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */

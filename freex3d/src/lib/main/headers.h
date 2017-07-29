@@ -50,7 +50,7 @@ void Multi_String_print(struct Multi_String *url);
 
 
 
-
+int viewer_iside();
 /* children fields path optimizations */
 #define CHILDREN_COUNT int nc = node->_sortedChildren.n;
 #define RETURN_FROM_CHILD_IF_NOT_FOR_ME \
@@ -74,6 +74,7 @@ void Multi_String_print(struct Multi_String *url);
                 } \
 		}
 
+
 /* Size of static array */
 #define ARR_SIZE(arr) (int)(sizeof(arr)/sizeof((arr)[0]))
 
@@ -84,24 +85,25 @@ extern char *BrowserFullPath;
 #define BOOL	int
 
 /* rendering constants used in SceneGraph, etc. */
-#define VF_Viewpoint 				0x0001
-#define VF_Geom 				0x0002
-#define VF_localLight				0x0004 
-#define VF_Sensitive 				0x0008
-#define VF_Blend 				0x0010
-#define VF_Proximity 				0x0020
-#define VF_Collision 				0x0040
-#define VF_globalLight				0x0080 
-#define VF_hasVisibleChildren 			0x0100
-#define VF_shouldSortChildren			0x0200
-#define VF_Other					0x0400
-#ifdef DJTRACK_PICKSENSORS
-#define VF_inPickableGroup			0x0800 /* DJTRACK_PICKSENSORS */
-#define VF_PickingSensor			0x1000 /* DJTRACK_PICKSENSORS */
-#endif
+#define VF_Viewpoint                0x0001
+#define VF_Geom                     0x0002
+#define VF_localLight               0x0004 
+#define VF_Sensitive                0x0008
+#define VF_Blend                    0x0010
+#define VF_Proximity                0x0020
+#define VF_Collision                0x0040
+#define VF_globalLight              0x0080 
+#define VF_hasVisibleChildren       0x0100
+#define VF_shouldSortChildren       0x0200
+#define VF_Other                    0x0400
+#define VF_Picking					0x1000
+#define VF_HideLeft                  0x2000 /*stereo don't draw on left side, used for stereovision experiments*/
+#define VF_HideRight                 0x4000 /*stereo don't draw on right side*/
+#define VF_USE						 0x8000 /*for 2-node scenarios like pickingsensor and transform sensor, signals a node_USE to save its modelview matrix for do_handling*/
+#define VF_Cube                      0x10000 //when generating generatedcubemap texture to fbo (don't render generatedcubemap parent nodes)
 
 /* for z depth buffer calculations */
-#define DEFAULT_NEARPLANE 0.1
+#define DEFAULT_NEARPLANE 0.07
 #define DEFAULT_FARPLANE 21000.0
 #define DEFAULT_BACKGROUNDPLANE 18000.0 /* approx 80% of DEFAULT_FARPLANE */
 extern double geoHeightinZAxis;
@@ -112,7 +114,7 @@ extern double geoHeightinZAxis;
 #define ROUTING_MFNODE          -10
 #define ROUTING_SFIMAGE         -12
 #define ROUTING_MFSTRING        -13
-#define ROUTING_MFFLOAT        -14
+#define ROUTING_MFFLOAT         -14
 #define ROUTING_MFROTATION      -15
 #define ROUTING_MFINT32         -16
 #define ROUTING_MFCOLOR         -17
@@ -121,13 +123,13 @@ extern double geoHeightinZAxis;
 #define ROUTING_MFVEC3D         -20
 #define ROUTING_MFDOUBLE        -21
 #define ROUTING_SFSTRING        -22
-#define ROUTING_MFMATRIX4F	-30
-#define ROUTING_MFMATRIX4D	-31
-#define ROUTING_MFVEC2D		-32
-#define ROUTING_MFVEC4F		-33
-#define ROUTING_MFVEC4D		-34
-#define ROUTING_MFMATRIX3F	-35
-#define ROUTING_MFMATRIX3D	-36
+#define ROUTING_MFMATRIX4F      -30
+#define ROUTING_MFMATRIX4D      -31
+#define ROUTING_MFVEC2D         -32
+#define ROUTING_MFVEC4F         -33
+#define ROUTING_MFVEC4D         -34
+#define ROUTING_MFMATRIX3F      -35
+#define ROUTING_MFMATRIX3D      -36
 
 
 
@@ -139,9 +141,9 @@ extern double geoHeightinZAxis;
 
 
 #define NODE_CHANGE_INIT_VAL 153	/* node->_change is set to this when created */
-#define COMPILE_POLY_IF_REQUIRED(a,b,c,d) \
+#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e) \
                 if(!node->_intern || node->_change != (node->_intern)->irep_change) { \
-                        compileNode ((void *)compile_polyrep, node, a,b,c,d); \
+                        compileNode ((void *)compile_polyrep, node, a,b,c,d,e); \
 		} \
 		if (!node->_intern) return;
 
@@ -149,7 +151,7 @@ extern double geoHeightinZAxis;
 	if (node->_ichange != node->_change) { \
 		v = virtTable[node->_nodeType]; \
 		if (v->compile) { \
-			compileNode (v->compile, (void *)node, NULL, NULL, NULL, NULL); \
+			compileNode (v->compile, (void *)node, NULL, NULL, NULL, NULL, NULL); \
 		} else {printf ("huh - have COMPIFREQD, but v->compile null for %s at %s:%d\n",stringNodeType(node->_nodeType),__FILE__,__LINE__);} \
 		} \
 		if (node->_ichange == 0) return; \
@@ -159,7 +161,7 @@ extern double geoHeightinZAxis;
 	if (node->_ichange != node->_change) { \
 		v = virtTable[node->_nodeType]; \
 		if (v->compile) { \
-			compileNode (v->compile, (void *)node, NULL, NULL, NULL, NULL); \
+			compileNode (v->compile, (void *)node, NULL, NULL, NULL, NULL, NULL); \
 		} else {printf ("huh - have COMPIFREQD, but v->compile null for %s at %s:%d\n",stringNodeType(node->_nodeType),__FILE__,__LINE__);} \
 		} \
 		if (node->_ichange == 0) return NULL; \
@@ -170,7 +172,7 @@ extern double geoHeightinZAxis;
     if (myTCnode->_ichange != myTCnode->_change) { \
         v = virtTable[myTCnode->_nodeType]; \
         if (v->compile) { \
-            compileNode (v->compile, (void *)myTCnode, NULL, NULL, NULL, NULL); \
+            compileNode (v->compile, (void *)myTCnode, NULL, NULL, NULL, NULL, NULL); \
             myTCnode->_ichange = myTCnode->_change; \
         } else {printf ("huh - have COMPIFREQD, but v->compile null for %s at %s:%d\n",stringNodeType(myTCnode->_nodeType),__FILE__,__LINE__);} \
     } \
@@ -230,19 +232,6 @@ struct X3D_Node* getTypeNode(struct X3D_Node *node);
                 save = good; \
         }
 
-//#define MARK_SFSTRING_INOUT_EVENT_HIDE(good,save,offset) \
-//        if (good->strptr!=save->strptr) { \
-//                MARK_EVENT(X3D_NODE(node), offset);\
-//                save->strptr = good->strptr; \
-//        }
-//
-//#define MARK_MFSTRING_INOUT_EVENT_HIDE(good,save,offset) \
-//	/* assumes that the good pointer has been updated */ \
-//	if (good.p != save.p) { \
-//                MARK_EVENT(X3D_NODE(node), offset);\
-//		save.n = good.n; \
-//		save.p = good.p; \
-//        }
 
 #define MARK_SFVEC3F_INOUT_EVENT(good,save,offset) \
         if ((!APPROX(good.c[0],save.c[0])) || (!APPROX(good.c[1],save.c[1])) || (!APPROX(good.c[2],save.c[2]))) { \
@@ -388,6 +377,7 @@ unsigned int setField_FromEAI (char *ptr);
 #define ISUSED(v) ((void) v)
 
 #define PI 3.14159265358979323846
+#define PIF 3.1415926535f
 
 /* return TRUE if numbers are very close */
 #define APPROX(a,b) (fabs((a)-(b))<0.00000001)
@@ -439,7 +429,8 @@ void LocalLight_Rend(void *nod_);
 
 void saveLightState2(int *ls);
 void restoreLightState2(int ls);
-
+int numberOfLights();
+void refreshLightUniforms();
 #define LOCAL_LIGHT_SAVE int lastlight; //savedlight[8];
 /* 
 Saved version by Doug Sanden(?) 
@@ -452,15 +443,25 @@ void restoreLightState(int *);
 		restoreLightState(savedlight); }
 */
 
-#define LOCAL_LIGHT_CHILDREN(a) \
-	if ((node->_renderFlags & VF_localLight)==VF_localLight && renderstate()->render_light != VF_globalLight){ \
-	  saveLightState2(&lastlight);\
-	  localLightChildren(a);}
+/* comments rearranged by John Stewart to get around compiler warnings
+//#define LOCAL_LIGHT_CHILDREN(a) \
+//	if ((node->_renderFlags & VF_localLight)==VF_localLight && renderstate()->render_light != VF_globalLight){ \
+//	  saveLightState2(&lastlight);\
+//	  localLightChildren(a);}
+//
+//#define LOCAL_LIGHT_OFF \
+//	if ((node->_renderFlags & VF_localLight)==VF_localLight && renderstate()->render_light != VF_globalLight) { \
+//		if(numberOfLights() > lastlight) {\
+//			setLightChangedFlag(numberOfLights()-1); \
+//			refreshLightUniforms();\
+//		}\
+//		restoreLightState2(lastlight); \
+//	}
+*/
 
-#define LOCAL_LIGHT_OFF \
-	if ((node->_renderFlags & VF_localLight)==VF_localLight && renderstate()->render_light != VF_globalLight) { \
-		restoreLightState2(lastlight); }
 
+void prep_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
+void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 
 void normalize_ifs_face (float *point_normal,
                          struct point_XYZ *facenormals,
@@ -510,7 +511,7 @@ extern double defaultExamineDist;
 /* Sending events back to Browser (eg, Anchor) */
 extern int wantEAI;
 
-void *returnInterpolatorPointer (const char *x);
+void *returnInterpolatorPointer (int nodeType);
 
 /* SAI code node interface return values  The meanings of
    these numbers can be found in the SAI java code */
@@ -565,11 +566,24 @@ void *returnInterpolatorPointer (const char *x);
 #define X3DComposedGeometryNode			55
 #define X3DNurbsControlCurveNode		56
 #define X3DNurbsSurfaceGeometryNode		57
+#define X3DViewportNode					58
+#define X3DLayerNode					59
+#define X3DLayerSetNode					60
+#define X3DLayoutNode					61
+#define X3DNBodyCollidableNode			62
+#define X3DRigidJointNode				63
+#define X3DChaserNode					64
+#define X3DDamperNode					65
+#define X3DParticleEmitterNode			66
+#define X3DParticlePhysicsModelNode		67
+#define X3DComposableVolumeRenderStyleNode 68
+#define X3DVolumeDataNode 69
+
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);
 
 void AddRemoveChildren (struct X3D_Node *parent, struct Multi_Node *tn, struct X3D_Node * *nodelist, int len, int ar, char * where, int lin);
-
+unsigned long upper_power_of_two(unsigned long v);
 void update_node(struct X3D_Node *ptr);
 //void update_renderFlag(struct X3D_Node *ptr, int flag);
 void UPDATE_RENDERFLAG(struct X3D_Node *ptr, int flag,char *fi, int li);
@@ -594,12 +608,13 @@ void CRoutes_Register(int adrem,        struct X3D_Node *from,
                                  int length,
                                  void *intptr,
                                  int scrdir,
-                                 int extra);
+                                 void* extra);
 void CRoutes_free(void);
 void propagate_events(void);
 int getRoutesCount(void);
 void getField_ToJavascript (int num, int fromoffset);
 void add_first(struct X3D_Node * node);
+void add_physics(struct X3D_Node * node);
 void registerTexture(struct X3D_Node * node);
 int checkNode(struct X3D_Node *node, char *fn, int line);
 
@@ -607,24 +622,10 @@ int checkNode(struct X3D_Node *node, char *fn, int line);
 void do_first(void);
 void process_eventsProcessed(void);
 
-#ifdef DJTRACK_PICKSENSORS
-/* DJTRACK_PICKSENSORS */
-void add_picksensor(struct X3D_Node * node);
-void rewind_picksensors();
-void advance_picksensors();
-void activate_picksensors();
-void deactivate_picksensors();
-int active_picksensors();
-int more_picksensors();
-struct X3D_Node* get_picksensor();
-#endif
 
 void getEAI_MFStringtype (struct Multi_String *from, struct Multi_String *to);
 
 
-void update_status(char* msg);
-void kill_status();
-char *get_status();
 
 /* menubar stuff */
 void frontendUpdateButtons(void); /* used only if we are not able to multi-thread OpenGL */
@@ -702,7 +703,7 @@ extern void xs_init(void);
 extern void checkAndAllocMemTables(int *texture_num, int increment);
 extern void   storeMPGFrameData(int latest_texture_number, int h_size, int v_size,
         int mt_repeatS, int mt_repeatT, char *Image);
-void mpg_main(char *filename, int *x,int *y,int *depth,int *frameCount,void **ptr);
+void mpg_main(char *filename, int *x,int *y,int *depth,int *frameCount,char **ptr);
 void removeFilenameFromPath (char *path);
 
 int EAI_CreateVrml(const char *tp, const char *inputstring, struct X3D_Node *ectx, struct X3D_Group *node);
@@ -713,10 +714,11 @@ void handle_aqua(const int mev, const unsigned int button, int x, int y);
 
 #define overMark        23425
 
-/* mimic X11 events in AQUA and/or WIN32 ; FIXME: establish a cleaner interface for this */
+/* mimic X11 events in WIN32 ; FIXME: establish a cleaner interface for this */
 #define KeyChar         1
 
-#if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
+// OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined(_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK)
 #ifndef _MIMIC_X11_SCREEN_BUTTONS
 	#define _MIMIC_X11_SCREEN_BUTTONS
 		#define KeyPress        2
@@ -757,11 +759,7 @@ void freewrlDie(const char *format);
 
 //extern int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
 typedef struct trenderstate{
-int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
-#ifdef DJTRACK_PICKSENSORS
-int render_picksensors;
-int render_pickables;
-#endif
+int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision,render_cube;
 }* ttrenderstate;
 //extern struct trenderstate renderstate;
 ttrenderstate renderstate();
@@ -843,7 +841,7 @@ void zeroAllBindables(void);
 int inputParse(unsigned type, char *inp, int bind, int returnifbusy,
                         void *ptr, unsigned ofs, int *complete,
                         int zeroBind);
-void compileNode (void (*nodefn)(void *, void *, void *, void *, void *), void *node, void *a, void *b, void *c, void *d);
+void compileNode (void (*nodefn)(void *, void *, void *, void *, void *, void *), void *node, void *a, void *b, void *c, void *d, void *e);
 void destroyCParserData();
 //extern struct VRMLParser* savedParser;
 
@@ -883,6 +881,7 @@ void resetSensorEvents();
 
 /* META data, component, profile  stuff */
 void handleMetaDataStringString(struct Uni_String *val1,struct Uni_String *val2);
+void handleUnitDataStringString(char *categoryname,char *unitname, double conversionfactor);
 void handleProfile(int myp);
 void handleComponent(int com, int lev);
 void handleExport (char *node, char *as);
@@ -906,6 +905,7 @@ void *createNewX3DNode0 (int nt);
 void *createNewX3DNodeB(int nt, int intable, void *executionContext);
 
 char *findFIELDNAMESfromNodeOffset0(struct X3D_Node *node, int offset);
+#include <stdio.h>
 void print_routes(FILE* fp);
 void print_DEFed_node_names_and_pointers(FILE* fp);
 
@@ -921,4 +921,20 @@ int ciflag_set(int flags, char flag, int index );
 int indexChildrenName(struct X3D_Node *node);
 struct Multi_Node *childrenField(struct X3D_Node *node);
 int offsetofChildren(struct X3D_Node *node);
+
+//for Tess.c and Component_Text - the Opengl redbook gluTessBeginPolygon(,data) tesselator combiner callback data
+typedef struct text_combiner_data {
+	//so we can add the new point to our own data
+	float *coords;
+	int *counter;
+	int *ria;
+	int *riaindex;
+} text_combiner_data;
+typedef struct polyrep_combiner_data {
+	//so we can add the new point to our own data
+	float *coords;
+	int *counter;
+	int *ria;
+	int *riaindex;
+} polyrep_combiner_data;
 #endif /* __FREEWRL_HEADERS_H__ */

@@ -55,7 +55,6 @@ Small routines to help with interfacing EAI to Daniel Kraft's parser.
 #include "../vrml_parser/CParseParser.h"
 #include "../vrml_parser/CParseLexer.h"
 #include "../vrml_parser/CParse.h"
-#include "../vrml_parser/CProto.h"
 
 #include "../x3d_parser/X3DParser.h"
 
@@ -292,8 +291,8 @@ int registerEAINodeForAccess(struct X3D_Node* myn) {
 	eaiverbose = tg->EAI_C_CommonFunctions.eaiverbose;
 	p = (ppEAIHelpers)tg->EAIHelpers.prv;
 
-	if (eaiverbose) printf ("registerEAINodeForAccess - myn %lu\n",(unsigned long int) myn);
 	if (myn == NULL) return -1;
+	if (eaiverbose) printf ("registerEAINodeForAccess - myn %p, type %s\n",myn,stringNodeType(myn->_nodeType));
 
 	if (p->EAINodeIndex == NULL) {
 		struct EAINodeIndexStruct *newp = MALLOC (struct EAINodeIndexStruct *, sizeof (struct EAINodeIndexStruct));
@@ -425,7 +424,7 @@ int mapToKEYWORDindex (indexT pkwIndex) {
 	if (pkwIndex == PKW_initializeOnly) return KW_initializeOnly;
 	return 0;
 }
-
+struct ProtoDefinition *getVRMLbrotoDefinition (struct X3D_Proto *me);
 /* in this proto expansion, just go and get the expanded node/field IF POSSIBLE */
 static int changeExpandedPROTOtoActualNode(int cNode, struct X3D_Node **np, char **fp, int direction) {
 	struct ProtoDefinition *myProtoDecl;
@@ -442,7 +441,7 @@ static int changeExpandedPROTOtoActualNode(int cNode, struct X3D_Node **np, char
 		printf ("changeExpanded - looking for field %s in node...\n",*fp); 
 	}
 
-	myProtoDecl = getVRMLprotoDefinition(X3D_GROUP(*np));
+	myProtoDecl = getVRMLbrotoDefinition(X3D_PROTO(*np));
 	if (eaiverbose) {
 		printf ("and, the proto name is %s\n",myProtoDecl->protoName);
 	}
@@ -458,8 +457,8 @@ static int changeExpandedPROTOtoActualNode(int cNode, struct X3D_Node **np, char
 	if ((*np) == 0) return FALSE;
 
 	if (eaiverbose) {
-		printf ("np is %lu\n",(unsigned long int) *np);
-		printf ("and, found node %lu type %s\n",(unsigned long int) *np, stringNodeType((*np)->_nodeType));
+		printf ("np is %p\n", *np);
+		printf ("and, found node %p type %s\n",*np, stringNodeType((*np)->_nodeType));
 	}
 
 	/* change the fieldName, depending on the direction */
@@ -533,7 +532,7 @@ void EAI_GetType (int cNode,  char *inputFieldString, char *accessMethod,
 	}
 
 	if (eaiverbose) {
-		printf ("start of EAI_GetType, this is a valid C node %lu\n",(unsigned long int) nodePtr);
+		printf ("start of EAI_GetType, this is a valid C node %p\n",nodePtr);
 		printf ("	of string type %s\n",stringNodeType(nodePtr->_nodeType)); 
 	}	
 
@@ -578,7 +577,7 @@ void EAI_GetType (int cNode,  char *inputFieldString, char *accessMethod,
 	}
 
 	if (eaiverbose) {
-		printf ("node here is %lu\n",(unsigned long int) nodePtr);
+		printf ("node here is %p\n",nodePtr);
 		printf ("ok, going to try and find field :%s: in a node of type :%s:\n",fieldString,stringNodeType(nodePtr->_nodeType));
 	}
 
@@ -591,7 +590,7 @@ void EAI_GetType (int cNode,  char *inputFieldString, char *accessMethod,
        	findFieldInOFFSETS(nodePtr->_nodeType, myField, &myFieldOffs, &ctype, accessType);
 
 	if (eaiverbose) {
-		printf ("EAI_GetType, after changeExpandedPROTOtoActualNode, C node %lu\n",(unsigned long int)nodePtr);
+		printf ("EAI_GetType, after changeExpandedPROTOtoActualNode, C node %p\n",nodePtr);
 		printf ("	of string type %s\n",stringNodeType(nodePtr->_nodeType)); 
 	}	
 

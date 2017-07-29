@@ -60,6 +60,7 @@ my $interalNodeCommonFields =
                "       struct X3D_PolyRep *_intern; \n"              	.
                "       int referenceCount; /* if this reaches zero, nobody wants it anymore */ \n".
 	       "       int _defaultContainer; /* holds the container */\n".
+	       "       void* _gc; /* ptr to vector of ptrs to free */\n".
 	       "       struct X3D_Node* _executionContext; /* scene or protoInstance */\n".
                " 	/*** node specific data: *****/\n";
 
@@ -600,7 +601,7 @@ sub gen {
 	push @genFuncs1, "\n/* Table of MULTITEXTUREMODE keywords */\n       const char *MULTITEXTUREMODE[] = {\n";
 
         @sf = sort keys %VRML::Rend::MultiTextureModeC if %VRML::Rend::MultiTextureModeC;
-	$keywordIntegerType = 0;
+	$keywordIntegerType = 1; #one-based defines
 	my $MultiText_defs = '#define MULTITEXTUREDefs " \\' . "\n";
 	for (@sf) {
 		# print "node $_ is tagged as $nodeIntegerType\n";
@@ -632,7 +633,7 @@ sub gen {
 	push @genFuncs1, "\n/* Table of MULTITEXTURESOURCE keywords */\n       const char *MULTITEXTURESOURCE[] = {\n";
 
         @sf = sort keys %VRML::Rend::MultiTextureSourceC if %VRML::Rend::MultiTextureSourceC;
-	$keywordIntegerType = 0;
+	$keywordIntegerType = 1; #one-based defines
 	for (@sf) {
 		# print "node $_ is tagged as $nodeIntegerType\n";
 		# tag each node type with a integer key.
@@ -986,7 +987,7 @@ sub gen {
 
 	###################
 	# create the virtual tables for each node.
-	push @str, "\n/* First, a generic struct, contains only the common elements */\n".
+	push @str, "\n/* First, a generic struct, contains only the common elements - nicknames for convenience */\n".
 	"struct X3D_Node {\n". $interalNodeCommonFields .  "};\n".
 	"#define X3D_LINEPROPERTIES(node) ((struct X3D_LineProperties*)node)\n".
 	"#define X3D_FILLPROPERTIES(node) ((struct X3D_FillProperties*)node)\n".
@@ -1003,6 +1004,7 @@ sub gen {
 	"#define X3D_ANCHOR(node) ((struct X3D_Anchor*)node)\n".
 	"#define X3D_COLLISION(node) ((struct X3D_Collision*)node)\n".
 	"#define X3D_COMPOSEDSHADER(node) ((struct X3D_ComposedShader*)node)\n".
+	"#define X3D_EFFECT(node) ((struct X3D_Effect*)node)\n".
 	"#define X3D_PACKAGEDSHADER(node) ((struct X3D_PackagedShader*)node)\n".
 	"#define X3D_PROGRAMSHADER(node) ((struct X3D_ProgramShader*)node)\n".
 	"#define X3D_SHADERPROGRAM(node) ((struct X3D_ShaderProgram*)node)\n".
@@ -1039,6 +1041,10 @@ sub gen {
 	"#define X3D_TRIANGLESTRIPSET(node) ((struct X3D_TriangleStripSet*)node)\n".
 	"#define X3D_QUADSET(node) ((struct X3D_QuadSet*)node)\n".
 	"#define X3D_INDEXEDQUADSET(node) ((struct X3D_IndexedQuadSet*)node)\n".
+
+	"#define X3D_VIEWPORT(node) ((struct X3D_Viewport*)node)\n".
+	"#define X3D_LAYOUT(node) ((struct X3D_Layout*)node)\n".
+	"#define X3D_LAYERSET(node) ((struct X3D_LayerSet*)node)\n".
 
 
 	"#define X3D_GEOORIGIN(node) ((struct X3D_GeoOrigin*)node)\n".
@@ -1133,6 +1139,7 @@ sub gen {
 	"	node->_intern = 0;\n".
 	"	node->_nodeType = nt; /* unique integer for each type */\n".
 	"	node->referenceCount = 1; /* we have requested this, we want it! */\n".
+	"	node->_gc = NULL; /* any node doing non-public field mallocs can register_node_gc(node,p) for auto-freeing */ \n".
 	"	node->_executionContext = NULL; /* a few places like js need to know the executionContext if non-null */ \n".
 	"	\n";
 
@@ -1163,8 +1170,29 @@ sub gen {
 		}
 
 	# rig in the default container for X3D parsing.
-	if (exists $VRML::Rend::defaultContainerType{$node}) {
-		push @genFuncs2, "\t\t\ttmp2->_defaultContainer = FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}.";\n";
+	#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
+	if (exists $VRML::Rend::defaultContainerType{$node} ) {
+		#push @genFuncs2, "\t\t\ttmp2->_defaultContainer = FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}.";\n";
+		push @genFuncs2, "\t\t\ttmp2->_defaultContainer = ";
+		my $containerCount = 0;
+		my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$node}});
+		#push @genFuncs2, "$lencount ";
+		for(my $i=0;$i<$lencount;$i++) {
+			if($i < 3) {  #just 1 or 2 for now
+				if ($i == 1 || $i == 2) {
+					push @genFuncs2, " + (";
+				}
+				push @genFuncs2, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}[$i];
+				if ($i == 1) {
+					push @genFuncs2, " << 10)";
+				}
+				if ($i == 2) {
+					push @genFuncs2, " << 20)"; #squeezing 3 into 32 bits, 10 bits each, so FIELDNAMES_ can only go up to 1023, currently ~960 jan 2017
+				}
+			}
+		}
+		#push @genFuncs2, $VRML::Rend::defaultContainerType{$node}[0];
+		push @genFuncs2, ";\n";
 	} else {
 		print "defaultContainerType for $node missing\n";
 	}
@@ -1196,6 +1224,8 @@ sub gen {
 	"	add_picksensor(tmp); /* DJTRACK_PICKSENSORS */\n".
 	"	/* is this a time tick node? */\n".
 	"       add_first(tmp);\n".
+	"       /* possibly a physics node? */\n".
+	"       add_physics(X3D_NODE(tmp));\n".
 	"       /* possibly a KeySensor node? */\n".
 	"       addNodeToKeySensorList(X3D_NODE(tmp));\n";
 	push @genFuncs2, "\treturn tmp;\n}\n";
@@ -1557,7 +1587,7 @@ struct X3D_Virt {
 	void (*proximity)(void *);
 	void (*other)(void *);
 	void (*collision)(void *);
-	void (*compile)(void *, void *, void *, void *, void *);
+	void (*compile)(void *, void *, void *, void *, void *, void *);
 };
 
 /* a string is stored as a pointer, and a length of that mallocd pointer */
@@ -1566,6 +1596,7 @@ struct Uni_String {
 	char * strptr;
 	int touched;
 };
+
 
 /* Internal representation of IndexedFaceSet, Text, Extrusion & ElevationGrid:
  * set of triangles.
@@ -1581,12 +1612,20 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLuint *cindex;   /* triples (per triangle) */
 	GLuint *colindex;   /* triples (per triangle) */
 	GLuint *norindex;
-        GLuint *tcindex; /* triples or null */
+	GLuint *tcindex; /* triples or null */
+	ushort *tri_indices;
+	ushort *wire_indices;
 
 	float *actualCoord; /* triples (per point) */
+	float *actualFog; /* float (per point) */
 	float *color; /* triples or null */
 	float *normal; /* triples or null */
-        float *GeneratedTexCoords;	/* triples (per triangle) of texture coords if there is no texCoord node */
+	float *flat_normal; /*triples or null*/
+	int last_normal_type; /* 0=regular 1=flat last normal type we put in the vbo normal buffer */
+	int last_index_type; /* 0=regular 1=wire last vertex index type we put in the vbo index buffer */
+	float *GeneratedTexCoords[4];	/* triples (per triangle) of texture coords if there is no texCoord node */
+	int ntexdim[4];  /* number of texture coordinate dimensions, normally 2 xy, 3 xyz, 4 xyzw */
+	int ntcoord;		/* number of multitextureCoordinates */
 	int tcoordtype; /* type of texture coord node - is this a NODE_TextureCoordGenerator... */
 	int texgentype; /* if we do have a TextureCoordinateGenerator, what "TCGT_XXX" type is it? */
 	GLfloat minVals[3];		/* for collision and default texture coord generation */

@@ -438,7 +438,10 @@ void locateAudioSource (struct X3D_AudioClip *node) {
 			break;
 		} else {
 			res = resource_create_multi(&(node->url));
-			res->media_type = resm_audio;
+			if(node->_nodeType == NODE_MovieTexture)
+				res->media_type = resm_movie;
+			else //if(node->_nodeType == NODE_AudioClip)
+				res->media_type = resm_audio;
 			node->__loadstatus = LOAD_REQUEST_RESOURCE;
 			node->__loadResource = res;
 		}
@@ -484,7 +487,16 @@ void locateAudioSource (struct X3D_AudioClip *node) {
 		break;
 	}
 }
-
+int loadstatus_AudioClip(struct X3D_AudioClip *node){
+	int istate = 0;
+	if(node){
+		if(node->__loadstatus > LOAD_INITIAL_STATE && node->__loadstatus < LOAD_STABLE)
+			istate = 1;
+		if(node->__loadstatus == LOAD_STABLE)
+			istate = 2;
+	}
+	return istate;
+}
 void render_AudioClip (struct X3D_AudioClip *node) {
 /*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
 	specs: if an audioclip can't be reached in the scenegraph, then it doesn't play
@@ -558,7 +570,8 @@ void render_Sound (struct X3D_Sound *node) {
 	//ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 
 	/* why bother doing this if there is no source? */
-	if (node->source == NULL) return;
+	if (node->source == NULL) 
+		return;
 
 	/* ok, is the source a valid node?? */
 
@@ -573,7 +586,9 @@ void render_Sound (struct X3D_Sound *node) {
 		acp = (struct X3D_AudioClip *) tmpN;
 		sound_from_audioclip = TRUE;
 	}else if (tmpN->_nodeType == NODE_MovieTexture){
-		mcp = (struct X3D_MovieTexture *) tmpN;
+		//mcp = (struct X3D_MovieTexture *) tmpN;
+		//july 2016 ordered fields in MovieTexture to mach AudioClip, can up-caste
+		acp = (struct X3D_AudioClip *) tmpN;
 	} else {
 		ConsoleMessage ("Sound node- source type of %s invalid",stringNodeType(tmpN->_nodeType));
 		node->source = NULL; /* stop messages from scrolling forever */
@@ -623,7 +638,15 @@ void render_Sound (struct X3D_Sound *node) {
 					veccopy3f(node->__lastlocation.c,SourcePos);
 
 					node->__sourceNumber = source;
-					assert(alGetError()==AL_NO_ERROR && "Failed to setup sound source");
+					//assert(alGetError()==AL_NO_ERROR && "Failed to setup sound source");
+					if(alGetError()!=AL_NO_ERROR) {
+						static int once = 0;
+						if(!once){
+							ConsoleMessage("Failed to setup sound source\n");
+							once = 1;
+						}
+						node->__sourceNumber = BADAUDIOSOURCE;
+					}
 				}
 				if( node->__sourceNumber > -1){
 					int istate;
@@ -638,7 +661,7 @@ void render_Sound (struct X3D_Sound *node) {
 					vecdif3f(travelled,node->__lastlocation.c,SourcePos);
 					traveltime = TickTime() - node->__lasttime;
 					if(traveltime > 0.0)
-						vecscale3f(SourceVel,travelled,1.0/traveltime);
+						vecscale3f(SourceVel,travelled,1.0f/(float)traveltime);
 					alSourcefv(node->__sourceNumber, AL_VELOCITY, SourceVel);
 
 					node->__lasttime = TickTime();
@@ -654,7 +677,7 @@ void render_Sound (struct X3D_Sound *node) {
 						//transform source direction into avatar/listener space
 						for(i=0;i<3;i++) dird[i] = node->direction.c[i];
 						transformAFFINEd(dird,dird,modelMatrix);
-						for(i=0;i<3;i++) dirf[i] = dird[i];
+						for(i=0;i<3;i++) dirf[i] = (float)dird[i];
 						if (1)
 							alSourcefv(node->__sourceNumber, AL_DIRECTION, dirf);
 						else
@@ -675,7 +698,7 @@ void render_Sound (struct X3D_Sound *node) {
 					if(acp->isActive ){
 						if(istate != AL_PLAYING && !acp->isPaused){
 							alSourcePlay(node->__sourceNumber);
-							printf(".play.");
+							//printf(".play.");
 						}
 					}else{
 						if(istate != AL_STOPPED)
@@ -842,7 +865,7 @@ int	parse_audioclip(struct X3D_AudioClip *node,char *bbuffer, int len){
 #else
 	int buffer = BADAUDIOSOURCE;
 #endif
-	printf("parse_audioclip buffer=%d\n",buffer);
+	//printf("parse_audioclip buffer=%d\n",buffer);
 	return buffer;
 }
 

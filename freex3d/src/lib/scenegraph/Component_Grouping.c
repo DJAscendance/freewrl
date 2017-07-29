@@ -44,6 +44,7 @@ X3D Grouping Component
 
 #include "LinearAlgebra.h"
 #include "Children.h"
+#include "../scenegraph/RenderFuncs.h"
 
 void compile_Transform (struct X3D_Transform *node) { 
 	INITIALIZE_EXTENT;
@@ -109,11 +110,11 @@ void prep_Transform (struct X3D_Transform *node) {
 
 	COMPILE_IF_REQUIRED
 
-        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
-         * so we do nothing here in that case -ncoder */
+	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+		* so we do nothing here in that case -ncoder */
 
 	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	OCCLUSIONTEST
@@ -122,96 +123,188 @@ void prep_Transform (struct X3D_Transform *node) {
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
 
-		FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX();
 
-		/* TRANSLATION */
-		if (node->__do_trans)
-			FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+			/* TRANSLATION */
+			if (node->__do_trans)
+				FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
 
-		/* CENTER */
-		if (node->__do_center)
-			FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+			/* CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
 
-		/* ROTATION */
-		if (node->__do_rotation) {
-			FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
-		}
+			/* ROTATION */
+			if (node->__do_rotation) {
+				FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
+			}
 
-		/* SCALEORIENTATION */
-		if (node->__do_scaleO) {
-			FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-		}
+			/* SCALEORIENTATION */
+			if (node->__do_scaleO) {
+				FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+			}
 
 
-		/* SCALE */
-		if (node->__do_scale)
-			FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
+			/* SCALE */
+			if (node->__do_scale)
+				FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
 
-		/* REVERSE SCALE ORIENTATION */
-		if (node->__do_scaleO)
-			FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+			/* REVERSE SCALE ORIENTATION */
+			if (node->__do_scaleO)
+				FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
 
-		/* REVERSE CENTER */
-		if (node->__do_center)
-			FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+			/* REVERSE CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
 		} 
 
 		RECORD_DISTANCE
 
-        }
+	}
 }
 
 
 void fin_Transform (struct X3D_Transform *node) {
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-            if (node->__do_anything) {
-		FW_GL_POP_MATRIX();
-	    }
-        } else {
-           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-                FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
-                );
-                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
-                );
-                FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
-                );
-                FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
-                );
-                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
-                );
-            }
-        }
+	if(!renderstate()->render_vp) {
+		if (node->__do_anything) {
+			FW_GL_POP_MATRIX();
+		}
+	} else {
+		/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+		if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+			);
+			FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
+			);
+			FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+			);
+		}
+	}
 } 
 
 void child_Switch (struct X3D_Switch *node) {
 	/* exceedingly simple - render only one child */
+	struct X3D_Node **pp;
+	int n;
 	int wc = node->whichChoice;
 
 	/* is this VRML, or X3D?? */
-	if (node->__isX3D) {
-		if(wc >= 0 && wc < ((node->children).n)) {
-			void *p = ((node->children).p[wc]);
+	n = 0;
+	pp = NULL;
+	if(node->children.n){
+		pp = node->children.p;
+		n = node->children.n;
+	} else if(node->choice.n){
+		pp = node->choice.p;
+		n = node->choice.n;
+	}
+	if(n && pp){
+		if(wc >= 0 && wc < n){
+			void * p = pp[wc];
 			render_node(p);
 		}
-	} else {
-		if(wc >= 0 && wc < ((node->choice).n)) {
-			void *p = ((node->choice).p[wc]);
-			render_node(p);
+	}
+	//if (node->__isX3D ||  (node->children).n) {
+	//	if(wc >= 0 && wc < (node->children).n) {
+	//		void *p = ((node->children).p[wc]);
+	//		render_node(p);
+	//	}
+	//} else {
+	//	if(wc >= 0 && wc < ((node->choice).n)) {
+	//		void *p = ((node->choice).p[wc]);
+	//		render_node(p);
+	//	}
+	//}
+}
+
+
+
+void sib_prep_LocalFog(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_prep_DirectionalLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_prep_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_prep_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_prep_ClipPlane(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_prep_Effect(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+
+void sib_prep(struct X3D_Node *parent, struct X3D_Node *sibAffector){
+	switch(sibAffector->_nodeType){
+		case NODE_DirectionalLight:
+			sib_prep_DirectionalLight(parent,sibAffector); break;
+		case NODE_SpotLight:
+			sib_prep_SpotlLight(parent,sibAffector); break;
+		case NODE_PointLight:
+			sib_prep_PointLight(parent,sibAffector); break;
+		case NODE_LocalFog:
+			sib_prep_LocalFog(parent,sibAffector); break;
+		case NODE_ClipPlane:
+			sib_prep_ClipPlane(parent,sibAffector); break;
+		case NODE_Effect: 
+			sib_prep_Effect(parent,sibAffector); break;
+		default:
+			break;
+	}
+}
+
+void sib_fin_LocalFog(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_fin_DirectionalLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_fin_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_fin_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_fin_ClipPlane(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_fin_Effect(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+
+void sib_fin(struct X3D_Node *parent, struct X3D_Node *sibAffector){
+	switch(sibAffector->_nodeType){
+		case NODE_DirectionalLight:
+			sib_fin_DirectionalLight(parent,sibAffector); break;
+		case NODE_SpotLight:
+			sib_fin_SpotlLight(parent,sibAffector); break;
+		case NODE_PointLight:
+			sib_fin_PointLight(parent,sibAffector); break;
+		case NODE_LocalFog:
+			sib_fin_LocalFog(parent,sibAffector); break;
+		case NODE_ClipPlane:
+			sib_fin_ClipPlane(parent,sibAffector); break;
+		case NODE_Effect:
+			sib_fin_Effect(parent,sibAffector); break;
+		default:
+			break;
+	}
+}
+void prep_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
+	if(affectors->n){
+		int j;
+		for(j=0;j<affectors->n;j++){
+			struct X3D_Node *sa = affectors->p[j];
+			sib_prep(parent,sa);
+		}
+	}
+}
+void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
+	if(affectors->n){
+		int j,jj;
+		for(jj=0;jj<affectors->n;jj++){
+			//we go backwards so any sib_fin popping is in reverse order to any sib_prep pushing,
+			// in case multiple push to same stack, as with multiple Effects
+			struct X3D_Node *sa;
+			j = affectors->n - jj - 1; 
+			sa = affectors->p[j];
+			sib_fin(parent,sa);
 		}
 	}
 }
 
-
 void child_StaticGroup (struct X3D_StaticGroup *node) {
 	CHILDREN_COUNT
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
@@ -223,18 +316,21 @@ void child_StaticGroup (struct X3D_StaticGroup *node) {
 	}
 
 	/* do we have a local light for a child? */
-	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->_sortedChildren);
 
-	LOCAL_LIGHT_OFF
+	//LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 }
 
 void child_Group (struct X3D_Group *node) {
-	int renderFirstProtoChildOnlyAsPerSpecs = 1;
+	// UNUSED int renderFirstProtoChildOnlyAsPerSpecs = 1;
 	CHILDREN_COUNT
-	LOCAL_LIGHT_SAVE
+//	LOCAL_LIGHT_SAVE
 
 	/*
 printf ("chldGroup %p (root %p), flags %x children %d ",node,rootNode,node->_renderFlags,node->children.n);
@@ -248,14 +344,24 @@ if ((node->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision "
 if ((node->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
 if ((node->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
 if ((node->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) printf ("VF_shouldSortChildren ");
-#ifdef DJTRACK_PICKSENSORS
-if ((node->_renderFlags & VF_inPickableGroup) == VF_inPickableGroup) printf ("VF_inPickableGroup ");
-#endif
 printf ("\n");
 */
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
+	if(1){
+		//stereoscopic experiments
+		ttrenderstate rs = renderstate();
+		if (rs->render_geom) { //== VF_Geom) {
+			if (node->_renderFlags & VF_HideLeft && (viewer_iside() == 0) )  { 
+					return; 
+			} 
+			if (node->_renderFlags & VF_HideRight && (viewer_iside() == 1) )  { 
+					return; 
+			} 
+		} 
+	}
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 
 #ifdef VERBOSE
@@ -288,38 +394,51 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 		
 	/* do we have a DirectionalLight for a child? */
-	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 
 	/* printf ("chld_Group, for %u, protodef %d and FreeWRL_PROTOInterfaceNodes.n %d\n",
 		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
 	/* now, just render the non-directionalLight children */
-	renderFirstProtoChildOnlyAsPerSpecs = 0; //flux/vivaty render all children
-	if ((node->FreeWRL__protoDef!=INT_ID_UNDEFINED) && renderstate()->render_geom 
-		&& renderFirstProtoChildOnlyAsPerSpecs) {
-		(node->children).n = 1;
-		normalChildren(node->children);
-		(node->children).n = nc;
-	} else {
-		normalChildren(node->_sortedChildren);
-	}
+	// UNUSED renderFirstProtoChildOnlyAsPerSpecs = 0; //flux/vivaty render all children
+	normalChildren(node->_sortedChildren);
 
-	LOCAL_LIGHT_OFF
+
+//	LOCAL_LIGHT_OFF
+	
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 }
 
 
 void child_Transform (struct X3D_Transform *node) {
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
+
+	if(1){
+		//stereoscopic experiments
+		ttrenderstate rs = renderstate();
+		if (rs->render_geom) { //== VF_Geom) {
+			if (node->_renderFlags & VF_HideLeft && (viewer_iside() == 0) )  { 
+					return; 
+			} 
+			if (node->_renderFlags & VF_HideRight && (viewer_iside() == 1) )  { 
+					return; 
+			} 
+		} 
+	}
+	//if(node->__sibAffectors.n)
+	//	printf("have transform sibaffectors\n");
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* any children at all? */
 	if (nc==0) return;
 
 	//profile_start("local_light_kids");
 	/* do we have a local light for a child? */
-	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 	//profile_end("local_light_kids");
 	/* now, just render the non-directionalLight children */
 
@@ -336,7 +455,8 @@ void child_Transform (struct X3D_Transform *node) {
 		printf ("transform - done normalChildren\n");
 	#endif
 
-	LOCAL_LIGHT_OFF
+//	LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
 
@@ -368,12 +488,14 @@ void compile_Proto(struct X3D_Proto *node) {
 	}
 	MARK_NODE_COMPILED
 }
-/* render the first node only */
+
+
+/* render the first node only unless scene (see component_networking.c child_inline for scene-similar*/
 void child_Proto (struct X3D_Proto *node) {
 	int nc;
 	unsigned char sceneflag;
 	int renderFirstProtoChildOnlyAsPerSpecs;
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 	if(0)printf("in child_proto\n");
 	//CHILDREN_COUNT
 	nc = node->__children.n; //_sortedChildren.n;
@@ -389,14 +511,11 @@ if ((node->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision "
 if ((node->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
 if ((node->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
 if ((node->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) printf ("VF_shouldSortChildren ");
-#ifdef DJTRACK_PICKSENSORS
-if ((node->_renderFlags & VF_inPickableGroup) == VF_inPickableGroup) printf ("VF_inPickableGroup ");
-#endif
+
 printf ("\n");
 */
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 	//if(node->__loadstatus != LOAD_STABLE) return; #define LOAD_STABLE 10
-
 
 
 #ifdef VERBOSE
@@ -427,13 +546,14 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 
 
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 		
 	/* do we have a DirectionalLight for a child? */
-	if(nc){
-		LOCAL_LIGHT_CHILDREN(node->__children);
-	}else{
-		LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
-	}
+	//if(nc){
+	//	LOCAL_LIGHT_CHILDREN(node->__children);
+	//}else{
+	//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+	//}
 
 	/* printf ("chld_Group, for %u, protodef %d and FreeWRL_PROTOInterfaceNodes.n %d\n",
 		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
@@ -446,20 +566,24 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 	//	normalChildren(node->_sortedChildren);
 	//}
 	sceneflag = ciflag_get(node->__protoFlags,2);
-	renderFirstProtoChildOnlyAsPerSpecs = FALSE;
+	renderFirstProtoChildOnlyAsPerSpecs = TRUE;  //FALSE is like flux / vivaty
 	//I don't think inline.children comes through here, just scene and protoInstance
 	if(sceneflag == 2 ){ 
 		normalChildren(node->_sortedChildren);
 	}else{
-		if(renderFirstProtoChildOnlyAsPerSpecs && renderstate()->render_geom) {
+		if(renderFirstProtoChildOnlyAsPerSpecs && (renderstate()->render_geom || renderstate()->render_blend)) {
+			//H: its just when rendering drawable geometry that we take only the first node
 			(node->__children).n = 1;
 			normalChildren(node->__children);
 			(node->__children).n = nc;
 		} else {
+			//H: else even for Protobodies, we may visit all rootnodes & descendants
+			//  in case they need some updating on a non-draw scenegraph pass?
 			normalChildren(node->__children);
 		}
 	}
 
-	LOCAL_LIGHT_OFF
+	//LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 }

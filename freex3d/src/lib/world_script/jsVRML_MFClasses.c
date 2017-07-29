@@ -27,9 +27,9 @@
 
 
 #include <config.h>
+#include <system.h>
 #if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 
-#include <system.h>
 #include <system_threads.h>
 #include <display.h>
 #include <internal.h>
@@ -54,7 +54,7 @@
 #include "jsVRMLClasses.h"
 #include "JScript.h"
 
-#ifdef HAVE_JAVASCRIPT
+
 
 /********************************************************/
 /*							*/
@@ -2153,5 +2153,5 @@ JSBool MFStringConvertProperty(JSContext *cx, JSObject *obj, JSType type, jsval 
 	return JS_TRUE;
 }
 
-#endif /* HAVE_JAVASCRIPT */
+
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */

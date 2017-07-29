@@ -26,8 +26,8 @@
 
 
 #include <config.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <system.h>
+#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <system_threads.h>
 #include <display.h>
 #include <internal.h>
@@ -58,7 +58,7 @@
 #include "jsVRMLClasses.h"
 //#include "JScript.h"
 
-#ifdef HAVE_JAVASCRIPT
+
 
 /********************************************************/
 /*							*/
@@ -1550,16 +1550,17 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 		/* dug9 attempt to find read the field of another script */
 		//if(!strcmp(stringNodeType(ptr->handle->_nodeType),"Script"))
-		if( ptr->handle->_nodeType== NODE_Script )
+		if( ptr->handle && ptr->handle->_nodeType== NODE_Script )
 		{
 			struct Shader_Script *myObj;
 			JSContext *cx2;
 			JSObject *obj2;
-			struct CRscriptStruct *ScriptControl = getScriptControl(); 
+			struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
 			myObj = X3D_SCRIPT(ptr->handle)->__scriptObj;
 			/* get context and global object for this script */
-			cx2 =  (JSContext*)ScriptControl[myObj->num].cx;
-			obj2 = (JSObject*)ScriptControl[myObj->num].glob;
+			ScriptControl = getScriptControlIndex(myObj->num);
+			cx2 =  (JSContext*)ScriptControl->cx;
+			obj2 = (JSObject*)ScriptControl->glob;
 			if (JS_GetProperty (cx2, obj2, _id_c, &rval)) {
 				if (JSVAL_IS_NULL(rval)) {
 					ConsoleMessage ("Script - field :%s: does not exist",_id_c);
@@ -1620,7 +1621,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	return JS_TRUE;
 }
 
-void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, char *value, int isXML);
+void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char *value, int isXML);
 
 JSBool
 #if JS_VERSION < 185
@@ -1728,17 +1729,18 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			//indexT myfieldType;
 			//union anyVrml vrmlField;
 			//bool deepcopy;
-			struct CRscriptStruct *ScriptControl = getScriptControl(); 
+			struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
 			myObj = X3D_SCRIPT(ptr->handle)->__scriptObj;
 			/* is the script ok and initialized? */
-			if ((!ScriptControl[myObj->num]._initialized) || (!ScriptControl[myObj->num].scriptOK)) {
+			ScriptControl = getScriptControlIndex(myObj->num);
+			if ((!ScriptControl->_initialized) || (!ScriptControl->scriptOK)) {
 				/* printf ("waiting for initializing script %d at %s:%d\n",(uintptr_t)to_ptr->routeToNode, __FILE__,__LINE__); */
 				return JS_FALSE;;
 			}
 
 			/* get context and global object for this script */
-			cx2 =  (JSContext*)ScriptControl[myObj->num].cx;
-			obj2 = (JSObject*)ScriptControl[myObj->num].glob;
+			cx2 =  (JSContext*)ScriptControl->cx;
+			obj2 = (JSObject*)ScriptControl->glob;
 			//it doesn't seem to matter which cx/obj we use.
 			cx2 = cx;
 			obj2 = obj;
@@ -1902,10 +1904,11 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			//step 1. unconditionally write the script->field->value regardless of its kind/PKW
 			struct ScriptFieldDecl* myfield; 
 			struct Shader_Script *script;
-			struct CRscriptStruct *ScriptControl = getScriptControl(); 
+			struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
 			script = X3D_SCRIPT(ptr->handle)->__scriptObj;
 			/* is the script ok and initialized? */
-			if ((!ScriptControl[script->num]._initialized) || (!ScriptControl[script->num].scriptOK)) {
+			ScriptControl = getScriptControlIndex(script->num);
+			if ((!ScriptControl->_initialized) || (!ScriptControl->scriptOK)) {
 				/* printf ("waiting for initializing script %d at %s:%d\n",(uintptr_t)to_ptr->routeToNode, __FILE__,__LINE__); */
 				return JS_FALSE;;
 			}
@@ -2524,7 +2527,7 @@ SFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
 		}
 		if (JSVAL_IS_OBJECT(argv[1])) {
 /*			_ob2 = (JSObject *)argv[1]; */
-			_ob2 = JSVAL_TO_OBJECT(argv[2]);
+			_ob2 = JSVAL_TO_OBJECT(argv[1]);
 
 			v3fv3f = TRUE;
 
@@ -5221,5 +5224,5 @@ SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval 
 	}
 	return JS_TRUE;
 }
-#endif /* HAVE_JAVASCRIPT */
+
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */

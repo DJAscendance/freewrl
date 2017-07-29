@@ -19,55 +19,36 @@ Variable use:
 
 */
 
-#define MAXSTAT 200
-
 #ifndef INSTANCEGLOBAL
-#include "display.h" //for opengl_utils.h which is for rdr_caps
-#include "opengl/OpenGL_Utils.h"  //for rdr_caps
+//#include "display.h" //for opengl_utils.h which is for rdr_caps
+//#include "opengl/OpenGL_Utils.h"  //for rdr_caps
 #include "list.h"
 #ifdef DISABLER
 #include "dbl_list.h"
 #endif
+#include <system.h>
+//#include <libFreeWRL.h>
+#include <pthread.h>
 #include <threads.h> //for threads
-#include "vrml_parser/Structs.h" //for SFColor
-#include "x3d_parser/X3DParser.h" //for PARENTSTACKSIZE
-#include "ui/common.h" // for ppcommon
+//#define GLenum int
+//#define GLuint unsigned int
+//#include "vrml_parser/Structs.h" //for SFColor
+//#include "x3d_parser/X3DParser.h" //for PARENTSTACKSIZE
+//#include "ui/common.h" // for ppcommon
 
-typedef struct pRenderTextures{
-	// blank for now
-	void *nada;
-}* ppRenderTextures;
 
 
 typedef struct iiglobal //InstanceGlobal
 {
 	struct tdisplay{
-		freewrl_params_t params;
-		GLenum _global_gl_err;
+		void *params; //freewrl_params_t
+		int _global_gl_err; //GLenum
 		bool display_initialized;// = FALSE;
-
-		int view_height;// = 0; /* viewport */
-		int view_width;// = 0;
-
 		int screenWidth;// = 0; /* screen */
 		int screenHeight;// = 0;
-
-		double screenRatio;// = 1.5;
-
 		char *window_title;// = NULL;
-
-		int mouse_x;
-		int mouse_y;
-
-		int show_mouse;
-
 		int shutterGlasses;// = 0; /* stereo shutter glasses */
-		int quadbuff_stereo_mode;// = 0;
-
-		s_renderer_capabilities_t rdr_caps;
-
-		float myFps;// = (float) 0.0;
-		char myMenuStatus[MAXSTAT];
+		void *rdr_caps; //s_renderer_capabilities_t
 		void *prv;
 	}display;
 	struct tinternalc {
@@ -83,7 +64,8 @@ typedef struct iiglobal //InstanceGlobal
 	//	void *prv;
 	//} io_http;
 	struct tresources {
-		resource_item_t *root_res; // = NULL;
+		//resource_item_t *root_res; // = NULL;
+		void *root_res;
 		void *prv;
 	} resources;
 	struct tthreads {
@@ -104,12 +86,12 @@ typedef struct iiglobal //InstanceGlobal
 		/* Synchronize / exclusion (main<=>texture) */
 		pthread_mutex_t mutex_texture_list; // = PTHREAD_MUTEX_INITIALIZER;
 		pthread_cond_t texture_list_condition; // = PTHREAD_COND_INITIALIZER;
-		BOOL ResourceThreadRunning;
-		BOOL TextureThreadRunning;
-		BOOL ResourceThreadWaiting;
-		BOOL TextureThreadWaiting;
+		bool ResourceThreadRunning;
+		bool TextureThreadRunning;
+		bool ResourceThreadWaiting;
+		bool TextureThreadWaiting;
+		bool flushing;
 		int MainLoopQuit;
-		int flushing;
 		void *prv;
 	} threads;
     
@@ -137,7 +119,6 @@ typedef struct iiglobal //InstanceGlobal
 		int EAIbufcount;				/* pointer into buffer*/
 		int EAIbufpos;
 		int EAIbufsize;				/* current size in bytes of input buffer*/
-		char EAIListenerData[8192]; //EAIREADSIZE]; /* this is the location for getting Listenered data back again.*/
 		void *prv;
 	} EAICore;
 	struct tSensInterps{
@@ -158,11 +139,12 @@ typedef struct iiglobal //InstanceGlobal
 		double BrowserSpeed;// = 0.0;      /* calculated movement speed    */
 		const char *BrowserDescription;
 		int HaveSensitive;// = FALSE;
+		int AllowNavDrag;
 		int trisThisLoop;
 		int clipPlane;// = 0;
 		int SHIFT; //state of shift key up = 0, down = 1
 		int CTRL; //state of ctrl key up = 0, down = 1
-		int currentX[20], currentY[20];                 /*  current mouse position.*/
+		//int currentX[20], currentY[20];                 /*  current mouse position.*/
 		void *prv;
 		char *tmpFileLocation;
 		char *url;
@@ -172,6 +154,13 @@ typedef struct iiglobal //InstanceGlobal
 		int *scene_components;
 		char *replaceWorldRequest;
 		void *replaceWorldRequestMulti; //will be struct multi-string
+		void *_vportstack; //Stack for viewports
+		void *_stagestack; //stack for stage ID
+		void *_framebufferstack; //stack for backbuffers, usually GL_BACK, or can be FBO
+		int screenOrientation2;
+		int pickray_x;
+		int pickray_y;
+		float fieldOfView; //set in setup_projection, used in volumeRendering
 	} Mainloop;
 	struct tProdCon{
 		struct Vector *viewpointNodes;// = NULL;
@@ -182,12 +171,6 @@ typedef struct iiglobal //InstanceGlobal
 		struct X3D_Node *setBackgroundBindInRender;// = NULL;
 		struct X3D_Node *setNavigationBindInRender;// = NULL;
 		void *savedParser; //struct VRMLParser* savedParser;
-#ifdef DISABLER		
-#ifdef FRONTEND_GETS_FILES
-		void (*_frontEndOnResourceRequiredListener)(char *);
-#endif
-		void (*_frontEndOnX3DFileLoadedListener)(char *);
-#endif		
 		void *prv;
 	} ProdCon;
        #if defined (INCLUDE_NON_WEB3D_FORMATS)
@@ -234,15 +217,18 @@ typedef struct iiglobal //InstanceGlobal
 	}RasterFont;
 #endif
 	struct tRenderTextures{
-		struct multiTexParams textureParameterStack[MAX_MULTITEXTURE];
+		//struct multiTexParams textureParameterStack[MAX_MULTITEXTURE];
+		void *textureParameterStack;
 		void *prv;
 	}RenderTextures;
 	struct tTextures{
 		/* for texture remapping in TextureCoordinate nodes */
-		GLuint	*global_tcin;
+		//GLuint	*global_tcin;
+		unsigned int *global_tcin;
 		int	global_tcin_count;
 		void 	*global_tcin_lastParent;
-		GLuint defaultBlankTexture;
+		//GLuint defaultBlankTexture;
+		unsigned int defaultBlankTexture;
 		void *prv;
 	}Textures;
 	struct tPluginSocket{
@@ -254,6 +240,9 @@ typedef struct iiglobal //InstanceGlobal
 	struct tcollision{
 		void *prv;
 	}collision;
+	struct tComponent_CubeMapTexturing{
+		void *prv;
+	}Component_CubeMapTexturing;
 	struct tComponent_EnvironSensor{
 		void *prv;
 	}Component_EnvironSensor;
@@ -266,9 +255,27 @@ typedef struct iiglobal //InstanceGlobal
 	struct tComponent_HAnim{
 		void *prv;
 	}Component_HAnim;
+	struct tComponent_Layering{
+		void *prv;
+	}Component_Layering;
+	struct tComponent_Layout{
+		void *prv;
+	}Component_Layout;
 	struct tComponent_NURBS{
 		void *prv;
 	}Component_NURBS;
+	struct tComponent_ParticleSystems{
+		void *prv;
+	}Component_ParticleSystems;
+	struct tComponent_ProgrammableShaders{
+		void *prv;
+	}Component_ProgrammableShaders;
+	struct tComponent_RigidBodyPhysics{
+		void *prv;
+	}Component_RigidBodyPhysics;
+	struct tComponent_Followers{
+		void *prv;
+	}Component_Followers;
 	struct tComponent_KeyDevice{
 		void *prv;
 	}Component_KeyDevice;
@@ -283,11 +290,12 @@ iOLDCODE		void *prv;
 iOLDCODE	}Component_Networking;
 #endif // OLDCODE
 
-#ifdef DJTRACK_PICKSENSORS
 	struct tComponent_Picking{
 		void *prv;
 	}Component_Picking;
-#endif
+	struct tComponent_Rendering{
+		void *prv;
+	}Component_Rendering;
 	struct tComponent_Shape{
 		void *prv;
 	}Component_Shape;
@@ -303,6 +311,9 @@ iOLDCODE	}Component_Networking;
 	struct tComponent_VRML1{
 		void *prv;
 	}Component_VRML1;
+	struct tComponent_VolumeRendering{
+		void *prv;
+	}Component_VolumeRendering;
 	struct tRenderFuncs{
 		#ifdef OLDCODE
 		OLDCODE char *OSX_last_world_url_for_reload;
@@ -313,23 +324,30 @@ iOLDCODE	}Component_Networking;
 		int BrowserAction;// = FALSE;
 		double hitPointDist; /* distance in ray: 0 = r1, 1 = r2, 2 = 2*r2-r1... */
 		/* used to save rayhit and hyperhit for later use by C functions */
-		struct SFColor hyp_save_posn, hyp_save_norm, ray_save_posn;
+		//struct SFColor hyp_save_posn, hyp_save_norm, ray_save_posn;
+		float hyp_save_posn[3];
+		float hyp_save_norm[3];
+		float ray_save_posn[3]; //getRayHit() > last intersection of pickray/bearing with geometry, transformed into the coordinates of the geometry
 		void *hypersensitive;//= 0; 
 		int hyperhit;// = 0;
-		struct point_XYZ hp;
-		void *prv;
+		//struct point_XYZ hp;
+		void *hp;
 		void *rayHit;
-		void *rayHitHyper;
-		struct point_XYZ t_r1,t_r2,t_r3; /* transformed ray */
-		int usingAffinePickmatrix; /*instead of GLU_UNPROJECT feature-AFFINE_GLU_UNPROJECT*/
+		//void *rayHitHyper;
+		//struct point_XYZ t_r1,t_r2,t_r3; /* transformed ray */
+		//void *t_r123; /* transformed ray */
 		int	lightingOn;		/* do we need to restore lighting in Shape? */
 		int	have_transparency;//=FALSE;/* did any Shape have transparent material? */
 		/* material node usage depends on texture depth; if rgb (depth1) we blend color field
 		   and diffusecolor with texture, else, we dont bother with material colors */
 		int last_texture_type;// = NOTEXTURE;
 		/* texture stuff - see code. Need array because of MultiTextures */
-		GLuint boundTextureStack[10];//MAX_MULTITEXTURE];
+		//GLuint boundTextureStack[10];//MAX_MULTITEXTURE];
+		unsigned int boundTextureStack[10];//MAX_MULTITEXTURE];
 		int textureStackTop;
+		void *texturenode;
+		void *shapenode;
+		void *prv;
 	}RenderFuncs;
 	struct tStreamPoly{
 		void *prv;
@@ -337,10 +355,12 @@ iOLDCODE	}Component_Networking;
 	struct tTess{
 		int *global_IFS_Coords;
 		int global_IFS_Coord_count;//=0;
-		GLUtriangulatorObj *global_tessobj;
+		//GLUtriangulatorObj *global_tessobj;
+		void *global_tessobj;
 		void *prv;
 	}Tess;
 	struct tViewer{
+		int stereotype;
 		void *prv;
 	}Viewer;
 	struct tstatusbar{
@@ -353,15 +373,11 @@ iOLDCODE	}Component_Networking;
 	struct tCParseParser{
 		void *prv;
 	}CParseParser;
-	struct tCProto{
-		void *prv;
-	}CProto;
 	struct tCRoutes{
 		/* EAI needs the extra parameter, so we put it globally when a RegisteredListener is clicked. */
-		int CRoutesExtra;// = 0;
+		void *CRoutesExtra;// = 0;
 		//jsval JSglobal_return_val;
 		void *JSSFpointer;
-		int *scr_act;// = 0;				/* this script has been sent an eventIn */
 		int max_script_found;// = -1;			/* the maximum script number found */
 		int max_script_found_and_initialized;// = -1;	/* the maximum script number found */
 		int jsnameindex; //= -1;
@@ -389,23 +405,27 @@ iOLDCODE	}Component_Networking;
 		void *prv;
 	}jsVRMLClasses;
 	struct tBindable{
-		struct sNaviInfo naviinfo;
-        	struct Vector *background_stack;
-        	struct Vector *viewpoint_stack;
-        	struct Vector *navigation_stack;
-        	struct Vector *fog_stack;
+		//struct sNaviInfo naviinfo;
+  //      struct Vector *background_stack;
+  //      struct Vector *viewpoint_stack;
+  //      struct Vector *navigation_stack;
+  //      struct Vector *fog_stack;
+		void *naviinfo;
+        //void *background_stack;
+        //void *viewpoint_stack;
+        //void *navigation_stack;
+        //void *fog_stack;
+		int activeLayer;
+		void *bstacks;
 		void *prv;
 	}Bindable;
 	struct tX3DParser{
 		int parentIndex;// = -1;
-		struct X3D_Node *parentStack[PARENTSTACKSIZE];
+		//struct X3D_Node *parentStack[PARENTSTACKSIZE];
 		char *CDATA_Text;// = NULL;
 		int CDATA_Text_curlen;// = 0;
 		void *prv;
 	}X3DParser;
-	struct tX3DProtoScript{
-		void *prv;
-	}X3DProtoScript;
 	struct tcommon{
 		void *prv;
 	}common;

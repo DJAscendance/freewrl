@@ -39,7 +39,34 @@
 #include "LinearAlgebra.h"
 
 #define DJ_KEEP_COMPILER_WARNING 0
-
+double signd(double val){
+	return val < 0.0 ? -1.0 : val > 0.0 ? 1.0 : 0;
+}
+double * vecsignd(double *b, double *a){
+	int i;
+	for (i = 0; i<3; i++) b[i] = signd(a[i]);
+	return b;
+}
+double * vecmuld(double *c, double *a, double *b){
+	int i;
+	for(i=0;i<3;i++)
+		c[i] = a[i]*b[i];
+	return c;
+}
+double * vecsetd(double *b, double x, double y, double z){
+	b[0] = x, b[1] = y; b[2] = z;
+	return b;
+}
+float *double2float(float *b, const double *a, int n){
+	int i;
+	for(i=0;i<n;i++) b[i] = (float)a[i];
+	return b;
+}
+double *float2double(double *b, float *a, int n){
+	int i;
+	for(i=0;i<n;i++) b[i] = (double)a[i];
+	return b;
+}
 double * vecadd2d(double *c, double *a, double *b){
 	c[0] = a[0] + b[0];
 	c[1] = a[1] + b[1];
@@ -157,13 +184,20 @@ float *veccopy3f(float *b, float *a)
 	b[2] = a[2];
 	return b;
 }
+int vecsame2f(float *b, float *a){
+	return a[0] == b[0] && a[1] == b[1] ? TRUE : FALSE;
+}
 float *veccopy2f(float *b, float *a)
 {
 	b[0] = a[0];
 	b[1] = a[1];
 	return b;
 }
-
+float *vecset2f(float *b, float x, float y)
+{
+	b[0] = x; b[1] = y;
+	return b;
+}
 double * veccrossd(double *c, double *a, double *b)
 {
 	double aa[3], bb[3];
@@ -240,6 +274,14 @@ double vecangle(struct point_XYZ* V1, struct point_XYZ* V2) {
 		sqrt( (V1->x*V1->x + V1->y*V1->y + V1->z*V1->z)*(V2->x*V2->x + V2->y*V2->y + V2->z*V2->z) )  );
 };
 
+float *veccopy4f(float *b, float *a)
+{
+	b[0] = a[0];
+	b[1] = a[1];
+	b[2] = a[2];
+	b[3] = a[3];
+	return b;
+}
 
 float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b)
 {
@@ -272,6 +314,18 @@ float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b)
     return (float) acos(temp);
 }
 
+int vecsame3f(float *a, float *b){
+	int i,isame = TRUE;
+	for(i=0;i<3;i++)
+		if(a[i] != b[i]) isame = FALSE;
+	return isame;
+}
+int vecsame4f(float *a, float *b){
+	int i,isame = TRUE;
+	for(i=0;i<4;i++)
+		if(a[i] != b[i]) isame = FALSE;
+	return isame;
+}
 /* returns vector length, too */
 GLDOUBLE vecnormal(struct point_XYZ*r, struct point_XYZ* v)
 {
@@ -352,6 +406,14 @@ struct point_XYZ* transform(struct point_XYZ* r, const struct point_XYZ* a, cons
     }
     return r;
 }
+GLDOUBLE* transformUPPER3X3d(double *r,double *a, const GLDOUBLE* b){
+	double tmp[3];
+	veccopyd(tmp,a);
+	r[0] = b[0]*tmp[0] +b[4]*tmp[1] +b[8]*tmp[2];
+	r[1] = b[1]*tmp[0] +b[5]*tmp[1] +b[9]*tmp[2];
+	r[2] = b[2]*tmp[0] +b[6]*tmp[1] +b[10]*tmp[2];
+	return r;
+}
 struct point_XYZ* transformAFFINE(struct point_XYZ* r, const struct point_XYZ* a, const GLDOUBLE* b){
 	//FLOPs 9 double
 	// r = a x b
@@ -373,7 +435,18 @@ double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat){
 	pointxyz2double(r,&pr);
 	return r;
 }
-
+double *transformFULL4d(double *r, double *a, double *mat){
+	//same as __gluMultMatrixVecd elsewhere
+	int i;
+    for (i=0; i<4; i++) {
+        r[i] =
+            a[0] * mat[0*4+i] +
+            a[1] * mat[1*4+i] +
+            a[2] * mat[2*4+i] +
+            a[3] * mat[3*4+i];
+	}
+	return r;
+}
 float* transformf(float* r, const float* a, const GLDOUBLE* b)
 {
 	//r = a x b
@@ -404,7 +477,7 @@ float* matmultvec4f(float* r4, float *mat4, float* a4 )
 	}
     return r4;
 }
-float* vecmultmat4f(float* r4, float* a4, float *mat4 )
+float* vecmultmat4f_broken(float* r4, float* a4, float *mat4 )
 {
 	int i,j;
     float t4[4], *b[4];
@@ -414,6 +487,19 @@ float* vecmultmat4f(float* r4, float* a4, float *mat4 )
 		b[i] = &mat4[i*4];
 		for(j=0;j<4;j++)
 			r4[i] += t4[j]*b[j][i];
+	}
+    return r4;
+}
+float* vecmultmat4f(float* r4, float* a4, float *mat4 )
+{
+	int i,j;
+    float t4[4], *b;
+	memcpy(t4,a4,4*sizeof(float));
+	for(i=0;i<4;i++){
+		r4[i] = 0.0f;
+		b = &mat4[i*4];
+		for(j=0;j<4;j++)
+			r4[i] += t4[j]*b[j];
 	}
     return r4;
 }
@@ -441,8 +527,10 @@ float* vecmultmat3f(float* r3, float* a3, float *mat3 )
 		for(j=0;j<3;j++)
 			r3[i] += t3[j]*b[j][i];
 	}
+
     return r3;
 }
+
 /*transform point, but ignores translation.*/
 struct point_XYZ* transform3x3(struct point_XYZ* r, const struct point_XYZ* a, const GLDOUBLE* b)
 {
@@ -717,6 +805,9 @@ float* mattranspose3f(float* res, float* mm)
 GLDOUBLE* matinverse98(GLDOUBLE* res, GLDOUBLE* mm)
 {
 	/*FLOPs 98 double: det3 9, 1/det 1, adj3x3 9x4=36, inv*T 13x4=52 */
+	//July 2016 THIS IS WRONG DON'T USE 
+	//see the glu equivalent elsewhere
+	//you can check with A*A-1 = I and this function doesn't give I
     double Deta;
     GLDOUBLE mcpy[16];
 	GLDOUBLE *m;
@@ -728,6 +819,8 @@ GLDOUBLE* matinverse98(GLDOUBLE* res, GLDOUBLE* mm)
     }
 
     Deta = det3x3(m);
+	if(APPROX(Deta,0.0))
+		printf("deta 0\n");
 	Deta = 1.0 / Deta;
 
     res[0] = (-m[9]*m[6] +m[5]*m[10])*Deta;
@@ -1272,6 +1365,34 @@ BOOL matrix3x3_inverse_float(float *inn, float *outt)
         return TRUE;
     }
 }
+float * mat423f(float *out3x3, float *in4x4)
+{
+	int i,j;
+	for(i=0;i<3;i++){
+		for(j=0;j<3;j++)
+			out3x3[i*3 + j] = in4x4[i*4 + j];
+	}
+	return out3x3;
+}
+float * matinverse3f(float *out3x3, float *in3x3)
+{
+	matrix3x3_inverse_float(in3x3,out3x3);
+	return out3x3;
+}
+
+float * transform3x3f(float *out3, float *in3, float *mat3x3){
+	int i,j;
+    float t3[3];
+	memcpy(t3,in3,3*sizeof(float));
+	for(i=0;i<3;i++){
+		out3[i] = 0.0f;
+		for(j=0;j<3;j++)
+			out3[i] += t3[j]*mat3x3[j*3 + i];
+	}
+
+    return out3;
+}
+
 BOOL affine_matrix4x4_inverse_float(float *inn, float *outt)
 {
 	/*FLOPs 49 float: det3 12, 1/det 1, adj3x3 9x3=27, INV*T=9 */
@@ -1535,6 +1656,14 @@ double *matcopy(double *r, double*mat){
 	memcpy((void*)r, (void*)mat,sizeof(double)*16);
 	return r;
 }
+float *matdouble2float4(float *rmat4, double *dmat4){
+	int i;
+	/* convert GLDOUBLE to float */
+	for (i=0; i<16; i++) {
+		rmat4[i] = (float)dmat4[i];
+	}
+	return rmat4;
+}
 void printmatrix3(GLDOUBLE *mat, char *description, int row_major){
     int i,j;
     printf("mat %s {\n",description);
@@ -1562,36 +1691,6 @@ void printmatrix2(GLDOUBLE* mat,char* description ) {
 }
 
 
-#ifdef OLDCODE
-OLDCODEvoid point_XYZ_slerp(struct point_XYZ *ret, struct point_XYZ *p1, struct point_XYZ *p2, const double t)
-OLDCODE{
-OLDCODE	//not tested as of July16,2011
-OLDCODE	//goal start slow, speed up in the middle, and slow down when stopping 
-OLDCODE	// (like a sine or cosine wave)
-OLDCODE	//let omega = t*pi 
-OLDCODE	//then cos omega goes from 1 to -1 natively
-OLDCODE	//we want scale0 to go from 1 to 0
-OLDCODE	//scale0 = .5(1+cos(t*pi)) should be in the 1 to 0 range,
-OLDCODE	//and be 'fastest' in the middle ie at pi/2 
-OLDCODE	//then scale1 = 1 - scale0
-OLDCODE	double scale0, scale1, omega;
-OLDCODE
-OLDCODE	/* calculate coefficients */
-OLDCODE	if ( t > .05 || t < .95 ) {
-OLDCODE		/* standard case (SLERP) */
-OLDCODE		omega = t*PI;
-OLDCODE		scale0 = 0.5*(1.0 + cos(omega));
-OLDCODE		scale1 = 1.0 - scale0;
-OLDCODE	} else {
-OLDCODE		/* p1 & p2 are very close, so do linear interpolation */
-OLDCODE		scale0 = 1.0 - t;
-OLDCODE		scale1 = t;
-OLDCODE	}
-OLDCODE	ret->x = scale0 * p1->x + scale1 * p2->x;
-OLDCODE	ret->y = scale0 * p1->y + scale1 * p2->y;
-OLDCODE	ret->z = scale0 * p1->z + scale1 * p2->z;
-OLDCODE}
-#endif //OLDCODE
 
 void general_slerp(double *ret, double *p1, double *p2, int size, const double t)
 {

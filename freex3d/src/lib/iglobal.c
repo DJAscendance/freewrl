@@ -52,26 +52,43 @@ void PluginSocket_init(struct tPluginSocket *t);
 void pluginUtils_init(struct tpluginUtils *t);
 void collision_init(struct tcollision *t);
 void collision_clear(struct tcollision *t);
+void Component_CubeMapTexturing_init(struct tComponent_CubeMapTexturing *t);
+void Component_CubeMapTexturing_clear(struct tComponent_CubeMapTexturing *t);
 void Component_EnvironSensor_init(struct tComponent_EnvironSensor *t);
 void Component_Geometry3D_init(struct tComponent_Geometry3D *t);
 void Component_Geometry3D_clear(struct tComponent_Geometry3D *t);
 void Component_Geospatial_init(struct tComponent_Geospatial *t);
 void Component_HAnim_init(struct tComponent_HAnim *t);
+void Component_HAnim_clear(struct tComponent_HAnim *t);
+void Component_Layering_init(struct tComponent_Layering *t);
+void Component_Layout_init(struct tComponent_Layout *t);
 void Component_NURBS_init(struct tComponent_NURBS *t);
+void Component_ParticleSystems_init(struct tComponent_ParticleSystems *t);
+void Component_ParticleSystems_clear(struct tComponent_ParticleSystems *t);
+void Component_ProgrammableShaders_init(struct tComponent_ProgrammableShaders *t);
+void Component_ProgrammableShaders_clear(struct tComponent_ProgrammableShaders *t);
+void Component_RigidBodyPhysics_init(struct tComponent_RigidBodyPhysics *t);
+void Component_RigidBodyPhysics_clear(struct tComponent_RigidBodyPhysics *t);
+void Component_Followers_init(struct tComponent_Followers *t);
+void Component_Followers_clear(struct tComponent_Followers *t);
+
 void Component_KeyDevice_init(struct tComponent_KeyDevice *t);
 
 #ifdef OLDCODE
 OLDCODEvoid Component_Networking_init(struct tComponent_Networking *t);
 #endif
 
-#ifdef DJTRACK_PICKSENSORS
 void Component_Picking_init(struct tComponent_Picking *t);
-#endif
-
+void Component_Rendering_init(struct tComponent_Rendering *t);
+void Component_Rendering_clear(struct tComponent_Rendering *t);
 void Component_Shape_init(struct tComponent_Shape *t);
 void Component_Sound_init(struct tComponent_Sound *t);
 void Component_Text_init(struct tComponent_Text *t);
 void Component_Text_clear(struct tComponent_Text *t);
+void Component_Layering_clear(struct tComponent_Layering *t);
+void Component_Layout_clear(struct tComponent_Layout *t);
+void Component_VolumeRendering_init(struct tComponent_VolumeRendering *t);
+void Component_VolumeRendering_clear(struct tComponent_VolumeRendering *t);
 
 void RenderFuncs_init(struct tRenderFuncs *t);
 void RenderFuncs_clear(struct tRenderFuncs *t);
@@ -87,23 +104,22 @@ void statusbar_clear(struct tstatusbar *t);
 void CParse_init(struct tCParse *t);
 void CParse_clear(struct tCParse *t);
 void CParseParser_init(struct tCParseParser *t);
-void CProto_init(struct tCProto *t);
 void CRoutes_init(struct tCRoutes *t);
 void CRoutes_clear(struct tCRoutes *t);
 void CScripts_init(struct tCScripts *t);
 void JScript_init(struct tJScript *t);
 
-#ifdef HAVE_JAVASCRIPT
+
 void jsUtils_init(struct tjsUtils *t);
 void jsVRMLBrowser_init(struct tjsVRMLBrowser *t);
 void jsVRMLClasses_init(struct tjsVRMLClasses *t);
-#endif
+
 void Bindable_init(struct tBindable *t);
 void Bindable_clear(struct tBindable *t);
+
 void X3DParser_init(struct tX3DParser *t);
 void X3DParser_clear(struct tX3DParser *t);
 
-void X3DProtoScript_init(struct tX3DProtoScript *t);
 void common_init(struct tcommon *t);
 void common_clear(struct tcommon *t);
 void CursorDraw_init(struct tCursorDraw *t);
@@ -187,22 +203,28 @@ ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID..
 	pluginUtils_init(&iglobal->pluginUtils);
 #endif	
 	collision_init(&iglobal->collision);
+	Component_CubeMapTexturing_init(&iglobal->Component_CubeMapTexturing);
 	Component_EnvironSensor_init(&iglobal->Component_EnvironSensor);
 	Component_Geometry3D_init(&iglobal->Component_Geometry3D);
 	Component_Geospatial_init(&iglobal->Component_Geospatial);
 	Component_HAnim_init(&iglobal->Component_HAnim);
+	Component_Layering_init(&iglobal->Component_Layering);
+	Component_Layout_init(&iglobal->Component_Layout);
 	Component_NURBS_init(&iglobal->Component_NURBS);
+	Component_ProgrammableShaders_init(&iglobal->Component_ProgrammableShaders);
+	Component_ParticleSystems_init(&iglobal->Component_ParticleSystems);
+	Component_RigidBodyPhysics_init(&iglobal->Component_RigidBodyPhysics);
+	Component_Followers_init(&iglobal->Component_Followers);
 	Component_KeyDevice_init(&iglobal->Component_KeyDevice);
 #ifdef OLDCODE
 OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 #endif // OLDCODE
-#ifdef DJTRACK_PICKSENSORS
 	Component_Picking_init(&iglobal->Component_Picking);
-#endif
+	Component_Rendering_init(&iglobal->Component_Rendering);
 	Component_Shape_init(&iglobal->Component_Shape);
 	Component_Sound_init(&iglobal->Component_Sound);
 	Component_Text_init(&iglobal->Component_Text);
-    
+    Component_VolumeRendering_init(&iglobal->Component_VolumeRendering);
 	RenderFuncs_init(&iglobal->RenderFuncs);
 	StreamPoly_init(&iglobal->StreamPoly);
 	Tess_init(&iglobal->Tess);
@@ -212,19 +234,17 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 #endif
 	CParse_init(&iglobal->CParse);
 	CParseParser_init(&iglobal->CParseParser);
-	CProto_init(&iglobal->CProto);
 	CRoutes_init(&iglobal->CRoutes);
 	CScripts_init(&iglobal->CScripts);
 	JScript_init(&iglobal->JScript);
 
-#ifdef HAVE_JAVASCRIPT
+
 	jsUtils_init(&iglobal->jsUtils);
 	jsVRMLBrowser_init(&iglobal->jsVRMLBrowser);
 	jsVRMLClasses_init(&iglobal->jsVRMLClasses);
-#endif
+
 	Bindable_init(&iglobal->Bindable);
 	X3DParser_init(&iglobal->X3DParser);
-	X3DProtoScript_init(&iglobal->X3DProtoScript);
 	common_init(&iglobal->common);
 #ifndef DISABLER	
 	CursorDraw_init(&iglobal->CursorDraw);
@@ -257,18 +277,16 @@ void __iglobal_fields_destructor(ttglobal tg)
 	//call individual destructors in reverse order to constructor
 	FREE_IF_NZ(tg->CursorDraw.prv);
 	common_clear(&tg->common); FREE_IF_NZ(tg->common.prv);
-	FREE_IF_NZ(tg->X3DProtoScript.prv);
 	X3DParser_clear(&tg->X3DParser); FREE_IF_NZ(tg->X3DParser.prv);
 	Bindable_clear(&tg->Bindable); FREE_IF_NZ(tg->Bindable.prv);
-#ifdef HAVE_JAVASCRIPT
+
 	FREE_IF_NZ(tg->jsVRMLClasses.prv);
 	FREE_IF_NZ(tg->jsVRMLBrowser.prv);
 	FREE_IF_NZ(tg->jsUtils.prv);
-#endif
+
 	FREE_IF_NZ(tg->JScript.prv);
 	FREE_IF_NZ(tg->CScripts.prv);
 	CRoutes_clear(&tg->CRoutes); FREE_IF_NZ(tg->CRoutes.prv);
-	FREE_IF_NZ(tg->CProto.prv);
 	FREE_IF_NZ(tg->CParseParser.prv);
 	CParse_clear(&tg->CParse); FREE_IF_NZ(tg->CParse.prv);
 #if defined(STATUSBAR_HUD)
@@ -277,23 +295,30 @@ void __iglobal_fields_destructor(ttglobal tg)
 	FREE_IF_NZ(tg->statusbar.prv);
 	FREE_IF_NZ(tg->Viewer.prv);
 	FREE_IF_NZ(tg->Tess.prv);
+	Component_VolumeRendering_clear(&tg->Component_VolumeRendering); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	FREE_IF_NZ(tg->StreamPoly.prv);
 	FREE_IF_NZ(tg->Component_Sound.prv);
 	RenderFuncs_clear(&tg->RenderFuncs); FREE_IF_NZ(tg->RenderFuncs.prv);
 	Component_Text_clear(&tg->Component_Text); FREE_IF_NZ(tg->Component_Text.prv);
 	FREE_IF_NZ(tg->Component_Shape.prv);
-#ifdef DJTRACK_PICKSENSORS
+	Component_Rendering_clear(&tg->Component_Rendering); FREE_IF_NZ(tg->Component_Rendering.prv);
 	FREE_IF_NZ(tg->Component_Picking.prv);
-#endif
 #ifdef OLDCODE
 OLDCODE	FREE_IF_NZ(tg->Component_Networking.prv);
 #endif
 	FREE_IF_NZ(tg->Component_KeyDevice.prv);
+	Component_Followers_clear(&tg->Component_Followers); FREE_IF_NZ(tg->Component_Followers.prv);
+	Component_RigidBodyPhysics_clear(&tg->Component_RigidBodyPhysics); FREE_IF_NZ(tg->Component_RigidBodyPhysics.prv);
+	Component_ProgrammableShaders_clear(&tg->Component_ProgrammableShaders); FREE_IF_NZ(tg->Component_ProgrammableShaders.prv);
+	Component_ParticleSystems_clear(&tg->Component_ParticleSystems); FREE_IF_NZ(tg->Component_ParticleSystems.prv);
 	FREE_IF_NZ(tg->Component_NURBS.prv);
-	FREE_IF_NZ(tg->Component_HAnim.prv);
+	Component_Layering_clear(&tg->Component_Layering); FREE_IF_NZ(tg->Component_Layering.prv);
+	Component_Layout_clear(&tg->Component_Layout); FREE_IF_NZ(tg->Component_Layout.prv);
+	Component_HAnim_clear(&tg->Component_HAnim); FREE_IF_NZ(tg->Component_HAnim.prv);
 	FREE_IF_NZ(tg->Component_Geospatial.prv);
 	Component_Geometry3D_clear(&tg->Component_Geometry3D); FREE_IF_NZ(tg->Component_Geometry3D.prv);
 	FREE_IF_NZ(tg->Component_EnvironSensor.prv);
+	Component_CubeMapTexturing_clear(&tg->Component_CubeMapTexturing); FREE_IF_NZ(tg->Component_CubeMapTexturing.prv);
 	collision_clear(&tg->collision); FREE_IF_NZ(tg->collision.prv);
 	FREE_IF_NZ(tg->pluginUtils.prv);
 	FREE_IF_NZ(tg->PluginSocket.prv);

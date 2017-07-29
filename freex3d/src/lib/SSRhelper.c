@@ -17,13 +17,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <system.h>
 #include "list.h"
 #include "SSRhelper.h"
 //from Prodcon.c L.1100
 void threadsafe_enqueue_item(s_list_t *item, s_list_t** queue, pthread_mutex_t* queue_lock);
 s_list_t* threadsafe_dequeue_item(s_list_t** queue, pthread_mutex_t *queue_lock );
 void threadsafe_enqueue_item_signal(s_list_t *item, s_list_t** queue, pthread_mutex_t* queue_lock, pthread_cond_t *queue_nonzero);
-s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, int *waiting );
+s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, bool *waiting );
 //from io_files.c L.310
 int load_file_blob(const char *filename, char **blob, int *len);
 //from Viewer.c L.1978
@@ -37,7 +38,7 @@ typedef struct iiglobal *ttglobal;
 static s_list_t *ssr_queue = NULL;
 static pthread_mutex_t ssr_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t ssr_queue_condition = PTHREAD_COND_INITIALIZER;
-static int ssr_server_waiting = FALSE;
+static bool ssr_server_waiting = FALSE;
 
 void SSRserver_enqueue_request_and_wait(void *fwctx, SSR_request *request){
 	//called by A -> B -> C
@@ -61,8 +62,11 @@ void SSRserver_enqueue_request_and_wait(void *fwctx, SSR_request *request){
 
 	return;
 }
+#include "../lib/internal.h"
 #define BOOL	int
+#ifndef GLDOUBLE
 #define GLDOUBLE double
+#endif
 #include "../lib/scenegraph/quaternion.h"
 #include "../lib/scenegraph/LinearAlgebra.h"
 static double view[16], inv_view[16], matOri[16];
@@ -74,6 +78,7 @@ static int reverse_sense_init = 0; //0 conceptually correct
 static int reverse_sense_quat4 = 0; //0 conceptually correct
 static int reverse_sense_vec3 = 0;
 static int reverse_order_quat4 = 1; //0 conceptually correct
+void viewer_getview( double *viewMatrix);
 void vp2world_initialize()
 {
 	/*  
@@ -310,7 +315,7 @@ void vp2world_initialize()
 		vp2world_initialized = TRUE;
 	}
 }
-struct point_XYZ {GLDOUBLE x,y,z;};
+//struct point_XYZ {GLDOUBLE x,y,z;};
 void SSR_reply_pose(SSR_request *request, int initialpose)
 {
 	/* client's pose(vec3,quat4) - world - View - (Viewpoint node) - .Pos - ..Quat  - vp
@@ -701,6 +706,7 @@ static char *snapshot_filename = "snapshot.bmp"; //option: get this from the sna
 #else
 static char *snapshot_filename = "snapshot.png";
 #endif
+void Snapshot1(char *fname);
 void SSR_reply_snapshot(SSR_request *request)
 {
 	int iret;

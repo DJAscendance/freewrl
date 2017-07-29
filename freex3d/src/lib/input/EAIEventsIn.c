@@ -72,7 +72,6 @@ Handle incoming EAI (and java class) events with panache.
 #include "../vrml_parser/CParseGeneral.h"
 #include "../vrml_parser/CParseLexer.h"
 #include "../vrml_parser/CParseParser.h"
-#include "../vrml_parser/CProto.h"
 #include "../vrml_parser/CParse.h"
 #include "../world_script/JScript.h"
 #include "../world_script/CScripts.h"
@@ -83,8 +82,8 @@ Handle incoming EAI (and java class) events with panache.
 #include "../scenegraph/Viewer.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "../scenegraph/RenderFuncs.h"
-#include "../opengl/Textures.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Textures.h"
 #include "../x3d_parser/X3DParser.h"
 #include "../vrml_parser/CRoutes.h"
 
@@ -134,7 +133,7 @@ struct X3D_Anchor EAI_AnchorNode;
 }* ppEAIEventsIn;
 void *EAIEventsIn_constructor()
 {
-	void *v = MALLOCV(sizeof(struct pEAIEventsIn));
+	void *v = MALLOC(void *,sizeof(struct pEAIEventsIn));
 	memset(v,0,sizeof(struct pEAIEventsIn));
 	return v;
 }
@@ -164,7 +163,7 @@ typedef struct pEAICore{
 
 void *EAICore_constructor()
 {
-	void *v = MALLOCV(sizeof(struct pEAICore));
+	void *v = MALLOC(void *,sizeof(struct pEAICore));
 	memset(v,0,sizeof(struct pEAICore));
 	return v;
 }
@@ -289,6 +288,8 @@ char * EAI_handleBuffer(char *fromFront, bool useSockets) {
 
 	
 	if(!useSockets || len <= EAIREADSIZE) {	//go for standard command processing if we are not using sockets or buffer dimension is lesser than packet limit
+		//JAS printf ("EAI_handleBuffer, %d\n",__LINE__);
+
 		tg->EAICore.EAIbuffer[len] = '\0';
 		memcpy(tg->EAICore.EAIbuffer, fromFront, len);
 
@@ -302,6 +303,7 @@ char * EAI_handleBuffer(char *fromFront, bool useSockets) {
 		th = &tg->EAIHelpers;
 		return th->outBuffer ;
 	} else {								//or stop socket reading if buffer dimension is greater than the packet limit
+		//JAS printf ("EAI_handleBuffer, %d\n",__LINE__);
 		fwlio_RxTx_control(CHANNEL_EAI,RxTx_STOP) ;
 		return "";
 	}
@@ -477,11 +479,13 @@ void EAI_core_commands () {
 				break;
 				}
 			case GETRENDPROP: {
+				s_renderer_capabilities_t *rdr_caps;
 				ttglobal tg = gglobal();
+				rdr_caps = (s_renderer_capabilities_t *)tg->display.rdr_caps;
 				sprintf (th->outBuffer,"RE\n%f\n%d\n%s %dx%d %d %s %d %f",TickTime(),count,
 					"SMOOTH",				/* Shading */
-					tg->display.rdr_caps.system_max_texture_size, gglobal()->display.rdr_caps.runtime_max_texture_size, 	/* Texture size */	
-					tg->display.rdr_caps.texture_units,				/* texture units */
+					rdr_caps->system_max_texture_size, rdr_caps->runtime_max_texture_size, 	/* Texture size */	
+					rdr_caps->texture_units,				/* texture units */
 					"FALSE",				/* antialiased? */
 					tg->OpenGL_Utils.displayDepth,				/* bit depth of display */
 					256.0					/* amount of memory left on card -
@@ -579,6 +583,8 @@ void EAI_core_commands () {
 				/*format int seq# COMMAND vrml text     string EOT*/
 
 				retGroup = createNewX3DNode(NODE_Group);
+				//JAS printf ("CREATEXS, created retGroup of %p\n",retGroup);
+
 				if (command == CREATEVS || command == CREATEXS) {
 					int topWaitLimit=16;
 					int currentWaitCount=0;
@@ -662,13 +668,22 @@ However, nowadays we do not read any sockets directly....
 					FREE_IF_NZ(mypath);
 				}
 
-				/* printf ("ok, we are going to return the following number of nodes: %d\n",retGroup->children.n); */
+				//JAS printf ("CREATEXS ok, we are going to return the following number of nodes: %d\n",retGroup->children.n);
 				sprintf (th->outBuffer,"RE\n%f\n%d\n",TickTime(),count);
 				for (rb = 0; rb < retGroup->children.n; rb++) {
-					sprintf (ctmp,"%d ", registerEAINodeForAccess(X3D_NODE(retGroup->children.p[rb])));
+					struct X3D_Node *node;
+					node = X3D_NODE(retGroup->children.p[rb]);
+					//printf ("CREATEXS, child %d is %p\n",rb,node);
+
+					sprintf (ctmp,"%d ", registerEAINodeForAccess(node));
+					
 					outBufferCat(ctmp);
+
+					// now, ensure this ones parent is removed
+					remove_parent(node,X3D_NODE(retGroup));
 				}
 
+				//printf ("CREATEXS, marking for dispose, group %p\n",X3D_NODE(retGroup));
 				markForDispose(X3D_NODE(retGroup),FALSE);
 				break;
 				}
@@ -707,8 +722,12 @@ However, nowadays we do not read any sockets directly....
 
 				/*143024848 88 8 e 6*/
 				retint=sscanf (&EAI_BUFFER_CUR,"%d %d %c %d",&tmp_a,&tmp_b,ctmp,&tmp_c);
+printf ("REGLISTENER, calling getEAINodeFromTable(%d, %d)\n",tmp_a,tmp_b);
 				node = getEAINodeFromTable(tmp_a, tmp_b);
+printf ("REGLISTENER, calling getEAIActualOffset(%d, %d)\n",tmp_a,tmp_b);
 				offset = getEAIActualOffset(tmp_a, tmp_b);
+printf ("REGLISTENER, have node %p, offset %d (%s)\n",node,offset, stringNodeType(node->_nodeType));
+printf ("REGLISTENER, ctmp tells us that type is %c\n",ctmp[0]);
 
 				/* is this a script node? if so, get the actual string name in the table for this one */
 				if (node->_nodeType == NODE_Script) {
@@ -740,8 +759,33 @@ However, nowadays we do not read any sockets directly....
 				/* set up the route from this variable to the handle Listener routine */
 				if (eaiverbose)  printf ("going to register route for RegisterListener, have type %d\n",tmp_c); 
 
-				CRoutes_Register  (1,node, offset, X3D_NODE(tg->EAICore.EAIListenerData), 0, (int) tmp_c,(void *) 
-					&EAIListener, directionFlag, (count<<8)+mapEAItypeToFieldType(ctmp[0])); /* encode id and type here*/
+
+				// encode field type, node id, and field offset id here
+				struct EAI_Extra_Data *ed = MALLOC(struct EAI_Extra_Data *,sizeof(struct EAI_Extra_Data));
+				ed->field_type = mapEAItypeToFieldType(ctmp[0]);
+				ed->listener_id = count;
+				ed->field_id = tmp_b;
+				ed-> node_id = tmp_a;
+
+/*
+{
+        int field_id;
+        int node_id;
+        int field_type;
+        int listener_id;
+};
+*/
+
+printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",ed->field_id, ed->node_id, ed->field_type, ed->listener_id);
+
+
+				CRoutes_Register  (1,node, offset, NULL, 0, (int) tmp_c,(void *) 
+					&EAIListener, directionFlag, ed);
+/*
+(mapEAItypeToFieldType(ctmp[0])<<24)
+						+(tmp_a<<8)
+						+tmp_b);
+*/
 
 				sprintf (th->outBuffer,"RE\n%f\n%d\n0",TickTime(),count);
 				break;
@@ -782,7 +826,7 @@ However, nowadays we do not read any sockets directly....
 				/* put the address of the listener area in a string format for registering
 				   the route - the route propagation will copy data to here */
 				/* set up the route from this variable to the handle Listener routine */
-				CRoutes_Register  (0,node, offset, X3D_NODE(tg->EAICore.EAIListenerData), 0, (int) tmp_c,(void *) 
+				CRoutes_Register  (0,node, offset, NULL, 0, (int) tmp_c,(void *) 
 					&EAIListener, directionFlag, (count<<8)+mapEAItypeToFieldType(ctmp[0])); /* encode id and type here*/
 
 				sprintf (th->outBuffer,"RE\n%f\n%d\n0",TickTime(),count);
@@ -822,7 +866,7 @@ However, nowadays we do not read any sockets directly....
 
 		  	case STOPFREEWRL: {
 				if (!RUNNINGASPLUGIN) {
-					fwl_doQuit();
+					fwl_doQuit(__FILE__,__LINE__);
 				    break;
 				}
 			    }
@@ -908,8 +952,11 @@ However, nowadays we do not read any sockets directly....
 				for (rb = 0; rb < retGroup->children.n; rb++) {
 					sprintf (ctmp,"%ld ", (long int) retGroup->children.p[rb]);
 					outBufferCat(ctmp);
-				}
+printf ("Possible EAI problem, children of container group should have this parent removed\n");
 
+					// now, ensure this ones parent is removed
+					//remove_parent(node,X3D_NODE(retGroup));
+				}
 				markForDispose(X3D_NODE(retGroup),FALSE);
 				break;
 				}
@@ -965,6 +1012,8 @@ However, nowadays we do not read any sockets directly....
 		}
 	}
 	tg->EAICore.EAIbufpos = bufPtr;
+eaiverbose=FALSE; //JAS 
+
 	return ;
 }
 
@@ -1091,13 +1140,6 @@ static void handleGETNODEPARENTS (char *bufptr, int repno)
 		free(parentArray);
 }
 
-#define IGNORE_IF_FABRICATED_INTERNAL_NAME \
-	if (cptr!=NULL) if (strncmp(FABRICATED_DEF_HEADER,cptr,strlen(FABRICATED_DEF_HEADER))==0) { \
-		/* printf ("ok, got FABRICATED_DEF_HEADER from %s, ignoring this one\n",cptr); */ \
-		cptr = NULL; \
-	}
-
-
 
 /* get the actual node type, whether Group, IndexedFaceSet, etc, and its DEF name, if applicapable */
 static void handleGETEAINODETYPE (char *bufptr, int repno) {
@@ -1138,8 +1180,6 @@ static void handleGETEAINODETYPE (char *bufptr, int repno) {
 	#else
 	cptr = X3DParser_getNameFromNode(myNode);
 	#endif
-	IGNORE_IF_FABRICATED_INTERNAL_NAME
-
 
 	if (cptr != NULL) {
 		sprintf (th->outBuffer,"RE\n%f\n%d\n%s %s",TickTime(),repno,myNT, cptr);
@@ -1148,7 +1188,6 @@ static void handleGETEAINODETYPE (char *bufptr, int repno) {
 
         /* Try to get VRML node name */
 	cptr= parser_getNameFromNode(myNode);
-	IGNORE_IF_FABRICATED_INTERNAL_NAME
 	if (cptr != NULL) {
 		/* Only one of these is right ..... */
 		/* I think it is the first one, because we would have had to know the DEF name in the first place. */
@@ -1459,5 +1498,14 @@ void EAI_Anchor_Response (int resp) {
 	}
 	p->waiting_for_anchor = FALSE;
 }
-
+#else
+void EAI_Anchor_Response (int resp) {
+	char myline[1000];
+	ppEAIEventsIn p;
+	//ppEAICore ps;
+	ttglobal tg = gglobal();
+	p = (ppEAIEventsIn)tg->EAIEventsIn.prv;
+	//ps = (ppEAICore)tg->EAICore.prv;
+	p->waiting_for_anchor = FALSE;
+}
 #endif //EXCLUDE_EAI

@@ -39,10 +39,12 @@ X3D Networking Component
 #include "../input/EAIHeaders.h"
 #include "../input/EAIHelpers.h"
 #include "../opengl/Frustum.h"
+#include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Textures.h"
 
 #include "Component_Networking.h"
 #include "Children.h"
+#include "../scenegraph/RenderFuncs.h"
 
 #include <libFreeWRL.h>
 #include <list.h>
@@ -65,7 +67,6 @@ X3D Networking Component
 #include "../world_script/fieldSet.h"
 #include "../vrml_parser/CParseParser.h"
 #include "../vrml_parser/CParseLexer.h"
-#include "../vrml_parser/CProto.h"
 #include "../vrml_parser/CParse.h"
 #endif
 
@@ -73,7 +74,6 @@ X3D Networking Component
 
 #if USE_OSC
 /**************** START OF OSC node **************************/
-/* DJTRACK_OSCSENSORS */
 
 void error(int num, const char *m, const char *path);
 void utilOSCcounts(char *types , int *intCount, int *fltCount, int *strCount, int *blobCount, int *midiCount, int *otherCount);
@@ -292,17 +292,14 @@ void add_OSCsensor(struct X3D_Node * node) {}
 void remove_OSCsensor(struct X3D_Node * node) {}
 #endif
 
-
+int loadstatus_AudioClip(struct X3D_AudioClip *node);
+int loadstatus_Script(struct X3D_Script *script);
 void render_LoadSensor (struct X3D_LoadSensor *node) {
 	int count;
 	int nowLoading;
 	int nowFinished;
-	struct X3D_ImageTexture *tnode;
-#ifdef HAVE_TO_REIMPLEMENT_MOVIETEXTURES
-	struct X3D_MovieTexture *mnode;
-#endif /* HAVE_TO_REIMPLEMENT_MOVIETEXTURES */
-	struct X3D_AudioClip *anode;
-	//struct X3D_Inline *inode;
+	struct X3D_Node *cnode;
+	// HAVE TO RECODE MovieTexture struct X3D_MovieTexture *mnode;
 	
 	/* if not enabled, do nothing */
 	if (!node) return;
@@ -312,8 +309,9 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	}
 	if (!node->enabled) return;
 
-	/* we only need to look at this during the rendering pass - once per event loop */
-	if (!renderstate()->render_geom) return;
+	/* we only need to look at this once per event loop */
+	//if (!renderstate()->render_geom) return;
+	if (!renderstate()->render_sensitive) return;
 
 	/* do we need to re-generate our internal variables? */
 	if NODE_NEEDS_COMPILING {
@@ -338,49 +336,83 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	/* printf ("have %d nodes to watch\n",node->watchList.n); */
 	for (count = 0; count < node->watchList.n; count ++) {
 
-		tnode = (struct X3D_ImageTexture *) node->watchList.p[count];
+		cnode = node->watchList.p[count];
 
 		/* printf ("node type of node %d is %d\n",count,tnode->_nodeType); */
-		switch (tnode->_nodeType) {
+		switch (cnode->_nodeType) {
 		case NODE_ImageTexture:
-			/* printf ("opengl tex is %d\n",tnode->__texture); */
-			/* is this texture thought of yet? */
-			nowLoading++;
-			if (fwl_isTextureLoaded(tnode->__textureTableIndex)) {
-				/* is it finished loading? */
-				nowFinished ++;
-			}
-				
-			break;
+			{
+				/* printf ("opengl tex is %d\n",tnode->__texture); */
+				/* is this texture thought of yet? */
+				struct X3D_ImageTexture *tnode = (struct X3D_ImageTexture *) cnode;
 
-		case NODE_MovieTexture:
-#ifdef HAVE_TO_REIMPLEMENT_MOVIETEXTURES
-			mnode = (struct X3D_MovieTexture *) tnode; /* change type to MovieTexture */
-			/* printf ("opengl tex is %d\n",mnode->__texture0_); */
-			/* is this texture thought of yet? */
-			if (mnode->__texture0_ > 0) {
 				nowLoading++;
-				/* is it finished loading? */
-				if (fwl_isTextureLoaded(mnode->__texture0_)) nowFinished ++;
+				if (fwl_isTextureLoaded(tnode->__textureTableIndex)) {
+					/* is it finished loading? */
+					nowFinished ++;
+				}
 			}
-#endif /* HAVE_TO_REIMPLEMENT_MOVIETEXTURES */
-				
 			break;
-
 		case NODE_Inline:
-			//inode = (struct X3D_Inline *) tnode; /* change type to Inline */
-			/* printf ("LoadSensor, Inline %d, type %d loadstatus %d at %d\n",inode,inode->_nodeType,inode->__loadstatus, &inode->__loadstatus); */
+			{
+				struct X3D_Inline *inode;
+				inode = (struct X3D_Inline *) cnode; /* change type to Inline */
+				if(inode->__loadstatus > INLINE_INITIAL_STATE && inode->__loadstatus < INLINE_STABLE)
+					nowLoading++;
+				if(inode->__loadstatus == INLINE_STABLE)
+					nowFinished ++;
+				/* printf ("LoadSensor, Inline %d, type %d loadstatus %d at %d\n",inode,inode->_nodeType,inode->__loadstatus, &inode->__loadstatus); */
+			}
 			break;
-
 		case NODE_Script:
-			nowLoading ++; /* broken - assume that the url is ok for now */
+			{
+				if(loadstatus_Script(X3D_SCRIPT(cnode)))
+					nowFinished ++;
+			}
 			break;
+		case NODE_ShaderProgram:
+			{
+				struct Shader_Script *shader;
+				shader=(struct Shader_Script *)(X3D_SHADERPROGRAM(cnode)->_shaderUserDefinedFields); 
+				if(shader->loaded) nowFinished++;
+			}
+			break;
+		case NODE_PackagedShader: 
+			{
+				struct Shader_Script *shader;
+				shader=(struct Shader_Script *)(X3D_PACKAGEDSHADER(cnode)->_shaderUserDefinedFields); 
+				if(shader->loaded) nowFinished++;
+			}
+			break;
+		case NODE_ComposedShader: 
+			{
+				struct Shader_Script *shader;
+				shader=(struct Shader_Script *)(X3D_COMPOSEDSHADER(cnode)->_shaderUserDefinedFields); 
+				if(shader->loaded) nowFinished++;
+			}
 
+			break;
+		case NODE_Effect: 
+			{
+				struct Shader_Script *shader;
+				shader=(struct Shader_Script *)(X3D_EFFECT(cnode)->_shaderUserDefinedFields); 
+				if(shader->loaded) nowFinished++;
+			}
+
+			break;
+		case NODE_MovieTexture: //july 2016 - ordered fields in movietexture to match audioclip
 		case NODE_AudioClip:
-			anode = (struct X3D_AudioClip *) tnode; /* change type to AudioClip */
-			/* AudioClip sourceNumber will be gt -1 if the clip is ok. see code for details */
-			if (anode->__sourceNumber > -1) nowLoading ++;
-
+			{
+				int istate;
+				struct X3D_AudioClip *anode;
+				anode = (struct X3D_AudioClip *) cnode; /* change type to AudioClip */
+				/* AudioClip sourceNumber will be gt -1 if the clip is ok. see code for details */
+				istate = loadstatus_AudioClip(anode);
+				if (istate == 1) 
+					nowLoading ++;
+				if(istate == 2)
+					nowFinished++;
+			}
 			break;
 
 		default :{} /* there should never be anything here, but... */
@@ -445,7 +477,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 
 void child_Anchor (struct X3D_Anchor *node) {
 	int nc = (node->children).n;
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 
 	/* printf ("child_Anchor node %u, vis %d\n",node,node->_renderFlags & VF_hasVisibleChildren); */
 
@@ -460,7 +492,8 @@ void child_Anchor (struct X3D_Anchor *node) {
 	#endif
 
 	/* do we have a local light for a child? */
-	LOCAL_LIGHT_CHILDREN(node->children);
+	//LOCAL_LIGHT_CHILDREN(node->children);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
@@ -468,11 +501,11 @@ void child_Anchor (struct X3D_Anchor *node) {
 	#ifdef CHILDVERBOSE
 	printf("RENDER ANCHOR END %d\n",node);
 	#endif
-
-	LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	//LOCAL_LIGHT_OFF
 }
 
-struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, char *name);
+struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
 struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
 struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name);
 
@@ -781,14 +814,16 @@ void child_Inline (struct X3D_Inline *node) {
 	//struct Multi_Node * kids;
 	CHILDREN_COUNT
 	//int nc = node->__children.n; //_sortedChildren.n;
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
-	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 
 	normalChildren(node->_sortedChildren);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	LOCAL_LIGHT_OFF
+	//LOCAL_LIGHT_OFF
 
 }

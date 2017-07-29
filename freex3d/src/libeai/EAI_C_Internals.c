@@ -22,6 +22,7 @@
 #include "config.h"
 #include "system.h"
 
+//#define VERBOSE 1 //JAS
 #define UNUSED(v) ((void) v)
 
 #define WAIT_FOR_RETVAL (command!=SENDEVENT)
@@ -272,8 +273,12 @@ void *freewrlReadThread(void* nada)  {
 		/* WIN32 ignors the first select parameter, just there for berkley compatibility */
         // retval = select(_X3D_FreeWRL_FD+1, &rfds, NULL, NULL, &tv); //times out
 		retval = select(_X3D_FreeWRL_FD+1, &rfds, NULL, NULL, NULL); //blocking
+
+#ifdef VERBOSE
 		if(retval)printf("+");
 		else printf("-");
+#endif
+
         if (retval) {
 #ifdef WIN32
 			retval = recv(_X3D_FreeWRL_FD, readbuffer, 2048, 0);
@@ -331,6 +336,10 @@ static char *sendToFreeWRL(char *callerbuffer, int size, int waitForResponse) {
 #else	
 	ptr = NULL;
 	retval = write(_X3D_FreeWRL_FD, callerbuffer, size);
+	#ifdef VERBOSE
+	printf ("sendToFreeWRL, sent callbuffer %s of size %d, retval %d\n",callerbuffer,size,retval);
+	#endif
+
 	if (retval < 0) 
 #endif
 		 X3D_error("ERROR writing to socket");
@@ -412,18 +421,25 @@ RE_EOT
 
 	}
 	_X3D_queryno ++;
+	#ifdef VERBOSE
+	printf ("sendToFreeWRL, returning %p\n",ptr);
+	#endif
+
+
 	return ptr;
 }
 
-
-void _X3D_sendEvent (char command, char *string) {
+void _X3D_sendEvent (char command, char *string,int line) {
         char *myptr;
 	UNUSED (myptr); // mitigate compiler warnings
 	EAILOCK
 	verifySendBufferSize (strlen(string));
+	//JAS printf ("_X3D_sendEvent, sending string %s, called from line %d\n",string,line);
+
         sprintf (sendBuffer, "%d %c %s\n",_X3D_queryno,command,string);
         myptr = sendToFreeWRL(sendBuffer, strlen(sendBuffer),WAIT_FOR_RETVAL);
 	EAIUNLOCK
+	//JAS printf ("_X3D_sendEvent, sent, returning...\n");
 }
 
 char *_X3D_makeShortCommand (char command) {
@@ -457,16 +473,23 @@ char *_X3D_make1VoidCommand (char command, int adr) {
 char *_X3D_make1StringCommand (char command, char *name) {
 	char *myptr;
 	
+	#ifdef VERBOSE
+	printf ("start _X3D_make1StringCommand, command %c char %s\n",command,name);
+	#endif
+
 	EAILOCK
 	verifySendBufferSize (strlen(name));
 	sprintf (sendBuffer, "%d %c %s\n",_X3D_queryno,command,name);
 	myptr = sendToFreeWRL(sendBuffer, strlen(sendBuffer),WAIT_FOR_RETVAL);
 	EAIUNLOCK
+
 	#ifdef VERBOSE
 	printf ("make1StringCommand, buffer now %s\n",myptr);
 	#endif
+
 	return myptr;
 }
+
 
 char *_X3D_make2StringCommand (char command, char *str1, char *str2) {
 	char *myptr;

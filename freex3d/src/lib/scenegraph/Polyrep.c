@@ -37,8 +37,8 @@
 #include "../main/headers.h"
 #include "../opengl/Frustum.h"
 #include "../opengl/Material.h"
-#include "../opengl/Textures.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
 
@@ -769,6 +769,7 @@ void do_glNormal3fv(struct SFVec3f *dest, GLfloat *param) {
  * for some nodes
  *
  ********************************************************************/
+#define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 
 void render_polyrep(void *node) {
 	//struct X3D_Virt *virt;
@@ -813,7 +814,8 @@ void render_polyrep(void *node) {
 
 	/*  clockwise or not?*/
 	if (!pr->ccw) { FW_GL_FRONTFACE(GL_CW); }
-
+	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#t-Litcolourandalpha
+	//if lit, use colors if colornode and (intensity or no texture)
  	hasc = ((pr->VBO_buffers[COLOR_VBO]!=0) || pr->color) && (tg->RenderFuncs.last_texture_type!=TEXTURE_NO_ALPHA);
 
  	/* Do we have any colours? Are textures, if present, not RGB? */
@@ -827,11 +829,25 @@ void render_polyrep(void *node) {
     }
 
 	/*  status bar, text do not have normals*/
-	if (pr->VBO_buffers[NORMAL_VBO]!=0) {
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+	if (pr->VBO_buffers[NORMAL_VBO]!=0 ) { 
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[NORMAL_VBO]);
 		FW_GL_NORMAL_POINTER(GL_FLOAT,0,0);
-    } 
+		if(DESIRE(getShaderFlags().base,SHADINGSTYLE_FLAT) ) {
+			if(pr->last_normal_type != 1) 
+				glBufferData(GL_ARRAY_BUFFER,sizeof (GLfloat)*3*pr->ntri*3,pr->flat_normal,GL_STATIC_DRAW); /* OpenGL-ES */
+			pr->last_normal_type = 1;
+		}else {
+			if(pr->last_normal_type != 0)
+				glBufferData(GL_ARRAY_BUFFER,sizeof (GLfloat)*3*pr->ntri*3,pr->normal,GL_STATIC_DRAW); /* OpenGL-ES */
+			pr->last_normal_type = 0;
+		}
+    }
 
+	if (pr->VBO_buffers[FOG_VBO]!=0) {
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[FOG_VBO]);
+		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
+    } 
 
 	/* colours? */
 	if (hasc) {
@@ -842,28 +858,49 @@ void render_polyrep(void *node) {
 
         
 	/*  textures?*/
-	if (pr->VBO_buffers[TEXTURE_VBO] != 0) {
-		struct textureVertexInfo mtf = {NULL,2,GL_FLOAT,0, NULL};
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,pr->VBO_buffers[TEXTURE_VBO]);
-		textureDraw_start(&mtf);
+	if (pr->VBO_buffers[TEXTURE_VBO0] != 0) {
+		int k;
+		struct textureVertexInfo mtf[4] = {{NULL,2,GL_FLOAT,0, NULL,NULL},  
+			{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL}};  
+		for(k=0;k<max(1,pr->ntcoord);k++){
+			//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,pr->VBO_buffers[TEXTURE_VBO0+k]);
+			mtf[k].VBO = pr->VBO_buffers[TEXTURE_VBO0+k];
+			mtf[k].TC_size = pr->ntexdim[k];
+			if(k > 0) mtf[k-1].next = &mtf[k];
+		}
+		textureCoord_send(mtf);
 	} else {
-        //ConsoleMessage("skipping tds of textures");
+        ConsoleMessage("skipping tds of textures");
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[VERTEX_VBO]);
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,pr->VBO_buffers[INDEX_VBO]);
 	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
 
-	sendArraysToGPU(GL_TRIANGLES,0,pr->ntri*3);
+	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+		//wireframe triangles
+		if(pr->last_index_type != 1)
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3*2,pr->wire_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		pr->last_index_type = 1;
+		//if (setupShader())
+		//	glDrawElements(GL_LINES, pr->ntri*3*2, GL_UNSIGNED_SHORT, NULL);
+		sendElementsToGPU(GL_LINES,pr->ntri*3*2,NULL);
+	}else{
+		//surface triangles 
+		//glDrawArrays(GL_TRIANGLES,,,) doesn't use indices - its glDrawElements that does
+		//if(pr->last_index_type != 0)
+		//	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3,pr->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		pr->last_index_type = 0;
+		sendArraysToGPU(GL_TRIANGLES,0,pr->ntri*3);
+	}
 
 	/* turn VBOs off for now */
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	tg->Mainloop.trisThisLoop += pr->ntri;
 
 
-	textureDraw_end();
 
 PRINT_GL_ERROR_IF_ANY("");
 
@@ -921,6 +958,7 @@ PRINT_GL_ERROR_IF_ANY("");
  *	rendray_GeoElevationGrid 
  */
 
+
 void render_ray_polyrep(void *node) {
 	//struct X3D_Virt *virt;
 	struct X3D_Node *genericNodePtr;
@@ -936,13 +974,14 @@ void render_ray_polyrep(void *node) {
 	float v1len, v2len, v3len;
 	float v12pt;
 	struct point_XYZ t_r1,t_r2;
-	ttglobal tg;
+	//ttglobal tg;
 	
 	/* is this structure still loading? */
 	if (!node) return;
-	tg = gglobal();
-	VECCOPY(t_r1,tg->RenderFuncs.t_r1);
-	VECCOPY(t_r2,tg->RenderFuncs.t_r2);
+	//tg = gglobal();
+	//VECCOPY(t_r1,tg->RenderFuncs.t_r1);
+	//VECCOPY(t_r2,tg->RenderFuncs.t_r2);
+	get_current_ray(&t_r1, &t_r2);
 	//VECCOPY(t_r3,tg->RenderFuncs.t_r3);
 
 	//ray.x = t_r2.x - t_r1.x;
@@ -1061,8 +1100,503 @@ void render_ray_polyrep(void *node) {
 	}
 }
 
+// https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm
+#define EPSILON 0.000001
+int triangle_intersection( float *  V1,  // Triangle vertices
+                           float *  V2,
+                           float *  V3,
+                           float *   O,  //Ray origin
+                           float *   D,  //Ray direction
+                           float* out )   // scale of ray direction from origin to intersection
+{
+  float e1[3], e2[3];  //Edge1, Edge2
+  float P[3], Q[3], T[3];
+  float det, inv_det, u, v;
+  float t;
+
+  //Find vectors for two edges sharing V1
+  vecdif3f(e1, V2, V1);
+  vecdif3f(e2, V3, V1);
+  //Begin calculating determinant - also used to calculate u parameter
+  veccross3f(P, D, e2);
+  //if determinant is near zero, ray lies in plane of triangle or ray is parallel to plane of triangle
+  det = vecdot3f(e1, P);
+  //NOT CULLING
+  if(det > -EPSILON && det < EPSILON) return 0;
+  inv_det = 1.f / det;
+
+  //calculate distance from V1 to ray origin
+  vecdif3f(T, O, V1);
+
+  //Calculate u parameter and test bound
+  u = vecdot3f(T, P) * inv_det;
+  //The intersection lies outside of the triangle
+  if(u < 0.f || u > 1.f) return 0;
+
+  //Prepare to test v parameter
+  veccross3f(Q, T, e1);
+
+  //Calculate V parameter and test bound
+  v = vecdot3f(D, Q) * inv_det;
+  //The intersection lies outside of the triangle
+  if(v < 0.f || u + v  > 1.f) return 0;
+
+  t = vecdot3f(e2, Q) * inv_det;
+
+  if(t > EPSILON) { //ray intersection
+    *out = t;
+    return 1;
+  }
+
+  // No hit, no win
+  return 0;
+}
+
+enum {
+	RAYTRIALGO_DEFAULT = 1,
+	RAYTRIALGO_MULLER = 2,
+	//Not implemented: watertight  http://jcgt.org/published/0002/01/05/paper.pdf
+};
+static int raytrialgo = RAYTRIALGO_MULLER;
+int intersect_polyrep(struct X3D_Node *node, float *p1, float *p2, float *nearest, float *normal){
+	//need a utility function like part of guts of render_ray_polyrep
+	//everything in same coordinate system, no matrix multiplication in here
+	//p1, p2 - 2 points forming ray, in direciton from p1 toward p2, of length p2-p1
+	//return value:
+	//	count of intersections - can be used for inside test (odd - inside, even - outside)
+	// nearest[3] - the intersection nearest p1
+	// normal[3] - normal at nearest intersection
+
+	//struct X3D_Virt *virt;
+	struct X3D_Node *genericNodePtr;
+	struct X3D_PolyRep *polyRep;
+	int i, nintersections, ihavehit;
+	int pt;
+	float nearestdist, delta[3];
+	float *point[3];
+	struct point_XYZ v1, v2, v3;
+	//struct point_XYZ ray;
+	float pt1, pt2, pt3;
+	struct point_XYZ hitpoint;
+	float tmp1,tmp2;
+	float v1len, v2len, v3len;
+	float v12pt;
+	struct point_XYZ t_r1,t_r2;
+	//ttglobal tg;
+
+	ihavehit = -1;
+
+	/* is this structure still loading? */
+	if (!node) return 0;
+	//tg = gglobal();
+	//VECCOPY(t_r1,tg->RenderFuncs.t_r1);
+	//VECCOPY(t_r2,tg->RenderFuncs.t_r2);
+//	get_current_ray(&t_r1, &t_r2);
+	vecdif3f(delta,p2,p1);
+	nearestdist = veclength3f(delta) + .000001f;
+	nintersections = 0;
+	t_r1.x = p1[0];
+	t_r1.y = p1[1];
+	t_r1.z = p1[2];
+	t_r2.x = p2[0];
+	t_r2.y = p2[1];
+	t_r2.z = p2[2];
+	//VECCOPY(t_r3,tg->RenderFuncs.t_r3);
+
+	//ray.x = t_r2.x - t_r1.x;
+	//ray.y = t_r2.y - t_r1.y;
+	//ray.z = t_r2.z - t_r1.z;
+
+	genericNodePtr = X3D_NODE(node);
+	//virt = virtTable[genericNodePtr->_nodeType];
+	
+	/* is this structure still loading? */
+	if (!(genericNodePtr->_intern)) {
+		/* printf ("render_ray_polyrep - no internal structure, returning\n"); */
+		return 0;
+	}
+
+	polyRep = genericNodePtr->_intern;
+
+	/*	
+	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
+		genericNodePtr->_change, polyRep->_change, polyRep->ntri);
+	*/
+
+	
+
+	for(i=0; i<polyRep->ntri; i++) {
+		for(pt = 0; pt<3; pt++) {
+			int ind = polyRep->cindex[i*3+pt];
+			point[pt] = (polyRep->actualCoord+3*ind);
+		}
+		if(raytrialgo == RAYTRIALGO_MULLER){
+			//works for particlephysics > bounded physics
+			float tscale, d2[3],delta[3];
+			vecdif3f(delta,p2,p1);
+			vecnormalize3f(d2,delta); //muller takes a D normalized direction vector
+			if(triangle_intersection(point[0],point[1],point[2],p1,d2,&tscale)){
+				//printf("muller-trumbore intersection tascale %f nearestdist %f\n",tscale,nearestdist);
+				nintersections++;
+				if(tscale > 0.0f && tscale < nearestdist){
+					//closest so far
+					float e1[3],e2[3],nn[3],pd[3];
+					vecscale3f(pd,d2,tscale);
+					vecadd3f(nearest,p1,pd);
+					//compute normal to triangle
+					vecdif3f(e1,point[1],point[0]);
+					vecdif3f(e2,point[2],point[0]);
+					veccross3f(nn,e1,e2);  //e2,e1 points inside, e1,e2 points outside
+					vecnormalize3f(normal,nn);
+					nearestdist = tscale;
+					ihavehit = 1;
+				}
+			}
+		}else if(raytrialgo == RAYTRIALGO_DEFAULT){
+			//doesn't work right for particle physics > bounded physics
+			//x leaks on right side of IFS box, occassionally leaky left side
+			/*
+			printf ("have points (%f %f %f) (%f %f %f) (%f %f %f)\n",
+				point[0][0],point[0][1],point[0][2],
+				point[1][0],point[1][1],point[1][2],
+				point[2][0],point[2][1],point[2][2]);
+			*/
+		
+			/* First we need to project our point to the surface */
+			/* Poss. 1: */
+			/* Solve s1xs2 dot ((1-r)r1 + r r2 - pt0)  ==  0 */
+			/* I.e. calculate s1xs2 and ... */
+			v1.x = point[1][0] - point[0][0];
+			v1.y = point[1][1] - point[0][1];
+			v1.z = point[1][2] - point[0][2];
+			v2.x = point[2][0] - point[0][0];
+			v2.y = point[2][1] - point[0][1];
+			v2.z = point[2][2] - point[0][2];
+			v1len = (float) sqrt(VECSQ(v1)); VECSCALE(v1, 1/v1len);
+			v2len = (float) sqrt(VECSQ(v2)); VECSCALE(v2, 1/v2len);
+			v12pt = (float) VECPT(v1,v2);
+
+			/* this will get around a divide by zero further on JAS */
+			if (fabs(v12pt-1.0) < 0.00001) 
+				continue;
+
+			/* if we have a degenerate triangle, we can't compute a normal, so skip */
+
+			if ((fabs(v1len) > 0.00001) && (fabs(v2len) > 0.00001)) {
+
+				/* v3 is our normal to the surface */
+				VECCP(v1,v2,v3);
+				v3len = (float) sqrt(VECSQ(v3)); VECSCALE(v3, 1/v3len);
+
+				pt1 = (float) VECPT(t_r1,v3);
+				pt2 = (float) VECPT(t_r2,v3);
+				pt3 = (float) (v3.x * point[0][0] + v3.y * point[0][1] + v3.z * point[0][2]);
+				/* Now we have (1-r)pt1 + r pt2 - pt3 = 0
+				 * r * (pt1 - pt2) = pt1 - pt3
+				 */
+				 tmp1 = pt1-pt2;
+				 if(!APPROX(tmp1,0)) {
+			 		float ra, rb;
+					float k,l;
+					struct point_XYZ p0h;
+
+			 		tmp2 = (float) ((pt1-pt3) / (pt1-pt2));
+					hitpoint.x = MRATX(tmp2);
+					hitpoint.y = MRATY(tmp2);
+					hitpoint.z = MRATZ(tmp2);
+					/* Now we want to see if we are in the triangle */
+					/* Projections to the two triangle sides */
+					p0h.x = hitpoint.x - point[0][0];
+					p0h.y = hitpoint.y - point[0][1];
+					p0h.z = hitpoint.z - point[0][2];
+					ra = (float) VECPT(v1, p0h);
+					if(ra < 0.0f) {
+						continue;
+					}
+					rb = (float) VECPT(v2, p0h);
+					if(rb < 0.0f) {
+						continue;
+					}
+					/* Now, the condition for the point to
+					 * be inside
+					 * (ka + lb = p)
+					 * (k + l b.a = p.a)
+					 * (k b.a + l = p.b)
+					 * (k - (b.a)**2 k = p.a - (b.a)*p.b)
+					 * k = (p.a - (b.a)*(p.b)) / (1-(b.a)**2)
+					 */
+					 k = (ra - v12pt * rb) / (1-v12pt*v12pt);
+					 l = (rb - v12pt * ra) / (1-v12pt*v12pt);
+					 k /= v1len; l /= v2len;
+					 if(k+l > 1 || k < 0 || l < 0) {
+				 		continue;
+					 }
+					 //we have a hit
+					 nintersections ++;
+					 if(tmp2 >= 0.0 && tmp2 < nearestdist){
+						ihavehit = 1;
+						nearest[0] = (float)hitpoint.x;
+						nearest[1] = (float)hitpoint.y;
+						nearest[2] = (float)hitpoint.z;
+						normal[0] = (float)v3.x;
+						normal[1] = (float)v3.y;
+						normal[2] = (float)v3.z;
+						nearestdist = tmp2;
+					}
+					 //rayhit(((float)(tmp2)),
+						//((float)(hitpoint.x)),
+						//((float)(hitpoint.y)),
+						//((float)(hitpoint.z)),
+					 //	((float)(v3.x)),
+						//((float)(v3.y)),
+						//((float)(v3.z)),
+						//((float)-1),((float)-1), "polyrep");
+				 }
+			} // if degenerate 
+		} // if raytrialgo
+	} //for triangle
+
+	return nintersections*ihavehit; //-ve if no hit but intersections of infinite ray for p1,
+	// +ve if hit and intersections, 0 -nothing
+}
+int intersect_polyrep2(struct X3D_Node *node, float *p1, float *p2, Stack *intersection_stack){
+	//this one returns a vector of points
+	//please allocate intersection_stack before calling ie instersection_stack = newStack(struct intersection_info);
+	//p1 - p2 is your plumbline or line, see also particalsystems for use
+	//need a utility function like part of guts of render_ray_polyrep
+	//everything in same coordinate system, no matrix multiplication in here
+	//p1, p2 - 2 points forming ray, in direciton from p1 toward p2, of length p2-p1
+	//return value:
+	//	count of intersections - can be used for inside test (odd - inside, even - outside)
+	// nearest[3] - the intersection nearest p1
+	// normal[3] - normal at nearest intersection
+
+	//struct X3D_Virt *virt;
+	struct X3D_Node *genericNodePtr;
+	struct X3D_PolyRep *polyRep;
+	int i, nintersections, ihavehit;
+	int pt;
+	float nearestdist, delta[3];
+	float *point[3];
+	struct point_XYZ v1, v2, v3;
+	//struct point_XYZ ray;
+	float pt1, pt2, pt3;
+	struct point_XYZ hitpoint;
+	float tmp1,tmp2;
+	float v1len, v2len, v3len;
+	float v12pt;
+	struct point_XYZ t_r1,t_r2;
+	//ttglobal tg;
+
+	ihavehit = -1;
+
+	/* is this structure still loading? */
+	if (!node) return 0;
+	//tg = gglobal();
+	//VECCOPY(t_r1,tg->RenderFuncs.t_r1);
+	//VECCOPY(t_r2,tg->RenderFuncs.t_r2);
+//	get_current_ray(&t_r1, &t_r2);
+	vecdif3f(delta,p2,p1);
+	nearestdist = veclength3f(delta) + .000001f;
+	nintersections = 0;
+	t_r1.x = p1[0];
+	t_r1.y = p1[1];
+	t_r1.z = p1[2];
+	t_r2.x = p2[0];
+	t_r2.y = p2[1];
+	t_r2.z = p2[2];
+	//VECCOPY(t_r3,tg->RenderFuncs.t_r3);
+
+	//ray.x = t_r2.x - t_r1.x;
+	//ray.y = t_r2.y - t_r1.y;
+	//ray.z = t_r2.z - t_r1.z;
+
+	genericNodePtr = X3D_NODE(node);
+	//virt = virtTable[genericNodePtr->_nodeType];
+	
+	/* is this structure still loading? */
+	if (!(genericNodePtr->_intern)) {
+		/* printf ("render_ray_polyrep - no internal structure, returning\n"); */
+		return 0;
+	}
+
+	polyRep = genericNodePtr->_intern;
+
+	/*	
+	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
+		genericNodePtr->_change, polyRep->_change, polyRep->ntri);
+	*/
+
+	
+
+	for(i=0; i<polyRep->ntri; i++) {
+		for(pt = 0; pt<3; pt++) {
+			int ind = polyRep->cindex[i*3+pt];
+			point[pt] = (polyRep->actualCoord+3*ind);
+		}
+		if(raytrialgo == RAYTRIALGO_MULLER){
+			//works for particlephysics > bounded physics
+			float tscale, d2[3],delta[3];
+			vecdif3f(delta,p2,p1);
+			vecnormalize3f(d2,delta); //muller takes a D normalized direction vector
+			if(triangle_intersection(point[0],point[1],point[2],p1,d2,&tscale)){
+				//printf("muller-trumbore intersection tascale %f nearestdist %f\n",tscale,nearestdist);
+				nintersections++;
+
+				if(tscale > 0.0f && tscale < veclength3f(delta)){  //nearestdist){
+					//closest so far
+					float e1[3],e2[3],nn[3],pd[3],pi[3],normi[3];
+					struct intersection_info iinfo;
+					vecscale3f(pd,d2,tscale);
+					vecadd3f(pi,p1,pd);
+					//compute normal to triangle
+					vecdif3f(e1,point[1],point[0]);
+					vecdif3f(e2,point[2],point[0]);
+					veccross3f(nn,e1,e2);  //e2,e1 points inside, e1,e2 points outside
+					vecnormalize3f(normi,nn);
+					veccopy3f(iinfo.p,pi);
+					veccopy3f(iinfo.normal,normi);
+					stack_push(struct intersection_info,intersection_stack,iinfo);
+					if(tscale < nearestdist) {
+						//veccopy3f(nearest,pi);
+						//veccopy3f(normal,normi);
+						nearestdist = tscale;
+						ihavehit = 1;
+					}
+				}
+			}
+		}else if(raytrialgo == RAYTRIALGO_DEFAULT){
+			//doesn't work right for particle physics > bounded physics
+			//x leaks on right side of IFS box, occassionally leaky left side
+			/*
+			printf ("have points (%f %f %f) (%f %f %f) (%f %f %f)\n",
+				point[0][0],point[0][1],point[0][2],
+				point[1][0],point[1][1],point[1][2],
+				point[2][0],point[2][1],point[2][2]);
+			*/
+		
+			/* First we need to project our point to the surface */
+			/* Poss. 1: */
+			/* Solve s1xs2 dot ((1-r)r1 + r r2 - pt0)  ==  0 */
+			/* I.e. calculate s1xs2 and ... */
+			v1.x = point[1][0] - point[0][0];
+			v1.y = point[1][1] - point[0][1];
+			v1.z = point[1][2] - point[0][2];
+			v2.x = point[2][0] - point[0][0];
+			v2.y = point[2][1] - point[0][1];
+			v2.z = point[2][2] - point[0][2];
+			v1len = (float) sqrt(VECSQ(v1)); VECSCALE(v1, 1/v1len);
+			v2len = (float) sqrt(VECSQ(v2)); VECSCALE(v2, 1/v2len);
+			v12pt = (float) VECPT(v1,v2);
+
+			/* this will get around a divide by zero further on JAS */
+			if (fabs(v12pt-1.0) < 0.00001) 
+				continue;
+
+			/* if we have a degenerate triangle, we can't compute a normal, so skip */
+
+			if ((fabs(v1len) > 0.00001) && (fabs(v2len) > 0.00001)) {
+
+				/* v3 is our normal to the surface */
+				VECCP(v1,v2,v3);
+				v3len = (float) sqrt(VECSQ(v3)); VECSCALE(v3, 1/v3len);
+
+				pt1 = (float) VECPT(t_r1,v3);
+				pt2 = (float) VECPT(t_r2,v3);
+				pt3 = (float) (v3.x * point[0][0] + v3.y * point[0][1] + v3.z * point[0][2]);
+				/* Now we have (1-r)pt1 + r pt2 - pt3 = 0
+				 * r * (pt1 - pt2) = pt1 - pt3
+				 */
+				 tmp1 = pt1-pt2;
+				 if(!APPROX(tmp1,0)) {
+			 		float ra, rb;
+					float k,l;
+					struct point_XYZ p0h;
+
+			 		tmp2 = (float) ((pt1-pt3) / (pt1-pt2));
+					hitpoint.x = MRATX(tmp2);
+					hitpoint.y = MRATY(tmp2);
+					hitpoint.z = MRATZ(tmp2);
+					/* Now we want to see if we are in the triangle */
+					/* Projections to the two triangle sides */
+					p0h.x = hitpoint.x - point[0][0];
+					p0h.y = hitpoint.y - point[0][1];
+					p0h.z = hitpoint.z - point[0][2];
+					ra = (float) VECPT(v1, p0h);
+					if(ra < 0.0f) {
+						continue;
+					}
+					rb = (float) VECPT(v2, p0h);
+					if(rb < 0.0f) {
+						continue;
+					}
+					/* Now, the condition for the point to
+					 * be inside
+					 * (ka + lb = p)
+					 * (k + l b.a = p.a)
+					 * (k b.a + l = p.b)
+					 * (k - (b.a)**2 k = p.a - (b.a)*p.b)
+					 * k = (p.a - (b.a)*(p.b)) / (1-(b.a)**2)
+					 */
+					 k = (ra - v12pt * rb) / (1-v12pt*v12pt);
+					 l = (rb - v12pt * ra) / (1-v12pt*v12pt);
+					 k /= v1len; l /= v2len;
+					 if(k+l > 1 || k < 0 || l < 0) {
+				 		continue;
+					 }
+					 //we have a hit
+					 nintersections ++;
+					 if(tmp2 >= 0.0 && tmp2 < nearestdist){
+						ihavehit = 1;
+						//nearest[0] = (float)hitpoint.x;
+						//nearest[1] = (float)hitpoint.y;
+						//nearest[2] = (float)hitpoint.z;
+						//normal[0] = (float)v3.x;
+						//normal[1] = (float)v3.y;
+						//normal[2] = (float)v3.z;
+						nearestdist = tmp2;
+					}
+					 //rayhit(((float)(tmp2)),
+						//((float)(hitpoint.x)),
+						//((float)(hitpoint.y)),
+						//((float)(hitpoint.z)),
+					 //	((float)(v3.x)),
+						//((float)(v3.y)),
+						//((float)(v3.z)),
+						//((float)-1),((float)-1), "polyrep");
+				 }
+			} // if degenerate 
+		} // if raytrialgo
+	} //for triangle
+
+	return nintersections*ihavehit; //-ve if no hit but intersections of infinite ray for p1,
+	// +ve if hit and intersections, 0 -nothing
+}
+
+int getPolyrepTriangleCount(struct X3D_Node *node){
+	int iret;
+	iret = 0;
+	if(node->_intern){
+		struct X3D_PolyRep *polyrep = (struct X3D_PolyRep *)node->_intern;
+		iret = polyrep->ntri;
+	}
+	return iret;
+}
+int getPolyrepTriangleByIndex(struct X3D_Node *node, int index, float *v1, float *v2, float *v3){
+	int iret;
+	iret = 0;
+	if(node->_intern){
+		struct X3D_PolyRep *polyrep = (struct X3D_PolyRep *)node->_intern;
+		veccopy3f(v1,&polyrep->actualCoord[(index*3 + 0)*3]);
+		veccopy3f(v2,&polyrep->actualCoord[(index*3 + 1)*3]);
+		veccopy3f(v3,&polyrep->actualCoord[(index*3 + 2)*3]);
+	}
+	return iret;
+
+}
+
 /* make the internal polyrep structure - this will contain the actual RUNTIME parameters for OpenGL */
-void compile_polyrep(void *innode, void *coord, void *color, void *normal, struct X3D_TextureCoordinate *texCoord) {
+void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, void *normal, struct X3D_TextureCoordinate *texCoord) {
 	struct X3D_Virt *virt;
 	struct X3D_Node *node;
 	struct X3D_PolyRep *polyrep;
@@ -1078,14 +1612,17 @@ void compile_polyrep(void *innode, void *coord, void *color, void *normal, struc
 		int i;
 
 		node->_intern = MALLOC(struct X3D_PolyRep *, sizeof(struct X3D_PolyRep));
-
+		memset(node->_intern,0,sizeof(struct X3D_PolyRep));
 		polyrep = node->_intern;
 		polyrep->ntri = -1;
-		polyrep->cindex = 0; polyrep->actualCoord = 0; polyrep->colindex = 0; polyrep->color = 0;
-		polyrep->norindex = 0; polyrep->normal = 0; polyrep->GeneratedTexCoords = 0;
-		polyrep->tcindex = 0; 
-		polyrep->tcoordtype = 0;
+		//polyrep->cindex = 0; polyrep->actualCoord = 0; polyrep->colindex = 0; polyrep->color = 0;
+		//polyrep->norindex = 0; polyrep->normal = 0; polyrep->flat_normal = 0; polyrep->GeneratedTexCoords = 0;
+		//polyrep->tri_indices = 0; polyrep->wire_indices = 0; polyrep->actualFog =  0;
+		//polyrep->tcindex = 0; 
+		//polyrep->tcoordtype = 0;
 		polyrep->streamed = FALSE;
+		//polyrep->last_index_type = 0; polyrep->last_normal_type = 0;
+		
 
 		/* for Collision, default texture generation */
 		polyrep->minVals[0] =  999999.9f;
@@ -1095,13 +1632,14 @@ void compile_polyrep(void *innode, void *coord, void *color, void *normal, struc
 		polyrep->maxVals[1] =  -999999.9f;
 		polyrep->maxVals[2] =  -999999.9f;
 
-		for (i=0; i<VBO_COUNT; i++) polyrep->VBO_buffers[i] = 0;
+		for (i=0; i<VBO_COUNT; i++) 
+			polyrep->VBO_buffers[i] = 0;
 
-			/* printf ("generating buffers for node %p, type %s\n",p,stringNodeType(p->_nodeType)); */
-			glGenBuffers(1,&polyrep->VBO_buffers[VERTEX_VBO]);
-			glGenBuffers(1,&polyrep->VBO_buffers[INDEX_VBO]);
+		/* printf ("generating buffers for node %p, type %s\n",p,stringNodeType(p->_nodeType)); */
+		glGenBuffers(1,&polyrep->VBO_buffers[VERTEX_VBO]);
+		glGenBuffers(1,&polyrep->VBO_buffers[INDEX_VBO]);
 
-			/* printf ("they are %u %u %u %u\n",polyrep->VBO_buffers[0],polyrep->VBO_buffers[1],polyrep->VBO_buffers[2],polyrep->VBO_buffers[3]); */
+		/* printf ("they are %u %u %u %u\n",polyrep->VBO_buffers[0],polyrep->VBO_buffers[1],polyrep->VBO_buffers[2],polyrep->VBO_buffers[3]); */
 
 	}
 
@@ -1120,11 +1658,12 @@ void compile_polyrep(void *innode, void *coord, void *color, void *normal, struc
 
 	FREE_IF_NZ(polyrep->cindex);
 	FREE_IF_NZ(polyrep->actualCoord);
-	FREE_IF_NZ(polyrep->GeneratedTexCoords);
+	FREE_IF_NZ(polyrep->GeneratedTexCoords[0]);
 	FREE_IF_NZ(polyrep->colindex);
 	FREE_IF_NZ(polyrep->color);
 	FREE_IF_NZ(polyrep->norindex);
 	FREE_IF_NZ(polyrep->normal);
+	FREE_IF_NZ(polyrep->flat_normal);
 	FREE_IF_NZ(polyrep->tcindex);
 
 
@@ -1133,13 +1672,14 @@ void compile_polyrep(void *innode, void *coord, void *color, void *normal, struc
 
 	/* now, put the generic internal structure into OpenGL arrays for faster rendering */
 	/* if there were errors, then rep->ntri should be 0 */
-	if (polyrep->ntri != 0)
-		stream_polyrep(node, coord, color, normal, texCoord);
-
-
-
-	/* and, tell the rendering process that this shape is now compiled */
+	if (polyrep->ntri != 0) {
+		//float *fogCoord = NULL;
+		stream_polyrep(node, coord, fogCoord, color, normal, texCoord);
+		/* and, tell the rendering process that this shape is now compiled */
+	}
+	//else wait for set_coordIndex to be converted to coordIndex
 	polyrep->irep_change = node->_change;
+
 }
 
 void delete_polyrep(struct X3D_Node *node){
@@ -1162,11 +1702,14 @@ void delete_polyrep(struct X3D_Node *node){
 		FREE_IF_NZ(pr->colindex);   /* triples (per triangle) */
 		FREE_IF_NZ(pr->norindex);
 		FREE_IF_NZ(pr->tcindex); /* triples or null */
-
+		FREE_IF_NZ(pr->tri_indices);
+		FREE_IF_NZ(pr->wire_indices);
 		FREE_IF_NZ(pr->actualCoord); /* triples (per point) */
+		FREE_IF_NZ(pr->actualFog); /* float (per point) */
 		FREE_IF_NZ(pr->color); /* triples or null */
 		FREE_IF_NZ(pr->normal); /* triples or null */
-		FREE_IF_NZ(pr->GeneratedTexCoords);	/* triples (per triangle) of texture coords if there is no texCoord node */
+		FREE_IF_NZ(pr->flat_normal);
+		FREE_IF_NZ(pr->GeneratedTexCoords[0]);	/* triples (per triangle) of texture coords if there is no texCoord node */
 		FREE_IF_NZ(pr);
 		node->_intern = NULL;
 	}

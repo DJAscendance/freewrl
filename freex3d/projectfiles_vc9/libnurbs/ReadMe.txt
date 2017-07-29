@@ -1,28 +1,17 @@
 ========================================================================
-    DYNAMIC LINK LIBRARY : dllFreeWRL Project Overview
+    STATIC LIBRARY : libnurbs Project Overview
 ========================================================================
 
-AppWizard has created this dllFreeWRL DLL for you.
+AppWizard has created this libnurbs library project for you.
 
-This file contains a summary of what you will find in each of the files that
-make up your dllFreeWRL application.
+No source files were created as part of your project.
 
 
-dllFreeWRL.vcproj
+libnurbs.vcproj
     This is the main project file for VC++ projects generated using an Application Wizard.
     It contains information about the version of Visual C++ that generated the file, and
     information about the platforms, configurations, and project features selected with the
     Application Wizard.
-
-dllFreeWRL.cpp
-    This is the main DLL source file.
-
-/////////////////////////////////////////////////////////////////////////////
-Other standard files:
-
-StdAfx.h, StdAfx.cpp
-    These files are used to build a precompiled header (PCH) file
-    named dllFreeWRL.pch and a precompiled types file named StdAfx.obj.
 
 /////////////////////////////////////////////////////////////////////////////
 Other notes:

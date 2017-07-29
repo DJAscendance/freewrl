@@ -45,14 +45,12 @@
 #include "world_script/fieldSet.h"
 #include "vrml_parser/CParseParser.h"
 #include "vrml_parser/CParseLexer.h"
-#include "vrml_parser/CProto.h"
 #include "vrml_parser/CParse.h"
 #include "input/InputFunctions.h"	/* resolving implicit declarations */
 #include "input/EAIHeaders.h"	/* resolving implicit declarations */
 #include "input/EAIHelpers.h"	/* resolving implicit declarations */
 
 #include "x3d_parser/X3DParser.h"
-#include "x3d_parser/X3DProtoScript.h"
 #include <iglobal.h>
 
 //#ifndef STATIC_ONCE
@@ -69,7 +67,6 @@
 //extern int currentProtoInstance[PROTOINSTANCE_MAX_LEVELS];
 //#endif
 #define STATIC_ONCE 1
-/* static int getFieldAccessMethodFromProtoInterface (struct VRMLLexer *myLexer, char *fieldName, int protono); */
 
 //#define CPI ProtoInstanceTable[curProtoInsStackInd]
 //#define CPD PROTONames[currentProtoDeclare]
@@ -124,10 +121,6 @@
 #ifndef __LIBFREEWRL_DECL_H__
 #define __LIBFREEWRL_DECL_H__
 
-#if defined(_MSC_VER)  /* other configs welcome to join */
-/* redirect printfs to ConsoleMessage, and from there to statusbarHud.c ! panel */
-//#define printf ConsoleMessage
-#endif
 
 #ifdef FREEWRL_THREAD_COLORIZED
 
@@ -379,7 +372,10 @@ int DEBUG_MSG(const char *fmt, ...)
 #endif
 #endif //_MSC_VER
 
-/* #define DJTRACK_PICKSENSORS 1  define this in your build */
+void *mallocn_debug(int line, char *file, void *node,size_t size);
+void *reallocn_debug(int line, char *file, void *node, void *pold, size_t newsize);
+void *mallocn(void *node,size_t size);
+void *reallocn(void *node, void *pold, size_t newsize);
 
 /**
  * Those macro get defined only when debugging is enabled
@@ -391,7 +387,8 @@ void *freewrlRealloc(int line, char *file, void *ptr, size_t size);
 void freewrlFree(int line, char *file, void *a);
 void *freewrlStrdup(int line, char *file, char *str);
 void *freewrlStrndup(int line, char *file, const char *str, size_t n);
-
+#define MALLOCN(_node,_sz) (mallocn_debug(__LINE__,__FILE__,_node,_sz))
+#define REALLOCN(_node,_oldp,_newsz) (reallocn_debug(__LINE__,__FILE__,_node,_oldp,_newsz))
 # define MALLOCV(_sz) (freewrlMalloc(__LINE__, __FILE__, _sz, FALSE))
 # define MALLOC(t,_sz)         ((t)freewrlMalloc(__LINE__, __FILE__, _sz, FALSE))
 # define CALLOC(_fill, _sz)  freewrlMalloc(__LINE__, __FILE__, _fill * _sz, TRUE);
@@ -438,6 +435,8 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 
 
 #else /* defined(WRAP_MALLOC) || defined(DEBUG_MALLOC) */
+#define MALLOCN(_node,_sz) (mallocn(_node,_sz))
+#define REALLOCN(_node,_oldp,_newsz) (reallocn(_node,_oldp,_newsz))
 
 # define MALLOCV(_sz) (malloc(_sz))
 # define MALLOC(t,_sz) ((_sz > 0) ? (t)malloc(_sz) : NULL)
@@ -460,7 +459,7 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 
 #define FREE_IF_NZ(_ptr) {if (_ptr) { \
                              FREE(_ptr); \
-                             _ptr = 0; } \
+                             _ptr = NULL; } \
                          else { \
                              DEBUG_MEM("double free: %s:%d\n", __FILE__, __LINE__); \
                          }}
@@ -498,6 +497,10 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 	} } while (0);
 
 
+void register_node_gc(void *node, void *p);  //registers in node->_gc vector* for freeing
+void unregister_node_gc(void *node, void *p); //unregister old on realloc
+void free_registered_node_gc(void *node); //free when freeing node ie freeMallocedNodeFields
+
 /* THIS HAS TO BE FIXED TOO :) */
 
 #if defined(_MSC_VER)
@@ -505,9 +508,7 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 #include <stddef.h> /* for offsetof(...) */
 /* textures.c > jpeg > jmorecfg.h tries to redefine booleand but you can say you have it */
 #define HAVE_BOOLEAN 1    
-#ifndef M_PI
-#define M_PI 3.14159265358979323846 //acos(-1.0)
-#endif
+
 #endif
 
 #ifdef IPHONE
@@ -515,6 +516,9 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 #define HAVE_BOOLEAN 1    
 #endif
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846 //acos(-1.0)
+#endif
 /* Move those to a better place: */
 /* OLDCODE: void initialize_parser(); */
 

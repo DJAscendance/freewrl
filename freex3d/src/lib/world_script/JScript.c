@@ -26,8 +26,8 @@ Javascript C language binding.
 
 
 #include <config.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <system.h>
+#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <display.h>
 #include <internal.h>
 
@@ -53,7 +53,7 @@ Javascript C language binding.
 #include "jsVRMLBrowser.h"
 
 
-#if defined(HAVE_JAVASCRIPT)
+
 
 #ifndef JSCLASS_GLOBAL_FLAGS
 //spidermonkey < 1.7 doesn't have so define here
@@ -89,17 +89,17 @@ static JSClass staticGlobalClass = {
 };
 
 
-#endif // HAVE_JAVASCRIPT
+
 
 
 typedef struct pJScript{
 
 
-#ifdef HAVE_JAVASCRIPT
+
 	JSRuntime *runtime;// = NULL;
 	JSClass globalClass;
 	jsval JSglobal_return_value;
-#endif // HAVE_JAVASCRIPT
+
 	int ijunk;
 }* ppJScript;
 
@@ -116,23 +116,23 @@ void JScript_init(struct tJScript *t){
 	t->prv = JScript_constructor();
 	{
 		ppJScript p = (ppJScript)t->prv;
-#ifdef HAVE_JAVASCRIPT
+
 		p->runtime = NULL;
 		memcpy(&p->globalClass,&staticGlobalClass,sizeof(staticGlobalClass));
 		t->JSglobal_return_val = &p->JSglobal_return_value;
-#endif // HAVE_JAVASCRIPT
+
 	}
 }
 //	ppJScript p = (ppJScript)gglobal()->JScript.prv;
 
-#ifdef HAVE_JAVASCRIPT
+
 void js_cleanup_script_context(int counter){
 	//ttglobal tg = gglobal();
 	//ppJScript p = (ppJScript)tg->JScript.prv;
 	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
 	CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
 }
-#endif // HAVE_JAVASCRIPT
+
 /********************************************************************
 
 process_eventsProcessed()
@@ -143,7 +143,6 @@ function - see section C.4.3 of the spec.
 ********************************************************************/
 /* run the script from within C */
 void process_eventsProcessed() {
-#ifdef HAVE_JAVASCRIPT
 
 	int counter;
 	jsval retval;
@@ -190,7 +189,7 @@ void process_eventsProcessed() {
 		}
 
 	}
-#endif /* HAVE_JAVASCRIPT */
+
 }
 
 
@@ -198,18 +197,19 @@ void process_eventsProcessed() {
 
 void jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptControl)
 {
-	struct CRscriptStruct ScriptControl = getScriptControl()[num];
-	if (ScriptControl.eventsProcessed != NULL) {
+	struct CRscriptStruct *ScriptControl;
+	ScriptControl = getScriptControlIndex(num);
+	if (ScriptControl->eventsProcessed != NULL) {
 #if JS_VERSION >= 185
-		if (ScriptControl.cx != NULL) {
-			JS_RemoveObjectRoot(ScriptControl.cx,(JSSCRIPT**)(&ScriptControl.eventsProcessed));
+		if (ScriptControl->cx != NULL) {
+			JS_RemoveObjectRoot(ScriptControl->cx,(JSSCRIPT**)(&ScriptControl->eventsProcessed));
 		}
 #endif
-		ScriptControl.eventsProcessed = NULL;
+		ScriptControl->eventsProcessed = NULL;
 	}
 }
 
-#ifdef HAVE_JAVASCRIPT
+
 
 /* MAX_RUNTIME_BYTES controls when garbage collection takes place. */
 /* #define MAX_RUNTIME_BYTES 0x1000000 */
@@ -315,7 +315,9 @@ void JSCreateScriptContext(int num) {
 	JSObject *_globalObj; 	/* these are set here */
 	BrowserNative *br; 	/* these are set here */
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl;
+	
+	ScriptControl = getScriptControlIndex(num);
 
 	/* is this the first time through? */
 	if (p->runtime == NULL) {
@@ -342,7 +344,8 @@ void JSCreateScriptContext(int num) {
 	if (num == 0) {
 		_globalObj = JS_NewCompartmentAndGlobalObject(_context, &p->globalClass, NULL);
 	} else {
-		JS_SetGlobalObject(_context,ScriptControl[0].glob);
+		struct CRscriptStruct *cs = getScriptControlIndex(0);
+		JS_SetGlobalObject(_context,cs->glob); //ScriptControl[0].glob);
 		_globalObj = JS_NewGlobalObject(_context,&p->globalClass);
 		JS_SetGlobalObject(_context,_globalObj);
 	}	
@@ -390,8 +393,8 @@ void JSCreateScriptContext(int num) {
 	br = (BrowserNative *) JS_malloc(_context, sizeof(BrowserNative));
 
 	/* for this script, here are the necessary data areas */
-	ScriptControl[num].cx =  _context;
-	ScriptControl[num].glob =  _globalObj;
+	ScriptControl->cx =  _context;
+	ScriptControl->glob =  _globalObj;
 
 
 #if defined(JS_THREADSAFE)
@@ -453,12 +456,13 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	int len;
 	JSContext *_context;
 	JSObject *_globalObj;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
-
+	struct CRscriptStruct *ScriptControl;
+	
+	ScriptControl = getScriptControlIndex(num);
 
 	/* get context and global object for this script */
-	_context = (JSContext*)ScriptControl[num].cx;
-	_globalObj = (JSObject*)ScriptControl[num].glob;
+	_context = (JSContext*)ScriptControl->cx;
+	_globalObj = (JSObject*)ScriptControl->glob;
 
 	#ifdef JAVASCRIPTVERBOSE
 		printf("ActualrunScript script called at %s:%d  num: %d cx %p \"%s\", \n", 
@@ -781,7 +785,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	double defaultDouble[] = {0.0, 0.0, 0.0, 0.0};
 	struct Uni_String *sptr[1];
 	struct X3D_Node *defaultVoid[] = {NULL,NULL};
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl; //= getScriptControl();
 
 	#ifdef JAVASCRIPTVERBOSE
 	printf ("calling InitScriptField from thread %u\n",pthread_self());
@@ -1134,13 +1138,13 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 		/* and, reset the touched flag, knowing that we have the variables set properly */
 		resetScriptTouchedFlag(num, fptr); 
 	}
-
+	ScriptControl = getScriptControlIndex(num);
 #if defined(JS_THREADSAFE)
-	JS_BeginRequest(ScriptControl[num].cx);
+	JS_BeginRequest(ScriptControl->cx);
 #endif
-	CLEANUP_JAVASCRIPT(ScriptControl[num].cx)
+	CLEANUP_JAVASCRIPT(ScriptControl->cx)
 #if defined(JS_THREADSAFE)
-	JS_EndRequest(ScriptControl[num].cx);
+	JS_EndRequest(ScriptControl->cx);
 #endif
 
 	FREE_IF_NZ (smallfield);
@@ -1155,11 +1159,12 @@ static int JSaddGlobalECMANativeProperty(int num, const char *name) {
 	JSContext *_context;
 	JSObject *_globalObj;
 	jsval rval = INT_TO_JSVAL(0);
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 
+	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
-	_context =  (JSContext*)ScriptControl[num].cx;
-	_globalObj = (JSObject*)ScriptControl[num].glob;
+	_context =  (JSContext*)ScriptControl->cx;
+	_globalObj = (JSObject*)ScriptControl->glob;
 
 	#ifdef  JAVASCRIPTVERBOSE
 		printf("addGlobalECMANativeProperty: name \"%s\"\n", name);
@@ -1198,11 +1203,13 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 	jsval _rval = INT_TO_JSVAL(0);
 	JSContext *_context;
 	JSObject *_globalObj;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl;
+	
+	ScriptControl = getScriptControlIndex(num);
 
 	/* get context and global object for this script */
-	_context =  (JSContext*)ScriptControl[num].cx;
-	_globalObj = (JSObject*)ScriptControl[num].glob;
+	_context =  (JSContext*)ScriptControl->cx;
+	_globalObj = (JSObject*)ScriptControl->glob;
 
 	#ifdef JAVASCRIPTVERBOSE 
 		printf("addGlobalAssignProperty: cx: %p obj %p name \"%s\", evaluate script \"%s\"\n",
@@ -1339,11 +1346,13 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 
 /****************************** ECMA types ******************************************/
 
-/* "Bool" might be already declared - we DO NOT want it to be declared as an "int" */
-#define savedBool Bool
-#ifdef Bool
-#undef Bool
-#endif
+#ifdef OLDCODE
+OLDCODE /* "Bool" might be already declared - we DO NOT want it to be declared as an "int" */
+OLDCODE #define savedBool Bool
+OLDCODE #ifdef Bool
+OLDCODE #undef Bool
+OLDCODE #endif
+#endif //OLDCODE
 
 /* NOTE - BeginRequest is already called prior to any GET_* defines */
 
@@ -1387,8 +1396,11 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 				JSENDREQUEST_SUBSTITUTION(scriptcontrol->cx) \
 				break; \
 			}
-/* in case Bool was defined above, restore the value */
-#define Bool savedBool
+
+#ifdef OLDCODE
+OLDCODE /* in case Bool was defined above, restore the value */
+OLDCODE #define Bool savedBool
+#endif //OLDCODE
 
 
 
@@ -1441,7 +1453,7 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 
 int get_valueChanged_flag (int fptr, int actualscript) {
 
-#ifdef HAVE_JAVASCRIPT
+
 	struct CRscriptStruct *scriptcontrol;
 	JSContext *cx;
 	JSObject *interpobj;
@@ -1566,15 +1578,13 @@ int get_valueChanged_flag (int fptr, int actualscript) {
 
 
 	return touched;
-#else
-    return FALSE;
-#endif /* HAVE_JAVASCRIPT */
+
 }
 
 
 /* this script value has been looked at, set the touched flag in it to FALSE. */
 void resetScriptTouchedFlag(int actualscript, int fptr) {
-#ifdef HAVE_JAVASCRIPT
+
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg = gglobal();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
@@ -1621,10 +1631,9 @@ void resetScriptTouchedFlag(int actualscript, int fptr) {
 		default: {printf ("can not reset touched_flag for %s\n",stringFieldtypeType(JSparamnames[fptr].type));
 		}
 	}
-#endif /* HAVE_JAVASCRIPT */
+
 }
 
-#ifdef HAVE_JAVASCRIPT
 
 int jsActualrunScript(int num, char *script);
 void JSInitializeScriptAndFields (int num) {
@@ -1634,7 +1643,7 @@ void JSInitializeScriptAndFields (int num) {
 #endif
 	//jsval rval;
 	//ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 
 	/* printf ("JSInitializeScriptAndFields script %d, thread %u\n",num,pthread_self());   */
 	/* run through paramList, and run the script */
@@ -1670,7 +1679,8 @@ void JSInitializeScriptAndFields (int num) {
 	struct Shader_Script *script;
 	struct ScriptFieldDecl *field;
 
-	script = ScriptControl[num].script;
+	ScriptControl = getScriptControlIndex(num);
+	script = ScriptControl->script;
 	//printf("adding fields from script %x\n",script);
 	nfields = Shader_Script_getScriptFieldCount(script);
 	for(i=0;i<nfields;i++){
@@ -1682,15 +1692,15 @@ void JSInitializeScriptAndFields (int num) {
 	}
 #endif
 
-	if (!jsActualrunScript(num, ScriptControl[num].scriptText)) {
+	if (!jsActualrunScript(num, ScriptControl->scriptText)) {
 		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
-		ScriptControl[num].scriptOK = FALSE;
-		ScriptControl[num]._initialized = TRUE;
+		ScriptControl->scriptOK = FALSE;
+		ScriptControl->_initialized = TRUE;
 		return;
 	}
-	FREE_IF_NZ(ScriptControl[num].scriptText);
-	ScriptControl[num]._initialized = TRUE;
-	ScriptControl[num].scriptOK = TRUE;
+	FREE_IF_NZ(ScriptControl->scriptText);
+	ScriptControl->_initialized = TRUE;
+	ScriptControl->scriptOK = TRUE;
 
 }
 
@@ -2137,11 +2147,10 @@ void getMFStringtype (JSContext *cx, jsval *from, struct Multi_String *to) {
 	*/
 
 }
-#endif /* HAVE_JAVASCRIPT */
 
 
 
-#ifdef HAVE_JAVASCRIPT
+
 void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, JSContext *scriptContext) {
         int ival;
         double tval;
@@ -2343,7 +2352,7 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 	#endif
 }
 
-void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, char *value, int isXML);
+void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char *value, int isXML);
 
 void setField_javascriptEventOut_B(union anyVrml* any,
 			int fieldType, unsigned len, int extraData, JSContext *scriptContext)
@@ -2591,17 +2600,17 @@ void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int dat
 	jsval newval;
 	JSContext *cx;
 	JSObject *obj;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
 	#ifdef SETFIELDVERBOSE
 	printf ("set_one_ECMAtype, to %d namepointer %d, fieldname %s, datatype %d length %d\n",
 		tonode,toname,JSparamnames[toname].name,dataType,datalen);
 	#endif
-
+	ScriptControl = getScriptControlIndex(tonode);
 	/* get context and global object for this script */
-	cx =  (JSContext*)ScriptControl[tonode].cx;
-	obj = (JSObject*)ScriptControl[tonode].glob;
+	cx =  (JSContext*)ScriptControl->cx;
+	obj = (JSObject*)ScriptControl->glob;
 
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
@@ -2685,12 +2694,13 @@ void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int
 	/* for MFStrings we have: */
 	char *chptr;
 	struct Uni_String  **uniptr;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
 	/* get context and global object for this script */
-	cx =  (JSContext*)ScriptControl[tonode].cx;
-	obj = (JSObject*)ScriptControl[tonode].glob;
+	ScriptControl = getScriptControlIndex(tonode);
+	cx =  (JSContext*)ScriptControl->cx;
+	obj = (JSObject*)ScriptControl->glob;
 
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
@@ -3239,12 +3249,13 @@ void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen 
 	JSContext *cx;
 	JSObject *obj;
 	void **pp;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
+	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
 	/* get context and global object for this script */
-	cx =  (JSContext*)ScriptControl[tonode].cx;
-	obj = (JSObject*)ScriptControl[tonode].glob;
+	ScriptControl = getScriptControlIndex(tonode);
+	cx =  (JSContext*)ScriptControl->cx;
+	obj = (JSObject*)ScriptControl->glob;
 
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
@@ -3282,10 +3293,5 @@ int runQueuedDirectOutputs(){
 }
 
 
-#endif /* HAVE_JAVASCRIPT */
-
-
-
-#endif /* HAVE_JAVASCRIPT */
 
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */

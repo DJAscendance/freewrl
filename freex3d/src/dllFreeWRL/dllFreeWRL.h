@@ -21,23 +21,53 @@ public:
 	CdllFreeWRL(int width, int height, void* windowhandle=0, bool bEai = false);
 	CdllFreeWRL(char *scene_url, int width, int height, void* windowhandle=0, bool bEai = false);
 	// TODO: add your methods here.
-	static enum KeyAction {KEYDOWN=2,KEYUP=3,KEYPRESS=1};
+	enum KeyAction {KEYDOWN=2,KEYUP=3,KEYPRESS=1};
 	//#define KeyChar         1  //KeyPress
 	//#define KeyPress        2  //KeyDown
 	//#define KeyRelease      3  //KeyUp
 
-	static enum MouseAction {MOUSEMOVE=6,MOUSEDOWN=4,MOUSEUP=5};
+	enum MouseAction {MOUSEMOVE=6,MOUSEDOWN=4,MOUSEUP=5};
 	//	mev = ButtonPress; //4 down
 	//	mev = ButtonRelease; //3 up
 	//	mev = MotionNotify; //6 move
-	static enum MouseButton {LEFT=1,MIDDLE=2,RIGHT=3,NONE=0}; 		
+	enum MouseButton {LEFT=1,MIDDLE=2,RIGHT=3,NONE=0}; 		
 	/* butnum=1 left butnum=3 right (butnum=2 middle, not used by freewrl) */
 
+	enum resource_status {
+		ress_none,        /* never processed */
+		ress_starts_good, /* path/url identification succeeded */
+		ress_invalid,     /* path/url identification failed */
+		ress_downloaded,  /* download succeeded (or local file available) */
+		ress_failed,      /* download failed */
+		ress_loaded,      /* loader succeeded */
+		ress_not_loaded,  /* loader failed */
+		ress_parsed,      /* parser succeeded */
+		ress_not_parsed   /* parser failed */
+	};
+	enum resource_media_type {
+		resm_unknown,
+		resm_vrml,
+		resm_x3d,
+		resm_image,
+		resm_movie,
+		resm_script,
+		resm_pshader,
+		resm_fshader,
+		resm_audio,
+		resm_x3z,
+		resm_external, //June 2016 html > frontend anchoring
+	};
+
+	void setDensityFactor(float density_factor);
 	void onInit(int width, int height, void* windowhandle=0, bool bEai = false, bool frontend_handles_display_thread = false);
 	void onLoad(char* scene_url);
     void onResize(int width, int height);
-    void onMouse(int mouseAction,int mouseButton,int x, int y);
-    void onKey(int keyAction,int keyValue);
+    int onMouse(int mouseAction,int mouseButton,int x, int y);
+	int onTouch(int touchAction, unsigned int ID, int x, int y);
+	void onGyro(float rx, float ry, float rz);
+	void onAccelerometer(float ax, float ay, float az);
+	void onMagnetic(float azimuth, float pitch, float roll);
+	void onKey(int keyAction,int keyValue);
 	void onDraw(); //use when FRONTEND_HANDLES_DISPLAY_THREAD
 	void onClose();
 	void print(char *str);
@@ -47,11 +77,14 @@ public:
 	void* frontenditem_dequeue();
 	char* resitem_getURL(void *res);
 	int resitem_getStatus(void *res);
+	void resitem_setStatus(void *res, int status);
 	int resitem_getType(void *res);
+	int resitem_getMediaType(void *res);
 	void resitem_enqueuNextMulti(void *res);
 	void resitem_setLocalPath(void *res, char* path);
 	void resitem_enqueue(void *res);
 	void resitem_load(void *res);
+	void commandline(char *cmdline);
 	
 private:
 	void *globalcontexthandle;

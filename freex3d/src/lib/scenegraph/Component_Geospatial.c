@@ -53,6 +53,8 @@ X3D Geospatial Component
 #include "Component_Shape.h" /* for appearance properties */
 #include "Component_Geospatial.h"
 #include "Children.h"
+#include "../scenegraph/RenderFuncs.h"
+#include "../ui/common.h"
 
 /*
 Coordinate Conversion algorithms were taken from 2 locations after
@@ -296,7 +298,7 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 static void moveCoords(struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
 static void Gd_Gc (struct Multi_Vec3d *, struct Multi_Vec3d *, double, double, int, int);
 static void gccToGdc (struct SFVec3d *, struct SFVec3d *); 
-static void calculateViewingSpeed(void);
+void calculateViewingSpeed(void);
 
 /* for converting from GC to GD */
 static double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
@@ -1436,10 +1438,10 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* any texture coordinates passed in? if so, DO NOT generate any texture coords here. */
         if (!(node->texCoord)) {
 		/* allocate memory for texture coords */
-		FREE_IF_NZ(rep->GeneratedTexCoords);
+		FREE_IF_NZ(rep->GeneratedTexCoords[0]);
 
 		/* 6 vertices per quad each vertex has a 2-float tex coord mapping */
-		texcoord = rep->GeneratedTexCoords = MALLOC (float *, sizeof (float) * nquads * 12); 
+		texcoord = rep->GeneratedTexCoords[0] = MALLOC (float *, sizeof (float) * nquads * 12); 
 
 		rep->tcindex=0; /* we will generate our own mapping */
 	}
@@ -1655,7 +1657,7 @@ void compile_GeoElevationGrid (struct X3D_GeoElevationGrid * node) {
 
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_POLY_IF_REQUIRED (NULL, node->color, node->normal, node->texCoord) 
+	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
@@ -1713,7 +1715,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 void child_GeoLocation (struct X3D_GeoLocation *node) {
 	CHILDREN_COUNT
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 	INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
@@ -1736,7 +1738,8 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
 	/* do we have a local for a child? */
-	LOCAL_LIGHT_CHILDREN(node->children);
+	//LOCAL_LIGHT_CHILDREN(node->children);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
 
@@ -1753,7 +1756,9 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 		printf ("GeoLocation - done normalChildren\n");
 	#endif
 
-	LOCAL_LIGHT_OFF
+	//LOCAL_LIGHT_OFF
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 }
 
 /* do transforms, calculate the distance */
@@ -1810,29 +1815,6 @@ void fin_GeoLocation (struct X3D_GeoLocation *node) {
 /************************************************************************/
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
 
-#define LOAD_CHILD_OLD(childNode,childUrl) \
-		/* printf ("start of LOAD_CHILD, url has %d strings\n",node->childUrl.n); */ \
-		if (node->childUrl.n > 0) { \
-			/* create new inline node, link it in */ \
-			if (node->childNode == NULL) { \
-				node->childNode = createNewX3DNode(NODE_Inline); \
-				if(usingBrotos()){ \
-					if(node->_executionContext) \
-						add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(node->childNode)); \
-				} \
-				ADD_PARENT(X3D_NODE(node->childNode), X3D_NODE(node)); \
- 			}\
-			/* copy over the URL from parent */ \
-			X3D_INLINE(node->childNode)->url.p = MALLOC(struct Uni_String **, sizeof(struct Uni_String)*node->childUrl.n); \
-			for (i=0; i<node->childUrl.n; i++) { \
-				/* printf ("copying over url %s\n",node->childUrl.p[i]->strptr); */ \
-				X3D_INLINE(node->childNode)->url.p[i] = newASCIIString(node->childUrl.p[i]->strptr); \
-			} \
-			/* printf ("loading, and urlCount is %d\n",node->childUrl.n); */ \
-			X3D_INLINE(node->childNode)->url.n = node->childUrl.n; \
-			X3D_INLINE(node->childNode)->load = TRUE; \
-		}  
-
 void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr);
 void LOAD_CHILD(struct X3D_GeoLOD *node, struct X3D_Node **childNode, struct Multi_String *childUrl) {
 	/* printf ("start of LOAD_CHILD, url has %d strings\n",node->childUrl.n); */
@@ -1841,10 +1823,8 @@ void LOAD_CHILD(struct X3D_GeoLOD *node, struct X3D_Node **childNode, struct Mul
 		/* create new inline node, link it in */
 		if (*childNode == NULL) {
 			*childNode = createNewX3DNode(NODE_Inline);
-			if(usingBrotos()){
-				if(node->_executionContext)
-					add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(*childNode));
-			}
+			if(node->_executionContext)
+				add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(*childNode));
 			ADD_PARENT(X3D_NODE(*childNode), X3D_NODE(node));
  		}
 		/* copy over the URL from parent */
@@ -1867,7 +1847,6 @@ void LOAD_CHILD(struct X3D_GeoLOD *node, struct X3D_Node **childNode, struct Mul
 
 static void GeoLODchildren (struct X3D_GeoLOD *node) {
 	int load = node->__inRange;
-	int i;
 
 	/* lets see if we still have to load this one... */
 	if (((node->__childloadstatus)==0) && (load)) {
@@ -1912,7 +1891,6 @@ static void GeoUnLODchildren (struct X3D_GeoLOD *node) {
 
 static void GeoLODrootUrl (struct X3D_GeoLOD *node) {
 	int load = node->__inRange == 0; //dug9 it's when you are out of range that you should get the rootnode
-	int i;
 
 	/* lets see if we still have to load this one... */
 	if (((node->__rooturlloadstatus)==0) && (load)) {
@@ -2654,9 +2632,9 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 	}
 
 	/* have to normalize normal; change it from SFColor to struct point_XYZ. */
-	normalval.x = tg->RenderFuncs.hyp_save_norm.c[0];
-	normalval.y = tg->RenderFuncs.hyp_save_norm.c[1];
-	normalval.z = tg->RenderFuncs.hyp_save_norm.c[2];
+	normalval.x = tg->RenderFuncs.hyp_save_norm[0];
+	normalval.y = tg->RenderFuncs.hyp_save_norm[1];
+	normalval.z = tg->RenderFuncs.hyp_save_norm[2];
 	normalize_vector(&normalval);
 	node->_oldhitNormal.c[0] = (float) normalval.x;
 	node->_oldhitNormal.c[1] = (float) normalval.y;
@@ -2745,60 +2723,64 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	printf ("compiled GeoViewpoint\n\n");
 	#endif
 }
-
+struct X3D_Node *getActiveLayerBoundViewpoint();
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
 	GLint viewPort[10];
 	if (!renderstate()->render_vp) return;
 
-	INITIALIZE_GEOSPATIAL(node)
+	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 
-	 /* printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-	 printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]);
-	 */
+		INITIALIZE_GEOSPATIAL(node)
 
-	/* check the set_bind eventin to see if it is TRUE or FALSE */
-	/* code to perform binding is now in set_viewpoint. */
+			/* printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
+			printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]);
+			*/
 
-	COMPILE_IF_REQUIRED
+		/* check the set_bind eventin to see if it is TRUE or FALSE */
+		/* code to perform binding is now in set_viewpoint. */
 
-	#ifdef VERBOSE
-	printf ("prep_GeoViewpoint called\n");
-	#endif
+		COMPILE_IF_REQUIRED
 
-	/* perform GeoViewpoint translations */
-	FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
-		node->__movedOrientation.c[2]); 
+		#ifdef VERBOSE
+		printf ("prep_GeoViewpoint called\n");
+		#endif
 
-	FW_GL_TRANSLATE_D(-node->__movedPosition.c[0],-node->__movedPosition.c[1],-node->__movedPosition.c[2]);
+		/* perform GeoViewpoint translations */
+		FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
+			node->__movedOrientation.c[2]); 
 
-	/* we have  a new currentPosInModel now... */
-	/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
+		FW_GL_TRANSLATE_D(-node->__movedPosition.c[0],-node->__movedPosition.c[1],-node->__movedPosition.c[2]);
 
-	/* the AntiPos has been applied in the trans and rots above, so we do not need to do it here */
-	getCurrentPosInModel(FALSE); 
+		/* we have  a new currentPosInModel now... */
+		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
+
+		/* the AntiPos has been applied in the trans and rots above, so we do not need to do it here */
+		getCurrentPosInModel(FALSE); 
 
 
-	/* now, lets work on the GeoViewpoint fieldOfView */
-	FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
-	if(viewPort[2] > viewPort[3]) {
-		a1=0;
-		Viewer()->fieldofview = node->fieldOfView/3.1415926536*180;
-	} else {
-		a1 = node->fieldOfView;
-		a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
-		Viewer()->fieldofview = a1/3.1415926536*180;
+		/* now, lets work on the GeoViewpoint fieldOfView */
+		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
+		if(viewPort[2] > viewPort[3]) {
+			a1=0;
+			Viewer()->fieldofview = node->fieldOfView/3.1415926536*180;
+		} else {
+			a1 = node->fieldOfView;
+			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
+			Viewer()->fieldofview = a1/3.1415926536*180;
+		}
+
+		calculateViewingSpeed();
+		#ifdef VERBOSE
+		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
+		#endif
 	}
-
-	calculateViewingSpeed();
-	#ifdef VERBOSE
-	printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
-	#endif
 }
 
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
 /* this is called from the Viewer functions */
-static void calculateViewingSpeed() {
+void calculateViewingSpeed() {
 	struct SFVec3d gcCoords;
 	struct SFVec3d gdCoords;
 		
@@ -2878,11 +2860,13 @@ Viewer()->doExamineModeDistanceCalculations = TRUE;
 }
 
 void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
+	X3D_Viewer *viewer;
 	Quaternion q_i;
 
-        /* did bind_node tell us we could bind this guy? */
-        if (!(node->isBound)) return;
+	/* did bind_node tell us we could bind this guy? */
+	if (!(node->isBound)) return;
 
+	viewer = ViewerByLayerId(node->_layerId);
 
 	INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
@@ -2896,29 +2880,30 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	printf ("	node %u fieldOfView %f\n",node,node->fieldOfView);
 	#endif
 
-	Viewer()->GeoSpatialNode = node;
+	viewer->GeoSpatialNode = node;
 
-	Viewer()->Pos.x = node->__movedPosition.c[0];
-	Viewer()->Pos.y = node->__movedPosition.c[1];
-	Viewer()->Pos.z = node->__movedPosition.c[2];
-	Viewer()->AntiPos.x = node->__movedPosition.c[0];
-	Viewer()->AntiPos.y = node->__movedPosition.c[1];
-	Viewer()->AntiPos.z = node->__movedPosition.c[2];
+	viewer->Pos.x = node->__movedPosition.c[0];
+	viewer->Pos.y = node->__movedPosition.c[1];
+	viewer->Pos.z = node->__movedPosition.c[2];
+	viewer->AntiPos.x = node->__movedPosition.c[0];
+	viewer->AntiPos.y = node->__movedPosition.c[1];
+	viewer->AntiPos.z = node->__movedPosition.c[2];
 
 	/* printf ("bind_GeoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z); */
 
-	vrmlrot_to_quaternion (&Viewer()->Quat,node->__movedOrientation.c[0],
+	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
 
 	vrmlrot_to_quaternion (&q_i,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
-	quaternion_inverse(&(Viewer()->AntiQuat),&q_i);
+	quaternion_inverse(&(viewer->AntiQuat),&q_i);
 
 	resolve_pos();
 
 	calculateViewingSpeed();
 
 	calculateExamineModeDistance();
+	setMenuStatusVP (node->description->strptr);
 
 }
 
@@ -3074,7 +3059,7 @@ void fin_GeoTransform (struct X3D_GeoTransform *node) {
 
 void child_GeoTransform (struct X3D_GeoTransform *node) {
 	CHILDREN_COUNT
-	LOCAL_LIGHT_SAVE
+	//LOCAL_LIGHT_SAVE
 	INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
@@ -3096,7 +3081,8 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 
 
 	/* do we have a local light for a child? */
-	LOCAL_LIGHT_CHILDREN(node->children);
+	//LOCAL_LIGHT_CHILDREN(node->children);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
 
@@ -3113,5 +3099,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 		printf ("transform - done normalChildren\n");
 	#endif
 
-	LOCAL_LIGHT_OFF
+	//LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 }

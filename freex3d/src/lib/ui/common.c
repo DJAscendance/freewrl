@@ -28,7 +28,8 @@
 #include "../ui/common.h"
 #include <scenegraph/Vector.h>
 
-#if defined (_MSC_VER)
+// OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (AQUA)  || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
 #include "../../buildversion.h"
 #endif
 
@@ -37,9 +38,11 @@
 // on other platforms, we have to have this defined, as we don't have Ian's
 // talents to help us out.
 
-#if defined (AQUA) || defined (_MSC_VER) || defined(QNX)
+// OLD_IPHONE_AQUA #if defined (AQUA) || defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
 const char *libFreeWRL_get_version(void) {return FW_BUILD_VERSION_STR;}
-#endif //OSX
+//#else desktop linux which has a more complex versioning system
+#endif
 
 
 #define MAXSTAT 200
@@ -57,17 +60,25 @@ typedef struct pcommon{
 	int target_frames_per_second;
 	char myMenuStatus[MAXSTAT];
 	char messagebar[MAXSTAT];
+	char fpsbar[16];
+	char distbar[16];
 	char window_title[MAXTITLE];
 	int cursorStyle;
 	int promptForURL;
 	int promptForFile;
 	int sb_hasString;// = FALSE;
 	char buffer[200];
+	int showConsoleText;
 	void *colorScheme;
 	int colorSchemeChanged;
 	int pin_statusbar;
 	int pin_menubar;
+	int want_menubar;
+	int want_statusbar;
 	struct Vector *keyvals;
+	float density_factor;
+	int pedal;
+	int hover;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -87,8 +98,14 @@ void common_init(struct tcommon *t){
 		p->colorSchemeChanged = 0;
 		p->pin_statusbar = 1;
 		p->pin_menubar = 0;
+		p->want_menubar = 1;
+		p->want_statusbar = 1;
 		p->keyvals = NULL;
+		p->showConsoleText = 0;  //in the UI, if a callback is registered with ConsoleMessage. Won't affect old fashioned console, 
 		p->target_frames_per_second = 120;  //is 120 FPS a good target FPS?
+		p->density_factor = 1.0f;  //how much to scale up UI elements for small high res screens ie mobile, see fwl_setDensityFactor
+		p->pedal = 0; //pedal mode moves in-scene cursor by drag amount ie indirect/offset drag
+		p->hover = 0; //hover mode means your drags only do isOver -no navigation or sensor click
 	}
 }
 void common_clear(struct tcommon *t){
@@ -111,13 +128,13 @@ void common_clear(struct tcommon *t){
 //ppcommon p = (ppcommon)gglobal()->common.prv;
 
 /* Status update functions (generic = all platform) */
-
+void setFpsBar();
 void setMenuFps(float fps)
 {
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 
 	p->myFps = fps;
-	setMessageBar();
+	setFpsBar();
 }
 /* make sure that on a re-load that we re-init */
 void kill_status(void) {
@@ -128,7 +145,14 @@ void kill_status(void) {
 	p->buffer[0] = '\0';
 }
 
-
+void showConsoleText(int on){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->showConsoleText = on;
+}
+int getShowConsoleText(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->showConsoleText;
+}
 /* trigger a update */
 void update_status(char* msg) {
 	ppcommon p = (ppcommon)gglobal()->common.prv;
@@ -146,35 +170,22 @@ char *get_status(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->buffer;
 }
-void setMenuStatus2(char* prefix, char *suffix)
+void setMenuStatus3(char* status3)
 {
-	//int loading = FALSE;
-	char *pp, *ss;
+	char *pp;
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 
- //       if (fwl_isinputThreadParsing() ||
-	//    fwl_isTextureParsing() ||
-	//    (!fwl_isInputThreadInitialized())) loading = TRUE;
-
-	//if (loading) {
-	//	snprintf(p->myMenuStatus, sizeof(p->myMenuStatus),
-	//		 "(Loading...)");
-	//} else {
-	pp = prefix;
-	ss = suffix;
+	pp = status3;
 	if (!pp) pp = "";
-	if (!ss) ss = "";
-		snprintf(p->myMenuStatus, sizeof(p->myMenuStatus), "%s %s", pp,ss);
-	//}
+	snprintf(p->myMenuStatus, MAXSTAT-1, "%s", pp);
 }
 void setMenuStatus(char *stattext)
 {
-	setMenuStatus2(stattext, NULL);
+	setMenuStatus3(stattext);
 }
 void setMenuStatusVP(char *stattext)
 {
-	setMenuStatus2("Viewpoint:",stattext);
-
+	setMenuStatus3(stattext);
 }
 char *getMenuStatus()
 {
@@ -201,15 +212,30 @@ void setMessageBar()
 {
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 
-	snprintf(&p->messagebar[0], 10, " %8.2f ", p->myFps);
-	snprintf(&p->messagebar[15], sizeof(p->myMenuStatus)-15, "%s", p->myMenuStatus);
+	snprintf(p->messagebar, MAXSTAT-1, "%s", p->myMenuStatus);
 }
 char *getMessageBar()
 {
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->messagebar;
 }
+double get_viewer_dist();
+char *getDistBar(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	snprintf(p->distbar, 10, "DIST %4f", (float)get_viewer_dist());
 
+	return p->distbar;
+}
+
+char *getFpsBar(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->fpsbar;
+}
+void setFpsBar(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	//snprintf(p->fpsbar, 10, "%7.2f", p->myFps);
+	snprintf(p->fpsbar, 10, "%4d", (int)(p->myFps + .49999f));
+}
 static int frontend_using_cursor = 0;
 void fwl_set_frontend_using_cursor(int on)
 {
@@ -252,6 +278,15 @@ int fwl_set_sbh_pin_option(char *optarg){
 	}
 	return 1;
 }
+int fwl_set_sbh_want_option(char *optarg){
+	if(optarg && strlen(optarg) > 1){
+		ppcommon p = (ppcommon)gglobal()->common.prv;
+		p->want_statusbar = (optarg[0] == 'T' || optarg[0] == 't') ? 1 : 0;
+		p->want_menubar = (optarg[1] == 'T' || optarg[1] == 't') ? 1 : 0;
+	}
+	return 1;
+}
+
 void fwl_set_sbh_pin(int sb, int mb){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->pin_statusbar = sb;
@@ -262,6 +297,23 @@ void fwl_get_sbh_pin(int *sb, int *mb){
 	*sb = p->pin_statusbar;
 	*mb = p->pin_menubar;
 }
+void fwl_set_sbh_wantMenubar(int want){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->want_menubar = want ? 1 : 0;
+}
+int fwl_get_sbh_wantMenubar(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->want_menubar;
+}
+void fwl_set_sbh_wantStatusbar(int want){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->want_statusbar = want ? 1 : 0;
+}
+int fwl_get_sbh_wantStatusbar(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->want_statusbar;
+}
+
 void fwl_set_target_fps(int target_fps){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->target_frames_per_second = max(1,target_fps);
@@ -372,11 +424,15 @@ void color_html2rgb(char *html, float *rgb){
 	rgb[2] = (float)ib/255.0f;
 }
 char *hexpermitted = " #0123456789ABCDEFabcdef";
-#ifndef DISABLER
+
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA #include <malloc/malloc.h>
+// OLD_IPHONE_AQUA #else
+
 #include <malloc.h>
-#else
-#include <malloc/malloc.h>
-#endif
+
+// OLD_IPHONE_AQUA #endif
+
 #include <string.h>
 int colorsoption2colorscheme(const char *optionstring, colorScheme *cs){
 	//converts html colors given for freewrl command line option:
@@ -605,7 +661,6 @@ int set_keyval(char *keyval){
 char *get_key_val(char *key){
 	int index;
 	keyval k_v;
-	char *ret = NULL;
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 
 	index = searchkeyvals(key);
@@ -626,6 +681,7 @@ int print_keyval(char *key){
 	}
 	return 1;
 }
+int fwl_hyper_option(char *val);
 int ssr_test(char *keyval);
 struct command {
 	char *key;
@@ -641,6 +697,7 @@ struct command {
 	{"colorscheme",NULL,fwl_set_ui_colorscheme,"[original,midnight,angry,favicon,aqua,neon:lime,neon:yellow,neon:cyan,neon:pink]"},
 	{"set_keyval",NULL,set_keyval,"key,val"},
 	{"print_keyval",NULL,print_keyval,"key"},
+	{"hyper_option",NULL,fwl_hyper_option,"[0 - 10]"},
 #ifdef SSR_SERVER
 	{"ssrtest",NULL,ssr_test,"nav,val"},
 #endif
@@ -662,7 +719,7 @@ int print_help(){
 }
 struct command *getCommand(char *key){
 	struct command *ret;
-	int i, ok = 0;
+	int i;
 	i = 0;
 	ret = NULL;
 	while(commands[i].key){
@@ -705,7 +762,7 @@ int fwl_commandline(char *cmdline){
 		//(*sep) = '\0';
 		key = strndup(cmdline,keylen +1);
 		key[keylen] = '\0';
-		printf("key=[%s] val=[%s]\n",key,val);
+		//printf("key=[%s] val=[%s]\n",key,val);
 		fwl_keyval(key,val);
 		free(key);
 		free(val);
@@ -717,3 +774,33 @@ int fwl_commandline(char *cmdline){
 }
 
 // fwl_command() <<<<<<<<<<
+
+void fwl_setDensityFactor(float density_factor){
+	// mobile device APIs sometimes can give you a hint 
+	// you can use to scale UI elements to human size
+	// for example a human finger tip has a constant size in the physical world
+	// as screen resolutions DPI have increased, its been necessary to scale buttons
+	// up by some factor depending on the DPI relative to good old fashioned 160 DPI
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->density_factor = density_factor;
+}
+float fwl_getDensityFactor(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->density_factor;
+}
+int fwl_getPedal(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->pedal;
+}
+void fwl_setPedal(int pedal){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->pedal = pedal; //0 means off, 1 means on
+}
+int fwl_getHover(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->hover;
+}
+void fwl_setHover(int hover){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->hover = hover; //0 means off, 1 means on
+}

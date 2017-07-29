@@ -57,8 +57,8 @@ const char* EXPOSED_EVENT_OUT_SUF="_changed";
 /* Tables of user-defined IDs */
 #define USER_IDS_INIT_SIZE	16
 
-/* Maximum id length (input buffer size) */
-#define MAX_IDLEN	127
+/* Maximum id length (input buffer size) a bad EOF in .wrl or no \n on ROUTE before EOF can cause an over-run */
+#define MAX_IDLEN	155 //127
 /* Start buffer length for strings */
 #define INITIAL_STRINGLEN	256
 
@@ -69,7 +69,12 @@ static int setLexerNextIn(struct VRMLLexer *);
  { \
   ASSERT(!me->curID); \
   if(!*me->nextIn) c=setLexerNextIn(me); \
-  else c=(int)*(me->nextIn++); \
+  else { \
+	unsigned char ccc; \
+	ccc = *(me->nextIn++);\
+    /*c=(unsigned int)*(me->nextIn++);*/ \
+	c = ccc; \
+   } \
  }
 #define LEXER_UNGETINPUT(c) \
  if(c!=EOF) \
@@ -209,24 +214,6 @@ void lexer_destroyIdStack(Stack* s)
 }
 
 
-#ifdef OLDCODE
-void lexer_destroyIdVector(struct Vector* v)
-OLDCODE{
-OLDCODE int i;
-OLDCODE if (v==NULL) {
-OLDCODE	ConsoleMessage("lexer_destroyIdVector - vector already NULL");
-OLDCODE	return;
-OLDCODE }
-OLDCODE
-OLDCODE ASSERT(v);
-OLDCODE for(i=0; i!=vectorSize(v); ++i) {
-OLDCODE  FREE_IF_NZ (vector_get(char*, v, i));
-OLDCODE }
-OLDCODE
-OLDCODE deleteVector(char*, v);
-OLDCODE}
-#endif //OLDCODE
-
 void lexer_destroyData(struct VRMLLexer* me)
 {
  #define DESTROY_IDVEC(v) \
@@ -319,7 +306,7 @@ void lexer_scopeOut_PROTO(struct VRMLLexer* me)
 /* Sets curID of lexer */
 BOOL lexer_setCurID(struct VRMLLexer* me)
 {
- int c;
+ unsigned int c;
  char buf[MAX_IDLEN+1];
  char* cur=buf;
 
@@ -347,9 +334,9 @@ BOOL lexer_setCurID(struct VRMLLexer* me)
   
   LEXER_GETINPUT(c)
   if(!IS_ID_REST(c))
-   goto breakIdLoop;
+      goto breakIdLoop;
  }
- parseError("ID buffer length hit!");
+ parseError("ID buffer length hit! File must end with \n");
 breakIdLoop:
  LEXER_UNGETINPUT(c)
  ASSERT(cur<=buf+MAX_IDLEN);
@@ -361,12 +348,7 @@ breakIdLoop:
 
  strcpy(me->curID, buf);
 
- /* is this an EXTERNPROTO? if so, handle it here */
- if(!usingBrotos())
- if (lexer_keyword(me,KW_EXTERNPROTO) )
-        lexer_handle_EXTERNPROTO(me);
-
- #ifdef CPARSERVERBOSE
+  #ifdef CPARSERVERBOSE
  printf ("lexer_setCurID, got %s\n",me->curID); 
  #endif
 
@@ -1423,7 +1405,7 @@ void lexer_handle_EXTERNPROTO(struct VRMLLexer *me) {
     FREE_IF_NZ(url.p);
     url.p = NULL;
     url.n = 0;
-	resource_identify(gglobal()->resources.root_res, res);
+	resource_identify((resource_item_t*)gglobal()->resources.root_res, res);
 
 	if (res->type != rest_invalid) {
 #ifdef HAD_RESOURCE_LOAD

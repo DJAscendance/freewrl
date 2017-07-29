@@ -28,7 +28,6 @@ Linear algebra.
 #ifndef __FREEWRL_LINEAR_ALGEBRA_H__
 #define __FREEWRL_LINEAR_ALGEBRA_H__
 
-
 #define VECSQ(a) VECPT(a,a)
 #define VECPT(a,b) ((a).x*(b).x + (a).y*(b).y + (a).z*(b).z)
 #define VECDIFF(a,b,c) {(c).x = (a).x-(b).x;(c).y = (a).y-(b).y;(c).z = (a).z-(b).z;}
@@ -140,6 +139,10 @@ Linear algebra.
 	}
 
 */
+
+float *double2float(float *b, const double *a, int n);
+double *float2double(double *b, float *a, int n);
+
 /* next define abbreviates VECROTATE with use of the SFRotation struct	*/
 #define VECRROTATE(ro,c) VECROTATE((ro).c[0],(ro).c[1],(ro).c[2],(ro).c[3],c)
 
@@ -162,7 +165,10 @@ double vecangle(struct point_XYZ* V1, struct point_XYZ* V2);
 
 void veccross(struct point_XYZ *c , struct point_XYZ a, struct point_XYZ b);
 
-
+double signd(double val);
+double * vecsignd(double *b, double *a);
+double *vecsetd(double *b, double x, double y, double z);
+double * vecmuld(double *c, double *a, double *b);
 double * vecaddd(double *c, double *a, double *b);
 double *vecdifd(double *c, double* a, double *b);
 double * veccrossd(double *c, double *a, double *b);
@@ -180,6 +186,8 @@ double vecdot2d(double *a, double *b);
 double* vecscale2d(double* r, double* v, double s);
 double vecnormal2d(double *r, double *v);
 
+int vecsame2f(float *a, float *b);
+float *vecset2f(float *b, float x, float y);
 float *veccopy2f(float *b, float *a);
 float * vecadd2f(float *c, float *a, float *b);
 float *vecdif2f(float *c, float* a, float *b);
@@ -189,6 +197,7 @@ float* vecscale2f(float* r, float* v, float s);
 float vecnormal2f(float *r, float *v);
 float *vecmult2f(float *c, float *a, float *b);
 
+int vecsame3f(float *a, float *b);
 float *veccopy3f(float *b, float *a);
 float *vecset3f(float *b, float x, float y, float z);
 float *vecadd3f(float *c, float *a, float *b);
@@ -206,8 +215,11 @@ BOOL line_intersect_planed_3f(float *p, float *v, float *N, float d, float *pi, 
 BOOL line_intersect_plane_3f(float *p, float *v, float *N, float *pp, float *pi, float *t);
 BOOL line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi);
 
+
 float vecdot4f( float *a, float *b );
 float *vecscale4f(float *b, float *a, float scale);
+float *veccopy4f(float *b, float *a);
+int vecsame4f(float *a, float *b);
 
 GLDOUBLE det3x3(GLDOUBLE* data);
 
@@ -221,10 +233,16 @@ float* vecmultmat4f(float* r4, float *a4, float *mat4);
 float* matmultvec4f(float* r4, float *mat4, float* a4 );
 
 
+float* mat423f(float *out3x3, float *in4x4);
+float* matinverse3f(float *out3x3, float *in3x3);
+float* transform3x3f(float *out3, float *in3, float *mat3x3);
+
 struct point_XYZ* transformAFFINE(struct point_XYZ* r, const struct point_XYZ* a, const GLDOUBLE* b);
 GLDOUBLE* pointxyz2double(double* r, struct point_XYZ *p); /* instead of casting struct to array, this is more rigorous */
 struct point_XYZ* double2pointxyz(struct point_XYZ* r, double* p); /* ditto */
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat); /* same as transformAFFINE which is the same as transform() - just different parameter types */
+double *transformUPPER3X3d(double *r, double *a, const GLDOUBLE* mat);
+double *transformFULL4d(double *r4, double *a4, double *mat);
 
 /*only transforms using the rotation component.
   Usefull for transforming normals, and optimizing when you know there's no translation */
@@ -279,6 +297,7 @@ void matrixFromAxisAngle4d(double *mat, double rangle, double x, double y, doubl
 void scale_to_matrix (double *mat, struct point_XYZ *scale);
 void loadIdentityMatrix (double *mat);
 double *matcopy(double *r, double*mat);
+float *matdouble2float4(float *rmat4, double *dmat4);
 void printmatrix2(GLDOUBLE* mat,char* description );
 void printmatrix3(GLDOUBLE *mat, char *description, int row_major);
 void general_slerp(double *ret, double *p1, double *p2, int size, const double t);

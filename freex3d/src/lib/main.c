@@ -45,37 +45,10 @@
 #include "ui/common.h"
 
 char consoleBuffer[200];
-//JAS freewrl_params_t fwl_params;
-
-/**
- * library initialization
- */
-//#ifdef _MSC_VER
-//void libFreeWRL_init(void)
-//#else
-//void __attribute__ ((constructor)) libFreeWRL_init(void)
-//#endif
-//{
-//	memset(&fwl_params, 0, sizeof(fwl_params));
-//}
-
-/**
- * library exit routine
- */
-//#ifdef _MSC_VER
-//void libFreeWRL_fini(void)
-//#else
-//void __attribute__ ((destructor)) libFreeWRL_fini(void)
-//#endif
-//{
-//}
-
-/**
- * Explicit initialization
- */
 
 void new_root();
-#if defined (TARGET_AQUA) || defined(_ANDROID)
+// OLD_IPHONE_AQUA #if defined (TARGET_AQUA) || defined(_ANDROID)
+#if defined(_ANDROID)
 
 /* put some config stuff here, as that way the Objective-C Standalone OSX front end does not
  need to worry about specific structures and calls */
@@ -163,24 +136,10 @@ void fwl_OSX_initializeParameters(const char* initialURL) {
 	}
 }
 
-#endif // TARGET_AQUA || _ANDROID
+#endif // _ANDROID
 
 
-#ifdef FRONTEND_GETS_FILES
-void fwg_setFrontEndOnX3DFileLoadedListener(void (*frontEndOnX3DFileLoadedListener)(char *))
-{
-	ttglobal tg = gglobal();
-	struct tProdCon *t = &tg->ProdCon;
-	t->_frontEndOnX3DFileLoadedListener = frontEndOnX3DFileLoadedListener;
-}
 
-void fwg_setFrontEndOnResourceRequiredListener(void (*frontEndOnResourceRequiredListener)(char *))
-{
-	ttglobal tg = gglobal();
-	struct tProdCon *t = &tg->ProdCon;
-	t->_frontEndOnResourceRequiredListener = frontEndOnResourceRequiredListener;
-}
-#endif //FRONTEND_GETS_FILES
 
 /* OSX plugin is telling us the id to refer to */
 void setInstance(uintptr_t instance) {
@@ -247,11 +206,14 @@ void* fwl_init_instance() {
 
 	ttglobal tg;
     
+	fwl_setCurrentHandle(NULL, __FILE__, __LINE__); //added aug 29, 2015
+	/* commented aug 29, 2015
     tg = gglobal0();
     if (NULL != tg)
     {
-        fwl_doQuitInstance(tg);
+        fwl_doQuitInstance(tg); //what scenario was this for? anchor? browser plugin backbutton + forebutton? Do we stil need it? Aug 29, 2015
     }
+	*/
     
 	//ConsoleMessage ("called fwl_init_instance");
 
@@ -293,7 +255,7 @@ bool fwl_initFreeWRL(freewrl_params_t *params) {
 	/* Check parameters */
 	if (params) {
 		DEBUG_MSG("copying application supplied params...\n");
-		memcpy(&tg->display.params, params, sizeof(freewrl_params_t));
+		memcpy(tg->display.params, params, sizeof(freewrl_params_t));
 		//tg->display.win_height = params->height;// = 0; /* window */
 		//tg->display.win_width = params->width;// = 0;
 		//tg->display.winToEmbedInto = params->winToEmbedInto;// = -1;
@@ -311,40 +273,8 @@ bool fwl_initFreeWRL(freewrl_params_t *params) {
 
 	/* Initialize parser */
 	fwl_initialize_parser();
-
-
-	///* Initialize common UI variables */ - done in common.c
-	//myMenuStatus[0] = '\0';
-
-//#ifndef FRONTEND_HANDLES_DISPLAY_THREAD
-//	if(!params->frontend_handles_display_thread){
-//		/* OK the display is now initialized,
-//		   create the display thread and wait for it
-//		   to complete initialization */
-//		fwl_initializeDisplayThread();
-//
-//		//usleep(50);
-//		//set_thread2global(tg,tg->threads.DispThrd ,"display thread");
-//	}
-//
-//#endif //FRONTEND_HANDLES_DISPLAY_THREAD
-
 	fwl_initializeInputParseThread();
-	//set_thread2global(tg, tg->threads.PCthread ,"parse thread");
-
-	//while (!fwl_isInputThreadInitialized()) {
-	//	usleep(50);
-	//}
-
 	fwl_initializeTextureThread();
-	//set_thread2global(tg, tg->threads.loadThread ,"texture loading thread");
-	//while (!fwl_isTextureinitialized()) {
-	//	usleep(50);
-	//}
-	/* Hmm. display_initialize is really a frontend function. The frontend should call it before calling _displayThread */
-	/* Initialize display */
-
-
 
 	return TRUE;
 }

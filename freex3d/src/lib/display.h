@@ -59,24 +59,24 @@ Functions:
 #define HEADLIGHT_LIGHT (MAX_LIGHT_STACK-1)
 #endif
 
-/**
- * Specific platform : Mac
- */
-#ifdef AQUA
-
-#ifdef IPHONE
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
-#include <OpenGLES/ES3/gl.h>
-#include <OpenGLES/ES3/glext.h>
-#else
-
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/CGLTypes.h>
-
-#include <AGL/AGL.h> 
-#endif /* defined IPHONE */
-#endif /* defined TARGET_AQUA */
+#ifdef AQUA // OLD_IPHONE_AQUA
+OLD_IPHONE_AQUA /**
+OLD_IPHONE_AQUA  * Specific platform : Mac
+OLD_IPHONE_AQUA  */
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA #ifdef IPHONE
+OLD_IPHONE_AQUA #include <OpenGLES/ES2/gl.h>
+OLD_IPHONE_AQUA #include <OpenGLES/ES2/glext.h>
+OLD_IPHONE_AQUA #include <OpenGLES/ES3/gl.h>
+OLD_IPHONE_AQUA #include <OpenGLES/ES3/glext.h>
+OLD_IPHONE_AQUA #else
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA #include <OpenGL/OpenGL.h>
+OLD_IPHONE_AQUA #include <OpenGL/CGLTypes.h>
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA #include <AGL/AGL.h> 
+OLD_IPHONE_AQUA #endif /* defined IPHONE */
+#endif /* defined TARGET_AQUA OLD_IPHONE_AQUA */
 
 #include <libFreeWRL.h>
 
@@ -90,7 +90,7 @@ GLEWContext * glewGetContext();
 #define ERROR 0
 #endif /* TARGET_WIN32 */
 
-#if defined(__linux__) && !defined(_ANDROID)
+#if defined(__linux__) && !defined(_ANDROID) && !defined(ANDROIDNDK)
 #  define GL_GLEXT_PROTOTYPES 1
 #  include <GL/gl.h>
 //JAS #  include <GL/glu.h>
@@ -105,7 +105,7 @@ GLEWContext * glewGetContext();
 	 include <GL/glx.h> */
 #endif
 
-#if defined (_ANDROID) || defined (QNX) || defined(ANGLEPROJECT)
+#if defined (_ANDROID) || defined(ANDROIDNDK) || defined (QNX) || defined(ANGLEPROJECT)
 	#include <GLES2/gl2.h>
 	#include <GLES2/gl2ext.h>
 //    #include <GLES3/gl3.h>
@@ -153,8 +153,6 @@ GLEWContext * glewGetContext();
 	#define GL_PROJECTION                  0x1701
 	#define GL_PROJECTION_MATRIX           0x0BA7
 	#define GL_TEXTURE_MATRIX              0x0BA8
-	#define GL_PICKRAY                     0X1703
-	#define GL_PICKRAY_MATRIX              0x0BA5
 
 	/* same with material properties - we do our own, but need some constants, so... */
 	#define GL_SHININESS                      0x1601
@@ -288,7 +286,9 @@ GLEWContext * glewGetContext();
 	#define GLUNIFORMMATRIX3FV glUniformMatrix3fv
 #endif
 
-#if defined (_MSC_VER) || defined (TARGET_AQUA) || defined(IPHONE) || defined(_ANDROID) || defined(QNX)  /* not aqua and not win32, ie linux */
+/* OLD_IPHONE_AQUA
+   OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (TARGET_AQUA) || defined(IPHONE) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX) */
+#if defined (_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX)  /* not win32, ie linux */
 	#include <libtess2.h>
 #endif // linux spefcific for now
 
@@ -299,27 +299,43 @@ GLEWContext * glewGetContext();
 /**
  * Sort of "virtual" functions
  *
- * TARGET_AQUA   : 
  * TARGET_X11    : ui/fwBareWindow.c
  * TARGET_MOTIF  : ui/fwMotifWindow.c
  * TARGET_WIN32  : ui/fwWindow32.c
  */
 
 /* are we doing Vertex Buffer Objects? (VBOs) for OpenGL? */
+//#define VERTEX_VBO 0
+//#define NORMAL_VBO 1
+//#define TEXTURE_VBO 2
+//#define INDEX_VBO 3
+//#define COLOR_VBO 4
+//#define FOG_VBO 5
+//#define VBO_COUNT 6
 #define VERTEX_VBO 0
 #define NORMAL_VBO 1
-#define TEXTURE_VBO 2
-#define INDEX_VBO 3
-#define COLOR_VBO 4
-#define VBO_COUNT 5
+#define INDEX_VBO 2
+#define COLOR_VBO 3
+#define FOG_VBO 4
+#define TEXTURE_VBO0 5
+#define TEXTURE_VBO1 6
+#define TEXTURE_VBO2 7
+#define TEXTURE_VBO3 8
+#define VBO_COUNT 9
+
 
 void fv_setScreenDim(int wi, int he);
 
 int fv_open_display();
 int fv_display_initialize(void);
+int fv_display_initialize_desktop(void);
 int fv_create_main_window(freewrl_params_t *d); //int argc, char *argv[]);
+int fv_create_main_window2(freewrl_params_t *d, freewrl_params_t *share); 
 bool fv_create_GLcontext();
 bool fv_bind_GLcontext();
+void fv_swapbuffers(freewrl_params_t *d);
+int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share);
+void fv_change_GLcontext(freewrl_params_t* d);
 /* end of "virtual" functions */
 
 /* OpenGL renderer capabilities */
@@ -343,16 +359,16 @@ typedef struct s_shader_capabilities{
 
 	GLint myPointSize;
     
-    // do we need to send down light information?
-    bool  haveLightInShader; 
-    
+	// do we need to send down light information?
+	bool  haveLightInShader; 
+
 	GLint lightcount;
 	//GLint lightType;
 	GLint lightType[MAX_LIGHTS];
-    GLint lightAmbient[MAX_LIGHTS];
-    GLint lightDiffuse[MAX_LIGHTS];
-    GLint lightSpecular[MAX_LIGHTS];
-    GLint lightPosition[MAX_LIGHTS];
+	GLint lightAmbient[MAX_LIGHTS];
+	GLint lightDiffuse[MAX_LIGHTS];
+	GLint lightSpecular[MAX_LIGHTS];
+	GLint lightPosition[MAX_LIGHTS];
 	GLint lightSpotDir[MAX_LIGHTS];
 	GLint lightAtten[MAX_LIGHTS];
 	//GLint lightConstAtten[MAX_LIGHTS];
@@ -360,21 +376,32 @@ typedef struct s_shader_capabilities{
 	//GLint lightQuadAtten[MAX_LIGHTS];
 	GLint lightSpotCutoffAngle[MAX_LIGHTS];
 	GLint lightSpotBeamWidth[MAX_LIGHTS];
-    //GLint lightRadius;
+	//GLint lightRadius;
 	GLint lightRadius[MAX_LIGHTS];
 
 	GLint ModelViewMatrix;
 	GLint ProjectionMatrix;
 	GLint NormalMatrix;
-	GLint TextureMatrix;
+	GLint ModelViewInverseMatrix;
+	GLint TextureMatrix[MAX_MULTITEXTURE];
 	GLint Vertices;
 	GLint Normals;
 	GLint Colours;
-	GLint TexCoords;
+	GLint TexCoords[MAX_MULTITEXTURE];
+	GLint FogCoords; //Aug 2016
 
-    GLint TextureUnit[MAX_MULTITEXTURE];
-    GLint TextureMode[MAX_MULTITEXTURE];
-    GLint textureCount;
+	GLint TextureUnit[MAX_MULTITEXTURE];
+	GLint TextureMode[MAX_MULTITEXTURE];
+	GLint TextureSource[MAX_MULTITEXTURE];
+	GLint TextureFunction[MAX_MULTITEXTURE];
+	GLint textureCount;
+	GLint multitextureColor;
+
+	/* texture3D */
+	GLint tex3dTiles; //int[2] nx, ny number of tiles in x, y 
+	GLint tex3dUseVertex; //bool flag when no 3D texture coords supplied, vertex shader should use vertex
+	GLint repeatSTR;
+	GLint magFilter;
 
 	/* fill properties */
 	GLint hatchColour;
@@ -384,8 +411,17 @@ typedef struct s_shader_capabilities{
 	GLint hatchedBool;
 	GLint algorithm;
     
-    /* TextureCoordinateGenerator type */
-    GLint texCoordGenType;
+	/* TextureCoordinateGenerator type */
+	GLint texCoordGenType;
+
+	GLint fogColor;  //Aug 2016
+	GLint fogvisibilityRange;
+	GLint fogScale;
+	GLint fogType;
+	GLint fogHaveCoords;
+
+	GLint clipplanes; //Sept 2016
+	GLint nclipplanes;
 
 /* attributes - reduce redundant state chage calls on GPU */
 /*
@@ -439,30 +475,30 @@ void initialize_rdr_functions();
 void rdr_caps_dump(s_renderer_capabilities_t *rdr_caps);
 
 
-#ifdef TARGET_AQUA
-#ifndef IPHONE
-
-extern int ccurse;
-extern int ocurse;
-
-//#define SCURSE 1
-//#define ACURSE 0
-
-/* for handling Safari window changes at the top of the display event loop */
-extern int PaneClipnpx;
-extern int PaneClipnpy;
-
-extern int PaneClipct;
-extern int PaneClipcb;
-extern int PaneClipcr;
-extern int PaneClipcl;
-extern int PaneClipwidth;
-extern int PaneClipheight;
-extern int PaneClipChanged;
-
-#include "OpenGL/glu.h"
-#endif
-#endif /* defined TARGET_AQUA */
+#ifdef TARGET_AQUA /* OLD_IPHONE_AQUA */
+OLD_IPHONE_AQUA #ifndef IPHONE
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA extern int ccurse;
+OLD_IPHONE_AQUA extern int ocurse;
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA //#define SCURSE 1
+OLD_IPHONE_AQUA //#define ACURSE 0
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA /* for handling Safari window changes at the top of the display event loop */
+OLD_IPHONE_AQUA extern int PaneClipnpx;
+OLD_IPHONE_AQUA extern int PaneClipnpy;
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA extern int PaneClipct;
+OLD_IPHONE_AQUA extern int PaneClipcb;
+OLD_IPHONE_AQUA extern int PaneClipcr;
+OLD_IPHONE_AQUA extern int PaneClipcl;
+OLD_IPHONE_AQUA extern int PaneClipwidth;
+OLD_IPHONE_AQUA extern int PaneClipheight;
+OLD_IPHONE_AQUA extern int PaneClipChanged;
+OLD_IPHONE_AQUA 
+OLD_IPHONE_AQUA #include "OpenGL/glu.h"
+OLD_IPHONE_AQUA #endif
+#endif /* OLD_IPHONE_AQUA TARGET_AQUA */
 
 /**
  * Specific platform : Linux / UNIX
@@ -649,13 +685,12 @@ void resetGeometry();
 
 	#if defined(_MSC_VER) 
 		void fwMessageLoop();
-		void fwSwapBuffers(freewrl_params_t * d);
-		#define FW_GL_SWAPBUFFERS fwSwapBuffers(&gglobal()->display.params); //SwapBuffers(wglGetCurrentDC());
+		#define FW_GL_SWAPBUFFERS fv_swapbuffers(gglobal()->display.params); //SwapBuffers(wglGetCurrentDC());
 	#endif
 
 #if KEEP_X11_INLIB
 	#if defined (TARGET_X11) || defined (TARGET_MOTIF)
-		#define FW_GL_SWAPBUFFERS glXSwapBuffers(Xdpy,GLwin);
+		#define FW_GL_SWAPBUFFERS fv_swapbuffers(gglobal()->display.params);
 	#endif
 #endif
 	
@@ -713,12 +748,16 @@ void resetGeometry();
 	/* geometry rendering - varies on whether we are using appearance shaders, etc */
 	#define FW_VERTEX_POINTER_TYPE 44354
 	#define FW_NORMAL_POINTER_TYPE 5434
+	#define FW_FOG_POINTER_TYPE 33888 //?? how geenerate these numbers
 	#define FW_COLOR_POINTER_TYPE 12453
 	#define FW_TEXCOORD_POINTER_TYPE 67655
-	#define FW_GL_VERTEX_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,__FILE__,__LINE__); }
-	#define FW_GL_COLOR_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_COLOR_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,__FILE__,__LINE__); }
-	#define FW_GL_NORMAL_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,__FILE__,__LINE__); }
-	#define FW_GL_TEXCOORD_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,__FILE__,__LINE__); }
+	//void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line);
+	//                           datasize, dataType, stride, pointer
+	#define FW_GL_VERTEX_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,0,__FILE__,__LINE__); }
+	#define FW_GL_COLOR_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_COLOR_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,0,__FILE__,__LINE__); }
+	#define FW_GL_NORMAL_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,0,__FILE__,__LINE__); }
+	#define FW_GL_FOG_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,0,__FILE__,__LINE__); }
+	#define FW_GL_TEXCOORD_POINTER(aaa, bbb, ccc, ddd, eee) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,eee,__FILE__,__LINE__); }
 	#define FW_GL_BINDBUFFER(xxx,yyy) {sendBindBufferToGPU(xxx,yyy,__FILE__,__LINE__); }
 
 

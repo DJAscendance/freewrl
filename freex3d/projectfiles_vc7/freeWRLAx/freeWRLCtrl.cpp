@@ -151,6 +151,17 @@ CfreeWRLCtrl::CfreeWRLCtrl()
 	//m_dllfreewrl = new CdllFreeWRL(100,100,m_Hwnd,false);
 	//m_initialized = 0;
 #ifdef _DEBUG
+/*
+HOW TO DEBUG
+0. build vc12 Debug_glew first (_DEBUG should be defined)
+1. build vc7 Debug_glew (for vc12) and go to projectfiles_vc12/Debug_glew and RegisterFwAx.bat in Admin console
+2. run InternetExplorer, navigate to a test file ie http://...../1.x3d a popup dialog should say 'You may now attach a debugger' 
+3. in visual studio, set your Debug_glew dllfreewrl project as Startup project, then under Debug, Attach to Process
+4. in the Process picker panel, a) shun Auto, and set Native b) shun InternetExplorer and select freeWRLAx plugin process(1)
+5. in your code search for 'You may now attach a debugger' (without the quotes), and set a breakpoint after that line
+6. in the internet explorer popup, say OK. 
+in visual studio, it should go to your breakpoint.
+*/
   ::MessageBoxA(NULL,"You may now attach a debugger.\n Press OK when you want to proceed.","freeWRLAx plugin process(1)",MB_OK);
 #endif
 
@@ -279,40 +290,76 @@ void CfreeWRLCtrl::OnResetState()
 
 	// TODO: Reset any other control state here.
 }
+#define SCURSE 1
+#define ACURSE 0
+#define NCURSE 2
+static HCURSOR hSensor, hArrow;
+static HCURSOR cursor;
+void loadCursors()
+{
+	hSensor = LoadCursor(NULL,IDC_HAND); /* prepare sensor_cursor */
+	hArrow = LoadCursor( NULL, IDC_ARROW );
+}
+void updateCursorStyle0(int cstyle)
+{
+	if(!hSensor) loadCursors();
+	switch(cstyle){
+		case SCURSE:
+			SetCursor(hSensor); break;
+		case ACURSE:
+			SetCursor(hArrow); break;
+		case NCURSE:
+			SetCursor(NULL); break;
+		default:
+			SetCursor(hArrow);
+	}
+}
 void CfreeWRLCtrl::OnLButtonDown(UINT nFlags,CPoint point)
 {
-	if(m_initialized % 10)
-	m_dllfreewrl->onMouse(4, 1,point.x,point.y); //m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(4, 1,point.x,point.y); //m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnLButtonDown(nFlags,point);
 }
 void CfreeWRLCtrl::OnLButtonUp(UINT nFlags,CPoint point)
 {
-	if(m_initialized % 10)
-	m_dllfreewrl->onMouse(5, 1,point.x,point.y);//m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(5, 1,point.x,point.y);//m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnLButtonUp(nFlags,point);
 }
 void CfreeWRLCtrl::OnMButtonDown(UINT nFlags,CPoint point)
 {
-	if(m_initialized % 10)
-	m_dllfreewrl->onMouse(4, 2,point.x,point.y); //m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(4, 2,point.x,point.y); //m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnMButtonDown(nFlags,point);
 }
 void CfreeWRLCtrl::OnMButtonUp(UINT nFlags,CPoint point)
 {
-	if(m_initialized % 10)
-	m_dllfreewrl->onMouse(5, 2,point.x,point.y);//m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(5, 2,point.x,point.y);//m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnMButtonUp(nFlags,point);
 }
 void CfreeWRLCtrl::OnRButtonDown(UINT nFlags,CPoint point)
 {
-	if(m_initialized % 10)
-	m_dllfreewrl->onMouse(4, 3,point.x,point.y);//m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(4, 3,point.x,point.y);//m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnRButtonDown(nFlags,point);
 }
 void CfreeWRLCtrl::OnRButtonUp(UINT nFlags,CPoint point)
 {
-	if(m_initialized % 10)
-	m_dllfreewrl->onMouse(5, 3,point.x,point.y); //m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(5, 3,point.x,point.y); //m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnRButtonUp(nFlags,point);
 }
 
@@ -333,8 +380,10 @@ void CfreeWRLCtrl::OnMouseMove(UINT nFlags,CPoint point)
 	//	m_dllfreewrl->onLoad(m_cstrFileName.GetBuffer()); //m_Hwnd,
 	//	m_initialized += 10; //shut off double-load
 	//}
-	if(m_initialized % 10)
-		m_dllfreewrl->onMouse(6, 0,point.x,point.y);//m_Hwnd, 
+	if(m_initialized % 10){
+		int cursorStyle = m_dllfreewrl->onMouse(6, 0,point.x,point.y);//m_Hwnd, 
+		updateCursorStyle0(cursorStyle);
+	}
 	COleControl::OnMouseMove(nFlags,point);
 }
 

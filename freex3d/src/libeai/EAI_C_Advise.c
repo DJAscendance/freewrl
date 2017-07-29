@@ -70,6 +70,7 @@ int X3DAdviseArg (X3DEventOut *node, void *fn, void *arg) {
 	/* and, tell FreeWRL about this one */
 	_RegisterListener (node,AdviseIndex);
 	
+	//printf ("X3DAdvise, index %d\n",AdviseIndex);
 	return AdviseIndex;
 }
 
@@ -82,6 +83,7 @@ void _handleFreeWRLcallback (char *line) {
 
 	UNUSED(wc);
 
+	//printf ("handleFreeWRLcallback - line :%s:\n",line);
 	/* something funny at the beginning of time? */
 	if (AdviseIndex < 0) return;
 
@@ -106,7 +108,7 @@ void _handleFreeWRLcallback (char *line) {
 		/* does this advise callback exist? */
 		count=0;
 		while (EAI_ListenerTable[count].FreeWRL_RegisterNumber != evIndex) {
-			printf ("compared %d to %d\n",EAI_ListenerTable[count].FreeWRL_RegisterNumber, evIndex);
+			//printf ("compared %d to %d\n",EAI_ListenerTable[count].FreeWRL_RegisterNumber, evIndex);
 			count ++; 
 			if (count > AdviseIndex) {
 				printf ("hmmm - Advise retval %d >= max %d\n",count,AdviseIndex);
@@ -133,8 +135,24 @@ void _handleFreeWRLcallback (char *line) {
 				send(_X3D_FreeWRL_Swig_FD, (const char *) EAI_ListenerTable[count].FreeWRL_RegisterNumber, sizeof(EAI_ListenerTable[count].FreeWRL_RegisterNumber),0);
                 send(_X3D_FreeWRL_Swig_FD, (const char *) EAI_ListenerTable[count].dataArea, sizeof(EAI_ListenerTable[count].dataArea),0);
 #else
-                wc = write(_X3D_FreeWRL_Swig_FD, (const void *)EAI_ListenerTable[count].FreeWRL_RegisterNumber, sizeof(EAI_ListenerTable[count].FreeWRL_RegisterNumber));
-                wc = write(_X3D_FreeWRL_Swig_FD, EAI_ListenerTable[count].dataArea, sizeof(EAI_ListenerTable[count].dataArea));
+				{
+				// JAS - Apr 2017. 
+				// issue with casting an int to a const void*...
+				// lets try this:
+				void *tmp = NULL;
+				memcpy(tmp,&(EAI_ListenerTable[count].FreeWRL_RegisterNumber), 
+					sizeof (int));
+		
+             		   wc = write(_X3D_FreeWRL_Swig_FD, 
+					(const void *)/* EAI_ListenerTable[count].FreeWRL_RegisterNumber, */
+					tmp,
+					sizeof(EAI_ListenerTable[count].FreeWRL_RegisterNumber));
+				}
+
+
+	                wc = write(_X3D_FreeWRL_Swig_FD, 
+				EAI_ListenerTable[count].dataArea, 
+				sizeof(EAI_ListenerTable[count].dataArea));
 #endif
 			} else {
 				printf("no socket connected for callbacks!");

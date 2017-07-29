@@ -41,9 +41,9 @@ X3D Geometry2D  Component
 #include "LinearAlgebra.h"
 #include "../opengl/Frustum.h"
 #include "../opengl/Material.h"
-#include "../opengl/Textures.h"
 #include "Component_Geometry3D.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Textures.h"
 
 #include "Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
@@ -111,7 +111,6 @@ void compile_Arc2D (struct X3D_Arc2D *node) {
 }
 
 void render_Arc2D (struct X3D_Arc2D *node) {
-	//OLDCODE DEFAULT_COLOUR_POINTER
 	ttglobal tg = gglobal();
 	COMPILE_IF_REQUIRED
 	if (node->__numPoints>0) {	
@@ -119,10 +118,8 @@ void render_Arc2D (struct X3D_Arc2D *node) {
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-		//OLDCODE GET_COLOUR_POINTER
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-		//OLDCODE DO_COLOUR_POINTER
 
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
         	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
@@ -168,17 +165,14 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node) {
 
 void render_ArcClose2D (struct X3D_ArcClose2D *node) {
 	ttglobal tg = gglobal();
-	//OLDCODE DEFAULT_COLOUR_POINTER
 	COMPILE_IF_REQUIRED
 	if (node->__numPoints>0) {	
 		/* for BoundingBox calculations */
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-		//OLDCODE GET_COLOUR_POINTER
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-		//OLDCODE DO_COLOUR_POINTER
 
 
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
@@ -187,6 +181,7 @@ void render_ArcClose2D (struct X3D_ArcClose2D *node) {
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
+// rendray_ArcClose2D
 
 /***********************************************************************************/
 
@@ -210,17 +205,14 @@ void compile_Circle2D (struct X3D_Circle2D *node) {
 
 void render_Circle2D (struct X3D_Circle2D *node) {
 	ttglobal tg = gglobal();
-	//OLDCODE DEFAULT_COLOUR_POINTER
 	COMPILE_IF_REQUIRED
 	if (node->__numPoints>0) {	
 		/* for BoundingBox calculations */
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-		//OLDCODE GET_COLOUR_POINTER
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-		//OLDCODE DO_COLOUR_POINTER
 
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
         	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
@@ -235,7 +227,6 @@ COMPILE_AND_GET_BOUNDS(Polyline2D,lineSegments)
 
 void render_Polyline2D (struct X3D_Polyline2D *node){
 	ttglobal tg = gglobal();
-	//OLDCODE DEFAULT_COLOUR_POINTER
 
 	COMPILE_IF_REQUIRED
 	if (node->lineSegments.n>0) {
@@ -243,10 +234,8 @@ void render_Polyline2D (struct X3D_Polyline2D *node){
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-		//OLDCODE GET_COLOUR_POINTER
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-		//OLDCODE DO_COLOUR_POINTER
 
 
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->lineSegments.p);
@@ -261,7 +250,6 @@ COMPILE_AND_GET_BOUNDS(Polypoint2D,point)
 
 void render_Polypoint2D (struct X3D_Polypoint2D *node){
 	ttglobal tg = gglobal();
-	//OLDCODE DEFAULT_COLOUR_POINTER
 
 	COMPILE_IF_REQUIRED
 	if (node->point.n>0) {
@@ -269,10 +257,8 @@ void render_Polypoint2D (struct X3D_Polypoint2D *node){
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-		//OLDCODE GET_COLOUR_POINTER
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-		//OLDCODE DO_COLOUR_POINTER
 
 
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->point.p);
@@ -282,7 +268,7 @@ void render_Polypoint2D (struct X3D_Polypoint2D *node){
 }
 
 /***********************************************************************************/
-
+#define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 void compile_Disk2D (struct X3D_Disk2D *node){
         /*  have to regen the shape*/
 	struct SFVec2f *fp, *tp;
@@ -291,11 +277,12 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 	//GLfloat *stp;
 	struct SFVec2f *ofp, *otp;
 	//GLfloat *otp;
-	int i;
+	int i,j,k;
 	GLfloat id;
 	GLfloat od;
 	int tmpint;
 	int simpleDisc;
+	ushort *lindex;
 
 	MARK_NODE_COMPILED
 
@@ -314,44 +301,67 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		tmpint = SEGMENTS_PER_CIRCLE+2;
 		fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint));
 		tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //(GLfloat *, sizeof(GLfloat) * 2 * (tmpint));
+		lindex = MALLOC (ushort *, sizeof(ushort) * (tmpint*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
+		//if(!node->_gc) node->_gc = newVector(void *,4); H: FreeWRLPTR gets freed, no need for _gc
+		//vector_pushBack(void*,node->_gc,lindex);
 
 		/* initial TriangleFan point */
 		(*fp).c[0] = 0.0f; (*fp).c[1] = 0.0f; fp++;
 		(*tp).c[0] = 0.5f; (*tp).c[1] = 0.5f; tp++;
 		id = 2.0f;
 
-		for (i=SEGMENTS_PER_CIRCLE; i >= 0; i--) {
-			(*fp).c[0] = node->outerRadius * sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
-			(*fp).c[1] = node->outerRadius * cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
+		for (i=SEGMENTS_PER_CIRCLE,j=1,k=0; i >= 0; i--,j++,k+=4) {
+			(*fp).c[0] = node->outerRadius * sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
+			(*fp).c[1] = node->outerRadius * cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
-			(*tp).c[0] = 0.5f + (sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);
-			(*tp).c[1] = 0.5f + (cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);	
+
+			lindex[k + 0] = 0;
+			lindex[k + 1] = j;
+			lindex[k + 2] = j;
+			lindex[k + 3] = j+1;
+
+			(*tp).c[0] = 0.5f + (sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);
+			(*tp).c[1] = 0.5f + (cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);	
 			tp++;
 		}
+		node->__wireindices = lindex;
 	} else {
 		tmpint = (SEGMENTS_PER_CIRCLE+1) * 2;
 		fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * 2 * tmpint);
 		tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //MALLOC (GLfloat *, sizeof(GLfloat) * 2 * tmpint);
-
+		lindex = MALLOC (ushort *, sizeof(ushort) * (tmpint*2) *2); //over malloc by a few, should be (nseg-1)*4 lines/seg * 2 lineEnds per line
+		//if(!node->_gc) node->_gc = newVector(void *,4);
+		//vector_pushBack(void*,node->_gc,lindex);
 
 		/* texture scaling params */
 		od = 2.0f;
 		id = node->outerRadius * 2.0f / node->innerRadius;
 
-		for (i=SEGMENTS_PER_CIRCLE; i >= 0; i--) {
-			(*fp).c[0] = node->innerRadius * (float) sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
-			(*fp).c[1] = node->innerRadius * (float) cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
+		for (i=SEGMENTS_PER_CIRCLE,j=0,k=0; i >= 0; i--,j+=2,k+=8) {
+			(*fp).c[0] = node->innerRadius * (float) sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
+			(*fp).c[1] = node->innerRadius * (float) cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
-			(*fp).c[0] = node->outerRadius * (float) sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
-			(*fp).c[1] = node->outerRadius * (float) cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
+			(*fp).c[0] = node->outerRadius * (float) sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
+			(*fp).c[1] = node->outerRadius * (float) cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
-			(*tp).c[0] = 0.5f + ((float)sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);
-			(*tp).c[1] = 0.5f + ((float)cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);	
+
+			lindex[k + 0] = j;
+			lindex[k + 1] = j+1;
+			lindex[k + 2] = j+1;
+			lindex[k + 3] = j+2;
+			lindex[k + 4] = j+2;
+			lindex[k + 5] = j;
+			lindex[k + 6] = j+1;
+			lindex[k + 7] = j+3;
+
+			(*tp).c[0] = 0.5f + ((float)sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);
+			(*tp).c[1] = 0.5f + ((float)cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);	
 			tp++;
-			(*tp).c[0] = 0.5f + ((float)sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/od);
-			(*tp).c[1] = 0.5f + ((float)cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/od);
+			(*tp).c[0] = 0.5f + ((float)sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/od);
+			(*tp).c[1] = 0.5f + ((float)cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/od);
 			tp++;
 		}
+		node->__wireindices = lindex;
 	}
 
 
@@ -376,30 +386,39 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 void render_Disk2D (struct X3D_Disk2D *node){
 	COMPILE_IF_REQUIRED
 	if (node->__numPoints>0) {	
-		struct textureVertexInfo mtf = {(GLfloat *)node->__texCoords.p,2,GL_FLOAT,0,NULL};
+		struct textureVertexInfo mtf = {(GLfloat *)node->__texCoords.p,2,GL_FLOAT,0,NULL,NULL};
 		/* for BoundingBox calculations */
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
 		CULL_FACE(node->solid)
 
-		textureDraw_start(&mtf);
+		textureCoord_send(&mtf);
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
 
 
 		/* do the array drawing; sides are simple 0-1-2-3, 4-5-6-7, etc quads */
 		if (node->__simpleDisk) {
-			sendArraysToGPU (GL_TRIANGLE_FAN, 0, node->__numPoints);
+			if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+				//wireframe triangles
+				sendElementsToGPU(GL_LINES,((node->__numPoints-1)*4 -1 ),node->__wireindices); //should be segs x 2 lines/seg = (pts-1) x 2 lines / pt
+			}else{
+				sendArraysToGPU (GL_TRIANGLE_FAN, 0, node->__numPoints);
+			}
 		}
 		else{
-			sendArraysToGPU (GL_TRIANGLE_STRIP, 0, node->__numPoints);
+			if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+				//wireframe triangles
+				sendElementsToGPU(GL_LINES,(node->__numPoints*4 -4 -1),node->__wireindices); //(nseg -1)*4 = (npts-2)*2 = npts*2 -4
+			}else{
+				sendArraysToGPU (GL_TRIANGLE_STRIP, 0, node->__numPoints);
+			}
 		}
-
-		textureDraw_end();
 
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
+//rendray_Disk2D
 
 /***********************************************************************************/
 
@@ -408,7 +427,8 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	GLfloat maxX, minX;
 	GLfloat maxY, minY;
 	GLfloat Ssize, Tsize;
-	int i;
+	int i,j;
+	ushort *lindex;
 	struct SFVec2f *fp; //GLfloat *fp;
 	int tmpint;
 
@@ -428,6 +448,7 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	FREE_IF_NZ (node->__texCoords.p);
 	node->__texCoords.p = fp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //MALLOC (GLfloat *, sizeof (GLfloat) * tmpint * 2);
 	node->__texCoords.n = tmpint;
+	node->__wireindices = lindex = MALLOC (ushort *, sizeof(ushort)*(tmpint+1)*2); //over malloc a bit, should be: pts = lines, lines * 2 ends/line
 	/* find min/max values for X and Y axes */
 	minY = minX = FLT_MAX;
 	maxY = maxX = -FLT_MAX;
@@ -449,6 +470,17 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	Tsize = maxY - minY;
 	/* printf ("ssize %f tsize %f\n",Ssize, Tsize); */
 
+	for (i=0,j=0; i<tmpint/3; i++,j+=6) {
+		//wireframe indices
+		int i3 = i*3;
+		lindex[j + 0] = i3;
+		lindex[j + 1] = i3+1;
+		lindex[j + 2] = i3+1;
+		lindex[j + 3] = i3+2;
+		lindex[j + 4] = i3+2;
+		lindex[j + 5] = i3;
+	}
+
 	for (i=0; i<tmpint; i++) {
 		(*fp).c[0] = (node->vertices.p[i].c[0] - minX) / Ssize;
 		(*fp).c[1] = (node->vertices.p[i].c[1] - minY) / Tsize; 
@@ -462,24 +494,28 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 void render_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	COMPILE_IF_REQUIRED
 	if (node->vertices.n>0) {	
-		struct textureVertexInfo mtf = {(GLfloat *)node->__texCoords.p,2,GL_FLOAT,0,NULL};
+		struct textureVertexInfo mtf = {(GLfloat *)node->__texCoords.p,2,GL_FLOAT,0,NULL,NULL};
 		/* for BoundingBox calculations */
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
 		CULL_FACE(node->solid)
 
-		textureDraw_start(&mtf);
+		textureCoord_send(&mtf);
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->vertices.p);
 
 
-		sendArraysToGPU (GL_TRIANGLES, 0, node->vertices.n);
-
-		textureDraw_end();
+		if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+			//wireframe triangles
+			sendElementsToGPU(GL_LINES,(node->vertices.n*2),node->__wireindices); //(nseg -1)*4 = (npts-2)*2 = npts*2 -4
+		}else{
+			sendArraysToGPU (GL_TRIANGLES, 0, node->vertices.n);
+		}
 
 		gglobal()->Mainloop.trisThisLoop += node->vertices.n;
 	}
 }
+//rendray_TriangleSet2D
 
 
 /***********************************************************************************/
@@ -519,7 +555,7 @@ void compile_Rectangle2D (struct X3D_Rectangle2D *node) {
 void render_Rectangle2D (struct X3D_Rectangle2D *node) {
 	extern GLfloat boxtex[];		/*  in CFuncs/statics.c*/
 	extern GLfloat boxnorms[];		/*  in CFuncs/statics.c*/
-	struct textureVertexInfo mtf = {boxtex,2,GL_FLOAT,0,NULL};
+	struct textureVertexInfo mtf = {boxtex,2,GL_FLOAT,0,NULL,NULL};
 	
 	float x = ((node->size).c[0])/2;
 	float y = ((node->size).c[1])/2;
@@ -536,18 +572,29 @@ void render_Rectangle2D (struct X3D_Rectangle2D *node) {
 	CULL_FACE(node->solid)
 
 	/*  Draw it; assume VERTEX and NORMALS already defined.*/
-	textureDraw_start(&mtf);
+	textureCoord_send(&mtf);
 	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->__points.p);
 	FW_GL_NORMAL_POINTER (GL_FLOAT,0,boxnorms);
 
 	/* do the array drawing; sides are simple 0-1-2-3, 4-5-6-7, etc quads */
-	sendArraysToGPU (GL_TRIANGLES, 0, 6);
-	textureDraw_end();
+	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+		//wireframe triangles
+		static ushort wireindices [] = { 0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3 };
+		sendElementsToGPU(GL_LINES,6*2,wireindices); //(nseg -1)*4 = (npts-2)*2 = npts*2 -4
+	}else{
+		sendArraysToGPU (GL_TRIANGLES, 0, 6);
+	}
 	gglobal()->Mainloop.trisThisLoop += 2;
 }
+// rendray_Rectangle2D
 
 /***********************************************************************************/
-
+//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geometry2D.html#ArcClose2D
+// "the angle starts at +x and goes toward +y"
+// y^
+//  |  /
+//  | / ) angle
+//  |_____> x
 static void *createLines (float start, float end, float radius, int closed, int *size, float *_extent) {
 	int i;
 	int isCircle;
@@ -600,25 +647,25 @@ static void *createLines (float start, float end, float radius, int closed, int 
 	fp = points;
 
 	for (i=0; i<arcpoints; i++) {
-		*fp = -radius * sinf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
+		*fp = radius * cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 		fp++;
-		*fp = radius * cosf((PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
+		*fp = radius * sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 		fp++;
 	}
 
 	/* do we have to draw any pies, cords, etc, etc? */
 	if (closed == CHORD) {
 		/* loop back to origin */
-		*fp = -radius * sinf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
-		fp++;
 		*fp = radius * cosf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
+		fp++;
+		*fp = radius * sinf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
 		fp++;
 	} else if (closed == PIE) {
 		/* go to origin */
 		*fp = 0.0f; fp++; *fp=0.0f; fp++; 
-		*fp = -radius * sinf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
-		fp++;
 		*fp = radius * cosf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
+		fp++;
+		*fp = radius * sinf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
 		fp++;
 	}
 
@@ -664,69 +711,70 @@ void collide_Disk2D (struct X3D_Disk2D *node) {
 }
 
 void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
-		/* Modified Box code. */
-		ttglobal tg = gglobal();
-	       /*easy access, naviinfo.step unused for sphere collisions */
-	       GLDOUBLE awidth = tg->Bindable.naviinfo.width; /*avatar width*/
-	       GLDOUBLE atop = tg->Bindable.naviinfo.width; /*top of avatar (relative to eyepoint)*/
-	       GLDOUBLE abottom = -tg->Bindable.naviinfo.height; /*bottom of avatar (relative to eyepoint)*/
-	       GLDOUBLE astep = -tg->Bindable.naviinfo.height+tg->Bindable.naviinfo.step;
+	/* Modified Box code. */
+	struct sNaviInfo *naviinfo;
+	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
+	struct point_XYZ iv = {0,0,0};
+	struct point_XYZ jv = {0,0,0};
+	struct point_XYZ kv = {0,0,0};
+	struct point_XYZ ov = {0,0,0};
+	struct point_XYZ delta;
 
-	       GLDOUBLE modelMatrix[16];
-	       //GLDOUBLE upvecmat[16];
-	       struct point_XYZ iv = {0,0,0};
-	       struct point_XYZ jv = {0,0,0};
-	       struct point_XYZ kv = {0,0,0};
-	       struct point_XYZ ov = {0,0,0};
-
-	       struct point_XYZ delta;
-
-		iv.x = node->size.c[0];
-		jv.y = node->size.c[1]; 
-		kv.z = 0.0;
-		ov.x = -((node->size).c[0])/2; ov.y = -((node->size).c[1])/2; ov.z = 0.0;
-
-	       /* get the transformed position of the Box, and the scale-corrected radius. */
-	       FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-
-			matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
-			//dug9july2011 matmultiply(modelMatrix,FallInfo()->avatar2collision,modelMatrix); 
-
-		   {
-			   /*  minimum bounding box MBB test in avatar/collision space */
-				GLDOUBLE shapeMBBmin[3], shapeMBBmax[3];
-				int i;
-				for(i=0;i<3;i++)
-				{
-					shapeMBBmin[i] = DOUBLE_MIN(-(node->size).c[i]*.5,(node->size).c[i]*.5);
-					shapeMBBmax[i] = DOUBLE_MAX(-(node->size).c[i]*.5,(node->size).c[i]*.5);
-				}
-				if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
-		   }
-	       /* get transformed box edges and position */
-	       transform(&ov,&ov,modelMatrix);
-	       transform3x3(&iv,&iv,modelMatrix);
-	       transform3x3(&jv,&jv,modelMatrix);
-	       transform3x3(&kv,&kv,modelMatrix);
-
-	       delta = box_disp(abottom,atop,astep,awidth,ov,iv,jv,kv);
-
-	       vecscale(&delta,&delta,-1);
-
-	       accumulate_disp(CollisionInfo(),delta);
+	ttglobal tg = gglobal();
+	/*easy access, naviinfo.step unused for sphere collisions */
+	naviinfo = (struct sNaviInfo*)tg->Bindable.naviinfo;
+	awidth = naviinfo->width; /*avatar width*/
+	atop = naviinfo->width; /*top of avatar (relative to eyepoint)*/
+	abottom = -naviinfo->height; /*bottom of avatar (relative to eyepoint)*/
+	astep = -naviinfo->height+naviinfo->step;
 
 
-		#ifdef COLLISIONVERBOSE
-	       if((fabs(delta.x) != 0. || fabs(delta.y) != 0. || fabs(delta.z) != 0.))
-	           printf("COLLISION_BOX: (%f %f %f) (%f %f %f)\n",
-			  ov.x, ov.y, ov.z,
-			  delta.x, delta.y, delta.z
-			  );
-	       if((fabs(delta.x != 0.) || fabs(delta.y != 0.) || fabs(delta.z) != 0.))
-	           printf("iv=(%f %f %f) jv=(%f %f %f) kv=(%f %f %f)\n",
-			  iv.x, iv.y, iv.z,
-			  jv.x, jv.y, jv.z,
-			  kv.x, kv.y, kv.z
-			  );
-		#endif
+	iv.x = node->size.c[0];
+	jv.y = node->size.c[1]; 
+	kv.z = 0.0;
+	ov.x = -((node->size).c[0])/2; ov.y = -((node->size).c[1])/2; ov.z = 0.0;
+
+	/* get the transformed position of the Box, and the scale-corrected radius. */
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
+	//dug9july2011 matmultiply(modelMatrix,FallInfo()->avatar2collision,modelMatrix); 
+
+	{
+		/*  minimum bounding box MBB test in avatar/collision space */
+		GLDOUBLE shapeMBBmin[3], shapeMBBmax[3];
+		int i;
+		for(i=0;i<3;i++)
+		{
+			shapeMBBmin[i] = DOUBLE_MIN(-(node->size).c[i]*.5,(node->size).c[i]*.5);
+			shapeMBBmax[i] = DOUBLE_MAX(-(node->size).c[i]*.5,(node->size).c[i]*.5);
+		}
+		if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	/* get transformed box edges and position */
+	transform(&ov,&ov,modelMatrix);
+	transform3x3(&iv,&iv,modelMatrix);
+	transform3x3(&jv,&jv,modelMatrix);
+	transform3x3(&kv,&kv,modelMatrix);
+
+	delta = box_disp(abottom,atop,astep,awidth,ov,iv,jv,kv);
+
+	vecscale(&delta,&delta,-1);
+
+	accumulate_disp(CollisionInfo(),delta);
+
+
+	#ifdef COLLISIONVERBOSE
+	if((fabs(delta.x) != 0. || fabs(delta.y) != 0. || fabs(delta.z) != 0.))
+		printf("COLLISION_BOX: (%f %f %f) (%f %f %f)\n",
+		ov.x, ov.y, ov.z,
+		delta.x, delta.y, delta.z
+		);
+	if((fabs(delta.x != 0.) || fabs(delta.y != 0.) || fabs(delta.z) != 0.))
+		printf("iv=(%f %f %f) jv=(%f %f %f) kv=(%f %f %f)\n",
+		iv.x, iv.y, iv.z,
+		jv.x, jv.y, jv.z,
+		kv.x, kv.y, kv.z
+		);
+	#endif
 }

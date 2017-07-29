@@ -48,12 +48,6 @@
 #include "EAIHeaders.h"
 #include "EAIHelpers.h"
 
-/* TODO: clean-up Rewire */
-// JAS - OLDCODE #ifdef REWIRE
-// JAS - OLDCODE # include "../../libeai/EAI_C.h"
-// JAS - OLDCODE # define ADD_PARENT(a,b)
-// JAS - OLDCODE #endif
-
 /* assume eaiverbose is false, unless told otherwise */
 //int eaiverbose = FALSE;
 typedef struct pEAI_C_CommonFunctions{
@@ -648,6 +642,7 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_SF_SIMPLE_ELEMENT(Vec2d,vec2d,sizeof(struct SFVec2d))
 			PST_SF_SIMPLE_ELEMENT(Vec3f,vec3f,sizeof(struct SFColor))
 			PST_SF_SIMPLE_ELEMENT(Vec3d,vec3d,sizeof(struct SFVec3d))
+			PST_SF_SIMPLE_ELEMENT(Vec4f,vec4f,sizeof(struct SFVec4f))
 			PST_SF_SIMPLE_ELEMENT(Vec4d,vec4d,sizeof(struct SFVec4d))
 			PST_SF_SIMPLE_ELEMENT(Rotation,rotation,sizeof(struct SFRotation))
 			PST_SF_SIMPLE_ELEMENT(Color,color,sizeof(struct SFColor))
@@ -706,7 +701,7 @@ void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, char *value
 	union anyVrml myVal;
 	char *mfstringtmp = NULL;
 	int oldXMLflag;
-	struct X3D_Node *np;
+	struct X3D_Node *np = NULL;
 	struct VRMLParser *parser = ((ppEAI_C_CommonFunctions)gglobal()->EAI_C_CommonFunctions.prv)->parser;
 	#ifdef SETFIELDVERBOSE
 	printf ("\nPST, for %s we have %s strlen %lu\n",stringFieldtypeType(ctype), value, strlen(value));
@@ -757,6 +752,7 @@ void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, char *value
 
 		/* now, does the value string need quoting? */
 		if ((*value != '"') && (*value != '\'') && (*value != '[')) {
+			static int MFS_warning_given = 0;
 			size_t len;
 			 /* printf ("have to quote this string\n"); */
 			len = strlen(value);
@@ -765,6 +761,10 @@ void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, char *value
 			mfstringtmp[0] = '"';
 			mfstringtmp[len+1] = '"';
 			mfstringtmp[len+2] = '\0';
+			if(0) if(!MFS_warning_given){
+				ConsoleMessage("Warning - an MFString needs internal quotes ie '%s' should be '%s'\n",value,mfstringtmp);
+				MFS_warning_given = 1;
+			}
 			/* printf ("so, mfstring is :%s:\n",mfstringtmp); */ 
 			
 		} else {
@@ -866,6 +866,7 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_SF_SIMPLE_ELEMENT(Vec3f,vec3f,sizeof(struct SFColor))
 			PST_SF_SIMPLE_ELEMENT(Vec3d,vec3d,sizeof(struct SFVec3d))
 			PST_SF_SIMPLE_ELEMENT(Vec4d,vec4d,sizeof(struct SFVec4d))
+			PST_SF_SIMPLE_ELEMENT(Vec4f,vec4f,sizeof(struct SFVec4f))
 			PST_SF_SIMPLE_ELEMENT(Rotation,rotation,sizeof(struct SFRotation))
 			PST_SF_SIMPLE_ELEMENT(Color,color,sizeof(struct SFColor))
 			PST_SF_SIMPLE_ELEMENT(ColorRGBA,colorrgba,sizeof(struct SFColorRGBA))
@@ -1081,6 +1082,7 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_SF_SIMPLE_ELEMENT(Vec2d,vec2d,sizeof(struct SFVec2d))
 			PST_SF_SIMPLE_ELEMENT(Vec3f,vec3f,sizeof(struct SFColor))
 			PST_SF_SIMPLE_ELEMENT(Vec3d,vec3d,sizeof(struct SFVec3d))
+			PST_SF_SIMPLE_ELEMENT(Vec4f,vec4f,sizeof(struct SFVec4f))
 			PST_SF_SIMPLE_ELEMENT(Vec4d,vec4d,sizeof(struct SFVec4d))
 			PST_SF_SIMPLE_ELEMENT(Rotation,rotation,sizeof(struct SFRotation))
 			PST_SF_SIMPLE_ELEMENT(Color,color,sizeof(struct SFColor))

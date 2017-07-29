@@ -51,7 +51,7 @@
 #define UNUSED(v) ((void) v)
 
 static int checkIfX3DVRMLFile(char *fn);
-
+// OLDCODE static int checkIfHTMLFile(char *fn);
 
 /* get all system commands, and pass them through here. What we do
  * is take parameters and execl them, in specific formats, to stop
@@ -120,10 +120,13 @@ void goToViewpoint(char *vp) {
 	if (localNode != NULL) {
 		for (flen=0; flen<vectorSize(t->viewpointNodes);flen++) {
 			if (localNode == vector_get(struct X3D_Node *,t->viewpointNodes,flen)) {
+				struct X3D_Viewpoint *vp;
 				/* unbind current, and bind this one */
-				send_bind_to(vector_get(struct X3D_Node *,t->viewpointNodes,t->currboundvpno),0);
+				vp = (struct X3D_Viewpoint*)vector_get(struct X3D_Node *,t->viewpointNodes,t->currboundvpno);
+				send_bind_to((struct X3D_Node*)vp,0);
 				t->currboundvpno=flen;
-				send_bind_to(vector_get(struct X3D_Node *,t->viewpointNodes,t->currboundvpno),1);
+				vp = (struct X3D_Viewpoint *)vector_get(struct X3D_Node *,t->viewpointNodes,t->currboundvpno);
+				send_bind_to((struct X3D_Node*)vp,1);
 				return;
 			}
 		}
@@ -131,8 +134,8 @@ void goToViewpoint(char *vp) {
 	/* printf ("goToViewpoint - failed to match local Viewpoint\n"); */
 }
 
-#ifndef _MSC_VER
-static void startNewHTMLWindow(char *url) {
+#if !defined(_MSC_VER) && !defined(ANDROIDNDK)
+void startNewHTMLWindow(char *url) {
 	const char *browser;
 #define LINELEN 4000
 #define ERRLINELEN 4200
@@ -143,12 +146,13 @@ static void startNewHTMLWindow(char *url) {
 
 	browser = NULL;
 
-#ifdef AQUA
-	if (RUNNINGASPLUGIN) {
-		/* printf ("Anchor, running as a plugin - load non-vrml file\n"); */
-		requestNewWindowfromPlugin(_fw_browser_plugin, _fw_instance, url);
-	} else {
-#endif
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA 	if (RUNNINGASPLUGIN) {
+// OLD_IPHONE_AQUA 		/* printf ("Anchor, running as a plugin - load non-vrml file\n"); */
+// OLD_IPHONE_AQUA 		requestNewWindowfromPlugin(_fw_browser_plugin, _fw_instance, url);
+// OLD_IPHONE_AQUA 	} else {
+// OLD_IPHONE_AQUA #endif
+
 	browser = freewrl_get_browser_program();
 	if (!browser) {
 		ConsoleMessage ("Error: no Internet browser found.");
@@ -180,9 +184,10 @@ static void startNewHTMLWindow(char *url) {
 		sprintf(syslineFailed ,"ERR %s %d system call failed, returned %d. Was: %s\n",__FILE__,__LINE__,sysReturnCode,sysline);
 		ConsoleMessage (syslineFailed);
 	}
-#ifdef AQUA
-	}
-#endif
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA 
+// OLD_IPHONE_AQUA 	}
+// OLD_IPHONE_AQUA #endif
 }
 #endif
 
@@ -191,7 +196,6 @@ static void startNewHTMLWindow(char *url) {
 //static int waitingForURLtoLoad = FALSE;
 //static resource_item_t *plugin_res = NULL; 	/* If this res is valid, then we can replace root_res with it */
 
-#if !defined(FRONTEND_GETS_FILES) && !defined(FRONTEND_GETS_URLS)
 static int urlLoadingStatus() {
 	pppluginUtils p = (pppluginUtils)gglobal()->pluginUtils.prv;
 
@@ -214,9 +218,6 @@ static int urlLoadingStatus() {
 
 	return p->waitingForURLtoLoad;
 }
-#endif //FRONTEND_GETS_FILES
-
-
 
 /* returns FALSE if we are DONE the action, whether or not it was successful; 
    TRUE if we want to hit this next time through the event loop */
@@ -231,10 +232,9 @@ int doBrowserAction()
 	ttglobal tg = gglobal();
 	p = (pppluginUtils)tg->pluginUtils.prv;
 	
-#if !defined(FRONTEND_GETS_FILES) && !defined(FRONTEND_GETS_URLS)
+
 	/* are we in the process of polling for a new X3D URL to load? */
 	if (p->waitingForURLtoLoad) return urlLoadingStatus();
-#endif //FRONTEND_GETS_FILES
 
 	UNUSED(description);  // compiler warning mitigation
 
@@ -246,11 +246,30 @@ int doBrowserAction()
 		TRACE_MSG("doBrowserAction: description: %s\n", description);
 
 		/* are we going to load up a new VRML/X3D world, or are we going to just go and load up a new web page ? */
-		if (Anchor_url.n < 0) {
+		if (Anchor_url.n <= 0) {
 			/* printf ("have Anchor, empty URL\n"); */
 			setAnchorsAnchor( NULL );
 			return FALSE; /* done the action, the url is just not good */
 		} 
+
+		/*  June 2016 goal: make frontend handle .html anchors, so it can be done in a platform-specific way
+			x we can't handle mixed anchors (see next comment)
+			* so we still need to determine media_type here: 
+				scene, external (ie html - for frontend to do external anchor), or viewpoint.
+			
+			[future: allow mixed anchors: Anchor url [ "missing.wrl" "bad.exe" "funny.html" "#viewpoint" ]
+			and have resource.c iterate over SF till one loads. 
+			Problem for future: it takes us several steps to unload current scene, and those steps conflict 
+			with any attempt to load a new scene at the same time. So in a resource.c/ProdCon.c driven 
+			mixed anchor, if we suddenly find a scene succeeds download, we can't properly unload 
+			current scene, due to all the perl arrays and implicit 'bindings' ie one global route array,
+			one global node array, one global texture array, navigation last drag locations in scene rather than mouse coords,
+			and the resource and parsing queues that will think current scene parts are for the new scene.
+			Ideally all those implicit bindings would be hot-swappable, resources would know their scene, so when 
+			the are dequeued if their scene is gone they'll be disposed - 
+			so a new scene can be parsed while old one running, and swapped in ProdCon after parse, or on next frame.]
+		*/
+
 
 		/* first test case - url is ONLY a viewpoint change */
 		if (Anchor_url.p[0]->strptr[0] == '#') {
@@ -269,14 +288,25 @@ int doBrowserAction()
 			  while the UI thread keeps looping
 			  - first, make sure it's a scene file (not .html, .img which are handled in the html browser in new window)
 			*/
-			BOOL isScene = FALSE;
+			BOOL isScene; //, isHTML; 
+
+			// June 2016 change: avoid mixed anchors, must be uniform ie all SF are scene, or all SF are html
+			// for it to be scene, all need to be scene (could split out non-scene to get scene-only MF / non-mixed anchor)
+			isScene = TRUE; //was FALSE
 			for (i = 0; i < Anchor_url.n; i++)
-				isScene = isScene || checkIfX3DVRMLFile(Anchor_url.p[i]->strptr);
+				isScene = isScene && checkIfX3DVRMLFile(Anchor_url.p[i]->strptr); // was ||
 			if (isScene){
 				resource_identify(parentPath, p->plugin_res);
 				fwl_replaceWorldNeededRes(p->plugin_res);
 				return FALSE;
 			}
+			// June 2016: if not scene or viewpoint, it might be html, plain images, audio
+			// send to frontend for platform-specific anchoring to web browser
+			p->plugin_res->actions = resa_download; //just to get it to the frontend
+			p->plugin_res->media_type = resm_external;
+			p->plugin_res->type = rest_multi;
+			resource_identify(parentPath, p->plugin_res);
+			resitem_enqueue(ml_new(p->plugin_res)); 
 		}
 #else //EXPERIMENT
 	
@@ -396,6 +426,15 @@ static int checkIfX3DVRMLFile(char *fn) {
 	}
 	return FALSE;
 }
+// OLDCODE static int checkIfHTMLFile(char *fn) {
+// OLDCODE 	if ((strstr(fn,".html") > 0) ||
+// OLDCODE 		(strstr(fn,".HTML") > 0) 
+// OLDCODE 		) {
+// OLDCODE 		return TRUE;
+// OLDCODE 	}
+// OLDCODE 	return FALSE;
+// OLDCODE }
+
 
 void new_root();
 /* we are an Anchor, and we are not running in a browser, and we are
@@ -526,7 +565,8 @@ void URLencod (char *dest, const char *src, int maxlen) {
 }
 
 /* this is for Unix only */
-#if !defined(AQUA) && !defined(_MSC_VER) && !defined(_ANDROID) && !defined(GLES2)
+// OLD_IPHONE_AQUA #if !defined(AQUA) && !defined(_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(GLES2)
+#if !defined(_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(GLES2)
 
 void sendXwinToPlugin()
 {

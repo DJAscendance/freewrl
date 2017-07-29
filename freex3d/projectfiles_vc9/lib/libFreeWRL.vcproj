@@ -165,8 +165,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\src\libminizip;..\..\..\..\lib_windows\js185\include;..\..\src\libtess;..\..\src\Lib;..\..\src_windows;..\..\..\..\lib_windows\pthreads.2;..\..\..\..\lib_windows\zlib\include;..\..\..\..\lib_windows\jpeg\include;..\..\..\..\lib_windows\freetype2\include;..\..\..\..\lib_windows\png\include;..\..\..\..\lib_windows\glew\include;..\..\..\..\lib_windows\libxml2\include"
-				PreprocessorDefinitions="W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API;HAVE_PTHREAD_CANCEL"
+				AdditionalIncludeDirectories="..\..\..\..\lib_windows\ffmpeg\win32\include;..\..\..\..\lib_windows\freeALUT\include;..\..\..\..\lib_windows\openALsoft\include;..\..\src\libminizip;..\..\..\..\lib_windows\js185\include;..\..\src\libtess;..\..\src\libnurbs;..\..\src\Lib;..\..\src_windows;..\..\..\..\lib_windows\pthreads.2;..\..\..\..\lib_windows\zlib\include;..\..\..\..\lib_windows\jpeg\include;..\..\..\..\lib_windows\freetype2\include;..\..\..\..\lib_windows\png\include;..\..\..\..\lib_windows\glew\include;..\..\..\..\lib_windows\libxml2\include;..\..\..\..\lib_windows\ODE"
+				PreprocessorDefinitions="W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API;HAVE_PTHREAD_CANCEL;WITH_RBP;NURBS_LIB;MOVIETEXTURE_FFMPEG;HAVE_OPENAL;JAVASCRIPT_SM;dIDEDOUBLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -230,8 +230,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\src\libminizip;..\..\..\..\lib_windows\js185\include;..\..\src\libtess;..\..\src\Lib;..\..\src_windows;..\..\..\..\lib_windows\pthreads.2;..\..\..\..\lib_windows\zlib\include;..\..\..\..\lib_windows\jpeg\include;..\..\..\..\lib_windows\freetype2\include;..\..\..\..\lib_windows\png\include;..\..\..\..\lib_windows\glew\include;..\..\..\..\lib_windows\libxml2\include"
-				PreprocessorDefinitions="WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;STATIC_EXPORTABLE_JS_API;HAVE_PTHREAD_CANCEL"
+				AdditionalIncludeDirectories="..\..\..\..\lib_windows\ffmpeg\win32\include;..\..\..\..\lib_windows\freeALUT\include;..\..\..\..\lib_windows\openALsoft\include;..\..\src\libminizip;..\..\..\..\lib_windows\js185\include;..\..\src\libtess;..\..\src\libnurbs;..\..\src\Lib;..\..\src_windows;..\..\..\..\lib_windows\pthreads.2;..\..\..\..\lib_windows\zlib\include;..\..\..\..\lib_windows\jpeg\include;..\..\..\..\lib_windows\freetype2\include;..\..\..\..\lib_windows\png\include;..\..\..\..\lib_windows\glew\include;..\..\..\..\lib_windows\libxml2\include;..\..\..\..\lib_windows\ODE"
+				PreprocessorDefinitions="WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;STATIC_EXPORTABLE_JS_API;HAVE_PTHREAD_CANCEL;WITH_RBP;dIDEDOUBLE;NURBS_LIB;MOVIETEXTURE_FFMPEG_no;HAVE_OPENAL_no;HAVE_ALUT_no;JAVASCRIPT_DUK"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				WarningLevel="1"
@@ -335,6 +335,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_Followers.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\Component_Geometry2D.c"
 				>
 			</File>
@@ -363,6 +367,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_Layering.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_Layout.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\Component_Lighting.c"
 				>
 			</File>
@@ -379,6 +391,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_ParticleSystems.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\Component_Picking.c"
 				>
 			</File>
@@ -392,6 +408,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\lib\scenegraph\Component_Rendering.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_RigidBodyPhysics.c"
 				>
 			</File>
 			<File
@@ -431,11 +451,23 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_Texturing3D.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\Component_Time.c"
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\Component_VolumeRendering.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\Component_VRML1.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\lib\opengl\Compositing_Shaders.c"
 				>
 			</File>
 			<File
@@ -456,10 +488,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\lib\vrml_parser\CParseParser.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lib\vrml_parser\CProto.c"
 				>
 			</File>
 			<File
@@ -512,6 +540,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\lib\world_script\fieldSet.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\lib\ui\freewrl_wingding_ttf.c"
 				>
 			</File>
 			<File
@@ -635,6 +667,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\MPEG_Utils_ffmpeg.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\NormalCalcs.c"
 				>
 			</File>
@@ -731,15 +767,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lib\scenegraph\VeraMono_ttf.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src_windows\view_platform_win32.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lib\scenegraph\Viewer.c"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\lib\x3d_parser\X3DParser.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lib\x3d_parser\X3DProtoScript.c"
 				>
 			</File>
 		</Filter>

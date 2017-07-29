@@ -25,7 +25,8 @@
 ****************************************************************************/
 
 #include <config.h>
-#if !(defined(IPHONE) || defined(_ANDROID) || defined(AQUA))
+// OLD_IPHONE_AQUA  #if !(defined(IPHONE) || defined(_ANDROID) || defined(AQUA))
+#if !(defined(_ANDROID))
 
 #include <system.h>
 #include <display.h>
@@ -67,22 +68,8 @@ http://freewrl.sf.net"
 
 void setDefaultBackground(int colour);
 
-#ifdef OLDCODE
-OLDCODE /* background colours - must be sequential range */
-#endif //OLDCODE 
-
 #define colourBlack     0
 
-#ifdef OLDCODE
-OLDCODE #define colourRed       1
-OLDCODE #define colourGreen     2
-OLDCODE #define colourBlue      3
-OLDCODE #define colourMagenta   4
-OLDCODE #define colourYellow    5
-OLDCODE #define colourCyan      6
-OLDCODE #define colourGrey      7
-OLDCODE #define colourOrange    8
-#endif //OLDCODE
 #define colourWhite     9
 
 /* because of threading issues in Linux, if we can only use 1 thread, we
@@ -369,7 +356,7 @@ void fv_aboutFreeWRLpopUp (Widget w, XtPointer data, XtPointer callData)
 /* quit selected */
 void fv_quitMenuBar (Widget w, XtPointer data, XtPointer callData)
 { 
-    fwl_doQuit();
+    fwl_doQuit(__FILE__,__LINE__);
 }
 
 void fv_reloadFile (Widget w, XtPointer data, XtPointer callData)

@@ -102,6 +102,39 @@ FIELDTYPE_MFVec4d
 #include "Component_ProgrammableShaders.h"
 #include "../scenegraph/RenderFuncs.h"
 
+
+
+#define MAX_EFFECTS 32
+typedef struct pComponent_ProgrammableShaders{
+	Stack *effect_stack;
+	int effectCount;
+
+}* ppComponent_ProgrammableShaders;
+void *Component_ProgrammableShaders_constructor(){
+	void *v = MALLOCV(sizeof(struct pComponent_ProgrammableShaders));
+	memset(v,0,sizeof(struct pComponent_ProgrammableShaders));
+	return v;
+}
+void Component_ProgrammableShaders_init(struct tComponent_ProgrammableShaders *t){
+	//public
+	//private
+	t->prv = Component_ProgrammableShaders_constructor();
+	{
+		ppComponent_ProgrammableShaders p = (ppComponent_ProgrammableShaders)t->prv;
+		p->effect_stack = newStack(struct X3D_Node*);
+		p->effectCount = 0;
+	}
+}
+void Component_ProgrammableShaders_clear(struct tComponent_ProgrammableShaders *t){
+	//public
+	ppComponent_ProgrammableShaders p = (ppComponent_ProgrammableShaders)t->prv;
+
+	deleteVector(struct X3D_Node*,p->effect_stack);
+}
+
+
+
+
 /* we do support older versions of shaders; but not all info logs are printed if we
    have OpenGL prior to 2.0 */
 
@@ -110,20 +143,6 @@ FIELDTYPE_MFVec4d
 		ConsoleMessage ("Shaders: support only GLSL shading language, got :%s:, skipping...",node->language->strptr); \
 		node->isValid = FALSE; \
 	}
-
-#ifdef OLDCODE
-OLDCODE #define MAX_INFO_LOG_SIZE 512
-OLDCODE static void shaderErrorLog(GLuint myShader) {
-OLDCODE 	#ifdef GL_VERSION_2_0 
-OLDCODE 		GLchar infoLog[MAX_INFO_LOG_SIZE]; 
-OLDCODE 		glGetShaderInfoLog(myShader, MAX_INFO_LOG_SIZE, NULL, infoLog); 
-OLDCODE 		ConsoleMessage ("problem with VERTEX shader: %s",infoLog); 
-OLDCODE 	#else 
-OLDCODE 		ConsoleMessage ("Problem compiling shader"); 
-OLDCODE 	#endif 
-OLDCODE }
-#endif //OLDCODE
-
 
 // local structure for passing args to threaded shader compiler functions.
 struct myArgs {
@@ -163,7 +182,7 @@ struct myArgs {
 							haveFragShaderText = TRUE; \
 						} \
 						/* printf ("Shader text for type %s is  %s\n",prog->type->strptr,myText); */ \
-						FREE_IF_NZ(cptr); }\
+						/*FREE_IF_NZ(cptr);*/ }\
 					} else { \
 						ConsoleMessage ("%s, invalid Type, got \"%s\"",stringNodeType(NODE_##myNodeType), prog->type->strptr); \
 						node->isValid = FALSE; \
@@ -416,8 +435,49 @@ static void sendValueToShader(struct ScriptFieldDecl* myField) {
 	}
 }
 
-/* Routing - sending a value to a shader - we get passed the routing table entry number */
-void getField_ToShader(struct X3D_Node *node, int num) {
+/* Routing - sending a value to a shader - we get passed the routing table entry number 
+Note: Effect and EffectPart do not route-update their uniforms here.
+Reason: Effect/EffectPart can be composed into many compiled base shader permutations, 
+	so they are updated from fieldvalues in child_shape
+more...	
+2016 - added Effect and EffectPart to our bifurcated system of shaders:
+1. ubershader
+1a. base shaders - normal shaders for normal rendering of appearance, no shader nodes of any type involved
+	- mostly does in GLES2 what desktop opengl 3+ does, except
+	-- shader permutations are formed by what what gl features are needed for each Appearance
+	-- Effect plug stubs are pre-positioned
+	- there's no way to directly route to base shaders, so no route-updating done here
+1b. Effect/EffectPart nodes - new in 2016, makes base shaders + effects 'composable' into shader permutations
+	- not in web3d specs, although being discussed for future spec versions ie 4+
+	- Appearance m:1 compiled shader 1:1 base shader 1:m Effect/EffectPart
+	- compiled shader permutations are cached so if another Shape needs the same permutation, it re-uses the compiled
+			Appearance m:1 compiled_shader
+	- and when an Effect is on the transform stack instead of in Appearance scope, 
+		then it gets composed into multiple shaders:
+			specific-Effect/EffectPart 1:m Appearance / compiled shader 
+		therefore routing to an Effect/EffectPart would/could require setting uniforms in many compiled shaders
+		so updating uniforms in response to route-updating an Effect field is done per shape/appearance scope 
+		in child_shape() {... update_effect_uniforms(); ...}
+1c. VolumeRendering component uses a separate set of base shaders with no EffectPlugs, but with permutations
+	- no way to directly route to underlying shaders, so route-updating of uniforms not done here
+
+2. user shaders: web3d specs Programmable Shadeers component 
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/shaders.html
+	user shader 1:1 compiled shader 1:1 Appearance 1:m Shape
+	a user shader replaces the entire base shader+effect in Appearance
+	if you route-update a field on a user shader, you only need to find one instance of the compiled shader
+		and update the uniform in that compiled shader
+	H: you can cache the compiled shader number in the user shader node (unconfirmed)
+	H: you can cache uniform variable IDs / offsets / compiled-shader-uniform-location 
+		in the user-shader-node user-field, for faster access
+		uniform_location = fieldDecl_getshaderVariableID(...)
+	first time using the compiled shader in child_shape, 
+	    you can check shader._initialized and if FALSE, update all the uniforms
+		and set _initialized = TRUE
+
+*/
+void getField_ToShader(struct X3D_Node *node, int toOffset, union anyVrml *toAny, int type) {
+	// update the compiled shader uniform when routing to a user shader
 	struct Shader_Script *myObj[2];
 	int numObjs = 1;
 	int to_counter;
@@ -426,8 +486,11 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 	int i,j;
 	GLfloat* sourceData;
 	GLuint currentShader = 0;	
+	shaderflagsstruct shaderflags;
 	struct CRStruct *CRoutes = getCRoutes();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
+
+	memset(&shaderflags,0,sizeof(shaderflagsstruct));
 
 	// ProgramShaders have fields for each ShaderProgram field, and we can have a couple of fields
 	// here. Thus myObj* has more than one pointer.
@@ -441,12 +504,16 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 	//for (i=0; i<vectorSize(node->_parentVector); i++) {
 		struct X3D_Appearance *ap = vector_get(struct X3D_Appearance *,parents, i);
 		//ConsoleMessage ("and, parent is type %s",stringNodeType(ap->_nodeType));
+		if( ap->_nodeType == NODE_Proto) ap = vector_get(struct X3D_Appearance *,ap->_parentVector, 0);
 		if (ap->_nodeType == NODE_Appearance) {
 			for (j=0; j<vectorSize(ap->_parentVector); j++) {
 				struct X3D_Shape *sh = vector_get(struct X3D_Shape *, ap->_parentVector, j);
 				//ConsoleMessage ("and parent of appearance is %s",stringNodeType(sh->_nodeType));
 				if (sh->_nodeType == NODE_Shape) {
-					currentShader = X3D_SHAPE(sh)->_shaderTableEntry;
+					//currentShader = X3D_SHAPE(sh)->_shaderflags_usershaders; //_shaderTableEntry;
+					shaderflags.base = sh->_shaderflags_base;
+					shaderflags.effects = sh->_shaderflags_effects;
+					shaderflags.usershaders = sh->_shaderflags_usershaders;
 				}
 			}
 		}
@@ -458,38 +525,46 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 		}
 	}
 
-	if (currentShader == 0) {
-		ConsoleMessage ("%s","error finding associated Shape node for Shade node");
+	//if (currentShader == 0) {
+	if(!shaderflags.base && !shaderflags.usershaders){
+		ConsoleMessage("."); //loading
+		//ConsoleMessage ("%s","error finding associated Shape node for Shade node");
 		return;
 	}
 
 	// turning shader on...
 	//ConsoleMessage ("calling getMyShader here wrwe");
-	enableGlobalShader(getMyShader(currentShader));
+	//shaderflags.usershaders = currentShader;
+	enableGlobalShader(getMyShaders(shaderflags)); //currentShader));
     
 	myObj[0] = NULL;
 	myObj[1] = NULL;
 
-	/* go through each destination for this node */
-	for (to_counter = 0; to_counter < CRoutes[num].tonode_count; to_counter++) {
-		CRnodeStruct *to_ptr = NULL;
+	///* go through each destination for this node */
+	//for (to_counter = 0; to_counter < CRoutes[num].tonode_count; to_counter++) {
+	//	CRnodeStruct *to_ptr = NULL;
 
-		to_ptr = &(CRoutes[num].tonodes[to_counter]);
-		fromFieldID = to_ptr->foffset;
-		//printf ("getField_ToShader, num %d, foffset %d to a %s\n",num,fromFieldID,stringNodeType(to_ptr->routeToNode->_nodeType));  
+	//	to_ptr = &(CRoutes[num].tonodes[to_counter]);
+	//	fromFieldID = to_ptr->foffset;
+	//	//printf ("getField_ToShader, num %d, foffset %d to a %s\n",num,fromFieldID,stringNodeType(to_ptr->routeToNode->_nodeType));  
 
-		switch (to_ptr->routeToNode->_nodeType) {
+		//switch (to_ptr->routeToNode->_nodeType) {
+		numObjs = 1;
+		switch(node->_nodeType){
 			case NODE_ComposedShader:
-				myObj[0] = (struct Shader_Script *)(X3D_COMPOSEDSHADER(to_ptr->routeToNode)->_shaderUserDefinedFields);
+				myObj[0] = (struct Shader_Script *)(X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields);
 				break;
+			//case NODE_Effect:
+			//	myObj[0] = (struct Shader_Script *)(X3D_EFFECT(node)->_shaderUserDefinedFields);
+			//	break;
 			case NODE_PackagedShader:
-				myObj[0] = (struct Shader_Script *)(X3D_PACKAGEDSHADER(to_ptr->routeToNode)->_shaderUserDefinedFields);
+				myObj[0] = (struct Shader_Script *)(X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields);
 				break;
 			case NODE_ProgramShader:{
 				//feb 2015, dug9: I don't think we should be routing to ProgramShader, rather directly to its contained ShaderPrograms
 				int i;
-				for (i=0; i<X3D_PROGRAMSHADER(to_ptr->routeToNode)->programs.n; i++) {
-					struct X3D_ShaderProgram *ps = X3D_SHADERPROGRAM(X3D_PROGRAMSHADER(to_ptr->routeToNode)->programs.p[i]);
+				for (i=0; i<X3D_PROGRAMSHADER(node)->programs.n; i++) {
+					struct X3D_ShaderProgram *ps = X3D_SHADERPROGRAM(X3D_PROGRAMSHADER(node)->programs.p[i]);
 					// trying this Hopefully we only have a Fragment and a Vertex
 					if (i<2) {
 						myObj[i] = (struct Shader_Script *)ps->_shaderUserDefinedFields;
@@ -499,13 +574,13 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 				break;}
 			case NODE_ShaderProgram:
 				//feb 2015, dug9: new - I think we should route here
-				myObj[0] = (struct Shader_Script *)(X3D_SHADERPROGRAM(to_ptr->routeToNode)->_shaderUserDefinedFields);
+				myObj[0] = (struct Shader_Script *)(X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields);
 				break;
 			default: {
 				ConsoleMessage ("getField_ToShader, unhandled type??");
 				return;
 				}
-		}
+			}
 		/* we have the struct Shader_Script; go through the fields and find the correct one */
 
 
@@ -530,6 +605,10 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 
 		//printf ("going through fields.... have %d fields\n",vectorSize(myObj->fields)); 
 		for (j=0; j<numObjs; j++) {
+			struct ScriptFieldDecl* toField;
+			toField = vector_get(struct ScriptFieldDecl*, myObj[j]->fields, toOffset);
+			fromFieldID = fieldDecl_getshaderVariableID(toField->fieldDecl);
+
 			for(i=0; i!=vectorSize(myObj[j]->fields); ++i) {
 				GLint shaderVariable;
 				struct ScriptFieldDecl* curField;
@@ -539,21 +618,21 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 				curField = vector_get(struct ScriptFieldDecl*, myObj[j]->fields, i);
 				myf = curField->fieldDecl;
 				shaderVariable = fieldDecl_getshaderVariableID(myf);
-				/*
-				printf ("for field %d, shaderVariable %d\n",i,shaderVariable);
+				
+				//printf ("for field %d, shaderVariable %d\n",i,shaderVariable);
 		
 		
-				printf ("curField %d name %d type %d ",i,
-						fieldDecl_getIndexName(myf), fieldDecl_getType(myf));
-				printf ("fieldDecl mode %d (%s) type %d (%s) name %d\n",
-						fieldDecl_getAccessType(myf),
-						stringPROTOKeywordType(fieldDecl_getAccessType(myf)), 
-							fieldDecl_getType(myf), stringFieldtypeType(fieldDecl_getType(myf)),
-							fieldDecl_getIndexName(myf));
-				printf ("comparing fromFieldID %d and name %d\n",fromFieldID, fieldDecl_getIndexName(myf));
-				printf ("	types %d, %d\n",JSparamnames[fromFieldID].type,fieldDecl_getType(myf));
-				printf ("	shader ascii name is %s\n",fieldDecl_getShaderScriptName(curField->fieldDecl));
-					*/
+				//printf ("curField %d name %d type %d ",i,
+				//		fieldDecl_getIndexName(myf), fieldDecl_getType(myf));
+				//printf ("fieldDecl mode %d (%s) type %d (%s) name %d\n",
+				//		fieldDecl_getAccessType(myf),
+				//		stringPROTOKeywordType(fieldDecl_getAccessType(myf)), 
+				//			fieldDecl_getType(myf), stringFieldtypeType(fieldDecl_getType(myf)),
+				//			fieldDecl_getIndexName(myf));
+				//printf ("comparing fromFieldID %d and name %d\n",fromFieldID, fieldDecl_getIndexName(myf));
+				//printf ("	types %d, %d\n",JSparamnames[fromFieldID].type,fieldDecl_getType(myf));
+				//printf ("	shader ascii name is %s\n",fieldDecl_getShaderScriptName(curField->fieldDecl));
+					
 		
 
 				if (fromFieldID == fieldDecl_getShaderScriptIndex(myf)) {
@@ -566,7 +645,9 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 
 					/* ok, here we have the Shader_Script, the field offset, and the entry */
 
-					sourceData = offsetPointer_deref(GLfloat *,CRoutes[num].routeFromNode, CRoutes[num].fnptr);
+					//sourceData = offsetPointer_deref(GLfloat *,CRoutes[num].routeFromNode, CRoutes[num].fnptr);
+					sourceData = &toAny->sffloat;
+					//printf("[[%f]]",*sourceData);
 		
 #define ROUTE_SF_FLOAT_TO_SHADER(ty1) \
 					case FIELDTYPE_SF##ty1: \
@@ -667,8 +748,9 @@ void getField_ToShader(struct X3D_Node *node, int num) {
 			}
 		}
 		finishedWithGlobalShader();
-	}
+	//}
 }
+
 
 /* send fields to a shader; expect either a ShaderProgram, or a ComposedShader */
 static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
@@ -679,6 +761,7 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 
 	if (node->_nodeType==NODE_ShaderProgram) me = (struct Shader_Script *) X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields;
 	else if (node->_nodeType == NODE_ComposedShader) me = (struct Shader_Script *) X3D_COMPOSEDSHADER(node)->_shaderUserDefinedFields;
+	else if (node->_nodeType == NODE_Effect) me = (struct Shader_Script *) X3D_EFFECT(node)->_shaderUserDefinedFields;
 	else {
 		printf ("send_fieldToShader, expected a ShaderProgram or ComposedShader, got %s\n",
 			stringNodeType(node->_nodeType));
@@ -711,8 +794,9 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 	/* is there any fields? */
 	if (me == NULL) return;
 
-	/* this script should NOT be loaded... */
-	if (me->loaded) ConsoleMessage ("ShaderProgram is flagged as being loaded, hmmm");
+	/* this script should NOT be loaded... or so we thought but now we have Effects which we route to,
+		and fieldvalues need to be re-sent when they change */
+	//if (me->loaded) ConsoleMessage ("ShaderProgram is flagged as being loaded, hmmm");
 
 
 	for(i=0; i!=vectorSize(me->fields); ++i) {
@@ -738,9 +822,9 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 		/* ask the shader for its handle for this variable */
 
 		/* try Uniform  */
-        //printf ("looking to get_Uniform for shader %d, variable :%s:\n",myShader, fieldDecl_getShaderScriptName(myf));
-        
-		myVar = GET_UNIFORM(myShader,fieldDecl_getShaderScriptName(myf));
+        //printf ("looking to get_Uniform for shader %d, variable :%s:\n",myShader, namePtr);
+		myVar = GET_UNIFORM(myShader,namePtr);
+		//myVar = GET_UNIFORM(myShader,fieldDecl_getShaderScriptName(myf));
 		if (myVar == INT_ID_UNDEFINED) {
 			if (GET_ATTRIB(myShader,fieldDecl_getShaderScriptName(myf)) != INT_ID_UNDEFINED)
 			ConsoleMessage ("Shader variable :%s: is declared as an attribute; we can not do much with this",fieldDecl_getShaderScriptName(myf));
@@ -823,7 +907,7 @@ void sendInitialFieldsToShader(struct X3D_Node * node) {
 			}
 			X3D_PROGRAMSHADER(node)->_initialized = TRUE;
 			break;
-		}
+			}
 
 
 		case NODE_ComposedShader: {
@@ -831,7 +915,14 @@ void sendInitialFieldsToShader(struct X3D_Node * node) {
 				send_fieldToShader(myShader, X3D_NODE(node));
 			X3D_COMPOSEDSHADER(node)->_initialized = TRUE;
 			break;
-		}
+			}
+		//2017: effects aren't part of usershaders, just the normal shaders
+		//case NODE_Effect: {
+		//	/* anything to do here? */ 
+		//		send_fieldToShader(myShader, X3D_NODE(node));
+		//	//X3D_EFFECT(node)->_initialized = TRUE;
+		//	break;
+		//	}
 	}
 }
 
@@ -913,7 +1004,50 @@ static void *thread_compile_ComposedShader(void *args) {
 	SUPPORT_GLSL_ONLY
 		
 	/* ok so far, go through the parts */
-	LOCATE_SHADER_PARTS(ShaderPart,parts)
+	//LOCATE_SHADER_PARTS(ShaderPart,parts)
+
+	//#define LOCATE_SHADER_PARTS(myNodeType, myField) 
+	for (i=0; i<node->parts.n; i++) { 
+		struct X3D_ShaderPart *prog; 
+		prog = (struct X3D_ShaderPart *) node->parts.p[i]; 
+		vertShaderSource[i] = NULL; 
+		fragShaderSource[i] = NULL; 
+ 
+		if (prog!=NULL) { 
+			if (prog->_nodeType == NODE_ShaderPart) { 
+				/* compile this program */ 
+ 
+				if (!((strcmp (prog->type->strptr,"VERTEX")) && (strcmp(prog->type->strptr,"FRAGMENT")))) { 
+					char *myText = NULL; /* pointer to text to send in */ 
+					char *cptr; /* returned caracter pointer pointer */ 
+						 
+					cptr = prog->url.p[0]->strptr; /*shader_initCodeFromMFUri(&prog->url);*/ 
+					if (cptr == NULL) { 
+						ConsoleMessage ("error reading url for :%s:",stringNodeType(NODE_ShaderPart)); 
+						myText = "";
+					} else { 
+						myText = cptr; 
+						/* assign this text to VERTEX or FRAGMENT buffers */ 
+						if (!strcmp(prog->type->strptr,"VERTEX")) { 
+							vertShaderSource[i] = STRDUP(myText); 
+							haveVertShaderText = TRUE; 
+						} else { 
+							fragShaderSource[i] = STRDUP(myText); 
+							haveFragShaderText = TRUE; 
+						} 
+						/* printf ("Shader text for type %s is  %s\n",prog->type->strptr,myText); */ 
+						/*FREE_IF_NZ(cptr);*/ 
+					}
+				} else { 
+					ConsoleMessage ("%s, invalid Type, got \"%s\"",stringNodeType(NODE_ShaderPart), prog->type->strptr); 
+					node->isValid = FALSE; 
+				} 
+			} else { 
+				ConsoleMessage ("Shader, expected \"%s\", got \"%s\"",stringNodeType(NODE_ShaderPart), stringNodeType(prog->_nodeType)); 
+				node->isValid = FALSE; 
+			} 
+		} 
+	} 
 	
 	//if (haveFragShaderText) ConsoleMessage ("have frag shader text");
 	// if (haveVertShaderText) ConsoleMessage ("have vert shader text");
@@ -1068,7 +1202,7 @@ static void *thread_compile_ProgramShader (void *args){
 
 
 static int shader_initCode(struct X3D_ShaderProgram *node, char* buffer){
-	node->url.p[0]->strptr = buffer;
+	node->url.p[0]->strptr = STRDUP(buffer); //something else -in rexources?- seems to free buffer so we copy here
 	node->url.n = 1;
 	return TRUE;
 }
@@ -1223,11 +1357,13 @@ void compile_ComposedShader (struct X3D_ComposedShader *node) {
 	struct myArgs *args;
 	ttglobal tg = gglobal();
 	if(shaderprograms_loaded_but_not_compiled(&node->parts)){ //if all the program parts are downloaded and loaded but not compiled yet
-		set_shaderprograms_compiled(&node->parts);
+		//set_shaderprograms_compiled(&node->parts);
 		args = MALLOC(struct myArgs *, sizeof (struct myArgs));
 		args->node  = X3D_NODE(node);
 		args->tg  = tg;
-		if(1){
+		//before sept 22, 2016 - got both async and sync working, but if problems in future with uniforms not setting,
+		// check child_shape to make sure user shader compiled before uniform initialization
+		if(0){
 			//asynchronous
 			if (TEST_NULL_THREAD(node->_shaderLoadThread)) {
 				pthread_create (&(node->_shaderLoadThread), NULL,
@@ -1237,6 +1373,7 @@ void compile_ComposedShader (struct X3D_ComposedShader *node) {
 			//synchronous
 			thread_compile_ComposedShader(args);
 		}
+		set_shaderprograms_compiled(&node->parts);
 	}
 }
 
@@ -1282,4 +1419,100 @@ void render_ProgramShader (struct X3D_ProgramShader *node) {
 	COMPILE_IF_REQUIRED
 	if (node->isValid) 
 		setUserShaderNode(X3D_NODE(node));
+}
+
+// castle compositing shader effects system
+// http://castle-engine.sourceforge.net/compositing_shaders.php
+// thanks to Michalis Kamburelis for permission to implement in freewrl/libfreewrl
+// Effect node is like ComposedShader, 
+// EffectPart node is like ShaderPart
+
+int getNextFreeEffectSlot() {
+	int rv;
+	ttglobal tg = gglobal();
+	ppComponent_ProgrammableShaders p = (ppComponent_ProgrammableShaders)tg->Component_ProgrammableShaders.prv;
+
+	p->effectCount++;
+	if (p->effectCount == MAX_EFFECTS) return -1;
+
+	rv = p->effectCount;
+	//printf("getNextFreeEffectSlot %d\n",rv);
+	return rv;
+}
+
+void compile_Effect (struct X3D_Effect *node) {
+	//printf("compile_effect not implemented\n");
+	int i, is_valid;
+	//struct myArgs *args;
+	ttglobal tg = gglobal();
+
+	is_valid = TRUE;
+	for(i=0;i<node->parts.n;i++){
+		is_valid = is_valid && shaderprogram_loaded(X3D_SHADERPROGRAM(node->parts.p[i]));
+	}
+	node->isValid = is_valid;
+	if(node->isValid) 	MARK_NODE_COMPILED
+}
+static int effect_stack_count = 0;
+shaderflagsstruct getShaderFlags();
+void pushShaderFlags(shaderflagsstruct flags);
+void popShaderFlags();
+
+void sib_prep_Effect (struct X3D_Node *parent, struct X3D_Node *sibAffector) {
+	//unsigned int shaderflags;
+	shaderflagsstruct shaderflags;
+	struct X3D_Effect *node; 
+	ttglobal tg = gglobal();
+	ppComponent_ProgrammableShaders p = (ppComponent_ProgrammableShaders)tg->Component_ProgrammableShaders.prv;
+	node = (struct X3D_Effect*)sibAffector;
+	COMPILE_IF_REQUIRED
+	//unlike user shaders, we don't compile Effects - they are pasted into the ubershader which is compiled
+	// from Shape, so we put them on a stack/queue/list here so ubershader can paste them all
+	if(node->isValid){
+		//push effect onto effect stack, with unique effect bit mask
+		effect_stack_count++;
+		//printf("sib_prep_effect not implemented %d\n",effect_stack_count);
+		if (node->_shaderUserNumber == -1) node->_shaderUserNumber = getNextFreeEffectSlot();
+
+		shaderflags = getShaderFlags();
+		shaderflags.effects |= 1L << node->_shaderUserNumber;
+		pushShaderFlags(shaderflags);
+		stack_push(struct X3D_Node*,p->effect_stack,sibAffector);
+	}
+
+}
+void sib_fin_Effect (struct X3D_Node *parent, struct X3D_Node *sibAffector) {
+	struct X3D_Effect *node; 
+	ttglobal tg = gglobal();
+	ppComponent_ProgrammableShaders p = (ppComponent_ProgrammableShaders)tg->Component_ProgrammableShaders.prv;
+	node = (struct X3D_Effect*)sibAffector;
+	//pop effect and bit mask off effect stack
+	if(node->isValid){
+		effect_stack_count--;
+		//printf("sib_fin_effect not implemented %d\n",effect_stack_count);
+		stack_pop(struct X3D_Node*,p->effect_stack);
+		popShaderFlags();
+	}
+}
+
+Stack *getEffectStack(){
+	ttglobal tg = gglobal();
+	ppComponent_ProgrammableShaders p = (ppComponent_ProgrammableShaders)tg->Component_ProgrammableShaders.prv;
+	return p->effect_stack;
+}
+void update_effect_uniforms(){
+	Stack * effect_stack;
+	effect_stack =  getEffectStack();
+	if(effect_stack && effect_stack->n){
+		int i;
+		for(i=0;i<effect_stack->n;i++){
+			struct X3D_Effect *effect = vector_get(struct X3D_Effect*,effect_stack,i);
+			if (effect->isValid) {
+				if (!effect->_initialized) {
+					sendInitialFieldsToShader(X3D_NODE(effect));
+				}
+			}
+		}
+	}
+
 }

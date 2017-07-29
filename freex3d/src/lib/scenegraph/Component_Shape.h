@@ -33,11 +33,43 @@ Proximity sensor macro.
 /*******************************************************/
 
 
-// Bit-wise operations here - these can be OR'd together to
-// create the specific shader we want.
-//
-// DO NOT MESS UP THE BITS! (look at these in binary for 
-// proper or-ing of the values)
+/*
+
+ Bit-wise operations here - these can be OR'd together to
+ create the specific shader we want.
+
+ DO NOT MESS UP THE BITS! (look at these in binary for 
+ proper or-ing of the values)
+
+Sept 25, 2016:
+shaderflags changed from int to struct { int, int, int }
+{
+ base, built from bit flags, and is also a fallback if userShader is desired but doesn't compile
+ effect (castle Effect)
+ user shader number (programmableShader)
+}
+- Could have done one long long int with 3 ranges, or int[3] instead; struct seems handy.
+- In general needed more breathing room, especially for new effects which are bit mask or-able together, unlike
+  user shaders that do only one user shader at a time
+- now to test if its a usershader, just test if .usershaders != 0 (they start at 1)
+- need to memset(,0,) the struct if creating fresh
+- if need more bits in the future, add another member or change one to longlong
+	 and look for places where we see if its == ie in opengl_utils.c
+	 if (me->whichOne.base == rq_cap0.base && me->whichOne.effects == rq_cap0.effects && me->whichOne.usershaders == rq_cap0.usershaders) {
+
+*/
+
+typedef struct {
+int base;
+int effects;
+int usershaders; 
+int volume;
+} shaderflagsstruct;
+
+shaderflagsstruct getShaderFlags();
+s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
+
+
 
 #define NO_APPEARANCE_SHADER 0x0001
 #define MATERIAL_APPEARANCE_SHADER 0x0002
@@ -59,25 +91,62 @@ Proximity sensor macro.
 #define HAVE_TEXTURECOORDINATEGENERATOR 0x00200
 
 /* CubeMapTexturing */
-#define HAVE_CUBEMAP_TEXTURE 0x00400
+#define HAVE_CUBEMAP_TEXTURE   0x00400
+#define FOG_APPEARANCE_SHADER  0X00800
+#define HAVE_FOG_COORDS        0x01000
+#define TEXTURE_REPLACE_PRIOR  0x02000
+#define TEXALPHA_REPLACE_PRIOR 0x04000
+#define CPV_REPLACE_PRIOR      0x08000
+#define SHADINGSTYLE_FLAT      0x10000
+#define SHADINGSTYLE_GOURAUD   0x20000
+#define SHADINGSTYLE_PHONG     0x40000
+#define SHADINGSTYLE_WIRE      0x80000
+#define MAT_FIRST              0x100000
+#define WANT_ANAGLYPH          0x200000
+#define TEX3D_SHADER           0X400000
+#define TEX3D_LAYER_SHADER     0x800000
+#define CLIPPLANE_SHADER       0x1000000
+#define PARTICLE_SHADER        0X2000000
+#define HAVE_UNLIT_COLOR       0x4000000
+//can go up to 2^32 - for future components like volume, particle, hanim 
 
-/* Component_Shader - user-specified shaders. Currently limited in number */
-/* note we start at 0x1000 and count up by 1 for (currently) 255 shaders per program */
+//goes into flags.volume
+#define SHADERFLAGS_VOLUME_DATA_BASIC		0x001
+#define SHADERFLAGS_VOLUME_DATA_SEGMENT		0x002
+#define SHADERFLAGS_VOLUME_DATA_ISO			0x004
+#define SHADERFLAGS_VOLUME_DATA_ISO_MODE3	0x008
+//#define SHADERFLAGS_VOLUME_STYLE_OPACITY	0x001
+//#define SHADERFLAGS_VOLUME_STYLE_BLENDED	0x002
+//#define SHADERFLAGS_VOLUME_STYLE_BOUNDARY	0x004
+//#define SHADERFLAGS_VOLUME_STYLE_CARTOON	0x008
+//#define SHADERFLAGS_VOLUME_STYLE_COMPOSED	0x010
+//#define SHADERFLAGS_VOLUME_STYLE_EDGE		0x020
+//#define SHADERFLAGS_VOLUME_STYLE_PROJECTION	0x040
+//#define SHADERFLAGS_VOLUME_STYLE_SHADED		0x080
+//#define SHADERFLAGS_VOLUME_STYLE_SILHOUETTE	0x100
+//#define SHADERFLAGS_VOLUME_STYLE_TONE		0x200
 
-#define USER_DEFINED_SHADER_START	0x001000
-#define USER_DEFINED_SHADER_MASK    0x0FF000
-
-
+#define SHADERFLAGS_VOLUME_STYLE_DEFAULT	1
+#define SHADERFLAGS_VOLUME_STYLE_OPACITY	2
+#define SHADERFLAGS_VOLUME_STYLE_BLENDED	3
+#define SHADERFLAGS_VOLUME_STYLE_BOUNDARY	4
+#define SHADERFLAGS_VOLUME_STYLE_CARTOON	5
+#define SHADERFLAGS_VOLUME_STYLE_COMPOSED	6
+#define SHADERFLAGS_VOLUME_STYLE_EDGE		7
+#define SHADERFLAGS_VOLUME_STYLE_PROJECTION	8
+#define SHADERFLAGS_VOLUME_STYLE_SHADED		9
+#define SHADERFLAGS_VOLUME_STYLE_SILHOUETTE	10
+#define SHADERFLAGS_VOLUME_STYLE_TONE		11
 /*******************************************************/
 
 
 struct fw_MaterialParameters {
-		float emission[4];   
-		float ambient[4];    
-		float diffuse[4];    
-		float specular[4];   
-		float shininess; 
-	};
+	float emission[4];
+	float ambient[4];
+	float diffuse[4];
+	float specular[4];
+	float shininess; 
+};
 
 struct matpropstruct {
 	/* material properties for current shape */
@@ -89,23 +158,23 @@ struct matpropstruct {
 
 	float	transparency;
 	GLfloat	emissionColour[3];
-	GLint   cubeFace;		/* for cubemapping, if 0, not cube mapping */
-    	int 	cullFace;	       /* is this single-sided or two-sided? Simply used to reduce calls to
-					  GL_ENABLE(GL_CULL_FACE), etc */
-    
-    /* for FillProperties, and LineProperties, line type (NOT pointsize) */
-    int algorithm;
-    bool hatchedBool;
-    bool filledBool;
-    GLfloat hatchPercent[2];
-    GLfloat hatchScale[2];
-    GLfloat hatchColour[4];
+	GLint	cubeFace;	/* for cubemapping, if 0, not cube mapping */
+	int 	cullFace;	/* is this single-sided or two-sided? Simply used to reduce calls to
+						GL_ENABLE(GL_CULL_FACE), etc */
+
+	/* for FillProperties, and LineProperties, line type (NOT pointsize) */
+	int algorithm;
+	bool hatchedBool;
+	bool filledBool;
+	GLfloat hatchPercent[2];
+	GLfloat hatchScale[2];
+	GLfloat hatchColour[4];
 
 	// points now specified in shader, not via an opengl call 
 	GLfloat pointSize;   
-    
-    //TextureCoordinateGenerator value - a "TCGT_XXX" type
-    int texCoordGeneratorType;
+
+	//TextureCoordinateGenerator value - a "TCGT_XXX" type
+	int texCoordGeneratorType;
 };
 
 struct matpropstruct* getAppearanceProperties();
@@ -117,7 +186,7 @@ void setUserShaderNode(struct X3D_Node *me);
 #define RENDER_MATERIAL_SUBNODES(which) \
 	{ struct X3D_Node *tmpN;   \
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, which,tmpN) \
-       		if(tmpN) { \
+		if(tmpN) { \
 			render_node(tmpN); \
 		} \
 	}

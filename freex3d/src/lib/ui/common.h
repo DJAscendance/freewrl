@@ -20,9 +20,9 @@ Functions:
 
 /* Generic declarations */
 
-#define SCURSE 1
-#define ACURSE 0
-
+#define SCURSE 1 //sensor hand
+#define ACURSE 0 //arrow
+#define NCURSE 2 //none
 
 /* Status update functions */
 
@@ -31,7 +31,6 @@ void setMenuStatus(char *stat);
 void setMenuStatusVP(char *stat);
 char* getMenuStatus();
 void setMessageBar();
-
 
 /* Generic (virtual) update functions */
 
@@ -43,10 +42,16 @@ void setLookatCursor();
 void setWindowTitle0();
 void setWindowTitle();
 char *getMessageBar();
+char *getFpsBar();
 char *getWindowTitle();
 void updateCursorStyle();
 int getCursorStyle();
-
+void update_status(char* msg);
+void kill_status();
+char *get_status();
+char *getMenuStatus();
+void showConsoleText(int on);
+int getShowConsoleText();
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif

@@ -267,8 +267,7 @@ void quat2yawpitch(double *ypr, Quaternion *q){
 	ypr[2] = 0.0;
 }
 void test_euler(){
-	double aval,bval,dval,ypr[3];
-	Quaternion q1;
+	double aval;
 	aval = -MATH_PI/3.0;
 
 	if(0){
@@ -416,16 +415,16 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 	double scale = sqrt((x * x) + (y * y) + (z * z));
 
 	/* no rotation - use (multiplication ???) identity quaternion */
-	if (APPROX(scale, 0)) {
-		quat->w = 1;
-		quat->x = 0;
-		quat->y = 0;
-		quat->z = 0;
+	if (APPROX(scale, 0.0)) {
+		quat->w = 1.0;
+		quat->x = 0.0;
+		quat->y = 0.0;
+		quat->z = 0.0;
 
 	} else {
-		s = sin(a/2);
+		s = sin(a/2.0);
 		/* normalize rotation axis to convert VRML rotation to quaternion */
-		quat->w = cos(a / 2);
+		quat->w = cos(a / 2.0);
 		quat->x = s * (x / scale);
 		quat->y = s * (y / scale);
 		quat->z = s * (z / scale);
@@ -455,17 +454,24 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 void
 quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, double *a)
 {
-	double scale = sqrt(VECSQ(*quat));
-	if (APPROX(scale, 0)) {
+	
+	//double scale = sqrt(VECSQ(*quat));
+	Quaternion qn;
+	double scale;
+
+	quaternion_set(&qn,quat);
+	quaternion_normalize(&qn);
+	scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
+	if (APPROX(scale, 0.0)) {
 		*x = 0;
 		*y = 0;
 		*z = 1;
 		*a = 0;
 	} else {
-		*x = quat->x / scale;
-		*y = quat->y / scale;
-		*z = quat->z / scale;
-		*a = 2 * acos(quat->w);
+		*x = qn.x / scale;
+		*y = qn.y / scale;
+		*z = qn.z / scale;
+		*a = 2.0 * acos(qn.w);
 	}
 }
 

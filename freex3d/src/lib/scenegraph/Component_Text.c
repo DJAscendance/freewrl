@@ -39,9 +39,9 @@ X3D Text Component
 #include "../vrml_parser/Structs.h"
 #include "../input/InputFunctions.h"
 #include "../main/headers.h"
-#include "../opengl/Textures.h"
 #include "../scenegraph/Viewer.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Textures.h"
 
 #include "Collision.h"
 #include "LinearAlgebra.h"
@@ -57,18 +57,136 @@ X3D Text Component
 #include <sys/stat.h>
 #endif //ANDROID_DEBUG
 #endif //ANDROID
+#define HAVE_COMPILED_IN_FONT 1
 
-
+//googling for info on DPI, PPI:
+//DPI dots per inch (one dot == 1 pixel), in non-mac its 96 DPI constant for historical reasons
+//PPI points per inch 72 is a typography constant ie 1 point = 1/72 inch
 #define XRES 96
 #define YRES 96
 #define PPI 72
-#define POINTSIZE 20
+#define POINTSIZE 200  //20 before forced TTF hinting, which triggered tesselation combiner calls on intersections
 
 
 #define TOPTOBOTTOM (fsparam & 0x04)
-#define LEFTTORIGHT (!(fsparam & 0x02))
+#define LEFTTORIGHT (fsparam & 0x02)
+#define HORIZONTAL (fsparam & 0x01)
 
-#define OUT2GL(a) (p->x_size * (0.0 +a) / ((1.0*(p->font_face[p->myff]->height)) / PPI*XRES))
+
+/*	units and numerics with freetype2:
+	Even a very experienced programmer like dug9 can find the units and numerical precision
+	with freetype2 a bit bewildering at first. Here's freetype2's 'developer must-read concepts':
+	http://www.freetype.org/freetype2/docs/glyphs/index.html
+		http://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html   
+		- baseline, pens, origin, advance
+		http://www.freetype.org/freetype2/docs/glyphs/glyphs-5.html
+		- text layout algorithms
+	Here's my summary:
+	http://www.freetype.org/freetype2/docs/tutorial/step2.html
+	- see near the bottom of this link page for examples of playing with transforming variables.
+	x  except its not good at expressing units, you need to read paragraphs carefully, 
+		check different documentation, example code, API reference, put breakpoints to compare values
+	* I'll express the units here, like engineers do:
+	[fu] - font units or font design units or design units or grid units or EM units
+			- can be -32767 to +32767
+			- usually EMsquare is 2048 fu in size for truetype, 1000 for type1 fonts, both directions
+			- often expressed in fixed-point numbers
+	[du] - device units or display-device units or pixels on screen
+	[em] - 0 to 1 with 1 being the whole EMsquare, equivalent to [1] in most cases
+			http://designwithfontforge.com/en-US/The_EM_Square.html
+	[m/em]	 - the x3d units for mysize, spacing ie final coords [m] = mysize[m/em] * emcoords [em]
+	[in] - inch on screen/display device
+	[pt] - points ie 12 point font. There are 72 points per inch. [pt/in]
+	[1]  - [one] - unitless, or a ratio of 2 like-units ie [m/m] = [1]. ie usage: [unit] = [1] * [unit] 
+	units must balance on each side of an equation, examples:
+	x_scale [du/fu] = pixel_size_per_EM_x [du/em] / EM_size [fu/em]
+	device_x [du] = design_x [fu] * x_scale [du/fu]
+
+
+	Precision: Fixed-point numbers
+	many of the freetype2 parameters are expressed as fixed-point numbers 16.16 or 26.6:
+	https://en.wikibooks.org/wiki/Floating_Point/Fixed-Point_Numbers
+	dot16 - 16.16 Fixed-Point (a 32 bit integer, with half for radix, half for mantissa)  1111111111111111.1111111111111111
+	dot6  - 26.6 Fixed-Point (32 bit integer, with last 6 for radix                       11111111111111111111111111.111111
+	int32 - normal int
+	dble  - normal double
+	
+	Two ways to convert precision:
+	a) all int, with truncation:
+	dot16 = int32 << 16 or int32 * 0x10000 or int32 * 65536
+	dot6 = int32 << 6 or int32 * 64 
+	int32 = dot16 >> 16 or int32 / 65536  (truncates decimals)
+	int32 = dot6 >> 6 or int32 / 64
+	dot6 = dot16 >> 10 or dot16 / 1024 (truncates least significant decimals)
+	dot16 = dot6 << 10 or dot6 * 1024
+	freetype2 has some scaling functions optimized for speed:
+	http://www.freetype.org/freetype2/docs/reference/ft2-computations.html#FT_MulFix
+	
+	b) to/from doubles (preserves precision) (see wiwibooks link above for formulas):
+	dot16 = round( dble * 2**16)
+	dble = dot16 * 2**(-16) or (double)dot16 / (double) 65536
+	dot6 = round( dble * 2**6) = round(dble * 64.0) ~= dble * 64.0
+	dble = dot6 * 2**(-6) or (double)dot6 / (double)64
+	if you go dble = (double)dot6 you'll get coordinates x 2**6 or 64
+
+	Combining units and precision:
+	freetype's transformed glyph coordinates - the ones that come out in the callbacks lineto, moveto etc
+		are in in [du_dot6] http://www.freetype.org/freetype2/docs/glyphs/glyphs-6.html
+	[du_dot6] = [du]*64  - '1/64 of device units' 
+	Exmaple:
+	let DOT16 [dot16] = pow(2.0,16.0) == 2**16 = 65536.0
+	let DOT6 [dot6] = pow(2.0,6.0) == 2**6 = 64.0
+	//face->size->metrics.x_scale is in dot16, and scales directly to '1/64 of device pixels' or [du_dot6], from [fu]
+	x_scale         = (double)(face->size->metrics.x_scale) / DOT16; 
+	// [du_dot6/fu] = [du_dot16/fu]                          /[dot16]
+	x_scale1   =     x_scale / DOT6; 
+	// [du/fu] = [du_dot6/fu]/[dot6]
+
+	Specific variables:
+	the EM square concept:
+	http://designwithfontforge.com/en-US/The_EM_Square.html
+	- truetype fonts usually EM_size = 2048 [fu/em]
+	PPI - points per inch [pt/in], 72 by typographic convention
+	XRES - device resolution in dots or pixels per inch DPI [du/in], 
+		96 for screen by MS windows convention 
+		72 for mac by convention
+		(using freetype for a printer/plotter, you might use 300 for 300 DPI)
+		pixel_size = point_size * resolution / 72  
+		[du/em]    = [pt/em]    * [du/in]    / [pt/in]
+		pixel_coord = grid_coord * pixel_size / EM_size 
+		[du]        =  [fu]      * [du/em]   /  [fu/em]
+	http://www.freetype.org/freetype2/docs/reference/ft2-base_interface.html#FT_FaceRec
+	Face->height [fu_dot6/em] - baseline-to-baseline in font units 26.6
+	glyphslot->advance.x [du_dot16]
+
+	patterns to units and precision:
+	- as of Feb 2016 we keep our rowvec variables usually in meters [m] or x3d local coordinates
+	- freetype2 calls into the lineto, moveto etc callbacks with [du_dot6] (pixels) which we 
+		transform back to meters[m] or x3d local coords via OUT2GLB() + pen_x,y
+*/
+
+// [du_dot6] to [m]
+// freetype 'kerns' - moves glyphs slightly to align with output pixels to look great. But to do that
+// it needs some at least arbitrary font size in pixels, which we set in Set_Char_Size, to keep it happy.
+// Now we want to convert coordinates back from the callback units [du_dot6] or pixels
+// -which includes our Set_Char_Size() pointsize and XRES values-
+// to unitless[1] or [m] x3d local coordinates for opengl, by taking back the XRES and pointsize
+// [du] = [du_dot6]/[dot6]
+// a    = ftvertex / 64.0
+// [m] = [du] * [m/em]/[pt/em]   * [pt/in]/[du/in] * [1]
+// v   = a    * size  /POINTSIZE *  PPI   / XRES   * s
+#define OUT2GLB(a,s) ((double)(a) * p->size/64.0 / p->pointsize * (double)PPI/(double)XRES *s)
+
+
+/* 
+//don't need, not tested:
+// [m] to [du_dot6]
+// [du] = [m] * [pt/em]   / [m/em] *[du/in] / [pt/in] * [1]
+// a    = v   * POINTSIZE / size   * XRES   / PPI     * 1/s     
+// [du_dot6] = [du]*[dot6]
+// ftvertex  = a   * 64.0
+#define IN2DUDOT6(v,s) ((int)(((double)(v) / p->pointsize /  p->size * (double)XRES/(double)PPI * 1.0/s)*64.0))
+*/
 
 /* now defined in system_fonts.h
 include <ft2build.h>
@@ -76,7 +194,41 @@ include <ft2build.h>
 include FT_FREETYPE_H
 include FT_GLYPH_H */
 
+enum {
+	FONTSTATE_NONE,
+	FONTSTATE_TRIED,
+	FONTSTATE_LOADED,
+} fontstate;
+typedef struct chardata{
+	unsigned int iglyph; //glyph index in p->gplyphs[iglyph]
+	double advance; //char width or more precisely, advance of penx to next char start
+	double x; //pen_x [m]
+	double y; //pen_y [m]
+	double sx; //scale = shrink*rshrink [1]
+	double sy; //scale = shrink*rshrink [1]
+} chardata;
+typedef struct row32 {
+	int allocn;
+	int len32;
+	unsigned int *str32;
+	int iglyphstartindex;
+	double hrowsize; //sum of char widths [m]
+	double vcolsize; //len32 x charheight [m]
+	double widestchar; //widest char in the row [m]
+	chardata *chr;
+}row32;
 
+//this goes in text node _screendata field when _isScreen
+typedef struct screentextdata {
+	int nalloc;
+	int nrow;
+	row32 *rowvec;
+	void *atlasfont;
+	//void *set;
+	float size; //[m]
+	float faceheight;
+	float emsize;
+}screentextdata;
 typedef struct pComponent_Text{
 
 #if defined(_ANDROID) || defined(IPHONE)
@@ -92,7 +244,7 @@ typedef struct pComponent_Text{
 
 	#define num_fonts 32
 	FT_Face font_face[num_fonts];           /* handle to face object */
-	int     font_opened[num_fonts];         /* is this font opened   */
+	int     font_state[num_fonts];         /* is this font opened   */
 
 
 	/* we load so many gliphs into an array for processing */
@@ -100,7 +252,8 @@ typedef struct pComponent_Text{
 	FT_Glyph        glyphs[MAX_GLYPHS];
 	int             cur_glyph;
 	int             TextVerbose;// = FALSE;
-
+	int rowvec_allocn;
+	row32 *rowvec;
 
 	/* decompose interface func pointer */
 	FT_Outline_Funcs FW_outline_interface;
@@ -113,12 +266,13 @@ typedef struct pComponent_Text{
 
 	/* where are we? */
 	double pen_x, pen_y;
+	double shrink_x, shrink_y;
 
 	/* if this is a status bar, put depth different than 0.0 */
 	float TextZdist;
 
-	double x_size;          /* size of chars from file */
-	double y_size;          /* size of chars from file */
+	double size;          /* size of chars from file */
+	double pointsize;		/*POINTSIZE for FontStyle, pointSize for ScreenFontStyle*/
 	int   myff;             /* which index into font_face are we using  */
 
 
@@ -139,6 +293,25 @@ typedef struct pComponent_Text{
 
 	/* flag to determine if we need to call the open_font call */
 	int started;// = FALSE;
+	GLfloat *textpanel_vert;
+	GLfloat *textpanel_tex;
+	GLushort *textpanel_ind;
+	int textpanel_size;
+	int textpanel_vert_size;
+	int textpanel_tex_size;
+	int textpanel_ind_size;
+	struct Vector *font_table; 
+	struct Vector *atlas_table;
+	//bitmap font shader variables
+	GLuint positionLoc;
+	GLuint texCoordLoc;
+	GLuint textureLoc;
+	GLuint color4fLoc;
+	GLuint textureID; // = 0;
+	GLuint blendLoc;
+	GLuint modelviewLoc;
+	GLuint projectionLoc;
+	GLuint programObject;// = 0;
 
 
 }* ppComponent_Text;
@@ -158,14 +331,60 @@ void Component_Text_init(struct tComponent_Text *t){
 		p->font_directory = NULL;
 		/* flag to determine if we need to call the open_font call */
 		p->started = FALSE;
+		p->rowvec_allocn = 0;
+		p->rowvec = NULL;
+		p->pointsize = 0; 
+		p->textpanel_vert = NULL;
+		p->textpanel_tex = NULL;
+		p->textpanel_ind = NULL;
+		p->textpanel_size = 0;
+		p->font_table = NULL; 
+		p->atlas_table = NULL;
+		p->textureID = 0;
+		p->programObject = 0;
 	}
 }
+
+
+////////////////////////////////////////////////////////////////
+// Function Prototypes
+
+static void GUItablefree(struct Vector **guitable);
+static void dug9gui_DrawSubImage(float xpos,float ypos, float xsize, float ysize, int ix, int iy, int iw, int ih, int width, int height, int bpp, unsigned char *buffer);
+void finishedWithGlobalShader(void);
+void restoreGlobalShader();
+GLuint esLoadProgram ( const char *vertShaderSrc, const char *fragShaderSrc ); //defined in statuasbarHud.c
+static int FW_Open_Face(FT_Library library, char *thisfontname, int faceIndex, FT_Face *face);
+
+////////////////////////////////////////////////////////////////
+
 void Component_Text_clear(struct tComponent_Text *t){
 	//public
 	//private
 	{
 		ppComponent_Text p = (ppComponent_Text)t->prv;
 		FREE_IF_NZ(p->font_directory);
+		{
+			int row;
+			if(p->rowvec)
+			for(row=0;row<p->rowvec_allocn;row++){
+				FREE_IF_NZ(p->rowvec[row].str32);
+				FREE_IF_NZ(p->rowvec[row].chr);
+			}
+			FREE_IF_NZ(p->rowvec);
+		}
+		if(p->textpanel_size){
+			FREE_IF_NZ(p->textpanel_vert);
+			FREE_IF_NZ(p->textpanel_tex);
+			FREE_IF_NZ(p->textpanel_ind);
+		}
+		if(p->atlas_table){
+			GUItablefree(&p->atlas_table);
+		}
+		if(p->font_table){
+			GUItablefree(&p->font_table);
+		}
+			
 	}
 }
 //	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
@@ -183,14 +402,17 @@ void fwl_fontFileLocation(char *fontFileLocation) {
 }
 
 /* function prototypes */
-static void FW_NewVertexPoint(double Vertex_x, double Vertex_y);
+static void FW_NewVertexPoint();
 static int FW_moveto (FT_Vector* to, void* user);
 static int FW_lineto(FT_Vector* to, void* user);
 static int FW_conicto(FT_Vector* control, FT_Vector* to, void* user);
 static int FW_cubicto(FT_Vector* control1, FT_Vector* control2, FT_Vector* to, void* user);
 static void FW_make_fontname (int num);
-static int FW_init_face(void);
-static double FW_extent (int start, int length);
+static void render_screentext(struct X3D_Text * node);
+
+//static int FW_init_face(void);
+//static double FW_extent (int start, int length);
+
 static FT_Error FW_Load_Char(unsigned int idx);
 static void FW_draw_outline(FT_OutlineGlyph oglyph);
 static void FW_draw_character(FT_Glyph glyph);
@@ -207,28 +429,73 @@ void fwg_AndroidFontFile(FILE *myFile,int len) {
 #endif //ANDROID
 
 
-
 void render_Text (struct X3D_Text * node)
 {
-    COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL);
-    DISABLE_CULL_FACE;
-    render_polyrep(node);
+	if(node) {
+		if(node->_isScreen){
+			render_screentext(node);
+		}else{
+			COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL);
+			//DISABLE_CULL_FACE;
+			CULL_FACE(node->solid)
+			render_polyrep(node);
+		}
+	}
 }
 
-void FW_NewVertexPoint (double Vertex_x, double Vertex_y)
+static void FW_NewVertexPoint ()
 {
     GLDOUBLE v2[3];
 	ppComponent_Text p;
 	ttglobal tg = gglobal();
 	p = (ppComponent_Text)tg->Component_Text.prv;
 
-    UNUSED(Vertex_x);
-    UNUSED(Vertex_y);
+	/* //testing
+	{
+		double xx, yy, xx1,yy1, penx, peny, sx, sy, height, size;
+		int lastx,lasty, ppi, xres, dot6height, x_ppem, y_ppem;
+		double x_scale, y_scale, pixel_size_x, pixel_size_y, device_x, device_y, design_x, design_y;
+		double x_scale1, y_scale1;
+		double x_scale2, y_scale2;
+		ushort fu_per_em;
+		//FT_Size ftsize;
+		lastx = p->last_point.x;
+		lasty = p->last_point.y;
+		penx = p->pen_x;
+		peny = p->pen_y;
+		sx = p->shrink_x;
+		sy = p->shrink_y;
+		height = p->font_face[p->myff]->height;
+		fu_per_em = p->font_face[p->myff]->units_per_EM;
+		//ftsize = p->font_face[p->myff]->size;
+		dot6height = p->font_face[p->myff]->size->metrics.height;
+		x_ppem = p->font_face[p->myff]->size->metrics.x_ppem;
+		y_ppem = p->font_face[p->myff]->size->metrics.y_ppem;
+		x_scale = (double)(p->font_face[p->myff]->size->metrics.x_scale) / pow(2.0,16.0); // [du_dot6/fu] scales directly to 1/64 of device pixels
+		y_scale = (double)(p->font_face[p->myff]->size->metrics.y_scale) / pow(2.0,16.0); // [du_dot6/fu]
+		x_scale1 = x_scale / 64.0; // [du/fu] = [du_dot6/fu]*[1/dot6]
+		y_scale1 = y_scale / 64.0;
+		x_scale2 = (double)x_ppem / (double) fu_per_em; // [du/fu] = [du/em] / [fu/em]
+		y_scale2 = (double)y_ppem / (double) fu_per_em; // [du/fu] = [du/em] / [fu/em]
+		size = p->size;
+		ppi = PPI;
+		xres = XRES;
+		xx = OUT2GLB(p->last_point.x+p->pen_x,p->shrink_x);
+		//yy = OUT2GLB(p->last_point.y + p->pen_y,p->shrink_y);
+		yy = OUT2GLB(p->last_point.y ,p->shrink_y)    + p->pen_y;
+		//#define OUT2GLB(a,s) (p->size * (0.0 +a) / ((1.0*(p->font_face[p->myff]->height)) / PPI*XRES) *s)
+		xx1 = size * (0.0 +lastx + penx) / (height /ppi * xres) *sx;
+		yy1 = (size * (0.0 +lasty ) / (height /ppi * xres) *sy)  + peny;
+
+	}
+	*/
+	
 
     /* printf ("FW_NewVertexPoint setting coord index %d %d %d\n", */
     /*  p->FW_pointctr, p->FW_pointctr*3+2,p->FW_rep_->actualCoord[p->FW_pointctr*3+2]); */
-    p->FW_rep_->actualCoord[p->FW_pointctr*3+0] = (float) OUT2GL(p->last_point.x + p->pen_x);
-    p->FW_rep_->actualCoord[p->FW_pointctr*3+1] = (float) (OUT2GL(p->last_point.y) + p->pen_y);
+
+    p->FW_rep_->actualCoord[p->FW_pointctr*3+0] = (float) (OUT2GLB(p->last_point.x,p->shrink_x) + p->pen_x);
+    p->FW_rep_->actualCoord[p->FW_pointctr*3+1] = (float) (OUT2GLB(p->last_point.y,p->shrink_y) + p->pen_y);
     p->FW_rep_->actualCoord[p->FW_pointctr*3+2] = p->TextZdist;
 
     /* the following should NEVER happen.... */
@@ -241,7 +508,7 @@ void FW_NewVertexPoint (double Vertex_x, double Vertex_y)
     v2[0]=p->FW_rep_->actualCoord[p->FW_pointctr*3+0];
     v2[1]=p->FW_rep_->actualCoord[p->FW_pointctr*3+1];
     v2[2]=p->FW_rep_->actualCoord[p->FW_pointctr*3+2];
-
+	//July 2016 if you change things around here, you may want to check Tess.c Combiner callback
 	/* printf("glu s.b. rev 1.2 or newer, is: %s\n",gluGetString(GLU_VERSION)); */
     FW_GLU_TESS_VERTEX(tg->Tess.global_tessobj,v2,&p->FW_RIA[p->FW_RIA_indx]);
 
@@ -263,7 +530,7 @@ void FW_NewVertexPoint (double Vertex_x, double Vertex_y)
     }
 }
 #define GLU_UNKNOWN     100124
-int FW_moveto (FT_Vector* to, void* user)
+static int FW_moveto (FT_Vector* to, void* user)
 {
 	ppComponent_Text p;
 	ttglobal tg = gglobal();
@@ -288,7 +555,7 @@ int FW_moveto (FT_Vector* to, void* user)
     return 0;
 }
 
-int FW_lineto (FT_Vector* to, void* user)
+static int FW_lineto (FT_Vector* to, void* user)
 {
 	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
     UNUSED(user);
@@ -299,12 +566,13 @@ int FW_lineto (FT_Vector* to, void* user)
         return 0;
     }
 
-    p->last_point.x = to->x; p->last_point.y = to->y;
+    p->last_point.x = to->x; 
+	p->last_point.y = to->y;
+
     if (p->TextVerbose) {
         printf ("FW_lineto, going to %ld %ld\n",to->x, to->y);
     }
-
-    FW_NewVertexPoint(OUT2GL(p->last_point.x+p->pen_x), OUT2GL(p->last_point.y + p->pen_y));
+    FW_NewVertexPoint();
 
 
 
@@ -312,7 +580,7 @@ int FW_lineto (FT_Vector* to, void* user)
 }
 
 
-int FW_conicto (FT_Vector* control, FT_Vector* to, void* user)
+static int FW_conicto (FT_Vector* control, FT_Vector* to, void* user)
 {
     FT_Vector ncontrol;
 	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
@@ -326,7 +594,7 @@ int FW_conicto (FT_Vector* control, FT_Vector* to, void* user)
 
     /* Possible fix here!!! */
     ncontrol.x = (int) ((double) 0.25*p->last_point.x + 0.5*control->x + 0.25*to->x);
-    ncontrol.y =(int) ((double) 0.25*p->last_point.y + 0.5*control->y + 0.25*to->y);
+    ncontrol.y = (int) ((double) 0.25*p->last_point.y + 0.5*control->y + 0.25*to->y);
 
     /* printf ("Cubic points (%d %d) (%d %d) (%d %d)\n", p->last_point.x,p->last_point.y, */
     /* ncontrol.x, ncontrol.y, to->x,to->y); */
@@ -339,7 +607,7 @@ int FW_conicto (FT_Vector* control, FT_Vector* to, void* user)
     return 0;
 }
 
-int FW_cubicto (FT_Vector* control1, FT_Vector* control2, FT_Vector* to, void* user)
+static int FW_cubicto (FT_Vector* control1, FT_Vector* control2, FT_Vector* to, void* user)
 {
 	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
     /* really ignore control points */
@@ -351,9 +619,76 @@ int FW_cubicto (FT_Vector* control1, FT_Vector* control2, FT_Vector* to, void* u
     FW_lineto (to, user);
     return 0;
 }
+/*
+    bit:    0       BOLD        (boolean)
+    bit:    1       ITALIC      (boolean)
+    bit:    2       SERIF
+    bit:    3       SANS
+    bit:    4       TYPEWRITER
+*/
 
-
+struct name_num {
+	char * facename;
+	char *family;
+	char *style;
+	char *style2; //linux installed font systme may use oblique instead of italic - this is alternate oblique
+	int num;	//= (F << 2) + (I << 1) + B
+	int bold;   //B
+	int italic; //I
+	int ifamily;  //F 1=serif, 2=sans, 4=typewriter/mono
+} font_name_table [] = {
+	//face		family,		style ,		style2,				 num,B,I,F
+	{"VeraSe",	"serif",	NULL,		NULL,				0x04,0,0,1},	/* Serif */
+    {"VeraSeBd","serif",	"bold",		NULL,				0x05,1,0,1},	/* Serif Bold */
+    {"VeraSe",	"serif",	"italic",	NULL,				0x06,0,1,1},	/* Serif Ital */
+    {"VeraSeBd","serif","bold italic",	"bold oblique",		0x07,1,1,1},	/* Serif Bold Ital */
+    {"Vera",	"sans",		NULL,		NULL,				0x08,0,0,2},	/* Sans */
+    {"VeraBd",	"sans",		"bold",		NULL,				0x09,0,1,2},	/* Sans Bold */
+    {"VeraIt",	"sans",		"italic",	NULL,				0x0a,1,0,2},	/* Sans Ital */
+    {"VeraBI",	"sans","bold italic",	"bold oblique",		0x0b,1,1,2},	/* Sans Bold Ital */
+    {"VeraMono","monospace",NULL,		NULL,				0x10,0,0,4},	/* Monospace */
+    {"VeraMoBd","monospace","bold",		NULL,				0x11,1,0,4},	/* Monospace Bold */
+    {"VeraMoIt","monospace","italic",	NULL,				0x12,0,1,4},	/* Monospace Ital */
+    {"VeraMoBI","monospace","bold italic","bold oblique",	0x13,1,1,4},	/* Monospace Bold Ital */
+	{NULL,		NULL,		NULL,		NULL,				0,0,0,0},
+};
+struct name_num *get_fontname_entry_by_num(num){
+	int i;
+	struct name_num *retval = NULL;
+	i = 0;
+	while(font_name_table[i].facename){
+		if(font_name_table[i].num == num) {
+			retval = &font_name_table[i];
+			break;
+		}
+		i++;
+	}
+	return retval;
+}
+struct name_num *get_fontname_entry_by_facename(char *facename){
+	int i;
+	struct name_num *retval = NULL;
+	i = 0;
+	while(font_name_table[i].facename){
+		if(!strcmp(font_name_table[i].facename,facename)) {
+			retval = &font_name_table[i];
+			break;
+		}
+		i++;
+	}
+	return retval;
+}
+char *facename_from_num(int num){
+	char *retval;
+	struct name_num *val;
+	retval = NULL;
+	val = get_fontname_entry_by_num(num);
+	if(val) retval = val->facename;
+	return retval;
+}
 /* make up the font name */
+//#define HAVE_FONTCONFIG 1
+#ifdef HAVE_FONTCONFIG
 void FW_make_fontname(int num) {
 /*
     bit:    0       BOLD        (boolean)
@@ -383,7 +718,6 @@ void FW_make_fontname(int num) {
 */
 
     ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
-    #ifdef HAVE_FONTCONFIG
     FcPattern *FW_fp=NULL;
     FcChar8 *FW_file=NULL;
     FcResult result;
@@ -411,121 +745,64 @@ void FW_make_fontname(int num) {
     if(!set || !set->nfont) {
         printf("<debug> FontConfig has found zero fonts. This is probably a bad thing.\n");
     }
-    #else
-
-    if (!p->font_directory) {
-        printf("Internal error: no font directory.\n");
-        return;
-    }
-    strcpy (p->thisfontname, p->font_directory);
-    #endif
 
     switch (num) {
     case 0x04:			/* Serif */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"serif",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
-	#else
-	strcat (p->thisfontname,"/VeraSe.ttf");
-	#endif
 	break;
     case 0x05: 			/* Serif Bold */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"serif",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold");
-	#else
-	strcat (p->thisfontname,"/VeraSeBd.ttf");
-	#endif
 	break;
     case 0x06:			/* Serif Ital */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"serif",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"italic");
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"oblique");
-	#else
-	strcat (p->thisfontname,"/VeraSe.ttf");
-	#endif
 	break;
     case 0x07:			/* Serif Bold Ital */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"serif",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold italic");
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold oblique");
-	#else
-	strcat (p->thisfontname,"/VeraSeBd.ttf");
-	#endif
 	break;
     case 0x08:			/* Sans */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"sans",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
-	#else
-	strcat (p->thisfontname,"/Vera.ttf");
-	#endif
 	break;
     case 0x09: 			/* Sans Bold */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"sans",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold");
-	#else
-	strcat (p->thisfontname,"/VeraBd.ttf");
-	#endif
 	break;
     case 0x0a: 			/* Sans Ital */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"sans",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"italic");
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"oblique");
-	#else
-	strcat (p->thisfontname,"/VeraIt.ttf");
-	#endif
 	break;
     case 0x0b: 			/* Sans Bold Ital */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"sans",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold italic");
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold oblique");
-	#else
-	strcat (p->thisfontname,"/VeraBI.ttf");
-	#endif
 	break;
     case 0x10:			/* Monospace */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"monospace",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
-	#else
-	strcat (p->thisfontname,"/VeraMono.ttf");
-	#endif
 	break;
     case 0x11: 			/* Monospace Bold */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"monospace",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold");
-	#else
-	strcat (p->thisfontname,"/VeraMoBd.ttf");
-	#endif
 	break;
     case 0x12: /* Monospace Ital */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"monospace",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"italic");
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"oblique");
-	#else
-	strcat (p->thisfontname,"/VeraMoIt.ttf");
-	#endif
 	break;
     case 0x13: /* Monospace Bold Ital */
-	#ifdef HAVE_FONTCONFIG
 	FW_fp=FcPatternBuild(NULL,FC_FAMILY,FcTypeString,"monospace",FC_OUTLINE,FcTypeBool,FcTrue,NULL);
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold italic");
 	FcPatternAddString(FW_fp,FC_STYLE,(const FcChar8*)"bold oblique");
-	#else
-	strcat (p->thisfontname,"/VeraMoBI.ttf");
-	#endif
 	break;
     default:
 	printf ("dont know how to handle font id %x\n",num);
 	return;
     }
 
-    #ifdef HAVE_FONTCONFIG
     FcConfigSubstitute(0,FW_fp,FcMatchPattern);
     FcDefaultSubstitute(FW_fp);
     set = FcFontSort(0, FW_fp, 1, 0, &result);
@@ -553,112 +830,157 @@ void FW_make_fontname(int num) {
     FcPatternDestroy(FW_fp);
     //FcPatternDestroy(set); bad - corrupts heap, set isn't a Pattern
 	if (set) FcFontSetSortDestroy(set);
-    #endif
-}
 
+}
+#else
+
+void FW_make_fontname(int num) {
+/*
+    bit:    0       BOLD        (boolean)
+    bit:    1       ITALIC      (boolean)
+    bit:    2       SERIF
+    bit:    3       SANS
+    bit:    4       TYPEWRITER
+
+    JAS - May 2005 - The Vera freely distributable ttf files
+    are:
+
+    Vera.ttf
+    VeraMono.ttf
+    VeraSeBd.ttf
+    VeraSe.ttf
+    VeraMoBI.ttf
+    VeraMoIt.ttf
+    VeraIt.ttf
+    VeraMoBd.ttf
+    VeraBd.ttf
+    VeraBI.ttf
+
+    The files that were included were copyright Bitstream;
+    the Vera files are also from Bitstream, but are
+    freely distributable. See the copyright file in the
+    fonts directory.
+*/
+	char *fontname;
+    ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+    if (!p->font_directory) {
+        printf("Internal error: no font directory.\n");
+		//return;
+    }
+
+	fontname = facename_from_num(num);
+	if(!fontname){
+		printf ("dont know how to handle font id %x\n",num);
+		p->thisfontname[0] = 0;
+	}else{
+		if(p->font_directory){
+			strcpy (p->thisfontname, p->font_directory);
+			strcat(p->thisfontname,"/");
+		}
+		strcat(p->thisfontname,fontname);
+		strcat(p->thisfontname,".ttf");
+	}
+}
+#endif
 /* initialize the freetype library */
-static int FW_init_face()
+static FT_Face FW_init_face0(FT_Library library, char* thisfontname)
 {
     int err;
-	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+	FT_Face ftface;
+#ifdef _ANDROID
+	FT_Open_Args myArgs;
+#endif
+	ftface = NULL;
 
 #ifdef _ANDROID
-        FT_Open_Args myArgs;
+	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
 
-    if ((p->fileLen == 0) || (p->androidFontFile ==NULL)) {
-	ConsoleMessage ("FW_init_face, fileLen and/or androidFontFile issue");
-	return FALSE;
 
-    }
+	if ((p->fileLen == 0) || (p->androidFontFile ==NULL)) {
+		ConsoleMessage ("FW_init_face, fileLen and/or androidFontFile issue");
+		return ftface; //FALSE;
+	}
 
 #ifdef ANDROID_DEBUG
-   {
-	struct stat buf;
-   	int fh,result;
-
-ConsoleMessage ("TEXT INITIALIZATION - checking on the font file before doing anything");
-   if (0 == fstat(fileno(p->androidFontFile), &buf)) {
-      ConsoleMessage("TEXT INITIALIZATION file size is %ld\n", buf.st_size);
-      ConsoleMessage("TEXT INITIALIZATION time modified is %s\n", ctime(&buf.st_atime));
-   }
-
-    }
+	{
+		struct stat buf;
+		int fh,result;
+		ConsoleMessage ("TEXT INITIALIZATION - checking on the font file before doing anything");
+		if (0 == fstat(fileno(p->androidFontFile), &buf)) {
+			ConsoleMessage("TEXT INITIALIZATION file size is %ld\n", buf.st_size);
+			ConsoleMessage("TEXT INITIALIZATION time modified is %s\n", ctime(&buf.st_atime));
+		}
+	}
 #endif //ANDROID_DEBUG
 
 
-    // ConsoleMessage("FT_Open_Face looks ok to go");
+	// ConsoleMessage("FT_Open_Face looks ok to go");
 
-    unsigned char *myFileData = MALLOC(void *, p->fileLen+1);
-    size_t frv;
-    frv = fread (myFileData, (size_t)p->fileLen, (size_t)1, p->androidFontFile);
-    myArgs.flags  = FT_OPEN_MEMORY;
-    myArgs.memory_base = myFileData;
-    myArgs.memory_size = p->fileLen;
+	unsigned char *myFileData = MALLOC(void *, p->fileLen+1);
+	size_t frv;
+	frv = fread (myFileData, (size_t)p->fileLen, (size_t)1, p->androidFontFile);
+	myArgs.flags  = FT_OPEN_MEMORY;
+	myArgs.memory_base = myFileData;
+	myArgs.memory_size = p->fileLen;
 
-    err = FT_Open_Face(p->library, &myArgs, 0, &p->font_face[p->myff]);
-        if (err) {
-            char line[2000];
-            sprintf  (line,"FreeWRL - FreeType, can not set char size for font %s\n",p->thisfontname);
-            ConsoleMessage(line);
-            return FALSE;
-        } else {
-            p->font_opened[p->myff] = TRUE;
-        }
-
+	err = FT_Open_Face(library, &myArgs, 0, &ftface);
+	if (err) {
+		char line[2000];
+		sprintf  (line,"FreeWRL - FreeType, can not set char size for font %s\n",thisfontname);
+		ConsoleMessage(line);
+		return NULL; //FALSE;
+	}
 
 #ifdef ANDROID_DEBUG
-   {
-        struct stat buf;
-        int fh,result;
-
-   if (0 == fstat(fileno(p->androidFontFile), &buf)) {
-      ConsoleMessage("FIN TEXT INITIALIZATION file size is %ld\n", buf.st_size);
-      ConsoleMessage("FIN TEXT INITIALIZATION time modified is %s\n", ctime(&buf.st_atime));
-   }
-}
+	{
+		struct stat buf;
+		int fh,result;
+		if (0 == fstat(fileno(p->androidFontFile), &buf)) {
+			ConsoleMessage("FIN TEXT INITIALIZATION file size is %ld\n", buf.st_size);
+			ConsoleMessage("FIN TEXT INITIALIZATION time modified is %s\n", ctime(&buf.st_atime));
+		}
+	}
 #endif //ANDROID_DEBUG
 
 	fclose(p->androidFontFile);
 	p->androidFontFile = NULL;
 
-
 #else //ANDROID
-    /* load a font face */
-    err = FT_New_Face(p->library, p->thisfontname, 0, &p->font_face[p->myff]);
+	/* load a font face */
+	err = FW_Open_Face(library, thisfontname, 0, &ftface);
+
 #endif //ANDROID
 
-    if (err) {
-        printf ("FreeType - can not use font %s\n",p->thisfontname);
-        return FALSE;
-    } else {
-        /* access face content */
-        err = FT_Set_Char_Size(p->font_face[p->myff], /* handle to face object           */
-                               POINTSIZE*64,    /* char width in 1/64th of points  */
-                               POINTSIZE*64,    /* char height in 1/64th of points */
-                               XRES,            /* horiz device resolution         */
-                               YRES);           /* vert device resolution          */
+	if (err) {
+		printf ("FreeType - can not use font %s\n",thisfontname);
+		ftface = NULL; //FALSE;
+	}
 
-        if (err) {
-            printf ("FreeWRL - FreeType, can not set char size for font %s\n",p->thisfontname);
-            return FALSE;
-        } else {
-            p->font_opened[p->myff] = TRUE;
-        }
-    }
-    return TRUE;
+	return ftface;
 }
+int FW_set_facesize(FT_Face ftface,char *thisfontname, double pointsize){
+	// you can re-set the facesize after the fontface is loaded
+	//http://www.freetype.org/freetype2/docs/reference/ft2-base_interface.html#FT_Set_Char_Size
+	// googling, some say there are 72 points per inch in typography, or 1 point = 1/72 inch
+	FT_Error err;
+	int iret;
+	iret = FALSE;
+	if(ftface){
+		int pt_dot6;
+		iret = TRUE;
+		pt_dot6 = (int)(pointsize * 64.0 + .5);
+		err = FT_Set_Char_Size(ftface, /* handle to face object           */
+								pt_dot6, //pointsize*64,    /* char width in 1/64th of points [pt dot6] */
+								pt_dot6, //pointsize*64,    /* char height in 1/64th of points [pt dot6]*/
+								XRES,            /* horiz device resolution        [du/in] */
+								YRES);           /* vert device resolution         [du/in] */
 
-/* calculate extent of a range of characters */
-double FW_extent (int start, int length)
-{
-    int count;
-    double ret = 0;
-	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
-
-    for (count = start; count <length+start; count++) {
-        ret += p->glyphs[count]->advance.x >> 10;
-    }
-    return ret;
+		if (err) {
+			printf ("FreeWRL - FreeType, can not set char size for font %s\n",thisfontname);
+			iret =  FALSE;
+		} 
+	}
+	return iret;
 }
 
 /* Load a character, a maximum of MAX_GLYPHS are here. Note that no
@@ -690,25 +1012,41 @@ FT_Error  FW_Load_Char(unsigned int idx)
     if (!error) { p->glyphs[p->cur_glyph++] = glyph; }
     return error;
 }
-
+//typedef struct our_combiner_data {
+//	float *coords;
+//	int *counter;
+//} our_combiner_data;
 static void FW_draw_outline (FT_OutlineGlyph oglyph)
 {
     int thisptr = 0;
     int retval = 0;
 	ppComponent_Text p;
+	text_combiner_data cbdata;
 	ttglobal tg = gglobal();
 	p = (ppComponent_Text)tg->Component_Text.prv;
 
     /* gluTessBeginPolygon(global_tessobj,NULL); */
+	gluTessNormal(tg->Tess.global_tessobj,0.0,0.0,1.0);
+   // FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
+    //p->FW_rep_->actualCoord[p->FW_pointctr*3+0] = (float) (OUT2GLB(p->last_point.x,p->shrink_x) + p->pen_x);
+	cbdata.coords = p->FW_rep_->actualCoord;
+	cbdata.counter = &p->FW_pointctr;
+	cbdata.ria = p->FW_RIA;
+	cbdata.riaindex = &p->FW_RIA_indx;
+    //p->FW_RIA[p->FW_RIA_indx]=p->FW_pointctr;
+	//July 2016 if you change things around here, you may want to also check Tess.c Combiner callback
 
-    FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
+	gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata );
+	gluTessBeginContour( tg->Tess.global_tessobj );
     p->FW_Vertex = 0;
 
     /* thisptr may possibly be null; I dont think it is use in freetype */
     retval = FT_Outline_Decompose( &oglyph->outline, &p->FW_outline_interface, &thisptr);
 
     /* gluTessEndPolygon(global_tessobj); */
-    FW_GLU_END_POLYGON(tg->Tess.global_tessobj);
+	gluTessEndContour( tg->Tess.global_tessobj );
+	gluTessEndPolygon( tg->Tess.global_tessobj );
+    //FW_GLU_END_POLYGON(tg->Tess.global_tessobj);
 
     if (retval != FT_Err_Ok)
         printf("FT_Outline_Decompose, error %d\n",retval);
@@ -720,7 +1058,7 @@ static void FW_draw_character (FT_Glyph glyph)
 	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
     if (glyph->format == ft_glyph_format_outline) {
         FW_draw_outline ((FT_OutlineGlyph) glyph);
-        p->pen_x +=  (glyph->advance.x >> 10);
+        p->pen_x +=  (glyph->advance.x >> 10); //[fu dot6] = [fu dot16_to_dot6(dot16)]
     } else {
         printf ("FW_draw_character; glyphformat  -- need outline for %s %s\n",
                 p->font_face[p->myff]->family_name,p->font_face[p->myff]->style_name);
@@ -728,470 +1066,6 @@ static void FW_draw_character (FT_Glyph glyph)
     if (p->TextVerbose) printf ("done character\n");
 }
 
-/* UTF-8 to UTF-32 conversion -
-// x3d and wrl strings are supposed to be in UTF-8
-// when drawing strings, FreeType will take a UTF-32"
-// http://en.wikipedia.org/wiki/UTF-32/UCS-4
-// conversion method options:
-// libicu
-//    - not used - looks big
-//    - http://site.icu-project.org/   LIBICU  - opensource, C/C++ and java.
-// mbstocws
-//    - win32 version didn't seem to do any converting
-// iconv - gnu libiconv
-//    - http://gnuwin32.sourceforge.net/packages/libiconv.htm
-//    - the win32 version didn't run - bombs on open
-// guru code:
-//    - adopted - or at least the simplest parts
-//    - not rigourous checking though - should draw bad characters if
-//      if you have it wrong in the file
-//    - http://floodyberry.wordpress.com/2007/04/14/utf-8-conversion-tricks/
-//    - not declared opensource, so we are using the general idea
-//      in our own code
-*/
-const unsigned int Replacement = ( 0xfffd );
-const unsigned char UTF8TailLengths[256] = {
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-	3,3,3,3,3,3,3,3,4,4,4,4,5,5,0,0
-};
-
-unsigned int utf8_to_utf32_char(unsigned char *s, unsigned char *end, unsigned int *inc ) {
-	unsigned int tail, i, c;
-	c = (*s);
-	s++;
-	(*inc)++;
-	if( c < 0x80 )
-		return c; //regular ASCII
-	tail = UTF8TailLengths[c];
-	if( !tail  || (s + tail > end))
-		return Replacement;
-
-	//decoding loop
-	c &= ( 0x3f >> tail );
-	for(i=0;i<tail;++i) {
-		if( (s[i] & 0xc0) != 0x80 )
-			break;
-		c = (c << 6) + (s[i] & 0x3f);
-	}
-
-	//s += i;
-	(*inc) += i;
-	if( i != tail )
-		return Replacement;
-	return c;
-}
-
-unsigned int *utf8_to_utf32(unsigned char *utf8string, unsigned int *len32)
-{
-	//does the UTF-8 to UTF-32 conversion
-	//it allocates the unsigned int array it returns - please FREE() it
-	//it adds an extra on the end and null-terminates
-	//len32 is the length, not including the null/0 termination.
-	unsigned int *to, *to0;
-	unsigned char *start, *end;
-	int lenchar, l32;
-	lenchar = (int)strlen((const char *)utf8string);
-	to0 = to = MALLOC(unsigned int*,(lenchar + 1)*sizeof(unsigned int));
-	start = utf8string;
-	end = (unsigned char *)&utf8string[lenchar];
-	l32 = 0;
-	while ( start < end ) {
-		while ( ( *start < 0x80 ) && ( start < end ) ) {
-			*to++ = *start++;
-			l32++;
-		}
-		if ( start < end ) {
-			unsigned int inc = 0;
-			*to++ = utf8_to_utf32_char(start,end,&inc);
-			start += inc;
-			//start++; //done in above function
-			l32++;
-		}
-	}
-	to0[l32] = 0;
-	*len32 = l32;
-	return to0;
-}
-int utf8_to_utf32_bytes(unsigned char *s, unsigned char *end)
-{
-	unsigned int tail, c;
-	int inc =0;
-	c = (*s);
-	s++;
-	inc++;
-	if( c < 0x80 )
-		return 1; //regular ASCII 1 byte
-	tail = UTF8TailLengths[c];
-	tail = s + tail > end ? (unsigned int)end - (unsigned int)s : tail; //min(tail,end-s)
-	return tail + 1;
-}
-int len_utf8(unsigned char *utf8string)
-{
-	unsigned char *start, *end;
-	int lenchar, l32;
-	lenchar = (int)strlen((const char *)utf8string);
-	start = utf8string;
-	end = (unsigned char *)&utf8string[lenchar];
-	l32 = 0;
-	while ( start < end ) {
-		while ( ( *start < 0x80 ) && ( start < end ) ) {
-			start++;
-			l32++; //ASCII char
-		}
-		if ( start < end ) {
-			start += utf8_to_utf32_bytes(start,end);
-			l32++;
-		}
-	}
-	return l32;
-}
-
-
-/* take a text string, font spec, etc, and make it into an OpenGL Polyrep.
-   Note that the text comes EITHER from a SV (ie, from perl) or from a directstring,
-   eg, for placing text on the screen from within FreeWRL itself */
-
-void FW_rendertext(unsigned int numrows,struct Uni_String **ptr, char *directstring,
-                   unsigned int nl, double *length, double maxext,
-                   double spacing, double mysize, unsigned int fsparam,
-                   struct X3D_PolyRep *rp)
-{
-    unsigned char *str = NULL; /* string pointer- initialization gets around compiler warning */
-    unsigned int i,row;
-    double shrink = 0;
-    double rshrink = 0;
-    int counter=0;
-    int char_count=0;
-    int est_tri=0;
-	ppComponent_Text p;
-	ttglobal tg = gglobal();
-	p = (ppComponent_Text)tg->Component_Text.prv;
-
-    /* fsparam has the following bitmaps:
-
-    bit:    0       horizontal  (boolean)
-    bit:    1       leftToRight (boolean)
-    bit:    2       topToBottom (boolean)
-    (style)
-    bit:    3       BOLD        (boolean)
-    bit:    4       ITALIC      (boolean)
-    (family)
-    bit:    5       SERIF
-    bit:    6       SANS
-    bit:    7       TYPEWRITER
-    bit:    8       indicates exact font pointer (future use)
-    (Justify - major)
-    bit:    9       FIRST
-    bit:    10      BEGIN
-    bit:    11      MIDDLE
-    bit:    12      END
-    (Justify - minor)
-    bit:    13      FIRST
-    bit:    14      BEGIN
-    bit:    15      MIDDLE
-    bit:    16      END
-
-    bit: 17-31      spare
-    */
-
-    /* z distance for text - only the status bar has anything other than 0.0 */
-    if (directstring) {
-#ifdef CALCAULATEANGLETAN
-        float angletan;
-        /* convert fieldofview into radians */
-        angletan = fieldofview / 360.0f * PI * 2;
-
-        /* take half of the angle; */
-        angletan = angletan / 2.0f;
-
-        /* find the tan of it; */
-        angletan = tanf (angletan);
-
-        /* and, divide the "general" text size by it */
-        p->TextZdist = -0.010/angletan;
-        //printf ("fov %f tzd %f \n",(float) fieldofview, (float) p->TextZdist);
-#else
-        /* the equation should be simple, but it did not work. Lets try the following: */
-        if (Viewer()->fieldofview < 12.0f) {
-            p->TextZdist = -12.0f;
-        } else if (Viewer()->fieldofview < 46.0f) {
-            p->TextZdist = -0.2f;
-        } else if (Viewer()->fieldofview  < 120.0f) {
-            p->TextZdist = +2.0f;
-        } else {
-            p->TextZdist = + 2.88f;
-        }
-#endif
-    } else {
-        p->TextZdist = 0.0f;
-    }
-
-    /* have we done any rendering yet */
-    /* do we need to call open font? */
-    if (!p->started) {
-        if (open_font()) {
-            p->started = TRUE;
-        } else {
-            printf ("Could not find System Fonts for Text nodes\n");
-            return;
-        }
-    }
-
-    if (p->TextVerbose)
-        printf ("entering FW_Render_text \n");
-
-
-    p->FW_rep_ = rp;
-
-    p->FW_RIA_indx = 0;            /* index into FW_RIA                                  */
-    p->FW_pointctr=0;              /* how many points used so far? maps into rep-_coord  */
-    p->indx_count=0;               /* maps intp FW_rep_->cindex                          */
-    p->contour_started = FALSE;
-
-    p->pen_x = 0.0; p->pen_y = 0.0;
-    p->cur_glyph = 0;
-    p->x_size = mysize;            /* global variable for size */
-    p->y_size = mysize;            /* global variable for size */
-
-    /* is this font opened */
-    p->myff = (fsparam >> 3) & 0x1F;
-
-#if defined (ANDROID)
-// Android - for now, all fonts are identical
-p->myff = 4;
-#endif
-
-    if (p->myff <4) {
-        /* we dont yet allow externally specified fonts, so one of
-           the font style bits HAS to be set. If there was no FontStyle
-           node, this will be blank, so... */
-        p->myff = 4;
-    }
-
-    if (!p->font_opened[p->myff]) {
-        FW_make_fontname(p->myff);
-        if (!FW_init_face()) {
-            /* tell this to render as fw internal font */
-            FW_make_fontname (0);
-            FW_init_face();
-        }
-    }
-	if(!p->font_face[p->myff]) return; //couldn't load fonts
-    /* type 1 fonts different than truetype fonts */
-    if (p->font_face[p->myff]->units_per_EM != 1000)
-        p->x_size = p->x_size * p->font_face[p->myff]->units_per_EM/1000.0;
-
-    /* if we have a direct string, then we only have ONE, so initialize it here */
-    if (directstring != 0) str = (unsigned char *)directstring;
-
-    /* load all of the characters first... */
-    for (row=0; row<numrows; row++) {
-        if (directstring == 0)
-            str = (unsigned char *)ptr[row]->strptr;
-		if(0){
-			for(i=0; i<strlen((const char *)str); i++) {
-					FW_Load_Char(str[i]);
-				char_count++;
-			}
-		}else{
-			/* utf8_to_utf32 */
-			unsigned int len32;
-			unsigned int *utf32;
-			utf32 = utf8_to_utf32(str,&len32);
-			for(i=0;i<len32;i++)
-				FW_Load_Char(utf32[i]);
-			char_count += len32;
-			FREE_IF_NZ(utf32);
-
-		}
-    }
-
-    if (p->TextVerbose) {
-        printf ("Text: rows %d char_count %d\n",numrows,char_count);
-    }
-
-    /* what is the estimated number of triangles? assume a certain number of tris per char */
-    est_tri = char_count*800; /* 800 was TESS_MAX_COORDS - REALLOC if needed */
-    p->coordmaxsize=est_tri;
-    p->cindexmaxsize=est_tri;
-    p->FW_rep_->cindex=MALLOC(GLuint *, sizeof(*(p->FW_rep_->cindex))*est_tri);
-    p->FW_rep_->actualCoord = MALLOC(float *, sizeof(*(p->FW_rep_->actualCoord))*est_tri*3);
-
-    if(maxext > 0) {
-        double maxlen = 0;
-        double l;
-        int counter = 0;
-
-        for(row = 0; row < numrows; row++) {
-			int lenchars = 0;
-            if (directstring == 0) str = (unsigned char *)ptr[row]->strptr;
-			if(0){
-				lenchars = (int)strlen((const char *)str);
-			}else{
-				/* utf8_to_utf32 */
-				lenchars = len_utf8(str);
-			}
-            l = FW_extent(counter,(int) lenchars);
-            counter += (int) lenchars;
-            if(l > maxlen) {maxlen = l;}
-        }
-
-        if(maxlen > maxext) {shrink = maxext / OUT2GL(maxlen);}
-    }
-
-    /* topToBottom */
-    if (TOPTOBOTTOM) {
-        spacing =  -spacing;  /* row increment */
-        p->pen_y = 0.0;
-    } else {
-        p->pen_y -= numrows-1;
-    }
-
-    /* leftToRight */
-    if (LEFTTORIGHT) {
-        FW_GL_ROTATE_D(180.0,0.0,1.0,0.0);
-    }
-
-
-    for(row = 0; row < numrows; row++) {
-		unsigned int lenchars;
-        double rowlen;
-
-        if (directstring == 0) str = (unsigned char *)ptr[row]->strptr;
-        if (p->TextVerbose)
-            printf ("text2 row %d :%s:\n",row, str);
-        p->pen_x = 0.0;
-        rshrink = 0.0;
-		if(0)
-			lenchars = (int)strlen((const char *)str);
-		else
-			lenchars = len_utf8(str);
-        rowlen = FW_extent(counter,lenchars);
-        if((row < nl) && (APPROX(length[row],0.0))) {
-            rshrink = length[row] / OUT2GL(rowlen);
-        }
-        if(shrink>0.0001) { FW_GL_SCALE_D(shrink,1.0,1.0); }
-        if(rshrink>0.0001) { FW_GL_SCALE_D(rshrink,1.0,1.0); }
-
-        /* Justify, FIRST, BEGIN, MIDDLE and END */
-
-        /* MIDDLE */
-        if (fsparam & 0x800) { p->pen_x = -rowlen/2.0; }
-
-        /* END */
-        if ((fsparam & 0x1000) && (fsparam & 0x01)) {
-            /* printf ("rowlen is %f\n",rowlen); */
-            p->pen_x = -rowlen;
-        }
-
-
-
-        for(i=0; i<lenchars; i++) {
-            /* FT_UInt glyph_index; */
-            /* int error; */
-            int x;
-
-            tg->Tess.global_IFS_Coord_count = 0;
-            p->FW_RIA_indx = 0;
-
-
-            FW_draw_character (p->glyphs[counter+i]);
-
-
-            FT_Done_Glyph (p->glyphs[counter+i]);
-
-
-
-            /* copy over the tesselated coords for the character to
-             * the rep structure */
-
-            for (x=0; x<tg->Tess.global_IFS_Coord_count; x++) {
-                 /*printf ("copying %d\n",global_IFS_Coords[x]); */
-
-                /* did the tesselator give us back garbage? */
-
-                if ((tg->Tess.global_IFS_Coords[x] >= p->cindexmaxsize) ||
-                    (p->indx_count >= p->cindexmaxsize) ||
-                    (tg->Tess.global_IFS_Coords[x] < 0)) {
-                     if (p->TextVerbose)
-                     printf ("Tesselated index %d out of range; skipping indx_count, %d cindexmaxsize %d global_IFS_Coord_count %d\n",
-                     tg->Tess.global_IFS_Coords[x],p->indx_count,p->cindexmaxsize,tg->Tess.global_IFS_Coord_count);
-                    /* just use last point - this sometimes happens when */
-                    /* we have intersecting lines. Lets hope first point is */
-                    /* not invalid... JAS */
-                    p->FW_rep_->cindex[p->indx_count] = p->FW_rep_->cindex[p->indx_count-1];
-                    if (p->indx_count < (p->cindexmaxsize-1)) p->indx_count ++;
-                } else {
-					/*
-                    printf("global_ifs_coords is %d indx_count is %d \n",global_IFS_Coords[x],p->indx_count);
-                    printf("filling up cindex; index %d now points to %d\n",p->indx_count,global_IFS_Coords[x]);
-					*/
-                    p->FW_rep_->cindex[p->indx_count++] = tg->Tess.global_IFS_Coords[x];
-                }
-            }
-
-            if (p->indx_count > (p->cindexmaxsize-400)) {
-                p->cindexmaxsize += 800; /* 800 was TESS_MAX_COORDS; */
-                p->FW_rep_->cindex=(GLuint *)REALLOC(p->FW_rep_->cindex,sizeof(*(p->FW_rep_->cindex))*p->cindexmaxsize);
-            }
-        }
-        counter += lenchars;
-
-        p->pen_y += spacing * p->y_size;
-    }
-    /* save the triangle count (note, we have a "vertex count", not a "triangle count" */
-    p->FW_rep_->ntri=p->indx_count/3;
-
-
-
-    /* set these variables so they are not uninitialized */
-    p->FW_rep_->ccw=FALSE;
-
-    /* if indx count is zero, DO NOT get rid of MALLOCd memory - creates a bug as pointers cant be null */
-    if (p->indx_count !=0) {
-        /* REALLOC bug in linux - this causes the pointers to be eventually lost... */
-        /* REALLOC (p->FW_rep_->cindex,sizeof(*(p->FW_rep_->cindex))*p->indx_count); */
-        /* REALLOC (p->FW_rep_->actualCoord,sizeof(*(p->FW_rep_->actualCoord))*p->FW_pointctr*3); */
-    }
-
-    /* now, generate normals */
-    p->FW_rep_->normal = MALLOC(float *, sizeof(*(p->FW_rep_->normal))*p->indx_count*3);
-    for (i = 0; i<(unsigned int)p->indx_count; i++) {
-        p->FW_rep_->normal[i*3+0] = 0.0f;
-        p->FW_rep_->normal[i*3+1] = 0.0f;
-        p->FW_rep_->normal[i*3+2] = 1.0f;
-    }
-
-    /* do we have texture mapping to do? */
-    if (HAVETODOTEXTURES) {
-        p->FW_rep_->GeneratedTexCoords = MALLOC(float *, sizeof(*(p->FW_rep_->GeneratedTexCoords))*(p->FW_pointctr+1)*3);
-        /* an attempt to try to make this look like the NIST example */
-        /* I can't find a standard as to how to map textures to text JAS */
-        for (i=0; i<(unsigned int)p->FW_pointctr; i++) {
-            p->FW_rep_->GeneratedTexCoords[i*3+0] = p->FW_rep_->actualCoord[i*3+0]*1.66f;
-            p->FW_rep_->GeneratedTexCoords[i*3+1] = 0.0f;
-            p->FW_rep_->GeneratedTexCoords[i*3+2] = p->FW_rep_->actualCoord[i*3+1]*1.66f;
-        }
-    }
-
-
-
-    if (p->TextVerbose) printf ("exiting FW_Render_text\n");
-}
 
 int open_font()
 {
@@ -1218,19 +1092,16 @@ int open_font()
 	//ConsoleMessage("font directory=%s\n",p->font_directory);
     /* were fonts not found? */
     if (p->font_directory == NULL) {
-#ifdef AQUA
-        ConsoleMessage ("No Fonts; this should not happen on OSX computers; contact FreeWRL team\n");
-#else
-        ConsoleMessage ("No Fonts; check the build parameter --with-fontsdir, or set FREEWRL_FONTS_DIR environment variable\n");
-#endif
-        return FALSE;
+
+        ConsoleMessage ("Have a Text node, but no font library or directory found; continuing with a default builtin font\n");
+
     }
 #endif //HAVE_FONTCONFIG
 #endif //ANDROID
 
     /* lets initialize some things */
     for (len = 0; len < num_fonts; len++) {
-        p->font_opened[len] = FALSE;
+        p->font_state[len] = FONTSTATE_NONE;
     }
 
     if ((err = FT_Init_FreeType(&p->library))) {
@@ -1240,27 +1111,830 @@ int open_font()
 
     return TRUE;
 }
+int open_FTlibrary_if_not_already(){
+	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+	if (!p->started) {
+		if (open_font()) {
+			p->started = TRUE;
+		} else {
+			printf ("Could not find System Fonts for Text nodes\n");
+		}
+	}
+	return p->started;
+}
+FT_Library getFontLibrary(){
+	FT_Library library;
+	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+	library = NULL;
+	if(open_FTlibrary_if_not_already())
+		library = p->library;
+	return library;		
+}
+
+/* UTF-8 to UTF-32 conversion -
+// x3d and wrl strings are supposed to be in UTF-8
+// when drawing strings, FreeType will take a UTF-32"
+// http://en.wikipedia.org/wiki/UTF-32/UCS-4
+// conversion method options:
+// libicu
+//    - not used - looks big
+//    - http://site.icu-project.org/   LIBICU  - opensource, C/C++ and java.
+// mbstocws
+//    - win32 version didn't seem to do any converting
+// iconv - gnu libiconv
+//    - http://gnuwin32.sourceforge.net/packages/libiconv.htm
+//    - the win32 version didn't run - bombs on open
+// guru code:
+//    - adopted - or at least the simplest parts
+//    - not rigourous checking though - should draw bad characters if
+//      if you have it wrong in the file
+//    - http://floodyberry.wordpress.com/2007/04/14/utf-8-conversion-tricks/
+//    - not declared opensource, so we are using the general idea
+//      in our own code
+*/
+static const unsigned int Replacement = ( 0xfffd );
+static const unsigned char UTF8TailLengths[256] = {
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+	3,3,3,3,3,3,3,3,4,4,4,4,5,5,0,0
+};
+
+static unsigned int utf8_to_utf32_char(unsigned char *s, unsigned char *end, unsigned int *inc ) {
+	unsigned int tail, i, c;
+	c = (*s);
+	s++;
+	(*inc)++;
+	if( c < 0x80 )
+		return c; //regular ASCII
+	tail = UTF8TailLengths[c];
+	if( !tail  || (s + tail > end))
+		return Replacement;
+
+	//decoding loop
+	c &= ( 0x3f >> tail );
+	for(i=0;i<tail;++i) {
+		if( (s[i] & 0xc0) != 0x80 )
+			break;
+		c = (c << 6) + (s[i] & 0x3f);
+	}
+
+	//s += i;
+	(*inc) += i;
+	if( i != tail )
+		return Replacement;
+	return c;
+}
+
+// called in MainLoop.c
+unsigned int *utf8_to_utf32(unsigned char *utf8string, unsigned int *str32, unsigned int *len32)
+{
+	//does the UTF-8 to UTF-32 conversion
+	//it allocates the unsigned int array it returns - please FREE() it
+	//it adds an extra on the end and null-terminates
+	//len32 is the length, not including the null/0 termination.
+	unsigned int *to, *to0;
+	unsigned char *start, *end;
+	int lenchar, l32;
+	lenchar = (int)strlen((const char *)utf8string);
+	to0 = to = str32; //MALLOC(unsigned int*,(lenchar + 1)*sizeof(unsigned int));
+	start = utf8string;
+	end = (unsigned char *)&utf8string[lenchar];
+	l32 = 0;
+	while ( start < end ) {
+		while ( ( *start < 0x80 ) && ( start < end ) ) {
+			*to++ = *start++;
+			l32++;
+		}
+		if ( start < end ) {
+			unsigned int inc = 0;
+			*to++ = utf8_to_utf32_char(start,end,&inc);
+			start += inc;
+			//start++; //done in above function
+			l32++;
+		}
+	}
+	//to0[l32] = 0;
+	*len32 = l32;
+	return to0;
+}
+
+#ifdef OLDCODE
+
+Seems to be unused - JAS - April 2017
+
+static unsigned int utf8_to_utf32_bytes(unsigned char *s, unsigned char *end)
+{
+	unsigned int tail, c;
+	int inc =0;
+	c = (*s);
+	s++;
+	inc++;
+	if( c < 0x80 )
+		return 1; //regular ASCII 1 byte
+	tail = UTF8TailLengths[c];
+	tail = s + tail > end ? (unsigned int)end - (unsigned int)s : tail; //min(tail,end-s)
+	return tail + 1;
+}
+#endif //OLDCODE
+
+
+#ifdef OLDCODE
+
+Seems to be unused - JAS - April 2017
+
+static unsigned int len_utf8(unsigned char *utf8string)
+{
+	unsigned char *start, *end;
+	int lenchar, l32;
+	lenchar = (int)strlen((const char *)utf8string);
+	start = utf8string;
+	end = (unsigned char *)&utf8string[lenchar];
+	l32 = 0;
+	while ( start < end ) {
+		while ( ( *start < 0x80 ) && ( start < end ) ) {
+			start++;
+			l32++; //ASCII char
+		}
+		if ( start < end ) {
+			start += utf8_to_utf32_bytes(start,end);
+			l32++;
+		}
+	}
+	return l32;
+}
+#endif //OLDCODE
+
+
+
+#include <malloc.h>
+
+void register_Polyrep_combiner();
+void prep_screentext(struct X3D_Text *tnode, int num, double screensize);
+/* take a text string, font spec, etc, and make it into an OpenGL Polyrep or rowvec[] for screen(pixel) font
+   For placing text on the screen directly from freewrl ie GUI or HUD like use the CaptionText contenttype 
+   described elsewhere.
+   spacing [em/em] or [1]
+   mysize [m/em]
+   maxextent [m]
+   length[] [m]
+   */
+void register_Text_combiner();
+void FW_rendertext(struct X3D_Text *tnode, unsigned int numrows,struct Uni_String **ptr,
+				unsigned int nl, float *length, double maxext,
+				double spacing, double mysize, unsigned int fsparam,
+				struct X3D_PolyRep *rp)
+{
+	unsigned char *str = NULL; /* string pointer- initialization gets around compiler warning */
+	unsigned int i,row,ii,irow;
+	row32 *rowvec;
+	int rowvec_allocn;
+	double shrink = 0;
+	double rshrink = 0;
+	//int counter=0;
+	int char_count=0;
+	int est_tri=0;
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+	p->shrink_x = 1.0;
+	p->shrink_y = 1.0;
+	/* fsparam has the following bitmaps:
+
+	bit:    0       horizontal  (boolean)
+	bit:    1       leftToRight (boolean)
+	bit:    2       topToBottom (boolean)
+	(style)
+	bit:    3       BOLD        (boolean)
+	bit:    4       ITALIC      (boolean)
+	(family)
+	bit:    5       SERIF
+	bit:    6       SANS
+	bit:    7       TYPEWRITER
+	bit:    8       indicates exact font pointer (future use)
+	(Justify - major)
+	bit:    9       FIRST
+	bit:    10      BEGIN
+	bit:    11      MIDDLE
+	bit:    12      END
+	(Justify - minor)
+	bit:    13      FIRST
+	bit:    14      BEGIN
+	bit:    15      MIDDLE
+	bit:    16      END
+
+	bit: 17-31      spare
+	*/
+
+	/* z distance for text - only the status bar has anything other than 0.0 */
+	p->TextZdist = 0.0f;
+
+	/* have we done any rendering yet */
+	/* do we need to call open font? */
+	if(!open_FTlibrary_if_not_already()) return;
+
+	if (p->TextVerbose)
+		printf ("entering FW_Render_text \n");
+
+	p->pen_x = 0.0; //[m]
+	p->pen_y = 0.0; //[m]
+	p->cur_glyph = 0;
+
+
+	/* is this fontface opened */
+	p->myff = (fsparam >> 3) & 0x1F;
+#if defined (ANDROID)
+// Android - for now, all fonts are identical
+p->myff = 4;
+#endif
+	if (p->myff <4) {
+		/* we dont yet allow externally specified fonts, so one of
+			the font style bits HAS to be set. If there was no FontStyle
+			node, this will be blank, so... */
+		p->myff = 4;
+	}
+	if (p->font_state[p->myff] < FONTSTATE_TRIED) {
+		//try just once, not every time we come in here
+		FT_Face fontface;
+		FW_make_fontname(p->myff);
+		fontface = FW_init_face0(p->library,p->thisfontname);
+		if (fontface) {
+			p->font_face[p->myff] = fontface;
+			p->font_state[p->myff] = FONTSTATE_LOADED;
+		}else{
+			p->font_state[p->myff] = FONTSTATE_TRIED;
+		}
+	}
+	if(!p->font_face[p->myff]) return; //couldn't load fonts
+
+	if(tnode->_isScreen){
+		p->pointsize = mysize;
+		p->size = mysize * (double)XRES/(double)PPI; //[du] = [pt]*[du/in]/[pt/in]
+	}else{
+		p->pointsize = POINTSIZE;
+		p->size = mysize;  /* global variable for size [m/em] */
+
+	}
+	FW_set_facesize(p->font_face[p->myff],p->thisfontname,p->pointsize);
+
+	//realloc row vector if necessary
+	if(tnode->_isScreen){
+		//per-text-node rowvec
+		screentextdata *sdata;
+		if(!tnode->_screendata)
+			prep_screentext(tnode,p->myff, p->pointsize);
+		sdata = (screentextdata*)tnode->_screendata;
+		rowvec_allocn = sdata->nalloc;
+		rowvec = sdata->rowvec;
+	}else{
+		//vectorized text, per-freewrl-tglobal rowvec (re-usable via realloc)
+		rowvec_allocn = p->rowvec_allocn;
+		rowvec = p->rowvec;
+	}
+	if(!rowvec){
+		rowvec = (row32*)MALLOCV(numrows * sizeof(row32));
+		memset(rowvec,0,numrows * sizeof(row32));
+	}
+	if(rowvec_allocn < numrows){
+		rowvec = REALLOC(rowvec,numrows * sizeof(row32));
+		memset(&rowvec[rowvec_allocn],0,(numrows - rowvec_allocn)*sizeof(row32));
+		rowvec_allocn = numrows;
+	}
+	//realloc any str8 or str32s in each row
+	for (row=0; row<numrows; row++) {
+		unsigned int len;
+		str = (unsigned char *)ptr[row]->strptr;
+		len = strlen((const char *)str);
+		if(rowvec[row].allocn < len){
+			rowvec[row].str32 = (unsigned int *)REALLOC(rowvec[row].str32,(len+1) * sizeof(unsigned int)); 
+			rowvec[row].chr = (chardata *) REALLOC(rowvec[row].chr,len*sizeof(chardata));
+			rowvec[row].allocn = len;
+			rowvec[row].len32 = 0;
+		}
+	}
+	if(tnode->_isScreen){
+		screentextdata *sdata;
+		sdata = (screentextdata*)tnode->_screendata;
+		sdata->rowvec = rowvec;
+		sdata->nalloc = rowvec_allocn;
+		sdata->nrow = numrows;
+		sdata->faceheight = (float)p->font_face[p->myff]->height;
+		sdata->size = p->size;
+		sdata->emsize = mysize;
+	}else{
+		p->rowvec = rowvec;
+		p->rowvec_allocn = rowvec_allocn;
+	}
+
+	/* load all of the characters first... */
+	for (row=0; row<numrows; row++) {
+		unsigned int len32, *str32;
+		double total_row_advance, widest_char;
+		str = (unsigned char *)ptr[row]->strptr;
+		//len = strlen(str);
+		/* utf8_to_utf32 */
+		//in theory str32 will always have # of chars <= len str8
+		// so allocating len8 chars will be enough or sometimes too much
+		str32 = rowvec[row].str32;
+		utf8_to_utf32(str,str32,&len32);
+		rowvec[row].iglyphstartindex = p->cur_glyph;
+		rowvec[row].len32 = len32;
+		rowvec[row].str32 = str32;
+		total_row_advance = 0;
+		widest_char = 0;
+		for(i=0;i<len32;i++){
+			int icount;
+			FW_Load_Char(str32[i]);
+			icount = p->cur_glyph -1;
+			rowvec[row].chr[i].iglyph = icount;
+			//http://www.freetype.org/freetype2/docs/reference/ft2-glyph_management.html#FT_GlyphRec Glyph->advance dot16
+			rowvec[row].chr[i].advance = OUT2GLB(p->glyphs[icount]->advance.x >> 10,1.0); //[m] = fu_dot6_to_m([fu_dot16/DOT10])
+			total_row_advance += rowvec[row].chr[i].advance; //[m] = [m]
+			widest_char = rowvec[row].chr[i].advance > widest_char ? rowvec[row].chr[i].advance : widest_char;
+			//[m]        =                                             [m]              [m]
+		}
+		rowvec[row].hrowsize = total_row_advance; //[m] = [m]
+		rowvec[row].vcolsize = len32 * p->size; //[m] = [m/em] = [em] * [em/em] * [m/em]
+		rowvec[row].widestchar = widest_char; //[m] = [m]
+		char_count += len32;
+		//FREE_IF_NZ(utf32); //see bottom of this function
+	}
+
+	if (p->TextVerbose) {
+		printf ("Text: rows %d char_count %d\n",numrows,char_count);
+	}
+
+	/* Jan 2016/dug9 - got all the permutations shown here -both horizontal and vertical- working:
+		http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/text.html#t-horizontalTRUE
+	*/
+
+	if(HORIZONTAL){
+		//find the longest row dimension
+		shrink = 1.0; //[1]
+		if(maxext > 0) {
+			double maxlen = 0; //[m] or [m/em]
+			for(row = 0; row < numrows; row++) {
+				double hrowsize;
+				hrowsize = rowvec[row].hrowsize; //[m] = [m]
+				maxlen = hrowsize > maxlen ? hrowsize : maxlen; //[m] = [m] or [m]
+			}
+			if(maxlen > maxext) 
+				shrink = maxext / maxlen; //[1] = [m]/[m]
+		}
+		//shrink = 1.0;
+		/* Justify MINOR (verticle), FIRST, BEGIN, MIDDLE and END */
+		//bit:    13      FIRST
+		//bit:    14      BEGIN
+		//bit:    15      MIDDLE
+		//bit:    16      END
+		//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/text.html#t-horizontalTRUE
+
+		/* BEGIN */
+		p->pen_y = 0.0; //[em] default Begin (top), if no (proper) minor justify entered
+		if(fsparam & (0x400<<(4))){
+			p->pen_y = 0.0; //[em] = [em]
+		}
+		/* FIRST */
+		if(fsparam & (0x200<<(4))){
+			p->pen_y = 1.0; //[em] = [em]
+		}
+		/* MIDDLE */
+		if (fsparam & (0x800<<(4))) { 
+			p->pen_y = (double)(numrows)/2.0; //[em] = [em]
+		}
+		/* END */
+		if (fsparam & (0x1000<<(4))) {
+			/* printf ("rowlen is %f\n",rowlen); */
+			p->pen_y = (double)numrows; //[em] = [em]
+		}
+
+	
+		///* topToBottom */
+		if (TOPTOBOTTOM) {
+			p->pen_y -= 1.0; //[em] = [em]
+		}else{
+			if(fsparam & (0x200<<(4))) //if first, make like begin
+				p->pen_y -= 1.0; //[em] = [em]
+			p->pen_y = numrows - 1.0 - p->pen_y; //[em] = [em] - [em] - [em]
+		}
+		p->pen_y *= mysize; //[m] = [em] * [m/em]
+		//screen/vector-agnostic loop to compute penx,y and shrinkage for each glyph
+		for(irow = 0; irow < numrows; irow++) {
+			unsigned int lenchars;
+			double rowlen;
+
+			row = irow; //[em]
+			if(!TOPTOBOTTOM) row = numrows - irow -1;
+
+			str = (unsigned char *)ptr[row]->strptr;
+			if (p->TextVerbose)
+				printf ("text2 row %d :%s:\n",row, str);
+			p->pen_x = 0.0; //[m]
+			rshrink = 1.0; //[1]
+			rowlen = rowvec[row].hrowsize; //[m] = [m]
+			lenchars = rowvec[row].len32;
+
+			if((row < nl) && !(APPROX(length[row],0.0))) {
+				rshrink = length[row] / rowlen; //[1] = [m]/[m]
+			}
+
+			/* MAJOR Justify, FIRST, BEGIN, */
+			if (((fsparam & 0x200) || (fsparam &  0x400)) && !LEFTTORIGHT ) {
+				/* printf ("rowlen is %f\n",rowlen); */
+				p->pen_x = -rowlen; //[m] = [m]
+			}
+
+			/* MAJOR MIDDLE */
+			if (fsparam & 0x800) { 
+				p->pen_x = -rowlen/2.0;  //[m] = [m]
+			}
+
+			/* MAJOR END */
+			//if ((fsparam & 0x1000) && (fsparam & 0x01)) {
+			if ((fsparam & 0x1000) && LEFTTORIGHT ) {
+				/* printf ("rowlen is %f\n",rowlen); */
+				p->pen_x = -rowlen; //[m] = [m]
+			}
+
+			for(ii=0; ii<lenchars; ii++) {
+				/* FT_UInt glyph_index; */
+				i = ii;
+				if(!LEFTTORIGHT)
+					i = lenchars - ii -1;
+				rowvec[row].chr[i].x = p->pen_x; //[m]
+				rowvec[row].chr[i].y = p->pen_y; //[m]
+				rowvec[row].chr[i].sx = shrink*rshrink; //[1] = [1]*[1]
+				rowvec[row].chr[i].sy = 1.0; //[1]
+				p->pen_x +=  rowvec[row].chr[i].advance * shrink*rshrink;// [m] = [m] * [1]
+			}
+			p->pen_y += -spacing * p->size; //[m] = [em] * [m/em]
+		}
+		//END HORIZONTAL
+	}else{
+		//IF VERTICAL
+		//
+		double widest_column, column_spacing;
+		//find the longest row dimension
+		double maxlen = 0.0;
+		shrink = 1.0;
+		for(row = 0; row < numrows; row++) {
+			double vcolsize = rowvec[row].vcolsize; //[m] = [m]
+			maxlen = vcolsize > maxlen ? vcolsize : maxlen; //[m] = [m] or [m]
+		}
+		if(maxext > 0) {
+			if(maxlen > maxext) shrink = maxext / maxlen; //[1] = [m]/[m]
+		}
+		widest_column = 0.0;
+		for(row=0;row<numrows;row++)
+			widest_column = rowvec[row].widestchar > widest_column ? rowvec[row].widestchar : widest_column;
+			//[m] = [m] or [m]
+		//column_spacing = widest_column;
+		column_spacing = spacing * p->size; //[m] = [1] * [m]
+		/* Justify MINOR (verticle), FIRST, BEGIN, MIDDLE and END */
+		//bit:    13      FIRST
+		//bit:    14      BEGIN
+		//bit:    15      MIDDLE
+		//bit:    16      END
+		//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/text.html#t-horizontalTRUE
+
+		/* BEGIN */
+		/* FIRST */
+		if(fsparam & (0x200<<(4)) || fsparam & (0x400<<(4))){
+			//p->pen_x = -1.0 * widest_column; 
+			if(LEFTTORIGHT)
+				p->pen_x = 0.0; //[m]
+			else
+				p->pen_x = -(double)numrows * column_spacing; 
+				//[m]    =         [1]     * [m]
+		}
+		/* MIDDLE */
+		if (fsparam & (0x800<<(4))) { 
+			p->pen_x = -(double)(numrows)/2.0 *column_spacing; //[m] = [1] * [m]
+		}
+		/* END */
+		if (fsparam & (0x1000<<(4))) {
+			/* printf ("rowlen is %f\n",rowlen); */
+			if(LEFTTORIGHT)
+				p->pen_x = -(double)numrows * column_spacing; //[m] = [1] * [m]
+			else
+				p->pen_x = 0.0; //[m]
+		}
+
+		//screen/vector-agnostic loop to compute penx,y and shrinkage for each glyph
+		for(irow = 0; irow < numrows; irow++) {
+			unsigned int lenchars;
+			double rowlen;
+			double starty;
+
+			row = irow;
+			if(!LEFTTORIGHT) row = numrows - irow -1;
+
+			str = (unsigned char *)ptr[row]->strptr;
+			if (p->TextVerbose)
+				printf ("text2 row %d :%s:\n",row, str);
+			p->pen_y = 0.0; 
+			rshrink = 1.0;
+			rowlen = rowvec[row].vcolsize; //[m] = [m]
+			lenchars = rowvec[row].len32;
+
+			if((row < nl) && !(APPROX(length[row],0.0))) {
+				rshrink = length[row] / rowlen;
+				//[1]   =  [m]        / [m]
+			}
+			starty = -1.0*shrink*rshrink*p->size;  //[m] = [em]*[1]*[1]*[m/em]
+			/* MAJOR Justify, FIRST, BEGIN, */
+			if ((fsparam & 0x200) || (fsparam &  0x400)){
+				if(TOPTOBOTTOM )
+					p->pen_y = starty; //[m] = [m]
+				else
+					p->pen_y = rowlen + starty; //[m] = [m] + [m]
+			}
+
+			/* MAJOR MIDDLE */
+			if (fsparam & 0x800) {
+				p->pen_y = rowlen/2.0 + starty;  //[m] = [m] + [m]
+			}
+
+			/* MAJOR END */
+			if (fsparam & 0x1000  ) {
+				if(TOPTOBOTTOM)
+					p->pen_y = rowlen + starty; //[m] = [m] + [m]
+				else
+					p->pen_y = starty; //[m] = [m]
+			}
+
+			for(ii=0; ii<lenchars; ii++) {
+				/* FT_UInt glyph_index; */
+				/* int error; */
+				// int kk;
+				double penx;
+				i = ii;
+				if(!TOPTOBOTTOM)
+					i = lenchars - ii -1;
+				penx = p->pen_x; //[m] = [m]
+				if(!LEFTTORIGHT)
+					penx = penx + column_spacing - rowvec[row].chr[i].advance;
+					//[m] = [m] + [m]            *[1]     -                    [m]
+				rowvec[row].chr[i].x = penx; //[m] = [m]
+				rowvec[row].chr[i].y = p->pen_y;  //[m] = [m]
+				rowvec[row].chr[i].sx = 1.0; //[1]
+				rowvec[row].chr[i].sy = shrink*rshrink;  //[1] = [1]*[1]
+				p->pen_y += -p->size * shrink * rshrink; //[m] = [m] - [m/em]*[1]*[1]
+				//[1] = [1/em] =  [m/em]    * [1]    * [1/m]   LOOKS WRONG
+			}
+			p->pen_x +=  column_spacing; //[m] = [m] + [m]*[1]
+		}
+	}
+
+	if(!tnode->_isScreen){
+		//vector glyph construction
+		register_Text_combiner(); //Tess.c
+		p->FW_rep_ = rp;
+		//PER TEXT NODE
+		//rep->actualCoords[FW_pointctr] cumulative XYZ points over all glyphs in Text node 
+		p->FW_pointctr=0;              /* how many points used so far? maps into rep-_coord  */
+		//rep->cindex[indx_count]  cumulative triangle vertex indexes over all glyphs in text node
+		p->indx_count=0;               /* maps intp FW_rep_->cindex                          */
+		p->contour_started = FALSE;
+
+		/* what is the estimated number of triangles? assume a certain number of tris per char */
+		est_tri = char_count*800; /* 800 was TESS_MAX_COORDS - REALLOC if needed */
+		p->coordmaxsize=est_tri;
+		p->cindexmaxsize=est_tri;
+		p->FW_rep_->cindex=MALLOC(GLuint *, sizeof(*(p->FW_rep_->cindex))*est_tri);
+		p->FW_rep_->actualCoord = MALLOC(float *, sizeof(*(p->FW_rep_->actualCoord))*est_tri*3);
+		for(row = 0; row < numrows; row++) {
+			unsigned int lenchars = rowvec[row].len32;
+			for(i=0; i<lenchars; i++) {
+				int kk,x;
+				chardata chr;
+
+				chr = rowvec[row].chr[i];
+				p->pen_x = chr.x; //[m] = [m]
+				p->pen_y = chr.y; //[m] = [m]
+				p->shrink_x = chr.sx; //[1]
+				p->shrink_y = chr.sy; //[1]
+				//PER GLYPH
+				//gobal_IFS_Coords[global_IFS_Coord_count] - Triangle vertex indexes into actualCoords
+				tg->Tess.global_IFS_Coord_count = 0;
+				//FW_RIA[FW_RIA_indx] - glyph outline contour point indexes into actualCoord
+				p->FW_RIA_indx = 0;    // index into FW_RIA    
+				kk = rowvec[row].chr[i].iglyph;
+				FW_draw_character (p->glyphs[kk]);
+				FT_Done_Glyph (p->glyphs[kk]);
+				/* copy over the tesselated coords for the character to
+					* the rep structure */
+
+				for (x=0; x<tg->Tess.global_IFS_Coord_count; x++) {
+						/*printf ("copying %d\n",global_IFS_Coords[x]); */
+
+					/* did the tesselator give us back garbage? */
+
+					if ((tg->Tess.global_IFS_Coords[x] >= p->cindexmaxsize) ||
+						(p->indx_count >= p->cindexmaxsize) ||
+						(tg->Tess.global_IFS_Coords[x] < 0)) {
+							if (p->TextVerbose)
+							printf ("Tesselated index %d out of range; skipping indx_count, %d cindexmaxsize %d global_IFS_Coord_count %d\n",
+							tg->Tess.global_IFS_Coords[x],p->indx_count,p->cindexmaxsize,tg->Tess.global_IFS_Coord_count);
+						/* just use last point - this sometimes happens when */
+						/* we have intersecting lines. Lets hope first point is */
+						/* not invalid... JAS */
+						p->FW_rep_->cindex[p->indx_count] = p->FW_rep_->cindex[p->indx_count-1];
+						if (p->indx_count < (p->cindexmaxsize-1)) p->indx_count ++;
+					} else {
+						/*
+						printf("global_ifs_coords is %d indx_count is %d \n",global_IFS_Coords[x],p->indx_count);
+						printf("filling up cindex; index %d now points to %d\n",p->indx_count,global_IFS_Coords[x]);
+						*/
+						p->FW_rep_->cindex[p->indx_count++] = tg->Tess.global_IFS_Coords[x];
+					}
+				}
+
+				if (p->indx_count > (p->cindexmaxsize-400)) {
+					p->cindexmaxsize += 800; /* 800 was TESS_MAX_COORDS; */
+					p->FW_rep_->cindex=(GLuint *)REALLOC(p->FW_rep_->cindex,sizeof(*(p->FW_rep_->cindex))*p->cindexmaxsize);
+				}
+				if(0){
+					//as a test, write out a glyph to a wrl file, 
+					//then load the wrl in another instance of frewrl to see if its properly formed
+					//this can show you if you have the right idea
+					static int _once = 0;
+					int ii,jj,ntris;
+					ntris = tg->Tess.global_IFS_Coord_count / 3;
+					if(!_once){
+						//_once means it will output the first character in the text string here
+						FILE *fptris = fopen("test_glyph_triangles.wrl","w+");
+						fprintf(fptris,"%s\n","#VRML V2.0 utf8");
+						fprintf(fptris,"Transform {\n children [\n  Shape {\n   appearance Appearance { material Material { diffuseColor .6 .6 .6 }}\n");
+						fprintf(fptris,"   geometry IndexedFaceSet { solid FALSE \n");
+						fprintf(fptris,"   coordIndex ");
+						//indexes
+						fprintf(fptris,"[");
+						for(ii=0;ii<ntris;ii++){
+							for(jj=0;jj<3;jj++){
+								fprintf(fptris," %d",p->FW_rep_->cindex[ii*3+jj]);
+							}
+							fprintf(fptris," -1");
+						}
+						fprintf(fptris,"]\n");
+
+						fprintf(fptris,"coord Coordinate { \n");
+						fprintf(fptris,"    point [");
+						//we use FW_RIA_indx instead of IFS_Coord_count to print out the coords:
+						//  FW_RIA_indx includes contour points dropped by tesselation Combiner, 
+						//    that are still in actualCoords, and the indexing above needs as filler 
+						//    in order for the captured indexing to still make sense
+						//  IFS_Coord_count: its 3 x number of triangles, but doesn't know how long actualCoord is
+						//     that its indexes refer to
+						for(ii=0;ii<p->FW_RIA_indx;ii++){
+							for(jj=0;jj<3;jj++){
+								fprintf(fptris," %f",p->FW_rep_->actualCoord[ii*3 + jj]);
+							}
+							fprintf(fptris,",");
+						}
+
+						fprintf(fptris," ] }}}\n");
+						fprintf(fptris," ]}");
+						fclose(fptris);
+						// original closed polygon as 1 face IFS
+						fptris = fopen("test_glyph_polygon.wrl","w+");
+						fprintf(fptris,"%s\n","#VRML V2.0 utf8");
+						fprintf(fptris,"Transform {\n children [\n  Shape {\n   appearance Appearance { material Material { diffuseColor .5 .5 .5 }}\n");
+						fprintf(fptris,"   geometry IndexedFaceSet { solid FALSE convex FALSE \n");
+						fprintf(fptris,"   coordIndex ");
+						//indexes
+						fprintf(fptris,"[");
+						for(ii=0;ii<p->FW_RIA_indx;ii++){
+								fprintf(fptris," %d",ii);
+						}
+						fprintf(fptris," -1");
+						fprintf(fptris,"]\n");
+
+						fprintf(fptris,"coord Coordinate { \n");
+						fprintf(fptris,"    point [");
+						//we use FW_RIA_indx instead of IFS_Coord_count to print out the coords:
+						//  FW_RIA_indx includes contour points dropped by tesselation Combiner, 
+						//    that are still in actualCoords, and the indexing above needs as filler 
+						//    in order for the captured indexing to still make sense
+						//  IFS_Coord_count: its 3 x number of triangles, but doesn't know how long actualCoord is
+						//     that its indexes refer to
+						for(ii=0;ii<p->FW_RIA_indx;ii++){
+							for(jj=0;jj<3;jj++){
+								fprintf(fptris," %f",p->FW_rep_->actualCoord[ii*3 + jj]);
+							}
+							fprintf(fptris,",");
+						}
+
+						fprintf(fptris," ] }}}\n");
+						fprintf(fptris," ]}");
+						//fclose(fptris);
+
+						// original closed polygon as Polygon2D
+						//fptris = fopen("test_glyph_polygon.wrl","w+");
+						fprintf(fptris,"%s\n","#VRML V2.0 utf8");
+						fprintf(fptris,"Transform {\n translation 0 0 .1 children [\n  Shape {\n   appearance Appearance { material Material { emissiveColor .1 .8 .2 }}\n");
+						fprintf(fptris,"   geometry Polyline2D {  \n");
+						fprintf(fptris,"   lineSegments [");
+						//we use FW_RIA_indx instead of IFS_Coord_count to print out the coords:
+						//  FW_RIA_indx includes contour points dropped by tesselation Combiner, 
+						//    that are still in actualCoords, and the indexing above needs as filler 
+						//    in order for the captured indexing to still make sense
+						//  IFS_Coord_count: its 3 x number of triangles, but doesn't know how long actualCoord is
+						//     that its indexes refer to
+						for(ii=0;ii<p->FW_RIA_indx;ii++){
+							for(jj=0;jj<2;jj++){
+								fprintf(fptris," %f",p->FW_rep_->actualCoord[ii*3 + jj]);
+							}
+							fprintf(fptris,",");
+						}
+
+						fprintf(fptris," ] }}\n");
+						fprintf(fptris," ]}");
+						fclose(fptris);
+
+
+						_once = 1;
+					}
+			
+				}
+			}
+		}
+		/* save the triangle count (note, we have a "vertex count", not a "triangle count" */
+		p->FW_rep_->ntri=p->indx_count/3;
+		/* set these variables so they are not uninitialized */
+		p->FW_rep_->ccw=FALSE;
+
+		/* if indx count is zero, DO NOT get rid of MALLOCd memory - creates a bug as pointers cant be null */
+		if (p->indx_count !=0) {
+			/* REALLOC bug in linux - this causes the pointers to be eventually lost... */
+			/* REALLOC (p->FW_rep_->cindex,sizeof(*(p->FW_rep_->cindex))*p->indx_count); */
+			/* REALLOC (p->FW_rep_->actualCoord,sizeof(*(p->FW_rep_->actualCoord))*p->FW_pointctr*3); */
+		}
+
+		/* now, generate normals */
+		p->FW_rep_->normal = MALLOC(float *, sizeof(*(p->FW_rep_->normal))*p->indx_count*3);
+		for (i = 0; i<(unsigned int)p->indx_count; i++) {
+			p->FW_rep_->normal[i*3+0] = 0.0f;
+			p->FW_rep_->normal[i*3+1] = 0.0f;
+			p->FW_rep_->normal[i*3+2] = 1.0f;
+		}
+
+		/* do we have texture mapping to do? */
+		if (HAVETODOTEXTURES) {
+			p->FW_rep_->GeneratedTexCoords[0] = MALLOC(float *, sizeof(*(p->FW_rep_->GeneratedTexCoords[0]))*(p->FW_pointctr+1)*3);
+			/* an attempt to try to make this look like the NIST example */
+			/* I can't find a standard as to how to map textures to text JAS */
+			for (i=0; i<(unsigned int)p->FW_pointctr; i++) {
+				p->FW_rep_->GeneratedTexCoords[0][i*3+0] = p->FW_rep_->actualCoord[i*3+0]*1.66f;
+				p->FW_rep_->GeneratedTexCoords[0][i*3+1] = 0.0f;
+				p->FW_rep_->GeneratedTexCoords[0][i*3+2] = p->FW_rep_->actualCoord[i*3+1]*1.66f;
+			}
+		}
+		register_Polyrep_combiner(); //Tess.c - polyrep is the default
+	} //if isScreenFont
+
+	if (p->TextVerbose) printf ("exiting FW_Render_text\n");
+}
 
 int avatarCollisionVolumeIntersectMBBf(double *modelMatrix, float *minVals, float *maxVals);
 
 void collide_Text (struct X3D_Text *node)
 {
-	ttglobal tg = gglobal();
-    GLDOUBLE awidth = tg->Bindable.naviinfo.width; /*avatar width*/
-    GLDOUBLE atop = tg->Bindable.naviinfo.width; /*top of avatar (relative to eyepoint)*/
-    GLDOUBLE abottom = -tg->Bindable.naviinfo.height; /*bottom of avatar (relative to eyepoint)*/
-    GLDOUBLE astep = -tg->Bindable.naviinfo.height+tg->Bindable.naviinfo.step;
-    GLDOUBLE modelMatrix[16];
-    //GLDOUBLE upvecmat[16];
+	struct sNaviInfo *naviinfo;
+	GLDOUBLE awidth,atop,abottom,astep,modelMatrix[16];
+    struct point_XYZ delta = {0,0,-1};
+    struct X3D_PolyRep pr;
+	ttglobal tg;
+    int change = 0;
+	tg = gglobal();
+
+	if(node->_isScreen >  0) return; //don't collide with screentext
+
+	naviinfo = (struct sNaviInfo*)tg->Bindable.naviinfo;
+
+    awidth = naviinfo->width; /*avatar width*/
+    atop = naviinfo->width; /*top of avatar (relative to eyepoint)*/
+    abottom = -naviinfo->height; /*bottom of avatar (relative to eyepoint)*/
+    astep = -naviinfo->height+naviinfo->step;
 
 
     /*JAS - normals are always this way - helps because some
       normal calculations failed because of very small triangles
       which made collision calcs fail, which moved the Viewpoint...
       so, if there is no need to calculate normals..., why do it? */
-    struct point_XYZ delta = {0,0,-1};
-    struct X3D_PolyRep pr;
-    int change = 0;
 
     /* JAS - first pass, intern is probably zero */
     if (node->_intern == NULL) return;
@@ -1272,7 +1946,7 @@ void collide_Text (struct X3D_Text *node)
     if (node->_intern)
         change = node->_intern->irep_change;
 
-    COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL);
+    COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL);
 
     if (node->_intern)
         node->_intern->irep_change = change;
@@ -1312,145 +1986,2235 @@ void collide_Text (struct X3D_Text *node)
 
 void make_Text (struct X3D_Text *node)
 {
-    struct X3D_PolyRep *rep_ = node->_intern;
-    double spacing = 1.0;
-    double size = 1.0;
-    unsigned int fsparams = 0;
+	struct X3D_PolyRep *rep_ = node->_intern;
+	double spacing = 1.0;
+	double size = 1.0;
+	int isScreenFontStyle;
+	unsigned int fsparams = 0;
 
-    /* We need both sides */
-    DISABLE_CULL_FACE;
+	isScreenFontStyle = FALSE;
+	/* We need both sides */
+	DISABLE_CULL_FACE;
 
-    if (node->fontStyle) {
-        /* We have a FontStyle. Parse params (except size and spacing) and
-           make up an unsigned int with bits indicating params, to be
-           passed to the Text Renderer
+	if (node->fontStyle) {
+		/* We have a FontStyle. Parse params (except size and spacing) and
+			make up an unsigned int with bits indicating params, to be
+			passed to the Text Renderer
 
-           bit:    0       horizontal  (boolean)
-           bit:    1       leftToRight (boolean)
-           bit:    2       topToBottom (boolean)
-           (style)
-           bit:    3       BOLD        (boolean)
-           bit:    4       ITALIC      (boolean)
-           (family)
-           bit:    5       SERIF
-           bit:    6       SANS
-           bit:    7       TYPEWRITER
-           bit:    8       indicates exact font pointer (future use)
-           (Justify - major)
-           bit:    9       FIRST
-           bit:    10      BEGIN
-           bit:    11      MIDDLE
-           bit:    12      END
-           (Justify - minor)
-           bit:    13      FIRST
-           bit:    14      BEGIN
-           bit:    15      MIDDLE
-           bit:    16      END
+			bit:    0       horizontal  (boolean)
+			bit:    1       leftToRight (boolean)
+			bit:    2       topToBottom (boolean)
+			(style)
+			bit:    3       BOLD        (boolean)
+			bit:    4       ITALIC      (boolean)
+			(family)
+			bit:    5       SERIF
+			bit:    6       SANS
+			bit:    7       TYPEWRITER
+			bit:    8       indicates exact font pointer (future use)
+			(Justify - major)
+			bit:    9       FIRST
+			bit:    10      BEGIN
+			bit:    11      MIDDLE
+			bit:    12      END
+			(Justify - minor)
+			bit:    13      FIRST
+			bit:    14      BEGIN
+			bit:    15      MIDDLE
+			bit:    16      END
 
-           bit: 17-31      spare
-        */
+			bit: 17-31      spare
+		*/
 
-        struct X3D_FontStyle *fsp;
-        unsigned char *lang;
-        unsigned char *style;
-        struct Multi_String family;
-        struct Multi_String justify;
-        int tmp; int tx;
-        struct Uni_String **svptr;
-        unsigned char *stmp;
+		struct X3D_FontStyle *fsp;
+		unsigned char *lang;
+		unsigned char *style;
+		struct Multi_String family;
+		struct Multi_String justify;
+		int tmp; int tx;
+		struct Uni_String **svptr;
+		unsigned char *stmp;
 
-        /* step 0 - is the FontStyle a proto? */
-        POSSIBLE_PROTO_EXPANSION(struct X3D_FontStyle *, node->fontStyle,fsp);
+		/* step 0 - is the FontStyle a proto? */
+		POSSIBLE_PROTO_EXPANSION(struct X3D_FontStyle *, node->fontStyle,fsp);
+		if(fsp){
+			/* fsp = (struct X3D_FontStyle *)node->fontStyle; */
+			if (fsp->_nodeType != NODE_FontStyle && fsp->_nodeType != NODE_ScreenFontStyle) {
+				ConsoleMessage ("Text node has FontStyle of %s\n",stringNodeType(fsp->_nodeType));
+				node->fontStyle = NULL; /* stop dumping these messages */
+			}
 
-        /* fsp = (struct X3D_FontStyle *)node->fontStyle; */
-        if (fsp->_nodeType != NODE_FontStyle) {
-            ConsoleMessage ("Text node has FontStyle of %s",stringNodeType(fsp->_nodeType));
-            node->fontStyle = NULL; /* stop dumping these messages */
-        }
+			/* step 0.5 - now that we know FontStyle points ok, go for
+				* the other pointers */
+			lang = (unsigned char *)fsp->language->strptr;
+			style = (unsigned char *)fsp->style->strptr;
 
-        /* step 0.5 - now that we know FontStyle points ok, go for
-         * the other pointers */
-        lang = (unsigned char *)fsp->language->strptr;
-        style = (unsigned char *)fsp->style->strptr;
+			family = fsp->family;
+			justify = fsp->justify;
 
-        family = fsp->family;
-        justify = fsp->justify;
+			/* Step 1 - record the spacing and size, for direct use */
+			spacing = fsp->spacing;
+			size = fsp->size;
+			if(fsp->_nodeType == NODE_ScreenFontStyle){
+				struct X3D_ScreenFontStyle *fsps = (struct X3D_ScreenFontStyle *)fsp;
+				//if the scene file said size='.8' by mistake instead of pointSize='10', 
+				// ..x3d parser will leave pointSize at its default 12.0
+				size = fsps->pointSize; 
+				isScreenFontStyle = TRUE;
+			}
 
-        /* Step 1 - record the spacing and size, for direct use */
-        spacing = fsp->spacing;
-        size = fsp->size;
+			/* Step 2 - do the SFBools */
+			fsparams = (fsp->horizontal)|(fsp->leftToRight<<1)|(fsp->topToBottom<<2);
 
-        /* Step 2 - do the SFBools */
-        fsparams = (fsp->horizontal)|(fsp->leftToRight<<1)|(fsp->topToBottom<<2);
+			/* Step 3 - the SFStrings - style and language */
+			/* actually, language is not parsed yet */
 
-        /* Step 3 - the SFStrings - style and language */
-        /* actually, language is not parsed yet */
-
-        if (strlen((const char *)style)) {
-            if (!strcmp((const char *)style,"ITALIC")) {fsparams |= 0x10;}
-            else if(!strcmp((const char *)style,"BOLD")) {fsparams |= 0x08;}
-            else if (!strcmp((const char *)style,"BOLDITALIC")) {fsparams |= 0x18;}
-            else if (strcmp((const char *)style,"PLAIN")) {
-                printf ("Warning - FontStyle style %s  assuming PLAIN\n",style);}
-        }
-        if (strlen((const char *)lang)) {
-            printf ("Warning - FontStyle - language param unparsed\n");
-        }
+			if (strlen((const char *)style)) {
+				if (!strcmp((const char *)style,"ITALIC")) {fsparams |= 0x10;}
+				else if(!strcmp((const char *)style,"BOLD")) {fsparams |= 0x08;}
+				else if (!strcmp((const char *)style,"BOLDITALIC")) {fsparams |= 0x18;}
+				else if (strcmp((const char *)style,"PLAIN")) {
+					printf ("Warning - FontStyle style %s  assuming PLAIN\n",style);}
+			}
+			if (strlen((const char *)lang)) {
+				printf ("Warning - FontStyle - language param unparsed\n");
+			}
 
 
-        /* Step 4 - the MFStrings now. Family, Justify. */
-        /* family can be blank, or one of the pre-defined ones. Any number of elements */
+			/* Step 4 - the MFStrings now. Family, Justify. */
+			/* family can be blank, or one of the pre-defined ones. Any number of elements */
 
-        svptr = family.p;
-        for (tmp = 0; tmp < family.n; tmp++) {
-            stmp = (unsigned char *)svptr[tmp]->strptr;
-            if (strlen((const char *)stmp) == 0) {fsparams |=0x20; }
-            else if (!strcmp((const char *)stmp,"SERIF")) { fsparams |= 0x20;}
-            else if(!strcmp((const char *)stmp,"SANS")) { fsparams |= 0x40;}
-            else if (!strcmp((const char *)stmp,"TYPEWRITER")) { fsparams |= 0x80;}
-            /* else { printf ("Warning - FontStyle family %s unknown\n",stmp);}*/
-        }
+			svptr = family.p;
+			for (tmp = 0; tmp < family.n; tmp++) {
+				stmp = (unsigned char *)svptr[tmp]->strptr;
+				if (strlen((const char *)stmp) == 0) {fsparams |=0x20; }
+				else if (!strcmp((const char *)stmp,"SERIF")) { fsparams |= 0x20;}
+				else if(!strcmp((const char *)stmp,"SANS")) { fsparams |= 0x40;}
+				else if (!strcmp((const char *)stmp,"TYPEWRITER")) { fsparams |= 0x80;}
+				/* else { printf ("Warning - FontStyle family %s unknown\n",stmp);}*/
+			}
 
-        svptr = justify.p;
-        tx = justify.n;
-        /* default is "BEGIN" "FIRST" */
-        if (tx == 0) { fsparams |= 0x2400; }
-        else if (tx == 1) { fsparams |= 0x2000; }
-        else if (tx > 2) {
-            printf ("Warning - FontStyle, max 2 elements in Justify\n");
-            tx = 2;
-        }
+			svptr = justify.p;
+			tx = justify.n;
+			/* default is "BEGIN" "FIRST" */
+			if (tx == 0) { fsparams |= 0x2400; }
+			else if (tx == 1) { fsparams |= 0x2000; }
+			else if (tx > 2) {
+				printf ("Warning - FontStyle, max 2 elements in Justify\n");
+				tx = 2;
+			}
 
-        for (tmp = 0; tmp < tx; tmp++) {
-            stmp = (unsigned char *)svptr[tmp]->strptr;
-            if (strlen((const char *)stmp) == 0) {
-                if (tmp == 0) {
-                    fsparams |= 0x400;
-                } else {
-                    fsparams |= 0x2000;
-                }
-            }
-            else if (!strcmp((const char *)stmp,"FIRST")) { fsparams |= (0x200<<(tmp*4));}
-            else if(!strcmp((const char *)stmp,"BEGIN")) { fsparams |= (0x400<<(tmp*4));}
-            else if (!strcmp((const char *)stmp,"MIDDLE")) { fsparams |= (0x800<<(tmp*4));}
-            else if (!strcmp((const char *)stmp,"END")) { fsparams |= (0x1000<<(tmp*4));}
-            /* else { printf ("Warning - FontStyle family %s unknown\n",stmp);}*/
-        }
-    } else {
-        /* send in defaults */
-        fsparams = 0x2427;
-    }
+			for (tmp = 0; tmp < tx; tmp++) {
+				stmp = (unsigned char *)svptr[tmp]->strptr;
+				if (strlen((const char *)stmp) == 0) {
+					if (tmp == 0) {
+						fsparams |= 0x400;
+					} else {
+						fsparams |= 0x2000;
+					}
+				}
+				else if (!strcmp((const char *)stmp,"FIRST")) { fsparams |= (0x200<<(tmp*4));}
+				else if(!strcmp((const char *)stmp,"BEGIN")) { fsparams |= (0x400<<(tmp*4));}
+				else if (!strcmp((const char *)stmp,"MIDDLE")) { fsparams |= (0x800<<(tmp*4));}
+				else if (!strcmp((const char *)stmp,"END")) { fsparams |= (0x1000<<(tmp*4));}
+				/* else { printf ("Warning - FontStyle family %s unknown\n",stmp);}*/
+			}
+		} //if(fsp)
+	} else {
+		/* send in defaults */
+		fsparams = 0x2427;
+	}
 
-    /*  do the Text parameters, guess at the number of triangles required*/
-    rep_->ntri = 0;
+	/*  do the Text parameters, guess at the number of triangles required*/
+	rep_->ntri = 0;
 
-    /*
-       printf ("Text, calling FW_rendertext\n");
-       call render text - NULL means get the text from the string
-    */
+	/*
+		printf ("Text, calling FW_rendertext\n");
+		call render text - NULL means get the text from the string
+	*/
+	//normal scene 3D vectorized text
+	node->_isScreen = isScreenFontStyle;
 
-    FW_rendertext(((node->string).n),((node->string).p),NULL,
-                  ((node->length).n),(double *) ((node->length).p),
-                  (node->maxExtent),spacing,size,fsparams,rep_);
+	FW_rendertext(node,((node->string).n),((node->string).p),
+				((node->length).n),((node->length).p),
+					(node->maxExtent),spacing,size,fsparams,rep_);
 
+
+}
+
+
+
+
+
+
+
+//==========================SCREENFONT===============================================
+/* thanks go to dug9 for contributing atlasfont code to freewrl from his dug9gui project 
+	
+	Notes on freewrl use of atlas/screen fonts, new Jan 2016:
+	CaptionText -a kind of direct-to-screen text - see mainloop.c contenttype_captiontext-
+	and Text + Component_Layout > ScreenFontStyle 
+	both need speedy rendering of what could be rapidly changing text strings, such 
+	as Time or FPS that might change on every frame. For that we don't want to recompile
+	a new polyrep on each frame. Just run down the string printing characters as textured rectangles.
+	And we want to share fonts and anyone can load a font Text -vector or screen- or CaptionText, 
+	and once loaded the others recognize and don't need to reload.
+	The texture used -called a font atlas- holds all the ascii chars by default -with a fast lookup-, 
+	plus it can add as-needed extended utf8 characters with a slower lookup method. 
+
+	AtlasFont - the facename, font path, one per fontface
+	Atlas - the bitmap, used as texture, one per AtlasFont
+	AtlasEntrySet - the lookup table for ascii and extended characters, 
+		one per fontsize for a given AtlasFont
+*/
+
+/*	UTF8 String literal support
+	 if you want to put extended (non ASCII, > 127) chars in CaptionText:
+		a) keep/make the string literals utf8 somehow, and 
+		b) we call a utf8 to utf32 function below
+	a) How to keep/make string literals utf8:
+	DO NOT (non-portable):
+	X use u8"" or utf8"" string literals, which gcc supports I think, MS does not (by default uses locale codepage which crashes freetype lib), so not portable
+	X use wchar_t and L"", which both msvc and gcc support, but gcc is 32bit unicode and MS is 16bit unicode,
+		 so not quite portable, although you could convert either to utf8 from literals early,
+		 using platform specific code
+	DO (portable):
+	a) embed escape sequences. Capital Omega is hex CE A9 "\xCE\xA9" or octal 316 251 "\316\251"   http://calc.50x.eu/
+	b) convert from codepage to utf8 externally, and paste sequence into string:  codepage windows-1250 è = utf8 "Ã¨"  é = "Ã©" http://www.motobit.com/util/charset-codepage-conversion.asp
+	   or use linux iconv
+	c) read strings from a utf8 encoded file (utf16 and utf32 files requires BOM byte order mark 
+		to determine endieness of file, utf8 does not need this mark, except your reading software needs to know
+		whether to convert from UTF8 or trust it's ASCII, or convert from a specific codepage. Determining heuristically
+		is difficult. So just put an ascii string UTF8 or ASCII or CODEPAGE-12500 on the first line to tell your own code)
+*/
+
+static int iyup = 0;  //iyup = 1 means y is up on texture (like freewrl) (doesn't work right), iyup=0 means y-down texture coords (works)
+
+typedef struct AtlasFont AtlasFont;
+typedef struct Atlas Atlas;
+typedef struct AtlasEntry AtlasEntry;
+typedef struct GUIElement GUIElement;
+
+typedef struct ivec2 {int X; int Y;} ivec2;
+// OLDCODE static ivec2 ivec2_init(int x, int y);
+
+typedef enum GUIElementType 
+{ 
+	GUI_FONT = 9,
+	GUI_ATLAS = 10,
+	GUI_ATLASENTRY = 11,
+	GUI_ATLASENTRYSET = 12,
+} GUIElementType;
+
+
+//a fontsize with the alphabet, or a whole set of named widgets, comprise an AtlasEntrySet
+// in theory more than one AtlasEntrySet could use the same atlas, allowing fewer textures, and 
+// better texture surface utilization %
+// You need to do a separate 'Set for each fontsize, because there's only one ascii lookup table per Set
+typedef struct AtlasEntrySet {
+	char *name;
+	int type;
+	int EMpixels;
+	int maxadvancepx; //max_advance for x for a fontface
+	int rowheight;  //if items are in regular rows, this is a hint, during making of the atlas
+	int lastascii;
+	char *atlasName;
+	Atlas *atlas;
+	AtlasFont *font;
+	AtlasEntry *ascii[128]; //fast lookup table, especially for ascii 32 - 126 to get entry *. NULL if no entry.
+	struct Vector *entries; //atlasEntry *  -all entries -including ascii as first 128- sorted for binary searching
+} AtlasEntrySet;
+
+
+//atlas entry has the box for one glyph, or one widget icon
+typedef struct AtlasEntry {
+	char *name;
+	int type;
+	ivec2 apos; //position in atlas texture, pixels from UL of texture image
+	ivec2 size; //size in atlas texture, pixels
+	int ichar;  //int pseudoname instead of char * name, used for unicode char
+	ivec2 pos;  //shift/offset from target placement ie glyph image shift from lower left corner of character
+	ivec2 advance; //used for glyphs, advance to the next char which may be different -wider- than pixel row width
+} AtlasEntry;
+
+
+//atlas is an image buffer. It doesn't care what's stored in the image, although it
+//does help when adding things to the atlas, by storing the last location as penx,y
+//The reason for using an atlas versus individual little images: fewer texture changes sent to the GPU
+// which dramatically speeds rendering of the gui.
+// For example drawing a textpanel full of text glyph by glyph slows rendering to 8 FPS on intel i5, 
+// and using an atlas it's 60FPS - hardly notice the gui rendering.
+// The reason we don't do all font as atlasses by default: some font ie textCaption could be dynamically
+//  resizable by design, and if it's just a few chars, its more efficent to do glyph by glyph than
+//  render several atlases. But in theory if its just a few chars, you could render just those chars
+//  to an atlas at different sizes.
+typedef struct Atlas {
+	char *name;
+	int type;
+	unsigned char *texture;  //the GLubyte* buffer
+	//int textureID; //gl texture buffer
+	int bytesperpixel;  //1 for alpha, 2 lumalpha 4 rgba. font should be 1 alpha
+	//FT_Face fontFace;
+	ivec2 size;  //pixels, of texture: X=width, Y=height
+	int rowheight;  //if items are in regular rows, this is a hint, during making of the atlas
+	ivec2 pen;  //have a cursor, so it's easy to position an additional entry in unoccupied place in atlas
+} Atlas;
+
+
+// named type is for upcasting any GUI* to a simple name
+// so a generic table search can be done by name for any type
+typedef struct GUINamedType {
+	char *name;
+	int type;
+} GUINamedType;
+
+//GUIFont instances go in a public lookup table, so a fontface is loaded only once
+//and if an atlas has been generated for that fontface by the programmer, it's added
+//to the font
+typedef struct AtlasFont {
+	char *name;
+	int type;
+	char *path;
+	FT_Face fontFace;
+	int EMsize;
+	//struct Vector atlasSizes; //GUIAtlasEntrySet*
+	AtlasEntrySet *set;
+} AtlasFont;
+
+
+typedef struct vec2 {float X; float Y;} vec2;
+typedef struct vec4 {float X; float Y; float Z; float W;} vec4;
+
+typedef struct GUIElement 
+{
+	char *name;
+	GUIElementType type;  //element = 0, panel 1, image 2, button 3, checkBox 4, textCaption 5, textPanel 6
+	//ivec2 anchors;
+	void * userData;
+} GUIElement;
+
+
+
+
+
+
+//STATICS
+//static struct Vector *font_table; //AtlasFontSize*
+//static struct Vector *atlas_table; //Atlas *
+
+static void *GUImalloc(struct Vector **guitable, int type);
+static AtlasEntry * AtlasAddIChar(AtlasFont *font, AtlasEntrySet *entryset,  int ichar);
+
+/////////////////////////////////////////////////////////////////////////////
+
+static void AtlasEntrySet_init(AtlasFont *font, AtlasEntrySet *me, char *name){
+	me->name = name;
+	me->font = font;
+	me->type = GUI_ATLASENTRYSET;
+	me->entries = newVector(AtlasEntry *,256);
+	me->lastascii = -1;
+	memset(me->ascii,0,128*sizeof(int)); //initialize ascii fast lookup table to NULL, which means no char glyph stored
+}
+
+
+#ifdef OLDCODE
+
+Code appears to be unused - JAS April 2017
+
+static void AtlasEntry_init1(AtlasEntry *me,  char *name, int index, int x, int y, int width, int height){
+	//use this for .bmp atlases that are already tiled
+	me->name = name;
+	me->type = GUI_ATLASENTRY;
+	me->apos.X = x;
+	me->apos.Y = y;
+	me->size.X = width;
+	me->size.Y = height;
+	me->ichar = index;
+}
+#endif //OLDCODE
+
+static void Atlas_init(Atlas *me, int size, int rowheight){
+	me->type = GUI_ATLAS;
+	me->name = NULL;
+	//use this for generating font atlas from .ttf
+	me->pen.X = me->pen.Y = 0;
+	me->size.X = me->size.Y = size;
+	me->rowheight = rowheight; //spacing between baselines for textpanel, in pixels (can get this from fontFace once loaded and sized to EM)
+	//me->EMpixels = EMpixels;  //desired size of "EM" square (either x or y dimension, same) in pixels
+	me->bytesperpixel = 1; //TT fonts are rendered to an antialiased 8-bit alpha texture
+	//me->bytesperpixel = 2;
+#ifdef ANGLEPROJECT
+	#ifdef WINRT
+	me->bytesperpixel = 1; //ANGLEPROJECT winrt 8.1 - can't seem to mipmap 1 BPP GL_ALPHA/A8/ii needs 2 bpp GL_LUMINANCE_ALPHA/A8L8 or bombs
+	//possible patch shown here: https://bugs.chromium.org/p/angleproject/issues/detail?id=632
+	//got a 2014 era copy of MSOpenTech VS2013-WINRT successfully built with patch and 1bpp/GL_ALPHA runs and looks good
+	//DirectX Surface Formats: https://msdn.microsoft.com/en-us/library/windows/desktop/bb153349(v=vs.85).aspx
+	#else
+	me->bytesperpixel = 1; //ANGLEPROJECT desktop - 1 bpp/A8/ii/GL_ALPHA is good
+	#endif
+#endif
+	me->texture = (unsigned char*)MALLOCV(me->size.X *me->size.Y*me->bytesperpixel);
+	memset(me->texture,127,me->size.X *me->size.Y*me->bytesperpixel); //make it black by default
+	/*
+	//here are some fun stripes to initialize the texture data, for debugging:
+	int kk;
+	for(int i=0;i<size;i++){
+		for(int j=0;j<size;j++){
+			kk = (i*size + j)*me->bytesperpixel;
+			me->texture[kk+me->bytesperpixel-1] = i % 2 == 0 ? 255 : 0;
+		}
+	}
+	*/
+}
+
+static void subimage_paste(unsigned char *image, ivec2 size, unsigned char* subimage, int bpp, ivec2 ulpos, ivec2 subsize ){
+	int i;
+	int imrow, imcol, impos,bpp1;
+	int iscol, ispos;
+	bpp1 = 1; //bits per pixel of the subimage (bpp is for the atlas)
+	for(i=0;i<subsize.Y;i++ ){
+		imrow = ulpos.Y + i;
+		imcol = ulpos.X;
+		impos = (imrow * size.X + imcol)*bpp;
+		//isrow = i;
+		iscol = 0;
+		ispos = (i*subsize.X + iscol)*bpp1;
+		if(impos >= 0 && (impos+subsize.X*bpp <= size.X*size.Y*bpp))
+		{
+			if(bpp == 1) memcpy(&image[impos],&subimage[ispos],subsize.X*bpp1);
+			else {
+				//we receive a 1byte-per-pixel GL_ALPHA image chip from font library
+				//here we expand it to 2 bytes per pixel GL_LUMINANCE_ALPHA
+				int j, k;
+				for(k=0;k<subsize.X;k++){
+					for(j=0;j<bpp;j++){
+						//x looks fuzzy, unreadable, unlike the opengl 1bpp GL_ALPHA
+						if(j ==5) image[impos+k+j] = 255;
+						else image[impos+k+j] = subimage[ispos+k];
+					}
+				}
+			}
+		}
+		else
+			printf("!");
+	}
+}
+
+
+static GUINamedType *searchGUItable(struct Vector* guitable, char *name){
+	int i;
+	GUINamedType *retval = NULL;
+	if(guitable)
+	for(i=0;i<vectorSize(guitable);i++){
+		GUINamedType *el = vector_get(GUINamedType*,guitable,i);
+		///printf("[SGT %s %s] ",name,el->name);
+		if(!strcmp(name,el->name)){
+			retval = el;
+			break;
+		}
+	}
+	return retval;
+}
+
+
+static void Atlas_addEntry(Atlas *me, AtlasEntry *entry, unsigned char *gray){
+	ivec2 pos;
+	//use this with atlasEntry_init for .ttf font atlas
+	//paste in somewhere, and update cRow,cCol by width,height of gray
+	//layout in rows
+	//if((me->pen.X + me->rowheight) > me->size.X){
+	//	me->pen.Y += me->rowheight;
+	//	me->pen.X = 0;
+	//}
+	if((me->pen.X + entry->size.X) > me->size.X){
+		me->pen.Y += me->rowheight;
+		me->pen.X = 0;
+	}
+	if(me->pen.Y > me->size.Y){
+		ConsoleMessage("Atlas too small, skipping %d\n",entry->ichar);
+		return;
+	}
+
+	//paste glyph image into atlas image
+	pos.X = me->pen.X + entry->pos.X;
+	pos.Y = me->pen.Y + entry->pos.Y;
+	
+	if(1) subimage_paste(me->texture,me->size,gray,me->bytesperpixel,me->pen,entry->size);
+	if(0) subimage_paste(me->texture,me->size,gray,1,pos,entry->size);
+
+	if(1) {
+		entry->apos.X = me->pen.X;
+		entry->apos.Y = me->pen.Y;
+	}else{
+		entry->apos.X = pos.X;
+		entry->apos.Y = pos.Y;
+	}
+	me->pen.X += entry->size.X; //entry->advance.X;
+	//me->pen.Y += entry->advance.Y;
+}
+
+
+#ifdef OLDCODE
+
+Code appears to be unused - JAS April 2017
+
+static void AtlasEntrySet_addEntry1(AtlasEntrySet *me, AtlasEntry *entry){
+	//use this with atlasEntry_init1 for .bmp widget texture atlas
+	vector_pushBack(AtlasEntry*,me->entries,entry);
+	if(entry->ichar > 0 && entry->ichar < 128){
+		//if its an ascii char, add to fast lookup table
+		me->ascii[entry->ichar] = entry;
+		me->lastascii = max(me->lastascii,me->entries->n); //for lookup optimization
+	}
+}
+#endif //OLDCODE
+
+
+static void AtlasEntrySet_addEntry(AtlasEntrySet *me, AtlasEntry *entry, unsigned char *gray){
+	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+	vector_pushBack(AtlasEntry*,me->entries,entry);
+	if(entry->ichar > 0 && entry->ichar < 128){
+		//if its an ascii char, add to fast lookup table
+		me->ascii[entry->ichar] = entry;
+		me->lastascii = max(me->lastascii,me->entries->n); //for lookup optimization
+	}
+	if(!me->atlas)
+		me->atlas = (Atlas*)searchGUItable(p->atlas_table,me->atlasName);
+	if(me->atlas)
+		Atlas_addEntry(me->atlas, entry, gray);
+}
+
+#ifdef OLDCODE
+
+Code appears to be unused - JAS April 2017
+
+static AtlasEntry *AtlasEntrySet_getEntry1(AtlasEntrySet *me, char *name){
+	//use this to get an atlas entry by char* name, slow
+	int i;
+	for(i=0;i<vectorSize(me->entries);i++){
+		AtlasEntry *entry = vector_get(AtlasEntry*,me->entries,i);
+		if(!strcmp(entry->name,name))
+			return entry;
+	}
+	return NULL;
+}
+#endif // OLDCODE
+
+
+static AtlasEntry *AtlasEntrySet_getEntry(AtlasEntrySet *me, int ichar){
+	//use this to get an atlas entry for a font glyph
+	// uses fast lookup for ASCII chars first, then slow lookup since its a 16 char x 16 char atlas, max 256 chars stored
+	// ichar is unicode
+	AtlasEntry *ae = NULL;
+	if(ichar > 0 && ichar < 128){  // < 0x80
+		ae = me->ascii[ichar];
+	}else{
+		//could be a binary search here
+		int i;
+		for(i=me->lastascii;i<vectorSize(me->entries);i++){
+			AtlasEntry *entry = vector_get(AtlasEntry*,me->entries,i);
+			if(entry->ichar == ichar){
+				ae = entry;
+				break;
+			}
+		}
+		if(!ae){
+			//printf("not found in atlasEntrySet %d adding\n",ichar);
+			//add 
+			ae = AtlasAddIChar(me->font, me, ichar);
+			for(i=0;i<vectorSize(me->entries);i++){
+				AtlasEntry *entry = vector_get(AtlasEntry*,me->entries,i);
+				if(entry->ichar == ichar){
+					ae = entry;
+					break;
+				}
+			}
+			if(!ae){
+				printf("tried to add char %d to atlas, but didn't show up\n",ichar);
+			}
+
+		}
+	}
+	return ae;
+}
+
+
+
+static void AtlasFont_init(AtlasFont *me,char *facename, int EMsize, char* path){
+
+	me->name = facename;
+	me->type = GUI_FONT;
+	me->path = path;
+	me->fontFace = NULL;
+	me->EMsize = EMsize;
+	me->set = NULL;
+	//me->atlasSizes.n = 0; //no atlas renderings to begin with
+	//me->atlasSizes.allocn = 2;
+	//me->atlasSizes.data = malloc(2*sizeof(AtlasEntrySet*));
+}
+
+//AtlasEntrySet* searchAtlasFontForSizeOrMake(AtlasFont *font,int EMpixels){
+//	AtlasEntrySet *set = NULL;
+//	if(font){
+//		if(font->atlasSizes.n){
+//			int i;
+//			for(i=0;i<font->atlasSizes.n;i++){
+//				AtlasEntrySet *aes = vector_get(AtlasEntrySet*,&font->atlasSizes,i);
+//				if(aes){
+//					if(aes->EMpixels == EMpixels){
+//						set = aes;
+//						break;
+//					}
+//				}
+//			}
+//		}
+//		if(!set){
+//			//make set
+//		}
+//	}
+//	return set;
+//}
+
+
+
+static char *newstringfromchar(char c){
+	char *ret = MALLOCV(2);
+	ret[0] = c;
+	ret[1] = '\0';
+	return ret;
+}
+//static FT_Library fontlibrary; /* handle to library */
+
+
+static AtlasEntry * AtlasAddIChar(AtlasFont *font, AtlasEntrySet *entryset,  int ichar){
+	FT_Face fontFace = font->fontFace;
+
+	FT_GlyphSlot glyph;
+	FT_Error error;
+	AtlasEntry *entry;
+	unsigned long c;
+		
+	c = FT_Get_Char_Index(fontFace, ichar); 		
+	error = FT_Load_Glyph(fontFace, c, FT_LOAD_RENDER); 	
+	if(error) 		
+	{ 			
+		//Logger::LogWarning("Character %c not found.", wText.GetCharAt(i)); 
+		printf("ouch87");
+		return NULL; 		
+	}
+	glyph = fontFace->glyph;
+
+	entry = MALLOCV(sizeof(AtlasEntry));
+	//atlasEntry_init1(entry,names[i*2],(int)cText[i],0,0,16,16);
+	entry->ichar = ichar;
+	entry->pos.X = glyph->bitmap_left;
+	entry->pos.Y = glyph->bitmap_top;
+	entry->advance.X = glyph->advance.x >> 6;
+	entry->advance.Y = glyph->advance.y >> 6;
+	entry->size.X = glyph->bitmap.width;
+	entry->size.Y = glyph->bitmap.rows;
+	entry->name = NULL; //utf8_to_utf32(str,str32,&len32);
+	AtlasEntrySet_addEntry(entryset,entry,glyph->bitmap.buffer);
+	return entry;
+}
+
+
+static int RenderFontAtlas(AtlasFont *font, AtlasEntrySet *entryset,  char * cText){
+	//pass in a string with your alphabet, numbers, symbols or whatever, 
+	// and we use freetype2 to render to bitmap, and then tile those little
+	// bitmaps into an atlas texture
+	//wText is UTF-8 since FreeType expect this	
+	int i;
+	FT_Face fontFace = font->fontFace;
+
+	for (i = 0; i < strlen(cText); i++) 	
+	{ 		
+		FT_GlyphSlot glyph;
+		FT_Error error;
+		AtlasEntry *entry;
+		unsigned long c;
+		
+		c = FT_Get_Char_Index(fontFace, (int) cText[i]); 		
+		error = FT_Load_Glyph(fontFace, c, FT_LOAD_RENDER); 	
+		if(error) 		
+		{ 			
+			//Logger::LogWarning("Character %c not found.", wText.GetCharAt(i)); 
+			printf("ouch87");
+			continue; 		
+		}
+		glyph = fontFace->glyph;
+		entry = MALLOCV(sizeof(AtlasEntry));
+		//atlasEntry_init1(entry,names[i*2],(int)cText[i],0,0,16,16);
+		entry->ichar = 0;
+		if( cText[i] > 31 && cText[i] < 128 ) entry->ichar = cText[i]; //add to fast lookup table if ascii
+		entry->pos.X = glyph->bitmap_left;
+		entry->pos.Y = glyph->bitmap_top;
+		entry->advance.X = glyph->advance.x >> 6;
+		entry->advance.Y = glyph->advance.y >> 6;
+		entry->size.X = glyph->bitmap.width;
+		entry->size.Y = glyph->bitmap.rows;
+		entry->name = newstringfromchar(cText[i]);
+		AtlasEntrySet_addEntry(entryset,entry,glyph->bitmap.buffer);
+	}
+	//for(int i=0;i<256;i++){
+	//	for(int j=0;j<256;j++)
+	//		atlas->texture[i*256 + j] = (i*j) %2 ? 0 : 127; //checkerboard, to see if fonts twinkle
+	//}
+	return TRUE;
+}
+
+static int AtlasFont_LoadFont(AtlasFont *font){
+	FT_Face fontface;
+	FT_Library fontlibrary;
+	int err;	
+	struct name_num *fontname_entry;
+	char thisfontname[2048];
+	ttglobal tg;
+	ppComponent_Text p;
+	tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+	if(!p->font_directory)
+		p->font_directory = makeFontDirectory();
+
+    strcpy (thisfontname, p->font_directory);
+	strcat(thisfontname,"/");
+	strcat(thisfontname,font->path);
+
+	fontlibrary = getFontLibrary();
+	if(!fontlibrary)
+        return FALSE;
+
+	fontname_entry = get_fontname_entry_by_facename(font->name);
+	if(fontname_entry){
+		//a font we also use for Component_Text ie Vera series
+		int num = fontname_entry->num;
+		if(p->font_state[num] < FONTSTATE_TRIED){
+			FW_make_fontname(num);
+			fontface = FW_init_face0(fontlibrary,p->thisfontname);
+			if (fontface) {
+				p->font_face[num] = fontface;
+				p->font_state[num] = FONTSTATE_LOADED;
+				font->fontFace = fontface;
+			}else{
+				p->font_state[num] = FONTSTATE_TRIED;
+				return FALSE;
+			}
+		}
+		else{
+			//already loaded, just retrieve
+			font->fontFace = p->font_face[num];
+		}
+	}else{
+		//not a Vera, could be a scrolling-text pixel or proggy font
+		err = FT_New_Face(fontlibrary, thisfontname, 0, &fontface);
+		if (err) {
+			printf ("FreeType - can not use font %s\n",thisfontname);
+			return FALSE;
+		} 
+		font->fontFace = fontface;
+	}
+	if(1){
+		int nsizes;
+		printf("fontface flags & Scalable? = %ld \n",font->fontFace->face_flags & FT_FACE_FLAG_SCALABLE );
+		nsizes = font->fontFace->num_fixed_sizes;
+		printf("num_fixed_sizes = %d\n",nsizes);
+	}
+	return TRUE;
+}
+
+
+static int AtlasFont_setFontSize(AtlasFont *me, int EMpixels, int *rowheight, int *maxadvancepx){
+	int err;
+	FT_Face fontFace = me->fontFace;
+
+	if(!fontFace) return FALSE;
+	//#define POINTSIZE 20
+	//#define XRES 96
+	//#define YRES 96
+	//if(0){
+	//	err = FT_Set_Char_Size(fontFace, /* handle to face object           */
+	//							POINTSIZE*64,    /* char width in 1/64th of points  */
+	//							POINTSIZE*64,    /* char height in 1/64th of points */
+	//							XRES,            /* horiz device resolution         */
+	//							YRES);           /* vert device resolution          */
+	//}
+	err = FT_Set_Pixel_Sizes(
+		fontFace,   /* handle to face object */
+		0,      /* pixel_width           */
+		EMpixels );   /* pixel_height          */
+    
+	if(1){
+		// int h;
+		// int  max_advance_px;
+
+		//printf("spacing between rows = %f\n",fontFace->height);
+		// h = fontFace->size->metrics.height;
+		//printf("height(px)= %d.%d x_ppem=%d\n",(int)(h >>6),(int)(h<<26)>>26,(unsigned int)fontFace->size->metrics.x_ppem);
+		*rowheight = fontFace->size->metrics.height >> 6;
+		//fs->EMpixels = (unsigned int)fontFace->size->metrics.x_ppem;
+		// max_advance_px = fontFace->size->metrics.max_advance >> 6;
+		//printf("max advance px=%d\n",max_advance_px);
+	}
+	*maxadvancepx = fontFace->size->metrics.max_advance >> 6;
+    if (err) {
+        printf ("FreeWRL - FreeType, can not set char size for font %s\n",me->path);
+        return FALSE;
+	}
+	return TRUE;
+}
+
+static unsigned int upperPowerOfTwo(unsigned int k){
+	int ipow;
+	unsigned int kk = 1;
+	for(ipow=2;ipow<32;ipow++){
+		kk = kk << 1;
+		if(kk > k) return kk;
+	}
+	return 1 << 31;
+}
+
+
+static void AtlasFont_RenderFontAtlas(AtlasFont *me, int EMpixels, char* alphabet){
+	//this method assumes one fontsize per atlas, 
+	// and automatically adjusts atlas size to minimize wastage
+	int rowheight, maxadvancepx, pixelsNeeded;
+	unsigned int dimension;
+	AtlasEntrySet *aes;
+	char *name;
+	Atlas *atlas = NULL;
+
+	// initialize - JAS
+	rowheight = 0; 
+	maxadvancepx = 0;
+	pixelsNeeded = 0;
+
+	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+
+	//printf("start of RenderFontAtlas\n");
+
+	if(!me->fontFace) return; //font .ttf file not loaded (likely not found, or programmer didn't load flont first)
+
+	atlas = GUImalloc(&p->atlas_table,GUI_ATLAS); //malloc(sizeof(GUIAtlas));
+	aes = MALLOCV(sizeof(AtlasEntrySet));
+	//GUIFontSize *fsize = malloc(sizeof(GUIFontSize));
+	name = MALLOCV(strlen(me->name)+12); //base10 -2B has 11 chars, plus \0
+	strcpy(name,me->name);
+	sprintf(&name[strlen(me->name)],"%d",EMpixels); //or itoa()
+	//itoa(EMpixels,&name[strlen(name)],10);
+	AtlasEntrySet_init(me,aes,name);
+	//somehow, I need the EMsize and rowheight, or a more general function to compute area needed by string
+	AtlasFont_setFontSize(me,EMpixels, &rowheight, &maxadvancepx);
+	pixelsNeeded = rowheight * EMpixels / 2 * strlen(alphabet);
+	dimension = (unsigned int)sqrt((double)pixelsNeeded);
+	dimension = upperPowerOfTwo(dimension);
+	//printf("creating atlas %s with dimension %d advance %d rowheight %d\n",name,dimension,EMpixels/2,rowheight);
+	Atlas_init(atlas,dimension,rowheight);
+	aes->atlas = atlas;
+	aes->EMpixels = EMpixels;
+	aes->maxadvancepx = maxadvancepx;
+	aes->rowheight = rowheight;
+	atlas->name = name;
+	aes->atlasName = name;
+	//init ConsoleMessage font atlas
+	RenderFontAtlas(me,aes,alphabet);
+	//vector_pushBack(AtlasEntrySet*,&me->atlasSizes,aes);
+	me->set = aes;
+	///vector_pushBack(GUIAtlas*,atlas_table,atlas); //will have fontnameXX where XX is the EMpixel
+	//printf("end of RenderFontAtlas\n");
+}
+
+
+
+
+static int bin2hex(char *inpath, char *outpath){
+	// converts any binary file -.ttf, .png etc- into a .c file, so you can compile it in
+	// then in your code refer to it:
+	// extern unsigned char my_data[];
+	// extern int my_size;
+	int ncol = 15;
+	FILE *fin, *fout;
+	fin = fopen(inpath,"r+b");
+	fout = fopen(outpath,"w+");
+
+	if(fin && fout){
+		char *bufname, *bufdup, *ir, *sep;
+		int more, m, j, nc;
+		unsigned int hh;
+		unsigned char *buf;
+		buf = MALLOCV(ncol + 1);
+		//convert ..\ProggyClean.ttf to ProggyClean_ttf
+		bufname = bufdup = STRDUP(inpath);
+		ir = strrchr(bufname,'\\');
+		if(ir) bufname = &ir[1];
+		ir = strrchr(bufname,'/');
+		if(ir) bufname = &ir[1];
+		ir = strrchr(bufname,'.');
+		if(ir) ir[0] = '_';
+		//print data
+		fprintf(fout,"unsigned char %s_data[] = \n",bufname);
+		sep = "{";
+		more = 1;
+		m = 0;
+		do{
+			nc = ncol;
+			nc = fread(buf,1,nc,fin);
+			if(nc < ncol) more = 0;
+			for(j=0;j<nc;j++){
+				fprintf(fout,"%s",sep);
+				hh = buf[j];
+				fprintf(fout,"0x%.2x",hh);
+				sep = ",";
+			}
+			if(more) fprintf(fout,"\n");
+			m += nc;
+		}while(more);
+		fprintf(fout,"};\n");
+		//print size
+		fprintf(fout,"int %s_size = %d;\n",bufname,m);
+		fclose(fout);
+		fclose(fin);
+		free(buf);
+		free(bufdup);
+	}
+	return 1;
+}
+
+
+static int AtlasFont_LoadFromDotC(AtlasFont *font, unsigned char *start, int size){
+	FT_Face fontFace;
+	FT_Library fontlibrary;
+	FT_Open_Args args;
+	int err;	
+	char *fontname;
+	fontname = font->path;
+
+	if(!size || !start){
+		printf("not compiled in C %s\n", font->name);
+		return FALSE;
+	}
+
+	fontlibrary = getFontLibrary();
+	if(!fontlibrary)
+        return FALSE;
+
+	args.flags = FT_OPEN_MEMORY;
+	args.memory_base = start;
+	args.memory_size = size;
+	err = FT_Open_Face(fontlibrary, &args, 0,  &fontFace);
+   // err = FT_New_Face(fontlibrary, fontname, 0, &fontFace);
+    if (err) {
+        printf ("FreeType - can not use font %s\n",fontname);
+        return FALSE;
+    } 
+	font->fontFace = fontFace;
+
+	if(0){
+		int nsizes;
+		printf("fontface flags & Scalable? = %ld \n",fontFace->face_flags & FT_FACE_FLAG_SCALABLE );
+		nsizes = fontFace->num_fixed_sizes;
+		printf("num_fixed_sizes = %d\n",nsizes);
+	}
+	return TRUE;
+}
+
+
+
+static AtlasFont *searchAtlasFontTable(struct Vector* guitable, char *name, int EMsize){
+	int i;
+	AtlasFont *retval = NULL;
+	if(guitable)
+	for(i=0;i<vectorSize(guitable);i++){
+		AtlasFont *el = vector_get(AtlasFont *,guitable,i);
+		///printf("[SGT %s %s] ",name,el->name);
+		if(!strcmp(name,el->name) && EMsize == el->EMsize){
+			retval = el;
+			break;
+		}
+	}
+	return retval;
+}
+
+#define DOTC_NONE 0
+#define DOTC_SAVE 1
+#define DOTC_LOAD 2
+//#define HAVE_COMPILED_IN_FONT 1 //AT TOP OF THIS MODULE
+#ifdef HAVE_COMPILED_IN_FONT
+extern unsigned char VeraMono_ttf_data[];
+extern int VeraMono_ttf_size;
+extern unsigned char freewrl_wingding_ttf_data[];
+extern int freewrl_wingding_ttf_size;
+#else
+unsigned char *VeraMono_ttf_data = NULL;
+int VeraMono_ttf_size = 0;
+
+#endif
+
+static int FW_Open_Face(FT_Library library, char *thisfontname, int faceIndex, FT_Face *face)
+{
+	//FONT THUNKING
+	//this function can be used by Text and FontStyle to load Typewriter automatically from .c if compiled in,
+	// and/or substitute (THUNK) typewriter if the desired font file can't be found
+	int err = 0;
+
+	if(VeraMono_ttf_size && strstr(thisfontname,"VeraMono.ttf")){
+		//always try to get VeraMono from .c
+		FT_Open_Args args;
+		args.flags = FT_OPEN_MEMORY;
+		args.memory_base = VeraMono_ttf_data;
+		args.memory_size = VeraMono_ttf_size;
+		err = FT_Open_Face(library, &args, 0,  face);
+	}else{
+		err = FT_New_Face(library, thisfontname, faceIndex, face);
+		if(err && VeraMono_ttf_size)
+		{
+			//for any other font face, only substitute/thunk (to veramono) if it can't be found
+			FT_Open_Args args;
+			args.flags = FT_OPEN_MEMORY;
+			args.memory_base = VeraMono_ttf_data;
+			args.memory_size = VeraMono_ttf_size;
+			err = FT_Open_Face(library, &args, faceIndex,  face);
+		}
+	}
+	return err;
+}
+
+
+// called in MainLoop, and locally here
+AtlasFont *searchAtlasTableOrLoad(char *facename, int EMpixels){
+	AtlasFont *font;
+	ppComponent_Text p = (ppComponent_Text)gglobal()->Component_Text.prv;
+	font = (AtlasFont*)searchAtlasFontTable(p->font_table,facename,EMpixels);
+	if(!font){
+		static char * ascii32_126 = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQURSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+		int font_tactic, len; //atlas_tactic, 
+		char* facenamettf;
+	
+		font = GUImalloc(&p->font_table,GUI_FONT); //sizeof(GUIFont));
+		//AtlasFont_init(font,"ProggyClean","ProggyClean.ttf"); 
+		len = strlen(facename) + 7;
+		facenamettf = MALLOCV(len);
+		strcpy(facenamettf,facename);
+		facenamettf = strcat(facenamettf,".ttf");
+		AtlasFont_init(font,facename,EMpixels,facenamettf); 
+
+		font_tactic = DOTC_NONE; //DOTC_NONE, DOTC_SAVE, DOTC_LOAD
+		if(!strcmp(facename,"VeraMono")){
+			//we want one font we can rely on even if vera fonts aren't installed or hard to find
+			//so we compile one it, and if no other font we can thunk to it
+			if(0) font_tactic = DOTC_SAVE; //you would do this once in your lifetime to generate a .c, then compile that into your program, then define HAVE_COMPILED_IN_FONT above
+			else font_tactic = DOTC_LOAD; //then for the rest of your life, you would use this to load it from .c
+			if(font_tactic == DOTC_LOAD)
+				AtlasFont_LoadFromDotC(font, VeraMono_ttf_data, VeraMono_ttf_size);
+		}
+		if(!strcmp(facename,"freewrl_wingding")){
+			//we want one font we can rely on even if vera fonts aren't installed or hard to find
+			//so we compile one it, and if no other font we can thunk to it
+			if(0) font_tactic = DOTC_SAVE; //you would do this once in your lifetime to generate a .c, then compile that into your program, then define HAVE_COMPILED_IN_FONT above
+			else font_tactic = DOTC_LOAD; //then for the rest of your life, you would use this to load it from .c
+			if(font_tactic == DOTC_LOAD)
+				AtlasFont_LoadFromDotC(font, freewrl_wingding_ttf_data, freewrl_wingding_ttf_size);
+		}
+		if(font_tactic == DOTC_SAVE) {
+			//you need to put the .ttf file in the 'local' directory where you freewrl thinks its running, 
+			// otherwise you'll get nothing.
+			char *facenamettfc;
+			facenamettfc = alloca(strlen(facenamettf)+3);
+			strcpy(facenamettfc,facenamettf);
+			facenamettfc[len-7] = '_';
+			strcat(facenamettfc,".c");
+			bin2hex(font->path, facenamettfc); // "ProggyClean_ttf.c");
+		}
+		if(font_tactic != DOTC_LOAD)
+			AtlasFont_LoadFont(font); //normal loading of installed font
+
+		AtlasFont_RenderFontAtlas(font,EMpixels,ascii32_126);
+		//font = (AtlasFont*)searchGUItable(p->font_table,facename); //too simple, need (facename,size) tuple to get correct font
+
+	}
+	if(!font){
+		printf("dug9gui: Can't find font %s did you misname the fontface sb Vera or VeraMono etc?\n",facename);
+	}
+	return font;
+}
+
+
+
+// called in MainLoop
+vec4 vec4_init(float x, float y, float z, float w){
+	vec4 ret;
+	ret.X = x, ret.Y = y; ret.Z = z; ret.W = w;
+	return ret;
+}
+
+#ifdef OLDCODE
+static vec2 vec2_init(float x, float y){
+	vec2 ret;
+	ret.X = x, ret.Y = y; 
+	return ret;
+}
+
+#endif //OLDCODE
+
+typedef struct ivec4 {int X; int Y; int W; int H;} ivec4;
+ivec4 ivec4_init(int x, int y, int w, int h);
+
+
+//static Stack *_vpstack = NULL; //ivec4 in y-down pixel coords - viewport stack used for clipping drawing
+struct GUIScreen {
+	int X,Y; //placeholder for screen WxH
+} screen;
+ //singleton, screen allows mouse passthrough (vs panel, captures mouse)
+
+
+static vec2 pixel2normalizedViewportScale( GLfloat x, GLfloat y)
+{
+	vec2 xy;
+	//GLfloat yup;
+	
+	ivec4 currentvp = stack_top(ivec4,gglobal()->Mainloop._vportstack);
+
+	//convert to -1 to 1 range
+	xy.X = ((GLfloat)(x)/(GLfloat)currentvp.W) * 2.0f;
+	xy.Y = ((GLfloat)(y)/(GLfloat)currentvp.H) * 2.0f;
+	return xy;
+}
+
+static vec2 pixel2normalizedViewport( GLfloat x, GLfloat y){
+	ivec4 currentvp = stack_top(ivec4,gglobal()->Mainloop._vportstack);
+
+	vec2 xy;
+	xy.X = ((GLfloat)(x - currentvp.X)/(GLfloat)currentvp.W) * 2.0f;
+	xy.Y = ((GLfloat)(y - currentvp.Y)/(GLfloat)currentvp.H) * 2.0f;
+	xy.X -= 1.0f;
+	xy.Y -= 1.0f;
+	xy.Y *= -1.0f;
+	return xy;
+}
+
+#ifdef FOR_DEBUGGING
+
+Calls commented out, removing from active compile - JAS April 2017
+static void printvpstacktop(Stack *vpstack, int line){
+	ivec4 currentvp = stack_top(ivec4,vpstack);
+	int n = ((struct Vector*)vpstack)->n;
+	int xx = ((ivec4*)((struct Vector*)vpstack)->data)[3].X;
+	printf("vp top[%d] = [%d %d %d %d] line %d xx=%d\n",n,currentvp.X,currentvp.Y,currentvp.W,currentvp.H,line,xx);
+}
+#endif //FOR_DEBUGGING
+
+#ifdef OLDCODE
+
+Code appears not to be called - JAS April 2017
+
+static vec2 pixel2normalizedScreenScale( GLfloat x, GLfloat y)
+{
+	vec2 xy;
+	//GLfloat yup;
+	//convert to -1 to 1 range
+	xy.X = ((GLfloat)x/(GLfloat)screen.X) * 2.0f;
+	xy.Y = ((GLfloat)y/(GLfloat)screen.Y) * 2.0f;
+	return xy;
+}
+#endif //OLDCODE
+
+
+#ifdef OLDCODE
+
+Code appears not to be called - JAS April 2017 
+
+static vec2 pixel2normalizedScreen( GLfloat x, GLfloat y){
+	vec2 xy = pixel2normalizedScreenScale(x,y);
+	xy.X -= 1.0f;
+	xy.Y -= 1.0f;
+	xy.Y *= -1.0f;
+	return xy;
+}
+#endif 
+
+
+
+static   GLbyte vShaderStr[] =  
+      "attribute vec4 a_position;   \n"
+      "attribute vec2 a_texCoord;   \n"
+      "uniform mat4 u_ModelViewMatrix; \n"
+      "uniform mat4 u_ProjectionMatrix; \n"
+      "varying vec2 v_texCoord;     \n"
+      "void main()                  \n"
+      "{                            \n"
+      "   gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * a_position; \n"
+      "   v_texCoord = a_texCoord;  \n"
+      "}                            \n";
+
+
+// using Luminance images, you need to set a color in order for it to show up different than white
+// and if the luminance is an opacity gray-scale for anti-aliased bitmap patterns ie font glyphs
+// then transparency = 1 - opacity
+
+//this shader works in win32 desktop angleproject (gets translated to HLSL), although it's a mystery why/how it works Dec 24, 2014.
+//In theory:
+// the blend should be 1111 if you want all texture
+// and blend should be 0000 if you want all vector color (ie drawing a colored rectangle or border)
+// and blend should be 0001 if you have an alpha image (ie font glyph image)- so you ignor .rgb of texture
+//In practice: there's a (1-blend.a) and (1-texColor.a) I don't understand
+//to use an rgba image's own color, set your blend to 1111 and vector color to 1110
+//to colorize a gray rgba image using the rgb as a luminance factor, and vector color as the hue, 
+//  set blend to 1111 and vector color to your chosen color
+static   GLbyte fShaderStr[] =  
+#ifdef GL_ES_VERSION_2_0
+      "precision mediump float;                            \n"
+#endif //GL_ES_VERSION_2_0
+      "varying vec2 v_texCoord;                            \n"
+      "uniform sampler2D Texture0;                         \n"
+      "uniform vec4 Color4f;                               \n"
+	  "uniform vec4 blend;                                 \n"
+      "void main()                                         \n"
+      "{                                                   \n"
+	  "  vec4 texColor = texture2D( Texture0, v_texCoord ); \n"    
+	  "  vec4 one = vec4(1.0,1.0,1.0,1.0); \n"
+	  "  vec4 omb = vec4(one.rgb - blend.rgb,1.0 - blend.a);                \n"
+	  "  vec4 tcolor = omb + (blend*texColor);\n"
+	  "  float aa = omb.a*Color4f.a + blend.a*(1.0 -texColor.a);\n"
+	  "  tcolor = Color4f * tcolor;\n"
+      "  vec4 finalColor = vec4(tcolor.rgb, 1.0 - aa ); \n"  
+      "  gl_FragColor = finalColor; \n"
+      "}                                                   \n";
+//	  "  gl_FragColor = vec4(1.0,1.0,1.0,1.0); \n"
+	  //"  texColor.a = one.a*blend.a + (one.a - blend.a)*texColor.a;\n"
+   //   "  vec4 finalColor = vec4(Color4f.rgb * texColor.rgb, 1.0 - (1.0 - Color4f.a)*(1.0 - texColor.a)); \n"  //vector rgb color, and vector.a * (1-L) for alpha
+	//  "  texColor.rgb = blend.rgb + (one.rgb - blend.rgb)*texColor.rgb;\n"
+	  //"  texColor.a = blend.a*Color4f.a + (one.a - blend.a)*texColor.a;\n"
+   //   "  vec4 finalColor = vec4(Color4f.rgb * texColor.rgb, texColor.a); \n"  //vector rgb color, and vector.a * (1-L) for alpha
+//STATICS
+static GLfloat modelviewIdentityf[] = {
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+static GLfloat projectionIdentityf[] = {
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+
+static void initProgramObject(){
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+   // Load the shaders and get a linked program object
+   p->programObject = esLoadProgram ( (const char*) vShaderStr, (const char *)fShaderStr );
+   // Get the attribute locations
+   p->positionLoc = glGetAttribLocation ( p->programObject, "a_position" );
+   p->texCoordLoc = glGetAttribLocation ( p->programObject, "a_texCoord" );
+   // Get the sampler location
+   p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
+   p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
+   p->blendLoc = glGetUniformLocation ( p->programObject, "blend" );
+   p->modelviewLoc =  glGetUniformLocation ( p->programObject, "u_ModelViewMatrix" );
+   p->projectionLoc = glGetUniformLocation ( p->programObject, "u_ProjectionMatrix" );
+
+}
+
+#ifdef OLDCODE
+
+JAS - possibly unused - Apr 2017
+
+static void dug9gui_DrawImage(int xpos,int ypos, int width, int height, char *buffer){
+//xpos, ypos upper left location of image in pixels, on the screen
+// hardwired to draw glyph (1-alpha) images
+//  1 - 2 4
+//  | / / |    2 triangles, 6 points, in y-up coords
+//  0 3 - 5
+
+GLfloat cursorVert[] = {
+	  0.0f,  0.0f, 0.0f,
+	  0.0f,  1.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f,
+	  0.0f,  0.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f,
+	  };
+
+GLfloat cursorTex[] = {
+	0.0f, 0.0f,
+	0.0f, 1.0f,
+	1.0f, 1.0f,
+	0.0f, 0.0f,
+	1.0f, 1.0f,
+	1.0f, 0.0f,
+	};
+	GLushort ind[] = {0,1,2,3,4,5};
+	//GLint pos, tex;
+	vec2 fxy, fwh;
+	//ivec2 xy;
+	int i; //,j;
+	GLfloat cursorVert2[18];
+	//unsigned char buffer2[1024];
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+
+    if(0) glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, width, height, 0, GL_LUMINANCE , GL_UNSIGNED_BYTE, buffer);
+	//for(int i=0;i<width*height;i++)
+	//	buffer2[i] = 255 - (unsigned char)(buffer[i]); //change from (1-alpha) to alpha image
+    if(1) glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA , GL_UNSIGNED_BYTE, buffer);
+	glUniform4f(p->blendLoc,0.0f,0.0f,0.0f,1.0f); //-1 is because glyph grayscale are really (1.0 - alpha)
+
+	if(0){
+		//upper left
+		fxy = pixel2normalizedScreen((GLfloat)xpos,(GLfloat)ypos);
+		fwh = pixel2normalizedScreenScale((GLfloat)width,(GLfloat)height);
+		//lower left
+		fxy.Y = fxy.Y - fwh.Y;
+	}
+	if(1){
+		//upper left
+		//printvpstacktop(__LINE__);
+		fxy = pixel2normalizedViewport((GLfloat)xpos,(GLfloat)ypos);
+		//printvpstacktop(__LINE__);
+		fwh = pixel2normalizedViewportScale((GLfloat)width,(GLfloat)height);
+		//printvpstacktop(__LINE__);
+		//lower left
+		fxy.Y = fxy.Y - fwh.Y;
+	}
+
+	//fxy.Y -= 1.0; //DUG9GUI y=0 at top
+	//fxy.X -= 1.0;
+	memcpy(cursorVert2,cursorVert,2*3*3*sizeof(GLfloat));
+	//printvpstacktop(__LINE__);
+
+	for(i=0;i<6;i++){
+		cursorVert2[i*3 +0] *= fwh.X;
+		cursorVert2[i*3 +0] += fxy.X;
+		if(!iyup) cursorVert2[i*3 +1] = 1.0f - cursorVert2[i*3 +1];
+		cursorVert2[i*3 +1] *= fwh.Y;
+		cursorVert2[i*3 +1] += fxy.Y;
+	}
+	//printvpstacktop(__LINE__);
+
+	// Set the base map sampler to texture unit to 0
+	// Bind the base map - see above
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, p->textureID );
+	glUniform1i ( p->textureLoc, 0 );
+
+	glVertexAttribPointer (p->positionLoc, 3, GL_FLOAT, 
+						   GL_FALSE, 0, cursorVert2 );
+	// Load the texture coordinate
+	glVertexAttribPointer (p->texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, cursorTex );  
+	glEnableVertexAttribArray (p->positionLoc );
+	glEnableVertexAttribArray (p->texCoordLoc);
+	
+
+	//Q do I need to bind a buffer for indexes, just for glew config?
+	//printvpstacktop(__LINE__);
+	//char *saveme[4*4*4];
+	//memcpy(saveme,_vpstack->data,4*4*4); //glew config overwrites vpstack->data top.X
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+	//memcpy(_vpstack->data,saveme,4*4*4);
+	//printvpstacktop(__LINE__);
+
+}
+#endif //OLDCODE
+
+
+
+
+static void dug9gui_DrawSubImage(float xpos,float ypos, float xsize, float ysize, 
+		int ix, int iy, int iw, int ih, int width, int height, int bpp, unsigned char *buffer){
+
+//xpos, ypos upper left location of where to draw the sub-image, in pixels, on the screen
+//xsize,ysize - size to stretch the sub-image to on the screen, in pixels
+// ix,iy,iw,ih - position and size in pixels of the subimage in a bigger/atlas image, ix,iy is upper left
+// width, height - size of bigger/atlas image
+// bpp - bytes per pixel: usually 1 for apha images like freetype antialiased glyph imagery, usually 4 for RGBA from .bmp
+// buffer - the bigger/atlas imagery pixels
+//  1 - 2 4
+//  | / / |    2 triangles, 6 points
+//  0 3 - 5
+// I might want to split this function, so loading the texture to gpu is outside, done once for a series of sub-images
+/*
+GLfloat cursorVert[] = {
+	  0.0f,  1.0f, 0.0f,
+	  0.0f,  0.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f,
+	  0.0f,  1.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f};
+*/
+GLfloat cursorVert[] = {
+	  0.0f,  0.0f, 0.0f,
+	  0.0f,  1.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f,
+	  0.0f,  0.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f};
+//remember texture coordinates are 0,0 in lower left of texture image
+GLfloat cursorTex[] = {
+	0.0f, 0.0f,
+	0.0f, 1.0f,
+	1.0f, 1.0f,
+	0.0f, 0.0f,
+	1.0f, 1.0f,
+	1.0f, 0.0f};
+	GLushort ind[] = {0,1,2,3,4,5};
+	//GLint pos, tex;
+	vec2  fixy, fiwh; //fxy, fwh,
+	//ivec2 xy;
+	int i;
+	GLfloat cursorVert2[18];
+	GLfloat cursorTex2[12];
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+
+	// Bind the base map - see above
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, p->textureID );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_LINEAR);
+
+	// Set the base map sampler to texture unit to 0
+	glUniform1i ( p->textureLoc, 0 );
+
+	switch(bpp){
+		case 1:
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA , GL_UNSIGNED_BYTE, buffer);
+		//glUniform4f(color4fLoc,1.0f,1.0f,1.0f,0.0f);
+		glUniform4f(p->blendLoc,0.0f,0.0f,0.0f,1.0f); // take color from vector, take alpha from texture2D
+		break;
+		case 2:
+		//doesn't seem to come in here if my .png is gray+alpha on win32
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, width, height, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, buffer);
+		break;
+		case 4:
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA , GL_UNSIGNED_BYTE, buffer);
+		glUniform4f(p->blendLoc,1.0f,1.0f,1.0f,1.0f); //trust the texture2D color and alpha
+		break;
+		default:
+			return;
+	}
+	
+	//fxy.Y -= 1.0; //DUG9GUI y=0 at top
+	//fxy.X -= 1.0;
+	memcpy(cursorVert2,cursorVert,2*3*3*sizeof(GLfloat));
+	for(i=0;i<6;i++){
+		cursorVert2[i*3 +0] *= xsize; //fwh.X;
+		cursorVert2[i*3 +0] += xpos; //fxy.X;
+		if(!iyup) cursorVert2[i*3 +1] = 1.0f - cursorVert2[i*3 +1];
+		cursorVert2[i*3 +1] *= ysize; //fwh.Y;
+		cursorVert2[i*3 +1] += ypos; //fxy.Y;
+	}
+
+	glVertexAttribPointer (p->positionLoc, 3, GL_FLOAT, 
+						   GL_FALSE, 0, cursorVert2 );
+	// Load the texture coordinate
+	fixy.X = (float)ix/(float)width;
+	fiwh.X = (float)iw/(float)width;
+	if(!iyup){
+		fixy.Y = (float)iy/(float)height;
+		fiwh.Y = (float)ih/(float)height;
+	}else{
+		fixy.Y = (float)(height -iy)/(float)height;
+		fiwh.Y =-(float)ih/(float)height;
+	}
+	memcpy(cursorTex2,cursorTex,2*3*2*sizeof(GLfloat));
+	for(i=0;i<6;i++){
+		cursorTex2[i*2 +0] *= fiwh.X;
+		cursorTex2[i*2 +0] += fixy.X;
+		cursorTex2[i*2 +1] *= fiwh.Y;
+		cursorTex2[i*2 +1] += fixy.Y;
+	}
+	glVertexAttribPointer (p->texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, cursorTex2 );  
+	glEnableVertexAttribArray (p->positionLoc );
+	glEnableVertexAttribArray (p->texCoordLoc);
+
+	//// Bind the base map - see above
+	//glActiveTexture ( GL_TEXTURE0 );
+	//glBindTexture ( GL_TEXTURE_2D, textureID );
+
+	//// Set the base map sampler to texture unit to 0
+	//glUniform1i ( textureLoc, 0 );
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); 
+}
+
+
+// called in MainLoop
+int render_captiontext(AtlasFont *font, int *utf32, int len32, vec4 color){
+	//pass in a string with your alphabet, numbers, symbols or whatever, 
+	// and we use freetype2 to render to bitmpa, and then tile those little
+	// bitmaps into an atlas texture
+	//wText is UTF-8 since FreeType expect this	 
+	//FT_Face fontFace;
+	int  i, pen_x, pen_y;
+	Stack *vportstack;
+	ivec4 ivport;
+	AtlasEntrySet* set;
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+
+	if(len32 == 0) return FALSE;
+	// you need to pre-load the font during layout init
+	if(!font) return FALSE;
+	set = font->set;
+	//uses simplified (2D) shader like statusbarHud
+	finishedWithGlobalShader();
+	glDepthMask(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
+	if(!p->programObject) initProgramObject();
+
+	glUseProgram ( p->programObject );
+	if(!p->textureID)
+		glGenTextures(1, &p->textureID);
+
+	glBindTexture(GL_TEXTURE_2D, p->textureID);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST); //GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST); //GL_LINEAR);
+
+	glUniformMatrix4fv(p->modelviewLoc, 1, GL_FALSE,modelviewIdentityf);
+	glUniformMatrix4fv(p->projectionLoc, 1, GL_FALSE, projectionIdentityf);
+
+	glUniform4f(p->color4fLoc,color.X,color.Y,color.Z,color.W); //0.7f,0.7f,0.9f,1.0f);
+
+	vportstack = (Stack*)tg->Mainloop._vportstack;
+	ivport = stack_top(ivec4,vportstack);
+	pen_x = ivport.X;
+	pen_y = ivport.Y + ivport.H - set->EMpixels; //MAGIC FORMULA - I'm not sure what this should be, but got something drawing
+
+	for (i = 0; i < len32; i++) 	
+	{ 	
+		AtlasEntry *entry = NULL;
+		unsigned int ichar;
+		ichar = utf32[i];
+		if(set){
+			//check atlas
+			entry = AtlasEntrySet_getEntry(set,ichar);
+			if(entry){
+				// drawsubimage(destination on screen, source glpyh details, source atlas) 
+				float xpos, ypos, xsize, ysize;
+				vec2 fxy, fwh;
+				xpos = pen_x + entry->pos.X;
+				ypos = pen_y - entry->pos.Y;
+				xsize =  entry->size.X;
+				ysize = entry->size.Y;
+				//upper left
+				fxy = pixel2normalizedViewport((GLfloat)xpos,(GLfloat)ypos);
+				fwh = pixel2normalizedViewportScale((GLfloat)xsize,(GLfloat)ysize);
+				//lower left
+				fxy.Y = fxy.Y - fwh.Y;
+				xpos = fxy.X;
+				ypos = fxy.Y;
+				xsize = fwh.X;
+				ysize = fwh.Y;
+				dug9gui_DrawSubImage(xpos,ypos,xsize,ysize, 
+					entry->apos.X, entry->apos.Y, entry->size.X, entry->size.Y,
+					set->atlas->size.X,set->atlas->size.Y,set->atlas->bytesperpixel,set->atlas->texture);
+				pen_x += entry->advance.X; 
+			}
+		}
+	}
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	restoreGlobalShader();
+
+	return TRUE;
+}
+
+// called in MainLoop
+void atlasfont_get_rowheight_charwidth_px(AtlasFont *font, int *rowheight, int *maxadvancepx){
+	*rowheight = font->set->rowheight;
+	*maxadvancepx = font->set->maxadvancepx;
+}
+
+
+// this is called in MainLoop
+int before_textpanel_render_rows(AtlasFont *font, vec4 color){
+	AtlasEntrySet *entryset;
+	Atlas *atlas;
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+	if(font == NULL) return FALSE;
+	entryset = font->set; //GUIFont_getMatchingAtlasEntrySet(self->font,self->fontSize);
+	if(entryset == NULL) return FALSE;
+	if(entryset->atlas == NULL) return FALSE;
+
+	atlas = entryset->atlas;
+	//set atlas and shader
+	finishedWithGlobalShader();
+	glDepthMask(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
+	if(!p->programObject) initProgramObject();
+
+	glUseProgram ( p->programObject );
+	if(!p->textureID)
+		glGenTextures(1, &p->textureID);
+
+	// Set the base map sampler to texture unit to 0
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, p->textureID );
+	glUniform1i ( p->textureLoc, 0 );
+
+	if (atlas->bytesperpixel == 1){
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	}else{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+
+
+	if(atlas->bytesperpixel == 1){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, atlas->size.X, atlas->size.Y, 0, GL_ALPHA , GL_UNSIGNED_BYTE, atlas->texture);
+	}else if(atlas->bytesperpixel == 2){
+		//angleproject can't seem to mipmap GL_ALPHA, needs GL_LUMINANCE_ALPHA
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, atlas->size.X, atlas->size.Y, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, atlas->texture);
+	}else if(atlas->bytesperpixel == 4){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, atlas->size.X, atlas->size.Y, 0, GL_RGBA , GL_UNSIGNED_BYTE, atlas->texture);
+	}
+
+	glUniform4f(p->color4fLoc,color.X,color.Y,color.Z,color.W); //0.7f,0.7f,0.9f,1.0f);
+	glUniform4f(p->blendLoc,0.0f,0.0f,0.0f,1.0f);
+
+	glUniformMatrix4fv(p->modelviewLoc, 1, GL_FALSE,modelviewIdentityf);
+	glUniformMatrix4fv(p->projectionLoc, 1, GL_FALSE, projectionIdentityf);
+
+	return TRUE;
+}
+
+// This is called in MainLoop
+int textpanel_render_row(AtlasFont *font, char * cText, int len, int *pen_x, int *pen_y){ 
+	//we use a font atlas
+	//current Feb 2016: recomputes verts, indices on each loop
+	//potential optimizatio: in theory its the y that changes for a row, 
+	// and tex for each char, with mono-spaced fonts, if we could guarantee that
+	AtlasEntrySet *entryset;
+
+
+	if(cText == NULL) return FALSE;
+	if(len == 0) return FALSE;
+	if(font == NULL) return FALSE;
+	entryset = font->set; //GUIFont_getMatchingAtlasEntrySet(self->font,self->fontSize);
+	if(entryset == NULL) return FALSE;
+	if(entryset->atlas == NULL) return FALSE;
+	{
+		AtlasEntry *ae;
+		Atlas *atlas;
+		vec2 charScreenSize;
+		vec2 charScreenOffset;
+		vec2 charScreenAdvance;
+		vec2 penxy;
+		int i, ichar;
+		// not used right now int bmscale;
+		GLfloat x,y,z, xx, yy;
+		float aw,ah;
+		int ih, kk;
+		//bmscale = 2; not used right now
+		//(2 end vert + (2 vert/glyph * max 128 glyhps per line)) x 3 coords per vert = (2+(256))*3 = 258*3 = 774
+		GLfloat *vert; //vert[774]; 
+		//(4 tex / glyph * max 128 glyphs per line) * 2 coords per tex = (4 * 128)*2 = (512)*2 = 1024;
+		GLfloat *tex; //tex[1024];
+		//(2 triangles * 3 ind / triangle) * max 128 glyphs/line = 6 * 128 = 768
+		GLushort *ind; //ind[768];
+		int maxlen = 128;
+		ttglobal tg = gglobal();
+		ppComponent_Text p = (ppComponent_Text)tg->Component_Text.prv;
+		
+		if(p->textpanel_size < max(maxlen,128)){
+			int newsize = max(maxlen,128);
+			p->textpanel_size = newsize;
+			p->textpanel_vert_size = (2+(2*(newsize*2)))*3;
+			p->textpanel_tex_size = (4*newsize)*2;
+			p->textpanel_ind_size = (2*3)*(newsize*2);
+			//vert: (2 end vert + (2 vert/glyph * max 128 glyhps per line)) x 3 coords per vert = (2+(256))*3 = 258*3 = 774
+			p->textpanel_vert = REALLOC(p->textpanel_vert,p->textpanel_vert_size*sizeof(GLfloat));
+			//tex: (4 tex / glyph * max 128 glyphs per line) * 2 coords per tex = (4 * 128)*2 = (512)*2 = 1024;
+			p->textpanel_tex = REALLOC(p->textpanel_tex,p->textpanel_tex_size*sizeof(GLfloat));
+			//ind: (2 triangles * 3 ind / triangle) * max 128 glyphs/line = 6 * 128 = 768
+			p->textpanel_ind = REALLOC(p->textpanel_ind,p->textpanel_ind_size*sizeof(GLushort));
+		}
+		vert = p->textpanel_vert;
+		tex  = p->textpanel_tex;
+		ind = p->textpanel_ind;
+
+		maxlen = min(maxlen,len);
+		x=y=z = 0.0f;
+		//penxy = pixel2normalizedScreen((float)(*pen_x),(float)(*pen_y));
+		penxy = pixel2normalizedViewport((GLfloat)(*pen_x),(GLfloat)(*pen_y));
+		penxy.Y = penxy.Y - 2.0f + .05; //heuristic (band-aid) 
+
+		x = penxy.X;
+		y = penxy.Y;
+		atlas = entryset->atlas;
+		aw = 1.0f/(float)atlas->size.X;
+		ah = 1.0f/(float)atlas->size.Y;
+		ih = atlas->size.Y;
+		for(i=0;i<maxlen;i++)
+		{
+			ichar = (int)cText[i];
+			if (ichar == '\t') ichar = ' '; //trouble with tabs, quick hack
+			ae = AtlasEntrySet_getEntry(entryset,ichar);
+			if(!ae) 
+				ae = AtlasEntrySet_getEntry(entryset,(int)' ');
+			if(ae)
+			{
+				// 1  2
+				// 0  3
+				charScreenSize = pixel2normalizedViewportScale(ae->size.X, ae->size.Y);
+				charScreenAdvance = pixel2normalizedViewportScale(ae->advance.X, ae->advance.Y);
+				charScreenOffset = pixel2normalizedViewportScale(ae->pos.X,ae->pos.Y);
+				//from baseline origin, add offset to get to upper left corner of image box
+				xx = x + charScreenOffset.X;
+				yy = y + charScreenOffset.Y;
+				kk = i*4*3;
+				vert[kk +0] = xx;
+				vert[kk +1] = yy - charScreenSize.Y;
+				vert[kk +2] = z;
+				vert[kk +3] = xx;
+				vert[kk +4] = yy;
+				vert[kk +5] = z;
+				vert[kk +6] = xx + charScreenSize.X; 
+				vert[kk +7] = yy; 
+				vert[kk +8] = z;
+				vert[kk +9] = xx + charScreenSize.X; 
+				vert[kk+10] = yy - charScreenSize.Y;
+				vert[kk+11] = z;
+				if(kk+11 >= p->textpanel_vert_size)
+					printf("ouch vert not big enough, need %d have %d\n",kk+11 +1,p->textpanel_vert_size);
+				x = x + charScreenAdvance.X; 
+				(*pen_x) += ae->advance.X;
+				kk = i*4*2;
+				tex[kk +0] = ((float)(ae->apos.X))*aw; 
+				tex[kk +2] = ((float)(ae->apos.X))*aw; 
+
+				tex[kk +4] = ((float)(ae->apos.X + ae->size.X))*aw; 
+				tex[kk +6] = ((float)(ae->apos.X + ae->size.X))*aw; 
+
+				if(iyup){
+					tex[kk +1] = ((float)(ih - (ae->apos.Y + ae->size.Y)))*ah; 
+					tex[kk +3] = ((float)(ih - ae->apos.Y))*ah; 
+
+					tex[kk +5] = ((float)(ih - ae->apos.Y))*ah; 
+					tex[kk +7] = ((float)(ih - (ae->apos.Y + ae->size.Y)))*ah; 
+				}else{
+					tex[kk +1] = ((float)((ae->apos.Y + ae->size.Y)))*ah; 
+					tex[kk +3] = ((float)(ae->apos.Y))*ah; 
+
+					tex[kk +5] = ((float)(ae->apos.Y))*ah; 
+					tex[kk +7] = ((float)((ae->apos.Y + ae->size.Y)))*ah; 
+				}
+				if(kk+7 >= p->textpanel_tex_size)
+					printf("ouch tex not big enough, need %d have %d\n",kk+7 +1,p->textpanel_tex_size);
+
+				// 1-2 2
+				// |/ /|
+				// 0 0-3
+				kk = i*3*2;
+				ind[kk +0] = i*4 + 0;
+				ind[kk +1] = i*4 + 1;
+				ind[kk +2] = i*4 + 2;
+				ind[kk +3] = i*4 + 2;
+				ind[kk +4] = i*4 + 3;
+				ind[kk +5] = i*4 + 0;
+				if(kk+5 >= p->textpanel_ind_size)
+					printf("ouch ind not big enough, need %d have %d\n",kk+5 +1,p->textpanel_ind_size);
+
+			}
+		}
+
+if(0) glEnableVertexAttribArray (p->positionLoc );
+if(0) glEnableVertexAttribArray (p->texCoordLoc );
+		// Load the vertex position
+		glVertexAttribPointer (p->positionLoc, 3, GL_FLOAT, 
+							   GL_FALSE, 0, vert );
+		// Load the texture coordinate
+		glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
+							   GL_FALSE, 0, tex ); 
+
+		glDrawElements ( GL_TRIANGLES, len*3*2, GL_UNSIGNED_SHORT, ind );
+
+
+	}
+	return TRUE;
+}
+
+// this is called in MainLoop.c
+void after_textpanel_render_rows(){
+	//restore shader
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	restoreGlobalShader();
+}
+
+#ifdef OLDCODE
+
+This code may not be used anymore - JAS - Apr 2017
+
+static void render_screentext0(struct X3D_Text *tnode){
+	/*	to be called from Text node render_Text for case of ScreenFontStyle
+		this is a copy of the CaptionText method, 
+		x uses different shader (shader is simple like statusbarHud's)
+		x doesn't use the Transform stack
+		x doesn't use glColor
+	*/
+	if(tnode && tnode->_nodeType == NODE_Text){
+		screentextdata *sdata;
+		AtlasEntrySet *set;
+		AtlasFont *font;
+		int nrow, row,i;
+		row32 *rowvec;
+		static int once = 0;
+		ppComponent_Text p;
+		ttglobal tg = gglobal();
+		p = (ppComponent_Text)tg->Component_Text.prv;
+
+		finishedWithGlobalShader();
+		glDepthMask(GL_FALSE);
+		glDisable(GL_DEPTH_TEST);
+		if(!p->programObject) initProgramObject();
+
+		glUseProgram ( p->programObject );
+		if(!p->textureID)
+			glGenTextures(1, &p->textureID);
+
+		glBindTexture(GL_TEXTURE_2D, p->textureID);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST); //GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST); //GL_LINEAR);
+		glUniformMatrix4fv(p->modelviewLoc, 1, GL_FALSE,modelviewIdentityf);
+		glUniformMatrix4fv(p->projectionLoc, 1, GL_FALSE, projectionIdentityf);
+
+
+		sdata = (screentextdata*)tnode->_screendata;
+		if(!sdata) return;
+		nrow = sdata->nrow;
+		font = (AtlasFont*)sdata->atlasfont;
+		set = font->set;
+		rowvec = sdata->rowvec;
+		//render_captiontext(tnode->_font,tnode->_set, self->_caption,self->color);
+		if(!once) printf("%s %5s %10s %10s %10s %10s !\n","c","adv","sx","sy","x","y");
+
+		for(row=0;row<nrow;row++){
+			for(i=0;i<rowvec[row].len32;i++){
+				AtlasEntry *entry;
+				unsigned int ichar;
+				ichar = rowvec[row].str32[i];
+				entry = AtlasEntrySet_getEntry(set,ichar);
+				if(entry){
+					// drawsubimage(destination on screen, source glpyh details, source atlas)
+					//int cscale;
+					float xpos, ypos, xsize, ysize;
+					vec2 fxy, fwh;
+					chardata chr = rowvec[row].chr[i];
+
+					//[du] = [m] * [du/m]
+					xpos = (float)chr.x + 90.0f + entry->pos.X;
+					ypos = (float)chr.y + 30.0f - entry->pos.Y;
+					xsize =  entry->size.X;
+					ysize = entry->size.Y;
+					if(0){
+						//upper left
+						fxy = pixel2normalizedScreen((GLfloat)xpos,(GLfloat)ypos);
+						fwh = pixel2normalizedScreenScale((GLfloat)xsize,(GLfloat)ysize);
+						//lower left
+						fxy.Y = fxy.Y - fwh.Y;
+						xpos = fxy.X;
+						ypos = fxy.Y;
+						xsize = fwh.X;
+						ysize = fwh.Y;
+
+					}
+					if(1){
+						//upper left
+						fxy = pixel2normalizedViewport((GLfloat)xpos,(GLfloat)ypos);
+						fwh = pixel2normalizedViewportScale((GLfloat)xsize,(GLfloat)ysize);
+						//lower left
+						fxy.Y = fxy.Y - fwh.Y;
+						xpos = fxy.X;
+						ypos = fxy.Y;
+						xsize = fwh.X;
+						ysize = fwh.Y;
+					}
+
+
+					if(!once) printf("%c %5f %10f %10f %10f %10f\n",(char)rowvec[row].str32[i],chr.advance,chr.sx,chr.sy,chr.x,chr.y);
+					//dug9gui_DrawSubImage(xpos,ypos,xsize,ysize, 
+					dug9gui_DrawSubImage(xpos,ypos, xsize, ysize, 
+						entry->apos.X, entry->apos.Y, entry->size.X, entry->size.Y,
+						set->atlas->size.X,set->atlas->size.Y,set->atlas->bytesperpixel,set->atlas->texture);
+				}
+			}
+		}
+		once = 1;
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		restoreGlobalShader();
+	}
+}
+#endif //OLDCODE
+
+
+static void dug9gui_DrawSubImage_scene(float xpos,float ypos, float xsize, float ysize, 
+	int ix, int iy, int iw, int ih, int width, int height, int bpp, unsigned char *buffer){
+//xpos, ypos upper left location of where to draw the sub-image, in local coordinates
+//xsize,ysize - size to stretch the sub-image to on the screen, in pixels
+// ix,iy,iw,ih - position and size in pixels of the subimage in a bigger/atlas image, ix,iy is upper left
+// width, height - size of bigger/atlas image
+// bpp - bytes per pixel: usually 1 for apha images like freetype antialiased glyph imagery, usually 4 for RGBA from .bmp
+// buffer - the bigger/atlas imagery pixels
+//  1 - 2 4
+//  | / / |    2 triangles, 6 points
+//  0 3 - 5
+// I might want to split this function, so loading the texture to gpu is outside, done once for a series of sub-images
+
+/*
+GLfloat cursorVert[] = {
+	  0.0f,  1.0f, 0.0f,
+	  0.0f,  0.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f,
+	  0.0f,  1.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f};
+*/
+GLfloat cursorVert[] = {
+	  0.0f,  0.0f, 0.0f,
+	  0.0f,  1.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f,
+	  0.0f,  0.0f, 0.0f,
+	  1.0f,  1.0f, 0.0f,
+	  1.0f,  0.0f, 0.0f};
+//remember texture coordinates are 0,0 in lower left of texture image
+GLfloat cursorTex[] = {
+	0.0f, 0.0f,
+	0.0f, 1.0f,
+	1.0f, 1.0f,
+	0.0f, 0.0f,
+	1.0f, 1.0f,
+	1.0f, 0.0f};
+	GLushort ind[] = {0,1,2,3,4,5};
+	//GLint pos, tex;
+	vec2  fixy, fiwh; //fxy, fwh,
+	//ivec2 xy;
+	int i; //,j;
+	GLfloat cursorVert2[18];
+	GLfloat cursorTex2[12];
+	ppComponent_Text p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_Text)tg->Component_Text.prv;
+
+
+	// Bind the base map - see above
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, p->textureID );
+
+	// Set the base map sampler to texture unit to 0
+	glUniform1i ( p->textureLoc, 0 );
+
+	switch(bpp){
+		case 1:
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA , GL_UNSIGNED_BYTE, buffer);
+		//glUniform4f(color4fLoc,1.0f,1.0f,1.0f,0.0f);
+		glUniform4f(p->blendLoc,0.0f,0.0f,0.0f,1.0f); // take color from vector, take alpha from texture2D
+		break;
+		case 2:
+		//doesn't seem to come in here if my .png is gray+alpha on win32
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, width, height, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, buffer);
+		break;
+		case 4:
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA , GL_UNSIGNED_BYTE, buffer);
+		glUniform4f(p->blendLoc,1.0f,1.0f,1.0f,1.0f); //trust the texture2D color and alpha
+		break;
+		default:
+			return;
+	}
+	
+	//fxy.Y -= 1.0; //DUG9GUI y=0 at top
+	//fxy.X -= 1.0;
+	iyup = 0;
+	memcpy(cursorVert2,cursorVert,2*3*3*sizeof(GLfloat));
+	for(i=0;i<6;i++){
+		cursorVert2[i*3 +0] *= xsize; //fwh.X;
+		cursorVert2[i*3 +0] += xpos; //fxy.X;
+		if(!iyup) cursorVert2[i*3 +1] = 1.0f - cursorVert2[i*3 +1];
+		cursorVert2[i*3 +1] *= ysize; //fwh.Y;
+		cursorVert2[i*3 +1] += ypos; //fxy.Y;
+	}
+
+	glVertexAttribPointer (p->positionLoc, 3, GL_FLOAT, 
+						   GL_FALSE, 0, cursorVert2 );
+	// Load the texture coordinate
+	fixy.X = (float)ix/(float)width;
+	fiwh.X = (float)iw/(float)width;
+	if(!iyup){
+		fixy.Y = (float)iy/(float)height;
+		fiwh.Y = (float)ih/(float)height;
+	}else{
+		fixy.Y = (float)(height -iy)/(float)height;
+		fiwh.Y =-(float)ih/(float)height;
+	}
+	memcpy(cursorTex2,cursorTex,2*3*2*sizeof(GLfloat));
+	for(i=0;i<6;i++){
+		cursorTex2[i*2 +0] *= fiwh.X;
+		cursorTex2[i*2 +0] += fixy.X;
+		cursorTex2[i*2 +1] *= fiwh.Y;
+		cursorTex2[i*2 +1] += fixy.Y;
+	}
+	glVertexAttribPointer (p->texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, cursorTex2 );  
+	glEnableVertexAttribArray (p->positionLoc );
+	glEnableVertexAttribArray (p->texCoordLoc);
+
+	//// Bind the base map - see above
+	//glActiveTexture ( GL_TEXTURE0 );
+	//glBindTexture ( GL_TEXTURE_2D, textureID );
+
+	//// Set the base map sampler to texture unit to 0
+	//glUniform1i ( textureLoc, 0 );
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); 
+
+
+}
+
+
+static void render_screentext_aligned(struct X3D_Text *tnode, int screenAligned){
+	/*	to be called from Text node render_Text for case of ScreenFontStyle
+		alignment = 0 - aligned to screen
+		alignemnt = 1 - 3D in scene
+	*/
+	if(tnode && tnode->_nodeType == NODE_Text){
+		screentextdata *sdata;
+		AtlasEntrySet *set;
+		AtlasFont *font;
+		int nrow, row,i;
+		double rescale;
+		row32 *rowvec;
+		static int once = 0;
+		GLfloat modelviewf[16], projectionf[16];
+		GLdouble modelviewd[16], projectiond[16];
+		ppComponent_Text p;
+		ttglobal tg = gglobal();
+		p = (ppComponent_Text)tg->Component_Text.prv;
+
+		finishedWithGlobalShader();
+		glDepthMask(GL_FALSE);
+		glDisable(GL_DEPTH_TEST);
+		if(!p->programObject) initProgramObject();
+
+		glUseProgram ( p->programObject );
+		if(!p->textureID)
+			glGenTextures(1, &p->textureID);
+
+		glBindTexture(GL_TEXTURE_2D, p->textureID);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST); //GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST); //GL_LINEAR);
+
+		//get current color and send to shader
+		{
+			struct matpropstruct *myap = getAppearanceProperties();
+			if (!myap) {
+				glUniform4f(p->color4fLoc,.5f,.5f,.5f,1.0f); //default
+			}else{
+				float *dc;
+				dc = myap->fw_FrontMaterial.diffuse;
+				glUniform4f(p->color4fLoc,dc[0],dc[1],dc[2],dc[3]); //0.7f,0.7f,0.9f,1.0f);
+			}
+		}
+
+		if(!screenAligned){
+			//text in 3D space
+			// Text -> screenFontStyle should come in here
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewd);
+			matdouble2float4(modelviewf, modelviewd);
+			glUniformMatrix4fv(p->modelviewLoc, 1, GL_FALSE,modelviewf);
+			FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, projectiond);
+			matdouble2float4(projectionf,projectiond);
+			glUniformMatrix4fv(p->projectionLoc, 1, GL_FALSE, projectionf);
+		}else{
+			//EXPERIMENTAL - for testing, don't use for Text -> screenFontStyle
+			glUniformMatrix4fv(p->modelviewLoc, 1, GL_FALSE,modelviewIdentityf);
+			glUniformMatrix4fv(p->projectionLoc, 1, GL_FALSE, projectionIdentityf);
+		}
+
+		sdata = (screentextdata*)tnode->_screendata;
+		if(!sdata) return;
+		nrow = sdata->nrow;
+		font = (AtlasFont*)sdata->atlasfont;
+		set = font->set;
+		if(!set) 
+			return;
+		rowvec = sdata->rowvec;
+		//render_captiontext(tnode->_font,tnode->_set, self->_caption,self->color);
+		if(!once) printf("%s %5s %10s %10s %10s %10s\n","c","adv","sx","sy","x","y");
+		//if(!once) printf("%c %3d %10d %10d %10d %10d\n",(char)rowvec[row].str32[i],chr.advance,chr.sx,chr.sy,chr.x,chr.y);
+		for(row=0;row<nrow;row++){
+			for(i=0;i<rowvec[row].len32;i++){
+				AtlasEntry *entry;
+				unsigned int ichar;
+				int set_emsize; //set_rowheight, 
+				
+				ichar = rowvec[row].str32[i];
+				//set_rowheight = set->rowheight;
+				set_emsize = set->EMpixels;
+				entry = AtlasEntrySet_getEntry(set,ichar);
+				if(entry){
+					// drawsubimage(destination on screen, source glpyh details, source atlas)
+					//int cscale;
+					float x,y,sx,sy,scale;
+					chardata chr = rowvec[row].chr[i];
+					if(screenAligned){
+						//EXPERIMENTAL - for testing, don't use for Text -> screenFontStyle
+						//vec2 pp;
+						GLint viewPort[4];
+						double ptresize;
+						//rescale = .03; //otherwise 1 char is half the screen
+						rescale = (double)XRES/(double)PPI; //[du] = [du/in]/[pt/in]
+						//scale = sdata->size/sdata->faceheight*XRES/PPI; //[du/em] = [pt/em] * [du/in] / [pt/in]
+						scale = 1.0;
+						//sx = chr.sx *scale * rescale *chr.advance * (float) entry->size.X / (float) set_emsize;
+						//sy = chr.sy *scale * rescale *sdata->size * (float) entry->size.Y / (float) set_emsize;
+						sx = sdata->size *rescale / (float)(set_emsize + 1) * (float) (entry->size.X + 1) ;
+						sy = sdata->size *rescale / (float)(set_emsize + 1) * (float) (entry->size.Y + 1) ;
+						sx = entry->size.X;
+						sy = entry->size.Y;
+						ptresize = 20.0/12.0; //MAGIC NUMBER
+						x = ptresize * chr.x * scale *rescale;
+						y = ptresize * chr.y * scale *rescale + (float)(entry->pos.Y - entry->size.Y)/(float)set_emsize*sdata->size*rescale;
+						//pp = pixel2normalizedScreenScale( x, y);
+						//pp = pixel2normalizedViewport(x,y);
+						FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
+						x = ((GLfloat)x/(GLfloat)(viewPort[2]-viewPort[0])) * 2.0f -1.0f;
+						y = ((GLfloat)y/(GLfloat)(viewPort[3]-viewPort[1])) * 2.0f -1.0f;
+						sx = ((GLfloat)sx/(GLfloat)(viewPort[2]-viewPort[0])) * 2.0f;
+						sy = ((GLfloat)sy/(GLfloat)(viewPort[3]-viewPort[1])) * 2.0f;
+
+						//x = pp.X;
+						//y = pp.Y;
+						if(!once) printf("%c %5f %10f %10f %10f %10f\n",(char)rowvec[row].str32[i],chr.advance,chr.sx,chr.sy,chr.x,chr.y);
+						dug9gui_DrawSubImage_scene(x,y, sx, sy, //entry->size.X, entry->size.Y, 
+							entry->apos.X, entry->apos.Y, entry->size.X, entry->size.Y,
+							set->atlas->size.X,set->atlas->size.Y,set->atlas->bytesperpixel,set->atlas->texture);
+
+					}else{
+						// 3D screen Text -> screenFontStyle should come in here
+						// we need to scale the rectangles in case there was maxextent, length[] specified
+						// dug9 feb 4, 2016: not sure I've got the right formula, especially spacing
+						//sx = chr.sx *chr.advance * (float) entry->size.X / (float) set_emsize;
+						sx = chr.sx *chr.advance/(float) set_emsize * (float) entry->size.X;
+						sy = chr.sy *sdata->size/(float) set_emsize * (float) entry->size.Y ;
+						x = chr.x ; 
+						y = chr.y  + sdata->size/(float)set_emsize * (float)(entry->pos.Y - entry->size.Y);
+						if(!once) printf("%c %5f %10f %10f %10f %10f\n",(char)rowvec[row].str32[i],chr.advance,chr.sx,chr.sy,chr.x,chr.y);
+						if(1) dug9gui_DrawSubImage_scene(x,y, sx, sy, //entry->size.X, entry->size.Y, 
+							entry->apos.X, entry->apos.Y, entry->size.X, entry->size.Y,
+							set->atlas->size.X,set->atlas->size.Y,set->atlas->bytesperpixel,set->atlas->texture);
+					}
+				}
+			}
+		}
+		once = 1;
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		restoreGlobalShader();
+	}
+}
+void render_screentext(struct X3D_Text *tnode){
+	//render_screentext0(tnode);
+	//render_screentext_aligned(tnode,1); //aligned to screen
+	render_screentext_aligned(tnode,0); //new shaderTrans
+}
+void prep_screentext(struct X3D_Text *tnode, int num, double screensize){
+	if(tnode && tnode->_nodeType == NODE_Text && !tnode->_screendata){
+		//called from make_text > FWRenderText first time to malloc, 
+		//  and when FontStyle is ScreenFontStyle
+		char *fontname;
+		int iscreensize;
+		screentextdata *sdata;
+		iscreensize = (int)(screensize + .5);
+		fontname = facename_from_num(num);
+		tnode->_screendata = MALLOCV(sizeof(screentextdata));
+		memset(tnode->_screendata,0,sizeof(screentextdata));
+		sdata = (screentextdata*)tnode->_screendata;
+		sdata->atlasfont = (AtlasFont*)searchAtlasTableOrLoad(fontname,iscreensize);
+		if(!sdata->atlasfont){
+			printf("dug9gui: Can't find font %s do you have the wrong name?\n",fontname);
+		}
+		//else{
+		//	sdata->set = (void*)sdata->atlasfont->set; //searchAtlasFontForSizeOrMake(sdata->atlasfont,iscreensize);
+		//	if(!sdata->set){
+		//		printf("couldn't create screentext for size %d\n",iscreensize);
+		//	}
+		//}
+	}
+}
+
+static void *GUImalloc(struct Vector **guitable, int type){
+	void *retval = NULL;
+	int size = 0;
+
+	switch(type){
+		//auxiliary types
+		case GUI_ATLAS:			size = sizeof(Atlas); break;
+		case GUI_FONT:			size = sizeof(AtlasFont); break;
+		case GUI_ATLASENTRY:	size = sizeof(AtlasEntry); break;
+		case GUI_ATLASENTRYSET: size = sizeof(AtlasEntrySet); break;
+		default:
+			printf("no guielement of this type %d\n",type);
+	}
+	if(size){
+		retval = MALLOCV(size);
+		//add to any tables
+		if(guitable){
+			if(*guitable == NULL) *guitable = newVector(GUIElement*,20);
+			vector_pushBack(GUIElement*,*guitable,retval);
+		}
+	}
+	return retval;
+}
+
+static void GUItablefree(struct Vector **guitable){
+	int i;
+	struct Vector *table = (*guitable);
+	for(i=0;i<table->n;i++){
+		int itype;
+		GUIElement* el = vector_get(GUIElement*,table,i);
+		itype = el->type;
+		switch(itype){
+			case  GUI_ATLAS:
+				{
+					Atlas *a = (Atlas *)el;
+					FREE_IF_NZ(a->texture);
+					FREE_IF_NZ(a->name);
+					//a->set
+				}
+				break;
+			case GUI_FONT:
+				{
+					int j;
+					AtlasFont *f = (AtlasFont *)el;
+					//FREE_IF_NZ(f->name);
+					FREE_IF_NZ(f->path);
+					for(j=0;j<f->set->entries->n;j++){
+						AtlasEntry *e = vector_get(AtlasEntry*,f->set->entries,j);
+						FREE_IF_NZ(e->name);
+						FREE_IF_NZ(e);
+					}
+					deleteVector(AtlasEntry*,f->set->entries);
+					FREE_IF_NZ(f->set);
+				}
+				break;
+			default:
+				printf("mystery type %d\n",itype);
+				break;
+		}
+		FREE_IF_NZ(el);
+	}
+	deleteVector(GUIElement*,*guitable);
+	*guitable = NULL;
 }

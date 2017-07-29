@@ -24,7 +24,7 @@
 ****************************************************************************/
 
 
-#if !defined(TARGET_AQUA)
+// OLD_IPHONE_AQUA #if !defined(TARGET_AQUA)
 
 
 #include <config.h>
@@ -107,7 +107,7 @@ int main (int argc, char **argv)
 		sprintf(consoleBuffer ,"FreeWRL expected library version %s, got %s...\n",progver, libver);
 		fwl_StringConsoleMessage(consoleBuffer);
 	}else{
-		sprintf(consoleBuffer, "library version %s\n", libver);
+		sprintf(consoleBuffer, "libfreewrl version %s\n", libver);
 		fwl_StringConsoleMessage(consoleBuffer);
 	}
 
@@ -143,7 +143,7 @@ int main (int argc, char **argv)
 		static char *fdir;
 		char *syspath;
 		syspath = getenv("windir");
-		printf("windir path=[%s]\n",syspath);
+		//printf("windir path=[%s]\n",syspath);
 		fdir = malloc(MAX_PATH); 
 		strcpy(fdir,"FREEWRL_FONTS_DIR=");
 		strcat(fdir,syspath);
@@ -176,8 +176,8 @@ int main (int argc, char **argv)
     fv_params = calloc(1, sizeof(freewrl_params_t));
 
     /* Default values */
-    fv_params->width = 600;
-    fv_params->height = 400;
+    fv_params->width = 640;
+    fv_params->height = 480;
 
     fv_params->fullscreen = FALSE;
     fv_params->winToEmbedInto = INT_ID_UNDEFINED;
@@ -231,7 +231,8 @@ void fv_catch_SIGQUIT()
     /* fwl_StringConsoleMessage("FreeWRL got a sigquit signal"); */
     /* shut up any SIGSEGVs we might get now. */
     CaughtSEGV = TRUE;
-    fwl_doQuit();
+    //fwl_doQuit();
+    fwExit(-2);
 }
 
 void fv_catch_SIGSEGV()
@@ -272,4 +273,4 @@ void fv_catch_SIGALRM(int sig)
 
 #endif
 
-#endif // AQUA
+// OLD_IPHONE_AQUA #endif // AQUA

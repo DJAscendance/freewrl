@@ -29,7 +29,9 @@
 
 
 /* for front ends that do not have these X-11-based defines */
-#if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
+// OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
+
+#if defined(_MSC_VER) || defined(_ANDROID)
 #ifndef _MIMIC_X11_SCREEN_BUTTONS
         #define _MIMIC_X11_SCREEN_BUTTONS
                 #define KeyPress        2
@@ -86,7 +88,13 @@ typedef struct freewrl_params {
 	//or a window app with 2+ fw windows - swapbuffers needs to know which one
 	void *display;
 	void *context;
+
+	// generic place holder for current surface
+	// on Linux, Window {aka long unsigned int} but Window definition is not used
+	// everywhere this file is, so we store it as a pointer and just cast it.
+
 	void *surface;
+
 } freewrl_params_t;
 
 
@@ -99,26 +107,6 @@ typedef struct freewrl_params {
 /* extern freewrl_params_t OSX_params; */
 void *fwl_init_instance();
 void fwl_initParams( freewrl_params_t *params) ;
-
-#ifdef OLDCODE
-OLDCODEvoid fwl_setp_width		(int foo);
-OLDCODEvoid fwl_setp_height		(int foo);
-OLDCODEvoid fwl_setp_winToEmbedInto	(void *);
-OLDCODEvoid fwl_setp_fullscreen	(bool foo);
-OLDCODEvoid fwl_setp_multithreading	(bool foo);
-OLDCODEvoid fwl_setp_eai		(bool foo);
-OLDCODEvoid fwl_setp_verbose		(bool foo);
-OLDCODE//void fwl_setp_collision		(int foo);
-OLDCODE
-OLDCODEint	fwl_getp_width		(void);
-OLDCODEint	fwl_getp_height		(void);
-OLDCODElong int fwl_getp_winToEmbedInto (void);
-OLDCODEbool	fwl_getp_fullscreen	(void);
-OLDCODEbool	fwl_getp_multithreading	(void);
-OLDCODEbool	fwl_getp_eai		(void);
-OLDCODEbool	fwl_getp_verbose	(void);
-OLDCODE//int	fwl_getp_collision	(void);
-#endif //OLDCODE
 
 bool fwl_initFreeWRL(freewrl_params_t *params);
 void closeFreeWRL();
@@ -177,6 +165,7 @@ extern char *BrowserFullPath;
 extern int _fw_pipe, _fw_FD;
 extern int _fw_browser_plugin;
 extern int isBrowserPlugin;
+#include <stdint.h>
 extern uintptr_t _fw_instance;
 //extern char *keypress_string;
 
@@ -209,35 +198,38 @@ void PRINTF_ALL( const char*pFmtStr, ...);
 
 /* ** REPLACE DJ ** */
 /* Try to replace the compile-time options in ConsoleMessage with run-time options */
-#ifdef AQUA
-	#define MC_DEF_AQUA 1
-#else
-	#define MC_DEF_AQUA 0
-#endif
+// OLD_IPHONE_AQUA #ifdef AQUA
+// OLD_IPHONE_AQUA 	#define MC_DEF_AQUA 1
+// OLD_IPHONE_AQUA #else
+// OLD_IPHONE_AQUA 	#define MC_DEF_AQUA 0
+// OLD_IPHONE_AQUA #endif
 
-#ifdef TARGET_AQUA
-	#define MC_TARGET_AQUA 1
-#else
-	#define MC_TARGET_AQUA 0
-#endif
+// OLD_IPHONE_AQUA #ifdef TARGET_AQUA
+// OLD_IPHONE_AQUA 	#define MC_TARGET_AQUA 1
+// OLD_IPHONE_AQUA #else
+// OLD_IPHONE_AQUA 	#define MC_TARGET_AQUA 0
+// OLD_IPHONE_AQUA #endif
 
-#ifdef HAVE_MOTIF
-	#define MC_HAVE_MOTIF 1
-#else
-	#define MC_HAVE_MOTIF 0
-#endif
+#ifdef OLDCODE 
+OLDCODE#ifdef HAVE_MOTIF
+OLDCODE	#define MC_HAVE_MOTIF 1
+OLDCODE#else
+OLDCODE	#define MC_HAVE_MOTIF 0
+OLDCODE#endif
+OLDCODE
+OLDCODE#ifdef TARGET_MOTIF
+OLDCODE	#define MC_TARGET_MOTIF 1
+OLDCODE#else
+OLDCODE	#define MC_TARGET_MOTIF 0
+OLDCODE#endif
+OLDCODE
+OLDCODE#ifdef _MSC_VER
+OLDCODE	#define MC_MSC_HAVE_VER 1
+OLDCODE#else
+OLDCODE	#define MC_MSC_HAVE_VER 0
+OLDCODE#endif
+#endif // OLDCODE
 
-#ifdef TARGET_MOTIF
-	#define MC_TARGET_MOTIF 1
-#else
-	#define MC_TARGET_MOTIF 0
-#endif
-
-#ifdef _MSC_VER
-	#define MC_MSC_HAVE_VER 1
-#else
-	#define MC_MSC_HAVE_VER 0
-#endif
 
 
 int fwl_StringConsoleMessage(char* message);
@@ -254,7 +246,7 @@ void fwl_set_SeqFile(const char* file);
 void fwl_set_MaxImages(int max); 
 void fwl_setCurXY(int x, int y);
 void fwl_do_keyPress(char kp, int type);
-void fwl_doQuit();
+void fwl_doQuit(char *, int);
 void fwl_doQuitInstance(void *instance);
 void fwl_updateScreenDim(int wi, int he);
 void fwl_doQuitAndWait();
@@ -285,7 +277,6 @@ void	fwlio_RxTx_sendbuffer(char *fromFile, int fromLine, int channel, char *str)
 char *	fwlio_RxTx_waitfor(int channel, char *str);
 
 void	fwl_init_EaiVerbose();
-void	fwl_EAI_clearListenerNode(void);
 char *	fwl_EAI_handleBuffer(char *tempEAIdata);
 int	fwl_EAI_allDone();
 char *	fwl_EAI_handleRest();
@@ -345,17 +336,26 @@ void fwg_setConsoleParam_replaceTabs(int);
 
 void fwg_setFrontEndOnX3DFileLoadedListener(void (*frontEndOnX3DFileLoadedListener)(char *));
 
-#ifdef FRONTEND_GETS_FILES
-void fwg_setFrontEndOnResourceRequiredListener(void (*frontEndOnResourceRequiredListener)(char *));
-#endif //FRONTEND_GETS_FILES
 
 void fwg_frontEndReturningLocalFile(char *localfile, int iret);
 void fwl_RenderSceneUpdateScene(void);
 void fwl_gotoCurrentViewPoint();
 void fwl_setScreenDim(int wi, int he);
+void fwl_setScreenDim0(int wi, int he);
+void fwl_setDensityFactor(float density_factor);
+float fwl_getDensityFactor();
+int fwl_hwnd_to_windex(void *hWnd);
+void fwl_setScreenDim1(int wi, int he, int windex);
 bool fwl_initialize_GL(void);
-void fwl_setLastMouseEvent(int etype);
-void fwl_handle_aqua(const int mev, const unsigned int button, int x, int y);
+//void fwl_setLastMouseEvent(int etype);
+int fwl_handle_aqua(const int mev, const unsigned int button, int x, int y);
+//APPLE int fwl_handle_aqua1(const int mev, const unsigned int button, int x, int y, int windex);
+int fwl_handle_mouse(int mev, int button, int x, int y, int windex);
+int fwl_handle_touch(int mev, unsigned int ID, int x, int y, int windex);
+void fwl_handle_gyro(float rx, float ry, float rz);
+void fwl_handle_accelerometer(float ax, float ay, float az);
+void fwl_handle_magnetic(float azimuth, float pitch, float roll);
+
 
 /* JAS - moving OSX front end into 2011 code workings - these may change. */
 void fwl_replaceWorldNeeded(char* str);
@@ -388,12 +388,51 @@ char *fwl_get_ui_colorschemename();
 void fwl_next_ui_colorscheme();
 int fwl_get_ui_color_changed();
 int fwl_set_sbh_pin_option(char *optarg);
+int fwl_set_sbh_want_option(char *optarg);
+void fwl_setShadingStyle(int style);
 void fwl_set_sbh_pin(int sb, int mb);
 void fwl_get_sbh_pin(int *sb, int *mb);
 void fwl_set_target_fps(int target_fps);
 int fwl_get_target_fps();
+void fwl_set_sbh_wantMenubar(int want);
+int fwl_get_sbh_wantMenubar();
+void fwl_set_sbh_wantStatusbar(int want);
+int fwl_get_sbh_wantStatusbar();
+
 int fwl_commandline(char *cmdline);
 int fwl_getShift();
 void fwl_setShift(int ishift);
+int fwl_getHover();
+void fwl_setHover(int hover);
+int fwl_getPedal();
+void fwl_setPedal(int pedal);
 int fwl_getCtrl();
+void fwl_set_emulate_multitouch(int ion);
+int fwl_get_emulate_multitouch();
+
+// a few function prototypes from around libfreewrl
+void fwl_setConsole_writePrimitive(int ibool);
+void statusbar_set_window_size(int width, int height);
+int statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
+int getCursorStyle();
+void *fwl_frontenditem_dequeue();
+char* fwl_resitem_getURL(void *res);
+char* fwl_resitem_getTempDir(void *res);
+void fwl_resitem_setActualFile(void *res, char *fname);
+int	fwl_resitem_getStatus(void *res);
+int	fwl_resitem_getType(void *res);
+int	fwl_resitem_getMediaType(void *res);
+void fwl_resitem_enqueuNextMulti(void *res);
+void fwl_resitem_setLocalPath(void *res, char* path);
+void fwl_resitem_enqueue(void *res);
+void fwl_resitem_setDownloadThread(void *res, void *thread);
+void *fwl_resitem_getDownloadThread(void *res);
+void *fwl_resitem_getGlobal(void *res);
+
+int file2blob(void *res);
+#ifdef SSR_SERVER
+//SSR (Server-side rendering)
+void SSRserver_enqueue_request_and_wait(void *fwctx, void *request);
+#endif //SSR_SERVER
+
 #endif /* __LIBFREEWRL_API_H__ */

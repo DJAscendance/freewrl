@@ -35,16 +35,14 @@ main/MainLoop.c \
 main/MainLoop.h \
 main/ProdCon.c \
 main/ProdCon.h \
-main/Snapshot.h \
-main/Snapshot.c \
 main/ConsoleMessage.c \
 main/installdir.h \
 main/utils.c \
+main/Snapshot.c \
+main/SnapshotTesting.c \
  \
-vrml_parser/CProto.c \
 vrml_parser/CParse.c \
 vrml_parser/CParseLexer.c \
-vrml_parser/CProto.h \
 vrml_parser/CRoutes.c \
 vrml_parser/CRoutes.h \
 vrml_parser/CParseParser.h \
@@ -62,8 +60,6 @@ x3d_parser/Bindable.c \
 x3d_parser/X3DParser.c \
 x3d_parser/Bindable.h \
 x3d_parser/X3DParser.h \
-x3d_parser/X3DProtoScript.c \
-x3d_parser/X3DProtoScript.h \
 x3d_parser/capabilitiesHandler.c \
  \
 non_web3d_formats/ColladaParser.h \
@@ -128,6 +124,7 @@ scenegraph/Component_Geometry2D.c \
 scenegraph/Vector.h \
 scenegraph/mpeg.h \
 scenegraph/Component_Texturing.c \
+scenegraph/Component_Texturing3D.c \
 scenegraph/GeneratedCode.c \
 scenegraph/Polyrep.c \
 scenegraph/Component_Lighting.c \
@@ -158,11 +155,18 @@ scenegraph/ringbuf.h \
 scenegraph/Component_Networking.c \
 scenegraph/Component_Networking.h \
 scenegraph/Component_PointingDevice.c \
+scenegraph/Component_ParticleSystems.c \
+scenegraph/Component_RigidBodyPhysics.c \
+scenegraph/Component_Followers.c \
 scenegraph/Component_Picking.c \
 scenegraph/Component_Picking.h \
+scenegraph/Component_Layering.c \
+scenegraph/Component_Layout.c \
 scenegraph/statics.c \
 scenegraph/GenPolyRep.c \
 scenegraph/Component_VRML1.c \
+scenegraph/Component_VolumeRendering.c \
+scenegraph/VeraMono_ttf.c \
  \
 input/EAI_C_CommonFunctions.c \
 input/EAIEventsIn.c \
@@ -187,6 +191,7 @@ opengl/Frustum.h \
 opengl/Frustum.c \
 opengl/OpenGL_Utils.h \
 opengl/OpenGL_Utils.c \
+opengl/Compositing_Shaders.c \
 opengl/Material.h \
 opengl/Material.c \
 opengl/LoadTextures.h \
@@ -203,6 +208,7 @@ ui/statusbar.h \
 ui/CursorDraw.c \
 ui/CursorDraw.h \
 ui/hudIcons_octalpha.h \
+ui/freewrl_wingding_ttf.c \
  \
 plugin/pluginUtils.c \
 plugin/pluginUtils.h \

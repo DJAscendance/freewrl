@@ -165,10 +165,11 @@ struct CRscriptStruct {
 	struct ScriptParamList *paramList;
 	int 		scriptOK;		/* set to TRUE if the script loads ok */
 	struct Shader_Script* script; //dug9_2014 added here for duktape proxy which will use script->field[i].valueChanged and anyVrml Value instead of scriptparamlist here
+	int scr_act; //non-zero -something sent this script an eventin
 };
 //extern struct CRscriptStruct *ScriptControl;
-struct CRscriptStruct *getScriptControl();
-void setScriptControl(struct CRscriptStruct *ScriptControl);
+//struct CRscriptStruct *getScriptControl();
+//void setScriptControl(struct CRscriptStruct *ScriptControl);
 
 
 /* function protos */
@@ -181,7 +182,7 @@ void scriptFieldDecl_setFieldASCIIValue(struct ScriptFieldDecl *me, const char *
 void Set_one_MultiElementtype (int tn, int tptr, void *fn, unsigned len);
 void mark_script (int num);
 
-#define MAXJSVARIABLELENGTH 25  /* variable name length can be this long... */
+#define MAXJSVARIABLELENGTH 55  /* variable name length can be this long... */
 struct CRjsnameStruct {
         int     	type;
         char    	name[MAXJSVARIABLELENGTH];

@@ -182,6 +182,7 @@ int fwlio_RxTx_control(int channel, int action) {
 		char *E_SOCK_buffer; 
 
 		if (!service_wanted[channel]) return 0;
+
 		EAIsockfd =  SCK_descriptors[channel][MAINSOCK_FD] ;
 		EAIlistenfd = SCK_descriptors[channel][CLIENT_FD] ;
 		if (!service_connected[channel]) {
@@ -193,12 +194,15 @@ int fwlio_RxTx_control(int channel, int action) {
 				service_status[channel] = RxTx_REFRESH;
 			}
 		}
-		if (!(service_connected[channel] > 1)) {
-			if (service_verbose[channel]) { 
-				printf ("Still no client connection on channel %d\n",channel);
-			}
-			return 0;
-		}
+#ifdef SKIP
+JAS - service_connected is a boolean, how can it be greater than 1?
+JAS		if (!(service_connected[channel] > 1)) {
+JAS			if (service_verbose[channel]) { 
+JAS				printf ("Still no client connection on channel %d\n",channel);
+JAS			}
+JAS			return 0;
+JAS		}
+#endif //SKIP
 
 		/* have we closed connection? */
 		if(SCK_descriptors[channel][CLIENT_FD] < 0) return 0;
@@ -338,10 +342,11 @@ void fwlio_RxTx_sendbuffer(char *fromFile, int fromline, int channel, char *str)
 int privSocketSetup(int channel, int *ANONsocketfd, int *ANONlistenfd) {
 	int len;
 	const int on=1;
-	int flags;
 #ifdef _MSC_VER
-#define socklen_t int
+	#define socklen_t int
 	int err;
+#else
+	int flags;
 #endif
 
         struct sockaddr_in      servaddr;
@@ -490,13 +495,6 @@ int privSocketSetup(int channel, int *ANONsocketfd, int *ANONlistenfd) {
 			sock_buffers[channel] = MALLOC(char *, sock_bufsize[channel] * sizeof (char));
 			/* EBUFFUNLOCK; */
 
-			if(channel == CHANNEL_EAI) {
-				if (service_verbose[channel]) {
-					printf("Go and clear the listener node\n") ;
-				}
-				fwl_EAI_clearListenerNode();
-			}
-
 			/* seems like we are up and running now, and waiting for a command */
 			service_connected[channel] = TRUE;
 		} else {
@@ -584,7 +582,7 @@ char *privSocketRead(int channel, char *bf, int *bfct, int *bfsz, int *EAIlisten
 				if(service_onclose[channel] == TRUE) {
 					/* And, lets just exit FreeWRL*/
 					printf ("FreeWRL:EAI socket closed, exiting...\n");
-					fwl_doQuit();
+					fwl_doQuit(__FILE__,__LINE__);
 					return (bf);
 				} else {
 					return (bf);

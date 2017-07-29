@@ -26,8 +26,8 @@ Javascript C language binding.
 
 
 #include <config.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <system.h>
+#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #include <display.h>
 #include <internal.h>
 
@@ -45,7 +45,6 @@ Javascript C language binding.
 #include "../vrml_parser/CFieldDecls.h"
 #include "../vrml_parser/CParseParser.h"
 #include "../vrml_parser/CParseLexer.h"
-#include "../vrml_parser/CProto.h"
 #include "../vrml_parser/CParse.h"
 #include "../main/Snapshot.h"
 #include "../scenegraph/Collision.h"
@@ -53,7 +52,7 @@ Javascript C language binding.
 #include "../scenegraph/Viewer.h"
 #include "../x3d_parser/Bindable.h"
 #include "../input/EAIHeaders.h"	/* for implicit declarations */
-
+#include "../ui/common.h"
 
 #include "JScript.h"
 #include "CScripts.h"
@@ -63,7 +62,7 @@ Javascript C language binding.
 #include "jsVRMLClasses.h"
 #include "jsVRMLBrowser.h"
 
-#ifdef HAVE_JAVASCRIPT
+
 
 #define X3DBROWSER 1
 
@@ -1324,9 +1323,9 @@ BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval 
 //jsval JSCreate_global_return_val;
 typedef struct pjsVRMLBrowser{
 	int ijunk;
-#ifdef HAVE_JAVASCRIPT
+
 	jsval JSCreate_global_return_val;
-#endif // HAVE_JAVASCRIPT
+
 
 }* ppjsVRMLBrowser;
 void *jsVRMLBrowser_constructor(){
@@ -1341,9 +1340,9 @@ void jsVRMLBrowser_init(struct tjsVRMLBrowser *t){
 	{
 		ppjsVRMLBrowser p = (ppjsVRMLBrowser)t->prv;
 		/* Script name/type table */
-#ifdef HAVE_JAVASCRIPT
+
 		t->JSCreate_global_return_val = &p->JSCreate_global_return_val;
-#endif // HAVE_JAVASCRIPT
+
 	}
 
 }
@@ -1360,7 +1359,7 @@ void jsRegisterRoute(
 	else ad = 0;
 
  	CRoutes_Register(ad, from, fromOfs, to, toOfs , len, 
- 		 returnInterpolatorPointer(stringNodeType(to->_nodeType)), 0, 0);
+ 		 returnInterpolatorPointer(to->_nodeType), 0, 0);
 }
  
 
@@ -2209,7 +2208,8 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 #else
 			_id_c = JS_EncodeString(context,_str);
 #endif
-			#if defined(AQUA) || defined(_MSC_VER)
+			// OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER)
+			#if defined(_MSC_VER)
 			ConsoleMessage(_id_c); /* statusbar hud */
 			gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 			#else
@@ -2230,7 +2230,8 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 	}
 	/* the \n should be done with println below, or in javascript print("\n"); 
 	  except web3d V3 specs don't have Browser.println so print will do \n like the old days*/
-	#if defined(AQUA)  || defined(_MSC_VER)
+	// OLD_IPHONE_AQUA  #if defined(AQUA)  || defined(_MSC_VER)
+	#if defined(_MSC_VER)
 	ConsoleMessage("\n"); /* statusbar hud */
 	gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 	#elif !defined(_MSC_VER)
@@ -2255,7 +2256,8 @@ VrmlBrowserPrintln(JSContext *context, uintN argc, jsval *vp) {
 	/* note, vp holds rval, since it is set in here we should be good */
 	VrmlBrowserPrint(context,argc,vp); 
 #endif
-	#if defined(AQUA) || defined(_MSC_VER)
+	// OLD_IPHONE_AQUA  #if defined(AQUA) || defined(_MSC_VER)
+	#if defined(_MSC_VER)
 		//ConsoleMessage("\n"); /* statusbar hud */
 		gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 	#else
@@ -2558,5 +2560,5 @@ void println(Object or String);
 }
 */
 
-#endif /* HAVE_JAVASCRIPT */
+
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */

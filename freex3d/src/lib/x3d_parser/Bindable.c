@@ -45,10 +45,10 @@ Bindable nodes - Background, TextureBackground, Fog, NavigationInfo, Viewpoint, 
 #include "Bindable.h"
 #include "../scenegraph/quaternion.h"
 #include "../scenegraph/Viewer.h"
+#include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/Component_Geospatial.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "../scenegraph/Component_ProgrammableShaders.h"
-#include "../scenegraph/Component_Shape.h"
 #include "../ui/common.h"
 #include "../scenegraph/LinearAlgebra.h"
 
@@ -63,30 +63,141 @@ struct MyVertex
 
 static void saveBGVert (float *colptr, float *pt, int *vertexno, float *col, double dist, double x, double y, double z) ;
 
+void init_bindablestack(bindablestack *bstack, int layerId, int nodetype){
+	bstack->background = newVector(struct X3D_Node*, 2);
+	bstack->viewpoint = newVector(struct X3D_Node*, 2);
+	bstack->fog = newVector(struct X3D_Node*, 2);
+	bstack->navigation = newVector(struct X3D_Node*, 2);
+	bstack->layerId = layerId;
+	loadIdentityMatrix(bstack->screenorientationmatrix);
+	loadIdentityMatrix(bstack->viewtransformmatrix);
+	loadIdentityMatrix(bstack->posorimatrix);
+	loadIdentityMatrix(bstack->stereooffsetmatrix[0]);
+	loadIdentityMatrix(bstack->stereooffsetmatrix[1]);
+	bstack->isStereo = 0;
+	bstack->iside = 0;
+	bstack->viewer = NULL; //X3D_Viewer - navigation is per-layer
+	bstack->nodetype = nodetype;
+	loadIdentityMatrix(bstack->pickraymatrix[0]);
+	loadIdentityMatrix(bstack->pickraymatrix[1]);
+}
+void free_bindablestack(bindablestack *bstack){
+	deleteVector(struct X3D_Node*, bstack->background);
+	deleteVector(struct X3D_Node*, bstack->viewpoint);
+	deleteVector(struct X3D_Node*, bstack->fog);
+	deleteVector(struct X3D_Node*, bstack->navigation);
+	FREE_IF_NZ(bstack->viewer);
+}
+typedef struct pBindable{
+	struct sNaviInfo naviinfo;
+	bindablestack bstack;
+}* ppBindable;
+void *Bindable_constructor(){
+	void *v = MALLOCV(sizeof(struct pBindable));
+	memset(v,0,sizeof(struct pBindable));
+	return v;
+}
 void Bindable_init(struct tBindable *t){
 	//public
-	t->naviinfo.width = 0.25;
-	t->naviinfo.height = 1.6;
-	t->naviinfo.step = 0.75;
+	//these are the binding stacks as descriped in Core Component in the specs which store just the bound bindables
+	//t->background_stack = newVector(struct X3D_Node*, 2);
+	//t->viewpoint_stack = newVector(struct X3D_Node*, 2);
+	//t->fog_stack = newVector(struct X3D_Node*, 2);
+	//t->navigation_stack = newVector(struct X3D_Node*, 2);
+	
+	t->prv = Bindable_constructor();
+	t->activeLayer = 0;
+	t->bstacks = newVector(bindablestack*,4);
+	{
+		ppBindable p = (ppBindable)t->prv;
+		init_bindablestack(&p->bstack,0, NODE_Viewpoint); //default binding stacks layer=0
+		vector_pushBack(bindablestack*, t->bstacks, &p->bstack);
+		p->naviinfo.width = 0.25;
+		p->naviinfo.height = 1.6;
+		p->naviinfo.step = 0.75;
+		t->naviinfo = &p->naviinfo;
+	}
 
-	t->background_stack = newVector(struct X3D_Node*, 2);
-	t->viewpoint_stack = newVector(struct X3D_Node*, 2);
-	t->fog_stack = newVector(struct X3D_Node*, 2);
-	t->navigation_stack = newVector(struct X3D_Node*, 2);
 }
 void Bindable_clear(struct tBindable *t){
+	int i;
 	//public
-	 deleteVector(struct X3D_Node*, t->background_stack);
-	 deleteVector(struct X3D_Node*, t->viewpoint_stack);
-	 deleteVector(struct X3D_Node*, t->fog_stack);
-	 deleteVector(struct X3D_Node*, t->navigation_stack);
+	 //deleteVector(struct X3D_Node*, t->background_stack);
+	 //deleteVector(struct X3D_Node*, t->viewpoint_stack);
+	 //deleteVector(struct X3D_Node*, t->fog_stack);
+	 //deleteVector(struct X3D_Node*, t->navigation_stack);
+	 for(i=0;i<vectorSize(t->bstacks);i++){
+		bindablestack* bstack = vector_get(bindablestack*,t->bstacks,i);
+		free_bindablestack(bstack);
+		if(i>0) FREE_IF_NZ(bstack); //the first bstack is &something_not_malloced
+	}
+	deleteVector(bindablestack*,t->bstacks);
 }
+bindablestack* getBindableStacksByLayer(ttglobal tg, int layerId )
+{
+	int i;
+	bindablestack* bstack, *bstacktmp;
+	bstack = NULL; // vector_get(bindablestack*,tg->Bindable.bstacks,0); //default
+	for(i=0;i<vectorSize(tg->Bindable.bstacks);i++){
+		bstacktmp = vector_get(bindablestack*,tg->Bindable.bstacks,i);
+		if(bstacktmp->layerId == layerId){
+			bstack = bstacktmp;
+			break;
+		}
+	}
+	return bstack;
+}
+int addBindableStack(ttglobal tg, bindablestack* bstack){
+	//returns index of added bindablestack
+	//layer and layoutlayer should call this once in their lifetime to add their stack
+	int layerId = bstack->layerId;
+	while(vectorSize(tg->Bindable.bstacks)<layerId+1)
+		vector_pushBack(bindablestack*,tg->Bindable.bstacks,NULL);
+	vector_set(bindablestack*,tg->Bindable.bstacks,layerId,bstack);
+	return layerId;
+}
+bindablestack* getActiveBindableStacks(ttglobal tg )
+{
+	return getBindableStacksByLayer(tg,tg->Bindable.activeLayer);
+}
+int getBindableStacksCount(ttglobal tg){
+	return vectorSize(tg->Bindable.bstacks);
+}
+void printStatsBindingStacks()
+{
+	int i,nstacks;
+	bindablestack* bstack;
+	ttglobal tg = gglobal();
+	nstacks = getBindableStacksCount(tg);
+	for(i=0;i<nstacks;i++){
+		bstack = getBindableStacksByLayer(tg,i);
+		if(0){
+			ConsoleMessage("Layer %d",i);
+			if(i == tg->Bindable.activeLayer)
+				ConsoleMessage(" activeLayer");
+			ConsoleMessage(":\n");
+		}else{
+			char* al = " ";
+			if(i == tg->Bindable.activeLayer)
+				al = " activeLayer";
+			ConsoleMessage("Layer %d%s:\n",i,al);
+		}
+		ConsoleMessage("%25s %d\n","Background stack count", vectorSize(bstack->background));
+		ConsoleMessage("%25s %d\n","Fog stack count", vectorSize(bstack->fog));
+		ConsoleMessage("%25s %d\n","Navigation stack count", vectorSize(bstack->navigation));	
+		ConsoleMessage("%25s %d\n","Viewpoint stack count", vectorSize(bstack->viewpoint));	
+	}
+}
+
 /* common entry routine for setting avatar size */
 void set_naviWidthHeightStep(double wid, double hei, double step) {
+	ppBindable p;
 	ttglobal tg = gglobal();
-	tg->Bindable.naviinfo.width = wid;
-	tg->Bindable.naviinfo.height = hei;
-	tg->Bindable.naviinfo.step = step;
+	p = (ppBindable)tg->Bindable.prv;
+
+	p->naviinfo.width = wid;
+	p->naviinfo.height = hei;
+	p->naviinfo.step = step;
 
 	/* printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer.speed); */
 
@@ -97,7 +208,7 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 	struct Uni_String **svptr;
 	int i;
 	char *typeptr;
-	X3D_Viewer *viewer = Viewer();
+	X3D_Viewer *viewer = ViewerByLayerId(node->_layerId);
 
         viewer->speed = (double) node->speed;
 	if (node->avatarSize.n<2) {
@@ -112,7 +223,7 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 	svptr = node->type.p;
 
 	/* assume "NONE" is set */
-	for (i=0; i<16; i++) viewer->oktypes[i] = FALSE;
+	for (i=0; i<18; i++) viewer->oktypes[i] = FALSE;
 
 
 	/* now, find the ones that are ok */
@@ -122,27 +233,27 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 
 		if (strcmp(typeptr,"WALK") == 0) {
 			viewer->oktypes[VIEWER_WALK] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_WALK);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_WALK);
 		}
 		if (strcmp(typeptr,"FLY") == 0) {
 			viewer->oktypes[VIEWER_FLY] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_FLY);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_FLY);
 		}
 		if (strcmp(typeptr,"EXAMINE") == 0) {
 			viewer->oktypes[VIEWER_EXAMINE] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_EXAMINE);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_EXAMINE);
 		}
 		if (strcmp(typeptr,"NONE") == 0) {
 			viewer->oktypes[VIEWER_NONE] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_NONE);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_NONE);
 		}
 		if (strcmp(typeptr,"EXFLY") == 0) {
 			viewer->oktypes[VIEWER_EXFLY] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_EXFLY);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_EXFLY);
 		}
 		if (strcmp(typeptr,"EXPLORE") == 0) {
 			viewer->oktypes[VIEWER_EXPLORE] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_EXPLORE);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_EXPLORE);
 		}
 		if (strcmp(typeptr,"LOOKAT") == 0) {
 			viewer->oktypes[VIEWER_LOOKAT] = TRUE;
@@ -150,12 +261,17 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 		}
 		if (strcmp(typeptr,"SPHERICAL") == 0) {
 			viewer->oktypes[VIEWER_SPHERICAL] = TRUE;
-			if (i==0) fwl_set_viewer_type(VIEWER_SPHERICAL);
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_SPHERICAL);
 		}
 		if (strcmp(typeptr, "TURNTABLE") == 0) {
 			viewer->oktypes[VIEWER_TURNTABLE] = TRUE;
-			if (i == 0) fwl_set_viewer_type(VIEWER_TURNTABLE);
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_TURNTABLE);
 		}
+		if (strcmp(typeptr, "DIST") == 0) {
+			viewer->oktypes[VIEWER_DIST] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_DIST);
+		}
+
 		if (strcmp(typeptr, "ANY") == 0) {
 			viewer->oktypes[VIEWER_EXAMINE] = TRUE;
 			viewer->oktypes[VIEWER_WALK] = TRUE;
@@ -165,7 +281,8 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 			viewer->oktypes[VIEWER_LOOKAT] = TRUE;
 			viewer->oktypes[VIEWER_SPHERICAL] = TRUE;
 			viewer->oktypes[VIEWER_TURNTABLE] = TRUE;
-			if (i==0) fwl_set_viewer_type (VIEWER_WALK); /*  just choose one */
+			viewer->oktypes[VIEWER_DIST] = TRUE;
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_WALK); /*  just choose one */
 		}
 	}
         viewer->headlight = node->headlight;
@@ -190,26 +307,48 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 }
 
 
-
+int layerFromBindable(struct X3D_Node *node){
+	int layerId = 0;
+	switch(node->_nodeType){
+		case NODE_Viewpoint:
+			layerId = X3D_VIEWPOINT(node)->_layerId; break;
+		case NODE_OrthoViewpoint:
+			layerId = X3D_ORTHOVIEWPOINT(node)->_layerId; break;
+		case NODE_GeoViewpoint:
+			layerId = X3D_GEOVIEWPOINT(node)->_layerId; break;
+		case NODE_Background:
+			layerId = X3D_BACKGROUND(node)->_layerId; break;
+		case NODE_TextureBackground:
+			layerId = X3D_TEXTUREBACKGROUND(node)->_layerId; break;
+		case NODE_Fog:
+			layerId = X3D_FOG(node)->_layerId; break;
+		case NODE_NavigationInfo:
+			layerId = X3D_NAVIGATIONINFO(node)->_layerId; break;
+		default:
+			layerId = 0; break;
+	}
+	return layerId;
+}
 
 /* send a set_bind event from an event to this Bindable node */
 void send_bind_to(struct X3D_Node *node, int value) {
+	int layerId;
 	ttglobal tg = gglobal();
 	/* printf ("\n%lf: send_bind_to, nodetype %s node %u value %d\n",TickTime(),stringNodeType(node->_nodeType),node,value);  */
 
+	layerId = layerFromBindable(node);
 	switch (node->_nodeType) {
-
 	case NODE_Background:  {
 		struct X3D_Background *bg = (struct X3D_Background *) node;
 		bg->set_bind = value;
-		bind_node (node, tg->Bindable.background_stack);
+		bind_node (node, getBindableStacksByLayer(tg,bg->_layerId)->background); //tg->Bindable.background_stack
 		break;
 		}
 
 	case NODE_TextureBackground: {
 		struct X3D_TextureBackground *tbg = (struct X3D_TextureBackground *) node;
 		tbg->set_bind = value;
-		bind_node (node, tg->Bindable.background_stack);
+		bind_node (node, getBindableStacksByLayer(tg,tbg->_layerId)->background);
 		break;
 		}
 
@@ -217,7 +356,7 @@ void send_bind_to(struct X3D_Node *node, int value) {
 		struct X3D_OrthoViewpoint *ovp = (struct X3D_OrthoViewpoint *) node;
 		ovp->set_bind = value;
 		setMenuStatusVP(ovp->description->strptr);
-		bind_node (node, tg->Bindable.viewpoint_stack);
+		bind_node (node, getBindableStacksByLayer(tg,ovp->_layerId)->viewpoint);
 		if (value==1) {
 			bind_OrthoViewpoint (ovp);
 		}
@@ -228,7 +367,7 @@ void send_bind_to(struct X3D_Node *node, int value) {
 		struct X3D_Viewpoint* vp = (struct X3D_Viewpoint *) node;
 		vp->set_bind = value;
 		setMenuStatusVP (vp->description->strptr);
-		bind_node (node, tg->Bindable.viewpoint_stack);
+		bind_node (node, getBindableStacksByLayer(tg,vp->_layerId)->viewpoint);
 		if (value==1) {
 			bind_Viewpoint (vp);
 		}
@@ -239,7 +378,7 @@ void send_bind_to(struct X3D_Node *node, int value) {
 		struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *) node;
 		gvp->set_bind = value;
 		setMenuStatusVP (gvp->description->strptr);
-		bind_node (node, tg->Bindable.viewpoint_stack);
+		bind_node (node, getBindableStacksByLayer(tg,gvp->_layerId)->viewpoint);
 		if (value==1) {
 			bind_GeoViewpoint (gvp);
 		}
@@ -250,14 +389,17 @@ void send_bind_to(struct X3D_Node *node, int value) {
 	case NODE_Fog:  {
 		struct X3D_Fog *fg = (struct X3D_Fog *) node;
 		fg->set_bind = value;
-		bind_node (node, tg->Bindable.fog_stack);
+		bind_node (node, getBindableStacksByLayer(tg,fg->_layerId)->fog);
+		if(value==1){
+			bind_Fog(fg);
+		}
 		break;
 		}
 
 	case NODE_NavigationInfo:  {
 		struct X3D_NavigationInfo *nv = (struct X3D_NavigationInfo *) node;
 		nv->set_bind = value;
-		bind_node (node, tg->Bindable.navigation_stack);
+		bind_node (node, getBindableStacksByLayer(tg,nv->_layerId)->navigation);
 		if (value==1) set_naviinfo(nv);
 		break;
 		}
@@ -297,7 +439,7 @@ static size_t bindTimeoffst (struct X3D_Node  *node) {
 		case NODE_Background: return offsetof(struct X3D_Background, bindTime);
 		case NODE_TextureBackground: return offsetof(struct X3D_TextureBackground, bindTime);
 		case NODE_Viewpoint: return offsetof(struct X3D_Viewpoint, bindTime);
-		case NODE_OrthoViewpoint: return offsetof(struct X3D_Viewpoint, bindTime);
+		case NODE_OrthoViewpoint: return offsetof(struct X3D_OrthoViewpoint, bindTime);
 		case NODE_GeoViewpoint: return offsetof(struct X3D_GeoViewpoint, bindTime);
 		case NODE_Fog: return offsetof(struct X3D_Fog, bindTime);
 		case NODE_NavigationInfo: return offsetof(struct X3D_NavigationInfo, bindTime);
@@ -319,7 +461,7 @@ static size_t isboundofst(void *node) {
 		case NODE_Background: return offsetof(struct X3D_Background, isBound);
 		case NODE_TextureBackground: return offsetof(struct X3D_TextureBackground, isBound);
 		case NODE_Viewpoint: return offsetof(struct X3D_Viewpoint, isBound);
-		case NODE_OrthoViewpoint: return offsetof(struct X3D_Viewpoint, isBound);
+		case NODE_OrthoViewpoint: return offsetof(struct X3D_OrthoViewpoint, isBound);
 		case NODE_GeoViewpoint: return offsetof(struct X3D_GeoViewpoint, isBound);
 		case NODE_Fog: return offsetof(struct X3D_Fog, isBound);
 		case NODE_NavigationInfo: return offsetof(struct X3D_NavigationInfo, isBound);
@@ -346,7 +488,8 @@ void bind_node (struct X3D_Node *node, struct Vector *thisStack) {
 		printf("%p already bound\n",node);
 		#endif
 		*setBindPtr = 100;
-	return; } /* It has to be at the top of the stack so return */
+		return; /* It has to be at the top of the stack so return */
+	} 
  
 
 	 /* we either have a setBind of 1, which is a push, or 0, which
@@ -425,25 +568,7 @@ void bind_node (struct X3D_Node *node, struct Vector *thisStack) {
 			} else {
 				/* we are top of stack... */
 				/* get myself off of the stack */
-//if (node->_nodeType == NODE_Viewpoint) {
-//int j;
-//printf ("%p Viewpoint, description :%s:\n",node,X3D_VIEWPOINT(node)->description->strptr);
-//printf("stacksize before popping=%d ",vectorSize(thisStack));
-//for(j=0;j<vectorSize(thisStack);j++){
-//struct X3D_Viewpoint *vp = vector_get(struct X3D_Viewpoint *,thisStack,j);
-//printf ("index= %d %p Viewpoint, description :%s:\n",j,node,vp->description->strptr);
-//}
-//}
 				vector_popBack(struct X3D_Node *,thisStack);
-//if (node->_nodeType == NODE_Viewpoint) {
-//printf("stacksize after popping=%d ",vectorSize(thisStack));
-//				if(removeNodeFromVector(0, thisStack, node)){
-//					printf("but still found and removed from stack\n");
-//				}else{
-//					printf("and now not found in stack\n");
-//				}
-//
-//}
 				removeNodeFromVector(0, thisStack, node); //sometimes there are duplicates further down the stack. for unloading inlines, we need to get rid of all occurrances
 				if (vectorSize(thisStack)>0) {
 					/* get the older one back */
@@ -465,11 +590,32 @@ void bind_node (struct X3D_Node *node, struct Vector *thisStack) {
 	} else {
 		printf ("setBindPtr %d\n",*setBindPtr);
 	}
+#undef BINDVERBOSE
 }
 
+//fog: see also notes in Component_EnvironEffects.c
+void bind_Fog(struct X3D_Fog *node){
+	//new Aug 2016, goal GLES2 compatible (no builtin opengl fog)
+	//nothing to do in here - we'll check the binding stack for fog before rendering
+	//ttglobal tg = gglobal();
 
-void render_Fog (struct X3D_Fog *node) {
-	#ifndef GL_ES_VERSION_2_0 /* this should be handled in material shader */
+	/* check the set_bind eventin to see if it is TRUE or FALSE */
+	//if (node->set_bind < 100) {
+	//	bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->fog);
+
+		/* if we do not have any more nodes on top of stack, disable fog */
+		//if(vectorSize(getActiveBindableStacks(tg)->fog) <= 0)
+			// we'll check before general scengraph rendering glDisable(GL_FOG);
+	//}
+	//glEnable(GL_FOG);
+
+	//if(!node->isBound) return;
+	//if(node->isBound)
+	//	printf("bound global fog\n");
+}
+
+void render_Fog_OLD (struct X3D_Fog *node) {
+	#ifndef GL_ES_VERSION_2_0 // this should be handled in material shader
 	GLDOUBLE mod[16];
 	GLDOUBLE proj[16];
 	GLDOUBLE x,y,z;
@@ -489,7 +635,7 @@ void render_Fog (struct X3D_Fog *node) {
 	/* check the set_bind eventin to see if it is TRUE or FALSE */
 	if (node->set_bind < 100) {
 
-		bind_node (X3D_NODE(node), tg->Bindable.fog_stack);
+		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->fog);
 
 		/* if we do not have any more nodes on top of stack, disable fog */
 		glDisable(GL_FOG);
@@ -904,7 +1050,7 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		FREE_IF_NZ(combinedBuffer);
 	}
 }
-
+void reallyDraw();
 void render_Background (struct X3D_Background *node) {
 	ttglobal tg = gglobal();
     
@@ -915,13 +1061,13 @@ void render_Background (struct X3D_Background *node) {
 	/* printf ("RBG, num %d node %d ib %d sb %d gepvp\n",node->__BGNumber, node,node->isBound,node->set_bind);    */
 	/* check the set_bind eventin to see if it is TRUE or FALSE */
 	if (node->set_bind < 100) {
-		bind_node (X3D_NODE(node), tg->Bindable.background_stack);
+		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->background);
 	}
 
 	/* don't even bother going further if this node is not bound on the top */
 	if(!node->isBound) return;
 
-	if (vectorSize(tg->Bindable.fog_stack) >0) glDisable(GL_FOG);
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
 	moveBackgroundCentre();
@@ -946,8 +1092,9 @@ void render_Background (struct X3D_Background *node) {
 		FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
 		FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
+		setupShaderB();
 		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-
+		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		finishedWithGlobalShader();
@@ -964,7 +1111,7 @@ void render_Background (struct X3D_Background *node) {
 
         	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,BackgroundVert);
         	FW_GL_NORMAL_POINTER (GL_FLOAT,0,Backnorms);
-        	FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex);
+        	FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex,0);
 
 		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
 
@@ -976,7 +1123,7 @@ void render_Background (struct X3D_Background *node) {
 	FW_GL_POP_MATRIX();
 
 	/* is fog enabled? if so, disable it right now */
-	if (vectorSize(tg->Bindable.fog_stack) >0) glEnable(GL_FOG);
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glEnable(GL_FOG);
 }
 
 
@@ -991,14 +1138,14 @@ void render_TextureBackground (struct X3D_TextureBackground *node) {
 	/* printf ("RTBG, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);  */
 	/* check the set_bind eventin to see if it is TRUE or FALSE */
 	if (node->set_bind < 100) {
-		bind_node (X3D_NODE(node), tg->Bindable.background_stack);
+		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->background);
 	}
 
 	/* don't even bother going further if this node is not bound on the top */
 	if(!node->isBound) return;
 
 	/* is fog enabled? if so, disable it right now */
-	if (vectorSize(tg->Bindable.fog_stack) >0) glDisable(GL_FOG);
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
 	moveBackgroundCentre();
@@ -1022,7 +1169,7 @@ void render_TextureBackground (struct X3D_TextureBackground *node) {
 		FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
 		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-
+		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		finishedWithGlobalShader();
@@ -1048,5 +1195,5 @@ void render_TextureBackground (struct X3D_TextureBackground *node) {
 	/* pushes are done in moveBackgroundCentre */
 	FW_GL_POP_MATRIX();
 
-	if (vectorSize(tg->Bindable.fog_stack) >0) glEnable (GL_FOG);
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glEnable (GL_FOG);
 }

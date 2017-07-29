@@ -60,7 +60,8 @@
 #include "plugin/pluginUtils.h"
 #include "plugin/PluginSocket.h"
 #endif
-
+#include <stdio.h>
+#include <fcntl.h>
 #if defined (INCLUDE_STL_FILES)
 #include "input/convertSTL.h"
 #endif //INCLUDE_STL_FILES
@@ -185,7 +186,6 @@ char *get_current_dir()
 */
 
 
-#if !defined(FRONTEND_GETS_FILES)
 /**
  *   do_file_exists: asserts that the given file exists.
  */
@@ -209,7 +209,6 @@ bool do_file_readable(const char *filename)
 	return FALSE;
 }
 
-#endif //FRONTEND_GETS_FILES
 
 /**
  *   do_dir_exists: asserts that the given directory exists.
@@ -281,7 +280,7 @@ static openned_file_t* create_openned_file(const char *filename, int fd, int dat
 	return of;
 }
 
-#if !defined(FRONTEND_GETS_FILES)
+
 
 /**
  * (internal)   load_file_mmap: implement load_file with mmap.
@@ -324,7 +323,7 @@ static void* load_file_mmap(const char *filename)
  int load_file_blob(const char *filename, char **blob, int *len){
  	struct stat ss;
 	int fd;
-	unsigned char *text, *current;
+	char *text, *current;
 	int left2read; //need signed int for math below
 #ifdef _MSC_VER
 	size_t blocksz, readsz; //, left2read;
@@ -351,7 +350,7 @@ static void* load_file_mmap(const char *filename)
 		return 0;
 	}
 
-	text = current = MALLOC(unsigned char *, ss.st_size +1); /* include space for a null terminating character */
+	text = current = MALLOC(char *, ss.st_size +1); /* include space for a null terminating character */
 	if (!text) {
 		ERROR_MSG("load_file_read: cannot allocate memory to read file %s\n", filename);
 		close(fd);
@@ -408,164 +407,89 @@ static openned_file_t* load_file_read(const char *filename)
 	}
 	return retval;
 }
-static openned_file_t* load_file_read_old(const char *filename)
-{
-	struct stat ss;
-	int fd;
-	unsigned char *text, *current;
-	int left2read; //need signed int for math below
-#ifdef _MSC_VER
-	size_t blocksz, readsz; //, left2read;
-#else
-	ssize_t blocksz, readsz; //, left2read;
-#endif
+#ifdef OLDCODE
+OLDCODEstatic openned_file_t* load_file_read_old(const char *filename)
+OLDCODE{
+OLDCODE	struct stat ss;
+OLDCODE	int fd;
+OLDCODE	unsigned char *text, *current;
+OLDCODE	int left2read; //need signed int for math below
+OLDCODE#ifdef _MSC_VER
+OLDCODE	size_t blocksz, readsz; //, left2read;
+OLDCODE#else
+OLDCODE	ssize_t blocksz, readsz; //, left2read;
+OLDCODE#endif
+OLDCODE
+OLDCODE	if (stat(filename, &ss) < 0) {
+OLDCODE		PERROR_MSG("load_file_read: could not stat: %s\n", filename);
+OLDCODE		return NULL;
+OLDCODE	}
+OLDCODE#ifdef _MSC_VER
+OLDCODE	fd = open(filename, O_RDONLY | O_BINARY);
+OLDCODE#else
+OLDCODE	fd = open(filename, O_RDONLY | O_NONBLOCK);
+OLDCODE#endif
+OLDCODE	if (fd < 0) {
+OLDCODE		PERROR_MSG("load_file_read: could not open: %s\n", filename);
+OLDCODE		return NULL;
+OLDCODE	}
+OLDCODE	if (!ss.st_size) {
+OLDCODE		ERROR_MSG("load_file_read: file is empty %s\n", filename);
+OLDCODE		close(fd);
+OLDCODE		return NULL;
+OLDCODE	}
+OLDCODE
+OLDCODE	text = current = MALLOC(unsigned char *, ss.st_size +1); /* include space for a null terminating character */
+OLDCODE	if (!text) {
+OLDCODE		ERROR_MSG("load_file_read: cannot allocate memory to read file %s\n", filename);
+OLDCODE		close(fd);
+OLDCODE		return NULL;
+OLDCODE	}
+OLDCODE
+OLDCODE	if (ss.st_size > SSIZE_MAX) {
+OLDCODE		/* file is greater that read's max block size: we must make a loop */
+OLDCODE		blocksz = SSIZE_MAX;
+OLDCODE	} else {
+OLDCODE		blocksz = ss.st_size+1;
+OLDCODE	}
+OLDCODE
+OLDCODE	left2read = ss.st_size; //+1;
+OLDCODE	readsz = 0;
+OLDCODE
+OLDCODE	while (left2read > 0) {
+OLDCODE		readsz = read(fd, current, blocksz);
+OLDCODE		if (readsz > 0) {
+OLDCODE			/* ok, we have read a block, continue */
+OLDCODE			current += blocksz;
+OLDCODE			left2read -= blocksz;
+OLDCODE		} else {
+OLDCODE			/* is this the end of the file ? */
+OLDCODE			if (readsz == 0) {
+OLDCODE				/* yes */
+OLDCODE				break;
+OLDCODE			} else {
+OLDCODE				/* error */
+OLDCODE				PERROR_MSG("load_file_read: error reading file %s\n", filename);
+OLDCODE				/* cleanup */
+OLDCODE				FREE(text);
+OLDCODE				close(fd);
+OLDCODE				return NULL;
+OLDCODE			}
+OLDCODE		}
+OLDCODE	}
+OLDCODE	/* null terminate this string */
+OLDCODE	text[ss.st_size] = '\0';
+OLDCODE	close(fd);
+OLDCODE	fd = 0; //NULL;
+OLDCODE	return create_openned_file(filename, fd, ss.st_size+1, text,0,0,FALSE);
+OLDCODE}
+#endif //OLDCODE
 
-	if (stat(filename, &ss) < 0) {
-		PERROR_MSG("load_file_read: could not stat: %s\n", filename);
-		return NULL;
-	}
-#ifdef _MSC_VER
-	fd = open(filename, O_RDONLY | O_BINARY);
-#else
-	fd = open(filename, O_RDONLY | O_NONBLOCK);
-#endif
-	if (fd < 0) {
-		PERROR_MSG("load_file_read: could not open: %s\n", filename);
-		return NULL;
-	}
-	if (!ss.st_size) {
-		ERROR_MSG("load_file_read: file is empty %s\n", filename);
-		close(fd);
-		return NULL;
-	}
 
-	text = current = MALLOC(unsigned char *, ss.st_size +1); /* include space for a null terminating character */
-	if (!text) {
-		ERROR_MSG("load_file_read: cannot allocate memory to read file %s\n", filename);
-		close(fd);
-		return NULL;
-	}
 
-	if (ss.st_size > SSIZE_MAX) {
-		/* file is greater that read's max block size: we must make a loop */
-		blocksz = SSIZE_MAX;
-	} else {
-		blocksz = ss.st_size+1;
-	}
 
-	left2read = ss.st_size; //+1;
-	readsz = 0;
-
-	while (left2read > 0) {
-		readsz = read(fd, current, blocksz);
-		if (readsz > 0) {
-			/* ok, we have read a block, continue */
-			current += blocksz;
-			left2read -= blocksz;
-		} else {
-			/* is this the end of the file ? */
-			if (readsz == 0) {
-				/* yes */
-				break;
-			} else {
-				/* error */
-				PERROR_MSG("load_file_read: error reading file %s\n", filename);
-				/* cleanup */
-				FREE(text);
-				close(fd);
-				return NULL;
-			}
-		}
-	}
-	/* null terminate this string */
-	text[ss.st_size] = '\0';
-	close(fd);
-	fd = 0; //NULL;
-	return create_openned_file(filename, fd, ss.st_size+1, text,0,0,FALSE);
-}
-#endif //FRONTEND_GETS_FILES
-
-#ifdef FRONTEND_GETS_FILES
-/* these variables are used on return of data from front end, and are passed on to create_openned_file */
-static char *fileText = NULL;
-static char *fileToGet = NULL;
-static int frontend_return_status = 0;
-static int fileSize = 0;
-static int imageWidth;
-static int imageHeight;
-static bool imageAlpha;
-
-static pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK_LOAD_FILE_FUNCTION pthread_mutex_lock( &mutex1 );
-#define UNLOCK_LOAD_FILE_FUNCTION pthread_mutex_unlock(&mutex1);
-
-static pthread_mutex_t  getAFileLock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t waitingForFile = PTHREAD_COND_INITIALIZER;
-#define MUTEX_LOCK_FILE_RETRIEVAL               pthread_mutex_lock(&getAFileLock);
-#define MUTEX_FREE_LOCK_FILE_RETRIEVAL       pthread_mutex_unlock(&getAFileLock);
-#define WAIT_FOR_FILE_SIGNAL		pthread_cond_wait(&waitingForFile,&getAFileLock);
-#define SEND_FILE_SIGNAL		pthread_cond_signal(&waitingForFile);
-
-/* accessor functions */
-/* return the filename of the file we want. */
-
-char *fwg_frontEndWantsFileName() {
-	//if (fileToGet != NULL) printf ("fwg_frontEndWantsFileName called - fileName currently %s\n",fileToGet);
-	return fileToGet;
-}
-
-void fwg_frontEndReturningData(char* fileData,int len,int width,int height,bool hasAlpha) {
-
-	MUTEX_LOCK_FILE_RETRIEVAL
-    
-    //ConsoleMessage ("fwg_frontEndReturningData, len %d",len);
-	/* did we get data? is "len" not zero?? */
-	if (len == 0) {
-		// printf ("fwg_frontEndReturningData, returning error\n");
-		//frontend_return_status = -1;
-		fileText = NULL;
-		fileSize = 0;
-
-	} else {
-		// printf ("fwg_frontEndReturningData, returning ok\n");
-    		/* note the "+1" ....*/
-        FREE_IF_NZ(fileText);
-        
-		fileText = MALLOC (char *, len+1);
-        if (NULL != fileText)
-        {
-            memcpy (fileText, fileData, len);
-        }
-		fileSize = len;
-		imageWidth = width;
-		imageHeight = height;
-		imageAlpha = hasAlpha;
-    
-	    /* ok - we do not know if this is a binary or a text file,
-	       but because we added 1 to it, we can put a null terminator
-	       on the end - that will terminate a text string, but will
-	       not affect a binary file, because we have the binary data
-	       and binary length recorded. */
-
-	    fileText[len] = '\0';  /* the string terminator */
-         //printf ("fwg_frontEndReturningData: returning data, but fileToGet setting to NULL, was %s\n",fileToGet);
-
-		frontend_return_status = 0;
-		/* got the file, send along a message */
-	}
-
-    
-	SEND_FILE_SIGNAL
-
-	MUTEX_FREE_LOCK_FILE_RETRIEVAL
-}
-
-#else
 char *fwg_frontEndWantsFileName() {return NULL;}
 void fwg_frontEndReturningData(char* fileData,int length,int width,int height,bool hasAlpha) {}
-#endif
-
-
 
 
 /**
@@ -587,43 +511,6 @@ openned_file_t* load_file(const char *filename)
 	DEBUG_RES("loading file: %s pthread %p\n", filename,pthread_self());
     //printf ("load_file, fileToGet %s, load_file %s thread %ld\n",fileToGet,filename,pthread_self());
     
-#ifdef FRONTEND_GETS_FILES
-
- 
-    
-    LOCK_LOAD_FILE_FUNCTION
-
-
-    MUTEX_LOCK_FILE_RETRIEVAL
-    
-	//JAS - we keep this around until done with resource FREE_IF_NZ(fileText);
-
-
-    FREE_IF_NZ(fileToGet);
-    fileToGet = STRDUP(filename);
-
-    ttglobal tg = gglobal();
-    if (tg->ProdCon._frontEndOnResourceRequiredListener) {
-    		tg->ProdCon._frontEndOnResourceRequiredListener(fileToGet);
-    }
-
-    WAIT_FOR_FILE_SIGNAL
-
-	MUTEX_FREE_LOCK_FILE_RETRIEVAL
-
-	FREE_IF_NZ(fileToGet);
-	fileToGet = NULL; /* not freed as only passed by pointer */
-
-	if(frontend_return_status == -1) of = NULL;
-    else of = create_openned_file(STRDUP(filename), -1, fileSize, fileText, imageHeight, imageWidth, imageAlpha);
-    FREE_IF_NZ(fileText);
-    fileText = NULL;
-    UNLOCK_LOAD_FILE_FUNCTION  
-    return of;
-    
-#else //FRONTEND_GETS_FILES 
-
-
 
 #if defined(FW_USE_MMAP)
 #if !defined(_MSC_VER)
@@ -639,7 +526,7 @@ openned_file_t* load_file(const char *filename)
 #endif
 	DEBUG_RES("%s loading status: %s\n", filename, BOOL_STR((of!=NULL)));
 	return of;
-#endif //FRONTEND_GETS_FILES
+
 }
 
 
@@ -746,7 +633,7 @@ int determineFileType(const char *buffer, const int len)
  * FIXME: refactor this function, too :)
  *
  */
-#ifndef _MSC_VER
+#if !defined( _MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(IOS)
 int freewrlSystem (const char *sysline)
 {
 
@@ -1341,13 +1228,18 @@ void delete_temp_file(resource_item_t *res){
 	}
 }
 
-int file2blob(resource_item_t *res){
+int file2blob(void *resp){
+	resource_item_t *res;
 	int retval;
+
+	res = (resource_item_t*)resp;
 	if(res->media_type == resm_image){
 #ifdef DISABLER	
 		printf("FREEWRL LOADING IMAGERY: %s", res->actual_file);
 #endif		
 		retval = imagery_load(res); //FILE2TEXBLOB
+	}else if(res->media_type == resm_movie){
+		retval = movie_load(res);
 	}else{
 		retval = resource_load(res);  //FILE2BLOB
 	}

@@ -887,7 +887,9 @@ void OcclusionStartofRenderSceneUpdateScene() {
 		if (gglobal()->internalc.global_occlusion_disable) {
 			tg->Frustum.OccFailed = TRUE;
 		} else {
-	        	if (gglobal()->display.rdr_caps.av_occlusion_q) {
+				s_renderer_capabilities_t *rdr_caps;
+				rdr_caps = gglobal()->display.rdr_caps;
+	        	if (rdr_caps->av_occlusion_q) {
 		
 				#ifdef OCCLUSIONVERBOSE
 	        	        printf ("OcclusionStartofRenderSceneUpdateScene: have OcclusionQuery\n"); 
@@ -963,6 +965,7 @@ void OcclusionStartofRenderSceneUpdateScene() {
 }
 
 void OcclusionCulling ()  {
+//non-occlusion visibilitysensor method: __Samples = 0 in startofloopnodeupdates
 #ifdef OCCLUSION /* do we have hardware for occlusion culling? */
 	int i;
 	struct X3D_Shape *shapePtr;

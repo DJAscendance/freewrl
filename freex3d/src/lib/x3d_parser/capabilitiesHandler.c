@@ -41,15 +41,15 @@
 /* table showing which levels are supported by which component */
 static const int capabilities[] = {
 	COM_Geometry2D,	2, 		/* May 12, 2009 */
-	COM_Rendering,	4, 		/* May 12, 2009 */
-	COM_PickingSensor,	0, 	/* May 12, 2009 */
+	COM_Rendering,	5, 		/* Sep 22, 2016 */
+	COM_Picking,	0, 	/* May 12, 2009 */
 	COM_DIS,	0, 		/* May 12, 2009 */
 	COM_EnvironmentalSensor,	3, /* May 12, 2009 */
 	COM_Text,	1, 		/* May 12, 2009 */
-	COM_NURBS,	0, 		/* May 12, 2009 */
-	COM_CubeMapTexturing,	1, 	/* May 12, 2009 */
+	COM_NURBS,	4, 		/* Dec 2016 */
+	COM_CubeMapTexturing,	3, 	/* Sep 13, 2016 */
 	COM_EventUtilities,	1, 	/* May 12, 2009 */
-	COM_Interpolation,	3, 	/* May 12, 2009 */
+	COM_Interpolation,	5, 	/* Dec 2016 */
 	COM_Shaders,	1, 		/* May 12, 2009 */
 	COM_Navigation,	3, 		/* July 29 2010 */
 	COM_Grouping,		3,	/* October 29, 2008 */
@@ -58,22 +58,23 @@ static const int capabilities[] = {
 	COM_CADGeometry,	2, 	/* July 10 2013 */
 	COM_EnvironmentalEffects,	3, /* May 12, 2009 */
 	COM_Shape,	4, 		/* May 12, 2009 */
-	COM_Texturing3D,	0, 	/* May 12, 2009 */
+	COM_Texturing3D,	2, 	/* Sept 4, 2016 */
 	COM_PointDeviceSensor,	1, 	/* May 12, 2009 */
-	COM_HAnim,	0, 		/* May 12, 2009 */
-	COM_RigidBodyPhysics,	0, 	/* May 12, 2009 */
+	COM_HAnim,	1, 		/* Nov 2016 */
+	COM_RigidBodyPhysics,	2, 	/* Nov 2016 */
 	COM_Core,		2,	/* October 29, 2008 */
-	COM_Layout,	0, 		/* May 12, 2009 */
+	COM_Layout,	2, 		/* Jan 2016 */
 	COM_Time,		2, 	/* October 29, 2008 */
 	COM_Geometry3D,	4, 		/* May 12, 2009 */
-	COM_Followers,	0, 		/* May 12, 2009 */
+	COM_Followers,	1, 		/* 2016 */
 	COM_Scripting,	1, 		/* May 12, 2009 */
 	COM_Lighting,	3, 		/* May 12, 2009 */
 	COM_KeyDeviceSensor,	2, 	/* May 12, 2009 */
-	COM_Layering,	0, 		/* May 12, 2009 */
+	COM_Layering,	1, 		/* Jan 2016 */
 	COM_Networking,	3, 		/* May 12, 2009 */
-	COM_ParticleSystems,	0, 	/* May 12, 2009 */
+	COM_ParticleSystems,	3, 	/* Nov 2016 */
 	COM_Sound,	1, 		/* May 12, 2009 */
+	COM_VolumeRendering,  4, /* Oct 1, 2016 */
 	INT_ID_UNDEFINED, 	INT_ID_UNDEFINED,
 };
 
@@ -133,7 +134,7 @@ static const int FullProfile[] = {
 	COM_Layering,			1,
 	COM_Layout,			2,
 	COM_RigidBodyPhysics,		2,
-	COM_PickingSensor,		3,
+	COM_Picking,			3,
 	COM_Followers,			1,
 	COM_ParticleSystems,		3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
@@ -181,6 +182,7 @@ static const int InteractiveProfile[] = {
 	COM_EnvironmentalSensor,	1,
 	COM_EnvironmentalEffects,	1,
 	COM_EventUtilities,		1,
+	COM_Layering,			1,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
@@ -273,6 +275,39 @@ void handleMetaDataStringString(struct Uni_String *val1, struct Uni_String *val2
 	#endif
 }
 
+// UNIT category unitname conversionfactor
+// UNIT length micro 0.000001
+// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+// http://www.web3d.org/documents/specifications/19776-2/V3.3/Part02/grammar.html#General
+// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/concepts.html#t-Standardunits
+const char * unitcategories [] = {
+	"angle",
+	"force",
+	"length",
+	"mass",
+	"acceleration",
+	"angular_rate",
+	"area",
+	"speed",
+	"volume",
+};
+//#define UNITCATEGORIES_COUNT 9
+const char * unitnames [] = {
+	"radian",
+	"newton",
+	"metre",
+	"kilogram",
+};
+//#define UNITNAMES_COUNT 4
+void handleUnitDataStringString(char *categoryname, char *unitname, double conversionfactor) {
+	//int i1, i2;
+	//i1 = findFieldInARR(categoryname,unitcategories,UNITCATEGORIES_COUNT);
+	//i2 = findFieldInARR(unitname,unitnames,UNITNAMES_COUNT);
+	#ifdef CAPABILITIESVERBOSE
+	printf ("handleMetaDataStringString, :%s:, :%s:\n",val1->strptr, val2->strptr);
+	#endif
+}
+
 void handleProfile (int myProfile) {
 	int *myTable = NULL;
 	int i;
@@ -329,7 +364,7 @@ int capabilitiesHandler_getTableLength(int* table){
 struct proftablestruct *getProfTable(){
 	return profTable;
 }
-int * getCapabilitiesTable(){
+const int * getCapabilitiesTable(){
 	return capabilities;
 }
 

@@ -40,14 +40,19 @@ struct textureTableIndexStruct {
 	int    status;
 	int    hasAlpha;
 	GLuint OpenGLTexture;
+	GLuint ifbobuffer; //in case this texture is used as an fbo render target
+	GLuint idepthbuffer; //in case this texture is used as an fbo render target
 	int    frames;
 	char   *filename;
     int    x;
     int    y;
+	int    z;
+	int    tiles[3]; //when using TILED emulator for texture3D, nx, ny tiles, and resampled z
     unsigned char *texdata;
-    GLint  Src;
-    GLint  Trc;
+    GLint  repeatSTR[3]; //repeatR - used for non-builtin-Texture3D ie shader will manually apply this rule
+	GLint magFilter; //needed in TEX3D frag shader for Z
 	int textureNumber;
+	int channels; //number of original image file image channels/components 0=no texture default, 1=Intensity 2=IntensityAlpha 3=RGB 4=RGBA
 };
 typedef struct textureTableIndexStruct textureTableIndexStruct_s;
 
@@ -65,22 +70,9 @@ struct textureVertexInfo {
 	GLenum TC_type;		/* glTexCoordPointer - type param */	
 	GLsizei TC_stride;	/* glTexCoordPointer - stride param */
 	GLvoid *TC_pointer;	/* glTexCoordPointer - pointer to first element */
+	void *next; //next textureVertexInfo for MultitextureCoordinate
+	GLint VBO;
 };
-
-#define GET_THIS_TEXTURE thisTextureType = node->_nodeType; \
-                                if (thisTextureType==NODE_ImageTexture){ \
-                                it = (struct X3D_ImageTexture*) node; \
-                                thisTexture = it->__textureTableIndex; \
-                        } else if (thisTextureType==NODE_PixelTexture){ \
-                                pt = (struct X3D_PixelTexture*) node; \
-                                thisTexture = pt->__textureTableIndex; \
-                        } else if (thisTextureType==NODE_MovieTexture){ \
-                                mt = (struct X3D_MovieTexture*) node; \
-                                thisTexture = mt->__textureTableIndex; \
-                        } else if (thisTextureType==NODE_ImageCubeMapTexture){ \
-                                ict = (struct X3D_ImageCubeMapTexture*) node; \
-                                thisTexture = ict->__textureTableIndex; \
-                        } else { ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType)); return;}
 
 /* for texIsloaded structure */
 #define TEX_NOTLOADED       0
@@ -97,8 +89,9 @@ const char *texst(int num);
 /* do we have to do textures?? */
 #define HAVETODOTEXTURES (gglobal()->RenderFuncs.textureStackTop != 0)
 
-extern void textureDraw_start(struct textureVertexInfo *tex);
-extern void textureDraw_end(void);
+void textureCoord_send(struct textureVertexInfo *tex);
+void textureTransform_start();
+void textureTransform_end();
 
 struct X3D_Node *getThis_textureTransform();
 
@@ -112,7 +105,8 @@ extern int display_status;
 #define TEXTURE_NO_ALPHA 1
 #define TEXTURE_ALPHA 2
 
-void loadTextureNode (struct X3D_Node *node, struct multiTexParams *param);
+// OLDCODE void loadTextureNode (struct X3D_Node *node, struct multiTexParams *param);
+void loadTextureNode (struct X3D_Node *node, void *params);
 void bind_image(int type, struct Uni_String *parenturl, struct Multi_String url,
 				GLuint *texture_num,
 				int repeatS,

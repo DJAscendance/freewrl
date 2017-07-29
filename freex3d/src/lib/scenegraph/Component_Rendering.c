@@ -43,6 +43,35 @@ X3D Rendering Component
 #include "../scenegraph/RenderFuncs.h"
 #include "../scenegraph/Polyrep.h"
 
+#define FW_MAXCLIPPLANES 4
+
+typedef struct pComponent_Rendering{
+
+	Stack *clipplane_stack;
+	float clipplanes[4*FW_MAXCLIPPLANES];
+}* ppComponent_Rendering;
+void *Component_Rendering_constructor(){
+	void *v = MALLOCV(sizeof(struct pComponent_Rendering));
+	memset(v,0,sizeof(struct pComponent_Rendering));
+	return v;
+}
+void Component_Rendering_init(struct tComponent_Rendering *t){
+	//public
+
+	//private
+	t->prv = Component_Rendering_constructor();
+	{
+		ppComponent_Rendering p = (ppComponent_Rendering)t->prv;
+		p->clipplane_stack = newStack(usehit);
+	}
+}
+void Component_Rendering_clear(struct tComponent_Rendering *t){
+	ppComponent_Rendering p = (ppComponent_Rendering)t->prv;
+	deleteVector(struct X3D_Node*,p->clipplane_stack);
+}
+
+
+
 /* find a bounding box that fits the coord structure. save it in the common-node area for extents.*/
 static void findExtentInCoord (struct X3D_Node *node, int count, struct SFVec3f* coord) {
 	int i;
@@ -65,40 +94,40 @@ static void findExtentInCoord (struct X3D_Node *node, int count, struct SFVec3f*
 }
 
 void render_IndexedTriangleFanSet (struct X3D_IndexedTriangleFanSet *node) {
-                COMPILE_POLY_IF_REQUIRED(node->coord, node->color, node->normal, node->texCoord)
-		CULL_FACE(node->solid)
-		render_polyrep(node);
+	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	CULL_FACE(node->solid)
+	render_polyrep(node);
 }
 
 void render_IndexedTriangleSet (struct X3D_IndexedTriangleSet *node) {
-                COMPILE_POLY_IF_REQUIRED(node->coord, node->color, node->normal, node->texCoord)
-		CULL_FACE(node->solid)
-		render_polyrep(node);
+	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	CULL_FACE(node->solid)
+	render_polyrep(node);
 
 }
 
 void render_IndexedTriangleStripSet (struct X3D_IndexedTriangleStripSet *node) {
-                COMPILE_POLY_IF_REQUIRED( node->coord, node->color, node->normal, NULL)
-		CULL_FACE(node->solid)
-		render_polyrep(node);
+	COMPILE_POLY_IF_REQUIRED( node->coord, node->fogCoord, node->color, node->normal, NULL)
+	CULL_FACE(node->solid)
+	render_polyrep(node);
 }
 
 void render_TriangleFanSet (struct X3D_TriangleFanSet *node) {
-                COMPILE_POLY_IF_REQUIRED (node->coord, node->color, node->normal, node->texCoord)
+		COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
 		CULL_FACE(node->solid)
 		render_polyrep(node);
 }
 
 void render_TriangleStripSet (struct X3D_TriangleStripSet *node) {
-                COMPILE_POLY_IF_REQUIRED(node->coord, node->color, node->normal, node->texCoord)
-		CULL_FACE(node->solid)
-		render_polyrep(node);
+	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	CULL_FACE(node->solid)
+	render_polyrep(node);
 }
 
 void render_TriangleSet (struct X3D_TriangleSet *node) {
-                COMPILE_POLY_IF_REQUIRED(node->coord, node->color, node->normal, node->texCoord)
-		CULL_FACE(node->solid)
-		render_polyrep(node);
+	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	CULL_FACE(node->solid)
+	render_polyrep(node);
 }
 
 
@@ -252,21 +281,17 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	/* do we have to worry about colours? */
 	/* sanity check the colors, if they exist */
 	if (node->color) {
-
-        
 		/* we resort the color nodes so that we have an RGBA color node per vertex */
-
-
 		FREE_IF_NZ (node->__xcolours);
 		node->__xcolours = MALLOC (struct SFColorRGBA *, sizeof(struct SFColorRGBA)*(nVertices+1));
-
 		newcolors = (struct SFColorRGBA *) node->__xcolours;
-			POSSIBLE_PROTO_EXPANSION(struct X3D_Color *, node->color,cc)
-               		/* cc = (struct X3D_Color *) node->color; */
-               		if ((cc->_nodeType != NODE_Color) && (cc->_nodeType != NODE_ColorRGBA)) {
-               	        	ConsoleMessage ("make_IndexedLineSet, color node, expected %d got %d\n", NODE_Color, cc->_nodeType);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Color *, node->color,cc)
+		/* cc = (struct X3D_Color *) node->color; */
+		if(cc) 
+		if ((cc->_nodeType != NODE_Color) && (cc->_nodeType != NODE_ColorRGBA)) {
+			ConsoleMessage ("make_IndexedLineSet, color node, expected %d got %d\n", NODE_Color, cc->_nodeType);
 			return;
-               		}
+		}
 
 		/* 4 choices here - we have colorPerVertex, and, possibly, a ColorIndex */
 
@@ -293,9 +318,9 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 				}
 				colorIndInt = node->colorIndex.p; /* use ColorIndex */
 			} else {
-                /* we are using the simple index for colour selection */
-     	           colorIndShort = node->__vertArr;                 
-            }
+				/* we are using the simple index for colour selection */
+				colorIndShort = node->__vertArr;                 
+			}
 		}
 
 
@@ -305,27 +330,24 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			if (node->coordIndex.p[i] != -1) {
 				/* have a vertex, match colour  */
 				if (node->colorPerVertex) {
-       			             if (colorIndInt != NULL) 
-                		        curcolor = colorIndInt[i];
- 	                  	     else
-                    		    	curcolor = colorIndShort[i];
+					if (colorIndInt != NULL) 
+						curcolor = colorIndInt[i];
+					else
+						curcolor = colorIndShort[i];
 				} else {
-                    			if (colorIndInt != NULL)
-                        		curcolor = colorIndInt[curSeg];
-                    			else
-                        		curcolor = colorIndShort[curSeg];
+					if (colorIndInt != NULL)
+						curcolor = colorIndInt[curSeg];
+					else
+						curcolor = colorIndShort[curSeg];
 				}
-                //ConsoleMessage ("curSeg %d, i %d, node->coordIndex.p %d curcolor %d\n",curSeg,i,node->coordIndex.p[i], curcolor);
+				//ConsoleMessage ("curSeg %d, i %d, node->coordIndex.p %d curcolor %d\n",curSeg,i,node->coordIndex.p[i], curcolor);
 				if ((curcolor < 0) || (curcolor >= cc->color.n)) {
 					ConsoleMessage ("IndexedLineSet, colorIndex %d (for vertex %d or segment %d) out of range (0..%d)\n",
 						curcolor, i, curSeg, cc->color.n);
 					return;
 				}
 
-
 				oldcolor = (struct SFColorRGBA *) &(cc->color.p[curcolor]);
-
-
 
 				/* copy the correct color over for this vertex */
 				if (cc->_nodeType == NODE_Color) {
@@ -334,7 +356,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 				} else {
 					memcpy (newcolors, oldcolor,sizeof(struct SFColorRGBA));
 				}
-                //printf ("colout selected %f %f %f %f\n",newcolors->c[0],newcolors->c[1],newcolors->c[2],newcolors->c[3]);
+				//printf ("colout selected %f %f %f %f\n",newcolors->c[0],newcolors->c[1],newcolors->c[2],newcolors->c[3]);
 				newcolors ++; 
 			} else {
 				curSeg++;
@@ -360,9 +382,9 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	
 	COMPILE_IF_REQUIRED
 
-        setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
-                node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
-                X3D_NODE(node));
+	setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
+			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
+			X3D_NODE(node));
 
 
 	/* If we have segments... */
@@ -373,14 +395,13 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			FW_GL_COLOR_POINTER (4,GL_FLOAT,0,node->__xcolours);
 		}
 
-        indxStartPtr = (ushort **)node->__vertIndx;
-        count  = node->__vertexCount;
+		indxStartPtr = (ushort **)node->__vertIndx;
+		count  = node->__vertexCount;
 
 		for (i=0; i<node->__segCount; i++) {
-            // draw. Note the casting of the last param - it is ok, because we tell that
-            // we are sending in ushorts; it gets around a compiler warning.
-            
-            		sendElementsToGPU(GL_LINE_STRIP,count[i],indxStartPtr[i]);
+			// draw. Note the casting of the last param - it is ok, because we tell that
+			// we are sending in ushorts; it gets around a compiler warning.
+			sendElementsToGPU(GL_LINE_STRIP,count[i],indxStartPtr[i]);
 		}
 	}
 }
@@ -389,14 +410,14 @@ void compile_PointSet (struct X3D_PointSet *node) {
 	struct SFColor *colors=0; int ncolors=0;
 	struct X3D_Color *cc;
 
-    if (node->_pointsVBO == 0) {
-        glGenBuffers(1,(GLuint *) &node->_pointsVBO);
-    }
+	if (node->_pointsVBO == 0) {
+		glGenBuffers(1,(GLuint *) &node->_pointsVBO);
+	}
 
 	/* do nothing, except get the extents here */
 	MARK_NODE_COMPILED
 
-    node->_npoints = 0;
+	node->_npoints = 0;
     
 	if (node->coord) {
 		struct Multi_Vec3f *dtmp;
@@ -404,72 +425,72 @@ void compile_PointSet (struct X3D_PointSet *node) {
 
 		/* find the extents */
 		findExtentInCoord(X3D_NODE(node), dtmp->n, dtmp->p);
-        
-        if (dtmp->n == 0) return;
-    
-        
-        FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_pointsVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFVec3f)*dtmp->n, dtmp->p, GL_STATIC_DRAW);
-        FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-        node->_npoints = dtmp->n;
+
+		if (dtmp->n == 0) return;
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_pointsVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFVec3f)*dtmp->n, dtmp->p, GL_STATIC_DRAW);
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+		node->_npoints = dtmp->n;
 	}
-    
-    if (node->color) {
+
+	if (node->color) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Color *, node->color,cc)
-        if ((cc->_nodeType != NODE_Color) && (cc->_nodeType != NODE_ColorRGBA)) {
-            ConsoleMessage ("make_PointSet, expected %d got %d\n", NODE_Color, cc->_nodeType);
-        } else {
-            ncolors = cc->color.n;
-			colors = cc->color.p;
-        }
-    
-    
-        if(ncolors && ncolors < node->_npoints) {
-            ConsoleMessage ("PointSet has less colors than points - removing color\n");
-            ncolors = 0;
-        } else {
-            if (node->_coloursVBO == 0) {
-                glGenBuffers(1,(GLuint *)&node->_coloursVBO);
-            }
+		if(cc){
+			if ((cc->_nodeType != NODE_Color) && (cc->_nodeType != NODE_ColorRGBA)) {
+				ConsoleMessage ("make_PointSet, expected %d got %d\n", NODE_Color, cc->_nodeType);
+			} else {
+				ncolors = cc->color.n;
+				colors = cc->color.p;
+			}
+		}
+
+
+		if(ncolors && ncolors < node->_npoints) {
+			ConsoleMessage ("PointSet has less colors than points - removing color\n");
+			ncolors = 0;
+		} else {
+			if (node->_coloursVBO == 0) {
+				glGenBuffers(1,(GLuint *)&node->_coloursVBO);
+			}
         
-            /* RGB or RGBA? */
-            FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_coloursVBO);
-            if (cc->_nodeType == NODE_Color) {
-                glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFColor)*ncolors, colors, GL_STATIC_DRAW);
-                node->_colourSize = 3;
-            } else {
-                glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFColorRGBA)*ncolors, colors, GL_STATIC_DRAW);
-                node->_colourSize = 4;
-            }
-            FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-        }
-    }
+			/* RGB or RGBA? */
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_coloursVBO);
+			if (cc->_nodeType == NODE_Color) {
+				glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFColor)*ncolors, colors, GL_STATIC_DRAW);
+				node->_colourSize = 3;
+			} else {
+				glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFColorRGBA)*ncolors, colors, GL_STATIC_DRAW);
+				node->_colourSize = 4;
+			}
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+		}
+	}
 }
 
 
 void render_PointSet (struct X3D_PointSet *node) {
 	ttglobal tg = gglobal();
-        COMPILE_IF_REQUIRED
+	COMPILE_IF_REQUIRED
 
-        setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
-                node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
-                X3D_NODE(node));
-    
+	setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
+			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
+			X3D_NODE(node));
+
 	LIGHTING_OFF
 	DISABLE_CULL_FACE
 
-    if (node->_pointsVBO == 0) return;
+	if (node->_pointsVBO == 0) return;
     
-    FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
-    FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
-    
-    // do we have colours?
-    if (node->_coloursVBO != 0) {
-        FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
-        FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
-    }
-    //printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
-    
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
+	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+
+	// do we have colours?
+	if (node->_coloursVBO != 0) {
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
+		FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
+	}
+	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
+
 	sendArraysToGPU(GL_POINTS,0,node->_npoints);
 }
 
@@ -487,16 +508,16 @@ void render_LineSet (struct X3D_LineSet *node) {
 
 	COMPILE_IF_REQUIRED
 	
-        setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
-                node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
-                X3D_NODE(node));
+	setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
+			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
+			X3D_NODE(node));
 
 	/* now, actually draw array */
 	if (node->__segCount > 0) {
 		if (node->color) {
-                	cc = (struct X3D_Color *) node->color;
-			/* is this a Color or ColorRGBA color node? */
-                	if (cc->_nodeType == NODE_Color) {
+			cc = (struct X3D_Color *) node->color;
+	/* is this a Color or ColorRGBA color node? */
+			if (cc->_nodeType == NODE_Color) {
 				FW_GL_COLOR_POINTER (3,GL_FLOAT,0,(float *)cc->color.p);
 			} else {
 				FW_GL_COLOR_POINTER (4,GL_FLOAT,0,(float *)cc->color.p);
@@ -511,15 +532,15 @@ void render_LineSet (struct X3D_LineSet *node) {
 		count  = (GLsizei*) node->vertexCount.p;
 
 		for (i=0; i<node->__segCount; i++) {
-            /*
-            printf ("rendering segment %d of %d, count %d, have starting index of %hu\n",i,node->__segCount, count[i], *indices[i]);
-            {int j; ushort *pt = indices[i];
-                for (j=0; j<count[i]; j++) {
-                    printf ("line segment %d, index %hu\n",i,*pt);
-                    pt++;
-                }
-            }
-             */
+		/*
+		printf ("rendering segment %d of %d, count %d, have starting index of %hu\n",i,node->__segCount, count[i], *indices[i]);
+		{int j; ushort *pt = indices[i];
+			for (j=0; j<count[i]; j++) {
+				printf ("line segment %d, index %hu\n",i,*pt);
+				pt++;
+			}
+		}
+			*/
 			sendElementsToGPU(GL_LINE_STRIP,count[i],indices[i]);
 		}
 	}
@@ -547,8 +568,8 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	if (nvertexc==0) return;
 	totVertexRequired = 0;
 
-    //printf ("compile_LineSet, nvertexc %d\n",nvertexc);
-    
+	//printf ("compile_LineSet, nvertexc %d\n",nvertexc);
+
 
 	/* sanity check vertex counts */
 	for  (c=0; c<nvertexc; c++) {
@@ -578,22 +599,24 @@ void compile_LineSet (struct X3D_LineSet *node) {
 		return;
 	}
  
-       	if (node->color) {
-               	/* cc = (struct X3D_Color *) node->color; */
+	if (node->color) {
+		/* cc = (struct X3D_Color *) node->color; */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Color *, node->color,cc)
-               	if ((cc->_nodeType != NODE_Color) && (cc->_nodeType != NODE_ColorRGBA)) {
-               	        ConsoleMessage ("make_LineSet, expected %d got %d\n", NODE_Color, cc->_nodeType);
-               	} else {
-               	        ncolor = cc->color.n;
-		//color = cc->color.p;
-               	}
+		if(cc){
+			if ((cc->_nodeType != NODE_Color) && (cc->_nodeType != NODE_ColorRGBA)) {
+				ConsoleMessage ("make_LineSet, expected %d got %d\n", NODE_Color, cc->_nodeType);
+			} else {
+				ncolor = cc->color.n;
+				//color = cc->color.p;
+			}
+		}
 		/* check that we have enough verticies for the Colors */
 		if (totVertexRequired > ncolor) {
 			ConsoleMessage ("make_LineSet, not enough colors for vertexCount (vertices:%d colors:%d)\n",
 				totVertexRequired, ncolor);
 			return;
 		}
-       	}
+	}
 
 	/* create the index for the arrays. Really simple... Used to index
 	   into the coords, so, eg, __vertArr is [0,1,2], which means use
@@ -611,12 +634,12 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	   segment The LENGTH of each segment (good question) comes from the
 	   vertexCount parameter of the LineSet node */
 	FREE_IF_NZ (node->__vertIndx);
-	node->__vertIndx = MALLOC (ushort **, sizeof(ushort)*(nvertexc));
+	node->__vertIndx = MALLOC (ushort **, sizeof(ushort*)*(nvertexc));
 	c = 0;
 	pt = (GLushort *)node->__vertArr;
 	vpt = (ushort**) node->__vertIndx;
 	for (vtc=0; vtc<nvertexc; vtc++) {
-        //printf ("in position %d of __vertIndx, we have put pointer to %u\n",vtc,*pt);
+		//printf ("in position %d of __vertIndx, we have put pointer to %u\n",vtc,*pt);
 		vpt[vtc] =  (ushort*) pt;
 		pt += vertexC[vtc];
 	}
@@ -625,3 +648,160 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	node->__segCount = nvertexc;
 }
 
+/* ClipPlane
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html#ClipPlanes
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html#ClipPlane
+	GLES2 supports only frustum clipplane. For user clipplanes:
+	https://www.khronos.org/registry/gles/specs/2.0/es_cm_spec_2.0.25.pdf
+	"Userclipping planes can be emulated by dot product clipping plane and vertex, and threshold result in shader"
+	http://mrkaktus.org/opengl-clip-planes-explained/
+	- shows different gl versions and different support technique / mechanism, desktop different than ES2 different than ES3
+	A few links here to clipping in shader es 2:
+	http://stackoverflow.com/questions/7408855/clipping-planes-in-opengl-es-2-0
+	https://www.opengl.org/discussion_boards/showthread.php/171914-How-to-activate-clip-planes-via-shader
+
+	Implementation Suggestions:
+	A. render_hier plubming
+	11.2.4.4 > scoping of clipplanes > 
+	- their transform siblings are affected and children below
+		- (dug9: maybe it could/should have been a grouping node, with its own children, like collision?)
+		- to implement, you would use a stack, and push going down, pop coming back
+		- need to flag parent like other sibling-affectors - see OpenGL_UTils.c VF_Sensitive
+		- in render_node(node) on render_geom pass (doesn't make sense on any other pass?)
+			-on prep-side of children, test for VF_ClipPlane on parent, go through children to find ClipPlane, push clipplane
+			if node & VF_ClipPlane
+				ifound = push_child_clipplane(node);
+				if( ifound) pushed_clipplane = TRUE;
+			-on fin side of children, if pushed_clipplane pop_child_clipplane
+	B. shader plumbing
+			https://www.opengl.org/discussion_boards/showthread.php/171914-How-to-activate-clip-planes-via-shader
+			in shader:
+			uniform vec4 ClipPlane[MaxClipPlanes];
+			...
+			for ( int i=0; i<MaxClipPlanes; i++ )
+			{
+			   gl_ClipDistance[i] = dot( ClipPlane[i], vec4(MCvertex,1.0));
+			}
+*/
+float *getTransformedClipPlanes(){
+	#define tactic_one_shot 1
+	#define tactic_point_plus_normal 2
+	int i,nsend, tactic;
+	double modelviewmatrix[16], meinv[16], u2me[16], me2u[16], me2ut[16], u2met[16],  *M, *MIT;
+	ppComponent_Rendering p = (ppComponent_Rendering)gglobal()->Component_Rendering.prv;
+
+	nsend =  min(FW_MAXCLIPPLANES,vectorSize(p->clipplane_stack));
+	//Q. how transform a plane by a matrix?
+	//option 1: 4x4 * 4x1
+	//https://www.opengl.org/discussion_boards/showthread.php/159564-Clever-way-to-transform-plane-by-matrix
+	//tactic = tactic_one_shot; //works
+	//option 2: convert abcd plane into normal + 3d point, transform point and normal, then convert back to abcd
+	//http://stackoverflow.com/questions/7685495/transforming-a-3d-plane-by-4x4-matrix
+	tactic = tactic_point_plus_normal; //works
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewmatrix);
+	matinverseAFFINE(meinv,modelviewmatrix);
+
+	for(i=0;i<nsend;i++){
+		//we take from the top-most end of the stack, in case more than MAX, using vectorget
+		int j;
+		struct X3D_ClipPlane *cplane;
+		double dplane[4],dplane2[4];
+		usehit uhit;
+		uhit = vector_get(usehit,p->clipplane_stack,i);
+		cplane = (struct X3D_ClipPlane *)uhit.node;
+		matmultiplyAFFINE(u2me,uhit.mvm,meinv);
+		mattranspose(u2met,u2me);
+		matinverseAFFINE(me2u,u2me);
+		mattranspose(me2ut,me2u);
+		M = u2me;    //matrix, for transforming point
+		MIT = me2ut;  //matrix inverse transpose, for transforming normal
+
+		for(j=0;j<4;j++) dplane[j] = cplane->plane.c[j]; //float to double
+		if(tactic == tactic_one_shot){
+			//works
+			transformFULL4d(dplane2,dplane,MIT);
+		}
+		else 
+		{
+			//tactic_point_plus_normal - works
+			//vector4 O = (xyz * d, 1)
+			double O4[4], N4[4], d;
+			vecscaled(O4,dplane,-dplane[3]);
+			O4[3] = 1.0;
+			//vector4 N = (xyz, 0)
+			veccopyd(N4,dplane);
+			N4[3] = 0.0;
+			//O = M * O
+			transformAFFINEd(O4,O4,M);
+			//N = transpose(invert(M)) * N
+			transformAFFINEd(N4,N4,MIT);
+			//xyz = N.xyz
+			veccopyd(dplane2,N4);
+			//d = dot(O.xyz, N.xyz)	
+			d = vecdotd(O4,N4);
+			dplane2[3] = -d;
+		}
+		for(j=0;j<4;j++) p->clipplanes[i*4 + j] = (float) dplane2[j]; //double to float
+	}
+	return p->clipplanes;
+}
+int getClipPlaneCount(){
+	int nsend;
+	ppComponent_Rendering p = (ppComponent_Rendering)gglobal()->Component_Rendering.prv;
+	nsend =  min(FW_MAXCLIPPLANES,vectorSize(p->clipplane_stack));
+	return nsend;
+}
+void pushShaderFlags(shaderflagsstruct flags);
+void popShaderFlags();
+
+void sib_prep_ClipPlane(struct X3D_Node *parent, struct X3D_Node *sibAffector){
+	//search for child clipplane
+	//if found and enabled
+	if(sibAffector && sibAffector->_nodeType == NODE_ClipPlane){
+		//	 push on stack like push_sensor() 
+		struct X3D_ClipPlane * cplane = (struct X3D_ClipPlane*)sibAffector;
+		if(cplane->enabled == TRUE){
+			//unsigned int shaderflags;
+			shaderflagsstruct shaderflags;
+			double modelviewmatrix[16];
+			usehit uhit;
+			ppComponent_Rendering p = (ppComponent_Rendering)gglobal()->Component_Rendering.prv;
+
+			shaderflags = getShaderFlags();
+			shaderflags.base |= CLIPPLANE_SHADER;
+			pushShaderFlags(shaderflags);
+			
+			//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html#ClipPlanes
+			//we'll snapshot the modelview matrix and push with clipplane node onto stack, 
+			//for use when applying in leaf shape node
+			uhit.node = X3D_NODE(cplane); //x3dnode clipplane
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewmatrix);
+			memcpy(uhit.mvm,modelviewmatrix,16*sizeof(double)); //deep copy
+			stack_push(usehit,p->clipplane_stack,uhit); //fat elements do another deep copy
+
+			//jplane = vectorSize(p->clipplane_stack) -1;
+			//if(jplane < FW_MAXCLIPPLANES){
+			//	memcpy(&p->clipplanes[jplane*4],cplane->plane.c,4*sizeof(float));
+			//}
+
+			//	somehow add to end of list of clipplanes available to shader (but how precisely?)
+			//  	https://www.opengl.org/discussion_boards/showthread.php/171914-How-to-activate-clip-planes-via-shader
+			//		m_pProgram->SetUniform("ClipPlane[0]", vect, 4, 1);  
+			//		//except construct the name string: k = clipplanestac.n-1; "ClipPlane[%1d]",k
+			//		glEnable(GL_CLIP_DISTANCE0); //except DISTANCEk ?
+			//		might need: to set a flag indicating which shader to use?
+
+		}
+	}
+}
+void sib_fin_ClipPlane(struct X3D_Node *parent, struct X3D_Node *sibAffector){
+	//pop clipplane
+	if(sibAffector && sibAffector->_nodeType == NODE_ClipPlane){
+		struct X3D_ClipPlane * cplane = (struct X3D_ClipPlane*)sibAffector;
+		if(cplane->enabled == TRUE){
+			ppComponent_Rendering p = (ppComponent_Rendering)gglobal()->Component_Rendering.prv;
+			stack_pop(usehit,p->clipplane_stack);
+			popShaderFlags();
+		}
+	}
+}

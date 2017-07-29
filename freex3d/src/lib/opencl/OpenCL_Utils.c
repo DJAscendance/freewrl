@@ -197,44 +197,6 @@ static bool initialize_OpenCL() {
 
 	// get the device id
 
-#if defined (TARGET_AQUA)
-    {
-        printf ("testing...\n");
-        cl_uint num_devices, i;
-        clGetDeviceIDs (NULL, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
-        cl_device_id *devices = calloc(sizeof(cl_device_id), num_devices);
-        clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, num_devices, devices, NULL);
-        char buf[128];
-        for (i=0; i<num_devices; i++) {
-            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 128, buf, NULL);
-            printf ("Device %s supports ",buf);
-            clGetDeviceInfo(devices[i],CL_DEVICE_VERSION, 128, buf, NULL);
-            printf ("%s\n",buf);
-        }
-        free (devices);
-    }
-	CGLContextObj kCGLContext = CGLGetCurrentContext();
-	CGLShareGroupObj kCGLShareGroup = CGLGetShareGroup(kCGLContext);
-	cl_context_properties properties[] = {
-		CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)kCGLShareGroup, 0 };
-
-	err = clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, 1, &p->CL_device_id, NULL);
-    {
-        char buf[128];
-        clGetDeviceInfo(p->CL_device_id, CL_DEVICE_NAME, 128, buf, NULL);
-        printf ("Device %s supports ",buf);
-        clGetDeviceInfo(p->CL_device_id,CL_DEVICE_VERSION, 128, buf, NULL);
-        printf ("%s\n",buf);
-
-    }
-	if (err != CL_SUCCESS) {
-		printCLError("clGetDeviceIDs",err);
-		return FALSE;
-	}
-
-	p->CL_context =clCreateContext(properties,0,0,clLogMessagesToStderrAPPLE,0,&err);
-#endif // TARGET_AQUA
-
 #if defined (_MSC_VER)
 
 	if(1)
@@ -259,11 +221,18 @@ static bool initialize_OpenCL() {
 #endif // _MSC_VER
 
 /* is this Linux? */
-//#if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID)) 
 #if defined (__linux__)
 
-	cl_platform_id platforms[10];
+	#define MAX_OPENCL_PLATFORMS 10
+	#define MAX_OPENCL_DEVICES 32
+	cl_platform_id platforms[MAX_OPENCL_PLATFORMS];
+	cl_device_id devices[MAX_OPENCL_DEVICES];
 	cl_uint numPlats;
+	cl_uint numDevs;
+
+	// we may have OpenCL, but maybe we dont have cl_khr_gl_sharing, so look for it
+	int selectedPlatform = -1;
+	int selectedDevice = -1;
 
 	// printf ("have linux uere\n");
 	// printf ("OpenCL - before clGetPlatformIDs\n");
@@ -272,12 +241,22 @@ static bool initialize_OpenCL() {
 	TEST_ERR("clGetPlatformIDs",err);
 
 	//printf ("looking for up to 10 platforms, got %d\n",numPlats);
+	if (numPlats <1) {
+		printf ("OpenCL init - numPlats is %d, OpenCL device not found\n",numPlats);
+		return FALSE;
+	}
+
+	// bounds check
+	if (numPlats >= MAX_OPENCL_PLATFORMS) {
+		printf ("OpenCL init - numPlats is %d, setting to %d\n",numPlats,MAX_OPENCL_PLATFORMS);
+		numPlats = MAX_OPENCL_PLATFORMS;
+	}
 	
-/* not sure what platform to choose, if more than 1...
+	/* not sure what platform to choose, if more than 1...
 	{
 		int i;
 
-printf ("printing out the platform names:\n");
+		//printf ("printing out the platform names:\n");
 		for (i=0; i<numPlats; i++) {
 			char platname[500];
                         cl_int err = clGetPlatformInfo(platforms[i],CL_PLATFORM_NAME,sizeof(platname),platname,NULL);
@@ -290,24 +269,69 @@ printf ("printing out the platform names:\n");
 
 	//printf ("now, trying to get the device IDS\n");
 
-	err = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 1, &p->CL_device_id, NULL);
 
 
-	//printf ("done the clGetDeviceIDS call\n");
 
-	if (err != CL_SUCCESS) {
-		printCLError("clGetDeviceIDs",err);
-		return FALSE;
-	} else {
-		printf ("Linux, have device id...\n");
+	{
+		int i,j;
+		printf ("printing out the device names for each platform found\n");
+		for (i=0; i<numPlats; i++) {
+			err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, MAX_OPENCL_DEVICES, devices, &numDevs);
+			printf ("done the clGetDeviceIDS call for platform %d - devices %d\n",i,numDevs);
+			
+/* XXX */
+			for (j=0; j<numDevs; j++) {
+				char crv[1000];
+				size_t crvs;
+
+				/*
+				err = clGetDeviceInfo(devices[j],CL_DEVICE_NAME,1000,crv,&crvs); 
+				printf ("NAME for %d is %s\n",j,crv);
+				err = clGetDeviceInfo(devices[j],CL_DEVICE_VENDOR,1000,crv,&crvs); 
+				printf ("VENDOR for %d is %s\n",j,crv);
+				err = clGetDeviceInfo(devices[j],CL_DEVICE_PROFILE,1000,crv,&crvs); 
+				printf ("PROFILE for %d is %s\n",j,crv);
+				*/
+
+				err = clGetDeviceInfo(devices[j],CL_DEVICE_EXTENSIONS,1000,crv,&crvs); 
+				if (err != CL_SUCCESS) {
+					printCLError("clGetDeviceIDs",err);
+					return FALSE;
+				}
+				// printf ("EXTENSIONS for %d is %s\n",j,crv);
+				
+				if (strstr(crv,"cl_khr_gl_sharing") != NULL) {
+					printf ("**** Found cl_khr_gl_sharing ****\n");
+					selectedPlatform = i;
+					selectedDevice = j;
+					p->CL_device_id = devices[j];
+				}
+			}
+		}
 	}
+
+	//printf ("Linux, have device id...\n");
+	if ((selectedPlatform <0) || (selectedDevice<0)) {
+		printCLError("No good OpenCL device or platform found, error ",err);
+		return FALSE;
+	}
+
+	// redo the calls, now that we have (the best?) match
+	if ((selectedPlatform != 0) && (selectedDevice != 0)) {
+	//printf ("regetting platform %d and device %d\n",selectedPlatform, selectedDevice);
+	err = clGetDeviceIDs(platforms[selectedPlatform], CL_DEVICE_TYPE_GPU, MAX_OPENCL_DEVICES, devices, &numDevs);
+	}
+
+	// now save the device id
+	p->CL_device_id = devices[selectedDevice];
+
 
 	// printf ("\n.....now doing the context sharing getting.....\n\n");
 
 	cl_context_properties properties[] = {
 		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
 		CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
-		CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[0],
+		CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[selectedPlatform],
 		0 };
 
 // function pointer typedefs must use the
@@ -323,32 +347,32 @@ typedef CL_API_ENTRY cl_int
 clGetGLContextInfoKHR_fn clGetGLContextInfoKHR = NULL;
 
 #ifdef CL_VERSION_1_2
-clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(platforms[0],"clGetGLContextInfoKHR");
+clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(platforms[selectedPlatform],"clGetGLContextInfoKHR");
 #else
 #ifdef CL_VERSION_1_1
 clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddress("clGetGLContextInfoKHR");
 #endif
 #endif
 	// find CL capable devices in the current GL context
-	cl_device_id devices[32]; size_t size;
+	size_t size;
 	err = clGetGLContextInfoKHR(properties, CL_DEVICES_FOR_GL_CONTEXT_KHR,
-		32*sizeof(cl_device_id), devices, &size);
+		MAX_OPENCL_DEVICES*sizeof(cl_device_id), devices, &size);
 
 	TEST_ERR("clGetGLContextInfoKHR",err);
 
-	// printf ("clGetGLContextInfoKHR returns size of %d\n",size);
+	printf ("clGetGLContextInfoKHR returns size of %d\n",size);
 
-	// printf ("going to clCreateContextFromType:\n");
-	// printf ("just so we know, p is %p\n",p);
-	// printf ("just so we know, p->CL_context is %p\n",p->CL_context);
+	//printf ("going to clCreateContextFromType:\n");
+	//printf ("just so we know, p is %p\n",p);
+	//printf ("just so we know, p->CL_context is %p\n",p->CL_context);
 
 	p->CL_context=clCreateContextFromType(properties, CL_DEVICE_TYPE_GPU, NULL, NULL, &err);
 
-	// printf ("done the createContextFromType, it is %p\n",p->CL_context);
+	//printf ("done the createContextFromType, it is %p\n",p->CL_context);
 
 	TEST_ERR("clCreateContextFromType",err);
 
-#endif
+#endif // linux
 
 /* how about Android (and maybe IPHONE) using OpenCL-ES 2.0? */
 #ifdef GL_ES_VERSION_2_0
@@ -391,7 +415,7 @@ clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddress(
 	TEST_ERR("clCreateContextFromType",err);
 */
 
-	p->CL_context=clCreateContextFromType(NULL, CL_DEVICE_TYPE_GPU, NULL, NULL, &err);
+	p->CL_context=clCreateContextFromType(NULL, CL_DEVICE_TYPE_ANY, NULL, NULL, &err);
 	TEST_ERR("clCreateContextFromType",err);
 
 	printf ("remember - building currently without the CL_KHR_gl_sharing enabled - the clCreateFromGLBuffer will error out, so return code removed.");
@@ -424,7 +448,6 @@ clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddress(
 	printf ("CL_DEVICE_MAX_WORK_GROUP_SIZE %d\n",wg_size);
 
 	// debugging information
-#ifndef AQUA
 	rv = clGetPlatformInfo(platforms[0],CL_PLATFORM_PROFILE,1000,rvstring,&rvlen);
 	printf ("CL_PLATFORM_PROFILE :%s:\n",rvstring);
 	rv = clGetPlatformInfo(platforms[0],CL_PLATFORM_VERSION,1000,rvstring,&rvlen);
@@ -435,7 +458,6 @@ clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddress(
 	printf ("CL_PLATFORM_VENDOR :%s:\n",rvstring);
 	rv = clGetPlatformInfo(platforms[0],CL_PLATFORM_EXTENSIONS,1000,rvstring,&rvlen);
 	printf ("CL_PLATFORM_EXTENSIONS :%s:\n",rvstring);
-#endif
 
 	rv = clGetDeviceInfo (p->CL_device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(size_t), &xyz, &rvlen);
 	printf ("CL_DEVICE_MAX_COMPUTE_UNITS %d\n",xyz);
@@ -1052,22 +1074,11 @@ static const char* interpolator_headers = " \
 ";
 #else
 
-#if defined (TARGET_AQUA)
-static const char* interpolator_headers = " \
-//#pragma OPENCL EXTENSION cl_khr_fp64 : enable \n\
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable \n\
-#pragma OPENCL EXTENSION CL_APPLE_gl_sharing : enable \n\
-#pragma OPENCL EXTENSION CL_KHR_gl_sharing : enable \n\
-#pragma OPENCL EXTENSION cl_khr_select_fprounding_mode : enable \n\
-";
-#else
-
 // this seems to be ok on AMD drivers under Linux
 static const char* interpolator_headers = " \
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable \n\
 //#pragma OPENCL EXTENSION cl_khr_gl_sharing : enable \n\
 ";
-#endif // AQUA
 
 #endif
 
