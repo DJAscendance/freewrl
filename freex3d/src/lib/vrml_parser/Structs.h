@@ -2295,6 +2295,7 @@ extern const int X3DSPECIAL_COUNT;
 #define X3DSP_fieldValue	15
 #define X3DSP_head	16
 #define X3DSP_meta	17
+#define X3DSP_unit	18
 
 const char *stringX3DSPECIALType(int st);
 

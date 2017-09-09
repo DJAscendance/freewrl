@@ -993,6 +993,21 @@ static void parseMeta(char **atts) {
 		/* printf("parseMeta field:%s=%s\n", atts[i], atts[i + 1]); */
 	}
 }
+static void parseUnit(char **atts) {
+	double conversionFactor = 1.0;
+	char *name, *category;
+	name = category = NULL;
+	int i;
+	for (i = 0; atts[i]; i += 2){
+		if(!strcmp(atts[i],"name"))
+			name = atts[i+1];
+		if(!strcmp(atts[i],"category"))
+			category = atts[i+1];
+		if(!strcmp(atts[i],"conversionFactor"))
+			sscanf(atts[i+1],"%lf",&conversionFactor);
+	}
+	handleUnitDataStringString(category, name, conversionFactor);
+}
 void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr);
 static void parseFieldValue_B(void *ud, char **atts) {
 	int i, type, kind, iifield, ok;
@@ -1963,7 +1978,8 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 			case X3DSP_connect: 
 				parseConnect_B(ud,myAtts);
 				break;
-
+			case X3DSP_unit:
+				parseUnit(myAtts); break;
 			default: printf ("	huh? startElement, X3DSPECIAL, but not handled?? %d, :%s:\n",myNodeIndex,X3DSPECIAL[myNodeIndex]);
 		}
 		return;
@@ -2033,6 +2049,7 @@ static void XMLCALL X3DendElement(void *ud, const xmlChar *iname) {
 			case X3DSP_component:
 			case X3DSP_EXPORT:
 			case X3DSP_IMPORT:
+			case X3DSP_unit:
 			case X3DSP_X3D: break;
 			case X3DSP_field:
 				endScriptProtoField_B(ud);

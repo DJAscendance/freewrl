@@ -1926,6 +1926,7 @@ const int MULTITEXTUREFUNCTION_COUNT = ARR_SIZE(MULTITEXTUREFUNCTION);
 	"fieldValue",
 	"head",
 	"meta",
+	"unit",
 };
 const int X3DSPECIAL_COUNT = ARR_SIZE(X3DSPECIAL);
 
