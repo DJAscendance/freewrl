@@ -548,7 +548,7 @@ int determineFileType(const char *buffer, const int len)
 		/* skip past the header; we will look for lines like: 
 		   <?xml version="1.0" encoding="UTF-8"?>
 		   <!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.0//EN"   "http://www.web3d.org/specifications/x3d-3.0.dtd">
-		   <X3D
+		   <X3D ... version='3.3' ...>
 		*/
 		rv++;
 		while (!foundStart) {
@@ -574,11 +574,12 @@ int determineFileType(const char *buffer, const int len)
 #endif //INCLUDE_NON_WEB3D_FORMATS
 
 	} else {
+		//.wrl
 		if (strncmp((const char*)buffer,"#VRML V2.0 utf8",15) == 0) {
 			inputFileVersion[0] = 2;
 			return IS_TYPE_VRML;
 		}
-
+		//.x3dv
 		if (strncmp ((const char*)buffer, "#X3D",4) == 0) {
 			inputFileVersion[0] = 3;
 			/* ok, have X3D here, what version? */
@@ -598,8 +599,9 @@ int determineFileType(const char *buffer, const int len)
 				inputFileVersion[1] = 3;
 				return IS_TYPE_VRML;
 			}
-			if (strncmp ((const char*)buffer,"#X3D V3.4 utf8",14) == 0) {
-				inputFileVersion[1] = 4;
+			if (strncmp ((const char*)buffer,"#X3D V4.0 utf8",14) == 0) {
+				inputFileVersion[0] = 4;
+				inputFileVersion[1] = 0;
 				return IS_TYPE_VRML;
 			}
 			/* if we fall off the end, we just assume X3D 3.0 */
