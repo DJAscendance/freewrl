@@ -585,6 +585,7 @@ int determineFileType(const char *buffer, const int len)
 			/* ok, have X3D here, what version? */
 
 			if (strncmp ((const char*)buffer,"#X3D V3.0 utf8",14) == 0) {
+				inputFileVersion[1] = 0;
 				return IS_TYPE_VRML;
 			}
 			if (strncmp ((const char*)buffer,"#X3D V3.1 utf8",14) == 0) {

@@ -4002,7 +4002,9 @@ struct X3D_Proto *brotoInstance(struct X3D_Proto* proto, BOOL ideep)
 	struct X3D_Proto *p;
 	if(ideep){
 		int pflags;
+		pushInputResource(proto->_parentResource);
 		p = createNewX3DNode(NODE_Proto);
+		popInputResource();
 		//memcpy(p,proto,sizeof(struct X3D_Proto)); //dangerous, make sure you re-instance all pointer variables
 		p->__children.n = 0; //don't copy children in here - see below
 		p->__children.p = NULL;
@@ -5900,7 +5902,9 @@ void load_externProtoDeclare (struct X3D_Proto *node) {
 				/* printf ("load_Inline, we have type  %s  status %s\n",
 					resourceTypeToString(res->type), resourceStatusToString(res->status)); */
 				res->actions = resa_download | resa_load; //not resa_parse which we do below
+				pushInputResource(res);
 				libraryScene = createNewX3DNode0(NODE_Proto);
+				popInputResource();
 				res->ectx = (void*)libraryScene;
 				res->whereToPlaceData = X3D_NODE(libraryScene);
 				res->offsetFromWhereToPlaceData = offsetof (struct X3D_Proto, __children);
@@ -6012,6 +6016,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 							struct Vector *ei, *pi;
 							struct ProtoFieldDecl *ef, *pf;
 
+							pushInputResource(pinstance->_parentResource);
 							ed = node->__protoDef;
 							ei = ed->iface;
 							pd = pinstance->__protoDef;
@@ -6083,6 +6088,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 							nnode = X3D_NODE(pinstance);
                 			AddRemoveChildren(X3D_NODE(node), &node->__children, &nnode, 1, 1,__FILE__,__LINE__);
 							add_parent(X3D_NODE(pinstance),X3D_NODE(node),__FILE__,__LINE__);
+							popInputResource();
 						} //if (pinstance != NULL) 
 					}
 				}

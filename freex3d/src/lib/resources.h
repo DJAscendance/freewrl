@@ -186,6 +186,7 @@ typedef struct resource_item {
 	char four_first_bytes[4];
 
 	resource_media_type_t media_type;
+	int specVersion; //if its a .wrl, .x3d, .x3dv scene file, what version of web3d specs ie 200, 300, 310, 320, 330, 400
 	int treat_as_root; //bandaid for .x3z doc.x3d to be seen as root res equivalent
 	pthread_t *_loadThread; //pthread_t * used for async_loading in middleLayer ML
 	void *tg; //gglobal context
