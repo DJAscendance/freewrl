@@ -946,10 +946,11 @@ static void parseComponent(char **atts) {
 }
 
 /* parse the <X3D profile='Immersive' version='3.0' xm... line */
-static void parseX3Dhead(char **atts) {
+static void parseX3Dhead(void *ud, char **atts) {
 	int i;
 	int myProfile = -10000; /* something negative, not INT_ID_UNDEFINED... */
 	int versionIndex = INT_ID_UNDEFINED;
+	struct X3D_Proto* ec = (struct X3D_Proto*)getContext(ud,TOP);
 
 	for (i = 0; atts[i]; i += 2) {
 		/* printf("parseX3Dhead: field:%s=%s\n", atts[i], atts[i + 1]); */
@@ -972,6 +973,17 @@ static void parseX3Dhead(char **atts) {
 
 	if (versionIndex != INT_ID_UNDEFINED) {
 		handleVersion (atts[versionIndex]);
+		//already set to 300 in resources.c when file is initially identified as x3d
+		//we update here with more specific <X3D version='3.3.0'> version
+		if(ec->__loadResource ){
+			//an inline scene file would come in here
+			resource_item_t *res = (resource_item_t *)ec->__loadResource;
+			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+		} else if(ec->_parentResource){
+			//an extern proto scene file would come in here
+			resource_item_t *res = (resource_item_t *)ec->_parentResource;
+			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+		}
 	}
 }
 
@@ -992,6 +1004,23 @@ static void parseMeta(char **atts) {
 	for (i = 0; atts[i]; i += 2) {
 		/* printf("parseMeta field:%s=%s\n", atts[i], atts[i + 1]); */
 	}
+}
+static void parseUnit(void *ud, char **atts) {
+	double conversionFactor = 1.0;
+	char *name, *category;
+	struct X3D_Proto* ec = (struct X3D_Proto*)getContext(ud,TOP);
+
+	name = category = NULL;
+	int i;
+	for (i = 0; atts[i]; i += 2){
+		if(!strcmp(atts[i],"name"))
+			name = atts[i+1];
+		if(!strcmp(atts[i],"category"))
+			category = atts[i+1];
+		if(!strcmp(atts[i],"conversionFactor"))
+			sscanf(atts[i+1],"%lf",&conversionFactor);
+	}
+	handleUnitDataStringString(category, name, conversionFactor);
 }
 void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr);
 static void parseFieldValue_B(void *ud, char **atts) {
@@ -1945,7 +1974,7 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 			case X3DSP_Scene: parseScene(myAtts); break;
 			case X3DSP_head:
 			case X3DSP_Header: parseHeader(myAtts); break;
-			case X3DSP_X3D: parseX3Dhead(myAtts); break;
+			case X3DSP_X3D: parseX3Dhead(ud,myAtts); break;
 			case X3DSP_fieldValue:  
 				parseFieldValue_B(ud,myAtts);
 				break;
@@ -1963,7 +1992,8 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 			case X3DSP_connect: 
 				parseConnect_B(ud,myAtts);
 				break;
-
+			case X3DSP_unit:
+				parseUnit(ud,myAtts); break;
 			default: printf ("	huh? startElement, X3DSPECIAL, but not handled?? %d, :%s:\n",myNodeIndex,X3DSPECIAL[myNodeIndex]);
 		}
 		return;
@@ -2033,6 +2063,7 @@ static void XMLCALL X3DendElement(void *ud, const xmlChar *iname) {
 			case X3DSP_component:
 			case X3DSP_EXPORT:
 			case X3DSP_IMPORT:
+			case X3DSP_unit:
 			case X3DSP_X3D: break;
 			case X3DSP_field:
 				endScriptProtoField_B(ud);

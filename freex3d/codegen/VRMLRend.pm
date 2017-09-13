@@ -1205,6 +1205,7 @@ our %X3DSpecialC = map {($_=>1)} qw/
 	Header
 	head
 	meta
+	unit
 	ExternProtoDeclare
 	ProtoDeclare
 	ProtoInterface

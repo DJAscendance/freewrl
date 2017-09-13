@@ -95,6 +95,7 @@ resource_item_t *newResourceItem() {
 	item->parent = NULL;
 	item->actual_file = NULL;
 	item->cached_files = NULL;
+	item->specVersion = 0;
 	item->tg = gglobal();
 	return item;
 }
@@ -629,6 +630,8 @@ void resource_identify_type(resource_item_t *res)
 
                                 
 			res->media_type = resm_vrml;
+			//ie 200, 300, 301, 302, 303, 400 .. used in js currentScene.specificationVersion
+			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			break;
                 
 #if defined (INCLUDE_NON_WEB3D_FORMATS)
@@ -639,6 +642,8 @@ void resource_identify_type(resource_item_t *res)
                 
 		case IS_TYPE_XML_X3D:
 			res->media_type = resm_x3d;
+			//ie 200, 300, 301, 302, 303, 400 .. used in js currentScene.specificationVersion
+			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			break;
 		}
 		break;
@@ -1170,10 +1175,12 @@ bool resource_is_root_loaded()
 /* keep the last base resource around, for times when we are making nodes during runtime, eg
    textures in Background nodes */
 
+
 void pushInputResource(resource_item_t *url) 
 {
 	presources p = gglobal()->resources.prv;
 	DEBUG_MSG("pushInputResource current Resource is %s", url->parsed_request);
+	//printf("pushInputResource %s\n", url->parsed_request);
 
             
         
@@ -1200,6 +1207,7 @@ void popInputResource() {
 
 	/* lets just keep this one around, to see if it is really the bottom of the stack */
     DEBUG_MSG("popInputResource, stack size %d",vectorSize(p->resStack));
+    //printf("popInputResource, stack size %d\n",vectorSize(p->resStack));
     
 	cwu = stack_top(resource_item_t *, p->resStack);
 
@@ -1235,12 +1243,14 @@ resource_item_t *getInputResource()
 		} else {
 			DEBUG_MSG("so, returning %s\n",p->lastBaseResource->parsed_request);
 		}
+		//printf("getLastResource  %s\n",p->lastBaseResource->parsed_request);
 		return p->lastBaseResource;
 	}
 
 
 	cwu = stack_top(resource_item_t *, p->resStack);
 	DEBUG_MSG("getInputResource current Resource is %lu %lx %s\n", (unsigned long int) cwu, (unsigned long int) cwu, cwu->parsed_request);
+	//printf("getCurrentResource  %s\n",cwu->parsed_request);
 	return cwu;
 }
 

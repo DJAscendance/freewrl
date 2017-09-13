@@ -711,6 +711,7 @@ void load_Inline (struct X3D_Inline *node) {
 				if (res->status == ress_parsed) {
 					/* this might be a good place to populate parent context IMPORT table with our EXPORT nodes? */
 					node->__loadstatus = INLINE_IMPORTING; //INLINE_STABLE; 
+
 				} 
 			}
 

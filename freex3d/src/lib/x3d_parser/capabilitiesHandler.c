@@ -291,21 +291,30 @@ const char * unitcategories [] = {
 	"speed",
 	"volume",
 };
-//#define UNITCATEGORIES_COUNT 9
+#define UNITCATEGORIES_COUNT 9
 const char * unitnames [] = {
 	"radian",
 	"newton",
 	"metre",
 	"kilogram",
 };
-//#define UNITNAMES_COUNT 4
+#define UNITNAMES_COUNT 4
 void handleUnitDataStringString(char *categoryname, char *unitname, double conversionfactor) {
-	//int i1, i2;
-	//i1 = findFieldInARR(categoryname,unitcategories,UNITCATEGORIES_COUNT);
-	//i2 = findFieldInARR(unitname,unitnames,UNITNAMES_COUNT);
-	#ifdef CAPABILITIESVERBOSE
-	printf ("handleMetaDataStringString, :%s:, :%s:\n",val1->strptr, val2->strptr);
-	#endif
+	int i1, i2;
+	i1 = findFieldInARR(categoryname,unitcategories,UNITCATEGORIES_COUNT);
+	i2 = findFieldInARR(unitname,unitnames,UNITNAMES_COUNT);
+	//#ifdef CAPABILITIESVERBOSE
+	if(i1 && i2){
+	}else{
+		if(!i1){
+			//might need to add to non-builtin categories
+		}
+		if(!i2){
+			//might need to add to non-builtin units
+		}
+	}
+	printf ("handleUnitDataStringString, :%s:, :%s: :%lf:\n",categoryname,unitname,conversionfactor);
+	//#endif
 }
 
 void handleProfile (int myProfile) {
