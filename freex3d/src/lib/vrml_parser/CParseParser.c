@@ -1632,53 +1632,199 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 /* ************************************************************************** */
 /* Built-in fields */
 /* Parses a built-in field and sets it in node */
+enum {
+	UNCA_NONE = 0,
+	UNCA_LENGTH = 1,
+	UNCA_ANGLE,
+	UNCA_MASS,
+	UNCA_FORCE,
+};
+struct unca {
+	char *catname;
+	int iunca;
+} uncas [] = {
+	{"length", UNCA_LENGTH},
+	{"angle", UNCA_ANGLE},
+	{"mass", UNCA_MASS},
+	{"force", UNCA_FORCE},
+	{NULL,0},
+};
+struct unitfield {
+	int nodetype;
+	char *fieldname;
+	int iunca;
+} unitfields [] = {
+	{NODE_ArcClose2D,"startAngle",UNCA_ANGLE},
+	{NODE_ArcClose2D,"endAngle",UNCA_ANGLE},
+	{NODE_Transform,"rotation",UNCA_ANGLE},
+	{0,NULL,0},
+};
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+int lookup_unitfields(int nodetype, char *fieldname){
+	int i;
+	int retval;
+	struct unitfield *lm;
+	i = 0;
+	retval = UNCA_NONE;
+	do{
+		lm = &unitfields[i];
+		if(nodetype == lm->nodetype && !strcasecmp(lm->fieldname,fieldname)){
+			retval = lm->iunca;
+			break;
+		}
+		i++;
+	}while(unitfields[i].fieldname);
+	return retval;
+}
+/*	2 kinds of units
+	#1 - length - this is applied as a relative scale between scenefile-contexts, 
+		is applied as a transform during rendering, and needs a stack
+	#2 - the others: mass, angle, force - converted to SI / standard units at parse time
+		separately for each scene file, and can use static variables wrapping the parsing
+		of each scenefile
+
+*/
+static int isunits2 = 0;  //#2 the others, parse-time 
+int isUnits2(){
+	return isunits2;
+}
+void setUnits2(int isOn){
+	isunits2 = isOn;
+}
+static int nunits2 = 0;
+static Stack * units2vec = NULL;
+void zeroUnits2(){
+	isunits2 = 0;
+	nunits2 = 0;
+	if(units2vec) units2vec->n = 0;
+}
+struct units2 {
+	char category[20];
+	int iunca;
+	char unit[20];
+	double factor;
+};
+void addUnits2(char *category, char *unit, double factor){
+	struct units2 u2;
+	struct unca *uc;
+	int iuc, iunca;
+
+	if(!units2vec){
+		units2vec = newVector(struct units2,20);
+	}
+	strncpy(u2.category,category,min(19,strlen(category)));
+	strncpy(u2.unit,unit,min(19,strlen(unit)));
+	u2.factor = factor;
+	iuc = 0;
+	iunca = 0;
+	uc = &uncas[iuc];
+	do {
+		if(!strcasecmp(uc->catname,category)){
+			iunca = uc->iunca;
+			break;
+		}
+		iuc++;
+		uc = &uncas[iuc];
+	}while(uc->catname);
+	u2.iunca = iunca;
+	vector_pushBack(struct units2,units2vec,u2);
+}
+void sfunitf(int nodetype,char *fieldname, float *var, int n) {
+	if(isUnits2()){
+		int iunca = lookup_unitfields(nodetype, fieldname);
+		if(iunca){
+			struct units2 u2;
+			for(int i=0;i<vectorSize(units2vec);i++){
+				u2 = vector_get(struct units2,units2vec,i);
+				if(u2.iunca == iunca){
+					//check if we need to convert units on this node->field
+					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
+					//if(*var == 90.0f) *var = 1.5708;
+					*var *= u2.factor;
+					break;
+				}
+			}
+		}
+	}
+}
+void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n){
+	if(isUnits2()){
+		//check if we need to convert units on this node->field
+		//for(int i=0;i<n;i++){
+		//	var[i].c[3] *= rotationFactor;
+		//}
+		int iunca = lookup_unitfields(nodetype, fieldname);
+		if(iunca){
+			struct units2 u2;
+			for(int i=0;i<vectorSize(units2vec);i++){
+				u2 = vector_get(struct units2,units2vec,i);
+				if(u2.iunca == iunca){
+					//check if we need to convert units on this node->field
+					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
+					//if(*var == 90.0f) *var = 1.5708;
+					for(int k=0;k<n;i++){
+						var[k].c[3] *= u2.factor;
+					}
+					break;
+				}
+			}
+		}
+
+	}
+}
+void sfunitd(int nodeType,char *fieldname, double *var, int n) {
+	if(isUnits2()){
+	}
+}
 
 
 /* The init codes used. */
-#define INIT_CODE_sfnode(var) \
+#define INIT_CODE_sfnode(var,fieldname) \
   ADD_PARENT(node2->var, X3D_NODE(node2));
-#define INIT_CODE_mfnode(var) \
+#define INIT_CODE_mfnode(var,fieldname) \
   mfnode_add_parent(&node2->var, X3D_NODE(node2));
-#define INIT_CODE_sfbool(var)
-#define INIT_CODE_sfcolor(var)
-#define INIT_CODE_sfcolorrgba(var)
-#define INIT_CODE_sffloat(var)
-#define INIT_CODE_sfimage(var)
-#define INIT_CODE_sfint32(var)
-#define INIT_CODE_sfrotation(var)
-#define INIT_CODE_sfstring(var)
-#define INIT_CODE_sftime(var)
-#define INIT_CODE_sfvec2f(var)
-#define INIT_CODE_sfvec3f(var)
-#define INIT_CODE_sfvec3d(var)
-#define INIT_CODE_mfbool(var)
-#define INIT_CODE_mfcolor(var)
-#define INIT_CODE_mfcolorrgba(var)
-#define INIT_CODE_mffloat(var)
-#define INIT_CODE_mfint32(var)
-#define INIT_CODE_mfrotation(var)
-#define INIT_CODE_mfstring(var)
-#define INIT_CODE_mftime(var)
-#define INIT_CODE_mfvec2f(var)
-#define INIT_CODE_mfvec3f(var)
-#define INIT_CODE_mfvec3d(var)
-#define INIT_CODE_sfdouble(var)
-#define INIT_CODE_mfdouble(var)
-#define INIT_CODE_sfvec4d(var)
-#define INIT_CODE_mfmatrix3f(var)
-#define INIT_CODE_mfmatrix4f(var)
+#define INIT_CODE_sfbool(var,fieldname)
+#define INIT_CODE_sfcolor(var,fieldname)
+#define INIT_CODE_sfcolorrgba(var,fieldname)
+#define INIT_CODE_sffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname, (float*)&node2->var, 1);
+#define INIT_CODE_sfimage(var,fieldname)
+#define INIT_CODE_sfint32(var,fieldname)
+#define INIT_CODE_sfrotation(var,fieldname) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1);
+#define INIT_CODE_sfstring(var,fieldname)
+#define INIT_CODE_sftime(var,fieldname)
+#define INIT_CODE_sfvec2f(var,fieldname)
+#define INIT_CODE_sfvec3f(var,fieldname)
+#define INIT_CODE_sfvec3d(var,fieldname)
+#define INIT_CODE_mfbool(var,fieldname)
+#define INIT_CODE_mfcolor(var,fieldname)
+#define INIT_CODE_mfcolorrgba(var,fieldname)
+#define INIT_CODE_mffloat(var,fieldname)
+#define INIT_CODE_mfint32(var,fieldname)
+#define INIT_CODE_mfrotation(var,fieldname) mfunitrotation(node2->_nodeType,fieldname, node2->var.p, node2->var.n);
+#define INIT_CODE_mfstring(var,fieldname)
+#define INIT_CODE_mftime(var,fieldname)
+#define INIT_CODE_mfvec2f(var,fieldname)
+#define INIT_CODE_mfvec3f(var,fieldname)
+#define INIT_CODE_mfvec3d(var,fieldname)
+#define INIT_CODE_sfdouble(var,fieldname)
+#define INIT_CODE_mfdouble(var,fieldname)
+#define INIT_CODE_sfvec4d(var,fieldname)
+#define INIT_CODE_mfmatrix3f(var,fieldname)
+#define INIT_CODE_mfmatrix4f(var,fieldname)
 
-#define INIT_CODE_mfmatrix3d(var)
-#define INIT_CODE_mfmatrix4d(var)
-#define INIT_CODE_mfvec2d(var)
-#define INIT_CODE_mfvec4d(var)
-#define INIT_CODE_mfvec4f(var)
-#define INIT_CODE_sfmatrix3d(var)
-#define INIT_CODE_sfmatrix3f(var)
-#define INIT_CODE_sfmatrix4d(var)
-#define INIT_CODE_sfmatrix4f(var)
-#define INIT_CODE_sfvec2d(var)
-#define INIT_CODE_sfvec4f(var)
+#define INIT_CODE_mfmatrix3d(var,fieldname)
+#define INIT_CODE_mfmatrix4d(var,fieldname)
+#define INIT_CODE_mfvec2d(var,fieldname)
+#define INIT_CODE_mfvec4d(var,fieldname)
+#define INIT_CODE_mfvec4f(var,fieldname)
+#define INIT_CODE_sfmatrix3d(var,fieldname)
+#define INIT_CODE_sfmatrix3f(var,fieldname)
+#define INIT_CODE_sfmatrix4d(var,fieldname)
+#define INIT_CODE_sfmatrix4f(var,fieldname)
+#define INIT_CODE_sfvec2d(var,fieldname)
+#define INIT_CODE_sfvec4f(var,fieldname)
 
 /* Parses a fieldvalue for a built-in field and sets it in node */
 static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
@@ -1778,7 +1924,7 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
     X3D_NODE(node2), (int) offsetof(struct X3D_##node, var), \
     FTIND_##fieldType, fe, FALSE, NULL, NULL)) {\
         PARSE_ERROR("Expected " #fieldType " Value for a fieldtype!") }\
-	INIT_CODE_##fieldType(var) \
+	INIT_CODE_##fieldType(var,#field) \
    return TRUE;
  
    //INIT_CODE_##fieldType(var) \  we're doing this add_parent during instancing as of feb 2013

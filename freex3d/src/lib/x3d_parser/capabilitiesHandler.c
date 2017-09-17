@@ -280,10 +280,15 @@ void handleMetaDataStringString(struct Uni_String *val1, struct Uni_String *val2
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
 // http://www.web3d.org/documents/specifications/19776-2/V3.3/Part02/grammar.html#General
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/concepts.html#t-Standardunits
-const char * unitcategories [] = {
+void setUnits2(int isOn);
+void addUnits2(char *category, char *unit, double factor);
+const char * unitcategories1 [] = {
+	"length",
+};
+#define UNITCATEGORIES1_COUNT 1
+const char * unitcategories2 [] = {
 	"angle",
 	"force",
-	"length",
 	"mass",
 	"acceleration",
 	"angular_rate",
@@ -291,7 +296,7 @@ const char * unitcategories [] = {
 	"speed",
 	"volume",
 };
-#define UNITCATEGORIES_COUNT 9
+#define UNITCATEGORIES2_COUNT 8
 const char * unitnames [] = {
 	"radian",
 	"newton",
@@ -300,18 +305,14 @@ const char * unitnames [] = {
 };
 #define UNITNAMES_COUNT 4
 void handleUnitDataStringString(char *categoryname, char *unitname, double conversionfactor) {
-	int i1, i2;
-	i1 = findFieldInARR(categoryname,unitcategories,UNITCATEGORIES_COUNT);
-	i2 = findFieldInARR(unitname,unitnames,UNITNAMES_COUNT);
+	int i1, i2, i3;
+	i1 = findFieldInARR(categoryname,unitcategories1,UNITCATEGORIES1_COUNT);
+	i2 = findFieldInARR(categoryname,unitcategories2,UNITCATEGORIES2_COUNT);
+	i3 = findFieldInARR(unitname,unitnames,UNITNAMES_COUNT);
 	//#ifdef CAPABILITIESVERBOSE
-	if(i1 && i2){
-	}else{
-		if(!i1){
-			//might need to add to non-builtin categories
-		}
-		if(!i2){
-			//might need to add to non-builtin units
-		}
+	if(i2 > -1){
+		setUnits2(TRUE);
+		addUnits2(categoryname,unitname,conversionfactor);
 	}
 	printf ("handleUnitDataStringString, :%s:, :%s: :%lf:\n",categoryname,unitname,conversionfactor);
 	//#endif

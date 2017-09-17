@@ -565,8 +565,8 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 	struct X3D_Node* newnodef, *newnodet; 
 	int source, type, kind, ifield;
 	union anyVrml *value;
-
 	int changed = 0;
+
 	newnodef = route->from.node;
 	newnodet = route->to.node;
 	if(route->from.weak){

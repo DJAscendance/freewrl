@@ -652,6 +652,7 @@ void dump_parser_wait_queue()
 }
 
 void post_parse_set_activeLayer(); //Component_Layering.c
+void zeroUnits2(); //UNITS keyword parse-time processing
 /**
  *   parser_process_res_VRML_X3D: this is the final parser (loader) stage, then call the real parser.
  */
@@ -700,8 +701,10 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
             fromEAI_SAI = TRUE;
         }
 
-	if (!fromEAI_SAI)
+	if (!fromEAI_SAI){
 		pushInputResource(res);
+		zeroUnits2();
+	}
 
 	ectx = res->ectx;
 	/* OK Boyz - here we go... if this if from the EAI, just parse it, as it will be a simple string */
@@ -1010,8 +1013,10 @@ OLDCODE			*/
 	}
 
 	/* remove this resource from the stack */
-	if (!fromEAI_SAI)
+	if (!fromEAI_SAI){
 		popInputResource();
+		zeroUnits2();
+	}
 
 	//printf ("exiting praser_process_res_VRML_X3D\n");
 

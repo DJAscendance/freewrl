@@ -1409,6 +1409,10 @@ static xmlChar* fixAmp(const unsigned char *InFieldValue)
 	}
 	return (xmlChar *)fieldValue;
 }
+int isUnits();
+void sfunitf(int nodeType,char *fieldname, float *var, int n);
+void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n);
+void sfunitd(int nodeType,char *fieldname, double *var, int n);
 static void parseAttributes_B(void *ud, char **atts) {
 	int i, type, kind, iifield;
 	struct X3D_Node *node;
@@ -1425,6 +1429,22 @@ static void parseAttributes_B(void *ud, char **atts) {
 			if(getFieldFromNodeAndName(node,name,&type,&kind,&iifield,&value)){
 				deleteMallocedFieldValue(type,value);
 				Parser_scanStringValueToMem_B(value, type,svalue, TRUE);
+				switch(type){
+					case FIELDTYPE_SFRotation:
+						sfunitf(node->_nodeType,name,&value->sfrotation.c[3],1);
+						break;
+					case FIELDTYPE_SFFloat:
+						sfunitf(node->_nodeType,name,&value->sffloat,1);
+						break;
+					case FIELDTYPE_MFRotation:
+						mfunitrotation(node->_nodeType,name,value->mfrotation.p,value->mfrotation.n);
+						break;
+					case FIELDTYPE_SFDouble:
+						sfunitd(node->_nodeType,name,&value->sfdouble,1);
+						break;
+					default:
+						break;
+				}
 			}
 		}
 		if(!strcmp(name,"side")){
