@@ -280,9 +280,9 @@ void handleMetaDataStringString(struct Uni_String *val1, struct Uni_String *val2
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
 // http://www.web3d.org/documents/specifications/19776-2/V3.3/Part02/grammar.html#General
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/concepts.html#t-Standardunits
-void addUnits(char *category, char *unit, double factor);
-void handleUnitDataStringString(char *categoryname, char *unitname, double conversionfactor) {
-	addUnits(categoryname,unitname,conversionfactor);
+void addUnits(void *ec, char *category, char *unit, double factor);
+void handleUnitDataStringString(void *ec, char *categoryname, char *unitname, double conversionfactor) {
+	addUnits(ec, categoryname,unitname,conversionfactor);
 	//printf ("handleUnitDataStringString, :%s:, :%s: :%lf:\n",categoryname,unitname,conversionfactor);
 }
 

@@ -123,6 +123,7 @@ our %Nodes = (
 		__typename => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__oldload => ["SFBool", "FALSE", "initializeOnly", 0],
+		__unitlengthfactor => ["SFDouble", 1.0, "initializeOnly", 0],
 	],"X3DProtoInstance"),
 
 	"MetadataBoolean" => new VRML::NodeType("MetadataBoolean", [
@@ -253,6 +254,7 @@ our %Nodes = (
 		__typename => ["FreeWRLPTR", 0, "initializeOnly", 0],
 		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
 		__oldload => ["SFBool", "FALSE", "initializeOnly", 0],
+		__unitlengthfactor => ["SFDouble", 1.0, "initializeOnly", 0],
 		
 		
 		# load => ["SFBool", "TRUE","initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],

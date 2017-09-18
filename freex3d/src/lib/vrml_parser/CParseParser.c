@@ -1341,7 +1341,7 @@ static BOOL parser_unitStatement(struct VRMLParser* me) {
     }
 
     if ((categoryname != NULL) && (unitname != NULL) && (conversionfactor != 0.0)) { 
-	  handleUnitDataStringString(categoryname,unitname,conversionfactor); 
+	  handleUnitDataStringString(me->ectx,categoryname,unitname,conversionfactor); 
 	}
 
     /* cleanup */
@@ -1849,6 +1849,10 @@ int lookup_unitfields(int nodetype, char *fieldname){
 
 */
 static int isunits = 0;  //#2 the others, parse-time 
+static double unitlengthfactor = 1.0;
+double getunitlengthfactor(){
+	return unitlengthfactor;
+}
 int isUnits(){
 	return isunits;
 }
@@ -1859,6 +1863,7 @@ static Stack * units2vec = NULL;
 void zeroUnits(){
 	isunits = 0;
 	if(units2vec) units2vec->n = 0;
+	unitlengthfactor = 1.0;
 }
 
 struct unitsB {
@@ -1875,7 +1880,7 @@ enum {
 	LENGTHMETHOD_FULL,
 	LENGTHMETHOD_MINUSONE,
 };
-void addUnits(char *category, char *unit, double factor){
+void addUnits(void *ecx, char *category, char *unit, double factor){
 	struct unitsB u2;
 	struct unitsB *uptr, *u2length, *u2mass, *u2force, *u2angle;
 	struct unca *uc;
@@ -1905,10 +1910,13 @@ void addUnits(char *category, char *unit, double factor){
 				strncpy(&uptr->uname[0],unit,min(39,strlen(unit)+1));
 				uptr->factor = factor;
 				uptr->ichanged = TRUE;
-				//if(uptr->iunca != UNCA_LENGTH) 
-					setUnits(TRUE);
-				//else 
-				//	setUnits(TRUE);
+				if(uptr->iunca == UNCA_LENGTH) {
+					//for length units, we rescale during rendering
+					struct X3D_Proto *ec = (struct X3D_Proto*)ecx;
+					unitlengthfactor = factor;
+					ec->__unitlengthfactor = unitlengthfactor;
+				}
+				setUnits(TRUE);
 			}
 			break;
 		}
@@ -3571,6 +3579,7 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
 
     /* PROTO body */
     /* Make sure that the next oken is a '{'.  Skip over it. */
@@ -3727,6 +3736,7 @@ static BOOL parser_externbrotoStatement(struct VRMLParser* me)
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = (void *)STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
 
 	/* EXTERNPROTO url */
 	{
@@ -4448,6 +4458,7 @@ struct X3D_Proto *brotoInstance(struct X3D_Proto* proto, BOOL ideep)
 	//memcpy(p,proto,sizeof(struct X3D_Proto)); //dangerous, make sure you re-instance all pointer variables
 	p->__prototype = proto->__prototype;
 	p->_nodeType = proto->_nodeType;
+	p->__unitlengthfactor = proto->__unitlengthfactor;
 	p->_defaultContainer = proto->_defaultContainer;
 	p->_renderFlags = proto->_renderFlags;
 	pobj = proto->__protoDef;

@@ -490,6 +490,53 @@ void compile_Proto(struct X3D_Proto *node) {
 }
 
 
+//UNIT statement - applying unit scalefactor during rendering
+void prep_unitscale (struct X3D_Proto *ec) {
+
+	if(!renderstate()->render_vp) {
+		struct X3D_Proto *parent;
+		double factor = 1.0;
+		double parentfactor = 1.0;
+		parent = X3D_PROTO(ec->__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
+		if(parent)
+			parentfactor = parent->__unitlengthfactor;
+		FW_GL_PUSH_MATRIX();
+		// SCALE 
+		factor = ec->__unitlengthfactor;
+		factor = factor / parentfactor;
+		FW_GL_SCALE_D(factor,factor,factor);
+		//RECORD_DISTANCE
+	}
+}
+
+
+void fin_unitscale (struct X3D_Proto *ec) {
+
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	} 
+	/*
+	else {
+		//Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.
+		if((ec->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			struct X3D_Proto *parent;
+			double factor = 1.0;
+			double parentfactor = 1.0;
+			parent = X3D_PROTO(ec->__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
+			if(parent)
+				parentfactor = parent->__unitlengthfactor;
+			FW_GL_PUSH_MATRIX();
+			// SCALE 
+			factor = ec->__unitlengthfactor;
+			factor = parentfactor / factor;
+
+			FW_GL_SCALE_D(factor,factor,factor);
+		}
+	}
+	*/
+} 
+
+
 /* render the first node only unless scene (see component_networking.c child_inline for scene-similar*/
 void child_Proto (struct X3D_Proto *node) {
 	int nc;
@@ -516,7 +563,7 @@ printf ("\n");
 */
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 	//if(node->__loadstatus != LOAD_STABLE) return; #define LOAD_STABLE 10
-
+	prep_unitscale(node);
 
 #ifdef VERBOSE
 	 {
@@ -585,5 +632,6 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
+	fin_unitscale(node);
 }
+

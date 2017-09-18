@@ -1020,7 +1020,7 @@ static void parseUnit(void *ud, char **atts) {
 		if(!strcmp(atts[i],"conversionFactor"))
 			sscanf(atts[i+1],"%lf",&conversionFactor);
 	}
-	handleUnitDataStringString(category, name, conversionFactor);
+	handleUnitDataStringString(ec,category, name, conversionFactor);
 }
 void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr);
 static void parseFieldValue_B(void *ud, char **atts) {
@@ -1561,7 +1561,7 @@ static void parseProtoInterface (void *ud, char **atts) {
 	pushMode(ud,PARSING_PROTOINTERFACE);
 }
 void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char *value, int isXML);
-
+double getunitlengthfactor();
 static void parseExternProtoDeclare_B (void *ud, char **atts) {
 	/*	1.create a new proto but not registered node
 		2.get user type name from atts
@@ -1616,6 +1616,7 @@ static void parseExternProtoDeclare_B (void *ud, char **atts) {
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
 	if(containerfield){
 		int builtinField = findFieldInFIELDNAMES(containerfield);
 		if(builtinField > -1){
@@ -1686,6 +1687,7 @@ static void parseProtoDeclare_B (void *ud, char **atts) {
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
 	if(containerfield){
 		int builtinField = findFieldInFIELDNAMES(containerfield);
 		if(builtinField > -1){

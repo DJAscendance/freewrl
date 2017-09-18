@@ -208,6 +208,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__topTexture",
 	"__transparency",
 	"__typename",
+	"__unitlengthfactor",
 	"__vertArr",
 	"__vertIndx",
 	"__vertexCount",
@@ -5004,6 +5005,7 @@ const int OFFSETS_Inline[] = {
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_Inline, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES___subcontexts, (int) offsetof (struct X3D_Inline, __subcontexts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES___typename, (int) offsetof (struct X3D_Inline, __typename),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0,
+	(int) FIELDNAMES___unitlengthfactor, (int) offsetof (struct X3D_Inline, __unitlengthfactor),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_Inline, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_Inline, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_Inline, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -6273,6 +6275,7 @@ const int OFFSETS_Proto[] = {
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_Proto, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES___subcontexts, (int) offsetof (struct X3D_Proto, __subcontexts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES___typename, (int) offsetof (struct X3D_Proto, __typename),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0,
+	(int) FIELDNAMES___unitlengthfactor, (int) offsetof (struct X3D_Proto, __unitlengthfactor),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_Proto, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_Proto, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_Proto, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -10023,6 +10026,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
 			tmp2->__subcontexts = 0;
 			tmp2->__typename = 0;
+			tmp2->__unitlengthfactor = 1;
 			tmp2->_parentResource = getInputResource();
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
@@ -11686,6 +11690,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
 			tmp2->__subcontexts = 0;
 			tmp2->__typename = 0;
+			tmp2->__unitlengthfactor = 1;
 			tmp2->_parentResource = getInputResource();
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
