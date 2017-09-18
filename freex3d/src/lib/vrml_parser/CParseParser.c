@@ -1639,9 +1639,10 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 //   torque = force * length, ie kg * m**2 / s**2
 //   moment of inertia = mass * length**2, ie kg*m**2
 //	options: 
-//		a) add these 2 to a list, scene designer must specify factors explicitly
+//		a) add these 2 to a list, scene designer must/may specify factors explicitly
 //		b) automatically compute all derived units factors from base unit factors scene designer specifies
-//			as articulated in specs derived units
+//			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+//			"Direct modification of conversion factors for derived units is not allowed." 
 //			problem: what if scene designer mixes force and mass incoherently? 
 //				Then how should torque factor be calculated - from force or from mass et al?
 //problem: force is/should be/could be a derived unit 
@@ -1663,24 +1664,30 @@ enum {
 struct unca {
 	char *catname;
 	int iunca;
+	int lengthpower; //L 0-none 1=length 2=area 3=volume -1 = 1/length -2 = 1/length**2
+	int derived;     //D
+	int ichanged;    //C
+	double factor;   //F
+	char *uname;
 } uncas [] = {
+	//catname		iunca		  L D  C  F  uname              
 	//base
-	{"length", UNCA_LENGTH},
-	{"angle", UNCA_ANGLE},
-	{"mass", UNCA_MASS},
-	{"force", UNCA_FORCE},
+	{"length",      UNCA_LENGTH,   1,0,0,1.0,"meters",           },
+	{"angle",       UNCA_ANGLE,    0,0,0,1.0,"radians",          },
+	{"mass",        UNCA_MASS,     0,0,0,1.0,"kilograms",        },
+	{"force",       UNCA_FORCE,    1,0,0,1.0,"newtons",          },
 	//drived, should not need to lookup from scene designer input
-	/*
-	{"acceleration",UNCA_ACCEL},
-	{"angular_rate",UNCA_ANGLERATE},
-	{"area",UNCA_AREA},
-	{"speed",UNCA_SPEED},
-	{"volume",UNCA_VOLUME},
-	{"torque",UNCA_TORQUE},
-	{"moment",UNCA_MOMENT},
-	*/
+	{"acceleration",UNCA_ACCEL,    1,1,0,1.0,"meters/second**2", },
+	{"angular_rate",UNCA_ANGLERATE,0,1,0,1.0,"radians/second",   },
+	{"area",        UNCA_AREA,     2,1,0,1.0,"meters**2",        },
+	{"speed",       UNCA_SPEED,    1,1,0,1.0,"meters/seccond",   },
+	{"volume",      UNCA_VOLUME,   3,1,0,1.0,"meters**3",        },
+	{"torque",      UNCA_TORQUE,   2,1,0,1.0,"kg*meters**2/second**2",},
+	{"moment",      UNCA_MOMENT,   2,1,0,1.0,"kg*meters**2",     },
+
 	{NULL,0},
 };
+
 //UNITS > #2 Parse-Time conversions (non-length units cateogories)
 //Design Options: 
 //a) in perl field definitions, put another define for units category (UNCA)
@@ -1706,10 +1713,10 @@ struct unitfield {
 	{NODE_SpotLight,"cutOffAngle",UNCA_ANGLE},
 	{NODE_CylinderSensor,"diskAngle",UNCA_ANGLE},
 	{NODE_CylinderSensor,"maxAngle",UNCA_ANGLE}, 
-	{NODE_CylinderSensor,"minAngle SFFloat",UNCA_ANGLE},
+	{NODE_CylinderSensor,"minAngle",UNCA_ANGLE},
 	{NODE_CylinderSensor,"axisRotation",UNCA_ANGLE},
 	{NODE_Background,"groundAngle",UNCA_ANGLE},
-	{NODE_Background,"skyAngle MFFloat",UNCA_ANGLE},
+	{NODE_Background,"skyAngle",UNCA_ANGLE},
 	{NODE_TextureBackground,"groundAngle",UNCA_ANGLE}, 
 	{NODE_TextureBackground,"skyAngle",UNCA_ANGLE},
 
@@ -1719,9 +1726,9 @@ struct unitfield {
 	{NODE_DoubleAxisHingeJoint,"minAngle1",UNCA_ANGLE},
 	{NODE_DoubleAxisHingeJoint,"hinge1Angle",UNCA_ANGLE},
 	{NODE_DoubleAxisHingeJoint,"hinge2Angle",UNCA_ANGLE},
-	{NODE_DoubleAxisHingeJoint,"hinge2AngleRate",UNCA_ANGLE}, //
-	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity1",UNCA_ANGLE}, //
-	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity2",UNCA_ANGLE}, //
+	{NODE_DoubleAxisHingeJoint,"hinge2AngleRate",UNCA_ANGLERATE}, //
+	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity1",UNCA_ANGLERATE}, //
+	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity2",UNCA_ANGLERATE}, //
 
 
 	{NODE_Extrusion,"creaseAngle",UNCA_ANGLE},
@@ -1759,9 +1766,9 @@ struct unitfield {
 	{NODE_CollidableShape,"rotation",UNCA_ANGLE},
 
 	{NODE_RigidBody,"orientation",UNCA_ANGLE},
-	{NODE_RigidBody,"angularVelocity",UNCA_ANGLE}, //  [angle/time]
-	{NODE_RigidBody,"angularDampingFactor",UNCA_ANGLE},
-	{NODE_RigidBody,"disableAngularSpeed",UNCA_ANGLE}, //
+	{NODE_RigidBody,"angularVelocity",UNCA_ANGLERATE}, //  [angle/time]
+	{NODE_RigidBody,"angularDampingFactor",UNCA_ANGLERATE}, //??
+	{NODE_RigidBody,"disableAngularSpeed",UNCA_ANGLERATE}, //
 
 	{NODE_OrientationChaser,"initialDestination",UNCA_ANGLE},
 	{NODE_OrientationChaser,"initialValue",UNCA_ANGLE},
@@ -1775,10 +1782,10 @@ struct unitfield {
 	{NODE_ConeEmitter,"angle",UNCA_ANGLE},
 
 	//MASS and MOM moment of inertia
-	{NODE_RigidBody,"inertia",UNCA_MASS}, // SFMatrix3f (H: moments of inertia = kg * meter**2 = [mass * length**2]
+	{NODE_RigidBody,"inertia",UNCA_MOMENT}, // SFMatrix3f (H: moments of inertia = kg * meter**2 = [mass * length**2]
 	{NODE_RigidBody,"mass",UNCA_MASS}, // SFFloat kg	[mass]
 	{NODE_HAnimSegment,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_HAnimSegment,"momentsOfInertia",UNCA_MASS}, // MFFloat kg*meter**2 [mass * length**2]
+	{NODE_HAnimSegment,"momentsOfInertia",UNCA_MOMENT}, // MFFloat kg*meter**2 [mass * length**2]
 	{NODE_ConeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
 	{NODE_ExplosionEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
 	{NODE_PointEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
@@ -1786,33 +1793,31 @@ struct unitfield {
 	{NODE_SurfaceEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
 	{NODE_VolumeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
 
-	//FORCE, TORQUE
+	//FORCE, TORQUE, ACCEL
 	{NODE_CollisionCollection,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
 	{NODE_Contact,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
-	{NODE_DoubleAxisHingeJoint,"maxTorque1",UNCA_FORCE}, // newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_DoubleAxisHingeJoint,"maxTorque1",UNCA_TORQUE}, // newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
 	{NODE_DoubleAxisHingeJoint,"stopConstanceForceMix1",UNCA_FORCE}, // SFFloat newton [force]
 	{NODE_DoubleAxisHingeJoint,"suspensionForce",UNCA_FORCE}, // SFFloat newton [force]
-	{NODE_MotorJoint,"axis1Torque",UNCA_FORCE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
-	{NODE_DoubleAxisHingeJoint,"axis2Torque",UNCA_FORCE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
-	{NODE_DoubleAxisHingeJoint,"axis3Torque",UNCA_FORCE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_MotorJoint,"axis1Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_DoubleAxisHingeJoint,"axis2Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_DoubleAxisHingeJoint,"axis3Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
 	{NODE_RigidBody,"forces",UNCA_FORCE}, // MFVec3f newton = kg*meter/s**2 [mass * length / time**2]
-	{NODE_DoubleAxisHingeJoint,"torques",UNCA_FORCE}, // MFVec3f newton*meter == kg*meter/s**2 * meter = kg * meter**2/s**2 
+	{NODE_DoubleAxisHingeJoint,"torques",UNCA_TORQUE}, // MFVec3f newton*meter == kg*meter/s**2 * meter = kg * meter**2/s**2 
 			//= [mass * length **2 / time **2]
-	{NODE_RigidBodyCollection,"gravity",UNCA_FORCE}, // SFVec3f (H: accelleration of, 9.8 m/s**2) = [length / time**2]
+	{NODE_RigidBodyCollection,"gravity",UNCA_ACCEL}, // SFVec3f (H: accelleration of, 9.8 m/s**2) = [length / time**2]
 	{NODE_SliderJoint,"sliderForce",UNCA_FORCE}, // newton [force]
 
-	//ACCELLERATION
-	{NODE_ForcePhysicsModel,"force",UNCA_FORCE}, // SFVec3f m/s**2 [length/time**2] acceleration
+	//ACCELERATION
+	{NODE_ForcePhysicsModel,"force",UNCA_ACCEL}, // SFVec3f m/s**2 [length/time**2] acceleration
 
 	//AREA and VOLUME
-	/*
 	{NODE_ConeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
 	{NODE_ExplosionEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
 	{NODE_PointEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
 	{NODE_PolylineEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
 	{NODE_SurfaceEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
 	{NODE_VolumeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-	*/
 
 	{0,NULL,0},
 };
@@ -1888,18 +1893,152 @@ void addUnits2(char *category, char *unit, double factor){
 	u2.iunca = iunca;
 	vector_pushBack(struct units2,units2vec,u2);
 }
+
+struct unitsB {
+	char *catname;
+	int iunca;
+	int lengthpower; //L 0-none 1=length 2=area 3=volume -1 = 1/length -2 = 1/length**2
+	int derived;     //D
+	int ichanged;    //C
+	double factor;   //F
+	char uname[40];
+};
+enum {
+	LENGTHMETHOD_NONE = 0,
+	LENGTHMETHOD_FULL,
+	LENGTHMETHOD_MINUSONE,
+};
+void addUnits(char *category, char *unit, double factor){
+	struct unitsB u2;
+	struct unitsB *uptr, *u2length, *u2mass, *u2force, *u2angle;
+	struct unca *uc;
+	int iuc, iunca, lengthmethod;
+
+	if(!units2vec){
+		//set default base units and derived units factors for this scenefile
+		//by copying from statics
+		units2vec = newVector(struct unitsB,20);
+		iuc = 0;
+		do {
+			uc = &uncas[iuc];
+			memcpy(&u2,uc,sizeof(struct unca));
+			memset(&u2.uname,0,20);
+			strncpy(&u2.uname[0],uc->uname,min(39,strlen(uc->uname)+1));
+			vector_pushBack(struct unitsB,units2vec,u2);
+			iuc++;
+		}while(uncas[iuc].catname);
+	}
+	//find category name in base units (derived not allowed)
+	for(int i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(!strcasecmp(uptr->catname,category)){
+			//copy in new unit and factor, and set changed flag
+			if(!uptr->derived){
+				strncpy(&uptr->uname[0],unit,min(39,strlen(unit)+1));
+				uptr->factor = factor;
+				uptr->ichanged = TRUE;
+				//if(uptr->iunca != UNCA_LENGTH) 
+					setUnits2(TRUE);
+				//else 
+				//	setUnits(TRUE);
+			}
+			break;
+		}
+	}
+	//pull out our base units for easy access
+	for(int i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(!uptr->derived){
+			switch(uptr->iunca){
+				case UNCA_MASS:
+					u2mass = uptr; break;
+				case UNCA_ANGLE:
+					u2angle = uptr; break;
+				case UNCA_LENGTH:
+					u2length = uptr; break;
+				case UNCA_FORCE:
+					u2force = uptr; break;
+				default:
+					break;
+			}
+		}
+	}
+	//recalculate derived units from base units
+	//WARNING: I'm not sure how much of the length-derived we should be re-factoring here
+	// because some effects are done by runtime rescaling of the context
+	lengthmethod = LENGTHMETHOD_FULL; 
+	//lengthmethod = LENGTHMETHOD_MINUSONE;
+	//lengthmethod = LENGTHMETHOD_NONE;
+	for(int i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(uptr->derived){
+			double factor = uptr->factor;
+			switch(uptr->iunca){
+				case UNCA_ACCEL:
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor;
+					break;
+				case UNCA_ANGLERATE:
+					factor = u2angle->factor;
+					break;
+				case UNCA_AREA:
+					if(lengthmethod == LENGTHMETHOD_FULL) 
+						factor = u2length->factor * u2length->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2length->factor;
+					break;
+				case UNCA_SPEED:
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor;
+					break;
+				case UNCA_MOMENT:
+					// moment of intertia (for rotational momentum) 
+					// mass * length**2
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor * u2length->factor * u2mass->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2length->factor * u2mass->factor;
+					if(lengthmethod == LENGTHMETHOD_NONE)
+						factor = u2mass->factor;
+					break;
+				case UNCA_VOLUME:
+					{
+						double dpow = 0.0; //remember anything**0 == 1
+						if(lengthmethod == LENGTHMETHOD_FULL)
+							dpow = 3.0;
+						if(lengthmethod == LENGTHMETHOD_MINUSONE)
+							dpow = 2.0;
+						factor = pow(u2length->factor,dpow);
+					}
+					break;
+				case UNCA_TORQUE:
+					// torque = force * length = (mass * length / time**2) * length
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2force->factor * u2length->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2force->factor;
+					break;
+				default:
+					break;
+			}
+			uptr->factor = factor;
+			u2.ichanged = TRUE;
+		}
+	}
+
+}
 void sfunitf(int nodetype,char *fieldname, float *var, int n) {
 	if(isUnits2()){
 		int iunca = lookup_unitfields(nodetype, fieldname);
 		if(iunca){
-			struct units2 u2;
+			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
-				u2 = vector_get(struct units2,units2vec,i);
-				if(u2.iunca == iunca){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
 					//check if we need to convert units on this node->field
 					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
 					//if(*var == 90.0f) *var = 1.5708;
-					*var *= u2.factor;
+					*var *= uptr->factor;
 					break;
 				}
 			}
@@ -1914,15 +2053,15 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n)
 		//}
 		int iunca = lookup_unitfields(nodetype, fieldname);
 		if(iunca){
-			struct units2 u2;
+			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
-				u2 = vector_get(struct units2,units2vec,i);
-				if(u2.iunca == iunca){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
 					//check if we need to convert units on this node->field
 					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
 					//if(*var == 90.0f) *var = 1.5708;
 					for(int k=0;k<n;i++){
-						var[k].c[3] *= u2.factor;
+						var[k].c[3] *= uptr->factor;
 					}
 					break;
 				}

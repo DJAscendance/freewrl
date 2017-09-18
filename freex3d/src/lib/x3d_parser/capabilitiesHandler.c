@@ -304,7 +304,10 @@ const char * unitnames [] = {
 	"kilogram",
 };
 #define UNITNAMES_COUNT 4
+void addUnits(char *category, char *unit, double factor);
 void handleUnitDataStringString(char *categoryname, char *unitname, double conversionfactor) {
+	addUnits(categoryname,unitname,conversionfactor);
+	/*
 	int i1, i2, i3;
 	i1 = findFieldInARR(categoryname,unitcategories1,UNITCATEGORIES1_COUNT);
 	i2 = findFieldInARR(categoryname,unitcategories2,UNITCATEGORIES2_COUNT);
@@ -316,6 +319,7 @@ void handleUnitDataStringString(char *categoryname, char *unitname, double conve
 	}
 	printf ("handleUnitDataStringString, :%s:, :%s: :%lf:\n",categoryname,unitname,conversionfactor);
 	//#endif
+	*/
 }
 
 void handleProfile (int myProfile) {
