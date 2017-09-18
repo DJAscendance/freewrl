@@ -1848,50 +1848,17 @@ int lookup_unitfields(int nodetype, char *fieldname){
 		of each scenefile
 
 */
-static int isunits2 = 0;  //#2 the others, parse-time 
-int isUnits2(){
-	return isunits2;
+static int isunits = 0;  //#2 the others, parse-time 
+int isUnits(){
+	return isunits;
 }
-void setUnits2(int isOn){
-	isunits2 = isOn;
+void setUnits(int isOn){
+	isunits = isOn;
 }
-static int nunits2 = 0;
 static Stack * units2vec = NULL;
-void zeroUnits2(){
-	isunits2 = 0;
-	nunits2 = 0;
+void zeroUnits(){
+	isunits = 0;
 	if(units2vec) units2vec->n = 0;
-}
-struct units2 {
-	char category[20];
-	int iunca;
-	char unit[20];
-	double factor;
-};
-void addUnits2(char *category, char *unit, double factor){
-	struct units2 u2;
-	struct unca *uc;
-	int iuc, iunca;
-
-	if(!units2vec){
-		units2vec = newVector(struct units2,20);
-	}
-	strncpy(u2.category,category,min(19,strlen(category)));
-	strncpy(u2.unit,unit,min(19,strlen(unit)));
-	u2.factor = factor;
-	iuc = 0;
-	iunca = 0;
-	uc = &uncas[iuc];
-	do {
-		if(!strcasecmp(uc->catname,category)){
-			iunca = uc->iunca;
-			break;
-		}
-		iuc++;
-		uc = &uncas[iuc];
-	}while(uc->catname);
-	u2.iunca = iunca;
-	vector_pushBack(struct units2,units2vec,u2);
 }
 
 struct unitsB {
@@ -1914,10 +1881,11 @@ void addUnits(char *category, char *unit, double factor){
 	struct unca *uc;
 	int iuc, iunca, lengthmethod;
 
-	if(!units2vec){
+	if(!units2vec || (units2vec->n == 0)){
 		//set default base units and derived units factors for this scenefile
 		//by copying from statics
-		units2vec = newVector(struct unitsB,20);
+		if(!units2vec)
+			units2vec = newVector(struct unitsB,20);
 		iuc = 0;
 		do {
 			uc = &uncas[iuc];
@@ -1938,7 +1906,7 @@ void addUnits(char *category, char *unit, double factor){
 				uptr->factor = factor;
 				uptr->ichanged = TRUE;
 				//if(uptr->iunca != UNCA_LENGTH) 
-					setUnits2(TRUE);
+					setUnits(TRUE);
 				//else 
 				//	setUnits(TRUE);
 			}
@@ -1966,6 +1934,7 @@ void addUnits(char *category, char *unit, double factor){
 	//recalculate derived units from base units
 	//WARNING: I'm not sure how much of the length-derived we should be re-factoring here
 	// because some effects are done by runtime rescaling of the context
+	// which is a 3D re-scaling
 	lengthmethod = LENGTHMETHOD_FULL; 
 	//lengthmethod = LENGTHMETHOD_MINUSONE;
 	//lengthmethod = LENGTHMETHOD_NONE;
@@ -2028,7 +1997,7 @@ void addUnits(char *category, char *unit, double factor){
 
 }
 void sfunitf(int nodetype,char *fieldname, float *var, int n) {
-	if(isUnits2()){
+	if(isUnits()){
 		int iunca = lookup_unitfields(nodetype, fieldname);
 		if(iunca){
 			struct unitsB *uptr;
@@ -2046,7 +2015,7 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n) {
 	}
 }
 void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n){
-	if(isUnits2()){
+	if(isUnits()){
 		//check if we need to convert units on this node->field
 		//for(int i=0;i<n;i++){
 		//	var[i].c[3] *= rotationFactor;
@@ -2071,7 +2040,7 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n)
 	}
 }
 void sfunitd(int nodeType,char *fieldname, double *var, int n) {
-	if(isUnits2()){
+	if(isUnits()){
 	}
 }
 
