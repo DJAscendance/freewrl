@@ -1865,7 +1865,10 @@ void zeroUnits(){
 	if(units2vec) units2vec->n = 0;
 	unitlengthfactor = 1.0;
 }
-
+static int do_lengthunits = 0;
+int doLengthUnits(){
+	return do_lengthunits;
+}
 struct unitsB {
 	char *catname;
 	int iunca;
@@ -1915,6 +1918,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 					struct X3D_Proto *ec = (struct X3D_Proto*)ecx;
 					unitlengthfactor = factor;
 					ec->__unitlengthfactor = unitlengthfactor;
+					do_lengthunits = TRUE; //tell rendering to apply unitlengthfactor
 				}
 				setUnits(TRUE);
 			}
