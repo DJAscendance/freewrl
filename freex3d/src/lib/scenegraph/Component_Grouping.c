@@ -497,13 +497,15 @@ void prep_unitscale (struct X3D_Proto *ec) {
 		struct X3D_Proto *parent;
 		double factor = 1.0;
 		double parentfactor = 1.0;
-		parent = X3D_PROTO(ec->__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
+		parent = X3D_PROTO(ec->_executionContext); //__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
 		if(parent)
 			parentfactor = parent->__unitlengthfactor;
 		FW_GL_PUSH_MATRIX();
 		// SCALE 
 		factor = ec->__unitlengthfactor;
+		//printf("( factor %lf / parentfactor= %lf  ", factor, parentfactor);
 		factor = factor / parentfactor;
+		//printf(" = %lf)\n",factor);
 		FW_GL_SCALE_D(factor,factor,factor);
 		//RECORD_DISTANCE
 	}
