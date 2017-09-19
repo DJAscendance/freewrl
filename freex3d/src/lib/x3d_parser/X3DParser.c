@@ -1439,6 +1439,9 @@ static void parseAttributes_B(void *ud, char **atts) {
 					case FIELDTYPE_MFFloat:
 						sfunitf(node->_nodeType,name,value->mffloat.p,value->mffloat.n);
 						break;
+					case FIELDTYPE_SFMatrix3f:
+						sfunitf(node->_nodeType,name,value->sfmatrix3f.c, 9);
+						break;
 					case FIELDTYPE_MFRotation:
 						mfunitrotation(node->_nodeType,name,value->mfrotation.p,value->mfrotation.n);
 						break;

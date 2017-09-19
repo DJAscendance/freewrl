@@ -2099,7 +2099,7 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_mfvec4d(var,fieldname)
 #define INIT_CODE_mfvec4f(var,fieldname)
 #define INIT_CODE_sfmatrix3d(var,fieldname)
-#define INIT_CODE_sfmatrix3f(var,fieldname)
+#define INIT_CODE_sfmatrix3f(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.c, 9);
 #define INIT_CODE_sfmatrix4d(var,fieldname)
 #define INIT_CODE_sfmatrix4f(var,fieldname)
 #define INIT_CODE_sfvec2d(var,fieldname)
