@@ -2019,7 +2019,9 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n) {
 					//check if we need to convert units on this node->field
 					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
 					//if(*var == 90.0f) *var = 1.5708;
-					*var *= uptr->factor;
+					for(int k=0;k<n;k++){
+						var[k] *= uptr->factor;
+					}
 					break;
 				}
 			}
@@ -2041,7 +2043,7 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n)
 					//check if we need to convert units on this node->field
 					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
 					//if(*var == 90.0f) *var = 1.5708;
-					for(int k=0;k<n;i++){
+					for(int k=0;k<n;k++){
 						var[k].c[3] *= uptr->factor;
 					}
 					break;
@@ -2077,7 +2079,7 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_mfbool(var,fieldname)
 #define INIT_CODE_mfcolor(var,fieldname)
 #define INIT_CODE_mfcolorrgba(var,fieldname)
-#define INIT_CODE_mffloat(var,fieldname)
+#define INIT_CODE_mffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.p, node2->var.n);
 #define INIT_CODE_mfint32(var,fieldname)
 #define INIT_CODE_mfrotation(var,fieldname) mfunitrotation(node2->_nodeType,fieldname, node2->var.p, node2->var.n);
 #define INIT_CODE_mfstring(var,fieldname)

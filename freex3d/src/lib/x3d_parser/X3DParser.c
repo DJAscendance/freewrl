@@ -1436,6 +1436,9 @@ static void parseAttributes_B(void *ud, char **atts) {
 					case FIELDTYPE_SFFloat:
 						sfunitf(node->_nodeType,name,&value->sffloat,1);
 						break;
+					case FIELDTYPE_MFFloat:
+						sfunitf(node->_nodeType,name,value->mffloat.p,value->mffloat.n);
+						break;
 					case FIELDTYPE_MFRotation:
 						mfunitrotation(node->_nodeType,name,value->mfrotation.p,value->mfrotation.n);
 						break;
