@@ -492,6 +492,8 @@ void compile_Proto(struct X3D_Proto *node) {
 
 //UNIT statement - applying unit scalefactor during rendering
 int doLengthUnits();
+
+static int unitoption_scalescene = FALSE; //FALSE is what specs say, don't scale top scene
 void prep_unitscale (struct X3D_Proto *ec) {
 	if(doLengthUnits()){
 		if(!renderstate()->render_vp) {
@@ -499,11 +501,21 @@ void prep_unitscale (struct X3D_Proto *ec) {
 			double factor = 1.0;
 			double parentfactor = 1.0;
 			parent = X3D_PROTO(ec->_executionContext); //__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
-			if(parent)
-				parentfactor = parent->__unitlengthfactor;
 			FW_GL_PUSH_MATRIX();
 			// SCALE 
 			factor = ec->__unitlengthfactor;
+			if(parent){
+				parentfactor = parent->__unitlengthfactor;
+			}else {
+				//there's no higher level context, which means we are in the top scene
+				if(unitoption_scalescene){
+					parentfactor = 1.0; //scale top scene length to SI base units [m] (not what specs say)
+				}else{
+					parentfactor = factor; 
+					//top level scene gets scale of 1 ie if its in feet it stays feet, .3048/.3048=1 as per specs
+					//this is so defaults like Sphere radius=1 will be 1 foot, no need to tinker with defaults
+				}
+			}
 			//printf("( factor %lf / parentfactor= %lf  ", factor, parentfactor);
 			factor = factor / parentfactor;
 			//printf(" = %lf)\n",factor);
