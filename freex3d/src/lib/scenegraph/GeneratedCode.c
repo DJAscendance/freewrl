@@ -842,6 +842,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"set_colorIndex",
 	"set_contacts",
 	"set_coordIndex",
+	"set_coordinate",
 	"set_crossSection",
 	"set_destination",
 	"set_fraction",
@@ -1156,6 +1157,7 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"removeChildren",
 	"removeGeometry",
 	"removeTrimmingContour",
+	"retainUserOffsets",
 	"setValue",
 	"set_articulationParameterValue0",
 	"set_articulationParameterValue1",
@@ -1170,6 +1172,7 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"set_colorIndex",
 	"set_contacts",
 	"set_coordIndex",
+	"set_coordinate",
 	"set_crossSection",
 	"set_destination",
 	"set_fraction",
@@ -3979,7 +3982,7 @@ const int OFFSETS_ComposedTexture3D[] = {
 	(int) FIELDNAMES_repeatS, (int) offsetof (struct X3D_ComposedTexture3D, repeatS),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_repeatT, (int) offsetof (struct X3D_ComposedTexture3D, repeatT),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_texture, (int) offsetof (struct X3D_ComposedTexture3D, texture),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_textureProperties, (int) offsetof (struct X3D_ComposedTexture3D, textureProperties),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_textureProperties, (int) offsetof (struct X3D_ComposedTexture3D, textureProperties),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	-1, -1, -1, -1, -1};
 
 const int OFFSETS_ComposedVolumeStyle[] = {
@@ -4359,6 +4362,8 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_firingRate, (int) offsetof (struct X3D_EspduTransform, firingRate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_forceID, (int) offsetof (struct X3D_EspduTransform, forceID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_fuse, (int) offsetof (struct X3D_EspduTransform, fuse),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_EspduTransform, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_EspduTransform, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_EspduTransform, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isCollided, (int) offsetof (struct X3D_EspduTransform, isCollided),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isDetonated, (int) offsetof (struct X3D_EspduTransform, isDetonated),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4496,7 +4501,7 @@ const int OFFSETS_GeneratedCubeMapTexture[] = {
 const int OFFSETS_GeoCoordinate[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoCoordinate, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoCoordinate, __movedCoords),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) 0,
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoCoordinate, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoCoordinate, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoCoordinate, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoCoordinate, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_point, (int) offsetof (struct X3D_GeoCoordinate, point),  (int) FIELDTYPE_MFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4510,7 +4515,7 @@ const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES_colorPerVertex, (int) offsetof (struct X3D_GeoElevationGrid, colorPerVertex),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_creaseAngle, (int) offsetof (struct X3D_GeoElevationGrid, creaseAngle),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_geoGridOrigin, (int) offsetof (struct X3D_GeoElevationGrid, geoGridOrigin),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoElevationGrid, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoElevationGrid, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoElevationGrid, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_height, (int) offsetof (struct X3D_GeoElevationGrid, height),  (int) FIELDTYPE_MFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoElevationGrid, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4546,7 +4551,7 @@ const int OFFSETS_GeoLOD[] = {
 	(int) FIELDNAMES_child3Url, (int) offsetof (struct X3D_GeoLOD, child3Url),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_child4Url, (int) offsetof (struct X3D_GeoLOD, child4Url),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeoLOD, children),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoLOD, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoLOD, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoLOD, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_level_changed, (int) offsetof (struct X3D_GeoLOD, level_changed),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoLOD, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4568,7 +4573,7 @@ const int OFFSETS_GeoLocation[] = {
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_GeoLocation, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeoLocation, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_GeoLocation, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoLocation, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoLocation, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoLocation, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoLocation, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_GeoLocation, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4598,8 +4603,8 @@ const int OFFSETS_GeoPositionInterpolator[] = {
 	(int) FIELDNAMES___movedValue, (int) offsetof (struct X3D_GeoPositionInterpolator, __movedValue),  (int) FIELDTYPE_MFVec3d, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES___oldKeyPtr, (int) offsetof (struct X3D_GeoPositionInterpolator, __oldKeyPtr),  (int) FIELDTYPE_MFFloat, (int) KW_outputOnly, (int) 0,
 	(int) FIELDNAMES___oldKeyValuePtr, (int) offsetof (struct X3D_GeoPositionInterpolator, __oldKeyValuePtr),  (int) FIELDTYPE_MFVec3d, (int) KW_outputOnly, (int) 0,
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoPositionInterpolator, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoPositionInterpolator, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoPositionInterpolator, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoPositionInterpolator, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geovalue_changed, (int) offsetof (struct X3D_GeoPositionInterpolator, geovalue_changed),  (int) FIELDTYPE_SFVec3d, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_key, (int) offsetof (struct X3D_GeoPositionInterpolator, key),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_keyValue, (int) offsetof (struct X3D_GeoPositionInterpolator, keyValue),  (int) FIELDTYPE_MFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4618,13 +4623,14 @@ const int OFFSETS_GeoProximitySensor[] = {
 	(int) FIELDNAMES___oldSize, (int) offsetof (struct X3D_GeoProximitySensor, __oldSize),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES___t1, (int) offsetof (struct X3D_GeoProximitySensor, __t1),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES___t2, (int) offsetof (struct X3D_GeoProximitySensor, __t2),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) 0,
+	(int) FIELDNAMES_center, (int) offsetof (struct X3D_GeoProximitySensor, center),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_centerOfRotation_changed, (int) offsetof (struct X3D_GeoProximitySensor, centerOfRotation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_GeoProximitySensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_enterTime, (int) offsetof (struct X3D_GeoProximitySensor, enterTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_exitTime, (int) offsetof (struct X3D_GeoProximitySensor, exitTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D33),
-	(int) FIELDNAMES_geoCenter, (int) offsetof (struct X3D_GeoProximitySensor, geoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoCenter, (int) offsetof (struct X3D_GeoProximitySensor, geoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D32),
 	(int) FIELDNAMES_geoCoord_changed, (int) offsetof (struct X3D_GeoProximitySensor, geoCoord_changed),  (int) FIELDTYPE_SFVec3d, (int) KW_outputOnly, (int) (SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoProximitySensor, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoProximitySensor, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoProximitySensor, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_GeoProximitySensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoProximitySensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D33),
@@ -4641,7 +4647,7 @@ const int OFFSETS_GeoTouchSensor[] = {
 	(int) FIELDNAMES__oldhitTexCoord, (int) offsetof (struct X3D_GeoTouchSensor, _oldhitTexCoord),  (int) FIELDTYPE_SFVec2f, (int) KW_outputOnly, (int) 0,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoTouchSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_GeoTouchSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoTouchSensor, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoTouchSensor, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoTouchSensor, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_hitGeoCoord_changed, (int) offsetof (struct X3D_GeoTouchSensor, hitGeoCoord_changed),  (int) FIELDTYPE_SFVec3d, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_hitNormal_changed, (int) offsetof (struct X3D_GeoTouchSensor, hitNormal_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -4664,14 +4670,14 @@ const int OFFSETS_GeoTransform[] = {
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoTransform, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES___oldChildren, (int) offsetof (struct X3D_GeoTransform, __oldChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES___oldGeoCenter, (int) offsetof (struct X3D_GeoTransform, __oldGeoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0,
-	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_GeoTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_GeoTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_GeoTransform, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_GeoTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_GeoTransform, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_GeoTransform, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeoTransform, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_geoCenter, (int) offsetof (struct X3D_GeoTransform, geoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoTransform, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoTransform, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoTransform, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoTransform, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_GeoTransform, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D33),
@@ -4693,20 +4699,22 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__donethispass, (int) offsetof (struct X3D_GeoViewpoint, _donethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES__layerId, (int) offsetof (struct X3D_GeoViewpoint, _layerId),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0,
 	(int) FIELDNAMES_bindTime, (int) offsetof (struct X3D_GeoViewpoint, bindTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_centerOfRotation, (int) offsetof (struct X3D_GeoViewpoint, centerOfRotation),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) ( SPEC_X3D33),
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoViewpoint, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_GeoViewpoint, fieldOfView),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoViewpoint, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoViewpoint, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoViewpoint, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_headlight, (int) offsetof (struct X3D_GeoViewpoint, headlight),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_headlight, (int) offsetof (struct X3D_GeoViewpoint, headlight),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_isBound, (int) offsetof (struct X3D_GeoViewpoint, isBound),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_jump, (int) offsetof (struct X3D_GeoViewpoint, jump),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoViewpoint, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_navType, (int) offsetof (struct X3D_GeoViewpoint, navType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_navType, (int) offsetof (struct X3D_GeoViewpoint, navType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_orientation, (int) offsetof (struct X3D_GeoViewpoint, orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_GeoViewpoint, position),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_retainUserOffsets, (int) offsetof (struct X3D_GeoViewpoint, retainUserOffsets),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_set_bind, (int) offsetof (struct X3D_GeoViewpoint, set_bind),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_set_orientation, (int) offsetof (struct X3D_GeoViewpoint, set_orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_set_position, (int) offsetof (struct X3D_GeoViewpoint, set_position),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_set_orientation, (int) offsetof (struct X3D_GeoViewpoint, set_orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
+	(int) FIELDNAMES_set_position, (int) offsetof (struct X3D_GeoViewpoint, set_position),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ),
 	(int) FIELDNAMES_speedFactor, (int) offsetof (struct X3D_GeoViewpoint, speedFactor),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	-1, -1, -1, -1, -1};
 
@@ -5627,7 +5635,7 @@ const int OFFSETS_MovieTexture[] = {
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_MovieTexture, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MovieTexture, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_pauseTime, (int) offsetof (struct X3D_MovieTexture, pauseTime),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_pitch, (int) offsetof (struct X3D_MovieTexture, pitch),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_pitch, (int) offsetof (struct X3D_MovieTexture, pitch),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_repeatS, (int) offsetof (struct X3D_MovieTexture, repeatS),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_repeatT, (int) offsetof (struct X3D_MovieTexture, repeatT),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_resumeTime, (int) offsetof (struct X3D_MovieTexture, resumeTime),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -6074,7 +6082,7 @@ const int OFFSETS_PointPickSensor[] = {
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_PointPickSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_intersectionType, (int) offsetof (struct X3D_PointPickSensor, intersectionType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_PointPickSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_matchCriterion, (int) offsetof (struct X3D_PointPickSensor, matchCriterion),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_matchCriterion, (int) offsetof (struct X3D_PointPickSensor, matchCriterion),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PointPickSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_objectType, (int) offsetof (struct X3D_PointPickSensor, objectType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_pickTarget, (int) offsetof (struct X3D_PointPickSensor, pickTarget),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -6113,7 +6121,8 @@ const int OFFSETS_PolylineEmitter[] = {
 	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_PolylineEmitter, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_PolylineEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PolylineEmitter, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_set_coordIndex, (int) offsetof (struct X3D_PolylineEmitter, set_coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_set_coordIndex, (int) offsetof (struct X3D_PolylineEmitter, set_coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_set_coordinate, (int) offsetof (struct X3D_PolylineEmitter, set_coordinate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32),
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_PolylineEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_PolylineEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_PolylineEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -6326,6 +6335,8 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_ReceiverPdu, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_ReceiverPdu, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_ReceiverPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_ReceiverPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_ReceiverPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_ReceiverPdu, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isNetworkReader, (int) offsetof (struct X3D_ReceiverPdu, isNetworkReader),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isNetworkWriter, (int) offsetof (struct X3D_ReceiverPdu, isNetworkWriter),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -6561,6 +6572,8 @@ const int OFFSETS_SignalPdu[] = {
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_SignalPdu, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_encodingScheme, (int) offsetof (struct X3D_SignalPdu, encodingScheme),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_SignalPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_SignalPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_SignalPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_SignalPdu, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isNetworkReader, (int) offsetof (struct X3D_SignalPdu, isNetworkReader),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isNetworkWriter, (int) offsetof (struct X3D_SignalPdu, isNetworkWriter),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -6630,7 +6643,7 @@ const int OFFSETS_SliderJoint[] = {
 	(int) FIELDNAMES_minSeparation, (int) offsetof (struct X3D_SliderJoint, minSeparation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_separation, (int) offsetof (struct X3D_SliderJoint, separation),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_separationRate, (int) offsetof (struct X3D_SliderJoint, separationRate),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_sliderForce, (int) offsetof (struct X3D_SliderJoint, sliderForce),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_sliderForce, (int) offsetof (struct X3D_SliderJoint, sliderForce),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) ( SPEC_X3D33),
 	(int) FIELDNAMES_stopBounce, (int) offsetof (struct X3D_SliderJoint, stopBounce),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_stopErrorCorrection, (int) offsetof (struct X3D_SliderJoint, stopErrorCorrection),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	-1, -1, -1, -1, -1};
@@ -6779,7 +6792,8 @@ const int OFFSETS_SurfaceEmitter[] = {
 	(int) FIELDNAMES_geometry, (int) offsetof (struct X3D_SurfaceEmitter, geometry),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_SurfaceEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_SurfaceEmitter, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_set_coordIndex, (int) offsetof (struct X3D_SurfaceEmitter, set_coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_set_coordIndex, (int) offsetof (struct X3D_SurfaceEmitter, set_coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) ( SPEC_X3D33),
+	(int) FIELDNAMES_set_coordinate, (int) offsetof (struct X3D_SurfaceEmitter, set_coordinate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32),
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_SurfaceEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_surface, (int) offsetof (struct X3D_SurfaceEmitter, surface),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_SurfaceEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -7052,6 +7066,8 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_TransmitterPdu, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_TransmitterPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_frequency, (int) offsetof (struct X3D_TransmitterPdu, frequency),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_TransmitterPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33),
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_TransmitterPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33),
 	(int) FIELDNAMES_inputSource, (int) offsetof (struct X3D_TransmitterPdu, inputSource),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_TransmitterPdu, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_isNetworkReader, (int) offsetof (struct X3D_TransmitterPdu, isNetworkReader),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -7259,7 +7275,8 @@ const int OFFSETS_VolumeEmitter[] = {
 	(int) FIELDNAMES_internal, (int) offsetof (struct X3D_VolumeEmitter, internal),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_VolumeEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_VolumeEmitter, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	(int) FIELDNAMES_set_coordIndex, (int) offsetof (struct X3D_VolumeEmitter, set_coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
+	(int) FIELDNAMES_set_coordIndex, (int) offsetof (struct X3D_VolumeEmitter, set_coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) ( SPEC_X3D33),
+	(int) FIELDNAMES_set_coordinate, (int) offsetof (struct X3D_VolumeEmitter, set_coordinate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32),
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_VolumeEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_VolumeEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_VolumeEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
@@ -9224,6 +9241,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->firingRate = 0;
 			tmp2->forceID = 0;
 			tmp2->fuse = 0;
+			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->isActive = FALSE;
 			tmp2->isCollided = FALSE;
 			tmp2->isDetonated = FALSE;
@@ -9565,6 +9584,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldSize.c[0] = 0.0f;tmp2->__oldSize.c[1] = 0.0f;tmp2->__oldSize.c[2] = 0.0f;
 			tmp2->__t1.c[0] = 10000000.0f;tmp2->__t1.c[1] = 0.0f;tmp2->__t1.c[2] = 0.0f;
 			tmp2->__t2.c[0] = 0;tmp2->__t2.c[1] = 1;tmp2->__t2.c[2] = 0;tmp2->__t2.c[3] = 0;;
+			tmp2->center.c[0] = 0;tmp2->center.c[1] = 0;tmp2->center.c[2] = 0;;
 			tmp2->centerOfRotation_changed.c[0] = 0.0f;tmp2->centerOfRotation_changed.c[1] = 0.0f;tmp2->centerOfRotation_changed.c[2] = 0.0f;
 			tmp2->enabled = TRUE;
 			tmp2->enterTime = -1;
@@ -9649,6 +9669,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_donethispass = 0;
 			tmp2->_layerId = 0;
 			tmp2->bindTime = -1;
+			tmp2->centerOfRotation.c[0] = 0;tmp2->centerOfRotation.c[1] = 0;tmp2->centerOfRotation.c[2] = 0;;
 			tmp2->description = newASCIIString("");
 			tmp2->fieldOfView = 0.785398f;
 			tmp2->geoOrigin = NULL;
@@ -9660,6 +9681,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->navType.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->navType.p[0] = newASCIIString("EXAMINE");tmp2->navType.p[1] = newASCIIString("ANY");tmp2->navType.n=2; ;
 			tmp2->orientation.c[0] = 0;tmp2->orientation.c[1] = 0;tmp2->orientation.c[2] = 1;tmp2->orientation.c[3] = 0;;
 			tmp2->position.c[0] = 0;tmp2->position.c[1] = 0;tmp2->position.c[2] = 100000;;
+			tmp2->retainUserOffsets = FALSE;
 			tmp2->set_bind = 100;
 			tmp2->set_orientation.c[0] = IO_FLOAT;tmp2->set_orientation.c[1] = IO_FLOAT;tmp2->set_orientation.c[2] = IO_FLOAT;tmp2->set_orientation.c[3] = IO_FLOAT;;
 			tmp2->set_position.c[0] = IO_FLOAT;tmp2->set_position.c[1] = IO_FLOAT;tmp2->set_position.c[2] = IO_FLOAT;;
@@ -11496,6 +11518,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->mass = 0.0f;
 			tmp2->metadata = NULL;
 			tmp2->set_coordIndex.n=0; tmp2->set_coordIndex.p=0;
+			tmp2->set_coordinate = 0;
 			tmp2->speed = 0.0f;
 			tmp2->surfaceArea = 0.0f;
 			tmp2->variation = 0.25f;
@@ -11750,6 +11773,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->enabled = TRUE;
 			tmp2->entityID = 0;
+			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->isActive = FALSE;
 			tmp2->isNetworkReader = FALSE;
 			tmp2->isNetworkWriter = FALSE;
@@ -12030,6 +12055,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->encodingScheme = 0;
 			tmp2->entityID = 0;
+			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->isActive = FALSE;
 			tmp2->isNetworkReader = FALSE;
 			tmp2->isNetworkWriter = FALSE;
@@ -12293,6 +12320,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->mass = 0.0f;
 			tmp2->metadata = NULL;
 			tmp2->set_coordIndex.n=0; tmp2->set_coordIndex.p=0;
+			tmp2->set_coordinate = 0;
 			tmp2->speed = 0.0f;
 			tmp2->surface = NULL;
 			tmp2->surfaceArea = 0.0f;
@@ -12656,6 +12684,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->entityID = 0;
 			tmp2->frequency = 0;
+			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->inputSource = 0;
 			tmp2->isActive = FALSE;
 			tmp2->isNetworkReader = FALSE;
@@ -12940,6 +12970,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->mass = 0.0f;
 			tmp2->metadata = NULL;
 			tmp2->set_coordIndex.n=0; tmp2->set_coordIndex.p=0;
+			tmp2->set_coordinate = 0;
 			tmp2->speed = 0.0f;
 			tmp2->surfaceArea = 0.0f;
 			tmp2->variation = 0.25f;
@@ -14106,6 +14137,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," firingRate (SFInt32) \t%d\n",tmp->firingRate);
 			spacer fprintf (fp," forceID (SFInt32) \t%d\n",tmp->forceID);
 			spacer fprintf (fp," fuse (SFInt32) \t%d\n",tmp->fuse);
+			spacer fprintf (fp," geoCoords (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCoords.c[i]); }
+			fprintf (fp,"\n");
 			spacer fprintf (fp," linearAcceleration (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->linearAcceleration.c[i]); }
 			fprintf (fp,"\n");
@@ -14486,6 +14520,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__t2.c[i]); }
 			fprintf (fp,"\n");
 		    }
+			spacer fprintf (fp," center (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->center.c[i]); }
+			fprintf (fp,"\n");
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," geoCenter (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCenter.c[i]); }
@@ -14590,6 +14627,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __oldSFString (SFString) \t%s\n",tmp->__oldSFString->strptr);
 		    }
+			spacer fprintf (fp," centerOfRotation (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->centerOfRotation.c[i]); }
+			fprintf (fp,"\n");
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," fieldOfView (SFFloat) \t%4.3f\n",tmp->fieldOfView);
 			spacer fprintf (fp," headlight (SFBool) \t%d\n",tmp->headlight);
@@ -16528,6 +16568,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," applicationID (SFInt32) \t%d\n",tmp->applicationID);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," entityID (SFInt32) \t%d\n",tmp->entityID);
+			spacer fprintf (fp," geoCoords (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCoords.c[i]); }
+			fprintf (fp,"\n");
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
@@ -16819,6 +16862,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," encodingScheme (SFInt32) \t%d\n",tmp->encodingScheme);
 			spacer fprintf (fp," entityID (SFInt32) \t%d\n",tmp->entityID);
+			spacer fprintf (fp," geoCoords (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCoords.c[i]); }
+			fprintf (fp,"\n");
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
@@ -17487,6 +17533,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," entityID (SFInt32) \t%d\n",tmp->entityID);
 			spacer fprintf (fp," frequency (SFInt32) \t%d\n",tmp->frequency);
+			spacer fprintf (fp," geoCoords (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCoords.c[i]); }
+			fprintf (fp,"\n");
 			spacer fprintf (fp," inputSource (SFInt32) \t%d\n",tmp->inputSource);
 			spacer fprintf (fp," lengthOfModulationParameters (SFInt32) \t%d\n",tmp->lengthOfModulationParameters);
 		    if(allFields) {

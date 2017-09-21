@@ -1181,184 +1181,185 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_set_colorIndex	771
 #define FIELDNAMES_set_contacts	772
 #define FIELDNAMES_set_coordIndex	773
-#define FIELDNAMES_set_crossSection	774
-#define FIELDNAMES_set_destination	775
-#define FIELDNAMES_set_fraction	776
-#define FIELDNAMES_set_height	777
-#define FIELDNAMES_set_index	778
-#define FIELDNAMES_set_intersectionType	779
-#define FIELDNAMES_set_normalIndex	780
-#define FIELDNAMES_set_orientation	781
-#define FIELDNAMES_set_position	782
-#define FIELDNAMES_set_scale	783
-#define FIELDNAMES_set_sortOrder	784
-#define FIELDNAMES_set_spine	785
-#define FIELDNAMES_set_texCoordIndex	786
-#define FIELDNAMES_set_triggerTime	787
-#define FIELDNAMES_set_value	788
-#define FIELDNAMES_shaders	789
-#define FIELDNAMES_shadows	790
-#define FIELDNAMES_shape	791
-#define FIELDNAMES_shiftKey	792
-#define FIELDNAMES_shininess	793
-#define FIELDNAMES_side	794
-#define FIELDNAMES_silhouetteBoundaryOpacity	795
-#define FIELDNAMES_silhouetteRetainedOpacity	796
-#define FIELDNAMES_silhouetteSharpness	797
-#define FIELDNAMES_siteID	798
-#define FIELDNAMES_sites	799
-#define FIELDNAMES_size	800
-#define FIELDNAMES_sizeUnits	801
-#define FIELDNAMES_skeleton	802
-#define FIELDNAMES_skin	803
-#define FIELDNAMES_skinCoord	804
-#define FIELDNAMES_skinCoordIndex	805
-#define FIELDNAMES_skinCoordWeight	806
-#define FIELDNAMES_skinNormal	807
-#define FIELDNAMES_skyAngle	808
-#define FIELDNAMES_skyColor	809
-#define FIELDNAMES_sliderForce	810
-#define FIELDNAMES_slipCoefficients	811
-#define FIELDNAMES_slipFactors	812
-#define FIELDNAMES_softnessConstantForceMix	813
-#define FIELDNAMES_softnessErrorCorrection	814
-#define FIELDNAMES_solid	815
-#define FIELDNAMES_sortOrder	816
-#define FIELDNAMES_source	817
-#define FIELDNAMES_spacing	818
-#define FIELDNAMES_spatialize	819
-#define FIELDNAMES_specific	820
-#define FIELDNAMES_specularColor	821
-#define FIELDNAMES_speed	822
-#define FIELDNAMES_speedFactor	823
-#define FIELDNAMES_spine	824
-#define FIELDNAMES_startAngle	825
-#define FIELDNAMES_startTime	826
-#define FIELDNAMES_stiffness	827
-#define FIELDNAMES_stop1Bounce	828
-#define FIELDNAMES_stop1ErrorCorrection	829
-#define FIELDNAMES_stop2Bounce	830
-#define FIELDNAMES_stop2ErrorCorrection	831
-#define FIELDNAMES_stop3Bounce	832
-#define FIELDNAMES_stop3ErrorCorrection	833
-#define FIELDNAMES_stopBounce	834
-#define FIELDNAMES_stopBounce1	835
-#define FIELDNAMES_stopConstantForceMix1	836
-#define FIELDNAMES_stopErrorCorrection	837
-#define FIELDNAMES_stopErrorCorrection1	838
-#define FIELDNAMES_stopTime	839
-#define FIELDNAMES_string	840
-#define FIELDNAMES_stringInp	841
-#define FIELDNAMES_stripCount	842
-#define FIELDNAMES_style	843
-#define FIELDNAMES_subcategory	844
-#define FIELDNAMES_summary	845
-#define FIELDNAMES_surface	846
-#define FIELDNAMES_surfaceArea	847
-#define FIELDNAMES_surfaceNormals	848
-#define FIELDNAMES_surfaceSpeed	849
-#define FIELDNAMES_surfaceTolerance	850
-#define FIELDNAMES_surfaceValues	851
-#define FIELDNAMES_suspensionErrorCorrection	852
-#define FIELDNAMES_suspensionForce	853
-#define FIELDNAMES_talksTo	854
-#define FIELDNAMES_targetObject	855
-#define FIELDNAMES_tau	856
-#define FIELDNAMES_tdlType	857
-#define FIELDNAMES_tessellation	858
-#define FIELDNAMES_tessellationScale	859
-#define FIELDNAMES_texCoord	860
-#define FIELDNAMES_texCoordIndex	861
-#define FIELDNAMES_texCoordKey	862
-#define FIELDNAMES_texCoordRamp	863
-#define FIELDNAMES_textBounds	864
-#define FIELDNAMES_texture	865
-#define FIELDNAMES_textureCompression	866
-#define FIELDNAMES_texturePriority	867
-#define FIELDNAMES_textureProperties	868
-#define FIELDNAMES_textureTransform	869
-#define FIELDNAMES_tickTime	870
-#define FIELDNAMES_time	871
-#define FIELDNAMES_timeOut	872
-#define FIELDNAMES_timestamp	873
-#define FIELDNAMES_title	874
-#define FIELDNAMES_toggle	875
-#define FIELDNAMES_tolerance	876
-#define FIELDNAMES_top	877
-#define FIELDNAMES_topTexture	878
-#define FIELDNAMES_topToBottom	879
-#define FIELDNAMES_topUrl	880
-#define FIELDNAMES_torques	881
-#define FIELDNAMES_touchTime	882
-#define FIELDNAMES_trackPoint_changed	883
-#define FIELDNAMES_trajectoryCurve	884
-#define FIELDNAMES_transferFunction	885
-#define FIELDNAMES_transitionComplete	886
-#define FIELDNAMES_transitionTime	887
-#define FIELDNAMES_transitionType	888
-#define FIELDNAMES_translation	889
-#define FIELDNAMES_translation_changed	890
-#define FIELDNAMES_transmitFrequencyBandwidth	891
-#define FIELDNAMES_transmitState	892
-#define FIELDNAMES_transmitterApplicationID	893
-#define FIELDNAMES_transmitterEntityID	894
-#define FIELDNAMES_transmitterRadioID	895
-#define FIELDNAMES_transmitterSiteID	896
-#define FIELDNAMES_transparency	897
-#define FIELDNAMES_triggerTime	898
-#define FIELDNAMES_triggerTrue	899
-#define FIELDNAMES_triggerValue	900
-#define FIELDNAMES_trimmingContour	901
-#define FIELDNAMES_turbulence	902
-#define FIELDNAMES_type	903
-#define FIELDNAMES_uClosed	904
-#define FIELDNAMES_uDimension	905
-#define FIELDNAMES_uKnot	906
-#define FIELDNAMES_uOrder	907
-#define FIELDNAMES_uTessellation	908
-#define FIELDNAMES_ulimit	909
-#define FIELDNAMES_update	910
-#define FIELDNAMES_url	911
-#define FIELDNAMES_useFiniteRotation	912
-#define FIELDNAMES_useGeometry	913
-#define FIELDNAMES_useGlobalGravity	914
-#define FIELDNAMES_vClosed	915
-#define FIELDNAMES_vDimension	916
-#define FIELDNAMES_vKnot	917
-#define FIELDNAMES_vOrder	918
-#define FIELDNAMES_vTessellation	919
-#define FIELDNAMES_value	920
-#define FIELDNAMES_valueChanged	921
-#define FIELDNAMES_value_changed	922
-#define FIELDNAMES_variation	923
-#define FIELDNAMES_vector	924
-#define FIELDNAMES_version	925
-#define FIELDNAMES_vertexCount	926
-#define FIELDNAMES_vertices	927
-#define FIELDNAMES_viewpoints	928
-#define FIELDNAMES_viewport	929
-#define FIELDNAMES_visibilityLimit	930
-#define FIELDNAMES_visibilityRange	931
-#define FIELDNAMES_visible	932
-#define FIELDNAMES_voxels	933
-#define FIELDNAMES_warhead	934
-#define FIELDNAMES_warmColor	935
-#define FIELDNAMES_watchList	936
-#define FIELDNAMES_weight	937
-#define FIELDNAMES_weightConstant1	938
-#define FIELDNAMES_weightConstant2	939
-#define FIELDNAMES_weightFunction1	940
-#define FIELDNAMES_weightFunction2	941
-#define FIELDNAMES_weightTransferFunction1	942
-#define FIELDNAMES_weightTransferFunction2	943
-#define FIELDNAMES_whichChoice	944
-#define FIELDNAMES_whichGeometry	945
-#define FIELDNAMES_writeInterval	946
-#define FIELDNAMES_xDimension	947
-#define FIELDNAMES_xSpacing	948
-#define FIELDNAMES_yScale	949
-#define FIELDNAMES_zDimension	950
-#define FIELDNAMES_zSpacing	951
+#define FIELDNAMES_set_coordinate	774
+#define FIELDNAMES_set_crossSection	775
+#define FIELDNAMES_set_destination	776
+#define FIELDNAMES_set_fraction	777
+#define FIELDNAMES_set_height	778
+#define FIELDNAMES_set_index	779
+#define FIELDNAMES_set_intersectionType	780
+#define FIELDNAMES_set_normalIndex	781
+#define FIELDNAMES_set_orientation	782
+#define FIELDNAMES_set_position	783
+#define FIELDNAMES_set_scale	784
+#define FIELDNAMES_set_sortOrder	785
+#define FIELDNAMES_set_spine	786
+#define FIELDNAMES_set_texCoordIndex	787
+#define FIELDNAMES_set_triggerTime	788
+#define FIELDNAMES_set_value	789
+#define FIELDNAMES_shaders	790
+#define FIELDNAMES_shadows	791
+#define FIELDNAMES_shape	792
+#define FIELDNAMES_shiftKey	793
+#define FIELDNAMES_shininess	794
+#define FIELDNAMES_side	795
+#define FIELDNAMES_silhouetteBoundaryOpacity	796
+#define FIELDNAMES_silhouetteRetainedOpacity	797
+#define FIELDNAMES_silhouetteSharpness	798
+#define FIELDNAMES_siteID	799
+#define FIELDNAMES_sites	800
+#define FIELDNAMES_size	801
+#define FIELDNAMES_sizeUnits	802
+#define FIELDNAMES_skeleton	803
+#define FIELDNAMES_skin	804
+#define FIELDNAMES_skinCoord	805
+#define FIELDNAMES_skinCoordIndex	806
+#define FIELDNAMES_skinCoordWeight	807
+#define FIELDNAMES_skinNormal	808
+#define FIELDNAMES_skyAngle	809
+#define FIELDNAMES_skyColor	810
+#define FIELDNAMES_sliderForce	811
+#define FIELDNAMES_slipCoefficients	812
+#define FIELDNAMES_slipFactors	813
+#define FIELDNAMES_softnessConstantForceMix	814
+#define FIELDNAMES_softnessErrorCorrection	815
+#define FIELDNAMES_solid	816
+#define FIELDNAMES_sortOrder	817
+#define FIELDNAMES_source	818
+#define FIELDNAMES_spacing	819
+#define FIELDNAMES_spatialize	820
+#define FIELDNAMES_specific	821
+#define FIELDNAMES_specularColor	822
+#define FIELDNAMES_speed	823
+#define FIELDNAMES_speedFactor	824
+#define FIELDNAMES_spine	825
+#define FIELDNAMES_startAngle	826
+#define FIELDNAMES_startTime	827
+#define FIELDNAMES_stiffness	828
+#define FIELDNAMES_stop1Bounce	829
+#define FIELDNAMES_stop1ErrorCorrection	830
+#define FIELDNAMES_stop2Bounce	831
+#define FIELDNAMES_stop2ErrorCorrection	832
+#define FIELDNAMES_stop3Bounce	833
+#define FIELDNAMES_stop3ErrorCorrection	834
+#define FIELDNAMES_stopBounce	835
+#define FIELDNAMES_stopBounce1	836
+#define FIELDNAMES_stopConstantForceMix1	837
+#define FIELDNAMES_stopErrorCorrection	838
+#define FIELDNAMES_stopErrorCorrection1	839
+#define FIELDNAMES_stopTime	840
+#define FIELDNAMES_string	841
+#define FIELDNAMES_stringInp	842
+#define FIELDNAMES_stripCount	843
+#define FIELDNAMES_style	844
+#define FIELDNAMES_subcategory	845
+#define FIELDNAMES_summary	846
+#define FIELDNAMES_surface	847
+#define FIELDNAMES_surfaceArea	848
+#define FIELDNAMES_surfaceNormals	849
+#define FIELDNAMES_surfaceSpeed	850
+#define FIELDNAMES_surfaceTolerance	851
+#define FIELDNAMES_surfaceValues	852
+#define FIELDNAMES_suspensionErrorCorrection	853
+#define FIELDNAMES_suspensionForce	854
+#define FIELDNAMES_talksTo	855
+#define FIELDNAMES_targetObject	856
+#define FIELDNAMES_tau	857
+#define FIELDNAMES_tdlType	858
+#define FIELDNAMES_tessellation	859
+#define FIELDNAMES_tessellationScale	860
+#define FIELDNAMES_texCoord	861
+#define FIELDNAMES_texCoordIndex	862
+#define FIELDNAMES_texCoordKey	863
+#define FIELDNAMES_texCoordRamp	864
+#define FIELDNAMES_textBounds	865
+#define FIELDNAMES_texture	866
+#define FIELDNAMES_textureCompression	867
+#define FIELDNAMES_texturePriority	868
+#define FIELDNAMES_textureProperties	869
+#define FIELDNAMES_textureTransform	870
+#define FIELDNAMES_tickTime	871
+#define FIELDNAMES_time	872
+#define FIELDNAMES_timeOut	873
+#define FIELDNAMES_timestamp	874
+#define FIELDNAMES_title	875
+#define FIELDNAMES_toggle	876
+#define FIELDNAMES_tolerance	877
+#define FIELDNAMES_top	878
+#define FIELDNAMES_topTexture	879
+#define FIELDNAMES_topToBottom	880
+#define FIELDNAMES_topUrl	881
+#define FIELDNAMES_torques	882
+#define FIELDNAMES_touchTime	883
+#define FIELDNAMES_trackPoint_changed	884
+#define FIELDNAMES_trajectoryCurve	885
+#define FIELDNAMES_transferFunction	886
+#define FIELDNAMES_transitionComplete	887
+#define FIELDNAMES_transitionTime	888
+#define FIELDNAMES_transitionType	889
+#define FIELDNAMES_translation	890
+#define FIELDNAMES_translation_changed	891
+#define FIELDNAMES_transmitFrequencyBandwidth	892
+#define FIELDNAMES_transmitState	893
+#define FIELDNAMES_transmitterApplicationID	894
+#define FIELDNAMES_transmitterEntityID	895
+#define FIELDNAMES_transmitterRadioID	896
+#define FIELDNAMES_transmitterSiteID	897
+#define FIELDNAMES_transparency	898
+#define FIELDNAMES_triggerTime	899
+#define FIELDNAMES_triggerTrue	900
+#define FIELDNAMES_triggerValue	901
+#define FIELDNAMES_trimmingContour	902
+#define FIELDNAMES_turbulence	903
+#define FIELDNAMES_type	904
+#define FIELDNAMES_uClosed	905
+#define FIELDNAMES_uDimension	906
+#define FIELDNAMES_uKnot	907
+#define FIELDNAMES_uOrder	908
+#define FIELDNAMES_uTessellation	909
+#define FIELDNAMES_ulimit	910
+#define FIELDNAMES_update	911
+#define FIELDNAMES_url	912
+#define FIELDNAMES_useFiniteRotation	913
+#define FIELDNAMES_useGeometry	914
+#define FIELDNAMES_useGlobalGravity	915
+#define FIELDNAMES_vClosed	916
+#define FIELDNAMES_vDimension	917
+#define FIELDNAMES_vKnot	918
+#define FIELDNAMES_vOrder	919
+#define FIELDNAMES_vTessellation	920
+#define FIELDNAMES_value	921
+#define FIELDNAMES_valueChanged	922
+#define FIELDNAMES_value_changed	923
+#define FIELDNAMES_variation	924
+#define FIELDNAMES_vector	925
+#define FIELDNAMES_version	926
+#define FIELDNAMES_vertexCount	927
+#define FIELDNAMES_vertices	928
+#define FIELDNAMES_viewpoints	929
+#define FIELDNAMES_viewport	930
+#define FIELDNAMES_visibilityLimit	931
+#define FIELDNAMES_visibilityRange	932
+#define FIELDNAMES_visible	933
+#define FIELDNAMES_voxels	934
+#define FIELDNAMES_warhead	935
+#define FIELDNAMES_warmColor	936
+#define FIELDNAMES_watchList	937
+#define FIELDNAMES_weight	938
+#define FIELDNAMES_weightConstant1	939
+#define FIELDNAMES_weightConstant2	940
+#define FIELDNAMES_weightFunction1	941
+#define FIELDNAMES_weightFunction2	942
+#define FIELDNAMES_weightTransferFunction1	943
+#define FIELDNAMES_weightTransferFunction2	944
+#define FIELDNAMES_whichChoice	945
+#define FIELDNAMES_whichGeometry	946
+#define FIELDNAMES_writeInterval	947
+#define FIELDNAMES_xDimension	948
+#define FIELDNAMES_xSpacing	949
+#define FIELDNAMES_yScale	950
+#define FIELDNAMES_zDimension	951
+#define FIELDNAMES_zSpacing	952
 
 const char *stringFieldType(int st);
 
@@ -1494,36 +1495,38 @@ extern const int EVENT_IN_COUNT;
 #define EVENT_IN_removeChildren	8
 #define EVENT_IN_removeGeometry	9
 #define EVENT_IN_removeTrimmingContour	10
-#define EVENT_IN_setValue	11
-#define EVENT_IN_set_articulationParameterValue0	12
-#define EVENT_IN_set_articulationParameterValue1	13
-#define EVENT_IN_set_articulationParameterValue2	14
-#define EVENT_IN_set_articulationParameterValue3	15
-#define EVENT_IN_set_articulationParameterValue4	16
-#define EVENT_IN_set_articulationParameterValue5	17
-#define EVENT_IN_set_articulationParameterValue6	18
-#define EVENT_IN_set_articulationParameterValue7	19
-#define EVENT_IN_set_bind	20
-#define EVENT_IN_set_boolean	21
-#define EVENT_IN_set_colorIndex	22
-#define EVENT_IN_set_contacts	23
-#define EVENT_IN_set_coordIndex	24
-#define EVENT_IN_set_crossSection	25
-#define EVENT_IN_set_destination	26
-#define EVENT_IN_set_fraction	27
-#define EVENT_IN_set_height	28
-#define EVENT_IN_set_index	29
-#define EVENT_IN_set_intersectionType	30
-#define EVENT_IN_set_normalIndex	31
-#define EVENT_IN_set_orientation	32
-#define EVENT_IN_set_position	33
-#define EVENT_IN_set_scale	34
-#define EVENT_IN_set_sortOrder	35
-#define EVENT_IN_set_spine	36
-#define EVENT_IN_set_texCoordIndex	37
-#define EVENT_IN_set_triggerTime	38
-#define EVENT_IN_set_value	39
-#define EVENT_IN_tickTime	40
+#define EVENT_IN_retainUserOffsets	11
+#define EVENT_IN_setValue	12
+#define EVENT_IN_set_articulationParameterValue0	13
+#define EVENT_IN_set_articulationParameterValue1	14
+#define EVENT_IN_set_articulationParameterValue2	15
+#define EVENT_IN_set_articulationParameterValue3	16
+#define EVENT_IN_set_articulationParameterValue4	17
+#define EVENT_IN_set_articulationParameterValue5	18
+#define EVENT_IN_set_articulationParameterValue6	19
+#define EVENT_IN_set_articulationParameterValue7	20
+#define EVENT_IN_set_bind	21
+#define EVENT_IN_set_boolean	22
+#define EVENT_IN_set_colorIndex	23
+#define EVENT_IN_set_contacts	24
+#define EVENT_IN_set_coordIndex	25
+#define EVENT_IN_set_coordinate	26
+#define EVENT_IN_set_crossSection	27
+#define EVENT_IN_set_destination	28
+#define EVENT_IN_set_fraction	29
+#define EVENT_IN_set_height	30
+#define EVENT_IN_set_index	31
+#define EVENT_IN_set_intersectionType	32
+#define EVENT_IN_set_normalIndex	33
+#define EVENT_IN_set_orientation	34
+#define EVENT_IN_set_position	35
+#define EVENT_IN_set_scale	36
+#define EVENT_IN_set_sortOrder	37
+#define EVENT_IN_set_spine	38
+#define EVENT_IN_set_texCoordIndex	39
+#define EVENT_IN_set_triggerTime	40
+#define EVENT_IN_set_value	41
+#define EVENT_IN_tickTime	42
 
 
 /* Table of built-in fieldIds */
@@ -4420,6 +4423,8 @@ struct X3D_EspduTransform {
 	int firingRate;
 	int forceID;
 	int fuse;
+	struct SFVec3d geoCoords;
+	struct Multi_String geoSystem;
 	struct SFVec3f linearVelocity;
 	struct SFVec3f linearAcceleration;
 	struct Uni_String *marking;
@@ -4931,6 +4936,7 @@ struct X3D_GeoProximitySensor {
  	/*** node specific data: *****/
 	int enabled;
 	struct SFVec3d geoCenter;
+	struct SFVec3d center;
 	struct X3D_Node *metadata;
 	struct SFVec3f size;
 	struct SFVec3f centerOfRotation_changed;
@@ -5056,6 +5062,7 @@ struct X3D_GeoViewpoint {
 	struct X3D_Node *metadata;
 	struct SFRotation orientation;
 	struct SFVec3d position;
+	struct SFVec3d centerOfRotation;
 	int _layerId;
 	int _donethispass;
 	struct SFRotation set_orientation;
@@ -5065,6 +5072,7 @@ struct X3D_GeoViewpoint {
 	struct X3D_Node *geoOrigin;
 	struct Multi_String geoSystem;
 	float speedFactor;
+	int retainUserOffsets;
 	struct Multi_Int32 __geoSystem;
 	struct SFVec3d __movedPosition;
 	struct SFRotation __movedOrientation;
@@ -8270,6 +8278,7 @@ struct X3D_PolylineEmitter {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct Multi_Int32 set_coordIndex;
+	int set_coordinate;
 	struct X3D_Node *coord;
 	struct SFVec3f direction;
 	struct X3D_Node *metadata;
@@ -8699,6 +8708,8 @@ struct X3D_ReceiverPdu {
 	int applicationID;
 	int enabled;
 	int entityID;
+	struct SFVec3d geoCoords;
+	struct Multi_String geoSystem;
 	struct X3D_Node *metadata;
 	struct Uni_String *multicastRelayHost;
 	int multicastRelayPort;
@@ -9159,6 +9170,8 @@ struct X3D_SignalPdu {
 	int enabled;
 	int encodingScheme;
 	int entityID;
+	struct SFVec3d geoCoords;
+	struct Multi_String geoSystem;
 	struct X3D_Node *metadata;
 	struct Uni_String *multicastRelayHost;
 	int multicastRelayPort;
@@ -9585,6 +9598,7 @@ struct X3D_SurfaceEmitter {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct Multi_Int32 set_coordIndex;
+	int set_coordinate;
 	struct X3D_Node *metadata;
 	float speed;
 	float variation;
@@ -10190,6 +10204,8 @@ struct X3D_TransmitterPdu {
 	int enabled;
 	int entityID;
 	int frequency;
+	struct SFVec3d geoCoords;
+	struct Multi_String geoSystem;
 	int inputSource;
 	int lengthOfModulationParameters;
 	struct X3D_Node *metadata;
@@ -10573,6 +10589,7 @@ struct X3D_VolumeEmitter {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct Multi_Int32 set_coordIndex;
+	int set_coordinate;
 	struct X3D_Node *coord;
 	struct SFVec3f direction;
 	struct X3D_Node *metadata;
