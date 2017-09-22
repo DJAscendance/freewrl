@@ -935,10 +935,10 @@ void CRoutes_RegisterSimpleB(
 	if(from && to){
 		fromOfs = fromIndex;
 		if(usesBuiltin(from))
-			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*5 + 1]; //for builtins, convert from field index to byte offset
+			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		toOfs = toIndex;
 		if(usesBuiltin(to))
-			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*5 + 1]; //for builtins, convert from field index to byte offset
+			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		CRoutes_RegisterSimple(from,fromOfs,to,toOfs,type);
 	}
 }
@@ -971,10 +971,10 @@ void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex,
 	fromOfs = fromIndex;
 	if(from && to){
 		if(usesBuiltin(from))
-			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*5 + 1]; //for builtins, convert from field index to byte offset
+			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		toOfs = toIndex;
 		if(usesBuiltin(to))
-			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*5 + 1]; //for builtins, convert from field index to byte offset
+			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 
 		CRoutes_RemoveSimple(from,fromOfs,to,toOfs,len);
 	}
@@ -2221,7 +2221,7 @@ union anyVrml* get_anyVrml(struct X3D_Node* node, int offset, int *type, int *mo
 						fromMode = PKW_from_KW(offsets[3]);
 						break;
 					}
-					offsets += 5;
+					offsets += FIELDOFFSET_LENGTH;
 				}
 			}
 			break;
@@ -2451,7 +2451,7 @@ void propagate_events_B() {
 								modeFrom = PKW_from_KW(offsets[3]);
 								break;
 							}
-							offsets += 5;
+							offsets += FIELDOFFSET_LENGTH;
 						}
 					}
 					break;
@@ -2547,7 +2547,7 @@ void propagate_events_B() {
 										modeTo = PKW_from_KW(offsets[3]);
 										break;
 									}
-									offsets += 5;
+									offsets += FIELDOFFSET_LENGTH;
 								}
 							}
 							break;

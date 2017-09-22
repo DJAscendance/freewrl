@@ -2212,7 +2212,7 @@ void checkParentLink (struct X3D_Node *node,struct X3D_Node *parent) {
 			}
 
 		}
-		offsetptr+=5;
+		offsetptr += FIELDOFFSET_LENGTH;
 	}
 }
 

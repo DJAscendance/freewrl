@@ -1647,20 +1647,20 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 //				Then how should torque factor be calculated - from force or from mass et al?
 //problem: force is/should be/could be a derived unit 
 //   force = mass * length / time**2, ie newton = kg * m / s**2
-enum {
-	UNCA_NONE = 0,
-	UNCA_LENGTH = 1,
-	UNCA_ANGLE,
-	UNCA_MASS,
-	UNCA_FORCE,
-	UNCA_ACCEL,
-	UNCA_ANGLERATE,
-	UNCA_AREA,
-	UNCA_SPEED,
-	UNCA_VOLUME,
-	UNCA_TORQUE,
-	UNCA_MOMENT,
-};
+//enum {
+//	UNCA_NONE = 0,
+//	UNCA_LENGTH = 1,
+//	UNCA_ANGLE,
+//	UNCA_MASS,
+//	UNCA_FORCE,
+//	UNCA_ACCEL,
+//	UNCA_ANGLERATE,
+//	UNCA_AREA,
+//	UNCA_SPEED,
+//	UNCA_VOLUME,
+//	UNCA_TORQUE,
+//	UNCA_MOMENT,
+//};
 struct unca {
 	char *catname;
 	int iunca;
@@ -3943,7 +3943,7 @@ BOOL route_parse_nodefield(struct VRMLParser* me, int *NodeIndex, struct X3D_Nod
 	if(foundField)
 	{
 		if(source == 0)
-			*Ofs = NODE_OFFSETS[(*Node)->_nodeType][ifield*5 + 1];
+			*Ofs = NODE_OFFSETS[(*Node)->_nodeType][ifield*FIELDOFFSET_LENGTH + 1];
 		else
 			*Ofs = ifield;
 		*ScriptField = fdecl;
@@ -5021,6 +5021,7 @@ void deep_copy_node(struct X3D_Node** source, struct X3D_Node** dest, struct Vec
 			int typeIndex;
 			int ioType;
 			int version;
+			int unca;
 		} *finfo;
 		finfo offsets;
 		finfo field;
@@ -5851,6 +5852,7 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 			int typeIndex;
 			int ioType;
 			int version;
+			int unca;
 		} *finfo;
 
 		finfo offsets;
@@ -5971,6 +5973,7 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 			int typeIndex;
 			int ioType;
 			int version;
+			int unca;
 		} *finfo;
 
 		finfo offsets;

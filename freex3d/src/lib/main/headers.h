@@ -48,7 +48,22 @@ void Multi_String_print(struct Multi_String *url);
 #define SPEC_X3D34 0x20
 #define SPEC_VRML1 0x01 /* same as SPEC_VRML */
 
-
+/*UNIT statement base and derived 'unit categories', un-ca or UNCA for short */
+enum {
+	UNCA_NONE = 0,
+	UNCA_LENGTH = 1,
+	UNCA_ANGLE,
+	UNCA_MASS,
+	UNCA_FORCE,
+	UNCA_ACCEL,
+	UNCA_ANGLERATE,
+	UNCA_AREA,
+	UNCA_SPEED,
+	UNCA_VOLUME,
+	UNCA_TORQUE,
+	UNCA_MOMENT,
+};
+#define FIELDOFFSET_LENGTH 6  //search also for struct field_info
 
 int viewer_iside();
 /* children fields path optimizations */

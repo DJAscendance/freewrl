@@ -693,6 +693,7 @@ void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack 
 		int typeIndex;
 		int ioType;
 		int version;
+		int unca;
 	} *finfo;
 	finfo offsets;
 	finfo field;

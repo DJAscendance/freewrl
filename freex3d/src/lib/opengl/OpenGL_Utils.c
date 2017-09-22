@@ -4613,7 +4613,7 @@ void *sibAffectorPtr(struct X3D_Node *node){
 			fieldPtr = offsetPointer_deref(char *, node,fieldOffsetsPtr[1]);
 			break;
 		}
-		fieldOffsetsPtr += 5; // &fieldOffsetsPtr[5]; //5 ints per table entry
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH; // &fieldOffsetsPtr[5]; //5 ints per table entry
 	}
 	return fieldPtr;
 }
@@ -5429,7 +5429,7 @@ void markForDispose(struct X3D_Node *node, int recursive){
 			}
 			default:; /* do nothing - field not malloc'd */
 		}
-		fieldOffsetsPtr+=5;
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 	}
 
 
@@ -5524,7 +5524,7 @@ BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(), void* callbackDa
 		jfield++;
 		foundField = callbackFunc(callbackData,node,jfield,fieldPtr,fname,mode,type,source,publicfield);
 		if( foundField )break;
-		fieldOffsetsPtr+=5;
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 	}
 	if(!foundField)
 	{
@@ -6211,7 +6211,7 @@ OLDCODE				break;
 OLDCODE
 OLDCODE			default:; // do nothing - field not malloc'd 
 OLDCODE		}
-OLDCODE		fieldOffsetsPtr+=5;
+OLDCODE		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 OLDCODE	}
 OLDCODE
 OLDCODE	FREE_IF_NZ(structptr);
