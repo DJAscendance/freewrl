@@ -67,6 +67,12 @@ use warnings;
 				die("Missing field or event type $type X3DNodeType $X3DNodeType for $fname in $name");
 			}
 			$this->{SpecLevel}{$fname} = $t;
+			
+			$t = $field[4];
+			if (!defined $t) {
+				die("Missing field or event type $type X3DNodeType $X3DNodeType for $fname in $name");
+			}
+			$this->{Unca}{$fname} = $t;
 
 		}
 		$this->{fnames} = \@fnames;
@@ -227,7 +233,7 @@ our %Nodes = (
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_sortedChildren => ["MFNode", [], "inputOutput", 0,0],#ff
-		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__protoDeclares => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
@@ -804,7 +810,7 @@ our %Nodes = (
 		solid => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__points  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
 		__texCoords  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
-		__numPoints =>["SFInt32",0,"initializeOnly", 0],
+		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__simpleDisk => ["SFBool", "TRUE","initializeOnly", 0,0],#ff
 		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
@@ -1693,7 +1699,7 @@ our %Nodes = (
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__points =>["MFVec3f",[],"initializeOnly", 0,0],#ff
 		__colours =>["MFVec3f",[],"initializeOnly", 0,0],#ff
-		__quadcount => ["SFInt32",0,"initializeOnly", 0],
+		__quadcount => ["SFInt32",0,"initializeOnly", 0,0],#ff
 		__VBO=>["SFInt32",0,"initializeOnly",0,0],#ff  # Vertex Buffer Object, if required.
 
 		frontTexture=>["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1982,7 +1988,7 @@ our %Nodes = (
 	"HAnimDisplacer" => new VRML::NodeType("HAnimDisplacer", [
 		coordIndex => ["MFInt32", [], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff # see note top of file
 		displacements => ["MFVec3f", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)"],
+		name => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		weight => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DGeometricPropertyNode"),
