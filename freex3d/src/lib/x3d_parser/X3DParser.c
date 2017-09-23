@@ -522,6 +522,7 @@ static struct X3D_Node *DEFNameIndex (const char *name, struct X3D_Node* node, i
 
 
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca);
 void broto_store_route(struct X3D_Proto* proto, struct X3D_Node* fromNode, int fromOfs, struct X3D_Node* toNode, int toOfs, int ft);
 struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
 void broto_store_ImportRoute(struct X3D_Proto* proto, char *fromNode, char *fromField, char *toNode, char* toField);
@@ -1410,11 +1411,11 @@ static xmlChar* fixAmp(const unsigned char *InFieldValue)
 	return (xmlChar *)fieldValue;
 }
 int isUnits();
-void sfunitf(int nodeType,char *fieldname, float *var, int n);
-void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n);
-void sfunitd(int nodeType,char *fieldname, double *var, int n);
+void sfunitf(int nodeType,char *fieldname, float *var, int n, int iuncafield);
+void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n, int iuncafield);
+void sfunitd(int nodeType,char *fieldname, double *var, int n, int iuncafield);
 static void parseAttributes_B(void *ud, char **atts) {
-	int i, type, kind, iifield;
+	int i, type, kind, iifield, iunca;
 	struct X3D_Node *node;
 	char *name, *svalue;
 	const char *ignore [] = {"containerField","USE", "DEF"};
@@ -1426,27 +1427,27 @@ static void parseAttributes_B(void *ud, char **atts) {
 		svalue = atts[i+1];
 		/* see if we have a containerField here */
 		if(findFieldInARR(name,ignore,3) == INT_ID_UNDEFINED){
-			if(getFieldFromNodeAndName(node,name,&type,&kind,&iifield,&value)){
+			if(getFieldFromNodeAndNameU(node,name,&type,&kind,&iifield,&value,&iunca)){
 				deleteMallocedFieldValue(type,value);
 				Parser_scanStringValueToMem_B(value, type,svalue, TRUE);
 				switch(type){
 					case FIELDTYPE_SFRotation:
-						sfunitf(node->_nodeType,name,&value->sfrotation.c[3],1);
+						sfunitf(node->_nodeType,name,&value->sfrotation.c[3],1,iunca);
 						break;
 					case FIELDTYPE_SFFloat:
-						sfunitf(node->_nodeType,name,&value->sffloat,1);
+						sfunitf(node->_nodeType,name,&value->sffloat,1,iunca);
 						break;
 					case FIELDTYPE_MFFloat:
-						sfunitf(node->_nodeType,name,value->mffloat.p,value->mffloat.n);
+						sfunitf(node->_nodeType,name,value->mffloat.p,value->mffloat.n,iunca);
 						break;
 					case FIELDTYPE_SFMatrix3f:
-						sfunitf(node->_nodeType,name,value->sfmatrix3f.c, 9);
+						sfunitf(node->_nodeType,name,value->sfmatrix3f.c, 9,iunca);
 						break;
 					case FIELDTYPE_MFRotation:
-						mfunitrotation(node->_nodeType,name,value->mfrotation.p,value->mfrotation.n);
+						mfunitrotation(node->_nodeType,name,value->mfrotation.p,value->mfrotation.n,iunca);
 						break;
 					case FIELDTYPE_SFDouble:
-						sfunitd(node->_nodeType,name,&value->sfdouble,1);
+						sfunitd(node->_nodeType,name,&value->sfdouble,1,iunca);
 						break;
 					default:
 						break;

@@ -1468,9 +1468,13 @@ sub gen {
 				my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 				my $origFt = "FIELDTYPE_".$VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 				$ft =~ tr/A-Z/a-z/; # convert to lowercase
-
-				push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt)\n";
-			}
+				my $unca = $VRML::NodeType::Nodes{$node}{Unca}{$field};
+				if ("initializeOnly" eq $ofk or "inputOutput" eq $ofk){
+					push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt,$unca)\n";
+				}else{
+					push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt)\n";
+				}
+			}	
 		};
 		push @fieldNodes, "END_NODE($node)\n";
 	}

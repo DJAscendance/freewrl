@@ -2026,10 +2026,17 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	}
 
 }
-void sfunitf(int nodetype,char *fieldname, float *var, int n) {
+
+static int iunca_lookup_method_field = FALSE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
+static int iunca_doing_length_by_field = FALSE;
+void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 	if(isUnits()){
-		int iunca = lookup_unitfields(nodetype, fieldname);
-		if(iunca){
+		int iunca;
+		if(iunca_lookup_method_field)
+			iunca = iuncafield;
+		else
+			iunca = lookup_unitfields(nodetype, fieldname);
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
@@ -2046,14 +2053,18 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n) {
 		}
 	}
 }
-void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n){
+void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n, int iuncafield){
 	if(isUnits()){
 		//check if we need to convert units on this node->field
 		//for(int i=0;i<n;i++){
 		//	var[i].c[3] *= rotationFactor;
 		//}
-		int iunca = lookup_unitfields(nodetype, fieldname);
-		if(iunca){
+		int iunca;
+		if(iunca_lookup_method_field)
+			iunca = iuncafield;
+		else
+			iunca = lookup_unitfields(nodetype, fieldname);
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
@@ -2085,10 +2096,10 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_sfbool(var,fieldname)
 #define INIT_CODE_sfcolor(var,fieldname)
 #define INIT_CODE_sfcolorrgba(var,fieldname)
-#define INIT_CODE_sffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname, (float*)&node2->var, 1);
+#define INIT_CODE_sffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname, (float*)&node2->var, 1,iunca);
 #define INIT_CODE_sfimage(var,fieldname)
 #define INIT_CODE_sfint32(var,fieldname)
-#define INIT_CODE_sfrotation(var,fieldname) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1);
+#define INIT_CODE_sfrotation(var,fieldname) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1,iunca);
 #define INIT_CODE_sfstring(var,fieldname)
 #define INIT_CODE_sftime(var,fieldname)
 #define INIT_CODE_sfvec2f(var,fieldname)
@@ -2097,9 +2108,9 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_mfbool(var,fieldname)
 #define INIT_CODE_mfcolor(var,fieldname)
 #define INIT_CODE_mfcolorrgba(var,fieldname)
-#define INIT_CODE_mffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.p, node2->var.n);
+#define INIT_CODE_mffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.p, node2->var.n,iunca);
 #define INIT_CODE_mfint32(var,fieldname)
-#define INIT_CODE_mfrotation(var,fieldname) mfunitrotation(node2->_nodeType,fieldname, node2->var.p, node2->var.n);
+#define INIT_CODE_mfrotation(var,fieldname) mfunitrotation(node2->_nodeType,fieldname, node2->var.p, node2->var.n,iunca);
 #define INIT_CODE_mfstring(var,fieldname)
 #define INIT_CODE_mftime(var,fieldname)
 #define INIT_CODE_mfvec2f(var,fieldname)
@@ -2117,7 +2128,7 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_mfvec4d(var,fieldname)
 #define INIT_CODE_mfvec4f(var,fieldname)
 #define INIT_CODE_sfmatrix3d(var,fieldname)
-#define INIT_CODE_sfmatrix3f(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.c, 9);
+#define INIT_CODE_sfmatrix3f(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.c, 9,iunca);
 #define INIT_CODE_sfmatrix4d(var,fieldname)
 #define INIT_CODE_sfmatrix4f(var,fieldname)
 #define INIT_CODE_sfvec2d(var,fieldname)
@@ -2128,6 +2139,7 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 {
     int fieldO;
     int fieldE;
+	int iunca;
 	//BOOL retval;
 	DECLAREUP
     ASSERT(me->lexer);
@@ -2215,12 +2227,13 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 /* For a normal "field value" (i.e. position 1 0 1) statement gets the actual value of the field 
    from the file (next token(s) to be processed) and stores it in the node
    For an IS statement, adds this node-field combo as a destination to the appropriate protoFieldDecl */
-#define PROCESS_FIELD_B(exposed, node, field, fieldType, var, fe) \
+#define PROCESS_FIELD_B(exposed, node, field, fieldType, var, fe, junca) \
   case exposed##FIELD_##field: \
    if(!parser_fieldValue(me, \
     X3D_NODE(node2), (int) offsetof(struct X3D_##node, var), \
     FTIND_##fieldType, fe, FALSE, NULL, NULL)) {\
         PARSE_ERROR("Expected " #fieldType " Value for a fieldtype!") }\
+	iunca = junca; \
 	INIT_CODE_##fieldType(var,#field) \
    return TRUE;
  
@@ -2252,11 +2265,11 @@ if(fieldE!=ID_UNDEFINED)
      {
 
 /* Process exposed fields */
-#define EXPOSED_FIELD(node, field, fieldType, var, realType) \
-    PROCESS_FIELD_B(EXPOSED_, node, field, fieldType, var, fieldE)
+#define EXPOSED_FIELD(node, field, fieldType, var, realType,iunca) \
+    PROCESS_FIELD_B(EXPOSED_, node, field, fieldType, var, fieldE,iunca)
 
 /* Ignore just fields */
-#define FIELD(n, f, t, v, realType)
+#define FIELD(n, f, t, v, realType,iunca)
 
 /* Process it */
 #include "NodeFields.h"
@@ -2285,11 +2298,11 @@ if(fieldO!=ID_UNDEFINED)
      {
 
          /* Process fields */
-#define FIELD(node, field, fieldType, var, realType) \
-    PROCESS_FIELD_B(, node, field, fieldType, var, ID_UNDEFINED)
+#define FIELD(node, field, fieldType, var, realType,iunca) \
+    PROCESS_FIELD_B(, node, field, fieldType, var, ID_UNDEFINED,iunca)
 
          /* Ignore exposed fields */
-#define EXPOSED_FIELD(n, f, t, v, realType)
+#define EXPOSED_FIELD(n, f, t, v, realType,iunca)
 
          /* Process it */
 #include "NodeFields.h"
@@ -5775,12 +5788,13 @@ int count_fields(struct X3D_Node* node)
 //========
 void **shaderFields(struct X3D_Node* node);
 //convenience wrappers to get details for built-in fields and -on script and protoInstance- dynamic fields
-int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca){
 	void **shaderfield;
 	*type = 0;
 	*kind = 0;
 	*iifield = -1;
 	*value = NULL;
+	*iunca = UNCA_NONE;
 	shaderfield = shaderFields(node);
 	//Q. what about shader script?
 	if(node->_nodeType == NODE_Script) 
@@ -5894,6 +5908,7 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				*kind = kkind;
 				*iifield = ifield; 
 				*value = (union anyVrml*)&((char*)node)[field->offset];
+				*iunca = field->unca;
 				return 1;
 			}
 			ifield++;
@@ -5902,9 +5917,9 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 	}
 	return 0;
 }
-int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca){
 	int ifound = 0;
-	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,value);
+	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,value,iunca);
 	if(!ifound){
 		int ln, hsn, hcn;
 		const char *nf;
@@ -5912,7 +5927,7 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 
 		if(hsn){
 			//set_ prefix
-			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,value);
+			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,value,iunca);
 		}
 		ln++;
 		if(hcn) {
@@ -5920,11 +5935,18 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 			char rootname[MAXJSVARIABLELENGTH];
 			strncpy(rootname,fieldname,ln);
 			rootname[ln] = '\0';
-			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,value);
+			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,value,iunca);
 		}
 	}
 	return ifound;		
 }
+int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+	int iunca;
+	int ifound;
+	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,value,&iunca); //waste iunca
+	return ifound;
+}
+
 int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value){
 	int iret = 0;
 	*type = 0;
