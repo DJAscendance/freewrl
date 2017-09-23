@@ -52,6 +52,7 @@ void Multi_String_print(struct Multi_String *url);
 enum {
 	UNCA_NONE = 0,
 	UNCA_LENGTH = 1,
+	UNCA_BLENGTH,  //bboxCenter, bboxSize
 	UNCA_ANGLE,
 	UNCA_MASS,
 	UNCA_FORCE,
@@ -62,6 +63,7 @@ enum {
 	UNCA_VOLUME,
 	UNCA_TORQUE,
 	UNCA_MOMENT,
+	UNCA_GEO, //don't know if its angle or length untill geoSystem field parsed
 };
 #define FIELDOFFSET_LENGTH 6  //search also for struct field_info
 
