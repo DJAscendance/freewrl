@@ -3617,6 +3617,7 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
 	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 
     /* PROTO body */
     /* Make sure that the next oken is a '{'.  Skip over it. */
@@ -3774,6 +3775,7 @@ static BOOL parser_externbrotoStatement(struct VRMLParser* me)
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = (void *)STRDUP(obj->protoName);
 	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 
 	/* EXTERNPROTO url */
 	{
@@ -4496,6 +4498,7 @@ struct X3D_Proto *brotoInstance(struct X3D_Proto* proto, BOOL ideep)
 	p->__prototype = proto->__prototype;
 	p->_nodeType = proto->_nodeType;
 	p->__unitlengthfactor = proto->__unitlengthfactor;
+	p->__specversion = proto->__specversion;
 	p->_defaultContainer = proto->_defaultContainer;
 	p->_renderFlags = proto->_renderFlags;
 	pobj = proto->__protoDef;

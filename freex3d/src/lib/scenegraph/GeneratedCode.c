@@ -197,6 +197,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__simpleDisk",
 	"__solid",
 	"__sourceNumber",
+	"__specversion",
 	"__subTextures",
 	"__subcontexts",
 	"__t1",
@@ -5011,6 +5012,7 @@ const int OFFSETS_Inline[] = {
 	(int) FIELDNAMES___prototype, (int) offsetof (struct X3D_Inline, __prototype),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___scripts, (int) offsetof (struct X3D_Inline, __scripts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_Inline, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___specversion, (int) offsetof (struct X3D_Inline, __specversion),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___subcontexts, (int) offsetof (struct X3D_Inline, __subcontexts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___typename, (int) offsetof (struct X3D_Inline, __typename),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___unitlengthfactor, (int) offsetof (struct X3D_Inline, __unitlengthfactor),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -6282,6 +6284,7 @@ const int OFFSETS_Proto[] = {
 	(int) FIELDNAMES___prototype, (int) offsetof (struct X3D_Proto, __prototype),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___scripts, (int) offsetof (struct X3D_Proto, __scripts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_Proto, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___specversion, (int) offsetof (struct X3D_Proto, __specversion),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___subcontexts, (int) offsetof (struct X3D_Proto, __subcontexts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___typename, (int) offsetof (struct X3D_Proto, __typename),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___unitlengthfactor, (int) offsetof (struct X3D_Proto, __unitlengthfactor),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -10046,6 +10049,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__prototype = NULL;
 			tmp2->__scripts = 0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->__specversion = 0;
 			tmp2->__subcontexts = 0;
 			tmp2->__typename = 0;
 			tmp2->__unitlengthfactor = 1;
@@ -11711,6 +11715,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__prototype = NULL;
 			tmp2->__scripts = 0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->__specversion = 0;
 			tmp2->__subcontexts = 0;
 			tmp2->__typename = 0;
 			tmp2->__unitlengthfactor = 1;

@@ -784,6 +784,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 				//    - #3 IMPLEMENTED AUG 22, 2016
 				shouldBind = TRUE; //TRUE; 
 				// OLDCODE shouldUnBind = FALSE; //brotos > Inlines > additively bind (not sure about other things like externProto 17.wrl)
+				X3D_INLINE(nRn)->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			}
 		}else{
 			// we do a kind of hot-swap: we parse into a new broto,
@@ -796,6 +797,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 			sceneProto->__protoFlags = ciflag_set(sceneProto->__protoFlags,2,2);
 
 			nRn = X3D_NODE(sceneProto);
+			sceneProto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			ectx = nRn;
 			rn = rootNode(); //save a pointer to old rootnode
 			setRootNode(X3D_NODE(sceneProto)); //set new rootnode

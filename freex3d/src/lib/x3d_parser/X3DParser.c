@@ -976,15 +976,7 @@ static void parseX3Dhead(void *ud, char **atts) {
 		handleVersion (atts[versionIndex]);
 		//already set to 300 in resources.c when file is initially identified as x3d
 		//we update here with more specific <X3D version='3.3.0'> version
-		if(ec->__loadResource ){
-			//an inline scene file would come in here
-			resource_item_t *res = (resource_item_t *)ec->__loadResource;
-			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
-		} else if(ec->_parentResource){
-			//an extern proto scene file would come in here
-			resource_item_t *res = (resource_item_t *)ec->_parentResource;
-			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
-		}
+		ec->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	}
 }
 
@@ -1624,6 +1616,7 @@ static void parseExternProtoDeclare_B (void *ud, char **atts) {
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
 	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(containerfield){
 		int builtinField = findFieldInFIELDNAMES(containerfield);
 		if(builtinField > -1){
@@ -1695,6 +1688,7 @@ static void parseProtoDeclare_B (void *ud, char **atts) {
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
 	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(containerfield){
 		int builtinField = findFieldInFIELDNAMES(containerfield);
 		if(builtinField > -1){
