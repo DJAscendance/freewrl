@@ -1711,6 +1711,7 @@ struct unitfield {
 	{NODE_ElevationGrid,"creaseAngle",UNCA_ANGLE},
 	{NODE_IndexedFaceSet,"creaseAngle",UNCA_ANGLE},
 	{NODE_SpotLight,"cutOffAngle",UNCA_ANGLE},
+	{NODE_SpotLight,"beamWidth",UNCA_ANGLE},
 	{NODE_CylinderSensor,"diskAngle",UNCA_ANGLE},
 	{NODE_CylinderSensor,"maxAngle",UNCA_ANGLE}, 
 	{NODE_CylinderSensor,"minAngle",UNCA_ANGLE},
@@ -1741,17 +1742,22 @@ struct unitfield {
 	{NODE_PlaneSensor,"axisRotation",UNCA_ANGLE},
 	{NODE_SphereSensor,"offset",UNCA_ANGLE},
 	{NODE_Viewpoint,"orientation",UNCA_ANGLE},
+	{NODE_Viewpoint,"fieldOfView",UNCA_ANGLE},
 	{NODE_OrthoViewpoint,"orientation",UNCA_ANGLE},
 
 	{NODE_GeoTransform,"rotation",UNCA_ANGLE}, 
 	{NODE_GeoTransform,"scaleOrientation",UNCA_ANGLE},
 	{NODE_GeoViewpoint,"orientation",UNCA_ANGLE},
+	{NODE_GeoViewpoint,"fieldOfView",UNCA_ANGLE},
 
 	{NODE_HAnimHumanoid,"rotation",UNCA_ANGLE},
 	{NODE_HAnimHumanoid,"scaleOrientation",UNCA_ANGLE},
 	{NODE_HAnimJoint,"rotation",UNCA_ANGLE},
 	{NODE_HAnimJoint,"scaleOrientation",UNCA_ANGLE},
 	{NODE_HAnimJoint,"limitOrientation",UNCA_ANGLE},
+	{NODE_HAnimJoint,"llimit",UNCA_ANGLE}, //MFFloat
+	{NODE_HAnimJoint,"Ulimit",UNCA_ANGLE},
+
 	{NODE_HAnimSite,"rotation",UNCA_ANGLE}, 
 	{NODE_HAnimSite,"scaleOrientation",UNCA_ANGLE},
 
@@ -1781,6 +1787,7 @@ struct unitfield {
 
 	{NODE_ConeEmitter,"angle",UNCA_ANGLE},
 
+
 	//MASS and MOM moment of inertia
 	{NODE_RigidBody,"inertia",UNCA_MOMENT}, // SFMatrix3f (H: moments of inertia = kg * meter**2 = [mass * length**2]
 	{NODE_RigidBody,"mass",UNCA_MASS}, // SFFloat kg	[mass]
@@ -1792,6 +1799,8 @@ struct unitfield {
 	{NODE_PolylineEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
 	{NODE_SurfaceEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
 	{NODE_VolumeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+
+
 
 	//FORCE, TORQUE, ACCEL
 	{NODE_CollisionCollection,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
@@ -1808,8 +1817,17 @@ struct unitfield {
 	{NODE_RigidBodyCollection,"gravity",UNCA_ACCEL}, // SFVec3f (H: accelleration of, 9.8 m/s**2) = [length / time**2]
 	{NODE_SliderJoint,"sliderForce",UNCA_FORCE}, // newton [force]
 
+	//SPEED
+	{NODE_EspduTransform,"linearVelocity",UNCA_SPEED},
+	{NODE_CollisionCollection,"minBounceSpeed",UNCA_SPEED}, //SFFloat
+	{NODE_CollisionCollection,"surfaceSpeed",UNCA_SPEED}, //SFVec3f
+	{NODE_Contact,"surfaceSpeed",UNCA_SPEED},  //SFVec2f- generated node, similar to output only
+	{NODE_RigidBody,"disableLinearSpeed",UNCA_SPEED}, //SFFloat
+	{NODE_RigidBody,"linearVelocity",UNCA_SPEED}, //SFVec3f
+
 	//ACCELERATION
 	{NODE_ForcePhysicsModel,"force",UNCA_ACCEL}, // SFVec3f m/s**2 [length/time**2] acceleration
+	{NODE_EspduTransform,"linearAccelleration",UNCA_ACCEL},
 
 	//AREA and VOLUME
 	{NODE_ConeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
