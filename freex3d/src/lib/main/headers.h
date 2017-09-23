@@ -54,6 +54,7 @@ enum {
 	UNCA_LENGTH = 1,
 	UNCA_BLENGTH,  //bboxCenter, bboxSize
 	UNCA_ANGLE,
+	UNCA_PLANE, //first 3 are plane normal, 4th is scaleable distance
 	UNCA_MASS,
 	UNCA_FORCE,
 	UNCA_ACCEL,
