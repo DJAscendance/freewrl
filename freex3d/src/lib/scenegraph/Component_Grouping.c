@@ -499,8 +499,8 @@ void prep_unitscale (struct X3D_Proto *ec) {
 	if(doLengthUnits()){
 		if(!renderstate()->render_vp) {
 			struct X3D_Proto *parent;
-			double factor = 1.0;
-			double parentfactor = 1.0;
+			double factor = 1.0; //default factor applied if current context < v3.3
+			double parentfactor = 1.0;  //default factor applied if parent context < v3.3 or no parent
 			parent = X3D_PROTO(ec->_executionContext); //__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
 			FW_GL_PUSH_MATRIX();
 			// SCALE 
