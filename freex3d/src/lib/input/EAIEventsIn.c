@@ -1359,7 +1359,7 @@ static void makeFIELDDEFret(int myptr, int repno) {
 			}
 			myc ++; 
 		}
-		np +=5;
+		np += FIELDOFFSET_LENGTH;
 	}
 
 	sprintf (th->outBuffer,"RE\n%f\n%d\n",TickTime(),repno);
@@ -1382,7 +1382,7 @@ static void makeFIELDDEFret(int myptr, int repno) {
 			sprintf (myline,"\"%s\" ",stringFieldType(np[0])) ;
 			outBufferCat( myline);
 		}
-		np += 5;
+		np += FIELDOFFSET_LENGTH;
 	}
 /*
 	sprintf (myline, "]");

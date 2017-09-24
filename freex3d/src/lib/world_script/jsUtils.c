@@ -898,7 +898,7 @@ static int *getFOP (struct X3D_Node *node, const char *str) {
 					#endif
 					return fieldOffsetsPtr;
 				}
-			fieldOffsetsPtr += 5;
+			fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 		}
 
 		/* failed to find field?? */
@@ -1375,7 +1375,7 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
         			        return JS_FALSE;
         			}
 			}
-			fieldOffsetsPtr += 5;
+			fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 		}
 
 		/* set a flag indicating that we have been here already */

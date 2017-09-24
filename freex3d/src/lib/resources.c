@@ -95,7 +95,6 @@ resource_item_t *newResourceItem() {
 	item->parent = NULL;
 	item->actual_file = NULL;
 	item->cached_files = NULL;
-	item->specVersion = 0;
 	item->tg = gglobal();
 	return item;
 }
@@ -630,8 +629,6 @@ void resource_identify_type(resource_item_t *res)
 
                                 
 			res->media_type = resm_vrml;
-			//ie 200, 300, 301, 302, 303, 400 .. used in js currentScene.specificationVersion
-			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			break;
                 
 #if defined (INCLUDE_NON_WEB3D_FORMATS)
@@ -642,8 +639,6 @@ void resource_identify_type(resource_item_t *res)
                 
 		case IS_TYPE_XML_X3D:
 			res->media_type = resm_x3d;
-			//ie 200, 300, 301, 302, 303, 400 .. used in js currentScene.specificationVersion
-			res->specVersion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			break;
 		}
 		break;

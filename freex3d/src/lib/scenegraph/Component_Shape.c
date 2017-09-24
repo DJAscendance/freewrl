@@ -403,7 +403,7 @@ struct X3D_Node *getGeomTexCoordField(struct X3D_Node *realGeomNode){
 			memcpy(&tc,offsetPointer_deref(void*, realGeomNode,*(fieldOffsetsPtr+1)),sizeof(struct X3D_Node *));
 			break;
 		}
-		fieldOffsetsPtr += 5;
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 	}
 	return tc;
 

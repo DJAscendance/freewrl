@@ -1341,7 +1341,7 @@ static BOOL parser_unitStatement(struct VRMLParser* me) {
     }
 
     if ((categoryname != NULL) && (unitname != NULL) && (conversionfactor != 0.0)) { 
-	  handleUnitDataStringString(categoryname,unitname,conversionfactor); 
+	  handleUnitDataStringString(me->ectx,categoryname,unitname,conversionfactor); 
 	}
 
     /* cleanup */
@@ -1633,58 +1633,537 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 /* Built-in fields */
 /* Parses a built-in field and sets it in node */
 
+//UNIT statement http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+//unit categories http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/concepts.html#Standardunitscoordinates
+//problem: not all derived unit categories are represent. Missing: 
+//   torque = force * length, ie kg * m**2 / s**2
+//   moment of inertia = mass * length**2, ie kg*m**2
+//	options: 
+//		a) add these 2 to a list, scene designer must/may specify factors explicitly
+//		b) automatically compute all derived units factors from base unit factors scene designer specifies
+//			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+//			"Direct modification of conversion factors for derived units is not allowed." 
+//			problem: what if scene designer mixes force and mass incoherently? 
+//				Then how should torque factor be calculated - from force or from mass et al?
+//problem: force is/should be/could be a derived unit 
+//   force = mass * length / time**2, ie newton = kg * m / s**2
+//enum {
+//	UNCA_NONE = 0,
+//	UNCA_LENGTH = 1,
+//	UNCA_ANGLE,
+//	UNCA_MASS,
+//	UNCA_FORCE,
+//	UNCA_ACCEL,
+//	UNCA_ANGLERATE,
+//	UNCA_AREA,
+//	UNCA_SPEED,
+//	UNCA_VOLUME,
+//	UNCA_TORQUE,
+//	UNCA_MOMENT,
+//};
+struct unca {
+	char *catname;
+	int iunca;
+	int lengthpower; //L 0-none 1=length 2=area 3=volume -1 = 1/length -2 = 1/length**2
+	int derived;     //D
+	int ichanged;    //C
+	double factor;   //F
+	char *uname;
+} uncas [] = {
+	//catname		iunca		  L D  C  F  uname              
+	//base
+	{"length",      UNCA_LENGTH,   1,0,0,1.0,"meters",           },
+	{"angle",       UNCA_ANGLE,    0,0,0,1.0,"radians",          },
+	{"mass",        UNCA_MASS,     0,0,0,1.0,"kilograms",        },
+	{"force",       UNCA_FORCE,    1,0,0,1.0,"newtons",          },
+	//drived, should not need to lookup from scene designer input
+	{"acceleration",UNCA_ACCEL,    1,1,0,1.0,"meters/second**2", },
+	{"angular_rate",UNCA_ANGLERATE,0,1,0,1.0,"radians/second",   },
+	{"area",        UNCA_AREA,     2,1,0,1.0,"meters**2",        },
+	{"speed",       UNCA_SPEED,    1,1,0,1.0,"meters/seccond",   },
+	{"volume",      UNCA_VOLUME,   3,1,0,1.0,"meters**3",        },
+	{"torque",      UNCA_TORQUE,   2,1,0,1.0,"kg*meters**2/second**2",},
+	{"moment",      UNCA_MOMENT,   2,1,0,1.0,"kg*meters**2",     },
+
+	{NULL,0},
+};
+
+//UNITS > #2 Parse-Time conversions (non-length units cateogories)
+//Design Options: 
+//a) in perl field definitions, put another define for units category (UNCA)
+//   problem: we have functions that return field attributes, 
+//   and they would need to be extended, and for script, proto (non-builtin) no unca field in specs
+//b) lookup table - list all know non-length UNCAs, and lookup by field name
+//	 problem: could be a long list to search when parsing every field, maintenance
+//Design decision: b. (could re-do later)
+struct unitfield {
+	int nodetype;
+	char *fieldname;
+	int iunca;
+} unitfields [] = {
+	{NODE_Arc2D,"startAngle",UNCA_ANGLE},
+	{NODE_Arc2D,"endAngle",UNCA_ANGLE},
+	{NODE_ArcClose2D,"startAngle",UNCA_ANGLE},
+	{NODE_ArcClose2D,"endAngle",UNCA_ANGLE},
+	{NODE_Transform,"rotation",UNCA_ANGLE},
+	{NODE_Transform,"scaleOrientation",UNCA_ANGLE},
+
+	{NODE_ElevationGrid,"creaseAngle",UNCA_ANGLE},
+	{NODE_IndexedFaceSet,"creaseAngle",UNCA_ANGLE},
+	{NODE_SpotLight,"cutOffAngle",UNCA_ANGLE},
+	{NODE_SpotLight,"beamWidth",UNCA_ANGLE},
+	{NODE_CylinderSensor,"diskAngle",UNCA_ANGLE},
+	{NODE_CylinderSensor,"maxAngle",UNCA_ANGLE}, 
+	{NODE_CylinderSensor,"minAngle",UNCA_ANGLE},
+	{NODE_CylinderSensor,"axisRotation",UNCA_ANGLE},
+	{NODE_Background,"groundAngle",UNCA_ANGLE},
+	{NODE_Background,"skyAngle",UNCA_ANGLE},
+	{NODE_TextureBackground,"groundAngle",UNCA_ANGLE}, 
+	{NODE_TextureBackground,"skyAngle",UNCA_ANGLE},
+
+	{NODE_GeoElevationGrid,"creaseAngle",UNCA_ANGLE},
+
+	{NODE_DoubleAxisHingeJoint,"maxAngle1",UNCA_ANGLE},
+	{NODE_DoubleAxisHingeJoint,"minAngle1",UNCA_ANGLE},
+	{NODE_DoubleAxisHingeJoint,"hinge1Angle",UNCA_ANGLE},
+	{NODE_DoubleAxisHingeJoint,"hinge2Angle",UNCA_ANGLE},
+	{NODE_DoubleAxisHingeJoint,"hinge2AngleRate",UNCA_ANGLERATE}, //
+	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity1",UNCA_ANGLERATE}, //
+	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity2",UNCA_ANGLERATE}, //
+
+
+	{NODE_Extrusion,"creaseAngle",UNCA_ANGLE},
+	{NODE_Extrusion,"orientation",UNCA_ANGLE},
+
+	{NODE_TextureTransform,"rotation",UNCA_ANGLE},
+	{NODE_OrientationInterpolator,"keyValue",UNCA_ANGLE},
+	{NODE_SquadOrientationInterpolator,"keyValue",UNCA_ANGLE},
+
+	{NODE_PlaneSensor,"axisRotation",UNCA_ANGLE},
+	{NODE_SphereSensor,"offset",UNCA_ANGLE},
+	{NODE_Viewpoint,"orientation",UNCA_ANGLE},
+	{NODE_Viewpoint,"fieldOfView",UNCA_ANGLE},
+	{NODE_OrthoViewpoint,"orientation",UNCA_ANGLE},
+
+	{NODE_GeoTransform,"rotation",UNCA_ANGLE}, 
+	{NODE_GeoTransform,"scaleOrientation",UNCA_ANGLE},
+	{NODE_GeoViewpoint,"orientation",UNCA_ANGLE},
+	{NODE_GeoViewpoint,"fieldOfView",UNCA_ANGLE},
+
+	{NODE_HAnimHumanoid,"rotation",UNCA_ANGLE},
+	{NODE_HAnimHumanoid,"scaleOrientation",UNCA_ANGLE},
+	{NODE_HAnimJoint,"rotation",UNCA_ANGLE},
+	{NODE_HAnimJoint,"scaleOrientation",UNCA_ANGLE},
+	{NODE_HAnimJoint,"limitOrientation",UNCA_ANGLE},
+	{NODE_HAnimJoint,"llimit",UNCA_ANGLE}, //MFFloat
+	{NODE_HAnimJoint,"Ulimit",UNCA_ANGLE},
+
+	{NODE_HAnimSite,"rotation",UNCA_ANGLE}, 
+	{NODE_HAnimSite,"scaleOrientation",UNCA_ANGLE},
+
+	{NODE_EspduTransform,"rotation",UNCA_ANGLE},
+	{NODE_EspduTransform,"scaleOrientation",UNCA_ANGLE},
+
+	{NODE_CADPart,"rotation",UNCA_ANGLE},
+	{NODE_CADPart,"scaleOrientation",UNCA_ANGLE},
+
+	{NODE_TextureTransform3D,"rotation",UNCA_ANGLE},
+	{NODE_CollidableOffset,"rotation",UNCA_ANGLE},
+	{NODE_CollidableShape,"rotation",UNCA_ANGLE},
+
+	{NODE_RigidBody,"orientation",UNCA_ANGLE},
+	{NODE_RigidBody,"angularVelocity",UNCA_ANGLERATE}, //  [angle/time]
+	{NODE_RigidBody,"angularDampingFactor",UNCA_ANGLERATE}, //??
+	{NODE_RigidBody,"disableAngularSpeed",UNCA_ANGLERATE}, //
+
+	{NODE_OrientationChaser,"initialDestination",UNCA_ANGLE},
+	{NODE_OrientationChaser,"initialValue",UNCA_ANGLE},
+	{NODE_OrientationDamper,"initialDestination",UNCA_ANGLE},
+	{NODE_OrientationDamper,"initialValue",UNCA_ANGLE},
+
+
+	{NODE_MetadataSFRotation,"value",UNCA_ANGLE},
+	{NODE_MetadataMFRotation,"value",UNCA_ANGLE},
+
+	{NODE_ConeEmitter,"angle",UNCA_ANGLE},
+
+
+	//MASS and MOM moment of inertia
+	{NODE_RigidBody,"inertia",UNCA_MOMENT}, // SFMatrix3f (H: moments of inertia = kg * meter**2 = [mass * length**2]
+	{NODE_RigidBody,"mass",UNCA_MASS}, // SFFloat kg	[mass]
+	{NODE_HAnimSegment,"mass",UNCA_MASS}, // SFFloat kg [mass]
+	{NODE_HAnimSegment,"momentsOfInertia",UNCA_MOMENT}, // MFFloat kg*meter**2 [mass * length**2]
+	{NODE_ConeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+	{NODE_ExplosionEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+	{NODE_PointEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+	{NODE_PolylineEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+	{NODE_SurfaceEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+	{NODE_VolumeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
+
+
+
+	//FORCE, TORQUE, ACCEL
+	{NODE_CollisionCollection,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
+	{NODE_Contact,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
+	{NODE_DoubleAxisHingeJoint,"maxTorque1",UNCA_TORQUE}, // newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_DoubleAxisHingeJoint,"stopConstanceForceMix1",UNCA_FORCE}, // SFFloat newton [force]
+	{NODE_DoubleAxisHingeJoint,"suspensionForce",UNCA_FORCE}, // SFFloat newton [force]
+	{NODE_MotorJoint,"axis1Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_DoubleAxisHingeJoint,"axis2Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_DoubleAxisHingeJoint,"axis3Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
+	{NODE_RigidBody,"forces",UNCA_FORCE}, // MFVec3f newton = kg*meter/s**2 [mass * length / time**2]
+	{NODE_DoubleAxisHingeJoint,"torques",UNCA_TORQUE}, // MFVec3f newton*meter == kg*meter/s**2 * meter = kg * meter**2/s**2 
+			//= [mass * length **2 / time **2]
+	{NODE_RigidBodyCollection,"gravity",UNCA_ACCEL}, // SFVec3f (H: accelleration of, 9.8 m/s**2) = [length / time**2]
+	{NODE_SliderJoint,"sliderForce",UNCA_FORCE}, // newton [force]
+
+	//SPEED
+	{NODE_EspduTransform,"linearVelocity",UNCA_SPEED},
+	{NODE_CollisionCollection,"minBounceSpeed",UNCA_SPEED}, //SFFloat
+	{NODE_CollisionCollection,"surfaceSpeed",UNCA_SPEED}, //SFVec3f
+	{NODE_Contact,"surfaceSpeed",UNCA_SPEED},  //SFVec2f- generated node, similar to output only
+	{NODE_RigidBody,"disableLinearSpeed",UNCA_SPEED}, //SFFloat
+	{NODE_RigidBody,"linearVelocity",UNCA_SPEED}, //SFVec3f
+
+	//ACCELERATION
+	{NODE_ForcePhysicsModel,"force",UNCA_ACCEL}, // SFVec3f m/s**2 [length/time**2] acceleration
+	{NODE_EspduTransform,"linearAccelleration",UNCA_ACCEL},
+
+	//AREA and VOLUME
+	{NODE_ConeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
+	{NODE_ExplosionEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
+	{NODE_PointEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
+	{NODE_PolylineEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
+	{NODE_SurfaceEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
+	{NODE_VolumeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
+
+	{0,NULL,0},
+};
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+int lookup_unitfields(int nodetype, char *fieldname){
+	int i;
+	int retval;
+	struct unitfield *lm;
+	i = 0;
+	retval = UNCA_NONE;
+	do{
+		lm = &unitfields[i];
+		if(nodetype == lm->nodetype && !strcasecmp(lm->fieldname,fieldname)){
+			retval = lm->iunca;
+			break;
+		}
+		i++;
+	}while(unitfields[i].fieldname);
+	return retval;
+}
+/*	2 kinds of units
+	#1 - length - this is applied as a relative scale between scenefile-contexts, 
+		is applied as a transform during rendering, and needs a stack
+	#2 - the others: mass, angle, force - converted to SI / standard units at parse time
+		separately for each scene file, and can use static variables wrapping the parsing
+		of each scenefile
+
+*/
+static int isunits = 0;  //#2 the others, parse-time 
+static double unitlengthfactor = 1.0;
+double getunitlengthfactor(){
+	return unitlengthfactor;
+}
+int isUnits(){
+	return isunits;
+}
+void setUnits(int isOn){
+	isunits = isOn;
+}
+static Stack * units2vec = NULL;
+void zeroUnits(){
+	isunits = 0;
+	if(units2vec) units2vec->n = 0;
+	unitlengthfactor = 1.0;
+}
+static int do_lengthunits = 0;
+int doLengthUnits(){
+	return do_lengthunits;
+}
+struct unitsB {
+	char *catname;
+	int iunca;
+	int lengthpower; //L 0-none 1=length 2=area 3=volume -1 = 1/length -2 = 1/length**2
+	int derived;     //D
+	int ichanged;    //C
+	double factor;   //F
+	char uname[40];
+};
+enum {
+	LENGTHMETHOD_NONE = 0,
+	LENGTHMETHOD_FULL,
+	LENGTHMETHOD_MINUSONE,
+};
+void addUnits(void *ecx, char *category, char *unit, double factor){
+	struct unitsB u2;
+	struct unitsB *uptr, *u2length, *u2mass, *u2force, *u2angle;
+	struct unca *uc;
+	int iuc, iunca, lengthmethod;
+
+	if(!units2vec || (units2vec->n == 0)){
+		//set default base units and derived units factors for this scenefile
+		//by copying from statics
+		if(!units2vec)
+			units2vec = newVector(struct unitsB,20);
+		iuc = 0;
+		do {
+			uc = &uncas[iuc];
+			memcpy(&u2,uc,sizeof(struct unca));
+			memset(&u2.uname,0,20);
+			strncpy(&u2.uname[0],uc->uname,min(39,strlen(uc->uname)+1));
+			vector_pushBack(struct unitsB,units2vec,u2);
+			iuc++;
+		}while(uncas[iuc].catname);
+	}
+	//find category name in base units (derived not allowed)
+	for(int i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(!strcasecmp(uptr->catname,category)){
+			//copy in new unit and factor, and set changed flag
+			if(!uptr->derived){
+				strncpy(&uptr->uname[0],unit,min(39,strlen(unit)+1));
+				uptr->factor = factor;
+				uptr->ichanged = TRUE;
+				if(uptr->iunca == UNCA_LENGTH) {
+					//for length units, we rescale during rendering
+					struct X3D_Proto *ec = (struct X3D_Proto*)ecx;
+					unitlengthfactor = factor;
+					ec->__unitlengthfactor = unitlengthfactor;
+					do_lengthunits = TRUE; //tell rendering to apply unitlengthfactor
+				}
+				setUnits(TRUE);
+			}
+			break;
+		}
+	}
+	//pull out our base units for easy access
+	for(int i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(!uptr->derived){
+			switch(uptr->iunca){
+				case UNCA_MASS:
+					u2mass = uptr; break;
+				case UNCA_ANGLE:
+					u2angle = uptr; break;
+				case UNCA_LENGTH:
+					u2length = uptr; break;
+				case UNCA_FORCE:
+					u2force = uptr; break;
+				default:
+					break;
+			}
+		}
+	}
+	//recalculate derived units from base units
+	//WARNING: I'm not sure how much of the length-derived we should be re-factoring here
+	// because some effects are done by runtime rescaling of the context
+	// which is a 3D re-scaling
+	lengthmethod = LENGTHMETHOD_FULL; 
+	//lengthmethod = LENGTHMETHOD_MINUSONE;
+	//lengthmethod = LENGTHMETHOD_NONE;
+	for(int i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(uptr->derived){
+			double factor = uptr->factor;
+			switch(uptr->iunca){
+				case UNCA_ACCEL:
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor;
+					break;
+				case UNCA_ANGLERATE:
+					factor = u2angle->factor;
+					break;
+				case UNCA_AREA:
+					if(lengthmethod == LENGTHMETHOD_FULL) 
+						factor = u2length->factor * u2length->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2length->factor;
+					break;
+				case UNCA_SPEED:
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor;
+					break;
+				case UNCA_MOMENT:
+					// moment of intertia (for rotational momentum) 
+					// mass * length**2
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor * u2length->factor * u2mass->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2length->factor * u2mass->factor;
+					if(lengthmethod == LENGTHMETHOD_NONE)
+						factor = u2mass->factor;
+					break;
+				case UNCA_VOLUME:
+					{
+						double dpow = 0.0; //remember anything**0 == 1
+						if(lengthmethod == LENGTHMETHOD_FULL)
+							dpow = 3.0;
+						if(lengthmethod == LENGTHMETHOD_MINUSONE)
+							dpow = 2.0;
+						factor = pow(u2length->factor,dpow);
+					}
+					break;
+				case UNCA_TORQUE:
+					// torque = force * length = (mass * length / time**2) * length
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2force->factor * u2length->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2force->factor;
+					break;
+				default:
+					break;
+			}
+			uptr->factor = factor;
+			u2.ichanged = TRUE;
+		}
+	}
+
+}
+/*
+ UNITS statement
+ the following sfunitf and mfunitrotationf are applied at parse-time 
+ Only for scenefile web3d versions 3.3 and beyond 
+   H: that's because geoCoords GD were changed from lat,long degrees in v3.2 to lat,long base angle units 3.3
+   (we have a preference below iunca_only_33 to tinker with older spec files)
+ freewrl parses one complete scene file at a time
+ web3d version in x3d <X3D version="3.3"> isn't known until after UNITS statements are already parsed
+  - so we check the version during parsing, but could be done by turning off isUnits ie setUnits(FALSE) if you can 
+    find a good spot to do that
+ Compoent_Grouping.c > prep_ and fin_unitscale - apply length scales at render time
+	-they have to do some scaling regardless of web3d file version,
+   because if sub-scene they need to counter-act parent-scene scaling which might be v3.3
+   however they can shut off their own UNIT statement scale factors if < 3.2
+*/
+static int iunca_lookup_method_field = FALSE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
+static int iunca_doing_length_by_field = FALSE;
+static int iunca_only_33 = TRUE;  //TRUE only web3d version 3.3+ scene files gets units applied as per specs (strict), FALSE any version can have UNITS
+int isUnitSpecVersionOK(int specversion){
+	//called during parse-time for non-length units
+	//and (in component_grouping.c) at render-time for length units 
+	// --(in theory the length scalefactors could be set to 1 at parse time for v3.2
+	//-- if you can find a good place to do that)
+	return (!iunca_only_33 || specversion > 320) ? TRUE : FALSE;
+}
+void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
+	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		int iunca;
+		if(iunca_lookup_method_field)
+			iunca = iuncafield;
+		else
+			iunca = lookup_unitfields(nodetype, fieldname);
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
+			struct unitsB *uptr;
+			for(int i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
+					//check if we need to convert units on this node->field
+					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
+					//if(*var == 90.0f) *var = 1.5708;
+					for(int k=0;k<n;k++){
+						var[k] *= uptr->factor;
+					}
+					break;
+				}
+			}
+		}
+	}
+}
+void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n, int iuncafield){
+	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		//check if we need to convert units on this node->field
+		//for(int i=0;i<n;i++){
+		//	var[i].c[3] *= rotationFactor;
+		//}
+		int iunca;
+		if(iunca_lookup_method_field)
+			iunca = iuncafield;
+		else
+			iunca = lookup_unitfields(nodetype, fieldname);
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
+			struct unitsB *uptr;
+			for(int i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
+					//check if we need to convert units on this node->field
+					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
+					//if(*var == 90.0f) *var = 1.5708;
+					for(int k=0;k<n;k++){
+						var[k].c[3] *= uptr->factor;
+					}
+					break;
+				}
+			}
+		}
+
+	}
+}
+void sfunitd(int nodeType,char *fieldname, double *var, int n) {
+	if(isUnits()){
+	}
+}
+
 
 /* The init codes used. */
-#define INIT_CODE_sfnode(var) \
+#define INIT_CODE_sfnode(var,fieldname) \
   ADD_PARENT(node2->var, X3D_NODE(node2));
-#define INIT_CODE_mfnode(var) \
+#define INIT_CODE_mfnode(var,fieldname) \
   mfnode_add_parent(&node2->var, X3D_NODE(node2));
-#define INIT_CODE_sfbool(var)
-#define INIT_CODE_sfcolor(var)
-#define INIT_CODE_sfcolorrgba(var)
-#define INIT_CODE_sffloat(var)
-#define INIT_CODE_sfimage(var)
-#define INIT_CODE_sfint32(var)
-#define INIT_CODE_sfrotation(var)
-#define INIT_CODE_sfstring(var)
-#define INIT_CODE_sftime(var)
-#define INIT_CODE_sfvec2f(var)
-#define INIT_CODE_sfvec3f(var)
-#define INIT_CODE_sfvec3d(var)
-#define INIT_CODE_mfbool(var)
-#define INIT_CODE_mfcolor(var)
-#define INIT_CODE_mfcolorrgba(var)
-#define INIT_CODE_mffloat(var)
-#define INIT_CODE_mfint32(var)
-#define INIT_CODE_mfrotation(var)
-#define INIT_CODE_mfstring(var)
-#define INIT_CODE_mftime(var)
-#define INIT_CODE_mfvec2f(var)
-#define INIT_CODE_mfvec3f(var)
-#define INIT_CODE_mfvec3d(var)
-#define INIT_CODE_sfdouble(var)
-#define INIT_CODE_mfdouble(var)
-#define INIT_CODE_sfvec4d(var)
-#define INIT_CODE_mfmatrix3f(var)
-#define INIT_CODE_mfmatrix4f(var)
+#define INIT_CODE_sfbool(var,fieldname)
+#define INIT_CODE_sfcolor(var,fieldname)
+#define INIT_CODE_sfcolorrgba(var,fieldname)
+#define INIT_CODE_sffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname, (float*)&node2->var, 1,iunca);
+#define INIT_CODE_sfimage(var,fieldname)
+#define INIT_CODE_sfint32(var,fieldname)
+#define INIT_CODE_sfrotation(var,fieldname) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1,iunca);
+#define INIT_CODE_sfstring(var,fieldname)
+#define INIT_CODE_sftime(var,fieldname)
+#define INIT_CODE_sfvec2f(var,fieldname)
+#define INIT_CODE_sfvec3f(var,fieldname)
+#define INIT_CODE_sfvec3d(var,fieldname)
+#define INIT_CODE_mfbool(var,fieldname)
+#define INIT_CODE_mfcolor(var,fieldname)
+#define INIT_CODE_mfcolorrgba(var,fieldname)
+#define INIT_CODE_mffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.p, node2->var.n,iunca);
+#define INIT_CODE_mfint32(var,fieldname)
+#define INIT_CODE_mfrotation(var,fieldname) mfunitrotation(node2->_nodeType,fieldname, node2->var.p, node2->var.n,iunca);
+#define INIT_CODE_mfstring(var,fieldname)
+#define INIT_CODE_mftime(var,fieldname)
+#define INIT_CODE_mfvec2f(var,fieldname)
+#define INIT_CODE_mfvec3f(var,fieldname)
+#define INIT_CODE_mfvec3d(var,fieldname)
+#define INIT_CODE_sfdouble(var,fieldname)
+#define INIT_CODE_mfdouble(var,fieldname)
+#define INIT_CODE_sfvec4d(var,fieldname)
+#define INIT_CODE_mfmatrix3f(var,fieldname)
+#define INIT_CODE_mfmatrix4f(var,fieldname)
 
-#define INIT_CODE_mfmatrix3d(var)
-#define INIT_CODE_mfmatrix4d(var)
-#define INIT_CODE_mfvec2d(var)
-#define INIT_CODE_mfvec4d(var)
-#define INIT_CODE_mfvec4f(var)
-#define INIT_CODE_sfmatrix3d(var)
-#define INIT_CODE_sfmatrix3f(var)
-#define INIT_CODE_sfmatrix4d(var)
-#define INIT_CODE_sfmatrix4f(var)
-#define INIT_CODE_sfvec2d(var)
-#define INIT_CODE_sfvec4f(var)
+#define INIT_CODE_mfmatrix3d(var,fieldname)
+#define INIT_CODE_mfmatrix4d(var,fieldname)
+#define INIT_CODE_mfvec2d(var,fieldname)
+#define INIT_CODE_mfvec4d(var,fieldname)
+#define INIT_CODE_mfvec4f(var,fieldname)
+#define INIT_CODE_sfmatrix3d(var,fieldname)
+#define INIT_CODE_sfmatrix3f(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.c, 9,iunca);
+#define INIT_CODE_sfmatrix4d(var,fieldname)
+#define INIT_CODE_sfmatrix4f(var,fieldname)
+#define INIT_CODE_sfvec2d(var,fieldname)
+#define INIT_CODE_sfvec4f(var,fieldname)
 
 /* Parses a fieldvalue for a built-in field and sets it in node */
 static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 {
     int fieldO;
     int fieldE;
+	int iunca;
 	//BOOL retval;
 	DECLAREUP
     ASSERT(me->lexer);
@@ -1772,13 +2251,14 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 /* For a normal "field value" (i.e. position 1 0 1) statement gets the actual value of the field 
    from the file (next token(s) to be processed) and stores it in the node
    For an IS statement, adds this node-field combo as a destination to the appropriate protoFieldDecl */
-#define PROCESS_FIELD_B(exposed, node, field, fieldType, var, fe) \
+#define PROCESS_FIELD_B(exposed, node, field, fieldType, var, fe, junca) \
   case exposed##FIELD_##field: \
    if(!parser_fieldValue(me, \
     X3D_NODE(node2), (int) offsetof(struct X3D_##node, var), \
     FTIND_##fieldType, fe, FALSE, NULL, NULL)) {\
         PARSE_ERROR("Expected " #fieldType " Value for a fieldtype!") }\
-	INIT_CODE_##fieldType(var) \
+	iunca = junca; \
+	INIT_CODE_##fieldType(var,#field) \
    return TRUE;
  
    //INIT_CODE_##fieldType(var) \  we're doing this add_parent during instancing as of feb 2013
@@ -1809,11 +2289,11 @@ if(fieldE!=ID_UNDEFINED)
      {
 
 /* Process exposed fields */
-#define EXPOSED_FIELD(node, field, fieldType, var, realType) \
-    PROCESS_FIELD_B(EXPOSED_, node, field, fieldType, var, fieldE)
+#define EXPOSED_FIELD(node, field, fieldType, var, realType,iunca) \
+    PROCESS_FIELD_B(EXPOSED_, node, field, fieldType, var, fieldE,iunca)
 
 /* Ignore just fields */
-#define FIELD(n, f, t, v, realType)
+#define FIELD(n, f, t, v, realType,iunca)
 
 /* Process it */
 #include "NodeFields.h"
@@ -1842,11 +2322,11 @@ if(fieldO!=ID_UNDEFINED)
      {
 
          /* Process fields */
-#define FIELD(node, field, fieldType, var, realType) \
-    PROCESS_FIELD_B(, node, field, fieldType, var, ID_UNDEFINED)
+#define FIELD(node, field, fieldType, var, realType,iunca) \
+    PROCESS_FIELD_B(, node, field, fieldType, var, ID_UNDEFINED,iunca)
 
          /* Ignore exposed fields */
-#define EXPOSED_FIELD(n, f, t, v, realType)
+#define EXPOSED_FIELD(n, f, t, v, realType,iunca)
 
          /* Process it */
 #include "NodeFields.h"
@@ -3160,6 +3640,8 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 
     /* PROTO body */
     /* Make sure that the next oken is a '{'.  Skip over it. */
@@ -3316,6 +3798,8 @@ static BOOL parser_externbrotoStatement(struct VRMLParser* me)
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = (void *)STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 
 	/* EXTERNPROTO url */
 	{
@@ -3516,7 +4000,7 @@ BOOL route_parse_nodefield(struct VRMLParser* me, int *NodeIndex, struct X3D_Nod
 	if(foundField)
 	{
 		if(source == 0)
-			*Ofs = NODE_OFFSETS[(*Node)->_nodeType][ifield*5 + 1];
+			*Ofs = NODE_OFFSETS[(*Node)->_nodeType][ifield*FIELDOFFSET_LENGTH + 1];
 		else
 			*Ofs = ifield;
 		*ScriptField = fdecl;
@@ -4037,6 +4521,8 @@ struct X3D_Proto *brotoInstance(struct X3D_Proto* proto, BOOL ideep)
 	//memcpy(p,proto,sizeof(struct X3D_Proto)); //dangerous, make sure you re-instance all pointer variables
 	p->__prototype = proto->__prototype;
 	p->_nodeType = proto->_nodeType;
+	p->__unitlengthfactor = proto->__unitlengthfactor;
+	p->__specversion = proto->__specversion;
 	p->_defaultContainer = proto->_defaultContainer;
 	p->_renderFlags = proto->_renderFlags;
 	pobj = proto->__protoDef;
@@ -4593,6 +5079,7 @@ void deep_copy_node(struct X3D_Node** source, struct X3D_Node** dest, struct Vec
 			int typeIndex;
 			int ioType;
 			int version;
+			int unca;
 		} *finfo;
 		finfo offsets;
 		finfo field;
@@ -5328,12 +5815,13 @@ int count_fields(struct X3D_Node* node)
 //========
 void **shaderFields(struct X3D_Node* node);
 //convenience wrappers to get details for built-in fields and -on script and protoInstance- dynamic fields
-int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca){
 	void **shaderfield;
 	*type = 0;
 	*kind = 0;
 	*iifield = -1;
 	*value = NULL;
+	*iunca = UNCA_NONE;
 	shaderfield = shaderFields(node);
 	//Q. what about shader script?
 	if(node->_nodeType == NODE_Script) 
@@ -5423,6 +5911,7 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 			int typeIndex;
 			int ioType;
 			int version;
+			int unca;
 		} *finfo;
 
 		finfo offsets;
@@ -5446,6 +5935,7 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				*kind = kkind;
 				*iifield = ifield; 
 				*value = (union anyVrml*)&((char*)node)[field->offset];
+				*iunca = field->unca;
 				return 1;
 			}
 			ifield++;
@@ -5454,9 +5944,9 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 	}
 	return 0;
 }
-int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca){
 	int ifound = 0;
-	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,value);
+	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,value,iunca);
 	if(!ifound){
 		int ln, hsn, hcn;
 		const char *nf;
@@ -5464,7 +5954,7 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 
 		if(hsn){
 			//set_ prefix
-			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,value);
+			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,value,iunca);
 		}
 		ln++;
 		if(hcn) {
@@ -5472,11 +5962,18 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 			char rootname[MAXJSVARIABLELENGTH];
 			strncpy(rootname,fieldname,ln);
 			rootname[ln] = '\0';
-			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,value);
+			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,value,iunca);
 		}
 	}
 	return ifound;		
 }
+int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+	int iunca;
+	int ifound;
+	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,value,&iunca); //waste iunca
+	return ifound;
+}
+
 int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value){
 	int iret = 0;
 	*type = 0;
@@ -5543,6 +6040,7 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 			int typeIndex;
 			int ioType;
 			int version;
+			int unca;
 		} *finfo;
 
 		finfo offsets;

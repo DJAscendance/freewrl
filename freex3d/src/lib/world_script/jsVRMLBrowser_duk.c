@@ -1666,12 +1666,7 @@ int X3DExecutionContextGetter(FWType fwt, int index, void *ec, void *fwn, FWval 
 			//sprintf(str,"{%d,%d,%d}",inputFileVersion[0],inputFileVersion[1],inputFileVersion[2]);
 			if(ecc->__loadResource || ecc->_parentResource){
 				int specver;
-				resource_item_t *res;
-				if(ecc->__loadResource)
-					res = (resource_item_t *)ecc->__loadResource;  //Inline
-				else
-					res = (resource_item_t *)ecc->_parentResource; //extern proto instance, proto instance, scene
-				specver = res->specVersion;
+				specver = ecc->__specversion;
 				sprintf(str,"{%d.%d.%d}",specver/100,(specver/10)%10,specver % 10);
 			}
 			fwretval->_string = strdup(str);

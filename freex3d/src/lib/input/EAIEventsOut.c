@@ -92,7 +92,7 @@ np = (int *) NODE_OFFSETS[boxptr->_nodeType];
                                 }
                         myc ++;
                 }
-                np +=5;
+                np += FIELDOFFSET_LENGTH;
         }
 }
 #endif // FOR_DEBUGGING

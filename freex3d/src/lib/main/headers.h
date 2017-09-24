@@ -48,7 +48,25 @@ void Multi_String_print(struct Multi_String *url);
 #define SPEC_X3D34 0x20
 #define SPEC_VRML1 0x01 /* same as SPEC_VRML */
 
-
+/*UNIT statement base and derived 'unit categories', un-ca or UNCA for short */
+enum {
+	UNCA_NONE = 0,
+	UNCA_LENGTH = 1,
+	UNCA_BLENGTH,  //bboxCenter, bboxSize
+	UNCA_ANGLE,
+	UNCA_PLANE, //first 3 are plane normal, 4th is scaleable distance
+	UNCA_MASS,
+	UNCA_FORCE,
+	UNCA_ACCEL,
+	UNCA_ANGLERATE,
+	UNCA_AREA,
+	UNCA_SPEED,
+	UNCA_VOLUME,
+	UNCA_TORQUE,
+	UNCA_MOMENT,
+	UNCA_GEO, //don't know if its angle or length untill geoSystem field parsed
+};
+#define FIELDOFFSET_LENGTH 6  //search also for struct field_info
 
 int viewer_iside();
 /* children fields path optimizations */
@@ -881,7 +899,7 @@ void resetSensorEvents();
 
 /* META data, component, profile  stuff */
 void handleMetaDataStringString(struct Uni_String *val1,struct Uni_String *val2);
-void handleUnitDataStringString(char *categoryname,char *unitname, double conversionfactor);
+void handleUnitDataStringString(void *ec, char *categoryname,char *unitname, double conversionfactor);
 void handleProfile(int myp);
 void handleComponent(int com, int lev);
 void handleExport (char *node, char *as);

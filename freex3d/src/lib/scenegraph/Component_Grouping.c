@@ -490,6 +490,76 @@ void compile_Proto(struct X3D_Proto *node) {
 }
 
 
+//UNIT statement - applying unit scalefactor during rendering
+int doLengthUnits();
+int isUnitSpecVersionOK(int specversion);
+static int unitoption_scalescene = TRUE; //FALSE is this what specs say, don't scale top scene? 
+void prep_unitscale (struct X3D_Proto *ec) {
+	//if(doLengthUnits() && isUnitSpecVersionOK(ec->__specversion)){
+	if(doLengthUnits()){
+		if(!renderstate()->render_vp) {
+			struct X3D_Proto *parent;
+			double factor = 1.0; //default factor applied if current context < v3.3
+			double parentfactor = 1.0;  //default factor applied if parent context < v3.3 or no parent
+			parent = X3D_PROTO(ec->_executionContext); //__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
+			FW_GL_PUSH_MATRIX();
+			// SCALE 
+			if(isUnitSpecVersionOK(ec->__specversion)){
+				factor = ec->__unitlengthfactor;
+			}
+			if(parent){
+				if(isUnitSpecVersionOK(parent->__specversion))
+					parentfactor = parent->__unitlengthfactor;
+			}else {
+				//there's no higher level context, which means we are in the top scene
+				if(unitoption_scalescene){
+					parentfactor = 1.0; //scale top scene length to SI base units [m] (not what specs say)
+				}else{
+					parentfactor = factor; 
+					//top level scene gets scale of 1 ie if its in feet it stays feet, .3048/.3048=1 as per specs
+					//this is so defaults like Sphere radius=1 will be 1 foot, no need to tinker with defaults
+				}
+			}
+			//printf("( factor %lf / parentfactor= %lf  ", factor, parentfactor);
+			factor = factor / parentfactor;
+			//printf(" = %lf)\n",factor);
+			FW_GL_SCALE_D(factor,factor,factor);
+			//RECORD_DISTANCE
+		}
+	}
+}
+
+
+void fin_unitscale (struct X3D_Proto *ec) {
+
+	//if(doLengthUnits() && isUnitSpecVersionOK(ec->__specversion)){
+	if(doLengthUnits()){
+		if(!renderstate()->render_vp) {
+			FW_GL_POP_MATRIX();
+		} 
+		/*
+		else {
+			//Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.
+			if((ec->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+				struct X3D_Proto *parent;
+				double factor = 1.0;
+				double parentfactor = 1.0;
+				parent = X3D_PROTO(ec->__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
+				if(parent)
+					parentfactor = parent->__unitlengthfactor;
+				FW_GL_PUSH_MATRIX();
+				// SCALE 
+				factor = ec->__unitlengthfactor;
+				factor = parentfactor / factor;
+
+				FW_GL_SCALE_D(factor,factor,factor);
+			}
+		}
+		*/
+	}
+} 
+
+
 /* render the first node only unless scene (see component_networking.c child_inline for scene-similar*/
 void child_Proto (struct X3D_Proto *node) {
 	int nc;
@@ -516,7 +586,7 @@ printf ("\n");
 */
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 	//if(node->__loadstatus != LOAD_STABLE) return; #define LOAD_STABLE 10
-
+	prep_unitscale(node);
 
 #ifdef VERBOSE
 	 {
@@ -585,5 +655,6 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
+	fin_unitscale(node);
 }
+

@@ -652,6 +652,7 @@ void dump_parser_wait_queue()
 }
 
 void post_parse_set_activeLayer(); //Component_Layering.c
+void zeroUnits(); //UNITS keyword parse-time processing
 /**
  *   parser_process_res_VRML_X3D: this is the final parser (loader) stage, then call the real parser.
  */
@@ -700,8 +701,10 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
             fromEAI_SAI = TRUE;
         }
 
-	if (!fromEAI_SAI)
+	if (!fromEAI_SAI){
 		pushInputResource(res);
+		zeroUnits();
+	}
 
 	ectx = res->ectx;
 	/* OK Boyz - here we go... if this if from the EAI, just parse it, as it will be a simple string */
@@ -781,6 +784,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 				//    - #3 IMPLEMENTED AUG 22, 2016
 				shouldBind = TRUE; //TRUE; 
 				// OLDCODE shouldUnBind = FALSE; //brotos > Inlines > additively bind (not sure about other things like externProto 17.wrl)
+				X3D_INLINE(nRn)->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			}
 		}else{
 			// we do a kind of hot-swap: we parse into a new broto,
@@ -793,6 +797,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 			sceneProto->__protoFlags = ciflag_set(sceneProto->__protoFlags,2,2);
 
 			nRn = X3D_NODE(sceneProto);
+			sceneProto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 			ectx = nRn;
 			rn = rootNode(); //save a pointer to old rootnode
 			setRootNode(X3D_NODE(sceneProto)); //set new rootnode
@@ -1010,8 +1015,10 @@ OLDCODE			*/
 	}
 
 	/* remove this resource from the stack */
-	if (!fromEAI_SAI)
+	if (!fromEAI_SAI){
 		popInputResource();
+		zeroUnits();
+	}
 
 	//printf ("exiting praser_process_res_VRML_X3D\n");
 

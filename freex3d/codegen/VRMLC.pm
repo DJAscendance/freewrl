@@ -1416,10 +1416,11 @@ sub gen {
 		    #$ft =~ tr/a-z/A-Z/; # convert to uppercase
 		    my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
 		    my $specVersion = $VRML::NodeType::Nodes{$node}{SpecLevel}{$field};
+		    my $unca = $VRML::NodeType::Nodes{$node}{Unca}{$field};
 		    push @genFuncs1, "	(int) FIELDNAMES_$field, (int) offsetof (struct X3D_$node, $field), ".
-			" (int) FIELDTYPE_$ft, (int) KW_$fk, (int) $specVersion,\n";
+			" (int) FIELDTYPE_$ft, (int) KW_$fk, (int) $specVersion, (int) $unca,\n";
 		};
-		push @genFuncs1, "	-1, -1, -1, -1, -1};\n";
+		push @genFuncs1, "	-1, -1, -1, -1, -1, -1};\n";
 	}
 	#####################
 	# create an array for each node. The array contains the following:
@@ -1467,9 +1468,13 @@ sub gen {
 				my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 				my $origFt = "FIELDTYPE_".$VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 				$ft =~ tr/A-Z/a-z/; # convert to lowercase
-
-				push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt)\n";
-			}
+				my $unca = $VRML::NodeType::Nodes{$node}{Unca}{$field};
+				if ("initializeOnly" eq $ofk or "inputOutput" eq $ofk){
+					push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt,$unca)\n";
+				}else{
+					push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt)\n";
+				}
+			}	
 		};
 		push @fieldNodes, "END_NODE($node)\n";
 	}

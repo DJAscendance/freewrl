@@ -565,8 +565,8 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 	struct X3D_Node* newnodef, *newnodet; 
 	int source, type, kind, ifield;
 	union anyVrml *value;
-
 	int changed = 0;
+
 	newnodef = route->from.node;
 	newnodet = route->to.node;
 	if(route->from.weak){
@@ -808,7 +808,8 @@ void compile_Inline(struct X3D_Inline *node) {
 	} 
 	MARK_NODE_COMPILED
 }
-
+void prep_unitscale (struct X3D_Proto *ec);
+void fin_unitscale (struct X3D_Proto *ec);
 void child_Inline (struct X3D_Inline *node) {
 
 	//static int usingSortedChildren = 0;
@@ -818,13 +819,13 @@ void child_Inline (struct X3D_Inline *node) {
 	//LOCAL_LIGHT_SAVE
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
-
+	prep_unitscale(X3D_PROTO(node));
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 
 	normalChildren(node->_sortedChildren);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
+	fin_unitscale(X3D_PROTO(node));
 	//LOCAL_LIGHT_OFF
 
 }
