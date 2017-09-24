@@ -2027,10 +2027,31 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 
 }
 
+// the following sfunitf and mfunitrotationf are applied at parse-time 
+// Only for scenefile web3d versions 3.3 and beyond 
+//   H: that's because geoCoords GD were changed from lat,long degrees in v3.2 to lat,long base units 3.3
+//   (we have a preference below iunca_only_33 to tinker with older spec files)
+// freewrl parses one complete scene file at a time
+// web3d version in x3d <X3D version="3.3"> isn't known until after UNITS statements are already parsed
+//  - so we check the version during parsing, but could be done by turning off isUnits ie setUnits(FALSE) if you can 
+//    find a good spot to do that
+// Compoent_Grouping.c > prep_ and fin_unitscale - apply length scales at render time
+//	-they have to do some scaling regardless of web3d file version,
+//   because if sub-scene they need to counter-act parent-scene scaling which might be v3.3
+//   however they can shut off their own UNIT statement scale factors if < 3.2
 static int iunca_lookup_method_field = FALSE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
 static int iunca_doing_length_by_field = FALSE;
+static int iunca_only_33 = TRUE;  //TRUE only web3d version 3.3+ scene files gets units applied as per specs (strict), FALSE any version can have UNITS
+int isUnitSpecVersionOK(int specversion){
+	//called during parse-time for non-length units
+	//and (in component_grouping.c) at render-time for length units 
+	// --(in theory the length scalefactors could be set to 1 at parse time for v3.2
+	//-- if you can find a good place to do that)
+	return (!iunca_only_33 || specversion > 320) ? TRUE : FALSE;
+}
 void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
-	if(isUnits()){
+	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		int iunca;
 		if(iunca_lookup_method_field)
 			iunca = iuncafield;
@@ -2054,7 +2075,8 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 	}
 }
 void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n, int iuncafield){
-	if(isUnits()){
+	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		//check if we need to convert units on this node->field
 		//for(int i=0;i<n;i++){
 		//	var[i].c[3] *= rotationFactor;

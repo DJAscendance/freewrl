@@ -492,9 +492,10 @@ void compile_Proto(struct X3D_Proto *node) {
 
 //UNIT statement - applying unit scalefactor during rendering
 int doLengthUnits();
-
-static int unitoption_scalescene = FALSE; //FALSE is what specs say, don't scale top scene
+int isUnitSpecVersionOK(int specversion);
+static int unitoption_scalescene = TRUE; //FALSE is this what specs say, don't scale top scene? 
 void prep_unitscale (struct X3D_Proto *ec) {
+	//if(doLengthUnits() && isUnitSpecVersionOK(ec->__specversion)){
 	if(doLengthUnits()){
 		if(!renderstate()->render_vp) {
 			struct X3D_Proto *parent;
@@ -503,9 +504,12 @@ void prep_unitscale (struct X3D_Proto *ec) {
 			parent = X3D_PROTO(ec->_executionContext); //__parentProto); //not sure this is correct. Looking for parent context of Instance, not ProtoDefinition
 			FW_GL_PUSH_MATRIX();
 			// SCALE 
-			factor = ec->__unitlengthfactor;
+			if(isUnitSpecVersionOK(ec->__specversion)){
+				factor = ec->__unitlengthfactor;
+			}
 			if(parent){
-				parentfactor = parent->__unitlengthfactor;
+				if(isUnitSpecVersionOK(parent->__specversion))
+					parentfactor = parent->__unitlengthfactor;
 			}else {
 				//there's no higher level context, which means we are in the top scene
 				if(unitoption_scalescene){
@@ -528,6 +532,7 @@ void prep_unitscale (struct X3D_Proto *ec) {
 
 void fin_unitscale (struct X3D_Proto *ec) {
 
+	//if(doLengthUnits() && isUnitSpecVersionOK(ec->__specversion)){
 	if(doLengthUnits()){
 		if(!renderstate()->render_vp) {
 			FW_GL_POP_MATRIX();
