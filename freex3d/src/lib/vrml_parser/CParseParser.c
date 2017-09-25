@@ -1982,6 +1982,8 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 						//we compute it here
 						if(lengthmethod == LENGTHMETHOD_FULL)
 							factor = u2mass->factor * u2length->factor;
+						if(lengthmethod == LENGTHMETHOD_MINUSONE)
+							factor = u2mass->factor;
 					}
 					break;
 				case UNCA_ACCEL:
@@ -2054,6 +2056,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 */
 static int iunca_lookup_method_field = TRUE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
 static int iunca_doing_length_by_field = TRUE; //FALSE - do at render time in grouping, with wrapper-scale-per-context TRUE- do at parse-time per field
+// use also LENGTHMETHOD_MINUSONE above if using render-time wrapper scale (use _FULL if doing parse-time scaling)
 static int iunca_only_33 = TRUE;  //TRUE only web3d version 3.3+ scene files gets units applied as per specs (strict), FALSE any version can have UNITS
 int doLengthUnits(){
 	return ( do_lengthunits && !iunca_doing_length_by_field ) ? TRUE : FALSE;
@@ -2073,7 +2076,8 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
-		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
@@ -2102,7 +2106,8 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
-		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
