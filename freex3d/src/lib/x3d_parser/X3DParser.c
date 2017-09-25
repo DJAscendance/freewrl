@@ -1432,6 +1432,10 @@ static void parseAttributes_B(void *ud, char **atts) {
 					case FIELDTYPE_MFFloat:
 						sfunitf(node->_nodeType,name,value->mffloat.p,value->mffloat.n,iunca);
 						break;
+					case FIELDTYPE_SFVec3f:
+						sfunitf(node->_nodeType,name,value->sfvec3f.c,3,iunca);
+						break;
+
 					case FIELDTYPE_SFMatrix3f:
 						sfunitf(node->_nodeType,name,value->sfmatrix3f.c, 9,iunca);
 						break;

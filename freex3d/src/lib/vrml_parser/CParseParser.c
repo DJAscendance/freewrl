@@ -1661,6 +1661,9 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 //	UNCA_TORQUE,
 //	UNCA_MOMENT,
 //};
+#define UNCA_BASE 0X01
+#define UNCA_DRVD 0x10 //DERIVED
+#define UNCA_BOTH 0x11 //BASE and DERIVED - for force which specs say is base, but could/should/might be scene-authored as derived
 struct unca {
 	char *catname;
 	int iunca;
@@ -1670,20 +1673,21 @@ struct unca {
 	double factor;   //F
 	char *uname;
 } uncas [] = {
-	//catname		iunca		  L D  C  F  uname              
+	//catname		iunca		  L D          C F  uname              
 	//base
-	{"length",      UNCA_LENGTH,   1,0,0,1.0,"meters",           },
-	{"angle",       UNCA_ANGLE,    0,0,0,1.0,"radians",          },
-	{"mass",        UNCA_MASS,     0,0,0,1.0,"kilograms",        },
-	{"force",       UNCA_FORCE,    1,0,0,1.0,"newtons",          },
+	{"length",      UNCA_LENGTH,   1,UNCA_BASE,0,1.0,"meters",           },
+	{"angle",       UNCA_ANGLE,    0,UNCA_BASE,0,1.0,"radians",          },
+	{"mass",        UNCA_MASS,     0,UNCA_BASE,0,1.0,"kilograms",        },
+	//force both derived and base, compute if needed before torque
+	{"force",       UNCA_FORCE,    1,UNCA_BOTH,0,1.0,"newtons",          },
 	//drived, should not need to lookup from scene designer input
-	{"acceleration",UNCA_ACCEL,    1,1,0,1.0,"meters/second**2", },
-	{"angular_rate",UNCA_ANGLERATE,0,1,0,1.0,"radians/second",   },
-	{"area",        UNCA_AREA,     2,1,0,1.0,"meters**2",        },
-	{"speed",       UNCA_SPEED,    1,1,0,1.0,"meters/seccond",   },
-	{"volume",      UNCA_VOLUME,   3,1,0,1.0,"meters**3",        },
-	{"torque",      UNCA_TORQUE,   2,1,0,1.0,"kg*meters**2/second**2",},
-	{"moment",      UNCA_MOMENT,   2,1,0,1.0,"kg*meters**2",     },
+	{"acceleration",UNCA_ACCEL,    1,UNCA_DRVD,0,1.0,"meters/second**2", },
+	{"angular_rate",UNCA_ANGLERATE,0,UNCA_DRVD,0,1.0,"radians/second",   },
+	{"area",        UNCA_AREA,     2,UNCA_DRVD,0,1.0,"meters**2",        },
+	{"speed",       UNCA_SPEED,    1,UNCA_DRVD,0,1.0,"meters/seccond",   },
+	{"volume",      UNCA_VOLUME,   3,UNCA_DRVD,0,1.0,"meters**3",        },
+	{"torque",      UNCA_TORQUE,   2,UNCA_DRVD,0,1.0,"kg*meters**2/second**2",},
+	{"moment",      UNCA_MOMENT,   2,UNCA_DRVD,0,1.0,"kg*meters**2",     },
 
 	{NULL,0},
 };
@@ -1884,9 +1888,7 @@ void zeroUnits(){
 	unitlengthfactor = 1.0;
 }
 static int do_lengthunits = 0;
-int doLengthUnits(){
-	return do_lengthunits;
-}
+
 struct unitsB {
 	char *catname;
 	int iunca;
@@ -1927,7 +1929,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
 		if(!strcasecmp(uptr->catname,category)){
 			//copy in new unit and factor, and set changed flag
-			if(!uptr->derived){
+			if(uptr->derived & UNCA_BASE){
 				strncpy(&uptr->uname[0],unit,min(39,strlen(unit)+1));
 				uptr->factor = factor;
 				uptr->ichanged = TRUE;
@@ -1946,7 +1948,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	//pull out our base units for easy access
 	for(int i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
-		if(!uptr->derived){
+		if(uptr->derived & UNCA_BASE){
 			switch(uptr->iunca){
 				case UNCA_MASS:
 					u2mass = uptr; break;
@@ -1970,9 +1972,20 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	//lengthmethod = LENGTHMETHOD_NONE;
 	for(int i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
-		if(uptr->derived){
+		if(uptr->derived & UNCA_DRVD){
 			double factor = uptr->factor;
 			switch(uptr->iunca){
+				case UNCA_FORCE:
+					if(!uptr->ichanged){
+						//web3d specs list force as a base unit, not derived.
+						//but it should be derived, and so if it hasn't been set above
+						//we compute it here
+						if(lengthmethod == LENGTHMETHOD_FULL)
+							factor = u2mass->factor * u2length->factor;
+						if(lengthmethod == LENGTHMETHOD_MINUSONE)
+							factor = u2mass->factor;
+					}
+					break;
 				case UNCA_ACCEL:
 					if(lengthmethod == LENGTHMETHOD_FULL)
 						factor = u2length->factor;
@@ -2033,17 +2046,21 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
    H: that's because geoCoords GD were changed from lat,long degrees in v3.2 to lat,long base angle units 3.3
    (we have a preference below iunca_only_33 to tinker with older spec files)
  freewrl parses one complete scene file at a time
- web3d version in x3d <X3D version="3.3"> isn't known until after UNITS statements are already parsed
-  - so we check the version during parsing, but could be done by turning off isUnits ie setUnits(FALSE) if you can 
-    find a good spot to do that
+ web3d version in x3d <X3D version="3.3"> is known before <head><unit> statements are parsed <X3D><head/><scene/></X3D>
+  - we check the version during parsing, 
+  - but could maybe be done by turning off isUnits or another flag if you can find a good spot to do that
  Compoent_Grouping.c > prep_ and fin_unitscale - apply length scales at render time
 	-they have to do some scaling regardless of web3d file version,
    because if sub-scene they need to counter-act parent-scene scaling which might be v3.3
    however they can shut off their own UNIT statement scale factors if < 3.2
 */
-static int iunca_lookup_method_field = FALSE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
-static int iunca_doing_length_by_field = FALSE;
+static int iunca_lookup_method_field = TRUE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
+static int iunca_doing_length_by_field = TRUE; //FALSE - do at render time in grouping, with wrapper-scale-per-context TRUE- do at parse-time per field
+// use also LENGTHMETHOD_MINUSONE above if using render-time wrapper scale (use _FULL if doing parse-time scaling)
 static int iunca_only_33 = TRUE;  //TRUE only web3d version 3.3+ scene files gets units applied as per specs (strict), FALSE any version can have UNITS
+int doLengthUnits(){
+	return ( do_lengthunits && !iunca_doing_length_by_field ) ? TRUE : FALSE;
+}
 int isUnitSpecVersionOK(int specversion){
 	//called during parse-time for non-length units
 	//and (in component_grouping.c) at render-time for length units 
@@ -2059,6 +2076,7 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
 		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
@@ -2088,7 +2106,8 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
-		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
