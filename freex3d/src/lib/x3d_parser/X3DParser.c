@@ -1406,6 +1406,7 @@ int isUnits();
 void sfunitf(int nodeType,char *fieldname, float *var, int n, int iuncafield);
 void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n, int iuncafield);
 void sfunitd(int nodeType,char *fieldname, double *var, int n, int iuncafield);
+void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iuncafield);
 static void parseAttributes_B(void *ud, char **atts) {
 	int i, type, kind, iifield, iunca;
 	struct X3D_Node *node;
@@ -1435,7 +1436,18 @@ static void parseAttributes_B(void *ud, char **atts) {
 					case FIELDTYPE_SFVec3f:
 						sfunitf(node->_nodeType,name,value->sfvec3f.c,3,iunca);
 						break;
-
+					case FIELDTYPE_SFVec4f:
+						if(iunca == UNCA_PLANE)
+							sfunitf(node->_nodeType,name,&value->sfvec4f.c[3],1,UNCA_LENGTH); //don't scale first 3 wich are a normal
+						else
+							sfunitf(node->_nodeType,name,value->sfvec4f.c,4,iunca);
+						break;
+					case FIELDTYPE_SFVec2f:
+						sfunitf(node->_nodeType,name,value->sfvec2f.c,2,iunca);
+						break;
+					case FIELDTYPE_MFVec3f:
+						mfunit3f(node->_nodeType,name,value->mfvec3f.p,value->mfvec3f.n,iunca);
+						break;
 					case FIELDTYPE_SFMatrix3f:
 						sfunitf(node->_nodeType,name,value->sfmatrix3f.c, 9,iunca);
 						break;
