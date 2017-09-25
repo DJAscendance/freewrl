@@ -1661,6 +1661,9 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 //	UNCA_TORQUE,
 //	UNCA_MOMENT,
 //};
+#define UNCA_BASE 0X01
+#define UNCA_DRVD 0x10 //DERIVED
+#define UNCA_BOTH 0x11 //BASE and DERIVED - for force which specs say is base, but could/should/might be scene-authored as derived
 struct unca {
 	char *catname;
 	int iunca;
@@ -1670,20 +1673,21 @@ struct unca {
 	double factor;   //F
 	char *uname;
 } uncas [] = {
-	//catname		iunca		  L D  C  F  uname              
+	//catname		iunca		  L D          C F  uname              
 	//base
-	{"length",      UNCA_LENGTH,   1,0,0,1.0,"meters",           },
-	{"angle",       UNCA_ANGLE,    0,0,0,1.0,"radians",          },
-	{"mass",        UNCA_MASS,     0,0,0,1.0,"kilograms",        },
-	{"force",       UNCA_FORCE,    1,0,0,1.0,"newtons",          },
+	{"length",      UNCA_LENGTH,   1,UNCA_BASE,0,1.0,"meters",           },
+	{"angle",       UNCA_ANGLE,    0,UNCA_BASE,0,1.0,"radians",          },
+	{"mass",        UNCA_MASS,     0,UNCA_BASE,0,1.0,"kilograms",        },
+	//force both derived and base, compute if needed before torque
+	{"force",       UNCA_FORCE,    1,UNCA_BOTH,0,1.0,"newtons",          },
 	//drived, should not need to lookup from scene designer input
-	{"acceleration",UNCA_ACCEL,    1,1,0,1.0,"meters/second**2", },
-	{"angular_rate",UNCA_ANGLERATE,0,1,0,1.0,"radians/second",   },
-	{"area",        UNCA_AREA,     2,1,0,1.0,"meters**2",        },
-	{"speed",       UNCA_SPEED,    1,1,0,1.0,"meters/seccond",   },
-	{"volume",      UNCA_VOLUME,   3,1,0,1.0,"meters**3",        },
-	{"torque",      UNCA_TORQUE,   2,1,0,1.0,"kg*meters**2/second**2",},
-	{"moment",      UNCA_MOMENT,   2,1,0,1.0,"kg*meters**2",     },
+	{"acceleration",UNCA_ACCEL,    1,UNCA_DRVD,0,1.0,"meters/second**2", },
+	{"angular_rate",UNCA_ANGLERATE,0,UNCA_DRVD,0,1.0,"radians/second",   },
+	{"area",        UNCA_AREA,     2,UNCA_DRVD,0,1.0,"meters**2",        },
+	{"speed",       UNCA_SPEED,    1,UNCA_DRVD,0,1.0,"meters/seccond",   },
+	{"volume",      UNCA_VOLUME,   3,UNCA_DRVD,0,1.0,"meters**3",        },
+	{"torque",      UNCA_TORQUE,   2,UNCA_DRVD,0,1.0,"kg*meters**2/second**2",},
+	{"moment",      UNCA_MOMENT,   2,UNCA_DRVD,0,1.0,"kg*meters**2",     },
 
 	{NULL,0},
 };
@@ -1925,7 +1929,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
 		if(!strcasecmp(uptr->catname,category)){
 			//copy in new unit and factor, and set changed flag
-			if(!uptr->derived){
+			if(uptr->derived & UNCA_BASE){
 				strncpy(&uptr->uname[0],unit,min(39,strlen(unit)+1));
 				uptr->factor = factor;
 				uptr->ichanged = TRUE;
@@ -1944,7 +1948,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	//pull out our base units for easy access
 	for(int i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
-		if(!uptr->derived){
+		if(uptr->derived & UNCA_BASE){
 			switch(uptr->iunca){
 				case UNCA_MASS:
 					u2mass = uptr; break;
@@ -1968,9 +1972,18 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	//lengthmethod = LENGTHMETHOD_NONE;
 	for(int i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
-		if(uptr->derived){
+		if(uptr->derived & UNCA_DRVD){
 			double factor = uptr->factor;
 			switch(uptr->iunca){
+				case UNCA_FORCE:
+					if(!uptr->ichanged){
+						//web3d specs list force as a base unit, not derived.
+						//but it should be derived, and so if it hasn't been set above
+						//we compute it here
+						if(lengthmethod == LENGTHMETHOD_FULL)
+							factor = u2mass->factor * u2length->factor;
+					}
+					break;
 				case UNCA_ACCEL:
 					if(lengthmethod == LENGTHMETHOD_FULL)
 						factor = u2length->factor;
