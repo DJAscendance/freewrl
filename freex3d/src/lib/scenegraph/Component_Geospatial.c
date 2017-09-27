@@ -476,9 +476,16 @@ static void Gd_Gc (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d 
 		Rn = A / ( (.25 - Eps25 * slat2 + .9999944354799/4) + (.25-Eps25 * slat2)/(.25 - Eps25 * slat2 + .9999944354799/4));
 	
 		RnPh = Rn + ELEVATION_IN;
-		if(geoid)
-			RnPh += geoidCorrection(LATITUDE_IN,LONGITUDE_IN);
-
+		if(geoid){
+			double dlatin, dlongin;
+			dlatin = LATITUDE_IN;
+			dlongin = LONGITUDE_IN;
+			if(specversion > 320){
+				dlatin *= DEGREES_PER_RADIAN;
+				dlongin *= DEGREES_PER_RADIAN;
+			}
+			RnPh += geoidCorrection(dlatin,dlongin); //LATITUDE_IN,LONGITUDE_IN);
+		}
 		#ifdef VERBOSE
 		printf ("Rn %lf RnPh %lf\n",Rn, RnPh);
 		#endif
@@ -704,8 +711,17 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 					memcpy (gdCoords->p, inCoords->p, sizeof (struct SFVec3d) * inCoords->n);
 					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
 					if(geoSystem->p[4] == TRUE)
-						for(i=0;i<gdCoords->n;i++)
-							gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
+						for(i=0;i<gdCoords->n;i++){
+							double dlat, dlong;
+							dlat = gdCoords->p[i].c[1-geoSystem->p[3]];
+							dlong = gdCoords->p[i].c[geoSystem->p[3]];
+							if(specversion > 320){
+								dlat *= DEGREES_PER_RADIAN;
+								dlong *= DEGREES_PER_RADIAN;
+							}
+							gdCoords->p[i].c[2] += geoidCorrection(dlat,dlong);
+							//gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
+						}
 				}
 			break;
 		case GEOSP_GC:
