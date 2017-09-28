@@ -2786,8 +2786,8 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	GLint viewPort[10];
 	if (!renderstate()->render_vp) return;
 
-	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
-		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
+	//if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	//	node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 
 		INITIALIZE_GEOSPATIAL(node)
 
@@ -2832,7 +2832,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
 		#endif
-	}
+	//}
 }
 
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
