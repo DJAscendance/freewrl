@@ -3300,15 +3300,32 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
-	viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
-	/* backgroundPlane goes between the farthest geometry, and the farPlane */
-	if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
-		viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
-	} else {
-		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+	if(1){
+		//code changed March 2015 - started to get zbuffer problems with geoscenes
+		//viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
+		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
+		/* backgroundPlane goes between the farthest geometry, and the farPlane */
+		if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
+			viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
+			viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
+		} else {
+			viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
+			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		}
 	}
+	if(0){
+		//pre- march 2015 code, with one line changed, worked for most geo scenes
+		viewer->nearPlane = cnp;
+		/* backgroundPlane goes between the farthest geometry, and the farPlane */
+		if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {  //changed sept 2017
+			viewer->farPlane = cfp * 10.0;
+			viewer->backgroundPlane = cfp*5.0;
+		} else {
+			viewer->farPlane = cfp;
+			viewer->backgroundPlane = cfp; /* just set it to something */
+		}
+	}
+
 }
 
 void doglClearColor() {
