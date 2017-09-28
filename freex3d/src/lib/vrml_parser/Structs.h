@@ -1974,6 +1974,7 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_whichChoice	438
 #define EXPOSED_FIELD_whichGeometry	439
 #define EXPOSED_FIELD_writeInterval	440
+#define EXPOSED_FIELD_yScale	441
 
 
 /* Table of built-in fieldIds */
@@ -2080,9 +2081,8 @@ extern const int FIELD_COUNT;
 #define FIELD_weightFunction2	98
 #define FIELD_xDimension	99
 #define FIELD_xSpacing	100
-#define FIELD_yScale	101
-#define FIELD_zDimension	102
-#define FIELD_zSpacing	103
+#define FIELD_zDimension	101
+#define FIELD_zSpacing	102
 
 
 /* Table of built-in keywords */
