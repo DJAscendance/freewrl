@@ -2998,16 +2998,18 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 }
 
-void calculateViewingSpeed();
+void calculateViewingSpeed(X3D_Viewer *);
 static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	int oldInRange;
+	X3D_Viewer *viewer;
 	GLDOUBLE cx,cy,cz;
 	/* find the length of the line between the moved center and our current viewer position */
+	viewer = Viewer();
 	getCurrentPosInModel(FALSE);
-	calculateViewingSpeed();
-	cx = Viewer()->currentPosInModel.x - node->__movedCoords.c[0];
-	cy = Viewer()->currentPosInModel.y - node->__movedCoords.c[1];
-	cz = Viewer()->currentPosInModel.z - node->__movedCoords.c[2];
+	calculateViewingSpeed(viewer);
+	cx = viewer->currentPosInModel.x - node->__movedCoords.c[0];
+	cy = viewer->currentPosInModel.y - node->__movedCoords.c[1];
+	cz = viewer->currentPosInModel.z - node->__movedCoords.c[2];
 
 	 //printf ("geoLOD, distance between me and center is %lf\n", sqrt (cx*cx + cy*cy + cz*cz));
 
@@ -5304,6 +5306,7 @@ void startOfLoopNodeUpdates(void) {
 			//update_renderFlag(vector_back(struct X3D_Node*,
 			//	tg->Bindable.viewpoint_stack), VF_Viewpoint);
 			//calculateNearFarplanes(vector_back(struct X3D_Node*, tg->Bindable.viewpoint_stack));
+			foundbound = TRUE;
 		}
 	}
 	if(!foundbound){
