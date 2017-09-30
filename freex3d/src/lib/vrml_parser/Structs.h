@@ -5054,6 +5054,8 @@ struct X3D_GeoViewpoint {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int _layerId;
+	int _donethispass;
 	int set_bind;
 	double bindTime;
 	int isBound;
@@ -5064,8 +5066,6 @@ struct X3D_GeoViewpoint {
 	struct SFRotation orientation;
 	struct SFVec3d position;
 	struct SFVec3d centerOfRotation;
-	int _layerId;
-	int _donethispass;
 	struct SFRotation set_orientation;
 	struct SFVec3d set_position;
 	int headlight;
@@ -7919,6 +7919,8 @@ struct X3D_OrthoViewpoint {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int _layerId;
+	int _donethispass;
 	int set_bind;
 	double bindTime;
 	int isBound;
@@ -7928,8 +7930,6 @@ struct X3D_OrthoViewpoint {
 	struct X3D_Node *metadata;
 	struct SFRotation orientation;
 	struct SFVec3f position;
-	int _layerId;
-	int _donethispass;
 	struct SFVec3f centerOfRotation;
 	int retainUserOffsets;
 };
@@ -10451,6 +10451,8 @@ struct X3D_Viewpoint {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int _layerId;
+	int _donethispass;
 	int set_bind;
 	double bindTime;
 	int isBound;
@@ -10460,8 +10462,6 @@ struct X3D_Viewpoint {
 	struct X3D_Node *metadata;
 	struct SFRotation orientation;
 	struct SFVec3f position;
-	int _layerId;
-	int _donethispass;
 	struct SFVec3f centerOfRotation;
 	int retainUserOffsets;
 	struct Uni_String *fovMode;
