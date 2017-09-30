@@ -2845,13 +2845,13 @@ void calculateViewingSpeed() {
 	gcCoords.c[0]= Viewer()->currentPosInModel.x;
 	gcCoords.c[1] = Viewer()->currentPosInModel.y;
 	gcCoords.c[2] = Viewer()->currentPosInModel.z;
-	specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
         #ifdef VERBOSE
         printf ("calculateViewingSpeed, currentPosInModel %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
         #endif
 		
 	if (Viewer()->GeoSpatialNode != NULL) {
 		/* do we have a valid __geoSystem?? */
+		specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
         INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
 
 
