@@ -49,6 +49,7 @@
 #include "CParse.h"
 #include "CRoutes.h"			/* for upper_power_of_two */
 #include "../opengl/OpenGL_Utils.h"
+#include "../scenegraph/LinearAlgebra.h"
 
 #define PARSE_ERROR(msg) \
  { \
@@ -2125,6 +2126,35 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 
 	}
 }
+void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iuncafield){
+	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		//check if we need to convert units on this node->field
+		//for(int i=0;i<n;i++){
+		//	var[i].c[3] *= rotationFactor;
+		//}
+		int iunca;
+		if(iunca_lookup_method_field)
+			iunca = iuncafield;
+		else
+			iunca = lookup_unitfields(nodetype, fieldname);
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
+		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
+			struct unitsB *uptr;
+			for(int i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
+					for(int k=0;k<n;k++){
+						vecscale3f(var[k].c,var[k].c,(float)uptr->factor);
+					}
+					break;
+				}
+			}
+		}
+
+	}
+}
+
 void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 	if(isUnits()){
 	}
@@ -2145,8 +2175,8 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_sfrotation(var,fieldname) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1,iunca);
 #define INIT_CODE_sfstring(var,fieldname)
 #define INIT_CODE_sftime(var,fieldname)
-#define INIT_CODE_sfvec2f(var,fieldname)
-#define INIT_CODE_sfvec3f(var,fieldname)
+#define INIT_CODE_sfvec2f(var,fieldname) sfunitf(node2->_nodeType,fieldname, node2->var.c, 2, iunca);
+#define INIT_CODE_sfvec3f(var,fieldname) sfunitf(node2->_nodeType,fieldname, node2->var.c, 3, iunca);
 #define INIT_CODE_sfvec3d(var,fieldname)
 #define INIT_CODE_mfbool(var,fieldname)
 #define INIT_CODE_mfcolor(var,fieldname)
@@ -2157,7 +2187,7 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_mfstring(var,fieldname)
 #define INIT_CODE_mftime(var,fieldname)
 #define INIT_CODE_mfvec2f(var,fieldname)
-#define INIT_CODE_mfvec3f(var,fieldname)
+#define INIT_CODE_mfvec3f(var,fieldname) mfunit3f(node2->_nodeType,fieldname, node2->var.p, node2->var.n, iunca);
 #define INIT_CODE_mfvec3d(var,fieldname)
 #define INIT_CODE_sfdouble(var,fieldname)
 #define INIT_CODE_mfdouble(var,fieldname)
@@ -2175,7 +2205,7 @@ void sfunitd(int nodeType,char *fieldname, double *var, int n) {
 #define INIT_CODE_sfmatrix4d(var,fieldname)
 #define INIT_CODE_sfmatrix4f(var,fieldname)
 #define INIT_CODE_sfvec2d(var,fieldname)
-#define INIT_CODE_sfvec4f(var,fieldname)
+#define INIT_CODE_sfvec4f(var,fieldname) {if(iunca==UNCA_PLANE) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1, UNCA_LENGTH); else sfunitf(node2->_nodeType,fieldname, node2->var.c, 4, iunca); }
 
 /* Parses a fieldvalue for a built-in field and sets it in node */
 static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)

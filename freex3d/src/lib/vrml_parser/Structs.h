@@ -1974,6 +1974,7 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_whichChoice	438
 #define EXPOSED_FIELD_whichGeometry	439
 #define EXPOSED_FIELD_writeInterval	440
+#define EXPOSED_FIELD_yScale	441
 
 
 /* Table of built-in fieldIds */
@@ -2080,9 +2081,8 @@ extern const int FIELD_COUNT;
 #define FIELD_weightFunction2	98
 #define FIELD_xDimension	99
 #define FIELD_xSpacing	100
-#define FIELD_yScale	101
-#define FIELD_zDimension	102
-#define FIELD_zSpacing	103
+#define FIELD_zDimension	101
+#define FIELD_zSpacing	102
 
 
 /* Table of built-in keywords */
@@ -5054,6 +5054,8 @@ struct X3D_GeoViewpoint {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int _layerId;
+	int _donethispass;
 	int set_bind;
 	double bindTime;
 	int isBound;
@@ -5064,8 +5066,6 @@ struct X3D_GeoViewpoint {
 	struct SFRotation orientation;
 	struct SFVec3d position;
 	struct SFVec3d centerOfRotation;
-	int _layerId;
-	int _donethispass;
 	struct SFRotation set_orientation;
 	struct SFVec3d set_position;
 	int headlight;
@@ -7919,6 +7919,8 @@ struct X3D_OrthoViewpoint {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int _layerId;
+	int _donethispass;
 	int set_bind;
 	double bindTime;
 	int isBound;
@@ -7928,8 +7930,6 @@ struct X3D_OrthoViewpoint {
 	struct X3D_Node *metadata;
 	struct SFRotation orientation;
 	struct SFVec3f position;
-	int _layerId;
-	int _donethispass;
 	struct SFVec3f centerOfRotation;
 	int retainUserOffsets;
 };
@@ -10451,6 +10451,8 @@ struct X3D_Viewpoint {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int _layerId;
+	int _donethispass;
 	int set_bind;
 	double bindTime;
 	int isBound;
@@ -10460,8 +10462,6 @@ struct X3D_Viewpoint {
 	struct X3D_Node *metadata;
 	struct SFRotation orientation;
 	struct SFVec3f position;
-	int _layerId;
-	int _donethispass;
 	struct SFVec3f centerOfRotation;
 	int retainUserOffsets;
 	struct Uni_String *fovMode;

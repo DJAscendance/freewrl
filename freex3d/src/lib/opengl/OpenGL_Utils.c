@@ -2998,16 +2998,18 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 }
 
-void calculateViewingSpeed();
+void calculateViewingSpeed(X3D_Viewer *);
 static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	int oldInRange;
+	X3D_Viewer *viewer;
 	GLDOUBLE cx,cy,cz;
 	/* find the length of the line between the moved center and our current viewer position */
+	viewer = Viewer();
 	getCurrentPosInModel(FALSE);
-	calculateViewingSpeed();
-	cx = Viewer()->currentPosInModel.x - node->__movedCoords.c[0];
-	cy = Viewer()->currentPosInModel.y - node->__movedCoords.c[1];
-	cz = Viewer()->currentPosInModel.z - node->__movedCoords.c[2];
+	calculateViewingSpeed(viewer);
+	cx = viewer->currentPosInModel.x - node->__movedCoords.c[0];
+	cy = viewer->currentPosInModel.y - node->__movedCoords.c[1];
+	cz = viewer->currentPosInModel.z - node->__movedCoords.c[2];
 
 	 //printf ("geoLOD, distance between me and center is %lf\n", sqrt (cx*cx + cy*cy + cz*cz));
 
@@ -3298,15 +3300,32 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
-	viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
-	/* backgroundPlane goes between the farthest geometry, and the farPlane */
-	if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
-		viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
-	} else {
-		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+	if(1){
+		//code changed March 2015 - started to get zbuffer problems with geoscenes
+		//viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
+		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
+		/* backgroundPlane goes between the farthest geometry, and the farPlane */
+		if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
+			viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
+			viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
+		} else {
+			viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
+			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		}
 	}
+	if(0){
+		//pre- march 2015 code, with one line changed, worked for most geo scenes
+		viewer->nearPlane = cnp;
+		/* backgroundPlane goes between the farthest geometry, and the farPlane */
+		if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {  //changed sept 2017
+			viewer->farPlane = cfp * 10.0;
+			viewer->backgroundPlane = cfp*5.0;
+		} else {
+			viewer->farPlane = cfp;
+			viewer->backgroundPlane = cfp; /* just set it to something */
+		}
+	}
+
 }
 
 void doglClearColor() {
@@ -5304,6 +5323,7 @@ void startOfLoopNodeUpdates(void) {
 			//update_renderFlag(vector_back(struct X3D_Node*,
 			//	tg->Bindable.viewpoint_stack), VF_Viewpoint);
 			//calculateNearFarplanes(vector_back(struct X3D_Node*, tg->Bindable.viewpoint_stack));
+			foundbound = TRUE;
 		}
 	}
 	if(!foundbound){

@@ -128,7 +128,7 @@ Geodetic to Geocentric:
 	FREE_IF_NZ(mIN.p); FREE_IF_NZ(mOUT.p);
 
 
-#define MOVE_TO_ORIGIN(me)	GeoMove(X3D_GEOORIGIN(me->geoOrigin), &me->__geoSystem, &mIN, &mOUT, &gdCoords);
+#define MOVE_TO_ORIGIN(me)	GeoMove(X3D_NODE(node),X3D_GEOORIGIN(me->geoOrigin), &me->__geoSystem, &mIN, &mOUT, &gdCoords);
 #define COMPILE_GEOSYSTEM(me) compile_geoSystem (me->_nodeType, &me->geoSystem, &me->__geoSystem);
 
 #define RADIANS_PER_DEGREE (double)0.0174532925199432957692
@@ -208,11 +208,11 @@ Geodetic to Geocentric:
 #define GEOSP_WE_F	(double)298.257223563
 
 #define ELLIPSOID(typ) \
-	case typ: Gd_Gc(inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
+	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
 
 #define UTM_ELLIPSOID(typ) \
-	case typ: Utm_Gd (inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[2], TRUE); \
-		  Gd_Gc(gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[4]); break;
+	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[2], TRUE); \
+		  Gd_Gc(specversion,gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[4]); break;
 
 #define GCC_X gcc->c[0]
 #define GCC_Y gcc->c[1]
@@ -255,7 +255,7 @@ Geodetic to Geocentric:
 			/* printf ("changed retracted, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ \
  \
 			/* now, convert to a GDC */ \
-			gccToGdc (&thisField, &gdCoords); \
+			gccToGdc (X3D_PROTO(node->_executionContext)->__specversion,&thisField, &gdCoords); \
 			memcpy (&thisField, &gdCoords, sizeof (struct SFVec3d)); \
  \
 			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ \
@@ -295,9 +295,9 @@ Geodetic to Geocentric:
 static int gcToGdInit = FALSE;
 
 static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
-static void moveCoords(struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
-static void Gd_Gc (struct Multi_Vec3d *, struct Multi_Vec3d *, double, double, int, int);
-static void gccToGdc (struct SFVec3d *, struct SFVec3d *); 
+static void moveCoords(int specversion, struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
+static void Gd_Gc (int specversion, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double, int, int);
+static void gccToGdc (int specversion,struct SFVec3d *, struct SFVec3d *); 
 void calculateViewingSpeed(void);
 
 /* for converting from GC to GD */
@@ -407,7 +407,7 @@ static void retractOrigin(struct X3D_GeoOrigin *myGeoOrigin, struct SFVec3d *gcC
 
 
 /* convert GD ellipsiod to GC coordinates */
-static void Gd_Gc (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double eccentricity, int lat_first, int geoid) {
+static void Gd_Gc (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double eccentricity, int lat_first, int geoid) {
 	int i;
 	double A = radius;
 	double A2 = radius*radius;
@@ -449,8 +449,15 @@ static void Gd_Gc (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double rad
 		printf ("Gd_Gc, ining lat %lf long %lf ele %lf   ",LATITUDE_IN, LONGITUDE_IN, ELEVATION_IN);
 		#endif
 
-		source_lat = RADIANS_PER_DEGREE * LATITUDE_IN;
-		source_lon = RADIANS_PER_DEGREE * LONGITUDE_IN;
+		if(specversion > 320){
+			//version 3.3+ by default in 'angle base units' which are radians
+			source_lat = LATITUDE_IN;
+			source_lon = LONGITUDE_IN;
+		}else{
+			//version 3.2- by default in degrees
+			source_lat = RADIANS_PER_DEGREE * LATITUDE_IN;
+			source_lon = RADIANS_PER_DEGREE * LONGITUDE_IN;
+		}
 	
 		#ifdef VERBOSE
 		printf ("Source Latitude  %lf Source Longitude %lf\n",source_lat, source_lon);
@@ -469,9 +476,16 @@ static void Gd_Gc (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double rad
 		Rn = A / ( (.25 - Eps25 * slat2 + .9999944354799/4) + (.25-Eps25 * slat2)/(.25 - Eps25 * slat2 + .9999944354799/4));
 	
 		RnPh = Rn + ELEVATION_IN;
-		if(geoid)
-			RnPh += geoidCorrection(LATITUDE_IN,LONGITUDE_IN);
-
+		if(geoid){
+			double dlatin, dlongin;
+			dlatin = LATITUDE_IN;
+			dlongin = LONGITUDE_IN;
+			if(specversion > 320){
+				dlatin *= DEGREES_PER_RADIAN;
+				dlongin *= DEGREES_PER_RADIAN;
+			}
+			RnPh += geoidCorrection(dlatin,dlongin); //LATITUDE_IN,LONGITUDE_IN);
+		}
 		#ifdef VERBOSE
 		printf ("Rn %lf RnPh %lf\n",Rn, RnPh);
 		#endif
@@ -487,7 +501,7 @@ static void Gd_Gc (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double rad
 }
 
 /* convert UTM to GC coordinates by converting to GD as an intermediary step */
-static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double flatten, int hemisphere_north, int zone, int northing_first) {
+static void Utm_Gd (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double flatten, int hemisphere_north, int zone, int northing_first) {
 	int i;
 	int northing = 0;	/* for determining which input value is northing */
 	int easting = 1;	/* for determining which input value is easting */
@@ -604,9 +618,15 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 			((double)8.0) *myeccPrimeSquared+((double)24.0) *myT1*myT1)*myD*myD*myD*myD*myD/120)/cos(myphi1rad);
 
 
-
-		LATITUDE_OUT = Latitude * DEGREES_PER_RADIAN;
-		LONGITUDE_OUT = longitudeOrigin + Longitude * DEGREES_PER_RADIAN;
+		if(specversion > 320){
+			//version 3.3+ works in angle base units (radians) by default
+			LATITUDE_OUT = Latitude ;
+			LONGITUDE_OUT = longitudeOrigin + Longitude;
+		}else{
+			//version 3.2- works in degrees by default
+			LATITUDE_OUT = Latitude * DEGREES_PER_RADIAN;
+			LONGITUDE_OUT = longitudeOrigin + Longitude * DEGREES_PER_RADIAN;
+		}
 
 
 		#ifdef VERBOSE
@@ -634,7 +654,7 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 	outCoords:	area for GC coordinates. Will MALLOC size if required 
 	gdCoords:	GD coordinates, used for rotation calculations in later stages. WILL MALLOC THIS */
 
-static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords, struct Multi_Vec3d *gdCoords) {
+static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords, struct Multi_Vec3d *gdCoords) {
 
 	int i;
 
@@ -684,15 +704,24 @@ static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoo
 				if (geoSystem->p[1] != GEOSP_WE) {
 					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
 					for (i=0; i<outCoords->n; i++) {
-						gccToGdc (&outCoords->p[i], &gdCoords->p[i]);
+						gccToGdc (specversion,&outCoords->p[i], &gdCoords->p[i]);
 					}
 				} else {
 					/* just copy the coordinates for the GD temporary return  */
 					memcpy (gdCoords->p, inCoords->p, sizeof (struct SFVec3d) * inCoords->n);
 					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
 					if(geoSystem->p[4] == TRUE)
-						for(i=0;i<gdCoords->n;i++)
-							gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
+						for(i=0;i<gdCoords->n;i++){
+							double dlat, dlong;
+							dlat = gdCoords->p[i].c[1-geoSystem->p[3]];
+							dlong = gdCoords->p[i].c[geoSystem->p[3]];
+							if(specversion > 320){
+								dlat *= DEGREES_PER_RADIAN;
+								dlong *= DEGREES_PER_RADIAN;
+							}
+							gdCoords->p[i].c[2] += geoidCorrection(dlat,dlong);
+							//gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
+						}
 				}
 			break;
 		case GEOSP_GC:
@@ -703,7 +732,7 @@ static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoo
 				outCoords->p[i].c[2] = inCoords->p[i].c[2];
 
 				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdc (&inCoords->p[i], &gdCoords->p[i]);
+				gccToGdc (specversion,&inCoords->p[i], &gdCoords->p[i]);
 			}
 
 			break;
@@ -748,6 +777,7 @@ static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoo
 
 static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 	MF_SF_TEMPS
+	int specversion;
 	struct X3D_GeoOrigin *node = NULL;
 
 	#ifdef VERBOSE
@@ -764,13 +794,13 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 			/* printf ("um, just setting geoorign to %u\n",(*nodeptr)); */
 			node = X3D_GEOORIGIN(*nodeptr);
 		}
-
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
 		/* printf ("initGeoSpatial ich %d ch %d\n",node->_ichange, node->_change); */
 
 		if NODE_NEEDS_COMPILING {
 			compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
 			INIT_MF_FROM_SF(node,geoCoords)
-			moveCoords(&node->__geoSystem, MF_FIELD_IN_OUT);
+			moveCoords(X3D_PROTO(node->_executionContext)->__specversion,&node->__geoSystem, MF_FIELD_IN_OUT);
 			COPY_MF_TO_SF(node, __movedCoords)
 
 			if(node->rotateYUp == TRUE)
@@ -778,19 +808,28 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 					struct SFVec4d orient;
 					int i;
 					Quaternion qz,qx,qr;
+					double dangle;
 					 
-					vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, RADIANS_PER_DEGREE*((double)90.0 + gdCoords.p[0].c[1]));
+					dangle = gdCoords.p[0].c[1];
+					if(specversion < 330)
+						dangle *= RADIANS_PER_DEGREE;
+					dangle += RADIANS_PER_DEGREE*90.0;
+					vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, dangle);
 
 					#ifdef VERBOSE 
-					printf ("GeoOrient qz angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",((double)90.0 + gdCoords->c[1]), 
-						RADIANS_PER_DEGREE*((double)90.0 + gdCoords->c[1]),qz.x, qz.y, qz.z,qz.w);
+					printf ("GeoOrient qz angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",dangle*DEGREES_PER_RADIAN, 
+						dangle,qz.x, qz.y, qz.z,qz.w);
 					#endif
 
-					vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, RADIANS_PER_DEGREE*((double)180.0 - gdCoords.p[0].c[0]));
+					dangle =  gdCoords.p[0].c[0];
+					if(specversion < 330)
+						dangle *= RADIANS_PER_DEGREE;
+					dangle = RADIANS_PER_DEGREE*180.0 - dangle;
+					vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0,dangle);
 
 					#ifdef VERBOSE 
 					printf ("GeoOrient qx angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",
-						((double)180.0 - gdCoords->c[0]), RADIANS_PER_DEGREE*((double)180.0 - gdCoords->c[0]), qx.x, qx.y, qx.z,qx.w);
+						dangle*DEGREES_PER_RADIAN, dangle, qx.x, qx.y, qx.z,qx.w);
 					#endif
 
 					quaternion_add (&qr, &qx, &qz);
@@ -829,7 +868,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 }
 
 /* calculate a translation that moves a Geo node to local space */
-static void GeoMove(struct X3D_GeoOrigin *geoOrigin, struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords,
+static void GeoMove(struct X3D_Node *node, struct X3D_GeoOrigin *geoOrigin, struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords,
 		struct Multi_Vec3d *gdCoords) {
 	int i;
 	struct X3D_GeoOrigin * myOrigin;
@@ -876,7 +915,7 @@ static void GeoMove(struct X3D_GeoOrigin *geoOrigin, struct Multi_Int32* geoSyst
 	/* printf ("GeoMove, using myOrigin %u, passed in geoOrigin %u with vals %lf %lf %lf\n",myOrigin, myOrigin,
 		myOrigin->geoCoords.c[0], myOrigin->geoCoords.c[1], myOrigin->geoCoords.c[2] ); */ 
 		
-	moveCoords(geoSystem, inCoords, outCoords, gdCoords);
+	moveCoords(X3D_PROTO(node->_executionContext)->__specversion,geoSystem, inCoords, outCoords, gdCoords);
 
 
 	for (i=0; i<outCoords->n; i++) {
@@ -957,7 +996,7 @@ static void initializeGcToGdParams(void) {
 
 
 /* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
-static void gccToGdc (struct SFVec3d *gcc, struct SFVec3d *gdc) {
+static void gccToGdc (int specversion, struct SFVec3d *gcc, struct SFVec3d *gdc) {
         double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
                s,roe,arg,v,zo;
 
@@ -1050,8 +1089,11 @@ static void gccToGdc (struct SFVec3d *gcc, struct SFVec3d *gdc) {
             GDC_LON =atan2(GCC_Y,GCC_X);
         }  /* end of Exact solution */
 
-        GDC_LAT *= DEGREES_PER_RADIAN;
-        GDC_LON *= DEGREES_PER_RADIAN;
+		if(specversion < 330){
+			//v3.2- works in degrees by default, v3.3+ works in 'angle base units' (radians) by default
+			GDC_LAT *= DEGREES_PER_RADIAN;
+			GDC_LON *= DEGREES_PER_RADIAN;
+		}
 #undef VERBOSE
 
 }
@@ -1123,10 +1165,11 @@ static void gdToUtm(double latitude, double longitude, int *zone, double *eastin
 }
 
 /* calculate the rotation needed to apply to this position on the GC coordinate location */
-static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem, struct SFVec3d *gdCoords, struct SFVec4d *orient) {
+static void GeoOrient (int specversion, struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem, struct SFVec3d *gdCoords, struct SFVec4d *orient) {
 	Quaternion qx;
 	Quaternion qz;
 	Quaternion qr;
+	double dangle;
 
 	orient->c[0] = 0.0; 
 	orient->c[1] = 1.0; 
@@ -1151,14 +1194,22 @@ static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem
 	#endif
 
 	/* initialize qx and qz */
-	vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, RADIANS_PER_DEGREE*((double)90.0 + gdCoords->c[1]));
+	dangle = gdCoords->c[1];
+	if(specversion < 330)
+		dangle *= RADIANS_PER_DEGREE;
+	dangle += RADIANS_PER_DEGREE*90.0;
+	vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, dangle);
 
 	#ifdef VERBOSE 
 	printf ("GeoOrient qz angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",((double)90.0 + gdCoords->c[1]), 
 		RADIANS_PER_DEGREE*((double)90.0 + gdCoords->c[1]),qz.x, qz.y, qz.z,qz.w);
 	#endif
 
-	vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, RADIANS_PER_DEGREE*((double)180.0 - gdCoords->c[0]));
+	dangle = gdCoords->c[0];
+	if(specversion < 330)
+		dangle *= RADIANS_PER_DEGREE;
+	dangle = RADIANS_PER_DEGREE*180.0 - dangle;
+	vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, dangle);
 
 	#ifdef VERBOSE 
 	printf ("GeoOrient qx angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",
@@ -1668,6 +1719,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
+	int specversion;
 	MF_SF_TEMPS
 
 	#ifdef VERBOSE
@@ -1682,7 +1734,8 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	COPY_MF_TO_SF(node, __movedCoords)
 
 	/* work out the local orientation */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
 
 	#ifdef VERBOSE
 	printf ("compile_GeoLocation, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
@@ -2222,6 +2275,7 @@ void do_GeoPositionInterpolator (void *innode) {
 /************************************************************************/
 
 void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
+	int specversion;
 	MF_SF_TEMPS
 
 	#ifdef VERBOSE
@@ -2236,7 +2290,8 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	COPY_MF_TO_SF(node, __movedCoords)
 
 	/* work out the local orientation */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
 	#ifdef VERBOSE
 	printf ("compile_GeoProximitySensor, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCenter.c[0], node->geoCenter.c[1], node->geoCenter.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
 	printf ("	rotation is %lf %lf %lf %lf\n",
@@ -2651,6 +2706,7 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /************************************************************************/
 
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
+	int specversion;
 	struct SFVec4d localOrient;
 	struct SFVec4d orient;
 	int i;
@@ -2677,7 +2733,8 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	COPY_MF_TO_SF(node, __movedPosition)
 
 	/* work out the local orientation and copy doubles to floats */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &localOrient);
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &localOrient);
 
 	/* Quaternize the local Geospatial quaternion, and the specified rotation from the GeoViewpoint orientation field */
 	vrmlrot_to_quaternion (&localQuat, localOrient.c[0], localOrient.c[1], localOrient.c[2], localOrient.c[3]);
@@ -2783,18 +2840,18 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 void calculateViewingSpeed() {
 	struct SFVec3d gcCoords;
 	struct SFVec3d gdCoords;
-		
+	int specversion;		
 	/* the current position is the GC coordinate */
 	gcCoords.c[0]= Viewer()->currentPosInModel.x;
 	gcCoords.c[1] = Viewer()->currentPosInModel.y;
 	gcCoords.c[2] = Viewer()->currentPosInModel.z;
-		
         #ifdef VERBOSE
         printf ("calculateViewingSpeed, currentPosInModel %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
         #endif
 		
 	if (Viewer()->GeoSpatialNode != NULL) {
 		/* do we have a valid __geoSystem?? */
+		specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
         INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
 
 
@@ -2822,7 +2879,7 @@ void calculateViewingSpeed() {
 		        	#endif
 		
 		        	/* convert from local (gc) to gd coordinates, using WGS84 ellipsoid */
-		        	gccToGdc (&gcCoords, &gdCoords);
+		        	gccToGdc (specversion,&gcCoords, &gdCoords);
 		
 				#ifdef VERBOSE
 				printf ("speed is calculated from geodetic height %lf %lf %lf\n",gdCoords.c[0], gdCoords.c[1], gdCoords.c[2]); 
@@ -2913,6 +2970,7 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 /************************************************************************/
 
 void compile_GeoTransform (struct X3D_GeoTransform * node) {
+	int specversion;
 	MF_SF_TEMPS
 
 	#ifdef VERBOSE
@@ -2927,7 +2985,8 @@ void compile_GeoTransform (struct X3D_GeoTransform * node) {
 	COPY_MF_TO_SF(node, __movedCoords)
 
 	/* work out the local orientation */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
 
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCenter, node->__oldGeoCenter,offsetof (struct X3D_GeoTransform, geoCenter))
 	MARK_MFNODE_INOUT_EVENT(node->children, node->__oldChildren, offsetof (struct X3D_GeoTransform, children))

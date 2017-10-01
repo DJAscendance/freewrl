@@ -1637,6 +1637,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"whichChoice",
 	"whichGeometry",
 	"writeInterval",
+	"yScale",
 };
 const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 
@@ -1744,7 +1745,6 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"weightFunction2",
 	"xDimension",
 	"xSpacing",
-	"yScale",
 	"zDimension",
 	"zSpacing",
 };
@@ -4527,7 +4527,7 @@ const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES_texCoord, (int) offsetof (struct X3D_GeoElevationGrid, texCoord),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_xDimension, (int) offsetof (struct X3D_GeoElevationGrid, xDimension),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_xSpacing, (int) offsetof (struct X3D_GeoElevationGrid, xSpacing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_GEO,
-	(int) FIELDNAMES_yScale, (int) offsetof (struct X3D_GeoElevationGrid, yScale),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_yScale, (int) offsetof (struct X3D_GeoElevationGrid, yScale),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_zDimension, (int) offsetof (struct X3D_GeoElevationGrid, zDimension),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_zSpacing, (int) offsetof (struct X3D_GeoElevationGrid, zSpacing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_GEO,
 	-1, -1, -1, -1, -1, -1};
@@ -14335,6 +14335,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," normal (SFNode):\n"); dump_scene(fp,level+1,tmp->normal); 
 			spacer fprintf (fp," texCoord (SFNode):\n"); dump_scene(fp,level+1,tmp->texCoord); 
+			spacer fprintf (fp," yScale (SFFloat) \t%4.3f\n",tmp->yScale);
 		    break;
 		}
 		case NODE_GeoLOD : {
