@@ -106,6 +106,8 @@ Geodetic to Geocentric:
 
 *********************************************************************/
 
+#define STRICT33 TRUE //TRUE: assume incoming GD in base angle units (radians) FALSE: assume in v3.2-- degrees
+
 /* defines used to get a SFVec3d into/outof a function that expects a MFVec3d */
 #define MF_SF_TEMPS	struct Multi_Vec3d mIN; struct Multi_Vec3d  mOUT; struct Multi_Vec3d gdCoords;
 #define FREE_MF_SF_TEMPS FREE_IF_NZ(gdCoords.p); FREE_IF_NZ(mOUT.p); FREE_IF_NZ(mIN.p);
@@ -449,7 +451,7 @@ static void Gd_Gc (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d 
 		printf ("Gd_Gc, ining lat %lf long %lf ele %lf   ",LATITUDE_IN, LONGITUDE_IN, ELEVATION_IN);
 		#endif
 
-		if(specversion > 320){
+		if(specversion > 320 && STRICT33){
 			//version 3.3+ by default in 'angle base units' which are radians
 			source_lat = LATITUDE_IN;
 			source_lon = LONGITUDE_IN;
@@ -480,7 +482,7 @@ static void Gd_Gc (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d 
 			double dlatin, dlongin;
 			dlatin = LATITUDE_IN;
 			dlongin = LONGITUDE_IN;
-			if(specversion > 320){
+			if(specversion > 320 && STRICT33){
 				dlatin *= DEGREES_PER_RADIAN;
 				dlongin *= DEGREES_PER_RADIAN;
 			}
@@ -618,7 +620,7 @@ static void Utm_Gd (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d
 			((double)8.0) *myeccPrimeSquared+((double)24.0) *myT1*myT1)*myD*myD*myD*myD*myD/120)/cos(myphi1rad);
 
 
-		if(specversion > 320){
+		if(specversion > 320 && STRICT33){
 			//version 3.3+ works in angle base units (radians) by default
 			LATITUDE_OUT = Latitude ;
 			LONGITUDE_OUT = longitudeOrigin + Longitude;
@@ -715,7 +717,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 							double dlat, dlong;
 							dlat = gdCoords->p[i].c[1-geoSystem->p[3]];
 							dlong = gdCoords->p[i].c[geoSystem->p[3]];
-							if(specversion > 320){
+							if(specversion > 320 && STRICT33){
 								dlat *= DEGREES_PER_RADIAN;
 								dlong *= DEGREES_PER_RADIAN;
 							}
@@ -811,7 +813,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 					double dangle;
 					 
 					dangle = gdCoords.p[0].c[1];
-					if(specversion < 330)
+					if(specversion < 330 || !STRICT33)
 						dangle *= RADIANS_PER_DEGREE;
 					dangle += RADIANS_PER_DEGREE*90.0;
 					vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, dangle);
@@ -822,7 +824,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 					#endif
 
 					dangle =  gdCoords.p[0].c[0];
-					if(specversion < 330)
+					if(specversion < 330 || !STRICT33)
 						dangle *= RADIANS_PER_DEGREE;
 					dangle = RADIANS_PER_DEGREE*180.0 - dangle;
 					vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0,dangle);
@@ -1089,7 +1091,7 @@ static void gccToGdc (int specversion, struct SFVec3d *gcc, struct SFVec3d *gdc)
             GDC_LON =atan2(GCC_Y,GCC_X);
         }  /* end of Exact solution */
 
-		if(specversion < 330){
+		if(specversion < 330 || !STRICT33){
 			//v3.2- works in degrees by default, v3.3+ works in 'angle base units' (radians) by default
 			GDC_LAT *= DEGREES_PER_RADIAN;
 			GDC_LON *= DEGREES_PER_RADIAN;
@@ -1195,7 +1197,7 @@ static void GeoOrient (int specversion, struct X3D_Node *geoOrigin, struct Multi
 
 	/* initialize qx and qz */
 	dangle = gdCoords->c[1];
-	if(specversion < 330)
+	if(specversion < 330 || !STRICT33)
 		dangle *= RADIANS_PER_DEGREE;
 	dangle += RADIANS_PER_DEGREE*90.0;
 	vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, dangle);
@@ -1206,7 +1208,7 @@ static void GeoOrient (int specversion, struct X3D_Node *geoOrigin, struct Multi
 	#endif
 
 	dangle = gdCoords->c[0];
-	if(specversion < 330)
+	if(specversion < 330 || !STRICT33)
 		dangle *= RADIANS_PER_DEGREE;
 	dangle = RADIANS_PER_DEGREE*180.0 - dangle;
 	vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, dangle);
