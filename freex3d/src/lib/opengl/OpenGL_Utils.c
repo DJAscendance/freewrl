@@ -3147,6 +3147,23 @@ void drawBBOX(struct X3D_Node *node) {
 #endif //DEBUGGING_CODE
 
 static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
+/*
+	in theory, you get the bounding box of your scene, and transform that into camera space of bound viewpoint
+	(that's in the camera coordinate system, before projection, with z coming toward the camera, at world scale)
+	and take the near and far of that box to help decide on a near/far range
+	to help get the most out of your zbuffer range.
+	- some or all of bbox might be behind the camera, in that case near should be some +ve default
+	- the far might be closer than near or behind the bbox - in that case far should be some default
+	- stabilizing near far so it doesn't flutter frame to frame, if that's a problem
+	- computing near/far separately for each Layer (each layer has a different binding stack / active viewpoint / scenery)
+	challenge scenes:
+		geo: mars http://www.web3d.org/x3d/content/examples/Basic/Geospatial/Mars.x3d
+			- enormous range, do the faces on the planet z-sort right 
+			- (Oct 1 2017 problem with online mars: mixes x3d v3.3 and degrees with no units specified)
+		geo: world http://www.web3d.org/x3d/content/examples/Basic/Geospatial/World.x3d
+			- big range, do the menu boxes show (have been cropping, use Dist menu button)
+	
+*/
 	struct point_XYZ bboxPoints[8];
 	GLDOUBLE cfp = -DBL_MAX;
 	GLDOUBLE cnp = DBL_MAX;
@@ -3187,6 +3204,18 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 
 	if (vpnode->_nodeType == NODE_GeoViewpoint) {
 		doingGeoSpatial = true;
+	}
+	if(0){
+		//stabilizes for ortho, viewpoint and geoviewpoint
+		viewer->nearPlane = DEFAULT_NEARPLANE;
+		viewer->farPlane = DEFAULT_FARPLANE;
+		viewer->backgroundPlane = DEFAULT_BACKGROUNDPLANE;
+		if(doingGeoSpatial){
+			viewer->nearPlane = 10000.0;
+			viewer->farPlane = 2100000000.0;
+			viewer->backgroundPlane = 2000000000.0;
+		}
+		return;
 	}
 
 	if (rn == NULL) {
@@ -3230,7 +3259,22 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	moveAndRotateThisPoint(&bboxPoints[6], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MIN_Z,MM);
 	moveAndRotateThisPoint(&bboxPoints[7], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MAX_Z,MM);
 
-
+	if(0){
+		//verifier: alternate cfp,cnp calc, to check, set once
+		static int done_once = 0;
+		if(done_once) return;
+		double bmin, bmax;
+		bmin = bmax = bboxPoints[0].z;
+		for (ci=0; ci<8; ci++) {
+			bmin = min(bmin,bboxPoints[ci].z);
+			bmax = max(bmax,bboxPoints[ci].z);
+		}
+		viewer->nearPlane = bmax;
+		viewer->farPlane = bmin;
+		viewer->backgroundPlane = bmin;
+		done_once = 1;
+		return;
+	}
 
 	for (ci=0; ci<8; ci++) {
 		bboxMovedCentreZ += bboxPoints[ci].z;
