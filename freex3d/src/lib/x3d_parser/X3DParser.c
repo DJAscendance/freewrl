@@ -1348,7 +1348,7 @@ static void startBuiltin_B(void *ud, int myNodeType, const xmlChar *name, char**
 
 }
 void initialize_one_script(struct Shader_Script* ss, const struct Multi_String *url);
-
+void applyUnitsToNode(struct X3D_Node *node);
 static void endBuiltin_B(void *ud, const xmlChar *name){
 	struct X3D_Node *node;
 	struct X3D_Proto *context;
@@ -1357,6 +1357,7 @@ static void endBuiltin_B(void *ud, const xmlChar *name){
 	context = getContext(ud,TOP);
 	if(0)printf("end builtin %s\n",name);
 	pflagdepth = ciflag_get(context->__protoFlags,0); //0 - we're in a protodeclare, 1 - we are instancing live scenery
+	applyUnitsToNode(node);
 	if(node->_nodeType == NODE_Script && pflagdepth){
 		struct X3D_Script *sn = X3D_SCRIPT(node);
 		//overkill -duplicates new_Shader_Script 
@@ -1423,6 +1424,8 @@ static void parseAttributes_B(void *ud, char **atts) {
 			if(getFieldFromNodeAndNameU(node,name,&type,&kind,&iifield,&value,&iunca)){
 				deleteMallocedFieldValue(type,value);
 				Parser_scanStringValueToMem_B(value, type,svalue, TRUE);
+				//apply unit conversionFactor to parsed literal field 
+				// (vs above in endBuiltin_B applyUnitsToNode)
 				switch(type){
 					case FIELDTYPE_SFRotation:
 						sfunitf(node->_nodeType,name,&value->sfrotation.c[3],1,iunca);

@@ -67,6 +67,14 @@ enum {
 	UNCA_GEO, //don't know if its angle or length untill geoSystem field parsed
 };
 #define FIELDOFFSET_LENGTH 6  //search also for struct field_info
+typedef struct field_info{
+	int nameIndex;
+	int offset;
+	int typeIndex;
+	int ioType;
+	int version;
+	int unca;
+} *fieldinfo;
 
 int viewer_iside();
 /* children fields path optimizations */
