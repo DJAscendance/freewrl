@@ -687,16 +687,16 @@ void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack 
 	int isDefed;
 	char *nodeName;
 	//(int) FIELDNAMES_children, (int) offsetof (struct X3D_Group, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	typedef struct field_info{
-		int nameIndex;
-		int offset;
-		int typeIndex;
-		int ioType;
-		int version;
-		int unca;
-	} *finfo;
-	finfo offsets;
-	finfo field;
+	//typedef struct field_info{
+	//	int nameIndex;
+	//	int offset;
+	//	int typeIndex;
+	//	int ioType;
+	//	int version;
+	//	int unca;
+	//} *finfo;
+	fieldinfo offsets;
+	fieldinfo field;
 	int ifield;
 
 	#ifdef FW_DEBUG
@@ -724,7 +724,7 @@ void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack 
 	if(recurse && !isDefed)
 	{
 		vector_pushBack(struct X3D_Node*, DEFedNodes, node);
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
 		ifield = 0;
 		field = &offsets[ifield];
 		while( field->nameIndex > -1) //<< generalized for scripts and builtins?

@@ -106,7 +106,25 @@ Geodetic to Geocentric:
 
 *********************************************************************/
 
-#define STRICT33 TRUE //TRUE: assume incoming GD in base angle units (radians) FALSE: assume in v3.2-- degrees
+int isNodetypeGeospatial(int nodetype, int specversion){
+	//its geospatial if it has a geoSystem field (GeoMetadata doesn't, a few DIS v3.3 do)
+	int iret = 
+			nodetype == NODE_GeoCoordinate || nodetype == NODE_GeoElevationGrid || nodetype == NODE_GeoLOD 
+		|| nodetype == NODE_GeoLocation || nodetype == NODE_GeoPositionInterpolator 
+		|| nodetype == NODE_GeoProximitySensor || nodetype == NODE_GeoTouchSensor 
+		|| nodetype == NODE_GeoTransform || nodetype == NODE_GeoViewpoint || nodetype == NODE_GeoOrigin ? TRUE : FALSE;
+	if(!iret && specversion > 320) {
+		iret =
+			nodetype == NODE_EspduTransform || nodetype == NODE_ReceiverPdu || nodetype == NODE_SignalPdu 
+		|| nodetype == NODE_TransmitterPdu ? TRUE : FALSE;
+	}
+	return iret;
+}
+int isNodeGeospatial(struct X3D_Node* node){
+	return isNodetypeGeospatial(node->_nodeType, X3D_PROTO(node->_executionContext)->__specversion);
+}
+
+#define STRICT33 TRUE //TRUE: if v3.3 assume incoming GD in base angle units (radians) FALSE: assume like v3.2-- degrees
 
 /* defines used to get a SFVec3d into/outof a function that expects a MFVec3d */
 #define MF_SF_TEMPS	struct Multi_Vec3d mIN; struct Multi_Vec3d  mOUT; struct Multi_Vec3d gdCoords;

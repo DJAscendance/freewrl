@@ -4515,7 +4515,7 @@ const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_GeoElevationGrid, color),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_colorPerVertex, (int) offsetof (struct X3D_GeoElevationGrid, colorPerVertex),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_creaseAngle, (int) offsetof (struct X3D_GeoElevationGrid, creaseAngle),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
-	(int) FIELDNAMES_geoGridOrigin, (int) offsetof (struct X3D_GeoElevationGrid, geoGridOrigin),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_geoGridOrigin, (int) offsetof (struct X3D_GeoElevationGrid, geoGridOrigin),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoElevationGrid, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoElevationGrid, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_height, (int) offsetof (struct X3D_GeoElevationGrid, height),  (int) FIELDTYPE_MFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,

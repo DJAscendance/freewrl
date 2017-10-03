@@ -1872,12 +1872,13 @@ int lookup_unitfields(int nodetype, char *fieldname){
 
 */
 static int isunits = 0;  //#2 the others, parse-time 
+static int method_nodeparse = 1;
 static double unitlengthfactor = 1.0;
 double getunitlengthfactor(){
 	return unitlengthfactor;
 }
 int isUnits(){
-	return isunits;
+	return isunits ? isunits + method_nodeparse : 0;
 }
 void setUnits(int isOn){
 	isunits = isOn;
@@ -2069,16 +2070,20 @@ int isUnitSpecVersionOK(int specversion){
 	//-- if you can find a good place to do that)
 	return (!iunca_only_33 || specversion > 320) ? TRUE : FALSE;
 }
+
 void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
-		int iunca;
+		int iunca, ok;
 		if(iunca_lookup_method_field)
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
-		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH))){
+		ok = iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH));
+		if(isUnits() == 2)
+			ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
+		if(ok){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
@@ -2102,13 +2107,17 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 		//for(int i=0;i<n;i++){
 		//	var[i].c[3] *= rotationFactor;
 		//}
-		int iunca;
+		int iunca, ok;
 		if(iunca_lookup_method_field)
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
-		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
+		ok = iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH));
+		if(isUnits() == 2)
+			ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
+		if(ok){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
@@ -2133,13 +2142,17 @@ void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iunc
 		//for(int i=0;i<n;i++){
 		//	var[i].c[3] *= rotationFactor;
 		//}
-		int iunca;
+		int iunca, ok;
 		if(iunca_lookup_method_field)
 			iunca = iuncafield;
 		else
 			iunca = lookup_unitfields(nodetype, fieldname);
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
-		if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
+		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
+		ok = iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH));
+		if(isUnits() == 2)
+			ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
+		if(ok){
 			struct unitsB *uptr;
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
@@ -2155,9 +2168,185 @@ void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iunc
 	}
 }
 
-void sfunitd(int nodeType,char *fieldname, double *var, int n) {
+void sfunitd(int nodeType,char *fieldname, double *var, int n, int iunca) {
 	if(isUnits()){
 	}
+}
+int isNodeGeospatial(struct X3D_Node* node);
+void applyUnitsToNode(struct X3D_Node *node){
+	//v3.3+ if there were any UNIT statements, apply to the parsed node, so both defaults
+	// and explicitly/literally set values get converted
+	//- except angles, do those as literals since already in SI units (fieldOfView, ArcClose2D startAngle endAngle etc)
+	//parsed-node method - apply unit factors right after node is parsed (all fields parsed)
+	//this method would scale also defaults not explicitly set in the scenefile
+	//except angles - continue to do them on literals, to avoid doing it to defaults which are usually 
+	//  sensible angles in radians already
+	int specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		fieldinfo offsets;
+		fieldinfo field;
+		int ifield;
+		if(isNodeGeospatial(node)){
+			struct unitsB *uptr;
+			int isgeosystemGD;
+			double factorA, factorL, factorC;
+
+			//get unit conversionFactors for angle and length if available
+			factorA = factorL = factorC = 1.0;
+			for(int i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == UNCA_ANGLE) factorA = uptr->factor;
+				if(uptr->iunca == UNCA_LENGTH) factorL = uptr->factor;
+			}
+			
+			
+			//find geoSystem field, to see if GD (geodetic) with lat,long
+			offsets = (fieldinfo)NODE_OFFSETS[(node)->_nodeType];
+			ifield = 0;
+			field = &offsets[ifield];
+			//printf("\n");
+			isgeosystemGD = TRUE;
+			while( field->nameIndex > -1) 
+			{
+				char *name = FIELDNAMES[field->nameIndex];
+				if(!strcmp(name,"geoSystem")){
+					union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
+					struct Uni_String *ustring = value->mfstring.p[0];
+					if(strcmp(ustring->strptr,"GD"))
+						isgeosystemGD = FALSE;
+					break;
+				}
+				ifield++;
+				field = &offsets[ifield];
+			} //while fieldindex
+
+			//decide what factors apply to first 2 values in SFVec3d
+			if(isgeosystemGD) 
+				factorC = factorA; //first 2 coords are lat,long in some order, apply angle factor
+			else 
+				factorC = factorL; //first 2 coords are length either utm N,E or GC x,y, apply length factor
+
+			//find all UNCA_GEO fields in node, and apply unit factors
+			//printf("isGeo ");
+			offsets = (fieldinfo)NODE_OFFSETS[(node)->_nodeType];
+			ifield = 0;
+			field = &offsets[ifield];
+			//printf("\n");
+			while( field->nameIndex > -1) 
+			{
+				int iunca = field->unca;
+				char *name = FIELDNAMES[field->nameIndex];
+				union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
+				if(iunca == UNCA_GEO){
+					struct SFVec3d *sfvar;
+					double *dvar;
+					//angles are done only at literal parse time, not to default field values which are already radians SI
+					switch(field->typeIndex){
+						case FIELDTYPE_SFDouble:
+							//printf("sfdouble ");
+							value->sfdouble *= factorC; //if SFDouble and lableled UNCA_GEO, assume its lat or long,x or y,east or north
+							break;
+						case FIELDTYPE_MFDouble:
+							//geoelevationgrid.height is done below via LENGTH, not sure where else mfdouble for geo
+							printf("mfdouble nixpa7 "); 
+							break;
+						case FIELDTYPE_SFVec3d:
+							dvar = value->sfvec2d.c;
+							dvar[0] *= factorC;
+							dvar[1] *= factorC;
+							dvar[2] *= factorL;
+							break;
+						case FIELDTYPE_MFVec3d:
+							for(int k=0;k<value->mfvec3d.n;k++){
+								sfvar = &value->mfvec3d.p[k];
+								dvar = sfvar->c;
+								dvar[0] *= factorC;
+								dvar[1] *= factorC;
+								dvar[2] *= factorL;
+							}
+							break;
+						default:
+							break;
+					}
+				}
+				ifield++;
+				field = &offsets[ifield];
+			} //while fieldindex
+
+		}
+		if(isUnits() == 2){
+			// apply unitfactors to other non-geo units except angle
+			offsets = (fieldinfo)NODE_OFFSETS[(node)->_nodeType];
+			ifield = 0;
+			field = &offsets[ifield];
+			//printf("\n");
+			while( field->nameIndex > -1) 
+			{
+				int iunca = field->unca;
+				if(iunca == UNCA_PLANE) iunca = UNCA_LENGTH;
+				char *name = FIELDNAMES[field->nameIndex];
+				union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
+				if(iunca != UNCA_NONE && iunca != UNCA_ANGLE && iunca != UNCA_ANGLERATE && iunca != UNCA_GEO){
+					//angles are done only at literal parse time, not to default field values which are already radians SI
+					double factor;
+					struct unitsB *uptr;
+					factor = 1.0;
+					for(int i=0;i<vectorSize(units2vec);i++){
+						uptr = vector_get_ptr(struct unitsB,units2vec,i);
+						if(uptr->iunca == iunca){
+							factor = uptr->factor;
+							break;
+						}
+					}
+					iunca = field->unca; //restore if plane
+					switch(field->typeIndex){
+						case FIELDTYPE_SFRotation:
+							value->sfrotation.c[3] *= factor;
+							break;
+						case FIELDTYPE_SFFloat:
+							value->sffloat *= factor;
+							break;
+						case FIELDTYPE_MFFloat:
+							for(int i=0;i<value->mffloat.n;i++)
+								value->mffloat.p[i] *= factor;
+							break;
+						case FIELDTYPE_SFVec3f:
+							vecscale3f(value->sfvec3f.c,value->sfvec3f.c,(float)factor);
+							break;
+						case FIELDTYPE_SFVec4f:
+							if(iunca == UNCA_PLANE)
+								value->sfvec4f.c[3] *= factor;
+							else
+								vecscale4f(value->sfvec4f.c,value->sfvec4f.c,(float)factor);
+							break;
+						case FIELDTYPE_SFVec2f:
+							vecscale2f(value->sfvec2f.c,value->sfvec2f.c,(float)factor);
+							break;
+						case FIELDTYPE_MFVec3f:
+							for(int i=0;i<value->mfvec3f.n;i++)
+								vecscale3f(&value->mfvec3f.p[i],&value->mfvec3f.p[i],(float)factor);
+							break;
+						case FIELDTYPE_SFMatrix3f:
+							for(int i=0;i<9;i++)
+								value->sfmatrix3f.c[i] *= factor;
+							break;
+						case FIELDTYPE_MFRotation:
+							for(int i=0;i<value->mfrotation.n;i++)
+								value->mfrotation.p[i].c[3] *= factor;
+							break;
+						case FIELDTYPE_SFDouble:
+							value->sfdouble *= factor;
+							break;
+						//missing a few mfdouble, mfvec3d, a few more matrix types...
+						default:
+							break;
+					}
+				}
+				ifield++;
+				field = &offsets[ifield];
+			} //while fieldindex
+		} //if isunits == 2
+	} //if isunits
 }
 
 
@@ -3238,6 +3427,7 @@ static BOOL parser_node_B(struct VRMLParser* me, vrmlNodeT* ret, int ind) {
 			break;
 		}
 
+		applyUnitsToNode(node);
 		/* Init code for Scripts */
 		if(script) {
 #ifdef CPARSERVERBOSE
@@ -5122,19 +5312,19 @@ void deep_copy_node(struct X3D_Node** source, struct X3D_Node** dest, struct Vec
 	shaderfield = shaderFields(*source);
 	//copy fields
 	{
-		typedef struct field_info{
-			int nameIndex;
-			int offset;
-			int typeIndex;
-			int ioType;
-			int version;
-			int unca;
-		} *finfo;
-		finfo offsets;
-		finfo field;
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
+		fieldinfo offsets;
+		fieldinfo field;
 		int ifield;
 
-		offsets = (finfo)NODE_OFFSETS[(*source)->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[(*source)->_nodeType];
 		ifield = 0;
 		field = &offsets[ifield];
 		//printf("\n");
@@ -5954,19 +6144,19 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 	}
 	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
 	{
-		typedef struct field_info{
-			int nameIndex;
-			int offset;
-			int typeIndex;
-			int ioType;
-			int version;
-			int unca;
-		} *finfo;
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
 
-		finfo offsets;
-		finfo field;
+		fieldinfo offsets;
+		fieldinfo field;
 		int ifield;
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
 		ifield = 0;
 		field = &offsets[ifield];
 		while( field->nameIndex > -1) //<< generalized for scripts and builtins?
@@ -6083,21 +6273,21 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 	}
 	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
 	{
-		typedef struct field_info{
-			int nameIndex;
-			int offset;
-			int typeIndex;
-			int ioType;
-			int version;
-			int unca;
-		} *finfo;
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
 
-		finfo offsets;
+		fieldinfo offsets;
 		int k, kkind;
 		int kfield;
 
 
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
 		kfield = ifield;
 		//convert to index if in absolute offset
 		if(kfield >= offsets[0].offset){
