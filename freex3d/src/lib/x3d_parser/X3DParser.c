@@ -1409,13 +1409,14 @@ void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n,
 void sfunitd(int nodeType,char *fieldname, double *var, int n, int iuncafield);
 void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iuncafield);
 static void parseAttributes_B(void *ud, char **atts) {
-	int i, type, kind, iifield, iunca;
+	int i, type, kind, iifield, iunca, isunits;
 	struct X3D_Node *node;
 	char *name, *svalue;
 	const char *ignore [] = {"containerField","USE", "DEF"};
 	union anyVrml *value;
 
 	node = getNode(ud,TOP);
+	isunits = isUnits();
 	for (i=0; atts[i]; i+=2) {
 		name = atts[i];
 		svalue = atts[i+1];
@@ -1426,6 +1427,7 @@ static void parseAttributes_B(void *ud, char **atts) {
 				Parser_scanStringValueToMem_B(value, type,svalue, TRUE);
 				//apply unit conversionFactor to parsed literal field 
 				// (vs above in endBuiltin_B applyUnitsToNode)
+				if(isunits)
 				switch(type){
 					case FIELDTYPE_SFRotation:
 						sfunitf(node->_nodeType,name,&value->sfrotation.c[3],1,iunca);

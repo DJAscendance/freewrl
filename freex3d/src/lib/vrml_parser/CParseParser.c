@@ -1902,10 +1902,10 @@ int doLengthUnits(){
 	return ( do_lengthunits && !iunca_doing_length_by_field ) ? TRUE : FALSE;
 }
 int isUnitSpecVersionOK(int specversion){
-	//called during parse-time for non-length units
-	//and (in component_grouping.c) at render-time for length units 
-	// --(in theory the length scalefactors could be set to 1 at parse time for v3.2
-	//-- if you can find a good place to do that)
+	//strict: specs say only versions >= 3.3 of specs should apply UNIT statement units
+	//called
+	//a) during parse-time i) after literals parsed ii) after node-parsed
+	//b) (in component_grouping.c) at render-time for length units if doing 2-step method
 	return (!iunca_only_33 || specversion > 320) ? TRUE : FALSE;
 }
 
@@ -1923,9 +1923,6 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 			for(int i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == iunca){
-					//check if we need to convert units on this node->field
-					//printf("nodeType %d fieldname %s var %f n %d\n",nodetype,fieldname,*var,n);
-					//if(*var == 90.0f) *var = 1.5708;
 					for(int k=0;k<n;k++){
 						var[k] *= uptr->factor;
 					}
