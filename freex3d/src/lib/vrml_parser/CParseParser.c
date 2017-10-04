@@ -1639,22 +1639,24 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 //problem: not all derived unit categories are represent. Missing: 
 //   torque = force * length, ie kg * m**2 / s**2
 //   moment of inertia = mass * length**2, ie kg*m**2
-//	options: 
-//		a) add these 2 to a list, scene designer must/may specify factors explicitly
-//		b) automatically compute all derived units factors from base unit factors scene designer specifies
-//			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
-//			"Direct modification of conversion factors for derived units is not allowed." 
-//			problem: what if scene designer mixes force and mass incoherently? 
-//				Then how should torque factor be calculated - from force or from mass et al?
+//solution: 
+//	automatically compute all derived units factors from base unit factors scene designer specifies
+//	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+//	"Direct modification of conversion factors for derived units is not allowed." 
 //problem: force is/should be/could be a derived unit 
 //   force = mass * length / time**2, ie newton = kg * m / s**2
+//problem: what if scene designer mixes force and mass incoherently? 
+//		Then how should torque factor be calculated - from force or from mass et al?
+//solution: force is calculated as a derived unit unless explicitly set
+//		then Torque is computed from force
+//
 //enum {
 //	UNCA_NONE = 0,
 //	UNCA_LENGTH = 1,
 //	UNCA_ANGLE,
 //	UNCA_MASS,
 //	UNCA_FORCE,
-//	UNCA_ACCEL,
+//	UNCA_ACCEL,  - see src/lib/main/headers.h for latest enum, with GEO, PLANE
 //	UNCA_ANGLERATE,
 //	UNCA_AREA,
 //	UNCA_SPEED,
@@ -1693,176 +1695,13 @@ struct unca {
 	{NULL,0},
 };
 
-//UNITS > #2 Parse-Time conversions (non-length units cateogories)
-//Design Options: 
-//a) in perl field definitions, put another define for units category (UNCA)
-//   problem: we have functions that return field attributes, 
-//   and they would need to be extended, and for script, proto (non-builtin) no unca field in specs
-//b) lookup table - list all know non-length UNCAs, and lookup by field name
-//	 problem: could be a long list to search when parsing every field, maintenance
-//Design decision: b. (could re-do later)
-struct unitfield {
-	int nodetype;
-	char *fieldname;
-	int iunca;
-} unitfields [] = {
-	{NODE_Arc2D,"startAngle",UNCA_ANGLE},
-	{NODE_Arc2D,"endAngle",UNCA_ANGLE},
-	{NODE_ArcClose2D,"startAngle",UNCA_ANGLE},
-	{NODE_ArcClose2D,"endAngle",UNCA_ANGLE},
-	{NODE_Transform,"rotation",UNCA_ANGLE},
-	{NODE_Transform,"scaleOrientation",UNCA_ANGLE},
+//UNITS > #2 Parse-Time conversions 
+// in perl field definitions, put another define for units category (UNCA)
 
-	{NODE_ElevationGrid,"creaseAngle",UNCA_ANGLE},
-	{NODE_IndexedFaceSet,"creaseAngle",UNCA_ANGLE},
-	{NODE_SpotLight,"cutOffAngle",UNCA_ANGLE},
-	{NODE_SpotLight,"beamWidth",UNCA_ANGLE},
-	{NODE_CylinderSensor,"diskAngle",UNCA_ANGLE},
-	{NODE_CylinderSensor,"maxAngle",UNCA_ANGLE}, 
-	{NODE_CylinderSensor,"minAngle",UNCA_ANGLE},
-	{NODE_CylinderSensor,"axisRotation",UNCA_ANGLE},
-	{NODE_Background,"groundAngle",UNCA_ANGLE},
-	{NODE_Background,"skyAngle",UNCA_ANGLE},
-	{NODE_TextureBackground,"groundAngle",UNCA_ANGLE}, 
-	{NODE_TextureBackground,"skyAngle",UNCA_ANGLE},
-
-	{NODE_GeoElevationGrid,"creaseAngle",UNCA_ANGLE},
-
-	{NODE_DoubleAxisHingeJoint,"maxAngle1",UNCA_ANGLE},
-	{NODE_DoubleAxisHingeJoint,"minAngle1",UNCA_ANGLE},
-	{NODE_DoubleAxisHingeJoint,"hinge1Angle",UNCA_ANGLE},
-	{NODE_DoubleAxisHingeJoint,"hinge2Angle",UNCA_ANGLE},
-	{NODE_DoubleAxisHingeJoint,"hinge2AngleRate",UNCA_ANGLERATE}, //
-	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity1",UNCA_ANGLERATE}, //
-	{NODE_DoubleAxisHingeJoint,"desiredAngularVelocity2",UNCA_ANGLERATE}, //
-
-
-	{NODE_Extrusion,"creaseAngle",UNCA_ANGLE},
-	{NODE_Extrusion,"orientation",UNCA_ANGLE},
-
-	{NODE_TextureTransform,"rotation",UNCA_ANGLE},
-	{NODE_OrientationInterpolator,"keyValue",UNCA_ANGLE},
-	{NODE_SquadOrientationInterpolator,"keyValue",UNCA_ANGLE},
-
-	{NODE_PlaneSensor,"axisRotation",UNCA_ANGLE},
-	{NODE_SphereSensor,"offset",UNCA_ANGLE},
-	{NODE_Viewpoint,"orientation",UNCA_ANGLE},
-	{NODE_Viewpoint,"fieldOfView",UNCA_ANGLE},
-	{NODE_OrthoViewpoint,"orientation",UNCA_ANGLE},
-
-	{NODE_GeoTransform,"rotation",UNCA_ANGLE}, 
-	{NODE_GeoTransform,"scaleOrientation",UNCA_ANGLE},
-	{NODE_GeoViewpoint,"orientation",UNCA_ANGLE},
-	{NODE_GeoViewpoint,"fieldOfView",UNCA_ANGLE},
-
-	{NODE_HAnimHumanoid,"rotation",UNCA_ANGLE},
-	{NODE_HAnimHumanoid,"scaleOrientation",UNCA_ANGLE},
-	{NODE_HAnimJoint,"rotation",UNCA_ANGLE},
-	{NODE_HAnimJoint,"scaleOrientation",UNCA_ANGLE},
-	{NODE_HAnimJoint,"limitOrientation",UNCA_ANGLE},
-	{NODE_HAnimJoint,"llimit",UNCA_ANGLE}, //MFFloat
-	{NODE_HAnimJoint,"Ulimit",UNCA_ANGLE},
-
-	{NODE_HAnimSite,"rotation",UNCA_ANGLE}, 
-	{NODE_HAnimSite,"scaleOrientation",UNCA_ANGLE},
-
-	{NODE_EspduTransform,"rotation",UNCA_ANGLE},
-	{NODE_EspduTransform,"scaleOrientation",UNCA_ANGLE},
-
-	{NODE_CADPart,"rotation",UNCA_ANGLE},
-	{NODE_CADPart,"scaleOrientation",UNCA_ANGLE},
-
-	{NODE_TextureTransform3D,"rotation",UNCA_ANGLE},
-	{NODE_CollidableOffset,"rotation",UNCA_ANGLE},
-	{NODE_CollidableShape,"rotation",UNCA_ANGLE},
-
-	{NODE_RigidBody,"orientation",UNCA_ANGLE},
-	{NODE_RigidBody,"angularVelocity",UNCA_ANGLERATE}, //  [angle/time]
-	{NODE_RigidBody,"angularDampingFactor",UNCA_ANGLERATE}, //??
-	{NODE_RigidBody,"disableAngularSpeed",UNCA_ANGLERATE}, //
-
-	{NODE_OrientationChaser,"initialDestination",UNCA_ANGLE},
-	{NODE_OrientationChaser,"initialValue",UNCA_ANGLE},
-	{NODE_OrientationDamper,"initialDestination",UNCA_ANGLE},
-	{NODE_OrientationDamper,"initialValue",UNCA_ANGLE},
-
-
-	{NODE_MetadataSFRotation,"value",UNCA_ANGLE},
-	{NODE_MetadataMFRotation,"value",UNCA_ANGLE},
-
-	{NODE_ConeEmitter,"angle",UNCA_ANGLE},
-
-
-	//MASS and MOM moment of inertia
-	{NODE_RigidBody,"inertia",UNCA_MOMENT}, // SFMatrix3f (H: moments of inertia = kg * meter**2 = [mass * length**2]
-	{NODE_RigidBody,"mass",UNCA_MASS}, // SFFloat kg	[mass]
-	{NODE_HAnimSegment,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_HAnimSegment,"momentsOfInertia",UNCA_MOMENT}, // MFFloat kg*meter**2 [mass * length**2]
-	{NODE_ConeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_ExplosionEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_PointEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_PolylineEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_SurfaceEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
-	{NODE_VolumeEmitter,"mass",UNCA_MASS}, // SFFloat kg [mass]
-
-
-
-	//FORCE, TORQUE, ACCEL
-	{NODE_CollisionCollection,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
-	{NODE_Contact,"softnessConstantForceMix",UNCA_FORCE}, // SFFloat newton [force]
-	{NODE_DoubleAxisHingeJoint,"maxTorque1",UNCA_TORQUE}, // newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
-	{NODE_DoubleAxisHingeJoint,"stopConstanceForceMix1",UNCA_FORCE}, // SFFloat newton [force]
-	{NODE_DoubleAxisHingeJoint,"suspensionForce",UNCA_FORCE}, // SFFloat newton [force]
-	{NODE_MotorJoint,"axis1Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
-	{NODE_DoubleAxisHingeJoint,"axis2Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
-	{NODE_DoubleAxisHingeJoint,"axis3Torque",UNCA_TORQUE}, //  newton*meter = kg*meter/s**2 = [mass*length/time**2] = [force * length]
-	{NODE_RigidBody,"forces",UNCA_FORCE}, // MFVec3f newton = kg*meter/s**2 [mass * length / time**2]
-	{NODE_DoubleAxisHingeJoint,"torques",UNCA_TORQUE}, // MFVec3f newton*meter == kg*meter/s**2 * meter = kg * meter**2/s**2 
-			//= [mass * length **2 / time **2]
-	{NODE_RigidBodyCollection,"gravity",UNCA_ACCEL}, // SFVec3f (H: accelleration of, 9.8 m/s**2) = [length / time**2]
-	{NODE_SliderJoint,"sliderForce",UNCA_FORCE}, // newton [force]
-
-	//SPEED
-	{NODE_EspduTransform,"linearVelocity",UNCA_SPEED},
-	{NODE_CollisionCollection,"minBounceSpeed",UNCA_SPEED}, //SFFloat
-	{NODE_CollisionCollection,"surfaceSpeed",UNCA_SPEED}, //SFVec3f
-	{NODE_Contact,"surfaceSpeed",UNCA_SPEED},  //SFVec2f- generated node, similar to output only
-	{NODE_RigidBody,"disableLinearSpeed",UNCA_SPEED}, //SFFloat
-	{NODE_RigidBody,"linearVelocity",UNCA_SPEED}, //SFVec3f
-
-	//ACCELERATION
-	{NODE_ForcePhysicsModel,"force",UNCA_ACCEL}, // SFVec3f m/s**2 [length/time**2] acceleration
-	{NODE_EspduTransform,"linearAccelleration",UNCA_ACCEL},
-
-	//AREA and VOLUME
-	{NODE_ConeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-	{NODE_ExplosionEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-	{NODE_PointEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-	{NODE_PolylineEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-	{NODE_SurfaceEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-	{NODE_VolumeEmitter,"surfaceArea",UNCA_AREA}, // SFFloat m*m [length**2]
-
-	{0,NULL,0},
-};
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
 #endif
-int lookup_unitfields(int nodetype, char *fieldname){
-	int i;
-	int retval;
-	struct unitfield *lm;
-	i = 0;
-	retval = UNCA_NONE;
-	do{
-		lm = &unitfields[i];
-		if(nodetype == lm->nodetype && !strcasecmp(lm->fieldname,fieldname)){
-			retval = lm->iunca;
-			break;
-		}
-		i++;
-	}while(unitfields[i].fieldname);
-	return retval;
-}
+
 /*	2 kinds of units
 	#1 - length - this is applied as a relative scale between scenefile-contexts, 
 		is applied as a transform during rendering, and needs a stack
@@ -2056,7 +1895,6 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
    because if sub-scene they need to counter-act parent-scene scaling which might be v3.3
    however they can shut off their own UNIT statement scale factors if < 3.2
 */
-static int iunca_lookup_method_field = TRUE; //FALSE - use above lookup list TRUE use FIELD_OFFSET[5] UNCA from perl
 static int iunca_doing_length_by_field = TRUE; //FALSE - do at render time in grouping, with wrapper-scale-per-context TRUE- do at parse-time per field
 // use also LENGTHMETHOD_MINUSONE above if using render-time wrapper scale (use _FULL if doing parse-time scaling)
 static int iunca_only_33 = TRUE;  //TRUE only web3d version 3.3+ scene files gets units applied as per specs (strict), FALSE any version can have UNITS
@@ -2075,10 +1913,7 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iuncafield) {
 	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		int iunca, ok;
-		if(iunca_lookup_method_field)
-			iunca = iuncafield;
-		else
-			iunca = lookup_unitfields(nodetype, fieldname);
+		iunca = iuncafield;
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
 		ok = iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH));
 		if(isUnits() == 2)
@@ -2104,14 +1939,8 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		//check if we need to convert units on this node->field
-		//for(int i=0;i<n;i++){
-		//	var[i].c[3] *= rotationFactor;
-		//}
 		int iunca, ok;
-		if(iunca_lookup_method_field)
-			iunca = iuncafield;
-		else
-			iunca = lookup_unitfields(nodetype, fieldname);
+		iunca = iuncafield;
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
 		ok = iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH));
@@ -2138,15 +1967,8 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iuncafield){
 	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
-		//check if we need to convert units on this node->field
-		//for(int i=0;i<n;i++){
-		//	var[i].c[3] *= rotationFactor;
-		//}
 		int iunca, ok;
-		if(iunca_lookup_method_field)
-			iunca = iuncafield;
-		else
-			iunca = lookup_unitfields(nodetype, fieldname);
+		iunca = iuncafield;
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH && iunca != UNCA_SPEED))){
 		//if(iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH ))){
 		ok = iunca && (iunca_doing_length_by_field || (iunca != UNCA_LENGTH && iunca != UNCA_BLENGTH));
