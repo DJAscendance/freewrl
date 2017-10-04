@@ -6397,7 +6397,7 @@ const int OFFSETS_RigidBody[] = {
 	(int) FIELDNAMES_geometry, (int) offsetof (struct X3D_RigidBody, geometry),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_inertia, (int) offsetof (struct X3D_RigidBody, inertia),  (int) FIELDTYPE_SFMatrix3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MOMENT,
 	(int) FIELDNAMES_linearDampingFactor, (int) offsetof (struct X3D_RigidBody, linearDampingFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_RigidBody, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_RigidBody, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_RigidBody, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
 	(int) FIELDNAMES_massDensityModel, (int) offsetof (struct X3D_RigidBody, massDensityModel),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_RigidBody, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
