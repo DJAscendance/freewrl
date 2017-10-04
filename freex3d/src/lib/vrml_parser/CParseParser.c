@@ -1872,7 +1872,7 @@ int lookup_unitfields(int nodetype, char *fieldname){
 
 */
 static int isunits = 0;  //#2 the others, parse-time 
-static int method_nodeparse = 1;
+static int method_nodeparse = 1; //0 convert at literal parse time 1 convert after node fields have been parsed
 static double unitlengthfactor = 1.0;
 double getunitlengthfactor(){
 	return unitlengthfactor;
