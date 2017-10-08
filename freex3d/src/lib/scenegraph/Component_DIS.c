@@ -84,5 +84,19 @@ http://open-dis.sourceforge.net/Open-DIS.html
 
 */
 
-
+static int have_DIS = 0;
+static int allow_DIS = 0;
+void fwl_init_DIS(){
+	//from commandline --DIS or -D
+	allow_DIS = 1;
+}
+int fwl_doing_DIS(){
+	return allow_DIS && have_DIS ? 1 : 0;
+}
+int fwl_get_allow_DIS(){
+	return allow_DIS;
+}
+void fwl_set_allow_DIS(int allow){
+	allow_DIS = allow ? 1 : 0;
+}
 

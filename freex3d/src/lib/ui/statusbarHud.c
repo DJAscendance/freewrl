@@ -432,7 +432,7 @@ typedef struct pstatusbar{
 	char messagebar[200];
 	int bmfontsize;// = 2; /* 0,1 or 2 */
 	int optionsLoaded;// = 0;
-	char * optionsVal[30];
+	char * optionsVal[31];
 	int osystem;// = 3; //mac 1btn = 0, mac nbutton = 1, linux game descent = 2, windows =3
 	XY bmWH;// = {10,15}; /* simple bitmap font from redbook above, width and height in pixels */
 	int bmScale; //1 or 2 for the hud pixel fonts, changes between ..ForOptions and ..Regular 
@@ -540,7 +540,7 @@ void initProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 26;
+static int lenOptions   = 27;
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -846,6 +846,7 @@ char * optionsText[] = {
 "screen orientation \36    \37",
 "shading style:",
 "  flat  gouraud  phong  wire",
+"  allow DIS Distributed Interactive Simulation",
 NULL,
 };
 //0123456789012345678901234567890
@@ -936,6 +937,9 @@ void initOptionsVal()
 		default:
 			break;
 	}
+	p->optionsVal[26][0] = 034; //[]
+	if(fwl_get_allow_DIS())
+		p->optionsVal[26][0] = 035; //[*] '*';
 
 	p->optionsLoaded = 1;
 }
@@ -973,6 +977,7 @@ char * optionsCase[] = {
 "                  PP    QQ",
 " ",
 "RR    SS       TT     UU",
+"VVVVVVVVVV",
 NULL,
 };
 
@@ -1225,6 +1230,11 @@ int handleOptionPress(int mouseX, int mouseY)
 			fwl_setShadingStyle(shadingStyle);
 		}
 		break;
+	case 'V': {
+		fwl_set_allow_DIS(1 - fwl_get_allow_DIS());
+		break;
+		}
+
 	default: 
 		break;
 	}

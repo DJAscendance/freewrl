@@ -110,6 +110,7 @@ void fv_usage()
 	    "  -j|--fd <number>        Pipe to command the program.\n"
 	    "  -k|--instance <number>  Instance of plugin.\n"
 	    "  -L|--logfile <filename> Log file where all messages should go.\n"
+		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
 #ifdef HAVE_LIBCURL
 	    "  -C|--curl               Use libcurl instead of wget.\n"
 #endif
@@ -174,6 +175,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
+	{"DIS",no_argument,0,'D'},
 	{0, 0, 0, 0}
     };
 
@@ -212,7 +214,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 #if defined(DOSNAPSEQUENCE)
 	static const char optstring[] = "efg:hi:j:k:vVlpq:m:n:o:bsQW:K:Xcr:y:utCL:d:RFPN:";
 #else
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:D"; //':' means the preceding option requires an arguement
 #endif
 
 
@@ -412,6 +414,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	case 'B': /* --sidebyside, no argument */
 	    fwl_init_SideBySide();
 	    break;
+	case 'D': /* --DIS, no argument */
+	    fwl_init_DIS();
+	    break;
+
 	case 'U': /* --updown, no argument */
 	    fwl_init_UpDown();
 	    break;

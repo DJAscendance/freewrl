@@ -361,6 +361,8 @@ void frontend_dequeue_get_enqueue(void *tg){
 void SSR_reply(void * tg);
 void dequeue_SSR_request(void * tg);
 #endif
+int fwl_doing_DIS();
+void sendreceive_DIS();
 char *get_key_val(char *key);
 void _displayThread(void *globalcontext)
 {
@@ -412,7 +414,8 @@ void _displayThread(void *globalcontext)
 		// and doesn't call this _displayThread)
 		fwMessageLoop(); 
 #endif
-
+		if(fwl_doing_DIS())
+			sendreceive_DIS();
 		frontend_dequeue_get_enqueue(globalcontext); //this is non-blocking (returns immediately) if queue empty
 		more = fwl_draw();
 		/* swap the rendering area */
@@ -521,3 +524,9 @@ void fwl_startFreeWRL(const char *url)
 		_displayThread(tg);
 	//}
 }
+
+//DIS
+void sendreceive_DIS(){
+
+}
+
