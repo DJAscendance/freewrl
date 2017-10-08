@@ -2560,7 +2560,11 @@ struct X3D_Virt virt_EffectPart = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 void render_ElevationGrid(struct X3D_ElevationGrid *);
 struct X3D_Virt virt_ElevationGrid = { NULL,(void *)render_ElevationGrid,NULL,NULL,(void *)rendray_ElevationGrid,(void *)make_ElevationGrid,NULL,NULL,(void *)collide_ElevationGrid,NULL};
 
-struct X3D_Virt virt_EspduTransform = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void prep_EspduTransform(struct X3D_EspduTransform *);
+void child_EspduTransform(struct X3D_EspduTransform *);
+void fin_EspduTransform(struct X3D_EspduTransform *);
+void compile_EspduTransform(struct X3D_EspduTransform *);
+struct X3D_Virt virt_EspduTransform = { (void *)prep_EspduTransform,NULL,(void *)child_EspduTransform,(void *)fin_EspduTransform,NULL,NULL,NULL,NULL,NULL,(void *)compile_EspduTransform};
 
 struct X3D_Virt virt_ExplosionEmitter = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4313,7 +4317,14 @@ const int OFFSETS_ElevationGrid[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_EspduTransform[] = {
+	(int) FIELDNAMES___do_anything, (int) offsetof (struct X3D_EspduTransform, __do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_center, (int) offsetof (struct X3D_EspduTransform, __do_center),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_rotation, (int) offsetof (struct X3D_EspduTransform, __do_rotation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_scale, (int) offsetof (struct X3D_EspduTransform, __do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_scaleO, (int) offsetof (struct X3D_EspduTransform, __do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_trans, (int) offsetof (struct X3D_EspduTransform, __do_trans),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_EspduTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_EspduTransform, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_EspduTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_EspduTransform, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_EspduTransform, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9194,7 +9205,14 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_EspduTransform : {
 			struct X3D_EspduTransform * tmp2;
 			tmp2 = (struct X3D_EspduTransform *) tmp;
+			tmp2->__do_anything = FALSE;
+			tmp2->__do_center = FALSE;
+			tmp2->__do_rotation = FALSE;
+			tmp2->__do_scale = FALSE;
+			tmp2->__do_scaleO = FALSE;
+			tmp2->__do_trans = FALSE;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
 			tmp2->address = newASCIIString("localhost");
 			tmp2->applicationID = 1;
@@ -14094,6 +14112,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __sibAffectors (MFNode):\n");
 			for (i=0; i<tmp->__sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->__sibAffectors.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _sortedChildren (MFNode):\n");
+			for (i=0; i<tmp->_sortedChildren.n; i++) { dump_scene(fp,level+1,tmp->_sortedChildren.p[i]); }
 		    }
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);
 			spacer fprintf (fp," applicationID (SFInt32) \t%d\n",tmp->applicationID);

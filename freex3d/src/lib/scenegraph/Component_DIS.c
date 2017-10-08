@@ -100,3 +100,22 @@ void fwl_set_allow_DIS(int allow){
 	allow_DIS = allow ? 1 : 0;
 }
 
+
+void compile_EspduTransform (struct X3D_EspduTransform *node) { 
+	compile_Transform((struct X3D_Transform*)node);
+	have_DIS = 1;
+}
+
+/* do transforms, calculate the distance */
+void prep_EspduTransform (struct X3D_EspduTransform *node) {
+	prep_Transform((struct X3D_Transform *)node);
+}
+
+void fin_EspduTransform (struct X3D_EspduTransform *node) {
+	fin_Transform((struct X3D_Transform*)node);
+} 
+
+void child_EspduTransform (struct X3D_EspduTransform *node) {
+	child_Transform((struct X3D_Transform*)node);
+}
+

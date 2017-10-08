@@ -525,8 +525,32 @@ void fwl_startFreeWRL(const char *url)
 	//}
 }
 
-//DIS
+//DIS - Distributed Interactive Simulation communication
 void sendreceive_DIS(){
-
+	//just the buffer in/out is handled here
+	//the interpretation/parsing/packing of pdus is done in the backend
+	//this is in the front end so platforms with sandbox restrictions on communication
+	//can do this in the native language/technology
+/* pseudo code design:
+	if(dis_sendlist.n > 0){
+		//backend will queue up pdus to send,
+		//frontend fetches them one by one from the queue
+		//this isolates typically platform-specific things like networking in frontend
+		//while avoiding having the backend call into the frontend which is often in a dfferent
+		//language technology 
+		loop over sendlist:
+		(n,buf,ip,port) = get_next_send_from_backend()
+		sendTo(buf,n,ip,port)
+		// flushing queue should be done in BACKEND, start of each loop
+		// so if no frontend capability, the queue doesn't overflow
+	}
+	if(dis_recvlist.n > 0){
+	  loop over all recv channels or connect-switch or libevent
+		if(not yet opened)
+			open
+		non-blocking recv or recvfrom or recv with short timeout
+		if(got something) dis_incoming_to_backend(ip,port,stream,len)
+	}
+*/
 }
 

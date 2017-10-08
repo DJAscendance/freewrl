@@ -482,6 +482,7 @@ our %PrepC = map {($_=>1)} qw/
 	LayoutLayer
 	CollidableOffset
 	CollidableShape
+	EspduTransform
 /;
 
 #######################################################################
@@ -509,6 +510,7 @@ our %FinC = map {($_=>1)} qw/
 	LayoutLayer	
 	CollidableOffset
 	CollidableShape	
+	EspduTransform
 /;
 
 
@@ -561,6 +563,7 @@ our %ChildC = map {($_=>1)} qw/
 	SegmentedVolumeData
 	IsoSurfaceVolumeData
 	ParticleSystem
+	EspduTransform
 /;
 
 
@@ -684,6 +687,7 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimJoint
 	HAnimSite
 	HAnimHumanoid
+	EspduTransform
 /;
 
 
