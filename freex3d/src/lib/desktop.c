@@ -530,6 +530,10 @@ void sendreceive_DIS(){
 	//just the buffer in/out is handled here
 	//the interpretation/parsing/packing of pdus is done in the backend
 	//this is in the front end so platforms with sandbox restrictions on communication
+	//android multicaste:
+	//  https://developer.android.com/reference/java/net/MulticastSocket.html
+	//windows universal (talks about network isolation):
+	//	https://docs.microsoft.com/en-us/windows/uwp/networking/sockets
 	//can do this in the native language/technology
 /* pseudo code design:
 	if(dis_sendlist.n > 0){

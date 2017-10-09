@@ -108,6 +108,37 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {
 
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
+	//option 1: done during startofloopnodeupdates prep_ pass
+	//option 2: as option 1, except receive part called from frontend thread on receive
+	/* pseudo-code
+	if(sender){
+		compute velocities from delta pose
+		delta_time = time() - last_send_time
+		if(delta_time > send_interval){
+			recompute_pdu_from_node
+			//over-writing has an advantage: if no frontend capability or permission
+			//	to network, backend doesn't hang or buffer-overflow
+			convert_pdu_2_streambuf
+			add_or_overwrite_sender_list_entity_item(ip,port,entity,pdu_stream*)
+			update last send time
+		}
+	}else if(receiver){
+		if(node->incominglist.n){
+			//process incoming pdus
+			if(flooded) 
+				just take last recieved pdu
+			else
+				iterate over pdus by send timestamp (which may be different than recv order)
+			clear list
+		}else{
+			//initial velocities are 0, so if no incoming updates, 
+			//  the entities don't move
+			dead_reckoning update
+		}
+		change++
+	}
+	//else idle
+	*/
 	prep_Transform((struct X3D_Transform *)node);
 }
 
