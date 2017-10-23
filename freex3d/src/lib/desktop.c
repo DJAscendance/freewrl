@@ -361,8 +361,6 @@ void frontend_dequeue_get_enqueue(void *tg){
 void SSR_reply(void * tg);
 void dequeue_SSR_request(void * tg);
 #endif
-int fwl_doing_DIS();
-void sendreceive_DIS();
 char *get_key_val(char *key);
 void _displayThread(void *globalcontext)
 {
@@ -414,8 +412,6 @@ void _displayThread(void *globalcontext)
 		// and doesn't call this _displayThread)
 		fwMessageLoop(); 
 #endif
-		if(fwl_doing_DIS())
-			sendreceive_DIS();
 		frontend_dequeue_get_enqueue(globalcontext); //this is non-blocking (returns immediately) if queue empty
 		more = fwl_draw();
 		/* swap the rendering area */
@@ -524,37 +520,3 @@ void fwl_startFreeWRL(const char *url)
 		_displayThread(tg);
 	//}
 }
-
-//DIS - Distributed Interactive Simulation communication
-void sendreceive_DIS(){
-	//just the buffer in/out is handled here
-	//the interpretation/parsing/packing of pdus is done in the backend
-	//this is in the front end so platforms with sandbox restrictions on communication
-	//android multicaste:
-	//  https://developer.android.com/reference/java/net/MulticastSocket.html
-	//windows universal (talks about network isolation):
-	//	https://docs.microsoft.com/en-us/windows/uwp/networking/sockets
-	//can do this in the native language/technology
-/* pseudo code design:
-	if(dis_sendlist.n > 0){
-		//backend will queue up pdus to send,
-		//frontend fetches them one by one from the queue
-		//this isolates typically platform-specific things like networking in frontend
-		//while avoiding having the backend call into the frontend which is often in a dfferent
-		//language technology 
-		loop over sendlist:
-		(n,buf,ip,port) = get_next_send_from_backend()
-		sendTo(buf,n,ip,port)
-		// flushing queue should be done in BACKEND, start of each loop
-		// so if no frontend capability, the queue doesn't overflow
-	}
-	if(dis_recvlist.n > 0){
-	  loop over all recv channels or connect-switch or libevent
-		if(not yet opened)
-			open
-		non-blocking recv or recvfrom or recv with short timeout
-		if(got something) dis_incoming_to_backend(ip,port,stream,len)
-	}
-*/
-}
-

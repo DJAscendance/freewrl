@@ -81,8 +81,36 @@ http://open-dis.sourceforge.net/Open-DIS.html
 
 
 
+Problem: our C .h and the DIS.lib (cpp) .h clash, very messy
+x didn't find a combination of headers that worked
+
+Options:
+1. clean up our headers
+2. convert DIS.lib objects we need to flat C structs
+	- about 30 structs
+	a) manually, from .cpp
+	b) hack xmlpg https://github.com/open-dis/xmlpg CppGenerator.java 
+		into a CGenerator.java and generate flat C
+3. wrap DIS objects -just ones we need- in flat C interfaces (about 30)
+4. somehow show cpp just the C structs it needs, like X3D_EspduTransform
+	- about 5 x3d structs
+Choice: option 2.b
+- benefits: easy to interface, could do just .h (no lib), code & license is ours/freewrl
+-disadvantages: someone has to do hacking upstream in CGenerator.java, and
+	duplicate all the CppUtils (that wrap the pdu classes) in C,
+	and mistakes can happen during transcription (risk)
+
 
 */
+//#define WITH_DIS 1
+#ifdef WITH_DIS
+#include "../DIS/DIS.h"
+#endif //WITH_DIS
+
+
+void prep_EspduTransform_cpp(struct X3D_EspduTransform *node);
+void fin_EspduTransform_cpp(struct X3D_EspduTransform *node);
+void compile_EspduTransform_cpp(struct X3D_EspduTransform *node);
 
 static int have_DIS = 0;
 static int allow_DIS = 0;
@@ -102,47 +130,22 @@ void fwl_set_allow_DIS(int allow){
 
 
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
+	//compile_EspduTransform0(node);
 	compile_Transform((struct X3D_Transform*)node);
-	have_DIS = 1;
 }
 
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
-	//option 1: done during startofloopnodeupdates prep_ pass
-	//option 2: as option 1, except receive part called from frontend thread on receive
-	/* pseudo-code
-	if(sender){
-		compute velocities from delta pose
-		delta_time = time() - last_send_time
-		if(delta_time > send_interval){
-			recompute_pdu_from_node
-			//over-writing has an advantage: if no frontend capability or permission
-			//	to network, backend doesn't hang or buffer-overflow
-			convert_pdu_2_streambuf
-			add_or_overwrite_sender_list_entity_item(ip,port,entity,pdu_stream*)
-			update last send time
-		}
-	}else if(receiver){
-		if(node->incominglist.n){
-			//process incoming pdus
-			if(flooded) 
-				just take last recieved pdu
-			else
-				iterate over pdus by send timestamp (which may be different than recv order)
-			clear list
-		}else{
-			//initial velocities are 0, so if no incoming updates, 
-			//  the entities don't move
-			dead_reckoning update
-		}
-		change++
-	}
-	//else idle
-	*/
+
+	//prep_EspduTransform0(node);
+	//else standalone
 	prep_Transform((struct X3D_Transform *)node);
+	have_DIS = 1;
+
 }
 
 void fin_EspduTransform (struct X3D_EspduTransform *node) {
+	//fin_EspduTransform0(node);
 	fin_Transform((struct X3D_Transform*)node);
 } 
 
@@ -150,3 +153,37 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 	child_Transform((struct X3D_Transform*)node);
 }
 
+
+//DIS - Distributed Interactive Simulation communication
+void fwl_sendreceive_DIS(){
+	//just the buffer in/out is handled here
+	//the interpretation/parsing/packing of pdus is done in the backend
+	//this might need to be in the front end so platforms with sandbox restrictions on communication
+	//can do this in the native language/technology if necessary - I'll find out later.
+/* pseudo code design:
+	if(dis_sendlist.n > 0){
+		//backend will queue up pdus to send,
+		//frontend fetches them one by one from the queue
+		//this isolates potentialy platform-specific things like networking in frontend
+		//while avoiding having the backend call into the frontend which is often in a dfferent
+		//language technology 
+		loop over sendlist:
+		(n,buf,ip,port) = get_next_send_from_backend()
+		sendTo(buf,n,ip,port)
+		// flushing queue should be done in BACKEND, start of each loop
+		// so if no frontend capability, the queue doesn't overflow
+	}
+	if(dis_recvlist.n > 0){
+	  loop over all recv channels or connect-switch or libevent
+		if(not yet opened)
+			open
+		non-blocking recv or recvfrom or recv with short timeout
+		if(got something) dis_incoming_to_backend(ip,port,stream,len)
+	}
+*/
+	printf("yo from fwl_sendreceive_DIS\n");
+}
+
+#ifdef USING_DIS
+#include "../DIS/DIS.c"
+#endif USING_DIS
