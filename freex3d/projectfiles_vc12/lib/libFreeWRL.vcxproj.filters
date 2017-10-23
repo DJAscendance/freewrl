@@ -375,6 +375,9 @@
     <ClCompile Include="$(SRC)\lib\scenegraph\MPEG_Utils_ffmpeg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\lib\scenegraph\socketutils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SRC)\lib\scenegraph\Component_Picking.h">

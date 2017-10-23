@@ -301,6 +301,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_portions",
 	"_previousvalue",
 	"_radius",
+	"_registered",
 	"_remainder",
 	"_retrievedURLData",
 	"_rotationAngle",
@@ -4324,6 +4325,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES___do_scaleO, (int) offsetof (struct X3D_EspduTransform, __do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_trans, (int) offsetof (struct X3D_EspduTransform, __do_trans),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_EspduTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_EspduTransform, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_EspduTransform, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_EspduTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_EspduTransform, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9212,6 +9214,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scaleO = FALSE;
 			tmp2->__do_trans = FALSE;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->_registered = FALSE;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
 			tmp2->address = newASCIIString("localhost");
