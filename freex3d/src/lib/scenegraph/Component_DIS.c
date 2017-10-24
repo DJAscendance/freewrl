@@ -103,7 +103,7 @@ Choice: option 2.b
 
 
 */
-//#define WITH_DIS 1
+#define WITH_DIS 1
 #ifdef WITH_DIS
 #include "../DIS/DIS.h"
 #endif //WITH_DIS
@@ -177,23 +177,212 @@ struct dis_socket {
 	int port;
 	char *address;
 	SOCKET socket;
+	struct sockaddr_in saddr;
 	int multicastRelayPort;
 	char *multicastRelayHost;
 	int idir; //0 = receive, 1 = send
 	struct Vector *registered;
 };
+
 static struct Vector *sockets_send = NULL;
 static struct Vector *sockets_recv = NULL;
 #ifdef WITH_DIS
+unsigned char buf2[32767];
 void dis_sendloop(){
+	int i,j, nbytes;
 	if(!sockets_send || sockets_send->n == 0) return;
+	for(i=0;i<sockets_send->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
+		if(dsock->registered){
+			nbytes = 0;
+			//if(expectRtuHeader) 
+			//	nbytes = dis_write_rtu(buf2);
+			for(j=0;j<dsock->registered->n;j++){
+				//if(dtime > interval ){
+					//dis_marshal(sbuf,pdu,pduToDis(pdu->pdutype));
+					//.nbytes += dis_write_stream(&buf2[nbytes],pdus);
+				//}
+				break;
+			}
+		}
+	}
 }
+
+int dis_read_stream(unsigned char * datastream, int streamsize, 
+	struct Vector *pdus) 
+{ 
+	int pdutype, bytesread;
+	unsigned char *carat, *carat2;
+	static char pdubuffer[10000];
+	unsigned char *pdubuf;
+	bytesread = 0;
+	carat = &datastream[0];
+	while(bytesread < streamsize){
+		int i, distype, nbytes;
+		if(1) for(i=0;i<210;i+=10){
+			int j;
+			printf("%d\t",i);
+			for(j=0;j<10;j++){
+				printf("%5d",(int)carat[i+j]);
+			}
+			printf("\n");
+		}
+		pdutype = (int)(carat[2]);
+		distype = pduToDis(pdutype);
+		printf("pdu type=%d distype=%d",(int)pdutype, distype);
+		
+		pdubuf = dis_ctor(distype);
+		carat2 = dis_unmarshal(carat,pdubuf,distype);
+		nbytes = (carat2 - carat);
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)pdubuf);
+		printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
+
+		if(1){
+			//try marshalling, then compare bytestreams
+			unsigned char buf3[32000];
+			unsigned char *carat3;
+			int b3size;
+			carat3 = dis_marshal(buf3,pdubuf,distype);
+			b3size = carat3 - buf3;
+			printf("marshed bits %d bytes %d\n",b3size*8,b3size);
+
+			if(memcmp(carat,buf3,b3size) == 0)
+				printf("bravo\n");
+			else{
+				printf("youch\n");
+				for(i=0;i<210;i+=10){
+					int j;
+					printf("%d\t",i);
+					for(j=0;j<10;j++){
+						printf("%5d",(int)buf3[i+j]);
+					}
+					printf("\n");
+				}
+			}
+
+		}
+
+
+		if(pdutype == 1){
+			int n;
+			struct EntityStatePdu* p = (struct EntityStatePdu*)pdubuf;
+			printf("loc %lf %lf %lf  rot %f %f %f\n",
+				p->entityLocation.x,p->entityLocation.y,p->entityLocation.z,
+				p->entityOrientation.psi,p->entityOrientation.theta,p->entityOrientation.phi);
+#ifdef DIS2012
+			n = p->numberOfVariableParameters;
+#else //DIS1998
+			n = p->numberOfArticulationParameters;
+#endif
+			if(n){
+			  //unsigned char recordType; 
+			  ///** Variable parameter data fields. Two doubles minus one byte */
+			  //double variableParameterFields1; 
+			  ///** Variable parameter data fields.  */
+			  //unsigned int variableParameterFields2; 
+			  ///** Variable parameter data fields.  */
+			  //unsigned short variableParameterFields3; 
+			  ///** Variable parameter data fields.  */
+			  //unsigned char variableParameterFields4; 
+				//struct VariableParameter *v;
+
+#ifdef DIS2012
+				struct ArticulatedParts *v;
+				v = (struct ArticulatedParts*)p->variableParameters;
+			   printf("v address = %p\n",v);
+				//v = *vlist;
+			   for(i=0;i<n;i++){
+				   printf("%d %d %d %d %d %lf\n",
+					   i,
+					   (int)v[i].recordType,
+					   (int)v[i].changeIndicator,
+					   (int)v[i].partAttachedTo,
+					   (int)v[i].parameterType,
+					   v[i].parameterValue
+					);
+			   }
+#else //DIS1998
+				struct ArticulationParameter *v;
+				v = (struct ArticulationParameter*)p->articulationParameters;
+			   printf("v address = %p\n",v);
+				//v = *vlist;
+			   for(i=0;i<n;i++){
+				   printf("%d %d %d %d %d %lf\n",
+					   i,
+					   (int)v[i].parameterTypeDesignator,
+					   (int)v[i].changeIndicator,
+					   (int)v[i].partAttachedTo,
+					   (int)v[i].parameterType,
+					   v[i].parameterValue
+					);
+			   }
+#endif 
+			}
+		}
+		//dis_dtor(pdubuf,distype);
+		bytesread += nbytes;
+		carat = carat2;
+		printf("bytes left = %d - %d = %d\n",streamsize, (int)(carat - datastream), streamsize - (int)(carat-datastream));
+		printf("\n");
+		//if(0) for(i=0;i<npdus;i++){
+		//	if(registeredPdus[i]->pduType == pdutype){
+		//		//I think there should be more filtering here
+		//		//for example is it the right target IP + port + entityID?
+		//		memcpy(registeredPdus[i],pdubuffer,nbytes);
+		//		break;
+		//	}
+		//}
+	}
+	return 0; //maybe an error number will be returned here in future
+}
+
+//in socketutils.c:
+void socket_open(struct dis_socket *dsock);
+int sockwrite(SOCKET s, const char *buf, int len);
+int sockread(SOCKET s, const char *buf, int len);
+int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len);
+int socksendto(struct dis_socket *dsock, const char *buf, int len);
+
+static double lasttime;
+static char buf[32768];
+static struct Vector *pdus = NULL;
 void dis_recvloop(){
+	//there are a few ways to do non-blocking recv
+	//1. ioctlsocket non-blocking - set socket to not block
+	//2. select() - select itself blocks, so should have its own thread
+	//3. PEEK flag in recvfrom
+	//Oct 24, 2017 choice: 1.
+	// - because we aren't doing a separate thread yet, so 1 or 3, and 3 worked when tried first
+	int i,j,nbytes, more;
+	double thistime, dtime;
 	if(!sockets_recv || sockets_recv->n == 0) return;
+	thistime = TickTime();
+	dtime = thistime - lasttime;
+	if(!pdus) pdus = newVector(struct Pdu*,20);
+
+	for(i=0;i<sockets_recv->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
+		do{
+			more = FALSE;
+			nbytes = sockrecvfrom(dsock,buf,32000);
+			if(nbytes > 0){
+				more = TRUE;
+				printf("sock read nbytes = %d\n",nbytes);
+				//free last round
+				for(j=0;j<pdus->n;j++){
+					struct Pdu* pdu = vector_get(struct Pdu*,pdus,j);
+					dis_dtor(pdu,pduToDis(pdu->pduType));
+				}
+				pdus->n = 0;
+				dis_read_stream(buf,nbytes,pdus);
+				//print some stuff to the console, to prove we got a state update
+				printf("hallelluha\n");
+			}
+		}while(more);
+	}
 
 }
 #endif //WITH_DIS
-void socket_open(struct dis_socket *dsock);
 
 void dis_open_socket(struct dis_socket* dsock){
 	if(dsock->multicastRelayHost && strlen(dsock->multicastRelayHost)){
