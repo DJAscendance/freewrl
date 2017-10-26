@@ -291,8 +291,8 @@ void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				//translation - assumes companion scenes will have same parent transform stack
 				//(x, -z, y).
 				pnode->translation.c[0] = espdu->entityLocation.x;
-				pnode->translation.c[1] = -espdu->entityLocation.z;
-				pnode->translation.c[2] = espdu->entityLocation.y; 
+				pnode->translation.c[1] = espdu->entityLocation.z;
+				pnode->translation.c[2] = -espdu->entityLocation.y; 
 				//rotation
 				{
 					Quaternion qA;
