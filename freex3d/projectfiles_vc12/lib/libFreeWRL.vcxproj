@@ -388,6 +388,7 @@
     <ClCompile Include="$(SRC)\lib\scenegraph\Component_ParticleSystems.c" />
     <ClCompile Include="$(SRC)\lib\scenegraph\Component_RigidBodyPhysics.c" />
     <ClCompile Include="$(SRC)\lib\scenegraph\VeraMono_ttf.c" />
+    <ClCompile Include="..\..\src\lib\DIS\DIS.c" />
     <ClCompile Include="..\..\src\lib\scenegraph\socketutils.c" />
     <ClCompile Include="..\..\src\lib\ui\freewrl_wingding_ttf.c" />
   </ItemGroup>
@@ -410,6 +411,7 @@
     <ClInclude Include="$(SRC)\lib\ui\statusbar.h" />
     <ClInclude Include="$(SRC)\lib\x3d_parser\X3DParser.h" />
     <ClInclude Include="$(SRC)\buildversion.h" />
+    <ClInclude Include="..\..\src\lib\DIS\DIS.h" />
     <ClInclude Include="..\..\src\lib\resources.h" />
   </ItemGroup>
   <ItemGroup>

@@ -190,7 +190,7 @@ void socket_open(struct dis_socket *dsock)
 
 				//goto exit;
 			}
-			printf("opened port\n");
+			printf("opened recv port\n");
 			dsock->socket = sock;
 		} else if(dsock->idir == 2){
 			//SEND
@@ -275,6 +275,8 @@ void socket_open(struct dis_socket *dsock)
 				printf( "%d\n",WSAGetLastError());
 				#endif
 			}
+			dsock->socket = sockout;
+			printf("opened send port\n");
 
 		}
 }

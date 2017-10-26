@@ -1651,16 +1651,66 @@ void initialize_field(char *t,struct disfieldattr* field){
             break;
         case PRIMITIVE:
            switch(field->type){
-           case type_UBYTE: memcpy(t,&(unsigned char)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_BYTE: memcpy(t,&(char)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_USHORT: memcpy(t,&(unsigned short)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_SHORT: memcpy(t,&(short)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_UINT: memcpy(t,&(unsigned int)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_INT: memcpy(t,&(int)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_ULONG: memcpy(t,&(unsigned long long)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_LONG: memcpy(t,&(long long)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_FLOAT: memcpy(t,&(float)field->defaultvalue,TYPE_SIZE[field->type]); break;
-           case type_DOUBLE: memcpy(t,&(double)field->defaultvalue,TYPE_SIZE[field->type]); break;
+           case type_UBYTE: 
+           {
+               unsigned char ub = (unsigned char)field->defaultvalue;
+               memcpy(t,&ub,TYPE_SIZE[field->type]); 
+               break; 
+           } 
+           case type_BYTE:  
+           { 
+               char bb = (char)field->defaultvalue; 
+               memcpy(t,&bb,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_USHORT:  
+           { 
+               unsigned short us = (unsigned short)field->defaultvalue; 
+               memcpy(t,&us,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_SHORT:  
+           { 
+               short ss = (short)field->defaultvalue; 
+               memcpy(t,&ss,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_UINT:  
+           { 
+               unsigned int ui = (unsigned int)field->defaultvalue; 
+               memcpy(t,&ui,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_INT:  
+           { 
+               int ii = (int)field->defaultvalue; 
+               memcpy(t,&ii,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_ULONG: 
+           { 
+               unsigned long long ull = (unsigned long long)field->defaultvalue; 
+               memcpy(t,&ull,TYPE_SIZE[field->type]); 
+               break; 
+           } 
+           case type_LONG: 
+           { 
+               long long ll = (long long)field->defaultvalue; 
+               memcpy(t,&ll,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_FLOAT:  
+           { 
+               float ff = (float)field->defaultvalue; 
+               memcpy(t,&ff,TYPE_SIZE[field->type]);  
+               break; 
+           } 
+           case type_DOUBLE:  
+           { 
+               double dd = (double)field->defaultvalue; 
+               memcpy(t,&dd,TYPE_SIZE[field->type]);  
+               break; 
+           } 
            default: break;
            }
             break;

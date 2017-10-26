@@ -172,6 +172,37 @@ void fwl_set_allow_DIS(int allow){
 //void initialize_sockets(){}
 //#endif
 
+enum PDUType
+{
+	PDU_OTHER = 0,
+	PDU_ENTITY_STATE = 1,
+	PDU_FIRE = 2,
+	PDU_DETONATION = 3,
+	PDU_COLLISION = 4,
+	PDU_SERVICE_REQUEST = 5,
+	PDU_RESUPPLY_OFFER = 6,
+	PDU_RESUPPLY_RECEIVED = 7,
+	PDU_RESUPPLY_CANCEL = 8,
+	PDU_REPAIR_COMPLETE = 9,
+	PDU_REPAIR_RESPONSE = 10,
+	PDU_CREATE_ENTITY = 11,
+	PDU_REMOVE_ENTITY = 12,
+	PDU_START_RESUME = 13,
+	PDU_STOP_FREEZE = 14,
+	PDU_ACKNOWLEDGE = 15,
+	PDU_ACTION_REQUEST = 16,
+	PDU_ACTION_RESPONSE = 17,
+	PDU_DATA_QUERY = 18,
+	PDU_SET_DATA = 19,
+	// PDU_WTF = 20
+	PDU_EVENT_REPORT = 21,
+	PDU_COMMENT = 22,
+};
+
+
+
+
+
 //A. per-frame
 struct dis_socket {
 	int port;
@@ -184,12 +215,139 @@ struct dis_socket {
 	struct Vector *registered;
 };
 
+void print_stream(unsigned char *buf, int nbytes){
+	int i,j;
+	for(i=0;i<min(210,nbytes);i+=10){
+		int j;
+		printf("%d\t",i);
+		for(j=0;j<10;j++){
+			printf("%5d",(int)buf[i+j]);
+		}
+		printf("\n");
+	}
+}
+
+struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
+	struct Vector *pdus;
+	struct EntityStatePdu *espdu;
+	struct CollisionPdu *cpdu;
+	struct FirePdu *fpdu;
+	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
+	espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
+	//fpdu = dis_ctor(pduToDis(type_FirePdu));
+	//cpdu = dis_ctor(pduToDis(type_CollisionPdu));
+	pdus = newVector(struct Pdu *, 4);
+	//ENTITYSTATE
+	//entity
+	espdu->entityID.entity = pnode->entityID;
+	espdu->entityID.application = pnode->applicationID;
+	espdu->entityID.site = pnode->siteID;
+	//translation - assumes companion scenes will have same parent transform stack
+	//(x, -z, y).
+	espdu->entityLocation.x = pnode->translation.c[0];
+	espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
+	espdu->entityLocation.z = pnode->translation.c[1];
+	//rotation
+	{
+		Quaternion qA;
+		double ypr[3];
+		float *c = pnode->rotation.c;
+		vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+		quat2euler(ypr,0,&qA);
+		espdu->entityOrientation.phi = ypr[0];
+		espdu->entityOrientation.psi = ypr[1];
+		espdu->entityOrientation.theta = ypr[2];
+	}
+	//articuation parameters
+	//...
+	printf("new espdu protocol %d type %d\n",espdu->protocolVersion,espdu->pduType);
+	vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
+	//FIRE
+	//COLLISION
+	//...
+	return pdus;
+
+}
+void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
+	int i;
+	struct Pdu* pdu;
+	struct EntityStatePdu *espdu;
+	struct CollisionPdu *cpdu;
+	struct FirePdu *fpdu;
+	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
+	if(!pdus) return;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_ENTITY_STATE:
+			{
+				//ENTITYSTATE
+				espdu = (struct EntityStatePdu*)pdu;
+				if(espdu->entityID.application != pnode->applicationID) break;
+				if(espdu->entityID.site != pnode->siteID) break;
+				if(espdu->entityID.entity != pnode->entityID) break;
+				pnode->_change++; //mark node changed
+				//translation - assumes companion scenes will have same parent transform stack
+				//(x, -z, y).
+				pnode->translation.c[0] = espdu->entityLocation.x;
+				pnode->translation.c[1] = -espdu->entityLocation.z;
+				pnode->translation.c[2] = espdu->entityLocation.y; 
+				//rotation
+				{
+					Quaternion qA;
+					float ypr[3];
+					double r[4];
+					float *c = pnode->rotation.c;
+					ypr[0] = espdu->entityOrientation.phi;
+					ypr[1] = espdu->entityOrientation.psi;
+					ypr[2] = espdu->entityOrientation.theta;
+					euler2quat(&qA,ypr[0],ypr[1],ypr[2]);
+
+					vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+					quaternion_to_vrmlrot(&qA,&r[0],&r[1],&r[2],&r[3]);
+					c[0] = (float)r[0];
+					c[1] = (float)r[1];
+					c[2] = (float)r[2];
+					c[3] = (float)r[3];
+				}
+				//articuation parameters
+				//...
+			}
+			break;
+			case PDU_FIRE:
+			//FIRE
+			break;
+			case PDU_COLLISION:
+			//COLLISION
+			break;
+			//...
+			default:
+				break;
+		}
+	}
+
+}
+struct Vector * dis_node2pdus(struct X3D_Node *node){
+	struct Vector *pdus = NULL;
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			pdus = dis_node2pdus_espdu(node);
+			break;
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
+		break;
+	}
+	return pdus;
+}
 static struct Vector *sockets_send = NULL;
 static struct Vector *sockets_recv = NULL;
 #ifdef WITH_DIS
 unsigned char buf2[32767];
+
 void dis_sendloop(){
-	int i,j, nbytes;
+	int i,j, nbytes, nb;
 	if(!sockets_send || sockets_send->n == 0) return;
 	for(i=0;i<sockets_send->n;i++){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
@@ -198,28 +356,43 @@ void dis_sendloop(){
 			//if(expectRtuHeader) 
 			//	nbytes = dis_write_rtu(buf2);
 			for(j=0;j<dsock->registered->n;j++){
+				//options:
+				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
+				//b. on send in here, a function is called to pdu-ize a node before marshaling it
+				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				struct Vector *pdus = dis_node2pdus(node);
+				if(pdus && pdus->n) {
+					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
+					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
+				}
 				//if(dtime > interval ){
 					//dis_marshal(sbuf,pdu,pduToDis(pdu->pdutype));
-					//.nbytes += dis_write_stream(&buf2[nbytes],pdus);
+					nb = dis_write_stream(&buf2[nbytes],pdus);
+					printf("sendloop >>>>\n");
+					print_stream(&buf2[nbytes], nb);
+					printf("<<<< sendloop\n");
+					nbytes += nb;
 				//}
-				break;
+				//break;
 			}
+			if(nbytes) socksendto(dsock,buf2,nbytes);
 		}
 	}
 }
 
-int dis_read_stream(unsigned char * datastream, int streamsize, 
-	struct Vector *pdus) 
+int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *pdus) 
 { 
 	int pdutype, bytesread;
 	unsigned char *carat, *carat2;
 	static char pdubuffer[10000];
 	unsigned char *pdubuf;
+	struct Pdu* pdu;
 	bytesread = 0;
 	carat = &datastream[0];
 	while(bytesread < streamsize){
 		int i, distype, nbytes;
-		if(1) for(i=0;i<210;i+=10){
+		if(0) for(i=0;i<210;i+=10){
 			int j;
 			printf("%d\t",i);
 			for(j=0;j<10;j++){
@@ -234,10 +407,12 @@ int dis_read_stream(unsigned char * datastream, int streamsize,
 		pdubuf = dis_ctor(distype);
 		carat2 = dis_unmarshal(carat,pdubuf,distype);
 		nbytes = (carat2 - carat);
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)pdubuf);
+		pdu = (struct Pdu*)pdubuf;
+		printf("un-marshed version %d pdutype= %d\n",pdu->protocolVersion,pdu->pduType);
+		vector_pushBack(struct Pdu*,pdus,pdu);
 		printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
 
-		if(1){
+		if(0){
 			//try marshalling, then compare bytestreams
 			unsigned char buf3[32000];
 			unsigned char *carat3;
@@ -263,7 +438,7 @@ int dis_read_stream(unsigned char * datastream, int streamsize,
 		}
 
 
-		if(pdutype == 1){
+		if(0) if(pdutype == 1){
 			int n;
 			struct EntityStatePdu* p = (struct EntityStatePdu*)pdubuf;
 			printf("loc %lf %lf %lf  rot %f %f %f\n",
@@ -336,6 +511,27 @@ int dis_read_stream(unsigned char * datastream, int streamsize,
 	return 0; //maybe an error number will be returned here in future
 }
 
+int dis_write_stream(unsigned char * datastream, struct Vector *pdus) 
+{ 
+	//missing maxsize on buffer
+	int i, nbytes;
+	unsigned char *carat;
+	carat = datastream;
+	nbytes = 0;
+	if(pdus && pdus->n){
+		for(i=0;i<pdus->n;i++){
+			struct Pdu *pdu = vector_get(struct Pdu*,pdus,i);
+			printf("dis_wrt_str protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
+			int distype = pduToDis(pdu->pduType);
+			carat = dis_marshal(carat,(unsigned char*)pdu,distype);
+			//printf("pdu %d wrote %d bytes\n",i,nbytes);
+		}
+		//*streamsize = nbytes;
+		nbytes = (int)(carat - datastream);
+	}
+	return nbytes;
+}
+
 //in socketutils.c:
 void socket_open(struct dis_socket *dsock);
 int sockwrite(SOCKET s, const char *buf, int len);
@@ -360,8 +556,10 @@ void dis_recvloop(){
 	dtime = thistime - lasttime;
 	if(!pdus) pdus = newVector(struct Pdu*,20);
 
+	//since not select()ing we have to check all sockets (if readInterval?)
 	for(i=0;i<sockets_recv->n;i++){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
+		//things may have built up in the input socket, so we loop till flushed
 		do{
 			more = FALSE;
 			nbytes = sockrecvfrom(dsock,buf,32000);
@@ -371,12 +569,20 @@ void dis_recvloop(){
 				//free last round
 				for(j=0;j<pdus->n;j++){
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,j);
-					dis_dtor(pdu,pduToDis(pdu->pduType));
+					dis_dtor((unsigned char *)pdu,pduToDis(pdu->pduType));
 				}
 				pdus->n = 0;
 				dis_read_stream(buf,nbytes,pdus);
 				//print some stuff to the console, to prove we got a state update
 				printf("hallelluha\n");
+				if(dsock->registered){
+					for(j=0;j<dsock->registered->n;j++){
+						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+						//check site and application ID
+						//distribute to registered nodes by entityID
+						dis_pdus2node_espdu(node, pdus);
+					}
+				}
 			}
 		}while(more);
 	}
@@ -741,7 +947,7 @@ void fwl_sendreceive_DIS(){
 #endif //WITH_DIS
 	}
 }
-
-#ifdef WITH_DIS
-#include "../DIS/DIS.c"
-#endif //WITH_DIS
+//
+//#ifdef WITH_DIS
+//#include "../DIS/DIS.c"
+//#endif //WITH_DIS
