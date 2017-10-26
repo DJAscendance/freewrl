@@ -172,6 +172,10 @@ void fwl_set_allow_DIS(int allow){
 //void initialize_sockets(){}
 //#endif
 
+// http://movesinstitute.org/~mcgredo/MV3500/hla/enum99_2.pdf
+// p.6
+// 62 and 65 Comment-R seem duplicates, so we set it to Comment-R2
+
 enum PDUType
 {
 	PDU_OTHER = 0,
@@ -194,14 +198,98 @@ enum PDUType
 	PDU_ACTION_RESPONSE = 17,
 	PDU_DATA_QUERY = 18,
 	PDU_SET_DATA = 19,
-	// PDU_WTF = 20
+	PDU_DATA = 20,
 	PDU_EVENT_REPORT = 21,
 	PDU_COMMENT = 22,
+    PDU_ELECTROMAGNETIC_EMISSION = 23,
+    PDU_DESIGNATOR = 24,
+    PDU_TRANSMITTER = 25,
+    PDU_SIGNAL = 26,
+    PDU_RECEIVER = 27,
+    PDU_IFF_ATC_NAVAIDS = 28,
+    PDU_UNDERWATER_ACOUSTIC = 29,
+    PDU_SUPPLEMENTAL_EMISSION_ENTITY_STATE = 30,
+    PDU_INTERCOM_SIGNAL = 31,
+    PDU_INTERCOM_CONTROL = 32,
+    PDU_AGGREGATE_STATE = 33,
+    PDU_ISGROUPOF = 34,
+    PDU_TRANSFER_CONTROL = 35,
+    PDU_ISPARTOF_= 36,
+    PDU_MINEFIELD_STATE =37,
+    PDU_MINEFIELD_QUERY = 38,
+    PDU_MINEFIELD_DATA = 39,
+    PDU_MINEFIELD_RESPONSE_NAK = 40,
+    PDU_ENVIRONMENTAL_PROCESS = 41,
+    PDU_GRIDDED_DATA = 42,
+    PDU_POINT_OBJECT_STATE = 43,
+    PDU_LINEAR_OBJECT_STATE = 44,
+    PDU_AREAL_OBJECT_STATE = 45,
+    PDU_TSPI = 46,
+    PDU_APPEARANCE = 47,
+    PDU_ARTICULATED_PARTS = 48,
+    PDU_LE_FIRE = 49,
+    PDU_LE_DETONATION = 50,
+    PDU_CREATE_ENTITY_R = 51,
+    PDU_REMOVE_ENTITY_R = 52,
+    PDU_START_RESUME_R = 53,
+    PDU_STOP_FREEZE_R = 54,
+    PDU_ACKNOWLEDGE_R = 55,
+    PDU_ACTION_REQUEST_R = 56,
+    PDU_ACTION_RESPONSE_R = 57,
+    PDU_DATA_QUERY_R = 58,
+    PDU_SET_DATA_R = 59,
+    PDU_DATA_R = 60,
+    PDU_EVENT_REPORT_R = 61,
+    PDU_COMMENT_R = 62,			//62
+    PDU_RECORD_QUERY_R = 63,
+    PDU_SET_RECORD_R = 64,
+    PDU_COMMENT_R2 = 65,		//DUPLICATE OF 62
+    PDU_COLLISION_ELASTIC = 66,
+    PDU_ENTITY_STATE_UPDATE = 67,
+    PDU_ANNOUNCE_OBJECT = 129,
+    PDU_DELETE_OBJECT = 130,
+    PDU_DESCRIBE_APPLICATION = 131,
+    PDU_DESCRIBE_EVENT = 132,
+    PDU_DESCRIBE_OBJECT = 133,
+    PDU_REQUEST_EVENT = 134,
+    PDU_REQUEST_OBJECT = 135,  
 };
 
 
-
-
+void axisangle2ypr(float *xyza, float *ypr)
+{
+	//y = yaw = azimuth
+	//p = pitch = elevation
+	//r = roll
+	//assumes z is up, you re-arrange your inputs if other
+	float yaw, pitch, roll, x,y,z,a;
+	x = xyza[0]; y = xyza[1], z=xyza[2], a=xyza[3];
+	yaw = atan2(y,x);
+	pitch = atan(z);
+	roll = a;
+	ypr[0] = yaw;
+	ypr[1] = pitch;
+	ypr[2] = roll;
+}
+void ypr2axisangle(float *ypr, float *xyza)
+{
+	//y = yaw = azimuth
+	//p = pitch = elevation
+	//r = roll
+	//assumes z is up, you re-arrange your inputs if other
+	float yaw, pitch, roll, x,y,z,a;
+	yaw = ypr[0];
+	pitch = ypr[1];
+	roll = ypr[2];
+	a = roll;
+	x = cos(pitch)*cos(yaw);
+	y = cos(pitch)*sin(yaw);
+	z = sin(pitch); //or sqrt(1.0 - (x*x + y*y))
+	xyza[0] = x;
+	xyza[1] = y;
+	xyza[2] = z;
+	xyza[3] = a;
+}
 
 //A. per-frame
 struct dis_socket {
@@ -248,15 +336,32 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 	espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
 	espdu->entityLocation.z = pnode->translation.c[1];
 	//rotation
-	{
+	if(0){
+		//theirs:
+		//X PSI
+		//Y THETA 
+		//Z PHI
+		//(x, -z, y)
+		//OURS	THEIRS 	THEIRS
+		//x		X=x		PSI		
+		//y		Z=y		PHI
+		//z		-Y=z	-THETA
+
 		Quaternion qA;
 		double ypr[3];
 		float *c = pnode->rotation.c;
 		vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
 		quat2euler(ypr,0,&qA);
-		espdu->entityOrientation.phi = ypr[0];
 		espdu->entityOrientation.psi = ypr[1];
 		espdu->entityOrientation.theta = ypr[2];
+	}
+	if(1){
+		float ypr[3];
+		axisangle2ypr(pnode->rotation.c,ypr);
+		espdu->entityOrientation.psi = ypr[0];
+		espdu->entityOrientation.theta = ypr[1];
+		espdu->entityOrientation.phi = ypr[2];
+
 	}
 	//articuation parameters
 	//...
@@ -294,7 +399,7 @@ void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->translation.c[1] = espdu->entityLocation.z;
 				pnode->translation.c[2] = -espdu->entityLocation.y; 
 				//rotation
-				{
+				if(0){
 					Quaternion qA;
 					float ypr[3];
 					double r[4];
@@ -303,13 +408,20 @@ void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					ypr[1] = espdu->entityOrientation.psi;
 					ypr[2] = espdu->entityOrientation.theta;
 					euler2quat(&qA,ypr[0],ypr[1],ypr[2]);
-
-					vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+					//quaternion_normalize(&qA);
+					//vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
 					quaternion_to_vrmlrot(&qA,&r[0],&r[1],&r[2],&r[3]);
 					c[0] = (float)r[0];
 					c[1] = (float)r[1];
 					c[2] = (float)r[2];
 					c[3] = (float)r[3];
+				}
+				if(1){
+					float ypr[3];
+					ypr[0] = espdu->entityOrientation.psi;
+					ypr[1] = espdu->entityOrientation.theta;
+					ypr[2] = espdu->entityOrientation.phi;
+					ypr2axisangle(ypr,pnode->rotation.c);
 				}
 				//articuation parameters
 				//...
