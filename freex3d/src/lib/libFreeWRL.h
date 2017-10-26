@@ -287,6 +287,7 @@ void fwl_init_StereoDefaults(void); //don't need to call now March 2012
 void fwl_set_EyeDist(const char *optArg);
 void fwl_init_Shutter(void);
 void fwl_init_SideBySide(void);
+
 void fwl_init_UpDown(void);
 void fwl_set_AnaglyphParameter(const char *optArg);
 void fwl_set_StereoParameter(const char *optArg);
@@ -428,6 +429,11 @@ void fwl_resitem_enqueue(void *res);
 void fwl_resitem_setDownloadThread(void *res, void *thread);
 void *fwl_resitem_getDownloadThread(void *res);
 void *fwl_resitem_getGlobal(void *res);
+
+void fwl_init_DIS();
+int fwl_get_allow_DIS();
+void fwl_set_allow_DIS(int allow);
+
 
 int file2blob(void *res);
 #ifdef SSR_SERVER

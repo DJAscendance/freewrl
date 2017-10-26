@@ -4526,6 +4526,7 @@ void fwl_RenderSceneUpdateScene(void){
 void setup_picking();
 void setup_projection();
 void rbp_run_physics();
+void fwl_sendreceive_DIS();
 void fwl_RenderSceneUpdateScene0(double dtime) {
 	//Nov 2015 change: just viewport-independent, once-per-frame-scene-updates here
 	//-functionality relying on a viewport -setup_projection(), setup_picking()- has been 
@@ -4605,6 +4606,8 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		Snapshot();
 	}
 	#endif //FRONTEND_DOES_SNAPSHOTS
+
+	fwl_sendreceive_DIS(); //Component_DIS.c
 
 	OcclusionCulling();
 

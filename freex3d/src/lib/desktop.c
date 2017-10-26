@@ -412,7 +412,6 @@ void _displayThread(void *globalcontext)
 		// and doesn't call this _displayThread)
 		fwMessageLoop(); 
 #endif
-
 		frontend_dequeue_get_enqueue(globalcontext); //this is non-blocking (returns immediately) if queue empty
 		more = fwl_draw();
 		/* swap the rendering area */
