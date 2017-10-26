@@ -103,7 +103,7 @@ Choice: option 2.b
 
 
 */
-//#define WITH_DIS 1
+#define WITH_DIS 1
 #ifdef WITH_DIS
 #include "../DIS/DIS.h"
 #endif //WITH_DIS
@@ -153,26 +153,6 @@ void fwl_set_allow_DIS(int allow){
 	B. per-socket-direction thread 
 */
 
-
-//
-//#ifdef _MSC_VER
-//#include <direct.h>
-//WSADATA wsaData;
-//static int wsa_once = 0;
-//void initialize_sockets(){
-//	// Initialize Winsock
-//	if(!wsa_once){
-//		int iResult;
-//		iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-//		if (iResult != 0) {
-//			printf("WSAStartup failed: %d\n", iResult);
-//		}
-//		wsa_once = 1;
-//	}
-//}
-//#else
-//void initialize_sockets(){}
-//#endif
 
 // http://movesinstitute.org/~mcgredo/MV3500/hla/enum99_2.pdf
 // p.6
@@ -467,14 +447,18 @@ void dis_sendloop(){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
 		if(dsock->registered){
 			nbytes = 0;
-			//if(expectRtuHeader) 
-			//	nbytes = dis_write_rtu(buf2);
 			for(j=0;j<dsock->registered->n;j++){
 				//options:
 				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
 				//b. on send in here, a function is called to pdu-ize a node before marshaling it
 				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(j==0) {
+					nb = write_rtp(&buf2[nbytes],node);
+					nbytes += nb;
+				}
+
+
 				struct Vector *pdus = dis_node2pdus(node);
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
@@ -494,8 +478,122 @@ void dis_sendloop(){
 		}
 	}
 }
-
-int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *pdus) 
+/*	RTP Real-time Transport Protocol
+	optional header that can be on incoming, or put on outgoing
+	https://en.wikipedia.org/wiki/Real-time_Transport_Protocol
+	https://calhoun.nps.edu/bitstream/handle/10945/9147/virtualrealitytr00afon.pdf
+	appendix F, G show DIS header settings and source code for DIS X3D
+		Version = 2 (default)
+		M marker = 0
+		CC csrc_count = 0
+		P padding = 0
+		X extension_bit = 0 (no extension header used)
+		PT payloadType = 111
+*/
+struct rtp_header {
+	unsigned char toprow[2];
+	unsigned short sequence;
+	unsigned int timestamp;
+	unsigned int ssrc;
+};
+unsigned char * rtp_strip_header(unsigned char *buf, int *heard){
+	unsigned char *carat = buf;
+	//DIS protocoVersion is 6 (1998) or 7 (2009/2012)
+	//so if the first byte is bigger than that it might be RTP
+	*heard = FALSE;
+	if(carat[0] > 127) {
+		//its an RTP header - strip
+		struct rtp_header rtph;
+		int cc, i, x;
+		*heard = TRUE;
+		memcpy(&rtph.toprow,carat,2);
+		carat += 2;
+		memcpy(&rtph.sequence,carat,2);
+		carat += 2;
+		memcpy(&rtph.timestamp,carat,4);
+		carat += 4;
+		memcpy(&rtph.ssrc,carat,4);
+		carat += 4;
+		cc = rtph.toprow[0] << 4 >> 4;
+		x = rtph.toprow[0] & 1 << 4;
+		for(i=0;i<cc;i++){
+			//skip scrc identifiers
+			carat += 4;
+		}
+		if(x){
+			//not implemented: extension header skipping
+		}
+	}
+	//in the future, we could do something fancy with the sequence number, like skip stale packets.
+	return carat;
+}
+unsigned char * rtp_add_header(unsigned char *buf, int timestamp){
+	struct rtp_header rtph;
+	unsigned char PayloadType;
+	unsigned char *carat = buf;
+	PayloadType = 111;
+	memset(&rtph,0,sizeof(struct rtp_header));
+	rtph.toprow[0] = 2 << 7 | 0 << 6 | 0 << 5 | 0;
+	rtph.toprow[1] = 0 << 7 | PayloadType;
+	rtph.sequence = htons(0);
+	rtph.timestamp = htonl(timestamp);
+	rtph.ssrc = 0;
+	memcpy(carat,&rtph.toprow,2);
+	carat += 2;
+	memcpy(carat,&rtph.sequence,2);
+	carat += 2;
+	memcpy(carat,&rtph.timestamp,4);
+	carat += 4;
+	memcpy(carat,&rtph.ssrc,4);
+	carat += 4;
+	return carat;
+}
+int write_rtp(unsigned char *buf, struct X3D_Node *node){
+	int nb = 0;
+	int rtue = FALSE;
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			rtue = ((struct X3D_EspduTransform *)node)->rtpHeaderExpected;
+			break;
+		case NODE_ReceiverPdu:
+			rtue = ((struct X3D_ReceiverPdu *)node)->rtpHeaderExpected;
+			break;
+		case NODE_TransmitterPdu:
+			rtue = ((struct X3D_TransmitterPdu *)node)->rtpHeaderExpected;
+			break;
+		case NODE_SignalPdu:
+			rtue = ((struct X3D_SignalPdu *)node)->rtpHeaderExpected;
+			break;
+		default: 
+			break;
+	}
+	if(rtue) {
+		unsigned char *carat;
+		int timestamp = 0; //where get this?
+		carat =  rtp_add_header(buf,timestamp);
+		nb = carat - buf;
+	}
+	return nb;
+}
+void set_rtp_heard(struct X3D_Node *node){
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			((struct X3D_EspduTransform *)node)->isRtpHeaderHeard = TRUE;
+			break;
+		case NODE_ReceiverPdu:
+			((struct X3D_ReceiverPdu *)node)->isRtpHeaderHeard = TRUE;
+			break;
+		case NODE_TransmitterPdu:
+			((struct X3D_TransmitterPdu *)node)->isRtpHeaderHeard = TRUE;
+			break;
+		case NODE_SignalPdu:
+			((struct X3D_SignalPdu *)node)->isRtpHeaderHeard = TRUE;
+			break;
+		default: 
+			break;
+	}
+}
+int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *pdus, int *heard) 
 { 
 	int pdutype, bytesread;
 	unsigned char *carat, *carat2;
@@ -504,6 +602,7 @@ int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *p
 	struct Pdu* pdu;
 	bytesread = 0;
 	carat = &datastream[0];
+	carat = rtp_strip_header(carat,heard);
 	while(bytesread < streamsize){
 		int i, distype, nbytes;
 		if(0) for(i=0;i<210;i+=10){
@@ -663,7 +762,7 @@ void dis_recvloop(){
 	//3. PEEK flag in recvfrom
 	//Oct 24, 2017 choice: 1.
 	// - because we aren't doing a separate thread yet, so 1 or 3, and 3 worked when tried first
-	int i,j,nbytes, more;
+	int i,j,nbytes, more, heard;
 	double thistime, dtime;
 	if(!sockets_recv || sockets_recv->n == 0) return;
 	thistime = TickTime();
@@ -675,6 +774,7 @@ void dis_recvloop(){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
 		//things may have built up in the input socket, so we loop till flushed
 		do{
+			heard = FALSE;
 			more = FALSE;
 			nbytes = sockrecvfrom(dsock,buf,32000);
 			if(nbytes > 0){
@@ -686,7 +786,7 @@ void dis_recvloop(){
 					dis_dtor((unsigned char *)pdu,pduToDis(pdu->pduType));
 				}
 				pdus->n = 0;
-				dis_read_stream(buf,nbytes,pdus);
+				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
 				printf("hallelluha\n");
 				if(dsock->registered){
@@ -695,6 +795,7 @@ void dis_recvloop(){
 						//check site and application ID
 						//distribute to registered nodes by entityID
 						dis_pdus2node_espdu(node, pdus);
+						if(heard) set_rtp_heard(node);
 					}
 				}
 			}
@@ -710,132 +811,6 @@ void dis_open_socket(struct dis_socket* dsock){
 		//direct socket
 	}else{
 		socket_open(dsock);
-/*
-		//multicast socket
-		int nbytes, npdus, addrlen, on=1;
-		SOCKET sock;
-		struct sockaddr_in addr;
-		struct ip_mreq mreq;
-
-		initialize_sockets();
-		if(dsock->idir == 1){
-			//RECEIVE
-			sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			// FIONBIO
-			setsockopt(sock, SOL_SOCKET,SO_REUSEADDR, (const char *)&on, sizeof(int));
-			memset(&addr,0,sizeof(addr));
-			addr.sin_family=AF_INET;
-			addr.sin_addr.s_addr=htonl(INADDR_ANY); // N.B.: differs from sender 
-			addr.sin_port=htons(dsock->port);
-     
-			// bind to receive address 
-			if (bind(sock,(struct sockaddr *) &addr,sizeof(addr)) < 0) {
-				printf("bind");
-				#ifdef _MSC_VER
-				printf("wsagetlasterror= %d\n",WSAGetLastError());
-				#endif
-				//goto exit;
-			}
-
-			mreq.imr_multiaddr.s_addr=inet_addr(dsock->address);
-			mreq.imr_interface.s_addr=htonl(INADDR_ANY);
-			if (setsockopt(sock,IPPROTO_IP,IP_ADD_MEMBERSHIP,(char*)&mreq,sizeof(mreq)) < 0) {
-				printf("setsockopt ");
-				#ifdef _MSC_VER
-				// https://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
-				printf("wsagetlasterror= %d\n",WSAGetLastError());
-				#endif
-
-				//goto exit;
-			}
-			printf("opened port\n");
-			dsock->socket = sock;
-		} else if(dsock->idir == 2){
-			//SEND
-			//http://www.tack.ch/multicast/
-			SOCKET sockout;
-
-			struct sockaddr_in saddr;
-			struct in_addr iaddr;
-			unsigned char ttl = 3;
-			unsigned char one = 1;
-
-			// set content of struct saddr and imreq to zero
-			memset(&saddr, 0, sizeof(struct sockaddr_in));
-			memset(&iaddr, 0, sizeof(struct in_addr));
-
-			// open a UDP socket
-			sockout = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP); //0
-			if ( sockout < 0 ){
-				printf("Error creating socket");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				#endif
-				
-			}
-
-			saddr.sin_family = PF_INET;
-			saddr.sin_port = htons(0); // Use the first free port
-			saddr.sin_addr.s_addr = htonl(INADDR_ANY); // bind socket to any interface
-			if(0)
-			if( bind(sockout, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in)) == SOCKET_ERROR){
-				printf("Error binding socket to interface");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				#endif
-				
-			}
-
-			iaddr.s_addr = INADDR_ANY; // use DEFAULT interface
-
-			// Set the outgoing interface to DEFAULT
-			if( setsockopt(sockout, IPPROTO_IP, IP_MULTICAST_IF, (const char*) &iaddr,
-				sizeof(struct in_addr)) == SOCKET_ERROR){
-				printf("sockopt1 erro");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				// https://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
-				#endif
-			}
-
-			// Set multicast packet TTL to 3; default TTL is 1
-			if( setsockopt(sockout, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
-						sizeof(unsigned char)) == SOCKET_ERROR){
-				printf("sockopt2 error");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				#endif
-			}
-			// send multicast traffic to myself too
-			if(  setsockopt(sockout, IPPROTO_IP, IP_MULTICAST_LOOP,
-								&one, sizeof(unsigned char)) == SOCKET_ERROR){
-				printf("sockopt3 error");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				#endif
-			}
-			if(1)
-			if( bind(sockout, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in)) == SOCKET_ERROR){
-				printf("Error binding socket to interface");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				#endif
-			}
-
-			// set destination multicast address
-			saddr.sin_family = PF_INET;
-			saddr.sin_addr.s_addr = inet_addr(dsock->address);
-			saddr.sin_port = htons(dsock->port);
-			if(0)
-			if( bind(sockout, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in)) == SOCKET_ERROR){
-				printf("Error binding socket to interface");
-				#ifdef _MSC_VER
-				printf( "%d\n",WSAGetLastError());
-				#endif
-			}
-
-		}
-	*/
 	}
 
 }
