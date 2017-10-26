@@ -103,7 +103,7 @@ Choice: option 2.b
 
 
 */
-#define WITH_DIS 1
+//#define WITH_DIS 1
 #ifdef WITH_DIS
 #include "../DIS/DIS.h"
 #endif //WITH_DIS
@@ -120,6 +120,8 @@ int fwl_get_allow_DIS(){
 void fwl_set_allow_DIS(int allow){
 	allow_DIS = allow ? 1 : 0;
 }
+
+#ifdef WITH_DIS
 
 /* DIS - Distributed Interactive Simulation communication
 	Concepts as understood by dug9 Oct 23, 2017
@@ -455,7 +457,7 @@ struct Vector * dis_node2pdus(struct X3D_Node *node){
 }
 static struct Vector *sockets_send = NULL;
 static struct Vector *sockets_recv = NULL;
-#ifdef WITH_DIS
+
 unsigned char buf2[32767];
 
 void dis_sendloop(){
@@ -700,7 +702,6 @@ void dis_recvloop(){
 	}
 
 }
-#endif //WITH_DIS
 
 void dis_open_socket(struct dis_socket* dsock){
 	if(dsock->multicastRelayHost && strlen(dsock->multicastRelayHost)){
@@ -974,7 +975,6 @@ int dis_check_socket_change(struct X3D_Node* node,char *address,int applicationI
 }
 
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
-#ifdef WITH_DIS
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		int changed;
@@ -992,13 +992,16 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
 		node->_registered = TRUE;
 	}
-#endif //WITH_DIS	
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
 }
 void fin_EspduTransform0(struct X3D_EspduTransform *node){
 }
-
+#else //WITH_DIS
+void compile_EspduTransform0(struct X3D_EspduTransform *node){}
+void prep_EspduTransform0(struct X3D_EspduTransform *node){}
+void fin_EspduTransform0(struct X3D_EspduTransform *node){}
+#endif //WITH_DIS
 
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
 	compile_EspduTransform0(node);
