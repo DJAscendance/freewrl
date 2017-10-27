@@ -340,7 +340,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 	if(1){
 		float ypr[3];
 		axisangle2ypr(pnode->rotation.c,ypr);
-		espdu->entityOrientation.psi = ypr[0];
+		espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
 		espdu->entityOrientation.theta = ypr[1];
 		espdu->entityOrientation.phi = ypr[2];
 
@@ -400,7 +400,7 @@ void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				}
 				if(1){
 					float ypr[3];
-					ypr[0] = espdu->entityOrientation.psi;
+					ypr[0] = -espdu->entityOrientation.psi;  //gimbal.js shows -yaw
 					ypr[1] = espdu->entityOrientation.theta;
 					ypr[2] = espdu->entityOrientation.phi;
 					ypr2axisangle(ypr,pnode->rotation.c);
@@ -576,6 +576,9 @@ int write_rtp(unsigned char *buf, struct X3D_Node *node){
 	return nb;
 }
 void set_rtp_heard(struct X3D_Node *node){
+	//would be nice if we had mulitple inheritance techniques for extracting common interfaces 
+	// dis = interface(node,type_DIS)
+	// dis->isRtpHeaderHeard = TRUE;
 	switch(node->_nodeType){
 		case NODE_EspduTransform:
 			((struct X3D_EspduTransform *)node)->isRtpHeaderHeard = TRUE;
