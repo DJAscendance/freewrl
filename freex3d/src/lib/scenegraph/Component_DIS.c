@@ -51,7 +51,15 @@
 #include "LinearAlgebra.h"
 #include "Children.h"
 #include "Vector.h"
+#include "Component_DIS.h"
+#include "Component_Grouping.h"
 
+#ifndef WIN32
+#define SOCKET int
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 /*
 typedef struct pComponent_DIS{
 	int something;
@@ -367,7 +375,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 	}
 	//articuation parameters
 	//...
-	printf("new espdu protocol %d type %d\n",espdu->protocolVersion,espdu->pduType);
+	printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 	vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	//FIRE
 	//COLLISION

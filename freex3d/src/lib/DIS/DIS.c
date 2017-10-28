@@ -697,7 +697,7 @@ struct disfieldattr FIELDS_WarfareFamilyPdu [] = {
   {-1,0,NULL,NULL,0,NULL,0,0,0,0,0,0,0,0},
 };
 struct disfieldattr FIELDS_ElectronicEmissionSystemData [] = {
-  {PRIMITIVE, type_UBYTE, "systemDataLength", "This field shall specify the length of this emitter system�s data (including beam data and its track/jam information) in 32-bit words. The length shall include the System Data Length field. ", 0, NULL, 0, 0, 0, 0, FALSE, FALSE, sizeof(unsigned char), offsetof(struct ElectronicEmissionSystemData,systemDataLength), },
+  {PRIMITIVE, type_UBYTE, "systemDataLength", "This field shall specify the length of this emitter system's data (including beam data and its track/jam information) in 32-bit words. The length shall include the System Data Length field. ", 0, NULL, 0, 0, 0, 0, FALSE, FALSE, sizeof(unsigned char), offsetof(struct ElectronicEmissionSystemData,systemDataLength), },
   {PRIMITIVE, type_UBYTE, "numberOfBeams", "This field shall specify the number of beams being described in the current PDU for the system being described. ", 0, NULL, 0, type_ElectronicEmissionBeamData, 0, 0, FALSE, FALSE, sizeof(unsigned char), offsetof(struct ElectronicEmissionSystemData,numberOfBeams), },
   {PRIMITIVE, type_USHORT, "emissionsPadding2", "padding.", 0, NULL, 0, 0, 0,0, FALSE, FALSE, sizeof(unsigned short), offsetof(struct ElectronicEmissionSystemData,emissionsPadding2), },
   {CLASSREF, type_EmitterSystem, "emitterSystem", "This field shall specify information about a particular emitter system", 0, NULL, 0, 0, 0, 0, FALSE, FALSE, sizeof(struct EmitterSystem), offsetof(struct ElectronicEmissionSystemData,emitterSystem), },
@@ -1643,7 +1643,17 @@ int pdu2dis [] = {
 int pduToDis(int pdu){
   return pdu2dis[pdu];
 }
-void initializeclass(void *t, int distype);
+void initialize_field(char *t,struct disfieldattr* field);
+void initializeclass(unsigned char *t, int distype){
+    struct disfieldattr *field;
+    memset(t,0,TYPE_SIZE[distype]);
+    field = DIS_CLASS[distype].fields;
+    do{
+        //initialize field
+        initialize_field(t+field->offset,field);
+        field++;
+    } while(field->kind > -1);
+}
 void initialize_field(char *t,struct disfieldattr* field){
     switch(field->kind){
         case CLASSREF:
@@ -1718,16 +1728,6 @@ void initialize_field(char *t,struct disfieldattr* field){
         case VARIABLE_LIST:
            break;
     }
-}
-void initializeclass(char *t, int distype){
-    struct disfieldattr *field;
-    memset(t,0,TYPE_SIZE[distype]);
-    field = DIS_CLASS[distype].fields;
-    do{
-        //initialize field
-        initialize_field(t+field->offset,field);
-        field++;
-    } while(field->kind > -1);
 }
 unsigned char * dis_ctor(int distype){
     unsigned char *item;
