@@ -5,6 +5,7 @@
 	So isolating the socket stuff means I can use simpler sockets-only includes.
 */
 #include <memory.h>
+#include <stdio.h>
 #include <string.h>
 
 
@@ -62,9 +63,16 @@ void print_socket_error(char *message, int error){
 }
 
 #else
+	#include <sys/ioctl.h>
 	#include <sys/socket.h>
 	#include <netinet/in.h>
+	#include <arpa/inet.h>
+	#include <errno.h>
 	#include <netdb.h>
+	#include <unistd.h>
+	#define ioctlsocket ioctl
+	#define SOCKET int
+	#define SOCKET_ERROR SO_ERROR
 	#define STRTOK_S strtok_r
 void print_socket_error(char *message, int error){
 	printf("%s %d \n",message,error);
@@ -139,6 +147,27 @@ int sockwrite(SOCKET s, const char *buf, int len){
 int sockread(SOCKET s, const char *buf, int len){
 	return recv(s,buf,len,0);
 }
+
+int socksendto(struct dis_socket *dsock, const char *buf, int len){
+        int iret;
+        if( iret = sendto(dsock->socket, buf, len, 0,
+                (struct sockaddr *)&dsock->saddr, sizeof(struct sockaddr)) == SOCKET_ERROR){
+                printf("sendto failed with error %d\n", errno);
+        }
+	return iret;
+}
+
+int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len){
+        // receive packet from socket
+        int status, fromlen;
+        fromlen = sizeof(struct sockaddr);
+        status = recvfrom(dsock->socket, buf, len, 0, 
+                     (struct sockaddr *)&dsock->saddr, &fromlen );
+        // I think -1 is normal for non-blocking when no data
+        // if(status < 0) print_socket_error("recvfrom ",status);
+        return status;
+}
+
 #endif
 
 

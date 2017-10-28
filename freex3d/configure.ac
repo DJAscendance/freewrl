@@ -815,6 +815,17 @@ AC_MY_HELPERAPP([imageconvert],[IMAGECONVERT],[image converter],[$DEFAULT_IMAGEC
         AC_MSG_ERROR([No image converter, please specify one using --with-imageconvert=PATH])
         ])
 
+## DIS
+AC_ARG_WITH([DIS],
+            [AS_HELP_STRING([--with-DIS],
+            [Enable support for Distributed Interactive Simulation (default=no)])],
+            [],
+            [with_DIS=no])
+AM_CONDITIONAL([WITH_DIS],[test x"$with_DIS" = xyes])
+if test x"$with_DIS" = xyes; then
+	AC_DEFINE([WITH_DIS],[1], [Define if DIS support wanted])
+fi
+ 
 
 # =======
 # Targets

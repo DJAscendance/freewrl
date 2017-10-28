@@ -698,12 +698,12 @@ struct ElectronicEmissionBeamData{
 
 /* Section 5.3.5. Abstract superclass for logistics PDUs. COMPLETE */
 struct LogisticsFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
 };
 
 /* Section 5.3.5.1. Information about a request for supplies. COMPLETE */
 struct ServiceRequestPdu{
-  struct LogisticsFamilyPdu;
+  struct LogisticsFamilyPdu myLogisticsFamilyPdu;
   /** Entity that is requesting service */
   struct EntityID requestingEntityID; 
   /** Entity that is providing the service */
@@ -719,7 +719,7 @@ struct ServiceRequestPdu{
 
 /* Section 5.2.5.5. Repair is complete. COMPLETE */
 struct RepairCompletePdu{
-  struct LogisticsFamilyPdu;
+  struct LogisticsFamilyPdu myLogisticsFamilyPdu;
   /** Entity that is receiving service */
   struct EntityID receivingEntityID; 
   /** Entity that is supplying */
@@ -760,7 +760,7 @@ struct BeamAntennaPattern{
 
 /* Section 5.3.11: Abstract superclass for synthetic environment PDUs */
 struct SyntheticEnvironmentFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
 };
 
 /* Used in the UA pdu; ties together an emmitter and a location. This requires manual cleanup; the beam data should not be attached to each emitter system. */
@@ -781,7 +781,7 @@ struct AcousticEmitterSystemData{
 
 /* Section 5.2.5.6. Sent after repair complete PDU. COMPLETE */
 struct RepairResponsePdu{
-  struct LogisticsFamilyPdu;
+  struct LogisticsFamilyPdu myLogisticsFamilyPdu;
   /** Entity that is receiving service */
   struct EntityID receivingEntityID; 
   /** Entity that is supplying */
@@ -796,7 +796,7 @@ struct RepairResponsePdu{
 
 /* Section 5.3.6. Abstract superclass for PDUs relating to the simulation itself. COMPLETE */
 struct SimulationManagementFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
   /** Entity that is sending message */
   struct EntityID originatingEntityID; 
   /** Entity that is intended to receive message */
@@ -813,7 +813,7 @@ struct AntennaLocation{
 
 /* Section 5.3.6.8. Request for data from an entity. COMPLETE */
 struct DataQueryPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** ID of request */
   unsigned int requestID; 
   /** time issues between issues of Data PDUs. Zero means send once only. */
@@ -844,7 +844,7 @@ struct BurstDescriptor{
 
 /* Section 5.3.11.4: Information abut the addition or modification of a synthecic enviroment object that      is anchored to the terrain with a single point and has size or orientation. COMPLETE */
 struct LinearObjectStatePdu{
-  struct SyntheticEnvironmentFamilyPdu;
+  struct SyntheticEnvironmentFamilyPdu mySyntheticEnvironmentFamilyPdu;
   /** Object in synthetic environment */
   struct EntityID objectID; 
   /** Object with which this point object is associated */
@@ -867,14 +867,14 @@ struct LinearObjectStatePdu{
 
 /* Section 5.3.6.1. Create a new entity. COMPLETE */
 struct CreateEntityPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** Identifier for the request */
   unsigned int requestID; 
 };
 
 /* Section 5.3.8. Abstract superclass for radio communications PDUs. */
 struct RadioCommunicationsFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
   /** ID of the entitythat is the source of the communication */
   struct EntityID entityId; 
   /** particular radio within an entity */
@@ -895,7 +895,7 @@ struct AcousticBeamData{
 
 /* Section 5.3.8.4. Actual transmission of intercome voice data. COMPLETE */
 struct IntercomSignalPdu{
-  struct RadioCommunicationsFamilyPdu;
+  struct RadioCommunicationsFamilyPdu myRadioCommunicationsFamilyPdu;
   /** entity ID */
   struct EntityID entityID; 
   /** ID of communications device */
@@ -916,7 +916,7 @@ struct IntercomSignalPdu{
 
 /* 5.2.44: Grid data record, representation 1 */
 struct GridAxisRecordRepresentation2{
-  struct GridAxisRecord;
+  struct GridAxisRecord myGridAxisRecord;
   /** number of values */
   unsigned short numberOfValues; 
   /** variable length list of data parameters ^^^this is wrong--need padding as well */
@@ -947,7 +947,7 @@ struct LinearSegmentParameter{
 
 /* 5.2.44: Grid data record, representation 1 */
 struct GridAxisRecordRepresentation1{
-  struct GridAxisRecord;
+  struct GridAxisRecord myGridAxisRecord;
   /** constant scale factor */
   float fieldScale; 
   /** constant offset used to scale grid data */
@@ -960,7 +960,7 @@ struct GridAxisRecordRepresentation1{
 
 /* 5.2.44: Grid data record, representation 0 */
 struct GridAxisRecordRepresentation0{
-  struct GridAxisRecord;
+  struct GridAxisRecord myGridAxisRecord;
   /** number of bytes of environmental state data */
   unsigned short numberOfBytes; 
   /** variable length list of data parameters ^^^this is wrong--need padding as well */
@@ -969,14 +969,14 @@ struct GridAxisRecordRepresentation0{
 
 /* Section 5.3.6.2. Remove an entity. COMPLETE */
 struct RemoveEntityPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** Identifier for the request */
   unsigned int requestID; 
 };
 
 /* Section 5.3.5.3. Receipt of supplies is communiated. COMPLETE */
 struct ResupplyReceivedPdu{
-  struct LogisticsFamilyPdu;
+  struct LogisticsFamilyPdu myLogisticsFamilyPdu;
   /** Entity that is receiving service */
   struct EntityID receivingEntityID; 
   /** Entity that is supplying */
@@ -992,7 +992,7 @@ struct ResupplyReceivedPdu{
 
 /* Section 5.3.4. abstract superclass for fire and detonation pdus that have shared information. COMPLETE */
 struct WarfareFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
   /** ID of the entity that shot */
   struct EntityID firingEntityID; 
   /** ID of the entity that is being shot at */
@@ -1001,7 +1001,7 @@ struct WarfareFamilyPdu{
 
 /* Data about one electronic system */
 struct ElectronicEmissionSystemData{
-  /** This field shall specify the length of this emitter system�s data (including beam data and its track/jam information) in 32-bit words. The length shall include the System Data Length field.  */
+  /** This field shall specify the length of this emitter system's data (including beam data and its track/jam information) in 32-bit words. The length shall include the System Data Length field.  */
   unsigned char systemDataLength; 
   /** This field shall specify the number of beams being described in the current PDU for the system being described.  */
   unsigned char numberOfBeams; 
@@ -1017,7 +1017,7 @@ struct ElectronicEmissionSystemData{
 
 /* Section 5.3.6.6. Request from simulation manager to an entity. COMPLETE */
 struct ActionRequestPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** Request ID that is unique */
   unsigned int requestID; 
   /** identifies the action being requested */
@@ -1042,7 +1042,7 @@ struct SupplyQuantity{
 
 /* Section 5.3.6.5. Acknowledge the receiptof a start/resume, stop/freeze, or RemoveEntityPDU. COMPLETE */
 struct AcknowledgePdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** type of message being acknowledged */
   unsigned short acknowledgeFlag; 
   /** Whether or not the receiving entity was able to comply with the request */
@@ -1053,12 +1053,12 @@ struct AcknowledgePdu{
 
 /* Section 5.3.7. Electronic Emissions. Abstract superclass for distirubted emissions PDU */
 struct DistributedEmissionsFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
 };
 
 /* 5.3.7.4.1: Navigational and IFF PDU. COMPLETE */
 struct IffAtcNavAidsLayer1Pdu{
-  struct DistributedEmissionsFamilyPdu;
+  struct DistributedEmissionsFamilyPdu myDistributedEmissionsFamilyPdu;
   /** ID of the entity that is the source of the emissions */
   struct EntityID emittingEntityId; 
   /** Number generated by the issuing simulation to associate realted events. */
@@ -1075,7 +1075,7 @@ struct IffAtcNavAidsLayer1Pdu{
 
 /* Section 5.3.12: Abstract superclass for reliable simulation management PDUs */
 struct SimulationManagementWithReliabilityFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
   /** Object originatig the request */
   struct EntityID originatingEntityID; 
   /** Object with which this point object is associated */
@@ -1084,7 +1084,7 @@ struct SimulationManagementWithReliabilityFamilyPdu{
 
 /* Section 5.3.12.6: request from a simulation manager to a managed entity to perform a specified action. COMPLETE */
 struct ActionRequestReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** level of reliability service used for this transaction */
   unsigned char requiredReliabilityService; 
   /** padding */
@@ -1107,7 +1107,7 @@ struct ActionRequestReliablePdu{
 
 /* Section 5.3.7.2. Handles designating operations. COMPLETE */
 struct DesignatorPdu{
-  struct DistributedEmissionsFamilyPdu;
+  struct DistributedEmissionsFamilyPdu myDistributedEmissionsFamilyPdu;
   /** ID of the entity designating */
   struct EntityID designatingEntityID; 
   /** This field shall specify a unique emitter database number assigned to  differentiate between otherwise similar or identical emitter beams within an emitter system. */
@@ -1136,7 +1136,7 @@ struct DesignatorPdu{
 
 /* Section 5.3.11.2: Information about globat, spatially varying enviornmental effects. This requires manual cleanup; the grid axis        records are variable sized. UNFINISHED */
 struct GriddedDataPdu{
-  struct SyntheticEnvironmentFamilyPdu;
+  struct SyntheticEnvironmentFamilyPdu mySyntheticEnvironmentFamilyPdu;
   /** environmental simulation application ID */
   struct EntityID environmentalSimulationApplicationID; 
   /** unique identifier for each piece of enviornmental data */
@@ -1171,7 +1171,7 @@ struct GriddedDataPdu{
 
 /* Section 5.3.12.14: Initializing or changing internal parameter info. Needs manual intervention     to fix padding in recrod set PDUs. UNFINISHED */
 struct SetRecordReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** request ID */
   unsigned int requestID; 
   /** level of reliability service used for this transaction */
@@ -1188,7 +1188,7 @@ struct SetRecordReliablePdu{
 
 /* Section 5.2.3.4. Stop or freeze an exercise. COMPLETE */
 struct StopFreezePdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** UTC time at which the simulation shall stop or freeze */
   struct ClockTime realWorldTime; 
   /** Reason the simulation was stopped or frozen */
@@ -1203,7 +1203,7 @@ struct StopFreezePdu{
 
 /* Section 5.2.5.4. Cancel of resupply by either the receiving or supplying entity. COMPLETE */
 struct ResupplyCancelPdu{
-  struct LogisticsFamilyPdu;
+  struct LogisticsFamilyPdu myLogisticsFamilyPdu;
   /** Entity that is receiving service */
   struct EntityID receivingEntityID; 
   /** Entity that is supplying */
@@ -1212,12 +1212,12 @@ struct ResupplyCancelPdu{
 
 /* Section 5.3.9. Common superclass for EntityManagment PDUs, including aggregate state, isGroupOf, TransferControLRequest, and isPartOf */
 struct EntityManagementFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
 };
 
 /* Section 5.2.6.3. Start or resume an exercise. COMPLETE */
 struct StartResumePdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** UTC time at which the simulation shall start or resume */
   struct ClockTime realWorldTime; 
   /** Simulation clock time at which the simulation shall start or resume */
@@ -1228,7 +1228,7 @@ struct StartResumePdu{
 
 /* Section 5.3.8.1. Detailed information about a radio transmitter. This PDU requires manually         written code to complete, since the modulation parameters are of variable length. UNFINISHED */
 struct TransmitterPdu{
-  struct RadioCommunicationsFamilyPdu;
+  struct RadioCommunicationsFamilyPdu myRadioCommunicationsFamilyPdu;
   /** linear accelleration of entity */
   struct RadioEntityType radioEntityType; 
   /** transmit state */
@@ -1281,7 +1281,7 @@ struct TrackJamTarget{
 
 /* Section 5.3.7.1. Information about active electronic warfare (EW) emissions and active EW countermeasures shall be communicated using an Electromagnetic Emission PDU. COMPLETE (I think) */
 struct ElectronicEmissionsPdu{
-  struct DistributedEmissionsFamilyPdu;
+  struct DistributedEmissionsFamilyPdu myDistributedEmissionsFamilyPdu;
   /** ID of the entity emitting */
   struct EntityID emittingEntityID; 
   /** ID of event */
@@ -1298,7 +1298,7 @@ struct ElectronicEmissionsPdu{
 
 /* Section 5.3.5.2. Information about a request for supplies. COMPLETE */
 struct ResupplyOfferPdu{
-  struct LogisticsFamilyPdu;
+  struct LogisticsFamilyPdu myLogisticsFamilyPdu;
   /** Entity that is receiving service */
   struct EntityID receivingEntityID; 
   /** Entity that is supplying */
@@ -1314,12 +1314,12 @@ struct ResupplyOfferPdu{
 
 /* Section 5.3.10.1 Abstract superclass for PDUs relating to minefields */
 struct MinefieldFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
 };
 
 /* Section 5.3.12.9: initializing or chaning internal state information, reliable. Needs manual intervention to fix     padding on variable datums. UNFINISHED */
 struct SetDataReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** level of reliability service used for this transaction */
   unsigned char requiredReliabilityService; 
   /** padding */
@@ -1340,7 +1340,7 @@ struct SetDataReliablePdu{
 
 /* Section 5.3.6.11. Reports occurance of a significant event to the simulation manager. COMPLETE */
 struct EventReportPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** Type of event */
   unsigned int eventType; 
   /** padding */
@@ -1357,7 +1357,7 @@ struct EventReportPdu{
 
 /* Section 5.3.11.3: Inormation abut the addition or modification of a synthecic enviroment object that is anchored      to the terrain with a single point. COMPLETE */
 struct PointObjectStatePdu{
-  struct SyntheticEnvironmentFamilyPdu;
+  struct SyntheticEnvironmentFamilyPdu mySyntheticEnvironmentFamilyPdu;
   /** Object in synthetic environment */
   struct EntityID objectID; 
   /** Object with which this point object is associated */
@@ -1386,7 +1386,7 @@ struct PointObjectStatePdu{
 
 /* Section 5.3.11.1: Information about environmental effects and processes. This requires manual cleanup. the environmental        record is variable, as is the padding. UNFINISHED */
 struct EnvironmentalProcessPdu{
-  struct SyntheticEnvironmentFamilyPdu;
+  struct SyntheticEnvironmentFamilyPdu mySyntheticEnvironmentFamilyPdu;
   /** Environmental process ID */
   struct EntityID environementalProcessID; 
   /** Environment type */
@@ -1405,7 +1405,7 @@ struct EnvironmentalProcessPdu{
 
 /* Section 5.3.6.10. Information issued in response to a data query pdu or a set data pdu is communicated using a data pdu. COMPLETE */
 struct DataPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** ID of request */
   unsigned int requestID; 
   /** padding */
@@ -1422,7 +1422,7 @@ struct DataPdu{
 
 /* Section 5.3.9.2 Information about a particular group of entities grouped together for the purposes of netowrk bandwidth         reduction or aggregation. Needs manual cleanup. The GED size requires a database lookup. UNFINISHED */
 struct IsGroupOfPdu{
-  struct EntityManagementFamilyPdu;
+  struct EntityManagementFamilyPdu myEntityManagementFamilyPdu;
   /** ID of aggregated entities */
   struct EntityID groupEntityID; 
   /** type of entities constituting the group */
@@ -1441,7 +1441,7 @@ struct IsGroupOfPdu{
 
 /* Section 5.3.10.3 Information about individual mines within a minefield. This is very, very wrong. UNFINISHED */
 struct MinefieldDataPdu{
-  struct MinefieldFamilyPdu;
+  struct MinefieldFamilyPdu myMinefieldFamilyPdu;
   /** Minefield ID */
   struct EntityID minefieldID; 
   /** ID of entity making request */
@@ -1474,7 +1474,7 @@ struct MinefieldDataPdu{
 
 /* Section 5.3.9.3 Information initiating the dyanic allocation and control of simulation entities         between two simulation applications. Requires manual cleanup. The padding between record sets is variable. UNFINISHED */
 struct TransferControlRequestPdu{
-  struct EntityManagementFamilyPdu;
+  struct EntityManagementFamilyPdu myEntityManagementFamilyPdu;
   /** ID of entity originating request */
   struct EntityID orginatingEntityID; 
   /** ID of entity receiving request */
@@ -1495,12 +1495,12 @@ struct TransferControlRequestPdu{
 
 /* Section 5.3.3. Common superclass for EntityState, Collision, collision-elastic, and entity state update PDUs. This should be abstract. COMPLETE */
 struct EntityInformationFamilyPdu{
-  struct Pdu;
+  struct Pdu myPdu;
 };
 
 /* Section 5.3.12.5: Ack receipt of a start-resume, stop-freeze, create-entity or remove enitty (reliable) pdus. COMPLETE */
 struct AcknowledgeReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** ack flags */
   unsigned short acknowledgeFlag; 
   /** response flags */
@@ -1511,7 +1511,7 @@ struct AcknowledgeReliablePdu{
 
 /* Section 5.3.12.3: Start resume simulation, relaible. COMPLETE */
 struct StartResumeReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** time in real world for this operation to happen */
   struct ClockTime realWorldTime; 
   /** time in simulation for the simulation to resume */
@@ -1528,7 +1528,7 @@ struct StartResumeReliablePdu{
 
 /* Section 5.3.7.4.2 When present, layer 2 should follow layer 1 and have the following fields. This requires manual cleanup.        the beamData attribute semantics are used in multiple ways. UNFINSISHED */
 struct IffAtcNavAidsLayer2Pdu{
-  struct IffAtcNavAidsLayer1Pdu;
+  struct IffAtcNavAidsLayer1Pdu myIffAtcNavAidsLayer1Pdu;
   /** layer header */
   struct LayerHeader layerHeader; 
   /** beam data */
@@ -1541,7 +1541,7 @@ struct IffAtcNavAidsLayer2Pdu{
 
 /* Section 5.3.11.5: Information about the addition/modification of an oobject that is geometrically      achored to the terrain with a set of three or more points that come to a closure. COMPLETE */
 struct ArealObjectStatePdu{
-  struct SyntheticEnvironmentFamilyPdu;
+  struct SyntheticEnvironmentFamilyPdu mySyntheticEnvironmentFamilyPdu;
   /** Object in synthetic environment */
   struct EntityID objectID; 
   /** Object with which this point object is associated */
@@ -1568,7 +1568,7 @@ struct ArealObjectStatePdu{
 
 /* Section 5.3.12.8: request for data from an entity. COMPLETE */
 struct DataQueryReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** level of reliability service used for this transaction */
   unsigned char requiredReliabilityService; 
   /** padding */
@@ -1591,7 +1591,7 @@ struct DataQueryReliablePdu{
 
 /* Section 5.3.9.1 informationa bout aggregating entities anc communicating information about the aggregated entities.        requires manual intervention to fix the padding between entityID lists and silent aggregate sysem lists--this padding        is dependent on how many entityIDs there are, and needs to be on a 32 bit word boundary. UNFINISHED */
 struct AggregateStatePdu{
-  struct EntityManagementFamilyPdu;
+  struct EntityManagementFamilyPdu myEntityManagementFamilyPdu;
   /** ID of aggregated entities */
   struct EntityID aggregateID; 
   /** force ID */
@@ -1638,7 +1638,7 @@ struct AggregateStatePdu{
 
 /* 5.3.3.4. Nonstatic information about a particular entity may be communicated by issuing an Entity State Update PDU. COMPLETE */
 struct EntityStateUpdatePdu{
-  struct EntityInformationFamilyPdu;
+  struct EntityInformationFamilyPdu myEntityInformationFamilyPdu;
   /** This field shall identify the entity issuing the PDU */
   struct EntityID entityID; 
   /** Padding */
@@ -1658,7 +1658,7 @@ struct EntityStateUpdatePdu{
 
 /* Section 5.3.10.1 Abstract superclass for PDUs relating to minefields. COMPLETE */
 struct MinefieldStatePdu{
-  struct MinefieldFamilyPdu;
+  struct MinefieldFamilyPdu myMinefieldFamilyPdu;
   /** Minefield ID */
   struct EntityID minefieldID; 
   /** Minefield sequence */
@@ -1687,7 +1687,7 @@ struct MinefieldStatePdu{
 
 /* Section 5.3.12.10: issued in response to a data query R or set dataR pdu. Needs manual intervention      to fix padding on variable datums. UNFINSIHED */
 struct DataReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** Request ID */
   unsigned int requestID; 
   /** level of reliability service used for this transaction */
@@ -1708,7 +1708,7 @@ struct DataReliablePdu{
 
 /* Section 5.3.6.12. Arbitrary messages can be entered into the data stream via use of this PDU. COMPLETE */
 struct CommentPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** Number of fixed datum records */
   unsigned int numberOfFixedDatumRecords; 
   /** Number of variable datum records */
@@ -1721,7 +1721,7 @@ struct CommentPdu{
 
 /* Section 5.3.12.12: Arbitrary messages. Only reliable this time. Neds manual intervention     to fix padding in variable datums. UNFINISHED */
 struct CommentReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** Fixed datum record count */
   unsigned int numberOfFixedDatumRecords; 
   /** variable datum record count */
@@ -1734,7 +1734,7 @@ struct CommentReliablePdu{
 
 /* Section 5.3.4.2. Information about stuff exploding. COMPLETE */
 struct DetonationPdu{
-  struct WarfareFamilyPdu;
+  struct WarfareFamilyPdu myWarfareFamilyPdu;
   /** ID of muntion that was fired */
   struct EntityID munitionID; 
   /** ID firing event */
@@ -1758,7 +1758,7 @@ struct DetonationPdu{
 
 /* Section 5.3.6.9. Change state information with the data contained in this. COMPLETE */
 struct SetDataPdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** ID of request */
   unsigned int requestID; 
   /** padding */
@@ -1775,7 +1775,7 @@ struct SetDataPdu{
 
 /* Section 5.3.12.13: A request for one or more records of data from an entity. COMPLETE */
 struct RecordQueryReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** request ID */
   unsigned int requestID; 
   /** level of reliability service used for this transaction */
@@ -1796,7 +1796,7 @@ struct RecordQueryReliablePdu{
 
 /* Section 5.3.3.2. Information about a collision. COMPLETE */
 struct CollisionPdu{
-  struct EntityInformationFamilyPdu;
+  struct EntityInformationFamilyPdu myEntityInformationFamilyPdu;
   /** ID of the entity that issued the collision PDU */
   struct EntityID issuingEntityID; 
   /** ID of entity that has collided with the issuing entity ID */
@@ -1817,7 +1817,7 @@ struct CollisionPdu{
 
 /* Section 5.3.6.7. response to an action request PDU. COMPLETE */
 struct ActionResponsePdu{
-  struct SimulationManagementFamilyPdu;
+  struct SimulationManagementFamilyPdu mySimulationManagementFamilyPdu;
   /** Request ID that is unique */
   unsigned int requestID; 
   /** Status of response */
@@ -1834,7 +1834,7 @@ struct ActionResponsePdu{
 
 /* Sectioin 5.3.4.1. Information about someone firing something. COMPLETE */
 struct FirePdu{
-  struct WarfareFamilyPdu;
+  struct WarfareFamilyPdu myWarfareFamilyPdu;
   /** ID of the munition that is being shot */
   struct EntityID munitionID; 
   /** ID of event */
@@ -1852,7 +1852,7 @@ struct FirePdu{
 
 /* Section 5.3.8.3. Communication of a receiver state. COMPLETE */
 struct ReceiverPdu{
-  struct RadioCommunicationsFamilyPdu;
+  struct RadioCommunicationsFamilyPdu myRadioCommunicationsFamilyPdu;
   /** encoding scheme used, and enumeration */
   unsigned short receiverState; 
   /** padding */
@@ -1867,7 +1867,7 @@ struct ReceiverPdu{
 
 /* Section 5.3.7.3. Information about underwater acoustic emmissions. This requires manual cleanup.  The beam data records should ALL be a the finish, rather than attached to each emitter system. UNFINISHED */
 struct UaPdu{
-  struct DistributedEmissionsFamilyPdu;
+  struct DistributedEmissionsFamilyPdu myDistributedEmissionsFamilyPdu;
   /** ID of the entity that is the source of the emission */
   struct EntityID emittingEntityID; 
   /** ID of event */
@@ -1895,7 +1895,7 @@ struct UaPdu{
 
 /* Section 5.3.8.5. Detailed inofrmation about the state of an intercom device and the actions it is requestion         of another intercom device, or the response to a requested action. Required manual intervention to fix the intercom parameters,        which can be of varialbe length. UNFINSISHED */
 struct IntercomControlPdu{
-  struct RadioCommunicationsFamilyPdu;
+  struct RadioCommunicationsFamilyPdu myRadioCommunicationsFamilyPdu;
   /** control type */
   unsigned char controlType; 
   /** control type */
@@ -1924,7 +1924,7 @@ struct IntercomControlPdu{
 
 /* Section 5.3.8.2. Detailed information about a radio transmitter. This PDU requires        manually written code to complete. The encodingScheme field can be used in multiple        ways, which requires hand-written code to finish. UNFINISHED */
 struct SignalPdu{
-  struct RadioCommunicationsFamilyPdu;
+  struct RadioCommunicationsFamilyPdu myRadioCommunicationsFamilyPdu;
   /** encoding scheme used, and enumeration */
   unsigned short encodingScheme; 
   /** tdl type */
@@ -1941,7 +1941,7 @@ struct SignalPdu{
 
 /* Section 5.3.12.2: Removal of an entity , reliable. COMPLETE */
 struct RemoveEntityReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** level of reliability service used for this transaction */
   unsigned char requiredReliabilityService; 
   /** padding */
@@ -1954,7 +1954,7 @@ struct RemoveEntityReliablePdu{
 
 /* Section 5.3.7.5. SEES PDU, supplemental emissions entity state information. COMPLETE */
 struct SeesPdu{
-  struct DistributedEmissionsFamilyPdu;
+  struct DistributedEmissionsFamilyPdu myDistributedEmissionsFamilyPdu;
   /** Originating entity ID */
   struct EntityID orginatingEntityID; 
   /** IR Signature representation index */
@@ -1975,7 +1975,7 @@ struct SeesPdu{
 
 /* Section 5.3.12.1: creation of an entity , reliable. COMPLETE */
 struct CreateEntityReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** level of reliability service used for this transaction */
   unsigned char requiredReliabilityService; 
   /** padding */
@@ -1988,7 +1988,7 @@ struct CreateEntityReliablePdu{
 
 /* Section 5.3.12.4: Stop freeze simulation, relaible. COMPLETE */
 struct StopFreezeReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** time in real world for this operation to happen */
   struct ClockTime realWorldTime; 
   /** Reason for stopping/freezing simulation */
@@ -2005,7 +2005,7 @@ struct StopFreezeReliablePdu{
 
 /* Section 5.3.12.11: reports the occurance of a significatnt event to the simulation manager. Needs manual     intervention to fix padding in variable datums. UNFINISHED. */
 struct EventReportReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** Event type */
   unsigned short eventType; 
   /** padding */
@@ -2022,7 +2022,7 @@ struct EventReportReliablePdu{
 
 /* Section 5.3.10.4 proivde the means to request a retransmit of a minefield data pdu. COMPLETE */
 struct MinefieldResponseNackPdu{
-  struct MinefieldFamilyPdu;
+  struct MinefieldFamilyPdu myMinefieldFamilyPdu;
   /** Minefield ID */
   struct EntityID minefieldID; 
   /** entity ID making the request */
@@ -2037,7 +2037,7 @@ struct MinefieldResponseNackPdu{
 
 /* 5.3.3.3. Information about elastic collisions in a DIS exercise shall be communicated using a Collision-Elastic PDU. COMPLETE */
 struct CollisionElasticPdu{
-  struct EntityInformationFamilyPdu;
+  struct EntityInformationFamilyPdu myEntityInformationFamilyPdu;
   /** ID of the entity that issued the collision PDU */
   struct EntityID issuingEntityID; 
   /** ID of entity that has collided with the issuing entity ID */
@@ -2072,7 +2072,7 @@ struct CollisionElasticPdu{
 
 /* Section 5.3.12.7: Response from an entity to an action request PDU. COMPLETE */
 struct ActionResponseReliablePdu{
-  struct SimulationManagementWithReliabilityFamilyPdu;
+  struct SimulationManagementWithReliabilityFamilyPdu mySimulationManagementWithReliabilityFamilyPdu;
   /** request ID */
   unsigned int requestID; 
   /** status of response */
@@ -2089,7 +2089,7 @@ struct ActionResponseReliablePdu{
 
 /* Section 5.3.9.4 The joining of two or more simulation entities is communicated by this PDU. COMPLETE */
 struct IsPartOfPdu{
-  struct EntityManagementFamilyPdu;
+  struct EntityManagementFamilyPdu myEntityManagementFamilyPdu;
   /** ID of entity originating PDU */
   struct EntityID orginatingEntityID; 
   /** ID of entity receiving PDU */
@@ -2106,7 +2106,7 @@ struct IsPartOfPdu{
 
 /* Section 5.3.10.2 Query a minefield for information about individual mines. Requires manual clean up to get the padding right. UNFINISHED */
 struct MinefieldQueryPdu{
-  struct MinefieldFamilyPdu;
+  struct MinefieldFamilyPdu myMinefieldFamilyPdu;
   /** Minefield ID */
   struct EntityID minefieldID; 
   /** EID of entity making the request */
@@ -2131,7 +2131,7 @@ struct MinefieldQueryPdu{
 
 /* Section 5.3.3.1. Represents the postion and state of one entity in the world. COMPLETE */
 struct EntityStatePdu{
-  struct EntityInformationFamilyPdu;
+  struct EntityInformationFamilyPdu myEntityInformationFamilyPdu;
   /** Unique ID for an entity that is tied to this state information */
   struct EntityID entityID; 
   /** What force this entity is affiliated with, eg red, blue, neutral, etc */
@@ -2161,7 +2161,7 @@ struct EntityStatePdu{
 
 /* Section 5.3.3.1. Represents the postion and state of one entity in the world. This is identical in function to entity state pdu, but generates less garbage to collect in the Java world. COMPLETE */
 struct FastEntityStatePdu{
-  struct EntityInformationFamilyPdu;
+  struct EntityInformationFamilyPdu myEntityInformationFamilyPdu;
   /** The site ID */
   unsigned short site; 
   /** The application ID */

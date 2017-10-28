@@ -121,6 +121,11 @@ include Makefile.sources
 
 libFreeWRL_la_SOURCES += internal_version.c
 
+if WITH_DIS
+libFreeWRL_la_SOURCES += DIS/DIS.c scenegraph/socketutils.c
++ndif
+
+
 #
 # WINDOW_USE_* are exclusive
 #
