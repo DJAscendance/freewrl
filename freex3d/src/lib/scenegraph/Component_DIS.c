@@ -292,6 +292,7 @@ struct dis_socket {
 	char *multicastRelayHost;
 	int idir; //0 = receive, 1 = send
 	struct Vector *registered;
+	double lasttime;
 };
 
 
@@ -365,14 +366,16 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 	return pdus;
 
 }
-void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
-	int i;
+int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
 	struct Pdu* pdu;
 	struct EntityStatePdu *espdu;
 	struct CollisionPdu *cpdu;
 	struct FirePdu *fpdu;
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
-	if(!pdus) return;
+
+	ihit = 0;
+	if(!pdus) return ihit;
 	for(i=0;i<pdus->n;i++)
 	{
 		pdu = vector_get(struct Pdu*,pdus,i);
@@ -384,6 +387,7 @@ void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				if(espdu->entityID.application != pnode->applicationID) break;
 				if(espdu->entityID.site != pnode->siteID) break;
 				if(espdu->entityID.entity != pnode->entityID) break;
+				ihit++;
 				pnode->_change++; //mark node changed
 				//translation - assumes companion scenes will have same parent transform stack
 				//(x, -z, y).
@@ -430,7 +434,7 @@ void dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				break;
 		}
 	}
-
+	return ihit;
 }
 struct Vector * dis_node2pdus(struct X3D_Node *node){
 	struct Vector *pdus = NULL;
@@ -503,6 +507,7 @@ void dis_sendloop(){
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
 				if(thistime - lasttime < writeInterval) continue; //skip for a while more
 				lasttime = thistime;
+				dsock->lasttime = thistime; //last time something was sent, not needed
 				dis_set_node_lasttime(node,lasttime);
 				if(j==0) {
 					nb = write_rtp(&buf2[nbytes],node);
@@ -638,6 +643,48 @@ void set_rtp_heard(struct X3D_Node *node){
 			break;
 		case NODE_SignalPdu:
 			((struct X3D_SignalPdu *)node)->isRtpHeaderHeard = TRUE;
+			break;
+		default: 
+			break;
+	}
+}
+void dis_set_isActive(struct X3D_Node*node, int ival){
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			{
+				struct X3D_EspduTransform* pnode = (struct X3D_EspduTransform*)node;
+				if(pnode->isActive != ival){
+					pnode->isActive = ival;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isActive));
+				}
+			}
+			break;
+		case NODE_ReceiverPdu:
+			{
+				struct X3D_ReceiverPdu* pnode = (struct X3D_ReceiverPdu*)node;
+				if(pnode->isActive != ival){
+					pnode->isActive = ival;
+					MARK_EVENT(node,offsetof(struct X3D_ReceiverPdu,isActive));
+				}
+			}
+			break;
+		case NODE_TransmitterPdu:
+			{
+				struct X3D_TransmitterPdu* pnode = (struct X3D_TransmitterPdu*)node;
+				if(pnode->isActive != ival){
+					pnode->isActive = ival;
+					MARK_EVENT(node,offsetof(struct X3D_TransmitterPdu,isActive));
+				}
+			}
+			break;
+		case NODE_SignalPdu:
+			{
+				struct X3D_SignalPdu* pnode = (struct X3D_SignalPdu*)node;
+				if(pnode->isActive != ival){
+					pnode->isActive = ival;
+					MARK_EVENT(node,offsetof(struct X3D_SignalPdu,isActive));
+				}
+			}
 			break;
 		default: 
 			break;
@@ -795,6 +842,7 @@ int dis_write_stream(unsigned char * datastream, struct Vector *pdus)
 	return nbytes;
 }
 
+
 //in socketutils.c:
 void socket_open(struct dis_socket *dsock);
 int sockwrite(SOCKET s, const char *buf, int len);
@@ -829,6 +877,7 @@ void dis_recvloop(){
 			nbytes = sockrecvfrom(dsock,buf,32000);
 			if(nbytes > 0){
 				more = TRUE;
+				dsock->lasttime = thistime;
 				printf("sock read nbytes = %d\n",nbytes);
 				//free last round
 				for(j=0;j<pdus->n;j++){
@@ -841,15 +890,31 @@ void dis_recvloop(){
 				printf("hallelluha\n");
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
+						int ihit;
 						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 						//check site and application ID
 						//distribute to registered nodes by entityID
-						dis_pdus2node_espdu(node, pdus);
-						if(heard) set_rtp_heard(node);
+						ihit = dis_pdus2node_espdu(node, pdus);
+						if(ihit){
+							if(heard) set_rtp_heard(node);
+							dis_set_isActive(node,TRUE);
+							dis_set_node_lasttime(node,thistime);
+						}
 					}
 				}
 			}
 		}while(more);
+		if(dsock->registered){
+			//check if any node listeners have gone inactive
+			for(j=0;j<dsock->registered->n;j++){
+				//update isActive
+				double readinterval, writeinterval, lasttime;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				dis_get_node_lasttime(node,&lasttime,&readinterval,&writeinterval);
+				if(thistime - lasttime > 5.0)   //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
+					dis_set_isActive(node,FALSE);
+			}
+		}
 	}
 
 }
@@ -969,7 +1034,8 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	//do the node fields still jive/match with the socket it joined?
 	//(a weakness of the freewrl architecture: there's no per-field change flag
 	//so if a node with a zillion fields is flagged as changed, we have to 
-	//re-'compile' the whole node, or save old values in _old fields on the node for comparison.
+	//re-'compile' the whole node, or save old values in _old fields on the node for comparison,
+	//or (more normally) MARK_EVENT(node,offset) which runs through lists of registered routes.
 	//here we are comparing a few fields with 'what they must have been when registered')
 
 	int inetworkmode = 0;

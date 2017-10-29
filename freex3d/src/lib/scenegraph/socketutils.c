@@ -107,6 +107,7 @@ struct dis_socket {
 	char *multicastRelayHost;
 	int idir; //0 = receive, 1 = send
 	struct Vector *registered;
+	double lasttime;
 };
 
 
