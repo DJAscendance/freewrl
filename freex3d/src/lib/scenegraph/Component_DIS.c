@@ -394,6 +394,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->translation.c[0] = espdu->entityLocation.x;
 				pnode->translation.c[1] = espdu->entityLocation.z;
 				pnode->translation.c[2] = -espdu->entityLocation.y; 
+				pnode->timestamp = TickTime();
 				//rotation
 				if(0){
 					Quaternion qA;
@@ -683,6 +684,89 @@ void dis_set_isActive(struct X3D_Node*node, int ival){
 				if(pnode->isActive != ival){
 					pnode->isActive = ival;
 					MARK_EVENT(node,offsetof(struct X3D_SignalPdu,isActive));
+				}
+			}
+			break;
+		default: 
+			break;
+	}
+}
+
+void dis_set_isNetworkMode(struct X3D_Node*node, int networkMode){
+	int	isStandAlone, isNetworkReader, isNetworkWriter;
+	isStandAlone = isNetworkReader = isNetworkWriter = 0;
+	switch(networkMode){
+		case 0: isStandAlone = TRUE; break;
+		case 1: isNetworkReader = TRUE; break;
+		case 2: isNetworkWriter = TRUE; break;
+		default: break;
+	}
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			{
+				struct X3D_EspduTransform* pnode = (struct X3D_EspduTransform*)node;
+				if(pnode->isStandAlone != isStandAlone){
+					pnode->isStandAlone = isStandAlone;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isStandAlone));
+				}
+				if(pnode->isNetworkReader != isNetworkReader){
+					pnode->isNetworkReader = isNetworkReader;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkReader));
+				}
+				if(pnode->isNetworkWriter != isNetworkWriter){
+					pnode->isNetworkWriter = isNetworkWriter;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkWriter));
+				}
+			}
+			break;
+		case NODE_ReceiverPdu:
+			{
+				struct X3D_ReceiverPdu* pnode = (struct X3D_ReceiverPdu*)node;
+				if(pnode->isStandAlone != isStandAlone){
+					pnode->isStandAlone = isStandAlone;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isStandAlone));
+				}
+				if(pnode->isNetworkReader != isNetworkReader){
+					pnode->isNetworkReader = isNetworkReader;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkReader));
+				}
+				if(pnode->isNetworkWriter != isNetworkWriter){
+					pnode->isNetworkWriter = isNetworkWriter;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkWriter));
+				}
+			}
+			break;
+		case NODE_TransmitterPdu:
+			{
+				struct X3D_TransmitterPdu* pnode = (struct X3D_TransmitterPdu*)node;
+				if(pnode->isStandAlone != isStandAlone){
+					pnode->isStandAlone = isStandAlone;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isStandAlone));
+				}
+				if(pnode->isNetworkReader != isNetworkReader){
+					pnode->isNetworkReader = isNetworkReader;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkReader));
+				}
+				if(pnode->isNetworkWriter != isNetworkWriter){
+					pnode->isNetworkWriter = isNetworkWriter;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkWriter));
+				}
+			}
+			break;
+		case NODE_SignalPdu:
+			{
+				struct X3D_SignalPdu* pnode = (struct X3D_SignalPdu*)node;
+				if(pnode->isStandAlone != isStandAlone){
+					pnode->isStandAlone = isStandAlone;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isStandAlone));
+				}
+				if(pnode->isNetworkReader != isNetworkReader){
+					pnode->isNetworkReader = isNetworkReader;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkReader));
+				}
+				if(pnode->isNetworkWriter != isNetworkWriter){
+					pnode->isNetworkWriter = isNetworkWriter;
+					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkWriter));
 				}
 			}
 			break;
@@ -1015,6 +1099,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 		vector_pushBack(struct X3D_Node*,dsock->registered,node);
 		preg = (void*)dsock;
 	}
+	dis_set_isNetworkMode(node, inetworkmode);
 	return preg;
 }
 void dis_unregister(struct dis_socket * dsock, struct X3D_Node* node){
