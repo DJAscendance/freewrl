@@ -282,6 +282,7 @@ void ypr2axisangle(float *ypr, float *xyza)
 }
 
 //A. per-frame
+
 struct dis_socket {
 	int port;
 	char *address;
@@ -292,6 +293,7 @@ struct dis_socket {
 	int idir; //0 = receive, 1 = send
 	struct Vector *registered;
 };
+
 
 void print_stream(unsigned char *buf, int nbytes){
 	int i,j;
@@ -448,9 +450,43 @@ static struct Vector *sockets_recv = NULL;
 
 unsigned char buf2[32767];
 
+void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+		{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
+			*lasttime = pnode->_lasttime;
+			*writeInterval = pnode->writeInterval;
+			*readInterval = pnode->readInterval;
+		}
+		break;
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
+		break;
+	}
+}
+void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+		{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
+			pnode->_lasttime = lasttime;
+		}
+		break;
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
+		break;
+	}
+}
+
+
 void dis_sendloop(){
+	double thistime;
 	int i,j, nbytes, nb;
 	if(!sockets_send || sockets_send->n == 0) return;
+	thistime = TickTime();
 	for(i=0;i<sockets_send->n;i++){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
 		if(dsock->registered){
@@ -460,27 +496,30 @@ void dis_sendloop(){
 				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
 				//b. on send in here, a function is called to pdu-ize a node before marshaling it
 				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
+				double lasttime, readInterval, writeInterval;
+				struct Vector *pdus;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
+				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
+				if(thistime - lasttime < writeInterval) continue; //skip for a while more
+				lasttime = thistime;
+				dis_set_node_lasttime(node,lasttime);
 				if(j==0) {
 					nb = write_rtp(&buf2[nbytes],node);
 					nbytes += nb;
 				}
 
-
-				struct Vector *pdus = dis_node2pdus(node);
+				//option b.
+				pdus = dis_node2pdus(node);
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
 					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
 				}
-				//if(dtime > interval ){
-					//dis_marshal(sbuf,pdu,pduToDis(pdu->pdutype));
-					nb = dis_write_stream(&buf2[nbytes],pdus);
-					printf("sendloop >>>>\n");
-					print_stream(&buf2[nbytes], nb);
-					printf("<<<< sendloop\n");
-					nbytes += nb;
-				//}
-				//break;
+				nb = dis_write_stream(&buf2[nbytes],pdus);
+				printf("sendloop >>>>\n");
+				print_stream(&buf2[nbytes], nb);
+				printf("<<<< sendloop\n");
+				nbytes += nb;
 			}
 			if(nbytes) socksendto(dsock,buf2,nbytes);
 		}
@@ -825,14 +864,16 @@ void dis_open_socket(struct dis_socket* dsock){
 	}
 
 }
-void dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
+void *dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
 		int multicastRelayPort,
-		char *networkMode, int port,int readInterval,int rtpHeaderExpected,int siteID,int writeInterval){
-
+		char *networkMode, int port,double readInterval,int rtpHeaderExpected,int siteID,double writeInterval){
+	void *preg; //something to store in the node, to say which socket its registerd in
 	int inetworkmode = 0;
 	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
 	else if(!strcmp(networkMode,"networkReader")) inetworkmode = 1;
 	else if(!strcmp(networkMode,"networkWriter")) inetworkmode = 2;
+	preg = NULL;
+	if(inetworkmode == 0) preg = NULL; //not joined/registered to any socket
 	if(inetworkmode == 1){
 		int i, j, ifound;
 		struct dis_socket *dsock;
@@ -869,6 +910,7 @@ void dis_register(struct X3D_Node* node,char *address,int applicationID,int enti
 		//join socket
 		if(!dsock->registered) dsock->registered = newVector(struct X3D_Node*,20);
 		vector_pushBack(struct X3D_Node*,dsock->registered,node);
+		preg = (void*)dsock;
 	}
 	if(inetworkmode==2){
 		int i, j, ifound;
@@ -906,57 +948,42 @@ void dis_register(struct X3D_Node* node,char *address,int applicationID,int enti
 		//join socket
 		if(!dsock->registered) dsock->registered = newVector(struct X3D_Node*,20);
 		vector_pushBack(struct X3D_Node*,dsock->registered,node);
-
+		preg = (void*)dsock;
 	}
-
+	return preg;
 }
-void dis_unregister(struct X3D_Node* node){
-	//unregister from both sender and receiver
-	if(sockets_recv){
-		int i,j, ifound;
-		struct X3D_Node *nr;
-		ifound = -1;
-		for(i=0;i<sockets_recv->n;i++){
-			struct dis_socket *dsock;
-			dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
-			if(dsock->registered){
-				ifound = -1;
-				for(j=0;j<dsock->registered->n;j++){
-					if(vector_get(struct X3D_Node*,dsock->registered,j)==node){
-						vector_remove_elem(struct X3D_Node*,dsock->registered,j);
-						ifound = j;
-						break;
-					}
-				}
+void dis_unregister(struct dis_socket * dsock, struct X3D_Node* node){
+	//unregister / un-join node from socket
+	int j;
+	if(dsock->registered){
+		for(j=0;j<dsock->registered->n;j++){
+			if(vector_get(struct X3D_Node*,dsock->registered,j)==node){
+				vector_remove_elem(struct X3D_Node*,dsock->registered,j);
+				break;
 			}
-			if(ifound > -1) break;
 		}
 	}
-	if(sockets_send){
-		int i,j, ifound;
-		struct X3D_Node *nr;
-		ifound = -1;
-		for(i=0;i<sockets_send->n;i++){
-			struct dis_socket *dsock;
-			dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
-			if(dsock->registered){
-				ifound = -1;
-				for(j=0;j<dsock->registered->n;j++){
-					if(vector_get(struct X3D_Node*,dsock->registered,j)==node){
-						vector_remove_elem(struct X3D_Node*,dsock->registered,j);
-						ifound = j;
-						break;
-					}
-				}
-			}
-			if(ifound > -1) break;
-		}
-	}
-
 }
-int dis_check_socket_change(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
-		int multicastRelayPort,
-		char *networkMode, int port,int readInterval,int rtpHeaderExpected,int siteID,int writeInterval){
+int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
+		char *multicastRelayHost, 	int multicastRelayPort, char *networkMode){
+	//do the node fields still jive/match with the socket it joined?
+	//(a weakness of the freewrl architecture: there's no per-field change flag
+	//so if a node with a zillion fields is flagged as changed, we have to 
+	//re-'compile' the whole node, or save old values in _old fields on the node for comparison.
+	//here we are comparing a few fields with 'what they must have been when registered')
+
+	int inetworkmode = 0;
+	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
+	else if(!strcmp(networkMode,"networkReader")) inetworkmode = 1;
+	else if(!strcmp(networkMode,"networkWriter")) inetworkmode = 2;
+	if(inetworkmode == 0 && dsock == NULL) return FALSE; //not registered, and no need to register
+	if(dsock == NULL) return TRUE; //need to register
+	if(inetworkmode != dsock->idir) return TRUE; //change of direction
+	if(strcmp(address,dsock->address)) return TRUE; //change of address
+	if(port != dsock->port) return TRUE; //change of port
+	if(strcmp(multicastRelayHost,dsock->multicastRelayHost)) return TRUE; 
+	if(multicastRelayPort != dsock->multicastRelayPort) return TRUE;
+
 	return FALSE;
 }
 
@@ -964,19 +991,21 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		int changed;
-		changed = dis_check_socket_change(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
-		node->multicastRelayPort,
-		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
+		changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
+				node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
 		if(changed){
-			dis_unregister(X3D_NODE(node));
+			dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
 			node->_registered = FALSE;
+			node->_dsock = NULL;
 		}
 	}
 	if(!node->_registered){
-		dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
+		void *psock;
+		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
 		node->multicastRelayPort,
 		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
 		node->_registered = TRUE;
+		node->_dsock = psock;
 	}
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){

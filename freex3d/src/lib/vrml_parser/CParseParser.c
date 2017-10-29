@@ -2155,7 +2155,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 							break;
 						case FIELDTYPE_MFVec3f:
 							for(int i=0;i<value->mfvec3f.n;i++)
-								vecscale3f(&value->mfvec3f.p[i],&value->mfvec3f.p[i],(float)factor);
+								vecscale3f(value->mfvec3f.p[i].c,value->mfvec3f.p[i].c,(float)factor);
 							break;
 						case FIELDTYPE_SFMatrix3f:
 							for(int i=0;i<9;i++)

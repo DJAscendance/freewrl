@@ -21,7 +21,7 @@
 #ifndef __FREEWRL_SCENEGRAPH_COMPONENT_DIS_H__
 #define __FREEWRL_SCENEGRAPH_COMPONENT_DIS_H__
 
-int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *pdus);
+int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *pdus, int *heard);
 int dis_write_stream(unsigned char * datastream, struct Vector *pdus);
 
 #endif /* __FREEWRL_SCENEGRAPH_COMPONENT_DIS_H__ */
