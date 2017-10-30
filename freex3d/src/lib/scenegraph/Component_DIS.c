@@ -357,6 +357,19 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 
 	}
 	//articuation parameters
+	if(pnode->articulationParameterArray.n){
+		struct ArticulationParameter *ap;
+		int i, np = pnode->articulationParameterArray.n;
+		ap = malloc(np * sizeof(struct ArticulationParameter));
+		espdu->numberOfArticulationParameters = np;
+		for(i=0;i<np;i++){
+			ap[i].parameterTypeDesignator = 0; //0 is articulated part
+			ap[i].parameterType = 1029; //1024 - rudder + 5 X
+			ap[i].parameterValue = pnode->articulationParameterArray.p[i];
+			ap[i].partAttachedTo = 0;
+		}
+		espdu->articulationParameters = (void*)ap;
+	}
 	//...
 	printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 	vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
@@ -421,6 +434,23 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					ypr2axisangle(ypr,pnode->rotation.c);
 				}
 				//articuation parameters
+				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
+				if(pnode->articulationParameterArray.n){
+					struct ArticulationParameter *ap;
+					float *pp;
+					int i, np = pnode->articulationParameterArray.n;
+					ap = espdu->articulationParameters;
+					pp = malloc(np * sizeof(float));
+					for(i=0;i<np;i++){
+						//ap[i].parameterTypeDesignator = 0; //0 is articulated part
+						//ap[i].parameterType = 1029; //1024 - rudder + 5 X
+						pp[i] = ap[i].parameterValue;
+						//ap[i].partAttachedTo = 0;
+					}
+					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
+					pnode->articulationParameterArray.p = pp;
+				}
+
 				//...
 			}
 			break;
@@ -1158,6 +1188,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
+	node->articulationParameterCount = node->articulationParameterArray.n;
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
 }
