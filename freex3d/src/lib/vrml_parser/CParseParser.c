@@ -6605,7 +6605,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 									for(j=0;j<pi->n;j++){
 										pf = protoDefinition_getFieldByNum(pd, j);
 										pname = pf->cname;
-										if(!strcmp(ename,pname)){
+										if(!strcmp(ename,pname) || !fieldSynonymCompare(ename,pname)){
 											//name match
 											//printf("ename = %s pname = %s\n",ename,pname);
 											if(ef->type == pf->type){
