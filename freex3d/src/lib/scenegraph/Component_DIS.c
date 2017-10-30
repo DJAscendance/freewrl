@@ -362,11 +362,13 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 		int i, np = pnode->articulationParameterArray.n;
 		ap = malloc(np * sizeof(struct ArticulationParameter));
 		espdu->numberOfArticulationParameters = np;
+		//printf("sending %d articulation parameters:\n",np);
 		for(i=0;i<np;i++){
 			ap[i].parameterTypeDesignator = 0; //0 is articulated part
 			ap[i].parameterType = 1029; //1024 - rudder + 5 X
 			ap[i].parameterValue = pnode->articulationParameterArray.p[i];
 			ap[i].partAttachedTo = 0;
+			//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
 		}
 		espdu->articulationParameters = (void*)ap;
 	}
@@ -441,14 +443,17 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					int i, np = pnode->articulationParameterArray.n;
 					ap = espdu->articulationParameters;
 					pp = malloc(np * sizeof(float));
+					//printf("received %d articulation parameters:\n",np);
 					for(i=0;i<np;i++){
 						//ap[i].parameterTypeDesignator = 0; //0 is articulated part
 						//ap[i].parameterType = 1029; //1024 - rudder + 5 X
 						pp[i] = ap[i].parameterValue;
+						//printf("%d %f\n",i,pp[i]);
 						//ap[i].partAttachedTo = 0;
 					}
 					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
 					pnode->articulationParameterArray.p = pp;
+					MARK_EVENT(pnode,offsetof(struct X3D_EspduTransform,articulationParameterArray));
 				}
 
 				//...
@@ -552,9 +557,12 @@ void dis_sendloop(){
 					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
 				}
 				nb = dis_write_stream(&buf2[nbytes],pdus);
-				printf("sendloop >>>>\n");
-				print_stream(&buf2[nbytes], nb);
-				printf("<<<< sendloop\n");
+				if(0){
+					//debug
+					printf("sendloop >>>>\n");
+					print_stream(&buf2[nbytes], nb);
+					printf("<<<< sendloop\n");
+				}
 				nbytes += nb;
 			}
 			if(nbytes) socksendto(dsock,buf2,nbytes);
