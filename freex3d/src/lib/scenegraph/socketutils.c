@@ -7,7 +7,7 @@
 #include <memory.h>
 #include <stdio.h>
 #include <string.h>
-
+#include "Component_DIS.h" //for dis_socket
 
 
 
@@ -98,8 +98,6 @@ void initialize_sockets(){}
 
 
 
-
-
 struct dis_socket {
 	int port;
 	char *address;
@@ -109,7 +107,11 @@ struct dis_socket {
 	char *multicastRelayHost;
 	int idir; //0 = receive, 1 = send
 	struct Vector *registered;
+	double lasttime;
 };
+
+
+
 
 
 #ifdef WIN32

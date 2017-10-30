@@ -2421,6 +2421,8 @@ our %Nodes = (
 		timestamp => ["SFTime", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		rtpHeaderExpected => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_registered => ["SFBool","FALSE","initializeOnly",0,"UNCA_NONE"],#ff
+		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
+		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 	], "X3DGroupingNode"),
 
 

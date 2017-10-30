@@ -2155,7 +2155,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 							break;
 						case FIELDTYPE_MFVec3f:
 							for(int i=0;i<value->mfvec3f.n;i++)
-								vecscale3f(&value->mfvec3f.p[i],&value->mfvec3f.p[i],(float)factor);
+								vecscale3f(value->mfvec3f.p[i].c,value->mfvec3f.p[i].c,(float)factor);
 							break;
 						case FIELDTYPE_SFMatrix3f:
 							for(int i=0;i<9;i++)
@@ -6605,7 +6605,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 									for(j=0;j<pi->n;j++){
 										pf = protoDefinition_getFieldByNum(pd, j);
 										pname = pf->cname;
-										if(!strcmp(ename,pname)){
+										if(!strcmp(ename,pname) || !fieldSynonymCompare(ename,pname)){
 											//name match
 											//printf("ename = %s pname = %s\n",ename,pname);
 											if(ef->type == pf->type){
