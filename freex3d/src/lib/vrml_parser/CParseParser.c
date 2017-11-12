@@ -2615,6 +2615,7 @@ if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { \
   return TRUE; \
  } 
 
+
     PARSER_MFFIELD(bool, Bool)
     PARSER_MFFIELD(color, Color)
     PARSER_MFFIELD(colorrgba, ColorRGBA)
@@ -2710,6 +2711,7 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
 
     /* are we in the VRML (x3dv) parser? */
     if (!me->parsingX3DfromXML) {
+		//try proper TRUE FALSE
         if(lexer_keyword(me->lexer, KW_TRUE)) {
             *rv=TRUE;
             return TRUE;
@@ -2718,19 +2720,50 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
             *rv=FALSE;
             return TRUE;
         }
+		//try x3d true false
+        if(lexer_keyword(me->lexer, KW_true)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_false)) {
+            *rv=FALSE;
+            return TRUE;
+        }
         return FALSE;
-    }
-    /* possibly, this is from the XML Parser */
-    if (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"true")) {
+    }else{
+		//try proper x3d true false
+        if(lexer_keyword(me->lexer, KW_true)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_false)) {
+            *rv=FALSE;
+            return TRUE;
+        }
+		//try wrl stype TRUE FALSE
+        if(lexer_keyword(me->lexer, KW_TRUE)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_FALSE)) {
+            *rv=FALSE;
+            return TRUE;
+        }
+
+        return FALSE;
+
+	}
+	/*
+    // possibly, this is from the XML Parser 
+    if (!strncmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"true",4)) {
         *rv = TRUE;
         return TRUE;
     }
-    if (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"false")) {
+    if (!strncmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"false",5)) {
         *rv = FALSE;
         return TRUE;
     }
-
-    /* possibly this is from the XML parser, but there is a case problem */
+    // possibly this is from the XML parser, but there is a case problem
     if (!gglobal()->internalc.global_strictParsing && (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"TRUE"))) {
 	CPARSE_ERROR_CURID("found upper case TRUE in XML file - should be lower case");
         *rv = TRUE;
@@ -2741,6 +2774,7 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
         *rv = FALSE;
         return TRUE;
     }
+	*/
 
 
         

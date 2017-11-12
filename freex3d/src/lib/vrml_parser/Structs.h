@@ -2111,11 +2111,13 @@ extern const int KEYWORDS_COUNT;
 #define KW_eventIn	18
 #define KW_eventOut	19
 #define KW_exposedField	20
-#define KW_field	21
-#define KW_initializeOnly	22
-#define KW_inputOnly	23
-#define KW_inputOutput	24
-#define KW_outputOnly	25
+#define KW_false	21
+#define KW_field	22
+#define KW_initializeOnly	23
+#define KW_inputOnly	24
+#define KW_inputOutput	25
+#define KW_outputOnly	26
+#define KW_true	27
 
 const char *stringKeywordType(int st);
 

@@ -306,14 +306,13 @@ void lexer_scopeOut_PROTO(struct VRMLLexer* me)
 /* Sets curID of lexer */
 BOOL lexer_setCurID(struct VRMLLexer* me)
 {
- unsigned int c;
+ int c;
  char buf[MAX_IDLEN+1];
  char* cur=buf;
 
  /* If it is already set, simply return. */
  if(me->curID)
   return TRUE;
-
  lexer_skip(me);
 
  /* Is it really an ID? */
@@ -357,7 +356,8 @@ breakIdLoop:
 
 /* Lexes a keyword */
 BOOL lexer_keyword(struct VRMLLexer* me, int kw) {
-	if(!lexer_setCurID(me)) return FALSE;
+	if(!lexer_setCurID(me)) 
+		return FALSE;
 	ASSERT(me->curID);
 
 	if(!strcmp(me->curID, KEYWORDS[kw])) {
