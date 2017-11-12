@@ -78,7 +78,7 @@ if OS_MAC
 
 # I found this in spidermonkey build files: -Wall -Wno-format -no-cpp-precomp -fno-common -DJS_THREADSAFE -DXP_UNIX -DSVR4 -DSYSV -D_BSD_SOURCE -DPOSIX_SOURCE -DDARWIN  -UDEBUG -DNDEBUG -UDEBUG_root -DJS_THREADSAFE -DEDITLINE
 
-AM_CPPFLAGS += -Wno-format -no-cpp-precomp -fno-common 
+AM_CPPFLAGS += -Wno-format -no-cpp-precomp -fno-common
 
 endif
 
@@ -122,8 +122,8 @@ include Makefile.sources
 libFreeWRL_la_SOURCES += internal_version.c
 
 if WITH_DIS
-libFreeWRL_la_SOURCES += DIS/DIS.c scenegraph/socketutils.c
-+ndif
+libFreeWRL_la_SOURCES += DIS/DIS.c DIS/DIS.h scenegraph/socketutils.c
+endif
 
 
 #
