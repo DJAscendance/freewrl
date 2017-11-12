@@ -77,14 +77,14 @@ static int setLexerNextIn(struct VRMLLexer *);
    } \
  }
 #define LEXER_UNGETINPUT(c) \
- if(c!=EOF && c!='\0') \
+ if(c!=EOF) \
  { \
   --(me->nextIn); \
  }
 
 /* Check for eof */
 #define CHECK_EOF(var) \
- if((var)==EOF || (var)=='\0') \
+ if((var)==EOF) \
  { \
   me->isEof=TRUE; \
   return FALSE; \
@@ -313,7 +313,6 @@ BOOL lexer_setCurID(struct VRMLLexer* me)
  /* If it is already set, simply return. */
  if(me->curID)
   return TRUE;
- memset(buf,0,MAX_IDLEN+1);
  lexer_skip(me);
 
  /* Is it really an ID? */
@@ -333,7 +332,7 @@ BOOL lexer_setCurID(struct VRMLLexer* me)
   ++cur;
   
   LEXER_GETINPUT(c)
-  if(!IS_ID_REST(c) || c == EOF)
+  if(!IS_ID_REST(c))
       goto breakIdLoop;
  }
  parseError("ID buffer length hit! File must end with \n");
