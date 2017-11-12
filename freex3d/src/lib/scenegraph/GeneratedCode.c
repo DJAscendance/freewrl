@@ -1776,11 +1776,13 @@ const int FIELD_COUNT = ARR_SIZE(FIELD);
 	"eventIn",
 	"eventOut",
 	"exposedField",
+	"false",
 	"field",
 	"initializeOnly",
 	"inputOnly",
 	"inputOutput",
 	"outputOnly",
+	"true",
 };
 const int KEYWORDS_COUNT = ARR_SIZE(KEYWORDS);
 

@@ -77,14 +77,14 @@ static int setLexerNextIn(struct VRMLLexer *);
    } \
  }
 #define LEXER_UNGETINPUT(c) \
- if(c!=EOF) \
+ if(c!=EOF && c!='\0') \
  { \
   --(me->nextIn); \
  }
 
 /* Check for eof */
 #define CHECK_EOF(var) \
- if((var)==EOF) \
+ if((var)==EOF || (var)=='\0') \
  { \
   me->isEof=TRUE; \
   return FALSE; \
@@ -306,14 +306,14 @@ void lexer_scopeOut_PROTO(struct VRMLLexer* me)
 /* Sets curID of lexer */
 BOOL lexer_setCurID(struct VRMLLexer* me)
 {
- unsigned int c;
+ int c;
  char buf[MAX_IDLEN+1];
  char* cur=buf;
 
  /* If it is already set, simply return. */
  if(me->curID)
   return TRUE;
-
+ memset(buf,0,MAX_IDLEN+1);
  lexer_skip(me);
 
  /* Is it really an ID? */
@@ -333,7 +333,7 @@ BOOL lexer_setCurID(struct VRMLLexer* me)
   ++cur;
   
   LEXER_GETINPUT(c)
-  if(!IS_ID_REST(c))
+  if(!IS_ID_REST(c) || c == EOF)
       goto breakIdLoop;
  }
  parseError("ID buffer length hit! File must end with \n");
@@ -357,7 +357,8 @@ breakIdLoop:
 
 /* Lexes a keyword */
 BOOL lexer_keyword(struct VRMLLexer* me, int kw) {
-	if(!lexer_setCurID(me)) return FALSE;
+	if(!lexer_setCurID(me)) 
+		return FALSE;
 	ASSERT(me->curID);
 
 	if(!strcmp(me->curID, KEYWORDS[kw])) {

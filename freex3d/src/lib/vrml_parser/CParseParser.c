@@ -2615,7 +2615,102 @@ if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { \
   return TRUE; \
  } 
 
-    PARSER_MFFIELD(bool, Bool)
+ static BOOL parser_mfboolValue(struct VRMLParser* me, void *ret) { 
+  struct Vector* vec; 
+  vrmlNodeT RCX; 
+  struct Multi_Bool *rv; 
+  RCX = NULL; 
+  vec = NULL; 
+  
+   /* printf ("start of a mfield parse for type %s curID :%s: me %u lexer %u\n",FIELDTYPES[FIELDTYPE_MF##type], me->lexer->curID,me,me->lexer); */ 
+   /*  printf ("      str :%s:\n",me->lexer->startOfStringPtr[me->lexer->lexerInputLevel]);  */ 
+   /* if (me->lexer->curID != NULL) printf ("parser_MF, have %s\n",me->lexer->curID); else printf("parser_MF, NULL\n"); */ 
+
+ if (!(me->parsingX3DfromXML)) { 
+          /* is this a USE statement? */ 
+         if(lexer_keyword(me->lexer, KW_USE)) { 
+                /* printf ("parser_MF, got a USE!\n"); */ 
+                /* Get a pointer to the X3D_Node structure for this DEFed node and return it in ret */ \
+                RCX=parse_KW_USE(me); 
+                if (RCX == NULL) return FALSE; 
+                /* so, we have a Multi_XX return val. (see Structs.h), have to get the info into a vrmlNodeT */ 
+                stuffDEFUSE(ret, RCX, FIELDTYPE_MFBool); 
+                return TRUE; 
+         }
+         
+         else if (lexer_keyword(me->lexer, KW_DEF)) { 
+                /* printf ("parser_MF, got the DEF!\n"); */ 
+                /* Get a pointer to the X3D_Node structure for this DEFed node and return it in ret */ 
+                RCX=parse_KW_DEF(me); 
+                if (RCX == NULL) return FALSE; 
+                
+                /* so, we have a Multi_XX return val. (see Structs.h), have to get the info into a vrmlNodeT */ 
+                stuffDEFUSE(ret, RCX, FIELDTYPE_MFBool); 
+                return TRUE; 
+        } 
+ }
+
+/* printf ("step 2... curID :%s:\n", me->lexer->curID); */ 
+/* possibly a SFNodeish type value?? */ 
+if (me->lexer->curID != NULL) { 
+        /* printf ("parser_MF, curID was not null (it is %s) me %u lexer %u... lets just parse node\n",me->lexer->curID,me,me->lexer); */ 
+        if (!parser_node(me, &RCX, ID_UNDEFINED)) { 
+                return FALSE; 
+        } 
+        if (RCX == NULL) return FALSE; 
+        /* so, we have a Multi_XX return val. (see Structs.h), have to get the info into a vrmlNodeT */ 
+        stuffDEFUSE(ret, RCX, FIELDTYPE_MFBool); 
+        return TRUE; 
+ } \
+/* Just a single value? */ 
+/* NOTE: the XML parser will ALWAYS give this without the brackets */ 
+if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { 
+        vrmlBoolT RCXRet; 
+        /* printf ("parser_MF, not an opensquare, lets just parse node\n");  */ 
+        if(!parser_sfboolValue(me, &RCXRet)) { 
+                return FALSE; 
+        } 
+        /* printf ("after sf parse rcx %u\n",RCXRet); */ \
+        /* RCX is the return value, if this value IN THE VRML FILE IS ZERO, then this valid parse will fail... */ 
+        /* so it is commented out if (RCX == NULL) return FALSE; */ 
+        /* so, we have a Multi_XX return val. (see Structs.h), have to get the info into a vrmlNodeT */ 
+        stuffSFintoMF(ret, (vrmlNodeT *)&RCXRet, FIELDTYPE_MFBool); 
+        return TRUE; 
+} 
+
+  /* Otherwise, a real vector */ 
+  /* printf ("parser_MF, this is a real vector:%s:\n",me->lexer->nextIn); */ 
+  vec=newVector(vrmlBoolT, 128); 
+  if (!me->parsingX3DfromXML) { 
+        while(!lexer_closeSquare(me->lexer)) { 
+                vrmlBoolT val; 
+                if(!parser_sfboolValue(me, &val)) { 
+                        CPARSE_ERROR_CURID("ERROR:Expected \"]\" before end of MF-Value") 
+                         break; 
+                } 
+                vector_pushBack(vrmlBoolT, vec, val); 
+        } 
+  } else { 
+        lexer_skip(me->lexer); 
+        while(*me->lexer->nextIn != '\0') { 
+                vrmlBoolT val; 
+                if(!parser_sfboolValue(me, &val)) { 
+                        CPARSE_ERROR_CURID("ERROR:Expected \"]\" before end of MF-Value") 
+                         break; 
+                } 
+                vector_pushBack(vrmlBoolT, vec, val); 
+                //lexer_skip(me->lexer); 
+        } 
+  }
+  rv = (struct Multi_Bool*) ret; 
+  rv->n=vectorSize(vec); 
+  rv->p=vector_releaseData(vrmlBoolT, vec); 
+  
+  deleteVector(vrmlBoolT, vec); 
+  return TRUE; 
+ } 
+
+//    PARSER_MFFIELD(bool, Bool)
     PARSER_MFFIELD(color, Color)
     PARSER_MFFIELD(colorrgba, ColorRGBA)
     PARSER_MFFIELD(float, Float)
@@ -2710,6 +2805,7 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
 
     /* are we in the VRML (x3dv) parser? */
     if (!me->parsingX3DfromXML) {
+		//try proper TRUE FALSE
         if(lexer_keyword(me->lexer, KW_TRUE)) {
             *rv=TRUE;
             return TRUE;
@@ -2718,19 +2814,50 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
             *rv=FALSE;
             return TRUE;
         }
+		//try x3d true false
+        if(lexer_keyword(me->lexer, KW_true)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_false)) {
+            *rv=FALSE;
+            return TRUE;
+        }
         return FALSE;
-    }
-    /* possibly, this is from the XML Parser */
-    if (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"true")) {
+    }else{
+		//try proper x3d true false
+        if(lexer_keyword(me->lexer, KW_true)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_false)) {
+            *rv=FALSE;
+            return TRUE;
+        }
+		//try wrl stype TRUE FALSE
+        if(lexer_keyword(me->lexer, KW_TRUE)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_FALSE)) {
+            *rv=FALSE;
+            return TRUE;
+        }
+
+        return FALSE;
+
+	}
+	/*
+    // possibly, this is from the XML Parser 
+    if (!strncmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"true",4)) {
         *rv = TRUE;
         return TRUE;
     }
-    if (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"false")) {
+    if (!strncmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"false",5)) {
         *rv = FALSE;
         return TRUE;
     }
-
-    /* possibly this is from the XML parser, but there is a case problem */
+    // possibly this is from the XML parser, but there is a case problem
     if (!gglobal()->internalc.global_strictParsing && (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"TRUE"))) {
 	CPARSE_ERROR_CURID("found upper case TRUE in XML file - should be lower case");
         *rv = TRUE;
@@ -2741,6 +2868,7 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
         *rv = FALSE;
         return TRUE;
     }
+	*/
 
 
         

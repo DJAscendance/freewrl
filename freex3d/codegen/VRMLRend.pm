@@ -919,6 +919,8 @@ our %KeywordC = map {($_=>1)} qw/
 	field
 	eventIn
 	eventOut
+	true
+	false
 /;
 
 
