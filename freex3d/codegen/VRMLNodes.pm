@@ -793,7 +793,10 @@ our %Nodes = (
 		solid => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		startAngle => ["SFFloat", 0.0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
 		__points  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
+		__texCoords  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__simpleDisk => ["SFBool", "TRUE","initializeOnly", 0,0],#ff
+		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 
