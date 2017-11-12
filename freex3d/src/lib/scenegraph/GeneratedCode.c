@@ -3560,6 +3560,9 @@ const int OFFSETS_Arc2D[] = {
 const int OFFSETS_ArcClose2D[] = {
 	(int) FIELDNAMES___numPoints, (int) offsetof (struct X3D_ArcClose2D, __numPoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___points, (int) offsetof (struct X3D_ArcClose2D, __points),  (int) FIELDTYPE_MFVec2f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___simpleDisk, (int) offsetof (struct X3D_ArcClose2D, __simpleDisk),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___texCoords, (int) offsetof (struct X3D_ArcClose2D, __texCoords),  (int) FIELDTYPE_MFVec2f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___wireindices, (int) offsetof (struct X3D_ArcClose2D, __wireindices),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_closureType, (int) offsetof (struct X3D_ArcClose2D, closureType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_endAngle, (int) offsetof (struct X3D_ArcClose2D, endAngle),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_ArcClose2D, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8226,6 +8229,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_ArcClose2D *) tmp;
 			tmp2->__numPoints = 0;
 			tmp2->__points.n=0; tmp2->__points.p=0;
+			tmp2->__simpleDisk = TRUE;
+			tmp2->__texCoords.n=0; tmp2->__texCoords.p=0;
+			tmp2->__wireindices = 0;
 			tmp2->closureType = newASCIIString("PIE");
 			tmp2->endAngle = 1.5707f;
 			tmp2->metadata = NULL;

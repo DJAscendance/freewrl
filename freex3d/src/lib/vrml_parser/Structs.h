@@ -2711,7 +2711,10 @@ struct X3D_ArcClose2D {
 	int solid;
 	float startAngle;
 	struct Multi_Vec2f __points;
+	struct Multi_Vec2f __texCoords;
 	int __numPoints;
+	int __simpleDisk;
+	void * __wireindices;
 };
 extern struct X3D_Virt virt_ArcClose2D;
 /***********************/
