@@ -253,6 +253,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_group",
 	"_hatchScale",
 	"_ifs",
+	"_index",
 	"_initialRotation",
 	"_initialTranslation",
 	"_initialized",
@@ -3689,6 +3690,7 @@ const int OFFSETS_BooleanFilter[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_BooleanSequencer[] = {
+	(int) FIELDNAMES__index, (int) offsetof (struct X3D_BooleanSequencer, _index),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_key, (int) offsetof (struct X3D_BooleanSequencer, key),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_keyValue, (int) offsetof (struct X3D_BooleanSequencer, keyValue),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_BooleanSequencer, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -5049,6 +5051,7 @@ const int OFFSETS_Inline[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_IntegerSequencer[] = {
+	(int) FIELDNAMES__index, (int) offsetof (struct X3D_IntegerSequencer, _index),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_key, (int) offsetof (struct X3D_IntegerSequencer, key),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_keyValue, (int) offsetof (struct X3D_IntegerSequencer, keyValue),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_IntegerSequencer, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8391,6 +8394,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BooleanSequencer : {
 			struct X3D_BooleanSequencer * tmp2;
 			tmp2 = (struct X3D_BooleanSequencer *) tmp;
+			tmp2->_index = 0;
 			tmp2->key.n=0; tmp2->key.p=0;
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
@@ -10102,6 +10106,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_IntegerSequencer : {
 			struct X3D_IntegerSequencer * tmp2;
 			tmp2 = (struct X3D_IntegerSequencer *) tmp;
+			tmp2->_index = 0;
 			tmp2->key.n=0; tmp2->key.p=0;
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
