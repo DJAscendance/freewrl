@@ -231,7 +231,7 @@ static void compute_spline_velocity_Ti(int dim, int normalize, int nval, float *
 	}
 }
 
-static int iwrap(int i, int istart, int iend){
+int iwrap(int i, int istart, int iend){
 	//if they don't duplicate - the last point != first point - then iend = n
 	//if they duplicate last point == first point, then iend = n-1
 	// normally istart = 0, iend = n
