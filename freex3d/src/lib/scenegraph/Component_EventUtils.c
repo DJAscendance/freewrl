@@ -125,9 +125,11 @@ void do_BooleanSequencer (void *node){
 			px->_index = counter;
 		}
 	}
-	if (oldValue != px->value_changed) {
+	//maybe should be unconditional, in case downstream node is waiting for timestamp, not value? 
+	//dug9: Not sure what's right
+	//if (oldValue != px->value_changed) {
 		MARK_EVENT (node, offsetof (struct X3D_BooleanSequencer, value_changed));
-	}
+	//}
 }
 
 	
