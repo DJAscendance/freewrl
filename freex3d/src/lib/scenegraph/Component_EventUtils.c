@@ -67,7 +67,7 @@ void do_BooleanFilter (void *node){
 
 /* WHAT ARE NEXT AND PREVIOUS FIELDS FOR???? NOT MENTIONED IN SPEC (AT LEAST
 REVISION FOUND WHEN IMPLEMENTING */
-
+int iwrap(int i, int istart, int iend);
 void do_BooleanSequencer (void *node){
 	struct X3D_BooleanSequencer *px;
 	int kin, kvin;
@@ -190,7 +190,6 @@ Implementation
 - option choice: 1.b - looks easier to track for mulitple input paths set_,next,prev
 
 */
-int iwrap(int i, int istart, int iend);
 void do_IntegerSequencer (void *node){
 	struct X3D_IntegerSequencer *px;
 	int kin, kvin;
@@ -247,9 +246,9 @@ void do_IntegerSequencer (void *node){
 			px->_index = counter;
 		}
 	}
-	if (oldValue != px->value_changed) {
+	//if (oldValue != px->value_changed) {
 		MARK_EVENT (node, offsetof (struct X3D_IntegerSequencer, value_changed));
-	}
+	//}
 
 }
 

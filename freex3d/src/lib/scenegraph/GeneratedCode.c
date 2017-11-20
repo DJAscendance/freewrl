@@ -8394,7 +8394,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BooleanSequencer : {
 			struct X3D_BooleanSequencer * tmp2;
 			tmp2 = (struct X3D_BooleanSequencer *) tmp;
-			tmp2->_index = 0;
+			tmp2->_index = -1;
 			tmp2->key.n=0; tmp2->key.p=0;
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
@@ -10106,7 +10106,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_IntegerSequencer : {
 			struct X3D_IntegerSequencer * tmp2;
 			tmp2 = (struct X3D_IntegerSequencer *) tmp;
-			tmp2->_index = 0;
+			tmp2->_index = -1;
 			tmp2->key.n=0; tmp2->key.p=0;
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
