@@ -1964,6 +1964,7 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 	/* only do something if button1 is pressed */
 	if (!but1) return;
 	tg = gglobal();
+
 	if (ev==ButtonPress) {
 		/* record the current position from the saved position */
 		ORIG_X = CUR_X;
@@ -1991,7 +1992,6 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 		/* set isActive true */
 		node->isActive=TRUE;
 		MARK_EVENT (ptr, offsetof (struct X3D_SphereSensor, isActive));
-
 	} else if (ev==ButtonRelease) {
 		/* set isActive false */
 		node->isActive=FALSE;
@@ -2017,12 +2017,12 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 			printf ("warning, newRad %lf == 0, can not compute\n",newRad);
 			return;
 		}
-		RADIUS = (float) newRad;
+		//RADIUS = (float) newRad;
 
 		/* save the current norm here */
-		NORM_CUR_X = CUR_X / RADIUS;
-		NORM_CUR_Y = CUR_Y / RADIUS;
-		NORM_CUR_Z = CUR_Z / RADIUS;
+		NORM_CUR_X = CUR_X / newRad;
+		NORM_CUR_Y = CUR_Y / newRad;
+		NORM_CUR_Z = CUR_Z / newRad;
 
 		/* find the cross-product between the initial and current points */
 		newA.x = ORIG_Y * CUR_Z - ORIG_Z * CUR_Y;
@@ -2085,9 +2085,9 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 		node->rotation_changed.c[3] = (float) dotProd; //acos(dotProd); done above
 		MARK_EVENT (ptr, offsetof (struct X3D_SphereSensor, rotation_changed));
 
-		node->trackPoint_changed.c[0] = NORM_CUR_X;
-		node->trackPoint_changed.c[1] = NORM_CUR_Y;
-		node->trackPoint_changed.c[2] = NORM_CUR_Z;
+		node->trackPoint_changed.c[0] = NORM_CUR_X * RADIUS;
+		node->trackPoint_changed.c[1] = NORM_CUR_Y * RADIUS;
+		node->trackPoint_changed.c[2] = NORM_CUR_Z * RADIUS;
 		MARK_EVENT (ptr, offsetof (struct X3D_SphereSensor, trackPoint_changed));
 	}
 }
