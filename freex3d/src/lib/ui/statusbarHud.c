@@ -846,7 +846,7 @@ char * optionsText[] = {
 "screen orientation \36    \37",
 "shading style:",
 "  flat  gouraud  phong  wire",
-"  allow DIS Distributed Interactive Simulation",
+"  allow DIS",
 NULL,
 };
 //0123456789012345678901234567890

@@ -1671,7 +1671,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	/* only do something if the button is pressed */
 	if (!but1) return;
 	tg = gglobal();
-	imethod = 1;
+	imethod = 0;
 	if (imethod == 1){
 		/*precompute some values for mouse-down, mouse-move*/
 		//convert all almost-sensor-local points into sensor-local 

@@ -18,11 +18,22 @@ double Time1970sec()
 	// /* the windows getlocaltime has a granularity of 1ms at best. 
 	// There are a gazillion time functions in windows so I isolated it here in case I got it wrong*/
 	///* win32 there are some higher performance timer functions (win95-vista)
+	// higher performance handy when optimizing/comparing code for speed
 	//but a system might not support it - lpFrequency returns 0 if not supported
 	//BOOL QueryPerformanceFrequency( LARGE_INTEGER *lpFrequency );
 	//BOOL QueryPerformanceCounter( LARGE_INTEGER *lpPerformanceCount );
 	//*/
 	SYSTEMTIME mytimet; /*winNT and beyond */
+	if(1){
+		// nov 2017 this ftime stuff looks simple, but haven't tested on winXP
+		// https://msdn.microsoft.com/en-us/library/z54t9z5f.aspx
+		double dtime;
+		struct _timeb timebuffer;
+		_ftime_s( &timebuffer );
+		//              seconds 1970 utc
+		dtime = (double)timebuffer.time + ((double)timebuffer.millitm)/1000.0;
+		return dtime;
+	}
 
 #ifdef _ULONGLONG_ 
 	if(1){
