@@ -1671,7 +1671,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	/* only do something if the button is pressed */
 	if (!but1) return;
 	tg = gglobal();
-	imethod = 0;
+	imethod = 1;
 	if (imethod == 1){
 		/*precompute some values for mouse-down, mouse-move*/
 		//convert all almost-sensor-local points into sensor-local 
@@ -1729,9 +1729,13 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
     	/* record the current Radius */
 		if (imethod == 0)
 		{
-			node->_radius = tg->RenderFuncs.ray_save_posn[0] * tg->RenderFuncs.ray_save_posn[0] +
-				tg->RenderFuncs.ray_save_posn[1] * tg->RenderFuncs.ray_save_posn[1] +
-				tg->RenderFuncs.ray_save_posn[2] * tg->RenderFuncs.ray_save_posn[2];
+			float radial[3], radius2D;
+			veccopy3f(radial,tg->RenderFuncs.ray_save_posn);
+			radial[1] = 0.0f;
+			node->_radius = veclength3f(radial);
+			//node->_radius = tg->RenderFuncs.ray_save_posn[0] * tg->RenderFuncs.ray_save_posn[0] +
+			//	tg->RenderFuncs.ray_save_posn[1] * tg->RenderFuncs.ray_save_posn[1] +
+			//	tg->RenderFuncs.ray_save_posn[2] * tg->RenderFuncs.ray_save_posn[2];
 
 			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 			/*
@@ -1779,9 +1783,19 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	if ((ev == MotionNotify) && (node->isActive)) {
 
 		if (imethod==0)
-			memcpy((void *)&node->_oldtrackPoint, (void *)&tg->RenderFuncs.ray_save_posn, sizeof(struct SFColor));
+			memcpy((void *)&node->_oldtrackPoint.c, (void *)&tg->RenderFuncs.ray_save_posn, 3*sizeof(float));
 		if (imethod == 1)
 			veccopy3f(node->_oldtrackPoint.c, rps); //I'm using ray_posn, which is intersection with sensitized scene geometry. Should I be using the bearing intersect sensor_geometry?
+		{
+			float radial[3], radius2D, yy;
+			veccopy3f(radial,node->_oldtrackPoint.c);
+			yy = radial[1];
+			radial[1] = 0.0f;
+			radius2D = veclength3f(radial);
+			vecscale3f(radial,radial,node->_radius/radius2D);
+			radial[1] = yy;
+			veccopy3f(node->_oldtrackPoint.c, radial);
+		}
 		if ((APPROX(node->_oldtrackPoint.c[0], node->trackPoint_changed.c[0]) != TRUE) ||
 			(APPROX(node->_oldtrackPoint.c[1], node->trackPoint_changed.c[1]) != TRUE) ||
 			(APPROX(node->_oldtrackPoint.c[2], node->trackPoint_changed.c[2]) != TRUE)) {
