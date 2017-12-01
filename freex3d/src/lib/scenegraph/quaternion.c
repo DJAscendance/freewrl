@@ -709,11 +709,7 @@ void vrmlrot_normalize(float *ret)
 	{
 		ret[2] = 1.0f;
 	}
-	//ret[3] = (float) fmod(ret[3],MATH_PI); //acos(-1.0));
-	if(ret[3] > 2.0f * MATH_PI)
-		ret[3] -= 2.0f * MATH_PI;
-	if(ret[3] < -2.0f * MATH_PI)
-		ret[3] += 2.0F * MATH_PI;
+	ret[3] = (float) atan2(sin(ret[3]), cos(ret[3]));
 }
 
 void vrmlrot_multiply(float* ret, float *a, float *b) 
