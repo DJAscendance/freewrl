@@ -265,6 +265,11 @@ float *vecset3f(float *b, float x, float y, float z)
 	b[0] = x; b[1] = y; b[2] = z;
 	return b;
 }
+float *vecset4f(float *b, float x, float y, float z, float a)
+{
+	b[0] = x; b[1] = y; b[2] = z; b[3] = a;
+	return b;
+}
 float veclength3f(float *a){
 	return (float)sqrt(vecdot3f(a, a));
 }

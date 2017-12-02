@@ -1210,10 +1210,41 @@ void do_MovieTextureTick( void *ptr) {
 	Sensitive nodes
 
 *****************************************************************************/
+float fclamp(float fval, float fstart, float fend) { 
+	float fret = fval;
+	fret = fval > fend? fend : fval;		//min(fval,fend)
+	fret = fret < fstart ? fstart : fret;	//max(fval,fstart)
+	return fret;
+}
+float *vecclamp3f(float *fval, float *fstart, float *fend){
+	int i;
+	for(i=0;i<3;i++){
+		if(fstart[i] <= fend[i])
+			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
+	}
+	return fval;  //so you can chain
+}
+// #define APPROX(a,b) (fabs((a)-(b))<0.00000001)
+int approx3f(float *a, float *b){
+	float tol = 0.00000001;
+	int i, iret = TRUE;
+	for(i=0;i<3;i++){
+		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
+	}
+	return iret;
+}
+int approx4f(float *a, float *b){
+	float tol = 0.00000001;
+	int i, iret = TRUE;
+	for(i=0;i<4;i++){
+		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
+	}
+	return iret;
+}
 void do_TouchSensor ( void *ptr, int ev, int but1, int over) {
 
 	struct X3D_TouchSensor *node = (struct X3D_TouchSensor *)ptr;
-	struct point_XYZ normalval;	/* different structures for normalization calls */
+	float normalval[3];	
 	ttglobal tg;
 	#ifdef SENSVERBOSE
 	printf ("%lf: TS ",TickTime());
@@ -1269,32 +1300,23 @@ void do_TouchSensor ( void *ptr, int ev, int but1, int over) {
 
 		/* hitPoint and hitNormal */
 		/* save the current hitPoint for determining if this changes between runs */
-		memcpy ((void *) &node->_oldhitPoint, (void *) &tg->RenderFuncs.ray_save_posn,sizeof(struct SFColor));
+		veccopy3f(node->_oldhitPoint.c,tg->RenderFuncs.ray_save_posn);
 
 		/* did the hitPoint change between runs? */
-		if ((APPROX(node->_oldhitPoint.c[0],node->hitPoint_changed.c[0])!= TRUE) ||
-			(APPROX(node->_oldhitPoint.c[1],node->hitPoint_changed.c[1])!= TRUE) ||
-			(APPROX(node->_oldhitPoint.c[2],node->hitPoint_changed.c[2])!= TRUE)) {
-
-			memcpy ((void *) &node->hitPoint_changed, (void *) &node->_oldhitPoint, sizeof(struct SFColor));
+		if(!approx3f(node->_oldhitPoint.c,node->hitPoint_changed.c)){
+			veccopy3f(node->hitPoint_changed.c,node->_oldhitPoint.c);
 			MARK_EVENT(ptr, offsetof (struct X3D_TouchSensor, hitPoint_changed));
 		}
 
 		/* have to normalize normal; change it from SFColor to struct point_XYZ. */
-		normalval.x = tg->RenderFuncs.hyp_save_norm[0];
-		normalval.y = tg->RenderFuncs.hyp_save_norm[1];
-		normalval.z = tg->RenderFuncs.hyp_save_norm[2];
-		normalize_vector(&normalval);
-		node->_oldhitNormal.c[0] = (float) normalval.x;
-		node->_oldhitNormal.c[1] = (float) normalval.y;
-		node->_oldhitNormal.c[2] = (float) normalval.z;
+		veccopy3f(normalval,tg->RenderFuncs.hyp_save_norm);
+		vecnormalize3f(normalval,normalval);
+		veccopy3f(node->_oldhitNormal.c,normalval);
 
 		/* did the hitNormal change between runs? */
-		if ((APPROX(node->_oldhitNormal.c[0],node->hitNormal_changed.c[0])!= TRUE) ||
-			(APPROX(node->_oldhitNormal.c[1],node->hitNormal_changed.c[1])!= TRUE) ||
-			(APPROX(node->_oldhitNormal.c[2],node->hitNormal_changed.c[2])!= TRUE)) {
-
-			memcpy ((void *) &node->hitNormal_changed, (void *) &node->_oldhitNormal, sizeof(struct SFColor));
+		if(!approx3f(node->_oldhitNormal.c,node->hitNormal_changed.c)) {
+			//memcpy ((void *) &node->hitNormal_changed, (void *) &node->_oldhitNormal, sizeof(struct SFColor));
+			veccopy3f(node->hitNormal_changed.c,node->_oldhitNormal.c);
 			MARK_EVENT(ptr, offsetof (struct X3D_TouchSensor, hitNormal_changed));
 		}
 }
@@ -1388,15 +1410,10 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 		float xxxoffset, xxxorigin;
 		//float diroffset[3], nondiroffset[3];
 		/* trackpoint changed */
-		node->_oldtrackPoint.c[0] = trackpoint[0];
-		node->_oldtrackPoint.c[1] = trackpoint[1];
-		node->_oldtrackPoint.c[2] = trackpoint[2];
+		veccopy3f(node->_oldtrackPoint.c,trackpoint);
 		
-		if ((APPROX(node->_oldtrackPoint.c[0], node->trackPoint_changed.c[0]) != TRUE) ||
-			(APPROX(node->_oldtrackPoint.c[1], node->trackPoint_changed.c[1]) != TRUE) ||
-			(APPROX(node->_oldtrackPoint.c[2], node->trackPoint_changed.c[2]) != TRUE)) {
-
-			memcpy((void *)&node->trackPoint_changed, (void *)&node->_oldtrackPoint, sizeof(struct SFColor));
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, trackPoint_changed));
 
 		}
@@ -1435,15 +1452,10 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 		vecadd3f(translation, translation, nondiroffset);
 #endif
 
-		node->_oldtranslation.c[0] = translation[0];
-		node->_oldtranslation.c[1] = translation[1];
-		node->_oldtranslation.c[2] = translation[2];
+		veccopy3f(node->_oldtranslation.c,translation);
 
-		if ((APPROX(node->_oldtranslation.c[0], node->translation_changed.c[0]) != TRUE) ||
-			(APPROX(node->_oldtranslation.c[1], node->translation_changed.c[1]) != TRUE) ||
-			(APPROX(node->_oldtranslation.c[2], node->translation_changed.c[2]) != TRUE)) {
-
-			memcpy((void *)&node->translation_changed, (void *)&node->_oldtranslation, sizeof(struct SFColor));
+		if(!approx3f(node->_oldtranslation.c, node->translation_changed.c)) {
+			veccopy3f(node->translation_changed.c, node->_oldtranslation.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, translation_changed));
 		}
 		//save current for use in mouse-up auto-offset
@@ -1459,9 +1471,7 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 #ifdef LINESENSOR_FLOAT_OFFSET
 			node->offset = node->_origPoint.c[1];
 #else
-			node->offset.c[0] = node->translation_changed.c[0];
-			node->offset.c[1] = node->translation_changed.c[1];
-			node->offset.c[2] = node->translation_changed.c[2];
+			veccopy3f(node->offset.c,node->translation_changed.c);
 #endif
 			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, offset));
 		}
@@ -1473,7 +1483,7 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_PlaneSensor *node;
 	float mult, nx, ny, trackpoint[3], *posn;
-	struct SFColor tr;
+	float tr[3];
 	int tmp, imethod;
 	ttglobal tg;
 	UNUSED(over);
@@ -1560,47 +1570,37 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 		/* trackpoint changed */
 		if (imethod == 0){
-			node->_oldtrackPoint.c[0] = nx;
-			node->_oldtrackPoint.c[1] = ny;
-			node->_oldtrackPoint.c[2] = node->_origPoint.c[2];
+			vecset3f(node->_oldtrackPoint.c,nx,ny,node->_origPoint.c[2]);
 		}
 		if (imethod == 1){
 			veccopy3f(node->_oldtrackPoint.c, trackpoint);
 		}
 		/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
-		if ((APPROX(node->_oldtrackPoint.c[0],node->trackPoint_changed.c[0])!= TRUE) ||
-			(APPROX(node->_oldtrackPoint.c[1],node->trackPoint_changed.c[1])!= TRUE) ||
-			(APPROX(node->_oldtrackPoint.c[2],node->trackPoint_changed.c[2])!= TRUE)) {
-			
-			memcpy ((void *) &node->trackPoint_changed, (void *) &node->_oldtrackPoint, sizeof(struct SFColor));
+		if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, trackPoint_changed));
 
 		}
 
 		/* clamp translation to max/min position */
-		tr.c[0] = nx - node->_origPoint.c[0] + node->offset.c[0];
-		tr.c[1] = ny - node->_origPoint.c[1] + node->offset.c[1];
-		tr.c[2] = node->offset.c[2];
+		tr[0] = nx - node->_origPoint.c[0] + node->offset.c[0];
+		tr[1] = ny - node->_origPoint.c[1] + node->offset.c[1];
+		tr[2] = node->offset.c[2];
 
-		for (tmp=0; tmp<2; tmp++) {
-			if (node->maxPosition.c[tmp] >= node->minPosition.c[tmp]) {
-				if (tr.c[tmp] < node->minPosition.c[tmp]) {
-					tr.c[tmp] = node->minPosition.c[tmp];
-				} else if (tr.c[tmp] > node->maxPosition.c[tmp]) {
-					tr.c[tmp] = node->maxPosition.c[tmp];
-				}
-			}
-		}
+		vecclamp3f(tr,node->minPosition.c,node->maxPosition.c);
+		//for (tmp=0; tmp<2; tmp++) {
+		//	if (node->maxPosition.c[tmp] >= node->minPosition.c[tmp]) {
+		//		if (tr[tmp] < node->minPosition.c[tmp]) {
+		//			tr[tmp] = node->minPosition.c[tmp];
+		//		} else if (tr[tmp] > node->maxPosition.c[tmp]) {
+		//			tr[tmp] = node->maxPosition.c[tmp];
+		//		}
+		//	}
+		//}
+		veccopy3f(node->_oldtranslation.c,tr);
 
-		node->_oldtranslation.c[0] = tr.c[0];
-		node->_oldtranslation.c[1] = tr.c[1];
-		node->_oldtranslation.c[2] = tr.c[2];
-
-		if ((APPROX(node->_oldtranslation.c[0],node->translation_changed.c[0])!= TRUE) ||
-			(APPROX(node->_oldtranslation.c[1],node->translation_changed.c[1])!= TRUE) ||
-			(APPROX(node->_oldtranslation.c[2],node->translation_changed.c[2])!= TRUE)) {
-
-			memcpy ((void *) &node->translation_changed, (void *) &node->_oldtranslation, sizeof(struct SFColor));
+		if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
+			veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
 			MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, translation_changed));
 		}
 
@@ -1611,9 +1611,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 		/* autoOffset? */
 		if (node->autoOffset) {
-			node->offset.c[0] = node->translation_changed.c[0];
-			node->offset.c[1] = node->translation_changed.c[1];
-			node->offset.c[2] = node->translation_changed.c[2];
+			veccopy3f(node->offset.c,node->translation_changed.c);
 
 			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, offset));
 		}
@@ -1700,6 +1698,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			dot = vecdot3f(v, Y);
 			acute_angle = acos(dot);
 			ang = min(acute_angle,PI - acute_angle);
+			printf("ang= %f\n",(float)ang);
 			veccopy3f(rs, rps); //rps: ray_posn (intersection with scene geometry) in sensor-local
 			height = rs[1];
 			rs[1] = 0.0f;
@@ -1717,6 +1716,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 				disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //don't need the 2PI except to show how we converted to radians: travelled is a fraction of circumference, and circumference is 2PI
 			}
 			node->_radius = (float)radius; //store for later use on mouse-moves
+			printf("radius= %f\n",node->_radius);
 			//origPoint - we get to store whatever we need later mouse-moves. 
 			origPoint.c[0] = (float)disk_angle;
 			origPoint.c[1] = (float)-height; //Q. why -height? don't know but it works
@@ -1733,6 +1733,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			veccopy3f(radial,tg->RenderFuncs.ray_save_posn);
 			radial[1] = 0.0f;
 			node->_radius = veclength3f(radial);
+			printf("radius= %f\n",node->_radius);
 			//node->_radius = tg->RenderFuncs.ray_save_posn[0] * tg->RenderFuncs.ray_save_posn[0] +
 			//	tg->RenderFuncs.ray_save_posn[1] * tg->RenderFuncs.ray_save_posn[1] +
 			//	tg->RenderFuncs.ray_save_posn[2] * tg->RenderFuncs.ray_save_posn[2];
@@ -1774,13 +1775,14 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		}
 		if (ang < node->diskAngle) {
 			node->_dlchange=TRUE; //use disk sensor geometry
+			printf("using disk\n");
 		} else {
 			node->_dlchange=FALSE; //use cylinder sensor geometry
+			printf("using cylinder\n");
 		}
 
 
-	}else 
-	if ((ev == MotionNotify) && (node->isActive)) {
+	}else if ((ev == MotionNotify) && (node->isActive)) {
 
 		if (imethod==0)
 			memcpy((void *)&node->_oldtrackPoint.c, (void *)&tg->RenderFuncs.ray_save_posn, 3*sizeof(float));
@@ -1796,11 +1798,8 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			radial[1] = yy;
 			veccopy3f(node->_oldtrackPoint.c, radial);
 		}
-		if ((APPROX(node->_oldtrackPoint.c[0], node->trackPoint_changed.c[0]) != TRUE) ||
-			(APPROX(node->_oldtrackPoint.c[1], node->trackPoint_changed.c[1]) != TRUE) ||
-			(APPROX(node->_oldtrackPoint.c[2], node->trackPoint_changed.c[2]) != TRUE)) {
-
-			memcpy((void *)&node->trackPoint_changed, (void *)&node->_oldtrackPoint, sizeof(struct SFColor));
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
 		}
 
@@ -1896,17 +1895,14 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			}
 		}
 
-		node->_oldrotation.c[0] = (float) 0;
-		node->_oldrotation.c[1] = (float) 1;
-		node->_oldrotation.c[2] = (float) 0;
-		node->_oldrotation.c[3] = (float) rot;
+		//node->_oldrotation.c[0] = (float) 0;
+		//node->_oldrotation.c[1] = (float) 1;
+		//node->_oldrotation.c[2] = (float) 0;
+		//node->_oldrotation.c[3] = (float) rot;
+		vecset4f(node->_oldrotation.c,0.0f,1.0f,0.0f,rot);
 
-		if ((APPROX(node->_oldrotation.c[0],node->rotation_changed.c[0])!= TRUE) ||
-			(APPROX(node->_oldrotation.c[1],node->rotation_changed.c[1])!= TRUE) ||
-			(APPROX(node->_oldrotation.c[2],node->rotation_changed.c[2])!= TRUE) ||
-			(APPROX(node->_oldrotation.c[3],node->rotation_changed.c[3])!= TRUE)) {
-
-			memcpy ((void *) &node->rotation_changed, (void *) &node->_oldrotation, sizeof(struct SFRotation));
+		if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
+			veccopy4f(node->rotation_changed.c, node->_oldrotation.c);
 			MARK_EVENT(ptr, offsetof (struct X3D_CylinderSensor, rotation_changed));
 		}
 
@@ -1926,22 +1922,6 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	}
 }
 
-
-
-#define ORIG_X node->_origPoint.c[0]
-#define ORIG_Y node->_origPoint.c[1]
-#define ORIG_Z node->_origPoint.c[2]
-#define NORM_ORIG_X node->_origNormalizedPoint.c[0]
-#define NORM_ORIG_Y node->_origNormalizedPoint.c[1]
-#define NORM_ORIG_Z node->_origNormalizedPoint.c[2]
-#define CUR_X  tg->RenderFuncs.ray_save_posn[0]
-#define CUR_Y  tg->RenderFuncs.ray_save_posn[1]
-#define CUR_Z  tg->RenderFuncs.ray_save_posn[2]
-#define NORM_CUR_X normalizedCurrentPoint.c[0]
-#define NORM_CUR_Y normalizedCurrentPoint.c[1]
-#define NORM_CUR_Z normalizedCurrentPoint.c[2]
-#define RADIUS node->_radius
-
 /********************************************************************************/
 /*										*/
 /* do the guts of a SphereSensor.... this has been changed considerably in Apr	*/
@@ -1952,16 +1932,11 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 /* created a simple but inelegant solution from that. J.A. Stewart.		*/
 /*										*/
 /********************************************************************************/
+
 void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_SphereSensor *node = (struct X3D_SphereSensor *)ptr;
-/*
-	int tmp;
-	float tr1sq, tr2sq, tr1tr2;
-	struct SFColor dee, arr, cp, dot;
-	float deelen, aay, bee, cee, und, sol, cl, an;
-	Quaternion q, q2, q_r;
-	double s1,s2,s3,s4;
-*/
+
+	float *cur, *orig, *onorm;
 	ttglobal tg;
 	UNUSED(over);
 
@@ -1979,24 +1954,23 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 	if (!but1) return;
 	tg = gglobal();
 
+	cur = tg->RenderFuncs.ray_save_posn;
+	orig = node->_origPoint.c;
+	onorm = node->_origNormalizedPoint.c;
 	if (ev==ButtonPress) {
 		/* record the current position from the saved position */
-		ORIG_X = CUR_X;
-		ORIG_Y = CUR_Y;
-		ORIG_Z = CUR_Z;
+		veccopy3f(orig,cur);
 
 		/* record the current Radius */
-		RADIUS = (float) sqrt(CUR_X * CUR_X + CUR_Y * CUR_Y + CUR_Z * CUR_Z);
-
-		if (APPROX(RADIUS,0.0)) {
-			printf ("warning, RADIUS %lf == 0, can not compute\n",RADIUS);
+		//RADIUS = (float) sqrt(CUR_X * CUR_X + CUR_Y * CUR_Y + CUR_Z * CUR_Z);
+		node->_radius = veclength3f(cur);
+		if (APPROX(node->_radius,0.0)) {
+			printf ("warning, RADIUS %lf == 0, can not compute\n",node->_radius);
 			return;
 		}
 
 		/* save the initial norm here */
-		NORM_ORIG_X = CUR_X / RADIUS;
-		NORM_ORIG_Y = CUR_Y / RADIUS;
-		NORM_ORIG_Z = CUR_Z / RADIUS;
+		vecscale3f(onorm,cur,1.0f / node->_radius);
 
 		/* norm(offset) ideally this would be done once during parsing 
 		  of crazy SFRotation ie '1 1 -5 .6' in 10.wrl/10.x3d 
@@ -2012,46 +1986,40 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 		MARK_EVENT (ptr, offsetof (struct X3D_SphereSensor, isActive));
 
 		if (node->autoOffset) {
-			memcpy ((void *) &node->offset,
-				(void *) &node->rotation_changed,
-				sizeof (struct SFRotation));
+			veccopy4f(node->offset.c,node->rotation_changed.c);
 		}
 	} else if ((ev==MotionNotify) && (node->isActive)) {
 		
-		double dotProd;
-		double newRad;
-		struct SFColor normalizedCurrentPoint;
-		struct point_XYZ newA;
+		float dotProd;
+		float newRad;
+		float cnorm[3];
+		float newA[4];
 
 		/* record the current Radius */
-		newRad = sqrt(CUR_X * CUR_X + CUR_Y * CUR_Y + CUR_Z * CUR_Z);
-
+		newRad = veclength3f(cur);
 		/* bounds check... */
 		if (APPROX(newRad,0.0)) {
 			printf ("warning, newRad %lf == 0, can not compute\n",newRad);
 			return;
 		}
-		//RADIUS = (float) newRad;
 
 		/* save the current norm here */
-		NORM_CUR_X = CUR_X / newRad;
-		NORM_CUR_Y = CUR_Y / newRad;
-		NORM_CUR_Z = CUR_Z / newRad;
+		vecscale3f(cnorm,cur,1.0f/newRad);
 
 		/* find the cross-product between the initial and current points */
-		newA.x = ORIG_Y * CUR_Z - ORIG_Z * CUR_Y;
-		newA.y = ORIG_Z * CUR_X - ORIG_X * CUR_Z;
-		newA.z = ORIG_X * CUR_Y - ORIG_Y * CUR_X;
-		normalize_vector(&newA);
+		veccross3f(newA,orig,cur);
+		vecnormalize3f(newA,newA);
 
 		/* clamp the angle to |a| < 1.0 */
 		/* remember A dot B = |A|*|B|*cos(theta_between) or theta_between = acos(A dot B/|A|*|B| ) */
-		dotProd = NORM_ORIG_X * NORM_CUR_X + NORM_ORIG_Y * NORM_CUR_Y + NORM_ORIG_Z * NORM_CUR_Z;
+		//dotProd = NORM_ORIG_X * NORM_CUR_X + NORM_ORIG_Y * NORM_CUR_Y + NORM_ORIG_Z * NORM_CUR_Z;
+		dotProd = vecdot3f(onorm,cnorm);
 		if (dotProd > 1.0) 
 			dotProd = 1.0;
 		if (dotProd < -1.0) 
 			dotProd = -1.0;
 		dotProd = acos(dotProd);
+		newA[3] = dotProd;
 
 		/* have axis-angle now */
 		/*
@@ -2060,48 +2028,29 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 		*/
 		if(node->autoOffset)
 		{
-/*
-			if(0)
-			{
-				//Aug 1, 2010 experimental code - stale date: Sept 1
-				struct SFRotation temp, temp2;
-				temp.c[0] = newA.x;
-				temp.c[1] = newA.y;
-				temp.c[2] = newA.z;
-				temp.c[3] = dotProd;
-				vrmlrot_multiply(temp2.c, node->offset.c, temp.c);
-				newA.x = temp2.c[0];
-				newA.y = temp2.c[1];
-				newA.z = temp2.c[2];
-				dotProd = temp2.c[3];
-			}
-			if(1)
-			{
-*/
+
 				/* copied from the javascript SFRotationMultiply */
 				Quaternion q1, q2, qret;
+				double newD[4];
 				/* convert both rotations into quaternions */
-				vrmlrot_to_quaternion(&q1, (double) newA.x, 
-					(double) newA.y, (double) newA.z, (double) dotProd);
+				vrmlrot_to_quaternion(&q1, (double) newA[0], 
+					(double) newA[1], (double) newA[2], (double) dotProd);
 				vrmlrot_to_quaternion(&q2, (double) node->offset.c[0], 
 					(double) node->offset.c[1], (double) node->offset.c[2], (double) node->offset.c[3]);
 				/* multiply them */
 				quaternion_multiply(&qret,&q1,&q2);
 				/* and return the resultant, as a vrml rotation */
-				quaternion_to_vrmlrot(&qret, &newA.x, &newA.y, &newA.z, &dotProd);
+				quaternion_to_vrmlrot(&qret, &newD[0], &newD[1], &newD[2], &newD[3]);
+				newA[0] = newD[0]; newA[1] = newD[1], newA[2] = newD[2], newA[3] = newD[3];
+				dotProd = newD[3];
 			/*}*/
 		}
 
 
-		node->rotation_changed.c[0] = (float) newA.x;
-		node->rotation_changed.c[1] = (float) newA.y;
-		node->rotation_changed.c[2] = (float) newA.z;
-		node->rotation_changed.c[3] = (float) dotProd; //acos(dotProd); done above
+		veccopy4f(node->rotation_changed.c,newA);
 		MARK_EVENT (ptr, offsetof (struct X3D_SphereSensor, rotation_changed));
 
-		node->trackPoint_changed.c[0] = NORM_CUR_X * RADIUS;
-		node->trackPoint_changed.c[1] = NORM_CUR_Y * RADIUS;
-		node->trackPoint_changed.c[2] = NORM_CUR_Z * RADIUS;
+		vecscale3f(node->trackPoint_changed.c,cnorm, node->_radius);
 		MARK_EVENT (ptr, offsetof (struct X3D_SphereSensor, trackPoint_changed));
 	}
 }
