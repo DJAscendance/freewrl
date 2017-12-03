@@ -1389,7 +1389,7 @@ our %Nodes = (
 		# where we are at a press...
 		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
 		_radius => ["SFFloat", 0, "initializeOnly", 0,0],#ff
-		_dlchange => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_usingDisk => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 	],"X3DPointingDeviceSensorNode"),
 
@@ -2685,7 +2685,7 @@ our %Nodes = (
 		keyValue => ["MFBool", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		value_changed => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		_index => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_index => ["SFInt32", -1, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff web3d.org debate 0 vs -1
 	],"X3DSequencerNode"),
 
 
@@ -2711,7 +2711,7 @@ our %Nodes = (
 		keyValue => ["MFInt32", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		value_changed => ["SFInt32", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		_index => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_index => ["SFInt32", -1, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DSequencerNode"),
 
 	"IntegerTrigger" => new VRML::NodeType("IntegerTrigger", [

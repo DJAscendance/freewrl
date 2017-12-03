@@ -111,7 +111,7 @@ Choice: option 2.b
 
 
 */
-#define WITH_DIS 1
+//#define WITH_DIS 1
 #ifdef WITH_DIS
 #include "../DIS/DIS.h"
 #endif //WITH_DIS
@@ -279,6 +279,49 @@ void ypr2axisangle(float *ypr, float *xyza)
 	xyza[1] = y;
 	xyza[2] = z;
 	xyza[3] = a;
+}
+// freewrl's once-per-frame timestamp is called TickTime 
+// - and TickTime is a double value representing seconds since 1970, including fractions of a second
+// DIS Clock Time record is a 64bit consisting of 
+//   32bit Hours since 1970 UTC and
+//   32bit Timestamp fraction-past-the-hour scaled by 2**31 
+//    - the least significant bit- is reserved for flagging 1=AbsoluteTime (vs relative =0)
+//   in draft specs see
+//     6.2.88 TimeStamp p.319
+//     G.4 Time Terminology p.686
+//
+void TickTime2DISTime(double ticktime, int iabs, unsigned int *hours, unsigned int *hourfraction ){
+	double hours1970, fraction;
+	unsigned int bitmask;
+	hours1970 = floor(ticktime / 3600.0);
+	*hours = (unsigned int)hours1970;
+	fraction = (ticktime / 3600.0) - hours1970;
+	*hourfraction = ((unsigned int)(fraction * pow(2.0,31.0)))<<1;
+	bitmask = 0;
+	bitmask = ~bitmask;
+	if(!iabs)
+		bitmask = bitmask << 1; //clear least significant bit
+	*hourfraction = *hourfraction & bitmask;
+	if(iabs) *hourfraction |= 1;
+}
+double DISTime2TickTime(unsigned int hours, unsigned int hourfraction){
+	//pass in 0 for hours if relative timestamp (then we'll take hours from TickTime())
+	double fraction, mantissa;
+	int iabs;
+	unsigned int bitmask;
+	bitmask = 1;
+	iabs = (hourfraction & bitmask) != 0 ? TRUE : FALSE;
+	hourfraction = hourfraction >> 1; //take everything except least significant bit
+	fraction = hourfraction;
+	fraction /= pow(2.0,31.0);
+	if(iabs)
+		mantissa = hours;
+	else
+		mantissa = floor(TickTime() / 3600.0);
+	mantissa += fraction;
+	mantissa *= 3600.0;
+	return mantissa;
+
 }
 
 //A. per-frame
@@ -453,7 +496,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					}
 					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
 					pnode->articulationParameterArray.p = pp;
-					MARK_EVENT(pnode,offsetof(struct X3D_EspduTransform,articulationParameterArray));
+					MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
 				}
 
 				//...
@@ -618,7 +661,7 @@ unsigned char * rtp_strip_header(unsigned char *buf, int *heard){
 	//in the future, we could do something fancy with the sequence number, like skip stale packets.
 	return carat;
 }
-unsigned char * rtp_add_header(unsigned char *buf, int timestamp){
+unsigned char * rtp_add_header(unsigned char *buf, unsigned int timestamp){
 	struct rtp_header rtph;
 	unsigned char PayloadType;
 	unsigned char *carat = buf;
@@ -660,7 +703,8 @@ int write_rtp(unsigned char *buf, struct X3D_Node *node){
 	}
 	if(rtue) {
 		unsigned char *carat;
-		int timestamp = 0; //where get this?
+		unsigned int hours, timestamp;
+		TickTime2DISTime(TickTime(),1,&hours,&timestamp);
 		carat =  rtp_add_header(buf,timestamp);
 		nb = carat - buf;
 	}

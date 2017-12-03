@@ -220,6 +220,7 @@ float vecdot4f( float *a, float *b );
 float *vecscale4f(float *b, float *a, float scale);
 float *veccopy4f(float *b, float *a);
 int vecsame4f(float *a, float *b);
+float *vecset4f(float *b, float x, float y, float z, float a);
 
 GLDOUBLE det3x3(GLDOUBLE* data);
 
