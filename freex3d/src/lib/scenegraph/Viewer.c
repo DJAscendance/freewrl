@@ -1199,6 +1199,12 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 }
 
 double display_screenRatio();
+double dclamp(double fval, double fstart, double fend) { 
+	double fret = fval;
+	fret = fval > fend? fend : fval;		//min(fval,fend)
+	fret = fret < fstart ? fstart : fret;	//max(fval,fstart)
+	return fret;
+}
 void handle_turntable(const int mev, const unsigned int button, float x, float y) {
 	/*
 	Like handle_spherical, except:
@@ -1234,13 +1240,14 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 	{
 		Quaternion qyaw, qpitch;
 		double dyaw, dpitch;
-		struct point_XYZ pp, yaxis;
+		struct point_XYZ pp, pp2, yaxis;
 		double yaw, pitch; //dist,
 		Quaternion quat;
 
 		yaw = pitch = 0.0;
 		if (button == 1 || button == 3){
-			struct point_XYZ dd,ddr;
+			struct point_XYZ dd,ddr,xx,xxr;
+			double dist;
 			yaxis.x = yaxis.z = 0.0;
 			yaxis.y = 1.0;
 			//pp = viewer->Pos;
@@ -1248,33 +1255,48 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 			//if(1) {
 				//(examine->Origin).x = (viewer->Pos).x - viewer->Dist * rot.x;
 				dd.x = dd.y = 0.0; dd.z = viewer->Dist; //exploreDist;
+				xx.y = xx.z = 0.0; xx.x = 1.0;
 				quat = viewer->Quat;
 				quaternion_inverse(&quat,&quat);
 				quaternion_rotation(&ddr, &quat, &dd);
+				quaternion_rotation(&xxr, &quat, &xx);
 				vecdiff(&viewer->examine.Origin,&viewer->Pos,&ddr);
 			//}
 
-			//if(0) vecdiff(&pp,&viewer->examine.Origin,&viewer->Pos);
-			//if(1) vecdiff(&pp,&viewer->Pos,&viewer->examine.Origin);
+			//printf("ddr %f %f, ",ddr.x,ddr.z);
 			pp = ddr;
-			//if(0) printf("D=%f O=%f %f %f P=%f %f %f pp=%f %f %f\n", viewer->Dist,
-			//viewer->examine.Origin.x,viewer->examine.Origin.y,viewer->examine.Origin.z,
-			//viewer->Pos.x,viewer->Pos.y,viewer->Pos.z,
-			//pp.x,pp.y,pp.z
-			//);
-			//dist = veclength(pp);
 			vecnormal(&pp, &pp);
-			yaw = -atan2(pp.x, pp.z);
-			pitch = -(acos(vecdot(&pp, &yaxis)) - PI*.5);
+			pitch = -(acos(dclamp(vecdot(&pp, &yaxis),-1.0,1.0)) - PI*.5);
+			//euler angles are unstable at pitch 90, when calculated from a verticle ray
+			//as a trick we switch our yaw calculation above pitch 45 degrees to use a horizontal ray
+			if(fabs(pitch) > PI*.25){
+				xxr.y = 0.0;
+				vecnormal(&xxr,&xxr);
+				yaw = atan2(xxr.z,xxr.x);
+				//printf("xx %lf %lf %lf ",xxr.x,xxr.y,xxr.z);
+				//printf("y1 %lf ",yaw);
+
+			}else{
+				pp2 = pp;
+				pp2.y = 0.0;
+				dist = veclength(pp2);
+				if(dist > 0.0 && fabs(pitch) < (PI *.5 - .001)){
+					vecnormal(&pp2,&pp2);
+					yaw = -atan2(pp2.x, pp2.z);
+					//printf("y1 %lf ",yaw);
+				}
+			}
 		}
 		if (button == 1) {
 			dyaw = -(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
+			//printf("dy %lf ",dyaw);
 			dpitch = (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
 			//if(0){
 			//	dyaw = -dyaw;
 			//	dpitch = -dpitch;
 			//}
 			yaw += dyaw;
+			//printf("y3 %lf ",yaw);
 			pitch += dpitch;
 		}else if (button == 3) {
 			//distance drag
@@ -1301,6 +1323,7 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 		}
 		if (button == 1 || button == 3)
 		{
+			//printf("y4= %lf \n",yaw);
 			vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, yaw);
 			vrmlrot_to_quaternion(&qpitch, 1.0, 0.0, 0.0, pitch);
 			quaternion_multiply(&quat, &qpitch, &qyaw);
