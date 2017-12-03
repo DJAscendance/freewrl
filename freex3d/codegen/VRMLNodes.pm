@@ -1389,7 +1389,7 @@ our %Nodes = (
 		# where we are at a press...
 		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
 		_radius => ["SFFloat", 0, "initializeOnly", 0,0],#ff
-		_dlchange => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_usingDisk => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 	],"X3DPointingDeviceSensorNode"),
 

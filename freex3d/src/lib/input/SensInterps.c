@@ -1209,7 +1209,9 @@ void do_MovieTextureTick( void *ptr) {
 
 	Sensitive nodes
 
+
 *****************************************************************************/
+
 float fclamp(float fval, float fstart, float fend) { 
 	float fret = fval;
 	fret = fval > fend? fend : fval;		//min(fval,fend)
@@ -1320,7 +1322,11 @@ void do_TouchSensor ( void *ptr, int ev, int but1, int over) {
 			MARK_EVENT(ptr, offsetof (struct X3D_TouchSensor, hitNormal_changed));
 		}
 }
-
+// see Mainloop.c get_hyperhit() for more explanation:
+// in sensor-node-local coordinates (not quite sensor-local if sensor node has axisRotation):
+// ray_save_posn - intersection point of pickray/bearing with sensitized geometry
+// hyp_save_posn - point on camera/viewpoint nearplane on pickray/bearing, transformed to sensor-node-local
+// hyp_save_norm - point on carmera/viewpoint farplane on pickray/bearing, transformed to sensor-node-local
 
 void do_LineSensor(void *ptr, int ev, int but1, int over) {
 	/* There is no LineSensor node in the specs in April 2014. X3Dom guru Max Limper complained
@@ -1642,14 +1648,26 @@ void do_Anchor ( void *ptr, int ev, int but1, int over) {
 	}
 }
 
+//double angleAcuteDifferenced(double angle1, double angle2){
+//	//sometimes we cross over the -PI or PI barrier and get a jump
+//	//when really we want the small incremental difference
+//	double angledif = angle2 - angle1;
+//	if(angledif >  PI) angledif -= 2*PI;
+//	if(angledif < -PI) angledif += 2*PI;
+//	return angledif;
+//}
+//double angleNormalized(double angle){
+//	return atan2(sin(angle),cos(angle));
+//}
 
-void do_CylinderSensor_old ( void *ptr, int ev, int but1, int over) {
+void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
+	//troubled
 	struct X3D_CylinderSensor *node = (struct X3D_CylinderSensor *)ptr;
 	double rot, radius, ang, length;
 	double det, pos, neg, temp;
 	double acute_angle, disk_angle, height;
 	float Y[3] = { 0.0f, 1.0f, 0.0f }, ZERO[3] = { 0.0f, 0.0f, 0.0f };
-	float as[3], bs[3], v[3], rps[3]; 
+	float aBearing[3], bBearing[3], dirBearing[3], posn[3]; 
 
 	int imethod;
 	Quaternion bv, dir1, dir2, tempV;
@@ -1669,126 +1687,74 @@ void do_CylinderSensor_old ( void *ptr, int ev, int but1, int over) {
 	/* only do something if the button is pressed */
 	if (!but1) return;
 	tg = gglobal();
-	imethod = 1;
-	if (imethod == 1){
-		/*precompute some values for mouse-down, mouse-move*/
-		//convert all almost-sensor-local points into sensor-local 
-		//(the axisRotation never gets applied in the modelview transform stack - if that changes in the future, then don't need these)
-		axisangle_rotate3f(as, tg->RenderFuncs.hyp_save_posn, node->axisRotation.c);
-		axisangle_rotate3f(bs, tg->RenderFuncs.hyp_save_norm, node->axisRotation.c);
-		vecnormalize3f(v, vecdif3f(v, bs, as));
-		axisangle_rotate3f(rps,tg->RenderFuncs.ray_save_posn, node->axisRotation.c);
 
-	}
+	/*precompute some values for mouse-down, mouse-move*/
+	//convert all almost-sensor-local points into sensor-local 
+	//(the axisRotation never gets applied in the modelview transform stack - if that changes in the future, then don't need these)
+	axisangle_rotate3f(aBearing, tg->RenderFuncs.hyp_save_posn, node->axisRotation.c);
+	axisangle_rotate3f(bBearing, tg->RenderFuncs.hyp_save_norm, node->axisRotation.c);
+	vecnormalize3f(dirBearing, vecdif3f(dirBearing, bBearing, aBearing));
+	axisangle_rotate3f(posn,tg->RenderFuncs.ray_save_posn, node->axisRotation.c);
+
 	if (ev==ButtonPress) {
 		/* record the current position from the saved position */
-		if (imethod == 0){
-			memcpy((void *)&node->_origPoint,
-				(void *)&tg->RenderFuncs.ray_save_posn, sizeof(struct SFColor));
-		}else{
-			/* on mouse-down we have to decide which sensor geometry to use: disk or cylinder, as per specs
-				http://www.web3d.org/files/specifications/19775-1/V3.3/Part01/components/pointingsensor.html#CylinderSensor
-				and that's determined by the angle between the bearing and the sensor Y axis, in sensor-local coords
-				The bearing (A,B) where A=hyp_posn, B=hyp_norm and both are points in sensor-local coordinates
-				To get a direction vector v = B - A
-			*/
-			struct SFColor origPoint;
-			/*ray_save_posn is the intersection with scene geometry, in sensor-local coordinates, for cylinder*/
-			float dot, rs[3];
+		/* on mouse-down we have to decide which sensor geometry to use: disk or cylinder, as per specs
+			http://www.web3d.org/files/specifications/19775-1/V3.3/Part01/components/pointingsensor.html#CylinderSensor
+			and that's determined by the angle between the bearing and the sensor Y axis, in sensor-local coords
+			The bearing (A,B) where A=hyp_posn, B=hyp_norm and both are points in sensor-local coordinates
+			To get a direction vector v = B - A
+		*/
+		struct SFColor origPoint;
+		/*ray_save_posn is the intersection with scene geometry, in sensor-local coordinates, for cylinder*/
+		float dot, rs[3];
 
-			dot = vecdot3f(v, Y);
-			acute_angle = acos(dot);
-			ang = min(acute_angle,PI - acute_angle);
-			printf("ang= %f\n",(float)ang);
-			veccopy3f(rs, rps); //rps: ray_posn (intersection with scene geometry) in sensor-local
-			height = rs[1];
-			rs[1] = 0.0f;
-			radius = veclength3f(rs); //radius of ray_posn from cylinder axis, for scaling the 'feel' of the rotations to what the user clicked
-			vecnormalize3f(rs, rs);
-			if (ang < node->diskAngle){
-				//use end cap disks
-				disk_angle = -atan2(rs[2], rs[0]);
-			}else{
-				//use cylinder wall
-				float travelled, cylpoint[3], axispoint[3], dif[3];
-				line_intersect_line_3f(as, v, ZERO, Y, NULL, NULL, cylpoint, axispoint);
-				travelled = veclength3f(vecdif3f(dif, cylpoint, axispoint)); //travelled: closest distance of our bearing from cylinder axis
-				if (det3f(v, dif, Y) > 0.0f) travelled = -travelled; //which side of cylinder axis is our bearing on? v x dif will point a different direction (up or down) depending on which side, so dot with Y to get a sign
-				disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //don't need the 2PI except to show how we converted to radians: travelled is a fraction of circumference, and circumference is 2PI
-			}
-			node->_radius = (float)radius; //store for later use on mouse-moves
-			printf("radius= %f\n",node->_radius);
-			//origPoint - we get to store whatever we need later mouse-moves. 
-			origPoint.c[0] = (float)disk_angle;
-			origPoint.c[1] = (float)-height; //Q. why -height? don't know but it works
-			memcpy((void *)&node->_origPoint,(void *)&origPoint, sizeof(struct SFColor));
+		dot = vecdot3f(dirBearing, Y);
+		dot = fclamp(dot,-1.0f,1.0f);
+		acute_angle = acos(dot);
+		ang = min(acute_angle,PI - acute_angle);
+		//printf("ang= %f\n",(float)ang);
+		veccopy3f(rs, posn); //posn: ray_posn (intersection with scene geometry) in sensor-local
+		height = rs[1];
+		rs[1] = 0.0f;
+		//radius of ray_posn from cylinder axis, 
+		//for scaling the 'feel' of the rotations to what the user clicked
+		radius = veclength3f(rs); 
+		vecnormalize3f(rs, rs);
+		if (ang < node->diskAngle){
+			//use end cap disks
+			node->_usingDisk = TRUE;
+			disk_angle = -atan2(rs[2], rs[0]);
+			//rintf("using disk\n");
+		}else{
+			//use cylinder wall
+			node->_usingDisk = FALSE;
+			//printf("using cylinder\n");
+			float travelled, cylpoint[3], axispoint[3], dif[3];
+			line_intersect_line_3f(aBearing, dirBearing, ZERO, Y, NULL, NULL, cylpoint, axispoint);
+			//travelled: closest distance of our bearing from cylinder axis
+			travelled = veclength3f(vecdif3f(dif, cylpoint, axispoint)); 
+			//which side of cylinder axis is our bearing on? 
+			//v x dif will point a different direction (up or down) 
+			//depending on which side, so dot with Y to get a sign
+			if (det3f(dirBearing, dif, Y) > 0.0f) travelled = -travelled; 
+			disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //don't need the 2PI except to show how we converted to radians: travelled is a fraction of circumference, and circumference is 2PI
 		}
+		node->_radius = (float)radius; //store for later use on mouse-moves
+		printf("radius= %f\n",node->_radius);
+		//origPoint - we get to store whatever we need later mouse-moves. 
+		//GOAL: be able to crank the disk, and keep going around in circles, accumulating angle, like s screw
+		printf("disk_angle=%f\n",(float)disk_angle);
+		node->_origPoint.c[0] = disk_angle;
+		node->_origPoint.c[1] = -height; //Q. why -height? don't know but it works
+		//printf("rsp = %f %f %f\n",tg->RenderFuncs.ray_save_posn[0],tg->RenderFuncs.ray_save_posn[1],tg->RenderFuncs.ray_save_posn[2]);
+		//printf("eqv = %f %f %f\n",cos(-disk_angle)*radius,height,sin(-disk_angle)*radius);
 		/* set isActive true */
 		node->isActive=TRUE;
 		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
 
-    	/* record the current Radius */
-		if (imethod == 0)
-		{
-			float radial[3], radius2D;
-			veccopy3f(radial,tg->RenderFuncs.ray_save_posn);
-			radial[1] = 0.0f;
-			node->_radius = veclength3f(radial);
-			printf("radius= %f\n",node->_radius);
-			//node->_radius = tg->RenderFuncs.ray_save_posn[0] * tg->RenderFuncs.ray_save_posn[0] +
-			//	tg->RenderFuncs.ray_save_posn[1] * tg->RenderFuncs.ray_save_posn[1] +
-			//	tg->RenderFuncs.ray_save_posn[2] * tg->RenderFuncs.ray_save_posn[2];
-
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-			/*
-			printf ("Cur Matrix: \n\t%f %f %f %f\n\t%f %f %f %f\n\t%f %f %f %f\n\t%f %f %f %f\n",
-			modelMatrix[0],  modelMatrix[4],  modelMatrix[ 8],  modelMatrix[12],
-			modelMatrix[1],  modelMatrix[5],  modelMatrix[ 9],  modelMatrix[13],
-			modelMatrix[2],  modelMatrix[6],  modelMatrix[10],  modelMatrix[14],
-			modelMatrix[3],  modelMatrix[7],  modelMatrix[11],  modelMatrix[15]);
-			*/
-
-			/* find the bearing vector in the local coordinate system */
-			pos = neg = 0.0;
-			temp = modelMatrix[1] * modelMatrix[6] * modelMatrix[8];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = -modelMatrix[2] * modelMatrix[5] * modelMatrix[8];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = -modelMatrix[0] * modelMatrix[6] * modelMatrix[9];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = modelMatrix[2] * modelMatrix[4] * modelMatrix[9];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = modelMatrix[0] * modelMatrix[5] * modelMatrix[10];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = -modelMatrix[1] * modelMatrix[4] * modelMatrix[10];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			det = pos + neg;
-			det = 1.0 / det;
-
-			bv.w = 0;/* set to 0 to ensure vector is normalised correctly */
-			bv.x = (modelMatrix[4] * modelMatrix[9] - modelMatrix[5] * modelMatrix[8]) * det;
-			bv.y = -(modelMatrix[0] * modelMatrix[9] - modelMatrix[1] * modelMatrix[8]) * det;
-			bv.z = (modelMatrix[0] * modelMatrix[5] - modelMatrix[1] * modelMatrix[4]) * det;
-
-			quaternion_normalize(&bv);
-			ang = acos(bv.y);
-			if (ang > (M_PI / 2)) { ang = M_PI - ang; }
-		}
-		if (ang < node->diskAngle) {
-			node->_dlchange=TRUE; //use disk sensor geometry
-			printf("using disk\n");
-		} else {
-			node->_dlchange=FALSE; //use cylinder sensor geometry
-			printf("using cylinder\n");
-		}
-
-
 	}else if ((ev == MotionNotify) && (node->isActive)) {
 
-		if (imethod==0)
-			memcpy((void *)&node->_oldtrackPoint.c, (void *)&tg->RenderFuncs.ray_save_posn, 3*sizeof(float));
-		if (imethod == 1)
-			veccopy3f(node->_oldtrackPoint.c, rps); //I'm using ray_posn, which is intersection with sensitized scene geometry. Should I be using the bearing intersect sensor_geometry?
+		veccopy3f(node->_oldtrackPoint.c,tg->RenderFuncs.ray_save_posn); // rps); //I'm using ray_posn, which is intersection with sensitized scene geometry. Should I be using the bearing intersect sensor_geometry?
 		{
 			float radial[3], radius2D, yy;
 			veccopy3f(radial,node->_oldtrackPoint.c);
@@ -1799,389 +1765,56 @@ void do_CylinderSensor_old ( void *ptr, int ev, int but1, int over) {
 			radial[1] = yy;
 			veccopy3f(node->_oldtrackPoint.c, radial);
 		}
+
 		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
 		}
 
-		if (imethod==0)
-		{
-			dir1.w = 0;
-			dir1.x = tg->RenderFuncs.ray_save_posn[0];
-			dir1.y = 0;
-			dir1.z = tg->RenderFuncs.ray_save_posn[2];
+		//compute delta rotation from drag
+		//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
+		// so we could use P={0,0,0} and P dot N = d = 0
+		float diskpoint[3], orig_diskangle, height;
+		height = node->_origPoint.c[1];
+		radius = node->_radius;
+		orig_diskangle = node->_origPoint.c[0];
+		if (node->_usingDisk == TRUE) {
+			//disk
+			line_intersect_planed_3f(aBearing, dirBearing, Y, height, diskpoint, NULL);
+			vecnormalize3f(diskpoint, diskpoint);
+			//for cylinder compute angle from intersection on cylinder of radius
+			disk_angle = -atan2(diskpoint[2], diskpoint[0]);
+			//printf("D1 %lf ",disk_angle);
+		}else {
+			float cylpoint[3]; //pi1[3], 
+			//cylinder wall
+			//we want a drag off the cylinder to keep working even when mouse isn't over cylinder
+			//on the cylinder
+			//basically we try and do a linear drag perpendicular to both our bearing and the cylinder 
+			//axis, and convert that linear distance from cylinder axis from distance into rotations
+			float travelled, axispoint[3], dif[3];
+			line_intersect_line_3f(aBearing, dirBearing, ZERO, Y, NULL, NULL, cylpoint, axispoint);
+			//cylpoint - closest point of approach of our bearing, on the bearing
+			//axispoint - ditto, on the cyl axis
+			//dif = cylpoint - axispoint //vector perpendicular to axis - our perpendicular 'travel' from the axis
+			travelled = veclength3f(vecdif3f(dif, cylpoint, axispoint));
+			if (det3f(dirBearing, dif, Y) > 0.0f) travelled = -travelled; // v x dif will be up or down the cyl axis, depending on which side of the axis we are on
+			//convert from linear travel to rotation, using travel/circumference * 2PI
+			disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //convert from distance to radians using ratio of circumference
 
-			if (node->_dlchange) {
-				radius = 1.0;  //disk
-			}
-			else {
-				/* get the radius */
-				radius = (dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z); //2D cylinder radius**2
-			}
-
-			quaternion_normalize(&dir1);
-			dir2.w = 0;
-			dir2.x = node->_origPoint.c[0];
-			dir2.y = 0;
-			dir2.z = node->_origPoint.c[2];
-
-			quaternion_normalize(&dir2);
-
-			tempV.w = 0;
-			tempV.x = dir2.y * dir1.z - dir2.z * dir1.y;
-			tempV.y = dir2.z * dir1.x - dir2.x * dir1.z;
-			tempV.z = dir2.x * dir1.y - dir2.y * dir1.x;
-			quaternion_normalize(&tempV);
-
-			length = tempV.x * tempV.x + tempV.y * tempV.y + tempV.z * tempV.z;
-			if (APPROX(length, 0.0)) { return; }
-
-			/* Find the angle of the dot product */
-			rot = radius * acos((dir1.x*dir2.x + dir1.y*dir2.y + dir1.z*dir2.z));
-
-			if (APPROX(tempV.y, -1.0)) rot = -rot;
 		}
-		if (imethod == 1)
-		{
-			//compute delta rotation from drag
-			//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
-			// so we could use P={0,0,0} and P dot N = d = 0
-			float diskpoint[3], orig_diskangle, height;
-			height = node->_origPoint.c[1];
-			radius = node->_radius;
-			orig_diskangle = node->_origPoint.c[0];
-			if (node->_dlchange == TRUE) {
-				//disk
-				line_intersect_planed_3f(as, v, Y, height, diskpoint, NULL);
-				vecnormalize3f(diskpoint, diskpoint);
-				//for cylinder compute angle from intersection on cylinder of radius
-				disk_angle = -atan2(diskpoint[2], diskpoint[0]);
-				//printf("D");
-			}else {
-				float cylpoint[3]; //pi1[3], 
-				//cylinder wall
-				//ray-intersect-cylinder is too hard for us, a quadratic (but is done in rendray_Cylinder)
-				//if (line_intersect_cylinder_3f(as, v, radius, cylpoint)){ //didn't work - wrong sol1,sol2 or ???
-				//	//on the cylinder
-				//	disk_angle = -atan2(cylpoint[2], cylpoint[0]);
-				//	printf("C");
-				//
-				//off the cylinder (and well this works as good as the line_interesect_cylinder
-				//we want a drag off the cylinder to keep working even when mouse isn't over cylinder
-				//on the cylinder
-				//basically we try and do a linear drag perpendicular to both our bearing and the cylinder 
-				//axis, and convert that linear distance from cylinder axis from distance into rotations
-				float travelled, axispoint[3], dif[3];
-				radius = 1.0f;
-				line_intersect_line_3f(as, v, ZERO, Y, NULL, NULL, cylpoint, axispoint);
-				//cylpoint - closest point of approach of our bearing, on the bearing
-				//axispoint - ditto, on the cyl axis
-				//dif = cylpoint - axispoint //vector perpendicular to axis - our 'travel' from the axis
-				travelled = veclength3f(vecdif3f(dif, cylpoint, axispoint));
-				if (det3f(v, dif, Y) > 0.0f) travelled = -travelled; // v x dif will be up or down the cyl axis, depending on which side of the axis we are on
-				disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //convert from distance to radians using ratio of circumference
-				//printf("V");
-			}
-			rot = disk_angle - orig_diskangle;
-		}
-
+		rot = disk_angle - orig_diskangle;
+		//printf(" D2 %lf ",rot);
 		if (node->autoOffset) {
+			//printf(" O %f ",node->offset);
 			rot = node->offset + rot;
 		}
-		if (node->minAngle < node->maxAngle) {
-			if (rot < node->minAngle) {
-				rot = node->minAngle;
-			} else if (rot > node->maxAngle) {
-				rot = node->maxAngle;
-			}
-		}
-
-		//node->_oldrotation.c[0] = (float) 0;
-		//node->_oldrotation.c[1] = (float) 1;
-		//node->_oldrotation.c[2] = (float) 0;
-		//node->_oldrotation.c[3] = (float) rot;
-		vecset4f(node->_oldrotation.c,0.0f,1.0f,0.0f,rot);
-
-		if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
-			veccopy4f(node->rotation_changed.c, node->_oldrotation.c);
-			MARK_EVENT(ptr, offsetof (struct X3D_CylinderSensor, rotation_changed));
-		}
-
-
-	} else if (ev==ButtonRelease) {
-		/* set isActive false */
-		node->isActive=FALSE;
-		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
-		/* save auto offset of rotation */
-		if (node->autoOffset) {
-			memcpy ((void *) &node->offset,
-				(void *) &node->rotation_changed.c[3],
-				sizeof (float));
-
-		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, rotation_changed));
-		}
-	}
-}
-
-void do_CylinderSensor_troubled ( void *ptr, int ev, int but1, int over) {
-	struct X3D_CylinderSensor *node = (struct X3D_CylinderSensor *)ptr;
-	double rot, radius, ang, length;
-	double det, pos, neg, temp;
-	double acute_angle, disk_angle, height;
-	float Y[3] = { 0.0f, 1.0f, 0.0f }, ZERO[3] = { 0.0f, 0.0f, 0.0f };
-	float as[3], bs[3], v[3], rps[3]; 
-
-	int imethod;
-	Quaternion bv, dir1, dir2, tempV;
-	GLDOUBLE modelMatrix[16];
-	ttglobal tg;
-
-	UNUSED(over);
-	
-	/* if not enabled, do nothing */
-	if (!node) return;
-	if (node->__oldEnabled != node->enabled) {
-		node->__oldEnabled = node->enabled;
-		MARK_EVENT(X3D_NODE(node),offsetof (struct X3D_CylinderSensor, enabled));
-	}
-	if (!node->enabled) return;
-
-	/* only do something if the button is pressed */
-	if (!but1) return;
-	tg = gglobal();
-	imethod = 1;
-	if (imethod == 1){
-		/*precompute some values for mouse-down, mouse-move*/
-		//convert all almost-sensor-local points into sensor-local 
-		//(the axisRotation never gets applied in the modelview transform stack - if that changes in the future, then don't need these)
-		axisangle_rotate3f(as, tg->RenderFuncs.hyp_save_posn, node->axisRotation.c);
-		axisangle_rotate3f(bs, tg->RenderFuncs.hyp_save_norm, node->axisRotation.c);
-		vecnormalize3f(v, vecdif3f(v, bs, as));
-		axisangle_rotate3f(rps,tg->RenderFuncs.ray_save_posn, node->axisRotation.c);
-
-	}
-	if (ev==ButtonPress) {
-		/* record the current position from the saved position */
-		if (imethod == 0){
-			memcpy((void *)&node->_origPoint,
-				(void *)&tg->RenderFuncs.ray_save_posn, sizeof(struct SFColor));
-		}else{
-			/* on mouse-down we have to decide which sensor geometry to use: disk or cylinder, as per specs
-				http://www.web3d.org/files/specifications/19775-1/V3.3/Part01/components/pointingsensor.html#CylinderSensor
-				and that's determined by the angle between the bearing and the sensor Y axis, in sensor-local coords
-				The bearing (A,B) where A=hyp_posn, B=hyp_norm and both are points in sensor-local coordinates
-				To get a direction vector v = B - A
-			*/
-			struct SFColor origPoint;
-			/*ray_save_posn is the intersection with scene geometry, in sensor-local coordinates, for cylinder*/
-			float dot, rs[3];
-
-			dot = vecdot3f(v, Y);
-			acute_angle = acos(dot);
-			ang = min(acute_angle,PI - acute_angle);
-			printf("ang= %f\n",(float)ang);
-			veccopy3f(rs, rps); //rps: ray_posn (intersection with scene geometry) in sensor-local
-			height = rs[1];
-			rs[1] = 0.0f;
-			//radius of ray_posn from cylinder axis, 
-			//for scaling the 'feel' of the rotations to what the user clicked
-			radius = veclength3f(rs); 
-			vecnormalize3f(rs, rs);
-			if (TRUE || ang < node->diskAngle){
-				//use end cap disks
-				disk_angle = -atan2(rs[2], rs[0]);
-				printf("using disk\n");
-			}else{
-				//use cylinder wall
-				printf("using cylinder\n");
-				float travelled, cylpoint[3], axispoint[3], dif[3];
-				line_intersect_line_3f(as, v, ZERO, Y, NULL, NULL, cylpoint, axispoint);
-				//travelled: closest distance of our bearing from cylinder axis
-				travelled = veclength3f(vecdif3f(dif, cylpoint, axispoint)); 
-				//which side of cylinder axis is our bearing on? 
-				//v x dif will point a different direction (up or down) 
-				//depending on which side, so dot with Y to get a sign
-				if (det3f(v, dif, Y) > 0.0f) travelled = -travelled; 
-				disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //don't need the 2PI except to show how we converted to radians: travelled is a fraction of circumference, and circumference is 2PI
-			}
-			node->_radius = (float)radius; //store for later use on mouse-moves
-			printf("radius= %f\n",node->_radius);
-			//origPoint - we get to store whatever we need later mouse-moves. 
-			printf("disk_angle=%f\n",(float)disk_angle);
-			origPoint.c[0] = (float)disk_angle;
-			origPoint.c[1] = (float)-height; //Q. why -height? don't know but it works
-			printf("rsp = %f %f %f\n",tg->RenderFuncs.ray_save_posn[0],tg->RenderFuncs.ray_save_posn[1],tg->RenderFuncs.ray_save_posn[2]);
-			printf("eqv = %f %f %f\n",cos(-disk_angle)*radius,height,sin(-disk_angle)*radius);
-			memcpy((void *)&node->_origPoint,(void *)&origPoint, sizeof(struct SFColor));
-		}
-		/* set isActive true */
-		node->isActive=TRUE;
-		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
-
-    	/* record the current Radius */
-		if (imethod == 0)
-		{
-			float radial[3], radius2D;
-			veccopy3f(radial,tg->RenderFuncs.ray_save_posn);
-			radial[1] = 0.0f;
-			node->_radius = veclength3f(radial);
-			printf("radius= %f\n",node->_radius);
-			//node->_radius = tg->RenderFuncs.ray_save_posn[0] * tg->RenderFuncs.ray_save_posn[0] +
-			//	tg->RenderFuncs.ray_save_posn[1] * tg->RenderFuncs.ray_save_posn[1] +
-			//	tg->RenderFuncs.ray_save_posn[2] * tg->RenderFuncs.ray_save_posn[2];
-
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-			/*
-			printf ("Cur Matrix: \n\t%f %f %f %f\n\t%f %f %f %f\n\t%f %f %f %f\n\t%f %f %f %f\n",
-			modelMatrix[0],  modelMatrix[4],  modelMatrix[ 8],  modelMatrix[12],
-			modelMatrix[1],  modelMatrix[5],  modelMatrix[ 9],  modelMatrix[13],
-			modelMatrix[2],  modelMatrix[6],  modelMatrix[10],  modelMatrix[14],
-			modelMatrix[3],  modelMatrix[7],  modelMatrix[11],  modelMatrix[15]);
-			*/
-
-			/* find the bearing vector in the local coordinate system */
-			pos = neg = 0.0;
-			temp = modelMatrix[1] * modelMatrix[6] * modelMatrix[8];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = -modelMatrix[2] * modelMatrix[5] * modelMatrix[8];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = -modelMatrix[0] * modelMatrix[6] * modelMatrix[9];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = modelMatrix[2] * modelMatrix[4] * modelMatrix[9];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = modelMatrix[0] * modelMatrix[5] * modelMatrix[10];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			temp = -modelMatrix[1] * modelMatrix[4] * modelMatrix[10];
-			if (temp >= 0.0) pos += temp; else neg += temp;
-			det = pos + neg;
-			det = 1.0 / det;
-
-			bv.w = 0;/* set to 0 to ensure vector is normalised correctly */
-			bv.x = (modelMatrix[4] * modelMatrix[9] - modelMatrix[5] * modelMatrix[8]) * det;
-			bv.y = -(modelMatrix[0] * modelMatrix[9] - modelMatrix[1] * modelMatrix[8]) * det;
-			bv.z = (modelMatrix[0] * modelMatrix[5] - modelMatrix[1] * modelMatrix[4]) * det;
-
-			quaternion_normalize(&bv);
-			ang = acos(bv.y);
-			if (ang > (M_PI / 2)) { ang = M_PI - ang; }
-		}
-		if (ang < node->diskAngle) {
-			node->_dlchange=TRUE; //use disk sensor geometry
-			printf("using_disk\n");
-		} else {
-			node->_dlchange=FALSE; //use cylinder sensor geometry
-			printf("using_cylinder\n");
-		}
-
-
-	}else if ((ev == MotionNotify) && (node->isActive)) {
-
-		if (imethod==0)
-			memcpy((void *)&node->_oldtrackPoint.c, (void *)&tg->RenderFuncs.ray_save_posn, 3*sizeof(float));
-		if (imethod == 1)
-			veccopy3f(node->_oldtrackPoint.c,tg->RenderFuncs.ray_save_posn); // rps); //I'm using ray_posn, which is intersection with sensitized scene geometry. Should I be using the bearing intersect sensor_geometry?
-		if(0){
-			float radial[3], radius2D, yy;
-			veccopy3f(radial,node->_oldtrackPoint.c);
-			yy = radial[1];
-			radial[1] = 0.0f;
-			radius2D = veclength3f(radial);
-			vecscale3f(radial,radial,node->_radius/radius2D);
-			radial[1] = yy;
-			veccopy3f(node->_oldtrackPoint.c, radial);
-		}
-		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
-			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
-			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
-		}
-
-		if (imethod==0)
-		{
-			dir1.w = 0;
-			dir1.x = tg->RenderFuncs.ray_save_posn[0];
-			dir1.y = 0;
-			dir1.z = tg->RenderFuncs.ray_save_posn[2];
-
-			if (node->_dlchange) {
-				radius = 1.0;  //disk
-			}
-			else {
-				/* get the radius */
-				radius = (dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z); //2D cylinder radius**2
-			}
-
-			quaternion_normalize(&dir1);
-			dir2.w = 0;
-			dir2.x = node->_origPoint.c[0];
-			dir2.y = 0;
-			dir2.z = node->_origPoint.c[2];
-
-			quaternion_normalize(&dir2);
-
-			tempV.w = 0;
-			tempV.x = dir2.y * dir1.z - dir2.z * dir1.y;
-			tempV.y = dir2.z * dir1.x - dir2.x * dir1.z;
-			tempV.z = dir2.x * dir1.y - dir2.y * dir1.x;
-			quaternion_normalize(&tempV);
-
-			length = tempV.x * tempV.x + tempV.y * tempV.y + tempV.z * tempV.z;
-			if (APPROX(length, 0.0)) { return; }
-
-			/* Find the angle of the dot product */
-			rot = radius * acos((dir1.x*dir2.x + dir1.y*dir2.y + dir1.z*dir2.z));
-
-			if (APPROX(tempV.y, -1.0)) rot = -rot;
-		}
-		if (imethod == 1)
-		{
-			//compute delta rotation from drag
-			//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
-			// so we could use P={0,0,0} and P dot N = d = 0
-			float diskpoint[3], orig_diskangle, height;
-			height = node->_origPoint.c[1];
-			radius = node->_radius;
-			orig_diskangle = node->_origPoint.c[0];
-			if (node->_dlchange == TRUE) {
-				//disk
-				line_intersect_planed_3f(as, v, Y, height, diskpoint, NULL);
-				vecnormalize3f(diskpoint, diskpoint);
-				//for cylinder compute angle from intersection on cylinder of radius
-				disk_angle = -atan2(diskpoint[2], diskpoint[0]);
-				//printf("D");
-			}else {
-				float cylpoint[3]; //pi1[3], 
-				//cylinder wall
-				//ray-intersect-cylinder is too hard for us, a quadratic (but is done in rendray_Cylinder)
-				//if (line_intersect_cylinder_3f(as, v, radius, cylpoint)){ //didn't work - wrong sol1,sol2 or ???
-				//	//on the cylinder
-				//	disk_angle = -atan2(cylpoint[2], cylpoint[0]);
-				//	printf("C");
-				//
-				//off the cylinder (and well this works as good as the line_interesect_cylinder
-				//we want a drag off the cylinder to keep working even when mouse isn't over cylinder
-				//on the cylinder
-				//basically we try and do a linear drag perpendicular to both our bearing and the cylinder 
-				//axis, and convert that linear distance from cylinder axis from distance into rotations
-				float travelled, axispoint[3], dif[3];
-				//radius = 1.0f;
-				line_intersect_line_3f(as, v, ZERO, Y, NULL, NULL, cylpoint, axispoint);
-				//cylpoint - closest point of approach of our bearing, on the bearing
-				//axispoint - ditto, on the cyl axis
-				//dif = cylpoint - axispoint //vector perpendicular to axis - our 'travel' from the axis
-				travelled = veclength3f(vecdif3f(dif, cylpoint, axispoint));
-				if (det3f(v, dif, Y) > 0.0f) travelled = -travelled; // v x dif will be up or down the cyl axis, depending on which side of the axis we are on
-				disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //convert from distance to radians using ratio of circumference
-				//printf("V");
-			}
-			rot = disk_angle - orig_diskangle;
-		}
-
-		if (node->autoOffset) {
-			rot = node->offset + rot;
-		}
+		//printf(" D3 %lf ",rot);
+		//printf(" N %lf ",rot);
 		if (node->minAngle < node->maxAngle) {
 			rot = fclamp(rot,node->minAngle,node->maxAngle);
 		}
+		//printf(" D4 %lf \n",rot);
 
 		vecset4f(node->_oldrotation.c,0.0f,1.0f,0.0f,(float)rot);
 
@@ -2190,23 +1823,27 @@ void do_CylinderSensor_troubled ( void *ptr, int ev, int but1, int over) {
 			MARK_EVENT(ptr, offsetof (struct X3D_CylinderSensor, rotation_changed));
 		}
 
-
 	} else if (ev==ButtonRelease) {
 		/* set isActive false */
 		node->isActive=FALSE;
 		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
 		/* save auto offset of rotation */
 		if (node->autoOffset) {
-			//memcpy ((void *) &node->offset,
-			//	(void *) &node->rotation_changed.c[3],
-			//	sizeof (float));
 			node->offset = node->rotation_changed.c[3];
-			MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, rotation_changed));
 		}
 	}
 }
+// see Mainloop.c get_hyperhit() for more explanation:
+// in sensor-node-local coordinates (not quite sensor-local if sensor node has axisRotation):
+// ray_save_posn - intersection point of pickray/bearing with sensitized geometry
+// hyp_save_posn - point on camera/viewpoint nearplane on pickray/bearing, transformed to sensor-node-local
+// hyp_save_norm - point on carmera/viewpoint farplane on pickray/bearing, transformed to sensor-node-local
+
 float fwfdsign(float x){ return x >= 0.0f ? 1.0f : -1.0f; }
-void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
+
+void do_CylinderSensor_simple ( void *ptr, int ev, int but1, int over) {
+	//simplest cylinder case, no axisRotation, no disk, derived from SphereSensor
+	//not used except for understanding
 	struct X3D_CylinderSensor *node = (struct X3D_CylinderSensor *)ptr;
 
 	float *cur, *orig, onorm[3];
@@ -2317,7 +1954,6 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, trackPoint_changed));
 	}
 }
-
 
 
 /********************************************************************************/

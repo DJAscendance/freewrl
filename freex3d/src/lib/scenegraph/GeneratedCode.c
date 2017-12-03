@@ -238,7 +238,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_csensor",
 	"_destination",
 	"_dir",
-	"_dlchange",
 	"_donethispass",
 	"_dsock",
 	"_enabled",
@@ -335,6 +334,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_ttex",
 	"_type",
 	"_uKnot",
+	"_usingDisk",
 	"_vKnot",
 	"_values",
 	"_verifiedBackColor",
@@ -4157,11 +4157,11 @@ const int OFFSETS_Cylinder[] = {
 
 const int OFFSETS_CylinderSensor[] = {
 	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_CylinderSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
-	(int) FIELDNAMES__dlchange, (int) offsetof (struct X3D_CylinderSensor, _dlchange),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__oldrotation, (int) offsetof (struct X3D_CylinderSensor, _oldrotation),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__oldtrackPoint, (int) offsetof (struct X3D_CylinderSensor, _oldtrackPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__origPoint, (int) offsetof (struct X3D_CylinderSensor, _origPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__radius, (int) offsetof (struct X3D_CylinderSensor, _radius),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__usingDisk, (int) offsetof (struct X3D_CylinderSensor, _usingDisk),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_autoOffset, (int) offsetof (struct X3D_CylinderSensor, autoOffset),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_axisRotation, (int) offsetof (struct X3D_CylinderSensor, axisRotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_CylinderSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9020,11 +9020,11 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_CylinderSensor * tmp2;
 			tmp2 = (struct X3D_CylinderSensor *) tmp;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_dlchange = 0;
 			tmp2->_oldrotation.c[0] = 0;tmp2->_oldrotation.c[1] = 0;tmp2->_oldrotation.c[2] = 1;tmp2->_oldrotation.c[3] = 0;;
 			tmp2->_oldtrackPoint.c[0] = 0.0f;tmp2->_oldtrackPoint.c[1] = 0.0f;tmp2->_oldtrackPoint.c[2] = 0.0f;
 			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
 			tmp2->_radius = 0.0f;
+			tmp2->_usingDisk = 0;
 			tmp2->autoOffset = TRUE;
 			tmp2->axisRotation.c[0] = 0;tmp2->axisRotation.c[1] = 1;tmp2->axisRotation.c[2] = 0;tmp2->axisRotation.c[3] = 0;;
 			tmp2->description = newASCIIString("");
