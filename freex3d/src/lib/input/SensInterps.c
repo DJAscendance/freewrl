@@ -1518,11 +1518,10 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	if (!node->enabled) return;
 	tg = gglobal();
 
-	imethod = 1; //0 = old pre-April-2014, 1=April 2014
 	/* only do something when button pressed */
 	/* if (!but1) return; */
 	if (but1){
-		float v[3], t1[3];
+		float v[3], t1[3], inverserotation[4];
 		float N[3] = { 0.0f, 0.0f, 1.0f }; //plane normal, in plane-local
 		float NS[3]; //plane normal, in sensor-local after axisRotation
 		//bearing (A,B) in sensor-local
@@ -1536,7 +1535,11 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		posn = tg->RenderFuncs.hyp_save_posn;
 		if (!line_intersect_planed_3f(posn, v, NS, 0.0f, trackpoint, NULL))
 			return; //looking at plane edge-on / parallel, no intersection
-		axisangle_rotate3f(trackpoint, trackpoint, node->axisRotation.c);
+		//is rotating the trackpoint/translation_changed opposite sense to rotating the virtual geometry?
+		//-- we harmonize with x3dom and view3dscene 
+		veccopy4f(inverserotation,node->axisRotation.c);
+		inverserotation[3] = -inverserotation[3];
+		axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
 	}
 
 	if ((ev==ButtonPress) && but1) {
@@ -1546,11 +1549,8 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		posn = tg->RenderFuncs.hyp_save_posn;
 
 		veccopy3f(op.c, trackpoint);
-		if (imethod==1)
-			memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
-		if (imethod==0)
-			memcpy ((void *) &node->_origPoint,
-				(void *) posn,sizeof(struct SFColor));
+		memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
+		veccopy3f(node->_origPoint.c,op.c);
 
 		/* set isActive true */
 		node->isActive=TRUE;
@@ -1558,16 +1558,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
 		/* hyperhit saved in render_hypersensitive phase */
-		if (imethod==0){
-			//this is ray intersect plane code, for plane Z=0
-			mult = (node->_origPoint.c[2] - tg->RenderFuncs.hyp_save_posn[2]) /
-				(tg->RenderFuncs.hyp_save_norm[2] - tg->RenderFuncs.hyp_save_posn[2]);
-			nx = tg->RenderFuncs.hyp_save_posn[0] + mult * (tg->RenderFuncs.hyp_save_norm[0] - tg->RenderFuncs.hyp_save_posn[0]);
-			ny = tg->RenderFuncs.hyp_save_posn[1] + mult * (tg->RenderFuncs.hyp_save_norm[1] - tg->RenderFuncs.hyp_save_posn[1]);
-		}
-		if (imethod==1){
-			nx = trackpoint[0]; ny = trackpoint[1];
-		}
+		nx = trackpoint[0]; ny = trackpoint[1];
 		#ifdef SEVERBOSE
 		ConsoleMessage ("now, mult %f nx %f ny %f op %f %f %f\n",mult,nx,ny,
 			node->_origPoint.c[0],node->_origPoint.c[1],
@@ -1575,12 +1566,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		#endif
 
 		/* trackpoint changed */
-		if (imethod == 0){
-			vecset3f(node->_oldtrackPoint.c,nx,ny,node->_origPoint.c[2]);
-		}
-		if (imethod == 1){
-			veccopy3f(node->_oldtrackPoint.c, trackpoint);
-		}
+		veccopy3f(node->_oldtrackPoint.c, trackpoint);
 		/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
 		if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
@@ -1594,15 +1580,6 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		tr[2] = node->offset.c[2];
 
 		vecclamp3f(tr,node->minPosition.c,node->maxPosition.c);
-		//for (tmp=0; tmp<2; tmp++) {
-		//	if (node->maxPosition.c[tmp] >= node->minPosition.c[tmp]) {
-		//		if (tr[tmp] < node->minPosition.c[tmp]) {
-		//			tr[tmp] = node->minPosition.c[tmp];
-		//		} else if (tr[tmp] > node->maxPosition.c[tmp]) {
-		//			tr[tmp] = node->maxPosition.c[tmp];
-		//		}
-		//	}
-		//}
 		veccopy3f(node->_oldtranslation.c,tr);
 
 		if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
