@@ -1823,7 +1823,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			//use end cap disks
 			node->_usingDisk = TRUE;
 			disk_angle = -atan2(rs[2], rs[0]);
-			//rintf("using disk\n");
+			printf("using disk\n");
 		}else{
 			//use cylinder wall
 			node->_usingDisk = FALSE;
@@ -1839,10 +1839,10 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //don't need the 2PI except to show how we converted to radians: travelled is a fraction of circumference, and circumference is 2PI
 		}
 		node->_radius = (float)radius; //store for later use on mouse-moves
-		printf("radius= %f\n",node->_radius);
+		//printf("radius= %f\n",node->_radius);
 		//origPoint - we get to store whatever we need later mouse-moves. 
 		//GOAL: be able to crank the disk, and keep going around in circles, accumulating angle, like s screw
-		printf("disk_angle=%f\n",(float)disk_angle);
+		//printf("disk_angle=%f\n",(float)disk_angle);
 		node->_origPoint.c[0] = disk_angle;
 		node->_origPoint.c[1] = -height; //Q. why -height? don't know but it works
 		//printf("rsp = %f %f %f\n",tg->RenderFuncs.ray_save_posn[0],tg->RenderFuncs.ray_save_posn[1],tg->RenderFuncs.ray_save_posn[2]);
