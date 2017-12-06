@@ -1762,7 +1762,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	double det, pos, neg, temp;
 	double acute_angle, disk_angle, height;
 	float Y[3] = { 0.0f, 1.0f, 0.0f }, ZERO[3] = { 0.0f, 0.0f, 0.0f };
-	float aBearing[3], bBearing[3], dirBearing[3], posn[3]; 
+	float aBearing[3], bBearing[3], dirBearing[3], posn[3], axisRotation[4];
 
 	int imethod;
 	Quaternion bv, dir1, dir2, tempV;
@@ -1786,10 +1786,14 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	/*precompute some values for mouse-down, mouse-move*/
 	//convert all almost-sensor-local points into sensor-local 
 	//(the axisRotation never gets applied in the modelview transform stack - if that changes in the future, then don't need these)
-	axisangle_rotate3f(aBearing, tg->RenderFuncs.hyp_save_posn, node->axisRotation.c);
-	axisangle_rotate3f(bBearing, tg->RenderFuncs.hyp_save_norm, node->axisRotation.c);
+	veccopy4f(axisRotation,node->axisRotation.c);
+	axisRotation[3] = -axisRotation[3]; //harmonize rotation with view3dscene 
+	//Dec 2017 view3dscene only other browser that shares our interp of specs on axisRotation for CylinderSensor
+	//- x3dom and view3dscene share our interpretation of axisRotation for Planesensor
+	axisangle_rotate3f(aBearing, tg->RenderFuncs.hyp_save_posn, axisRotation);
+	axisangle_rotate3f(bBearing, tg->RenderFuncs.hyp_save_norm, axisRotation);
 	vecnormalize3f(dirBearing, vecdif3f(dirBearing, bBearing, aBearing));
-	axisangle_rotate3f(posn,tg->RenderFuncs.ray_save_posn, node->axisRotation.c);
+	axisangle_rotate3f(posn,tg->RenderFuncs.ray_save_posn, axisRotation);
 
 	if (ev==ButtonPress) {
 		/* record the current position from the saved position */
