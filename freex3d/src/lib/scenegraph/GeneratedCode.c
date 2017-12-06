@@ -2292,6 +2292,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"PointEmitter",
 	"PointLight",
 	"PointPickSensor",
+	"PointSensor",
 	"PointSet",
 	"Polyline2D",
 	"PolylineEmitter",
@@ -3005,6 +3006,8 @@ struct X3D_Virt virt_PointLight = { (void *)prep_PointLight,(void *)render_Point
 void other_PointPickSensor(struct X3D_PointPickSensor *);
 struct X3D_Virt virt_PointPickSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)other_PointPickSensor,NULL,NULL};
 
+struct X3D_Virt virt_PointSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 void render_PointSet(struct X3D_PointSet *);
 void compile_PointSet(struct X3D_PointSet *);
 struct X3D_Virt virt_PointSet = { NULL,(void *)render_PointSet,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_PointSet};
@@ -3438,6 +3441,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_PointEmitter,
 	 &virt_PointLight,
 	 &virt_PointPickSensor,
+	 &virt_PointSensor,
 	 &virt_PointSet,
 	 &virt_Polyline2D,
 	 &virt_PolylineEmitter,
@@ -6120,6 +6124,24 @@ const int OFFSETS_PointPickSensor[] = {
 	(int) FIELDNAMES_sortOrder, (int) offsetof (struct X3D_PointPickSensor, sortOrder),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_PointSensor[] = {
+	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_PointSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldtrackPoint, (int) offsetof (struct X3D_PointSensor, _oldtrackPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldtranslation, (int) offsetof (struct X3D_PointSensor, _oldtranslation),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__origPoint, (int) offsetof (struct X3D_PointSensor, _origPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_autoOffset, (int) offsetof (struct X3D_PointSensor, autoOffset),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_PointSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_PointSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_PointSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isOver, (int) offsetof (struct X3D_PointSensor, isOver),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxPosition, (int) offsetof (struct X3D_PointSensor, maxPosition),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PointSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_minPosition, (int) offsetof (struct X3D_PointSensor, minPosition),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_offset, (int) offsetof (struct X3D_PointSensor, offset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_trackPoint_changed, (int) offsetof (struct X3D_PointSensor, trackPoint_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_translation_changed, (int) offsetof (struct X3D_PointSensor, translation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_PointSet[] = {
 	(int) FIELDNAMES__colourSize, (int) offsetof (struct X3D_PointSet, _colourSize),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__coloursVBO, (int) offsetof (struct X3D_PointSet, _coloursVBO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -7542,6 +7564,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_PointEmitter,
 	OFFSETS_PointLight,
 	OFFSETS_PointPickSensor,
+	OFFSETS_PointSensor,
 	OFFSETS_PointSet,
 	OFFSETS_Polyline2D,
 	OFFSETS_PolylineEmitter,
@@ -8079,6 +8102,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_PointEmitter : {tmp = MALLOC (struct X3D_PointEmitter *, sizeof (struct X3D_PointEmitter)); break;}
 		case NODE_PointLight : {tmp = MALLOC (struct X3D_PointLight *, sizeof (struct X3D_PointLight)); break;}
 		case NODE_PointPickSensor : {tmp = MALLOC (struct X3D_PointPickSensor *, sizeof (struct X3D_PointPickSensor)); break;}
+		case NODE_PointSensor : {tmp = MALLOC (struct X3D_PointSensor *, sizeof (struct X3D_PointSensor)); break;}
 		case NODE_PointSet : {tmp = MALLOC (struct X3D_PointSet *, sizeof (struct X3D_PointSet)); break;}
 		case NODE_Polyline2D : {tmp = MALLOC (struct X3D_Polyline2D *, sizeof (struct X3D_Polyline2D)); break;}
 		case NODE_PolylineEmitter : {tmp = MALLOC (struct X3D_PolylineEmitter *, sizeof (struct X3D_PolylineEmitter)); break;}
@@ -11521,6 +11545,26 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_sortOrder = newASCIIString("");
 			tmp2->sortOrder = newASCIIString("CLOSEST");
 			tmp2->_defaultContainer = FIELDNAMES_children;
+		break;
+		}
+		case NODE_PointSensor : {
+			struct X3D_PointSensor * tmp2;
+			tmp2 = (struct X3D_PointSensor *) tmp;
+			tmp2->__oldEnabled = TRUE;
+			tmp2->_oldtrackPoint.c[0] = 0.0f;tmp2->_oldtrackPoint.c[1] = 0.0f;tmp2->_oldtrackPoint.c[2] = 0.0f;
+			tmp2->_oldtranslation.c[0] = 0.0f;tmp2->_oldtranslation.c[1] = 0.0f;tmp2->_oldtranslation.c[2] = 0.0f;
+			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
+			tmp2->autoOffset = TRUE;
+			tmp2->description = newASCIIString("");
+			tmp2->enabled = TRUE;
+			tmp2->isActive = FALSE;
+			tmp2->isOver = FALSE;
+			tmp2->maxPosition.c[0] = -1.0f;tmp2->maxPosition.c[1] = -1.0f;tmp2->maxPosition.c[2] = -1.0f;
+			tmp2->metadata = NULL;
+			tmp2->minPosition.c[0] = 0.0f;tmp2->minPosition.c[1] = 0.0f;tmp2->minPosition.c[2] = 0.0f;
+			tmp2->offset.c[0] = 0.0f;tmp2->offset.c[1] = 0.0f;tmp2->offset.c[2] = 0.0f;
+			tmp2->trackPoint_changed.c[0] = 0.0f;tmp2->trackPoint_changed.c[1] = 0.0f;tmp2->trackPoint_changed.c[2] = 0.0f;
+			tmp2->translation_changed.c[0] = 0.0f;tmp2->translation_changed.c[1] = 0.0f;tmp2->translation_changed.c[2] = 0.0f;
 		break;
 		}
 		case NODE_PointSet : {
@@ -16375,6 +16419,30 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," pickingGeometry (SFNode):\n"); dump_scene(fp,level+1,tmp->pickingGeometry); 
 		    break;
 		}
+		case NODE_PointSensor : {
+			struct X3D_PointSensor *tmp;
+			tmp = (struct X3D_PointSensor *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
+		    }
+			spacer fprintf (fp," autoOffset (SFBool) \t%d\n",tmp->autoOffset);
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+			spacer fprintf (fp," maxPosition (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->maxPosition.c[i]); }
+			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," minPosition (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->minPosition.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," offset (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->offset.c[i]); }
+			fprintf (fp,"\n");
+		    break;
+		}
 		case NODE_PointSet : {
 			struct X3D_PointSet *tmp;
 			tmp = (struct X3D_PointSet *) node;
@@ -18126,6 +18194,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_PointEmitter: return X3DParticleEmitterNode; break;
 	case NODE_PointLight: return X3DLightNode; break;
 	case NODE_PointPickSensor: return X3DSensorNode; break;
+	case NODE_PointSensor: return X3DPointingDeviceSensorNode; break;
 	case NODE_PointSet: return X3DGeometryNode; break;
 	case NODE_Polyline2D: return X3DGeometryNode; break;
 	case NODE_PolylineEmitter: return X3DParticleEmitterNode; break;

@@ -1484,6 +1484,121 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 	}
 
 }
+void vecprint3fb(char *name, float *p, char *eol){
+	printf("%s %f %f %f %s",name,p[0],p[1],p[2],eol);
+}
+
+void do_PointSensor(void *ptr, int ev, int but1, int over) {
+	/* Experimental node There is no PointSensor node in the specs in Dec 2017.
+		Concept: you should be able to grab and drag something perpendicular to your ray.
+		then if you move your viewpoint (ie with examine) you should be able to drag 
+		perpendicular to your new ray direction 
+		So the direction isn't in a field 
+		- its computed internally based on pickray/bearing direction
+		- (in theory it could be an outputOnly)
+		Trackpoint would start at ray/bearing distance from viewpoint
+	*/
+	struct X3D_PointSensor *node;
+	float trackpoint[3], translation[3], *posn, *rposn, *norm;
+	ttglobal tg;
+	UNUSED(over);
+	node = (struct X3D_PointSensor *)ptr;
+#ifdef SENSVERBOSE
+	printf("%lf: TS ", TickTime());
+	if (ev == ButtonPress) printf("ButtonPress ");
+	else if (ev == ButtonRelease) printf("ButtonRelease ");
+	else if (ev == KeyPress) printf("KeyPress ");
+	else if (ev == KeyRelease) printf("KeyRelease ");
+	else if (ev == MotionNotify) printf("%lf MotionNotify ");
+	else printf("ev %d ", ev);
+
+	if (but1) printf("but1 TRUE "); else printf("but1 FALSE ");
+	if (over) printf("over TRUE "); else printf("over FALSE ");
+	printf("\n");
+#endif
+
+	/* if not enabled, do nothing */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_PointSensor, enabled));
+	}
+	if (!node->enabled) return;
+	tg = gglobal();
+
+	/* only do something when button pressed */
+	if (!but1) return; 
+	norm = tg->RenderFuncs.hyp_save_norm;
+	posn = tg->RenderFuncs.hyp_save_posn;
+	rposn = tg->RenderFuncs.ray_save_posn;
+
+	if ((ev == ButtonPress) && but1) {
+		/* record the current position from the saved position */
+		float tt[3];
+		float distance = veclength3f(vecdif3f(tt,rposn,norm));
+		//printf("dist0 = %f\n",distance);
+		veccopy3f(trackpoint,rposn); 
+		veccopy3f(node->_origPoint.c,trackpoint); 
+
+		/* set isActive true */
+		node->isActive = TRUE;
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
+
+	}
+	else if ((ev == MotionNotify) && (node->isActive) && but1) {
+		/* trackpoint changed */
+		float t1[3];
+		
+		//pre-calculate for Press and Move
+		/* hyperhit saved in render_hypersensitive phase */
+		// bearing in sensor-local coordinates: (A=posn,B=norm) 
+		// B/norm is a point, so to get a direction vector: v = B - A
+		float tt[3];
+		//float N [] = { 0.0f, 0.0f, 1.0f };
+		float v1[3]; 
+
+		veccopy3f(trackpoint,rposn);
+
+		veccopy3f(node->_oldtrackPoint.c,trackpoint);
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, trackPoint_changed));
+		}
+
+		vecdif3f(v1, norm, posn);
+		vecnormalize3f(v1, v1);
+
+		if (!line_intersect_plane_3f(posn,v1,v1,node->_origPoint.c,translation,NULL))
+			return;
+
+		if (node->autoOffset){
+			vecadd3f(translation,translation,node->offset.c);
+		}
+
+
+		//clamp to min,max 
+		vecclamp3f(translation,node->minPosition.c,node->maxPosition.c);
+
+		veccopy3f(node->_oldtranslation.c,translation);
+
+		if(!approx3f(node->_oldtranslation.c, node->translation_changed.c)) {
+			veccopy3f(node->translation_changed.c, node->_oldtranslation.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, translation_changed));
+		}
+	}
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		node->isActive = FALSE;
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
+		/* autoOffset? */
+		if (node->autoOffset) {
+			veccopy3f(node->offset.c,node->translation_changed.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, offset));
+		}
+	}
+
+}
 
 /* void do_PlaneSensor (struct X3D_PlaneSensor *node, int ev, int over) {*/
 void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {

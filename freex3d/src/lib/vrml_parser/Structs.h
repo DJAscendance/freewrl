@@ -319,89 +319,90 @@ typedef int indexT;
 #define NODE_PointEmitter	199
 #define NODE_PointLight	200
 #define NODE_PointPickSensor	201
-#define NODE_PointSet	202
-#define NODE_Polyline2D	203
-#define NODE_PolylineEmitter	204
-#define NODE_Polypoint2D	205
-#define NODE_PositionChaser	206
-#define NODE_PositionChaser2D	207
-#define NODE_PositionDamper	208
-#define NODE_PositionDamper2D	209
-#define NODE_PositionInterpolator	210
-#define NODE_PositionInterpolator2D	211
-#define NODE_PrimitivePickSensor	212
-#define NODE_ProgramShader	213
-#define NODE_ProjectionVolumeStyle	214
-#define NODE_Proto	215
-#define NODE_ProximitySensor	216
-#define NODE_QuadSet	217
-#define NODE_ReceiverPdu	218
-#define NODE_Rectangle2D	219
-#define NODE_RigidBody	220
-#define NODE_RigidBodyCollection	221
-#define NODE_ScalarChaser	222
-#define NODE_ScalarDamper	223
-#define NODE_ScalarInterpolator	224
-#define NODE_ScreenFontStyle	225
-#define NODE_ScreenGroup	226
-#define NODE_Script	227
-#define NODE_SegmentedVolumeData	228
-#define NODE_ShadedVolumeStyle	229
-#define NODE_ShaderPart	230
-#define NODE_ShaderProgram	231
-#define NODE_Shape	232
-#define NODE_SignalPdu	233
-#define NODE_SilhouetteEnhancementVolumeStyle	234
-#define NODE_SingleAxisHingeJoint	235
-#define NODE_SliderJoint	236
-#define NODE_Sound	237
-#define NODE_Sphere	238
-#define NODE_SphereSensor	239
-#define NODE_SplinePositionInterpolator	240
-#define NODE_SplinePositionInterpolator2D	241
-#define NODE_SplineScalarInterpolator	242
-#define NODE_SpotLight	243
-#define NODE_SquadOrientationInterpolator	244
-#define NODE_StaticGroup	245
-#define NODE_StringSensor	246
-#define NODE_SurfaceEmitter	247
-#define NODE_Switch	248
-#define NODE_Teapot	249
-#define NODE_TexCoordChaser2D	250
-#define NODE_TexCoordDamper2D	251
-#define NODE_Text	252
-#define NODE_TextureBackground	253
-#define NODE_TextureCoordinate	254
-#define NODE_TextureCoordinate3D	255
-#define NODE_TextureCoordinate4D	256
-#define NODE_TextureCoordinateGenerator	257
-#define NODE_TextureProperties	258
-#define NODE_TextureTransform	259
-#define NODE_TextureTransform3D	260
-#define NODE_TextureTransformMatrix3D	261
-#define NODE_TimeSensor	262
-#define NODE_TimeTrigger	263
-#define NODE_ToneMappedVolumeStyle	264
-#define NODE_TouchSensor	265
-#define NODE_TrackingSensor	266
-#define NODE_Transform	267
-#define NODE_TransformSensor	268
-#define NODE_TransmitterPdu	269
-#define NODE_TriangleFanSet	270
-#define NODE_TriangleSet	271
-#define NODE_TriangleSet2D	272
-#define NODE_TriangleStripSet	273
-#define NODE_TwoSidedMaterial	274
-#define NODE_UniversalJoint	275
-#define NODE_Viewpoint	276
-#define NODE_ViewpointGroup	277
-#define NODE_Viewport	278
-#define NODE_VisibilitySensor	279
-#define NODE_VolumeData	280
-#define NODE_VolumeEmitter	281
-#define NODE_VolumePickSensor	282
-#define NODE_WindPhysicsModel	283
-#define NODE_WorldInfo	284
+#define NODE_PointSensor	202
+#define NODE_PointSet	203
+#define NODE_Polyline2D	204
+#define NODE_PolylineEmitter	205
+#define NODE_Polypoint2D	206
+#define NODE_PositionChaser	207
+#define NODE_PositionChaser2D	208
+#define NODE_PositionDamper	209
+#define NODE_PositionDamper2D	210
+#define NODE_PositionInterpolator	211
+#define NODE_PositionInterpolator2D	212
+#define NODE_PrimitivePickSensor	213
+#define NODE_ProgramShader	214
+#define NODE_ProjectionVolumeStyle	215
+#define NODE_Proto	216
+#define NODE_ProximitySensor	217
+#define NODE_QuadSet	218
+#define NODE_ReceiverPdu	219
+#define NODE_Rectangle2D	220
+#define NODE_RigidBody	221
+#define NODE_RigidBodyCollection	222
+#define NODE_ScalarChaser	223
+#define NODE_ScalarDamper	224
+#define NODE_ScalarInterpolator	225
+#define NODE_ScreenFontStyle	226
+#define NODE_ScreenGroup	227
+#define NODE_Script	228
+#define NODE_SegmentedVolumeData	229
+#define NODE_ShadedVolumeStyle	230
+#define NODE_ShaderPart	231
+#define NODE_ShaderProgram	232
+#define NODE_Shape	233
+#define NODE_SignalPdu	234
+#define NODE_SilhouetteEnhancementVolumeStyle	235
+#define NODE_SingleAxisHingeJoint	236
+#define NODE_SliderJoint	237
+#define NODE_Sound	238
+#define NODE_Sphere	239
+#define NODE_SphereSensor	240
+#define NODE_SplinePositionInterpolator	241
+#define NODE_SplinePositionInterpolator2D	242
+#define NODE_SplineScalarInterpolator	243
+#define NODE_SpotLight	244
+#define NODE_SquadOrientationInterpolator	245
+#define NODE_StaticGroup	246
+#define NODE_StringSensor	247
+#define NODE_SurfaceEmitter	248
+#define NODE_Switch	249
+#define NODE_Teapot	250
+#define NODE_TexCoordChaser2D	251
+#define NODE_TexCoordDamper2D	252
+#define NODE_Text	253
+#define NODE_TextureBackground	254
+#define NODE_TextureCoordinate	255
+#define NODE_TextureCoordinate3D	256
+#define NODE_TextureCoordinate4D	257
+#define NODE_TextureCoordinateGenerator	258
+#define NODE_TextureProperties	259
+#define NODE_TextureTransform	260
+#define NODE_TextureTransform3D	261
+#define NODE_TextureTransformMatrix3D	262
+#define NODE_TimeSensor	263
+#define NODE_TimeTrigger	264
+#define NODE_ToneMappedVolumeStyle	265
+#define NODE_TouchSensor	266
+#define NODE_TrackingSensor	267
+#define NODE_Transform	268
+#define NODE_TransformSensor	269
+#define NODE_TransmitterPdu	270
+#define NODE_TriangleFanSet	271
+#define NODE_TriangleSet	272
+#define NODE_TriangleSet2D	273
+#define NODE_TriangleStripSet	274
+#define NODE_TwoSidedMaterial	275
+#define NODE_UniversalJoint	276
+#define NODE_Viewpoint	277
+#define NODE_ViewpointGroup	278
+#define NODE_Viewport	279
+#define NODE_VisibilitySensor	280
+#define NODE_VolumeData	281
+#define NODE_VolumeEmitter	282
+#define NODE_VolumePickSensor	283
+#define NODE_WindPhysicsModel	284
+#define NODE_WorldInfo	285
 
 
 /* Table of built-in fieldIds */
@@ -8236,6 +8237,39 @@ struct X3D_PointPickSensor {
 	struct Uni_String *set_sortOrder;
 };
 extern struct X3D_Virt virt_PointPickSensor;
+/***********************/
+struct X3D_PointSensor {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_PolyRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	int autoOffset;
+	int enabled;
+	struct SFVec3f maxPosition;
+	struct SFVec3f minPosition;
+	struct SFVec3f offset;
+	int isActive;
+	int isOver;
+	struct Uni_String *description;
+	struct SFVec3f trackPoint_changed;
+	struct SFVec3f translation_changed;
+	struct X3D_Node *metadata;
+	struct SFVec3f _oldtrackPoint;
+	struct SFVec3f _oldtranslation;
+	struct SFVec3f _origPoint;
+	int __oldEnabled;
+};
+extern struct X3D_Virt virt_PointSensor;
 /***********************/
 struct X3D_PointSet {
        int _nodeType; /* unique integer for each type */ 
