@@ -1257,7 +1257,23 @@ for (i=0; i<16; i++) printf ("%4.3lf ",projMatrix[i]); printf ("\n");
 		//FLOPs	112 double:	matmultiplyAFFINE 36, matinverseAFFINE 49, 3x transform (affine) 9 =27
 		GLDOUBLE  mvpi[16]; //mvp[16],
 		struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
-
+		{
+			//PointSensor needs an original camera axis (not modified pickray camera)
+			// to use as a plane normal to intersect the pickray/bearing with
+			ttglobal tg;
+			double mvi[16];
+			struct point_XYZ view_cam_axis, local_cam_axis;
+			tg = gglobal();
+			view_cam_axis.x = 0.0;
+			view_cam_axis.y = 0.0;
+			view_cam_axis.z = -1.0;
+			matinverseAFFINE(mvi,modelMatrix);
+			transformAFFINE(&local_cam_axis,&view_cam_axis,mvi);
+			tg->RenderFuncs.camera_axis[0] = local_cam_axis.x;
+			tg->RenderFuncs.camera_axis[1] = local_cam_axis.y;
+			tg->RenderFuncs.camera_axis[2] = local_cam_axis.z;
+			 
+		}
 		prepare_model_view_pickmatrix_inverse0(modelMatrix, mvpi);
 		transform(t_r1,&r11,mvpi);
 		transform(t_r2,&r2,mvpi);

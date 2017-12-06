@@ -1569,7 +1569,10 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 		vecdif3f(v1, norm, posn);
 		vecnormalize3f(v1, v1);
 
-		if (!line_intersect_plane_3f(posn,v1,v1,node->_origPoint.c,translation,NULL))
+		//IDEA intersect the pickray with a plane at distance to the mouse-down point
+		// and drag in a plane perpendicular to the camera axis
+		// ie plane = (mouse-down ray_posn, viewpoint axis)
+		if (!line_intersect_plane_3f(posn,v1,tg->RenderFuncs.camera_axis,node->_origPoint.c,translation,NULL))
 			return;
 
 		if (node->autoOffset){

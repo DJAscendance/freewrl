@@ -328,6 +328,7 @@ iOLDCODE	}Component_Networking;
 		float hyp_save_posn[3];
 		float hyp_save_norm[3];
 		float ray_save_posn[3]; //getRayHit() > last intersection of pickray/bearing with geometry, transformed into the coordinates of the geometry
+		float camera_axis[3];
 		void *hypersensitive;//= 0; 
 		int hyperhit;// = 0;
 		//struct point_XYZ hp;
