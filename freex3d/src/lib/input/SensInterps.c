@@ -1484,6 +1484,124 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 	}
 
 }
+void vecprint3fb(char *name, float *p, char *eol){
+	printf("%s %f %f %f %s",name,p[0],p[1],p[2],eol);
+}
+
+void do_PointSensor(void *ptr, int ev, int but1, int over) {
+	/* Experimental node There is no PointSensor node in the specs in Dec 2017.
+		Concept: you should be able to grab and drag something perpendicular to your ray.
+		then if you move your viewpoint (ie with examine) you should be able to drag 
+		perpendicular to your new ray direction 
+		So the direction isn't in a field 
+		- its computed internally based on pickray/bearing direction
+		- (in theory it could be an outputOnly)
+		Trackpoint would start at ray/bearing distance from viewpoint
+	*/
+	struct X3D_PointSensor *node;
+	float trackpoint[3], translation[3], *posn, *rposn, *norm;
+	ttglobal tg;
+	UNUSED(over);
+	node = (struct X3D_PointSensor *)ptr;
+#ifdef SENSVERBOSE
+	printf("%lf: TS ", TickTime());
+	if (ev == ButtonPress) printf("ButtonPress ");
+	else if (ev == ButtonRelease) printf("ButtonRelease ");
+	else if (ev == KeyPress) printf("KeyPress ");
+	else if (ev == KeyRelease) printf("KeyRelease ");
+	else if (ev == MotionNotify) printf("%lf MotionNotify ");
+	else printf("ev %d ", ev);
+
+	if (but1) printf("but1 TRUE "); else printf("but1 FALSE ");
+	if (over) printf("over TRUE "); else printf("over FALSE ");
+	printf("\n");
+#endif
+
+	/* if not enabled, do nothing */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_PointSensor, enabled));
+	}
+	if (!node->enabled) return;
+	tg = gglobal();
+
+	/* only do something when button pressed */
+	if (!but1) return; 
+	norm = tg->RenderFuncs.hyp_save_norm;
+	posn = tg->RenderFuncs.hyp_save_posn;
+	rposn = tg->RenderFuncs.ray_save_posn;
+
+	if ((ev == ButtonPress) && but1) {
+		/* record the current position from the saved position */
+		float tt[3];
+		float distance = veclength3f(vecdif3f(tt,rposn,norm));
+		//printf("dist0 = %f\n",distance);
+		veccopy3f(trackpoint,rposn); 
+		veccopy3f(node->_origPoint.c,trackpoint); 
+
+		/* set isActive true */
+		node->isActive = TRUE;
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
+
+	}
+	else if ((ev == MotionNotify) && (node->isActive) && but1) {
+		/* trackpoint changed */
+		float t1[3];
+		
+		//pre-calculate for Press and Move
+		/* hyperhit saved in render_hypersensitive phase */
+		// bearing in sensor-local coordinates: (A=posn,B=norm) 
+		// B/norm is a point, so to get a direction vector: v = B - A
+		float tt[3];
+		//float N [] = { 0.0f, 0.0f, 1.0f };
+		float v1[3]; 
+
+		veccopy3f(trackpoint,rposn);
+
+		veccopy3f(node->_oldtrackPoint.c,trackpoint);
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, trackPoint_changed));
+		}
+
+		vecdif3f(v1, norm, posn);
+		vecnormalize3f(v1, v1);
+
+		//IDEA intersect the pickray with a plane at distance to the mouse-down point
+		// and drag in a plane perpendicular to the camera axis
+		// ie plane = (mouse-down ray_posn, viewpoint axis)
+		if (!line_intersect_plane_3f(posn,v1,tg->RenderFuncs.camera_axis,node->_origPoint.c,translation,NULL))
+			return;
+
+		if (node->autoOffset){
+			vecadd3f(translation,translation,node->offset.c);
+		}
+
+
+		//clamp to min,max 
+		vecclamp3f(translation,node->minPosition.c,node->maxPosition.c);
+
+		veccopy3f(node->_oldtranslation.c,translation);
+
+		if(!approx3f(node->_oldtranslation.c, node->translation_changed.c)) {
+			veccopy3f(node->translation_changed.c, node->_oldtranslation.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, translation_changed));
+		}
+	}
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		node->isActive = FALSE;
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
+		/* autoOffset? */
+		if (node->autoOffset) {
+			veccopy3f(node->offset.c,node->translation_changed.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, offset));
+		}
+	}
+
+}
 
 /* void do_PlaneSensor (struct X3D_PlaneSensor *node, int ev, int over) {*/
 void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
@@ -1518,11 +1636,10 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	if (!node->enabled) return;
 	tg = gglobal();
 
-	imethod = 1; //0 = old pre-April-2014, 1=April 2014
 	/* only do something when button pressed */
 	/* if (!but1) return; */
 	if (but1){
-		float v[3], t1[3];
+		float v[3], t1[3], inverserotation[4];
 		float N[3] = { 0.0f, 0.0f, 1.0f }; //plane normal, in plane-local
 		float NS[3]; //plane normal, in sensor-local after axisRotation
 		//bearing (A,B) in sensor-local
@@ -1536,7 +1653,11 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		posn = tg->RenderFuncs.hyp_save_posn;
 		if (!line_intersect_planed_3f(posn, v, NS, 0.0f, trackpoint, NULL))
 			return; //looking at plane edge-on / parallel, no intersection
-		axisangle_rotate3f(trackpoint, trackpoint, node->axisRotation.c);
+		//is rotating the trackpoint/translation_changed opposite sense to rotating the virtual geometry?
+		//-- we harmonize with x3dom and view3dscene 
+		veccopy4f(inverserotation,node->axisRotation.c);
+		inverserotation[3] = -inverserotation[3];
+		axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
 	}
 
 	if ((ev==ButtonPress) && but1) {
@@ -1546,11 +1667,8 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		posn = tg->RenderFuncs.hyp_save_posn;
 
 		veccopy3f(op.c, trackpoint);
-		if (imethod==1)
-			memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
-		if (imethod==0)
-			memcpy ((void *) &node->_origPoint,
-				(void *) posn,sizeof(struct SFColor));
+		memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
+		veccopy3f(node->_origPoint.c,op.c);
 
 		/* set isActive true */
 		node->isActive=TRUE;
@@ -1558,16 +1676,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
 		/* hyperhit saved in render_hypersensitive phase */
-		if (imethod==0){
-			//this is ray intersect plane code, for plane Z=0
-			mult = (node->_origPoint.c[2] - tg->RenderFuncs.hyp_save_posn[2]) /
-				(tg->RenderFuncs.hyp_save_norm[2] - tg->RenderFuncs.hyp_save_posn[2]);
-			nx = tg->RenderFuncs.hyp_save_posn[0] + mult * (tg->RenderFuncs.hyp_save_norm[0] - tg->RenderFuncs.hyp_save_posn[0]);
-			ny = tg->RenderFuncs.hyp_save_posn[1] + mult * (tg->RenderFuncs.hyp_save_norm[1] - tg->RenderFuncs.hyp_save_posn[1]);
-		}
-		if (imethod==1){
-			nx = trackpoint[0]; ny = trackpoint[1];
-		}
+		nx = trackpoint[0]; ny = trackpoint[1];
 		#ifdef SEVERBOSE
 		ConsoleMessage ("now, mult %f nx %f ny %f op %f %f %f\n",mult,nx,ny,
 			node->_origPoint.c[0],node->_origPoint.c[1],
@@ -1575,12 +1684,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		#endif
 
 		/* trackpoint changed */
-		if (imethod == 0){
-			vecset3f(node->_oldtrackPoint.c,nx,ny,node->_origPoint.c[2]);
-		}
-		if (imethod == 1){
-			veccopy3f(node->_oldtrackPoint.c, trackpoint);
-		}
+		veccopy3f(node->_oldtrackPoint.c, trackpoint);
 		/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
 		if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
@@ -1594,15 +1698,6 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		tr[2] = node->offset.c[2];
 
 		vecclamp3f(tr,node->minPosition.c,node->maxPosition.c);
-		//for (tmp=0; tmp<2; tmp++) {
-		//	if (node->maxPosition.c[tmp] >= node->minPosition.c[tmp]) {
-		//		if (tr[tmp] < node->minPosition.c[tmp]) {
-		//			tr[tmp] = node->minPosition.c[tmp];
-		//		} else if (tr[tmp] > node->maxPosition.c[tmp]) {
-		//			tr[tmp] = node->maxPosition.c[tmp];
-		//		}
-		//	}
-		//}
 		veccopy3f(node->_oldtranslation.c,tr);
 
 		if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {

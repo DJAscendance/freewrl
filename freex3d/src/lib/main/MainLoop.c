@@ -6405,6 +6405,7 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 		case NODE_TouchSensor: myp = (void *)do_TouchSensor; break;
 		case NODE_GeoTouchSensor: myp = (void *)do_GeoTouchSensor; break;
 		case NODE_LineSensor: myp = (void *)do_LineSensor; break;
+		case NODE_PointSensor: myp = (void *)do_PointSensor; break;
 		case NODE_PlaneSensor: myp = (void *)do_PlaneSensor; break;
 		case NODE_CylinderSensor: myp = (void *)do_CylinderSensor; break;
 		case NODE_SphereSensor: myp = (void *)do_SphereSensor; break;
@@ -7777,6 +7778,7 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
                                 switch (p->SensorEvents[tmp].datanode->_nodeType) {
                                         case NODE_Anchor: ns = ((struct X3D_Anchor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
 										case NODE_LineSensor: ns = ((struct X3D_LineSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
+										case NODE_PointSensor: ns = ((struct X3D_PointSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
                                         case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
                                         case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
                                         case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;

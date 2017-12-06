@@ -2379,6 +2379,21 @@ EVENT_IN(PointPickSensor,set_sortOrder,sfstring,set_sortOrder,FIELDTYPE_SFString
 FIELD(PointPickSensor,sortOrder,sfstring,sortOrder,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(PointPickSensor)
 
+/* PointSensor node */
+BEGIN_NODE(PointSensor)
+EXPOSED_FIELD(PointSensor,autoOffset,sfbool,autoOffset,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(PointSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(PointSensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
+EVENT_OUT(PointSensor,isActive,sfbool,isActive,FIELDTYPE_SFBool)
+EVENT_OUT(PointSensor,isOver,sfbool,isOver,FIELDTYPE_SFBool)
+EXPOSED_FIELD(PointSensor,maxPosition,sfvec3f,maxPosition,FIELDTYPE_SFVec3f,UNCA_LENGTH)
+EXPOSED_FIELD(PointSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PointSensor,minPosition,sfvec3f,minPosition,FIELDTYPE_SFVec3f,UNCA_LENGTH)
+EXPOSED_FIELD(PointSensor,offset,sfvec3f,offset,FIELDTYPE_SFVec3f,UNCA_LENGTH)
+EVENT_OUT(PointSensor,trackPoint_changed,sfvec3f,trackPoint_changed,FIELDTYPE_SFVec3f)
+EVENT_OUT(PointSensor,translation_changed,sfvec3f,translation_changed,FIELDTYPE_SFVec3f)
+END_NODE(PointSensor)
+
 /* PointSet node */
 BEGIN_NODE(PointSet)
 EXPOSED_FIELD(PointSet,attrib,mfnode,attrib,FIELDTYPE_MFNode,UNCA_NONE)
