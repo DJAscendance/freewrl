@@ -1763,8 +1763,8 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	double acute_angle, disk_angle, height;
 	float Y[3] = { 0.0f, 1.0f, 0.0f }, ZERO[3] = { 0.0f, 0.0f, 0.0f };
 	float aBearing[3], bBearing[3], dirBearing[3], posn[3], axisRotation[4];
-
-	int imethod;
+	int interpretation_trackpoint_in_sensor_local = FALSE; //TRUE for freewl, view3dscene, octaga, FALSE for h3d
+	int interpretation_rotation_in_sensor_local = FALSE; //TRUE for freewrl/view3dscene, FALSE for octaga/instant/h3d
 	Quaternion bv, dir1, dir2, tempV;
 	GLDOUBLE modelMatrix[16];
 	ttglobal tg;
@@ -1852,23 +1852,12 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
 
 	}else if ((ev == MotionNotify) && (node->isActive)) {
+		float trackpoint[3], rotation4f[4];
+		//specs > cylsensor: "trackPoint_changed events represent the unclamped intersection points 
+		// on the surface of the invisible cylinder or disk"
+		// Q. in sensor-local or sensor?
+		veccopy3f(trackpoint,node->_oldtrackPoint.c); //a default, some non-junk value
 
-		veccopy3f(node->_oldtrackPoint.c,tg->RenderFuncs.ray_save_posn); // rps); //I'm using ray_posn, which is intersection with sensitized scene geometry. Should I be using the bearing intersect sensor_geometry?
-		{
-			float radial[3], radius2D, yy;
-			veccopy3f(radial,node->_oldtrackPoint.c);
-			yy = radial[1];
-			radial[1] = 0.0f;
-			radius2D = veclength3f(radial);
-			vecscale3f(radial,radial,node->_radius/radius2D);
-			radial[1] = yy;
-			veccopy3f(node->_oldtrackPoint.c, radial);
-		}
-
-		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
-			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
-			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
-		}
 
 		//compute delta rotation from drag
 		//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
@@ -1880,6 +1869,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		if (node->_usingDisk == TRUE) {
 			//disk
 			line_intersect_planed_3f(aBearing, dirBearing, Y, height, diskpoint, NULL);
+			veccopy3f(trackpoint,diskpoint);
 			vecnormalize3f(diskpoint, diskpoint);
 			//for cylinder compute angle from intersection on cylinder of radius
 			disk_angle = -atan2(diskpoint[2], diskpoint[0]);
@@ -1900,6 +1890,8 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 			if (det3f(dirBearing, dif, Y) > 0.0f) travelled = -travelled; // v x dif will be up or down the cyl axis, depending on which side of the axis we are on
 			//convert from linear travel to rotation, using travel/circumference * 2PI
 			disk_angle = travelled / (2.0f * PI * radius) * (2.0f * PI); //convert from distance to radians using ratio of circumference
+			if(!line_intersect_cylinder_3f(aBearing,dirBearing,node->_radius,trackpoint))
+				veccopy3f(trackpoint,cylpoint);
 
 		}
 		rot = disk_angle - orig_diskangle;
@@ -1915,11 +1907,26 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		}
 		//printf(" D4 %lf \n",rot);
 
-		vecset4f(node->_oldrotation.c,0.0f,1.0f,0.0f,(float)rot);
+		vecset4f(rotation4f,0.0f,1.0f,0.0f,(float)rot);
 
+		if(!interpretation_rotation_in_sensor_local){
+			//this matches the octaga/instant/h3d technique
+			axisangle_rotate3f(rotation4f,rotation4f,node->axisRotation.c); //rotate axis only
+		}
+		veccopy4f(node->_oldrotation.c,rotation4f);
 		if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
 			veccopy4f(node->rotation_changed.c, node->_oldrotation.c);
 			MARK_EVENT(ptr, offsetof (struct X3D_CylinderSensor, rotation_changed));
+		}
+
+		//the specs don't explicitly say if the trackpoint is in sensor-local (with axisRotation applied)
+		// or node-local. But it seems easier to understand if in node-local
+		if(!interpretation_trackpoint_in_sensor_local)
+			axisangle_rotate3f(trackpoint, trackpoint, node->axisRotation.c);
+		veccopy3f(node->_oldtrackPoint.c,trackpoint);
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
 		}
 
 	} else if (ev==ButtonRelease) {
