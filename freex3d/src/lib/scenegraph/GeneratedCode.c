@@ -829,6 +829,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"segmentEnabled",
 	"segmentIdentifiers",
 	"segments",
+	"sensorLocalOutput",
 	"separateBackColor",
 	"separation",
 	"separationRate",
@@ -1718,6 +1719,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"rootUrl",
 	"rotateYUp",
 	"rtpHeaderExpected",
+	"sensorLocalOutput",
 	"shape",
 	"side",
 	"size",
@@ -4178,6 +4180,7 @@ const int OFFSETS_CylinderSensor[] = {
 	(int) FIELDNAMES_minAngle, (int) offsetof (struct X3D_CylinderSensor, minAngle),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_offset, (int) offsetof (struct X3D_CylinderSensor, offset),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_rotation_changed, (int) offsetof (struct X3D_CylinderSensor, rotation_changed),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_CylinderSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_trackPoint_changed, (int) offsetof (struct X3D_CylinderSensor, trackPoint_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -6072,6 +6075,7 @@ const int OFFSETS_PlaneSensor[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PlaneSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_minPosition, (int) offsetof (struct X3D_PlaneSensor, minPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_offset, (int) offsetof (struct X3D_PlaneSensor, offset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_PlaneSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_trackPoint_changed, (int) offsetof (struct X3D_PlaneSensor, trackPoint_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_translation_changed, (int) offsetof (struct X3D_PlaneSensor, translation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -9061,6 +9065,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->minAngle = 0.0f;
 			tmp2->offset = 0.0f;
 			tmp2->rotation_changed.c[0] = 0;tmp2->rotation_changed.c[1] = 0;tmp2->rotation_changed.c[2] = 1;tmp2->rotation_changed.c[3] = 0;;
+			tmp2->sensorLocalOutput = FALSE;
 			tmp2->trackPoint_changed.c[0] = 0.0f;tmp2->trackPoint_changed.c[1] = 0.0f;tmp2->trackPoint_changed.c[2] = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
@@ -11485,6 +11490,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->minPosition.c[0] = 0.0f;tmp2->minPosition.c[1] = 0.0f;;
 			tmp2->offset.c[0] = 0.0f;tmp2->offset.c[1] = 0.0f;tmp2->offset.c[2] = 0.0f;
+			tmp2->sensorLocalOutput = FALSE;
 			tmp2->trackPoint_changed.c[0] = 0.0f;tmp2->trackPoint_changed.c[1] = 0.0f;tmp2->trackPoint_changed.c[2] = 0.0f;
 			tmp2->translation_changed.c[0] = 0.0f;tmp2->translation_changed.c[1] = 0.0f;tmp2->translation_changed.c[2] = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_children;

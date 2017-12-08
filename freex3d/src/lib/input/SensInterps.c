@@ -1609,8 +1609,6 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	float mult, nx, ny, trackpoint[3], inverserotation[4], *posn;
 	float tr[3];
 	int tmp, imethod;
-	int interpretation_translation_in_sensor_local = FALSE; //TRUE for oldFreewrl, x3dom, view3dscene, FALSE for H3D, Octaga, cobweb
-	int interpretation_trackpoint_in_sensor_local = FALSE; //TRUE for oldFreewrl, x3dom, H3D FALSE for Octaga, view3dscene
 
 	ttglobal tg;
 	UNUSED(over);
@@ -1687,7 +1685,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		#endif
 
 		/* trackpoint changed */
-		if(!interpretation_trackpoint_in_sensor_local){
+		if(!node->sensorLocalOutput){
 			axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
 		}
 
@@ -1705,7 +1703,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		tr[2] = node->offset.c[2];
 
 		vecclamp3f(tr,node->minPosition.c,node->maxPosition.c);
-		if(!interpretation_translation_in_sensor_local){
+		if(!node->sensorLocalOutput){
 			axisangle_rotate3f(tr,tr, node->axisRotation.c);
 		}
 		veccopy3f(node->_oldtranslation.c,tr);
@@ -1773,8 +1771,6 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 	double acute_angle, disk_angle, height;
 	float Y[3] = { 0.0f, 1.0f, 0.0f }, ZERO[3] = { 0.0f, 0.0f, 0.0f };
 	float aBearing[3], bBearing[3], dirBearing[3], posn[3], axisRotation[4];
-	int interpretation_trackpoint_in_sensor_local = FALSE; //TRUE for oldfreewl, view3dscene, octaga, FALSE for h3d
-	int interpretation_rotation_in_sensor_local = FALSE; //TRUE for oldfreewrl/view3dscene, FALSE for octaga/instant/h3d
 	Quaternion bv, dir1, dir2, tempV;
 	GLDOUBLE modelMatrix[16];
 	ttglobal tg;
@@ -1919,7 +1915,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 
 		vecset4f(rotation4f,0.0f,1.0f,0.0f,(float)rot);
 
-		if(!interpretation_rotation_in_sensor_local){
+		if(!node->sensorLocalOutput){
 			//this matches the octaga/instant/h3d technique
 			axisangle_rotate3f(rotation4f,rotation4f,node->axisRotation.c); //rotate axis only
 		}
@@ -1931,7 +1927,7 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 
 		//the specs don't explicitly say if the trackpoint is in sensor-local (with axisRotation applied)
 		// or node-local. But it seems easier to understand if in node-local
-		if(!interpretation_trackpoint_in_sensor_local)
+		if(!node->sensorLocalOutput)
 			axisangle_rotate3f(trackpoint, trackpoint, node->axisRotation.c);
 		veccopy3f(node->_oldtrackPoint.c,trackpoint);
 		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
