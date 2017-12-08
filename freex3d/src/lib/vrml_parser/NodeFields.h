@@ -609,6 +609,7 @@ EXPOSED_FIELD(CylinderSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE
 EXPOSED_FIELD(CylinderSensor,minAngle,sffloat,minAngle,FIELDTYPE_SFFloat,UNCA_ANGLE)
 EXPOSED_FIELD(CylinderSensor,offset,sffloat,offset,FIELDTYPE_SFFloat,UNCA_LENGTH)
 EVENT_OUT(CylinderSensor,rotation_changed,sfrotation,rotation_changed,FIELDTYPE_SFRotation)
+FIELD(CylinderSensor,sensorLocalOutput,sfbool,sensorLocalOutput,FIELDTYPE_SFBool,UNCA_NONE)
 EVENT_OUT(CylinderSensor,trackPoint_changed,sfvec3f,trackPoint_changed,FIELDTYPE_SFVec3f)
 END_NODE(CylinderSensor)
 
@@ -2334,6 +2335,7 @@ EXPOSED_FIELD(PlaneSensor,maxPosition,sfvec2f,maxPosition,FIELDTYPE_SFVec2f,UNCA
 EXPOSED_FIELD(PlaneSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PlaneSensor,minPosition,sfvec2f,minPosition,FIELDTYPE_SFVec2f,UNCA_LENGTH)
 EXPOSED_FIELD(PlaneSensor,offset,sfvec3f,offset,FIELDTYPE_SFVec3f,UNCA_LENGTH)
+FIELD(PlaneSensor,sensorLocalOutput,sfbool,sensorLocalOutput,FIELDTYPE_SFBool,UNCA_NONE)
 EVENT_OUT(PlaneSensor,trackPoint_changed,sfvec3f,trackPoint_changed,FIELDTYPE_SFVec3f)
 EVENT_OUT(PlaneSensor,translation_changed,sfvec3f,translation_changed,FIELDTYPE_SFVec3f)
 END_NODE(PlaneSensor)

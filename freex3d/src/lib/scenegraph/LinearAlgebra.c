@@ -1151,6 +1151,27 @@ float *axisangle_rotate3f(float* b, float *a, float *axisangle)
 	vecadd3f(b,vecscale3f(t1, a, cosine), vecadd3f(t2, vecscale3f(t3, cross, sine), vecscale3f(t4, axis, dot*(1.0f - cosine))));
 	return b;
 }
+struct SFRotation *sfrotation_multiply(struct SFRotation* T, struct SFRotation *A, struct SFRotation *B);
+float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB)
+{
+	if(1){
+		//this is a float[4] version of / wrapper for sfrotation_multiply
+		struct SFRotation A,B,C;
+		veccopy4f(A.c,axisAngleA);
+		veccopy4f(B.c,axisAngleB);
+		sfrotation_multiply(&C,&A,&B);
+		veccopy4f(axisAngleC,C.c);
+	}else{
+		// I think the rodrigues chain is too hard for us:
+		//     https://math.stackexchange.com/questions/382760/composition-of-two-axis-angle-rotations
+		// Or do you just rotate A's axis with B, then C is new axis and A's old angle?
+		// seems too simple, imagine 2 rotations about the same axis.
+		// roughed in but untested Dec 8, 2017
+		veccopy4f(axisAngleC,axisAngleA);
+		axisangle_rotate3f(axisAngleC,axisAngleC,axisAngleB); //just rotate A's axis by B
+	}
+	return axisAngleC; //so can chain
+}
 float *matidentity4f(float *b){
 	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i,j;
