@@ -1162,13 +1162,34 @@ float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngle
 		sfrotation_multiply(&C,&A,&B);
 		veccopy4f(axisAngleC,C.c);
 	}else{
-		// I think the rodrigues chain is too hard for us:
+		// Dec 2017, dug9: I think the rodrigues chain is too hard for us:
 		//     https://math.stackexchange.com/questions/382760/composition-of-two-axis-angle-rotations
-		// Or do you just rotate A's axis with B, then C is new axis and A's old angle?
-		// seems too simple, imagine 2 rotations about the same axis.
-		// roughed in but untested Dec 8, 2017
+		//   and its math looks a lot like quaternion math anyway, I've read its equivalent
+		// http://www.mathoman.com/en/index.php/1537-axis-and-angle-of-the-composition-of-two-rotations
+		// one way I can visualize: rotating a point by 2 rotations, then using the start and end points
+		//   to get an angle between them and axis perpendicular to the new angle
+		// dug9's (untested) formula 
+		// (uses full angles, not the half-angles seen in rodrigues or quaternions, so likely wrong)
+		// for axis angles C = A * B
+		// 1. find an arbitrary point p1 (xyz) on the perpendicular plane to B's axis, on unit sphere
+		//		using a cross product trick:
+		//		a) find the largest compoent of B.axis {x,y,z}
+		//		b) exhange that compoent with any other component ie a2 = {y,x,z) 
+		//		c) p1 = normalize( a2 cross B.axis )
+		// 2. rotate that point p1 by B -> p2. (It will still be on B's perpendicular plane)
+		// 3. rotate that point p2 by A -> p3. (now we have 2 points on a sphere, p1, p3)
+		// 4. find the perpendicular axis shared by origin O (0,0,0), p1 and p3.
+		//		axis_sinealpha = (p1-O) cross (p3 - O) = p1 cross p3 (cross product is scaled by sin(alpha)
+		//      sine_alpha = length(axis_sinealpha)
+		//      axis = axis_sinealpha / sine_alpha
+		// 5. find the cosine_alpha = p3 dot p1
+		// 6. find the full circle angle
+		//		angle = atan2(sine_alpha,cosine_alpha)
+		// 7. C = (axis,angle)
+		// Hypothesis: substituting half-angles in A,B before beginning, and doubling the final angle in C
+		//   will give the quaternion/rodrigues equivalent full angle
+		// not implemented.
 		veccopy4f(axisAngleC,axisAngleA);
-		axisangle_rotate3f(axisAngleC,axisAngleC,axisAngleB); //just rotate A's axis by B
 	}
 	return axisAngleC; //so can chain
 }
