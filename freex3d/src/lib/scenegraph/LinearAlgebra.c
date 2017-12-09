@@ -1172,14 +1172,22 @@ float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngle
 		// (uses full angles, not the half-angles seen in rodrigues or quaternions, so likely wrong)
 		// for axis angles C = A * B
 		// 1. find an arbitrary point p1 (xyz) on the perpendicular plane to B's axis, on unit sphere
-		//		using a cross product trick:
+		//	i) using a cross product trick:
 		//		a) find the largest compoent of B.axis {x,y,z}
 		//		b) exhange that compoent with any other component ie a2 = {y,x,z) 
 		//		c) p1 = normalize( a2 cross B.axis )
-		// 2. rotate that point p1 by B -> p2. (It will still be on B's perpendicular plane)
-		// 3. rotate that point p2 by A -> p3. (now we have 2 points on a sphere, p1, p3)
+		//		problem: what if A.axis is right on p1? then A.angle will have no effect / be 'missed' in result
+		//	ii) perpendicular to both axes
+		//		perpaxis = B.axis cross A.axis
+		//		if(length(perpaxis) == 0)
+		//			axes are parallel, just add angle
+		//			C = (B.axis, B.angle + A.angle)
+		//		else
+		//			p1 = normalize(perpaxis)
+		// 2. rotate point p1 by B -> p2. (It will still be on B's perpendicular plane)
+		// 3. rotate point p2 by A -> p3. (now we have 2 points on a sphere, p1, p3)
 		// 4. find the perpendicular axis shared by origin O (0,0,0), p1 and p3.
-		//		axis_sinealpha = (p1-O) cross (p3 - O) = p1 cross p3 (cross product is scaled by sin(alpha)
+		//		axis_sinealpha = (p1-O) cross (p3 - O) = p1 cross p3 (cross product is scaled by sin(alpha))
 		//      sine_alpha = length(axis_sinealpha)
 		//      axis = axis_sinealpha / sine_alpha
 		// 5. find the cosine_alpha = p3 dot p1
