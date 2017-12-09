@@ -1513,7 +1513,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"rightTexture",
 	"rightUrl",
 	"rotation",
-	"rtpHeaderExpected",
 	"sampleRate",
 	"samples",
 	"scale",
@@ -6382,6 +6381,9 @@ const int OFFSETS_QuadSet[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ReceiverPdu[] = {
+	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_ReceiverPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_ReceiverPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_ReceiverPdu, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_ReceiverPdu, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_ReceiverPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_ReceiverPdu, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
@@ -6401,10 +6403,10 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES_networkMode, (int) offsetof (struct X3D_ReceiverPdu, networkMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_port, (int) offsetof (struct X3D_ReceiverPdu, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_ReceiverPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_ReceiverPdu, readInterval),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_ReceiverPdu, readInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_receivedPower, (int) offsetof (struct X3D_ReceiverPdu, receivedPower),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_receiverState, (int) offsetof (struct X3D_ReceiverPdu, receiverState),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_ReceiverPdu, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_ReceiverPdu, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_ReceiverPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_ReceiverPdu, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transmitterApplicationID, (int) offsetof (struct X3D_ReceiverPdu, transmitterApplicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6412,7 +6414,7 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES_transmitterRadioID, (int) offsetof (struct X3D_ReceiverPdu, transmitterRadioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transmitterSiteID, (int) offsetof (struct X3D_ReceiverPdu, transmitterSiteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_ReceiverPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_ReceiverPdu, writeInterval),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_ReceiverPdu, writeInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Rectangle2D[] = {
@@ -6616,6 +6618,9 @@ const int OFFSETS_Shape[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_SignalPdu[] = {
+	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_SignalPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_SignalPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_SignalPdu, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_SignalPdu, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_SignalPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_SignalPdu, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
@@ -6638,15 +6643,15 @@ const int OFFSETS_SignalPdu[] = {
 	(int) FIELDNAMES_networkMode, (int) offsetof (struct X3D_SignalPdu, networkMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_port, (int) offsetof (struct X3D_SignalPdu, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_SignalPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_SignalPdu, readInterval),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_SignalPdu, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_SignalPdu, readInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_SignalPdu, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_sampleRate, (int) offsetof (struct X3D_SignalPdu, sampleRate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_samples, (int) offsetof (struct X3D_SignalPdu, samples),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_SignalPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_tdlType, (int) offsetof (struct X3D_SignalPdu, tdlType),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_SignalPdu, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_SignalPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_SignalPdu, writeInterval),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_SignalPdu, writeInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_SilhouetteEnhancementVolumeStyle[] = {
@@ -7107,6 +7112,9 @@ const int OFFSETS_TransformSensor[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TransmitterPdu[] = {
+	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_TransmitterPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_TransmitterPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_TransmitterPdu, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_TransmitterPdu, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_antennaLocation, (int) offsetof (struct X3D_TransmitterPdu, antennaLocation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_antennaPatternLength, (int) offsetof (struct X3D_TransmitterPdu, antennaPatternLength),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7145,15 +7153,15 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES_radioEntityTypeNomenclature, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeNomenclature),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeNomenclatureVersion, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeNomenclatureVersion),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_TransmitterPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_TransmitterPdu, readInterval),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_TransmitterPdu, readInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_relativeAntennaLocation, (int) offsetof (struct X3D_TransmitterPdu, relativeAntennaLocation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_TransmitterPdu, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_TransmitterPdu, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_TransmitterPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_TransmitterPdu, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transmitFrequencyBandwidth, (int) offsetof (struct X3D_TransmitterPdu, transmitFrequencyBandwidth),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transmitState, (int) offsetof (struct X3D_TransmitterPdu, transmitState),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_TransmitterPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_TransmitterPdu, writeInterval),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_TransmitterPdu, writeInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TriangleFanSet[] = {
@@ -11571,6 +11579,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->offset.c[0] = 0.0f;tmp2->offset.c[1] = 0.0f;tmp2->offset.c[2] = 0.0f;
 			tmp2->trackPoint_changed.c[0] = 0.0f;tmp2->trackPoint_changed.c[1] = 0.0f;tmp2->trackPoint_changed.c[2] = 0.0f;
 			tmp2->translation_changed.c[0] = 0.0f;tmp2->translation_changed.c[1] = 0.0f;tmp2->translation_changed.c[2] = 0.0f;
+			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
 		case NODE_PointSet : {
@@ -11861,6 +11870,9 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ReceiverPdu : {
 			struct X3D_ReceiverPdu * tmp2;
 			tmp2 = (struct X3D_ReceiverPdu *) tmp;
+			tmp2->_dsock = NULL;
+			tmp2->_lasttime = 0;
+			tmp2->_registered = FALSE;
 			tmp2->address = newASCIIString("localhost");
 			tmp2->applicationID = 1;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
@@ -11880,7 +11892,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->networkMode = newASCIIString("standAlone");
 			tmp2->port = 0;
 			tmp2->radioID = 0;
-			tmp2->readInterval = 0.1f;
+			tmp2->readInterval = 0.1;
 			tmp2->receivedPower = 0.0f;
 			tmp2->receiverState = 0;
 			tmp2->rtpHeaderExpected = FALSE;
@@ -11891,7 +11903,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transmitterRadioID = 0;
 			tmp2->transmitterSiteID = 0;
 			tmp2->whichGeometry = 1;
-			tmp2->writeInterval = 1.0f;
+			tmp2->writeInterval = 1;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -12140,6 +12152,9 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_SignalPdu : {
 			struct X3D_SignalPdu * tmp2;
 			tmp2 = (struct X3D_SignalPdu *) tmp;
+			tmp2->_dsock = NULL;
+			tmp2->_lasttime = 0;
+			tmp2->_registered = FALSE;
 			tmp2->address = newASCIIString("localhost");
 			tmp2->applicationID = 1;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
@@ -12162,15 +12177,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->networkMode = newASCIIString("standAlone");
 			tmp2->port = 0;
 			tmp2->radioID = 0;
-			tmp2->readInterval = 0.1f;
+			tmp2->readInterval = 0.1;
 			tmp2->rtpHeaderExpected = FALSE;
 			tmp2->sampleRate = 0;
 			tmp2->samples = 0;
 			tmp2->siteID = 0;
 			tmp2->tdlType = 0;
-			tmp2->timestamp = FALSE;
+			tmp2->timestamp = 0;
 			tmp2->whichGeometry = 1;
-			tmp2->writeInterval = 1.0f;
+			tmp2->writeInterval = 1;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -12766,6 +12781,9 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_TransmitterPdu : {
 			struct X3D_TransmitterPdu * tmp2;
 			tmp2 = (struct X3D_TransmitterPdu *) tmp;
+			tmp2->_dsock = NULL;
+			tmp2->_lasttime = 0;
+			tmp2->_registered = FALSE;
 			tmp2->address = newASCIIString("localhost");
 			tmp2->antennaLocation.c[0] = 0.0f;tmp2->antennaLocation.c[1] = 0.0f;tmp2->antennaLocation.c[2] = 0.0f;
 			tmp2->antennaPatternLength = 0;
@@ -12804,7 +12822,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->radioEntityTypeNomenclature = 0;
 			tmp2->radioEntityTypeNomenclatureVersion = 0;
 			tmp2->radioID = 0;
-			tmp2->readInterval = 0.1f;
+			tmp2->readInterval = 0.1;
 			tmp2->relativeAntennaLocation.c[0] = 0.0f;tmp2->relativeAntennaLocation.c[1] = 0.0f;tmp2->relativeAntennaLocation.c[2] = 0.0f;
 			tmp2->rtpHeaderExpected = FALSE;
 			tmp2->siteID = 0;
@@ -12812,7 +12830,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transmitFrequencyBandwidth = 0.0f;
 			tmp2->transmitState = 0;
 			tmp2->whichGeometry = 1;
-			tmp2->writeInterval = 1.0f;
+			tmp2->writeInterval = 1;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -16702,17 +16720,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," networkMode (SFString) \t%s\n",tmp->networkMode->strptr);
 			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
 			spacer fprintf (fp," radioID (SFInt32) \t%d\n",tmp->radioID);
-			spacer fprintf (fp," readInterval (SFFloat) \t%4.3f\n",tmp->readInterval);
+			spacer fprintf (fp," readInterval (SFTime) \t%4.3f\n",tmp->readInterval);
 			spacer fprintf (fp," receivedPower (SFFloat) \t%4.3f\n",tmp->receivedPower);
 			spacer fprintf (fp," receiverState (SFInt32) \t%d\n",tmp->receiverState);
-			spacer fprintf (fp," rtpHeaderExpected (SFBool) \t%d\n",tmp->rtpHeaderExpected);
 			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," transmitterApplicationID (SFInt32) \t%d\n",tmp->transmitterApplicationID);
 			spacer fprintf (fp," transmitterEntityID (SFInt32) \t%d\n",tmp->transmitterEntityID);
 			spacer fprintf (fp," transmitterRadioID (SFInt32) \t%d\n",tmp->transmitterRadioID);
 			spacer fprintf (fp," transmitterSiteID (SFInt32) \t%d\n",tmp->transmitterSiteID);
 			spacer fprintf (fp," whichGeometry (SFInt32) \t%d\n",tmp->whichGeometry);
-			spacer fprintf (fp," writeInterval (SFFloat) \t%4.3f\n",tmp->writeInterval);
+			spacer fprintf (fp," writeInterval (SFTime) \t%4.3f\n",tmp->writeInterval);
 		    break;
 		}
 		case NODE_Rectangle2D : {
@@ -16996,14 +17013,13 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," networkMode (SFString) \t%s\n",tmp->networkMode->strptr);
 			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
 			spacer fprintf (fp," radioID (SFInt32) \t%d\n",tmp->radioID);
-			spacer fprintf (fp," readInterval (SFFloat) \t%4.3f\n",tmp->readInterval);
-			spacer fprintf (fp," rtpHeaderExpected (SFBool) \t%d\n",tmp->rtpHeaderExpected);
+			spacer fprintf (fp," readInterval (SFTime) \t%4.3f\n",tmp->readInterval);
 			spacer fprintf (fp," sampleRate (SFInt32) \t%d\n",tmp->sampleRate);
 			spacer fprintf (fp," samples (SFInt32) \t%d\n",tmp->samples);
 			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," tdlType (SFInt32) \t%d\n",tmp->tdlType);
 			spacer fprintf (fp," whichGeometry (SFInt32) \t%d\n",tmp->whichGeometry);
-			spacer fprintf (fp," writeInterval (SFFloat) \t%4.3f\n",tmp->writeInterval);
+			spacer fprintf (fp," writeInterval (SFTime) \t%4.3f\n",tmp->writeInterval);
 		    break;
 		}
 		case NODE_SilhouetteEnhancementVolumeStyle : {
@@ -17680,16 +17696,15 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," radioEntityTypeNomenclature (SFInt32) \t%d\n",tmp->radioEntityTypeNomenclature);
 			spacer fprintf (fp," radioEntityTypeNomenclatureVersion (SFInt32) \t%d\n",tmp->radioEntityTypeNomenclatureVersion);
 			spacer fprintf (fp," radioID (SFInt32) \t%d\n",tmp->radioID);
-			spacer fprintf (fp," readInterval (SFFloat) \t%4.3f\n",tmp->readInterval);
+			spacer fprintf (fp," readInterval (SFTime) \t%4.3f\n",tmp->readInterval);
 			spacer fprintf (fp," relativeAntennaLocation (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->relativeAntennaLocation.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," rtpHeaderExpected (SFBool) \t%d\n",tmp->rtpHeaderExpected);
 			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," transmitFrequencyBandwidth (SFFloat) \t%4.3f\n",tmp->transmitFrequencyBandwidth);
 			spacer fprintf (fp," transmitState (SFInt32) \t%d\n",tmp->transmitState);
 			spacer fprintf (fp," whichGeometry (SFInt32) \t%d\n",tmp->whichGeometry);
-			spacer fprintf (fp," writeInterval (SFFloat) \t%4.3f\n",tmp->writeInterval);
+			spacer fprintf (fp," writeInterval (SFTime) \t%4.3f\n",tmp->writeInterval);
 		    break;
 		}
 		case NODE_TriangleFanSet : {
