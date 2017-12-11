@@ -1246,13 +1246,136 @@ void prep_EspduTransform0(struct X3D_EspduTransform *node){
 }
 void fin_EspduTransform0(struct X3D_EspduTransform *node){
 }
+
 #else //WITH_DIS
 void compile_EspduTransform0(struct X3D_EspduTransform *node){}
 void prep_EspduTransform0(struct X3D_EspduTransform *node){}
 void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 #endif //WITH_DIS
 
+/*
+ ABSTRACT INTERFACES
+ dug9 would love to pull abstract interfaces from compound nodes -like the DIS espdu and 3 communication nodes
+ - because upcasting single inheritance isn't enough to serve both (Transform) and (DIS common fields)
+ - and the goal is to have functions that handle only the abstract type, without having to 
+    switch-case between different DIS node types
+ Options for abstract interfaces:
+ 1. casting first member to struct, with padding fixes
+ 2. abstract struct members are all pointers, and assigned during compile_
+ 3. automated #2
+ 4. convert all to C++ and use multiple inheritance 
+
+ 1. casting member to struct
+ For example if enabled is the first DIS network sensor field in espduTransform then an 
+ struct abstract_networksensor {
+	int enabled;
+	...
+ } A;
+ struct X3D_EspduTranform {
+	...
+	int enabled;
+	...
+ } B;
+ A = &B.enabled;
+ Then A can be passed to functions that handle network sensor 
+ Problem: struct padding and struct alignment can be different 
+   between the section of big struct B and little struct A.
+ Solution:
+	manually rearrange big struct fields and add 4 byte pad fields as needed to:
+	a) elliminate any automatic padding, and
+	b) ensure each start-of-abstract is on an 8byte boundary in big struct
+ 
+ 2. abstract struct of pointers
+ struct abstract_newworksensor {
+	int *enabled;
+	...
+ }
+ Then in compile_node, manually code a specific2abstract copier function:
+ A.enabled = &B.enabled
+ ...
+  Then A can be passed to functions that handle network sensor 
+
+ 3. automated #2 
+	somewhere in perl code generator:
+		a) an abstract node type would be defined
+		b) the first field of the big struct would be associated with the abstract type
+			- or vice versa the abstract type would be included in the big struct
+	then during compile_node code would iterate over OFFSETS for the abstract node type
+		and do the pointer copy based on the OFFSETS for the big node type and instance
+
+ 4. convert to C++ for multiple inheritance
+	- not sure C++ multiple-inheritance would solve x3d multiple inheritance - could be different animals
+	- flux was C++, there's some flux opensource code floating around for those 
+		wanting an example of abstract x3d types applied in C++
+	- attempts and proposals/suggestions in the past to convert freewrl to C++ failed to gain traction
+*/
+
+
+#define SPILLGUTS(nodetype,fieldname,fieldtype,bytecount,description) \
+	bytecount += sizeof(fieldtype); \
+	printf("%3d %2d %3d %s\n",offsetof(nodetype,fieldname),sizeof(fieldtype),n,description); 
+
+
+#define SPILLGUTS6(offset,fieldtype,bytecount,field_name) \
+	isize = returnRoutingElementLength(fieldtype); \
+	/* EAI returnRoutingElementLength returns -ve numbers for all the MF and special types */ \
+	isize = isize == -22 ? sizeof(struct Uni_String *) : isize; \
+	isize = isize == -23 ? sizeof(struct SFNode *) : isize; \
+	isize = isize < 0 ? sizeof(struct Multi_Node) : isize; \
+	bytecount +=  isize; \
+	printf("%3d %2d %3d %s\n",offset,isize,bytecount,FIELDNAMES[field_name]); 
+
+void show_espdu_node_struct_padding()
+{
+	// C pads structs 
+	// http://www.catb.org/esr/structure-packing/
+	// -- struct alignment in C
+	// so that 8 byte members -x64 pointers and doubles-are aligned to 8 bytes 
+	// and this function shows 4-byte padding in espduTransform occurs before 4 of the SFTime members
+	// (the X3D_Node header double _dist is lucky to fall on offset 24, so 24/8 = 3 an even number, so no padding)
+	// (one espdu SFTime/double is also lucky)
+	// 
+	int n, isize;
+	const int * offset;
+	static int once = 0;
+	if(once) return;
+	once++;
+
+	printf("\nespdutransform offsetof enabled %d sizeof(espdu) %d\n",offsetof(struct X3D_EspduTransform,enabled),sizeof(struct X3D_EspduTransform));
+	printf("Transform sizeof(Transform) %d\n",sizeof(struct X3D_Transform));
+	//printf("%3d %2d %3d %s\n",offsetof(struct X3D_Transform,),sizeof(),n,"");
+	printf("1.offsetof 2.sizeof 3.sum_of_sizes 4. field\n");
+	n = 0;
+	/*** node header ***/
+	SPILLGUTS(struct X3D_EspduTransform,_nodeType,int,n,"int _nodeType");
+	SPILLGUTS(struct X3D_EspduTransform,_renderFlags,int,n,"int _renderFlags");
+	SPILLGUTS(struct X3D_EspduTransform,_hit,int,n,"int _hit");
+	SPILLGUTS(struct X3D_EspduTransform,_change,int,n,"int _change");
+	SPILLGUTS(struct X3D_EspduTransform,_ichange,int,n,"int _ichange");
+	SPILLGUTS(struct X3D_EspduTransform,_parentVector,struct Vector* ,n,"struct Vector* _parentVector");
+	SPILLGUTS(struct X3D_EspduTransform,_dist,double,n,"float[2] _dist");
+	SPILLGUTS(struct X3D_EspduTransform,_extent,float [6],n,"float _extent[6]");
+	SPILLGUTS(struct X3D_EspduTransform,_intern,struct X3D_PolyRep *,n,"struct X3D_PolyRep *_intern");
+	SPILLGUTS(struct X3D_EspduTransform,referenceCount,int ,n,"int referenceCount");
+	SPILLGUTS(struct X3D_EspduTransform,_defaultContainer,int ,n,"int _defaultContainer");
+	SPILLGUTS(struct X3D_EspduTransform,_gc,void*,n,"void* _gc");
+	SPILLGUTS(struct X3D_EspduTransform,_executionContext,struct X3D_Node* ,n,"struct X3D_Node* _executionContext");
+ 	/*** node specific data: *****/
+	offset = NODE_OFFSETS[NODE_EspduTransform];
+	while(offset[0] > -1){
+//	(int) FIELDNAMES_boundaryOpacity, (int) offsetof (struct X3D_BoundaryEnhancementVolumeStyle, boundaryOpacity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+
+		SPILLGUTS6(offset[1],offset[2],n,offset[0]);
+		offset = &offset[6];
+	};
+	{
+		struct X3D_EspduTransform tt[2];
+		printf("Transform_float stride %d\n",(char*)&tt[1] - (char*)&tt[0]);
+		printf("sizeof(Transform_float) %d\n",sizeof(struct X3D_EspduTransform));
+	}
+}
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
+	show_espdu_node_struct_padding();
 	compile_EspduTransform0(node);
 	compile_Transform((struct X3D_Transform*)node);
 	MARK_NODE_COMPILED
