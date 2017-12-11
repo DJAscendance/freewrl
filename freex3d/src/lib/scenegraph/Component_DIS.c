@@ -1310,7 +1310,7 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 	- attempts and proposals/suggestions in the past to convert freewrl to C++ failed to gain traction
 */
 
-
+#ifdef SHOW_STRUCT_PADDING
 #define SPILLGUTS(nodetype,fieldname,fieldtype,bytecount,description) \
 	bytecount += sizeof(fieldtype); \
 	printf("%3d %2d %3d %s\n",offsetof(nodetype,fieldname),sizeof(fieldtype),n,description); 
@@ -1374,8 +1374,12 @@ void show_espdu_node_struct_padding()
 		printf("sizeof(Transform_float) %d\n",sizeof(struct X3D_EspduTransform));
 	}
 }
+#define SHOWPADDING show_espdu_node_struct_padding();
+#else
+#define SHOWPADDING
+#endif
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
-	show_espdu_node_struct_padding();
+	SHOWPADDING
 	compile_EspduTransform0(node);
 	compile_Transform((struct X3D_Transform*)node);
 	MARK_NODE_COMPILED
