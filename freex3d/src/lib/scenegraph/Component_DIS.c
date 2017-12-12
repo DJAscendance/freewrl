@@ -1375,19 +1375,111 @@ void show_espdu_node_struct_padding()
 	}
 }
 #define SHOWPADDING show_espdu_node_struct_padding();
-#else
+#else //SHOW_STRUCT_PADDING
 #define SHOWPADDING
-#endif
+#endif //SHOW_STRUCT_PADDING
+
+//#define SHOW_POINTER_INTERFACE 1
+#ifdef SHOW_POINTER_INTERFACE
+//abstract pointer interface
+struct pinterface {
+	void *fieldpointer;
+};
+//specific pointer interfaces
+struct pinterface_networksensor {
+	int *enabled;
+	int *isActive;
+	double *timestamp;
+	struct Uni_String **address;
+	int *port;
+	struct Uni_String **multicastRelayHost;
+	int *multicastRelayPort;
+	struct Uni_String **networkMode;
+	int *isNetworkReader;
+	int *isNetworkWriter;
+	int *isStandAlone;
+	double *readInterval;
+	double *writeInterval;
+	int *rtpHeaderExpected;
+	int *isRtpHeaderHeard;
+	int *_registered;
+	struct X3D_Node **_dsock;
+	double *_lasttime;
+};
+const int FIELDS_networksensor [] = {
+FIELDNAMES_enabled,
+FIELDNAMES_isActive,
+FIELDNAMES_timestamp,
+FIELDNAMES_address,
+FIELDNAMES_port,
+FIELDNAMES_multicastRelayHost,
+FIELDNAMES_multicastRelayPort,
+FIELDNAMES_networkMode,
+FIELDNAMES_isNetworkReader,
+FIELDNAMES_isNetworkWriter,
+FIELDNAMES_isStandAlone,
+FIELDNAMES_readInterval,
+FIELDNAMES_writeInterval,
+FIELDNAMES_rtpHeaderExpected,
+FIELDNAMES_isRtpHeaderHeard,
+FIELDNAMES__registered,
+FIELDNAMES__dsock,
+FIELDNAMES__lasttime,
+-1,
+};
+
+void node2pinterface(struct X3D_Node *node, struct pinterface *pif, const int *PFIELDS){
+	const int *fname, *offset;
+	int k;
+	fname = PFIELDS;
+	k = 0;
+	while(fname[k] > -1){
+		char **nsptr;
+		nsptr = (char **)((char *)pif + (k*sizeof(char*)));
+		*nsptr = NULL;
+		offset = NODE_OFFSETS[node->_nodeType];
+		while(offset[0] > -1){
+			if(offset[0] == fname[k]){
+				char *ptr;
+				ptr = (char *)node + offset[1];
+				//*((char **)ns + (k*sizeof(char*))) = ptr;
+				//memcpy(nsptr,&ptr,sizeof(char*));
+				*nsptr = ptr;
+				break;
+			}
+			offset += 6;
+		};
+		k++;
+	};
+}
+static struct pinterface_networksensor *ns_static = NULL;
+void make_pinterface(struct X3D_Node *node){
+	struct pinterface_networksensor *ns = malloc(sizeof(struct pinterface_networksensor));
+	node2pinterface(node,(struct pinterface*)ns,FIELDS_networksensor);
+	ns_static = ns; //would normally be stored in node _hidden field for life of node
+}
+void show_pinterface(){
+	struct pinterface_networksensor *ns = ns_static;
+	printf("enabled %d\n",*(ns->enabled));
+}
+#define MAKEPINTERFACE make_pinterface(X3D_NODE(node));
+#define SHOWPINTERFACE show_pinterface();
+#else //SHOW_POINTER_INTERFACE
+#define MAKEPINTERFACE
+#define SHOWPINTERFACE
+#endif //SHOW_POINTER_INTERFACE
+
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
 	SHOWPADDING
+	MAKEPINTERFACE
 	compile_EspduTransform0(node);
 	compile_Transform((struct X3D_Transform*)node);
 	MARK_NODE_COMPILED
+	SHOWPINTERFACE
 }
 
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
-
 	prep_EspduTransform0(node);
 	//else standalone
 	prep_Transform((struct X3D_Transform *)node);

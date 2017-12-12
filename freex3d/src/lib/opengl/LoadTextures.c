@@ -2034,6 +2034,7 @@ static int loadImageTexture_png(textureTableIndexStruct_s* this_tex, char *filen
 	
 	//from memory (if from file there s png_set_io
 	if(tactic == TACTIC_FROM_FILE){
+		size_t rvt;
 		char header[8];
 		fp = fopen(filename,"rb");
 		rvt=fread(header, 1, 8, fp);
@@ -2265,7 +2266,7 @@ static void __reallyloadImageTexture(textureTableIndexStruct_s* this_tex, char *
  *                           load it now.
  */
 int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename); 
-bool texture_load_from_file(textureTableIndexStruct_s* this_tex, char *filename)
+int texture_load_from_file(textureTableIndexStruct_s* this_tex, char *filename)
 {
 
 /* Android, put it here... */

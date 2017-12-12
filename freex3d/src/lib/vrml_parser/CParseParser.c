@@ -1788,7 +1788,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	struct unitsB u2;
 	struct unitsB *uptr, *u2length, *u2mass, *u2force, *u2angle;
 	struct unca *uc;
-	int iuc, iunca, lengthmethod;
+	int i, iuc, iunca, lengthmethod;
 
 	if(!units2vec || (units2vec->n == 0)){
 		//set default base units and derived units factors for this scenefile
@@ -1806,7 +1806,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 		}while(uncas[iuc].catname);
 	}
 	//find category name in base units (derived not allowed)
-	for(int i=0;i<vectorSize(units2vec);i++){
+	for(i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
 		if(!strcasecmp(uptr->catname,category)){
 			//copy in new unit and factor, and set changed flag
@@ -1827,7 +1827,8 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 		}
 	}
 	//pull out our base units for easy access
-	for(int i=0;i<vectorSize(units2vec);i++){
+	u2mass = u2angle = u2length = u2force = NULL;
+	for(i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
 		if(uptr->derived & UNCA_BASE){
 			switch(uptr->iunca){
@@ -1851,7 +1852,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	lengthmethod = LENGTHMETHOD_FULL; 
 	if(unitmethod == UNITMETHOD_TWOSTEP)
 		lengthmethod = LENGTHMETHOD_MINUSONE;
-	for(int i=0;i<vectorSize(units2vec);i++){
+	for(i=0;i<vectorSize(units2vec);i++){
 		uptr = vector_get_ptr(struct unitsB,units2vec,i);
 		if(uptr->derived & UNCA_DRVD){
 			double factor = uptr->factor;
@@ -2037,7 +2038,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 			isgeosystemGD = TRUE;
 			while( field->nameIndex > -1) 
 			{
-				char *name = FIELDNAMES[field->nameIndex];
+				const char *name = FIELDNAMES[field->nameIndex];
 				if(!strcmp(name,"geoSystem")){
 					union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
 					struct Uni_String *ustring = value->mfstring.p[0];
@@ -2064,7 +2065,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 			while( field->nameIndex > -1) 
 			{
 				int iunca = field->unca;
-				char *name = FIELDNAMES[field->nameIndex];
+				const char *name = FIELDNAMES[field->nameIndex];
 				union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
 				if(iunca == UNCA_GEO){
 					struct SFVec3d *sfvar;
@@ -2112,7 +2113,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 		{
 			int iunca = field->unca;
 			if(iunca == UNCA_PLANE) iunca = UNCA_LENGTH;
-			char *name = FIELDNAMES[field->nameIndex];
+			const char *name = FIELDNAMES[field->nameIndex];
 			union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
 			if(iunca != UNCA_NONE && iunca != UNCA_ANGLE && iunca != UNCA_ANGLERATE && iunca != UNCA_GEO){
 				//angles are done only at literal parse time, not to default field values which are already radians SI
