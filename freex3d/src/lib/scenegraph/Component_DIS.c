@@ -1383,10 +1383,12 @@ void show_espdu_node_struct_padding()
 #ifdef SHOW_POINTER_INTERFACE
 //abstract pointer interface
 struct pinterface {
+	struct X3D_Node *node;
 	void *fieldpointer;
 };
 //specific pointer interfaces
 struct pinterface_networksensor {
+	struct X3D_Node *node;
 	int *enabled;
 	int *isActive;
 	double *timestamp;
@@ -1427,15 +1429,217 @@ FIELDNAMES__dsock,
 FIELDNAMES__lasttime,
 -1,
 };
-
+struct pinterface_entity {
+	struct X3D_Node *node;
+	int *entityID;
+	int *applicationID;
+	int *siteID;
+};
+const int FIELDS_entity [] = {
+	FIELDNAMES_entityID,
+	FIELDNAMES_applicationID,
+	FIELDNAMES_siteID, 
+	-1,
+};
+struct pinterface_geo {
+	struct X3D_Node *node;
+	struct Multi_String *geoSystem;
+	struct SFVec3d *geoCoords;
+};
+const int FIELDS_geo [] = {	
+	FIELDNAMES_geoSystem, 
+	FIELDNAMES_geoCoords,
+	-1,
+};
+struct pinterface_info {
+	struct X3D_Node *node;
+	int *entityCategory;
+	int *entityCountry;
+	int *entityDomain;
+	int *entityExtra;
+	int *entityKind;
+	int *entitySpecific;
+	int *entitySubCategory;
+};
+const int FIELDS_info [] = {	
+	FIELDNAMES_entityCategory,
+	FIELDNAMES_entityCountry,
+	FIELDNAMES_entityDomain,
+	FIELDNAMES_entityExtra,
+	FIELDNAMES_entityKind,
+	FIELDNAMES_entitySpecific,
+	FIELDNAMES_entitySubCategory,
+	-1,
+};
+struct pinterface_force {
+	struct X3D_Node *node;
+	int *forceID;
+	struct Uni_String **marking;
+};
+const int FIELDS_force [] = {
+	FIELDNAMES_forceID,
+	FIELDNAMES_marking,
+	-1,
+};
+struct pinterface_deadreckoning {
+	struct X3D_Node *node;
+	int *deadReckoning;
+	struct SFVec3f *linearVelocity;
+	struct SFVec3f *linearAcceleration;
+};
+const int FIELDS_deadreckoning [] = {	
+	FIELDNAMES_deadReckoning,
+	FIELDNAMES_linearVelocity,
+	FIELDNAMES_linearAcceleration,
+	-1,
+};
+struct pinterface_articulation {
+	struct X3D_Node *node;
+	float *set_articulationParameterValue0;
+	float *set_articulationParameterValue1;
+	float *set_articulationParameterValue2;
+	float *set_articulationParameterValue3;
+	float *set_articulationParameterValue4;
+	float *set_articulationParameterValue5;
+	float *set_articulationParameterValue6;
+	float *set_articulationParameterValue7;
+	int *articulationParameterCount;
+	struct Multi_Int32 *articulationParameterDesignatorArray;
+	struct Multi_Int32 *articulationParameterChangeIndicatorArr;
+	struct Multi_Int32 *articulationParameterIdPartAttachedToAr;
+	struct Multi_Int32 *articulationParameterTypeArray;
+	struct Multi_Float *articulationParameterArray;
+	float *articulationParameterValue0_changed;
+	float *articulationParameterValue1_changed;
+	float *articulationParameterValue2_changed;
+	float *articulationParameterValue3_changed;
+	float *articulationParameterValue4_changed;
+	float *articulationParameterValue5_changed;
+	float *articulationParameterValue6_changed;
+	float *articulationParameterValue7_changed;
+};
+const int FIELDS_articulation [] = {	
+	FIELDNAMES_set_articulationParameterValue0,
+	FIELDNAMES_set_articulationParameterValue1,
+	FIELDNAMES_set_articulationParameterValue2,
+	FIELDNAMES_set_articulationParameterValue3,
+	FIELDNAMES_set_articulationParameterValue4,
+	FIELDNAMES_set_articulationParameterValue5,
+	FIELDNAMES_set_articulationParameterValue6,
+	FIELDNAMES_set_articulationParameterValue7,
+	FIELDNAMES_articulationParameterCount,
+	FIELDNAMES_articulationParameterDesignatorArray,
+	FIELDNAMES_articulationParameterChangeIndicatorArr,
+	FIELDNAMES_articulationParameterIdPartAttachedToAr,
+	FIELDNAMES_articulationParameterTypeArray,
+	FIELDNAMES_articulationParameterArray,
+	FIELDNAMES_articulationParameterValue0_changed,
+	FIELDNAMES_articulationParameterValue1_changed,
+	FIELDNAMES_articulationParameterValue2_changed,
+	FIELDNAMES_articulationParameterValue3_changed,
+	FIELDNAMES_articulationParameterValue4_changed,
+	FIELDNAMES_articulationParameterValue5_changed,
+	FIELDNAMES_articulationParameterValue6_changed,
+	FIELDNAMES_articulationParameterValue7_changed,
+	-1,
+};
+struct pinterface_collision {
+	struct X3D_Node *node;
+	int *collisionType;
+	double *collideTime;
+	int *isCollided;
+};
+const int FIELDS_collision [] = {	
+	FIELDNAMES_collisionType,
+	FIELDNAMES_collideTime,
+	FIELDNAMES_isCollided,
+	-1,
+};
+struct pinterface_events {
+	struct X3D_Node *node;
+	int *eventEntityID;
+	int *eventApplicationID;
+	int *eventSiteID;
+	int *eventNumber;
+};
+const int FIELDS_events [] = {	
+	FIELDNAMES_eventEntityID,
+	FIELDNAMES_eventApplicationID,
+	FIELDNAMES_eventSiteID,
+	FIELDNAMES_eventNumber,
+	-1,
+};
+struct pinterface_fire {
+	struct X3D_Node *node;
+	int *fired1;
+	int *fired2;
+	int *fireMissionIndex;
+	float *firingRange;
+	double *firedTime;
+};
+const int FIELDS_fire [] = {	
+	FIELDNAMES_fired1,
+	FIELDNAMES_fired2,
+	FIELDNAMES_fireMissionIndex,
+	FIELDNAMES_firingRange,
+	FIELDNAMES_firedTime,
+	-1,
+};
+struct pinterface_detonation {
+	struct X3D_Node *node;
+	struct SFVec3f *detonationLocation;
+	struct SFVec3f *detonationRelativeLocation;
+	int *detonationResult;
+	double *detonateTime;
+	int *isDetonated;
+};
+const int FIELDS_detonation [] = {	
+	FIELDNAMES_detonationLocation,
+	FIELDNAMES_detonationRelativeLocation,
+	FIELDNAMES_detonationResult,
+	FIELDNAMES_detonateTime,
+	FIELDNAMES_isDetonated,
+	-1,
+};
+struct pinterface_munition {
+	struct X3D_Node *node;
+	int *munitionEntityID;
+	int *munitionApplicationID;
+	int *munitionSiteID;
+	struct SFVec3f *munitionStartPoint;
+	struct SFVec3f *munitionEndPoint;
+	int *munitionQuantity;
+};
+const int FIELDS_munition [] = {	
+	FIELDNAMES_munitionEntityID,
+	FIELDNAMES_munitionApplicationID,
+	FIELDNAMES_munitionSiteID,
+	FIELDNAMES_munitionStartPoint,
+	FIELDNAMES_munitionEndPoint,
+	FIELDNAMES_munitionQuantity,
+	-1,
+};
+struct pinterface_rate {
+	struct X3D_Node *node;
+	int *firingRate;
+	int *fuse;
+	int *warhead;
+};
+const int FIELDS_rate [] = {	
+	FIELDNAMES_firingRate,
+	FIELDNAMES_fuse,
+	FIELDNAMES_warhead,
+	-1,
+};
 void node2pinterface(struct X3D_Node *node, struct pinterface *pif, const int *PFIELDS){
 	const int *fname, *offset;
 	int k;
 	fname = PFIELDS;
 	k = 0;
+	pif->node = node; //store concrete node with pinterface in case we need something
 	while(fname[k] > -1){
 		char **nsptr;
-		nsptr = (char **)((char *)pif + (k*sizeof(char*)));
+		nsptr = (char **)((char *)&pif->fieldpointer + (k*sizeof(char*)));
 		*nsptr = NULL;
 		offset = NODE_OFFSETS[node->_nodeType];
 		while(offset[0] > -1){
@@ -1452,15 +1656,43 @@ void node2pinterface(struct X3D_Node *node, struct pinterface *pif, const int *P
 		k++;
 	};
 }
+void print_pinterface(struct pinterface *pif, const int *PFIELDS){
+	//2017 dec 12 am: we don't store the fieldtype per-abstract interface (yet)
+	// ..so we have to fetch from concrete node
+	const int *fname, *offset;
+	int nodetype;
+	int k;
+	fname = PFIELDS;
+	nodetype = pif->node->_nodeType; //concrete node type used
+	k = 0;
+	while(fname[k] > -1){
+		char **nsptr;
+		nsptr = (char **)((char *)&pif->fieldpointer + (k*sizeof(char*)));
+		offset = NODE_OFFSETS[nodetype];
+		while(offset[0] > -1){
+			if(offset[0] == fname[k]){
+				int ftype = offset[2];
+				printf("%s ",FIELDNAMES[fname[k]]);
+				print_field_value(stdout,ftype,(union anyVrml*)*nsptr);
+				printf("\n");
+				break;
+			}
+			offset += 6;
+		};
+		k++;
+	};
+}
 static struct pinterface_networksensor *ns_static = NULL;
 void make_pinterface(struct X3D_Node *node){
 	struct pinterface_networksensor *ns = malloc(sizeof(struct pinterface_networksensor));
 	node2pinterface(node,(struct pinterface*)ns,FIELDS_networksensor);
 	ns_static = ns; //would normally be stored in node _hidden field for life of node
 }
+
 void show_pinterface(){
 	struct pinterface_networksensor *ns = ns_static;
 	printf("enabled %d\n",*(ns->enabled));
+	print_pinterface((struct pinterface *)ns,FIELDS_networksensor);
 }
 #define MAKEPINTERFACE make_pinterface(X3D_NODE(node));
 #define SHOWPINTERFACE show_pinterface();
