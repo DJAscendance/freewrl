@@ -813,7 +813,11 @@ void render_polyrep(void *node) {
                 renderedNodePtr);
 
 	/*  clockwise or not?*/
-	if (!pr->ccw) { FW_GL_FRONTFACE(GL_CW); }
+	if (!pr->ccw) { 
+		//FW_GL_FRONTFACE(GL_CW);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+	}
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#t-Litcolourandalpha
 	//if lit, use colors if colornode and (intensity or no texture)
  	hasc = ((pr->VBO_buffers[COLOR_VBO]!=0) || pr->color) && (tg->RenderFuncs.last_texture_type!=TEXTURE_NO_ALPHA);
@@ -904,7 +908,11 @@ void render_polyrep(void *node) {
 
 PRINT_GL_ERROR_IF_ANY("");
 
-	if (!pr->ccw) FW_GL_FRONTFACE(GL_CCW);
+	if (!pr->ccw) {
+		//FW_GL_FRONTFACE(GL_CCW);
+		glCullFace(GL_BACK); //restore to default
+		glDisable(GL_CULL_FACE); 
+	}
 
 	#ifdef TEXVERBOSE
 	{
