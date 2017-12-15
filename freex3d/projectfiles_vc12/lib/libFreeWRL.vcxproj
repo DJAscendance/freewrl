@@ -235,8 +235,8 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SRC)\libminizip;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\lib;$(SRCWIN);$(LIBWIN)\pthreads.2;$(LIBWIN)\zlib\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;$(LIBWIN)\ODE;$(LIBWIN)\ffmpeg\x86xp\include;$(LIBWIN)\openALsoft\include;$(LIBWIN)\freeALUT\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;XP_WIN;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN_HIDE;STATUSBAR_HUD;STATIC_EXPORTABLE_JS_API;HAVE_PTHREAD_CANCEL;MOVIETEXTURE_FFMPEG;WITH_RBP;HAVE_OPENAL;HAVE_ALUT;dIDEDOUBLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SRC)\libminizip;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\lib;$(SRCWIN);$(LIBWIN)\pthreads.2;$(LIBWIN)\zlib\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;$(LIBWIN)\ODE;$(LIBWIN)\ffmpeg\x86xp\include;$(LIBWIN)\openALsoft\include;$(LIBWIN)\freeALUT\include;$(LIBWIN)\js185\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_SM;XP_WIN;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN_HIDE;STATUSBAR_HUD;STATIC_EXPORTABLE_JS_API;HAVE_PTHREAD_CANCEL;MOVIETEXTURE_FFMPEG;WITH_RBP;HAVE_OPENAL;HAVE_ALUT;dIDEDOUBLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level1</WarningLevel>

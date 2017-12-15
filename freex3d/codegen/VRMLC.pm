@@ -1154,7 +1154,9 @@ sub gen {
 
 		push @genFuncs2, "\t\t\ttmp2 = (struct X3D_$node *) tmp;\n";
 
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		# foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 			my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 			my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
 			my $def = $VRML::NodeType::Nodes{$node}{Defaults}{$field};
@@ -1266,7 +1268,9 @@ sub gen {
 			push @genFuncs2, "\t\t\tspacer fprintf (fp,\" _nparents (int) %d\\n\",vectorSize(tmp->_parentVector)); /* DJTRACK_PICKSENSORS */\n";
 			push @genFuncs2, "\t\t\tfor (i=0; i<vectorSize(tmp->_parentVector); i++) { spacer fprintf (fp,\"    %d: %p\\n\",i, vector_get(struct X3D_Node *, tmp->_parentVector,i)); }\n";
 		}
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		#foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 
 			my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 			my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
@@ -1411,7 +1415,9 @@ sub gen {
 
 		push @genFuncs1, "\nconst int OFFSETS_".$node."[] = {\n";
 
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		#foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 		    my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 		    #$ft =~ tr/a-z/A-Z/; # convert to uppercase
 		    my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
@@ -1452,7 +1458,9 @@ sub gen {
 		push @fieldNodes, "\n/* $node node */\n";
 		push @fieldNodes, "BEGIN_NODE($node)\n";
 
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		#foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 			if (index($field,"_") !=0) {
 				my $fk = "";
 				my $ofk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};

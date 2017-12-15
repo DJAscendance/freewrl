@@ -1851,135 +1851,134 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_rightTexture	310
 #define EXPOSED_FIELD_rightUrl	311
 #define EXPOSED_FIELD_rotation	312
-#define EXPOSED_FIELD_rtpHeaderExpected	313
-#define EXPOSED_FIELD_sampleRate	314
-#define EXPOSED_FIELD_samples	315
-#define EXPOSED_FIELD_scale	316
-#define EXPOSED_FIELD_scaleMode	317
-#define EXPOSED_FIELD_scaleOrientation	318
-#define EXPOSED_FIELD_segmentEnabled	319
-#define EXPOSED_FIELD_segmentIdentifiers	320
-#define EXPOSED_FIELD_segments	321
-#define EXPOSED_FIELD_separateBackColor	322
-#define EXPOSED_FIELD_shaders	323
-#define EXPOSED_FIELD_shadows	324
-#define EXPOSED_FIELD_shape	325
-#define EXPOSED_FIELD_shininess	326
-#define EXPOSED_FIELD_silhouetteBoundaryOpacity	327
-#define EXPOSED_FIELD_silhouetteRetainedOpacity	328
-#define EXPOSED_FIELD_silhouetteSharpness	329
-#define EXPOSED_FIELD_siteID	330
-#define EXPOSED_FIELD_sites	331
-#define EXPOSED_FIELD_size	332
-#define EXPOSED_FIELD_sizeUnits	333
-#define EXPOSED_FIELD_skeleton	334
-#define EXPOSED_FIELD_skin	335
-#define EXPOSED_FIELD_skinCoord	336
-#define EXPOSED_FIELD_skinCoordIndex	337
-#define EXPOSED_FIELD_skinCoordWeight	338
-#define EXPOSED_FIELD_skinNormal	339
-#define EXPOSED_FIELD_skyAngle	340
-#define EXPOSED_FIELD_skyColor	341
-#define EXPOSED_FIELD_sliderForce	342
-#define EXPOSED_FIELD_slipCoefficients	343
-#define EXPOSED_FIELD_slipFactors	344
-#define EXPOSED_FIELD_softnessConstantForceMix	345
-#define EXPOSED_FIELD_softnessErrorCorrection	346
-#define EXPOSED_FIELD_source	347
-#define EXPOSED_FIELD_specularColor	348
-#define EXPOSED_FIELD_speed	349
-#define EXPOSED_FIELD_startTime	350
-#define EXPOSED_FIELD_stiffness	351
-#define EXPOSED_FIELD_stop1Bounce	352
-#define EXPOSED_FIELD_stop1ErrorCorrection	353
-#define EXPOSED_FIELD_stop2Bounce	354
-#define EXPOSED_FIELD_stop2ErrorCorrection	355
-#define EXPOSED_FIELD_stop3Bounce	356
-#define EXPOSED_FIELD_stop3ErrorCorrection	357
-#define EXPOSED_FIELD_stopBounce	358
-#define EXPOSED_FIELD_stopBounce1	359
-#define EXPOSED_FIELD_stopConstantForceMix1	360
-#define EXPOSED_FIELD_stopErrorCorrection	361
-#define EXPOSED_FIELD_stopErrorCorrection1	362
-#define EXPOSED_FIELD_stopTime	363
-#define EXPOSED_FIELD_string	364
-#define EXPOSED_FIELD_stringInp	365
-#define EXPOSED_FIELD_summary	366
-#define EXPOSED_FIELD_surface	367
-#define EXPOSED_FIELD_surfaceNormals	368
-#define EXPOSED_FIELD_surfaceSpeed	369
-#define EXPOSED_FIELD_surfaceTolerance	370
-#define EXPOSED_FIELD_surfaceValues	371
-#define EXPOSED_FIELD_suspensionErrorCorrection	372
-#define EXPOSED_FIELD_suspensionForce	373
-#define EXPOSED_FIELD_talksTo	374
-#define EXPOSED_FIELD_targetObject	375
-#define EXPOSED_FIELD_tau	376
-#define EXPOSED_FIELD_tdlType	377
-#define EXPOSED_FIELD_tessellation	378
-#define EXPOSED_FIELD_tessellationScale	379
-#define EXPOSED_FIELD_texCoord	380
-#define EXPOSED_FIELD_texture	381
-#define EXPOSED_FIELD_textureCompression	382
-#define EXPOSED_FIELD_texturePriority	383
-#define EXPOSED_FIELD_textureTransform	384
-#define EXPOSED_FIELD_timeOut	385
-#define EXPOSED_FIELD_tolerance	386
-#define EXPOSED_FIELD_top	387
-#define EXPOSED_FIELD_topTexture	388
-#define EXPOSED_FIELD_topUrl	389
-#define EXPOSED_FIELD_torques	390
-#define EXPOSED_FIELD_trajectoryCurve	391
-#define EXPOSED_FIELD_transferFunction	392
-#define EXPOSED_FIELD_transitionTime	393
-#define EXPOSED_FIELD_transitionType	394
-#define EXPOSED_FIELD_translation	395
-#define EXPOSED_FIELD_transmitFrequencyBandwidth	396
-#define EXPOSED_FIELD_transmitState	397
-#define EXPOSED_FIELD_transmitterApplicationID	398
-#define EXPOSED_FIELD_transmitterEntityID	399
-#define EXPOSED_FIELD_transmitterRadioID	400
-#define EXPOSED_FIELD_transmitterSiteID	401
-#define EXPOSED_FIELD_transparency	402
-#define EXPOSED_FIELD_trimmingContour	403
-#define EXPOSED_FIELD_turbulence	404
-#define EXPOSED_FIELD_type	405
-#define EXPOSED_FIELD_uDimension	406
-#define EXPOSED_FIELD_uOrder	407
-#define EXPOSED_FIELD_uTessellation	408
-#define EXPOSED_FIELD_ulimit	409
-#define EXPOSED_FIELD_update	410
-#define EXPOSED_FIELD_url	411
-#define EXPOSED_FIELD_useFiniteRotation	412
-#define EXPOSED_FIELD_useGeometry	413
-#define EXPOSED_FIELD_useGlobalGravity	414
-#define EXPOSED_FIELD_vDimension	415
-#define EXPOSED_FIELD_vOrder	416
-#define EXPOSED_FIELD_vTessellation	417
-#define EXPOSED_FIELD_value	418
-#define EXPOSED_FIELD_variation	419
-#define EXPOSED_FIELD_vector	420
-#define EXPOSED_FIELD_version	421
-#define EXPOSED_FIELD_vertexCount	422
-#define EXPOSED_FIELD_vertices	423
-#define EXPOSED_FIELD_viewpoints	424
-#define EXPOSED_FIELD_viewport	425
-#define EXPOSED_FIELD_visibilityLimit	426
-#define EXPOSED_FIELD_visibilityRange	427
-#define EXPOSED_FIELD_visible	428
-#define EXPOSED_FIELD_voxels	429
-#define EXPOSED_FIELD_warhead	430
-#define EXPOSED_FIELD_warmColor	431
-#define EXPOSED_FIELD_watchList	432
-#define EXPOSED_FIELD_weight	433
-#define EXPOSED_FIELD_weightConstant1	434
-#define EXPOSED_FIELD_weightConstant2	435
-#define EXPOSED_FIELD_weightTransferFunction1	436
-#define EXPOSED_FIELD_weightTransferFunction2	437
-#define EXPOSED_FIELD_whichChoice	438
-#define EXPOSED_FIELD_whichGeometry	439
-#define EXPOSED_FIELD_writeInterval	440
-#define EXPOSED_FIELD_yScale	441
+#define EXPOSED_FIELD_sampleRate	313
+#define EXPOSED_FIELD_samples	314
+#define EXPOSED_FIELD_scale	315
+#define EXPOSED_FIELD_scaleMode	316
+#define EXPOSED_FIELD_scaleOrientation	317
+#define EXPOSED_FIELD_segmentEnabled	318
+#define EXPOSED_FIELD_segmentIdentifiers	319
+#define EXPOSED_FIELD_segments	320
+#define EXPOSED_FIELD_separateBackColor	321
+#define EXPOSED_FIELD_shaders	322
+#define EXPOSED_FIELD_shadows	323
+#define EXPOSED_FIELD_shape	324
+#define EXPOSED_FIELD_shininess	325
+#define EXPOSED_FIELD_silhouetteBoundaryOpacity	326
+#define EXPOSED_FIELD_silhouetteRetainedOpacity	327
+#define EXPOSED_FIELD_silhouetteSharpness	328
+#define EXPOSED_FIELD_siteID	329
+#define EXPOSED_FIELD_sites	330
+#define EXPOSED_FIELD_size	331
+#define EXPOSED_FIELD_sizeUnits	332
+#define EXPOSED_FIELD_skeleton	333
+#define EXPOSED_FIELD_skin	334
+#define EXPOSED_FIELD_skinCoord	335
+#define EXPOSED_FIELD_skinCoordIndex	336
+#define EXPOSED_FIELD_skinCoordWeight	337
+#define EXPOSED_FIELD_skinNormal	338
+#define EXPOSED_FIELD_skyAngle	339
+#define EXPOSED_FIELD_skyColor	340
+#define EXPOSED_FIELD_sliderForce	341
+#define EXPOSED_FIELD_slipCoefficients	342
+#define EXPOSED_FIELD_slipFactors	343
+#define EXPOSED_FIELD_softnessConstantForceMix	344
+#define EXPOSED_FIELD_softnessErrorCorrection	345
+#define EXPOSED_FIELD_source	346
+#define EXPOSED_FIELD_specularColor	347
+#define EXPOSED_FIELD_speed	348
+#define EXPOSED_FIELD_startTime	349
+#define EXPOSED_FIELD_stiffness	350
+#define EXPOSED_FIELD_stop1Bounce	351
+#define EXPOSED_FIELD_stop1ErrorCorrection	352
+#define EXPOSED_FIELD_stop2Bounce	353
+#define EXPOSED_FIELD_stop2ErrorCorrection	354
+#define EXPOSED_FIELD_stop3Bounce	355
+#define EXPOSED_FIELD_stop3ErrorCorrection	356
+#define EXPOSED_FIELD_stopBounce	357
+#define EXPOSED_FIELD_stopBounce1	358
+#define EXPOSED_FIELD_stopConstantForceMix1	359
+#define EXPOSED_FIELD_stopErrorCorrection	360
+#define EXPOSED_FIELD_stopErrorCorrection1	361
+#define EXPOSED_FIELD_stopTime	362
+#define EXPOSED_FIELD_string	363
+#define EXPOSED_FIELD_stringInp	364
+#define EXPOSED_FIELD_summary	365
+#define EXPOSED_FIELD_surface	366
+#define EXPOSED_FIELD_surfaceNormals	367
+#define EXPOSED_FIELD_surfaceSpeed	368
+#define EXPOSED_FIELD_surfaceTolerance	369
+#define EXPOSED_FIELD_surfaceValues	370
+#define EXPOSED_FIELD_suspensionErrorCorrection	371
+#define EXPOSED_FIELD_suspensionForce	372
+#define EXPOSED_FIELD_talksTo	373
+#define EXPOSED_FIELD_targetObject	374
+#define EXPOSED_FIELD_tau	375
+#define EXPOSED_FIELD_tdlType	376
+#define EXPOSED_FIELD_tessellation	377
+#define EXPOSED_FIELD_tessellationScale	378
+#define EXPOSED_FIELD_texCoord	379
+#define EXPOSED_FIELD_texture	380
+#define EXPOSED_FIELD_textureCompression	381
+#define EXPOSED_FIELD_texturePriority	382
+#define EXPOSED_FIELD_textureTransform	383
+#define EXPOSED_FIELD_timeOut	384
+#define EXPOSED_FIELD_tolerance	385
+#define EXPOSED_FIELD_top	386
+#define EXPOSED_FIELD_topTexture	387
+#define EXPOSED_FIELD_topUrl	388
+#define EXPOSED_FIELD_torques	389
+#define EXPOSED_FIELD_trajectoryCurve	390
+#define EXPOSED_FIELD_transferFunction	391
+#define EXPOSED_FIELD_transitionTime	392
+#define EXPOSED_FIELD_transitionType	393
+#define EXPOSED_FIELD_translation	394
+#define EXPOSED_FIELD_transmitFrequencyBandwidth	395
+#define EXPOSED_FIELD_transmitState	396
+#define EXPOSED_FIELD_transmitterApplicationID	397
+#define EXPOSED_FIELD_transmitterEntityID	398
+#define EXPOSED_FIELD_transmitterRadioID	399
+#define EXPOSED_FIELD_transmitterSiteID	400
+#define EXPOSED_FIELD_transparency	401
+#define EXPOSED_FIELD_trimmingContour	402
+#define EXPOSED_FIELD_turbulence	403
+#define EXPOSED_FIELD_type	404
+#define EXPOSED_FIELD_uDimension	405
+#define EXPOSED_FIELD_uOrder	406
+#define EXPOSED_FIELD_uTessellation	407
+#define EXPOSED_FIELD_ulimit	408
+#define EXPOSED_FIELD_update	409
+#define EXPOSED_FIELD_url	410
+#define EXPOSED_FIELD_useFiniteRotation	411
+#define EXPOSED_FIELD_useGeometry	412
+#define EXPOSED_FIELD_useGlobalGravity	413
+#define EXPOSED_FIELD_vDimension	414
+#define EXPOSED_FIELD_vOrder	415
+#define EXPOSED_FIELD_vTessellation	416
+#define EXPOSED_FIELD_value	417
+#define EXPOSED_FIELD_variation	418
+#define EXPOSED_FIELD_vector	419
+#define EXPOSED_FIELD_version	420
+#define EXPOSED_FIELD_vertexCount	421
+#define EXPOSED_FIELD_vertices	422
+#define EXPOSED_FIELD_viewpoints	423
+#define EXPOSED_FIELD_viewport	424
+#define EXPOSED_FIELD_visibilityLimit	425
+#define EXPOSED_FIELD_visibilityRange	426
+#define EXPOSED_FIELD_visible	427
+#define EXPOSED_FIELD_voxels	428
+#define EXPOSED_FIELD_warhead	429
+#define EXPOSED_FIELD_warmColor	430
+#define EXPOSED_FIELD_watchList	431
+#define EXPOSED_FIELD_weight	432
+#define EXPOSED_FIELD_weightConstant1	433
+#define EXPOSED_FIELD_weightConstant2	434
+#define EXPOSED_FIELD_weightTransferFunction1	435
+#define EXPOSED_FIELD_weightTransferFunction2	436
+#define EXPOSED_FIELD_whichChoice	437
+#define EXPOSED_FIELD_whichGeometry	438
+#define EXPOSED_FIELD_writeInterval	439
+#define EXPOSED_FIELD_yScale	440
 
 
 /* Table of built-in fieldIds */
@@ -4410,6 +4409,41 @@ struct X3D_EspduTransform {
 	int __do_scale;
 	int __do_anything;
 	struct Multi_Node _sortedChildren;
+	int enabled;
+	int isActive;
+	double timestamp;
+	struct Uni_String *address;
+	int port;
+	struct Uni_String *multicastRelayHost;
+	int multicastRelayPort;
+	struct Uni_String *networkMode;
+	int isNetworkReader;
+	int isNetworkWriter;
+	int isStandAlone;
+	double readInterval;
+	double writeInterval;
+	int rtpHeaderExpected;
+	int isRtpHeaderHeard;
+	int _registered;
+	struct X3D_Node *_dsock;
+	double _lasttime;
+	int entityID;
+	int applicationID;
+	int siteID;
+	struct Multi_String geoSystem;
+	struct SFVec3d geoCoords;
+	int entityCategory;
+	int entityCountry;
+	int entityDomain;
+	int entityExtra;
+	int entityKind;
+	int entitySpecific;
+	int entitySubCategory;
+	int forceID;
+	struct Uni_String *marking;
+	int deadReckoning;
+	struct SFVec3f linearVelocity;
+	struct SFVec3f linearAcceleration;
 	float set_articulationParameterValue0;
 	float set_articulationParameterValue1;
 	float set_articulationParameterValue2;
@@ -4418,58 +4452,12 @@ struct X3D_EspduTransform {
 	float set_articulationParameterValue5;
 	float set_articulationParameterValue6;
 	float set_articulationParameterValue7;
-	struct Uni_String *address;
-	int applicationID;
 	int articulationParameterCount;
 	struct Multi_Int32 articulationParameterDesignatorArray;
 	struct Multi_Int32 articulationParameterChangeIndicatorArr;
 	struct Multi_Int32 articulationParameterIdPartAttachedToAr;
 	struct Multi_Int32 articulationParameterTypeArray;
 	struct Multi_Float articulationParameterArray;
-	int collisionType;
-	int deadReckoning;
-	struct SFVec3f detonationLocation;
-	struct SFVec3f detonationRelativeLocation;
-	int detonationResult;
-	int enabled;
-	int entityCategory;
-	int entityCountry;
-	int entityDomain;
-	int entityExtra;
-	int entityID;
-	int entityKind;
-	int entitySpecific;
-	int entitySubCategory;
-	int eventApplicationID;
-	int eventEntityID;
-	int eventNumber;
-	int eventSiteID;
-	int fired1;
-	int fired2;
-	int fireMissionIndex;
-	float firingRange;
-	int firingRate;
-	int forceID;
-	int fuse;
-	struct SFVec3d geoCoords;
-	struct Multi_String geoSystem;
-	struct SFVec3f linearVelocity;
-	struct SFVec3f linearAcceleration;
-	struct Uni_String *marking;
-	struct Uni_String *multicastRelayHost;
-	int multicastRelayPort;
-	int munitionApplicationID;
-	struct SFVec3f munitionEndPoint;
-	int munitionEntityID;
-	int munitionQuantity;
-	int munitionSiteID;
-	struct SFVec3f munitionStartPoint;
-	struct Uni_String *networkMode;
-	int port;
-	double readInterval;
-	int siteID;
-	int warhead;
-	double writeInterval;
 	float articulationParameterValue0_changed;
 	float articulationParameterValue1_changed;
 	float articulationParameterValue2_changed;
@@ -4478,21 +4466,32 @@ struct X3D_EspduTransform {
 	float articulationParameterValue5_changed;
 	float articulationParameterValue6_changed;
 	float articulationParameterValue7_changed;
+	int collisionType;
 	double collideTime;
-	double detonateTime;
-	double firedTime;
-	int isActive;
 	int isCollided;
+	int eventEntityID;
+	int eventApplicationID;
+	int eventSiteID;
+	int eventNumber;
+	int fired1;
+	int fired2;
+	int fireMissionIndex;
+	float firingRange;
+	double firedTime;
+	struct SFVec3f detonationLocation;
+	struct SFVec3f detonationRelativeLocation;
+	int detonationResult;
+	double detonateTime;
 	int isDetonated;
-	int isNetworkReader;
-	int isNetworkWriter;
-	int isRtpHeaderHeard;
-	int isStandAlone;
-	double timestamp;
-	int rtpHeaderExpected;
-	int _registered;
-	struct X3D_Node *_dsock;
-	double _lasttime;
+	int munitionEntityID;
+	int munitionApplicationID;
+	int munitionSiteID;
+	struct SFVec3f munitionStartPoint;
+	struct SFVec3f munitionEndPoint;
+	int munitionQuantity;
+	int firingRate;
+	int fuse;
+	int warhead;
 };
 extern struct X3D_Virt virt_EspduTransform;
 /***********************/
@@ -8765,37 +8764,40 @@ struct X3D_ReceiverPdu {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Uni_String *address;
-	int applicationID;
-	int enabled;
-	int entityID;
-	struct SFVec3d geoCoords;
-	struct Multi_String geoSystem;
+	struct SFVec3f bboxCenter;
+	struct SFVec3f bboxSize;
 	struct X3D_Node *metadata;
+	int enabled;
+	int isActive;
+	double timestamp;
+	struct Uni_String *address;
+	int port;
 	struct Uni_String *multicastRelayHost;
 	int multicastRelayPort;
 	struct Uni_String *networkMode;
-	int port;
-	int radioID;
-	float readInterval;
-	float receivedPower;
-	int receiverState;
-	int rtpHeaderExpected;
-	int siteID;
-	int transmitterApplicationID;
-	int transmitterEntityID;
-	int transmitterRadioID;
-	int transmitterSiteID;
-	int whichGeometry;
-	float writeInterval;
-	int isActive;
 	int isNetworkReader;
 	int isNetworkWriter;
-	int isRtpHeaderHeard;
 	int isStandAlone;
-	double timestamp;
-	struct SFVec3f bboxCenter;
-	struct SFVec3f bboxSize;
+	double readInterval;
+	double writeInterval;
+	int rtpHeaderExpected;
+	int isRtpHeaderHeard;
+	int _registered;
+	struct X3D_Node *_dsock;
+	double _lasttime;
+	int entityID;
+	int applicationID;
+	int siteID;
+	struct Multi_String geoSystem;
+	struct SFVec3d geoCoords;
+	int radioID;
+	int whichGeometry;
+	int receiverState;
+	float receivedPower;
+	int transmitterEntityID;
+	int transmitterApplicationID;
+	int transmitterSiteID;
+	int transmitterRadioID;
 };
 extern struct X3D_Virt virt_ReceiverPdu;
 /***********************/
@@ -9224,37 +9226,40 @@ struct X3D_SignalPdu {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Uni_String *address;
-	int applicationID;
-	struct Multi_Int32 data;
-	int dataLength;
-	int enabled;
-	int encodingScheme;
-	int entityID;
-	struct SFVec3d geoCoords;
-	struct Multi_String geoSystem;
+	struct SFVec3f bboxCenter;
+	struct SFVec3f bboxSize;
 	struct X3D_Node *metadata;
+	int enabled;
+	int isActive;
+	double timestamp;
+	struct Uni_String *address;
+	int port;
 	struct Uni_String *multicastRelayHost;
 	int multicastRelayPort;
 	struct Uni_String *networkMode;
-	int port;
-	int radioID;
-	float readInterval;
-	int rtpHeaderExpected;
-	int sampleRate;
-	int samples;
-	int siteID;
-	int tdlType;
-	int whichGeometry;
-	float writeInterval;
-	int isActive;
 	int isNetworkReader;
 	int isNetworkWriter;
-	int isRtpHeaderHeard;
 	int isStandAlone;
-	double timestamp;
-	struct SFVec3f bboxCenter;
-	struct SFVec3f bboxSize;
+	double readInterval;
+	double writeInterval;
+	int rtpHeaderExpected;
+	int isRtpHeaderHeard;
+	int _registered;
+	struct X3D_Node *_dsock;
+	double _lasttime;
+	int entityID;
+	int applicationID;
+	int siteID;
+	struct Multi_String geoSystem;
+	struct SFVec3d geoCoords;
+	int radioID;
+	int whichGeometry;
+	struct Multi_Int32 data;
+	int dataLength;
+	int encodingScheme;
+	int sampleRate;
+	int samples;
+	int tdlType;
 };
 extern struct X3D_Virt virt_SignalPdu;
 /***********************/
@@ -10255,53 +10260,56 @@ struct X3D_TransmitterPdu {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Uni_String *address;
-	struct SFVec3f antennaLocation;
-	int antennaPatternLength;
-	int antennaPatternType;
-	int applicationID;
-	int cryptoKeyID;
-	int cryptoSystem;
-	int enabled;
-	int entityID;
-	int frequency;
-	struct SFVec3d geoCoords;
-	struct Multi_String geoSystem;
-	int inputSource;
-	int lengthOfModulationParameters;
+	struct SFVec3f bboxCenter;
+	struct SFVec3f bboxSize;
 	struct X3D_Node *metadata;
-	int modulationTypeDetail;
-	int modulationTypeMajor;
-	int modulationTypeSpreadSpectrum;
-	int modulationTypeSystem;
+	int enabled;
+	int isActive;
+	double timestamp;
+	struct Uni_String *address;
+	int port;
 	struct Uni_String *multicastRelayHost;
 	int multicastRelayPort;
 	struct Uni_String *networkMode;
-	int port;
-	float power;
+	int isNetworkReader;
+	int isNetworkWriter;
+	int isStandAlone;
+	double readInterval;
+	double writeInterval;
+	int rtpHeaderExpected;
+	int isRtpHeaderHeard;
+	int _registered;
+	struct X3D_Node *_dsock;
+	double _lasttime;
+	int entityID;
+	int applicationID;
+	int siteID;
+	struct Multi_String geoSystem;
+	struct SFVec3d geoCoords;
+	int radioID;
+	int whichGeometry;
 	int radioEntityTypeCategory;
 	int radioEntityTypeCountry;
 	int radioEntityTypeDomain;
 	int radioEntityTypeKind;
 	int radioEntityTypeNomenclature;
 	int radioEntityTypeNomenclatureVersion;
-	int radioID;
-	float readInterval;
+	struct SFVec3f antennaLocation;
+	int antennaPatternLength;
+	int antennaPatternType;
 	struct SFVec3f relativeAntennaLocation;
-	int rtpHeaderExpected;
-	int siteID;
-	float transmitFrequencyBandwidth;
+	int inputSource;
 	int transmitState;
-	int whichGeometry;
-	float writeInterval;
-	int isActive;
-	int isNetworkReader;
-	int isNetworkWriter;
-	int isRtpHeaderHeard;
-	int isStandAlone;
-	double timestamp;
-	struct SFVec3f bboxCenter;
-	struct SFVec3f bboxSize;
+	float power;
+	int frequency;
+	float transmitFrequencyBandwidth;
+	int lengthOfModulationParameters;
+	int modulationTypeDetail;
+	int modulationTypeMajor;
+	int modulationTypeSpreadSpectrum;
+	int modulationTypeSystem;
+	int cryptoSystem;
+	int cryptoKeyID;
 };
 extern struct X3D_Virt virt_TransmitterPdu;
 /***********************/

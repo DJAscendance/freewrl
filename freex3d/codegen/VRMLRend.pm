@@ -138,6 +138,7 @@ our %defaultContainerType = (
 	PickableGroup 		=>["children"],
 	PixelTexture 		=>["texture"],
 	PlaneSensor 		=>["children"],
+	PointSensor 		=>["children"],
 	PointLight 		=>["children"],
 	PointSet 		=>["geometry"],
 	PositionInterpolator 	=>["children"],
