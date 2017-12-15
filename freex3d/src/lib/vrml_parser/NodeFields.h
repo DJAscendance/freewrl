@@ -2575,9 +2575,6 @@ END_NODE(QuadSet)
 
 /* ReceiverPdu node */
 BEGIN_NODE(ReceiverPdu)
-FIELD(ReceiverPdu,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
-FIELD(ReceiverPdu,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
-EXPOSED_FIELD(ReceiverPdu,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(ReceiverPdu,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EVENT_OUT(ReceiverPdu,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(ReceiverPdu,timestamp,sftime,timestamp,FIELDTYPE_SFTime)
@@ -2779,9 +2776,6 @@ END_NODE(Shape)
 
 /* SignalPdu node */
 BEGIN_NODE(SignalPdu)
-FIELD(SignalPdu,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
-FIELD(SignalPdu,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
-EXPOSED_FIELD(SignalPdu,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(SignalPdu,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EVENT_OUT(SignalPdu,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(SignalPdu,timestamp,sftime,timestamp,FIELDTYPE_SFTime)
@@ -3217,9 +3211,6 @@ END_NODE(TransformSensor)
 
 /* TransmitterPdu node */
 BEGIN_NODE(TransmitterPdu)
-FIELD(TransmitterPdu,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
-FIELD(TransmitterPdu,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
-EXPOSED_FIELD(TransmitterPdu,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(TransmitterPdu,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EVENT_OUT(TransmitterPdu,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(TransmitterPdu,timestamp,sftime,timestamp,FIELDTYPE_SFTime)

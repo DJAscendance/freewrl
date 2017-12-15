@@ -1263,7 +1263,15 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
  1. casting first member to struct, with padding fixes
  2. abstract struct members are all pointers, and assigned during compile_
  3. automated #2
- 4. convert all to C++ and use multiple inheritance 
+ 4. convert all to C++ and use multiple inheritance
+ 5. for DIS, add Transform fields as padding to 3 Radio nodes, 4 DIS nodes have common offsets
+ 6. #2/3 applied to all Transform nodes
+
+ CHOICE: #5 add transform fields to radio nodes as padding, so 4 DIS nodes share
+ same field offsets for common parts
+ Why: very fast to implement < 5 minutes, allowing me to get on with other issues
+ 
+ in more detail
 
  1. casting member to struct
  For example if enabled is the first DIS network sensor field in espduTransform then an 
