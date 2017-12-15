@@ -3073,7 +3073,8 @@ struct X3D_Virt virt_ProximitySensor = { NULL,NULL,NULL,NULL,NULL,NULL,(void *)p
 void render_QuadSet(struct X3D_QuadSet *);
 struct X3D_Virt virt_QuadSet = { NULL,(void *)render_QuadSet,NULL,NULL,(void *)rendray_QuadSet,(void *)make_QuadSet,NULL,NULL,(void *)collide_QuadSet,NULL};
 
-struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_ReceiverPdu(struct X3D_ReceiverPdu *);
+struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ReceiverPdu};
 
 void render_Rectangle2D(struct X3D_Rectangle2D *);
 void collide_Rectangle2D(struct X3D_Rectangle2D *);
@@ -3113,7 +3114,8 @@ void child_Shape(struct X3D_Shape *);
 void compile_Shape(struct X3D_Shape *);
 struct X3D_Virt virt_Shape = { NULL,NULL,(void *)child_Shape,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Shape};
 
-struct X3D_Virt virt_SignalPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_SignalPdu(struct X3D_SignalPdu *);
+struct X3D_Virt virt_SignalPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_SignalPdu};
 
 struct X3D_Virt virt_SilhouetteEnhancementVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3208,7 +3210,8 @@ struct X3D_Virt virt_Transform = { (void *)prep_Transform,NULL,(void *)child_Tra
 
 struct X3D_Virt virt_TransformSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_TransmitterPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_TransmitterPdu(struct X3D_TransmitterPdu *);
+struct X3D_Virt virt_TransmitterPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_TransmitterPdu};
 
 void render_TriangleFanSet(struct X3D_TriangleFanSet *);
 struct X3D_Virt virt_TriangleFanSet = { NULL,(void *)render_TriangleFanSet,NULL,NULL,(void *)rendray_TriangleFanSet,(void *)make_TriangleFanSet,NULL,NULL,(void *)collide_TriangleFanSet,NULL};

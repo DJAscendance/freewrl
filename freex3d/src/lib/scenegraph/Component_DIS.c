@@ -1220,7 +1220,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	return FALSE;
 }
 
-void compile_EspduTransform0(struct X3D_EspduTransform *node){
+void compile_DIS_common(struct X3D_EspduTransform *node){
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		int changed;
@@ -1240,6 +1240,14 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
+}
+void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
+}
+void compile_SignalPdu0(struct X3D_SignalPdu *node){
+}
+void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
+}
+void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	node->articulationParameterCount = node->articulationParameterArray.n;
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
@@ -1712,6 +1720,7 @@ void show_pinterface(){
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
 	SHOWPADDING
 	MAKEPINTERFACE
+	compile_DIS_common(node);
 	compile_EspduTransform0(node);
 	compile_Transform((struct X3D_Transform*)node);
 	MARK_NODE_COMPILED
@@ -1734,7 +1743,23 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 	child_Transform((struct X3D_Transform*)node);
 }
 
-
+//with padding so as to match Espdu struct
+// the 3 radio nodes can be cast to EspduTransform for common field handling
+void compile_TransmitterPdu (struct X3D_TransmitterPdu *node) { 
+	compile_DIS_common((struct X3D_EspduTransform *)node); //assumes transform padding in transmitter node
+	compile_TransmitterPdu0(node);
+	MARK_NODE_COMPILED
+}
+void compile_SignalPdu (struct X3D_SignalPdu *node) { 
+	compile_DIS_common((struct X3D_EspduTransform *)node); //assumes transform padding in signal node
+	compile_SignalPdu0(node);
+	MARK_NODE_COMPILED
+}
+void compile_ReceiverPdu (struct X3D_ReceiverPdu *node) { 
+	compile_DIS_common((struct X3D_EspduTransform *)node); //assumes transform padding in receiver node
+	compile_ReceiverPdu0(node);
+	MARK_NODE_COMPILED
+}
 
 void fwl_sendreceive_DIS(){
 	//just the buffer in/out is handled here
