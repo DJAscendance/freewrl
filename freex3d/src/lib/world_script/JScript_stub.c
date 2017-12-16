@@ -17,7 +17,8 @@
     along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 ****************************************************************************/
 #include <config.h>
-#if defined(JAVASCRIPT_STUB)
+#include "../ui/common.h"
+//#if defined(JAVASCRIPT_STUB)
 
 typedef int indexT;
 union anyVrml{
@@ -29,40 +30,242 @@ struct X3D_Proto;
 //#define BOOL int
 //#endif
 //#include "JScript.h"
-void JScript_init(void *t){}
-void jsVRMLBrowser_init(void *t){}
-void jsUtils_init(void *t){}
-void jsVRMLClasses_init(void *t){}
+//.c module gglobal sub-state initializers
+//void JScript_init(void *t){}
+//void jsVRMLBrowser_init(void *t){}
+//void jsUtils_init(void *t){}
+//void jsVRMLClasses_init(void *t){}
 
 /* stubs, when you don't have a javascript engine */
+/* //switching between engines within a stub
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_JScript_init(t);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_JScript_init(t);
+	#endif
+*/
 //void kill_javascript(void){return;}
 //void JSInit(int num){return;}
 //void SaveScriptText(int num, const char *text){return;}
-void process_eventsProcessed(){return;}
-void js_cleanup_script_context(int counter){return;}
-int jsActualrunScript(int num, char *script){return 0;}
+void process_eventsProcessed(){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_process_eventsProcessed();
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_process_eventsProcessed();
+	#endif
+	return;
+}
+void js_cleanup_script_context(int counter){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_js_cleanup_script_context(counter);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_js_cleanup_script_context(counter);
+	#endif
+	return;
+}
+int jsActualrunScript(int num, char *script){
+	int iret = 0;
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			iret = sm_jsActualrunScript(num, script);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			iret = duk_jsActualrunScript(num, script);
+	#endif
+	return iret;
+}
 //void JSInitializeScriptAndFields (int num){return;}
-void JSCreateScriptContext(int num){return;}
-void JSInitializeScriptAndFields (int num) {return;}
+void JSCreateScriptContext(int num){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_JSCreateScriptContext(num);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_JSCreateScriptContext(num);
+	#endif
+	return;
+}
+void JSInitializeScriptAndFields (int num) {
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_JSInitializeScriptAndFields(num);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_JSInitializeScriptAndFields(num);
+	#endif
+	return;
+}
 //void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){return;}
-void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){return;}
-void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript){return;}
+void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_js_setField_javascriptEventOut_B(any,fieldType,len,extraData,actualscript);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_js_setField_javascriptEventOut_B(any,fieldType,len,extraData,actualscript);
+	#endif
+	return;
+}
+void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_js_setField_javascriptEventOut(tn,tptr,fieldType,len,extraData,actualscript);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_js_setField_javascriptEventOut(tn,tptr,fieldType,len,extraData,actualscript);
+	#endif
+	return;
+}
 
-void setScriptECMAtype(int num){return;}
-int get_valueChanged_flag (int fptr, int actualscript){return 0;}
-void resetScriptTouchedFlag(int actualscript, int fptr){return;}
-void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen){return;}
-void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen){return;}
-void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){return;}
-int jsIsRunning(){return 1;}
-void JSDeleteScriptContext(int num){return;}
-void jsShutdown(){return;}
-void InitScriptField(int num, indexT kind, indexT type, const char* field, union anyVrml value)
-{return;}
-void jsClearScriptControlEntries(int num){return;}
-void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){return;}
+void setScriptECMAtype(int num){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_setScriptECMAtype(num);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_setScriptECMAtype(num);
+	#endif
+	return;
+}
+int get_valueChanged_flag (int fptr, int actualscript){
+	int iret = 0;
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			iret = sm_get_valueChanged_flag(fptr, actualscript);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			iret = duk_get_valueChanged_flag(fptr, actualscript);
+	#endif
+	return iret;
+}
+void resetScriptTouchedFlag(int actualscript, int fptr){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_resetScriptTouchedFlag(actualscript, fptr);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_resetScriptTouchedFlag(actualscript, fptr);
+	#endif
+	return;
+}
+void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_set_one_ECMAtype (tonode, toname, dataType, Data, datalen);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_set_one_ECMAtype (tonode, toname, dataType, Data, datalen);
+	#endif
+	return;
+}
+void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_set_one_MultiElementType (tonode, tnfield,Data, dataLen);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_set_one_MultiElementType (tonode, tnfield,Data, dataLen);
+	#endif
+	return;
+}
+void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_set_one_MFElementType(tonode, toname, dataType, Data, datalen);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_set_one_MFElementType(tonode, toname, dataType, Data, datalen);
+	#endif
+	return;
+}
+int jsIsRunning(){
+	int iret = 1;
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			iret = sm_jsIsRunning();
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			iret = duk_jsIsRunning();
+	#endif
+	return iret;
+}
+void JSDeleteScriptContext(int num){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_JSDeleteScriptContext(num);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_JSDeleteScriptContext(num);
+	#endif
+	return;
+}
+void jsShutdown(){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_jsShutdown();
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_jsShutdown();
+	#endif
+	return;
+}
+
+void jsClearScriptControlEntries(int num){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_jsClearScriptControlEntries (num);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_jsClearScriptControlEntries (num);
+	#endif
+	return;
+}
+void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			sm_SaveScriptField (num, kind, type, field, value);
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			duk_SaveScriptField (num, kind, type, field, value);
+	#endif
+	return;
+}
 int runQueuedDirectOutputs(){
 	//stub for SM and STUBS (DUK has it)
-	return 0;
+	int iret = 0;
+	#ifdef JAVASCRIPT_SM
+		if(getJsEngine() == JSENGINE_SM)
+			iret = sm_runQueuedDirectOutputs();
+	#endif
+	#ifdef JAVASCRIPT_DUK
+		if(getJsEngine() == JSENGINE_DUK)
+			iret = duk_runQueuedDirectOutputs();
+	#endif
+	return iret;
 }
-#endif /* defined(JAVASCRIPT_STUB) */
+//#endif /* defined(JAVASCRIPT_STUB) */

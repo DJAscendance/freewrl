@@ -28,7 +28,8 @@ which is the sample application included with the javascript engine.
 
 #include <config.h>
 #include <system.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#ifdef JAVASCRIPT_SM
 #include <display.h>
 #include <internal.h>
 

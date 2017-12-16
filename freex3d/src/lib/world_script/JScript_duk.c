@@ -186,21 +186,21 @@ int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char 
 
 
 
-typedef struct pJScript{
+typedef struct pJScript_duk{
 	int ijunk;
-}* ppJScript;
+}* ppJScript_duk;
 
 
-void *JScript_constructor(){
-	void *v = MALLOCV(sizeof(struct pJScript));
-	memset(v,0,sizeof(struct pJScript));
+void *JScript_duk_constructor(){
+	void *v = MALLOCV(sizeof(struct pJScript_duk));
+	memset(v,0,sizeof(struct pJScript_duk));
 	return v;
 }
-void JScript_init(struct tJScript *t){
+void JScript_duk_init(struct tJScript_duk *t){
 	//public
 	t->JSglobal_return_val = NULL;
 	//private
-	t->prv = JScript_constructor();
+	t->prv = JScript_duk_constructor();
 	{
 		//ppJScript p = (ppJScript)t->prv;
 		//initialize statics
@@ -210,10 +210,10 @@ void JScript_init(struct tJScript *t){
 //	ppJScript p = (ppJScript)gglobal()->JScript.prv;
 
 //stubs the linker will be looking for
-void jsVRMLBrowser_init(void *t){}
-void jsUtils_init(void *t){}
-void jsVRMLClasses_init(void *t){}
-
+//void jsVRMLBrowser_init(void *t){}
+//void jsUtils_init(void *t){}
+//void jsVRMLClasses_init(void *t){}
+//
 
 
 
@@ -277,7 +277,7 @@ char * itype2string(int itype){
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
 
 
-int get_valueChanged_flag (int fptr, int actualscript){
+int duk_get_valueChanged_flag (int fptr, int actualscript){
 	char *fullname;
 	union anyVrml* value;
 	int type, kind, ifield, found;
@@ -294,13 +294,13 @@ int get_valueChanged_flag (int fptr, int actualscript){
 	found = getFieldFromNodeAndName(node,fullname,&type,&kind,&ifield,&value);
 	if(found){
 		field = Shader_Script_getScriptField(script, ifield);
-		gglobal()->JScript.JSglobal_return_val = (void *)&field->value;
+		gglobal()->JScript_duk.JSglobal_return_val = (void *)&field->value;
 		return field->valueChanged;
 	}
-	gglobal()->JScript.JSglobal_return_val = NULL;
+	gglobal()->JScript_duk.JSglobal_return_val = NULL;
 	return 0;
 }
-void resetScriptTouchedFlag(int actualscript, int fptr){
+void duk_resetScriptTouchedFlag(int actualscript, int fptr){
 	char *fullname;
 	union anyVrml* value;
 	int type, kind, ifield, found;
@@ -1773,7 +1773,7 @@ function defineAccessor(obj, key, set, get) { \
 
 /* create the script context for this script. This is called from the thread
    that handles script calling in the fwl_RenderSceneUpdateScene */
-void JSCreateScriptContext(int num) {
+void duk_JSCreateScriptContext(int num) {
 	int i, iglobal; // , rc;
 	//jsval rval;
 	duk_context *ctx; 	/* these are set here */
@@ -2228,7 +2228,7 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, const cha
 	return;
 }
 
-void JSInitializeScriptAndFields (int num) {
+void duk_JSInitializeScriptAndFields (int num) {
 	/*  1. creates javascript-context twins of Script node dynamic/authored fields
 		2. runs the script as written by the scene author, which has the effect of
 			declaring all the author's functions (and checking author's syntax)
@@ -2271,7 +2271,7 @@ void JSInitializeScriptAndFields (int num) {
 	return;
 }
 
-int jsActualrunScript(int num, char *script){
+int duk_jsActualrunScript(int num, char *script){
 	int len, rc, iret;
 	duk_context *ctx;
 	int iglobal;
@@ -2314,16 +2314,16 @@ int jsActualrunScript(int num, char *script){
 
 	return iret;
 }
-void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){
+void duk_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){
 	return;
 }
 static int duk_once = 0;
-void process_eventsProcessed(){
+void duk_process_eventsProcessed(){
 	duk_context *ctx;
 	int rc, counter;
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg;
-	ppJScript p;
+	ppJScript_duk p;
 
 	//if(!duk_once) printf("in process_eventsProcessed\n");
 	//call function eventsProcessed () {
@@ -2331,7 +2331,7 @@ void process_eventsProcessed(){
 	duk_once++;
 
 	tg = gglobal();
-	p = (ppJScript)tg->JScript.prv;
+	p = (ppJScript_duk)tg->JScript_duk.prv;
 	for (counter = 0; counter <= tg->CRoutes.max_script_found_and_initialized; counter++) {
 		scriptcontrol = getScriptControlIndex(counter);
 		if(scriptcontrol){
@@ -2355,11 +2355,11 @@ void process_eventsProcessed(){
 
 	return;
 }
-void js_cleanup_script_context(int counter){
+void duk_js_cleanup_script_context(int counter){
 	//printf("in js_cleanup_script_context\n");
 	return;
 }
-void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
+void duk_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
 	//I think in here there is nothing to do for brotos, because the job of _B was to copy values out of javascript and
 	//into script fields, and the _B broto approach to routing would then do routing from the script fields.
 	//here in the duk / proxy method, we are already doing the setting of script fields directly.
@@ -2367,7 +2367,7 @@ void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigne
 	return;
 }
 
-void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData) {
+void duk_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData) {
 	//this proxy method already writes to the script field, so there's nothing to update in javascript
 	//- can just copy anyVrml from script field to endpoint on Route 
 	// (Brotos don't come in this function)
@@ -2379,22 +2379,22 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 	/* set up a pointer to where to put this stuff */
 	memptr = offsetPointer_deref(char *, tn, tptr);
 	//the from -our current script field value- is coming in through JSglobal_return_val 
-	fromptr = tg->JScript.JSglobal_return_val;
+	fromptr = tg->JScript_duk.JSglobal_return_val;
 	
 	medium_copy_field0(fieldType,fromptr,memptr); //will copy p data in MF
 	return;
 }
-void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
+void duk_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
 	struct CRscriptStruct *scriptcontrol;
 
 	scriptcontrol = getScriptControlIndex(actualscript);
-	setField_javascriptEventOut(tn,tptr,fieldType, len, extraData);
+	duk_setField_javascriptEventOut(tn,tptr,fieldType, len, extraData);
 }
 
 
 
 
-void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
+void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
 	//char scriptline[100];
 	//FWVAL newval;
 	duk_context *ctx;
@@ -2455,7 +2455,7 @@ void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int dat
         case FIELDTYPE_SFString:
 */
 
-void setScriptECMAtype (int num) {
+void duk_setScriptECMAtype (int num) {
 	void *fn;
 	int tptr;
 	int len;
@@ -2478,7 +2478,7 @@ void setScriptECMAtype (int num) {
 	}
 }
 
-void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen){
+void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen){
 	//tonode - script array num
 	//tnfield - integer index into jsparamname[] array
 	//void* Data - pointer to anyVrml of the from node
@@ -2516,7 +2516,7 @@ void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen)
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
 	return;
 }
-void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){
+void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){
 	//tonode - script array num
 	//tnfield - integer index into jsparamname[] array
 	//void* Data - MF.p
@@ -2559,22 +2559,22 @@ void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
 	return;
 }
-int jsIsRunning(){
+int duk_jsIsRunning(){
 	//printf("in jsIsRunning\n");
 	return 1;
 }
-void JSDeleteScriptContext(int num){
+void duk_JSDeleteScriptContext(int num){
 	struct CRscriptStruct *ScriptControl;
 	//printf("in JSDeleteScriptContext\n");
 	ScriptControl = getScriptControlIndex(num);
 	duk_destroy_heap(ScriptControl->cx);
 	return;
 }
-void jsShutdown(){
+void duk_jsShutdown(){
 	//printf("in jsShutdown\n");
 	return;
 }
-void jsClearScriptControlEntries(int num){
+void duk_jsClearScriptControlEntries(int num){
 	//printf("in jsClearScriptControlEntries\n");
 	return;
 }
@@ -2642,7 +2642,7 @@ int jsrrunScript(duk_context *ctx, char *script, FWval retval) {
 int isScriptControlOK(int actualscript);
 int isScriptControlInitialized(int actualscript);
 void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union anyVrml *any, int len);
-int runQueuedDirectOutputs()
+int duk_runQueuedDirectOutputs()
 {
 	/*
 	http://www.web3d.org/files/specifications/19775-1/V3.3/Part01/components/scripting.html#directoutputs

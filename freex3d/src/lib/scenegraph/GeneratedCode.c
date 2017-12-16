@@ -294,6 +294,25 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_origNorms",
 	"_origPoint",
 	"_p",
+	"_pad___do_anything",
+	"_pad___do_center",
+	"_pad___do_rotation",
+	"_pad___do_scale",
+	"_pad___do_scaleO",
+	"_pad___do_trans",
+	"_pad___sibAffectors",
+	"_pad__sortedChildren",
+	"_pad_addChildren",
+	"_pad_bboxCenter",
+	"_pad_bboxSize",
+	"_pad_center",
+	"_pad_children",
+	"_pad_metadata",
+	"_pad_removeChildren",
+	"_pad_rotation",
+	"_pad_scale",
+	"_pad_scaleOrientation",
+	"_pad_translation",
 	"_parentResource",
 	"_particles",
 	"_patch",
@@ -3054,7 +3073,8 @@ struct X3D_Virt virt_ProximitySensor = { NULL,NULL,NULL,NULL,NULL,NULL,(void *)p
 void render_QuadSet(struct X3D_QuadSet *);
 struct X3D_Virt virt_QuadSet = { NULL,(void *)render_QuadSet,NULL,NULL,(void *)rendray_QuadSet,(void *)make_QuadSet,NULL,NULL,(void *)collide_QuadSet,NULL};
 
-struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_ReceiverPdu(struct X3D_ReceiverPdu *);
+struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ReceiverPdu};
 
 void render_Rectangle2D(struct X3D_Rectangle2D *);
 void collide_Rectangle2D(struct X3D_Rectangle2D *);
@@ -3094,7 +3114,8 @@ void child_Shape(struct X3D_Shape *);
 void compile_Shape(struct X3D_Shape *);
 struct X3D_Virt virt_Shape = { NULL,NULL,(void *)child_Shape,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Shape};
 
-struct X3D_Virt virt_SignalPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_SignalPdu(struct X3D_SignalPdu *);
+struct X3D_Virt virt_SignalPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_SignalPdu};
 
 struct X3D_Virt virt_SilhouetteEnhancementVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3189,7 +3210,8 @@ struct X3D_Virt virt_Transform = { (void *)prep_Transform,NULL,(void *)child_Tra
 
 struct X3D_Virt virt_TransformSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_TransmitterPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_TransmitterPdu(struct X3D_TransmitterPdu *);
+struct X3D_Virt virt_TransmitterPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_TransmitterPdu};
 
 void render_TriangleFanSet(struct X3D_TriangleFanSet *);
 struct X3D_Virt virt_TriangleFanSet = { NULL,(void *)render_TriangleFanSet,NULL,NULL,(void *)rendray_TriangleFanSet,(void *)make_TriangleFanSet,NULL,NULL,(void *)collide_TriangleFanSet,NULL};
@@ -6381,9 +6403,25 @@ const int OFFSETS_QuadSet[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ReceiverPdu[] = {
-	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_ReceiverPdu, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
-	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_ReceiverPdu, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_ReceiverPdu, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_addChildren, (int) offsetof (struct X3D_ReceiverPdu, _pad_addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_removeChildren, (int) offsetof (struct X3D_ReceiverPdu, _pad_removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad___sibAffectors, (int) offsetof (struct X3D_ReceiverPdu, _pad___sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_center, (int) offsetof (struct X3D_ReceiverPdu, _pad_center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES__pad_children, (int) offsetof (struct X3D_ReceiverPdu, _pad_children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_metadata, (int) offsetof (struct X3D_ReceiverPdu, _pad_metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_rotation, (int) offsetof (struct X3D_ReceiverPdu, _pad_rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES__pad_scale, (int) offsetof (struct X3D_ReceiverPdu, _pad_scale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_scaleOrientation, (int) offsetof (struct X3D_ReceiverPdu, _pad_scaleOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES__pad_translation, (int) offsetof (struct X3D_ReceiverPdu, _pad_translation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES__pad_bboxCenter, (int) offsetof (struct X3D_ReceiverPdu, _pad_bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES__pad_bboxSize, (int) offsetof (struct X3D_ReceiverPdu, _pad_bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES__pad___do_center, (int) offsetof (struct X3D_ReceiverPdu, _pad___do_center),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_trans, (int) offsetof (struct X3D_ReceiverPdu, _pad___do_trans),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_rotation, (int) offsetof (struct X3D_ReceiverPdu, _pad___do_rotation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_scaleO, (int) offsetof (struct X3D_ReceiverPdu, _pad___do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_scale, (int) offsetof (struct X3D_ReceiverPdu, _pad___do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_anything, (int) offsetof (struct X3D_ReceiverPdu, _pad___do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad__sortedChildren, (int) offsetof (struct X3D_ReceiverPdu, _pad__sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_ReceiverPdu, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_ReceiverPdu, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_ReceiverPdu, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6618,9 +6656,25 @@ const int OFFSETS_Shape[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_SignalPdu[] = {
-	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_SignalPdu, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
-	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_SignalPdu, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_SignalPdu, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_addChildren, (int) offsetof (struct X3D_SignalPdu, _pad_addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_removeChildren, (int) offsetof (struct X3D_SignalPdu, _pad_removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad___sibAffectors, (int) offsetof (struct X3D_SignalPdu, _pad___sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_center, (int) offsetof (struct X3D_SignalPdu, _pad_center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES__pad_children, (int) offsetof (struct X3D_SignalPdu, _pad_children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_metadata, (int) offsetof (struct X3D_SignalPdu, _pad_metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_rotation, (int) offsetof (struct X3D_SignalPdu, _pad_rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES__pad_scale, (int) offsetof (struct X3D_SignalPdu, _pad_scale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_scaleOrientation, (int) offsetof (struct X3D_SignalPdu, _pad_scaleOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES__pad_translation, (int) offsetof (struct X3D_SignalPdu, _pad_translation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES__pad_bboxCenter, (int) offsetof (struct X3D_SignalPdu, _pad_bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES__pad_bboxSize, (int) offsetof (struct X3D_SignalPdu, _pad_bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES__pad___do_center, (int) offsetof (struct X3D_SignalPdu, _pad___do_center),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_trans, (int) offsetof (struct X3D_SignalPdu, _pad___do_trans),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_rotation, (int) offsetof (struct X3D_SignalPdu, _pad___do_rotation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_scaleO, (int) offsetof (struct X3D_SignalPdu, _pad___do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_scale, (int) offsetof (struct X3D_SignalPdu, _pad___do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_anything, (int) offsetof (struct X3D_SignalPdu, _pad___do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad__sortedChildren, (int) offsetof (struct X3D_SignalPdu, _pad__sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_SignalPdu, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_SignalPdu, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_SignalPdu, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7112,9 +7166,25 @@ const int OFFSETS_TransformSensor[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TransmitterPdu[] = {
-	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_TransmitterPdu, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
-	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_TransmitterPdu, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TransmitterPdu, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_addChildren, (int) offsetof (struct X3D_TransmitterPdu, _pad_addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_removeChildren, (int) offsetof (struct X3D_TransmitterPdu, _pad_removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad___sibAffectors, (int) offsetof (struct X3D_TransmitterPdu, _pad___sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_center, (int) offsetof (struct X3D_TransmitterPdu, _pad_center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES__pad_children, (int) offsetof (struct X3D_TransmitterPdu, _pad_children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_metadata, (int) offsetof (struct X3D_TransmitterPdu, _pad_metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_rotation, (int) offsetof (struct X3D_TransmitterPdu, _pad_rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES__pad_scale, (int) offsetof (struct X3D_TransmitterPdu, _pad_scale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pad_scaleOrientation, (int) offsetof (struct X3D_TransmitterPdu, _pad_scaleOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES__pad_translation, (int) offsetof (struct X3D_TransmitterPdu, _pad_translation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES__pad_bboxCenter, (int) offsetof (struct X3D_TransmitterPdu, _pad_bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES__pad_bboxSize, (int) offsetof (struct X3D_TransmitterPdu, _pad_bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES__pad___do_center, (int) offsetof (struct X3D_TransmitterPdu, _pad___do_center),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_trans, (int) offsetof (struct X3D_TransmitterPdu, _pad___do_trans),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_rotation, (int) offsetof (struct X3D_TransmitterPdu, _pad___do_rotation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_scaleO, (int) offsetof (struct X3D_TransmitterPdu, _pad___do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_scale, (int) offsetof (struct X3D_TransmitterPdu, _pad___do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad___do_anything, (int) offsetof (struct X3D_TransmitterPdu, _pad___do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pad__sortedChildren, (int) offsetof (struct X3D_TransmitterPdu, _pad__sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_TransmitterPdu, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_TransmitterPdu, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_TransmitterPdu, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -11870,9 +11940,25 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ReceiverPdu : {
 			struct X3D_ReceiverPdu * tmp2;
 			tmp2 = (struct X3D_ReceiverPdu *) tmp;
-			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
-			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->metadata = NULL;
+			tmp2->_pad_addChildren.n=0; tmp2->_pad_addChildren.p=0;
+			tmp2->_pad_removeChildren.n=0; tmp2->_pad_removeChildren.p=0;
+			tmp2->_pad___sibAffectors.n=0; tmp2->_pad___sibAffectors.p=0;
+			tmp2->_pad_center.c[0] = 0.0f;tmp2->_pad_center.c[1] = 0.0f;tmp2->_pad_center.c[2] = 0.0f;
+			tmp2->_pad_children.n=0; tmp2->_pad_children.p=0;
+			tmp2->_pad_metadata = NULL;
+			tmp2->_pad_rotation.c[0] = 0;tmp2->_pad_rotation.c[1] = 0;tmp2->_pad_rotation.c[2] = 1;tmp2->_pad_rotation.c[3] = 0;;
+			tmp2->_pad_scale.c[0] = 1.0f;tmp2->_pad_scale.c[1] = 1.0f;tmp2->_pad_scale.c[2] = 1.0f;
+			tmp2->_pad_scaleOrientation.c[0] = 0;tmp2->_pad_scaleOrientation.c[1] = 0;tmp2->_pad_scaleOrientation.c[2] = 1;tmp2->_pad_scaleOrientation.c[3] = 0;;
+			tmp2->_pad_translation.c[0] = 0.0f;tmp2->_pad_translation.c[1] = 0.0f;tmp2->_pad_translation.c[2] = 0.0f;
+			tmp2->_pad_bboxCenter.c[0] = 0.0f;tmp2->_pad_bboxCenter.c[1] = 0.0f;tmp2->_pad_bboxCenter.c[2] = 0.0f;
+			tmp2->_pad_bboxSize.c[0] = -1.0f;tmp2->_pad_bboxSize.c[1] = -1.0f;tmp2->_pad_bboxSize.c[2] = -1.0f;
+			tmp2->_pad___do_center = FALSE;
+			tmp2->_pad___do_trans = FALSE;
+			tmp2->_pad___do_rotation = FALSE;
+			tmp2->_pad___do_scaleO = FALSE;
+			tmp2->_pad___do_scale = FALSE;
+			tmp2->_pad___do_anything = FALSE;
+			tmp2->_pad__sortedChildren.n=0; tmp2->_pad__sortedChildren.p=0;
 			tmp2->enabled = TRUE;
 			tmp2->isActive = FALSE;
 			tmp2->timestamp = 0;
@@ -12152,9 +12238,25 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_SignalPdu : {
 			struct X3D_SignalPdu * tmp2;
 			tmp2 = (struct X3D_SignalPdu *) tmp;
-			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
-			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->metadata = NULL;
+			tmp2->_pad_addChildren.n=0; tmp2->_pad_addChildren.p=0;
+			tmp2->_pad_removeChildren.n=0; tmp2->_pad_removeChildren.p=0;
+			tmp2->_pad___sibAffectors.n=0; tmp2->_pad___sibAffectors.p=0;
+			tmp2->_pad_center.c[0] = 0.0f;tmp2->_pad_center.c[1] = 0.0f;tmp2->_pad_center.c[2] = 0.0f;
+			tmp2->_pad_children.n=0; tmp2->_pad_children.p=0;
+			tmp2->_pad_metadata = NULL;
+			tmp2->_pad_rotation.c[0] = 0;tmp2->_pad_rotation.c[1] = 0;tmp2->_pad_rotation.c[2] = 1;tmp2->_pad_rotation.c[3] = 0;;
+			tmp2->_pad_scale.c[0] = 1.0f;tmp2->_pad_scale.c[1] = 1.0f;tmp2->_pad_scale.c[2] = 1.0f;
+			tmp2->_pad_scaleOrientation.c[0] = 0;tmp2->_pad_scaleOrientation.c[1] = 0;tmp2->_pad_scaleOrientation.c[2] = 1;tmp2->_pad_scaleOrientation.c[3] = 0;;
+			tmp2->_pad_translation.c[0] = 0.0f;tmp2->_pad_translation.c[1] = 0.0f;tmp2->_pad_translation.c[2] = 0.0f;
+			tmp2->_pad_bboxCenter.c[0] = 0.0f;tmp2->_pad_bboxCenter.c[1] = 0.0f;tmp2->_pad_bboxCenter.c[2] = 0.0f;
+			tmp2->_pad_bboxSize.c[0] = -1.0f;tmp2->_pad_bboxSize.c[1] = -1.0f;tmp2->_pad_bboxSize.c[2] = -1.0f;
+			tmp2->_pad___do_center = FALSE;
+			tmp2->_pad___do_trans = FALSE;
+			tmp2->_pad___do_rotation = FALSE;
+			tmp2->_pad___do_scaleO = FALSE;
+			tmp2->_pad___do_scale = FALSE;
+			tmp2->_pad___do_anything = FALSE;
+			tmp2->_pad__sortedChildren.n=0; tmp2->_pad__sortedChildren.p=0;
 			tmp2->enabled = TRUE;
 			tmp2->isActive = FALSE;
 			tmp2->timestamp = 0;
@@ -12781,9 +12883,25 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_TransmitterPdu : {
 			struct X3D_TransmitterPdu * tmp2;
 			tmp2 = (struct X3D_TransmitterPdu *) tmp;
-			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
-			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->metadata = NULL;
+			tmp2->_pad_addChildren.n=0; tmp2->_pad_addChildren.p=0;
+			tmp2->_pad_removeChildren.n=0; tmp2->_pad_removeChildren.p=0;
+			tmp2->_pad___sibAffectors.n=0; tmp2->_pad___sibAffectors.p=0;
+			tmp2->_pad_center.c[0] = 0.0f;tmp2->_pad_center.c[1] = 0.0f;tmp2->_pad_center.c[2] = 0.0f;
+			tmp2->_pad_children.n=0; tmp2->_pad_children.p=0;
+			tmp2->_pad_metadata = NULL;
+			tmp2->_pad_rotation.c[0] = 0;tmp2->_pad_rotation.c[1] = 0;tmp2->_pad_rotation.c[2] = 1;tmp2->_pad_rotation.c[3] = 0;;
+			tmp2->_pad_scale.c[0] = 1.0f;tmp2->_pad_scale.c[1] = 1.0f;tmp2->_pad_scale.c[2] = 1.0f;
+			tmp2->_pad_scaleOrientation.c[0] = 0;tmp2->_pad_scaleOrientation.c[1] = 0;tmp2->_pad_scaleOrientation.c[2] = 1;tmp2->_pad_scaleOrientation.c[3] = 0;;
+			tmp2->_pad_translation.c[0] = 0.0f;tmp2->_pad_translation.c[1] = 0.0f;tmp2->_pad_translation.c[2] = 0.0f;
+			tmp2->_pad_bboxCenter.c[0] = 0.0f;tmp2->_pad_bboxCenter.c[1] = 0.0f;tmp2->_pad_bboxCenter.c[2] = 0.0f;
+			tmp2->_pad_bboxSize.c[0] = -1.0f;tmp2->_pad_bboxSize.c[1] = -1.0f;tmp2->_pad_bboxSize.c[2] = -1.0f;
+			tmp2->_pad___do_center = FALSE;
+			tmp2->_pad___do_trans = FALSE;
+			tmp2->_pad___do_rotation = FALSE;
+			tmp2->_pad___do_scaleO = FALSE;
+			tmp2->_pad___do_scale = FALSE;
+			tmp2->_pad___do_anything = FALSE;
+			tmp2->_pad__sortedChildren.n=0; tmp2->_pad__sortedChildren.p=0;
 			tmp2->enabled = TRUE;
 			tmp2->isActive = FALSE;
 			tmp2->timestamp = 0;
@@ -16706,7 +16824,44 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_ReceiverPdu *) node;
 			UNUSED(tmp); // compiler warning mitigation
 		    if(allFields) {
-			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+			spacer fprintf (fp," _pad___sibAffectors (MFNode):\n");
+			for (i=0; i<tmp->_pad___sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->_pad___sibAffectors.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_center (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_center.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_children (MFNode):\n");
+			for (i=0; i<tmp->_pad_children.n; i++) { dump_scene(fp,level+1,tmp->_pad_children.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->_pad_metadata); 
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_rotation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_rotation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_scale (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_scale.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_scaleOrientation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_scaleOrientation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_translation (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_translation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad__sortedChildren (MFNode):\n");
+			for (i=0; i<tmp->_pad__sortedChildren.n; i++) { dump_scene(fp,level+1,tmp->_pad__sortedChildren.p[i]); }
 		    }
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);
@@ -16995,7 +17150,44 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_SignalPdu *) node;
 			UNUSED(tmp); // compiler warning mitigation
 		    if(allFields) {
-			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+			spacer fprintf (fp," _pad___sibAffectors (MFNode):\n");
+			for (i=0; i<tmp->_pad___sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->_pad___sibAffectors.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_center (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_center.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_children (MFNode):\n");
+			for (i=0; i<tmp->_pad_children.n; i++) { dump_scene(fp,level+1,tmp->_pad_children.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->_pad_metadata); 
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_rotation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_rotation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_scale (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_scale.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_scaleOrientation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_scaleOrientation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_translation (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_translation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad__sortedChildren (MFNode):\n");
+			for (i=0; i<tmp->_pad__sortedChildren.n; i++) { dump_scene(fp,level+1,tmp->_pad__sortedChildren.p[i]); }
 		    }
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);
@@ -17661,7 +17853,44 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_TransmitterPdu *) node;
 			UNUSED(tmp); // compiler warning mitigation
 		    if(allFields) {
-			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+			spacer fprintf (fp," _pad___sibAffectors (MFNode):\n");
+			for (i=0; i<tmp->_pad___sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->_pad___sibAffectors.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_center (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_center.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_children (MFNode):\n");
+			for (i=0; i<tmp->_pad_children.n; i++) { dump_scene(fp,level+1,tmp->_pad_children.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->_pad_metadata); 
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_rotation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_rotation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_scale (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_scale.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_scaleOrientation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_scaleOrientation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad_translation (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_pad_translation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pad__sortedChildren (MFNode):\n");
+			for (i=0; i<tmp->_pad__sortedChildren.n; i++) { dump_scene(fp,level+1,tmp->_pad__sortedChildren.p[i]); }
 		    }
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);

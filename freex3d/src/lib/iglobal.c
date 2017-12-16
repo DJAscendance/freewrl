@@ -107,13 +107,17 @@ void CParseParser_init(struct tCParseParser *t);
 void CRoutes_init(struct tCRoutes *t);
 void CRoutes_clear(struct tCRoutes *t);
 void CScripts_init(struct tCScripts *t);
+#ifdef JAVASCRIPT_SM
 void JScript_init(struct tJScript *t);
 
 
 void jsUtils_init(struct tjsUtils *t);
 void jsVRMLBrowser_init(struct tjsVRMLBrowser *t);
 void jsVRMLClasses_init(struct tjsVRMLClasses *t);
-
+#endif //JAVASCRIPT_SM
+#ifdef JAVASCRIPT_DUK
+void JScript_duk_init(struct tJScript_duk *t);
+#endif //JAVASCRIPT_DUK
 void Bindable_init(struct tBindable *t);
 void Bindable_clear(struct tBindable *t);
 
@@ -236,13 +240,15 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 	CParseParser_init(&iglobal->CParseParser);
 	CRoutes_init(&iglobal->CRoutes);
 	CScripts_init(&iglobal->CScripts);
+#ifdef JAVASCRIPT_SM
 	JScript_init(&iglobal->JScript);
-
-
 	jsUtils_init(&iglobal->jsUtils);
 	jsVRMLBrowser_init(&iglobal->jsVRMLBrowser);
 	jsVRMLClasses_init(&iglobal->jsVRMLClasses);
-
+#endif //JAVASCRIPT_SM
+#ifdef JAVASCRIPT_DUK
+	JScript_duk_init(&iglobal->JScript_duk);
+#endif //JAVASCRIPT_DUK
 	Bindable_init(&iglobal->Bindable);
 	X3DParser_init(&iglobal->X3DParser);
 	common_init(&iglobal->common);
@@ -280,11 +286,16 @@ void __iglobal_fields_destructor(ttglobal tg)
 	X3DParser_clear(&tg->X3DParser); FREE_IF_NZ(tg->X3DParser.prv);
 	Bindable_clear(&tg->Bindable); FREE_IF_NZ(tg->Bindable.prv);
 
+#ifdef JAVASCRIPT_DUK
+	FREE_IF_NZ(tg->JScript_duk.prv);
+#endif //JAVASCRIPT_DUK
+#ifdef JAVASCRIPT_SM
 	FREE_IF_NZ(tg->jsVRMLClasses.prv);
 	FREE_IF_NZ(tg->jsVRMLBrowser.prv);
 	FREE_IF_NZ(tg->jsUtils.prv);
 
 	FREE_IF_NZ(tg->JScript.prv);
+#endif //JAVASCRIPT_SM
 	FREE_IF_NZ(tg->CScripts.prv);
 	CRoutes_clear(&tg->CRoutes); FREE_IF_NZ(tg->CRoutes.prv);
 	FREE_IF_NZ(tg->CParseParser.prv);
