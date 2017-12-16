@@ -389,6 +389,7 @@ iOLDCODE	}Component_Networking;
 	struct tCScripts{
 		void *prv;
 	}CScripts;
+#ifdef JAVASCRIPT_SM
 	struct tJScript{
 		void * JSglobal_return_val;
 		void *prv;
@@ -405,6 +406,13 @@ iOLDCODE	}Component_Networking;
 	struct tjsVRMLClasses{
 		void *prv;
 	}jsVRMLClasses;
+#endif
+#ifdef JAVASCRIPT_DUK
+	struct tJScript_duk{
+		void * JSglobal_return_val;
+		void *prv;
+	}JScript_duk;
+#endif
 	struct tBindable{
 		//struct sNaviInfo naviinfo;
   //      struct Vector *background_stack;

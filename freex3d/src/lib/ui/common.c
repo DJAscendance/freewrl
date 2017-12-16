@@ -79,6 +79,7 @@ typedef struct pcommon{
 	float density_factor;
 	int pedal;
 	int hover;
+	int jsengine;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -106,6 +107,13 @@ void common_init(struct tcommon *t){
 		p->density_factor = 1.0f;  //how much to scale up UI elements for small high res screens ie mobile, see fwl_setDensityFactor
 		p->pedal = 0; //pedal mode moves in-scene cursor by drag amount ie indirect/offset drag
 		p->hover = 0; //hover mode means your drags only do isOver -no navigation or sensor click
+		p->jsengine = JSENGINE_STUB;
+#ifdef JAVASCRIPT_DUK
+		p->jsengine = JSENGINE_DUK;
+#endif
+#ifdef JAVASCRIPT_SM
+		p->jsengine = JSENGINE_SM;
+#endif
 	}
 }
 void common_clear(struct tcommon *t){
@@ -127,6 +135,48 @@ void common_clear(struct tcommon *t){
 
 //ppcommon p = (ppcommon)gglobal()->common.prv;
 
+void fwl_setJsEngine(char *optarg){
+	//this has to be set during startup, can't reset during the run.
+	int engine, ivalid;
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	engine = -1;
+	ivalid = FALSE;
+
+	if(!strcmp(optarg,"SM") || !strcmp(optarg,"sm")){
+		ivalid = TRUE;
+		#ifdef JAVASCRIPT_SM
+		engine = JSENGINE_SM;
+		#else
+		ConsoleMessage("not built with spidermonkey js engine\n");
+		#endif
+	}
+	if(!strcmp(optarg,"DUK") || !strcmp(optarg,"duk")){
+		ivalid = TRUE;
+		#ifdef JAVASCRIPT_DUK
+		engine = JSENGINE_DUK;
+		#else
+		ConsoleMessage("not built with duktape js engine\n");
+		#endif
+	}
+	if(!strcmp(optarg,"NONE") || !strcmp(optarg,"none")){
+		ivalid = TRUE;
+		engine = JSENGINE_STUB;
+	}
+	if(engine == -1){
+		static char *engine_names [] = {"NONE","DUK","SM"};
+		ConsoleMessage("could not do js preference %s, trying %s\n",optarg,engine_names[p->jsengine]);
+	}
+	if(!ivalid){
+		ConsoleMessage("invalid --javascript / -J otpion, should be SM, DUK or NONE\n");
+	}
+	if(ivalid && engine > -1){
+		p->jsengine = engine; //should be JSENGINE_SM 1 or JSENGINE_DUK 2 or 0 for stubs)
+	}
+}
+int getJsEngine(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->jsengine;
+}
 /* Status update functions (generic = all platform) */
 void setFpsBar();
 void setMenuFps(float fps)

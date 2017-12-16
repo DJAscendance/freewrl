@@ -111,6 +111,7 @@ void fv_usage()
 	    "  -k|--instance <number>  Instance of plugin.\n"
 	    "  -L|--logfile <filename> Log file where all messages should go.\n"
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
+		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 #ifdef HAVE_LIBCURL
 	    "  -C|--curl               Use libcurl instead of wget.\n"
 #endif
@@ -176,6 +177,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
 	{"DIS",no_argument,0,'D'},
+	{"javascript",required_argument,0,'J'},
 	{0, 0, 0, 0}
     };
 
@@ -214,7 +216,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 #if defined(DOSNAPSEQUENCE)
 	static const char optstring[] = "efg:hi:j:k:vVlpq:m:n:o:bsQW:K:Xcr:y:utCL:d:RFPN:";
 #else
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:D"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:DJ:"; //':' means the preceding option requires an arguement
 #endif
 
 
@@ -474,6 +476,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 		ERROR_MSG("Option -L|--logfile: log filename required\n");
 		return FALSE;
 	    }
+	    break;
+	case 'J': /* --javascript, required argument: string */
+	    //sscanf(optarg,"%d",&_fw_browser_plugin);
+		fwl_setJsEngine(optarg);
 	    break;
 
 #ifdef USE_SNAPSHOT_TESTING  

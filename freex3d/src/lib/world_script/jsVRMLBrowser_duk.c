@@ -370,19 +370,19 @@ FWTYPE X3DConstantsType = {
 
 
 
-int VrmlBrowserGetName(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetName(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	fwretval->_string = BrowserName;
 	fwretval->itype = 'S';
 	return 1;
 }
-int VrmlBrowserGetVersion(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetVersion(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	fwretval->_string = libFreeWRL_get_version();
 	fwretval->itype = 'S';
 	return 1;
 }
-int VrmlBrowserGetCurrentSpeed(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetCurrentSpeed(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	char string[1000];
 	sprintf (string,"%f",gglobal()->Mainloop.BrowserSpeed);
@@ -391,7 +391,7 @@ int VrmlBrowserGetCurrentSpeed(FWType fwtype, void *ec, void * fwn, int argc, FW
 	return 1;
 }
 
-int VrmlBrowserGetCurrentFrameRate(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetCurrentFrameRate(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	char string[1000];
 	sprintf (string,"%6.2f",gglobal()->Mainloop.BrowserFPS);
@@ -399,7 +399,7 @@ int VrmlBrowserGetCurrentFrameRate(FWType fwtype, void *ec, void *fwn, int argc,
 	fwretval->itype = 'S';
 	return 1;
 }
-int VrmlBrowserGetWorldURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetWorldURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	fwretval->_string = BrowserFullPath;
 	fwretval->itype = 'S';
@@ -457,7 +457,7 @@ const char *flexiString(FWval fwpars, char *buffer)
 	return _costr;
 }
 
-int VrmlBrowserReplaceWorld(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserReplaceWorld(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	//char *tptr;
 	char*_costr;
@@ -469,7 +469,7 @@ int VrmlBrowserReplaceWorld(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 
 
 /* used in loadURL*/
-void conCat (char *out, char *in) {
+void conCat_duk (char *out, char *in) {
 
 	while (strlen (in) > 0) {
 		strcat (out," :loadURLStringBreak:");
@@ -492,7 +492,7 @@ void conCat (char *out, char *in) {
 	}
 }
 
-void createLoadUrlString(char *out, int outLen, char *url, char *param) {
+void createLoadUrlString_duk(char *out, int outLen, char *url, char *param) {
 	int commacount1;
 	int commacount2;
 	char *tptr;
@@ -532,12 +532,12 @@ void createLoadUrlString(char *out, int outLen, char *url, char *param) {
 	while (*out != '\0') out++;
 
 	/* go through the elements and find which (if any) url exists */	
-	conCat (out,url);
+	conCat_duk (out,url);
 	while (*out != '\0') out++;
-	conCat (out,param);
+	conCat_duk (out,param);
 }
 struct X3D_Anchor* get_EAIEventsIn_AnchorNode();
-int VrmlBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	char *url, *parameter;
 	char bufferUrl[1000];
@@ -549,7 +549,7 @@ int VrmlBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 		/* we use the EAI code for this - so reformat this for the EAI format */
 		{
 			/* make up the URL from what we currently know */
-			createLoadUrlString(myBuf,1000,url, parameter);
+			createLoadUrlString_duk(myBuf,1000,url, parameter);
 			createLoadURL(myBuf);
 
 			/* now tell the fwl_RenderSceneUpdateScene that BrowserAction is requested... */
@@ -558,14 +558,14 @@ int VrmlBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 		gglobal()->RenderFuncs.BrowserAction = TRUE;
 	return 0;
 }
-int VrmlBrowserSetDescription(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserSetDescription(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	//const char *_costr = NULL;
 	if(fwpars[0].itype == 'S')
 		gglobal()->Mainloop.BrowserDescription = fwpars[0]._string;
 	return 0;
 }
-int VrmlBrowserCreateX3DFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateX3DFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	/* for the return of the nodes */
 	struct X3D_Group *retGroup;
@@ -605,7 +605,7 @@ int VrmlBrowserCreateX3DFromString(FWType fwtype, void *ec, void *fwn, int argc,
 	return iret;
 }
 //int jsrrunScript(duk_context *ctx, char *script, FWval retval);
-int VrmlBrowserCreateVrmlFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateVrmlFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	/* for the return of the nodes */
 	struct X3D_Group *retGroup;
@@ -645,7 +645,7 @@ int VrmlBrowserCreateVrmlFromString(FWType fwtype, void *ec, void *fwn, int argc
 }
 void *createNewX3DNode(int nt);
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
-int VrmlBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	int i, iret, isVRML,isX3D;
 	struct X3D_Node *node;
@@ -673,9 +673,9 @@ int VrmlBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc
 	if(!node){
 		//more general might have parameters ie createNode("Cone { radius .5 }")
 		if(isVRML)
-			iret = VrmlBrowserCreateVrmlFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
+			iret = VRBrowserCreateVrmlFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
 		else
-			iret = VrmlBrowserCreateX3DFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
+			iret = VRBrowserCreateX3DFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
 		if(iret){
 			node = fwretval->_web3dval.anyvrml->mfnode.p[0];
 			node->_executionContext = ec;
@@ -692,7 +692,7 @@ int VrmlBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc
 	return iret;
 }
 void send_resource_to_parser_async(resource_item_t *res);
-int VrmlBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	//Browser.createVrmlFromURL(urlString,group,'addChildren');
 	//(MFString,SFNode,string)
@@ -742,7 +742,7 @@ int VrmlBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, F
 }
 
 /* we add/remove routes with this call */
-void jsRegisterRoute(
+void jsRegisterRoute_HIDE(
 	struct X3D_Node* from, int fromOfs,
 	struct X3D_Node* to, int toOfs,
 	int len, const char *adrem) {
@@ -827,7 +827,7 @@ void * addDeleteRoute(void *fwn, char* callingFunc, int argc, FWval fwpars, FWva
 	//	fromNode = fwpars[0]._web3dval.native; 
 	//	toNode   = fwpars[2]._web3dval.native; 
 	//}
-	fromNode = fwpars[0]._web3dval.anyvrml->sfnode; //.native; 
+	fromNode = fwpars[0]._web3dval.anyvrml->sfnode; //.native;
 	toNode   = fwpars[2]._web3dval.anyvrml->sfnode; //.native; 
 
 	fromField = fwpars[1]._string; 
@@ -861,7 +861,7 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 	return nr;
 }
 
-int VrmlBrowserAddRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
+int VRBrowserAddRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	void *xroute;
 	int nr = 0;
 	xroute = addDeleteRoute(fwn,"addRoute",argc,fwpars,fwretval);
@@ -874,13 +874,13 @@ int VrmlBrowserAddRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 	}
 	return nr;
 }
-int VrmlBrowserDeleteRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
+int VRBrowserDeleteRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	void *xroute;
 	int nr = 0;
 	xroute = addDeleteRoute(fwn,"deleteRoute",argc,fwpars,fwretval);
 	return nr;
 }
-int VrmlBrowserPrint(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserPrint(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	const char *_costr = NULL;
 	if(fwpars[0].itype == 'S'){
@@ -890,7 +890,7 @@ int VrmlBrowserPrint(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars,
 	}
 	return 0;
 }
-int VrmlBrowserPrintln(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserPrintln(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	const char *_costr = NULL;
 	if(fwpars[0].itype == 'S'){
@@ -902,22 +902,22 @@ int VrmlBrowserPrintln(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 }
 
 FWFunctionSpec (BrowserFunctions)[] = {
-	{"getName",	VrmlBrowserGetName, 'S',{0,0,0,NULL}},
-	{"getVersion", VrmlBrowserGetVersion, 'S',{0,0,0,NULL}},
-	{"getCurrentSpeed", VrmlBrowserGetCurrentSpeed, 'S',{0,0,0,NULL}},
-	{"getCurrentFrameRate", VrmlBrowserGetCurrentFrameRate, 'S',{0,0,0,NULL}},
-	{"getWorldURL", VrmlBrowserGetWorldURL, 'S',{0,0,0,NULL}},
-	{"replaceWorld", VrmlBrowserReplaceWorld, '0',{1,-1,0,"Z"}},
-	{"loadURL", VrmlBrowserLoadURL, '0',{2,1,'T',"FF"}},
-	{"setDescription", VrmlBrowserSetDescription, '0',{1,-1,0,"S"}},
-	{"createVrmlFromString", VrmlBrowserCreateVrmlFromString, 'W',{1,-1,0,"S"}},
-	{"createVrmlFromURL", VrmlBrowserCreateVrmlFromURL,'0',{3,3,0,"WWS"}},
-	{"createX3DFromString", VrmlBrowserCreateX3DFromString, 'W',{1,-1,0,"S"}},
-	{"createX3DFromURL", VrmlBrowserCreateVrmlFromURL, '0',{3,3,0,"WWS"}},
-	{"addRoute", VrmlBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
-	{"deleteRoute", VrmlBrowserDeleteRoute, '0',{4,-1,0,"WSWS"}},
-	{"print", VrmlBrowserPrint, '0',{1,-1,0,"S"}},
-	{"println", VrmlBrowserPrintln, '0',{1,-1,0,"S"}},
+	{"getName",	VRBrowserGetName, 'S',{0,0,0,NULL}},
+	{"getVersion", VRBrowserGetVersion, 'S',{0,0,0,NULL}},
+	{"getCurrentSpeed", VRBrowserGetCurrentSpeed, 'S',{0,0,0,NULL}},
+	{"getCurrentFrameRate", VRBrowserGetCurrentFrameRate, 'S',{0,0,0,NULL}},
+	{"getWorldURL", VRBrowserGetWorldURL, 'S',{0,0,0,NULL}},
+	{"replaceWorld", VRBrowserReplaceWorld, '0',{1,-1,0,"Z"}},
+	{"loadURL", VRBrowserLoadURL, '0',{2,1,'T',"FF"}},
+	{"setDescription", VRBrowserSetDescription, '0',{1,-1,0,"S"}},
+	{"createVrmlFromString", VRBrowserCreateVrmlFromString, 'W',{1,-1,0,"S"}},
+	{"createVrmlFromURL", VRBrowserCreateVrmlFromURL,'0',{3,3,0,"WWS"}},
+	{"createX3DFromString", VRBrowserCreateX3DFromString, 'W',{1,-1,0,"S"}},
+	{"createX3DFromURL", VRBrowserCreateVrmlFromURL, '0',{3,3,0,"WWS"}},
+	{"addRoute", VRBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
+	{"deleteRoute", VRBrowserDeleteRoute, '0',{4,-1,0,"WSWS"}},
+	{"print", VRBrowserPrint, '0',{1,-1,0,"S"}},
+	{"println", VRBrowserPrintln, '0',{1,-1,0,"S"}},
 
 	//{importDocument, X3dBrowserImportDocument, 0), //not sure we need/want this, what does it do?
 	//{getRenderingProperty, X3dGetRenderingProperty, 0},
@@ -1616,9 +1616,9 @@ int X3DScene_getMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 
 static FWFunctionSpec (X3DExecutionContextFunctions)[] = {
 	//executionContext
-	{"addRoute", VrmlBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
+	{"addRoute", VRBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
 	{"deleteRoute", X3DExecutionContext_deleteRoute,'0',{1,-1,0,"P"}},
-	{"createNode", VrmlBrowserCreateNodeFromString, 'W',{1,-1,0,"S"}},
+	{"createNode", VRBrowserCreateNodeFromString, 'W',{1,-1,0,"S"}},
 	{"createProto", X3DExecutionContext_createProto, 'W',{1,-1,0,"S"}},
 	{"getImportedNode", X3DExecutionContext_getImportedNode, 'W',{1,-1,0,"S"}},
 	{"updateImportedNode", X3DExecutionContext_updateImportedNode, '0',{3,-1,0,"SSS"}},

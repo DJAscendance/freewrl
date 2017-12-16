@@ -27,7 +27,8 @@ Javascript C language binding.
 
 #include <config.h>
 #include <system.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#ifdef JAVASCRIPT_SM
 #include <display.h>
 #include <internal.h>
 
@@ -126,7 +127,7 @@ void JScript_init(struct tJScript *t){
 //	ppJScript p = (ppJScript)gglobal()->JScript.prv;
 
 
-void js_cleanup_script_context(int counter){
+void sm_js_cleanup_script_context(int counter){
 	//ttglobal tg = gglobal();
 	//ppJScript p = (ppJScript)tg->JScript.prv;
 	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
@@ -142,7 +143,7 @@ function - see section C.4.3 of the spec.
 
 ********************************************************************/
 /* run the script from within C */
-void process_eventsProcessed() {
+void sm_process_eventsProcessed() {
 
 	int counter;
 	jsval retval;
@@ -195,7 +196,7 @@ void process_eventsProcessed() {
 
 
 
-void jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptControl)
+void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptControl)
 {
 	struct CRscriptStruct *ScriptControl;
 	ScriptControl = getScriptControlIndex(num);
@@ -277,11 +278,11 @@ static char *DefaultScriptMethods = "function initialize() {}; " \
 			"";
 
 /* housekeeping routines */
-int jsIsRunning(){
+int sm_jsIsRunning(){
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;
 	return p->runtime ? 1 : 0;
 }
-void JSDeleteScriptContext(int num){
+void sm_JSDeleteScriptContext(int num){
 	struct CRscriptStruct *ScriptControl;
 	//ppJScript p = (ppJScript)gglobal()->JScript.prv;
 	/* printf ("kill_javascript, context is %p\n",ScriptControl[i].cx); */
@@ -293,7 +294,7 @@ void JSDeleteScriptContext(int num){
 #endif
 	JS_DestroyContextMaybeGC(ScriptControl->cx);
 }
-void jsShutdown(){
+void sm_jsShutdown(){
 	ttglobal tg = gglobal();
 	ppJScript p = (ppJScript)tg->JScript.prv;
 	if(p->runtime)
@@ -309,7 +310,7 @@ void jsShutdown(){
 
 /* create the script context for this script. This is called from the thread
    that handles script calling in the fwl_RenderSceneUpdateScene */
-void JSCreateScriptContext(int num) {
+void sm_JSCreateScriptContext(int num) {
 	jsval rval;
 	JSContext *_context; 	/* these are set here */
 	JSObject *_globalObj; 	/* these are set here */
@@ -502,7 +503,7 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	return JS_TRUE;
 }
 
-int jsActualrunScript(int num, char *script) {
+int sm_jsActualrunScript(int num, char *script) {
 	jsval rval; //discard
 	return ACTUALRUNSCRIPT(num,script,&rval);
 }
@@ -1451,7 +1452,7 @@ OLDCODE #define Bool savedBool
 /*                                                                          */
 /****************************************************************************/
 
-int get_valueChanged_flag (int fptr, int actualscript) {
+int sm_get_valueChanged_flag (int fptr, int actualscript) {
 
 
 	struct CRscriptStruct *scriptcontrol;
@@ -1583,7 +1584,7 @@ int get_valueChanged_flag (int fptr, int actualscript) {
 
 
 /* this script value has been looked at, set the touched flag in it to FALSE. */
-void resetScriptTouchedFlag(int actualscript, int fptr) {
+void sm_resetScriptTouchedFlag(int actualscript, int fptr) {
 
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg = gglobal();
@@ -1636,7 +1637,7 @@ void resetScriptTouchedFlag(int actualscript, int fptr) {
 
 
 int jsActualrunScript(int num, char *script);
-void JSInitializeScriptAndFields (int num) {
+void sm_JSInitializeScriptAndFields (int num) {
 #ifdef OLDWAY33
         struct ScriptParamList *thisEntry;
         struct ScriptParamList *nextEntry;
@@ -1707,7 +1708,7 @@ void JSInitializeScriptAndFields (int num) {
 
 
 /* save this field from the parser; initialize it when the fwl_RenderSceneUpdateScene wants to initialize it */
-void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value) {
+void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value) {
 #ifdef OLDWAY33
 	struct ScriptParamList **nextInsert;
 	struct ScriptParamList *newEntry;
@@ -2565,7 +2566,7 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 	#endif
 }
 
-void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
+void sm_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
 	struct CRscriptStruct *scriptcontrol;
 
 	scriptcontrol = getScriptControlIndex(actualscript);
@@ -2578,7 +2579,7 @@ void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int 
 #endif
 }
 
-void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
+void sm_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
 	struct CRscriptStruct *scriptcontrol;
 
 	scriptcontrol = getScriptControlIndex(actualscript);
@@ -2595,7 +2596,7 @@ void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigne
 
 /******************************************************************************/
 
-void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
+void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
 	char scriptline[100];
 	jsval newval;
 	JSContext *cx;
@@ -2655,7 +2656,7 @@ void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int dat
         case FIELDTYPE_SFString:
 */
 
-void setScriptECMAtype (int num) {
+void sm_setScriptECMAtype (int num) {
 	void *fn;
 	int tptr;
 	int len;
@@ -2680,7 +2681,7 @@ void setScriptECMAtype (int num) {
 
 
 /* use Javascript to send in one element of an MF. datalen is in number of elements in type. */
-void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen) {
+void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen) {
 	JSContext *cx;
 	JSObject *obj;
 	int elementlen;
@@ -3244,7 +3245,7 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 
 /* really do the individual set; used by script routing and EAI sending to a script */
-void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
+void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
 	char scriptline[100];
 	JSContext *cx;
 	JSObject *obj;
@@ -3287,7 +3288,7 @@ void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen 
 #endif
 }
 
-int runQueuedDirectOutputs(){
+int sm_runQueuedDirectOutputs(){
 	//stub for SM and STUBS (DUK has it)
 	return FALSE;
 }

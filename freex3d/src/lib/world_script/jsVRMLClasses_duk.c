@@ -1390,7 +1390,7 @@ int SFNode_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, 
 	fwretval->itype = 'S';
 	return 1;
 }
-FWFunctionSpec (SFNodeFunctions)[] = {
+FWFunctionSpec (SFNode_Functions)[] = {
 	{"getNodeName",	SFNode_getNodeName, 'S',{0,0,0,NULL}},
 	// nov 2014 dug9: I was too lazy to implement the following, good luck:
 	//{"getNodeType", SFNode_getNodeType, 'W',{0,0,0,NULL}},
@@ -1416,7 +1416,7 @@ FWTYPE SFNodeType = {
 	SFNode_Getter, //Getter,
 	SFNode_Setter, //Setter,
 	0,0, //index prop type,readonly
-	SFNodeFunctions, //functions
+	SFNode_Functions, //functions
 };
 
 
@@ -1439,21 +1439,21 @@ FWTYPE MFNodeType = {
 
 
 /* from http://www.cs.rit.edu/~ncs/color/t_convert.html */
-double MIN(double a, double b, double c) {
+double MIND3(double a, double b, double c) {
 	double min;
 	if((a<b)&&(a<c))min=a; else if((b<a)&&(b<c))min=b; else min=c; return min;
 }
 
-double MAX(double a, double b, double c) {
+double MAXD3(double a, double b, double c) {
 	double max;
 	if((a>b)&&(a>c))max=a; else if((b>a)&&(b>c))max=b; else max=c; return max;
 }
 
-void convertRGBtoHSV(double r, double g, double b, double *h, double *s, double *v) {
+void convertRGBtoHSV_duk(double r, double g, double b, double *h, double *s, double *v) {
 	double my_min, my_max, delta;
 
-	my_min = MIN( r, g, b );
-	my_max = MAX( r, g, b );
+	my_min = MIND3( r, g, b );
+	my_max = MAXD3( r, g, b );
 	*v = my_max;				/* v */
 	delta = my_max - my_min;
 	if( my_max != 0 )
@@ -1474,7 +1474,7 @@ void convertRGBtoHSV(double r, double g, double b, double *h, double *s, double 
 	if( *h < 0 )
 		*h += 360;
 }
-void convertHSVtoRGB( double h, double s, double v ,double *r, double *g, double *b)
+void convertHSVtoRGB_duk( double h, double s, double v ,double *r, double *g, double *b)
 {
 	int i;
 	double f, p, q, t;
@@ -1506,7 +1506,7 @@ int SFColor_getHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	struct SFColor *ptr = (struct SFColor *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertRGBtoHSV((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
+	convertRGBtoHSV_duk((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
 	//supposed to return numeric[3] - don't have that set up so sfvec3d
 	sf3d = malloc(sizeof(struct SFVec3d)); //garbage collector please
 	memcpy(sf3d->c,xp,sizeof(double)*3);
@@ -1522,7 +1522,7 @@ int SFColor_setHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	struct SFColor *ptr = (struct SFColor *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertHSVtoRGB((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
+	convertHSVtoRGB_duk((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
 	ptr->c[0] = (float)xp[0];
 	ptr->c[1] = (float)xp[1];
 	ptr->c[2] = (float)xp[2];
@@ -1657,7 +1657,7 @@ int SFColorRGBA_getHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 	struct SFColorRGBA *ptr = (struct SFColorRGBA *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertRGBtoHSV((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
+	convertRGBtoHSV_duk((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
 	//supposed to return numeric[3] - don't have that set up so sfvec3d
 	sf3d = malloc(sizeof(struct SFVec3d)); //garbage collector please
 	memcpy(sf3d->c,xp,sizeof(double)*3);
@@ -1673,7 +1673,7 @@ int SFColorRGBA_setHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 	struct SFColorRGBA *ptr = (struct SFColorRGBA *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertHSVtoRGB((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
+	convertHSVtoRGB_duk((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
 	ptr->c[0] = (float)xp[0];
 	ptr->c[1] = (float)xp[1];
 	ptr->c[2] = (float)xp[2];

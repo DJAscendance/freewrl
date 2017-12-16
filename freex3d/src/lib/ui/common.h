@@ -33,7 +33,8 @@ char* getMenuStatus();
 void setMessageBar();
 
 /* Generic (virtual) update functions */
-
+void setJsEngine(int);
+int getJsEngine();
 void loadCursors();
 void setCursor();
 void setArrowCursor();
@@ -113,6 +114,8 @@ ALT,CTRL,SHIFT true/false
 #define NUM9  49
 #define NUMDEC 50
 
-
+#define JSENGINE_STUB 0
+#define JSENGINE_DUK 1
+#define JSENGINE_SM 2
 
 #endif /* __LIBFREEWRL_UI_COMMON_H__ */
