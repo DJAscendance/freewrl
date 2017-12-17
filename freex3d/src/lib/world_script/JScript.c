@@ -3290,6 +3290,13 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 
 int sm_runQueuedDirectOutputs(){
 	//stub for SM and STUBS (DUK has it)
+	static int doneOnce = 0;
+	if(!doneOnce){
+		//	printf("in runQueuedDirectOutputs\n");
+		printf("spidermonkey javascript engine version %ld\n", (long)JS_VERSION);
+		doneOnce++;
+	}
+
 	return FALSE;
 }
 

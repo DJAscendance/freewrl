@@ -506,10 +506,10 @@ void child_Anchor (struct X3D_Anchor *node) {
 }
 
 struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
-struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name);
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
+struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name);
 
-struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, char *name, int *source){
+struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, const char *name, int *source){
 	/*chain-of-command pattern looks in DEFnames and if not found looks in IMPORTS and if found
 		checks Inline's EXPORT table if available, and if found, checks Inline's DEF table to get node*
 		(name,node*) 'mapping': 

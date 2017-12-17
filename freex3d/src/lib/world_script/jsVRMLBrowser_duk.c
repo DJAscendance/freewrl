@@ -311,7 +311,7 @@ struct string_int lookup_X3DConstants[] = {
 	{NULL,0}
 };
 
-struct string_int *lookup_string_int(struct string_int *table, char *searchkey, int *index){
+struct string_int *lookup_string_int(struct string_int *table, const char *searchkey, int *index){
 	int i;
 	//struct string_int *retval = NULL;
 	*index = -1;
@@ -339,7 +339,7 @@ int len_constants(){
 	int len = (sizeof(lookup_X3DConstants) / sizeof(struct string_int)) -1;
 	return len;
 }
-int X3DConstantsIterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int X3DConstantsIterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	index ++;
 	(*jndex) = 0;
 	if(index < len_constants()){
@@ -700,7 +700,7 @@ int VRBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, FWv
 	union anyVrml *value;
 	struct X3D_Node *target_node;
 	struct Multi_String *url;
-	char *cfield;
+	const char *cfield;
 	resource_item_t *res;
 	
 	url = NULL;
@@ -756,7 +756,7 @@ void jsRegisterRoute_HIDE(
  		 returnInterpolatorPointer(to->_nodeType), 0, 0);
 }
 struct brotoRoute *createNewBrotoRoute();
-void *addDeleteRoute0(void *fwn, char*callingFunc, struct X3D_Node* fromNode, char *sfromField, struct X3D_Node* toNode, char *stoField){
+void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromNode, const char *sfromField, struct X3D_Node* toNode, const char *stoField){
 	void *retval;
 	int fromType,toType,fromKind,toKind,fromField,toField;
 	int i, len, fromOfs, toOfs;
@@ -1282,7 +1282,7 @@ FWTYPE ProfileInfoType = {
 
 
 struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
-struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, char *name, int *source);
+struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, const char *name, int *source);
 int X3DExecutionContext_getNamedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
 	struct X3D_Node* node = NULL;
@@ -1309,7 +1309,7 @@ int X3DExecutionContext_updateNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	struct X3D_Node* node = NULL;
 	struct brotoDefpair *bd;
 	int found = 0;
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	node = X3D_NODE(fwpars[1]._web3dval.native);
 	if(_ec->__DEFnames){
@@ -1347,7 +1347,7 @@ int X3DExecutionContext_removeNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	if(_ec->__DEFnames){
 		struct brotoDefpair *bd;
@@ -1436,7 +1436,7 @@ int X3DExecutionContext_updateImportedNode(FWType fwtype, void *ec, void *fwn, i
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	char *mxname, *as, *nline;
+	const char *as, *mxname, *nline;
 	int found = 0;
 	struct IMEXPORT *mxp;
 
@@ -1479,7 +1479,7 @@ int X3DExecutionContext_removeImportedNode(FWType fwtype, void *ec, void *fwn, i
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	//struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	if(_ec->__IMPORTS){
 		struct IMEXPORT *mxp;
@@ -1525,7 +1525,7 @@ int X3DScene_updateExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	int found = 0;
 	struct IMEXPORT *mxp;
 
@@ -1572,7 +1572,7 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	//struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	if(_ec->__EXPORTS){
 		struct IMEXPORT *mxp;
@@ -1594,7 +1594,7 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 }
 int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
-	char *name, *value;
+	const char *name, *value;
 	name = fwpars[0]._string;
 	value = fwpars[1]._string;
 	//strdup and put in a global or per-scene or per execution context (name,value) list
@@ -1602,7 +1602,8 @@ int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 }
 int X3DScene_getMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
-	char *name, *value;
+	const char *name;
+	char *value;
 	value = NULL;
 	name = fwpars[0]._string;
 	//do a search in the perscene/perexecution context array

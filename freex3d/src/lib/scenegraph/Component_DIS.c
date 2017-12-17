@@ -1256,6 +1256,10 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){
 }
 
 #else //WITH_DIS
+void compile_DIS_common(struct X3D_EspduTransform *node){}
+void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){}
+void compile_SignalPdu0(struct X3D_SignalPdu *node){}
+void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){}
 void compile_EspduTransform0(struct X3D_EspduTransform *node){}
 void prep_EspduTransform0(struct X3D_EspduTransform *node){}
 void fin_EspduTransform0(struct X3D_EspduTransform *node){}

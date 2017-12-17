@@ -86,7 +86,7 @@ void EAI_C_CommonFunctions_init(struct tEAI_C_CommonFunctions* t){
 
 
 /* create a structure to hold a string; it has a length, and a string pointer */
-struct Uni_String *newASCIIString(char *str) {
+struct Uni_String *newASCIIString(const char *str) {
 	struct Uni_String *retval;
 	int len;
 	int eaiverbose = gglobal()->EAI_C_CommonFunctions.eaiverbose;
