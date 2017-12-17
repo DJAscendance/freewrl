@@ -36,6 +36,10 @@ struct X3D_Proto;
 //void jsUtils_init(void *t){}
 //void jsVRMLClasses_init(void *t){}
 
+
+
+
+
 /* stubs, when you don't have a javascript engine */
 /* //switching between engines within a stub
 	#ifdef JAVASCRIPT_SM
@@ -47,6 +51,67 @@ struct X3D_Proto;
 			duk_JScript_init(t);
 	#endif
 */
+
+#ifdef JAVASCRIPT_DUK
+void duk_kill_javascript(void);
+void duk_JSInit(struct Shader_Script *script); /* int num); */
+void duk_SaveScriptText(int num, const char *text);
+void duk_process_eventsProcessed();
+void duk_js_cleanup_script_context(int counter);
+int  duk_jsActualrunScript(int num, char *script);
+void duk_JSInitializeScriptAndFields (int num);
+void duk_JSCreateScriptContext(int num);
+void duk_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
+
+//void duk_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
+void duk_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript);
+void duk_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript);
+
+void duk_setScriptECMAtype(int num);
+int  duk_get_valueChanged_flag (int fptr, int actualscript);
+void duk_resetScriptTouchedFlag(int actualscript, int fptr);
+void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen);
+void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen);
+void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen);
+
+int  duk_jsIsRunning();
+void duk_jsShutdown();
+void duk_JSDeleteScriptContext(int num);
+void duk_InitScriptField(int num, indexT kind, indexT type, const char* field, union anyVrml value);
+void duk_jsClearScriptControlEntries(int num); //struct CRscriptStruct *ScriptControl);
+int  duk_runQueuedDirectOutputs();
+#endif //JAVASCRIPT_DUK
+
+#ifdef JAVASCRIPT_SM
+void sm_kill_javascript(void);
+void sm_JSInit(struct Shader_Script *script); /* int num); */
+void sm_SaveScriptText(int num, const char *text);
+void sm_process_eventsProcessed();
+void sm_js_cleanup_script_context(int counter);
+int  sm_jsActualrunScript(int num, char *script);
+void sm_JSInitializeScriptAndFields (int num);
+void sm_JSCreateScriptContext(int num);
+void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
+
+//void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
+void sm_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript);
+void sm_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript);
+
+void sm_setScriptECMAtype(int num);
+int  sm_get_valueChanged_flag (int fptr, int actualscript);
+void sm_resetScriptTouchedFlag(int actualscript, int fptr);
+void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen);
+void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen);
+void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen);
+
+int  sm_jsIsRunning();
+void sm_jsShutdown();
+void sm_JSDeleteScriptContext(int num);
+void sm_InitScriptField(int num, indexT kind, indexT type, const char* field, union anyVrml value);
+void sm_jsClearScriptControlEntries(int num); //struct CRscriptStruct *ScriptControl);
+int  sm_runQueuedDirectOutputs();
+#endif //JAVASCRIPT_SM
+
 //void kill_javascript(void){return;}
 //void JSInit(int num){return;}
 //void SaveScriptText(int num, const char *text){return;}

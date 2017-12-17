@@ -278,7 +278,7 @@ char *sfToString(FWType fwt, void *fwn){
 				FWVAL fwretval;
 				//typedef int (* FWFunction)(FWType fwtype, void* ec, void * fwn, int argc, FWval fwpars, FWval fwretval);
 				fwt->Functions[i].call(fwt,NULL,fwn,1,fwpars,&fwretval);
-				str = fwretval._string;
+				str = strdup(fwretval._string);
 				break;
 			}
 			i++;
@@ -1146,7 +1146,7 @@ FWTYPE MFInt32Type = {
 };
 
 int getFieldFromNodeAndIndex(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value);
-int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	struct X3D_Node *node = ((union anyVrml*)pointer)->sfnode;
 	int ftype, kind, ihave, iifield;
 	char ctype;

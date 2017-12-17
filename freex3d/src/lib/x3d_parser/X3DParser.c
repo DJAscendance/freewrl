@@ -524,7 +524,7 @@ static struct X3D_Node *DEFNameIndex (const char *name, struct X3D_Node* node, i
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
 int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca);
 void broto_store_route(struct X3D_Proto* proto, struct X3D_Node* fromNode, int fromOfs, struct X3D_Node* toNode, int toOfs, int ft);
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 void broto_store_ImportRoute(struct X3D_Proto* proto, char *fromNode, char *fromField, char *toNode, char* toField);
 struct brotoRoute *createNewBrotoRoute();
 void broto_store_broute(struct X3D_Proto* context,struct brotoRoute *route);

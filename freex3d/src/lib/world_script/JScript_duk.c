@@ -173,7 +173,7 @@ int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char 
 		isSet = TRUE;
 
 	if(isSet){
-		char* key2 = &key[4];
+		const char* key2 = &key[4];
 		while( (index = fwiterator_generic(index,fwt,pointer,&name, &lastProp, jndex, type, readOnly)) > -1){
 			if(!strcasecmp(name,key2)){
 				//found it
@@ -2088,7 +2088,7 @@ int push_duk_fieldvalue(duk_context *ctx, int itype, int mode, const char* field
 }
 
 
-int fwgetter0(duk_context *ctx,void *parent,int itype, char *key, int *valueChanged){
+int fwgetter0(duk_context *ctx,void *parent,int itype, const char *key, int *valueChanged){
 	//uses fwtype SFNode's getter
 	FWTYPE *fwt = getFWTYPE(itype);
 	int jndex, found, nr;

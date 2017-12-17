@@ -1700,7 +1700,7 @@ void mark_script (int num) {
 }
 
 
-int runQueuedDirectOutputs();
+
 
 /********************************************************************
 

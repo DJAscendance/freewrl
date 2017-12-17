@@ -4340,7 +4340,7 @@ struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *nam
 	}
 	return NULL;
 }
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name){
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name){
 	int i;
 	struct IMEXPORT *def;
 	if(context->__IMPORTS)
@@ -4362,7 +4362,7 @@ struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name){
 }
 
 
-BOOL isAvailableBroto(char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto)
+BOOL isAvailableBroto(const char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto)
 {
 	/*	search list of already-defined binary protos in current context, 
 		and in ancestor proto contexts*/

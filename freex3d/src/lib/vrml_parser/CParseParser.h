@@ -221,7 +221,7 @@ int PKW_from_KW(int KW_index);
 BOOL find_anyfield_by_nameAndRouteDir( struct X3D_Node* node, union anyVrml **anyptr, 
 	int *imode, int *itype, char* nodeFieldName, int *isource, void** fdecl, int *ifield, int PKW_eventType);
 BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node);
-BOOL isAvailableBroto(char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto);
+BOOL isAvailableBroto(const char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto);
 void registerParentIfManagedField(int type, int mode, int isPublic, union anyVrml* any, struct X3D_Node* parent);
 void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest);
 BOOL usingBrotos();
@@ -244,6 +244,6 @@ struct IMEXPORT {
 	char *as;  //nickname of mxname in local execution context as expressed by AS keyword, defaults to mxname if no AS, so normally use this when searching
 
 };
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
-struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name);
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
+struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name);
 #endif /* __FREEWRL_CPARSE_PARSER_H__ */
