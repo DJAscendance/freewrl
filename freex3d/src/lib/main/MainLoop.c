@@ -4581,9 +4581,10 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 			*/
 			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
 			int wait_time_micro_sec, target_frames_per_second;
-			static int emulating_fps_stutter = 1;
+			static int emulating_fps_stutter = 0;
 			kludgefactor = 2.0; //2 works on win8.1 with intel i5
-			target_frames_per_second = fwl_get_target_fps();
+			target_frames_per_second = fwl_get_target_fps(); //default is negative 120 (-120), commandline args are +ve
+			target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
 			if(target_frames_per_second > 0){
 				//if there was a commandline setting, try and control frame rate
 				elapsed_time_per_frame = TickTime() - lastTime();
@@ -4595,10 +4596,10 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 				suggested_wait_time *= kludgefactor;
 				if(emulating_fps_stutter){
 					p->total_loop_count++;
-					//stall 3 frames every 20*3=60
-					if(((p->total_loop_count / 3) % 20) == 0){
+					//stall 5 frames every 5*10=50 frames
+					if(((p->total_loop_count / 5) % 10) == 0){
 						printf("&");
-						suggested_wait_time += .3;
+						suggested_wait_time += .5;
 					}
 				}
 				wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);

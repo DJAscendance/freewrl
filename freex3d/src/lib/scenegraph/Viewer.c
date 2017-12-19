@@ -1008,17 +1008,12 @@ static void handle_walk(const int mev, const unsigned int button, const float x,
 	X3D_Viewer *viewer;
 
 	X3D_Viewer_Walk *walk; 
-	double frameRateAdjustment = 1.0;
 	tg = gglobal();
 	// OLDCODE UNUSED p = (ppViewer)tg->Viewer.prv;
 	viewer = Viewer();
 	walk = &viewer->walk;
 
-	if( tg->Mainloop.BrowserFPS > 0)
-		frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; /* lets say 20FPS is our speed benchmark for developing tuning parameters */
-	else
-		frameRateAdjustment = 1.0;
-	
+	//new Dec 19, 2017 frame-rate adjustment moved to handle_tick_walk for finer-granularity stutter-smoothing
 
 	if (mev == ButtonPress ) {
 		walk->SY = y;
@@ -1034,13 +1029,13 @@ static void handle_walk(const int mev, const unsigned int button, const float x,
 			   dug9: button 1 ZD: .05 5.0 0.0  RD: .1 .5 0.0
 				     button 3 XD: 5.0 10.0 0.0 YD: 5.0 10.0 0.0
 			*/
-			walk->ZD = -xsign_quadratic(y - walk->SY,.05,5.0,0.0)*viewer->speed * frameRateAdjustment;
-			walk->RD = xsign_quadratic(x - walk->SX,0.1,0.5,0.0)*frameRateAdjustment;
+			walk->ZD = -xsign_quadratic(y - walk->SY,.05,5.0,0.0)*viewer->speed;
+			walk->RD = xsign_quadratic(x - walk->SX,0.1,0.5,0.0); //a few browsers have a separate rotational speed. We rely on quadratic or cubic drags to cover a good range of rotational speeds
 			//walk->ZD = (y - walk->SY) * Viewer.speed;
 			//walk->RD = (x - walk->SX) * 0.1;
 		} else if (button == 3) {
-			walk->XD =  xsign_quadratic(x - walk->SX,5.0,10.0,0.0)*viewer->speed * frameRateAdjustment;
-			walk->YD =  xsign_quadratic(y - walk->SY,5.0,10.0,0.0)*viewer->speed * frameRateAdjustment;
+			walk->XD =  xsign_quadratic(x - walk->SX,5.0,10.0,0.0)*viewer->speed;
+			walk->YD =  xsign_quadratic(y - walk->SY,5.0,10.0,0.0)*viewer->speed;
 			//walk->XD = (x - walk->SX) * Viewer.speed;
 			//walk->YD = -(y - walk->SY) * Viewer.speed;
 		}
@@ -2136,16 +2131,24 @@ static void handle_tick_walk()
 {
 	X3D_Viewer *viewer;
 	X3D_Viewer_Walk *walk; 
+	double frame_rate_adjustment;
 	Quaternion q, nq;
 	struct point_XYZ pp;
 	// OLD UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
 	walk = &viewer->walk;
 
+	//new Dec 19, 2017: per-frame dead-reckoning adjustments
+	//- tuning translation vs rotation: when traveling forward and turning in a circle,
+	//  with mouse held constant on the drag plane (numbers computed once in handle_walk)
+	//  when a stutter / frame-stall / slowdown hits, it should not appear to 
+	//  turn more or less sharp. Should still be turning on the same ground circle.
+	frame_rate_adjustment = 10.0 * (TickTime() - lastTime());
+
 	//for normal walking with left button down, only walk->ZD and walk->RD are non-zero
-	pp.x = 0.15 * walk->XD;
-	pp.y = 0.15 * walk->YD;
-	pp.z = 0.15 * walk->ZD;
+	pp.x = frame_rate_adjustment * walk->XD;
+	pp.y = frame_rate_adjustment * walk->YD;
+	pp.z = frame_rate_adjustment * walk->ZD;
 	///  see below //increment_pos(&pp);
 
 	/* walk mode transforms: (dug9 July 15, 2011)
@@ -2197,7 +2200,7 @@ static void handle_tick_walk()
 	q.x = (viewer->Quat).x;
 	q.y = (viewer->Quat).y;
 	q.z = (viewer->Quat).z;
-	vrmlrot_to_quaternion (&nq,0.0,1.0,0.0,0.4*walk->RD);
+	vrmlrot_to_quaternion (&nq,0.0,1.0,0.0,0.4*walk->RD * 2.0 * frame_rate_adjustment);
 	//quaternion_to_vrmlrot(&nq,&ff[0],&ff[1],&ff[2],&ff[3]);
 	//if(walk->RD != 0.0)
 	//	printf("\n");
