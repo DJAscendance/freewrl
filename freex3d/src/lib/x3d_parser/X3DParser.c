@@ -723,7 +723,7 @@ c) look at atts containerField, and if not null and not children, use it.
 	struct X3D_Node *node, *typenode, *parent;
 	char *parentsSuggestion; //*ic,  
 	int type, kind, iifield, ok, isRootNode, mode;
-	union anyVrml *value;
+	union anyVrml *value = NULL;
 	const char *fname;
 
 	mode = getMode(ud,TOP);
