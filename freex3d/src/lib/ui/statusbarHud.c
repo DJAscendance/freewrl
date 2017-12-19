@@ -917,7 +917,7 @@ void initOptionsVal()
 	p->optionsVal[15][0] = p->statusbar_pinned ? 035 : 034; 
 	p->optionsVal[16][0] = p->menubar_pinned ? 035 : 034; 
 	sprintf(p->optionsVal[18]," %s ",fwl_get_ui_colorschemename());
-	sprintf(p->optionsVal[19],"            %4d",fwl_get_target_fps());
+	sprintf(p->optionsVal[19],"            %4d",abs(fwl_get_target_fps()));
 	p->optionsVal[20][0] = 034; //[]
 	if(fwl_get_emulate_multitouch())
 		p->optionsVal[20][0] = 035; //[*] '*';
@@ -1192,7 +1192,7 @@ int handleOptionPress(int mouseX, int mouseY)
 		{
 			//for target frames_per_second choices, we'd like a nice pow2 series like 7, 15, 30, 60, 120, 240 FPS
 			int i15, tfps;
-			tfps = fwl_get_target_fps();
+			tfps = abs(fwl_get_target_fps());
 			i15 = (int)((double)tfps / 15.0 + .5);
 			if(opt == 'K') i15 /= 2;
 			if(opt == 'L') i15 = max(1,i15*2);

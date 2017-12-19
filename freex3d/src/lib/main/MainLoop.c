@@ -4561,6 +4561,10 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 			p->BrowserInitTime = dtime;
 		p->once = TRUE;
 	} else {
+		// Set the timestamp
+		tg->Mainloop.lastTime = tg->Mainloop.TickTime;
+		tg->Mainloop.TickTime = dtime; //Time1970sec();
+
 		/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
 			something goes totally wrong.
 			Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
@@ -4581,7 +4585,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 			*/
 			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
 			int wait_time_micro_sec, target_frames_per_second;
-			static int emulating_fps_stutter = 0;
+			static int emulating_fps_stutter = 0; //see comment below
 			kludgefactor = 2.0; //2 works on win8.1 with intel i5
 			target_frames_per_second = fwl_get_target_fps(); //default is negative 120 (-120), commandline args are +ve
 			target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
@@ -4626,9 +4630,9 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		}
 	}
 
-	// Set the timestamp
-	tg->Mainloop.lastTime = tg->Mainloop.TickTime;
-	tg->Mainloop.TickTime = dtime; //Time1970sec();
+	//// Set the timestamp
+	//tg->Mainloop.lastTime = tg->Mainloop.TickTime;
+	//tg->Mainloop.TickTime = dtime; //Time1970sec();
 
 	#if !defined(FRONTEND_DOES_SNAPSHOTS)
 	// handle snapshots

@@ -1465,10 +1465,11 @@ void handle_tick_fly2(double dtime) {
 	viewer = Viewer();
 	inplane = &viewer->inplane;
 
-	if( tg->Mainloop.BrowserFPS > 0)
-		frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; 
-	else
-		frameRateAdjustment = 1.0;
+	//if( tg->Mainloop.BrowserFPS > 0)
+	//	frameRateAdjustment = 20.0 / tg->Mainloop.BrowserFPS; 
+	//else
+	//	frameRateAdjustment = 1.0;
+	frameRateAdjustment = dtime * 20.0;
 	
 	if (inplane->on) {
 		xx = inplane->xx - inplane->x;
@@ -1627,8 +1628,8 @@ void handle_tick_tplane(double dtime){
 		pp.x =  xsign_quadratic(inplane->xx - inplane->x,300.0,100.0,0.0) *dtime;
 		pp.y =  xsign_quadratic(inplane->yy - inplane->y,300.0,100.0,0.0) *dtime;
 		}else{
-			pp.x =  xsign_quadratic(inplane->xx - inplane->x,3.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
-			pp.y =  xsign_quadratic(inplane->yy - inplane->y,3.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
+			pp.x =  xsign_quadratic(inplane->xx - inplane->x,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
+			pp.y =  xsign_quadratic(inplane->yy - inplane->y,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
 		}
 		pp.z = 0.0;
 		//vecadd(&viewer->Pos,&viewer->Pos,&pp);
@@ -2584,25 +2585,11 @@ void
 handle_tick()
 {
 	X3D_Viewer *viewer;
-	double lasttime, dtime, time_diff;
+	double dtime;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
-	lasttime = viewer->lasttime;
 
-	time_diff = 0.0; 
-	//sleep(400); //slow frame rate to test frame-rate-dependent actions
-	if (lasttime < 0) {
-		viewer->lasttime = TickTime(); 
-		return;
-	} else {
-		dtime = TickTime();
-		time_diff = dtime - viewer->lasttime; //TickTime is computed once per frame, and handle_tick() is called once per frame
-		if (APPROX(time_diff, 0)) {
-			return;
-		}
-		viewer->lasttime = dtime;
-		if(time_diff < 0.0) return; //skip a frame if the clock wraps around
-	}
+	dtime = TickTime() - lastTime(); //0.0; 
 	 
 	switch(viewer->type) {
 	case VIEWER_NONE:
@@ -2618,22 +2605,22 @@ handle_tick()
 	case VIEWER_FLY:
 		switch(p->dragchord){
 			case CHORD_YAWPITCH:
-				handle_tick_tilt(time_diff);
+				handle_tick_tilt(dtime);
 				break;
 			case CHORD_ROLL:
-				handle_tick_rplane(time_diff);
+				handle_tick_rplane(dtime);
 				break;
 			case CHORD_XY:
-				handle_tick_tplane(time_diff);
+				handle_tick_tplane(dtime);
 				break;
 			case CHORD_YAWZ:
 			default:
-				handle_tick_fly2(time_diff);  //fly2 like (WALK - G) except no RMB PAN, drags aligned to Viewer (vs walk aligned to bound Viewpoint vertical)
+				handle_tick_fly2(dtime);  //fly2 like (WALK - G) except no RMB PAN, drags aligned to Viewer (vs walk aligned to bound Viewpoint vertical)
 				break;
 		}
 		break;
 	case VIEWER_FLY2:
-		handle_tick_fly2(time_diff); //yawz
+		handle_tick_fly2(dtime); //yawz
 		break;
 	case VIEWER_LOOKAT:
 		handle_tick_lookat();
