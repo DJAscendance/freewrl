@@ -3026,6 +3026,7 @@ typedef struct pMainloop{
     unsigned int loop_count;// = 0;
 	unsigned int once;
     unsigned int slowloop_count;// = 0;
+	unsigned int total_loop_count; //let ti overflow at 4B
 	//scene
 	//window
 	//2D_inputdevice
@@ -4580,19 +4581,47 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 			*/
 			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
 			int wait_time_micro_sec, target_frames_per_second;
+			static int emulating_fps_stutter = 1;
 			kludgefactor = 2.0; //2 works on win8.1 with intel i5
 			target_frames_per_second = fwl_get_target_fps();
-			elapsed_time_per_frame = TickTime() - lastTime();
-			if(target_frames_per_second > 0)
-				target_time_per_frame = 1.0/(double)target_frames_per_second;
-			else
-				target_time_per_frame = 1.0/30.0;
-			suggested_wait_time = target_time_per_frame - elapsed_time_per_frame;
-			suggested_wait_time *= kludgefactor;
+			if(target_frames_per_second > 0){
+				//if there was a commandline setting, try and control frame rate
+				elapsed_time_per_frame = TickTime() - lastTime();
+				if(target_frames_per_second > 0)
+					target_time_per_frame = 1.0/(double)target_frames_per_second;
+				else
+					target_time_per_frame = 1.0/30.0;
+				suggested_wait_time = target_time_per_frame - elapsed_time_per_frame;
+				suggested_wait_time *= kludgefactor;
+				if(emulating_fps_stutter){
+					p->total_loop_count++;
+					//stall 3 frames every 20*3=60
+					if(((p->total_loop_count / 3) % 20) == 0){
+						printf("&");
+						suggested_wait_time += .3;
+					}
+				}
+				wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
+				if(wait_time_micro_sec > 1)
+					usleep(wait_time_micro_sec);
+			}else{
+				//else if there was no commandline setting, let it rip. except:
+				//FPS STUTTER
+				//- emulating operating-system-caused framerate / FPS stutter 
+				//  win10 > Spring 2017 Creators Updata aka CU aka 1703 > lots of complaints by game users, no clear solution
+				//    google: windows 10 creators update fps stutter
+				//- used for testing navigation > walk/fly > 'dead reckoning' testing
+				//   -it should smooth out stutter effects
+				if(emulating_fps_stutter){
+					p->total_loop_count++;
+					//stall 5 frames every 5*10=50 frames
+					if(((p->total_loop_count / 5) % 10) == 0){
+						printf("+");
+						usleep(80000); //.8 second stall
+					}
+				}
+			}
 
-			wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
-			if(wait_time_micro_sec > 1)
-				usleep(wait_time_micro_sec);
 		}
 	}
 

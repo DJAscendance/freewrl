@@ -103,7 +103,7 @@ void common_init(struct tcommon *t){
 		p->want_statusbar = 1;
 		p->keyvals = NULL;
 		p->showConsoleText = 0;  //in the UI, if a callback is registered with ConsoleMessage. Won't affect old fashioned console, 
-		p->target_frames_per_second = 120;  //is 120 FPS a good target FPS?
+		p->target_frames_per_second = -120;  //is 120 FPS a good target FPS?
 		p->density_factor = 1.0f;  //how much to scale up UI elements for small high res screens ie mobile, see fwl_setDensityFactor
 		p->pedal = 0; //pedal mode moves in-scene cursor by drag amount ie indirect/offset drag
 		p->hover = 0; //hover mode means your drags only do isOver -no navigation or sensor click
