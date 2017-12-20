@@ -40,6 +40,40 @@
 char *BrowserFullPath = NULL;
 char *BrowserName = "FreeWRL VRML/X3D Browser";
 
+static unsigned int fps_histo[120];
+static int collect_fps_histo = 0;
+void fps_histo_print(){
+	int i;
+	for(i=0;i<120;i++){
+		printf("%3d %d\n",i,fps_histo[i]);
+		fps_histo[i]=0;
+	}
+}
+void fps_histo_toggle(){
+	if(collect_fps_histo == 0){
+		printf("turning on fps histo collection - hit H again to print and end\n");
+		collect_fps_histo = 1;
+	}else if(collect_fps_histo == 1){
+		printf("fps histo:\n");
+		fps_histo_print();
+		collect_fps_histo = 0;
+	}
+}
+void fps_histo_collect(){
+	if(collect_fps_histo == 1){
+		double dt, fps;
+		dt = TickTime() - lastTime();
+		fps = 1.0/dt;
+		if(fps < 0.0) 
+			fps_histo[0] +=1;
+		else if(fps > 119.0)
+			fps_histo[119] +=1;
+		else
+			fps_histo[(int)fps] +=1;
+
+	}
+}
+
 const char* freewrl_get_browser_program()
 {
     char *tmp;

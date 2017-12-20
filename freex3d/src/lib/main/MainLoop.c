@@ -4528,6 +4528,7 @@ void setup_picking();
 void setup_projection();
 void rbp_run_physics();
 void fwl_sendreceive_DIS();
+void fps_histo_collect();
 void fwl_RenderSceneUpdateScene0(double dtime) {
 	//Nov 2015 change: just viewport-independent, once-per-frame-scene-updates here
 	//-functionality relying on a viewport -setup_projection(), setup_picking()- has been 
@@ -4564,7 +4565,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		// Set the timestamp
 		tg->Mainloop.lastTime = tg->Mainloop.TickTime;
 		tg->Mainloop.TickTime = dtime; //Time1970sec();
-
+		fps_histo_collect();
 		/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
 			something goes totally wrong.
 			Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
@@ -4588,7 +4589,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 			static int emulating_fps_stutter = 0; //see comment below
 			kludgefactor = 2.0; //2 works on win8.1 with intel i5
 			target_frames_per_second = fwl_get_target_fps(); //default is negative 120 (-120), commandline args are +ve
-			target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
+			//target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
 			if(target_frames_per_second > 0){
 				//if there was a commandline setting, try and control frame rate
 				elapsed_time_per_frame = TickTime() - lastTime();
@@ -4615,6 +4616,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 				//- emulating operating-system-caused framerate / FPS stutter 
 				//  win10 > Spring 2017 Creators Updata aka CU aka 1703 > lots of complaints by game users, no clear solution
 				//    google: windows 10 creators update fps stutter
+				//    2nd hand info: nvidia says "...disable Game Mode in Windows 10..." 
 				//- used for testing navigation > walk/fly > 'dead reckoning' testing
 				//   -it should smooth out stutter effects
 				if(emulating_fps_stutter){
@@ -6047,6 +6049,7 @@ void sendKeyToKeySensor(const char key, int upDown);
 char lookup_fly_key(int key);
 //#endif
 void dump_scenegraph(int method);
+void fps_histo_toggle();
 void fwl_do_keyPress0(int key, int type) {
 	int lkp;
 	ppMainloop p;
@@ -6114,6 +6117,7 @@ void fwl_do_keyPress0(int key, int type) {
 				case 'm': { fwl_set_viewer_type(VIEWER_LOOKAT); break; }
 				case 'g': { fwl_set_viewer_type(VIEWER_EXPLORE); break; }
 				case 'h': { fwl_toggle_headlight(); break; }
+				case 'H': { fps_histo_toggle(); break; }
 				case '/': { print_viewer(); break; }
 				//case '\\': { dump_scenegraph(); break; }
 				case '\\': { dump_scenegraph(1); break; }
