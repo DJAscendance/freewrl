@@ -81,6 +81,7 @@ int ctrlPressed = 0;
 #define PCTL_KEY 0x11
 #define PSFT_KEY 0x10
 #define PDEL_KEY 0x2E  //2E is DELETE 0x08 is backspace. Problem '.' is ascii 2E.
+#define PBCK_KEY 0x08
 #define PRTN_KEY 13
 #define KEYPRESS 1
 #define KEYDOWN 2
@@ -102,6 +103,7 @@ int ctrlPressed = 0;
 #define PCTL_KEY 0XFFE3 //left, and 0XFFE4 on right
 #define PSFT_KEY 0XFFE1 //left, and 0XFFE2 on right
 #define PDEL_KEY 0XFF9F //on numpad, and 0XFFFF near Insert //0x08  
+#define PBCK_KEY 0x08 //not varified, using ascii
 #define KEYPRESS 1
 #define KEYDOWN 2
 #define KEYUP	3
@@ -473,14 +475,14 @@ static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 	}
 	
 	/* enteredText */
-	if ((MYN->deletionAllowed) && (key==DEL_KEY)) {
+	if ((MYN->deletionAllowed) && ((key==DEL_KEY) || (key == 8))) {
 		if (MYN->enteredText->len > 1) {
 			MYN->enteredText->len--;
 			MYN->enteredText->strptr[MYN->enteredText->len-1] = '\0';
 			MARK_EVENT(X3D_NODE(MYN), offsetof (struct X3D_StringSensor, enteredText));
 		}
 	} else {
-		if ((key != RTN_KEY) && (key != DEL_KEY) && (MYN->enteredText->len < MAXSTRINGLEN-1)) {
+		if ((key != RTN_KEY) && !((key == DEL_KEY)||(key == 8)) && (MYN->enteredText->len < MAXSTRINGLEN-1)) {
 			MYN->enteredText->strptr[MYN->enteredText->len-1] = (char)key;
 			MYN->enteredText->strptr[MYN->enteredText->len] = '\0';
 			MYN->enteredText->len++;
