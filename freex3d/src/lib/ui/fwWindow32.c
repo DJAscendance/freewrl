@@ -953,7 +953,32 @@ static int shiftState = 0;
 		//kp = (char)wParam;
 		//fwl_do_keyPress(kp,KeyChar);
 		keyraw = (int) wParam;
-		fwl_do_rawKeyPress(keyraw,KEYPRESS);
+		if(keyraw == 22){
+			//CTRL-V == 22 == clipboard paste in win32
+			// https://msdn.microsoft.com/en-us/library/windows/desktop/ms649016(v=vs.85).aspx
+			HGLOBAL   hglb;
+			LPTSTR    lptstr; 
+			//paste
+			if (IsClipboardFormatAvailable(CF_TEXT)) {
+			if (OpenClipboard(hWnd)) {
+ 				hglb = GetClipboardData(CF_TEXT); 
+				if (hglb != NULL) 
+				{ 
+					lptstr = GlobalLock(hglb); 
+					if (lptstr != NULL) 
+					{ 
+						int m, len = strlen(lptstr);
+						for(m=0;m<len;m++)
+							fwl_do_rawKeyPress(lptstr[m],KEYPRESS);
+						GlobalUnlock(hglb); 
+					} 
+				} 
+				CloseClipboard(); 
+				}
+			} 
+		}else{
+			fwl_do_rawKeyPress(keyraw,KEYPRESS);
+		}
 		break;
 	/* Mouse events, processed */
     case WM_LBUTTONDOWN:
