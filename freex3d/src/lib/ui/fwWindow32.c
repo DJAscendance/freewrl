@@ -814,7 +814,7 @@ static void win32_clipboard_paste() {
 
 
 void fwl_set_clipboard_copy( void (*fn)(char *));
-void fwl_set_clipboard_paste( void (*fn)(char *));
+void fwl_set_clipboard_paste( void (*fn));
 
 void statusbar_set_window_size(int width, int height);
 int statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
@@ -1035,32 +1035,7 @@ static int shiftState = 0;
 		//kp = (char)wParam;
 		//fwl_do_keyPress(kp,KeyChar);
 		keyraw = (int) wParam;
-		if(0) { //if(keyraw == 22){
-			//CTRL-V == 22 == clipboard paste in win32
-			// https://msdn.microsoft.com/en-us/library/windows/desktop/ms649016(v=vs.85).aspx
-			HGLOBAL   hglb;
-			LPTSTR    lptstr; 
-			//paste
-			if (IsClipboardFormatAvailable(CF_TEXT)) {
-			if (OpenClipboard(hWnd)) {
- 				hglb = GetClipboardData(CF_TEXT); 
-				if (hglb != NULL) 
-				{ 
-					lptstr = GlobalLock(hglb); 
-					if (lptstr != NULL) 
-					{ 
-						int m, len = strlen(lptstr);
-						for(m=0;m<len;m++)
-							fwl_do_rawKeyPress(lptstr[m],KEYPRESS);
-						GlobalUnlock(hglb); 
-					} 
-				} 
-				CloseClipboard(); 
-				}
-			} 
-		}else{
-			fwl_do_rawKeyPress(keyraw,KEYPRESS);
-		}
+		fwl_do_rawKeyPress(keyraw,KEYPRESS);
 		break;
 	/* Mouse events, processed */
     case WM_LBUTTONDOWN:
