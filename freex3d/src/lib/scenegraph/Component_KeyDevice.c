@@ -81,6 +81,7 @@ int ctrlPressed = 0;
 #define PCTL_KEY 0x11
 #define PSFT_KEY 0x10
 #define PDEL_KEY 0x2E  //2E is DELETE 0x08 is backspace. Problem '.' is ascii 2E.
+#define PBCK_KEY 0x08
 #define PRTN_KEY 13
 #define KEYPRESS 1
 #define KEYDOWN 2
@@ -102,6 +103,7 @@ int ctrlPressed = 0;
 #define PCTL_KEY 0XFFE3 //left, and 0XFFE4 on right
 #define PSFT_KEY 0XFFE1 //left, and 0XFFE2 on right
 #define PDEL_KEY 0XFF9F //on numpad, and 0XFFFF near Insert //0x08  
+#define PBCK_KEY 0x08 //not varified, using ascii
 #define KEYPRESS 1
 #define KEYDOWN 2
 #define KEYUP	3
@@ -417,6 +419,18 @@ static void sendToKS(struct X3D_Node* wsk, int key, int upDown) {
 	#undef MYN
 	
 }
+static void (*fwl_clipboard_copy)(char *str) = NULL;
+static void (*fwl_clipboard_paste)() = NULL;
+//if your front end can do clipboard copy&paste,
+//and you want to enable it for stringsensor
+//then call these fwl_set functions with your frontend functions
+//fwWindow32.c calls them for win32
+void fwl_set_clipboard_copy( void (*fn)(char *)){
+	fwl_clipboard_copy = fn;
+}
+void fwl_set_clipboard_paste( void (*fn)()){
+	fwl_clipboard_paste = fn;
+}
 static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 	//int actionKey;
 	#define MYN X3D_STRINGSENSOR(wsk)
@@ -471,16 +485,28 @@ static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 		MYN->_initialized = TRUE;
 		MYN->isActive = FALSE;
 	}
-	
-	/* enteredText */
-	if ((MYN->deletionAllowed) && (key==DEL_KEY)) {
+	if(key == 22){
+		//CTRL-V clipboard paste
+		if(fwl_clipboard_paste){
+			fwl_clipboard_paste(); //recurses in here, so clean any 22 and 3 from clip text
+			return;
+		}
+	}else if(key == 3){
+		//CTRL-C copy to clipboard
+		if(fwl_clipboard_copy){
+			fwl_clipboard_copy(MYN->enteredText->strptr);
+			return;
+		}
+	}
+	if ((MYN->deletionAllowed) && ((key==DEL_KEY) || (key == 8))) {
+		/* enteredText */
 		if (MYN->enteredText->len > 1) {
 			MYN->enteredText->len--;
 			MYN->enteredText->strptr[MYN->enteredText->len-1] = '\0';
 			MARK_EVENT(X3D_NODE(MYN), offsetof (struct X3D_StringSensor, enteredText));
 		}
 	} else {
-		if ((key != RTN_KEY) && (key != DEL_KEY) && (MYN->enteredText->len < MAXSTRINGLEN-1)) {
+		if ((key != RTN_KEY) && !((key == DEL_KEY)||(key == 8)) && (MYN->enteredText->len < MAXSTRINGLEN-1)) {
 			MYN->enteredText->strptr[MYN->enteredText->len-1] = (char)key;
 			MYN->enteredText->strptr[MYN->enteredText->len] = '\0';
 			MYN->enteredText->len++;
