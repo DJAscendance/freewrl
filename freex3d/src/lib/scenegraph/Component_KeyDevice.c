@@ -419,6 +419,18 @@ static void sendToKS(struct X3D_Node* wsk, int key, int upDown) {
 	#undef MYN
 	
 }
+static void (*fwl_clipboard_copy)(char *str) = NULL;
+static void (*fwl_clipboard_paste)() = NULL;
+//if your front end can do clipboard copy&paste,
+//and you want to enable it for stringsensor
+//then call these fwl_set functions with your frontend functions
+//fwWindow32.c calls them for win32
+void fwl_set_clipboard_copy( void (*fn)(char *)){
+	fwl_clipboard_copy = fn;
+}
+void fwl_set_clipboard_paste( void (*fn)()){
+	fwl_clipboard_paste = fn;
+}
 static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 	//int actionKey;
 	#define MYN X3D_STRINGSENSOR(wsk)
@@ -473,9 +485,21 @@ static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 		MYN->_initialized = TRUE;
 		MYN->isActive = FALSE;
 	}
-	
-	/* enteredText */
+	if(key == 22){
+		//CTRL-V clipboard paste
+		if(fwl_clipboard_paste){
+			fwl_clipboard_paste(); //recurses in here, so clean any 22 and 3 from clip text
+			return;
+		}
+	}else if(key == 3){
+		//CTRL-C copy to clipboard
+		if(fwl_clipboard_copy){
+			fwl_clipboard_copy(MYN->enteredText->strptr);
+			return;
+		}
+	}
 	if ((MYN->deletionAllowed) && ((key==DEL_KEY) || (key == 8))) {
+		/* enteredText */
 		if (MYN->enteredText->len > 1) {
 			MYN->enteredText->len--;
 			MYN->enteredText->strptr[MYN->enteredText->len-1] = '\0';
