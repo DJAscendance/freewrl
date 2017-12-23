@@ -2480,6 +2480,13 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 				tn, tptr, offsetof (struct X3D_TextureCoordinateGenerator, mode)); */
 			newptr = (intptr_t *)memptr;
 			ms = (struct Uni_String*) *newptr;
+			if(!ms) {
+				ms = malloc(sizeof(struct Uni_String));
+				*newptr = (intptr_t) ms;
+				ms->len = 0;
+				ms->strptr = NULL;
+				ms->touched = FALSE;
+			}
 			verify_Uni_String (ms,strp);
 #if JS_VERSION >= 185
 			JS_free(scriptContext,strpp);
