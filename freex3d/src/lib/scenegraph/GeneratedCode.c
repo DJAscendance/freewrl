@@ -891,6 +891,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"silhouetteBoundaryOpacity",
 	"silhouetteRetainedOpacity",
 	"silhouetteSharpness",
+	"singleton",
 	"siteID",
 	"sites",
 	"size",
@@ -1548,6 +1549,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"silhouetteBoundaryOpacity",
 	"silhouetteRetainedOpacity",
 	"silhouetteSharpness",
+	"singleton",
 	"siteID",
 	"sites",
 	"size",
@@ -6894,6 +6896,7 @@ const int OFFSETS_StringSensor[] = {
 	(int) FIELDNAMES_finalText, (int) offsetof (struct X3D_StringSensor, finalText),  (int) FIELDTYPE_SFString, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_StringSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_StringSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_singleton, (int) offsetof (struct X3D_StringSensor, singleton),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__initialized, (int) offsetof (struct X3D_StringSensor, _initialized),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_StringSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -12515,6 +12518,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->finalText = newASCIIString("");
 			tmp2->isActive = TRUE;
 			tmp2->metadata = NULL;
+			tmp2->singleton = TRUE;
 			tmp2->_initialized = FALSE;
 			tmp2->__oldEnabled = TRUE;
 			tmp2->_defaultContainer = FIELDNAMES_children;
@@ -17479,6 +17483,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," singleton (SFBool) \t%d\n",tmp->singleton);
 		    if(allFields) {
 			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
 		    }

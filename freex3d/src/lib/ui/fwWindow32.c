@@ -748,7 +748,6 @@ static void win32_clipboard_copy(char *str){
 	int len;
     LPTSTR  lptstrCopy; 
     HGLOBAL hglbCopy; 
-
     if (!OpenClipboard(last_key_hWnd)) 
         return; 
     EmptyClipboard(); 
@@ -761,7 +760,7 @@ static void win32_clipboard_copy(char *str){
         CloseClipboard();                   // selection 
         return; 
     } 
- 
+
  
     hglbCopy = GlobalAlloc(GMEM_MOVEABLE, 
         (len + 1) * sizeof(TCHAR)); 
@@ -770,7 +769,7 @@ static void win32_clipboard_copy(char *str){
         CloseClipboard(); 
         return; 
     } 
- 
+
     // Lock the handle and copy the text to the buffer. 
  
     lptstrCopy = GlobalLock(hglbCopy); 
@@ -782,6 +781,8 @@ static void win32_clipboard_copy(char *str){
     // Place the handle on the clipboard. 
  
     SetClipboardData(CF_TEXT, hglbCopy); 
+    CloseClipboard(); 
+
 
 
 }
