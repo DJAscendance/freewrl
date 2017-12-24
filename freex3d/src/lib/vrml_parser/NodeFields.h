@@ -2964,6 +2964,7 @@ EVENT_OUT(StringSensor,enteredText,sfstring,enteredText,FIELDTYPE_SFString)
 EVENT_OUT(StringSensor,finalText,sfstring,finalText,FIELDTYPE_SFString)
 EVENT_OUT(StringSensor,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EXPOSED_FIELD(StringSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(StringSensor,singleton,sfbool,singleton,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(StringSensor)
 
 /* SurfaceEmitter node */

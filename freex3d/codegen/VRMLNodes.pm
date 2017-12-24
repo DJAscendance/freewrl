@@ -1450,6 +1450,7 @@ our %Nodes = (
 		finalText => ["SFString","","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isActive =>["SFBool", "TRUE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		singleton => ["SFBool", "TRUE", "inputOutput", 0,"UNCA_NONE"],#ff //if true, then shut off all other stringsensors when this enabled
 		_initialized =>["SFBool", "FALSE","initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 	],"X3DKeyDeviceSensorNode"),

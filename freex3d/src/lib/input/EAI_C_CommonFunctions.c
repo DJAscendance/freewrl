@@ -160,15 +160,18 @@ void verify_Uni_String(struct  Uni_String *unis, char *str) {
 	}
 
 	/* are they different? */
-	if (strcmp(str,unis->strptr)!= 0) {
-		os = unis->strptr;
-		len = strlen(str);
-		ns = MALLOC (char *,len+1);
-		strncpy(ns,str,len+1);
-		unis->strptr = ns;
-		FREE_IF_NZ (os);
-		unis->touched++;
-	}
+	if(!unis->strptr) 
+		unis->strptr = strdup(str);
+	else
+		if (strcmp(str,unis->strptr)!= 0) {
+			os = unis->strptr;
+			len = strlen(str);
+			ns = MALLOC (char *,len+1);
+			strncpy(ns,str,len+1);
+			unis->strptr = ns;
+			FREE_IF_NZ (os);
+			unis->touched++;
+		}
 }
 		
 

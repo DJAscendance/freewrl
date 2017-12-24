@@ -302,12 +302,68 @@ void killKeySensorNodeList() {
 	// OLD_IPHONE_AQUA #endif
 }
 
+void updateSingletonStringSensor(){
+	//not part of specs, a dug9 initiiative to experiment 
+	//with have a single stringsensor enabled at a time
+	//in here, if any SS went from disabled to enabled, then
+	//disable all the others.
+	int count;
+	struct X3D_Node *node;
+	struct X3D_StringSensor *singleton, *snode, *other;
+	ppComponent_KeyDevice p = (ppComponent_KeyDevice)gglobal()->Component_KeyDevice.prv;
+	if (p->keySink == NULL) return;
+
+	singleton = snode = other = NULL;
+	for (count=0; count < vectorSize(p->keySink); count++) {
+		#ifdef VERBOSE
+		printf ("sendKeyToKeySensor, sending key %d to %d of %d\n",key,count,p->keySinkCurMax);
+		#endif
+		node = vector_get(struct X3D_Node*,p->keySink,count);
+        /* make sure this has not been deleted  - we should really re-create list, but
+         so few keySensor X3D nodes are in use, who cares? */
+        if (checkNode(node,__FILE__,__LINE__)) {
+			if (node->_nodeType == NODE_StringSensor ){
+				struct X3D_StringSensor *snode = (struct X3D_StringSensor*)node;
+				if(snode->singleton == TRUE) //playing dug9 singleton game
+				if(snode->enabled == TRUE && snode->__oldEnabled == FALSE){
+					//this one just became the active one, disable all the others.
+					singleton = snode;
+					break;
+				}
+
+			}
+		}
+    }
+	if(!singleton) return;
+
+	for (count=0; count < vectorSize(p->keySink); count++) {
+		#ifdef VERBOSE
+		printf ("sendKeyToKeySensor, sending key %d to %d of %d\n",key,count,p->keySinkCurMax);
+		#endif
+		node = vector_get(struct X3D_Node*,p->keySink,count);
+        /* make sure this has not been deleted  - we should really re-create list, but
+         so few keySensor X3D nodes are in use, who cares? */
+        if (checkNode(node,__FILE__,__LINE__)) {
+			if (node->_nodeType == NODE_StringSensor && node != X3D_NODE(singleton) ){
+				struct X3D_StringSensor *other = (struct X3D_StringSensor*)node;
+				if(other->singleton == TRUE) //playing dug9 singleton game
+				if(other->enabled == TRUE){
+					other->__oldEnabled = other->enabled;
+					other->enabled = FALSE;
+					MARK_EVENT(X3D_NODE(other),offsetof (struct X3D_StringSensor, enabled));
+				}
+			}
+		}
+    }
+
+}
 void sendKeyToKeySensor(const char key, int upDown) {
 	int count;
 	struct X3D_Node *node;
 	ppComponent_KeyDevice p = (ppComponent_KeyDevice)gglobal()->Component_KeyDevice.prv;
 	if (p->keySink == NULL) return;
 
+	updateSingletonStringSensor();
 	for (count=0; count < vectorSize(p->keySink); count++) {
 		#ifdef VERBOSE
 		printf ("sendKeyToKeySensor, sending key %d to %d of %d\n",key,count,p->keySinkCurMax);
@@ -323,6 +379,7 @@ void sendKeyToKeySensor(const char key, int upDown) {
 		}
     }
 }
+
 
 /*******************************************************/
 
@@ -419,6 +476,7 @@ static void sendToKS(struct X3D_Node* wsk, int key, int upDown) {
 	#undef MYN
 	
 }
+
 static void (*fwl_clipboard_copy)(char *str) = NULL;
 static void (*fwl_clipboard_paste)() = NULL;
 //if your front end can do clipboard copy&paste,
@@ -488,18 +546,29 @@ static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 	if(key == 22){
 		//CTRL-V clipboard paste
 		if(fwl_clipboard_paste){
+			if (!MYN->isActive) {
+				MYN->isActive = TRUE;
+				MARK_EVENT(X3D_NODE(MYN), offsetof (struct X3D_StringSensor, isActive));
+			}
 			fwl_clipboard_paste(); //recurses in here, so clean any 22 and 3 from clip text
 			return;
 		}
 	}else if(key == 3){
 		//CTRL-C copy to clipboard
 		if(fwl_clipboard_copy){
-			fwl_clipboard_copy(MYN->enteredText->strptr);
+			//printf ("copying finalText :%s: len %d\n",MYN->finalText->strptr,strlen(MYN->finalText->strptr));
+			fwl_clipboard_copy(MYN->finalText->strptr);
 			return;
 		}
 	}
 	if ((MYN->deletionAllowed) && ((key==DEL_KEY) || (key == 8))) {
 		/* enteredText */
+		if(!MYN->isActive){
+			MYN->enteredText->len = 1;
+			MYN->enteredText->strptr[0] = '\0';
+			MYN->isActive = TRUE;
+			MARK_EVENT(X3D_NODE(MYN), offsetof (struct X3D_StringSensor, enteredText));
+		}
 		if (MYN->enteredText->len > 1) {
 			MYN->enteredText->len--;
 			MYN->enteredText->strptr[MYN->enteredText->len-1] = '\0';
@@ -525,14 +594,19 @@ static void sendToSS(struct X3D_Node *wsk, int key, int upDown) {
 	if (key==RTN_KEY) {
 		#ifdef VERBOSE
 		printf ("found return!\n");
-		printf ("current enteredText :%s:\n",MYN->enteredText->strptr);
-		printf ("current finalText :%s:\n",MYN->finalText->strptr);
+		printf ("current enteredText :%s: len %d\n",MYN->enteredText->strptr, strlen(MYN->enteredText->strptr));
+		printf ("current finalText :%s: len %d\n",MYN->finalText->strptr,strlen(MYN->finalText->strptr));
 		#endif
+
 
 		memcpy(MYN->finalText->strptr, MYN->enteredText->strptr, MAXSTRINGLEN);
 		MYN->finalText->len = MYN->enteredText->len;
-		MYN->enteredText->len=1;
-		MYN->enteredText->strptr[0] = '\0';
+		#ifdef VERBOSE
+		printf ("final finalText :%s: len %d\n",MYN->finalText->strptr,strlen(MYN->finalText->strptr));
+		#endif
+
+		//MYN->enteredText->len=1;
+		//MYN->enteredText->strptr[0] = '\0';
 		MARK_EVENT(X3D_NODE(MYN), offsetof (struct X3D_StringSensor, finalText));
 		/* MARK_EVENT(X3D_NODE(MYN), offsetof (struct X3D_StringSensor, enteredText)); specs say don't gen an event here*/
 
