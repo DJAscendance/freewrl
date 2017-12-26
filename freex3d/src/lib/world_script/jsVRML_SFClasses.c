@@ -1084,9 +1084,9 @@ SFImageSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *
 /* returns a string rep of the pointer to the node in memory */
 JSBool
 #if JS_VERSION < 185
-SFNodeToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+SFNodeValueOf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #else
-SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
+SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
 	jsval rvalinst;
@@ -1145,6 +1145,64 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 #endif
 	return JS_TRUE;
 }
+
+JSBool
+#if JS_VERSION < 185
+SFNodeToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+#else
+SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
+        JSObject *obj = JS_THIS_OBJECT(cx,vp);
+        jsval *argv = JS_ARGV(cx,vp);
+	jsval rvalinst;
+	jsval *rval = &rvalinst;
+#endif
+    JSString *_str;
+	SFNodeNative *ptr;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("SFNODETOSTRING\n");
+	#endif
+	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+		printf( "JS_GetPrivate failed in SFNodeToString.\n");
+		return JS_FALSE;
+	}
+
+	/* get the string from creation, and return it. */
+
+	/* used to do: 
+	*rval = INT_TO_JSVAL(ptr->handle);
+	
+	but we have 64 bit pointers in OSX now, and ints are 32 bits. so...
+	we convert to a double, and hope that it is still correct (seems to be ok
+	32 and 64 bits - tests/46.wrl will use this path, btw */
+
+	{
+		jsdouble nv;
+		char buff[STRING];
+		memset(buff, 0, STRING);
+		sprintf (buff,"_%ld_",(long int) ptr->handle);
+		/* sprintf (tmpline,"%ld",ptr->handle); */
+
+		/* printf ("pointer to long int :%s:\n",tmpline); */
+		ADD_ROOT(cx,_str)
+		_str = JS_NewStringCopyZ(cx, buff);
+
+#if JS_VERSION < 185
+		*rval = STRING_TO_JSVAL(_str);
+#else
+		JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
+#endif
+	
+		REMOVE_ROOT (cx,_str)
+
+	}
+	
+	return JS_TRUE;
+}
+
+
 
 JSBool
 #if JS_VERSION < 185
@@ -1602,6 +1660,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 	/* is this one of the SFNode standard functions? see JSFunctionSpec (SFNodeFunctions)[] */
 	if (strcmp ("toString",_id_c) == 0) return JS_TRUE;
+	if (strcmp ("valueOf",_id_c) == 0) return JS_TRUE;
 	if (strcmp ("equals",_id_c) == 0) return JS_TRUE;
 	if (strcmp ("assign",_id_c) == 0) return JS_TRUE;
 
@@ -2417,6 +2476,7 @@ SFRotationSlerp(JSContext *cx, uintN argc, jsval *vp) {
 #endif
 	return JS_TRUE;
 }
+
 
 JSBool
 #if JS_VERSION < 185

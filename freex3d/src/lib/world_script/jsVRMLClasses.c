@@ -231,7 +231,8 @@ JSFunctionSpec (SFNodeFunctions)[] = {
 	{"toXMLString", SFNodeToXMLString, 0},
 #endif
 	JS_FS("equals", SFNodeEquals, 1,0),
-	JS_FS("toSTring", SFNodeToString, 0, 0), /* depreciated JAS */
+	JS_FS("toString", SFNodeToString, 0, 0),
+	JS_FS("valueOf", SFNodeValueOf, 0, 0), 
 	{"assign", SFNodeAssign, 0, 0},
 	JS_FS_END
 };

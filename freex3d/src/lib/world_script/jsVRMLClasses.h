@@ -359,7 +359,12 @@ SFNodeToString(JSContext *cx,
 			   uintN argc,
 			   jsval *argv,
 			   jsval *rval);
-
+JSBool
+SFNodeValueOf(JSContext *cx,
+			   JSObject *obj,
+			   uintN argc,
+			   jsval *argv,
+			   jsval *rval);
 JSBool
 SFNodeAssign(JSContext *cx, JSObject *obj,
 			 uintN argc,
@@ -379,6 +384,7 @@ SFNodeConstr(JSContext *cx,
 			 jsval *rval);
 #else
 JSBool SFNodeToString(JSContext *cx, uintN argc, jsval *vp);
+JSBool SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeEquals(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeConstr(JSContext *cx, uintN argc, jsval *vp);
