@@ -822,7 +822,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	/* first, make a new name up */
 	if (kind == PKW_inputOnly) {
 		sprintf (mynewname,"__eventIn_Value_%s",field);
-	} else strcpy(mynewname,field);
+	}else strcpy(mynewname,field);
 
 	/* ok, lets handle the types here */
 	switch (type) {
@@ -3184,7 +3184,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 /****************************************************************/
 
 /* get a pointer to the internal data for this object, or return NULL on error */
-void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, int tnfield) {
+void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, int tnfield, int *iflag) {
 	char scriptline[100];
 	void *_privPtr;
 	JSObject *sfObj;
@@ -3193,17 +3193,37 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 	/* NOTE -- this is only called once, and the caller has already defined a JS_BeginRequest() */
 
+
 	/* get the variable name to hold the incoming value */
 	sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
 	#ifdef SETFIELDVERBOSE
 	printf ("getInternalDataPointerForJavascriptObject: line %s\n",scriptline);
 	#endif
 
-	if (!JS_GetProperty(cx,obj,scriptline,&retval))
+	if (!JS_GetProperty(cx,obj,scriptline,&retval)){
+		//if you forgot to put both an inputOnly or inputOutput field AND
+		// you forgot to define a function() with the same name
+		// then you won't have any objects
+		// if you didn't have a field then ROUTE would complain, unless directAccess
 		printf ("JS_GetProperty failed in set_one_MultiElementType.\n");
-
-	if (!JSVAL_IS_OBJECT(retval))
-		printf ("set_one_MultiElementType - not an object\n");
+		//return NULL;
+	}
+	*iflag = 1;
+	if (!JSVAL_IS_OBJECT(retval)){
+		// you don't have a function object with this name (but might have a field,
+		printf ("function(set_one_MultiElementType) - not a function: %s\n",JSparamnames[tnfield].name);
+		//return NULL;
+		//could be inputOutput which has a norma field name
+		*iflag = 0;
+		if (!JS_GetProperty(cx,obj,JSparamnames[tnfield].name,&retval)){
+			//you may have an inputOutput field, with the plane name
+			return NULL;
+		}
+		if (!JSVAL_IS_OBJECT(retval)){
+			return NULL;
+		}
+		*iflag = 2;
+	}
 
 	sfObj = JSVAL_TO_OBJECT(retval);
 
@@ -3267,12 +3287,18 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 
 
-/* really do the individual set; used by script routing and EAI sending to a script */
+/* really do the individual set; used by script routing and EAI sending to a script 
+	Dec 2017 - You may have a inpoutOutput field you want to route values to
+		and not have any inputOnly function() associated with the field
+		for this scenario you want to check first if there's a function,
+		and if so do some extra work. If not so be it.
+*/
 void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
 	char scriptline[100];
 	JSContext *cx;
 	JSObject *obj;
 	void **pp;
+	int iflag;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -3284,28 +3310,33 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
 #endif
-	/* set the time for this script */
-	SET_JS_TICKTIME
 
 	/* copy over the data from the VRML side into the script variable. */
-	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield);
-
-	if (pp != NULL) {
-		memcpy (pp,Data, dataLen);
-		/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
-		printf ("and, sending the data to pointer %p\n",pp); */
+	iflag = 0;
+	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
+	if(pp == NULL){
+		//no script function with this name - you might be routing to an inputOutput field
+		return;
 	}
 
-	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED(tnfield)
+	memcpy (pp,Data, dataLen);
+	/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
+	printf ("and, sending the data to pointer %p\n",pp); */
 
-	/* and run the function */
-	#ifdef SETFIELDVERBOSE
-	printf ("set_one_MultiElementType: running script %s\n",scriptline);
-	#endif
+	if(iflag == 1){
+		//if we added a __eventIn_Value_<fieldname> for inputOnly field
+		/* set the time for this script */
+		SET_JS_TICKTIME
+		/* is the function compiled yet? */
+		COMPILE_FUNCTION_IF_NEEDED(tnfield)
 
-	RUN_FUNCTION (tnfield)
+		/* and run the function */
+		#ifdef SETFIELDVERBOSE
+		printf ("set_one_MultiElementType: running script %s\n",scriptline);
+		#endif
 
+		RUN_FUNCTION (tnfield)
+	}
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(cx);
 #endif
