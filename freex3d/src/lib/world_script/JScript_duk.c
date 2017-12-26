@@ -2488,6 +2488,7 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	int obj, rc;
 	int itype;
 	void *datacopy;
+	int isEventin;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -2500,20 +2501,28 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	
 	//printf("in set_one_MultiElementType\n");
 	//get function by name
+	//show_stack(ctx,"before evale field name");
+
 	duk_eval_string(ctx,JSparamnames[tnfield].name); //gets the evenin function on the stack
-	itype = JSparamnames[tnfield].type;
-	//medium copy
-	datacopy = NULL;
-	medium_copy_field(itype,Data,&datacopy);
-	push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
-	duk_push_number(ctx,TickTime());
-	//duk_call(ctx,2);
-	rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
-	if (rc != DUK_EXEC_SUCCESS) {
-	  printf("error: '%s' happened in js function %s called from set_one_Multi_ElementType\n", duk_to_string(ctx, -1),JSparamnames[tnfield].name);
+	isEventin = duk_is_ecmascript_function(ctx, -1);
+	if(isEventin){
+		//you might not have an eventin, especially if it was an inputOutput field
+		// you may just want to route to/from the field value
+		itype = JSparamnames[tnfield].type;
+		//medium copy
+		datacopy = NULL;
+		medium_copy_field(itype,Data,&datacopy);
+		push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
+		duk_push_number(ctx,TickTime());
+		//duk_call(ctx,2);
+		rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
+		if (rc != DUK_EXEC_SUCCESS) {
+		  printf("error: '%s' happened in js function %s called from set_one_Multi_ElementType\n", duk_to_string(ctx, -1),JSparamnames[tnfield].name);
+		}
+		//show_stack(ctx,"after calling isOver");
 	}
-	//show_stack(ctx,"after calling isOver");
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
+	//show_stack(ctx,"before return");
 	return;
 }
 void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){
