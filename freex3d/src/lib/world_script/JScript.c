@@ -580,6 +580,22 @@ int SFNodeNativeAssign(void *top, void *fromp)
 
 	return JS_TRUE;
 }
+/* assign this internally to the Javascript engine environment */
+int SFNodeNativeEquals(void *top, void *fromp)
+{
+	int equal;
+	SFNodeNative *to = (SFNodeNative *)top;
+	SFNodeNative *from = (SFNodeNative *)fromp;
+
+	equal = 0;
+
+	if (from != NULL) {
+		if(to->handle == from->handle)
+			equal=1;
+	}
+
+	return equal;// ? JS_TRUE : JS_FALSE;
+}
 
 void *SFColorRGBANativeNew()
 {

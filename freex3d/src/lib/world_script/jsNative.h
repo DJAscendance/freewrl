@@ -168,6 +168,7 @@ SFColorNativeSet(void *p, struct Uni_String *sv);
 
 void * SFNodeNativeNew(void);
 int SFNodeNativeAssign(void *top, void *fromp);
+int SFNodeNativeEquals(void *top, void *fromp);
 void * SFColorRGBANativeNew(void);
 void SFColorRGBANativeAssign(void *top, void *fromp);
 void * SFColorNativeNew(void);

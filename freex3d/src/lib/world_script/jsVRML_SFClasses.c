@@ -1223,6 +1223,67 @@ SFNodeAssign(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
+
+// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Releases/1.8.5
+// when adding a node.function() don't forget to add a check in SFNodeGetProperty for "function"
+JSBool
+#if JS_VERSION < 185
+SFNodeEquals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	jsval rvalinst;
+	jsval *rval = &rvalinst;
+#else
+SFNodeEquals(JSContext *cx, uintN argc, jsval *vp) {
+        JSObject *obj = JS_THIS_OBJECT(cx,vp);
+        jsval *argv = JS_ARGV(cx,vp);
+#endif
+	int iret;
+	JSObject *_from_obj;
+    SFNodeNative *ptr, *fptr;
+
+	//JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(1)); //JS_TRUE);
+	//return JS_TRUE;
+	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+		printf( "JS_GetPrivate failed in SFNodeNative.\n");
+		return JS_FALSE;
+	}
+	if (!JS_ConvertArguments(cx, argc, argv, "o",
+							 &_from_obj)) {
+		printf( "JS_ConvertArguments failed in SFNodeNative.\n");
+		return JS_FALSE;
+	}
+
+
+	if (_from_obj != NULL) {
+		CHECK_CLASS(cx,_from_obj,argv,__FUNCTION__,SFNodeClass)
+
+		if ((fptr = (SFNodeNative *)JS_GetPrivate(cx, _from_obj)) == NULL) {
+			printf( "JS_GetPrivate failed for _from_obj in SFNodeAssign.\n");
+		    return JS_FALSE;
+		}
+		#ifdef JSVRMLCLASSESVERBOSE
+			printf("SFNodeAssign: obj = %p, id = \"%s\", from = %p\n",
+				   obj, _id_str, _from_obj);
+		#endif
+	} else { fptr = NULL; }
+
+
+	/* assign this internally */
+	iret = SFNodeNativeEquals(ptr, fptr);
+#if JS_VERSION < 185
+    *rval = BOOLEAN_TO_JSVAL(iret);
+#else
+	JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(iret));
+#endif
+	
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("end of SFNodeEqual\n");
+	#endif
+
+    return JS_TRUE;
+}
+
+
+
 /* define JSVRMLCLASSESVERBOSE */
 
 JSBool
@@ -1541,6 +1602,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 	/* is this one of the SFNode standard functions? see JSFunctionSpec (SFNodeFunctions)[] */
 	if (strcmp ("toString",_id_c) == 0) return JS_TRUE;
+	if (strcmp ("equals",_id_c) == 0) return JS_TRUE;
 	if (strcmp ("assign",_id_c) == 0) return JS_TRUE;
 
 	/* get the private pointer for this node */
@@ -2369,7 +2431,6 @@ SFRotationToString(JSContext *cx, uintN argc, jsval *vp) {
 	char buff[STRING];
 
 	UNUSED(argc);
-	UNUSED(argv);
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of SFRotationToString\n");
 	#endif

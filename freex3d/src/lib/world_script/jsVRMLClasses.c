@@ -122,6 +122,8 @@ JSPropertySpec (SFColorProperties)[] = {
 	{0}
 };
 
+
+
 JSFunctionSpec (SFColorFunctions)[] = {
 	{"getHSV", SFColorGetHSV, 0},
 	{"setHSV", SFColorSetHSV, 0},
@@ -209,6 +211,17 @@ JSPropertySpec (SFNodeProperties)[] = {
 	{0}
 };
 
+/*
+struct JSFunctionSpec {
+    const char      *name;
+    JSNative        call;
+    uint16          nargs;
+    uint16          flags;
+};
+*/
+
+
+// JS_FS("js_function", jjjs_function, 1, 0, 0),
 JSFunctionSpec (SFNodeFunctions)[] = {
 #ifdef NEWCLASSES
 	{"getNodeName", SFNodeGetNodeName, 0},
@@ -217,9 +230,10 @@ JSFunctionSpec (SFNodeFunctions)[] = {
 	{"toVRMLString",SFNodeToVRMLString, 0},
 	{"toXMLString", SFNodeToXMLString, 0},
 #endif
-	{"toString", SFNodeToString, 0}, /* depreciated JAS */
-	{"assign", SFNodeAssign, 0},
-	{0}
+	JS_FS("equals", SFNodeEquals, 1,0),
+	JS_FS("toSTring", SFNodeToString, 0, 0), /* depreciated JAS */
+	{"assign", SFNodeAssign, 0, 0},
+	JS_FS_END
 };
 
 
