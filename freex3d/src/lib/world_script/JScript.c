@@ -3216,10 +3216,11 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 		*iflag = 0;
 		if (!JS_GetProperty(cx,obj,JSparamnames[tnfield].name,&retval)){
 			//you may have an inputOutput field, with the plane name
-			//printf ("function(set_one_MultiElementType) - not a function: %s\n",JSparamnames[tnfield].name);
+			printf ("no field for eventIn function: %s\n",JSparamnames[tnfield].name);
 			return NULL;
 		}
 		if (!JSVAL_IS_OBJECT(retval)){
+			printf ("no field for eventIn function: %s\n",JSparamnames[tnfield].name);
 			return NULL;
 		}
 		*iflag = 2;
