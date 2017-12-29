@@ -839,7 +839,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
 				char runstring[STRING_SIZE];
 				// rename fieldname to set_fieldname
-				sprintf(runstring,"_rename_function(this,\"%s\",\"set_%s\");",field,field);
+				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
 				#if defined(JS_THREADSAFE)
 				JS_BeginRequest(_context);
 				#endif
