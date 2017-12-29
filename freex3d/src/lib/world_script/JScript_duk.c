@@ -2135,7 +2135,7 @@ int fwgetterNS(duk_context *ctx) {
 	/* retrieve key from nonstandard arg */
 	//show_stack(ctx,"in fwgetterNS at start");
 	fieldname = duk_require_string(ctx,0);
-	//printf("\nfwgetterNS key=%s\n",key);
+	//printf("\nfwgetterNS key=%s\n",fieldname);
 
 	/* retrieve field pointer from Cfunc */
 	duk_push_current_function(ctx);
