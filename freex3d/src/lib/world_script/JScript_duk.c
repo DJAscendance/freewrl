@@ -454,7 +454,8 @@ static char *DefaultScriptMethodsB = " function print(x) {Browser.print(x)}; " \
 			" function createX3DFromString(x) {Browser.createX3DFromString(x)}; "\
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
-			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "
+			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
+			" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf]}; "\
 			"";
 
 /*add x3d v3.3 ecmascript X3DConstants table 

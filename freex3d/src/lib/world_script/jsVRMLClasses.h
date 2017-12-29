@@ -104,8 +104,19 @@ of garbage collection
 #else
 #define COMPILE_FUNCTION_IF_NEEDED(tnfield) \
 	if (JSparamnames[tnfield].eventInFunction == NULL) { \
-		sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
-		/* printf ("compiling function %s\n",scriptline); */ \
+		sprintf (scriptline,"%s%s(%s%s,__eventInTickTime)", "",JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); \
+		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
+		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
+			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
+		if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) { \
+			printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__); \
+			return; \
+		} \
+	}
+#define COMPILE_FUNCTION_IF_NEEDED_INOUT(tnfield) \
+	if (JSparamnames[tnfield].eventInFunction == NULL) { \
+		sprintf (scriptline,"%s%s(%s%s,__eventInTickTime)", "set_",JSparamnames[tnfield].name,"",JSparamnames[tnfield].name); \
+		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
 		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
 			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
 		if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) { \

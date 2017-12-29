@@ -274,7 +274,8 @@ static char *DefaultScriptMethods = "function initialize() {}; " \
 			" function createX3DFromString(x) {Browser.createX3DFromString(x)}; "\
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
-			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "
+			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
+			" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf]}; "\
 			"";
 
 /* housekeeping routines */
@@ -809,19 +810,47 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	printf ("\nInitScriptField, num %d, kind %s type %s field %s value %d\n", num,PROTOKEYWORDS[kind],FIELDTYPES[type],field,value);
 	#endif
 
-        if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
-                ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
-                return;
-        }
+    if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
+            ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
+            return;
+    }
 
-        if (type >= FIELDTYPES_COUNT) {
-                ConsoleMessage ("InitScriptField: invalid type for script: %d\n",type);
-                return;
-        }
+    if (type >= FIELDTYPES_COUNT) {
+            ConsoleMessage ("InitScriptField: invalid type for script: %d\n",type);
+            return;
+    }
+	ScriptControl = getScriptControlIndex(num);
 
 	/* first, make a new name up */
 	if (kind == PKW_inputOnly) {
 		sprintf (mynewname,"__eventIn_Value_%s",field);
+	}else if (kind == PKW_inputOutput) {
+		//check if user added an eventIn function with the same basename,
+		// which is allowed with inputOutput fields
+		JSContext *cx;
+		JSObject *obj;
+		jsval retval;
+		cx =  (JSContext*)ScriptControl->cx;
+		obj = (JSObject*)ScriptControl->glob;
+
+		if (JS_GetProperty(cx,obj,field,&retval)){
+			if (JSVAL_IS_OBJECT(retval)){
+				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
+				char runstring[STRING_SIZE];
+				sprintf(runstring,"_rename_function(this,\"%s\",\"set_%s\");",field,field);
+				#if defined(JS_THREADSAFE)
+				JS_BeginRequest(_context);
+				#endif
+				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
+					printf("sorry couldn't rename function: %s",runstring);
+				}
+				#if defined(JS_THREADSAFE)
+				JS_EndRequest(_context);
+				#endif
+			}
+		}
+		strcpy(mynewname,field); //now this is OK, won't overwrite function
+		// and if so rename it to set_
 	}else strcpy(mynewname,field);
 
 	/* ok, lets handle the types here */
@@ -1654,10 +1683,6 @@ void sm_resetScriptTouchedFlag(int actualscript, int fptr) {
 
 int jsActualrunScript(int num, char *script);
 void sm_JSInitializeScriptAndFields (int num) {
-#ifdef OLDWAY33
-        struct ScriptParamList *thisEntry;
-        struct ScriptParamList *nextEntry;
-#endif
 	//jsval rval;
 	//ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
@@ -1675,28 +1700,23 @@ void sm_JSInitializeScriptAndFields (int num) {
 
 
 
-#ifdef OLDWAY33
-        thisEntry = ScriptControl[num].paramList;
-        while (thisEntry != NULL) {
-		/* printf ("script field is %s\n",thisEntry->field);  */
-		InitScriptField(num, thisEntry->kind, thisEntry->type, thisEntry->field, thisEntry->value);
-
-		/* get the next block; free the current name, current block, and make current = next */
-		nextEntry = thisEntry->next;
-		FREE_IF_NZ (thisEntry->field);
-		FREE_IF_NZ (thisEntry);
-		thisEntry = nextEntry;
-	}
-	
-	/* we have freed each element, set list to NULL in case anyone else comes along */
-	ScriptControl[num].paramList = NULL;
-#else
 	int i,nfields,kind,itype;
 	const char *fieldname;
 	struct Shader_Script *script;
 	struct ScriptFieldDecl *field;
 
 	ScriptControl = getScriptControlIndex(num);
+
+	//add user code -including eventIn functions- first
+	if(1) if (!jsActualrunScript(num, ScriptControl->scriptText)) {
+		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
+		ScriptControl->scriptOK = FALSE;
+		ScriptControl->_initialized = TRUE;
+		return;
+	}
+
+	// when adding inputOutput fieldnname, check first if there's a user 
+	// eventin function with the same name, and if so rename it to set_fieldname
 	script = ScriptControl->script;
 	//printf("adding fields from script %x\n",script);
 	nfields = Shader_Script_getScriptFieldCount(script);
@@ -1707,9 +1727,9 @@ void sm_JSInitializeScriptAndFields (int num) {
 		itype = ScriptFieldDecl_getType(field);
 		InitScriptField(num, kind, itype, fieldname, field->value);
 	}
-#endif
 
-	if (!jsActualrunScript(num, ScriptControl->scriptText)) {
+
+	if(0) if (!jsActualrunScript(num, ScriptControl->scriptText)) {
 		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
 		ScriptControl->scriptOK = FALSE;
 		ScriptControl->_initialized = TRUE;
@@ -1725,36 +1745,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 
 /* save this field from the parser; initialize it when the fwl_RenderSceneUpdateScene wants to initialize it */
 void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value) {
-#ifdef OLDWAY33
-	struct ScriptParamList **nextInsert;
-	struct ScriptParamList *newEntry;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
-	//ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
 
-	//if (num >= p->JSMaxScript)  {
-	//	ConsoleMessage ("JSSaveScriptText: warning, script %d initialization out of order",num);
-	//	return;
-	//}
-
-	/* generate a new ScriptParamList entry */
-	/* note that this is a linked list, and we put things on at the end. The END MUST
-	   have NULL termination */
-	nextInsert = &(ScriptControl[num].paramList);
-	while (*nextInsert != NULL) {
-		nextInsert = &(*nextInsert)->next;
-	}
-
-	/* create a new entry and link it in */
-	newEntry = MALLOC (struct ScriptParamList *, sizeof (struct ScriptParamList));
-	*nextInsert = newEntry;
-	
-	/* initialize the new entry */
-	newEntry->next = NULL;
-	newEntry->kind = kind;
-	newEntry->type = type;
-	newEntry->field = STRDUP(field);
-	newEntry->value = value;
-#endif
 }
 
 
@@ -3317,6 +3308,7 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
 	if(pp == NULL){
 		//no script function with this name - you might be routing to an inputOutput field
+		printf("function not found\n");
 		return;
 	}
 
@@ -3338,6 +3330,20 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 
 		RUN_FUNCTION (tnfield)
 	}
+	if(iflag == 2){
+		//inputOutput - we changed the function name to set_fieldname
+		SET_JS_TICKTIME
+		/* is the function compiled yet? */
+		COMPILE_FUNCTION_IF_NEEDED_INOUT(tnfield)
+
+		/* and run the function */
+		#ifdef SETFIELDVERBOSE
+		printf ("set_one_MultiElementType: running script %s\n",scriptline);
+		#endif
+
+		RUN_FUNCTION (tnfield)
+	}
+
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(cx);
 #endif
