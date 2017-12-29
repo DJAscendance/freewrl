@@ -113,9 +113,9 @@ of garbage collection
 			return; \
 		} \
 	}
-#define COMPILE_FUNCTION_IF_NEEDED_INOUT(tnfield) \
+#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield) \
 	if (JSparamnames[tnfield].eventInFunction == NULL) { \
-		sprintf (scriptline,"%s%s(%s%s,__eventInTickTime)", "set_",JSparamnames[tnfield].name,"",JSparamnames[tnfield].name); \
+		sprintf (scriptline,"set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
 		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
 		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
 			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \

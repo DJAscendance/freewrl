@@ -1969,7 +1969,8 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 				newval = *vp;
 			//}
 			/* get the variable name to hold the incoming value */
-			sprintf (scriptline,"__eventIn_Value_%s",  _id_c);
+			//sprintf (scriptline,"__eventIn_Value_%s",  _id_c);
+			strcpy(scriptline,_id_c);
 			#ifdef JSVRMLCLASSESVERBOSE
 			printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj2);
 			#endif
@@ -1986,7 +1987,8 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			JSparamnames = getJSparamnames();
 			eventInFunction = JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction;
 			if ( eventInFunction == NULL) { 
-				sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", _id_c, _id_c); 
+				//sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", _id_c, _id_c); 
+				sprintf (scriptline,"set_%s(%s,__eventInTickTime)", _id_c, _id_c); 
 				/* printf ("compiling function %s\n",scriptline); */
 				eventInFunction = JS_CompileScript(cx2, obj2, scriptline, strlen(scriptline), "compile eventIn",1);
 				if(true){

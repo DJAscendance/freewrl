@@ -822,9 +822,10 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	ScriptControl = getScriptControlIndex(num);
 
 	/* first, make a new name up */
-	if (kind == PKW_inputOnly) {
-		sprintf (mynewname,"__eventIn_Value_%s",field);
-	}else if (kind == PKW_inputOutput) {
+	if (kind == PKW_inputOnly || kind == PKW_inputOutput) {
+	//	//sprintf (mynewname,"__eventIn_Value_%s",field);
+	//	strcpy(mynewname,field);
+	//}else if (kind == PKW_inputOutput) {
 		//check if user added an eventIn function with the same basename,
 		// which is allowed with inputOutput fields
 		JSContext *cx;
@@ -837,6 +838,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 			if (JSVAL_IS_OBJECT(retval)){
 				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
 				char runstring[STRING_SIZE];
+				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,\"%s\",\"set_%s\");",field,field);
 				#if defined(JS_THREADSAFE)
 				JS_BeginRequest(_context);
@@ -2636,7 +2638,8 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
 	/* get the variable name to hold the incoming value */
-	sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+	strcpy(scriptline,JSparamnames[toname].name);
 
 	#ifdef SETFIELDVERBOSE
 	printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
@@ -2651,7 +2654,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
         }
 
 	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED(toname)
+	COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 
 	/* and run the function */
 	RUN_FUNCTION (toname)
@@ -3186,7 +3189,8 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 
 	/* get the variable name to hold the incoming value */
-	sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
+	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
+	strcpy(scriptline,JSparamnames[tnfield].name);
 	#ifdef SETFIELDVERBOSE
 	printf ("getInternalDataPointerForJavascriptObject: line %s\n",scriptline);
 	#endif
@@ -3316,33 +3320,18 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 	/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
 	printf ("and, sending the data to pointer %p\n",pp); */
 
-	if(iflag == 1){
-		//if we added a __eventIn_Value_<fieldname> for inputOnly field
-		/* set the time for this script */
-		SET_JS_TICKTIME
-		/* is the function compiled yet? */
-		COMPILE_FUNCTION_IF_NEEDED(tnfield)
+	//if we added a __eventIn_Value_<fieldname> for inputOnly field
+	/* set the time for this script */
+	SET_JS_TICKTIME
+	/* is the function compiled yet? */
+	COMPILE_FUNCTION_IF_NEEDED_SET(tnfield)
 
-		/* and run the function */
-		#ifdef SETFIELDVERBOSE
-		printf ("set_one_MultiElementType: running script %s\n",scriptline);
-		#endif
+	/* and run the function */
+	#ifdef SETFIELDVERBOSE
+	printf ("set_one_MultiElementType: running script %s\n",scriptline);
+	#endif
 
-		RUN_FUNCTION (tnfield)
-	}
-	if(iflag == 2){
-		//inputOutput - we changed the function name to set_fieldname
-		SET_JS_TICKTIME
-		/* is the function compiled yet? */
-		COMPILE_FUNCTION_IF_NEEDED_INOUT(tnfield)
-
-		/* and run the function */
-		#ifdef SETFIELDVERBOSE
-		printf ("set_one_MultiElementType: running script %s\n",scriptline);
-		#endif
-
-		RUN_FUNCTION (tnfield)
-	}
+	RUN_FUNCTION (tnfield)
 
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(cx);
