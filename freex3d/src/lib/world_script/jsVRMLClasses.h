@@ -104,8 +104,19 @@ of garbage collection
 #else
 #define COMPILE_FUNCTION_IF_NEEDED(tnfield) \
 	if (JSparamnames[tnfield].eventInFunction == NULL) { \
-		sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
-		/* printf ("compiling function %s\n",scriptline); */ \
+		sprintf (scriptline,"%s%s(%s%s,__eventInTickTime)", "",JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); \
+		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
+		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
+			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
+		if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) { \
+			printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__); \
+			return; \
+		} \
+	}
+#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield) \
+	if (JSparamnames[tnfield].eventInFunction == NULL) { \
+		sprintf (scriptline,"set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
+		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
 		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
 			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
 		if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) { \
@@ -359,9 +370,19 @@ SFNodeToString(JSContext *cx,
 			   uintN argc,
 			   jsval *argv,
 			   jsval *rval);
-
+JSBool
+SFNodeValueOf(JSContext *cx,
+			   JSObject *obj,
+			   uintN argc,
+			   jsval *argv,
+			   jsval *rval);
 JSBool
 SFNodeAssign(JSContext *cx, JSObject *obj,
+			 uintN argc,
+			 jsval *argv,
+			 jsval *rval);
+JSBool
+SFNodeEquals(JSContext *cx, JSObject *obj,
 			 uintN argc,
 			 jsval *argv,
 			 jsval *rval);
@@ -374,7 +395,9 @@ SFNodeConstr(JSContext *cx,
 			 jsval *rval);
 #else
 JSBool SFNodeToString(JSContext *cx, uintN argc, jsval *vp);
+JSBool SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeAssign(JSContext *cx, uintN argc, jsval *vp);
+JSBool SFNodeEquals(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeConstr(JSContext *cx, uintN argc, jsval *vp);
 #endif
 

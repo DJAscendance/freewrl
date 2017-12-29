@@ -454,7 +454,8 @@ static char *DefaultScriptMethodsB = " function print(x) {Browser.print(x)}; " \
 			" function createX3DFromString(x) {Browser.createX3DFromString(x)}; "\
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
-			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "
+			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
+			" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf];}; "\
 			"";
 
 /*add x3d v3.3 ecmascript X3DConstants table 
@@ -2135,7 +2136,7 @@ int fwgetterNS(duk_context *ctx) {
 	/* retrieve key from nonstandard arg */
 	//show_stack(ctx,"in fwgetterNS at start");
 	fieldname = duk_require_string(ctx,0);
-	//printf("\nfwgetterNS key=%s\n",key);
+	//printf("\nfwgetterNS key=%s\n",fieldname);
 
 	/* retrieve field pointer from Cfunc */
 	duk_push_current_function(ctx);
@@ -2204,7 +2205,7 @@ void add_duk_global_property(duk_context *ctx, int itype, const char *fieldname,
 	duk_pop(ctx);
 }
 
-void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, const char* fieldname, int *valueChanged, struct X3D_Node* parent)
+void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, int kind, const char* fieldname, int *valueChanged, struct X3D_Node* parent)
 {
 	/* Creates a javascript-context twin of a Script node for fields of type:
 	 *  field/initializeOnly, eventOut/outputOnly, and the field/eventOut part of exposedField/inputOutput
@@ -2217,12 +2218,58 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, const cha
 	 * InitScriptField2 version: instead of jsNative, hook back into Script_Node->fields[i] for get/set storage
 	*/
 	duk_context *ctx;
+	int haveFunc;
+	char strline[256];
+
 	//int iglobal;
 	//printf("in InitScriptField\n");
 
 	// create twin property
 	ctx = scriptcontrol->cx;
 	//iglobal = *(int*)scriptcontrol->glob; 
+
+	//any inputOnly or inputOutput eventIn scripts we need to rename to set_?
+	if(kind == PKW_inputOnly || kind == PKW_inputOutput){
+		sprintf(strline,"%s",fieldname);
+		duk_push_string(ctx, strline);
+		haveFunc = FALSE;
+		if (duk_peval(ctx) == 0) {
+			haveFunc = TRUE;
+		} else {
+			printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
+		}
+		duk_pop(ctx); //pop result which we don't use
+
+		if(haveFunc){
+			//name confilct between inputOutput (or even inputOnly) field, and eventIn function
+			//- rename user's function to set_fieldname before adding script field object fieldname
+			if(0){
+				// this works 
+				duk_eval_string(ctx, "_rename_function"); 
+				duk_eval_string(ctx,"this"); //global object
+				/* push key */
+				sprintf(strline,"%s",fieldname);
+				duk_push_string(ctx,strline); //"myScriptFieldName"
+				sprintf(strline,"set_%s",fieldname);
+				duk_push_string(ctx,strline);
+				if( duk_pcall(ctx, 3) != 0){
+					printf("error: %s\n", duk_safe_to_string(ctx, -1));
+					printf("rename didn't work\n");
+				}
+				duk_pop(ctx);
+			}
+			if(1){
+				// so does this
+				sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
+				duk_push_string(ctx,strline);
+				if(duk_peval(ctx) != 0) {
+					printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
+					printf("rename didn't work\n");
+				}
+				duk_pop(ctx);
+			}
+		}
+	}
 	add_duk_global_property(ctx,itype,fieldname, valueChanged,parent);
 
 	return;
@@ -2241,8 +2288,16 @@ void duk_JSInitializeScriptAndFields (int num) {
 	//ScriptControlArray = getScriptControl();
 	scriptcontrol = getScriptControlIndex(num); //&ScriptControlArray[num];
 
+	//run user's code first to set their functions
+	if(1) if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
+		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
+		scriptcontrol->scriptOK = FALSE;
+		scriptcontrol->_initialized = TRUE;
+		return;
+	}
 
 	/* run through fields in order of entry in the X3D file */
+	// and if a fieldname == function name, change function name to set_
 	script = scriptcontrol->script;
 	//printf("adding fields from script %p\n",script);
 	nfields = Shader_Script_getScriptFieldCount(script);
@@ -2251,14 +2306,14 @@ void duk_JSInitializeScriptAndFields (int num) {
 		fieldname = ScriptFieldDecl_getName(field);
 		kind = ScriptFieldDecl_getMode(field);
 		itype = ScriptFieldDecl_getType(field);
-		if (kind != PKW_inputOnly) { //we'll hook input events to the author's functions elsewhere
+		//if (kind != PKW_inputOnly) { //we'll hook input events to the author's functions elsewhere
 			//everything else -fields, eventOuts- needs a strict property twin created on the global object
 			field->valueChanged = 0;
-			InitScriptField2(scriptcontrol, itype, fieldname, &field->valueChanged, script->ShaderScriptNode);
-		}
+			InitScriptField2(scriptcontrol, itype, kind, fieldname, &field->valueChanged, script->ShaderScriptNode);
+		//}
 	}
 	
-	if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
+	if(0) if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
 		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
 		scriptcontrol->scriptOK = FALSE;
 		scriptcontrol->_initialized = TRUE;
@@ -2395,7 +2450,7 @@ void duk_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  
 
 
 void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
-	//char scriptline[100];
+	char scriptline[100];
 	//FWVAL newval;
 	duk_context *ctx;
 	int obj, rc;
@@ -2419,7 +2474,15 @@ void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int
 
 
 	//get function by name
-	duk_eval_string(ctx,JSparamnames[toname].name); //gets the evenin function on the stack
+	sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+	duk_push_string(ctx,scriptline);
+	if(duk_peval(ctx) != 0){
+		printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
+		printf("ouch - no function named %s\n",scriptline);
+		duk_pop(ctx);
+		return;
+	}
+	//duk_eval_string(ctx,scriptline); //JSparamnames[toname].name); //gets the evenin function on the stack
 
 	//push ecma value as arg
 	{
@@ -2437,6 +2500,7 @@ void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int
 	//run function
 	rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
 	if (rc != DUK_EXEC_SUCCESS) {
+	  printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
 	  printf("error: '%s' happened in js function %s called from set_one_ECMAType\n", duk_to_string(ctx, -1),JSparamnames[toname].name);
 	}
 
@@ -2484,10 +2548,12 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	//void* Data - pointer to anyVrml of the from node
 	//datalen - size of anyVrml to memcpy
 	//FWVAL newval;
+	char scriptline[100];
 	duk_context *ctx;
 	int obj, rc;
 	int itype;
 	void *datacopy;
+	int isEventin;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -2500,20 +2566,29 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	
 	//printf("in set_one_MultiElementType\n");
 	//get function by name
-	duk_eval_string(ctx,JSparamnames[tnfield].name); //gets the evenin function on the stack
-	itype = JSparamnames[tnfield].type;
-	//medium copy
-	datacopy = NULL;
-	medium_copy_field(itype,Data,&datacopy);
-	push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
-	duk_push_number(ctx,TickTime());
-	//duk_call(ctx,2);
-	rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
-	if (rc != DUK_EXEC_SUCCESS) {
-	  printf("error: '%s' happened in js function %s called from set_one_Multi_ElementType\n", duk_to_string(ctx, -1),JSparamnames[tnfield].name);
+	//show_stack(ctx,"before evale field name");
+
+	sprintf(scriptline,"set_%s",JSparamnames[tnfield].name);
+	duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
+	isEventin = duk_is_ecmascript_function(ctx, -1);
+	if(isEventin){
+		//you might not have an eventin, especially if it was an inputOutput field
+		// you may just want to route to/from the field value
+		itype = JSparamnames[tnfield].type;
+		//medium copy
+		datacopy = NULL;
+		medium_copy_field(itype,Data,&datacopy);
+		push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
+		duk_push_number(ctx,TickTime());
+		//duk_call(ctx,2);
+		rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
+		if (rc != DUK_EXEC_SUCCESS) {
+		  printf("error: '%s' happened in js function %s called from set_one_Multi_ElementType\n", duk_to_string(ctx, -1),JSparamnames[tnfield].name);
+		}
+		//show_stack(ctx,"after calling isOver");
 	}
-	//show_stack(ctx,"after calling isOver");
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
+	//show_stack(ctx,"before return");
 	return;
 }
 void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){

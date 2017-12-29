@@ -274,7 +274,8 @@ static char *DefaultScriptMethods = "function initialize() {}; " \
 			" function createX3DFromString(x) {Browser.createX3DFromString(x)}; "\
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
-			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "
+			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
+			" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf]}; "\
 			"";
 
 /* housekeeping routines */
@@ -580,6 +581,22 @@ int SFNodeNativeAssign(void *top, void *fromp)
 
 	return JS_TRUE;
 }
+/* assign this internally to the Javascript engine environment */
+int SFNodeNativeEquals(void *top, void *fromp)
+{
+	int equal;
+	SFNodeNative *to = (SFNodeNative *)top;
+	SFNodeNative *from = (SFNodeNative *)fromp;
+
+	equal = 0;
+
+	if (from != NULL) {
+		if(to->handle == from->handle)
+			equal=1;
+	}
+
+	return equal;// ? JS_TRUE : JS_FALSE;
+}
 
 void *SFColorRGBANativeNew()
 {
@@ -793,20 +810,50 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	printf ("\nInitScriptField, num %d, kind %s type %s field %s value %d\n", num,PROTOKEYWORDS[kind],FIELDTYPES[type],field,value);
 	#endif
 
-        if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
-                ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
-                return;
-        }
+    if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
+            ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
+            return;
+    }
 
-        if (type >= FIELDTYPES_COUNT) {
-                ConsoleMessage ("InitScriptField: invalid type for script: %d\n",type);
-                return;
-        }
+    if (type >= FIELDTYPES_COUNT) {
+            ConsoleMessage ("InitScriptField: invalid type for script: %d\n",type);
+            return;
+    }
+	ScriptControl = getScriptControlIndex(num);
 
 	/* first, make a new name up */
-	if (kind == PKW_inputOnly) {
-		sprintf (mynewname,"__eventIn_Value_%s",field);
-	} else strcpy(mynewname,field);
+	if (kind == PKW_inputOnly || kind == PKW_inputOutput) {
+	//	//sprintf (mynewname,"__eventIn_Value_%s",field);
+	//	strcpy(mynewname,field);
+	//}else if (kind == PKW_inputOutput) {
+		//check if user added an eventIn function with the same basename,
+		// which is allowed with inputOutput fields
+		JSContext *cx;
+		JSObject *obj;
+		jsval retval;
+		cx =  (JSContext*)ScriptControl->cx;
+		obj = (JSObject*)ScriptControl->glob;
+
+		if (JS_GetProperty(cx,obj,field,&retval)){
+			if (JSVAL_IS_OBJECT(retval)){
+				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
+				char runstring[STRING_SIZE];
+				// rename fieldname to set_fieldname
+				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
+				#if defined(JS_THREADSAFE)
+				JS_BeginRequest(_context);
+				#endif
+				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
+					printf("sorry couldn't rename function: %s",runstring);
+				}
+				#if defined(JS_THREADSAFE)
+				JS_EndRequest(_context);
+				#endif
+			}
+		}
+		strcpy(mynewname,field); //now this is OK, won't overwrite function
+		// and if so rename it to set_
+	}else strcpy(mynewname,field);
 
 	/* ok, lets handle the types here */
 	switch (type) {
@@ -1638,10 +1685,6 @@ void sm_resetScriptTouchedFlag(int actualscript, int fptr) {
 
 int jsActualrunScript(int num, char *script);
 void sm_JSInitializeScriptAndFields (int num) {
-#ifdef OLDWAY33
-        struct ScriptParamList *thisEntry;
-        struct ScriptParamList *nextEntry;
-#endif
 	//jsval rval;
 	//ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
@@ -1659,28 +1702,23 @@ void sm_JSInitializeScriptAndFields (int num) {
 
 
 
-#ifdef OLDWAY33
-        thisEntry = ScriptControl[num].paramList;
-        while (thisEntry != NULL) {
-		/* printf ("script field is %s\n",thisEntry->field);  */
-		InitScriptField(num, thisEntry->kind, thisEntry->type, thisEntry->field, thisEntry->value);
-
-		/* get the next block; free the current name, current block, and make current = next */
-		nextEntry = thisEntry->next;
-		FREE_IF_NZ (thisEntry->field);
-		FREE_IF_NZ (thisEntry);
-		thisEntry = nextEntry;
-	}
-	
-	/* we have freed each element, set list to NULL in case anyone else comes along */
-	ScriptControl[num].paramList = NULL;
-#else
 	int i,nfields,kind,itype;
 	const char *fieldname;
 	struct Shader_Script *script;
 	struct ScriptFieldDecl *field;
 
 	ScriptControl = getScriptControlIndex(num);
+
+	//add user code -including eventIn functions- first
+	if(1) if (!jsActualrunScript(num, ScriptControl->scriptText)) {
+		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
+		ScriptControl->scriptOK = FALSE;
+		ScriptControl->_initialized = TRUE;
+		return;
+	}
+
+	// when adding inputOutput fieldnname, check first if there's a user 
+	// eventin function with the same name, and if so rename it to set_fieldname
 	script = ScriptControl->script;
 	//printf("adding fields from script %x\n",script);
 	nfields = Shader_Script_getScriptFieldCount(script);
@@ -1691,9 +1729,9 @@ void sm_JSInitializeScriptAndFields (int num) {
 		itype = ScriptFieldDecl_getType(field);
 		InitScriptField(num, kind, itype, fieldname, field->value);
 	}
-#endif
 
-	if (!jsActualrunScript(num, ScriptControl->scriptText)) {
+
+	if(0) if (!jsActualrunScript(num, ScriptControl->scriptText)) {
 		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
 		ScriptControl->scriptOK = FALSE;
 		ScriptControl->_initialized = TRUE;
@@ -1709,36 +1747,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 
 /* save this field from the parser; initialize it when the fwl_RenderSceneUpdateScene wants to initialize it */
 void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value) {
-#ifdef OLDWAY33
-	struct ScriptParamList **nextInsert;
-	struct ScriptParamList *newEntry;
-	struct CRscriptStruct *ScriptControl = getScriptControl();
-	//ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
 
-	//if (num >= p->JSMaxScript)  {
-	//	ConsoleMessage ("JSSaveScriptText: warning, script %d initialization out of order",num);
-	//	return;
-	//}
-
-	/* generate a new ScriptParamList entry */
-	/* note that this is a linked list, and we put things on at the end. The END MUST
-	   have NULL termination */
-	nextInsert = &(ScriptControl[num].paramList);
-	while (*nextInsert != NULL) {
-		nextInsert = &(*nextInsert)->next;
-	}
-
-	/* create a new entry and link it in */
-	newEntry = MALLOC (struct ScriptParamList *, sizeof (struct ScriptParamList));
-	*nextInsert = newEntry;
-	
-	/* initialize the new entry */
-	newEntry->next = NULL;
-	newEntry->kind = kind;
-	newEntry->type = type;
-	newEntry->field = STRDUP(field);
-	newEntry->value = value;
-#endif
 }
 
 
@@ -2629,7 +2638,8 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
 	/* get the variable name to hold the incoming value */
-	sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+	strcpy(scriptline,JSparamnames[toname].name);
 
 	#ifdef SETFIELDVERBOSE
 	printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
@@ -2644,7 +2654,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
         }
 
 	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED(toname)
+	COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 
 	/* and run the function */
 	RUN_FUNCTION (toname)
@@ -3168,7 +3178,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 /****************************************************************/
 
 /* get a pointer to the internal data for this object, or return NULL on error */
-void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, int tnfield) {
+void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, int tnfield, int *iflag) {
 	char scriptline[100];
 	void *_privPtr;
 	JSObject *sfObj;
@@ -3177,17 +3187,39 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 	/* NOTE -- this is only called once, and the caller has already defined a JS_BeginRequest() */
 
+
 	/* get the variable name to hold the incoming value */
-	sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
+	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
+	strcpy(scriptline,JSparamnames[tnfield].name);
 	#ifdef SETFIELDVERBOSE
 	printf ("getInternalDataPointerForJavascriptObject: line %s\n",scriptline);
 	#endif
 
-	if (!JS_GetProperty(cx,obj,scriptline,&retval))
+	if (!JS_GetProperty(cx,obj,scriptline,&retval)){
+		//if you forgot to put both an inputOnly or inputOutput field AND
+		// you forgot to define a function() with the same name
+		// then you won't have any objects
+		// if you didn't have a field then ROUTE would complain, unless directAccess
 		printf ("JS_GetProperty failed in set_one_MultiElementType.\n");
-
-	if (!JSVAL_IS_OBJECT(retval))
-		printf ("set_one_MultiElementType - not an object\n");
+		//return NULL;
+	}
+	*iflag = 1;
+	if (!JSVAL_IS_OBJECT(retval)){
+		// you don't have an inputOnly static object with this name (but might have a field static object,
+		//return NULL;
+		//could be inputOutput which has a norma field name
+		*iflag = 0;
+		if (!JS_GetProperty(cx,obj,JSparamnames[tnfield].name,&retval)){
+			//you may have an inputOutput field, with the plane name
+			printf ("no field for eventIn function: %s\n",JSparamnames[tnfield].name);
+			return NULL;
+		}
+		if (!JSVAL_IS_OBJECT(retval)){
+			printf ("no field for eventIn function: %s\n",JSparamnames[tnfield].name);
+			return NULL;
+		}
+		*iflag = 2;
+	}
 
 	sfObj = JSVAL_TO_OBJECT(retval);
 
@@ -3251,12 +3283,18 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 
 
-/* really do the individual set; used by script routing and EAI sending to a script */
+/* really do the individual set; used by script routing and EAI sending to a script 
+	Dec 2017 - You may have a inpoutOutput field you want to route values to
+		and not have any inputOnly function() associated with the field
+		for this scenario you want to check first if there's a function,
+		and if so do some extra work. If not so be it.
+*/
 void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
 	char scriptline[100];
 	JSContext *cx;
 	JSObject *obj;
 	void **pp;
+	int iflag;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -3268,20 +3306,25 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
 #endif
-	/* set the time for this script */
-	SET_JS_TICKTIME
 
 	/* copy over the data from the VRML side into the script variable. */
-	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield);
-
-	if (pp != NULL) {
-		memcpy (pp,Data, dataLen);
-		/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
-		printf ("and, sending the data to pointer %p\n",pp); */
+	iflag = 0;
+	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
+	if(pp == NULL){
+		//no script function with this name - you might be routing to an inputOutput field
+		printf("function not found\n");
+		return;
 	}
 
+	memcpy (pp,Data, dataLen);
+	/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
+	printf ("and, sending the data to pointer %p\n",pp); */
+
+	//if we added a __eventIn_Value_<fieldname> for inputOnly field
+	/* set the time for this script */
+	SET_JS_TICKTIME
 	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED(tnfield)
+	COMPILE_FUNCTION_IF_NEEDED_SET(tnfield)
 
 	/* and run the function */
 	#ifdef SETFIELDVERBOSE

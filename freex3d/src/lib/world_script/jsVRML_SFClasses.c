@@ -1084,9 +1084,9 @@ SFImageSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *
 /* returns a string rep of the pointer to the node in memory */
 JSBool
 #if JS_VERSION < 185
-SFNodeToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+SFNodeValueOf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #else
-SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
+SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
 	jsval rvalinst;
@@ -1145,6 +1145,64 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 #endif
 	return JS_TRUE;
 }
+
+JSBool
+#if JS_VERSION < 185
+SFNodeToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+#else
+SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
+        JSObject *obj = JS_THIS_OBJECT(cx,vp);
+        jsval *argv = JS_ARGV(cx,vp);
+	jsval rvalinst;
+	jsval *rval = &rvalinst;
+#endif
+    JSString *_str;
+	SFNodeNative *ptr;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("SFNODETOSTRING\n");
+	#endif
+	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+		printf( "JS_GetPrivate failed in SFNodeToString.\n");
+		return JS_FALSE;
+	}
+
+	/* get the string from creation, and return it. */
+
+	/* used to do: 
+	*rval = INT_TO_JSVAL(ptr->handle);
+	
+	but we have 64 bit pointers in OSX now, and ints are 32 bits. so...
+	we convert to a double, and hope that it is still correct (seems to be ok
+	32 and 64 bits - tests/46.wrl will use this path, btw */
+
+	{
+		jsdouble nv;
+		char buff[STRING];
+		memset(buff, 0, STRING);
+		sprintf (buff,"_%ld_",(long int) ptr->handle);
+		/* sprintf (tmpline,"%ld",ptr->handle); */
+
+		/* printf ("pointer to long int :%s:\n",tmpline); */
+		ADD_ROOT(cx,_str)
+		_str = JS_NewStringCopyZ(cx, buff);
+
+#if JS_VERSION < 185
+		*rval = STRING_TO_JSVAL(_str);
+#else
+		JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
+#endif
+	
+		REMOVE_ROOT (cx,_str)
+
+	}
+	
+	return JS_TRUE;
+}
+
+
 
 JSBool
 #if JS_VERSION < 185
@@ -1222,6 +1280,67 @@ SFNodeAssign(JSContext *cx, uintN argc, jsval *vp) {
 	#endif
 	return JS_TRUE;
 }
+
+
+// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Releases/1.8.5
+// when adding a node.function() don't forget to add a check in SFNodeGetProperty for "function"
+JSBool
+#if JS_VERSION < 185
+SFNodeEquals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	jsval rvalinst;
+	jsval *rval = &rvalinst;
+#else
+SFNodeEquals(JSContext *cx, uintN argc, jsval *vp) {
+        JSObject *obj = JS_THIS_OBJECT(cx,vp);
+        jsval *argv = JS_ARGV(cx,vp);
+#endif
+	int iret;
+	JSObject *_from_obj;
+    SFNodeNative *ptr, *fptr;
+
+	//JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(1)); //JS_TRUE);
+	//return JS_TRUE;
+	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+		printf( "JS_GetPrivate failed in SFNodeNative.\n");
+		return JS_FALSE;
+	}
+	if (!JS_ConvertArguments(cx, argc, argv, "o",
+							 &_from_obj)) {
+		printf( "JS_ConvertArguments failed in SFNodeNative.\n");
+		return JS_FALSE;
+	}
+
+
+	if (_from_obj != NULL) {
+		CHECK_CLASS(cx,_from_obj,argv,__FUNCTION__,SFNodeClass)
+
+		if ((fptr = (SFNodeNative *)JS_GetPrivate(cx, _from_obj)) == NULL) {
+			printf( "JS_GetPrivate failed for _from_obj in SFNodeAssign.\n");
+		    return JS_FALSE;
+		}
+		#ifdef JSVRMLCLASSESVERBOSE
+			printf("SFNodeAssign: obj = %p, id = \"%s\", from = %p\n",
+				   obj, _id_str, _from_obj);
+		#endif
+	} else { fptr = NULL; }
+
+
+	/* assign this internally */
+	iret = SFNodeNativeEquals(ptr, fptr);
+#if JS_VERSION < 185
+    *rval = BOOLEAN_TO_JSVAL(iret);
+#else
+	JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(iret));
+#endif
+	
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("end of SFNodeEqual\n");
+	#endif
+
+    return JS_TRUE;
+}
+
+
 
 /* define JSVRMLCLASSESVERBOSE */
 
@@ -1541,6 +1660,8 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 	/* is this one of the SFNode standard functions? see JSFunctionSpec (SFNodeFunctions)[] */
 	if (strcmp ("toString",_id_c) == 0) return JS_TRUE;
+	if (strcmp ("valueOf",_id_c) == 0) return JS_TRUE;
+	if (strcmp ("equals",_id_c) == 0) return JS_TRUE;
 	if (strcmp ("assign",_id_c) == 0) return JS_TRUE;
 
 	/* get the private pointer for this node */
@@ -1848,7 +1969,8 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 				newval = *vp;
 			//}
 			/* get the variable name to hold the incoming value */
-			sprintf (scriptline,"__eventIn_Value_%s",  _id_c);
+			//sprintf (scriptline,"__eventIn_Value_%s",  _id_c);
+			strcpy(scriptline,_id_c);
 			#ifdef JSVRMLCLASSESVERBOSE
 			printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj2);
 			#endif
@@ -1865,7 +1987,8 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			JSparamnames = getJSparamnames();
 			eventInFunction = JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction;
 			if ( eventInFunction == NULL) { 
-				sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", _id_c, _id_c); 
+				//sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", _id_c, _id_c); 
+				sprintf (scriptline,"set_%s(%s,__eventInTickTime)", _id_c, _id_c); 
 				/* printf ("compiling function %s\n",scriptline); */
 				eventInFunction = JS_CompileScript(cx2, obj2, scriptline, strlen(scriptline), "compile eventIn",1);
 				if(true){
@@ -2356,6 +2479,7 @@ SFRotationSlerp(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
+
 JSBool
 #if JS_VERSION < 185
 SFRotationToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
@@ -2369,7 +2493,6 @@ SFRotationToString(JSContext *cx, uintN argc, jsval *vp) {
 	char buff[STRING];
 
 	UNUSED(argc);
-	UNUSED(argv);
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of SFRotationToString\n");
 	#endif
