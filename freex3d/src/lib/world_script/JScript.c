@@ -553,8 +553,8 @@ void *SFNodeNativeNew()
 
 	ptr->handle = 0;
 	ptr->valueChanged = 0;
-	ptr->X3DString = NULL;
-	ptr->fieldsExpanded = FALSE;
+	//ptr->X3DString = NULL;
+	//ptr->fieldsExpanded = FALSE;
 	return ptr;
 }
 
@@ -569,14 +569,14 @@ int SFNodeNativeAssign(void *top, void *fromp)
 
 	if (from != NULL) {
 		to->handle = from->handle;
-		to->X3DString = STRDUP(from->X3DString);
+		//to->X3DString = STRDUP(from->X3DString);
 
 		#ifdef JAVASCRIPTVERBOSE
 		printf ("SFNodeNativeAssign, copied %p to %p, handle %p, string %s\n", from, to, to->handle, to->X3DString);
 		#endif
 	} else {
 		to->handle = 0;
-		to->X3DString = STRDUP("from a NULL assignment");
+		//to->X3DString = STRDUP("from a NULL assignment");
 	}
 
 	return JS_TRUE;

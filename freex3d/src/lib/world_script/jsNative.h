@@ -45,8 +45,8 @@ typedef struct _BrowserNative {
 typedef struct _SFNodeNative {
 	int valueChanged;
 	struct X3D_Node *handle;
-	char *X3DString;
-	int fieldsExpanded;
+	//char *X3DString;
+	//int fieldsExpanded;
 } SFNodeNative;
 
 typedef struct _SFRotationNative {
