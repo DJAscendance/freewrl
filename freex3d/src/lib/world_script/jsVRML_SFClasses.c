@@ -1638,12 +1638,12 @@ static void X3D_SF_TO_JS_B(JSContext *cx, JSObject *obj, void *Data, unsigned da
 	if (!JSVAL_IS_OBJECT(*newval)) {
 		/* find a script to create the correct object */
 		switch (dataType) {
-        	        case FIELDTYPE_SFVec3f: script = "new SFVec3f()"; break;
-        	        case FIELDTYPE_SFVec3d: script = "new SFVec3d()"; break;
-        	        case FIELDTYPE_SFColor: script = "new SFColor()"; break;
-        	        case FIELDTYPE_SFNode: script = "new SFNode()"; break;
-        	        case FIELDTYPE_SFVec2f: script = "new SFVec2f()"; break;
-        	        case FIELDTYPE_SFRotation: script = "new SFRotation()"; break;
+        	case FIELDTYPE_SFVec3f: script = "new SFVec3f()"; break;
+        	case FIELDTYPE_SFVec3d: script = "new SFVec3d()"; break;
+        	case FIELDTYPE_SFColor: script = "new SFColor()"; break;
+        	case FIELDTYPE_SFNode: script = "new SFNode()"; break;
+        	case FIELDTYPE_SFVec2f: script = "new SFVec2f()"; break;
+        	case FIELDTYPE_SFRotation: script = "new SFRotation()"; break;
 			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;
 		}
 

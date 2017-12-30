@@ -543,6 +543,37 @@ int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval 
 	return JS_TRUE;
 }
 
+//put source = NULL if you want it to malloc
+//if its a script field, send in the pointer to the script field valuechanged, or NULL if new thing()
+int sizeofSForMF(int itype);
+void *AnyNativeNew(int type, union anyVrml* source, int *valueChanged){
+	AnyNative *ptr;
+	ptr = MALLOC(AnyNative *,sizeof(AnyNative));
+	memset(ptr,0,sizeof(AnyNative));
+	ptr->type = type;
+	ptr->valueChanged = valueChanged;
+	ptr->v = source;
+	ptr->gc = 0;
+	if(ptr->v == NULL){
+		ptr->v = MALLOC(void *,sizeofSForMF(type));
+		ptr->gc = 1;
+	}
+	return ptr;
+}
+void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest);
+void AnyNativeAssign(void *top, void *fromp)
+{
+	if(top != fromp){
+		AnyNative *to = (AnyNative *)top;
+		AnyNative *from = (AnyNative *)fromp;
+		if(to->type == from->type){
+			*(to->valueChanged) ++;
+			//shallow assumes the top has already been malloced (just base part of MF needed)
+			//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
+			shallow_copy_field(from->type,from->v,to->v);
+		}
+	}
+}
 /* FROM VRMLC.pm */
 void *SFNodeNativeNew()
 {
