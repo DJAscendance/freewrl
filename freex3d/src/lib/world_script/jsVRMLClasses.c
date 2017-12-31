@@ -1869,6 +1869,9 @@ void resetNameInECMATable(JSContext *context, char *toFind) {
 	}
 }
 
+
+
+
 /* set the valueChanged flag - add a new entry to the table if required */
 void setInECMATable(JSContext *context, char *toFind) {
 	int i;
@@ -1917,6 +1920,38 @@ void setInECMATable(JSContext *context, char *toFind) {
 }
 
 
+void sm_set_script(struct Shader_Script *sp);
+struct Shader_Script *sm_get_script();
+
+int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+	//sp = (struct Shader_Script *)snode->__scriptObj;
+	int k;
+	struct ScriptFieldDecl *sfield;
+	struct Vector *sfields;
+	struct FieldDecl *fdecl;
+	struct CRjsnameStruct *JSparamnames = getJSparamnames();
+
+
+	sfields = sp->fields;
+	for(k=0;k<sfields->n;k++)
+	{
+		char *fieldName;
+		sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
+		//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
+		fdecl = sfield->fieldDecl;
+		fieldName = fieldDecl_getShaderScriptName(fdecl);
+		if(!strcmp(fieldName,fieldname)){
+			*type = fdecl->fieldType;
+			*kind = fdecl->PKWmode;
+			*value = &(sfield->value);
+			*iifield = k; 
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
 JSBool
 #if JS_VERSION < 185
 getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -1924,10 +1959,12 @@ getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 #endif
 {
-	//printf("in getAssignProperty\n");
-	#ifdef JSVRMLCLASSESVERBOSE
+	if(SM_method() == 2){
+
+	printf("in getECMANative\n");
+	//#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_idStr, *_vpStr;
-	char *_id_c, *_vp_c;
+	char *_id_c, *fieldname, *_vp_c;
 
 #if JS_VERSION >= 185
 	jsval id;
@@ -1947,59 +1984,137 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 #endif
 	printf("getAssignProperty: obj = %p, id = \"%s\", vp = %s\n",
 			   obj, _id_c, _vp_c);
+
 	//printf ("what is vp? \n");
 	if (JSVAL_IS_OBJECT(*vp)) printf ("is OBJECT\n");
 	if (JSVAL_IS_STRING(*vp)) printf ("is STRING\n");
 	if (JSVAL_IS_INT(*vp)) printf ("is INT\n");
 	if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
+	fieldname = _id_c;
+	{
+		int type, kind, iifield, ifound;
+		union anyVrml *value;
+		struct Shader_Script *script = sm_get_script();
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value);
+		if(ifound){
+			//similar to SFNodeGetProperty
+			printf("get found field %s in script type %d kind %d index %d \n",fieldname,type,kind,iifield);
+			//set up a return value
+			switch (type) {
+			case FIELDTYPE_SFBool:
+			case FIELDTYPE_SFFloat:
+			case FIELDTYPE_SFTime:
+			case FIELDTYPE_SFDouble:
+			case FIELDTYPE_SFInt32:
+			case FIELDTYPE_SFString:
+				X3D_ECMA_TO_JS(cx, value,returnElementLength(type),type,vp);
+				break;
+			case FIELDTYPE_SFColor:
+			case FIELDTYPE_SFNode:
+			case FIELDTYPE_SFVec2f:
+			case FIELDTYPE_SFVec3f:
+			case FIELDTYPE_SFVec3d:
+			case FIELDTYPE_SFRotation:
+				X3D_SF_TO_JS(cx, obj, value,returnElementLength(type) * returnElementRowSize(type), type, vp);
+				break;
+			case FIELDTYPE_MFColor:
+			case FIELDTYPE_MFVec3f:
+			case FIELDTYPE_MFVec2f:
+			case FIELDTYPE_MFFloat:
+			case FIELDTYPE_MFTime:
+			case FIELDTYPE_MFInt32:
+			case FIELDTYPE_MFString:
+			case FIELDTYPE_MFNode:
+			case FIELDTYPE_MFRotation:
+			case FIELDTYPE_SFImage:
+			//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
+				X3D_MF_TO_JS(cx, obj, value, type, vp, fieldname);
+				break;
+			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+			return JS_FALSE;
+			}
+		}else{
+			printf("get didn't find field %s in script\n",fieldname);
+		}
+	}
+
 
 #if JS_VERSION >= 185
 		JS_free(cx,_id_c);
 		JS_free(cx,_vp_c);
 #endif
-	#endif
+	//#endif
+	} //if SM_method() == 2
 	return JS_TRUE;
 }
 
 
 JSBool
 #if JS_VERSION < 185
-setECMANative(JSContext *context, JSObject *obj, jsval id, jsval *vp)
+setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 #else
-setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 #endif
 {
 	JSString *_idStr;
 	JSString *_vpStr, *_newVpStr;
 	JSBool ret = JS_TRUE;
-	char *_id_c;
+	char *_id_c, *fieldname;
 
 	char *_vp_c, *_new_vp_c;
 	size_t len = 0;
 #if JS_VERSION >= 185
 	jsval id;
-	if (!JS_IdToValue(context,iid,&id)) {
+	if (!JS_IdToValue(cx,iid,&id)) {
 		printf( "JS_IdToValue failed\n");
 		return JS_FALSE;
 	}
 #endif
 
-	_idStr = JS_ValueToString(context, id);
+	_idStr = JS_ValueToString(cx, id);
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(_idStr);
 #else
-	_id_c = JS_EncodeString(context,_idStr);
+	_id_c = JS_EncodeString(cx,_idStr);
 #endif
+	fieldname = _id_c;
+	if(SM_method() == 2){
+		int type, kind, iifield, ifound;
+		union anyVrml *value;
+		struct Shader_Script *script = sm_get_script();
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value);
+		if(ifound){
+			printf("set found field %s in script type %d kind %d index %d \n",fieldname,type,kind,iifield);
+			//type of incoming RHS
+			//setField_fromJavascript (X3D_NODE(ptr->handle), _id_c, _val_c, FALSE);
+			if (JSVAL_IS_OBJECT(*vp)) {
+				AnyNative *rhs;
+        		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
+					printf("in setECMANative, RHS was NOT native type \n");
+        		}else{
+					printf("in setECMANative, RHS was native type \n");
+				}
 
+
+			} else {
+				printf("in setECMANative, RHS was NOT object type \n");
+
+			}
+
+
+		}else{
+			printf("set didn't find field %s in script\n",fieldname);
+		}
+	} else {
         /* "register" this ECMA value for routing changed flag stuff */
-       	setInECMATable(context, _id_c);
+       	setInECMATable(cx, _id_c);
 
 	if (JSVAL_IS_STRING(*vp)) {
-		_vpStr = JS_ValueToString(context, *vp);
+		_vpStr = JS_ValueToString(cx, *vp);
 #if JS_VERSION < 185
 		_vp_c = JS_GetStringBytes(_vpStr);
 #else
-		_vp_c = JS_EncodeString(context,_vpStr);
+		_vp_c = JS_EncodeString(cx,_vpStr);
 #endif
 
 		len = strlen(_vp_c);
@@ -2015,7 +2130,7 @@ setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval 
 		memset(_new_vp_c, 0, len);
 		/* JAS sprintf(_new_vp_c, "\"%.*s\"", len, _vp_c);*/
 		sprintf(_new_vp_c, "%.*s", (int) len, _vp_c);
-		_newVpStr = JS_NewStringCopyZ(context, _new_vp_c);
+		_newVpStr = JS_NewStringCopyZ(cx, _new_vp_c);
 		*vp = STRING_TO_JSVAL(_newVpStr);
 
 		#ifdef JSVRMLCLASSESVERBOSE
@@ -2024,25 +2139,26 @@ setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval 
 		#endif
 		FREE_IF_NZ (_new_vp_c);
 #if JS_VERSION >= 185
-		JS_free(context,_vp_c);
+		JS_free(cx,_vp_c);
 #endif
 	} else {
 		#ifdef JSVRMLCLASSESVERBOSE
-		_vpStr = JS_ValueToString(context, *vp);
+		_vpStr = JS_ValueToString(cx, *vp);
 #if JS_VERSION < 185
 		_vp_c = JS_GetStringBytes(_vpStr);
 #else
-		_vp_c = JS_EncodeString(context,_vpStr);
+		_vp_c = JS_EncodeString(cx,_vpStr);
 #endif
 		printf("setECMANative: obj = %p, id = \"%s\", vp = %s\n",
 			   obj, _id_c, _vp_c);
 #if JS_VERSION >= 185
-		JS_free(context,_vp_c);
+		JS_free(cx,_vp_c);
 #endif
 		#endif
 	}
+	} //if SM_Mehod == 2
 #if JS_VERSION >= 185
-	JS_free(context,_id_c);
+	JS_free(cx,_id_c);
 #endif
 	return ret;
 }
