@@ -216,6 +216,13 @@ loadVrmlClasses(JSContext *context,
 
 
 JSBool
+#if JS_VERSION < 185
+getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#else
+getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
+#endif
+
+JSBool
 setECMANative(JSContext *cx,
 			  JSObject *obj,
 #if JS_VERSION < 185

@@ -1916,6 +1916,52 @@ void setInECMATable(JSContext *context, char *toFind) {
 	p->ECMAValues[p->maxECMAVal-1].context = context;
 }
 
+
+JSBool
+#if JS_VERSION < 185
+getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+#else
+getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+#endif
+{
+	//printf("in getAssignProperty\n");
+	#ifdef JSVRMLCLASSESVERBOSE
+	JSString *_idStr, *_vpStr;
+	char *_id_c, *_vp_c;
+
+#if JS_VERSION >= 185
+	jsval id;
+	if (!JS_IdToValue(cx,iid,&id)) {
+		printf("getAssignProperty: JS_IdToValue failed -- returning JS_TRUE anyways\n");
+	}
+#endif
+
+	_idStr = JS_ValueToString(cx, id);
+	_vpStr = JS_ValueToString(cx, *vp);
+#if JS_VERSION < 185
+	_id_c = JS_GetStringBytes(_idStr);
+	_vp_c = JS_GetStringBytes(_vpStr);
+#else
+	_id_c = JS_EncodeString(cx,_idStr);
+	_vp_c = JS_EncodeString(cx,_vpStr);
+#endif
+	printf("getAssignProperty: obj = %p, id = \"%s\", vp = %s\n",
+			   obj, _id_c, _vp_c);
+	//printf ("what is vp? \n");
+	if (JSVAL_IS_OBJECT(*vp)) printf ("is OBJECT\n");
+	if (JSVAL_IS_STRING(*vp)) printf ("is STRING\n");
+	if (JSVAL_IS_INT(*vp)) printf ("is INT\n");
+	if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
+
+#if JS_VERSION >= 185
+		JS_free(cx,_id_c);
+		JS_free(cx,_vp_c);
+#endif
+	#endif
+	return JS_TRUE;
+}
+
+
 JSBool
 #if JS_VERSION < 185
 setECMANative(JSContext *context, JSObject *obj, jsval id, jsval *vp)
@@ -2009,6 +2055,7 @@ getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 #endif
 {
+	//printf("in getAssignProperty\n");
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_idStr, *_vpStr;
 	char *_id_c, *_vp_c;
@@ -2065,6 +2112,8 @@ setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 	char *_id_c;
 #if JS_VERSION >= 185
 	jsval id;
+	//printf("in setAssignProperty\n");
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("setAssignProperty: JS_IdToValue failed.\n");
 		return JS_FALSE;

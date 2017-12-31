@@ -567,7 +567,8 @@ void AnyNativeAssign(void *top, void *fromp)
 		AnyNative *to = (AnyNative *)top;
 		AnyNative *from = (AnyNative *)fromp;
 		if(to->type == from->type){
-			*(to->valueChanged) ++;
+			if(to->valueChanged)
+				*(to->valueChanged) ++;
 			//shallow assumes the top has already been malloced (just base part of MF needed)
 			//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
 			shallow_copy_field(from->type,from->v,to->v);
@@ -1257,7 +1258,7 @@ static int JSaddGlobalECMANativeProperty(int num, const char *name) {
  * errors from the JS engine when said property gets redefined to a function by the script.  The
  * example file tests/Javascript_tests/MFFloat.wrl had this issue. */
 
-	if (!JS_DefineProperty(_context, _globalObj, name, rval, NULL, setECMANative, 
+	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
 #if JS_VERSION < 185
 		0 | JSPROP_PERMANENT
 #else
@@ -2805,7 +2806,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -2855,7 +2856,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -2905,7 +2906,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -2954,7 +2955,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -2994,7 +2995,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3033,7 +3034,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3072,7 +3073,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3112,7 +3113,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3148,7 +3149,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3182,7 +3183,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 			RUN_FUNCTION(toname)
 
 			break;
