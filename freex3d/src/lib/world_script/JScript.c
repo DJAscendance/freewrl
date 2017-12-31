@@ -1258,7 +1258,8 @@ static int JSaddGlobalECMANativeProperty(int num, const char *name) {
  * errors from the JS engine when said property gets redefined to a function by the script.  The
  * example file tests/Javascript_tests/MFFloat.wrl had this issue. */
 
-	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
+	if (!JS_DefineProperty(_context, _globalObj, name, rval, NULL, setECMANative, 
+	//if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
 #if JS_VERSION < 185
 		0 | JSPROP_PERMANENT
 #else
