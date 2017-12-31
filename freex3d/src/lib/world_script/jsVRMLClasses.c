@@ -116,9 +116,9 @@ JSClass SFColorClass = {
 };
 
 JSPropertySpec (SFColorProperties)[] = {
-	{"r", 0, JSPROP_ENUMERATE},
-	{"g", 1, JSPROP_ENUMERATE},
-	{"b", 2, JSPROP_ENUMERATE},
+	{"r", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"g", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"b", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -148,10 +148,10 @@ JSClass SFColorRGBAClass = {
 };
 
 JSPropertySpec (SFColorRGBAProperties)[] = {
-	{"r", 0, JSPROP_ENUMERATE},
-	{"g", 1, JSPROP_ENUMERATE},
-	{"b", 2, JSPROP_ENUMERATE},
-	{"a", 3, JSPROP_ENUMERATE},
+	{"r", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"g", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"b", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"a", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -179,10 +179,10 @@ JSClass SFImageClass = {
 };
 
 JSPropertySpec (SFImageProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"comp", 2, JSPROP_ENUMERATE},
-	{"array", 3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"comp", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"array", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -253,10 +253,10 @@ JSClass SFRotationClass = {
 };
 
 JSPropertySpec (SFRotationProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
-	{"angle",3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"angle",3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -289,8 +289,8 @@ JSClass SFVec2fClass = {
 };
 
 JSPropertySpec (SFVec2fProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -322,8 +322,8 @@ JSClass SFVec2dClass = {
 };
 
 JSPropertySpec (SFVec2dProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -356,10 +356,10 @@ JSClass SFVec4fClass = {
 };
 
 JSPropertySpec (SFVec4fProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
-	{"w", 3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"w", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -385,10 +385,10 @@ JSClass SFVec4dClass = {
 };
 
 JSPropertySpec (SFVec4dProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
-	{"w", 3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"w", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -404,21 +404,30 @@ JSFunctionSpec (SFVec4dFunctions)[] = {
 
 JSClass SFVec3fClass = {
 	"SFVec3f",
-	JSCLASS_HAS_PRIVATE,
+	JSCLASS_HAS_PRIVATE, //JSPROP_SHARED | JSPROP_ENUMERATE
 	JS_PropertyStub,
 	JS_PropertyStub,
-	SFVec3fGetProperty,
-	SFVec3fSetProperty,
+	SFVec3fGetProperty,   // 185 this is (JSPropertyOp*)
+	SFVec3fSetProperty,   // 185 this should be (JSStrictPropertyOp*)
 	JS_EnumerateStub,
 	JS_ResolveStub,
 	JS_ConvertStub,
 	JS_MY_Finalize
 };
-
+// 90% down page shows a bit of getter/setter
+//  https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_Cookbook 
+//JSPropertySpec (SFVec3fProperties)[] = {
+//	{"x", 0, JSPROP_ENUMERATE, NULL, NULL }, //| JSPROP_PERMANENT
+//	{"y", 1, JSPROP_ENUMERATE, NULL, NULL },
+//	{"z", 2, JSPROP_ENUMERATE, NULL, NULL },
+//	{0}
+//};
+// we seem to need the SHARED in order to set ie translation.x = -3,
+// otherwise it creates a new orphan js property .x unrelated to the C sfvec3f.c[0] property
 JSPropertySpec (SFVec3fProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE, NULL, NULL }, //| JSPROP_PERMANENT
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE, NULL, NULL },
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE, NULL, NULL },
 	{0}
 };
 
@@ -452,9 +461,9 @@ JSClass SFVec3dClass = {
 };
 
 JSPropertySpec (SFVec3dProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -1907,6 +1916,52 @@ void setInECMATable(JSContext *context, char *toFind) {
 	p->ECMAValues[p->maxECMAVal-1].context = context;
 }
 
+
+JSBool
+#if JS_VERSION < 185
+getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+#else
+getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+#endif
+{
+	//printf("in getAssignProperty\n");
+	#ifdef JSVRMLCLASSESVERBOSE
+	JSString *_idStr, *_vpStr;
+	char *_id_c, *_vp_c;
+
+#if JS_VERSION >= 185
+	jsval id;
+	if (!JS_IdToValue(cx,iid,&id)) {
+		printf("getAssignProperty: JS_IdToValue failed -- returning JS_TRUE anyways\n");
+	}
+#endif
+
+	_idStr = JS_ValueToString(cx, id);
+	_vpStr = JS_ValueToString(cx, *vp);
+#if JS_VERSION < 185
+	_id_c = JS_GetStringBytes(_idStr);
+	_vp_c = JS_GetStringBytes(_vpStr);
+#else
+	_id_c = JS_EncodeString(cx,_idStr);
+	_vp_c = JS_EncodeString(cx,_vpStr);
+#endif
+	printf("getAssignProperty: obj = %p, id = \"%s\", vp = %s\n",
+			   obj, _id_c, _vp_c);
+	//printf ("what is vp? \n");
+	if (JSVAL_IS_OBJECT(*vp)) printf ("is OBJECT\n");
+	if (JSVAL_IS_STRING(*vp)) printf ("is STRING\n");
+	if (JSVAL_IS_INT(*vp)) printf ("is INT\n");
+	if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
+
+#if JS_VERSION >= 185
+		JS_free(cx,_id_c);
+		JS_free(cx,_vp_c);
+#endif
+	#endif
+	return JS_TRUE;
+}
+
+
 JSBool
 #if JS_VERSION < 185
 setECMANative(JSContext *context, JSObject *obj, jsval id, jsval *vp)
@@ -2000,6 +2055,7 @@ getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 #endif
 {
+	//printf("in getAssignProperty\n");
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_idStr, *_vpStr;
 	char *_id_c, *_vp_c;
@@ -2056,6 +2112,8 @@ setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 	char *_id_c;
 #if JS_VERSION >= 185
 	jsval id;
+	//printf("in setAssignProperty\n");
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("setAssignProperty: JS_IdToValue failed.\n");
 		return JS_FALSE;

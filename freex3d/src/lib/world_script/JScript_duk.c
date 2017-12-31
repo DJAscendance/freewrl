@@ -2548,7 +2548,6 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	//void* Data - pointer to anyVrml of the from node
 	//datalen - size of anyVrml to memcpy
 	//FWVAL newval;
-	char scriptline[100];
 	duk_context *ctx;
 	int obj, rc;
 	int itype;
@@ -2567,9 +2566,17 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	//printf("in set_one_MultiElementType\n");
 	//get function by name
 	//show_stack(ctx,"before evale field name");
-
-	sprintf(scriptline,"set_%s",JSparamnames[tnfield].name);
-	duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
+	{
+		char scriptline[100];
+		sprintf(scriptline,"set_%s",JSparamnames[tnfield].name);
+		duk_push_string(ctx,scriptline);
+		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
+		if(duk_peval(ctx) != 0){
+			ConsoleMessage("couldn't find eventin function %s\n",JSparamnames[tnfield].name);
+			duk_pop(ctx);
+			return;
+		}
+	}
 	isEventin = duk_is_ecmascript_function(ctx, -1);
 	if(isEventin){
 		//you might not have an eventin, especially if it was an inputOutput field
@@ -2599,7 +2606,7 @@ void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data,
 	//FWVAL newval;
 	duk_context *ctx;
 	int obj;
-	int itype;
+	int itype, isEventin;
 	union anyVrml *any;
 	void *datacopy = NULL;
 	//char *source = (char *)Data - sizeof(int); //backup so we get the whole MF including .n
@@ -2617,19 +2624,32 @@ void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data,
 	
 	//printf("in set_one_MFElementType\n");
 	//get function by name
-	duk_eval_string(ctx,JSparamnames[toname].name); //gets the evenin function on the stack
-	itype = dataType; //JSparamnames[toname].type;
-	//medium copy
-	maData.n = datalen;
-	maData.p = Data;
-	source = (char *)&maData;
-	any = (void*)source;
+	{
+		char scriptline[100];
+		sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+		duk_push_string(ctx,scriptline);
+		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
+		if(duk_peval(ctx) != 0){
+			ConsoleMessage("couldn't find eventin function %s\n",JSparamnames[toname].name);
+			duk_pop(ctx);
+			return;
+		}
+	}
+	isEventin = duk_is_ecmascript_function(ctx, -1);
+	if(isEventin){
+		itype = dataType; //JSparamnames[toname].type;
+		//medium copy
+		maData.n = datalen;
+		maData.p = Data;
+		source = (char *)&maData;
+		any = (void*)source;
 
-	medium_copy_field(itype,source,&datacopy);
-	any = datacopy;
-	push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
-	duk_push_number(ctx,TickTime());
-	duk_call(ctx,2);
+		medium_copy_field(itype,source,&datacopy);
+		any = datacopy;
+		push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
+		duk_push_number(ctx,TickTime());
+		duk_call(ctx,2);
+	}
 	//show_stack(ctx,"after calling isOver");
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
 	return;

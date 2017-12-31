@@ -42,11 +42,18 @@ typedef struct _BrowserNative {
 	int dummyEntry;
 } BrowserNative;
 
+typedef struct _AnyNative {
+	int type;
+	int gc;
+	int *valueChanged;
+	union anyVrml *v;
+} AnyNative;
+
 typedef struct _SFNodeNative {
 	int valueChanged;
 	struct X3D_Node *handle;
-	char *X3DString;
-	int fieldsExpanded;
+	//char *X3DString;
+	//int fieldsExpanded;
 } SFNodeNative;
 
 typedef struct _SFRotationNative {
@@ -114,6 +121,9 @@ addSFNodeProperty(void *cx,
 				  char *nodeName,
 				  char *name,
 				  char *str);
+
+extern void *AnyNativeNew(int type, union anyVrml* source, int *valueChanged);
+extern void AnyNativeAssign(void *top, void *fromp);
 
 extern void *
 SFNodeNativeNew(void);

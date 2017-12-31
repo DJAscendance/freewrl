@@ -416,7 +416,7 @@ void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval 
 
 /* take an ECMA value in the X3D Scenegraph, and return a jsval with it in */
 /* this is not so fast; we call a script to make a default type, then we fill it in */
-static void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, jsval *newval) {
+void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, jsval *newval) {
         SFColorNative *Cptr;
 	SFVec3fNative *V3ptr;
 	SFVec3dNative *V3dptr;
@@ -511,7 +511,7 @@ static void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned data
 }
 
 /* make an MF type from the X3D node. This can be fairly slow... */
-static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
+void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
 	int i;
 	jsval rval;
 	char *script = NULL;
@@ -1250,7 +1250,8 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 
 	return JS_TRUE;
 }
-
+//#define UNHIDE_DEFINE_SFNODESPECIFIC 1
+#ifdef UNHIDE_DEFINE_SFNODESPECIFIC
 /* for SFNodes, go through and insure that all properties are defined for the specific node type */
 int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, struct X3D_Node * ptr) {
 	int *fieldOffsetsPtr;
@@ -1297,13 +1298,13 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
 			printf ("JS_DefineSFNodeSpecificProperties, can not get private for a SFNode!\n");
 			return JS_FALSE;
 		}
-		if (nodeNative->fieldsExpanded) {
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("JS_DefineSFNodeSpecificProperties, already done for node\n");
-			#endif
+		//if (nodeNative->fieldsExpanded) {
+		//	#ifdef JSVRMLCLASSESVERBOSE
+		//	printf ("JS_DefineSFNodeSpecificProperties, already done for node\n");
+		//	#endif
 
-			return JS_TRUE;
-		}
+		//	return JS_TRUE;
+		//}
 
                 fieldOffsetsPtr = (int *) NODE_OFFSETS[ptr->_nodeType];
                 /*go thru all field*/
@@ -1380,7 +1381,7 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
 		}
 
 		/* set a flag indicating that we have been here already */
-		nodeNative->fieldsExpanded = TRUE;
+		//nodeNative->fieldsExpanded = TRUE;
 	}
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("JS_DefineSFNodeSpecificProperties, returning TRUE\n");
@@ -1388,7 +1389,7 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
 
 	return TRUE;
 }
-
+#endif // UNHIDE_DEFINE_SFNODESPECIFIC
 
 /********************************************************************************************/
 /* new addition April 2009. It was noted that the following code would not send an event to
