@@ -85,6 +85,7 @@ JS_MY_Finalize(JSContext *cx, JSObject *obj)
 	}
 }
 
+
 JSBool
 #if JS_VERSION < 185
 MFColorToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {

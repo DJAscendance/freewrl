@@ -1765,7 +1765,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 	/* get the private pointer for this node */
 	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) != NULL) {
-		int ifound, type, kind, iifield;
+		int ifound, type, kind, iifield, *valueChanged;
 		union anyVrml *value;
 		char *fieldname = _id_c;
 		struct X3D_Node *node = ptr->handle;
@@ -1775,6 +1775,12 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 		ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
 		if(ifound){
+			valueChanged = NULL;
+			if(node->_nodeType == NODE_Script){
+				//need one more thing - valueChanged
+				struct X3D_Script *scriptnode = X3D_SCRIPT(node);
+				getFieldFromScript(scriptnode->__scriptObj,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+			}
 			//set up a return value
 			switch (type) {
 			case FIELDTYPE_SFBool:
@@ -1804,7 +1810,10 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 			case FIELDTYPE_MFRotation:
 			case FIELDTYPE_SFImage:
 			//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
-				X3D_MF_TO_JS(cx, obj, value, type, vp, fieldname);
+				if(SM_method() == 2)
+					X3D_MF_TO_JS_B(cx, obj, value, type, valueChanged, vp);
+				else
+					X3D_MF_TO_JS(cx,obj,value,type,vp,fieldname);
 				break;
 			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
 			return JS_FALSE;

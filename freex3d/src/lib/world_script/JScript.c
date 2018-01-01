@@ -450,7 +450,7 @@ void sm_JSCreateScriptContext(int num) {
 }
 int SM_method(){
 	//return 2; //new way dec 31, 2017
-	return 1; //old way before dec 31, 2017
+	return 0; //old way before dec 31, 2017
 }
 void sm_set_script(struct Shader_Script *sp){
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;

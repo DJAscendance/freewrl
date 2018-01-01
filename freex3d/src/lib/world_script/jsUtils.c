@@ -219,7 +219,7 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 
 /* take an ECMA value in the X3D Scenegraph, and return a jsval with it in */
 /* This is FAST as w deal just with pointers */
-static void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
+void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
 	float fl;
 	double dl;
 	int il;
@@ -291,7 +291,7 @@ static void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int data
 
 
 /* take a Javascript  ECMA value and put it in the X3D Scenegraph. */
-static void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
+void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
         SFColorNative *Cptr;
 	SFVec3fNative *V3ptr;
 	SFVec3dNative *V3dptr;
@@ -509,6 +509,60 @@ void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, in
 		default: {	printf("WARNING: SHOULD NOT BE HERE! %d\n",dataType); }
 	}
 }
+
+void X3D_SF_TO_JS_B(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
+{
+	//for SM_method() == 2
+	// this copies pointers rather than deep copying values
+	jsval rval;
+
+	/* NOTE - caller is (eventually) a class constructor, no need to BeginRequest */
+
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("calling X3D_SF_TO_JS on type %s, newval %u\n",FIELDTYPES[dataType],*newval);
+	#endif
+
+	if (!JSVAL_IS_OBJECT(*newval)) {
+		/* find a script to create the correct object */
+		JSObject *newobj;
+		AnyNative *ptr;
+		switch (dataType) {
+			case FIELDTYPE_SFVec3f:
+				newobj = JS_NewObject(cx,&SFVec3fClass,NULL,NULL); break;
+			case FIELDTYPE_SFVec3d:
+				newobj = JS_NewObject(cx,&SFVec3dClass,NULL,NULL); break;
+			case FIELDTYPE_SFColor:
+				newobj = JS_NewObject(cx,&SFColorClass,NULL,NULL); break;
+			case FIELDTYPE_SFNode:
+				newobj = JS_NewObject(cx,&SFNodeClass,NULL,NULL); break;
+			case FIELDTYPE_SFVec2f:
+				newobj = JS_NewObject(cx,&SFVec2fClass,NULL,NULL); break;
+			case FIELDTYPE_SFRotation:
+				newobj = JS_NewObject(cx,&SFRotationClass,NULL,NULL); break;
+			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;
+		}
+
+		/* create the object */
+		//set private
+		if ((ptr = (AnyNative *) AnyNativeNew(dataType,Data,valueChanged)) == NULL) {
+			printf( "AnyNativeNew failed in X3D_MF_TO_SF_B.\n");
+			return;
+		}
+
+		if (!JS_SetPrivate(cx, newobj, ptr)) {
+			printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
+			return;
+		}
+
+		/* this is the return pointer, lets save it right now */
+		*newval = OBJECT_TO_JSVAL(newobj);
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("X3D_SF_TO_JS_B, so, newval now is %u\n",*newval);
+		#endif
+
+	}
+}
+
 
 /* make an MF type from the X3D node. This can be fairly slow... */
 void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
@@ -803,6 +857,112 @@ void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval 
 	printf ("returning from X3D_MF_TO_JS\n");
 	#endif
 }
+
+
+void X3D_MF_TO_JS_B(JSContext *cx, JSObject *obj, union anyVrml* Data, int dataType, int *valueChanged, jsval *newval) {
+	// for SM_method == 2, simplifies MF handling
+	//1. create object, with MF getter/setter that looks for [i] or ["length"] 
+	//2. add the AnyNative (pass in more details please)
+	//3. set as return value
+
+	jsval rval;
+	char *script = NULL;
+	AnyNative *ptr;
+	JSObject *newobj = NULL;
+
+
+	if (!JSVAL_IS_OBJECT(*newval)) {
+		/* find a script to create the correct object */
+		if(0){
+			switch (dataType) {
+				case FIELDTYPE_MFString: script = "new MFString()"; break;
+				case FIELDTYPE_MFFloat: script = "new MFFloat()"; break;
+				case FIELDTYPE_MFTime: script = "new MFTime()"; break;
+				case FIELDTYPE_MFInt32: script = "new MFInt32()"; break;
+				case FIELDTYPE_SFImage: script = "new SFImage()"; break;
+				case FIELDTYPE_MFVec3f: script = "new MFVec3f()"; break;
+				case FIELDTYPE_MFColor: script = "new MFColor()"; break;
+				case FIELDTYPE_MFNode: script = "new MFNode()"; break;
+				case FIELDTYPE_MFVec2f: script = "new MFVec2f()"; break;
+				case FIELDTYPE_MFRotation: script = "new MFRotation()"; break;
+				default: printf ("invalid type in X3D_MF_TO_JS\n"); return;
+			}
+
+			if (!JS_EvaluateScript(cx, obj, script, (int) strlen(script), FNAME_STUB, LINENO_STUB, &rval)) {
+				printf ("error creating the new object in X3D_MF_TO_JS\n");
+				return;
+			}
+			//get private
+			newobj = JSVAL_TO_OBJECT(rval);
+			if ((ptr = (AnyNative *)JS_GetPrivate(cx,newobj)) == NULL) {
+					printf( "JS_GetPrivate failed in X3D_MF_TO_SF_B.\n");
+					return;
+			}
+			//copy the pointers
+			if(ptr->gc && ptr->v && Data){
+				free(ptr->v);
+				ptr->gc = 0;
+				ptr->v = Data;
+			}
+			ptr->valueChanged = valueChanged;
+			ptr->type = dataType;
+
+		}
+		if(1){
+			switch (dataType) {
+				case FIELDTYPE_MFString: script = "new MFString()"; break;
+					newobj = JS_NewObject(cx,&MFStringClass,NULL,NULL); break;
+				case FIELDTYPE_MFFloat: 
+					newobj = JS_NewObject(cx,&MFFloatClass,NULL,NULL); break;
+				case FIELDTYPE_MFTime: 
+					newobj = JS_NewObject(cx,&MFTimeClass,NULL,NULL); break;
+				case FIELDTYPE_MFInt32: 
+					newobj = JS_NewObject(cx,&MFInt32Class,NULL,NULL); break;
+				case FIELDTYPE_SFImage: 
+					newobj = JS_NewObject(cx,&SFImageClass,NULL,NULL); break;
+				case FIELDTYPE_MFVec3f: 
+					newobj = JS_NewObject(cx,&MFVec3fClass,NULL,NULL); break;
+				case FIELDTYPE_MFColor: 
+					newobj = JS_NewObject(cx,&MFColorClass,NULL,NULL); break;
+				case FIELDTYPE_MFNode: 
+					newobj = JS_NewObject(cx,&MFNodeClass,NULL,NULL); break;
+				case FIELDTYPE_MFVec2f: 
+					newobj = JS_NewObject(cx,&MFVec2fClass,NULL,NULL); break;
+				case FIELDTYPE_MFRotation: 
+					newobj = JS_NewObject(cx,&MFRotationClass,NULL,NULL); break;
+				default: printf ("invalid type in X3D_MF_TO_JS\n"); return;
+			}
+			//set private
+			if ((ptr = (AnyNative *) AnyNativeNew(dataType,Data,valueChanged)) == NULL) {
+				printf( "AnyNativeNew failed in X3D_MF_TO_SF_B.\n");
+				return;
+			}
+
+			if (!JS_SetPrivate(cx, newobj, ptr)) {
+				printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
+				return;
+			}
+
+		}
+		/* this is the return pointer, lets save it right now */
+		*newval = OBJECT_TO_JSVAL(newobj);
+		if(1){
+			//check if ptr is on object constructed from newval, or is it just on the object?
+			AnyNative *ptr2;
+			JSObject *obj2 = JSVAL_TO_OBJECT(*newval);
+			if( (ptr2 = (AnyNative*)JS_GetPrivate(cx,obj2)) == NULL){
+				printf("native pointer doesn't survive reduction to jsval\n");
+			}else{
+				printf("OK native pointer survives reduction to jsval");
+				printf("ptr->v->mf.n=%d\n",ptr2->v->mfbool.n);
+			}
+		}
+	}
+	return;
+
+}
+
+
 
 void
 reportWarningsOn() { 
