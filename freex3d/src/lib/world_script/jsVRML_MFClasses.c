@@ -210,7 +210,8 @@ MFFloatToString(JSContext *cx, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	return doMFToString(cx, obj, "MFFloat", rval);
 #else
-	if (!doMFToString(cx, obj, "MFFloat", &rval)) { return JS_FALSE; }
+	if (!doMFToString(cx, obj, "MFFloat", &rval)) { 
+		return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
 #endif

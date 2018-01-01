@@ -871,7 +871,8 @@ void X3D_MF_TO_JS_B(JSContext *cx, JSObject *obj, union anyVrml* Data, int dataT
 	JSObject *newobj = NULL;
 
 
-	if (!JSVAL_IS_OBJECT(*newval)) {
+//	if (!JSVAL_IS_OBJECT(*newval)) { //don't know what this guards against
+	if(1){
 		/* find a script to create the correct object */
 		if(0){
 			switch (dataType) {
@@ -946,7 +947,7 @@ void X3D_MF_TO_JS_B(JSContext *cx, JSObject *obj, union anyVrml* Data, int dataT
 		}
 		/* this is the return pointer, lets save it right now */
 		*newval = OBJECT_TO_JSVAL(newobj);
-		if(1){
+		if(0){
 			//check if ptr is on object constructed from newval, or is it just on the object?
 			AnyNative *ptr2;
 			JSObject *obj2 = JSVAL_TO_OBJECT(*newval);

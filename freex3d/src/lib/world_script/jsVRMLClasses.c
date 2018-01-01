@@ -505,7 +505,7 @@ JSFunctionSpec (MFColorFunctions)[] = {
 
 JSClass MFFloatClass = {
 	"MFFloat",
-	JSCLASS_HAS_PRIVATE,
+	JSCLASS_HAS_PRIVATE  | JSPROP_SHARED | JSPROP_ENUMERATE,
 	MFFloatAddProperty,
 	JS_PropertyStub,
 	MFFloatGetProperty,
@@ -1118,6 +1118,7 @@ _standardMFGetProperty(JSContext *cx,
 	jsval newEle;
 #if JS_VERSION >= 185
 	jsval id;
+	printf("in _standardMFGetProperty\n ");
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf( "JS_IdToValue failed\n");
 		return JS_FALSE;
@@ -1147,7 +1148,12 @@ _standardMFGetProperty(JSContext *cx,
 			//.. and assign MF[i] to it
 			sftype = type2SF(ptr->type);
 			sfsize = sizeofSForMF(sftype);
-			any = (union anyVrml*)(((char *)ptr->v) + (index * sfsize));
+			any = (union anyVrml*)(((char *)ptr->v->mfbool.p) + (index * sfsize));
+			{
+				float *ff = ptr->v->mffloat.p;
+				printf("ff[1] = %f\n",ff[1]);
+				printf("any.sffloat=%f\n",any->sffloat);
+			}
 			switch(type2SF(ptr->type)){
 				case FIELDTYPE_SFBool:
 				case FIELDTYPE_SFFloat:
@@ -2126,21 +2132,34 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 #endif
 
 	_idStr = JS_ValueToString(cx, id);
-	_vpStr = JS_ValueToString(cx, *vp);
+//	_vpStr = JS_ValueToString(cx, *vp);
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(_idStr);
 	_vp_c = JS_GetStringBytes(_vpStr);
 #else
 	_id_c = JS_EncodeString(cx,_idStr);
-	_vp_c = JS_EncodeString(cx,_vpStr);
+//	_vp_c = JS_EncodeString(cx,_vpStr);
 #endif
-	printf("getECMANative: obj = %p, id = \"%s\", vp = %s\n",
-			   obj, _id_c, _vp_c);
+	//printf("getECMANative: obj = %p, id = \"%s\", vp = %s\n",
+	//		   obj, _id_c, _vp_c);
+	printf("getECMANative: obj = %p, id = \"%s\"\n",
+			   obj, _id_c);
 
 	//printf ("what is vp? \n");
-	//if (JSVAL_IS_OBJECT(*vp)) printf ("is OBJECT\n");
+	//if (JSVAL_IS_OBJECT(*vp)) {
+	//	printf ("is OBJECT\n");
+	//	if (JSVAL_IS_OBJECT(vp[1])) printf ("vp1 is OBJECT\n");
+	//	if (JSVAL_IS_STRING(vp[1])) {
+	//		 printf ("vp1 is STRING\n");
+	//		JSString * jstr = JS_ValueToString(cx, vp[1]);
+	//		char * cstr = JS_EncodeString(cx,jstr);
+	//		printf("vp1 str=|%s|\n",cstr);
+	//	}
+	//	if (JSVAL_IS_INT(vp[1])) printf ("vp1 is INT %d\n",JSVAL_TO_INT(*vp));
+	//	if (JSVAL_IS_DOUBLE(vp[1])) printf ("vp1 is DOUBLE\n");
+	//}
 	//if (JSVAL_IS_STRING(*vp)) printf ("is STRING\n");
-	//if (JSVAL_IS_INT(*vp)) printf ("is INT\n");
+	//if (JSVAL_IS_INT(*vp)) printf ("is INT %d\n",JSVAL_TO_INT(*vp));
 	//if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
 	fieldname = _id_c;
 	{
@@ -2184,7 +2203,7 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				X3D_MF_TO_JS_B(cx, obj, value, type, valueChanged, vp);
 				break;
 			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
-			return JS_FALSE;
+				return JS_FALSE;
 			}
 		}else{
 			printf("getECMANative didn't find field %s in script\n",fieldname);
@@ -2194,7 +2213,7 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 #if JS_VERSION >= 185
 		JS_free(cx,_id_c);
-		JS_free(cx,_vp_c);
+		//JS_free(cx,_vp_c);
 #endif
 	//#endif
 	} //if SM_method() == 2
