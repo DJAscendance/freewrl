@@ -2881,6 +2881,37 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 	JS_BeginRequest(cx);
 #endif
 	/* set the TickTime (possibly again) for this context */
+	if(SM_method() == 2){
+		int type, kind, iifield, *valueChanged, ifound;
+		union anyVrml *value;
+		char *fieldname;
+		struct Shader_Script *script = ScriptControl->script;
+		fieldname = JSparamnames[toname].name;
+		//step 1 update the fieldvalue
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound && type == dataType && !isSFType(type)){
+			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+			union anyVrml any;
+			any.mfbool.n = datalen;
+			any.mfbool.p = Data;
+			//printf("any.n=%d \n",any.mffloat.n);
+			//printf("mfany= %f %f %f",any.mffloat.p[0],any.mffloat.p[1],any.mffloat.p[2]);
+			//printf("target value.n= %d\n",value->mfbool.n);
+			shallow_copy_field(type,&any,value);
+			//if we have an inputOutput field with no eventIn function, we may still be routing
+			//from the out side
+			(*valueChanged) = 1;
+		}else{
+			ConsoleMessage("sm_set_one_MFElementType did not find field %s type %d\n",fieldname, dataType);
+			return;
+		}
+		//step 2 run the eventIn if it exists
+		SET_JS_TICKTIME
+		//compile also pushes the field val onto call stack
+		COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+		RUN_FUNCTION(toname)
+		return;
+	}
 	SET_JS_TICKTIME
 
 	/* make up the name */

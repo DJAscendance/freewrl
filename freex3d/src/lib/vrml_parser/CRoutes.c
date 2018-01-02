@@ -2645,7 +2645,7 @@ void propagate_events_B() {
 									/* mark that this script has been active SCRIPTS ARE INTEGER NUMBERS */
 									mark_script(shader->num);
 									if(isMF){ 
-										// note the casting of parameter 4, the toAny type
+										// note the casting of parameter 4, the toAny type, seems unnecessary, bureaucratic
 										getField_ToJavascript_B(shader->num, JSparamNameIndex, type, (union anyVrml* ) toAny->mfnode.p, toAny->mfnode.n); //mfp->p, mfp->n);
 									} else {
 										getField_ToJavascript_B(shader->num, JSparamNameIndex, type, toAny, len);
