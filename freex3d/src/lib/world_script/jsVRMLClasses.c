@@ -2331,8 +2331,9 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 						case FIELDTYPE_SFString:
 							//X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
 							JS_ECMA_TO_X3D(cx, value, sfsize,type,vp);
+							//printf("setECMANative after converting, sffloat value=%f\n",value->sffloat);
 							if(valueChanged)
-								*(valueChanged) ++;
+								(*valueChanged) ++;
 							break;
 						default:
 							break;

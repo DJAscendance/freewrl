@@ -449,8 +449,8 @@ void sm_JSCreateScriptContext(int num) {
 	#endif
 }
 int SM_method(){
-	//return 2; //new way dec 31, 2017
-	return 0; //old way before dec 31, 2017
+	return 2; //new way dec 31, 2017
+	//return 0; //old way before dec 31, 2017
 }
 void sm_set_script(struct Shader_Script *sp){
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;
@@ -2792,24 +2792,48 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	/* set the time for this script */
 	SET_JS_TICKTIME
 
-	X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
+	//step 1 set the field value
+	if(SM_method() == 2){
+		int type, kind, iifield, *valueChanged, ifound;
+		union anyVrml *value;
+		char *fieldname;
+		struct Shader_Script *script = ScriptControl->script;
+		fieldname = JSparamnames[toname].name;
+		//step 1 update the fieldvalue
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound && type == dataType && isSFType(type)){
+			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+			union anyVrml *any = (union anyVrml*)Data;
+			printf("any float=%f",any->sffloat);
+			shallow_copy_field(type,any,value);
+			//if we have an inputOutput field with no eventIn function, we may still be routing
+			//from the out side
+			(*valueChanged) = 1;
+		}else{
+			ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
+			return;
+		}
+	
+	}else{ //SM_method == 2
+		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
-	/* get the variable name to hold the incoming value */
-	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
-	strcpy(scriptline,JSparamnames[toname].name);
+		/* get the variable name to hold the incoming value */
+		//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+		strcpy(scriptline,JSparamnames[toname].name);
 
-	#ifdef SETFIELDVERBOSE
-	printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
-	#endif
+		#ifdef SETFIELDVERBOSE
+		printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
+		#endif
 
-        if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
-                printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
+		if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
+			printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
 #if defined(JS_THREADSAFE)
-		JS_EndRequest(cx);
+			JS_EndRequest(cx);
 #endif
-                return;
+			return;
         }
-
+	} //SM_method == 2
+	//step 2 run eventin if it exists
 	/* is the function compiled yet? */
 	COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 
