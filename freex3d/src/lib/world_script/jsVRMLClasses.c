@@ -2200,6 +2200,8 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		union anyVrml *value;
 		int *valueChanged;
 		struct Shader_Script *script = sm_get_script();
+		valueChanged = NULL;
+		value = NULL;
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){
 			//similar to SFNodeGetProperty
@@ -2286,6 +2288,8 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 	if(SM_method() == 2){
 		int type, kind, iifield, *valueChanged, ifound;
 		union anyVrml *value;
+		valueChanged = NULL;
+		value = NULL;
 		struct Shader_Script *script = sm_get_script();
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){

@@ -449,8 +449,8 @@ void sm_JSCreateScriptContext(int num) {
 	#endif
 }
 int SM_method(){
-	return 2; //new way dec 31, 2017
-	//return 0; //old way before dec 31, 2017
+	//return 2; //new way dec 31, 2017
+	return 0; //old way before dec 31, 2017
 }
 void sm_set_script(struct Shader_Script *sp){
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;
@@ -2815,6 +2815,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 		}
 	
 	}else{ //SM_method == 2
+
 		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
 		/* get the variable name to hold the incoming value */
@@ -2832,6 +2833,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 #endif
 			return;
         }
+
 	} //SM_method == 2
 	//step 2 run eventin if it exists
 	/* is the function compiled yet? */
