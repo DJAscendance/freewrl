@@ -505,7 +505,7 @@ JSFunctionSpec (MFColorFunctions)[] = {
 
 JSClass MFFloatClass = {
 	"MFFloat",
-	JSCLASS_HAS_PRIVATE  | JSPROP_SHARED | JSPROP_ENUMERATE,
+	JSCLASS_HAS_PRIVATE, //  | JSPROP_SHARED | JSPROP_ENUMERATE,
 	MFFloatAddProperty,
 	JS_PropertyStub,
 	MFFloatGetProperty,
@@ -2310,7 +2310,7 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 					//can do an assign here
 					if(type == rhs->type){
 						if(valueChanged)
-							*(valueChanged) ++;
+							(*valueChanged) ++;
 						//shallow assumes the top has already been malloced (just base part of MF needed)
 						//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
 						shallow_copy_field(rhs->type,rhs->v,value);
