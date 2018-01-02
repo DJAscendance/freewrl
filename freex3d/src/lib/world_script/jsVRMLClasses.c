@@ -1132,28 +1132,42 @@ _standardMFGetProperty(JSContext *cx,
 
 	if(SM_method() == 2){
 		AnyNative *ptr;
+		union anyVrml *any;
+		int sfsize, sftype;
 		if ((ptr = (AnyNative *)JS_GetPrivate(cx,obj)) == NULL) {
 			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
+		sftype = type2SF(ptr->type);
+		sfsize = sizeofSForMF(sftype);
+
 		if (JSVAL_IS_INT(id)) {
-			union anyVrml* any;
-			// [index] property
-			int sftype, sfsize;
+			char *mf_p;
+			int mf_n;
+			int newlength;
 			int index = JSVAL_TO_INT(id);
 			if(index < 0) return JS_FALSE;
-			if(index > ptr->v->mfbool.n -1) return JS_FALSE;
 
-			//create ptr->type specific SF or ecma scalar value
-			//.. and assign MF[i] to it
-			sftype = type2SF(ptr->type);
-			sfsize = sizeofSForMF(sftype);
-			any = (union anyVrml*)(((char *)ptr->v->mfbool.p) + (index * sfsize));
-			{
-				float *ff = ptr->v->mffloat.p;
-				printf("ff[1] = %f\n",ff[1]);
-				printf("any.sffloat=%f\n",any->sffloat);
+			//>> allow resize by mf[10000] = 0.0;
+			newlength = index + 1;
+			mf_n = ptr->v->mfbool.n;
+			mf_p = (char *)ptr->v->mfbool.p;
+			if(newlength > mf_n ) {
+				// in the setter, normally we realloc
+				if(mf_p == NULL){
+					mf_p = malloc(sfsize*upper_power_of_two(newlength));
+				}else{
+					int k;
+					mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
+					for(k=mf_n;k<newlength;k++)
+						memset(mf_p + (size_t)sfsize*k,0,sfsize);
+				}
+				ptr->v->mfbool.n = newlength;
 			}
+			ptr->v->mfbool.p = (int*)mf_p;
+			//<< allow resize by mf[10000] = 0.0;
+
+			any = (union anyVrml*)(mf_p + (index * sfsize));
 			switch(type2SF(ptr->type)){
 				case FIELDTYPE_SFBool:
 				case FIELDTYPE_SFFloat:
@@ -1188,7 +1202,14 @@ _standardMFGetProperty(JSContext *cx,
 				//create js int
 				//assign length to it
 				// length = ptr->v->mfbool.n;
+				int mf_n;
+				jsval retval;
+
+				mf_n = ptr->v->mfbool.n;
+				retval = INT_TO_JSVAL(mf_n);
+				*vp = retval;
 				return JS_TRUE;
+
 			}
 		}
 	}else{
@@ -1597,23 +1618,29 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 
 		if (JSVAL_IS_INT(id)) {
 			// [index] property
+			char *mf_p;
+			int mf_n;
+			int newlength;
 			int index = JSVAL_TO_INT(id);
 			if(index < 0) return JS_FALSE;
 
-			if(index > ptr->v->mfbool.n -1) {
+			newlength = index + 1;
+			mf_n = ptr->v->mfbool.n;
+			mf_p = (char *)ptr->v->mfbool.p;
+			if(newlength > mf_n ) {
 				// in the setter, normally we realloc
-				if(ptr->v == NULL){
-					ptr->v = malloc(upper_power_of_two(index+1));
+				if(mf_p == NULL){
+					mf_p = malloc(sfsize*upper_power_of_two(newlength));
 				}else{
 					int k;
-					ptr->v = realloc(ptr->v,upper_power_of_two(index+1));
-					for(k=ptr->v->mfbool.n;k<index;k++)
-						memset(((char*)ptr->v) + (size_t)sfsize*k,0,sfsize);
+					mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
+					for(k=mf_n;k<newlength;k++)
+						memset(mf_p + (size_t)sfsize*k,0,sfsize);
 				}
-				ptr->v->mfbool.n = index+1;
+				ptr->v->mfbool.n = newlength;
 			}
-
-			any = (union anyVrml*)(((char *)ptr->v) + (index * sfsize));
+			ptr->v->mfbool.p = (int*)mf_p;
+			any = (union anyVrml*)(mf_p + (index * sfsize));
 			switch(type2SF(ptr->type)){
 				case FIELDTYPE_SFBool:
 				case FIELDTYPE_SFFloat:
@@ -1651,24 +1678,30 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				//assign length to it
 				// length = ptr->v->mfbool.n;
 				if(JSVAL_IS_INT(*vp)){
+					char *mf_p;
+					int mf_n;
 					int newlength = JSVAL_TO_INT(*vp);
-					if(newlength > ptr->v->mfbool.n) {
+
+					mf_n = ptr->v->mfbool.n;
+					mf_p = (char *)ptr->v->mfbool.p;
+					if(newlength > mf_n ) {
 						// in the setter, normally we realloc
-						if(ptr->v == NULL){
-							ptr->v = malloc(upper_power_of_two(newlength));
+						if(mf_p == NULL){
+							mf_p = malloc(sfsize*upper_power_of_two(newlength));
 						}else{
 							int k;
-							ptr->v = realloc(ptr->v,upper_power_of_two(newlength));
-							for(k=ptr->v->mfbool.n;k<newlength;k++)
-								memset(((char*)ptr->v) + (size_t)sfsize*k,0,sfsize);
+							mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
+							for(k=mf_n;k<newlength;k++)
+								memset(mf_p + (size_t)sfsize*k,0,sfsize);
 						}
 						ptr->v->mfbool.n = newlength;
 					}
+					ptr->v->mfbool.p = (int*)mf_p;
+					return JS_TRUE;
 				}
-				return JS_TRUE;
 			}
 		} // if else JSVAL_IS
-		return JS_TRUE;
+		return JS_FALSE;
 	}else{ //SM_method == 2
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_str;
