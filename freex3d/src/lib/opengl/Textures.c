@@ -1356,6 +1356,12 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	unsigned char *mytexdata;
 
+	// JAS - if multi-threading using a creation program,
+	// we can have issues sending textures here, so
+	// single thread this.
+	#ifdef PATH_PLANNER
+	pthread_mutex_t gl_mutex1 = PTHREAD_MUTEX_INITIALIZER;
+	#endif //PATH_PLANNER
 	
 	/* for getting repeatS and repeatT info. */
 	struct X3D_PixelTexture *pt = NULL;
@@ -1368,6 +1374,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	GLfloat texPri;
 	struct SFColorRGBA borderColour;
 	s_renderer_capabilities_t *rdr_caps;
+
+	#ifdef PATH_PLANNER
+	pthread_mutex_lock( &gl_mutex1 );
+	#endif //PATH_PLANNER
+
     ttglobal tg = gglobal();
 	rdr_caps = tg->display.rdr_caps;
 
@@ -1386,6 +1397,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
     if (!checkNode(me->scenegraphNode, __FILE__,__LINE__)) {
         ConsoleMessage ("main node disappeared, ignoring texture\n");
         me->status = TEXTURE_INVALID;
+
+	#ifdef PATH_PLANNER
+	pthread_mutex_unlock( &gl_mutex1 );
+	#endif //PATH_PLANNER
+
         return;
     }
 	/* printf ("move_texture_to_opengl, node of type %s\n",stringNodeType(me->scenegraphNode->_nodeType));  */
@@ -1404,6 +1420,8 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* do we need to convert this to an OpenGL texture stream?*/
  
+//printf ("JAS - moveTex, texture %d, TEXTURE_INVALID %d at %s:%d\n",me->OpenGLTexture,TEXTURE_INVALID,__FILE__,__LINE__);
+
 	/* we need to get parameters. */	
 	if (me->OpenGLTexture == TEXTURE_INVALID) {
 /* 		me->OpenGLTexture = MALLOC (GLuint *, sizeof (GLuint) * me->frames); */
@@ -1965,6 +1983,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* and, now, the Texture is loaded */
 	me->status = TEX_LOADED;
+
+	#ifdef PATH_PLANNER
+	pthread_mutex_unlock( &gl_mutex1 );
+	#endif //PATH_PLANNER
+
 }
 
 
@@ -2045,6 +2068,8 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	if (myTableIndex->status != TEX_LOADED) {
 		DEBUG_TEX("new_bind_image, I am %p, textureStackTop %d, thisTexture is %d myTableIndex %p status %s\n",
 		node,tg->RenderFuncs.textureStackTop,thisTexture,myTableIndex, texst(myTableIndex->status));
+		//printf ("new_bind_image (%d), I am %p, textureStackTop %d, thisTexture is %d myTableIndex %p status %s\n",
+		//__LINE__,node,tg->RenderFuncs.textureStackTop,thisTexture,myTableIndex, texst(myTableIndex->status));
 	}
 
 	/* default here; this is just a blank texture */
@@ -2069,7 +2094,18 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 		case TEX_NEEDSBINDING:
 			DEBUG_TEX("texture loaded into memory... now lets load it into OpenGL...\n");
 			move_texture_to_opengl(myTableIndex);
-			break;
+
+			// do always #ifdef PATH_PLANNER
+			// JAS - skipping a rendering loop 
+			// if we are ok, go direct to rendering this texture.
+			if (myTableIndex->status != TEX_LOADED) {
+				printf ("issue going from TEX_NEEDSBINDING to TEX_LOADED, is %s\n",
+					texst(myTableIndex->status));
+				break;
+			}
+			// do always #else
+			// do always break;
+			// do always #endif  //PATH_PLANNER
 
 		case TEX_LOADED:
 			//DEBUG_TEX("now binding to pre-bound tex %u\n", myTableIndex->OpenGLTexture);
