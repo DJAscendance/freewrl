@@ -2920,10 +2920,15 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			union anyVrml any;
 			any.mfbool.n = datalen;
 			any.mfbool.p = Data;
+			//printf("address of any.p %x value.p %x",any.mfbool.p,value->mfbool.p);
 			//printf("any.n=%d \n",any.mffloat.n);
 			//printf("mfany= %f %f %f",any.mffloat.p[0],any.mffloat.p[1],any.mffloat.p[2]);
 			//printf("target value.n= %d\n",value->mfbool.n);
 			shallow_copy_field(type,&any,value);
+			//printf("after shallow_copy_field:\n");
+			//printf("target value.n= %d\n",value->mfbool.n);
+			//printf("mfvalue= %f %f %f",value->mffloat.p[0],value->mffloat.p[1],value->mffloat.p[2]);
+
 			//if we have an inputOutput field with no eventIn function, we may still be routing
 			//from the out side
 			(*valueChanged) = 1;

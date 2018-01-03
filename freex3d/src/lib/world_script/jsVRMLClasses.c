@@ -1308,9 +1308,163 @@ _standardMFGetProperty(JSContext *cx,
 
 	return JS_TRUE;
 }
+/*
+	"SFFloat",
+	"SFRotation",
+	"SFVec3f",
+	"SFBool",
+	"SFInt32",
+	"SFNode",
+	"SFColor",
+	"SFColorRGBA",
+	"SFTime",
+	"SFString",
+	"SFVec2f",
+	"SFImage",
+	"SFVec3d",
+	"SFDouble",
+	"SFMatrix3f",
+	"SFMatrix3d",
+	"SFMatrix4f",
+	"SFMatrix4d",
+	"SFVec2d",
+	"SFVec4f",
+	"SFVec4d",
+	"FreeWRLThread",
+*/
+char *mf2str(int type, union anyVrml *ptr);
+char *sf2str(int sftype, union anyVrml *any){
+	//caller must free / gc the return string
+	int i;
+	char strbuf[100];
+	char *str = NULL;
+	switch(sftype){
+	case FIELDTYPE_SFBool:
+		if(any->sfbool) str = strdup("true");
+		else str = strdup("false");
+		break;
+	case FIELDTYPE_SFInt32:
+		sprintf(strbuf,"%d",any->sfint32);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFFloat:
+		sprintf(strbuf,"%g",any->sffloat);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFDouble:
+	case FIELDTYPE_SFTime:
+		sprintf(strbuf,"%g",any->sfdouble);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFString:{
+		str = malloc(strlen(any->sfstring->strptr)+3);
+		strcpy(str,"\"");
+		str = strcat(str,any->sfstring->strptr);
+		str = strcat(str,"\"");
+		}
+		break;
+	case FIELDTYPE_SFVec2f:
+		 {
+		sprintf(strbuf,"%f %f",any->sfvec2f.c[0],any->sfvec2f.c[1]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec2d:
+		 {
+		sprintf(strbuf,"%g %g",any->sfvec2d.c[0],any->sfvec2d.c[1]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec3f:
+	case FIELDTYPE_SFColor:
+		 {
+		sprintf(strbuf,"%f %f %f",any->sfvec3f.c[0],any->sfvec3f.c[1],any->sfvec3f.c[2]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec3d:
+		 {
+		sprintf(strbuf,"%g %g %g",any->sfvec3d.c[0],any->sfvec3d.c[1],any->sfvec3d.c[2]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFColorRGBA:
+	case FIELDTYPE_SFRotation:
+	case FIELDTYPE_SFVec4f:
+		 {
+		sprintf(strbuf,"%f %f %f %f",any->sfvec4f.c[0],any->sfvec4f.c[1],any->sfvec4f.c[2],any->sfvec4f.c[3]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec4d:
+		 {
+		sprintf(strbuf,"%g %g %g %g",any->sfvec4d.c[0],any->sfvec4d.c[1],any->sfvec4d.c[2],any->sfvec4d.c[3]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFNode:
+		sprintf(strbuf,"%x",any->sfnode);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFImage:
+		str = mf2str(FIELDTYPE_MFInt32,any);
+		break;
+	case FIELDTYPE_SFMatrix3f:
+	case FIELDTYPE_SFMatrix3d:
+	case FIELDTYPE_SFMatrix4f:
+	case FIELDTYPE_SFMatrix4d:
+		return NULL;
+	break;
+	default: break;
+	}
+	return str;
+}
+char *mf2str(int type, union anyVrml *ptr){
+	int len, elen, sftype, i;
+	char *p, *str = NULL;
+	static int showType = 0;
+
+	len = strlen("[ ");
+	if(showType) len += strlen(FIELDTYPES[type]);
+	str = malloc(len +1);
+	str[0] = 0;
+	if(showType) strcat(str,FIELDTYPES[type]);
+	str = strcat(str,"[ ");
+	//sftype = mf2sf(fwt->itype);
+	sftype = type2SF(type);
+	p = (char *)ptr->mfbool.p;
+	elen = sizeofSF(sftype);
+	for(i=0;i<ptr->mfbool.n;i++)
+	{
+		char * sf = sf2str(sftype,(union anyVrml*)p);
+		str = realloc(str,strlen(str)+strlen(sf)+2);
+		str = strcat(str,sf);
+		str = strcat(str," ");
+		free(sf);
+		p = p + elen;
+	}
+	str[strlen(str)-1] = ']';
+	return str;
+}
 
 JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *rval)
 {
+	if(SM_method() == 2){
+		AnyNative *ptr;
+		union anyVrml *any;
+		char *str;
+		JSString *_str;
+		if((ptr = (AnyNative*)JS_GetPrivate(cx,obj)) == NULL){
+			printf("in doMFToString - not a Native\n");
+			return JS_FALSE;
+		}
+		any = ptr->v;
+		str = mf2str(ptr->type,any);
+		_str = JS_NewStringCopyZ(cx,str);
+		*rval = STRING_TO_JSVAL(_str);
+
+		return JS_TRUE;
+	}
     JSString *_str, *_tmpStr;
     jsval _v;
 	char *_buff, *_tmp_valStr, *_tmp_buff;

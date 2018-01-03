@@ -4121,7 +4121,7 @@ BOOL route_parse_nodefield(struct VRMLParser* me, int *NodeIndex, struct X3D_Nod
 	PARSER_FINALLY;  
 	return FALSE;  
 }
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 BOOL route_parse_nodefield_B(struct VRMLParser* me, char **ssnode, char **ssfield)
 {
 	/* parse a route node.field
@@ -4350,7 +4350,7 @@ struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *
 	}
 	return NULL;
 }
-struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name){
+struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name){
 	int i;
 	struct IMEXPORT *def;
 	if(context->__EXPORTS)
@@ -5029,24 +5029,27 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 		char *ps, *pd;
 		mfs = (struct Multi_Node*)source;
 		mfd = (struct Multi_Node*)dest;
-		//we need to malloc and do more copying
-		deleteMallocedFieldValue(typeIndex,dest);
-		nele = mfs->n;
-		if( sftype == FIELDTYPE_SFNode ) nele = (int) upper_power_of_two(nele);
-		if(!nele){
-			mfd->p = NULL;
-			mfd->n = 0;
-		}else{
-			mfd->p = MALLOC (struct X3D_Node **, isize*nele);
-			bzero(mfd->p,isize*nele);
-			mfd->n = mfs->n;
-			ps = (char *)mfs->p;
-			pd = (char *)mfd->p;
-			for(i=0;i<mfs->n;i++)
-			{
-				shallow_copy_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
-				ps += isize;
-				pd += isize;
+		//self assignment is no-op
+		if(mfs->p != mfd->p){
+			//we need to malloc and do more copying
+			deleteMallocedFieldValue(typeIndex,dest);
+			nele = mfs->n;
+			if( sftype == FIELDTYPE_SFNode ) nele = (int) upper_power_of_two(nele);
+			if(!nele){
+				mfd->p = NULL;
+				mfd->n = 0;
+			}else{
+				mfd->p = MALLOC (struct X3D_Node **, isize*nele);
+				bzero(mfd->p,isize*nele);
+				mfd->n = mfs->n;
+				ps = (char *)mfs->p;
+				pd = (char *)mfd->p;
+				for(i=0;i<mfs->n;i++)
+				{
+					shallow_copy_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
+					ps += isize;
+					pd += isize;
+				}
 			}
 		}
 	}else{ 
@@ -5057,13 +5060,15 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 				{
 					//go deep, same as copy_field
 					struct Uni_String **ss, *sd;
-					deleteMallocedFieldValue(typeIndex,dest);
-					ss = (struct Uni_String **)source;
-					if(*ss){
-						sd = (struct Uni_String *)MALLOC (struct Uni_String*, sizeof(struct Uni_String));
-						memcpy(sd,*ss,sizeof(struct Uni_String));
-						sd->strptr = STRDUP((*ss)->strptr);
-						dest->sfstring = sd;
+					if(source != dest){
+						deleteMallocedFieldValue(typeIndex,dest);
+						ss = (struct Uni_String **)source;
+						if(*ss){
+							sd = (struct Uni_String *)MALLOC (struct Uni_String*, sizeof(struct Uni_String));
+							memcpy(sd,*ss,sizeof(struct Uni_String));
+							sd->strptr = STRDUP((*ss)->strptr);
+							dest->sfstring = sd;
+						}
 					}
 				}
 				break;
