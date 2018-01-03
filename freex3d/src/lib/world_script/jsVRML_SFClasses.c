@@ -1427,7 +1427,8 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
         		}
 
 			newHandle = oldPtr->handle;
-			//cString = STRDUP(oldPtr->X3DString);
+			if(SM_method() == 0)
+				cString = STRDUP(oldPtr->X3DString);
 
 		} else {
 			#ifdef JSVRMLCLASSESVERBOSE
@@ -1550,13 +1551,15 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 	}
 
 	newPtr->handle = newHandle;
-	//newPtr->X3DString = (char *)STRDUP(cString);
+	if(SM_method() == 0){
+		newPtr->X3DString = (char *)STRDUP(cString);
 
-	//if (!JS_DefineSFNodeSpecificProperties (cx, obj, newHandle)) {
-	//	printf( "JS_DefineSFNodeSpecificProperties failed in SFNodeConstr.\n");
-	//	return JS_FALSE;
+		if (!JS_DefineSFNodeSpecificProperties (cx, obj, newHandle)) {
+			printf( "JS_DefineSFNodeSpecificProperties failed in SFNodeConstr.\n");
+			return JS_FALSE;
 
-	//}
+		}
+	}
 	
 	newPtr->valueChanged = 1;
 
@@ -1611,9 +1614,10 @@ SFNodeFinalize(JSContext *cx, JSObject *obj)
 		/* see above printf( "JS_GetPrivate failed in SFNodeFinalize.\n"); */
 		return;
 	} else {
-              /*  FREE_IF_NZ (ptr->X3DString); */
-                FREE_IF_NZ (ptr);
-        }
+		if(SM_method() == 0)
+                FREE_IF_NZ (ptr->X3DString); 
+		FREE_IF_NZ (ptr);
+	}
 }
 
 
@@ -1679,129 +1683,129 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("SFNodeGetProperty, working on node %p, field %s\n",ptr->handle,_id_c);
 		#endif
-
-		ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
-		if(ifound){
-			valueChanged = NULL;
-			if(node->_nodeType == NODE_Script){
-				//need one more thing - valueChanged
-				struct X3D_Script *scriptnode = X3D_SCRIPT(node);
-				getFieldFromScript(scriptnode->__scriptObj,fieldname,&type,&kind,&iifield,&value,&valueChanged);
-			}
-			//set up a return value
-			switch (type) {
-			case FIELDTYPE_SFBool:
-			case FIELDTYPE_SFFloat:
-			case FIELDTYPE_SFTime:
-			case FIELDTYPE_SFDouble:
-			case FIELDTYPE_SFInt32:
-			case FIELDTYPE_SFString:
-				X3D_ECMA_TO_JS(cx, value,returnElementLength(type),type,vp);
-				break;
-			case FIELDTYPE_SFColor:
-			case FIELDTYPE_SFNode:
-			case FIELDTYPE_SFVec2f:
-			case FIELDTYPE_SFVec3f:
-			case FIELDTYPE_SFVec3d:
-			case FIELDTYPE_SFRotation:
-				X3D_SF_TO_JS(cx, obj, value,returnElementLength(type) * returnElementRowSize(type), type, vp);
-				break;
-			case FIELDTYPE_MFColor:
-			case FIELDTYPE_MFVec3f:
-			case FIELDTYPE_MFVec2f:
-			case FIELDTYPE_MFFloat:
-			case FIELDTYPE_MFTime:
-			case FIELDTYPE_MFInt32:
-			case FIELDTYPE_MFString:
-			case FIELDTYPE_MFNode:
-			case FIELDTYPE_MFRotation:
-			case FIELDTYPE_SFImage:
-			//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
-				if(SM_method() == 2)
-					X3D_MF_TO_JS_B(cx, obj, value, type, valueChanged, vp);
-				else
-					X3D_MF_TO_JS(cx,obj,value,type,vp,fieldname);
-				break;
-			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
-			return JS_FALSE;
-			}
+		if(SM_method() > 0){
+			ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
+			if(ifound){
+				valueChanged = NULL;
+				if(node->_nodeType == NODE_Script){
+					//need one more thing - valueChanged
+					struct X3D_Script *scriptnode = X3D_SCRIPT(node);
+					getFieldFromScript(scriptnode->__scriptObj,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+				}
+				//set up a return value
+				switch (type) {
+				case FIELDTYPE_SFBool:
+				case FIELDTYPE_SFFloat:
+				case FIELDTYPE_SFTime:
+				case FIELDTYPE_SFDouble:
+				case FIELDTYPE_SFInt32:
+				case FIELDTYPE_SFString:
+					X3D_ECMA_TO_JS(cx, value,returnElementLength(type),type,vp);
+					break;
+				case FIELDTYPE_SFColor:
+				case FIELDTYPE_SFNode:
+				case FIELDTYPE_SFVec2f:
+				case FIELDTYPE_SFVec3f:
+				case FIELDTYPE_SFVec3d:
+				case FIELDTYPE_SFRotation:
+					X3D_SF_TO_JS(cx, obj, value,returnElementLength(type) * returnElementRowSize(type), type, vp);
+					break;
+				case FIELDTYPE_MFColor:
+				case FIELDTYPE_MFVec3f:
+				case FIELDTYPE_MFVec2f:
+				case FIELDTYPE_MFFloat:
+				case FIELDTYPE_MFTime:
+				case FIELDTYPE_MFInt32:
+				case FIELDTYPE_MFString:
+				case FIELDTYPE_MFNode:
+				case FIELDTYPE_MFRotation:
+				case FIELDTYPE_SFImage:
+				//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
+					if(SM_method() == 2)
+						X3D_MF_TO_JS_B(cx, obj, value, type, valueChanged, vp);
+					else
+						X3D_MF_TO_JS(cx,obj,value,type,vp,fieldname);
+					break;
+				default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+				return JS_FALSE;
+				}
 	
 
-			//#if JS_VERSION < 185
-			//	*rval = OBJECT_TO_JSVAL(obj);
-			//#else
-			//	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(obj));
-			//#endif
+				//#if JS_VERSION < 185
+				//	*rval = OBJECT_TO_JSVAL(obj);
+				//#else
+				//	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(obj));
+				//#endif
 
-		}
-
-		/*
-		// dug9 attempt to find read the field of another script 
-		//if(!strcmp(stringNodeType(ptr->handle->_nodeType),"Script"))
-		if( ptr->handle && ptr->handle->_nodeType== NODE_Script )
-		{
-			struct Shader_Script *myObj;
-			JSContext *cx2;
-			JSObject *obj2;
-			struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
-			myObj = X3D_SCRIPT(ptr->handle)->__scriptObj;
-			// get context and global object for this script 
-			ScriptControl = getScriptControlIndex(myObj->num);
-			cx2 =  (JSContext*)ScriptControl->cx;
-			obj2 = (JSObject*)ScriptControl->glob;
-			if (JS_GetProperty (cx2, obj2, _id_c, &rval)) {
-				if (JSVAL_IS_NULL(rval)) {
-					ConsoleMessage ("Script - field :%s: does not exist",_id_c);
-					return JS_FALSE;
-				}else{
-					*vp = rval;
-					return JS_TRUE;
+			}
+		} //SM_method > 0
+		if(SM_method() == 0){
+			// dug9 attempt to find read the field of another script 
+			//if(!strcmp(stringNodeType(ptr->handle->_nodeType),"Script"))
+			if( ptr->handle && ptr->handle->_nodeType== NODE_Script )
+			{
+				struct Shader_Script *myObj;
+				JSContext *cx2;
+				JSObject *obj2;
+				struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
+				myObj = X3D_SCRIPT(ptr->handle)->__scriptObj;
+				// get context and global object for this script 
+				ScriptControl = getScriptControlIndex(myObj->num);
+				cx2 =  (JSContext*)ScriptControl->cx;
+				obj2 = (JSObject*)ScriptControl->glob;
+				if (JS_GetProperty (cx2, obj2, _id_c, &rval)) {
+					if (JSVAL_IS_NULL(rval)) {
+						ConsoleMessage ("Script - field :%s: does not exist",_id_c);
+						return JS_FALSE;
+					}else{
+						*vp = rval;
+						return JS_TRUE;
+					}
 				}
 			}
-		}
 
-		JS_DefineSFNodeSpecificProperties (cx, obj, ptr->handle);
+			JS_DefineSFNodeSpecificProperties (cx, obj, ptr->handle);
 
-		// does the property exist? 
-		if (JS_LookupProperty (cx, obj, _id_c, &rval)) {
-			if (JSVAL_IS_NULL(rval)) {
-				// if you mis-spell a builtin node field 
-				// like Cylinder.hight (sb height) you'll end up in here 
-				ConsoleMessage ("SFNode - field :%s: does not exist",_id_c);
+			// does the property exist? 
+			if (JS_LookupProperty (cx, obj, _id_c, &rval)) {
+				if (JSVAL_IS_NULL(rval)) {
+					// if you mis-spell a builtin node field 
+					// like Cylinder.hight (sb height) you'll end up in here 
+					ConsoleMessage ("SFNode - field :%s: does not exist",_id_c);
+					return JS_FALSE;
+				}
+			}
+			// if your SFNode is type Script you'll end up here 
+			#ifdef JSVRMLCLASSESVERBOSE
+			printf ("wondering about rval.. %d. it is a\n",(int)rval);
+			if (JSVAL_IS_INT(rval)) printf ("IS AN INT\n");
+			if (JSVAL_IS_OBJECT(rval)) printf ("IS AN OBJECT\n");
+			if (JSVAL_IS_STRING(rval)) printf ("IS AN STRING\n");
+			if (rval == JSVAL_FALSE) printf ("FALSE\n");
+			if (rval == JSVAL_NULL) printf ("NULL\n");
+			if (rval == JSVAL_ONE) printf ("ONE\n");
+			if (rval == JSVAL_ZERO) printf ("ZERO\n");
+			if (rval == JSVAL_VOID) printf ("VOID\n");
+			if (rval == JSVAL_TRUE) printf ("TRUE\n");
+			#endif
+
+
+			//dug9 - I find the next line JS_GetProperty recursive
+			//when the sfnode we're trying to read is a Script node
+			//if (JS_GetProperty (cx, obj, _id_c, &rval)) {
+			if(false){
+				#ifdef JSVRMLCLASSESVERBOSE
+					printf ("SFNodeGetProperty, found field \"%s\" in node, returning property\n",_id_c);
+				#endif
+
+				*vp = rval;
+			} else {
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("SFNodeGetProperty, did not find field \"%s\" in node.\n",_id_c);
+				#endif
 				return JS_FALSE;
 			}
-		}
-		// if your SFNode is type Script you'll end up here 
-		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("wondering about rval.. %d. it is a\n",(int)rval);
-		if (JSVAL_IS_INT(rval)) printf ("IS AN INT\n");
-		if (JSVAL_IS_OBJECT(rval)) printf ("IS AN OBJECT\n");
-		if (JSVAL_IS_STRING(rval)) printf ("IS AN STRING\n");
-		if (rval == JSVAL_FALSE) printf ("FALSE\n");
-		if (rval == JSVAL_NULL) printf ("NULL\n");
-		if (rval == JSVAL_ONE) printf ("ONE\n");
-		if (rval == JSVAL_ZERO) printf ("ZERO\n");
-		if (rval == JSVAL_VOID) printf ("VOID\n");
-		if (rval == JSVAL_TRUE) printf ("TRUE\n");
-		#endif
-
-
-		//dug9 - I find the next line JS_GetProperty recursive
-		//when the sfnode we're trying to read is a Script node
-		//if (JS_GetProperty (cx, obj, _id_c, &rval)) {
-		if(false){
-			#ifdef JSVRMLCLASSESVERBOSE
-				printf ("SFNodeGetProperty, found field \"%s\" in node, returning property\n",_id_c);
-			#endif
-
-			*vp = rval;
-		} else {
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("SFNodeGetProperty, did not find field \"%s\" in node.\n",_id_c);
-			#endif
-			return JS_FALSE;
-		}
-		*/
+		} //SM_method() == 0
 	} else {
 		printf ("could not get private for SFNodeGetProperty, field :%s:\n",_id_c);
 		return JS_FALSE;
@@ -1864,29 +1868,29 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 		   any public SFNode[id] = ?. What are we doing here? 
 		   Was it an experiment or test method? Or does some other internal 
 		   function call this setter[id]? May we drop support for it?*/
-		/*
-		ptr->valueChanged++;
-		val_len = (int) strlen(_val_c) + 1;
+		if(SM_method() == 0){
+			ptr->valueChanged++;
+			val_len = (int) strlen(_val_c) + 1;
 
-		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("switching on %d\n",JSVAL_TO_INT(id));
-		#endif
+			#ifdef JSVRMLCLASSESVERBOSE
+			printf ("switching on %d\n",JSVAL_TO_INT(id));
+			#endif
 
-		switch (JSVAL_TO_INT(id)) {
-		case 0:
-			if ((strlen(ptr->X3DString) + 1) > val_len) {
-				ptr->X3DString =
-					(char *) REALLOC (ptr->X3DString, val_len * sizeof(char));
+			switch (JSVAL_TO_INT(id)) {
+			case 0:
+				if ((strlen(ptr->X3DString) + 1) > val_len) {
+					ptr->X3DString =
+						(char *) REALLOC (ptr->X3DString, val_len * sizeof(char));
+				}
+				memset(ptr->X3DString, 0, val_len);
+				memmove(ptr->X3DString, _val_c, val_len);
+				break;
+			case 1:
+				scanUnsignedIntoValue(_val_c,&tmp);
+				ptr->handle = X3D_NODE(tmp);
+				break;
 			}
-			memset(ptr->X3DString, 0, val_len);
-			memmove(ptr->X3DString, _val_c, val_len);
-			break;
-		case 1:
-			scanUnsignedIntoValue(_val_c,&tmp);
-			ptr->handle = X3D_NODE(tmp);
-			break;
-		}
-		*/
+		} //SM_method == 0
 	} else {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("JS_IS_INT false\n");
