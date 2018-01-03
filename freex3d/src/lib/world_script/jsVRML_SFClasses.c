@@ -1093,17 +1093,27 @@ SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
 	jsval *rval = &rvalinst;
 #endif
 	SFNodeNative *ptr;
+	void* handle;
 
 	UNUSED(argc);
 	UNUSED(argv);
-	#ifdef JSVRMLCLASSESVERBOSE
-	printf ("SFNODETOSTRING\n");
-	#endif
-	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in SFNodeToString.\n");
-		return JS_FALSE;
+	if(SM_method() == 2){
+		AnyNative *nany;
+		if ((nany = (AnyNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in SFNodeToString.\n");
+			return JS_FALSE;
+		}
+		handle = nany->v->sfnode;
+	}else{
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("SFNODETOSTRING\n");
+		#endif
+		if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in SFNodeToString.\n");
+			return JS_FALSE;
+		}
+		handle = ptr->handle;
 	}
-
 	/* get the string from creation, and return it. */
 
 	/* used to do: 
@@ -1116,7 +1126,7 @@ SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
 	{
 		jsdouble nv;
 		char tmpline[100];
-		sprintf (tmpline,"%ld",(long int) ptr->handle);
+		sprintf (tmpline,"%x",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
@@ -1158,15 +1168,27 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 #endif
     JSString *_str;
 	SFNodeNative *ptr;
+	void *handle;
 
 	UNUSED(argc);
 	UNUSED(argv);
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("SFNODETOSTRING\n");
 	#endif
-	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in SFNodeToString.\n");
-		return JS_FALSE;
+	if(SM_method() == 2){
+		AnyNative *nany;
+		if ((nany = (AnyNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in SFNodeToString.\n");
+			return JS_FALSE;
+		}
+		handle = nany->v->sfnode;
+	}else{
+
+		if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in SFNodeToString.\n");
+			return JS_FALSE;
+		}
+		handle = ptr->handle;
 	}
 
 	/* get the string from creation, and return it. */
@@ -1182,7 +1204,7 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 		jsdouble nv;
 		char buff[STRING];
 		memset(buff, 0, STRING);
-		sprintf (buff,"_%ld_",(long int) ptr->handle);
+		sprintf (buff,"_%x_",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
@@ -1219,56 +1241,66 @@ SFNodeAssign(JSContext *cx, uintN argc, jsval *vp) {
 	char *_id_str;
 
 	UNUSED(_id_str); // compiler warning mitigation
+	if(SM_method() == 2){
+		AnyNative *lhs, *rhs;
+		if (JSVAL_IS_OBJECT(*vp)) {
+        	if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) != NULL) {
+				if ((lhs = (AnyNative *)JS_GetPrivate(cx, obj)) != NULL) {
+					AnyNativeAssign(lhs,rhs);
+				}
+			}
+		}
+	}else{
 
 
-	/* unsigned int toptr; */
-	#ifdef JSVRMLCLASSESVERBOSE
-	printf ("start of SFNodeAssign argc %d\n",argc);
-	#endif
+		/* unsigned int toptr; */
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("start of SFNodeAssign argc %d\n",argc);
+		#endif
 
-	/* are we saving to a SFNode? */
-	CHECK_CLASS(cx,obj,argv,__FUNCTION__,SFNodeClass)
+		/* are we saving to a SFNode? */
+		CHECK_CLASS(cx,obj,argv,__FUNCTION__,SFNodeClass)
 
-	/* get the pointer to the internal stuff */
-	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed for obj in SFNodeAssign.\n");
-	    return JS_FALSE;
-	}
+		/* get the pointer to the internal stuff */
+		if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed for obj in SFNodeAssign.\n");
+			return JS_FALSE;
+		}
 
-	/* get the from, and the string */
-	#ifdef JSVRMLCLASSESVERBOSE
-	printf ("SFNodeAssign, we have %d and %d\n",(int)argv[0], (int)argv[1]);
-	#endif
+		/* get the from, and the string */
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("SFNodeAssign, we have %d and %d\n",(int)argv[0], (int)argv[1]);
+		#endif
 
 #if JS_VERSION < 185
-	if (!JS_ConvertArguments(cx, argc, argv, "o s", &_from_obj, &_id_str)) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o s", &_from_obj, &_id_str)) {
 #else
-	if (JS_ConvertArguments(cx, argc, argv, "oS", &_from_obj, &_id_jsstr) == JS_TRUE) {
-		_id_str = JS_EncodeString(cx,_id_jsstr);
-	} else {
+		if (JS_ConvertArguments(cx, argc, argv, "oS", &_from_obj, &_id_jsstr) == JS_TRUE) {
+			_id_str = JS_EncodeString(cx,_id_jsstr);
+		} else {
 #endif
-		printf( "JS_ConvertArguments failed in SFNodeAssign.\n");
-		return JS_FALSE;
-	}
-	if (_from_obj != NULL) {
-		CHECK_CLASS(cx,_from_obj,argv,__FUNCTION__,SFNodeClass)
-
-		if ((fptr = (SFNodeNative *)JS_GetPrivate(cx, _from_obj)) == NULL) {
-			printf( "JS_GetPrivate failed for _from_obj in SFNodeAssign.\n");
-		    return JS_FALSE;
+			printf( "JS_ConvertArguments failed in SFNodeAssign.\n");
+			return JS_FALSE;
 		}
-		#ifdef JSVRMLCLASSESVERBOSE
-			printf("SFNodeAssign: obj = %p, id = \"%s\", from = %p\n",
-				   obj, _id_str, _from_obj);
-		#endif
-	} else { fptr = NULL; }
+		if (_from_obj != NULL) {
+			CHECK_CLASS(cx,_from_obj,argv,__FUNCTION__,SFNodeClass)
 
-	/* assign this internally */
-	if (!SFNodeNativeAssign(ptr, fptr)) {
-		printf( "SFNodeNativeAssign failed in SFNodeAssign.\n");
-	    return JS_FALSE;
-	}
+			if ((fptr = (SFNodeNative *)JS_GetPrivate(cx, _from_obj)) == NULL) {
+				printf( "JS_GetPrivate failed for _from_obj in SFNodeAssign.\n");
+				return JS_FALSE;
+			}
+			#ifdef JSVRMLCLASSESVERBOSE
+				printf("SFNodeAssign: obj = %p, id = \"%s\", from = %p\n",
+					   obj, _id_str, _from_obj);
+			#endif
+		} else { fptr = NULL; }
 
+		/* assign this internally */
+		if (!SFNodeNativeAssign(ptr, fptr)) {
+			printf( "SFNodeNativeAssign failed in SFNodeAssign.\n");
+			return JS_FALSE;
+		}
+	} //SMmethod == 2
 #if JS_VERSION < 185
 	*rval = OBJECT_TO_JSVAL(obj);
 #else
@@ -1298,35 +1330,48 @@ SFNodeEquals(JSContext *cx, uintN argc, jsval *vp) {
 	JSObject *_from_obj;
     SFNodeNative *ptr, *fptr;
 
-	//JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(1)); //JS_TRUE);
-	//return JS_TRUE;
-	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in SFNodeNative.\n");
-		return JS_FALSE;
-	}
-	if (!JS_ConvertArguments(cx, argc, argv, "o",
-							 &_from_obj)) {
-		printf( "JS_ConvertArguments failed in SFNodeNative.\n");
-		return JS_FALSE;
-	}
-
-
-	if (_from_obj != NULL) {
-		CHECK_CLASS(cx,_from_obj,argv,__FUNCTION__,SFNodeClass)
-
-		if ((fptr = (SFNodeNative *)JS_GetPrivate(cx, _from_obj)) == NULL) {
-			printf( "JS_GetPrivate failed for _from_obj in SFNodeAssign.\n");
-		    return JS_FALSE;
+	if(SM_method() == 2){
+		AnyNative *lhs, *rhs;
+		iret = 0;
+		if (JSVAL_IS_OBJECT(*vp)) {
+        	if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) != NULL) {
+				if ((lhs = (AnyNative *)JS_GetPrivate(cx, obj)) != NULL) {
+					iret = lhs->v->sfnode == rhs->v->sfnode ? 1 : 0;
+				}
+			}
 		}
-		#ifdef JSVRMLCLASSESVERBOSE
-			printf("SFNodeAssign: obj = %p, id = \"%s\", from = %p\n",
-				   obj, _id_str, _from_obj);
-		#endif
-	} else { fptr = NULL; }
+	}else{
+
+		//JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(1)); //JS_TRUE);
+		//return JS_TRUE;
+		if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in SFNodeNative.\n");
+			return JS_FALSE;
+		}
+		if (!JS_ConvertArguments(cx, argc, argv, "o",
+								 &_from_obj)) {
+			printf( "JS_ConvertArguments failed in SFNodeNative.\n");
+			return JS_FALSE;
+		}
 
 
-	/* assign this internally */
-	iret = SFNodeNativeEquals(ptr, fptr);
+		if (_from_obj != NULL) {
+			CHECK_CLASS(cx,_from_obj,argv,__FUNCTION__,SFNodeClass)
+
+			if ((fptr = (SFNodeNative *)JS_GetPrivate(cx, _from_obj)) == NULL) {
+				printf( "JS_GetPrivate failed for _from_obj in SFNodeAssign.\n");
+				return JS_FALSE;
+			}
+			#ifdef JSVRMLCLASSESVERBOSE
+				printf("SFNodeAssign: obj = %p, id = \"%s\", from = %p\n",
+					   obj, _id_str, _from_obj);
+			#endif
+		} else { fptr = NULL; }
+
+
+		/* assign this internally */
+		iret = SFNodeNativeEquals(ptr, fptr);
+	} //SM_method == 2
 #if JS_VERSION < 185
     *rval = BOOLEAN_TO_JSVAL(iret);
 #else
@@ -1418,7 +1463,18 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 			#ifdef JSVRMLCLASSESVERBOSE
 			printf ("SFNodeConstr, cstring was an object\n");
 			#endif
+			if(SM_method() == 2){
+				AnyNative *rhs;
+       			if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(argv[0]))) == NULL) {
+				#ifdef JSVRMLCLASSESVERBOSE
+                		printf( "JS_GetPrivate failed in SFNodeConstr.\n");
+				#endif
+                		return JS_FALSE;
+        		}
 
+				newHandle = rhs->v->sfnode;
+
+			}else{
         		if ((oldPtr = (SFNodeNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(argv[0]))) == NULL) {
 				#ifdef JSVRMLCLASSESVERBOSE
                 		printf( "JS_GetPrivate failed in SFNodeConstr.\n");
@@ -1426,7 +1482,8 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
                 		return JS_FALSE;
         		}
 
-			newHandle = oldPtr->handle;
+				newHandle = oldPtr->handle;
+			}
 			if(SM_method() == 0)
 				cString = STRDUP(oldPtr->X3DString);
 
@@ -1533,36 +1590,48 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 		return JS_FALSE;
 	}
 
-
-	/* ok, so far so good... */
-	if ((newPtr = (SFNodeNative *) SFNodeNativeNew()) == NULL) {
-		printf( "SFNodeNativeNew failed in SFNodeConstr.\n");
-		return JS_FALSE;
-	}
-
-	//if (!JS_DefineProperties(cx, obj, SFNodeProperties)) {
-	//	printf( "JS_DefineProperties failed in SFNodeConstr.\n");
-	//	return JS_FALSE;
-	//}
-
-	if (!JS_SetPrivate(cx, obj, newPtr)) {
-		printf( "JS_SetPrivate failed in SFNodeConstr.\n");
-		return JS_FALSE;
-	}
-
-	newPtr->handle = newHandle;
-	if(SM_method() == 0){
-		newPtr->X3DString = (char *)STRDUP(cString);
-
-		if (!JS_DefineSFNodeSpecificProperties (cx, obj, newHandle)) {
-			printf( "JS_DefineSFNodeSpecificProperties failed in SFNodeConstr.\n");
+	if(SM_method() == 2){
+		AnyNative *lhs;
+		if ((lhs = (AnyNative *) AnyNativeNew(FIELDTYPE_SFNode,NULL,NULL)) == NULL) {
+			printf( "AnyNativeNew failed in SFNodeConstr.\n");
 			return JS_FALSE;
-
 		}
-	}
-	
-	newPtr->valueChanged = 1;
+		if (!JS_SetPrivate(cx, obj, lhs)) {
+			printf( "JS_SetPrivate failed in SFNodeConstr.\n");
+			return JS_FALSE;
+		}
+		lhs->valueChanged = NULL; 
+		lhs->v->sfnode = newHandle;
+	}else{
+		/* ok, so far so good... */
+		if ((newPtr = (SFNodeNative *) SFNodeNativeNew()) == NULL) {
+			printf( "SFNodeNativeNew failed in SFNodeConstr.\n");
+			return JS_FALSE;
+		}
 
+		//if (!JS_DefineProperties(cx, obj, SFNodeProperties)) {
+		//	printf( "JS_DefineProperties failed in SFNodeConstr.\n");
+		//	return JS_FALSE;
+		//}
+
+		if (!JS_SetPrivate(cx, obj, newPtr)) {
+			printf( "JS_SetPrivate failed in SFNodeConstr.\n");
+			return JS_FALSE;
+		}
+
+		newPtr->handle = newHandle;
+		if(SM_method() == 0){
+			newPtr->X3DString = (char *)STRDUP(cString);
+
+			if (!JS_DefineSFNodeSpecificProperties (cx, obj, newHandle)) {
+				printf( "JS_DefineSFNodeSpecificProperties failed in SFNodeConstr.\n");
+				return JS_FALSE;
+
+			}
+		}
+	
+		newPtr->valueChanged = 1;
+	} //SM_method == 2
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	{
@@ -1590,6 +1659,7 @@ void
 SFNodeFinalize(JSContext *cx, JSObject *obj)
 {
 	SFNodeNative *ptr;
+	AnyNative *any;
 
 	#ifdef JSVRMLCLASSESVERBOSE
 		printf("SFNodeFinalize: obj = %p\n", obj);
@@ -1608,14 +1678,17 @@ SFNodeFinalize(JSContext *cx, JSObject *obj)
 	}
 	
 	will cause the following JS_GetPrivate to fail. */
-
-
 	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
 		/* see above printf( "JS_GetPrivate failed in SFNodeFinalize.\n"); */
 		return;
 	} else {
 		if(SM_method() == 0)
-                FREE_IF_NZ (ptr->X3DString); 
+				FREE_IF_NZ (ptr->X3DString); 
+		if(SM_method() == 2){
+			any = (AnyNative*)ptr;
+			if(any->gc) FREE_IF_NZ(any->v);
+		}
+
 		FREE_IF_NZ (ptr);
 	}
 }
@@ -1676,10 +1749,16 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 	/* get the private pointer for this node */
 	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) != NULL) {
-		int ifound, type, kind, iifield, *valueChanged;
+		int ifound, type, kind, iifield, *valueChanged, sfsize, sftype;
 		union anyVrml *value;
 		char *fieldname = _id_c;
-		struct X3D_Node *node = ptr->handle;
+		struct X3D_Node *node;
+		if(SM_method() == 2){
+			AnyNative *any = (AnyNative *)ptr;
+			node = any->v->sfnode;
+		}else{
+			node = ptr->handle;
+		}
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("SFNodeGetProperty, working on node %p, field %s\n",ptr->handle,_id_c);
 		#endif
@@ -1692,6 +1771,9 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 					struct X3D_Script *scriptnode = X3D_SCRIPT(node);
 					getFieldFromScript(scriptnode->__scriptObj,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 				}
+				sftype = type2SF(type);
+				sfsize = sizeofSForMF(sftype);
+
 				//set up a return value
 				switch (type) {
 				case FIELDTYPE_SFBool:
@@ -1700,7 +1782,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				case FIELDTYPE_SFDouble:
 				case FIELDTYPE_SFInt32:
 				case FIELDTYPE_SFString:
-					X3D_ECMA_TO_JS(cx, value,returnElementLength(type),type,vp);
+					X3D_ECMA_TO_JS(cx, value,sfsize,type,vp);
 					break;
 				case FIELDTYPE_SFColor:
 				case FIELDTYPE_SFNode:
@@ -1708,7 +1790,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
-					X3D_SF_TO_JS(cx, obj, value,returnElementLength(type) * returnElementRowSize(type), type, vp);
+					X3D_SF_TO_JS(cx, obj, value,sfsize, type, vp);
 					break;
 				case FIELDTYPE_MFColor:
 				case FIELDTYPE_MFVec3f:
@@ -1815,7 +1897,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 
 void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char *value, int isXML);
-
+void JS_MF_TO_X3D(JSContext *cx, JSObject * obj, void *Data, int dataType, jsval *newval);
 JSBool
 #if JS_VERSION < 185
 SFNodeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -1835,294 +1917,369 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 		return JS_FALSE;
 	}
 #endif
-	//if (JSVAL_IS_INT(id)) {
-	//	printf("SFNode has no [index] property.\n");
-	//	/* would be nice to say node type or node name */
-	//	return JS_FALSE;
-	//}
+	if(SM_method() == 2){
+		AnyNative *lhs;
+		int ifound, type, kind, iifield, *valueChanged, sfsize, sftype;
+		union anyVrml *value;
+		char *fieldname;
+		struct X3D_Node *node;
 
-	_idStr = JS_ValueToString(cx, id);
-	_valStr = JS_ValueToString(cx, *vp);
+		if((lhs = (AnyNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			return JS_FALSE;
+		}
+		_idStr = JS_ValueToString(cx, id);
 #if JS_VERSION < 185
-	_id_c = JS_GetStringBytes(_idStr);
-	_val_c = JS_GetStringBytes(_valStr);
+		_id_c = JS_GetStringBytes(_idStr);
 #else
-	_id_c = JS_EncodeString(cx,_idStr); /* _id_c field name as a string ie "currX" */
-	_val_c = JS_EncodeString(cx,_valStr); /* _val_c field value as a string ie "33" */
+		_id_c = JS_EncodeString(cx,_idStr); /* _id_c field name as a string ie "currX" */
+#endif
+		fieldname = _id_c;
+		node = lhs->v->sfnode;
+		ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
+		if(ifound){
+			valueChanged = NULL;
+			if(node->_nodeType == NODE_Script){
+				//need one more thing - valueChanged
+				struct X3D_Script *scriptnode = X3D_SCRIPT(node);
+				getFieldFromScript(scriptnode->__scriptObj,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+			}
+			sftype = type2SF(type);
+			sfsize = sizeofSForMF(sftype);
+			//set up a return value
+			switch (type) {
+			case FIELDTYPE_SFBool:
+			case FIELDTYPE_SFFloat:
+			case FIELDTYPE_SFTime:
+			case FIELDTYPE_SFDouble:
+			case FIELDTYPE_SFInt32:
+			case FIELDTYPE_SFString:
+				JS_ECMA_TO_X3D(cx, value,sfsize,type,vp);
+				break;
+			case FIELDTYPE_SFColor:
+			case FIELDTYPE_SFNode:
+			case FIELDTYPE_SFVec2f:
+			case FIELDTYPE_SFVec3f:
+			case FIELDTYPE_SFVec3d:
+			case FIELDTYPE_SFRotation:
+				JS_SF_TO_X3D(cx, obj, value,sfsize, type, vp);
+				break;
+			case FIELDTYPE_MFColor:
+			case FIELDTYPE_MFVec3f:
+			case FIELDTYPE_MFVec2f:
+			case FIELDTYPE_MFFloat:
+			case FIELDTYPE_MFTime:
+			case FIELDTYPE_MFInt32:
+			case FIELDTYPE_MFString:
+			case FIELDTYPE_MFNode:
+			case FIELDTYPE_MFRotation:
+			case FIELDTYPE_SFImage:
+				JS_MF_TO_X3D(cx, obj, value, type, vp);
+				break;
+			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+			return JS_FALSE;
+			}
+			if(valueChanged)
+				(*valueChanged)++;
+
+			//#if JS_VERSION < 185
+			//	*rval = OBJECT_TO_JSVAL(obj);
+			//#else
+			//	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(obj));
+			//#endif
+			return JS_TRUE;
+
+		}
+		return JS_FALSE;
+
+	}else{ //SM_method == 2
+		//if (JSVAL_IS_INT(id)) {
+		//	printf("SFNode has no [index] property.\n");
+		//	/* would be nice to say node type or node name */
+		//	return JS_FALSE;
+		//}
+
+		_idStr = JS_ValueToString(cx, id);
+		_valStr = JS_ValueToString(cx, *vp);
+#if JS_VERSION < 185
+		_id_c = JS_GetStringBytes(_idStr);
+		_val_c = JS_GetStringBytes(_valStr);
+#else
+		_id_c = JS_EncodeString(cx,_idStr); /* _id_c field name as a string ie "currX" */
+		_val_c = JS_EncodeString(cx,_valStr); /* _val_c field value as a string ie "33" */
 #endif
 
 
-	#ifdef JSVRMLCLASSESVERBOSE
-		printf("SFNodeSetProperty: obj = %p, id = %s, vp = %s\n",
-			   obj, _id_c, _val_c);
-	#endif
-
-
-	if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in SFNodeSetProperty.\n");
-		return JS_FALSE;
-	}
-
-	if (JSVAL_IS_INT(id)) {
-		/* dug9 Aug 2013: no Properties are defined on SFNode, so there shouldn't be 
-		   any public SFNode[id] = ?. What are we doing here? 
-		   Was it an experiment or test method? Or does some other internal 
-		   function call this setter[id]? May we drop support for it?*/
-		if(SM_method() == 0){
-			ptr->valueChanged++;
-			val_len = (int) strlen(_val_c) + 1;
-
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("switching on %d\n",JSVAL_TO_INT(id));
-			#endif
-
-			switch (JSVAL_TO_INT(id)) {
-			case 0:
-				if ((strlen(ptr->X3DString) + 1) > val_len) {
-					ptr->X3DString =
-						(char *) REALLOC (ptr->X3DString, val_len * sizeof(char));
-				}
-				memset(ptr->X3DString, 0, val_len);
-				memmove(ptr->X3DString, _val_c, val_len);
-				break;
-			case 1:
-				scanUnsignedIntoValue(_val_c,&tmp);
-				ptr->handle = X3D_NODE(tmp);
-				break;
-			}
-		} //SM_method == 0
-	} else {
 		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("JS_IS_INT false\n");
-
-		printf ("SFNodeSetProperty, setting node %p field %s to value %s\n", ptr->handle,_id_c,_val_c);
-
-		{
-			struct X3D_Node* ptx;
-			ptx = X3D_NODE(ptr->handle);
-			printf ("node is of type %s\n",stringNodeType(ptx->_nodeType));
-		}
+			printf("SFNodeSetProperty: obj = %p, id = %s, vp = %s\n",
+				   obj, _id_c, _val_c);
 		#endif
 
-		/* dug9 2012 attempt to find and write the field of another script */
-		if( ptr->handle->_nodeType== NODE_Script )
-		{
-			/* code borrowed from fieldGet.c L.138 in set_one_ECMAtype() and reworked
-			   for cx2, obj2 - writes to a script eventIn with timestamp, 
-			   and runs the script function, completing the event
-			   cascade (I think)
-			*/
-			char scriptline[100];
-			JSObject *eventInFunction;
-			struct ScriptFieldDecl* myfield; 
-			struct CRjsnameStruct *JSparamnames; // = getJSparamnames();
-			struct Shader_Script *myObj;
-			JSContext *cx2;
-			JSObject *obj2;
-			jsval newval;
-			//indexT myfieldType;
-			//union anyVrml vrmlField;
-			//bool deepcopy;
-			struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
-			myObj = X3D_SCRIPT(ptr->handle)->__scriptObj;
-			/* is the script ok and initialized? */
-			ScriptControl = getScriptControlIndex(myObj->num);
-			if ((!ScriptControl->_initialized) || (!ScriptControl->scriptOK)) {
-				/* printf ("waiting for initializing script %d at %s:%d\n",(uintptr_t)to_ptr->routeToNode, __FILE__,__LINE__); */
-				return JS_FALSE;;
-			}
 
-			/* get context and global object for this script */
-			cx2 =  (JSContext*)ScriptControl->cx;
-			obj2 = (JSObject*)ScriptControl->glob;
-			//it doesn't seem to matter which cx/obj we use.
-			cx2 = cx;
-			obj2 = obj;
+		if ((ptr = (SFNodeNative *)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in SFNodeSetProperty.\n");
+			return JS_FALSE;
+		}
 
-			#if defined(JS_THREADSAFE)
-			JS_BeginRequest(cx);
-			#endif
-			/* set the time for this script */
-			//SET_JS_TICKTIME()
-			{ 
-				jsval zimbo;
-				JS_NewNumberValue(cx2, TickTime(), &zimbo);
-				if (!JS_DefineProperty(cx2,obj2, "__eventInTickTime", zimbo, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB2, JSPROP_PERMANENT)) {
-					printf( "JS_DefineProperty failed for __eventInTickTime at %s:%d.\n",__FILE__,__LINE__);
-					return JS_FALSE;
-				}
-			}
-			//X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
-			//if( getSFNodeField(cx,obj, id, &newval) == JS_FALSE) //this is for getting fields from builtin node types, not Script nodes
-			//	return JS_FALSE;
-			myfield = script_getField_viaCharName(myObj, _id_c);
+		if (JSVAL_IS_INT(id)) {
+			/* dug9 Aug 2013: no Properties are defined on SFNode, so there shouldn't be 
+			   any public SFNode[id] = ?. What are we doing here? 
+			   Was it an experiment or test method? Or does some other internal 
+			   function call this setter[id]? May we drop support for it?*/
+			if(SM_method() == 0){
+				ptr->valueChanged++;
+				val_len = (int) strlen(_val_c) + 1;
 
-			//Q. do I need to deepcopy the vp?
-			// newval = deepcopy(vp); 
-			//a slight difference: pointer copy: bool=true, deep copy: bool=1
-			//I'll stick with pointer copy
-			/*
-			deepcopy = false; 
-			if(deepcopy)
-			{
-				//step 1. get the target/output field's datatype
-				myfieldType = myfield->fieldDecl->fieldType;
-				
-				//step 2. try and read the input *vp using that datatype
-				// borrowed from jsUtils.c L.1247
-				switch (myfieldType) {
-					case FIELDTYPE_SFBool:
-					case FIELDTYPE_SFFloat:
-					case FIELDTYPE_SFTime:
-					case FIELDTYPE_SFDouble:
-					case FIELDTYPE_SFInt32:
-					case FIELDTYPE_SFString:
-					JS_ECMA_TO_X3D(cx2, &vrmlField,	returnElementLength(myfieldType), myfieldType, vp);
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("switching on %d\n",JSVAL_TO_INT(id));
+				#endif
+
+				switch (JSVAL_TO_INT(id)) {
+				case 0:
+					if ((strlen(ptr->X3DString) + 1) > val_len) {
+						ptr->X3DString =
+							(char *) REALLOC (ptr->X3DString, val_len * sizeof(char));
+					}
+					memset(ptr->X3DString, 0, val_len);
+					memmove(ptr->X3DString, _val_c, val_len);
 					break;
-					case FIELDTYPE_SFColor:
-					case FIELDTYPE_SFNode:
-					case FIELDTYPE_SFVec2f:
-					case FIELDTYPE_SFVec3f:
-					case FIELDTYPE_SFVec3d:
-					case FIELDTYPE_SFRotation:
-					JS_SF_TO_X3D(cx2,&vrmlField,returnElementLength(myfieldType) * returnElementRowSize(myfieldType) , myfieldType, vp);
+				case 1:
+					scanUnsignedIntoValue(_val_c,&tmp);
+					ptr->handle = X3D_NODE(tmp);
 					break;
-					case FIELDTYPE_MFColor:
-					case FIELDTYPE_MFVec3f:
-					case FIELDTYPE_MFVec2f:
-					case FIELDTYPE_MFFloat:
-					case FIELDTYPE_MFTime:
-					case FIELDTYPE_MFInt32:
-					case FIELDTYPE_MFString:
-					case FIELDTYPE_MFNode:
-					case FIELDTYPE_MFRotation:
-					case FIELDTYPE_SFImage:
-					JS_MF_TO_X3D(cx2, obj2, &vrmlField, myfieldType, vp);
-					break;
-					default: printf ("unhandled type in setSFNodeField\n");
-					return JS_FALSE;
 				}
-				//step 3. if successful, convert back to a second copy newval
-				//int setField_FromEAI_ToScript(int tonode, int toname, int datatype, void *data, unsigned rowcount) {
-				switch (myfieldType) {
-					case FIELDTYPE_SFBool:
-					case FIELDTYPE_SFFloat:
-					case FIELDTYPE_SFTime:
-					case FIELDTYPE_SFDouble:
-					case FIELDTYPE_SFInt32:
-					case FIELDTYPE_SFString:
-					X3D_ECMA_TO_JS(cx2, &vrmlField,	returnElementLength(myfieldType), myfieldType, &newval);
-					break;
-					case FIELDTYPE_SFColor:
-					case FIELDTYPE_SFNode:
-					case FIELDTYPE_SFVec2f:
-					case FIELDTYPE_SFVec3f:
-					case FIELDTYPE_SFVec3d:
-					case FIELDTYPE_SFRotation:
-					X3D_SF_TO_JS(cx2, obj2, &vrmlField,	returnElementLength(myfieldType) * returnElementRowSize(myfieldType) , myfieldType, &newval);
-					break;
-					case FIELDTYPE_MFColor:
-					case FIELDTYPE_MFVec3f:
-					case FIELDTYPE_MFVec2f:
-					case FIELDTYPE_MFFloat:
-					case FIELDTYPE_MFTime:
-					case FIELDTYPE_MFInt32:
-					case FIELDTYPE_MFString:
-					case FIELDTYPE_MFNode:
-					case FIELDTYPE_MFRotation:
-					case FIELDTYPE_SFImage:
-					X3D_MF_TO_JS(cx2, obj2, &vrmlField, myfieldType, &newval, _id_c);
-					break;
-					default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", myfieldType) ;
-					return JS_FALSE;
-				}
-			}else{ //deepcopy
-			*/
-				newval = *vp;
-			//}
-			/* get the variable name to hold the incoming value */
-			//sprintf (scriptline,"__eventIn_Value_%s",  _id_c);
-			strcpy(scriptline,_id_c);
+			} //SM_method == 0
+		} else {
 			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj2);
+			printf ("JS_IS_INT false\n");
+
+			printf ("SFNodeSetProperty, setting node %p field %s to value %s\n", ptr->handle,_id_c,_val_c);
+
+			{
+				struct X3D_Node* ptx;
+				ptx = X3D_NODE(ptr->handle);
+				printf ("node is of type %s\n",stringNodeType(ptx->_nodeType));
+			}
 			#endif
 
-			if (!JS_DefineProperty(cx2,obj2, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {  
-				printf( "JS_DefineProperty failed for SFNodeSetProperty at %s:%d.\n",__FILE__,__LINE__); 
+			/* dug9 2012 attempt to find and write the field of another script */
+			if( ptr->handle->_nodeType== NODE_Script )
+			{
+				/* code borrowed from fieldGet.c L.138 in set_one_ECMAtype() and reworked
+				   for cx2, obj2 - writes to a script eventIn with timestamp, 
+				   and runs the script function, completing the event
+				   cascade (I think)
+				*/
+				char scriptline[100];
+				JSObject *eventInFunction;
+				struct ScriptFieldDecl* myfield; 
+				struct CRjsnameStruct *JSparamnames; // = getJSparamnames();
+				struct Shader_Script *myObj;
+				JSContext *cx2;
+				JSObject *obj2;
+				jsval newval;
+				//indexT myfieldType;
+				//union anyVrml vrmlField;
+				//bool deepcopy;
+				struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
+				myObj = X3D_SCRIPT(ptr->handle)->__scriptObj;
+				/* is the script ok and initialized? */
+				ScriptControl = getScriptControlIndex(myObj->num);
+				if ((!ScriptControl->_initialized) || (!ScriptControl->scriptOK)) {
+					/* printf ("waiting for initializing script %d at %s:%d\n",(uintptr_t)to_ptr->routeToNode, __FILE__,__LINE__); */
+					return JS_FALSE;;
+				}
+
+				/* get context and global object for this script */
+				cx2 =  (JSContext*)ScriptControl->cx;
+				obj2 = (JSObject*)ScriptControl->glob;
+				//it doesn't seem to matter which cx/obj we use.
+				cx2 = cx;
+				obj2 = obj;
+
+				#if defined(JS_THREADSAFE)
+				JS_BeginRequest(cx);
+				#endif
+				/* set the time for this script */
+				//SET_JS_TICKTIME()
+				{ 
+					jsval zimbo;
+					JS_NewNumberValue(cx2, TickTime(), &zimbo);
+					if (!JS_DefineProperty(cx2,obj2, "__eventInTickTime", zimbo, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB2, JSPROP_PERMANENT)) {
+						printf( "JS_DefineProperty failed for __eventInTickTime at %s:%d.\n",__FILE__,__LINE__);
+						return JS_FALSE;
+					}
+				}
+				//X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
+				//if( getSFNodeField(cx,obj, id, &newval) == JS_FALSE) //this is for getting fields from builtin node types, not Script nodes
+				//	return JS_FALSE;
+				myfield = script_getField_viaCharName(myObj, _id_c);
+
+				//Q. do I need to deepcopy the vp?
+				// newval = deepcopy(vp); 
+				//a slight difference: pointer copy: bool=true, deep copy: bool=1
+				//I'll stick with pointer copy
+				/*
+				deepcopy = false; 
+				if(deepcopy)
+				{
+					//step 1. get the target/output field's datatype
+					myfieldType = myfield->fieldDecl->fieldType;
+				
+					//step 2. try and read the input *vp using that datatype
+					// borrowed from jsUtils.c L.1247
+					switch (myfieldType) {
+						case FIELDTYPE_SFBool:
+						case FIELDTYPE_SFFloat:
+						case FIELDTYPE_SFTime:
+						case FIELDTYPE_SFDouble:
+						case FIELDTYPE_SFInt32:
+						case FIELDTYPE_SFString:
+						JS_ECMA_TO_X3D(cx2, &vrmlField,	returnElementLength(myfieldType), myfieldType, vp);
+						break;
+						case FIELDTYPE_SFColor:
+						case FIELDTYPE_SFNode:
+						case FIELDTYPE_SFVec2f:
+						case FIELDTYPE_SFVec3f:
+						case FIELDTYPE_SFVec3d:
+						case FIELDTYPE_SFRotation:
+						JS_SF_TO_X3D(cx2,&vrmlField,returnElementLength(myfieldType) * returnElementRowSize(myfieldType) , myfieldType, vp);
+						break;
+						case FIELDTYPE_MFColor:
+						case FIELDTYPE_MFVec3f:
+						case FIELDTYPE_MFVec2f:
+						case FIELDTYPE_MFFloat:
+						case FIELDTYPE_MFTime:
+						case FIELDTYPE_MFInt32:
+						case FIELDTYPE_MFString:
+						case FIELDTYPE_MFNode:
+						case FIELDTYPE_MFRotation:
+						case FIELDTYPE_SFImage:
+						JS_MF_TO_X3D(cx2, obj2, &vrmlField, myfieldType, vp);
+						break;
+						default: printf ("unhandled type in setSFNodeField\n");
+						return JS_FALSE;
+					}
+					//step 3. if successful, convert back to a second copy newval
+					//int setField_FromEAI_ToScript(int tonode, int toname, int datatype, void *data, unsigned rowcount) {
+					switch (myfieldType) {
+						case FIELDTYPE_SFBool:
+						case FIELDTYPE_SFFloat:
+						case FIELDTYPE_SFTime:
+						case FIELDTYPE_SFDouble:
+						case FIELDTYPE_SFInt32:
+						case FIELDTYPE_SFString:
+						X3D_ECMA_TO_JS(cx2, &vrmlField,	returnElementLength(myfieldType), myfieldType, &newval);
+						break;
+						case FIELDTYPE_SFColor:
+						case FIELDTYPE_SFNode:
+						case FIELDTYPE_SFVec2f:
+						case FIELDTYPE_SFVec3f:
+						case FIELDTYPE_SFVec3d:
+						case FIELDTYPE_SFRotation:
+						X3D_SF_TO_JS(cx2, obj2, &vrmlField,	returnElementLength(myfieldType) * returnElementRowSize(myfieldType) , myfieldType, &newval);
+						break;
+						case FIELDTYPE_MFColor:
+						case FIELDTYPE_MFVec3f:
+						case FIELDTYPE_MFVec2f:
+						case FIELDTYPE_MFFloat:
+						case FIELDTYPE_MFTime:
+						case FIELDTYPE_MFInt32:
+						case FIELDTYPE_MFString:
+						case FIELDTYPE_MFNode:
+						case FIELDTYPE_MFRotation:
+						case FIELDTYPE_SFImage:
+						X3D_MF_TO_JS(cx2, obj2, &vrmlField, myfieldType, &newval, _id_c);
+						break;
+						default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", myfieldType) ;
+						return JS_FALSE;
+					}
+				}else{ //deepcopy
+				*/
+					newval = *vp;
+				//}
+				/* get the variable name to hold the incoming value */
+				//sprintf (scriptline,"__eventIn_Value_%s",  _id_c);
+				strcpy(scriptline,_id_c);
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj2);
+				#endif
+
+				if (!JS_DefineProperty(cx2,obj2, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {  
+					printf( "JS_DefineProperty failed for SFNodeSetProperty at %s:%d.\n",__FILE__,__LINE__); 
+					#if defined(JS_THREADSAFE)
+					JS_EndRequest(cx);
+					#endif
+					return JS_FALSE; 
+				}
+				/* is the function compiled yet? */
+				//COMPILE_FUNCTION_IF_NEEDED(toname)
+				JSparamnames = getJSparamnames();
+				eventInFunction = JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction;
+				if ( eventInFunction == NULL) { 
+					//sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", _id_c, _id_c); 
+					sprintf (scriptline,"set_%s(%s,__eventInTickTime)", _id_c, _id_c); 
+					/* printf ("compiling function %s\n",scriptline); */
+					eventInFunction = JS_CompileScript(cx2, obj2, scriptline, strlen(scriptline), "compile eventIn",1);
+					if(true){
+						//if (!JS_AddObjectRoot(cx2,&eventInFunction)) {
+						JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction = eventInFunction;
+						#if JS_VERSION >= 185
+						if (!JS_AddObjectRoot(cx,(JSSCRIPT**)(&JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction))) {
+							printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__);
+							return JS_FALSE;
+						}
+						#endif
+					}
+				}
+				/* and run the function */
+				//RUN_FUNCTION (toname)
+				{
+					jsval zimbo;
+					if (!JS_ExecuteScript(cx2, obj2, eventInFunction, &zimbo)) 
+					{
+						printf ("failed to set parameter for eventIn %s in FreeWRL code %s:%d\n",_id_c,__FILE__,__LINE__); \
+						/* printf ("myThread is %u\n",pthread_self());*/ \
+						return JS_FALSE;
+					}
+					return JS_TRUE;
+				}
 				#if defined(JS_THREADSAFE)
 				JS_EndRequest(cx);
 				#endif
-				return JS_FALSE; 
 			}
-			/* is the function compiled yet? */
-			//COMPILE_FUNCTION_IF_NEEDED(toname)
-			JSparamnames = getJSparamnames();
-			eventInFunction = JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction;
-			if ( eventInFunction == NULL) { 
-				//sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", _id_c, _id_c); 
-				sprintf (scriptline,"set_%s(%s,__eventInTickTime)", _id_c, _id_c); 
-				/* printf ("compiling function %s\n",scriptline); */
-				eventInFunction = JS_CompileScript(cx2, obj2, scriptline, strlen(scriptline), "compile eventIn",1);
-				if(true){
-					//if (!JS_AddObjectRoot(cx2,&eventInFunction)) {
-					JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction = eventInFunction;
-					#if JS_VERSION >= 185
-					if (!JS_AddObjectRoot(cx,(JSSCRIPT**)(&JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction))) {
-						printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__);
-						return JS_FALSE;
-					}
-					#endif
-				}
-			}
-			/* and run the function */
-			//RUN_FUNCTION (toname)
+			//dug9 July 9, 2014 - failed attempt to fix, see runQueuedDirectOutputs()
+			// problem: 1) it's a lot of work to drill into the JS object for the other script to set the field value and valueChanged flag
+			// 2) taking a shortcut in the routing loop would require refactoring: JSGlobal_object between get_valueChanged and js_setField_javascriptEventOut
+			// would need to be generalized to do anyVrml or anyVrml passed directly up and down.
+			if(0) if( ptr->handle->_nodeType== NODE_Script )
 			{
-				jsval zimbo;
-				if (!JS_ExecuteScript(cx2, obj2, eventInFunction, &zimbo)) 
-				{
-					printf ("failed to set parameter for eventIn %s in FreeWRL code %s:%d\n",_id_c,__FILE__,__LINE__); \
-					/* printf ("myThread is %u\n",pthread_self());*/ \
-					return JS_FALSE;
+				int itype, kind;
+				//step 1. unconditionally write the script->field->value regardless of its kind/PKW
+				struct ScriptFieldDecl* myfield; 
+				struct Shader_Script *script;
+				struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
+				script = X3D_SCRIPT(ptr->handle)->__scriptObj;
+				/* is the script ok and initialized? */
+				ScriptControl = getScriptControlIndex(script->num);
+				if ((!ScriptControl->_initialized) || (!ScriptControl->scriptOK)) {
+					/* printf ("waiting for initializing script %d at %s:%d\n",(uintptr_t)to_ptr->routeToNode, __FILE__,__LINE__); */
+					return JS_FALSE;;
 				}
+				myfield = script_getField_viaCharName(script, _id_c);
+				if(!myfield) return JS_FALSE;
+				itype = ScriptFieldDecl_getType(myfield);
+				kind =  ScriptFieldDecl_getMode(myfield);
+				Parser_scanStringValueToMem_B(&myfield->value, itype, _val_c, FALSE);
+				if(kind == PKW_inputOnly || kind == PKW_inputOutput)
+					myfield->eventInSet = TRUE; //flag for runQueuedDirectOutputs() to run eventIn function on other script, feeding it the value we just set
+				if(kind == PKW_inputOutput || kind == PKW_outputOnly)
+					myfield->valueChanged = TRUE; //flag for eventOuts on other script to send what we are writing
 				return JS_TRUE;
 			}
-			#if defined(JS_THREADSAFE)
-			JS_EndRequest(cx);
-			#endif
-		}
-		//dug9 July 9, 2014 - failed attempt to fix, see runQueuedDirectOutputs()
-		// problem: 1) it's a lot of work to drill into the JS object for the other script to set the field value and valueChanged flag
-		// 2) taking a shortcut in the routing loop would require refactoring: JSGlobal_object between get_valueChanged and js_setField_javascriptEventOut
-		// would need to be generalized to do anyVrml or anyVrml passed directly up and down.
-		if(0) if( ptr->handle->_nodeType== NODE_Script )
-		{
-			int itype, kind;
-			//step 1. unconditionally write the script->field->value regardless of its kind/PKW
-			struct ScriptFieldDecl* myfield; 
-			struct Shader_Script *script;
-			struct CRscriptStruct *ScriptControl; // = getScriptControl(); 
-			script = X3D_SCRIPT(ptr->handle)->__scriptObj;
-			/* is the script ok and initialized? */
-			ScriptControl = getScriptControlIndex(script->num);
-			if ((!ScriptControl->_initialized) || (!ScriptControl->scriptOK)) {
-				/* printf ("waiting for initializing script %d at %s:%d\n",(uintptr_t)to_ptr->routeToNode, __FILE__,__LINE__); */
-				return JS_FALSE;;
-			}
-			myfield = script_getField_viaCharName(script, _id_c);
-			if(!myfield) return JS_FALSE;
-			itype = ScriptFieldDecl_getType(myfield);
-			kind =  ScriptFieldDecl_getMode(myfield);
-			Parser_scanStringValueToMem_B(&myfield->value, itype, _val_c, FALSE);
-			if(kind == PKW_inputOnly || kind == PKW_inputOutput)
-				myfield->eventInSet = TRUE; //flag for runQueuedDirectOutputs() to run eventIn function on other script, feeding it the value we just set
-			if(kind == PKW_inputOutput || kind == PKW_outputOnly)
-				myfield->valueChanged = TRUE; //flag for eventOuts on other script to send what we are writing
-			return JS_TRUE;
-		}
 
-		setField_fromJavascript (X3D_NODE(ptr->handle), _id_c, _val_c, FALSE);
-	}
-
+			setField_fromJavascript (X3D_NODE(ptr->handle), _id_c, _val_c, FALSE);
+		}
+	} //SM_method == 2
 	return JS_TRUE;
 }
 
