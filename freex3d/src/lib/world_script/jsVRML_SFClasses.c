@@ -3112,13 +3112,11 @@ JSBool SFVec2fGeneric( JSContext *cx, JSObject *obj,
 		   uintN argc, jsval *argv, jsval *rval, int op) {
 
 	JSObject *_paramObj, *_proto, *_retObj;
-	SFVec2fNative *_vec1 = NULL;
-	SFVec2fNative *_vec2 = NULL;
-	SFVec2fNative *_retNative = NULL;
 	jsdouble d=0.0;
 	jsdouble d0=0.0;
 	jsdouble d1=0.0;
 	struct point_XYZ v1, v2;
+	float *cc, *cc2, cc3[2], cclhs[2];
 
 
 	/* parameters */
@@ -3175,62 +3173,82 @@ JSBool SFVec2fGeneric( JSContext *cx, JSObject *obj,
 					return JS_FALSE;
 				}
 				/* printf ("past scan, %f %f %f\n",pars[0], pars[1]);*/
+				cc3[0] = pars[0];
+				cc3[1] = pars[1];
+				cc2 = cc3;
 			} else {
-				if (!JS_ConvertArguments(cx, argc, argv, "o", &_paramObj)) {
-					printf( "JS_ConvertArguments failed in SFVec2f.\n");
-					return JS_FALSE;
-				}
+				if(SM_method()==2){
+					if (JSVAL_IS_OBJECT(argv[0])) {
+						AnyNative *_vec2;
+        				if ((_vec2 = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(argv[0]))) == NULL) {
+							printf("in SFVec2f, RHS was NOT native type \n");
+							return JS_FALSE;
+        				}
+						//if(_vec2->type == FIELDTYPE_SFVec2f) or color. if 3d convert....
+						cc2 = _vec2->v->sfvec2f.c;
+					}else{
+						return JS_FALSE;
+					}
 
-				CHECK_CLASS(cx,_paramObj,argv,__FUNCTION__,SFVec2fClass)
+				}else{
+					SFVec2fNative *_vec2 = NULL;
 
-				if ((_vec2 = (SFVec2fNative*)JS_GetPrivate(cx, _paramObj)) == NULL) {
-					printf( "JS_GetPrivate failed for _paramObj in SFVec2f.\n");
-					return JS_FALSE;
+					if (!JS_ConvertArguments(cx, argc, argv, "o", &_paramObj)) {
+						printf( "JS_ConvertArguments failed in SFVec2f.\n");
+						return JS_FALSE;
+					}
+
+					CHECK_CLASS(cx,_paramObj,argv,__FUNCTION__,SFVec2fClass)
+
+					if ((_vec2 = (SFVec2fNative*)JS_GetPrivate(cx, _paramObj)) == NULL) {
+						printf( "JS_GetPrivate failed for _paramObj in SFVec2f.\n");
+						return JS_FALSE;
+					}
+					cc2 = _vec2->v.c;
 				}
-				pars[0]= (_vec2->v).c[0];
-				pars[1] = (_vec2->v).c[1];
 			}
 		}
 	}
 
 	/* get our values */
-	if ((_vec1 = (SFVec2fNative*)JS_GetPrivate(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed for obj in SFVec2fAdd.\n");
-		return JS_FALSE;
+	if(SM_method() == 2){
+		AnyNative *_vec1;
+		if ((_vec1 = (AnyNative*)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed for obj in SFVec3fAdd.\n");
+			return JS_FALSE;
+		}
+		cc = _vec1->v->sfvec2f.c;
+	}else{
+		SFVec2fNative *_vec1 = NULL;
+		if ((_vec1 = (SFVec2fNative*)JS_GetPrivate(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed for obj in SFVec2fAdd.\n");
+			return JS_FALSE;
+		}
+		cc = _vec1->v.c;
 	}
-
 	/* do the operation */
 	switch (op) {
 		/* returning a SFVec2f */
 		case __2FADD:
-			d0 = (_vec1->v).c[0] + (_vec2->v).c[0];
-			d1 = (_vec1->v).c[1] + (_vec2->v).c[1];
+			vecadd2f(cclhs,cc,cc2);
 			break;
 		case __2FDIVIDE:
-			d0 = (_vec1->v).c[0] / d;
-			d1 = (_vec1->v).c[1] / d;
+			vecscale2f(cclhs,cc,1.0/d);
 			break;
 		case __2FMULT:
-			d0 = (_vec1->v).c[0] * d;
-			d1 = (_vec1->v).c[1] * d;
+			vecscale2f(cclhs,cc,d);
 			break;
 		case __2FSUBT:
-			d0 = (_vec1->v).c[0] - (_vec2->v).c[0];
-			d1 = (_vec1->v).c[1] - (_vec2->v).c[1];
+			vecdif2f(cclhs,cc,cc2);
 			break;
 		case __2FDOT:
-			v1.x = (_vec1->v).c[0]; v1.y=(_vec1->v).c[1];v1.z=0.0;
-			v2.x = (_vec2->v).c[0]; v2.y=(_vec2->v).c[1];v2.z=0.0;
-			d = vecdot (&v1, &v2);
+			d = vecdot2f(cc,cc2);
 			break;
 		case __2FLENGTH:
-			v1.x = (_vec1->v).c[0]; v1.y=(_vec1->v).c[1];v1.z=0.0;
-			d = veclength(v1);
+			d = veclength2f(cc);
 			break;
 		case __2FNORMALIZE:
-			v1.x = (_vec1->v).c[0]; v1.y=(_vec1->v).c[1];v1.z=0.0;
-			vecnormal(&v1, &v1);
-			d0 = v1.x; d1 = v1.y;
+			vecnormal2f(cclhs,cc);
 			break;
 		default:
 		return JS_FALSE;
@@ -3248,12 +3266,22 @@ JSBool SFVec2fGeneric( JSContext *cx, JSObject *obj,
 			return JS_FALSE;
 		}
 		*rval = OBJECT_TO_JSVAL(_retObj);
-		if ((_retNative = (SFVec2fNative*)JS_GetPrivate(cx, _retObj)) == NULL) {
-			printf( "JS_GetPrivate failed for _retObj in SFVec2f.\n");
-			return JS_FALSE;
+		if(SM_method() == 2){
+			AnyNative *any;
+			if ((any = (AnyNative*)JS_GetPrivate(cx, _retObj)) == NULL) {
+				printf( "JS_GetPrivate failed for _retObj in SFVec3f.\n");
+				return JS_FALSE;
+			}
+			memcpy(any->v->sfvec2f.c,cclhs,2*sizeof(float));
+		}else{
+			SFVec3fNative *_retNative;
+			if ((_retNative = (SFVec3fNative*)JS_GetPrivate(cx, _retObj)) == NULL) {
+				printf( "JS_GetPrivate failed for _retObj in SFVec3f.\n");
+				return JS_FALSE;
+			}
+			memcpy(_retNative->v.c,cclhs,2*sizeof(float));
 		}
-		(_retNative->v).c[0] = (float) d0;
-		(_retNative->v).c[1] = (float) d1;
+
 	} else if (retNumeric) {
 		if (JS_NewNumberValue(cx,d,rval) == JS_FALSE) {
 			printf( "JS_NewDouble failed for %f in SFVec2f.\n",d);
