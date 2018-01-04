@@ -1096,7 +1096,7 @@ JSBool _standardMFAssign(JSContext *cx,
 
 	return _simplecopyElements(cx, _from_obj, obj, len,type);
 }
-void X3D_SF_TO_JS_B(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
+void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
 /* standardized GetProperty for MF's */
 JSBool
 _standardMFGetProperty(JSContext *cx,
@@ -1183,7 +1183,7 @@ _standardMFGetProperty(JSContext *cx,
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
-					X3D_SF_TO_JS_B(cx, obj, any,sfsize, sftype, ptr->valueChanged, vp);
+					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
 					break;
 				default: printf ("invalid type in standardMFGetProperty method 2\n"); return JS_FALSE;
 			}
@@ -2295,8 +2295,10 @@ int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, in
 
 void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval *newval);
 void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName);
-void X3D_MF_TO_JS_B(JSContext *cx, JSObject *obj, void *Data, int dataType, int *valueChanged, jsval *newval);
+void X3D_MF_TO_JS_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval);
 void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, jsval *newval);
+void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
+
 JSBool
 #if JS_VERSION < 185
 getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -2350,7 +2352,7 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	//if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
 	fieldname = _id_c;
 	{
-		int type, kind, iifield, ifound;
+		int type, kind, iifield, ifound, sfsize, sftype;
 		union anyVrml *value;
 		int *valueChanged;
 		struct Shader_Script *script = sm_get_script();
@@ -2358,6 +2360,8 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		value = NULL;
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){
+			sftype = type2SF(type);
+			sfsize = sizeofSForMF(sftype);
 			//similar to SFNodeGetProperty
 			printf("getECMANative found field %s in script type %d kind %d index %d vC %d \n",fieldname,type,kind,iifield,*valueChanged);
 			//set up a return value
@@ -2368,7 +2372,7 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 			case FIELDTYPE_SFDouble:
 			case FIELDTYPE_SFInt32:
 			case FIELDTYPE_SFString:
-				X3D_ECMA_TO_JS(cx, value,returnElementLength(type),type,vp);
+				X3D_ECMA_TO_JS(cx, value,sfsize,type,vp);
 				break;
 			case FIELDTYPE_SFColor:
 			case FIELDTYPE_SFNode:
@@ -2376,7 +2380,8 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 			case FIELDTYPE_SFVec3f:
 			case FIELDTYPE_SFVec3d:
 			case FIELDTYPE_SFRotation:
-				X3D_SF_TO_JS(cx, obj, value,returnElementLength(type) * returnElementRowSize(type), type, vp);
+			//void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
+				X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 				break;
 			case FIELDTYPE_MFColor:
 			case FIELDTYPE_MFVec3f:
@@ -2388,8 +2393,8 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 			case FIELDTYPE_MFNode:
 			case FIELDTYPE_MFRotation:
 			case FIELDTYPE_SFImage:
-			//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
-				X3D_MF_TO_JS_B(cx, obj, value, type, valueChanged, vp);
+			//static void X3D_MF_TO_JS(JSContext *cx, void *Data, int dataType, jsval *newval, char *fieldName) {
+				X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 				break;
 			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
 				return JS_FALSE;

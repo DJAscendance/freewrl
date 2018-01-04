@@ -208,6 +208,7 @@ float *vecscale3f(float *b, float *a, float scale);
 float *vecmult3f(float *c, float *a, float *b);
 float veclength3f(float *a);
 float *vecnormalize3f(float *b, float *a);
+float *vecnegate3f(float *b, float *a);
 float det3f(float *a, float *b, float *c);
 float *axisangle_rotate3f(float* b, float *a, float *axisangle);
 float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB);

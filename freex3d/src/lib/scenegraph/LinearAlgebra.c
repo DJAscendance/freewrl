@@ -184,6 +184,13 @@ float *veccopy3f(float *b, float *a)
 	b[2] = a[2];
 	return b;
 }
+float *vecnegate3f(float *b, float *a)
+{
+	b[0] = -a[0];
+	b[1] = -a[1];
+	b[2] = -a[2];
+	return b;
+}
 int vecsame2f(float *b, float *a){
 	return a[0] == b[0] && a[1] == b[1] ? TRUE : FALSE;
 }
