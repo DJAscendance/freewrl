@@ -474,6 +474,29 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 		*a = 2.0 * acos(qn.w);
 	}
 }
+void quaternion_to_vrmlrot4f(const Quaternion *quat, float *rot)
+{
+	
+	//double scale = sqrt(VECSQ(*quat));
+	Quaternion qn;
+	double scale;
+
+	quaternion_set(&qn,quat);
+	quaternion_normalize(&qn);
+	scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
+	if (APPROX(scale, 0.0)) {
+		rot[0] = 0.0f;
+		rot[1] = 0.0f;
+		rot[2] = 1.0f;
+		rot[3] = 0.0f;
+	} else {
+		rot[0] = qn.x / scale;
+		rot[1] = qn.y / scale;
+		rot[2] = qn.z / scale;
+		rot[3] = 2.0 * acos(qn.w);
+	}
+}
+
 
 void
 quaternion_conjugate(Quaternion *quat)

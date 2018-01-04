@@ -873,7 +873,7 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 
 //	if (!JSVAL_IS_OBJECT(*newval)) { //don't know what this guards against
 		switch (dataType) {
-			case FIELDTYPE_MFString: script = "new MFString()"; break;
+			case FIELDTYPE_MFString:
 				newobj = JS_NewObject(cx,&MFStringClass,NULL,NULL); break;
 			case FIELDTYPE_MFFloat: 
 				newobj = JS_NewObject(cx,&MFFloatClass,NULL,NULL); break;
