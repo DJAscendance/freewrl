@@ -1081,7 +1081,6 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	jsval mv;
 	int param[3];
 	int expectedSize;
-        SFImageNative *ptr;
 
 
 
@@ -1092,6 +1091,22 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	#endif
 
 	/* SFImage really only has the valueChanged flag. */
+	if(SM_method()==2){
+        AnyNative *ptr;
+        if ((ptr = (AnyNative *) AnyNativeNew(FIELDTYPE_SFImage,NULL,NULL)) == NULL) {
+                printf( "SFImageNativeNew failed in SFImageConstr.\n");
+                return JS_FALSE;
+        }
+
+        if (!JS_SetPrivate(cx, obj, ptr)) {
+                printf( "JS_SetPrivate failed in SFImageConstr.\n");
+                return JS_FALSE;
+        }
+		//if(ptr->valueChanged)
+		//	(*ptr->valueChanged) = 1;
+
+	}else{
+        SFImageNative *ptr;
         if ((ptr = (SFImageNative *) SFImageNativeNew()) == NULL) {
                 printf( "SFImageNativeNew failed in SFImageConstr.\n");
                 return JS_FALSE;
@@ -1102,8 +1117,8 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
                 return JS_FALSE;
         }
 
-	ptr->valueChanged = 1;
-
+		ptr->valueChanged = 1;
+	}
 	/* make this so that one can get the ".x", ".y", ".comp" and ".array" */
 	//if (!JS_DefineProperties(cx, obj, SFImageProperties)) {
 	//	printf( "JS_DefineProperties failed in SFImageConstr.\n");
