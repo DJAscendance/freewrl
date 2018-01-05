@@ -2143,6 +2143,11 @@ MFStringGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		return JS_FALSE;
 	}
 #endif
+	if(SM_method()==2){
+		return _standardMFGetProperty(cx, obj, id, vp,
+			 "_FreeWRL_Internal = new SFString()",FIELDTYPE_MFString);
+
+	}
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf("MFStringGetProperty: obj = %p\n", obj);
@@ -2266,7 +2271,7 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 #endif
 
 	unsigned int i;
-
+	union anyVrml *anyv;
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_str;
@@ -2274,8 +2279,28 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 	#endif
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
-	DEFINE_MF_ECMA_HAS_CHANGED
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFString,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFStringConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFStringConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct Uni_String*)*upper_power_of_two(argc);
+		if(argc > 0){
+			anyv->mfstring.p = MALLOC(struct Uni_String**,newsize);
+			memset(anyv->mfstring.p,0,newsize);
+		}
+
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+		DEFINE_MF_ECMA_HAS_CHANGED
+	}
 
 	if (!argv) {
 		return JS_TRUE;
@@ -2310,10 +2335,38 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 		printf ("\n");
 		#endif
 
-	
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %d in MFStringConstr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			char *cstring = NULL;
+			if (JSVAL_IS_STRING(argv[i])==TRUE) {
+				// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_EncodeString
+				// cstring: we own it
+				JSString *_str;
+				_str = JS_ValueToString(cx, argv[i]);
+#if JS_VERSION < 185
+				cstring = JS_GetStringBytes(_str);
+#else
+				cstring = JS_EncodeString(cx,_str); //if utf16: lossy - will drop first byte, garbage
+				//JS_free(cx,_str); bombs if I do this
+#endif
+			}else{
+				//could try and convert object or ecma primitive to string via toString()
+			}
+			if(cstring){
+				//newASCIIString does an extra malloc
+				struct Uni_String *us;
+				us = MALLOC(struct Uni_String*,sizeof(struct Uni_String));
+				us->strptr = cstring;
+				us->len = strlen(cstring);
+				us->touched = 0;
+				anyv->mfstring.p[i] = us;
+				anyv->mfstring.n = i+1;
+			}
+			// else for now we'll leave zeros
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %d in MFStringConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
@@ -2338,7 +2391,9 @@ MFStringAssign(JSContext *cx, uintN argc, jsval *vp) {
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf("MFStringAssign: obj = %p args %d... ", obj, argc);
 	#endif
-	SET_MF_ECMA_HAS_CHANGED
+	if(SM_method() != 2){
+		SET_MF_ECMA_HAS_CHANGED
+	}
 
 #if JS_VERSION < 185
 	return _standardMFAssign (cx, obj, argc, argv, rval, &MFStringClass,FIELDTYPE_SFString);
