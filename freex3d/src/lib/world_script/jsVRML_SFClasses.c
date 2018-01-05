@@ -1942,7 +1942,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("SFNodeGetProperty, working on node %p, field %s\n",ptr->handle,_id_c);
 		#endif
-		if(SM_method() > 0){
+		if(SM_method() == 2){
 			ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
 			if(ifound){
 				valueChanged = NULL;
@@ -2133,40 +2133,61 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			sftype = type2SF(type);
 			sfsize = sizeofSForMF(sftype);
 			//set up a return value
-			switch (type) {
-			case FIELDTYPE_SFBool:
-			case FIELDTYPE_SFFloat:
-			case FIELDTYPE_SFTime:
-			case FIELDTYPE_SFDouble:
-			case FIELDTYPE_SFInt32:
-			case FIELDTYPE_SFString:
-				JS_ECMA_TO_X3D(cx, value,sfsize,type,vp);
-				break;
-			case FIELDTYPE_SFColor:
-			case FIELDTYPE_SFNode:
-			case FIELDTYPE_SFVec2f:
-			case FIELDTYPE_SFVec3f:
-			case FIELDTYPE_SFVec3d:
-			case FIELDTYPE_SFRotation:
-				JS_SF_TO_X3D(cx, obj, value,sfsize, type, vp);
-				break;
-			case FIELDTYPE_MFColor:
-			case FIELDTYPE_MFVec3f:
-			case FIELDTYPE_MFVec2f:
-			case FIELDTYPE_MFFloat:
-			case FIELDTYPE_MFTime:
-			case FIELDTYPE_MFInt32:
-			case FIELDTYPE_MFString:
-			case FIELDTYPE_MFNode:
-			case FIELDTYPE_MFRotation:
-			case FIELDTYPE_SFImage:
-				JS_MF_TO_X3D(cx, obj, value, type, vp);
-				break;
-			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
-			return JS_FALSE;
+			if (JSVAL_IS_OBJECT(*vp)) {
+				AnyNative *rhs;
+        		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
+					printf("in setECMANative, RHS was NOT native type \n");
+        		}else{
+					printf("in setECMANative, RHS was native type \n");
+					//can do an assign here
+					if(type == rhs->type){
+						if(valueChanged)
+							(*valueChanged) ++;
+						//shallow assumes the top has already been malloced (just base part of MF needed)
+						//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
+						shallow_copy_field(rhs->type,rhs->v,value);
+					}
+				}
+
+			} else {
+
+				switch (type) {
+				case FIELDTYPE_SFBool:
+				case FIELDTYPE_SFFloat:
+				case FIELDTYPE_SFTime:
+				case FIELDTYPE_SFDouble:
+				case FIELDTYPE_SFInt32:
+				case FIELDTYPE_SFString:
+					JS_ECMA_TO_X3D(cx, value,sfsize,type,vp);
+					if(valueChanged)
+						(*valueChanged)++;
+
+					break;
+				//case FIELDTYPE_SFColor:
+				//case FIELDTYPE_SFNode:
+				//case FIELDTYPE_SFVec2f:
+				//case FIELDTYPE_SFVec3f:
+				//case FIELDTYPE_SFVec3d:
+				//case FIELDTYPE_SFRotation:
+				//	JS_SF_TO_X3D(cx, obj, value,sfsize, type, vp);
+				//	break;
+				//case FIELDTYPE_MFColor:
+				//case FIELDTYPE_MFVec3f:
+				//case FIELDTYPE_MFVec2f:
+				//case FIELDTYPE_MFFloat:
+				//case FIELDTYPE_MFTime:
+				//case FIELDTYPE_MFInt32:
+				//case FIELDTYPE_MFString:
+				//case FIELDTYPE_MFNode:
+				//case FIELDTYPE_MFRotation:
+				//case FIELDTYPE_SFImage:
+				//	JS_MF_TO_X3D(cx, obj, value, type, vp);
+				//	break;
+				default: 
+					printf ("unhandled type FIELDTYPE_ %d in setSFNodeField\n", type) ;
+				return JS_FALSE;
+				}
 			}
-			if(valueChanged)
-				(*valueChanged)++;
 
 			//#if JS_VERSION < 185
 			//	*rval = OBJECT_TO_JSVAL(obj);

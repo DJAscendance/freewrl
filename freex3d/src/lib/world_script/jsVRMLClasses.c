@@ -1192,23 +1192,25 @@ _standardMFGetProperty(JSContext *cx,
 			char *_id_c;
 
 			_idStr = JS_ValueToString(cx, id);
+			if(_idStr){
 #if JS_VERSION < 185
-		_	id_c = JS_GetStringBytes(_idStr);
+				_id_c = JS_GetStringBytes(_idStr);
 #else
-			_id_c = JS_EncodeString(cx,_idStr);
+				_id_c = JS_EncodeString(cx,_idStr);
 #endif
-			if (strcmp ("length",_id_c) == 0) {
-				//create js int
-				//assign length to it
-				// length = ptr->v->mfbool.n;
-				int mf_n;
-				jsval retval;
+				if (strcmp ("length",_id_c) == 0) {
+					//create js int
+					//assign length to it
+					// length = ptr->v->mfbool.n;
+					int mf_n;
+					jsval retval;
 
-				mf_n = ptr->v->mfbool.n;
-				retval = INT_TO_JSVAL(mf_n);
-				*vp = retval;
-				return JS_TRUE;
+					mf_n = ptr->v->mfbool.n;
+					retval = INT_TO_JSVAL(mf_n);
+					*vp = retval;
+					return JS_TRUE;
 
+				}
 			}
 		}
 	}else{
@@ -2260,8 +2262,6 @@ void setInECMATable(JSContext *context, char *toFind) {
 }
 
 
-void sm_set_script(struct Shader_Script *sp);
-struct Shader_Script *sm_get_script();
 
 int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int **valueChanged){
 	//sp = (struct Shader_Script *)snode->__scriptObj;
@@ -2354,7 +2354,10 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		int type, kind, iifield, ifound, sfsize, sftype;
 		union anyVrml *value;
 		int *valueChanged;
-		struct Shader_Script *script = sm_get_script();
+		struct Shader_Script *script;
+		// = sm_get_script();
+		script = JS_GetPrivate(cx,obj);
+
 		valueChanged = NULL;
 		value = NULL;
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
@@ -2448,7 +2451,10 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 		union anyVrml *value;
 		valueChanged = NULL;
 		value = NULL;
-		struct Shader_Script *script = sm_get_script();
+		struct Shader_Script *script;
+		// = sm_get_script();
+		script = JS_GetPrivate(cx,obj);
+
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){
 			//its a script field

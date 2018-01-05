@@ -80,6 +80,7 @@ typedef struct pcommon{
 	int pedal;
 	int hover;
 	int jsengine;
+	int jsengine_variant;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -113,6 +114,7 @@ void common_init(struct tcommon *t){
 #endif
 #ifdef JAVASCRIPT_SM
 		p->jsengine = JSENGINE_SM;
+		p->jsengine_variant = 2;  //1= pre-2018 SM 2= 2018+ SM
 #endif
 	}
 }
@@ -137,15 +139,20 @@ void common_clear(struct tcommon *t){
 
 void fwl_setJsEngine(char *optarg){
 	//this has to be set during startup, can't reset during the run.
-	int engine, ivalid;
+	int engine, engine_variant, ivalid;
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	engine = -1;
+	engine_variant = -1;
 	ivalid = FALSE;
 
-	if(!strcmp(optarg,"SM") || !strcmp(optarg,"sm")){
+	if(strlen(optarg) >= 2 && (!strncmp(optarg,"SM",2) || !strncmp(optarg,"sm",2))){
 		ivalid = TRUE;
 		#ifdef JAVASCRIPT_SM
 		engine = JSENGINE_SM;
+		if(strlen(optarg) >= 3){
+			if(optarg[2] == '2') engine_variant = 2;
+			if(optarg[2] == '1') engine_variant = 1;
+		}
 		#else
 		ConsoleMessage("not built with spidermonkey js engine\n");
 		#endif
@@ -171,11 +178,16 @@ void fwl_setJsEngine(char *optarg){
 	}
 	if(ivalid && engine > -1){
 		p->jsengine = engine; //should be JSENGINE_SM 1 or JSENGINE_DUK 2 or 0 for stubs)
+		if(engine_variant > -1) p->jsengine_variant = engine_variant;
 	}
 }
 int getJsEngine(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->jsengine;
+}
+int getJsEngineVariant(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->jsengine_variant;
 }
 /* Status update functions (generic = all platform) */
 void setFpsBar();

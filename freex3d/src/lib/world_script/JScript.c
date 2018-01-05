@@ -398,6 +398,9 @@ void sm_JSCreateScriptContext(int num) {
 	/* for this script, here are the necessary data areas */
 	ScriptControl->cx =  _context;
 	ScriptControl->glob =  _globalObj;
+	if(SM_method()==2){
+		JS_SetPrivate(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
+	}
 
 
 #if defined(JS_THREADSAFE)
@@ -449,17 +452,11 @@ void sm_JSCreateScriptContext(int num) {
 	#endif
 }
 int SM_method(){
-	return 2; //new way dec 31, 2017
+	return getJsEngineVariant() == 2? 2 : 0;
+	//return 2; //new way dec 31, 2017
 	//return 0; //old way before dec 31, 2017
 }
-void sm_set_script(struct Shader_Script *sp){
-	ppJScript p = (ppJScript)gglobal()->JScript.prv;
-	p->current_script = sp;
-}
-struct Shader_Script *sm_get_script(){
-	ppJScript p = (ppJScript)gglobal()->JScript.prv;
-	return p->current_script;
-}
+
 /* run the script from within C */
 #ifdef JAVASCRIPTVERBOSE
 int ActualrunScript(int num, char *script, jsval *rval, char *fn, int line) {
@@ -472,7 +469,6 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	struct CRscriptStruct *ScriptControl;
 	
 	ScriptControl = getScriptControlIndex(num);
-	sm_set_script(ScriptControl->script); //used in the bowels of a js callback
 	/* get context and global object for this script */
 	_context = (JSContext*)ScriptControl->cx;
 	_globalObj = (JSObject*)ScriptControl->glob;
@@ -1899,6 +1895,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 		ScriptControl->_initialized = TRUE;
 		return;
 	}
+
 	FREE_IF_NZ(ScriptControl->scriptText);
 	ScriptControl->_initialized = TRUE;
 	ScriptControl->scriptOK = TRUE;
