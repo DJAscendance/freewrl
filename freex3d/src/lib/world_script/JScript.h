@@ -58,5 +58,5 @@ void JSDeleteScriptContext(int num);
 void InitScriptField(int num, indexT kind, indexT type, const char* field, union anyVrml value);
 void jsClearScriptControlEntries(int num); //struct CRscriptStruct *ScriptControl);
 int runQueuedDirectOutputs();
-
+int SM_method();
 #endif /* __FREEWRL_JS_JSCRIPT_H__ */

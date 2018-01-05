@@ -33,8 +33,8 @@ char* getMenuStatus();
 void setMessageBar();
 
 /* Generic (virtual) update functions */
-void setJsEngine(int);
 int getJsEngine();
+int getJsEngineVariant();
 void loadCursors();
 void setCursor();
 void setArrowCursor();

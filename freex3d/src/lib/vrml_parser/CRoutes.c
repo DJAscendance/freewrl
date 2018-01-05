@@ -2407,9 +2407,17 @@ void propagate_events_B() {
 							//so we'll check if this is the same fromNode/fromOffset as the last loop and skip 
 							markme = last_markme;
 							if(!(fromNode==lastFromNode && fromOffset==lastFromOffset)){
-								//gatherScriptEventOut_B copies from javascript to the script field ->value
-								int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
-								markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
+								if(SM_method() == 2){
+									// Jan 2 - seems like all we needed was valueChanged, which method2 updates automatically
+									markme = sfield->valueChanged;
+									//printf("fromAny.mffloat %d %f %f\n",fromAny->mffloat.n,fromAny->mffloat.p[0],fromAny->mffloat.p[1]);
+									sfield->valueChanged = 0;
+								}else{
+									//gatherScriptEventOut_B copies from javascript to the script field ->value
+									int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
+									markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
+								}
+
 							}
 							if(markme){
 								if (p->CRoutes[counter].intTimeStamp!=p->thisIntTimeStamp) {
@@ -2645,7 +2653,7 @@ void propagate_events_B() {
 									/* mark that this script has been active SCRIPTS ARE INTEGER NUMBERS */
 									mark_script(shader->num);
 									if(isMF){ 
-										// note the casting of parameter 4, the toAny type
+										// note the casting of parameter 4, the toAny type, seems unnecessary, bureaucratic
 										getField_ToJavascript_B(shader->num, JSparamNameIndex, type, (union anyVrml* ) toAny->mfnode.p, toAny->mfnode.n); //mfp->p, mfp->n);
 									} else {
 										getField_ToJavascript_B(shader->num, JSparamNameIndex, type, toAny, len);

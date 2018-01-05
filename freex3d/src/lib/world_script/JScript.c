@@ -100,7 +100,7 @@ typedef struct pJScript{
 	JSRuntime *runtime;// = NULL;
 	JSClass globalClass;
 	jsval JSglobal_return_value;
-
+	struct Shader_Script *current_script; //when in some js callback, you get cx, obj. But what script? Set in the call stack
 	int ijunk;
 }* ppJScript;
 
@@ -121,6 +121,7 @@ void JScript_init(struct tJScript *t){
 		p->runtime = NULL;
 		memcpy(&p->globalClass,&staticGlobalClass,sizeof(staticGlobalClass));
 		t->JSglobal_return_val = &p->JSglobal_return_value;
+		p->current_script = NULL;
 
 	}
 }
@@ -397,6 +398,9 @@ void sm_JSCreateScriptContext(int num) {
 	/* for this script, here are the necessary data areas */
 	ScriptControl->cx =  _context;
 	ScriptControl->glob =  _globalObj;
+	if(SM_method()==2){
+		JS_SetPrivate(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
+	}
 
 
 #if defined(JS_THREADSAFE)
@@ -447,7 +451,11 @@ void sm_JSCreateScriptContext(int num) {
 	printf("\tVRML browser initialized, thread %u\n",pthread_self());
 	#endif
 }
-
+int SM_method(){
+	return getJsEngineVariant() == 2? 2 : 0;
+	//return 2; //new way dec 31, 2017
+	//return 0; //old way before dec 31, 2017
+}
 
 /* run the script from within C */
 #ifdef JAVASCRIPTVERBOSE
@@ -461,7 +469,6 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	struct CRscriptStruct *ScriptControl;
 	
 	ScriptControl = getScriptControlIndex(num);
-
 	/* get context and global object for this script */
 	_context = (JSContext*)ScriptControl->cx;
 	_globalObj = (JSObject*)ScriptControl->glob;
@@ -556,6 +563,7 @@ void *AnyNativeNew(int type, union anyVrml* source, int *valueChanged){
 	ptr->gc = 0;
 	if(ptr->v == NULL){
 		ptr->v = MALLOC(void *,sizeofSForMF(type));
+		memset(ptr->v,0,sizeofSForMF(type));
 		ptr->gc = 1;
 	}
 	return ptr;
@@ -585,8 +593,10 @@ void *SFNodeNativeNew()
 
 	ptr->handle = 0;
 	ptr->valueChanged = 0;
-	//ptr->X3DString = NULL;
-	//ptr->fieldsExpanded = FALSE;
+	if(SM_method() == 0){
+		ptr->X3DString = NULL;
+		ptr->fieldsExpanded = FALSE;
+	}
 	return ptr;
 }
 
@@ -601,14 +611,16 @@ int SFNodeNativeAssign(void *top, void *fromp)
 
 	if (from != NULL) {
 		to->handle = from->handle;
-		//to->X3DString = STRDUP(from->X3DString);
+		if(SM_method() == 0)
+			to->X3DString = STRDUP(from->X3DString);
 
 		#ifdef JAVASCRIPTVERBOSE
 		printf ("SFNodeNativeAssign, copied %p to %p, handle %p, string %s\n", from, to, to->handle, to->X3DString);
 		#endif
 	} else {
 		to->handle = 0;
-		//to->X3DString = STRDUP("from a NULL assignment");
+		if(SM_method() == 0)
+			to->X3DString = STRDUP("from a NULL assignment");
 	}
 
 	return JS_TRUE;
@@ -1235,6 +1247,59 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	#endif
 }
 
+void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, union anyVrml value) {
+	//Dec 31 2017 this version of initscriptfield for SM treats fields more generically
+
+	struct CRscriptStruct *ScriptControl; //= getScriptControl();
+
+	#ifdef JAVASCRIPTVERBOSE
+	printf ("calling InitScriptField from thread %u\n",pthread_self());
+	printf ("\nInitScriptField, num %d, kind %s type %s field %s value %d\n", num,PROTOKEYWORDS[kind],FIELDTYPES[type],field,value);
+	#endif
+
+    if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
+            ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
+            return;
+    }
+
+	ScriptControl = getScriptControlIndex(num);
+
+
+	// fix eventIn vs field name conflicts. by renameing inputOutput and inputOnly eventIn functions to set_fieldname
+	if (kind == PKW_inputOnly || kind == PKW_inputOutput) {
+		JSContext *cx;
+		JSObject *obj;
+		jsval retval;
+		cx =  (JSContext*)ScriptControl->cx;
+		obj = (JSObject*)ScriptControl->glob;
+
+		if (JS_GetProperty(cx,obj,field,&retval)){
+			if (JSVAL_IS_OBJECT(retval)){
+				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
+				char runstring[STRING_SIZE];
+				// rename fieldname to set_fieldname
+				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
+				#if defined(JS_THREADSAFE)
+				JS_BeginRequest(_context);
+				#endif
+				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
+					printf("sorry couldn't rename function: %s",runstring);
+				}
+				#if defined(JS_THREADSAFE)
+				JS_EndRequest(_context);
+				#endif
+			}
+		}
+		// and if so rename it to set_
+	}
+
+	//unconditionally add the field no matter its type
+	//contains getter and setter
+	JSaddGlobalECMANativeProperty(num, field);
+}
+
+
+
 static int JSaddGlobalECMANativeProperty(int num, const char *name) {
 	JSContext *_context;
 	JSObject *_globalObj;
@@ -1258,7 +1323,7 @@ static int JSaddGlobalECMANativeProperty(int num, const char *name) {
  * errors from the JS engine when said property gets redefined to a function by the script.  The
  * example file tests/Javascript_tests/MFFloat.wrl had this issue. */
 
-	if (!JS_DefineProperty(_context, _globalObj, name, rval, NULL, setECMANative, 
+	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
 	//if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
 #if JS_VERSION < 185
 		0 | JSPROP_PERMANENT
@@ -1532,7 +1597,7 @@ OLDCODE #define Bool savedBool
 /*                                                                          */
 /****************************************************************************/
 
-int sm_get_valueChanged_flag (int fptr, int actualscript) {
+int sm1_get_valueChanged_flag (int fptr, int actualscript) {
 
 
 	struct CRscriptStruct *scriptcontrol;
@@ -1664,7 +1729,7 @@ int sm_get_valueChanged_flag (int fptr, int actualscript) {
 
 
 /* this script value has been looked at, set the touched flag in it to FALSE. */
-void sm_resetScriptTouchedFlag(int actualscript, int fptr) {
+void sm1_resetScriptTouchedFlag(int actualscript, int fptr) {
 
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg = gglobal();
@@ -1715,6 +1780,63 @@ void sm_resetScriptTouchedFlag(int actualscript, int fptr) {
 
 }
 
+int sm2_get_valueChanged_flag (int fptr, int actualscript){
+	char *fullname;
+	union anyVrml* value;
+	int type, kind, ifield, found;
+	struct X3D_Node *node;
+	struct Shader_Script *script;
+	struct ScriptFieldDecl *field;
+	struct CRscriptStruct *scriptcontrol; //, *ScriptControlArr = getScriptControl();
+	struct CRjsnameStruct *JSparamnames = getJSparamnames();
+
+	scriptcontrol = getScriptControlIndex(actualscript); //&ScriptControlArr[actualscript];
+	script = scriptcontrol->script;
+	node = script->ShaderScriptNode;
+	fullname = JSparamnames[fptr].name;
+	found = getFieldFromNodeAndName(node,fullname,&type,&kind,&ifield,&value);
+	if(found){
+		field = Shader_Script_getScriptField(script, ifield);
+		gglobal()->JScript.JSglobal_return_val = (void *)&field->value;
+		return field->valueChanged;
+	}
+	gglobal()->JScript.JSglobal_return_val = NULL;
+	return 0;
+}
+void sm2_resetScriptTouchedFlag(int actualscript, int fptr){
+	char *fullname;
+	union anyVrml* value;
+	int type, kind, ifield, found;
+	struct X3D_Node *node;
+	struct Shader_Script *script;
+	struct ScriptFieldDecl *field;
+	struct CRscriptStruct *scriptcontrol; // *ScriptControlArr = getScriptControl();
+	struct CRjsnameStruct *JSparamnames = getJSparamnames();
+
+	scriptcontrol = getScriptControlIndex(actualscript); //&ScriptControlArr[actualscript];
+	script = scriptcontrol->script;
+	node = script->ShaderScriptNode;
+	fullname = JSparamnames[fptr].name;
+	found = getFieldFromNodeAndName(node,fullname,&type,&kind,&ifield,&value);
+	if(found){
+		field = Shader_Script_getScriptField(script, ifield);
+		field->valueChanged = 0;
+	}
+	//printf("in get_valueChanged_flag\n");
+	return;
+}
+int sm_get_valueChanged_flag (int fptr, int actualscript){
+	if(SM_method() == 2)
+		return sm2_get_valueChanged_flag(fptr,actualscript);
+	else
+		return sm1_get_valueChanged_flag(fptr,actualscript);
+}
+void sm_resetScriptTouchedFlag(int actualscript, int fptr){
+	if(SM_method() == 2)
+		sm2_resetScriptTouchedFlag(actualscript,fptr);
+	else
+		sm1_resetScriptTouchedFlag(actualscript,fptr);
+}
 
 int jsActualrunScript(int num, char *script);
 void sm_JSInitializeScriptAndFields (int num) {
@@ -1760,7 +1882,10 @@ void sm_JSInitializeScriptAndFields (int num) {
 		fieldname = ScriptFieldDecl_getName(field);
 		kind = ScriptFieldDecl_getMode(field);
 		itype = ScriptFieldDecl_getType(field);
-		InitScriptField(num, kind, itype, fieldname, field->value);
+		if(SM_method() == 2)
+			InitScriptFieldB(num, kind, itype, fieldname, field->value);
+		else
+			InitScriptField(num, kind, itype, fieldname, field->value);
 	}
 
 
@@ -1770,6 +1895,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 		ScriptControl->_initialized = TRUE;
 		return;
 	}
+
 	FREE_IF_NZ(ScriptControl->scriptText);
 	ScriptControl->_initialized = TRUE;
 	ScriptControl->scriptOK = TRUE;
@@ -2668,24 +2794,50 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	/* set the time for this script */
 	SET_JS_TICKTIME
 
-	X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
+	//step 1 set the field value
+	if(SM_method() == 2){
+		int type, kind, iifield, *valueChanged, ifound;
+		union anyVrml *value;
+		char *fieldname;
+		struct Shader_Script *script = ScriptControl->script;
+		fieldname = JSparamnames[toname].name;
+		//step 1 update the fieldvalue
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound && type == dataType && isSFType(type)){
+			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+			union anyVrml *any = (union anyVrml*)Data;
+			printf("any float=%f",any->sffloat);
+			shallow_copy_field(type,any,value);
+			//if we have an inputOutput field with no eventIn function, we may still be routing
+			//from the out side
+			(*valueChanged) = 1;
+		}else{
+			ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
+			return;
+		}
+	
+	}else{ //SM_method == 2
 
-	/* get the variable name to hold the incoming value */
-	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
-	strcpy(scriptline,JSparamnames[toname].name);
+		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
-	#ifdef SETFIELDVERBOSE
-	printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
-	#endif
+		/* get the variable name to hold the incoming value */
+		//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+		strcpy(scriptline,JSparamnames[toname].name);
 
-        if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
-                printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
+		#ifdef SETFIELDVERBOSE
+		printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
+		#endif
+
+		if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
+			printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
 #if defined(JS_THREADSAFE)
-		JS_EndRequest(cx);
+			JS_EndRequest(cx);
 #endif
-                return;
+			return;
         }
 
+	} //SM_method == 2
+	//step 2 run eventin if it exists
 	/* is the function compiled yet? */
 	COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 
@@ -2757,6 +2909,42 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 	JS_BeginRequest(cx);
 #endif
 	/* set the TickTime (possibly again) for this context */
+	if(SM_method() == 2){
+		int type, kind, iifield, *valueChanged, ifound;
+		union anyVrml *value;
+		char *fieldname;
+		struct Shader_Script *script = ScriptControl->script;
+		fieldname = JSparamnames[toname].name;
+		//step 1 update the fieldvalue
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound && type == dataType && !isSFType(type)){
+			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+			union anyVrml any;
+			any.mfbool.n = datalen;
+			any.mfbool.p = Data;
+			//printf("address of any.p %x value.p %x",any.mfbool.p,value->mfbool.p);
+			//printf("any.n=%d \n",any.mffloat.n);
+			//printf("mfany= %f %f %f",any.mffloat.p[0],any.mffloat.p[1],any.mffloat.p[2]);
+			//printf("target value.n= %d\n",value->mfbool.n);
+			shallow_copy_field(type,&any,value);
+			//printf("after shallow_copy_field:\n");
+			//printf("target value.n= %d\n",value->mfbool.n);
+			//printf("mfvalue= %f %f %f",value->mffloat.p[0],value->mffloat.p[1],value->mffloat.p[2]);
+
+			//if we have an inputOutput field with no eventIn function, we may still be routing
+			//from the out side
+			(*valueChanged) = 1;
+		}else{
+			ConsoleMessage("sm_set_one_MFElementType did not find field %s type %d\n",fieldname, dataType);
+			return;
+		}
+		//step 2 run the eventIn if it exists
+		SET_JS_TICKTIME
+		//compile also pushes the field val onto call stack
+		COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+		RUN_FUNCTION(toname)
+		return;
+	}
 	SET_JS_TICKTIME
 
 	/* make up the name */
