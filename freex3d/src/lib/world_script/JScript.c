@@ -449,8 +449,8 @@ void sm_JSCreateScriptContext(int num) {
 	#endif
 }
 int SM_method(){
-	//return 2; //new way dec 31, 2017
-	return 0; //old way before dec 31, 2017
+	return 2; //new way dec 31, 2017
+	//return 0; //old way before dec 31, 2017
 }
 void sm_set_script(struct Shader_Script *sp){
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;
@@ -567,6 +567,7 @@ void *AnyNativeNew(int type, union anyVrml* source, int *valueChanged){
 	ptr->gc = 0;
 	if(ptr->v == NULL){
 		ptr->v = MALLOC(void *,sizeofSForMF(type));
+		memset(ptr->v,0,sizeofSForMF(type));
 		ptr->gc = 1;
 	}
 	return ptr;

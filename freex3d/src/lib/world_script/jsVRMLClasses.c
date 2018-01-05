@@ -1057,7 +1057,6 @@ JSBool _standardMFAssign(JSContext *cx,
 		printf("JS_InstanceOf failed for fieldType %s.\n",stringFieldtypeType(type));
 		return JS_FALSE;
 	}
-
 	if (!JS_GetProperty(cx, _from_obj, MF_LENGTH_FIELD, &val)) {
 		printf("JS_GetProperty failed for \"%s\" in %s.\n",MF_LENGTH_FIELD,stringFieldtypeType(type));
 		return JS_FALSE;

@@ -137,10 +137,30 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 #endif
 	JSObject *_obj;
 	unsigned int i;
+	union anyVrml *anyv;
 	
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFColor,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFColorConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFColorConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFColor)*upper_power_of_two(argc);
+		if(argc > 0){
+			anyv->mfcolor.p = MALLOC(struct SFColor*,newsize);
+			memset(anyv->mfcolor.p,0,newsize);
+		}
 
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+	}
 	if (!argv) {
 		return JS_TRUE;
 	}
@@ -158,10 +178,22 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		}
 
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFColorClass)
-
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %u in MFColorConstr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			AnyNative *any2;
+			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a color, 
+				// but in future internal types might change
+				if(any2->type == FIELDTYPE_SFColor || any2->type == FIELDTYPE_SFVec3f || any2->type == FIELDTYPE_SFColorRGBA){
+					shallow_copy_field(FIELDTYPE_SFColor,any2->v,(union anyVrml*)&anyv->mfcolor.p[i]);
+					anyv->mfcolor.n = i+1;
+				}
+			}
+			// else for now we'll leave zeros
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %u in MFColorConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
@@ -254,10 +286,27 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 
 	jsdouble _d;
 	unsigned int i;
+	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
-	DEFINE_MF_ECMA_HAS_CHANGED
+	if(SM_method() == 2){
+		AnyNative *any;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFFloat,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFFloatConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFFloatConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		if(argc > 0)
+			anyv->mffloat.p = malloc(sizeof(float)*upper_power_of_two(argc));
+
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+		DEFINE_MF_ECMA_HAS_CHANGED
+	}
 
 	if (!argv) {
 		return JS_TRUE;
@@ -271,10 +320,14 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			printf( "JS_ValueToNumber failed in MFFloatConstr.\n");
 			return JS_FALSE;
 		}
-
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %u in MFFloatConstr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			anyv->mffloat.p[i] = _d;
+			anyv->mffloat.n = i+1;
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %u in MFFloatConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
@@ -375,14 +428,34 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 #endif
 	int32 _i;
 	unsigned int i;
+	union anyVrml *anyv;
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFInt32Constr\n");
 	#endif
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFInt32,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFInt32Constr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFInt32Constr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(int) * upper_power_of_two(argc); //newsize in bytes
+		if(argc > 0){
+			anyv->mfint32.p = MALLOC(int*,newsize);
+			memset(anyv->mfint32.p,0,newsize);
+		}
+
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
         DEFINE_MF_ECMA_HAS_CHANGED
-	
+	}
 	if (!argv) {
 		return JS_TRUE;
 	}
@@ -394,16 +467,20 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	/* any values here that we should add in? */
 	for (i = 0; i < argc; i++) {
 		if (!JS_ValueToInt32(cx, argv[i], &_i)) {
-			printf( "JS_ValueToBoolean failed in MFInt32Constr.\n");
+			printf( "JS_ValueToInt32 failed in MFInt32Constr.\n");
 			return JS_FALSE;
 		}
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("value at %d is %d\n",i,_i);
 		#endif
-
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %u in MFInt32Constr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			anyv->mfint32.p[i] = _i;
+			anyv->mfint32.n = i+1;
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %u in MFInt32Constr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 
@@ -514,10 +591,30 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 #endif
 	JSObject *_obj;
 	unsigned int i;
+	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFNode,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFNodeConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFNodeConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct X3D_Node *) * upper_power_of_two(argc); //newsize in bytes
+		if(argc > 0){
+			anyv->mfnode.p = MALLOC(struct X3D_Node**,newsize);
+			memset(anyv->mfnode.p,0,newsize);
+		}
 
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+	}
 	if (!argv) {
 		return JS_TRUE;
 	}
@@ -535,10 +632,20 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 			}
 
 			CHECK_CLASS(cx,_obj,argv,__FUNCTION__,SFNodeClass)
-
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-				printf( "JS_DefineElement failed for arg %d in MFNodeConstr.\n", i);
-				return JS_FALSE;
+			if(SM_method()==2){
+				AnyNative *any2;
+				if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+					if(any2->type == FIELDTYPE_SFNode){
+						shallow_copy_field(FIELDTYPE_SFNode,any2->v,(union anyVrml*)&anyv->mfnode.p[i]);
+						anyv->mfnode.n = i+1;
+					}
+				}
+				// else for now we'll leave zeros
+			}else{
+				if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf( "JS_DefineElement failed for arg %d in MFNodeConstr.\n", i);
+					return JS_FALSE;
+				}
 			}
 		} else {
 			/* if a NULL is passed in, eg, we have a script with an MFNode eventOut, and
@@ -653,11 +760,31 @@ JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 #endif
 	jsdouble _d;
 	unsigned int i;
+	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
-	DEFINE_MF_ECMA_HAS_CHANGED
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFTime,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFTimeConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFTimeConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(double) * upper_power_of_two(argc); //newsize in bytes
+		if(argc > 0){
+			anyv->mftime.p = MALLOC(double*,newsize);
+			memset(anyv->mftime.p,0,newsize);
+		}
 
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+		DEFINE_MF_ECMA_HAS_CHANGED
+	}
 	if (!argv) {
 		return JS_TRUE;
 	}
@@ -671,10 +798,14 @@ JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 					"JS_ValueToNumber failed in MFTimeConstr.\n");
 			return JS_FALSE;
 		}
-
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %u in MFTimeConstr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			anyv->mftime.p[i] = _d;
+			anyv->mftime.n = i+1;
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %u in MFTimeConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
@@ -767,9 +898,30 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 #endif
 	JSObject *_obj;
 	unsigned int i;
+	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec2f,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFVec2fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFVec2fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec2f)*upper_power_of_two(argc);
+		if(argc > 0){
+			anyv->mfvec2f.p = MALLOC(struct SFVec2f*,newsize);
+			memset(anyv->mfvec2f.p,0,newsize);
+		}
+
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+	}
 
 	if (!argv) {
 		return JS_TRUE;
@@ -786,10 +938,22 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		}
 
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFVec2fClass)
-
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %d in MFVec2fConstr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			AnyNative *any2;
+			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+				//2018 I think as long as its 2+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if(any2->type == FIELDTYPE_SFVec2f || any2->type == FIELDTYPE_SFColor || any2->type == FIELDTYPE_SFVec3f || any2->type == FIELDTYPE_SFColorRGBA){
+					shallow_copy_field(FIELDTYPE_SFVec2f,any2->v,(union anyVrml*)&anyv->mfvec2f.p[i]);
+					anyv->mfvec2f.n = i+1;
+				}
+			}
+			// else for now we'll leave zeros
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %d in MFVec2fConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
@@ -877,10 +1041,30 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 #endif
 	JSObject *_obj;
 	unsigned int i;
+	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec3f,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec3f)*upper_power_of_two(argc);
+		if(argc > 0){
+			anyv->mfvec3f.p = MALLOC(struct SFVec3f*,newsize);
+			memset(anyv->mfvec3f.p,0,newsize);
+		}
 
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+	}
 	if (!argv) {
 		return JS_TRUE;
 	}
@@ -895,10 +1079,23 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		}
 
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFVec3fClass)
+		if(SM_method()==2){
+			AnyNative *any2;
+			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if(any2->type == FIELDTYPE_SFVec3f || any2->type == FIELDTYPE_SFColor || any2->type == FIELDTYPE_SFColorRGBA){
+					shallow_copy_field(FIELDTYPE_SFVec3f,any2->v,(union anyVrml*)&anyv->mfvec3f.p[i]);
+					anyv->mfvec3f.n = i+1;
+				}
+			}
+			// else for now we'll leave zeros
+		}else{
 
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %d in MFVec3fConstr.\n", i);
-			return JS_FALSE;
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %d in MFVec3fConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
@@ -1784,9 +1981,30 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 #endif
 	JSObject *_obj;
 	unsigned int i;
+	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
-	DEFINE_LENGTH(cx,obj,argc)
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFRotation,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFRotationConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivate(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFRotationConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFRotation)*upper_power_of_two(argc);
+		if(argc > 0){
+			anyv->mfrotation.p = MALLOC(struct SFRotation*,newsize);
+			memset(anyv->mfrotation.p,0,newsize);
+		}
+
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+	}
 
 	if (!argv) {
 		return JS_TRUE;
@@ -1803,10 +2021,20 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 		}
 
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFRotationClass)
-
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %d in MFRotationConstr.\n", i);
-			return JS_FALSE;
+		if(SM_method()==2){
+			AnyNative *any2;
+			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+				if(any2->type == FIELDTYPE_SFRotation ){
+					shallow_copy_field(FIELDTYPE_SFRotation,any2->v,(union anyVrml*)&anyv->mfrotation.p[i]);
+					anyv->mfrotation.n = i+1;
+				}
+			}
+			// else for now we'll leave zeros
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %d in MFRotationConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	*rval = OBJECT_TO_JSVAL(obj);
