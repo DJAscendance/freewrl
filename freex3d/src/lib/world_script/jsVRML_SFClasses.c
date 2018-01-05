@@ -1945,7 +1945,8 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		if(SM_method() == 2){
 			ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
 			if(ifound){
-				valueChanged = NULL;
+				valueChanged = &node->_change; //if a regular node field changes, we (re-) compile_Node 
+				// ... (but have no way to detect which field, so routes can't be done later in freewrl system :{
 				if(node->_nodeType == NODE_Script){
 					//need one more thing - valueChanged
 					struct X3D_Script *scriptnode = X3D_SCRIPT(node);
@@ -1974,10 +1975,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				case FIELDTYPE_SFVec4d:
 				//case FIELDTYPE_SFColorRGBA:
 				case FIELDTYPE_SFRotation:
-					if(SM_method() == 2)
-						X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
-					else
-						X3D_SF_TO_JS(cx, obj, value,sfsize, type, vp);
+					X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 					break;
 				case FIELDTYPE_MFColor:
 				case FIELDTYPE_MFVec3f:
@@ -1990,10 +1988,7 @@ SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				case FIELDTYPE_MFRotation:
 				case FIELDTYPE_SFImage:
 				//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
-					if(SM_method() == 2)
-						X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
-					else
-						X3D_MF_TO_JS(cx,obj,value,type,vp,fieldname);
+					X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 					break;
 				default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
 				return JS_FALSE;
