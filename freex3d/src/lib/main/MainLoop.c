@@ -4563,8 +4563,8 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		p->once = TRUE;
 	} else {
 		// Set the timestamp
-		tg->Mainloop.lastTime = tg->Mainloop.TickTime;
-		tg->Mainloop.TickTime = dtime; //Time1970sec();
+		//tg->Mainloop.lastTime = tg->Mainloop.TickTime;
+		//tg->Mainloop.TickTime = dtime; //Time1970sec();
 		fps_histo_collect();
 		/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
 			something goes totally wrong.
@@ -4633,8 +4633,8 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 	}
 
 	//// Set the timestamp
-	//tg->Mainloop.lastTime = tg->Mainloop.TickTime;
-	//tg->Mainloop.TickTime = dtime; //Time1970sec();
+	tg->Mainloop.lastTime = tg->Mainloop.TickTime;
+	tg->Mainloop.TickTime = dtime; //Time1970sec();
 
 	#if !defined(FRONTEND_DOES_SNAPSHOTS)
 	// handle snapshots
