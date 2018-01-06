@@ -2407,15 +2407,18 @@ void propagate_events_B() {
 							//so we'll check if this is the same fromNode/fromOffset as the last loop and skip 
 							markme = last_markme;
 							if(!(fromNode==lastFromNode && fromOffset==lastFromOffset)){
-								if(SM_method() == 2){
+#ifdef JAVASCRIPT_SM
+								if(SM_method() == 0){
+									//gatherScriptEventOut_B copies from javascript to the script field ->value
+									int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
+									markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
+								}else
+#endif JAVASCRIPT_SM
+								{
 									// Jan 2 - seems like all we needed was valueChanged, which method2 updates automatically
 									markme = sfield->valueChanged;
 									//printf("fromAny.mffloat %d %f %f\n",fromAny->mffloat.n,fromAny->mffloat.p[0],fromAny->mffloat.p[1]);
 									sfield->valueChanged = 0;
-								}else{
-									//gatherScriptEventOut_B copies from javascript to the script field ->value
-									int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
-									markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
 								}
 
 							}
