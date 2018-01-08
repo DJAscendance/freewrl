@@ -2675,16 +2675,16 @@ static void texture_process_list_item(s_list_t *item)
 			// no point in trying again, 
 			// you'll just get the same result in a vicious cycle
 		}
-		printf("texture_process LOADING\n");
+		//printf("texture_process LOADING\n");
 		break;
 	case TEX_READ:
 		entry->status = TEX_NEEDSBINDING;
 		remove_it = TRUE;
-		printf("texture_process READ\n");
+		//printf("texture_process READ\n");
 		break;		
 	default:
 		//DEBUG_MSG("Could not process texture entry: %s\n", entry->filename);
-		printf("texture_process default\n");
+		//printf("texture_process default\n");
 		remove_it = TRUE;
 		break;
 	}

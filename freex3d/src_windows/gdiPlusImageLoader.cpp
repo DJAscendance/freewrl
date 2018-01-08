@@ -191,7 +191,7 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
    tti->frames = 1;
    tti->texdata = blob; 
    if(!blob)
-	   printf("ouch in gdiplus image loader L140 - no image data\n");
+	   printf("ouch in gdiplus image loader L194 - no image data\n");
    //tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmapData->PixelFormat)?1:0; 
    tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmap->GetPixelFormat())?1:0; 
    tti->channels = channels; //Gdiplus::GetPixelFormatSize(bitmap->GetPixelFormat());
