@@ -151,11 +151,11 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
    bitmapData->Width = bitmap->GetWidth();
    bitmapData->Height = bitmap->GetHeight();
    bitmapData->PixelFormat = PixelFormat32bppARGB; // BGRA
-   int totalbytes = bitmap->GetWidth() * bitmap->GetHeight() * 4; //tti->depth;
+   size_t totalbytes = (size_t)4L * bitmap->GetWidth() * bitmap->GetHeight(); //tti->depth;
    unsigned char * blob = (unsigned char*)MALLOCV(totalbytes);
 
    if(flipVertically)
-		bitmapData->Scan0 = &blob[bitmap->GetWidth()*bitmap->GetHeight()*4 + bitmapData->Stride]; 
+		bitmapData->Scan0 = &blob[totalbytes + (size_t)bitmapData->Stride]; 
    else
 	   bitmapData->Scan0 = blob;
 
@@ -191,7 +191,7 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
    tti->frames = 1;
    tti->texdata = blob; 
    if(!blob)
-	   printf("ouch in gdiplus image loader L140 - no image data\n");
+	   printf("ouch in gdiplus image loader L194 - no image data\n");
    //tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmapData->PixelFormat)?1:0; 
    tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmap->GetPixelFormat())?1:0; 
    tti->channels = channels; //Gdiplus::GetPixelFormatSize(bitmap->GetPixelFormat());

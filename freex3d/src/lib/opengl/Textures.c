@@ -201,14 +201,15 @@ static void myScaleImage(int srcX,int srcY,int destX,int destY,unsigned char *sr
 		for (yex=0; yex<destX; yex++) {
 			float fx, fy;
 			int row, column;
-			int oldIndex;
+			size_t oldIndex, newIndex;
 
 			fx = YscaleFactor * ((float) wye);
 			fy = XscaleFactor * ((float) yex);
 			row = (int)(fx);
 			column = (int)(fy);
-			oldIndex = row * srcX + column; /* so many rows, each row has srcX columns */
-			dest32[wye*destX+yex] = src32[oldIndex];
+			oldIndex = (size_t)row * (size_t)srcX + (size_t)column; /* so many rows, each row has srcX columns */
+			newIndex = (size_t)wye * (size_t)destX + (size_t)yex; //wye*destX+yex
+			dest32[newIndex] = src32[oldIndex];
 		}
 	}
 }
@@ -396,6 +397,9 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
    int x,
        y;
    int texelSize = 4;
+   size_t total_size;
+   GLubyte *dest, *pix;
+
 
    *dstWidth = srcWidth / 2;
    if ( *dstWidth <= 0 )
@@ -405,7 +409,9 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
    if ( *dstHeight <= 0 )
       *dstHeight = 1;
 
-   *dst = MALLOC(void *, sizeof(GLubyte) * texelSize * (*dstWidth) * (*dstHeight) );
+   total_size = sizeof(GLubyte) * (size_t)texelSize * (size_t)(*dstWidth) * (size_t)(*dstHeight);
+   *dst = MALLOC(void *, total_size );
+   dest = *dst;
    if ( *dst == NULL )
       return;
 
@@ -413,7 +419,7 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
    {
       for( x = 0; x < *dstWidth; x++ )
       {
-         int srcIndex[4];
+         size_t srcIndex[4], x2, y2, swidth, texsize, kd;
          float r = 0.0f,
                g = 0.0f,
                b = 0.0f,
@@ -423,22 +429,31 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
 
         // Compute the offsets for 2x2 grid of pixels in previous
          // image to perform box filter
-         srcIndex[0] = 
-            (((y * 2) * srcWidth) + (x * 2)) * texelSize;
-         srcIndex[1] = 
-            (((y * 2) * srcWidth) + (x * 2 + 1)) * texelSize; 
-         srcIndex[2] = 
-            ((((y * 2) + 1) * srcWidth) + (x * 2)) * texelSize;
-         srcIndex[3] = 
-            ((((y * 2) + 1) * srcWidth) + (x * 2 + 1)) * texelSize;
+         //srcIndex[0] = 
+         //   (((y * 2) * srcWidth) + (x * 2)) * texelSize;
+         //srcIndex[1] = 
+         //   (((y * 2) * srcWidth) + (x * 2 + 1)) * texelSize; 
+         //srcIndex[2] = 
+         //   ((((y * 2) + 1) * srcWidth) + (x * 2)) * texelSize;
+         //srcIndex[3] = 
+         //   ((((y * 2) + 1) * srcWidth) + (x * 2 + 1)) * texelSize;
+
+		 swidth = srcWidth;
+		 texsize = texelSize;
+		 y2 = y * 2L;
+		 x2 = x * 2L;
+         srcIndex[0] = (y2*swidth + x2) * texsize;
+         srcIndex[1] = (y2*swidth + x2 + (size_t)1L) * texsize; 
+         srcIndex[2] = ((y2 + 1L)*swidth + x2) * texsize;
+         srcIndex[3] = ((y2 + 1L)*swidth + x2 + (size_t)1L) * texsize;
 
          // Sum all pixels
          for ( sample = 0; sample < 4; sample++ )
          {
-            r += src[srcIndex[sample]];
-            g += src[srcIndex[sample] + 1];
-            b += src[srcIndex[sample] + 2];
-            a += src[srcIndex[sample] + 3];
+            r += src[srcIndex[sample] + (size_t)0L];
+            g += src[srcIndex[sample] + (size_t)1L];
+            b += src[srcIndex[sample] + (size_t)2L];
+            a += src[srcIndex[sample] + (size_t)3L];
          }
 
          // Average results
@@ -448,10 +463,17 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
          a /= 4.0f;
 
          // Store resulting pixels
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize ] = (GLubyte)( r );
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize + 1] = (GLubyte)( g );
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize + 2] = (GLubyte)( b );
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize + 3] = (GLubyte)( a );
+		 kd = ((size_t)y * (size_t)(*dstWidth) + (size_t)x ) * (size_t)texelSize;
+		 pix = dest + kd;
+         pix[0] = (GLubyte)( r );
+         pix[1] = (GLubyte)( g );
+         pix[2] = (GLubyte)( b );
+         pix[3] = (GLubyte)( a );
+
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize ] = (GLubyte)( r );
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize + 1] = (GLubyte)( g );
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize + 2] = (GLubyte)( b );
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize + 3] = (GLubyte)( a );
       }
    }
 }
@@ -459,18 +481,27 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
 static void myTexImage2D (int generateMipMaps, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, GLubyte *pixels) {
 	GLubyte *prevImage = NULL;
 	GLubyte *newImage = NULL;
+	size_t total_size;
 	
 	/* first, base image */
 	FW_GL_TEXIMAGE2D(target,level,internalformat,width,height,border,format,type,pixels);
-
+	{
+		GLenum err;
+		err = glGetError();
+		switch(err){
+			case GL_NO_ERROR: break;
+			default:
+				ConsoleMessage("glError %d in glTexImage2D\n",(int)err);
+		}
+	}
 	if (!generateMipMaps) return;
 	if ((width <=1) && (height <=1)) return;
 
 
 	/* go and create a bunch of mipmaps */
-
-	prevImage = MALLOC(GLubyte *, width * height * 4);
-	memcpy (prevImage, pixels, width * height * 4);
+	total_size = (size_t)4L * width * height;
+	prevImage = MALLOC(GLubyte *, total_size);
+	memcpy (prevImage, pixels, total_size);
 	
 	/* from the OpenGL-ES 2.0 book, page 189 */
 	level = 1;
@@ -1606,6 +1637,10 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	//ConsoleMessage ("move_texture_to_opengl cubeFace %x\n",getAppearanceProperties()->cubeFace);
 
 	/* is this a CubeMap? If so, lets try this... */
+	//if(0){
+	//	printf("before texture to GPU and mipmapping thread=%x time = %lf\n",pthread_self().p,Time1970sec());
+	//}
+
 
 	if (getAppearanceProperties()->cubeFace != 0) {
 		//this is a single cubmap face pixeltexture tti (ie from __subTextures in ImageCubemap)
@@ -1764,19 +1799,35 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 					rx = x; ry = y; rz = z;
 				} else {
 					/* find a power of two that fits */
+					static int round_down = 1;
+					static int trunc_down = 0;
 					rx = 1;
 					sx = x;
 					while(sx) {sx /= 2; rx *= 2;}
 					if(rx/2 == x) {rx /= 2;}
+					//if its just a few pixels over a power of 2, round down
+					if(round_down)
+						if(x < rx && (float)(x - rx/2)/(float)(rx - rx/2) < .25) rx = rx/2;
+					//or we might only scale down, never up, if we don't want to malloc again
+					if(trunc_down)
+						if(x < rx) rx = rx/2;
 					ry = 1; 
 					sy = y;
 					while(sy) {sy /= 2; ry *= 2;}
 					if(ry/2 == y) {ry /= 2;}
+					if(round_down)
+						if(y < ry && (float)(y - ry/2)/(float)(ry - ry/2) < .25) ry = ry/2;
+					if(trunc_down)
+						if(y < ry) ry = ry/2;
 
 					rz = 1; 
 					sz = z;
 					while(sz) {sz /= 2; rz *= 2;}
 					if(rz/2 == z) {rz /= 2;}
+					if(round_down)
+						if(z < rz && (float)(z - rz/2)/(float)(rz - rz/2) < .25) rz = rz/2;
+					if(trunc_down)
+						if(z < rz) rz = rz/2;
 				}
 		
 				if (gglobal()->internalc.global_print_opengl_errors) {
@@ -1951,21 +2002,41 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 							else rx=ry;
 						}
 					}
-
 					/* if scaling is ok... */
 					if ((x==rx) && (y==ry)) {
 						dest = mytexdata;
+						if(0){
+						size_t total_size = (size_t)4L * rx * ry;
+						dest = MALLOC(unsigned char *, total_size); //4 * rx * ry);
+						//memcpy(dest,mytexdata,total_size);
+						myScaleImage(x,y,rx,ry,mytexdata,dest);
+						}
 					} else {
 
 						/* try this texture on for size, keep scaling down until we can do it */
 						/* all textures are 4 bytes/pixel */
-						dest = MALLOC(unsigned char *, 4 * rx * ry);
+						size_t total_size = (size_t)4L * rx * ry;
+						//total_size *= rx;
+						//total_size *= ry;
+						dest = MALLOC(unsigned char *, total_size); //4 * rx * ry);
 
+						//if(1){
+						//	printf(" time before myScaleImage = %lf\n",Time1970sec());
+						//}
 						myScaleImage(x,y,rx,ry,mytexdata,dest);
+						//if(1){
+						//	printf(" time after myScaleImage = %lf\n",Time1970sec());
+						//}
 					}
 				
+					//if(1){
+					//	printf(" time before myTexImage2D = %lf\n",Time1970sec());
+					//}
 		
 					myTexImage2D(generateMipMaps, GL_TEXTURE_2D, 0, iformat,  rx, ry, 0, format, GL_UNSIGNED_BYTE, dest);
+					//if(1){
+					//	printf(" time after myTexImage2D = %lf\n",Time1970sec());
+					//}
 				}
 				if(mytexdata != dest) {
 					FREE_IF_NZ(dest);
@@ -1980,6 +2051,9 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* ensure this data is written to the driver for the rendering context */
 	FW_GL_FLUSH();
+	//if(0){
+	//	printf("after texture to GPU and mipmapping thread=%x time = %lf\n",pthread_self().p,Time1970sec());
+	//}
 
 	/* and, now, the Texture is loaded */
 	me->status = TEX_LOADED;

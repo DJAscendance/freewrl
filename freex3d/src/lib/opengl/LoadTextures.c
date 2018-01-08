@@ -242,11 +242,15 @@ void texture_dump_list()
 #endif
 }
 
+static size_t st(int k){
+	return (size_t)k;
+}
 static void texture_swap_B_R(textureTableIndexStruct_s* this_tex)
 {
 	//swap red and blue // BGRA - converts back and forth from BGRA to RGBA 
 	//search for GL_RGBA in textures.c
-	int x,y,z,i,j,k,ipix,ibyte;
+	int x,y,z,i,j,k;
+	size_t ipix, ibyte;
 	unsigned char R,B,*data;
 	x = this_tex->x;
 	y = this_tex->y;
@@ -256,12 +260,14 @@ static void texture_swap_B_R(textureTableIndexStruct_s* this_tex)
 		for(j=0;j<y;j++){
 			for(k=0;k<x;k++)
 			{
-				ipix = (i*y + j)*x + k;
-				ibyte = ipix * 4; //assumes tti->texdata is 4 bytes per pixel, in BGRA or RGBA order
+				//ipix = (i*y + j)*x + k;
+				//ibyte = ipix * 4L; //assumes tti->texdata is 4 bytes per pixel, in BGRA or RGBA order
+				ipix = (st(i)*st(y) + st(j))*st(x) + st(k);
+				ibyte = ipix * st(4); //assumes tti->texdata is 4 bytes per pixel, in BGRA or RGBA order
 				R = data[ibyte];
-				B = data[ibyte+2];
+				B = data[ibyte+st(2)];
 				data[ibyte] = B;
-				data[ibyte+2] = R;
+				data[ibyte+st(2)] = R;
 			}
 		}
 	}
@@ -2669,13 +2675,16 @@ static void texture_process_list_item(s_list_t *item)
 			// no point in trying again, 
 			// you'll just get the same result in a vicious cycle
 		}
+		//printf("texture_process LOADING\n");
 		break;
 	case TEX_READ:
 		entry->status = TEX_NEEDSBINDING;
 		remove_it = TRUE;
+		//printf("texture_process READ\n");
 		break;		
 	default:
 		//DEBUG_MSG("Could not process texture entry: %s\n", entry->filename);
+		//printf("texture_process default\n");
 		remove_it = TRUE;
 		break;
 	}
