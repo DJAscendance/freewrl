@@ -153,50 +153,59 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
    bitmapData->PixelFormat = PixelFormat32bppARGB; // BGRA
    size_t totalbytes = (size_t)4L * bitmap->GetWidth() * bitmap->GetHeight(); //tti->depth;
    unsigned char * blob = (unsigned char*)MALLOCV(totalbytes);
+   if(blob){
+	   if(flipVertically)
+			bitmapData->Scan0 = &blob[totalbytes + (size_t)bitmapData->Stride]; 
+	   else
+		   bitmapData->Scan0 = blob;
 
-   if(flipVertically)
-		bitmapData->Scan0 = &blob[totalbytes + (size_t)bitmapData->Stride]; 
-   else
-	   bitmapData->Scan0 = blob;
+	   // Lock a rectangular portion of the bitmap for reading.
+	   bitmap->LockBits(
+		  &rect,
+		  ImageLockModeRead|ImageLockModeUserInputBuf,
+		  PixelFormat32bppARGB, //PixelFormat24bppRGB,  // BGRA
+		  bitmapData);
 
-   // Lock a rectangular portion of the bitmap for reading.
-   bitmap->LockBits(
-      &rect,
-      ImageLockModeRead|ImageLockModeUserInputBuf,
-	  PixelFormat32bppARGB, //PixelFormat24bppRGB,  // BGRA
-      bitmapData);
+	#ifdef verbose
+	   printf("The stride is %d.\n\n", bitmapData->Stride);
+	   printf("bitmapData W=%d H=%d\n",bitmapData->Width,bitmapData->Height);
+	#endif
+	#ifdef verbose
 
-#ifdef verbose
-   printf("The stride is %d.\n\n", bitmapData->Stride);
-   printf("bitmapData W=%d H=%d\n",bitmapData->Width,bitmapData->Height);
-#endif
-#ifdef verbose
+	   // Display the hexadecimal value of each pixel in the 5x3 rectangle.
+	   UINT* pixels = (UINT*)bitmapData->Scan0;
 
-   // Display the hexadecimal value of each pixel in the 5x3 rectangle.
-   UINT* pixels = (UINT*)bitmapData->Scan0;
+	   for(UINT row = 0; row < 23; ++row)
+	   {
+		  for(UINT col = 0; col < 5; ++col)
+		  {
+			 printf("%x\n", pixels[row * bitmapData->Stride / 4 + col]);
+		  }
+		  printf("- - - - - - - - - - \n");
+	   }
+	#endif
 
-   for(UINT row = 0; row < 23; ++row)
-   {
-      for(UINT col = 0; col < 5; ++col)
-      {
-         printf("%x\n", pixels[row * bitmapData->Stride / 4 + col]);
-      }
-      printf("- - - - - - - - - - \n");
-   }
-#endif
+	   //deep copy data so browser owns it (and does its FREE_IF_NZ) and we can delete our copy here and forget about it
+	   tti->x = bitmapData->Width;
+	   tti->y = bitmapData->Height;
+	   tti->frames = 1;
+	   tti->texdata = blob; 
+	   //tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmapData->PixelFormat)?1:0; 
+	   tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmap->GetPixelFormat())?1:0; 
+	   tti->channels = channels; //Gdiplus::GetPixelFormatSize(bitmap->GetPixelFormat());
+	   //printf("fname=%s alpha=%ld\n",fname,tti->hasAlpha);
+	   bitmap->UnlockBits(bitmapData);
 
-   //deep copy data so browser owns it (and does its FREE_IF_NZ) and we can delete our copy here and forget about it
-   tti->x = bitmapData->Width;
-   tti->y = bitmapData->Height;
-   tti->frames = 1;
-   tti->texdata = blob; 
-   if(!blob)
-	   printf("ouch in gdiplus image loader L194 - no image data\n");
-   //tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmapData->PixelFormat)?1:0; 
-   tti->hasAlpha = Gdiplus::IsAlphaPixelFormat(bitmap->GetPixelFormat())?1:0; 
-   tti->channels = channels; //Gdiplus::GetPixelFormatSize(bitmap->GetPixelFormat());
-   //printf("fname=%s alpha=%ld\n",fname,tti->hasAlpha);
+	}
+   if(!blob){
+	   printf("image too big to read %s in gdiplus image loader\n",fname);
+	   tti->x = 1;
+	   tti->y = 1;
+	   tti->frames = 1;
+	   tti->texdata = (unsigned char*)malloc(4);
+	   *(int*)(tti->texdata) = 0xff7A6A72; //726A7A afa3ae
 
+	}
 #ifdef verbose
    for(UINT row = 0; row < 23; ++row)
    {
@@ -212,11 +221,10 @@ int loadImage(struct textureTableIndexStruct *tti, char *fname)
    tti->filename = fname;
   // wrong: tti->status = TEX_NEEDSBINDING; //make this the last thing you set, because another thread is watching ready to bind
    // wrong - let the calling function set the status otherwise textures disappear sometimes
-
-
-   bitmap->UnlockBits(bitmapData);
    delete bitmapData;
    delete bitmap;
+
+
    //shutdownImageLoader();  //we'll keep it loaded
    if(0)
    {
