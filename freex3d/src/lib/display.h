@@ -753,12 +753,13 @@ void resetGeometry();
 	#define FW_TEXCOORD_POINTER_TYPE 67655
 	//void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line);
 	//                           datasize, dataType, stride, pointer
-	#define FW_GL_VERTEX_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,0,__FILE__,__LINE__); }
-	#define FW_GL_COLOR_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_COLOR_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,0,__FILE__,__LINE__); }
-	#define FW_GL_NORMAL_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,0,__FILE__,__LINE__); }
-	#define FW_GL_FOG_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,0,__FILE__,__LINE__); }
-	#define FW_GL_TEXCOORD_POINTER(aaa, bbb, ccc, ddd, eee) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,eee,__FILE__,__LINE__); }
-	#define FW_GL_BINDBUFFER(xxx,yyy) {sendBindBufferToGPU(xxx,yyy,__FILE__,__LINE__); }
+	#define FW_GL_VERTEX_POINTER(dataSize, dataType, stride, pointer) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+
+	#define FW_GL_COLOR_POINTER(dataSize, dataType, stride, pointer) {sendAttribToGPU(FW_COLOR_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+	#define FW_GL_NORMAL_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+	#define FW_GL_FOG_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+	#define FW_GL_TEXCOORD_POINTER(dataSize, dataType, stride, pointer, texID) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,texID,__FILE__,__LINE__); }
+	#define FW_GL_BINDBUFFER(target,buffer) {sendBindBufferToGPU(target,buffer,__FILE__,__LINE__); }
 
 
 

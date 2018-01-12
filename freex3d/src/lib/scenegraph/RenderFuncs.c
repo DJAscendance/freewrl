@@ -794,7 +794,8 @@ void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int
     s_shader_capabilities_t *me = getAppearanceProperties()->currentShaderProperties;
 
 	// checking to see that we really have the data
-	if (me==NULL) return;
+	if (me==NULL) 
+		return;
 
 #ifdef RENDERVERBOSE
 

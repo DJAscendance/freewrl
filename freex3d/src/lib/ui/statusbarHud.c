@@ -474,7 +474,7 @@ void statusbar_init(struct tstatusbar *t){
 		p->hadString = 0;
 		p->wantStatusbar = 1;
 		p->wantButtons = p->wantStatusbar;
-		p->showButtons = p->wantButtons;
+		p->showButtons = 0; //p->wantButtons;
 		p->showStatus = p->wantStatusbar;
 		//p->statusbar_pinned = 1;
 		//p->menubar_pinned = 0;
@@ -528,7 +528,7 @@ void statusbar_init(struct tstatusbar *t){
 
 //ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
 
-void initProgramObject(){
+static void init_ProgramObject(){
 	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
 
    // Load the shaders and get a linked program object
@@ -698,9 +698,12 @@ FXY screen2normalizedScreenScale( GLfloat x, GLfloat y);
 
 // OLD_IPHONE_AQUA #endif
 
-void printString3(GLfloat sx, GLfloat sy, char *s, int len)
+void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 {
-	int i, j;
+	//this one ran for a decade, but 2018 was correlated with 
+	// bombing on windows x64 release build with Background node in scene - 
+	// one of those hard-to-track mysterious things, crashing in shader
+	int i, j, len1;
     int ichar;
 	FXY charScreenSize;
 	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
@@ -714,9 +717,10 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 	if(!s) return;
 	//len = (int) strlen(s);
 	if(len == 0) return;
-	sizeofvert = len * sizeof(GLfloat) * 4 * 3;
-	sizeoftex = len * sizeof(GLfloat) * 4 * 2;
-	sizeofind = len * sizeof(GLshort) * 2 * 3;
+	len1 = 2*len + 1;
+	sizeofvert = len1 * sizeof(GLfloat) * 4 * 3;
+	sizeoftex = len1 * sizeof(GLfloat) * 4 * 2;
+	sizeofind = len1 * sizeof(GLshort) * 2 * 3;
 	vert = (GLfloat*)alloca(sizeofvert); //2 new vertex, 3D
 	tex  = (GLfloat*)alloca(sizeoftex); //4 new texture coords, 2D
 	ind  = (GLushort*)alloca(sizeofind); //2 triangles, 3 points each
@@ -779,10 +783,102 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 	// Set the base map sampler to texture unit to 0
 	glUniform1i ( p->textureLoc, 0 );
 	glDrawElements ( GL_TRIANGLES, i*3*2, GL_UNSIGNED_SHORT, ind );
+
+	//glDisableVertexAttribArray( p->texCoordLoc );
+	//glDisableVertexAttribArray ( p->positionLoc );
+		//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+		//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 	//FREE(vert);
 	//FREE(tex);
 	//FREE(ind);
 
+
+}
+void printString3(GLfloat sx, GLfloat sy, char *s, int len)
+{
+	//this version draws one char at a time 
+	// (like the scrolling ! text, in Component_text.c dug9gui_DrawSubImage() does)
+	// - no alloca
+	// - fixed size arrays big enough for 1 char
+	int i, j, len1;
+    int ichar;
+	FXY charScreenSize;
+	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
+	GLfloat x,y,z;
+    GLfloat vert[12];
+    GLfloat tex[8];
+    GLushort ind[6];
+	int sizeoftex, sizeofvert, sizeofind;
+
+	// construct triangle list
+	if(!s) return;
+	//len = (int) strlen(s);
+	if(len == 0) return;
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, p->pfont.textureID );
+	// Set the base map sampler to texture unit to 0
+	glUniform1i ( p->textureLoc, 0 );
+
+	glEnableVertexAttribArray ( p->positionLoc );
+	glEnableVertexAttribArray ( p->texCoordLoc );
+
+	x=y=z = 0.0f;
+	x = sx;
+	y = sy;
+	i = 0;
+	// 1 2     coords and tex coords pattern
+	// 0 3
+	for(j=0;j<len;j++)
+	{
+		ichar = (int)s[j];
+		if (ichar == '\t') ichar = ' '; //trouble with tabs, quick hack
+		if(p->pfont.have[ichar])
+		{
+			charScreenSize = screen2normalizedScreenScale(p->pfont.owh[0][1][ichar]*p->bmScale,p->pfont.owh[1][1][ichar]*p->bmScale);
+			vert[0] = x;
+			vert[1] = y;
+			vert[2] = z;
+			vert[3] = x;
+			vert[4] = y + charScreenSize.y;
+			vert[5] = z;
+			vert[6] = x + charScreenSize.x; 
+			vert[7] = y + charScreenSize.y; 
+			vert[8] = z;
+			vert[9] = x + charScreenSize.x; 
+			vert[10] = y;
+			vert[11] = z;
+			x = x + charScreenSize.x; 
+			tex[0] = p->pfont.tex[0][0][ichar];
+			tex[1] = p->pfont.tex[1][0][ichar];
+			tex[2] = p->pfont.tex[0][0][ichar];
+			tex[3] = p->pfont.tex[1][1][ichar];
+			tex[4] = p->pfont.tex[0][1][ichar];
+			tex[5] = p->pfont.tex[1][1][ichar];
+			tex[6] = p->pfont.tex[0][1][ichar];
+			tex[7] = p->pfont.tex[1][0][ichar];
+			ind[0] = 0;
+			ind[1] = 1;
+			ind[2] = 2;
+			ind[3] = 2;
+			ind[4] = 3;
+			ind[5] = 0;
+			//bindTexture and DrawElements calls are the same for GL and GLES2
+
+			// Load the vertex position
+			glVertexAttribPointer ( p->positionLoc, 3, GL_FLOAT, 
+								   GL_FALSE, 0, vert );
+			// Load the texture coordinate
+			glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
+								   GL_FALSE, 0, tex );  //fails - p->texCoordLoc is 429xxxxx - garbage
+
+			glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+		}
+	}
+	//glDisableVertexAttribArray ( p->positionLoc );
+	//glDisableVertexAttribArray ( p->texCoordLoc );
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 }
 void printString2(GLfloat sx, GLfloat sy, char *s){
@@ -2540,8 +2636,8 @@ void renderButtons()
 		*/
 	}
 	//clean up
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 	p->hadString = 1;
 }
 void updateViewportSize();
@@ -2572,9 +2668,10 @@ GLfloat cursorTex[] = {
 	ttglobal tg = gglobal();
 	p = (ppstatusbar)tg->statusbar.prv;
 
-	FW_GL_DEPTHMASK(GL_FALSE);
+	finishedWithGlobalShader();
+	glDepthMask(GL_FALSE);
 	glDisable(GL_DEPTH_TEST);
-	if(p->programObject == 0) initProgramObject();
+	if(p->programObject == 0) init_ProgramObject();
 	glUseProgram ( p->programObject );
 
 	//updateViewportSize();
@@ -2620,12 +2717,12 @@ GLfloat cursorTex[] = {
 	glUniform1i ( p->textureLoc, 0 );
 	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); //just render the active ones
 
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 
 	glEnable(GL_DEPTH_TEST);
-	FW_GL_DEPTHMASK(GL_TRUE);
+	glDepthMask(GL_TRUE);
 	restoreGlobalShader();
 
 }
@@ -2975,7 +3072,7 @@ M       void toggle_collision()                             //"
 	//init-once things are done everytime for convenience
 	//fwl_setClipPlane(p->statusBarSize);
 	if(!p->fontInitialized) initFont();
-	if(p->programObject == 0) initProgramObject();
+	if(p->programObject == 0) init_ProgramObject();
 	//MVC statusbarHud is in View and Controller just called us and told us 
 	//..to poll the Model to update and draw ourself
 	updateViewportSize();
@@ -2994,7 +3091,6 @@ M       void toggle_collision()                             //"
 	menu_over_status = !p->menubar_pinned && p->showButtons;
 	p->show_status = p->wantStatusbar && ((p->showStatus || p->statusbar_pinned) && !menu_over_status);
 	p->show_status = p->show_status || showAction(p, ACTION_HELP); //if ? help button on, then show statusbar to get button hints
-
 
 
 	p->yoff_status = 0;
@@ -3027,13 +3123,6 @@ M       void toggle_collision()                             //"
 		if (p->show_menu) //p->showButtons)
 		{
 			renderButtons();
-#ifndef KIOSK
-			glDepthMask(GL_TRUE);
-			if (p->posType == 1) {
-				glEnable(GL_DEPTH_TEST);
-			}
-			//continue;
-#endif
 		}
 		if(p->show_status)
 		{
@@ -3046,16 +3135,14 @@ M       void toggle_collision()                             //"
 			itrim = 1; //if width of window it floods entire window instead of just menubar
 			#endif
 
+
 			glScissor(p->vport.X, p->vport.Y + p->side_bottom, p->vport.W -itrim, p->statusBarSize * p->statusBarRows); //p->clipPlane);
 			glEnable(GL_SCISSOR_TEST);
 			//glClearColor(.922f, .91f, .844f, 1.0f); //windowing gray
 			glClearColor(colorClear[0],colorClear[1],colorClear[2],colorClear[3]);
 			glClear(GL_COLOR_BUFFER_BIT);
 			glDisable(GL_SCISSOR_TEST);
-
-			// you must call drawStatusBar() from render() just before swapbuffers 
-			glDepthMask(FALSE);
-			glDisable(GL_DEPTH_TEST);
+			
 
 			//glUniform4f(p->color4fLoc, .2f, .2f, .2f, 1.0f);
 			glUniform4f(p->color4fLoc,colorStatusbarText[0],colorStatusbarText[1],colorStatusbarText[2],colorStatusbarText[3]);
@@ -3133,6 +3220,14 @@ M       void toggle_collision()                             //"
 			printOptions();
 	}
 	//rely on Model to reset clearcolor on each frame. glClearColor(0.0f,0.0f,0.0f,1.0f); 
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	
+	//Background.x3d bug (dug9's win10, x64, Release, nVidia, jan 2018) - next line seems to help:
+	glDisableVertexAttribArray( p->texCoordLoc );
+	//but don't seem to need this line:
+	//glDisableVertexAttribArray ( p->positionLoc );
+
 	glDepthMask(TRUE);
 	glEnable(GL_DEPTH_TEST);
 }
