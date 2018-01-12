@@ -280,7 +280,7 @@ char *getWgetPath();
 #ifndef ANGLEPROJECT
 #define HAVE_GLEW_H 1
 #define GLEW 1
-#define GLEW_MX 1
+//#define GLEW_MX 1
 #else
 //MSOpenTech angleproject 2016 doesnt like this defined, it self-defines
 //#define GL_ES_VERSION_2_0 1  //to get max_lights 2 at top of display.h

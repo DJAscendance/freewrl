@@ -1044,10 +1044,12 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		/* send this data along ... */
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->__VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof (struct MyVertex)*actq, combinedBuffer, GL_STATIC_DRAW);
+
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
 
 		/* and, we can free it */
 		FREE_IF_NZ(combinedBuffer);
+		//node->__combined = X3D_NODE(combinedBuffer);
 	}
 }
 void reallyDraw();
@@ -1085,16 +1087,16 @@ void render_Background (struct X3D_Background *node) {
 
 		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
 		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 		FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
 		FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-		setupShaderB();
-		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-		reallyDraw();
+		if(setupShaderB()){
+			sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
+			reallyDraw();
+		}
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		finishedWithGlobalShader();
@@ -1162,7 +1164,7 @@ void render_TextureBackground (struct X3D_TextureBackground *node) {
 		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+		//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 		FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices

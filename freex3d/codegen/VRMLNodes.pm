@@ -1663,7 +1663,7 @@ our %Nodes = (
 		__points =>["MFVec3f",[],"initializeOnly", 0,0],#ff
 		__colours =>["MFColor",[],"initializeOnly", 0,0],#ff
 		__quadcount => ["SFInt32",0,"initializeOnly", 0,0],#ff
-
+		#__combined => ["SFNode","NULL","initializeOnly",0,0],#ff
 		transparency => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		frontUrl => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1732,6 +1732,7 @@ our %Nodes = (
 		__points =>["MFVec3f",[],"initializeOnly", 0,0],#ff
 		__colours =>["MFVec3f",[],"initializeOnly", 0,0],#ff
 		__quadcount => ["SFInt32",0,"initializeOnly", 0,0],#ff
+		#__combined => ["SFNode","NULL","initializeOnly",0,0],#ff
 		__VBO=>["SFInt32",0,"initializeOnly",0,0],#ff  # Vertex Buffer Object, if required.
 
 		frontTexture=>["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
