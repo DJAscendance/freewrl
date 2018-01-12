@@ -455,8 +455,9 @@ static char *DefaultScriptMethodsB = " function print(x) {Browser.print(x)}; " \
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
 			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
-			" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf];}; "\
+			" function _rename_function(obj,oldf,newf) {if(typeof obj[oldf] === 'function') {obj[newf]=obj[oldf]; delete obj[oldf];}}; "\
 			"";
+			//" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf];}; "
 
 /*add x3d v3.3 ecmascript X3DConstants table 
 // http://www.web3d.org/files/specifications/19777-1/V3.0/index.html
@@ -2230,45 +2231,17 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, int kind,
 
 	//any inputOnly or inputOutput eventIn scripts we need to rename to set_?
 	if(kind == PKW_inputOnly || kind == PKW_inputOutput){
-		sprintf(strline,"%s",fieldname);
-		duk_push_string(ctx, strline);
-		haveFunc = FALSE;
-		if (duk_peval(ctx) == 0) {
-			haveFunc = TRUE;
-		} else {
-			printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
-		}
-		duk_pop(ctx); //pop result which we don't use
 
-		if(haveFunc){
-			//name confilct between inputOutput (or even inputOnly) field, and eventIn function
-			//- rename user's function to set_fieldname before adding script field object fieldname
-			if(0){
-				// this works 
-				duk_eval_string(ctx, "_rename_function"); 
-				duk_eval_string(ctx,"this"); //global object
-				/* push key */
-				sprintf(strline,"%s",fieldname);
-				duk_push_string(ctx,strline); //"myScriptFieldName"
-				sprintf(strline,"set_%s",fieldname);
-				duk_push_string(ctx,strline);
-				if( duk_pcall(ctx, 3) != 0){
-					printf("error: %s\n", duk_safe_to_string(ctx, -1));
-					printf("rename didn't work\n");
-				}
-				duk_pop(ctx);
-			}
-			if(1){
-				// so does this
-				sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
-				duk_push_string(ctx,strline);
-				if(duk_peval(ctx) != 0) {
-					printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
-					printf("rename didn't work\n");
-				}
-				duk_pop(ctx);
-			}
+		// uses conditional rename_function - only renames if object exists and its typeof function
+		sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
+		duk_push_string(ctx,strline);
+		if(duk_peval(ctx) != 0) {
+			printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
+			printf("rename didn't work\n");
 		}
+		duk_pop(ctx);
+
+
 	}
 	add_duk_global_property(ctx,itype,fieldname, valueChanged,parent);
 

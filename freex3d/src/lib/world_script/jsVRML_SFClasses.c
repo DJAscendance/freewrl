@@ -4321,6 +4321,7 @@ JSBool SFVec3fGeneric( JSContext *cx, JSObject *obj,
 			printf( "JS_ConstructObject failed in SFVec3f.\n");
 			return JS_FALSE;
 		}
+		*rval = OBJECT_TO_JSVAL(_retObj);
 		if(SM_method() == 2){
 			AnyNative *any;
 			if ((any = (AnyNative*)JS_GetPrivate(cx, _retObj)) == NULL) {
