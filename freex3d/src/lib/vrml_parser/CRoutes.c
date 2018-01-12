@@ -450,6 +450,10 @@ unsigned long upper_power_of_two(unsigned long v)
     return v;
 
 }
+unsigned long lower_power_of_two(unsigned long v)
+{
+	return upper_power_of_two(v - 1) / 2L;
+}
 
 void AddRemoveChildren (
 		struct X3D_Node *parent,

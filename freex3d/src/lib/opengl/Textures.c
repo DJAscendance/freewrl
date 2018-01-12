@@ -1980,8 +1980,8 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 						android LG nexus 4096
 						4096 x 4096 = 16.7M; cube-root 16.7M = 256. 
 						*/
-						if (rx > rdr_caps->runtime_max_texture_size) rx = rdr_caps->runtime_max_texture_size;
-						if (ry > rdr_caps->runtime_max_texture_size) ry = rdr_caps->runtime_max_texture_size;
+						rx = min(rx,rdr_caps->runtime_max_texture_size);
+						ry = min(ry,rdr_caps->runtime_max_texture_size);
 					}
 		
 					if (gglobal()->internalc.global_print_opengl_errors) {
@@ -2005,38 +2005,17 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 					/* if scaling is ok... */
 					if ((x==rx) && (y==ry)) {
 						dest = mytexdata;
-						if(0){
-						size_t total_size = (size_t)4L * rx * ry;
-						dest = MALLOC(unsigned char *, total_size); //4 * rx * ry);
-						//memcpy(dest,mytexdata,total_size);
-						myScaleImage(x,y,rx,ry,mytexdata,dest);
-						}
 					} else {
 
 						/* try this texture on for size, keep scaling down until we can do it */
 						/* all textures are 4 bytes/pixel */
 						size_t total_size = (size_t)4L * rx * ry;
-						//total_size *= rx;
-						//total_size *= ry;
 						dest = MALLOC(unsigned char *, total_size); //4 * rx * ry);
 
-						//if(1){
-						//	printf(" time before myScaleImage = %lf\n",Time1970sec());
-						//}
 						myScaleImage(x,y,rx,ry,mytexdata,dest);
-						//if(1){
-						//	printf(" time after myScaleImage = %lf\n",Time1970sec());
-						//}
 					}
-				
-					//if(1){
-					//	printf(" time before myTexImage2D = %lf\n",Time1970sec());
-					//}
-		
+					if(rx > 8192 || ry > 8192) ConsoleMessage("texture size rx %d ry %d\n",rx,ry);
 					myTexImage2D(generateMipMaps, GL_TEXTURE_2D, 0, iformat,  rx, ry, 0, format, GL_UNSIGNED_BYTE, dest);
-					//if(1){
-					//	printf(" time after myTexImage2D = %lf\n",Time1970sec());
-					//}
 				}
 				if(mytexdata != dest) {
 					FREE_IF_NZ(dest);
@@ -2051,9 +2030,6 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* ensure this data is written to the driver for the rendering context */
 	FW_GL_FLUSH();
-	//if(0){
-	//	printf("after texture to GPU and mipmapping thread=%x time = %lf\n",pthread_self().p,Time1970sec());
-	//}
 
 	/* and, now, the Texture is loaded */
 	me->status = TEX_LOADED;
