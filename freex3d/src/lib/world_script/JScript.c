@@ -276,8 +276,10 @@ static char *DefaultScriptMethods = "function initialize() {}; " \
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
 			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
-			" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf]}; "\
+			" function _rename_function(obj,oldf,newf) {if(typeof obj[oldf] === 'function') {obj[newf]=obj[oldf]; delete obj[oldf];}}; "\
 			"";
+
+			//" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf]}; "
 
 /* housekeeping routines */
 int sm_jsIsRunning(){
@@ -2806,7 +2808,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 		if(ifound && type == dataType && isSFType(type)){
 			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
 			union anyVrml *any = (union anyVrml*)Data;
-			printf("any float=%f",any->sffloat);
+			//printf("any float=%f",any->sffloat);
 			shallow_copy_field(type,any,value);
 			//if we have an inputOutput field with no eventIn function, we may still be routing
 			//from the out side
@@ -2817,7 +2819,6 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 		}
 	
 	}else{ //SM_method == 2
-
 		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
 		/* get the variable name to hold the incoming value */
@@ -2837,12 +2838,14 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
         }
 
 	} //SM_method == 2
+
 	//step 2 run eventin if it exists
 	/* is the function compiled yet? */
 	COMPILE_FUNCTION_IF_NEEDED_SET(toname)
 
 	/* and run the function */
 	RUN_FUNCTION (toname)
+
 
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(cx);

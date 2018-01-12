@@ -128,7 +128,7 @@ of garbage collection
 #define RUN_FUNCTION(tnfield) \
 	{jsval zimbo; \
 	if (!JS_ExecuteScript(cx, obj, JSparamnames[tnfield].eventInFunction, &zimbo)) { \
-		printf ("failed to set parameter for eventIn %s in FreeWRL code %s:%d\n",JSparamnames[tnfield].name,__FILE__,__LINE__); \
+		printf ("eventIn %s failed to complete successfully, in FreeWRL code %s:%d\n",JSparamnames[tnfield].name,__FILE__,__LINE__); \
 		/* printf ("myThread is %u\n",pthread_self());*/ \
 	}} 
 
