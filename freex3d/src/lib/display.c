@@ -527,14 +527,14 @@ bool initialize_rdr_caps()
 
 	FW_GL_GETINTEGERV(GL_MAX_TEXTURE_SIZE, &tmp);
 	p->rdr_caps.system_max_texture_size = (int) tmp;
-	ConsoleMessage("maximum texture size system/gpu %d ",p->rdr_caps.system_max_texture_size);
+	ConsoleMessage("maximum texture size system/gpu: %d ",p->rdr_caps.system_max_texture_size);
 #ifdef _MSC_VER
 	//Jan 2018 desktop windows:
 	// we're having problems with black textures with intel and nvidia, when at max reported texture size
 	if(tmp > 8192) tmp = tmp/2; 
 #endif
 	p->rdr_caps.runtime_max_texture_size = (int) tmp;
-	ConsoleMessage("runtime/freewrl %d\n",tmp);
+	ConsoleMessage("runtime/freewrl: %d\n",tmp);
 	ConsoleMessage("processor architecture %s\n",sizeof(void*)>4?"x64":"x86");
 	// GL_MAX_TEXTURE_UNITS is for fixed function, and should be deprecated.
 	// use GL_MAX_TEXTURE_IMAGE_UNITS now, according to the OpenGL.org wiki
