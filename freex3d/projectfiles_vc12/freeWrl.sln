@@ -29,7 +29,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SSRserver", "SSRserver\SSRs
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winGLES2", "esUtils\winGLES2.vcxproj", "{A6255F79-AC96-4224-891F-EEFE6B8CFD21}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "custombuildffmpeg", "custombuildffmpeg\custombuildffmpeg.vcxproj", "{674C7741-198C-4F35-BCD6-723802AD79A8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prebuildffmpeg", "custombuildffmpeg\custombuildffmpeg.vcxproj", "{674C7741-198C-4F35-BCD6-723802AD79A8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -167,7 +167,8 @@ Global
 		{A826D111-0526-4DC9-9459-995294F4DA62}.Debug|x64.ActiveCfg = Debug|Win32
 		{A826D111-0526-4DC9-9459-995294F4DA62}.Release_glew|Win32.ActiveCfg = Release_glew|Win32
 		{A826D111-0526-4DC9-9459-995294F4DA62}.Release_glew|Win32.Build.0 = Release_glew|Win32
-		{A826D111-0526-4DC9-9459-995294F4DA62}.Release_glew|x64.ActiveCfg = Release|Win32
+		{A826D111-0526-4DC9-9459-995294F4DA62}.Release_glew|x64.ActiveCfg = Release|x64
+		{A826D111-0526-4DC9-9459-995294F4DA62}.Release_glew|x64.Build.0 = Release|x64
 		{A826D111-0526-4DC9-9459-995294F4DA62}.Release|Win32.ActiveCfg = Release|Win32
 		{A826D111-0526-4DC9-9459-995294F4DA62}.Release|Win32.Build.0 = Release|Win32
 		{A826D111-0526-4DC9-9459-995294F4DA62}.Release|x64.ActiveCfg = Release|Win32
