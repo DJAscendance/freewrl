@@ -553,6 +553,9 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 			printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
 			return;
 		}
+		shallow_copy_field(dataType,(union anyVrml*)Data,ptr->v);
+		if(ptr->valueChanged)
+			(*ptr->valueChanged)++;
 
 		/* this is the return pointer, lets save it right now */
 		*newval = OBJECT_TO_JSVAL(newobj);
