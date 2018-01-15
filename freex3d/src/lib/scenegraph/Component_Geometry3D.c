@@ -1076,6 +1076,189 @@ int avatarCollisionVolumeIntersectMBBf(double *modelMatrix, float *minVals, floa
 	}
 	return avatarCollisionVolumeIntersectMBB(modelMatrix, prminvals,prmaxvals);
 }
+void accumulateFallingClimbing(double y1, double y2, double ystep, struct point_XYZ *p, int num, struct point_XYZ nused, double *tmin, double *tmax);
+
+int elevationgrid_disp2(struct X3D_ElevationGrid *node,struct X3D_PolyRep *pr, 
+		double *mat2collision, int doubleSided, float *delta){
+	// general polyrep collision does a few ugly things:
+	// 1. transforms all the points into collision space
+	// 2. iterates over all the triangles (a few times)
+	// this elevationGrid optimization will take a few shortcuts:
+	// a) only do gravity, if enabled
+	// b) transform avatar gravity vector into grid space
+	// c) use elevationGrid rows, columns, xspace,yspace, to look up heights by gravity vector xy
+	//see if its a collision
+	struct sFallInfo *fi;
+	int hit,i;
+
+	hit = -1; //0 handled, and no colliision, 1=handled and collision, -1=not handled (not woaking, or gravity vector not perpendicular to grid)
+	vecset3f(delta,0.0f,0.0f,0.0f);
+	fi = FallInfo();
+
+	if(fi->walking)
+	{
+		struct point_XYZ result;
+		float centerf[3],bottomf[3];
+		double centerd[3], bottomd[3], spined[3], vertvecd[3];
+		double cosine;
+		double tmin[3],tmax[3]; /* MBB for facet */
+		struct sNaviInfo *naviinfo;
+		GLDOUBLE awidth, atop, abottom, astep;
+		ttglobal tg = gglobal();
+
+		double mat2shape[16];
+		matinverseAFFINE(mat2shape,mat2collision);
+
+		naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+		//awidth = naviinfo->width; /*avatar width*/
+		//atop = naviinfo->width; /*top of avatar (relative to eyepoint)*/
+		abottom = -naviinfo->height; /*bottom of avatar (relative to eyepoint)*/
+		//astep = -naviinfo->height+naviinfo->step;
+		
+		//set up 2 points to represent avatar walk vector, in avatar space
+		vecsetd(centerd,0.0,0.0,0.0);
+		vecsetd(bottomd,0.0,abottom,0.0);
+		//transform those points to shape space
+		transformAFFINEd(bottomd,bottomd,mat2shape);
+		transformAFFINEd(centerd,centerd,mat2shape);
+		//see if avatar's spine vector is 'vertical' in elevationGrid space
+		vecsetd(vertvecd,0.0,-1.0,0.0);
+		vecdifd(spined,centerd,bottomd);
+		cosine = vecdotd(spined,vertvecd);
+		double2float(bottomf,bottomd,3);
+		printf("a");
+		if(fabs(cosine) > .65){
+			int inside;
+			//yes, primarily vertical vector, can use 2D math on 'bottom'
+			inside = bottomf[0] <= node->_extent[0] && bottomf[0] >= node->_extent[1];
+			inside &= bottomf[2] <= node->_extent[4] && bottomf[2] >= node->_extent[5];
+			printf("b");
+			if(inside){
+				double spinelength, vcenterd[3];
+				float x,z,cx,cz, deltah, gridpointf[3];
+				printf("c");
+				hit = 0;
+				spinelength = veclengthd(spined);
+				//make avatar center in vertical space
+				vecscaled(vcenterd,vertvecd,spinelength);
+				vecaddd(centerd,bottomd,vcenterd);
+				double2float(centerf,centerd,3);
+				//see if grid height is below, between or above avatar spine
+				x = bottomf[0];
+				z = bottomf[2];
+				//node->xDimension
+				// z h2  h3
+				// ^ h0  h1
+				// |-->x
+				//(ix,iz)
+				float hh[4],gridheight;
+				int i0,i1,i2,i3, ix, iz;
+				ix = (int)(x/node->xSpacing);
+				iz = (int)(z/node->zSpacing);
+				i0 = iz * node->xDimension + ix;
+				i1 = i0 + 1;
+				i2 = i0 + node->xDimension;
+				i3 = i2 + 1;
+				hh[0] = node->height.p[i0];
+				hh[1] = node->height.p[i1];
+				hh[2] = node->height.p[i2];
+				hh[3] = node->height.p[i3];
+				//normalize cell x and z
+				cx = (x - ix*node->xSpacing)/node->xSpacing;
+				cz = (z - iz*node->zSpacing)/node->zSpacing;
+				//height interpolation by finite elements
+				gridheight = (1.0f - cz)*(1.0f - cx)*hh[0] + (1.0f - cz)*cx*hh[1] +
+					  cz*(1.0f - cx)*hh[2] + cz*cx*hh[3];
+				vecset3f(gridpointf,x,gridheight,z);
+				/*
+				if(gridheight > bottomf[1] && gridheight < centerf[1]){
+					//the grid is intersecting the avatar spine, we should climb
+					deltah = (gridheight - bottomf[1]);
+					hit = 1;
+				}else if(gridheight < bottomf[1]){
+					//not intersecting, but below. maybe we should fall
+					deltah = (bottomf[1] - gridheight);
+					hit = 1;
+				}
+				*/
+				hit = 1;
+				//else do nothing
+				if(hit == 1){
+					double zerod[3], gridpoint[3]; //deltad[3], 
+					//vecsetd(deltad,0.0,deltah,0.0);
+					//vecsetd(zerod,0.0,0.0,0.0);
+					float2double(gridpoint,gridpointf,3);
+			//		transformAFFINEd(deltad,deltad,mat2collision);
+					//transformAFFINEd(deltad,deltad,FallInfo()->collision2avatar); 
+					//transformAFFINEd(zerod,zerod,mat2collision);
+					//transformAFFINEd(zerod,zerod,FallInfo()->collision2avatar); 
+					transformAFFINEd(gridpoint,gridpoint,mat2collision);
+					//transformAFFINEd(gridpoint,gridpoint,FallInfo()->collision2avatar); 
+					printf("_");
+			//		vecdifd(deltad,deltad,zerod);
+			//		double2float(delta,deltad,3);
+					hit = 0;
+					// scraped from:
+					//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
+
+					double hh = gridpoint[1];
+					double hhbelowfoot = hh - abottom;
+					if( hh < 0.0 )
+					{
+						/* falling */
+						if( hh < abottom && hh > -fi->fallHeight) 
+						{
+							printf("v");
+							/* FALLING */
+							if(fi->hits ==0)
+								fi->hfall = hhbelowfoot; //hh - y1;
+							else
+								if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
+							fi->hits++;
+							fi->isFall = 1;
+						}else{
+							printf("~");
+							/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
+							if( hh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
+							{
+								/* CLIMBING. handled elsewhere for displacements, except annihilates any fall*/
+								fi->canFall = 0;
+
+								if( fi->isClimb == 0 )
+									fi->hclimb = hhbelowfoot; //hh - y1;
+								else
+									fi->hclimb = DOUBLE_MAX(fi->hclimb,hhbelowfoot);
+								fi->isClimb = 1;
+							}
+						}
+					}
+					double head = 0.0;
+					double hhabovehead = hh - head;
+					if( hhabovehead > 0.0 )
+					{
+						/* climbing from undergound */
+						if( hhabovehead < fi->climbHeight) 
+						{
+							printf("^");
+							/* CLIMBING */
+							fi->canFall = 0;
+
+							if( fi->isClimb == 0 )
+								fi->hclimb = hhabovehead + abottom; //hh - y1;
+							else
+								fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
+							fi->isClimb = 1;
+						}
+					}
+
+				}
+			}
+		}
+	}
+
+	return hit;
+}
+
 
 void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 	GLDOUBLE modelMatrix[16];
@@ -1185,9 +1368,22 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 		- pr.actualCoord - these are Shape space coordinates
 		They will be transformed into CollisionSpace coordinates by the modelMatrix transform.
 	*/
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
+	if(0) if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
 	/* passed fast test. Now for gruelling test */
-	delta = polyrep_disp2(pr,modelMatrix,flags); //polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,flags);
+
+	int ihit = -1;
+	if(node->_nodeType == NODE_ElevationGrid){
+		float delta3f[3];
+		ihit = elevationgrid_disp2((struct X3D_ElevationGrid*)node,&pr,modelMatrix,flags,delta3f);
+		float2double(&delta.x,delta3f,3);
+		if(ihit==0) printf("0");
+		if(ihit==1) printf("1");
+		if(ihit==-1) printf(".");
+	}
+	if(ihit == -1){
+		if(1) if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
+		delta = polyrep_disp2(pr,modelMatrix,flags); //polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,flags);
+	}
 	/* delta is in collision space */
 	/* lets say you are floating above ground by 3 units + avatar.height 1.75 = 4.75. 
 	Then delta = (0,3,0)*/

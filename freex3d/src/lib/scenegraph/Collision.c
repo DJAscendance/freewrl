@@ -48,7 +48,7 @@ static struct point_XYZ get_poly_min_disp_with_sphere(double r, struct point_XYZ
 
 static struct point_XYZ weighted_sum(struct point_XYZ p1, struct point_XYZ p2, double k);
 static struct point_XYZ get_point_disp(double y1, double y2, double ystep, double r, struct point_XYZ p1, struct point_XYZ n);
-static void accumulateFallingClimbing(double y1, double y2, double ystep, struct point_XYZ *p, int num, struct point_XYZ nused, double *tmin, double *tmax);
+void accumulateFallingClimbing(double y1, double y2, double ystep, struct point_XYZ *p, int num, struct point_XYZ nused, double *tmin, double *tmax);
 
 
 
@@ -1562,7 +1562,7 @@ static int intersectionHeightOfVerticalLineWithSurfaceElement(double* height, st
 	return pointOnPlaneInsidePoly(D,p,num,n);
 }
 
-static void accumulateFallingClimbing(double y1, double y2, double ystep, struct point_XYZ *p, int num, struct point_XYZ nused, double *tmin, double *tmax)
+void accumulateFallingClimbing(double y1, double y2, double ystep, struct point_XYZ *p, int num, struct point_XYZ nused, double *tmin, double *tmax)
 {
 	struct sFallInfo *fi = FallInfo();
 
@@ -2066,7 +2066,8 @@ void render_collisions(int Viewer_type) {
 		   The sampler method intersects line segments radiating from the the avatar axis with shape facets - misses small shapes but good
 		   for walls and floors; intersection math is simple: line intersect plane.
 		*/
-		fi->fallHeight = 100.0; /* when deciding to fall, how far down do you look for a landing surface before giving up and floating */
+		fi->fallHeight = 200.0; /* when deciding to fall, how far down do you look for a landing surface before giving up and floating */
+		fi->climbHeight = 200.0; //sometimes you get underneath the terrain. At what point should we cimb you out automatically
 		fi->fallStep = 1.0; /* maximum height to fall on one frame */
 		fi->walking = Viewer_type == VIEWER_WALK; //viewer_type == VIEWER_WALK;
 		fi->canFall = fi->walking; /* && COLLISION (but we wouldn't be in here if not). Will be set to 0 if a climb is found. */
