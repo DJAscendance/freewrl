@@ -1077,6 +1077,8 @@ int avatarCollisionVolumeIntersectMBBf(double *modelMatrix, float *minVals, floa
 	return avatarCollisionVolumeIntersectMBB(modelMatrix, prminvals,prmaxvals);
 }
 
+
+
 void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 	GLDOUBLE modelMatrix[16];
 	struct point_XYZ delta = {0,0,0};
@@ -1187,7 +1189,9 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 	*/
 	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
 	/* passed fast test. Now for gruelling test */
+
 	delta = polyrep_disp2(pr,modelMatrix,flags); //polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,flags);
+
 	/* delta is in collision space */
 	/* lets say you are floating above ground by 3 units + avatar.height 1.75 = 4.75. 
 	Then delta = (0,3,0)*/
@@ -2159,7 +2163,236 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 #endif
 }
 
+int elevationgrid_disp2(struct X3D_ElevationGrid *node,	double *mat2collision){
+	// general polyrep collision does a few ugly things:
+	// 1. transforms all the points into collision/avatar space
+	// 2. iterates over all the triangles (a few times)
+	// this elevationGrid optimization will take a few shortcuts:
+	// a) only do gravity, if enabled
+	// b) transform avatar gravity vector into grid space
+	// c) use elevationGrid rows, columns, xspace,zspace, to look up heights by avatar position xz in grid space
+	// d) see if its a collision
+	// e) update the climing / falling parameters (and skip wall penetration detection and bump collision testing)
+	// if for some reason it can't handle it, it returns -1, and then the generic collision can be called
+	struct sFallInfo *fi;
+	int hit,i;
 
+	hit = -1; //0 handled, and no colliision, 1=handled and collision, -1=not handled (not woaking, or gravity vector not perpendicular to grid)
+	fi = FallInfo();
+
+	if(fi->walking)
+	{
+		struct point_XYZ result;
+		float centerf[3],bottomf[3];
+		double centerd[3], bottomd[3], spined[3], vertvecd[3];
+		double cosine;
+		double tmin[3],tmax[3]; /* MBB for facet */
+		struct sNaviInfo *naviinfo;
+		GLDOUBLE awidth, atop, abottom, astep;
+		ttglobal tg = gglobal();
+
+		double mat2shape[16];
+		matinverseAFFINE(mat2shape,mat2collision);
+
+		naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+		//awidth = naviinfo->width; /*avatar width*/
+		//atop = naviinfo->width; /*top of avatar (relative to eyepoint)*/
+		abottom = -naviinfo->height; /*bottom of avatar (relative to eyepoint)*/
+		//astep = -naviinfo->height+naviinfo->step;
+		
+		//set up 2 points to represent avatar walk vector, in avatar space
+		vecsetd(centerd,0.0,0.0,0.0);
+		vecsetd(bottomd,0.0,abottom,0.0);
+		//transform those points to shape space
+		transformAFFINEd(bottomd,bottomd,mat2shape);
+		transformAFFINEd(centerd,centerd,mat2shape);
+		//see if avatar's spine vector is 'vertical' in elevationGrid space
+		vecsetd(vertvecd,0.0,-1.0,0.0);
+		vecdifd(spined,centerd,bottomd);
+		cosine = vecdotd(spined,vertvecd);
+		double2float(bottomf,bottomd,3);
+		//printf("a");
+		if(fabs(cosine) > .65){
+			int inside;
+			//yes, primarily vertical vector, can use 2D math on 'bottom'
+			inside = bottomf[0] <= node->_extent[0] && bottomf[0] >= node->_extent[1];
+			inside &= bottomf[2] <= node->_extent[4] && bottomf[2] >= node->_extent[5];
+			//printf("b");
+			if(inside){
+				double spinelength, vcenterd[3];
+				float x,z,cx,cz, deltah, gridpointf[3];
+				//printf("c");
+				hit = 0;
+				spinelength = veclengthd(spined);
+				//make avatar center in vertical space
+				vecscaled(vcenterd,vertvecd,spinelength);
+				vecaddd(centerd,bottomd,vcenterd);
+				double2float(centerf,centerd,3);
+				//see if grid height is below, between or above avatar spine
+				x = bottomf[0];
+				z = bottomf[2];
+				//node->xDimension
+				// z h2  h3
+				// ^ h0  h1
+				// |-->x
+				//(ix,iz)
+				float hh[4],gridheight;
+				int i0,i1,i2,i3, ix, iz;
+				ix = (int)(x/node->xSpacing);
+				iz = (int)(z/node->zSpacing);
+				i0 = iz * node->xDimension + ix;
+				i1 = i0 + 1;
+				i2 = i0 + node->xDimension;
+				i3 = i2 + 1;
+				hh[0] = node->height.p[i0];
+				hh[1] = node->height.p[i1];
+				hh[2] = node->height.p[i2];
+				hh[3] = node->height.p[i3];
+				//normalize cell x and z
+				cx = (x - ix*node->xSpacing)/node->xSpacing;
+				cz = (z - iz*node->zSpacing)/node->zSpacing;
+				//height interpolation by finite elements > bilinear interpolotion of height
+				// (could do cubic using 3x3 chunks)
+				gridheight =  hh[0]*(1.0f - cz)*(1.0f - cx)
+							+ hh[1]*(1.0f - cz)*cx 
+							+ hh[2]*cz*(1.0f - cx) 
+							+ hh[3]*cz*cx;
+				vecset3f(gridpointf,x,gridheight,z);
+
+				double gridpoint[3];  
+				float2double(gridpoint,gridpointf,3);
+				transformAFFINEd(gridpoint,gridpoint,mat2collision);
+				//printf("_");
+				hit = 0;
+				
+				// scraped from:
+				//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
+
+				double hhh = gridpoint[1];
+				double hhbelowfoot = hhh - abottom;
+				if( hhh < 0.0 )
+				{
+					/* falling */
+					if( hhh < abottom && hhh > -fi->fallHeight) 
+					{
+						//printf("v");
+						/* FALLING */
+						if(fi->hits ==0)
+							fi->hfall = hhbelowfoot; //hh - y1;
+						else
+							if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
+						fi->hits++;
+						fi->isFall = 1;
+					}else{
+						//printf("~");
+						/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
+						if( hhh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
+						{
+							/* CLIMBING. handled elsewhere for displacements, except annihilates any fall*/
+							fi->canFall = 0;
+
+							if( fi->isClimb == 0 )
+								fi->hclimb = hhbelowfoot; //hh - y1;
+							else
+								fi->hclimb = DOUBLE_MAX(fi->hclimb,hhbelowfoot);
+							fi->isClimb = 1;
+						}
+					}
+				}
+				double head = 0.0;
+				double hhabovehead = hhh - head;
+				if( hhabovehead > 0.0 )
+				{
+					/* climbing from undergound */
+					if( hhabovehead < fi->climbHeight) 
+					{
+						//printf("^");
+						/* CLIMBING */
+						fi->canFall = 0;
+
+						if( fi->isClimb == 0 )
+							fi->hclimb = hhabovehead + abottom; //hh - y1;
+						else
+							fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
+						fi->isClimb = 1;
+					}
+				}
+			}
+		}
+	}
+
+	return hit;
+}
+
+void collide_ElevationGrid(struct X3D_ElevationGrid *node){
+	double modelMatrix[16];
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+	/* 
+	For examine and fly navigation modes, there's no gravity direction. 
+	Avatar collision volume is aligned to avatar and is spherical and 
+	symmetrically directional. This is the simple case. Specifications say for 
+	walk navigation mode gravity vector is down {0,-1,0} with respect to (wrt) the 
+	currently bound viewpoint, not including the viewpoint's orientation 
+	field and not including avatar navigation/tilt away from its parent 
+	bound-viewpoint pose. When you collide in walk mode, the avatar collision
+	volume is aligned to bound-viewpoint. This is a slightly more complex case.
+	To generalize the 2 cases, some	Definitions:
+	Spaces:
+		Avatar space 
+			- gravity is avatar-down
+			- Avatar is at {0,0,0} and +Y up is as you see up in your current view, 
+				+Z aft and +X to the right
+		BoundViewpoint space - currently bound viewpoint (transform parent to avatar)
+		BVVA space - Bound-Viewpoint-Vertically-aligned Avatar-centric 
+			- same as Avatar space with avatar at {0,0,0} except tilted so that gravity 
+				is in the direction of down {0,-1,0} for the currently bound viewpoint 
+				(instead for avatar), as per specs
+			- gravity is bound-viewpoint down
+		Collision space - Fly/Examine mode: Avatar space. Walk mode: BVVA space
+			- the avatar collision volume - height, stepsize, width - are defined for 
+				collision space and axes aligned with it
+		Shape space - raw shape <Coordinate> space
+	Transforms:
+		Bound2Avatar     - transforms from BoundViewpoint space to Avatar space 
+				            - computed from viewer.quat,viewer.pos
+		Avatar2BVVA,BVVA2Avatar 
+						- computed from downvector in BoundViewpoint space transformed
+							via Bound2Avatar into Avatar space
+						- constant for a frame, computable once navigation mode and 
+							avatar pose is know for the frame
+		Avatar2Collision - Fly/Examine: Identity,    Walk: Avatar2BVVA
+		Collision2Avatar - Fly/Examine: Identity,    Walk: BVVA2Avatar
+		Shape2Collision  - Fly/Examine: modelMatrix, Walk: Avatar2BVVA*modelMatrix
+
+	goal: transform shape geometry into Collision space. (The avatar collision 
+			    volume is by definition in collision space.)
+			Do some collisions between shape and avatar.
+			Transform collision correction deltas from collision space to avatar space, 
+				apply deltas to avatar position.
+	implementation:
+		transform shape into collision space - Fly/Examine:modelMatrix 
+				or Walk:(Avatar2BVVA * modelMatrix)
+		transform collision correction deltas from collision space to avatar space: 
+			- done in Mainloop.c get_collisionoffset() with FallInfo.collision2avatar
+	*/
+
+	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
+
+	int ihit = -1;
+	if(node->_nodeType == NODE_ElevationGrid){
+		float delta3f[3];
+		ihit = elevationgrid_disp2((struct X3D_ElevationGrid*)node,modelMatrix);
+		//if(ihit==0) printf("0");
+		//if(ihit==1) printf("1");
+		//if(ihit==-1) printf(".");
+	}
+	if(0) if(ihit == -1){
+		//above couldn't handle it, thunking to generic 
+		//problem: if its a really dense grid, the framerate plummets
+		collide_genericfaceset ((struct X3D_IndexedFaceSet *)node );
+	}
+
+}
 
 void rendray_Sphere (struct X3D_Sphere *node) {
 	struct point_XYZ t_r1,t_r2;

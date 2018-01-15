@@ -785,6 +785,7 @@ our %CollisionC = map {($_=>1)} qw/
 	Extrusion
 	Text
 	GeoElevationGrid
+	ElevationGrid
 	NurbsPatchSurface
 	NurbsSwungSurface
 	NurbsSweptSurface	

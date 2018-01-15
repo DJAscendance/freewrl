@@ -610,6 +610,7 @@ BOOL isManagedField(int mode, int type, BOOL isPublic);
 
 void AddRemoveChildren (struct X3D_Node *parent, struct Multi_Node *tn, struct X3D_Node * *nodelist, int len, int ar, char * where, int lin);
 unsigned long upper_power_of_two(unsigned long v);
+unsigned long lower_power_of_two(unsigned long v);
 void update_node(struct X3D_Node *ptr);
 //void update_renderFlag(struct X3D_Node *ptr, int flag);
 void UPDATE_RENDERFLAG(struct X3D_Node *ptr, int flag,char *fi, int li);
@@ -799,12 +800,12 @@ void add_parent(struct X3D_Node *node_, struct X3D_Node *parent_,char *file, int
 void remove_parent(struct X3D_Node *child, struct X3D_Node *parent);
 void EAI_readNewWorld(char *inputstring);
 
-
+void collide_ElevationGrid(struct X3D_ElevationGrid *node);
 
 void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
 #define rendray_Text render_ray_polyrep
 #define rendray_ElevationGrid  render_ray_polyrep
-#define collide_ElevationGrid collide_genericfaceset
+//#define collide_ElevationGrid collide_genericfaceset
 #define rendray_Extrusion render_ray_polyrep
 #define rendray_IndexedFaceSet render_ray_polyrep 
 #define make_IndexedFaceSet make_genericfaceset

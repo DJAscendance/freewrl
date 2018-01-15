@@ -319,7 +319,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ANGLEPROJECT;WIN32;_DEBUG;_LIB;LIBRARYBUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LIBRARYBUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\Users\Public\dev\source2\lib_windows_vc12\angleproject\include;C:\Users\Public\dev\source2\freewrl\freex3d\src_windows;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\nurbtess;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\internals;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\interface;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -349,8 +349,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>ANGLEPROJECT;_LIB;LIBRARYBUILD;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\Public\dev\source2\lib_windows_vc12\angleproject\include;C:\Users\Public\dev\source2\freewrl\freex3d\src_windows;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\nurbtess;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\internals;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\interface;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_LIB;LIBRARYBUILD;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Public\dev\source2\freewrl\freex3d\src_windows;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\nurbtess;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\internals;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\interface</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -385,8 +385,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>ANGLEPROJECT;_LIB;LIBRARYBUILD;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\Public\dev\source2\lib_windows_vc12\angleproject\include;C:\Users\Public\dev\source2\freewrl\freex3d\src_windows;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\nurbtess;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\internals;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\interface;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_LIB;LIBRARYBUILD;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src_windows;..\..\src\libnurbs;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\nurbtess;C:\Users\Public\dev\source2\freewrl\freex3d\src\libnurbs\internals;..\..\src\libnurbs\interface;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
