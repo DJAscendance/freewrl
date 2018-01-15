@@ -1868,6 +1868,7 @@ SFNodeFinalize(JSContext *cx, JSObject *obj)
 		}
 
 		FREE_IF_NZ (ptr);
+		JS_SetPrivate(cx,obj,NULL);
 	}
 }
 
@@ -2128,12 +2129,18 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			sftype = type2SF(type);
 			sfsize = sizeofSForMF(sftype);
 			//set up a return value
-			if (JSVAL_IS_OBJECT(*vp)) {
+			//in js, null is an object
+			if( JSVAL_IS_NULL(*vp)){
+				if(type == FIELDTYPE_SFNode)
+					value->sfnode = NULL;
+				if(valueChanged)
+					(*valueChanged) ++;
+			} else if (JSVAL_IS_OBJECT(*vp)) {
 				AnyNative *rhs;
         		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
-					printf("in setECMANative, RHS was NOT native type \n");
+					//printf("in setECMANative, RHS was NOT native type \n");
         		}else{
-					printf("in setECMANative, RHS was native type \n");
+					//printf("in setECMANative, RHS was native type \n");
 					//can do an assign here
 					if(type == rhs->type){
 						if(valueChanged)
@@ -2154,6 +2161,7 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 				case FIELDTYPE_SFInt32:
 				case FIELDTYPE_SFString:
 					JS_ECMA_TO_X3D(cx, value,sfsize,type,vp);
+
 					if(valueChanged)
 						(*valueChanged)++;
 
@@ -3208,7 +3216,7 @@ SFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
 	ADD_ROOT(cx,obj)
 	if(SM_method() == 2){
 		AnyNative *any;
-		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec4f,NULL,NULL)) == NULL){
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFRotation,NULL,NULL)) == NULL){
 			printf( "AnyfNativeNew failed in SFRotationConstr.\n");
 			return JS_FALSE;
 		}

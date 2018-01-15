@@ -77,12 +77,25 @@ JS_MY_Finalize(JSContext *cx, JSObject *obj)
 	REMOVE_ROOT(cx,obj)
 
 	if ((ptr = (void *)JS_GetPrivate(cx, obj)) != NULL) {
+		/*
+		if(SM_method() == 0)
+			FREE_IF_NZ (ptr);
+		if(SM_method() == 2){
+			AnyNative *any = (AnyNative*)ptr;
+			if(any->gc) FREE_IF_NZ(any->v);
+		}
+
+		JS_SetPrivate(cx,obj,NULL);
 		FREE_IF_NZ(ptr);
+		*/
+	}
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	} else {
 		printf ("Finalize - no private data!\n");
-	#endif
 	}
+	#endif
+
 }
 
 

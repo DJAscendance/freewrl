@@ -2421,7 +2421,7 @@ void propagate_events_B() {
 								{
 									// Jan 2 - seems like all we needed was valueChanged, which method2 updates automatically
 									markme = sfield->valueChanged;
-									//printf("fromAny.mffloat %d %f %f\n",fromAny->mffloat.n,fromAny->mffloat.p[0],fromAny->mffloat.p[1]);
+									//printf("fromAny.sffloat %f\n",fromAny->sffloat);
 									sfield->valueChanged = 0;
 								}
 
