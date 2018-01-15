@@ -800,12 +800,12 @@ void add_parent(struct X3D_Node *node_, struct X3D_Node *parent_,char *file, int
 void remove_parent(struct X3D_Node *child, struct X3D_Node *parent);
 void EAI_readNewWorld(char *inputstring);
 
-
+void collide_ElevationGrid(struct X3D_ElevationGrid *node);
 
 void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
 #define rendray_Text render_ray_polyrep
 #define rendray_ElevationGrid  render_ray_polyrep
-#define collide_ElevationGrid collide_genericfaceset
+//#define collide_ElevationGrid collide_genericfaceset
 #define rendray_Extrusion render_ray_polyrep
 #define rendray_IndexedFaceSet render_ray_polyrep 
 #define make_IndexedFaceSet make_genericfaceset
