@@ -2157,7 +2157,7 @@ MFStringGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	}
 #endif
 	if(SM_method()==2){
-		return _standardMFGetProperty(cx, obj, id, vp,
+		return _standardMFGetProperty(cx, obj, iid, vp,
 			 "_FreeWRL_Internal = new SFString()",FIELDTYPE_MFString);
 
 	}
