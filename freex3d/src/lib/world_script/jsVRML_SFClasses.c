@@ -4687,6 +4687,31 @@ SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
 		cc[0] = 0.0f;
 		cc[1] = 0.0f;
 		cc[2] = 0.0f;
+	} else if(argc == 1){
+		if(SM_method() == 2){
+			int found = 0;
+			if (JSVAL_IS_OBJECT(argv[0])) {
+				AnyNative *rhs;
+        		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(argv[0]))) != NULL) {
+					union anyVrml *anyv = rhs->v;
+					int rhstype = rhs->type;
+					found = 1;
+					switch(rhstype){
+						case FIELDTYPE_SFVec3f:
+							veccopy3f(cc,anyv->sfvec3f.c); break;
+						case FIELDTYPE_SFVec3d:
+							double2float(cc,anyv->sfvec3d.c,3); break;
+						case FIELDTYPE_SFRotation:
+							veccopy3f(cc,anyv->sfrotation.c); break;
+						default:
+							vecset3f(cc,0.0f,0.0f,0.0f);
+							found = 0;
+					}
+				}
+			}
+			if(!found)
+				return JS_FALSE;
+		}
 	} else {
 		if (!JS_ConvertArguments(cx, argc, argv, "d d d",
 				 &(pars[0]), &(pars[1]), &(pars[2]))) {
