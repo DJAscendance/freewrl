@@ -1731,6 +1731,8 @@ doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
 
 void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval);
 void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval);
+void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval);
+
 JSBool
 #if JS_VERSION < 185
 doMFSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp, int type) {
@@ -1761,13 +1763,13 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 		AnyNative *ptr;
 		union anyVrml* any;
 		int sftype, sfsize;
-
+		int *valueChanged;
 
 		if ((ptr = (AnyNative *)JS_GetPrivate(cx,obj)) == NULL) {
 			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
-
+		valueChanged = ptr->valueChanged;
 		sftype = type2SF(ptr->type);
 		sfsize = sizeofSForMF(sftype);
 
@@ -1786,6 +1788,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				// in the setter, normally we realloc
 				if(mf_p == NULL){
 					mf_p = malloc(sfsize*upper_power_of_two(newlength));
+					memset(mf_p,0,sfsize);
 				}else{
 					int k;
 					mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
@@ -1805,6 +1808,9 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				case FIELDTYPE_SFString:
 					//X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
 					JS_ECMA_TO_X3D(cx, any, sfsize,sftype,vp);
+					if(valueChanged)
+						(*valueChanged)++;
+
 					break;
 				case FIELDTYPE_SFColor:
 				case FIELDTYPE_SFNode:
@@ -1812,7 +1818,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
-					JS_SF_TO_X3D(cx, any, sfsize, sftype, vp); 
+					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
 					//JS_SF_TO_X3D(cx, any, sfsize, sftype, ptr->valueChanged, vp);
 					break;
 				default: printf ("invalid type in standardMFGetProperty method 2\n"); return JS_FALSE;
@@ -1852,6 +1858,8 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 						ptr->v->mfbool.n = newlength;
 					}
 					ptr->v->mfbool.p = (int*)mf_p;
+					if(valueChanged)
+						(*valueChanged)++;
 					return JS_TRUE;
 				}
 			}

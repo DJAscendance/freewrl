@@ -3567,7 +3567,7 @@ int sm_runQueuedDirectOutputs(){
 	static int doneOnce = 0;
 	if(!doneOnce){
 		//	printf("in runQueuedDirectOutputs\n");
-		printf("spidermonkey javascript engine version %ld\n", (long)JS_VERSION);
+		printf("spidermonkey javascript engine version %ld %s\n", (long)JS_VERSION, SM_method() == 2? "SM2" : "SM1");
 		doneOnce++;
 	}
 

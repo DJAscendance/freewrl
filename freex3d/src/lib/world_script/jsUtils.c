@@ -342,6 +342,22 @@ void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsv
 	}
 }
 
+void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval) {
+	AnyNative *ptr;
+	union anyVrml *anyv;
+
+	/* get a pointer to the internal private data */
+	if ((ptr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+		printf( "JS_GetPrivate failed in JS_SF_TO_X3D_B.\n");
+		return;
+	}
+	if(ptr->type != dataType){
+		printf("JS assigning type %d to %d failed\n",ptr->type,dataType);
+		return;
+	}
+	shallow_copy_field(dataType,ptr->v,Data);
+}
+
 void getJSMultiNumType(JSContext *, struct Multi_Vec3f *, int);
 
 /* make an MF type from the X3D node. This can be fairly slow... */

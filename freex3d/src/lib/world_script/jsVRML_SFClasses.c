@@ -3889,7 +3889,7 @@ SFVec2fAssign(JSContext *cx, uintN argc, jsval *vp) {
 		if (!JSVAL_IS_OBJECT(*vp))
 			return JS_FALSE;
         if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
-			printf("JS_ConvertArguments failed in SFVec3fAssign. \n");
+			printf("JS_ConvertArguments failed in SFVec2fAssign. \n");
 			return JS_FALSE;
         }
 		AnyNativeAssign(lhs,rhs);
