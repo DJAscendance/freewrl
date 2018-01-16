@@ -77,12 +77,25 @@ JS_MY_Finalize(JSContext *cx, JSObject *obj)
 	REMOVE_ROOT(cx,obj)
 
 	if ((ptr = (void *)JS_GetPrivate(cx, obj)) != NULL) {
+		/*
+		if(SM_method() == 0)
+			FREE_IF_NZ (ptr);
+		if(SM_method() == 2){
+			AnyNative *any = (AnyNative*)ptr;
+			if(any->gc) FREE_IF_NZ(any->v);
+		}
+
+		JS_SetPrivate(cx,obj,NULL);
 		FREE_IF_NZ(ptr);
+		*/
+	}
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	} else {
 		printf ("Finalize - no private data!\n");
-	#endif
 	}
+	#endif
+
 }
 
 
@@ -2144,7 +2157,7 @@ MFStringGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	}
 #endif
 	if(SM_method()==2){
-		return _standardMFGetProperty(cx, obj, id, vp,
+		return _standardMFGetProperty(cx, obj, iid, vp,
 			 "_FreeWRL_Internal = new SFString()",FIELDTYPE_MFString);
 
 	}

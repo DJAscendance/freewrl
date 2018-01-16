@@ -1868,6 +1868,7 @@ SFNodeFinalize(JSContext *cx, JSObject *obj)
 		}
 
 		FREE_IF_NZ (ptr);
+		JS_SetPrivate(cx,obj,NULL);
 	}
 }
 
@@ -2119,7 +2120,7 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 		node = lhs->v->sfnode;
 		ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
 		if(ifound){
-			valueChanged = NULL;
+			valueChanged = &node->_change;
 			if(node->_nodeType == NODE_Script){
 				//need one more thing - valueChanged
 				struct X3D_Script *scriptnode = X3D_SCRIPT(node);
@@ -2128,12 +2129,18 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 			sftype = type2SF(type);
 			sfsize = sizeofSForMF(sftype);
 			//set up a return value
-			if (JSVAL_IS_OBJECT(*vp)) {
+			//in js, null is an object
+			if( JSVAL_IS_NULL(*vp)){
+				if(type == FIELDTYPE_SFNode)
+					value->sfnode = NULL;
+				if(valueChanged)
+					(*valueChanged) ++;
+			} else if (JSVAL_IS_OBJECT(*vp)) {
 				AnyNative *rhs;
         		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
-					printf("in setECMANative, RHS was NOT native type \n");
+					//printf("in setECMANative, RHS was NOT native type \n");
         		}else{
-					printf("in setECMANative, RHS was native type \n");
+					//printf("in setECMANative, RHS was native type \n");
 					//can do an assign here
 					if(type == rhs->type){
 						if(valueChanged)
@@ -2154,6 +2161,7 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 				case FIELDTYPE_SFInt32:
 				case FIELDTYPE_SFString:
 					JS_ECMA_TO_X3D(cx, value,sfsize,type,vp);
+
 					if(valueChanged)
 						(*valueChanged)++;
 
@@ -3208,7 +3216,7 @@ SFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
 	ADD_ROOT(cx,obj)
 	if(SM_method() == 2){
 		AnyNative *any;
-		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec4f,NULL,NULL)) == NULL){
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFRotation,NULL,NULL)) == NULL){
 			printf( "AnyfNativeNew failed in SFRotationConstr.\n");
 			return JS_FALSE;
 		}
@@ -3881,7 +3889,7 @@ SFVec2fAssign(JSContext *cx, uintN argc, jsval *vp) {
 		if (!JSVAL_IS_OBJECT(*vp))
 			return JS_FALSE;
         if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
-			printf("JS_ConvertArguments failed in SFVec3fAssign. \n");
+			printf("JS_ConvertArguments failed in SFVec2fAssign. \n");
 			return JS_FALSE;
         }
 		AnyNativeAssign(lhs,rhs);
@@ -4679,6 +4687,32 @@ SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
 		cc[0] = 0.0f;
 		cc[1] = 0.0f;
 		cc[2] = 0.0f;
+	} else if(argc == 1){
+		if(SM_method() == 2){
+			int found = 0;
+			if (JSVAL_IS_OBJECT(argv[0])) {
+				AnyNative *rhs;
+        		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(argv[0]))) != NULL) {
+					union anyVrml *anyv = rhs->v;
+					int rhstype = rhs->type;
+					found = 1;
+					switch(rhstype){
+						case FIELDTYPE_SFVec3f:
+							veccopy3f(cc,anyv->sfvec3f.c); break;
+						case FIELDTYPE_SFVec3d:
+							double2float(cc,anyv->sfvec3d.c,3); break;
+						case FIELDTYPE_SFRotation:
+							veccopy3f(cc,anyv->sfrotation.c); break;
+						default:
+							vecset3f(cc,0.0f,0.0f,0.0f);
+							ConsoleMessage("new SFVec3f( obj ) doesn't handle obj type %d\n",rhstype);
+							found = 0;
+					}
+				}
+			}
+			if(!found)
+				return JS_FALSE;
+		}
 	} else {
 		if (!JS_ConvertArguments(cx, argc, argv, "d d d",
 				 &(pars[0]), &(pars[1]), &(pars[2]))) {

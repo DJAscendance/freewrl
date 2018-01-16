@@ -273,13 +273,16 @@ void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, j
 #endif
 
 			oldS = (struct Uni_String *) *((intptr_t *)Data);
+			if(oldS == NULL) {
+				*(struct Uni_String **)Data = newASCIIString(_id_c);
+			}else{
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("JS_ECMA_TO_X3D, replacing \"%s\" with \"%s\" \n", oldS->strptr, _id_c);
+				#endif
 
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("JS_ECMA_TO_X3D, replacing \"%s\" with \"%s\" \n", oldS->strptr, _id_c);
-			#endif
-
-			/* replace the C string if it needs to be replaced. */
-			verify_Uni_String (oldS,_id_c);
+				/* replace the C string if it needs to be replaced. */
+				verify_Uni_String (oldS,_id_c);
+			}
 #if JS_VERSION >= 185
 			JS_free(cx,_id_c);
 #endif
@@ -340,6 +343,22 @@ void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsv
 
 		default: {	printf("WARNING: SHOULD NOT BE HERE! %d\n",dataType); }
 	}
+}
+
+void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval) {
+	AnyNative *ptr;
+	union anyVrml *anyv;
+
+	/* get a pointer to the internal private data */
+	if ((ptr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+		printf( "JS_GetPrivate failed in JS_SF_TO_X3D_B.\n");
+		return;
+	}
+	if(ptr->type != dataType){
+		printf("JS assigning type %d to %d failed\n",ptr->type,dataType);
+		return;
+	}
+	shallow_copy_field(dataType,ptr->v,Data);
 }
 
 void getJSMultiNumType(JSContext *, struct Multi_Vec3f *, int);
