@@ -1776,7 +1776,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 		if (JSVAL_IS_INT(id)) {
 			// [index] property
 			char *mf_p;
-			int mf_n;
+			int mf_n, iupper;
 			int newlength;
 			int index = JSVAL_TO_INT(id);
 			if(index < 0) return JS_FALSE;
@@ -1784,16 +1784,16 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 			newlength = index + 1;
 			mf_n = ptr->v->mfbool.n;
 			mf_p = (char *)ptr->v->mfbool.p;
+			iupper = upper_power_of_two(newlength);
 			if(newlength > mf_n ) {
 				// in the setter, normally we realloc
 				if(mf_p == NULL){
-					mf_p = malloc(sfsize*upper_power_of_two(newlength));
-					memset(mf_p,0,sfsize);
+					mf_p = malloc(sfsize*iupper);
+					memset(mf_p,0,(size_t)sfsize*iupper);
 				}else{
 					int k;
-					mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
-					for(k=mf_n;k<newlength;k++)
-						memset(mf_p + (size_t)sfsize*k,0,sfsize);
+					mf_p = realloc(mf_p,(size_t)sfsize*iupper);
+					memset(mf_p + (size_t)sfsize*mf_n,0,(size_t)(iupper - mf_n)*sfsize);
 				}
 				ptr->v->mfbool.n = newlength;
 			}
@@ -1840,20 +1840,21 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				// length = ptr->v->mfbool.n;
 				if(JSVAL_IS_INT(*vp)){
 					char *mf_p;
-					int mf_n;
+					int mf_n, iupper;
 					int newlength = JSVAL_TO_INT(*vp);
 
 					mf_n = ptr->v->mfbool.n;
 					mf_p = (char *)ptr->v->mfbool.p;
+					iupper = upper_power_of_two(newlength);
 					if(newlength > mf_n ) {
 						// in the setter, normally we realloc
 						if(mf_p == NULL){
-							mf_p = malloc(sfsize*upper_power_of_two(newlength));
+							mf_p = malloc(sfsize*iupper);
+							memset(mf_p,0,(size_t)sfsize*iupper);
 						}else{
 							int k;
-							mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
-							for(k=mf_n;k<newlength;k++)
-								memset(mf_p + (size_t)sfsize*k,0,sfsize);
+							mf_p = realloc(mf_p,(size_t)sfsize*iupper);
+							memset(mf_p + (size_t)sfsize*mf_n,0,(size_t)(iupper - mf_n)*sfsize);
 						}
 						ptr->v->mfbool.n = newlength;
 					}

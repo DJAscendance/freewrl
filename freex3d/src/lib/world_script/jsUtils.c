@@ -273,13 +273,16 @@ void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, j
 #endif
 
 			oldS = (struct Uni_String *) *((intptr_t *)Data);
+			if(oldS == NULL) {
+				*(struct Uni_String **)Data = newASCIIString(_id_c);
+			}else{
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("JS_ECMA_TO_X3D, replacing \"%s\" with \"%s\" \n", oldS->strptr, _id_c);
+				#endif
 
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("JS_ECMA_TO_X3D, replacing \"%s\" with \"%s\" \n", oldS->strptr, _id_c);
-			#endif
-
-			/* replace the C string if it needs to be replaced. */
-			verify_Uni_String (oldS,_id_c);
+				/* replace the C string if it needs to be replaced. */
+				verify_Uni_String (oldS,_id_c);
+			}
 #if JS_VERSION >= 185
 			JS_free(cx,_id_c);
 #endif
