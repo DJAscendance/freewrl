@@ -2120,7 +2120,7 @@ SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 		node = lhs->v->sfnode;
 		ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
 		if(ifound){
-			valueChanged = NULL;
+			valueChanged = &node->_change;
 			if(node->_nodeType == NODE_Script){
 				//need one more thing - valueChanged
 				struct X3D_Script *scriptnode = X3D_SCRIPT(node);
