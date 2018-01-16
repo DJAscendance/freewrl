@@ -4705,6 +4705,7 @@ SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
 							veccopy3f(cc,anyv->sfrotation.c); break;
 						default:
 							vecset3f(cc,0.0f,0.0f,0.0f);
+							ConsoleMessage("new SFVec3f( obj ) doesn't handle obj type %d\n",rhstype);
 							found = 0;
 					}
 				}
