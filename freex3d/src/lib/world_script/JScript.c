@@ -453,6 +453,7 @@ void sm_JSCreateScriptContext(int num) {
 	printf("\tVRML browser initialized, thread %u\n",pthread_self());
 	#endif
 }
+int getJsEngineVariant();
 int SM_method(){
 	return getJsEngineVariant() == 2? 2 : 0;
 	//return 2; //new way dec 31, 2017
@@ -578,7 +579,7 @@ void AnyNativeAssign(void *top, void *fromp)
 		AnyNative *from = (AnyNative *)fromp;
 		if(to->type == from->type){
 			if(to->valueChanged)
-				*(to->valueChanged) ++;
+				(*to->valueChanged) ++;
 			//shallow assumes the top has already been malloced (just base part of MF needed)
 			//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
 			shallow_copy_field(from->type,from->v,to->v);
@@ -887,13 +888,13 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
 				#if defined(JS_THREADSAFE)
-				JS_BeginRequest(_context);
+				JS_BeginRequest(cx);
 				#endif
 				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
 					printf("sorry couldn't rename function: %s",runstring);
 				}
 				#if defined(JS_THREADSAFE)
-				JS_EndRequest(_context);
+				JS_EndRequest(cx);
 				#endif
 			}
 		}
