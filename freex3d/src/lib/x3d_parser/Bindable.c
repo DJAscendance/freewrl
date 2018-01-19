@@ -756,8 +756,8 @@ static void moveBackgroundCentre () {
 		transform(&p,&p,modi);
 		FW_GL_TRANSLATE_D(p.x,p.y,p.z);
 
-		LIGHTING_OFF
-
+		//LIGHTING_OFF
+		if(0){ //jan 2018
 		/* Get scale */
 		q = p;
 		q.x += 1.0;
@@ -771,8 +771,9 @@ static void moveBackgroundCentre () {
 		q.z += 1.0;
 		transform(&q,&q,mod);
 		sz = 1.0/sqrt( q.x*q.x + q.y*q.y + q.z*q.z );
+		}
 		/* Undo the translation and scale effects */
-		FW_GL_SCALE_D(sx,sy,sz);
+		// dug9 jan 2018: if(0)		FW_GL_SCALE_D(sx,sy,sz);
 		//printf("moveBackground new T %f %f %f new S %f %f %f\n",x,y,z,sx,sy,sz);
 		//printf("\n");
 	}
@@ -1082,10 +1083,15 @@ void render_Background (struct X3D_Background *node) {
 	   all geometry fits within the spheres 
 		dug9 Sept 2014: background could in theory be a tiny box or sphere that wraps around the avatar, if
 		you can draw it first on each frame _and_ turn off 'depth' when you draw it.   
+		dug9 Jan 2018: turned off scaling of background geom, and toggled depth test)
+			- due to problems with float coordinate rounding when doing a geoSpatial scene 
+			- (with GC geocentric) coords at rootnode when using geoViewpoint
+			- still problem with geo-horizon leveling of background (for near-ground)
 	*/
-	FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
-
+		//if(0) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+		glEnable(GL_DEPTH_TEST);
 		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+		LIGHTING_OFF
 
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
@@ -1100,6 +1106,7 @@ void render_Background (struct X3D_Background *node) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		finishedWithGlobalShader();
+		glDisable(GL_DEPTH_TEST);
 
 	/* now, for the textures, if they exist */
 	if (((node->backUrl).n>0) ||
