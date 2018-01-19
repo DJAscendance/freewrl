@@ -1089,7 +1089,7 @@ void render_Background (struct X3D_Background *node) {
 			- still problem with geo-horizon leveling of background (for near-ground)
 	*/
 		//if(0) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
-		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_DEPTH_TEST);
 		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 		LIGHTING_OFF
 
@@ -1106,7 +1106,7 @@ void render_Background (struct X3D_Background *node) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		finishedWithGlobalShader();
-		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST);
 
 	/* now, for the textures, if they exist */
 	if (((node->backUrl).n>0) ||
