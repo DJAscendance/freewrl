@@ -3344,7 +3344,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
-	if(1){
+	if(geo_method()==1){
 		//code changed March 2015 - started to get zbuffer problems with geoscenes
 		//viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
 		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
@@ -3732,6 +3732,7 @@ void fw_glRotateRad (GLDOUBLE angle, GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	matrotate(myMat,angle,x,y,z);
 
 	//printmatrix2 (myMat, "rotation matrix");
+
 	matmultiplyAFFINE(p->currentMatrix,myMat,p->currentMatrix);
 
 	//printmatrix2 (p->currentMatrix,"currentMatrix after rotate");

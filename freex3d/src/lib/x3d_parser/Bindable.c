@@ -731,20 +731,22 @@ static void moveBackgroundCentre () {
 		FW_GLU_UNPROJECT(0.0f,0.0f,0.0f,mod,proj,viewport,&x,&y,&z);
 		FW_GL_TRANSLATE_D(x,y,z);
 
-		LIGHTING_OFF
+		if(0){
+			if(0) LIGHTING_OFF
 
-		FW_GLU_UNPROJECT(0.0f,0.0f,0.0f,mod,unit,viewport,&x,&y,&z);
-		/* Get scale */
-		FW_GLU_PROJECT(x+1,y,z,mod,unit,viewport,&x1,&y1,&z1);
-		sx = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
-		FW_GLU_PROJECT(x,y+1,z,mod,unit,viewport,&x1,&y1,&z1);
-		sy = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
-		FW_GLU_PROJECT(x,y,z+1,mod,unit,viewport,&x1,&y1,&z1);
-		sz = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
+			FW_GLU_UNPROJECT(0.0f,0.0f,0.0f,mod,unit,viewport,&x,&y,&z);
+			/* Get scale */
+			FW_GLU_PROJECT(x+1,y,z,mod,unit,viewport,&x1,&y1,&z1);
+			sx = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
+			FW_GLU_PROJECT(x,y+1,z,mod,unit,viewport,&x1,&y1,&z1);
+			sy = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
+			FW_GLU_PROJECT(x,y,z+1,mod,unit,viewport,&x1,&y1,&z1);
+			sz = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
 
-		/* Undo the translation and scale effects */
-		FW_GL_SCALE_D(sx,sy,sz);
-		//printf("moveBackground old T %f %f %f old S %f %f %f\n",x,y,z,sx,sy,sz);
+			/* Undo the translation and scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+			//printf("moveBackground old T %f %f %f old S %f %f %f\n",x,y,z,sx,sy,sz);
+		}
 	}
 	if(1){
 		//feature-AFFINE_GLU_UNPROJECT
@@ -755,7 +757,7 @@ static void moveBackgroundCentre () {
 		matinverseAFFINE(modi,mod);
 		transform(&p,&p,modi);
 		FW_GL_TRANSLATE_D(p.x,p.y,p.z);
-
+		//printf("moveBackground new T %f %f %f \n",p.x,p.y,p.z);
 		//LIGHTING_OFF
 		if(0){ //jan 2018
 		/* Get scale */

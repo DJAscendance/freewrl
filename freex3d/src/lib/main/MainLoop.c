@@ -5899,6 +5899,11 @@ void setup_viewpoint_part3() {
 	//	viewer->isStereo = bstack->isStereo;
 	//	viewer->iside = iside;
 	//}
+	//if(0){
+	//	printmatrix2(bstack->screenorientationmatrix,"screenOrientationMatrix");
+	//	printmatrix2(bstack->posorimatrix,"posorimatrix");
+	//	printmatrix2(bstack->viewtransformmatrix,"viewmatrix");
+	//}
 	//multiply it all together, and capture any slerp
 	//Feb 2016 - I think we should slerp the main/normal position of the viewpoint. 
 	// - then if its stereo, offset by half-base during rendernig or picking
