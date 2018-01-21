@@ -5566,6 +5566,7 @@ void generate_GeneratedCubeMapTextures();
 /* Render the scene */
 static void render()
 {
+	//warning you must also maintain generate_GeneratedCubeMapTextures() which is a hacked clone of this function
 	int count;
 	static double shuttertime;
 	static int shutterside;
