@@ -127,7 +127,7 @@ extern char *BrowserFullPath;
 #define VF_HideRight                 0x4000 /*stereo don't draw on right side*/
 #define VF_USE						 0x8000 /*for 2-node scenarios like pickingsensor and transform sensor, signals a node_USE to save its modelview matrix for do_handling*/
 #define VF_Cube                      0x10000 //when generating generatedcubemap texture to fbo (don't render generatedcubemap parent nodes)
-
+#define VF_Background				0x20000
 /* for z depth buffer calculations */
 #define DEFAULT_NEARPLANE 0.07
 #define DEFAULT_FARPLANE 21000.0
@@ -786,7 +786,7 @@ void freewrlDie(const char *format);
 
 //extern int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
 typedef struct trenderstate{
-int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision,render_cube;
+int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision,render_cube,render_background;
 }* ttrenderstate;
 //extern struct trenderstate renderstate;
 ttrenderstate renderstate();

@@ -5622,6 +5622,7 @@ static void render()
 		//BackEndLightsOff();
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
+		render_bound_background();
 
 		/*  turn light #0 off only if it is not a headlight.*/
 		if (!fwl_get_headlight()) {
@@ -5854,7 +5855,7 @@ void setup_viewpoint_part2() {
 	boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint();
 	if(boundvp)
 		boundvp->_donethispass = 0; //used in prep_Viewpoint
-	render_hier(rootNode(), VF_Viewpoint);
+	render_hier(rootNode(), VF_Viewpoint | VF_Background);
 	if(boundvp)
 		boundvp->_donethispass = 0; //used in prep_Viewpoint
 	//printf("\n<<<part2\n");

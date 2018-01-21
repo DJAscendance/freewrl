@@ -355,11 +355,12 @@ our %defaultContainerType = (
 #	actually affect triangles/lines on the screen.
 #
 # All of these will have a render_xxx name associated with them.
+#	Background
+#	TextureBackground
+
 
 our %RendC = map {($_=>1)} qw/
 	Fog
-	Background
-	TextureBackground
 	Box
 	Cylinder
 	Cone

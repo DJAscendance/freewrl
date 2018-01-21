@@ -965,18 +965,20 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			/* we have an image specified for this face */
 			gglobal()->RenderFuncs.textureStackTop = 0;
 			/* render the proper texture */
+			push_render_geom(1);
 			render_node(X3D_NODE(thistex));
-		        //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
-				textureTransform_start();
-				setupShaderB();
+			pop_render_geom();
+		    //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
+			textureTransform_start();
+			setupShaderB();
 
-        		textureCoord_send(&mtf);
-        		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,BackgroundVert);
-        		FW_GL_NORMAL_POINTER(GL_FLOAT,0,Backnorms);
+        	textureCoord_send(&mtf);
+        	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,BackgroundVert);
+        	FW_GL_NORMAL_POINTER(GL_FLOAT,0,Backnorms);
 
-        		sendArraysToGPU (GL_TRIANGLES, count*6, 6);
-				reallyDraw();
-				textureTransform_end();
+        	sendArraysToGPU (GL_TRIANGLES, count*6, 6);
+			reallyDraw();
+			textureTransform_end();
 
 		}
 	}
