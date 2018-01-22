@@ -3356,7 +3356,12 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 			viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
 			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 		}
+	} else { 
+		//geo_method == 2
+		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
+		viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 	}
+
 	if(0){
 		//pre- march 2015 code, with one line changed, worked for most geo scenes
 		viewer->nearPlane = cnp;

@@ -805,12 +805,12 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	hdiv = 20;
 
 	/* We draw spheres, one for the sky, one for the ground - outsideRadius and insideRadius */
-	outsideRadius =  DEFAULT_FARPLANE* 0.750;
-	insideRadius = DEFAULT_FARPLANE * 0.50;
+	//outsideRadius =  DEFAULT_FARPLANE* 0.750;
+	//insideRadius = DEFAULT_FARPLANE * 0.50;
 
 	/* lets try these values - we will scale when we draw this */
-	outsideRadius = 1.0;
-	insideRadius = 0.5;
+	outsideRadius = 1.1;// 1.0;
+	insideRadius = 1.05; // 0.5;
 
 	/* handle Background and TextureBackgrounds here */
 	if (node->_nodeType == NODE_Background) {
@@ -1150,13 +1150,23 @@ void render_Background_OLD (struct X3D_Background *node) {
 //	}
 //}
 void render_prepped_Background(struct X3D_Background *node){
+	double bgscale;
 	ttglobal tg = gglobal();
 	X3D_Viewer *viewer = Viewer();
 
 	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
-	moveBackgroundCentre();
+
+	if(0){
+		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
+		moveBackgroundCentre();
+	}else{
+		//instead of transforming back to viewpoint, can we just replace transform top-of-stack with identity?
+		//problem: then the horizon (or orientation with texture background)- doesn't change with a tilt (or yaw) 
+		FW_GL_PUSH_MATRIX();
+		FW_GL_LOAD_IDENTITY();
+	}
 
 	if (NODE_NEEDS_COMPILING) {
 		recalculateBackgroundVectors(node);
@@ -1172,6 +1182,10 @@ void render_prepped_Background(struct X3D_Background *node){
 			- still problem with geo-horizon leveling of background (for near-ground)
 	*/
 	//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	bgscale = 1.0;
+	if( viewer->nearPlane >= bgscale*.9) bgscale = viewer->nearPlane*1.1;
+	FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+	//printf("nearplane=%lf",viewer->nearPlane);
 	glDisable(GL_DEPTH_TEST);
 
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
@@ -1248,23 +1262,23 @@ void render_TextureBackground_OLD (struct X3D_TextureBackground *node) {
 
 	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
 	   all geometry fits within the spheres */
-	FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	glDisable(GL_DEPTH_TEST);
 
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 
-		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
-		//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-		FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-		FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
-
-		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-		reallyDraw();
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-		finishedWithGlobalShader();
+	sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
+	reallyDraw();
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
 
 	/* now, for the textures, if they exist */
 	if ((node->backTexture !=0) ||
@@ -1282,7 +1296,9 @@ void render_TextureBackground_OLD (struct X3D_TextureBackground *node) {
 		loadTextureBackgroundTextures(node);
 
 		finishedWithGlobalShader();
+
 	}
+	glEnable(GL_DEPTH_TEST);
 
 	/* pushes are done in moveBackgroundCentre */
 	FW_GL_POP_MATRIX();
@@ -1305,6 +1321,8 @@ void render_TextureBackground_OLD (struct X3D_TextureBackground *node) {
 //	}
 //}
 void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
+	double bgscale;
+	X3D_Viewer *viewer = Viewer();
 	ttglobal tg = gglobal();
 
 	/* is fog enabled? if so, disable it right now */
@@ -1320,23 +1338,26 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
 	   all geometry fits within the spheres */
 	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	bgscale = 1.0;
+	if( viewer->nearPlane > bgscale) bgscale = viewer->nearPlane;
+	FW_GL_SCALE_D (bgscale, bgscale, bgscale);
 
-		glDisable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 
-		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
-		//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-		FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-		FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-		reallyDraw();
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-		finishedWithGlobalShader();
+	sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
+	reallyDraw();
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
 
 	/* now, for the textures, if they exist */
 	if ((node->backTexture !=0) ||
@@ -1348,8 +1369,6 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 
 
 		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
-
-
 
 		loadTextureBackgroundTextures(node);
 
