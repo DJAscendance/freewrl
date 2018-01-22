@@ -883,7 +883,7 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		va1 = 0;
 		va2 = PI/2;
 
-		for(v=0; v<2; v++) {
+		for(v=0; v < 2; v++) {
 			for(h=0; h<hdiv; h++) {
 				ha1 = h * PI*2 / hdiv;
 				ha2 = (h+1) * PI*2 / hdiv;
@@ -1158,7 +1158,7 @@ void render_prepped_Background(struct X3D_Background *node){
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
 
-	if(0){
+	if(1){
 		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
 		moveBackgroundCentre();
 	}else{
@@ -1183,9 +1183,9 @@ void render_prepped_Background(struct X3D_Background *node){
 	*/
 	//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
 	bgscale = 1.0;
-	if( viewer->nearPlane >= bgscale*.9) bgscale = viewer->nearPlane*1.1;
+	if( viewer->nearPlane >= bgscale*.3) bgscale = viewer->nearPlane*2.0;
 	FW_GL_SCALE_D (bgscale, bgscale, bgscale);
-	//printf("nearplane=%lf",viewer->nearPlane);
+	static int nframes = 0;
 	glDisable(GL_DEPTH_TEST);
 
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));

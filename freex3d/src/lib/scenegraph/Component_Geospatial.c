@@ -140,7 +140,7 @@ int isNodeGeospatial(struct X3D_Node* node){
 	mOUT.n=0; mOUT.p = NULL; \
 	gdCoords.n=0; gdCoords.p = NULL;
 
-#define MF_FIELD_IN_OUT &mIN, &mOUT, &gdCoords
+//#define MF_FIELD_IN_OUT &mIN, &mOUT, &gdCoords
 #define COPY_MF_TO_SF(myNode, myField) \
 	myNode-> myField .c[0] = mOUT.p[0].c[0]; \
 	myNode-> myField .c[1] = mOUT.p[0].c[1]; \
@@ -228,7 +228,7 @@ int isNodeGeospatial(struct X3D_Node* node){
 #define GEOSP_WE_F	(double)298.257223563
 
 #define ELLIPSOID(typ) \
-	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
+	Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
 
 #define UTM_ELLIPSOID(typ) \
 	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[2], TRUE); \
@@ -688,6 +688,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 	/* GD Geosystem - copy coordinates, and convert them to GC */
 	switch (geoSystem->p[0]) {
 		case  GEOSP_GD:
+			{
 				/* GD_Gd_Gc_convert (inCoords, outCoords); */
 				switch (geoSystem->p[1]) {
 					ELLIPSOID(GEOSP_AA)
@@ -743,6 +744,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 							//gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
 						}
 				}
+			}
 			break;
 		case GEOSP_GC:
 			/* an earth-fixed geocentric coord; no conversion required for gc value returns */
@@ -820,7 +822,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 		if NODE_NEEDS_COMPILING {
 			compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
 			INIT_MF_FROM_SF(node,geoCoords)
-			moveCoords(X3D_PROTO(node->_executionContext)->__specversion,&node->__geoSystem, MF_FIELD_IN_OUT);
+			moveCoords(X3D_PROTO(node->_executionContext)->__specversion,&node->__geoSystem, &mIN, &mOUT, &gdCoords);
 			COPY_MF_TO_SF(node, __movedCoords)
 
 			if(node->rotateYUp == TRUE)
@@ -2749,10 +2751,13 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	USE_SET_SFROTATION_IF_CHANGED(set_orientation,orientation)  
 
 	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
+	//INITIALIZE_GEOSPATIAL(node)
+	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
+	//COMPILE_GEOSYSTEM(node)
+	compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
 	INIT_MF_FROM_SF(node, position)
-	MOVE_TO_ORIGIN(node)
+	//MOVE_TO_ORIGIN(node)
+	GeoMove(X3D_NODE(node),X3D_GEOORIGIN(node->geoOrigin), &node->__geoSystem, &mIN, &mOUT, &gdCoords);
 	COPY_MF_TO_SF(node, __movedPosition)
 
 	/* work out the local orientation and copy doubles to floats */
