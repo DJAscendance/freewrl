@@ -2726,7 +2726,7 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /************************************************************************/
 int geo_method(){
 	//1= before 2018, scene root in GC, 2= Jan 21 2018, scene root in geo vp LC (no LC-GC) 3= (not yet implemented)
-	return 1;
+	return 2;
 }
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	int specversion;
