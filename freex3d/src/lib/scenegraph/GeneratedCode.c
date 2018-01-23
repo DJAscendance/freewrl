@@ -875,7 +875,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"set_intersectionType",
 	"set_normalIndex",
 	"set_orientation",
-	"set_position",
 	"set_scale",
 	"set_sortOrder",
 	"set_spine",
@@ -1206,7 +1205,6 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"set_intersectionType",
 	"set_normalIndex",
 	"set_orientation",
-	"set_position",
 	"set_scale",
 	"set_sortOrder",
 	"set_spine",
@@ -4752,8 +4750,6 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES_orientation, (int) offsetof (struct X3D_GeoViewpoint, orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_GeoViewpoint, position),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES_centerOfRotation, (int) offsetof (struct X3D_GeoViewpoint, centerOfRotation),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) ( SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_set_orientation, (int) offsetof (struct X3D_GeoViewpoint, set_orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
-	(int) FIELDNAMES_set_position, (int) offsetof (struct X3D_GeoViewpoint, set_position),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_headlight, (int) offsetof (struct X3D_GeoViewpoint, headlight),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_navType, (int) offsetof (struct X3D_GeoViewpoint, navType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoViewpoint, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
@@ -9819,8 +9815,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->orientation.c[0] = 0;tmp2->orientation.c[1] = 0;tmp2->orientation.c[2] = 1;tmp2->orientation.c[3] = 0;;
 			tmp2->position.c[0] = 0;tmp2->position.c[1] = 0;tmp2->position.c[2] = 100000;;
 			tmp2->centerOfRotation.c[0] = 0;tmp2->centerOfRotation.c[1] = 0;tmp2->centerOfRotation.c[2] = 0;;
-			tmp2->set_orientation.c[0] = IO_FLOAT;tmp2->set_orientation.c[1] = IO_FLOAT;tmp2->set_orientation.c[2] = IO_FLOAT;tmp2->set_orientation.c[3] = IO_FLOAT;;
-			tmp2->set_position.c[0] = IO_FLOAT;tmp2->set_position.c[1] = IO_FLOAT;tmp2->set_position.c[2] = IO_FLOAT;;
 			tmp2->headlight = TRUE;
 			tmp2->navType.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->navType.p[0] = newASCIIString("EXAMINE");tmp2->navType.p[1] = newASCIIString("ANY");tmp2->navType.n=2; ;
 			tmp2->geoOrigin = NULL;

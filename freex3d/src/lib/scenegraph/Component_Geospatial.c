@@ -1037,7 +1037,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 	}
 }
 
-static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct SFVec3d *offset, 
+static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct SFVec3d *offset, struct SFRotation *yup,
 	struct SFVec3d *inCoords, int n, struct SFVec3d *outCoords, struct SFVec3d *gdCoords) {
 	int i;
 
@@ -1158,6 +1158,13 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 			return;
 
 	}
+	if(offset){
+		//take offset off GC coords
+		if(yup){
+			//rotate 
+		}
+
+	}
 }
 
 
@@ -1185,10 +1192,10 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 
 		if NODE_NEEDS_COMPILING {
 			struct SFVec3d gdCoords;
-			struct SFVec3d offset;
+			//struct SFVec3d offset;
 			compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
 			//INIT_MF_FROM_SF(node,geoCoords)
-			moveCoords3d(X3D_PROTO(node->_executionContext)->__specversion,&node->__geoSystem, &offset,
+			moveCoords3d(X3D_PROTO(node->_executionContext)->__specversion,&node->__geoSystem, NULL, NULL,
 					&node->geoCoords,1, &node->__movedCoords, &gdCoords);
 			//COPY_MF_TO_SF(node, __movedCoords)
 
@@ -1313,11 +1320,11 @@ static void GeoMove(struct X3D_Node *node, struct X3D_GeoOrigin *geoOrigin, stru
 		myOrigin->geoCoords.c[0], myOrigin->geoCoords.c[1], myOrigin->geoCoords.c[2] ); */ 
 		
 	//moveCoords(X3D_PROTO(node->_executionContext)->__specversion,geoSystem, inCoords, outCoords, gdCoords);
-	struct SFVec3d offset;
-	vecsetd(offset.c,0.0,0.0,0.0);
+	//struct SFVec3d offset;
+	//vecsetd(offset.c,0.0,0.0,0.0);
 	//if(myOrigin)
 	//	veccopyd(offset.c,myOrigin->__movedCoords.c); //is this right?
-	moveCoords3d(X3D_PROTO(node->_executionContext)->__specversion,geoSystem, &offset, 
+	moveCoords3d(X3D_PROTO(node->_executionContext)->__specversion,geoSystem, NULL, NULL, 
 		inCoords->p, inCoords->n, outCoords->p, gdCoords->p);
 
 	for (i=0; i<outCoords->n; i++) {
@@ -3120,6 +3127,9 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	Quaternion localQuat;
 	Quaternion relQuat;
 	Quaternion combQuat;
+	//struct SFVec3d gdCoord;
+	struct SFVec3d offset, *poffset;
+	Quaternion yup, *pyup;
 	MF_SF_TEMPS
 
 	#ifdef VERBOSE
@@ -3127,10 +3137,11 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	if (node->geoOrigin!=NULL) printf ("type %s\n",stringNodeType(X3D_GEOORIGIN(node->geoOrigin)->_nodeType));
 	#endif
 
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
 
-	/* did any of the "set_" inputOnly fields get set?  if not, just use the non-set fields */
-	USE_SET_SFVEC3D_IF_CHANGED(set_position,position)
-	USE_SET_SFROTATION_IF_CHANGED(set_orientation,orientation)  
+	// v3.3 regular fields are [inout] now /* did any of the "set_" inputOnly fields get set?  if not, just use the non-set fields */
+	//USE_SET_SFVEC3D_IF_CHANGED(set_position,position)
+	//USE_SET_SFROTATION_IF_CHANGED(set_orientation,orientation)  
 
 	/* work out the position */
 	//INITIALIZE_GEOSPATIAL(node)
@@ -3140,6 +3151,19 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	INIT_MF_FROM_SF(node, position)
 	//MOVE_TO_ORIGIN(node)
 	GeoMove(X3D_NODE(node),X3D_GEOORIGIN(node->geoOrigin), &node->__geoSystem, &mIN, &mOUT, &gdCoords);
+	/*
+	pyup = NULL;
+	poffset = NULL;
+	if(specversion < 33 && X3D_GEOORIGIN(node->geoOrigin)){
+		struct X3D_GeoOrigin * gor = X3D_GEOORIGIN(node->geoOrigin);
+		veccopyd(offset.c,gor->__movedCoords.c);
+		poffset = &offset;
+		veccopy4d(yup,gor->__rotyup);
+		if(gor->rotateYUp) pyup = &yup;
+	}
+	moveCoords3d(specversion,&node->__geoSystem, poffset, pyup, 
+		&node->position, 1, &node->__movedPosition, &gdCoords);
+	*/
 	COPY_MF_TO_SF(node, __movedPosition)
 	//movedPosition is the initial postion, in GC coords
 	/* work out the local orientation and copy doubles to floats */
