@@ -227,10 +227,45 @@ int isNodeGeospatial(struct X3D_Node* node){
 #define GEOSP_WE_A	(double)6378137
 #define GEOSP_WE_F	(double)298.257223563
 
+
+#define ELLIPSOIDB(typ) \
+	case typ: *semimajor = typ##_A; *eccentricity = typ##_F; break;
+
+int getEllipsoidParams(int etype, double *semimajor, double *eccentricity){
+	int iret = 0;
+	*semimajor = *eccentricity = 0.0;
+	switch (etype) {
+		ELLIPSOIDB(GEOSP_AA)
+		ELLIPSOIDB(GEOSP_AM)
+		ELLIPSOIDB(GEOSP_AN)
+		ELLIPSOIDB(GEOSP_BN)
+		ELLIPSOIDB(GEOSP_BR)
+		ELLIPSOIDB(GEOSP_CC)
+		ELLIPSOIDB(GEOSP_CD)
+		ELLIPSOIDB(GEOSP_EA)
+		ELLIPSOIDB(GEOSP_EB)
+		ELLIPSOIDB(GEOSP_EC)
+		ELLIPSOIDB(GEOSP_ED)
+		ELLIPSOIDB(GEOSP_EE)
+		ELLIPSOIDB(GEOSP_EF)
+		ELLIPSOIDB(GEOSP_FA)
+		ELLIPSOIDB(GEOSP_HE)
+		ELLIPSOIDB(GEOSP_HO)
+		ELLIPSOIDB(GEOSP_ID)
+		ELLIPSOIDB(GEOSP_IN)
+		ELLIPSOIDB(GEOSP_KA)
+		ELLIPSOIDB(GEOSP_RF)
+		ELLIPSOIDB(GEOSP_SA)
+		ELLIPSOIDB(GEOSP_WD)
+		ELLIPSOIDB(GEOSP_WE)
+		default: printf ("unknown ellipsoid type: %s\n", stringGEOSPATIALType(etype));
+	}
+	if(*semimajor > 0.0) iret = 1;
+	return iret;
+}
+
 #define ELLIPSOID(typ) \
 	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
-#define ELLIPSOIDB(typ) \
-	case typ: semimajor = typ##_A; eccentricity = typ##_F; break;
 
 #define UTM_ELLIPSOID(typ) \
 	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[2], TRUE); \
@@ -1037,7 +1072,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 	}
 }
 
-static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct SFVec3d *offset, struct SFRotation *yup,
+static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct SFVec3d *offset, Quaternion *yup,
 	struct SFVec3d *inCoords, int n, struct SFVec3d *outCoords, struct SFVec3d *gdCoords) {
 	int i;
 
@@ -1048,33 +1083,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				/* GD_Gd_Gc_convert (inCoords, outCoords); */
 				double semimajor, eccentricity;
 				semimajor = eccentricity = 0.0;
-				switch (geoSystem->p[1]) {
-					ELLIPSOIDB(GEOSP_AA)
-					ELLIPSOIDB(GEOSP_AM)
-					ELLIPSOIDB(GEOSP_AN)
-					ELLIPSOIDB(GEOSP_BN)
-					ELLIPSOIDB(GEOSP_BR)
-					ELLIPSOIDB(GEOSP_CC)
-					ELLIPSOIDB(GEOSP_CD)
-					ELLIPSOIDB(GEOSP_EA)
-					ELLIPSOIDB(GEOSP_EB)
-					ELLIPSOIDB(GEOSP_EC)
-					ELLIPSOIDB(GEOSP_ED)
-					ELLIPSOIDB(GEOSP_EE)
-					ELLIPSOIDB(GEOSP_EF)
-					ELLIPSOIDB(GEOSP_FA)
-					ELLIPSOIDB(GEOSP_HE)
-					ELLIPSOIDB(GEOSP_HO)
-					ELLIPSOIDB(GEOSP_ID)
-					ELLIPSOIDB(GEOSP_IN)
-					ELLIPSOIDB(GEOSP_KA)
-					ELLIPSOIDB(GEOSP_RF)
-					ELLIPSOIDB(GEOSP_SA)
-					ELLIPSOIDB(GEOSP_WD)
-					ELLIPSOIDB(GEOSP_WE)
-					default: printf ("unknown 3 Gd_Gc: %s\n", stringGEOSPATIALType(geoSystem->p[1]));
-				}
-				if(semimajor > 0.0)
+				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity))
 					Gd_Gc3d(specversion,inCoords,n,outCoords,semimajor,eccentricity,geoSystem->p[3], geoSystem->p[4]);
 
 				/* now, for the GD coord return values; is this in the correct format for calculating 
@@ -1120,34 +1129,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
 				double semimajor, eccentricity;
-				semimajor = eccentricity = 0.0;
-				switch (geoSystem->p[1]) {
-					ELLIPSOIDB(GEOSP_AA)
-					ELLIPSOIDB(GEOSP_AM)
-					ELLIPSOIDB(GEOSP_AN)
-					ELLIPSOIDB(GEOSP_BN)
-					ELLIPSOIDB(GEOSP_BR)
-					ELLIPSOIDB(GEOSP_CC)
-					ELLIPSOIDB(GEOSP_CD)
-					ELLIPSOIDB(GEOSP_EA)
-					ELLIPSOIDB(GEOSP_EB)
-					ELLIPSOIDB(GEOSP_EC)
-					ELLIPSOIDB(GEOSP_ED)
-					ELLIPSOIDB(GEOSP_EE)
-					ELLIPSOIDB(GEOSP_EF)
-					ELLIPSOIDB(GEOSP_FA)
-					ELLIPSOIDB(GEOSP_HE)
-					ELLIPSOIDB(GEOSP_HO)
-					ELLIPSOIDB(GEOSP_ID)
-					ELLIPSOIDB(GEOSP_IN)
-					ELLIPSOIDB(GEOSP_KA)
-					ELLIPSOIDB(GEOSP_RF)
-					ELLIPSOIDB(GEOSP_SA)
-					ELLIPSOIDB(GEOSP_WD)
-					ELLIPSOIDB(GEOSP_WE)
-					default: printf ("unknown 4 Gd_Gc: %s\n", stringGEOSPATIALType(geoSystem->p[1]));
-				}
-				if(semimajor > 0.0){
+				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
 					Utm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[3], geoSystem->p[2], TRUE);
 					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, geoSystem->p[3], geoSystem->p[4]);
 				}
@@ -1158,12 +1140,17 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 			return;
 
 	}
-	if(offset){
-		//take offset off GC coords
-		if(yup){
-			//rotate 
+	if(offset || yup){
+		if(offset)
+		for(i=0;i<n;i++){
+			//take offset off GC coords
+			vecdifd(outCoords[i].c,outCoords[i].c,offset->c); 
 		}
-
+		if(yup)
+		for(i=0;i<n;i++){
+			//take offset off GC coords
+			quaternion_rotationd(outCoords[i].c,yup,outCoords[i].c);
+		}
 	}
 }
 
@@ -3127,10 +3114,9 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	Quaternion localQuat;
 	Quaternion relQuat;
 	Quaternion combQuat;
-	//struct SFVec3d gdCoord;
+	struct SFVec3d gdCoord;
 	struct SFVec3d offset, *poffset;
 	Quaternion yup, *pyup;
-	MF_SF_TEMPS
 
 	#ifdef VERBOSE
 	printf ("compileViewpoint is %u, its geoOrigin is %u \n",node, node->geoOrigin);
@@ -3148,38 +3134,55 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 	//COMPILE_GEOSYSTEM(node)
 	compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
-	INIT_MF_FROM_SF(node, position)
-	//MOVE_TO_ORIGIN(node)
-	GeoMove(X3D_NODE(node),X3D_GEOORIGIN(node->geoOrigin), &node->__geoSystem, &mIN, &mOUT, &gdCoords);
-	/*
-	pyup = NULL;
-	poffset = NULL;
-	if(specversion < 33 && X3D_GEOORIGIN(node->geoOrigin)){
-		struct X3D_GeoOrigin * gor = X3D_GEOORIGIN(node->geoOrigin);
-		veccopyd(offset.c,gor->__movedCoords.c);
-		poffset = &offset;
-		veccopy4d(yup,gor->__rotyup);
-		if(gor->rotateYUp) pyup = &yup;
+	// debate: should the v3.3 self-origin be A. translated and rotated
+	// or should it be B. captured as the translation and rotation for other things
+	if(0){
+		//old way
+		MF_SF_TEMPS
+		INIT_MF_FROM_SF(node, position)
+		//MOVE_TO_ORIGIN(node)
+		GeoMove(X3D_NODE(node),X3D_GEOORIGIN(node->geoOrigin), &node->__geoSystem, &mIN, &mOUT, &gdCoords);
+		veccopyd(gdCoord.c,gdCoords.p[0].c);
+		COPY_MF_TO_SF(node, __movedPosition)
+		FREE_MF_SF_TEMPS
+	}else{
+		//v3.3 way - autoOrigin - B. capture as the self-origin
+		pyup = NULL;
+		poffset = NULL;
+		if(specversion < 330 && X3D_GEOORIGIN(node->geoOrigin)){
+			double *cc;
+			struct X3D_GeoOrigin * gor = X3D_GEOORIGIN(node->geoOrigin);
+			veccopyd(offset.c,gor->__movedCoords.c);
+			poffset = &offset;
+			cc = gor->__rotyup.c;
+			//veccopy4d(&yup,gor->__rotyup.c); //yikes what is this stuff
+			vrmlrot_to_quaternion(&yup,cc[0],cc[1],cc[2],-cc[3]);
+			if(gor->rotateYUp) pyup = &yup;
+		}
+		moveCoords3d(specversion,&node->__geoSystem, poffset, pyup, 
+			&node->position, 1, &node->__movedPosition, &gdCoord);
+
 	}
-	moveCoords3d(specversion,&node->__geoSystem, poffset, pyup, 
-		&node->position, 1, &node->__movedPosition, &gdCoords);
-	*/
-	COPY_MF_TO_SF(node, __movedPosition)
+	//printf("geoVP moved GC position=%lf %lf %lf\n",node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
+
 	//movedPosition is the initial postion, in GC coords
 	/* work out the local orientation and copy doubles to floats */
-	specversion = X3D_PROTO(node->_executionContext)->__specversion;
-	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &localOrient);
+	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoord, &localOrient);
+	//if(specversion >= 330){
+	//	veccopyd(node->autoOffset,c,node->__movedPosition.c);
+	//	veccopy4d(node->autoOrient.c,localOrient.c);
+	//}
 
 	/* Quaternize the local Geospatial quaternion, and the specified rotation from the GeoViewpoint orientation field */
 	vrmlrot_to_quaternion (&localQuat, localOrient.c[0], localOrient.c[1], localOrient.c[2], localOrient.c[3]);
 	vrmlrot_to_quaternion (&relQuat, node->orientation.c[0], node->orientation.c[1], node->orientation.c[2], node->orientation.c[3]);
 
 	/* add these together */
-        quaternion_add (&combQuat, &relQuat, &localQuat);
+	quaternion_add (&combQuat, &relQuat, &localQuat);
 
 	/* get the rotation; 2 steps to convert doubles to floats;
            should be quaternion_to_vrmlrot(&combQuat, &node->__movedOrientation.c[0]... */
-        quaternion_to_vrmlrot(&combQuat, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
+	quaternion_to_vrmlrot(&combQuat, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
 	for (i=0; i<4; i++) node->__movedOrientation.c[i] = (float) orient.c[i];
 
         #ifdef VERBOSE
@@ -3196,7 +3199,6 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
         #endif
 
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
 	
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoViewpoint, metadata)) */
