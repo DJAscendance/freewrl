@@ -3344,7 +3344,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
-	if(geo_method()==1){
+	if(0){
 		//code changed March 2015 - started to get zbuffer problems with geoscenes
 		//viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
 		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
@@ -3356,10 +3356,12 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 			viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
 			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 		}
-	} else { 
-		//geo_method == 2
+	} 
+	if(1) { 
+		//2018 render_background reworked to render before other nodes, and render close to frontplane, with depth off
+		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
 		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		// NOT USED 2018 viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 	}
 
 	if(0){
@@ -6876,7 +6878,7 @@ void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOU
 	//printmatrix2(ndp,"ndp = ndp2*dp");
 
 	/* method = 1; */
-	 FW_GL_LOADMATRIX(ndp);
+//	 FW_GL_LOADMATRIX(ndp);
 	/* put the matrix back on our matrix stack */
 	memcpy (p->FW_ProjectionView[p->projectionviewTOS],ndp,16*sizeof (GLDOUBLE));
 }

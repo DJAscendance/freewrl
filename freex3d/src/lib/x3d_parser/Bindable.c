@@ -809,8 +809,8 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	//insideRadius = DEFAULT_FARPLANE * 0.50;
 
 	/* lets try these values - we will scale when we draw this */
-	outsideRadius = 1.1;// 1.0;
-	insideRadius = 1.05; // 0.5;
+	outsideRadius = 1.001;// 1.0;
+	insideRadius = 1.0005; // 0.5;
 
 	/* handle Background and TextureBackgrounds here */
 	if (node->_nodeType == NODE_Background) {
@@ -1149,8 +1149,11 @@ void render_Background_OLD (struct X3D_Background *node) {
 //		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->background);
 //	}
 //}
+void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+
 void render_prepped_Background(struct X3D_Background *node){
 	double bgscale;
+	int didPerspective;
 	ttglobal tg = gglobal();
 	X3D_Viewer *viewer = Viewer();
 
@@ -1163,9 +1166,17 @@ void render_prepped_Background(struct X3D_Background *node){
 		moveBackgroundCentre();
 	}else{
 		//instead of transforming back to viewpoint, can we just replace transform top-of-stack with identity?
+		//benefit: good for diagnosing background problems: near/far plane vs offset
 		//problem: then the horizon (or orientation with texture background)- doesn't change with a tilt (or yaw) 
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		FW_GL_PUSH_MATRIX();
 		FW_GL_LOAD_IDENTITY();
+		if(1){
+			//this adds vertical tilt but not horizontal yaw
+			double matA2BVVA[16],matBVVA2A[16];
+			avatar2BoundViewpointVerticalAvatar(matA2BVVA,matBVVA2A);
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX,matBVVA2A);
+		}
 	}
 
 	if (NODE_NEEDS_COMPILING) {
@@ -1181,13 +1192,32 @@ void render_prepped_Background(struct X3D_Background *node){
 			- (with GC geocentric) coords at rootnode when using geoViewpoint
 			- still problem with geo-horizon leveling of background (for near-ground)
 	*/
-	//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
-	bgscale = 1.0;
-	if( viewer->nearPlane >= bgscale*.3) bgscale = viewer->nearPlane*2.0;
-	FW_GL_SCALE_D (bgscale, bgscale, bgscale);
-	static int nframes = 0;
-	glDisable(GL_DEPTH_TEST);
+	didPerspective = FALSE;
+	if(1){
+		//we need to scale because somewhere else we set up a perspective transformation that 
+		//may have a big number for a nearPlane (ie with geo scenes stretching depth range)
+		//and the perspective transforms our z's into gl's 0 to 1 range for depth
+		//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+		bgscale = 1.0;
+		//if( viewer->nearPlane >= bgscale*.5) 
+		bgscale = viewer->nearPlane + (viewer->farPlane - viewer->nearPlane)*.2;
+		//printf("near %lf far %lf bgscale %lf\n",viewer->nearPlane,viewer->farPlane,bgscale);
+		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+	}else{
+		//alternately we can replace the perspective transform, or scale the depth range
+		// x didn't work like I thought - no difference to background problems
+		// x we get mars background blackout, and world33walk funny background
+		GLclampd znear, zfar;
+		//glDepthRange(znear,zfar);
+		FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_PUSH_MATRIX();
+		//fw_gluPerspective(90.0, 1.0, .1,10000.0);
+		fw_gluPerspective_2(0.0,90.0, 1.0, .1,10000.0);
+		didPerspective = TRUE;
 
+	}
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 	LIGHTING_OFF
 
@@ -1224,8 +1254,13 @@ void render_prepped_Background(struct X3D_Background *node){
 		loadBackgroundTextures(node);
 		finishedWithGlobalShader();
 	}
+	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
-
+	if(didPerspective){
+		FW_GL_POP_MATRIX();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	}
+		
 	FW_GL_POP_MATRIX();
 
 	/* is fog enabled? if so, disable it right now */
