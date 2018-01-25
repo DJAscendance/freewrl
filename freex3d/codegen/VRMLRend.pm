@@ -1033,6 +1033,7 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	RF
 	SA
 	UTM
+	3TM
 	WD
 	WE
 	WGS84

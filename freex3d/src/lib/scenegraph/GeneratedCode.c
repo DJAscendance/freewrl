@@ -89,6 +89,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__StartLoadTime",
 	"__VBO",
 	"__afterPound",
+	"__autoOffset",
 	"__backTexture",
 	"__botpoints",
 	"__bottomTexture",
@@ -2012,6 +2013,7 @@ const int TEXTURECOMPRESSIONKEYWORDS_COUNT = ARR_SIZE(TEXTURECOMPRESSIONKEYWORDS
 
 /* Table of GEOSPATIAL keywords */
        const char *GEOSPATIAL[] = {
+	"3TM",
 	"AA",
 	"AM",
 	"AN",
@@ -4579,6 +4581,8 @@ const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES_zSpacing, (int) offsetof (struct X3D_GeoElevationGrid, zSpacing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES__coordIndex, (int) offsetof (struct X3D_GeoElevationGrid, _coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoElevationGrid, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___autoOffset, (int) offsetof (struct X3D_GeoElevationGrid, __autoOffset),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoElevationGrid, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoLOD[] = {
@@ -9617,6 +9621,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->zSpacing = 1;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
+			tmp2->__autoOffset.c[0] = 0;tmp2->__autoOffset.c[1] = 0;tmp2->__autoOffset.c[2] = 0;;
+			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
 			tmp2->_defaultContainer = FIELDNAMES_geometry;
 		break;
 		}

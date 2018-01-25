@@ -1786,6 +1786,8 @@ our %Nodes = (
 		_coordIndex => ["MFInt32", [], "initializeOnly", 0,0],#ff
 
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__autoOffset => ["SFVec3d",[0,0,0],"initializeOnly", 0,0],#ff
+		__localOrient => ["SFVec4d",[0,0,1,0],"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"GeoLOD" => new VRML::NodeType("GeoLOD", [
