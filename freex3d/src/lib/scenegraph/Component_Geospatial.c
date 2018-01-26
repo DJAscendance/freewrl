@@ -639,7 +639,7 @@ static void Xtm_Gd (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d
 	double myD;
 	double Latitude;
 	double Longitude;
-	double longitudeOrigin;
+	double longitudeOriginDeg;
 	double myeccPrimeSquared;
 	double myNorthing;
 	double northingDRCT1;
@@ -670,7 +670,7 @@ static void Xtm_Gd (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d
 	}
 
 	/* constants for all UTM vertices */
-	longitudeOrigin = (zone -1) * zoneSize - 180 + zoneSize*.5;
+	longitudeOriginDeg = (zone -1) * zoneSize - 180 + zoneSize*.5;
 	myeccPrimeSquared = Eccentricity/(((double) 1.0) - Eccentricity);
 	eccRoot = (((double)1.0) - sqrt (((double)1.0) - Eccentricity))/
 	       (((double)1.0) + sqrt (((double)1.0) - Eccentricity));
@@ -685,7 +685,7 @@ static void Xtm_Gd (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d
 
 	#ifdef VERBOSE
 	printf ("zone %d\n",zone);
-	printf ("longitudeOrigin %lf\n",longitudeOrigin);
+	printf ("longitudeOriginDeg %lf\n",longitudeOriginDeg);
 	printf ("myeccPrimeSquared %lf\n",myeccPrimeSquared);
 	printf ("eccRoot %lf\n",eccRoot);
 	#endif
@@ -738,11 +738,11 @@ static void Xtm_Gd (int specversion, struct Multi_Vec3d *inc, struct Multi_Vec3d
 		if(specversion > 320 && STRICT33){
 			//version 3.3+ works in angle base units (radians) by default
 			LATITUDE_OUT = Latitude ;
-			LONGITUDE_OUT = longitudeOrigin + Longitude;
+			LONGITUDE_OUT = longitudeOriginDeg*RADIANS_PER_DEGREE + Longitude;
 		}else{
 			//version 3.2- works in degrees by default
 			LATITUDE_OUT = Latitude * DEGREES_PER_RADIAN;
-			LONGITUDE_OUT = longitudeOrigin + Longitude * DEGREES_PER_RADIAN;
+			LONGITUDE_OUT = longitudeOriginDeg + (Longitude * DEGREES_PER_RADIAN);
 		}
 
 
@@ -794,7 +794,7 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 	double myD;
 	double Latitude;
 	double Longitude;
-	double longitudeOrigin;
+	double longitudeOriginDeg;
 	double myeccPrimeSquared;
 	double myNorthing;
 	double northingDRCT1;
@@ -825,7 +825,7 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 	//}
 
 	/* constants for all UTM vertices */
-	longitudeOrigin = (zone -1) * zoneSize - 180 + zoneSize*.5;
+	longitudeOriginDeg = (zone -1) * zoneSize - 180. + zoneSize*.5;
 	myeccPrimeSquared = Eccentricity/(((double) 1.0) - Eccentricity);
 	eccRoot = (((double)1.0) - sqrt (((double)1.0) - Eccentricity))/
 	       (((double)1.0) + sqrt (((double)1.0) - Eccentricity));
@@ -840,7 +840,7 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 
 	#ifdef VERBOSE
 	printf ("zone %d\n",zone);
-	printf ("longitudeOrigin %lf\n",longitudeOrigin);
+	printf ("longitudeOriginDeg %lf\n",longitudeOriginDeg);
 	printf ("myeccPrimeSquared %lf\n",myeccPrimeSquared);
 	printf ("eccRoot %lf\n",eccRoot);
 	#endif
@@ -894,11 +894,11 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 		if(specversion > 320 && STRICT33){
 			//version 3.3+ works in angle base units (radians) by default
 			outc[i].c[latitude] = Latitude ; //LATITUDE_OUT
-			outc[i].c[longitude] = longitudeOrigin + Longitude; //LONGITUDE_OUT
+			outc[i].c[longitude] = longitudeOriginDeg*RADIANS_PER_DEGREE + Longitude; //LONGITUDE_OUT
 		}else{
 			//version 3.2- works in degrees by default
 			outc[i].c[latitude] = Latitude * DEGREES_PER_RADIAN;
-			outc[i].c[longitude] = longitudeOrigin + Longitude * DEGREES_PER_RADIAN;
+			outc[i].c[longitude] = longitudeOriginDeg + (Longitude * DEGREES_PER_RADIAN);
 		}
 
 
@@ -1116,6 +1116,8 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
 					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 					Utm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
+					printf("Utm_Gd3d inCoords %lf %lf %lf out %lf %lf %lf\n",inCoords[0].c[0],inCoords[0].c[1],inCoords[0].c[2],
+						gdCoords[0].c[0],gdCoords[0].c[1],gdCoords[0].c[2]);
 					//utm_gd sticks to ellpsiod, but puts coords in lat first and no geoid (I think)
 					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[4]); //geoSystem->p[3], geoSystem->p[4]);
 				}
