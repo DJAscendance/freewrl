@@ -93,7 +93,7 @@ sub gen_struct {
 sub get_rendfunc {
 	my($n) = @_;
 	# XXX
-	my @f = qw/Prep Rend Child Fin RendRay GenPolyRep Proximity Other Collision Compile/;
+	my @f = qw/Prep Rend Child Fin RendRay GenPolyRep Proximity Other Collision Compile PrepShape FinShape/;
 	my $comma = "";
 	my $v = "\n";
 
@@ -172,6 +172,10 @@ sub get_rendfunc {
 				}
 			} elsif ($_ eq "Compile") {
 				$v .= $comma."void compile_".${n}."(struct X3D_".${n}." *);\n";
+			} elsif ($_ eq "PrepShape") {
+				$v .= $comma."void prepShape_".${n}."(struct X3D_".${n}." *);\n";
+			} elsif ($_ eq "FinShape") {
+				$v .= $comma."void finShape_".${n}."(struct X3D_".${n}." *);\n";
 			}
 		}
 	}
@@ -209,6 +213,10 @@ sub get_rendfunc {
 				$v .= $comma."(void *)rendray_".${n};
 			} elsif ($_ eq "Compile") {
 				$v .= $comma."(void *)compile_".${n};
+			} elsif ($_ eq "PrepShape") {
+				$v .= $comma."(void *)prepShape_".${n};
+			} elsif ($_ eq "FinShape") {
+				$v .= $comma."(void *)finShape_".${n};
 			} else {
 				$v .= $comma."${n}_$_";
 			}
@@ -1601,6 +1609,8 @@ struct X3D_Virt {
 	void (*other)(void *);
 	void (*collision)(void *);
 	void (*compile)(void *, void *, void *, void *, void *, void *);
+	void (*prepShape)(void *);
+	void (*finShape)(void *);
 };
 
 /* a string is stored as a pointer, and a length of that mallocd pointer */

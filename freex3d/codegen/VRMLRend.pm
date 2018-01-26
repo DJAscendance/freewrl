@@ -515,6 +515,28 @@ our %FinC = map {($_=>1)} qw/
 	EspduTransform
 /;
 
+# PrepShape --
+#  like prep and fin, except its a shape node that has its own transformation
+#  for example geoShapes
+
+our %PrepShapeC = map {($_=>1)} qw/
+	GeoElevationGrid
+/;
+
+#######################################################################
+#######################################################################
+#######################################################################
+#
+# FinShape --
+#  like Fin, except for a shape that has its own transform, like geoShapes
+#
+#
+
+our %FinShapeC = map {($_=>1)} qw/
+	GeoElevationGrid
+/;
+
+
 
 #######################################################################
 #######################################################################

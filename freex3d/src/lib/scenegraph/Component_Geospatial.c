@@ -283,7 +283,7 @@ int getEllipsoidParams(int etype, double *semimajor, double *eccentricity){
 	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
 
 #define UTM_ELLIPSOID(typ) \
-	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[2], TRUE); \
+	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[5], geoSystem->p[2],  geoSystem->p[3]); \
 		  Gd_Gc(specversion,gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[4]); break;
 
 #define GCC_X gcc->c[0]
@@ -302,9 +302,10 @@ int getEllipsoidParams(int etype, double *semimajor, double *eccentricity){
                         0:      spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); \
                         1:      spatial coordinates (defaults to GEOSP_WE) \
                         2:      UTM zone number, 1..60. INT_ID_UNDEFINED = not specified \
-                        3:      UTM:    if "S" - value is FALSE, not S, value is TRUE \
+                        3:      UTM:    if "northing_first" TRUE, if "easting_first", FALSE \
                                 GD:     if "latitude_first" TRUE, if "longitude_first", FALSE \
-                                GC:     if "northing_first" TRUE, if "easting_first", FALSE */ \
+						4:		GD: true if geoid height
+						5:		UTM:    if "S" - value is FALSE, not S, value is TRUE */\
  \
 	/* do we need to change this from a GCC? */ \
 	if (node->__geoSystem.n != 0) { /* do we have a GeoSystem specified?? if not, dont do this! */ \
@@ -357,6 +358,12 @@ int getEllipsoidParams(int etype, double *semimajor, double *eccentricity){
  \
 				thisField.c[0] = northing; \
 				thisField.c[1] = easting; \
+				if (!(node->__geoSystem.p[3])) { \
+					double tmp; \
+					tmp = thisField.c[0]; \
+					thisField.c[0] = thisField.c[1]; \
+					thisField.c[1] = tmp; \
+				} \
  \
 			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ \
 			}  \
@@ -1165,7 +1172,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				/* see the compileGeosystem function for geoSystem fields */
 				double semimajor, eccentricity;
 				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
-					Utm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[3], geoSystem->p[2], TRUE);
+					Utm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
 					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, geoSystem->p[3], geoSystem->p[4]);
 				}
 			}
@@ -1177,7 +1184,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				/* see the compileGeosystem function for geoSystem fields */
 				double semimajor, eccentricity;
 				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
-					U3tm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[3], geoSystem->p[2], TRUE);
+					U3tm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
 					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, geoSystem->p[3], geoSystem->p[4]);
 				}
 			}
@@ -1292,6 +1299,8 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 				node->__geoSystem.p[1],
 				node->__geoSystem.p[2],
 				node->__geoSystem.p[3]);
+				node->__geoSystem.p[4]);
+				node->__geoSystem.p[5]);
 			printf ("initializeGeospatial, done\n\n");
 			#endif
 
@@ -1705,17 +1714,17 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 
 	/* malloc the area required for internal settings, if required */
 	if (srf->p==NULL) {
-		srf->n=5;
-		srf->p=MALLOC(int *, sizeof(int) * 5);
+		srf->n=6;
+		srf->p=MALLOC(int *, sizeof(int) * 6);
 	}
 
 	/* set these as defaults */
 	srf->p[0] = GEOSP_GD; 
 	srf->p[1] = GEOSP_WE;
 	srf->p[2] = INT_ID_UNDEFINED;
-	srf->p[3] = TRUE;
+	srf->p[3] = TRUE; //GD: lat first XTM: northing first
 	srf->p[4] = FALSE; //geoid - not GC, just GD/UTM
-
+	srf->p[5] = TRUE; //northern hemisphere for UTM
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
 
@@ -1748,13 +1757,9 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 	srf->p[0] = (int) this_srf;
 	/* go through and ensure that we have the correct parameters for this spatial reference frame */
 	if (this_srf == GEOSP_GC) {
-		/* possible parameter: GC:	if "northing_first" TRUE, if "easting_first", FALSE */
-		srf->p[1] = INT_ID_UNDEFINED;
-		for (i=0; i<args->n; i++) {
-			if (strcmp("northing_first",args->p[i]->strptr) == 0) { srf->p[3] = TRUE;
-			} else if (strcmp("easting_first",args->p[i]->strptr) == 0) { srf->p[3] = FALSE;
-			} else if (i!=this_srf_ind) ConsoleMessage ("geoSystem GC parameter %s not allowed geospatial coordinates",args->p[i]->strptr);
-		}
+		//srf->p[1] = INT_ID_UNDEFINED;
+		//nothing to do 
+		
 	} else if (this_srf == GEOSP_GD) {
 		srf->p[1] = GEOSP_WE;
 		/* possible parameters: ellipsoid, gets put into element 1.
@@ -1801,9 +1806,9 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 		for (i=0; i<args->n; i++) {
 			if (i != this_srf_ind) {
 				if (strcmp ("S",args->p[i]->strptr) == 0) {
-					srf->p[3] = FALSE;
+					srf->p[5] = FALSE;
 				} else if (strcmp ("N",args->p[i]->strptr) == 0) {
-					srf->p[3] = TRUE; // default
+					srf->p[5] = TRUE; // default
 				} else if (args->p[i]->strptr[0] == 'Z') {
 					int zone = -1;
 					sscanf(args->p[i]->strptr,"Z%d",&zone);
@@ -1811,6 +1816,10 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 					srf->p[2] = zone;
 				} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
 					srf->p[4] = TRUE; //geoid
+				} else if (strcmp("northing_first",args->p[i]->strptr) == 0) { 
+					srf->p[3] = TRUE;
+				} else if (strcmp("easting_first",args->p[i]->strptr) == 0) { 
+					srf->p[3] = FALSE;
 				} else { 
 					indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
 					switch (tc) {
@@ -2203,27 +2212,45 @@ void pushOrigin(struct SFVec3d *offset, struct SFVec4d *orient){
 	struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
 	FW_GL_PUSH_MATRIX();
 	if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
-		double *ct, *cr, crd[4];
+		double *ct, *cr, *ct1,*cr1,crd[4];
 		struct X3D_GeoViewpoint * geovp = (struct X3D_GeoViewpoint*)boundvp;
 		ct = geovp->__movedPosition.c;
 		//cr = geovp->__movedOrientation.c;
 		float2double(crd,geovp->__movedOrientation.c,4);
 		cr = crd;
+		ct1 = offset->c;
+		cr1 = orient->c;
 
-		if(1) FW_GL_ROTATE_RADIANS(cr[3], cr[0],cr[1],cr[2]);
-		FW_GL_TRANSLATE_F(ct[0],ct[1],ct[2]);
-
-
-		ct = offset->c;
-		cr = orient->c;
+		if(1) FW_GL_ROTATE_RADIANS(-cr[3], cr[0],cr[1],cr[2]);
 		FW_GL_TRANSLATE_F(-ct[0],-ct[1],-ct[2]);
-		FW_GL_ROTATE_RADIANS(-cr[3], cr[0],cr[1],cr[2]);
+		if(1){
+			static int count = 0;
+			count++;
+			if(count % 15 == 0){
+				printf("vpt %lf %lf %lf nodet %lf %lf %lf\n",ct[0],ct[1],ct[2],ct1[0],ct1[1],ct1[2]);
+			}
+				
+		}
+
+		FW_GL_TRANSLATE_F(ct1[0],ct1[1],ct1[2]);
+		FW_GL_ROTATE_RADIANS(-cr1[3], cr1[0],cr1[1],cr1[2]);
+
 
 	}
 
 }
 void popOrigin(){
 	FW_GL_POP_MATRIX();
+}
+void prepShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
+
+	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
+
+	pushOrigin(&node->__autoOffset,&node->__localOrient);
+}
+void finShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	popOrigin();
 }
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
@@ -2238,9 +2265,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 
 	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 	CULL_FACE(node->solid)
-	pushOrigin(&node->__autoOffset,&node->__localOrient);
 	render_polyrep(node);
-	popOrigin();
 }
 
 /************************************************************************/
@@ -3293,6 +3318,10 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 		}
 		moveCoords3d(specversion,&node->__geoSystem, poffset, pyup, 
 			&node->position, 1, &node->__movedPosition, &gdCoord);
+		printf("compile geovp \n\tp=\t %lf %lf %lf \n\tgc=\t %lf %lf %lf\n\tgd=\t %lf %lf %lf\n",
+			node->position.c[0],node->position.c[1],node->position.c[2],
+			node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2],
+			gdCoord.c[0],gdCoord.c[1],gdCoord.c[2]);
 
 	}
 	//printf("geoVP moved GC position=%lf %lf %lf\n",node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);

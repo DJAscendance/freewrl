@@ -753,10 +753,29 @@ void update_effect_uniforms();
 bool setupShaderB();
 void textureTransform_start();
 void reallyDraw();
+//void prepShape_node(struct X3D_Node *node){
+//	//geoShapes have a transform. But they are shapes, so by the time you get to them,
+//	// its too late to be pushing and popping matrices. Unless you do it just before
+//	// reallyDraw and just after reallyDraw.
+//	struct X3D_Virt *v;
+//	v = virtTable[node->_nodeType];
+//	if (v->prep) {
+//		v->prep(node);
+//	}
+//}
+//void finShape_node(struct X3D_Node *node){
+//	struct X3D_Virt *v;
+//	v = virtTable[node->_nodeType];
+//	if (v->fin) {
+//		v->fin(node);
+//	}
+//}
 
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
 	//int channels;
+	struct X3D_Virt *v;
+
 	ppComponent_Shape p;
     	ttglobal tg = gglobal();
 	struct fw_MaterialParameters defaultMaterials = {
@@ -959,9 +978,16 @@ void child_Shape (struct X3D_Shape *node) {
 		//           Uniforms sent for lights
 		//----- glDrawArrays/glDrawElements
 		textureTransform_start();
+		v = virtTable[tmpNG->_nodeType];
+		if(v->prepShape) 
+			v->prepShape(tmpNG);
+		//prep_node(tmpNG);
 		setupShaderB();
 		render_node(tmpNG);
 		reallyDraw();
+		if(v->finShape) 
+			v->finShape(tmpNG);
+		//fin_node(tmpNG);
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		textureTransform_end();
