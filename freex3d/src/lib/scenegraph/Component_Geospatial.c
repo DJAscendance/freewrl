@@ -343,16 +343,17 @@ int getEllipsoidParams(int etype, double *semimajor, double *eccentricity){
 				} \
  \
 			} else { \
-				/* convert this to UTM */ \
+				/* convert this to UTM  or 3TM */ \
 				int zone;  \
 				double easting; \
 				double northing; \
 				 \
 				/* get the zone from the geoSystem; if undefined, we will calculate */ \
 				zone = node->__geoSystem.p[2]; \
-				gdToUtm(thisField.c[0], \
-					thisField.c[1], \
-					&zone, &easting, &northing); \
+				if(node->__geoSystem.p[0] == GEOSP_UTM) \
+					gdToUtm(thisField.c[0], thisField.c[1], &zone, &easting, &northing); \
+				else if(node->__geoSystem.p[0] == GEOSP_3TM) \
+					gdTo3tm(thisField.c[0], thisField.c[1], &zone, &easting, &northing); \
  \
 				thisField.c[0] = northing; \
 				thisField.c[1] = easting; \
