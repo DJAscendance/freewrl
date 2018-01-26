@@ -3234,6 +3234,7 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /************************************************************************/
 /* GeoViewpoint								*/
 /************************************************************************/
+void calculateViewingSpeedB();
 int geo_method(){
 	//1= before 2018, scene root in GC, 2= Jan 21 2018, scene root in geo vp LC (no LC-GC) 3= (not yet implemented)
 	return 2;
@@ -3298,6 +3299,7 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 
 	//movedPosition is the initial postion, in GC coords
 	/* work out the local orientation and copy doubles to floats */
+	veccopyd(node->__movedgd.c,gdCoord.c);
 	GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoord, &localOrient);
 	//if(specversion >= 330){
 	//	veccopyd(node->autoOffset,c,node->__movedPosition.c);
@@ -3395,7 +3397,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			Viewer()->fieldofview = a1/3.1415926536*180;
 		}
 
-		calculateViewingSpeed();
+		calculateViewingSpeedB();
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
 		#endif
@@ -3405,6 +3407,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
 /* this is called from the Viewer functions */
 void calculateViewingSpeed() {
+	double radius;
 	struct SFVec3d gcCoords;
 	struct SFVec3d gdCoords;
 	int specversion;		
@@ -3421,23 +3424,14 @@ void calculateViewingSpeed() {
 		specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
         INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
 
-
-/*
-        COMPILE_IF_REQUIRED
-
-*/
-
-
-
-
 		if (Viewer()->GeoSpatialNode->__geoSystem.n>0) {
 			/* is the __geoSystem NOT gc coords? */
 			/* printf ("have a GeoSpatial viewpoint, currently %d\n",Viewer.GeoSpatialNode->__geoSystem.p[0]);  */
 			if (Viewer()->GeoSpatialNode->__geoSystem.p[0] != GEOSP_GC) {
 		
-/*
-		        	retractOrigin((struct X3D_GeoOrigin *)Viewer.GeoSpatialNode->geoOrigin, &gcCoords);
-*/
+
+		      //  	retractOrigin((struct X3D_GeoOrigin *)Viewer.GeoSpatialNode->geoOrigin, &gcCoords);
+
 		
 		        	#ifdef VERBOSE
 				printf ("\n");
@@ -3453,8 +3447,17 @@ void calculateViewingSpeed() {
 				#endif
 			
 				/* speed is dependent on elevation above WGS84 ellipsoid */
-				Viewer()->speed  = fabs(sqrt(gcCoords.c[0]*gcCoords.c[0] + gcCoords.c[1]*gcCoords.c[1] + gcCoords.c[2]*gcCoords.c[2])
-					-GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
+				//Viewer()->speed  = fabs(sqrt(gcCoords.c[0]*gcCoords.c[0] + gcCoords.c[1]*gcCoords.c[1] + gcCoords.c[2]*gcCoords.c[2])
+				//	-GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
+
+				radius = veclengthd(gcCoords.c);
+				Viewer()->speed  = fabs(radius - GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
+				if(0){
+					static int count = 0;
+					count++;
+					if(count % 20 == 0)
+						printf("radius %lf speedFactor %lf speed %lf\n",radius,Viewer()->GeoSpatialNode->speedFactor,Viewer()->speed);
+				}
 				if (Viewer()->speed < 1.0) Viewer()->speed=1.0;
 
 				#ifdef VERBOSE
@@ -3472,6 +3475,40 @@ void calculateViewingSpeed() {
 					Viewer()->speed*0.25);
 			}
 		}
+	}
+}
+
+void calculateViewingSpeedB() {
+	/* the current position is the GC coordinate */
+	ttglobal tg = gglobal();
+	struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+		
+	if(boundvp->_nodeType == NODE_GeoViewpoint){
+		double height;
+		struct SFVec3d *gdCoords;
+		int specversion;		
+		struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
+
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
+        INITIALIZE_GEOSPATIAL(node)
+		COMPILE_IF_REQUIRED(X3D_NODE(node));
+		gdCoords = &node->__movedgd;
+		height = gdCoords->c[2];
+		Viewer()->speed  = height * Viewer()->GeoSpatialNode->speedFactor;
+		if(0){
+			static int count = 0;
+			count++;
+			if(count % 20 == 0)
+				printf("height %lf speedFactor %lf speed %lf\n",height,node->speedFactor,Viewer()->speed);
+		}
+		if (Viewer()->speed < 1.0) Viewer()->speed=1.0;
+
+
+		/* set the navigation info - use the GeoVRML algorithms */
+		set_naviWidthHeightStep(
+			Viewer()->speed*0.25,
+			Viewer()->speed*1.6,
+			Viewer()->speed*0.25);
 	}
 }
 

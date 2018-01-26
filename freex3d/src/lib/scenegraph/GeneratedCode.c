@@ -139,6 +139,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__movedOrientation",
 	"__movedPosition",
 	"__movedValue",
+	"__movedgd",
 	"__nodes",
 	"__normals",
 	"__numPoints",
@@ -4763,6 +4764,7 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedOrientation, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___movedgd, (int) offsetof (struct X3D_GeoViewpoint, __movedgd),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldSFString, (int) offsetof (struct X3D_GeoViewpoint, __oldSFString),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldFieldOfView, (int) offsetof (struct X3D_GeoViewpoint, __oldFieldOfView),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldHeadlight, (int) offsetof (struct X3D_GeoViewpoint, __oldHeadlight),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9830,6 +9832,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__movedPosition.c[0] = 0;tmp2->__movedPosition.c[1] = 0;tmp2->__movedPosition.c[2] = 0;;
 			tmp2->__movedOrientation.c[0] = 0;tmp2->__movedOrientation.c[1] = 0;tmp2->__movedOrientation.c[2] = 1;tmp2->__movedOrientation.c[3] = 0;;
+			tmp2->__movedgd.c[0] = 0;tmp2->__movedgd.c[1] = 0;tmp2->__movedgd.c[2] = 0;;
 			tmp2->__oldSFString = newASCIIString("");
 			tmp2->__oldFieldOfView = 0.785398f;
 			tmp2->__oldHeadlight = TRUE;
@@ -14864,6 +14867,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __movedPosition (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__movedPosition.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __movedgd (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__movedgd.c[i]); }
 			fprintf (fp,"\n");
 		    }
 		    if(allFields) {

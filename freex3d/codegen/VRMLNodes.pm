@@ -1968,6 +1968,7 @@ our %Nodes = (
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
 		__movedPosition => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__movedOrientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
+		__movedgd => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 
 		__oldSFString => ["SFString", "", "inputOutput", 0,0],#ff #the description field
 		__oldFieldOfView => ["SFFloat", 0.785398, "inputOutput", 0,0],#ff
