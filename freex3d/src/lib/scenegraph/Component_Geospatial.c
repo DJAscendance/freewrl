@@ -294,82 +294,14 @@ int getEllipsoidParams(int etype, double *semimajor, double *eccentricity){
 #define GDC_ELE gdc->c[2]
 
 
+
+
 #define INITIALIZE_GEOSPATIAL(me) \
 	initializeGeospatial((struct X3D_GeoOrigin **) &me->geoOrigin); 
 
-#define CONVERT_BACK_TO_GD_OR_UTM(thisField) \
-	/* compileGeosystem - encode the return value such that srf->p[x] is... \
-                        0:      spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); \
-                        1:      spatial coordinates (defaults to GEOSP_WE) \
-                        2:      UTM zone number, 1..60. INT_ID_UNDEFINED = not specified \
-                        3:      UTM:    if "northing_first" TRUE, if "easting_first", FALSE \
-                                GD:     if "latitude_first" TRUE, if "longitude_first", FALSE \
-						4:		GD: true if geoid height
-						5:		UTM:    if "S" - value is FALSE, not S, value is TRUE */\
- \
-	/* do we need to change this from a GCC? */ \
-	if (node->__geoSystem.n != 0) { /* do we have a GeoSystem specified?? if not, dont do this! */ \
-		struct SFVec3d gdCoords; \
- \
-		if (node->__geoSystem.p[0] != GEOSP_GC) { \
-			/* have to convert to GD or UTM. Go to GD first */ \
-			bool dugsInterpretationOfSpecs = true; \
-			if(dugsInterpretationOfSpecs) \
-			{ \
-				retractOrigin((struct X3D_GeoOrigin *)node->geoOrigin, \
-						&thisField); \
-			}else{ \
-				if (Viewer()->GeoSpatialNode != NULL) { \
-        						retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, \
-						&thisField); \
-				} \
-			} \
- \
-			/* printf ("changed retracted, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ \
- \
-			/* now, convert to a GDC */ \
-			gccToGdc (X3D_PROTO(node->_executionContext)->__specversion,&thisField, &gdCoords); \
-			memcpy (&thisField, &gdCoords, sizeof (struct SFVec3d)); \
- \
-			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ \
-		 \
-			/* is this a GD? if so, go no further */ \
-			if (node->__geoSystem.p[0] == GEOSP_GD) { \
-				/* do we need to flip lat and lon? */ \
-				if (!(node->__geoSystem.p[3])) { \
-					double tmp; \
-					tmp = thisField.c[0]; \
-					thisField.c[0] = thisField.c[1]; \
-					thisField.c[1] = tmp; \
-				} \
- \
-			} else { \
-				/* convert this to UTM  or 3TM */ \
-				int zone;  \
-				double easting; \
-				double northing; \
-				 \
-				/* get the zone from the geoSystem; if undefined, we will calculate */ \
-				zone = node->__geoSystem.p[2]; \
-				if(node->__geoSystem.p[0] == GEOSP_UTM) \
-					gdToUtm(thisField.c[0], thisField.c[1], &zone, &easting, &northing); \
-				else if(node->__geoSystem.p[0] == GEOSP_3TM) \
-					gdTo3tm(thisField.c[0], thisField.c[1], &zone, &easting, &northing); \
- \
-				thisField.c[0] = northing; \
-				thisField.c[1] = easting; \
-				if (!(node->__geoSystem.p[3])) { \
-					double tmp; \
-					tmp = thisField.c[0]; \
-					thisField.c[0] = thisField.c[1]; \
-					thisField.c[1] = tmp; \
-				} \
- \
-			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ \
-			}  \
-		} \
-	}
 
+void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSystem, struct X3D_Node *GeoOrigin, 
+		struct SFVec3d *thisField);
 //int geoLodLevel = 0;
 
 static int gcToGdInit = FALSE;
@@ -377,7 +309,7 @@ static int gcToGdInit = FALSE;
 static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
 static void moveCoords(int specversion, struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
 static void Gd_Gc (int specversion, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double, int, int);
-static void gccToGdc (int specversion,struct SFVec3d *, struct SFVec3d *); 
+static void gccToGdcWE (int specversion,struct SFVec3d *, struct SFVec3d *); 
 void calculateViewingSpeed(void);
 
 /* for converting from GC to GD */
@@ -386,6 +318,7 @@ static double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
 
 typedef struct pComponent_Geospatial{
 	int geoLodLevel;// = 0;
+	struct Multi_Int32 stdGDgeosystem;
 
 }* ppComponent_Geospatial;
 void *Component_Geospatial_constructor(){
@@ -398,8 +331,17 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	//private
 	t->prv = Component_Geospatial_constructor();
 	{
+		int *pp;
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
 		p->geoLodLevel = 0;
+		//a standard Geodetic geosystem when doing conversions from GC to UTM, as an intermediary
+		pp = p->stdGDgeosystem.p = malloc(sizeof(int)*6);
+		pp[0] = GEOSP_GD; 
+		pp[1] = GEOSP_WE;
+		pp[2] = INT_ID_UNDEFINED;
+		pp[3] = TRUE; //GD: lat first XTM: northing first
+		pp[4] = FALSE; //geoid - not GC, just GD/UTM
+		pp[5] = TRUE; //northern hemisphere for UTM
 	}
 }
 //ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
@@ -1042,7 +984,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 				if (geoSystem->p[1] != GEOSP_WE) {
 					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
 					for (i=0; i<outCoords->n; i++) {
-						gccToGdc (specversion,&outCoords->p[i], &gdCoords->p[i]);
+						gccToGdcWE (specversion,&outCoords->p[i], &gdCoords->p[i]);
 					}
 				} else {
 					/* just copy the coordinates for the GD temporary return  */
@@ -1071,7 +1013,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 				outCoords->p[i].c[2] = inCoords->p[i].c[2];
 
 				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdc (specversion,&inCoords->p[i], &gdCoords->p[i]);
+				gccToGdcWE (specversion,&inCoords->p[i], &gdCoords->p[i]);
 			}
 
 			break;
@@ -1135,7 +1077,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				if (geoSystem->p[1] != GEOSP_WE) {
 					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
 					for (i=0; i<n; i++) {
-						gccToGdc (specversion,&outCoords[i], &gdCoords[i]);
+						gccToGdcWE (specversion,&outCoords[i], &gdCoords[i]);
 					}
 				} else {
 					/* just copy the coordinates for the GD temporary return  */
@@ -1161,7 +1103,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 			for (i=0; i< n; i++) {
 				veccopyd(outCoords[i].c,inCoords[i].c);
 				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdc (specversion,&inCoords[i], &gdCoords[i]);
+				gccToGdcWE (specversion,&inCoords[i], &gdCoords[i]);
 			}
 
 			break;
@@ -1172,8 +1114,10 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				/* see the compileGeosystem function for geoSystem fields */
 				double semimajor, eccentricity;
 				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
+					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 					Utm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
-					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, geoSystem->p[3], geoSystem->p[4]);
+					//utm_gd sticks to ellpsiod, but puts coords in lat first and no geoid (I think)
+					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[4]); //geoSystem->p[3], geoSystem->p[4]);
 				}
 			}
 			break;
@@ -1184,8 +1128,9 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				/* see the compileGeosystem function for geoSystem fields */
 				double semimajor, eccentricity;
 				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
+					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 					U3tm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
-					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, geoSystem->p[3], geoSystem->p[4]);
+					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[4]); //geoSystem->p[3], geoSystem->p[4]);
 				}
 			}
 			break;
@@ -1409,9 +1354,7 @@ static void GeoMove(struct X3D_Node *node, struct X3D_GeoOrigin *geoOrigin, stru
 
 
 /* for converting BACK to GD from GC */
-static void initializeGcToGdParams(void) {
-        A = GEOSP_WE_A;
-        F = GEOSP_WE_F;
+static void initializeGcToGdParams(double A, double F) {
             
         /*  Create the ERM constants. */
         A2     = A * A;
@@ -1449,19 +1392,26 @@ static void initializeGcToGdParams(void) {
 	B5=0.984537701867943E+00;
 	gcToGdInit = TRUE;
 }
-
+static void initializeGcToGdParamsWE(void) {
+	double A, F;
+	A = GEOSP_WE_A;
+	F = GEOSP_WE_F; //we mistakenly call it F. Officially F/flattening is 0-1. Eccentricity is in meters about 300.
+	initializeGcToGdParams(A,F);
+}
 
 /* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
-static void gccToGdc (int specversion, struct SFVec3d *gcc, struct SFVec3d *gdc) {
-        double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
-               s,roe,arg,v,zo;
+static void gccToGdc (int specversion, struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
+	double A,F;
+	double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
+		s,roe,arg,v,zo;
 
 	#ifdef VERBOSE
 	printf ("gccToGdc input %lf %lf %lf\n",GCC_X, GCC_Y, GCC_Z);
 	#endif
 	
-
-	if (!gcToGdInit) initializeGcToGdParams();
+	getEllipsoidParams(geoSystem->p[1],&A,&F);
+	//if (!gcToGdInit) 
+	initializeGcToGdParams(A,F);
 
         w2=GCC_X * GCC_X + GCC_Y * GCC_Y;
         w=sqrt(w2);
@@ -1553,7 +1503,10 @@ static void gccToGdc (int specversion, struct SFVec3d *gcc, struct SFVec3d *gdc)
 #undef VERBOSE
 
 }
-
+static void gccToGdcWE (int specversion, struct SFVec3d *gcc, struct SFVec3d *gdc){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	gccToGdc (specversion, &p->stdGDgeosystem, gcc, gdc);
+}
 /* convert a GDC BACK to a UTM coordinate */
 static void gdToXtm(double latitude, double longitude, double scaleFactor, double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) {
 #define DEG2RAD (PI/180.00)
@@ -2752,6 +2705,7 @@ void compile_GeoPositionInterpolator (struct X3D_GeoPositionInterpolator * node)
 
 /* GeoPositionInterpolator == PositionIterpolator but with geovalue_changed and coordinate conversions */
 void do_GeoPositionInterpolator (void *innode) {
+	int specversion;
 	struct X3D_GeoPositionInterpolator *node;
 	int kin, kvin, counter, tmp;
 	struct SFVec3d *kVs;
@@ -2813,8 +2767,9 @@ void do_GeoPositionInterpolator (void *innode) {
 	}
 
 	/* convert this back into the requested spatial format */
-	CONVERT_BACK_TO_GD_OR_UTM(node->geovalue_changed)
-
+	//CONVERT_BACK_TO_GD_OR_UTM(node->geovalue_changed)
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	CONVERT_BACK_TO_GD_OR_UTMB(specversion, &node->__geoSystem, node->geoOrigin, &node->geovalue_changed);
 	/* set the (float) value_changed, as well */
 	for (tmp=0;tmp<3;tmp++) node->value_changed.c[tmp] = (float)node->geovalue_changed.c[tmp];
 
@@ -3031,6 +2986,7 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 
 /* GeoProximitySensor code for ClockTick */
 void do_GeoProximitySensorTick( void *ptr) {
+	int specversion;
 	struct X3D_GeoProximitySensor *node = (struct X3D_GeoProximitySensor *)ptr;
 
 	/* if not enabled, do nothing */
@@ -3097,7 +3053,9 @@ void do_GeoProximitySensorTick( void *ptr) {
 				node->geoCoord_changed.c[2]);
 			#endif
 
-			CONVERT_BACK_TO_GD_OR_UTM(node->geoCoord_changed)
+			//CONVERT_BACK_TO_GD_OR_UTM(node->geoCoord_changed)
+			specversion = X3D_PROTO(node->_executionContext)->__specversion;
+			CONVERT_BACK_TO_GD_OR_UTMB(specversion, &node->__geoSystem, node->geoOrigin, &node->geoCoord_changed);
 		}
 		if (memcmp ((void *) &node->orientation_changed, (void *) &node->__t2,sizeof(struct SFRotation))) {
 			#ifdef SEVERBOSE
@@ -3145,7 +3103,7 @@ void compile_GeoTouchSensor (struct X3D_GeoTouchSensor * node) {
 
 void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 
-
+	int specversion;
 	struct X3D_GeoTouchSensor *node = (struct X3D_GeoTouchSensor *)ptr;
 	struct point_XYZ normalval;	/* different structures for normalization calls */
 	ttglobal tg;
@@ -3238,7 +3196,9 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 				node->hitGeoCoord_changed.c[2]);
 			#endif
 
-			CONVERT_BACK_TO_GD_OR_UTM(node->hitGeoCoord_changed)
+			//CONVERT_BACK_TO_GD_OR_UTM(node->hitGeoCoord_changed)
+			specversion = X3D_PROTO(node->_executionContext)->__specversion;
+			CONVERT_BACK_TO_GD_OR_UTMB(specversion, &node->__geoSystem, node->geoOrigin, &node->hitGeoCoord_changed);
 	}
 
 	/* have to normalize normal; change it from SFColor to struct point_XYZ. */
@@ -3469,7 +3429,7 @@ void calculateViewingSpeed() {
 		        	#endif
 		
 		        	/* convert from local (gc) to gd coordinates, using WGS84 ellipsoid */
-		        	gccToGdc (specversion,&gcCoords, &gdCoords);
+		        	gccToGdcWE (specversion,&gcCoords, &gdCoords);
 		
 				#ifdef VERBOSE
 				printf ("speed is calculated from geodetic height %lf %lf %lf\n",gdCoords.c[0], gdCoords.c[1], gdCoords.c[2]); 
@@ -3794,4 +3754,83 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
+}
+
+//CONVERT_BACK_TO_GD_OR_UTMB(specversion, geoSystem, geoOrigin, thisField);
+void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSystem, struct X3D_Node *GeoOrigin, 
+		struct SFVec3d *thisField) {
+	/* compileGeosystem - encode the return value such that srf->p[x] is... 
+                        0:      spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+                        1:      spatial coordinates (defaults to GEOSP_WE) 
+                        2:      UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+                        3:      UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+                                GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+						4:		GD: true if geoid height
+						5:		UTM:    if "S" - value is FALSE, not S, value is TRUE */
+ 
+	/* do we need to change this from a GCC? */ 
+	struct Multi_Int32 *geoSystem = targetGeoSystem;
+	struct X3D_GeoOrigin *geoOrigin = (struct X3D_GeoOrigin*)GeoOrigin;
+	if (geoSystem->n != 0) { /* do we have a GeoSystem specified?? if not, dont do this! */ 
+		struct SFVec3d gdCoords; 
+ 
+		if (geoSystem->p[0] != GEOSP_GC) { 
+			/* have to convert to GD or UTM. Go to GD first */ 
+			bool dugsInterpretationOfSpecs = true; 
+			if(dugsInterpretationOfSpecs) 
+			{ 
+				retractOrigin((struct X3D_GeoOrigin *)geoOrigin, 
+						thisField); 
+			}else{ 
+				if (Viewer()->GeoSpatialNode != NULL) { 
+        						retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, 
+						thisField); 
+				} 
+			} 
+ 
+			/* printf ("changed retracted, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
+ 
+			/* now, convert to a GDC */ 
+			gccToGdc (specversion,geoSystem, thisField, &gdCoords);
+
+			memcpy (&thisField, &gdCoords, sizeof (struct SFVec3d)); 
+ 
+			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
+		 
+			/* is this a GD? if so, go no further */ 
+			if (geoSystem->p[0] == GEOSP_GD) { 
+				/* do we need to flip lat and lon? */ 
+				if (!(geoSystem->p[3])) { 
+					double tmp; 
+					tmp = thisField->c[0]; 
+					thisField->c[0] = thisField->c[1]; 
+					thisField->c[1] = tmp; 
+				} 
+ 
+			} else { 
+				/* convert this to UTM  or 3TM */ 
+				int zone;  
+				double easting; 
+				double northing; 
+				 
+				/* get the zone from the geoSystem; if undefined, we will calculate */ 
+				zone = geoSystem->p[2]; 
+				if(geoSystem->p[0] == GEOSP_UTM) 
+					gdToUtm(thisField->c[0], thisField->c[1], &zone, &easting, &northing); 
+				else if(geoSystem->p[0] == GEOSP_3TM) 
+					gdTo3tm(thisField->c[0], thisField->c[1], &zone, &easting, &northing); 
+ 
+				thisField->c[0] = northing; 
+				thisField->c[1] = easting; 
+				if (!(geoSystem->p[3])) { 
+					double tmp; 
+					tmp = thisField->c[0]; 
+					thisField->c[0] = thisField->c[1]; 
+					thisField->c[1] = tmp; 
+				} 
+ 
+			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ 
+			}  
+		} 
+	}
 }
