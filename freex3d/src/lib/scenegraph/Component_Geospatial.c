@@ -312,14 +312,11 @@ static void Gd_Gc (int specversion, struct Multi_Vec3d *, struct Multi_Vec3d *, 
 static void gccToGdcWE (int specversion,struct SFVec3d *, struct SFVec3d *); 
 void calculateViewingSpeed(void);
 
-/* for converting from GC to GD */
-static double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
-                 CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
 
 typedef struct pComponent_Geospatial{
 	int geoLodLevel;// = 0;
 	struct Multi_Int32 stdGDgeosystem;
-
+	void * gcgdpars[50];
 }* ppComponent_Geospatial;
 void *Component_Geospatial_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_Geospatial));
@@ -342,6 +339,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		pp[3] = TRUE; //GD: lat first XTM: northing first
 		pp[4] = FALSE; //geoid - not GC, just GD/UTM
 		pp[5] = TRUE; //northern hemisphere for UTM
+		memset(p->gcgdpars,0,50*sizeof(void*));
 	}
 }
 //ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
@@ -806,6 +804,8 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 
 	/* is the values specified with an "easting_first?" */
 	if (!northing_first) { northing = 1; easting = 0; }
+	//printf("Xtm_Gd hemisphere-north=%d zone=%d northing_first=%d\n",hemisphere_north,zone,northing_first);
+	//printf("Xtm_Gd scalefactor %lf falseEasting %lf falseNorthing %lf zoneSize %lf\n",scaleFactor, falseEasting, falseNorthing, zoneSize);
 
 	#ifdef VERBOSE
 	if (!northing_first) printf ("UTM to GD, not northing first, flipping norhting and easting\n");
@@ -861,8 +861,7 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 
 
 		/* scale the northing */
-		myNorthing= myNorthing / UTM_SCALE;
-
+		myNorthing= myNorthing / scaleFactor;
 		northingDRCT1 = myNorthing /(radius * calcConstantTerm1);
 
 		myphi1rad = northingDRCT1 + 
@@ -874,22 +873,19 @@ static void Xtm_Gd3d(int specversion, struct SFVec3d *inc, int n, struct SFVec3d
 		myT1 = tan(myphi1rad) * tan(myphi1rad); 
 		myC1 = Eccentricity * cos(myphi1rad) * cos (myphi1rad);
 		myR1 = radius * (((double)1.0) - Eccentricity) / pow(((double)1.0) - Eccentricity * sin(myphi1rad) * sin (myphi1rad), 1.5);
-		myD = myEasting/(myN1*UTM_SCALE);
+		myD = myEasting/(myN1*scaleFactor);
 
 		Latitude = myphi1rad-(myN1*tan(myphi1rad)/myR1)*
 				(myD*myD/((double)2.0) -
 			(((double)5.0) + ((double)3.0) *myT1+ ((double)10.0) *myC1-
 			((double)4.0) *myC1*myC1- ((double)9.0) *myeccPrimeSquared)*
-			
 			myD*myD*myD*myD/((double)24.0) +(((double)61.0) +((double)90.0) *
 			myT1+((double)298.0) *myC1+ ((double)45.0) *myT1*myT1-
 			((double)252.0) * myeccPrimeSquared- ((double)3.0) *myC1*myC1)*myD*myD*myD*myD*myD*myD/((double)720.0));
 
-
 		Longitude = (myD-(((double)1.0)+((double)2.0)*myT1+myC1)*myD*myD*myD/((double)6.0)+(((double)5.0) - ((double)2.0) *myC1+
 			((double)28.0) *myT1-((double)3.0) *myC1*myC1+
 			((double)8.0) *myeccPrimeSquared+((double)24.0) *myT1*myT1)*myD*myD*myD*myD*myD/120)/cos(myphi1rad);
-
 
 		if(specversion > 320 && STRICT33){
 			//version 3.3+ works in angle base units (radians) by default
@@ -1116,8 +1112,8 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 				if(getEllipsoidParams(geoSystem->p[1],&semimajor,&eccentricity)){
 					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 					Utm_Gd3d(specversion,inCoords,n, gdCoords, semimajor, eccentricity, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
-					printf("Utm_Gd3d inCoords %lf %lf %lf out %lf %lf %lf\n",inCoords[0].c[0],inCoords[0].c[1],inCoords[0].c[2],
-						gdCoords[0].c[0],gdCoords[0].c[1],gdCoords[0].c[2]);
+					//printf("Utm_Gd3d inCoords %lf %lf %lf out %lf %lf %lf\n",inCoords[0].c[0],inCoords[0].c[1],inCoords[0].c[2],
+					//	gdCoords[0].c[0],gdCoords[0].c[1],gdCoords[0].c[2]);
 					//utm_gd sticks to ellpsiod, but puts coords in lat first and no geoid (I think)
 					Gd_Gc3d(specversion,gdCoords,n,outCoords,semimajor, eccentricity, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[4]); //geoSystem->p[3], geoSystem->p[4]);
 				}
@@ -1354,81 +1350,93 @@ static void GeoMove(struct X3D_Node *node, struct X3D_GeoOrigin *geoOrigin, stru
 	}
 }
 
+/* for converting from GC to GD */
+//static double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
+//                 CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
+struct gcgd {
+double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
+                 CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
+};
 
 /* for converting BACK to GD from GC */
-static void initializeGcToGdParams(double A, double F) {
-            
-        /*  Create the ERM constants. */
-        A2     = A * A;
-        F      =1/(F);
-        C      =(A) * (1-F);
-        C2     = C * C;
-        Eps2   =(F) * (2.0-F);
-        Eps21  =Eps2 - 1.0;
-        Eps25  =.25 * (Eps2);
-        C254   =54.0 * C2;        
+struct gcgd* initializeGcToGdParams(int type, double A, double F) {
+	struct gcgd *g;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	if(p->gcgdpars[type]) return p->gcgdpars[type];
+	g = malloc(sizeof(struct gcgd));
+	p->gcgdpars[type] = g;
+    /*  Create the ERM constants. */
+    g->A2     = A * A;
+    g->F      =1/(F);
+    g->C      =(A) * (1-g->F);
+    g->C2     = g->C * g->C;
+    g->Eps2   =(g->F) * (2.0-g->F);
+    g->Eps21  =g->Eps2 - 1.0;
+    g->Eps25  =.25 * (g->Eps2);
+    g->C254   =54.0 * g->C2;        
         
-        C2DA   = C2 / A;
-        CE2    = A2 - C2;
-        tem    = CE2 / C2;
-        CEE    = Eps2 * Eps2;        
-        TwoCEE =2.0 * CEE;
-        CEEps2 =Eps2 * CE2;
+    g->C2DA   = g->C2 / A;
+    g->CE2    = g->A2 - g->C2;
+    g->tem    = g->CE2 / g->C2;
+    g->CEE    = g->Eps2 * g->Eps2;        
+    g->TwoCEE =2.0 * g->CEE;
+    g->CEEps2 =g->Eps2 * g->CE2;
          
-        /* UPPER BOUNDS ON POINT */
+    /* UPPER BOUNDS ON POINT */
      
 
-        ARat1  =pow((A + 50005.0),2);
-        ARat2  =(ARat1) / pow((C+50005.0),2);
+    g->ARat1  =pow((A + 50005.0),2);
+    g->ARat2  =(g->ARat1) / pow((g->C+50005.0),2);
     
-        /* LOWER BOUNDS ON POINT */
+    /* LOWER BOUNDS ON POINT */
         
-        BRat1  =pow((A-10005.0),2);
-        BRat2  =(BRat1) / pow((C-10005.0),2);
+    g->BRat1  =pow((A-10005.0),2);
+    g->BRat2  =(g->BRat1) / pow((g->C-10005.0),2);
           
 	/* use WE ellipsoid */
-	B1=0.100225438677758E+01;
-	B2=-0.393246903633930E-04;
-	B3=0.241216653453483E+12;
-	B4=0.133733602228679E+14;
-	B5=0.984537701867943E+00;
+	g->B1=0.100225438677758E+01;
+	g->B2=-0.393246903633930E-04;
+	g->B3=0.241216653453483E+12;
+	g->B4=0.133733602228679E+14;
+	g->B5=0.984537701867943E+00;
 	gcToGdInit = TRUE;
+	return g;
 }
-static void initializeGcToGdParamsWE(void) {
-	double A, F;
-	A = GEOSP_WE_A;
-	F = GEOSP_WE_F; //we mistakenly call it F. Officially F/flattening is 0-1. Eccentricity is in meters about 300.
-	initializeGcToGdParams(A,F);
-}
+//static void initializeGcToGdParamsWE(void) {
+//	double A, F;
+//	A = GEOSP_WE_A;
+//	F = GEOSP_WE_F; //we mistakenly call it F. Officially F/flattening is 0-1. Eccentricity is in meters about 300.
+//	initializeGcToGdParams(A,F);
+//}
 
 /* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
 static void gccToGdc (int specversion, struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
 	double A,F;
 	double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
 		s,roe,arg,v,zo;
-
+	struct gcgd *g;
 	#ifdef VERBOSE
 	printf ("gccToGdc input %lf %lf %lf\n",GCC_X, GCC_Y, GCC_Z);
 	#endif
 	
 	getEllipsoidParams(geoSystem->p[1],&A,&F);
 	//if (!gcToGdInit) 
-	initializeGcToGdParams(A,F);
+	g = initializeGcToGdParams(geoSystem->p[1],A,F);
 
         w2=GCC_X * GCC_X + GCC_Y * GCC_Y;
         w=sqrt(w2);
         z2=GCC_Z * GCC_Z;
 
-        testu=w2 + ARat2 * z2;
-        testb=w2 + BRat2 * z2;
+        testu=w2 + g->ARat2 * z2;
+        testb=w2 + g->BRat2 * z2;
 
-        if ((testb > BRat1) && (testu < ARat1)) 
+        if ((testb > g->BRat1) && (testu < g->ARat1)) 
         {    
 
             /*POINT IS BETWEEN-10 KIL AND 50 KIL, SO COMPUTE TANGENT LATITUDE */
     
-            top= GCC_Z * (B1 + (B2 * w2 + B3) /
-                 (B4 + w2 * B5 + z2));
+            top= GCC_Z * (g->B1 + (g->B2 * w2 + g->B3) /
+                 (g->B4 + w2 * g->B5 + z2));
 
             top2=top*top;
 
@@ -1444,7 +1452,7 @@ static void gccToGdc (int specversion, struct Multi_Int32 *geoSystem, struct SFV
 
             s12=top2/rr;
 
-            rnn = A / ( (.25 - Eps25*s12 + .9999944354799/4) + (.25-Eps25*s12)/(.25 - Eps25*s12 + .9999944354799/4));
+            rnn = A / ( (.25 - g->Eps25*s12 + .9999944354799/4) + (.25-g->Eps25*s12)/(.25 - g->Eps25*s12 + .9999944354799/4));
             s1=top/q;
         
             /******************************************************************/
@@ -1454,7 +1462,7 @@ static void gccToGdc (int specversion, struct Multi_Int32 *geoSystem, struct SFV
             if (s12 < .50)
                 GDC_ELE = q-rnn;
             else
-                GDC_ELE = GCC_Z / s1 + (Eps21 * rnn);
+                GDC_ELE = GCC_Z / s1 + (g->Eps21 * rnn);
                 GDC_LAT = atan(top / w);
                 GDC_LON = atan2(GCC_Y,GCC_X);
         }
@@ -1464,19 +1472,19 @@ static void gccToGdc (int specversion, struct Multi_Int32 *geoSystem, struct SFV
             wp2=GCC_X * GCC_X + GCC_Y * GCC_Y;
             zp2=GCC_Z * GCC_Z;
             wp=sqrt(wp2);
-            cf=C254 * zp2;
-            gee=wp2 - (Eps21 * zp2) - CEEps2;
+            cf=g->C254 * zp2;
+            gee=wp2 - (g->Eps21 * zp2) - g->CEEps2;
             alpha=cf / (gee*gee);
-            cl=CEE * wp2 * alpha / gee;
+            cl=g->CEE * wp2 * alpha / gee;
             arg2=cl * (cl + 2.0);
             s1=1.0 + cl + sqrt(arg2);
             s=pow(s1,(1.0/3.0));
             p=alpha / (3.0 * pow(( s + (1.0/s) + 1.0),2));
-            xarg= 1.0 + (TwoCEE * p);
+            xarg= 1.0 + (g->TwoCEE * p);
             q=sqrt(xarg);
-            r2= -p * (2.0 * (1.0 - Eps2) * zp2 / ( q * ( 1.0 + q) ) + wp2);
+            r2= -p * (2.0 * (1.0 - g->Eps2) * zp2 / ( q * ( 1.0 + q) ) + wp2);
             r1=(1.0 + (1.0 / q));
-            r2 /=A2;
+            r2 /=g->A2;
 
             /*    DUE TO PRECISION ERRORS THE ARGUMENT MAY BECOME NEGATIVE IF SO SET THE ARGUMENT TO ZERO.*/
 
@@ -1485,14 +1493,14 @@ static void gccToGdc (int specversion, struct Multi_Int32 *geoSystem, struct SFV
             else
                 ro=0.0;
 
-            ro=ro - p * Eps2 * wp / ( 1.0 + q);
+            ro=ro - p * g->Eps2 * wp / ( 1.0 + q);
             //arg0 = pow(( wp - Eps2 * ro),2) + zp2;
-            roe = Eps2 * ro;
+            roe = g->Eps2 * ro;
             arg = pow(( wp - roe),2) + zp2;
-            v=sqrt(arg - Eps2 * zp2);
-            zo=C2DA * GCC_Z / v;
-            GDC_ELE = sqrt(arg) * (1.0 - C2DA / v);
-            top=GCC_Z+ tem*zo;
+            v=sqrt(arg - g->Eps2 * zp2);
+            zo=g->C2DA * GCC_Z / v;
+            GDC_ELE = sqrt(arg) * (1.0 - g->C2DA / v);
+            top=GCC_Z+ g->tem*zo;
             GDC_LAT = atan( top / wp );
             GDC_LON =atan2(GCC_Y,GCC_X);
         }  /* end of Exact solution */
@@ -2110,7 +2118,11 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 				GeoOrient(specversion,node->geoOrigin, &node->__geoSystem, &gdCoord, &node->__localOrient);
 				pyup = &node->__localOrient;
 			}
-
+			printf("geoEGrid geoGridOrigin \n\t p  %lf %lf %lf \n\t gd %lf %lf %lf\n\t gc %lf %lf %lf\n",
+			node->geoGridOrigin.c[0],node->geoGridOrigin.c[1],node->geoGridOrigin.c[2],
+			gdCoord.c[0],gdCoord.c[1],gdCoord.c[2],
+			node->__autoOffset.c[0],node->__autoOffset.c[1],node->__autoOffset.c[2]
+			);
 		}
 		//step 2 apply autoOrigin to GC coords
 		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
@@ -2178,7 +2190,7 @@ void pushOrigin(struct SFVec3d *offset, struct SFVec4d *orient){
 
 		if(1) FW_GL_ROTATE_RADIANS(-cr[3], cr[0],cr[1],cr[2]);
 		FW_GL_TRANSLATE_F(-ct[0],-ct[1],-ct[2]);
-		if(1){
+		if(0){
 			static int count = 0;
 			count++;
 			if(count % 15 == 0){
@@ -3280,7 +3292,7 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 		}
 		moveCoords3d(specversion,&node->__geoSystem, poffset, pyup, 
 			&node->position, 1, &node->__movedPosition, &gdCoord);
-		printf("compile geovp \n\tp=\t %lf %lf %lf \n\tgc=\t %lf %lf %lf\n\tgd=\t %lf %lf %lf\n",
+		if(1) printf("compile geovp \n\tp=\t %lf %lf %lf \n\tgc=\t %lf %lf %lf\n\tgd=\t %lf %lf %lf\n",
 			node->position.c[0],node->position.c[1],node->position.c[2],
 			node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2],
 			gdCoord.c[0],gdCoord.c[1],gdCoord.c[2]);
@@ -3552,7 +3564,7 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	resolve_pos();
 
-	calculateViewingSpeed();
+	calculateViewingSpeedB();
 
 	calculateExamineModeDistance();
 	setMenuStatusVP (node->description->strptr);
