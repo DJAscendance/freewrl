@@ -321,7 +321,7 @@ static int gcToGdInit = FALSE;
 static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
 static void moveCoords(struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
 static void Gd_Gc (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double);
-static void gccToGdcWE (struct SFVec3d *, struct SFVec3d *); 
+static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
 
 
@@ -1126,7 +1126,7 @@ static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoo
 				if (geoSystem->p[1] != GEOSP_WE) {
 					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
 					for (i=0; i<outCoords->n; i++) {
-						gccToGdcWE (&outCoords->p[i], &gdCoords->p[i]);
+						gccToGdc (geoSystem, &outCoords->p[i], &gdCoords->p[i]);
 					}
 				} else {
 					/* just copy the coordinates for the GD temporary return  */
@@ -1154,7 +1154,7 @@ static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoo
 				outCoords->p[i].c[2] = inCoords->p[i].c[2];
 
 				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdcWE (&inCoords->p[i], &gdCoords->p[i]);
+				gccToGdc (geoSystem, &inCoords->p[i], &gdCoords->p[i]);
 			}
 
 			break;
@@ -1215,7 +1215,7 @@ static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset,
 				if (geoSystem->p[1] != GEOSP_WE) {
 					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
 					for (i=0; i<n; i++) {
-						gccToGdcWE (&outCoords[i], &gdCoords[i]);
+						gccToGdc (geoSystem, &outCoords[i], &gdCoords[i]);
 					}
 				} else {
 					/* just copy the coordinates for the GD temporary return  */
@@ -1240,7 +1240,7 @@ static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset,
 			for (i=0; i< n; i++) {
 				veccopyd(outCoords[i].c,inCoords[i].c);
 				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdcWE (&inCoords[i], &gdCoords[i]);
+				gccToGdc (geoSystem, &inCoords[i], &gdCoords[i]);
 			}
 
 			break;
@@ -1660,10 +1660,7 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
 #undef VERBOSE
 
 }
-static void gccToGdcWE (struct SFVec3d *gcc, struct SFVec3d *gdc){
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-	gccToGdc (&p->stdGDgeosystem, gcc, gdc);
-}
+
 /* convert a GDC BACK to a UTM coordinate */
 static void gdToXtm(double radius, double flattening, double latitude, double longitude, double scaleFactor, double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) {
 #define DEG2RAD (PI/180.00)
@@ -3621,7 +3618,8 @@ void calculateViewingSpeed() {
 	double radius;
 	struct SFVec3d gcCoords;
 	struct SFVec3d gdCoords;
-	int specversion;		
+	struct Multi_Int32 *geoSystem;
+	//int specversion;		
 	/* the current position is the GC coordinate */
 	gcCoords.c[0]= Viewer()->currentPosInModel.x;
 	gcCoords.c[1] = Viewer()->currentPosInModel.y;
@@ -3632,13 +3630,13 @@ void calculateViewingSpeed() {
 		
 	if (Viewer()->GeoSpatialNode != NULL) {
 		/* do we have a valid __geoSystem?? */
-		specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
+		//specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
         INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
-
-		if (Viewer()->GeoSpatialNode->__geoSystem.n>0) {
+		geoSystem = &Viewer()->GeoSpatialNode->__geoSystem;
+		if (geoSystem && geoSystem->n >0) {
 			/* is the __geoSystem NOT gc coords? */
 			/* printf ("have a GeoSpatial viewpoint, currently %d\n",Viewer.GeoSpatialNode->__geoSystem.p[0]);  */
-			if (Viewer()->GeoSpatialNode->__geoSystem.p[0] != GEOSP_GC) {
+			if (geoSystem->p[0] != GEOSP_GC) {
 		
 
 		      //  	retractOrigin((struct X3D_GeoOrigin *)Viewer.GeoSpatialNode->geoOrigin, &gcCoords);
@@ -3651,7 +3649,7 @@ void calculateViewingSpeed() {
 		        	#endif
 		
 		        	/* convert from local (gc) to gd coordinates, using WGS84 ellipsoid */
-		        	gccToGdcWE (&gcCoords, &gdCoords);
+		        	gccToGdc (geoSystem, &gcCoords, &gdCoords);
 		
 				#ifdef VERBOSE
 				printf ("speed is calculated from geodetic height %lf %lf %lf\n",gdCoords.c[0], gdCoords.c[1], gdCoords.c[2]); 
@@ -3697,10 +3695,8 @@ void calculateViewingSpeedB() {
 	if(boundvp->_nodeType == NODE_GeoViewpoint){
 		double height;
 		struct SFVec3d *gdCoords;
-		int specversion;		
 		struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
 
-		specversion = X3D_PROTO(node->_executionContext)->__specversion;
         INITIALIZE_GEOSPATIAL(node)
 		COMPILE_IF_REQUIRED(X3D_NODE(node));
 		gdCoords = &node->__movedgd;
