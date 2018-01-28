@@ -2176,7 +2176,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	#endif
 
 	/* convert this point to a local coordinate */
-	if(0){
+	if(1){
         MOVE_TO_ORIGIN(node)
 	}else{
 		//v3.3 way - autoOrigin - B. capture as the self-origin
@@ -2300,14 +2300,17 @@ void popOrigin(){
 	FW_GL_POP_MATRIX();
 }
 void prepShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
-	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
+	if(geo_method()==2){
+		initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 
-	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
+		COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 
-	pushOrigin(&node->__autoOffset,&node->__localOrient);
+		pushOrigin(&node->__autoOffset,&node->__localOrient);
+	}
 }
 void finShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
-	popOrigin();
+	if(geo_method()==2)
+		popOrigin();
 }
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
@@ -3323,7 +3326,7 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 void calculateViewingSpeedB();
 int geo_method(){
 	//1= before 2018, scene root in GC, 2= Jan 21 2018, scene root in geo vp LC (no LC-GC) 3= (not yet implemented)
-	return 2;
+	return 1;
 }
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	int specversion;
