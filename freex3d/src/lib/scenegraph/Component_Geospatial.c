@@ -291,22 +291,6 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 	return iret;
 }
 
-#define ELLIPSOID(typ) \
-	case typ: Gd_Gc(geoSystem,inCoords,outCoords,typ##_A, typ##_F); break;
-
-#define UTM_ELLIPSOID(typ) \
-	case typ: Utm_Gd (geoSystem,inCoords, gdCoords, typ##_A, typ##_F); \
-		  Gd_Gc(geoSystem,gdCoords,outCoords,typ##_A, typ##_F); break;
-
-#define GCC_X gcc->c[0]
-#define GCC_Y gcc->c[1]
-#define GCC_Z gcc->c[2]
-#define GDC_LAT gdc->c[0]
-#define GDC_LON gdc->c[1]
-#define GDC_ELE gdc->c[2]
-
-
-
 
 #define INITIALIZE_GEOSPATIAL(me) \
 	initializeGeospatial((struct X3D_GeoOrigin **) &me->geoOrigin); 
@@ -314,12 +298,8 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 
 void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *GeoOrigin, 
 		struct SFVec3d *thisField);
-//int geoLodLevel = 0;
-
-static int gcToGdInit = FALSE;
 
 static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
-static void moveCoords(struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
 static void Gd_Gc (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double);
 static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
@@ -1089,126 +1069,6 @@ static void U3tm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc,
 	outCoords:	area for GC coordinates. Will MALLOC size if required 
 	gdCoords:	GD coordinates, used for rotation calculations in later stages. WILL MALLOC THIS */
 
-static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords, struct Multi_Vec3d *gdCoords) {
-
-	int i;
-
-	/* tmpCoords used for UTM coding */
-	gdCoords->n=0; gdCoords->p=NULL;
-
-	/* make sure the output has enough space for our converted data */
-	ENSURE_SPACE(outCoords)
-	ENSURE_SPACE(gdCoords)
-
-	/* GD Geosystem - copy coordinates, and convert them to GC */
-	switch (geoSystem->p[0]) {
-		case  GEOSP_GD:
-			{
-				/* GD_Gd_Gc_convert (inCoords, outCoords); */
-				switch (geoSystem->p[1]) {
-					ELLIPSOID(GEOSP_AA)
-					ELLIPSOID(GEOSP_AM)
-					ELLIPSOID(GEOSP_AN)
-					ELLIPSOID(GEOSP_BN)
-					ELLIPSOID(GEOSP_BR)
-					ELLIPSOID(GEOSP_CC)
-					ELLIPSOID(GEOSP_CD)
-					ELLIPSOID(GEOSP_EA)
-					ELLIPSOID(GEOSP_EB)
-					ELLIPSOID(GEOSP_EC)
-					ELLIPSOID(GEOSP_ED)
-					ELLIPSOID(GEOSP_EE)
-					ELLIPSOID(GEOSP_EF)
-					ELLIPSOID(GEOSP_FA)
-					ELLIPSOID(GEOSP_HE)
-					ELLIPSOID(GEOSP_HO)
-					ELLIPSOID(GEOSP_ID)
-					ELLIPSOID(GEOSP_IN)
-					ELLIPSOID(GEOSP_KA)
-					ELLIPSOID(GEOSP_RF)
-					ELLIPSOID(GEOSP_SA)
-					ELLIPSOID(GEOSP_WD)
-					ELLIPSOID(GEOSP_WE)
-					default: printf ("unknown Gd_Gc: %s\n", stringGEOSPATIALType(geoSystem->p[1]));
-				}
-
-				/* now, for the GD coord return values; is this in the correct format for calculating 
-				   rotations? */
-				gdCoords->n = inCoords->n;
-
-				/* is the GD value NOT the WGS84 ellipsoid? */
-				if (geoSystem->p[1] != GEOSP_WE) {
-					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
-					for (i=0; i<outCoords->n; i++) {
-						gccToGdc (geoSystem, &outCoords->p[i], &gdCoords->p[i]);
-					}
-				} else {
-					/* just copy the coordinates for the GD temporary return  */
-					memcpy (gdCoords->p, inCoords->p, sizeof (struct SFVec3d) * inCoords->n);
-					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
-					if(geoSystem->p[6] == TRUE)
-						for(i=0;i<gdCoords->n;i++){
-							double dlat, dlong;
-							dlat = gdCoords->p[i].c[1-geoSystem->p[5]];
-							dlong = gdCoords->p[i].c[geoSystem->p[5]];
-							if(geoSystem->p[7] == FALSE){
-								dlat *= DEGREES_PER_RADIAN;
-								dlong *= DEGREES_PER_RADIAN;
-							}
-							gdCoords->p[i].c[2] += geoidCorrection(dlat,dlong);
-						}
-				}
-			}
-			break;
-		case GEOSP_GC:
-			/* an earth-fixed geocentric coord; no conversion required for gc value returns */
-			for (i=0; i< inCoords->n; i++) {
-				outCoords->p[i].c[0] = inCoords->p[i].c[0];
-				outCoords->p[i].c[1] = inCoords->p[i].c[1];
-				outCoords->p[i].c[2] = inCoords->p[i].c[2];
-
-				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdc (geoSystem, &inCoords->p[i], &gdCoords->p[i]);
-			}
-
-			break;
-		case GEOSP_UTM:
-				/* GD coords will be returned from the conversion process....*/
-				/* first, convert UTM to GC, then GD, then GD to GC */
-				/* see the compileGeosystem function for geoSystem fields */
-				switch (geoSystem->p[1]) {
-					UTM_ELLIPSOID(GEOSP_AA)
-					UTM_ELLIPSOID(GEOSP_AM)
-					UTM_ELLIPSOID(GEOSP_AN)
-					UTM_ELLIPSOID(GEOSP_BN)
-					UTM_ELLIPSOID(GEOSP_BR)
-					UTM_ELLIPSOID(GEOSP_CC)
-					UTM_ELLIPSOID(GEOSP_CD)
-					UTM_ELLIPSOID(GEOSP_EA)
-					UTM_ELLIPSOID(GEOSP_EB)
-					UTM_ELLIPSOID(GEOSP_EC)
-					UTM_ELLIPSOID(GEOSP_ED)
-					UTM_ELLIPSOID(GEOSP_EE)
-					UTM_ELLIPSOID(GEOSP_EF)
-					UTM_ELLIPSOID(GEOSP_FA)
-					UTM_ELLIPSOID(GEOSP_HE)
-					UTM_ELLIPSOID(GEOSP_HO)
-					UTM_ELLIPSOID(GEOSP_ID)
-					UTM_ELLIPSOID(GEOSP_IN)
-					UTM_ELLIPSOID(GEOSP_KA)
-					UTM_ELLIPSOID(GEOSP_RF)
-					UTM_ELLIPSOID(GEOSP_SA)
-					UTM_ELLIPSOID(GEOSP_WD)
-					UTM_ELLIPSOID(GEOSP_WE)
-					default: printf ("unknown Gd_Gc: %s\n", stringGEOSPATIALType(geoSystem->p[1]));
-				}
-			break;
-		default :
-			printf ("incorrect geoSystem field, %s\n",stringGEOSPATIALType(geoSystem->p[0]));
-			return;
-
-	}
-}
 
 static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset, struct SFVec4d *yup,
 	struct SFVec3d *inCoords, int n, struct SFVec3d *outCoords, struct SFVec3d *gdCoords) {
@@ -1560,7 +1420,6 @@ struct gcgd* initializeGcToGdParams(int type, double A, double F) {
 	g->B3=0.241216653453483E+12;
 	g->B4=0.133733602228679E+14;
 	g->B5=0.984537701867943E+00;
-	gcToGdInit = TRUE;
 	return g;
 }
 //static void initializeGcToGdParamsWE(void) {
@@ -1570,8 +1429,13 @@ struct gcgd* initializeGcToGdParams(int type, double A, double F) {
 //	initializeGcToGdParams(A,F);
 //}
 
+
 /* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
 static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
+	int latitude = 0;
+	int longitude = 1;
+	int elevation = 2;
+	double GCC_X, GCC_Y, GCC_Z;
 	double A,F;
 	double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
 		s,roe,arg,v,zo;
@@ -1579,9 +1443,13 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
 	#ifdef VERBOSE
 	printf ("gccToGdc input %lf %lf %lf\n",GCC_X, GCC_Y, GCC_Z);
 	#endif
-	
+	GCC_X = gcc->c[0];
+	GCC_Y = gcc->c[1];
+	GCC_Z = gcc->c[2];
+	if(geoSystem->p[5] == FALSE){
+		latitude = 1; longitude = 0;
+	}
 	getEllipsoidParams(geoSystem->p[1],&A,&F);
-	//if (!gcToGdInit) 
 	g = initializeGcToGdParams(geoSystem->p[1],A,F);
 
         w2=GCC_X * GCC_X + GCC_Y * GCC_Y;
@@ -1621,11 +1489,11 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
             /* TEST FOR H NEAR POLE.  if SIN(¯)**2 <= SIN(45.)**2 THEN NOT NEAR A POLE.*/  
     
             if (s12 < .50)
-                GDC_ELE = q-rnn;
+                gdc->c[elevation] = q-rnn;
             else
-                GDC_ELE = GCC_Z / s1 + (g->Eps21 * rnn);
-                GDC_LAT = atan(top / w);
-                GDC_LON = atan2(GCC_Y,GCC_X);
+                gdc->c[elevation] = GCC_Z / s1 + (g->Eps21 * rnn);
+                gdc->c[latitude] = atan(top / w);
+                gdc->c[longitude] = atan2(GCC_Y,GCC_X);
         }
               /* POINT ABOVE 50 KILOMETERS OR BELOW -10 KILOMETERS  */
         else /* Do Exact Solution  ************ */
@@ -1660,16 +1528,16 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
             arg = pow(( wp - roe),2) + zp2;
             v=sqrt(arg - g->Eps2 * zp2);
             zo=g->C2DA * GCC_Z / v;
-            GDC_ELE = sqrt(arg) * (1.0 - g->C2DA / v);
+            gdc->c[elevation] = sqrt(arg) * (1.0 - g->C2DA / v);
             top=GCC_Z+ g->tem*zo;
-            GDC_LAT = atan( top / wp );
-            GDC_LON =atan2(GCC_Y,GCC_X);
+            gdc->c[latitude] = atan( top / wp );
+            gdc->c[longitude] =atan2(GCC_Y,GCC_X);
         }  /* end of Exact solution */
 
 		if(geoSystem->p[7] == TRUE){
 			//v3.2- works in degrees by default, v3.3+ works in 'angle base units' (radians) by default
-			GDC_LAT *= DEGREES_PER_RADIAN;
-			GDC_LON *= DEGREES_PER_RADIAN;
+			gdc->c[latitude] *= DEGREES_PER_RADIAN;
+			gdc->c[longitude] *= DEGREES_PER_RADIAN;
 		}
 #undef VERBOSE
 
