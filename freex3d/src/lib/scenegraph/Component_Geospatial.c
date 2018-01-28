@@ -292,11 +292,11 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 }
 
 #define ELLIPSOID(typ) \
-	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
+	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[6]); break;
 
 #define UTM_ELLIPSOID(typ) \
-	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[5], geoSystem->p[2],  geoSystem->p[3]); \
-		  Gd_Gc(specversion,gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[4]); break;
+	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[4], geoSystem->p[2],  geoSystem->p[3]); \
+		  Gd_Gc(specversion,gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[6]); break;
 
 #define GCC_X gcc->c[0]
 #define GCC_Y gcc->c[1]
@@ -351,8 +351,8 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		pp[1] = GEOSP_WE;
 		pp[2] = INT_ID_UNDEFINED;
 		pp[3] = TRUE; //GD: lat first XTM: northing first
-		pp[4] = FALSE; //geoid - not GC, just GD/UTM
-		pp[5] = TRUE; //northern hemisphere for UTM
+		pp[4] = TRUE; //northern hemisphere for UTM
+		pp[6] = FALSE; //geoid - not GC, just GD/UTM
 		memset(p->gcgdpars,0,50*sizeof(void*));
 		memset(p->fgeopars,0,50*sizeof(void*));
 	}
@@ -1108,7 +1108,7 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 					/* just copy the coordinates for the GD temporary return  */
 					memcpy (gdCoords->p, inCoords->p, sizeof (struct SFVec3d) * inCoords->n);
 					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
-					if(geoSystem->p[4] == TRUE)
+					if(geoSystem->p[6] == TRUE)
 						for(i=0;i<gdCoords->n;i++){
 							double dlat, dlong;
 							dlat = gdCoords->p[i].c[1-geoSystem->p[3]];
@@ -1183,7 +1183,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 		case  GEOSP_GD:
 			{
 				/* GD_Gd_Gc_convert (inCoords, outCoords); */
-				Gd_Gc3d(geoSystem->p[1],specversion,inCoords,n,outCoords,geoSystem->p[3], geoSystem->p[4]);
+				Gd_Gc3d(geoSystem->p[1],specversion,inCoords,n,outCoords,geoSystem->p[3], geoSystem->p[6]);
 
 				/* now, for the GD coord return values; is this in the correct format for calculating 
 				   rotations? */
@@ -1198,7 +1198,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 					/* just copy the coordinates for the GD temporary return  */
 					memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
 					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
-					if(geoSystem->p[4] == TRUE)
+					if(geoSystem->p[6] == TRUE)
 						for(i=0; i < n; i++){
 							double dlat, dlong;
 							dlat = gdCoords[i].c[1-geoSystem->p[3]];
@@ -1230,14 +1230,14 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 					#ifdef GEOLIB
 					if(method_geolib())
-						Utm_Gd3d_geolib(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
+						Utm_Gd3d_geolib(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[4], geoSystem->p[2], geoSystem->p[3]);
 					else
 					#endif
-						Utm_Gd3d(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
+						Utm_Gd3d(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[4], geoSystem->p[2], geoSystem->p[3]);
 					//printf("Utm_Gd3d inCoords %lf %lf %lf out %lf %lf %lf\n",inCoords[0].c[0],inCoords[0].c[1],inCoords[0].c[2],
 					//	gdCoords[0].c[0],gdCoords[0].c[1],gdCoords[0].c[2]);
 					//utm_gd sticks to ellpsiod, but puts coords in lat first and no geoid (I think)
-					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[4]); //geoSystem->p[3], geoSystem->p[4]);
+					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[6]);
 			}
 			break;
 		case GEOSP_3TM:
@@ -1248,11 +1248,11 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 					#ifdef GEOLIB
 					if(method_geolib())
-						U3tm_Gd3d_geolib(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
+						U3tm_Gd3d_geolib(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[4], geoSystem->p[2], geoSystem->p[3]);
 					else
 					#endif
-						U3tm_Gd3d(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[5], geoSystem->p[2], geoSystem->p[3]);
-					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[4]); //geoSystem->p[3], geoSystem->p[4]);
+						U3tm_Gd3d(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[4], geoSystem->p[2], geoSystem->p[3]);
+					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[6]); 
 			}
 			break;
 
@@ -1367,6 +1367,8 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 				node->__geoSystem.p[3]);
 				node->__geoSystem.p[4]);
 				node->__geoSystem.p[5]);
+				node->__geoSystem.p[6]);
+				node->__geoSystem.p[7]);
 			printf ("initializeGeospatial, done\n\n");
 			#endif
 
@@ -1826,17 +1828,19 @@ static void GeoOrient (int specversion, struct X3D_Node *geoOrigin, struct Multi
 	#endif
 }
 
-
+typedef struct _geosys {
+	int nothing;
+} Geosys;
 /* compileGeosystem - encode the return value such that srf->p[x] is...
-			0:	spatial reference frame	(GEOSP_UTM, GEOSP_GC, GEOSP_GD, GEOSP_3TM);
-			1:	spatial coordinates (defaults to GEOSP_WE)
-			2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified
-			3:	UTM:	if "S" - value is FALSE, not S, value is TRUE 
-				GD:	if "latitude_first" TRUE, if "longitude_first", FALSE
-				GC:	if "northing_first" TRUE, if "easting_first", FALSE 
-			4:  GD: TRUE if heights are relative to sea level WGS84 
-					(fw converts to ellipsoid heights using geoid correction, allowing
-					GPS and topographic data to be blended in the same scene)
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+		GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	
+	6:	GD: true if geoid height
+	7:	//not yet GD: TRUE: decimal degrees, FALSE radians
 */
 
 static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf) {
@@ -1851,7 +1855,7 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 	/* malloc the area required for internal settings, if required */
 	if (srf->p==NULL) {
 		srf->n=6;
-		srf->p=MALLOC(int *, sizeof(int) * 6);
+		srf->p=MALLOC(int *, sizeof(int) * 8);
 	}
 
 	/* set these as defaults */
@@ -1859,8 +1863,8 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 	srf->p[1] = GEOSP_WE;
 	srf->p[2] = INT_ID_UNDEFINED;
 	srf->p[3] = TRUE; //GD: lat first XTM: northing first
-	srf->p[4] = FALSE; //geoid - not GC, just GD/UTM
-	srf->p[5] = TRUE; //northern hemisphere for UTM
+	srf->p[4] = TRUE; //northern hemisphere for UTM
+	srf->p[6] = FALSE; //geoid - not GC, just GD/UTM
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
 
@@ -1909,7 +1913,7 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 			} else if (strcmp("longitude_first", args->p[i]->strptr) == 0) {
 				srf->p[3] = FALSE;
 			} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
-				srf->p[4] = TRUE; //geoid
+				srf->p[6] = TRUE; //geoid
 			} else {
 				if (i!= this_srf_ind) {
 					indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
@@ -1942,16 +1946,16 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 		for (i=0; i<args->n; i++) {
 			if (i != this_srf_ind) {
 				if (strcmp ("S",args->p[i]->strptr) == 0) {
-					srf->p[5] = FALSE;
+					srf->p[4] = FALSE;
 				} else if (strcmp ("N",args->p[i]->strptr) == 0) {
-					srf->p[5] = TRUE; // default
+					srf->p[4] = TRUE; // default
 				} else if (args->p[i]->strptr[0] == 'Z') {
 					int zone = -1;
 					sscanf(args->p[i]->strptr,"Z%d",&zone);
 					/* printf ("zone found as %d\n",zone); */
 					srf->p[2] = zone;
 				} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
-					srf->p[4] = TRUE; //geoid
+					srf->p[6] = TRUE; //geoid
 				} else if (strcmp("northing_first",args->p[i]->strptr) == 0) { 
 					srf->p[3] = TRUE;
 				} else if (strcmp("easting_first",args->p[i]->strptr) == 0) { 
@@ -3950,14 +3954,17 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 //CONVERT_BACK_TO_GD_OR_UTMB(specversion, geoSystem, geoOrigin, thisField);
 void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSystem, struct X3D_Node *GeoOrigin, 
 		struct SFVec3d *thisField) {
-	/* compileGeosystem - encode the return value such that srf->p[x] is... 
-                        0:      spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
-                        1:      spatial coordinates (defaults to GEOSP_WE) 
-                        2:      UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
-                        3:      UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
-                                GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
-						4:		GD: true if geoid height
-						5:		UTM:    if "S" - value is FALSE, not S, value is TRUE */
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+		GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	
+	6:	GD: true if geoid height
+	7:	//not yet GD: TRUE: decimal degrees, FALSE radians
+*/
  
 	/* do we need to change this from a GCC? */ 
 	struct Multi_Int32 *geoSystem = targetGeoSystem;
