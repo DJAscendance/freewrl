@@ -161,7 +161,7 @@ int isNodeGeospatial(struct X3D_Node* node){
 
 
 #define MOVE_TO_ORIGIN(me)	GeoMove(X3D_NODE(node),X3D_GEOORIGIN(me->geoOrigin), &me->__geoSystem, &mIN, &mOUT, &gdCoords);
-#define COMPILE_GEOSYSTEM(me) compile_geoSystem (me->_nodeType, &me->geoSystem, &me->__geoSystem);
+#define COMPILE_GEOSYSTEM(me) compile_geoSystem (X3D_NODE(me), me->_nodeType, &me->geoSystem, &me->__geoSystem);
 
 #define RADIANS_PER_DEGREE (double)0.0174532925199432957692
 #define DEGREES_PER_RADIAN (double)57.2957795130823208768
@@ -318,7 +318,7 @@ void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSy
 
 static int gcToGdInit = FALSE;
 
-static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
+static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
 static void moveCoords(int specversion, struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
 static void Gd_Gc (int specversion, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double, int, int);
 static void gccToGdcWE (int specversion,struct SFVec3d *, struct SFVec3d *); 
@@ -346,7 +346,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
 		p->geoLodLevel = 0;
 		//a standard Geodetic geosystem when doing conversions from GC to UTM, as an intermediary
-		pp = p->stdGDgeosystem.p = malloc(sizeof(int)*6);
+		pp = p->stdGDgeosystem.p = malloc(sizeof(int)*8);
 		pp[0] = GEOSP_GD; 
 		pp[1] = GEOSP_WE;
 		pp[2] = INT_ID_UNDEFINED;
@@ -354,6 +354,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		pp[4] = TRUE; //northern hemisphere for UTM
 		pp[5] = TRUE; //GD: lat first
 		pp[6] = FALSE; //geoid - not GC, just GD/UTM
+		pp[7] = FALSE; //TRUE decimal degrees, FALSE radians
 		memset(p->gcgdpars,0,50*sizeof(void*));
 		memset(p->fgeopars,0,50*sizeof(void*));
 	}
@@ -1303,7 +1304,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 		if NODE_NEEDS_COMPILING {
 			struct SFVec3d gdCoords;
 			//struct SFVec3d offset;
-			compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
+			compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
 			//INIT_MF_FROM_SF(node,geoCoords)
 			moveCoords3d(X3D_PROTO(node->_executionContext)->__specversion,&node->__geoSystem, NULL, NULL,
 					&node->geoCoords,1, &node->__movedCoords, &gdCoords);
@@ -1827,25 +1828,23 @@ static void GeoOrient (int specversion, struct X3D_Node *geoOrigin, struct Multi
 	#endif
 }
 
-typedef struct _geosys {
-	int nothing;
-} Geosys;
 /* compileGeosystem - encode the return value such that srf->p[x] is...
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
 	1:	ellipsoid index (defaults to GEOSP_WE) 
 	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
 	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
-		GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
 	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
-	5:	
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
 	6:	GD: true if geoid height
-	7:	//not yet GD: TRUE: decimal degrees, FALSE radians
+	7:	GD: TRUE: decimal degrees, FALSE radians
 */
 
-static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf) {
-	int i;
+static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String *args, struct Multi_Int32 *srf) {
+	int i, specversion;
 	indexT this_srf = INT_ID_UNDEFINED;
 	indexT this_srf_ind = INT_ID_UNDEFINED;
+
+
 
 	#ifdef VERBOSE
 	printf ("start of compile_geoSystem\n");
@@ -1865,6 +1864,15 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 	srf->p[4] = TRUE; //northern hemisphere for UTM
 	srf->p[5] = TRUE; //GD: lat first
 	srf->p[6] = FALSE; //geoid - not GC, just GD/UTM
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	if(specversion > 320 && STRICT33){
+		//version 3.3+ by default in 'angle base units' which are radians
+		srf->p[7] = FALSE; //GD: TRUE decimal degrees, FALSE: radians
+	}else{
+		//version 3.2- by default in degrees
+		srf->p[7] = TRUE; //GD: TRUE decimal degrees, FALSE: radians
+	}
+
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
 
@@ -3446,7 +3454,7 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	//INITIALIZE_GEOSPATIAL(node)
 	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 	//COMPILE_GEOSYSTEM(node)
-	compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
+	compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
 	// debate: should the v3.3 self-origin be A. translated and rotated
 	// or should it be B. captured as the translation and rotation for other things
 	if(0){
@@ -3962,7 +3970,7 @@ void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSy
 	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
 	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
 	6:	GD: true if geoid height
-	7:	//not yet GD: TRUE: decimal degrees, FALSE radians
+	7:	GD: TRUE: decimal degrees, FALSE radians
 */
  
 	/* do we need to change this from a GCC? */ 
