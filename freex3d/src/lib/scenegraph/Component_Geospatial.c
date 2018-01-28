@@ -676,6 +676,11 @@ static void Xtm_Gd (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *inc, stru
 	double calcConstantTerm3;
 	double calcConstantTerm4;
 
+	if(geoSystem->p[5] == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
+
 	hemisphere_north = geoSystem->p[4];
 	zone = geoSystem->p[2];
 	northing_first = geoSystem->p[3];
@@ -833,6 +838,10 @@ static void Xtm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, 
 	double calcConstantTerm3;
 	double calcConstantTerm4;
 
+	if(geoSystem->p[5] == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
 
 	hemisphere_north = geoSystem->p[4];
 	zone = geoSystem->p[2];
@@ -974,6 +983,11 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 	double myNorthing;
 	void *fgeo;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+	if(geoSystem->p[5] == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
 
 	hemisphere_north = geoSystem->p[4];
 	zone = geoSystem->p[2];
