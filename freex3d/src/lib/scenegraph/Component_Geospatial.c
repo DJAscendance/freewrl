@@ -292,11 +292,11 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 }
 
 #define ELLIPSOID(typ) \
-	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[6]); break;
+	case typ: Gd_Gc(specversion,inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[5], geoSystem->p[6]); break;
 
 #define UTM_ELLIPSOID(typ) \
 	case typ: Utm_Gd (specversion,inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[4], geoSystem->p[2],  geoSystem->p[3]); \
-		  Gd_Gc(specversion,gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[6]); break;
+		  Gd_Gc(specversion,gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[5], geoSystem->p[6]); break;
 
 #define GCC_X gcc->c[0]
 #define GCC_Y gcc->c[1]
@@ -350,8 +350,9 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		pp[0] = GEOSP_GD; 
 		pp[1] = GEOSP_WE;
 		pp[2] = INT_ID_UNDEFINED;
-		pp[3] = TRUE; //GD: lat first XTM: northing first
+		pp[3] = TRUE; //XTM: northing first
 		pp[4] = TRUE; //northern hemisphere for UTM
+		pp[5] = TRUE; //GD: lat first
 		pp[6] = FALSE; //geoid - not GC, just GD/UTM
 		memset(p->gcgdpars,0,50*sizeof(void*));
 		memset(p->fgeopars,0,50*sizeof(void*));
@@ -1111,14 +1112,13 @@ static void moveCoords (int specversion, struct Multi_Int32* geoSystem, struct M
 					if(geoSystem->p[6] == TRUE)
 						for(i=0;i<gdCoords->n;i++){
 							double dlat, dlong;
-							dlat = gdCoords->p[i].c[1-geoSystem->p[3]];
-							dlong = gdCoords->p[i].c[geoSystem->p[3]];
+							dlat = gdCoords->p[i].c[1-geoSystem->p[5]];
+							dlong = gdCoords->p[i].c[geoSystem->p[5]];
 							if(specversion > 320 && STRICT33){
 								dlat *= DEGREES_PER_RADIAN;
 								dlong *= DEGREES_PER_RADIAN;
 							}
 							gdCoords->p[i].c[2] += geoidCorrection(dlat,dlong);
-							//gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
 						}
 				}
 			}
@@ -1183,7 +1183,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 		case  GEOSP_GD:
 			{
 				/* GD_Gd_Gc_convert (inCoords, outCoords); */
-				Gd_Gc3d(geoSystem->p[1],specversion,inCoords,n,outCoords,geoSystem->p[3], geoSystem->p[6]);
+				Gd_Gc3d(geoSystem->p[1],specversion,inCoords,n,outCoords,geoSystem->p[5], geoSystem->p[6]);
 
 				/* now, for the GD coord return values; is this in the correct format for calculating 
 				   rotations? */
@@ -1201,14 +1201,13 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 					if(geoSystem->p[6] == TRUE)
 						for(i=0; i < n; i++){
 							double dlat, dlong;
-							dlat = gdCoords[i].c[1-geoSystem->p[3]];
-							dlong = gdCoords[i].c[geoSystem->p[3]];
+							dlat = gdCoords[i].c[1-geoSystem->p[5]];
+							dlong = gdCoords[i].c[geoSystem->p[5]];
 							if(specversion > 320 && STRICT33){
 								dlat *= DEGREES_PER_RADIAN;
 								dlong *= DEGREES_PER_RADIAN;
 							}
 							gdCoords[i].c[2] += geoidCorrection(dlat,dlong);
-							//gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
 						}
 				}
 			}
@@ -1237,7 +1236,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 					//printf("Utm_Gd3d inCoords %lf %lf %lf out %lf %lf %lf\n",inCoords[0].c[0],inCoords[0].c[1],inCoords[0].c[2],
 					//	gdCoords[0].c[0],gdCoords[0].c[1],gdCoords[0].c[2]);
 					//utm_gd sticks to ellpsiod, but puts coords in lat first and no geoid (I think)
-					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[6]);
+					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[5],p->stdGDgeosystem.p[6]);
 			}
 			break;
 		case GEOSP_3TM:
@@ -1252,7 +1251,7 @@ static void moveCoords3d (int specversion, struct Multi_Int32* geoSystem, struct
 					else
 					#endif
 						U3tm_Gd3d(geoSystem->p[1],specversion,inCoords,n, gdCoords, geoSystem->p[4], geoSystem->p[2], geoSystem->p[3]);
-					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[3],p->stdGDgeosystem.p[6]); 
+					Gd_Gc3d(geoSystem->p[1],specversion,gdCoords,n,outCoords, p->stdGDgeosystem.p[5],p->stdGDgeosystem.p[6]); 
 			}
 			break;
 
@@ -1862,8 +1861,9 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 	srf->p[0] = GEOSP_GD; 
 	srf->p[1] = GEOSP_WE;
 	srf->p[2] = INT_ID_UNDEFINED;
-	srf->p[3] = TRUE; //GD: lat first XTM: northing first
+	srf->p[3] = TRUE; //XTM: northing first
 	srf->p[4] = TRUE; //northern hemisphere for UTM
+	srf->p[5] = TRUE; //GD: lat first
 	srf->p[6] = FALSE; //geoid - not GC, just GD/UTM
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
@@ -1909,9 +1909,9 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 		for (i=0; i<args->n; i++) {
 			/* printf ("geosp_gd, ind %d i am %d string %s\n",i, this_srf_ind,args->p[i]->strptr); */
 			if (strcmp("latitude_first", args->p[i]->strptr) == 0) {
-				srf->p[3] = TRUE;
+				srf->p[5] = TRUE;
 			} else if (strcmp("longitude_first", args->p[i]->strptr) == 0) {
-				srf->p[3] = FALSE;
+				srf->p[5] = FALSE;
 			} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
 				srf->p[6] = TRUE; //geoid
 			} else {
@@ -3959,9 +3959,8 @@ void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSy
 	1:	ellipsoid index (defaults to GEOSP_WE) 
 	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
 	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
-		GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
 	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
-	5:	
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
 	6:	GD: true if geoid height
 	7:	//not yet GD: TRUE: decimal degrees, FALSE radians
 */
@@ -3998,7 +3997,7 @@ void CONVERT_BACK_TO_GD_OR_UTMB(int specversion, struct Multi_Int32 *targetGeoSy
 			/* is this a GD? if so, go no further */ 
 			if (geoSystem->p[0] == GEOSP_GD) { 
 				/* do we need to flip lat and lon? */ 
-				if (!(geoSystem->p[3])) { 
+				if (!(geoSystem->p[5])) { 
 					double tmp; 
 					tmp = thisField->c[0]; 
 					thisField->c[0] = thisField->c[1]; 
