@@ -102,8 +102,7 @@ x we can only do one world in a scene. We can't do a planet and several moons
 	we haven't tested linear UNITS conversion on parsing for geocoordinates. 
 	Internally we are assuming meters. (all ellipsoid constants are in meters, 
 	as are falseEasting and falseNorthing constants for UTM, and geoid height correction)
-x geoid correction: I see a geoid correction going one way.
-	 But in theory it should be 2 ways. Needs work.
+- geoid correction: needs a review to ensure 2-way, round-trip symmetry.
 */
 
 
@@ -216,28 +215,16 @@ int isNodeGeospatial(struct X3D_Node* node){
 	} 
 
 /* for UTM, GC, GD conversions */
-#define ELEVATION_OUT   outc->p[i].c[elevation]
-#define ELEVATION_IN    inc->p[i].c[elevation]
-#define EASTING_IN	inc->p[i].c[easting]
-#define NORTHING_IN	inc->p[i].c[northing]
 #define UTM_SCALE 	(double)0.9996
 #define UTM_FALSE_EASTING 500000.0 //500k m
 #define UTM_FALSE_NORTHING 10000000.0 //10M m
 #define UTM_ZONE_SIZE 6.0
-#define LATITUDE_OUT	outc->p[i].c[latitude]
-#define LONGITUDE_OUT	outc->p[i].c[longitude]
-#define LATITUDE_IN	inc->p[i].c[latitude]
-#define LONGITUDE_IN	inc->p[i].c[longitude]
 
 #define U3TM_SCALE 	(double)0.9999
 #define U3TM_FALSE_EASTING 0.0 
 #define U3TM_FALSE_NORTHING 0.0 
 #define U3TM_ZONE_SIZE 3.0
 
-
-#define GC_X_OUT 	outc->p[i].c[0] 
-#define GC_Y_OUT 	outc->p[i].c[1]
-#define GC_Z_OUT 	outc->p[i].c[2]
 
 /* for Gd_Gc conversions */
 #define GEOSP_AA_A	(double)6377563.396
@@ -346,9 +333,10 @@ void calculateViewingSpeed(void);
 
 typedef struct pComponent_Geospatial{
 	int geoLodLevel;// = 0;
-	struct Multi_Int32 stdGDgeosystem;
 	void * gcgdpars[50];
+#ifdef GEOLIB
 	void * fgeopars[50];
+#endif //GEOLIB
 
 }* ppComponent_Geospatial;
 void *Component_Geospatial_constructor(){
@@ -361,21 +349,12 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	//private
 	t->prv = Component_Geospatial_constructor();
 	{
-		int *pp;
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
 		p->geoLodLevel = 0;
-		//a standard Geodetic geosystem when doing conversions from GC to UTM, as an intermediary
-		pp = p->stdGDgeosystem.p = malloc(sizeof(int)*8);
-		pp[0] = GEOSP_GD; 
-		pp[1] = GEOSP_WE;
-		pp[2] = INT_ID_UNDEFINED;
-		pp[3] = TRUE; //XTM: northing first
-		pp[4] = TRUE; //northern hemisphere for UTM
-		pp[5] = TRUE; //GD: lat first
-		pp[6] = FALSE; //geoid - not GC, just GD/UTM
-		pp[7] = FALSE; //TRUE decimal degrees, FALSE radians
 		memset(p->gcgdpars,0,50*sizeof(void*));
+		#ifdef GEOLIB
 		memset(p->fgeopars,0,50*sizeof(void*));
+		#endif //GEOLIB
 	}
 }
 //ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
@@ -462,103 +441,9 @@ static void retractOrigin(struct X3D_GeoOrigin *myGeoOrigin, struct SFVec3d *gcC
 }
 
 
-/* convert GD ellipsiod to GC coordinates */
-static void Gd_Gc (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, 
-double radius, double flattening) {
-	int i, lat_first, geoid;
-	double A = radius;
-	double A2 = radius*radius;
-	double F = (double)(1/flattening);
-	double C = A*((double)1.0 - F);
-	double C2 = C*C;
-	double Eps2 = F*((double)2.0 - F);
-	double Eps25 = (double) 0.25 * Eps2;
+/* convert GD ellipsiod to GC coordinates. swizzles and converts degrad as needed. */
 
-	int latitude = 0;
-	int longitude = 1;
-	int elevation = 2;
-
-	double source_lat;
-	double source_lon;
-	double slat;
-	double slat2;
-	double clat;
-	double Rn;
-	double RnPh;
-
-	lat_first = geoSystem->p[5];
-	geoid = geoSystem->p[6];
-	if (!lat_first) {
-		printf ("Gd_Gc, NOT lat first\n");
-		latitude = 1; longitude = 0;
-	}
-
-	/* enough room for output? */
-	if (outc->n < inc->n) {
-		FREE_IF_NZ(outc->p);
-		outc->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inc->n);
-		outc->n = inc->n;
-	}
-	#ifdef VERBOSE
-	printf ("Gd_Gc, have n of %d\n",inc->n);
-	#endif
-
-	for (i=0; i<inc->n; i++) {
-		#ifdef VERBOSE
-		printf ("Gd_Gc, ining lat %lf long %lf ele %lf   ",LATITUDE_IN, LONGITUDE_IN, ELEVATION_IN);
-		#endif
-
-		if(geoSystem->p[7] == FALSE){
-			//version 3.3+ by default in 'angle base units' which are radians
-			source_lat = LATITUDE_IN;
-			source_lon = LONGITUDE_IN;
-		}else{
-			//version 3.2- by default in degrees
-			source_lat = RADIANS_PER_DEGREE * LATITUDE_IN;
-			source_lon = RADIANS_PER_DEGREE * LONGITUDE_IN;
-		}
-	
-		#ifdef VERBOSE
-		printf ("Source Latitude  %lf Source Longitude %lf\n",source_lat, source_lon);
-		#endif
-
-		slat = sin(source_lat);
-		slat2 = slat*slat;
-		clat = cos(source_lat);
-	
-		#ifdef VERBOSE
-		printf ("slat %lf slat2 %lf clat %lf\n",slat, slat2, clat);
-		#endif
-
-
-		/* square root approximation for Rn */
-		Rn = A / ( (.25 - Eps25 * slat2 + .9999944354799/4) + (.25-Eps25 * slat2)/(.25 - Eps25 * slat2 + .9999944354799/4));
-	
-		RnPh = Rn + ELEVATION_IN;
-		if(geoid){
-			double dlatin, dlongin;
-			dlatin = LATITUDE_IN;
-			dlongin = LONGITUDE_IN;
-			if(geoSystem->p[7] == FALSE){
-				dlatin *= DEGREES_PER_RADIAN;
-				dlongin *= DEGREES_PER_RADIAN;
-			}
-			RnPh += geoidCorrection(dlatin,dlongin); //LATITUDE_IN,LONGITUDE_IN);
-		}
-		#ifdef VERBOSE
-		printf ("Rn %lf RnPh %lf\n",Rn, RnPh);
-		#endif
-
-		GC_X_OUT = RnPh * clat * cos(source_lon);
-		GC_Y_OUT = RnPh * clat * sin(source_lon);
-		GC_Z_OUT = ((C2 / A2) * Rn + ELEVATION_IN) * slat;
-
-		#ifdef VERBOSE
-		printf ("Gd_Gc, outing x %lf y %lf z %lf\n", GC_X_OUT, GC_Y_OUT, GC_Z_OUT);
-		#endif
-	}
-}
-
+// swizzles and converts degrad as needed
 static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
 	int geotype, lat_first, geoid;
 	double radius, flattening;
@@ -1242,8 +1127,6 @@ static void GeoMove(struct X3D_Node *node, struct X3D_GeoOrigin *geoOrigin, stru
 }
 
 /* for converting from GC to GD */
-//static double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
-//                 CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
 struct gcgd {
 double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
                  CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
@@ -1292,13 +1175,6 @@ struct gcgd* initializeGcToGdParams(int type, double A, double F) {
 	g->B5=0.984537701867943E+00;
 	return g;
 }
-//static void initializeGcToGdParamsWE(void) {
-//	double A, F;
-//	A = GEOSP_WE_A;
-//	F = GEOSP_WE_F; //we mistakenly call it F. Officially F/flattening is 0-1. Eccentricity is in meters about 300.
-//	initializeGcToGdParams(A,F);
-//}
-
 
 /* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
 static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
