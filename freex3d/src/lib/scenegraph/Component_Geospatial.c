@@ -627,169 +627,10 @@ static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, s
 	}
 }
 
-/* convert UTM to GC coordinates by converting to GD as an intermediary step */
-static void Xtm_Gd (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, 
-	double flatten, double scalefactor, double falseEasting, double falseNorthing, double zoneSize) {
-	
-	int hemisphere_north, zone, northing_first;
-	int i;
-	int northing = 0;	/* for determining which input value is northing */
-	int easting = 1;	/* for determining which input value is easting */
-	int elevation = 2;	/* elevation is always third value, input AND output */
-	int latitude = 0;	/* always return latitude as first value */
-	int longitude = 1;	/* always return longtitude as second value */
-
-	/* create the ERM constants. */
-	double F = 1.0/flatten;
-	double Eccentricity   = (F) * (2.0-F);
-
-	double myEasting;
-	double myphi1rad;
-	double myN1;
-	double myT1;
-	double myC1;
-	double myR1;
-	double myD;
-	double Latitude;
-	double Longitude;
-	double longitudeOriginDeg;
-	double myeccPrimeSquared;
-	double myNorthing;
-	double northingDRCT1;
-	double eccRoot;
-	double calcConstantTerm1;
-	double calcConstantTerm2;
-	double calcConstantTerm3;
-	double calcConstantTerm4;
-
-	if(geoSystem->p[5] == FALSE){
-		latitude = 1;
-		longitude = 0;
-	}
-
-	hemisphere_north = geoSystem->p[4];
-	zone = geoSystem->p[2];
-	northing_first = geoSystem->p[3];
-
-	/* is the values specified with an "easting_first?" */
-	if (!northing_first) { northing = 1; easting = 0; }
-
-	#ifdef VERBOSE
-	if (!northing_first) printf ("UTM to GD, not northing first, flipping norhting and easting\n");
-	#endif
-		
-	#ifdef VERBOSE
-	if (northing_first) printf ("Utm_Gd: northing first\n"); else printf ("Utm_Gd: NOT northing_first\n");
-	if (!hemisphere_north) printf ("Utm_Gd: NOT hemisphere_north\n"); else printf ("Utm_Gd: hemisphere_north\n"); 
-	#endif
-
-
-	/* enough room for output? */
-	if (outc->n < inc->n) {
-		FREE_IF_NZ(outc->p);
-		outc->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inc->n);
-		outc->n = inc->n;
-	}
-
-	/* constants for all UTM vertices */
-	longitudeOriginDeg = (zone -1) * zoneSize - 180 + zoneSize*.5;
-	myeccPrimeSquared = Eccentricity/(((double) 1.0) - Eccentricity);
-	eccRoot = (((double)1.0) - sqrt (((double)1.0) - Eccentricity))/
-	       (((double)1.0) + sqrt (((double)1.0) - Eccentricity));
-
-	calcConstantTerm1 = ((double)1.0) -Eccentricity/
-		((double)4.0) - ((double)3.0) *Eccentricity*Eccentricity/
-		((double)64.0) -((double)5.0) *Eccentricity*Eccentricity*Eccentricity/((double)256.0);
-
-	calcConstantTerm2 = ((double)3.0) * eccRoot/((double)2.0) - ((double)27.0) *eccRoot*eccRoot*eccRoot/((double)32.0);
-	calcConstantTerm3 = ((double)21.0) * eccRoot*eccRoot/ ((double)16.0) - ((double)55.0) *eccRoot*eccRoot*eccRoot*eccRoot/ ((double)32.0);
-	calcConstantTerm4 = ((double)151.0) *eccRoot*eccRoot*eccRoot/ ((double)96.0);
-
-	#ifdef VERBOSE
-	printf ("zone %d\n",zone);
-	printf ("longitudeOriginDeg %lf\n",longitudeOriginDeg);
-	printf ("myeccPrimeSquared %lf\n",myeccPrimeSquared);
-	printf ("eccRoot %lf\n",eccRoot);
-	#endif
-
-	/* go through each vertex specified */
-        for(i=0;i<inc->n;i++) {
-		/* get the values for THIS UTM vertex */
-		ELEVATION_OUT = ELEVATION_IN;
-		myEasting = EASTING_IN - falseEasting; //UTM_FALSE_EASTING; //500000;
-		if (hemisphere_north) myNorthing = NORTHING_IN;
-		else myNorthing = NORTHING_IN - falseNorthing; //(double)UTM_FALSE_NORTHING; //10,000,000.0;
-
-		#ifdef VERBOSE
-		printf ("myEasting %lf\n",myEasting);
-		printf ("myNorthing %lf\n",myNorthing);
-		#endif
-
-
-		/* scale the northing */
-		myNorthing= myNorthing / scalefactor;
-
-		northingDRCT1 = myNorthing /(radius * calcConstantTerm1);
-
-		myphi1rad = northingDRCT1 + 
-			calcConstantTerm2 * sin(((double)2.0) *northingDRCT1)+
-			calcConstantTerm3 * sin(((double)4.0) *northingDRCT1)+
-			calcConstantTerm4 * sin(((double)6.0) *northingDRCT1);
-
-		myN1 = radius/sqrt(((double)1.0) - Eccentricity * sin(myphi1rad) * sin (myphi1rad));
-		myT1 = tan(myphi1rad) * tan(myphi1rad); 
-		myC1 = Eccentricity * cos(myphi1rad) * cos (myphi1rad);
-		myR1 = radius * (((double)1.0) - Eccentricity) / pow(((double)1.0) - Eccentricity * sin(myphi1rad) * sin (myphi1rad), 1.5);
-		myD = myEasting/(myN1*scalefactor);
-
-		Latitude = myphi1rad-(myN1*tan(myphi1rad)/myR1)*
-				(myD*myD/((double)2.0) -
-			(((double)5.0) + ((double)3.0) *myT1+ ((double)10.0) *myC1-
-			((double)4.0) *myC1*myC1- ((double)9.0) *myeccPrimeSquared)*
-			
-			myD*myD*myD*myD/((double)24.0) +(((double)61.0) +((double)90.0) *
-			myT1+((double)298.0) *myC1+ ((double)45.0) *myT1*myT1-
-			((double)252.0) * myeccPrimeSquared- ((double)3.0) *myC1*myC1)*myD*myD*myD*myD*myD*myD/((double)720.0));
-
-
-		Longitude = (myD-(((double)1.0)+((double)2.0)*myT1+myC1)*myD*myD*myD/((double)6.0)+(((double)5.0) - ((double)2.0) *myC1+
-			((double)28.0) *myT1-((double)3.0) *myC1*myC1+
-			((double)8.0) *myeccPrimeSquared+((double)24.0) *myT1*myT1)*myD*myD*myD*myD*myD/120)/cos(myphi1rad);
-
-
-		if(geoSystem->p[7] == FALSE){
-			//version 3.3+ works in angle base units (radians) by default
-			LATITUDE_OUT = Latitude ;
-			LONGITUDE_OUT = longitudeOriginDeg*RADIANS_PER_DEGREE + Longitude;
-		}else{
-			//version 3.2- works in degrees by default
-			LATITUDE_OUT = Latitude * DEGREES_PER_RADIAN;
-			LONGITUDE_OUT = longitudeOriginDeg + (Longitude * DEGREES_PER_RADIAN);
-		}
-
-
-		#ifdef VERBOSE
-		/* printf ("myNorthing scaled %lf\n",myNorthing);
-		printf ("northingDRCT1 %lf\n",northingDRCT1);
-		printf ("myphi1rad %lf\n",myphi1rad);
-		printf ("myN1 %lf\n",myN1);
-		printf ("myT1 %lf\n",myT1);
-		printf ("myC1 %lf\n",myC1);
-		printf ("myR1 %lf\n",myR1);
-		printf ("myD %lf\n",myD);
-		printf ("latitude %lf\n",Latitude);
-		printf ("longitude %lf\n",Longitude);
-		*/
-		printf ("utmtogd\tnorthing %lf easting %lf ele %lf\n\tlat %lf long %lf ele %lf\n", NORTHING_IN, EASTING_IN, ELEVATION_IN, LATITUDE_OUT, LONGITUDE_OUT, ELEVATION_IN);
-		#endif
-        } 
-}
-static void Utm_Gd (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double flatten){
-	Xtm_Gd (geoSystem, inc, outc, radius, flatten, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);	
-}
-static void U3tm_Gd (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double flatten, int hemisphere_north, int zone, int northing_first){
-	Xtm_Gd (geoSystem, inc, outc, radius, flatten, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);	
-}
+/* convert UTM to GC coordinates by converting to GD as an intermediary step 
+   we swizzle both lat,long and east,north
+   we convert to radians if necessary
+*/
 static void Xtm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, double radius, double flatten, 
 	double scaleFactor, double falseEasting, double falseNorthing, double zoneSize) {
 
@@ -946,6 +787,7 @@ static void Xtm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, 
 		#endif
         } 
 }
+
 #ifdef GEOLIB
 static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, 
 	double radius, double flatten, 	double scaleFactor, double falseEasting, double falseNorthing, 
@@ -1033,57 +875,56 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 	} 
 }
 #endif //GEOLIB
-static void gdToUtm(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
-static void gdTo3tm(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+static void gdToUtm3d(struct Multi_Int32 *geoSystem, double *gdcoords, double *xtmcoords);
+static void gdTo3tm3d(struct Multi_Int32 *geoSystem, double *gdcoords, double *xtmcoords);
 static void Utm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
 	double semimajor, flattening;
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
-	Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
-	if(1){
-		//debugging, want to convert a UTM back to 3TM
-		double easting, northing;
+	#ifdef GEOLIB
+	if(geo_method() == 2)
+		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	else
+	#endif GEOLIB
+		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	if(0){
+		//round trip verification, want to convert a UTM -> GD -> (UTM, 3TM)
+		double xtm[3], neh[3];
 		int izone = -1;
 		printf("in UTM_gd3d\n");
 		printf("UTM y %lf x %lf h %lf zone %d\n",inc->c[0],inc->c[1],inc->c[2],geoSystem->p[2]);
-		gdToUtm(geoSystem->p[1],outc->c[0], outc->c[1], &izone, &easting, &northing); 
-		printf("UTM y %lf x %lf h %lf zone %d\n",northing,easting,inc->c[2],izone);
+		gdToUtm3d(geoSystem,outc->c, xtm); 
+		veccopyd(neh,xtm);
+		if(!geoSystem->p[3]) vecswizzle2d(neh);
+		printf("UTM y %lf x %lf h %lf zone %d\n",neh[0],neh[1],neh[2],geoSystem->p[2]);
 		izone = -1;
-		gdTo3tm(geoSystem->p[1],outc->c[0], outc->c[1], &izone, &easting, &northing); 
-		printf("3TM y %lf x %lf h %lf zone %d\n",northing,easting,inc->c[2],izone);
+		gdTo3tm3d(geoSystem,outc->c, xtm); 
+		veccopyd(neh,xtm);
+		if(!geoSystem->p[3]) vecswizzle2d(neh);
+		printf("3TM y %lf x %lf h %lf zone %d\n",neh[0],neh[1],neh[2],geoSystem->p[2]);
 	}
 }
 static void U3tm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
 	double semimajor, flattening;
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
-	Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
+	#ifdef GEOLIB
+	if(geo_method() == 2)
+		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
+	else
+	#endif //GEOLIB
+		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
 
 }
-#ifdef GEOLIB
-static void gdToUtm_geolib(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
-static void gdTo3tm_geolib(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
-static void Utm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
-	double semimajor, flattening;
-	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
-	Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor,flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
-	if(1){
-		//debugging, want to convert a UTM back to 3TM
-		double easting, northing;
-		int izone = -1;
-		printf("in UTM_gd3d_geolib\n");
-		printf("UTM y %lf x %lf h %lf zone %d\n",inc->c[0],inc->c[1],inc->c[2],geoSystem->p[2]);
-		gdToUtm_geolib(geoSystem->p[1],outc->c[0], outc->c[1], &izone, &easting, &northing); 
-		printf("UTM y %lf x %lf h %lf zone %d\n",northing,easting,inc->c[2],izone);
-		izone = -1;
-		gdTo3tm_geolib(geoSystem->p[1],outc->c[0], outc->c[1], &izone, &easting, &northing); 
-		printf("3TM y %lf x %lf h %lf zone %d\n",northing,easting,inc->c[2],izone);
-	}
-}
-static void U3tm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
-	double semimajor, flattening;
-	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
-	Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
-}
-#endif //GEOLIB
+
 /* take a set of coords, and a geoSystem, and create a set of moved coords */
 /* we keep around the GD coords because we need them for rotation calculations */
 /* parameters: 
@@ -1105,30 +946,18 @@ static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset,
 				/* GD_Gd_Gc_convert (inCoords, outCoords); */
 				Gd_Gc3d(geoSystem,inCoords,n,outCoords);
 
-				/* now, for the GD coord return values; is this in the correct format for calculating 
-				   rotations? */
-
-				/* is the GD value NOT the WGS84 ellipsoid? */
-				if (geoSystem->p[1] != GEOSP_WE) {
-					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
-					for (i=0; i<n; i++) {
-						gccToGdc (geoSystem, &outCoords[i], &gdCoords[i]);
+				/* just copy the coordinates for the GD temporary return  */
+				memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
+				if(geoSystem->p[6] == TRUE){
+					//Q. should geoid correction be added (subtracted) here
+					//  so gd are in ellipsoid heights like GPS? (vs sea level heights)
+					for(i=0; i < n; i++){
+						double gddegrees[3];
+						if(geoSystem->p[7]) veccopyd(gddegrees,gdCoords[i].c);
+						else vecscaled(gddegrees,gdCoords[i].c,DEGREES_PER_RADIAN);
+						if(!geoSystem->p[5]) vecswizzle2d(gddegrees);
+						gdCoords[i].c[2] += geoidCorrection(gddegrees[0],gddegrees[1]);
 					}
-				} else {
-					/* just copy the coordinates for the GD temporary return  */
-					memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
-					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
-					if(geoSystem->p[6] == TRUE)
-						for(i=0; i < n; i++){
-							double dlat, dlong;
-							dlat = gdCoords[i].c[1-geoSystem->p[5]];
-							dlong = gdCoords[i].c[geoSystem->p[5]];
-							if(geoSystem->p[7] == FALSE){
-								dlat *= DEGREES_PER_RADIAN;
-								dlong *= DEGREES_PER_RADIAN;
-							}
-							gdCoords[i].c[2] += geoidCorrection(dlat,dlong);
-						}
 				}
 			}
 			break;
@@ -1136,7 +965,7 @@ static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset,
 			/* an earth-fixed geocentric coord; no conversion required for gc value returns */
 			for (i=0; i< n; i++) {
 				veccopyd(outCoords[i].c,inCoords[i].c);
-				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
+				/* convert this coord from GC to GD, using ellipsoid in geoSystem[1] */
 				gccToGdc (geoSystem, &inCoords[i], &gdCoords[i]);
 			}
 
@@ -1146,17 +975,8 @@ static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset,
 				/* GD coords will be returned from the conversion process....*/
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
-					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-					#ifdef GEOLIB
-					if(method_geolib())
-						Utm_Gd3d_geolib(geoSystem,inCoords,n, gdCoords);
-					else
-					#endif
-						Utm_Gd3d(geoSystem,inCoords,n, gdCoords);
-					//printf("Utm_Gd3d inCoords %lf %lf %lf out %lf %lf %lf\n",inCoords[0].c[0],inCoords[0].c[1],inCoords[0].c[2],
-					//	gdCoords[0].c[0],gdCoords[0].c[1],gdCoords[0].c[2]);
-					//utm_gd sticks to ellpsiod, but puts coords in lat first and no geoid (I think)
-					Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
+				Utm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
 			}
 			break;
 		case GEOSP_3TM:
@@ -1164,14 +984,8 @@ static void moveCoords3d (struct Multi_Int32* geoSystem, struct SFVec3d *offset,
 				/* GD coords will be returned from the conversion process....*/
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
-					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-					#ifdef GEOLIB
-					if(method_geolib())
-						U3tm_Gd3d_geolib(geoSystem,inCoords,n, gdCoords);
-					else
-					#endif
-						U3tm_Gd3d(geoSystem,inCoords,n, gdCoords);
-					Gd_Gc3d(geoSystem,gdCoords,n,outCoords); 
+				U3tm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords); 
 			}
 			break;
 
@@ -1566,8 +1380,10 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
 
 }
 
-/* convert a GDC BACK to a UTM coordinate */
-static void gdToXtm(double radius, double flattening, double latitude, double longitude, double scaleFactor, double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) {
+/* convert a GDC BACK to a UTM coordinate ASSUMES LAT LON RADIANS*/
+static void gdToXtm(double radius, double flattening, double latitude, double longitude, double scaleFactor, 
+	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
+{
 #define DEG2RAD (PI/180.00)
 //#define GEOSP_WE_INV 0.00669438
 	double lat_radian;
@@ -1638,17 +1454,9 @@ static void gdToXtm(double radius, double flattening, double latitude, double lo
 	printf ("gdToUtm: lat %lf long %lf zone %d -> easting %lf northing %lf\n",latitude, longitude, *zone,*easting, *northing);
 	#endif
 }
-static void gdToUtm(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing) {
-	double semimajor, flattening;
-	if(getEllipsoidParams(geotype,&semimajor,&flattening))
-		gdToXtm(semimajor,flattening, latitude, longitude, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, easting, northing);
-}
-static void gdTo3tm(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing) {
-	double semimajor, flattening;
-	if(getEllipsoidParams(geotype,&semimajor,&flattening))
-		gdToXtm(semimajor, flattening, latitude, longitude, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone, easting, northing);
-}
+
 #ifdef GEOLIB
+//assumes LAT, LON in radians
 static void gdToXtm_geolib(int geotype, double radius, double flattening, double latitude, double longitude, double scaleFactor, 
 	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
 {
@@ -1681,17 +1489,72 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 	printf ("gdToUtm: lat %lf long %lf zone %d -> easting %lf northing %lf\n",latitude, longitude, *zone,*easting, *northing);
 	#endif
 }
-static void gdToUtm_geolib(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing) {
-	double semimajor, flattening;
-	if(getEllipsoidParams(geotype,&semimajor,&flattening))
-	gdToXtm_geolib(geotype,semimajor,flattening,latitude, longitude, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, easting, northing);
-}
-static void gdTo3tm_geolib(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing) {
-	double semimajor, flattening;
-	if(getEllipsoidParams(geotype,&semimajor,&flattening))
-	gdToXtm_geolib(geotype,semimajor,flattening,latitude, longitude, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone, easting, northing);
-}
 #endif //GEOLIB
+
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+
+static void gdToUtm3d(struct Multi_Int32 *geoSystem, double *gdcoords, double *xtmcoords) {
+	double semimajor, flattening;
+	double gdradians[3];
+	int geotype, northing_first, latitude_first, is_degrees, *zone;
+	
+	geotype = geoSystem->p[1]; //ellipsoid index
+	northing_first = geoSystem->p[3];
+	latitude_first = geoSystem->p[5];
+	is_degrees = geoSystem->p[7];
+	
+	if(is_degrees) vecscaled(gdradians,gdcoords,RADIANS_PER_DEGREE);
+	else veccopyd(gdradians,gdcoords);
+	if(!latitude_first) vecswizzle2d(gdradians); //unswizzle if swizzled
+	
+	getEllipsoidParams(geotype,&semimajor,&flattening);
+	zone = &geoSystem->p[2];
+#ifdef GEOLIB
+	if(geo_method()==2)
+		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	else
+#endif //GEOLIB
+		gdToXtm(semimajor,flattening, gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	
+	if(!northing_first) vecswizzle2d(xtmcoords);
+	xtmcoords[2] = gdcoords[2];
+}
+static void gdTo3tm3d(struct Multi_Int32 *geoSystem, double *gdcoords, double *xtmcoords) {
+	double semimajor, flattening;
+	double gdradians[3];
+	int geotype, northing_first, latitude_first, is_degrees, *zone;
+	
+	geotype = geoSystem->p[1]; //ellipsoid index
+	northing_first = geoSystem->p[3];
+	latitude_first = geoSystem->p[5];
+	is_degrees = geoSystem->p[7];
+	
+	if(is_degrees) vecscaled(gdradians,gdcoords,RADIANS_PER_DEGREE);
+	else veccopyd(gdradians,gdcoords);
+	if(!latitude_first) vecswizzle2d(gdradians);
+	
+	getEllipsoidParams(geotype,&semimajor,&flattening);
+	zone = &geoSystem->p[2];
+#ifdef GEOLIB
+	if(geo_method()==2)
+		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	else
+#endif //GEOLIB
+		gdToXtm(semimajor, flattening, gdradians[0],gdradians[1], U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone,  &xtmcoords[1], &xtmcoords[0]);
+	
+	if(!northing_first) vecswizzle2d(xtmcoords);
+	xtmcoords[2] = gdcoords[2];
+}
+
 /* calculate the rotation needed to apply to this position on the GC coordinate location */
 static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem, struct SFVec3d *gdCoords, struct SFVec4d *orient) {
 	Quaternion qx;
@@ -2217,7 +2080,8 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		//step 1 create AutoOrigin AOshape
 		pyup = NULL;
 		poffset = NULL;
-		if(specversion < 330 && X3D_GEOORIGIN(node->geoOrigin)){
+		//if(specversion < 330 && X3D_GEOORIGIN(node->geoOrigin)){
+		if(X3D_GEOORIGIN(node->geoOrigin)){
 			double *cc;
 			struct X3D_GeoOrigin * gor = X3D_GEOORIGIN(node->geoOrigin);
 			veccopyd(offset.c,gor->__movedCoords.c);
@@ -3930,48 +3794,16 @@ void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_
 			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
 		 
 			/* is this a GD? if so, go no further */ 
-			if (geoSystem->p[0] == GEOSP_GD) { 
-				/* do we need to flip lat and lon? */ 
-				if (!(geoSystem->p[5])) { 
-					double tmp; 
-					tmp = thisField->c[0]; 
-					thisField->c[0] = thisField->c[1]; 
-					thisField->c[1] = tmp; 
-				} 
- 
-			} else { 
+			if (geoSystem->p[0] == GEOSP_UTM || geoSystem->p[0] == GEOSP_3TM ) { 
 				/* convert this to UTM  or 3TM */ 
-				int zone;  
-				double easting; 
-				double northing; 
-				double semimajor, flattening;
-				 
-				/* get the zone from the geoSystem; if undefined, we will calculate */ 
-				zone = geoSystem->p[2]; 
+				double dtemp[3];
 
 				if(geoSystem->p[0] == GEOSP_UTM){
-					#ifdef GEOLIB
-					if(method_geolib())
-						gdToUtm_geolib(geoSystem->p[1],thisField->c[0], thisField->c[1], &zone, &easting, &northing); 
-					else
-					#endif
-						gdToUtm(geoSystem->p[1],thisField->c[0], thisField->c[1], &zone, &easting, &northing); 
+					gdToUtm3d(geoSystem,thisField->c, dtemp); 
+					veccopyd(thisField->c,dtemp);
 				}else if(geoSystem->p[0] == GEOSP_3TM) {
-					#ifdef GEOLIB
-					if(method_geolib())
-						gdTo3tm_geolib(geoSystem->p[1],thisField->c[0], thisField->c[1], &zone, &easting, &northing); 
-					else
-					#endif
-						gdTo3tm(geoSystem->p[1],thisField->c[0], thisField->c[1], &zone, &easting, &northing);
-				} 
- 
-				thisField->c[0] = northing; 
-				thisField->c[1] = easting; 
-				if (!(geoSystem->p[3])) { 
-					double tmp; 
-					tmp = thisField->c[0]; 
-					thisField->c[0] = thisField->c[1]; 
-					thisField->c[1] = tmp; 
+					gdTo3tm3d(geoSystem,thisField->c, dtemp);
+					veccopyd(thisField->c,dtemp);
 				} 
  
 			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ 

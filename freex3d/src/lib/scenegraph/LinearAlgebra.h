@@ -178,7 +178,7 @@ double* vecscaled(double* r, double* v, double s);
 double vecnormald(double *r, double *v);
 double *veccopyd(double *c, double *a);
 double *vecnegated(double *b, double *a);
-
+double *vecswizzle2d(double *inout );
 double * vecadd2d(double *c, double *a, double *b);
 double *vecdif2d(double *c, double* a, double *b);
 double veclength2d( double *p );
