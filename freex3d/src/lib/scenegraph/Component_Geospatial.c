@@ -975,7 +975,7 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 	geotype = geoSystem->p[1];
 
 	if(!p->fgeopars[geotype])
-		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, scaleFactor);
+		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
 	fgeo = p->fgeopars[geotype];
 	/* is the values specified with an "easting_first?" */
 	if (!northing_first) { northing = 1; easting = 0; }
@@ -1003,6 +1003,9 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 		if (hemisphere_north) myNorthing = inc[i].c[northing]; //NORTHING_IN;
 		else myNorthing = inc[i].c[northing] - falseNorthing; //(double)UTM_FALSE_NORTHING; //10000000.0; //NORTHING_IN
 
+		myEasting /= scaleFactor;
+		myNorthing /= scaleFactor;
+
 		#ifdef VERBOSE
 		printf ("myEasting %lf\n",myEasting);
 		printf ("myNorthing %lf\n",myNorthing);
@@ -1024,16 +1027,30 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 	} 
 }
 #endif //GEOLIB
-
+static void gdToUtm(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
+static void gdTo3tm(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
 static void Utm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
 	double semimajor, flattening;
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
 	Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	if(1){
+		//debugging, want to convert a UTM back to 3TM
+		double easting, northing;
+		int izone = -1;
+		printf("in UTM_gd3d\n");
+		printf("UTM y %lf x %lf h %lf zone %d\n",inc->c[0],inc->c[1],inc->c[2],geoSystem->p[2]);
+		gdToUtm(geoSystem->p[1],outc->c[0], outc->c[1], &izone, &easting, &northing); 
+		printf("UTM y %lf x %lf h %lf zone %d\n",northing,easting,inc->c[2],izone);
+		izone = -1;
+		gdTo3tm(geoSystem->p[1],outc->c[0], outc->c[1], &izone, &easting, &northing); 
+		printf("3TM y %lf x %lf h %lf zone %d\n",northing,easting,inc->c[2],izone);
+	}
 }
 static void U3tm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
 	double semimajor, flattening;
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
 	Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
+
 }
 #ifdef GEOLIB
 static void gdToUtm_geolib(int geotype, double latitude, double longitude, int *zone, double *easting, double *northing);
@@ -1550,8 +1567,8 @@ static void gdToXtm(double radius, double flattening, double latitude, double lo
 	double lat_radian;
 	double long_radian;
 	double myScale;
-	int longOrigin;
-	double longOriginradian;
+	double longOrigin;
+	double longOriginradian, dlon;
 	double eccentprime, e2, A, F;
 	double NNN;
 	double TTT;
@@ -1561,14 +1578,16 @@ static void gdToXtm(double radius, double flattening, double latitude, double lo
 
 	A = radius;
 	F = 1.0/flattening;
-	e2 = 2.0*(1.0 - F*F);
+	//e2 = 2.0*F - F*F;
+	e2 = F*(2. - F);
 
 	/* calculate the zone number if it is less than zero. If greater than zero, leave alone! */
+	dlon = longitude * DEGREES_PER_RADIAN;
 	if (*zone < 0) 
-		*zone = (int) (((longitude + 180.0)/zoneSize) + 1);
+		*zone = (int) (((dlon + 180.0)/zoneSize) + 1);
 
-	lat_radian = latitude * DEG2RAD;
-	long_radian = longitude * DEG2RAD;
+	lat_radian = latitude;
+	long_radian = longitude;
 	myScale = scaleFactor; //0.9996;
 	longOrigin = (*zone - 1)*zoneSize - 180.0 + zoneSize/2.0; //3;
 	longOriginradian = longOrigin * DEG2RAD;
@@ -1578,6 +1597,7 @@ static void gdToXtm(double radius, double flattening, double latitude, double lo
 	printf ("lat_radian %lf long_radian %lf myScale %lf longOrigin %d longOriginradian %lf eccentprime %lf\n",
 	   lat_radian, long_radian, myScale, longOrigin, longOriginradian, eccentprime);
 	*/
+	//http://www.engr.usask.ca/classes/CE/316/notes/CE%20316%20CH%204C%2031-1-12%20-INSTRUCTOR.pdf
 
 	NNN = A / sqrt(1.0-e2 * sin(lat_radian)*sin(lat_radian));
 	TTT = tan(lat_radian) * tan(lat_radian);
@@ -1632,7 +1652,7 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 
 	F = 1.0/flattening;
 	if(!p->fgeopars[geotype])
-		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, scaleFactor);
+		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
 	fgeo = p->fgeopars[geotype];
 
 	/* calculate the zone number if it is less than zero. If greater than zero, leave alone! */
@@ -1645,6 +1665,8 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 	dlat = latitude * DEGREES_PER_RADIAN;
 	
 	fgeo_gd2tm(fgeo,dlat,dlon,dlon0,easting, northing);
+	*easting *= scaleFactor;
+	*northing *= scaleFactor;
 
 	if (latitude < 0.0) *northing += falseNorthing; //10000000.0;
 	*easting += falseEasting;
