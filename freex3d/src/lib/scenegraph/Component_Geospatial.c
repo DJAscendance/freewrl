@@ -62,8 +62,8 @@ X3D Geospatial Component
 
 int method_geolib(){
 #ifdef GEOLIB
-	return 0; //freewrl hand coded way, was working fine for more than decade
-	//return 1; //geographicLib / Karney, for testing - a way to independently verify transforms when hacking/refactoring code
+	//return 0; //freewrl hand coded way, was working fine for more than decade
+	return 1; //geographicLib / Karney, for testing - a way to independently verify transforms when hacking/refactoring code
 #else
 	return 0; //freewrl hand coded way
 #endif
@@ -74,6 +74,31 @@ int geo_method(){
 	//      since web3d specs v3.3 deprecates geoOrigin saying the origins can be automatically generated
 	return 2; //1 or 2
 }
+
+/*
+Jan 2018 dug9 understanding of ellipsoids, units, geoid
+- we keep coordinates as they are given to us, and only convert degrees (if neceessary)
+  or swizzle (exchange x, y to y, x) NE/latlon if/when needed for internal calculation purposes,
+  and for shape mesh/polyrep.
+  That way fields are ready for routing.
+- we don't have a list of ellipsoid offsets (6DOF shift and rotate) to go between 'datums'.
+-- so we treat different ellipsoids as being otherwise axes-aligned and co-centric 
+	with each other when transforming
+- we don't try and force any one particular ellipsoid standard. The geoViewpoint's ellipsoid is
+	the one we use for SPEED, LEVEL calculations
+- most coords are GC at some point, for 3D viewing, 
+	and whatever ellipsoid they came from, they can mix as GC XYZ
+x we can only do one world in a scene. We can't do a planet and several moons 
+	in geocoords in the same scene.
+~ while we are interpreting radians as default for web3d specs v3.3, and degrees < 3.3
+	we haven't tested UNITS conversion on parsing, for the linear coordinates. 
+	Internally we are assuming meters. (all ellipsoid constants are in meters, 
+	as are falseEasting and falseNorthing constants for UTM)
+x geoid correction: I see a geoid correction going one way.
+	 But in theory it should be 2 ways. Needs work.
+*/
+
+
 /*
 Coordinate Conversion algorithms were taken from 2 locations after
 reading and comprehending the references. The code selected was
