@@ -62,11 +62,17 @@ X3D Geospatial Component
 
 int method_geolib(){
 #ifdef GEOLIB
-	//return 0; //traditional way
-	return 1; //geographicLib / Karney
+	return 0; //freewrl hand coded way, was working fine for more than decade
+	//return 1; //geographicLib / Karney, for testing - a way to independently verify transforms when hacking/refactoring code
 #else
-	return 0;
+	return 0; //freewrl hand coded way
 #endif
+}
+int geo_method(){
+	//1= before 2018, scene root in GC if no geoOrigin nodes, or geoOrigin is default GC 0,0,0
+	//2= Jan 21 2018, scene root in LC via new 'autoOrigin' concepts being elaborated, refined, 
+	//      since web3d specs v3.3 deprecates geoOrigin saying the origins can be automatically generated
+	return 2; //1 or 2
 }
 /*
 Coordinate Conversion algorithms were taken from 2 locations after
@@ -2198,7 +2204,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	#endif
 
 	/* convert this point to a local coordinate */
-	if(1){
+	if(geo_method()==1){
         MOVE_TO_ORIGIN(node)
 	}else{
 		//v3.3 way - autoOrigin - B. capture as the self-origin
@@ -3346,10 +3352,7 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /* GeoViewpoint								*/
 /************************************************************************/
 void calculateViewingSpeedB();
-int geo_method(){
-	//1= before 2018, scene root in GC, 2= Jan 21 2018, scene root in geo vp LC (no LC-GC) 3= (not yet implemented)
-	return 1;
-}
+
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	int specversion;
 	struct SFVec4d localOrient;
@@ -3511,8 +3514,10 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
 			Viewer()->fieldofview = a1/3.1415926536*180;
 		}
-
-		calculateViewingSpeedB();
+		if(geo_method()==1)
+			calculateViewingSpeed();
+		else
+			calculateViewingSpeedB();
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
 		#endif
