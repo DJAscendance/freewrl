@@ -418,7 +418,99 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry)
 		} \
 	} 
 
+#define BBV(num,XX,YY,ZZ) \
+			inxyz[num].x= (double) (me->EXTENT_##XX); \
+			inxyz[num].y= (double) (me->EXTENT_##YY); \
+			inxyz[num].z= (double) (me->EXTENT_##ZZ);
 
+//#define FRUSTUM_GEOTRANS  
+void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz, float *maxx, float *maxy, float *maxz){
+	int i;
+	if (me->_nodeType == NODE_GeoTransform) { 
+		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, 
+		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will 
+		   take the "inside out" boundingBox as being correct! */ 
+ 
+			/* has this node actually been extented away from the default? */ 
+ 
+		if (!APPROX(me->EXTENT_MAX_X,-10000.0)) { 
+			struct X3D_GeoTransform *node; 
+			Quaternion rq; 
+			struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8]; 
+			node = (struct X3D_GeoTransform *)me; 
+	 
+			/* make up a "cube" with vertexes being our bounding box */ 
+			BBV(0,MAX_X,MAX_Y,MAX_Z); 
+			BBV(1,MAX_X,MAX_Y,MIN_Z); 
+			BBV(2,MAX_X,MIN_Y,MAX_Z); 
+			BBV(3,MAX_X,MIN_Y,MIN_Z); 
+			BBV(4,MIN_X,MAX_Y,MAX_Z); 
+			BBV(5,MIN_X,MAX_Y,MIN_Z); 
+			BBV(6,MIN_X,MIN_Y,MAX_Z); 
+			BBV(7,MIN_X,MIN_Y,MIN_Z); 
+	
+			/* 1: REVERSE CENTER */ 
+			if (node->__do_center) { 
+				add_translation(inxyz,(float) (-node->geoCenter.c[0]), (float) (-node->geoCenter.c[1]),(float)(-node->geoCenter.c[2]),8); 
+			} 
+	 
+			/* 2: REVERSE SCALE ORIENTATION */ 
+			if (node->__do_scaleO) { 
+				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); 
+				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			} 
+	
+			/* 3: SCALE */ 
+			if (node->__do_scale) { 
+				multiply_in_scale(inxyz,node->scale.c[0],node->scale.c[1],node->scale.c[2],8); 
+			} 
+	 
+			/* 4: SCALEORIENTATION */ 
+			if (node->__do_scaleO) { 
+				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); 
+				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			} 
+	 
+			/* 5: ROTATION */ 
+			if (node->__do_rotation) { 
+				vrmlrot_to_quaternion(&rq,node->rotation.c[0], node->rotation.c[1], node->rotation.c[2], node->rotation.c[3]); 
+				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			} 
+	 
+			/* 6: CENTER */ 
+			if (node->__do_center) { 
+				add_translation(inxyz,(float)node->geoCenter.c[0],(float)node->geoCenter.c[1],(float)node->geoCenter.c[2],8); 
+			} 
+			add_translation (inxyz,(float) X3D_GEOTRANSFORM(node)->__movedCoords.c[0], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[1], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[2],8); 
+
+			vrmlrot_to_quaternion(&rq,X3D_GEOTRANSFORM(node)->__localOrient.c[0], X3D_GEOTRANSFORM(node)->__localOrient.c[1], X3D_GEOTRANSFORM(node)->__localOrient.c[2], X3D_GEOTRANSFORM(node)->__localOrient.c[3]); 
+			quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+			memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			/* 7: TRANSLATION */ 
+			if (node->__do_trans) { 
+				add_translation(inxyz,node->translation.c[0],node->translation.c[1],node->translation.c[2],8); 
+			} 
+	 
+	 
+			/* work changes into extent */ 
+			/* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too, 
+				thus we do not bother to test against OLD max/min values */ 
+			*maxx = -FLT_MAX; *maxy = -FLT_MAX; *maxz = -FLT_MAX; 
+			*minx = FLT_MAX; *miny = FLT_MAX; *minz = FLT_MAX; 
+			for (i=0; i<8; i++) { 
+				if (inxyz[i].x > *maxx) *maxx = (float) inxyz[i].x; 
+				if (inxyz[i].y > *maxy) *maxy = (float) inxyz[i].y; 
+				if (inxyz[i].z > *maxz) *maxz = (float) inxyz[i].z; 
+				if (inxyz[i].x < *minx) *minx = (float) inxyz[i].x; 
+				if (inxyz[i].y < *miny) *miny = (float) inxyz[i].y; 
+				if (inxyz[i].z < *minz) *minz = (float) inxyz[i].z; 
+			} 
+		} 
+	} 
+}
 
 
 /* does this current node actually fit in the Switch rendering scheme? */
@@ -585,10 +677,6 @@ static void quaternion_multi_rotation(struct point_XYZ *ret, const Quaternion *q
 }
 
 
-#define BBV(num,XX,YY,ZZ) \
-			inxyz[num].x= (double) (me->EXTENT_##XX); \
-			inxyz[num].y= (double) (me->EXTENT_##YY); \
-			inxyz[num].z= (double) (me->EXTENT_##ZZ);
 
 static void add_translation (struct point_XYZ *arr,  float x, float y, float z, int count) {
 	int i;
@@ -658,7 +746,9 @@ void propagateExtent(struct X3D_Node *me) {
 
 	/* is this a transform? Should we add in the translated position?? */
 	FRUSTUM_TRANS(Transform);
-	FRUSTUM_GEOTRANS;
+
+	//FRUSTUM_GEOTRANS;
+	FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
 	FRUSTUM_GEOLOCATION;
 	FRUSTUM_TRANS(HAnimSite);
 	FRUSTUM_TRANS(HAnimJoint);

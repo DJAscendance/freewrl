@@ -77,7 +77,8 @@ int geo_method(){
 
 /*
 Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
-- we keep coordinates as they are given to us, and only convert degrees (if neceessary)
+* geosystem preservation:
+  we keep coordinates as they are given to us, and only convert degrees (if neceessary)
   or swizzle (exchange x, y to y, x) NE/latlon if/when needed for internal calculation purposes,
   and for shape mesh/polyrep.
   That way fields are ready for SAI in users units. 
@@ -85,24 +86,28 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
   In theory there could/should be converter node types for that, 
   where you can set both input geosystem, and output geosystem, 
   or a flag on each node, saying to route in/out in (common) GC.
-- we don't have a list of ellipsoid offsets (6DOF shift and rotate) to go between 'datums'.
+* concentric ellipsoids:
+	we don't have a list of ellipsoid offsets (6DOF shift and rotate) to go between 'datums'.
 -- so we treat different ellipsoids as being otherwise axes-aligned and co-centric 
 	with each other when transforming
-- we don't try and force any one particular ellipsoid standard. The geoViewpoint's ellipsoid is
+* ellipsoid neutrality:
+	we don't try and force any one particular ellipsoid standard. The geoViewpoint's ellipsoid is
 	the one we use for SPEED, LEVEL calculations
-- most coords are GC at some point, in preparation for 3D viewing, 
+-- most coords are GC at some point, in preparation for 3D viewing, 
 	and whatever ellipsoid they came from, they can mix as GC XYZ
-x we can only do one world in a scene. We can't do a planet and several moons 
+x single planet
+	we can only do one world in a scene. We can't do a planet and several moons 
 	in geocoords in the same scene. Thats because we need to subtract the geoviewpoint
 	location from geoshapes, to get coordinates into single precision float range
 	for display. And to do that, we assume the geoviewpoint and geoShapes are on the
 	same planet. In theory an additional 'planet number/id/name' could be specified 
 	in geoSystem to allow multiple planets.
-~ while we are interpreting radians as default for web3d specs v3.3, and degrees < 3.3
+* UNITS as per specs
+	while we are interpreting radians as default for web3d specs v3.3, and degrees < 3.3
 	we haven't tested linear UNITS conversion on parsing for geocoordinates. 
 	Internally we are assuming meters. (all ellipsoid constants are in meters, 
 	as are falseEasting and falseNorthing constants for UTM, and geoid height correction)
-- geoid correction: needs a review to ensure 2-way, round-trip symmetry.
+* geoid correction: needs a review to ensure 2-way, round-trip symmetry.
 */
 
 
