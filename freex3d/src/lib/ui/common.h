@@ -53,6 +53,8 @@ char *get_status();
 char *getMenuStatus();
 void showConsoleText(int on);
 int getShowConsoleText();
+void fwl_setDrawBoundingBoxes(int drawbb);
+int fwl_getDrawBoundingBoxes();
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif

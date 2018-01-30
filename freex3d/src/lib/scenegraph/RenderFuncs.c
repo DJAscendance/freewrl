@@ -1640,6 +1640,8 @@ void pop_sensor(){
 }
 int getWindex();
 int render_foundLayerViewpoint();
+void boxDrawB(float *extent);
+static int draw_extents = TRUE;
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
 
@@ -1666,7 +1668,6 @@ void render_node(struct X3D_Node *node) {
 #endif
 		return;
 	}
-
 	virt = virtTable[node->_nodeType];
 
 #ifdef RENDERVERBOSE 
@@ -1750,6 +1751,8 @@ void render_node(struct X3D_Node *node) {
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
+		if(fwl_getDrawBoundingBoxes()) boxDrawB(node->_extent);
+
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		push_ray(); //upd_ray(); 
