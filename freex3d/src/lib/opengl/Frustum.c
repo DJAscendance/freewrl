@@ -559,6 +559,14 @@ float *extent6f_union(float *eout6, float *ein6a, float *ein6b){
 	}
 	return eout6;
 }
+float *extent6f_scale3f(float *eout6, float *ein6, float *s3){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] *= s3[i];
+		eout6[i*2 + 1] *= s3[i];
+	}
+	return eout6;
+}
 float *extent6f_translate3f(float *eout6, float *ein6, float *p3){
 	int i;
 	for(i=0;i<3;i++){
@@ -608,8 +616,11 @@ float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4){
 	return eout6;
 }
 int extent6_isSet(float *extent6){
+	//extents are set with min > max, so a way to tell
+	// if they are set is to check if min <= max or max >= min
 	int iret;
 	float *e = extent6;
+	//is max >= min for any dimensions? if so, then is set.
 	iret = (e[1] >= e[0] || e[3] >= e[2] || e[5] >= e[4]) ? TRUE : FALSE;
 	return iret;
 }
@@ -618,7 +629,6 @@ void extent6f_setNodeExtent(float *extent6, struct X3D_Node *node){
 	setExtent(e[1],e[0],e[3],e[2],e[5],e[4],node);
 }
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
-	//NEVER COMES IN HERE
 	int i;
 	if (me->_nodeType == NODE_GeoElevationGrid) { 
 		if( extent6_isSet(me->_extent)) {
