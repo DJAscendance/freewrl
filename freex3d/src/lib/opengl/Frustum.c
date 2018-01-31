@@ -512,19 +512,24 @@ void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz
 	} 
 }
 
-//extent6f {xmin,xmax,ymin,ymax,zmin,zmax}
+//extent6f {xmax,xmin,ymax,ymin,zmax,zmin}
+float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax){
+	float *e = extent6;
+	e[0]=xmax; e[1] = xmin; e[2]=ymax; e[3]=ymin;  e[4]=zmax; e[5]=zmin; 
+	return e;
+}
 void extent6f_to_vec3f(float *extent6, float *pmin, float *pmax){
 	int i;
 	for(i=0;i<3;i++){
-		pmin[i] = extent6[i*2];
-		pmax[i] = extent6[i*2 + 1];
+		pmin[i] = extent6[i*2 + 1];
+		pmax[i] = extent6[i*2 + 0];
 	}
 }
 void extent6f_from_vec3f2(float *extent6, float *pmin, float *pmax){
 	int i;
 	for(i=0;i<3;i++){
-		extent6[i*2] = pmin[i];
-		extent6[i*2 + 1] = pmax[i];
+		extent6[i*2 + 1] = pmin[i];
+		extent6[i*2 + 0] = pmax[i];
 	}
 }
 void extent6f_to_box3f8(float *extent6, float *p3f8){
@@ -546,16 +551,16 @@ void extent6f_from_box3fn(float *extent6,float *p, int n){
 		extent6[i*2] = extent6[i*2 + 1] = p[i];
 	for(j=1;j<n;j++)
 		for(i=0;i<3;i++){
-			extent6[i*2 + 0] = min(extent6[i*2],p[j*3 +i]);
-			extent6[i*2 + 1] = max(extent6[i*2],p[j*3 +i]);
+			extent6[i*2 + 1] = min(extent6[i*2],p[j*3 +i]);
+			extent6[i*2 + 0] = max(extent6[i*2],p[j*3 +i]);
 		}
 }
 
 float *extent6f_union(float *eout6, float *ein6a, float *ein6b){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] = min(ein6a[i*2 + 0], ein6b[i*2 + 0]);
-		eout6[i*2 + 1] = max(ein6a[i*2 + 0], ein6b[i*2 + 0]);
+		eout6[i*2 + 1] = min(ein6a[i*2 + 1], ein6b[i*2 + 1]);
+		eout6[i*2 + 0] = max(ein6a[i*2 + 0], ein6b[i*2 + 0]);
 	}
 	return eout6;
 }
@@ -621,12 +626,56 @@ int extent6_isSet(float *extent6){
 	int iret;
 	float *e = extent6;
 	//is max >= min for any dimensions? if so, then is set.
-	iret = (e[1] >= e[0] || e[3] >= e[2] || e[5] >= e[4]) ? TRUE : FALSE;
+	//iret = (e[0] >= e[1] && e[2] >= e[3] && e[4] >= e[5]) ? TRUE : FALSE;
+	iret = (e[0] >= e[1] || e[2] >= e[3] || e[4] >= e[5]) ? TRUE : FALSE;
 	return iret;
 }
-void extent6f_setNodeExtent(float *extent6, struct X3D_Node *node){
+void extent6f_setNodeExtentA(float *extent6, struct X3D_Node *node){
 	float *e = extent6;
-	setExtent(e[1],e[0],e[3],e[2],e[5],e[4],node);
+	setExtent(e[0],e[1],e[2],e[3],e[4],e[5],node);
+}
+float *extent6f_copy(float *eout6, float *ein6){
+	memcpy(eout6,ein6,6*sizeof(float));
+	return eout6;
+}
+void extent6f_printf(float *extent6){
+	float *e = extent6;
+	printf("min,max x:%lf,%lf y:%f,%f z:%f,%f ",e[1],e[0],e[3],e[2],e[5],e[4]);
+}
+void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
+	int i,j;
+	struct X3D_Node *shapeParent;
+	struct X3D_Node *groupParent;
+	float *e = extent6;
+    
+	#ifdef FRUSTUMVERBOSE
+	extent6f_printf(e);
+	printf(" extent6f_setNodeExtentB me %p nt %s\n",me,stringNodeType(me->_nodeType));
+	#endif
+
+	/* record this for ME for sorting purposes for sorting children fields */
+	extent6f_copy(me->_extent,e);
+
+	if (me->_parentVector == NULL) {
+		#ifdef FRUSTUMVERBOSE
+		printf ("setExtent, parentVector NULL for node %p type %s\n",
+			me,stringNodeType(me->_nodeType));
+		#endif
+		return;
+	}
+
+	for (i=0; i<vectorSize(me->_parentVector); i++) {
+		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,i);
+		extent6f_copy(shapeParent->_extent,e);
+		for (j=0; j<vectorSize(shapeParent->_parentVector); j++) {
+			groupParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,j);
+			
+			//extent6f_printf(e); printf(" e\n");
+			//extent6f_printf(groupParent->_extent); printf(" gp before\n");
+			extent6f_union(groupParent->_extent,groupParent->_extent,e);
+			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
+		}
+	}
 }
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	int i;
@@ -636,7 +685,7 @@ void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 			struct X3D_GeoElevationGrid *node = (struct X3D_GeoElevationGrid *)me; 
 			extent6f_rotate4d(ef6, me->_extent, node->__localOrient.c);
 			extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
-			extent6f_setNodeExtent(ef6,me);
+			extent6f_setNodeExtentB(ef6,me);
 		} 
 	} 
 }
@@ -716,7 +765,7 @@ int is_GeoLODchild_inrange (struct X3D_GeoLOD* gpnode, struct X3D_Node *me) {
 /* this is used for collision in transformChildren - don't bother going through
    children of a transform if there is nothing close... */
 
-void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+void setExtent_OLD(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
 	int c,d;
 	struct X3D_Node *shapeParent;
 	struct X3D_Node *geomParent;
@@ -798,6 +847,12 @@ void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float
 	}
 }
 
+
+void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+	float e[6];
+	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
+	extent6f_setNodeExtentB(e,me);
+}
 static void quaternion_multi_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct point_XYZ * v, int count){
 	int i;
 	for (i=0; i<count; i++) {
