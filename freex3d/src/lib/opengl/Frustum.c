@@ -511,6 +511,84 @@ void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz
 		} 
 	} 
 }
+void extent6f_to_vec3f(float *extent6, float *pmin, float *pmax){
+	int i;
+	for(i=0;i<3;i++){
+		pmin[i] = extent6[i*2];
+		pmax[i] = extent6[i*2 + 1];
+	}
+}
+void extent6f_from_vec3f2(float *extent6, float *pmin, float *pmax){
+	int i;
+	for(i=0;i<3;i++){
+		extent6[i*2] = pmin[i];
+		extent6[i*2 + 1] = pmax[i];
+	}
+}
+void extent6f_to_box3f8(float *extent6, float *p3f8){
+	//generate 8 points from extent
+	int i,j,k,n;
+	n = 0;
+	for(k=0;k<2;k++)
+		for(j=0;j<2;j++)
+			for(i=0;i<2;i++){
+				p3f8[n*3 + 0] = extent6[i];
+				p3f8[n*3 + 1] = extent6[j];
+				p3f8[n*3 + 2] = extent6[k];
+				n++;
+			}
+}
+float *extent6f_union(float *eout6, float *ein6a, float *ein6b){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] = min(ein6a[i*2 + 0], ein6b[i*2 + 0]);
+		eout6[i*2 + 1] = max(ein6a[i*2 + 0], ein6b[i*2 + 0]);
+	}
+	return eout6;
+}
+void extent6f_from_box3fn(float *extent6,float *p, int n){
+	int i,j;
+	for(i=0;i<3;i++)
+		extent6[i*2] = extent6[i*2 + 1] = p[i];
+	for(j=1;j<n;j++)
+		for(i=0;i<3;i++){
+			extent6[i*2 + 0] = min(extent6[i*2],p[j*3 +i]);
+			extent6[i*2 + 1] = max(extent6[i*2],p[j*3 +i]);
+		}
+}
+void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
+	//NEVER COMES IN HERE
+	int i;
+	if (me->_nodeType == NODE_GeoElevationGrid) { 
+		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, 
+		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will 
+		   take the "inside out" boundingBox as being correct! */ 
+ 
+			/* has this node actually been extented away from the default? */ 
+ 
+		if (!APPROX(me->EXTENT_MAX_X,-10000.0) || TRUE) { 
+			struct X3D_GeoElevationGrid *node; 
+			float inxyzf[8][3], e[6];
+			double inxyz[8][3], outxyz[8][3], offset[3];
+			Quaternion rq; 
+			node = (struct X3D_GeoElevationGrid *)me; 
+	 
+			extent6f_to_box3f8(node->_extent,inxyzf[0]);
+			float2double(inxyz[0],inxyzf[0],24);
+			/* 5: ROTATION */ 
+			vrmlrot_to_quaternion(&rq,node->__localOrient.c[0],node->__localOrient.c[1], node->__localOrient.c[2], node->__localOrient.c[3]); 
+			veccopyd(offset,node->__autoOffset.c);
+			for(i=0;i<8;i++){
+				quaternion_rotationd(outxyz[i],&rq,inxyz[i]); 
+				vecdifd(outxyz[i],outxyz[i],offset);
+			}
+			double2float(inxyzf[0],outxyz[0],24);
+			extent6f_from_box3fn(e,inxyzf[0],8);
+			setExtent(e[1],e[0],e[3],e[2],e[5],e[4],me);
+		} 
+	} 
+}
+
 
 
 /* does this current node actually fit in the Switch rendering scheme? */
@@ -752,7 +830,7 @@ void propagateExtent(struct X3D_Node *me) {
 	FRUSTUM_GEOLOCATION;
 	FRUSTUM_TRANS(HAnimSite);
 	FRUSTUM_TRANS(HAnimJoint);
-
+	FRUSTUM_GEOELEVATIONGRID(me);
 
 	for (i=0; i<vectorSize(me->_parentVector); i++) {
 		geomParent = vector_get(struct X3D_Node *, me->_parentVector, i);
