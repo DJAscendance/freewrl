@@ -511,6 +511,8 @@ void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz
 		} 
 	} 
 }
+
+//extent6f {xmin,xmax,ymin,ymax,zmin,zmax}
 void extent6f_to_vec3f(float *extent6, float *pmin, float *pmax){
 	int i;
 	for(i=0;i<3;i++){
@@ -538,14 +540,6 @@ void extent6f_to_box3f8(float *extent6, float *p3f8){
 				n++;
 			}
 }
-float *extent6f_union(float *eout6, float *ein6a, float *ein6b){
-	int i;
-	for(i=0;i<3;i++){
-		eout6[i*2 + 0] = min(ein6a[i*2 + 0], ein6b[i*2 + 0]);
-		eout6[i*2 + 1] = max(ein6a[i*2 + 0], ein6b[i*2 + 0]);
-	}
-	return eout6;
-}
 void extent6f_from_box3fn(float *extent6,float *p, int n){
 	int i,j;
 	for(i=0;i<3;i++)
@@ -556,35 +550,83 @@ void extent6f_from_box3fn(float *extent6,float *p, int n){
 			extent6[i*2 + 1] = max(extent6[i*2],p[j*3 +i]);
 		}
 }
+
+float *extent6f_union(float *eout6, float *ein6a, float *ein6b){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] = min(ein6a[i*2 + 0], ein6b[i*2 + 0]);
+		eout6[i*2 + 1] = max(ein6a[i*2 + 0], ein6b[i*2 + 0]);
+	}
+	return eout6;
+}
+float *extent6f_translate3f(float *eout6, float *ein6, float *p3){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] += p3[i];
+		eout6[i*2 + 1] += p3[i];
+	}
+	return eout6;
+}
+float *extent6f_translate3d(float *eout6, float *ein6, double *p3){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] += p3[i];
+		eout6[i*2 + 1] += p3[i];
+	}
+	return eout6;
+}
+float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4){
+	int i;
+	float p3f[8][3];
+	double p3d[8][3];
+	Quaternion rq;
+
+	extent6f_to_box3f8(ein6,p3f[0]);
+	float2double(p3d[0],p3f[0],24);
+	vrmlrot_to_quaternion(&rq,vrot4[0],vrot4[1], vrot4[2], vrot4[3]); 
+	for(i=0;i<8;i++){
+		quaternion_rotationd(p3d[i],&rq,p3d[i]); 
+	}
+	double2float(p3f[0],p3d[0],24);
+	extent6f_from_box3fn(eout6,p3f[0],8);
+	return eout6;
+}
+float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4){
+	int i;
+	float p3f[8][3];
+	double p3d[8][3];
+	Quaternion rq;
+
+	extent6f_to_box3f8(ein6,p3f[0]);
+	float2double(p3d[0],p3f[0],24);
+	vrmlrot_to_quaternion(&rq,vrot4[0],vrot4[1], vrot4[2], vrot4[3]); 
+	for(i=0;i<8;i++){
+		quaternion_rotationd(p3d[i],&rq,p3d[i]); 
+	}
+	double2float(p3f[0],p3d[0],24);
+	extent6f_from_box3fn(eout6,p3f[0],8);
+	return eout6;
+}
+int extent6_isSet(float *extent6){
+	int iret;
+	float *e = extent6;
+	iret = (e[1] >= e[0] || e[3] >= e[2] || e[5] >= e[4]) ? TRUE : FALSE;
+	return iret;
+}
+void extent6f_setNodeExtent(float *extent6, struct X3D_Node *node){
+	float *e = extent6;
+	setExtent(e[1],e[0],e[3],e[2],e[5],e[4],node);
+}
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	//NEVER COMES IN HERE
 	int i;
 	if (me->_nodeType == NODE_GeoElevationGrid) { 
-		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, 
-		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will 
-		   take the "inside out" boundingBox as being correct! */ 
- 
-			/* has this node actually been extented away from the default? */ 
- 
-		if (!APPROX(me->EXTENT_MAX_X,-10000.0) || TRUE) { 
-			struct X3D_GeoElevationGrid *node; 
-			float inxyzf[8][3], e[6];
-			double inxyz[8][3], outxyz[8][3], offset[3];
-			Quaternion rq; 
-			node = (struct X3D_GeoElevationGrid *)me; 
-	 
-			extent6f_to_box3f8(node->_extent,inxyzf[0]);
-			float2double(inxyz[0],inxyzf[0],24);
-			/* 5: ROTATION */ 
-			vrmlrot_to_quaternion(&rq,node->__localOrient.c[0],node->__localOrient.c[1], node->__localOrient.c[2], node->__localOrient.c[3]); 
-			veccopyd(offset,node->__autoOffset.c);
-			for(i=0;i<8;i++){
-				quaternion_rotationd(outxyz[i],&rq,inxyz[i]); 
-				vecdifd(outxyz[i],outxyz[i],offset);
-			}
-			double2float(inxyzf[0],outxyz[0],24);
-			extent6f_from_box3fn(e,inxyzf[0],8);
-			setExtent(e[1],e[0],e[3],e[2],e[5],e[4],me);
+		if( extent6_isSet(me->_extent)) {
+			float ef6[6];
+			struct X3D_GeoElevationGrid *node = (struct X3D_GeoElevationGrid *)me; 
+			extent6f_rotate4d(ef6, me->_extent, node->__localOrient.c);
+			extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
+			extent6f_setNodeExtent(ef6,me);
 		} 
 	} 
 }
