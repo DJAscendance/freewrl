@@ -786,7 +786,8 @@ void freewrlDie(const char *format);
 
 //extern int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
 typedef struct trenderstate{
-int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision,render_cube,render_background;
+int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,
+verbose,render_blend,render_geom,render_collision,render_cube,render_background, render_boxes;
 }* ttrenderstate;
 //extern struct trenderstate renderstate;
 ttrenderstate renderstate();

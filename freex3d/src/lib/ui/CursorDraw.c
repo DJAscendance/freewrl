@@ -620,6 +620,7 @@ void cursorDraw(int ID, int x, int y, float angle)
 void vecprinti3fb(char *name, int i, float *p, char *eol){
 printf("%s[%d] %f %f %f %s",name,i,p[0],p[1],p[2],eol);
 }
+int extent6f_isSet(float *extent6);
 static float testextent [] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
 void boxDrawB(float *extent)
 {
@@ -632,7 +633,7 @@ void boxDrawB(float *extent)
 	struct cline *cur, *line;
 	s_shader_capabilities_t *scap;
 	ttglobal tg = gglobal();
-
+	if(!extent6f_isSet(extent)) return;
 	no_depth = 0;
 	if(no_depth){
 		FW_GL_DEPTHMASK(GL_FALSE);

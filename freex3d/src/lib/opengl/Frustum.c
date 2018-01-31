@@ -588,6 +588,13 @@ float *extent6f_translate3d(float *eout6, float *ein6, double *p3){
 	}
 	return eout6;
 }
+float *extent6f_get_center3f(float *extent6, float *center3){
+	int i;
+	for(i=0;i<3;i++){
+		center3[i] = .5f*(extent6[i*2 + 0] + extent6[i*2 + 1]);
+	}
+	return center3;
+}
 float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4){
 	int i;
 	float p3f[8][3];
@@ -620,7 +627,7 @@ float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4){
 	extent6f_from_box3fn(eout6,p3f[0],8);
 	return eout6;
 }
-int extent6_isSet(float *extent6){
+int extent6f_isSet(float *extent6){
 	//extents are set with min > max, so a way to tell
 	// if they are set is to check if min <= max or max >= min
 	int iret;
@@ -680,7 +687,7 @@ void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	int i;
 	if (me->_nodeType == NODE_GeoElevationGrid) { 
-		if( extent6_isSet(me->_extent)) {
+		if( extent6f_isSet(me->_extent)) {
 			float ef6[6];
 			struct X3D_GeoElevationGrid *node = (struct X3D_GeoElevationGrid *)me; 
 			extent6f_rotate4d(ef6, me->_extent, node->__localOrient.c);

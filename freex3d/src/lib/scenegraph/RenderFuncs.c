@@ -1751,7 +1751,7 @@ void render_node(struct X3D_Node *node) {
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
-		if(fwl_getDrawBoundingBoxes()) boxDrawB(node->_extent);
+		if(p->renderstate.render_boxes) boxDrawB(node->_extent);
 
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
@@ -2046,6 +2046,7 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	rs->render_other = rwhat & VF_Other;
 	rs->render_cube = rwhat & VF_Cube;
 	rs->render_background = rwhat & VF_Background;
+	rs->render_boxes = (rwhat & VF_Geom) && fwl_getDrawBoundingBoxes();
 	//p->nextFreeLight = 0;
 	p->lastShader = -1; //in sendLights,and optimization
 	tg->RenderFuncs.hitPointDist = -1;
