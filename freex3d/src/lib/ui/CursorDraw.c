@@ -622,11 +622,11 @@ printf("%s[%d] %f %f %f %s",name,i,p[0],p[1],p[2],eol);
 }
 int extent6f_isSet(float *extent6);
 static float testextent [] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-void boxDrawB(float *extent)
+void extent6f_draw(float *extent)
 {
 	//draw bouneding box / extent as lines
-	//hacked from cursorDrawB
-	int i,j,k,n, no_depth;
+	//hacked from cursorDrawB and Component_ParticalPhysics
+	int i,j,k,n;
 	GLint  positionLoc;
 	GLfloat p[24][3];
 	unsigned short lineindices[3];
@@ -634,11 +634,7 @@ void boxDrawB(float *extent)
 	s_shader_capabilities_t *scap;
 	ttglobal tg = gglobal();
 	if(!extent6f_isSet(extent)) return;
-	no_depth = 0;
-	if(no_depth){
-		FW_GL_DEPTHMASK(GL_FALSE);
-		glDisable(GL_DEPTH_TEST);
-	}
+
 	scap = getMyShader(NO_APPEARANCE_SHADER);
 	enableGlobalShader(scap);
 	//glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, cursIdentity); 
@@ -712,9 +708,5 @@ void boxDrawB(float *extent)
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	if(no_depth){
-		glEnable(GL_DEPTH_TEST);
-		FW_GL_DEPTHMASK(GL_TRUE);
-	}
 	restoreGlobalShader();
 }

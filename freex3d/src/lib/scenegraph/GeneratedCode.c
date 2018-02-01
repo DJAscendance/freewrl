@@ -3114,9 +3114,11 @@ struct X3D_Virt virt_ShaderPart = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 
 struct X3D_Virt virt_ShaderProgram = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_Shape(struct X3D_Shape *);
 void child_Shape(struct X3D_Shape *);
+void fin_Shape(struct X3D_Shape *);
 void compile_Shape(struct X3D_Shape *);
-struct X3D_Virt virt_Shape = { NULL,NULL,(void *)child_Shape,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Shape,NULL,NULL};
+struct X3D_Virt virt_Shape = { (void *)prep_Shape,NULL,(void *)child_Shape,(void *)fin_Shape,NULL,NULL,NULL,NULL,NULL,(void *)compile_Shape,NULL,NULL};
 
 void compile_SignalPdu(struct X3D_SignalPdu *);
 struct X3D_Virt virt_SignalPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_SignalPdu,NULL,NULL};

@@ -62,16 +62,18 @@ X3D Geospatial Component
 
 int method_geolib(){
 #ifdef GEOLIB
-	//return 0; //freewrl hand coded way, was working fine for more than decade
-	return 1; //geographicLib / Karney, for testing - a way to independently verify transforms when hacking/refactoring code
+	return 0; //freewrl hand coded way, was working fine for more than decade
+	//return 1; //geographicLib / Karney, for testing - a way to independently verify transforms when hacking/refactoring code
 #else
 	return 0; //freewrl hand coded way
 #endif
 }
 int geo_method(){
 	//1= before 2018, scene root in GC if no geoOrigin nodes, or geoOrigin is default GC 0,0,0
-	//2= Jan 21 2018, scene root in LC via new 'autoOrigin' concepts being elaborated, refined, 
-	//      since web3d specs v3.3 deprecates geoOrigin saying the origins can be automatically generated
+	//web3d specs v3.3 deprecates geoOrigin saying the origins can be automatically generated
+	//2= Feb 1, 2018, scene root in LC of First come first served (FCFS) geoOrigin 
+	//   - first node compiled - its .position (or equivalent) serves as origin for all geoNodes
+	//3= Feb 1 2018, scene root in LC via dynamic origin
 	return 2; //1 or 2
 }
 
@@ -337,6 +339,8 @@ void calculateViewingSpeed(void);
 
 
 typedef struct pComponent_Geospatial{
+	double autoOrigin[3];
+	int autoOriginSet;
 	int geoLodLevel;// = 0;
 	void * gcgdpars[50];
 #ifdef GEOLIB
@@ -355,6 +359,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	t->prv = Component_Geospatial_constructor();
 	{
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
+		p->autoOriginSet = FALSE;
 		p->geoLodLevel = 0;
 		memset(p->gcgdpars,0,50*sizeof(void*));
 		#ifdef GEOLIB
@@ -2004,12 +2009,22 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 			if(gor->rotateYUp) pyup = &yup;
 		}else{
 			//save AutoOrigin AOshape = {__autoOffset,__localOrient}
+			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 			moveCoords3d(&node->__geoSystem, poffset, pyup, 
 				&node->geoGridOrigin, 1, &node->__autoOffset, &gdCoord);
 			if(!pyup){
 				GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoord, &node->__localOrient);
 				pyup = &node->__localOrient;
 			}
+			if(!p->autoOriginSet){
+				//first come first serve FCFS autoOrigin
+				veccopyd(p->autoOrigin,node->__autoOffset.c);
+				p->autoOriginSet = TRUE;
+			}
+			veccopyd(node->__autoOffset.c,p->autoOrigin);
+			//vecdifd(node->__autoOffset.c,node->__autoOffset.c,p->autoOrigin);
+			veccopyd(offset.c,node->__autoOffset.c);
+			poffset = &offset;
 			printf("geoEGrid geoGridOrigin \n\t p  %lf %lf %lf \n\t gd %lf %lf %lf\n\t gc %lf %lf %lf\n",
 			node->geoGridOrigin.c[0],node->geoGridOrigin.c[1],node->geoGridOrigin.c[2],
 			gdCoord.c[0],gdCoord.c[1],gdCoord.c[2],
@@ -2019,7 +2034,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		//step 2 apply autoOrigin to GC coords
 		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
 		gdCoords.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
-		moveCoords3d(&node->__geoSystem,&node->__autoOffset,pyup,
+		moveCoords3d(&node->__geoSystem,poffset,pyup,
 			mIN.p,mIN.n,mOUT.p,gdCoords.p);
 	}
 
@@ -2105,17 +2120,24 @@ void pushOrigin(struct SFVec3d *offset, struct SFVec4d *orient){
 void popOrigin(){
 	FW_GL_POP_MATRIX();
 }
+void extent6f_draw(float *extent);
 void prepShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
-	if(geo_method()==2){
+	if(geo_method()==3){
 		initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 
 		COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 
 		pushOrigin(&node->__autoOffset,&node->__localOrient);
 	}
+	if(fwl_getDrawBoundingBoxes()) extent6f_draw(node->_extent);
+	{
+		static int count = 0;
+		if(count > 1000 && count < 1020) { extent6f_printf(node->_extent); printf("GEG prepshape\n");}
+		count++;
+	}
 }
 void finShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
-	if(geo_method()==2)
+	if(geo_method()==3)
 		popOrigin();
 }
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
@@ -3172,6 +3194,7 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 		FREE_MF_SF_TEMPS
 	}else{
 		//v3.3 way - autoOrigin - B. capture as the self-origin
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 		pyup = NULL;
 		poffset = NULL;
 		if(specversion < 330 && X3D_GEOORIGIN(node->geoOrigin)){
@@ -3185,6 +3208,13 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 		}
 		moveCoords3d(&node->__geoSystem, poffset, pyup, 
 			&node->position, 1, &node->__movedPosition, &gdCoord);
+		if(!p->autoOriginSet){
+			//first come first serve FCFS autoOrigin
+			veccopyd(p->autoOrigin,node->__movedPosition.c);
+			p->autoOriginSet = TRUE;
+		}
+		vecdifd(node->__movedPosition.c,node->__movedPosition.c,p->autoOrigin);
+
 		if(1) printf("compile geovp \n\tp=\t %lf %lf %lf \n\tgc=\t %lf %lf %lf\n\tgd=\t %lf %lf %lf\n",
 			node->position.c[0],node->position.c[1],node->position.c[2],
 			node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2],

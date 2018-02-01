@@ -1640,7 +1640,7 @@ void pop_sensor(){
 }
 int getWindex();
 int render_foundLayerViewpoint();
-void boxDrawB(float *extent);
+void extent6f_draw(float *extent);
 static int draw_extents = TRUE;
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
@@ -1751,7 +1751,7 @@ void render_node(struct X3D_Node *node) {
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
-		if(p->renderstate.render_boxes) boxDrawB(node->_extent);
+		if(p->renderstate.render_boxes) extent6f_draw(node->_extent);
 
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {

@@ -518,6 +518,25 @@ float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,f
 	e[0]=xmax; e[1] = xmin; e[2]=ymax; e[3]=ymin;  e[4]=zmax; e[5]=zmin; 
 	return e;
 }
+float *extent6f_clear(float *extent6){
+	float *e = extent6;
+	e[0]=-10000.0; e[1]=10000.0; e[2]=-10000.0; e[3]=10000.0; e[4]=-10000.0; e[5]=10000.0;
+	return e;
+}
+int extent6f_isSet(float *extent6){
+	//extents are set with min > max, so a way to tell
+	// if they are set is to check if min <= max or max >= min
+	int iret;
+	float *e = extent6;
+	//is max >= min for any dimensions? if so, then is set.
+	//iret = (e[0] >= e[1] && e[2] >= e[3] && e[4] >= e[5]) ? TRUE : FALSE;
+	iret = (e[0] >= e[1] || e[2] >= e[3] || e[4] >= e[5]) ? TRUE : FALSE;
+	return iret;
+}
+float *extent6f_copy(float *eout6, float *ein6){
+	memcpy(eout6,ein6,6*sizeof(float));
+	return eout6;
+}
 void extent6f_to_vec3f(float *extent6, float *pmin, float *pmax){
 	int i;
 	for(i=0;i<3;i++){
@@ -556,13 +575,31 @@ void extent6f_from_box3fn(float *extent6,float *p, int n){
 		}
 }
 
-float *extent6f_union(float *eout6, float *ein6a, float *ein6b){
-	int i;
+float *extent6f_union_extent6f(float *extent6, float *ein6){
+	int i,isa,isb;
+	isa = extent6f_isSet(extent6);
+	isb = extent6f_isSet(ein6);
+	if(isa && isb)
 	for(i=0;i<3;i++){
-		eout6[i*2 + 1] = min(ein6a[i*2 + 1], ein6b[i*2 + 1]);
-		eout6[i*2 + 0] = max(ein6a[i*2 + 0], ein6b[i*2 + 0]);
+		extent6[i*2 + 1] = min(extent6[i*2 + 1], ein6[i*2 + 1]);
+		extent6[i*2 + 0] = max(extent6[i*2 + 0], ein6[i*2 + 0]);
 	}
-	return eout6;
+	else if(isb) extent6f_copy(extent6,ein6);
+	return extent6;
+}
+float *extent6f_union_vec3f(float *extent6, float *p3){
+	int i,isa,isb;
+	isa = extent6f_isSet(extent6);
+	if(!isa)
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = p3[i];
+		extent6[i*2 + 0] = p3[i];
+	}
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = min(extent6[i*2 + 1], p3[i]);
+		extent6[i*2 + 0] = max(extent6[i*2 + 0], p3[i]);
+	}
+	return extent6;
 }
 float *extent6f_scale3f(float *eout6, float *ein6, float *s3){
 	int i;
@@ -627,24 +664,22 @@ float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4){
 	extent6f_from_box3fn(eout6,p3f[0],8);
 	return eout6;
 }
-int extent6f_isSet(float *extent6){
-	//extents are set with min > max, so a way to tell
-	// if they are set is to check if min <= max or max >= min
-	int iret;
-	float *e = extent6;
-	//is max >= min for any dimensions? if so, then is set.
-	//iret = (e[0] >= e[1] && e[2] >= e[3] && e[4] >= e[5]) ? TRUE : FALSE;
-	iret = (e[0] >= e[1] || e[2] >= e[3] || e[4] >= e[5]) ? TRUE : FALSE;
-	return iret;
-}
-void extent6f_setNodeExtentA(float *extent6, struct X3D_Node *node){
-	float *e = extent6;
-	setExtent(e[0],e[1],e[2],e[3],e[4],e[5],node);
-}
-float *extent6f_copy(float *eout6, float *ein6){
-	memcpy(eout6,ein6,6*sizeof(float));
+float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4){
+	int i;
+	float p3f[8][3];
+	double p3d[8][3];
+	Quaternion rq;
+
+	extent6f_to_box3f8(ein6,p3f[0]);
+	float2double(p3d[0],p3f[0],24);
+	for(i=0;i<8;i++){
+		transformAFFINEd(p3d[i],p3d[i],mat4); 
+	}
+	double2float(p3f[0],p3d[0],24);
+	extent6f_from_box3fn(eout6,p3f[0],8);
 	return eout6;
-}
+	
+} 
 void extent6f_printf(float *extent6){
 	float *e = extent6;
 	printf("min,max x:%lf,%lf y:%f,%f z:%f,%f ",e[1],e[0],e[3],e[2],e[5],e[4]);
@@ -679,7 +714,41 @@ void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 			
 			//extent6f_printf(e); printf(" e\n");
 			//extent6f_printf(groupParent->_extent); printf(" gp before\n");
-			extent6f_union(groupParent->_extent,groupParent->_extent,e);
+			extent6f_union_extent6f(groupParent->_extent,e);
+			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
+		}
+	}
+}
+void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me){
+	int i,j;
+	struct X3D_Node *shapeParent;
+	struct X3D_Node *groupParent;
+	float *e = extent6;
+    
+	#ifdef FRUSTUMVERBOSE
+	extent6f_printf(e);
+	printf(" extent6f_setNodeExtentB me %p nt %s\n",me,stringNodeType(me->_nodeType));
+	#endif
+
+	/* record this for ME for sorting purposes for sorting children fields */
+
+	if (me->_parentVector == NULL) {
+		#ifdef FRUSTUMVERBOSE
+		printf ("setExtent, parentVector NULL for node %p type %s\n",
+			me,stringNodeType(me->_nodeType));
+		#endif
+		return;
+	}
+
+	for (i=0; i<vectorSize(me->_parentVector); i++) {
+		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,i);
+		extent6f_copy(shapeParent->_extent,e);
+		for (j=0; j<vectorSize(shapeParent->_parentVector); j++) {
+			groupParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,j);
+			
+			//extent6f_printf(e); printf(" e\n");
+			//extent6f_printf(groupParent->_extent); printf(" gp before\n");
+			extent6f_union_extent6f(groupParent->_extent,e);
 			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
 		}
 	}
@@ -855,11 +924,35 @@ void setExtent_OLD(float maxx, float minx, float maxy, float miny, float maxz, f
 }
 
 
-void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+void setExtentA(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
 	float e[6];
 	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
 	extent6f_setNodeExtentB(e,me);
 }
+
+void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+	float e[6];
+	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
+	if(virtTable[me->_nodeType]->prepShape && geo_method()==3){
+		double mat[16];
+		//push idenity
+		FW_GL_PUSH_MATRIX();
+		FW_GL_LOAD_IDENTITY();
+		//call prepShape
+		virtTable[me->_nodeType]->prepShape(me);
+		//scrape mat
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mat);
+		//call finShape
+		virtTable[me->_nodeType]->finShape(me);
+		FW_GL_POP_MATRIX();
+		//transform extent with mat
+		extent6f_mattransform4d(e,e,mat);
+		extent6f_setParentExtentB(e,me);
+	}else{
+		extent6f_setNodeExtentB(e,me);
+	}
+}
+
 static void quaternion_multi_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct point_XYZ * v, int count){
 	int i;
 	for (i=0; i<count; i++) {

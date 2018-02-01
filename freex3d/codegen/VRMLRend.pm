@@ -485,6 +485,7 @@ our %PrepC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape
 	EspduTransform
+	Shape
 /;
 
 #######################################################################
@@ -513,6 +514,7 @@ our %FinC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape	
 	EspduTransform
+	Shape
 /;
 
 # PrepShape --
