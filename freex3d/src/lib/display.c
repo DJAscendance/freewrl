@@ -570,10 +570,14 @@ bool initialize_rdr_caps()
 	) {
 		if (p->rdr_caps.runtime_max_texture_size > 1024) p->rdr_caps.runtime_max_texture_size = 1024;
 	}
-
+	if(1){
+		int actualbits;
+		glGetIntegerv(GL_DEPTH_BITS, &actualbits);
+		ConsoleMessage("depth bits %d\n",actualbits);
+	}
 	/* print some debug infos */
 	rdr_caps_dump(&p->rdr_caps);
-
+	
 	//make this the renderer caps for this thread.
 	//memcpy(&gglobal()->display.rdr_caps,&rdr_caps,sizeof(rdr_caps));
 	return TRUE;

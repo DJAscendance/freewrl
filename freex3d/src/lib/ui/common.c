@@ -81,6 +81,7 @@ typedef struct pcommon{
 	int hover;
 	int jsengine;
 	int jsengine_variant;
+	int draw_bounding_boxes;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -115,6 +116,7 @@ void common_init(struct tcommon *t){
 #ifdef JAVASCRIPT_SM
 		p->jsengine = JSENGINE_SM;
 		p->jsengine_variant = 1;  //1= pre-2018 SM1 2= 2018+ SM2
+		p->draw_bounding_boxes = FALSE;
 #endif
 	}
 }
@@ -865,4 +867,12 @@ int fwl_getHover(){
 void fwl_setHover(int hover){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->hover = hover; //0 means off, 1 means on
+}
+void fwl_setDrawBoundingBoxes(int drawbb){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->draw_bounding_boxes = drawbb; //0 means off, 1 means on
+}
+int fwl_getDrawBoundingBoxes(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->draw_bounding_boxes; //0 means off, 1 means on
 }

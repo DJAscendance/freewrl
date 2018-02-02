@@ -1786,6 +1786,8 @@ our %Nodes = (
 		_coordIndex => ["MFInt32", [], "initializeOnly", 0,0],#ff
 
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__autoOffset => ["SFVec3d",[0,0,0],"initializeOnly", 0,0],#ff
+		__localOrient => ["SFVec4d",[0,0,1,0],"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"GeoLOD" => new VRML::NodeType("GeoLOD", [
@@ -1950,8 +1952,9 @@ our %Nodes = (
 		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff # see note top of file, AND spec changed to in/out in 3.3
 		position => ["SFVec3d",[0, 0, 100000], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_GEO"],#ff # ditto
 		centerOfRotation => ["SFVec3d",[0, 0, 0], "inputOutput", "( SPEC_X3D33)","UNCA_NONE"],#ff
-		set_orientation => ["SFRotation", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
-		set_position => ["SFVec3d", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
+		# the following sets were in v3.2 but v3.3 changed position,orientation to [inout] and (I think) that's backward compat in freewrl
+		# set_orientation => ["SFRotation", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
+		# set_position => ["SFVec3d", ["IO_FLOAT", "IO_FLOAT", "IO_FLOAT"], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		# GeoViewpoint fields
 		headlight => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		navType => ["MFString", ["EXAMINE","ANY"],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
@@ -1965,6 +1968,7 @@ our %Nodes = (
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
 		__movedPosition => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__movedOrientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
+		__movedgd => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 
 		__oldSFString => ["SFString", "", "inputOutput", 0,0],#ff #the description field
 		__oldFieldOfView => ["SFFloat", 0.785398, "inputOutput", 0,0],#ff

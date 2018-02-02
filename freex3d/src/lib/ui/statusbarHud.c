@@ -540,7 +540,7 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 27;
+static int lenOptions   = 28;
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -942,6 +942,7 @@ char * optionsText[] = {
 "screen orientation \36    \37",
 "shading style:",
 "  flat  gouraud  phong  wire",
+"  draw bounding boxes",
 "  allow DIS",
 NULL,
 };
@@ -1034,8 +1035,11 @@ void initOptionsVal()
 			break;
 	}
 	p->optionsVal[26][0] = 034; //[]
-	if(fwl_get_allow_DIS())
+	if(fwl_getDrawBoundingBoxes())
 		p->optionsVal[26][0] = 035; //[*] '*';
+	p->optionsVal[27][0] = 034; //[]
+	if(fwl_get_allow_DIS())
+		p->optionsVal[27][0] = 035; //[*] '*';
 
 	p->optionsLoaded = 1;
 }
@@ -1074,6 +1078,7 @@ char * optionsCase[] = {
 " ",
 "RR    SS       TT     UU",
 "VVVVVVVVVV",
+"WWWWWWWWWW",
 NULL,
 };
 
@@ -1327,6 +1332,10 @@ int handleOptionPress(int mouseX, int mouseY)
 		}
 		break;
 	case 'V': {
+		fwl_setDrawBoundingBoxes(1 - fwl_getDrawBoundingBoxes());
+		break;
+		}
+	case 'W': {
 		fwl_set_allow_DIS(1 - fwl_get_allow_DIS());
 		break;
 		}

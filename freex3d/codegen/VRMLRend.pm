@@ -355,11 +355,12 @@ our %defaultContainerType = (
 #	actually affect triangles/lines on the screen.
 #
 # All of these will have a render_xxx name associated with them.
+#	Background
+#	TextureBackground
+
 
 our %RendC = map {($_=>1)} qw/
 	Fog
-	Background
-	TextureBackground
 	Box
 	Cylinder
 	Cone
@@ -484,6 +485,7 @@ our %PrepC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape
 	EspduTransform
+	Shape
 /;
 
 #######################################################################
@@ -512,7 +514,30 @@ our %FinC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape	
 	EspduTransform
+	Shape
 /;
+
+# PrepShape --
+#  like prep and fin, except its a shape node that has its own transformation
+#  for example geoShapes
+
+our %PrepShapeC = map {($_=>1)} qw/
+	GeoElevationGrid
+/;
+
+#######################################################################
+#######################################################################
+#######################################################################
+#
+# FinShape --
+#  like Fin, except for a shape that has its own transform, like geoShapes
+#
+#
+
+our %FinShapeC = map {($_=>1)} qw/
+	GeoElevationGrid
+/;
+
 
 
 #######################################################################
@@ -1032,6 +1057,7 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	RF
 	SA
 	UTM
+	3TM
 	WD
 	WE
 	WGS84

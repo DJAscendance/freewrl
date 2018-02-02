@@ -1454,6 +1454,8 @@ void generate_GeneratedCubeMapTextures(){
 
 				clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
+				render_bound_background();
+
 				/*  turn light #0 off only if it is not a headlight.*/
 				if (!fwl_get_headlight()) {
 					setLightState(HEADLIGHT_LIGHT,FALSE);

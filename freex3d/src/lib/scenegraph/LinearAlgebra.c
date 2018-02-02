@@ -177,6 +177,23 @@ double *vecnegated(double *b, double *a)
 	b[2] = -a[2];
 	return b;
 }
+double *vecswizzle2d(double *inout ){
+	double tmp = inout[0];
+	inout[0] = inout[1];
+	inout[1] = tmp;
+	return inout;
+}
+
+double *veccopy4d(double *c, double *a)
+{
+	c[0] = a[0];
+	c[1] = a[1];
+	c[2] = a[2];
+	c[3] = a[3];
+	return c;
+}
+
+
 float *veccopy3f(float *b, float *a)
 {
 	b[0] = a[0];

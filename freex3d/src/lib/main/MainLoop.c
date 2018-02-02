@@ -5566,6 +5566,7 @@ void generate_GeneratedCubeMapTextures();
 /* Render the scene */
 static void render()
 {
+	//warning you must also maintain generate_GeneratedCubeMapTextures() which is a hacked clone of this function
 	int count;
 	static double shuttertime;
 	static int shutterside;
@@ -5622,6 +5623,7 @@ static void render()
 		//BackEndLightsOff();
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
+		render_bound_background();
 
 		/*  turn light #0 off only if it is not a headlight.*/
 		if (!fwl_get_headlight()) {
@@ -5854,7 +5856,7 @@ void setup_viewpoint_part2() {
 	boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint();
 	if(boundvp)
 		boundvp->_donethispass = 0; //used in prep_Viewpoint
-	render_hier(rootNode(), VF_Viewpoint);
+	render_hier(rootNode(), VF_Viewpoint | VF_Background);
 	if(boundvp)
 		boundvp->_donethispass = 0; //used in prep_Viewpoint
 	//printf("\n<<<part2\n");
@@ -5898,6 +5900,11 @@ void setup_viewpoint_part3() {
 	////restore real stereo settings for rendering
 	//	viewer->isStereo = bstack->isStereo;
 	//	viewer->iside = iside;
+	//}
+	//if(0){
+	//	printmatrix2(bstack->screenorientationmatrix,"screenOrientationMatrix");
+	//	printmatrix2(bstack->posorimatrix,"posorimatrix");
+	//	printmatrix2(bstack->viewtransformmatrix,"viewmatrix");
 	//}
 	//multiply it all together, and capture any slerp
 	//Feb 2016 - I think we should slerp the main/normal position of the viewpoint. 

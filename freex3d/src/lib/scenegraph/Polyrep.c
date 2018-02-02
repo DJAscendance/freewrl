@@ -808,7 +808,13 @@ void render_polyrep(void *node) {
 	tg->Textures.global_tcin_lastParent = node;
 
 	/* we take the geometry here, and push it up the stream. */
-        setExtent( renderedNodePtr->EXTENT_MAX_X, renderedNodePtr->EXTENT_MIN_X, renderedNodePtr->EXTENT_MAX_Y,
+	if(0){
+		static int count = 0;
+		if(count < 3)
+			{extent6f_printf(renderedNodePtr->_extent);printf(" r_p\n");}
+		count++;
+	}
+    if(1)     setExtent( renderedNodePtr->EXTENT_MAX_X, renderedNodePtr->EXTENT_MIN_X, renderedNodePtr->EXTENT_MAX_Y,
                 renderedNodePtr->EXTENT_MIN_Y, renderedNodePtr->EXTENT_MAX_Z, renderedNodePtr->EXTENT_MIN_Z,
                 renderedNodePtr);
 

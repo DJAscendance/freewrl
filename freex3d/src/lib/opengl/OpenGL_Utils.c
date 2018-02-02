@@ -3269,10 +3269,12 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 			bmin = min(bmin,bboxPoints[ci].z);
 			bmax = max(bmax,bboxPoints[ci].z);
 		}
-		viewer->nearPlane = bmax;
-		viewer->farPlane = bmin;
-		viewer->backgroundPlane = bmin;
-		done_once = 1;
+		viewer->nearPlane = max(.1,bmin); //bmax;
+		viewer->farPlane = bmax; //bmin;
+		//viewer->backgroundPlane = bmin;
+		//done_once = 1;
+		printf("\rnear %lf far %lf",viewer->nearPlane,viewer->farPlane);
+
 		return;
 	}
 
@@ -3356,7 +3358,22 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 			viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
 			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 		}
+	} 
+	if(1) { 
+		//2018 render_background reworked to render before other nodes, and render close to frontplane, with depth off
+		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
+		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
+		// NOT USED 2018 viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		printf("\rnear %lf far %lf",viewer->nearPlane,viewer->farPlane);
 	}
+	if(0) { 
+		//for debugging extents
+		viewer->nearPlane = .07; //changed sept 2017 - cnp can be massive like 4.5 million for geo
+		viewer->farPlane = DEFAULT_FARPLANE;
+		// NOT USED 2018 viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		printf("\rnear %lf far %lf",viewer->nearPlane,viewer->farPlane);
+	}
+
 	if(0){
 		//pre- march 2015 code, with one line changed, worked for most geo scenes
 		viewer->nearPlane = cnp;
@@ -3732,6 +3749,7 @@ void fw_glRotateRad (GLDOUBLE angle, GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	matrotate(myMat,angle,x,y,z);
 
 	//printmatrix2 (myMat, "rotation matrix");
+
 	matmultiplyAFFINE(p->currentMatrix,myMat,p->currentMatrix);
 
 	//printmatrix2 (p->currentMatrix,"currentMatrix after rotate");
@@ -6870,7 +6888,7 @@ void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOU
 	//printmatrix2(ndp,"ndp = ndp2*dp");
 
 	/* method = 1; */
-	 FW_GL_LOADMATRIX(ndp);
+//	 FW_GL_LOADMATRIX(ndp);
 	/* put the matrix back on our matrix stack */
 	memcpy (p->FW_ProjectionView[p->projectionviewTOS],ndp,16*sizeof (GLDOUBLE));
 }

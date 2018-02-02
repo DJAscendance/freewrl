@@ -418,6 +418,353 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry)
 		} \
 	} 
 
+#define BBV(num,XX,YY,ZZ) \
+			inxyz[num].x= (double) (me->EXTENT_##XX); \
+			inxyz[num].y= (double) (me->EXTENT_##YY); \
+			inxyz[num].z= (double) (me->EXTENT_##ZZ);
+
+//#define FRUSTUM_GEOTRANS  
+void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz, float *maxx, float *maxy, float *maxz){
+	int i;
+	if (me->_nodeType == NODE_GeoTransform) { 
+		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, 
+		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will 
+		   take the "inside out" boundingBox as being correct! */ 
+ 
+			/* has this node actually been extented away from the default? */ 
+ 
+		if (!APPROX(me->EXTENT_MAX_X,-10000.0)) { 
+			struct X3D_GeoTransform *node; 
+			Quaternion rq; 
+			struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8]; 
+			node = (struct X3D_GeoTransform *)me; 
+	 
+			/* make up a "cube" with vertexes being our bounding box */ 
+			BBV(0,MAX_X,MAX_Y,MAX_Z); 
+			BBV(1,MAX_X,MAX_Y,MIN_Z); 
+			BBV(2,MAX_X,MIN_Y,MAX_Z); 
+			BBV(3,MAX_X,MIN_Y,MIN_Z); 
+			BBV(4,MIN_X,MAX_Y,MAX_Z); 
+			BBV(5,MIN_X,MAX_Y,MIN_Z); 
+			BBV(6,MIN_X,MIN_Y,MAX_Z); 
+			BBV(7,MIN_X,MIN_Y,MIN_Z); 
+	
+			/* 1: REVERSE CENTER */ 
+			if (node->__do_center) { 
+				add_translation(inxyz,(float) (-node->geoCenter.c[0]), (float) (-node->geoCenter.c[1]),(float)(-node->geoCenter.c[2]),8); 
+			} 
+	 
+			/* 2: REVERSE SCALE ORIENTATION */ 
+			if (node->__do_scaleO) { 
+				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); 
+				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			} 
+	
+			/* 3: SCALE */ 
+			if (node->__do_scale) { 
+				multiply_in_scale(inxyz,node->scale.c[0],node->scale.c[1],node->scale.c[2],8); 
+			} 
+	 
+			/* 4: SCALEORIENTATION */ 
+			if (node->__do_scaleO) { 
+				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); 
+				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			} 
+	 
+			/* 5: ROTATION */ 
+			if (node->__do_rotation) { 
+				vrmlrot_to_quaternion(&rq,node->rotation.c[0], node->rotation.c[1], node->rotation.c[2], node->rotation.c[3]); 
+				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			} 
+	 
+			/* 6: CENTER */ 
+			if (node->__do_center) { 
+				add_translation(inxyz,(float)node->geoCenter.c[0],(float)node->geoCenter.c[1],(float)node->geoCenter.c[2],8); 
+			} 
+			add_translation (inxyz,(float) X3D_GEOTRANSFORM(node)->__movedCoords.c[0], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[1], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[2],8); 
+
+			vrmlrot_to_quaternion(&rq,X3D_GEOTRANSFORM(node)->__localOrient.c[0], X3D_GEOTRANSFORM(node)->__localOrient.c[1], X3D_GEOTRANSFORM(node)->__localOrient.c[2], X3D_GEOTRANSFORM(node)->__localOrient.c[3]); 
+			quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
+			memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
+			/* 7: TRANSLATION */ 
+			if (node->__do_trans) { 
+				add_translation(inxyz,node->translation.c[0],node->translation.c[1],node->translation.c[2],8); 
+			} 
+	 
+	 
+			/* work changes into extent */ 
+			/* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too, 
+				thus we do not bother to test against OLD max/min values */ 
+			*maxx = -FLT_MAX; *maxy = -FLT_MAX; *maxz = -FLT_MAX; 
+			*minx = FLT_MAX; *miny = FLT_MAX; *minz = FLT_MAX; 
+			for (i=0; i<8; i++) { 
+				if (inxyz[i].x > *maxx) *maxx = (float) inxyz[i].x; 
+				if (inxyz[i].y > *maxy) *maxy = (float) inxyz[i].y; 
+				if (inxyz[i].z > *maxz) *maxz = (float) inxyz[i].z; 
+				if (inxyz[i].x < *minx) *minx = (float) inxyz[i].x; 
+				if (inxyz[i].y < *miny) *miny = (float) inxyz[i].y; 
+				if (inxyz[i].z < *minz) *minz = (float) inxyz[i].z; 
+			} 
+		} 
+	} 
+}
+
+//extent6f {xmax,xmin,ymax,ymin,zmax,zmin}
+float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax){
+	float *e = extent6;
+	e[0]=xmax; e[1] = xmin; e[2]=ymax; e[3]=ymin;  e[4]=zmax; e[5]=zmin; 
+	return e;
+}
+float *extent6f_clear(float *extent6){
+	float *e = extent6;
+	e[0]=-10000.0; e[1]=10000.0; e[2]=-10000.0; e[3]=10000.0; e[4]=-10000.0; e[5]=10000.0;
+	return e;
+}
+int extent6f_isSet(float *extent6){
+	//extents are set with min > max, so a way to tell
+	// if they are set is to check if min <= max or max >= min
+	int iret;
+	float *e = extent6;
+	//is max >= min for any dimensions? if so, then is set.
+	//iret = (e[0] >= e[1] && e[2] >= e[3] && e[4] >= e[5]) ? TRUE : FALSE;
+	iret = (e[0] >= e[1] || e[2] >= e[3] || e[4] >= e[5]) ? TRUE : FALSE;
+	return iret;
+}
+float *extent6f_copy(float *eout6, float *ein6){
+	memcpy(eout6,ein6,6*sizeof(float));
+	return eout6;
+}
+void extent6f_to_vec3f(float *extent6, float *pmin, float *pmax){
+	int i;
+	for(i=0;i<3;i++){
+		pmin[i] = extent6[i*2 + 1];
+		pmax[i] = extent6[i*2 + 0];
+	}
+}
+void extent6f_from_vec3f2(float *extent6, float *pmin, float *pmax){
+	int i;
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = pmin[i];
+		extent6[i*2 + 0] = pmax[i];
+	}
+}
+void extent6f_to_box3f8(float *extent6, float *p3f8){
+	//generate 8 points from extent
+	int i,j,k,n;
+	n = 0;
+	for(k=0;k<2;k++)
+		for(j=0;j<2;j++)
+			for(i=0;i<2;i++){
+				p3f8[n*3 + 0] = extent6[i];
+				p3f8[n*3 + 1] = extent6[j];
+				p3f8[n*3 + 2] = extent6[k];
+				n++;
+			}
+}
+void extent6f_from_box3fn(float *extent6,float *p, int n){
+	int i,j;
+	for(i=0;i<3;i++)
+		extent6[i*2] = extent6[i*2 + 1] = p[i];
+	for(j=1;j<n;j++)
+		for(i=0;i<3;i++){
+			extent6[i*2 + 1] = min(extent6[i*2],p[j*3 +i]);
+			extent6[i*2 + 0] = max(extent6[i*2],p[j*3 +i]);
+		}
+}
+
+float *extent6f_union_extent6f(float *extent6, float *ein6){
+	int i,isa,isb;
+	isa = extent6f_isSet(extent6);
+	isb = extent6f_isSet(ein6);
+	if(isa && isb)
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = min(extent6[i*2 + 1], ein6[i*2 + 1]);
+		extent6[i*2 + 0] = max(extent6[i*2 + 0], ein6[i*2 + 0]);
+	}
+	else if(isb) extent6f_copy(extent6,ein6);
+	return extent6;
+}
+float *extent6f_union_vec3f(float *extent6, float *p3){
+	int i,isa,isb;
+	isa = extent6f_isSet(extent6);
+	if(!isa)
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = p3[i];
+		extent6[i*2 + 0] = p3[i];
+	}
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = min(extent6[i*2 + 1], p3[i]);
+		extent6[i*2 + 0] = max(extent6[i*2 + 0], p3[i]);
+	}
+	return extent6;
+}
+float *extent6f_scale3f(float *eout6, float *ein6, float *s3){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] *= s3[i];
+		eout6[i*2 + 1] *= s3[i];
+	}
+	return eout6;
+}
+float *extent6f_translate3f(float *eout6, float *ein6, float *p3){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] += p3[i];
+		eout6[i*2 + 1] += p3[i];
+	}
+	return eout6;
+}
+float *extent6f_translate3d(float *eout6, float *ein6, double *p3){
+	int i;
+	for(i=0;i<3;i++){
+		eout6[i*2 + 0] += p3[i];
+		eout6[i*2 + 1] += p3[i];
+	}
+	return eout6;
+}
+float *extent6f_get_center3f(float *extent6, float *center3){
+	int i;
+	for(i=0;i<3;i++){
+		center3[i] = .5f*(extent6[i*2 + 0] + extent6[i*2 + 1]);
+	}
+	return center3;
+}
+float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4){
+	int i;
+	float p3f[8][3];
+	double p3d[8][3];
+	Quaternion rq;
+
+	extent6f_to_box3f8(ein6,p3f[0]);
+	float2double(p3d[0],p3f[0],24);
+	vrmlrot_to_quaternion(&rq,vrot4[0],vrot4[1], vrot4[2], vrot4[3]); 
+	for(i=0;i<8;i++){
+		quaternion_rotationd(p3d[i],&rq,p3d[i]); 
+	}
+	double2float(p3f[0],p3d[0],24);
+	extent6f_from_box3fn(eout6,p3f[0],8);
+	return eout6;
+}
+float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4){
+	int i;
+	float p3f[8][3];
+	double p3d[8][3];
+	Quaternion rq;
+
+	extent6f_to_box3f8(ein6,p3f[0]);
+	float2double(p3d[0],p3f[0],24);
+	vrmlrot_to_quaternion(&rq,vrot4[0],vrot4[1], vrot4[2], vrot4[3]); 
+	for(i=0;i<8;i++){
+		quaternion_rotationd(p3d[i],&rq,p3d[i]); 
+	}
+	double2float(p3f[0],p3d[0],24);
+	extent6f_from_box3fn(eout6,p3f[0],8);
+	return eout6;
+}
+float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4){
+	int i;
+	float p3f[8][3];
+	double p3d[8][3];
+	Quaternion rq;
+
+	extent6f_to_box3f8(ein6,p3f[0]);
+	float2double(p3d[0],p3f[0],24);
+	for(i=0;i<8;i++){
+		transformAFFINEd(p3d[i],p3d[i],mat4); 
+	}
+	double2float(p3f[0],p3d[0],24);
+	extent6f_from_box3fn(eout6,p3f[0],8);
+	return eout6;
+	
+} 
+void extent6f_printf(float *extent6){
+	float *e = extent6;
+	printf("min,max x:%lf,%lf y:%f,%f z:%f,%f ",e[1],e[0],e[3],e[2],e[5],e[4]);
+}
+void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
+	int i,j;
+	struct X3D_Node *shapeParent;
+	struct X3D_Node *groupParent;
+	float *e = extent6;
+    
+	#ifdef FRUSTUMVERBOSE
+	extent6f_printf(e);
+	printf(" extent6f_setNodeExtentB me %p nt %s\n",me,stringNodeType(me->_nodeType));
+	#endif
+
+	/* record this for ME for sorting purposes for sorting children fields */
+	extent6f_copy(me->_extent,e);
+
+	if (me->_parentVector == NULL) {
+		#ifdef FRUSTUMVERBOSE
+		printf ("setExtent, parentVector NULL for node %p type %s\n",
+			me,stringNodeType(me->_nodeType));
+		#endif
+		return;
+	}
+
+	for (i=0; i<vectorSize(me->_parentVector); i++) {
+		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,i);
+		extent6f_copy(shapeParent->_extent,e);
+		for (j=0; j<vectorSize(shapeParent->_parentVector); j++) {
+			groupParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,j);
+			
+			//extent6f_printf(e); printf(" e\n");
+			//extent6f_printf(groupParent->_extent); printf(" gp before\n");
+			extent6f_union_extent6f(groupParent->_extent,e);
+			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
+		}
+	}
+}
+void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me){
+	int i,j;
+	struct X3D_Node *shapeParent;
+	struct X3D_Node *groupParent;
+	float *e = extent6;
+    
+	#ifdef FRUSTUMVERBOSE
+	extent6f_printf(e);
+	printf(" extent6f_setNodeExtentB me %p nt %s\n",me,stringNodeType(me->_nodeType));
+	#endif
+
+	/* record this for ME for sorting purposes for sorting children fields */
+
+	if (me->_parentVector == NULL) {
+		#ifdef FRUSTUMVERBOSE
+		printf ("setExtent, parentVector NULL for node %p type %s\n",
+			me,stringNodeType(me->_nodeType));
+		#endif
+		return;
+	}
+
+	for (i=0; i<vectorSize(me->_parentVector); i++) {
+		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,i);
+		extent6f_copy(shapeParent->_extent,e);
+		for (j=0; j<vectorSize(shapeParent->_parentVector); j++) {
+			groupParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,j);
+			
+			//extent6f_printf(e); printf(" e\n");
+			//extent6f_printf(groupParent->_extent); printf(" gp before\n");
+			extent6f_union_extent6f(groupParent->_extent,e);
+			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
+		}
+	}
+}
+void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
+	int i;
+	if (me->_nodeType == NODE_GeoElevationGrid) { 
+		if( extent6f_isSet(me->_extent)) {
+			float ef6[6];
+			struct X3D_GeoElevationGrid *node = (struct X3D_GeoElevationGrid *)me; 
+			extent6f_rotate4d(ef6, me->_extent, node->__localOrient.c);
+			extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
+			extent6f_setNodeExtentB(ef6,me);
+		} 
+	} 
+}
 
 
 
@@ -494,7 +841,7 @@ int is_GeoLODchild_inrange (struct X3D_GeoLOD* gpnode, struct X3D_Node *me) {
 /* this is used for collision in transformChildren - don't bother going through
    children of a transform if there is nothing close... */
 
-void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+void setExtent_OLD(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
 	int c,d;
 	struct X3D_Node *shapeParent;
 	struct X3D_Node *geomParent;
@@ -576,6 +923,36 @@ void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float
 	}
 }
 
+
+void setExtentA(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+	float e[6];
+	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
+	extent6f_setNodeExtentB(e,me);
+}
+
+void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
+	float e[6];
+	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
+	if(virtTable[me->_nodeType]->prepShape && geo_method()==3){
+		double mat[16];
+		//push idenity
+		FW_GL_PUSH_MATRIX();
+		FW_GL_LOAD_IDENTITY();
+		//call prepShape
+		virtTable[me->_nodeType]->prepShape(me);
+		//scrape mat
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mat);
+		//call finShape
+		virtTable[me->_nodeType]->finShape(me);
+		FW_GL_POP_MATRIX();
+		//transform extent with mat
+		extent6f_mattransform4d(e,e,mat);
+		extent6f_setParentExtentB(e,me);
+	}else{
+		extent6f_setNodeExtentB(e,me);
+	}
+}
+
 static void quaternion_multi_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct point_XYZ * v, int count){
 	int i;
 	for (i=0; i<count; i++) {
@@ -585,10 +962,6 @@ static void quaternion_multi_rotation(struct point_XYZ *ret, const Quaternion *q
 }
 
 
-#define BBV(num,XX,YY,ZZ) \
-			inxyz[num].x= (double) (me->EXTENT_##XX); \
-			inxyz[num].y= (double) (me->EXTENT_##YY); \
-			inxyz[num].z= (double) (me->EXTENT_##ZZ);
 
 static void add_translation (struct point_XYZ *arr,  float x, float y, float z, int count) {
 	int i;
@@ -658,11 +1031,13 @@ void propagateExtent(struct X3D_Node *me) {
 
 	/* is this a transform? Should we add in the translated position?? */
 	FRUSTUM_TRANS(Transform);
-	FRUSTUM_GEOTRANS;
+
+	//FRUSTUM_GEOTRANS;
+	FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
 	FRUSTUM_GEOLOCATION;
 	FRUSTUM_TRANS(HAnimSite);
 	FRUSTUM_TRANS(HAnimJoint);
-
+	FRUSTUM_GEOELEVATIONGRID(me);
 
 	for (i=0; i<vectorSize(me->_parentVector); i++) {
 		geomParent = vector_get(struct X3D_Node *, me->_parentVector, i);

@@ -112,6 +112,7 @@ void fv_usage()
 	    "  -L|--logfile <filename> Log file where all messages should go.\n"
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
+		"  -x|--boxes              Draw bounding boxes\n"
 #ifdef HAVE_LIBCURL
 	    "  -C|--curl               Use libcurl instead of wget.\n"
 #endif
@@ -178,6 +179,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"shadingStyle",required_argument,0,'^'},
 	{"DIS",no_argument,0,'D'},
 	{"javascript",required_argument,0,'J'},
+	{"boxes",no_argument,0,'x'},
 	{0, 0, 0, 0}
     };
 
@@ -216,7 +218,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 #if defined(DOSNAPSEQUENCE)
 	static const char optstring[] = "efg:hi:j:k:vVlpq:m:n:o:bsQW:K:Xcr:y:utCL:d:RFPN:";
 #else
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:DJ:"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:DJ:x"; //':' means the preceding option requires an arguement
 #endif
 
 
@@ -404,6 +406,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	case 'u': /* --shutter, no argument */
 	    fwl_init_Shutter();
 	    /*setXEventStereo();*/
+	    break;
+
+	case 'x': /* bounding boxes */
+	    fwl_setDrawBoundingBoxes(1);
 	    break;
 
 	case 't': /* --stereo, required argument: float */

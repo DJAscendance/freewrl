@@ -77,4 +77,5 @@ bindablestack* getActiveBindableStacks(ttglobal tg );
 int addBindableStack(ttglobal tg, bindablestack* bstack);
 int getBindableStacksCount(ttglobal tg);
 int layerFromBindable(struct X3D_Node*);
+void render_bound_background();
 #endif /* __FREEWRL_BINDABLE_H__ */

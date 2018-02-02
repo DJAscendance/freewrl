@@ -125,7 +125,7 @@ void
 quaternion_rotation(struct point_XYZ *ret,
 		 const Quaternion *quat,
 		 const struct point_XYZ *v);
-void
+double *
 quaternion_rotationd(double *ret, Quaternion *quat, double *v);
 
 void

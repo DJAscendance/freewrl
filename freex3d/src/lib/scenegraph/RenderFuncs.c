@@ -1640,6 +1640,8 @@ void pop_sensor(){
 }
 int getWindex();
 int render_foundLayerViewpoint();
+void extent6f_draw(float *extent);
+static int draw_extents = TRUE;
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
 
@@ -1666,7 +1668,6 @@ void render_node(struct X3D_Node *node) {
 #endif
 		return;
 	}
-
 	virt = virtTable[node->_nodeType];
 
 #ifdef RENDERVERBOSE 
@@ -1750,6 +1751,8 @@ void render_node(struct X3D_Node *node) {
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
+		if(p->renderstate.render_boxes) extent6f_draw(node->_extent);
+
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		push_ray(); //upd_ray(); 
@@ -2042,6 +2045,8 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	rs->render_collision = rwhat & VF_Collision;
 	rs->render_other = rwhat & VF_Other;
 	rs->render_cube = rwhat & VF_Cube;
+	rs->render_background = rwhat & VF_Background;
+	rs->render_boxes = (rwhat & VF_Geom) && fwl_getDrawBoundingBoxes();
 	//p->nextFreeLight = 0;
 	p->lastShader = -1; //in sendLights,and optimization
 	tg->RenderFuncs.hitPointDist = -1;

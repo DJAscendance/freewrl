@@ -39,6 +39,7 @@
 #include "../opengl/Textures.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "../scenegraph/Component_Shape.h"
+#include "../opengl/Frustum.h"
 
 #include "Polyrep.h"
 
@@ -463,7 +464,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	#endif
 
 
-
+	extent6f_clear(node->_extent);
 	for(i=0; i<r->ntri*3; i++) {
 		int nori = i;
 		int coli = i;
@@ -649,15 +650,17 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		printf ("sp %u, looking at pts %f %f %f for %d\n",p,newpoints[i].c[0],
 			newpoints[i].c[1], newpoints[i].c[2],i); 
 		*/
-
+		if(0){
 		if (newpoints[i].c[0] > node->EXTENT_MAX_X) node->EXTENT_MAX_X = newpoints[i].c[0];
 		if (newpoints[i].c[0] < node->EXTENT_MIN_X) node->EXTENT_MIN_X = newpoints[i].c[0];
 		if (newpoints[i].c[1] > node->EXTENT_MAX_Y) node->EXTENT_MAX_Y = newpoints[i].c[1];
 		if (newpoints[i].c[1] < node->EXTENT_MIN_Y) node->EXTENT_MIN_Y = newpoints[i].c[1];
 		if (newpoints[i].c[2] > node->EXTENT_MAX_Z) node->EXTENT_MAX_Z = newpoints[i].c[2];
 		if (newpoints[i].c[2] < node->EXTENT_MIN_Z) node->EXTENT_MIN_Z = newpoints[i].c[2];
+		}else{
+		extent6f_union_vec3f(node->_extent,newpoints[i].c);
+		}
 	}
-
 	/* free the old, and make the new current. Just in case threading on a multiprocessor
 	   machine comes walking through and expects to stream... */
 	FREE_IF_NZ(r->actualCoord);

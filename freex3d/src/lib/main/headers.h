@@ -36,8 +36,8 @@ const char* freewrl_get_browser_program();
 
 void Multi_String_print(struct Multi_String *url);
 
-/* see if an inputOnly "set_" field has changed */
-#define IO_FLOAT -2335549.0f
+///* see if an inputOnly "set_" field has changed */
+//#define IO_FLOAT -2335549.0f
 
 /* specification versions, for close adherence to requested spec levels */
 #define SPEC_VRML 0x01
@@ -127,7 +127,7 @@ extern char *BrowserFullPath;
 #define VF_HideRight                 0x4000 /*stereo don't draw on right side*/
 #define VF_USE						 0x8000 /*for 2-node scenarios like pickingsensor and transform sensor, signals a node_USE to save its modelview matrix for do_handling*/
 #define VF_Cube                      0x10000 //when generating generatedcubemap texture to fbo (don't render generatedcubemap parent nodes)
-
+#define VF_Background				0x20000
 /* for z depth buffer calculations */
 #define DEFAULT_NEARPLANE 0.07
 #define DEFAULT_FARPLANE 21000.0
@@ -305,32 +305,32 @@ struct X3D_Node* getTypeNode(struct X3D_Node *node);
 /* for deciding on using set_ SF fields, with nodes with explicit "set_" fields...  note that MF fields are handled by
 the EVIN_AND_FIELD_SAME MACRO */
 
-#define USE_SET_SFVEC3D_IF_CHANGED(setField,regField) \
-if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
-        !APPROX(node->setField.c[1],node->regField.c[1]) || \
-        !APPROX(node->setField.c[2],node->regField.c[2]) ) { \
-        /* now, is the setField at our default value??  if not, we just use the regField */ \
-        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT)) { \
-		/* printf ("just use regField\n"); */ \
-        } else { \
-		 /* printf ("use the setField as the real poistion field\n"); */ \
-        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFVec3d)); \
-	} \
-}
+//#define USE_SET_SFVEC3D_IF_CHANGED(setField,regField) \
+//if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
+//        !APPROX(node->setField.c[1],node->regField.c[1]) || \
+//        !APPROX(node->setField.c[2],node->regField.c[2]) ) { \
+//        /* now, is the setField at our default value??  if not, we just use the regField */ \
+//        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT)) { \
+//		/* printf ("just use regField\n"); */ \
+//        } else { \
+//		 /* printf ("use the setField as the real poistion field\n"); */ \
+//        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFVec3d)); \
+//	} \
+//}
 
-#define USE_SET_SFROTATION_IF_CHANGED(setField,regField) \
-if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
-        !APPROX(node->setField.c[1],node->regField.c[1]) || \
-        !APPROX(node->setField.c[2],node->regField.c[2]) || \
-        !APPROX(node->setField.c[3],node->regField.c[3]) ) { \
-        /* now, is the setField at our default value??  if not, we just use the regField */ \
-        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT) && APPROX(node->setField.c[3],IO_FLOAT)) { \
-		/* printf ("just use SFRotation regField\n"); */ \
-        } else { \
-		/* printf ("use the setField SFRotation as the real poistion field\n");  */ \
-        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFRotation)); \
-	} \
-}
+//#define USE_SET_SFROTATION_IF_CHANGED(setField,regField) \
+//if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
+//        !APPROX(node->setField.c[1],node->regField.c[1]) || \
+//        !APPROX(node->setField.c[2],node->regField.c[2]) || \
+//        !APPROX(node->setField.c[3],node->regField.c[3]) ) { \
+//        /* now, is the setField at our default value??  if not, we just use the regField */ \
+//        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT) && APPROX(node->setField.c[3],IO_FLOAT)) { \
+//		/* printf ("just use SFRotation regField\n"); */ \
+//        } else { \
+//		/* printf ("use the setField SFRotation as the real poistion field\n");  */ \
+//        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFRotation)); \
+//	} \
+//}
 
 
 
@@ -786,7 +786,8 @@ void freewrlDie(const char *format);
 
 //extern int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
 typedef struct trenderstate{
-int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision,render_cube;
+int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,
+verbose,render_blend,render_geom,render_collision,render_cube,render_background, render_boxes;
 }* ttrenderstate;
 //extern struct trenderstate renderstate;
 ttrenderstate renderstate();

@@ -37,6 +37,7 @@
 #include "main/MainLoop.h"
 #include "scenegraph/RenderFuncs.h"
 #include "statusbar.h"
+#include "../scenegraph/LinearAlgebra.h"
 
 
 /* I made a 32x32 image in Gimp, and exported to C Struct format */
@@ -616,4 +617,96 @@ void cursorDraw(int ID, int x, int y, float angle)
 
 	return;
 }
+void vecprinti3fb(char *name, int i, float *p, char *eol){
+printf("%s[%d] %f %f %f %s",name,i,p[0],p[1],p[2],eol);
+}
+int extent6f_isSet(float *extent6);
+static float testextent [] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
+void extent6f_draw(float *extent)
+{
+	//draw bouneding box / extent as lines
+	//hacked from cursorDrawB and Component_ParticalPhysics
+	int i,j,k,n;
+	GLint  positionLoc;
+	GLfloat p[24][3];
+	unsigned short lineindices[3];
+	struct cline *cur, *line;
+	s_shader_capabilities_t *scap;
+	ttglobal tg = gglobal();
+	if(!extent6f_isSet(extent)) return;
 
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	//glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, cursIdentity); 
+	//glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, cursIdentity);
+	//printf("extent %f %f %f %f %f %f\n",extent[0],extent[1],extent[2],extent[3],extent[4],extent[5]);
+	lineindices[0] = 0;
+	lineindices[1] = 1;
+	lineindices[2] = -1;
+	n = 0;
+	//extent = testextent;
+	//lines parallel to x
+	for(k=0;k<2;k++)
+		for(j=0;j<2;j++)
+			for(i=0;i<2;i++){
+				p[n][0] = extent[i];
+				p[n][1] = extent[j+2];
+				p[n][2] = extent[k+4];
+				//printf("ei ej+2 ek+4 = %f %f %f\n",extent[i],extent[j+2],extent[k+4]);
+				//vecprinti3fb("vec",n, p[n], "\n");
+				n++;
+			}
+	//lines parallel to y
+	for(k=0;k<2;k++)
+		for(j=0;j<2;j++)
+			for(i=0;i<2;i++){
+				p[n][0] = extent[j];
+				p[n][1] = extent[i+2];
+				p[n][2] = extent[k+4];
+				//vecprinti3fb("vec",n, p[n], "\n");
+				n++;
+			}
+	//lines parallel to z
+	for(k=0;k<2;k++)
+		for(j=0;j<2;j++)
+			for(i=0;i<2;i++){
+				p[n][0] = extent[k];
+				p[n][1] = extent[j+2];
+				p[n][2] = extent[i+4];
+				//vecprinti3fb("vec",n, p[n], "\n");
+				n++;
+			}
+
+	//FW_GL_VERTEX_POINTER(2, GL_FLOAT, 0, (GLfloat *)p);
+	//sendArraysToGPU(GL_LINE_STRIP, 0, 3);
+	positionLoc =  scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	if(1){
+		//fewer calls
+		sendArraysToGPU (GL_LINES, 0, n);
+		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,p[0]);
+		reallyDrawOnce();
+	}else{
+		//this also works
+		sendElementsToGPU(GL_LINES,2,(ushort *)lineindices);
+
+		for(i=0;i<n;i+=2){
+			//printf("line [%f %f %f] to [%f %f %f]\n",p[i][0],p[i][1],p[i][2],p[i+1][0],p[i+1][1],p[i+1][2]);
+			//glVertexAttribPointer (positionLoc, 2, GL_FLOAT, 
+			//					   GL_FALSE, 0, &p[i] );
+			//glDrawArrays(GL_LINE_STRIP,0,2);
+			FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,p[i]);
+
+			//}
+			//draw
+			reallyDrawOnce();
+		}
+	}
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+}

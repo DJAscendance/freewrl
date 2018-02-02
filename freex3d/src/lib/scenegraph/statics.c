@@ -110,14 +110,23 @@ ushort boxwireindices[] = {
 30,31,31,32,32,30,33,34,34,35,35,33,
 };
 
-#define PTF0 0.15f, 0.15f, -0.15f,
-#define PTF1 -0.15f, 0.15f, -0.15f,
-#define PTF2 -0.15f, -0.15f, -0.15f,
-#define PTF3 0.15f, -0.15f, -0.15f,
-#define PTR0 0.15f, 0.15f, 0.15f,
-#define PTR1 -0.15f, 0.15f, 0.15f,
-#define PTR2 -0.15f, -0.15f, 0.15f,
-#define PTR3 0.15f, -0.15f, 0.15f,
+//#define PTF0 0.15f, 0.15f, -0.15f,
+//#define PTF1 -0.15f, 0.15f, -0.15f,
+//#define PTF2 -0.15f, -0.15f, -0.15f,
+//#define PTF3 0.15f, -0.15f, -0.15f,
+//#define PTR0 0.15f, 0.15f, 0.15f,
+//#define PTR1 -0.15f, 0.15f, 0.15f,
+//#define PTR2 -0.15f, -0.15f, 0.15f,
+//#define PTR3 0.15f, -0.15f, 0.15f,
+
+#define PTF0  1.0f,  1.0f, -1.0f,
+#define PTF1 -1.0f,  1.0f, -1.0f,
+#define PTF2 -1.0f, -1.0f, -1.0f,
+#define PTF3  1.0f, -1.0f, -1.0f,
+#define PTR0  1.0f,  1.0f,  1.0f,
+#define PTR1 -1.0f,  1.0f,  1.0f,
+#define PTR2 -1.0f, -1.0f,  1.0f,
+#define PTR3  1.0f, -1.0f,  1.0f,
 
 GLfloat BackgroundVert[] = {
         PTF0 PTF1 PTF2  PTF0 PTF2 PTF3 /* front */

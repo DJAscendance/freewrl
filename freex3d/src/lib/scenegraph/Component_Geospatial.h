@@ -32,5 +32,5 @@ Proximity sensor macro.
 
 
 int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **points, int *npoints);
-
+int geo_method();
 #endif /* __FREEWRL_SCENEGRAPH_GEOSPATIAL_H__ */

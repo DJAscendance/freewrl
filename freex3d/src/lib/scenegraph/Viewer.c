@@ -821,6 +821,9 @@ void viewer_togl(double fieldofview)
 	   to prepare for a separate call to move the viewpoint - 
 	   (currently done in Mainloop.c setup_viewpoint())
 	Explanation of AntiPos, AntiQuat:
+		H: transform commutivity:
+			(translation + rotation) = (translation1 + rotation1) + (translation2 + rotation2)
+									= (translation1 + (anti-rotation1)translation2) + (rotation1+rotation2)
 		If there's a viewpoint vp, We want to 
 			a) navigate away from the initial bind_viewpoint transform + (.position,.orientation) pose
 			b) start navigation from where vp.position, vp.orientation tell us.
