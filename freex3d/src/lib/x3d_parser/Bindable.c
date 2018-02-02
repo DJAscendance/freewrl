@@ -1150,6 +1150,45 @@ void render_Background_OLD (struct X3D_Background *node) {
 //	}
 //}
 void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+void fw_depth_slice_push(double nearplane, double farplane){
+	//lets say you have a big scene -maybe a planet and a few moons to scale, 
+	//and avatar on the surface of a moon, planting a flag and looking up at the main planet
+	//And lets say your 24bit depth buffer seems a bit strained.
+	//one idea is to iterate from far to near, over depth slices.
+	//start with the farthest slices, slices can 'touch' but not overlap
+	//then you could have your usual .1 to 21000 for human-size things close by,
+	// and 21000 to infinity for distant mountains, planets etc.
+	// and backgrounds could be rendered in .1 to 10 range 
+	//  - enough to cover sphere radius 1 or box size 2 -
+	//  - with depth testing off, before anything else
+	// haven't tried it in render() but I think you would do this:
+	// render_background
+	// for(i=0;i<dept_slices;i++){
+	//   fw_depth_slice_push(nearp[i],farp[i]); 
+	//   glClear(GL_DEPTH)
+	//   render_hier() - theres a few of these
+	//   fw_depth_slice_pop();
+	// }
+	// would that work?
+	double save_nearPlane, save_farPlane;
+	X3D_Viewer *viewer = Viewer();
+
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_PUSH_MATRIX();
+
+	save_nearPlane = viewer->nearPlane;
+	save_farPlane = viewer->farPlane;
+	viewer->nearPlane =  nearplane;
+	viewer->farPlane = farplane;
+	setup_projection(); //will put back in modelview mode
+	viewer->nearPlane = save_nearPlane;
+	viewer->farPlane = save_farPlane;
+}
+void fw_depth_slice_pop(){
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_POP_MATRIX();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+}
 
 void render_prepped_Background(struct X3D_Background *node){
 	double bgscale;
@@ -1193,26 +1232,65 @@ void render_prepped_Background(struct X3D_Background *node){
 			- still problem with geo-horizon leveling of background (for near-ground)
 	*/
 	didPerspective = FALSE;
-	if(1){
+	
+	if(0){
 		//we need to scale because somewhere else we set up a perspective transformation that 
 		//may have a big number for a nearPlane (ie with geo scenes stretching depth range)
 		//and the perspective transforms our z's into gl's 0 to 1 range for depth
 		//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
 		bgscale = 1.0;
 		//if( viewer->nearPlane >= bgscale*.5) 
-		bgscale = viewer->nearPlane + (viewer->farPlane - viewer->nearPlane)*.2;
+		bgscale = viewer->nearPlane + (viewer->farPlane - viewer->nearPlane)*.3;
 		//printf("near %lf far %lf bgscale %lf\n",viewer->nearPlane,viewer->farPlane,bgscale);
 		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
 	}else{
 		//alternately we can replace the perspective transform, or scale the depth range
-		// x didn't work like I thought - no difference to background problems
-		// x we get mars background blackout, and world33walk funny background
 		GLclampd znear, zfar;
-		//glDepthRange(znear,zfar);
-		FW_GL_MATRIX_MODE(GL_PROJECTION);
-		FW_GL_PUSH_MATRIX();
-		//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-		fw_gluPerspective_2(0.0,90.0, 1.0, .1,10000.0);
+		if(0){
+			//float params[6];
+			//glGetFloatv(GL_DEPTH_RANGE,params);
+			//printf("glDepthRange before hacking = ");
+			//for(int i=0;i<2;i++) printf("%f ",params[i]);
+			//printf("\n");
+			//glDepthRange(.1,1.0);
+			//glGetFloatv(GL_DEPTH_RANGE,params);
+			//printf("glDepthRange after hacking = ");
+			//for(int i=0;i<2;i++) printf("%f ",params[i]);
+			//printf("\n");
+
+		}else{
+			if(0){
+				//scale bg (don't need if your new z range perspective covers sphere radius 1 and box size 2
+				bgscale = 10000.0;
+				FW_GL_MATRIX_MODE(GL_MODELVIEW);
+				FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+			}
+			if(0){
+				FW_GL_MATRIX_MODE(GL_PROJECTION);
+				FW_GL_PUSH_MATRIX();
+				FW_GL_LOAD_IDENTITY();
+
+				//fw_gluPerspective(90.0, 1.0, .1,10000.0);
+				fw_gluPerspective_2(0.0,45.0, 1.3769063181, .1,100.0);
+				FW_GL_MATRIX_MODE(GL_MODELVIEW);
+			}else if(0){
+				FW_GL_MATRIX_MODE(GL_PROJECTION);
+				FW_GL_PUSH_MATRIX();
+				double nearPlane,farPlane;
+				nearPlane = viewer->nearPlane;
+				farPlane = viewer->farPlane;
+				viewer->nearPlane = .1;
+				viewer->farPlane = 100.0;
+				setup_projection();
+				viewer->nearPlane = nearPlane;
+				viewer->farPlane = farPlane;
+			}else{
+				fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
+			}
+
+
+			//glClear(GL_DEPTH);
+		}
 		didPerspective = TRUE;
 
 	}
@@ -1257,8 +1335,17 @@ void render_prepped_Background(struct X3D_Background *node){
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	if(didPerspective){
-		FW_GL_POP_MATRIX();
-		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		if(0){
+			//glDepthRange(viewer->nearPlane, viewer->farPlane);
+		}else{
+			if(0){
+				FW_GL_MATRIX_MODE(GL_PROJECTION);
+				FW_GL_POP_MATRIX();
+				FW_GL_MATRIX_MODE(GL_MODELVIEW);
+			}else{
+				fw_depth_slice_pop();
+			}
+		}
 	}
 		
 	FW_GL_POP_MATRIX();

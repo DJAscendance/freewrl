@@ -74,7 +74,7 @@ int geo_method(){
 	//2= Feb 1, 2018, scene root in LC of First come first served (FCFS) geoOrigin 
 	//   - first node compiled - its .position (or equivalent) serves as origin for all geoNodes
 	//3= Feb 1 2018, scene root in LC via dynamic origin
-	return 2; //1 or 2
+	return 2; //1 or 2 or 3
 }
 
 /*
@@ -281,7 +281,7 @@ int isNodeGeospatial(struct X3D_Node* node){
 //#define SMALLWORLDTESTING 1
 #ifdef SMALLWORLDTESTING
 #define GEOSP_WE_A	(double)637813.7
-#define GEOSP_WE_F	(double)298.257223563
+#define GEOSP_WE_F	(double)29.8257223563
 #else
 #define GEOSP_WE_A	(double)6378137
 #define GEOSP_WE_F	(double)298.257223563
@@ -2134,7 +2134,7 @@ void prepShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 		pushOrigin(&node->__autoOffset,&node->__localOrient);
 	}
 	if(fwl_getDrawBoundingBoxes()) extent6f_draw(node->_extent);
-	{
+	if(0){
 		static int count = 0;
 		if(count > 1000 && count < 1020) { extent6f_printf(node->_extent); printf("GEG prepshape\n");}
 		count++;
@@ -3187,7 +3187,7 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
 	// debate: should the v3.3 self-origin be A. translated and rotated
 	// or should it be B. captured as the translation and rotation for other things
-	if(0){
+	if(X3D_GEOORIGIN(node->geoOrigin)){
 		//old way
 		MF_SF_TEMPS
 		INIT_MF_FROM_SF(node, position)
@@ -3324,7 +3324,8 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		getCurrentPosInModel(FALSE); 
 
 
-		/* now, lets work on the GeoViewpoint fieldOfView */
+		/* now, lets work on the GeoViewpoint fieldOfView. Q why? */
+		if(0){
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		if(viewPort[2] > viewPort[3]) {
 			a1=0;
@@ -3333,6 +3334,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			a1 = node->fieldOfView;
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
 			Viewer()->fieldofview = a1/3.1415926536*180;
+		}
 		}
 		if(geo_method()==1)
 			calculateViewingSpeed();
