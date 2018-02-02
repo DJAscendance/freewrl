@@ -3346,7 +3346,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
-	if(0){
+	if(1){
 		//code changed March 2015 - started to get zbuffer problems with geoscenes
 		//viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
 		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo

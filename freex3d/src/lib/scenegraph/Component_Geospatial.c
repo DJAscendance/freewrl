@@ -74,7 +74,7 @@ int geo_method(){
 	//2= Feb 1, 2018, scene root in LC of First come first served (FCFS) geoOrigin 
 	//   - first node compiled - its .position (or equivalent) serves as origin for all geoNodes
 	//3= Feb 1 2018, scene root in LC via dynamic origin
-	return 2; //1 or 2 or 3
+	return 1; //1 or 2 or 3
 }
 
 /*
