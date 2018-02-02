@@ -3145,8 +3145,68 @@ void drawBBOX(struct X3D_Node *node) {
 
 }
 #endif //DEBUGGING_CODE
+struct depth_slice {
+	double znear, zfar;
+};
+static struct depth_slice depth_slices_three [] = { 
+{1.e-1, 1.01e3},
+{1.e3, 1.01e7 },
+{1.e7, 1.01e11},
+};
+static struct depth_slice depth_slices_two [] = { 
+{1.e-1, 1.e4},
+{1.e4, 1.0e9 },
+};
+static struct depth_slice depth_slices_one [] = {
+{.07, 21000.0},
+};
+static int n_depth_slices = 1;
+static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
+	//this is great for working on geospatial - you can just do 3 depth slices and 
+	// get a great range from .1 to 1B m. Slows frame rate (half)
+	//But simple nearPlane/farPlane calculations!, and keeps them stable, no flutter 
+	// due to nearplane-changing side-effects. And reduces z-fighting.
+	//int n_depth_slices = 1;
+	float extent6[6];
+	double MM[16];
+	struct X3D_Node* rn = rootNode();
+	ttglobal tg = gglobal();
+	X3D_Viewer *viewer = ViewerByLayerId(layerid);
+	viewer->nearPlane = DEFAULT_NEARPLANE;
+	viewer->farPlane = DEFAULT_FARPLANE;
 
-static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
+	n_depth_slices = 1;
+	if (vpnode->_nodeType == NODE_GeoViewpoint) {
+		n_depth_slices = 3;
+	}
+	//printf("nd %d ",n_depth_slices);
+	//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+	//if(!rn) return;
+	//extent6f_mattransform4d(extent6,rn->_extent,MM); //transform from root node model space to viewpoint space
+
+}
+int get_n_depth_slices(){
+	return n_depth_slices;
+}
+void get_depth_slice(int islice, double *znear, double *zfar){
+	
+	switch(n_depth_slices){
+		default:
+		case 1: 
+			*znear = depth_slices_one[islice].znear;
+			*zfar = depth_slices_one[islice].zfar;
+			break;
+		case 2:
+			*znear = depth_slices_two[2-islice].znear;
+			*zfar = depth_slices_two[2-islice].zfar;
+			break;
+		case 3:
+			*znear = depth_slices_three[3-islice].znear;
+			*zfar = depth_slices_three[3-islice].zfar;
+			break;
+	}
+}
+static void calculateNearFarplanes_A(struct X3D_Node *vpnode, int layerid ) {
 /*
 	in theory, you get the bounding box of your scene, and transform that into camera space of bound viewpoint
 	(that's in the camera coordinate system, before projection, with z coming toward the camera, at world scale)
@@ -3359,7 +3419,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 		}
 	} 
-	if(1) { 
+	if(0) { 
 		//2018 render_background reworked to render before other nodes, and render close to frontplane, with depth off
 		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
 		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
