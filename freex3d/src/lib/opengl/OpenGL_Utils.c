@@ -3160,30 +3160,51 @@ static struct depth_slice depth_slices_two [] = {
 static struct depth_slice depth_slices_one [] = {
 {.07, 21000.0},
 };
-static int n_depth_slices = 1;
+static int n_depth_slices = 1; //should be in gglobal
 static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
-	//this is great for working on geospatial - you can just do 3 depth slices and 
-	// get a great range from .1 to 1B m. Slows frame rate (half)
-	//But simple nearPlane/farPlane calculations!, and keeps them stable, no flutter 
-	// due to nearplane-changing side-effects. And reduces z-fighting.
-	//int n_depth_slices = 1;
+	// This is great for working on geospatial - you can just do 2 or 3 depth slices and 
+	//   get a great range from .1 to 1B m. Slows frame rate 30%? -like stereo does, an extra loop or 2 on the draw, 
+	// And simple nearPlane/farPlane calculations!, and keeps them stable, no flutter 
+	//    due to nearplane-changing side-effects. And extra depth reduces z-fighting.
+	//- could/should be a function of depthbits ie 24 vs 32?
+	//- could/should be a user option [x] ?
+	// -could/should be a scene file option?
+	//- still assumes .1 to 1B range, which might not be valid with nano or other scales and units
+	//- 2slice: .1 - 1B - Mars can disappear while still multiple (~5) pixels wide (but not bad, speeding frame rate over 3 slice)
+	//- 3slice: .1 - 100B - Mars still visible as sub-pixel on horizon
+	//- non-geo - might have big scenes that could benefit from multi-slice
+	//   x but currently triggering just when bound vp is a geovp
+	//   - still need extent range check for that, but might be more stable 
+	//		- ie size of rootnode extent x 5 (for VIEWALL nav function), not dependent on vp placement
+	//   - still need extent range check if we want to cut extra loop for geo when not needed
+	// haven't tried other ideas, such as rendering to a float32 fbo, with reversed z:
+	//   https://developer.nvidia.com/content/depth-precision-visualized
+	//   due to it being less portable
 	float extent6[6];
-	double MM[16];
-	struct X3D_Node* rn = rootNode();
-	ttglobal tg = gglobal();
+	int previous_n;
+	static int once = 0;
 	X3D_Viewer *viewer = ViewerByLayerId(layerid);
 	viewer->nearPlane = DEFAULT_NEARPLANE;
 	viewer->farPlane = DEFAULT_FARPLANE;
 
+	previous_n = n_depth_slices;
 	n_depth_slices = 1;
 	if (vpnode->_nodeType == NODE_GeoViewpoint) {
-		n_depth_slices = 3;
+		n_depth_slices = 2;
+	}else{
+		//regular non-geo scene, or geo scene with non-geo vp
+		struct X3D_Node* rn = rootNode();
+		if(rn) {
+			//5x for backing up to see the whole scene / VIEWALL
+			//2x for radius -> diameter
+			float scene_diameter = extent6f_get_maxradius(rn->_extent) * 5.0 * 2.0; 
+			if(scene_diameter > 21000.0f ) n_depth_slices = 2;
+			if(scene_diameter > 1.e9 ) n_depth_slices = 3;
+		}
 	}
-	//printf("nd %d ",n_depth_slices);
-	//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
-	//if(!rn) return;
-	//extent6f_mattransform4d(extent6,rn->_extent,MM); //transform from root node model space to viewpoint space
-
+	if(!once || previous_n != n_depth_slices)
+		ConsoleMessage("depth slices: %d \n",n_depth_slices);
+	once = 1;
 }
 int get_n_depth_slices(){
 	return n_depth_slices;

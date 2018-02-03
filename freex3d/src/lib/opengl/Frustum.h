@@ -137,6 +137,8 @@ float *extent6f_scale3f(float *eout6, float *ein6, float *s3);
 float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
 float *extent6f_translate3d(float *eout6, float *ein6, double *p3);
 float *extent6f_get_center3f(float *extent6, float *center3);
+float extent6f_get_maxsize(float *extent6);
+float extent6f_get_maxradius(float *extent6);
 float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4);
 float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4);
 float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4);
