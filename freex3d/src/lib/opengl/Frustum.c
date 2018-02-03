@@ -632,6 +632,28 @@ float *extent6f_get_center3f(float *extent6, float *center3){
 	}
 	return center3;
 }
+float extent6f_get_maxsize(float *extent6){
+	float msize;
+	int i;
+	msize = 0.0f;
+	for(i=0;i<3;i++){
+		msize = max(msize,extent6[i*2 + 0] - extent6[i*2 + 1]);
+	}
+	return msize;
+}
+float extent6f_get_maxradius(float *extent6){
+	
+	float radius, p3f8[8][3], pc[3], pd[3];
+	int i;
+	radius = 0.0f;
+	extent6f_get_center3f(extent6,pc);
+	extent6f_to_box3f8(extent6, p3f8[0]);
+	for(i=0;i<8;i++){
+		vecdif3f(pd,p3f8[i],pc);
+		radius = max(radius, veclength3f(pd));
+	}
+	return radius;
+}
 float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4){
 	int i;
 	float p3f[8][3];
@@ -648,6 +670,7 @@ float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4){
 	extent6f_from_box3fn(eout6,p3f[0],8);
 	return eout6;
 }
+
 float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4){
 	int i;
 	float p3f[8][3];

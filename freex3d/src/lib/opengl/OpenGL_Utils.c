@@ -3145,8 +3145,101 @@ void drawBBOX(struct X3D_Node *node) {
 
 }
 #endif //DEBUGGING_CODE
+struct depth_slice {
+	double znear, zfar;
+};
+static struct depth_slice depth_slices_three [] = { 
+{1.e-1, 1.01e3},
+{1.e3, 1.01e7 },
+{1.e7, 1.01e11},
+};
+static struct depth_slice depth_slices_two [] = { 
+{1.e-1, 1.e4},
+{1.e4, 1.0e9 },
+};
+static struct depth_slice depth_slices_one [] = {
+{.07, 21000.0},
+};
+static int n_depth_slices = 1; //should be in gglobal
+static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
+	// This Feb 3, 2018 method depth slicing method is great for working on geospatial 
+	// - you can just do 2 or 3 depth slices and benefits:
+	// * get a great range from .1 to 1B m or 100B m. 
+	// * keep depth range stable (no flutter due to nearplane-changing side-effects when yawing toward planet)
+	// * reduces z-fighting (same bits, but over shorter ranges)
+	// * portable - uses normal opengl 2.1, fancy stuff is our code
+	// * works the same on non-geo and geo scenes / viewpionts
+	// x Slows frame rate 30%? -like stereo does, an extra loop or 2 on the draw, 
+	//- 1slice .07 - 21000 - our familiar old range, one loop, no performance hit
+	//- 2slice: .1 - 1B - Mars can disappear while still multiple (~5) pixels wide
+	//- 3slice: .1 - 100B - Mars still visible as sub-pixel on horizon
+	// haven't tried other ideas, such as rendering to a float32 fbo, with reversed z:
+	//   https://developer.nvidia.com/content/depth-precision-visualized
+	//   due to it being less portable
+	float extent6[6];
+	int previous_n;
+	struct X3D_Node* rn;
+	static int once = 0;
+	X3D_Viewer *viewer = ViewerByLayerId(layerid);
+	viewer->nearPlane = DEFAULT_NEARPLANE;
+	viewer->farPlane = DEFAULT_FARPLANE;
 
-static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
+	previous_n = n_depth_slices;
+	n_depth_slices = 1;
+	//regular non-geo scene, or geo scene with non-geo vp
+	rn = rootNode();
+	if(rn) {
+		//include vp current location in scene diameter
+		// for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
+		// slices change from 2 to 3 so it goes to a point on the horizon
+		float scene_diameter;
+		double MM[16];
+		float vpf[3];
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+		//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+		//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+		//compute scene diameter in vp space
+		// seems to work with 
+		// a) regular scene (townsite 1,2,3 as move away, and back)
+		// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+		// and no flutter when yawing viewpoint toward/away from planet
+		// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+		extent6f_copy(extent6,rn->_extent);
+		extent6f_mattransform4d(extent6,extent6,MM);
+		//include currently bound viewpoint in scene_diameter
+		vecset3f(vpf,0.0f,0.0f,0.0f); 
+		extent6f_union_vec3f(extent6,vpf);
+		scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+
+		if(scene_diameter > 21000.0f ) n_depth_slices = 2;
+		if(scene_diameter > 1.e9 ) n_depth_slices = 3;
+	}
+	if(!once || previous_n != n_depth_slices)
+		ConsoleMessage("depth slices: %d \n",n_depth_slices);
+	once = 1;
+}
+int get_n_depth_slices(){
+	return n_depth_slices;
+}
+void get_depth_slice(int islice, double *znear, double *zfar){
+	
+	switch(n_depth_slices){
+		default:
+		case 1: 
+			*znear = depth_slices_one[islice].znear;
+			*zfar = depth_slices_one[islice].zfar;
+			break;
+		case 2:
+			*znear = depth_slices_two[2-islice].znear;
+			*zfar = depth_slices_two[2-islice].zfar;
+			break;
+		case 3:
+			*znear = depth_slices_three[3-islice].znear;
+			*zfar = depth_slices_three[3-islice].zfar;
+			break;
+	}
+}
+static void calculateNearFarplanes_OLD(struct X3D_Node *vpnode, int layerid ) {
 /*
 	in theory, you get the bounding box of your scene, and transform that into camera space of bound viewpoint
 	(that's in the camera coordinate system, before projection, with z coming toward the camera, at world scale)
@@ -3359,7 +3452,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
 		}
 	} 
-	if(1) { 
+	if(0) { 
 		//2018 render_background reworked to render before other nodes, and render close to frontplane, with depth off
 		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
 		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);

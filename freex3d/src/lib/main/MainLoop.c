@@ -5564,10 +5564,15 @@ void setup_pickray(int x, int y){
 }
 void generate_GeneratedCubeMapTextures();
 /* Render the scene */
+int get_n_depth_slices();
+void get_depth_slice(int islice, double *znear, double *zfar);
+void fw_depth_slice_push(double nearplane, double farplane);
+void fw_depth_slice_pop();
 static void render()
 {
 	//warning you must also maintain generate_GeneratedCubeMapTextures() which is a hacked clone of this function
-	int count;
+	int count, nslice, islice;
+	double znear,zfar;
 	static double shuttertime;
 	static int shutterside;
 	X3D_Viewer *viewer;
@@ -5625,33 +5630,40 @@ static void render()
 
 		render_bound_background();
 
-		/*  turn light #0 off only if it is not a headlight.*/
-		if (!fwl_get_headlight()) {
-			setLightState(HEADLIGHT_LIGHT,FALSE);
-			setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
-		}
+		nslice = get_n_depth_slices();
 
-		/*  Other lights*/
-		PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
+		for(islice=0;islice<nslice;islice++){
+			get_depth_slice(islice,&znear,&zfar);
+			fw_depth_slice_push(znear,zfar);
+			glClear(GL_DEPTH);
+			/*  turn light #0 off only if it is not a headlight.*/
+			if (!fwl_get_headlight()) {
+				setLightState(HEADLIGHT_LIGHT,FALSE);
+				setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
+			}
 
-		render_hier(rootNode(), VF_globalLight );
-		PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
-		render_hier(rootNode(), VF_Other );
+			/*  Other lights*/
+			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
+
+			render_hier(rootNode(), VF_globalLight );
+			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
+			render_hier(rootNode(), VF_Other );
 
 
-		/*  4. Nodes (not the blended ones)*/
-		profile_start("hier_geom");
-		render_hier(rootNode(), VF_Geom);
-		profile_end("hier_geom");
-		PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-
-		/*  5. Blended Nodes*/
-		if (tg->RenderFuncs.have_transparency) {
-			/*  render the blended nodes*/
-			render_hier(rootNode(), VF_Geom | VF_Blend);
+			/*  4. Nodes (not the blended ones)*/
+			profile_start("hier_geom");
+			render_hier(rootNode(), VF_Geom);
+			profile_end("hier_geom");
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-		}
 
+			/*  5. Blended Nodes*/
+			if (tg->RenderFuncs.have_transparency) {
+				/*  render the blended nodes*/
+				render_hier(rootNode(), VF_Geom | VF_Blend);
+				PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
+			}
+			fw_depth_slice_pop();
+		}
 		if (viewer->isStereo) {
 #ifndef DISABLER
 			if (viewer->sidebyside){
