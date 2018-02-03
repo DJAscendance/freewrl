@@ -3162,30 +3162,23 @@ static struct depth_slice depth_slices_one [] = {
 };
 static int n_depth_slices = 1; //should be in gglobal
 static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
-	// This is great for working on geospatial - you can just do 2 or 3 depth slices and 
-	//   get a great range from .1 to 1B m. Slows frame rate 30%? -like stereo does, an extra loop or 2 on the draw, 
-	// And simple nearPlane/farPlane calculations!, and keeps them stable, no flutter 
-	//    due to nearplane-changing side-effects. And extra depth reduces z-fighting.
-	//- could/should be a function of depthbits ie 24 vs 32?
-	//- could/should be a user option [x] ?
-	// -could/should be a scene file option?
-	//- still assumes .1 to 1B range, which might not be valid with nano or other scales and units
-	//- 2slice: .1 - 1B - Mars can disappear while still multiple (~5) pixels wide (but not bad, speeding frame rate over 3 slice)
+	// This Feb 3, 2018 method depth slicing method is great for working on geospatial 
+	// - you can just do 2 or 3 depth slices and benefits:
+	// * get a great range from .1 to 1B m or 100B m. 
+	// * keep depth range stable (no flutter due to nearplane-changing side-effects when yawing toward planet)
+	// * reduces z-fighting (same bits, but over shorter ranges)
+	// * portable - uses normal opengl 2.1, fancy stuff is our code
+	// * works the same on non-geo and geo scenes / viewpionts
+	// x Slows frame rate 30%? -like stereo does, an extra loop or 2 on the draw, 
+	//- 1slice .07 - 21000 - our familiar old range, one loop, no performance hit
+	//- 2slice: .1 - 1B - Mars can disappear while still multiple (~5) pixels wide
 	//- 3slice: .1 - 100B - Mars still visible as sub-pixel on horizon
-	//- non-geo - might have big scenes that could benefit from multi-slice
-	//   x but currently triggering just when bound vp is a geovp - FIXED
-	//   - still need extent range check for that, but might be more stable 
-	//		- ie size of rootnode extent x 5 (for VIEWALL nav function), not dependent on vp placement
-	//   - still need extent range check if we want to cut extra loop for geo when not needed
 	// haven't tried other ideas, such as rendering to a float32 fbo, with reversed z:
 	//   https://developer.nvidia.com/content/depth-precision-visualized
 	//   due to it being less portable
-	// a problem with the old way: if you were on the surface of a planet looking up, your near/far would be normal.
-	//   - then as you yaw/tilt toward the planet, suddenly the near/far planes would change dramatically giving flutter.
-	//   one idea is to still include the VP distance from scene center in calcs
-	//   - but ignor the direction of view in order to stabilize near/far to avoid flutter
 	float extent6[6];
 	int previous_n;
+	struct X3D_Node* rn;
 	static int once = 0;
 	X3D_Viewer *viewer = ViewerByLayerId(layerid);
 	viewer->nearPlane = DEFAULT_NEARPLANE;
@@ -3193,57 +3186,33 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 
 	previous_n = n_depth_slices;
 	n_depth_slices = 1;
-	//if (FALSE && vpnode->_nodeType == NODE_GeoViewpoint) {
-	//	n_depth_slices = 2;
-	//}else
-	{
-		//regular non-geo scene, or geo scene with non-geo vp
-		struct X3D_Node* rn = rootNode();
-		if(rn) {
-			float scene_diameter;
-			//if(0){
-			//	//leave vp out of scene diameter, and multiply by 5
-			//	//5x for backing up to see the whole scene / VIEWALL
-			//	//2x for radius -> diameter
-			//	scene_diameter = extent6f_get_maxradius(rn->_extent) * 5.0 * 2.0; 
-			//}else{
-				//include vp current location in scene diameter
-				// so for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
-				// slices change from 2 to 3 so it goes to a point on the horizon
-				double MM[16], MMI[16], vp[3];
-				float vpf[3];
-				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
-				//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
-				//H: vp space - its opengl and opengl doesn't know about 'scene root space'
-				//if(0){
-				//	//compute scene diameter in root space, assumse no scales over vp
-				//	matinverseAFFINE(MMI,MM);
-				//	vecsetd(vp,0.0,0.0,0.0); // vp location in vp space
-				//	transformAFFINEd(vp,vp,MMI); // vp location in root space
-				//	double2float(vpf,vp,3);
-				//	extent6f_copy(extent6,rn->_extent);
-				//	extent6f_union_vec3f(extent6,vpf);
-				//	scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
-				//}else
-				{
-					//compute scene diameter in vp space
-					// seems to work with 
-					// a) regular scene (townsite 1,2,3 as move away, and back)
-					// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
-					// and no flutter when yawing viewpoint toward/away from planet
-					// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
-					float vpf[3];
-					extent6f_copy(extent6,rn->_extent);
-					extent6f_mattransform4d(extent6,extent6,MM);
-					vecset3f(vpf,0.0f,0.0f,0.0f);
-					extent6f_union_vec3f(extent6,vpf);
-					scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
-				}
+	//regular non-geo scene, or geo scene with non-geo vp
+	rn = rootNode();
+	if(rn) {
+		//include vp current location in scene diameter
+		// for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
+		// slices change from 2 to 3 so it goes to a point on the horizon
+		float scene_diameter;
+		double MM[16];
+		float vpf[3];
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+		//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+		//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+		//compute scene diameter in vp space
+		// seems to work with 
+		// a) regular scene (townsite 1,2,3 as move away, and back)
+		// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+		// and no flutter when yawing viewpoint toward/away from planet
+		// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+		extent6f_copy(extent6,rn->_extent);
+		extent6f_mattransform4d(extent6,extent6,MM);
+		//include currently bound viewpoint in scene_diameter
+		vecset3f(vpf,0.0f,0.0f,0.0f); 
+		extent6f_union_vec3f(extent6,vpf);
+		scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
 
-			//}
-			if(scene_diameter > 21000.0f ) n_depth_slices = 2;
-			if(scene_diameter > 1.e9 ) n_depth_slices = 3;
-		}
+		if(scene_diameter > 21000.0f ) n_depth_slices = 2;
+		if(scene_diameter > 1.e9 ) n_depth_slices = 3;
 	}
 	if(!once || previous_n != n_depth_slices)
 		ConsoleMessage("depth slices: %d \n",n_depth_slices);
