@@ -3173,13 +3173,17 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 	//- 2slice: .1 - 1B - Mars can disappear while still multiple (~5) pixels wide (but not bad, speeding frame rate over 3 slice)
 	//- 3slice: .1 - 100B - Mars still visible as sub-pixel on horizon
 	//- non-geo - might have big scenes that could benefit from multi-slice
-	//   x but currently triggering just when bound vp is a geovp
+	//   x but currently triggering just when bound vp is a geovp - FIXED
 	//   - still need extent range check for that, but might be more stable 
 	//		- ie size of rootnode extent x 5 (for VIEWALL nav function), not dependent on vp placement
 	//   - still need extent range check if we want to cut extra loop for geo when not needed
 	// haven't tried other ideas, such as rendering to a float32 fbo, with reversed z:
 	//   https://developer.nvidia.com/content/depth-precision-visualized
 	//   due to it being less portable
+	// a problem with the old way: if you were on the surface of a planet looking up, your near/far would be normal.
+	//   - then as you yaw/tilt toward the planet, suddenly the near/far planes would change dramatically giving flutter.
+	//   one idea is to still include the VP distance from scene center in calcs
+	//   - but ignor the direction of view in order to stabilize near/far to avoid flutter
 	float extent6[6];
 	int previous_n;
 	static int once = 0;
@@ -3189,15 +3193,54 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 
 	previous_n = n_depth_slices;
 	n_depth_slices = 1;
-	if (vpnode->_nodeType == NODE_GeoViewpoint) {
-		n_depth_slices = 2;
-	}else{
+	//if (FALSE && vpnode->_nodeType == NODE_GeoViewpoint) {
+	//	n_depth_slices = 2;
+	//}else
+	{
 		//regular non-geo scene, or geo scene with non-geo vp
 		struct X3D_Node* rn = rootNode();
 		if(rn) {
-			//5x for backing up to see the whole scene / VIEWALL
-			//2x for radius -> diameter
-			float scene_diameter = extent6f_get_maxradius(rn->_extent) * 5.0 * 2.0; 
+			float scene_diameter;
+			//if(0){
+			//	//leave vp out of scene diameter, and multiply by 5
+			//	//5x for backing up to see the whole scene / VIEWALL
+			//	//2x for radius -> diameter
+			//	scene_diameter = extent6f_get_maxradius(rn->_extent) * 5.0 * 2.0; 
+			//}else{
+				//include vp current location in scene diameter
+				// so for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
+				// slices change from 2 to 3 so it goes to a point on the horizon
+				double MM[16], MMI[16], vp[3];
+				float vpf[3];
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+				//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+				//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+				//if(0){
+				//	//compute scene diameter in root space, assumse no scales over vp
+				//	matinverseAFFINE(MMI,MM);
+				//	vecsetd(vp,0.0,0.0,0.0); // vp location in vp space
+				//	transformAFFINEd(vp,vp,MMI); // vp location in root space
+				//	double2float(vpf,vp,3);
+				//	extent6f_copy(extent6,rn->_extent);
+				//	extent6f_union_vec3f(extent6,vpf);
+				//	scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+				//}else
+				{
+					//compute scene diameter in vp space
+					// seems to work with 
+					// a) regular scene (townsite 1,2,3 as move away, and back)
+					// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+					// and no flutter when yawing viewpoint toward/away from planet
+					// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+					float vpf[3];
+					extent6f_copy(extent6,rn->_extent);
+					extent6f_mattransform4d(extent6,extent6,MM);
+					vecset3f(vpf,0.0f,0.0f,0.0f);
+					extent6f_union_vec3f(extent6,vpf);
+					scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+				}
+
+			//}
 			if(scene_diameter > 21000.0f ) n_depth_slices = 2;
 			if(scene_diameter > 1.e9 ) n_depth_slices = 3;
 		}
@@ -3227,7 +3270,7 @@ void get_depth_slice(int islice, double *znear, double *zfar){
 			break;
 	}
 }
-static void calculateNearFarplanes_A(struct X3D_Node *vpnode, int layerid ) {
+static void calculateNearFarplanes_OLD(struct X3D_Node *vpnode, int layerid ) {
 /*
 	in theory, you get the bounding box of your scene, and transform that into camera space of bound viewpoint
 	(that's in the camera coordinate system, before projection, with z coming toward the camera, at world scale)
