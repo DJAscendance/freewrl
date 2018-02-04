@@ -1815,6 +1815,7 @@ void origin_offsets(geoOffsetInfo *gi)
 	if(1) {
 		vecprint3db("\ttp",gi->position->c,"\n");
 		vecprint3db("\tlc",gi->localCoord->c,"\n");
+		vecprint3db("\tgc",gi->gcCoord->c,"\n");
 		vecprint3db("\tgd",gi->gdCoord->c,"\n");
 	}
 
@@ -3385,6 +3386,7 @@ if(0){
 	gi->localOrient = &localOrient;
 	gi->gdCoord = &gdCoord;
 	gi->gcCoord = &gcCoord;
+	printf("GVP:\n");
 	origin_offsets(gi);
 
 }
@@ -3751,7 +3753,7 @@ void compile_GeoTransform (struct X3D_GeoTransform * node) {
 
 
 /* do transforms, calculate the distance */
-void prep_GeoTransform (struct X3D_GeoTransform *node) {
+void prep_GeoTransform_OLD (struct X3D_GeoTransform *node) {
 
 	//done above INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
@@ -3801,12 +3803,95 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
 		/* REVERSE CENTER */
 		FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
+
+		RECORD_DISTANCE
+        }
+}
+
+void prep_GeoTransform (struct X3D_GeoTransform *node) {
+
+	//done above INITIALIZE_GEOSPATIAL(node)
+	COMPILE_IF_REQUIRED
+
+        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+         * so we do nothing here in that case -ncoder */
+
+	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
+	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+
+	/* do we have any geometry visible, and are we doing anything with geometry? */
+	OCCLUSIONTEST
+
+	if(!renderstate()->render_vp) {
+		FW_GL_PUSH_MATRIX();
+
+        /* GeoTransform TRANSLATION */
+        FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+                
+        //printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
+        FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+
+		/* TRANSLATION */
+		if (node->__do_trans)
+			FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+
+                
+		/* ROTATION */
+		if (node->__do_rotation) {
+			FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
+		}
+
+		/* SCALEORIENTATION */
+		if (node->__do_scaleO) {
+			FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0],
+				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+		}
+
+		/* SCALE */
+		if (node->__do_scale)
+			FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
+
+		/* REVERSE SCALE ORIENTATION */
+		if (node->__do_scaleO)
+			FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0],
+				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+
+		///* REVERSE CENTER */
+		//FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
 		if(fwl_getDrawBoundingBoxes()) extent6f_draw(node->_extent);
 
 		RECORD_DISTANCE
         }
 }
 
+
+
+void fin_GeoTransform_OLD (struct X3D_GeoTransform *node) {
+	// done in compile INITIALIZE_GEOSPATIAL(node)
+	COMPILE_IF_REQUIRED
+	OCCLUSIONTEST
+
+        if(!renderstate()->render_vp) {
+            FW_GL_POP_MATRIX();
+        } else {
+           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+                FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+                );
+                FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+                );
+                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+                );
+
+		        FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],-node->__localOrient.c[2]);
+
+                FW_GL_TRANSLATE_D(-(((node->__movedCoords).c[0])),-(((node->__movedCoords).c[1])),-(((node->__movedCoords).c[2]))
+                );
+            }
+        }
+} 
 
 void fin_GeoTransform (struct X3D_GeoTransform *node) {
 	// done in compile INITIALIZE_GEOSPATIAL(node)
@@ -3833,6 +3918,7 @@ void fin_GeoTransform (struct X3D_GeoTransform *node) {
             }
         }
 } 
+
 
 void child_GeoTransform (struct X3D_GeoTransform *node) {
 	CHILDREN_COUNT
