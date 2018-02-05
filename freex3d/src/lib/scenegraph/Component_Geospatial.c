@@ -1816,6 +1816,7 @@ void origin_offsets(geoOffsetInfo *gi)
 		//moveCoords3d(gi->geoSystem, &p->autoOrigin, &p->autoOrient, 
 		//	gi->position, 1, gi->localCoord, gi->gdCoord);
 		vecdifd(gi->offsetCoord->c,gi->gcCoord->c,p->autoOrigin.c);
+	
 		{
 			//rotation difference - change the sign on one rotation, and multiply
 			Quaternion localQuat, relQuat, combQuat;
@@ -2353,6 +2354,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		gi->gcCoord = &gcCoord;
 		printf("GL:\n");
 		origin_offsets(gi);
+		vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
 
 	}else{
 		MF_SF_TEMPS
