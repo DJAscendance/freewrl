@@ -3161,6 +3161,15 @@ static struct depth_slice depth_slices_one [] = {
 {.07, 21000.0},
 };
 static int n_depth_slices = 1; //should be in gglobal
+static int want_depth_slices = 0; //0=auto 1=1 2=2 3=3
+int iclamp(int ival, int istart, int iend);
+void fwl_set_depth_slices(int nslices){
+	want_depth_slices = iclamp(nslices,0,3);
+	//printf("want slices=%d %d\n",nslices,want_depth_slices);
+}
+int fwl_get_depth_slices(){
+	return want_depth_slices;
+}
 static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 	// This Feb 3, 2018 method depth slicing method is great for working on geospatial 
 	// - you can just do 2 or 3 depth slices and benefits:
@@ -3177,42 +3186,48 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 	//   https://developer.nvidia.com/content/depth-precision-visualized
 	//   due to it being less portable
 	float extent6[6];
-	int previous_n;
+	int previous_n, iwant;
 	struct X3D_Node* rn;
 	static int once = 0;
 	X3D_Viewer *viewer = ViewerByLayerId(layerid);
 	viewer->nearPlane = DEFAULT_NEARPLANE;
 	viewer->farPlane = DEFAULT_FARPLANE;
 
+	iwant = fwl_get_depth_slices();
 	previous_n = n_depth_slices;
-	n_depth_slices = 1;
-	//regular non-geo scene, or geo scene with non-geo vp
-	rn = rootNode();
-	if(rn) {
-		//include vp current location in scene diameter
-		// for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
-		// slices change from 2 to 3 so it goes to a point on the horizon
-		float scene_diameter;
-		double MM[16];
-		float vpf[3];
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
-		//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
-		//H: vp space - its opengl and opengl doesn't know about 'scene root space'
-		//compute scene diameter in vp space
-		// seems to work with 
-		// a) regular scene (townsite 1,2,3 as move away, and back)
-		// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
-		// and no flutter when yawing viewpoint toward/away from planet
-		// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
-		extent6f_copy(extent6,rn->_extent);
-		extent6f_mattransform4d(extent6,extent6,MM);
-		//include currently bound viewpoint in scene_diameter
-		vecset3f(vpf,0.0f,0.0f,0.0f); 
-		extent6f_union_vec3f(extent6,vpf);
-		scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+	if(iwant == 0) //auto
+	{
+		n_depth_slices = 1;
+		//regular non-geo scene, or geo scene with non-geo vp
+		rn = rootNode();
+		if(rn) {
+			//include vp current location in scene diameter
+			// for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
+			// slices change from 2 to 3 so it goes to a point on the horizon
+			float scene_diameter;
+			double MM[16];
+			float vpf[3];
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+			//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+			//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+			//compute scene diameter in vp space
+			// seems to work with 
+			// a) regular scene (townsite 1,2,3 as move away, and back)
+			// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+			// and no flutter when yawing viewpoint toward/away from planet
+			// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+			extent6f_copy(extent6,rn->_extent);
+			extent6f_mattransform4d(extent6,extent6,MM);
+			//include currently bound viewpoint in scene_diameter
+			vecset3f(vpf,0.0f,0.0f,0.0f); 
+			extent6f_union_vec3f(extent6,vpf);
+			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
 
-		if(scene_diameter > 21000.0f ) n_depth_slices = 2;
-		if(scene_diameter > 1.e9 ) n_depth_slices = 3;
+			if(scene_diameter > 21000.0f ) n_depth_slices = 2;
+			if(scene_diameter > 1.e9 ) n_depth_slices = 3;
+		}
+	}else{
+		n_depth_slices = want_depth_slices;
 	}
 	if(!once || previous_n != n_depth_slices)
 		ConsoleMessage("depth slices: %d \n",n_depth_slices);
@@ -3230,14 +3245,15 @@ void get_depth_slice(int islice, double *znear, double *zfar){
 			*zfar = depth_slices_one[islice].zfar;
 			break;
 		case 2:
-			*znear = depth_slices_two[2-islice].znear;
-			*zfar = depth_slices_two[2-islice].zfar;
+			*znear = depth_slices_two[1-islice].znear;
+			*zfar = depth_slices_two[1-islice].zfar;
 			break;
 		case 3:
-			*znear = depth_slices_three[3-islice].znear;
-			*zfar = depth_slices_three[3-islice].zfar;
+			*znear = depth_slices_three[2-islice].znear;
+			*zfar = depth_slices_three[2-islice].zfar;
 			break;
 	}
+	//printf("%d %lf %lf\n",islice,*znear,*zfar);
 }
 static void calculateNearFarplanes_OLD(struct X3D_Node *vpnode, int layerid ) {
 /*

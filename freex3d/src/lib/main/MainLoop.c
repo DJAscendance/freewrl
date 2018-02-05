@@ -5635,7 +5635,7 @@ static void render()
 		for(islice=0;islice<nslice;islice++){
 			get_depth_slice(islice,&znear,&zfar);
 			fw_depth_slice_push(znear,zfar);
-			glClear(GL_DEPTH);
+			glClear(GL_DEPTH_BUFFER_BIT);
 			/*  turn light #0 off only if it is not a headlight.*/
 			if (!fwl_get_headlight()) {
 				setLightState(HEADLIGHT_LIGHT,FALSE);
