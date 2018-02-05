@@ -512,9 +512,9 @@ void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz
 	} 
 }
 void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me);
-void FRUSTUM_GEOTRANSC(struct X3D_Node *me){
+void FRUSTUM_GEO(struct X3D_Node *me){
 	int i;
-	if (me->_nodeType == NODE_GeoTransform) { 
+	if (me->_nodeType == NODE_GeoTransform || me->_nodeType == NODE_GeoLocation) { 
 		if( extent6f_isSet(me->_extent)) {
 			float e[6];
 			double mat[16];
@@ -1085,8 +1085,8 @@ void propagateExtent(struct X3D_Node *me) {
 
 	//FRUSTUM_GEOTRANS;
 	//FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
-	FRUSTUM_GEOTRANSC(me);
-	FRUSTUM_GEOLOCATION;
+	FRUSTUM_GEO(me);
+	//FRUSTUM_GEOLOCATION;
 	FRUSTUM_TRANS(HAnimSite);
 	FRUSTUM_TRANS(HAnimJoint);
 	FRUSTUM_GEOELEVATIONGRID(me);

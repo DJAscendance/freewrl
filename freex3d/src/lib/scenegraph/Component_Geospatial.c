@@ -1750,6 +1750,9 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 void vecprint3db(char *name, double *p, char *eol){
 	printf("%s %lf %lf %lf %s",name,p[0],p[1],p[2],eol);
 }
+void vecprint4db(char *name, double *p, char *eol){
+	printf("%s %lf %lf %lf %lf %s",name,p[0],p[1],p[2],p[3],eol);
+}
 typedef struct _geoOffsetInfo {
 	struct X3D_Node *node;
 	struct Multi_Int32 *geoSystem;
@@ -1758,8 +1761,9 @@ typedef struct _geoOffsetInfo {
 	//struct SFRotation *orientation;
 	struct SFVec3d *gcCoord;
 	struct SFVec3d *gdCoord;
-	struct SFVec3d *localCoord;
+	struct SFVec3d *offsetCoord;
 	struct SFVec4d *localOrient;
+	struct SFVec4d *offsetOrient;
 } geoOffsetInfo;
 //void origin_offsets(struct X3D_Node *node, struct Multi_Int32 *geoSystem, struct X3D_GeoOrigin *geoOrigin, 
 //	struct SFVec3d *position, struct SFRotation *orientation, struct SFVec3d *localCoord, struct SFVec4d *localOrient,
@@ -1770,8 +1774,12 @@ void origin_offsets(geoOffsetInfo *gi)
 	//
 	//
 	//v3.3 way - autoOrigin - B. capture as the self-origin
+	int specversion;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-	if(gi->geoOrigin){
+	specversion = X3D_PROTO(gi->node->_executionContext)->__specversion;
+
+	if(gi->geoOrigin && specversion < 330){
+		//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
 		struct SFVec3d offset, *poffset;
 		struct SFVec4d yup, *pyup;
 		pyup = NULL;
@@ -1789,7 +1797,7 @@ void origin_offsets(geoOffsetInfo *gi)
 			if(gi->geoOrigin->rotateYUp) pyup = &yup;
 		}
 		moveCoords3d(gi->geoSystem, poffset, pyup, 
-			gi->position, 1, gi->localCoord, gi->gdCoord);
+			gi->position, 1, gi->offsetCoord, gi->gdCoord);
 		GeoOrient(X3D_NODE(gi->geoOrigin), gi->geoSystem, gi->gdCoord, gi->localOrient);
 	}else {
 		//H: doesn't matter what the spec version is, we can do FCFS origin with any version
@@ -1807,16 +1815,32 @@ void origin_offsets(geoOffsetInfo *gi)
 		//redo the transform, with origin offsets and rotations applied
 		//moveCoords3d(gi->geoSystem, &p->autoOrigin, &p->autoOrient, 
 		//	gi->position, 1, gi->localCoord, gi->gdCoord);
-		vecdifd(gi->localCoord->c,gi->gcCoord->c,p->autoOrigin.c);
+		vecdifd(gi->offsetCoord->c,gi->gcCoord->c,p->autoOrigin.c);
+		{
+			//rotation difference - change the sign on one rotation, and multiply
+			Quaternion localQuat, relQuat, combQuat;
+			vrmlrot_to_quaternion (&localQuat,gi->localOrient->c[0], gi->localOrient->c[1], gi->localOrient->c[2], gi->localOrient->c[3]);
+			vrmlrot_to_quaternion (&relQuat, p->autoOrient.c[0], p->autoOrient.c[1], p->autoOrient.c[2], -p->autoOrient.c[3]);
+
+			/* add these together */
+			quaternion_add (&combQuat, &relQuat, &localQuat);
+
+			/* get the rotation; 2 steps to convert doubles to floats;
+				   should be quaternion_to_vrmlrot(&combQuat, &node->__movedOrientation.c[0]... */
+			quaternion_to_vrmlrot(&combQuat, &gi->offsetOrient->c[0], &gi->offsetOrient->c[1], &gi->offsetOrient->c[2], &gi->offsetOrient->c[3]);
+
+		}
 	}
 	//vecdifd(gi->localCoord->c,gi->gcCoord->c,p->autoOrigin);
 	veccopy4d(gi->localOrient->c,p->autoOrient.c);
 
 	if(1) {
 		vecprint3db("\ttp",gi->position->c,"\n");
-		vecprint3db("\tlc",gi->localCoord->c,"\n");
+		vecprint3db("\tlc",gi->offsetCoord->c,"\n");
 		vecprint3db("\tgc",gi->gcCoord->c,"\n");
 		vecprint3db("\tgd",gi->gdCoord->c,"\n");
+		vecprint4db("\tlo",gi->localOrient->c,"\n");
+		vecprint4db("\tlo",gi->offsetOrient->c,"\n");
 	}
 
 }
@@ -2104,14 +2128,16 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		//step 1 compute origin
 		geoOffsetInfo ggi, *gi;
 		struct SFVec3d gdCoord, gcCoord;
+		struct SFVec4d locOrient;
 		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 		gi = &ggi;
 		gi->node = X3D_NODE(node);
 		gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
 		gi->geoSystem = &node->__geoSystem;
 		gi->position = &node->geoGridOrigin;
-		gi->localCoord = &node->__autoOffset;
-		gi->localOrient = &node->__localOrient;
+		gi->offsetCoord = &node->__autoOffset;
+		gi->localOrient = &locOrient;
+		gi->offsetOrient = &node->__localOrient;
 		gi->gdCoord = &gdCoord;
 		gi->gcCoord = &gcCoord;
 		printf("GEG:\n");
@@ -2120,7 +2146,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		//step 2 apply autoOrigin to GC coords
 		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
 		gdCoords.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
-		moveCoords3d(&node->__geoSystem,&node->__autoOffset,&node->__localOrient,
+		moveCoords3d(&node->__geoSystem,&node->__autoOffset,&locOrient, //&node->__localOrient,
 			mIN.p,mIN.n,mOUT.p,gdCoords.p);
 
 	}else{
@@ -2304,31 +2330,54 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
-	MF_SF_TEMPS
 
 	#ifdef VERBOSE
 	printf ("compiling GeoLocation\n");
 	#endif
+	if(1)
+	{
+		//step 1 compute origin
+		geoOffsetInfo ggi, *gi;
+		struct SFVec3d gdCoord, gcCoord;
+		struct SFVec4d locOrient;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gi = &ggi;
+		gi->node = X3D_NODE(node);
+		gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
+		gi->geoSystem = &node->__geoSystem;
+		gi->position = &node->geoCoords;  //it claims this gets routed to, need dynamic offset
+		gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
+		gi->localOrient = &locOrient;
+		gi->offsetOrient = &node->__localOrient;
+		gi->gdCoord = &gdCoord;
+		gi->gcCoord = &gcCoord;
+		printf("GL:\n");
+		origin_offsets(gi);
 
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, geoCoords)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
+	}else{
+		MF_SF_TEMPS
 
-	/* work out the local orientation */
-	specversion = X3D_PROTO(node->_executionContext)->__specversion;
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
+		/* work out the position */
+		INITIALIZE_GEOSPATIAL(node)
+		COMPILE_GEOSYSTEM(node)
+		INIT_MF_FROM_SF(node, geoCoords)
+		MOVE_TO_ORIGIN(node)
+		COPY_MF_TO_SF(node, __movedCoords)
 
-	#ifdef VERBOSE
+		/* work out the local orientation */
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
+		GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
+		FREE_MF_SF_TEMPS
+
+	}
+	//#ifdef VERBOSE
 	printf ("compile_GeoLocation, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
 	printf ("	rotation is %lf %lf %lf %lf\n",
 			node->__localOrient.c[0],
 			node->__localOrient.c[1],
 			node->__localOrient.c[2],
 			node->__localOrient.c[3]);
-	#endif
+	//#endif
 
 	/* did the geoCoords change?? */
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCoords, node->__oldgeoCoords, offsetof (struct X3D_GeoLocation, geoCoords))
@@ -2338,7 +2387,6 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
 	
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLocation, metadata)) */
@@ -2353,7 +2401,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 void child_GeoLocation (struct X3D_GeoLocation *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	OCCLUSIONTEST
@@ -2394,20 +2442,20 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	#endif
 
 	//LOCAL_LIGHT_OFF
-	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 }
 
 /* do transforms, calculate the distance */
 void prep_GeoLocation (struct X3D_GeoLocation *node) {
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
-        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
-         * so we do nothing here in that case -ncoder */
+	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+	* so we do nothing here in that case -ncoder */
 
 	/* printf ("prep_GeoLocation, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	OCCLUSIONTEST
@@ -2429,22 +2477,22 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
-        }
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
 }
 void fin_GeoLocation (struct X3D_GeoLocation *node) {
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-            FW_GL_POP_MATRIX();
-        } else {
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-		FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-		FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
-
+			FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+			FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
 		}
-        }
+	}
 }
 
 /************************************************************************/
@@ -3296,7 +3344,7 @@ void calculateViewingSpeedB();
 
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	int specversion;
-	struct SFVec4d localOrient;
+	struct SFVec4d localOrient, offsetOrient;
 	struct SFVec4d orient;
 	int i;
 	Quaternion localQuat;
@@ -3376,14 +3424,16 @@ if(0){
 	}
 	//printf("geoVP moved GC position=%lf %lf %lf\n",node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
 }else{
+
 	geoOffsetInfo ggi, *gi;
 	gi = &ggi;
 	gi->node = X3D_NODE(node);
 	gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
 	gi->geoSystem = &node->__geoSystem;
 	gi->position = &node->position;
-	gi->localCoord = &node->__movedPosition;
+	gi->offsetCoord = &node->__movedPosition;
 	gi->localOrient = &localOrient;
+	gi->offsetOrient = &offsetOrient;
 	gi->gdCoord = &gdCoord;
 	gi->gcCoord = &gcCoord;
 	printf("GVP:\n");
@@ -3399,7 +3449,10 @@ if(0){
 	//}
 
 	/* Quaternize the local Geospatial quaternion, and the specified rotation from the GeoViewpoint orientation field */
-	vrmlrot_to_quaternion (&localQuat, localOrient.c[0], localOrient.c[1], localOrient.c[2], localOrient.c[3]);
+	if(1)
+		vrmlrot_to_quaternion (&localQuat, offsetOrient.c[0], offsetOrient.c[1], offsetOrient.c[2], offsetOrient.c[3]);
+	else
+		vrmlrot_to_quaternion (&localQuat, localOrient.c[0], localOrient.c[1], localOrient.c[2], localOrient.c[3]);
 	vrmlrot_to_quaternion (&relQuat, node->orientation.c[0], node->orientation.c[1], node->orientation.c[2], node->orientation.c[3]);
 
 	/* add these together */
@@ -3409,7 +3462,7 @@ if(0){
            should be quaternion_to_vrmlrot(&combQuat, &node->__movedOrientation.c[0]... */
 	quaternion_to_vrmlrot(&combQuat, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
 	for (i=0; i<4; i++) node->__movedOrientation.c[i] = (float) orient.c[i];
-
+	vecprint4db("vp final orient ",orient.c,"\n");
         #ifdef VERBOSE
 	printf ("compile_GeoViewpoint, final position %lf %lf %lf\n",node->__movedPosition.c[0],
 		node->__movedPosition.c[1], node->__movedPosition.c[2]);
@@ -3450,7 +3503,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 
-		INITIALIZE_GEOSPATIAL(node)
+		//INITIALIZE_GEOSPATIAL(node)
 
 			/* printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
 			printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]);
@@ -3466,16 +3519,17 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		#endif
 
 			/* perform GeoViewpoint translations */
-		if(geo_method()==1){
-			FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
-				node->__movedOrientation.c[2]); 
+		if(geo_method()== 1 || geo_method() == 2){
+			//if(geo_method()==1)
+			FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
+				-node->__movedOrientation.c[2]); 
 			FW_GL_TRANSLATE_D(-node->__movedPosition.c[0],-node->__movedPosition.c[1],-node->__movedPosition.c[2]);
 		}
 		/* we have  a new currentPosInModel now... */
 		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
 
 		/* the AntiPos has been applied in the trans and rots above, so we do not need to do it here */
-		getCurrentPosInModel(FALSE); 
+		//getCurrentPosInModel(FALSE); 
 
 
 		/* now, lets work on the GeoViewpoint fieldOfView. Q why? */
@@ -3680,14 +3734,16 @@ void compile_GeoTransform (struct X3D_GeoTransform * node) {
 		//step 1 compute origin
 		geoOffsetInfo ggi, *gi;
 		struct SFVec3d gdCoord, gcCoord;
+		struct SFVec4d offsetOrient;
 		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 		gi = &ggi;
 		gi->node = X3D_NODE(node);
 		gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
 		gi->geoSystem = &node->__geoSystem;
 		gi->position = &node->geoCenter;
-		gi->localCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
-		gi->localOrient = &node->__localOrient;
+		gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
+		gi->localOrient = &offsetOrient; //&node->__localOrient;
+		gi->offsetOrient = &node->__localOrient;
 		gi->gdCoord = &gdCoord;
 		gi->gcCoord = &gcCoord;
 		printf("GT:\n");
@@ -3753,7 +3809,7 @@ void compile_GeoTransform (struct X3D_GeoTransform * node) {
 
 
 /* do transforms, calculate the distance */
-void prep_GeoTransform_OLD (struct X3D_GeoTransform *node) {
+void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
 	//done above INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
@@ -3808,8 +3864,8 @@ void prep_GeoTransform_OLD (struct X3D_GeoTransform *node) {
         }
 }
 
-void prep_GeoTransform (struct X3D_GeoTransform *node) {
-
+void prep_GeoTransform_WRONG_DUG9 (struct X3D_GeoTransform *node) {
+	//dug9 had the wrong mental model, was thinking like geoLocation, its going the other way, children are geo
 	//done above INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
@@ -3866,7 +3922,7 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
 
 
-void fin_GeoTransform_OLD (struct X3D_GeoTransform *node) {
+void fin_GeoTransform (struct X3D_GeoTransform *node) {
 	// done in compile INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
@@ -3893,7 +3949,7 @@ void fin_GeoTransform_OLD (struct X3D_GeoTransform *node) {
         }
 } 
 
-void fin_GeoTransform (struct X3D_GeoTransform *node) {
+void fin_GeoTransform_WRONG_DUG9 (struct X3D_GeoTransform *node) {
 	// done in compile INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
