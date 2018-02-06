@@ -540,7 +540,7 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 28;
+static int lenOptions   = 29;
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -943,6 +943,7 @@ char * optionsText[] = {
 "shading style:",
 "  flat  gouraud  phong  wire",
 "  draw bounding boxes",
+"depth slices  auto  1   2   3",
 "  allow DIS",
 NULL,
 };
@@ -973,7 +974,7 @@ void fwl_setOrientation2(int degrees);
 int fwl_getShadingStyle();
 void initOptionsVal()
 {
-	int i,j,k, iside, ieither, shadingStyle;
+	int i,j,k,m, iside, ieither, shadingStyle;
 	X3D_Viewer *viewer;
 	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
 	viewer = Viewer();
@@ -1037,9 +1038,18 @@ void initOptionsVal()
 	p->optionsVal[26][0] = 034; //[]
 	if(fwl_getDrawBoundingBoxes())
 		p->optionsVal[26][0] = 035; //[*] '*';
-	p->optionsVal[27][0] = 034; //[]
+	m = fwl_get_depth_slices();
+	p->optionsVal[27][13] = p->optionsVal[27][19] = p->optionsVal[27][23] = p->optionsVal[27][27] =034;
+	switch(m){
+		// 012345678901234567890123456789  13 19 23 27
+		case 0: p->optionsVal[27][13] = 035; break; //[*]
+		case 1: p->optionsVal[27][19] = 035; break; //[*]
+		case 2: p->optionsVal[27][23] = 035; break; //[*]
+		case 3: p->optionsVal[27][27] = 035; break; //[*]
+	}
+	p->optionsVal[28][0] = 034; //[]
 	if(fwl_get_allow_DIS())
-		p->optionsVal[27][0] = 035; //[*] '*';
+		p->optionsVal[28][0] = 035; //[*] '*';
 
 	p->optionsLoaded = 1;
 }
@@ -1078,6 +1088,7 @@ char * optionsCase[] = {
 " ",
 "RR    SS       TT     UU",
 "VVVVVVVVVV",
+"            aa    bb  cc  dd",
 "WWWWWWWWWW",
 NULL,
 };
@@ -1335,6 +1346,14 @@ int handleOptionPress(int mouseX, int mouseY)
 		fwl_setDrawBoundingBoxes(1 - fwl_getDrawBoundingBoxes());
 		break;
 		}
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+		{
+			fwl_set_depth_slices(opt - 'a');
+		}
+		break;
 	case 'W': {
 		fwl_set_allow_DIS(1 - fwl_get_allow_DIS());
 		break;

@@ -82,7 +82,8 @@ void normalChildren(struct Multi_Node ch) {
 			} else if (p->_nodeType == NODE_PointLight) {
 				if (X3D_POINTLIGHT(p)->global == TRUE) 
 					render_node(p);
-			} else render_node(p);
+			} else 
+				render_node(p);
 		}
 	}
 }

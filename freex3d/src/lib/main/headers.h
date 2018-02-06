@@ -343,12 +343,13 @@ void setField_fromJavascript (struct X3D_Node *ptr, char *field, char *value, in
 unsigned int setField_FromEAI (char *ptr);
 
 #define EXTENTTOBBOX
-#define INITIALIZE_EXTENT        { node->EXTENT_MAX_X = (float) -10000.0; \
-        node->EXTENT_MAX_Y = (float) -10000.0; \
-        node->EXTENT_MAX_Z = (float) -10000.0; \
-        node->EXTENT_MIN_X = (float) 10000.0; \
-        node->EXTENT_MIN_Y = (float) 10000.0; \
-        node->EXTENT_MIN_Z = (float) 10000.0; }
+#define INITIALIZE_EXTENT extent6f_clear(node->_extent);
+  //{ node->EXTENT_MAX_X = (float) -10000.0; \
+  //      node->EXTENT_MAX_Y = (float) -10000.0; \
+  //      node->EXTENT_MAX_Z = (float) -10000.0; \
+  //      node->EXTENT_MIN_X = (float) 10000.0; \
+  //      node->EXTENT_MIN_Y = (float) 10000.0; \
+  //      node->EXTENT_MIN_Z = (float) 10000.0; }
 
 /********************************
 	Verbosity

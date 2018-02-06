@@ -511,6 +511,33 @@ void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz
 		} 
 	} 
 }
+void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me);
+void FRUSTUM_GEO(struct X3D_Node *me){
+	int i;
+	if (me->_nodeType == NODE_GeoTransform || me->_nodeType == NODE_GeoLocation) { 
+		if( extent6f_isSet(me->_extent)) {
+			float e[6];
+			double mat[16];
+
+			//push idenity
+			FW_GL_PUSH_MATRIX();
+			FW_GL_LOAD_IDENTITY();
+			//call prep
+			virtTable[me->_nodeType]->prep(me);
+			//scrape mat
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mat);
+			//call fin to pop
+			virtTable[me->_nodeType]->fin(me);
+			//pop to whatever was before identity
+			FW_GL_POP_MATRIX();
+			//transform extent with mat
+			extent6f_mattransform4d(e,me->_extent,mat);
+			extent6f_setParentExtentB(e,me);
+			//extent6f_setNodeExtentB(ef6,me);
+		} 
+	} 
+}
+
 
 //extent6f {xmax,xmin,ymax,ymin,zmax,zmin}
 float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax){
@@ -551,29 +578,7 @@ void extent6f_from_vec3f2(float *extent6, float *pmin, float *pmax){
 		extent6[i*2 + 0] = pmax[i];
 	}
 }
-void extent6f_to_box3f8(float *extent6, float *p3f8){
-	//generate 8 points from extent
-	int i,j,k,n;
-	n = 0;
-	for(k=0;k<2;k++)
-		for(j=0;j<2;j++)
-			for(i=0;i<2;i++){
-				p3f8[n*3 + 0] = extent6[i];
-				p3f8[n*3 + 1] = extent6[j];
-				p3f8[n*3 + 2] = extent6[k];
-				n++;
-			}
-}
-void extent6f_from_box3fn(float *extent6,float *p, int n){
-	int i,j;
-	for(i=0;i<3;i++)
-		extent6[i*2] = extent6[i*2 + 1] = p[i];
-	for(j=1;j<n;j++)
-		for(i=0;i<3;i++){
-			extent6[i*2 + 1] = min(extent6[i*2],p[j*3 +i]);
-			extent6[i*2 + 0] = max(extent6[i*2],p[j*3 +i]);
-		}
-}
+
 
 float *extent6f_union_extent6f(float *extent6, float *ein6){
 	int i,isa,isb;
@@ -599,6 +604,29 @@ float *extent6f_union_vec3f(float *extent6, float *p3){
 		extent6[i*2 + 1] = min(extent6[i*2 + 1], p3[i]);
 		extent6[i*2 + 0] = max(extent6[i*2 + 0], p3[i]);
 	}
+	return extent6;
+}
+void extent6f_to_box3f8(float *extent6, float *p3f8){
+	//generate 8 points from extent
+	int i,j,k,n;
+	n = 0;
+	//extent6f_printf(extent6);printf(" extent\n box:\n");
+	for(k=0;k<2;k++)
+		for(j=0;j<2;j++)
+			for(i=0;i<2;i++){
+				p3f8[n*3 + 0] = extent6[0 + i];
+				p3f8[n*3 + 1] = extent6[2 + j];
+				p3f8[n*3 + 2] = extent6[4 + k];
+				//printf("%d %f %f %f\n",n,p3f8[n*3 + 0],p3f8[n*3 + 1],p3f8[n*3 + 2]);
+				n++;
+			}
+	//printf("\n");
+}
+float * extent6f_from_box3fn(float *extent6,float *p, int n){
+	int i,j;
+	extent6f_clear(extent6);
+	for(i=0;i<n;i++)
+		extent6f_union_vec3f(extent6,&p[i*3]);
 	return extent6;
 }
 float *extent6f_scale3f(float *eout6, float *ein6, float *s3){
@@ -1056,8 +1084,9 @@ void propagateExtent(struct X3D_Node *me) {
 	FRUSTUM_TRANS(Transform);
 
 	//FRUSTUM_GEOTRANS;
-	FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
-	FRUSTUM_GEOLOCATION;
+	//FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
+	FRUSTUM_GEO(me);
+	//FRUSTUM_GEOLOCATION;
 	FRUSTUM_TRANS(HAnimSite);
 	FRUSTUM_TRANS(HAnimJoint);
 	FRUSTUM_GEOELEVATIONGRID(me);
