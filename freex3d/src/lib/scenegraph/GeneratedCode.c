@@ -137,6 +137,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__lowest",
 	"__movedCoords",
 	"__movedOrientation",
+	"__movedOrientationB",
 	"__movedPosition",
 	"__movedValue",
 	"__movedgd",
@@ -4768,6 +4769,7 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedOrientation, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___movedOrientationB, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientationB),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedgd, (int) offsetof (struct X3D_GeoViewpoint, __movedgd),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldSFString, (int) offsetof (struct X3D_GeoViewpoint, __oldSFString),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldFieldOfView, (int) offsetof (struct X3D_GeoViewpoint, __oldFieldOfView),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9836,6 +9838,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__movedPosition.c[0] = 0;tmp2->__movedPosition.c[1] = 0;tmp2->__movedPosition.c[2] = 0;;
 			tmp2->__movedOrientation.c[0] = 0;tmp2->__movedOrientation.c[1] = 0;tmp2->__movedOrientation.c[2] = 1;tmp2->__movedOrientation.c[3] = 0;;
+			tmp2->__movedOrientationB.c[0] = 0;tmp2->__movedOrientationB.c[1] = 0;tmp2->__movedOrientationB.c[2] = 1;tmp2->__movedOrientationB.c[3] = 0;;
 			tmp2->__movedgd.c[0] = 0;tmp2->__movedgd.c[1] = 0;tmp2->__movedgd.c[2] = 0;;
 			tmp2->__oldSFString = newASCIIString("");
 			tmp2->__oldFieldOfView = 0.785398f;
