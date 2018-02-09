@@ -145,6 +145,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__normals",
 	"__numPoints",
 	"__occludeCheckCount",
+	"__offsetOrient",
 	"__oldChildren",
 	"__oldEnabled",
 	"__oldFieldOfView",
@@ -4634,6 +4635,7 @@ const int OFFSETS_GeoLocation[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoLocation, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoLocation, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoLocation, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___offsetOrient, (int) offsetof (struct X3D_GeoLocation, __offsetOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldgeoCoords, (int) offsetof (struct X3D_GeoLocation, __oldgeoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldChildren, (int) offsetof (struct X3D_GeoLocation, __oldChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_GeoLocation, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9682,6 +9684,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
+			tmp2->__offsetOrient.c[0] = 0;tmp2->__offsetOrient.c[1] = 0;tmp2->__offsetOrient.c[2] = 1;;
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldChildren.n=0; tmp2->__oldChildren.p=0;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
@@ -14647,6 +14650,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __localOrient (SFVec4d): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__localOrient.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __offsetOrient (SFVec4d): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__offsetOrient.c[i]); }
 			fprintf (fp,"\n");
 		    }
 		    if(allFields) {

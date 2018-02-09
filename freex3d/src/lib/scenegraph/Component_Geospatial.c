@@ -1753,17 +1753,44 @@ void vecprint3db(char *name, double *p, char *eol){
 void vecprint4db(char *name, double *p, char *eol){
 	printf("%s %lf %lf %lf %lf %s",name,p[0],p[1],p[2],p[3],eol);
 }
+//TRANSFORMING FROM GEOSPATIAL  TO SHARED LOCAL
+// terminology:
+// geocentric GC - center of molten core of eath is 0,0,0
+// geospatial aligned GCA - X through Grenwich, Z through north pole
+// node local (NL): relative to node's own 'origin' ie position, geoGridOrigin, etc
+// node local aligned (NLA): Y 'up', -Z toward north pole
+// shared local (SL): relative to a single shared origin for all geo nodes for a planet
+// shared local aligned (SLA): relative to 'up' and 'north' at the shared origin
+// root node, root node aligned RNRNA - the regular scene 0,0,0 at the root level, and alignemnt
+// SLSLA could be designed to be co-incident with and aligned with RNRNA
+// procedure:
+// A. convert to GC
+//  1. convert node 'origin' from XTM -> GD -> GC
+//  2. convert any geometry in the node from XTM -> GD -> GC
+// B. convert to NLNLA
+//  3. subtract node origin GC from geometry GC to get node-local geocentric-aligned NLGCA
+//  4. compute LocalOrientation - the rotation to apply to NLGCA to get NLNLA node local aligned = LocalOrient
+// C. convert to SLSLA
+//  5. compute tilt to get node geometry from NLNLA to NLSLA shared local aligned = offsetOrient
+//  6. compute offset to get NLSLA to shared local SLSLA 
+// summary order of transforms:
+//  GC2NL
+//  GCA2NLA - H: this depends how the node is defined.
+//  NLA2SLA
+//  NL2SL
+
+
 typedef struct _geoOffsetInfo {
 	struct X3D_Node *node;
 	struct Multi_Int32 *geoSystem;
 	struct X3D_GeoOrigin *geoOrigin;
 	struct SFVec3d *position;
 	//struct SFRotation *orientation;
-	struct SFVec3d *gcCoord;
 	struct SFVec3d *gdCoord;
-	struct SFVec3d *offsetCoord;
-	struct SFVec4d *localOrient;
-	struct SFVec4d *offsetOrient;
+	struct SFVec3d *gcCoord;      //-GC2NL
+	struct SFVec3d *offsetCoord;  //-NL2SL
+	struct SFVec4d *localOrient;  //-GCA2NLA
+	struct SFVec4d *offsetOrient; //-NLA2SLA
 } geoOffsetInfo;
 //void origin_offsets(struct X3D_Node *node, struct Multi_Int32 *geoSystem, struct X3D_GeoOrigin *geoOrigin, 
 //	struct SFVec3d *position, struct SFRotation *orientation, struct SFVec3d *localCoord, struct SFVec4d *localOrient,
@@ -1775,8 +1802,11 @@ void origin_offsets(geoOffsetInfo *gi)
 	//
 	//v3.3 way - autoOrigin - B. capture as the self-origin
 	int specversion;
+	struct SFVec3d slnla, *pslnla, slsla, *pslsla;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 	specversion = X3D_PROTO(gi->node->_executionContext)->__specversion;
+	pslnla = &slnla;
+	pslsla = &slsla;
 
 	if(gi->geoOrigin && specversion < 330){
 		//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
@@ -1784,7 +1814,6 @@ void origin_offsets(geoOffsetInfo *gi)
 		struct SFVec4d yup, *pyup;
 		pyup = NULL;
 		poffset = NULL;
-
 		double *cc;
 		initializeGeospatial(&gi->geoOrigin); 
 
@@ -1816,30 +1845,36 @@ void origin_offsets(geoOffsetInfo *gi)
 		//moveCoords3d(gi->geoSystem, &p->autoOrigin, &p->autoOrient, 
 		//	gi->position, 1, gi->localCoord, gi->gdCoord);
 		vecdifd(gi->offsetCoord->c,gi->gcCoord->c,p->autoOrigin.c);
-	
+		//NLGCA == offsetCoord
 		{
 			//rotation difference - change the sign on one rotation, and multiply
 			Quaternion localQuat, relQuat, combQuat;
-			vrmlrot_to_quaternion (&localQuat,gi->localOrient->c[0], gi->localOrient->c[1], gi->localOrient->c[2], gi->localOrient->c[3]);
-			vrmlrot_to_quaternion (&relQuat, p->autoOrient.c[0], p->autoOrient.c[1], p->autoOrient.c[2], -p->autoOrient.c[3]);
+			vrmlrot_to_quaternion (&localQuat,gi->localOrient->c[0], gi->localOrient->c[1], gi->localOrient->c[2], -gi->localOrient->c[3]);
+			vrmlrot_to_quaternion (&relQuat, p->autoOrient.c[0], p->autoOrient.c[1], p->autoOrient.c[2], p->autoOrient.c[3]);
 
 			/* add these together */
 			quaternion_add (&combQuat, &relQuat, &localQuat);
-
+			//quaternion_multiply(&combQuat,&relQuat,&localQuat);
+			quaternion_rotationd(pslnla->c,&localQuat,gi->offsetCoord->c);
 			/* get the rotation; 2 steps to convert doubles to floats;
 				   should be quaternion_to_vrmlrot(&combQuat, &node->__movedOrientation.c[0]... */
 			quaternion_to_vrmlrot(&combQuat, &gi->offsetOrient->c[0], &gi->offsetOrient->c[1], &gi->offsetOrient->c[2], &gi->offsetOrient->c[3]);
+			gi->offsetOrient->c[3] = - gi->offsetOrient->c[3];
+			quaternion_rotationd(pslsla->c,&combQuat,pslnla->c);
+			//in theory you can do SLSLA = autoOrient x NLGCA
 
 		}
 	}
 	//vecdifd(gi->localCoord->c,gi->gcCoord->c,p->autoOrigin);
-	veccopy4d(gi->localOrient->c,p->autoOrient.c);
+	//veccopy4d(gi->localOrient->c,p->autoOrient.c);
 
 	if(1) {
-		vecprint3db("\ttp",gi->position->c,"\n");
-		vecprint3db("\tlc",gi->offsetCoord->c,"\n");
-		vecprint3db("\tgc",gi->gcCoord->c,"\n");
-		vecprint3db("\tgd",gi->gdCoord->c,"\n");
+		vecprint3db("\ttp-tpa",gi->position->c,"\n");
+		vecprint3db("\tgd-gda",gi->gdCoord->c,"\n");
+		vecprint3db("\tgc-gca",gi->gcCoord->c,"\n");
+		vecprint3db("\tsn-gca",gi->offsetCoord->c,"\n");
+		vecprint3db("\tsn-lna",pslnla->c,"\n");
+		vecprint3db("\tsn-sna",pslsla->c,"\n");
 		vecprint4db("\tlo",gi->localOrient->c,"\n");
 		vecprint4db("\too",gi->offsetOrient->c,"\n");
 	}
@@ -2126,6 +2161,11 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* convert this point to a local coordinate */
 	if(1)
 	{
+		//struct SFVec3d *gcCoord;      //-GC2NL
+		//struct SFVec3d *offsetCoord;  //-NL2SL
+		//struct SFVec4d *localOrient;  //-GCA2NLA
+		//struct SFVec4d *offsetOrient; //-NLA2SLA
+
 		//step 1 compute origin
 		geoOffsetInfo ggi, *gi;
 		struct SFVec3d gdCoord, gcCoord;
@@ -2143,17 +2183,87 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		gi->gcCoord = &gcCoord;
 		printf("GEG:\n");
 		origin_offsets(gi);
-		vecdifd(node->__autoOffset.c,gi->gcCoord->c,node->__autoOffset.c);
 		//step 2 apply autoOrigin to GC coords
 		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
 		gdCoords.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
-		if(1)
+		if(0){
+			vecdifd(node->__autoOffset.c,gi->gcCoord->c,node->__autoOffset.c);
 			moveCoords3d(&node->__geoSystem,&node->__autoOffset,&locOrient, //&node->__localOrient,
 			mIN.p,mIN.n,mOUT.p,gdCoords.p);
-		else{
+		}else{
 			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-			moveCoords3d(&node->__geoSystem,&p->autoOrigin,&locOrient, //&node->__localOrient,
+			//A. GD TO GCGCA 
+			moveCoords3d(&node->__geoSystem,NULL,NULL, //&node->__localOrient,
 			mIN.p,mIN.n,mOUT.p,gdCoords.p);
+
+			if(1){
+				//B. GCGCA 2 NLNLA
+			
+				for(i=0;i<mIN.n;i++){
+					//take offset off GC coords
+					vecdifd(mOUT.p[i].c,mOUT.p[i].c,gcCoord.c); 
+				}
+				if(1)for(i=0;i<mIN.n;i++){
+					//take offset off GC coords
+					vecaddd(mOUT.p[i].c,mOUT.p[i].c,node->__autoOffset.c); 
+				}
+
+				if(1){
+					Quaternion qup;
+					struct SFVec4d *yup = &locOrient;
+					vrmlrot_to_quaternion(&qup,yup->c[0],yup->c[1],yup->c[2],-yup->c[3]);
+					for(i=0;i<mIN.n;i++){
+						//take offset off GC coords
+						quaternion_rotationd(mOUT.p[i].c,&qup,mOUT.p[i].c);
+					}
+				}
+
+				//C. NLNLA to SLSLA
+				if(1){
+					Quaternion qup;
+					struct SFVec4d *yup = &node->__localOrient;
+					vrmlrot_to_quaternion(&qup,yup->c[0],yup->c[1],yup->c[2],yup->c[3]);
+					for(i=0;i<mIN.n;i++){
+						//take offset off GC coords
+						quaternion_rotationd(mOUT.p[i].c,&qup,mOUT.p[i].c);
+					}
+				}
+			
+			}else{
+				//B. GCGCA 2 NLNLA
+			
+				for(i=0;i<mIN.n;i++){
+					//take offset off GC coords
+					vecdifd(mOUT.p[i].c,mOUT.p[i].c,gcCoord.c); 
+				}
+
+				//C. NLNLA to SLSLA
+				if(1){
+					Quaternion qup;
+					struct SFVec4d *yup = &node->__localOrient;
+					vrmlrot_to_quaternion(&qup,yup->c[0],yup->c[1],yup->c[2],-yup->c[3]);
+					for(i=0;i<mIN.n;i++){
+						//take offset off GC coords
+						quaternion_rotationd(mOUT.p[i].c,&qup,mOUT.p[i].c);
+					}
+				}
+				for(i=0;i<mIN.n;i++){
+					//take offset off GC coords
+					vecdifd(mOUT.p[i].c,mOUT.p[i].c,node->__autoOffset.c); 
+				}
+
+				if(1){
+					Quaternion qup;
+					struct SFVec4d *yup = &locOrient;
+					vrmlrot_to_quaternion(&qup,yup->c[0],yup->c[1],yup->c[2],-yup->c[3]);
+					for(i=0;i<mIN.n;i++){
+						//take offset off GC coords
+						quaternion_rotationd(mOUT.p[i].c,&qup,mOUT.p[i].c);
+					}
+				}
+			
+			}
+
 		}
 
 
@@ -2348,6 +2458,8 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		geoOffsetInfo ggi, *gi;
 		struct SFVec3d gdCoord, gcCoord;
 		struct SFVec4d locOrient;
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
 		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 		gi = &ggi;
 		gi->node = X3D_NODE(node);
@@ -2355,14 +2467,14 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		gi->geoSystem = &node->__geoSystem;
 		gi->position = &node->geoCoords;  //it claims this gets routed to, need dynamic offset
 		gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
-		gi->localOrient = &locOrient;
-		gi->offsetOrient = &node->__localOrient;
+		gi->localOrient = &node->__localOrient; //&locOrient;
+		gi->offsetOrient = &node->__offsetOrient;
 		gi->gdCoord = &gdCoord;
 		gi->gcCoord = &gcCoord;
 		printf("GL:\n");
 		origin_offsets(gi);
-		vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
-
+		//vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
+		veccopy4d(node->__localOrient.c,p->autoOrient.c);
 	}else{
 		MF_SF_TEMPS
 
@@ -2472,12 +2584,14 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	if(!renderstate()->render_vp) {
 		FW_GL_PUSH_MATRIX();
 
+		if(1) FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
 		/* TRANSLATION */
 		FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
 
 		//printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
 
-		FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+		if(1) FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+		if(1) FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
 
 		/*
 		printf ("geoLocation trans %7.4f %7.4f %7.4f\n",node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
@@ -3433,6 +3547,11 @@ if(0){
 	}
 	//printf("geoVP moved GC position=%lf %lf %lf\n",node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
 }else{
+	//struct SFVec3d *gcCoord;      //-GC2NL
+	//struct SFVec3d *offsetCoord;  //-NL2SL
+	//struct SFVec4d *localOrient;  //-GCA2NLA
+	//struct SFVec4d *offsetOrient; //-NLA2SLA
+
 
 	geoOffsetInfo ggi, *gi;
 	gi = &ggi;
@@ -3457,7 +3576,7 @@ if(0){
 	//	veccopy4d(node->autoOrient.c,localOrient.c);
 	//}
 
-	if(1){
+	if(0){
 		/* Quaternize the local Geospatial quaternion, and the specified rotation from the GeoViewpoint orientation field */
 		if(1)
 			vrmlrot_to_quaternion (&localQuat, offsetOrient.c[0], offsetOrient.c[1], offsetOrient.c[2], offsetOrient.c[3]);
@@ -3473,9 +3592,26 @@ if(0){
 		quaternion_to_vrmlrot(&combQuat, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
 		for (i=0; i<4; i++) node->__movedOrientation.c[i] = (float) orient.c[i];
 		vecprint4db("vp final orient ",orient.c,"\n");
-	} else {
+	} else if(0) {
 		double2float(node->__movedOrientation.c,offsetOrient.c,4);
 		double2float(node->__movedOrientationB.c,localOrient.c,4);
+	} 
+	else {
+		//A. GD TO GCGCA 
+		struct SFVec3d gcPosition;
+		veccopyd(gcPosition.c,gcCoord.c);
+		//B. GCGCA 2 NLNLA
+		//take offset off GC coords
+		vecdifd(gcPosition.c,gcPosition.c,gcCoord.c); 
+
+		//NL 2 SL
+		vecdifd(node->__movedPosition.c,gcPosition.c,node->__movedPosition.c); 
+
+		//GCA 2 NLA
+		double2float(node->__movedOrientation.c,localOrient.c,4);
+		//C. NLA to SLA
+		double2float(node->__movedOrientationB.c,offsetOrient.c,4);
+	
 	}
         #ifdef VERBOSE
 	printf ("compile_GeoViewpoint, final position %lf %lf %lf\n",node->__movedPosition.c[0],
@@ -3534,11 +3670,11 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			/* perform GeoViewpoint translations */
 		if(geo_method()== 1 || geo_method() == 2){
 			//if(geo_method()==1)
-			if(1){
+			if(0){
 				FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
 					-node->__movedOrientation.c[2]); 
 				FW_GL_TRANSLATE_D(node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
-			}else{
+			}else if(0){
 				if(0) FW_GL_ROTATE_RADIANS(node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
 				if(0) FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
 					-node->__movedOrientation.c[2]); 
@@ -3553,7 +3689,31 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 					-node->__movedOrientationB.c[2]); 
 				
 				if(0) FW_GL_ROTATE_RADIANS(node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
+			}else if(0){
+				if(0) FW_GL_ROTATE_RADIANS(node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
+				if(0) FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
+					node->__movedOrientation.c[2]); 
+				if(0) FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3],node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],
+					node->__movedOrientationB.c[2]); 
+				FW_GL_TRANSLATE_D(-node->__movedPosition.c[0],-node->__movedPosition.c[1],-node->__movedPosition.c[2]);
+				if(0) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3],node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],
+					node->__movedOrientationB.c[2]); 
+				if(0) FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
+					node->__movedOrientation.c[2]); 
+				if(0) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3],node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],
+					-node->__movedOrientationB.c[2]); 
+				if(0) FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
+					-node->__movedOrientation.c[2]); 
+				
+				if(1) FW_GL_ROTATE_RADIANS(node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
+
+			}else{
+				FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3],node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],
+					node->__movedOrientationB.c[2]); 
+				FW_GL_TRANSLATE_D(node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
 			}
+
+
 		}
 		/* we have  a new currentPosInModel now... */
 		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
