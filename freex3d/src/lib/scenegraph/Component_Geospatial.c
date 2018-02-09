@@ -3554,6 +3554,8 @@ if(0){
 
 
 	geoOffsetInfo ggi, *gi;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
 	gi = &ggi;
 	gi->node = X3D_NODE(node);
 	gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
@@ -3566,6 +3568,8 @@ if(0){
 	gi->gcCoord = &gcCoord;
 	printf("GVP:\n");
 	origin_offsets(gi);
+	veccopy4d(localOrient.c,p->autoOrient.c);
+
 
 }
 	//movedPosition is the initial postion, in GC coords
@@ -3592,11 +3596,11 @@ if(0){
 		quaternion_to_vrmlrot(&combQuat, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
 		for (i=0; i<4; i++) node->__movedOrientation.c[i] = (float) orient.c[i];
 		vecprint4db("vp final orient ",orient.c,"\n");
-	} else if(0) {
+	} else if(1) {
 		double2float(node->__movedOrientation.c,offsetOrient.c,4);
 		double2float(node->__movedOrientationB.c,localOrient.c,4);
 	} 
-	else {
+	else if(0){
 		//A. GD TO GCGCA 
 		struct SFVec3d gcPosition;
 		veccopyd(gcPosition.c,gcCoord.c);
@@ -3707,10 +3711,56 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 				
 				if(1) FW_GL_ROTATE_RADIANS(node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
 
-			}else{
+			}else if(0){
 				FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3],node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],
 					node->__movedOrientationB.c[2]); 
 				FW_GL_TRANSLATE_D(node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
+			}else {
+				//like geoLocation except backward
+				//if(1) FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+				///* TRANSLATION */
+				//FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+				//
+				//if(1) FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+				//if(1) FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
+
+				if(0){
+					//same order and sign as GL
+					// seems like its north pole facing, but opposite longitude
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					FW_GL_TRANSLATE_D(node->__movedPosition.c[0],node->__movedPosition.c[1],node->__movedPosition.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3], node->__movedOrientation.c[0],node->__movedOrientation.c[1],node->__movedOrientation.c[2]);
+				}else if(0){
+					//opposite order as GL > crazy
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3], node->__movedOrientation.c[0],node->__movedOrientation.c[1],node->__movedOrientation.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					FW_GL_TRANSLATE_D(node->__movedPosition.c[0], node->__movedPosition.c[1],node->__movedPosition.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+
+				}else if(0){
+					//same order, opposite sign as GL > crazy
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					FW_GL_TRANSLATE_D(-node->__movedPosition.c[0], -node->__movedPosition.c[1], -node->__movedPosition.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3], node->__movedOrientation.c[0],node->__movedOrientation.c[1],node->__movedOrientation.c[2]);
+				}else if(1){
+					//WORKS !!
+					//opposite order, opposite sign as GL > crazy
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3], node->__movedOrientation.c[0],node->__movedOrientation.c[1],node->__movedOrientation.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					FW_GL_TRANSLATE_D(-node->__movedPosition.c[0], -node->__movedPosition.c[1], -node->__movedPosition.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+				}else if(0){
+					//same order and sign as GL, except -B
+					// 
+					if(1) FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					FW_GL_TRANSLATE_D(node->__movedPosition.c[0],node->__movedPosition.c[1], node->__movedPosition.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
+					if(1) FW_GL_ROTATE_RADIANS(node->__movedOrientation.c[3], node->__movedOrientation.c[0],node->__movedOrientation.c[1],node->__movedOrientation.c[2]);
+				}
+
+
 			}
 
 
