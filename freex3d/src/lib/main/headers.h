@@ -803,6 +803,8 @@ void remove_parent(struct X3D_Node *child, struct X3D_Node *parent);
 void EAI_readNewWorld(char *inputstring);
 
 void collide_ElevationGrid(struct X3D_ElevationGrid *node);
+void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node);
+
 
 void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
 #define rendray_Text render_ray_polyrep
@@ -841,7 +843,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
 #define make_TriangleSet  make_genericfaceset
 #define make_TriangleStripSet  make_genericfaceset
 #define rendray_GeoElevationGrid  render_ray_polyrep
-#define collide_GeoElevationGrid collide_genericfaceset
+//#define collide_GeoElevationGrid collide_genericfaceset
 #define make_GeoElevationGrid make_genericfaceset
 
 

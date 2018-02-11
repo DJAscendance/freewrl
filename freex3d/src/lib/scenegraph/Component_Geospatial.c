@@ -4038,3 +4038,222 @@ void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_
 		} 
 	}
 }
+
+/*
+WALK navigation:
+(VPbindPose) +  userOffsets[ (cumulative navigation) + (camera tilts/orientation) ]
+The gravity height adustment (and general collision) goes into cumulative navigation
+The mouse navigation goes into cumulative navigation
+The LEVEL and FLY tilts go into orientation
+
+GEO WALK navigation:
+almost everything is related to ellipsoid / GD coordinates
+- LEVEL - relative to current gdCoords/GD position/GD up vector
+- orientation (camera tilts) relative to GD vertical
+- gravity correction - along GD vertical
+- SPEED - relative to GD height above GEG terrain, ellipsoid or GD radius from GC center, along GD vertical
+retainedUserOffsets are stored as absolute GD postion + orientation:
+ userOffsets = retainedGDposition - vpBind + orientation
+except: GD pose transformed into SLSLA for rendering, picking and extents
+
+*/
+
+int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
+	// general polyrep collision does a few ugly things:
+	// 1. transforms all the points into collision/avatar space
+	// 2. iterates over all the triangles (a few times)
+	// this geoElevationGrid optimization will take a few shortcuts:
+	// a) only do gravity, if enabled
+	// b) transform avatar gravity vector into grid space
+	// c) use geoElevationGrid rows, columns, xspace,zspace, to look up heights by avatar position N,E or lat,lon in grid space
+	// d) see if its a collision
+	// e) update the climing / falling parameters (and skip wall penetration detection and bump collision testing)
+	// if for some reason it can't handle it, it returns -1, and then the generic collision can be called
+	struct sFallInfo *fi;
+	int hit,i;
+
+	hit = -1; //0 handled, and no colliision, 1=handled and collision, -1=not handled (not woaking, or gravity vector not perpendicular to grid)
+	fi = FallInfo();
+
+	if(fi->walking)
+	{
+		struct point_XYZ result;
+		float centerf[3],bottomf[3];
+		double centerd[3], bottomd[3], spined[3], vertvecd[3];
+		struct SFVec3d *gdCoord, xxCoord;
+		struct Multi_Int32 *geoSystem;
+		double cosine;
+		double tmin[3],tmax[3]; /* MBB for facet */
+		struct sNaviInfo *naviinfo;
+		GLDOUBLE awidth, atop, abottom, astep;
+		ttglobal tg = gglobal();
+
+		gdCoord = &gvp->__movedgd;
+		geoSystem = &node->__geoSystem;
+		if(geoSystem->p[0] == GEOSP_GD){
+			veccopyd(xxCoord.c,gdCoord->c); 
+			if(!geoSystem->p[5]) 
+				vecswizzle2d(xxCoord.c);
+		} else if(geoSystem->p[0] == GEOSP_UTM || geoSystem->p[0] == GEOSP_3TM ) { 
+			/* convert this to UTM  or 3TM */ 
+			double dtemp[3];
+			if(geoSystem->p[0] == GEOSP_UTM){
+				gdToUtm3d(geoSystem,gdCoord->c, dtemp); 
+				veccopyd(xxCoord.c,dtemp);
+			}else if(geoSystem->p[0] == GEOSP_3TM) {
+				gdTo3tm3d(geoSystem,gdCoord->c, dtemp);
+				veccopyd(xxCoord.c,dtemp);
+			} 
+ 		} else {
+			//no such thing as GC GEG
+			return -1;
+		}
+
+
+		int inside;
+		double emin[2],emax[2];
+		//not sure what space the GEG's node->_extent is in, so will recalculate here in its user coordinates
+		emin[0] = min(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+node->xSpacing*node->xDimension);
+		emax[0] = max(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+node->xSpacing*node->xDimension);
+		emin[1] = min(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+node->zSpacing*node->zDimension);
+		emax[1] = max(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+node->zSpacing*node->zDimension);
+		//printf("xxCoord= %lf %lf %lf\n",xxCoord.c[0],xxCoord.c[1],xxCoord.c[2]);
+		//printf("emin= %lf %lf emax= %lf %lf\n",emin[0],emin[1],emax[0],emax[1]);
+		inside  = xxCoord.c[0] <= emax[0] && xxCoord.c[0] >= emin[0];
+		inside &= xxCoord.c[1] <= emax[1] && xxCoord.c[1] >= emin[1];
+		printf("b");
+		if(inside){
+			double spinelength, vcenterd[3];
+			double x,z,cx,cz, deltah, gridpointf[3];
+			printf("c\n");
+			hit = 0;
+			//see if grid height is below, between or above avatar
+			x = xxCoord.c[0] - node->geoGridOrigin.c[0]; //latitude first/northing first default? or x == 0, z == 1?
+			z = xxCoord.c[1] - node->geoGridOrigin.c[1];
+			//printf("x,z= %lf %lf\n",x,z);
+			//node->xDimension
+			// z h2  h3
+			// ^ h0  h1
+			// |-->x
+			//(ix,iz)
+			double hh[4],gridheight;
+			int i0,i1,i2,i3, ix, iz;
+			ix = (int)(x/node->xSpacing);
+			iz = (int)(z/node->zSpacing);
+			//printf("xspacing,zspacing,xdimension= %lf %lf %d\n",node->xSpacing,node->zSpacing,node->xDimension);
+			//printf("ix,iz= %d %d\n",ix,iz);
+			i0 = iz * node->xDimension + ix;
+			i1 = i0 + 1;
+			i2 = i0 + node->xDimension;
+			i3 = i2 + 1;
+			//printf("i0-i3 = %d %d %d %d\n",i0,i1,i2,i3);
+			hh[0] = node->height.p[i0];
+			hh[1] = node->height.p[i1];
+			hh[2] = node->height.p[i2];
+			hh[3] = node->height.p[i3];
+			//normalize cell x and z
+			cx = (x - ix*node->xSpacing)/node->xSpacing;
+			cz = (z - iz*node->zSpacing)/node->zSpacing;
+			//height interpolation by finite elements > bilinear interpolotion of height
+			// (could do cubic using 3x3 chunks)
+			gridheight =  hh[0]*(1.0f - cz)*(1.0f - cx)
+						+ hh[1]*(1.0f - cz)*cx 
+						+ hh[2]*cz*(1.0f - cx) 
+						+ hh[3]*cz*cx;
+			printf("_");
+			hit = 0;
+				
+			// scraped from:
+			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
+
+			double abottom = gdCoord->c[2] - 100; // - avatar height?
+			double hhh = gridheight - abottom;
+			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
+			double hhbelowfoot = hhh; //hhh - abottom;
+			fi->fallHeight = 1000000.0;
+			if( hhh < 0.0 )
+			{
+				printf("V");
+				/* falling */
+				if( hhh < abottom && hhh > -fi->fallHeight) 
+				{
+					printf("v");
+					/* FALLING */
+					if(fi->hits ==0)
+						fi->hfall = hhbelowfoot; //hh - y1;
+					else
+						if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
+					fi->hits++;
+					fi->isFall = 1;
+				}else{
+					printf("~");
+					/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
+					if( hhh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
+					{
+						/* CLIMBING. handled elsewhere for displacements, except annihilates any fall*/
+						fi->canFall = 0;
+
+						if( fi->isClimb == 0 )
+							fi->hclimb = hhbelowfoot; //hh - y1;
+						else
+							fi->hclimb = DOUBLE_MAX(fi->hclimb,hhbelowfoot);
+						fi->isClimb = 1;
+					}
+				}
+			}
+			double head = 0.0;
+			double hhabovehead = hhh - head;
+			if( hhabovehead > 0.0 )
+			{
+				printf("H");
+				/* climbing from undergound */
+				if( hhabovehead < fi->climbHeight) 
+				{
+					printf("^");
+					/* CLIMBING */
+					fi->canFall = 0;
+
+					if( fi->isClimb == 0 )
+						fi->hclimb = hhabovehead + abottom; //hh - y1;
+					else
+						fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
+					fi->isClimb = 1;
+				}
+			}
+		}
+	}
+
+	return hit;
+}
+void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	/* 
+	For examine and fly navigation modes, there's no gravity direction. 
+	Specifications say for geo walk navigation mode gravity vector is down along GD ellipsoid vertical 
+	with respect to (wrt) the current GD (geodetic/ellipsoidal latitude, longitude, height)
+	posistion of the viewpoint, not including the viewpoint's orientation 
+	field. 
+	When you collide in geo walk mode, the avatar collision
+	volume is aligned to current viewpoint GD vertical. 
+	*/
+
+	int ihit = -1;
+	struct Vector *vpstack;
+	struct X3D_Node *boundvp = NULL;
+	ttglobal tg = gglobal();
+	vpstack = getActiveBindableStacks(tg)->viewpoint;
+	if(vpstack && vpstack->n)
+		boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+
+	if(node->_nodeType == NODE_GeoElevationGrid && boundvp->_nodeType == NODE_GeoViewpoint){
+		ihit = geoelevationgrid_disp2((struct X3D_GeoElevationGrid*)node, (struct X3D_GeoViewpoint *)boundvp);
+		if(ihit==0) printf("0");
+		if(ihit==1) printf("1");
+		if(ihit==-1) printf(".");
+	}
+	if(0) if(ihit == -1){
+		//above couldn't handle it, thunking to generic 
+		//problem: if its a really dense grid, the framerate plummets
+		collide_genericfaceset ((struct X3D_IndexedFaceSet *)node );
+	}
+
+}
