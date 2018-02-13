@@ -6301,7 +6301,7 @@ void fwl_gotoViewpoint (char *findThisOne) {
     	}
 }
 
-void setup_viewpoint_slerp(double *center, double pivot_radius, double vp_radius);
+void setup_viewpoint_slerp3(double *center, double pivot_radius, double vp_radius);
 
 int getRayHitAndSetLookatTarget() {
 	/* called from mainloop for LOOKAT navigation:
@@ -6361,7 +6361,7 @@ int getRayHitAndSetLookatTarget() {
 				vp_radius = .8 * veclengthd(center);
 			}
 			Viewer()->LookatMode = 3; //go to viewpiont transition mode
-			setup_viewpoint_slerp(center,pivot_radius,vp_radius);
+			setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
 		}
     }
     return Viewer()->LookatMode;

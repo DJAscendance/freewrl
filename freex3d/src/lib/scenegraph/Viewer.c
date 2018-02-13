@@ -91,8 +91,8 @@ typedef struct pViewer{
 	GLboolean acMask[3][3]; //anaglyphChannelMask
 	//X3D_Viewer Viewer; /* moved to Bindables.h > bindablestacks */
 	/* viewpoint slerping */
-	double viewpoint2rootnode[16];
-	double viewpointnew2rootnode[16];
+	//double viewpoint2rootnode[16];
+	//double viewpointnew2rootnode[16];
 	double slerp_viewmatrix[16];
 	double slerp_posorimatrix[16];
 	int vp2rnSaved;
@@ -133,7 +133,7 @@ void Viewer_init(struct tViewer *t){
 		p->acMask[1][2] = (GLboolean)1;
 
 		/* viewpoint slerping */
-		loadIdentityMatrix(p->viewpoint2rootnode);
+		//loadIdentityMatrix(p->viewpoint2rootnode);
 		p->vp2rnSaved = FALSE; //on startup it binds before saving
 		loadIdentityMatrix(p->old2new);
 		loadIdentityMatrix(p->identity);
@@ -3176,9 +3176,9 @@ void viewer_restore_user_offsets(){
 		switch(boundvp->_nodeType){
 			case NODE_OrthoViewpoint:
 			{
-				double oo[4], pp[3];
 				struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint*)boundvp;
 				if(vp->retainUserOffsets){
+					double oo[4], pp[3];
 					float2double(pp,vp->_position.c,3);
 					double2pointxyz(&viewer->Pos,pp);
 					double2pointxyz(&viewer->AntiPos,pp);
@@ -3252,7 +3252,7 @@ void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 	Quaternion q_i;
 	float xd, yd,zd;
 	X3D_Viewer *viewer;
-	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
+	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = ViewerByLayerId(vp->_layerId);
 
 
@@ -3261,7 +3261,47 @@ void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 
 	/* SLERPing */
 	/* record position BEFORE calculating new Viewpoint position */
-	INITIATE_SLERP
+	//INITIATE_SLERP
+	viewer_restore_user_offsets();
+	viewer = ViewerByLayerId(vp->_layerId);
+	//printf("retained user pose=%lf %lf %lf\n",viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
+	//printf("retained user.Quat= %lf %lf %lf %lf\n",viewer->Quat.x,viewer->Quat.y,viewer->Quat.z,viewer->Quat.w);
+
+	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
+		//save the previous vp pose, in root space, for future slerps
+		p->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
+		//printf("S");
+		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
+		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
+		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
+		{
+			bindablestack* bstack = getActiveBindableStacks(gglobal());
+			matcopy(p->slerp_viewmatrix,bstack->viewtransformmatrix);
+			matcopy(p->slerp_posorimatrix,bstack->posorimatrix);
+			
+		}
+		//printf("S");
+
+        viewer->SLERPing = FALSE; //TRUE; 
+        viewer->startSLERPtime = TickTime(); 
+		if(0){
+        memcpy (&viewer->startSLERPPos, &viewer->Pos, sizeof (struct point_XYZ)); 
+        memcpy (&viewer->startSLERPAntiPos, &viewer->AntiPos, sizeof (struct point_XYZ)); 
+        memcpy (&viewer->startSLERPQuat, &viewer->Quat, sizeof (Quaternion)); 
+        memcpy (&viewer->startSLERPAntiQuat, &viewer->AntiQuat, sizeof (Quaternion));  
+        memcpy (&viewer->startSLERPbindTimeQuat, &viewer->bindTimeQuat, sizeof (Quaternion)); 
+        memcpy (&viewer->startSLERPprepVPQuat, &viewer->prepVPQuat, sizeof (Quaternion)); 
+		}
+		/* slerp Mark II */
+		viewer->SLERPing2 = TRUE;
+		viewer->SLERPing2justStarted = TRUE;
+		//printf("binding\n");
+
+	} else { 
+		viewer->SLERPing = FALSE; 
+		viewer->SLERPing2 = FALSE;
+	}
+	viewer->wasBound = TRUE;
 
 	/* calculate distance between the node position and defined centerOfRotation */
 	INITIATE_POSITION
@@ -3329,7 +3369,7 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 
 	*/
 
-	INITIATE_POSITION_ANTIPOSITION
+	if(0) INITIATE_POSITION_ANTIPOSITION
 	/* printf ("bind_OrthoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z);
 	*/
 
@@ -3407,11 +3447,11 @@ int slerp_viewpoint2()
 				//double rn2rn[16];
 				double diffrn[16];
 				matcopy(vpo2rn,mat_from);
-				if(viewer->LookatMode==3){
-					matcopy(vpn2rn,p->viewpointnew2rootnode);
-				}else{
-					matcopy(vpn2rn,mat_to);
-				}
+				//if(viewer->LookatMode==3){
+				//	matcopy(vpn2rn,p->viewpointnew2rootnode);
+				//}else{
+				matcopy(vpn2rn,mat_to);
+				//}
 				//matinverse(rn2vpo,vpo2rn);
 				matinverseAFFINE(rn2vpn,vpn2rn);
 				//this works a bit:
@@ -3504,10 +3544,11 @@ int slerp_viewpoint3()
 	return iret;
 }
 
-void setup_viewpoint_slerp(double* center, double pivot_radius, double vp_radius){
+void setup_viewpoint_slerp3(double* center, double pivot_radius, double vp_radius){
+	//slerp3 for EXPLORE, LOOKAT
 	/* when you don't have a  new viewpoint to bind to, but know where you want the viewer to go
 		with a transform relative to the viewer, instead of bind_viewpoint call 
-		setup_viewpoint_slerp(pointInEyespace, radiusOfShapeInEyespace)
+		setup_viewpoint_slerp3(pointInEyespace, radiusOfShapeInEyespace)
 		
 	*/
 	//GLDOUBLE matTargeti[16]; //, matTarget[16], mv[16];
@@ -3776,7 +3817,7 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 		//printf("S");
 		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
 		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
+		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
 		{
 			bindablestack* bstack = getActiveBindableStacks(gglobal());
 			matcopy(p->slerp_viewmatrix,bstack->viewtransformmatrix);
