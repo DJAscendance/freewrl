@@ -1148,7 +1148,6 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 	viewer->Pos.x += (examine->Origin).x;
 	viewer->Pos.y += (examine->Origin).y;
 	viewer->Pos.z += (examine->Origin).z;
-	viewer_update_user_offsets();
 /*
 printf ("examine->origin %4.3f %4.3f %4.3f\n",examine->Origin.x, examine->Origin.y, examine->Origin.z);
 */
@@ -1503,7 +1502,6 @@ void handle_tick_fly2(double dtime) {
 		//inplane->x = x;
 		//inplane->y = y;
 		//CALCULATE_EXAMINE_DISTANCE
-		viewer_update_user_offsets();
  	}
 	
 }
@@ -1646,7 +1644,6 @@ void handle_tick_tplane(double dtime){
 		pp.z = 0.0;
 		//vecadd(&viewer->Pos,&viewer->Pos,&pp);
 		increment_pos(&pp);
-		viewer_update_user_offsets();
 	}
 }
 
@@ -1685,7 +1682,6 @@ void handle_rtplane(const int mev, const unsigned int button, float x, float y) 
 			inplane->x = xx;
 			inplane->y = yy;
 			//CALCULATE_EXAMINE_DISTANCE
-			viewer_update_user_offsets();
 		}
 		if(1){
 			//handle_tick quadratic drag
@@ -1801,6 +1797,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	default:
 		break;
 	}
+	viewer_update_user_offsets();
 }
 
 #define FLYREMAP {{'a',NUM0},{'z',NUMDEC},{'j',LEFT_KEY},{'l',RIGHT_KEY},{'p',UP_KEY},{';',DOWN_KEY},{'8',NUM8},{'k',NUM2},{'u',NUM4},{'o',NUM6 },{'7',NUM7},{'9',NUM9}}
@@ -2275,7 +2272,6 @@ static void handle_tick_walk()
 
 	/* make sure Viewer.Dist is configured properly for Examine mode */
 	//CALCULATE_EXAMINE_DISTANCE
-	viewer_update_user_offsets();
 
 }
 
@@ -2590,7 +2586,6 @@ static void handle_tick_fly()
 	quaternion_set(&q_v, &(viewer->Quat));
 	quaternion_multiply(&(viewer->Quat), &nq, &q_v);
 	quaternion_normalize(&(viewer->Quat));
-	viewer_update_user_offsets();
 	/* make sure Viewer.Dist is configured properly for Examine mode */
 	//CALCULATE_EXAMINE_DISTANCE
 
@@ -2677,6 +2672,7 @@ handle_tick()
 			p->examineCounter = 5;
 		}
 	}
+	viewer_update_user_offsets();
 }
 
 
@@ -3537,6 +3533,7 @@ int slerp_viewpoint3()
 		if(tickFrac >= 1.0) {
 			viewer->SLERPing3 = 0;
 			resolve_pos2(); //may not need this if examine etc do it
+			viewer_update_user_offsets();
 		}
 		iret = 1;
 		//now we let normal rendering use the viewer quat, pos, dist during rendering
