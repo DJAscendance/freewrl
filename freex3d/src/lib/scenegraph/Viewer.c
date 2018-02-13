@@ -815,6 +815,7 @@ ViewerUpVector computation - see RenderFuncs.c L595
 
 	/* make sure Viewer.Dist is configured properly for Examine mode */
 	//CALCULATE_EXAMINE_DISTANCE
+	viewer_update_user_offsets();
 }
 
 void viewer_togl(double fieldofview) 
