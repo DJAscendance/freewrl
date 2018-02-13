@@ -3397,8 +3397,8 @@ int slerp_viewpoint2()
 		matmultiplyAFFINE(mat_from,p->slerp_viewmatrix,p->slerp_posorimatrix);
 
 		//viewpoint slerp-on-bind comes through here
-		if(1){
-			//simpler matrix slerp, works
+		if(0){
+			//simpler matrix slerp, works, but with distortions during slerp, and complaints from proximity sensors
 			//theory: we are called from startofloopnodeupdates at the rootnode level
 			//and we have the prior view matrix (saved in bind_viewpoint) and the current view matrix.
 			//so we could slerp between the two, and reset the viewmatrix in the matrix stack

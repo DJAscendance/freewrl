@@ -3059,7 +3059,7 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	*/ 
  
 	if(fabs(VECPT(dr1r2, dr2r3)) > 0.001) { 
-		printf ("Sorry, can't handle unevenly scaled ProximitySensors yet :(" 
+		printf ("Sorry, can't handle unevenly scaled GeoProximitySensors yet :(" 
 		  "dp: %f v: (%f %f %f) (%f %f %f)\n", VECPT(dr1r2, dr2r3), 
 		  	dr1r2.x,dr1r2.y,dr1r2.z, 
 		  	dr2r3.x,dr2r3.y,dr2r3.z 
