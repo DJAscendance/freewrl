@@ -3311,7 +3311,8 @@ void set_viewmatrix();
 static void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive);
 /* void fwl_do_keyPress(char kp, int type); Now in lib.h */
 void render_collisions(int Viewer_type);
-int slerp_viewpoint(int itype);
+int slerp_viewpoint2();
+int slerp_viewpoint3();
 static void render_pre(void);
 
 static int setup_pickside(int x, int y);
@@ -4783,7 +4784,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 	if (p->onScreen)
 	{
 		render_pre();
-		slerp_viewpoint(3); //does explore / lookat vp slerp
+		slerp_viewpoint3(); //does explore / lookat vp slerp
 
 	}
 
@@ -5921,15 +5922,16 @@ void setup_viewpoint_part3() {
 	//multiply it all together, and capture any slerp
 	//Feb 2016 - I think we should slerp the main/normal position of the viewpoint. 
 	// - then if its stereo, offset by half-base during rendernig or picking
-			matcopy(viewmatrix,bstack->screenorientationmatrix);
-		//if(0) if(isStereo)
-		//		matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
-			matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
-			matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
-			fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
-
-		if(slerp_viewpoint(2)) //just starting block, does vp-bind type slerp
-				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
+	matcopy(viewmatrix,bstack->screenorientationmatrix);
+	//if(0) if(isStereo)
+	//		matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
+	matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
+	slerp_viewpoint2(); //modifies viewtransformmatrix
+	matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
+	fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+	//if(1) fw_glSetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
+	//if(slerp_viewpoint2(bstack->posorimatrix,bstack->viewtransformmatrix)) //just starting block, does vp-bind type slerp
+	//	fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
 
 }
 void setup_viewpoint(){
@@ -6299,7 +6301,7 @@ void fwl_gotoViewpoint (char *findThisOne) {
     	}
 }
 
-void setup_viewpoint_slerp(double *center, double pivot_radius, double vp_radius);
+void setup_viewpoint_slerp3(double *center, double pivot_radius, double vp_radius);
 
 int getRayHitAndSetLookatTarget() {
 	/* called from mainloop for LOOKAT navigation:
@@ -6359,7 +6361,7 @@ int getRayHitAndSetLookatTarget() {
 				vp_radius = .8 * veclengthd(center);
 			}
 			Viewer()->LookatMode = 3; //go to viewpiont transition mode
-			setup_viewpoint_slerp(center,pivot_radius,vp_radius);
+			setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
 		}
     }
     return Viewer()->LookatMode;

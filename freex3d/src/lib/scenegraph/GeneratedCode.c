@@ -137,6 +137,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__lowest",
 	"__movedCoords",
 	"__movedOrientation",
+	"__movedOrientationB",
 	"__movedPosition",
 	"__movedValue",
 	"__movedgd",
@@ -144,6 +145,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__normals",
 	"__numPoints",
 	"__occludeCheckCount",
+	"__offsetOrient",
 	"__oldChildren",
 	"__oldEnabled",
 	"__oldFieldOfView",
@@ -291,6 +293,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_oldrotation",
 	"_oldtrackPoint",
 	"_oldtranslation",
+	"_orientation",
 	"_origCoords",
 	"_origNormalizedPoint",
 	"_origNorms",
@@ -321,6 +324,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_phaseFunction",
 	"_pointsVBO",
 	"_portions",
+	"_position",
 	"_previousvalue",
 	"_radius",
 	"_registered",
@@ -4633,6 +4637,7 @@ const int OFFSETS_GeoLocation[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoLocation, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoLocation, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoLocation, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___offsetOrient, (int) offsetof (struct X3D_GeoLocation, __offsetOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldgeoCoords, (int) offsetof (struct X3D_GeoLocation, __oldgeoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldChildren, (int) offsetof (struct X3D_GeoLocation, __oldChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_GeoLocation, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -4768,6 +4773,7 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedOrientation, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___movedOrientationB, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientationB),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedgd, (int) offsetof (struct X3D_GeoViewpoint, __movedgd),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldSFString, (int) offsetof (struct X3D_GeoViewpoint, __oldSFString),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldFieldOfView, (int) offsetof (struct X3D_GeoViewpoint, __oldFieldOfView),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -6005,6 +6011,8 @@ const int OFFSETS_OrthoViewpoint[] = {
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_OrthoViewpoint, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_centerOfRotation, (int) offsetof (struct X3D_OrthoViewpoint, centerOfRotation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_retainUserOffsets, (int) offsetof (struct X3D_OrthoViewpoint, retainUserOffsets),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_OrthoViewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__position, (int) offsetof (struct X3D_OrthoViewpoint, _position),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PackagedShader[] = {
@@ -7356,6 +7364,8 @@ const int OFFSETS_Viewpoint[] = {
 	(int) FIELDNAMES_retainUserOffsets, (int) offsetof (struct X3D_Viewpoint, retainUserOffsets),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_fovMode, (int) offsetof (struct X3D_Viewpoint, fovMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_aspectRatio, (int) offsetof (struct X3D_Viewpoint, aspectRatio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_Viewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__position, (int) offsetof (struct X3D_Viewpoint, _position),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ViewpointGroup[] = {
@@ -9680,6 +9690,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
+			tmp2->__offsetOrient.c[0] = 0;tmp2->__offsetOrient.c[1] = 0;tmp2->__offsetOrient.c[2] = 1;;
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldChildren.n=0; tmp2->__oldChildren.p=0;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
@@ -9836,6 +9847,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__movedPosition.c[0] = 0;tmp2->__movedPosition.c[1] = 0;tmp2->__movedPosition.c[2] = 0;;
 			tmp2->__movedOrientation.c[0] = 0;tmp2->__movedOrientation.c[1] = 0;tmp2->__movedOrientation.c[2] = 1;tmp2->__movedOrientation.c[3] = 0;;
+			tmp2->__movedOrientationB.c[0] = 0;tmp2->__movedOrientationB.c[1] = 0;tmp2->__movedOrientationB.c[2] = 1;tmp2->__movedOrientationB.c[3] = 0;;
 			tmp2->__movedgd.c[0] = 0;tmp2->__movedgd.c[1] = 0;tmp2->__movedgd.c[2] = 0;;
 			tmp2->__oldSFString = newASCIIString("");
 			tmp2->__oldFieldOfView = 0.785398f;
@@ -11461,6 +11473,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->position.c[0] = 0.0f;tmp2->position.c[1] = 0.0f;tmp2->position.c[2] = 10.0f;
 			tmp2->centerOfRotation.c[0] = 0.0f;tmp2->centerOfRotation.c[1] = 0.0f;tmp2->centerOfRotation.c[2] = 0.0f;
 			tmp2->retainUserOffsets = FALSE;
+			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
+			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -13134,6 +13148,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->retainUserOffsets = FALSE;
 			tmp2->fovMode = newASCIIString("");
 			tmp2->aspectRatio = 0.785398f;
+			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
+			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -14644,6 +14660,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __localOrient (SFVec4d): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__localOrient.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __offsetOrient (SFVec4d): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__offsetOrient.c[i]); }
 			fprintf (fp,"\n");
 		    }
 		    if(allFields) {

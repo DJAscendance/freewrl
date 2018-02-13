@@ -2137,8 +2137,9 @@ void render_collisions(int Viewer_type) {
 	 /* if (!APPROX(v.x,0.0) || !APPROX(v.y,0.0) || !APPROX(v.z,0.0)) {
 		printf ("%lf MainLoop, rendercollisions, offset %f %f %f\n",TickTime(),v.x,v.y,v.z);
 	} */
-		/* v should be in avatar coordinates*/
-        increment_pos(&v);
+	/* v should be in avatar coordinates*/
+    increment_pos(&v);
+	viewer_update_user_offsets();
 }
 
 
