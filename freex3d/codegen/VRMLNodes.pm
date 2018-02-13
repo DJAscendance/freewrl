@@ -1593,7 +1593,9 @@ our %Nodes = (
 		# augmented reality extensions:
 		fovMode => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff # see note top of file
 		aspectRatio => ["SFFloat", 0.785398, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		
+		# user offsets:
+		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
+		_position => ["SFVec3f",[0, 0, 0], "initializeOnly", 0,0],#ff
 	],"X3DBindableNode"),
 
 	"OrthoViewpoint" => new VRML::NodeType("OrthoViewpoint", [
@@ -1611,6 +1613,9 @@ our %Nodes = (
 		position => ["SFVec3f",[0, 0, 10], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		centerOfRotation =>["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		retainUserOffsets => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		# user offsets:
+		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
+		_position => ["SFVec3f",[0, 0, 0], "initializeOnly", 0,0],#ff
 	],"X3DBindableNode"),
 
 

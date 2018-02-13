@@ -287,8 +287,11 @@ typedef struct viewer {
 X3D_Viewer *ViewerByLayerId(int layerid);
 //extern X3D_Viewer Viewer; /* in VRMLC.pm */
 X3D_Viewer *Viewer();
+struct X3D_Node *getActiveLayerBoundViewpoint();
 void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type);
 void viewer_default(void);
+void viewer_update_user_offsets();
+void viewer_restore_user_offsets();
 
 void Viewer_anaglyph_setSide(int iside);
 void Viewer_anaglyph_clearSides();

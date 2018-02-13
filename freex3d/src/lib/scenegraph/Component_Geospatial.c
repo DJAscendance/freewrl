@@ -3486,8 +3486,11 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		//getCurrentPosInModel(FALSE); 
 
 
-		/* now, lets work on the GeoViewpoint fieldOfView. Q why? */
-		if(0){
+		/* now, lets work on the GeoViewpoint fieldOfView. 
+			Q why now, here? 
+			A.the window can be resized on any frame. so can't do it once in compile_geoviewpoint 
+			 -and analogously we do it in prep_viewpoint and prep_orthoviewpoint
+		*/
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		if(viewPort[2] > viewPort[3]) {
 			a1=0;
@@ -3496,7 +3499,6 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			a1 = node->fieldOfView;
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
 			Viewer()->fieldofview = a1/3.1415926536*180;
-		}
 		}
 		if(geo_method()==1)
 			calculateViewingSpeed();
@@ -3622,7 +3624,6 @@ static void calculateExamineModeDistance(void) {
 Viewer()->doExamineModeDistanceCalculations = TRUE;
 
 }
-
 void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	X3D_Viewer *viewer;
 	Quaternion q_i;
@@ -3632,7 +3633,7 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	viewer = ViewerByLayerId(node->_layerId);
 
-	INITIALIZE_GEOSPATIAL(node)
+	//done in compile INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	/* set Viewer position and orientation */
