@@ -3124,6 +3124,9 @@ void set_stereo_offset0() /*int iside, double eyehalf, double eyehalfangle)*/
 	FW_GL_TRANSLATE_D(x, 0.0, 0.0);
 	FW_GL_ROTATE_D(angle, 0.0, 1.0, 0.0);
 }
+void geoviewpoint_restore_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
+void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
+
 void viewer_update_user_offsets(){
 	//call this often when navigating
 	//saves accumulated navigation from bind pose, per viewpoint
@@ -3155,6 +3158,7 @@ void viewer_update_user_offsets(){
 			case NODE_GeoViewpoint:
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
+				geoviewpoint_update_user_offsets(vp,&viewer->Quat,&viewer->Pos);
 			}
 			break;
 			default:
@@ -3207,6 +3211,7 @@ void viewer_restore_user_offsets(){
 			case NODE_GeoViewpoint:
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
+				geoviewpoint_restore_user_offsets(vp,&viewer->Quat,&viewer->Pos);
 			}
 			break;
 			default:

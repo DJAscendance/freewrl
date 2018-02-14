@@ -3438,6 +3438,41 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	#endif
 }
 struct X3D_Node *getActiveLayerBoundViewpoint();
+
+void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//Theory of operation: we keep the GVP (geoviewpoint) in GD (geodetic latitude,longitude,height) coordinates
+	// and GDA (GD Aligned) with 'up' being skyward, 
+	// and to do this we use Viewer as a 3D pointing device, taking its motions incrementally
+	// on each frame (and zero Quat,Pos after we take them)
+	// and then we re-interpret the 3D pose motions as being in GDGDA (GD GDA) space
+	// Benefits: LEVEL and various menubar navigation tools should work 
+	//  and we can walk/fly around the world and 'up' will always be skyward.
+
+	// re-interpret 3D pose increments in GDGDA space
+	Quaternion qq, qqq;
+	double oo[4], pp[3];
+	pointxyz2double(pp,Pos);
+	vecdifd(node->__movedPosition.c,node->__movedPosition.c,pp);
+	float2double(oo,node->__movedOrientation.c,4);
+	vrmlrot_to_quaternion(&qq,oo[0],oo[1],oo[2],oo[3]);
+	quaternion_inverse(&qqq,Quat);
+	if(0)
+		quaternion_multiply(&qq,&qq,&qqq);
+	else
+		quaternion_set(&qq,&qqq);
+	quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
+	double2float(node->__movedOrientation.c,oo,4);
+
+	//store 'user offset' as an absolute pose (GDGDA)
+
+	//zero 3D pose increments - could leave tilts in, so they can be added to/leveled away by viewer
+	if(0) Quat->x = Quat->y = Quat->z = 0.0; Quat->w = 1.0;
+	Pos->x = Pos->y = Pos->z = 0.0;
+}
+void geoviewpoint_restore_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//restore absolute pose
+	
+}
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
 	GLint viewPort[10];
