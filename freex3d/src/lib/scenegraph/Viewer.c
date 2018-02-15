@@ -897,9 +897,10 @@ printf ("\t	AntiPos           %lf %lf %lf\n",Viewer.AntiPos.x,Viewer.AntiPos.y,V
 
 		if (tickFrac >= 1.0) viewer->SLERPing = FALSE;
 	} else {
-		if(0){
-		quaternion_togl(&viewer->Quat);
-		FW_GL_TRANSLATE_D(-(viewer->Pos).x, -(viewer->Pos).y, -(viewer->Pos).z);
+		if(!getActiveLayerBoundViewpoint()){
+			//only do these if there's no bound viewpoint
+			quaternion_togl(&viewer->Quat);
+			FW_GL_TRANSLATE_D(-(viewer->Pos).x, -(viewer->Pos).y, -(viewer->Pos).z);
 		}
 		if(0) FW_GL_TRANSLATE_D((viewer->AntiPos).x, (viewer->AntiPos).y, (viewer->AntiPos).z);
 		if(0) quaternion_togl(&viewer->AntiQuat);
