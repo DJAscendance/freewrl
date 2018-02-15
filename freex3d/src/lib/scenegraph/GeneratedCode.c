@@ -260,6 +260,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_initialRotation",
 	"_initialTranslation",
 	"_initialized",
+	"_initializedOnce",
 	"_input",
 	"_int32InpFIFO",
 	"_int32OutFIFO",
@@ -6011,6 +6012,7 @@ const int OFFSETS_OrthoViewpoint[] = {
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_OrthoViewpoint, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_centerOfRotation, (int) offsetof (struct X3D_OrthoViewpoint, centerOfRotation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_retainUserOffsets, (int) offsetof (struct X3D_OrthoViewpoint, retainUserOffsets),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__initializedOnce, (int) offsetof (struct X3D_OrthoViewpoint, _initializedOnce),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_OrthoViewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_OrthoViewpoint, _position),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -7364,6 +7366,7 @@ const int OFFSETS_Viewpoint[] = {
 	(int) FIELDNAMES_retainUserOffsets, (int) offsetof (struct X3D_Viewpoint, retainUserOffsets),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_fovMode, (int) offsetof (struct X3D_Viewpoint, fovMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_aspectRatio, (int) offsetof (struct X3D_Viewpoint, aspectRatio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__initializedOnce, (int) offsetof (struct X3D_Viewpoint, _initializedOnce),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_Viewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_Viewpoint, _position),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -11473,6 +11476,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->position.c[0] = 0.0f;tmp2->position.c[1] = 0.0f;tmp2->position.c[2] = 10.0f;
 			tmp2->centerOfRotation.c[0] = 0.0f;tmp2->centerOfRotation.c[1] = 0.0f;tmp2->centerOfRotation.c[2] = 0.0f;
 			tmp2->retainUserOffsets = FALSE;
+			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_children;
@@ -13148,6 +13152,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->retainUserOffsets = FALSE;
 			tmp2->fovMode = newASCIIString("");
 			tmp2->aspectRatio = 0.785398f;
+			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_children;

@@ -1484,9 +1484,7 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 	}
 
 }
-void vecprint3fb(char *name, float *p, char *eol){
-	printf("%s %f %f %f %s",name,p[0],p[1],p[2],eol);
-}
+
 
 void do_PointSensor(void *ptr, int ev, int but1, int over) {
 	/* Experimental node There is no PointSensor node in the specs in Dec 2017.

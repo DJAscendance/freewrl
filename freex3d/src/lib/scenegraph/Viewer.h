@@ -290,8 +290,8 @@ X3D_Viewer *Viewer();
 struct X3D_Node *getActiveLayerBoundViewpoint();
 void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type);
 void viewer_default(void);
-void viewer_update_user_offsets();
-void viewer_restore_user_offsets();
+void viewer_update_user_offsets0(X3D_Viewer *viewer);
+void viewer_fetch_user_offsets0(X3D_Viewer *viewer);
 
 void Viewer_anaglyph_setSide(int iside);
 void Viewer_anaglyph_clearSides();

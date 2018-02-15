@@ -2139,7 +2139,6 @@ void render_collisions(int Viewer_type) {
 	} */
 	/* v should be in avatar coordinates*/
     increment_pos(&v);
-	viewer_update_user_offsets();
 }
 
 

@@ -1747,12 +1747,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 //especially to 'demacroize' while keeping generallized across related nodes
 //we don't have the concept of an 'interface' -cluster of related fields-
 //and in general we can't rely on fields being in a consistent order or offset from node start.
-void vecprint3db(char *name, double *p, char *eol){
-	printf("%s %lf %lf %lf %s",name,p[0],p[1],p[2],eol);
-}
-void vecprint4db(char *name, double *p, char *eol){
-	printf("%s %lf %lf %lf %lf %s",name,p[0],p[1],p[2],p[3],eol);
-}
+
 //TRANSFORMING FROM GEOSPATIAL  TO SHARED LOCAL
 // terminology:
 // geocentric GC - center of molten core of eath is 0,0,0

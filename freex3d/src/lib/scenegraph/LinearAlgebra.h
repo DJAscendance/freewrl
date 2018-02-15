@@ -185,7 +185,8 @@ double veclength2d( double *p );
 double vecdot2d(double *a, double *b);
 double* vecscale2d(double* r, double* v, double s);
 double vecnormal2d(double *r, double *v);
-
+void vecprint3db(char *name, double *p, char *eol);
+void vecprint4db(char *name, double *p, char *eol);
 double *veccopy4d(double *c, double *a);
 
 int vecsame2f(float *a, float *b);
@@ -199,6 +200,7 @@ float* vecscale2f(float* r, float* v, float s);
 float vecnormal2f(float *r, float *v);
 float *vecmult2f(float *c, float *a, float *b);
 
+void vecprint3fb(char *name, float *p, char *eol);
 int vecsame3f(float *a, float *b);
 float *veccopy3f(float *b, float *a);
 float *vecset3f(float *b, float x, float y, float z);
@@ -219,7 +221,7 @@ BOOL line_intersect_planed_3f(float *p, float *v, float *N, float d, float *pi, 
 BOOL line_intersect_plane_3f(float *p, float *v, float *N, float *pp, float *pi, float *t);
 BOOL line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi);
 
-
+void vecprint4fb(char *name, float *p, char *eol);
 float vecdot4f( float *a, float *b );
 float *vecscale4f(float *b, float *a, float scale);
 float *veccopy4f(float *b, float *a);

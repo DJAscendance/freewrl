@@ -102,7 +102,6 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 			FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
 
 		} else {
-
 			//quaternion_togl(&viewer->prepVPQuat);
 			{
 				//dug9slerp  this fix works with a test file VP_set_orientation.x3d

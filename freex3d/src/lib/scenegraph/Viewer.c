@@ -676,7 +676,7 @@ void resolve_pos20(X3D_Viewer *viewer) {
 
 	X3D_Viewer_Examine *examine = &viewer->examine;
 
-
+	viewer_fetch_user_offsets0(viewer);
 	//if (viewer->type == VIEWER_EXAMINE  || (viewer->type == VIEWER_LOOKAT && viewer->lastType == VIEWER_EXAMINE) ) {
 		/* my $z = $this->{Quat}->invert->rotate([0,0,1]); */
 		quaternion_inverse(&q_inv, &(viewer->Quat));
@@ -739,7 +739,7 @@ void avatar2BoundViewpointVerticalAvatar(GLDOUBLE *matA2BVVA, GLDOUBLE *matBVVA2
 	struct point_XYZ downvec = {0.0,-1.0,0.0};
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
-
+	viewer_fetch_user_offsets0(viewer);
 	//downvec is in bound viewpoint space
 	quaternion_rotation(&tilted, &viewer->Quat, &downvec);
 	//tilted is in avatar space.
@@ -800,8 +800,9 @@ ViewerUpVector computation - see RenderFuncs.c L595
 	X3D_Viewer *viewer;
 	struct point_XYZ downvec = {0.0,-1.0,0.0};
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
-
 	viewer = Viewer();
+	viewer_fetch_user_offsets0(viewer);
+
 	Quat = viewer->Quat;
 	//AntiQuat = Viewer.AntiQuat;
 	quaternion_rotation(&tilted, &Quat, &downvec);
@@ -815,7 +816,7 @@ ViewerUpVector computation - see RenderFuncs.c L595
 
 	/* make sure Viewer.Dist is configured properly for Examine mode */
 	//CALCULATE_EXAMINE_DISTANCE
-	viewer_update_user_offsets();
+	viewer_update_user_offsets0(viewer);
 }
 
 void viewer_togl(double fieldofview) 
@@ -896,9 +897,10 @@ printf ("\t	AntiPos           %lf %lf %lf\n",Viewer.AntiPos.x,Viewer.AntiPos.y,V
 
 		if (tickFrac >= 1.0) viewer->SLERPing = FALSE;
 	} else {
+		if(0){
 		quaternion_togl(&viewer->Quat);
 		FW_GL_TRANSLATE_D(-(viewer->Pos).x, -(viewer->Pos).y, -(viewer->Pos).z);
-		
+		}
 		if(0) FW_GL_TRANSLATE_D((viewer->AntiPos).x, (viewer->AntiPos).y, (viewer->AntiPos).z);
 		if(0) quaternion_togl(&viewer->AntiQuat);
 	}
@@ -1751,6 +1753,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	X3D_Viewer *viewer;
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
+	viewer_fetch_user_offsets0(viewer);
 	/* ConsoleMessage("Viewer handle: viewer_type %s, mouse event %d, button %u, x %f, y %f\n", 
 	   lookup_navmodestring(viewer->type), mev, button, x, yup); */
 
@@ -1798,7 +1801,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	default:
 		break;
 	}
-	viewer_update_user_offsets();
+	viewer_update_user_offsets0(viewer);
 }
 
 #define FLYREMAP {{'a',NUM0},{'z',NUMDEC},{'j',LEFT_KEY},{'l',RIGHT_KEY},{'p',UP_KEY},{';',DOWN_KEY},{'8',NUM8},{'k',NUM2},{'u',NUM4},{'o',NUM6 },{'7',NUM7},{'9',NUM9}}
@@ -2599,7 +2602,7 @@ handle_tick()
 	double dtime;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
-
+	viewer_fetch_user_offsets0(viewer);
 	dtime = TickTime() - lastTime(); //0.0; 
 	 
 	switch(viewer->type) {
@@ -2673,7 +2676,7 @@ handle_tick()
 			p->examineCounter = 5;
 		}
 	}
-	viewer_update_user_offsets();
+	viewer_update_user_offsets0(viewer);
 }
 
 
@@ -3127,13 +3130,11 @@ void set_stereo_offset0() /*int iside, double eyehalf, double eyehalfangle)*/
 void geoviewpoint_restore_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
 
-void viewer_update_user_offsets(){
+void viewer_update_user_offsets0(X3D_Viewer *viewer){
 	//call this often when navigating
 	//saves accumulated navigation from bind pose, per viewpoint
 
-	X3D_Viewer *viewer;
 	struct X3D_Node *boundvp;
-	viewer = Viewer();
 	boundvp = getActiveLayerBoundViewpoint();
 	if(boundvp){
 		switch(boundvp->_nodeType){
@@ -3141,18 +3142,20 @@ void viewer_update_user_offsets(){
 			{
 				double oo[4];
 				struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint*)boundvp;
-				vecset3f(vp->_position.c,viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
+				vecset3f(vp->position.c,viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
 				quaternion_to_vrmlrot(&viewer->Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-				double2float(vp->_orientation.c,oo,4);
+				oo[3] = -oo[3]; //historically all our navigation Quat work was done -ve
+				double2float(vp->orientation.c,oo,4);
 			}
 			break;
 			case NODE_Viewpoint:
 			{
 				double oo[4];
 				struct X3D_Viewpoint *vp = (struct X3D_Viewpoint*)boundvp;
-				vecset3f(vp->_position.c,viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
+				vecset3f(vp->position.c,viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
 				quaternion_to_vrmlrot(&viewer->Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-				double2float(vp->_orientation.c,oo,4);
+				oo[3] = -oo[3];
+				double2float(vp->orientation.c,oo,4);
 			}
 			break;
 			case NODE_GeoViewpoint:
@@ -3166,46 +3169,33 @@ void viewer_update_user_offsets(){
 		}
 	}
 }
-void viewer_restore_user_offsets(){
+void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 	//call this once, when binding/just after binding, to a viewpoint, if vp->retainUserOffsets == TRUE
 	//lets user carry on from where they left off with a given viewpoint
-	X3D_Viewer *viewer;
 	struct X3D_Node *boundvp;
-	viewer = Viewer();
 	boundvp = getActiveLayerBoundViewpoint();
 	if(boundvp){
 		switch(boundvp->_nodeType){
 			case NODE_OrthoViewpoint:
 			{
 				struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint*)boundvp;
-				if(vp->retainUserOffsets){
-					double oo[4], pp[3];
-					float2double(pp,vp->_position.c,3);
-					double2pointxyz(&viewer->Pos,pp);
-					double2pointxyz(&viewer->AntiPos,pp);
-					float2double(oo,vp->_orientation.c,4);
-					vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],oo[3]);
-
-				}else{
-					vrmlrot_to_quaternion(&viewer->Quat,0.0,0.0,0.0,1.0);
-					viewer->Pos.x = viewer->Pos.y = viewer->Pos.z = 0.0;
-				}
+				double oo[4], pp[3];
+				float2double(pp,vp->position.c,3);
+				double2pointxyz(&viewer->Pos,pp);
+				//double2pointxyz(&viewer->AntiPos,pp);
+				float2double(oo,vp->orientation.c,4);
+				vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],-oo[3]);
 			}
 			break;
 			case NODE_Viewpoint:
 			{
 				struct X3D_Viewpoint *vp = (struct X3D_Viewpoint*)boundvp;
-				if(vp->retainUserOffsets){
-					Quaternion q_i;
-					double oo[4], pp[3];
-					float2double(pp,vp->_position.c,3);
-					double2pointxyz(&viewer->Pos,pp);
-					float2double(oo,vp->_orientation.c,4);
-					vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],oo[3]);
-				}else{
-					vrmlrot_to_quaternion(&viewer->Quat,0.0,0.0,0.0,1.0);
-					viewer->Pos.x = viewer->Pos.y = viewer->Pos.z = 0.0;
-				}
+				Quaternion q_i;
+				double oo[4], pp[3];
+				float2double(pp,vp->position.c,3);
+				double2pointxyz(&viewer->Pos,pp);
+				float2double(oo,vp->orientation.c,4);
+				vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],-oo[3]);
 			}
 			break;
 			case NODE_GeoViewpoint:
@@ -3228,7 +3218,7 @@ void increment_pos(struct point_XYZ *vec) {
 	X3D_Viewer *viewer;
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
-
+	viewer_fetch_user_offsets0(viewer);
 	viewer_lastP_add(vec);
 
 	/* bound-viewpoint-space > Viewer.Pos,Viewer.Quat > avatar-space */
@@ -3246,7 +3236,7 @@ void increment_pos(struct point_XYZ *vec) {
 		Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, 
 		Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z, 
 		nv.x, nv.y, nv.z); */
-	
+	viewer_update_user_offsets0(viewer);
 }
 
 /* We have a OrthoViewpoint node being bound. (not a GeoViewpoint node) */
@@ -3260,11 +3250,18 @@ void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 
 	/* did bind_node tell us we could bind this guy? */
 	if (!(vp->isBound)) return;
+	if(!vp->_initializedOnce) {
+		//save the scene design-time pos,ori for rebinding with no user offsets
+		veccopy3f(vp->_position.c,vp->position.c);
+		veccopy4f(vp->_orientation.c,vp->orientation.c);
+		vp->_initializedOnce = TRUE;
+	}
 
-	/* SLERPing */
-	/* record position BEFORE calculating new Viewpoint position */
 	//INITIATE_SLERP
-	viewer_restore_user_offsets();
+	if(!vp->retainUserOffsets){
+		veccopy3f(vp->position.c,vp->_position.c);
+		veccopy4f(vp->orientation.c,vp->_orientation.c);
+	}
 	viewer = ViewerByLayerId(vp->_layerId);
 	//printf("retained user pose=%lf %lf %lf\n",viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
 	//printf("retained user.Quat= %lf %lf %lf %lf\n",viewer->Quat.x,viewer->Quat.y,viewer->Quat.z,viewer->Quat.w);
@@ -3378,7 +3375,6 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 	viewer_lastP_clear();
 	resolve_pos();
 	setMenuStatusVP (vp->description->strptr);
-	viewer_restore_user_offsets();
 
 }
 
@@ -3533,13 +3529,14 @@ int slerp_viewpoint3()
 		double tickFrac;
 		tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 		tickFrac = min(1.0,tickFrac); //clamp to max 1.0 otherwise a slow frame rate will overshoot
+		viewer_fetch_user_offsets0(viewer);
 		quaternion_slerp(&viewer->Quat,&viewer->startSLERPQuat,&viewer->endSLERPQuat,tickFrac);
 		point_XYZ_slerp(&viewer->Pos,&viewer->startSLERPPos,&viewer->endSLERPPos,tickFrac);
+		viewer_update_user_offsets0(viewer);
 		general_slerp(&viewer->Dist,&viewer->startSLERPDist,&viewer->endSLERPDist,1,tickFrac);
 		if(tickFrac >= 1.0) {
 			viewer->SLERPing3 = 0;
 			resolve_pos2(); //may not need this if examine etc do it
-			viewer_update_user_offsets();
 		}
 		iret = 1;
 		//now we let normal rendering use the viewer quat, pos, dist during rendering
@@ -3650,7 +3647,6 @@ void setup_viewpoint_slerp3(double* center, double pivot_radius, double vp_radiu
 }
 
 
-
 /* We have a Viewpoint node being bound. (not a GeoViewpoint node) */
 void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	Quaternion q_i;
@@ -3660,6 +3656,11 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 
 	/* did bind_node tell us we could bind this guy? */
 	if (!(vp->isBound)) return;
+	if(!vp->_initializedOnce) {
+		veccopy3f(vp->_position.c,vp->position.c);
+		veccopy4f(vp->_orientation.c,vp->orientation.c);
+		vp->_initializedOnce = TRUE;
+	}
 
 	/* SLERPing */
 	/* record position BEFORE calculating new Viewpoint position */
@@ -3809,7 +3810,10 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	//INITIATE_SLERP
 	//if(false){
 
-	viewer_restore_user_offsets();
+	if(!vp->retainUserOffsets){
+		veccopy3f(vp->position.c,vp->_position.c);
+		veccopy4f(vp->orientation.c,vp->_orientation.c);
+	}
 	viewer = ViewerByLayerId(vp->_layerId);
 	//printf("retained user pose=%lf %lf %lf\n",viewer->Pos.x,viewer->Pos.y,viewer->Pos.z);
 	//printf("retained user.Quat= %lf %lf %lf %lf\n",viewer->Quat.x,viewer->Quat.y,viewer->Quat.z,viewer->Quat.w);
@@ -3898,6 +3902,7 @@ if(0) {	INITIATE_POSITION_ANTIPOSITION } //such a mess, do we really need it?
 	viewer_lastP_clear();
 	resolve_pos();
 	setMenuStatusVP (vp->description->strptr);
+
 }
 
 int fwl_getAnaglyphSide(int whichSide) {

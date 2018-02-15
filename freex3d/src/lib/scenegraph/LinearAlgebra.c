@@ -39,6 +39,18 @@
 #include "LinearAlgebra.h"
 
 #define DJ_KEEP_COMPILER_WARNING 0
+void vecprint3fb(char *name, float *p, char *eol){
+	printf("%s %f %f %f %s",name,p[0],p[1],p[2],eol);
+}
+void vecprint4fb(char *name, float *p, char *eol){
+	printf("%s %f %f %f %f %s",name,p[0],p[1],p[2],p[3],eol);
+}
+void vecprint3db(char *name, double *p, char *eol){
+	printf("%s %lf %lf %lf %s",name,p[0],p[1],p[2],eol);
+}
+void vecprint4db(char *name, double *p, char *eol){
+	printf("%s %lf %lf %lf %lf %s",name,p[0],p[1],p[2],p[3],eol);
+}
 double signd(double val){
 	return val < 0.0 ? -1.0 : val > 0.0 ? 1.0 : 0;
 }
