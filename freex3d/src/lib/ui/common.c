@@ -115,7 +115,7 @@ void common_init(struct tcommon *t){
 #endif
 #ifdef JAVASCRIPT_SM
 		p->jsengine = JSENGINE_SM;
-		p->jsengine_variant = 1;  //1= pre-2018 SM1 2= 2018+ SM2
+		p->jsengine_variant = 2;  //1= pre-2018 SM1 2= 2018+ SM2
 		p->draw_bounding_boxes = FALSE;
 #endif
 	}
