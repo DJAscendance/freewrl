@@ -175,7 +175,7 @@ void viewer_default0(X3D_Viewer *viewer, int vpnodetype) {
 	viewer->Pos.x = 0; viewer->Pos.y = 0; viewer->Pos.z = 10;
 	viewer->currentPosInModel.x = 0; viewer->currentPosInModel.y = 0; viewer->currentPosInModel.z = 10;
 	viewer->AntiPos.x = 0; viewer->AntiPos.y = 0; viewer->AntiPos.z = 0;
-
+	viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0;
 	vrmlrot_to_quaternion (&viewer->Quat,1.0,0.0,0.0,0.0);
 	vrmlrot_to_quaternion (&viewer->bindTimeQuat,1.0,0.0,0.0,0.0);
 	vrmlrot_to_quaternion (&viewer->prepVPQuat,0.0,1.0,0.0,3.14);
@@ -736,10 +736,14 @@ void avatar2BoundViewpointVerticalAvatar(GLDOUBLE *matA2BVVA, GLDOUBLE *matBVVA2
     */
 	X3D_Viewer *viewer;
 	struct point_XYZ tilted;
-	struct point_XYZ downvec = {0.0,-1.0,0.0};
+	struct point_XYZ downvec; // = {0.0,-1.0,0.0};
+	double pp[3];
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
 	viewer_fetch_user_offsets0(viewer);
+	pointxyz2double(pp,&viewer->Up);
+	vecscaled(pp,pp,-1.0);
+	double2pointxyz(&downvec,pp);
 	//downvec is in bound viewpoint space
 	quaternion_rotation(&tilted, &viewer->Quat, &downvec);
 	//tilted is in avatar space.
@@ -798,10 +802,14 @@ ViewerUpVector computation - see RenderFuncs.c L595
 	Quaternion q, Quat; //, AntiQuat;
 	double angle;
 	X3D_Viewer *viewer;
-	struct point_XYZ downvec = {0.0,-1.0,0.0};
+	struct point_XYZ downvec;// = {0.0,-1.0,0.0};
+	double pp[3];
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
 	viewer_fetch_user_offsets0(viewer);
+	pointxyz2double(pp,&viewer->Up);
+	vecscaled(pp,pp,-1.0);
+	double2pointxyz(&downvec,pp);
 
 	Quat = viewer->Quat;
 	//AntiQuat = Viewer.AntiQuat;
@@ -1257,8 +1265,9 @@ void handle_turntable(const int mev, const unsigned int button, float x, float y
 		if (button == 1 || button == 3){
 			struct point_XYZ dd,ddr,xx,xxr;
 			double dist;
-			yaxis.x = yaxis.z = 0.0;
-			yaxis.y = 1.0;
+			yaxis = viewer->Up;
+			//yaxis.x = yaxis.z = 0.0;
+			//yaxis.y = 1.0;
 			//pp = viewer->Pos;
 			//if(0) resolve_pos2();
 			//if(1) {
@@ -1388,8 +1397,9 @@ void handle_spherical(const int mev, const unsigned int button, float x, float y
 			struct point_XYZ dd, ddr, yaxis;
 
 			//step 1 convert Viewer.Quat to yaw, pitch (discard any roll)
-			yaxis.x = yaxis.z = 0.0;
-			yaxis.y = 1.0;
+			//yaxis.x = yaxis.z = 0.0;
+			//yaxis.y = 1.0;
+			yaxis = viewer->Up;
 
 			dd.x = dd.y = 0.0; dd.z = 1.0; 
 			quat = viewer->Quat;
@@ -2231,9 +2241,15 @@ static void handle_tick_walk()
 	{
 		double angle;
 		struct point_XYZ tilted;
-		struct point_XYZ rotaxis = {0.0, 1.0, 0.0};
+		struct point_XYZ rotaxis; // = {0.0, 1.0, 0.0};
 		Quaternion qlevel,qplanar;
-		struct point_XYZ down = {0.0, -1.0, 0.0};
+		double dd[3];
+		struct point_XYZ down; // = {0.0, -1.0, 0.0};
+
+		pointxyz2double(dd,&viewer->Up);
+		double2pointxyz(&rotaxis,dd);
+		vecscaled(dd,dd,-1.0);
+		double2pointxyz(&down,dd);
 
 		//split .Quat into horizontal pan and 2 vertical tilts
 		quaternion_rotation(&tilted,&q,&down);
@@ -2293,10 +2309,12 @@ void viewer_setpose( double *quat4, double *vec3){
 	// OLDCODE UNUSED ttglobal tg = (ttglobal) gglobal();
 	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
 	viewer = Viewer();
+	viewer_fetch_user_offsets0(viewer);
 	veccopyd(vec,vec3);
 	if(negate_pos) vecnegated(vec,vec);
 	double2pointxyz(&viewer->Pos,vec);
 	double2quat(&viewer->Quat,quat4);
+	viewer_update_user_offsets0(viewer);
 }
 void viewer_getpose( double *quat4, double *vec3){
 	/*	Freewrl initializes .Quat, .Pos from viewpoint.position, viewpoint.orientation during viewpoint binding
@@ -2308,6 +2326,7 @@ void viewer_getpose( double *quat4, double *vec3){
 	// OLDCODE UNUSED ttglobal tg = (ttglobal) gglobal();
 	// OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
 	viewer = Viewer();
+	viewer_fetch_user_offsets0(viewer);
 	pointxyz2double(vec3,&viewer->Pos);
 	if(negate_pos)
 		vecnegated(vec3,vec3);
@@ -2324,6 +2343,7 @@ void viewer_getbindpose( double *quat4, double *vec3){
 	// OLDCODE UNUSED ttglobal tg = (ttglobal) gglobal();
 	//OLDCODE UNUSED ppViewer p = (ppViewer)tg->Viewer.prv;
 	viewer = Viewer();
+
 	pointxyz2double(vec3,&viewer->AntiPos); //.Pos
 	if(negate_pos)
 		vecnegated(vec3,vec3);
@@ -3186,6 +3206,7 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 				//double2pointxyz(&viewer->AntiPos,pp);
 				float2double(oo,vp->orientation.c,4);
 				vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],-oo[3]);
+				viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0; 
 			}
 			break;
 			case NODE_Viewpoint:
@@ -3197,11 +3218,14 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 				double2pointxyz(&viewer->Pos,pp);
 				float2double(oo,vp->orientation.c,4);
 				vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],-oo[3]);
+				viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0; 
 			}
 			break;
 			case NODE_GeoViewpoint:
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
+				//	viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0; 
+
 				geoviewpoint_restore_user_offsets(vp,&viewer->Quat,&viewer->Pos);
 			}
 			break;
@@ -3370,6 +3394,12 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 	*/
 
 	if(0) { INITIATE_POSITION_ANTIPOSITION }
+	else {
+		//some things want to know the last bind-time pose
+		viewer_fetch_user_offsets0(viewer);
+		viewer->AntiPos = viewer->Pos;
+		viewer->AntiQuat = viewer->Quat;
+	}
 	/* printf ("bind_OrthoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z);
 	*/
 
@@ -3898,7 +3928,13 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 
 	*/
 
-if(0) {	INITIATE_POSITION_ANTIPOSITION } //such a mess, do we really need it?
+	if(0) {	INITIATE_POSITION_ANTIPOSITION } //such a mess, do we really need it?
+	else {
+		//some things want to know the last bind-time pose
+		viewer_fetch_user_offsets0(viewer);
+		viewer->AntiPos = viewer->Pos;
+		viewer->AntiQuat = viewer->Quat;
+	}
 
 	viewer_lastP_clear();
 	resolve_pos();

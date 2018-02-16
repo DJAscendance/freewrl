@@ -200,6 +200,7 @@ typedef struct viewer {
 	Quaternion Quat;
 	Quaternion AntiQuat;
 	Quaternion bindTimeQuat;
+	struct point_XYZ Up; // 0 1 0 except geoVP
 	int headlight;
 	int collision; //added July 7, 2012
 	double speed;
