@@ -3369,7 +3369,7 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 
 	*/
 
-	if(0) INITIATE_POSITION_ANTIPOSITION
+	if(0) { INITIATE_POSITION_ANTIPOSITION }
 	/* printf ("bind_OrthoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z);
 	*/
 
