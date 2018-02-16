@@ -3433,40 +3433,70 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	#endif
 }
 struct X3D_Node *getActiveLayerBoundViewpoint();
-
+void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
+		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	//Theory of operation: we keep the GVP (geoviewpoint) in GD (geodetic latitude,longitude,height) coordinates
-	// and GDA (GD Aligned) with 'up' being skyward, 
-	// and to do this we use Viewer as a 3D pointing device, taking its motions incrementally
-	// on each frame (and zero Quat,Pos after we take them)
-	// and then we re-interpret the 3D pose motions as being in GDGDA (GD GDA) space
-	// Benefits: LEVEL and various menubar navigation tools should work 
-	//  and we can walk/fly around the world and 'up' will always be skyward.
+	//Theory of operation:
+	// in viewer navigation we work in SLSLA (shared local (common origin) coords and alignment
+	// and on each frame in here we update the GDGDA (geodetic lat, long, height) for 
+	// other calculations such as speed and GEG (geoElevationGrid) gravity collision optimization
 
-	// re-interpret 3D pose increments in GDGDA space
-	Quaternion qq, qqq;
-	double oo[4], pp[3];
-	pointxyz2double(pp,Pos);
-	vecdifd(node->__movedPosition.c,node->__movedPosition.c,pp);
-	float2double(oo,node->__movedOrientation.c,4);
-	vrmlrot_to_quaternion(&qq,oo[0],oo[1],oo[2],oo[3]);
-	quaternion_inverse(&qqq,Quat);
-	if(0)
-		quaternion_multiply(&qq,&qq,&qqq);
-	else
-		quaternion_set(&qq,&qqq);
-	quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
-	double2float(node->__movedOrientation.c,oo,4);
+	struct SFVec3d LCSpos, GCpos, gdCoord;
+	Quaternion qlc2gc;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	//store 'user offset' as an absolute pose (GDGDA)
 
-	//zero 3D pose increments - could leave tilts in, so they can be added to/leveled away by viewer
-	if(0) Quat->x = Quat->y = Quat->z = 0.0; Quat->w = 1.0;
-	Pos->x = Pos->y = Pos->z = 0.0;
+	//SLSLA 2 GCGCA
+	pointxyz2double(LCSpos.c,Pos);
+	//LCS -> GC
+	vrmlrot_to_quaternion(&qlc2gc,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+	quaternion_rotationd(LCSpos.c,&qlc2gc,LCSpos.c);
+	vecaddd(GCpos.c,LCSpos.c,p->autoOrigin.c);
+
+	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
+	vecprint3db("update",node->position.c,"\n");
+
+	{
+		//this converts a LCS (== SLSLA) orientation to GDA (not to the node's target geosystem in general)
+		//for example UTM/3TM might like to have utm grid north alignment .orientation. We don't do that here/yet.
+		Quaternion q1, q2;
+		struct SFVec4d lo;
+		double oo[4];
+
+		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+		quaternion_multiply(&q2,&q1,Quat);
+		quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+		oo[3] = -oo[3];
+		double2float(node->orientation.c,oo,4);
+		//vecprint4db("update",oo,"\n");
+	}
+
+	//GCGCA 2 GDGDA
+
 }
-void geoviewpoint_restore_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	//restore absolute pose
+void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
+	// return SLSLA pose
+	double oo[4];
+	struct SFVec3d LCSpos;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
 	
+	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+	double2pointxyz(Pos,LCSpos.c);
+	//vecprint3db("fetch",LCSpos.c,"\n");
+	{
+		struct SFVec4d lo;
+		Quaternion q1, q2;
+		double oo[4];
+
+		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+		float2double(oo,node->orientation.c,4);
+		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
+		vrmlrot_to_quaternion(&q2,oo[0],oo[1],oo[2],-oo[3]);
+		quaternion_multiply(Quat, &q1,&q2);
+	}
+	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
 }
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
@@ -3500,6 +3530,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			//FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
 			//FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
 
+			if(0){
 			//WORKS !!
 			//GeoViewpoint: opposite order, opposite sign as GL
 			FW_GL_ROTATE_RADIANS(-node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
@@ -3507,7 +3538,15 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
 			FW_GL_TRANSLATE_D(-node->__movedPosition.c[0], -node->__movedPosition.c[1], -node->__movedPosition.c[2]);
 			FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
-
+			}else{
+				struct point_XYZ Pos, Up;
+				Quaternion Quat;
+				double oo[4];
+				geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
+				quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+				FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
+				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+			}
 		}
 		/* we have  a new currentPosInModel now... */
 		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
@@ -4009,8 +4048,11 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 }
 
 //CONVERT_BACK_TO_GD_OR_UTMB(geoSystem, geoOrigin, thisField);
-void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *GeoOrigin, 
-		struct SFVec3d *thisField) {
+void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
+		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField) {
+	//assumes incoming thisField is in LCS local coordinate system
+	//outputs thisField in targetGeoSystem
+
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
 	1:	ellipsoid index (defaults to GEOSP_WE) 
@@ -4024,30 +4066,31 @@ void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_
  
 	/* do we need to change this from a GCC? */ 
 	struct Multi_Int32 *geoSystem = targetGeoSystem;
-	struct X3D_GeoOrigin *geoOrigin = (struct X3D_GeoOrigin*)GeoOrigin;
+	struct X3D_GeoOrigin *geoOrigin = (struct X3D_GeoOrigin*)geoorigin;
+	veccopyd(thisField->c,LCSpos->c);
+
 	if (geoSystem->n != 0) { /* do we have a GeoSystem specified?? if not, dont do this! */ 
-		struct SFVec3d gdCoords; 
+		//struct SFVec3d gdCoords; 
  
 		if (geoSystem->p[0] != GEOSP_GC) { 
 			/* have to convert to GD or UTM. Go to GD first */ 
-			bool dugsInterpretationOfSpecs = true; 
+			int dugsInterpretationOfSpecs = TRUE; 
 			if(dugsInterpretationOfSpecs) 
 			{ 
 				retractOrigin((struct X3D_GeoOrigin *)geoOrigin, 
 						thisField); 
 			}else{ 
 				if (Viewer()->GeoSpatialNode != NULL) { 
-        						retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, 
-						thisField); 
+        			retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, thisField); 
 				} 
 			} 
  
 			/* printf ("changed retracted, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
  
 			/* now, convert to a GDC */ 
-			gccToGdc (geoSystem, thisField, &gdCoords);
-
-			memcpy (&thisField, &gdCoords, sizeof (struct SFVec3d)); 
+			gccToGdc (geoSystem, thisField, gdCoords);
+			veccopyd(thisField->c,gdCoords->c);
+			//memcpy (&thisField, gdCoords, sizeof (struct SFVec3d)); 
  
 			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
 		 
@@ -4069,7 +4112,13 @@ void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_
 		} 
 	}
 }
-
+void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoOrigin, 
+		struct SFVec3d *thisField)
+{
+	struct SFVec3d LCSpos, gdCoord;
+	veccopyd(LCSpos.c,thisField->c);
+	CONVERT_BACK_TO_GD_OR_UTMC(targetGeoSystem,geoOrigin,&LCSpos,&gdCoord,thisField);
+}
 /*
 WALK navigation:
 (VPbindPose) +  userOffsets[ (cumulative navigation) + (camera tilts/orientation) ]
