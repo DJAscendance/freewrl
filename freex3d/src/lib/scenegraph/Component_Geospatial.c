@@ -3493,6 +3493,7 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
 	
+	//moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
 	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
 	double2pointxyz(Pos,LCSpos.c);
 	//vecprint3db("fetch",LCSpos.c,"\n");
@@ -3560,13 +3561,61 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			FW_GL_TRANSLATE_D(-node->__movedPosition.c[0], -node->__movedPosition.c[1], -node->__movedPosition.c[2]);
 			FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
 			}else{
-				struct point_XYZ Pos, Up;
-				Quaternion Quat;
-				double oo[4];
-				geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
-				quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-				FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
-				FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
+				if(0){
+					//works for demo UTM, and world33 Airdrie vp, but not austria vp - stares to LCS horizon instead of north
+					struct point_XYZ Pos, Up;
+					Quaternion Quat;
+					double oo[4];
+					geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
+					quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+					FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
+					FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
+				}else{
+					struct point_XYZ Pos, Up;
+					struct SFVec4d lo;
+					Quaternion Quat;
+					double oo[4];
+
+					GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+					geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
+					quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+					if(0){
+						//airdrie vp OK, austria has roll
+						ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+						FW_GL_ROTATE_RADIANS(-p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+						FW_GL_ROTATE_RADIANS(lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+						vecprint4db("ao",p->autoOrient.c,"\n");
+						vecprint4db("lo",lo.c,"\n");
+						vecprint4db("oo",oo,"\n");
+					}
+					if(1){
+						//airdrie vp OK, austria OK but navigation weird
+						ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+						FW_GL_ROTATE_RADIANS(-lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+						FW_GL_ROTATE_RADIANS(p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+						//vecprint4db("ao",p->autoOrient.c,"\n");
+						//vecprint4db("lo",lo.c,"\n");
+						//vecprint4db("oo",oo,"\n");
+					}
+					FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
+					if(0){
+						//airdrie vp OK, austria has roll
+						ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+						FW_GL_ROTATE_RADIANS(-p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+						FW_GL_ROTATE_RADIANS(lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+						vecprint4db("ao",p->autoOrient.c,"\n");
+						vecprint4db("lo",lo.c,"\n");
+						vecprint4db("oo",oo,"\n");
+					}
+					FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
+					if(0){
+						ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+						FW_GL_ROTATE_RADIANS(p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+						FW_GL_ROTATE_RADIANS(-lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+					}
+
+
+				}
 			}
 		}
 		/* we have  a new currentPosInModel now... */
