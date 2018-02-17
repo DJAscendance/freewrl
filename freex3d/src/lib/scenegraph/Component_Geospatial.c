@@ -3435,6 +3435,10 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 struct X3D_Node *getActiveLayerBoundViewpoint();
 void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
+static double lsign1 =  1.0; //+
+static double lsign2 =  -1.0; //-
+static double qsign =	1.0; //+
+
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// in viewer navigation we work in SLSLA (shared local (common origin) coords and alignment
@@ -3464,10 +3468,13 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 		double oo[4];
 
 		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+		vecprint4db("update lo ",lo.c,"\n");
+		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lsign1 * lo.c[3]);
+		// Quat = -localOrient x orientation
+		// localOrient x Quat = localOrient x -localOrient x orientation
+		// localOrient x Quat = orientation
 		quaternion_multiply(&q2,&q1,Quat);
 		quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-		oo[3] = -oo[3];
 		double2float(node->orientation.c,oo,4);
 		//vecprint4db("update",oo,"\n");
 	}
@@ -3491,9 +3498,11 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 		double oo[4];
 
 		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+		vecprint4db("fetch lo ",lo.c,"\n");
 		float2double(oo,node->orientation.c,4);
-		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
-		vrmlrot_to_quaternion(&q2,oo[0],oo[1],oo[2],-oo[3]);
+		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lsign2 * lo.c[3]);
+		vrmlrot_to_quaternion(&q2,oo[0],oo[1],oo[2], oo[3]);
+		// Quat = -localOrient x orientation
 		quaternion_multiply(Quat, &q1,&q2);
 	}
 	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
@@ -3544,7 +3553,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 				double oo[4];
 				geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
 				quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+				FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
 				FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
 			}
 		}
@@ -3706,6 +3715,46 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	COMPILE_IF_REQUIRED
 
 	/* set Viewer position and orientation */
+
+	if(!node->_initializedOnce) {
+		veccopyd(node->_position.c,node->position.c);
+		veccopy4f(node->_orientation.c,node->orientation.c);
+		node->_initializedOnce = TRUE;
+	}
+	if(!node->retainUserOffsets){
+		veccopyd(node->position.c,node->_position.c);
+		veccopy4f(node->orientation.c,node->_orientation.c);
+	}
+
+
+	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
+		//save the previous vp pose, in root space, for future slerps
+		viewer->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
+		//printf("S");
+		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
+		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
+		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
+		{
+			bindablestack* bstack = getActiveBindableStacks(gglobal());
+			matcopy(viewer->slerp_viewmatrix,bstack->viewtransformmatrix);
+			matcopy(viewer->slerp_posorimatrix,bstack->posorimatrix);
+			
+		}
+		//printf("S");
+
+        viewer->SLERPing = FALSE; //TRUE; 
+        viewer->startSLERPtime = TickTime(); 
+		/* slerp Mark II */
+		viewer->SLERPing2 = TRUE;
+		viewer->SLERPing2justStarted = TRUE;
+		//printf("binding\n");
+
+	} else { 
+		viewer->SLERPing = FALSE; 
+		viewer->SLERPing2 = FALSE;
+	}
+	
+	viewer->wasBound = TRUE;
 
 	#ifdef VERBOSE
 	printf ("bind_GeoViewpoint, setting Viewer to %lf %lf %lf orient %f %f %f %f\n",node->__movedPosition.c[0],node->__movedPosition.c[1],

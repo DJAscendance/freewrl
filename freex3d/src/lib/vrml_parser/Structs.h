@@ -5126,6 +5126,9 @@ struct X3D_GeoViewpoint {
 	struct Multi_String geoSystem;
 	float speedFactor;
 	int retainUserOffsets;
+	int _initializedOnce;
+	struct SFRotation _orientation;
+	struct SFVec3d _position;
 	struct Multi_Int32 __geoSystem;
 	struct SFVec3d __movedPosition;
 	struct SFRotation __movedOrientation;

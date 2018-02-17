@@ -264,6 +264,9 @@ typedef struct viewer {
 	struct point_XYZ endSLERPPos;
 	Quaternion endSLERPQuat;
 
+	double slerp_viewmatrix[16];
+	double slerp_posorimatrix[16];
+	int vp2rnSaved;
 
 	struct X3D_GeoViewpoint *GeoSpatialNode; /* NULL, unless we are a GeoViewpoint */
 

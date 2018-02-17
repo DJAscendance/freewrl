@@ -93,9 +93,6 @@ typedef struct pViewer{
 	/* viewpoint slerping */
 	//double viewpoint2rootnode[16];
 	//double viewpointnew2rootnode[16];
-	double slerp_viewmatrix[16];
-	double slerp_posorimatrix[16];
-	int vp2rnSaved;
 	double old2new[16];
 	double identity[16];
 	double tickFrac;
@@ -134,7 +131,6 @@ void Viewer_init(struct tViewer *t){
 
 		/* viewpoint slerping */
 		//loadIdentityMatrix(p->viewpoint2rootnode);
-		p->vp2rnSaved = FALSE; //on startup it binds before saving
 		loadIdentityMatrix(p->old2new);
 		loadIdentityMatrix(p->identity);
 		p->tickFrac = 0.0; //for debugging slowly
@@ -182,6 +178,7 @@ void viewer_default0(X3D_Viewer *viewer, int vpnodetype) {
 	vrmlrot_to_quaternion (&q_i,1.0,0.0,0.0,0.0);
 	quaternion_inverse(&(viewer->AntiQuat),&q_i);
 
+	viewer->vp2rnSaved = FALSE;
 	viewer->headlight = TRUE;
 	/* tell the menu buttons of the state of this headlight */
 	//setMenuButton_headlight(viewer->headlight);
@@ -3299,15 +3296,15 @@ void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 
 	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
 		//save the previous vp pose, in root space, for future slerps
-		p->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
+		viewer->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
 		//printf("S");
 		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
 		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
 		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
 		{
 			bindablestack* bstack = getActiveBindableStacks(gglobal());
-			matcopy(p->slerp_viewmatrix,bstack->viewtransformmatrix);
-			matcopy(p->slerp_posorimatrix,bstack->posorimatrix);
+			matcopy(viewer->slerp_viewmatrix,bstack->viewtransformmatrix);
+			matcopy(viewer->slerp_posorimatrix,bstack->posorimatrix);
 			
 		}
 		//printf("S");
@@ -3425,14 +3422,14 @@ int slerp_viewpoint2()
 	viewer = Viewer();
 	itype = 2;
 	iret = 0; 
-	if(viewer->SLERPing2 && p->vp2rnSaved && itype==2) {
+	if(viewer->SLERPing2 && viewer->vp2rnSaved && itype==2) {
 		double mat_to[16],mat_from[16];
 		bindablestack *bstack;
 		ttglobal tg = gglobal();
 		bstack = getActiveBindableStacks(tg);
 
 		matmultiplyAFFINE(mat_to,bstack->viewtransformmatrix,bstack->posorimatrix);
-		matmultiplyAFFINE(mat_from,p->slerp_viewmatrix,p->slerp_posorimatrix);
+		matmultiplyAFFINE(mat_from,viewer->slerp_viewmatrix,viewer->slerp_posorimatrix);
 
 		//viewpoint slerp-on-bind comes through here
 		if(0){
@@ -3857,15 +3854,15 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 
 	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
 		//save the previous vp pose, in root space, for future slerps
-		p->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
+		viewer->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
 		//printf("S");
 		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
 		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
 		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
 		{
 			bindablestack* bstack = getActiveBindableStacks(gglobal());
-			matcopy(p->slerp_viewmatrix,bstack->viewtransformmatrix);
-			matcopy(p->slerp_posorimatrix,bstack->posorimatrix);
+			matcopy(viewer->slerp_viewmatrix,bstack->viewtransformmatrix);
+			matcopy(viewer->slerp_posorimatrix,bstack->posorimatrix);
 			
 		}
 		//printf("S");

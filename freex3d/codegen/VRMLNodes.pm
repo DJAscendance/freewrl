@@ -1969,6 +1969,10 @@ our %Nodes = (
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		speedFactor => ["SFFloat",1.0,"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		retainUserOffsets => ["SFBool", "FALSE", "inputOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		# user offsets:
+		_initializedOnce => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
+		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
+		_position => ["SFVec3d",[0, 0, 0], "initializeOnly", 0,0],#ff
 		
 
 		# "compiled" versions of strings above
