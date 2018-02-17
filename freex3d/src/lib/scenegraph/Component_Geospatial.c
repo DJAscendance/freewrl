@@ -3460,7 +3460,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
 	//vecprint3db("update",node->position.c,"\n");
 
-	{
+	if(0){
 		//this converts a LCS (== SLSLA) orientation to GDA (not to the node's target geosystem in general)
 		//for example UTM/3TM might like to have utm grid north alignment .orientation. We don't do that here/yet.
 		Quaternion q1, q2;
@@ -3468,7 +3468,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 		double oo[4];
 
 		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-		vecprint4db("update lo ",lo.c,"\n");
+		//vecprint4db("update lo ",lo.c,"\n");
 		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lsign1 * lo.c[3]);
 		// Quat = -localOrient x orientation
 		// localOrient x Quat = localOrient x -localOrient x orientation
@@ -3477,6 +3477,10 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 		quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
 		double2float(node->orientation.c,oo,4);
 		//vecprint4db("update",oo,"\n");
+	}else{
+		double oo[4];
+		quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+		double2float(node->orientation.c,oo,4);
 	}
 
 	//GCGCA 2 GDGDA
@@ -3492,18 +3496,26 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
 	double2pointxyz(Pos,LCSpos.c);
 	//vecprint3db("fetch",LCSpos.c,"\n");
-	{
+	if(0){
+		//problem with this: we are applying both autoOrient (the SLA or LCS orientation) elsewhere,
+		// and the NLA (node local) via localOrient here - that's double
 		struct SFVec4d lo;
 		Quaternion q1, q2;
 		double oo[4];
 
 		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-		vecprint4db("fetch lo ",lo.c,"\n");
+		//vecprint4db("fetch lo ",lo.c,"\n");
 		float2double(oo,node->orientation.c,4);
 		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lsign2 * lo.c[3]);
 		vrmlrot_to_quaternion(&q2,oo[0],oo[1],oo[2], oo[3]);
+		//vecprint4db("fetch oo ",oo,"\n");
+		//vecprint4db("fetch ao ",p->autoOrient.c,"\n");
 		// Quat = -localOrient x orientation
 		quaternion_multiply(Quat, &q1,&q2);
+	}else{
+		double oo[4];
+		float2double(oo,node->orientation.c,4);
+		vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2],oo[3]);
 	}
 	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
 }
