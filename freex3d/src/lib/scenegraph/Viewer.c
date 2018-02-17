@@ -1475,7 +1475,7 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 }
 
 
-
+void increment_pos0(struct point_XYZ *vec);
 void handle_tick_fly2(double dtime) {
 	ttglobal tg;
 	// OLDCODE UNUSED ppViewer p;
@@ -1509,10 +1509,11 @@ void handle_tick_fly2(double dtime) {
 		//printf("rot=%lf zz=%lf\n",rot,zz);
 		memcpy(&q,&viewer->Quat,sizeof(Quaternion));
 		vrmlrot_to_quaternion (&nq,0.0,1.0,0.0,0.4*rot);
+		//vrmlrot_to_quaternion (&nq,viewer->Up.x,viewer->Up.y, viewer->Up.z,0.4*rot);
 		viewer_lastQ_set(&nq); //wall penetration - last avatar pose is stored before updating
 		quaternion_multiply(&(viewer->Quat), &nq, &q); //Quat = walk->RD * Quat
 		//does the Z gets transformed by the quat?
-		increment_pos(&xyz);
+		increment_pos0(&xyz);
 		//inplane->x = x;
 		//inplane->y = y;
 		//CALCULATE_EXAMINE_DISTANCE
@@ -1657,7 +1658,7 @@ void handle_tick_tplane(double dtime){
 		}
 		pp.z = 0.0;
 		//vecadd(&viewer->Pos,&viewer->Pos,&pp);
-		increment_pos(&pp);
+		increment_pos0(&pp);
 	}
 }
 
@@ -2601,7 +2602,7 @@ static void handle_tick_fly()
 	v.x = fly->Velocity[0][0] * time_diff;
 	v.y = fly->Velocity[0][1] * time_diff;
 	v.z = fly->Velocity[0][2] * time_diff;
-	increment_pos(&v);
+	increment_pos0(&v);
 
 	nq.x = fly->Velocity[1][0];// * time_diff;
 	nq.y = fly->Velocity[1][1]; // * time_diff;
@@ -3237,13 +3238,12 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 
 }
 /* used to move, in WALK, FLY modes. */
-void increment_pos(struct point_XYZ *vec) {
+void increment_pos0(struct point_XYZ *vec) {
 	struct point_XYZ nv;
 	Quaternion q_i;
 	X3D_Viewer *viewer;
 	// OLDCODE UNUSED ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
-	viewer_fetch_user_offsets0(viewer);
 	viewer_lastP_add(vec);
 
 	/* bound-viewpoint-space > Viewer.Pos,Viewer.Quat > avatar-space */
@@ -3261,6 +3261,12 @@ void increment_pos(struct point_XYZ *vec) {
 		Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, 
 		Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z, 
 		nv.x, nv.y, nv.z); */
+}
+void increment_pos(struct point_XYZ *vec) {
+	X3D_Viewer *viewer;
+	viewer = Viewer();
+	viewer_fetch_user_offsets0(viewer);
+	increment_pos0(vec);
 	viewer_update_user_offsets0(viewer);
 }
 
