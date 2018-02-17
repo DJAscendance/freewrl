@@ -3519,6 +3519,23 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 		vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2],oo[3]);
 	}
 	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
+	if(1){
+		//Q. when and where and how could/should we re-level the viewpoint to GD
+		//if airdrie LCS, austria up +x +y -z :  0.508484 0.311714 -0.802670  
+		struct SFVec4d lo;
+		struct SFVec3d up;
+		Quaternion qup, q1, q2;
+
+		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+		vecsetd(up.c,0.0,1.0,0.0);
+		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
+		vrmlrot_to_quaternion(&q2,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2], -p->autoOrient.c[3]);
+		quaternion_multiply(&qup,&q2,&q1);
+		quaternion_rotationd(up.c,&qup,up.c);
+		vecprint3db("up ",up.c,"\n");
+		double2pointxyz(Up,up.c);
+	}
+
 }
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
