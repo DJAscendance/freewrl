@@ -3454,7 +3454,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	vecaddd(GCpos.c,LCSpos.c,p->autoOrigin.c);
 
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
-	vecprint3db("update",node->position.c,"\n");
+	//vecprint3db("update",node->position.c,"\n");
 
 	{
 		//this converts a LCS (== SLSLA) orientation to GDA (not to the node's target geosystem in general)
@@ -3544,8 +3544,8 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 				double oo[4];
 				geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
 				quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-				FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
 				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+				FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
 			}
 		}
 		/* we have  a new currentPosInModel now... */
