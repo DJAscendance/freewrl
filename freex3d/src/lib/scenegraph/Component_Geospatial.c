@@ -4254,23 +4254,41 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 		int inside;
 		double emin[2],emax[2];
 		//not sure what space the GEG's node->_extent is in, so will recalculate here in its user coordinates
-		emin[0] = min(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+node->xSpacing*node->xDimension);
-		emax[0] = max(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+node->xSpacing*node->xDimension);
-		emin[1] = min(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+node->zSpacing*node->zDimension);
-		emax[1] = max(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+node->zSpacing*node->zDimension);
+		double size[2], spacing[2];
+		int idimension[2];
+		idimension[0] = node->zDimension;
+		idimension[1] = node->xDimension;
+		spacing[0] = node->zSpacing;
+		spacing[1] = node->xSpacing;
+		if(!geoSystem->p[5]) {
+			int itmp = idimension[0];
+			idimension[0] = idimension[1];
+			idimension[1] = itmp;
+			vecswizzle2d(spacing);
+		}
+		size[0] = spacing[0]*idimension[0];
+		size[1] = spacing[1]*idimension[1];
+		emin[0] = min(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
+		emax[0] = max(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
+		emin[1] = min(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
+		emax[1] = max(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
 		//printf("xxCoord= %lf %lf %lf\n",xxCoord.c[0],xxCoord.c[1],xxCoord.c[2]);
 		//printf("emin= %lf %lf emax= %lf %lf\n",emin[0],emin[1],emax[0],emax[1]);
 		inside  = xxCoord.c[0] <= emax[0] && xxCoord.c[0] >= emin[0];
 		inside &= xxCoord.c[1] <= emax[1] && xxCoord.c[1] >= emin[1];
-		printf("b");
+		//printf("b");
 		if(inside){
-			double spinelength, vcenterd[3];
-			double x,z,cx,cz, deltah, gridpointf[3];
-			printf("c\n");
+			double spinelength, vcenterd[3], pp[2];
+			//double x,z,
+			double cx,cz;
+			double deltah, gridpointf[3];
+			//printf("c\n");
 			hit = 0;
 			//see if grid height is below, between or above avatar
-			x = xxCoord.c[0] - node->geoGridOrigin.c[0]; //latitude first/northing first default? or x == 0, z == 1?
-			z = xxCoord.c[1] - node->geoGridOrigin.c[1];
+			pp[0] = xxCoord.c[0] - node->geoGridOrigin.c[0]; //latitude first/northing first default? or x == 0, z == 1?
+			pp[1] = xxCoord.c[1] - node->geoGridOrigin.c[1];
+			//get pp into x-first, z-second
+			if(geoSystem->p[5]) vecswizzle2d(pp);
 			//printf("x,z= %lf %lf\n",x,z);
 			//node->xDimension
 			// z h2  h3
@@ -4279,8 +4297,8 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			//(ix,iz)
 			double hh[4],gridheight;
 			int i0,i1,i2,i3, ix, iz;
-			ix = (int)(x/node->xSpacing);
-			iz = (int)(z/node->zSpacing);
+			ix = (int)(pp[0]/node->xSpacing);
+			iz = (int)(pp[1]/node->zSpacing);
 			//printf("xspacing,zspacing,xdimension= %lf %lf %d\n",node->xSpacing,node->zSpacing,node->xDimension);
 			//printf("ix,iz= %d %d\n",ix,iz);
 			i0 = iz * node->xDimension + ix;
@@ -4293,16 +4311,16 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			hh[2] = node->height.p[i2];
 			hh[3] = node->height.p[i3];
 			//normalize cell x and z
-			cx = (x - ix*node->xSpacing)/node->xSpacing;
-			cz = (z - iz*node->zSpacing)/node->zSpacing;
+			cx = (pp[0] - ix*node->xSpacing)/node->xSpacing;
+			cz = (pp[1] - iz*node->zSpacing)/node->zSpacing;
 			//height interpolation by finite elements > bilinear interpolotion of height
 			// (could do cubic using 3x3 chunks)
 			gridheight =  hh[0]*(1.0f - cz)*(1.0f - cx)
 						+ hh[1]*(1.0f - cz)*cx 
 						+ hh[2]*cz*(1.0f - cx) 
 						+ hh[3]*cz*cx;
-			printf("_");
-			hit = 0;
+			//printf("_");
+			hit = 1;
 				
 			// scraped from:
 			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
@@ -4314,11 +4332,11 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			fi->fallHeight = 1000000.0;
 			if( hhh < 0.0 )
 			{
-				printf("V");
+				//printf("V");
 				/* falling */
 				if( hhh < abottom && hhh > -fi->fallHeight) 
 				{
-					printf("v");
+					//printf("v");
 					/* FALLING */
 					if(fi->hits ==0)
 						fi->hfall = hhbelowfoot; //hh - y1;
@@ -4327,7 +4345,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 					fi->hits++;
 					fi->isFall = 1;
 				}else{
-					printf("~");
+					//printf("~");
 					/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
 					if( hhh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
 					{
@@ -4346,11 +4364,11 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			double hhabovehead = hhh - head;
 			if( hhabovehead > 0.0 )
 			{
-				printf("H");
+				//printf("H");
 				/* climbing from undergound */
 				if( hhabovehead < fi->climbHeight) 
 				{
-					printf("^");
+					//printf("^");
 					/* CLIMBING */
 					fi->canFall = 0;
 
@@ -4387,9 +4405,9 @@ void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 
 	if(node->_nodeType == NODE_GeoElevationGrid && boundvp->_nodeType == NODE_GeoViewpoint){
 		ihit = geoelevationgrid_disp2((struct X3D_GeoElevationGrid*)node, (struct X3D_GeoViewpoint *)boundvp);
-		if(ihit==0) printf("0");
-		if(ihit==1) printf("1");
-		if(ihit==-1) printf(".");
+		//if(ihit==0) printf("0");
+		//if(ihit==1) printf("1");
+		//if(ihit==-1) printf(".");
 	}
 	if(0) if(ihit == -1){
 		//above couldn't handle it, thunking to generic 
