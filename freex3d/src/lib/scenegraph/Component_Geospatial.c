@@ -68,14 +68,6 @@ int method_geolib(){
 	return 0; //freewrl hand coded way
 #endif
 }
-int geo_method(){
-	//1= before 2018, scene root in GC if no geoOrigin nodes, or geoOrigin is default GC 0,0,0
-	//web3d specs v3.3 deprecates geoOrigin saying the origins can be automatically generated
-	//2= Feb 1, 2018, scene root in LC of First come first served (FCFS) geoOrigin 
-	//   - first node compiled - its .position (or equivalent) serves as origin for all geoNodes
-	//3= Feb 1 2018, scene root in LC via dynamic origin
-	return 2; //1 or 2 or 3
-}
 
 /*
 Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
@@ -852,7 +844,7 @@ static void Utm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, 
 	double semimajor, flattening;
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
 	#ifdef GEOLIB
-	if(geo_method() == 2)
+	if(method_geolib())
 		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	else
 	#endif GEOLIB
@@ -878,7 +870,7 @@ static void U3tm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n,
 	double semimajor, flattening;
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
 	#ifdef GEOLIB
-	if(geo_method() == 2)
+	if(method_geolib())
 		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
 	else
 	#endif //GEOLIB
@@ -1471,7 +1463,7 @@ static void gdToUtm3d(struct Multi_Int32 *geoSystem, double *gdcoords, double *x
 	getEllipsoidParams(geotype,&semimajor,&flattening);
 	zone = &geoSystem->p[2];
 #ifdef GEOLIB
-	if(geo_method()==2)
+	if(method_geolib())
 		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	else
 #endif //GEOLIB
@@ -1497,7 +1489,7 @@ static void gdTo3tm3d(struct Multi_Int32 *geoSystem, double *gdcoords, double *x
 	getEllipsoidParams(geotype,&semimajor,&flattening);
 	zone = &geoSystem->p[2];
 #ifdef GEOLIB
-	if(geo_method()==2)
+	if(method_geolib())
 		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	else
 #endif //GEOLIB
@@ -3406,6 +3398,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
 	pointxyz2double(pp,Pos);
+	//if(0) vecscaled(pp,pp,node->speedFactor); //SPEED scale here? no done in calculateViewingSpeedB
 	quaternion_rotationd(pp,&qlo,pp);
 	vecaddd(GCpos.c,GCpos.c,pp);
 	//2.c .position = GC_to_user_geo(GC)
@@ -3434,8 +3427,8 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		printf ("prep_GeoViewpoint called\n");
 		#endif
 
-			/* perform GeoViewpoint translations */
-		if(geo_method()== 1 || geo_method() == 2){
+		/* perform GeoViewpoint translations */
+		{
 
 			//goal: same as above except Torvaldsian
 			//works for demo utm, world33 airdrie and austria vps
@@ -3488,10 +3481,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
 			Viewer()->fieldofview = a1/3.1415926536*180;
 		}
-		if(geo_method()==1)
-			calculateViewingSpeed();
-		else
-			calculateViewingSpeedB();
+		calculateViewingSpeedB();
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
 		#endif
