@@ -3411,7 +3411,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	//2.c .position = GC_to_user_geo(GC)
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
 }
-void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
+void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// NLA - node local alignment
 	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
@@ -3419,7 +3419,6 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 	double oo[4];
 	float2double(oo,node->orientation.c,4);
 	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
-	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
 	Pos->x = Pos->y = Pos->z = 0.0;
 }
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {

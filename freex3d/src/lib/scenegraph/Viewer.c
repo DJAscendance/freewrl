@@ -3146,7 +3146,7 @@ void set_stereo_offset0() /*int iside, double eyehalf, double eyehalfangle)*/
 	FW_GL_TRANSLATE_D(x, 0.0, 0.0);
 	FW_GL_ROTATE_D(angle, 0.0, 1.0, 0.0);
 }
-void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up);
+void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
 
 void viewer_update_user_offsets0(X3D_Viewer *viewer){
@@ -3204,7 +3204,6 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 				//double2pointxyz(&viewer->AntiPos,pp);
 				float2double(oo,vp->orientation.c,4);
 				vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],-oo[3]);
-				viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0; 
 			}
 			break;
 			case NODE_Viewpoint:
@@ -3216,15 +3215,12 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 				double2pointxyz(&viewer->Pos,pp);
 				float2double(oo,vp->orientation.c,4);
 				vrmlrot_to_quaternion(&viewer->Quat,oo[0],oo[1],oo[2],-oo[3]);
-				viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0; 
 			}
 			break;
 			case NODE_GeoViewpoint:
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
-				//	viewer->Up.x = 0.0; viewer->Up.y = 1.0; viewer->Up.z = 0.0; 
-
-				geoviewpoint_fetch_user_offsets(vp,&viewer->Quat,&viewer->Pos, &viewer->Up);
+				geoviewpoint_fetch_user_offsets(vp,&viewer->Quat,&viewer->Pos);
 			}
 			break;
 			default:
