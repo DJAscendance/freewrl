@@ -3437,9 +3437,8 @@ void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
 static double lsign1 =  1.0; //+
 static double lsign2 =  -1.0; //-
-static double qsign =	1.0; //+
 
-void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+void geoviewpoint_update_user_offsetsA(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// in viewer navigation we work in SLSLA (shared local (common origin) coords and alignment
 	// and on each frame in here we update the GDGDA (geodetic lat, long, height) for 
@@ -3486,7 +3485,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	//GCGCA 2 GDGDA
 
 }
-void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
+void geoviewpoint_fetch_user_offsetsA(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
 	// return SLSLA pose
 	double oo[4];
 	struct SFVec3d LCSpos;
@@ -3536,6 +3535,45 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 		double2pointxyz(Up,up.c);
 	}
 
+}
+void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//Theory of operation:
+	//Experimental system that works in NLA - node local alignment
+	// in viewer navigation we work in SLSLA (shared local (common origin) coords and alignment
+	// and on each frame in here we update the GDGDA (geodetic lat, long, height) for 
+	// other calculations such as speed and GEG (geoElevationGrid) gravity collision optimization
+
+	struct SFVec3d GCpos, gdCoord;
+	Quaternion qlc2gc;
+	double oo[4], pp[3];
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+	quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+	double2float(node->orientation.c,oo,4);
+
+	moveCoords3d(&node->__geoSystem,NULL,NULL,&node->position,1,&GCpos,&node->__movedgd);
+	//SLSLA 2 GCGCA
+	//NLS -> GC
+	//this converts a LCS (== SLSLA) orientation to GDA (not to the node's target geosystem in general)
+	//for example UTM/3TM might like to have utm grid north alignment .orientation. We don't do that here/yet.
+	Quaternion qlo, q2;
+	struct SFVec4d lo;
+
+	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+	//vecprint4db("update lo ",lo.c,"\n");
+	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
+	pointxyz2double(pp,Pos);
+	quaternion_rotationd(pp,&qlo,pp);
+	vecaddd(GCpos.c,GCpos.c,pp);
+	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
+}
+void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
+	// return SLSLA pose
+	double oo[4];
+	float2double(oo,node->orientation.c,4);
+	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], oo[3]);
+	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
+	Pos->x = Pos->y = Pos->z = 0.0;
 }
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
@@ -3608,9 +3646,28 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 					vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
 					vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
 					vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
-					quaternion_multiply(&q1,&qlo,&qao);
-					quaternion_multiply(&q2,&q1,&qoo);
-					quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+					if(0){
+						// A offsets - OK
+						// B offsets - viewpoint right way up on terrain, but yaw-pitch wrong axes
+						quaternion_multiply(&q1,&qlo,&qao);
+						quaternion_multiply(&q2,&q1,&qoo);
+						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+					}else if(0) {
+						// B offsets - viewpoint wrong way up, but yaw pitch around right axes
+						quaternion_multiply(&q1,&qao,&qlo);
+						quaternion_multiply(&q2,&qoo,&q1);
+						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+					} else if(0) {
+						// B offsets -wrong way up and wrong yaw pitch axes
+						quaternion_multiply(&q1,&qao,&qlo);
+						quaternion_multiply(&q2,&q1,&qoo);
+						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+					} else {
+						// B offsets - right way up and right yaw pitch axes for Austria
+						quaternion_multiply(&q1,&qlo,&qao);
+						quaternion_multiply(&q2,&qoo,&q1);
+						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+					}
 				}
 				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
 				FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
