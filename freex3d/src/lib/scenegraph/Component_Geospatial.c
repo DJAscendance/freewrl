@@ -3447,23 +3447,23 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	double oo[4], pp[3];
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
+	//1. update .orientation that's also in GVP NLA
 	quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 	double2float(node->orientation.c,oo,4);
 
+	//2. update geo position
+	//2.a recall GC at last fetch
 	moveCoords3d(&node->__geoSystem,NULL,NULL,&node->position,1,&GCpos,&node->__movedgd);
-	//SLSLA 2 GCGCA
-	//NLS -> GC
-	//this converts a LCS (== SLSLA) orientation to GDA (not to the node's target geosystem in general)
-	//for example UTM/3TM might like to have utm grid north alignment .orientation. We don't do that here/yet.
 	Quaternion qlo, q2;
 	struct SFVec4d lo;
 
+	//2.b GC += inverse(localOrient) x Pos
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-	//vecprint4db("update lo ",lo.c,"\n");
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
 	pointxyz2double(pp,Pos);
 	quaternion_rotationd(pp,&qlo,pp);
 	vecaddd(GCpos.c,GCpos.c,pp);
+	//2.c .position = GC_to_user_geo(GC)
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
 }
 void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
