@@ -3435,113 +3435,12 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 struct X3D_Node *getActiveLayerBoundViewpoint();
 void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
-static double lsign1 =  1.0; //+
-static double lsign2 =  -1.0; //-
 
-void geoviewpoint_update_user_offsetsA(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	//Theory of operation:
-	// in viewer navigation we work in SLSLA (shared local (common origin) coords and alignment
-	// and on each frame in here we update the GDGDA (geodetic lat, long, height) for 
-	// other calculations such as speed and GEG (geoElevationGrid) gravity collision optimization
-
-	struct SFVec3d LCSpos, GCpos, gdCoord;
-	Quaternion qlc2gc;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-
-
-	//SLSLA 2 GCGCA
-	pointxyz2double(LCSpos.c,Pos);
-	//LCS -> GC
-	vrmlrot_to_quaternion(&qlc2gc,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
-	quaternion_rotationd(LCSpos.c,&qlc2gc,LCSpos.c);
-	vecaddd(GCpos.c,LCSpos.c,p->autoOrigin.c);
-
-	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
-	//vecprint3db("update",node->position.c,"\n");
-
-	if(0){
-		//this converts a LCS (== SLSLA) orientation to GDA (not to the node's target geosystem in general)
-		//for example UTM/3TM might like to have utm grid north alignment .orientation. We don't do that here/yet.
-		Quaternion q1, q2;
-		struct SFVec4d lo;
-		double oo[4];
-
-		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-		//vecprint4db("update lo ",lo.c,"\n");
-		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lsign1 * lo.c[3]);
-		// Quat = -localOrient x orientation
-		// localOrient x Quat = localOrient x -localOrient x orientation
-		// localOrient x Quat = orientation
-		quaternion_multiply(&q2,&q1,Quat);
-		quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-		double2float(node->orientation.c,oo,4);
-		//vecprint4db("update",oo,"\n");
-	}else{
-		double oo[4];
-		quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-		double2float(node->orientation.c,oo,4);
-	}
-
-	//GCGCA 2 GDGDA
-
-}
-void geoviewpoint_fetch_user_offsetsA(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
-	// return SLSLA pose
-	double oo[4];
-	struct SFVec3d LCSpos;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-
-	
-	//moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
-	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
-	double2pointxyz(Pos,LCSpos.c);
-	//vecprint3db("fetch",LCSpos.c,"\n");
-	if(0){
-		//problem with this: we are applying both autoOrient (the SLA or LCS orientation) elsewhere,
-		// and the NLA (node local) via localOrient here - that's double
-		struct SFVec4d lo;
-		Quaternion q1, q2;
-		double oo[4];
-
-		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-		//vecprint4db("fetch lo ",lo.c,"\n");
-		float2double(oo,node->orientation.c,4);
-		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lsign2 * lo.c[3]);
-		vrmlrot_to_quaternion(&q2,oo[0],oo[1],oo[2], oo[3]);
-		//vecprint4db("fetch oo ",oo,"\n");
-		//vecprint4db("fetch ao ",p->autoOrient.c,"\n");
-		// Quat = -localOrient x orientation
-		quaternion_multiply(Quat, &q1,&q2);
-	}else{
-		double oo[4];
-		float2double(oo,node->orientation.c,4);
-		vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2],oo[3]);
-	}
-	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
-	if(1){
-		//Q. when and where and how could/should we re-level the viewpoint to GD
-		//if airdrie LCS, austria up +x +y -z :  0.508484 0.311714 -0.802670  
-		struct SFVec4d lo;
-		struct SFVec3d up;
-		Quaternion qup, q1, q2;
-
-		GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-		vecsetd(up.c,0.0,1.0,0.0);
-		vrmlrot_to_quaternion(&q1,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
-		vrmlrot_to_quaternion(&q2,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2], -p->autoOrient.c[3]);
-		quaternion_multiply(&qup,&q2,&q1);
-		quaternion_rotationd(up.c,&qup,up.c);
-		vecprint3db("up ",up.c,"\n");
-		double2pointxyz(Up,up.c);
-	}
-
-}
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
-	//Experimental system that works in NLA - node local alignment
-	// in viewer navigation we work in SLSLA (shared local (common origin) coords and alignment
-	// and on each frame in here we update the GDGDA (geodetic lat, long, height) for 
-	// other calculations such as speed and GEG (geoElevationGrid) gravity collision optimization
+	// NLA - node local alignment
+	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
+	//  (-Z to north pole, X east, Y up) at GVP
 
 	struct SFVec3d GCpos, gdCoord;
 	Quaternion qlc2gc;
@@ -3568,7 +3467,10 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
 }
 void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos, struct point_XYZ *Up){
-	// return SLSLA pose
+	//Theory of operation:
+	// NLA - node local alignment
+	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
+	//  (-Z to north pole, X east, Y up) at GVP
 	double oo[4];
 	float2double(oo,node->orientation.c,4);
 	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], oo[3]);
@@ -3633,41 +3535,15 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 				vecnegated(pp,LCSpos.c);
 				//2. convert .orientation (relative to geosystem) into LCS
 				float2double(oo,node->orientation.c,4);
-				if(0){
-					//works
-					FW_GL_ROTATE_RADIANS(-lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
-					FW_GL_ROTATE_RADIANS(p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
-					//vecprint4db("ao",p->autoOrient.c,"\n");
-					//vecprint4db("lo",lo.c,"\n");
-					//vecprint4db("oo",oo,"\n");
-				}else{
-					//also works
+				{
 					Quaternion qlo, qao, qoo, q1, q2;
 					vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
 					vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
 					vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
-					if(0){
-						// A offsets - OK
-						// B offsets - viewpoint right way up on terrain, but yaw-pitch wrong axes
-						quaternion_multiply(&q1,&qlo,&qao);
-						quaternion_multiply(&q2,&q1,&qoo);
-						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-					}else if(0) {
-						// B offsets - viewpoint wrong way up, but yaw pitch around right axes
-						quaternion_multiply(&q1,&qao,&qlo);
-						quaternion_multiply(&q2,&qoo,&q1);
-						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-					} else if(0) {
-						// B offsets -wrong way up and wrong yaw pitch axes
-						quaternion_multiply(&q1,&qao,&qlo);
-						quaternion_multiply(&q2,&q1,&qoo);
-						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-					} else {
-						// B offsets - right way up and right yaw pitch axes for Austria
-						quaternion_multiply(&q1,&qlo,&qao);
-						quaternion_multiply(&q2,&qoo,&q1);
-						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-					}
+					// right way up and right yaw pitch axes for Austria
+					quaternion_multiply(&q1,&qlo,&qao);
+					quaternion_multiply(&q2,&qoo,&q1);
+					quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
 				}
 				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
 				FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
