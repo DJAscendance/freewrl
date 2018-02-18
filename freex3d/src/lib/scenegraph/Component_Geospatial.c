@@ -3587,7 +3587,8 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 					quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 					FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
 					FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
-				}else{
+				}else if(0){
+					//works for demo utm, world33 airdrie and austria vps
 					struct point_XYZ Pos, Up;
 					struct SFVec4d lo;
 					Quaternion Quat;
@@ -3607,6 +3608,67 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 					}
 					FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
 					FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
+				} else if(0) {
+					//goal: same as above except not using fetch
+					//works for demo utm, world33 airdrie and austria vps
+					struct point_XYZ Pos, Up;
+					struct SFVec4d lo;
+					Quaternion Quat;
+					double oo[4];
+
+					GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+					if(0) geoviewpoint_fetch_user_offsets(node,&Quat, &Pos, &Up);
+					else {
+						//fetch code
+						struct SFVec3d LCSpos;
+						ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+	
+						//moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+						moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+						double2pointxyz(&Pos,LCSpos.c);
+						float2double(oo,node->orientation.c,4);
+						vrmlrot_to_quaternion(&Quat,oo[0],oo[1],oo[2],oo[3]);
+					}
+					if(0) quaternion_to_vrmlrot(&Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+					if(1){
+						//airdrie vp OK, austria OK but navigation weird
+						ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+						FW_GL_ROTATE_RADIANS(-lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+						FW_GL_ROTATE_RADIANS(p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+						//vecprint4db("ao",p->autoOrient.c,"\n");
+						//vecprint4db("lo",lo.c,"\n");
+						//vecprint4db("oo",oo,"\n");
+					}
+					FW_GL_ROTATE_RADIANS(qsign * oo[3],oo[0],oo[1],oo[2]);
+					FW_GL_TRANSLATE_D(-Pos.x,-Pos.y,-Pos.z);
+
+				} else {
+
+					//goal: same as above except Torvaldsian
+					//works for demo utm, world33 airdrie and austria vps
+					struct point_XYZ Pos;
+					struct SFVec4d lo;
+					double oo[4], pp[3];
+					struct SFVec3d LCSpos;
+					ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+					//we render in 'LCS' Local coordinate system, relative to autoOrigin
+					
+					GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+					//1. convert current .position (relative to geosystem) into LCS
+					moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+					vecnegated(pp,LCSpos.c);
+					//2. convert .orientation (relative to geosystem) into LCS
+					float2double(oo,node->orientation.c,4);
+					FW_GL_ROTATE_RADIANS(-lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+					FW_GL_ROTATE_RADIANS(p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+					//vecprint4db("ao",p->autoOrient.c,"\n");
+					//vecprint4db("lo",lo.c,"\n");
+					//vecprint4db("oo",oo,"\n");
+					FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+					FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+
 				}
 			}
 		}
