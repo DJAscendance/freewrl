@@ -3445,7 +3445,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	struct SFVec3d GCpos, gdCoord;
 	Quaternion qlc2gc;
 	double oo[4], pp[3];
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
 	//1. update .orientation that's also in GVP NLA
 	quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);

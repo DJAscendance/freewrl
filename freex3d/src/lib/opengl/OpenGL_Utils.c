@@ -3154,7 +3154,7 @@ static struct depth_slice depth_slices_three [] = {
 {1.e7, 1.01e11},
 };
 static struct depth_slice depth_slices_two [] = { 
-{1.e-1, 1.e4},
+{1.e-1, 1.05e4},
 {1.e4, 1.0e9 },
 };
 static struct depth_slice depth_slices_one [] = {
