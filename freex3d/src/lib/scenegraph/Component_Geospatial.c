@@ -3485,15 +3485,6 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
-		//INITIALIZE_GEOSPATIAL(node)
-
-			/* printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-			printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]);
-			*/
-
-		/* check the set_bind eventin to see if it is TRUE or FALSE */
-		/* code to perform binding is now in set_viewpoint. */
-
 		COMPILE_IF_REQUIRED
 
 		#ifdef VERBOSE
@@ -3502,55 +3493,36 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 			/* perform GeoViewpoint translations */
 		if(geo_method()== 1 || geo_method() == 2){
-			//if(geo_method()==1)
-			//like geoLocation except backward and opposite sign on angles and translation
-			//GeoLocation:
-			//FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-			//FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-			//FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-			//FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
 
-			if(0){
-			//WORKS !!
-			//GeoViewpoint: opposite order, opposite sign as GL
-			FW_GL_ROTATE_RADIANS(-node->orientation.c[3],node->orientation.c[0],node->orientation.c[1],node->orientation.c[2]);
-			FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3], node->__movedOrientation.c[0],node->__movedOrientation.c[1],node->__movedOrientation.c[2]);
-			FW_GL_ROTATE_RADIANS(-node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
-			FW_GL_TRANSLATE_D(-node->__movedPosition.c[0], -node->__movedPosition.c[1], -node->__movedPosition.c[2]);
-			FW_GL_ROTATE_RADIANS(node->__movedOrientationB.c[3], node->__movedOrientationB.c[0],node->__movedOrientationB.c[1],node->__movedOrientationB.c[2]);
-			}else{
+			//goal: same as above except Torvaldsian
+			//works for demo utm, world33 airdrie and austria vps
+			struct point_XYZ Pos;
+			struct SFVec4d lo;
+			double oo[4], pp[3];
+			struct SFVec3d LCSpos;
+			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-				//goal: same as above except Torvaldsian
-				//works for demo utm, world33 airdrie and austria vps
-				struct point_XYZ Pos;
-				struct SFVec4d lo;
-				double oo[4], pp[3];
-				struct SFVec3d LCSpos;
-				ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-
-				//we render in 'LCS' Local coordinate system, relative to autoOrigin
-					
-				GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
-				//1. convert current .position (relative to geosystem) into LCS
-				moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
-				vecnegated(pp,LCSpos.c);
-				//2. convert .orientation (relative to geosystem) into LCS
-				float2double(oo,node->orientation.c,4);
-				oo[3] = -oo[3];
-				{
-					Quaternion qlo, qao, qoo, q1, q2;
-					vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
-					vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
-					vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
-					// right way up and right yaw pitch axes for Austria
-					quaternion_multiply(&q1,&qlo,&qao);
-					quaternion_multiply(&q2,&qoo,&q1);
-					quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
-				}
-				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
-				FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
-
+			//we render in 'LCS' Local coordinate system, relative to shared origin aka geoOrigin aka autoOrigin
+			GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+			//1. convert current .position (relative to geosystem) into LCS
+			moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+			vecnegated(pp,LCSpos.c);
+			//2. convert .orientation (relative to geosystem) into LCS
+			float2double(oo,node->orientation.c,4);
+			oo[3] = -oo[3];
+			{
+				Quaternion qlo, qao, qoo, q1, q2;
+				vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+				vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+				vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
+				// right way up and right yaw pitch axes for Austria
+				quaternion_multiply(&q1,&qlo,&qao);
+				quaternion_multiply(&q2,&qoo,&q1);
+				quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
 			}
+			FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+			FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+
 		}
 		/* we have  a new currentPosInModel now... */
 		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
