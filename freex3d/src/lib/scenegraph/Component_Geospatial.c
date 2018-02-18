@@ -2263,66 +2263,7 @@ void compile_GeoElevationGrid (struct X3D_GeoElevationGrid * node) {
 //
 }
 
-void pushOrigin(struct SFVec3d *offset, struct SFVec4d *orient){
-	// LCshape = stack * inverse(AOvp)*AOshape
-	struct Vector *vpstack;
-	ttglobal tg = gglobal();
-	struct X3D_Node *boundvp = NULL;
-	vpstack = getActiveBindableStacks(tg)->viewpoint;
-	if(vpstack && vpstack->n)
-		boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
-	FW_GL_PUSH_MATRIX();
-	if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
-		double *ct, *cr, *ct1,*cr1,crd[4];
-		struct X3D_GeoViewpoint * geovp = (struct X3D_GeoViewpoint*)boundvp;
-		ct = geovp->__movedPosition.c;
-		//cr = geovp->__movedOrientation.c;
-		float2double(crd,geovp->__movedOrientation.c,4);
-		cr = crd;
-		ct1 = offset->c;
-		cr1 = orient->c;
 
-		if(1) FW_GL_ROTATE_RADIANS(-cr[3], cr[0],cr[1],cr[2]);
-		FW_GL_TRANSLATE_F(-ct[0],-ct[1],-ct[2]);
-		if(0){
-			static int count = 0;
-			count++;
-			if(count % 15 == 0){
-				printf("vpt %lf %lf %lf nodet %lf %lf %lf\n",ct[0],ct[1],ct[2],ct1[0],ct1[1],ct1[2]);
-			}
-				
-		}
-
-		FW_GL_TRANSLATE_F(ct1[0],ct1[1],ct1[2]);
-		FW_GL_ROTATE_RADIANS(-cr1[3], cr1[0],cr1[1],cr1[2]);
-
-
-	}
-
-}
-void popOrigin(){
-	FW_GL_POP_MATRIX();
-}
-void extent6f_draw(float *extent);
-void prepShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
-	if(geo_method()==3){
-		initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
-
-		COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
-
-		pushOrigin(&node->__autoOffset,&node->__localOrient);
-	}
-	if(fwl_getDrawBoundingBoxes()) extent6f_draw(node->_extent);
-	if(0){
-		static int count = 0;
-		if(count > 1000 && count < 1020) { extent6f_printf(node->_extent); printf("GEG prepshape\n");}
-		count++;
-	}
-}
-void finShape_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
-	if(geo_method()==3)
-		popOrigin();
-}
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
 	checkX3DGeoElelvationGridFields *see function above
@@ -3401,6 +3342,9 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	double2float(node->__movedOrientation.c,offsetOrient.c,4);
 	double2float(node->__movedOrientationB.c,localOrient.c,4);
 
+	//we need to initialize __movedgd (lat, lon, height) early for things like speed
+	moveCoords3d(&node->__geoSystem,NULL,NULL,&node->position,1,&gcCoord,&node->__movedgd);
+
         #ifdef VERBOSE
 	printf ("compile_GeoViewpoint, final position %lf %lf %lf\n",node->__movedPosition.c[0],
 		node->__movedPosition.c[1], node->__movedPosition.c[2]);
@@ -3640,7 +3584,7 @@ void calculateViewingSpeedB() {
 		struct SFVec3d *gdCoords;
 		struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
 
-        INITIALIZE_GEOSPATIAL(node)
+        //INITIALIZE_GEOSPATIAL(node)
 		COMPILE_IF_REQUIRED(X3D_NODE(node));
 		gdCoords = &node->__movedgd;
 		height = gdCoords->c[2];

@@ -984,24 +984,7 @@ void setExtentA(float maxx, float minx, float maxy, float miny, float maxz, floa
 void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
 	float e[6];
 	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
-	if(virtTable[me->_nodeType]->prepShape && geo_method()==3){
-		double mat[16];
-		//push idenity
-		FW_GL_PUSH_MATRIX();
-		FW_GL_LOAD_IDENTITY();
-		//call prepShape
-		virtTable[me->_nodeType]->prepShape(me);
-		//scrape mat
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mat);
-		//call finShape
-		virtTable[me->_nodeType]->finShape(me);
-		FW_GL_POP_MATRIX();
-		//transform extent with mat
-		extent6f_mattransform4d(e,e,mat);
-		extent6f_setParentExtentB(e,me);
-	}else{
-		extent6f_setNodeExtentB(e,me);
-	}
+	extent6f_setNodeExtentB(e,me);
 }
 
 static void quaternion_multi_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct point_XYZ * v, int count){
