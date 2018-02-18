@@ -93,10 +93,12 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 x single planet
 	we can only do one world in a scene. We can't do a planet and several moons 
 	in geocoords in the same scene. Thats because we need to subtract the geoviewpoint
-	location from geoshapes, to get coordinates into single precision float range
+	location -or geoOrigin / autoOrigin- from geoshapes, to get coordinates into single precision float range
 	for display. And to do that, we assume the geoviewpoint and geoShapes are on the
 	same planet. In theory an additional 'planet number/id/name' could be specified 
 	in geoSystem to allow multiple planets.
+	Feb 2018 we did 'depth slices' in rendering - up to 3 slices - to improve rendering
+	with large coordinates at the single planet and multi-planet scale
 * UNITS as per specs
 	while we are interpreting radians as default for web3d specs v3.3, and degrees < 3.3
 	we haven't tested linear UNITS conversion on parsing for geocoordinates. 
@@ -108,6 +110,11 @@ x single planet
 	and vice versa when converting back from GC to GD or XTM. 
 	A test: using lat,lon of mount everest -which would have a mass that pulls sea level up-
 	the correction should be GC = gdtogc(lat,lon, gdheight -abs(geoid_correction(lat,lon)) )
+* geoOrigin / autoOrigin - the specs changed in v3.3 to deprecate geoOrigin
+	we are supposed to automatically compute an origin to use
+	Feb 2018 we are using FCFS First Come First Served - the first geoNode to compile_ we use
+	its geoOrigin / geoPoint / geo something as an arbitrary origin for a LCS local coordinate
+	system.
 */
 
 

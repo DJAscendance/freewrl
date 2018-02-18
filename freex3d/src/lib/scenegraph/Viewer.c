@@ -2176,7 +2176,11 @@ static void handle_tick_walk()
 	pp.z = frame_rate_adjustment * walk->ZD;
 	///  see below //increment_pos(&pp);
 
-	/* walk mode transforms: (dug9 July 15, 2011)
+	/* update to walk mode transforms, Feb 2018
+	- with viewer_fetch_user_offsets() and update_user_offsets() 
+		we copy .position/.orientation <=> Quat, .Pos on each frame
+		during navigation mouse ticks.
+	walk mode transforms: (dug9 July 15, 2011)
 	0.World Coordinates
 	-- transform stack
 	---- 1.viewpoint node - currently bound viewpoint (CBV) gravity direction vector determined here
