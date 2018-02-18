@@ -3449,6 +3449,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 
 	//1. update .orientation that's also in GVP NLA
 	quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+	oo[3] = -oo[3];
 	double2float(node->orientation.c,oo,4);
 
 	//2. update geo position
@@ -3473,7 +3474,7 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 	//  (-Z to north pole, X east, Y up) at GVP
 	double oo[4];
 	float2double(oo,node->orientation.c,4);
-	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], oo[3]);
+	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
 	Up->x = 0.0; Up->y = 1.0; Up->z = 0.0;
 	Pos->x = Pos->y = Pos->z = 0.0;
 }
@@ -3535,6 +3536,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 				vecnegated(pp,LCSpos.c);
 				//2. convert .orientation (relative to geosystem) into LCS
 				float2double(oo,node->orientation.c,4);
+				oo[3] = -oo[3];
 				{
 					Quaternion qlo, qao, qoo, q1, q2;
 					vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
