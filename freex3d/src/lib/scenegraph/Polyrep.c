@@ -973,7 +973,7 @@ PRINT_GL_ERROR_IF_ANY("");
  */
 
 
-void render_ray_polyrep(void *node) {
+void render_ray_polyrep_OLD(void *node) {
 	//struct X3D_Virt *virt;
 	struct X3D_Node *genericNodePtr;
 	struct X3D_PolyRep *polyRep;
@@ -1051,13 +1051,11 @@ void render_ray_polyrep(void *node) {
 		if (fabs(v12pt-1.0) < 0.00001) continue;
 
 		/* if we have a degenerate triangle, we can't compute a normal, so skip */
-
 		if ((fabs(v1len) > 0.00001) && (fabs(v2len) > 0.00001)) {
 
 			/* v3 is our normal to the surface */
 			VECCP(v1,v2,v3);
 			v3len = (float) sqrt(VECSQ(v3)); VECSCALE(v3, 1/v3len);
-
 			pt1 = (float) VECPT(t_r1,v3);
 			pt2 = (float) VECPT(t_r2,v3);
 			pt3 = (float) (v3.x * point[0][0] + v3.y * point[0][1] + v3.z * point[0][2]);
@@ -1105,11 +1103,88 @@ void render_ray_polyrep(void *node) {
 					((float)(v3.y)),
 					((float)(v3.z)),
 					((float)-1),((float)-1), "polyrep");
+					printf(" 5 ");
 			 }
 		/*
 		} else {
 			printf ("render_ray_polyrep, skipping degenerate triangle\n");
 		*/
+		}
+	}
+}
+
+int triangle_intersection( float *  V1,  // Triangle vertices
+                           float *  V2,
+                           float *  V3,
+                           float *   O,  //Ray origin
+                           float *   D,  //Ray direction
+                           float* out );
+
+void render_ray_polyrep(void *node) {
+	//struct X3D_Virt *virt;
+	struct X3D_Node *genericNodePtr;
+	struct X3D_PolyRep *polyRep;
+	int i;
+	int pt;
+	float *point[3];
+	struct point_XYZ v1, v2, v3;
+	double d1[3], d2[3], dO[3], dD[3];
+	float p2[3], O[3], D[3], H[3], scale;
+	//struct point_XYZ ray;
+	float pt1, pt2, pt3;
+	struct point_XYZ hitpoint;
+	float tmp1,tmp2;
+	float v1len, v2len, v3len;
+	float v12pt;
+	struct point_XYZ t_r1,t_r2;
+	//ttglobal tg;
+	
+	/* is this structure still loading? */
+	if (!node) return;
+	get_current_ray(&t_r1, &t_r2);
+	genericNodePtr = X3D_NODE(node);
+	
+	/* is this structure still loading? */
+	if (!(genericNodePtr->_intern)) {
+		/* printf ("render_ray_polyrep - no internal structure, returning\n"); */
+		return;
+	}
+
+	polyRep = genericNodePtr->_intern;
+
+	/*	
+	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
+		genericNodePtr->_change, polyRep->_change, polyRep->ntri);
+	*/
+	//Feb 2018: we have to do some math in double, when working with geospatial or very big polyreps..
+	pointxyz2double(dO,&t_r1);
+	pointxyz2double(d2,&t_r2);
+	vecdifd(dD,d2,dO);
+	vecnormald(dD,dD);
+	//..then once we have difference vectors, we can switch to float
+	double2float(O,dO,3);
+	double2float(D,dD,3);
+	/*
+	vecprint3db("dO",dO,"\n");
+	vecprint3db("d2",d2,"\n");
+	vecprint3fb("O",O,"\n");
+	vecprint3fb("D",D,"\n");
+	*/
+	for(i=0; i<polyRep->ntri; i++) {
+		for(pt = 0; pt<3; pt++) {
+			int ind = polyRep->cindex[i*3+pt];
+			point[pt] = (polyRep->actualCoord+3*ind);
+		}
+		if(triangle_intersection(point[0],point[1],point[2],O,D,&scale)){
+			vecadd3f(H,O,vecscale3f(H,D,scale));
+			rayhit(scale,
+			H[0],
+			H[1],
+			H[2],
+			0.0f,
+			0.0f,
+			0.0f,
+			-1.0f,-1.0f, "polyrep2");
 		}
 	}
 }
@@ -1238,7 +1313,6 @@ int intersect_polyrep(struct X3D_Node *node, float *p1, float *p2, float *neares
 	*/
 
 	
-
 	for(i=0; i<polyRep->ntri; i++) {
 		for(pt = 0; pt<3; pt++) {
 			int ind = polyRep->cindex[i*3+pt];
@@ -1456,7 +1530,6 @@ int intersect_polyrep2(struct X3D_Node *node, float *p1, float *p2, Stack *inter
 			if(triangle_intersection(point[0],point[1],point[2],p1,d2,&tscale)){
 				//printf("muller-trumbore intersection tascale %f nearestdist %f\n",tscale,nearestdist);
 				nintersections++;
-
 				if(tscale > 0.0f && tscale < veclength3f(delta)){  //nearestdist){
 					//closest so far
 					float e1[3],e2[3],nn[3],pd[3],pi[3],normi[3];
