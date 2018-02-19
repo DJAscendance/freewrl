@@ -168,6 +168,7 @@ void veccross(struct point_XYZ *c , struct point_XYZ a, struct point_XYZ b);
 double signd(double val);
 double * vecsignd(double *b, double *a);
 double *vecsetd(double *b, double x, double y, double z);
+double *vecset4d(double *b, double x, double y, double z, double a);
 double * vecmuld(double *c, double *a, double *b);
 double * vecaddd(double *c, double *a, double *b);
 double *vecdifd(double *c, double* a, double *b);

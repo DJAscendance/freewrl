@@ -390,7 +390,9 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	t->prv = Component_Geospatial_constructor();
 	{
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
-		p->autoOriginSet = FALSE;
+		p->autoOriginSet = TRUE; //FALSE;
+		vecset4d(p->autoOrient.c,0.0,0.0,1.0,0.0);
+		vecsetd(p->autoOrigin.c,0.0,0.0,0.0);
 		//p->go = createNewX3DNode0(NODE_GeoOrigin);
 		p->geoLodLevel = 0;
 		memset(p->gcgdpars,0,50*sizeof(void*));

@@ -69,6 +69,10 @@ double * vecsetd(double *b, double x, double y, double z){
 	b[0] = x, b[1] = y; b[2] = z;
 	return b;
 }
+double * vecset4d(double *b, double x, double y, double z, double a){
+	b[0] = x, b[1] = y; b[2] = z; b[3] = a;
+	return b;
+}
 float *double2float(float *b, const double *a, int n){
 	int i;
 	for(i=0;i<n;i++) b[i] = (float)a[i];
