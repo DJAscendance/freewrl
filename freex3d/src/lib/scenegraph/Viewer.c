@@ -1783,7 +1783,7 @@ void viewer_lastP_add(struct point_XYZ *vec)
 		viewer_lastP_clear();
 }
 
-struct point_XYZ viewer_get_lastP()
+struct point_XYZ viewer_lastP_get()
 { 
 	/* returns a vector from avatar to the last avatar location ie on the last loop, in avatar space */
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;

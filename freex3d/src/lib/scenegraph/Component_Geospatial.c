@@ -3613,14 +3613,12 @@ Viewer()->doExamineModeDistanceCalculations = TRUE;
 }
 void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	X3D_Viewer *viewer;
-	//Quaternion q_i;
 
 	/* did bind_node tell us we could bind this guy? */
 	if (!(node->isBound)) return;
 
 	viewer = ViewerByLayerId(node->_layerId);
 
-	//done in compile INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	/* set Viewer position and orientation */
@@ -3639,19 +3637,16 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
 		//save the previous vp pose, in root space, for future slerps
 		viewer->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
-		//printf("S");
 		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
 		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
-		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, p->viewpoint2rootnode);
 		{
 			bindablestack* bstack = getActiveBindableStacks(gglobal());
 			matcopy(viewer->slerp_viewmatrix,bstack->viewtransformmatrix);
 			matcopy(viewer->slerp_posorimatrix,bstack->posorimatrix);
 			
 		}
-		//printf("S");
 
-        viewer->SLERPing = FALSE; //TRUE; 
+        viewer->SLERPing = FALSE;
         viewer->startSLERPtime = TickTime(); 
 		/* slerp Mark II */
 		viewer->SLERPing2 = TRUE;
@@ -3674,22 +3669,8 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	viewer->GeoSpatialNode = node;
 
-/*
-	viewer->Pos.x = node->__movedPosition.c[0];
-	viewer->Pos.y = node->__movedPosition.c[1];
-	viewer->Pos.z = node->__movedPosition.c[2];
-	viewer->AntiPos.x = node->__movedPosition.c[0];
-	viewer->AntiPos.y = node->__movedPosition.c[1];
-	viewer->AntiPos.z = node->__movedPosition.c[2];
-*/
-	/* printf ("bind_GeoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z); */
-
 	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
-
-	//vrmlrot_to_quaternion (&q_i,node->__movedOrientation.c[0],
-	//	node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
-	//quaternion_inverse(&(viewer->AntiQuat),&q_i);
 
 	calculateViewingSpeedB();
 

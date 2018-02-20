@@ -2045,7 +2045,7 @@ static void get_collisionoffset(double *x, double *y, double *z)
 	*z = xyz.z;
 	/* another transform possible: from avatar space into navigation space. fly/examine: identity walk: A2BVVA*/
 }
-struct point_XYZ viewer_get_lastP();
+struct point_XYZ viewer_lastP_get();
 void render_collisions(int Viewer_type) {
         struct point_XYZ v;
 		struct sCollisionInfo *ci;
@@ -2101,7 +2101,7 @@ void render_collisions(int Viewer_type) {
 			/* set up avatar to last valid avatar position vector in avatar space */
 			double plen = 0.0;
 			struct point_XYZ lastpos;  
-			lastpos = viewer_get_lastP(); /* in viewer/avatar space */
+			lastpos = viewer_lastP_get(); /* in viewer/avatar space */
 			transform(&lastpos,&lastpos,fi->avatar2collision); /* convert to collision space */
 			/* if vector length == 0 can't penetrate - don't bother to check */
 			plen = sqrt(vecdot(&lastpos,&lastpos));
