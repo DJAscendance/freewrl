@@ -56,18 +56,6 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	if (!renderstate()->render_vp) return;
 	viewer = Viewer();
 
-        /* printf ("prep_Viewpoint: vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-        render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision);  */
-
-
-	/*  printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-	 printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]); */
-
-	 
-
-	/* check the set_bind eventin to see if it is TRUE or FALSE */
-	/* code to perform binding is now in set_viewpoint. */
-
 	/* we will never get here unless we are told that we are active by the scene graph; actually
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
@@ -77,40 +65,13 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 								 // this test takes the first one (and helps exit render_node early around virt->children)
 
 
-		/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
-	
-
-		/* perform Viewpoint translations */
-		//if (viewer->SLERPing) {
-
-		//	double tickFrac;
-		//	Quaternion slerpedDiff;
-
-		//	struct point_XYZ antipos;
-
-		//	/* printf ("slerping in togl, type %s\n", VIEWER_STRING(viewer_type)); */
-		//	tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
-
-		//	quaternion_slerp (&slerpedDiff,&viewer->startSLERPprepVPQuat,&viewer->prepVPQuat,tickFrac);
-
-		//	quaternion_togl(&slerpedDiff);
-
-		//	antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
-		//	antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
-		//	antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
-
-		//	FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
-
-		//} else {
-			//quaternion_togl(&viewer->prepVPQuat);
-			{
-				//dug9slerp  this fix works with a test file VP_set_orientation.x3d
-				Quaternion q3;
-				vrmlrot_to_quaternion(&q3,node->orientation.c[0],node->orientation.c[1],node->orientation.c[2],-node->orientation.c[3]);
-				quaternion_togl(&q3);
-			}
-			FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
-		//}
+		{
+			//dug9slerp  this fix works with a test file VP_set_orientation.x3d
+			Quaternion q3;
+			vrmlrot_to_quaternion(&q3,node->orientation.c[0],node->orientation.c[1],node->orientation.c[2],-node->orientation.c[3]);
+			quaternion_togl(&q3);
+		}
+		FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
 
 		/* now, lets work on the Viewpoint fieldOfView */
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
@@ -132,22 +93,11 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 
 	if (!renderstate()->render_vp) return;
 
-	/* printf ("prep_OrthoViewpoint: vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-        render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision);  */
-
-
-	/*  printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-	 printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]); */
-
-	/* check the set_bind eventin to see if it is TRUE or FALSE */
-	/* code to perform binding is now in set_viewpoint. */
-
 	/* we will never get here unless we are told that we are active by the scene graph; actually
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
 	*/
 	
-	/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
 	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 	
@@ -162,10 +112,7 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 			for (ind=0; ind<4; ind++) {
 					Viewer()->orthoField[ind] = (double) node->fieldOfView.p[ind];
 			}
-			//Viewer()->ortho = TRUE;
 		}
-
-		// printf ("render_OrthoViewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); 
 	}
 }
 
