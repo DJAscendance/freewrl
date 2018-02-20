@@ -3499,78 +3499,78 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
 /* this is called from the Viewer functions */
-void calculateViewingSpeed() {
-	double radius;
-	struct SFVec3d gcCoords;
-	struct SFVec3d gdCoords;
-	struct Multi_Int32 *geoSystem;
-	//int specversion;		
-	/* the current position is the GC coordinate */
-	gcCoords.c[0]= Viewer()->currentPosInModel.x;
-	gcCoords.c[1] = Viewer()->currentPosInModel.y;
-	gcCoords.c[2] = Viewer()->currentPosInModel.z;
-        #ifdef VERBOSE
-        printf ("calculateViewingSpeed, currentPosInModel %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
-        #endif
-		
-	if (Viewer()->GeoSpatialNode != NULL) {
-		/* do we have a valid __geoSystem?? */
-		//specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
-        INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
-		geoSystem = &Viewer()->GeoSpatialNode->__geoSystem;
-		if (geoSystem && geoSystem->n >0) {
-			/* is the __geoSystem NOT gc coords? */
-			/* printf ("have a GeoSpatial viewpoint, currently %d\n",Viewer.GeoSpatialNode->__geoSystem.p[0]);  */
-			if (geoSystem->p[0] != GEOSP_GC) {
-		
-
-		      //  	retractOrigin((struct X3D_GeoOrigin *)Viewer.GeoSpatialNode->geoOrigin, &gcCoords);
-
-		
-		        	#ifdef VERBOSE
-				printf ("\n");
-				printf ("for GeoViewpoint :%s:\n",Viewer.GeoSpatialNode->description->strptr);
-		        	printf ("calculateViewingSpeed,  currentPosInModel: %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
-		        	#endif
-		
-		        	/* convert from local (gc) to gd coordinates, using WGS84 ellipsoid */
-		        	gccToGdc (geoSystem, &gcCoords, &gdCoords);
-		
-				#ifdef VERBOSE
-				printf ("speed is calculated from geodetic height %lf %lf %lf\n",gdCoords.c[0], gdCoords.c[1], gdCoords.c[2]); 
-				#endif
-			
-				/* speed is dependent on elevation above WGS84 ellipsoid */
-				//Viewer()->speed  = fabs(sqrt(gcCoords.c[0]*gcCoords.c[0] + gcCoords.c[1]*gcCoords.c[1] + gcCoords.c[2]*gcCoords.c[2])
-				//	-GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
-
-				radius = veclengthd(gcCoords.c);
-				Viewer()->speed  = fabs(radius - GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
-				if(0){
-					static int count = 0;
-					count++;
-					if(count % 20 == 0)
-						printf("radius %lf speedFactor %lf speed %lf\n",radius,Viewer()->GeoSpatialNode->speedFactor,Viewer()->speed);
-				}
-				if (Viewer()->speed < 1.0) Viewer()->speed=1.0;
-
-				#ifdef VERBOSE
-				printf ("height above center %f WGS84 ellipsoid is %lf\n",Viewer.speed,GEOSP_WE_A); 
-				#endif
-/*
-				Viewer.speed = fabs(Viewer.speed * Viewer.GeoSpatialNode->speedFactor);
-				if (Viewer.speed < Viewer.GeoSpatialNode->speedFactor) Viewer.speed = Viewer.GeoSpatialNode->speedFactor;
-*/
-
-				/* set the navigation info - use the GeoVRML algorithms */
-				set_naviWidthHeightStep(
-					Viewer()->speed*0.25,
-					Viewer()->speed*1.6,
-					Viewer()->speed*0.25);
-			}
-		}
-	}
-}
+//void calculateViewingSpeed() {
+//	double radius;
+//	struct SFVec3d gcCoords;
+//	struct SFVec3d gdCoords;
+//	struct Multi_Int32 *geoSystem;
+//	//int specversion;		
+//	/* the current position is the GC coordinate */
+//	gcCoords.c[0]= Viewer()->currentPosInModel.x;
+//	gcCoords.c[1] = Viewer()->currentPosInModel.y;
+//	gcCoords.c[2] = Viewer()->currentPosInModel.z;
+//        #ifdef VERBOSE
+//        printf ("calculateViewingSpeed, currentPosInModel %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
+//        #endif
+//		
+//	if (Viewer()->GeoSpatialNode != NULL) {
+//		/* do we have a valid __geoSystem?? */
+//		//specversion = X3D_PROTO(Viewer()->GeoSpatialNode->_executionContext)->__specversion;
+//        INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
+//		geoSystem = &Viewer()->GeoSpatialNode->__geoSystem;
+//		if (geoSystem && geoSystem->n >0) {
+//			/* is the __geoSystem NOT gc coords? */
+//			/* printf ("have a GeoSpatial viewpoint, currently %d\n",Viewer.GeoSpatialNode->__geoSystem.p[0]);  */
+//			if (geoSystem->p[0] != GEOSP_GC) {
+//		
+//
+//		      //  	retractOrigin((struct X3D_GeoOrigin *)Viewer.GeoSpatialNode->geoOrigin, &gcCoords);
+//
+//		
+//		        	#ifdef VERBOSE
+//				printf ("\n");
+//				printf ("for GeoViewpoint :%s:\n",Viewer.GeoSpatialNode->description->strptr);
+//		        	printf ("calculateViewingSpeed,  currentPosInModel: %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
+//		        	#endif
+//		
+//		        	/* convert from local (gc) to gd coordinates, using WGS84 ellipsoid */
+//		        	gccToGdc (geoSystem, &gcCoords, &gdCoords);
+//		
+//				#ifdef VERBOSE
+//				printf ("speed is calculated from geodetic height %lf %lf %lf\n",gdCoords.c[0], gdCoords.c[1], gdCoords.c[2]); 
+//				#endif
+//			
+//				/* speed is dependent on elevation above WGS84 ellipsoid */
+//				//Viewer()->speed  = fabs(sqrt(gcCoords.c[0]*gcCoords.c[0] + gcCoords.c[1]*gcCoords.c[1] + gcCoords.c[2]*gcCoords.c[2])
+//				//	-GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
+//
+//				radius = veclengthd(gcCoords.c);
+//				Viewer()->speed  = fabs(radius - GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
+//				if(0){
+//					static int count = 0;
+//					count++;
+//					if(count % 20 == 0)
+//						printf("radius %lf speedFactor %lf speed %lf\n",radius,Viewer()->GeoSpatialNode->speedFactor,Viewer()->speed);
+//				}
+//				if (Viewer()->speed < 1.0) Viewer()->speed=1.0;
+//
+//				#ifdef VERBOSE
+//				printf ("height above center %f WGS84 ellipsoid is %lf\n",Viewer.speed,GEOSP_WE_A); 
+//				#endif
+///*
+//				Viewer.speed = fabs(Viewer.speed * Viewer.GeoSpatialNode->speedFactor);
+//				if (Viewer.speed < Viewer.GeoSpatialNode->speedFactor) Viewer.speed = Viewer.GeoSpatialNode->speedFactor;
+//*/
+//
+//				/* set the navigation info - use the GeoVRML algorithms */
+//				set_naviWidthHeightStep(
+//					Viewer()->speed*0.25,
+//					Viewer()->speed*1.6,
+//					Viewer()->speed*0.25);
+//			}
+//		}
+//	}
+//}
 
 void calculateViewingSpeedB() {
 	/* the current position is the GC coordinate */
@@ -3613,7 +3613,7 @@ Viewer()->doExamineModeDistanceCalculations = TRUE;
 }
 void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	X3D_Viewer *viewer;
-	Quaternion q_i;
+	//Quaternion q_i;
 
 	/* did bind_node tell us we could bind this guy? */
 	if (!(node->isBound)) return;
@@ -3674,23 +3674,22 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	viewer->GeoSpatialNode = node;
 
+/*
 	viewer->Pos.x = node->__movedPosition.c[0];
 	viewer->Pos.y = node->__movedPosition.c[1];
 	viewer->Pos.z = node->__movedPosition.c[2];
 	viewer->AntiPos.x = node->__movedPosition.c[0];
 	viewer->AntiPos.y = node->__movedPosition.c[1];
 	viewer->AntiPos.z = node->__movedPosition.c[2];
-
+*/
 	/* printf ("bind_GeoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z); */
 
 	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
 
-	vrmlrot_to_quaternion (&q_i,node->__movedOrientation.c[0],
-		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
-	quaternion_inverse(&(viewer->AntiQuat),&q_i);
-
-	resolve_pos();
+	//vrmlrot_to_quaternion (&q_i,node->__movedOrientation.c[0],
+	//	node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
+	//quaternion_inverse(&(viewer->AntiQuat),&q_i);
 
 	calculateViewingSpeedB();
 

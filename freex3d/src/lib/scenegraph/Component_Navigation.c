@@ -81,27 +81,27 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	
 
 		/* perform Viewpoint translations */
-		if (viewer->SLERPing) {
+		//if (viewer->SLERPing) {
 
-			double tickFrac;
-			Quaternion slerpedDiff;
+		//	double tickFrac;
+		//	Quaternion slerpedDiff;
 
-			struct point_XYZ antipos;
+		//	struct point_XYZ antipos;
 
-			/* printf ("slerping in togl, type %s\n", VIEWER_STRING(viewer_type)); */
-			tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
+		//	/* printf ("slerping in togl, type %s\n", VIEWER_STRING(viewer_type)); */
+		//	tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 
-			quaternion_slerp (&slerpedDiff,&viewer->startSLERPprepVPQuat,&viewer->prepVPQuat,tickFrac);
+		//	quaternion_slerp (&slerpedDiff,&viewer->startSLERPprepVPQuat,&viewer->prepVPQuat,tickFrac);
 
-			quaternion_togl(&slerpedDiff);
+		//	quaternion_togl(&slerpedDiff);
 
-			antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
-			antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
-			antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
+		//	antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
+		//	antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
+		//	antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
 
-			FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
+		//	FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
 
-		} else {
+		//} else {
 			//quaternion_togl(&viewer->prepVPQuat);
 			{
 				//dug9slerp  this fix works with a test file VP_set_orientation.x3d
@@ -110,7 +110,7 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 				quaternion_togl(&q3);
 			}
 			FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
-		}
+		//}
 
 		/* now, lets work on the Viewpoint fieldOfView */
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
