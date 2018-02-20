@@ -973,7 +973,8 @@ PRINT_GL_ERROR_IF_ANY("");
  */
 
 
-void render_ray_polyrep_OLD(void *node) {
+void render_ray_polyrep_A(void *node) {
+	//this doesn't work with large pick rays for geo size scenes
 	//struct X3D_Virt *virt;
 	struct X3D_Node *genericNodePtr;
 	struct X3D_PolyRep *polyRep;
@@ -996,6 +997,7 @@ void render_ray_polyrep_OLD(void *node) {
 	//VECCOPY(t_r1,tg->RenderFuncs.t_r1);
 	//VECCOPY(t_r2,tg->RenderFuncs.t_r2);
 	get_current_ray(&t_r1, &t_r2);
+
 	//VECCOPY(t_r3,tg->RenderFuncs.t_r3);
 
 	//ray.x = t_r2.x - t_r1.x;
@@ -1103,7 +1105,6 @@ void render_ray_polyrep_OLD(void *node) {
 					((float)(v3.y)),
 					((float)(v3.z)),
 					((float)-1),((float)-1), "polyrep");
-					printf(" 5 ");
 			 }
 		/*
 		} else {
@@ -1120,7 +1121,8 @@ int triangle_intersection( float *  V1,  // Triangle vertices
                            float *   D,  //Ray direction
                            float* out );
 
-void render_ray_polyrep(void *node) {
+void render_ray_polyrep_B(void *node) {
+	// this doesn't work in townsite_withHud on about the 3rd photo, can't pick in-scene hud
 	//struct X3D_Virt *virt;
 	struct X3D_Node *genericNodePtr;
 	struct X3D_PolyRep *polyRep;
@@ -1161,6 +1163,7 @@ void render_ray_polyrep(void *node) {
 	pointxyz2double(d2,&t_r2);
 	vecdifd(dD,d2,dO);
 	vecnormald(dD,dD);
+	
 	//..then once we have difference vectors, we can switch to float
 	double2float(O,dO,3);
 	double2float(D,dD,3);
@@ -1187,6 +1190,30 @@ void render_ray_polyrep(void *node) {
 			-1.0f,-1.0f, "polyrep2");
 		}
 	}
+}
+
+void render_ray_polyrep(void *node) {
+	//dug9: out of time and the picking needs a re-do
+	// this is a hack to get it working for close range and big (geo) scenes
+	double p1[3], p2[3], dd[3], dlength;
+	struct point_XYZ t_r1,t_r2;
+	get_current_ray(&t_r1, &t_r2);
+	pointxyz2double(p1,&t_r1);
+	//pointxyz2double(p2,&t_r2);
+	//vecdifd(dd,p2,p1);
+	dlength = veclengthd(p1);
+	if(dlength > 1000.0){
+		render_ray_polyrep_B(node);
+		//vecprint3db("p1",p1,"");
+		//vecprint3db("p2",p2,"\n");
+		//printf("B");
+	}else{
+		render_ray_polyrep_A(node);
+		//vecprint3db("p1",p1,"");
+		//vecprint3db("p2",p2,"\n");
+		//printf("A");
+	}
+
 }
 
 // https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm
