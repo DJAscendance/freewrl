@@ -224,8 +224,6 @@ typedef struct viewer {
 	double slerp_posorimatrix[16];
 	int vp2rnSaved;
 
-	struct X3D_GeoViewpoint *GeoSpatialNode; /* NULL, unless we are a GeoViewpoint */
-
 	int doExamineModeDistanceCalculations;	
 
 	/* are we perspective or ortho? */

@@ -193,9 +193,6 @@ void viewer_default0(X3D_Viewer *viewer, int vpnodetype) {
 	}
 	viewer->LookatMode = 0;
 
-	/* assume we are not bound to a GeoViewpoint */
-	viewer->GeoSpatialNode = NULL;
-
 }
 //ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 //X3D_Viewer _Viewer; /* has to be defined somewhere, so it found itself stuck here */
@@ -2161,13 +2158,6 @@ static void handle_tick_fly()
 		changed += fly->Velocity[0][i];
 	}
 
-	/* if we do NOT have a GeoViewpoint node, constrain all 3 axis */
-	if (viewer->GeoSpatialNode == NULL) 
-		if(0) for (i = 0; i < 3; i++) {
-			if (fabs(fly->Velocity[0][i]) >9.0) 
-				fly->Velocity[0][i] /= (fabs(fly->Velocity[0][i]) /9.0);
-		}
-
 	/* angular movement 
 		key chirp - a quck press and release on a key
 		Velocity - (not velocity)  amount of angle in radians we want to turn on this tick
@@ -2962,9 +2952,6 @@ void bind_OrthoViewpoint (struct X3D_OrthoViewpoint *vp) {
 
 	/* printf ("orthoviewpoint binding distance %f\n",Viewer.Dist);  */
 
-	/* since this is not a bind to a GeoViewpoint node... */
-	viewer->GeoSpatialNode = NULL;
-
 	/* set the examine mode rotation origin */
 	INITIATE_ROTATION_ORIGIN
 
@@ -3442,9 +3429,6 @@ void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	viewer->ortho=FALSE;
 
 	/* printf ("viewpoint binding distance %f\n",Viewer.Dist);  */
-
-	/* since this is not a bind to a GeoViewpoint node... */
-	viewer->GeoSpatialNode = NULL;
 
 	/* set the examine mode rotation origin */
 	INITIATE_ROTATION_ORIGIN

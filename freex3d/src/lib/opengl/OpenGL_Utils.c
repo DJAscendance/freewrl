@@ -3006,7 +3006,7 @@ static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	/* find the length of the line between the moved center and our current viewer position */
 	viewer = Viewer();
 	getCurrentPosInModelB();
-	calculateViewingSpeedB(viewer);
+	//calculateViewingSpeedB(viewer);
 	cx = viewer->currentPosInModel.x - node->__movedCoords.c[0];
 	cy = viewer->currentPosInModel.y - node->__movedCoords.c[1];
 	cz = viewer->currentPosInModel.z - node->__movedCoords.c[2];
