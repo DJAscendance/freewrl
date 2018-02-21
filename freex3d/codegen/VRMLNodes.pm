@@ -2001,6 +2001,7 @@ our %Nodes = (
 		# "compiled" versions of strings above
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
 		__movedCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
+		__movedgd => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__oldgeoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__oldMFString => ["MFString", [],"inputOutput", 0,0],#ff # the navType
 		__rotyup => ["SFVec4d", [0, 1, 0, 0], "inputOutput", 0,0],#ff

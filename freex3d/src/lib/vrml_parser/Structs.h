@@ -4936,6 +4936,7 @@ struct X3D_GeoOrigin {
 	int rotateYUp;
 	struct Multi_Int32 __geoSystem;
 	struct SFVec3d __movedCoords;
+	struct SFVec3d __movedgd;
 	struct SFVec3d __oldgeoCoords;
 	struct Multi_String __oldMFString;
 	struct SFVec4d __rotyup;

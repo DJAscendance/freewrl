@@ -390,7 +390,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	t->prv = Component_Geospatial_constructor();
 	{
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
-		p->autoOriginSet = TRUE; //FALSE;
+		p->autoOriginSet = FALSE; //FALSE;
 		vecset4d(p->autoOrient.c,0.0,0.0,1.0,0.0);
 		vecsetd(p->autoOrigin.c,0.0,0.0,0.0);
 		//p->go = createNewX3DNode0(NODE_GeoOrigin);
@@ -465,24 +465,24 @@ static double geoidCorrection(double latitudeDeg, double longitudeDeg)
 	return (double)d;
 }
 /* move ourselves BACK to the from the GeoOrigin */
-static void retractOrigin(struct X3D_GeoOrigin *myGeoOrigin, struct SFVec3d *gcCoords) {
-	if (myGeoOrigin != NULL) {
-		if(myGeoOrigin->rotateYUp == TRUE)
-		{
-			int i;
-			Quaternion rq;
-			struct SFVec3d temp;
-			vrmlrot_to_quaternion(&rq,myGeoOrigin->__rotyup.c[0], myGeoOrigin->__rotyup.c[1], myGeoOrigin->__rotyup.c[2], myGeoOrigin->__rotyup.c[3]); 
-			//quaternion_multi_rotation(outxyz,&rq,inxyz,8);
-			quaternion_rotation((struct point_XYZ *)temp.c, &rq, (const struct point_XYZ *)gcCoords->c);
-			for(i=0;i<3;i++)
-				gcCoords->c[i] = temp.c[i];
-		}
-		gcCoords->c[0] += myGeoOrigin->__movedCoords.c[0];
-		gcCoords->c[1] += myGeoOrigin->__movedCoords.c[1];
-		gcCoords->c[2] += myGeoOrigin->__movedCoords.c[2];
-	}
-}
+//static void retractOrigin(struct X3D_GeoOrigin *myGeoOrigin, struct SFVec3d *gcCoords) {
+//	if (myGeoOrigin != NULL) {
+//		if(myGeoOrigin->rotateYUp == TRUE)
+//		{
+//			int i;
+//			Quaternion rq;
+//			struct SFVec3d temp;
+//			vrmlrot_to_quaternion(&rq,myGeoOrigin->__rotyup.c[0], myGeoOrigin->__rotyup.c[1], myGeoOrigin->__rotyup.c[2], myGeoOrigin->__rotyup.c[3]); 
+//			//quaternion_multi_rotation(outxyz,&rq,inxyz,8);
+//			quaternion_rotation((struct point_XYZ *)temp.c, &rq, (const struct point_XYZ *)gcCoords->c);
+//			for(i=0;i<3;i++)
+//				gcCoords->c[i] = temp.c[i];
+//		}
+//		gcCoords->c[0] += myGeoOrigin->__movedCoords.c[0];
+//		gcCoords->c[1] += myGeoOrigin->__movedCoords.c[1];
+//		gcCoords->c[2] += myGeoOrigin->__movedCoords.c[2];
+//	}
+//}
 
 
 /* convert GD ellipsiod to GC coordinates. swizzles and converts degrad as needed. */
@@ -997,12 +997,12 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 		/* printf ("initGeoSpatial ich %d ch %d\n",node->_ichange, node->_change); */
 
 		if NODE_NEEDS_COMPILING {
-			struct SFVec3d gdCoords;
+			//struct SFVec3d gdCoords;
 			//struct SFVec3d offset;
 			compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
 			//INIT_MF_FROM_SF(node,geoCoords)
 			moveCoords3d(&node->__geoSystem, NULL, NULL,
-					&node->geoCoords,1, &node->__movedCoords, &gdCoords);
+					&node->geoCoords,1, &node->__movedCoords, &node->__movedgd);
 			//COPY_MF_TO_SF(node, __movedCoords)
 
 			if(node->rotateYUp == TRUE)
@@ -1012,7 +1012,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 				Quaternion qz,qx,qr;
 				double dangle;
 					 
-				dangle = gdCoords.c[1];
+				dangle = node->__movedgd.c[1];
 				if(node->__geoSystem.p[7] == TRUE)
 					dangle *= RADIANS_PER_DEGREE;
 				dangle += RADIANS_PER_DEGREE*90.0;
@@ -1023,7 +1023,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 					dangle,qz.x, qz.y, qz.z,qz.w);
 				#endif
 
-				dangle =  gdCoords.c[0];
+				dangle =  node->__movedgd.c[0];
 				if(node->__geoSystem.p[7] == TRUE)
 					dangle *= RADIANS_PER_DEGREE;
 				dangle = RADIANS_PER_DEGREE*180.0 - dangle;
@@ -1804,27 +1804,20 @@ void origin_offsets(geoOffsetInfo *gi)
 	pslnla = &slnla;
 	pslsla = &slsla;
 
-	if(gi->geoOrigin && specversion < 330){
+	if(gi->geoOrigin && specversion < 330 && !p->autoOriginSet ){
 		//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
+		//to simplify, we are using FCFS on a single geoOrigin.
 		struct SFVec3d offset, *poffset;
 		struct SFVec4d yup, *pyup;
 		pyup = NULL;
 		poffset = NULL;
 		double *cc;
 		initializeGeospatial(&gi->geoOrigin); 
-
-		veccopyd(offset.c,gi->geoOrigin->__movedCoords.c);
-		poffset = &offset;
-		if(0){
-			//maybe everything except geviewpoints?
-			cc = gi->geoOrigin->__rotyup.c;
-			veccopy4d(yup.c,gi->geoOrigin->__rotyup.c);
-			if(gi->geoOrigin->rotateYUp) pyup = &yup;
-		}
-		moveCoords3d(gi->geoSystem, poffset, pyup, 
-			gi->position, 1, gi->offsetCoord, gi->gdCoord);
-		GeoOrient(X3D_NODE(gi->geoOrigin), gi->geoSystem, gi->gdCoord, gi->localOrient);
-	}else {
+		veccopyd(p->autoOrigin.c,gi->geoOrigin->__movedCoords.c);
+		GeoOrient(X3D_NODE(gi->geoOrigin), &gi->geoOrigin->__geoSystem, &gi->geoOrigin->__movedgd, &p->autoOrient);
+		p->autoOriginSet = TRUE;
+	}
+	{
 		//H: doesn't matter what the spec version is, we can do FCFS origin with any version
 		//because we have the v3.3 fields 
 		moveCoords3d(gi->geoSystem, NULL, NULL, 
@@ -2723,7 +2716,7 @@ void compile_GeoOrigin (struct X3D_GeoOrigin * node) {
 	{
 		int i;
 		for(i=0;i<4;i++)
-			node->__rotyup.c[0] = 0.0;
+			node->__rotyup.c[i] = 0.0;
 		node->__rotyup.c[1] = 1.0;
 	}
 	MARK_NODE_COMPILED
@@ -3988,7 +3981,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 //CONVERT_BACK_TO_GD_OR_UTMB(geoSystem, geoOrigin, thisField);
 void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField) {
-	//assumes incoming thisField is in LCS local coordinate system
+	//assumes incoming thisField is in GC system
 	//outputs thisField in targetGeoSystem
 
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
@@ -4005,24 +3998,25 @@ void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_
 	/* do we need to change this from a GCC? */ 
 	struct Multi_Int32 *geoSystem = targetGeoSystem;
 	struct X3D_GeoOrigin *geoOrigin = (struct X3D_GeoOrigin*)geoorigin;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 	veccopyd(thisField->c,LCSpos->c);
+	// already in GC system //if(0) vecaddd(thisField->c,thisField->c,p->autoOrigin.c);
 
 	if (geoSystem->n != 0) { /* do we have a GeoSystem specified?? if not, dont do this! */ 
 		//struct SFVec3d gdCoords; 
  
 		if (geoSystem->p[0] != GEOSP_GC) { 
 			/* have to convert to GD or UTM. Go to GD first */ 
-			int dugsInterpretationOfSpecs = TRUE; 
-			if(dugsInterpretationOfSpecs) 
-			{ 
-				retractOrigin((struct X3D_GeoOrigin *)geoOrigin, 
-						thisField); 
-			}else{ 
-				if (Viewer()->GeoSpatialNode != NULL) { 
-        			retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, thisField); 
-				} 
-			} 
- 
+			//LCS -> GC
+			//int dugsInterpretationOfSpecs = TRUE; 
+			//if(dugsInterpretationOfSpecs) 
+			//{ 
+			//	retractOrigin((struct X3D_GeoOrigin *)geoOrigin, thisField); 
+			//}else{ 
+			//	if (Viewer()->GeoSpatialNode != NULL) { 
+   //     			retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, thisField); 
+			//	} 
+			//} 
 			/* printf ("changed retracted, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
  
 			/* now, convert to a GDC */ 
@@ -4196,6 +4190,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 						+ hh[1]*(1.0f - cz)*cx 
 						+ hh[2]*cz*(1.0f - cx) 
 						+ hh[3]*cz*cx;
+			gridheight *= node->yScale;
 			//printf("_");
 			hit = 1;
 				

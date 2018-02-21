@@ -4654,6 +4654,7 @@ const int OFFSETS_GeoOrigin[] = {
 	(int) FIELDNAMES_rotateYUp, (int) offsetof (struct X3D_GeoOrigin, rotateYUp),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoOrigin, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoOrigin, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___movedgd, (int) offsetof (struct X3D_GeoOrigin, __movedgd),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldgeoCoords, (int) offsetof (struct X3D_GeoOrigin, __oldgeoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldMFString, (int) offsetof (struct X3D_GeoOrigin, __oldMFString),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___rotyup, (int) offsetof (struct X3D_GeoOrigin, __rotyup),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9718,6 +9719,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->rotateYUp = FALSE;
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
+			tmp2->__movedgd.c[0] = 0;tmp2->__movedgd.c[1] = 0;tmp2->__movedgd.c[2] = 0;;
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldMFString.n=0; tmp2->__oldMFString.p=0;
 			tmp2->__rotyup.c[0] = 0;tmp2->__rotyup.c[1] = 1;tmp2->__rotyup.c[2] = 0;;
@@ -14717,6 +14719,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __movedCoords (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__movedCoords.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __movedgd (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__movedgd.c[i]); }
 			fprintf (fp,"\n");
 		    }
 		    if(allFields) {
