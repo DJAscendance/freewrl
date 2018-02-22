@@ -1091,6 +1091,7 @@ FIELD(GeoViewpoint,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoViewpoint,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoViewpoint,speedFactor,sffloat,speedFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EVENT_IN(GeoViewpoint,retainUserOffsets,sfbool,retainUserOffsets,FIELDTYPE_SFBool)
+EVENT_IN(GeoViewpoint,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool)
 END_NODE(GeoViewpoint)
 
 /* Group node */

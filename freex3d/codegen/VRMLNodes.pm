@@ -1973,7 +1973,8 @@ our %Nodes = (
 		_initializedOnce => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
 		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
 		_position => ["SFVec3d",[0, 0, 0], "initializeOnly", 0,0],#ff
-		
+		relativeHeight => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
+		_resetRelativeHeight => ["SFBool", "TRUE", "inputOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff

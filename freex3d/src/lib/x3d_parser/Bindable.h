@@ -53,6 +53,13 @@ void render_Background(struct X3D_Background *node);
 void render_TextureBackground(struct X3D_TextureBackground *node);
 
 void set_naviWidthHeightStep(double wid, double hei, double step) ;
+/* viewer dimentions (for collision detection) */
+struct sNaviInfo {
+        double width;
+        double height;
+        double step;
+};
+
 
 typedef struct bindablestack {
 	void *background;

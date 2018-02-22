@@ -3484,9 +3484,10 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
 			viewer->fieldofview = a1/3.1415926536*180;
 		}
-		if( !(viewer->type == VIEWER_WALK)){
+		if(viewer->type != VIEWER_WALK){
 			//adjust target walk height in FLY mode
 			calculateViewingSpeedB();
+			node->_resetRelativeHeight = !node->relativeHeight;
 		}
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
@@ -3502,21 +3503,23 @@ void calculateViewingSpeedB() {
 		
 	if(boundvp->_nodeType == NODE_GeoViewpoint){
 		double height;
+		int resetHeight;
 		struct SFVec3d *gdCoords;
 		struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
+		X3D_Viewer *viewer = Viewer();
 
         //INITIALIZE_GEOSPATIAL(node)
 		COMPILE_IF_REQUIRED(X3D_NODE(node));
 		gdCoords = &node->__movedgd;
 		height = gdCoords->c[2];
-		Viewer()->speed  = height * node->speedFactor;
+		viewer->speed  = height * node->speedFactor;
 		if(0){
 			static int count = 0;
 			count++;
 			if(count % 20 == 0)
-				printf("height %lf speedFactor %lf speed %lf\n",height,node->speedFactor,Viewer()->speed);
+				printf("height %lf speedFactor %lf speed %lf\n",height,node->speedFactor,viewer->speed);
 		}
-		if (Viewer()->speed < 1.0) Viewer()->speed=1.0;
+		if (viewer->speed < 1.0) viewer->speed=1.0;
 
 
 		/* set the navigation info - use the GeoVRML algorithms */
@@ -3595,6 +3598,7 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
 
 	calculateViewingSpeedB();
+	node->_resetRelativeHeight = !node->relativeHeight;
 
 	calculateExamineModeDistance();
 	setMenuStatusVP (node->description->strptr);
@@ -4112,15 +4116,20 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 				
 			// scraped from:
 			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
-
+			if(gvp->_resetRelativeHeight){
+				naviinfo->height = gdCoord->c[2] - gridheight;
+				gvp->_resetRelativeHeight = FALSE; //we do just once per WALK 'session' (WALK turned on, or bind with WALK on)
+				//printf("+");
+			}
+			//printf("=\n");
 			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
 			double hhh = gridheight - abottom;
 			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
 			double hhbelowfoot = hhh; //hhh - abottom;
-			fi->fallHeight = 1000000.0;
+			//fi->fallHeight = 1000000.0;
 			if( hhh < 0.0 )
 			{
-				//printf("V");
+				printf("V");
 				/* falling */
 				if( hhh < abottom && hhh > -fi->fallHeight) 
 				{
@@ -4132,6 +4141,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 						if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
 					fi->hits++;
 					fi->isFall = 1;
+					//printf("hfall %lf\n",fi->hfall);
 				}else{
 					//printf("~");
 					/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
@@ -4150,21 +4160,24 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			}
 			double head = 0.0;
 			double hhabovehead = hhh - head;
+			abottom = 0.0;
 			if( hhabovehead > 0.0 )
 			{
 				//printf("H");
 				/* climbing from undergound */
 				if( hhabovehead < fi->climbHeight) 
 				{
-					//printf("^");
+					printf("^");
 					/* CLIMBING */
 					fi->canFall = 0;
 
-					if( fi->isClimb == 0 )
+					if( fi->isClimb == 0 ){
 						fi->hclimb = hhabovehead + abottom; //hh - y1;
-					else
+					}else{
 						fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
+					}
 					fi->isClimb = 1;
+					printf("hclimb %lf abottom %lf hhabovehead %lf\n",fi->hclimb,abottom,hhabovehead);
 				}
 			}
 		}

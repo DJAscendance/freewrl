@@ -158,6 +158,7 @@ typedef struct viewer_fly {
 } X3D_Viewer_Fly;
 
 
+
 typedef struct viewer {
 	struct point_XYZ Pos;
 	struct point_XYZ currentPosInModel;

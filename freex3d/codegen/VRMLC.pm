@@ -1648,13 +1648,6 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
 };
 
-/* viewer dimentions (for collision detection) */
-struct sNaviInfo {
-        double width;
-        double height;
-        double step;
-};
-
 ';
 
 	# print out the generated structures

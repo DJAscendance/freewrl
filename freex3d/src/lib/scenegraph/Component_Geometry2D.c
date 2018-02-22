@@ -47,6 +47,7 @@ X3D Geometry2D  Component
 
 #include "Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
+#include "../x3d_parser/Bindable.h"
 
 #include <float.h>
 #if defined(_MSC_VER) && _MSC_VER < 1500
