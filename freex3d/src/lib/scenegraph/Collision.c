@@ -2018,19 +2018,27 @@ static void get_collisionoffset(double *x, double *y, double *z)
 			/* canFall == true if we aren't climbing, isFall == true if there's no climb, and there's geom to fall to  */
 			double floatfactor = .1;
 			if(fi->allowClimbing) floatfactor = 0.0; /*popcycle method */
-			if(fi->smoothStep)
-				xyz.y = DOUBLE_MAX(fi->hfall,-fi->fallStep) + naviinfo->height*floatfactor; 
-			else
+			if(fi->smoothStep){
+				//its socially acceptable to float a bit when falling...
+				double fallstep = DOUBLE_MIN(fi->hfall,fi->hfall * 2.0 * (TickTime() - lastTime()));
+				//if(0) xyz.y = DOUBLE_MAX(fi->hfall,-fi->fallStep) + naviinfo->height*floatfactor;  //pre-2018 method
+				xyz.y = DOUBLE_MAX(fi->hfall,fallstep); //+ naviinfo->height*floatfactor; 
+			}else{
 				xyz.y = fi->hfall + naviinfo->height*floatfactor; //.1; 
-
+			}
 		}
 		if(fi->isClimb && fi->allowClimbing)
 		{
 			/* stepping up normally handled by cyclindrical collision, but there are settings to use this climb instead */
-			if(fi->smoothStep)
-				xyz.y = DOUBLE_MIN(fi->hclimb,fi->fallStep);
-			else
+			//but when climbing its not cool to dig underneath the terrain, so assymmetrical, a bit faster climbing
+			//than falling.
+			if(fi->smoothStep && FALSE){
+				double fallstep = DOUBLE_MIN(fi->hclimb, fi->hclimb * 8.0 * (TickTime() - lastTime()));
+				//if(0) xyz.y = DOUBLE_MIN(fi->hclimb,fi->fallStep); //pre-2018 method
+				xyz.y = DOUBLE_MIN(fi->hclimb,fallstep);
+			}else{
 				xyz.y = fi->hclimb; 
+			}
 		}
 		if(fi->isPenetrate)
 		{

@@ -4129,7 +4129,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			//fi->fallHeight = 1000000.0;
 			if( hhh < 0.0 )
 			{
-				printf("V");
+				//printf("V");
 				/* falling */
 				if( hhh < abottom && hhh > -fi->fallHeight) 
 				{
@@ -4167,7 +4167,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 				/* climbing from undergound */
 				if( hhabovehead < fi->climbHeight) 
 				{
-					printf("^");
+					//printf("^");
 					/* CLIMBING */
 					fi->canFall = 0;
 
@@ -4177,7 +4177,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 						fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
 					}
 					fi->isClimb = 1;
-					printf("hclimb %lf abottom %lf hhabovehead %lf\n",fi->hclimb,abottom,hhabovehead);
+					//printf("hclimb %lf abottom %lf hhabovehead %lf\n",fi->hclimb,abottom,hhabovehead);
 				}
 			}
 		}
