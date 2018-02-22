@@ -3422,6 +3422,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	if (!renderstate()->render_vp) return;
 
 	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+		X3D_Viewer *viewer = Viewer();
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 		COMPILE_IF_REQUIRED
 
@@ -3477,13 +3478,16 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		if(viewPort[2] > viewPort[3]) {
 			a1=0;
-			Viewer()->fieldofview = node->fieldOfView/3.1415926536*180;
+			viewer->fieldofview = node->fieldOfView/3.1415926536*180;
 		} else {
 			a1 = node->fieldOfView;
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
-			Viewer()->fieldofview = a1/3.1415926536*180;
+			viewer->fieldofview = a1/3.1415926536*180;
 		}
-		calculateViewingSpeedB();
+		if( !(viewer->type == VIEWER_WALK)){
+			//adjust target walk height in FLY mode
+			calculateViewingSpeedB();
+		}
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
 		#endif
