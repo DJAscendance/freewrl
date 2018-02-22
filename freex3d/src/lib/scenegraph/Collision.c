@@ -2050,6 +2050,9 @@ void render_collisions(int Viewer_type) {
         struct point_XYZ v;
 		struct sCollisionInfo *ci;
 		struct sFallInfo *fi;
+		struct sNaviInfo *naviinfo;
+		naviinfo = (struct sNaviInfo*)gglobal()->Bindable.naviinfo;
+
 		if(!(Viewer_type == VIEWER_WALK || Viewer_type == VIEWER_FLY)) return; //no collisions
 		ci = CollisionInfo();
 		fi = FallInfo();
@@ -2066,8 +2069,8 @@ void render_collisions(int Viewer_type) {
 		   The sampler method intersects line segments radiating from the the avatar axis with shape facets - misses small shapes but good
 		   for walls and floors; intersection math is simple: line intersect plane.
 		*/
-		fi->fallHeight = 200.0; /* when deciding to fall, how far down do you look for a landing surface before giving up and floating */
-		fi->climbHeight = 200.0; //sometimes you get underneath the terrain. At what point should we cimb you out automatically
+		fi->fallHeight = 100.0*naviinfo->height; //200.0; /* when deciding to fall, how far down do you look for a landing surface before giving up and floating */
+		fi->climbHeight = 100.0*naviinfo->height; // 200.0; //sometimes you get underneath the terrain. At what point should we cimb you out automatically
 		fi->fallStep = 1.0; /* maximum height to fall on one frame */
 		fi->walking = Viewer_type == VIEWER_WALK; //viewer_type == VIEWER_WALK;
 		fi->canFall = fi->walking; /* && COLLISION (but we wouldn't be in here if not). Will be set to 0 if a climb is found. */

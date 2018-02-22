@@ -199,7 +199,7 @@ void set_naviWidthHeightStep(double wid, double hei, double step) {
 	p->naviinfo.height = hei;
 	p->naviinfo.step = step;
 
-	/* printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer.speed); */
+	//printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer()->speed); 
 
 }
 
