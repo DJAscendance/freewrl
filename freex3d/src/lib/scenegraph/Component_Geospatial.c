@@ -3521,9 +3521,10 @@ void calculateViewingSpeedB() {
 
 		/* set the navigation info - use the GeoVRML algorithms */
 		set_naviWidthHeightStep(
-			Viewer()->speed*0.25,
-			Viewer()->speed*1.6,
-			Viewer()->speed*0.25);
+			height/1.6 *0.25,
+			height,
+			height/1.6 *0.25);
+
 	}
 }
 
@@ -4112,7 +4113,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			// scraped from:
 			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
 
-			double abottom = gdCoord->c[2] - 100; // - avatar height?
+			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
 			double hhh = gridheight - abottom;
 			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
 			double hhbelowfoot = hhh; //hhh - abottom;
