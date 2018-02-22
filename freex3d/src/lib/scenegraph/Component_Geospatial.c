@@ -4012,6 +4012,8 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 		struct sNaviInfo *naviinfo;
 		GLDOUBLE awidth, atop, abottom, astep;
 		ttglobal tg = gglobal();
+		naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+
 
 		gdCoord = &gvp->__movedgd;
 		geoSystem = &node->__geoSystem;
