@@ -3373,7 +3373,9 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 struct X3D_Node *getActiveLayerBoundViewpoint();
 void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
-
+double angleNormalized(double angle){
+	return atan2(sin(angle),cos(angle));
+}
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// NLA - node local alignment
@@ -3385,26 +3387,62 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	double oo[4], pp[3];
 	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	//1. update .orientation that's also in GVP NLA
-	quaternion_to_vrmlrot(Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
-	oo[3] = -oo[3];
-	double2float(node->orientation.c,oo,4);
 
-	//2. update geo position
-	//2.a recall GC at last fetch
+
+	//1. update geo position
+	//1.a recall GC at last fetch
 	moveCoords3d(&node->__geoSystem,NULL,NULL,&node->position,1,&GCpos,&node->__movedgd);
+	//1.a.0. save last gdCoord for azimuth correction
+	gdCoord = node->__movedgd;
+
 	Quaternion qlo, q2;
 	struct SFVec4d lo;
 
-	//2.b GC += inverse(localOrient) x Pos
+	//1.b GC += inverse(localOrient) x Pos
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
 	pointxyz2double(pp,Pos);
 	//if(0) vecscaled(pp,pp,node->speedFactor); //SPEED scale here? no done in calculateViewingSpeedB
 	quaternion_rotationd(pp,&qlo,pp);
 	vecaddd(GCpos.c,GCpos.c,pp);
-	//2.c .position = GC_to_user_geo(GC)
+	//1.c .position = GC_to_user_geo(GC)
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
+
+	//2. update .orientation that's also in GVP NLA
+	//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
+	//     or dA = sin(phi)*dlambda
+	double deltagd[3], gd[3];
+	vecdifd(deltagd,node->__movedgd.c,gdCoord.c);
+	veccopyd(gd,node->__movedgd.c);
+	//5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	//7:	GD: TRUE: decimal degrees, FALSE radians
+	if(!node->__geoSystem.p[5]){
+		//get latitude first
+		vecswizzle2d(deltagd); 
+		vecswizzle2d(gd);
+	}
+	if(node->__geoSystem.p[7]) {
+		//get radians
+		vecscale2d(deltagd,deltagd,RADIANS_PER_DEGREE);
+		vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+	}
+	double dazimuth, dlambda;
+	Quaternion qaz, qq;
+	//as we cross the mid-pacific time zone (PI from grenwich)
+	// our longitude goes from -PI to +PI. 
+	// For azimuth correction we want the incremental/acute longitude difference
+	dlambda = angleNormalized(deltagd[1]); 
+	//if(fabs(gd[0]) > 30.0*RADIANS_PER_DEGREE){
+		dazimuth = sin(gd[0])*dlambda;
+		vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,dazimuth);
+		quaternion_multiply(&qq,Quat,&qaz);
+	//}else{
+	//	qq = *Quat;
+	//}
+	quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
+	oo[3] = -oo[3];
+	double2float(node->orientation.c,oo,4);
+
 }
 void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
