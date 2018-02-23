@@ -1018,12 +1018,6 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	EE
 	EF
 	FA
-	GC
-	GCC
-	GCC
-	GD
-	GDC
-	GDC
 	HE
 	HO
 	ID
@@ -1031,11 +1025,18 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	KA
 	RF
 	SA
-	UTM
-	3TM
 	WD
 	WE
+	GC
+	GD
+	UTM
+	3TM
 	WGS84
+	R
+	A
+	B
+	IF
+	P
 	coordinateSystem
 	copyright
 	dataFormat
