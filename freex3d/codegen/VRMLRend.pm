@@ -1035,6 +1035,7 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	R
 	A
 	B
+	F
 	IF
 	P
 	coordinateSystem

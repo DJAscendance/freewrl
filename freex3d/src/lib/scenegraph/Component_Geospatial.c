@@ -318,18 +318,19 @@ int isNodeGeospatial(struct X3D_Node* node){
 
 
 #define ELLIPSOIDB(typ) \
-	case typ: *semimajor = typ##_A; *flattening = typ##_F; break;
+	case typ: *semimajor = typ##_A; *flattening = 1.0/typ##_F; break;
 
-struct ellipsoid { double a, b, invf;} extra_ellipsoid[10];
+struct ellipsoid { double a, b, f;} extra_ellipsoid[10];
 int nextra_ellipsoid = 1; //we start at 1 so we can use negative numbers as sentinal values to get here
 
 int getEllipsoidParams(int etype, double *semimajor, double *flattening){
+	//returns a, f where f is flattening (not inverse flattening) ie flattening = 1/298
 	int iret = 0;
 	*semimajor = *flattening = 0.0;
 	if(etype < 0){
 		//sentinal value etype is negative
 		*semimajor = extra_ellipsoid[-etype].a;
-		*flattening = extra_ellipsoid[-etype].invf;
+		*flattening = extra_ellipsoid[-etype].f;
 	}else{
 		switch (etype) {
 			ELLIPSOIDB(GEOSP_AA)
@@ -359,6 +360,7 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 		}
 	}
 	if(*semimajor > 0.0) iret = 1;
+	//printf("ellipsoid etype %d semi-major %lf flattening %lf\n",etype,*semimajor,*flattening);
 	return iret;
 }
 
@@ -508,7 +510,7 @@ static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, s
 		int i;
 		double A = radius;
 		double A2 = radius*radius;
-		double F = (double)(1/flattening);
+		double F = flattening;
 		double C = A*((double)1.0 - F);
 		double C2 = C*C;
 		double Eps2 = F*((double)2.0 - F);
@@ -614,7 +616,7 @@ static void Xtm_Gd3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, 
 	int longitude = 1;	/* always return longtitude as second value */
 
 	/* create the ERM constants. */
-	double F = 1.0/flatten;
+	double F = flatten;
 	double Eccentricity   = (F) * (2.0-F);
 
 	double myEasting;
@@ -773,7 +775,7 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 	int longitude = 1;	/* always return longtitude as second value */
 
 	/* create the ERM constants. */
-	double F = 1.0/flatten;
+	double F = flatten;
 	double dlon0;
 	double dLatitude;
 	double dLongitude;
@@ -1193,8 +1195,9 @@ struct gcgd* initializeGcToGdParams(int type, double A, double F) {
 	g = malloc(sizeof(struct gcgd));
 	p->gcgdpars[type] = g;
     /*  Create the ERM constants. */
+	g->A = A;
     g->A2     = A * A;
-    g->F      =1/(F);
+    g->F      =F;
     g->C      =(A) * (1-g->F);
     g->C2     = g->C * g->C;
     g->Eps2   =(g->F) * (2.0-g->F);
@@ -1280,7 +1283,7 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
 
             s12=top2/rr;
 
-            rnn = A / ( (.25 - g->Eps25*s12 + .9999944354799/4) + (.25-g->Eps25*s12)/(.25 - g->Eps25*s12 + .9999944354799/4));
+            rnn = g->A / ( (.25 - g->Eps25*s12 + .9999944354799/4) + (.25-g->Eps25*s12)/(.25 - g->Eps25*s12 + .9999944354799/4));
             s1=top/q;
         
             /******************************************************************/
@@ -1317,7 +1320,7 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
             /*    DUE TO PRECISION ERRORS THE ARGUMENT MAY BECOME NEGATIVE IF SO SET THE ARGUMENT TO ZERO.*/
 
             if (r1+r2 > 0.0)
-                ro = A * sqrt( .50 * (r1+r2));
+                ro = g->A * sqrt( .50 * (r1+r2));
             else
                 ro=0.0;
 
@@ -1361,7 +1364,7 @@ static void gdToXtm(double radius, double flattening, double latitude, double lo
 	double MMM;
 
 	A = radius;
-	F = 1.0/flattening;
+	F = flattening;
 	//e2 = 2.0*F - F*F;
 	e2 = F*(2. - F);
 
@@ -1426,7 +1429,7 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 	void *fgeo;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	F = 1.0/flattening;
+	F = flattening;
 	if(!p->fgeopars[geotype])
 		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
 	fgeo = p->fgeopars[geotype];
@@ -1594,6 +1597,60 @@ static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem
 	6:	GD: true if geoid height
 	7:	GD: TRUE: decimal degrees, FALSE radians
 */
+struct stringint{
+	char *c;
+	int i;
+};
+char * stringint_int2string(struct stringint *table, int itype){
+	int i = 0;
+	while(table[i].c){
+		if(table[i].i == itype) return table[i].c;
+		i++;
+	}
+	return NULL;
+}
+int stringint_string2int(struct stringint *table, const char *ctype){
+	int i = 0;
+	while(table[i].c){
+		if(!strcmp(table[i].c,ctype)) return table[i].i;
+		i++;
+	}
+	return -1;
+}
+struct stringint lookup_ellipsoids [] = {
+	{"AA",GEOSP_AA},
+	{"AM",GEOSP_AM},
+	{"AN",GEOSP_AN},
+	{"BN",GEOSP_BN},
+	{"BR",GEOSP_BR},
+	{"CC",GEOSP_CC},
+	{"CD",GEOSP_CD},
+	{"EA",GEOSP_EA},
+	{"EB",GEOSP_EB},
+	{"EC",GEOSP_EC},
+	{"ED",GEOSP_ED},
+	{"EE",GEOSP_EE},
+	{"EF",GEOSP_EF},
+	{"FA",GEOSP_FA},
+	{"HE",GEOSP_HE},
+	{"HO",GEOSP_HO},
+	{"ID",GEOSP_ID},
+	{"IN",GEOSP_IN},
+	{"KA",GEOSP_KA},
+	{"RF",GEOSP_RF},
+	{"SA",GEOSP_SA},
+	{"WD",GEOSP_WD},
+	{"WE",GEOSP_WE},
+	{NULL,-1},
+};
+struct stringint lookup_spatialreferencesys [] = {
+	{"GC",GEOSP_GC},
+	{"GD",GEOSP_GD},
+	{"UTM",GEOSP_UTM},
+	{"3TM",GEOSP_3TM},
+	{NULL,-1},
+};
+
 
 static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String *args, struct Multi_Int32 *srf) {
 	int i, specversion, nextra;
@@ -1631,26 +1688,15 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
 
-	//2018 we allow the user to specify ellipsoid (A and (B or IF (inverse flattening)) or R radius
+	//2018 we allow the user to specify ellipsoid (A and (B or IF (inverse flattening) or F (flattening)) or R radius
 	nextra = FALSE;
-	ee.a = ee.b = ee.invf = 0.0;
+	ee.a = ee.b = ee.f = 0.0;
 
 	/* first go through, and find the Spatial Reference Frame, GD, UTM, or GC */
 	for (i=0; i<args->n; i++) {
-		/* printf ("geoSystem args %d %s\n",i, args->p[i]->strptr); */
-		indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
-
-		if (tc == GEOSP_GD ) {  //|| (tc == GEOSP_GDC) don't know what GDC was for, not in specs
-			this_srf = GEOSP_GD;
-			this_srf_ind = i;
-		} else if (tc == GEOSP_GC ) { //|| (tc == GEOSP_GCC)
-			this_srf = GEOSP_GC;
-			this_srf_ind = i;
-		} else if (tc == GEOSP_UTM) {
-			this_srf = GEOSP_UTM;
-			this_srf_ind = i;
-		} else if (tc == GEOSP_3TM) {
-			this_srf = GEOSP_3TM;
+		int itype = stringint_string2int(lookup_spatialreferencesys,args->p[i]->strptr);
+		if(itype > -1){
+			this_srf = itype;
 			this_srf_ind = i;
 		}
 	}
@@ -1666,149 +1712,94 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 	if (this_srf == GEOSP_GC) {
 		//srf->p[1] = INT_ID_UNDEFINED;
 		//nothing to do 
-		
-	} else if (this_srf == GEOSP_GD) {
-		srf->p[1] = GEOSP_WE;
-		/* possible parameters: ellipsoid, gets put into element 1.
-				if "latitude_first" TRUE, if "longitude_first", FALSE */
-		/* is there an optional argument? */
+	} else if (this_srf == GEOSP_GD || this_srf == GEOSP_3TM || this_srf == GEOSP_UTM) {
 		for (i=0; i<args->n; i++) {
-			/* printf ("geosp_gd, ind %d i am %d string %s\n",i, this_srf_ind,args->p[i]->strptr); */
-			if (strcmp("latitude_first", args->p[i]->strptr) == 0) {
-				srf->p[5] = TRUE;
-			} else if (strcmp("longitude_first", args->p[i]->strptr) == 0) {
-				srf->p[5] = FALSE;
-			} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
-				srf->p[6] = TRUE; //geoid
-			} else if (args->p[i]->strptr[0] == 'R') {
-				//radius
-				double radius;
-				sscanf(args->p[i]->strptr,"R%lf",&radius);
-				nextra = TRUE;
-				ee.a = radius;
-				ee.b = radius - 10.0; //technically, invf should be infinity. we shave a bit off B so it's computable
-			} else if (args->p[i]->strptr[0] == 'A') {
-				//radius
-				double a;
-				sscanf(args->p[i]->strptr,"A%lf",&a);
-				nextra = TRUE;
-				ee.a = a;
-			} else if (args->p[i]->strptr[0] == 'B') {
-				//radius
-				double b;
-				sscanf(args->p[i]->strptr,"B%lf",&b);
-				nextra = TRUE;
-				ee.b = b;
-			} else if (!strncmp(args->p[i]->strptr,"IF",2)) {
-				//radius
-				double invf;
-				sscanf(args->p[i]->strptr,"IF%lf",&invf);
-				nextra = TRUE;
-				ee.invf = invf;
-			} else {
-				if (i!= this_srf_ind) {
-					indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
-					switch (tc) {
-						case INT_ID_UNDEFINED:
-						case GEOSP_GC:
-						//case GEOSP_GCC:
-						case GEOSP_GD:
-						//case GEOSP_GDC:
-						case GEOSP_UTM:
-						case GEOSP_3TM:
-						ConsoleMessage("expected valid GC parameter in node %s",stringNodeType(nodeType));
-						srf->p[1] = GEOSP_WE;
-						break;
-
-						default:
-						srf->p[1] = (int) tc;
+			if (i != this_srf_ind) {
+				int iellipse;
+				char *str = args->p[i]->strptr;
+				/* printf ("geosp_gd, ind %d i am %d string %s\n",i, this_srf_ind,args->p[i]->strptr); */
+				iellipse = stringint_string2int(lookup_ellipsoids,str);
+				if(iellipse > -1){
+					srf->p[1] = iellipse;
+				}else{
+					//GD specifics
+					if (strcmp("latitude_first", str) == 0) {
+						srf->p[5] = TRUE;
+					} else if (strcmp("longitude_first", str) == 0) {
+						srf->p[5] = FALSE;
+					} else if(strcmp ("WGS84",str) == 0){
+						srf->p[6] = TRUE; //geoid
+					} else 
+					//ellipsoid parameters specified
+					if(str[0] == 'R') {
+						//radius
+						double radius;
+						sscanf(args->p[i]->strptr,"R%lf",&radius);
+						nextra = TRUE;
+						ee.a = radius;
+						ee.b = .9 * radius; //technically, invf should be infinity. we shave a bit off B so it's computable
+					} else if (str[0] == 'A') {
+						//radius
+						double a;
+						sscanf(str,"A%lf",&a);
+						nextra = TRUE;
+						ee.a = a;
+					} else if (str[0] == 'B') {
+						//radius
+						double b;
+						sscanf(str,"B%lf",&b);
+						nextra = TRUE;
+						ee.b = b;
+					} else if (!strncmp(str,"IF",2)) {
+						//radius
+						double invf;
+						sscanf(str,"IF%lf",&invf);
+						nextra = TRUE;
+						ee.f = 1.0/invf;
+					} else if (str[0] == 'F') {
+						//radius
+						double f;
+						sscanf(str,"IF%lf",&f);
+						nextra = TRUE;
+						ee.f = f;
+					} else 
+					//XTM
+					if (strcmp ("S",str) == 0) {
+						srf->p[4] = FALSE;
+					} else if (strcmp ("N",str) == 0) {
+						srf->p[4] = TRUE; // default
+					} else if (str[0] == 'Z') {
+						int zone = -1;
+						sscanf(str,"Z%d",&zone);
+						/* printf ("zone found as %d\n",zone); */
+						srf->p[2] = zone;
+					} else if (strcmp("northing_first",str) == 0) { 
+						srf->p[3] = TRUE;
+					} else if (strcmp("easting_first",str) == 0) { 
+						srf->p[3] = FALSE;
+					} else 
+					//UNHANDLED
+					{
+						ConsoleMessage("geoSystem parameter %s not handled, in node %s",str,stringNodeType(nodeType));
 					}
 				}
 			}
 		}
-	} else {
-		/* this must be UTM */
-		/* encode the return value such that srf->p[x] is...
-			0:	spatial reference frame	(GEOSP_UTM, GEOSP_GC, GEOSP_GD);
-			1:	spatial coordinates (defaults to GEOSP_WE)
-			2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified
-			3:	UTM:	if "S" - value is FALSE, not S, value is TRUE  */
-		/* first go through, and find the Spatial Reference Frame, GD, UTM, or GC */
-		for (i=0; i<args->n; i++) {
-			if (i != this_srf_ind) {
-				if (strcmp ("S",args->p[i]->strptr) == 0) {
-					srf->p[4] = FALSE;
-				} else if (strcmp ("N",args->p[i]->strptr) == 0) {
-					srf->p[4] = TRUE; // default
-				} else if (args->p[i]->strptr[0] == 'Z') {
-					int zone = -1;
-					sscanf(args->p[i]->strptr,"Z%d",&zone);
-					/* printf ("zone found as %d\n",zone); */
-					srf->p[2] = zone;
-				} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
-					srf->p[6] = TRUE; //geoid
-				} else if (strcmp("northing_first",args->p[i]->strptr) == 0) { 
-					srf->p[3] = TRUE;
-				} else if (strcmp("easting_first",args->p[i]->strptr) == 0) { 
-					srf->p[3] = FALSE;
-			} else if (args->p[i]->strptr[0] == 'R') {
-				//radius
-				double radius;
-				sscanf(args->p[i]->strptr,"R%lf",&radius);
-				nextra = TRUE;
-				ee.a = radius;
-				ee.b = radius - 10.0;
-			} else if (args->p[i]->strptr[0] == 'A') {
-				//radius
-				double a;
-				sscanf(args->p[i]->strptr,"A%lf",&a);
-				nextra = TRUE;
-				ee.a = a;
-			} else if (args->p[i]->strptr[0] == 'B') {
-				//radius
-				double b;
-				sscanf(args->p[i]->strptr,"B%lf",&b);
-				nextra = TRUE;
-				ee.b = b;
-			} else if (!strncmp(args->p[i]->strptr,"IF",2)) {
-				//radius
-				double invf;
-				sscanf(args->p[i]->strptr,"IF%lf",&invf);
-				nextra = TRUE;
-				ee.invf = invf;
-			} else { 
-					indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
-					switch (tc) {
-						case INT_ID_UNDEFINED:
-						case GEOSP_GC:
-						//case GEOSP_GCC:
-						case GEOSP_GD:
-						//case GEOSP_GDC:
-						case GEOSP_UTM:
-						case GEOSP_3TM:
-							ConsoleMessage("expected valid UTM Ellipsoid parameter in node %s",stringNodeType(nodeType));
-							srf->p[1] = GEOSP_WE;
-						break;
-
-					default:
-						srf->p[1] = (int)tc;
-					}
-				}
-			}
-					
-		}		
-	}
+	} 
 
 	if(nextra){
 		int ifound;
-		if(ee.invf == 0.0){
+		if(ee.f == 0.0){
 			//compute ellipsoid inverse flattening if not given
 			double a,b,invf;
 			a = extra_ellipsoid[nextra_ellipsoid].a;
 			b = extra_ellipsoid[nextra_ellipsoid].b;
-			ee.invf = 1.0;
+			ee.f = 1.0;
 			if(ee.a != 0.0 && ee.b != 0.0){
-				ee.invf = ee.a/(ee.a-ee.b);
+				ee.f = (ee.a-ee.b)/ee.a;
+			}else if(ee.a != 0.0){
+				//likely radius, in which case (a-b) == 0
+				ee.f  = 0.0;
 			}
 
 		}
@@ -1816,7 +1807,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 		// (in case we have hundreds of nodes with the same user-defined ellipsoid)
 		ifound = nextra_ellipsoid;
 		for(i=1;i<nextra_ellipsoid;i++){
-			if(extra_ellipsoid[i].a == ee.a && extra_ellipsoid[i].invf == ee.invf){
+			if(extra_ellipsoid[i].a == ee.a && extra_ellipsoid[i].f == ee.f){
 				ifound = i;
 				break;
 			}
