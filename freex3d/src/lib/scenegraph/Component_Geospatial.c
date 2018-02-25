@@ -608,20 +608,22 @@ static void Gd_Gc3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, i
 	//printf("hi from Gd_Gc3d_geolib\n");
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
 	if(FALSE && flattening == 0.0){
-		//easy spherical coords
+		//easy spherical coords, but geolib OK without this, just for testing here
 		double radius;
 		for(i=0;i<n;i++){
 			veccopyd(gd,inc[i].c);
 			if(!geoSystem->p[5]) vecswizzle2d(gd);
 			if(geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
 			radius = semimajor + gd[2];
-			gc[0] = cos(gd[1])*radius;
-			gc[1] = sin(gd[1])*radius;
-			gc[2] = cos(gd[0])*radius;
+			gc[0] = cos(gd[0])*cos(gd[1])*radius;
+			gc[1] = cos(gd[0])*sin(gd[1])*radius;
+			gc[2] = sin(gd[0])*radius;
 			veccopyd(outc[i].c,gc);
-			//printf("gd2gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+			//if(i<10) printf("gd2gc sphere %lf %lf %lf\n",gc[0],gc[1],gc[2]);
 		}
-	}else{
+	}
+	else
+	{
 		geotype = geoSystem->p[1];
 		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
 		if(!fwgeo_gc[geotype]){
@@ -637,8 +639,11 @@ static void Gd_Gc3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, i
 			gd[0] = dclamp(gd[0],-90.0,90.0);
 			fgeo_gd2gc(fwgeo_gc[geotype], gd[0], gd[1], gd[2], &gc[0], &gc[1], &gc[2]);
 			veccopyd(outc[i].c,gc);
+			//if(i<10) printf("gd2gc geolb %lf %lf %lf\n",gc[0],gc[1],gc[2]);
 		}
 	}
+	if(n>1) 
+		getchar();
 }
 #endif //GEOLIB
 static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
@@ -653,12 +658,33 @@ static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, s
 	}else
 #endif //GEOLIB
 	{
-		Gd_Gc3d_fw(geoSystem,inc,n,outc);
-		//printf("fw gd:\n");
-		//for(i=0;i<min(5,n);i++){
-		//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
-		//}
-		//printf("\n");
+		double semimajor, flattening;
+		getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
+		if(flattening == 0.0){
+			//easy spherical coords
+			//Gd_Gc3d_fw and/or its gc2gd complement has a problem with moon geoSystem 'R173...' 'F0.0'
+			double radius, gd[3], gc[3];
+			for(i=0;i<n;i++){
+				veccopyd(gd,inc[i].c);
+				if(!geoSystem->p[5]) vecswizzle2d(gd);
+				if(geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+				radius = semimajor + gd[2];
+				gc[0] = cos(gd[0])*cos(gd[1])*radius;
+				gc[1] = cos(gd[0])*sin(gd[1])*radius;
+				gc[2] = sin(gd[0])*radius;
+				veccopyd(outc[i].c,gc);
+				//if(i<10) printf("gd2gc sphere %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+			}
+		}
+		else
+		{
+			Gd_Gc3d_fw(geoSystem,inc,n,outc);
+			//printf("fw gd:\n");
+			//for(i=0;i<min(5,n);i++){
+			//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+			//}
+			//printf("\n");
+		}
 	}
 }
 /* convert UTM to GC coordinates by converting to GD as an intermediary step 
@@ -1413,21 +1439,23 @@ static void gccToGdc_geolib (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc,
 	//printf("hi from gccToGdc_geolib\n");
 	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
 	if(FALSE && flattening == 0.0){
-		//easy spherical coords
-		double radius;
+		//easy spherical coords, although geolib doesn't need help, just for testing here
+		double radius, horizontal_radius;
 		veccopyd(gc,gcc->c);
-		printf("gc2gd gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
-
-		gd[0] = atan2(gc[2],veclength2d(gc));
-		gd[1] = atan2(gc[1],gc[0]);
+		//printf("gc2gd gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
 		radius = veclengthd(gc);
+		horizontal_radius = veclength2d(gc);
+		gd[0] = atan2(gc[2],horizontal_radius);
+		gd[1] = atan2(gc[1],gc[0]);
 		gd[2] = radius - semimajor;
 		//printf("radius %lf semimajor %lf\n",radius,semimajor);
 		if(!geoSystem->p[5]) vecswizzle2d(gd);
-		if(!geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
-		printf("gc2gd gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+		if(geoSystem->p[7]) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		//printf("gc2gd sphere gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
 		veccopyd(gdc->c,gd);
-	}else{
+	}
+	else
+	{
 		geotype = geoSystem->p[1];
 		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
 		if(!fwgeo_gc[geotype]){
@@ -1439,6 +1467,7 @@ static void gccToGdc_geolib (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc,
 		if(!geoSystem->p[5]) vecswizzle2d(gd);
 		if(!geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
 		veccopyd(gdc->c,gd);
+		//printf("gc2gd geolb gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
 	}
 
 }
@@ -1451,8 +1480,30 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
 	}else
 #endif //GEOLIB
 	{
-		gccToGdc_fw(geoSystem,gcc,gdc);
-		//vecprint3db("fw gdc ",gdc->c,"\n");
+		double semimajor, flattening;
+		getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
+		if(flattening == 0.0){
+			//easy spherical coords
+			//gccToGdc_fw and/or its gd2gc complement has a problem with moon geoSystem 'R173...' 'F0.0'
+			double radius, horizontal_radius, gd[3], gc[3];
+			veccopyd(gc,gcc->c);
+			//printf("gc2gd gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+			radius = veclengthd(gc);
+			horizontal_radius = veclength2d(gc);
+			gd[0] = atan2(gc[2],horizontal_radius);
+			gd[1] = atan2(gc[1],gc[0]);
+			gd[2] = radius - semimajor;
+			//printf("radius %lf semimajor %lf\n",radius,semimajor);
+			if(!geoSystem->p[5]) vecswizzle2d(gd);
+			if(geoSystem->p[7]) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+			//printf("gc2gd sphere gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+			veccopyd(gdc->c,gd);
+		}
+		else
+		{
+			gccToGdc_fw(geoSystem,gcc,gdc);
+			//vecprint3db("fw gdc ",gdc->c,"\n");
+		}
 	}
 }
 /* convert a GDC BACK to a UTM coordinate ASSUMES LAT LON RADIANS*/
