@@ -2382,57 +2382,63 @@ extern const int TEXTURECOMPRESSIONKEYWORDS_COUNT;
 
 const char *stringTEXTURECOMPRESSIONKeywordType(int st);
 
+/* Table of built-in GEOELLIPSOID keywords */
+extern const char *GEOELLIPSOID[];
+extern const int GEOELLIPSOID_COUNT;
+#define GEOEL_AA	0
+#define GEOEL_AM	1
+#define GEOEL_AN	2
+#define GEOEL_BN	3
+#define GEOEL_BR	4
+#define GEOEL_CC	5
+#define GEOEL_CD	6
+#define GEOEL_EA	7
+#define GEOEL_EB	8
+#define GEOEL_EC	9
+#define GEOEL_ED	10
+#define GEOEL_EE	11
+#define GEOEL_EF	12
+#define GEOEL_FA	13
+#define GEOEL_HE	14
+#define GEOEL_HO	15
+#define GEOEL_ID	16
+#define GEOEL_IN	17
+#define GEOEL_KA	18
+#define GEOEL_RF	19
+#define GEOEL_SA	20
+#define GEOEL_WD	21
+#define GEOEL_WE	22
+
+const char *stringGEOELLIPSOIDType(int st);
+
 /* Table of built-in GEOSPATIAL keywords */
 extern const char *GEOSPATIAL[];
 extern const int GEOSPATIAL_COUNT;
 #define GEOSP_3TM	0
 #define GEOSP_A	1
-#define GEOSP_AA	2
-#define GEOSP_AM	3
-#define GEOSP_AN	4
-#define GEOSP_B	5
-#define GEOSP_BN	6
-#define GEOSP_BR	7
-#define GEOSP_CC	8
-#define GEOSP_CD	9
-#define GEOSP_EA	10
-#define GEOSP_EB	11
-#define GEOSP_EC	12
-#define GEOSP_ED	13
-#define GEOSP_EE	14
-#define GEOSP_EF	15
-#define GEOSP_F	16
-#define GEOSP_FA	17
-#define GEOSP_GC	18
-#define GEOSP_GD	19
-#define GEOSP_HE	20
-#define GEOSP_HO	21
-#define GEOSP_ID	22
-#define GEOSP_IF	23
-#define GEOSP_IN	24
-#define GEOSP_KA	25
-#define GEOSP_P	26
-#define GEOSP_R	27
-#define GEOSP_RF	28
-#define GEOSP_SA	29
-#define GEOSP_UTM	30
-#define GEOSP_WD	31
-#define GEOSP_WE	32
-#define GEOSP_WGS84	33
-#define GEOSP_coordinateSystem	34
-#define GEOSP_copyright	35
-#define GEOSP_dataFormat	36
-#define GEOSP_dataUrl	37
-#define GEOSP_date	38
-#define GEOSP_description	39
-#define GEOSP_ellipsoid	40
-#define GEOSP_extent	41
-#define GEOSP_horizontalDatum	42
-#define GEOSP_metadataFormat	43
-#define GEOSP_originator	44
-#define GEOSP_resolution	45
-#define GEOSP_title	46
-#define GEOSP_verticalDatum	47
+#define GEOSP_B	2
+#define GEOSP_F	3
+#define GEOSP_GC	4
+#define GEOSP_GD	5
+#define GEOSP_IF	6
+#define GEOSP_P	7
+#define GEOSP_R	8
+#define GEOSP_UTM	9
+#define GEOSP_WGS84	10
+#define GEOSP_coordinateSystem	11
+#define GEOSP_copyright	12
+#define GEOSP_dataFormat	13
+#define GEOSP_dataUrl	14
+#define GEOSP_date	15
+#define GEOSP_description	16
+#define GEOSP_ellipsoid	17
+#define GEOSP_extent	18
+#define GEOSP_horizontalDatum	19
+#define GEOSP_metadataFormat	20
+#define GEOSP_originator	21
+#define GEOSP_resolution	22
+#define GEOSP_title	23
+#define GEOSP_verticalDatum	24
 
 const char *stringGEOSPATIALType(int st);
 char mapFieldTypeToEAItype (int st);

@@ -38,6 +38,12 @@
 
 #include "LinearAlgebra.h"
 
+double angleNormalized(double angle){
+	//will normalize to +- 2*PI (+-180) range
+	return atan2(sin(angle),cos(angle));
+}
+
+
 #define DJ_KEEP_COMPILER_WARNING 0
 void vecprint3fb(char *name, float *p, char *eol){
 	printf("%s %f %f %f %s",name,p[0],p[1],p[2],eol);

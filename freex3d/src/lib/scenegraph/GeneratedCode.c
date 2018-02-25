@@ -2020,14 +2020,11 @@ const int TEXTUREMINIFICATIONKEYWORDS_COUNT = ARR_SIZE(TEXTUREMINIFICATIONKEYWOR
 const int TEXTURECOMPRESSIONKEYWORDS_COUNT = ARR_SIZE(TEXTURECOMPRESSIONKEYWORDS);
 
 
-/* Table of GEOSPATIAL keywords */
-       const char *GEOSPATIAL[] = {
-	"3TM",
-	"A",
+/* Table of GEOELLIPSOID keywords */
+       const char *GEOELLIPSOID[] = {
 	"AA",
 	"AM",
 	"AN",
-	"B",
 	"BN",
 	"BR",
 	"CC",
@@ -2038,23 +2035,32 @@ const int TEXTURECOMPRESSIONKEYWORDS_COUNT = ARR_SIZE(TEXTURECOMPRESSIONKEYWORDS
 	"ED",
 	"EE",
 	"EF",
-	"F",
 	"FA",
-	"GC",
-	"GD",
 	"HE",
 	"HO",
 	"ID",
-	"IF",
 	"IN",
 	"KA",
-	"P",
-	"R",
 	"RF",
 	"SA",
-	"UTM",
 	"WD",
 	"WE",
+};
+const int GEOELLIPSOID_COUNT = ARR_SIZE(GEOELLIPSOID);
+
+
+/* Table of GEOSPATIAL keywords */
+       const char *GEOSPATIAL[] = {
+	"3TM",
+	"A",
+	"B",
+	"F",
+	"GC",
+	"GD",
+	"IF",
+	"P",
+	"R",
+	"UTM",
 	"WGS84",
 	"coordinateSystem",
 	"copyright",
@@ -7836,6 +7842,12 @@ const char *stringTEXTUREMINIFICATIONKeywordType (int st) {
 const char *stringTEXTURECOMPRESSIONKeywordType (int st) {
 	if ((st < 0) || (st >= TEXTURECOMPRESSIONKEYWORDS_COUNT)) return "(texture param keyword invalid)"; 
 	return TEXTURECOMPRESSIONKEYWORDS[st];
+}
+
+/* Return a pointer to a string representation of the GEOELLIPSOID keyword type */
+const char *stringGEOELLIPSOIDType (int st) {
+	if ((st < 0) || (st >= GEOELLIPSOID_COUNT)) return "(keyword invalid)"; 
+	return GEOELLIPSOID[st];
 }
 
 /* Return a pointer to a string representation of the GEOSPATIAL keyword type */

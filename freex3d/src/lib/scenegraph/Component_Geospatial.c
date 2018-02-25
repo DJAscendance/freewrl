@@ -263,57 +263,57 @@ int isNodeGeospatial(struct X3D_Node* node){
 
 
 /* for Gd_Gc conversions */
-#define GEOSP_AA_A	(double)6377563.396
-#define GEOSP_AA_F	(double)299.3249646
-#define GEOSP_AM_A	(double)6377340.189
-#define GEOSP_AM_F	(double)299.3249646
-#define GEOSP_AN_A	(double)6378160
-#define GEOSP_AN_F	(double)298.25
-#define GEOSP_BN_A	(double)6377483.865
-#define GEOSP_BN_F	(double)299.1528128
-#define GEOSP_BR_A	(double)6377397.155
-#define GEOSP_BR_F	(double)299.1528128
-#define GEOSP_CC_A	(double)6378206.4
-#define GEOSP_CC_F	(double)294.9786982
-#define GEOSP_CD_A	(double)6378249.145
-#define GEOSP_CD_F	(double)293.465
-#define GEOSP_EA_A	(double)6377276.345
-#define GEOSP_EA_F	(double)300.8017
-#define GEOSP_EB_A	(double)6377298.556
-#define GEOSP_EB_F	(double)300.8017
-#define GEOSP_EC_A	(double)6377301.243
-#define GEOSP_EC_F	(double)300.8017
-#define GEOSP_ED_A	(double)6377295.664
-#define GEOSP_ED_F	(double)300.8017
-#define GEOSP_EE_A	(double)6377304.063
-#define GEOSP_EE_F	(double)300.8017
-#define GEOSP_EF_A	(double)6377309.613
-#define GEOSP_EF_F	(double)300.8017
-#define GEOSP_FA_A	(double)6378155
-#define GEOSP_FA_F	(double)298.3
-#define GEOSP_HE_A	(double)6378200
-#define GEOSP_HE_F	(double)298.3
-#define GEOSP_HO_A	(double)6378270
-#define GEOSP_HO_F	(double)297
-#define GEOSP_ID_A	(double)6378160
-#define GEOSP_ID_F	(double)298.247
-#define GEOSP_IN_A	(double)6378388
-#define GEOSP_IN_F	(double)297
-#define GEOSP_KA_A	(double)6378245
-#define GEOSP_KA_F	(double)298.3
-#define GEOSP_RF_A	(double)6378137
-#define GEOSP_RF_F	(double)298.257222101
-#define GEOSP_SA_A	(double)6378160
-#define GEOSP_SA_F	(double)298.25
-#define GEOSP_WD_A	(double)6378135
-#define GEOSP_WD_F	(double)298.26
+#define GEOEL_AA_A	(double)6377563.396
+#define GEOEL_AA_F	(double)299.3249646
+#define GEOEL_AM_A	(double)6377340.189
+#define GEOEL_AM_F	(double)299.3249646
+#define GEOEL_AN_A	(double)6378160
+#define GEOEL_AN_F	(double)298.25
+#define GEOEL_BN_A	(double)6377483.865
+#define GEOEL_BN_F	(double)299.1528128
+#define GEOEL_BR_A	(double)6377397.155
+#define GEOEL_BR_F	(double)299.1528128
+#define GEOEL_CC_A	(double)6378206.4
+#define GEOEL_CC_F	(double)294.9786982
+#define GEOEL_CD_A	(double)6378249.145
+#define GEOEL_CD_F	(double)293.465
+#define GEOEL_EA_A	(double)6377276.345
+#define GEOEL_EA_F	(double)300.8017
+#define GEOEL_EB_A	(double)6377298.556
+#define GEOEL_EB_F	(double)300.8017
+#define GEOEL_EC_A	(double)6377301.243
+#define GEOEL_EC_F	(double)300.8017
+#define GEOEL_ED_A	(double)6377295.664
+#define GEOEL_ED_F	(double)300.8017
+#define GEOEL_EE_A	(double)6377304.063
+#define GEOEL_EE_F	(double)300.8017
+#define GEOEL_EF_A	(double)6377309.613
+#define GEOEL_EF_F	(double)300.8017
+#define GEOEL_FA_A	(double)6378155
+#define GEOEL_FA_F	(double)298.3
+#define GEOEL_HE_A	(double)6378200
+#define GEOEL_HE_F	(double)298.3
+#define GEOEL_HO_A	(double)6378270
+#define GEOEL_HO_F	(double)297
+#define GEOEL_ID_A	(double)6378160
+#define GEOEL_ID_F	(double)298.247
+#define GEOEL_IN_A	(double)6378388
+#define GEOEL_IN_F	(double)297
+#define GEOEL_KA_A	(double)6378245
+#define GEOEL_KA_F	(double)298.3
+#define GEOEL_RF_A	(double)6378137
+#define GEOEL_RF_F	(double)298.257222101
+#define GEOEL_SA_A	(double)6378160
+#define GEOEL_SA_F	(double)298.25
+#define GEOEL_WD_A	(double)6378135
+#define GEOEL_WD_F	(double)298.26
 //#define SMALLWORLDTESTING 1
 #ifdef SMALLWORLDTESTING
-#define GEOSP_WE_A	(double)637813.7
-#define GEOSP_WE_F	(double)29.8257223563
+#define GEOEL_WE_A	(double)637813.7
+#define GEOEL_WE_F	(double)29.8257223563
 #else
-#define GEOSP_WE_A	(double)6378137
-#define GEOSP_WE_F	(double)298.257223563
+#define GEOEL_WE_A	(double)6378137
+#define GEOEL_WE_F	(double)298.257223563
 #endif
 
 
@@ -333,29 +333,29 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 		*flattening = extra_ellipsoid[-etype].f;
 	}else{
 		switch (etype) {
-			ELLIPSOIDB(GEOSP_AA)
-			ELLIPSOIDB(GEOSP_AM)
-			ELLIPSOIDB(GEOSP_AN)
-			ELLIPSOIDB(GEOSP_BN)
-			ELLIPSOIDB(GEOSP_BR)
-			ELLIPSOIDB(GEOSP_CC)
-			ELLIPSOIDB(GEOSP_CD)
-			ELLIPSOIDB(GEOSP_EA)
-			ELLIPSOIDB(GEOSP_EB)
-			ELLIPSOIDB(GEOSP_EC)
-			ELLIPSOIDB(GEOSP_ED)
-			ELLIPSOIDB(GEOSP_EE)
-			ELLIPSOIDB(GEOSP_EF)
-			ELLIPSOIDB(GEOSP_FA)
-			ELLIPSOIDB(GEOSP_HE)
-			ELLIPSOIDB(GEOSP_HO)
-			ELLIPSOIDB(GEOSP_ID)
-			ELLIPSOIDB(GEOSP_IN)
-			ELLIPSOIDB(GEOSP_KA)
-			ELLIPSOIDB(GEOSP_RF)
-			ELLIPSOIDB(GEOSP_SA)
-			ELLIPSOIDB(GEOSP_WD)
-			ELLIPSOIDB(GEOSP_WE)
+			ELLIPSOIDB(GEOEL_AA)
+			ELLIPSOIDB(GEOEL_AM)
+			ELLIPSOIDB(GEOEL_AN)
+			ELLIPSOIDB(GEOEL_BN)
+			ELLIPSOIDB(GEOEL_BR)
+			ELLIPSOIDB(GEOEL_CC)
+			ELLIPSOIDB(GEOEL_CD)
+			ELLIPSOIDB(GEOEL_EA)
+			ELLIPSOIDB(GEOEL_EB)
+			ELLIPSOIDB(GEOEL_EC)
+			ELLIPSOIDB(GEOEL_ED)
+			ELLIPSOIDB(GEOEL_EE)
+			ELLIPSOIDB(GEOEL_EF)
+			ELLIPSOIDB(GEOEL_FA)
+			ELLIPSOIDB(GEOEL_HE)
+			ELLIPSOIDB(GEOEL_HO)
+			ELLIPSOIDB(GEOEL_ID)
+			ELLIPSOIDB(GEOEL_IN)
+			ELLIPSOIDB(GEOEL_KA)
+			ELLIPSOIDB(GEOEL_RF)
+			ELLIPSOIDB(GEOEL_SA)
+			ELLIPSOIDB(GEOEL_WD)
+			ELLIPSOIDB(GEOEL_WE)
 			default: printf ("unknown ellipsoid type: %s\n", stringGEOSPATIALType(etype));
 		}
 	}
@@ -373,7 +373,7 @@ void CONVERT_BACK_TO_GD_OR_UTMB(struct Multi_Int32 *targetGeoSystem, struct X3D_
 		struct SFVec3d *thisField);
 
 static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
-static void Gd_Gc (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double);
+//static void Gd_Gc (struct Multi_Int32 *geoSystem, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double);
 static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
 
@@ -499,7 +499,7 @@ static double geoidCorrection(double latitudeDeg, double longitudeDeg)
 /* convert GD ellipsiod to GC coordinates. swizzles and converts degrad as needed. */
 
 // swizzles and converts degrad as needed
-static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
+static void Gd_Gc3d_fw(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
 	int geotype, lat_first, geoid;
 	double radius, flattening;
 	geotype = geoSystem->p[1];
@@ -599,7 +599,68 @@ static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, s
 		}
 	}
 }
-
+#ifdef GEOLIB
+double dclamp(double fval, double fstart, double fend);
+static void* fwgeo_gc[50];
+static void Gd_Gc3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
+	int i,geotype;
+	double semimajor, flattening, gd[3], gc[3];
+	//printf("hi from Gd_Gc3d_geolib\n");
+	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
+	if(FALSE && flattening == 0.0){
+		//easy spherical coords
+		double radius;
+		for(i=0;i<n;i++){
+			veccopyd(gd,inc[i].c);
+			if(!geoSystem->p[5]) vecswizzle2d(gd);
+			if(geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+			radius = semimajor + gd[2];
+			gc[0] = cos(gd[1])*radius;
+			gc[1] = sin(gd[1])*radius;
+			gc[2] = cos(gd[0])*radius;
+			veccopyd(outc[i].c,gc);
+			//printf("gd2gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+		}
+	}else{
+		geotype = geoSystem->p[1];
+		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
+		if(!fwgeo_gc[geotype]){
+			fwgeo_gc[geotype] = fgeo_initializeGC(semimajor,flattening);
+		}
+		for(i=0;i<n;i++){
+			veccopyd(gd,inc[i].c);
+			if(!geoSystem->p[5]) vecswizzle2d(gd);
+			if(!geoSystem->p[7]) vecscale2d(gd,gd,DEGREES_PER_RADIAN); //geolib uses degrees
+			// if you get 1.#QNAN00000000000 coming out here, its because geolib insists on -90,90 for lat
+			// and GEG has a bit of rounding error noise that exceeds slightly .0000001
+			//if(n>1 && i < 200) printf("before clamp %ld %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
+			gd[0] = dclamp(gd[0],-90.0,90.0);
+			fgeo_gd2gc(fwgeo_gc[geotype], gd[0], gd[1], gd[2], &gc[0], &gc[1], &gc[2]);
+			veccopyd(outc[i].c,gc);
+		}
+	}
+}
+#endif //GEOLIB
+static void Gd_Gc3d(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
+	int i;
+#ifdef GEOLIB
+	if(method_geolib()){
+		Gd_Gc3d_geolib(geoSystem,inc,n,outc);
+		//printf("geolib gd:\n");
+		//for(i=0;i<min(200,n);i++){
+		//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+		//}
+	}else
+#endif //GEOLIB
+	{
+		Gd_Gc3d_fw(geoSystem,inc,n,outc);
+		//printf("fw gd:\n");
+		//for(i=0;i<min(5,n);i++){
+		//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+		//}
+		//printf("\n");
+	}
+}
 /* convert UTM to GC coordinates by converting to GD as an intermediary step 
    we swizzle both lat,long and east,north
    we convert to radians if necessary
@@ -794,7 +855,7 @@ static void Xtm_Gd3d_geolib(struct Multi_Int32 *geoSystem, struct SFVec3d *inc, 
 	zone = geoSystem->p[2];
 	northing_first = geoSystem->p[3];
 	geotype = geoSystem->p[1];
-
+	if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
 	if(!p->fgeopars[geotype])
 		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
 	fgeo = p->fgeopars[geotype];
@@ -1191,6 +1252,7 @@ double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
 struct gcgd* initializeGcToGdParams(int type, double A, double F) {
 	struct gcgd *g;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	if(type < 0) type = -type + GEOELLIPSOID_COUNT;
 	if(p->gcgdpars[type]) return p->gcgdpars[type];
 	g = malloc(sizeof(struct gcgd));
 	p->gcgdpars[type] = g;
@@ -1232,8 +1294,8 @@ struct gcgd* initializeGcToGdParams(int type, double A, double F) {
 	return g;
 }
 
-/* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
-static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
+/* convert BACK to a GD coordinate, from GC coordinates using ellipsoid */
+static void gccToGdc_fw (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
 	int latitude = 0;
 	int longitude = 1;
 	int elevation = 2;
@@ -1344,7 +1406,55 @@ static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct
 #undef VERBOSE
 
 }
+#ifdef GEOLIB
+static void gccToGdc_geolib (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
+	int geotype;
+	double gd[3],gc[3], semimajor,flattening;
+	//printf("hi from gccToGdc_geolib\n");
+	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
+	if(FALSE && flattening == 0.0){
+		//easy spherical coords
+		double radius;
+		veccopyd(gc,gcc->c);
+		printf("gc2gd gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
 
+		gd[0] = atan2(gc[2],veclength2d(gc));
+		gd[1] = atan2(gc[1],gc[0]);
+		radius = veclengthd(gc);
+		gd[2] = radius - semimajor;
+		//printf("radius %lf semimajor %lf\n",radius,semimajor);
+		if(!geoSystem->p[5]) vecswizzle2d(gd);
+		if(!geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		printf("gc2gd gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+		veccopyd(gdc->c,gd);
+	}else{
+		geotype = geoSystem->p[1];
+		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
+		if(!fwgeo_gc[geotype]){
+			fwgeo_gc[geotype] = fgeo_initializeGC(semimajor,flattening);
+		}
+		veccopyd(gc,gcc->c);
+		// function(semimajor,flattening,gc[0],gc[1],gc[2],&gd[0],&gd[1],&gd[2]);
+		fgeo_gc2gd(fwgeo_gc[geotype],gc[0],gc[1],gc[2], &gd[0],&gd[1],&gd[2]);
+		if(!geoSystem->p[5]) vecswizzle2d(gd);
+		if(!geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		veccopyd(gdc->c,gd);
+	}
+
+}
+#endif //GEOLIB
+static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
+#ifdef GEOLIB
+	if(method_geolib()){
+		gccToGdc_geolib(geoSystem,gcc,gdc);
+		//vecprint3db("gl gdc ",gdc->c,"\n");
+	}else
+#endif //GEOLIB
+	{
+		gccToGdc_fw(geoSystem,gcc,gdc);
+		//vecprint3db("fw gdc ",gdc->c,"\n");
+	}
+}
 /* convert a GDC BACK to a UTM coordinate ASSUMES LAT LON RADIANS*/
 static void gdToXtm(double radius, double flattening, double latitude, double longitude, double scaleFactor, 
 	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
@@ -1618,29 +1728,29 @@ int stringint_string2int(struct stringint *table, const char *ctype){
 	return -1;
 }
 struct stringint lookup_ellipsoids [] = {
-	{"AA",GEOSP_AA},
-	{"AM",GEOSP_AM},
-	{"AN",GEOSP_AN},
-	{"BN",GEOSP_BN},
-	{"BR",GEOSP_BR},
-	{"CC",GEOSP_CC},
-	{"CD",GEOSP_CD},
-	{"EA",GEOSP_EA},
-	{"EB",GEOSP_EB},
-	{"EC",GEOSP_EC},
-	{"ED",GEOSP_ED},
-	{"EE",GEOSP_EE},
-	{"EF",GEOSP_EF},
-	{"FA",GEOSP_FA},
-	{"HE",GEOSP_HE},
-	{"HO",GEOSP_HO},
-	{"ID",GEOSP_ID},
-	{"IN",GEOSP_IN},
-	{"KA",GEOSP_KA},
-	{"RF",GEOSP_RF},
-	{"SA",GEOSP_SA},
-	{"WD",GEOSP_WD},
-	{"WE",GEOSP_WE},
+	{"AA",GEOEL_AA},
+	{"AM",GEOEL_AM},
+	{"AN",GEOEL_AN},
+	{"BN",GEOEL_BN},
+	{"BR",GEOEL_BR},
+	{"CC",GEOEL_CC},
+	{"CD",GEOEL_CD},
+	{"EA",GEOEL_EA},
+	{"EB",GEOEL_EB},
+	{"EC",GEOEL_EC},
+	{"ED",GEOEL_ED},
+	{"EE",GEOEL_EE},
+	{"EF",GEOEL_EF},
+	{"FA",GEOEL_FA},
+	{"HE",GEOEL_HE},
+	{"HO",GEOEL_HO},
+	{"ID",GEOEL_ID},
+	{"IN",GEOEL_IN},
+	{"KA",GEOEL_KA},
+	{"RF",GEOEL_RF},
+	{"SA",GEOEL_SA},
+	{"WD",GEOEL_WD},
+	{"WE",GEOEL_WE},
 	{NULL,-1},
 };
 struct stringint lookup_spatialreferencesys [] = {
@@ -1670,7 +1780,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 
 	/* set these as defaults */
 	srf->p[0] = GEOSP_GD; 
-	srf->p[1] = GEOSP_WE;
+	srf->p[1] = GEOEL_WE;
 	srf->p[2] = INT_ID_UNDEFINED;
 	srf->p[3] = TRUE; //XTM: northing first
 	srf->p[4] = TRUE; //northern hemisphere for UTM
@@ -1737,7 +1847,6 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 						sscanf(args->p[i]->strptr,"R%lf",&radius);
 						nextra = TRUE;
 						ee.a = radius;
-						ee.b = .9 * radius; //technically, invf should be infinity. we shave a bit off B so it's computable
 					} else if (str[0] == 'A') {
 						//radius
 						double a;
@@ -1759,7 +1868,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 					} else if (str[0] == 'F') {
 						//radius
 						double f;
-						sscanf(str,"IF%lf",&f);
+						sscanf(str,"F%lf",&f);
 						nextra = TRUE;
 						ee.f = f;
 					} else 
@@ -3454,9 +3563,6 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 struct X3D_Node *getActiveLayerBoundViewpoint();
 void CONVERT_BACK_TO_GD_OR_UTMC(struct Multi_Int32 *targetGeoSystem, struct X3D_Node *geoorigin, 
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
-double angleNormalized(double angle){
-	return atan2(sin(angle),cos(angle));
-}
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// NLA - node local alignment

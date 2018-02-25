@@ -843,7 +843,37 @@ sub gen {
 
 
 	#####################
+	# process GEOELLIPSOID keywords
+	
+	push @str, "\n/* Table of built-in GEOELLIPSOID keywords */\nextern const char *GEOELLIPSOID[];\n";
+	push @str, "extern const int GEOELLIPSOID_COUNT;\n";
+
+	push @genFuncs1, "\n/* Table of GEOELLIPSOID keywords */\n       const char *GEOELLIPSOID[] = {\n";
+
+        @sf = sort keys %VRML::Rend::GEOEllipsoidKeywordC if %VRML::Rend::GEOEllipsoidKeywordC;
+	$keywordIntegerType = 0;
+	for (@sf) {
+		# print "node $_ is tagged as $nodeIntegerType\n";
+		# tag each node type with a integer key.
+		push @str, "#define GEOEL_".$_."	$keywordIntegerType\n";
+		$keywordIntegerType ++;
+		push @genFuncs1, "	\"$_\",\n";
+	}
+	push @str, "\n";
+	push @genFuncs1, "};\nconst int GEOELLIPSOID_COUNT = ARR_SIZE(GEOELLIPSOID);\n\n";
+
+	# make a function to print Keyword name from an integer type.
+	push @genFuncs2, "/* Return a pointer to a string representation of the GEOELLIPSOID keyword type */\n".
+		"const char *stringGEOELLIPSOIDType (int st) {\n".
+		"	if ((st < 0) || (st >= GEOELLIPSOID_COUNT)) return \"(keyword invalid)\"; \n".
+		"	return GEOELLIPSOID[st];\n}\n\n";
+	push @str, "const char *stringGEOELLIPSOIDType(int st);\n";
+	
+	
+	#####################
 	# process GEOSPATIAL keywords
+	
+	
 	push @str, "\n/* Table of built-in GEOSPATIAL keywords */\nextern const char *GEOSPATIAL[];\n";
 	push @str, "extern const int GEOSPATIAL_COUNT;\n";
 

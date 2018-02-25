@@ -1002,8 +1002,7 @@ our %ProfileC = map {($_=>1)} qw/
 # a listing of Geospatial Elipsoid keywords.
 #
 #
-
-our %GEOSpatialKeywordC = map {($_=>1)} qw/
+our %GEOEllipsoidKeywordC = map {($_=>1)} qw/
 	AA
 	AM
 	AN
@@ -1027,6 +1026,9 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	SA
 	WD
 	WE
+/;
+
+our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	GC
 	GD
 	UTM

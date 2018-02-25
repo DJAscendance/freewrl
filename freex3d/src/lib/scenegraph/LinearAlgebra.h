@@ -28,6 +28,8 @@ Linear algebra.
 #ifndef __FREEWRL_LINEAR_ALGEBRA_H__
 #define __FREEWRL_LINEAR_ALGEBRA_H__
 
+double angleNormalized(double angle);
+
 #define VECSQ(a) VECPT(a,a)
 #define VECPT(a,b) ((a).x*(b).x + (a).y*(b).y + (a).z*(b).z)
 #define VECDIFF(a,b,c) {(c).x = (a).x-(b).x;(c).y = (a).y-(b).y;(c).z = (a).z-(b).z;}
