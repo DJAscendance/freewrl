@@ -229,7 +229,7 @@ void viewer_default() {
 	viewer_default0(viewer,NODE_Viewpoint);
 }
 
-
+void resolve_pos2(X3D_Viewer *viewer);
 void resolve_pos20(X3D_Viewer *viewer);
 void viewer_init (X3D_Viewer *viewer, int type) {
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
@@ -281,7 +281,7 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		viewer->wasBound = FALSE;
 	}
 
-	resolve_pos20(viewer);
+	resolve_pos2(viewer);
 
 }
 
@@ -384,7 +384,7 @@ void set_eyehalf(const double eyehalf, const double eyehalfangle) {
 	viewer->eyehalf = eyehalf;
 	viewer->eyehalfangle = eyehalfangle;
 }
-void resolve_pos2();
+
 void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type) {
 	ttglobal tg = gglobal();
 
@@ -406,10 +406,10 @@ void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type) {
 	case VIEWER_NONE:
 	case VIEWER_WALK:
 	case VIEWER_EXFLY:
-	case VIEWER_TPLANE:
-	case VIEWER_RPLANE:
-	case VIEWER_TILT:
-	case VIEWER_FLY2:
+	//case VIEWER_TPLANE:
+	//case VIEWER_RPLANE:
+	//case VIEWER_TILT:
+	//case VIEWER_FLY2:
 	case VIEWER_TURNTABLE:
 	case VIEWER_DIST:
 	case VIEWER_FLY:
@@ -580,7 +580,6 @@ void resolve_pos20(X3D_Viewer *viewer) {
 
 	X3D_Viewer_Examine *examine = &viewer->examine;
 
-	viewer_fetch_user_offsets0(viewer);
 	quaternion_inverse(&q_inv, &(viewer->Quat));
 	quaternion_rotation(&rot, &q_inv, &z_axis);
 
@@ -588,9 +587,8 @@ void resolve_pos20(X3D_Viewer *viewer) {
 	(examine->Origin).y = (viewer->Pos).y - viewer->Dist * rot.y;
 	(examine->Origin).z = (viewer->Pos).z - viewer->Dist * rot.z;
 }
-void resolve_pos2() {
-	X3D_Viewer *viewer;
-	viewer = Viewer();
+void resolve_pos2(X3D_Viewer *viewer) {
+	viewer_fetch_LCS(viewer);
 	resolve_pos20(viewer);
 }
 double vecangle2(struct point_XYZ* V1, struct point_XYZ* V2, struct point_XYZ* rotaxis) {
@@ -871,7 +869,7 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 
 	if (mev == ButtonPress) {
 		if (button == 1) {
-			resolve_pos2();
+			resolve_pos20(viewer);
 /*
 			printf ("\n");
 			printf ("bp, before SQ %4.3f %4.3f %4.3f %4.3f\n",examine->SQuat.x, examine->SQuat.y, examine->SQuat.z, examine->SQuat.w);
@@ -962,7 +960,7 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 	yy = y;
 	if (mev == ButtonPress) {
 		if (button == 1) {
-			resolve_pos2();
+			resolve_pos20(viewer);
 			examine->SY = yy;
 			examine->ODist = max(0.1,viewer->Dist);
 		}
@@ -3216,7 +3214,7 @@ int slerp_viewpoint3()
 		general_slerp(&viewer->Dist,&viewer->startSLERPDist,&viewer->endSLERPDist,1,tickFrac);
 		if(tickFrac >= 1.0) {
 			viewer->SLERPing3 = 0;
-			resolve_pos2(); //may not need this if examine etc do it
+			resolve_pos20(viewer); //may not need this if examine etc do it
 		}
 		iret = 1;
 		//now we let normal rendering use the viewer quat, pos, dist during rendering
