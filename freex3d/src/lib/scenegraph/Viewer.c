@@ -1435,6 +1435,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	switch(viewer->type){
 		case VIEWER_WALK:
 		case VIEWER_FLY:
+		case VIEWER_SPHERICAL:
 			viewer_fetch_user_offsets0(viewer);break;
 		default:
 			viewer_fetch_LCS(viewer);break;
@@ -1489,6 +1490,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	switch(viewer->type){
 		case VIEWER_WALK:
 		case VIEWER_FLY:
+		case VIEWER_SPHERICAL:
 			viewer_update_user_offsets0(viewer);break;
 		default:
 			viewer_update_LCS(viewer);break;
@@ -2247,6 +2249,7 @@ handle_tick()
 	switch(viewer->type){
 		case VIEWER_WALK:
 		case VIEWER_FLY:
+		case VIEWER_SPHERICAL:
 			viewer_fetch_user_offsets0(viewer);break;
 		default:
 			viewer_fetch_LCS(viewer);break;
@@ -2326,6 +2329,7 @@ handle_tick()
 	switch(viewer->type){
 		case VIEWER_WALK:
 		case VIEWER_FLY:
+		case VIEWER_SPHERICAL:
 			viewer_update_user_offsets0(viewer);break;
 		default:
 			viewer_update_LCS(viewer);break;
