@@ -3709,7 +3709,7 @@ void geoviewpoint_fetch_LCS0(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	// GC = f(UCS)   //function depends on user coordinate system
 	// LCS = (GC - autoOffset) x autoOrient^
 	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCpos,&node->__movedgd);
-	if(0) vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
+	if(1) vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
 	double2pointxyz(Pos,LCpos.c);
 
 	//step 2 convert user alignement UCA to local coordinate alignement LCA
@@ -3717,14 +3717,14 @@ void geoviewpoint_fetch_LCS0(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	//GCA = f(UCA)
 	//    = LO^ x UCA (for GD and XTM)
 	float2double(oo,node->orientation.c,4);
-	if(0) oo[3] = -oo[3]; //like prep_viewpoint?
+	if(1) oo[3] = -oo[3]; //like prep_viewpoint?
 	vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2], oo[3]);
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
 	quaternion_multiply(&qgc,&qoo,&qlo);
 	//step 2b convert from GCA to LCA
 	//LCA = AO^ x GCA
-	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2], p->autoOrient.c[3]);
+	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2], -p->autoOrient.c[3]);
 	quaternion_multiply(Quat,&qgc,&qao);
 	quaternion_normalize(Quat);
 
@@ -3742,6 +3742,7 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	// GC = (autoOrient x LCPos) + autoOffset
 	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
 	pointxyz2double(pos,Pos);
+	if(1) vecnegated(pos,pos); //like prep_viewpoint?
 	quaternion_rotationd(pos,&qao,pos);
 	vecaddd(GCpos.c,p->autoOrigin.c,pos);
 
@@ -3752,15 +3753,17 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	//step 2a. convert LCA to GCA
 	//GCA = AO x LCA
 	quaternion_inverse(&qaoi,&qao);
-	quaternion_multiply(&qgc,&qaoi,Quat);
+	if(0) quaternion_multiply(&qgc,Quat, &qaoi);
+	if(1) quaternion_multiply(&qgc,Quat,&qao);
 	//step 2.b convert GCA to UCA
 	// UCA = f(GCA)
 	//     = LO x GCA for GD and XTM
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
-	quaternion_multiply(&qoo,&qlo,&qgc);
+	quaternion_multiply(&qoo,&qgc,&qlo);
 	quaternion_normalize(&qoo);
 	quaternion_to_vrmlrot(&qoo,&oo[0],&oo[1],&oo[2],&oo[3]);
+	if(1) oo[3] = -oo[3];
 	double2float(node->orientation.c,oo,4);
 	
 }
