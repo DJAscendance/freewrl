@@ -1460,16 +1460,17 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	case VIEWER_FLY:
 		handle_fly2(mev, button, ((float) x), ((float) yup)); //feature-Navigation_key_and_drag
 		break;
-	case VIEWER_FLY2:
-		handle_fly2(mev,button,((float) x),((float)yup)); 
-		break;
-	case VIEWER_TILT:
-	case VIEWER_RPLANE:
-		handle_rtplane(mev,button,((float) x),((float)yup)); //roll, tilt: one uses x, one uses y - separate handle_ticks though
-		break;
-	case VIEWER_TPLANE:
-		handle_tplane(mev,button,((float) x),((float)yup)); //translation in the viewer plane
-		break;
+	//I think these were obsolteted by drag chords - see handle_tick(
+	//case VIEWER_FLY2:
+	//	handle_fly2(mev,button,((float) x),((float)yup)); 
+	//	break;
+	//case VIEWER_TILT:
+	//case VIEWER_RPLANE:
+	//	handle_rtplane(mev,button,((float) x),((float)yup)); //roll, tilt: one uses x, one uses y - separate handle_ticks though
+	//	break;
+	//case VIEWER_TPLANE:
+	//	handle_tplane(mev,button,((float) x),((float)yup)); //translation in the viewer plane
+	//	break;
 	case VIEWER_SPHERICAL:
 		handle_spherical(mev,button,((float) x),((float)yup)); //spherical panorama
 		break;
@@ -2284,20 +2285,21 @@ handle_tick()
 				break;
 		}
 		break;
-	case VIEWER_FLY2:
-		handle_tick_fly2(dtime); //yawz
-		break;
+	//I think a few of these cases were obsoleted by drag chords above
+	//case VIEWER_FLY2:
+	//	handle_tick_fly2(dtime); //yawz
+	//	break;
+	//case VIEWER_TPLANE:
+	//	handle_tick_tplane(dtime);
+	//	break;
+	//case VIEWER_RPLANE:
+	//	handle_tick_rplane(dtime);
+	//	break;
+	//case VIEWER_TILT:
+	//	handle_tick_tilt(dtime);
+	//	break;
 	case VIEWER_LOOKAT:
 		handle_tick_lookat();
-		break;
-	case VIEWER_TPLANE:
-		handle_tick_tplane(dtime);
-		break;
-	case VIEWER_RPLANE:
-		handle_tick_rplane(dtime);
-		break;
-	case VIEWER_TILT:
-		handle_tick_tilt(dtime);
 		break;
 	case VIEWER_EXPLORE:
 		break;

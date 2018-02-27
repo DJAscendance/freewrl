@@ -1625,10 +1625,10 @@ int action;
 char *help;
 } button_helps [] = {
 {ACTION_WALK, "WALK"},
-{ACTION_FLY2, "FLY2"},
-{ACTION_TILT, "TILT"},
-{ACTION_TPLANE, "TRANSLATE"},
-{ACTION_RPLANE, "ROLL"},
+//{ACTION_FLY2, "FLY2"},
+//{ACTION_TILT, "TILT"},
+//{ACTION_TPLANE, "TRANSLATE"},
+//{ACTION_RPLANE, "ROLL"},
 {ACTION_FLY, "FLY {yaw-z,xy,yaw-pitch,roll}"},
 {ACTION_EXAMINE, "EXAMINE"},
 {ACTION_EXPLORE, "EXPLORE {examine,recenter}"},
@@ -2434,14 +2434,14 @@ int handleButtonRelease(int mouseX, int mouseY)
 			{
 				case ACTION_WALK:	
 					fwl_set_viewer_type (VIEWER_WALK); break; 
-				case ACTION_FLY2:	
-					fwl_set_viewer_type (VIEWER_FLY2); break; 
-				case ACTION_TILT:	
-					fwl_set_viewer_type (VIEWER_TILT); break; 
-				case ACTION_TPLANE:	
-					fwl_set_viewer_type (VIEWER_TPLANE); break; 
-				case ACTION_RPLANE:	
-					fwl_set_viewer_type (VIEWER_RPLANE); break; 
+				//case ACTION_FLY2:	
+				//	fwl_set_viewer_type (VIEWER_FLY2); break; 
+				//case ACTION_TILT:	
+				//	fwl_set_viewer_type (VIEWER_TILT); break; 
+				//case ACTION_TPLANE:	
+				//	fwl_set_viewer_type (VIEWER_TPLANE); break; 
+				//case ACTION_RPLANE:	
+				//	fwl_set_viewer_type (VIEWER_RPLANE); break; 
 				case ACTION_FLY:	
 					fwl_set_viewer_type(VIEWER_FLY); 
 					if(p->pmenu.bitems[i].item->buttonset){
