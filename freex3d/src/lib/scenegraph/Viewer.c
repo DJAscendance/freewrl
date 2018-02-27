@@ -893,6 +893,7 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 			examine->ODist = max(0.1,viewer->Dist);
 		}
 	} else if (mev == MotionNotify) {
+		resolve_pos20(viewer);
 		if (button == 1) {
 			squat_norm = norm(&(examine->SQuat));
 			/* we have missed the press */
@@ -1435,6 +1436,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_FLY:
 		case VIEWER_SPHERICAL:
 		case VIEWER_TURNTABLE:
+		case VIEWER_EXAMINE:
 			viewer_fetch_user_offsets0(viewer);break;
 		default:
 			viewer_fetch_LCS(viewer);break;
@@ -1492,6 +1494,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_FLY:
 		case VIEWER_SPHERICAL:
 		case VIEWER_TURNTABLE:
+		case VIEWER_EXAMINE:
 			viewer_update_user_offsets0(viewer);break;
 		default:
 			viewer_update_LCS(viewer);break;
