@@ -3692,6 +3692,95 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
 	Pos->x = Pos->y = Pos->z = 0.0;
 }
+void geoviewpoint_fetch_LCS0(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//returns LCS/LCA - should be similar to prep_geoViewpoint
+	//
+	//LCS - local coordinate system - a shared euclidean system for a planet's data
+	//UCS - user coordinate system, what the scene author specifies in the scene file
+	//      might be GC, GD (degrees or radians, lat or long first), XTM (UTM/3TM, easting or northing first) and w/wo geoid
+	//LCA/GCA/UCA - alignment - the orientation part
+	struct SFVec3d LCpos;;
+	struct SFVec4d lo;
+	Quaternion qoo, qlo, qao, qgc;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	
+	double oo[4], gd[3];
+	//step 1 convert user coordinates UCS  to LCS coordinates 
+	// GC = f(UCS)   //function depends on user coordinate system
+	// LCS = (GC - autoOffset) x autoOrient^
+	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCpos,&node->__movedgd);
+	if(0) vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
+	double2pointxyz(Pos,LCpos.c);
+
+	//step 2 convert user alignement UCA to local coordinate alignement LCA
+	//step 2a convert UCA to GCA
+	//GCA = f(UCA)
+	//    = LO^ x UCA (for GD and XTM)
+	float2double(oo,node->orientation.c,4);
+	if(0) oo[3] = -oo[3]; //like prep_viewpoint?
+	vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2], oo[3]);
+	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+	quaternion_multiply(&qgc,&qoo,&qlo);
+	//step 2b convert from GCA to LCA
+	//LCA = AO^ x GCA
+	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2], p->autoOrient.c[3]);
+	quaternion_multiply(Quat,&qgc,&qao);
+	quaternion_normalize(Quat);
+
+}
+
+void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	double pos[3], oo[4];
+	struct SFVec3d GCpos, gdCoord;
+	struct SFVec4d lo;
+	Quaternion qao, qaoi, qgc, qlo, qoo;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	
+	//step 1 convert LCS to UCS
+	//step 1.a converte LCS to GC
+	// GC = (autoOrient x LCPos) + autoOffset
+	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+	pointxyz2double(pos,Pos);
+	quaternion_rotationd(pos,&qao,pos);
+	vecaddd(GCpos.c,p->autoOrigin.c,pos);
+
+	//step 1.b UCS = f(GC)
+	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
+
+	//step 2 convert LCA to UCA
+	//step 2a. convert LCA to GCA
+	//GCA = AO x LCA
+	quaternion_inverse(&qaoi,&qao);
+	quaternion_multiply(&qgc,&qaoi,Quat);
+	//step 2.b convert GCA to UCA
+	// UCA = f(GCA)
+	//     = LO x GCA for GD and XTM
+	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
+	quaternion_multiply(&qoo,&qlo,&qgc);
+	quaternion_normalize(&qoo);
+	quaternion_to_vrmlrot(&qoo,&oo[0],&oo[1],&oo[2],&oo[3]);
+	double2float(node->orientation.c,oo,4);
+	
+}
+
+void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	geoviewpoint_fetch_LCS0(node,Quat,Pos);
+	
+	if(0){
+		Quaternion q2;
+		struct point_XYZ p2;
+		printf("gvp fetch LCS cycle test\n");
+		printf("fetch Pos %lf %lf %lf\n",Pos->x,Pos->y,Pos->z);
+		printf("fetch Quat %lf %lf %lf %lf\n",Quat->w,Quat->x,Quat->y,Quat->z);
+		geoviewpoint_update_LCS(node, Quat, Pos);
+		geoviewpoint_fetch_LCS0(node,&q2,&p2);
+		printf("updat Pos %lf %lf %lf\n",p2.x,p2.y,p2.z);
+		printf("updat Quat %lf %lf %lf %lf\n",q2.w,q2.x,q2.y,q2.z);
+		printf("\n");
+	}
+}
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
 	GLint viewPort[10];

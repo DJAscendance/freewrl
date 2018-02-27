@@ -1431,7 +1431,14 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 {
 	X3D_Viewer *viewer;
 	viewer = Viewer();
-	viewer_fetch_user_offsets0(viewer);
+
+	switch(viewer->type){
+		case VIEWER_WALK:
+		case VIEWER_FLY:
+			viewer_fetch_user_offsets0(viewer);break;
+		default:
+			viewer_fetch_LCS(viewer);break;
+	}
 	/* ConsoleMessage("Viewer handle: viewer_type %s, mouse event %d, button %u, x %f, y %f\n", 
 	   lookup_navmodestring(viewer->type), mev, button, x, yup); */
 
@@ -1479,7 +1486,14 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	default:
 		break;
 	}
-	viewer_update_user_offsets0(viewer);
+	switch(viewer->type){
+		case VIEWER_WALK:
+		case VIEWER_FLY:
+			viewer_update_user_offsets0(viewer);break;
+		default:
+			viewer_update_LCS(viewer);break;
+	}
+
 }
 
 #define FLYREMAP {{'a',NUM0},{'z',NUMDEC},{'j',LEFT_KEY},{'l',RIGHT_KEY},{'p',UP_KEY},{';',DOWN_KEY},{'8',NUM8},{'k',NUM2},{'u',NUM4},{'o',NUM6 },{'7',NUM7},{'9',NUM9}}
@@ -2230,7 +2244,13 @@ handle_tick()
 	double dtime;
 	ppViewer p = (ppViewer)gglobal()->Viewer.prv;
 	viewer = Viewer();
-	viewer_fetch_user_offsets0(viewer);
+	switch(viewer->type){
+		case VIEWER_WALK:
+		case VIEWER_FLY:
+			viewer_fetch_user_offsets0(viewer);break;
+		default:
+			viewer_fetch_LCS(viewer);break;
+	}
 	dtime = TickTime() - lastTime(); //0.0; 
 	 
 	switch(viewer->type) {
@@ -2303,7 +2323,14 @@ handle_tick()
 			p->examineCounter = 5;
 		}
 	}
-	viewer_update_user_offsets0(viewer);
+	switch(viewer->type){
+		case VIEWER_WALK:
+		case VIEWER_FLY:
+			viewer_update_user_offsets0(viewer);break;
+		default:
+			viewer_update_LCS(viewer);break;
+	}
+
 }
 
 
@@ -2801,7 +2828,54 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 
 
 }
+void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos);
+void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos);
+void viewer_fetch_LCS(X3D_Viewer *viewer){
+	//LCS: local coordinate system
+	//NLS: node-local system
+	//for regular viewpoint, orthoviewpoint  LCS is the same as NLS
+	//for geoviewpoint, LCS is the shared euclidean system, NLS is local, and changes with gdCoords on each tick
+	struct X3D_Node *boundvp;
+	boundvp = getActiveLayerBoundViewpoint();
+	if(boundvp){
+		switch(boundvp->_nodeType){
+			case NODE_OrthoViewpoint:
+			case NODE_Viewpoint:
+				viewer_fetch_user_offsets0(viewer);
+			break;
+			case NODE_GeoViewpoint:
+			{
+				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
+				geoviewpoint_fetch_LCS(vp,&viewer->Quat,&viewer->Pos);
 
+			}
+			break;
+			default:
+			break;
+		}
+	}
+}
+void viewer_update_LCS(X3D_Viewer *viewer){
+	struct X3D_Node *boundvp;
+	boundvp = getActiveLayerBoundViewpoint();
+	if(boundvp){
+		switch(boundvp->_nodeType){
+			case NODE_OrthoViewpoint:
+			case NODE_Viewpoint:
+			viewer_update_user_offsets0(viewer);
+			break;
+			case NODE_GeoViewpoint:
+			{
+				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
+				geoviewpoint_update_LCS(vp,&viewer->Quat,&viewer->Pos);
+			}
+			break;
+			default:
+			break;
+		}
+	}
+
+}
 void viewer_fetch_bindtime_pose0(X3D_Viewer *viewer, Quaternion *Quat, struct point_XYZ *Pos){
 	//call this once, when binding/just after binding, to a viewpoint, if vp->retainUserOffsets == TRUE
 	//lets user carry on from where they left off with a given viewpoint
@@ -3127,10 +3201,12 @@ int slerp_viewpoint3()
 		double tickFrac;
 		tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
 		tickFrac = min(1.0,tickFrac); //clamp to max 1.0 otherwise a slow frame rate will overshoot
-		viewer_fetch_user_offsets0(viewer);
+		//viewer_fetch_user_offsets0(viewer);
+		viewer_fetch_LCS(viewer);
 		quaternion_slerp(&viewer->Quat,&viewer->startSLERPQuat,&viewer->endSLERPQuat,tickFrac);
 		point_XYZ_slerp(&viewer->Pos,&viewer->startSLERPPos,&viewer->endSLERPPos,tickFrac);
-		viewer_update_user_offsets0(viewer);
+		//viewer_update_user_offsets0(viewer);
+		viewer_update_LCS(viewer);
 		general_slerp(&viewer->Dist,&viewer->startSLERPDist,&viewer->endSLERPDist,1,tickFrac);
 		if(tickFrac >= 1.0) {
 			viewer->SLERPing3 = 0;
@@ -3175,6 +3251,7 @@ void setup_viewpoint_slerp3(double* center, double pivot_radius, double vp_radiu
 	// 3. in viewpoint_slerp(), slerp from starting to ending
 
 	// 1. snapshot current viewer quat,pos,dist as startSLERP
+	viewer_fetch_LCS(viewer);
 	viewer->startSLERPPos = viewer->Pos;
 	viewer->startSLERPQuat = viewer->Quat;
 	viewer->startSLERPDist = viewer->Dist;
