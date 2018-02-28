@@ -925,12 +925,14 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 
 	quaternion_inverse(&q_i, &(viewer->Quat));
 	quaternion_rotation(&(viewer->Pos), &q_i, &pp);
-/*
-	printf ("bp, after quat rotation, pos %4.3f %4.3f %4.3f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z);
-*/
+	
+	//printf ("handle examine after *= quat pos %4.3f %4.3f %4.3f\n",viewer->Pos.x, viewer->Pos.y, viewer->Pos.z);
+
 	viewer->Pos.x += (examine->Origin).x;
 	viewer->Pos.y += (examine->Origin).y;
 	viewer->Pos.z += (examine->Origin).z;
+	//printf ("handle examine after += origin pos %4.3f %4.3f %4.3f\n",viewer->Pos.x, viewer->Pos.y, viewer->Pos.z);
+
 /*
 printf ("examine->origin %4.3f %4.3f %4.3f\n",examine->Origin.x, examine->Origin.y, examine->Origin.z);
 */
@@ -966,6 +968,7 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 			examine->ODist = max(0.1,viewer->Dist);
 		}
 	} else if (mev == MotionNotify) {
+		resolve_pos20(viewer);
 		if (button == 1) {
 			#ifndef DISABLER
 			viewer->Dist = examine->ODist * exp(2.0 * (examine->SY - yy));
@@ -973,16 +976,19 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 			viewer->Dist = (0 != yy) ? examine->ODist * examine->SY / yy : 0;
 			#endif
 			//printf("v.dist=%lf\n",viewer->Dist);
+			pp.z = viewer->Dist;
 		}
 	}
 	quaternion_inverse(&q_i, &(viewer->Quat));
 	quaternion_rotation(&(viewer->Pos), &q_i, &pp);
-/*
-	printf ("bp, after quat rotation, pos %4.3f %4.3f %4.3f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z);
-*/
+
+	//printf ("handle dist after *= quat pos %4.3f %4.3f %4.3f\n",viewer->Pos.x, viewer->Pos.y, viewer->Pos.z);
+
 	viewer->Pos.x += (examine->Origin).x;
 	viewer->Pos.y += (examine->Origin).y;
 	viewer->Pos.z += (examine->Origin).z;
+	//printf ("handle dist after += origin pos %4.3f %4.3f %4.3f\n",viewer->Pos.x, viewer->Pos.y, viewer->Pos.z);
+
 
 }
 
@@ -1487,6 +1493,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		break;
 	case VIEWER_DIST:
 		handle_dist(mev,button,(float)x,(float)yup);
+		break;
 	default:
 		break;
 	}
