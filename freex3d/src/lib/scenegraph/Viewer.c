@@ -1437,6 +1437,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_SPHERICAL:
 		case VIEWER_TURNTABLE:
 		case VIEWER_EXAMINE:
+		case VIEWER_DIST:
 			viewer_fetch_user_offsets0(viewer);break;
 		default:
 			viewer_fetch_LCS(viewer);break;
@@ -1495,6 +1496,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_SPHERICAL:
 		case VIEWER_TURNTABLE:
 		case VIEWER_EXAMINE:
+		case VIEWER_DIST:
 			viewer_update_user_offsets0(viewer);break;
 		default:
 			viewer_update_LCS(viewer);break;
