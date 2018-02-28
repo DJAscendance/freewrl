@@ -888,10 +888,12 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 			printf ("bp, after, aps %4.3f %4.3f %4.3f\n",Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z);
 */
 
-		} else if (button == 3) {
-			examine->SY = y;
-			examine->ODist = max(0.1,viewer->Dist);
-		}
+		} 
+		//moved to handle_dist
+		//else if (button == 3) {
+		//	examine->SY = y;
+		//	examine->ODist = max(0.1,viewer->Dist);
+		//}
 	} else if (mev == MotionNotify) {
 		resolve_pos20(viewer);
 		if (button == 1) {
@@ -914,13 +916,15 @@ void handle_examine(const int mev, const unsigned int button, float x, float y) 
 				/* $this->{Quat} = $arc->multiply($this->{OQuat}); */
 				quaternion_multiply(&(viewer->Quat), &arc, &(examine->OQuat));
 			}
-		} else if (button == 3) {
-			#ifndef DISABLER
-			viewer->Dist = examine->ODist * exp(examine->SY - y);
-			#else
-			viewer->Dist = (0 != y) ? examine->ODist * examine->SY / y : 0;
-			#endif
-		}
+		} 
+		//moved to handle_dist
+		//else if (button == 3) {
+		//	#ifndef DISABLER
+		//	viewer->Dist = examine->ODist * exp(examine->SY - y);
+		//	#else
+		//	viewer->Dist = (0 != y) ? examine->ODist * examine->SY / y : 0;
+		//	#endif
+		//}
  	}
 
 	quaternion_inverse(&q_i, &(viewer->Quat));
@@ -971,7 +975,7 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 		resolve_pos20(viewer);
 		if (button == 1) {
 			#ifndef DISABLER
-			viewer->Dist = examine->ODist * exp(2.0 * (examine->SY - yy));
+			viewer->Dist = examine->ODist * exp(4.0 * (examine->SY - yy));
 			#else
 			viewer->Dist = (0 != yy) ? examine->ODist * examine->SY / yy : 0;
 			#endif
