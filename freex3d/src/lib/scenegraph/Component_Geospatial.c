@@ -3692,7 +3692,7 @@ void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *
 	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
 	Pos->x = Pos->y = Pos->z = 0.0;
 }
-void geoviewpoint_fetch_LCS0(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//returns LCS/LCA - should be similar to prep_geoViewpoint
 	//
 	//LCS - local coordinate system - a shared euclidean system for a planet's data
@@ -3709,7 +3709,7 @@ void geoviewpoint_fetch_LCS0(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	// GC = f(UCS)   //function depends on user coordinate system
 	// LCS = (GC - autoOffset) x autoOrient^
 	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCpos,&node->__movedgd);
-	if(1) vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
+	vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
 	double2pointxyz(Pos,LCpos.c);
 
 	//step 2 convert user alignement UCA to local coordinate alignement LCA
@@ -3717,7 +3717,7 @@ void geoviewpoint_fetch_LCS0(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	//GCA = f(UCA)
 	//    = LO^ x UCA (for GD and XTM)
 	float2double(oo,node->orientation.c,4);
-	if(1) oo[3] = -oo[3]; //like prep_viewpoint?
+	oo[3] = -oo[3]; //like prep_viewpoint?
 	vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2], oo[3]);
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
@@ -3742,7 +3742,7 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	// GC = (autoOrient x LCPos) + autoOffset
 	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
 	pointxyz2double(pos,Pos);
-	if(1) vecnegated(pos,pos); //like prep_viewpoint?
+	vecnegated(pos,pos); //like prep_viewpoint?
 	quaternion_rotationd(pos,&qao,pos);
 	vecaddd(GCpos.c,p->autoOrigin.c,pos);
 
@@ -3753,8 +3753,7 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	//step 2a. convert LCA to GCA
 	//GCA = AO x LCA
 	quaternion_inverse(&qaoi,&qao);
-	if(0) quaternion_multiply(&qgc,Quat, &qaoi);
-	if(1) quaternion_multiply(&qgc,Quat,&qao);
+	quaternion_multiply(&qgc,Quat,&qao);
 	//step 2.b convert GCA to UCA
 	// UCA = f(GCA)
 	//     = LO x GCA for GD and XTM
@@ -3763,27 +3762,27 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	quaternion_multiply(&qoo,&qgc,&qlo);
 	quaternion_normalize(&qoo);
 	quaternion_to_vrmlrot(&qoo,&oo[0],&oo[1],&oo[2],&oo[3]);
-	if(1) oo[3] = -oo[3];
+	oo[3] = -oo[3];
 	double2float(node->orientation.c,oo,4);
 	
 }
 
-void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	geoviewpoint_fetch_LCS0(node,Quat,Pos);
-	
-	if(0){
-		Quaternion q2;
-		struct point_XYZ p2;
-		printf("gvp fetch LCS cycle test\n");
-		printf("fetch Pos %lf %lf %lf\n",Pos->x,Pos->y,Pos->z);
-		printf("fetch Quat %lf %lf %lf %lf\n",Quat->w,Quat->x,Quat->y,Quat->z);
-		geoviewpoint_update_LCS(node, Quat, Pos);
-		geoviewpoint_fetch_LCS0(node,&q2,&p2);
-		printf("updat Pos %lf %lf %lf\n",p2.x,p2.y,p2.z);
-		printf("updat Quat %lf %lf %lf %lf\n",q2.w,q2.x,q2.y,q2.z);
-		printf("\n");
-	}
-}
+//void geoviewpoint_fetch_LCS_testing(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+//	//testing geoviewpoint_fetch_LCS0(node,Quat,Pos);
+//	
+//	if(0){
+//		Quaternion q2;
+//		struct point_XYZ p2;
+//		printf("gvp fetch LCS cycle test\n");
+//		printf("fetch Pos %lf %lf %lf\n",Pos->x,Pos->y,Pos->z);
+//		printf("fetch Quat %lf %lf %lf %lf\n",Quat->w,Quat->x,Quat->y,Quat->z);
+//		geoviewpoint_update_LCS(node, Quat, Pos);
+//		geoviewpoint_fetch_LCS0(node,&q2,&p2);
+//		printf("updat Pos %lf %lf %lf\n",p2.x,p2.y,p2.z);
+//		printf("updat Quat %lf %lf %lf %lf\n",q2.w,q2.x,q2.y,q2.z);
+//		printf("\n");
+//	}
+//}
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
 	GLint viewPort[10];
