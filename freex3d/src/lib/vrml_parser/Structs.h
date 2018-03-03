@@ -4891,6 +4891,7 @@ struct X3D_GeoLocation {
 	struct SFVec3f bboxSize;
 	struct Multi_Int32 __geoSystem;
 	struct SFVec3d __movedCoords;
+	struct SFVec3d __movedgd;
 	struct SFVec4d __localOrient;
 	struct SFVec4d __offsetOrient;
 	struct SFVec3d __oldgeoCoords;

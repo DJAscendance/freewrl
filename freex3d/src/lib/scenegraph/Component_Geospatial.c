@@ -385,6 +385,7 @@ typedef struct pComponent_Geospatial{
 	//struct X3D_GeoOrigin *go;
 	int geoLodLevel;// = 0;
 	void * gcgdpars[50];
+	Stack *planet_stack;
 #ifdef GEOLIB
 	void * fgeopars[50];
 #endif //GEOLIB
@@ -406,10 +407,23 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		vecsetd(p->autoOrigin.c,0.0,0.0,0.0);
 		//p->go = createNewX3DNode0(NODE_GeoOrigin);
 		p->geoLodLevel = 0;
+		p->planet_stack = NULL;
 		memset(p->gcgdpars,0,50*sizeof(void*));
 		#ifdef GEOLIB
 		memset(p->fgeopars,0,50*sizeof(void*));
 		#endif //GEOLIB
+	}
+}
+void clear_planets(Stack *planet_stack);
+void Component_Geospatial_clear(struct tComponent_Geospatial *t){
+	if(t->prv )
+	{
+		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
+		if(p->planet_stack){
+			clear_planets(p->planet_stack);
+			p->planet_stack = NULL;
+		}	
+
 	}
 }
 //ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
@@ -2547,6 +2561,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	origin_offsets(gi);
 	//vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
 	veccopy4d(node->__localOrient.c,p->autoOrient.c);
+	veccopyd(node->__movedgd.c,gdCoord.c);
 
 	//#ifdef VERBOSE
 	printf ("compile_GeoLocation, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
@@ -4355,7 +4370,7 @@ except: GD pose transformed into SLSLA for rendering, picking and extents
 
 */
 
-int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
+int geoelevationgrid_disp2_OLD(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
 	// general polyrep collision does a few ugly things:
 	// 1. transforms all the points into collision/avatar space
 	// 2. iterates over all the triangles (a few times)
@@ -4552,6 +4567,271 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 
 	return hit;
 }
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+int geoelevationgrid_getGDHeight0(struct X3D_GeoElevationGrid *node, struct SFVec3d *gdCoord, struct Multi_Int32 *geoSystem, double *gridHeight){
+	int hit;
+	//we'll work in gd coord.
+	struct point_XYZ result;
+	float centerf[3],bottomf[3];
+	double centerd[3], bottomd[3], spined[3], vertvecd[3];
+	struct SFVec3d xxCoord;
+	double cosine;
+	double tmin[3],tmax[3]; /* MBB for facet */
+	struct sNaviInfo *naviinfo;
+	GLDOUBLE awidth, atop, abottom, astep;
+	ttglobal tg = gglobal();
+	//naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+
+	hit = -1; //caller: watch out, this can be -1 on return. only 1 means true hit
+	//get target node's gdCoord into GEG's gdcoord 
+	veccopyd(xxCoord.c,gdCoord->c); 
+	//printf("gdCoord %lf %lf %lf\n",gdCoord->c[0],gdCoord->c[1],gdCoord->c[2]);
+	if(geoSystem->p[5] != node->__geoSystem.p[5]) 
+		vecswizzle2d(xxCoord.c);
+	if(geoSystem->p[7] != node->__geoSystem.p[7]) 
+		if(geoSystem->p[7] == TRUE)
+			vecscale2d(xxCoord.c,xxCoord.c,RADIANS_PER_DEGREE);
+		else
+			vecscale2d(xxCoord.c,xxCoord.c,DEGREES_PER_RADIAN);
+
+
+	//get target nodes' gd coord into GEG's geosystem if not gd
+	int XTM = FALSE;
+	if(node->__geoSystem.p[0] == GEOSP_UTM || node->__geoSystem.p[0] == GEOSP_3TM ) { 
+		// convert GVP's gdCoord to UTM  or 3TM, in GEGs user order
+		XTM = TRUE;
+		double dtemp[3];
+		if(node->__geoSystem.p[0] == GEOSP_UTM){
+			gdToUtm3d(&node->__geoSystem,xxCoord.c, dtemp); 
+			veccopyd(xxCoord.c,dtemp);
+		}else if(node->__geoSystem.p[0] == GEOSP_3TM) {
+			gdTo3tm3d(&node->__geoSystem,xxCoord.c, dtemp);
+			veccopyd(xxCoord.c,dtemp);
+		} 
+ 	} else if(node->__geoSystem.p[0] == GEOSP_GC) {
+		//no such thing as GC GEG
+		return hit;
+	}
+
+
+	int inside;
+	double emin[2],emax[2];
+	//not sure what space the GEG's node->_extent is in, so will recalculate here in its user coordinates
+	double size[2], spacing[2];
+	int idimension[2];
+	//we'll put dimension and spacing into x/easting/longitude-first order, 
+	// to capture xDimension,zDimension naming, then swizzle as needed
+	idimension[0] = node->xDimension; //assume x is longitude/easting
+	idimension[1] = node->zDimension; //assume z is latitude/northing
+	spacing[0] = node->xSpacing; //x long/east
+	spacing[1] = node->zSpacing; //z lat/north
+	//GEGs Geosystem
+	//to do some extent math, we'll swizzle into user order
+	int swizzle_xzdimension = (XTM && node->__geoSystem.p[3]) || (!XTM && node->__geoSystem.p[5]);
+	if(swizzle_xzdimension) {
+		//swizzle spacing,dimension into GEG's user order
+		//printf("early dimension swizzle\n");
+		int itmp = idimension[0];
+		idimension[0] = idimension[1];
+		idimension[1] = itmp;
+		vecswizzle2d(spacing);
+	}
+	size[0] = spacing[0]*(idimension[0] -1); //take off one column and one row to get cells (vs points)
+	size[1] = spacing[1]*(idimension[1] -1);
+	emin[0] = min(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
+	emax[0] = max(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
+	emin[1] = min(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
+	emax[1] = max(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
+	//printf("xxCoord= %lf %lf %lf\n",xxCoord.c[0],xxCoord.c[1],xxCoord.c[2]);
+	//printf("emin= %lf %lf emax= %lf %lf\n",emin[0],emin[1],emax[0],emax[1]);
+	inside  = xxCoord.c[0] <= emax[0] && xxCoord.c[0] >= emin[0];
+	inside &= xxCoord.c[1] <= emax[1] && xxCoord.c[1] >= emin[1];
+	//printf("b");
+	if(inside){
+		double spinelength, vcenterd[3], pp[2];
+		//double x,z,
+		double cx,cz;
+		double deltah, gridpointf[3];
+		//printf("c\n");
+		hit = 0;
+		//see if grid height is below, between or above avatar
+		pp[0] = xxCoord.c[0] - node->geoGridOrigin.c[0]; //latitude first/northing first default? or x == 0, z == 1?
+		pp[1] = xxCoord.c[1] - node->geoGridOrigin.c[1];
+		
+		//get pp from user order into x-first, z-second order - our old math below assumes x-first order
+		if(swizzle_xzdimension) {
+			//printf("swizzling user into xz\n");
+			vecswizzle2d(pp);
+		}
+		//printf("x,z= %lf %lf\n",pp[0],pp[1]);
+		//node->xDimension
+		// z h2  h3
+		// ^ h0  h1
+		// |-->x
+		//(ix,iz)
+		double hh[4],gridheight;
+		int i0,i1,i2,i3, ix, iz;
+		ix = (int)(pp[0]/node->xSpacing);
+		iz = (int)(pp[1]/node->zSpacing);
+		//int nh = node->height.n;
+		//printf("total h = %d\n",nh);
+
+		//printf("xspacing,zspacing,xdimension zdimension= %lf %lf %d %d\n",node->xSpacing,node->zSpacing,node->xDimension, node->zDimension);
+		//printf("ix,iz= %d %d\n",ix,iz);
+		i0 = iz * node->xDimension + ix;
+		i1 = i0 + 1;
+		i2 = i0 + node->xDimension;
+		i3 = i2 + 1;
+		//printf("i0-i3 = %d %d %d %d\n",i0,i1,i2,i3); //should all be < height.n
+		hh[0] = node->height.p[i0];
+		hh[1] = node->height.p[i1];
+		hh[2] = node->height.p[i2];
+		hh[3] = node->height.p[i3];
+		//normalize cell x and z
+		cx = (pp[0] - ix*node->xSpacing)/node->xSpacing;
+		cz = (pp[1] - iz*node->zSpacing)/node->zSpacing;
+		//height interpolation by finite elements > bilinear interpolotion of height
+		// (could do cubic using 3x3 chunks)
+		//printf("cx %lf cz %lf\n",cx,cz);
+		gridheight =  hh[0]*(1.0f - cz)*(1.0f - cx)
+					+ hh[1]*(1.0f - cz)*cx 
+					+ hh[2]*cz*(1.0f - cx) 
+					+ hh[3]*cz*cx;
+		gridheight *= node->yScale;
+		//printf("_");
+		*gridHeight = gridheight;
+		//printf("\tgridheight=%lf\n",gridheight);
+		hit = 1;
+	}
+	return hit;
+}
+
+int geoelevationgrid_disp2_NEW(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
+	// general polyrep collision does a few ugly things:
+	// 1. transforms all the points into collision/avatar space
+	// 2. iterates over all the triangles (a few times)
+	// this geoElevationGrid optimization will take a few shortcuts:
+	// a) only do gravity, if enabled
+	// b) transform avatar gravity vector into grid space
+	// c) use geoElevationGrid rows, columns, xspace,zspace, to look up heights by avatar position N,E or lat,lon in grid space
+	// d) see if its a collision
+	// e) update the climing / falling parameters (and skip wall penetration detection and bump collision testing)
+	// if for some reason it can't handle it, it returns -1, and then the generic collision can be called
+	struct sFallInfo *fi;
+	int hit,i;
+
+	hit = -1; //0 handled, and no colliision, 1=handled and collision, -1=not handled (not woaking, or gravity vector not perpendicular to grid)
+	fi = FallInfo();
+
+	if(fi->walking)
+	{
+		struct point_XYZ result;
+		float centerf[3],bottomf[3];
+		double centerd[3], bottomd[3], spined[3], vertvecd[3], gridheight;
+		struct SFVec3d *gdCoord, xxCoord;
+		struct Multi_Int32 *geoSystem;
+		double cosine;
+		double tmin[3],tmax[3]; /* MBB for facet */
+		struct sNaviInfo *naviinfo;
+		GLDOUBLE awidth, atop, abottom, astep;
+		ttglobal tg = gglobal();
+		naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+
+		//GVP gdcoord and geosys
+		gdCoord = &gvp->__movedgd;
+		geoSystem = &node->__geoSystem;
+		if( geoelevationgrid_getGDHeight0(node, gdCoord, geoSystem, &gridheight) == 1){
+			hit = 1;
+			// scraped from:
+			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
+			if(gvp->_resetRelativeHeight){
+				naviinfo->height = gdCoord->c[2] - gridheight;
+				gvp->_resetRelativeHeight = FALSE; //we do just once per WALK 'session' (WALK turned on, or bind with WALK on)
+				//printf("+");
+			}
+			//printf("=\n");
+			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
+			double hhh = gridheight - abottom;
+			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
+			double hhbelowfoot = hhh; //hhh - abottom;
+			//fi->fallHeight = 1000000.0;
+			if( hhh < 0.0 )
+			{
+				//printf("V");
+				/* falling */
+				if( hhh < abottom && hhh > -fi->fallHeight) 
+				{
+					//printf("v");
+					/* FALLING */
+					if(fi->hits ==0)
+						fi->hfall = hhbelowfoot; //hh - y1;
+					else
+						if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
+					fi->hits++;
+					fi->isFall = 1;
+					//printf("hfall %lf\n",fi->hfall);
+				}else{
+					//printf("~");
+					/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
+					if( hhh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
+					{
+						/* CLIMBING. handled elsewhere for displacements, except annihilates any fall*/
+						fi->canFall = 0;
+
+						if( fi->isClimb == 0 )
+							fi->hclimb = hhbelowfoot; //hh - y1;
+						else
+							fi->hclimb = DOUBLE_MAX(fi->hclimb,hhbelowfoot);
+						fi->isClimb = 1;
+					}
+				}
+			}
+			double head = 0.0;
+			double hhabovehead = hhh - head;
+			abottom = 0.0;
+			if( hhabovehead > 0.0 )
+			{
+				//printf("H");
+				/* climbing from undergound */
+				if( hhabovehead < fi->climbHeight) 
+				{
+					//printf("^");
+					/* CLIMBING */
+					fi->canFall = 0;
+
+					if( fi->isClimb == 0 ){
+						fi->hclimb = hhabovehead + abottom; //hh - y1;
+					}else{
+						fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
+					}
+					fi->isClimb = 1;
+					//printf("hclimb %lf abottom %lf hhabovehead %lf\n",fi->hclimb,abottom,hhabovehead);
+				}
+			}
+		}
+	}
+
+	return hit;
+}
+int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
+	static int do_new = 1;
+	int ihit = -2;
+	if(do_new)
+		ihit = geoelevationgrid_disp2_NEW(node,gvp);
+	else
+		ihit = geoelevationgrid_disp2_OLD(node,gvp);
+	//printf("%d ",ihit);
+	return ihit;
+}
 void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 	/* 
 	For examine and fly navigation modes, there's no gravity direction. 
@@ -4581,6 +4861,108 @@ void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 		//above couldn't handle it, thunking to generic 
 		//problem: if its a really dense grid, the framerate plummets
 		collide_genericfaceset ((struct X3D_IndexedFaceSet *)node );
+	}
+
+}
+
+struct Planet {
+	int ID;
+	Stack *gegs;
+};
+void clear_planets(Stack *planet_stack){
+	// call from Component_Geospatial_clear() at end of run
+	int i;
+	struct Planet *planet;
+	if(planet_stack)
+	for(i=0;i<vectorSize(planet_stack);i++){
+		planet = vector_get_ptr(struct Planet,planet_stack,i);
+		if(planet && planet->gegs) 	deleteVector(struct X3D_Node *, planet->gegs);
+	}
+	deleteVector(struct Planet,planet_stack);
+}
+void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID){
+	//call from prep or compile_ geoLocation if the height is supposed to be a relative height 
+	// ie height above ellipsoid.
+	// this searchse through all the GeoElevationGrids registered for the same planet, 
+	// to find the highest one under this GL if any, and adjust the height as needed
+	if(node && node->_nodeType == NODE_GeoLocation){
+		int i,j,ifound;
+		struct Planet *planet;
+		//find planet
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		if(!p->planet_stack) return; //no GEGs registered, stick to absolute height
+		ifound = -1;
+		planet = NULL;
+		for(i=0;i<vectorSize(p->planet_stack);i++){
+			planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+			if(planet && planet->ID == planetID) {
+				if(!planet->gegs) return; //no gegs registered
+				for(j=0;j<vectorSize(planet->gegs);j++){
+					double gridheight;
+					struct X3D_GeoElevationGrid *geg = vector_get(struct X3D_GeoElevationGrid*,planet->gegs,j);
+					if(geg)
+					if( geoelevationgrid_getGDHeight0(geg,&node->__movedgd,&node->__geoSystem,&gridheight) ){
+						//make a list of hits, and pick the highest one, in case there are grid overlays etc.
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
+	//call this from render_geoelevationgrid, so we get the planet from
+	// a) geoSystem "P#"
+	// b) X3DGeoPlanet.planetID="#" which is pushed and popped, so DEF/USE can put get GEG in different planets
+	// this implies you can have DEF/USE multiple USEs of GEGs for different planets, so {planet,geg} 
+	// should be the unique index
+	if(node && node->_nodeType == NODE_GeoElevationGrid){
+		int i,j,ifound;
+		struct Planet *planet;
+		//add to planet
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		if(!p->planet_stack) p->planet_stack = newStack(struct Planet);
+		ifound = -1;
+		planet = NULL;
+		for(i=0;i<vectorSize(p->planet_stack);i++){
+			planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+			if(planet->ID == planetID) {
+				//right planet
+				ifound = i;
+				break;
+			}
+		}
+		if(ifound == -1){
+			struct Planet newplanet;
+			newplanet.ID = planetID;
+			vector_pushBack(struct Planet,p->planet_stack,newplanet);
+			ifound = p->planet_stack->n -1;
+			planet = vector_get_ptr(struct Planet,p->planet_stack,ifound);
+		}
+		if(planet->gegs == NULL) planet->gegs = newStack(struct X3D_Node*);
+		vector_pushBack(struct X3D_Node*,planet->gegs,node);
+	}
+}
+void unRegisterGeoElevationGrid(struct X3D_Node *node){
+	//call this from unRegisterX3DAnyNode, which is called from unload_broto, which is called 
+	// when unloading an Inline (including GeoLOD inlines)
+	if(node && node->_nodeType == NODE_GeoElevationGrid){
+		int i,j;
+		//remove all instances from all planets
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		if(!p->planet_stack) return;
+		for(i=0;i<vectorSize(p->planet_stack);i++){
+			struct Planet *planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+			if(planet->gegs)
+			for(j=0;j<vectorSize(planet->gegs);j++){
+				int k = vectorSize(planet->gegs) - j -1;
+				struct X3D_Node *geg = vector_get(struct X3D_Node*,planet->gegs,k);
+				if(geg == node){
+					vector_set(struct X3D_Node*,planet->gegs,k,NULL);
+				}
+			}
+		}
 	}
 
 }

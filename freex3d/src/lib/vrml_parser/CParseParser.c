@@ -6805,6 +6805,8 @@ int	unInitializeScript(struct X3D_Node *node);
 void delete_polyrep(struct X3D_Node *node);
 void unRegisterPolyRep(struct X3D_Node *node);
 void delete_glbuffers(struct X3D_Node *node);
+void unRegisterGeoElevationGrid(struct X3D_Node *node);
+
 int unRegisterX3DAnyNode(struct X3D_Node *node){
 	//this is for 'live' scenery, not protoDeclarations or proto library scenes
 	//web3d has a concept of a browser. A browser contains and renders a scene.
@@ -6838,6 +6840,8 @@ int unRegisterX3DAnyNode(struct X3D_Node *node){
 	unRegisterX3DNode(node);
 	// is this a bindable node? 
 	unRegisterBindable(node);
+	// is this a geoElevationGrid?
+	unRegisterGeoElevationGrid(node);
 	// is this a OSC sensor node? 
 	remove_OSCsensor(node); // WANT_OSC 
 	// is this a pick sensor node? 
