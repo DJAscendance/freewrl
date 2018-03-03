@@ -2511,8 +2511,13 @@ void compile_GeoElevationGrid (struct X3D_GeoElevationGrid * node) {
 //	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoElevationGrid, metadata)) */
 //
 }
-
-
+int planetInPlanets(int planet, struct Multi_Int32 *planets){
+	int i,ifound = -1;
+	for(i=0;i<planets->n;i++)
+		if(planets->p[i] == planet) ifound = i;
+	return ifound > -1;
+}
+void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID);
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
 	checkX3DGeoElelvationGridFields *see function above
@@ -2522,11 +2527,20 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	render_GeoElevationGrid *you are here
 	*/
 	//INITIALIZE_GEOSPATIAL(node)
+	int planetID = 0; 
 	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 
 	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 	CULL_FACE(node->solid)
 	render_polyrep(node);
+	if(!planetInPlanets(planetID,&node->__planets)){
+		//planetID default 0 for now
+		// will be "P#" in geosystem, or <GeoPlanet ID="#"><GeoElevationGrid/></GeoPlanet>
+		RegisterGeoElevationGrid(X3D_NODE(node), planetID);
+		node->__planets.p = realloc(node->__planets.p,(node->__planets.n+1)*sizeof(int));
+		node->__planets.p[node->__planets.n] = planetID;
+		node->__planets.n++;
+	}
 }
 
 /************************************************************************/
@@ -4912,10 +4926,11 @@ void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID)
 
 
 void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
-	//call this from render_geoelevationgrid, so we get the planet from
+	//call this from render_geoelevationgrid, or collide_?, so we get the planet from
 	// a) geoSystem "P#"
 	// b) X3DGeoPlanet.planetID="#" which is pushed and popped, so DEF/USE can put get GEG in different planets
-	// this implies you can have DEF/USE multiple USEs of GEGs for different planets, so {planet,geg} 
+	// this implies you can have DEF/USE multiple USEs of GEGs for different planets (but just once per planet?), 
+	// so {planet,geg} 
 	// should be the unique index
 	if(node && node->_nodeType == NODE_GeoElevationGrid){
 		int i,j,ifound;
@@ -4935,12 +4950,15 @@ void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
 		}
 		if(ifound == -1){
 			struct Planet newplanet;
+			memset(&newplanet,0,sizeof(struct Planet));
 			newplanet.ID = planetID;
+			printf("adding planet # %d\n",planetID);
 			vector_pushBack(struct Planet,p->planet_stack,newplanet);
 			ifound = p->planet_stack->n -1;
 			planet = vector_get_ptr(struct Planet,p->planet_stack,ifound);
 		}
 		if(planet->gegs == NULL) planet->gegs = newStack(struct X3D_Node*);
+		printf("adding GEG %x to planet # %d\n",node,planetID);
 		vector_pushBack(struct X3D_Node*,planet->gegs,node);
 	}
 }

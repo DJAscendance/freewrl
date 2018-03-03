@@ -181,6 +181,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__oldurl",
 	"__parentProto",
 	"__pindices",
+	"__planets",
 	"__points",
 	"__protoDeclares",
 	"__protoDef",
@@ -4602,6 +4603,7 @@ const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoElevationGrid, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___autoOffset, (int) offsetof (struct X3D_GeoElevationGrid, __autoOffset),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoElevationGrid, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___planets, (int) offsetof (struct X3D_GeoElevationGrid, __planets),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoLOD[] = {
@@ -9664,6 +9666,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__autoOffset.c[0] = 0;tmp2->__autoOffset.c[1] = 0;tmp2->__autoOffset.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
+			tmp2->__planets.n=0; tmp2->__planets.p=0;
 			tmp2->_defaultContainer = FIELDNAMES_geometry;
 		break;
 		}
