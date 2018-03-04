@@ -115,6 +115,17 @@ x single planet
 	Feb 2018 we are using FCFS First Come First Served - the first geoNode to compile_ we use
 	its geoOrigin / geoPoint / geo something as an arbitrary origin for a LCS local coordinate
 	system.
+* relative heights - not in the specs but we use it with GVP in WALK mode and GL (geoLocation) 
+	2 methods of RELATIVE:
+	1. you give an absolute height, and ask that whatever is above grade/above GEG at its 
+		initial position is the relative height from then on -as you animate the xy / latlong position.
+	2. you give it a relative height, and if no DEM under it at startup, 
+		then relative is to ellipsoid, else relative is to DEM. 
+		As you animate, it goes to highest DEM or ellipsoid if no DEM.
+	1GVP	2GL
+	TRUE	FALSE	maintain height when passing between GEGs
+	TRUE	FALSE	treat initial height as absolute
+
 */
 
 
@@ -2546,7 +2557,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 /************************************************************************/
 /* GeoLocation								*/
 /************************************************************************/
-
+void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
@@ -2559,8 +2570,8 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	printf ("compiling GeoLocation\n");
 	#endif
 		//step 1 compute origin
-
 	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+
 	gi = &ggi;
 	gi->node = X3D_NODE(node);
 	gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
@@ -2576,6 +2587,8 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	//vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
 	veccopy4d(node->__localOrient.c,p->autoOrient.c);
 	veccopyd(node->__movedgd.c,gdCoord.c);
+	if(veclengthd(node->__position.c) == 0.0)
+		veccopyd(node->__position.c,gdCoord.c);
 
 	//#ifdef VERBOSE
 	printf ("compile_GeoLocation, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
@@ -2585,6 +2598,33 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			node->__localOrient.c[2],
 			node->__localOrient.c[3]);
 	//#endif
+
+	if(0){
+		//cycle test: see if we can convert GD coords to GC
+		int planetID = 0;
+		int save_crf;
+		struct SFVec3d gdCoords2, gcCoords, lcCoords;
+		Quaternion qlo;
+		struct SFVec4d lo;
+		double dd[3];
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+		//adjust_geoLocationRelativeHeight(node,planetID);
+		save_crf = node->__geoSystem.p[0];
+		node->__geoSystem.p[0] = GEOSP_GD;
+		moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->__movedgd,1,&gcCoords,&gdCoords2);
+		GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords2, &lo);
+
+		vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2],lo.c[3]);
+		quaternion_rotationd(lcCoords.c,&qlo,gcCoords.c);
+
+		node->__geoSystem.p[0] = save_crf;
+		vecdifd(dd,lcCoords.c,node->__movedCoords.c);
+		vecprint3db("orig   LCS ",node->__movedCoords.c,"\n");
+		vecprint3db("cycled LCS ",lcCoords.c,"\n");
+		vecprint3db("GL cycle diff",dd,"\n");
+	}
+
 
 	/* did the geoCoords change?? */
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCoords, node->__oldgeoCoords, offsetof (struct X3D_GeoLocation, geoCoords))
@@ -2668,6 +2708,19 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		if(0){
+			int planetID = 0;
+			int save_crf;
+			struct SFVec3d gdCoords;
+			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+			adjust_geoLocationRelativeHeight(node,planetID);
+			save_crf = node->__geoSystem.p[0];
+			node->__geoSystem.p[0] = GEOSP_GD;
+			moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->__movedgd,1,&node->__movedCoords,&gdCoords);
+			node->__geoSystem.p[0] = save_crf;
+		}
+
 		FW_GL_PUSH_MATRIX();
 
 		FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
@@ -4900,13 +4953,16 @@ void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID)
 	// this searchse through all the GeoElevationGrids registered for the same planet, 
 	// to find the highest one under this GL if any, and adjust the height as needed
 	if(node && node->_nodeType == NODE_GeoLocation){
-		int i,j,ifound;
+		int i,j,nfound;
 		struct Planet *planet;
+		double highest;
 		//find planet
 		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 		if(!p->planet_stack) return; //no GEGs registered, stick to absolute height
-		ifound = -1;
+		nfound = 0;
 		planet = NULL;
+		highest = 0.0;
+
 		for(i=0;i<vectorSize(p->planet_stack);i++){
 			planet = vector_get_ptr(struct Planet,p->planet_stack,i);
 			if(planet && planet->ID == planetID) {
@@ -4917,9 +4973,16 @@ void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID)
 					if(geg)
 					if( geoelevationgrid_getGDHeight0(geg,&node->__movedgd,&node->__geoSystem,&gridheight) ){
 						//make a list of hits, and pick the highest one, in case there are grid overlays etc.
+						nfound++;
+						if(nfound == 1) highest = gridheight;
+						highest = max(highest,gridheight);
 					}
 				}
 			}
+		}
+		if(nfound){
+			node->__movedgd.c[2] = highest + node->__position.c[2];
+			//node->__movedCoords.c[2] = highest + node->__position.c[2];
 		}
 	}
 }
