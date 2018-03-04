@@ -3892,24 +3892,85 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 			//we render in 'LCS' Local coordinate system, relative to shared origin aka geoOrigin aka autoOrigin
 			GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
+
 			//1. convert current .position (relative to geosystem) into LCS
 			moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+
 			vecnegated(pp,LCSpos.c);
 			//2. convert .orientation (relative to geosystem) into LCS
 			float2double(oo,node->orientation.c,4);
-			oo[3] = -oo[3];
-			{
-				Quaternion qlo, qao, qoo, q1, q2;
-				vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
-				vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
-				vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
-				// right way up and right yaw pitch axes for Austria
-				quaternion_multiply(&q1,&qlo,&qao);
-				quaternion_multiply(&q2,&qoo,&q1);
-				quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+
+			if(1){
+				oo[3] = -oo[3];
+				{
+					Quaternion qlo, qao, qoo, q1, q2;
+					vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+					vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+					vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
+					// right way up and right yaw pitch axes for Austria
+					quaternion_multiply(&q1,&qlo,&qao);
+					quaternion_multiply(&q2,&qoo,&q1);
+					quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+				}
+				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+				FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+			}else{
+				if(0){
+					//works
+					FW_GL_ROTATE_RADIANS(-lo.c[3],lo.c[0],lo.c[1],lo.c[2]);
+					FW_GL_ROTATE_RADIANS(p->autoOrient.c[3],p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2]);
+					//vecprint4db("ao",p->autoOrient.c,"\n");
+					//vecprint4db("lo",lo.c,"\n");
+					//vecprint4db("oo",oo,"\n");
+					//FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+					//FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+
+				}else{
+					//also works
+					if(1){
+						Quaternion qlo, qao, qoo, qq1, qq2;
+						double co[4], dqao[4], dqlo[4], dq1[4];
+
+						vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+
+						vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+
+						vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
+						//printf("ao %lf lo %lf oo %lf ",p->autoOrient.c[3],lo.c[3],oo[3]);
+						quat2double(dqlo,&qlo);
+						quat2double(dqao,&qao);
+						vecprint4db("dqlo",dqlo,"\n");
+						vecprint4db("dqao",dqao,"\n");
+						quaternion_multiply(&qq1,&qlo,&qao);
+						quat2double(dq1,&qq1);
+						vecprint4db("dq1",dq1,"\n");
+						quaternion_to_vrmlrot(&qq1,&co[0],&co[1],&co[2],&co[3]);
+						printf("co %lf ",co[3]);
+
+						quaternion_multiply(&qq2,&qq1,&qoo);
+						quaternion_to_vrmlrot(&qq2,&oo[0],&oo[1],&oo[2],&oo[3]);
+						//printf("OO %lf\n",oo[3]);
+					}else{
+						//quaternion normalize hypothesis
+						Quaternion qlo, qao, qoo, q1, q2;
+						vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+						quaternion_normalize(&qlo);
+						vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+						quaternion_normalize(&qao);
+						vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
+						quaternion_normalize(&qoo);
+						quaternion_multiply(&q1,&qlo,&qao);
+						quaternion_normalize(&q1);
+						quaternion_multiply(&q2,&q1,&qoo);
+						quaternion_normalize(&q2);
+						quaternion_to_vrmlrot(&q2,&oo[0],&oo[1],&oo[2],&oo[3]);
+
+					}
+				}
+				FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+				FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+
 			}
-			FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
-			FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
 
 		}
 		/* we have  a new currentPosInModel now... */

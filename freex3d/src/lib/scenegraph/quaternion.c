@@ -420,7 +420,6 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 		quat->x = 0.0;
 		quat->y = 0.0;
 		quat->z = 0.0;
-
 	} else {
 		s = sin(a/2.0);
 		/* normalize rotation axis to convert VRML rotation to quaternion */
@@ -461,7 +460,14 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 
 	quaternion_set(&qn,quat);
 	quaternion_normalize(&qn);
-	scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
+	// Mar 2018 having some rare numerical problems in here when quat is w=1 xyz = +-0 +-0 +-0
+	// in Component_Geospatial prep_geoViewpoint
+	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/
+	// does scale a bit different
+	//our scale:
+	//scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
+	//euc scale (seems to work for my problem cases):
+	scale = sqrt(1.0 - qn.w);
 	if (APPROX(scale, 0.0)) {
 		*x = 0;
 		*y = 0;
@@ -535,7 +541,7 @@ void
 quaternion_normalize(Quaternion *quat)
 {
 	double n = quaternion_norm(quat);
-	if (APPROX(n, 1)) {
+	if (APPROX(n, 1.0)) {
 		return;
 	}
 	quat->w /= n;
