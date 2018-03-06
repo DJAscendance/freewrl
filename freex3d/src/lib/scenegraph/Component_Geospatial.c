@@ -1157,7 +1157,8 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 					dangle*DEGREES_PER_RADIAN, dangle, qx.x, qx.y, qx.z,qx.w);
 				#endif
 
-				quaternion_add (&qr, &qx, &qz);
+				//quaternion_add (&qr, &qx, &qz);
+				quaternion_multiply(&qr,&qz,&qx);
 
 				#ifdef VERBOSE
 				printf ("GeoOrient qr %lf %lf %lf %lf\n",qr.x, qr.y, qr.z,qr.w);
@@ -1760,7 +1761,10 @@ static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem
 		((double)180.0 - gdCoords->c[0]), RADIANS_PER_DEGREE*((double)180.0 - gdCoords->c[0]), qx.x, qx.y, qx.z,qx.w);
 	#endif
 
-	quaternion_add (&qr, &qx, &qz);
+	//quaternion_add (&qr, &qx, &qz);
+	//quaternion_print(&qr,"added\n");
+	quaternion_multiply(&qr, &qz, &qx);
+	//quaternion_print(&qr,"multiplied\n");
 
 	#ifdef VERBOSE
 	printf ("GeoOrient qr %lf %lf %lf %lf\n",qr.x, qr.y, qr.z,qr.w);
@@ -2108,7 +2112,8 @@ void origin_offsets(geoOffsetInfo *gi)
 			vrmlrot_to_quaternion (&relQuat, p->autoOrient.c[0], p->autoOrient.c[1], p->autoOrient.c[2], p->autoOrient.c[3]);
 
 			/* add these together */
-			quaternion_add (&combQuat, &relQuat, &localQuat);
+			//quaternion_add (&combQuat, &relQuat, &localQuat);
+			quaternion_multiply(&combQuat, &localQuat, &relQuat);
 			//quaternion_multiply(&combQuat,&relQuat,&localQuat);
 			quaternion_rotationd(pslnla->c,&localQuat,gi->offsetCoord->c);
 			/* get the rotation; 2 steps to convert doubles to floats;
@@ -2591,7 +2596,9 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		veccopyd(node->__position.c,gdCoord.c);
 
 	//#ifdef VERBOSE
-	printf ("compile_GeoLocation, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+	printf ("compile_GeoLocation,\n\t orig coords %lf %lf %lf, \n\t moved %lf %lf %lf\n", 
+	node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], 
+	node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
 	printf ("	rotation is %lf %lf %lf %lf\n",
 			node->__localOrient.c[0],
 			node->__localOrient.c[1],
@@ -2599,11 +2606,11 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			node->__localOrient.c[3]);
 	//#endif
 
-	if(0){
+	if(1){
 		//cycle test: see if we can convert GD coords to GC
 		int planetID = 0;
 		int save_crf;
-		struct SFVec3d gdCoords2, gcCoords, lcCoords;
+		struct SFVec3d gdCoords2, gcCoords2, lcCoords;
 		Quaternion qlo;
 		struct SFVec4d lo;
 		double dd[3];
@@ -2612,16 +2619,24 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		//adjust_geoLocationRelativeHeight(node,planetID);
 		save_crf = node->__geoSystem.p[0];
 		node->__geoSystem.p[0] = GEOSP_GD;
-		moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->__movedgd,1,&gcCoords,&gdCoords2);
+		vecprint3db("orig gc",gcCoord.c,"\n");
+		moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->__movedgd,1,&gcCoords2,&gdCoords2);
+		printf("geosystem gd in degrees = %d\n",node->__geoSystem.p[7]);
+		vecprint3db("orig   GD ",node->__movedgd.c,"\n");
+		vecprint3db("cycled GD ",gdCoords2.c,"\n");
+
+		if(0){
 		GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords2, &lo);
 
-		vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2],lo.c[3]);
-		quaternion_rotationd(lcCoords.c,&qlo,gcCoords.c);
-
+		vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2],-lo.c[3]);
+		quaternion_rotationd(lcCoords.c,&qlo,gcCoords2.c);
+		}else{
+			veccopyd(lcCoords.c,gcCoords2.c);
+		}
 		node->__geoSystem.p[0] = save_crf;
 		vecdifd(dd,lcCoords.c,node->__movedCoords.c);
 		vecprint3db("orig   LCS ",node->__movedCoords.c,"\n");
-		vecprint3db("cycled LCS ",lcCoords.c,"\n");
+		vecprint3db("cycled LCS ",gcCoords2.c,"\n");
 		vecprint3db("GL cycle diff",dd,"\n");
 	}
 
@@ -4440,203 +4455,6 @@ except: GD pose transformed into SLSLA for rendering, picking and extents
 
 */
 
-int geoelevationgrid_disp2_OLD(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
-	// general polyrep collision does a few ugly things:
-	// 1. transforms all the points into collision/avatar space
-	// 2. iterates over all the triangles (a few times)
-	// this geoElevationGrid optimization will take a few shortcuts:
-	// a) only do gravity, if enabled
-	// b) transform avatar gravity vector into grid space
-	// c) use geoElevationGrid rows, columns, xspace,zspace, to look up heights by avatar position N,E or lat,lon in grid space
-	// d) see if its a collision
-	// e) update the climing / falling parameters (and skip wall penetration detection and bump collision testing)
-	// if for some reason it can't handle it, it returns -1, and then the generic collision can be called
-	struct sFallInfo *fi;
-	int hit,i;
-
-	hit = -1; //0 handled, and no colliision, 1=handled and collision, -1=not handled (not woaking, or gravity vector not perpendicular to grid)
-	fi = FallInfo();
-
-	if(fi->walking)
-	{
-		struct point_XYZ result;
-		float centerf[3],bottomf[3];
-		double centerd[3], bottomd[3], spined[3], vertvecd[3];
-		struct SFVec3d *gdCoord, xxCoord;
-		struct Multi_Int32 *geoSystem;
-		double cosine;
-		double tmin[3],tmax[3]; /* MBB for facet */
-		struct sNaviInfo *naviinfo;
-		GLDOUBLE awidth, atop, abottom, astep;
-		ttglobal tg = gglobal();
-		naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
-
-
-		gdCoord = &gvp->__movedgd;
-		geoSystem = &node->__geoSystem;
-		if(geoSystem->p[0] == GEOSP_GD){
-			veccopyd(xxCoord.c,gdCoord->c); 
-			if(!geoSystem->p[5]) 
-				vecswizzle2d(xxCoord.c);
-		} else if(geoSystem->p[0] == GEOSP_UTM || geoSystem->p[0] == GEOSP_3TM ) { 
-			/* convert this to UTM  or 3TM */ 
-			double dtemp[3];
-			if(geoSystem->p[0] == GEOSP_UTM){
-				gdToUtm3d(geoSystem,gdCoord->c, dtemp); 
-				veccopyd(xxCoord.c,dtemp);
-			}else if(geoSystem->p[0] == GEOSP_3TM) {
-				gdTo3tm3d(geoSystem,gdCoord->c, dtemp);
-				veccopyd(xxCoord.c,dtemp);
-			} 
- 		} else {
-			//no such thing as GC GEG
-			return -1;
-		}
-
-
-		int inside;
-		double emin[2],emax[2];
-		//not sure what space the GEG's node->_extent is in, so will recalculate here in its user coordinates
-		double size[2], spacing[2];
-		int idimension[2];
-		idimension[0] = node->zDimension;
-		idimension[1] = node->xDimension;
-		spacing[0] = node->zSpacing;
-		spacing[1] = node->xSpacing;
-		if(!geoSystem->p[5]) {
-			int itmp = idimension[0];
-			idimension[0] = idimension[1];
-			idimension[1] = itmp;
-			vecswizzle2d(spacing);
-		}
-		size[0] = spacing[0]*idimension[0];
-		size[1] = spacing[1]*idimension[1];
-		emin[0] = min(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
-		emax[0] = max(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
-		emin[1] = min(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
-		emax[1] = max(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
-		//printf("xxCoord= %lf %lf %lf\n",xxCoord.c[0],xxCoord.c[1],xxCoord.c[2]);
-		//printf("emin= %lf %lf emax= %lf %lf\n",emin[0],emin[1],emax[0],emax[1]);
-		inside  = xxCoord.c[0] <= emax[0] && xxCoord.c[0] >= emin[0];
-		inside &= xxCoord.c[1] <= emax[1] && xxCoord.c[1] >= emin[1];
-		//printf("b");
-		if(inside){
-			double spinelength, vcenterd[3], pp[2];
-			//double x,z,
-			double cx,cz;
-			double deltah, gridpointf[3];
-			//printf("c\n");
-			hit = 0;
-			//see if grid height is below, between or above avatar
-			pp[0] = xxCoord.c[0] - node->geoGridOrigin.c[0]; //latitude first/northing first default? or x == 0, z == 1?
-			pp[1] = xxCoord.c[1] - node->geoGridOrigin.c[1];
-			//get pp into x-first, z-second
-			if(geoSystem->p[5]) vecswizzle2d(pp);
-			//printf("x,z= %lf %lf\n",x,z);
-			//node->xDimension
-			// z h2  h3
-			// ^ h0  h1
-			// |-->x
-			//(ix,iz)
-			double hh[4],gridheight;
-			int i0,i1,i2,i3, ix, iz;
-			ix = (int)(pp[0]/node->xSpacing);
-			iz = (int)(pp[1]/node->zSpacing);
-			//printf("xspacing,zspacing,xdimension= %lf %lf %d\n",node->xSpacing,node->zSpacing,node->xDimension);
-			//printf("ix,iz= %d %d\n",ix,iz);
-			i0 = iz * node->xDimension + ix;
-			i1 = i0 + 1;
-			i2 = i0 + node->xDimension;
-			i3 = i2 + 1;
-			//printf("i0-i3 = %d %d %d %d\n",i0,i1,i2,i3);
-			hh[0] = node->height.p[i0];
-			hh[1] = node->height.p[i1];
-			hh[2] = node->height.p[i2];
-			hh[3] = node->height.p[i3];
-			//normalize cell x and z
-			cx = (pp[0] - ix*node->xSpacing)/node->xSpacing;
-			cz = (pp[1] - iz*node->zSpacing)/node->zSpacing;
-			//height interpolation by finite elements > bilinear interpolotion of height
-			// (could do cubic using 3x3 chunks)
-			gridheight =  hh[0]*(1.0f - cz)*(1.0f - cx)
-						+ hh[1]*(1.0f - cz)*cx 
-						+ hh[2]*cz*(1.0f - cx) 
-						+ hh[3]*cz*cx;
-			gridheight *= node->yScale;
-			//printf("_");
-			hit = 1;
-				
-			// scraped from:
-			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
-			if(gvp->_resetRelativeHeight){
-				naviinfo->height = gdCoord->c[2] - gridheight;
-				gvp->_resetRelativeHeight = FALSE; //we do just once per WALK 'session' (WALK turned on, or bind with WALK on)
-				//printf("+");
-			}
-			//printf("=\n");
-			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
-			double hhh = gridheight - abottom;
-			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
-			double hhbelowfoot = hhh; //hhh - abottom;
-			//fi->fallHeight = 1000000.0;
-			if( hhh < 0.0 )
-			{
-				//printf("V");
-				/* falling */
-				if( hhh < abottom && hhh > -fi->fallHeight) 
-				{
-					//printf("v");
-					/* FALLING */
-					if(fi->hits ==0)
-						fi->hfall = hhbelowfoot; //hh - y1;
-					else
-						if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
-					fi->hits++;
-					fi->isFall = 1;
-					//printf("hfall %lf\n",fi->hfall);
-				}else{
-					//printf("~");
-					/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
-					if( hhh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
-					{
-						/* CLIMBING. handled elsewhere for displacements, except annihilates any fall*/
-						fi->canFall = 0;
-
-						if( fi->isClimb == 0 )
-							fi->hclimb = hhbelowfoot; //hh - y1;
-						else
-							fi->hclimb = DOUBLE_MAX(fi->hclimb,hhbelowfoot);
-						fi->isClimb = 1;
-					}
-				}
-			}
-			double head = 0.0;
-			double hhabovehead = hhh - head;
-			abottom = 0.0;
-			if( hhabovehead > 0.0 )
-			{
-				//printf("H");
-				/* climbing from undergound */
-				if( hhabovehead < fi->climbHeight) 
-				{
-					//printf("^");
-					/* CLIMBING */
-					fi->canFall = 0;
-
-					if( fi->isClimb == 0 ){
-						fi->hclimb = hhabovehead + abottom; //hh - y1;
-					}else{
-						fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
-					}
-					fi->isClimb = 1;
-					//printf("hclimb %lf abottom %lf hhabovehead %lf\n",fi->hclimb,abottom,hhabovehead);
-				}
-			}
-		}
-	}
-
-	return hit;
-}
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
 	1:	ellipsoid index (defaults to GEOSP_WE) 
@@ -4785,7 +4603,7 @@ int geoelevationgrid_getGDHeight0(struct X3D_GeoElevationGrid *node, struct SFVe
 	return hit;
 }
 
-int geoelevationgrid_disp2_NEW(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
+int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
 	// general polyrep collision does a few ugly things:
 	// 1. transforms all the points into collision/avatar space
 	// 2. iterates over all the triangles (a few times)
@@ -4892,16 +4710,7 @@ int geoelevationgrid_disp2_NEW(struct X3D_GeoElevationGrid *node, struct X3D_Geo
 
 	return hit;
 }
-int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
-	static int do_new = 1;
-	int ihit = -2;
-	if(do_new)
-		ihit = geoelevationgrid_disp2_NEW(node,gvp);
-	else
-		ihit = geoelevationgrid_disp2_OLD(node,gvp);
-	//printf("%d ",ihit);
-	return ihit;
-}
+
 void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 	/* 
 	For examine and fly navigation modes, there's no gravity direction. 

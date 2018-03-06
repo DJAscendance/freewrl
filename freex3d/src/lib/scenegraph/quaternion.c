@@ -549,7 +549,7 @@ quaternion_normalize(Quaternion *quat)
 	quat->y /= n;
 	quat->z /= n;
 }
-
+// adding quaternions is rarely needed but we do something like it in squad interpolator
 void quaternion_add(Quaternion *ret, const Quaternion *q1, const Quaternion *q2) {
 	double t1[3];
 	double t2[3];
@@ -582,7 +582,8 @@ void quaternion_add(Quaternion *ret, const Quaternion *q1, const Quaternion *q2)
 	/* Q(*dest)[3] = Q(*q1)[3] * Q(*q2)[3] - inner_v3f((v3f *) q1, (v3f *) q2); */
 	ret->w = q1->w * q2->w - ( q1->x * q2->x + q1->y * q2->y + q1->z * q2->z );
 }
-
+// mostly we multiply quaterions, and rotate points
+// http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/transforms/index.htm
 void
 quaternion_multiply(Quaternion *ret, const Quaternion *q1, const Quaternion *q2)
 {
@@ -605,10 +606,11 @@ quaternion_scalar_multiply(Quaternion *quat, const double s)
 	quat->z *= s;
 }
 
-/*
+/* 
  * Rotate vector v by unit quaternion q:
  *
  * v' = q q_v q^-1, where q_v = [0, v]
+ * the so-called sandwich product p2 = q * p * q'
  */
 void
 quaternion_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct point_XYZ *v)
