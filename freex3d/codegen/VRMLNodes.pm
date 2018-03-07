@@ -2035,6 +2035,23 @@ our %Nodes = (
 	],"X3DGroupingNode"),
 
 
+	"GeoPlanet" => new VRML::NodeType("GeoPlanet", [
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		planetId => ["SFInt32", 0,"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
+		# "compiled" versions of strings above
+		__oldChildren => ["MFNode", [], "inputOutput", 0,0],#ff
+		_sortedChildren => ["MFNode", [], "inputOutput", 0,0],#ff
+	],"X3DGroupingNode"),
+
+
+
 	###################################################################################
 
 	#	26	H-Anim Component

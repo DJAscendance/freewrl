@@ -1010,6 +1010,18 @@ EXPOSED_FIELD(GeoOrigin,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoOrigin,rotateYUp,sfbool,rotateYUp,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(GeoOrigin)
 
+/* GeoPlanet node */
+BEGIN_NODE(GeoPlanet)
+EVENT_IN(GeoPlanet,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
+EVENT_IN(GeoPlanet,removeChildren,mfnode,removeChildren,FIELDTYPE_MFNode)
+EXPOSED_FIELD(GeoPlanet,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+EXPOSED_FIELD(GeoPlanet,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoPlanet,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
+FIELD(GeoPlanet,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
+EXPOSED_FIELD(GeoPlanet,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeoPlanet,planetId,sfint32,planetId,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GeoPlanet)
+
 /* GeoPositionInterpolator node */
 BEGIN_NODE(GeoPositionInterpolator)
 EVENT_IN(GeoPositionInterpolator,set_fraction,sffloat,set_fraction,FIELDTYPE_SFFloat)

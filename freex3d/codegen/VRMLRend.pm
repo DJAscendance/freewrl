@@ -94,6 +94,7 @@ our %defaultContainerType = (
 	GeoCoordinate 		=>["coord"],
 	GeoElevationGrid 	=>["geometry"],
 	GeoLocation 		=>["children"],
+	GeoPlanet 		=>["children"],
 	GeoLOD 			=>["children"],
 	GeoMetadata		=>["children"],
 	GeoOrigin 		=>["geoOrigin"],
@@ -473,6 +474,7 @@ our %PrepC = map {($_=>1)} qw/
 	SpotLight
 	DirectionalLight
 	GeoLocation
+	GeoPlanet
 	GeoViewpoint
 	GeoTransform
 	CADAssembly
@@ -499,6 +501,7 @@ our %PrepC = map {($_=>1)} qw/
 
 our %FinC = map {($_=>1)} qw/
 	GeoLocation
+	GeoPlanet
 	Transform
 	Billboard
 	HAnimSite
@@ -541,6 +544,7 @@ our %ChildC = map {($_=>1)} qw/
 	Transform
 	Anchor
 	GeoLocation
+	GeoPlanet
 	GeoTransform
 	Switch
 	CADLayer
@@ -604,9 +608,9 @@ our %CompileC = map {($_=>1)} qw/
 	Sphere
 	Teapot
 	GeoLocation
+	GeoPlanet
 	GeoCoordinate
 	GeoElevationGrid
-	GeoLocation
 	GeoLOD
 	GeoMetadata
 	GeoOrigin

@@ -802,6 +802,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"pickingGeometry",
 	"pitch",
 	"plane",
+	"planetId",
 	"point",
 	"pointSize",
 	"port",
@@ -1739,6 +1740,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"outerRadius",
 	"phaseFunction",
 	"physics",
+	"planetId",
 	"proxy",
 	"range",
 	"reference",
@@ -2213,6 +2215,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"GeoLocation",
 	"GeoMetadata",
 	"GeoOrigin",
+	"GeoPlanet",
 	"GeoPositionInterpolator",
 	"GeoProximitySensor",
 	"GeoTouchSensor",
@@ -2661,6 +2664,12 @@ struct X3D_Virt virt_GeoMetadata = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NUL
 
 void compile_GeoOrigin(struct X3D_GeoOrigin *);
 struct X3D_Virt virt_GeoOrigin = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoOrigin};
+
+void prep_GeoPlanet(struct X3D_GeoPlanet *);
+void child_GeoPlanet(struct X3D_GeoPlanet *);
+void fin_GeoPlanet(struct X3D_GeoPlanet *);
+void compile_GeoPlanet(struct X3D_GeoPlanet *);
+struct X3D_Virt virt_GeoPlanet = { (void *)prep_GeoPlanet,NULL,(void *)child_GeoPlanet,(void *)fin_GeoPlanet,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoPlanet};
 
 void compile_GeoPositionInterpolator(struct X3D_GeoPositionInterpolator *);
 struct X3D_Virt virt_GeoPositionInterpolator = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoPositionInterpolator};
@@ -3363,6 +3372,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_GeoLocation,
 	 &virt_GeoMetadata,
 	 &virt_GeoOrigin,
+	 &virt_GeoPlanet,
 	 &virt_GeoPositionInterpolator,
 	 &virt_GeoProximitySensor,
 	 &virt_GeoTouchSensor,
@@ -4676,6 +4686,20 @@ const int OFFSETS_GeoOrigin[] = {
 	(int) FIELDNAMES___oldgeoCoords, (int) offsetof (struct X3D_GeoOrigin, __oldgeoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldMFString, (int) offsetof (struct X3D_GeoOrigin, __oldMFString),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___rotyup, (int) offsetof (struct X3D_GeoOrigin, __rotyup),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoPlanet[] = {
+	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_GeoPlanet, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_GeoPlanet, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_GeoPlanet, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeoPlanet, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoPlanet, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_GeoPlanet, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_GeoPlanet, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoPlanet, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_planetId, (int) offsetof (struct X3D_GeoPlanet, planetId),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
+	(int) FIELDNAMES___oldChildren, (int) offsetof (struct X3D_GeoPlanet, __oldChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_GeoPlanet, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoPositionInterpolator[] = {
@@ -7564,6 +7588,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_GeoLocation,
 	OFFSETS_GeoMetadata,
 	OFFSETS_GeoOrigin,
+	OFFSETS_GeoPlanet,
 	OFFSETS_GeoPositionInterpolator,
 	OFFSETS_GeoProximitySensor,
 	OFFSETS_GeoTouchSensor,
@@ -8108,6 +8133,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_GeoLocation : {tmp = MALLOC (struct X3D_GeoLocation *, sizeof (struct X3D_GeoLocation)); break;}
 		case NODE_GeoMetadata : {tmp = MALLOC (struct X3D_GeoMetadata *, sizeof (struct X3D_GeoMetadata)); break;}
 		case NODE_GeoOrigin : {tmp = MALLOC (struct X3D_GeoOrigin *, sizeof (struct X3D_GeoOrigin)); break;}
+		case NODE_GeoPlanet : {tmp = MALLOC (struct X3D_GeoPlanet *, sizeof (struct X3D_GeoPlanet)); break;}
 		case NODE_GeoPositionInterpolator : {tmp = MALLOC (struct X3D_GeoPositionInterpolator *, sizeof (struct X3D_GeoPositionInterpolator)); break;}
 		case NODE_GeoProximitySensor : {tmp = MALLOC (struct X3D_GeoProximitySensor *, sizeof (struct X3D_GeoProximitySensor)); break;}
 		case NODE_GeoTouchSensor : {tmp = MALLOC (struct X3D_GeoTouchSensor *, sizeof (struct X3D_GeoTouchSensor)); break;}
@@ -9753,6 +9779,23 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldMFString.n=0; tmp2->__oldMFString.p=0;
 			tmp2->__rotyup.c[0] = 0;tmp2->__rotyup.c[1] = 1;tmp2->__rotyup.c[2] = 0;;
 			tmp2->_defaultContainer = FIELDNAMES_geoOrigin;
+		break;
+		}
+		case NODE_GeoPlanet : {
+			struct X3D_GeoPlanet * tmp2;
+			tmp2 = (struct X3D_GeoPlanet *) tmp;
+			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
+			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
+			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->children.n=0; tmp2->children.p=0;
+			tmp2->metadata = NULL;
+			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
+			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
+			tmp2->description = newASCIIString("");
+			tmp2->planetId = 0;
+			tmp2->__oldChildren.n=0; tmp2->__oldChildren.p=0;
+			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
+			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
 		case NODE_GeoPositionInterpolator : {
@@ -14783,6 +14826,30 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_GeoPlanet : {
+			struct X3D_GeoPlanet *tmp;
+			tmp = (struct X3D_GeoPlanet *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," __sibAffectors (MFNode):\n");
+			for (i=0; i<tmp->__sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->__sibAffectors.p[i]); }
+		    }
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," __oldChildren (MFNode):\n");
+			for (i=0; i<tmp->__oldChildren.n; i++) { dump_scene(fp,level+1,tmp->__oldChildren.p[i]); }
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _sortedChildren (MFNode):\n");
+			for (i=0; i<tmp->_sortedChildren.n; i++) { dump_scene(fp,level+1,tmp->_sortedChildren.p[i]); }
+		    }
+		    break;
+		}
 		case NODE_GeoPositionInterpolator : {
 			struct X3D_GeoPositionInterpolator *tmp;
 			tmp = (struct X3D_GeoPositionInterpolator *) node;
@@ -18413,6 +18480,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_GeoLocation: return X3DGroupingNode; break;
 	case NODE_GeoMetadata: return X3DChildNode; break;
 	case NODE_GeoOrigin: return X3DChildNode; break;
+	case NODE_GeoPlanet: return X3DGroupingNode; break;
 	case NODE_GeoPositionInterpolator: return X3DInterpolatorNode; break;
 	case NODE_GeoProximitySensor: return X3DEnvironmentalSensorNode; break;
 	case NODE_GeoTouchSensor: return X3DPointingDeviceSensorNode; break;

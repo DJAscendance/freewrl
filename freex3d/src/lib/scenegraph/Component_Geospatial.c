@@ -69,6 +69,10 @@ int method_geolib(){
 #endif
 }
 
+void push_planetId(int planetId);
+int current_planetId();
+void pop_planetId();
+
 /*
 Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 * XTM: {UTM,3TM} - 3TM is UTM with no false easting or northing, scale factor .9999, and 3 degree zones
@@ -397,6 +401,7 @@ typedef struct pComponent_Geospatial{
 	int geoLodLevel;// = 0;
 	void * gcgdpars[50];
 	Stack *planet_stack;
+	Stack *current_planet_stack;
 #ifdef GEOLIB
 	void * fgeopars[50];
 #endif //GEOLIB
@@ -419,6 +424,8 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		//p->go = createNewX3DNode0(NODE_GeoOrigin);
 		p->geoLodLevel = 0;
 		p->planet_stack = NULL;
+		p->current_planet_stack = newStack(int);
+		stack_push(int,p->current_planet_stack,0); //default planet
 		memset(p->gcgdpars,0,50*sizeof(void*));
 		#ifdef GEOLIB
 		memset(p->fgeopars,0,50*sizeof(void*));
@@ -434,6 +441,11 @@ void Component_Geospatial_clear(struct tComponent_Geospatial *t){
 			clear_planets(p->planet_stack);
 			p->planet_stack = NULL;
 		}	
+		if(p->current_planet_stack){
+			FREE_IF_NZ(p->current_planet_stack->data);
+			FREE_IF_NZ(p->current_planet_stack);
+			p->current_planet_stack = NULL;
+		}
 
 	}
 }
@@ -2545,7 +2557,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	//INITIALIZE_GEOSPATIAL(node)
 	int planetID = 0; 
 	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
-
+	planetID = current_planetId();
 	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 	CULL_FACE(node->solid)
 	render_polyrep(node);
@@ -2606,7 +2618,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			node->__localOrient.c[3]);
 	//#endif
 
-	if(1){
+	if(0){
 		//cycle test: see if we can convert GD coords to GC
 		int planetID = 0;
 		int save_crf;
@@ -4857,5 +4869,92 @@ void unRegisterGeoElevationGrid(struct X3D_Node *node){
 			}
 		}
 	}
+
+}
+
+void push_planetId(int planetId){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	stack_push(int,current_planet_stack,planetId);
+}
+int current_planetId(){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	return stack_top(int,current_planet_stack);
+}
+void pop_planetId(){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	stack_pop(int,current_planet_stack);
+}
+
+void compile_GeoPlanet(struct X3D_GeoPlanet *node){
+	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	MARK_NODE_COMPILED
+	
+	/* events */
+	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLocation, metadata)) */
+
+	INITIALIZE_EXTENT;
+
+}
+
+void prep_GeoPlanet(struct X3D_GeoPlanet *node){
+
+	push_planetId(node->planetId);
+	if(!renderstate()->render_vp) {
+		double aoo[4],ao[3];
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+		//we need to get the LCS to GC transform on the stack
+		FW_GL_PUSH_MATRIX();
+		veccopyd(ao,p->autoOrigin.c);
+		veccopy4d(aoo,p->autoOrient.c);
+		FW_GL_TRANSLATE_D(-ao[0], -ao[1], -ao[2]);
+		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
+
+
+		/* did either we or the Viewpoint move since last time? */
+		RECORD_DISTANCE
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
+
+}
+	
+void child_GeoPlanet(struct X3D_GeoPlanet *node){
+	CHILDREN_COUNT
+	//LOCAL_LIGHT_SAVE
+	//INITIALIZE_GEOSPATIAL(node)
+	COMPILE_IF_REQUIRED
+//	OCCLUSIONTEST
+	RETURN_FROM_CHILD_IF_NOT_FOR_ME
+
+	//LOCAL_LIGHT_CHILDREN(node->children);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	normalChildren(node->children);
+
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+}
+void fin_GeoPlanet(struct X3D_GeoPlanet *node){
+	//pop LCS to GC transform
+	COMPILE_IF_REQUIRED
+	OCCLUSIONTEST
+
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	} else {
+		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			double aoo[4],ao[3];
+			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+			veccopyd(ao,p->autoOrigin.c);
+			veccopy4d(aoo,p->autoOrient.c);
+
+			FW_GL_ROTATE_RADIANS(-aoo[3], aoo[0],aoo[1],aoo[2]);
+			FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
+
+		}
+	}
+	pop_planetId();
 
 }
