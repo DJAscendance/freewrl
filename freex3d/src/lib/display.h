@@ -734,6 +734,7 @@ void resetGeometry();
 
 	#define FW_GL_TRANSLATE_F(xxx,yyy,zzz) fw_glTranslatef(xxx,yyy,zzz)
 	#define FW_GL_TRANSLATE_D(xxx,yyy,zzz) fw_glTranslated(xxx,yyy,zzz)
+	#define FW_GL_TRANSFORM_D(mat16) fw_glTransformd(mat16)
 	#define FW_GL_ROTATE_F(aaa,xxx,yyy,zzz) fw_glRotatef(aaa,xxx,yyy,zzz)
 	#define FW_GL_ROTATE_D(aaa,xxx,yyy,zzz) fw_glRotated(aaa,xxx,yyy,zzz)
 	#define FW_GL_ROTATE_RADIANS(aaa,xxx,yyy,zzz) fw_glRotateRad(aaa,xxx,yyy,zzz)

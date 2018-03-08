@@ -3796,6 +3796,14 @@ void fw_glPopMatrix(void) {
 //}
 //#undef POPMAT
 
+void fw_glTransformd(GLDOUBLE *mat) {
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+
+	//printf ("fw_glTranslated %lf %lf %lf\n",x,y,z);
+	//printf ("translated, currentMatrix %p\n",p->currentMatrix);
+	matmultiplyAFFINE(p->currentMatrix,p->currentMatrix,mat);
+ 	FW_GL_LOADMATRIX(p->currentMatrix);
+}
 
 void fw_glTranslated(GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
