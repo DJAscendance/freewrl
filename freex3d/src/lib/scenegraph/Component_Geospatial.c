@@ -392,11 +392,30 @@ static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_Str
 static void gccToGdc (struct Multi_Int32 *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
 
-
-typedef struct pComponent_Geospatial{
+struct Planet {
+	int ID;
+	Stack *gegs;
 	struct SFVec4d autoOrient;
 	struct SFVec3d autoOrigin;
 	int autoOriginSet;
+};
+
+void clear_planets(Stack *planet_stack){
+	// call from Component_Geospatial_clear() at end of run
+	int i;
+	struct Planet *planet;
+	if(planet_stack)
+	for(i=0;i<vectorSize(planet_stack);i++){
+		planet = vector_get_ptr(struct Planet,planet_stack,i);
+		if(planet && planet->gegs) 	deleteVector(struct X3D_Node *, planet->gegs);
+	}
+	deleteVector(struct Planet,planet_stack);
+}
+
+typedef struct pComponent_Geospatial{
+	//struct SFVec4d autoOrient;
+	//struct SFVec3d autoOrigin;
+	//int autoOriginSet;
 	//struct X3D_GeoOrigin *go;
 	int geoLodLevel;// = 0;
 	void * gcgdpars[50];
@@ -417,13 +436,21 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	//private
 	t->prv = Component_Geospatial_constructor();
 	{
+		
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
-		p->autoOriginSet = FALSE; //FALSE;
-		vecset4d(p->autoOrient.c,0.0,0.0,1.0,0.0);
-		vecsetd(p->autoOrigin.c,0.0,0.0,0.0);
 		//p->go = createNewX3DNode0(NODE_GeoOrigin);
 		p->geoLodLevel = 0;
-		p->planet_stack = NULL;
+		{
+			struct Planet planet;
+			memset(&planet,0,sizeof(struct Planet));
+			vecset4d(planet.autoOrient.c,0.0,0.0,1.0,0.0);
+			vecsetd(planet.autoOrigin.c,0.0,0.0,0.0);
+			planet.autoOriginSet = FALSE; //FALSE;
+			
+			p->planet_stack = newStack(struct Planet);
+			stack_push(struct Planet,p->planet_stack,planet); //default planet
+
+		}
 		p->current_planet_stack = newStack(int);
 		stack_push(int,p->current_planet_stack,0); //default planet
 		memset(p->gcgdpars,0,50*sizeof(void*));
@@ -432,7 +459,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 		#endif //GEOLIB
 	}
 }
-void clear_planets(Stack *planet_stack);
+
 void Component_Geospatial_clear(struct tComponent_Geospatial *t){
 	if(t->prv )
 	{
@@ -450,6 +477,49 @@ void Component_Geospatial_clear(struct tComponent_Geospatial *t){
 	}
 }
 //ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+void push_planetId(int planetId){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	stack_push(int,current_planet_stack,planetId);
+}
+int current_planetId(){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	return stack_top(int,current_planet_stack);
+}
+void pop_planetId(){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	stack_pop(int,current_planet_stack);
+}
+struct Planet *add_planet(int planetId){
+	struct Planet planet, *ppointer;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	memset(&planet,0,sizeof(struct Planet));
+	vecset4d(planet.autoOrient.c,0.0,0.0,1.0,0.0);
+	vecsetd(planet.autoOrigin.c,0.0,0.0,0.0);
+	planet.ID = planetId;
+	planet.autoOriginSet = FALSE; //FALSE;
+	stack_push(struct Planet,p->planet_stack,planet); //default planet
+	ppointer = vector_get_ptr(struct Planet,p->planet_stack,p->planet_stack->n-1);
+	return ppointer;
+}
+struct Planet *current_planet(){
+	int planetId, i;
+	struct Planet *planet;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	planetId = stack_top(int,p->current_planet_stack);
+	//we should sort planets by planetId or use a hash, or compile planetId to index
+	planet = NULL;
+	for(i=0;i<vectorSize(p->planet_stack);i++){
+		planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+		if(planetId == planet->ID){
+			return planet;
+		}
+	}
+	return NULL;
+}
+
 
 // http://www.colorado.edu/geography/gcraft/notes/datum/geoid84.html
 char geoid[][36] = {
@@ -2079,6 +2149,7 @@ void origin_offsets(geoOffsetInfo *gi)
 	//
 	//
 	//v3.3 way - autoOrigin - B. capture as the self-origin
+	struct Planet *planet;
 	int specversion;
 	struct SFVec3d slnla, *pslnla, slsla, *pslsla;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
@@ -2086,7 +2157,8 @@ void origin_offsets(geoOffsetInfo *gi)
 	pslnla = &slnla;
 	pslsla = &slsla;
 
-	if(gi->geoOrigin && specversion < 330 && !p->autoOriginSet ){
+	planet = current_planet();
+	if(gi->geoOrigin && specversion < 330 && !planet->autoOriginSet ){
 		//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
 		//to simplify, we are using FCFS on a single geoOrigin.
 		struct SFVec3d offset, *poffset;
@@ -2095,9 +2167,9 @@ void origin_offsets(geoOffsetInfo *gi)
 		poffset = NULL;
 		double *cc;
 		initializeGeospatial(&gi->geoOrigin); 
-		veccopyd(p->autoOrigin.c,gi->geoOrigin->__movedCoords.c);
-		GeoOrient(X3D_NODE(gi->geoOrigin), &gi->geoOrigin->__geoSystem, &gi->geoOrigin->__movedgd, &p->autoOrient);
-		p->autoOriginSet = TRUE;
+		veccopyd(planet->autoOrigin.c,gi->geoOrigin->__movedCoords.c);
+		GeoOrient(X3D_NODE(gi->geoOrigin), &gi->geoOrigin->__geoSystem, &gi->geoOrigin->__movedgd, &planet->autoOrient);
+		planet->autoOriginSet = TRUE;
 	}
 	{
 		//H: doesn't matter what the spec version is, we can do FCFS origin with any version
@@ -2106,22 +2178,22 @@ void origin_offsets(geoOffsetInfo *gi)
 			gi->position, 1, gi->gcCoord, gi->gdCoord);
 		GeoOrient(X3D_NODE(gi->geoOrigin), gi->geoSystem, gi->gdCoord, gi->localOrient);
 
-		if(!p->autoOriginSet){
+		if(!planet->autoOriginSet){
 			//first come first serve FCFS autoOrigin
-			veccopyd(p->autoOrigin.c,gi->gcCoord->c);
-			veccopy4d(p->autoOrient.c,gi->localOrient->c);
-			p->autoOriginSet = TRUE;
+			veccopyd(planet->autoOrigin.c,gi->gcCoord->c);
+			veccopy4d(planet->autoOrient.c,gi->localOrient->c);
+			planet->autoOriginSet = TRUE;
 		}
 		//redo the transform, with origin offsets and rotations applied
 		//moveCoords3d(gi->geoSystem, &p->autoOrigin, &p->autoOrient, 
 		//	gi->position, 1, gi->localCoord, gi->gdCoord);
-		vecdifd(gi->offsetCoord->c,gi->gcCoord->c,p->autoOrigin.c);
+		vecdifd(gi->offsetCoord->c,gi->gcCoord->c,planet->autoOrigin.c);
 		//NLGCA == offsetCoord
 		{
 			//rotation difference - change the sign on one rotation, and multiply
 			Quaternion localQuat, relQuat, combQuat;
 			vrmlrot_to_quaternion (&localQuat,gi->localOrient->c[0], gi->localOrient->c[1], gi->localOrient->c[2], -gi->localOrient->c[3]);
-			vrmlrot_to_quaternion (&relQuat, p->autoOrient.c[0], p->autoOrient.c[1], p->autoOrient.c[2], p->autoOrient.c[3]);
+			vrmlrot_to_quaternion (&relQuat, planet->autoOrient.c[0], planet->autoOrient.c[1], planet->autoOrient.c[2], planet->autoOrient.c[3]);
 
 			/* add these together */
 			//quaternion_add (&combQuat, &relQuat, &localQuat);
@@ -2581,8 +2653,10 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	geoOffsetInfo ggi, *gi;
 	struct SFVec3d gdCoord, gcCoord;
 	struct SFVec4d locOrient;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	struct Planet *planet;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
+	planet = current_planet();
 	#ifdef VERBOSE
 	printf ("compiling GeoLocation\n");
 	#endif
@@ -2602,7 +2676,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	printf("GL:\n");
 	origin_offsets(gi);
 	//vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
-	veccopy4d(node->__localOrient.c,p->autoOrient.c);
+	veccopy4d(node->__localOrient.c,planet->autoOrient.c);
 	veccopyd(node->__movedgd.c,gdCoord.c);
 	if(veclengthd(node->__position.c) == 0.0)
 		veccopyd(node->__position.c,gdCoord.c);
@@ -2620,19 +2694,20 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 	if(0){
 		//cycle test: see if we can convert GD coords to GC
-		int planetID = 0;
+		struct Planet *planet;
 		int save_crf;
 		struct SFVec3d gdCoords2, gcCoords2, lcCoords;
 		Quaternion qlo;
 		struct SFVec4d lo;
 		double dd[3];
-		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
+		planet = current_planet();
 		//adjust_geoLocationRelativeHeight(node,planetID);
 		save_crf = node->__geoSystem.p[0];
 		node->__geoSystem.p[0] = GEOSP_GD;
 		vecprint3db("orig gc",gcCoord.c,"\n");
-		moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->__movedgd,1,&gcCoords2,&gdCoords2);
+		moveCoords3d(&node->__geoSystem,&planet->autoOrigin,&planet->autoOrient,&node->__movedgd,1,&gcCoords2,&gdCoords2);
 		printf("geosystem gd in degrees = %d\n",node->__geoSystem.p[7]);
 		vecprint3db("orig   GD ",node->__movedgd.c,"\n");
 		vecprint3db("cycled GD ",gdCoords2.c,"\n");
@@ -2736,15 +2811,14 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 
 	if(!renderstate()->render_vp) {
 		if(0){
-			int planetID = 0;
+			struct Planet *planet;
 			int save_crf;
 			struct SFVec3d gdCoords;
-			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-
-			adjust_geoLocationRelativeHeight(node,planetID);
+			planet = current_planet();
+			adjust_geoLocationRelativeHeight(node,planet->ID);
 			save_crf = node->__geoSystem.p[0];
 			node->__geoSystem.p[0] = GEOSP_GD;
-			moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->__movedgd,1,&node->__movedCoords,&gdCoords);
+			moveCoords3d(&node->__geoSystem,&planet->autoOrigin,&planet->autoOrient,&node->__movedgd,1,&node->__movedCoords,&gdCoords);
 			node->__geoSystem.p[0] = save_crf;
 		}
 
@@ -3664,8 +3738,10 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 
 
 	geoOffsetInfo ggi, *gi;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	struct Planet *planet;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
+	planet = current_planet();
 	gi = &ggi;
 	gi->node = X3D_NODE(node);
 	gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
@@ -3678,7 +3754,7 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	gi->gcCoord = &gcCoord;
 	printf("GVP:\n");
 	origin_offsets(gi);
-	veccopy4d(localOrient.c,p->autoOrient.c);
+	veccopy4d(localOrient.c,planet->autoOrient.c);
 
 	/* work out the local orientation and copy doubles to floats */
 	veccopyd(node->__movedgd.c,gdCoord.c);
@@ -3808,16 +3884,19 @@ void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, str
 	//UCS - user coordinate system, what the scene author specifies in the scene file
 	//      might be GC, GD (degrees or radians, lat or long first), XTM (UTM/3TM, easting or northing first) and w/wo geoid
 	//LCA/GCA/UCA - alignment - the orientation part
+	struct Planet *planet;
 	struct SFVec3d LCpos;;
 	struct SFVec4d lo;
 	Quaternion qoo, qlo, qao, qgc;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 	
 	double oo[4], gd[3];
+
+	planet = current_planet();
 	//step 1 convert user coordinates UCS  to LCS coordinates 
 	// GC = f(UCS)   //function depends on user coordinate system
 	// LCS = (GC - autoOffset) x autoOrient^
-	moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCpos,&node->__movedgd);
+	moveCoords3d(&node->__geoSystem,&planet->autoOrigin,&planet->autoOrient,&node->position,1,&LCpos,&node->__movedgd);
 	vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
 	double2pointxyz(Pos,LCpos.c);
 
@@ -3833,27 +3912,29 @@ void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, str
 	quaternion_multiply(&qgc,&qoo,&qlo);
 	//step 2b convert from GCA to LCA
 	//LCA = AO^ x GCA
-	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2], -p->autoOrient.c[3]);
+	vrmlrot_to_quaternion(&qao,planet->autoOrient.c[0],planet->autoOrient.c[1],planet->autoOrient.c[2], -planet->autoOrient.c[3]);
 	quaternion_multiply(Quat,&qgc,&qao);
 	quaternion_normalize(Quat);
 
 }
 
 void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	struct Planet *planet;
 	double pos[3], oo[4];
 	struct SFVec3d GCpos, gdCoord;
 	struct SFVec4d lo;
 	Quaternion qao, qaoi, qgc, qlo, qoo;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 	
+	planet = current_planet();
 	//step 1 convert LCS to UCS
 	//step 1.a converte LCS to GC
 	// GC = (autoOrient x LCPos) + autoOffset
-	vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+	vrmlrot_to_quaternion(&qao,planet->autoOrient.c[0],planet->autoOrient.c[1],planet->autoOrient.c[2],planet->autoOrient.c[3]);
 	pointxyz2double(pos,Pos);
 	vecnegated(pos,pos); //like prep_viewpoint?
 	quaternion_rotationd(pos,&qao,pos);
-	vecaddd(GCpos.c,p->autoOrigin.c,pos);
+	vecaddd(GCpos.c,planet->autoOrigin.c,pos);
 
 	//step 1.b UCS = f(GC)
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
@@ -3915,13 +3996,15 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			struct SFVec4d lo;
 			double oo[4], pp[3];
 			struct SFVec3d LCSpos;
-			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+			struct Planet *planet;
+			//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+			planet = current_planet();
 
 			//we render in 'LCS' Local coordinate system, relative to shared origin aka geoOrigin aka autoOrigin
 			GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 
 			//1. convert current .position (relative to geosystem) into LCS
-			moveCoords3d(&node->__geoSystem,&p->autoOrigin,&p->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
+			moveCoords3d(&node->__geoSystem,&planet->autoOrigin,&planet->autoOrient,&node->position,1,&LCSpos,&node->__movedgd);
 
 			vecnegated(pp,LCSpos.c);
 			//2. convert .orientation (relative to geosystem) into LCS
@@ -3931,7 +4014,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			{
 				Quaternion qlo, qao, qoo, q1, q2;
 				vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
-				vrmlrot_to_quaternion(&qao,p->autoOrient.c[0],p->autoOrient.c[1],p->autoOrient.c[2],p->autoOrient.c[3]);
+				vrmlrot_to_quaternion(&qao,planet->autoOrient.c[0],planet->autoOrient.c[1],planet->autoOrient.c[2],planet->autoOrient.c[3]);
 				vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2],oo[3]);
 				// right way up and right yaw pitch axes for Austria
 				quaternion_multiply(&q1,&qlo,&qao);
@@ -4756,21 +4839,6 @@ void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 
 }
 
-struct Planet {
-	int ID;
-	Stack *gegs;
-};
-void clear_planets(Stack *planet_stack){
-	// call from Component_Geospatial_clear() at end of run
-	int i;
-	struct Planet *planet;
-	if(planet_stack)
-	for(i=0;i<vectorSize(planet_stack);i++){
-		planet = vector_get_ptr(struct Planet,planet_stack,i);
-		if(planet && planet->gegs) 	deleteVector(struct X3D_Node *, planet->gegs);
-	}
-	deleteVector(struct Planet,planet_stack);
-}
 void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID){
 	//call from prep or compile_ geoLocation if the height is supposed to be a relative height 
 	// ie height above ellipsoid.
@@ -4872,23 +4940,15 @@ void unRegisterGeoElevationGrid(struct X3D_Node *node){
 
 }
 
-void push_planetId(int planetId){
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
-	stack_push(int,current_planet_stack,planetId);
-}
-int current_planetId(){
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
-	return stack_top(int,current_planet_stack);
-}
-void pop_planetId(){
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
-	stack_pop(int,current_planet_stack);
-}
 
 void compile_GeoPlanet(struct X3D_GeoPlanet *node){
+	{
+		struct Planet *planet = current_planet();
+		if(planet == NULL){
+			planet = add_planet(node->planetId);
+			printf("planet=%x\n",planet);
+		}
+	}
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
 	
@@ -4900,16 +4960,18 @@ void compile_GeoPlanet(struct X3D_GeoPlanet *node){
 }
 
 void prep_GeoPlanet(struct X3D_GeoPlanet *node){
-
 	push_planetId(node->planetId);
+	COMPILE_IF_REQUIRED
 	if(!renderstate()->render_vp) {
 		double aoo[4],ao[3];
-		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		struct Planet *planet;
+		//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
+		planet = current_planet();
 		//we need to get the LCS to GC transform on the stack
 		FW_GL_PUSH_MATRIX();
-		veccopyd(ao,p->autoOrigin.c);
-		veccopy4d(aoo,p->autoOrient.c);
+		veccopyd(ao,planet->autoOrigin.c);
+		veccopy4d(aoo,planet->autoOrient.c);
 		FW_GL_TRANSLATE_D(-ao[0], -ao[1], -ao[2]);
 		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
 
@@ -4946,9 +5008,11 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
 			double aoo[4],ao[3];
-			ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-			veccopyd(ao,p->autoOrigin.c);
-			veccopy4d(aoo,p->autoOrient.c);
+			struct Planet *planet;
+			//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+			planet = current_planet();
+			veccopyd(ao,planet->autoOrigin.c);
+			veccopy4d(aoo,planet->autoOrient.c);
 
 			FW_GL_ROTATE_RADIANS(-aoo[3], aoo[0],aoo[1],aoo[2]);
 			FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
