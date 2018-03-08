@@ -759,7 +759,7 @@ static void moveBackgroundCentre () {
 		FW_GL_TRANSLATE_D(p.x,p.y,p.z);
 		//printf("moveBackground new T %f %f %f \n",p.x,p.y,p.z);
 		//LIGHTING_OFF
-		if(0){ //jan 2018
+		if(1){ //jan 2018
 		/* Get scale */
 		q = p;
 		q.x += 1.0;
@@ -775,7 +775,8 @@ static void moveBackgroundCentre () {
 		sz = 1.0/sqrt( q.x*q.x + q.y*q.y + q.z*q.z );
 		}
 		/* Undo the translation and scale effects */
-		// dug9 jan 2018: if(0)		FW_GL_SCALE_D(sx,sy,sz);
+		// dug9 jan 2018: if(0)		
+		FW_GL_SCALE_D(sx,sy,sz);
 		//printf("moveBackground new T %f %f %f new S %f %f %f\n",x,y,z,sx,sy,sz);
 		//printf("\n");
 	}
@@ -1264,6 +1265,7 @@ void render_prepped_Background(struct X3D_Background *node){
 				bgscale = 10000.0;
 				FW_GL_MATRIX_MODE(GL_MODELVIEW);
 				FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+
 			}
 			if(0){
 				FW_GL_MATRIX_MODE(GL_PROJECTION);
