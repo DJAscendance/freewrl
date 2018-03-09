@@ -931,6 +931,16 @@ EXPOSED_FIELD(GeneratedCubeMapTexture,update,sfstring,update,FIELDTYPE_SFString,
 FIELD(GeneratedCubeMapTexture,size,sfint32,size,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(GeneratedCubeMapTexture)
 
+/* GeoConvert node */
+BEGIN_NODE(GeoConvert)
+EVENT_IN(GeoConvert,set_geoCoords,sfvec3d,set_geoCoords,FIELDTYPE_SFVec3d)
+EVENT_IN(GeoConvert,set_gcCoords,sfvec3d,set_gcCoords,FIELDTYPE_SFVec3d)
+FIELD(GeoConvert,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(GeoConvert,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EVENT_OUT(GeoConvert,gcCoords_changed,sfvec3d,gcCoords_changed,FIELDTYPE_SFVec3d)
+EVENT_OUT(GeoConvert,geoCoords_changed,sfvec3d,geoCoords_changed,FIELDTYPE_SFVec3d)
+END_NODE(GeoConvert)
+
 /* GeoCoordinate node */
 BEGIN_NODE(GeoCoordinate)
 EXPOSED_FIELD(GeoCoordinate,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)

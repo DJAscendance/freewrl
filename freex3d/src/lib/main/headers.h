@@ -856,6 +856,8 @@ void do_IntegerSequencer (void *node);
 void do_IntegerTrigger (void *node);
 void do_TimeTrigger (void *node);
 
+/* GeoSpatial event utility */
+void do_GeoConvert(void *node);
 
 #define ADD_PARENT(a,b) add_parent(a,b,__FILE__,__LINE__)
 //#define NODE_ADD_PARENT(a) ADD_PARENT(a,X3D_NODE(ptr))

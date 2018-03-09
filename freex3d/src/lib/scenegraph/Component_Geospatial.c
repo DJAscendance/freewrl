@@ -5022,3 +5022,38 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	pop_planetId();
 
 }
+void compile_GeoConvert(struct X3D_GeoConvert *node){
+	compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
+}
+void do_GeoConvert (void *px){
+	// web3d v3.3 specs missing a converter node - you can route between
+	// geoNodes, but what if 2 nodes have different geoSystem?
+	// this geoConvert node solves that, you create 2 of these and chain them:
+	// myGeoNode1 -> set_geoCoord (geoConvert1) gcCoord_changed -> set_gcCoord (geoConvert2) geoCoord_changed -> myGeoNode2
+	// where geoConvert1.geoSystem == myGeoNode1.geoSystem
+	// and geoConvert2.geoSystem == myGeoNode2.geoSystem
+	//
+	// If we've done above nodes well, then any scene routing of geoCoords should be 
+	// in so-called 'user coords' -as specified by the scene designer in geoSystem
+	// for example longitude first, degrees etc.
+	// That means we shouldn't see any LCS - the Local Coordinate System you get after taking off geoOrigin or AutoOrigin 
+	// we'll just see full geo coords and full gc coords in routing
+	// Mar 9, 2018 NOT TESTED YET
+
+	struct X3D_GeoConvert *node;
+	node = (struct X3D_GeoConvert *) px;
+	if (!node) return;
+	COMPILE_IF_REQUIRED
+	if (!vecsamed(node->__oldgeoCoords.c,node->set_geoCoords.c)) {
+		struct SFVec3d gdCoord;
+		moveCoords3d(&node->__geoSystem,NULL,NULL,&node->set_geoCoords,1,&node->gcCoords_changed,&gdCoord);
+		MARK_EVENT (px, offsetof (struct X3D_GeoConvert, gcCoords_changed));
+		veccopyd(node->__oldgeoCoords.c,node->set_geoCoords.c);
+	} 
+	if (!vecsamed(node->__oldgcCoords.c,node->set_gcCoords.c)){
+		struct SFVec3d gdCoord;
+		CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem,NULL,&node->set_gcCoords,&gdCoord,&node->geoCoords_changed);
+		MARK_EVENT (px, offsetof (struct X3D_GeoConvert, geoCoords_changed));
+		veccopyd(node->__oldgcCoords.c,node->set_gcCoords.c);
+	}
+}

@@ -175,6 +175,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__old_motor3Axis",
 	"__old_orientation",
 	"__old_position",
+	"__oldgcCoords",
 	"__oldgeoCoords",
 	"__oldload",
 	"__oldmetadata",
@@ -601,10 +602,12 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"frontUrl",
 	"function",
 	"fuse",
+	"gcCoords_changed",
 	"generateMipMaps",
 	"geoCenter",
 	"geoCoord_changed",
 	"geoCoords",
+	"geoCoords_changed",
 	"geoGridOrigin",
 	"geoOrigin",
 	"geoSystem",
@@ -882,6 +885,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"set_crossSection",
 	"set_destination",
 	"set_fraction",
+	"set_gcCoords",
+	"set_geoCoords",
 	"set_height",
 	"set_index",
 	"set_intersectionType",
@@ -1101,7 +1106,9 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"focalPoint",
 	"fovMode",
 	"fraction_changed",
+	"gcCoords_changed",
 	"geoCoord_changed",
+	"geoCoords_changed",
 	"geovalue_changed",
 	"hinge1Angle",
 	"hinge1AngleRate",
@@ -1213,6 +1220,8 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"set_crossSection",
 	"set_destination",
 	"set_fraction",
+	"set_gcCoords",
+	"set_geoCoords",
 	"set_height",
 	"set_index",
 	"set_intersectionType",
@@ -2209,6 +2218,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"FontStyle",
 	"ForcePhysicsModel",
 	"GeneratedCubeMapTexture",
+	"GeoConvert",
 	"GeoCoordinate",
 	"GeoElevationGrid",
 	"GeoLOD",
@@ -2642,6 +2652,8 @@ struct X3D_Virt virt_ForcePhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NU
 void render_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
 void compile_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
 struct X3D_Virt virt_GeneratedCubeMapTexture = { NULL,(void *)render_GeneratedCubeMapTexture,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeneratedCubeMapTexture};
+
+struct X3D_Virt virt_GeoConvert = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void compile_GeoCoordinate(struct X3D_GeoCoordinate *);
 struct X3D_Virt virt_GeoCoordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoCoordinate};
@@ -3368,6 +3380,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_FontStyle,
 	 &virt_ForcePhysicsModel,
 	 &virt_GeneratedCubeMapTexture,
+	 &virt_GeoConvert,
 	 &virt_GeoCoordinate,
 	 &virt_GeoElevationGrid,
 	 &virt_GeoLOD,
@@ -4581,6 +4594,18 @@ const int OFFSETS_GeneratedCubeMapTexture[] = {
 	(int) FIELDNAMES___regenSubTextures, (int) offsetof (struct X3D_GeneratedCubeMapTexture, __regenSubTextures),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_update, (int) offsetof (struct X3D_GeneratedCubeMapTexture, update),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_GeneratedCubeMapTexture, size),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoConvert[] = {
+	(int) FIELDNAMES_set_geoCoords, (int) offsetof (struct X3D_GeoConvert, set_geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_GEO,
+	(int) FIELDNAMES_set_gcCoords, (int) offsetof (struct X3D_GeoConvert, set_gcCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_GEO,
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoConvert, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoConvert, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_gcCoords_changed, (int) offsetof (struct X3D_GeoConvert, gcCoords_changed),  (int) FIELDTYPE_SFVec3d, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_GEO,
+	(int) FIELDNAMES_geoCoords_changed, (int) offsetof (struct X3D_GeoConvert, geoCoords_changed),  (int) FIELDTYPE_SFVec3d, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_GEO,
+	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoConvert, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___oldgeoCoords, (int) offsetof (struct X3D_GeoConvert, __oldgeoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___oldgcCoords, (int) offsetof (struct X3D_GeoConvert, __oldgcCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoCoordinate[] = {
@@ -7584,6 +7609,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_FontStyle,
 	OFFSETS_ForcePhysicsModel,
 	OFFSETS_GeneratedCubeMapTexture,
+	OFFSETS_GeoConvert,
 	OFFSETS_GeoCoordinate,
 	OFFSETS_GeoElevationGrid,
 	OFFSETS_GeoLOD,
@@ -8129,6 +8155,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_FontStyle : {tmp = MALLOC (struct X3D_FontStyle *, sizeof (struct X3D_FontStyle)); break;}
 		case NODE_ForcePhysicsModel : {tmp = MALLOC (struct X3D_ForcePhysicsModel *, sizeof (struct X3D_ForcePhysicsModel)); break;}
 		case NODE_GeneratedCubeMapTexture : {tmp = MALLOC (struct X3D_GeneratedCubeMapTexture *, sizeof (struct X3D_GeneratedCubeMapTexture)); break;}
+		case NODE_GeoConvert : {tmp = MALLOC (struct X3D_GeoConvert *, sizeof (struct X3D_GeoConvert)); break;}
 		case NODE_GeoCoordinate : {tmp = MALLOC (struct X3D_GeoCoordinate *, sizeof (struct X3D_GeoCoordinate)); break;}
 		case NODE_GeoElevationGrid : {tmp = MALLOC (struct X3D_GeoElevationGrid *, sizeof (struct X3D_GeoElevationGrid)); break;}
 		case NODE_GeoLOD : {tmp = MALLOC (struct X3D_GeoLOD *, sizeof (struct X3D_GeoLOD)); break;}
@@ -9653,6 +9680,20 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->update = newASCIIString("NONE");
 			tmp2->size = 128;
 			tmp2->_defaultContainer = FIELDNAMES_texture;
+		break;
+		}
+		case NODE_GeoConvert : {
+			struct X3D_GeoConvert * tmp2;
+			tmp2 = (struct X3D_GeoConvert *) tmp;
+			tmp2->set_geoCoords.c[0] = 0;tmp2->set_geoCoords.c[1] = 0;tmp2->set_geoCoords.c[2] = 0;;
+			tmp2->set_gcCoords.c[0] = 0;tmp2->set_gcCoords.c[1] = 0;tmp2->set_gcCoords.c[2] = 0;;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->metadata = NULL;
+			tmp2->gcCoords_changed.c[0] = 0;tmp2->gcCoords_changed.c[1] = 0;tmp2->gcCoords_changed.c[2] = 0;;
+			tmp2->geoCoords_changed.c[0] = 0;tmp2->geoCoords_changed.c[1] = 0;tmp2->geoCoords_changed.c[2] = 0;;
+			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
+			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
+			tmp2->__oldgcCoords.c[0] = 0;tmp2->__oldgcCoords.c[1] = 0;tmp2->__oldgcCoords.c[2] = 0;;
 		break;
 		}
 		case NODE_GeoCoordinate : {
@@ -14649,6 +14690,25 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," update (SFString) \t%s\n",tmp->update->strptr);
 		    break;
 		}
+		case NODE_GeoConvert : {
+			struct X3D_GeoConvert *tmp;
+			tmp = (struct X3D_GeoConvert *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __oldgeoCoords (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__oldgeoCoords.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __oldgcCoords (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__oldgcCoords.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    break;
+		}
 		case NODE_GeoCoordinate : {
 			struct X3D_GeoCoordinate *tmp;
 			tmp = (struct X3D_GeoCoordinate *) node;
@@ -18476,6 +18536,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_FontStyle: return X3DFontStyleNode; break;
 	case NODE_ForcePhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_GeneratedCubeMapTexture: return X3DEnvironmentTextureNode; break;
+	case NODE_GeoConvert: return X3DChildNode; break;
 	case NODE_GeoCoordinate: return X3DCoordinateNode; break;
 	case NODE_GeoElevationGrid: return X3DGeometryNode; break;
 	case NODE_GeoLOD: return X3DGroupingNode; break;

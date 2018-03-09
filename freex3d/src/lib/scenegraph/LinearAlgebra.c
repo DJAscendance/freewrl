@@ -377,6 +377,12 @@ int vecsame4f(float *a, float *b){
 		if(a[i] != b[i]) isame = FALSE;
 	return isame;
 }
+int vecsamed(double *a, double *b){
+	int i,isame = TRUE;
+	for(i=0;i<3;i++)
+		if(a[i] != b[i]) isame = FALSE;
+	return isame;
+}
 /* returns vector length, too */
 GLDOUBLE vecnormal(struct point_XYZ*r, struct point_XYZ* v)
 {
