@@ -1057,6 +1057,37 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	}
 }
 void reallyDraw();
+void render_Background(struct X3D_Background *node){
+	if (renderstate()->render_blend) return;
+	if(!node->isBound) return;
+	{
+		//we need the model matrix - between root node and background - to capture any scene authored background tilts
+		double viewi[16], mat[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+
+		bstack = getActiveBindableStacks(tg);
+		matinverseAFFINE(viewi,bstack->viewmatrix);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+	}
+
+}
+void render_TextureBackground(struct X3D_TextureBackground *node){
+	if (renderstate()->render_blend) return;
+	if(!node->isBound) return;
+	{
+		//we need the model matrix - between root node and background - to capture any scene authored background tilts
+		double viewi[16], mat[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+
+		bstack = getActiveBindableStacks(tg);
+		matinverseAFFINE(viewi,bstack->viewmatrix);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+	}
+}
 void render_Background_OLD (struct X3D_Background *node) {
 	ttglobal tg = gglobal();
     
@@ -1201,10 +1232,47 @@ void render_prepped_Background(struct X3D_Background *node){
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
 
-	if(1){
+	if(0){
 		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
 		moveBackgroundCentre();
-	}else{
+	
+	}else if(1){
+		//March 2018 - this allows scene-file authored tilts to the background like other browsers
+		// <Transform> <Background> </Transform> - tilts captured in render_Background
+		double pp[3], mvmat[16], mvinv[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+		bstack = getActiveBindableStacks(tg);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
+		//we now need to cancel the translation part 
+		// by moving the background back to where the vp is at 0,0,0
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
+		matinverseAFFINE(mvinv,mvmat);
+		vecsetd(pp,0.0,0.0,0.0);
+		transformAFFINEd(pp,pp,mvinv);
+		FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+		if(1){ 
+			double sx,sy,sz, q[3],p[3],d[3];
+			/* Get scale */
+			vecsetd(p,0.0,0.0,0.0);
+			transformAFFINEd(p,p,mvmat);
+			vecsetd(q,1.0,0.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sx = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,1.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sy = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,0.0,1.0);
+			transformAFFINEd(q,q,mvmat);
+			sz = 1.0/veclengthd(vecdifd(d,q,p));
+			/* Undo the scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+		}
+
+
+	}else if(0){
 		//instead of transforming back to viewpoint, can we just replace transform top-of-stack with identity?
 		//benefit: good for diagnosing background problems: near/far plane vs offset
 		//problem: then the horizon (or orientation with texture background)- doesn't change with a tilt (or yaw) 

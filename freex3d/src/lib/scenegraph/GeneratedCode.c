@@ -2446,7 +2446,8 @@ struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,
 
 struct X3D_Virt virt_BackdropBackground = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_Background = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_Background(struct X3D_Background *);
+struct X3D_Virt virt_Background = { NULL,(void *)render_Background,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_BallJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3204,7 +3205,8 @@ void make_Text(struct X3D_Text *);
 void collide_Text(struct X3D_Text *);
 struct X3D_Virt virt_Text = { NULL,(void *)render_Text,NULL,NULL,(void *)rendray_Text,(void *)make_Text,NULL,NULL,(void *)collide_Text,NULL};
 
-struct X3D_Virt virt_TextureBackground = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_TextureBackground(struct X3D_TextureBackground *);
+struct X3D_Virt virt_TextureBackground = { NULL,(void *)render_TextureBackground,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_TextureCoordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
