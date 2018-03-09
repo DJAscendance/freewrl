@@ -2801,8 +2801,14 @@ void viewer_update_user_offsets0(X3D_Viewer *viewer){
 			break;
 			case NODE_GeoViewpoint:
 			{
+				double pos[3],pos0[3],quat[4],quat0[4];
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
-				geoviewpoint_update_user_offsets(vp,&viewer->Quat,&viewer->Pos);
+				pointxyz2double(pos,&viewer->Pos);
+				pointxyz2double(pos0,&viewer->Pos0);
+				quat2double(quat,&viewer->Quat);
+				quat2double(quat0,&viewer->Quat0);
+				if(veclengthd(vecdifd(pos,pos,pos0)) > .002 || veclength4d(vecdif4d(quat,quat,quat0)) > .00002)
+					geoviewpoint_update_user_offsets(vp,&viewer->Quat,&viewer->Pos);
 			}
 			break;
 			default:
@@ -2843,6 +2849,9 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
 				geoviewpoint_fetch_user_offsets(vp,&viewer->Quat,&viewer->Pos);
+				//save for noise check on update
+				viewer->Quat0 = viewer->Quat;
+				viewer->Pos0 = viewer->Pos;
 			}
 			break;
 			default:
@@ -2871,6 +2880,9 @@ void viewer_fetch_LCS(X3D_Viewer *viewer){
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
 				geoviewpoint_fetch_LCS(vp,&viewer->Quat,&viewer->Pos);
+				//save for noise check on update
+				viewer->Quat0 = viewer->Quat;
+				viewer->Pos0 = viewer->Pos;
 
 			}
 			break;
@@ -2890,8 +2902,15 @@ void viewer_update_LCS(X3D_Viewer *viewer){
 			break;
 			case NODE_GeoViewpoint:
 			{
+				double pos[3],pos0[3],quat[4],quat0[4];
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
-				geoviewpoint_update_LCS(vp,&viewer->Quat,&viewer->Pos);
+				pointxyz2double(pos,&viewer->Pos);
+				pointxyz2double(pos0,&viewer->Pos0);
+				quat2double(quat,&viewer->Quat);
+				quat2double(quat0,&viewer->Quat0);
+				if(veclengthd(vecdifd(pos,pos,pos0)) > .002 || veclength4d(vecdif4d(quat,quat,quat0)) > .00002)
+					geoviewpoint_update_LCS(vp,&viewer->Quat,&viewer->Pos);
+
 			}
 			break;
 			default:

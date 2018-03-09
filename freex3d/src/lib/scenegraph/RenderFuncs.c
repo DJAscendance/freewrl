@@ -2140,7 +2140,7 @@ void *returnInterpolatorPointer (int nodeType) {
 		case NODE_IntegerTrigger: do_interp = do_IntegerTrigger; break;
 		case NODE_IntegerSequencer: do_interp = do_IntegerSequencer; break;
 		case NODE_TimeTrigger: do_interp = do_TimeTrigger; break;
-		case NODE_GeoConvert: do_GeoConvert; break;
+		case NODE_GeoConvert: do_interp = do_GeoConvert; break;
 		default:
 			do_interp = NULL;
 	}

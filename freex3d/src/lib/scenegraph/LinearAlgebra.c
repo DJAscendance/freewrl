@@ -178,6 +178,14 @@ double *vecdifd(double *c, double* a, double *b)
 	c[2] = a[2] - b[2];
 	return c;
 }
+double *vecdif4d(double *c, double* a, double *b)
+{
+	c[0] = a[0] - b[0];
+	c[1] = a[1] - b[1];
+	c[2] = a[2] - b[2];
+	c[3] = a[3] - b[3];
+	return c;
+}
 float *vecdif3f(float *c, float *a, float *b)
 {
 	c[0] = a[0] - b[0];
@@ -257,6 +265,10 @@ double * veccrossd(double *c, double *a, double *b)
 double veclengthd( double *p )
 {
 	return sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);
+}
+double veclength4d( double *p )
+{
+	return sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2] + p[3]*p[3]);
 }
 double vecdotd(double *a, double *b)
 {

@@ -2020,7 +2020,7 @@ our %Nodes = (
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
 		__oldgeoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__oldgcCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
-	],"X3DChildNode"),
+	],"X3DInterpolatorNode"),
 	
 
 	"GeoLocation" => new VRML::NodeType("GeoLocation", [

@@ -3821,16 +3821,18 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	Quaternion qlo, q2;
 	struct SFVec4d lo;
 
+	//0. skip if its rounding noise
+	pointxyz2double(pp,Pos);
+
 	//1.b GC += inverse(localOrient) x Pos
 	GeoOrient(X3D_NODE(node->geoOrigin), &node->__geoSystem, &node->__movedgd, &lo);
 	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
-	pointxyz2double(pp,Pos);
 	//if(0) vecscaled(pp,pp,node->speedFactor); //SPEED scale here? no done in calculateViewingSpeedB
 	quaternion_rotationd(pp,&qlo,pp);
 	vecaddd(GCpos.c,GCpos.c,pp);
 	//1.c .position = GC_to_user_geo(GC)
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
-
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
 	//2. update .orientation that's also in GVP NLA
 	//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
 	//     or dA = sin(phi)*dlambda
@@ -3865,6 +3867,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
 	oo[3] = -oo[3];
 	double2float(node->orientation.c,oo,4);
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 
 }
 void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
@@ -3938,7 +3941,7 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 
 	//step 1.b UCS = f(GC)
 	CONVERT_BACK_TO_GD_OR_UTMC(&node->__geoSystem, node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
-
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
 	//step 2 convert LCA to UCA
 	//step 2a. convert LCA to GCA
 	//GCA = AO x LCA
@@ -3954,6 +3957,7 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	quaternion_to_vrmlrot(&qoo,&oo[0],&oo[1],&oo[2],&oo[3]);
 	oo[3] = -oo[3];
 	double2float(node->orientation.c,oo,4);
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 	
 }
 
@@ -5022,9 +5026,7 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	pop_planetId();
 
 }
-void compile_GeoConvert(struct X3D_GeoConvert *node){
-	compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
-}
+
 void do_GeoConvert (void *px){
 	// web3d v3.3 specs missing a converter node - you can route between
 	// geoNodes, but what if 2 nodes have different geoSystem?
@@ -5043,7 +5045,9 @@ void do_GeoConvert (void *px){
 	struct X3D_GeoConvert *node;
 	node = (struct X3D_GeoConvert *) px;
 	if (!node) return;
-	COMPILE_IF_REQUIRED
+	if(node->__geoSystem.n == 0)
+		compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
+
 	if (!vecsamed(node->__oldgeoCoords.c,node->set_geoCoords.c)) {
 		struct SFVec3d gdCoord;
 		moveCoords3d(&node->__geoSystem,NULL,NULL,&node->set_geoCoords,1,&node->gcCoords_changed,&gdCoord);

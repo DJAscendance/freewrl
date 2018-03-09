@@ -160,9 +160,11 @@ typedef struct viewer_fly {
 
 
 typedef struct viewer {
-	struct point_XYZ Pos;
 	struct point_XYZ currentPosInModel;
+	struct point_XYZ Pos;
 	Quaternion Quat;
+	struct point_XYZ Pos0;
+	Quaternion Quat0;
 	struct point_XYZ Up; // 0 1 0 except geoVP
 	int headlight;
 	int collision; //added July 7, 2012

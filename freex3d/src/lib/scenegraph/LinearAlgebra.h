@@ -192,6 +192,8 @@ double vecnormal2d(double *r, double *v);
 void vecprint3db(char *name, double *p, char *eol);
 void vecprint4db(char *name, double *p, char *eol);
 double *veccopy4d(double *c, double *a);
+double veclength4d( double *p );
+double *vecdif4d(double *c, double* a, double *b);
 
 int vecsame2f(float *a, float *b);
 float *vecset2f(float *b, float x, float y);

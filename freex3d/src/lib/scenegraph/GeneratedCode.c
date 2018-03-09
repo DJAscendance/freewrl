@@ -18536,7 +18536,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_FontStyle: return X3DFontStyleNode; break;
 	case NODE_ForcePhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_GeneratedCubeMapTexture: return X3DEnvironmentTextureNode; break;
-	case NODE_GeoConvert: return X3DChildNode; break;
+	case NODE_GeoConvert: return X3DInterpolatorNode; break;
 	case NODE_GeoCoordinate: return X3DCoordinateNode; break;
 	case NODE_GeoElevationGrid: return X3DGeometryNode; break;
 	case NODE_GeoLOD: return X3DGroupingNode; break;
