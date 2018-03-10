@@ -1864,7 +1864,7 @@ SFNodeFinalize(JSContext *cx, JSObject *obj)
 				FREE_IF_NZ (ptr->X3DString); 
 		if(SM_method() == 2){
 			any = (AnyNative*)ptr;
-			//if(any->gc) FREE_IF_NZ(any->v);
+			if(any->gc) FREE_IF_NZ(any->v);
 		}
 
 		FREE_IF_NZ (ptr);

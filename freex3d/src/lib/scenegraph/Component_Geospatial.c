@@ -4976,7 +4976,7 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 		FW_GL_PUSH_MATRIX();
 		veccopyd(ao,planet->autoOrigin.c);
 		veccopy4d(aoo,planet->autoOrient.c);
-		FW_GL_TRANSLATE_D(-ao[0], -ao[1], -ao[2]);
+		FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
 		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
 
 
@@ -5019,7 +5019,7 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 			veccopy4d(aoo,planet->autoOrient.c);
 
 			FW_GL_ROTATE_RADIANS(-aoo[3], aoo[0],aoo[1],aoo[2]);
-			FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
+			FW_GL_TRANSLATE_D(-ao[0], -ao[1], -ao[2]);
 
 		}
 	}
