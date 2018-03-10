@@ -2330,8 +2330,19 @@ handle_tick()
 	default:
 		break;
 	}
+	switch(viewer->type){
+		case VIEWER_WALK:
+		case VIEWER_FLY:
+		case VIEWER_SPHERICAL:
+		case VIEWER_TURNTABLE:
+			viewer_update_user_offsets0(viewer);break;
+		default:
+			viewer_update_LCS(viewer);break;
+	}
 	if(viewer->type != VIEWER_NONE){
+		viewer_fetch_user_offsets0(viewer);
 		handle_tick_fly(); //Navigation-key_and_drag
+		viewer_update_user_offsets0(viewer);
 	}
 	if (viewer->doExamineModeDistanceCalculations) {
 		/*
@@ -2345,15 +2356,7 @@ handle_tick()
 			p->examineCounter = 5;
 		}
 	}
-	switch(viewer->type){
-		case VIEWER_WALK:
-		case VIEWER_FLY:
-		case VIEWER_SPHERICAL:
-		case VIEWER_TURNTABLE:
-			viewer_update_user_offsets0(viewer);break;
-		default:
-			viewer_update_LCS(viewer);break;
-	}
+
 
 }
 
