@@ -1953,7 +1953,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 	/* malloc the area required for internal settings, if required */
 	if (srf->p==NULL) {
 		srf->n=6;
-		srf->p=MALLOC(int *, sizeof(int) * 8);
+		srf->p=MALLOC(int *, sizeof(int) * 9);
 	}
 
 	/* set these as defaults */
@@ -1972,7 +1972,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 		//version 3.2- by default in degrees
 		srf->p[7] = TRUE; //GD: TRUE decimal degrees, FALSE: radians
 	}
-
+	srf->p[8] = FALSE; //relative height flag, not set below, its set during specific node compile
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
 
@@ -2117,7 +2117,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 //we don't have the concept of an 'interface' -cluster of related fields-
 //and in general we can't rely on fields being in a consistent order or offset from node start.
 
-//TRANSFORMING FROM GEOSPATIAL  TO SHARED LOCAL
+//TRANSFORMING FROM GEOSPATIAL  TO SHARED LOCAL aka LCS LOCAL COORDINATE SYSTEM
 // terminology:
 // geocentric GC - center of molten core of eath is 0,0,0
 // geospatial aligned GCA - X through Grenwich, Z through north pole
@@ -2126,7 +2126,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 // shared local (SL): relative to a single shared origin for all geo nodes for a planet
 // shared local aligned (SLA): relative to 'up' and 'north' at the shared origin
 // root node, root node aligned RNRNA - the regular scene 0,0,0 at the root level, and alignemnt
-// SLSLA could be designed to be co-incident with and aligned with RNRNA
+// SLSLA aka LCS could be designed to be co-incident with and aligned with RNRNA
 // procedure:
 // A. convert to GC
 //  1. convert node 'origin' from XTM -> GD -> GC
@@ -2142,6 +2142,59 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 //  GCA2NLA - H: this depends how the node is defined.
 //  NLA2SLA
 //  NL2SL
+
+void user2gd(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd);
+void gd2user(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo);
+void user2gc(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc);
+void gc2user(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo);
+void  gc2lcs(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *lcs);
+void  lcs2gc(struct Multi_Int32* geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc);
+void   gd2gc(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc);
+void   gc2gd(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
+
+void gc2lcs(struct Multi_Int32* geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
+	//converts from GC geocentric, to LCS local coordinate system
+	//LCS = GC - origin
+	int i;
+	struct Planet *planet;
+	planet = current_planet();
+	for(i=0;i<n;i++){
+		//take offset off GC coords
+		vecdifd(lcs[i].c,gc[i].c,planet->autoOrigin.c); 
+	}
+	{
+		Quaternion qup;
+		double aoo[4];
+		veccopy4d(aoo,planet->autoOrient.c);
+		vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],-aoo[3]);
+		for(i=0;i<n;i++){
+			quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
+		}
+	}
+}
+void lcs2gc(struct Multi_Int32* geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
+	//converts from local coorinate system to GC geocentric
+	//GC = LCS + origin
+	int i;
+	struct Planet *planet;
+	planet = current_planet();
+	{
+		Quaternion qup;
+		double aoo[4];
+		veccopy4d(aoo,planet->autoOrient.c);
+		vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],aoo[3]);
+		for(i=0;i<n;i++){
+			quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+		}
+	}
+	for(i=0;i<n;i++){
+		//add offset to get GC coords
+		vecaddd(gc[i].c,gc[i].c,planet->autoOrigin.c); 
+	}
+}
+
+
+
 
 
 typedef struct _geoOffsetInfo {
@@ -2715,11 +2768,11 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		struct SFVec3d gdCoords2, gcCoords2, lcCoords;
 		Quaternion qlo;
 		struct SFVec4d lo;
-		double dd[3];
+		double dd[3], terrainHeight;
 		//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
 		planet = current_planet();
-		//adjust_geoLocationRelativeHeight(node,planetID);
+		terrainHeight = adjust_geoLocationRelativeHeight(node,planet->ID);
 		save_crf = node->__geoSystem.p[0];
 		node->__geoSystem.p[0] = GEOSP_GD;
 		vecprint3db("orig gc",gcCoord.c,"\n");
@@ -4865,21 +4918,20 @@ double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetI
 	// ie height above ellipsoid.
 	// this searchse through all the GeoElevationGrids registered for the same planet, 
 	// to find the highest one under this GL if any, and adjust the height as needed
+	double highest = 0.0;
 	if(node && node->_nodeType == NODE_GeoLocation){
 		int i,j,nfound;
 		struct Planet *planet;
-		double highest;
 		//find planet
 		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-		if(!p->planet_stack) return; //no GEGs registered, stick to absolute height
+		if(!p->planet_stack) return highest; //no GEGs registered, stick to absolute height
 		nfound = 0;
 		planet = NULL;
-		highest = 0.0;
 
 		for(i=0;i<vectorSize(p->planet_stack);i++){
 			planet = vector_get_ptr(struct Planet,p->planet_stack,i);
 			if(planet && planet->ID == planetID) {
-				if(!planet->gegs) return; //no gegs registered
+				if(!planet->gegs) return highest; //no gegs registered
 				for(j=0;j<vectorSize(planet->gegs);j++){
 					double gridheight;
 					struct X3D_GeoElevationGrid *geg = vector_get(struct X3D_GeoElevationGrid*,planet->gegs,j);
@@ -5042,6 +5094,48 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 
 }
 
+
+void user2gc(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc){
+	int i;
+	struct SFVec3d gdCoord;
+	for(i=0;i<n;i++){
+		moveCoords3d(geoSystem,NULL,NULL,&geo[i],1,&gc[i],&gdCoord);
+	}
+}
+void gc2user(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo){
+	int i;
+	struct SFVec3d gdCoord;
+	for(i=0;i<n;i++){
+		CONVERT_BACK_TO_GD_OR_UTMC(geoSystem,NULL,&gc[i],&gdCoord,&geo[i]);
+	}
+}
+
+void user2gd(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd){
+	int i;
+	struct SFVec3d gcCoord;
+	for(i=0;i<n;i++)
+		moveCoords3d(geoSystem,NULL,NULL,&geo[i],1,&gcCoord,&gd[i]);
+}
+void gd2user(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo){
+	int i;
+	struct SFVec3d gdCoord, gcCoord;
+	for(i=0;i<n;i++){
+		Gd_Gc3d(geoSystem,&gd[i],1,&gcCoord);
+		gc2user(geoSystem,&gcCoord,1,&geo[i]);
+	}
+}
+void gd2gc(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc){
+	int i;
+	for(i=0;i<n;i++){
+		Gd_Gc3d(geoSystem,&gd[i],1,&gc[i]);
+	}
+}
+void gc2gd(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd){
+	int i;
+	for(i=0;i<n;i++){
+		gccToGdc (geoSystem, &gc[i], &gd[i]);
+	}
+}
 void do_GeoConvert (void *px){
 	// web3d v3.3 specs missing a converter node - you can route between
 	// geoNodes, but what if 2 nodes have different geoSystem?
