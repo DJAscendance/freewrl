@@ -4792,7 +4792,7 @@ struct X3D_GeoConvert {
 	struct X3D_Node *metadata;
 	struct SFVec3d gcCoords_changed;
 	struct SFVec3d geoCoords_changed;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __oldgeoCoords;
 	struct SFVec3d __oldgcCoords;
 };
@@ -4817,7 +4817,7 @@ struct X3D_GeoCoordinate {
 	struct Multi_Vec3d point;
 	struct X3D_Node *geoOrigin;
 	struct Multi_String geoSystem;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct Multi_Vec3f __movedCoords;
 };
 extern struct X3D_Virt virt_GeoCoordinate;
@@ -4857,7 +4857,7 @@ struct X3D_GeoElevationGrid {
 	int zDimension;
 	double zSpacing;
 	struct Multi_Int32 _coordIndex;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __autoOffset;
 	struct SFVec4d __localOrient;
 	struct Multi_Int32 __planets;
@@ -4894,7 +4894,7 @@ struct X3D_GeoLOD {
 	struct Multi_Node rootNode;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedCoords;
 	int __inRange;
 	struct X3D_Node *__child1Node;
@@ -4935,7 +4935,7 @@ struct X3D_GeoLocation {
 	struct SFVec3f bboxSize;
 	int relativeHeight;
 	double _gridHeight;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __position;
 	struct SFVec3d __movedCoords;
 	struct SFVec3d __movedgd;
@@ -4988,7 +4988,7 @@ struct X3D_GeoOrigin {
 	struct Multi_String geoSystem;
 	struct X3D_Node *metadata;
 	int rotateYUp;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedCoords;
 	struct SFVec3d __movedgd;
 	struct SFVec3d __oldgeoCoords;
@@ -5049,7 +5049,7 @@ struct X3D_GeoPositionInterpolator {
 	struct SFVec3f value_changed;
 	struct X3D_Node *geoOrigin;
 	struct Multi_String geoSystem;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct Multi_Vec3d __movedValue;
 	struct Multi_Float __oldKeyPtr;
 	struct Multi_Vec3d __oldKeyValuePtr;
@@ -5088,7 +5088,7 @@ struct X3D_GeoProximitySensor {
 	int __hit;
 	struct SFVec3f __t1;
 	struct SFRotation __t2;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedCoords;
 	struct SFVec4d __localOrient;
 	int __oldEnabled;
@@ -5124,7 +5124,7 @@ struct X3D_GeoTouchSensor {
 	double touchTime;
 	struct X3D_Node *geoOrigin;
 	struct Multi_String geoSystem;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3f _oldhitNormal;
 	struct SFVec3f _oldhitPoint;
 	struct SFVec2f _oldhitTexCoord;
@@ -5166,7 +5166,7 @@ struct X3D_GeoTransform {
 	int __do_rotation;
 	int __do_scaleO;
 	int __do_scale;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedCoords;
 	struct SFVec4d __localOrient;
 	struct SFVec3d __oldGeoCenter;
@@ -5213,7 +5213,7 @@ struct X3D_GeoViewpoint {
 	struct SFVec3d _position;
 	int relativeHeight;
 	int _resetRelativeHeight;
-	struct Multi_Int32 __geoSystem;
+	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedPosition;
 	struct SFRotation __movedOrientation;
 	struct SFRotation __movedOrientationB;

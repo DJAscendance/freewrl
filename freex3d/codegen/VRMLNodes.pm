@@ -1766,7 +1766,7 @@ our %Nodes = (
 		point => ["MFVec3d",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units # see note top of file
 		geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedCoords => ["MFVec3f", [], "inputOutput", 0,0],#ff
 	],"X3DCoordinateNode"),
 
@@ -1792,7 +1792,7 @@ our %Nodes = (
 		zSpacing => ["SFDouble", 1.0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_GEO"],#ff
 		_coordIndex => ["MFInt32", [], "initializeOnly", 0,0],#ff
 
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__autoOffset => ["SFVec3d",[0,0,0],"initializeOnly", 0,0],#ff
 		__localOrient => ["SFVec4d",[0,0,1,0],"initializeOnly", 0,0],#ff
 		__planets => ["MFInt32",[],"initializeOnly", 0,0],#ff
@@ -1822,7 +1822,7 @@ our %Nodes = (
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__inRange =>["SFBool", "FALSE", "inputOutput", 0,0],#ff
 		__child1Node => ["SFNode", "NULL", "inputOutput", 0,0],#ff
@@ -1855,7 +1855,7 @@ our %Nodes = (
 		value_changed => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedValue => ["MFVec3d", [], "inputOutput", 0,0],#ff
 		__oldKeyPtr => ["MFFloat", "NULL", "outputOnly", 0,0],#ff
 		__oldKeyValuePtr => ["MFVec3d", "NULL", "outputOnly", 0,0],#ff
@@ -1885,7 +1885,7 @@ our %Nodes = (
 		__t2 => ["SFRotation", [0, 1, 0, 0], "inputOutput", 0,0],#ff
 
 		# "compiled" versions of strings above
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__localOrient => ["SFVec4d", [0, 0, 1, 0], "inputOutput", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
@@ -1906,7 +1906,7 @@ our %Nodes = (
 		touchTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		_oldhitNormal => ["SFVec3f", [0, 0, 0], "outputOnly", 0,0],#ff 	# send event only if changed
 		_oldhitPoint => ["SFVec3f", [0, 0, 0], "outputOnly", 0,0],#ff 	# send event only if changed
 		_oldhitTexCoord => ["SFVec2f", [0, 0], "outputOnly", 0,0],#ff 	# send event only if changed
@@ -1938,7 +1938,7 @@ our %Nodes = (
 		__do_scale => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__localOrient => ["SFVec4d", [0, 0, 1, 0], "inputOutput", 0,0],#ff
 		__oldGeoCenter => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
@@ -1978,7 +1978,7 @@ our %Nodes = (
 		_resetRelativeHeight => ["SFBool", "TRUE", "initializeOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedPosition => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__movedOrientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
 		__movedOrientationB => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
@@ -2001,7 +2001,7 @@ our %Nodes = (
 
 		# these are now static in CFuncs/GeoVRML.c
 		# "compiled" versions of strings above
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__movedgd => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__oldgeoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
@@ -2017,7 +2017,7 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		gcCoords_changed => ["SFVec3d", [0, 0, 0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
 		geoCoords_changed => ["SFVec3d", [0, 0, 0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__oldgeoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__oldgcCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 	],"X3DInterpolatorNode"),
@@ -2038,7 +2038,7 @@ our %Nodes = (
 		_gridHeight => ["SFDouble", "0.0", "inputOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
-		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__position => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__movedCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
 		__movedgd => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
