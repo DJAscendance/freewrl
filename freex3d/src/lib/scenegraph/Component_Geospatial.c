@@ -216,7 +216,7 @@ typedef struct _geosys {
 	int xtm_northing_first;			//3
 	int utm_northern_hemisphere;	//4
 	int gd_latitude_first;			//5
-	int gd_geoid_height;			//6
+	int geoid_height;			//6
 	int gd_degrees;					//7
 	int relativeHeight;				//8
 } Geosys;
@@ -630,7 +630,7 @@ static void Gd_Gc3d_fw(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFV
 	double radius, flattening;
 	geotype = geoSystem->ellipsoid;
 	lat_first = geoSystem->gd_latitude_first;
-	geoid = geoSystem->gd_geoid_height;
+	geoid = geoSystem->geoid_height;
 	if(getEllipsoidParams(geotype,&radius,&flattening))
 	{
 		int i;
@@ -1134,7 +1134,7 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 
 				/* just copy the coordinates for the GD temporary return  */
 				memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
-				if(geoSystem->gd_geoid_height == TRUE){
+				if(geoSystem->geoid_height == TRUE){
 					//Q. should geoid correction be added (subtracted) here
 					//  so gd are in ellipsoid heights like GPS? (vs sea level heights)
 					for(i=0; i < n; i++){
@@ -1971,7 +1971,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 	srf->xtm_northing_first = TRUE; //XTM: northing first
 	srf->utm_northern_hemisphere = TRUE; //northern hemisphere for UTM
 	srf->gd_latitude_first = TRUE; //GD: lat first
-	srf->gd_geoid_height = FALSE; //geoid - not GC, just GD/UTM
+	srf->geoid_height = FALSE; //geoid - not GC, just GD/UTM
 	specversion = X3D_PROTO(node->_executionContext)->__specversion;
 	if(specversion > 320 && STRICT33){
 		//version 3.3+ by default in 'angle base units' which are radians
@@ -2024,7 +2024,7 @@ static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi
 					} else if (strcmp("longitude_first", str) == 0) {
 						srf->gd_latitude_first = FALSE;
 					} else if(strcmp ("WGS84",str) == 0){
-						srf->gd_geoid_height = TRUE; //geoid
+						srf->geoid_height = TRUE; //geoid
 					} else 
 					//ellipsoid parameters specified
 					if(str[0] == 'R') {
@@ -2775,7 +2775,17 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			node->__localOrient.c[2],
 			node->__localOrient.c[3]);
 	//#endif
-
+	if(1){
+		struct SFVec3d gcCoords, gdCoords, userCoords;
+		user2gc(gs,&node->geoCoords,1,&gcCoords);
+		gc2gd(gs,&gcCoords,1,&gdCoords);
+		vecprint3db("_movgd",node->__movedgd.c,"\n");
+		vecprint3db(" gc2gd",gdCoords.c,"\n");
+		gd2gc(gs,&gdCoords,1,&gcCoords);
+		gc2user(gs,&gcCoords,1,&userCoords);
+		vecprint3db("geoCrds",node->geoCoords.c,"\n");
+		vecprint3db(" gc2usr",userCoords.c,"\n");
+	}
 	if(0){
 		//cycle test: see if we can convert GD coords to GC
 		struct Planet *planet;
