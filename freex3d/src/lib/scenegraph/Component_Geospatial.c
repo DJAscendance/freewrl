@@ -76,33 +76,40 @@ void pop_planetId();
 /*
 Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 * XTM: {UTM,3TM} - 3TM is UTM with no false easting or northing, scale factor .9999, and 3 degree zones
-* geosystem preservation:
+  Feb 2018 we added 3TM capability
+* geosystem preservation, aka User Coordinates
   we keep coordinates as they are given to us, and only convert degrees (if neceessary)
   or swizzle (exchange x, y to y, x) NE/latlon if/when needed for internal calculation purposes,
   and for shape mesh/polyrep.
-  That way fields are ready for SAI in users units. 
+  That way fields are ready for SAI and routing in users units. 
   It doesn't make sense to route directly  between different geosystems. 
   In theory there could/should be converter node types for that, 
   where you can set both input geosystem, and output geosystem, 
   or a flag on each node, saying to route in/out in (common) GC.
 * concentric ellipsoids:
-	we don't have a list of ellipsoid offsets (6DOF shift and rotate) to go between 'datums'.
--- so we treat different ellipsoids as being otherwise axes-aligned and co-centric 
+	we don't have a list of ellipsoid offsets (3DOF or 6DOF datum shift (and rotate)) to go between 'datums'.
+   so we treat different ellipsoids as being otherwise axes-aligned and co-centric 
 	with each other when transforming
+	for insight into datum transforms see: http://www.dtic.mil/dtic/tr/fulltext/u2/a307127.pdf Appendix B
+* v3.3 compiled-in vs freewrl compiled + supplyable ellipsoids
+	The specs give a table of ellipsoids to compile in, and user can choose by name
+	Feb 2018 we added  ('A#' 'F#', 'R#') to geoSystem so the user can supply other ellipsoids or spheres if needed
 * ellipsoid neutrality:
 	we don't try and force any one particular ellipsoid standard. The geoViewpoint's ellipsoid is
 	the one we use for SPEED, LEVEL calculations
 -- most coords are GC at some point, in preparation for 3D viewing, 
 	and whatever ellipsoid they came from, they can mix as GC XYZ
-x single planet
-	we can only do one world in a scene. We can't do a planet and several moons 
+* single planet v3.3 vs multiple planets via <GeoPlanet/>
+	following specs 3.3, we can only do one world/planet in a scene. We can't do a planet and several moons 
 	in geocoords in the same scene. Thats because we need to subtract the geoviewpoint
 	location -or geoOrigin / autoOrigin- from geoshapes, to get coordinates into single precision float range
 	for display. And to do that, we assume the geoviewpoint and geoShapes are on the
-	same planet. In theory an additional 'planet number/id/name' could be specified 
-	in geoSystem to allow multiple planets.
-	Feb 2018 we did 'depth slices' in rendering - up to 3 slices - to improve rendering
+	same planet. 
+	+ Feb 2018 we did 'depth slices' in rendering - up to 3 slices - to improve rendering
 	with large coordinates at the single planet and multi-planet scale
+	+ Mar 2018 we added <GeoPlanet planetId='0'> <GeoNode1/><GeoNode2.../> </GeoPlanet>
+	  that converts LCS to GC for orbital mechanics, and pushes and pops a planetId from a stack, 
+	  for use in node-node interactions. So we can now do multiple planets
 * UNITS as per specs
 	while we are interpreting radians as default for web3d specs v3.3, and degrees < 3.3
 	we haven't tested linear UNITS conversion on parsing for geocoordinates. 
@@ -121,14 +128,23 @@ x single planet
 	system.
 * relative heights - not in the specs but we use it with GVP in WALK mode and GL (geoLocation) 
 	2 methods of RELATIVE:
-	1. you give an absolute height, and ask that whatever is above grade/above GEG at its 
+	1. maintainRelative: (implicitly enforced in GVP WALK + COLLIDE)
+		you give an absolute height, and relativeHeight0 = absolute - terrainHeight
+		From then on absolute = terrainHeight + relativeHeight0
 		initial position is the relative height from then on -as you animate the xy / latlong position.
-	2. you give it a relative height, and if no DEM under it at startup, 
-		then relative is to ellipsoid, else relative is to DEM. 
-		As you animate, it goes to highest DEM or ellipsoid if no DEM.
-	1GVP	2GL
-	TRUE	FALSE	maintain height when passing between GEGs
-	TRUE	FALSE	treat initial height as absolute
+	2. relativeHeight: (explicit field in GVP and GL)
+		- the .position or .geoCoords you give it initially, via route or direct access is 
+		  relative to terrain height, so absolute = gdCoords.c[2] + terrainHeight(gdCoords.c[0],.c[1])
+		if no terrain underneath GL, then terrainHeight = ellipsoid height == 0 
+* routing geo coordinates, GeoConvert
+	the v3.3 specs don't mention explicitly what system the geoCoordinate
+	events are in, but they must be in the geoSystem of the source node.
+	It doesn't make sense to route GD output to GC or XTM input on another node.
+	And v3.3 gives no way to convert.
+	+ Mar 2018 we added new nodetype GeoConvert. You use 2 of them, like so:
+	source.geoCoord -> user1 -> .set_geoCoord (geoConvert1) .gcCoord_Changed -> GC 
+	GC -> .set_gcCoord (geoConvert2) .geoCoord_changed -> user2 -> destination.position
+	where geoConvert1.geoSystem == source.geoSystem and geoConvert2.geoSystem == destination.geoSystem
 
 */
 
@@ -2646,7 +2662,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 /************************************************************************/
 /* GeoLocation								*/
 /************************************************************************/
-void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
+double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
@@ -2810,7 +2826,8 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(0){
+		if(0) if(!vecsamed(node->geoCoords.c,node->__oldgeoCoords.c)){
+			//route or direct access changed geoCoords, find new 
 			struct Planet *planet;
 			int save_crf;
 			struct SFVec3d gdCoords;
@@ -4843,7 +4860,7 @@ void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 
 }
 
-void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID){
+double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID){
 	//call from prep or compile_ geoLocation if the height is supposed to be a relative height 
 	// ie height above ellipsoid.
 	// this searchse through all the GeoElevationGrids registered for the same planet, 
@@ -4876,11 +4893,9 @@ void adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID)
 				}
 			}
 		}
-		if(nfound){
-			node->__movedgd.c[2] = highest + node->__position.c[2];
-			//node->__movedCoords.c[2] = highest + node->__position.c[2];
-		}
+		
 	}
+	return highest;
 }
 
 

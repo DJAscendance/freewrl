@@ -1974,8 +1974,8 @@ our %Nodes = (
 		_initializedOnce => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
 		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
 		_position => ["SFVec3d",[0, 0, 0], "initializeOnly", 0,0],#ff
-		relativeHeight => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
-		_resetRelativeHeight => ["SFBool", "TRUE", "inputOnly", 0,0],#ff
+		relativeHeight => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
+		_resetRelativeHeight => ["SFBool", "TRUE", "initializeOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff
@@ -2034,6 +2034,8 @@ our %Nodes = (
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		relativeHeight => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
+		_gridHeight => ["SFDouble", "0.0", "inputOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["MFInt32",[],"initializeOnly", 0,0],#ff

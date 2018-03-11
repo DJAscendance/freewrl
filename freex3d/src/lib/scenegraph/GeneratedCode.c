@@ -256,6 +256,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
+	"_gridHeight",
 	"_group",
 	"_hatchScale",
 	"_ifs",
@@ -1197,7 +1198,6 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"method",
 	"next",
 	"previous",
-	"relativeHeight",
 	"removeChildren",
 	"removeGeometry",
 	"removeTrimmingContour",
@@ -1753,6 +1753,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"proxy",
 	"range",
 	"reference",
+	"relativeHeight",
 	"repeatR",
 	"repeatS",
 	"repeatT",
@@ -4684,6 +4685,8 @@ const int OFFSETS_GeoLocation[] = {
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoLocation, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_GeoLocation, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_GeoLocation, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoLocation, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__gridHeight, (int) offsetof (struct X3D_GeoLocation, _gridHeight),  (int) FIELDTYPE_SFDouble, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoLocation, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___position, (int) offsetof (struct X3D_GeoLocation, __position),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoLocation, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -4840,8 +4843,8 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__initializedOnce, (int) offsetof (struct X3D_GeoViewpoint, _initializedOnce),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_GeoViewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_GeoViewpoint, _position),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoViewpoint, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__resetRelativeHeight, (int) offsetof (struct X3D_GeoViewpoint, _resetRelativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoViewpoint, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__resetRelativeHeight, (int) offsetof (struct X3D_GeoViewpoint, _resetRelativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedOrientation, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -9786,6 +9789,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
+			tmp2->relativeHeight = FALSE;
+			tmp2->_gridHeight = 0.0;
 			tmp2->__geoSystem.n=0; tmp2->__geoSystem.p=0;
 			tmp2->__position.c[0] = 0;tmp2->__position.c[1] = 0;tmp2->__position.c[2] = 0;;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
