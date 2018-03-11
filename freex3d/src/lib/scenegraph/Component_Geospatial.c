@@ -2153,6 +2153,7 @@ void   gd2gc(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct S
 void   gc2gd(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
 
 void gc2lcs(struct Multi_Int32* geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
+	//UNTESTED
 	//converts from GC geocentric, to LCS local coordinate system
 	//LCS = GC - origin
 	int i;
@@ -2173,6 +2174,7 @@ void gc2lcs(struct Multi_Int32* geoSystem, struct SFVec3d *gc, int n, struct SFV
 	}
 }
 void lcs2gc(struct Multi_Int32* geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
+	//UNTESTED
 	//converts from local coorinate system to GC geocentric
 	//GC = LCS + origin
 	int i;
@@ -5094,8 +5096,11 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 
 }
 
-
+//by 'user' coordinates we mean as authored in the scene file and specfied by geosystem by the scene author
+// when converting from GC to user, we might find the user _is_ GC. 
+// with these functions you don't need to know or care about shortcuts.
 void user2gc(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc){
+	//UNTESTED
 	int i;
 	struct SFVec3d gdCoord;
 	for(i=0;i<n;i++){
@@ -5103,6 +5108,7 @@ void user2gc(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct S
 	}
 }
 void gc2user(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo){
+	//UNTESTED
 	int i;
 	struct SFVec3d gdCoord;
 	for(i=0;i<n;i++){
@@ -5111,12 +5117,14 @@ void gc2user(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct S
 }
 
 void user2gd(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd){
+	//UNTESTED
 	int i;
 	struct SFVec3d gcCoord;
 	for(i=0;i<n;i++)
 		moveCoords3d(geoSystem,NULL,NULL,&geo[i],1,&gcCoord,&gd[i]);
 }
 void gd2user(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo){
+	//UNTESTED
 	int i;
 	struct SFVec3d gdCoord, gcCoord;
 	for(i=0;i<n;i++){
@@ -5125,12 +5133,14 @@ void gd2user(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct S
 	}
 }
 void gd2gc(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc){
+	//UNTESTED
 	int i;
 	for(i=0;i<n;i++){
 		Gd_Gc3d(geoSystem,&gd[i],1,&gc[i]);
 	}
 }
 void gc2gd(struct Multi_Int32* geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd){
+	//UNTESTED
 	int i;
 	for(i=0;i<n;i++){
 		gccToGdc (geoSystem, &gc[i], &gd[i]);
