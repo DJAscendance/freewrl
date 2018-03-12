@@ -701,7 +701,9 @@ static void Gd_Gc3d_fw(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFV
 			Rn = A / ( (.25 - Eps25 * slat2 + .9999944354799/4) + (.25-Eps25 * slat2)/(.25 - Eps25 * slat2 + .9999944354799/4));
 	
 			RnPh = Rn + inc[i].c[elevation]; //ELEVATION_IN;
-			if(geoid){
+			
+			//MAR 2018 we are doing geoid at the user2something, something2user level now, higher in the call stack
+			if(geoid && FALSE){
 				double dlatin, dlongin;
 				dlatin = inc[i].c[latitude]; //LATITUDE_IN;
 				dlongin = inc[i].c[longitude]; //LONGITUDE_IN;
@@ -732,14 +734,14 @@ static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct
 	int i,geotype;
 	double semimajor, flattening, gd[3], gc[3];
 	//printf("hi from Gd_Gc3d_geolib\n");
-	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
 	if(FALSE && flattening == 0.0){
 		//easy spherical coords, but geolib OK without this, just for testing here
 		double radius;
 		for(i=0;i<n;i++){
 			veccopyd(gd,inc[i].c);
-			if(!geoSystem->p[5]) vecswizzle2d(gd);
-			if(geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+			if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+			if(geoSystem->gd_degrees) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
 			radius = semimajor + gd[2];
 			gc[0] = cos(gd[0])*cos(gd[1])*radius;
 			gc[1] = cos(gd[0])*sin(gd[1])*radius;
@@ -750,15 +752,15 @@ static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct
 	}
 	else
 	{
-		geotype = geoSystem->p[1];
+		geotype = geoSystem->ellipsoid;
 		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
 		if(!fwgeo_gc[geotype]){
 			fwgeo_gc[geotype] = fgeo_initializeGC(semimajor,flattening);
 		}
 		for(i=0;i<n;i++){
 			veccopyd(gd,inc[i].c);
-			if(!geoSystem->p[5]) vecswizzle2d(gd);
-			if(!geoSystem->p[7]) vecscale2d(gd,gd,DEGREES_PER_RADIAN); //geolib uses degrees
+			if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+			if(!geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN); //geolib uses degrees
 			// if you get 1.#QNAN00000000000 coming out here, its because geolib insists on -90,90 for lat
 			// and GEG has a bit of rounding error noise that exceeds slightly .0000001
 			//if(n>1 && i < 200) printf("before clamp %ld %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
@@ -998,15 +1000,15 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 	void *fgeo;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	if(geoSystem->p[5] == FALSE){
+	if(geoSystem->gd_latitude_first == FALSE){
 		latitude = 1;
 		longitude = 0;
 	}
 
-	hemisphere_north = geoSystem->p[4];
-	zone = geoSystem->p[2];
-	northing_first = geoSystem->p[3];
-	geotype = geoSystem->p[1];
+	hemisphere_north = geoSystem->utm_northern_hemisphere;
+	zone = geoSystem->xtm_zone;
+	northing_first = geoSystem->xtm_northing_first;
+	geotype = geoSystem->ellipsoid;
 	if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
 	if(!p->fgeopars[geotype])
 		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
@@ -1049,7 +1051,7 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 		// works in decimal degrees
 		fgeo_tm2gd(fgeo,myEasting, myNorthing, dlongitudeOrigin, &dLatitude, &dLongitude);
 
-		if(geoSystem->p[7] == FALSE){
+		if(geoSystem->gd_degrees == FALSE){
 			//version 3.3+ works in angle base units (radians) by default
 			outc[i].c[latitude] = dLatitude * RADIANS_PER_DEGREE ; //LATITUDE_OUT
 			outc[i].c[longitude] = dLongitude*RADIANS_PER_DEGREE ; //LONGITUDE_OUT
@@ -1110,6 +1112,27 @@ static void U3tm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVe
 		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
 
 }
+double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord);
+double userHeight2ellipsoidHeight(Geosys *geoSystem, struct SFVec3d *gdCoord){
+	double additionalHeight = 0.0;
+	if(geoSystem->geoid_height == TRUE){
+		//MSL (mean sea level) to ellipsoid height
+		// ellipsoidHeight = MSL + geoid(location)
+		//  so gd are in ellipsoid heights like GPS? (vs sea level heights)
+		double gddegrees[3];
+		if(geoSystem->gd_degrees) veccopyd(gddegrees,gdCoord->c);
+		else vecscaled(gddegrees,gdCoord->c,DEGREES_PER_RADIAN);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gddegrees);
+		additionalHeight += geoidCorrection(gddegrees[0],gddegrees[1]);
+	}
+	if(geoSystem->relativeHeight == TRUE){
+		// ellipsoidHeight = height + TerrainHeight(planet,location)
+		struct Planet *planet = current_planet();
+		additionalHeight += getTerrainHeight( planet->ID, geoSystem, gdCoord);
+
+	}
+	return additionalHeight;
+}
 
 /* take a set of coords, and a geoSystem, and create a set of moved coords */
 /* we keep around the GD coords because we need them for rotation calculations */
@@ -1134,17 +1157,9 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 
 				/* just copy the coordinates for the GD temporary return  */
 				memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
-				if(geoSystem->geoid_height == TRUE){
-					//Q. should geoid correction be added (subtracted) here
-					//  so gd are in ellipsoid heights like GPS? (vs sea level heights)
-					for(i=0; i < n; i++){
-						double gddegrees[3];
-						if(geoSystem->gd_degrees) veccopyd(gddegrees,gdCoords[i].c);
-						else vecscaled(gddegrees,gdCoords[i].c,DEGREES_PER_RADIAN);
-						if(!geoSystem->gd_latitude_first) vecswizzle2d(gddegrees);
-						gdCoords[i].c[2] += geoidCorrection(gddegrees[0],gddegrees[1]);
-					}
-				}
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
 			}
 			break;
 		case GEOSP_GC:
@@ -1162,6 +1177,9 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
 				Utm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
 				Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
 			}
 			break;
@@ -1171,6 +1189,9 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
 				U3tm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
 				Gd_Gc3d(geoSystem,gdCoords,n,outCoords); 
 			}
 			break;
@@ -1567,7 +1588,7 @@ static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVe
 	int geotype;
 	double gd[3],gc[3], semimajor,flattening;
 	//printf("hi from gccToGdc_geolib\n");
-	getEllipsoidParams(geoSystem->p[1],&semimajor,&flattening);
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
 	if(FALSE && flattening == 0.0){
 		//easy spherical coords, although geolib doesn't need help, just for testing here
 		double radius, horizontal_radius;
@@ -1579,14 +1600,14 @@ static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVe
 		gd[1] = atan2(gc[1],gc[0]);
 		gd[2] = radius - semimajor;
 		//printf("radius %lf semimajor %lf\n",radius,semimajor);
-		if(!geoSystem->p[5]) vecswizzle2d(gd);
-		if(geoSystem->p[7]) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
 		//printf("gc2gd sphere gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
 		veccopyd(gdc->c,gd);
 	}
 	else
 	{
-		geotype = geoSystem->p[1];
+		geotype = geoSystem->ellipsoid;
 		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
 		if(!fwgeo_gc[geotype]){
 			fwgeo_gc[geotype] = fgeo_initializeGC(semimajor,flattening);
@@ -1594,8 +1615,8 @@ static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVe
 		veccopyd(gc,gcc->c);
 		// function(semimajor,flattening,gc[0],gc[1],gc[2],&gd[0],&gd[1],&gd[2]);
 		fgeo_gc2gd(fwgeo_gc[geotype],gc[0],gc[1],gc[2], &gd[0],&gd[1],&gd[2]);
-		if(!geoSystem->p[5]) vecswizzle2d(gd);
-		if(!geoSystem->p[7]) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(!geoSystem->gd_degrees) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
 		veccopyd(gdc->c,gd);
 		//printf("gc2gd geolb gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
 	}
@@ -2727,7 +2748,6 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 /* GeoLocation								*/
 /************************************************************************/
 //double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
-double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord);
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
@@ -4602,6 +4622,8 @@ void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoori
 		if (geoSystem->spatial_system != GEOSP_GC) { 
 			/* have to convert to GD or UTM. Go to GD first */ 
 			gccToGdc (geoSystem, thisField, gdCoords);
+			if(geoSystem->geoid_height || geoSystem->relativeHeight)
+				gdCoords->c[2] -= userHeight2ellipsoidHeight(geoSystem,gdCoords);
 			veccopyd(thisField->c,gdCoords->c);
 
 			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
