@@ -3513,6 +3513,7 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 		and not have any inputOnly function() associated with the field
 		for this scenario you want to check first if there's a function,
 		and if so do some extra work. If not so be it.
+	set_one_multielementtype is for SFVecxx, SFColorxxxx, SFNode, SFRotation
 */
 void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
 	char scriptline[100];
@@ -3532,6 +3533,35 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 	JS_BeginRequest(cx);
 #endif
 
+	if(SM_method() == 2){
+		int type, kind, iifield, *valueChanged, ifound, toname, datatype;
+		union anyVrml *value;
+		char *fieldname;
+		struct Shader_Script *script = ScriptControl->script;
+		toname = tnfield;
+
+		fieldname = JSparamnames[toname].name;
+		datatype = JSparamnames[toname].type;
+
+		//step 1 update the fieldvalue
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound && type == datatype && isSFType(type)){
+			//we have an SF field, and sf coming in, we'll call our field LHS and incoming RHS
+			shallow_copy_field(type,Data,value);
+			(*valueChanged) = 1;
+		}else{
+			ConsoleMessage("sm_set_one_MultiElementType did not find field %s type %d\n",fieldname, datatype);
+			return;
+		}
+		//step 2 run the eventIn if it exists
+		SET_JS_TICKTIME
+		//compile also pushes the field val onto call stack
+		COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+		RUN_FUNCTION(toname)
+		return;
+	}
+
+
 	/* copy over the data from the VRML side into the script variable. */
 	iflag = 0;
 	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
@@ -3540,7 +3570,6 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 		printf("function not found\n");
 		return;
 	}
-
 	memcpy (pp,Data, dataLen);
 	/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
 	printf ("and, sending the data to pointer %p\n",pp); */
