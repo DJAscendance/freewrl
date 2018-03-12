@@ -2796,50 +2796,22 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			node->__localOrient.c[3]);
 	//#endif
 	if(1){
-		struct SFVec3d gcCoords, gdCoords, userCoords;
+		struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
 		user2gc(gs,&node->geoCoords,1,&gcCoords);
+		gc2lcs(gs,&gcCoords,1,&lcsCoords);
+		vecprint3db("   gc0",gcCoords.c,"\n");
+		vecprint3db("   lcs",lcsCoords.c,"\n");
+		lcs2gc(gs,&lcsCoords,1,&gcCoords);
+		vecprint3db("   gc1",gcCoords.c,"\n");
 		gc2gd(gs,&gcCoords,1,&gdCoords);
+
 		vecprint3db("_movgd",node->__movedgd.c,"\n");
 		vecprint3db(" gc2gd",gdCoords.c,"\n");
 		gd2gc(gs,&gdCoords,1,&gcCoords);
 		gc2user(gs,&gcCoords,1,&userCoords);
-		vecprint3db("geoCrds",node->geoCoords.c,"\n");
-		vecprint3db(" gc2usr",userCoords.c,"\n");
-	}
-	if(0){
-		//cycle test: see if we can convert GD coords to GC
-		struct Planet *planet;
-		int save_crf;
-		struct SFVec3d gdCoords2, gcCoords2, lcCoords;
-		Quaternion qlo;
-		struct SFVec4d lo;
-		double dd[3], terrainHeight;
-		//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		vecprint3db("geoCrd",node->geoCoords.c,"\n");
+		vecprint3db("gc2usr",userCoords.c,"\n");
 
-		planet = current_planet();
-		//terrainHeight = adjust_geoLocationRelativeHeight(node,planet->ID);
-		terrainHeight = getTerrainHeight(planet->ID, gs, &node->__movedgd);
-		save_crf = GEOSYS(node->__geoSystem)->spatial_system;
-		GEOSYS(node->__geoSystem)->spatial_system = GEOSP_GD;
-		vecprint3db("orig gc",gcCoord.c,"\n");
-		moveCoords3d(GEOSYS(node->__geoSystem),&planet->autoOrigin,&planet->autoOrient,&node->__movedgd,1,&gcCoords2,&gdCoords2);
-		printf("geosystem gd in degrees = %d\n",GEOSYS(node->__geoSystem)->gd_degrees);
-		vecprint3db("orig   GD ",node->__movedgd.c,"\n");
-		vecprint3db("cycled GD ",gdCoords2.c,"\n");
-
-		if(0){
-		GeoOrient(node->geoOrigin, GEOSYS(node->__geoSystem), &gdCoords2, &lo);
-
-		vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2],-lo.c[3]);
-		quaternion_rotationd(lcCoords.c,&qlo,gcCoords2.c);
-		}else{
-			veccopyd(lcCoords.c,gcCoords2.c);
-		}
-		GEOSYS(node->__geoSystem)->spatial_system = save_crf;
-		vecdifd(dd,lcCoords.c,node->__movedCoords.c);
-		vecprint3db("orig   LCS ",node->__movedCoords.c,"\n");
-		vecprint3db("cycled LCS ",gcCoords2.c,"\n");
-		vecprint3db("GL cycle diff",dd,"\n");
 	}
 
 
