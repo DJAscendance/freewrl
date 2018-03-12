@@ -2192,7 +2192,7 @@ void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
 		//take offset off GC coords
 		vecdifd(lcs[i].c,gc[i].c,planet->autoOrigin.c); 
 	}
-	{
+	if(1){
 		Quaternion qup;
 		double aoo[4];
 		veccopy4d(aoo,planet->autoOrient.c);
@@ -2215,7 +2215,8 @@ void lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
 		veccopy4d(aoo,planet->autoOrient.c);
 		vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],aoo[3]);
 		for(i=0;i<n;i++){
-			quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+			if(1) quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+			else veccopyd(gc[i].c,lcs[i].c);
 		}
 	}
 	for(i=0;i<n;i++){
@@ -2748,6 +2749,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 /* GeoLocation								*/
 /************************************************************************/
 //double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
+#define MAR12 1
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
@@ -2795,12 +2797,15 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			node->__localOrient.c[2],
 			node->__localOrient.c[3]);
 	//#endif
-	if(1){
+	if(MAR12){
+		//cylce test - should be able to transform elsewhere and back
+		// with only numerical noise difference.
 		struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
 		user2gc(gs,&node->geoCoords,1,&gcCoords);
 		gc2lcs(gs,&gcCoords,1,&lcsCoords);
 		vecprint3db("   gc0",gcCoords.c,"\n");
 		vecprint3db("   lcs",lcsCoords.c,"\n");
+		vecprint3db("_movlc",node->__movedCoords.c,"\n");
 		lcs2gc(gs,&lcsCoords,1,&gcCoords);
 		vecprint3db("   gc1",gcCoords.c,"\n");
 		gc2gd(gs,&gcCoords,1,&gdCoords);
@@ -2811,6 +2816,12 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 		gc2user(gs,&gcCoords,1,&userCoords);
 		vecprint3db("geoCrd",node->geoCoords.c,"\n");
 		vecprint3db("gc2usr",userCoords.c,"\n");
+		if(MAR12){
+			//beyond cycle testing, how does it look when used
+			veccopyd(node->__movedgd.c,gdCoords.c);
+			veccopyd(node->__movedCoords.c,lcsCoords.c);
+
+		}
 
 	}
 
@@ -2897,28 +2908,28 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		//if(0) if(!vecsamed(node->geoCoords.c,node->__oldgeoCoords.c)){
-		//	//route or direct access changed geoCoords, find new 
-		//	struct Planet *planet;
-		//	int save_crf;
-		//	struct SFVec3d gdCoords;
-		//	planet = current_planet();
-		//	adjust_geoLocationRelativeHeight(node,planet->ID);
-		//	save_crf = GEOSYS(node->__geoSystem)->spatial_system;
-		//	GEOSYS(node->__geoSystem)->spatial_system = GEOSP_GD;
-		//	moveCoords3d(GEOSYS(node->__geoSystem),&planet->autoOrigin,&planet->autoOrient,&node->__movedgd,1,&node->__movedCoords,&gdCoords);
-		//	GEOSYS(node->__geoSystem)->spatial_system = save_crf;
-		//}
+	if(MAR12){
+		Geosys *gs;
+		struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
+		gs = GEOSYS(node->__geoSystem);
+		user2gc(gs,&node->geoCoords,1,&gcCoords);
+		gc2lcs(gs,&gcCoords,1,&lcsCoords);
+		gc2gd(gs,&gcCoords,1,&gdCoords);
+
+		veccopyd(node->__movedgd.c,gdCoords.c);
+		veccopyd(node->__movedCoords.c,lcsCoords.c);
+	}
+
 
 		FW_GL_PUSH_MATRIX();
 
-		FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+	if(!MAR12)	FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
 		/* TRANSLATION */
 		FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
 
 		//printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
 
-		FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+	if(!MAR12)	FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
 		FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
 
 		/*
