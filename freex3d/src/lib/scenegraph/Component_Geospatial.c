@@ -2325,6 +2325,54 @@ void origin_offsets(geoOffsetInfo *gi)
 	}
 
 }
+void update_origin(Geosys *geoSystem, struct X3D_Node *node, struct SFVec3d *userCoord, struct X3D_GeoOrigin *geoOrigin)
+{
+	// assumes __geoSystem is already compiled.
+	// version < 3.3 - will try and use geoOrigin
+	// version 3.3+ - ignors geoOrigin and uses FCFS (first (node) come first served) shared origin for a planet
+	struct Planet *planet;
+	int specversion;
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+
+	planet = current_planet();
+	if(!planet->autoOriginSet){
+		if(geoOrigin && specversion < 330 ){
+			//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
+			//to simplify, we are using FCFS on a single geoOrigin.
+			struct SFVec3d offset, *poffset;
+			struct SFVec4d yup, *pyup;
+			pyup = NULL;
+			poffset = NULL;
+			double *cc;
+			initializeGeospatial(&geoOrigin); 
+			veccopyd(planet->autoOrigin.c,geoOrigin->__movedCoords.c);
+			GeoOrient(X3D_NODE(geoOrigin), GEOSYS(geoOrigin->__geoSystem), &geoOrigin->__movedgd, &planet->autoOrient);
+			planet->autoOriginSet = TRUE;
+		}else{
+			struct SFVec3d gdCoord;
+			user2gc(geoSystem,userCoord,1,&planet->autoOrigin);
+			gc2gd(geoSystem,&planet->autoOrigin,1,&gdCoord);
+			GeoOrient(X3D_NODE(geoOrigin), geoSystem, &gdCoord, &planet->autoOrient);
+			planet->autoOriginSet = TRUE;
+		}
+	}
+}
+void node2lcsRotation(Geosys *geoSystem, struct X3D_GeoOrigin *geoOrigin, struct SFVec3d *gdCoord, struct SFVec4d *rotation){
+	struct SFVec4d localOrient;
+	struct Planet *planet = current_planet();
+
+	GeoOrient(X3D_NODE(geoOrigin), geoSystem, gdCoord, &localOrient);
+
+	//rotation difference - change the sign on one rotation, and multiply
+	Quaternion localQuat, relQuat, combQuat;
+	vrmlrot_to_quaternion (&localQuat,localOrient.c[0], localOrient.c[1], localOrient.c[2], -localOrient.c[3]);
+	vrmlrot_to_quaternion (&relQuat, planet->autoOrient.c[0], planet->autoOrient.c[1], planet->autoOrient.c[2], planet->autoOrient.c[3]);
+
+	quaternion_multiply(&combQuat, &localQuat, &relQuat);
+	quaternion_to_vrmlrot(&combQuat, &rotation->c[0], &rotation->c[1], &rotation->c[2], &rotation->c[3]);
+	rotation->c[3] = - rotation->c[3];
+
+}
 /************************************************************************/
 void compile_GeoCoordinate (struct X3D_GeoCoordinate * node) {
 	MF_SF_TEMPS
@@ -2769,34 +2817,40 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	gs = GEOSYS(node->__geoSystem);
 	if(node->relativeHeight) gs->relativeHeight = TRUE; //handy for user2anything conversion function: don't need to pass node
 
-	gi = &ggi;
-	gi->node = X3D_NODE(node);
-	gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
-	gi->geoSystem = gs;
-	gi->position = &node->geoCoords;  //it claims this gets routed to, need dynamic offset
-	gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
-	gi->localOrient = &node->__localOrient; //&locOrient;
-	gi->offsetOrient = &node->__offsetOrient;
-	gi->gdCoord = &gdCoord;
-	gi->gcCoord = &gcCoord;
-	printf("GL:\n");
-	origin_offsets(gi);
-	//vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
-	veccopy4d(node->__localOrient.c,planet->autoOrient.c);
-	veccopyd(node->__movedgd.c,gdCoord.c);
-	if(veclengthd(node->__position.c) == 0.0)
-		veccopyd(node->__position.c,gdCoord.c);
+	if(MAR12){
+		update_origin(gs, X3D_NODE(node), &node->geoCoords, X3D_GEOORIGIN(node->geoOrigin));
+	}
+	else
+	{
+		gi = &ggi;
+		gi->node = X3D_NODE(node);
+		gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
+		gi->geoSystem = gs;
+		gi->position = &node->geoCoords;  //it claims this gets routed to, need dynamic offset
+		gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
+		gi->localOrient = &node->__localOrient; //&locOrient;
+		gi->offsetOrient = &node->__offsetOrient;
+		gi->gdCoord = &gdCoord;
+		gi->gcCoord = &gcCoord;
+		printf("GL:\n");
+		origin_offsets(gi);
+		//vecscaled(node->__movedCoords.c,node->__movedCoords.c,-1.0);
+		veccopy4d(node->__localOrient.c,planet->autoOrient.c);
+		veccopyd(node->__movedgd.c,gdCoord.c);
+		if(veclengthd(node->__position.c) == 0.0)
+			veccopyd(node->__position.c,gdCoord.c);
 
-	//#ifdef VERBOSE
-	printf ("compile_GeoLocation,\n\t orig coords %lf %lf %lf, \n\t moved %lf %lf %lf\n", 
-	node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], 
-	node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-	printf ("	rotation is %lf %lf %lf %lf\n",
-			node->__localOrient.c[0],
-			node->__localOrient.c[1],
-			node->__localOrient.c[2],
-			node->__localOrient.c[3]);
-	//#endif
+		//#ifdef VERBOSE
+		printf ("compile_GeoLocation,\n\t orig coords %lf %lf %lf, \n\t moved %lf %lf %lf\n", 
+		node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], 
+		node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+		printf ("	rotation is %lf %lf %lf %lf\n",
+				node->__localOrient.c[0],
+				node->__localOrient.c[1],
+				node->__localOrient.c[2],
+				node->__localOrient.c[3]);
+		//#endif
+	}
 	if(MAR12){
 		//cylce test - should be able to transform elsewhere and back
 		// with only numerical noise difference.
@@ -2820,9 +2874,12 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 			//beyond cycle testing, how does it look when used
 			veccopyd(node->__movedgd.c,gdCoords.c);
 			veccopyd(node->__movedCoords.c,lcsCoords.c);
+			if(veclengthd(node->__position.c) == 0.0)
+				veccopyd(node->__position.c,gdCoord.c);
+
 
 		}
-
+		node2lcsRotation(gs, X3D_GEOORIGIN(node->geoOrigin), &node->__movedgd, &node->__offsetOrient);
 	}
 
 

@@ -456,7 +456,7 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 	
 	//double scale = sqrt(VECSQ(*quat));
 	Quaternion qn;
-	double scale;
+	double s2, scale;
 
 	quaternion_set(&qn,quat);
 	quaternion_normalize(&qn);
@@ -467,13 +467,17 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 	//our scale:
 	//scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
 	//euc scale (seems to work for my problem cases):
-	scale = sqrt(1.0 - qn.w);
-	if (APPROX(scale, 0.0)) {
+	//no - the problem now is sqrt(0) comes out -1.#IND
+	// or more preciesly MSVC gives NaN if value is negative, and ours might be 
+	// a tiny tiny bit negative.
+	s2 = 1.0 - qn.w;
+	if (APPROX(s2, 0.0) || s2 < 0.0) {
 		*x = 0;
 		*y = 0;
 		*z = 1;
 		*a = 0;
 	} else {
+		scale = sqrt(1.0 - qn.w);
 		*x = qn.x / scale;
 		*y = qn.y / scale;
 		*z = qn.z / scale;
