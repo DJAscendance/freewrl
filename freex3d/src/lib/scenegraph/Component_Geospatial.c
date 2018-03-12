@@ -2981,6 +2981,7 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 
 			veccopyd(node->__movedgd.c,gdCoords.c);
 			veccopyd(node->__movedCoords.c,lcsCoords.c);
+			node2lcsRotation(gs, X3D_GEOORIGIN(node->geoOrigin), &node->__movedgd, &node->__offsetOrient);
 		}
 
 
