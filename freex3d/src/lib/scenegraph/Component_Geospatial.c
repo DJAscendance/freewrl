@@ -68,6 +68,7 @@ int method_geolib(){
 	return 0; //freewrl hand coded way
 #endif
 }
+#define MAR12 1
 
 void push_planetId(int planetId);
 int current_planetId();
@@ -2433,7 +2434,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	int nquads;
 	int *cindexptr;
 	float *texcoord = NULL;
-	double myHeightAboveEllip = 0.0;
+	//double myHeightAboveEllip = 0.0;
 	int mySRF = 0;
 	Geosys *gs;
 	
@@ -2598,8 +2599,8 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	mIN.n = nx * nz; 
 	mIN.p = MALLOC (struct SFVec3d *, sizeof (struct SFVec3d) * mIN.n);
 
-        mOUT.n=0; mOUT.p = NULL;
-        gdCoords.n=0; gdCoords.p = NULL;
+	mOUT.n=0; mOUT.p = NULL;
+	gdCoords.n=0; gdCoords.p = NULL;
 
 	/* make up a series of points, then go and convert them to local coords */
 	for (j=0; j<nz; j++) {
@@ -2626,16 +2627,16 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 				mIN.p[i+(j*nx)].c[1] =xSp * i + node->geoGridOrigin.c[1];
 	
 				/* elevation, above geoid */
-				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2]
-					+ myHeightAboveEllip; 
+				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2];
+					//+ myHeightAboveEllip; 
 			} else {
 				/* nothing quite specified here - what do we really do??? */
 				mIN.p[i+(j*nx)].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
 	
 				mIN.p[i+(j*nx)].c[1] =xSp * i + node->geoGridOrigin.c[1];
 	
-				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2]
-					+ myHeightAboveEllip; 
+				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2];
+					//+ myHeightAboveEllip; 
 
 			}
 			/* printf ("height made up of %lf, geoGridOrigin %lf, myHeightAboveEllip %lf\n",(height[i+(j*nx)] *(node->yScale)),node->geoGridOrigin.c[2], myHeightAboveEllip); */
@@ -2653,8 +2654,18 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	#endif
 
 	/* convert this point to a local coordinate */
-	if(1)
-	{
+	if(MAR12){
+		Geosys *gs;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gs = GEOSYS(node->__geoSystem);
+
+		update_origin(gs, X3D_NODE(node), &node->geoGridOrigin, X3D_GEOORIGIN(node->geoOrigin));
+		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
+		mOUT.n = mIN.n;
+		user2gc(gs,mIN.p,mIN.n,mOUT.p);
+		gc2lcs(gs,mOUT.p,mOUT.n,mOUT.p);
+
+	}else{
 		//struct SFVec3d *gcCoord;      //-GC2NL
 		//struct SFVec3d *offsetCoord;  //-NL2SL
 		//struct SFVec4d *localOrient;  //-GCA2NLA
@@ -2797,7 +2808,6 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 /* GeoLocation								*/
 /************************************************************************/
 //double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
-#define MAR12 1
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
