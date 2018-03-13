@@ -2851,7 +2851,8 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 				node->__localOrient.c[3]);
 		//#endif
 	}
-	if(0) if(MAR12){
+	if(0)  //don't need this in compile_ because prep_ is doing it too
+	if(MAR12){
 		//cylce test - should be able to transform elsewhere and back
 		// with only numerical noise difference.
 		struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
