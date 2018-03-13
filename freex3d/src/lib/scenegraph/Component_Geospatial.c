@@ -3144,42 +3144,55 @@ static void GeoUnLODrootUrl (struct X3D_GeoLOD *node) {
 
 
 void compile_GeoLOD (struct X3D_GeoLOD * node) {
-	MF_SF_TEMPS
+	if(MAR12){
+		Geosys *gs;
+		struct SFVec3d gcCoord;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gs = GEOSYS(node->__geoSystem);
 
-	#ifdef VERBOSE
-	printf ("compiling GeoLOD %u\n",node);
-	#endif
+		update_origin(gs, X3D_NODE(node), &node->center, X3D_GEOORIGIN(node->geoOrigin));
+		user2gc(gs,&node->center,1,&gcCoord);
+		gc2lcs(gs,&gcCoord,1,&node->__movedCoords);
+		MARK_NODE_COMPILED
 
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, center)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
+	}else{
+		MF_SF_TEMPS
 
-	#ifdef VERBOSE
-	printf ("compile_GeoLOD %u, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node, node->center.c[0], node->center.c[1], node->center.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+		#ifdef VERBOSE
+		printf ("compiling GeoLOD %u\n",node);
+		#endif
 
-	printf ("children.n %d childurl 1: %u 2: %u 3: %u 4: %u rootUrl: %u rootNode: %d\n",
-	node->children,
-	node->child1Url,
-	node->child2Url,
-	node->child3Url,
-	node->child4Url,
-	node->rootUrl,
-	node->rootNode.n);
-	#endif
+		/* work out the position */
+		INITIALIZE_GEOSPATIAL(node)
+		COMPILE_GEOSYSTEM(node)
+		INIT_MF_FROM_SF(node, center)
+		MOVE_TO_ORIGIN(node)
+		COPY_MF_TO_SF(node, __movedCoords)
 
-	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
+		#ifdef VERBOSE
+		printf ("compile_GeoLOD %u, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node, node->center.c[0], node->center.c[1], node->center.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+
+		printf ("children.n %d childurl 1: %u 2: %u 3: %u 4: %u rootUrl: %u rootNode: %d\n",
+		node->children,
+		node->child1Url,
+		node->child2Url,
+		node->child3Url,
+		node->child4Url,
+		node->rootUrl,
+		node->rootNode.n);
+		#endif
+
+		MARK_NODE_COMPILED
+		FREE_MF_SF_TEMPS
 	
-	/* events */
-	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLOD, metadata)) */
+		/* events */
+		/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLOD, metadata)) */
 
 
-	#ifdef VERBOSE
-	printf ("compiled GeoLOD\n\n");
-	#endif
+		#ifdef VERBOSE
+		printf ("compiled GeoLOD\n\n");
+		#endif
+	}
 }
 #undef VERBOSE
 
@@ -3188,7 +3201,7 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 	int i;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	INITIALIZE_GEOSPATIAL(node)
+	if(!MAR12) INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	#ifdef VERBOSE
