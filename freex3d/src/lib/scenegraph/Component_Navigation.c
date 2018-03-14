@@ -121,79 +121,149 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 void proximity_Billboard (struct X3D_Billboard *node) {
 	/* printf ("prox_billboard, do nothing\n"); */
 }
+double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat){
+	//could be used in background and/or billboard
+	//takes an affine matrix (perspectives are zero, has translations rotations and scale)
+	// and returns a pure rotation matrix
+	double sx,sy,sz, pp[3], q[3],p[3],d[3], matinv[16], matt[16], matr[16], mats[16];
 
+	//cancel / undo translation part
+	matinverseAFFINE(matinv,fullmat);
+	vecsetd(pp,0.0,0.0,0.0);
+	transformAFFINEd(pp,pp,matinv);
+	mattranslate(matt,pp[0],pp[1],pp[2]);
+	matmultiplyAFFINE(matr,matt,fullmat);
+
+	//cancel/undo scale part, so that our background mesh stays at radius 1.0
+	/* Get scale */
+	vecsetd(p,0.0,0.0,0.0);
+	transformAFFINEd(p,p,matr);
+	vecsetd(q,1.0,0.0,0.0);
+	transformAFFINEd(q,q,matr);
+	sx = 1.0/veclengthd(vecdifd(d,q,p));
+	vecsetd(q,0.0,1.0,0.0);
+	transformAFFINEd(q,q,matr);
+	vecdifd(d,q,p);
+	sy = 1.0/veclengthd(vecdifd(d,q,p));
+	vecsetd(q,0.0,0.0,1.0);
+	transformAFFINEd(q,q,matr);
+	sz = 1.0/veclengthd(vecdifd(d,q,p));
+	/* Undo the scale effects */
+	matscale(mats,sx,sy,sz);
+	matmultiplyAFFINE(rotmat,mats,matr);
+
+	return rotmat; //we return it too, in case you want to do fancy chain multiplication 
+}
+#define MAR14 1
 void prep_Billboard (struct X3D_Billboard *node) {
-	struct point_XYZ vpos, ax, cp, cp2, arcp;
-	static const struct point_XYZ orig = {0.0, 0.0, 0.0};
-	static const struct point_XYZ zvec = {0.0, 0.0, 1.0};
-	struct orient_XYZA viewer_orient;
-	GLDOUBLE mod[16];
-	GLDOUBLE proj[16];
-	int align;
-	double len, len2, angle;
-	int sign;
+	if(MAR14){
+		double mod[16], modi[16], modb[16], modbi[16], axis[3];
+		int align;
+		FW_GL_PUSH_MATRIX();
+		//to align with viewepoint, cancel/undo any rotations in modelview matrix
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		float2double(axis,node->axisOfRotation.c,3);
+		align = (APPROX(veclengthd(axis),0.0f));
+		matrixAFFINE2RotationMatrix(modb,mod);
+		matinverseAFFINE(modbi,modb);
+		if(align){
+			FW_GL_TRANSFORM_D(modbi);
+		}else{
+			//1. get the position of the vp in billboard-local-coords = vpos
+			//2. cross axisOfRotation with vpos to get a perpendicular to both
+			//3. cross axisOfRotation with zvec to get a perpendicular to both
+			//4. get a rotation difference matrix between those 2 perrp vectors 
+			//5. modify modelview by subtracting off the difference rotation
+			double vpos[3], zvec[3], perpa[3], perpb[3], matr[16];
+			vecsetd(vpos,0.0,0.0,0.0);
+			vecsetd(zvec,0.0,0.0,1.0); //z axis in billboard-local system
+			matinverseAFFINE(modi,mod);
+			transformAFFINEd(vpos,vpos,modi);
+			vecnormald(vpos,vpos);
+			veccrossd(perpa,axis,vpos);
+			veccrossd(perpb,axis,zvec);
+			matrotate2vd(matr,perpa,perpb);
+			FW_GL_TRANSFORM_D(matr);
+		}
+	}else{
+		struct point_XYZ vpos, ax, cp, cp2, arcp;
+		static const struct point_XYZ orig = {0.0, 0.0, 0.0};
+		static const struct point_XYZ zvec = {0.0, 0.0, 1.0};
+		struct orient_XYZA viewer_orient;
+		GLDOUBLE mod[16];
+		GLDOUBLE proj[16];
+		int align;
+		double len, len2, angle;
+		int sign;
 
-	RECORD_DISTANCE
+		RECORD_DISTANCE
 
-	ax.x = node->axisOfRotation.c[0];
-	ax.y = node->axisOfRotation.c[1];
-	ax.z = node->axisOfRotation.c[2];
-	align = (APPROX(VECSQ(ax),0));
+		ax.x = node->axisOfRotation.c[0];
+		ax.y = node->axisOfRotation.c[1];
+		ax.z = node->axisOfRotation.c[2];
+		align = (APPROX(VECSQ(ax),0));
 
-	quaternion_to_vrmlrot(&(Viewer()->Quat),
-		&(viewer_orient.x), &(viewer_orient.y),
-		&(viewer_orient.z), &(viewer_orient.a));
+		viewer_fetch_LCS(Viewer());
+		quaternion_to_vrmlrot(&(Viewer()->Quat),
+			&(viewer_orient.x), &(viewer_orient.y),
+			&(viewer_orient.z), &(viewer_orient.a));
 
-	FW_GL_PUSH_MATRIX();
+		FW_GL_PUSH_MATRIX();
 
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
-	if(0){
-		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
-		FW_GLU_UNPROJECT(orig.x, orig.y, orig.z, mod, proj, viewport, &vpos.x, &vpos.y, &vpos.z);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		if(0){
+			FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+			FW_GLU_UNPROJECT(orig.x, orig.y, orig.z, mod, proj, viewport, &vpos.x, &vpos.y, &vpos.z);
+		}
+		if(1){
+			//feature-AFFINE_GLU_UNPROJECT
+			double modi[16];
+			matinverseAFFINE(modi,mod);
+			transform(&vpos,&orig,modi);
+		}
+		len = VECSQ(vpos);
+		if (APPROX(len, 0)) { return; }
+		VECSCALE(vpos, 1/sqrt(len));
+
+		if (align) {
+			ax.x = viewer_orient.x;
+			ax.y = viewer_orient.y;
+			ax.z = viewer_orient.z;
+		}
+
+		VECCP(ax, zvec, arcp);
+		len = VECSQ(arcp);
+		if (APPROX(len, 0)) { return; }
+
+		len = VECSQ(ax);
+		if (APPROX(len, 0)) { return; }
+		VECSCALE(ax, 1/sqrt(len));
+
+		VECCP(vpos, ax, cp); /* cp is now 90deg to both vector and axis */
+		len = sqrt(VECSQ(cp));
+		if (APPROX(len, 0)) {
+			FW_GL_ROTATE_RADIANS(-viewer_orient.a, ax.x, ax.y, ax.z);
+			return;
+		}
+		VECSCALE(cp, 1/len);
+
+		/* Now, find out angle between this and z axis */
+		VECCP(cp, zvec, cp2);
+
+		len2 = VECPT(cp, zvec); /* cos(angle) */
+		len = sqrt(VECSQ(cp2)); /* this is abs(sin(angle)) */
+
+		/* Now we need to find the sign first */
+		if (VECPT(cp, arcp) > 0) 
+		{ 
+			sign = -1; 
+		} else { 
+			sign = 1; 
+		}
+		angle = atan2(len2, sign*len);
+
+		FW_GL_ROTATE_RADIANS(angle, ax.x, ax.y, ax.z);
 	}
-	if(1){
-		//feature-AFFINE_GLU_UNPROJECT
-		double modi[16];
-		matinverseAFFINE(modi,mod);
-		transform(&vpos,&orig,modi);
-	}
-	len = VECSQ(vpos);
-	if (APPROX(len, 0)) { return; }
-	VECSCALE(vpos, 1/sqrt(len));
-
-	if (align) {
-		ax.x = viewer_orient.x;
-		ax.y = viewer_orient.y;
-		ax.z = viewer_orient.z;
-	}
-
-	VECCP(ax, zvec, arcp);
-	len = VECSQ(arcp);
-	if (APPROX(len, 0)) { return; }
-
-	len = VECSQ(ax);
-	if (APPROX(len, 0)) { return; }
-	VECSCALE(ax, 1/sqrt(len));
-
-	VECCP(vpos, ax, cp); /* cp is now 90deg to both vector and axis */
-	len = sqrt(VECSQ(cp));
-	if (APPROX(len, 0)) {
-		FW_GL_ROTATE_RADIANS(-viewer_orient.a, ax.x, ax.y, ax.z);
-		return;
-	}
-	VECSCALE(cp, 1/len);
-
-	/* Now, find out angle between this and z axis */
-	VECCP(cp, zvec, cp2);
-
-	len2 = VECPT(cp, zvec); /* cos(angle) */
-	len = sqrt(VECSQ(cp2)); /* this is abs(sin(angle)) */
-
-	/* Now we need to find the sign first */
-	if (VECPT(cp, arcp) > 0) { sign = -1; } else { sign = 1; }
-	angle = atan2(len2, sign*len);
-
-	FW_GL_ROTATE_RADIANS(angle, ax.x, ax.y, ax.z);
 }
 
 void fin_Billboard (struct X3D_Billboard *node) {

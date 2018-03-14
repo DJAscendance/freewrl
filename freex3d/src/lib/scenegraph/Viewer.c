@@ -2344,7 +2344,7 @@ handle_tick()
 		handle_tick_fly(); //Navigation-key_and_drag
 		viewer_update_user_offsets0(viewer);
 	}
-	if (viewer->doExamineModeDistanceCalculations) {
+	if(0) if (viewer->doExamineModeDistanceCalculations) {
 		/*
 		printf ("handle_tick - doing calculations\n");
 		*/

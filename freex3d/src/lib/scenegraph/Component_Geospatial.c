@@ -127,6 +127,19 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 	Feb 2018 we are using FCFS First Come First Served - the first geoNode to compile_ we use
 	its geoOrigin / geoPoint / geo something as an arbitrary origin for a LCS local coordinate
 	system.
+* LCS local coordinate system - a shared cartesion coordinate system for all geoNodes on one planet.
+	the specs use this name for geoOrigins:
+	LCSxyz = originRotation x (GCxyz - originXYZ)
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#high-precisioncoords
+	All regular nodes not wrapped in GeoLocation use the LCS by default, or should.
+	Viewer: a few nav modes use LCS (examine, turntable)
+	GeoPlanet converts children's LCS back into GC coordinates for orbital mechanics, regular nodes working in GC,
+	and inter-planet transform stacks
+* TCS topocentric coordinate system
+	somewhat related, for any giving GeoLocationNode, the topocentric coordinate system TCS with X east, -Z north, Y up
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
+	in freewrl we use the topocentric alignment at Origin for our originRotation aka AutoOrient
+	Viewer: most nav modes use TopoCentric TCS (walk, fly, spherical, keyboard)
 * relative heights - not in the specs but we use it with GVP in WALK mode and GL (geoLocation) 
 	2 methods of RELATIVE:
 	1. maintainRelative: (implicitly enforced in GVP WALK + COLLIDE)
@@ -3765,10 +3778,14 @@ void compile_GeoTouchSensor (struct X3D_GeoTouchSensor * node) {
 	#ifdef VERBOSE
 	printf ("compiling GeoTouchSensor\n");
 	#endif
-
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	MARK_NODE_COMPILED
+	if(MAR12){
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		MARK_NODE_COMPILED
+	}else{
+		INITIALIZE_GEOSPATIAL(node)
+		COMPILE_GEOSYSTEM(node)
+		MARK_NODE_COMPILED
+	}
 
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoTouchSensor, metadata)) */
@@ -3849,29 +3866,39 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 		#endif
 
 		memcpy ((void *) &node->hitPoint_changed, (void *) &node->_oldhitPoint, sizeof(struct SFColor));
+		vecprint3fb("hitpoint",node->hitPoint_changed.c,"\n");
 		MARK_EVENT(ptr, offsetof (struct X3D_GeoTouchSensor, hitPoint_changed));
 
 		/* convert this back into the requested GeoSpatial format... */
-			node->hitGeoCoord_changed.c[0] = (double) node->hitPoint_changed.c[0];
-			node->hitGeoCoord_changed.c[1] = (double) node->hitPoint_changed.c[1];
-			node->hitGeoCoord_changed.c[2] = (double) node->hitPoint_changed.c[2];
+		node->hitGeoCoord_changed.c[0] = (double) node->hitPoint_changed.c[0];
+		node->hitGeoCoord_changed.c[1] = (double) node->hitPoint_changed.c[1];
+		node->hitGeoCoord_changed.c[2] = (double) node->hitPoint_changed.c[2];
 
-			/* then add in the nearPlane, as the way we get the position is via a clipped frustum */
-			/* if we get this via the position_changed field, we have to:
-				node->hitGeoCoord_changed.c[2] += nearPlane;
-			*/
+		/* then add in the nearPlane, as the way we get the position is via a clipped frustum */
+		/* if we get this via the position_changed field, we have to:
+			node->hitGeoCoord_changed.c[2] += nearPlane;
+		*/
+		if(!MAR12){
 			node->hitGeoCoord_changed.c[2] += Viewer()->nearPlane;
-			MARK_EVENT (ptr, offsetof(struct X3D_GeoTouchSensor, hitGeoCoord_changed));
+		}
+		MARK_EVENT (ptr, offsetof(struct X3D_GeoTouchSensor, hitGeoCoord_changed));
 
-			#ifdef SENSVERBOSE
-			printf ("\nhitGeoCoord_changed as a GCC, %lf %lf %lf\n",
-				node->hitGeoCoord_changed.c[0],
-				node->hitGeoCoord_changed.c[1],
-				node->hitGeoCoord_changed.c[2]);
-			#endif
-
+		#ifdef SENSVERBOSE
+		printf ("\nhitGeoCoord_changed as a GCC, %lf %lf %lf\n",
+			node->hitGeoCoord_changed.c[0],
+			node->hitGeoCoord_changed.c[1],
+			node->hitGeoCoord_changed.c[2]);
+		#endif
+		if(MAR12){
+			struct SFVec3d gcCoord;
+			Geosys *gs = GEOSYS(node->__geoSystem);
+			lcs2gc(gs,&node->hitGeoCoord_changed,1,&gcCoord);
+			gc2user(gs,&gcCoord,1,&node->hitGeoCoord_changed);
+			//vecprint3db("user",node->hitGeoCoord_changed.c,"\n");
+		}else{
 			//CONVERT_BACK_TO_GD_OR_UTM(node->hitGeoCoord_changed)
 			CONVERT_BACK_TO_GD_OR_UTMB(GEOSYS(node->__geoSystem), node->geoOrigin, &node->hitGeoCoord_changed);
+		}
 	}
 
 	/* have to normalize normal; change it from SFColor to struct point_XYZ. */

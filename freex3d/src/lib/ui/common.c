@@ -286,7 +286,7 @@ char *getMessageBar()
 double get_viewer_dist();
 char *getDistBar(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
-	snprintf(p->distbar, 10, "DIST %4f", (float)get_viewer_dist());
+	snprintf(p->distbar, 10, "D%8f", (float)get_viewer_dist()); //DIST %4f
 
 	return p->distbar;
 }

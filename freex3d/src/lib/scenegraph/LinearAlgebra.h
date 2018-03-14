@@ -295,10 +295,11 @@ GLDOUBLE* matrotate(GLDOUBLE* Result, double Theta, double x, double y, double z
 
 /*rotates dv back on iv*/
 double matrotate2v(GLDOUBLE* res, struct point_XYZ iv/*original*/, struct point_XYZ dv/*result*/);
+double matrotate2vd(GLDOUBLE* res, double * iv/*original*/, double * dv/*result*/);
 void rotate_v2v_axisAngled(double* axis, double* angle, double *orig, double *result);
 
 GLDOUBLE* mattranslate(GLDOUBLE* r, double dx, double dy, double dz);
-
+GLDOUBLE* matscale(GLDOUBLE* r, double sx, double sy, double sz);
 GLDOUBLE* matmultiply(GLDOUBLE* r, GLDOUBLE* m , GLDOUBLE* n);
 GLDOUBLE* matmultiplyFULL(GLDOUBLE* r, GLDOUBLE* m , GLDOUBLE* n);
 GLDOUBLE* matmultiplyAFFINE(GLDOUBLE* r, GLDOUBLE* m , GLDOUBLE* n);

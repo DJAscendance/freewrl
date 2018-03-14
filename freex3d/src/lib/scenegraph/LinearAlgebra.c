@@ -1016,6 +1016,18 @@ GLDOUBLE* mattranslate(GLDOUBLE* r, double dx, double dy, double dz)
     r[14] = dz;
     return r;
 }
+GLDOUBLE* matscale(GLDOUBLE* r, double sx, double sy, double sz)
+{
+
+    r[0] = r[5] = r[10] = r[15] =
+    r[1] = r[2] = r[3] = r[4] =
+	r[6] = r[7] = r[8] = r[9] =
+	r[11] = r[12] = r[13] =  r[14] = 0.0;
+	r[0] = sx;
+	r[5] = sy;
+	r[10] = sz;
+    return r;
+}
 
 GLDOUBLE* matmultiplyFULL(GLDOUBLE* r, GLDOUBLE* mm , GLDOUBLE* nn)
 {
@@ -1401,7 +1413,12 @@ double matrotate2v(GLDOUBLE* res, struct point_XYZ iv/*original*/, struct point_
     matrotate(res,a,cv.x,cv.y,cv.z);
     return a;
 }
-
+double matrotate2vd(GLDOUBLE* res, double * iv/*original*/, double * dv/*result*/) {
+	struct point_XYZ piv, pdv;
+	double2pointxyz(&piv,iv);
+	double2pointxyz(&pdv,dv);
+	return matrotate2v(res,piv,pdv);
+}
 
 #define SHOW_NONSINGULARS 0  //or 1 for noisy
 /****
