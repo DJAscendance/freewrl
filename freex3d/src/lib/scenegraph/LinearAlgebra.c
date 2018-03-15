@@ -496,6 +496,45 @@ struct point_XYZ* double2pointxyz(struct point_XYZ* r, double* p){
 	r->x = p[0]; r->y = p[1]; r->z = p[2];
 	return r;
 }
+double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat){
+	//takes a full affine matrix 
+	// and returns a pure rotation matrix
+	//could be used in background and/or billboard
+	//in freewrl terminology, an affine matrix has no perspectives (typical for modelview matrix):
+	//- perspectives are zero
+	//- has translations rotations, scale and shear
+	//- shear is not seen in web3d or very rare (an assymmetric offdiagonal); here we assume no shear
+	double sx,sy,sz, pp[3], q[3],p[3],d[3], matinv[16], matt[16], matr[16], mats[16];
+
+	//cancel / undo translation part
+	matinverseAFFINE(matinv,fullmat);
+	vecsetd(pp,0.0,0.0,0.0);
+	transformAFFINEd(pp,pp,matinv);
+	mattranslate(matt,pp[0],pp[1],pp[2]);
+	matmultiplyAFFINE(matr,matt,fullmat);
+
+	//cancel/undo scale part, so that our background mesh stays at radius 1.0
+	/* Get scale */
+	vecsetd(p,0.0,0.0,0.0);
+	transformAFFINEd(p,p,matr);
+	vecsetd(q,1.0,0.0,0.0);
+	transformAFFINEd(q,q,matr);
+	sx = 1.0/veclengthd(vecdifd(d,q,p));
+	vecsetd(q,0.0,1.0,0.0);
+	transformAFFINEd(q,q,matr);
+	vecdifd(d,q,p);
+	sy = 1.0/veclengthd(vecdifd(d,q,p));
+	vecsetd(q,0.0,0.0,1.0);
+	transformAFFINEd(q,q,matr);
+	sz = 1.0/veclengthd(vecdifd(d,q,p));
+	/* Undo the scale effects */
+	matscale(mats,sx,sy,sz);
+	matmultiplyAFFINE(rotmat,mats,matr);
+
+	//result should be pure rotation matrix (with possible rare shear)
+	return rotmat; //we return it too, in case you want to do fancy chain multiplication 
+}
+
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat){
 	// r = a x mat
 	struct point_XYZ pa, pr;

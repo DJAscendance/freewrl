@@ -121,71 +121,53 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 void proximity_Billboard (struct X3D_Billboard *node) {
 	/* printf ("prox_billboard, do nothing\n"); */
 }
-double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat){
-	//could be used in background and/or billboard
-	//takes an affine matrix (perspectives are zero, has translations rotations and scale)
-	// and returns a pure rotation matrix
-	double sx,sy,sz, pp[3], q[3],p[3],d[3], matinv[16], matt[16], matr[16], mats[16];
 
-	//cancel / undo translation part
-	matinverseAFFINE(matinv,fullmat);
-	vecsetd(pp,0.0,0.0,0.0);
-	transformAFFINEd(pp,pp,matinv);
-	mattranslate(matt,pp[0],pp[1],pp[2]);
-	matmultiplyAFFINE(matr,matt,fullmat);
-
-	//cancel/undo scale part, so that our background mesh stays at radius 1.0
-	/* Get scale */
-	vecsetd(p,0.0,0.0,0.0);
-	transformAFFINEd(p,p,matr);
-	vecsetd(q,1.0,0.0,0.0);
-	transformAFFINEd(q,q,matr);
-	sx = 1.0/veclengthd(vecdifd(d,q,p));
-	vecsetd(q,0.0,1.0,0.0);
-	transformAFFINEd(q,q,matr);
-	vecdifd(d,q,p);
-	sy = 1.0/veclengthd(vecdifd(d,q,p));
-	vecsetd(q,0.0,0.0,1.0);
-	transformAFFINEd(q,q,matr);
-	sz = 1.0/veclengthd(vecdifd(d,q,p));
-	/* Undo the scale effects */
-	matscale(mats,sx,sy,sz);
-	matmultiplyAFFINE(rotmat,mats,matr);
-
-	return rotmat; //we return it too, in case you want to do fancy chain multiplication 
-}
-#define MAR14 1
 void prep_Billboard (struct X3D_Billboard *node) {
-	if(MAR14){
-		double mod[16], modi[16], modb[16], modbi[16], axis[3];
+	if(1){
+		//Mar 14 2018 this works with geoViewpoint (GeoTouchSensorExampleB.x3d) and viewpoint (47.x3d)
+		double mod[16], modi[16], axis[3];
 		int align;
+
+		RECORD_DISTANCE
+
 		FW_GL_PUSH_MATRIX();
 		//to align with viewepoint, cancel/undo any rotations in modelview matrix
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
 		float2double(axis,node->axisOfRotation.c,3);
 		align = (APPROX(veclengthd(axis),0.0f));
-		matrixAFFINE2RotationMatrix(modb,mod);
-		matinverseAFFINE(modbi,modb);
 		if(align){
+			//axisOfRotation== (0,0,0) as per specs means full alignment with vp
+			// cancel/undo rotations of modelview matrix:
+			double modb[16], modbi[16];
+			matrixAFFINE2RotationMatrix(modb,mod);
+			matinverseAFFINE(modbi,modb);
 			FW_GL_TRANSFORM_D(modbi);
 		}else{
+			// normal axisOfRotation
+			//we calculate an additional swing matrix around the axisOfRotation
 			//1. get the position of the vp in billboard-local-coords = vpos
 			//2. cross axisOfRotation with vpos to get a perpendicular to both
 			//3. cross axisOfRotation with zvec to get a perpendicular to both
 			//4. get a rotation difference matrix between those 2 perrp vectors 
 			//5. modify modelview by subtracting off the difference rotation
 			double vpos[3], zvec[3], perpa[3], perpb[3], matr[16];
+			//calculate position of viewpoint vp in billboard-local coords: vpos
 			vecsetd(vpos,0.0,0.0,0.0);
-			vecsetd(zvec,0.0,0.0,1.0); //z axis in billboard-local system
 			matinverseAFFINE(modi,mod);
 			transformAFFINEd(vpos,vpos,modi);
 			vecnormald(vpos,vpos);
+			//z axis in billboard-local system zvec
+			vecsetd(zvec,0.0,0.0,1.0); 
+			//2 cross products
 			veccrossd(perpa,axis,vpos);
 			veccrossd(perpb,axis,zvec);
+			//swing matrix around axisOfRotation
 			matrotate2vd(matr,perpa,perpb);
 			FW_GL_TRANSFORM_D(matr);
 		}
 	}else{
+		// not sure why the old way looked at viewer Quat in case of axisOfRotation 0 0 0
+		// x didn't work with geoViewpoint
 		struct point_XYZ vpos, ax, cp, cp2, arcp;
 		static const struct point_XYZ orig = {0.0, 0.0, 0.0};
 		static const struct point_XYZ zvec = {0.0, 0.0, 1.0};

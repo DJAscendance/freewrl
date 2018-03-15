@@ -254,6 +254,7 @@ struct point_XYZ* transformAFFINE(struct point_XYZ* r, const struct point_XYZ* a
 GLDOUBLE* pointxyz2double(double* r, struct point_XYZ *p); /* instead of casting struct to array, this is more rigorous */
 struct point_XYZ* double2pointxyz(struct point_XYZ* r, double* p); /* ditto */
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat); /* same as transformAFFINE which is the same as transform() - just different parameter types */
+double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat);
 double *transformUPPER3X3d(double *r, double *a, const GLDOUBLE* mat);
 double *transformFULL4d(double *r4, double *a4, double *mat);
 

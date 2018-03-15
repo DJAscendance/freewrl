@@ -1248,6 +1248,9 @@ void render_prepped_Background(struct X3D_Background *node){
 		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
 		//we now need to cancel/undo the translation part 
 		// by moving the background back to where the vp is at 0,0,0
+		// see also:
+		// double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat);
+		// which I made from this code, but didn't have time to try here.
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
 		matinverseAFFINE(mvinv,mvmat);
 		vecsetd(pp,0.0,0.0,0.0);
