@@ -2472,7 +2472,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* work out how many triangles/quads we will have */
 	ntri = (nx && nz ? 2 * (nx-1) * (nz-1) : 0);
 	nquads = ntri/2;
-
+	//printf("nx %d nz %d nquads %d ntri %d\n",nx,nz,nquads,ntri);
 	/* check validity of input fields */
 	if(nh != nx * nz) {
 		if (nh > nx * nz) {
@@ -2489,11 +2489,11 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		return FALSE;
 	}
 
-    //printf ("checkX3DGeoElevationGrid - node->texCoord %p\n",node->texCoord);
-    
+	//printf ("checkX3DGeoElevationGrid - node->texCoord %p\n",node->texCoord);
+
 
 	/* any texture coordinates passed in? if so, DO NOT generate any texture coords here. */
-        if (!(node->texCoord)) {
+	if (!(node->texCoord)) {
 		/* allocate memory for texture coords */
 		FREE_IF_NZ(rep->GeneratedTexCoords[0]);
 
@@ -2515,7 +2515,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	node->_coordIndex.p = MALLOC (int *, sizeof(int) * nquads * 5);
 	cindexptr = node->_coordIndex.p;
 
-	node->_coordIndex.n = nquads * 5;
+	node->_coordIndex.n = nquads * 5; //H: 4 points and -1 to end the face
 	/* return the newpoints array to the caller */
 	*points = newpoints;
 	*npoints = node->_coordIndex.n;
@@ -2525,8 +2525,8 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	#endif
 
 	/* ElevationGrids go 1 - 2 - 3 - 4 we go 1 - 4 - 3 - 2 */
-    //printf ("GeoElevationGrids, nz %d, nx %d\n",nz,nx);
-    
+	//printf ("GeoElevationGrids, nz %d, nx %d\n",nz,nx);
+
 	for (j = 0; j < (nz -1); j++) {
 		for (i=0; i < (nx-1) ; i++) {
 			#ifdef VERBOSE
@@ -2554,7 +2554,6 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* if the texCoord node exists, let render_TextureCoordinate (or whatever the node is) do our work for us */
 	if (!(node->texCoord)) {
         //printf ("geoelevationgrid, doing %d x %d texture coords; tcoord %p\n",nz-1,nx-1,texcoord);
-        
 		for (j = 0; j < (nz -1); j++) {
 			for (i=0; i < (nx-1) ; i++) {
 				/* first triangle, 3 vertexes */
@@ -2580,29 +2579,29 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
 #else
 				/* first tri */
-/* 1 */				*texcoord = ((float) (i+0)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
-			
-/* 4 */				*texcoord = ((float) (i+1)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
+				*texcoord = ((float) (i+0)/(nx-1)); texcoord++; /* 1 */
+				*texcoord = ((float) (j+0)/(nz-1)); texcoord++; 
 
-/* 3 */				*texcoord = ((float) (i+1)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+1)/(nz-1)); texcoord ++; 
-	
+				*texcoord = ((float) (i+1)/(nx-1)); texcoord++; /* 4 */
+				*texcoord = ((float) (j+0)/(nz-1)); texcoord++; 
+
+				*texcoord = ((float) (i+1)/(nx-1)); texcoord++; /* 3 */
+				*texcoord = ((float) (j+1)/(nz-1)); texcoord++; 
+
 				/* second tri */
-/* 1 */				*texcoord = ((float) (i+0)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
+				*texcoord = ((float) (i+0)/(nx-1)); texcoord++; /* 1 */
+				*texcoord = ((float) (j+0)/(nz-1)); texcoord++; 
 
-/* 3 */				*texcoord = ((float) (i+1)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+1)/(nz-1)); texcoord ++; 
-	
-/* 2 */				*texcoord = ((float) (i+0)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+1)/(nz-1)); texcoord ++; 
+				*texcoord = ((float) (i+1)/(nx-1)); texcoord++; /* 3 */
+				*texcoord = ((float) (j+1)/(nz-1)); texcoord++; 
+
+				*texcoord = ((float) (i+0)/(nx-1)); texcoord++; /* 2 */
+				*texcoord = ((float) (j+1)/(nz-1)); texcoord++; 
 			
 #endif
 			}
 		}
-        //for (i=0; i<10; i++) printf ("geoele tc %d is %f\n",i,rep->GeneratedTexCoords[i]);
+		//for (i=0; i<10; i++) printf ("geoele tc %d is %f\n",i,rep->GeneratedTexCoords[i]);
 	}
 			
 	/* Render_Polyrep will use this number of triangles */
@@ -2614,7 +2613,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 	mOUT.n=0; mOUT.p = NULL;
 	gdCoords.n=0; gdCoords.p = NULL;
-
+	struct SFVec3d lastpoint, firstpoint;
 	/* make up a series of points, then go and convert them to local coords */
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
@@ -2641,6 +2640,8 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	
 				/* elevation, above geoid */
 				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2];
+				veccopyd(lastpoint.c,mIN.p[i+(j*nx)].c);
+				if(i==0 && j==0) veccopyd(firstpoint.c,mIN.p[i+(j*nx)].c);
 					//+ myHeightAboveEllip; 
 			} else {
 				/* nothing quite specified here - what do we really do??? */
@@ -2656,13 +2657,18 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		}
 	}
 	#ifdef VERBOSE
-	printf ("points before moving origin:\n");
+	vecprint3db("firstpoint",firstpoint.c,"\n");
+	vecprint3db(" lastpoint",lastpoint.c,"\n");
+	vecprint3db("nx*nz",mIN.p[nx*nz -1].c,"\n");
+	printf ("points before moving origin, lat, lon, height, index:\n");
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
-			printf ("	%lf %lf %lf # lat/long/height before MOVE, index %d\n",mIN.p[i+(j*nx)].c[0],
-				mIN.p[i+(j*nx)].c[1],mIN.p[i+(j*nx)].c[2],i+(j*nx));
+			int k = i+(j*nx);
+			printf ("	%lf %lf %lf %d\n",mIN.p[k].c[0],
+				mIN.p[k].c[1],mIN.p[k].c[2],k);
 
 		}
+		printf("\n");
 	}
 	#endif
 
@@ -2676,6 +2682,22 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
 		mOUT.n = mIN.n;
 		user2gc(gs,mIN.p,mIN.n,mOUT.p);
+		#ifdef VERBOSE
+		printf ("points in gc XYZ, index:\n");
+		for (j=0; j<nz; j++) {
+			for (i=0; i < nx; i++) {
+				double ci[3], co[3];
+				int k = i+(j*nx);
+				veccopyd(co,mOUT.p[k].c);
+				printf ("	%lf %lf %lf %d\n",co[0],co[1],co[2],k);
+				veccopyd(ci,mIN.p[k].c);
+				printf ("	%lf %lf %lf %d\n",ci[0],ci[1],ci[2],k);
+
+			}
+			printf("\n");
+		}
+		#endif
+
 		gc2lcs(gs,mOUT.p,mOUT.n,mOUT.p);
 
 	}else{
@@ -2746,24 +2768,27 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 	/* copy the resulting array back to the ElevationGrid */
 
-	#ifdef VERBOSE
-	printf ("points:\n");
-	#endif
-
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
-		/* copy this coordinate into our ElevationGrid array */
-		newpoints[0] = (float) mOUT.p[i+(j*nx)].c[0];
-		newpoints[1] = (float) mOUT.p[i+(j*nx)].c[1];
-		newpoints[2] = (float) mOUT.p[i+(j*nx)].c[2];
-
-		#ifdef VERBOSE
-		printf ("	%f %f %f # converted, index %d\n",newpoints[0],newpoints[1],newpoints[2],i+(j*nx));
-		#endif
-
-		newpoints += 3;
+			/* copy this coordinate into our ElevationGrid array */
+			int k = i+(j*nx);
+			double2float(newpoints,mOUT.p[k].c,3);
+			newpoints += 3;
 		}
 	}
+	#ifdef VERBOSE
+	printf ("points converted to mesh coords, xyz index:\n");
+	newpoints = rep->actualCoord;
+	for (j=0; j<nz; j++) {
+		for (i=0; i < nx; i++) {
+			/* copy this coordinate into our ElevationGrid array */
+			int k = i+(j*nx);
+			printf ("	%f %f %f %d\n",newpoints[0],newpoints[1],newpoints[2],k);
+			newpoints += 3;
+		}
+		printf("\n");
+	}
+	#endif //VERBOSE
 	FREE_MF_SF_TEMPS;
 	return TRUE;
 }

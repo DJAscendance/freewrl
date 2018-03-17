@@ -148,7 +148,7 @@ int checkX3DElevationGridFields (struct X3D_ElevationGrid *this_, float **points
 	}
 
 	/* any texture coordinates passed in? if so, DO NOT generate any texture coords here. */
-        if (!(this_->texCoord)) {
+	if (!(this_->texCoord)) {
 		/* allocate memory for texture coords */
 		FREE_IF_NZ(rep->GeneratedTexCoords[0]);
 
