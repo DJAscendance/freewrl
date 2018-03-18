@@ -753,34 +753,7 @@ void update_effect_uniforms();
 bool setupShaderB();
 void textureTransform_start();
 void reallyDraw();
-void prep_Shape(struct X3D_Node *node){
-	//geo geometry have a transform. But they are geom, so by the time you get to them,
-	// its too late to be pushing and popping matrices. Unless you do it just before
-	// child_shape and just after
-	struct X3D_Shape *s;
-	struct X3D_Virt *v;
-	
-	s = (struct X3D_Shape *)node;
-	if(s->geometry) {
-		v = virtTable[s->geometry->_nodeType];
-		if (v->prepShape) {
-			v->prepShape(s->geometry);
-		}
-	}
-}
-void fin_Shape(struct X3D_Node *node){
 
-	struct X3D_Shape *s;
-	struct X3D_Virt *v;
-	
-	s = (struct X3D_Shape *)node;
-	if(s->geometry) {
-		v = virtTable[s->geometry->_nodeType];
-		if (v->finShape) {
-			v->finShape(s->geometry);
-		}
-	}
-}
 
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
@@ -989,16 +962,9 @@ void child_Shape (struct X3D_Shape *node) {
 		//           Uniforms sent for lights
 		//----- glDrawArrays/glDrawElements
 		textureTransform_start();
-		//v = virtTable[tmpNG->_nodeType];
-		//if(v->prepShape) 
-		//	v->prepShape(tmpNG);
-		//prep_node(tmpNG);
 		setupShaderB();
 		render_node(tmpNG);
 		reallyDraw();
-		//if(v->finShape) 
-		//	v->finShape(tmpNG);
-		//fin_node(tmpNG);
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		textureTransform_end();

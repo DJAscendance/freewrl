@@ -491,7 +491,7 @@ void prep_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 
 void normalize_ifs_face (float *point_normal,
-                         struct point_XYZ *facenormals,
+                         struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
                          int *pointfaces,
                         int mypoint,
                         int curpoly,
@@ -856,6 +856,8 @@ void do_IntegerSequencer (void *node);
 void do_IntegerTrigger (void *node);
 void do_TimeTrigger (void *node);
 
+/* GeoSpatial event utility */
+void do_GeoConvert(void *node);
 
 #define ADD_PARENT(a,b) add_parent(a,b,__FILE__,__LINE__)
 //#define NODE_ADD_PARENT(a) ADD_PARENT(a,X3D_NODE(ptr))

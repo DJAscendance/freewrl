@@ -48,6 +48,7 @@ X3D Text Component
 #include "Component_Shape.h"
 #include "../scenegraph/Tess.h"
 #include "../scenegraph/Polyrep.h"
+#include "../x3d_parser/Bindable.h"
 
 
 #ifdef _ANDROID

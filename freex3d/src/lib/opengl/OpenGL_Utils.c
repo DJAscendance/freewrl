@@ -3005,8 +3005,8 @@ static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	GLDOUBLE cx,cy,cz;
 	/* find the length of the line between the moved center and our current viewer position */
 	viewer = Viewer();
-	getCurrentPosInModel(FALSE);
-	calculateViewingSpeed(viewer);
+	getCurrentPosInModelB();
+	//calculateViewingSpeedB(viewer);
 	cx = viewer->currentPosInModel.x - node->__movedCoords.c[0];
 	cy = viewer->currentPosInModel.y - node->__movedCoords.c[1];
 	cz = viewer->currentPosInModel.z - node->__movedCoords.c[2];
@@ -3154,7 +3154,7 @@ static struct depth_slice depth_slices_three [] = {
 {1.e7, 1.01e11},
 };
 static struct depth_slice depth_slices_two [] = { 
-{1.e-1, 1.e4},
+{1.e-1, 1.05e4},
 {1.e4, 1.0e9 },
 };
 static struct depth_slice depth_slices_one [] = {
@@ -3233,6 +3233,43 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 		ConsoleMessage("depth slices: %d \n",n_depth_slices);
 	once = 1;
 }
+void calculateViewingDistIfJustBound(struct X3D_Node *vpnode, int layerid ){
+	if(Viewer()->doExamineModeDistanceCalculations){
+		float extent6[6];
+		struct X3D_Node* rn;
+
+		rn = rootNode();
+		if(rn) {
+			float scene_diameter, vpradius;
+			double MM[16];
+			float vpf[3], center[3], vpoffset[3];
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+			//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+			//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+			//compute scene diameter in vp space
+			// seems to work with 
+			// a) regular scene (townsite 1,2,3 as move away, and back)
+			// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+			// and no flutter when yawing viewpoint toward/away from planet
+			// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+			extent6f_copy(extent6,rn->_extent);
+			extent6f_mattransform4d(extent6,extent6,MM);
+			//include currently bound viewpoint in scene_diameter
+			vecset3f(vpf,0.0f,0.0f,0.0f); 
+			extent6f_get_center3f(extent6,center);
+			//extent6f_union_vec3f(extent6,vpf);
+			vecdif3f(vpoffset,center,vpf);
+			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+			vpradius = veclength3f(vpoffset);
+			printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
+			Viewer()->Dist = vpradius + scene_diameter;
+			//Viewer()->Dist = scene_diameter;
+			Viewer()->doExamineModeDistanceCalculations = FALSE;
+			
+		}
+	}
+}
+
 int get_n_depth_slices(){
 	return n_depth_slices;
 }
@@ -3796,6 +3833,14 @@ void fw_glPopMatrix(void) {
 //}
 //#undef POPMAT
 
+void fw_glTransformd(GLDOUBLE *mat) {
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+
+	//printf ("fw_glTranslated %lf %lf %lf\n",x,y,z);
+	//printf ("translated, currentMatrix %p\n",p->currentMatrix);
+	matmultiplyAFFINE(p->currentMatrix,mat,p->currentMatrix);
+ 	FW_GL_LOADMATRIX(p->currentMatrix);
+}
 
 void fw_glTranslated(GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
@@ -5492,6 +5537,7 @@ void startOfLoopNodeUpdates(void) {
 			struct X3D_Node *boundvp = vector_back(struct X3D_Node*,bstack->viewpoint);
 			update_renderFlag(boundvp, VF_Viewpoint);
 			calculateNearFarplanes(boundvp, bstack->layerId);
+			calculateViewingDistIfJustBound(boundvp,bstack->layerId);
 			//update_renderFlag(vector_back(struct X3D_Node*,
 			//	tg->Bindable.viewpoint_stack), VF_Viewpoint);
 			//calculateNearFarplanes(vector_back(struct X3D_Node*, tg->Bindable.viewpoint_stack));

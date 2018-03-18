@@ -94,6 +94,7 @@ our %defaultContainerType = (
 	GeoCoordinate 		=>["coord"],
 	GeoElevationGrid 	=>["geometry"],
 	GeoLocation 		=>["children"],
+	GeoPlanet 		=>["children"],
 	GeoLOD 			=>["children"],
 	GeoMetadata		=>["children"],
 	GeoOrigin 		=>["geoOrigin"],
@@ -355,11 +356,11 @@ our %defaultContainerType = (
 #	actually affect triangles/lines on the screen.
 #
 # All of these will have a render_xxx name associated with them.
-#	Background
-#	TextureBackground
 
 
 our %RendC = map {($_=>1)} qw/
+	Background
+	TextureBackground
 	Fog
 	Box
 	Cylinder
@@ -473,6 +474,7 @@ our %PrepC = map {($_=>1)} qw/
 	SpotLight
 	DirectionalLight
 	GeoLocation
+	GeoPlanet
 	GeoViewpoint
 	GeoTransform
 	CADAssembly
@@ -485,7 +487,6 @@ our %PrepC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape
 	EspduTransform
-	Shape
 /;
 
 #######################################################################
@@ -500,6 +501,7 @@ our %PrepC = map {($_=>1)} qw/
 
 our %FinC = map {($_=>1)} qw/
 	GeoLocation
+	GeoPlanet
 	Transform
 	Billboard
 	HAnimSite
@@ -514,31 +516,7 @@ our %FinC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape	
 	EspduTransform
-	Shape
 /;
-
-# PrepShape --
-#  like prep and fin, except its a shape node that has its own transformation
-#  for example geoShapes
-
-our %PrepShapeC = map {($_=>1)} qw/
-	GeoElevationGrid
-/;
-
-#######################################################################
-#######################################################################
-#######################################################################
-#
-# FinShape --
-#  like Fin, except for a shape that has its own transform, like geoShapes
-#
-#
-
-our %FinShapeC = map {($_=>1)} qw/
-	GeoElevationGrid
-/;
-
-
 
 #######################################################################
 #######################################################################
@@ -566,6 +544,7 @@ our %ChildC = map {($_=>1)} qw/
 	Transform
 	Anchor
 	GeoLocation
+	GeoPlanet
 	GeoTransform
 	Switch
 	CADLayer
@@ -629,9 +608,9 @@ our %CompileC = map {($_=>1)} qw/
 	Sphere
 	Teapot
 	GeoLocation
+	GeoPlanet
 	GeoCoordinate
 	GeoElevationGrid
-	GeoLocation
 	GeoLOD
 	GeoMetadata
 	GeoOrigin
@@ -1027,8 +1006,7 @@ our %ProfileC = map {($_=>1)} qw/
 # a listing of Geospatial Elipsoid keywords.
 #
 #
-
-our %GEOSpatialKeywordC = map {($_=>1)} qw/
+our %GEOEllipsoidKeywordC = map {($_=>1)} qw/
 	AA
 	AM
 	AN
@@ -1043,12 +1021,6 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	EE
 	EF
 	FA
-	GC
-	GCC
-	GCC
-	GD
-	GDC
-	GDC
 	HE
 	HO
 	ID
@@ -1056,11 +1028,22 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	KA
 	RF
 	SA
-	UTM
-	3TM
 	WD
 	WE
+/;
+
+our %GEOSpatialKeywordC = map {($_=>1)} qw/
+	GC
+	GD
+	UTM
+	3TM
 	WGS84
+	R
+	A
+	B
+	F
+	IF
+	P
 	coordinateSystem
 	copyright
 	dataFormat

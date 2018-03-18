@@ -1232,7 +1232,7 @@ void rayhit(float rat, float cx,float cy,float cz, float nx,float ny,float nz,
 	tg->RenderFuncs.hitPointDist = rat;
 	p->rayHit=p->rayph;
 #ifdef RENDERVERBOSE 
-//	printf ("Rayhit, hp.x y z: - %f %f %f rat %f hitPointDist %f\n",hp.x,hp.y,hp.z, rat, tg->RenderFuncs.hitPointDist);
+	printf ("Rayhit, hp.x y z: - %f %f %f hitPointDist %f %s\n",p->hp.x,p->hp.y,p->hp.z, rat, descr);
 #endif
 }
 
@@ -2140,6 +2140,7 @@ void *returnInterpolatorPointer (int nodeType) {
 		case NODE_IntegerTrigger: do_interp = do_IntegerTrigger; break;
 		case NODE_IntegerSequencer: do_interp = do_IntegerSequencer; break;
 		case NODE_TimeTrigger: do_interp = do_TimeTrigger; break;
+		case NODE_GeoConvert: do_interp = do_GeoConvert; break;
 		default:
 			do_interp = NULL;
 	}

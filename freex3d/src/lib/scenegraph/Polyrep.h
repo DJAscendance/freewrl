@@ -46,7 +46,7 @@ Polyrep ???
 int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex);
 
 int 
-IFS_face_normals(struct point_XYZ *facenormals,
+IFS_face_normals(struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 				 int *faceok,
 				 int *pointfaces,
 				 int faces,
@@ -57,7 +57,7 @@ IFS_face_normals(struct point_XYZ *facenormals,
 				 int ccw);
 
 void
-IFS_check_normal(struct point_XYZ *facenormals,
+IFS_check_normal(struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 				 int this_face,
 				 struct SFVec3f *points,
 				 int base,
@@ -77,7 +77,7 @@ Elev_Tri(int vertex_ind,
 		 int E,
 		 int NONORMALS,
 		 struct X3D_PolyRep *this_Elev,
-		 struct point_XYZ *facenormals,
+		 struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 		 int *pointfaces,
 		 int ccw);
 
@@ -103,7 +103,7 @@ void Extru_ST_map(
         int tcoordsize);
 
 void
-Extru_check_normal(struct point_XYZ *facenormals,
+Extru_check_normal(struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 				   int this_face,
 				   int dire,
 				   struct X3D_PolyRep *rep_,

@@ -56,18 +56,6 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	if (!renderstate()->render_vp) return;
 	viewer = Viewer();
 
-        /* printf ("prep_Viewpoint: vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-        render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision);  */
-
-
-	/*  printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-	 printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]); */
-
-	 
-
-	/* check the set_bind eventin to see if it is TRUE or FALSE */
-	/* code to perform binding is now in set_viewpoint. */
-
 	/* we will never get here unless we are told that we are active by the scene graph; actually
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
@@ -77,41 +65,13 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 								 // this test takes the first one (and helps exit render_node early around virt->children)
 
 
-		/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
-	
-
-		/* perform Viewpoint translations */
-		if (viewer->SLERPing) {
-
-			double tickFrac;
-			Quaternion slerpedDiff;
-
-			struct point_XYZ antipos;
-
-			/* printf ("slerping in togl, type %s\n", VIEWER_STRING(viewer_type)); */
-			tickFrac = (TickTime() - viewer->startSLERPtime)/viewer->transitionTime;
-
-			quaternion_slerp (&slerpedDiff,&viewer->startSLERPprepVPQuat,&viewer->prepVPQuat,tickFrac);
-
-			quaternion_togl(&slerpedDiff);
-
-			antipos.x = viewer->AntiPos.x * tickFrac + (viewer->startSLERPAntiPos.x * (1.0 - tickFrac));
-			antipos.y = viewer->AntiPos.y * tickFrac + (viewer->startSLERPAntiPos.y * (1.0 - tickFrac));
-			antipos.z = viewer->AntiPos.z * tickFrac + (viewer->startSLERPAntiPos.z * (1.0 - tickFrac));
-
-			FW_GL_TRANSLATE_D(-antipos.x, -antipos.y, -antipos.z);
-
-		} else {
-
-			//quaternion_togl(&viewer->prepVPQuat);
-			{
-				//dug9slerp  this fix works with a test file VP_set_orientation.x3d
-				Quaternion q3;
-				vrmlrot_to_quaternion(&q3,node->orientation.c[0],node->orientation.c[1],node->orientation.c[2],-node->orientation.c[3]);
-				quaternion_togl(&q3);
-			}
-			FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
+		{
+			//dug9slerp  this fix works with a test file VP_set_orientation.x3d
+			Quaternion q3;
+			vrmlrot_to_quaternion(&q3,node->orientation.c[0],node->orientation.c[1],node->orientation.c[2],-node->orientation.c[3]);
+			quaternion_togl(&q3);
 		}
+		FW_GL_TRANSLATE_D(-node->position.c[0],-node->position.c[1],-node->position.c[2]);
 
 		/* now, lets work on the Viewpoint fieldOfView */
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
@@ -133,22 +93,11 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 
 	if (!renderstate()->render_vp) return;
 
-	/* printf ("prep_OrthoViewpoint: vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-        render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision);  */
-
-
-	/*  printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-	 printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]); */
-
-	/* check the set_bind eventin to see if it is TRUE or FALSE */
-	/* code to perform binding is now in set_viewpoint. */
-
 	/* we will never get here unless we are told that we are active by the scene graph; actually
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
 	*/
 	
-	/* printf ("Component_Nav, found VP is %d, (%s)\n",node,node->description->strptr); */
 	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 	
@@ -163,10 +112,7 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 			for (ind=0; ind<4; ind++) {
 					Viewer()->orthoField[ind] = (double) node->fieldOfView.p[ind];
 			}
-			//Viewer()->ortho = TRUE;
 		}
-
-		// printf ("render_OrthoViewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); 
 	}
 }
 
@@ -177,77 +123,129 @@ void proximity_Billboard (struct X3D_Billboard *node) {
 }
 
 void prep_Billboard (struct X3D_Billboard *node) {
-	struct point_XYZ vpos, ax, cp, cp2, arcp;
-	static const struct point_XYZ orig = {0.0, 0.0, 0.0};
-	static const struct point_XYZ zvec = {0.0, 0.0, 1.0};
-	struct orient_XYZA viewer_orient;
-	GLDOUBLE mod[16];
-	GLDOUBLE proj[16];
-	int align;
-	double len, len2, angle;
-	int sign;
-
-	RECORD_DISTANCE
-
-	ax.x = node->axisOfRotation.c[0];
-	ax.y = node->axisOfRotation.c[1];
-	ax.z = node->axisOfRotation.c[2];
-	align = (APPROX(VECSQ(ax),0));
-
-	quaternion_to_vrmlrot(&(Viewer()->Quat),
-		&(viewer_orient.x), &(viewer_orient.y),
-		&(viewer_orient.z), &(viewer_orient.a));
-
-	FW_GL_PUSH_MATRIX();
-
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
-	if(0){
-		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
-		FW_GLU_UNPROJECT(orig.x, orig.y, orig.z, mod, proj, viewport, &vpos.x, &vpos.y, &vpos.z);
-	}
 	if(1){
-		//feature-AFFINE_GLU_UNPROJECT
-		double modi[16];
-		matinverseAFFINE(modi,mod);
-		transform(&vpos,&orig,modi);
+		//Mar 14 2018 this works with geoViewpoint (GeoTouchSensorExampleB.x3d) and viewpoint (47.x3d)
+		double mod[16], modi[16], axis[3];
+		int align;
+
+		RECORD_DISTANCE
+
+		FW_GL_PUSH_MATRIX();
+		//to align with viewepoint, cancel/undo any rotations in modelview matrix
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		float2double(axis,node->axisOfRotation.c,3);
+		align = (APPROX(veclengthd(axis),0.0f));
+		if(align){
+			//axisOfRotation== (0,0,0) as per specs means full alignment with vp
+			// cancel/undo rotations of modelview matrix:
+			double modb[16], modbi[16];
+			matrixAFFINE2RotationMatrix(modb,mod);
+			matinverseAFFINE(modbi,modb);
+			FW_GL_TRANSFORM_D(modbi);
+		}else{
+			// normal axisOfRotation
+			//we calculate an additional swing matrix around the axisOfRotation
+			//1. get the position of the vp in billboard-local-coords = vpos
+			//2. cross axisOfRotation with vpos to get a perpendicular to both
+			//3. cross axisOfRotation with zvec to get a perpendicular to both
+			//4. get a rotation difference matrix between those 2 perrp vectors 
+			//5. modify modelview by subtracting off the difference rotation
+			double vpos[3], zvec[3], perpa[3], perpb[3], matr[16];
+			//calculate position of viewpoint vp in billboard-local coords: vpos
+			vecsetd(vpos,0.0,0.0,0.0);
+			matinverseAFFINE(modi,mod);
+			transformAFFINEd(vpos,vpos,modi);
+			vecnormald(vpos,vpos);
+			//z axis in billboard-local system zvec
+			vecsetd(zvec,0.0,0.0,1.0); 
+			//2 cross products
+			veccrossd(perpa,axis,vpos);
+			veccrossd(perpb,axis,zvec);
+			//swing matrix around axisOfRotation
+			matrotate2vd(matr,perpa,perpb);
+			FW_GL_TRANSFORM_D(matr);
+		}
+	}else{
+		// not sure why the old way looked at viewer Quat in case of axisOfRotation 0 0 0
+		// x didn't work with geoViewpoint
+		struct point_XYZ vpos, ax, cp, cp2, arcp;
+		static const struct point_XYZ orig = {0.0, 0.0, 0.0};
+		static const struct point_XYZ zvec = {0.0, 0.0, 1.0};
+		struct orient_XYZA viewer_orient;
+		GLDOUBLE mod[16];
+		GLDOUBLE proj[16];
+		int align;
+		double len, len2, angle;
+		int sign;
+
+		RECORD_DISTANCE
+
+		ax.x = node->axisOfRotation.c[0];
+		ax.y = node->axisOfRotation.c[1];
+		ax.z = node->axisOfRotation.c[2];
+		align = (APPROX(VECSQ(ax),0));
+
+		viewer_fetch_LCS(Viewer());
+		quaternion_to_vrmlrot(&(Viewer()->Quat),
+			&(viewer_orient.x), &(viewer_orient.y),
+			&(viewer_orient.z), &(viewer_orient.a));
+
+		FW_GL_PUSH_MATRIX();
+
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		if(0){
+			FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+			FW_GLU_UNPROJECT(orig.x, orig.y, orig.z, mod, proj, viewport, &vpos.x, &vpos.y, &vpos.z);
+		}
+		if(1){
+			//feature-AFFINE_GLU_UNPROJECT
+			double modi[16];
+			matinverseAFFINE(modi,mod);
+			transform(&vpos,&orig,modi);
+		}
+		len = VECSQ(vpos);
+		if (APPROX(len, 0)) { return; }
+		VECSCALE(vpos, 1/sqrt(len));
+
+		if (align) {
+			ax.x = viewer_orient.x;
+			ax.y = viewer_orient.y;
+			ax.z = viewer_orient.z;
+		}
+
+		VECCP(ax, zvec, arcp);
+		len = VECSQ(arcp);
+		if (APPROX(len, 0)) { return; }
+
+		len = VECSQ(ax);
+		if (APPROX(len, 0)) { return; }
+		VECSCALE(ax, 1/sqrt(len));
+
+		VECCP(vpos, ax, cp); /* cp is now 90deg to both vector and axis */
+		len = sqrt(VECSQ(cp));
+		if (APPROX(len, 0)) {
+			FW_GL_ROTATE_RADIANS(-viewer_orient.a, ax.x, ax.y, ax.z);
+			return;
+		}
+		VECSCALE(cp, 1/len);
+
+		/* Now, find out angle between this and z axis */
+		VECCP(cp, zvec, cp2);
+
+		len2 = VECPT(cp, zvec); /* cos(angle) */
+		len = sqrt(VECSQ(cp2)); /* this is abs(sin(angle)) */
+
+		/* Now we need to find the sign first */
+		if (VECPT(cp, arcp) > 0) 
+		{ 
+			sign = -1; 
+		} else { 
+			sign = 1; 
+		}
+		angle = atan2(len2, sign*len);
+
+		FW_GL_ROTATE_RADIANS(angle, ax.x, ax.y, ax.z);
 	}
-	len = VECSQ(vpos);
-	if (APPROX(len, 0)) { return; }
-	VECSCALE(vpos, 1/sqrt(len));
-
-	if (align) {
-		ax.x = viewer_orient.x;
-		ax.y = viewer_orient.y;
-		ax.z = viewer_orient.z;
-	}
-
-	VECCP(ax, zvec, arcp);
-	len = VECSQ(arcp);
-	if (APPROX(len, 0)) { return; }
-
-	len = VECSQ(ax);
-	if (APPROX(len, 0)) { return; }
-	VECSCALE(ax, 1/sqrt(len));
-
-	VECCP(vpos, ax, cp); /* cp is now 90deg to both vector and axis */
-	len = sqrt(VECSQ(cp));
-	if (APPROX(len, 0)) {
-		FW_GL_ROTATE_RADIANS(-viewer_orient.a, ax.x, ax.y, ax.z);
-		return;
-	}
-	VECSCALE(cp, 1/len);
-
-	/* Now, find out angle between this and z axis */
-	VECCP(cp, zvec, cp2);
-
-	len2 = VECPT(cp, zvec); /* cos(angle) */
-	len = sqrt(VECSQ(cp2)); /* this is abs(sin(angle)) */
-
-	/* Now we need to find the sign first */
-	if (VECPT(cp, arcp) > 0) { sign = -1; } else { sign = 1; }
-	angle = atan2(len2, sign*len);
-
-	FW_GL_ROTATE_RADIANS(angle, ax.x, ax.y, ax.z);
 }
 
 void fin_Billboard (struct X3D_Billboard *node) {

@@ -53,6 +53,13 @@ void render_Background(struct X3D_Background *node);
 void render_TextureBackground(struct X3D_TextureBackground *node);
 
 void set_naviWidthHeightStep(double wid, double hei, double step) ;
+/* viewer dimentions (for collision detection) */
+struct sNaviInfo {
+        double width;
+        double height;
+        double step;
+};
+
 
 typedef struct bindablestack {
 	void *background;
@@ -63,8 +70,10 @@ typedef struct bindablestack {
 
 	double screenorientationmatrix[16];
 	double viewtransformmatrix[16];
+	double viewmatrix[16]; //everything, including posori, view, stereo offsets etc, snapshotted at rootnode level before renderhier
 	double posorimatrix[16];
 	double stereooffsetmatrix[2][16];
+	double backgroundmatrix[16]; //model matrix (root_to_node) for bound background
 	int isStereo; //temp
 	int iside;  //temp
 	int nodetype; //node_layer or node_layoutlayer, affects viewer init to ortho or viewpoint

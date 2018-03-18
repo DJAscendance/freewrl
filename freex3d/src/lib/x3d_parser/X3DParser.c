@@ -1746,7 +1746,6 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 	//int containerField;
 	int defNameIndex;
 	//int protoTableIndex;
-	char *protoname;
 	struct X3D_Proto *currentContext;
 	struct X3D_Node *node = NULL;
 	char pflagdepth;
@@ -1781,59 +1780,61 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 
 	pflagdepth = ciflag_get(currentContext->__protoFlags,0); //depth 0 we are deep inside protodeclare, depth 1 we are instancing live scenery
 
-	/* did we find the name? */
-	protoname = NULL;
-	if (nameIndex != INT_ID_UNDEFINED) {
-		protoname = atts[nameIndex];
-	} else {
-		ConsoleMessage ("\"ProtoInstance\" found, but field \"name\" not found!\n");
-	}
 
 
-	if(protoname){
-		if(isUSE){
-			//ConsoleMessage ("field \"USE\" not currently used in a ProtoInstance parse.. sorry");
-			char * defname = atts[defNameIndex]; //gets STRDUP();'d inside broto_store_DEF
+	if(isUSE){
+		//ConsoleMessage ("field \"USE\" not currently used in a ProtoInstance parse.. sorry");
+		char * defname = atts[defNameIndex]; //gets STRDUP();'d inside broto_store_DEF
 
-			fromDEFtable = broto_search_DEFname(currentContext,defname);
-			if (!fromDEFtable) {
-				ConsoleMessage ("Warning - line %d DEF name: \'%s\' not found",LINE,atts[i+1]);
-				ConsoleMessage("\n");
+		fromDEFtable = broto_search_DEFname(currentContext,defname);
+		if (!fromDEFtable) {
+			ConsoleMessage ("Warning - line %d DEF name: \'%s\' not found",LINE,atts[i+1]);
+			ConsoleMessage("\n");
+		} else {
+			#ifdef X3DPARSERVERBOSE
+			printf ("copying for field %s defName %s\n",atts[i], atts[i+1]);
+			#endif
+
+			/* if (fromDEFtable->_nodeType != fromDEFtable->_nodeType) { */
+			if (NODE_Proto != fromDEFtable->_nodeType) {
+				ConsoleMessage ("Warning, line %d DEF/USE mismatch, '%s', %s != %s", LINE,
+					atts[i+1],stringNodeType(fromDEFtable->_nodeType), stringNodeType (NODE_Proto));
 			} else {
+				/* Q. should thisNode.referenceCount be decremented or ??? */
+				char* containerfield;
+				node = fromDEFtable;
+				node->referenceCount++; //dug9 added but should???
+				//getNode(ud,TOP) = thisNode; 
 				#ifdef X3DPARSERVERBOSE
-				printf ("copying for field %s defName %s\n",atts[i], atts[i+1]);
+				printf ("successful copying for field %s defName %s\n",atts[i], atts[i+1]);
 				#endif
-
-				/* if (fromDEFtable->_nodeType != fromDEFtable->_nodeType) { */
-				if (NODE_Proto != fromDEFtable->_nodeType) {
-					ConsoleMessage ("Warning, line %d DEF/USE mismatch, '%s', %s != %s", LINE,
-						atts[i+1],stringNodeType(fromDEFtable->_nodeType), stringNodeType (NODE_Proto));
-				} else {
-					/* Q. should thisNode.referenceCount be decremented or ??? */
-					char* containerfield;
-					node = fromDEFtable;
-					node->referenceCount++; //dug9 added but should???
-					//getNode(ud,TOP) = thisNode; 
-					#ifdef X3DPARSERVERBOSE
-					printf ("successful copying for field %s defName %s\n",atts[i], atts[i+1]);
-					#endif
-					pushNode(ud,node);
-					containerfield = NULL;
-					for (i = 0; atts[i]; i += 2) {
-						if(!strcmp(atts[i],"containerField")) containerfield = atts[i+1];
-					}
-					if(containerfield) {
-						int builtinField = findFieldInFIELDNAMES(containerfield);
-						if(builtinField > INT_ID_UNDEFINED){
-							node->_defaultContainer = builtinField;
-						}
-					}
-					pushField(ud,NULL); //no particular default field
-					pushMode(ud,PARSING_PROTOINSTANCE_USE);
-					return;
+				pushNode(ud,node);
+				containerfield = NULL;
+				for (i = 0; atts[i]; i += 2) {
+					if(!strcmp(atts[i],"containerField")) containerfield = atts[i+1];
 				}
+				if(containerfield) {
+					int builtinField = findFieldInFIELDNAMES(containerfield);
+					if(builtinField > INT_ID_UNDEFINED){
+						node->_defaultContainer = builtinField;
+					}
+				}
+				pushField(ud,NULL); //no particular default field
+				pushMode(ud,PARSING_PROTOINSTANCE_USE);
+				return;
 			}
-		}else{
+		}
+	}else{
+		/* did we find the name? */
+		char *protoname;
+		protoname = NULL;
+		if (nameIndex != INT_ID_UNDEFINED) {
+			protoname = atts[nameIndex];
+		} else {
+			ConsoleMessage ("\"ProtoInstance\" found, but field \"name\" not found!\n");
+		}
+		if(protoname){
+
 			struct X3D_Proto *proto;
 			if( isAvailableBroto(protoname, currentContext , &proto))
 			{

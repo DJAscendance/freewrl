@@ -152,6 +152,7 @@ void fw_glLoadIdentity(void);
 void fw_glPushMatrix(void);
 void fw_glPopMatrix(void);
 void fw_glTranslated(GLDOUBLE a, GLDOUBLE b, GLDOUBLE c);
+void fw_glTransformd(GLDOUBLE *mat);
 void fw_glTranslatef(float a, float b, float c);
 void fw_glRotateRad (GLDOUBLE a, GLDOUBLE b, GLDOUBLE c, GLDOUBLE d);
 void fw_glRotated (GLDOUBLE a, GLDOUBLE b, GLDOUBLE c, GLDOUBLE d);

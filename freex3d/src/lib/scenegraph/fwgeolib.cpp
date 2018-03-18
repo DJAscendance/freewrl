@@ -29,6 +29,7 @@ void  Reverse (real lon0, real x, real y, real &lat, real &lon) const
 #include <GeographicLib/TransverseMercator.hpp>
 #include <GeographicLib/DMS.hpp>
 #include <GeographicLib/Utility.hpp>
+#include <GeographicLib/Geocentric.hpp>
 using namespace GeographicLib;
 
 extern "C" {
@@ -51,6 +52,27 @@ void fgeo_gd2tm(void *fgeo,double dlat, double dlon, double dlon0, double *easti
 	TMS->Forward(dlon0,dlat,dlon,dx,dy);
 	*easting = dx;
 	*northing = dy;
+}
+
+void * fgeo_initializeGC(double a, double f){
+	Geocentric * GC = new Geocentric(a, f);
+	return (void*)GC;
+}
+void fgeo_gc2gd(void *fgeo,double X, double Y, double Z, double *dlat, double *dlon, double *dh){
+	double ddlat, ddlon, ddh;
+	Geocentric * GC = (Geocentric *)fgeo;
+	GC->Reverse(X,Y,Z,ddlat,ddlon,ddh);
+	*dlat = ddlat;
+	*dlon = ddlon;
+	*dh = ddh;
+}
+void fgeo_gd2gc(void *fgeo, double dlat, double dlon, double dh, double *X, double *Y, double *Z){
+	double dx, dy, dz;
+	Geocentric * GC = (Geocentric *)fgeo;
+	GC->Forward(dlat, dlon, dh, dx,dy,dz);
+	*X = dx;
+	*Y = dy;
+	*Z = dz;
 }
 
 

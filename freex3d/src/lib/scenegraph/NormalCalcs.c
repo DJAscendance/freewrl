@@ -45,7 +45,7 @@ void fwnorprint (float *norm) {
 }
 
 void normalize_ifs_face (float *point_normal,
-			 struct point_XYZ *facenormals,
+			 struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 			 int *pointfaces,
 			int mypoint,
 			int curpoly,
@@ -65,7 +65,7 @@ void normalize_ifs_face (float *point_normal,
 	int tmp_a;
 	int tmp_b;
 	float zz;
-	struct point_XYZ temp;
+	//struct point_XYZ temp;
     bool foundInOtherFaces = false;
 
 	point_normal[0] = 0.0f; point_normal[1] = 0.0f; point_normal[2] = 0.0f;
@@ -75,9 +75,10 @@ void normalize_ifs_face (float *point_normal,
 
 	/* short cut for a point in only 1 face */
 	if (pointfaces[mypoint*POINT_FACES] == 1) {
-		point_normal[0]=(float) facenormals[curpoly].x;
-		point_normal[1]=(float) facenormals[curpoly].y;
-		point_normal[2]=(float) facenormals[curpoly].z;
+		//point_normal[0]=(float) facenormals[curpoly].x;
+		//point_normal[1]=(float) facenormals[curpoly].y;
+		//point_normal[2]=(float) facenormals[curpoly].z;
+		veccopy3f(point_normal,facenormals[curpoly].c);
         	//printf ("normalize_ifs_face: quick return normalized vector is %f %f %f\n",point_normal[0], point_normal[1], point_normal[2]);
 		return;
 	}
@@ -90,7 +91,7 @@ void normalize_ifs_face (float *point_normal,
 		if (curpoly == tmp_a) {
 			zz = 0.0f;
 		} else {
-			zz = calc_angle_between_two_vectors(facenormals[curpoly],facenormals[tmp_a] );
+			zz = calc_angle_between_two_vectors3f(facenormals[curpoly].c,facenormals[tmp_a].c );
 		}
 		 //printf ("angle between faces is %f, creaseAngle is %f\n",zz,creaseAngle);
 
@@ -98,22 +99,25 @@ void normalize_ifs_face (float *point_normal,
 		if (zz <= creaseAngle) {
 			//printf ("count this one in; adding %f %f %f\n",facenormals[tmp_a].x,facenormals[tmp_a].y,facenormals[tmp_a].z);
             		foundInOtherFaces = true;
-			point_normal[0] += (float) facenormals[tmp_a].x;
-			point_normal[1] += (float) facenormals[tmp_a].y;
-			point_normal[2] += (float) facenormals[tmp_a].z;
+			//point_normal[0] += (float) facenormals[tmp_a].x;
+			//point_normal[1] += (float) facenormals[tmp_a].y;
+			//point_normal[2] += (float) facenormals[tmp_a].z;
+			vecadd3f(point_normal,point_normal,facenormals[tmp_a].c);
 		}
 	}
     
     // do we have to average this one, or should we just return our original normal?
     if (foundInOtherFaces) {
-        temp.x = point_normal[0]; temp.y=point_normal[1]; temp.z=point_normal[2];
-        normalize_vector(&temp);
-        point_normal[0]=(float) temp.x; point_normal[1]=(float) temp.y; point_normal[2]=(float) temp.z;
+        //temp.x = point_normal[0]; temp.y=point_normal[1]; temp.z=point_normal[2];
+        //normalize_vector(&temp);
+        //point_normal[0]=(float) temp.x; point_normal[1]=(float) temp.y; point_normal[2]=(float) temp.z;
+		vecnormalize3f(point_normal,point_normal);
     } else {
         //printf ("false alarm - just copy original over");
-        point_normal[0]=(float) facenormals[curpoly].x;
-		point_normal[1]=(float) facenormals[curpoly].y;
-		point_normal[2]=(float) facenormals[curpoly].z;
+  //      point_normal[0]=(float) facenormals[curpoly].x;
+		//point_normal[1]=(float) facenormals[curpoly].y;
+		//point_normal[2]=(float) facenormals[curpoly].z;
+		veccopy3f(point_normal,facenormals[curpoly].c);
     }
 
 	//printf ("normalize_ifs_face: normalized vector is %f %f %f\n",point_normal[0], point_normal[1], point_normal[2]);

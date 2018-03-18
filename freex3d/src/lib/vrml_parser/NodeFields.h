@@ -931,6 +931,16 @@ EXPOSED_FIELD(GeneratedCubeMapTexture,update,sfstring,update,FIELDTYPE_SFString,
 FIELD(GeneratedCubeMapTexture,size,sfint32,size,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(GeneratedCubeMapTexture)
 
+/* GeoConvert node */
+BEGIN_NODE(GeoConvert)
+EVENT_IN(GeoConvert,set_geoCoords,sfvec3d,set_geoCoords,FIELDTYPE_SFVec3d)
+EVENT_IN(GeoConvert,set_gcCoords,sfvec3d,set_gcCoords,FIELDTYPE_SFVec3d)
+FIELD(GeoConvert,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(GeoConvert,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EVENT_OUT(GeoConvert,gcCoords_changed,sfvec3d,gcCoords_changed,FIELDTYPE_SFVec3d)
+EVENT_OUT(GeoConvert,geoCoords_changed,sfvec3d,geoCoords_changed,FIELDTYPE_SFVec3d)
+END_NODE(GeoConvert)
+
 /* GeoCoordinate node */
 BEGIN_NODE(GeoCoordinate)
 EXPOSED_FIELD(GeoCoordinate,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -992,6 +1002,7 @@ FIELD(GeoLocation,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoLocation,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoLocation,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 FIELD(GeoLocation,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
+FIELD(GeoLocation,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool,0)
 END_NODE(GeoLocation)
 
 /* GeoMetadata node */
@@ -1009,6 +1020,18 @@ FIELD(GeoOrigin,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 EXPOSED_FIELD(GeoOrigin,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoOrigin,rotateYUp,sfbool,rotateYUp,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(GeoOrigin)
+
+/* GeoPlanet node */
+BEGIN_NODE(GeoPlanet)
+EVENT_IN(GeoPlanet,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
+EVENT_IN(GeoPlanet,removeChildren,mfnode,removeChildren,FIELDTYPE_MFNode)
+EXPOSED_FIELD(GeoPlanet,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+EXPOSED_FIELD(GeoPlanet,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoPlanet,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
+FIELD(GeoPlanet,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
+EXPOSED_FIELD(GeoPlanet,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeoPlanet,planetId,sfint32,planetId,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GeoPlanet)
 
 /* GeoPositionInterpolator node */
 BEGIN_NODE(GeoPositionInterpolator)
@@ -1091,6 +1114,7 @@ FIELD(GeoViewpoint,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoViewpoint,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoViewpoint,speedFactor,sffloat,speedFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EVENT_IN(GeoViewpoint,retainUserOffsets,sfbool,retainUserOffsets,FIELDTYPE_SFBool)
+FIELD(GeoViewpoint,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool,0)
 END_NODE(GeoViewpoint)
 
 /* Group node */

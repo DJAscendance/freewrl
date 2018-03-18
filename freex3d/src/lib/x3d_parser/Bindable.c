@@ -199,7 +199,7 @@ void set_naviWidthHeightStep(double wid, double hei, double step) {
 	p->naviinfo.height = hei;
 	p->naviinfo.step = step;
 
-	/* printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer.speed); */
+	//printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer()->speed); 
 
 }
 
@@ -759,7 +759,7 @@ static void moveBackgroundCentre () {
 		FW_GL_TRANSLATE_D(p.x,p.y,p.z);
 		//printf("moveBackground new T %f %f %f \n",p.x,p.y,p.z);
 		//LIGHTING_OFF
-		if(0){ //jan 2018
+		if(1){ //jan 2018
 		/* Get scale */
 		q = p;
 		q.x += 1.0;
@@ -775,7 +775,8 @@ static void moveBackgroundCentre () {
 		sz = 1.0/sqrt( q.x*q.x + q.y*q.y + q.z*q.z );
 		}
 		/* Undo the translation and scale effects */
-		// dug9 jan 2018: if(0)		FW_GL_SCALE_D(sx,sy,sz);
+		// dug9 jan 2018: if(0)		
+		FW_GL_SCALE_D(sx,sy,sz);
 		//printf("moveBackground new T %f %f %f new S %f %f %f\n",x,y,z,sx,sy,sz);
 		//printf("\n");
 	}
@@ -1056,6 +1057,37 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	}
 }
 void reallyDraw();
+void render_Background(struct X3D_Background *node){
+	if (renderstate()->render_blend) return;
+	if(!node->isBound) return;
+	{
+		//we need the model matrix - between root node and background - to capture any scene authored background tilts
+		double viewi[16], mat[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+
+		bstack = getActiveBindableStacks(tg);
+		matinverseAFFINE(viewi,bstack->viewmatrix);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+	}
+
+}
+void render_TextureBackground(struct X3D_TextureBackground *node){
+	if (renderstate()->render_blend) return;
+	if(!node->isBound) return;
+	{
+		//we need the model matrix - between root node and background - to capture any scene authored background tilts
+		double viewi[16], mat[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+
+		bstack = getActiveBindableStacks(tg);
+		matinverseAFFINE(viewi,bstack->viewmatrix);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+	}
+}
 void render_Background_OLD (struct X3D_Background *node) {
 	ttglobal tg = gglobal();
     
@@ -1200,10 +1232,49 @@ void render_prepped_Background(struct X3D_Background *node){
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
 
-	if(1){
+	if(0){
 		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
 		moveBackgroundCentre();
-	}else{
+	}else if(1){
+		//March 2018 - this re-allows scene-file authored tilts to the background like other browsers
+		// <Transform> <Background> </Transform> - tilts captured in render_Background
+		// which we broke a few months ago
+		double pp[3], mvmat[16], mvinv[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+		bstack = getActiveBindableStacks(tg);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
+		//we now need to cancel/undo the translation part 
+		// by moving the background back to where the vp is at 0,0,0
+		// see also:
+		// double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat);
+		// which I made from this code, but didn't have time to try here.
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
+		matinverseAFFINE(mvinv,mvmat);
+		vecsetd(pp,0.0,0.0,0.0);
+		transformAFFINEd(pp,pp,mvinv);
+		FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+		if(1){ 
+			//cancel/undo scale part, so that our background mesh stays at radius 1.0
+			double sx,sy,sz, q[3],p[3],d[3];
+			/* Get scale */
+			vecsetd(p,0.0,0.0,0.0);
+			transformAFFINEd(p,p,mvmat);
+			vecsetd(q,1.0,0.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sx = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,1.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sy = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,0.0,1.0);
+			transformAFFINEd(q,q,mvmat);
+			sz = 1.0/veclengthd(vecdifd(d,q,p));
+			/* Undo the scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+		}
+	}else if(0){
 		//instead of transforming back to viewpoint, can we just replace transform top-of-stack with identity?
 		//benefit: good for diagnosing background problems: near/far plane vs offset
 		//problem: then the horizon (or orientation with texture background)- doesn't change with a tilt (or yaw) 
@@ -1246,53 +1317,8 @@ void render_prepped_Background(struct X3D_Background *node){
 	}else{
 		//alternately we can replace the perspective transform, or scale the depth range
 		GLclampd znear, zfar;
-		if(0){
-			//float params[6];
-			//glGetFloatv(GL_DEPTH_RANGE,params);
-			//printf("glDepthRange before hacking = ");
-			//for(int i=0;i<2;i++) printf("%f ",params[i]);
-			//printf("\n");
-			//glDepthRange(.1,1.0);
-			//glGetFloatv(GL_DEPTH_RANGE,params);
-			//printf("glDepthRange after hacking = ");
-			//for(int i=0;i<2;i++) printf("%f ",params[i]);
-			//printf("\n");
-
-		}else{
-			if(0){
-				//scale bg (don't need if your new z range perspective covers sphere radius 1 and box size 2
-				bgscale = 10000.0;
-				FW_GL_MATRIX_MODE(GL_MODELVIEW);
-				FW_GL_SCALE_D (bgscale, bgscale, bgscale);
-			}
-			if(0){
-				FW_GL_MATRIX_MODE(GL_PROJECTION);
-				FW_GL_PUSH_MATRIX();
-				FW_GL_LOAD_IDENTITY();
-
-				//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-				fw_gluPerspective_2(0.0,45.0, 1.3769063181, .1,100.0);
-				FW_GL_MATRIX_MODE(GL_MODELVIEW);
-			}else if(0){
-				FW_GL_MATRIX_MODE(GL_PROJECTION);
-				FW_GL_PUSH_MATRIX();
-				double nearPlane,farPlane;
-				nearPlane = viewer->nearPlane;
-				farPlane = viewer->farPlane;
-				viewer->nearPlane = .1;
-				viewer->farPlane = 100.0;
-				setup_projection();
-				viewer->nearPlane = nearPlane;
-				viewer->farPlane = farPlane;
-			}else{
-				fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
-			}
-
-
-			//glClear(GL_DEPTH);
-		}
+		fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
 		didPerspective = TRUE;
-
 	}
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -1335,17 +1361,7 @@ void render_prepped_Background(struct X3D_Background *node){
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	if(didPerspective){
-		if(0){
-			//glDepthRange(viewer->nearPlane, viewer->farPlane);
-		}else{
-			if(0){
-				FW_GL_MATRIX_MODE(GL_PROJECTION);
-				FW_GL_POP_MATRIX();
-				FW_GL_MATRIX_MODE(GL_MODELVIEW);
-			}else{
-				fw_depth_slice_pop();
-			}
-		}
+		fw_depth_slice_pop();
 	}
 		
 	FW_GL_POP_MATRIX();
@@ -1444,6 +1460,7 @@ void render_TextureBackground_OLD (struct X3D_TextureBackground *node) {
 //}
 void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	double bgscale;
+	int didPerspective;
 	X3D_Viewer *viewer = Viewer();
 	ttglobal tg = gglobal();
 
@@ -1451,7 +1468,46 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
-	moveBackgroundCentre();
+	if(0){
+		moveBackgroundCentre();
+	}else if(1){
+		//March 2018 - this re-allows scene-file authored tilts to the background like other browsers
+		// <Transform> <Background> </Transform> - tilts captured in render_Background
+		// which we broke a few months ago
+		double pp[3], mvmat[16], mvinv[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+		bstack = getActiveBindableStacks(tg);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
+		//we now need to cancel/undo the translation part 
+		// by moving the background back to where the vp is at 0,0,0
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
+		matinverseAFFINE(mvinv,mvmat);
+		vecsetd(pp,0.0,0.0,0.0);
+		transformAFFINEd(pp,pp,mvinv);
+		FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+		if(1){ 
+			//cancel/undo scale part, so that our background mesh stays at diameter 1.0
+			double sx,sy,sz, q[3],p[3],d[3];
+			/* Get scale */
+			vecsetd(p,0.0,0.0,0.0);
+			transformAFFINEd(p,p,mvmat);
+			vecsetd(q,1.0,0.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sx = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,1.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sy = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,0.0,1.0);
+			transformAFFINEd(q,q,mvmat);
+			sz = 1.0/veclengthd(vecdifd(d,q,p));
+			/* Undo the scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+		}
+	}
+
 
 	if  NODE_NEEDS_COMPILING
 		/* recalculateBackgroundVectors will determine exact node type */
@@ -1460,9 +1516,18 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
 	   all geometry fits within the spheres */
 	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
-	bgscale = 1.0;
-	if( viewer->nearPlane > bgscale) bgscale = viewer->nearPlane;
-	FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+	didPerspective = FALSE;
+
+	if(0){
+		bgscale = 1.0;
+		if( viewer->nearPlane > bgscale) bgscale = viewer->nearPlane;
+		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+	}else{
+		//alternately we can replace the perspective transform, or scale the depth range
+		GLclampd znear, zfar;
+		fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
+		didPerspective = TRUE;
+	}
 
 	glDisable(GL_DEPTH_TEST);
 
@@ -1498,6 +1563,9 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 
 	}
 	glEnable(GL_DEPTH_TEST);
+	if(didPerspective){
+		fw_depth_slice_pop();
+	}
 
 	/* pushes are done in moveBackgroundCentre */
 	FW_GL_POP_MATRIX();

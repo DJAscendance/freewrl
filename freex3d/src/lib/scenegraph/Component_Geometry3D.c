@@ -47,6 +47,7 @@ X3D Geometry 3D Component
 #include "Polyrep.h"
 #include "LinearAlgebra.h"
 #include "Component_Geometry3D.h"
+#include "../x3d_parser/Bindable.h"
 
 
 /* used for vertices for VBOs. Note the tc coordinate... */

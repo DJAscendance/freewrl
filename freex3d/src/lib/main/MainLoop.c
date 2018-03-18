@@ -5967,8 +5967,8 @@ void set_viewmatrix0(int iplace) {
 			matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
 		}
 		matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
-		matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
-		fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+		matmultiplyAFFINE(bstack->viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
+		fw_glSetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 }
 void set_viewmatrix() {
 	set_viewmatrix0(0);

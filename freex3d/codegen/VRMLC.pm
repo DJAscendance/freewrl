@@ -93,7 +93,7 @@ sub gen_struct {
 sub get_rendfunc {
 	my($n) = @_;
 	# XXX
-	my @f = qw/Prep Rend Child Fin RendRay GenPolyRep Proximity Other Collision Compile PrepShape FinShape/;
+	my @f = qw/Prep Rend Child Fin RendRay GenPolyRep Proximity Other Collision Compile/;
 	my $comma = "";
 	my $v = "\n";
 
@@ -172,11 +172,7 @@ sub get_rendfunc {
 				}
 			} elsif ($_ eq "Compile") {
 				$v .= $comma."void compile_".${n}."(struct X3D_".${n}." *);\n";
-			} elsif ($_ eq "PrepShape") {
-				$v .= $comma."void prepShape_".${n}."(struct X3D_".${n}." *);\n";
-			} elsif ($_ eq "FinShape") {
-				$v .= $comma."void finShape_".${n}."(struct X3D_".${n}." *);\n";
-			}
+			} 
 		}
 	}
 
@@ -213,10 +209,6 @@ sub get_rendfunc {
 				$v .= $comma."(void *)rendray_".${n};
 			} elsif ($_ eq "Compile") {
 				$v .= $comma."(void *)compile_".${n};
-			} elsif ($_ eq "PrepShape") {
-				$v .= $comma."(void *)prepShape_".${n};
-			} elsif ($_ eq "FinShape") {
-				$v .= $comma."(void *)finShape_".${n};
 			} else {
 				$v .= $comma."${n}_$_";
 			}
@@ -851,7 +843,37 @@ sub gen {
 
 
 	#####################
+	# process GEOELLIPSOID keywords
+	
+	push @str, "\n/* Table of built-in GEOELLIPSOID keywords */\nextern const char *GEOELLIPSOID[];\n";
+	push @str, "extern const int GEOELLIPSOID_COUNT;\n";
+
+	push @genFuncs1, "\n/* Table of GEOELLIPSOID keywords */\n       const char *GEOELLIPSOID[] = {\n";
+
+        @sf = sort keys %VRML::Rend::GEOEllipsoidKeywordC if %VRML::Rend::GEOEllipsoidKeywordC;
+	$keywordIntegerType = 0;
+	for (@sf) {
+		# print "node $_ is tagged as $nodeIntegerType\n";
+		# tag each node type with a integer key.
+		push @str, "#define GEOEL_".$_."	$keywordIntegerType\n";
+		$keywordIntegerType ++;
+		push @genFuncs1, "	\"$_\",\n";
+	}
+	push @str, "\n";
+	push @genFuncs1, "};\nconst int GEOELLIPSOID_COUNT = ARR_SIZE(GEOELLIPSOID);\n\n";
+
+	# make a function to print Keyword name from an integer type.
+	push @genFuncs2, "/* Return a pointer to a string representation of the GEOELLIPSOID keyword type */\n".
+		"const char *stringGEOELLIPSOIDType (int st) {\n".
+		"	if ((st < 0) || (st >= GEOELLIPSOID_COUNT)) return \"(keyword invalid)\"; \n".
+		"	return GEOELLIPSOID[st];\n}\n\n";
+	push @str, "const char *stringGEOELLIPSOIDType(int st);\n";
+	
+	
+	#####################
 	# process GEOSPATIAL keywords
+	
+	
 	push @str, "\n/* Table of built-in GEOSPATIAL keywords */\nextern const char *GEOSPATIAL[];\n";
 	push @str, "extern const int GEOSPATIAL_COUNT;\n";
 
@@ -1609,8 +1631,6 @@ struct X3D_Virt {
 	void (*other)(void *);
 	void (*collision)(void *);
 	void (*compile)(void *, void *, void *, void *, void *, void *);
-	void (*prepShape)(void *);
-	void (*finShape)(void *);
 };
 
 /* a string is stored as a pointer, and a length of that mallocd pointer */
@@ -1656,13 +1676,6 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLfloat transparency;		/* what the transparency value was during compile, put in color array if RGBA colors */
 	int isRGBAcolorNode;		/* color was originally an RGBA, DO NOT re-write if transparency changes */
 	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
-};
-
-/* viewer dimentions (for collision detection) */
-struct sNaviInfo {
-        double width;
-        double height;
-        double step;
 };
 
 ';
