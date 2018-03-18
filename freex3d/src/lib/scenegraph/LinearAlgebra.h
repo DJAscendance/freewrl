@@ -159,7 +159,7 @@ GLDOUBLE vecnormal(struct point_XYZ*r, struct point_XYZ* v);
 #define normalize_vector(pt) vecnormal(pt,pt)
 
 float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b);
-
+float calc_angle_between_two_vectors3f(float * a, float * b);
 double vecangle(struct point_XYZ* V1, struct point_XYZ* V2);
 
 

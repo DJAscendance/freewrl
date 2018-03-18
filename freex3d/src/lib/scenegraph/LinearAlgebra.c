@@ -345,7 +345,19 @@ float *veccopy4f(float *b, float *a)
 	b[3] = a[3];
 	return b;
 }
-
+float calc_angle_between_two_vectors3f(float * a, float * b){
+	//scalar angle between 2 vectors (doesn't say which way on a great circle)
+	float an[3], bn[3], dotf, anglef, flen;
+	flen = veclength3f(a);
+	if(flen <= 0.0f) return 0.0f;
+	flen = veclength3f(b);
+	if(flen <= 0.0f) return 0.0f;
+	vecnormalize3f(an,a);
+	vecnormalize3f(bn,b);
+	dotf = vecdot3f(an,bn);
+	anglef = acos(dotf);
+	return anglef;
+}
 float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b)
 {
     float length_a, length_b, scalar, temp;

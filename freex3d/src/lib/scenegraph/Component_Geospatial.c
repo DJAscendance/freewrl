@@ -2617,7 +2617,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* make up a series of points, then go and convert them to local coords */
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
-		
+			int k = i+(j*nx);
 			#ifdef VERBOSE
 		 	printf ("		%lf %lf %lf # (hei ind %d) point [%d, %d]\n",
 				xSp * i,
@@ -2633,23 +2633,23 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 				/* GD - give it to em in Latitude/Longitude/Elevation order */
 				/* UTM- or give it to em in Northing/Easting/Elevation order */
 				/* latitude - range of -90 to +90 */
-				mIN.p[i+(j*nx)].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
+				mIN.p[k].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
 	
 				/* longitude - range -180 to +180, or 0 to 360 */
-				mIN.p[i+(j*nx)].c[1] =xSp * i + node->geoGridOrigin.c[1];
+				mIN.p[k].c[1] =xSp * i + node->geoGridOrigin.c[1];
 	
 				/* elevation, above geoid */
-				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2];
-				veccopyd(lastpoint.c,mIN.p[i+(j*nx)].c);
-				if(i==0 && j==0) veccopyd(firstpoint.c,mIN.p[i+(j*nx)].c);
+				mIN.p[k].c[2] = (height[k] *(node->yScale)) + node->geoGridOrigin.c[2];
+				veccopyd(lastpoint.c,mIN.p[k].c);
+				if(i==0 && j==0) veccopyd(firstpoint.c,mIN.p[k].c);
 					//+ myHeightAboveEllip; 
 			} else {
 				/* nothing quite specified here - what do we really do??? */
-				mIN.p[i+(j*nx)].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
+				mIN.p[k].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
 	
-				mIN.p[i+(j*nx)].c[1] =xSp * i + node->geoGridOrigin.c[1];
+				mIN.p[k].c[1] =xSp * i + node->geoGridOrigin.c[1];
 	
-				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2];
+				mIN.p[k].c[2] = (height[k] *(node->yScale)) + node->geoGridOrigin.c[2];
 					//+ myHeightAboveEllip; 
 
 			}

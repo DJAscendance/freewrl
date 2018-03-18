@@ -54,9 +54,11 @@
  *
  *******************************************/
 
-extern void Elev_Tri (int vertex_ind,int this_face,int A,int D,int E,int NONORMALS,struct X3D_PolyRep *this_Elev,struct point_XYZ *facenormals,int *pointfaces,int ccw);
+//extern void Elev_Tri (int vertex_ind,int this_face,int A,int D,int E,int NONORMALS,struct X3D_PolyRep *this_Elev,struct point_XYZ *facenormals,int *pointfaces,int ccw);
+extern void Elev_Tri (int vertex_ind,int this_face,int A,int D,int E,int NONORMALS,struct X3D_PolyRep *this_Elev,struct SFVec3f *facenormals,int *pointfaces,int ccw);
 extern void verify_global_IFS_Coords(int max);
-extern void Extru_check_normal(struct point_XYZ *facenormals,int this_face,int dire,struct X3D_PolyRep *rep_,int ccw);
+//extern void Extru_check_normal(struct point_XYZ *facenormals,int this_face,int dire,struct X3D_PolyRep *rep_,int ccw);
+extern void Extru_check_normal(struct SFVec3f *facenormals,int this_face,int dire,struct X3D_PolyRep *rep_,int ccw);
 void register_Polyrep_combiner();
 /* calculate how many triangles are required for IndexedTriangleFanSet and 
 	IndexedTriangleStripSets */
@@ -682,7 +684,8 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 	int faces=0;
 	int convex=TRUE;
-	struct point_XYZ *facenormals; /*  normals for each face*/
+	//struct point_XYZ *facenormals; /*  normals for each face*/
+	struct SFVec3f *facenormals;
 	int	*faceok = NULL;	/*  is this face ok? (ie, not degenerate triangles, etc)*/
 	int	*pointfaces = NULL;
 
@@ -1048,7 +1051,8 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		return;
 	}
 
-	facenormals = MALLOC(struct point_XYZ *, sizeof(struct point_XYZ)*faces); // sizeof(*facenormals)
+	//facenormals = MALLOC(struct point_XYZ *, sizeof(struct point_XYZ)*faces); // sizeof(*facenormals)
+	facenormals = MALLOC(struct SFVec3f *, sizeof(struct SFVec3f)*faces); // sizeof(*facenormals)
 	faceok = MALLOC(int *, sizeof(int)*faces);
 	pointfaces = MALLOC(int *, sizeof(int)*npoints*POINT_FACES); /* save max x points */ //sizeof(*pointfaces)
 
@@ -1282,9 +1286,10 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 						rep_->norindex[vert_ind] = calc_normind++;
 					} else {
 						/* use the calculated normals */
-						rep_->normal[vert_ind*3+0]=(float) facenormals[this_face].x;
-						rep_->normal[vert_ind*3+1]=(float) facenormals[this_face].y;
-						rep_->normal[vert_ind*3+2]=(float) facenormals[this_face].z;
+						//rep_->normal[vert_ind*3+0]=(float) facenormals[this_face].x;
+						//rep_->normal[vert_ind*3+1]=(float) facenormals[this_face].y;
+						//rep_->normal[vert_ind*3+2]=(float) facenormals[this_face].z;
+						veccopy3f(&rep_->normal[vert_ind*3+0],facenormals[this_face].c);
 						rep_->norindex[vert_ind] = vert_ind;
 						 /* printf ("using calculated normals %f %f %f for face %d, vert_ind %d\n",
 							rep_->normal[vert_ind*3+0],rep_->normal[vert_ind*3+1],
@@ -1618,7 +1623,8 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 
 	/* variables for calculating smooth normals */
 	int 	HAVETOSMOOTH;
-	struct 	point_XYZ *facenormals = 0;
+	//struct 	point_XYZ *facenormals = 0;
+	struct SFVec3f *facenormals = NULL;
 	int	*pointfaces = 0;
 	int	*defaultface = 0;
 	int	this_face = 0;			/* always counts up		*/
@@ -1802,7 +1808,8 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 	/* have to make sure that if nctri is odd, that we increment by one	*/
 
 
-	facenormals = MALLOC(struct point_XYZ *, sizeof(*facenormals)*(rep_->ntri+1)/2);
+	//facenormals = MALLOC(struct point_XYZ *, sizeof(*facenormals)*(rep_->ntri+1)/2);
+	facenormals = MALLOC(struct SFVec3f *, sizeof(struct SFVec3f)*(rep_->ntri+1)/2);
 
 	/* for each triangle vertex, tell me which face(s) it is in		*/
 	pointfaces = MALLOC(int *, sizeof(*pointfaces)*POINT_FACES*3*rep_->ntri);
@@ -2407,9 +2414,11 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 				facenormals, pointfaces, cindex[tmp],
 				defaultface[tmp/3], creaseAngle);
 		} else {
-			rep_->normal[tmp*3+0] = (float) facenormals[defaultface[tmp/3]].x;
-			rep_->normal[tmp*3+1] = (float) facenormals[defaultface[tmp/3]].y;
-			rep_->normal[tmp*3+2] = (float) facenormals[defaultface[tmp/3]].z;
+			int iiface = defaultface[tmp/3];
+			veccopy3f(&rep_->normal[tmp*3+0],facenormals[iiface].c);
+			//rep_->normal[tmp*3+0] = (float) facenormals[defaultface[tmp/3]].x;
+			//rep_->normal[tmp*3+1] = (float) facenormals[defaultface[tmp/3]].y;
+			//rep_->normal[tmp*3+2] = (float) facenormals[defaultface[tmp/3]].z;
 		}
 		rep_->norindex[tmp] = (GLuint)tmp;
 	}
@@ -2570,9 +2579,11 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 	/* for (tmp=0;tmp<tcindexsize; tmp++) printf ("index2 %d tcindex %d\n",tmp,tcindex[tmp]);*/
 	/* do normal calculations for the caps here note - no smoothing */
 	for (tmp=end_of_sides; tmp<(triind*3); tmp++) {
-		rep_->normal[tmp*3+0] = (float) facenormals[defaultface[tmp/3]].x;
-		rep_->normal[tmp*3+1] = (float) facenormals[defaultface[tmp/3]].y;
-		rep_->normal[tmp*3+2] = (float) facenormals[defaultface[tmp/3]].z;
+		int iiface = defaultface[tmp/3];
+		veccopy3f(&rep_->normal[tmp*3+0],facenormals[iiface].c);
+		//rep_->normal[tmp*3+0] = (float) facenormals[defaultface[tmp/3]].x;
+		//rep_->normal[tmp*3+1] = (float) facenormals[defaultface[tmp/3]].y;
+		//rep_->normal[tmp*3+2] = (float) facenormals[defaultface[tmp/3]].z;
 		rep_->norindex[tmp] = (GLuint)tmp;
 	}
 

@@ -491,7 +491,7 @@ void prep_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 
 void normalize_ifs_face (float *point_normal,
-                         struct point_XYZ *facenormals,
+                         struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
                          int *pointfaces,
                         int mypoint,
                         int curpoly,

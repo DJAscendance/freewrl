@@ -127,7 +127,7 @@ int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex) {
 /*	- point-face;   for each point, tell me the face(s)	*/
 
 int IFS_face_normals (
-	struct point_XYZ *facenormals,
+	struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 	int *faceok,
 	int *pointfaces,
 	int faces,
@@ -148,7 +148,7 @@ int IFS_face_normals (
 	int retval = FALSE;
 
 	float this_vl;
-	struct point_XYZ thisfaceNorms;
+	//struct point_XYZ thisfaceNorms;
 
 	/* printf ("IFS_face_normals, faces %d\n",faces); */
 
@@ -163,9 +163,10 @@ int IFS_face_normals (
 		   we choose the triangle with the greatest vector length hoping that it is
 		   the least "degenerate" of them all */
 		this_vl = 0.0f;
-		facenormals[i].x = 0.0;
-		facenormals[i].y = 0.0;
-		facenormals[i].z = 1.0;
+		//facenormals[i].x = 0.0;
+		//facenormals[i].y = 0.0;
+		//facenormals[i].z = 1.0;
+		vecset3f(facenormals[i].c,0.0f, 0.0f, 1.0f);
 
 
 		if (tmp_a >= cin-2) {
@@ -219,39 +220,47 @@ int IFS_face_normals (
 			}
 
 			do {
+				float fnorm[3], fnormlen, delta[3];
 				/* first three coords give us the normal */
 				c1 = &(points[coordIndex->p[pt_1]]);
 				c2 = &(points[coordIndex->p[pt_2]]);
 				c3 = &(points[coordIndex->p[pt_3]]);
 
-				a[0] = c2->c[0] - c1->c[0];
-				a[1] = c2->c[1] - c1->c[1];
-				a[2] = c2->c[2] - c1->c[2];
-				b[0] = c3->c[0] - c1->c[0];
-				b[1] = c3->c[1] - c1->c[1];
-				b[2] = c3->c[2] - c1->c[2];
+				//a[0] = c2->c[0] - c1->c[0];
+				//a[1] = c2->c[1] - c1->c[1];
+				//a[2] = c2->c[2] - c1->c[2];
+				//b[0] = c3->c[0] - c1->c[0];
+				//b[1] = c3->c[1] - c1->c[1];
+				//b[2] = c3->c[2] - c1->c[2];
+				vecdif3f(a,c2->c,c1->c);
+				vecdif3f(b,c3->c,c1->c);
 
 				/* printf ("a0 %f a1 %f a2 %f b0 %f b1 %f b2 %f\n", a[0],a[1],a[2],b[0],b[1],b[2]); */
 
-				thisfaceNorms.x = a[1]*b[2] - b[1]*a[2];
-				thisfaceNorms.y = -(a[0]*b[2] - b[0]*a[2]);
-				thisfaceNorms.z = a[0]*b[1] - b[0]*a[1];
-
+				//thisfaceNorms.x = a[1]*b[2] - b[1]*a[2];
+				//thisfaceNorms.y = -(a[0]*b[2] - b[0]*a[2]);
+				//thisfaceNorms.z = a[0]*b[1] - b[0]*a[1];
+				veccross3f(fnorm,a,b);
 				/* printf ("vector length is %f\n",calc_vector_length (thisfaceNorms));  */
 
 				/* is this vector length greater than a previous one? */
-				if (calc_vector_length(thisfaceNorms) > this_vl) {
+				//if (calc_vector_length(thisfaceNorms) > this_vl) {
+				fnormlen= veclength3f(fnorm);
+				if(fnormlen > this_vl) {
 					/* printf ("for face, using points %d %d %d\n",pt_1, pt_2, pt_3);  */
-					this_vl = calc_vector_length(thisfaceNorms);
-					facenormals[i].x = thisfaceNorms.x;
-					facenormals[i].y = thisfaceNorms.y;
-					facenormals[i].z = thisfaceNorms.z;
+					this_vl = fnormlen; //calc_vector_length(thisfaceNorms);
+					veccopy3f(facenormals[i].c,fnorm);
+					//facenormals[i].x = thisfaceNorms.x;
+					//facenormals[i].y = thisfaceNorms.y;
+					//facenormals[i].z = thisfaceNorms.z;
 				}
 
 				/* lets skip along to next triangle in this face */
 
-				AC=(c1->c[0]-c3->c[0])*(c1->c[1]-c3->c[1])*(c1->c[2]-c3->c[2]);
-				BC=(c2->c[0]-c3->c[0])*(c2->c[1]-c3->c[1])*(c2->c[2]-c3->c[2]);
+				//AC=(c1->c[0]-c3->c[0])*(c1->c[1]-c3->c[1])*(c1->c[2]-c3->c[2]);
+				//BC=(c2->c[0]-c3->c[0])*(c2->c[1]-c3->c[1])*(c2->c[2]-c3->c[2]);
+				AC = veclength3f(vecdif3f(delta,c1->c,c2->c));
+				BC = veclength3f(vecdif3f(delta,c2->c,c3->c));
 				/* printf ("AC %f ",AC); printf ("BC %f \n",BC); */
 
 				/* we have 3 points, a, b, c */
@@ -261,7 +270,8 @@ int IFS_face_normals (
 
 				if (ccw) {
 					/* printf ("moving along IFS face normals CCW\n");  */
-					if (fabs(AC) < fabs(BC)) { pt_2++; }
+					//if (fabs(AC) < fabs(BC)) { pt_2++; }
+					if (AC < BC) { pt_2++; }
 					pt_3++;
 				} else {
 					/* printf ("moving along IFS face normals *NOT* CCW\n"); */
@@ -282,7 +292,8 @@ int IFS_face_normals (
 				faceok[i] = 0;
 			} else {
 				/* printf ("face %d is ok\n",i); */
-				normalize_vector(&facenormals[i]);
+				//normalize_vector(&facenormals[i]);
+				vecnormalize3f(facenormals[i].c,facenormals[i].c);
 
 			/*	
 			printf ("vertices \t%f %f %f\n\t\t%f %f %f\n\t\t%f %f %f\n",
@@ -368,7 +379,7 @@ int IFS_face_normals (
 /* Tesselated faces MAY have the wrong normal calculated. re-calculate after tesselation	*/
 
 void Extru_check_normal (
-	struct point_XYZ *facenormals,
+	struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 	int this_face,
 	int direction,
 	struct X3D_PolyRep  *rep_,
@@ -376,7 +387,7 @@ void Extru_check_normal (
 
 	/* only use this after tesselator as we get coord indexes from global var */
 	struct SFVec3f *c1,*c2,*c3;
-	float a[3]; float b[3];
+	float a[3], b[3], fnorm[3], fnormlen;
 	int zz1, zz2;
 	ttglobal tg = gglobal();
 
@@ -407,17 +418,22 @@ void Extru_check_normal (
 	b[0] = c3->c[0] - c1->c[0];
 	b[1] = c3->c[1] - c1->c[1];
 	b[2] = c3->c[2] - c1->c[2];
+	vecdif3f(a,c2->c,c1->c);
+	vecdif3f(b,c3->c,c1->c);
+	veccross3f(fnorm,a,b);
 
-	facenormals[this_face].x = a[1]*b[2] - b[1]*a[2] * direction;
-	facenormals[this_face].y = -(a[0]*b[2] - b[0]*a[2]) * direction;
-	facenormals[this_face].z = a[0]*b[1] - b[0]*a[1] * direction;
-
-	if (APPROX(calc_vector_length (facenormals[this_face]),0.0)) { 
+	//facenormals[this_face].x = a[1]*b[2] - b[1]*a[2] * direction;
+	//facenormals[this_face].y = -(a[0]*b[2] - b[0]*a[2]) * direction;
+	//facenormals[this_face].z = a[0]*b[1] - b[0]*a[1] * direction;
+	fnormlen = veclength3f(fnorm);
+	//if (APPROX(calc_vector_length (facenormals[this_face]),0.0)) { 
+	if (APPROX(fnormlen,0.0f)) { 
 		ConsoleMessage ("WARNING: FreeWRL got degenerate triangle; OpenGL tesselator should not give degenerate triangles back %f\n",
-			fabs(calc_vector_length (facenormals[this_face])));
+			fnormlen); //fabs(calc_vector_length (facenormals[this_face])));
 	}
-
-	normalize_vector(&facenormals[this_face]);
+	vecnormalize3f(facenormals[this_face].c,fnorm);
+	
+	//normalize_vector(&facenormals[this_face]);
 	/* printf ("facenormal for %d is %f %f %f\n",this_face, facenormals[this_face].x,
 			facenormals[this_face].y, facenormals[this_face].z); */
 }
@@ -426,13 +442,13 @@ void Extru_check_normal (
 
 
 void IFS_check_normal (
-	struct point_XYZ *facenormals,
+	struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 	int this_face,
 	struct SFVec3f *points, int base,
 	struct Multi_Int32 *coordIndex, int ccw) {
 
 	struct SFVec3f *c1,*c2,*c3;
-	float a[3]; float b[3];
+	float a[3], b[3], fnorm[3], fnormlen;
 	ttglobal tg = gglobal();
 
 	/* printf ("IFS_check_normal, base %d points %d %d %d\n",base,*/
@@ -457,19 +473,24 @@ void IFS_check_normal (
 	b[0] = c3->c[0] - c1->c[0];
 	b[1] = c3->c[1] - c1->c[1];
 	b[2] = c3->c[2] - c1->c[2];
-
-	facenormals[this_face].x = a[1]*b[2] - b[1]*a[2];
-	facenormals[this_face].y = -(a[0]*b[2] - b[0]*a[2]);
-	facenormals[this_face].z = a[0]*b[1] - b[0]*a[1];
+	vecdif3f(a,c2->c,c1->c);
+	vecdif3f(b,c3->c,c1->c);
+	veccross3f(fnorm,a,b);
+	fnormlen = veclength3f(fnorm);
+	veccopy3f(facenormals[this_face].c,fnorm);
+	//facenormals[this_face].x = a[1]*b[2] - b[1]*a[2];
+	//facenormals[this_face].y = -(a[0]*b[2] - b[0]*a[2]);
+	//facenormals[this_face].z = a[0]*b[1] - b[0]*a[1];
 
 	/* printf ("vector length is %f\n",calc_vector_length (facenormals[this_face])); */
 
-	if (APPROX(calc_vector_length (facenormals[this_face]),0.0)) {
+	//if (APPROX(calc_vector_length (facenormals[this_face]),0.0)) {
+	if (APPROX(fnormlen,0.0f)) {
 		/* printf ("warning: Tesselated surface has invalid normal - if this is an IndexedFaceSet, check coordinates of ALL faces\n");*/
 	} else {
 
-		normalize_vector(&facenormals[this_face]);
-
+		//normalize_vector(&facenormals[this_face]);
+		vecnormalize3f(facenormals[this_face].c,facenormals[this_face].c);
 
 		/* printf ("vertices \t%f %f %f\n\t\t%f %f %f\n\t\t%f %f %f\n",*/
 		/* 	c1->c[0],c1->c[1],c1->c[2],*/
@@ -512,12 +533,12 @@ void Elev_Tri (
 	int E,
 	int NONORMALS,
 	struct X3D_PolyRep *this_Elev,
-	struct point_XYZ *facenormals,
+	struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
 	int *pointfaces,
 	int ccw) {
 
 	struct SFVec3f *c1,*c2,*c3;
-	float a[3]; float b[3];
+	float a[3], b[3], fnorm[3], fnormlen;
 	int tmp;
 
 	/* printf ("Elev_Tri Triangle %d %d %d\n",A,D,E); */
@@ -564,10 +585,14 @@ void Elev_Tri (
 		b[0] = c3->c[0] - c1->c[0];
 		b[1] = c3->c[1] - c1->c[1];
 		b[2] = c3->c[2] - c1->c[2];
-
-		facenormals[this_face].x = a[1]*b[2] - b[1]*a[2];
-		facenormals[this_face].y = -(a[0]*b[2] - b[0]*a[2]);
-		facenormals[this_face].z = a[0]*b[1] - b[0]*a[1];
+		vecdif3f(a,c2->c,c1->c);
+		vecdif3f(b,c3->c,c1->c);
+		veccross3f(fnorm,a,b);
+		vecnormalize3f(fnorm,fnorm);
+		veccopy3f(facenormals[this_face].c,fnorm);
+		//facenormals[this_face].x = a[1]*b[2] - b[1]*a[2];
+		//facenormals[this_face].y = -(a[0]*b[2] - b[0]*a[2]);
+		//facenormals[this_face].z = a[0]*b[1] - b[0]*a[1];
 
 		/*
 		printf ("facenormals index %d is %f %f %f\n",this_face, facenormals[this_face].x,
