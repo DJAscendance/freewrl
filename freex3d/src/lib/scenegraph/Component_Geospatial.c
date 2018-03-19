@@ -3670,11 +3670,17 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	if(MAR12){
 		Quaternion quat;
 		double oo[4];
+		float cc[3];
 		matrix_to_quaternion(&quat,modelMatrix);
 		quaternion_normalize(&quat);
 		quaternion_to_vrmlrot(&quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 		vecnormald(oo,oo);
 		double2float(node->__t2.c,oo,4);
+		//how draw bounding box? doesn't seem to draw on proximity pass
+		// H: you need a child_proximity
+		vecscale3f(cc,node->size.c,.5);
+		extent6f_constructor(node->_extent,-cc[0],cc[0],-cc[1],cc[1],-cc[2],cc[2]);
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}else{
 		/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
 		printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
@@ -3801,33 +3807,51 @@ void do_GeoProximitySensorTick( void *ptr) {
 
 			#endif
 
-			/* possibly we have to convert this from GCC to GDC, and maybe even then to UTM */
+			if(MAR12){
+				ttglobal tg = gglobal();
+				struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
 		
-			/* prep the geoCoord changed; first, get the position. Right now, we use the
-			  Viewer position, as it is more accurate (not clipped by the nearPlane) than
-			  the position_changed field  */
+				if(boundvp->_nodeType == NODE_GeoViewpoint){
+					struct SFVec3d gcCoord, geoCoord;
+					struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *)boundvp;
+					gd2gc(GEOSYS(gvp->__geoSystem),&gvp->__movedgd,1,&gcCoord);
+					gc2user(GEOSYS(node->__geoSystem),&gcCoord,1,&geoCoord);
+					veccopyd(node->geoCoord_changed.c,geoCoord.c);
+				}else{
+					//lcs2gc()
+				}
 
-			node->geoCoord_changed.c[0] = (double) node->position_changed.c[0];
-			node->geoCoord_changed.c[1] = (double) node->position_changed.c[1];
-			node->geoCoord_changed.c[2] = (double) node->position_changed.c[2];
+				MARK_EVENT (ptr, offsetof(struct X3D_GeoProximitySensor, geoCoord_changed));
+				
+			}else{
+				/* possibly we have to convert this from GCC to GDC, and maybe even then to UTM */
+		
+				/* prep the geoCoord changed; first, get the position. Right now, we use the
+				  Viewer position, as it is more accurate (not clipped by the nearPlane) than
+				  the position_changed field  */
 
-			/* then add in the nearPlane, as the way we get the position is via a clipped frustum */
-			/* if we get this via the position_changed field, we have to:
-				node->geoCoord_changed.c[2] += Viewer.nearPlane;
-			*/
-			node->geoCoord_changed.c[2] += Viewer()->nearPlane;
-			MARK_EVENT (ptr, offsetof(struct X3D_GeoProximitySensor, geoCoord_changed));
+				node->geoCoord_changed.c[0] = (double) node->position_changed.c[0];
+				node->geoCoord_changed.c[1] = (double) node->position_changed.c[1];
+				node->geoCoord_changed.c[2] = (double) node->position_changed.c[2];
+				vecprint3fb("pos",node->position_changed.c,"\n");
+				vecprint3db("geo",node->geoCoord_changed.c,"\n");
+				/* then add in the nearPlane, as the way we get the position is via a clipped frustum */
+				/* if we get this via the position_changed field, we have to:
+					node->geoCoord_changed.c[2] += Viewer.nearPlane;
+				*/
+				//node->geoCoord_changed.c[2] += Viewer()->nearPlane;
+				MARK_EVENT (ptr, offsetof(struct X3D_GeoProximitySensor, geoCoord_changed));
 
-			#ifdef VERBOSE
-			printf ("\ngeoCoord_changed as a GCC, %lf %lf %lf\n",
-				node->geoCoord_changed.c[0],
-				node->geoCoord_changed.c[1],
-				node->geoCoord_changed.c[2]);
-			#endif
+				#ifdef VERBOSE
+				printf ("\ngeoCoord_changed as a GCC, %lf %lf %lf\n",
+					node->geoCoord_changed.c[0],
+					node->geoCoord_changed.c[1],
+					node->geoCoord_changed.c[2]);
+				#endif
 
-			//CONVERT_BACK_TO_GD_OR_UTM(node->geoCoord_changed)
-			CONVERT_BACK_TO_GD_OR_UTMB(GEOSYS(node->__geoSystem), node->geoOrigin, &node->geoCoord_changed);
-		}
+				//CONVERT_BACK_TO_GD_OR_UTM(node->geoCoord_changed)
+				CONVERT_BACK_TO_GD_OR_UTMB(GEOSYS(node->__geoSystem), node->geoOrigin, &node->geoCoord_changed);
+		}	}
 		if (memcmp ((void *) &node->orientation_changed, (void *) &node->__t2,sizeof(struct SFRotation))) {
 			#ifdef SEVERBOSE
 			printf  ("PROX - orientation changed!!!\n ");
