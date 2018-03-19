@@ -1263,7 +1263,7 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 			moveCoords3d(GEOSYS(node->__geoSystem), NULL, NULL,
 					&node->geoCoords,1, &node->__movedCoords, &node->__movedgd);
 			//COPY_MF_TO_SF(node, __movedCoords)
-
+			node->rotateYUp = FALSE; //Mar2018 rotateYup isn't working properly for us H: we already do it with autoOrient H: we do it better with autoOrient H: we did it wrong all along
 			if(node->rotateYUp == TRUE)
 			{
 				struct SFVec4d orient;
@@ -3687,7 +3687,7 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 		); 
 	*/ 
  
-	if(fabs(VECPT(dr1r2, dr2r3)) > 0.001) { 
+	if(0) if(fabs(VECPT(dr1r2, dr2r3)) > 0.001) { 
 		printf ("Sorry, can't handle unevenly scaled GeoProximitySensors yet :(" 
 		  "dp: %f v: (%f %f %f) (%f %f %f)\n", VECPT(dr1r2, dr2r3), 
 		  	dr1r2.x,dr1r2.y,dr1r2.z, 
