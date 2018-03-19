@@ -3590,6 +3590,10 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 
 	//PROXIMITYSENSOR(GeoProximitySensor,__movedCoords,INITIALIZE_GEOSPATIAL(node),COMPILE_IF_REQUIRED)
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
+void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
+	//just for rendering the extent/bounding box
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
 void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) { 
 	/* Viewer pos = t_r2 */ 
 	double cx,cy,cz; 
@@ -3677,10 +3681,10 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 		vecnormald(oo,oo);
 		double2float(node->__t2.c,oo,4);
 		//how draw bounding box? doesn't seem to draw on proximity pass
-		// H: you need a child_proximity
+		// H: you need a render_proximity
 		vecscale3f(cc,node->size.c,.5);
 		extent6f_constructor(node->_extent,-cc[0],cc[0],-cc[1],cc[1],-cc[2],cc[2]);
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}else{
 		/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
 		printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 

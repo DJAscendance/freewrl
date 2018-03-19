@@ -2688,9 +2688,10 @@ struct X3D_Virt virt_GeoPlanet = { (void *)prep_GeoPlanet,NULL,(void *)child_Geo
 void compile_GeoPositionInterpolator(struct X3D_GeoPositionInterpolator *);
 struct X3D_Virt virt_GeoPositionInterpolator = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoPositionInterpolator};
 
+void render_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 void proximity_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 void compile_GeoProximitySensor(struct X3D_GeoProximitySensor *);
-struct X3D_Virt virt_GeoProximitySensor = { NULL,NULL,NULL,NULL,NULL,NULL,(void *)proximity_GeoProximitySensor,NULL,NULL,(void *)compile_GeoProximitySensor};
+struct X3D_Virt virt_GeoProximitySensor = { NULL,(void *)render_GeoProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_GeoProximitySensor,NULL,NULL,(void *)compile_GeoProximitySensor};
 
 void compile_GeoTouchSensor(struct X3D_GeoTouchSensor *);
 struct X3D_Virt virt_GeoTouchSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoTouchSensor};
@@ -3112,8 +3113,9 @@ void child_Proto(struct X3D_Proto *);
 void compile_Proto(struct X3D_Proto *);
 struct X3D_Virt virt_Proto = { (void *)prep_Proto,NULL,(void *)child_Proto,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Proto};
 
+void render_ProximitySensor(struct X3D_ProximitySensor *);
 void proximity_ProximitySensor(struct X3D_ProximitySensor *);
-struct X3D_Virt virt_ProximitySensor = { NULL,NULL,NULL,NULL,NULL,NULL,(void *)proximity_ProximitySensor,NULL,NULL,NULL};
+struct X3D_Virt virt_ProximitySensor = { NULL,(void *)render_ProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_ProximitySensor,NULL,NULL,NULL};
 
 void render_QuadSet(struct X3D_QuadSet *);
 struct X3D_Virt virt_QuadSet = { NULL,(void *)render_QuadSet,NULL,NULL,(void *)rendray_QuadSet,(void *)make_QuadSet,NULL,NULL,(void *)collide_QuadSet,NULL};
