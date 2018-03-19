@@ -3384,30 +3384,45 @@ void compile_GeoOrigin (struct X3D_GeoOrigin * node) {
 /************************************************************************/
 
 void compile_GeoPositionInterpolator (struct X3D_GeoPositionInterpolator * node) {
-	MF_SF_TEMPS
 
 	#ifdef VERBOSE
 	printf ("compiling GeoPositionInterpolator\n");
 	#endif
 
-	/* standard MACROS expect specific field names */
-	mIN = node->keyValue;
-	mOUT.p = NULL; mOUT.n = 0;
+	if(MAR12){
+		int i;
+		Geosys *gs;
+		struct SFVec3d gcCoord, lcsCoord;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gs = GEOSYS(node->__geoSystem);
+		FREE_IF_NZ(node->__movedValue.p);
+		node->__movedValue.p = MALLOC(struct SFVec3f*,node->keyValue.n * sizeof(struct SFVec3f));
+		node->__movedValue.n = node->keyValue.n;
+		for(i=0;i<node->keyValue.n;i++){
+			user2gc(gs,&node->keyValue.p[i],1,&gcCoord);
+			gc2lcs(gs,&gcCoord,1,&lcsCoord);
+			double2float(node->__movedValue.p[i].c,lcsCoord.c,3);
+		}
+		MARK_NODE_COMPILED
+	}else{
+		MF_SF_TEMPS
+		/* standard MACROS expect specific field names */
 
+		mIN = node->keyValue;
+		mOUT.p = NULL; mOUT.n = 0;
 
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	MOVE_TO_ORIGIN(node)
+		INITIALIZE_GEOSPATIAL(node)
+		COMPILE_GEOSYSTEM(node)
+		MOVE_TO_ORIGIN(node)
+		FREE_IF_NZ(node->__movedValue.p);
+		double2float(node->__movedValue.p[0].c,mOUT.p[0].c,3*node->__movedValue.n);
+		node->__movedValue.n = mOUT.n;
 
+		FREE_IF_NZ(gdCoords.p);
+		MARK_NODE_COMPILED
+	}
 	
-	/* keep the output values of this process */
-	FREE_IF_NZ(node->__movedValue.p);
-	node->__movedValue.p = mOUT.p;
-	node->__movedValue.n = mOUT.n;
 
-	FREE_IF_NZ(gdCoords.p);
-	MARK_NODE_COMPILED
-	
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoPositionInterpolator, metadata)) */
 }
@@ -3418,11 +3433,16 @@ void compile_GeoPositionInterpolator (struct X3D_GeoPositionInterpolator * node)
 /* there is no need to look at whether it is active or not		*/
 
 /* GeoPositionInterpolator == PositionIterpolator but with geovalue_changed and coordinate conversions */
+// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoPositionInterpolator
+// Mar 2018 interpretation: value_changed in LCS, geovalue_changed in geo coords
+// I think we should either do 2 separate interpolations: 1) LCS 2) user geocoords
+// or interpolate in geocoords and convert the resulting geovalue_changed to LCS for value_changed
 void do_GeoPositionInterpolator (void *innode) {
 	int specversion;
 	struct X3D_GeoPositionInterpolator *node;
 	int kin, kvin, counter, tmp;
-	struct SFVec3d *kVs;
+	struct SFVec3d *kVs_user; //geo
+	struct SFVec3f *kVs_lcs; //LCS
 	/* struct SFColor *kVs */
 
 	if (!innode) return;
@@ -3430,7 +3450,8 @@ void do_GeoPositionInterpolator (void *innode) {
 
 	if (NODE_NEEDS_COMPILING) compile_GeoPositionInterpolator(node);
 	kvin = node->__movedValue.n;
-	kVs = node->__movedValue.p;
+	kVs_lcs = node->__movedValue.p;
+	kVs_user = node->keyValue.p;
 	kin = node->key.n;
 	MARK_EVENT (innode, offsetof (struct X3D_GeoPositionInterpolator, value_changed)); 
 	MARK_EVENT (innode, offsetof (struct X3D_GeoPositionInterpolator, geovalue_changed)); 
@@ -3466,25 +3487,41 @@ void do_GeoPositionInterpolator (void *innode) {
 
 	/* set_fraction less than or greater than keys */
 	if (node->set_fraction <= ((node->key).p[0])) {
-		memcpy ((void *)&node->geovalue_changed, (void *)&kVs[0], sizeof (struct SFVec3d));
+		veccopyd(node->geovalue_changed.c,kVs_user[0].c);
+		veccopy3f(node->value_changed.c,kVs_lcs[0].c);
 	} else if (node->set_fraction >= node->key.p[kin-1]) {
-		memcpy ((void *)&node->geovalue_changed, (void *)&kVs[kvin-1], sizeof (struct SFVec3d));
+		memcpy ((void *)&node->geovalue_changed, (void *)&kVs_user[kvin-1], sizeof (struct SFVec3d));
+		veccopyd(node->geovalue_changed.c,kVs_user[kvin-1].c);
+		veccopy3f(node->value_changed.c,kVs_lcs[kvin-1].c);
 	} else {
 		/* have to go through and find the key before */
+		float fpart, fdif[3];
+		double dpart, ddif[3];
 		counter = find_key(kin,((float)(node->set_fraction)),node->key.p);
-		for (tmp=0; tmp<3; tmp++) {
-			node->geovalue_changed.c[tmp] =
-				(node->set_fraction - node->key.p[counter-1]) /
-				(node->key.p[counter] - node->key.p[counter-1]) *
-				(kVs[counter].c[tmp] - kVs[counter-1].c[tmp]) + kVs[counter-1].c[tmp];
-		}
+
+		//LCS to value_changed
+		fpart = (node->set_fraction - node->key.p[counter-1]) /
+				(node->key.p[counter] - node->key.p[counter-1]);
+		veclerp3f(node->value_changed.c,kVs_lcs[counter-1].c,kVs_lcs[counter].c,fpart);
+
+		//geo to geovalue_changed
+		dpart = fpart;
+		veclerpd(node->geovalue_changed.c,kVs_user[counter-1].c,kVs_user[counter].c,dpart);
+
+		//for (tmp=0; tmp<3; tmp++) {
+		//	node->geovalue_changed.c[tmp] =
+		//		(node->set_fraction - node->key.p[counter-1]) /
+		//		(node->key.p[counter] - node->key.p[counter-1]) *
+		//		(kVs[counter].c[tmp] - kVs[counter-1].c[tmp]) + kVs[counter-1].c[tmp];
+		//}
+
 	}
 
 	/* convert this back into the requested spatial format */
 	//CONVERT_BACK_TO_GD_OR_UTM(node->geovalue_changed)
-	CONVERT_BACK_TO_GD_OR_UTMB(GEOSYS(node->__geoSystem), node->geoOrigin, &node->geovalue_changed);
-	/* set the (float) value_changed, as well */
-	for (tmp=0;tmp<3;tmp++) node->value_changed.c[tmp] = (float)node->geovalue_changed.c[tmp];
+	//CONVERT_BACK_TO_GD_OR_UTMB(GEOSYS(node->__geoSystem), node->geoOrigin, &node->geovalue_changed);
+	///* set the (float) value_changed, as well */
+	//for (tmp=0;tmp<3;tmp++) node->value_changed.c[tmp] = (float)node->geovalue_changed.c[tmp];
 
 	#ifdef SEVERBOSE
 	printf ("Pos/Col, new value (%f %f %f)\n",
@@ -3504,29 +3541,40 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	#ifdef VERBOSE
 	printf ("compiling GeoProximitySensor\n");
 	#endif
+	if(MAR12){
+		int i;
+		Geosys *gs;
+		struct SFVec3d gcCoord, lcsCoord, gdCoord;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gs = GEOSYS(node->__geoSystem);
+		user2gc(gs,&node->geoCenter,1,&gcCoord);
+		gc2lcs(gs,&gcCoord,1,&node->__movedCoords);
+		gc2gd(gs,&gcCoord,1,&gdCoord);
+		GeoOrient(node->geoOrigin, GEOSYS(node->__geoSystem), &gdCoord, &node->__localOrient);
+		MARK_NODE_COMPILED
+	}else{
+		/* work out the position */
+		INITIALIZE_GEOSPATIAL(node)
+		COMPILE_GEOSYSTEM(node)
+		INIT_MF_FROM_SF(node, geoCenter)
+		MOVE_TO_ORIGIN(node)
+		COPY_MF_TO_SF(node, __movedCoords)
 
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, geoCenter)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
+		/* work out the local orientation */
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
+		GeoOrient(node->geoOrigin, GEOSYS(node->__geoSystem), &gdCoords.p[0], &node->__localOrient);
+		#ifdef VERBOSE
+		printf ("compile_GeoProximitySensor, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCenter.c[0], node->geoCenter.c[1], node->geoCenter.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+		printf ("	rotation is %lf %lf %lf %lf\n",
+				node->__localOrient.c[0],
+				node->__localOrient.c[1],
+				node->__localOrient.c[2],
+				node->__localOrient.c[3]);
+		#endif
 
-	/* work out the local orientation */
-	specversion = X3D_PROTO(node->_executionContext)->__specversion;
-	GeoOrient(node->geoOrigin, GEOSYS(node->__geoSystem), &gdCoords.p[0], &node->__localOrient);
-	#ifdef VERBOSE
-	printf ("compile_GeoProximitySensor, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCenter.c[0], node->geoCenter.c[1], node->geoCenter.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-	printf ("	rotation is %lf %lf %lf %lf\n",
-			node->__localOrient.c[0],
-			node->__localOrient.c[1],
-			node->__localOrient.c[2],
-			node->__localOrient.c[3]);
-	#endif
-
-	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
-
+		MARK_NODE_COMPILED
+		FREE_MF_SF_TEMPS
+	}
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCenter, node->__oldGeoCenter,offsetof (struct X3D_GeoProximitySensor, geoCenter))
 	MARK_SFVEC3F_INOUT_EVENT(node->size, node->__oldSize,offsetof (struct X3D_GeoProximitySensor, size))
 	
@@ -3559,7 +3607,7 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	GLDOUBLE view2prox[16]; 
  
 	if(!((node->enabled))) return; 
-	INITIALIZE_GEOSPATIAL(node) 
+	//INITIALIZE_GEOSPATIAL(node) 
 	COMPILE_IF_REQUIRED 
  
 	/* printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",*/ 

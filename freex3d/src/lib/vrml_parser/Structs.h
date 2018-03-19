@@ -5050,7 +5050,7 @@ struct X3D_GeoPositionInterpolator {
 	struct X3D_Node *geoOrigin;
 	struct Multi_String geoSystem;
 	struct X3D_Node *__geoSystem;
-	struct Multi_Vec3d __movedValue;
+	struct Multi_Vec3f __movedValue;
 	struct Multi_Float __oldKeyPtr;
 	struct Multi_Vec3d __oldKeyValuePtr;
 };

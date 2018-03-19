@@ -1856,7 +1856,7 @@ our %Nodes = (
 		geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
-		__movedValue => ["MFVec3d", [], "inputOutput", 0,0],#ff
+		__movedValue => ["MFVec3f", [], "inputOutput", 0,0],#ff
 		__oldKeyPtr => ["MFFloat", "NULL", "outputOnly", 0,0],#ff
 		__oldKeyValuePtr => ["MFVec3d", "NULL", "outputOnly", 0,0],#ff
 	],"X3DInterpolatorNode"),

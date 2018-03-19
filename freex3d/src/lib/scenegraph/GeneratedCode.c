@@ -4742,7 +4742,7 @@ const int OFFSETS_GeoPositionInterpolator[] = {
 	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoPositionInterpolator, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoPositionInterpolator, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoPositionInterpolator, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___movedValue, (int) offsetof (struct X3D_GeoPositionInterpolator, __movedValue),  (int) FIELDTYPE_MFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___movedValue, (int) offsetof (struct X3D_GeoPositionInterpolator, __movedValue),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldKeyPtr, (int) offsetof (struct X3D_GeoPositionInterpolator, __oldKeyPtr),  (int) FIELDTYPE_MFFloat, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldKeyValuePtr, (int) offsetof (struct X3D_GeoPositionInterpolator, __oldKeyValuePtr),  (int) FIELDTYPE_MFVec3d, (int) KW_outputOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -14929,7 +14929,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 		    if(allFields) {
-			spacer fprintf (fp," __movedValue (MFVec3d):\n");
+			spacer fprintf (fp," __movedValue (MFVec3f):\n");
 			for (i=0; i<tmp->__movedValue.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,(tmp->__movedValue.p[i]).c[0], (tmp->__movedValue.p[i]).c[1],(tmp->__movedValue.p[i]).c[2]); }
 		    }
 		    break;
