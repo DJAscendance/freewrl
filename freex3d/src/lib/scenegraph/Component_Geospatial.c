@@ -1263,7 +1263,8 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 			moveCoords3d(GEOSYS(node->__geoSystem), NULL, NULL,
 					&node->geoCoords,1, &node->__movedCoords, &node->__movedgd);
 			//COPY_MF_TO_SF(node, __movedCoords)
-			node->rotateYUp = FALSE; //Mar2018 rotateYup isn't working properly for us H: we already do it with autoOrient H: we do it better with autoOrient H: we did it wrong all along
+			node->rotateYUp = FALSE; //Mar2018 rotateYup isn't working properly for us, get a wild angle
+			//... H: we already do it with autoOrient H: we do it better with autoOrient H: we did it wrong all along
 			if(node->rotateYUp == TRUE)
 			{
 				struct SFVec4d orient;
@@ -3666,82 +3667,92 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	((node->__t1).c[2]) = (float)t_center.z; 
  
  
-	/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
-	printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
-	*/ 
+	if(MAR12){
+		Quaternion quat;
+		double oo[4];
+		matrix_to_quaternion(&quat,modelMatrix);
+		quaternion_normalize(&quat);
+		quaternion_to_vrmlrot(&quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+		vecnormald(oo,oo);
+		double2float(node->__t2.c,oo,4);
+	}else{
+		/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
+		printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
+		*/ 
  
-	len = sqrt(VECSQ(dr1r2)); VECSCALE(dr1r2,1/len); 
-	len = sqrt(VECSQ(dr2r3)); VECSCALE(dr2r3,1/len); 
+		len = sqrt(VECSQ(dr1r2)); VECSCALE(dr1r2,1/len); 
+		len = sqrt(VECSQ(dr2r3)); VECSCALE(dr2r3,1/len); 
  
-	/* printf ("scaled dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
-	printf ("scaled dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
-	*/ 
+		/* printf ("scaled dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
+		printf ("scaled dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
+		*/ 
  
-	/* 
-	printf("PROX_INT: (%f %f %f) (%f %f %f) (%f %f %f)\n (%f %f %f) (%f %f %f)\n", 
-		t_orig.x, t_orig.y, t_orig.z, 
-		t_zvec.x, t_zvec.y, t_zvec.z, 
-		t_yvec.x, t_yvec.y, t_yvec.z, 
-		dr1r2.x, dr1r2.y, dr1r2.z, 
-		dr2r3.x, dr2r3.y, dr2r3.z 
-		); 
-	*/ 
- 
-	if(0) if(fabs(VECPT(dr1r2, dr2r3)) > 0.001) { 
-		printf ("Sorry, can't handle unevenly scaled GeoProximitySensors yet :(" 
-		  "dp: %f v: (%f %f %f) (%f %f %f)\n", VECPT(dr1r2, dr2r3), 
-		  	dr1r2.x,dr1r2.y,dr1r2.z, 
-		  	dr2r3.x,dr2r3.y,dr2r3.z 
+		/* 
+		printf("PROX_INT: (%f %f %f) (%f %f %f) (%f %f %f)\n (%f %f %f) (%f %f %f)\n", 
+			t_orig.x, t_orig.y, t_orig.z, 
+			t_zvec.x, t_zvec.y, t_zvec.z, 
+			t_yvec.x, t_yvec.y, t_yvec.z, 
+			dr1r2.x, dr1r2.y, dr1r2.z, 
+			dr2r3.x, dr2r3.y, dr2r3.z 
 			); 
-		return; 
-	} 
+		*/ 
+ 
+		if(fabs(VECPT(dr1r2, dr2r3)) > 0.001) { 
+			printf ("Sorry, can't handle unevenly scaled GeoProximitySensors yet :(" 
+			  "dp: %f v: (%f %f %f) (%f %f %f)\n", VECPT(dr1r2, dr2r3), 
+		  		dr1r2.x,dr1r2.y,dr1r2.z, 
+		  		dr2r3.x,dr2r3.y,dr2r3.z 
+				); 
+			return; 
+		} 
  
  
-	if(APPROX(dr1r2.z,1.0)) { 
-		/* rotation */ 
-		((node->__t2).c[0]) = (float) 0; 
-		((node->__t2).c[1]) = (float) 0; 
-		((node->__t2).c[2]) = (float) 1; 
-		((node->__t2).c[3]) = (float) atan2(-dr2r3.x,dr2r3.y); 
-	} else if(APPROX(dr2r3.y,1.0)) { 
-		/* rotation */ 
-		((node->__t2).c[0]) = (float) 0; 
-		((node->__t2).c[1]) = (float) 1; 
-		((node->__t2).c[2]) = (float) 0; 
-		((node->__t2).c[3]) = (float) atan2(dr1r2.x,dr1r2.z); 
-	} else { 
-		/* Get the normal vectors of the possible rotation planes */ 
-		nor1 = dr1r2; 
-		nor1.z -= 1.0; 
-		nor2 = dr2r3; 
-		nor2.y -= 1.0; 
+		if(APPROX(dr1r2.z,1.0)) { 
+			/* rotation */ 
+			((node->__t2).c[0]) = (float) 0; 
+			((node->__t2).c[1]) = (float) 0; 
+			((node->__t2).c[2]) = (float) 1; 
+			((node->__t2).c[3]) = (float) atan2(-dr2r3.x,dr2r3.y); 
+		} else if(APPROX(dr2r3.y,1.0)) { 
+			/* rotation */ 
+			((node->__t2).c[0]) = (float) 0; 
+			((node->__t2).c[1]) = (float) 1; 
+			((node->__t2).c[2]) = (float) 0; 
+			((node->__t2).c[3]) = (float) atan2(dr1r2.x,dr1r2.z); 
+		} else { 
+			/* Get the normal vectors of the possible rotation planes */ 
+			nor1 = dr1r2; 
+			nor1.z -= 1.0; 
+			nor2 = dr2r3; 
+			nor2.y -= 1.0; 
  
-		/* Now, the intersection of the planes, obviously cp */ 
-		VECCP(nor1,nor2,ins); 
+			/* Now, the intersection of the planes, obviously cp */ 
+			VECCP(nor1,nor2,ins); 
  
-		len = sqrt(VECSQ(ins)); VECSCALE(ins,1/len); 
+			len = sqrt(VECSQ(ins)); VECSCALE(ins,1/len); 
  
-		/* the angle */ 
-		VECCP(dr1r2,ins, nor1);
-		VECCP(zpvec, ins, nor2); 
-		len = sqrt(VECSQ(nor1)); VECSCALE(nor1,1/len); 
-		len = sqrt(VECSQ(nor2)); VECSCALE(nor2,1/len); 
-		VECCP(nor1,nor2,ins); 
+			/* the angle */ 
+			VECCP(dr1r2,ins, nor1);
+			VECCP(zpvec, ins, nor2); 
+			len = sqrt(VECSQ(nor1)); VECSCALE(nor1,1/len); 
+			len = sqrt(VECSQ(nor2)); VECSCALE(nor2,1/len); 
+			VECCP(nor1,nor2,ins); 
  
-		((node->__t2).c[3]) = (float) -atan2(sqrt(VECSQ(ins)), VECPT(nor1,nor2)); 
+			((node->__t2).c[3]) = (float) -atan2(sqrt(VECSQ(ins)), VECPT(nor1,nor2)); 
  
-		/* rotation  - should normalize sometime... */ 
-		((node->__t2).c[0]) = (float) ins.x; 
-		((node->__t2).c[1]) = (float) ins.y; 
-		((node->__t2).c[2]) = (float) ins.z; 
-	} 
-	/* 
-	printf("NORS: (%f %f %f) (%f %f %f) (%f %f %f)\n", 
-		nor1.x, nor1.y, nor1.z, 
-		nor2.x, nor2.y, nor2.z, 
-		ins.x, ins.y, ins.z 
-	); 
-	*/ 
+			/* rotation  - should normalize sometime... */ 
+			((node->__t2).c[0]) = (float) ins.x; 
+			((node->__t2).c[1]) = (float) ins.y; 
+			((node->__t2).c[2]) = (float) ins.z; 
+		} 
+		/* 
+		printf("NORS: (%f %f %f) (%f %f %f) (%f %f %f)\n", 
+			nor1.x, nor1.y, nor1.z, 
+			nor2.x, nor2.y, nor2.z, 
+			ins.x, ins.y, ins.z 
+		); 
+		*/ 
+	}
 } 
 
 
