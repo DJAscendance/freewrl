@@ -76,6 +76,34 @@ void pop_planetId();
 
 /*
 Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
+* acronyms: nodes
+	GVP	- geoViewpoint
+	GEG	- GeoElevationGrid
+	GL	- geoLocation
+	GT	- geoTransform
+	GPS	- geoProximitySensor
+	GTS	- geoTouchSensor
+	GPI	- geoPositionInterpolator
+	GP	- geoPlanet (non-spec - (meaning not in web3d.org specs for their v3.3 geoSpatial component, invented here))
+	GCV	- geoConverter (non-spec)
+
+* acronyms: other
+	LCS		- Local Coordinate System - shared cartesian coordinate system near nodes
+			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#high-precisioncoords
+	TCS		- topocentric coordinate system at specific geo location, with -Z north, Y up as per GL
+			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
+	FCFS	- First Come First Served - how AutoOrigin is generated automatically now 2018: 
+			- first geoNode's TCS -> shared LCS
+	XTM		- general acronym for transverse mercator map projections: either UTM or 3TM
+	GC		- geoCentric coordinates
+	GD		- geodetic coordinates (latitude, longitude aka lat,lon)
+	user	- coordinate system entered by the scene author that are in the geoSystem entered by the scene author, for the same node
+				- one of GC, GD, XTM(UTM,3TM)
+				- if GD, then lat,lon in degrees or radians as per geoSystem, lat or lon first
+				- if XTM, then easting or northing first as per geoSystem
+
+
+
 * XTM: {UTM,3TM} - 3TM is UTM with no false easting or northing, scale factor .9999, and 3 degree zones
   Feb 2018 we added 3TM capability
 * geosystem preservation, aka User Coordinates
@@ -135,7 +163,7 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 	Viewer: a few nav modes use LCS (examine, turntable)
 	GeoPlanet converts children's LCS back into GC coordinates for orbital mechanics, regular nodes working in GC,
 	and inter-planet transform stacks
-* TCS topocentric coordinate system
+* TCS topocentric coordinate system aka NodeLocalSystem NLS
 	somewhat related, for any giving GeoLocationNode, the topocentric coordinate system TCS with X east, -Z north, Y up
 	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
 	in freewrl we use the topocentric alignment at Origin for our originRotation aka AutoOrient
@@ -160,6 +188,36 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 	GC -> .set_gcCoord (geoConvert2) .geoCoord_changed -> user2 -> destination.position
 	where geoConvert1.geoSystem == source.geoSystem and geoConvert2.geoSystem == destination.geoSystem
 
+
+* Transform stack versus GeoCoordinates
+	There are 2 ways to get the relative pose of two nodes:
+	a) via transform stack
+	b) via GeoCoordinates
+	Our current theory of operation:
+	1) when doing geoNode-geoNode interactions, you should use geoCoords for both  via GC intermediary
+	- that means ignoring transforms in between, and ignoring the modelview matrix
+	- GC intermediary allows you to use different geoSystem for each geoNode
+	2) when doing geo-regular, regular-geo interactions, you should use the transform stack
+	- push/pop transforms like regular nodes do
+	- transform stack is in/wrt LCS (the shared autoOrigin-related cartesian system)
+	- rendering and geometry vertices are wrt stacks and LCS
+	- and so get the effect of transforms inbetween
+	- or better/more consistent across browsers: use helper nodes geoLocation and geoTransform
+	2a) geoLocation can wrap regular nodes to convert to geo
+	2b) geoTransform can wrap geoNodes to convert to regular stack
+	3) planets can be separated a few different ways:
+		a) Layers - using Layer_Component, with one planet per layer 
+			x problem: each layer has an active viewpoint, leading to confused rendering
+		b) use transform stack somehow to tell if 2 nodes are close enough to be on the same planet
+		c) use a geoTransform to wrap each planet 
+			(this implies you can only use one geoTransform per planet
+			which may not be what specs meant, or how other browsers are using it)
+		d) wrap geonodes in Planet nodes to keep them separate (but not web3d specs node)
+		We use d) Planet
+			- but geoTransform might be more specs-aligned by adding a planetId field to it
+			- so a planet can have multiple geoTransforms if they share the same planetId
+
+			
 */
 
 
@@ -3592,7 +3650,8 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	if(renderstate()->render_boxes) 
+		extent6f_draw(node->_extent);
 }
 void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) { 
 	/* Viewer pos = t_r2 */ 
@@ -3655,6 +3714,14 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	cy = t_center.y - ((node->__movedCoords ).c[1]); 
 	cz = t_center.z - ((node->__movedCoords ).c[2]); 
  
+	{
+		float cc[3];
+		//how draw bounding box? doesn't seem to draw on proximity pass
+		// H: you need a render_proximity
+		vecscale3f(cc,node->size.c,.5);
+		extent6f_constructor(node->_extent,-cc[0],cc[0],-cc[1],cc[1],-cc[2],cc[2]);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
 	if(((node->size).c[0]) == 0 || ((node->size).c[1]) == 0 || ((node->size).c[2]) == 0) return; 
  
 	if(fabs(cx) > ((node->size).c[0])/2 || 
@@ -3674,17 +3741,11 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	if(MAR12){
 		Quaternion quat;
 		double oo[4];
-		float cc[3];
 		matrix_to_quaternion(&quat,modelMatrix);
 		quaternion_normalize(&quat);
 		quaternion_to_vrmlrot(&quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 		vecnormald(oo,oo);
 		double2float(node->__t2.c,oo,4);
-		//how draw bounding box? doesn't seem to draw on proximity pass
-		// H: you need a render_proximity
-		vecscale3f(cc,node->size.c,.5);
-		extent6f_constructor(node->_extent,-cc[0],cc[0],-cc[1],cc[1],-cc[2],cc[2]);
-		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}else{
 		/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
 		printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
@@ -3815,7 +3876,7 @@ void do_GeoProximitySensorTick( void *ptr) {
 				ttglobal tg = gglobal();
 				struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
 		
-				if(boundvp->_nodeType == NODE_GeoViewpoint){
+				if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
 					struct SFVec3d gcCoord, geoCoord;
 					struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *)boundvp;
 					gd2gc(GEOSYS(gvp->__geoSystem),&gvp->__movedgd,1,&gcCoord);
