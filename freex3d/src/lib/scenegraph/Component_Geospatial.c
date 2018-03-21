@@ -126,8 +126,8 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 * ellipsoid neutrality:
 	we don't try and force any one particular ellipsoid standard. The geoViewpoint's ellipsoid is
 	the one we use for SPEED, LEVEL calculations
--- most coords are GC at some point, in preparation for 3D viewing, 
-	and whatever ellipsoid they came from, they can mix as GC XYZ
+-- most coords are LCS at some point, in preparation for 3D viewing, 
+	and whatever ellipsoid they came from, they can mix as LCS XYZ
 * single planet v3.3 vs multiple planets via <GeoPlanet/>
 	following specs 3.3, we can only do one world/planet in a scene. We can't do a planet and several moons 
 	in geocoords in the same scene. Thats because we need to subtract the geoviewpoint
@@ -163,6 +163,15 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 	Viewer: a few nav modes use LCS (examine, turntable)
 	GeoPlanet converts children's LCS back into GC coordinates for orbital mechanics, regular nodes working in GC,
 	and inter-planet transform stacks
+	NOTE: freewrl has double precision transform stacks, and if geoViewpoint and geo<Geometry> are in
+	the same local on a planet, then their local2gc x gc2local will largely cancel out in double
+	precision matrix multiplication - no geoOrigin / autoOrigin is needed, can put the stack in GC.
+	Its when mixing regular and geonodes without wrapping/unwrapping with GL and GT that local coords LCS
+	is helpful for precision. But this scenario is not reliably reproduced among browsers - there's no
+	clear specification for how to mix geo and non-geo without GT/GL wrappers: there's a geoOrigin or
+	autoOrigin, but it doesn't show the math how to use it (or does it?)
+	And for GEG freewrl uses floats internally for rendering mesh, so may need hlep from a transform wrapper
+	to maintain precision (but won't help with a one-mesh world without breaking up mesh)
 * TCS topocentric coordinate system aka NodeLocalSystem NLS
 	somewhat related, for any giving GeoLocationNode, the topocentric coordinate system TCS with X east, -Z north, Y up
 	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
@@ -200,7 +209,7 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 	2) when doing geo-regular, regular-geo interactions, you should use the transform stack
 	- push/pop transforms like regular nodes do
 	- transform stack is in/wrt LCS (the shared autoOrigin-related cartesian system)
-	- rendering and geometry vertices are wrt stacks and LCS
+	- RENDERING and geometry vertices are wrt stacks and LCS
 	- and so get the effect of transforms inbetween
 	- or better/more consistent across browsers: use helper nodes geoLocation and geoTransform
 	2a) geoLocation can wrap regular nodes to convert to geo
@@ -2253,6 +2262,9 @@ void  gc2lcs(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *lcs
 void  lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc);
 void   gd2gc(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc);
 void   gc2gd(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
+void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
+void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+
 
 void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
 	//UNTESTED
@@ -5464,6 +5476,18 @@ void gc2user(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo
 		CONVERT_BACK_TO_GD_OR_UTMC(geoSystem,NULL,&gc[i],&gdCoord,&geo[i]);
 	}
 }
+
+void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs){
+	
+}
+void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc){
+	struct SFVec4d orient;
+	GeoOrient(NULL,geoSystem,gdcenter,&orient);
+
+	
+}
+
+
 /*
 //as with geoConvert, its more reliable to go user2gc gc2anything and vice versa, rather 
 // than user2gd. That's because ideally we go geo2geo(source_geosystem,dest_geosystem).
