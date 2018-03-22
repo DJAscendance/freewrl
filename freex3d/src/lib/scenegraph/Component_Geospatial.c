@@ -4516,7 +4516,7 @@ void calculateViewingSpeedB() {
 	struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
 		
 	if(boundvp->_nodeType == NODE_GeoViewpoint){
-		double height;
+		double height, heightmin;
 		int resetHeight;
 		struct SFVec3d *gdCoords;
 		struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
@@ -4526,7 +4526,8 @@ void calculateViewingSpeedB() {
 		COMPILE_IF_REQUIRED(X3D_NODE(node));
 		gdCoords = &node->__movedgd;
 		height = gdCoords->c[2];
-		viewer->speed  = height * node->speedFactor;
+		heightmin = max(height,100.0);
+		viewer->speed  = heightmin * node->speedFactor;
 		if(0){
 			static int count = 0;
 			count++;
