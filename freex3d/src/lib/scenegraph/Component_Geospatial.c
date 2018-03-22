@@ -2264,7 +2264,7 @@ void   gd2gc(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc)
 void   gc2gd(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
 void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
 void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
-void lcs2gc_trensform(struct SFVec4d *rotation, struct SFVec3d *translation);
+void lcs2gc_transform(struct SFVec4d *rotation, struct SFVec3d *translation);
 void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate);
 void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate);
 void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
@@ -2423,37 +2423,55 @@ void node2lcsRotation(Geosys *geoSystem, struct X3D_GeoOrigin *geoOrigin, struct
 }
 /************************************************************************/
 void compile_GeoCoordinate (struct X3D_GeoCoordinate * node) {
-	MF_SF_TEMPS
-	int i;
+	if(MAR12){
+		int i;
+		struct SFVec3d gcCoord, lcsCoord;
+		Geosys *gs;
+		COMPILE_GEOSYSTEM(node)
+		gs = GEOSYS(node->__geoSystem);
+		FREE_IF_NZ(node->__movedCoords.p);
+		node->__movedCoords.p = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)  *node->point.n);
 
-	#ifdef VERBOSE
-	printf ("compiling GeoCoordinate\n");
-	#endif
+		for(i=0;i<node->point.n;i++){
+			user2gc(gs,&node->point.p[i],1,&gcCoord);
+			gc2lcs(gs,&gcCoord,1,&lcsCoord);
+			double2float(node->__movedCoords.p[i].c,lcsCoord.c,3);
+		}
+		node->__movedCoords.n = node->point.n;
+	}else{
+		MF_SF_TEMPS
+		int i;
 
-	/* standard MACROS expect specific field names */
-	mIN = node->point;
-	mOUT.p = NULL; mOUT.n = 0;
-
-
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	MOVE_TO_ORIGIN(node)
-
-	/* convert the doubles down to floats, because coords are used as floats in FreeWRL. */
-	FREE_IF_NZ(node->__movedCoords.p);
-	node->__movedCoords.p = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)  * mOUT.n);
-	for (i=0; i<mOUT.n; i++) {
-		node->__movedCoords.p[i].c[0] = (float) mOUT.p[i].c[0];
-		node->__movedCoords.p[i].c[1] = (float) mOUT.p[i].c[1];
-		node->__movedCoords.p[i].c[2] = (float) mOUT.p[i].c[2];
 		#ifdef VERBOSE
-		printf ("coord %d now is %f %f %f\n", i, node->__movedCoords.p[i].c[0],node->__movedCoords.p[i].c[1],node->__movedCoords.p[i].c[2]);
+		printf ("compiling GeoCoordinate\n");
 		#endif
-	}
-	node->__movedCoords.n = mOUT.n;
 
-	FREE_IF_NZ(gdCoords.p);
-	FREE_IF_NZ(mOUT.p);
+		/* standard MACROS expect specific field names */
+		mIN = node->point;
+		mOUT.p = NULL; mOUT.n = 0;
+
+
+		INITIALIZE_GEOSPATIAL(node)
+		COMPILE_GEOSYSTEM(node)
+		MOVE_TO_ORIGIN(node)
+
+
+		/* convert the doubles down to floats, because coords are used as floats in FreeWRL. */
+		FREE_IF_NZ(node->__movedCoords.p);
+		node->__movedCoords.p = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)  * mOUT.n);
+		for (i=0; i<mOUT.n; i++) {
+			node->__movedCoords.p[i].c[0] = (float) mOUT.p[i].c[0];
+			node->__movedCoords.p[i].c[1] = (float) mOUT.p[i].c[1];
+			node->__movedCoords.p[i].c[2] = (float) mOUT.p[i].c[2];
+			#ifdef VERBOSE
+			printf ("coord %d now is %f %f %f\n", i, node->__movedCoords.p[i].c[0],node->__movedCoords.p[i].c[1],node->__movedCoords.p[i].c[2]);
+			#endif
+		}
+		node->__movedCoords.n = mOUT.n;
+
+		FREE_IF_NZ(gdCoords.p);
+		FREE_IF_NZ(mOUT.p);
+	}
 	MARK_NODE_COMPILED
 	
 	/* events */
@@ -4658,216 +4676,153 @@ void compile_GeoTransform (struct X3D_GeoTransform * node) {
 	MARK_MFNODE_INOUT_EVENT(node->children, node->__oldChildren, offsetof (struct X3D_GeoTransform, children))
 
 
-	/* re-figure out which modifiers are actually in use */
-	/* printf ("re-rendering for %d\n",node);*/
+	INITIALIZE_EXTENT;
+
+	/* printf ("changed Transform for node %u\n",node); */
+	node->__do_center = verify_translate ((GLfloat *)node->center.c);
 	node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
-	if (node->__do_trans) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, translation));
-
 	node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
-	if (node->__do_scale) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, scale));
-
 	node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
-	if (node->__do_rotation) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, rotation));
-
 	node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
-	if (node->__do_scaleO) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, scaleOrientation));
 
-
-
-	#ifdef VERBOSE
-	printf ("compile_GeoTransform, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-	printf ("	rotation is %lf %lf %lf %lf\n",
-			node->__localOrient.c[0],
-			node->__localOrient.c[1],
-			node->__localOrient.c[2],
-			node->__localOrient.c[3]);
-	#endif
+	node->__do_anything = (node->__do_center ||
+			node->__do_trans ||
+			node->__do_scale ||
+			node->__do_rotation ||
+			node->__do_scaleO);
 
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
-	
-	/* events */
-	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoTransform, metadata)) */
-
-
-	#ifdef VERBOSE
-	printf ("compiled GeoTransform\n\n");
-	#endif
 }
 
+
+//March 2018 GT GeoTransform strategy:
+//- do compile_ prep_ fin_ child_ like Transform, except:
+//-- center = 0,0,0 always
+//-- in compile, also compile geosystem
+//-- in child, wrap normalChildren call with a geoprepT and geofinT
 
 /* do transforms, calculate the distance */
 void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
-	//done above INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
-        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
-         * so we do nothing here in that case -ncoder */
+	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+		* so we do nothing here in that case -ncoder */
 
 	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		FW_GL_PUSH_MATRIX();
+		/* do we actually have any thing to rotate/translate/scale?? */
+		if (node->__do_anything) {
+
+			FW_GL_PUSH_MATRIX();
+
+			/* TRANSLATION */
+			if (node->__do_trans)
+				FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+
+			/* CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+
+			/* ROTATION */
+			if (node->__do_rotation) {
+				FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
+			}
+
+			/* SCALEORIENTATION */
+			if (node->__do_scaleO) {
+				FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+			}
 
 
-		/* TRANSLATION */
-		if (node->__do_trans)
-			FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+			/* SCALE */
+			if (node->__do_scale)
+				FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
 
-        /* GeoTransform TRANSLATION */
-        FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-                
-        //printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
-        FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-                
-		/* ROTATION */
-		if (node->__do_rotation) {
-			FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
-		}
+			/* REVERSE SCALE ORIENTATION */
+			if (node->__do_scaleO)
+				FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
 
-		/* SCALEORIENTATION */
-		if (node->__do_scaleO) {
-			FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0],
-				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-		}
-
-		/* SCALE */
-		if (node->__do_scale)
-			FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
-
-		/* REVERSE SCALE ORIENTATION */
-		if (node->__do_scaleO)
-			FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0],
-				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-
-		/* REVERSE CENTER */
-		FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
-
-		RECORD_DISTANCE
-        }
-}
-
-void prep_GeoTransform_WRONG_DUG9 (struct X3D_GeoTransform *node) {
-	//dug9 had the wrong mental model, was thinking like geoLocation, its going the other way, children are geo
-	//done above INITIALIZE_GEOSPATIAL(node)
-	COMPILE_IF_REQUIRED
-
-        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
-         * so we do nothing here in that case -ncoder */
-
-	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
-
-	/* do we have any geometry visible, and are we doing anything with geometry? */
-	OCCLUSIONTEST
-
-	if(!renderstate()->render_vp) {
-		FW_GL_PUSH_MATRIX();
-
-        /* GeoTransform TRANSLATION */
-        FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-                
-        //printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
-        FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-
-		/* TRANSLATION */
-		if (node->__do_trans)
-			FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
-
-                
-		/* ROTATION */
-		if (node->__do_rotation) {
-			FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
-		}
-
-		/* SCALEORIENTATION */
-		if (node->__do_scaleO) {
-			FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0],
-				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-		}
-
-		/* SCALE */
-		if (node->__do_scale)
-			FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
-
-		/* REVERSE SCALE ORIENTATION */
-		if (node->__do_scaleO)
-			FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0],
-				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-
-		///* REVERSE CENTER */
-		//FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
-		if(fwl_getDrawBoundingBoxes()) extent6f_draw(node->_extent);
+			/* REVERSE CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+		} 
 
 		RECORD_DISTANCE
-        }
-}
 
+	}
+}
 
 
 void fin_GeoTransform (struct X3D_GeoTransform *node) {
-	// done in compile INITIALIZE_GEOSPATIAL(node)
-	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-            FW_GL_POP_MATRIX();
-        } else {
-           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-                FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
-                );
-                FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
-                );
-                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
-                );
-
-		        FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],-node->__localOrient.c[2]);
-
-                FW_GL_TRANSLATE_D(-(((node->__movedCoords).c[0])),-(((node->__movedCoords).c[1])),-(((node->__movedCoords).c[2]))
-                );
-            }
-        }
+	if(!renderstate()->render_vp) {
+		if (node->__do_anything) {
+			FW_GL_POP_MATRIX();
+		}
+	} else {
+		/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+		if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+			);
+			FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
+			);
+			FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+			);
+		}
+	}
 } 
 
-void fin_GeoTransform_WRONG_DUG9 (struct X3D_GeoTransform *node) {
-	// done in compile INITIALIZE_GEOSPATIAL(node)
-	COMPILE_IF_REQUIRED
-	OCCLUSIONTEST
+void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
+	//LCS -> TCS
+	//transform stack LCS (shared Local Coordinate System of all geonode children) 
+	// to this node TCS (topocentric coordinate system
+	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+	struct SFVec4d rotation1, rotation2;
+	Geosys *gs = geoSystem;
 
-        if(!renderstate()->render_vp) {
-            FW_GL_POP_MATRIX();
-        } else {
-           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-                FW_GL_TRANSLATE_D(((node->__movedCoords).c[0]),((node->__movedCoords).c[1]),((node->__movedCoords).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
-                );
-                FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
-                );
-                FW_GL_TRANSLATE_D(-(((node->__movedCoords).c[0])),-(((node->__movedCoords).c[1])),-(((node->__movedCoords).c[2]))
-                );
-                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
-                );
-            }
-        }
-} 
+	//How this works
+	//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
+	// into viewpoint space.
+	//the geo object is aligned and sized in object TCS (topocentric coordinate system)
+	//we need to get from child LCS to TCS for this node via the transform stack
+	// the stack goes in this order:
+	// GT-TCS < LCS-children
+	FW_GL_PUSH_MATRIX();
+	user2gc(gs,userCoord,1,&gcCoord);
+	gc2gd(gs,&gcCoord,1, &gdCoord);
 
+	gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+	FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+	lcs2gc_transform(&rotation1,&translation1);
+	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
 
+}
+void geofinT(){
+	FW_GL_POP_MATRIX();
+
+}
 void child_GeoTransform (struct X3D_GeoTransform *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
@@ -4899,9 +4854,9 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-
+	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter);
 	normalChildren(node->children);
-
+	geofinT();
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
@@ -5557,7 +5512,7 @@ void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
 
 	}
 }
-void lcs2gc_trensform(struct SFVec4d *rotation, struct SFVec3d *translation){
+void lcs2gc_transform(struct SFVec4d *rotation, struct SFVec3d *translation){
 	//converts from local coorinate system to GC geocentric
 	//GC = LCS + origin
 	int i;
@@ -5592,7 +5547,7 @@ void lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
 		struct SFVec4d rotation;
 		struct SFVec3d translation;
 		Quaternion qup;
-		lcs2gc_trensform(&rotation, &translation);
+		lcs2gc_transform(&rotation, &translation);
 		vrmlrot_to_quaternion(&qup,rotation.c[0],rotation.c[1],rotation.c[2],rotation.c[3]);
 		for(i=0;i<n;i++){
 			quaternion_rotationd(gc[i].c,&qup,lcs[i].c);

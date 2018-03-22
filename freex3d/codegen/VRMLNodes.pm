@@ -1919,6 +1919,7 @@ our %Nodes = (
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		__sibAffectors => ["MFNode", [], "inputOutput", 0,0],#ff
+		center => ["SFVec3f", [0, 0, 0], "inputOutput", 0,"UNCA_LENGTH"],#ff
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCenter => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1937,6 +1938,7 @@ our %Nodes = (
 		__do_rotation => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__do_scaleO => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__do_scale => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		__do_anything => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff

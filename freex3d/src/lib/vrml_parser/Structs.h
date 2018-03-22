@@ -5152,6 +5152,7 @@ struct X3D_GeoTransform {
 	struct Multi_Node addChildren;
 	struct Multi_Node removeChildren;
 	struct Multi_Node __sibAffectors;
+	struct SFVec3f center;
 	struct Multi_Node children;
 	struct SFVec3d geoCenter;
 	struct X3D_Node *metadata;
@@ -5168,6 +5169,7 @@ struct X3D_GeoTransform {
 	int __do_rotation;
 	int __do_scaleO;
 	int __do_scale;
+	int __do_anything;
 	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedCoords;
 	struct SFVec4d __localOrient;

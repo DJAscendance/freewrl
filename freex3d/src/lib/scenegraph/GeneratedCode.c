@@ -4801,6 +4801,7 @@ const int OFFSETS_GeoTransform[] = {
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_GeoTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_GeoTransform, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_GeoTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_center, (int) offsetof (struct X3D_GeoTransform, center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) UNCA_LENGTH,
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeoTransform, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCenter, (int) offsetof (struct X3D_GeoTransform, geoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoTransform, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
@@ -4817,6 +4818,7 @@ const int OFFSETS_GeoTransform[] = {
 	(int) FIELDNAMES___do_rotation, (int) offsetof (struct X3D_GeoTransform, __do_rotation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_scaleO, (int) offsetof (struct X3D_GeoTransform, __do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_scale, (int) offsetof (struct X3D_GeoTransform, __do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_anything, (int) offsetof (struct X3D_GeoTransform, __do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoTransform, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoTransform, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoTransform, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9927,6 +9929,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
 			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->center.c[0] = 0.0f;tmp2->center.c[1] = 0.0f;tmp2->center.c[2] = 0.0f;
 			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->geoCenter.c[0] = 0;tmp2->geoCenter.c[1] = 0;tmp2->geoCenter.c[2] = 0;;
 			tmp2->metadata = NULL;
@@ -9943,6 +9946,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_rotation = 0;
 			tmp2->__do_scaleO = 0;
 			tmp2->__do_scale = 0;
+			tmp2->__do_anything = FALSE;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
@@ -15021,6 +15025,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," __sibAffectors (MFNode):\n");
 			for (i=0; i<tmp->__sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->__sibAffectors.p[i]); }
 		    }
+			spacer fprintf (fp," center (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->center.c[i]); }
+			fprintf (fp,"\n");
 			spacer fprintf (fp," children (MFNode):\n");
 			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
 			spacer fprintf (fp," geoCenter (SFVec3d): \t");
