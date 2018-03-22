@@ -1883,6 +1883,7 @@ our %Nodes = (
 		__hit => ["SFInt32", 0, "inputOutput", 0,0],#ff
 		__t1 => ["SFVec3f", [10000000, 0, 0], "inputOutput", 0,0],#ff
 		__t2 => ["SFRotation", [0, 1, 0, 0], "inputOutput", 0,0],#ff
+		__t3 => ["SFVec3d", [10000000, 0, 0], "inputOutput", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff

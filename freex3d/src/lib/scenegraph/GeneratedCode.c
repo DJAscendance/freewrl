@@ -209,6 +209,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__subcontexts",
 	"__t1",
 	"__t2",
+	"__t3",
 	"__texCoords",
 	"__texture",
 	"__textureTableIndex",
@@ -4767,6 +4768,7 @@ const int OFFSETS_GeoProximitySensor[] = {
 	(int) FIELDNAMES___hit, (int) offsetof (struct X3D_GeoProximitySensor, __hit),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___t1, (int) offsetof (struct X3D_GeoProximitySensor, __t1),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___t2, (int) offsetof (struct X3D_GeoProximitySensor, __t2),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___t3, (int) offsetof (struct X3D_GeoProximitySensor, __t3),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoProximitySensor, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoProximitySensor, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoProximitySensor, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9886,6 +9888,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__hit = 0;
 			tmp2->__t1.c[0] = 10000000.0f;tmp2->__t1.c[1] = 0.0f;tmp2->__t1.c[2] = 0.0f;
 			tmp2->__t2.c[0] = 0;tmp2->__t2.c[1] = 1;tmp2->__t2.c[2] = 0;tmp2->__t2.c[3] = 0;;
+			tmp2->__t3.c[0] = 10000000;tmp2->__t3.c[1] = 0;tmp2->__t3.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
@@ -14964,6 +14967,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __t2 (SFRotation): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__t2.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __t3 (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__t3.c[i]); }
 			fprintf (fp,"\n");
 		    }
 		    if(allFields) {
