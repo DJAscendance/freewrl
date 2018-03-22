@@ -3767,12 +3767,24 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 		quaternion_normalize(&quat);
 		quaternion_to_vrmlrot(&quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 		vecnormald(oo,oo);
-		//experiment: generate geoCoord_changed here instead of in do_GPS
+		oo[3] = -oo[3];
 		double2float(node->__t2.c,oo,4);
 		float2double(tcsCoord.c,node->__t1.c,3);
-		tcs2gc(GEOSYS(node->__geoSystem),&node->center,&tcsCoord,1,&gcCoord);
-		gc2user(GEOSYS(node->__geoSystem),&gcCoord,1,&userCoord);
-		veccopyd(node->__t3.c,userCoord.c);
+		// generate geoCoord_changed here instead of in do_GPS
+		{
+			ttglobal tg = gglobal();
+			struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+		
+			if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
+				struct SFVec3d gcCoord, geoCoord;
+				struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *)boundvp;
+				user2gc(GEOSYS(gvp->__geoSystem),&gvp->position,1,&gcCoord);
+			} else {
+				tcs2gc(GEOSYS(node->__geoSystem),&node->center,&tcsCoord,1,&gcCoord);
+			}
+			gc2user(GEOSYS(node->__geoSystem),&gcCoord,1,&userCoord);
+			veccopyd(node->__t3.c,userCoord.c);
+		}
 	}else{
 		/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
 		printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
