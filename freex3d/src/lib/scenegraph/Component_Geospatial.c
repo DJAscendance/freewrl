@@ -2270,12 +2270,8 @@ void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVe
 void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
 void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin();
-
-
-
-
-
-
+void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofinT();
 
 
 typedef struct _geoOffsetInfo {
@@ -4637,23 +4633,30 @@ void compile_GeoTransform (struct X3D_GeoTransform * node) {
 
 	if(1)
 	{
-		//step 1 compute origin
-		geoOffsetInfo ggi, *gi;
-		struct SFVec3d gdCoord, gcCoord;
-		struct SFVec4d offsetOrient;
-		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-		gi = &ggi;
-		gi->node = X3D_NODE(node);
-		gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
-		gi->geoSystem = GEOSYS(node->__geoSystem);
-		gi->position = &node->geoCenter;
-		gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
-		gi->localOrient = &offsetOrient; //&node->__localOrient;
-		gi->offsetOrient = &node->__localOrient;
-		gi->gdCoord = &gdCoord;
-		gi->gcCoord = &gcCoord;
-		printf("GT:\n");
-		origin_offsets(gi);
+		if(MAR12){
+			Geosys *gs;
+			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+			gs = GEOSYS(node->__geoSystem);
+			update_origin(gs, X3D_NODE(node), &node->geoCenter, X3D_GEOORIGIN(node->geoOrigin));
+		}else{
+			//step 1 compute origin
+			geoOffsetInfo ggi, *gi;
+			struct SFVec3d gdCoord, gcCoord;
+			struct SFVec4d offsetOrient;
+			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+			gi = &ggi;
+			gi->node = X3D_NODE(node);
+			gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
+			gi->geoSystem = GEOSYS(node->__geoSystem);
+			gi->position = &node->geoCenter;
+			gi->offsetCoord = &node->__movedCoords; //__localCoords; //__autoOffset;
+			gi->localOrient = &offsetOrient; //&node->__localOrient;
+			gi->offsetOrient = &node->__localOrient;
+			gi->gdCoord = &gdCoord;
+			gi->gcCoord = &gcCoord;
+			printf("GT:\n");
+			origin_offsets(gi);
+		}
 
 	}else{
 		MF_SF_TEMPS
@@ -4790,16 +4793,13 @@ void fin_GeoTransform (struct X3D_GeoTransform *node) {
 
 void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	//LCS -> TCS
-	//transform stack LCS (shared Local Coordinate System of all geonode children) 
+	//transform stack LCS (shared Local Coordinate System) 
 	// to this node TCS (topocentric coordinate system
 	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
 	struct SFVec4d rotation1, rotation2;
 	Geosys *gs = geoSystem;
 
 	//How this works
-	//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
-	// into viewpoint space.
-	//the geo object is aligned and sized in object TCS (topocentric coordinate system)
 	//we need to get from child LCS to TCS for this node via the transform stack
 	// the stack goes in this order:
 	// GT-TCS < LCS-children
