@@ -3621,75 +3621,49 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 
 	//PROXIMITYSENSOR(GeoProximitySensor,__movedCoords,INITIALIZE_GEOSPATIAL(node),COMPILE_IF_REQUIRED)
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
+void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
+	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+	struct SFVec4d rotation1, rotation2;
+	Geosys *gs = geoSystem;
+	FW_GL_PUSH_MATRIX();
+	user2gc(gs,userCoord,1,&gcCoord);
+	gc2gd(gs,&gcCoord,1, &gdCoord);
+
+
+	//this works, but why?
+	//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
+	// into viewpoint space.
+	//the object is aligned and sized in object TCS (topocentric coordinate system)
+	//so we need to get from TCS for this node into LCS for the transform stack
+	// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
+	// object-TCS > LCS -transform stack- LCS > TCS-vp
+	// the stack goes in this order:
+	// vp-TCS < LCS
+	// LCS < TCS-object
+	// here we do a 2-step TCS > LCS: TCS > GC, GC > LCS, which on the stack looks like
+	// LCS < GC object  push first
+	// GC < TCS object  push second
+	//    draw TCS object
+	gc2lcs_transform(&translation1,&rotation1);
+	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+	tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+	FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+}
+void geofin(){
+	FW_GL_POP_MATRIX();
+
+}
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
 	if(renderstate()->render_boxes) {
-		struct SFVec3d translation1, translation2, gcCoord, gdCoord;
-		struct SFVec4d rotation1, rotation2;
-		Geosys *gs = GEOSYS(node->__geoSystem);
-		FW_GL_PUSH_MATRIX();
-		user2gc(gs,&node->geoCenter,1,&gcCoord);
-		gc2gd(gs,&gcCoord,1, &gdCoord);
-
-
-		//this works, but why?
-		//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
-		// into viewpoint space.
-		//the object is aligned and sized in object TCS (topocentric coordinate system)
-		//so we need to get from TCS for this node into LCS for the transform stack
-		// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
-		// object-TCS > LCS -transform stack- LCS > TCS-vp
-		// the stack goes in this order:
-		// vp-TCS < LCS
-		// LCS < TCS-object
-		// here we do a 2-step TCS > LCS: TCS > GC, GC > LCS, which on the stack looks like
-		// LCS < GC object  push first
-		// GC < TCS object  push second
-		//    draw TCS object
-		gc2lcs_transform(&translation1,&rotation1);
-		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
-		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
-		tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
-		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
-		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
-
-		if(0){
-			//borrowed from prep_GeoLocation for comparison
-			// it does a one-step TCS2LCS
-			//Geosys *gs;
-			struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
-			struct SFVec4d offsetOrient;
-
-			//gs = GEOSYS(node->__geoSystem);
-			user2gc(gs,&node->geoCenter,1,&gcCoords);
-			gc2lcs(gs,&gcCoords,1,&lcsCoords);
-			gc2gd(gs,&gcCoords,1,&gdCoords);
-
-			veccopyd(node->__movedCoords.c,lcsCoords.c);
-			node2lcsRotation(gs, X3D_GEOORIGIN(node->geoOrigin), &gdCoord, &offsetOrient);
-
-
-			//FW_GL_PUSH_MATRIX();
-
-			/* TRANSLATION */
-			if(0){
-				double mat[16];
-				FW_GL_PUSH_MATRIX();
-				FW_GL_LOAD_IDENTITY();
-				FW_GL_TRANSLATE_D(lcsCoords.c[0], lcsCoords.c[1], lcsCoords.c[2]);
-				FW_GL_ROTATE_RADIANS(offsetOrient.c[3], offsetOrient.c[0],offsetOrient.c[1],offsetOrient.c[2]);
-				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
-				printmatrix2(mat,"geolocation matrix");
-				FW_GL_POP_MATRIX();
-			}
-			vecprint3db("lcs0",lcsCoords.c,"\n");
-			vecprint4db("rot0",offsetOrient.c,"\n");
-		}
-
+		geoprep(GEOSYS(node->__geoSystem),&node->geoCenter);
 		extent6f_draw(node->_extent);
-		FW_GL_POP_MATRIX();
+		geofin();
 	}
 }
+
 void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) { 
 	/* Viewer pos = t_r2 */ 
 	double cx,cy,cz; 
@@ -3708,28 +3682,11 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	GLDOUBLE view2prox[16]; 
  
 	if(!((node->enabled))) return; 
-	//INITIALIZE_GEOSPATIAL(node) 
 	COMPILE_IF_REQUIRED 
  
-	/* printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",*/ 
-	/* render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision);*/ 
- 
-	/* transforms viewers coordinate space into sensors coordinate space. 
-	 * this gives the orientation of the viewer relative to the sensor. 
-	 */ 
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCenter);
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix); 
-	if(0){
-		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, projMatrix); 
-		FW_GLU_UNPROJECT(orig.x,orig.y,orig.z,modelMatrix,projMatrix,viewport, 
-			&t_orig.x,&t_orig.y,&t_orig.z); 
-		FW_GLU_UNPROJECT(zvec.x,zvec.y,zvec.z,modelMatrix,projMatrix,viewport, 
-			&t_zvec.x,&t_zvec.y,&t_zvec.z); 
-		FW_GLU_UNPROJECT(yvec.x,yvec.y,yvec.z,modelMatrix,projMatrix,viewport, 
-			&t_yvec.x,&t_yvec.y,&t_yvec.z); 
-		VECDIFF(t_zvec, t_orig, dr1r2);  /* Z axis */
-		VECDIFF(t_yvec, t_orig, dr2r3);  /* Y axis */
-
-	}
+	geofin();
 	matinverseAFFINE(view2prox,modelMatrix); 
 	if(1){
 		//feature-AFFINE_GLU_UNPROJECT
