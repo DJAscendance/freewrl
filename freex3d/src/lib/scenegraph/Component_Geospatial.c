@@ -3772,8 +3772,7 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 		float2double(tcsCoord.c,node->__t1.c,3);
 		// generate geoCoord_changed here instead of in do_GPS
 		{
-			ttglobal tg = gglobal();
-			struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+			struct X3D_Node *boundvp = getActiveLayerBoundViewpoint();
 		
 			if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
 				struct SFVec3d gcCoord, geoCoord;
