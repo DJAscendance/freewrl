@@ -3568,7 +3568,6 @@ void do_GeoPositionInterpolator (void *innode) {
 
 void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	int specversion;
-	MF_SF_TEMPS
 
 	#ifdef VERBOSE
 	printf ("compiling GeoProximitySensor\n");
@@ -3577,15 +3576,24 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 		int i;
 		Geosys *gs;
 		struct SFVec3d gcCoord, lcsCoord, gdCoord;
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
+		if(specversion < 330){
+			//in web3d version 3.3 they changed the name from .geoCenter to .center.
+			//we'll copy here and use .center in other GPS functions
+			if(!(veclengthd(node->geoCenter.c) == 0.0))
+				veccopyd(node->center.c,node->geoCenter.c);
+		}
+
 		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 		gs = GEOSYS(node->__geoSystem);
-		user2gc(gs,&node->geoCenter,1,&gcCoord);
+		user2gc(gs,&node->center,1,&gcCoord);
 		gc2lcs(gs,&gcCoord,1,&node->__movedCoords);
 		gc2gd(gs,&gcCoord,1,&gdCoord);
 		GeoOrient(node->geoOrigin, GEOSYS(node->__geoSystem), &gdCoord, &node->__localOrient);
 		MARK_NODE_COMPILED
 	}else{
 		/* work out the position */
+		MF_SF_TEMPS
 		INITIALIZE_GEOSPATIAL(node)
 		COMPILE_GEOSYSTEM(node)
 		INIT_MF_FROM_SF(node, geoCenter)
@@ -3622,18 +3630,15 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	//PROXIMITYSENSOR(GeoProximitySensor,__movedCoords,INITIALIZE_GEOSPATIAL(node),COMPILE_IF_REQUIRED)
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
+	//geonode TCS to transform stack LCS
 	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
 	struct SFVec4d rotation1, rotation2;
 	Geosys *gs = geoSystem;
-	FW_GL_PUSH_MATRIX();
-	user2gc(gs,userCoord,1,&gcCoord);
-	gc2gd(gs,&gcCoord,1, &gdCoord);
 
-
-	//this works, but why?
+	//How this works
 	//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
 	// into viewpoint space.
-	//the object is aligned and sized in object TCS (topocentric coordinate system)
+	//the geo object is aligned and sized in object TCS (topocentric coordinate system)
 	//so we need to get from TCS for this node into LCS for the transform stack
 	// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
 	// object-TCS > LCS -transform stack- LCS > TCS-vp
@@ -3644,6 +3649,10 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
 	// LCS < GC object  push first
 	// GC < TCS object  push second
 	//    draw TCS object
+	FW_GL_PUSH_MATRIX();
+	user2gc(gs,userCoord,1,&gcCoord);
+	gc2gd(gs,&gcCoord,1, &gdCoord);
+
 	gc2lcs_transform(&translation1,&rotation1);
 	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
 	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
@@ -3658,7 +3667,8 @@ void geofin(){
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
 	if(renderstate()->render_boxes) {
-		geoprep(GEOSYS(node->__geoSystem),&node->geoCenter);
+		COMPILE_IF_REQUIRED 
+		geoprep(GEOSYS(node->__geoSystem),&node->center);
 		extent6f_draw(node->_extent);
 		geofin();
 	}
@@ -3684,17 +3694,19 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	if(!((node->enabled))) return; 
 	COMPILE_IF_REQUIRED 
  
-	geoprep(GEOSYS(node->__geoSystem),&node->geoCenter);
+	geoprep(GEOSYS(node->__geoSystem),&node->center);
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix); 
 	geofin();
 	matinverseAFFINE(view2prox,modelMatrix); 
 	if(1){
 		//feature-AFFINE_GLU_UNPROJECT
 		transform(&t_orig,&orig,view2prox);
-		transform(&zvec,&zvec,view2prox);
-		transform(&yvec,&yvec,view2prox);
-		VECDIFF(zvec, t_orig, dr1r2);
-		VECDIFF(yvec, t_orig, dr2r3);
+		if(!MAR12){
+			transform(&zvec,&zvec,view2prox);
+			transform(&yvec,&yvec,view2prox);
+			VECDIFF(zvec, t_orig, dr1r2);
+			VECDIFF(yvec, t_orig, dr2r3);
+		}
 	}
     transform(&t_center,&orig, view2prox); 
  
@@ -3704,10 +3716,17 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	printf ("unprojected, t_yvec (0,0.05,0) %lf %lf %lf\n",t_yvec.x, t_yvec.y, t_yvec.z); 
 	printf ("unprojected, t_zvec (0,0,-0.05) %lf %lf %lf\n",t_zvec.x, t_zvec.y, t_zvec.z); 
 	*/ 
-	cx = t_center.x - ((node->__movedCoords ).c[0]); 
-	cy = t_center.y - ((node->__movedCoords ).c[1]); 
-	cz = t_center.z - ((node->__movedCoords ).c[2]); 
- 
+	if(MAR12){
+		//we'll do our 'in' test in TCS coords
+		cx = t_center.x;  //minus 0,0,0
+		cy = t_center.y; 
+		cz = t_center.z; 
+	}else{
+		//'in' test in LCS
+		cx = t_center.x - ((node->__movedCoords ).c[0]); 
+		cy = t_center.y - ((node->__movedCoords ).c[1]); 
+		cz = t_center.z - ((node->__movedCoords ).c[2]); 
+	}
 	{
 		float cc[3];
 		//how draw bounding box? doesn't seem to draw on proximity pass
@@ -3727,6 +3746,8 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	(node->__hit) /*cget*/ = 1; 
  
 	/* Position */ 
+	//MAR12 in TCS
+	//!MAR12 in LCS
 	((node->__t1).c[0]) = (float)t_center.x; 
 	((node->__t1).c[1]) = (float)t_center.y; 
 	((node->__t1).c[2]) = (float)t_center.z; 
