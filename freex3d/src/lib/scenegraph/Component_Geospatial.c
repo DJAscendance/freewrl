@@ -2264,51 +2264,13 @@ void   gd2gc(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc)
 void   gc2gd(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
 void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
 void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+void lcs2gc_trensform(struct SFVec4d *rotation, struct SFVec3d *translation);
+void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate);
+void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate);
+void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
 
 
-void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
-	//UNTESTED
-	//converts from GC geocentric, to LCS local coordinate system
-	//LCS = GC - origin
-	int i;
-	struct Planet *planet;
-	planet = current_planet();
-	for(i=0;i<n;i++){
-		//take offset off GC coords
-		vecdifd(lcs[i].c,gc[i].c,planet->autoOrigin.c); 
-	}
-	if(1){
-		Quaternion qup;
-		double aoo[4];
-		veccopy4d(aoo,planet->autoOrient.c);
-		vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],-aoo[3]);
-		for(i=0;i<n;i++){
-			quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
-		}
-	}
-}
-void lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
-	//UNTESTED
-	//converts from local coorinate system to GC geocentric
-	//GC = LCS + origin
-	int i;
-	struct Planet *planet;
-	planet = current_planet();
-	{
-		Quaternion qup;
-		double aoo[4];
-		veccopy4d(aoo,planet->autoOrient.c);
-		vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],aoo[3]);
-		for(i=0;i<n;i++){
-			if(1) quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
-			else veccopyd(gc[i].c,lcs[i].c);
-		}
-	}
-	for(i=0;i<n;i++){
-		//add offset to get GC coords
-		vecaddd(gc[i].c,gc[i].c,planet->autoOrigin.c); 
-	}
-}
+
 
 
 
@@ -2452,7 +2414,6 @@ void node2lcsRotation(Geosys *geoSystem, struct X3D_GeoOrigin *geoOrigin, struct
 	Quaternion localQuat, relQuat, combQuat;
 	vrmlrot_to_quaternion (&localQuat,localOrient.c[0], localOrient.c[1], localOrient.c[2], -localOrient.c[3]);
 	vrmlrot_to_quaternion (&relQuat, planet->autoOrient.c[0], planet->autoOrient.c[1], planet->autoOrient.c[2], planet->autoOrient.c[3]);
-
 	quaternion_multiply(&combQuat, &localQuat, &relQuat);
 	quaternion_to_vrmlrot(&combQuat, &rotation->c[0], &rotation->c[1], &rotation->c[2], &rotation->c[3]);
 	rotation->c[3] = - rotation->c[3];
@@ -3662,8 +3623,72 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) 
+	if(renderstate()->render_boxes) {
+		struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+		struct SFVec4d rotation1, rotation2;
+		Geosys *gs = GEOSYS(node->__geoSystem);
+		FW_GL_PUSH_MATRIX();
+		user2gc(gs,&node->geoCenter,1,&gcCoord);
+		gc2gd(gs,&gcCoord,1, &gdCoord);
+
+
+		//this works, but why?
+		//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
+		// into viewpoint space.
+		//the object is aligned and sized in object TCS (topocentric coordinate system)
+		//so we need to get from TCS for this node into LCS for the transform stack
+		// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
+		// object-TCS > LCS -transform stack- LCS > TCS-vp
+		// the stack goes in this order:
+		// vp-TCS < LCS
+		// LCS < TCS-object
+		// here we do a 2-step TCS > LCS: TCS > GC, GC > LCS, which on the stack looks like
+		// LCS < GC object  push first
+		// GC < TCS object  push second
+		//    draw TCS object
+		gc2lcs_transform(&translation1,&rotation1);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+
+		if(0){
+			//borrowed from prep_GeoLocation for comparison
+			// it does a one-step TCS2LCS
+			//Geosys *gs;
+			struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
+			struct SFVec4d offsetOrient;
+
+			//gs = GEOSYS(node->__geoSystem);
+			user2gc(gs,&node->geoCenter,1,&gcCoords);
+			gc2lcs(gs,&gcCoords,1,&lcsCoords);
+			gc2gd(gs,&gcCoords,1,&gdCoords);
+
+			veccopyd(node->__movedCoords.c,lcsCoords.c);
+			node2lcsRotation(gs, X3D_GEOORIGIN(node->geoOrigin), &gdCoord, &offsetOrient);
+
+
+			//FW_GL_PUSH_MATRIX();
+
+			/* TRANSLATION */
+			if(0){
+				double mat[16];
+				FW_GL_PUSH_MATRIX();
+				FW_GL_LOAD_IDENTITY();
+				FW_GL_TRANSLATE_D(lcsCoords.c[0], lcsCoords.c[1], lcsCoords.c[2]);
+				FW_GL_ROTATE_RADIANS(offsetOrient.c[3], offsetOrient.c[0],offsetOrient.c[1],offsetOrient.c[2]);
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+				printmatrix2(mat,"geolocation matrix");
+				FW_GL_POP_MATRIX();
+			}
+			vecprint3db("lcs0",lcsCoords.c,"\n");
+			vecprint4db("rot0",offsetOrient.c,"\n");
+		}
+
 		extent6f_draw(node->_extent);
+		FW_GL_POP_MATRIX();
+	}
 }
 void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) { 
 	/* Viewer pos = t_r2 */ 
@@ -4271,6 +4296,7 @@ void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion 
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 
 }
+
 void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// NLA - node local alignment
@@ -5476,14 +5502,173 @@ void gc2user(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo
 		CONVERT_BACK_TO_GD_OR_UTMC(geoSystem,NULL,&gc[i],&gdCoord,&geo[i]);
 	}
 }
+void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate){
+	//converts from GC geocentric, to LCS local coordinate system
+	//LCS = GC - origin
+	int i;
+	struct Planet *planet;
+	planet = current_planet();
+	veccopyd(translate->c,planet->autoOrigin.c);
+	vecscaled(translate->c,translate->c,-1.0);
+	veccopy4d(rotate->c,planet->autoOrient.c);
+	rotate->c[3] = -rotate->c[3];
+}
+void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
+	//converts from GC geocentric, to LCS local coordinate system
+	//LCS = GC - origin
 
-void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs){
+	int i;
+	if(0){
+		struct Planet *planet;
+		planet = current_planet();
+		for(i=0;i<n;i++){
+			//take offset off GC coords
+			vecdifd(lcs[i].c,gc[i].c,planet->autoOrigin.c); 
+		}
+		if(1){
+			Quaternion qup;
+			double aoo[4];
+			veccopy4d(aoo,planet->autoOrient.c);
+			vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],-aoo[3]);
+			for(i=0;i<n;i++){
+				quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
+				//vecprint3db("lcs0",lcs[i].c,"\n");
+
+			}
+		}
+	}else {
+		struct SFVec3d translate;
+		struct SFVec4d rotate;
+		Quaternion qup;
+		gc2lcs_transform(&translate, &rotate);
+		vrmlrot_to_quaternion(&qup,rotate.c[0],rotate.c[1],rotate.c[2],rotate.c[3]);
+		for(i=0;i<n;i++){
+			vecaddd(lcs[i].c,gc[i].c,translate.c);
+			quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
+			//vecprint3db("lcs1",lcs[i].c,"\n");
+		}
+
+	}
+}
+void lcs2gc_trensform(struct SFVec4d *rotation, struct SFVec3d *translation){
+	//converts from local coorinate system to GC geocentric
+	//GC = LCS + origin
+	int i;
+	struct Planet *planet;
+	planet = current_planet();
+	veccopy4d(rotation->c,planet->autoOrient.c);
+	veccopyd(translation->c,planet->autoOrigin.c);
+}
+void lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
+	//converts from local coorinate system to GC geocentric
+	//GC = LCS + origin
+	int i;
+	if(0){
+		struct Planet *planet;
+		planet = current_planet();
+		{
+			Quaternion qup;
+			double aoo[4];
+			veccopy4d(aoo,planet->autoOrient.c);
+			vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],aoo[3]);
+			for(i=0;i<n;i++){
+				if(1) quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+				else veccopyd(gc[i].c,lcs[i].c);
+			}
+		}
+		for(i=0;i<n;i++){
+			//add offset to get GC coords
+			vecaddd(gc[i].c,gc[i].c,planet->autoOrigin.c); 
+		}
+		//vecprint3db("gc0",gc[0].c,"\n");
+	}else{
+		struct SFVec4d rotation;
+		struct SFVec3d translation;
+		Quaternion qup;
+		lcs2gc_trensform(&rotation, &translation);
+		vrmlrot_to_quaternion(&qup,rotation.c[0],rotation.c[1],rotation.c[2],rotation.c[3]);
+		for(i=0;i<n;i++){
+			quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+			vecaddd(gc[i].c,gc[i].c,translation.c);
+		}
+		//vecprint3db("gc1",gc[0].c,"\n");
+	}
+}
+
+
+
+void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate){
+	// GC -> TCS
+	// convert from GC to node local aligned aka topocentric coordinate system TCS
+	//TCS =  localOrient x (GC - gdcenter)
+
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d lo;
+	struct SFVec3d gcCenter;
+	GeoOrient(NULL,geoSystem,gdcenter,rotate);
+	rotate->c[3] = -rotate->c[3];
+	gd2gc(geoSystem,gdcenter,1,translate);
+	vecscaled(translate->c,translate->c,-1.0);
+
+}
+void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate){
+	// TCS -> GC
+	// convert from node-local-algined aka topocentric coordinate system TCS to GC
+	// GC = (inverse(localOrient) x TCS) + gdcenter
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d lo;
+	struct SFVec3d gcCenter;
+	GeoOrient(NULL,geoSystem,gdcenter,rotate);
+	gd2gc(geoSystem,gdcenter,1,translate);
 	
 }
-void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc){
-	struct SFVec4d orient;
-	GeoOrient(NULL,geoSystem,gdcenter,&orient);
+void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs){
+	// GC -> TCS
+	// convert from GC to node local aligned aka topocentric coordinate system TCS
+	//TCS =  localOrient x (GC - gdcenter)
 
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	if(0){
+		GeoOrient(NULL,geoSystem,gdcenter,&rotate);
+		gd2gc(geoSystem,gdcenter,1,&translate);
+	}else{
+		tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
+	}
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], -rotate.c[3]);
+	for(i=0;i<n;i++){
+		vecdifd(pp,gc[i].c,translate.c);
+		quaternion_rotationd(tcs[i].c,&qlo,pp);
+	}
+
+}
+void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc){
+	// TCS -> GC
+	// convert from node-local-algined aka topocentric coordinate system TCS to GC
+	// GC = (inverse(localOrient) x TCS) + gdcenter
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	if(0){
+		GeoOrient(NULL,geoSystem,gdcenter,&rotate);
+		gd2gc(geoSystem,gdcenter,1,&translate);
+	}else{
+		tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
+	}
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], rotate.c[3]);
+	for(i=0;i<n;i++){
+		quaternion_rotationd(pp,&qlo,tcs[i].c);
+		vecaddd(gc[i].c,translate.c,pp);
+	}
 	
 }
 
