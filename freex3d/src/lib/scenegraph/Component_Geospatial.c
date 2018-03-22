@@ -2268,6 +2268,8 @@ void lcs2gc_trensform(struct SFVec4d *rotation, struct SFVec3d *translation);
 void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate);
 void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate);
 void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
+void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofin();
 
 
 
@@ -3046,42 +3048,45 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(MAR12){
-			//retransform on every frame? why not in compile_?
-			//1. user2gc does relativeHeight against GeoElevationGrid GEG nodes registered for the planet
-			//     - and GEGs aren't registered till they are compiled, which may be after GL is compiled
-			//2. the .geoCoords field is for routing to, according to specs, and may change often
-			//		- is there a way to avoid compile_ completely? Maybe if we do the full trans here.
-			//		- would need to do the orientation too.
-			Geosys *gs;
-			struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
-			gs = GEOSYS(node->__geoSystem);
-			user2gc(gs,&node->geoCoords,1,&gcCoords);
-			gc2lcs(gs,&gcCoords,1,&lcsCoords);
-			gc2gd(gs,&gcCoords,1,&gdCoords);
+		if(1){
+			geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+		}else{
+			if(MAR12){
+				//retransform on every frame? why not in compile_?
+				//1. user2gc does relativeHeight against GeoElevationGrid GEG nodes registered for the planet
+				//     - and GEGs aren't registered till they are compiled, which may be after GL is compiled
+				//2. the .geoCoords field is for routing to, according to specs, and may change often
+				//		- is there a way to avoid compile_ completely? Maybe if we do the full trans here.
+				//		- would need to do the orientation too.
+				Geosys *gs;
+				struct SFVec3d gcCoords, gdCoords, userCoords, lcsCoords;
+				gs = GEOSYS(node->__geoSystem);
+				user2gc(gs,&node->geoCoords,1,&gcCoords);
+				gc2lcs(gs,&gcCoords,1,&lcsCoords);
+				gc2gd(gs,&gcCoords,1,&gdCoords);
 
-			veccopyd(node->__movedgd.c,gdCoords.c);
-			veccopyd(node->__movedCoords.c,lcsCoords.c);
-			node2lcsRotation(gs, X3D_GEOORIGIN(node->geoOrigin), &node->__movedgd, &node->__offsetOrient);
+				veccopyd(node->__movedgd.c,gdCoords.c);
+				veccopyd(node->__movedCoords.c,lcsCoords.c);
+				node2lcsRotation(gs, X3D_GEOORIGIN(node->geoOrigin), &node->__movedgd, &node->__offsetOrient);
+			}
+
+
+			FW_GL_PUSH_MATRIX();
+
+			if(!MAR12)	FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+			/* TRANSLATION */
+			FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+
+			//printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
+
+			if(!MAR12)	FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+			FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
+
+			/*
+			printf ("geoLocation trans %7.4f %7.4f %7.4f\n",node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
+			printf ("geoLocation rotat %7.4f %7.4f %7.4f %7.4f\n",my_rotation, node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+			*/
 		}
-
-
-		FW_GL_PUSH_MATRIX();
-
-		if(!MAR12)	FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-		/* TRANSLATION */
-		FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-
-		//printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
-
-		if(!MAR12)	FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-		FW_GL_ROTATE_RADIANS(node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
-
-		/*
-		printf ("geoLocation trans %7.4f %7.4f %7.4f\n",node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-		printf ("geoLocation rotat %7.4f %7.4f %7.4f %7.4f\n",my_rotation, node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-		*/
-
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
 		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
@@ -3093,7 +3098,8 @@ void fin_GeoLocation (struct X3D_GeoLocation *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		FW_GL_POP_MATRIX();
+		if(1) geofin();
+		else FW_GL_POP_MATRIX();
 	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
 			if(!MAR12) FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
@@ -4054,7 +4060,7 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 		#endif
 
 		memcpy ((void *) &node->hitPoint_changed, (void *) &node->_oldhitPoint, sizeof(struct SFColor));
-		vecprint3fb("hitpoint",node->hitPoint_changed.c,"\n");
+		//vecprint3fb("hitpoint",node->hitPoint_changed.c,"\n");
 		MARK_EVENT(ptr, offsetof (struct X3D_GeoTouchSensor, hitPoint_changed));
 
 		/* convert this back into the requested GeoSpatial format... */
