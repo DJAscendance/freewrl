@@ -2269,9 +2269,9 @@ void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate);
 void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate);
 void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
 void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
-void geofin();
+void geofin(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
-void geofinT();
+void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord);
 
 
 typedef struct _geoOffsetInfo {
@@ -3111,15 +3111,18 @@ void fin_GeoLocation (struct X3D_GeoLocation *node) {
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 
-	if(!renderstate()->render_vp) {
-		if(1) geofin();
-		else FW_GL_POP_MATRIX();
-	} else {
-		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-			if(!MAR12) FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-			if(MAR12) FW_GL_ROTATE_RADIANS(-node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
+	if(1) {
+		geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	}else{
+		if(!renderstate()->render_vp) {
+			FW_GL_POP_MATRIX();
+		} else {
+			if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+				if(!MAR12) FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
+				if(MAR12) FW_GL_ROTATE_RADIANS(-node->__offsetOrient.c[3], node->__offsetOrient.c[0],node->__offsetOrient.c[1],node->__offsetOrient.c[2]);
 
-			FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
+				FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
+			}
 		}
 	}
 }
@@ -3650,38 +3653,45 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	//PROXIMITYSENSOR(GeoProximitySensor,__movedCoords,INITIALIZE_GEOSPATIAL(node),COMPILE_IF_REQUIRED)
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
-	//geonode TCS to transform stack LCS
-	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
-	struct SFVec4d rotation1, rotation2;
-	Geosys *gs = geoSystem;
+	if(!renderstate()->render_vp) {
 
-	//How this works
-	//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
-	// into viewpoint space.
-	//the geo object is aligned and sized in object TCS (topocentric coordinate system)
-	//so we need to get from TCS for this node into LCS for the transform stack
-	// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
-	// object-TCS > LCS -transform stack- LCS > TCS-vp
-	// the stack goes in this order:
-	// vp-TCS < LCS
-	// LCS < TCS-object
-	// here we do a 2-step TCS > LCS: TCS > GC, GC > LCS, which on the stack looks like
-	// LCS < GC object  push first
-	// GC < TCS object  push second
-	//    draw TCS object
-	FW_GL_PUSH_MATRIX();
-	user2gc(gs,userCoord,1,&gcCoord);
-	gc2gd(gs,&gcCoord,1, &gdCoord);
+		//geonode TCS to transform stack LCS
+		struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+		struct SFVec4d rotation1, rotation2;
+		Geosys *gs = geoSystem;
 
-	gc2lcs_transform(&translation1,&rotation1);
-	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
-	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
-	tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
-	FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
-	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		//How this works
+		//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
+		// into viewpoint space.
+		//the geo object is aligned and sized in object TCS (topocentric coordinate system)
+		//so we need to get from TCS for this node into LCS for the transform stack
+		// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
+		// object-TCS > LCS -transform stack- LCS > TCS-vp
+		// the stack goes in this order:
+		// vp-TCS < LCS
+		// LCS < TCS-object
+		// here we do a 2-step TCS > LCS: TCS > GC, GC > LCS, which on the stack looks like
+		// LCS < GC object  push first
+		// GC < TCS object  push second
+		//    draw TCS object
+		FW_GL_PUSH_MATRIX();
+		user2gc(gs,userCoord,1,&gcCoord);
+		gc2gd(gs,&gcCoord,1, &gdCoord);
+
+		gc2lcs_transform(&translation1,&rotation1);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+	}
 }
-void geofin(){
-	FW_GL_POP_MATRIX();
+void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	}else{
+		geoprepT(geoSystem,userCoord);
+	}
 
 }
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
@@ -3690,7 +3700,7 @@ void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 		COMPILE_IF_REQUIRED 
 		geoprep(GEOSYS(node->__geoSystem),&node->center);
 		extent6f_draw(node->_extent);
-		geofin();
+		geofin(GEOSYS(node->__geoSystem),&node->center);
 	}
 }
 
@@ -3716,7 +3726,7 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
  
 	if(MAR12) geoprep(GEOSYS(node->__geoSystem),&node->center);
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix); 
-	if(MAR12) geofin();
+	if(MAR12) geofin(GEOSYS(node->__geoSystem),&node->center);
 	matinverseAFFINE(view2prox,modelMatrix); 
 	if(1){
 		//feature-AFFINE_GLU_UNPROJECT
@@ -4526,7 +4536,7 @@ void calculateViewingSpeedB() {
 		COMPILE_IF_REQUIRED(X3D_NODE(node));
 		gdCoords = &node->__movedgd;
 		height = gdCoords->c[2];
-		heightmin = max(height,100.0);
+		heightmin = max(abs(height),50.0);
 		viewer->speed  = heightmin * node->speedFactor;
 		if(0){
 			static int count = 0;
@@ -4796,28 +4806,35 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	//LCS -> TCS
 	//transform stack LCS (shared Local Coordinate System) 
 	// to this node TCS (topocentric coordinate system
-	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
-	struct SFVec4d rotation1, rotation2;
-	Geosys *gs = geoSystem;
+	if(!renderstate()->render_vp) {
 
-	//How this works
-	//we need to get from child LCS to TCS for this node via the transform stack
-	// the stack goes in this order:
-	// GT-TCS < LCS-children
-	FW_GL_PUSH_MATRIX();
-	user2gc(gs,userCoord,1,&gcCoord);
-	gc2gd(gs,&gcCoord,1, &gdCoord);
+		struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+		struct SFVec4d rotation1, rotation2;
+		Geosys *gs = geoSystem;
 
-	gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
-	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
-	FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
-	lcs2gc_transform(&rotation1,&translation1);
-	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
-	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		//How this works
+		//we need to get from child LCS to TCS for this node via the transform stack
+		// the stack goes in this order:
+		// GT-TCS < LCS-children
+		FW_GL_PUSH_MATRIX();
+		user2gc(gs,userCoord,1,&gcCoord);
+		gc2gd(gs,&gcCoord,1, &gdCoord);
+
+		gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		lcs2gc_transform(&rotation1,&translation1);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+	}
 
 }
-void geofinT(){
-	FW_GL_POP_MATRIX();
+void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord){
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	}else{
+		geoprep(geoSystem,userCoord);
+	}
 
 }
 void child_GeoTransform (struct X3D_GeoTransform *node) {
@@ -4857,7 +4874,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#endif
 	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter);
 	normalChildren(node->children);
-	geofinT();
+	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter);
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
