@@ -4161,80 +4161,89 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /* GeoViewpoint								*/
 /************************************************************************/
 void calculateViewingSpeedB();
-
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
-	int specversion;
-	struct SFVec4d localOrient, offsetOrient;
-	struct SFVec4d orient;
-	int i;
-	Quaternion localQuat;
-	Quaternion relQuat;
-	Quaternion combQuat;
-	struct SFVec3d gdCoord, gcCoord;
-	struct SFVec3d offset, *poffset;
-	struct SFVec4d yup, *pyup;
+	if(MAR12){
+		Geosys *gs;
+		struct SFVec3d gcCoord;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gs = GEOSYS(node->__geoSystem);
 
-	#ifdef VERBOSE
-	printf ("compileViewpoint is %u, its geoOrigin is %u \n",node, node->geoOrigin);
-	if (node->geoOrigin!=NULL) printf ("type %s\n",stringNodeType(X3D_GEOORIGIN(node->geoOrigin)->_nodeType));
-	#endif
+		update_origin(gs, X3D_NODE(node), &node->position, X3D_GEOORIGIN(node->geoOrigin));
+		user2gc(gs,&node->position,1,&gcCoord);
+		gc2gd(gs,&gcCoord,1,&node->__movedgd);
+	}else{
+		int specversion;
+		struct SFVec4d localOrient, offsetOrient;
+		struct SFVec4d orient;
+		int i;
+		Quaternion localQuat;
+		Quaternion relQuat;
+		Quaternion combQuat;
+		struct SFVec3d gdCoord, gcCoord;
+		struct SFVec3d offset, *poffset;
+		struct SFVec4d yup, *pyup;
 
-	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+		#ifdef VERBOSE
+		printf ("compileViewpoint is %u, its geoOrigin is %u \n",node, node->geoOrigin);
+		if (node->geoOrigin!=NULL) printf ("type %s\n",stringNodeType(X3D_GEOORIGIN(node->geoOrigin)->_nodeType));
+		#endif
 
-	// v3.3 regular fields are [inout] now /* did any of the "set_" inputOnly fields get set?  if not, just use the non-set fields */
-	//USE_SET_SFVEC3D_IF_CHANGED(set_position,position)
-	//USE_SET_SFROTATION_IF_CHANGED(set_orientation,orientation)  
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
 
-	compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
+		// v3.3 regular fields are [inout] now /* did any of the "set_" inputOnly fields get set?  if not, just use the non-set fields */
+		//USE_SET_SFVEC3D_IF_CHANGED(set_position,position)
+		//USE_SET_SFROTATION_IF_CHANGED(set_orientation,orientation)  
 
-
-	//struct SFVec3d *gcCoord;      //-GC2NL
-	//struct SFVec3d *offsetCoord;  //-NL2SL
-	//struct SFVec4d *localOrient;  //-GCA2NLA
-	//struct SFVec4d *offsetOrient; //-NLA2SLA
+		compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
 
 
-	geoOffsetInfo ggi, *gi;
-	struct Planet *planet;
-	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		//struct SFVec3d *gcCoord;      //-GC2NL
+		//struct SFVec3d *offsetCoord;  //-NL2SL
+		//struct SFVec4d *localOrient;  //-GCA2NLA
+		//struct SFVec4d *offsetOrient; //-NLA2SLA
 
-	planet = current_planet();
-	gi = &ggi;
-	gi->node = X3D_NODE(node);
-	gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
-	gi->geoSystem = GEOSYS(node->__geoSystem);
-	gi->position = &node->position;
-	gi->offsetCoord = &node->__movedPosition;
-	gi->localOrient = &localOrient;
-	gi->offsetOrient = &offsetOrient;
-	gi->gdCoord = &gdCoord;
-	gi->gcCoord = &gcCoord;
-	printf("GVP:\n");
-	origin_offsets(gi);
-	veccopy4d(localOrient.c,planet->autoOrient.c);
 
-	/* work out the local orientation and copy doubles to floats */
-	veccopyd(node->__movedgd.c,gdCoord.c);
+		geoOffsetInfo ggi, *gi;
+		struct Planet *planet;
+		//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	double2float(node->__movedOrientation.c,offsetOrient.c,4);
-	double2float(node->__movedOrientationB.c,localOrient.c,4);
+		planet = current_planet();
+		gi = &ggi;
+		gi->node = X3D_NODE(node);
+		gi->geoOrigin = X3D_GEOORIGIN(node->geoOrigin);
+		gi->geoSystem = GEOSYS(node->__geoSystem);
+		gi->position = &node->position;
+		gi->offsetCoord = &node->__movedPosition;
+		gi->localOrient = &localOrient;
+		gi->offsetOrient = &offsetOrient;
+		gi->gdCoord = &gdCoord;
+		gi->gcCoord = &gcCoord;
+		printf("GVP:\n");
+		origin_offsets(gi);
+		veccopy4d(localOrient.c,planet->autoOrient.c);
 
-	//we need to initialize __movedgd (lat, lon, height) early for things like speed
-	moveCoords3d(GEOSYS(node->__geoSystem),NULL,NULL,&node->position,1,&gcCoord,&node->__movedgd);
+		/* work out the local orientation and copy doubles to floats */
+		veccopyd(node->__movedgd.c,gdCoord.c);
 
-        #ifdef VERBOSE
-	printf ("compile_GeoViewpoint, final position %lf %lf %lf\n",node->__movedPosition.c[0],
-		node->__movedPosition.c[1], node->__movedPosition.c[2]);
+		double2float(node->__movedOrientation.c,offsetOrient.c,4);
+		double2float(node->__movedOrientationB.c,localOrient.c,4);
 
-	printf ("compile_GeoViewpoint, getLocalOrientation %lf %lf %lf %lf\n",localOrient.c[0],
-		localOrient.c[1], localOrient.c[2], localOrient.c[3]);
-	printf ("compile_GeoViewpoint, initial orientation: %lf %lf %lf %lf\n",node->orientation.c[0],
-		node->orientation.c[1], node->orientation.c[2], node->orientation.c[3]);
-	printf ("compile_GeoViewpoint, final rotation %lf %lf %lf %lf\n",node->__movedOrientation.c[0], 
-		node->__movedOrientation.c[1], node->__movedOrientation.c[2], node->__movedOrientation.c[3]);
-	printf ("compile_GeoViewpoint, elevation from the WGS84 ellipsoid is %lf\n",gdCoords.p[0].c[2]);
-        #endif
+		//we need to initialize __movedgd (lat, lon, height) early for things like speed
+		moveCoords3d(GEOSYS(node->__geoSystem),NULL,NULL,&node->position,1,&gcCoord,&node->__movedgd);
 
+			#ifdef VERBOSE
+		printf ("compile_GeoViewpoint, final position %lf %lf %lf\n",node->__movedPosition.c[0],
+			node->__movedPosition.c[1], node->__movedPosition.c[2]);
+
+		printf ("compile_GeoViewpoint, getLocalOrientation %lf %lf %lf %lf\n",localOrient.c[0],
+			localOrient.c[1], localOrient.c[2], localOrient.c[3]);
+		printf ("compile_GeoViewpoint, initial orientation: %lf %lf %lf %lf\n",node->orientation.c[0],
+			node->orientation.c[1], node->orientation.c[2], node->orientation.c[3]);
+		printf ("compile_GeoViewpoint, final rotation %lf %lf %lf %lf\n",node->__movedOrientation.c[0], 
+			node->__movedOrientation.c[1], node->__movedOrientation.c[2], node->__movedOrientation.c[3]);
+		printf ("compile_GeoViewpoint, elevation from the WGS84 ellipsoid is %lf\n",gdCoords.p[0].c[2]);
+			#endif
+	}
 	MARK_NODE_COMPILED
 	
 	/* events */
@@ -5353,7 +5362,7 @@ void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
 			planet = vector_get_ptr(struct Planet,p->planet_stack,ifound);
 		}
 		if(planet->gegs == NULL) planet->gegs = newStack(struct X3D_Node*);
-		printf("adding GEG %x to planet # %d\n",node,planetID);
+		//printf("adding GEG %x to planet # %d\n",node,planetID);
 		vector_pushBack(struct X3D_Node*,planet->gegs,node);
 	}
 }
@@ -5489,7 +5498,8 @@ void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate){
 	struct Planet *planet;
 	planet = current_planet();
 	veccopyd(translate->c,planet->autoOrigin.c);
-	vecscaled(translate->c,translate->c,-1.0);
+	//vecscaled(translate->c,translate->c,-1.0);
+	vecnegated(translate->c,translate->c);
 	veccopy4d(rotate->c,planet->autoOrient.c);
 	rotate->c[3] = -rotate->c[3];
 }
@@ -5590,7 +5600,8 @@ void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVe
 	GeoOrient(NULL,geoSystem,gdcenter,rotate);
 	rotate->c[3] = -rotate->c[3];
 	gd2gc(geoSystem,gdcenter,1,translate);
-	vecscaled(translate->c,translate->c,-1.0);
+	//vecscaled(translate->c,translate->c,-1.0);
+	vecnegated(translate->c,translate->c);
 
 }
 void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate){

@@ -3229,7 +3229,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 	}else{
 		n_depth_slices = want_depth_slices;
 	}
-	if(!once || previous_n != n_depth_slices)
+	if(0) if(!once || previous_n != n_depth_slices)
 		ConsoleMessage("depth slices: %d \n",n_depth_slices);
 	once = 1;
 }
@@ -3261,7 +3261,7 @@ void calculateViewingDistIfJustBound(struct X3D_Node *vpnode, int layerid ){
 			vecdif3f(vpoffset,center,vpf);
 			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
 			vpradius = veclength3f(vpoffset);
-			printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
+			//printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
 			Viewer()->Dist = vpradius + scene_diameter;
 			//Viewer()->Dist = scene_diameter;
 			Viewer()->doExamineModeDistanceCalculations = FALSE;

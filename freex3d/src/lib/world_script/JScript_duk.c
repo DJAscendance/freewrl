@@ -2754,7 +2754,7 @@ int duk_runQueuedDirectOutputs()
 	
 	if(!doneOnce){
 		//	printf("in runQueuedDirectOutputs\n");
-		printf("duktape javascript engine version %ld\n", DUK_VERSION);
+		printf("javascript engine duktape version %ld\n", DUK_VERSION);
 		doneOnce++;
 	}
 	moreAction = FALSE;
