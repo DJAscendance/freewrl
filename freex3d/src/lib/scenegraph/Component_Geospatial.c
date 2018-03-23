@@ -4369,7 +4369,7 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	//2. update .orientation that's in TCS and stays in TCS, although TCS at a different location
 	//Why? lets say we move straight ahead. Viewer->Quat doesn't change. But the same .orientation
 	//at 2 different locations means we turned. So we need to un-do the implied turn.
-	int FREEFLY = 0;
+	int FREEFLY = !Viewer()->collision;
 	if(FREEFLY){
 		//if we want to fly in any direction without being clamped to the planet surface
 		// then we need to undo the implied 3 axis rotation between the previous and current location
@@ -4387,7 +4387,7 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 		rotate3.c[3] = -rotate3.c[3];
 		double2float(node->orientation.c,rotate3.c,4);
 	}else{
-		//
+		//else if we're following the curvature of the earth, then we just undo the implied azimuth part of the rotation
 		//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
 		//     or dA = sin(phi)*dlambda
 		double deltagd[3], gd[3];
