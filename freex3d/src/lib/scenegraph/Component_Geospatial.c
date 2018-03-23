@@ -92,6 +92,9 @@ Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#high-precisioncoords
 	TCS		- topocentric coordinate system at specific geo location, with -Z north, Y up as per GL
 			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
+			- surveyors call it the local geodetic system LGS http://www2.unb.ca/gge/Pubs/LN16.pdf p.50 
+			-- because its at ellipsoid height (not at terrrain height)
+			-- except LGS looks too much like LCS, and since LGS is a subset of topocentric coordinate systems, TCS is our chosen name
 	FCFS	- First Come First Served - how AutoOrigin is generated automatically now 2018: 
 			- first geoNode's TCS -> shared LCS
 	XTM		- general acronym for transverse mercator map projections: either UTM or 3TM
