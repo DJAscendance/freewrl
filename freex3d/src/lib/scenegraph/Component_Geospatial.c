@@ -4367,39 +4367,61 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
 
 	//2. update .orientation that's in TCS and stays in TCS, although TCS at a different location
-	//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
-	//     or dA = sin(phi)*dlambda
-	double deltagd[3], gd[3];
-	vecdifd(deltagd,node->__movedgd.c,gdCoord.c);
-	veccopyd(gd,node->__movedgd.c);
-	//5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
-	//7:	GD: TRUE: decimal degrees, FALSE radians
-	if(!gs->gd_latitude_first){
-		//get latitude first
-		vecswizzle2d(deltagd); 
-		vecswizzle2d(gd);
+	//Why? lets say we move straight ahead. Viewer->Quat doesn't change. But the same .orientation
+	//at 2 different locations means we turned. So we need to un-do the implied turn.
+	int FREEFLY = 0;
+	if(FREEFLY){
+		//if we want to fly in any direction without being clamped to the planet surface
+		// then we need to undo the implied 3 axis rotation between the previous and current location
+		struct SFVec3d translate1, translate2;
+		struct SFVec4d rotate1, rotate2, rotate3;
+		Quaternion q1,q2,q3,q4;
+		gc2tcs_transform(gs, &node->__movedgd, &translate1, &rotate1);
+		gc2tcs_transform(gs, &gdCoord, &translate2, &rotate2);
+		rotate2.c[3] = -rotate2.c[3];
+		vrmlrot4d_to_quaternion(&q1,rotate1.c);
+		vrmlrot4d_to_quaternion(&q2,rotate2.c);
+		quaternion_multiply(&q3,&q1,&q2);
+		quaternion_multiply(&q4,Quat,&q3);
+		quaternion_to_vrmlrot4d(&q4,rotate3.c);
+		rotate3.c[3] = -rotate3.c[3];
+		double2float(node->orientation.c,rotate3.c,4);
+	}else{
+		//
+		//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
+		//     or dA = sin(phi)*dlambda
+		double deltagd[3], gd[3];
+		vecdifd(deltagd,node->__movedgd.c,gdCoord.c);
+		veccopyd(gd,node->__movedgd.c);
+		//5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+		//7:	GD: TRUE: decimal degrees, FALSE radians
+		if(!gs->gd_latitude_first){
+			//get latitude first
+			vecswizzle2d(deltagd); 
+			vecswizzle2d(gd);
+		}
+		if(gs->gd_degrees) {
+			//get radians
+			vecscale2d(deltagd,deltagd,RADIANS_PER_DEGREE);
+			vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		}
+		double dazimuth, dlambda;
+		Quaternion qaz, qq;
+		//as we cross the mid-pacific time zone (PI from grenwich)
+		// our longitude goes from -PI to +PI. 
+		// For azimuth correction we want the incremental/acute longitude difference
+		dlambda = angleNormalized(deltagd[1]); 
+		//if(fabs(gd[0]) > 30.0*RADIANS_PER_DEGREE){
+			dazimuth = sin(gd[0])*dlambda;
+			vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,dazimuth);
+			quaternion_multiply(&qq,Quat,&qaz);
+		//}else{
+		//	qq = *Quat;
+		//}
+		quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
+		oo[3] = -oo[3];
+		double2float(node->orientation.c,oo,4);
 	}
-	if(gs->gd_degrees) {
-		//get radians
-		vecscale2d(deltagd,deltagd,RADIANS_PER_DEGREE);
-		vecscale2d(gd,gd,RADIANS_PER_DEGREE);
-	}
-	double dazimuth, dlambda;
-	Quaternion qaz, qq;
-	//as we cross the mid-pacific time zone (PI from grenwich)
-	// our longitude goes from -PI to +PI. 
-	// For azimuth correction we want the incremental/acute longitude difference
-	dlambda = angleNormalized(deltagd[1]); 
-	//if(fabs(gd[0]) > 30.0*RADIANS_PER_DEGREE){
-		dazimuth = sin(gd[0])*dlambda;
-		vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,dazimuth);
-		quaternion_multiply(&qq,Quat,&qaz);
-	//}else{
-	//	qq = *Quat;
-	//}
-	quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
-	oo[3] = -oo[3];
-	double2float(node->orientation.c,oo,4);
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 	//update gdcoord for next delta
 	veccopyd(node->__movedgd.c,gdCoord.c);

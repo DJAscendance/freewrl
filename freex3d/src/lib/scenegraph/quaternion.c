@@ -430,6 +430,9 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 		quaternion_normalize(quat);
 	}
 }
+void vrmlrot4d_to_quaternion(Quaternion *quat, const double *xyza){
+	vrmlrot_to_quaternion(quat,xyza[0],xyza[1],xyza[2],xyza[3]);
+}
 
 /*
  * Quaternion (q = (w, v)) to VRML rotation (axis, angle):
@@ -483,6 +486,9 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 		*z = qn.z / scale;
 		*a = 2.0 * acos(qn.w);
 	}
+}
+void quaternion_to_vrmlrot4d(const Quaternion *quat, double *xyza){
+	quaternion_to_vrmlrot(quat, &xyza[0], &xyza[1], &xyza[2], &xyza[3]);
 }
 void quaternion_to_vrmlrot4f(const Quaternion *quat, float *rot)
 {
