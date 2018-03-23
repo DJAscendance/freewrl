@@ -4444,6 +4444,9 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 //		printf("\n");
 //	}
 //}
+
+
+
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
 	GLint viewPort[10];
@@ -4459,7 +4462,32 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		#endif
 
 		/* perform GeoViewpoint translations */
-		{
+		if(MAR12){
+			struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+			struct SFVec4d rotation1, rotation2;
+			double oo[4];
+			Geosys *gs = GEOSYS(node->__geoSystem);
+
+			//How this works
+			//we need to get from an orientation in TCS to LCS via the transform stack
+			// the stack goes in this order:
+			// GVP.orientation < GVP-TCS < LCS-transform_stack
+			user2gc(gs,&node->position,1,&gcCoord);
+			gc2gd(gs,&gcCoord,1, &gdCoord);
+
+			float2double(oo,node->orientation.c,4);
+			oo[3] = -oo[3];
+			FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+
+			//geoprepT
+			gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+			FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+			FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+			lcs2gc_transform(&rotation1,&translation1);
+			FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+
+		}else{
 
 			//goal: same as above except Torvaldsian
 			//works for demo utm, world33 airdrie and austria vps
@@ -5356,7 +5384,7 @@ void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
 			struct Planet newplanet;
 			memset(&newplanet,0,sizeof(struct Planet));
 			newplanet.ID = planetID;
-			printf("adding planet # %d\n",planetID);
+			//printf("adding planet # %d\n",planetID);
 			vector_pushBack(struct Planet,p->planet_stack,newplanet);
 			ifound = p->planet_stack->n -1;
 			planet = vector_get_ptr(struct Planet,p->planet_stack,ifound);
