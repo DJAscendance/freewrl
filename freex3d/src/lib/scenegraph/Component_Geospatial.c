@@ -4268,87 +4268,6 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 struct X3D_Node *getActiveLayerBoundViewpoint();
 void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoorigin, 
 		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
-void geoviewpoint_update_user_offsets0(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	//Theory of operation:
-	// NLA - node local alignment
-	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
-	//  (-Z to north pole, X east, Y up) at GVP
-
-	struct SFVec3d GCpos, gdCoord;
-	Quaternion qlc2gc;
-	double oo[4], pp[3];
-	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-
-
-
-	//1. update geo position
-	//1.a recall GC at last fetch
-	moveCoords3d(GEOSYS(node->__geoSystem),NULL,NULL,&node->position,1,&GCpos,&node->__movedgd);
-	//1.a.0. save last gdCoord for azimuth correction
-	gdCoord = node->__movedgd;
-
-	Quaternion qlo, q2;
-	struct SFVec4d lo;
-
-	//0. skip if its rounding noise
-	pointxyz2double(pp,Pos);
-
-	//1.b GC += inverse(localOrient) x Pos
-	GeoOrient(X3D_NODE(node->geoOrigin), GEOSYS(node->__geoSystem), &node->__movedgd, &lo);
-	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
-	//if(0) vecscaled(pp,pp,node->speedFactor); //SPEED scale here? no done in calculateViewingSpeedB
-	quaternion_rotationd(pp,&qlo,pp);
-	vecaddd(GCpos.c,GCpos.c,pp);
-	//1.c .position = GC_to_user_geo(GC)
-	CONVERT_BACK_TO_GD_OR_UTMC(GEOSYS(node->__geoSystem), node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
-	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
-	//2. update .orientation that's also in GVP NLA
-	//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
-	//     or dA = sin(phi)*dlambda
-	double deltagd[3], gd[3];
-	vecdifd(deltagd,node->__movedgd.c,gdCoord.c);
-	veccopyd(gd,node->__movedgd.c);
-	//5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
-	//7:	GD: TRUE: decimal degrees, FALSE radians
-	if(!GEOSYS(node->__geoSystem)->gd_latitude_first){
-		//get latitude first
-		vecswizzle2d(deltagd); 
-		vecswizzle2d(gd);
-	}
-	if(GEOSYS(node->__geoSystem)->gd_degrees) {
-		//get radians
-		vecscale2d(deltagd,deltagd,RADIANS_PER_DEGREE);
-		vecscale2d(gd,gd,RADIANS_PER_DEGREE);
-	}
-	double dazimuth, dlambda;
-	Quaternion qaz, qq;
-	//as we cross the mid-pacific time zone (PI from grenwich)
-	// our longitude goes from -PI to +PI. 
-	// For azimuth correction we want the incremental/acute longitude difference
-	dlambda = angleNormalized(deltagd[1]); 
-	//if(fabs(gd[0]) > 30.0*RADIANS_PER_DEGREE){
-		dazimuth = sin(gd[0])*dlambda;
-		vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,dazimuth);
-		quaternion_multiply(&qq,Quat,&qaz);
-	//}else{
-	//	qq = *Quat;
-	//}
-	quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
-	oo[3] = -oo[3];
-	double2float(node->orientation.c,oo,4);
-	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
-
-}
-void geoviewpoint_fetch_user_offsets0(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	//Theory of operation:
-	// NLA - node local alignment
-	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
-	//  (-Z to north pole, X east, Y up) at GVP
-	double oo[4];
-	float2double(oo,node->orientation.c,4);
-	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
-	Pos->x = Pos->y = Pos->z = 0.0;
-}
 
 void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
@@ -4460,19 +4379,7 @@ void geoviewpoint_fetch_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, str
 	double2pointxyz(Pos,tcsCoord.c);
 	//Pos->x = Pos->y = Pos->z = 0.0;
 }
-#define TCSVIEWER TRUE
-void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	if(TCSVIEWER)
-		geoviewpoint_update_TCS(node,Quat,Pos);
-	else
-		geoviewpoint_update_user_offsets0(node,Quat,Pos);
-}
-void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	if(TCSVIEWER)
-		geoviewpoint_fetch_TCS(node,Quat,Pos);
-	else
-		geoviewpoint_fetch_user_offsets0(node,Quat,Pos);
-}
+
 void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//returns LCS/LCA - should be similar to prep_geoViewpoint
 	//

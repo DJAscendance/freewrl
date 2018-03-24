@@ -2771,8 +2771,8 @@ void set_stereo_offset0() /*int iside, double eyehalf, double eyehalfangle)*/
 	FW_GL_TRANSLATE_D(x, 0.0, 0.0);
 	FW_GL_ROTATE_D(angle, 0.0, 1.0, 0.0);
 }
-void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
-void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
+void geoviewpoint_fetch_TCS(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
+void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *vp, Quaternion *Quat, struct point_XYZ *Pos);
 
 void viewer_update_user_offsets0(X3D_Viewer *viewer){
 	//call this often when navigating
@@ -2811,7 +2811,7 @@ void viewer_update_user_offsets0(X3D_Viewer *viewer){
 				quat2double(quat,&viewer->Quat);
 				quat2double(quat0,&viewer->Quat0);
 				if(veclengthd(vecdifd(pos,pos,pos0)) > .002 || veclength4d(vecdif4d(quat,quat,quat0)) > .00002)
-					geoviewpoint_update_user_offsets(vp,&viewer->Quat,&viewer->Pos);
+					geoviewpoint_update_TCS(vp,&viewer->Quat,&viewer->Pos);
 			}
 			break;
 			default:
@@ -2851,7 +2851,7 @@ void viewer_fetch_user_offsets0(X3D_Viewer *viewer){
 			case NODE_GeoViewpoint:
 			{
 				struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint*)boundvp;
-				geoviewpoint_fetch_user_offsets(vp,&viewer->Quat,&viewer->Pos);
+				geoviewpoint_fetch_TCS(vp,&viewer->Quat,&viewer->Pos);
 				//save for noise check on update
 				viewer->Quat0 = viewer->Quat;
 				viewer->Pos0 = viewer->Pos;
