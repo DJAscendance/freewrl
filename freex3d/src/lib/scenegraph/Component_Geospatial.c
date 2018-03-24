@@ -304,11 +304,7 @@ typedef struct _geosys {
 	int relativeHeight;				//8
 } Geosys;
 #define GEOSYS( geosystem ) ((Geosys *)geosystem)
-/*
-geosys *mfi2geosys(struct Multi_Int32 *__geoSystem){
-	return (Geosys *)__geoSystem->p;
-}
-*/
+
 int isNodetypeGeospatial(int nodetype, int specversion){
 	//its geospatial if it has a geoSystem field (GeoMetadata doesn't, a few DIS v3.3 do)
 	int iret = 
@@ -351,21 +347,11 @@ int isNodeGeospatial(struct X3D_Node* node){
 	FREE_IF_NZ(mIN.p); FREE_IF_NZ(mOUT.p);
 
 
-#define MOVE_TO_ORIGIN(me)	GeoMove(X3D_NODE(node),X3D_GEOORIGIN(me->geoOrigin), GEOSYS(me->__geoSystem), &mIN, &mOUT, &gdCoords);
 #define COMPILE_GEOSYSTEM(me) compile_geoSystem (X3D_NODE(me), me->_nodeType, &me->geoSystem, &me->__geoSystem);
 
 #define RADIANS_PER_DEGREE (double)0.0174532925199432957692
 #define DEGREES_PER_RADIAN (double)57.2957795130823208768
 
-#define ENSURE_SPACE(variableInQuestion) \
-	/* enough room for output? */ \
-	if (variableInQuestion ->n < inCoords->n) { \
-		if (variableInQuestion ->p != NULL) { \
-			FREE_IF_NZ(variableInQuestion->p); \
-		} \
-		variableInQuestion ->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inCoords->n); \
-		variableInQuestion ->n = inCoords->n; \
-	} 
 
 /* for UTM, GC, GD conversions */
 #define UTM_SCALE 	(double)0.9996
@@ -424,14 +410,9 @@ int isNodeGeospatial(struct X3D_Node* node){
 #define GEOEL_SA_F	(double)298.25
 #define GEOEL_WD_A	(double)6378135
 #define GEOEL_WD_F	(double)298.26
-//#define SMALLWORLDTESTING 1
-#ifdef SMALLWORLDTESTING
-#define GEOEL_WE_A	(double)637813.7
-#define GEOEL_WE_F	(double)29.8257223563
-#else
 #define GEOEL_WE_A	(double)6378137
 #define GEOEL_WE_F	(double)298.257223563
-#endif
+
 
 
 #define ELLIPSOIDB(typ) \
@@ -490,7 +471,6 @@ void CONVERT_BACK_TO_GD_OR_UTMB(Geosys *targetGeoSystem, struct X3D_Node *GeoOri
 		struct SFVec3d *thisField);
 
 static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct X3D_Node **srf);
-//static void Gd_Gc (Geosys *geoSystem, struct Multi_Vec3d *, struct Multi_Vec3d *, double, double);
 static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
 
@@ -684,25 +664,6 @@ static double geoidCorrection(double latitudeDeg, double longitudeDeg)
 	d = -d; // to correct a geoid map to ellpsoid, subtract this amount
 	return (double)d;
 }
-/* move ourselves BACK to the from the GeoOrigin */
-//static void retractOrigin(struct X3D_GeoOrigin *myGeoOrigin, struct SFVec3d *gcCoords) {
-//	if (myGeoOrigin != NULL) {
-//		if(myGeoOrigin->rotateYUp == TRUE)
-//		{
-//			int i;
-//			Quaternion rq;
-//			struct SFVec3d temp;
-//			vrmlrot_to_quaternion(&rq,myGeoOrigin->__rotyup.c[0], myGeoOrigin->__rotyup.c[1], myGeoOrigin->__rotyup.c[2], myGeoOrigin->__rotyup.c[3]); 
-//			//quaternion_multi_rotation(outxyz,&rq,inxyz,8);
-//			quaternion_rotation((struct point_XYZ *)temp.c, &rq, (const struct point_XYZ *)gcCoords->c);
-//			for(i=0;i<3;i++)
-//				gcCoords->c[i] = temp.c[i];
-//		}
-//		gcCoords->c[0] += myGeoOrigin->__movedCoords.c[0];
-//		gcCoords->c[1] += myGeoOrigin->__movedCoords.c[1];
-//		gcCoords->c[2] += myGeoOrigin->__movedCoords.c[2];
-//	}
-//}
 
 
 /* convert GD ellipsiod to GC coordinates. swizzles and converts degrad as needed. */
@@ -1403,103 +1364,6 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 			//FREE_MF_SF_TEMPS
 			MARK_NODE_COMPILED
 		}
-	}
-}
-
-/* calculate a translation that moves a Geo node to local space */
-static void GeoMove(struct X3D_Node *node, struct X3D_GeoOrigin *geoOrigin, Geosys * geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords,
-		struct Multi_Vec3d *gdCoords) {
-	int i;
-	struct X3D_GeoOrigin * myOrigin;
-	Quaternion rq;
-
-	#ifdef VERBOSE
-	printf ("\nstart of GeoMove... %d coords\n",inCoords->n);
-	#endif
-
-	/* enough room for output? */
-	if (inCoords->n==0) {return;}
-	if (outCoords->n < inCoords->n) {
-		if (outCoords->n!=0) {
-			FREE_IF_NZ(outCoords->p);
-		}
-		outCoords->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inCoords->n);
-		outCoords->n = inCoords->n;
-	}
-	if (gdCoords->n < inCoords->n) {
-		if (gdCoords->n!=0) {
-			FREE_IF_NZ(gdCoords->p);
-		}
-		gdCoords->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inCoords->n);
-		gdCoords->n = inCoords->n;
-	}
-
-
-	/* set out values to 0.0 for now */
-	for (i=0; i<outCoords->n; i++) {
-		outCoords->p[i].c[0] = (double) 0.0; outCoords->p[i].c[1] = (double) 0.0; outCoords->p[i].c[2] = (double) 0.0;
-	}
-
-	#ifdef VERBOSE
-	for (i=0; i<outCoords->n; i++) {
-		printf ("start of GeoMove, inCoords %d: %lf %lf %lf\n",i, inCoords->p[i].c[0], inCoords->p[i].c[1], inCoords->p[i].c[2]);
-	}
-	#endif
-
-
-
-	/* check the GeoOrigin attached node */
-	myOrigin = NULL;
-	if (geoOrigin != NULL) {
-		if (X3D_GEOORIGIN(geoOrigin)->_nodeType != NODE_GeoOrigin) {
-			ConsoleMessage ("GeoMove, expected a GeoOrigin, found a %s",stringNodeType(X3D_GEOORIGIN(geoOrigin)->_nodeType));
-			printf ("GeoMove, expected a GeoOrigin, found a %s\n",stringNodeType(X3D_GEOORIGIN(geoOrigin)->_nodeType));
-			return;
-		}
-
-		myOrigin = geoOrigin; /* local one */
-	}
-	/* printf ("GeoMove, using myOrigin %u, passed in geoOrigin %u with vals %lf %lf %lf\n",myOrigin, myOrigin,
-		myOrigin->geoCoords.c[0], myOrigin->geoCoords.c[1], myOrigin->geoCoords.c[2] ); */ 
-		
-	//moveCoords(X3D_PROTO(node->_executionContext)->__specversion,geoSystem, inCoords, outCoords, gdCoords);
-	//struct SFVec3d offset;
-	//vecsetd(offset.c,0.0,0.0,0.0);
-	//if(myOrigin)
-	//	veccopyd(offset.c,myOrigin->__movedCoords.c); //is this right?
-	moveCoords3d(geoSystem, NULL, NULL, 
-		inCoords->p, inCoords->n, outCoords->p, gdCoords->p);
-
-	for (i=0; i<outCoords->n; i++) {
-
-	#ifdef VERBOSE
-	printf ("GeoMove, before subtracting origin %lf %lf %lf\n", outCoords->p[i].c[0], outCoords->p[i].c[1], outCoords->p[i].c[2]);
-	if (myOrigin != NULL) printf ("	... origin %lf %lf %lf\n",myOrigin->__movedCoords.c[0], myOrigin->__movedCoords.c[1], myOrigin->__movedCoords.c[2]);
-	#endif
-
-	if (myOrigin != NULL) {
-		struct SFVec3d temp;
-
-		outCoords->p[i].c[0] -= myOrigin->__movedCoords.c[0];
-		outCoords->p[i].c[1] -= myOrigin->__movedCoords.c[1];
-		outCoords->p[i].c[2] -= myOrigin->__movedCoords.c[2];
-		if(myOrigin->rotateYUp == TRUE)
-		{
-			if(i==0)
-			{
-			vrmlrot_to_quaternion(&rq,myOrigin->__rotyup.c[0], myOrigin->__rotyup.c[1], myOrigin->__rotyup.c[2], -myOrigin->__rotyup.c[3]); 
-			}
-			//quaternion_multi_rotation(outxyz,&rq,inxyz,8);
-			quaternion_rotation((struct point_XYZ *)temp.c, &rq, (const struct point_XYZ *)outCoords->p[i].c);
-			outCoords->p[i].c[0] = temp.c[0];
-			outCoords->p[i].c[1] = temp.c[1];
-			outCoords->p[i].c[2] = temp.c[2];
-		}
-	}
-
-	#ifdef VERBOSE
-	printf ("GeoMove, after subtracting origin %lf %lf %lf\n", outCoords->p[i].c[0], outCoords->p[i].c[1], outCoords->p[i].c[2]);
-	#endif
 	}
 }
 
@@ -2276,102 +2140,6 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord);
 
 
-typedef struct _geoOffsetInfo {
-	struct X3D_Node *node;
-	Geosys *geoSystem;
-	struct X3D_GeoOrigin *geoOrigin;
-	struct SFVec3d *position;
-	//struct SFRotation *orientation;
-	struct SFVec3d *gdCoord;
-	struct SFVec3d *gcCoord;      //-GC2NL
-	struct SFVec3d *offsetCoord;  //-NL2SL
-	struct SFVec4d *localOrient;  //-GCA2NLA
-	struct SFVec4d *offsetOrient; //-NLA2SLA
-} geoOffsetInfo;
-//void origin_offsets(struct X3D_Node *node, Geosys *geoSystem, struct X3D_GeoOrigin *geoOrigin, 
-//	struct SFVec3d *position, struct SFRotation *orientation, struct SFVec3d *localCoord, struct SFVec4d *localOrient,
-//	struct SFVec3d *gdCoord)
-void origin_offsets(geoOffsetInfo *gi)
-{
-	// assumes __geoSystem is already compiled.
-	//
-	//
-	//v3.3 way - autoOrigin - B. capture as the self-origin
-	struct Planet *planet;
-	int specversion;
-	struct SFVec3d slnla, *pslnla, slsla, *pslsla;
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-	specversion = X3D_PROTO(gi->node->_executionContext)->__specversion;
-	pslnla = &slnla;
-	pslsla = &slsla;
-
-	planet = current_planet();
-	if(gi->geoOrigin && specversion < 330 && !planet->autoOriginSet ){
-		//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
-		//to simplify, we are using FCFS on a single geoOrigin.
-		struct SFVec3d offset, *poffset;
-		struct SFVec4d yup, *pyup;
-		pyup = NULL;
-		poffset = NULL;
-		double *cc;
-		initializeGeospatial(&gi->geoOrigin); 
-		veccopyd(planet->autoOrigin.c,gi->geoOrigin->__movedCoords.c);
-		GeoOrient(X3D_NODE(gi->geoOrigin), GEOSYS(gi->geoOrigin->__geoSystem), &gi->geoOrigin->__movedgd, &planet->autoOrient);
-		planet->autoOriginSet = TRUE;
-	}
-	{
-		//H: doesn't matter what the spec version is, we can do FCFS origin with any version
-		//because we have the v3.3 fields 
-		moveCoords3d(gi->geoSystem, NULL, NULL, 
-			gi->position, 1, gi->gcCoord, gi->gdCoord);
-		GeoOrient(X3D_NODE(gi->geoOrigin), gi->geoSystem, gi->gdCoord, gi->localOrient);
-
-		if(!planet->autoOriginSet){
-			//first come first serve FCFS autoOrigin
-			veccopyd(planet->autoOrigin.c,gi->gcCoord->c);
-			veccopy4d(planet->autoOrient.c,gi->localOrient->c);
-			planet->autoOriginSet = TRUE;
-		}
-		//redo the transform, with origin offsets and rotations applied
-		//moveCoords3d(gi->geoSystem, &p->autoOrigin, &p->autoOrient, 
-		//	gi->position, 1, gi->localCoord, gi->gdCoord);
-		vecdifd(gi->offsetCoord->c,gi->gcCoord->c,planet->autoOrigin.c);
-		//NLGCA == offsetCoord
-		{
-			//rotation difference - change the sign on one rotation, and multiply
-			Quaternion localQuat, relQuat, combQuat;
-			vrmlrot_to_quaternion (&localQuat,gi->localOrient->c[0], gi->localOrient->c[1], gi->localOrient->c[2], -gi->localOrient->c[3]);
-			vrmlrot_to_quaternion (&relQuat, planet->autoOrient.c[0], planet->autoOrient.c[1], planet->autoOrient.c[2], planet->autoOrient.c[3]);
-
-			/* add these together */
-			//quaternion_add (&combQuat, &relQuat, &localQuat);
-			quaternion_multiply(&combQuat, &localQuat, &relQuat);
-			//quaternion_multiply(&combQuat,&relQuat,&localQuat);
-			quaternion_rotationd(pslnla->c,&localQuat,gi->offsetCoord->c);
-			/* get the rotation; 2 steps to convert doubles to floats;
-				   should be quaternion_to_vrmlrot(&combQuat, &node->__movedOrientation.c[0]... */
-			quaternion_to_vrmlrot(&combQuat, &gi->offsetOrient->c[0], &gi->offsetOrient->c[1], &gi->offsetOrient->c[2], &gi->offsetOrient->c[3]);
-			gi->offsetOrient->c[3] = - gi->offsetOrient->c[3];
-			quaternion_rotationd(pslsla->c,&combQuat,pslnla->c);
-			//in theory you can do SLSLA = autoOrient x NLGCA
-
-		}
-	}
-	//vecdifd(gi->localCoord->c,gi->gcCoord->c,p->autoOrigin);
-	//veccopy4d(gi->localOrient->c,p->autoOrient.c);
-
-	if(1) {
-		vecprint3db("\ttp-tpa",gi->position->c,"\n");
-		vecprint3db("\tgd-gda",gi->gdCoord->c,"\n");
-		vecprint3db("\tgc-gca",gi->gcCoord->c,"\n");
-		vecprint3db("\tsn-gca",gi->offsetCoord->c,"\n");
-		vecprint3db("\tsn-lna",pslnla->c,"\n");
-		vecprint3db("\tsn-sna",pslsla->c,"\n");
-		vecprint4db("\tlo",gi->localOrient->c,"\n");
-		vecprint4db("\too",gi->offsetOrient->c,"\n");
-	}
-
-}
 void update_origin(Geosys *geoSystem, struct X3D_Node *node, struct SFVec3d *userCoord, struct X3D_GeoOrigin *geoOrigin)
 {
 	// assumes __geoSystem is already compiled.
@@ -2404,21 +2172,7 @@ void update_origin(Geosys *geoSystem, struct X3D_Node *node, struct SFVec3d *use
 		}
 	}
 }
-void node2lcsRotation(Geosys *geoSystem, struct X3D_GeoOrigin *geoOrigin, struct SFVec3d *gdCoord, struct SFVec4d *rotation){
-	struct SFVec4d localOrient;
-	struct Planet *planet = current_planet();
 
-	GeoOrient(X3D_NODE(geoOrigin), geoSystem, gdCoord, &localOrient);
-
-	//rotation difference - change the sign on one rotation, and multiply
-	Quaternion localQuat, relQuat, combQuat;
-	vrmlrot_to_quaternion (&localQuat,localOrient.c[0], localOrient.c[1], localOrient.c[2], -localOrient.c[3]);
-	vrmlrot_to_quaternion (&relQuat, planet->autoOrient.c[0], planet->autoOrient.c[1], planet->autoOrient.c[2], planet->autoOrient.c[3]);
-	quaternion_multiply(&combQuat, &localQuat, &relQuat);
-	quaternion_to_vrmlrot(&combQuat, &rotation->c[0], &rotation->c[1], &rotation->c[2], &rotation->c[3]);
-	rotation->c[3] = - rotation->c[3];
-
-}
 /************************************************************************/
 void compile_GeoCoordinate (struct X3D_GeoCoordinate * node) {
 	int i;
@@ -2749,18 +2503,6 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 /* a GeoElevationGrid creates a "real" elevationGrid node as a child for rendering. */
 void compile_GeoElevationGrid (struct X3D_GeoElevationGrid * node) {
 // 2018 not called, see compile stack in render_
-//	#ifdef VERBOSE
-//	printf ("compiling GeoElevationGrid\n");
-//	#endif
-//	printf ("compiling GeoElevationGrid\n");
-//
-//	INITIALIZE_GEOSPATIAL(node)
-//	COMPILE_GEOSYSTEM(node)
-//	MARK_NODE_COMPILED
-//	
-//	/* events */
-//	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoElevationGrid, metadata)) */
-//
 }
 int planetInPlanets(int planet, struct Multi_Int32 *planets){
 	int i,ifound = -1;
@@ -2801,12 +2543,10 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
 	int specversion;
-	geoOffsetInfo ggi, *gi;
 	struct SFVec3d gdCoord, gcCoord;
 	struct SFVec4d locOrient;
 	struct Planet *planet;
 	Geosys *gs;
-	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
 	planet = current_planet();
 	#ifdef VERBOSE
@@ -3933,25 +3673,6 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	
 }
 
-//void geoviewpoint_fetch_LCS_testing(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-//	//testing geoviewpoint_fetch_LCS0(node,Quat,Pos);
-//	
-//	if(0){
-//		Quaternion q2;
-//		struct point_XYZ p2;
-//		printf("gvp fetch LCS cycle test\n");
-//		printf("fetch Pos %lf %lf %lf\n",Pos->x,Pos->y,Pos->z);
-//		printf("fetch Quat %lf %lf %lf %lf\n",Quat->w,Quat->x,Quat->y,Quat->z);
-//		geoviewpoint_update_LCS(node, Quat, Pos);
-//		geoviewpoint_fetch_LCS0(node,&q2,&p2);
-//		printf("updat Pos %lf %lf %lf\n",p2.x,p2.y,p2.z);
-//		printf("updat Quat %lf %lf %lf %lf\n",q2.w,q2.x,q2.y,q2.z);
-//		printf("\n");
-//	}
-//}
-
-
-
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	double a1;
 	GLint viewPort[10];
@@ -4142,18 +3863,14 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 /************************************************************************/
 
 void compile_GeoTransform (struct X3D_GeoTransform * node) {
-	int specversion;
-
 	#ifdef VERBOSE
 	printf ("compiling GeoLocation\n");
 	#endif
 
-	{
-		Geosys *gs;
-		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-		gs = GEOSYS(node->__geoSystem);
-		update_origin(gs, X3D_NODE(node), &node->geoCenter, X3D_GEOORIGIN(node->geoOrigin));
-	}
+	Geosys *gs;
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
+	update_origin(gs, X3D_NODE(node), &node->geoCenter, X3D_GEOORIGIN(node->geoOrigin));
 
 
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCenter, node->__oldGeoCenter,offsetof (struct X3D_GeoTransform, geoCenter))
@@ -4407,13 +4124,7 @@ void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoori
 		} 
 	}
 }
-void CONVERT_BACK_TO_GD_OR_UTMB(Geosys *targetGeoSystem, struct X3D_Node *geoOrigin, 
-		struct SFVec3d *thisField)
-{
-	struct SFVec3d LCSpos, gdCoord;
-	veccopyd(LCSpos.c,thisField->c);
-	CONVERT_BACK_TO_GD_OR_UTMC(targetGeoSystem,geoOrigin,&LCSpos,&gdCoord,thisField);
-}
+
 /*
 WALK navigation:
 (VPbindPose) +  userOffsets[ (cumulative navigation) + (camera tilts/orientation) ]
@@ -4752,43 +4463,6 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 	}
 	return highest;
 }
-//double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID){
-//	//call from prep or compile_ geoLocation if the height is supposed to be a relative height 
-//	// ie height above ellipsoid.
-//	// this searchse through all the GeoElevationGrids registered for the same planet, 
-//	// to find the highest one under this GL if any, and adjust the height as needed
-//	double highest = 0.0;
-//	if(node && node->_nodeType == NODE_GeoLocation){
-//		int i,j,nfound;
-//		struct Planet *planet;
-//		//find planet
-//		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
-//		if(!p->planet_stack) return highest; //no GEGs registered, stick to absolute height
-//		nfound = 0;
-//		planet = NULL;
-//
-//		for(i=0;i<vectorSize(p->planet_stack);i++){
-//			planet = vector_get_ptr(struct Planet,p->planet_stack,i);
-//			if(planet && planet->ID == planetID) {
-//				if(!planet->gegs) return highest; //no gegs registered
-//				for(j=0;j<vectorSize(planet->gegs);j++){
-//					double gridheight;
-//					struct X3D_GeoElevationGrid *geg = vector_get(struct X3D_GeoElevationGrid*,planet->gegs,j);
-//					if(geg)
-//					if( geoelevationgrid_getGDHeight0(geg,&node->__movedgd,GEOSYS(node->__geoSystem),&gridheight) == 1){
-//						//make a list of hits, and pick the highest one, in case there are grid overlays etc.
-//						nfound++;
-//						if(nfound == 1) highest = gridheight;
-//						highest = max(highest,gridheight);
-//					}
-//				}
-//			}
-//		}
-//		
-//	}
-//	return highest;
-//}
-
 
 void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
 	//call this from render_geoelevationgrid, or collide_?, so we get the planet from
@@ -4969,37 +4643,17 @@ void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
 	//LCS = GC - origin
 
 	int i;
-	if(0){
-		struct Planet *planet;
-		planet = current_planet();
-		for(i=0;i<n;i++){
-			//take offset off GC coords
-			vecdifd(lcs[i].c,gc[i].c,planet->autoOrigin.c); 
-		}
-		if(1){
-			Quaternion qup;
-			double aoo[4];
-			veccopy4d(aoo,planet->autoOrient.c);
-			vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],-aoo[3]);
-			for(i=0;i<n;i++){
-				quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
-				//vecprint3db("lcs0",lcs[i].c,"\n");
-
-			}
-		}
-	}else {
-		struct SFVec3d translate;
-		struct SFVec4d rotate;
-		Quaternion qup;
-		gc2lcs_transform(&translate, &rotate);
-		vrmlrot_to_quaternion(&qup,rotate.c[0],rotate.c[1],rotate.c[2],rotate.c[3]);
-		for(i=0;i<n;i++){
-			vecaddd(lcs[i].c,gc[i].c,translate.c);
-			quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
-			//vecprint3db("lcs1",lcs[i].c,"\n");
-		}
-
+	struct SFVec3d translate;
+	struct SFVec4d rotate;
+	Quaternion qup;
+	gc2lcs_transform(&translate, &rotate);
+	vrmlrot_to_quaternion(&qup,rotate.c[0],rotate.c[1],rotate.c[2],rotate.c[3]);
+	for(i=0;i<n;i++){
+		vecaddd(lcs[i].c,gc[i].c,translate.c);
+		quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
+		//vecprint3db("lcs1",lcs[i].c,"\n");
 	}
+
 }
 void lcs2gc_transform(struct SFVec4d *rotation, struct SFVec3d *translation){
 	//converts from local coorinate system to GC geocentric
@@ -5014,36 +4668,16 @@ void lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
 	//converts from local coorinate system to GC geocentric
 	//GC = LCS + origin
 	int i;
-	if(0){
-		struct Planet *planet;
-		planet = current_planet();
-		{
-			Quaternion qup;
-			double aoo[4];
-			veccopy4d(aoo,planet->autoOrient.c);
-			vrmlrot_to_quaternion(&qup,aoo[0],aoo[1],aoo[2],aoo[3]);
-			for(i=0;i<n;i++){
-				if(1) quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
-				else veccopyd(gc[i].c,lcs[i].c);
-			}
-		}
-		for(i=0;i<n;i++){
-			//add offset to get GC coords
-			vecaddd(gc[i].c,gc[i].c,planet->autoOrigin.c); 
-		}
-		//vecprint3db("gc0",gc[0].c,"\n");
-	}else{
-		struct SFVec4d rotation;
-		struct SFVec3d translation;
-		Quaternion qup;
-		lcs2gc_transform(&rotation, &translation);
-		vrmlrot_to_quaternion(&qup,rotation.c[0],rotation.c[1],rotation.c[2],rotation.c[3]);
-		for(i=0;i<n;i++){
-			quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
-			vecaddd(gc[i].c,gc[i].c,translation.c);
-		}
-		//vecprint3db("gc1",gc[0].c,"\n");
+	struct SFVec4d rotation;
+	struct SFVec3d translation;
+	Quaternion qup;
+	lcs2gc_transform(&rotation, &translation);
+	vrmlrot_to_quaternion(&qup,rotation.c[0],rotation.c[1],rotation.c[2],rotation.c[3]);
+	for(i=0;i<n;i++){
+		quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+		vecaddd(gc[i].c,gc[i].c,translation.c);
 	}
+	//vecprint3db("gc1",gc[0].c,"\n");
 }
 
 
@@ -5088,12 +4722,7 @@ void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  
 	Quaternion qlo;
 	struct SFVec4d rotate;
 	struct SFVec3d translate;
-	if(0){
-		GeoOrient(NULL,geoSystem,gdcenter,&rotate);
-		gd2gc(geoSystem,gdcenter,1,&translate);
-	}else{
-		tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
-	}
+	tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
 	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], -rotate.c[3]);
 	for(i=0;i<n;i++){
 		vecdifd(pp,gc[i].c,translate.c);
@@ -5110,12 +4739,7 @@ void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, 
 	Quaternion qlo;
 	struct SFVec4d rotate;
 	struct SFVec3d translate;
-	if(0){
-		GeoOrient(NULL,geoSystem,gdcenter,&rotate);
-		gd2gc(geoSystem,gdcenter,1,&translate);
-	}else{
-		tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
-	}
+	tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
 	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], rotate.c[3]);
 	for(i=0;i<n;i++){
 		quaternion_rotationd(pp,&qlo,tcs[i].c);
