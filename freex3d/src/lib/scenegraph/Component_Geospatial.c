@@ -329,24 +329,6 @@ int isNodeGeospatial(struct X3D_Node* node){
 #define MF_SF_TEMPS	struct Multi_Vec3d mIN; struct Multi_Vec3d  mOUT; struct Multi_Vec3d gdCoords;
 #define FREE_MF_SF_TEMPS FREE_IF_NZ(gdCoords.p); FREE_IF_NZ(mOUT.p); FREE_IF_NZ(mIN.p);
 
-
-#define INIT_MF_FROM_SF(myNode, myField) \
-	mIN.n = 1; \
-	mIN.p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d)); \
-	mIN.p[0].c[0] = myNode-> myField .c[0];\
-	mIN.p[0].c[1] = myNode-> myField .c[1];\
-	mIN.p[0].c[2] = myNode-> myField .c[2];\
-	mOUT.n=0; mOUT.p = NULL; \
-	gdCoords.n=0; gdCoords.p = NULL;
-
-//#define MF_FIELD_IN_OUT &mIN, &mOUT, &gdCoords
-#define COPY_MF_TO_SF(myNode, myField) \
-	myNode-> myField .c[0] = mOUT.p[0].c[0]; \
-	myNode-> myField .c[1] = mOUT.p[0].c[1]; \
-	myNode-> myField .c[2] = mOUT.p[0].c[2]; \
-	FREE_IF_NZ(mIN.p); FREE_IF_NZ(mOUT.p);
-
-
 #define COMPILE_GEOSYSTEM(me) compile_geoSystem (X3D_NODE(me), me->_nodeType, &me->geoSystem, &me->__geoSystem);
 
 #define RADIANS_PER_DEGREE (double)0.0174532925199432957692
@@ -4807,12 +4789,14 @@ void do_GeoConvert (void *px){
 
 	if (!vecsamed(node->__oldgeoCoords.c,node->set_geoCoords.c)) {
 		struct SFVec3d gdCoord;
+		//user2gc
 		moveCoords3d(GEOSYS(node->__geoSystem),NULL,NULL,&node->set_geoCoords,1,&node->gcCoords_changed,&gdCoord);
 		MARK_EVENT (px, offsetof (struct X3D_GeoConvert, gcCoords_changed));
 		veccopyd(node->__oldgeoCoords.c,node->set_geoCoords.c);
 	} 
 	if (!vecsamed(node->__oldgcCoords.c,node->set_gcCoords.c)){
 		struct SFVec3d gdCoord;
+		//gc2user
 		CONVERT_BACK_TO_GD_OR_UTMC(GEOSYS(node->__geoSystem),NULL,&node->set_gcCoords,&gdCoord,&node->geoCoords_changed);
 		MARK_EVENT (px, offsetof (struct X3D_GeoConvert, geoCoords_changed));
 		veccopyd(node->__oldgcCoords.c,node->set_gcCoords.c);
