@@ -4339,15 +4339,25 @@ void geoviewpoint_update_user_offsets0(struct X3D_GeoViewpoint *node, Quaternion
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 
 }
+void geoviewpoint_fetch_user_offsets0(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//Theory of operation:
+	// NLA - node local alignment
+	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
+	//  (-Z to north pole, X east, Y up) at GVP
+	double oo[4];
+	float2double(oo,node->orientation.c,4);
+	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
+	Pos->x = Pos->y = Pos->z = 0.0;
+}
+
 void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
 	//Theory of operation:
 	// NLA - node local alignment
 	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
 	//  (-Z to north pole, X east, Y up) at GVP
 
-	struct SFVec3d GCpos, tcsCoord, gdCoord;
-	Quaternion qlc2gc;
-	double oo[4], pp[3];
+	struct SFVec3d tcsCoord, gdCoord; //GCpos, 
+	//Quaternion qlc2gc;
 	Geosys *gs;
 	struct SFVec3d gcCoord;
 	gs = GEOSYS(node->__geoSystem);
@@ -4361,8 +4371,9 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	user2gc(gs,&node->position,1,&gcCoord);
 	gc2gd(gs,&gcCoord,1,&gdCoord);
 	tcs2gc(gs,&gdCoord,&tcsCoord,1,&gcCoord);
-	//convert GC back to .position
+	//convert GC back to .position and new gd
 	gc2user(gs,&gcCoord,1,&node->position);
+	gc2gd(gs,&gcCoord,1,&gdCoord);
 
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
 
@@ -4390,9 +4401,11 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 		//else if we're following the curvature of the earth, then we just undo the implied azimuth part of the rotation
 		//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
 		//     or dA = sin(phi)*dlambda
+		double oo[4], pp[3];
 		double deltagd[3], gd[3];
 		vecdifd(deltagd,node->__movedgd.c,gdCoord.c);
 		veccopyd(gd,node->__movedgd.c);
+		//veccopyd(gd,gdCoord.c);
 		//5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
 		//7:	GD: TRUE: decimal degrees, FALSE radians
 		if(!gs->gd_latitude_first){
@@ -4413,7 +4426,7 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 		dlambda = angleNormalized(deltagd[1]); 
 		//if(fabs(gd[0]) > 30.0*RADIANS_PER_DEGREE){
 			dazimuth = sin(gd[0])*dlambda;
-			vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,dazimuth);
+			vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,-dazimuth);  //?? different sign than old offset0 way??
 			quaternion_multiply(&qq,Quat,&qaz);
 		//}else{
 		//	qq = *Quat;
@@ -4427,16 +4440,6 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	veccopyd(node->__movedgd.c,gdCoord.c);
 
 
-}
-void geoviewpoint_fetch_user_offsets0(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	//Theory of operation:
-	// NLA - node local alignment
-	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
-	//  (-Z to north pole, X east, Y up) at GVP
-	double oo[4];
-	float2double(oo,node->orientation.c,4);
-	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
-	Pos->x = Pos->y = Pos->z = 0.0;
 }
 
 void geoviewpoint_fetch_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
@@ -4457,14 +4460,15 @@ void geoviewpoint_fetch_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, str
 	double2pointxyz(Pos,tcsCoord.c);
 	//Pos->x = Pos->y = Pos->z = 0.0;
 }
+#define TCSVIEWER TRUE
 void geoviewpoint_update_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	if(1)
+	if(TCSVIEWER)
 		geoviewpoint_update_TCS(node,Quat,Pos);
 	else
 		geoviewpoint_update_user_offsets0(node,Quat,Pos);
 }
 void geoviewpoint_fetch_user_offsets(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
-	if(1)
+	if(TCSVIEWER)
 		geoviewpoint_fetch_TCS(node,Quat,Pos);
 	else
 		geoviewpoint_fetch_user_offsets0(node,Quat,Pos);
