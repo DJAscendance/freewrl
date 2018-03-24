@@ -82,6 +82,10 @@ static void rendVisibilityBox (struct X3D_VisibilitySensor *node);
 
 /* ProximitySensor and GeoProximitySensor are same "code" at this stage of the game */
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
+void render_ProximitySensor (struct X3D_ProximitySensor *node) {
+	//just for rendering the extent/bounding box
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
 void proximity_ProximitySensor (struct X3D_ProximitySensor *node) {
 	/* Viewer pos = t_r2 */
 	double cx,cy,cz;
@@ -131,7 +135,11 @@ void proximity_ProximitySensor (struct X3D_ProximitySensor *node) {
 	cz = t_center.z - ((node->center ).c[2]); 
  
 	if(((node->size).c[0]) == 0 || ((node->size).c[1]) == 0 || ((node->size).c[2]) == 0) return; 
- 
+	{
+		float cc[3];
+ 		vecscale3f(cc,node->size.c,.5);
+		extent6f_constructor(node->_extent,-cc[0],cc[0],-cc[1],cc[1],-cc[2],cc[2]);
+	}
 	if(fabs(cx) > ((node->size).c[0])/2 || 
 	   fabs(cy) > ((node->size).c[1])/2 || 
 	   fabs(cz) > ((node->size).c[2])/2) {

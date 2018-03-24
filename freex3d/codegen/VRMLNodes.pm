@@ -1856,7 +1856,7 @@ our %Nodes = (
 		geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
-		__movedValue => ["MFVec3d", [], "inputOutput", 0,0],#ff
+		__movedValue => ["MFVec3f", [], "inputOutput", 0,0],#ff
 		__oldKeyPtr => ["MFFloat", "NULL", "outputOnly", 0,0],#ff
 		__oldKeyValuePtr => ["MFVec3d", "NULL", "outputOnly", 0,0],#ff
 	],"X3DInterpolatorNode"),
@@ -1883,6 +1883,7 @@ our %Nodes = (
 		__hit => ["SFInt32", 0, "inputOutput", 0,0],#ff
 		__t1 => ["SFVec3f", [10000000, 0, 0], "inputOutput", 0,0],#ff
 		__t2 => ["SFRotation", [0, 1, 0, 0], "inputOutput", 0,0],#ff
+		__t3 => ["SFVec3d", [10000000, 0, 0], "inputOutput", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
@@ -1918,6 +1919,7 @@ our %Nodes = (
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		__sibAffectors => ["MFNode", [], "inputOutput", 0,0],#ff
+		center => ["SFVec3f", [0, 0, 0], "inputOutput", 0,"UNCA_LENGTH"],#ff
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCenter => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1936,6 +1938,7 @@ our %Nodes = (
 		__do_rotation => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__do_scaleO => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__do_scale => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		__do_anything => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 
 		# "compiled" versions of strings above
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff

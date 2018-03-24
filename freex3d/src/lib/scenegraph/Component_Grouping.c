@@ -429,12 +429,14 @@ void child_Transform (struct X3D_Transform *node) {
 			} 
 		} 
 	}
+
+	/* any children at all? */
+	if (nc==0) return;
+
 	//if(node->__sibAffectors.n)
 	//	printf("have transform sibaffectors\n");
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	/* any children at all? */
-	if (nc==0) return;
 
 	//profile_start("local_light_kids");
 	/* do we have a local light for a child? */

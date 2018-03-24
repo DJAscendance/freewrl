@@ -421,6 +421,8 @@ our %RendC = map {($_=>1)} qw/
 	ComposedTexture3D
 	PixelTexture3D
 	ImageTexture3D
+	GeoProximitySensor
+	ProximitySensor
 	
 /;
 

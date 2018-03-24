@@ -1877,7 +1877,27 @@ void printmatrix2(GLDOUBLE* mat,char* description ) {
 	printmatrix3(mat,description,row_major);
 }
 
-
+float *veclerp3f(float *T, float *A, float *B, float alpha){
+	int i;
+	for(i=0;i<3;i++){
+		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
+	}
+	return T;
+}
+float *veclerp2f(float *T, float *A, float *B, float alpha){
+	int i;
+	for(i=0;i<2;i++){
+		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
+	}
+	return T;
+}
+double *veclerpd(double *T, double *A, double *B, double alpha){
+	int i;
+	for(i=0;i<3;i++){
+		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
+	}
+	return T;
+}
 
 void general_slerp(double *ret, double *p1, double *p2, int size, const double t)
 {

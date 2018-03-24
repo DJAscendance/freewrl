@@ -209,6 +209,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__subcontexts",
 	"__t1",
 	"__t2",
+	"__t3",
 	"__texCoords",
 	"__texture",
 	"__textureTableIndex",
@@ -2688,9 +2689,10 @@ struct X3D_Virt virt_GeoPlanet = { (void *)prep_GeoPlanet,NULL,(void *)child_Geo
 void compile_GeoPositionInterpolator(struct X3D_GeoPositionInterpolator *);
 struct X3D_Virt virt_GeoPositionInterpolator = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoPositionInterpolator};
 
+void render_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 void proximity_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 void compile_GeoProximitySensor(struct X3D_GeoProximitySensor *);
-struct X3D_Virt virt_GeoProximitySensor = { NULL,NULL,NULL,NULL,NULL,NULL,(void *)proximity_GeoProximitySensor,NULL,NULL,(void *)compile_GeoProximitySensor};
+struct X3D_Virt virt_GeoProximitySensor = { NULL,(void *)render_GeoProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_GeoProximitySensor,NULL,NULL,(void *)compile_GeoProximitySensor};
 
 void compile_GeoTouchSensor(struct X3D_GeoTouchSensor *);
 struct X3D_Virt virt_GeoTouchSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoTouchSensor};
@@ -3112,8 +3114,9 @@ void child_Proto(struct X3D_Proto *);
 void compile_Proto(struct X3D_Proto *);
 struct X3D_Virt virt_Proto = { (void *)prep_Proto,NULL,(void *)child_Proto,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Proto};
 
+void render_ProximitySensor(struct X3D_ProximitySensor *);
 void proximity_ProximitySensor(struct X3D_ProximitySensor *);
-struct X3D_Virt virt_ProximitySensor = { NULL,NULL,NULL,NULL,NULL,NULL,(void *)proximity_ProximitySensor,NULL,NULL,NULL};
+struct X3D_Virt virt_ProximitySensor = { NULL,(void *)render_ProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_ProximitySensor,NULL,NULL,NULL};
 
 void render_QuadSet(struct X3D_QuadSet *);
 struct X3D_Virt virt_QuadSet = { NULL,(void *)render_QuadSet,NULL,NULL,(void *)rendray_QuadSet,(void *)make_QuadSet,NULL,NULL,(void *)collide_QuadSet,NULL};
@@ -4742,7 +4745,7 @@ const int OFFSETS_GeoPositionInterpolator[] = {
 	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoPositionInterpolator, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoPositionInterpolator, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 ), (int) UNCA_NONE,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoPositionInterpolator, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___movedValue, (int) offsetof (struct X3D_GeoPositionInterpolator, __movedValue),  (int) FIELDTYPE_MFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___movedValue, (int) offsetof (struct X3D_GeoPositionInterpolator, __movedValue),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldKeyPtr, (int) offsetof (struct X3D_GeoPositionInterpolator, __oldKeyPtr),  (int) FIELDTYPE_MFFloat, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldKeyValuePtr, (int) offsetof (struct X3D_GeoPositionInterpolator, __oldKeyValuePtr),  (int) FIELDTYPE_MFVec3d, (int) KW_outputOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -4765,6 +4768,7 @@ const int OFFSETS_GeoProximitySensor[] = {
 	(int) FIELDNAMES___hit, (int) offsetof (struct X3D_GeoProximitySensor, __hit),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___t1, (int) offsetof (struct X3D_GeoProximitySensor, __t1),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___t2, (int) offsetof (struct X3D_GeoProximitySensor, __t2),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___t3, (int) offsetof (struct X3D_GeoProximitySensor, __t3),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoProximitySensor, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoProximitySensor, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoProximitySensor, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -4797,6 +4801,7 @@ const int OFFSETS_GeoTransform[] = {
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_GeoTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_GeoTransform, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_GeoTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_center, (int) offsetof (struct X3D_GeoTransform, center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) UNCA_LENGTH,
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeoTransform, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCenter, (int) offsetof (struct X3D_GeoTransform, geoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoTransform, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
@@ -4813,6 +4818,7 @@ const int OFFSETS_GeoTransform[] = {
 	(int) FIELDNAMES___do_rotation, (int) offsetof (struct X3D_GeoTransform, __do_rotation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_scaleO, (int) offsetof (struct X3D_GeoTransform, __do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_scale, (int) offsetof (struct X3D_GeoTransform, __do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___do_anything, (int) offsetof (struct X3D_GeoTransform, __do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoTransform, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoTransform, __movedCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoTransform, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9884,6 +9890,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__hit = 0;
 			tmp2->__t1.c[0] = 10000000.0f;tmp2->__t1.c[1] = 0.0f;tmp2->__t1.c[2] = 0.0f;
 			tmp2->__t2.c[0] = 0;tmp2->__t2.c[1] = 1;tmp2->__t2.c[2] = 0;tmp2->__t2.c[3] = 0;;
+			tmp2->__t3.c[0] = 10000000;tmp2->__t3.c[1] = 0;tmp2->__t3.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
@@ -9922,6 +9929,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
 			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->center.c[0] = 0.0f;tmp2->center.c[1] = 0.0f;tmp2->center.c[2] = 0.0f;
 			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->geoCenter.c[0] = 0;tmp2->geoCenter.c[1] = 0;tmp2->geoCenter.c[2] = 0;;
 			tmp2->metadata = NULL;
@@ -9938,6 +9946,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_rotation = 0;
 			tmp2->__do_scaleO = 0;
 			tmp2->__do_scale = 0;
+			tmp2->__do_anything = FALSE;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedCoords.c[0] = 0;tmp2->__movedCoords.c[1] = 0;tmp2->__movedCoords.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
@@ -14929,7 +14938,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 		    if(allFields) {
-			spacer fprintf (fp," __movedValue (MFVec3d):\n");
+			spacer fprintf (fp," __movedValue (MFVec3f):\n");
 			for (i=0; i<tmp->__movedValue.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,(tmp->__movedValue.p[i]).c[0], (tmp->__movedValue.p[i]).c[1],(tmp->__movedValue.p[i]).c[2]); }
 		    }
 		    break;
@@ -14962,6 +14971,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __t2 (SFRotation): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__t2.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __t3 (SFVec3d): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__t3.c[i]); }
 			fprintf (fp,"\n");
 		    }
 		    if(allFields) {
@@ -15011,6 +15025,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," __sibAffectors (MFNode):\n");
 			for (i=0; i<tmp->__sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->__sibAffectors.p[i]); }
 		    }
+			spacer fprintf (fp," center (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->center.c[i]); }
+			fprintf (fp,"\n");
 			spacer fprintf (fp," children (MFNode):\n");
 			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
 			spacer fprintf (fp," geoCenter (SFVec3d): \t");

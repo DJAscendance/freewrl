@@ -3229,7 +3229,7 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
 	}else{
 		n_depth_slices = want_depth_slices;
 	}
-	if(!once || previous_n != n_depth_slices)
+	if(0) if(!once || previous_n != n_depth_slices)
 		ConsoleMessage("depth slices: %d \n",n_depth_slices);
 	once = 1;
 }
@@ -3261,7 +3261,7 @@ void calculateViewingDistIfJustBound(struct X3D_Node *vpnode, int layerid ){
 			vecdif3f(vpoffset,center,vpf);
 			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
 			vpradius = veclength3f(vpoffset);
-			printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
+			//printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
 			Viewer()->Dist = vpradius + scene_diameter;
 			//Viewer()->Dist = scene_diameter;
 			Viewer()->doExamineModeDistanceCalculations = FALSE;
@@ -6072,7 +6072,11 @@ BOOL cbFreeMallocedBuiltinField(void *callbackData,struct X3D_Node* node,int jfi
 			//#define FIELDTYPE_FreeWRLPTR	22
 			//#define FIELDTYPE_SFImage	23
 			//if(strcmp(fieldName,"__oldurl") && strcmp(fieldName,"__oldSFString") && strcmp(fieldName,"__oldMFString") && strcmp(fieldName,"_parentVector")) {
-			if(strcmp(fieldName,"__oldurl") && strcmp(fieldName,"_parentVector")) {
+			//Mar2018 new rule: 
+			// if it has two leading underscores '__' then don't free (see other callbacks for freeing) new mar2018
+			// else if mentioned on the next line, don't free
+			// else free
+			if( strncmp(fieldName,"__",2) && strcmp(fieldName,"__oldurl") && strcmp(fieldName,"_parentVector")) {
 			//if(1){
 				//skip double underscore prefixed fields, which we will treat as not-to-be-deleted, because duplicates like GeoViewpoint __oldMFString which is a duplicate of navType
 				deleteMallocedFieldValue(type,fieldPtr);
