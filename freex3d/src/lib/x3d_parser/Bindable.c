@@ -1069,7 +1069,8 @@ void render_Background(struct X3D_Background *node){
 		bstack = getActiveBindableStacks(tg);
 		matinverseAFFINE(viewi,bstack->viewmatrix);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
-		matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
 	}
 
 }
@@ -1085,7 +1086,8 @@ void render_TextureBackground(struct X3D_TextureBackground *node){
 		bstack = getActiveBindableStacks(tg);
 		matinverseAFFINE(viewi,bstack->viewmatrix);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
-		matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
 	}
 }
 void render_Background_OLD (struct X3D_Background *node) {
