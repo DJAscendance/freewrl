@@ -1398,8 +1398,8 @@ void handle_tick_tplane(double dtime){
 			pp.x =  xsign_quadratic(inplane->xx - inplane->x,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
 			pp.y =  xsign_quadratic(inplane->yy - inplane->y,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
 		}else {
-			pp.x =  xsign_quartic((inplane->xx - inplane->x)*100.0,10.0,3.0,1.0,.3,0.1) * dtime;
-			pp.y =  xsign_quartic((inplane->yy - inplane->y)*100.0,10.0,3.0,1.0,.3,0.1) * dtime;
+			pp.x =  xsign_quintic((inplane->xx - inplane->x)*100.0,1.0,.3,1.0,.3,0.1,0.0) * dtime;
+			pp.y =  xsign_quintic((inplane->yy - inplane->y)*100.0,1.0,.3,1.0,.3,0.1,0.0) * dtime;
 		}
 		pp.z = 0.0;
 		increment_pos0(&pp);
