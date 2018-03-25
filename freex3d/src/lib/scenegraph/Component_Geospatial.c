@@ -1155,7 +1155,6 @@ double userHeight2ellipsoidHeight(Geosys *geoSystem, struct SFVec3d *gdCoord){
 		// ellipsoidHeight = height + TerrainHeight(planet,location)
 		struct Planet *planet = current_planet();
 		additionalHeight += getTerrainHeight( planet->ID, geoSystem, gdCoord);
-
 	}
 	return additionalHeight;
 }
@@ -1178,14 +1177,15 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 	switch (geoSystem->spatial_system) {
 		case  GEOSP_GD:
 			{
-				/* GD_Gd_Gc_convert (inCoords, outCoords); */
-				Gd_Gc3d(geoSystem,inCoords,n,outCoords);
-
 				/* just copy the coordinates for the GD temporary return  */
 				memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
 				if(geoSystem->geoid_height || geoSystem->relativeHeight)
 					for(i=0; i < n; i++)
 						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				
+				/* GD_Gd_Gc_convert (inCoords, outCoords); */
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
+
 			}
 			break;
 		case GEOSP_GC:
@@ -4316,19 +4316,23 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 		//GVP gdcoord and geosys
 		gdCoord = &gvp->__movedgd;
 		geoSystem = GEOSYS(node->__geoSystem);
-		if( geoelevationgrid_getGDHeight0(node, gdCoord, geoSystem, &gridheight) == 1){
-			hit = 1;
+		hit = geoelevationgrid_getGDHeight0(node, gdCoord, geoSystem, &gridheight);
+		static int count =0;
+		count++;
+		//if(hit != 1) printf("no carpet %d\n",count);
+		if(hit  == 1){
+			//hit = 1;
 			// scraped from:
 			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
 			if(gvp->_resetRelativeHeight){
 				naviinfo->height = gdCoord->c[2] - gridheight;
 				gvp->_resetRelativeHeight = FALSE; //we do just once per WALK 'session' (WALK turned on, or bind with WALK on)
-				//printf("+");
+				//printf("walking resetRelative gridHeight=%lf gdCoordc2=%lf\n",gridheight,gdCoord->c[2]);
 			}
 			//printf("=\n");
 			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
 			double hhh = gridheight - abottom;
-			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
+			//printf("gridHeight %lf avatarHeight %lf gdc2 %lf naviih %lf\n",hhh,abottom,gdCoord->c[2],naviinfo->height);
 			double hhbelowfoot = hhh; //hhh - abottom;
 			//fi->fallHeight = 1000000.0;
 			if( hhh < 0.0 )
@@ -4369,7 +4373,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			{
 				//printf("H");
 				/* climbing from undergound */
-				if( hhabovehead < fi->climbHeight) 
+				//if( hhabovehead < fi->climbHeight) 
 				{
 					//printf("^");
 					/* CLIMBING */
