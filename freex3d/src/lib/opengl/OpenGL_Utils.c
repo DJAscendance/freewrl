@@ -3262,7 +3262,7 @@ void calculateViewingDistIfJustBound(struct X3D_Node *vpnode, int layerid ){
 			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
 			vpradius = veclength3f(vpoffset);
 			//printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
-			Viewer()->Dist = vpradius + scene_diameter;
+			Viewer()->Dist = vpradius; // + scene_diameter;
 			//Viewer()->Dist = scene_diameter;
 			Viewer()->doExamineModeDistanceCalculations = FALSE;
 			

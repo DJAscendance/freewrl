@@ -1155,7 +1155,6 @@ double userHeight2ellipsoidHeight(Geosys *geoSystem, struct SFVec3d *gdCoord){
 		// ellipsoidHeight = height + TerrainHeight(planet,location)
 		struct Planet *planet = current_planet();
 		additionalHeight += getTerrainHeight( planet->ID, geoSystem, gdCoord);
-
 	}
 	return additionalHeight;
 }
@@ -1178,14 +1177,15 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 	switch (geoSystem->spatial_system) {
 		case  GEOSP_GD:
 			{
-				/* GD_Gd_Gc_convert (inCoords, outCoords); */
-				Gd_Gc3d(geoSystem,inCoords,n,outCoords);
-
 				/* just copy the coordinates for the GD temporary return  */
 				memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
 				if(geoSystem->geoid_height || geoSystem->relativeHeight)
 					for(i=0; i < n; i++)
 						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				
+				/* GD_Gd_Gc_convert (inCoords, outCoords); */
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
+
 			}
 			break;
 		case GEOSP_GC:
@@ -3656,6 +3656,7 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 }
 
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
+	struct Planet *planet;
 	double a1;
 	GLint viewPort[10];
 	if (!renderstate()->render_vp) return;
@@ -3696,6 +3697,10 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
 
 		}
+
+		planet = current_planet();
+		node->_prepped_planet = planet->ID;
+
 		/* we have  a new currentPosInModel now... */
 		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
 
@@ -3836,7 +3841,8 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	calculateExamineModeDistance();
 	setMenuStatusVP (node->description->strptr);
-
+	fwl_set_viewer_type (VIEWER_WALK);
+	fwl_setCollision(TRUE);
 }
 
 
@@ -4310,19 +4316,23 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 		//GVP gdcoord and geosys
 		gdCoord = &gvp->__movedgd;
 		geoSystem = GEOSYS(node->__geoSystem);
-		if( geoelevationgrid_getGDHeight0(node, gdCoord, geoSystem, &gridheight) == 1){
-			hit = 1;
+		hit = geoelevationgrid_getGDHeight0(node, gdCoord, geoSystem, &gridheight);
+		static int count =0;
+		count++;
+		//if(hit != 1) printf("no carpet %d\n",count);
+		if(hit  == 1){
+			//hit = 1;
 			// scraped from:
 			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
 			if(gvp->_resetRelativeHeight){
 				naviinfo->height = gdCoord->c[2] - gridheight;
 				gvp->_resetRelativeHeight = FALSE; //we do just once per WALK 'session' (WALK turned on, or bind with WALK on)
-				//printf("+");
+				//printf("walking resetRelative gridHeight=%lf gdCoordc2=%lf\n",gridheight,gdCoord->c[2]);
 			}
 			//printf("=\n");
 			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
 			double hhh = gridheight - abottom;
-			//printf("\ngridHeight %lf avatarHeight %lf\n",hhh,abottom);
+			//printf("gridHeight %lf avatarHeight %lf gdc2 %lf naviih %lf\n",hhh,abottom,gdCoord->c[2],naviinfo->height);
 			double hhbelowfoot = hhh; //hhh - abottom;
 			//fi->fallHeight = 1000000.0;
 			if( hhh < 0.0 )
@@ -4363,7 +4373,7 @@ int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoView
 			{
 				//printf("H");
 				/* climbing from undergound */
-				if( hhabovehead < fi->climbHeight) 
+				//if( hhabovehead < fi->climbHeight) 
 				{
 					//printf("^");
 					/* CLIMBING */
@@ -4396,14 +4406,18 @@ void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
 	*/
 
 	int ihit = -1;
-	struct Vector *vpstack;
-	struct X3D_Node *boundvp = NULL;
-	ttglobal tg = gglobal();
-	vpstack = getActiveBindableStacks(tg)->viewpoint;
-	if(vpstack && vpstack->n)
-		boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
-
-	if(node->_nodeType == NODE_GeoElevationGrid && boundvp->_nodeType == NODE_GeoViewpoint){
+	int compatible;
+	struct X3D_Node *boundvp;
+	
+	compatible = FALSE;
+	boundvp = getActiveLayerBoundViewpoint();
+	if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
+		struct X3D_GeoViewpoint *gvp;
+		struct Planet *planet = current_planet();;
+		gvp = (struct X3D_GeoViewpoint *)boundvp;
+		if(gvp->_prepped_planet == planet->ID) compatible = TRUE;
+	}
+	if(node->_nodeType == NODE_GeoElevationGrid && compatible ){
 		ihit = geoelevationgrid_disp2((struct X3D_GeoElevationGrid*)node, (struct X3D_GeoViewpoint *)boundvp);
 		//if(ihit==0) printf("0");
 		//if(ihit==1) printf("1");
@@ -4439,6 +4453,7 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 					nfound++;
 					if(nfound == 1) highest = gridheight;
 					highest = max(highest,gridheight);
+					//printf("p %d g %x h %lf\n",planetID,geg,highest);
 				}
 			}
 		}
@@ -4512,7 +4527,7 @@ void compile_GeoPlanet(struct X3D_GeoPlanet *node){
 		struct Planet *planet = current_planet();
 		if(planet == NULL){
 			planet = add_planet(node->planetId);
-			printf("planet=%x\n",planet);
+			//printf("planet=%x\n",planet);
 		}
 	}
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);

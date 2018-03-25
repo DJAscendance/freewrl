@@ -1979,7 +1979,7 @@ our %Nodes = (
 		_position => ["SFVec3d",[0, 0, 0], "initializeOnly", 0,0],#ff
 		relativeHeight => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
 		_resetRelativeHeight => ["SFBool", "TRUE", "initializeOnly", 0,0],#ff
-
+		_prepped_planet => ["SFInt32",0,"initializeOnly",0,0],#ff
 		# "compiled" versions of strings above
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		__movedPosition => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff

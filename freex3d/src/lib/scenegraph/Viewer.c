@@ -789,6 +789,44 @@ double xsign_quadratic(double x,double a,double b,double c)
 	x = fabs(x);
 	return xSign*quadratic(x,a,b,c);
 }
+double cubic(double x,double a,double b,double c, double d){
+	return x*x*x*a + x*x*b + x*c + d;
+}
+double xsign_cubic(double x,double a,double b,double c, double d)
+{
+	/* y = sign(x)*(a*abs(x)*abs(x)*abs(x) + b*abs(x)*abs(x) + c*abs(x) + d); */
+	double xSign;
+	//xSign = _copysign(1.0,x); _MSC_VER
+	if(x < 0.0) xSign = -1.0; else xSign = 1.0;
+	x = fabs(x);
+	return xSign*cubic(x,a,b,c,d);
+}
+double quartic(double x,double a,double b,double c, double d, double e){
+	return x*x*x*x*a + x*x*x*b + x*x*c + x*d +e;
+}
+double xsign_quartic(double x,double a,double b,double c, double d, double e)
+{
+	// (x,signx) = abs(x)
+	// y = signx*(a*x^4 + b*x^3 + c*x^2 + d*x + e
+	double xSign;
+	//xSign = _copysign(1.0,x); _MSC_VER
+	if(x < 0.0) xSign = -1.0; else xSign = 1.0;
+	x = fabs(x);
+	return xSign*quartic(x,a,b,c,d,e);
+}
+double quintic(double x,double a,double b,double c, double d, double e, double f){
+	return x*x*x*x*x*a + x*x*x*x*b + x*x*x*c + x*x*d +x*e + f;
+}
+double xsign_quintic(double x,double a,double b,double c, double d, double e, double f)
+{
+	// (x,signx) = abs(x)
+	// y = signx*(a*x^5 + b*x^4 + c*x^3 + d*x^2 + e*x + f
+	double xSign;
+	//xSign = _copysign(1.0,x); _MSC_VER
+	if(x < 0.0) xSign = -1.0; else xSign = 1.0;
+	x = fabs(x);
+	return xSign*quintic(x,a,b,c,d,e,f);
+}
 static void handle_walk(const int mev, const unsigned int button, const float x, const float y) {
 /*
  * walk.xd,zd are in a plane parallel to the scene/global horizon.
@@ -1233,7 +1271,9 @@ void handle_tick_fly2(double dtime) {
 	if (inplane->on) {
 		xx = inplane->xx - inplane->x;
 		yy = inplane->yy - inplane->y;
-		zz = -xsign_quadratic(yy,.05,5.0,0.0)*viewer->speed * frameRateAdjustment;
+		//zz = -xsign_quadratic(yy,.05,5.0,0.0)*viewer->speed * frameRateAdjustment;
+		zz = -xsign_cubic(yy*10.0,.05,5.0,1.0,0.0)*viewer->speed * dtime;
+
 		zz *= 0.15;
 
 		xyz.x = 0.0;
@@ -1354,9 +1394,12 @@ void handle_tick_tplane(double dtime){
 		if(0){
 		pp.x =  xsign_quadratic(inplane->xx - inplane->x,300.0,100.0,0.0) *dtime;
 		pp.y =  xsign_quadratic(inplane->yy - inplane->y,300.0,100.0,0.0) *dtime;
-		}else{
+		}else if(0){
 			pp.x =  xsign_quadratic(inplane->xx - inplane->x,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
 			pp.y =  xsign_quadratic(inplane->yy - inplane->y,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
+		}else {
+			pp.x =  xsign_quintic((inplane->xx - inplane->x)*100.0,1.0,.3,1.0,.3,0.1,0.0) * dtime;
+			pp.y =  xsign_quintic((inplane->yy - inplane->y)*100.0,1.0,.3,1.0,.3,0.1,0.0) * dtime;
 		}
 		pp.z = 0.0;
 		increment_pos0(&pp);
