@@ -331,6 +331,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pointsVBO",
 	"_portions",
 	"_position",
+	"_prepped_planet",
 	"_previousvalue",
 	"_radius",
 	"_registered",
@@ -4851,6 +4852,7 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_GeoViewpoint, _position),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoViewpoint, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__resetRelativeHeight, (int) offsetof (struct X3D_GeoViewpoint, _resetRelativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__prepped_planet, (int) offsetof (struct X3D_GeoViewpoint, _prepped_planet),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedOrientation, (int) offsetof (struct X3D_GeoViewpoint, __movedOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -9982,6 +9984,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_position.c[0] = 0;tmp2->_position.c[1] = 0;tmp2->_position.c[2] = 0;;
 			tmp2->relativeHeight = FALSE;
 			tmp2->_resetRelativeHeight = TRUE;
+			tmp2->_prepped_planet = 0;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedPosition.c[0] = 0;tmp2->__movedPosition.c[1] = 0;tmp2->__movedPosition.c[2] = 0;;
 			tmp2->__movedOrientation.c[0] = 0;tmp2->__movedOrientation.c[1] = 0;tmp2->__movedOrientation.c[2] = 1;tmp2->__movedOrientation.c[3] = 0;;
