@@ -321,7 +321,7 @@ void sm_JSCreateScriptContext(int num) {
 	BrowserNative *br; 	/* these are set here */
 	ppJScript p = (ppJScript)gglobal()->JScript.prv;
 	struct CRscriptStruct *ScriptControl;
-	
+
 	ScriptControl = getScriptControlIndex(num);
 
 	/* is this the first time through? */
@@ -329,7 +329,7 @@ void sm_JSCreateScriptContext(int num) {
 		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES);
 		if (!p->runtime) freewrlDie("JS_NewRuntime failed");
 
-		#ifdef JAVASCRIPTVERBOSE 
+		#ifdef JAVASCRIPTVERBOSE
 		printf("\tJS runtime created,\n");
 		#endif
 	}
@@ -338,7 +338,7 @@ void sm_JSCreateScriptContext(int num) {
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tJS context created,\n");
 	#endif
 
@@ -353,7 +353,7 @@ void sm_JSCreateScriptContext(int num) {
 		JS_SetGlobalObject(_context,cs->glob); //ScriptControl[0].glob);
 		_globalObj = JS_NewGlobalObject(_context,&p->globalClass);
 		JS_SetGlobalObject(_context,_globalObj);
-	}	
+	}
 	#else
 	_globalObj = JS_NewObject(_context, &p->globalClass, NULL, NULL);
 	#endif
@@ -362,7 +362,7 @@ void sm_JSCreateScriptContext(int num) {
 #endif
 	if (!_globalObj) freewrlDie("JS_NewObject failed");
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tJS global object created,\n");
 	#endif
 
@@ -381,17 +381,17 @@ void sm_JSCreateScriptContext(int num) {
 		JS_EndRequest(_context);
 	}
 #endif
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tJS standard classes initialized,\n");
 	#endif
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	 	reportWarningsOn();
 	#endif
 
 	JS_SetErrorReporter(_context, errorReporter);
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tJS error reporter set,\n");
 	#endif
 
@@ -420,7 +420,7 @@ void sm_JSCreateScriptContext(int num) {
 #endif
 
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tVRML classes loaded,\n");
 	#endif
 
@@ -438,7 +438,7 @@ void sm_JSCreateScriptContext(int num) {
 	}
 #endif
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tVRML Browser interface loaded,\n");
 	#endif
 
@@ -449,7 +449,7 @@ void sm_JSCreateScriptContext(int num) {
 	/* send this data over to the routing table functions. */
 	CRoutes_js_new (num, JAVASCRIPT);
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf("\tVRML browser initialized, thread %u\n",pthread_self());
 	#endif
 }
@@ -470,14 +470,14 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	JSContext *_context;
 	JSObject *_globalObj;
 	struct CRscriptStruct *ScriptControl;
-	
+
 	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
 	_context = (JSContext*)ScriptControl->cx;
 	_globalObj = (JSObject*)ScriptControl->glob;
 
 	#ifdef JAVASCRIPTVERBOSE
-		printf("ActualrunScript script called at %s:%d  num: %d cx %p \"%s\", \n", 
+		printf("ActualrunScript script called at %s:%d  num: %d cx %p \"%s\", \n",
 			fn, line, num, _context, script);
 	#endif
 
@@ -507,7 +507,7 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 #endif
 	}
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf ("runscript passed\n");
 	#endif
 
@@ -546,7 +546,7 @@ int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval 
 #endif
 	}
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 	printf ("runscript passed\n");
 	#endif
 
@@ -820,11 +820,11 @@ static char* re_strcat(char *_Dest, char *_Source, int *destLen, int *destDim)
 /* A new version of InitScriptField which takes "nicer" arguments; currently a
  * simple and restricted wrapper, but it could replace it soon? */
 /* Parameters:
-	num:		Script number. Starts at 0. 
+	num:		Script number. Starts at 0.
 	kind:		One of PKW_initializeOnly PKW_outputOnly PKW_inputOutput PKW_inputOnly
 	type:		One of the FIELDTYPE_ defines, eg, FIELDTYPE_MFFloat
 	field:		the field name as found in the VRML/X3D file. eg "set_myField"
-		
+
 */
 void InitScriptField(int num, indexT kind, indexT type, const char* field, union anyVrml value) {
 	jsval rval;
@@ -928,11 +928,11 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 						case FIELDTYPE_SFTime: sprintf (smallfield,"%s=%f\n",field,value.sftime);break;
 						case FIELDTYPE_SFDouble: sprintf (smallfield,"%s=%f\n",field,value.sftime);break;
 						case FIELDTYPE_SFInt32: sprintf (smallfield,"%s=%d\n",field,value.sfint32); break;
-						case FIELDTYPE_SFBool: 
+						case FIELDTYPE_SFBool:
 							if (value.sfbool == 1) sprintf (smallfield,"%s=true",field);
 							else sprintf (smallfield,"%s=false",field);
 							break;
-						case FIELDTYPE_SFString:  
+						case FIELDTYPE_SFString:
 							sprintf (smallfield,"%s=\"%s\"\n",field,value.sfstring->strptr); break;
 					}
 
@@ -946,14 +946,14 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 		default: {
 			/* get an appropriate pointer - we either point to the initialization value
 			   in the script header, or we point to some data here that are default values */
-			
+
 			/* does this MF type have an ECMA type as a single element? */
 			switch (type) {
 				case FIELDTYPE_MFString:
 				case FIELDTYPE_MFTime:
 				case FIELDTYPE_MFBool:
 				case FIELDTYPE_MFInt32:
-				case FIELDTYPE_MFFloat: 
+				case FIELDTYPE_MFFloat:
 				JSaddGlobalECMANativeProperty(num, field);
 					MFhasECMAtype = TRUE;
 					break;
@@ -988,7 +988,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					case FIELDTYPE_MFVec3f:
 						FloatPtr = (float *) value.mfvec3f.p; elements = value.mfvec3f.n;
 						break;
-					case FIELDTYPE_MFRotation: 
+					case FIELDTYPE_MFRotation:
 						FloatPtr = (float *) value.mfrotation.p; elements = value.mfrotation.n;
 						break;
 					case FIELDTYPE_SFVec2f:
@@ -1003,10 +1003,10 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					case FIELDTYPE_SFRotation:
 						FloatPtr = value.sfrotation.c; elements = 1;
 						break;
-					case FIELDTYPE_SFVec3f: 
+					case FIELDTYPE_SFVec3f:
 						FloatPtr = value.sfvec3f.c; elements =1;
 						break;
-					case FIELDTYPE_SFVec3d: 
+					case FIELDTYPE_SFVec3d:
 						DoublePtr = value.sfvec3d.c; elements =1;
 						break;
 					case FIELDTYPE_MFString:
@@ -1025,7 +1025,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					case FIELDTYPE_MFNode:
 						VoidPtr = (struct X3D_Node **)(value.mfnode.p); elements = value.mfnode.n;
 						break;
-					case FIELDTYPE_MFFloat: 
+					case FIELDTYPE_MFFloat:
 						FloatPtr = value.mffloat.p; elements = value.mffloat.n;
 						break;
 					case FIELDTYPE_SFVec4f:
@@ -1056,14 +1056,14 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					case FIELDTYPE_MFColorRGBA:
 					case FIELDTYPE_MFVec2f:
 					case FIELDTYPE_MFVec3f:
-					case FIELDTYPE_MFRotation: 
+					case FIELDTYPE_MFRotation:
 					case FIELDTYPE_SFVec2f:
 					case FIELDTYPE_SFColor:
 					case FIELDTYPE_SFColorRGBA:
 					case FIELDTYPE_SFRotation:
-					case FIELDTYPE_SFVec3f: 
-					case FIELDTYPE_SFVec4f: 
-					case FIELDTYPE_MFFloat: 
+					case FIELDTYPE_SFVec3f:
+					case FIELDTYPE_SFVec4f:
+					case FIELDTYPE_MFFloat:
 						FloatPtr = defaultFloat;
 						break;
 
@@ -1094,7 +1094,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					case FIELDTYPE_SFVec4d:
 						DoublePtr = defaultDouble;
 						break;
-						
+
 					default: {
 						printf ("unhandled type, in InitScriptField part 2 %d\n",type);
 						return;
@@ -1111,16 +1111,16 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 
 			/* make this at least as large as required, then add some more on to the end... */
 			/*
-			Old Approach 
+			Old Approach
 					step1: compute using guestimate formulas
 					step2: malloc
-					step3: loop through strcat() and hope no overrun 
-				Problem: heap corruption from array overrun - the guestimate has been bad 
+					step3: loop through strcat() and hope no overrun
+				Problem: heap corruption from array overrun - the guestimate has been bad
 				    a few times in 2010 with MFVec2fs and MFStrings with 42 and 47 elements, strings of varying length
 				example for MFVec2f
 				'new MFVec2f(new SFVec2f(1234.678910,1234.678910),...)'
 				each SF 2 numbers each 10 digits plus new type(,), 15 chars  =35.
-				3 x 15 = 45 (or (rows+1)x(elements*15)+100) 
+				3 x 15 = 45 (or (rows+1)x(elements*15)+100)
 				old formula falls short:
 					old formula: smallfield = MALLOC (rows*((elements*15) + 100));
 					example 47 SFVec2fs
@@ -1142,7 +1142,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 				/* what is the equivalent SF for this MF?? */
 				if (type != convertToSFType(type)) haveMulti = TRUE;
 				 else haveMulti = FALSE;
-				
+
 				/* the sftype is the SF form of either the MF or SF */
 				sftype = STRDUP((char *)FIELDTYPES[convertToSFType(type)]);
 
@@ -1180,7 +1180,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 						} else if (SVPtr != NULL) {
 							sptr[0] = *SVPtr; SVPtr++;
 							if((int)strlen(sptr[0]->strptr)+2 > tdim-1)
-							{	
+							{
 								tdim = (int) strlen(sptr[0]->strptr) + 1 + 100;
 								thisValue = REALLOC(thisValue,tdim);
 							}
@@ -1207,8 +1207,8 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 				FREE_IF_NZ (thisValue);
 			}
 			/* Warp factor 5, Dr Sulu... */
-			#ifdef JAVASCRIPTVERBOSE 
-			printf ("JScript, for non-ECMA newname %s, sending :%s:\n",mynewname,smallfield); 
+			#ifdef JAVASCRIPTVERBOSE
+			printf ("JScript, for non-ECMA newname %s, sending :%s:\n",mynewname,smallfield);
 			#endif
 
 			JSaddGlobalAssignProperty (num,mynewname,smallfield);
@@ -1231,7 +1231,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 		touched = get_valueChanged_flag (fptr, num);
 
 		/* and, reset the touched flag, knowing that we have the variables set properly */
-		resetScriptTouchedFlag(num, fptr); 
+		resetScriptTouchedFlag(num, fptr);
 	}
 	ScriptControl = getScriptControlIndex(num);
 #if defined(JS_THREADSAFE)
@@ -1283,13 +1283,13 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
 				#if defined(JS_THREADSAFE)
-				JS_BeginRequest(_context);
+				JS_BeginRequest(cx);
 				#endif
 				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
 					printf("sorry couldn't rename function: %s",runstring);
 				}
 				#if defined(JS_THREADSAFE)
-				JS_EndRequest(_context);
+				JS_EndRequest(cx);
 				#endif
 			}
 		}
@@ -1322,12 +1322,12 @@ static int JSaddGlobalECMANativeProperty(int num, const char *name) {
 	JS_BeginRequest(_context);
 #endif
 
-/* Note, for JS-185+, JSPROP_PERMANENT makes properties non-configurable, which can cause runtime 
+/* Note, for JS-185+, JSPROP_PERMANENT makes properties non-configurable, which can cause runtime
  * errors from the JS engine when said property gets redefined to a function by the script.  The
  * example file tests/Javascript_tests/MFFloat.wrl had this issue. */
 
-	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
-	//if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative, 
+	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative,
+	//if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative,
 #if JS_VERSION < 185
 		0 | JSPROP_PERMANENT
 #else
@@ -1353,14 +1353,14 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 	JSContext *_context;
 	JSObject *_globalObj;
 	struct CRscriptStruct *ScriptControl;
-	
+
 	ScriptControl = getScriptControlIndex(num);
 
 	/* get context and global object for this script */
 	_context =  (JSContext*)ScriptControl->cx;
 	_globalObj = (JSObject*)ScriptControl->glob;
 
-	#ifdef JAVASCRIPTVERBOSE 
+	#ifdef JAVASCRIPTVERBOSE
 		printf("addGlobalAssignProperty: cx: %p obj %p name \"%s\", evaluate script \"%s\"\n",
 			   _context, _globalObj, name, str);
 	#endif
@@ -1422,13 +1422,13 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 				tg->CRoutes.JSSFpointer = (void *)ptr; /* save this for quick extraction of values */ \
 				touched = ptr->valueChanged; \
 				break; \
-			} 
+			}
 
 #define RESET_TOUCHED_TYPE_A(thistype) \
                 case FIELDTYPE_##thistype: { \
                         ((thistype##Native *)tg->CRoutes.JSSFpointer)->valueChanged = 0; \
                         break; \
-                }       
+                }
 
 #define GETJSPTR_TYPE_MF_A(thisMFtype,thisSFtype) \
 	case FIELDTYPE_##thisMFtype: { \
@@ -1458,7 +1458,7 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 			/* printf ("touched flag for element %d is %d\n",i,ptr->touched); */ \
 		} \
 		break; \
-	} 
+	}
 
 #define RESET_TOUCHED_TYPE_MF_A(thisMFtype,thisSFtype) \
 	case FIELDTYPE_##thisMFtype: { \
@@ -1491,7 +1491,7 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 		} \
 		JSENDREQUEST_SUBSTITUTION(cx) \
 		break; \
-	} 
+	}
 
 /****************************** ECMA types ******************************************/
 
@@ -1662,7 +1662,7 @@ int sm1_get_valueChanged_flag (int fptr, int actualscript) {
 			/* GETJSPTR_TYPE_MF_A(MFImage,SFImage)  */
 			GETJSPTR_TYPE_MF_A(MFColor,SFColor)
 			GETJSPTR_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
-			
+
 			GET_ECMA_MF_TOUCHED(Int32)
 			GET_ECMA_MF_TOUCHED(Bool)
 			GET_ECMA_MF_TOUCHED(Time)
@@ -1670,13 +1670,13 @@ int sm1_get_valueChanged_flag (int fptr, int actualscript) {
 			GET_ECMA_MF_TOUCHED(Float)
 			GET_ECMA_MF_TOUCHED(String)
 
-			GET_ECMA_TOUCHED(Int32) 
-			GET_ECMA_TOUCHED(Bool) 
+			GET_ECMA_TOUCHED(Int32)
+			GET_ECMA_TOUCHED(Bool)
 			GET_ECMA_TOUCHED(Float)
 			GET_ECMA_TOUCHED(Time)
 			GET_ECMA_TOUCHED(Double)
 			GET_ECMA_TOUCHED(String)
-			
+
 			default: {printf ("not handled yet in get_valueChanged_flag %s\n",FIELDTYPES[JSparamnames[fptr].type]);
 			}
 		}
@@ -1688,24 +1688,24 @@ int sm1_get_valueChanged_flag (int fptr, int actualscript) {
 #ifdef CHECKER
 	if (JSparamnames[fptr].type == FIELDTYPE_MFString) {
 		int len; int i;
-                jsval mainElement; 
-                int len; 
+                jsval mainElement;
+                int len;
 
 		unsigned CRCCheck = 0;
-                cx = p->ScriptControl[actualscript].cx; 
+                cx = p->ScriptControl[actualscript].cx;
 #if defined(JS_THREADSAFE)
 		JS_BeginRequest(cx);
 #endif
-                if (!JS_GetProperty(cx, JSglobal_return_val, "length", &mainElement)) { 
-                        printf ("JS_GetProperty failed for length_flag\n"); 
-                } 
-                len = JSVAL_TO_INT(mainElement); 
-                /* go through each element of the main array. */ 
-                for (i = 0; i < len; i++) { 
-                        if (!JS_GetElement(cx, JSglobal_return_val, i, &mainElement)) { 
-                                printf ("JS_GetElement failed for %d in get_valueChanged_flag\n",i); 
-                                break; 
-                        } 
+                if (!JS_GetProperty(cx, JSglobal_return_val, "length", &mainElement)) {
+                        printf ("JS_GetProperty failed for length_flag\n");
+                }
+                len = JSVAL_TO_INT(mainElement);
+                /* go through each element of the main array. */
+                for (i = 0; i < len; i++) {
+                        if (!JS_GetElement(cx, JSglobal_return_val, i, &mainElement)) {
+                                printf ("JS_GetElement failed for %d in get_valueChanged_flag\n",i);
+                                break;
+                        }
 		CRCCheck += (unsigned) mainElement;
 
 /*
@@ -1716,7 +1716,7 @@ int sm1_get_valueChanged_flag (int fptr, int actualscript) {
                 if (JSVAL_IS_INT(mainElement)) printf ("sc, element %d is an INT\n",i);
 */
 
-                } 
+                }
 		printf ("CRCcheck %u\n",CRCCheck);
 #if defined(JS_THREADSAFE)
 		JS_EndRequest(cx);
@@ -1771,12 +1771,12 @@ void sm1_resetScriptTouchedFlag(int actualscript, int fptr) {
 		RESET_TOUCHED_TYPE_ECMA (SFDouble)
 		RESET_TOUCHED_TYPE_ECMA (SFString)
 		RESET_ECMA_MF_TOUCHED(MFInt32)
-		RESET_ECMA_MF_TOUCHED(MFBool) 
-		RESET_ECMA_MF_TOUCHED(MFFloat) 
-		RESET_ECMA_MF_TOUCHED(MFTime) 
-		RESET_ECMA_MF_TOUCHED(MFString) 
-		
-			
+		RESET_ECMA_MF_TOUCHED(MFBool)
+		RESET_ECMA_MF_TOUCHED(MFFloat)
+		RESET_ECMA_MF_TOUCHED(MFTime)
+		RESET_ECMA_MF_TOUCHED(MFString)
+
+
 		default: {printf ("can not reset touched_flag for %s\n",stringFieldtypeType(JSparamnames[fptr].type));
 		}
 	}
@@ -1875,7 +1875,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 		return;
 	}
 
-	// when adding inputOutput fieldnname, check first if there's a user 
+	// when adding inputOutput fieldnname, check first if there's a user
 	// eventin function with the same name, and if so rename it to set_fieldname
 	script = ScriptControl->script;
 	//printf("adding fields from script %x\n",script);
@@ -2818,7 +2818,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 			ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
 			return;
 		}
-	
+
 	}else{ //SM_method == 2
 		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
@@ -3508,7 +3508,7 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 
 
-/* really do the individual set; used by script routing and EAI sending to a script 
+/* really do the individual set; used by script routing and EAI sending to a script
 	Dec 2017 - You may have a inpoutOutput field you want to route values to
 		and not have any inputOnly function() associated with the field
 		for this scenario you want to check first if there's a function,
