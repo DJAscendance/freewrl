@@ -51,6 +51,7 @@
 #include "LinearAlgebra.h"
 #include "Children.h"
 #include "Vector.h"
+#include "Component_Geospatial.h"
 #include "Component_DIS.h"
 #include "Component_Grouping.h"
 
@@ -1242,7 +1243,8 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
-	//compile_geosystem(node,node->_nodeType,node->geoSystem,&node->__geosystem);
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	update_origin((Geosys *)(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
 }
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
 }
@@ -1386,19 +1388,6 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
-
-	if(1){
-		//stereoscopic experiments
-		ttrenderstate rs = renderstate();
-		if (rs->render_geom) { //== VF_Geom) {
-			if (node->_renderFlags & VF_HideLeft && (viewer_iside() == 0) )  { 
-					return; 
-			} 
-			if (node->_renderFlags & VF_HideRight && (viewer_iside() == 1) )  { 
-					return; 
-			} 
-		} 
-	}
 
 	/* any children at all? */
 	if (nc==0) return;

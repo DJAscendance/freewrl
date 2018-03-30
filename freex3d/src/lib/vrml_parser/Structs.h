@@ -4445,6 +4445,7 @@ struct X3D_EspduTransform {
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
+	struct X3D_Node *__geoSystem;
 	int entityCategory;
 	int entityCountry;
 	int entityDomain;
@@ -8896,6 +8897,7 @@ struct X3D_ReceiverPdu {
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
+	struct X3D_Node *__geoSystem;
 	int radioID;
 	int whichGeometry;
 	int receiverState;
@@ -9355,6 +9357,7 @@ struct X3D_SignalPdu {
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
+	struct X3D_Node *__geoSystem;
 	int radioID;
 	int whichGeometry;
 	struct Multi_Int32 data;
@@ -10387,6 +10390,7 @@ struct X3D_TransmitterPdu {
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
+	struct X3D_Node *__geoSystem;
 	int radioID;
 	int whichGeometry;
 	int radioEntityTypeCategory;
