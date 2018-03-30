@@ -303,7 +303,7 @@ typedef struct _geosys {
 	int gd_degrees;					//7
 	int relativeHeight;				//8
 } Geosys;
-#define GEOSYS( geosystem ) ((Geosys *)geosystem)
+//#define GEOSYS( geosystem ) ((Geosys *)geosystem)
 
 int isNodetypeGeospatial(int nodetype, int specversion){
 	//its geospatial if it has a geoSystem field (GeoMetadata doesn't, a few DIS v3.3 do)

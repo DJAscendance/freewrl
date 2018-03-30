@@ -1243,8 +1243,17 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
+	//Mar 2018 interpretation of geoSystem/geoCoords for DIS:
+	//- specs say DIS coords are (x,-z,y) cartesian, they can never be geospatial like GD (lat,lon)
+	//- and specs say children of espdu are translated by DIS coordinates in X3D order
+	//- therefore geoCoordinates must apply to the local scene, and aren't transmitted to/from other DIS participants
+	// Scene
+	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
+	//   transform using DIS
+	//    children
+	// like we had wrapped espduTransform with a GeoLocation node
 	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-	update_origin((Geosys *)(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+	update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
 }
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
 }
@@ -1256,8 +1265,16 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	node->articulationParameterCount = node->articulationParameterArray.n;
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
+	if(!renderstate()->render_vp) {
+		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+		/* did either we or the Viewpoint move since last time? */
+		RECORD_DISTANCE
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
+
 }
 void fin_EspduTransform0(struct X3D_EspduTransform *node){
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
 }
 
 #else //WITH_DIS
@@ -1301,7 +1318,7 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
 
 	COMPILE_IF_REQUIRED
-
+	prep_EspduTransform0(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
 
@@ -1381,6 +1398,7 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 			);
 		}
 	}
+	fin_EspduTransform0(node);
 } 
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
@@ -1419,23 +1437,9 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 //	LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
-/* do transforms, calculate the distance */
-//void prep_EspduTransform (struct X3D_EspduTransform *node) {
-//	prep_EspduTransform0(node);
-//	//else standalone
-//	prep_Transform((struct X3D_Transform *)node);
-//}
-//
-//void fin_EspduTransform (struct X3D_EspduTransform *node) {
-//	fin_EspduTransform0(node);
-//	fin_Transform((struct X3D_Transform*)node);
-//} 
 
-//void child_EspduTransform (struct X3D_EspduTransform *node) {
-//	child_Transform((struct X3D_Transform*)node);
-//}
 
-//with padding so as to match Espdu struct
+// first parts of radio node structs ynchronized so as to match Espdu struct so
 // the 3 radio nodes can be cast to EspduTransform for common field handling
 void compile_TransmitterPdu (struct X3D_TransmitterPdu *node) { 
 	compile_DIS_common((struct X3D_EspduTransform *)node); //assumes transform padding in transmitter node
