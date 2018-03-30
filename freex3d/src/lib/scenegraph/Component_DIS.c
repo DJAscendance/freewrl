@@ -1252,8 +1252,10 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 	//   transform using DIS
 	//    children
 	// like we had wrapped espduTransform with a GeoLocation node
-	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-	update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+	if(veclengthd(node->geoCoords.c) != 0.0){
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+	}
 }
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
 }
@@ -1318,7 +1320,7 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
 
 	COMPILE_IF_REQUIRED
-	prep_EspduTransform0(node);
+	if(node->__geoSystem) prep_EspduTransform0(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
 
@@ -1398,7 +1400,7 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 			);
 		}
 	}
-	fin_EspduTransform0(node);
+	if(node->__geoSystem) fin_EspduTransform0(node);
 } 
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
