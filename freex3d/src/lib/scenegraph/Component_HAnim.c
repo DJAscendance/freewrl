@@ -609,9 +609,12 @@ int vecsametol3f(float *a, float *b, float tol){
 void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
+	INITIALIZE_EXTENT
+
 	int nsc = 0, nsn = 0;
 	float *psc = NULL, *psn = NULL;
 	if(node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate){
+		float ee[6];
 		struct X3D_Coordinate * nc = (struct X3D_Coordinate * )node->skinCoord;
 		nsc = nc->point.n;
 		psc = (float*)nc->point.p;
@@ -628,6 +631,8 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 					}
 			}
 		}
+		extent6f_from_box3fn(ee,nc->point.p->c, nc->point.n);
+		setExtent(ee[0],ee[1],ee[2],ee[3],ee[4],ee[5],X3D_NODE(node));
 	}
 	if(node->skinNormal && node->skinNormal->_nodeType == NODE_Normal){
 		struct X3D_Normal * nn = (struct X3D_Normal * )node->skinNormal;
@@ -758,10 +763,11 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			// int  nsn = 0;
 			float *psc = NULL, *psn = NULL;
 			if(node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate){
+				float ee[6];
 				struct X3D_Coordinate * nc = (struct X3D_Coordinate * )node->skinCoord;
 				struct X3D_Normal *nn = (struct X3D_Normal *)node->skinNormal; //might be NULL 
 				nsc = nc->point.n;
-				psc = (float*)nc->point.p;
+				psc = (float*)nc->point.p[0].c;
 				//memcpy(psc,node->_origCoords,3*nsc*sizeof(float));
 				if(nn){
 					// nsn = nn->vector.n;
@@ -824,10 +830,11 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 					}
 					printf("\n");
 				}
+
 				//trigger recompile of skin->shapes when rendering skin
 				//Nov 6, 2016: recompiling a shape / polyrep on each frame eats memory 
 				//NODE_NEEDS_COMPILING
-				if(1){
+				if(0){
 					int k;
 					Stack *parents;
 					node->skinCoord->_change++;
