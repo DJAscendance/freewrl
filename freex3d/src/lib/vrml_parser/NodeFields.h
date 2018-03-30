@@ -1130,7 +1130,7 @@ END_NODE(Group)
 
 /* HAnimDisplacer node */
 BEGIN_NODE(HAnimDisplacer)
-EVENT_IN(HAnimDisplacer,coordIndex,mfint32,coordIndex,FIELDTYPE_MFInt32)
+EXPOSED_FIELD(HAnimDisplacer,coordIndex,mfint32,coordIndex,FIELDTYPE_MFInt32,UNCA_NONE)
 EXPOSED_FIELD(HAnimDisplacer,displacements,mfvec3f,displacements,FIELDTYPE_MFVec3f,UNCA_LENGTH)
 EXPOSED_FIELD(HAnimDisplacer,name,sfstring,name,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(HAnimDisplacer,weight,sffloat,weight,FIELDTYPE_SFFloat,UNCA_NONE)

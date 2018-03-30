@@ -1218,6 +1218,14 @@ float fclamp(float fval, float fstart, float fend) {
 	fret = fret < fstart ? fstart : fret;	//max(fval,fstart)
 	return fret;
 }
+float *vecclamp2f(float *fval, float *fstart, float *fend){
+	int i;
+	for(i=0;i<2;i++){
+		if(fstart[i] <= fend[i])
+			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
+	}
+	return fval;  //so you can chain
+}
 float *vecclamp3f(float *fval, float *fstart, float *fend){
 	int i;
 	for(i=0;i<3;i++){
@@ -1700,7 +1708,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		tr[1] = ny - node->_origPoint.c[1] + node->offset.c[1];
 		tr[2] = node->offset.c[2];
 
-		vecclamp3f(tr,node->minPosition.c,node->maxPosition.c);
+		vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
 		if(!node->sensorLocalOutput){
 			axisangle_rotate3f(tr,tr, node->axisRotation.c);
 		}
