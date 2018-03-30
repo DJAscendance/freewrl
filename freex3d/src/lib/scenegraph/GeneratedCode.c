@@ -1196,7 +1196,6 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"addChildren",
 	"addGeometry",
 	"addTrimmingContour",
-	"coordIndex",
 	"method",
 	"next",
 	"previous",
@@ -1327,6 +1326,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"controlPoint",
 	"coolColor",
 	"coord",
+	"coordIndex",
 	"createParticles",
 	"crossSectionCurve",
 	"cryptoKeyID",
@@ -4877,7 +4877,7 @@ const int OFFSETS_Group[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimDisplacer[] = {
-	(int) FIELDNAMES_coordIndex, (int) offsetof (struct X3D_HAnimDisplacer, coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_coordIndex, (int) offsetof (struct X3D_HAnimDisplacer, coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_displacements, (int) offsetof (struct X3D_HAnimDisplacer, displacements),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_name, (int) offsetof (struct X3D_HAnimDisplacer, name),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_weight, (int) offsetof (struct X3D_HAnimDisplacer, weight),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -15149,6 +15149,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_HAnimDisplacer *tmp;
 			tmp = (struct X3D_HAnimDisplacer *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," coordIndex (MFInt32):\n");
+			for (i=0; i<tmp->coordIndex.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->coordIndex.p[i]); }
 			spacer fprintf (fp," displacements (MFVec3f):\n");
 			for (i=0; i<tmp->displacements.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,(tmp->displacements.p[i]).c[0], (tmp->displacements.p[i]).c[1],(tmp->displacements.p[i]).c[2]); }
 			spacer fprintf (fp," name (SFString) \t%s\n",tmp->name->strptr);
