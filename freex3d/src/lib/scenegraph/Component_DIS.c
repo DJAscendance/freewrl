@@ -1204,6 +1204,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	//re-'compile' the whole node, or save old values in _old fields on the node for comparison,
 	//or (more normally) MARK_EVENT(node,offset) which runs through lists of registered routes.
 	//here we are comparing a few fields with 'what they must have been when registered')
+	//IDEA: save a duplicate of the node in _oldNode field, so can compare 1:1 with any field
 
 	int inetworkmode = 0;
 	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
@@ -1223,6 +1224,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 void compile_DIS_common(struct X3D_EspduTransform *node){
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
+		//IDEA: save duplicate of nodetype in _oldnode field
 		int changed;
 		changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
 				node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
@@ -1240,6 +1242,7 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
+	//compile_geosystem(node,node->_nodeType,node->geoSystem,&node->__geosystem);
 }
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
 }
@@ -1265,487 +1268,183 @@ void prep_EspduTransform0(struct X3D_EspduTransform *node){}
 void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 #endif //WITH_DIS
 
-/*
- ABSTRACT INTERFACES
- dug9 would love to pull abstract interfaces from compound nodes -like the DIS espdu and 3 communication nodes
- - because upcasting single inheritance isn't enough to serve both (Transform) and (DIS common fields)
- - and the goal is to have functions that handle only the abstract type, without having to 
-    switch-case between different DIS node types
- Options for abstract interfaces:
- 1. casting first member to struct, with padding fixes
- 2. abstract struct members are all pointers, and assigned during compile_
- 3. automated #2
- 4. convert all to C++ and use multiple inheritance
- 5. for DIS, add Transform fields as padding to 3 Radio nodes, 4 DIS nodes have common offsets
- 6. #2/3 applied to all Transform nodes
 
- CHOICE: #5 add transform fields to radio nodes as padding, so 4 DIS nodes share
- same field offsets for common parts
- Why: very fast to implement < 5 minutes, allowing me to get on with other issues
- 
- in more detail
+void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
+	INITIALIZE_EXTENT;
 
- 1. casting member to struct
- For example if enabled is the first DIS network sensor field in espduTransform then an 
- struct abstract_networksensor {
-	int enabled;
-	...
- } A;
- struct X3D_EspduTranform {
-	...
-	int enabled;
-	...
- } B;
- A = &B.enabled;
- Then A can be passed to functions that handle network sensor 
- Problem: struct padding and struct alignment can be different 
-   between the section of big struct B and little struct A.
- Solution:
-	manually rearrange big struct fields and add 4 byte pad fields as needed to:
-	a) elliminate any automatic padding, and
-	b) ensure each start-of-abstract is on an 8byte boundary in big struct
- 
- 2. abstract struct of pointers
- struct abstract_newworksensor {
-	int *enabled;
-	...
- }
- Then in compile_node, manually code a specific2abstract copier function:
- A.enabled = &B.enabled
- ...
-  Then A can be passed to functions that handle network sensor 
+	/* printf ("changed Transform for node %u\n",node); */
+	node->__do_center = verify_translate ((GLfloat *)node->center.c);
+	node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
+	node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
+	node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
+	node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
 
- 3. automated #2 
-	somewhere in perl code generator:
-		a) an abstract node type would be defined
-		b) the first field of the big struct would be associated with the abstract type
-			- or vice versa the abstract type would be included in the big struct
-	then during compile_node code would iterate over OFFSETS for the abstract node type
-		and do the pointer copy based on the OFFSETS for the big node type and instance
+	node->__do_anything = (node->__do_center ||
+			node->__do_trans ||
+			node->__do_scale ||
+			node->__do_rotation ||
+			node->__do_scaleO);
 
- 4. convert to C++ for multiple inheritance
-	- not sure C++ multiple-inheritance would solve x3d multiple inheritance - could be different animals
-	- flux was C++, there's some flux opensource code floating around for those 
-		wanting an example of abstract x3d types applied in C++
-	- attempts and proposals/suggestions in the past to convert freewrl to C++ failed to gain traction
-*/
-
-#ifdef SHOW_STRUCT_PADDING
-#define SPILLGUTS(nodetype,fieldname,fieldtype,bytecount,description) \
-	bytecount += sizeof(fieldtype); \
-	printf("%3d %2d %3d %s\n",offsetof(nodetype,fieldname),sizeof(fieldtype),n,description); 
-
-
-#define SPILLGUTS6(offset,fieldtype,bytecount,field_name) \
-	isize = returnRoutingElementLength(fieldtype); \
-	/* EAI returnRoutingElementLength returns -ve numbers for all the MF and special types */ \
-	isize = isize == -22 ? sizeof(struct Uni_String *) : isize; \
-	isize = isize == -23 ? sizeof(struct SFNode *) : isize; \
-	isize = isize < 0 ? sizeof(struct Multi_Node) : isize; \
-	bytecount +=  isize; \
-	printf("%3d %2d %3d %s\n",offset,isize,bytecount,FIELDNAMES[field_name]); 
-
-void show_espdu_node_struct_padding()
-{
-	// C pads structs 
-	// http://www.catb.org/esr/structure-packing/
-	// -- struct alignment in C
-	// so that 8 byte members -x64 pointers and doubles-are aligned to 8 bytes 
-	// and this function shows 4-byte padding in espduTransform occurs before 4 of the SFTime members
-	// (the X3D_Node header double _dist is lucky to fall on offset 24, so 24/8 = 3 an even number, so no padding)
-	// (one espdu SFTime/double is also lucky)
-	// 
-	int n, isize;
-	const int * offset;
-	static int once = 0;
-	if(once) return;
-	once++;
-
-	printf("\nespdutransform offsetof enabled %d sizeof(espdu) %d\n",offsetof(struct X3D_EspduTransform,enabled),sizeof(struct X3D_EspduTransform));
-	printf("Transform sizeof(Transform) %d\n",sizeof(struct X3D_Transform));
-	//printf("%3d %2d %3d %s\n",offsetof(struct X3D_Transform,),sizeof(),n,"");
-	printf("1.offsetof 2.sizeof 3.sum_of_sizes 4. field\n");
-	n = 0;
-	/*** node header ***/
-	SPILLGUTS(struct X3D_EspduTransform,_nodeType,int,n,"int _nodeType");
-	SPILLGUTS(struct X3D_EspduTransform,_renderFlags,int,n,"int _renderFlags");
-	SPILLGUTS(struct X3D_EspduTransform,_hit,int,n,"int _hit");
-	SPILLGUTS(struct X3D_EspduTransform,_change,int,n,"int _change");
-	SPILLGUTS(struct X3D_EspduTransform,_ichange,int,n,"int _ichange");
-	SPILLGUTS(struct X3D_EspduTransform,_parentVector,struct Vector* ,n,"struct Vector* _parentVector");
-	SPILLGUTS(struct X3D_EspduTransform,_dist,double,n,"float[2] _dist");
-	SPILLGUTS(struct X3D_EspduTransform,_extent,float [6],n,"float _extent[6]");
-	SPILLGUTS(struct X3D_EspduTransform,_intern,struct X3D_PolyRep *,n,"struct X3D_PolyRep *_intern");
-	SPILLGUTS(struct X3D_EspduTransform,referenceCount,int ,n,"int referenceCount");
-	SPILLGUTS(struct X3D_EspduTransform,_defaultContainer,int ,n,"int _defaultContainer");
-	SPILLGUTS(struct X3D_EspduTransform,_gc,void*,n,"void* _gc");
-	SPILLGUTS(struct X3D_EspduTransform,_executionContext,struct X3D_Node* ,n,"struct X3D_Node* _executionContext");
- 	/*** node specific data: *****/
-	offset = NODE_OFFSETS[NODE_EspduTransform];
-	while(offset[0] > -1){
-//	(int) FIELDNAMES_boundaryOpacity, (int) offsetof (struct X3D_BoundaryEnhancementVolumeStyle, boundaryOpacity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-
-		SPILLGUTS6(offset[1],offset[2],n,offset[0]);
-		offset = &offset[6];
-	};
-	{
-		struct X3D_EspduTransform tt[2];
-		printf("Transform_float stride %d\n",(char*)&tt[1] - (char*)&tt[0]);
-		printf("sizeof(Transform_float) %d\n",sizeof(struct X3D_EspduTransform));
-	}
+	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	MARK_NODE_COMPILED
 }
-#define SHOWPADDING show_espdu_node_struct_padding();
-#else //SHOW_STRUCT_PADDING
-#define SHOWPADDING
-#endif //SHOW_STRUCT_PADDING
-
-//#define SHOW_POINTER_INTERFACE 1
-#ifdef SHOW_POINTER_INTERFACE
-//abstract pointer interface
-struct pinterface {
-	struct X3D_Node *node;
-	void *fieldpointer;
-};
-//specific pointer interfaces
-struct pinterface_networksensor {
-	struct X3D_Node *node;
-	int *enabled;
-	int *isActive;
-	double *timestamp;
-	struct Uni_String **address;
-	int *port;
-	struct Uni_String **multicastRelayHost;
-	int *multicastRelayPort;
-	struct Uni_String **networkMode;
-	int *isNetworkReader;
-	int *isNetworkWriter;
-	int *isStandAlone;
-	double *readInterval;
-	double *writeInterval;
-	int *rtpHeaderExpected;
-	int *isRtpHeaderHeard;
-	int *_registered;
-	struct X3D_Node **_dsock;
-	double *_lasttime;
-};
-const int FIELDS_networksensor [] = {
-FIELDNAMES_enabled,
-FIELDNAMES_isActive,
-FIELDNAMES_timestamp,
-FIELDNAMES_address,
-FIELDNAMES_port,
-FIELDNAMES_multicastRelayHost,
-FIELDNAMES_multicastRelayPort,
-FIELDNAMES_networkMode,
-FIELDNAMES_isNetworkReader,
-FIELDNAMES_isNetworkWriter,
-FIELDNAMES_isStandAlone,
-FIELDNAMES_readInterval,
-FIELDNAMES_writeInterval,
-FIELDNAMES_rtpHeaderExpected,
-FIELDNAMES_isRtpHeaderHeard,
-FIELDNAMES__registered,
-FIELDNAMES__dsock,
-FIELDNAMES__lasttime,
--1,
-};
-struct pinterface_entity {
-	struct X3D_Node *node;
-	int *entityID;
-	int *applicationID;
-	int *siteID;
-};
-const int FIELDS_entity [] = {
-	FIELDNAMES_entityID,
-	FIELDNAMES_applicationID,
-	FIELDNAMES_siteID, 
-	-1,
-};
-struct pinterface_geo {
-	struct X3D_Node *node;
-	struct Multi_String *geoSystem;
-	struct SFVec3d *geoCoords;
-};
-const int FIELDS_geo [] = {	
-	FIELDNAMES_geoSystem, 
-	FIELDNAMES_geoCoords,
-	-1,
-};
-struct pinterface_info {
-	struct X3D_Node *node;
-	int *entityCategory;
-	int *entityCountry;
-	int *entityDomain;
-	int *entityExtra;
-	int *entityKind;
-	int *entitySpecific;
-	int *entitySubCategory;
-};
-const int FIELDS_info [] = {	
-	FIELDNAMES_entityCategory,
-	FIELDNAMES_entityCountry,
-	FIELDNAMES_entityDomain,
-	FIELDNAMES_entityExtra,
-	FIELDNAMES_entityKind,
-	FIELDNAMES_entitySpecific,
-	FIELDNAMES_entitySubCategory,
-	-1,
-};
-struct pinterface_force {
-	struct X3D_Node *node;
-	int *forceID;
-	struct Uni_String **marking;
-};
-const int FIELDS_force [] = {
-	FIELDNAMES_forceID,
-	FIELDNAMES_marking,
-	-1,
-};
-struct pinterface_deadreckoning {
-	struct X3D_Node *node;
-	int *deadReckoning;
-	struct SFVec3f *linearVelocity;
-	struct SFVec3f *linearAcceleration;
-};
-const int FIELDS_deadreckoning [] = {	
-	FIELDNAMES_deadReckoning,
-	FIELDNAMES_linearVelocity,
-	FIELDNAMES_linearAcceleration,
-	-1,
-};
-struct pinterface_articulation {
-	struct X3D_Node *node;
-	float *set_articulationParameterValue0;
-	float *set_articulationParameterValue1;
-	float *set_articulationParameterValue2;
-	float *set_articulationParameterValue3;
-	float *set_articulationParameterValue4;
-	float *set_articulationParameterValue5;
-	float *set_articulationParameterValue6;
-	float *set_articulationParameterValue7;
-	int *articulationParameterCount;
-	struct Multi_Int32 *articulationParameterDesignatorArray;
-	struct Multi_Int32 *articulationParameterChangeIndicatorArr;
-	struct Multi_Int32 *articulationParameterIdPartAttachedToAr;
-	struct Multi_Int32 *articulationParameterTypeArray;
-	struct Multi_Float *articulationParameterArray;
-	float *articulationParameterValue0_changed;
-	float *articulationParameterValue1_changed;
-	float *articulationParameterValue2_changed;
-	float *articulationParameterValue3_changed;
-	float *articulationParameterValue4_changed;
-	float *articulationParameterValue5_changed;
-	float *articulationParameterValue6_changed;
-	float *articulationParameterValue7_changed;
-};
-const int FIELDS_articulation [] = {	
-	FIELDNAMES_set_articulationParameterValue0,
-	FIELDNAMES_set_articulationParameterValue1,
-	FIELDNAMES_set_articulationParameterValue2,
-	FIELDNAMES_set_articulationParameterValue3,
-	FIELDNAMES_set_articulationParameterValue4,
-	FIELDNAMES_set_articulationParameterValue5,
-	FIELDNAMES_set_articulationParameterValue6,
-	FIELDNAMES_set_articulationParameterValue7,
-	FIELDNAMES_articulationParameterCount,
-	FIELDNAMES_articulationParameterDesignatorArray,
-	FIELDNAMES_articulationParameterChangeIndicatorArr,
-	FIELDNAMES_articulationParameterIdPartAttachedToAr,
-	FIELDNAMES_articulationParameterTypeArray,
-	FIELDNAMES_articulationParameterArray,
-	FIELDNAMES_articulationParameterValue0_changed,
-	FIELDNAMES_articulationParameterValue1_changed,
-	FIELDNAMES_articulationParameterValue2_changed,
-	FIELDNAMES_articulationParameterValue3_changed,
-	FIELDNAMES_articulationParameterValue4_changed,
-	FIELDNAMES_articulationParameterValue5_changed,
-	FIELDNAMES_articulationParameterValue6_changed,
-	FIELDNAMES_articulationParameterValue7_changed,
-	-1,
-};
-struct pinterface_collision {
-	struct X3D_Node *node;
-	int *collisionType;
-	double *collideTime;
-	int *isCollided;
-};
-const int FIELDS_collision [] = {	
-	FIELDNAMES_collisionType,
-	FIELDNAMES_collideTime,
-	FIELDNAMES_isCollided,
-	-1,
-};
-struct pinterface_events {
-	struct X3D_Node *node;
-	int *eventEntityID;
-	int *eventApplicationID;
-	int *eventSiteID;
-	int *eventNumber;
-};
-const int FIELDS_events [] = {	
-	FIELDNAMES_eventEntityID,
-	FIELDNAMES_eventApplicationID,
-	FIELDNAMES_eventSiteID,
-	FIELDNAMES_eventNumber,
-	-1,
-};
-struct pinterface_fire {
-	struct X3D_Node *node;
-	int *fired1;
-	int *fired2;
-	int *fireMissionIndex;
-	float *firingRange;
-	double *firedTime;
-};
-const int FIELDS_fire [] = {	
-	FIELDNAMES_fired1,
-	FIELDNAMES_fired2,
-	FIELDNAMES_fireMissionIndex,
-	FIELDNAMES_firingRange,
-	FIELDNAMES_firedTime,
-	-1,
-};
-struct pinterface_detonation {
-	struct X3D_Node *node;
-	struct SFVec3f *detonationLocation;
-	struct SFVec3f *detonationRelativeLocation;
-	int *detonationResult;
-	double *detonateTime;
-	int *isDetonated;
-};
-const int FIELDS_detonation [] = {	
-	FIELDNAMES_detonationLocation,
-	FIELDNAMES_detonationRelativeLocation,
-	FIELDNAMES_detonationResult,
-	FIELDNAMES_detonateTime,
-	FIELDNAMES_isDetonated,
-	-1,
-};
-struct pinterface_munition {
-	struct X3D_Node *node;
-	int *munitionEntityID;
-	int *munitionApplicationID;
-	int *munitionSiteID;
-	struct SFVec3f *munitionStartPoint;
-	struct SFVec3f *munitionEndPoint;
-	int *munitionQuantity;
-};
-const int FIELDS_munition [] = {	
-	FIELDNAMES_munitionEntityID,
-	FIELDNAMES_munitionApplicationID,
-	FIELDNAMES_munitionSiteID,
-	FIELDNAMES_munitionStartPoint,
-	FIELDNAMES_munitionEndPoint,
-	FIELDNAMES_munitionQuantity,
-	-1,
-};
-struct pinterface_rate {
-	struct X3D_Node *node;
-	int *firingRate;
-	int *fuse;
-	int *warhead;
-};
-const int FIELDS_rate [] = {	
-	FIELDNAMES_firingRate,
-	FIELDNAMES_fuse,
-	FIELDNAMES_warhead,
-	-1,
-};
-void node2pinterface(struct X3D_Node *node, struct pinterface *pif, const int *PFIELDS){
-	const int *fname, *offset;
-	int k;
-	fname = PFIELDS;
-	k = 0;
-	pif->node = node; //store concrete node with pinterface in case we need something
-	while(fname[k] > -1){
-		char **nsptr;
-		nsptr = (char **)((char *)&pif->fieldpointer + (k*sizeof(char*)));
-		*nsptr = NULL;
-		offset = NODE_OFFSETS[node->_nodeType];
-		while(offset[0] > -1){
-			if(offset[0] == fname[k]){
-				char *ptr;
-				ptr = (char *)node + offset[1];
-				//*((char **)ns + (k*sizeof(char*))) = ptr;
-				//memcpy(nsptr,&ptr,sizeof(char*));
-				*nsptr = ptr;
-				break;
-			}
-			offset += 6;
-		};
-		k++;
-	};
-}
-void print_pinterface(struct pinterface *pif, const int *PFIELDS){
-	//2017 dec 12 am: we don't store the fieldtype per-abstract interface (yet)
-	// ..so we have to fetch from concrete node
-	const int *fname, *offset;
-	int nodetype;
-	int k;
-	fname = PFIELDS;
-	nodetype = pif->node->_nodeType; //concrete node type used
-	k = 0;
-	while(fname[k] > -1){
-		char **nsptr;
-		nsptr = (char **)((char *)&pif->fieldpointer + (k*sizeof(char*)));
-		offset = NODE_OFFSETS[nodetype];
-		while(offset[0] > -1){
-			if(offset[0] == fname[k]){
-				int ftype = offset[2];
-				printf("%s ",FIELDNAMES[fname[k]]);
-				print_field_value(stdout,ftype,(union anyVrml*)*nsptr);
-				printf("\n");
-				break;
-			}
-			offset += 6;
-		};
-		k++;
-	};
-}
-static struct pinterface_networksensor *ns_static = NULL;
-void make_pinterface(struct X3D_Node *node){
-	struct pinterface_networksensor *ns = malloc(sizeof(struct pinterface_networksensor));
-	node2pinterface(node,(struct pinterface*)ns,FIELDS_networksensor);
-	ns_static = ns; //would normally be stored in node _hidden field for life of node
-}
-
-void show_pinterface(){
-	struct pinterface_networksensor *ns = ns_static;
-	printf("enabled %d\n",*(ns->enabled));
-	print_pinterface((struct pinterface *)ns,FIELDS_networksensor);
-}
-#define MAKEPINTERFACE make_pinterface(X3D_NODE(node));
-#define SHOWPINTERFACE show_pinterface();
-#else //SHOW_POINTER_INTERFACE
-#define MAKEPINTERFACE
-#define SHOWPINTERFACE
-#endif //SHOW_POINTER_INTERFACE
-
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
-	SHOWPADDING
-	MAKEPINTERFACE
 	compile_DIS_common(node);
 	compile_EspduTransform0(node);
-	compile_Transform((struct X3D_Transform*)node);
+	compile_EspduTransform1(node);
 	MARK_NODE_COMPILED
-	SHOWPINTERFACE
 }
 
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
-	prep_EspduTransform0(node);
-	//else standalone
-	prep_Transform((struct X3D_Transform *)node);
+
+	COMPILE_IF_REQUIRED
+
+	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+		* so we do nothing here in that case -ncoder */
+
+	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
+	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+
+	/* do we have any geometry visible, and are we doing anything with geometry? */
+	OCCLUSIONTEST
+
+	if(!renderstate()->render_vp) {
+		/* do we actually have any thing to rotate/translate/scale?? */
+		if (node->__do_anything) {
+
+			FW_GL_PUSH_MATRIX();
+
+			/* TRANSLATION */
+			if (node->__do_trans)
+				FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+
+			/* CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+
+			/* ROTATION */
+			if (node->__do_rotation) {
+				FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
+			}
+
+			/* SCALEORIENTATION */
+			if (node->__do_scaleO) {
+				FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+			}
+
+
+			/* SCALE */
+			if (node->__do_scale)
+				FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
+
+			/* REVERSE SCALE ORIENTATION */
+			if (node->__do_scaleO)
+				FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+
+			/* REVERSE CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+		} 
+
+		RECORD_DISTANCE
+
+	}
 }
+
 
 void fin_EspduTransform (struct X3D_EspduTransform *node) {
-	fin_EspduTransform0(node);
-	fin_Transform((struct X3D_Transform*)node);
-} 
+	OCCLUSIONTEST
 
+	if(!renderstate()->render_vp) {
+		if (node->__do_anything) {
+			FW_GL_POP_MATRIX();
+		}
+	} else {
+		/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+		if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+			);
+			FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
+			);
+			FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+			);
+		}
+	}
+} 
 void child_EspduTransform (struct X3D_EspduTransform *node) {
-	child_Transform((struct X3D_Transform*)node);
+	//LOCAL_LIGHT_SAVE
+	CHILDREN_COUNT
+	OCCLUSIONTEST
+
+	RETURN_FROM_CHILD_IF_NOT_FOR_ME
+
+	if(1){
+		//stereoscopic experiments
+		ttrenderstate rs = renderstate();
+		if (rs->render_geom) { //== VF_Geom) {
+			if (node->_renderFlags & VF_HideLeft && (viewer_iside() == 0) )  { 
+					return; 
+			} 
+			if (node->_renderFlags & VF_HideRight && (viewer_iside() == 1) )  { 
+					return; 
+			} 
+		} 
+	}
+
+	/* any children at all? */
+	if (nc==0) return;
+
+	//if(node->__sibAffectors.n)
+	//	printf("have transform sibaffectors\n");
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+
+	//profile_start("local_light_kids");
+	/* do we have a local light for a child? */
+//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+	//profile_end("local_light_kids");
+	/* now, just render the non-directionalLight children */
+
+	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
+			node,node->_renderFlags,render_sensitive); */
+
+	#ifdef CHILDVERBOSE
+		printf ("transform - doing normalChildren\n");
+	#endif
+
+	normalChildren(node->_sortedChildren);
+
+	#ifdef CHILDVERBOSE
+		printf ("transform - done normalChildren\n");
+	#endif
+
+//	LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
+/* do transforms, calculate the distance */
+//void prep_EspduTransform (struct X3D_EspduTransform *node) {
+//	prep_EspduTransform0(node);
+//	//else standalone
+//	prep_Transform((struct X3D_Transform *)node);
+//}
+//
+//void fin_EspduTransform (struct X3D_EspduTransform *node) {
+//	fin_EspduTransform0(node);
+//	fin_Transform((struct X3D_Transform*)node);
+//} 
+
+//void child_EspduTransform (struct X3D_EspduTransform *node) {
+//	child_Transform((struct X3D_Transform*)node);
+//}
 
 //with padding so as to match Espdu struct
 // the 3 radio nodes can be cast to EspduTransform for common field handling

@@ -452,7 +452,7 @@ int getEllipsoidParams(int etype, double *semimajor, double *flattening){
 void CONVERT_BACK_TO_GD_OR_UTMB(Geosys *targetGeoSystem, struct X3D_Node *GeoOrigin, 
 		struct SFVec3d *thisField);
 
-static void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct X3D_Node **srf);
+void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct X3D_Node **srf);
 static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
 
@@ -1897,7 +1897,7 @@ struct stringint lookup_spatialreferencesys [] = {
 };
 
 
-static void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String *args, struct X3D_Node **nodegeosys) {
+void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String *args, struct X3D_Node **nodegeosys) {
 	int i, specversion, nextra;
 	indexT this_srf = INT_ID_UNDEFINED;
 	indexT this_srf_ind = INT_ID_UNDEFINED;
