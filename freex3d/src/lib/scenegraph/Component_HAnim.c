@@ -668,7 +668,7 @@ void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
 
 	/* any segments at all? */
 /*
-printf ("hanimHumanoid, segment coutns %d %d %d %d %d %d\n",
+printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d skin %d vps %d\n",
 		node->joints.n,
 		node->segments.n,
 		node->sites.n,
