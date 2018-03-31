@@ -838,132 +838,163 @@ int push_typed_proxy2(duk_context *ctx, int itype, int kind, void *fwpointer, in
 
 
 void convert_duk_to_fwvals(duk_context *ctx, int nargs, int istack, struct ArgListType arglist, FWval *args, int *argc){
-	int nUsable,nNeeded, i, ii;
+	int nUsable,nNeeded, i, ii, jj, k, len;
 	FWval pars;
 	//struct Uni_String *uni;
+	
+	//we don't handle js lists [] very well, so we'll expand them and treat them like a flat list of args
+	if(nargs > 0){
+		int margs = 0;
+		for(i=0;i<nargs;i++){
+			ii = istack;
+			len = 1;
+			if( duk_is_array(ctx, ii)){
+				//if the script goes myField = new String('hi'); then it comes in here as an object (versus myField = 'hi'; which is a string)
+				len = duk_get_length(ctx, ii);
+			}
+			margs += len;
+		}
+		nargs = margs;
+	}
+
 	nUsable = arglist.iVarArgStartsAt > -1 ? nargs : arglist.nfixedArg;
 	nNeeded = max(nUsable,arglist.nfixedArg);
 	pars = malloc(nNeeded*sizeof(FWVAL));
 	(*args) = pars;
 	//QC and genericization of incoming parameters
 	(*argc) = nNeeded;
+	ii = istack;
 	for(i=0;i<nUsable;i++){
 		//const char* str;
-		int trhs; //RHS or incoming javascript primitive type
+		int trhs, ipop; //RHS or incoming javascript primitive type
 		char ctype; //LHS or target type
-		ii = istack + i;
-		if(i < arglist.nfixedArg) 
-			ctype = arglist.argtypes[i];
-		else 
-			ctype = arglist.argtypes[arglist.iVarArgStartsAt];
-		pars[i].itype = ctype;
-		if( duk_is_object(ctx, ii)){
-			int rc, isPrimitive;
+		len = 1;
+		if( duk_is_array(ctx, ii)){
 			//if the script goes myField = new String('hi'); then it comes in here as an object (versus myField = 'hi'; which is a string)
-			rc = duk_get_prop_string(ctx,ii,"fwItype");
-			duk_pop(ctx);
-			isPrimitive = rc == 0;
-			if(isPrimitive){
-				//void duk_to_primitive(duk_context *ctx, duk_idx_t index, duk_int_t hint); DUK_HINT_NONE
-				//http://www.duktape.org/api.html#duk_to_primitive
-				duk_to_primitive(ctx,ii,DUK_HINT_NONE);
-			}
+			len = duk_get_length(ctx, ii);
 		}
-		//determine RHS / actual ecma type on stack
-		trhs = duk_get_type(ctx, ii);
-		//switch(trhs){
-		//	case DUK_TYPE_NUMBER: stype ="number"; break;
-		//	case DUK_TYPE_STRING: stype ="string"; break;
-
-		//	case DUK_TYPE_OBJECT: stype ="object"; break;
-		//	case DUK_TYPE_NONE: stype ="none"; break;
-		//	case DUK_TYPE_UNDEFINED: stype ="undefined"; break;
-		//	case DUK_TYPE_BOOLEAN: stype ="boolean"; break;
-		//	case DUK_TYPE_NULL: stype ="null"; break;
-		//	case DUK_TYPE_POINTER: stype ="pointer"; break;
-		//	default:
-		//}
-		//if( duk_is_null(ctx,ii)){
-		//	printf("rhs is null\n");
-		//}
-
-		switch(ctype){
-		case 'B': {
-			int bb = duk_get_boolean(ctx,ii); //duk_to_boolean(ctx,ii);
-			pars[i]._boolean = bb; // duk_to_boolean(ctx,ii); 
+		for(k=0;k<len;k++,i++){
+			if(i < arglist.nfixedArg) 
+				ctype = arglist.argtypes[i];
+			else 
+				ctype = arglist.argtypes[arglist.iVarArgStartsAt];
+			pars[i].itype = ctype;
+			jj = -1;
+			if( duk_is_array(ctx, ii)){
+				duk_get_prop_index(ctx, ii, k);
+			} else {
+				duk_dup(ctx,ii);
 			}
-			break;
-		case 'I': pars[i]._integer = duk_to_int(ctx,ii); break;
-		case 'F': pars[i]._numeric = duk_to_number(ctx,ii); break;
-		case 'D': pars[i]._numeric = duk_to_number(ctx,ii); break;
-		case 'S': pars[i]._string = duk_to_string(ctx,ii); break;
-		case 'Z': //flexi-string idea - allow either String or MFString (no such thing as SFString from ecma - it uses String for that)
-			if(duk_is_string(ctx,ii)){
-				pars[i]._string = duk_get_string(ctx,ii); 
-				pars[i].itype = 'S';
-				break;
+			if( duk_is_object(ctx,jj) ){
+				int rc, isPrimitive;
+				//if the script goes myField = new String('hi'); then it comes in here as an object (versus myField = 'hi'; which is a string)
+				rc = duk_get_prop_string(ctx,jj,"fwItype");
+				duk_pop(ctx);
+				isPrimitive = rc == 0;
+				if(isPrimitive){
+					//void duk_to_primitive(duk_context *ctx, duk_idx_t index, duk_int_t hint); DUK_HINT_NONE
+					//http://www.duktape.org/api.html#duk_to_primitive
+					duk_to_primitive(ctx,jj,DUK_HINT_NONE);
+				}
 			}
-			if(!duk_is_object(ctx,i))
+			//determine RHS / actual ecma type on stack
+			trhs = duk_get_type(ctx, jj);
+			//switch(trhs){
+			//	case DUK_TYPE_NUMBER: stype ="number"; break;
+			//	case DUK_TYPE_STRING: stype ="string"; break;
+
+			//	case DUK_TYPE_OBJECT: stype ="object"; break;
+			//	case DUK_TYPE_NONE: stype ="none"; break;
+			//	case DUK_TYPE_UNDEFINED: stype ="undefined"; break;
+			//	case DUK_TYPE_BOOLEAN: stype ="boolean"; break;
+			//	case DUK_TYPE_NULL: stype ="null"; break;
+			//	case DUK_TYPE_POINTER: stype ="pointer"; break;
+			//	default:
+			//}
+			//if( duk_is_null(ctx,ii)){
+			//	printf("rhs is null\n");
+			//}
+
+			switch(ctype){
+			case 'B': {
+				int bb = duk_get_boolean(ctx,jj); //duk_to_boolean(ctx,ii);
+				pars[i]._boolean = bb; // duk_to_boolean(ctx,ii); 
+				}
 				break;
-			//else fall through to W
-		case 'W': {
-				int rc, isOK, itypeRHS = -1;
-				union anyVrml *fieldRHS = NULL;
-				if(trhs == DUK_TYPE_NULL){
-					itypeRHS = 10;
-					fieldRHS = malloc(sizeof(union anyVrml));
-					fieldRHS->sfnode = NULL;
-				}else if(trhs == DUK_TYPE_OBJECT){
-					rc = duk_get_prop_string(ctx,ii,"fwItype");
+			case 'I': pars[i]._integer = duk_to_int(ctx,jj); break;
+			case 'F': pars[i]._numeric = duk_to_number(ctx,jj); break;
+			case 'D': pars[i]._numeric = duk_to_number(ctx,jj); break;
+			case 'S': pars[i]._string = duk_to_string(ctx,jj); break;
+			case 'Z': //flexi-string idea - allow either String or MFString (no such thing as SFString from ecma - it uses String for that)
+				if(duk_is_string(ctx,jj)){
+					pars[i]._string = duk_get_string(ctx,jj); 
+					pars[i].itype = 'S';
+					break;
+				}
+				if(!duk_is_object(ctx,jj))
+					break;
+				//else fall through to W
+			case 'W': {
+					int rc, isOK, itypeRHS = -1;
+					union anyVrml *fieldRHS = NULL;
+					if(trhs == DUK_TYPE_NULL){
+						itypeRHS = 10;
+						fieldRHS = malloc(sizeof(union anyVrml));
+						fieldRHS->sfnode = NULL;
+					}else if(trhs == DUK_TYPE_OBJECT){
+						rc = duk_get_prop_string(ctx,jj,"fwItype");
+						if(rc == 1){
+							itypeRHS = duk_to_int(ctx,-1);
+						}
+						duk_pop(ctx);
+						rc = duk_get_prop_string(ctx,jj,"fwField");
+						if(rc == 1) fieldRHS = duk_to_pointer(ctx,-1);
+						duk_pop(ctx);
+					}
+					/*we don't need the RHS fwChanged=valueChanged* because we are only changing the LHS*/
+					isOK = FALSE;
+					//if(fieldRHS != NULL && itypeRHS > -1){
+					if(itypeRHS > -1){
+						// its one of our proxy field types or null. But is it the type we need?
+						//medium_copy_field(itypeRHS,fieldRHS,&pars[i]._web3dval.native); //medium copy - copies p[] in MF types but not deep copy *(p[i]) if p[i] is pointer type ie SFNode* or Uni_String*
+						pars[i]._web3dval.native = fieldRHS;
+						pars[i]._web3dval.fieldType = itypeRHS;
+						pars[i].itype = 'W';
+						// see below *valueChanged = TRUE;
+						isOK = TRUE;
+					}
+				}
+				break;
+			case 'P': {
+					int rc, isOK, itypeRHS = -1;
+					union anyVrml *fieldRHS = NULL;
+					rc = duk_get_prop_string(ctx,jj,"fwItype");
 					if(rc == 1){
+						//printf(duk_type_to_string(duk_get_type(ctx, -1)));
 						itypeRHS = duk_to_int(ctx,-1);
 					}
 					duk_pop(ctx);
-					rc = duk_get_prop_string(ctx,ii,"fwField");
+					rc = duk_get_prop_string(ctx,jj,"fwField");
 					if(rc == 1) fieldRHS = duk_to_pointer(ctx,-1);
 					duk_pop(ctx);
+					/*we don't need the RHS fwChanged=valueChanged* because we are only changing the LHS*/
+					isOK = FALSE;
+					if(fieldRHS != NULL && itypeRHS >= AUXTYPE_X3DConstants){
+						/* its one of our auxiliary types - Browser, X3DConstants, ProfileInfo, ComponentInfo, X3DRoute ...*/
+						pars[i]._pointer.native = fieldRHS;
+						pars[i]._pointer.fieldType = itypeRHS;
+						pars[i].itype = 'P';
+						// see below *valueChanged = TRUE;
+						isOK = TRUE;
+					}
 				}
-				/*we don't need the RHS fwChanged=valueChanged* because we are only changing the LHS*/
-				isOK = FALSE;
-				//if(fieldRHS != NULL && itypeRHS > -1){
-				if(itypeRHS > -1){
-					// its one of our proxy field types or null. But is it the type we need?
-					//medium_copy_field(itypeRHS,fieldRHS,&pars[i]._web3dval.native); //medium copy - copies p[] in MF types but not deep copy *(p[i]) if p[i] is pointer type ie SFNode* or Uni_String*
-					pars[i]._web3dval.native = fieldRHS;
-					pars[i]._web3dval.fieldType = itypeRHS;
-					pars[i].itype = 'W';
-					// see below *valueChanged = TRUE;
-					isOK = TRUE;
-				}
-			}
-			break;
-		case 'P': {
-				int rc, isOK, itypeRHS = -1;
-				union anyVrml *fieldRHS = NULL;
-				rc = duk_get_prop_string(ctx,ii,"fwItype");
-				if(rc == 1){
-					//printf(duk_type_to_string(duk_get_type(ctx, -1)));
-					itypeRHS = duk_to_int(ctx,-1);
-				}
-				duk_pop(ctx);
-				rc = duk_get_prop_string(ctx,ii,"fwField");
-				if(rc == 1) fieldRHS = duk_to_pointer(ctx,-1);
-				duk_pop(ctx);
-				/*we don't need the RHS fwChanged=valueChanged* because we are only changing the LHS*/
-				isOK = FALSE;
-				if(fieldRHS != NULL && itypeRHS >= AUXTYPE_X3DConstants){
-					/* its one of our auxiliary types - Browser, X3DConstants, ProfileInfo, ComponentInfo, X3DRoute ...*/
-					pars[i]._pointer.native = fieldRHS;
-					pars[i]._pointer.fieldType = itypeRHS;
-					pars[i].itype = 'P';
-					// see below *valueChanged = TRUE;
-					isOK = TRUE;
-				}
-			}
-			break;
+				break;
 
-		case 'O': break; //object pointer ie to js function callback object
-		}
+			case 'O': break; //object pointer ie to js function callback object
+			}
+			duk_pop(ctx);
+		} //k
+		ii = ii + 1;
 	}
 		
 	for(i=nUsable;i<nNeeded;i++){
@@ -1062,6 +1093,10 @@ int cfwconstructor(duk_context *ctx) {
 						if(fieldRHS != NULL && itypeRHS > -1){
 							//in theory, we could make sure somehow that we had the right kind of 'W' : add a FIELDTYPE_ / AUXTYPE_ array in arglist struct
 							isOK = TRUE;
+						}
+						if(!isOK){
+							//is it a list ie new MFVec3f([A3f,B3f])?
+
 						}
 					}
 					break;
