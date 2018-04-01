@@ -148,11 +148,33 @@ MFColorConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	JSObject *_obj;
 	unsigned int i;
 	union anyVrml *anyv;
 	
 	ADD_ROOT(cx,obj)
+
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -184,7 +206,14 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	#endif
 
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToObject(cx, argv[i], &_obj)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
 			printf(
 					"JS_ValueToObject failed in MFColorConstr.\n");
 			return JS_FALSE;
@@ -203,7 +232,7 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			}
 			// else for now we'll leave zeros
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %u in MFColorConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -296,12 +325,34 @@ MFFloatConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 
 	jsdouble _d;
 	unsigned int i;
 	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
+
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFFloat,NULL,NULL)) == NULL){
@@ -329,7 +380,14 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		printf("MFFloatConstr: obj = %p, %u args\n", obj, argc);
 	#endif
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToNumber(cx, argv[i], &_d)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToNumber(cx, vp, &_d)) {
 			printf( "JS_ValueToNumber failed in MFFloatConstr.\n");
 			return JS_FALSE;
 		}
@@ -337,7 +395,7 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			anyv->mffloat.p[i] = _d;
 			anyv->mffloat.n = i+1;
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %u in MFFloatConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -439,6 +497,8 @@ MFInt32Constr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	int32 _i;
 	unsigned int i;
 	union anyVrml *anyv;
@@ -447,6 +507,25 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	#endif
 
 	ADD_ROOT(cx,obj)
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -479,7 +558,14 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 
 	/* any values here that we should add in? */
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToInt32(cx, argv[i], &_i)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToInt32(cx, vp, &_i)) {
 			printf( "JS_ValueToInt32 failed in MFInt32Constr.\n");
 			return JS_FALSE;
 		}
@@ -490,7 +576,7 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			anyv->mfint32.p[i] = _i;
 			anyv->mfint32.n = i+1;
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %u in MFInt32Constr.\n", i);
 				return JS_FALSE;
 			}
@@ -602,11 +688,32 @@ MFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	JSObject *_obj;
 	unsigned int i;
 	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -637,14 +744,21 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 	#endif
 
 	for (i = 0; i < argc; i++) {
-		if (JSVAL_IS_OBJECT(argv[i])) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
 
-			if (!JS_ValueToObject(cx, argv[i], &_obj)) {
+		}else{
+			vp = argv[i];
+		}
+		if (JSVAL_IS_OBJECT(vp)) {
+
+			if (!JS_ValueToObject(cx, vp, &_obj)) {
 				printf( "JS_ValueToObject failed in MFNodeConstr.\n");
 				return JS_FALSE;
 			}
 
-			CHECK_CLASS(cx,_obj,argv,__FUNCTION__,SFNodeClass)
+			CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFNodeClass)
 			if(SM_method()==2){
 				AnyNative *any2;
 				if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
@@ -655,7 +769,7 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 				}
 				// else for now we'll leave zeros
 			}else{
-				if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 					printf( "JS_DefineElement failed for arg %d in MFNodeConstr.\n", i);
 					return JS_FALSE;
 				}
@@ -771,11 +885,32 @@ MFTimeConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	jsdouble _d;
 	unsigned int i;
 	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -806,7 +941,14 @@ JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 		printf("MFTimeConstr: obj = %p, %u args\n", obj, argc);
 	#endif
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToNumber(cx, argv[i], &_d)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToNumber(cx, vp, &_d)) {
 			printf(
 					"JS_ValueToNumber failed in MFTimeConstr.\n");
 			return JS_FALSE;
@@ -815,7 +957,7 @@ JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 			anyv->mftime.p[i] = _d;
 			anyv->mftime.n = i+1;
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %u in MFTimeConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -909,11 +1051,32 @@ MFVec2fConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	JSObject *_obj;
 	unsigned int i;
 	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -945,7 +1108,14 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	#endif
 
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToObject(cx, argv[i], &_obj)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
 			printf( "JS_ValueToObject failed in MFVec2fConstr.\n");
 			return JS_FALSE;
 		}
@@ -963,7 +1133,7 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			}
 			// else for now we'll leave zeros
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %d in MFVec2fConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -1052,11 +1222,35 @@ MFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	JSObject *_obj;
 	unsigned int i;
 	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
+
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -1086,12 +1280,20 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		printf("MFVec3fConstr: obj = %p, %u args\n", obj, argc);
 	#endif	
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToObject(cx, argv[i], &_obj)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
 			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
 			return JS_FALSE;
 		}
 
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFVec3fClass)
+
 		if(SM_method()==2){
 			AnyNative *any2;
 			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
@@ -1105,7 +1307,7 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			// else for now we'll leave zeros
 		}else{
 
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %d in MFVec3fConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -1807,10 +2009,31 @@ VrmlMatrixConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	jsdouble _d;
 	unsigned int i;
 
 	ADD_ROOT(cx,obj)
+
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
 
 	if ((argc != 16) && (argc != 0)) {
 		printf ("VrmlMatrixConstr - require either 16 or no values\n");
@@ -1821,13 +2044,20 @@ JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 
 	if (argc == 16) {
 		for (i = 0; i < 16; i++) {
-			if (!JS_ValueToNumber(cx, argv[i], &_d)) {
+			jsval vp;
+			if(isArray){
+				JS_GetElement(cx, _arrayObj, i, &vp);
+
+			}else{
+				vp = argv[i];
+			}
+			if (!JS_ValueToNumber(cx, vp, &_d)) {
 				printf(
 					"JS_ValueToNumber failed in VrmlMatrixConstr.\n");
 				return JS_FALSE;
 			}
 
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %u in VrmlMatrixConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -1992,11 +2222,33 @@ MFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 	JSObject *_obj;
 	unsigned int i;
 	union anyVrml *anyv;
 
 	ADD_ROOT(cx,obj)
+
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -2027,7 +2279,14 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 		printf("MFRotationConstr: obj = %p, %u args\n", obj, argc);
 	#endif
 	for (i = 0; i < argc; i++) {
-		if (!JS_ValueToObject(cx, argv[i], &_obj)) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
 			printf(
 					"JS_ValueToObject failed in MFRotationConstr.\n");
 			return JS_FALSE;
@@ -2044,7 +2303,7 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 			}
 			// else for now we'll leave zeros
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %d in MFRotationConstr.\n", i);
 				return JS_FALSE;
 			}
@@ -2282,6 +2541,8 @@ MFStringConstr(JSContext *cx, uintN argc, jsval *vp) {
 }
 JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #endif
+	JSObject *_arrayObj;
+	int isArray;
 
 	unsigned int i;
 	union anyVrml *anyv;
@@ -2292,6 +2553,26 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 	#endif
 
 	ADD_ROOT(cx,obj)
+
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
 	if(SM_method() == 2){
 		AnyNative *any;
 		int newsize;
@@ -2320,6 +2601,13 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 	}
 
 	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
 		#ifdef JSVRMLCLASSESVERBOSE
 	  	printf ("argv %d is a ...",i);
 
@@ -2350,11 +2638,11 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 
 		if(SM_method()==2){
 			char *cstring = NULL;
-			if (JSVAL_IS_STRING(argv[i])==TRUE) {
+			if (JSVAL_IS_STRING(vp)==TRUE) {
 				// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_EncodeString
 				// cstring: we own it
 				JSString *_str;
-				_str = JS_ValueToString(cx, argv[i]);
+				_str = JS_ValueToString(cx, vp);
 #if JS_VERSION < 185
 				cstring = JS_GetStringBytes(_str);
 #else
@@ -2376,7 +2664,7 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 			}
 			// else for now we'll leave zeros
 		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
 				printf( "JS_DefineElement failed for arg %d in MFStringConstr.\n", i);
 				return JS_FALSE;
 			}
