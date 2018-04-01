@@ -564,7 +564,78 @@ void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
 		break;
 	}
 }
-
+int node_pdus_changed_by_scene(struct X3D_Node *node){
+	int changed = FALSE;
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
+			changed = pnode->_pduchange_transform;
+			changed |= pnode->_pduchange_articulationparameters;
+			changed |= pnode->_pduchange_collision;
+			changed |= pnode->_pduchange_fire;
+			changed |= pnode->_pduchange_detonation;
+			changed |= pnode->_pduchange_deadreckoning;
+			}
+			break;
+		case NODE_TransmitterPdu:
+			{
+			struct X3D_TransmitterPdu *pnode = (struct X3D_TransmitterPdu *)node;
+			changed = pnode->_pduchange_transmitter;
+			}
+			break;
+		case NODE_SignalPdu:
+			{
+			struct X3D_SignalPdu *pnode = (struct X3D_SignalPdu *)node;
+			changed = pnode->_pduchange_signal;
+			}
+			break;
+		case NODE_ReceiverPdu:
+			{
+			struct X3D_ReceiverPdu *pnode = (struct X3D_ReceiverPdu *)node;
+			changed = pnode->_pduchange_receiver;
+			}
+			break;
+		default:
+			break;
+	}
+	return changed;
+}
+void reset_node_pdus_changed_by_scene(struct X3D_Node *node){
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
+			pnode->_pduchange_transform = FALSE;
+			pnode->_pduchange_articulationparameters = FALSE;
+			pnode->_pduchange_collision = FALSE;
+			pnode->_pduchange_fire = FALSE;
+			pnode->_pduchange_detonation = FALSE;
+			pnode->_pduchange_deadreckoning = FALSE;
+			}
+			break;
+		case NODE_TransmitterPdu:
+			{
+			struct X3D_TransmitterPdu *pnode = (struct X3D_TransmitterPdu *)node;
+			pnode->_pduchange_transmitter = FALSE;
+			}
+			break;
+		case NODE_SignalPdu:
+			{
+			struct X3D_SignalPdu *pnode = (struct X3D_SignalPdu *)node;
+			pnode->_pduchange_signal = FALSE;
+			}
+			break;
+		case NODE_ReceiverPdu:
+			{
+			struct X3D_ReceiverPdu *pnode = (struct X3D_ReceiverPdu *)node;
+			pnode->_pduchange_receiver = FALSE;
+			}
+			break;
+		default:
+			break;
+	}
+}
 
 void dis_sendloop(){
 	double thistime;
@@ -586,6 +657,7 @@ void dis_sendloop(){
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
 				if(thistime - lasttime < writeInterval) continue; //skip for a while more
+				if(!node_pdus_changed_by_scene(node)) continue; //no pdus changed since last send, DIS ettiquette says don't send if no change
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				dis_set_node_lasttime(node,lasttime);
@@ -608,6 +680,7 @@ void dis_sendloop(){
 					printf("<<<< sendloop\n");
 				}
 				nbytes += nb;
+				reset_node_pdus_changed_by_scene(node);
 			}
 			if(nbytes) socksendto(dsock,buf2,nbytes);
 		}
@@ -1248,6 +1321,9 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 // 2. in dis_sendloop only send pdus that changed
 void shallow_copy_node(struct X3D_Node *copy, struct X3D_Node *original )
 {
+	//we just want to copy the public fields, not our private _ fields
+	// which include things like _pduchange_espdutransform etc
+	// same for later when we compare, just the public fields
 	const int *offset;
 	unsigned char *src, *dest;
 	src = (unsigned char *)original;
@@ -1255,10 +1331,14 @@ void shallow_copy_node(struct X3D_Node *copy, struct X3D_Node *original )
 
 	offset = NODE_OFFSETS[original->_nodeType];
 	while(offset[0] > -1){
-		union anyVrml *anysrc, *anydest;
-		anysrc = (union anyVrml*)(src + offset[1]);
-		anydest = (union anyVrml*)(dest + offset[1]);
-		shallow_copy_field(offset[2],anysrc,anydest);
+		if(offset[4] > 0){
+			//offset[4] is the specs attribute, and if its a private field ie _name then it should have 0
+			// we just want the public fields here
+			union anyVrml *anysrc, *anydest;
+			anysrc = (union anyVrml*)(src + offset[1]);
+			anydest = (union anyVrml*)(dest + offset[1]);
+			shallow_copy_field(offset[2],anysrc,anydest);
+		}
 		offset += 6;
 	};
 }
@@ -1352,28 +1432,28 @@ int shallow_compare_node_fields(struct X3D_Node *node, struct X3D_Node *old, con
 	return has_changed ? TRUE : FALSE;
 }
 
-//here are some per-pdu lists of fields, useful for detecting per-pdu field changes
+//here are some per-pdu lists of public fields, useful for detecting per-pdu field changes
 
 const int FIELDS_networksensor [] = {
-FIELDNAMES_enabled,
-FIELDNAMES_isActive,
-//FIELDNAMES_timestamp,
-FIELDNAMES_address,
-FIELDNAMES_port,
-FIELDNAMES_multicastRelayHost,
-FIELDNAMES_multicastRelayPort,
-FIELDNAMES_networkMode,
-FIELDNAMES_isNetworkReader,
-FIELDNAMES_isNetworkWriter,
-FIELDNAMES_isStandAlone,
-FIELDNAMES_readInterval,
-FIELDNAMES_writeInterval,
-FIELDNAMES_rtpHeaderExpected,
-FIELDNAMES_isRtpHeaderHeard,
-//FIELDNAMES__registered,
-//FIELDNAMES__dsock,
-//FIELDNAMES__lasttime,
--1,
+	FIELDNAMES_enabled,
+	FIELDNAMES_isActive,
+	FIELDNAMES_timestamp,
+	FIELDNAMES_address,
+	FIELDNAMES_port,
+	FIELDNAMES_multicastRelayHost,
+	FIELDNAMES_multicastRelayPort,
+	FIELDNAMES_networkMode,
+	FIELDNAMES_isNetworkReader,
+	FIELDNAMES_isNetworkWriter,
+	FIELDNAMES_isStandAlone,
+	FIELDNAMES_readInterval,
+	FIELDNAMES_writeInterval,
+	FIELDNAMES_rtpHeaderExpected,
+	FIELDNAMES_isRtpHeaderHeard,
+	//FIELDNAMES__registered, //not the private fields
+	//FIELDNAMES__dsock,
+	//FIELDNAMES__lasttime,
+	-1,
 };
 
 const int FIELDS_entity [] = {
@@ -1397,6 +1477,18 @@ const int FIELDS_info [] = {
 	FIELDNAMES_entityKind,
 	FIELDNAMES_entitySpecific,
 	FIELDNAMES_entitySubCategory,
+	-1,
+};
+
+const int FIELDS_transformpart [] = {
+	FIELDNAMES_center,
+	//FIELDNAMES_children,
+	FIELDNAMES_rotation,
+	FIELDNAMES_scale,
+	FIELDNAMES_scaleOrientation,
+	FIELDNAMES_translation,
+	//FIELDNAMES_bboxCenter,
+	//FIELDNAMES_bboxSize,
 	-1,
 };
 
@@ -1487,25 +1579,82 @@ const int FIELDS_rate [] = {
 	FIELDNAMES_warhead,
 	-1,
 };
+
+const int FIELDS_receiver [] = {	
+	FIELDNAMES_radioID,
+	FIELDNAMES_whichGeometry,
+	FIELDNAMES_receiverState,
+	FIELDNAMES_receivedPower,
+	FIELDNAMES_transmitterEntityID,
+	FIELDNAMES_transmitterApplicationID,
+	FIELDNAMES_transmitterSiteID,
+	FIELDNAMES_transmitterRadioID,
+	-1,
+};
+
+const int FIELDS_signal [] = {	
+	FIELDNAMES_radioID,
+	FIELDNAMES_whichGeometry,
+	FIELDNAMES_data,
+	FIELDNAMES_dataLength,
+	FIELDNAMES_encodingScheme,
+	FIELDNAMES_sampleRate,
+	FIELDNAMES_samples,
+	FIELDNAMES_tdlType,
+	-1,
+};
+
+const int FIELDS_transmitter [] = {	
+	FIELDNAMES_radioID,
+	FIELDNAMES_whichGeometry,
+	FIELDNAMES_radioEntityTypeCategory,
+	FIELDNAMES_radioEntityTypeCountry,
+	FIELDNAMES_radioEntityTypeDomain,
+	FIELDNAMES_radioEntityTypeKind,
+	FIELDNAMES_radioEntityTypeNomenclature,
+	FIELDNAMES_radioEntityTypeNomenclatureVersion,
+	FIELDNAMES_antennaLocation,
+	FIELDNAMES_antennaPatternLength,
+	FIELDNAMES_antennaPatternType,
+	FIELDNAMES_relativeAntennaLocation,
+	FIELDNAMES_inputSource,
+	FIELDNAMES_transmitState,
+	FIELDNAMES_power,
+	FIELDNAMES_frequency,
+	FIELDNAMES_transmitFrequencyBandwidth,
+	FIELDNAMES_lengthOfModulationParameters,
+	FIELDNAMES_modulationTypeDetail,
+	FIELDNAMES_modulationTypeMajor,
+	FIELDNAMES_modulationTypeMajor,
+	FIELDNAMES_modulationTypeSpreadSpectrum,
+	FIELDNAMES_modulationTypeSystem,
+	FIELDNAMES_cryptoSystem,
+	FIELDNAMES_cryptoKeyID,
+	-1,
+};
+
+
 void compile_DIS_common(struct X3D_EspduTransform *node){
 	if(node->_oldState == NULL){
 		//change detection 
 		//later we'll copy the entire node after we detect any changed fields
 		struct X3D_Node *old;
 		old = createNewX3DNode0(node->_nodeType);
-		shallow_copy_node(old,X3D_NODE(node));
+		//shallow_copy_node(old,X3D_NODE(node));
 		node->_oldState = old; //I think one underscore means dispose
 	}
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		//IDEA: save duplicate of nodetype in _oldnode field
-		int changed;
-		changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
-				node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
-		if(changed){
-			dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
-			node->_registered = FALSE;
-			node->_dsock = NULL;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_networksensor)){
+			int changed;
+			changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
+					node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
+			if(changed){
+				dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
+				node->_registered = FALSE;
+				node->_dsock = NULL;
+			}
 		}
 	}
 	if(!node->_registered){
@@ -1526,18 +1675,61 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 	//    children
 	// like we had wrapped espduTransform with a GeoLocation node
 	if(veclengthd(node->geoCoords.c) != 0.0){
-		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-		update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)){
+			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+			update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+		}
 	}
 }
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
+		node->_pduchange_transmitter = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_SignalPdu0(struct X3D_SignalPdu *node){
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_signal)){
+		node->_pduchange_signal = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_receiver)){
+		node->_pduchange_receiver = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
-	node->articulationParameterCount = node->articulationParameterArray.n;
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_articulation)){
+		node->_pduchange_articulationparameters = TRUE;
+		node->articulationParameterCount = node->articulationParameterArray.n;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
+		node->_pduchange_collision = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_events)){
+		node->_pduchange_collision = TRUE;
+		node->_pduchange_fire = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_fire)){
+		node->_pduchange_fire = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_detonation)){
+		node->_pduchange_detonation = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_munition)){
+		node->_pduchange_fire = TRUE;
+		node->_pduchange_detonation = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_rate)){
+		node->_pduchange_fire = TRUE;
+		node->_pduchange_detonation = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
 	if(!renderstate()->render_vp) {
@@ -1564,28 +1756,32 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
-	INITIALIZE_EXTENT;
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transformpart)){
+		node->_pduchange_transform = TRUE;
 
-	/* printf ("changed Transform for node %u\n",node); */
-	node->__do_center = verify_translate ((GLfloat *)node->center.c);
-	node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
-	node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
-	node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
-	node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
+		INITIALIZE_EXTENT;
 
-	node->__do_anything = (node->__do_center ||
-			node->__do_trans ||
-			node->__do_scale ||
-			node->__do_rotation ||
-			node->__do_scaleO);
+		/* printf ("changed Transform for node %u\n",node); */
+		node->__do_center = verify_translate ((GLfloat *)node->center.c);
+		node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
+		node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
+		node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
+		node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
 
-	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
-	MARK_NODE_COMPILED
+		node->__do_anything = (node->__do_center ||
+				node->__do_trans ||
+				node->__do_scale ||
+				node->__do_rotation ||
+				node->__do_scaleO);
+
+		REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+		MARK_NODE_COMPILED
+	}
 }
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
-	compile_DIS_common(node);
-	compile_EspduTransform0(node);
+	compile_DIS_common(node);  // must be first in case need to initialize _oldState
 	compile_EspduTransform1(node);
+	compile_EspduTransform0(node); //must be last to re-copy node to oldstate
 	MARK_NODE_COMPILED
 }
 

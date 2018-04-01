@@ -2547,6 +2547,7 @@ our %Nodes = (
 		__do_scale => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		__do_anything => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		_sortedChildren => ["MFNode", [], "inputOutput", 0,0],#ff
+		_pduchange_transform => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		# << end same order as Transform
 
 	], "X3DGroupingNode"),

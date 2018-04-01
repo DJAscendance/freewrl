@@ -317,6 +317,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_networksensor",
 	"_pduchange_receiver",
 	"_pduchange_signal",
+	"_pduchange_transform",
 	"_pduchange_transmitter",
 	"_phaseFunction",
 	"_pointsVBO",
@@ -4506,6 +4507,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES___do_scale, (int) offsetof (struct X3D_EspduTransform, __do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_anything, (int) offsetof (struct X3D_EspduTransform, __do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_EspduTransform, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__pduchange_transform, (int) offsetof (struct X3D_EspduTransform, _pduchange_transform),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ExplosionEmitter[] = {
@@ -9505,6 +9507,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scale = FALSE;
 			tmp2->__do_anything = FALSE;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
+			tmp2->_pduchange_transform = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
