@@ -314,6 +314,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_deadreckoning",
 	"_pduchange_detonation",
 	"_pduchange_fire",
+	"_pduchange_networksensor",
 	"_pduchange_receiver",
 	"_pduchange_signal",
 	"_pduchange_transmitter",
@@ -4413,6 +4414,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_EspduTransform, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_EspduTransform, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_EspduTransform, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_EspduTransform, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_EspduTransform, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_EspduTransform, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_EspduTransform, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6516,6 +6518,7 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_ReceiverPdu, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_ReceiverPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_ReceiverPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_ReceiverPdu, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_ReceiverPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_ReceiverPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_ReceiverPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6753,6 +6756,7 @@ const int OFFSETS_SignalPdu[] = {
 	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_SignalPdu, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_SignalPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_SignalPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_SignalPdu, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_SignalPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_SignalPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_SignalPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7248,6 +7252,7 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_TransmitterPdu, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_TransmitterPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_TransmitterPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_TransmitterPdu, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_TransmitterPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_TransmitterPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_TransmitterPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9408,6 +9413,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_registered = FALSE;
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
+			tmp2->_pduchange_networksensor = 0;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
@@ -12078,6 +12084,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_registered = FALSE;
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
+			tmp2->_pduchange_networksensor = 0;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
@@ -12360,6 +12367,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_registered = FALSE;
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
+			tmp2->_pduchange_networksensor = 0;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
@@ -12990,6 +12998,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_registered = FALSE;
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
+			tmp2->_pduchange_networksensor = 0;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;

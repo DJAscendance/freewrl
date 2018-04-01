@@ -2426,6 +2426,7 @@ our %Nodes = (
 		_registered => ["SFBool","FALSE","initializeOnly",0,"UNCA_NONE"],#ff
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2571,6 +2572,7 @@ our %Nodes = (
 		_registered => ["SFBool","FALSE","initializeOnly",0,"UNCA_NONE"],#ff
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2618,6 +2620,7 @@ our %Nodes = (
 		_registered => ["SFBool","FALSE","initializeOnly",0,"UNCA_NONE"],#ff
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2665,6 +2668,8 @@ our %Nodes = (
 		_registered => ["SFBool","FALSE","initializeOnly",0,"UNCA_NONE"],#ff
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		
 
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

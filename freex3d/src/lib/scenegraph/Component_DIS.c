@@ -1221,8 +1221,281 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 
 	return FALSE;
 }
+// freewrl problem: _changed flag is per-node
+// x but its bad DIS ettiquette to resend pdus that haven't changed
+// to detect per-pdu changes:
+// 1. during node_compile
+// 1.a do once: create node->_oldstate and register for disposal, copy node to _oldstate 
+// 1.b compare _oldState and node
+//		- compare fields per-pdu, and flag per-pdu
+//  common flags:
+//  _pduchange_networksensor
+//	per-pdu flags:
+//	espdu
+//	_pduchange_deadreckoning 
+//	_pduchange_articulationparameters
+//	_pduchange_collision
+//	_pduchange_fire
+//	_pduchange_detonation
+//	recieverpdu
+//	_pduchange_receiver
+//	signalpdu
+//	_pduchange_signal
+//	transmitterpdu
+//	_pduchange_transmitter
+// 1.c copy node fields to _oldState
+// 1.d mark node compiled
+// 2. in dis_sendloop only send pdus that changed
+void shallow_copy_node(struct X3D_Node *copy, struct X3D_Node *original )
+{
+	const int *offset;
+	unsigned char *src, *dest;
+	src = (unsigned char *)original;
+	dest = (unsigned char *)copy;
 
+	offset = NODE_OFFSETS[original->_nodeType];
+	while(offset[0] > -1){
+		union anyVrml *anysrc, *anydest;
+		anysrc = (union anyVrml*)(src + offset[1]);
+		anydest = (union anyVrml*)(dest + offset[1]);
+		shallow_copy_field(offset[2],anysrc,anydest);
+		offset += 6;
+	};
+}
+int shallow_compare_field(int typeIndex, union anyVrml* source, union anyVrml* dest)
+{
+	int i, isize, has_changed;
+	int sftype, isMF;
+	struct Multi_Node *mfs,*mfd;
+	has_changed = FALSE;
+
+	isMF = typeIndex % 2;
+	sftype = typeIndex - isMF;
+	//from EAI_C_CommonFunctions.c
+	//isize = returnElementLength(sftype) * returnElementRowSize(sftype);
+	isize = sizeofSForMF(sftype);
+	if(isMF)
+	{
+		int nele;
+		char *ps, *pd;
+		mfs = (struct Multi_Node*)source;
+		mfd = (struct Multi_Node*)dest;
+		//self assignment is no-op
+		if(mfs->p != mfd->p){
+			has_changed = TRUE;
+		}else{
+			if(mfs->n != mfd->n){
+				has_changed = TRUE;
+			}else{
+				ps = (char *)mfs->p;
+				pd = (char *)mfd->p;
+				for(i=0;i<mfs->n;i++)
+				{
+					has_changed = shallow_compare_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
+					ps += isize;
+					pd += isize;
+				}
+			}
+		}
+	}else{ 
+		//isSF
+		switch(typeIndex)
+		{
+			case FIELDTYPE_SFString:
+				{
+					//go deep, same as copy_field
+					struct Uni_String **ss, **sd;
+					if(source != dest){
+						has_changed = TRUE;
+					}else{
+						ss = (struct Uni_String **)source;
+						sd = (struct Uni_String **)dest;
+						if(*ss && *sd){
+							has_changed = memcmp(*sd,*ss,sizeof(struct Uni_String)) ? TRUE : FALSE;
+						}
+					}
+				}
+				break;
+			default:
+				//memcpy(dest,source,sizeof(union anyVrml));
+				has_changed = memcmp(dest,source,isize) ? TRUE : FALSE;
+				break;
+		}
+	}
+	return has_changed;
+} //return copy_field
+
+int shallow_compare_node_fields(struct X3D_Node *node, struct X3D_Node *old, const int *PFIELDS){
+	const int *fname, *offset;
+	unsigned char *src, *dest;
+	int k, has_changed;
+
+	src = (unsigned char *)old;
+	dest = (unsigned char *)node;
+	fname = PFIELDS;
+	k = 0;
+	has_changed = 0;
+	while(fname[k] > -1){
+		offset = NODE_OFFSETS[node->_nodeType];
+		while(offset[0] > -1){
+			if(offset[0] == fname[k]){
+				union anyVrml *anysrc, *anydest;
+				anysrc = (union anyVrml*)(src + offset[1]);
+				anydest = (union anyVrml*)(dest + offset[1]);
+				has_changed += shallow_compare_field(offset[2],anysrc,anydest);
+				break;
+			}
+			offset += 6;
+		};
+		k++;
+	};
+	return has_changed ? TRUE : FALSE;
+}
+
+//here are some per-pdu lists of fields, useful for detecting per-pdu field changes
+
+const int FIELDS_networksensor [] = {
+FIELDNAMES_enabled,
+FIELDNAMES_isActive,
+//FIELDNAMES_timestamp,
+FIELDNAMES_address,
+FIELDNAMES_port,
+FIELDNAMES_multicastRelayHost,
+FIELDNAMES_multicastRelayPort,
+FIELDNAMES_networkMode,
+FIELDNAMES_isNetworkReader,
+FIELDNAMES_isNetworkWriter,
+FIELDNAMES_isStandAlone,
+FIELDNAMES_readInterval,
+FIELDNAMES_writeInterval,
+FIELDNAMES_rtpHeaderExpected,
+FIELDNAMES_isRtpHeaderHeard,
+//FIELDNAMES__registered,
+//FIELDNAMES__dsock,
+//FIELDNAMES__lasttime,
+-1,
+};
+
+const int FIELDS_entity [] = {
+	FIELDNAMES_entityID,
+	FIELDNAMES_applicationID,
+	FIELDNAMES_siteID, 
+	-1,
+};
+
+const int FIELDS_geo [] = {	
+	FIELDNAMES_geoSystem, 
+	FIELDNAMES_geoCoords,
+	-1,
+};
+
+const int FIELDS_info [] = {	
+	FIELDNAMES_entityCategory,
+	FIELDNAMES_entityCountry,
+	FIELDNAMES_entityDomain,
+	FIELDNAMES_entityExtra,
+	FIELDNAMES_entityKind,
+	FIELDNAMES_entitySpecific,
+	FIELDNAMES_entitySubCategory,
+	-1,
+};
+
+const int FIELDS_force [] = {
+	FIELDNAMES_forceID,
+	FIELDNAMES_marking,
+	-1,
+};
+
+const int FIELDS_deadreckoning [] = {	
+	FIELDNAMES_deadReckoning,
+	FIELDNAMES_linearVelocity,
+	FIELDNAMES_linearAcceleration,
+	-1,
+};
+
+const int FIELDS_articulation [] = {	
+	FIELDNAMES_set_articulationParameterValue0,
+	FIELDNAMES_set_articulationParameterValue1,
+	FIELDNAMES_set_articulationParameterValue2,
+	FIELDNAMES_set_articulationParameterValue3,
+	FIELDNAMES_set_articulationParameterValue4,
+	FIELDNAMES_set_articulationParameterValue5,
+	FIELDNAMES_set_articulationParameterValue6,
+	FIELDNAMES_set_articulationParameterValue7,
+	FIELDNAMES_articulationParameterCount,
+	FIELDNAMES_articulationParameterDesignatorArray,
+	FIELDNAMES_articulationParameterChangeIndicatorArr,
+	FIELDNAMES_articulationParameterIdPartAttachedToAr,
+	FIELDNAMES_articulationParameterTypeArray,
+	FIELDNAMES_articulationParameterArray,
+	FIELDNAMES_articulationParameterValue0_changed,
+	FIELDNAMES_articulationParameterValue1_changed,
+	FIELDNAMES_articulationParameterValue2_changed,
+	FIELDNAMES_articulationParameterValue3_changed,
+	FIELDNAMES_articulationParameterValue4_changed,
+	FIELDNAMES_articulationParameterValue5_changed,
+	FIELDNAMES_articulationParameterValue6_changed,
+	FIELDNAMES_articulationParameterValue7_changed,
+	-1,
+};
+
+const int FIELDS_collision [] = {	
+	FIELDNAMES_collisionType,
+	FIELDNAMES_collideTime,
+	FIELDNAMES_isCollided,
+	-1,
+};
+
+const int FIELDS_events [] = {	
+	FIELDNAMES_eventEntityID,
+	FIELDNAMES_eventApplicationID,
+	FIELDNAMES_eventSiteID,
+	FIELDNAMES_eventNumber,
+	-1,
+};
+
+const int FIELDS_fire [] = {	
+	FIELDNAMES_fired1,
+	FIELDNAMES_fired2,
+	FIELDNAMES_fireMissionIndex,
+	FIELDNAMES_firingRange,
+	FIELDNAMES_firedTime,
+	-1,
+};
+
+const int FIELDS_detonation [] = {	
+	FIELDNAMES_detonationLocation,
+	FIELDNAMES_detonationRelativeLocation,
+	FIELDNAMES_detonationResult,
+	FIELDNAMES_detonateTime,
+	FIELDNAMES_isDetonated,
+	-1,
+};
+
+const int FIELDS_munition [] = {	
+	FIELDNAMES_munitionEntityID,
+	FIELDNAMES_munitionApplicationID,
+	FIELDNAMES_munitionSiteID,
+	FIELDNAMES_munitionStartPoint,
+	FIELDNAMES_munitionEndPoint,
+	FIELDNAMES_munitionQuantity,
+	-1,
+};
+const int FIELDS_rate [] = {	
+	FIELDNAMES_firingRate,
+	FIELDNAMES_fuse,
+	FIELDNAMES_warhead,
+	-1,
+};
 void compile_DIS_common(struct X3D_EspduTransform *node){
+	if(node->__oldState == NULL){
+		//change detection 
+		//later we'll copy the entire node after we detect any changed fields
+		struct X3D_Node *old;
+		old = createNewX3DNode0(node->_nodeType);
+		shallow_copy_node(old,X3D_NODE(node));
+		node->__oldState = old;
+	}
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		//IDEA: save duplicate of nodetype in _oldnode field
