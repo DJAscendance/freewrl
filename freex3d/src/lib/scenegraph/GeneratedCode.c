@@ -157,7 +157,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__oldMFString",
 	"__oldSFString",
 	"__oldSize",
-	"__oldState",
 	"__old_anchorPoint",
 	"__old_angularVelocity",
 	"__old_axis",
@@ -290,6 +289,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_npoints",
 	"_nseg",
 	"_offsetUnits",
+	"_oldState",
 	"_oldhitNormal",
 	"_oldhitPoint",
 	"_oldhitTexCoord",
@@ -4421,7 +4421,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_EspduTransform, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_EspduTransform, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_EspduTransform, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___oldState, (int) offsetof (struct X3D_EspduTransform, __oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_EspduTransform, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityCategory, (int) offsetof (struct X3D_EspduTransform, entityCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entityCountry, (int) offsetof (struct X3D_EspduTransform, entityCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entityDomain, (int) offsetof (struct X3D_EspduTransform, entityDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6525,7 +6525,7 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_ReceiverPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_ReceiverPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_ReceiverPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___oldState, (int) offsetof (struct X3D_ReceiverPdu, __oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_ReceiverPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_ReceiverPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_ReceiverPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_receiverState, (int) offsetof (struct X3D_ReceiverPdu, receiverState),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6763,7 +6763,7 @@ const int OFFSETS_SignalPdu[] = {
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_SignalPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_SignalPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_SignalPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___oldState, (int) offsetof (struct X3D_SignalPdu, __oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_SignalPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_SignalPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_SignalPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_data, (int) offsetof (struct X3D_SignalPdu, data),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7259,7 +7259,7 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_TransmitterPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_TransmitterPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_TransmitterPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___oldState, (int) offsetof (struct X3D_TransmitterPdu, __oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_TransmitterPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_TransmitterPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_TransmitterPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeCategory, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9420,7 +9420,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->__oldState = NULL;
+			tmp2->_oldState = NULL;
 			tmp2->entityCategory = 0;
 			tmp2->entityCountry = 0;
 			tmp2->entityDomain = 0;
@@ -12091,7 +12091,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->__oldState = NULL;
+			tmp2->_oldState = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
 			tmp2->receiverState = 0;
@@ -12374,7 +12374,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->__oldState = NULL;
+			tmp2->_oldState = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
 			tmp2->data.n=0; tmp2->data.p=0;
@@ -13005,7 +13005,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->__oldState = NULL;
+			tmp2->_oldState = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
 			tmp2->radioEntityTypeCategory = 0;

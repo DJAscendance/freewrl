@@ -1488,13 +1488,13 @@ const int FIELDS_rate [] = {
 	-1,
 };
 void compile_DIS_common(struct X3D_EspduTransform *node){
-	if(node->__oldState == NULL){
+	if(node->_oldState == NULL){
 		//change detection 
 		//later we'll copy the entire node after we detect any changed fields
 		struct X3D_Node *old;
 		old = createNewX3DNode0(node->_nodeType);
 		shallow_copy_node(old,X3D_NODE(node));
-		node->__oldState = old;
+		node->_oldState = old; //I think one underscore means dispose
 	}
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime

@@ -2439,7 +2439,7 @@ our %Nodes = (
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
 		# Field Change Detection
-		__oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
 		# Info
 		entityCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2585,7 +2585,7 @@ our %Nodes = (
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 		# Field Change Detection
-		__oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 		# DIS Receiver
 		radioID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2633,7 +2633,7 @@ our %Nodes = (
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 		# Field Change Detection
-		__oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 		# DIS SignalPdu
 		radioID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2682,7 +2682,7 @@ our %Nodes = (
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
 		# Field Change Detection
-		__oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 
 		# DIS Transmitter
