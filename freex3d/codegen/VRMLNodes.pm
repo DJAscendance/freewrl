@@ -2457,6 +2457,7 @@ our %Nodes = (
 		deadReckoning => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linearVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		linearAcceleration => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ACCEL"],#ff
+		_pduchange_deadreckoning => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	
 		# DIS EntityState > articulationParameters
 		set_articulationParameterValue0 => ["SFFloat", 0.0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2481,11 +2482,13 @@ our %Nodes = (
 		articulationParameterValue5_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		articulationParameterValue6_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		articulationParameterValue7_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_articulationparameters => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# DIS collision
 		collisionType => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		collideTime => ["SFTime", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isCollided => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_collision => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		
 		# DIS shared fire/collision
 		eventEntityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2499,6 +2502,8 @@ our %Nodes = (
 		fireMissionIndex => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		firingRange => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		firedTime => ["SFTime", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_fire => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		
 
 		# DIS detonation
 		detonationLocation => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
@@ -2506,6 +2511,7 @@ our %Nodes = (
 		detonationResult => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		detonateTime => ["SFTime", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isDetonated => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_detonation => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# DIS shared fire/detonation
 		munitionEntityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2588,6 +2594,8 @@ our %Nodes = (
 		transmitterApplicationID => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		transmitterSiteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		transmitterRadioID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_receiver => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		
 	], "X3DChildNode"),
 
 	"SignalPdu" => new VRML::NodeType("SignalPdu", [
@@ -2633,6 +2641,7 @@ our %Nodes = (
 		sampleRate => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		samples => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		tdlType => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_signal => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		
 	], "X3DChildNode"),
 
@@ -2699,6 +2708,7 @@ our %Nodes = (
 
 		cryptoSystem => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		cryptoKeyID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_transmitter => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		
 	], "X3DChildNode"),
 

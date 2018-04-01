@@ -309,6 +309,14 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_parentResource",
 	"_particles",
 	"_patch",
+	"_pduchange_articulationparameters",
+	"_pduchange_collision",
+	"_pduchange_deadreckoning",
+	"_pduchange_detonation",
+	"_pduchange_fire",
+	"_pduchange_receiver",
+	"_pduchange_signal",
+	"_pduchange_transmitter",
 	"_phaseFunction",
 	"_pointsVBO",
 	"_portions",
@@ -4424,6 +4432,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_deadReckoning, (int) offsetof (struct X3D_EspduTransform, deadReckoning),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_EspduTransform, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_linearAcceleration, (int) offsetof (struct X3D_EspduTransform, linearAcceleration),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ACCEL,
+	(int) FIELDNAMES__pduchange_deadreckoning, (int) offsetof (struct X3D_EspduTransform, _pduchange_deadreckoning),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -4446,9 +4455,11 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_articulationParameterValue5_changed, (int) offsetof (struct X3D_EspduTransform, articulationParameterValue5_changed),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_articulationParameterValue6_changed, (int) offsetof (struct X3D_EspduTransform, articulationParameterValue6_changed),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_articulationParameterValue7_changed, (int) offsetof (struct X3D_EspduTransform, articulationParameterValue7_changed),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_articulationparameters, (int) offsetof (struct X3D_EspduTransform, _pduchange_articulationparameters),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_collisionType, (int) offsetof (struct X3D_EspduTransform, collisionType),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_collideTime, (int) offsetof (struct X3D_EspduTransform, collideTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isCollided, (int) offsetof (struct X3D_EspduTransform, isCollided),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_collision, (int) offsetof (struct X3D_EspduTransform, _pduchange_collision),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_eventEntityID, (int) offsetof (struct X3D_EspduTransform, eventEntityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_eventApplicationID, (int) offsetof (struct X3D_EspduTransform, eventApplicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_eventSiteID, (int) offsetof (struct X3D_EspduTransform, eventSiteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -4458,11 +4469,13 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_fireMissionIndex, (int) offsetof (struct X3D_EspduTransform, fireMissionIndex),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_firingRange, (int) offsetof (struct X3D_EspduTransform, firingRange),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_firedTime, (int) offsetof (struct X3D_EspduTransform, firedTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_fire, (int) offsetof (struct X3D_EspduTransform, _pduchange_fire),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_detonationLocation, (int) offsetof (struct X3D_EspduTransform, detonationLocation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_detonationRelativeLocation, (int) offsetof (struct X3D_EspduTransform, detonationRelativeLocation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_detonationResult, (int) offsetof (struct X3D_EspduTransform, detonationResult),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_detonateTime, (int) offsetof (struct X3D_EspduTransform, detonateTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isDetonated, (int) offsetof (struct X3D_EspduTransform, isDetonated),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_detonation, (int) offsetof (struct X3D_EspduTransform, _pduchange_detonation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_munitionEntityID, (int) offsetof (struct X3D_EspduTransform, munitionEntityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_munitionApplicationID, (int) offsetof (struct X3D_EspduTransform, munitionApplicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_munitionSiteID, (int) offsetof (struct X3D_EspduTransform, munitionSiteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6518,6 +6531,7 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES_transmitterApplicationID, (int) offsetof (struct X3D_ReceiverPdu, transmitterApplicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transmitterSiteID, (int) offsetof (struct X3D_ReceiverPdu, transmitterSiteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transmitterRadioID, (int) offsetof (struct X3D_ReceiverPdu, transmitterRadioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_receiver, (int) offsetof (struct X3D_ReceiverPdu, _pduchange_receiver),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Rectangle2D[] = {
@@ -6754,6 +6768,7 @@ const int OFFSETS_SignalPdu[] = {
 	(int) FIELDNAMES_sampleRate, (int) offsetof (struct X3D_SignalPdu, sampleRate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_samples, (int) offsetof (struct X3D_SignalPdu, samples),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_tdlType, (int) offsetof (struct X3D_SignalPdu, tdlType),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_signal, (int) offsetof (struct X3D_SignalPdu, _pduchange_signal),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_SilhouetteEnhancementVolumeStyle[] = {
@@ -7264,6 +7279,7 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES_modulationTypeSystem, (int) offsetof (struct X3D_TransmitterPdu, modulationTypeSystem),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_cryptoSystem, (int) offsetof (struct X3D_TransmitterPdu, cryptoSystem),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_cryptoKeyID, (int) offsetof (struct X3D_TransmitterPdu, cryptoKeyID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_transmitter, (int) offsetof (struct X3D_TransmitterPdu, _pduchange_transmitter),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TriangleFanSet[] = {
@@ -9411,6 +9427,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->deadReckoning = 0;
 			tmp2->linearVelocity.c[0] = 0.0f;tmp2->linearVelocity.c[1] = 0.0f;tmp2->linearVelocity.c[2] = 0.0f;
 			tmp2->linearAcceleration.c[0] = 0.0f;tmp2->linearAcceleration.c[1] = 0.0f;tmp2->linearAcceleration.c[2] = 0.0f;
+			tmp2->_pduchange_deadreckoning = 0;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
@@ -9433,9 +9450,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->articulationParameterValue5_changed = 0.0f;
 			tmp2->articulationParameterValue6_changed = 0.0f;
 			tmp2->articulationParameterValue7_changed = 0.0f;
+			tmp2->_pduchange_articulationparameters = 0;
 			tmp2->collisionType = 0;
 			tmp2->collideTime = 0;
 			tmp2->isCollided = FALSE;
+			tmp2->_pduchange_collision = 0;
 			tmp2->eventEntityID = 0;
 			tmp2->eventApplicationID = 1;
 			tmp2->eventSiteID = 0;
@@ -9445,11 +9464,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->fireMissionIndex = 0;
 			tmp2->firingRange = 0.0f;
 			tmp2->firedTime = 0;
+			tmp2->_pduchange_fire = 0;
 			tmp2->detonationLocation.c[0] = 0.0f;tmp2->detonationLocation.c[1] = 0.0f;tmp2->detonationLocation.c[2] = 0.0f;
 			tmp2->detonationRelativeLocation.c[0] = 0.0f;tmp2->detonationRelativeLocation.c[1] = 0.0f;tmp2->detonationRelativeLocation.c[2] = 0.0f;
 			tmp2->detonationResult = 0;
 			tmp2->detonateTime = 0;
 			tmp2->isDetonated = FALSE;
+			tmp2->_pduchange_detonation = 0;
 			tmp2->munitionEntityID = 0;
 			tmp2->munitionApplicationID = 1;
 			tmp2->munitionSiteID = 0;
@@ -12072,6 +12093,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transmitterApplicationID = 1;
 			tmp2->transmitterSiteID = 0;
 			tmp2->transmitterRadioID = 0;
+			tmp2->_pduchange_receiver = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -12353,6 +12375,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->sampleRate = 0;
 			tmp2->samples = 0;
 			tmp2->tdlType = 0;
+			tmp2->_pduchange_signal = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -12998,6 +13021,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->modulationTypeSystem = 0;
 			tmp2->cryptoSystem = 0;
 			tmp2->cryptoKeyID = 0;
+			tmp2->_pduchange_transmitter = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
