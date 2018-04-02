@@ -177,6 +177,8 @@ Major Issues:
 		? would that mean a lot of changes to perl code generator and parser code?
 		- might be helpful to harmonize all builtin, proto, script and shader nodes to have same field struct
 		x but will take a massive refactoring effort to do it
+		- and with DIS, you send/receive whole pdus, and maybe only one little thing changed, 
+			per-node-field flags wouldn't help because those flags aren't transmitted/received with pdu
 	b) pre/post value comparison ie _oldvalue
 		- lots of examples of this, but not on such big nodes
 	choice: b) SFNode node->_oldState copies entire node
@@ -1533,6 +1535,36 @@ int shallow_compare_node_fields(struct X3D_Node *node, struct X3D_Node *old, con
 		k++;
 	};
 	return has_changed ? TRUE : FALSE;
+}
+
+int mark_changed_node_fields(struct X3D_Node *node, struct X3D_Node *old, const int *PFIELDS){
+	const int *fname, *offset;
+	unsigned char *src, *dest;
+	int k, count;
+
+	src = (unsigned char *)old;
+	dest = (unsigned char *)node;
+	fname = PFIELDS;
+	k = 0;
+	count = 0;
+	while(fname[k] > -1){
+		offset = NODE_OFFSETS[node->_nodeType];
+		while(offset[0] > -1){
+			if(offset[0] == fname[k]){
+				union anyVrml *anysrc, *anydest;
+				anysrc = (union anyVrml*)(src + offset[1]);
+				anydest = (union anyVrml*)(dest + offset[1]);
+				if(shallow_compare_field(offset[2],anysrc,anydest)){
+					MARK_EVENT(node,offset[1]);
+					count++;
+				}
+				break;
+			}
+			offset += 6;
+		};
+		k++;
+	};
+	return count;
 }
 
 //here are some per-pdu lists of public fields, useful for detecting per-pdu field changes
