@@ -183,6 +183,16 @@ Major Issues:
 		- generic functions compare old new fields to detect changes
 		- but keep option a) in mind for future
 
+2. nodes have a lot of similar fields, resulting in duplicate ocde
+x freewrl has no structs for 'abstract interface'
+options:
+a) giant macros - used throughout freewrl for this reason
+b) careful ordering of fields so common fields are first, and nodes can be cast to a common type
+c) some kind of abstract interface added to code generation system
+d) change to OO language and use inheritance and polymorphism
+e) functions with switch-case on nodetype
+For now in DIS we're going to use b) for espduTransform and 3 radio nodes, and e)
+
 */
 
 
