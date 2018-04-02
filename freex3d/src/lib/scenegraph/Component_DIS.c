@@ -1541,7 +1541,7 @@ const int FIELDS_es_force [] = {
 
 const int FIELDS_es_transform [] = {
 	FIELDNAMES_center,
-	//FIELDNAMES_children,
+	FIELDNAMES_children,
 	FIELDNAMES_rotation,
 	FIELDNAMES_scale,
 	FIELDNAMES_scaleOrientation,
@@ -1820,6 +1820,7 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
+	//Q. why doesn't shallow compare work?
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
 		node->_pduchange_es_transform = TRUE;
 
