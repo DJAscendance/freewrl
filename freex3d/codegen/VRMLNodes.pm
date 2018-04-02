@@ -2449,16 +2449,18 @@ our %Nodes = (
 		entityKind => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		entitySpecific => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		entitySubCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_es_info => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# team / side / force
 		forceID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		marking => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_pduchange_es_force => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		
 		# DIS EntityState > deadReckoning
 		deadReckoning => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linearVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		linearAcceleration => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ACCEL"],#ff
-		_pduchange_deadreckoning => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_es_deadreckoning => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	
 		# DIS EntityState > articulationParameters
 		set_articulationParameterValue0 => ["SFFloat", 0.0, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2483,7 +2485,7 @@ our %Nodes = (
 		articulationParameterValue5_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		articulationParameterValue6_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		articulationParameterValue7_changed => ["SFFloat", 0.0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		_pduchange_articulationparameters => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_es_articulation => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# DIS collision
 		collisionType => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2526,6 +2528,10 @@ our %Nodes = (
 		fuse => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		warhead => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
+		# DIS createEntityPdu / removeEntityPdu (not sure what / how this works)
+		_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+
 		#start same order as Transform >>>
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2547,8 +2553,8 @@ our %Nodes = (
 		__do_scale => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		__do_anything => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		_sortedChildren => ["MFNode", [], "inputOutput", 0,0],#ff
-		_pduchange_transform => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		# << end same order as Transform
+		_pduchange_es_transform => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 	], "X3DGroupingNode"),
 

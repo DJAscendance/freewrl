@@ -388,16 +388,24 @@ void print_stream(unsigned char *buf, int nbytes){
 }
 
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
+//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
+//EspuTransform integrates the following pdus:
+//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
+
 	struct Vector *pdus;
 	struct EntityStatePdu *espdu;
 	struct CollisionPdu *cpdu;
 	struct FirePdu *fpdu;
+	struct CreateEntityPdu *crpdu;
+	struct RemoveEntityPdu *rmpdu;
+
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
+
+	//ENTITYSTATE
 	espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 	//fpdu = dis_ctor(pduToDis(type_FirePdu));
 	//cpdu = dis_ctor(pduToDis(type_CollisionPdu));
-	pdus = newVector(struct Pdu *, 4);
-	//ENTITYSTATE
+	pdus = newVector(struct Pdu *, 6);
 	//entity
 	espdu->entityID.entity = pnode->entityID;
 	espdu->entityID.application = pnode->applicationID;
@@ -605,12 +613,16 @@ int node_pdus_changed_by_scene(struct X3D_Node *node){
 		case NODE_EspduTransform:
 			{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
-			changed = pnode->_pduchange_transform;
-			changed |= pnode->_pduchange_articulationparameters;
+			changed = pnode->_pduchange_es_info;
+			changed |= pnode->_pduchange_es_force;
+			changed |= pnode->_pduchange_es_transform;
+			changed |= pnode->_pduchange_es_articulation;
+			changed |= pnode->_pduchange_es_deadreckoning;
+			changed |= pnode->_pduchange_create;
+			changed |= pnode->_pduchange_remove;
 			changed |= pnode->_pduchange_collision;
 			changed |= pnode->_pduchange_fire;
 			changed |= pnode->_pduchange_detonation;
-			changed |= pnode->_pduchange_deadreckoning;
 			}
 			break;
 		case NODE_TransmitterPdu:
@@ -641,12 +653,16 @@ void reset_node_pdus_changed_by_scene(struct X3D_Node *node){
 		case NODE_EspduTransform:
 			{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
-			pnode->_pduchange_transform = FALSE;
-			pnode->_pduchange_articulationparameters = FALSE;
+			pnode->_pduchange_es_info = FALSE;
+			pnode->_pduchange_es_force = FALSE;
+			pnode->_pduchange_es_transform = FALSE;
+			pnode->_pduchange_es_articulation = FALSE;
+			pnode->_pduchange_es_deadreckoning = FALSE;
+			pnode->_pduchange_create = FALSE;
+			pnode->_pduchange_remove = FALSE;
 			pnode->_pduchange_collision = FALSE;
 			pnode->_pduchange_fire = FALSE;
 			pnode->_pduchange_detonation = FALSE;
-			pnode->_pduchange_deadreckoning = FALSE;
 			}
 			break;
 		case NODE_TransmitterPdu:
@@ -1506,7 +1522,7 @@ const int FIELDS_geo [] = {
 	-1,
 };
 
-const int FIELDS_info [] = {	
+const int FIELDS_es_info [] = {	
 	FIELDNAMES_entityCategory,
 	FIELDNAMES_entityCountry,
 	FIELDNAMES_entityDomain,
@@ -1517,7 +1533,13 @@ const int FIELDS_info [] = {
 	-1,
 };
 
-const int FIELDS_transformpart [] = {
+const int FIELDS_es_force [] = {
+	FIELDNAMES_forceID,
+	FIELDNAMES_marking,
+	-1,
+};
+
+const int FIELDS_es_transform [] = {
 	FIELDNAMES_center,
 	//FIELDNAMES_children,
 	FIELDNAMES_rotation,
@@ -1529,20 +1551,15 @@ const int FIELDS_transformpart [] = {
 	-1,
 };
 
-const int FIELDS_force [] = {
-	FIELDNAMES_forceID,
-	FIELDNAMES_marking,
-	-1,
-};
 
-const int FIELDS_deadreckoning [] = {	
+const int FIELDS_es_deadreckoning [] = {	
 	FIELDNAMES_deadReckoning,
 	FIELDNAMES_linearVelocity,
 	FIELDNAMES_linearAcceleration,
 	-1,
 };
 
-const int FIELDS_articulation [] = {	
+const int FIELDS_es_articulation [] = {	
 	FIELDNAMES_set_articulationParameterValue0,
 	FIELDNAMES_set_articulationParameterValue1,
 	FIELDNAMES_set_articulationParameterValue2,
@@ -1740,10 +1757,20 @@ void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_articulation)){
-		node->_pduchange_articulationparameters = TRUE;
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
+		node->_pduchange_es_info = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
+		node->_pduchange_es_force = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
+		node->_pduchange_es_deadreckoning = TRUE;
+	}
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
+		node->_pduchange_es_articulation = TRUE;
 		node->articulationParameterCount = node->articulationParameterArray.n;
 	}
+
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
 		node->_pduchange_collision = TRUE;
 	}
@@ -1793,8 +1820,8 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transformpart)){
-		node->_pduchange_transform = TRUE;
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
+		node->_pduchange_es_transform = TRUE;
 
 		INITIALIZE_EXTENT;
 
