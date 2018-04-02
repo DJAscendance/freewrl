@@ -388,83 +388,106 @@ void print_stream(unsigned char *buf, int nbytes){
 }
 
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
-//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
-//EspuTransform integrates the following pdus:
-//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
-
+	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
+	//EspuTransform integrates the following pdus:
+	//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
+	//Q. how do create/remove work?
 	struct Vector *pdus;
-	struct EntityStatePdu *espdu;
-	struct CollisionPdu *cpdu;
-	struct FirePdu *fpdu;
-	struct CreateEntityPdu *crpdu;
-	struct RemoveEntityPdu *rmpdu;
-
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
+	pdus = newVector(struct Pdu *, 6);
 
 	//ENTITYSTATE
-	espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
-	//fpdu = dis_ctor(pduToDis(type_FirePdu));
-	//cpdu = dis_ctor(pduToDis(type_CollisionPdu));
-	pdus = newVector(struct Pdu *, 6);
-	//entity
-	espdu->entityID.entity = pnode->entityID;
-	espdu->entityID.application = pnode->applicationID;
-	espdu->entityID.site = pnode->siteID;
-	//translation - assumes companion scenes will have same parent transform stack
-	//(x, -z, y).
-	espdu->entityLocation.x = pnode->translation.c[0];
-	espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
-	espdu->entityLocation.z = pnode->translation.c[1];
-	//rotation
-	if(0){
-		//theirs:
-		//X PSI
-		//Y THETA 
-		//Z PHI
-		//(x, -z, y)
-		//OURS	THEIRS 	THEIRS
-		//x		X=x		PSI		
-		//y		Z=y		PHI
-		//z		-Y=z	-THETA
+	if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+		struct EntityStatePdu *espdu;
+		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
+		//entity
+		espdu->entityID.entity = pnode->entityID;
+		espdu->entityID.application = pnode->applicationID;
+		espdu->entityID.site = pnode->siteID;
+		//translation - assumes companion scenes will have same parent transform stack
+		//(x, -z, y).
+		espdu->entityLocation.x = pnode->translation.c[0];
+		espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
+		espdu->entityLocation.z = pnode->translation.c[1];
+		//rotation
+		if(0){
+			//theirs:
+			//X PSI
+			//Y THETA 
+			//Z PHI
+			//(x, -z, y)
+			//OURS	THEIRS 	THEIRS
+			//x		X=x		PSI		
+			//y		Z=y		PHI
+			//z		-Y=z	-THETA
 
-		Quaternion qA;
-		double ypr[3];
-		float *c = pnode->rotation.c;
-		vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
-		quat2euler(ypr,0,&qA);
-		espdu->entityOrientation.psi = ypr[1];
-		espdu->entityOrientation.theta = ypr[2];
-	}
-	if(1){
-		float ypr[3];
-		axisangle2ypr(pnode->rotation.c,ypr);
-		espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
-		espdu->entityOrientation.theta = ypr[1];
-		espdu->entityOrientation.phi = ypr[2];
-
-	}
-	//articuation parameters
-	if(pnode->articulationParameterArray.n){
-		struct ArticulationParameter *ap;
-		int i, np = pnode->articulationParameterArray.n;
-		ap = malloc(np * sizeof(struct ArticulationParameter));
-		espdu->numberOfArticulationParameters = np;
-		//printf("sending %d articulation parameters:\n",np);
-		for(i=0;i<np;i++){
-			ap[i].parameterTypeDesignator = 0; //0 is articulated part
-			ap[i].parameterType = 1029; //1024 - rudder + 5 X
-			ap[i].parameterValue = pnode->articulationParameterArray.p[i];
-			ap[i].partAttachedTo = 0;
-			//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
+			Quaternion qA;
+			double ypr[3];
+			float *c = pnode->rotation.c;
+			vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+			quat2euler(ypr,0,&qA);
+			espdu->entityOrientation.psi = ypr[1];
+			espdu->entityOrientation.theta = ypr[2];
 		}
-		espdu->articulationParameters = (void*)ap;
+		if(1){
+			float ypr[3];
+			axisangle2ypr(pnode->rotation.c,ypr);
+			espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+			espdu->entityOrientation.theta = ypr[1];
+			espdu->entityOrientation.phi = ypr[2];
+
+		}
+		//articuation parameters
+		if(pnode->articulationParameterArray.n){
+			struct ArticulationParameter *ap;
+			int i, np = pnode->articulationParameterArray.n;
+			ap = malloc(np * sizeof(struct ArticulationParameter));
+			espdu->numberOfArticulationParameters = np;
+			//printf("sending %d articulation parameters:\n",np);
+			for(i=0;i<np;i++){
+				ap[i].parameterTypeDesignator = 0; //0 is articulated part
+				ap[i].parameterType = 1029; //1024 - rudder + 5 X
+				ap[i].parameterValue = pnode->articulationParameterArray.p[i];
+				ap[i].partAttachedTo = 0;
+				//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
+			}
+			espdu->articulationParameters = (void*)ap;
+		}
+		//...
+		printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	}
-	//...
-	printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
-	vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	//FIRE
+	if(pnode->_pduchange_fire){
+		struct FirePdu *fpdu;
+		fpdu = (struct FirePdu *) dis_ctor(pduToDis(type_FirePdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)fpdu);
+	}
 	//COLLISION
-	//...
+	if(pnode->_pduchange_collision){
+		struct CollisionPdu *cpdu;
+		cpdu = (struct CollisionPdu *) dis_ctor(pduToDis(type_CollisionPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)cpdu);
+	}
+	//DETONATION
+	if(pnode->_pduchange_detonation){
+		struct DetonationPdu *dpdu;
+		dpdu = (struct DetonationPdu *) dis_ctor(pduToDis(type_DetonationPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
+	}
+	//CREATE
+	if(pnode->_pduchange_create){
+		struct CreateEntityPdu *crpdu;
+		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
+	}
+	//REMOVE
+	if(pnode->_pduchange_remove){
+		struct RemoveEntityPdu *rmpdu;
+		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
+	}
+
 	return pdus;
 
 }
