@@ -548,6 +548,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				}
 				//articuation parameters
 				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
+				printf("recv art count %d\n",espdu->numberOfArticulationParameters);
 				if(pnode->articulationParameterArray.n){
 					struct ArticulationParameter *ap;
 					float *pp;
@@ -558,9 +559,21 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					for(i=0;i<np;i++){
 						//ap[i].parameterTypeDesignator = 0; //0 is articulated part
 						//ap[i].parameterType = 1029; //1024 - rudder + 5 X
-						pp[i] = ap[i].parameterValue;
+						pp[i] = (float)ap[i].parameterValue;
 						//printf("%d %f\n",i,pp[i]);
 						//ap[i].partAttachedTo = 0;
+						switch(i){
+							case 0: pnode->articulationParameterValue0_changed = pp[i]; break;
+							case 1: pnode->articulationParameterValue1_changed = pp[i]; break;
+							case 2: pnode->articulationParameterValue2_changed = pp[i]; break;
+							case 3: pnode->articulationParameterValue3_changed = pp[i]; break;
+							case 4: pnode->articulationParameterValue4_changed = pp[i]; break;
+							case 5: pnode->articulationParameterValue5_changed = pp[i]; break;
+							case 6: pnode->articulationParameterValue6_changed = pp[i]; break;
+							case 7: pnode->articulationParameterValue7_changed = pp[i]; break;
+							default:
+							break;
+						}
 					}
 					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
 					pnode->articulationParameterArray.p = pp;
@@ -1881,7 +1894,33 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			es_deadreckoning = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
+			int i,n;
+			struct X3D_EspduTransform *old = (struct X3D_EspduTransform *)node->_oldState;
 			es_articulation = TRUE;
+			node->articulationParameterArray.p = realloc(node->articulationParameterArray.p,16*sizeof(float));
+			n = node->articulationParameterArray.n;
+			for(i=0;i<8;i++){
+				switch(i){
+					case 0: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue0) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue0; n=max(n,i); break;
+					case 1: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue1) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue1; n=max(n,i); break;
+					case 2: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue2) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue2; n=max(n,i); break;
+					case 3: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue3) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue3; n=max(n,i); break;
+					case 4: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue4) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue4; n=max(n,i); break;
+					case 5: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue5) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue5; n=max(n,i); break;
+					case 6: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue6) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue6; n=max(n,i); break;
+					case 7: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue7) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue7; n=max(n,i); break;
+					default:
+					break;
+				}
+			}
 			node->articulationParameterCount = node->articulationParameterArray.n;
 		}
 		node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
