@@ -700,7 +700,7 @@ int node_pdus_changed_by_scene(struct X3D_Node *node){
 	}
 	return changed;
 }
-void reset_node_pdus_changed_by_scene(struct X3D_Node *node){
+void reset_node_pduchanged(struct X3D_Node *node){
 	switch(node->_nodeType){
 		case NODE_EspduTransform:
 			{
@@ -781,7 +781,7 @@ void dis_sendloop(){
 					printf("<<<< sendloop\n");
 				}
 				nbytes += nb;
-				reset_node_pdus_changed_by_scene(node);
+				reset_node_pduchanged(node);
 			}
 			if(nbytes) socksendto(dsock,buf2,nbytes);
 		}
@@ -1866,7 +1866,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 		}
 		if(node->_pduchange_remove){
 		}
-		reset_node_pdus_changed_by_scene(X3D_NODE(node));
+		reset_node_pduchanged(X3D_NODE(node));
 
 	}else if(node->isNetworkWriter){
 		int es_info, es_force, es_deadreckoning, es_articulation;
