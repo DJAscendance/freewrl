@@ -132,34 +132,57 @@ void fwl_set_allow_DIS(int allow){
 
 #ifdef WITH_DIS
 
-/* DIS - Distributed Interactive Simulation communication
-	Concepts as understood by dug9 Oct 23, 2017
+/* 
+DIS - Distributed Interactive Simulation communication
+Concepts as understood by dug9 Oct 23, 2017
 
-	IMPLIED SHARED RECEIVER LOOP
-	- loop 1:1 socket(IP,port)
-	- 1st node to declare a port opens it and joins
-	- other nodes declaring same port join
-	- reading is at fine time granularity, and times are added up 
-	- multiple receives on one loop are all read to flush and take pdu with latest timestamp
-	- if received too soon, packets dropped (and dead reconning used, or radio signal is choppy)
-	- timestamp is kept as start of interval, and each loop increments it
-	- on recv packet, it loops over the packet unmarshalling multiple pdus
-		- it loops over nodes registered on that port to find a matching entityID/entityId
-		- if a match, updates entity
-		- if no match, discards/skips
+IMPLIED SHARED RECEIVER LOOP
+- loop 1:1 socket(IP,port)
+- 1st node to declare a port opens it and joins
+- other nodes declaring same port join
+- reading is at fine time granularity, and times are added up 
+- multiple receives on one loop are all read to flush and take pdu with latest timestamp
+- if received too soon, packets dropped (and dead reconning used, or radio signal is choppy)
+- timestamp is kept as start of interval, and each loop increments it
+- on recv packet, it loops over the packet unmarshalling multiple pdus
+	- it loops over nodes registered on that port to find a matching entityID/entityId
+	- if a match, updates entity
+	- if no match, discards/skips
 
-	IMPLIED SHARED SENDER LOOP
-	- loop 1:1 socket(IP,port)
-	- 1st node to declare a port opens it and joins
-	- other nodes declaring same port join
-	- nodes can have different send intervals
-	- fine-granularity loop increments time and checks who is ready to send
-	- bundles pdus that are ready to send at the same time
+IMPLIED SHARED SENDER LOOP
+- loop 1:1 socket(IP,port)
+- 1st node to declare a port opens it and joins
+- other nodes declaring same port join
+- nodes can have different send intervals
+- fine-granularity loop increments time and checks who is ready to send
+- bundles pdus that are ready to send at the same time
 
-	Design Options
-	A. per-frame - iterate over all send and receive sockets once per frame, 
-		-- in the render thread
-	B. per-socket-direction thread 
+Design Options
+A. per-frame - iterate over all send and receive sockets once per frame, 
+	-- in the render thread
+B. per-socket-direction thread 
+
+Major Issues:
+1. change detection 
+- for scripts and protos we have special field structs with a change flag;
+	we do that because scripts and protos are 'opaque' to routing algorithms
+- DIS nodes when receiving are changing fields like a script node might change its fields, opaque to routing
+	and for script nodes we iterate over fields after running a script, to check fields for change flag and route
+- for sending, somewhat analogously when we change a field via routing on a DIS node,
+	we need to let the pdu sending code know which puds changed, so it can send just the changed ones
+- options: 
+	a) implement nodes in terms of i) script or ii) proto fields
+		- don't have an example of script or proto used as builtin 
+		- its the parser that generates them from scene file info
+		? would that mean a lot of changes to perl code generator and parser code?
+		- might be helpful to harmonize all builtin, proto, script and shader nodes to have same field struct
+		x but will take a massive refactoring effort to do it
+	b) pre/post value comparison ie _oldvalue
+		- lots of examples of this, but not on such big nodes
+	choice: b) SFNode node->_oldState copies entire node
+		- generic functions compare old new fields to detect changes
+		- but keep option a) in mind for future
+
 */
 
 
@@ -656,8 +679,10 @@ void dis_sendloop(){
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
-				if(thistime - lasttime < writeInterval) continue; //skip for a while more
-				if(!node_pdus_changed_by_scene(node)) continue; //no pdus changed since last send, DIS ettiquette says don't send if no change
+				// finer granularity send decision: a)heartbeat, b)on-change, c)dead-reckoning-threshold
+				// Q. where's our c)dead-reckoning-threshold?
+				if(thistime - lasttime < writeInterval) continue; //a)heartbeat: skip for a while more
+				if(!node_pdus_changed_by_scene(node)) continue; //b)on-change: no pdus changed since last send, DIS ettiquette says don't send if no change
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				dis_set_node_lasttime(node,lasttime);
