@@ -397,7 +397,8 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 	pdus = newVector(struct Pdu *, 6);
 
 	//ENTITYSTATE
-	if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	if(pnode->_pduchange_es){
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 		//entity
@@ -494,9 +495,6 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
-	struct EntityStatePdu *espdu;
-	struct CollisionPdu *cpdu;
-	struct FirePdu *fpdu;
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
 
 	ihit = 0;
@@ -508,6 +506,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			case PDU_ENTITY_STATE:
 			{
 				//ENTITYSTATE
+				struct EntityStatePdu *espdu;
 				espdu = (struct EntityStatePdu*)pdu;
 				if(espdu->entityID.application != pnode->applicationID) break;
 				if(espdu->entityID.site != pnode->siteID) break;
@@ -570,12 +569,38 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			}
 			break;
 			case PDU_FIRE:
-			//FIRE
+			{
+				//FIRE
+				struct FirePdu *fpdu;
+
+			}
 			break;
 			case PDU_COLLISION:
-			//COLLISION
+			{
+				struct CollisionPdu *cpdu;
+
+				//COLLISION
+			}
 			break;
-			//...
+			case PDU_DETONATION:
+			{
+				//DETONATION
+				struct DetonationPdu *dpdu;
+			}
+			break;
+			case PDU_CREATE_ENTITY:
+			{
+				//CREATE
+				struct CreateEntityPdu *crpdu;
+			}
+			break;
+			case PDU_REMOVE_ENTITY:
+			{
+				//REMOVE
+				struct RemoveEntityPdu *rmpdu;
+			}
+			break;
+
 			default:
 				break;
 		}
@@ -636,11 +661,12 @@ int node_pdus_changed_by_scene(struct X3D_Node *node){
 		case NODE_EspduTransform:
 			{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
-			changed = pnode->_pduchange_es_info;
-			changed |= pnode->_pduchange_es_force;
-			changed |= pnode->_pduchange_es_transform;
-			changed |= pnode->_pduchange_es_articulation;
-			changed |= pnode->_pduchange_es_deadreckoning;
+			changed = pnode->_pduchange_es;
+			//_info;
+			//changed |= pnode->_pduchange_es_force;
+			//changed |= pnode->_pduchange_es_transform;
+			//changed |= pnode->_pduchange_es_articulation;
+			//changed |= pnode->_pduchange_es_deadreckoning;
 			changed |= pnode->_pduchange_create;
 			changed |= pnode->_pduchange_remove;
 			changed |= pnode->_pduchange_collision;
@@ -676,11 +702,12 @@ void reset_node_pdus_changed_by_scene(struct X3D_Node *node){
 		case NODE_EspduTransform:
 			{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
-			pnode->_pduchange_es_info = FALSE;
-			pnode->_pduchange_es_force = FALSE;
-			pnode->_pduchange_es_transform = FALSE;
-			pnode->_pduchange_es_articulation = FALSE;
-			pnode->_pduchange_es_deadreckoning = FALSE;
+			pnode->_pduchange_es = FALSE;
+			//_info = FALSE;
+			//pnode->_pduchange_es_force = FALSE;
+			//pnode->_pduchange_es_transform = FALSE;
+			//pnode->_pduchange_es_articulation = FALSE;
+			//pnode->_pduchange_es_deadreckoning = FALSE;
 			pnode->_pduchange_create = FALSE;
 			pnode->_pduchange_remove = FALSE;
 			pnode->_pduchange_collision = FALSE;
@@ -1780,20 +1807,22 @@ void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
+	int es_info, es_force, es_deadreckoning, es_articulation;
+	es_info = es_force = es_deadreckoning = es_articulation = FALSE;
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
-		node->_pduchange_es_info = TRUE;
+		es_info = TRUE;
 	}
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
-		node->_pduchange_es_force = TRUE;
+		es_force = TRUE;
 	}
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
-		node->_pduchange_es_deadreckoning = TRUE;
+		es_deadreckoning = TRUE;
 	}
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
-		node->_pduchange_es_articulation = TRUE;
+		es_articulation = TRUE;
 		node->articulationParameterCount = node->articulationParameterArray.n;
 	}
-
+	node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
 		node->_pduchange_collision = TRUE;
 	}
@@ -1845,7 +1874,7 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
 	//Q. why doesn't shallow compare work?
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
-		node->_pduchange_es_transform = TRUE;
+		node->_pduchange_es = TRUE;
 
 		INITIALIZE_EXTENT;
 

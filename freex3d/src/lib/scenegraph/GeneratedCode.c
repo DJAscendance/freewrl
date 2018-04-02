@@ -312,11 +312,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_collision",
 	"_pduchange_create",
 	"_pduchange_detonation",
-	"_pduchange_es_articulation",
-	"_pduchange_es_deadreckoning",
-	"_pduchange_es_force",
-	"_pduchange_es_info",
-	"_pduchange_es_transform",
+	"_pduchange_es",
 	"_pduchange_fire",
 	"_pduchange_networksensor",
 	"_pduchange_receiver",
@@ -4434,14 +4430,11 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_entityKind, (int) offsetof (struct X3D_EspduTransform, entityKind),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entitySpecific, (int) offsetof (struct X3D_EspduTransform, entitySpecific),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entitySubCategory, (int) offsetof (struct X3D_EspduTransform, entitySubCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES__pduchange_es_info, (int) offsetof (struct X3D_EspduTransform, _pduchange_es_info),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_forceID, (int) offsetof (struct X3D_EspduTransform, forceID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_marking, (int) offsetof (struct X3D_EspduTransform, marking),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES__pduchange_es_force, (int) offsetof (struct X3D_EspduTransform, _pduchange_es_force),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_deadReckoning, (int) offsetof (struct X3D_EspduTransform, deadReckoning),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_EspduTransform, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_linearAcceleration, (int) offsetof (struct X3D_EspduTransform, linearAcceleration),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ACCEL,
-	(int) FIELDNAMES__pduchange_es_deadreckoning, (int) offsetof (struct X3D_EspduTransform, _pduchange_es_deadreckoning),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -4464,7 +4457,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_articulationParameterValue5_changed, (int) offsetof (struct X3D_EspduTransform, articulationParameterValue5_changed),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_articulationParameterValue6_changed, (int) offsetof (struct X3D_EspduTransform, articulationParameterValue6_changed),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_articulationParameterValue7_changed, (int) offsetof (struct X3D_EspduTransform, articulationParameterValue7_changed),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES__pduchange_es_articulation, (int) offsetof (struct X3D_EspduTransform, _pduchange_es_articulation),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pduchange_es, (int) offsetof (struct X3D_EspduTransform, _pduchange_es),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_collisionType, (int) offsetof (struct X3D_EspduTransform, collisionType),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_collideTime, (int) offsetof (struct X3D_EspduTransform, collideTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isCollided, (int) offsetof (struct X3D_EspduTransform, isCollided),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -4515,7 +4508,6 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES___do_scale, (int) offsetof (struct X3D_EspduTransform, __do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_anything, (int) offsetof (struct X3D_EspduTransform, __do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_EspduTransform, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
-	(int) FIELDNAMES__pduchange_es_transform, (int) offsetof (struct X3D_EspduTransform, _pduchange_es_transform),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ExplosionEmitter[] = {
@@ -9438,14 +9430,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->entityKind = 0;
 			tmp2->entitySpecific = 0;
 			tmp2->entitySubCategory = 0;
-			tmp2->_pduchange_es_info = 0;
 			tmp2->forceID = 0;
 			tmp2->marking = newASCIIString("");
-			tmp2->_pduchange_es_force = 0;
 			tmp2->deadReckoning = 0;
 			tmp2->linearVelocity.c[0] = 0.0f;tmp2->linearVelocity.c[1] = 0.0f;tmp2->linearVelocity.c[2] = 0.0f;
 			tmp2->linearAcceleration.c[0] = 0.0f;tmp2->linearAcceleration.c[1] = 0.0f;tmp2->linearAcceleration.c[2] = 0.0f;
-			tmp2->_pduchange_es_deadreckoning = 0;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
@@ -9468,7 +9457,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->articulationParameterValue5_changed = 0.0f;
 			tmp2->articulationParameterValue6_changed = 0.0f;
 			tmp2->articulationParameterValue7_changed = 0.0f;
-			tmp2->_pduchange_es_articulation = 0;
+			tmp2->_pduchange_es = 0;
 			tmp2->collisionType = 0;
 			tmp2->collideTime = 0;
 			tmp2->isCollided = FALSE;
@@ -9519,7 +9508,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scale = FALSE;
 			tmp2->__do_anything = FALSE;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_pduchange_es_transform = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
