@@ -104,7 +104,7 @@ Options:
 3. wrap DIS objects -just ones we need- in flat C interfaces (about 30)
 4. somehow show cpp just the C structs it needs, like X3D_EspduTransform
 	- about 5 x3d structs
-Choice: option 2.b
+Choice: option 2.b hack xmlpg CGenerator.java DONE
 - benefits: easy to interface, could do just .h (no lib), code & license is ours/freewrl
 -disadvantages: someone has to do hacking upstream in CGenerator.java, and
 	duplicate all the CppUtils (that wrap the pdu classes) in C,
@@ -183,13 +183,15 @@ Major Issues:
 		- generic functions compare old new fields to detect changes
 		- but keep option a) in mind for future
 
-2. nodes have a lot of similar fields, resulting in duplicate ocde
-x freewrl has no structs for 'abstract interface'
+2. nodes have a lot of similar fields, resulting in duplicate code
+x and freewrl has no structs for 'abstract interface'
 options:
 a) giant macros - used throughout freewrl for this reason
 b) careful ordering of fields so common fields are first, and nodes can be cast to a common type
 c) some kind of abstract interface added to code generation system
+	- maybe in the future
 d) change to OO language and use inheritance and polymorphism
+	- maybe in the future
 e) functions with switch-case on nodetype
 For now in DIS we're going to use b) for espduTransform and 3 radio nodes, and e)
 
