@@ -631,7 +631,11 @@ static struct Vector *sockets_recv = NULL;
 unsigned char buf2[32767];
 
 void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
+	//4 nodes have the same field order for common fields, can be cast to Espdu 
 	switch(node->_nodeType){
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
 		case NODE_EspduTransform:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
@@ -640,23 +644,22 @@ void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *read
 			*readInterval = pnode->readInterval;
 		}
 		break;
-		case NODE_ReceiverPdu:
-		case NODE_TransmitterPdu:
-		case NODE_SignalPdu:
+		default:
 		break;
 	}
 }
 void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
+	//4 nodes have the same field order for common fields, can be cast to Espdu 
 	switch(node->_nodeType){
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
 		case NODE_EspduTransform:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
 			pnode->_lasttime = lasttime;
 		}
 		break;
-		case NODE_ReceiverPdu:
-		case NODE_TransmitterPdu:
-		case NODE_SignalPdu:
 		break;
 	}
 }
@@ -667,16 +670,11 @@ int node_pdus_changed_by_scene(struct X3D_Node *node){
 			{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
 			changed = pnode->_pduchange_es;
-			//_info;
-			//changed |= pnode->_pduchange_es_force;
-			//changed |= pnode->_pduchange_es_transform;
-			//changed |= pnode->_pduchange_es_articulation;
-			//changed |= pnode->_pduchange_es_deadreckoning;
-			changed |= pnode->_pduchange_create;
-			changed |= pnode->_pduchange_remove;
 			changed |= pnode->_pduchange_collision;
 			changed |= pnode->_pduchange_fire;
 			changed |= pnode->_pduchange_detonation;
+			changed |= pnode->_pduchange_create;
+			changed |= pnode->_pduchange_remove;
 			}
 			break;
 		case NODE_TransmitterPdu:
@@ -708,16 +706,11 @@ void reset_node_pdus_changed_by_scene(struct X3D_Node *node){
 			{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
 			pnode->_pduchange_es = FALSE;
-			//_info = FALSE;
-			//pnode->_pduchange_es_force = FALSE;
-			//pnode->_pduchange_es_transform = FALSE;
-			//pnode->_pduchange_es_articulation = FALSE;
-			//pnode->_pduchange_es_deadreckoning = FALSE;
-			pnode->_pduchange_create = FALSE;
-			pnode->_pduchange_remove = FALSE;
 			pnode->_pduchange_collision = FALSE;
 			pnode->_pduchange_fire = FALSE;
 			pnode->_pduchange_detonation = FALSE;
+			pnode->_pduchange_create = FALSE;
+			pnode->_pduchange_remove = FALSE;
 			}
 			break;
 		case NODE_TransmitterPdu:
