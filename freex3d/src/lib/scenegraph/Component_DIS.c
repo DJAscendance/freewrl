@@ -564,9 +564,9 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					}
 					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
 					pnode->articulationParameterArray.p = pp;
-					MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
+					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
 				}
-
+				pnode->_pduchange_es = TRUE;
 				//...
 			}
 			break;
@@ -574,32 +574,35 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//FIRE
 				struct FirePdu *fpdu;
-
+				pnode->_pduchange_fire = TRUE;
 			}
 			break;
 			case PDU_COLLISION:
 			{
-				struct CollisionPdu *cpdu;
-
 				//COLLISION
+				struct CollisionPdu *cpdu;
+				pnode->_pduchange_collision = TRUE;
 			}
 			break;
 			case PDU_DETONATION:
 			{
 				//DETONATION
 				struct DetonationPdu *dpdu;
+				pnode->_pduchange_detonation = TRUE;
 			}
 			break;
 			case PDU_CREATE_ENTITY:
 			{
 				//CREATE
 				struct CreateEntityPdu *crpdu;
+				pnode->_pduchange_create = TRUE;
 			}
 			break;
 			case PDU_REMOVE_ENTITY:
 			{
 				//REMOVE
 				struct RemoveEntityPdu *rmpdu;
+				pnode->_pduchange_remove = TRUE;
 			}
 			break;
 
@@ -1839,45 +1842,81 @@ void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
-	int es_info, es_force, es_deadreckoning, es_articulation;
-	es_info = es_force = es_deadreckoning = es_articulation = FALSE;
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
-		es_info = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
-		es_force = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
-		es_deadreckoning = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
-		es_articulation = TRUE;
-		node->articulationParameterCount = node->articulationParameterArray.n;
-	}
-	node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
-		node->_pduchange_collision = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_events)){
-		node->_pduchange_collision = TRUE;
-		node->_pduchange_fire = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_fire)){
-		node->_pduchange_fire = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_detonation)){
-		node->_pduchange_detonation = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_munition)){
-		node->_pduchange_fire = TRUE;
-		node->_pduchange_detonation = TRUE;
-	}
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_rate)){
-		node->_pduchange_fire = TRUE;
-		node->_pduchange_detonation = TRUE;
+	//we use the same _pduchange flags and _oldState for both receiving and sending
+	// but could be split if needed
+	if(node->isNetworkReader){
+		if(node->_pduchange_es){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_info);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_force);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_deadreckoning);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_articulation);
+			//mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_transform);
+		}
+		if(node->_pduchange_collision){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_collision);
+		}
+		if(node->_pduchange_fire){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_fire);
+		}
+		if(node->_pduchange_fire || node->_pduchange_collision){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_events);
+		}
+		if(node->_pduchange_detonation){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_detonation);
+		}
+		if(node->_pduchange_fire || node->_pduchange_detonation){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_munition);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_rate);
+		}
+
+		if(node->_pduchange_create){
+		}
+		if(node->_pduchange_remove){
+		}
+		reset_node_pdus_changed_by_scene(X3D_NODE(node));
+
+	}else if(node->isNetworkWriter){
+		int es_info, es_force, es_deadreckoning, es_articulation;
+		es_info = es_force = es_deadreckoning = es_articulation = FALSE;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
+			es_info = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
+			es_force = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
+			es_deadreckoning = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
+			es_articulation = TRUE;
+			node->articulationParameterCount = node->articulationParameterArray.n;
+		}
+		node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
+			node->_pduchange_collision = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_events)){
+			node->_pduchange_collision = TRUE;
+			node->_pduchange_fire = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_fire)){
+			node->_pduchange_fire = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_detonation)){
+			node->_pduchange_detonation = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_munition)){
+			node->_pduchange_fire = TRUE;
+			node->_pduchange_detonation = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_rate)){
+			node->_pduchange_fire = TRUE;
+			node->_pduchange_detonation = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
+
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
 	if(!renderstate()->render_vp) {
@@ -1904,7 +1943,12 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
-	//Q. why doesn't shallow compare work?
+	if(node->isNetworkReader){
+		if(node->_pduchange_es){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_transform);
+		}
+	}
+	//whether its reader, writer or standalone, we need to compile if it changed state
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
 		node->_pduchange_es = TRUE;
 
