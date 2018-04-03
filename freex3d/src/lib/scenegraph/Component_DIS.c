@@ -83,12 +83,14 @@ void Component_DIS_clear(struct tComponent_DIS *t){
 	//public
 }
 
+References:
 http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html
 https://github.com/open-dis/open-dis-cpp
 http://www.web3d.org/x3d/content/examples/Basic/DistributedInteractiveSimulation/
 https://en.wikipedia.org/wiki/Distributed_Interactive_Simulation
 http://open-dis.sourceforge.net/Open-DIS.html
-
+http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+- 2012 DIS draft
 
 
 Problem: our C .h and the DIS.lib (cpp) .h clash, very messy
@@ -283,7 +285,6 @@ enum PDUType
     PDU_REQUEST_OBJECT = 135,  
 };
 
-
 void axisangle2ypr(float *xyza, float *ypr)
 {
 	//y = yaw = azimuth
@@ -389,7 +390,7 @@ void print_stream(unsigned char *buf, int nbytes){
 	}
 }
 
-struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
+struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
 	//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
@@ -400,7 +401,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
-	if(pnode->_pduchange_es){
+	if(pnode->_pduchange_es || isHeartbeat){
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 		//entity
@@ -460,34 +461,40 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
 		printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	}
+	//ephemerals / expendables - no hearbeat requirements?
 	//FIRE
 	if(pnode->_pduchange_fire){
 		struct FirePdu *fpdu;
 		fpdu = (struct FirePdu *) dis_ctor(pduToDis(type_FirePdu));
+		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)fpdu);
 	}
 	//COLLISION
 	if(pnode->_pduchange_collision){
 		struct CollisionPdu *cpdu;
 		cpdu = (struct CollisionPdu *) dis_ctor(pduToDis(type_CollisionPdu));
+		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)cpdu);
 	}
 	//DETONATION
 	if(pnode->_pduchange_detonation){
 		struct DetonationPdu *dpdu;
 		dpdu = (struct DetonationPdu *) dis_ctor(pduToDis(type_DetonationPdu));
+		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
 	}
 	//CREATE
 	if(pnode->_pduchange_create){
 		struct CreateEntityPdu *crpdu;
 		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
+		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
 	}
 	//REMOVE
 	if(pnode->_pduchange_remove){
 		struct RemoveEntityPdu *rmpdu;
 		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
+		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
 	}
 
@@ -625,11 +632,11 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
-struct Vector * dis_node2pdus(struct X3D_Node *node){
+struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus = NULL;
 	switch(node->_nodeType){
 		case NODE_EspduTransform:
-			pdus = dis_node2pdus_espdu(node);
+			pdus = dis_node2pdus_espdu(node, isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
 		case NODE_TransmitterPdu:
@@ -763,15 +770,15 @@ void dis_sendloop(){
 				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
 				//b. on send in here, a function is called to pdu-ize a node before marshaling it
 				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
-				double lasttime, readInterval, writeInterval;
+				double lasttime, readInterval, writeInterval, isHeartbeat;
 				struct Vector *pdus;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
 				// finer granularity send decision: a)heartbeat, b)on-change, c)dead-reckoning-threshold
 				// Q. where's our c)dead-reckoning-threshold?
-				if(thistime - lasttime < writeInterval) continue; //a)heartbeat: skip for a while more
-				if(!node_pdus_changed_by_scene(node)) continue; //b)on-change: no pdus changed since last send, DIS ettiquette says don't send if no change
+				isHeartbeat = thistime - lasttime > writeInterval ? TRUE: FALSE; //a)heartbeat: skip for a while more
+				if(!isHeartbeat && !node_pdus_changed_by_scene(node)) continue; //b)on-change: no pdus changed since last send, DIS ettiquette says don't send if no change
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				dis_set_node_lasttime(node,lasttime);
@@ -781,7 +788,7 @@ void dis_sendloop(){
 				}
 
 				//option b.
-				pdus = dis_node2pdus(node);
+				pdus = dis_node2pdus(node,isHeartbeat);
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
 					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
