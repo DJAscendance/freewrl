@@ -1222,6 +1222,7 @@ void dis_recvloop(){
 	//Oct 24, 2017 choice: 1.
 	// - because we aren't doing a separate thread yet, so 1 or 3, and 3 worked when tried first
 	int i,j,nbytes, more, heard;
+	static int count = 0;
 	double thistime, dtime;
 	if(!sockets_recv || sockets_recv->n == 0) return;
 	thistime = TickTime();
@@ -1248,7 +1249,7 @@ void dis_recvloop(){
 				pdus->n = 0;
 				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
-				printf("hallelluha\n");
+				printf("hallelluha %d\n",count++);
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
 						int ihit;
