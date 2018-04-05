@@ -4136,11 +4136,11 @@ struct X3D_DISEntityManager {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct Uni_String *address;
+	int port;
 	int applicationID;
+	int siteID;
 	struct Multi_Node mapping;
 	struct X3D_Node *metadata;
-	int port;
-	int siteID;
 	struct Multi_Node addedEntities;
 	struct Multi_Node removedEntities;
 };

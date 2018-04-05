@@ -87,6 +87,8 @@ References:
 http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html
 https://github.com/open-dis/open-dis-cpp
 http://www.web3d.org/x3d/content/examples/Basic/DistributedInteractiveSimulation/
+http://x3dgraphics.com/slidesets/X3dForAdvancedModeling/DistributedInteractiveSimulation.pdf
+-- brutzman slideshow on DIS
 https://en.wikipedia.org/wiki/Distributed_Interactive_Simulation
 http://open-dis.sourceforge.net/Open-DIS.html
 http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf

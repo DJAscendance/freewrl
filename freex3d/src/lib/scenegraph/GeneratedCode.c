@@ -4250,11 +4250,11 @@ const int OFFSETS_CylinderSensor[] = {
 
 const int OFFSETS_DISEntityManager[] = {
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_DISEntityManager, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_port, (int) offsetof (struct X3D_DISEntityManager, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_DISEntityManager, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_DISEntityManager, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_DISEntityManager, mapping),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_DISEntityManager, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_port, (int) offsetof (struct X3D_DISEntityManager, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_DISEntityManager, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_addedEntities, (int) offsetof (struct X3D_DISEntityManager, addedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removedEntities, (int) offsetof (struct X3D_DISEntityManager, removedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -9220,11 +9220,11 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_DISEntityManager * tmp2;
 			tmp2 = (struct X3D_DISEntityManager *) tmp;
 			tmp2->address = newASCIIString("localhost");
+			tmp2->port = 0;
 			tmp2->applicationID = 1;
+			tmp2->siteID = 0;
 			tmp2->mapping.n=0; tmp2->mapping.p=0;
 			tmp2->metadata = NULL;
-			tmp2->port = 0;
-			tmp2->siteID = 0;
 			tmp2->addedEntities.n=0; tmp2->addedEntities.p=0;
 			tmp2->removedEntities.n=0; tmp2->removedEntities.p=0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
@@ -14230,14 +14230,14 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_DISEntityManager *) node;
 			UNUSED(tmp); // compiler warning mitigation
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);
+			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
 			spacer fprintf (fp," applicationID (SFInt32) \t%d\n",tmp->applicationID);
+			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," mapping (MFNode):\n");
 			for (i=0; i<tmp->mapping.n; i++) { dump_scene(fp,level+1,tmp->mapping.p[i]); }
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
-			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
-			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 		    break;
 		}
 		case NODE_DISEntityTypeMapping : {
