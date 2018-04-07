@@ -689,7 +689,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"length",
 	"lengthOfModulationParameters",
 	"level",
-	"levelChanged",
 	"level_changed",
 	"lifetimeVariation",
 	"lighting",
@@ -1135,7 +1134,6 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"isValid",
 	"keyPress",
 	"keyRelease",
-	"levelChanged",
 	"level_changed",
 	"lineBounds",
 	"loadTime",
@@ -4262,13 +4260,13 @@ const int OFFSETS_DISEntityManager[] = {
 const int OFFSETS_DISEntityTypeMapping[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_DISEntityTypeMapping, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_url, (int) offsetof (struct X3D_DISEntityTypeMapping, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_category, (int) offsetof (struct X3D_DISEntityTypeMapping, category),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_country, (int) offsetof (struct X3D_DISEntityTypeMapping, country),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_domain, (int) offsetof (struct X3D_DISEntityTypeMapping, domain),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_extra, (int) offsetof (struct X3D_DISEntityTypeMapping, extra),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_kind, (int) offsetof (struct X3D_DISEntityTypeMapping, kind),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_specific, (int) offsetof (struct X3D_DISEntityTypeMapping, specific),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_domain, (int) offsetof (struct X3D_DISEntityTypeMapping, domain),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_country, (int) offsetof (struct X3D_DISEntityTypeMapping, country),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_category, (int) offsetof (struct X3D_DISEntityTypeMapping, category),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_subcategory, (int) offsetof (struct X3D_DISEntityTypeMapping, subcategory),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_specific, (int) offsetof (struct X3D_DISEntityTypeMapping, specific),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_extra, (int) offsetof (struct X3D_DISEntityTypeMapping, extra),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DirectionalLight[] = {
@@ -5231,7 +5229,7 @@ const int OFFSETS_LOD[] = {
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_LOD, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_LOD, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LOD, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_levelChanged, (int) offsetof (struct X3D_LOD, levelChanged),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_level_changed, (int) offsetof (struct X3D_LOD, level_changed),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_forceTransitions, (int) offsetof (struct X3D_LOD, forceTransitions),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___isX3D, (int) offsetof (struct X3D_LOD, __isX3D),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__selected, (int) offsetof (struct X3D_LOD, _selected),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -9235,13 +9233,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_DISEntityTypeMapping *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->url.n=0; tmp2->url.p=0;
-			tmp2->category = 0;
-			tmp2->country = 0;
-			tmp2->domain = 0;
-			tmp2->extra = 0;
 			tmp2->kind = 0;
-			tmp2->specific = 0;
+			tmp2->domain = 0;
+			tmp2->country = 0;
+			tmp2->category = 0;
 			tmp2->subcategory = 0;
+			tmp2->specific = 0;
+			tmp2->extra = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -10407,7 +10405,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->metadata = NULL;
-			tmp2->levelChanged = 0;
+			tmp2->level_changed = 0;
 			tmp2->forceTransitions = FALSE;
 			tmp2->__isX3D = (inputFileVersion[0]==3);
 			tmp2->_selected = 0;

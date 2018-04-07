@@ -617,6 +617,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//CREATE
 				struct CreateEntityPdu *crpdu;
+				//crpdu->mySimulationManagementFamilyPdu.myPdu.
 				pnode->_pduchange_create = TRUE;
 			}
 			break;

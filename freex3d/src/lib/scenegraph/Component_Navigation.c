@@ -394,24 +394,24 @@ if ((selno->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) prin
 printf ("\n");
 }
 */
-        render_node(node->_selected);
+	render_node(node->_selected);
 }
 
 
 /* calculate the LOD distance */
 void proximity_LOD (struct X3D_LOD *node) {
-        GLDOUBLE mod[16];
-        GLDOUBLE proj[16];
-        struct point_XYZ vec;
-        double dist;
-        int nran = (node->range).n;
-        int nnod = (node->level).n;
-        int xnod = (node->children).n;
+	GLDOUBLE mod[16];
+	GLDOUBLE proj[16];
+	struct point_XYZ vec;
+	double dist;
+	int nran = (node->range).n;
+	int nnod = (node->level).n;
+	int xnod = (node->children).n;
 
-        int i;
+	int i;
 
 	/* no range, display the first node, if it exists */
-        if(!nran) {
+	if(!nran) {
 		if (node->__isX3D)  {
 			if (nnod > 0) node->_selected = (node->children).p[0];
 			else node->_selected = NULL;
@@ -419,56 +419,60 @@ void proximity_LOD (struct X3D_LOD *node) {
 			if (xnod > 0) node->_selected = (node->level).p[0];
 			else node->_selected = NULL;
 		}
-                return;
-        }
+		return;
+	}
 
-        /* calculate which one to display */
-        FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
-		if(0){
-			//this is centered on the front face of the frustum, about .1 away from avatar center (approximately correct)
-			/* printf ("LOD, mat %f %f %f\n",mod[12],mod[13],mod[14]); */
-			FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
-			FW_GLU_UNPROJECT(0,0,0,mod,proj,viewport, &vec.x,&vec.y,&vec.z);
-			//printf("old vec= %f %f %f\n", vec.x,vec.y,vec.z);
-		}
-		if(1){
-			//feature-AFFINE_GLU_UNPROJECT
-			//this is centered on the avatar (correct)
-			double modi[16];
-			struct point_XYZ orig = {0.0,0.0,0.0};
-			matinverseAFFINE(modi,mod);
-			transform(&vec,&orig,modi);
-			//printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
-			//printf("\n");
-		}
-        vec.x -= (node->center).c[0];
-        vec.y -= (node->center).c[1];
-        vec.z -= (node->center).c[2];
+	/* calculate which one to display */
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+	if(0){
+		//this is centered on the front face of the frustum, about .1 away from avatar center (approximately correct)
+		/* printf ("LOD, mat %f %f %f\n",mod[12],mod[13],mod[14]); */
+		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+		FW_GLU_UNPROJECT(0,0,0,mod,proj,viewport, &vec.x,&vec.y,&vec.z);
+		//printf("old vec= %f %f %f\n", vec.x,vec.y,vec.z);
+	}
+	if(1){
+		//feature-AFFINE_GLU_UNPROJECT
+		//this is centered on the avatar (correct)
+		double modi[16];
+		struct point_XYZ orig = {0.0,0.0,0.0};
+		matinverseAFFINE(modi,mod);
+		transform(&vec,&orig,modi);
+		//printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
+		//printf("\n");
+	}
+	vec.x -= (node->center).c[0];
+	vec.y -= (node->center).c[1];
+	vec.z -= (node->center).c[2];
 
-        dist = sqrt(VECSQ(vec));
-        i = 0;
+	dist = sqrt(VECSQ(vec));
+	i = 0;
 
-        while (i<nran) {
-                       if(dist < ((node->range).p[i])) { break; }
-                       i++;
-        }
+	while (i<nran) {
+		if(dist < ((node->range).p[i])) { break; }
+		i++;
+	}
 
 	/* is this VRML or X3D? */
 	if (node->__isX3D) {
 		if (xnod > 0) {
 			/* X3D "children" field */
-        	       	if(i >= xnod) i = xnod-1;
-        		       	node->_selected = (node->children).p[i];
+			if(i >= xnod) i = xnod-1;
+				node->_selected = (node->children).p[i];
 				/* printf ("selecting X3D nod %d \n",i); */
 		} else node->_selected = NULL;
 		
 	} else {
 		if (nnod > 0) {
 			/* VRML "range" field */
-               		if(i >= nnod) i = nnod-1;
-               		node->_selected = (node->level).p[i];
+			if(i >= nnod) i = nnod-1;
+			node->_selected = (node->level).p[i];
 			/* printf ("selecting vrml nod\n"); */
 		} else { node->_selected = NULL; }
+	}
+	if(i != node->level_changed){
+		node->level_changed = i;
+		MARK_EVENT(node,offsetof(struct X3D_LOD,level_changed));
 	}
 }
 
