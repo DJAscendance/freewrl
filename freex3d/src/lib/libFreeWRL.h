@@ -401,6 +401,9 @@ void fwl_set_sbh_wantMenubar(int want);
 int fwl_get_sbh_wantMenubar();
 void fwl_set_sbh_wantStatusbar(int want);
 int fwl_get_sbh_wantStatusbar();
+void fwl_set_modulation(int modulation);
+int fwl_get_modulation();
+
 
 int fwl_commandline(char *cmdline);
 int fwl_getShift();

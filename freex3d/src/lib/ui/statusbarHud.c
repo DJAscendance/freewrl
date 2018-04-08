@@ -432,7 +432,7 @@ typedef struct pstatusbar{
 	char messagebar[200];
 	int bmfontsize;// = 2; /* 0,1 or 2 */
 	int optionsLoaded;// = 0;
-	char * optionsVal[31];
+	char * optionsVal[35];
 	int osystem;// = 3; //mac 1btn = 0, mac nbutton = 1, linux game descent = 2, windows =3
 	XY bmWH;// = {10,15}; /* simple bitmap font from redbook above, width and height in pixels */
 	int bmScale; //1 or 2 for the hud pixel fonts, changes between ..ForOptions and ..Regular 
@@ -540,7 +540,7 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 29;
+static int lenOptions   = 30;
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -945,6 +945,7 @@ char * optionsText[] = {
 "  draw bounding boxes",
 "depth slices  auto  1   2   3",
 "  allow DIS",
+"mat modulation  none  matxtex  matxcpvxtex",
 NULL,
 };
 //0123456789012345678901234567890
@@ -982,9 +983,9 @@ void initOptionsVal()
 	for(i=0;i<lenOptions;i++)
 	{
 		if(!p->optionsVal[i])
-			p->optionsVal[i] = MALLOC(char*, 30);
-		for(j=0;j<30;j++) p->optionsVal[i][j] = ' ';
-		p->optionsVal[i][29] = '\0';
+			p->optionsVal[i] = MALLOC(char*, 48);
+		for(j=0;j<48;j++) p->optionsVal[i][j] = ' ';
+		p->optionsVal[i][47] = '\0';
 	}
 	p->optionsVal[1][0] = 034; //[]
 	p->optionsVal[2][0] = 034; //[]
@@ -1050,7 +1051,13 @@ void initOptionsVal()
 	p->optionsVal[28][0] = 034; //[]
 	if(fwl_get_allow_DIS())
 		p->optionsVal[28][0] = 035; //[*] '*';
-
+	m = fwl_get_modulation();
+	p->optionsVal[29][15] = p->optionsVal[29][21] = p->optionsVal[29][30] =034;
+	switch(m){
+		case 0: p->optionsVal[29][15] = 035; break; //[*]
+		case 1: p->optionsVal[29][21] = 035; break; //[*]
+		case 2: p->optionsVal[29][30] = 035; break; //[*]
+	}
 	p->optionsLoaded = 1;
 }
 void updateOptionsVal()
@@ -1090,6 +1097,7 @@ char * optionsCase[] = {
 "VVVVVVVVVV",
 "            aa    bb  cc  dd",
 "WWWWWWWWWW",
+"              eeee  ffff     gggg",
 NULL,
 };
 
@@ -1112,7 +1120,7 @@ XY screen2text(int x, int y)
 	topOffset = p->side_top;
 	if(p->pmenu.top) topOffset += p->buttonSize;
 	rc.x = x/(p->bmWH.x*p->bmScale) -1; //10; 
-	rc.y = (int)((p->vport.H -y - topOffset)/(p->bmWH.y*p->bmScale)); //15.0 ); 
+	rc.y = (int)((p->vport.H -y - topOffset)/(p->bmWH.y*p->bmScale)) +1; //15.0 ); 
 	rc.y -= 1;
 	return rc;
 }
@@ -1126,7 +1134,7 @@ XY text2screen( int col, int row)
 	topOffset = p->side_top;
 	if(p->pmenu.top) topOffset += p->buttonSize;
 	xy.x = (col+1)*p->bmWH.x*p->bmScale; //10; 
-	xy.y = p->vport.H - topOffset - (row+2)*p->bmWH.y*p->bmScale; //15;
+	xy.y = p->vport.H - topOffset - (row+1)*p->bmWH.y*p->bmScale; //15;
 	return xy;
 }
 FXY screen2normalizedScreenScale( GLfloat x, GLfloat y)
@@ -1358,6 +1366,13 @@ int handleOptionPress(int mouseX, int mouseY)
 		fwl_set_allow_DIS(1 - fwl_get_allow_DIS());
 		break;
 		}
+	case 'e':
+	case 'f':
+	case 'g':
+		{
+			fwl_set_modulation(opt - 'e');
+		}
+		break;
 
 	default: 
 		break;
