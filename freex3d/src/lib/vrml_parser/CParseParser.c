@@ -5888,6 +5888,23 @@ BOOL cbRootNameAndRouteDir(void *callbackData,struct X3D_Node* node,int jfield,u
 	}
 	return found;
 }
+BOOL cbExactNameAndRouteDir(void *callbackData,struct X3D_Node* node,int jfield,union anyVrml *fieldPtr,char *fieldName, int mode,int type,int source,BOOL publicfield)
+{
+
+	BOOL found;
+	s_cbDataRootNameAndRouteDir *cbd = (s_cbDataRootNameAndRouteDir*)callbackData;
+	found = !strcmp(fieldName,cbd->fname) ? TRUE : FALSE;
+	found = found && (mode == cbd->PKW_eventType || mode == PKW_inputOutput);
+	if(found){
+		cbd->fname = fieldName;
+		cbd->jfield = jfield;
+		cbd->mode = mode;
+		cbd->type = type;
+		cbd->publicfield = publicfield;
+		cbd->source = source;
+	}
+	return found;
+}
 BOOL find_anyfield_by_nameAndRouteDir(struct X3D_Node* node, union anyVrml **anyptr, 
 			int *imode, int *itype, char* nodeFieldName, int *isource, void** fdecl, int *ifield, int PKW_eventType)
 {
@@ -5895,7 +5912,9 @@ BOOL find_anyfield_by_nameAndRouteDir(struct X3D_Node* node, union anyVrml **any
 	s_cbDataRootNameAndRouteDir cbd;
 	cbd.fname = nodeFieldName;
 	cbd.PKW_eventType = PKW_eventType;
-	found = walk_fields(node,cbRootNameAndRouteDir,&cbd);
+	found = walk_fields(node,cbExactNameAndRouteDir,&cbd);
+	if(!found)
+		found = walk_fields(node,cbRootNameAndRouteDir,&cbd);
 	if(found){
 		*anyptr = cbd.fieldValue;
 		*imode = cbd.mode;

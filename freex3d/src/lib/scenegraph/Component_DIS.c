@@ -83,17 +83,34 @@ void Component_DIS_clear(struct tComponent_DIS *t){
 	//public
 }
 
+References:
 http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html
 https://github.com/open-dis/open-dis-cpp
 http://www.web3d.org/x3d/content/examples/Basic/DistributedInteractiveSimulation/
+http://x3dgraphics.com/slidesets/X3dForAdvancedModeling/DistributedInteractiveSimulation.pdf
+-- brutzman slideshow on DIS
 https://en.wikipedia.org/wiki/Distributed_Interactive_Simulation
 http://open-dis.sourceforge.net/Open-DIS.html
+http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+- 2012 DIS draft
 
+Don's references:
+a. IITSEC 2017 slideset, DIS 101
+   https://gitlab.nps.edu/Savage/NetworkedGraphicsMV3500/raw/master/presentations/IITSEC2018_DIS_Tutorial.pptx
 
+b. X3D and Distributed Interactive Simulation (DIS)
+   http://x3dgraphics.com/slidesets/X3dForAdvancedModeling/DistributedInteractiveSimulation.pdf
+   (brutzman slides)
 
+c. X3D v3.3 Distributed interactive simulation (DIS) component
+   http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html
+  
+d. IEEE Standards Maintained by SISO SAC
+   https://www.sisostds.org/ProductsPublications/Standards/IEEEStandards.aspx
+   
+   
 Problem: our C .h and the DIS.lib (cpp) .h clash, very messy
 x didn't find a combination of headers that worked
-
 Options:
 1. clean up our headers
 2. convert DIS.lib objects we need to flat C structs
@@ -104,7 +121,7 @@ Options:
 3. wrap DIS objects -just ones we need- in flat C interfaces (about 30)
 4. somehow show cpp just the C structs it needs, like X3D_EspduTransform
 	- about 5 x3d structs
-Choice: option 2.b
+Choice: option 2.b hack xmlpg CGenerator.java DONE
 - benefits: easy to interface, could do just .h (no lib), code & license is ours/freewrl
 -disadvantages: someone has to do hacking upstream in CGenerator.java, and
 	duplicate all the CppUtils (that wrap the pdu classes) in C,
@@ -132,34 +149,71 @@ void fwl_set_allow_DIS(int allow){
 
 #ifdef WITH_DIS
 
-/* DIS - Distributed Interactive Simulation communication
-	Concepts as understood by dug9 Oct 23, 2017
+/* 
+DIS - Distributed Interactive Simulation communication
+Concepts as understood by dug9 Oct 23, 2017
 
-	IMPLIED SHARED RECEIVER LOOP
-	- loop 1:1 socket(IP,port)
-	- 1st node to declare a port opens it and joins
-	- other nodes declaring same port join
-	- reading is at fine time granularity, and times are added up 
-	- multiple receives on one loop are all read to flush and take pdu with latest timestamp
-	- if received too soon, packets dropped (and dead reconning used, or radio signal is choppy)
-	- timestamp is kept as start of interval, and each loop increments it
-	- on recv packet, it loops over the packet unmarshalling multiple pdus
-		- it loops over nodes registered on that port to find a matching entityID/entityId
-		- if a match, updates entity
-		- if no match, discards/skips
+IMPLIED SHARED RECEIVER LOOP
+- loop 1:1 socket(IP,port)
+- 1st node to declare a port opens it and joins
+- other nodes declaring same port join
+- reading is at fine time granularity, and times are added up 
+- multiple receives on one loop are all read to flush and take pdu with latest timestamp
+- if received too soon, packets dropped (and dead reconning used, or radio signal is choppy)
+- timestamp is kept as start of interval, and each loop increments it
+- on recv packet, it loops over the packet unmarshalling multiple pdus
+	- it loops over nodes registered on that port to find a matching entityID/entityId
+	- if a match, updates entity
+	- if no match, discards/skips
 
-	IMPLIED SHARED SENDER LOOP
-	- loop 1:1 socket(IP,port)
-	- 1st node to declare a port opens it and joins
-	- other nodes declaring same port join
-	- nodes can have different send intervals
-	- fine-granularity loop increments time and checks who is ready to send
-	- bundles pdus that are ready to send at the same time
+IMPLIED SHARED SENDER LOOP
+- loop 1:1 socket(IP,port)
+- 1st node to declare a port opens it and joins
+- other nodes declaring same port join
+- nodes can have different send intervals
+- fine-granularity loop increments time and checks who is ready to send
+- bundles pdus that are ready to send at the same time
 
-	Design Options
-	A. per-frame - iterate over all send and receive sockets once per frame, 
-		-- in the render thread
-	B. per-socket-direction thread 
+Design Options
+A. per-frame - iterate over all send and receive sockets once per frame, 
+	-- in the render thread
+B. per-socket-direction thread 
+
+Major Issues:
+1. change detection 
+- for scripts and protos we have special field structs with a change flag;
+	we do that because scripts and protos are 'opaque' to routing algorithms
+- DIS nodes when receiving are changing fields like a script node might change its fields, opaque to routing
+	and for script nodes we iterate over fields after running a script, to check fields for change flag and route
+- for sending, somewhat analogously when we change a field via routing on a DIS node,
+	we need to let the pdu sending code know which puds changed, so it can send just the changed ones
+- options: 
+	a) implement nodes in terms of i) script or ii) proto fields
+		- don't have an example of script or proto used as builtin 
+		- its the parser that generates them from scene file info
+		? would that mean a lot of changes to perl code generator and parser code?
+		- might be helpful to harmonize all builtin, proto, script and shader nodes to have same field struct
+		x but will take a massive refactoring effort to do it
+		- and with DIS, you send/receive whole pdus, and maybe only one little thing changed, 
+			per-node-field flags wouldn't help because those flags aren't transmitted/received with pdu
+	b) pre/post value comparison ie _oldvalue
+		- lots of examples of this, but not on such big nodes
+	choice: b) SFNode node->_oldState copies entire node
+		- generic functions compare old new fields to detect changes
+		- but keep option a) in mind for future
+
+2. nodes have a lot of similar fields, resulting in duplicate code
+x and freewrl has no structs for 'abstract interface'
+options:
+a) giant macros - used throughout freewrl for this reason
+b) careful ordering of fields so common fields are first, and nodes can be cast to a common type
+c) some kind of abstract interface added to code generation system
+	- maybe in the future
+d) change to OO language and use inheritance and polymorphism
+	- maybe in the future
+e) functions with switch-case on nodetype
+For now in DIS we're going to use b) for espduTransform and 3 radio nodes, and e)
+
 */
 
 
@@ -245,7 +299,6 @@ enum PDUType
     PDU_REQUEST_EVENT = 134,
     PDU_REQUEST_OBJECT = 135,  
 };
-
 
 void axisangle2ypr(float *xyza, float *ypr)
 {
@@ -352,85 +405,120 @@ void print_stream(unsigned char *buf, int nbytes){
 	}
 }
 
-struct Vector * dis_node2pdus_espdu(struct X3D_Node *node){
+struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
+	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
+	//EspuTransform integrates the following pdus:
+	//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
+	//Q. how do create/remove work?
 	struct Vector *pdus;
-	struct EntityStatePdu *espdu;
-	struct CollisionPdu *cpdu;
-	struct FirePdu *fpdu;
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
-	espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
-	//fpdu = dis_ctor(pduToDis(type_FirePdu));
-	//cpdu = dis_ctor(pduToDis(type_CollisionPdu));
-	pdus = newVector(struct Pdu *, 4);
+	pdus = newVector(struct Pdu *, 6);
+
 	//ENTITYSTATE
-	//entity
-	espdu->entityID.entity = pnode->entityID;
-	espdu->entityID.application = pnode->applicationID;
-	espdu->entityID.site = pnode->siteID;
-	//translation - assumes companion scenes will have same parent transform stack
-	//(x, -z, y).
-	espdu->entityLocation.x = pnode->translation.c[0];
-	espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
-	espdu->entityLocation.z = pnode->translation.c[1];
-	//rotation
-	if(0){
-		//theirs:
-		//X PSI
-		//Y THETA 
-		//Z PHI
-		//(x, -z, y)
-		//OURS	THEIRS 	THEIRS
-		//x		X=x		PSI		
-		//y		Z=y		PHI
-		//z		-Y=z	-THETA
+	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	if(pnode->_pduchange_es || isHeartbeat){
+		struct EntityStatePdu *espdu;
+		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
+		//entity
+		espdu->entityID.entity = pnode->entityID;
+		espdu->entityID.application = pnode->applicationID;
+		espdu->entityID.site = pnode->siteID;
+		//translation - assumes companion scenes will have same parent transform stack
+		//(x, -z, y).
+		espdu->entityLocation.x = pnode->translation.c[0];
+		espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
+		espdu->entityLocation.z = pnode->translation.c[1];
+		//rotation
+		if(0){
+			//theirs:
+			//X PSI
+			//Y THETA 
+			//Z PHI
+			//(x, -z, y)
+			//OURS	THEIRS 	THEIRS
+			//x		X=x		PSI		
+			//y		Z=y		PHI
+			//z		-Y=z	-THETA
 
-		Quaternion qA;
-		double ypr[3];
-		float *c = pnode->rotation.c;
-		vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
-		quat2euler(ypr,0,&qA);
-		espdu->entityOrientation.psi = ypr[1];
-		espdu->entityOrientation.theta = ypr[2];
-	}
-	if(1){
-		float ypr[3];
-		axisangle2ypr(pnode->rotation.c,ypr);
-		espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
-		espdu->entityOrientation.theta = ypr[1];
-		espdu->entityOrientation.phi = ypr[2];
-
-	}
-	//articuation parameters
-	if(pnode->articulationParameterArray.n){
-		struct ArticulationParameter *ap;
-		int i, np = pnode->articulationParameterArray.n;
-		ap = malloc(np * sizeof(struct ArticulationParameter));
-		espdu->numberOfArticulationParameters = np;
-		//printf("sending %d articulation parameters:\n",np);
-		for(i=0;i<np;i++){
-			ap[i].parameterTypeDesignator = 0; //0 is articulated part
-			ap[i].parameterType = 1029; //1024 - rudder + 5 X
-			ap[i].parameterValue = pnode->articulationParameterArray.p[i];
-			ap[i].partAttachedTo = 0;
-			//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
+			Quaternion qA;
+			double ypr[3];
+			float *c = pnode->rotation.c;
+			vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+			quat2euler(ypr,0,&qA);
+			espdu->entityOrientation.psi = ypr[1];
+			espdu->entityOrientation.theta = ypr[2];
 		}
-		espdu->articulationParameters = (void*)ap;
+		if(1){
+			float ypr[3];
+			axisangle2ypr(pnode->rotation.c,ypr);
+			espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+			espdu->entityOrientation.theta = ypr[1];
+			espdu->entityOrientation.phi = ypr[2];
+
+		}
+		//articuation parameters
+		if(pnode->articulationParameterArray.n){
+			struct ArticulationParameter *ap;
+			int i, np = pnode->articulationParameterArray.n;
+			ap = malloc(np * sizeof(struct ArticulationParameter));
+			espdu->numberOfArticulationParameters = np;
+			//printf("sending %d articulation parameters:\n",np);
+			for(i=0;i<np;i++){
+				ap[i].parameterTypeDesignator = 0; //0 is articulated part
+				ap[i].parameterType = 1029; //1024 - rudder + 5 X
+				ap[i].parameterValue = pnode->articulationParameterArray.p[i];
+				ap[i].partAttachedTo = 0;
+				//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
+			}
+			espdu->articulationParameters = (void*)ap;
+		}
+		//...
+		printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	}
-	//...
-	printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
-	vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
+	//ephemerals / expendables - no hearbeat requirements?
 	//FIRE
+	if(pnode->_pduchange_fire){
+		struct FirePdu *fpdu;
+		fpdu = (struct FirePdu *) dis_ctor(pduToDis(type_FirePdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)fpdu);
+	}
 	//COLLISION
-	//...
+	if(pnode->_pduchange_collision){
+		struct CollisionPdu *cpdu;
+		cpdu = (struct CollisionPdu *) dis_ctor(pduToDis(type_CollisionPdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)cpdu);
+	}
+	//DETONATION
+	if(pnode->_pduchange_detonation){
+		struct DetonationPdu *dpdu;
+		dpdu = (struct DetonationPdu *) dis_ctor(pduToDis(type_DetonationPdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
+	}
+	//CREATE
+	if(pnode->_pduchange_create){
+		struct CreateEntityPdu *crpdu;
+		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
+	}
+	//REMOVE
+	if(pnode->_pduchange_remove){
+		struct RemoveEntityPdu *rmpdu;
+		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
+	}
+
 	return pdus;
 
 }
 int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
-	struct EntityStatePdu *espdu;
-	struct CollisionPdu *cpdu;
-	struct FirePdu *fpdu;
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
 
 	ihit = 0;
@@ -442,6 +530,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			case PDU_ENTITY_STATE:
 			{
 				//ENTITYSTATE
+				struct EntityStatePdu *espdu;
 				espdu = (struct EntityStatePdu*)pdu;
 				if(espdu->entityID.application != pnode->applicationID) break;
 				if(espdu->entityID.site != pnode->siteID) break;
@@ -481,6 +570,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				}
 				//articuation parameters
 				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
+				printf("recv art count %d\n",espdu->numberOfArticulationParameters);
 				if(pnode->articulationParameterArray.n){
 					struct ArticulationParameter *ap;
 					float *pp;
@@ -491,36 +581,78 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					for(i=0;i<np;i++){
 						//ap[i].parameterTypeDesignator = 0; //0 is articulated part
 						//ap[i].parameterType = 1029; //1024 - rudder + 5 X
-						pp[i] = ap[i].parameterValue;
+						pp[i] = (float)ap[i].parameterValue;
 						//printf("%d %f\n",i,pp[i]);
 						//ap[i].partAttachedTo = 0;
+						switch(i){
+							case 0: pnode->articulationParameterValue0_changed = pp[i]; break;
+							case 1: pnode->articulationParameterValue1_changed = pp[i]; break;
+							case 2: pnode->articulationParameterValue2_changed = pp[i]; break;
+							case 3: pnode->articulationParameterValue3_changed = pp[i]; break;
+							case 4: pnode->articulationParameterValue4_changed = pp[i]; break;
+							case 5: pnode->articulationParameterValue5_changed = pp[i]; break;
+							case 6: pnode->articulationParameterValue6_changed = pp[i]; break;
+							case 7: pnode->articulationParameterValue7_changed = pp[i]; break;
+							default:
+							break;
+						}
 					}
 					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
 					pnode->articulationParameterArray.p = pp;
-					MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
+					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
 				}
-
+				pnode->_pduchange_es = TRUE;
 				//...
 			}
 			break;
 			case PDU_FIRE:
-			//FIRE
+			{
+				//FIRE
+				struct FirePdu *fpdu;
+				pnode->_pduchange_fire = TRUE;
+			}
 			break;
 			case PDU_COLLISION:
-			//COLLISION
+			{
+				//COLLISION
+				struct CollisionPdu *cpdu;
+				pnode->_pduchange_collision = TRUE;
+			}
 			break;
-			//...
+			case PDU_DETONATION:
+			{
+				//DETONATION
+				struct DetonationPdu *dpdu;
+				pnode->_pduchange_detonation = TRUE;
+			}
+			break;
+			case PDU_CREATE_ENTITY:
+			{
+				//CREATE
+				struct CreateEntityPdu *crpdu;
+				//crpdu->mySimulationManagementFamilyPdu.myPdu.
+				pnode->_pduchange_create = TRUE;
+			}
+			break;
+			case PDU_REMOVE_ENTITY:
+			{
+				//REMOVE
+				struct RemoveEntityPdu *rmpdu;
+				pnode->_pduchange_remove = TRUE;
+			}
+			break;
+
 			default:
 				break;
 		}
 	}
 	return ihit;
 }
-struct Vector * dis_node2pdus(struct X3D_Node *node){
+struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus = NULL;
 	switch(node->_nodeType){
 		case NODE_EspduTransform:
-			pdus = dis_node2pdus_espdu(node);
+			pdus = dis_node2pdus_espdu(node, isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
 		case NODE_TransmitterPdu:
@@ -535,7 +667,11 @@ static struct Vector *sockets_recv = NULL;
 unsigned char buf2[32767];
 
 void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
+	//4 nodes have the same field order for common fields, can be cast to Espdu 
 	switch(node->_nodeType){
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
 		case NODE_EspduTransform:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
@@ -544,27 +680,97 @@ void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *read
 			*readInterval = pnode->readInterval;
 		}
 		break;
-		case NODE_ReceiverPdu:
-		case NODE_TransmitterPdu:
-		case NODE_SignalPdu:
+		default:
 		break;
 	}
 }
 void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
+	//4 nodes have the same field order for common fields, can be cast to Espdu 
 	switch(node->_nodeType){
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
 		case NODE_EspduTransform:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
 			pnode->_lasttime = lasttime;
 		}
 		break;
-		case NODE_ReceiverPdu:
-		case NODE_TransmitterPdu:
-		case NODE_SignalPdu:
 		break;
 	}
 }
-
+int node_pdus_changed_by_scene(struct X3D_Node *node){
+	int changed = FALSE;
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
+			changed = pnode->_pduchange_es;
+			changed |= pnode->_pduchange_collision;
+			changed |= pnode->_pduchange_fire;
+			changed |= pnode->_pduchange_detonation;
+			changed |= pnode->_pduchange_create;
+			changed |= pnode->_pduchange_remove;
+			}
+			break;
+		case NODE_TransmitterPdu:
+			{
+			struct X3D_TransmitterPdu *pnode = (struct X3D_TransmitterPdu *)node;
+			changed = pnode->_pduchange_transmitter;
+			}
+			break;
+		case NODE_SignalPdu:
+			{
+			struct X3D_SignalPdu *pnode = (struct X3D_SignalPdu *)node;
+			changed = pnode->_pduchange_signal;
+			}
+			break;
+		case NODE_ReceiverPdu:
+			{
+			struct X3D_ReceiverPdu *pnode = (struct X3D_ReceiverPdu *)node;
+			changed = pnode->_pduchange_receiver;
+			}
+			break;
+		default:
+			break;
+	}
+	return changed;
+}
+void reset_node_pduchanged(struct X3D_Node *node){
+	switch(node->_nodeType){
+		case NODE_EspduTransform:
+			{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
+			pnode->_pduchange_es = FALSE;
+			pnode->_pduchange_collision = FALSE;
+			pnode->_pduchange_fire = FALSE;
+			pnode->_pduchange_detonation = FALSE;
+			pnode->_pduchange_create = FALSE;
+			pnode->_pduchange_remove = FALSE;
+			}
+			break;
+		case NODE_TransmitterPdu:
+			{
+			struct X3D_TransmitterPdu *pnode = (struct X3D_TransmitterPdu *)node;
+			pnode->_pduchange_transmitter = FALSE;
+			}
+			break;
+		case NODE_SignalPdu:
+			{
+			struct X3D_SignalPdu *pnode = (struct X3D_SignalPdu *)node;
+			pnode->_pduchange_signal = FALSE;
+			}
+			break;
+		case NODE_ReceiverPdu:
+			{
+			struct X3D_ReceiverPdu *pnode = (struct X3D_ReceiverPdu *)node;
+			pnode->_pduchange_receiver = FALSE;
+			}
+			break;
+		default:
+			break;
+	}
+}
 
 void dis_sendloop(){
 	double thistime;
@@ -580,12 +786,15 @@ void dis_sendloop(){
 				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
 				//b. on send in here, a function is called to pdu-ize a node before marshaling it
 				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
-				double lasttime, readInterval, writeInterval;
+				double lasttime, readInterval, writeInterval, isHeartbeat;
 				struct Vector *pdus;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
-				if(thistime - lasttime < writeInterval) continue; //skip for a while more
+				// finer granularity send decision: a)heartbeat, b)on-change, c)dead-reckoning-threshold
+				// Q. where's our c)dead-reckoning-threshold?
+				isHeartbeat = thistime - lasttime > writeInterval ? TRUE: FALSE; //a)heartbeat: skip for a while more
+				if(!isHeartbeat && !node_pdus_changed_by_scene(node)) continue; //b)on-change: no pdus changed since last send, DIS ettiquette says don't send if no change
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				dis_set_node_lasttime(node,lasttime);
@@ -595,7 +804,7 @@ void dis_sendloop(){
 				}
 
 				//option b.
-				pdus = dis_node2pdus(node);
+				pdus = dis_node2pdus(node,isHeartbeat);
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
 					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
@@ -608,6 +817,7 @@ void dis_sendloop(){
 					printf("<<<< sendloop\n");
 				}
 				nbytes += nb;
+				reset_node_pduchanged(node);
 			}
 			if(nbytes) socksendto(dsock,buf2,nbytes);
 		}
@@ -1028,6 +1238,7 @@ void dis_recvloop(){
 	//Oct 24, 2017 choice: 1.
 	// - because we aren't doing a separate thread yet, so 1 or 3, and 3 worked when tried first
 	int i,j,nbytes, more, heard;
+	static int count = 0;
 	double thistime, dtime;
 	if(!sockets_recv || sockets_recv->n == 0) return;
 	thistime = TickTime();
@@ -1054,7 +1265,7 @@ void dis_recvloop(){
 				pdus->n = 0;
 				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
-				printf("hallelluha\n");
+				printf("hallelluha %d\n",count++);
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
 						int ihit;
@@ -1221,18 +1432,398 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 
 	return FALSE;
 }
+// freewrl problem: _changed flag is per-node
+// x but its bad DIS ettiquette to resend pdus that haven't changed
+// to detect per-pdu changes:
+// 1. during node_compile
+// 1.a do once: create node->_oldstate and register for disposal, copy node to _oldstate 
+// 1.b compare _oldState and node
+//		- compare fields per-pdu, and flag per-pdu
+//  common flags:
+//  _pduchange_networksensor
+//	per-pdu flags:
+//	espdu
+//	_pduchange_deadreckoning 
+//	_pduchange_articulationparameters
+//	_pduchange_collision
+//	_pduchange_fire
+//	_pduchange_detonation
+//	recieverpdu
+//	_pduchange_receiver
+//	signalpdu
+//	_pduchange_signal
+//	transmitterpdu
+//	_pduchange_transmitter
+// 1.c copy node fields to _oldState
+// 1.d mark node compiled
+// 2. in dis_sendloop only send pdus that changed
+void shallow_copy_node(struct X3D_Node *copy, struct X3D_Node *original )
+{
+	//we just want to copy the public fields, not our private _ fields
+	// which include things like _pduchange_espdutransform etc
+	// same for later when we compare, just the public fields
+	const int *offset;
+	unsigned char *src, *dest;
+	src = (unsigned char *)original;
+	dest = (unsigned char *)copy;
+
+	offset = NODE_OFFSETS[original->_nodeType];
+	while(offset[0] > -1){
+		if(offset[4] > 0){
+			//offset[4] is the specs attribute, and if its a private field ie _name then it should have 0
+			// we just want the public fields here
+			union anyVrml *anysrc, *anydest;
+			anysrc = (union anyVrml*)(src + offset[1]);
+			anydest = (union anyVrml*)(dest + offset[1]);
+			shallow_copy_field(offset[2],anysrc,anydest);
+		}
+		offset += 6;
+	};
+}
+int shallow_compare_field(int typeIndex, union anyVrml* source, union anyVrml* dest)
+{
+	int i, isize, has_changed;
+	int sftype, isMF;
+	struct Multi_Node *mfs,*mfd;
+	has_changed = FALSE;
+
+	isMF = typeIndex % 2;
+	sftype = typeIndex - isMF;
+	//from EAI_C_CommonFunctions.c
+	//isize = returnElementLength(sftype) * returnElementRowSize(sftype);
+	isize = sizeofSForMF(sftype);
+	if(isMF)
+	{
+		int nele;
+		char *ps, *pd;
+		mfs = (struct Multi_Node*)source;
+		mfd = (struct Multi_Node*)dest;
+		//self assignment is no-op
+		if(mfs->p != mfd->p){
+			has_changed = TRUE;
+		}else{
+			if(mfs->n != mfd->n){
+				has_changed = TRUE;
+			}else{
+				ps = (char *)mfs->p;
+				pd = (char *)mfd->p;
+				for(i=0;i<mfs->n;i++)
+				{
+					has_changed = shallow_compare_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
+					ps += isize;
+					pd += isize;
+				}
+			}
+		}
+	}else{ 
+		//isSF
+		switch(typeIndex)
+		{
+			case FIELDTYPE_SFString:
+				{
+					//go deep, same as copy_field
+					struct Uni_String **ss, **sd;
+					if(source != dest){
+						has_changed = TRUE;
+					}else{
+						ss = (struct Uni_String **)source;
+						sd = (struct Uni_String **)dest;
+						if(*ss && *sd){
+							has_changed = memcmp(*sd,*ss,sizeof(struct Uni_String)) ? TRUE : FALSE;
+						}
+					}
+				}
+				break;
+			default:
+				//memcpy(dest,source,sizeof(union anyVrml));
+				has_changed = memcmp(dest,source,isize) ? TRUE : FALSE;
+				break;
+		}
+	}
+	return has_changed;
+} //return copy_field
+
+int shallow_compare_node_fields(struct X3D_Node *node, struct X3D_Node *old, const int *PFIELDS){
+	const int *fname, *offset;
+	unsigned char *src, *dest;
+	int k, has_changed;
+
+	src = (unsigned char *)old;
+	dest = (unsigned char *)node;
+	fname = PFIELDS;
+	k = 0;
+	has_changed = 0;
+	while(fname[k] > -1){
+		offset = NODE_OFFSETS[node->_nodeType];
+		while(offset[0] > -1){
+			if(offset[0] == fname[k]){
+				union anyVrml *anysrc, *anydest;
+				anysrc = (union anyVrml*)(src + offset[1]);
+				anydest = (union anyVrml*)(dest + offset[1]);
+				has_changed += shallow_compare_field(offset[2],anysrc,anydest);
+				break;
+			}
+			offset += 6;
+		};
+		k++;
+	};
+	return has_changed ? TRUE : FALSE;
+}
+
+int mark_changed_node_fields(struct X3D_Node *node, struct X3D_Node *old, const int *PFIELDS){
+	const int *fname, *offset;
+	unsigned char *src, *dest;
+	int k, count;
+
+	src = (unsigned char *)old;
+	dest = (unsigned char *)node;
+	fname = PFIELDS;
+	k = 0;
+	count = 0;
+	while(fname[k] > -1){
+		offset = NODE_OFFSETS[node->_nodeType];
+		while(offset[0] > -1){
+			if(offset[0] == fname[k]){
+				union anyVrml *anysrc, *anydest;
+				anysrc = (union anyVrml*)(src + offset[1]);
+				anydest = (union anyVrml*)(dest + offset[1]);
+				if(shallow_compare_field(offset[2],anysrc,anydest)){
+					MARK_EVENT(node,offset[1]);
+					count++;
+				}
+				break;
+			}
+			offset += 6;
+		};
+		k++;
+	};
+	return count;
+}
+
+//here are some per-pdu lists of public fields, useful for detecting per-pdu field changes
+
+const int FIELDS_networksensor [] = {
+	FIELDNAMES_enabled,
+	FIELDNAMES_isActive,
+	FIELDNAMES_timestamp,
+	FIELDNAMES_address,
+	FIELDNAMES_port,
+	FIELDNAMES_multicastRelayHost,
+	FIELDNAMES_multicastRelayPort,
+	FIELDNAMES_networkMode,
+	FIELDNAMES_isNetworkReader,
+	FIELDNAMES_isNetworkWriter,
+	FIELDNAMES_isStandAlone,
+	FIELDNAMES_readInterval,
+	FIELDNAMES_writeInterval,
+	FIELDNAMES_rtpHeaderExpected,
+	FIELDNAMES_isRtpHeaderHeard,
+	//FIELDNAMES__registered, //not the private fields
+	//FIELDNAMES__dsock,
+	//FIELDNAMES__lasttime,
+	-1,
+};
+
+const int FIELDS_entity [] = {
+	FIELDNAMES_entityID,
+	FIELDNAMES_applicationID,
+	FIELDNAMES_siteID, 
+	-1,
+};
+
+const int FIELDS_geo [] = {	
+	FIELDNAMES_geoSystem, 
+	FIELDNAMES_geoCoords,
+	-1,
+};
+
+const int FIELDS_es_info [] = {	
+	FIELDNAMES_entityCategory,
+	FIELDNAMES_entityCountry,
+	FIELDNAMES_entityDomain,
+	FIELDNAMES_entityExtra,
+	FIELDNAMES_entityKind,
+	FIELDNAMES_entitySpecific,
+	FIELDNAMES_entitySubCategory,
+	-1,
+};
+
+const int FIELDS_es_force [] = {
+	FIELDNAMES_forceID,
+	FIELDNAMES_marking,
+	-1,
+};
+
+const int FIELDS_es_transform [] = {
+	FIELDNAMES_center,
+	FIELDNAMES_children,
+	FIELDNAMES_rotation,
+	FIELDNAMES_scale,
+	FIELDNAMES_scaleOrientation,
+	FIELDNAMES_translation,
+	//FIELDNAMES_bboxCenter,
+	//FIELDNAMES_bboxSize,
+	-1,
+};
+
+
+const int FIELDS_es_deadreckoning [] = {	
+	FIELDNAMES_deadReckoning,
+	FIELDNAMES_linearVelocity,
+	FIELDNAMES_linearAcceleration,
+	-1,
+};
+
+const int FIELDS_es_articulation [] = {	
+	FIELDNAMES_set_articulationParameterValue0,
+	FIELDNAMES_set_articulationParameterValue1,
+	FIELDNAMES_set_articulationParameterValue2,
+	FIELDNAMES_set_articulationParameterValue3,
+	FIELDNAMES_set_articulationParameterValue4,
+	FIELDNAMES_set_articulationParameterValue5,
+	FIELDNAMES_set_articulationParameterValue6,
+	FIELDNAMES_set_articulationParameterValue7,
+	FIELDNAMES_articulationParameterCount,
+	FIELDNAMES_articulationParameterDesignatorArray,
+	FIELDNAMES_articulationParameterChangeIndicatorArr,
+	FIELDNAMES_articulationParameterIdPartAttachedToAr,
+	FIELDNAMES_articulationParameterTypeArray,
+	FIELDNAMES_articulationParameterArray,
+	FIELDNAMES_articulationParameterValue0_changed,
+	FIELDNAMES_articulationParameterValue1_changed,
+	FIELDNAMES_articulationParameterValue2_changed,
+	FIELDNAMES_articulationParameterValue3_changed,
+	FIELDNAMES_articulationParameterValue4_changed,
+	FIELDNAMES_articulationParameterValue5_changed,
+	FIELDNAMES_articulationParameterValue6_changed,
+	FIELDNAMES_articulationParameterValue7_changed,
+	-1,
+};
+
+const int FIELDS_collision [] = {	
+	FIELDNAMES_collisionType,
+	FIELDNAMES_collideTime,
+	FIELDNAMES_isCollided,
+	-1,
+};
+
+const int FIELDS_events [] = {	
+	FIELDNAMES_eventEntityID,
+	FIELDNAMES_eventApplicationID,
+	FIELDNAMES_eventSiteID,
+	FIELDNAMES_eventNumber,
+	-1,
+};
+
+const int FIELDS_fire [] = {	
+	FIELDNAMES_fired1,
+	FIELDNAMES_fired2,
+	FIELDNAMES_fireMissionIndex,
+	FIELDNAMES_firingRange,
+	FIELDNAMES_firedTime,
+	-1,
+};
+
+const int FIELDS_detonation [] = {	
+	FIELDNAMES_detonationLocation,
+	FIELDNAMES_detonationRelativeLocation,
+	FIELDNAMES_detonationResult,
+	FIELDNAMES_detonateTime,
+	FIELDNAMES_isDetonated,
+	-1,
+};
+
+const int FIELDS_munition [] = {	
+	FIELDNAMES_munitionEntityID,
+	FIELDNAMES_munitionApplicationID,
+	FIELDNAMES_munitionSiteID,
+	FIELDNAMES_munitionStartPoint,
+	FIELDNAMES_munitionEndPoint,
+	FIELDNAMES_munitionQuantity,
+	-1,
+};
+const int FIELDS_rate [] = {	
+	FIELDNAMES_firingRate,
+	FIELDNAMES_fuse,
+	FIELDNAMES_warhead,
+	-1,
+};
+
+const int FIELDS_receiver [] = {	
+	FIELDNAMES_radioID,
+	FIELDNAMES_whichGeometry,
+	FIELDNAMES_receiverState,
+	FIELDNAMES_receivedPower,
+	FIELDNAMES_transmitterEntityID,
+	FIELDNAMES_transmitterApplicationID,
+	FIELDNAMES_transmitterSiteID,
+	FIELDNAMES_transmitterRadioID,
+	-1,
+};
+
+const int FIELDS_signal [] = {	
+	FIELDNAMES_radioID,
+	FIELDNAMES_whichGeometry,
+	FIELDNAMES_data,
+	FIELDNAMES_dataLength,
+	FIELDNAMES_encodingScheme,
+	FIELDNAMES_sampleRate,
+	FIELDNAMES_samples,
+	FIELDNAMES_tdlType,
+	-1,
+};
+
+const int FIELDS_transmitter [] = {	
+	FIELDNAMES_radioID,
+	FIELDNAMES_whichGeometry,
+	FIELDNAMES_radioEntityTypeCategory,
+	FIELDNAMES_radioEntityTypeCountry,
+	FIELDNAMES_radioEntityTypeDomain,
+	FIELDNAMES_radioEntityTypeKind,
+	FIELDNAMES_radioEntityTypeNomenclature,
+	FIELDNAMES_radioEntityTypeNomenclatureVersion,
+	FIELDNAMES_antennaLocation,
+	FIELDNAMES_antennaPatternLength,
+	FIELDNAMES_antennaPatternType,
+	FIELDNAMES_relativeAntennaLocation,
+	FIELDNAMES_inputSource,
+	FIELDNAMES_transmitState,
+	FIELDNAMES_power,
+	FIELDNAMES_frequency,
+	FIELDNAMES_transmitFrequencyBandwidth,
+	FIELDNAMES_lengthOfModulationParameters,
+	FIELDNAMES_modulationTypeDetail,
+	FIELDNAMES_modulationTypeMajor,
+	FIELDNAMES_modulationTypeMajor,
+	FIELDNAMES_modulationTypeSpreadSpectrum,
+	FIELDNAMES_modulationTypeSystem,
+	FIELDNAMES_cryptoSystem,
+	FIELDNAMES_cryptoKeyID,
+	-1,
+};
+
 
 void compile_DIS_common(struct X3D_EspduTransform *node){
+	if(node->_oldState == NULL){
+		//change detection 
+		//later we'll copy the entire node after we detect any changed fields
+		struct X3D_Node *old;
+		old = createNewX3DNode0(node->_nodeType);
+		//shallow_copy_node(old,X3D_NODE(node));
+		node->_oldState = old; //I think one underscore means dispose
+	}
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		//IDEA: save duplicate of nodetype in _oldnode field
-		int changed;
-		changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
-				node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
-		if(changed){
-			dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
-			node->_registered = FALSE;
-			node->_dsock = NULL;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_networksensor)){
+			int changed;
+			changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
+					node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
+			if(changed){
+				dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
+				node->_registered = FALSE;
+				node->_dsock = NULL;
+			}
 		}
 	}
 	if(!node->_registered){
@@ -1253,18 +1844,135 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 	//    children
 	// like we had wrapped espduTransform with a GeoLocation node
 	if(veclengthd(node->geoCoords.c) != 0.0){
-		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-		update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)){
+			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+			update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+		}
 	}
 }
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
+		node->_pduchange_transmitter = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_SignalPdu0(struct X3D_SignalPdu *node){
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_signal)){
+		node->_pduchange_signal = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_receiver)){
+		node->_pduchange_receiver = TRUE;
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
-	node->articulationParameterCount = node->articulationParameterArray.n;
+	//we use the same _pduchange flags and _oldState for both receiving and sending
+	// but could be split if needed
+	if(node->isNetworkReader){
+		if(node->_pduchange_es){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_info);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_force);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_deadreckoning);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_articulation);
+			//mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_transform);
+		}
+		if(node->_pduchange_collision){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_collision);
+		}
+		if(node->_pduchange_fire){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_fire);
+		}
+		if(node->_pduchange_fire || node->_pduchange_collision){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_events);
+		}
+		if(node->_pduchange_detonation){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_detonation);
+		}
+		if(node->_pduchange_fire || node->_pduchange_detonation){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_munition);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_rate);
+		}
+
+		if(node->_pduchange_create){
+		}
+		if(node->_pduchange_remove){
+		}
+		reset_node_pduchanged(X3D_NODE(node));
+
+	}else if(node->isNetworkWriter){
+		int es_info, es_force, es_deadreckoning, es_articulation;
+		es_info = es_force = es_deadreckoning = es_articulation = FALSE;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
+			es_info = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
+			es_force = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
+			es_deadreckoning = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
+			int i,n;
+			struct X3D_EspduTransform *old = (struct X3D_EspduTransform *)node->_oldState;
+			es_articulation = TRUE;
+			node->articulationParameterArray.p = realloc(node->articulationParameterArray.p,16*sizeof(float));
+			n = node->articulationParameterArray.n;
+			for(i=0;i<8;i++){
+				switch(i){
+					case 0: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue0) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue0; n=max(n,i); break;
+					case 1: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue1) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue1; n=max(n,i); break;
+					case 2: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue2) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue2; n=max(n,i); break;
+					case 3: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue3) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue3; n=max(n,i); break;
+					case 4: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue4) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue4; n=max(n,i); break;
+					case 5: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue5) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue5; n=max(n,i); break;
+					case 6: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue6) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue6; n=max(n,i); break;
+					case 7: if(node->set_articulationParameterValue0 != old->set_articulationParameterValue7) 
+						node->articulationParameterArray.p[i] = node->set_articulationParameterValue7; n=max(n,i); break;
+					default:
+					break;
+				}
+			}
+			node->articulationParameterCount = node->articulationParameterArray.n;
+		}
+		node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
+			node->_pduchange_collision = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_events)){
+			node->_pduchange_collision = TRUE;
+			node->_pduchange_fire = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_fire)){
+			node->_pduchange_fire = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_detonation)){
+			node->_pduchange_detonation = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_munition)){
+			node->_pduchange_fire = TRUE;
+			node->_pduchange_detonation = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_rate)){
+			node->_pduchange_fire = TRUE;
+			node->_pduchange_detonation = TRUE;
+		}
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
+
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
 	if(!renderstate()->render_vp) {
@@ -1291,28 +1999,38 @@ void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
-	INITIALIZE_EXTENT;
+	if(node->isNetworkReader){
+		if(node->_pduchange_es){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_transform);
+		}
+	}
+	//whether its reader, writer or standalone, we need to compile if it changed state
+	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
+		node->_pduchange_es = TRUE;
 
-	/* printf ("changed Transform for node %u\n",node); */
-	node->__do_center = verify_translate ((GLfloat *)node->center.c);
-	node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
-	node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
-	node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
-	node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
+		INITIALIZE_EXTENT;
 
-	node->__do_anything = (node->__do_center ||
-			node->__do_trans ||
-			node->__do_scale ||
-			node->__do_rotation ||
-			node->__do_scaleO);
+		/* printf ("changed Transform for node %u\n",node); */
+		node->__do_center = verify_translate ((GLfloat *)node->center.c);
+		node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
+		node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
+		node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
+		node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
 
-	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
-	MARK_NODE_COMPILED
+		node->__do_anything = (node->__do_center ||
+				node->__do_trans ||
+				node->__do_scale ||
+				node->__do_rotation ||
+				node->__do_scaleO);
+
+		REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+		MARK_NODE_COMPILED
+	}
 }
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
-	compile_DIS_common(node);
-	compile_EspduTransform0(node);
+	compile_DIS_common(node);  // must be first in case need to initialize _oldState
 	compile_EspduTransform1(node);
+	compile_EspduTransform0(node); //must be last to re-copy node to oldstate
 	MARK_NODE_COMPILED
 }
 
