@@ -176,7 +176,7 @@ int main (int argc, char **argv)
     fv_params = calloc(1, sizeof(freewrl_params_t));
 
     /* Default values */
-    fv_params->width = 640;
+    fv_params->width = 672; //640
     fv_params->height = 480;
 
     fv_params->fullscreen = FALSE;
