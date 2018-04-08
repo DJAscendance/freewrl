@@ -3394,7 +3394,32 @@ void setup_viewpoint_slerp3(double* center, double pivot_radius, double vp_radiu
 	quaternion_multiply(&viewer->endSLERPQuat,&qtmp,&viewer->startSLERPQuat);
 }
 
+void viewer_viewall(){
+	double dcenter[3], pivot_radius, vp_radius;
+	float extent6[6];
+	struct X3D_Node* rn;
 
+	rn = rootNode();
+	if(rn) {
+		float scene_diameter, vpradius;
+		double MM[16];
+		float vpf[3], center[3], vpoffset[3];
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+		extent6f_copy(extent6,rn->_extent);
+		extent6f_mattransform4d(extent6,extent6,MM);
+		//include currently bound viewpoint in scene_diameter? 
+		//-I think it already is part of rootNode extent, no need to add it
+		vecset3f(vpf,0.0f,0.0f,0.0f); 
+		extent6f_get_center3f(extent6,center);
+		float2double(dcenter,center,3);
+		vecdif3f(vpoffset,center,vpf);
+		pivot_radius = extent6f_get_maxradius(extent6);
+		vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
+		Viewer()->Dist = vp_radius; //pivot_radius; // + scene_diameter;
+
+		setup_viewpoint_slerp3(dcenter,pivot_radius, vp_radius);
+	}
+}
 /* We have a Viewpoint node being bound. (not a GeoViewpoint node) */
 void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	Quaternion q_i;

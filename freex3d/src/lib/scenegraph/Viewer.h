@@ -306,7 +306,7 @@ void toggleOrSetStereo(int type);
 void setAnaglyphSideColor(char val, int iside);
 void updateEyehalf(void);
 void viewer_level_to_bound(void);
-
+void viewer_viewall();
 int getAnaglyphPrimarySide(int primary, int iside);
 void setAnaglyphPrimarySide(int primary, int iside);
 int viewer_getKeyChord();

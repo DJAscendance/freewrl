@@ -1622,6 +1622,7 @@ ACTION_SHIFT,
 ACTION_HOVER,
 ACTION_PEDAL,
 ACTION_LEVEL,
+ACTION_VIEWALL,
 ACTION_HEADLIGHT,
 ACTION_COLLISION,
 ACTION_PREV,
@@ -1669,6 +1670,7 @@ char *help;
 {ACTION_RELOAD, "Reload"},
 {ACTION_URL, "URL"},
 {ACTION_FILE, "FILE"},
+{ACTION_VIEWALL, "VIEWALL"},
 {ACTION_BLANK, NULL},
 };
 const char *help_for_action(int action){
@@ -1699,7 +1701,7 @@ void convertPng2hexAlpha()
 	*/
 	int w,h,ii,size;
 	static int mbuts = 1; //2; //8; // 17;
-	static char * butFnames[] = {"hover.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
+	static char * butFnames[] = {"viewall.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
 	textureTableIndexStruct_s butts;
 
 	FILE* out = fopen("hudIcons_octalpha_h","w+");
@@ -1832,7 +1834,7 @@ void initButtons()
 		static GLubyte * buttonlist [] = {
 			walk, fly, examine,
 			yawz, xy, yawpitch, roll,
-			explore, spherical, turntable, lookat, distance, 
+			explore, spherical, turntable, lookat, distance, viewall,
 			shift, hover, pedal, level, headlight,
 			collision, prev, next, help, messages, 
 			options, reload, url, file, blank
@@ -1840,12 +1842,12 @@ void initButtons()
 		static int actionlist [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
 			ACTION_YAWZ, ACTION_XY, ACTION_YAWPITCH, ACTION_ROLL,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST, 
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST, ACTION_VIEWALL,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, 
 			ACTION_COLLISION, ACTION_PREV,ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, 
 			ACTION_OPTIONS,ACTION_RELOAD, ACTION_URL, ACTION_FILE, ACTION_BLANK,
 			};
-		static int NACTION = 27; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
+		static int NACTION = 28; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
 		//radiosets are to indicate what things are deselected (if any) when another thing is selected
 		static int radiosets [][9] = {
 			{8,ACTION_FLY,ACTION_WALK,ACTION_EXAMINE,ACTION_EXPLORE,ACTION_SPHERICAL,ACTION_TURNTABLE,ACTION_LOOKAT,ACTION_DIST},
@@ -1863,7 +1865,7 @@ void initButtons()
 
 		static int mainbar_linux [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST,
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_VIEWALL, ACTION_DIST,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, ACTION_COLLISION, ACTION_PREV,
 			ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, ACTION_OPTIONS, 
 			//ACTION_RELOAD, ACTION_URL, 
@@ -2483,7 +2485,8 @@ int handleButtonRelease(int mouseX, int mouseY)
 				case ACTION_HOVER:	 fwl_setHover(p->pmenu.bitems[i].item->butStatus); 
 				break;
 				case ACTION_PEDAL:	 fwl_setPedal(p->pmenu.bitems[i].item->butStatus); break;
-				case ACTION_LEVEL:	 viewer_level_to_bound(); break;
+				case ACTION_VIEWALL: viewer_viewall(); break;
+				case ACTION_LEVEL: viewer_level_to_bound(); break;
 				case ACTION_HEADLIGHT: fwl_toggle_headlight(); break;
 				case ACTION_COLLISION: toggle_collision(); break; 
 				case ACTION_PREV:	fwl_Prev_ViewPoint(); break;
