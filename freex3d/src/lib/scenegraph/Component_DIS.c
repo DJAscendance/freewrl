@@ -94,10 +94,23 @@ http://open-dis.sourceforge.net/Open-DIS.html
 http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
 - 2012 DIS draft
 
+Don's references:
+a. IITSEC 2017 slideset, DIS 101
+   https://gitlab.nps.edu/Savage/NetworkedGraphicsMV3500/raw/master/presentations/IITSEC2018_DIS_Tutorial.pptx
 
+b. X3D and Distributed Interactive Simulation (DIS)
+   http://x3dgraphics.com/slidesets/X3dForAdvancedModeling/DistributedInteractiveSimulation.pdf
+   (brutzman slides)
+
+c. X3D v3.3 Distributed interactive simulation (DIS) component
+   http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html
+  
+d. IEEE Standards Maintained by SISO SAC
+   https://www.sisostds.org/ProductsPublications/Standards/IEEEStandards.aspx
+   
+   
 Problem: our C .h and the DIS.lib (cpp) .h clash, very messy
 x didn't find a combination of headers that worked
-
 Options:
 1. clean up our headers
 2. convert DIS.lib objects we need to flat C structs
