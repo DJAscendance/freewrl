@@ -74,7 +74,7 @@ void Component_Shape_init(struct tComponent_Shape *t){
 	t->prv = Component_Shape_constructor();
 	{
 		ppComponent_Shape p = (ppComponent_Shape)t->prv;
-		p->modulation = 0; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+		p->modulation = 1; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
 	}
 
 }
