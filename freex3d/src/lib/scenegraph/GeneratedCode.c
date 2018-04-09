@@ -229,6 +229,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__xparams",
 	"_align",
 	"_amb",
+	"_angularVelocity",
 	"_appliedParameters",
 	"_appliedParametersMask",
 	"_bboxCenter",
@@ -4433,6 +4434,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_deadReckoning, (int) offsetof (struct X3D_EspduTransform, deadReckoning),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_EspduTransform, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_linearAcceleration, (int) offsetof (struct X3D_EspduTransform, linearAcceleration),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ACCEL,
+	(int) FIELDNAMES__angularVelocity, (int) offsetof (struct X3D_EspduTransform, _angularVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9433,6 +9435,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->deadReckoning = 0;
 			tmp2->linearVelocity.c[0] = 0.0f;tmp2->linearVelocity.c[1] = 0.0f;tmp2->linearVelocity.c[2] = 0.0f;
 			tmp2->linearAcceleration.c[0] = 0.0f;tmp2->linearAcceleration.c[1] = 0.0f;tmp2->linearAcceleration.c[2] = 0.0f;
+			tmp2->_angularVelocity.c[0] = 0.0f;tmp2->_angularVelocity.c[1] = 0.0f;tmp2->_angularVelocity.c[2] = 0.0f;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
@@ -14432,6 +14435,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," linearAcceleration (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->linearAcceleration.c[i]); }
 			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," _angularVelocity (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_angularVelocity.c[i]); }
+			fprintf (fp,"\n");
+		    }
 			spacer fprintf (fp," articulationParameterCount (SFInt32) \t%d\n",tmp->articulationParameterCount);
 			spacer fprintf (fp," articulationParameterDesignatorArray (MFInt32):\n");
 			for (i=0; i<tmp->articulationParameterDesignatorArray.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->articulationParameterDesignatorArray.p[i]); }
