@@ -496,10 +496,13 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				float v1[3], tmp[3], a1[3];
 				dtime = TickTime() - pnode->_lastp0time;
 				vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
-				pnode->_change_count = min(pnode->_change_count,2);
+				//pnode->_change_count = min(pnode->_change_count,2);
 				if(pnode->_change_count > 2){
+					//a = (v1-v0)/dt
 					vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
 					veccopy3f(pnode->linearAcceleration.c,a1);
+					//v1 = v0 - 1/2at**2
+					
 				}else{
 					vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
 				}
@@ -2092,13 +2095,16 @@ DRM_RPB = 7,
 DRM_RVB = 8,
 DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
 };
-void dead_reckon(int drmethod, double dtime, float *p1, float *v1, float *a1, float *p0, float *v0, float *a0){
+void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, float *a0){
 	switch(drmethod){
 		case STATIC: //1
 			veccopy3f(p1,p0);
 			break;
 		case DRM_FPW: //2
 			{
+				float tmp[3];
+				// P = P0 + V0*dt
+				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
 			}
 			break;
 		case DRM_RPW: //3
@@ -2116,17 +2122,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *v1, float *a1, fl
 				//update position
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
 				float tmp3[3],tmp2[3],tmp1[3];
-				//vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
-				vecadd3f(p1,p0,vecscale3f(tmp2,v0,dtime));
-
-				//update linear velocity
-				//v1 = v0 + a*dt
-				//vecadd3f(v1,v0,vecscale3f(tmp1,a,dtime)); 
-				//v1 = (p1 - p0)/dt (is this first order?)
-				vecdif3f(tmp2,p1,p0);
-				vecscale3f(v1,tmp2,1.0f/dtime);
-				vecdif3f(tmp2,v1,v0);
-				vecscale3f(a1,tmp2,1.0f/dtime);
+				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
 
 			}
 			break;
@@ -2244,7 +2240,6 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 			wasTransmitted = TRUE;
 			node->_sent = FALSE;
 			veccopy3f(node->_p0.c,node->translation.c);
-			//veccopy3f(node->_lastp0.c,node->_p0.c);
 		}
 		veccopy3f(p0,node->_p0.c);
 		veccopy3f(v0,node->linearVelocity.c);
@@ -2258,7 +2253,7 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 		drmethod = node->deadReckoning;
 		if(drmethod)
 			if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
-		dead_reckon(drmethod, dtime, p1, v1, a1, p0, v0, a0);
+		dead_reckon(drmethod, dtime, p1, p0, v0, a0);
 		veccopy3f(node->_p0.c,p1);
 		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_EspduTransform,_p0));
 	}
