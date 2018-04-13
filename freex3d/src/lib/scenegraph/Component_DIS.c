@@ -489,6 +489,26 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			espdu->articulationParameters = (void*)ap;
 		}
 		//dead reckoning
+		if(1){
+			pnode->_change_count++;
+			if(pnode->_change_count > 1){
+				double dtime;
+				float v1[3], tmp[3], a1[3];
+				dtime = TickTime() - pnode->_lastp0time;
+				vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
+				pnode->_change_count = min(pnode->_change_count,2);
+				if(pnode->_change_count > 2){
+					vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
+					veccopy3f(pnode->linearAcceleration.c,a1);
+				}else{
+					vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
+				}
+				veccopy3f(pnode->linearVelocity.c,v1);
+			}
+			veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+			pnode->_lastp0time = TickTime();
+		}
+
 		espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
 		vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
@@ -853,7 +873,6 @@ void dis_sendloop(){
 				printf(".");
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
-				dis_set_node_lasttime(node,lasttime);
 				if(j==0) {
 					nb = write_rtp(&buf2[nbytes],node);
 					nbytes += nb;
@@ -861,6 +880,8 @@ void dis_sendloop(){
 
 				//option b.
 				pdus = dis_node2pdus(node,isHeartbeat);
+				dis_set_node_lasttime(node,lasttime);
+
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
 					//printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
@@ -2095,7 +2116,9 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *v1, float *a1, fl
 				//update position
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
 				float tmp3[3],tmp2[3],tmp1[3];
-				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				//vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				vecadd3f(p1,p0,vecscale3f(tmp2,v0,dtime));
+
 				//update linear velocity
 				//v1 = v0 + a*dt
 				//vecadd3f(v1,v0,vecscale3f(tmp1,a,dtime)); 
@@ -2158,6 +2181,7 @@ void compile_EspduTransform1 (struct X3D_EspduTransform *node) {
 			//node->_pduchange_es = TRUE;
 			if(!transform_within_DeadReckoningTolerance1(node)) {
 				node->_pduchange_es = TRUE;
+				if(0){
 				node->_change_count++;
 				if(node->_change_count > 1){
 					double dtime;
@@ -2166,9 +2190,10 @@ void compile_EspduTransform1 (struct X3D_EspduTransform *node) {
 					vecscale3f(v1,vecdif3f(tmp,node->translation.c,node->_lastp0.c),1.0f/dtime);
 					if(node->_change_count > 2){
 						vecscale3f(a1,vecdif3f(tmp,v1,node->linearVelocity.c),1.0f/dtime);
-						veccopy3f(node->linearAcceleration.c,a1);
+						//veccopy3f(node->linearAcceleration.c,a1);
 					}
 					veccopy3f(node->linearVelocity.c,v1);
+				}
 				}
 			}
 		}
@@ -2232,24 +2257,24 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 			wasTransmitted = TRUE;
 			node->_sent = FALSE;
 			veccopy3f(node->_p0.c,node->translation.c);
-			veccopy3f(node->_lastp0.c,node->_p0.c);
+			//veccopy3f(node->_lastp0.c,node->_p0.c);
 		}
 		veccopy3f(p0,node->_p0.c);
 		veccopy3f(v0,node->linearVelocity.c);
 		veccopy3f(a0,node->linearAcceleration.c);
 
 	}
-	{
-		dtime = TickTime() - lastTime();
-		drmethod = node->deadReckoning;
 
+	if(node->_lastframetime > 0.0){
+		dtime = TickTime() - node->_lastframetime; //lastime();
+		drmethod = node->deadReckoning;
 		if(drmethod)
 			if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
 		dead_reckon(drmethod, dtime, p1, v1, a1, p0, v0, a0);
 		veccopy3f(node->_p0.c,p1);
 		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_EspduTransform,_p0));
 	}
-	
+	node->_lastframetime = TickTime();
 	if(node->isNetworkReader){
 		node->_change++;
 		//update translation based on DR

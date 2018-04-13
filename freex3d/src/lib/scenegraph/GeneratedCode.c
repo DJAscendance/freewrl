@@ -278,7 +278,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_keyValueVBO",
 	"_knot",
 	"_knotrange",
+	"_lastframetime",
 	"_lastp0",
+	"_lastp0time",
 	"_lasttick",
 	"_lasttime",
 	"_layerId",
@@ -4447,6 +4449,8 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES__change_count, (int) offsetof (struct X3D_EspduTransform, _change_count),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__sent, (int) offsetof (struct X3D_EspduTransform, _sent),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__lastp0, (int) offsetof (struct X3D_EspduTransform, _lastp0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastp0time, (int) offsetof (struct X3D_EspduTransform, _lastp0time),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lastframetime, (int) offsetof (struct X3D_EspduTransform, _lastframetime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9454,6 +9458,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_change_count = 0;
 			tmp2->_sent = 0;
 			tmp2->_lastp0.c[0] = 0.0f;tmp2->_lastp0.c[1] = 0.0f;tmp2->_lastp0.c[2] = 0.0f;
+			tmp2->_lastp0time = 0;
+			tmp2->_lastframetime = 0;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
