@@ -1889,6 +1889,14 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 		//shallow_copy_node(old,X3D_NODE(node));
 		node->_oldState = old; //I think one underscore means dispose
 	}
+	if(!node->_registered){
+		void *psock;
+		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
+		node->multicastRelayPort,
+		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
+		node->_registered = TRUE;
+		node->_dsock = psock;
+	}
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
 		//IDEA: save duplicate of nodetype in _oldnode field
@@ -1902,14 +1910,6 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 				node->_dsock = NULL;
 			}
 		}
-	}
-	if(!node->_registered){
-		void *psock;
-		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
-		node->multicastRelayPort,
-		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
-		node->_registered = TRUE;
-		node->_dsock = psock;
 	}
 	//Mar 2018 interpretation of geoSystem/geoCoords for DIS:
 	//- specs say DIS coords are (x,-z,y) cartesian, they can never be geospatial like GD (lat,lon)
@@ -2181,20 +2181,6 @@ void compile_EspduTransform1 (struct X3D_EspduTransform *node) {
 			//node->_pduchange_es = TRUE;
 			if(!transform_within_DeadReckoningTolerance1(node)) {
 				node->_pduchange_es = TRUE;
-				if(0){
-				node->_change_count++;
-				if(node->_change_count > 1){
-					double dtime;
-					float v1[3], tmp[3], a1[3];
-					dtime = TickTime() - node->_lasttime;
-					vecscale3f(v1,vecdif3f(tmp,node->translation.c,node->_lastp0.c),1.0f/dtime);
-					if(node->_change_count > 2){
-						vecscale3f(a1,vecdif3f(tmp,v1,node->linearVelocity.c),1.0f/dtime);
-						//veccopy3f(node->linearAcceleration.c,a1);
-					}
-					veccopy3f(node->linearVelocity.c,v1);
-				}
-				}
 			}
 		}
 	}
@@ -2236,7 +2222,8 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	
 	wasTransmitted = FALSE;
 	if(node->isNetworkReader){
-		if(node->_lasttime == 0.0) return;
+		if(node->_lasttime == 0.0) 
+			return;
 		if(node->_pduchange_es){
 			//node start or node received
 			wasTransmitted = TRUE;
@@ -2264,7 +2251,8 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 		veccopy3f(a0,node->linearAcceleration.c);
 
 	}
-
+	if(node->_lastframetime == 0.0)
+		veccopy3f(node->_p0.c,p0);
 	if(node->_lastframetime > 0.0){
 		dtime = TickTime() - node->_lastframetime; //lastime();
 		drmethod = node->deadReckoning;
