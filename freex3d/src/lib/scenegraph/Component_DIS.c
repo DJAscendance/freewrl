@@ -490,6 +490,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		}
 		//dead reckoning
 		espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
+		vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,pnode->_angularVelocity.c);
 		//...
@@ -624,7 +625,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				// dead reckoning
 				pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
 				vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
-				//no such pdu thing: vector3float2vec3f(pnode->linearVelocity.c,&espdu->deadReckoningParameters.entityLinearVelocity);
+				vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
 				vector3float2vec3f(pnode->_angularVelocity.c,&espdu->deadReckoningParameters.entityAngularVelocity);
 				pnode->_pduchange_es = TRUE;
 				if(espdu->entityAppearance | 1 << 20){
