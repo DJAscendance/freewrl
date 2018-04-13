@@ -227,6 +227,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__wireindicesVBO",
 	"__xcolours",
 	"__xparams",
+	"_a0",
 	"_align",
 	"_amb",
 	"_angularVelocity",
@@ -238,6 +239,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_boxtris",
 	"_buffer",
 	"_bufferendtime",
+	"_change_count",
 	"_class",
 	"_col",
 	"_colourSize",
@@ -276,6 +278,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_keyValueVBO",
 	"_knot",
 	"_knotrange",
+	"_lastp0",
 	"_lasttick",
 	"_lasttime",
 	"_layerId",
@@ -307,6 +310,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_origNorms",
 	"_origPoint",
 	"_p",
+	"_p0",
 	"_parentResource",
 	"_particles",
 	"_patch",
@@ -337,6 +341,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_screendata",
 	"_segs",
 	"_selected",
+	"_sent",
 	"_shaderLoadThread",
 	"_shaderUserDefinedFields",
 	"_shaderUserNumber",
@@ -361,6 +366,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_type",
 	"_uKnot",
 	"_usingDisk",
+	"_v0",
 	"_vKnot",
 	"_values",
 	"_verifiedBackColor",
@@ -4434,7 +4440,13 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_deadReckoning, (int) offsetof (struct X3D_EspduTransform, deadReckoning),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_EspduTransform, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_linearAcceleration, (int) offsetof (struct X3D_EspduTransform, linearAcceleration),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ACCEL,
-	(int) FIELDNAMES__angularVelocity, (int) offsetof (struct X3D_EspduTransform, _angularVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
+	(int) FIELDNAMES__p0, (int) offsetof (struct X3D_EspduTransform, _p0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__v0, (int) offsetof (struct X3D_EspduTransform, _v0),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__a0, (int) offsetof (struct X3D_EspduTransform, _a0),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__angularVelocity, (int) offsetof (struct X3D_EspduTransform, _angularVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__change_count, (int) offsetof (struct X3D_EspduTransform, _change_count),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__sent, (int) offsetof (struct X3D_EspduTransform, _sent),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastp0, (int) offsetof (struct X3D_EspduTransform, _lastp0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9435,7 +9447,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->deadReckoning = 0;
 			tmp2->linearVelocity.c[0] = 0.0f;tmp2->linearVelocity.c[1] = 0.0f;tmp2->linearVelocity.c[2] = 0.0f;
 			tmp2->linearAcceleration.c[0] = 0.0f;tmp2->linearAcceleration.c[1] = 0.0f;tmp2->linearAcceleration.c[2] = 0.0f;
+			tmp2->_p0.c[0] = 0.0f;tmp2->_p0.c[1] = 0.0f;tmp2->_p0.c[2] = 0.0f;
+			tmp2->_v0.c[0] = 0.0f;tmp2->_v0.c[1] = 0.0f;tmp2->_v0.c[2] = 0.0f;
+			tmp2->_a0.c[0] = 0.0f;tmp2->_a0.c[1] = 0.0f;tmp2->_a0.c[2] = 0.0f;
 			tmp2->_angularVelocity.c[0] = 0.0f;tmp2->_angularVelocity.c[1] = 0.0f;tmp2->_angularVelocity.c[2] = 0.0f;
+			tmp2->_change_count = 0;
+			tmp2->_sent = 0;
+			tmp2->_lastp0.c[0] = 0.0f;tmp2->_lastp0.c[1] = 0.0f;tmp2->_lastp0.c[2] = 0.0f;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
@@ -14436,8 +14454,19 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->linearAcceleration.c[i]); }
 			fprintf (fp,"\n");
 		    if(allFields) {
-			spacer fprintf (fp," _angularVelocity (SFVec3f): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_angularVelocity.c[i]); }
+			spacer fprintf (fp," _p0 (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_p0.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _change_count (SFInt32) \t%d\n",tmp->_change_count);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _sent (SFInt32) \t%d\n",tmp->_sent);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _lastp0 (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_lastp0.c[i]); }
 			fprintf (fp,"\n");
 		    }
 			spacer fprintf (fp," articulationParameterCount (SFInt32) \t%d\n",tmp->articulationParameterCount);

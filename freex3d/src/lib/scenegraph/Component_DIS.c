@@ -429,6 +429,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	printf("pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
 	if(pnode->_pduchange_es || isHeartbeat){
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
@@ -441,6 +442,8 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		espdu->entityLocation.x = pnode->translation.c[0];
 		espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
 		espdu->entityLocation.z = pnode->translation.c[1];
+		//vecprint3fb("trans=",pnode->translation.c,"\n");
+		pnode->_sent = TRUE;
 		//rotation
 		if(0){
 			//theirs:
@@ -488,9 +491,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		//dead reckoning
 		espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
-		// no such thing, we don't have it vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,pnode->angularVelocity.c);
+		vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,pnode->_angularVelocity.c);
 		//...
-		printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
+		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	}
 	//ephemerals / expendables - no hearbeat requirements?
@@ -587,7 +590,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				}
 				//articuation parameters
 				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
-				printf("recv art count %d\n",espdu->numberOfArticulationParameters);
+				//printf("recv art count %d\n",espdu->numberOfArticulationParameters);
 				if(pnode->articulationParameterArray.n){
 					struct ArticulationParameter *ap;
 					float *pp;
@@ -622,7 +625,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
 				vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
 				//no such pdu thing: vector3float2vec3f(pnode->linearVelocity.c,&espdu->deadReckoningParameters.entityLinearVelocity);
-				//no such x3d thing: vector3float2vec3f(pnode->angularVelocity.c,&espdu->deadReckoningParameters.entityAngularVelocity);
+				vector3float2vec3f(pnode->_angularVelocity.c,&espdu->deadReckoningParameters.entityAngularVelocity);
 				pnode->_pduchange_es = TRUE;
 				if(espdu->entityAppearance | 1 << 20){
 					//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
@@ -817,47 +820,7 @@ void reset_node_pduchanged(struct X3D_Node *node){
 			break;
 	}
 }
-// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
-// p.665 dead reckoning
-enum {
-DRM_FVW = 5,  //P = P0 + V0*dt + 1/2*A*dt^2  in world coords
-DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
-};
-#define DR_TOL .5
-int transform_within_DeadReckoningTolerance(struct X3D_Node *node, double dtime){
-	int withintol = TRUE;
-	if(node->_nodeType == NODE_EspduTransform){
-		int drmethod;
-		struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
-		drmethod = pnode->deadReckoning;
-		if(!pnode->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
-		switch(drmethod){
-			case DRM_FVW: 
-				{
-					//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
-					float p[3],p0[3],v0[3],a[3],tmp3[3],tmp2[3],tmp1[3],gap[3];
-					struct X3D_EspduTransform *oldstate = (struct X3D_EspduTransform *)pnode->_oldState;
-					veccopy3f(p0,oldstate->translation.c);
-					veccopy3f(a,pnode->linearAcceleration.c);
-					veccopy3f(v0,pnode->linearVelocity.c);
-					vecadd3f(p,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a,.5f*dtime*dtime)));
-					vecdif3f(gap,p,pnode->translation.c);
-					if(veclength3f(gap) > DR_TOL) withintol = FALSE;
-				}
-				break;
-			case DRM_FVB: 
-				{
-					//P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
 
-				}
-				break;
-			default:
-				break;
-		}
-	}
-	
-	return withintol;
-}
 void dis_sendloop(){
 	double thistime;
 	int i,j, nbytes, nb;
@@ -882,9 +845,11 @@ void dis_sendloop(){
 				dtime = thistime - lasttime;
 				isHeartbeat = dtime > writeInterval ? TRUE: FALSE; //a)heartbeat: skip for a while more
 				if(!isHeartbeat && !node_pdus_changed_by_scene(node)) continue; //b)on-change: no pdus changed since last send, DIS ettiquette says don't send if no change
-				if(!isHeartbeat && node_only_transform_changed(node)){
-					if(transform_within_DeadReckoningTolerance(node,dtime)) continue;
-				}
+				//if(0) //moved to node _compile/_prep/_child
+				//if(!isHeartbeat && node_only_transform_changed(node)){
+				//	if(transform_within_DeadReckoningTolerance(node,dtime)) continue;
+				//}
+				printf(".");
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				dis_set_node_lasttime(node,lasttime);
@@ -897,7 +862,7 @@ void dis_sendloop(){
 				pdus = dis_node2pdus(node,isHeartbeat);
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
-					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
+					//printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
 				}
 				nb = dis_write_stream(&buf2[nbytes],pdus);
 				if(0){
@@ -1179,15 +1144,15 @@ int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *p
 		}
 		pdutype = (int)(carat[2]);
 		distype = pduToDis(pdutype);
-		printf("pdu type=%d distype=%d",(int)pdutype, distype);
+		//printf("pdu type=%d distype=%d",(int)pdutype, distype);
 		
 		pdubuf = dis_ctor(distype);
 		carat2 = dis_unmarshal(carat,pdubuf,distype);
 		nbytes = (carat2 - carat);
 		pdu = (struct Pdu*)pdubuf;
-		printf("un-marshed version %d pdutype= %d\n",pdu->protocolVersion,pdu->pduType);
+		//printf("un-marshed version %d pdutype= %d\n",pdu->protocolVersion,pdu->pduType);
 		vector_pushBack(struct Pdu*,pdus,pdu);
-		printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
+		//printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
 
 		if(0){
 			//try marshalling, then compare bytestreams
@@ -1274,8 +1239,8 @@ int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *p
 		//dis_dtor(pdubuf,distype);
 		bytesread += nbytes;
 		carat = carat2;
-		printf("bytes left = %d - %d = %d\n",streamsize, (int)(carat - datastream), streamsize - (int)(carat-datastream));
-		printf("\n");
+		//printf("bytes left = %d - %d = %d\n",streamsize, (int)(carat - datastream), streamsize - (int)(carat-datastream));
+		//printf("\n");
 		//if(0) for(i=0;i<npdus;i++){
 		//	if(registeredPdus[i]->pduType == pdutype){
 		//		//I think there should be more filtering here
@@ -1298,7 +1263,7 @@ int dis_write_stream(unsigned char * datastream, struct Vector *pdus)
 	if(pdus && pdus->n){
 		for(i=0;i<pdus->n;i++){
 			struct Pdu *pdu = vector_get(struct Pdu*,pdus,i);
-			printf("dis_wrt_str protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
+			//printf("dis_wrt_str protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
 			int distype = pduToDis(pdu->pduType);
 			carat = dis_marshal(carat,(unsigned char*)pdu,distype);
 			//printf("pdu %d wrote %d bytes\n",i,nbytes);
@@ -1346,7 +1311,7 @@ void dis_recvloop(){
 			if(nbytes > 0){
 				more = TRUE;
 				dsock->lasttime = thistime;
-				printf("sock read nbytes = %d\n",nbytes);
+				//printf("sock read nbytes = %d\n",nbytes);
 				//free last round
 				for(j=0;j<pdus->n;j++){
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,j);
@@ -1355,7 +1320,7 @@ void dis_recvloop(){
 				pdus->n = 0;
 				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
-				printf("hallelluha %d\n",count++);
+				//printf("hallelluha %d\n",count++);
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
 						int ihit;
@@ -1740,7 +1705,7 @@ const int FIELDS_es_info [] = {
 
 const int FIELDS_es_force [] = {
 	FIELDNAMES_forceID,
-	FIELDNAMES_marking,
+	//FIELDNAMES_marking,
 	-1,
 };
 
@@ -2005,7 +1970,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			es_force = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
-			es_deadreckoning = TRUE;
+			es_deadreckoning = FALSE; //we'll do it elsewhere TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
 			int i,n;
@@ -2037,6 +2002,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			}
 			node->articulationParameterCount = node->articulationParameterArray.n;
 		}
+		//printf("es %d inf %d for %d dr %d art %d\n ",node->_pduchange_es,es_info,es_force,es_deadreckoning,es_articulation);
 		node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
 			node->_pduchange_collision = TRUE;
@@ -2087,16 +2053,127 @@ void prep_EspduTransform0(struct X3D_EspduTransform *node){}
 void fin_EspduTransform0(struct X3D_EspduTransform *node){}
 #endif //WITH_DIS
 
+// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+// p.663 DR formula naming:
+//   rotation: fixed (F), rotating (R)
+//   order of position function:  rate of position (P) (first order), rate of velocity (V) (second order)
+//   coords: world coordinates (W)  body axis coordinates (B)
+// p.665 dead reckoning formulas
+enum {
+STATIC  = 1,
+DRM_FPW = 2,
+DRM_RPW = 3,
+DRM_RVW = 4,
+DRM_FVW = 5,  //P = P0 + V0*dt + 1/2*A*dt^2  in world coords
+DRM_FPB = 6,
+DRM_RPB = 7,
+DRM_RVB = 8,
+DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
+};
+void dead_reckon(int drmethod, double dtime, float *p1, float *v1, float *a1, float *p0, float *v0, float *a0){
+	switch(drmethod){
+		case STATIC: //1
+			veccopy3f(p1,p0);
+			break;
+		case DRM_FPW: //2
+			{
+			}
+			break;
+		case DRM_RPW: //3
+			{
+			}
+			break;
+		case DRM_RVW: //4
+			{
+			}
+			break;
+		case DRM_FVW: //5
+			{
+				//F=fixed rotation, V = 2nd order, W=world coords
+				//E.7.2.2 p.666
+				//update position
+				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
+				float tmp3[3],tmp2[3],tmp1[3];
+				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				//update linear velocity
+				//v1 = v0 + a*dt
+				//vecadd3f(v1,v0,vecscale3f(tmp1,a,dtime)); 
+				//v1 = (p1 - p0)/dt (is this first order?)
+				vecdif3f(tmp2,p1,p0);
+				vecscale3f(v1,tmp2,1.0f/dtime);
+				vecdif3f(tmp2,v1,v0);
+				vecscale3f(a1,tmp2,1.0f/dtime);
+
+			}
+			break;
+		case DRM_FPB: //6
+			{
+			}
+			break;
+		case DRM_RPB: //7
+			{
+			}
+			break;
+		case DRM_RVB: //8
+			{
+			}
+			break;
+		case DRM_FVB: //9
+			{
+				//P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
+
+			}
+			break;
+		default:
+			veccopy3f(p1,p0);
+			break;
+	}
+
+}
+#define DRA_POS_THRSH 1.5
+#define DRA_ORIENT_THRSH .175 //RADIANS about 10 degrees
+
+int transform_within_DeadReckoningTolerance1(struct X3D_EspduTransform *node){
+	int withintol = TRUE;
+	float p0[3], gap[3];
+	struct X3D_EspduTransform *oldstate = (struct X3D_EspduTransform *)node->_oldState;
+	veccopy3f(p0,node->_p0.c); //oldstate->translation.c);
+
+	vecdif3f(gap,p0,node->translation.c);
+	if(veclength3f(gap) > DRA_POS_THRSH) 
+		withintol = FALSE;
+	return withintol;
+}
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
 	if(node->isNetworkReader){
 		if(node->_pduchange_es){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_transform);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_geo);
+		}
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform) 
+		|| shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)) {
+			//node->_pduchange_es = TRUE;
+			if(!transform_within_DeadReckoningTolerance1(node)) {
+				node->_pduchange_es = TRUE;
+				node->_change_count++;
+				if(node->_change_count > 1){
+					double dtime;
+					float v1[3], tmp[3], a1[3];
+					dtime = TickTime() - node->_lasttime;
+					vecscale3f(v1,vecdif3f(tmp,node->translation.c,node->_lastp0.c),1.0f/dtime);
+					if(node->_change_count > 2){
+						vecscale3f(a1,vecdif3f(tmp,v1,node->linearVelocity.c),1.0f/dtime);
+						veccopy3f(node->linearAcceleration.c,a1);
+					}
+					veccopy3f(node->linearVelocity.c,v1);
+				}
+			}
 		}
 	}
 	//whether its reader, writer or standalone, we need to compile if it changed state
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
-		node->_pduchange_es = TRUE;
 
 		INITIALIZE_EXTENT;
 
@@ -2116,6 +2193,7 @@ void compile_EspduTransform1 (struct X3D_EspduTransform *node) {
 		REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 		MARK_NODE_COMPILED
 	}
+
 }
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
 	compile_DIS_common(node);  // must be first in case need to initialize _oldState
@@ -2125,52 +2203,67 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {
 }
 
 void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
+	int drmethod, wasTransmitted;
+	float p1[3],v1[3],a1[3];
+	float p0[3],v0[3],a0[3];
+	double dtime;
+	
+	wasTransmitted = FALSE;
 	if(node->isNetworkReader){
-		int drmethod;
-		double dtime;
-		dtime = TickTime() - node->_lasttime;
-		//if(dtime > node->readInterval)
-		drmethod = node->deadReckoning;
-		if(drmethod > 0 || node->linearVelocity.c[2] != 0.0f)
-			printf("got dead reckoning from sender!!!\n");
-		if(!node->__geoSystem) 
-			drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
-		switch(drmethod){
-			case DRM_FVW: 
-				{
-					//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
-					float p[3],p0[3],v0[3],a[3],tmp3[3],tmp2[3],tmp1[3],gap[3];
-					struct X3D_EspduTransform *oldstate = (struct X3D_EspduTransform *)node->_oldState;
-					veccopy3f(p0,oldstate->translation.c);
-					veccopy3f(a,node->linearAcceleration.c);
-					veccopy3f(v0,node->linearVelocity.c);
-					vecadd3f(p,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a,.5f*dtime*dtime)));
-					veccopy3f(node->translation.c,p);
-					//vecdif3f(gap,p,node->translation.c);
-					//if(veclength3f(gap) > DR_TOL) withintol = FALSE;
+		if(node->_lasttime == 0.0) return;
+		if(node->_pduchange_es){
+			//node start or node received
+			wasTransmitted = TRUE;
 
-				}
-				break;
-			case DRM_FVB: 
-				{
-					//P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
-
-				}
-				break;
-			default:
-				break;
 		}
+		veccopy3f(p0,node->translation.c);
+		veccopy3f(v0,node->linearVelocity.c);
+		veccopy3f(a0,node->linearAcceleration.c);
+	}
+	if(node->isStandAlone){
+		veccopy3f(p0,node->translation.c);
+		veccopy3f(v0,node->linearVelocity.c);
+		veccopy3f(a0,node->linearAcceleration.c);
+	}
+	if(node->isNetworkWriter){
+		if(node->_sent){
+			//to be fair, only use what you send
+			wasTransmitted = TRUE;
+			node->_sent = FALSE;
+			veccopy3f(node->_p0.c,node->translation.c);
+			veccopy3f(node->_lastp0.c,node->_p0.c);
+		}
+		veccopy3f(p0,node->_p0.c);
+		veccopy3f(v0,node->linearVelocity.c);
+		veccopy3f(a0,node->linearAcceleration.c);
+
+	}
+	{
+		dtime = TickTime() - lastTime();
+		drmethod = node->deadReckoning;
+
+		if(drmethod)
+			if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
+		dead_reckon(drmethod, dtime, p1, v1, a1, p0, v0, a0);
+		veccopy3f(node->_p0.c,p1);
+		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_EspduTransform,_p0));
+	}
+	
+	if(node->isNetworkReader){
+		node->_change++;
+		//update translation based on DR
+		veccopy3f(node->translation.c,node->_p0.c);
 	}
 }
+
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
-
 	COMPILE_IF_REQUIRED
 	if(node->__geoSystem) prep_EspduTransform0(node);
+	espdu_update_by_dead_reckoning(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
 
-	espdu_update_by_dead_reckoning(node);
 
 	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
