@@ -352,6 +352,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_shaderflags_usershaders",
 	"_sideVBO",
 	"_sizeUnits",
+	"_smoothingCount",
+	"_smoothingp0",
 	"_sortedChildren",
 	"_space",
 	"_status",
@@ -4451,6 +4453,8 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES__lastp0, (int) offsetof (struct X3D_EspduTransform, _lastp0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__lastp0time, (int) offsetof (struct X3D_EspduTransform, _lastp0time),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lastframetime, (int) offsetof (struct X3D_EspduTransform, _lastframetime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__smoothingp0, (int) offsetof (struct X3D_EspduTransform, _smoothingp0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__smoothingCount, (int) offsetof (struct X3D_EspduTransform, _smoothingCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9460,6 +9464,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_lastp0.c[0] = 0.0f;tmp2->_lastp0.c[1] = 0.0f;tmp2->_lastp0.c[2] = 0.0f;
 			tmp2->_lastp0time = 0;
 			tmp2->_lastframetime = 0;
+			tmp2->_smoothingp0.c[0] = 0.0f;tmp2->_smoothingp0.c[1] = 0.0f;tmp2->_smoothingp0.c[2] = 0.0f;
+			tmp2->_smoothingCount = 0;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
@@ -14473,6 +14479,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," _lastp0 (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_lastp0.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _smoothingp0 (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_smoothingp0.c[i]); }
 			fprintf (fp,"\n");
 		    }
 			spacer fprintf (fp," articulationParameterCount (SFInt32) \t%d\n",tmp->articulationParameterCount);

@@ -2469,6 +2469,8 @@ our %Nodes = (
 		_lastp0 => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff
 		_lastp0time => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_lastframetime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_smoothingp0 => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff
+		_smoothingCount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		#_pduchange_es_deadreckoning => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	
 		# DIS EntityState > articulationParameters

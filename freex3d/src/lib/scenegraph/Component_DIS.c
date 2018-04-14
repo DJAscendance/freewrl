@@ -2215,6 +2215,9 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	float p1[3],v1[3],a1[3];
 	float p0[3],v0[3],a0[3];
 	double dtime;
+	static int smoothing_frames = 230;
+	static int want_smoothing = 1;
+
 	
 	wasTransmitted = FALSE;
 	if(node->isNetworkReader){
@@ -2222,10 +2225,20 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 			return;
 		if(node->_pduchange_es){
 			//node start or node received
+			node->_change_count++;
 			wasTransmitted = TRUE;
-
+			if(want_smoothing){
+				veccopy3f(node->_smoothingp0.c,node->translation.c); //last one before the recv
+				//veccopy3f(node->_smoothingp0.c,node->_p0.c); //last one before the recv
+				node->_smoothingCount = smoothing_frames;
+				if(node->_change_count > 1) 
+					node->_smoothingCount = 0;
+			}
 		}
-		veccopy3f(p0,node->translation.c);
+		if(want_smoothing)
+			veccopy3f(p0,node->_p0.c);
+		else
+			veccopy3f(p0,node->translation.c);
 		veccopy3f(v0,node->linearVelocity.c);
 		veccopy3f(a0,node->linearAcceleration.c);
 	}
@@ -2259,17 +2272,37 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	}
 	node->_lastframetime = TickTime();
 	if(node->isNetworkReader){
-		node->_change++;
-		//update translation based on DR
-		veccopy3f(node->translation.c,node->_p0.c);
+		if(want_smoothing){
+			float psmooth[3], alpha;
+			int n, i;
+			node->_change++;
+			//update translation based on DR
+			//E.9 Smoothing p.678
+			i = node->_smoothingCount;
+			//printf("%d ",i);
+			n = smoothing_frames;
+			alpha = (float)min(i,n)/(float)n;
+			//printf("%f ",alpha);
+			veclerp3f(psmooth,node->_p0.c,node->_smoothingp0.c,alpha);
+			//vecprint3fb("s",psmooth,"");
+			//vecprint3fb("p0",node->_p0.c,"");
+			//vecprint3fb("s0",node->_smoothingp0.c,"\n");
+			///veccopy3f(psmooth,node->_p0.c);
+			veccopy3f(node->_p0.c,psmooth);
+			veccopy3f(node->translation.c,psmooth);
+			node->_smoothingCount++;
+		}else{
+			veccopy3f(node->translation.c,node->_p0.c);
+		}
 	}
 }
 
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
+	if(node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	COMPILE_IF_REQUIRED
 	if(node->__geoSystem) prep_EspduTransform0(node);
-	espdu_update_by_dead_reckoning(node);
+	if(!node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
 
