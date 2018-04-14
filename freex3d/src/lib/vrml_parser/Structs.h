@@ -688,7 +688,7 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES__sideVBO	282
 #define FIELDNAMES__sizeUnits	283
 #define FIELDNAMES__smoothingCount	284
-#define FIELDNAMES__smoothingp0	285
+#define FIELDNAMES__smoothingDelta	285
 #define FIELDNAMES__sortedChildren	286
 #define FIELDNAMES__space	287
 #define FIELDNAMES__status	288
@@ -4489,7 +4489,7 @@ struct X3D_EspduTransform {
 	struct SFVec3f _lastp0;
 	double _lastp0time;
 	double _lastframetime;
-	struct SFVec3f _smoothingp0;
+	struct SFVec3f _smoothingDelta;
 	int _smoothingCount;
 	float set_articulationParameterValue0;
 	float set_articulationParameterValue1;

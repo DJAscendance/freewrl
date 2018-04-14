@@ -2215,7 +2215,7 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	float p1[3],v1[3],a1[3];
 	float p0[3],v0[3],a0[3];
 	double dtime;
-	static int smoothing_frames = 230;
+	static int smoothing_frames = 230; //frame count, at 60fps would be 4 seconds, ideally this would be a smoothing time in seconds
 	static int want_smoothing = 1;
 
 	
@@ -2228,17 +2228,15 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 			node->_change_count++;
 			wasTransmitted = TRUE;
 			if(want_smoothing && node->_change_count){
-				vecdif3f(node->_smoothingp0.c,node->translation.c,node->_p0.c);
-				veccopy3f(node->_p0.c,node->translation.c);
+				vecdif3f(node->_smoothingDelta.c,node->translation.c,node->_p0.c);
 				node->_smoothingCount = smoothing_frames;
 				if(node->_change_count > 1) 
 					node->_smoothingCount = 0;
 			}
+			veccopy3f(node->_p0.c,node->translation.c);
 		}
-		if(want_smoothing && node->_change_count)
-			veccopy3f(p0,node->_p0.c);
-		else
-			veccopy3f(p0,node->translation.c);
+		veccopy3f(p0,node->_p0.c);
+		//veccopy3f(p0,node->translation.c);
 		veccopy3f(v0,node->linearVelocity.c);
 		veccopy3f(a0,node->linearAcceleration.c);
 	}
@@ -2272,17 +2270,18 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	}
 	node->_lastframetime = TickTime();
 	if(node->isNetworkReader){
+		//update translation based on DR
 		if(want_smoothing){
+			//E.9 Smoothing p.678
+			//just done on the receiver/isNetworkReader
 			float psmooth[3], pzero[3], alpha;
 			int n, i;
 			node->_change++;
-			//update translation based on DR
-			//E.9 Smoothing p.678
 			i = node->_smoothingCount;
 			n = smoothing_frames;
 			alpha = 1.0f - (float)min(i,n)/(float)n;
 			vecset3f(pzero,0.0f,0.0f,0.0f);
-			veclerp3f(psmooth,pzero,node->_smoothingp0.c,alpha);
+			veclerp3f(psmooth,pzero,node->_smoothingDelta.c,alpha);
 			vecdif3f(node->translation.c,node->_p0.c,psmooth);
 			node->_smoothingCount++;
 		}else{
