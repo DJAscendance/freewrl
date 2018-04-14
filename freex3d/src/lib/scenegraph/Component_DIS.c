@@ -2227,15 +2227,15 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 			//node start or node received
 			node->_change_count++;
 			wasTransmitted = TRUE;
-			if(want_smoothing){
-				veccopy3f(node->_smoothingp0.c,node->translation.c); //last one before the recv
-				//veccopy3f(node->_smoothingp0.c,node->_p0.c); //last one before the recv
+			if(want_smoothing && node->_change_count){
+				vecdif3f(node->_smoothingp0.c,node->translation.c,node->_p0.c);
+				veccopy3f(node->_p0.c,node->translation.c);
 				node->_smoothingCount = smoothing_frames;
 				if(node->_change_count > 1) 
 					node->_smoothingCount = 0;
 			}
 		}
-		if(want_smoothing)
+		if(want_smoothing && node->_change_count)
 			veccopy3f(p0,node->_p0.c);
 		else
 			veccopy3f(p0,node->translation.c);
@@ -2273,23 +2273,17 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	node->_lastframetime = TickTime();
 	if(node->isNetworkReader){
 		if(want_smoothing){
-			float psmooth[3], alpha;
+			float psmooth[3], pzero[3], alpha;
 			int n, i;
 			node->_change++;
 			//update translation based on DR
 			//E.9 Smoothing p.678
 			i = node->_smoothingCount;
-			//printf("%d ",i);
 			n = smoothing_frames;
-			alpha = (float)min(i,n)/(float)n;
-			//printf("%f ",alpha);
-			veclerp3f(psmooth,node->_p0.c,node->_smoothingp0.c,alpha);
-			//vecprint3fb("s",psmooth,"");
-			//vecprint3fb("p0",node->_p0.c,"");
-			//vecprint3fb("s0",node->_smoothingp0.c,"\n");
-			///veccopy3f(psmooth,node->_p0.c);
-			veccopy3f(node->_p0.c,psmooth);
-			veccopy3f(node->translation.c,psmooth);
+			alpha = 1.0f - (float)min(i,n)/(float)n;
+			vecset3f(pzero,0.0f,0.0f,0.0f);
+			veclerp3f(psmooth,pzero,node->_smoothingp0.c,alpha);
+			vecdif3f(node->translation.c,node->_p0.c,psmooth);
 			node->_smoothingCount++;
 		}else{
 			veccopy3f(node->translation.c,node->_p0.c);
