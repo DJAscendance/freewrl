@@ -2464,6 +2464,7 @@ our %Nodes = (
 		_v0 => ["SFVec3f", [0,0,0], "initializeOnly", 0,0],#ff
 		_a0 => ["SFVec3f", [0,0,0], "initializeOnly", 0,0],#ff
 		_angularVelocity => ["SFRotation", [0,1,0,0], "initializeOnly", 0,0],#ff
+		_r0 => ["SFRotation", [0,1,0,0], "initializeOnly", 0,0],#ff
 		_change_count => ["SFInt32", 0, "inputOutput", 0,0],#ff
 		_sent => ["SFInt32", 0, "inputOutput", 0,0],#ff
 		_lastp0 => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff

@@ -2103,11 +2103,12 @@ DRM_RPB = 7,
 DRM_RVB = 8,
 DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
 };
-void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, float *a0){
+void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0, float *v0, float *a0, float *R0xyza, float *RVxyza){
 	switch(drmethod){
 		//world coords
 		case STATIC: //1
 			veccopy3f(p1,p0);
+			veccopy4f(R1xyza,R0xyza);
 			break;
 		case DRM_FPW: //2
 			{
@@ -2115,15 +2116,22 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, fl
 				//update position
 				// P = P0 + V0*dt
 				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
+				veccopy4f(R1xyza,R0xyza);
 			}
 			break;
 		case DRM_RPW: //3
 			{
 				float tmp[3];
+				Quaternion qv, q1, q0;
 				//update position
 				// P = P0 + V0*dt
 				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
 				//update rotation
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
 			}
 			break;
 		case DRM_RVW: //4
@@ -2131,8 +2139,16 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, fl
 				//update position
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
 				float tmp3[3],tmp2[3],tmp1[3];
+				Quaternion qv, q1, q0;
+
 				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
 				//update rotation
+				//update rotation
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
 			}
 			break;
 		case DRM_FVW: //5
@@ -2143,30 +2159,56 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, fl
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
 				float tmp3[3],tmp2[3],tmp1[3];
 				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				//update rotation
+				veccopy4f(R1xyza,R0xyza);
 			}
 			break;
 
 		//body/entity coords
 		case DRM_FPB: //6
 			{
+				//update rotation
+				veccopy4f(R1xyza,R0xyza);
+
 			}
 			break;
 		case DRM_RPB: //7
 			{
+				Quaternion qv, q1, q0;
+
+				//update rotation
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
 			}
 			break;
 		case DRM_RVB: //8
 			{
+				Quaternion qv, q1, q0;
+
+				//update rotation
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
 			}
 			break;
 		case DRM_FVB: //9
 			{
 				//P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
+				//update rotation
+				veccopy4f(R1xyza,R0xyza);  //WRONG? 
 
 			}
 			break;
 		default:
+			//update translation
 			veccopy3f(p1,p0);
+			//update rotation
+			veccopy4f(R1xyza,R0xyza);
 			break;
 	}
 
@@ -2233,7 +2275,7 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {
 
 void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	int drmethod, wasTransmitted;
-	float p1[3],v1[3],a1[3];
+	float p1[3],v1[3],a1[3], RVxyza[4], R0xyza[4], R1xyza[4];
 	float p0[3],v0[3],a0[3];
 	double dtime;
 	static int smoothing_frames = 230; //frame count, at 60fps would be 4 seconds, ideally this would be a smoothing time in seconds
@@ -2255,16 +2297,22 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 					node->_smoothingCount = 0;
 			}
 			veccopy3f(node->_p0.c,node->translation.c);
+			veccopy4f(node->_r0.c,node->rotation.c);
 		}
 		veccopy3f(p0,node->_p0.c);
 		//veccopy3f(p0,node->translation.c);
 		veccopy3f(v0,node->linearVelocity.c);
 		veccopy3f(a0,node->linearAcceleration.c);
+		veccopy4f(RVxyza,node->_angularVelocity.c);
+		veccopy4f(R0xyza,node->_r0.c);
+
 	}
 	if(node->isStandAlone){
 		veccopy3f(p0,node->translation.c);
 		veccopy3f(v0,node->linearVelocity.c);
 		veccopy3f(a0,node->linearAcceleration.c);
+		veccopy4f(RVxyza,node->_angularVelocity.c);
+		veccopy4f(R0xyza,node->rotation.c);
 	}
 	if(node->isNetworkWriter){
 		if(node->_sent){
@@ -2272,11 +2320,13 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 			wasTransmitted = TRUE;
 			node->_sent = FALSE;
 			veccopy3f(node->_p0.c,node->translation.c);
+			veccopy4f(node->_r0.c,node->rotation.c);
 		}
 		veccopy3f(p0,node->_p0.c);
 		veccopy3f(v0,node->linearVelocity.c);
 		veccopy3f(a0,node->linearAcceleration.c);
-
+		veccopy4f(RVxyza,node->_angularVelocity.c);
+		veccopy4f(R0xyza,node->_r0.c);
 	}
 	if(node->_lastframetime == 0.0)
 		veccopy3f(node->_p0.c,p0);
@@ -2285,8 +2335,9 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 		drmethod = node->deadReckoning;
 		if(drmethod)
 			if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
-		dead_reckon(drmethod, dtime, p1, p0, v0, a0);
+		dead_reckon(drmethod, dtime, p1, R1xyza, p0, v0, a0, R0xyza, RVxyza);
 		veccopy3f(node->_p0.c,p1);
+		veccopy4f(node->_r0.c,R1xyza);
 		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_EspduTransform,_p0));
 	}
 	node->_lastframetime = TickTime();
@@ -2308,6 +2359,7 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 		}else{
 			veccopy3f(node->translation.c,node->_p0.c);
 		}
+		veccopy4f(node->rotation.c,node->_r0.c);
 	}
 }
 

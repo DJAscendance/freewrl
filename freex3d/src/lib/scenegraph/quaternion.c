@@ -433,6 +433,9 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 void vrmlrot4d_to_quaternion(Quaternion *quat, const double *xyza){
 	vrmlrot_to_quaternion(quat,xyza[0],xyza[1],xyza[2],xyza[3]);
 }
+void vrmlrot4f_to_quaternion(Quaternion *quat, const float *xyza){
+	vrmlrot_to_quaternion(quat,xyza[0],xyza[1],xyza[2],xyza[3]);
+}
 
 /*
  * Quaternion (q = (w, v)) to VRML rotation (axis, angle):

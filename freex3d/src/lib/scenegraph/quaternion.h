@@ -87,6 +87,7 @@ vrmlrot_to_quaternion(Quaternion *quat,
 					  const double z,
 					  const double a);
 void vrmlrot4d_to_quaternion(Quaternion *quat, const double *xyza);
+void vrmlrot4f_to_quaternion(Quaternion *quat, const float *xyza);
 void
 quaternion_to_vrmlrot(const Quaternion *quat,
 					  double *x,
