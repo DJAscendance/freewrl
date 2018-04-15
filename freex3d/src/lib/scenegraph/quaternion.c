@@ -670,6 +670,25 @@ quaternion_rotationd(double *ret, Quaternion *quat, double *v)
 	return ret;
 }
 
+float *
+quaternion_rotation3f(float *ret, Quaternion *quat, float *v)
+{
+	Quaternion q_v, q_i, q_r1, q_r2;
+
+	q_v.w = 0.0;
+	q_v.x = v[0];
+	q_v.y = v[1];
+	q_v.z = v[2];
+	quaternion_inverse(&q_i, quat);
+	quaternion_multiply(&q_r1, &q_v, &q_i);
+	quaternion_multiply(&q_r2, quat, &q_r1);
+
+	ret[0] = q_r2.x;
+	ret[1] = q_r2.y;
+	ret[2] = q_r2.z;
+ 	/* printf("Quaternion rotation: ret = {%f, %f, %f}, quat = {%f, %f, %f, %f}, v = {%f, %f, %f}\n", ret->x, ret->y, ret->z, quat->w, quat->x, quat->y, quat->z, v->x, v->y, v->z); */
+	return ret;
+}
 
 void
 quaternion_togl(Quaternion *quat)

@@ -131,6 +131,9 @@ quaternion_rotation(struct point_XYZ *ret,
 double *
 quaternion_rotationd(double *ret, Quaternion *quat, double *v);
 
+float *
+quaternion_rotation3f(float *ret, Quaternion *quat, float *v);
+
 void
 quaternion_togl(Quaternion *quat);
 

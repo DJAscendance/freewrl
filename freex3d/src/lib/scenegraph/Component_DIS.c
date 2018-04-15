@@ -2205,7 +2205,17 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 		case DRM_RVB: //8
 			{
 				//p.669
-				Quaternion qv, q1, q0;
+				Quaternion qv, qa, q1, q0;
+				float vt[3], att[3], tmp[3], tmp2[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot_to_quaternion(&qa,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime*dtime*.5f);
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				quaternion_rotation3f(vt,&qv,v0);
+				quaternion_rotation3f(att,&qa,a0);
+				vecadd3f(tmp,vt,att);
+				quaternion_rotation3f(tmp2,&q0,tmp); //world2body
+				vecadd3f(p1,p0,tmp2);
 
 				//update rotation 
 				// Rwb1 = DR(dt) * Rwb0
