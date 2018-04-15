@@ -2468,6 +2468,7 @@ our %Nodes = (
 		_change_count => ["SFInt32", 0, "inputOutput", 0,0],#ff
 		_sent => ["SFInt32", 0, "inputOutput", 0,0],#ff
 		_lastp0 => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff
+		_lastr0 => ["SFRotation", [0,1,0,0], "initializeOnly", 0,0],#ff
 		_lastp0time => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_lastframetime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_smoothingDelta => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff

@@ -507,8 +507,18 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 					vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
 				}
 				veccopy3f(pnode->linearVelocity.c,v1);
+				{
+					//update angular velocity
+					Quaternion qlast,q, qinv, qdif;
+					vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
+					vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+					quaternion_inverse(&qinv,&q);
+					quaternion_multiply(&qdif,&qinv,&qlast);
+					quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
+				}
 			}
 			veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+			veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
 			pnode->_lastp0time = TickTime();
 		}
 
