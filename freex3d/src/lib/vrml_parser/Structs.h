@@ -4483,7 +4483,7 @@ struct X3D_EspduTransform {
 	struct SFVec3f _p0;
 	struct SFVec3f _v0;
 	struct SFVec3f _a0;
-	struct SFVec3f _angularVelocity;
+	struct SFRotation _angularVelocity;
 	int _change_count;
 	int _sent;
 	struct SFVec3f _lastp0;

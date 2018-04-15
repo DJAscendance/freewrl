@@ -4447,7 +4447,7 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES__p0, (int) offsetof (struct X3D_EspduTransform, _p0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__v0, (int) offsetof (struct X3D_EspduTransform, _v0),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__a0, (int) offsetof (struct X3D_EspduTransform, _a0),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__angularVelocity, (int) offsetof (struct X3D_EspduTransform, _angularVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__angularVelocity, (int) offsetof (struct X3D_EspduTransform, _angularVelocity),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__change_count, (int) offsetof (struct X3D_EspduTransform, _change_count),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__sent, (int) offsetof (struct X3D_EspduTransform, _sent),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__lastp0, (int) offsetof (struct X3D_EspduTransform, _lastp0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -9458,7 +9458,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_p0.c[0] = 0.0f;tmp2->_p0.c[1] = 0.0f;tmp2->_p0.c[2] = 0.0f;
 			tmp2->_v0.c[0] = 0.0f;tmp2->_v0.c[1] = 0.0f;tmp2->_v0.c[2] = 0.0f;
 			tmp2->_a0.c[0] = 0.0f;tmp2->_a0.c[1] = 0.0f;tmp2->_a0.c[2] = 0.0f;
-			tmp2->_angularVelocity.c[0] = 0.0f;tmp2->_angularVelocity.c[1] = 0.0f;tmp2->_angularVelocity.c[2] = 0.0f;
+			tmp2->_angularVelocity.c[0] = 0;tmp2->_angularVelocity.c[1] = 1;tmp2->_angularVelocity.c[2] = 0;tmp2->_angularVelocity.c[3] = 0;;
 			tmp2->_change_count = 0;
 			tmp2->_sent = 0;
 			tmp2->_lastp0.c[0] = 0.0f;tmp2->_lastp0.c[1] = 0.0f;tmp2->_lastp0.c[2] = 0.0f;

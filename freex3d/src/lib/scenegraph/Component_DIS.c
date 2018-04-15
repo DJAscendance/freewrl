@@ -515,7 +515,11 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
 		vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
-		vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,pnode->_angularVelocity.c);
+		{
+			float ypr[3];
+			axisangle2ypr(pnode->_angularVelocity.c,ypr);
+			vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,ypr);
+		}
 		//...
 		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
@@ -649,7 +653,11 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
 				vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
 				vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
-				vector3float2vec3f(pnode->_angularVelocity.c,&espdu->deadReckoningParameters.entityAngularVelocity);
+				{
+					float ypr[3];
+					vector3float2vec3f(ypr,&espdu->deadReckoningParameters.entityAngularVelocity);
+					ypr2axisangle(ypr,pnode->_angularVelocity.c);
+				}
 				pnode->_pduchange_es = TRUE;
 				if(espdu->entityAppearance | 1 << 20){
 					//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
@@ -2097,22 +2105,34 @@ DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world a
 };
 void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, float *a0){
 	switch(drmethod){
+		//world coords
 		case STATIC: //1
 			veccopy3f(p1,p0);
 			break;
 		case DRM_FPW: //2
 			{
 				float tmp[3];
+				//update position
 				// P = P0 + V0*dt
 				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
 			}
 			break;
 		case DRM_RPW: //3
 			{
+				float tmp[3];
+				//update position
+				// P = P0 + V0*dt
+				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
+				//update rotation
 			}
 			break;
 		case DRM_RVW: //4
 			{
+				//update position
+				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
+				float tmp3[3],tmp2[3],tmp1[3];
+				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				//update rotation
 			}
 			break;
 		case DRM_FVW: //5
@@ -2123,9 +2143,10 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *p0, float *v0, fl
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
 				float tmp3[3],tmp2[3],tmp1[3];
 				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
-
 			}
 			break;
+
+		//body/entity coords
 		case DRM_FPB: //6
 			{
 			}
