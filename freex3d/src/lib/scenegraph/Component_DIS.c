@@ -527,9 +527,11 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
 		{
-			float ypr[3];
-			axisangle2ypr(pnode->_angularVelocity.c,ypr);
-			vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,ypr);
+			//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+			float axis[3];
+			vecnormalize3f(axis,pnode->_angularVelocity.c);
+			vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
+			vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
 		}
 		//...
 		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
@@ -665,9 +667,12 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
 				vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
 				{
-					float ypr[3];
-					vector3float2vec3f(ypr,&espdu->deadReckoningParameters.entityAngularVelocity);
-					ypr2axisangle(ypr,pnode->_angularVelocity.c);
+					//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+					float axis[3], angle;
+					vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
+					angle = veclength3f(axis);
+					vecnormalize3f(pnode->_angularVelocity.c,axis);
+					pnode->_angularVelocity.c[3] = angle;
 				}
 				pnode->_pduchange_es = TRUE;
 				if(espdu->entityAppearance | 1 << 20){
@@ -2138,6 +2143,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 				// P = P0 + V0*dt
 				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
 				//update rotation
+				// Rwb1 = DR(dt) * Rwb0
 				vrmlrot4f_to_quaternion(&q0,R0xyza);
 				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
 				quaternion_multiply(&q1,&q0,&qv);
@@ -2154,7 +2160,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 
 				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
 				//update rotation
-				//update rotation
+				// Rwb1 = DR(dt) * Rwb0
 				vrmlrot4f_to_quaternion(&q0,R0xyza);
 				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
 				quaternion_multiply(&q1,&q0,&qv);
@@ -2188,6 +2194,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 				Quaternion qv, q1, q0;
 
 				//update rotation
+				// Rwb1 = DR(dt) * Rwb0
 				vrmlrot4f_to_quaternion(&q0,R0xyza);
 				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
 				quaternion_multiply(&q1,&q0,&qv);
@@ -2197,9 +2204,11 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			break;
 		case DRM_RVB: //8
 			{
+				//p.669
 				Quaternion qv, q1, q0;
 
-				//update rotation
+				//update rotation 
+				// Rwb1 = DR(dt) * Rwb0
 				vrmlrot4f_to_quaternion(&q0,R0xyza);
 				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
 				quaternion_multiply(&q1,&q0,&qv);
