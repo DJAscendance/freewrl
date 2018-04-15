@@ -512,9 +512,10 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 					Quaternion qlast,q, qinv, qdif;
 					vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
 					vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
-					quaternion_inverse(&qinv,&q);
-					quaternion_multiply(&qdif,&qinv,&qlast);
+					quaternion_inverse(&qinv,&qlast);
+					quaternion_multiply(&qdif,&q,&qinv);
 					quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
+					pnode->_angularVelocity.c[3] *= 1.0f/dtime;
 				}
 			}
 			veccopy3f(pnode->_lastp0.c,pnode->translation.c);
@@ -2343,8 +2344,8 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	if(node->_lastframetime > 0.0){
 		dtime = TickTime() - node->_lastframetime; //lastime();
 		drmethod = node->deadReckoning;
-		if(drmethod)
-			if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
+		//if(drmethod)
+		//	if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
 		dead_reckon(drmethod, dtime, p1, R1xyza, p0, v0, a0, R0xyza, RVxyza);
 		veccopy3f(node->_p0.c,p1);
 		veccopy4f(node->_r0.c,R1xyza);
