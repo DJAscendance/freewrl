@@ -374,6 +374,18 @@ float *vector3float2vec3f(float *b,struct Vector3Float *a){
 	b[2] = a->z;
 	return b;
 }
+struct Vector3Double *vec3d2vector3double(struct Vector3Double *b, double *a){
+	b->x = a[0];
+	b->y = a[1];
+	b->z = a[2];
+	return b;
+}
+double *vector3double2vec3d(double *b,struct Vector3Double *a){
+	b[0] = a->x;
+	b[1] = a->y;
+	b[2] = a->z;
+	return b;
+}
 // freewrl's once-per-frame timestamp is called TickTime 
 // - and TickTime is a double value representing seconds since 1970, including fractions of a second
 // DIS Clock Time record is a 64bit consisting of 
@@ -444,7 +456,20 @@ void print_stream(unsigned char *buf, int nbytes){
 		printf("\n");
 	}
 }
-
+//TCS - geospatial topocentric coordinate system
+//local - DIS equivalent
+double *tcs2localswizzled(double *local,double *tcs){
+	local[0] = -tcs[2]; //north
+	local[1] =  tcs[0]; //east
+	local[2] = -tcs[1]; //vertical
+	return local;
+}
+double *local2tcsswizzled(double *tcs,double *local){
+	tcs[0] =  local[1]; //east
+	tcs[1] = -local[2]; //vertical
+	tcs[2] = -local[0]; //north
+	return tcs;
+}
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
@@ -458,6 +483,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
 	printf("pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
 	if(pnode->_pduchange_es || isHeartbeat){
+		float xyz[3];
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 		//entity
@@ -466,39 +492,84 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		espdu->entityID.site = pnode->siteID;
 		//translation - assumes companion scenes will have same parent transform stack
 		//(x, -z, y).
-		espdu->entityLocation.x = pnode->translation.c[0];
-		espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
-		espdu->entityLocation.z = pnode->translation.c[1];
+		if(pnode->__geoSystem){
+			Quaternion qgc2tcs, qtcs2body, qgc2body;
+			struct SFVec3d gd, gc, translate;
+			struct SFVec4d rotate;
+			double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
+
+			float xyza[4];
+			Geosys *gs;
+			gs = GEOSYS(pnode->__geoSystem);
+			user2gc(gs,&pnode->geoCoords,1,&gc);
+			gc2gd(gs,&gc,1,&gd);
+			gc2tcs_transform(gs,&gd,&translate,&rotate);
+			//somehow get body/entity into world/gc - rotation and translation
+			{
+				//rotation
+				float ypr[3];
+				vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
+				vrmlrot4f_to_quaternion(&qtcs2body,pnode->rotation.c);
+				quaternion_multiply(&qgc2body,&qgc2tcs,&qtcs2body);
+				quaternion_to_vrmlrot4f(&qgc2body,xyza);
+				xyza[3] = -xyza[3];
+				axisangle2ypr(xyza,ypr);
+				espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+				espdu->entityOrientation.theta = ypr[1];
+				espdu->entityOrientation.phi = ypr[2];
+
+			}
+			{
+				//translation
+				float2double(tcs2bodyxyz,pnode->translation.c,3);
+				vecaddd(world2bodyxyz,gc.c,tcs2bodyxyz);
+				vec3d2vector3double(&espdu->entityLocation,world2bodyxyz);
+			}
+		}else{
+			//doesn't necessarily make sense to have no geoSystem or geoCoords = 0,0,0
+			//but some old/existing scenes are like that, so here we handling them
+			//but whether node.translation is meant to be tcs2body or global2body might make a difference?
+			//we don't know because we only have freewrl for testing right now - will wait for brutzman
+			if(0){
+				double local2bodyxyz[3], localxyz[3];
+				float2double(local2bodyxyz,pnode->translation.c,3);
+				tcs2localswizzled(localxyz,local2bodyxyz);
+				vec3d2vector3double(&espdu->entityLocation,localxyz);
+			}else{
+				espdu->entityLocation.x = pnode->translation.c[0];
+				espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
+				espdu->entityLocation.z = pnode->translation.c[1];
+			}
+			//rotation
+			if(0){
+				//theirs:
+				//X PSI
+				//Y THETA 
+				//Z PHI
+				//(x, -z, y)
+				//OURS	THEIRS 	THEIRS
+				//x		X=x		PSI		
+				//y		Z=y		PHI
+				//z		-Y=z	-THETA
+
+				Quaternion qA;
+				double ypr[3];
+				float *c = pnode->rotation.c;
+				vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+				quat2euler(ypr,0,&qA);
+				espdu->entityOrientation.psi = ypr[1];
+				espdu->entityOrientation.theta = ypr[2];
+			}
+			if(1){
+				float ypr[3];
+				axisangle2ypr(pnode->rotation.c,ypr);
+				espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+				espdu->entityOrientation.theta = ypr[1];
+				espdu->entityOrientation.phi = ypr[2];
+			}
+		}
 		//vecprint3fb("trans=",pnode->translation.c,"\n");
 		pnode->_sent = TRUE;
-		//rotation
-		if(0){
-			//theirs:
-			//X PSI
-			//Y THETA 
-			//Z PHI
-			//(x, -z, y)
-			//OURS	THEIRS 	THEIRS
-			//x		X=x		PSI		
-			//y		Z=y		PHI
-			//z		-Y=z	-THETA
-
-			Quaternion qA;
-			double ypr[3];
-			float *c = pnode->rotation.c;
-			vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
-			quat2euler(ypr,0,&qA);
-			espdu->entityOrientation.psi = ypr[1];
-			espdu->entityOrientation.theta = ypr[2];
-		}
-		if(1){
-			float ypr[3];
-			axisangle2ypr(pnode->rotation.c,ypr);
-			espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
-			espdu->entityOrientation.theta = ypr[1];
-			espdu->entityOrientation.phi = ypr[2];
-
-		}
 		//articuation parameters
 		if(pnode->articulationParameterArray.n){
 			struct ArticulationParameter *ap;
@@ -693,36 +764,73 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				if(espdu->entityID.entity != pnode->entityID) break;
 				ihit++;
 				pnode->_change++; //mark node changed
-				//translation - assumes companion scenes will have same parent transform stack
-				//(x, -z, y).
-				pnode->translation.c[0] = espdu->entityLocation.x;
-				pnode->translation.c[1] = espdu->entityLocation.z;
-				pnode->translation.c[2] = -espdu->entityLocation.y; 
 				pnode->timestamp = TickTime();
-				//rotation
-				if(0){
-					Quaternion qA;
-					float ypr[3];
-					double r[4];
-					float *c = pnode->rotation.c;
-					ypr[0] = espdu->entityOrientation.phi;
-					ypr[1] = espdu->entityOrientation.psi;
-					ypr[2] = espdu->entityOrientation.theta;
-					euler2quat(&qA,ypr[0],ypr[1],ypr[2]);
-					//quaternion_normalize(&qA);
-					//vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
-					quaternion_to_vrmlrot(&qA,&r[0],&r[1],&r[2],&r[3]);
-					c[0] = (float)r[0];
-					c[1] = (float)r[1];
-					c[2] = (float)r[2];
-					c[3] = (float)r[3];
-				}
-				if(1){
-					float ypr[3];
-					ypr[0] = -espdu->entityOrientation.psi;  //gimbal.js shows -yaw
-					ypr[1] = espdu->entityOrientation.theta;
-					ypr[2] = espdu->entityOrientation.phi;
-					ypr2axisangle(ypr,pnode->rotation.c);
+
+				if(pnode->__geoSystem){
+					Quaternion qgc2tcs, qtcs2body, qgc2body;
+					struct SFVec3d gd, gc, translate;
+					struct SFVec4d rotate;
+					double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
+
+					float xyza[4];
+					Geosys *gs;
+					gs = GEOSYS(pnode->__geoSystem);
+					user2gc(gs,&pnode->geoCoords,1,&gc);
+					gc2gd(gs,&gc,1,&gd);
+					gc2tcs_transform(gs,&gd,&translate,&rotate);
+					//somehow get body/entity into world/gc - rotation and translation
+					{
+						//rotation
+						Quaternion qtcs2gc;
+						float ypr[3], xyza[4];
+						ypr[0] = espdu->entityOrientation.phi;
+						ypr[1] = espdu->entityOrientation.psi;
+						ypr[2] = espdu->entityOrientation.theta;
+						ypr2axisangle(ypr,xyza);
+						vrmlrot4f_to_quaternion(&qgc2body,xyza);
+						vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
+						quaternion_inverse(&qtcs2gc,&qgc2tcs);
+						quaternion_multiply(&qtcs2body,&qtcs2gc,&qgc2body);
+						quaternion_to_vrmlrot4f(&qtcs2body,pnode->rotation.c);
+					}
+					{
+						//translation
+						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
+						vecdifd(tcs2bodyxyz,world2bodyxyz,gc.c);
+						double2float(pnode->translation.c,tcs2bodyxyz,3);
+					}
+				}else{
+
+					//translation - assumes companion scenes will have same parent transform stack
+					//(x, -z, y).
+					pnode->translation.c[0] = espdu->entityLocation.x;
+					pnode->translation.c[1] = espdu->entityLocation.z;
+					pnode->translation.c[2] = -espdu->entityLocation.y; 
+					//rotation
+					if(0){
+						Quaternion qA;
+						float ypr[3];
+						double r[4];
+						float *c = pnode->rotation.c;
+						ypr[0] = espdu->entityOrientation.phi;
+						ypr[1] = espdu->entityOrientation.psi;
+						ypr[2] = espdu->entityOrientation.theta;
+						euler2quat(&qA,ypr[0],ypr[1],ypr[2]);
+						//quaternion_normalize(&qA);
+						//vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+						quaternion_to_vrmlrot(&qA,&r[0],&r[1],&r[2],&r[3]);
+						c[0] = (float)r[0];
+						c[1] = (float)r[1];
+						c[2] = (float)r[2];
+						c[3] = (float)r[3];
+					}
+					if(1){
+						float ypr[3];
+						ypr[0] = -espdu->entityOrientation.psi;  //gimbal.js shows -yaw
+						ypr[1] = espdu->entityOrientation.theta;
+						ypr[2] = espdu->entityOrientation.phi;
+						ypr2axisangle(ypr,pnode->rotation.c);
+					}
 				}
 				//articuation parameters
 				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
