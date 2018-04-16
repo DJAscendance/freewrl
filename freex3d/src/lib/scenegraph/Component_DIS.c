@@ -127,6 +127,33 @@ Choice: option 2.b hack xmlpg CGenerator.java DONE
 	duplicate all the CppUtils (that wrap the pdu classes) in C,
 	and mistakes can happen during transcription (risk)
 
+Problem: Transforms - unclear how goecoords are to be used.
+The DIS specs have 5 terms:
+global, world, local, body, entity
+And there are 2 major geospatial states:
+a) geoCoords not used
+- geoCoords = 0,0,0 (default) 
+b) geoCoords used
+
+Proposed use of terms:
+global == world = gc
+local == TCS from geospatial component, except with axes re-arranged
+	Draft DIS specs p.675: 
+	"The local coordinate system used here is defined by North, East, and Down axes 
+	with their origin at the entity's center of bounding volume."
+entity == body
+World2body = World2Local x Local2body
+- where:
+-- World2local is the gc2tcs from geospatial, with axes re-arranged
+-- local2body is the espdu.transform.rotation and .translation (with axes re-arranged)
+if a) no geoCoords used, then
+- World2local == 0
+and
+- world2body == local2body
+Freewrl strategy:
+- we will convert between the DIS axes and system naming to web3d, during node2pdu and pdu2node
+- we will be working in web3d coordinate systems elsehwere, including in dead reckoning
+
 
 */
 //#define WITH_DIS 1
@@ -532,6 +559,74 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			vecnormalize3f(axis,pnode->_angularVelocity.c);
 			vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
 			vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
+		}
+		//p.675 E.8.2 Use of Other Parameters for standard algorithms 1 through 9
+		switch(pnode->deadReckoning){
+			//fixed rotation
+			case 1:
+			case 2:
+			case 5:
+			case 6:
+			case 9:
+			{
+				float ypr[3];
+				espdu->deadReckoningParameters.otherParameters[0] = 1;
+				if(pnode->__geoSystem){
+					axisangle2ypr(pnode->rotation.c,ypr); //assume Transform.rotation is wrt TCS/LGS
+				}else{
+					vecset3f(ypr,0.0f,0.0f,0.0f); //we assume we are in local
+				}
+				veccopy3f((float*)&espdu->deadReckoningParameters.otherParameters[3],ypr);
+			}
+			break;
+			//rotating
+			case 3:
+			case 7:
+			case 8:
+			{
+				// p.677 E.8.2.3.2 Issuance of orientation quaternion
+				// a 'squished quaternion' 
+				Quaternion qglobal;
+				double quat4d[4];
+				float quat4f[4];
+				unsigned int iquat0;
+				unsigned short iquat16;
+				espdu->deadReckoningParameters.otherParameters[0] = 2;
+				if(pnode->__geoSystem){
+					//H: W2B = W2L x L2B
+					// World2body = world2local x local2body
+					// where world2local is the gc2tcs (geocentric to topocentric aka local geodetic system) from geospatial
+					// and local2body is the espdu.transform.(translation and rotation) (or its inverse)
+					Quaternion qtcs, qlocal;
+					struct SFVec3d gc, gd, translate;
+					struct SFVec4d rotate;
+					Geosys *gs;
+					gs = GEOSYS(pnode->__geoSystem);
+					user2gc(gs,&pnode->geoCoords,1,&gc);
+					gc2gd(gs,&gc,1,&gd);
+					gc2tcs_transform(gs,&gd,&translate,&rotate);
+					vrmlrot4d_to_quaternion(&qtcs,rotate.c);
+					vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
+					quaternion_multiply(&qglobal,&qlocal,&qtcs);
+				}else{
+					vrmlrot_to_quaternion(&qglobal,0.0,1.0,0.0,0.0); //we've already combined DR with global, so additional DR is zero
+				}
+				quat2double(quat4d,&qglobal); //w in last slot of quat4d
+				double2float(&quat4f[1],quat4d,3);
+				quat4f[0] = quat4d[3]; //now w in first slot of quat4f
+				if(quat4f[0] < 0.0f)
+					vecscale4f(quat4f,quat4f,-1.0f);
+				
+				iquat0 = (unsigned int)(quat4f[0] * 65536);
+				if(quat4f[0] > 65536) iquat0 = 65535;
+				iquat16 = iquat0;
+				memcpy(&espdu->deadReckoningParameters.otherParameters[1],&iquat16,sizeof(short));
+				memcpy(&espdu->deadReckoningParameters.otherParameters[3],&quat4f[1],3*sizeof(float));
+			}
+			break;
+			default:
+			espdu->deadReckoningParameters.otherParameters[0] = (char)0;
+			break;
 		}
 		//...
 		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
@@ -2205,6 +2300,13 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 		case DRM_RVB: //8
 			{
 				//p.669
+				//I think I see 2 problems with the formula they give:
+				//1. their R1, R2 formula divide by |w|^n and when |w| is 0, that's divice by zero 
+				//   - should produce Identity matrix when |w| is zero
+				//2. P = P0 + Rbw*(R1*Vb + R2*Ab)
+				//  problem: when R1, R2 are Identity (when |w| 0), it doesn't look like V0*t + 1/2*A*t^2
+				//	should be:
+				//	P = P0 + Rbw*(R1*Vb*dt + R2*.5*Ab*dt*dt)
 				Quaternion qv, qa, q1, q0;
 				float vt[3], att[3], tmp[3], tmp2[3];
 

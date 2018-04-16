@@ -2101,7 +2101,7 @@ void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String
 //  GCA2NLA - H: this depends how the node is defined.
 //  NLA2SLA
 //  NL2SL
-
+/* moved to Component_Geospatial.h
 void user2gd(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd);
 void gd2user(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo);
 void user2gc(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc);
@@ -2120,7 +2120,7 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord);
-
+*/
 
 void update_origin(Geosys *geoSystem, struct X3D_Node *node, struct SFVec3d *userCoord, struct X3D_GeoOrigin *geoOrigin)
 {
