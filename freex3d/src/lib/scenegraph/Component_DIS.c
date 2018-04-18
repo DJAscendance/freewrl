@@ -136,23 +136,57 @@ a) geoCoords not used
 b) geoCoords used
 
 Proposed use of terms:
-global == world = gc
-local == TCS from geospatial component, except with axes re-arranged
+global == world = gc ^see World Coordinates below
+local - used only for some Dead Reckoning formulas
+	== TCS (topocentric coord sys) from geospatial component, except with axes re-arranged/swizzled
 	Draft DIS specs p.675: 
 	"The local coordinate system used here is defined by North, East, and Down axes 
 	with their origin at the entity's center of bounding volume."
-entity == body
-World2body = World2Local x Local2body
+entity == body - the coordinate system for espdu.transform.children 
+	-except DIS swizzles so Z is down, X forward, see Gimbals.x3d test scene
+World2body = Location,(phi,theta,psi) 
+in web3d we can split world2body in 2 parts, to make dead-reckoning in local coords easier:
+- World2Local x Local2body
 - where:
--- World2local is the gc2tcs from geospatial, with axes re-arranged
--- local2body is the espdu.transform.rotation and .translation (with axes re-arranged)
+-- World2local is the gc2tcs from geospatial 
+-- local2body is the rest of world2body: local2body = world2local.inverse x world2body
 if a) no geoCoords used, then
 - World2local == 0
 and
-- world2body == local2body
+- world2body == local2body (we do it all with transform.translation,rotation)
 Freewrl strategy:
-- we will convert between the DIS axes and system naming to web3d, during node2pdu and pdu2node
+- we will convert the DIS coordinate axes and naming to web3d conventions during node2pdu and pdu2node
+	- convert from geocentric GC to Topocentric TCS if geocoords != 000
 - we will be working in web3d coordinate systems elsehwere, including in dead reckoning
+	(so no need to swizzle axes if our dead reckonging formulas are all in web3d conventions)
+Q. is this compatible with Xj3d convention?
+A. don't know. But Gimbal.x3d is showing (what I interpret as) 
+	the Dead Reckoning Local coord system as being 
+	swizzled and aligned with what looks like our geospatial TCS
+	That could indicate where NPS thinking was on how X3D relates to DIS. 
+	So its a good bet espduTransform.(translation.rotation) are tcs2body aka local2body.
+
+
+World Coordinates: 
+The Entity State PDU Location field is 64bit wgs84 geocentric coordinates.
+In the draft 2012 specs document,
+p.3 1.6.3.1 World coordinate system WGS84, meters.
+p.4 Figure 1 shows world coordinates.
+- they look exactly like GC.
+- Z through Northpole
+- X through prime meridian
+- right handed (Y through bangladesh)
+p.48 e) 1) Location with respect to the world
+p.330 6.2.98 World Coordinates record
+Location of the origin of the entity's or object's coordinate system, target locations,
+	 detonation locations, and other points shall be specified by a set of three coordinates: X, Y, and Z, 
+	 represented by 64-bit floating point numbers. The world coordinate system shall be as specified in 1.6.3. 
+	 The format of the World Coordinates record shall be as shown in Table134.
+p.333
+h) Entity Location. This field shall specify an entity’s physical location in the simulated world, 
+	and shall be represented by a World Coordinates record (see 6.2.98).
+p.334 Entity State PDU table 135
+/World Coordinates
 
 
 */
@@ -794,10 +828,25 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						quaternion_to_vrmlrot4f(&qtcs2body,pnode->rotation.c);
 					}
 					{
-						//translation
+						//translation - dug9 debate: could do it one of 2 ways
+						static enum transmethod {
+							TRANS_ZERO = 1,
+							TRANS_LOCATION_MINUS_GEOCOORD = 2,
+						};
+						static int transmethod = TRANS_ZERO; //TRANS_LOCATION_MINUS_GEOCOORD; //
+
 						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
-						vecdifd(tcs2bodyxyz,world2bodyxyz,gc.c);
-						double2float(pnode->translation.c,tcs2bodyxyz,3);
+						if(transmethod == TRANS_LOCATION_MINUS_GEOCOORD){
+							//METHOD 1: translation = Location - geoCoords
+							vecdifd(tcs2bodyxyz,world2bodyxyz,gc.c);
+							double2float(pnode->translation.c,tcs2bodyxyz,3);
+						}else{
+							//TRANS_ZERO
+							//METHOD 2: geoCoords = Location; translation = 000
+							veccopyd(gc.c,world2bodyxyz);
+							gc2user(gs,&gc,1,&pnode->geoCoords);
+							vecset3f(pnode->translation.c,0.0f,0.0f,0.0f);
+						}
 					}
 				}else{
 
@@ -2662,14 +2711,14 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 		RECORD_DISTANCE
 		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
-	if(0) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
+	if(1) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
 
 }
 
 
 void fin_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
-	if(0) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
+	if(1) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 	if(!renderstate()->render_vp) {
 		if (node->__do_anything) {
