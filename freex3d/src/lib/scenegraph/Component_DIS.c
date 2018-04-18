@@ -2283,12 +2283,12 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 
 }
 void prep_EspduTransform0(struct X3D_EspduTransform *node){
-	if(!renderstate()->render_vp) {
+	//if(!renderstate()->render_vp) {
 		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 		/* did either we or the Viewpoint move since last time? */
-		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
-	}
+		//RECORD_DISTANCE
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	//}
 
 }
 void fin_EspduTransform0(struct X3D_EspduTransform *node){
@@ -2607,7 +2607,7 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
 	if(node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	COMPILE_IF_REQUIRED
-	if(node->__geoSystem) prep_EspduTransform0(node);
+	if(0) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
 	if(!node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
@@ -2621,6 +2621,8 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+
+
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
@@ -2658,13 +2660,16 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 		} 
 
 		RECORD_DISTANCE
-
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
+	if(0) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
+
 }
 
 
 void fin_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
+	if(0) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 	if(!renderstate()->render_vp) {
 		if (node->__do_anything) {
@@ -2689,7 +2694,8 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 			);
 		}
 	}
-	if(node->__geoSystem) fin_EspduTransform0(node);
+	if(0) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
+
 } 
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
