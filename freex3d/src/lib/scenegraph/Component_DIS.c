@@ -815,6 +815,13 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					//somehow get body/entity into world/gc - rotation and translation
 					{
 						//rotation
+						//assumption (Apr 2018 don't know how Xj3d does it, here's dug9's guess):
+						// pdu is world2body
+						// espdutransform.rotation = local2body
+						// - where local is TCS Topocentric Coord System as described for GeoLocation
+						// - and world is GC
+						// local2body = world2local.inverse x world2body
+						// for freewrl world2local is gc2tcs
 						Quaternion qtcs2gc;
 						float ypr[3], xyza[4];
 						ypr[0] = espdu->entityOrientation.phi;
@@ -833,7 +840,8 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							TRANS_ZERO = 1,
 							TRANS_LOCATION_MINUS_GEOCOORD = 2,
 						};
-						static int transmethod = TRANS_ZERO; //TRANS_LOCATION_MINUS_GEOCOORD; //
+						//static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
+						static int transmethod = TRANS_ZERO; 
 
 						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
 						if(transmethod == TRANS_LOCATION_MINUS_GEOCOORD){
@@ -845,6 +853,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							//METHOD 2: geoCoords = Location; translation = 000
 							veccopyd(gc.c,world2bodyxyz);
 							gc2user(gs,&gc,1,&pnode->geoCoords);
+							node->_change++;
 							vecset3f(pnode->translation.c,0.0f,0.0f,0.0f);
 						}
 					}
@@ -2656,7 +2665,8 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
 	if(node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	COMPILE_IF_REQUIRED
-	if(0) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
+	if(1) if(node->__geoSystem) 
+		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
 	if(!node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
@@ -2711,14 +2721,14 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 		RECORD_DISTANCE
 		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
-	if(1) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
+	if(0) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
 
 }
 
 
 void fin_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
-	if(1) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
+	if(0) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 	if(!renderstate()->render_vp) {
 		if (node->__do_anything) {
@@ -2743,7 +2753,8 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 			);
 		}
 	}
-	if(0) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
+	if(1) if(node->__geoSystem) 
+		geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 } 
 void child_EspduTransform (struct X3D_EspduTransform *node) {
