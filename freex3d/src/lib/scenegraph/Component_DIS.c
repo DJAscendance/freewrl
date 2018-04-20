@@ -2218,17 +2218,14 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 			}
 		}
 	}
-	//Mar 2018 interpretation of geoSystem/geoCoords for DIS:
-	//- specs say DIS coords are (x,-z,y) cartesian, they can never be geospatial like GD (lat,lon)
-	//- and specs say children of espdu are translated by DIS coordinates in X3D order
-	//- therefore geoCoordinates must apply to the local scene, and aren't transmitted to/from other DIS participants
+	//Apr 2018 interpretation of geoSystem/geoCoords for DIS:
+	//- world2body = world2tcs + tcs2body where tcs2body == translation
 	// Scene
 	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
 	//   transform using DIS
 	//    children
-	// like we had wrapped espduTransform with a GeoLocation node
 	if(veclengthd(node->geoCoords.c) != 0.0){
-		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)){
+		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)){
 			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 			update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
 		}
