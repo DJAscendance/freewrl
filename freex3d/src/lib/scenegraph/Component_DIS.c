@@ -367,10 +367,17 @@ void axisangle2ypr(float *xyza, float *ypr)
 	//p = pitch = elevation
 	//r = roll
 	//assumes z is up, you re-arrange your inputs if other
-	float yaw, pitch, roll, x,y,z,a;
-	x = xyza[0]; y = xyza[1], z=xyza[2], a=xyza[3];
-	yaw = atan2(y,x);
-	pitch = atan(z);
+	float yaw, pitch, roll, x,y,z,a, xyz[3], flen;
+	vecnormalize3f(xyz,xyza);
+	x = xyz[0]; y = xyz[1], z=xyz[2], a=xyza[3];
+	flen = veclength2f(xyz);
+	if(flen == 0.0f){
+		yaw = 0.0f;
+		pitch = acos(-1.0) * .5; //90
+	}else{
+		yaw = atan2(y,x);
+		pitch = atan(z/flen);
+	}
 	roll = a;
 	ypr[0] = yaw;
 	ypr[1] = pitch;
@@ -382,7 +389,7 @@ void ypr2axisangle(float *ypr, float *xyza)
 	//p = pitch = elevation
 	//r = roll
 	//assumes z is up, you re-arrange your inputs if other
-	float yaw, pitch, roll, x,y,z,a;
+	float yaw, pitch, roll, x,y,z,a, xyz[3];
 	yaw = ypr[0];
 	pitch = ypr[1];
 	roll = ypr[2];
@@ -390,9 +397,10 @@ void ypr2axisangle(float *ypr, float *xyza)
 	x = cos(pitch)*cos(yaw);
 	y = cos(pitch)*sin(yaw);
 	z = sin(pitch); //or sqrt(1.0 - (x*x + y*y))
-	xyza[0] = x;
-	xyza[1] = y;
-	xyza[2] = z;
+	xyz[0] = x;
+	xyz[1] = y;
+	xyz[2] = z;
+	vecnormalize3f(xyza,xyz);
 	xyza[3] = a;
 }
 //dis stores vectors in structs .xyz, we do float[3], conversions:
@@ -542,34 +550,13 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			{
 				//rotation
 				float ypr[3];
-				if(1){
-					//lets see that GC2TCS rotation before we use it
-					float aa4[4];
-					double2float(aa4,rotate.c,4);
-					axisangle2ypr(aa4,ypr);
-					vecscale3f(ypr,ypr,180.0f/PI);
-					vecprint3fb("tcs ypr=",ypr,"\n"); //Galapogos should have roll (around GC X) of -180
-				}
-				if(1){
-					//lets see that TCS2BODY rotation before we use it
-					vecprint4fb("n.r",pnode->rotation.c,"\n");
-					axisangle2ypr(pnode->rotation.c,ypr);
-					vecscale3f(ypr,ypr,180.0f/PI);
-					vecprint3fb("body ypr=",ypr,"\n"); 
-				}
-
 				vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
 				vrmlrot4f_to_quaternion(&qtcs2body,pnode->rotation.c);
 				quaternion_multiply(&qgc2body,&qgc2tcs,&qtcs2body);
 				quaternion_to_vrmlrot4f(&qgc2body,xyza);
+				//vecprint4fb("send  xyza",xyza,"\n");
 				xyza[3] = -xyza[3];
 				axisangle2ypr(xyza,ypr);
-				if(1){
-					//lets see that combined rotation before we use it
-					float degypr[3];
-					vecscale3f(degypr,ypr,180.0f/PI);
-					vecprint3fb("total ypr=",degypr,"\n"); 
-				}
 
 				espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
 				espdu->entityOrientation.theta = ypr[1];
@@ -851,15 +838,14 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						ypr[1] = espdu->entityOrientation.theta;
 						ypr[2] = espdu->entityOrientation.phi;
 						ypr2axisangle(ypr,xyza);
-						if(1)xyza[3] = -xyza[3];
+						xyza[3] = -xyza[3];
+						//vecprint4fb("recv xyza",xyza,"\n");
+
 						vrmlrot4f_to_quaternion(&qgc2body,xyza);
 						vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
-						if(1)quaternion_inverse(&qtcs2gc,&qgc2tcs);
-						else quaternion_set(&qtcs2gc,&qgc2tcs);
-						if(1) quaternion_multiply(&qtcs2body,&qtcs2gc,&qgc2body);
-						else quaternion_multiply(&qtcs2body,&qgc2body,&qtcs2gc);
-						if(1) quaternion_set(&q,&qtcs2body);
-						else quaternion_inverse(&q,&qtcs2body);
+						quaternion_inverse(&qtcs2gc,&qgc2tcs);
+						quaternion_multiply(&qtcs2body,&qtcs2gc,&qgc2body);
+						quaternion_set(&q,&qtcs2body);
 						quaternion_to_vrmlrot4f(&q,pnode->rotation.c);
 					}
 					{
@@ -2368,18 +2354,18 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 
 }
-void prep_EspduTransform0(struct X3D_EspduTransform *node){
-	//if(!renderstate()->render_vp) {
-		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
-		/* did either we or the Viewpoint move since last time? */
-		//RECORD_DISTANCE
-		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
-	//}
-
-}
-void fin_EspduTransform0(struct X3D_EspduTransform *node){
-	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-}
+//void prep_EspduTransform0(struct X3D_EspduTransform *node){
+//	//if(!renderstate()->render_vp) {
+//		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+//		/* did either we or the Viewpoint move since last time? */
+//		//RECORD_DISTANCE
+//		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+//	//}
+//
+//}
+//void fin_EspduTransform0(struct X3D_EspduTransform *node){
+//	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+//}
 
 #else //WITH_DIS
 void compile_DIS_common(struct X3D_EspduTransform *node){}
@@ -2693,7 +2679,7 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
 	if(node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	COMPILE_IF_REQUIRED
-	if(1) if(node->__geoSystem) 
+	if(node->__geoSystem) 
 		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
 	if(!node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
@@ -2749,14 +2735,12 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 		RECORD_DISTANCE
 		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
-	if(0) if(node->__geoSystem) geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
 
 }
 
 
 void fin_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
-	if(0) if(node->__geoSystem) geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 	if(!renderstate()->render_vp) {
 		if (node->__do_anything) {
@@ -2781,7 +2765,7 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 			);
 		}
 	}
-	if(1) if(node->__geoSystem) 
+	if(node->__geoSystem) 
 		geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 } 
