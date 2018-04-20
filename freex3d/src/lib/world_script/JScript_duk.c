@@ -2453,6 +2453,7 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, int kind,
 
 		// uses conditional rename_function - only renames if object exists and its typeof function
 		sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
+		//printf("%s\n",strline);
 		duk_push_string(ctx,strline);
 		if(duk_peval(ctx) != 0) {
 			printf("Script error: %s\n", duk_safe_to_string(ctx, -1));

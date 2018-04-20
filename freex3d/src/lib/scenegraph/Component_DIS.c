@@ -542,12 +542,35 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			{
 				//rotation
 				float ypr[3];
+				if(1){
+					//lets see that GC2TCS rotation before we use it
+					float aa4[4];
+					double2float(aa4,rotate.c,4);
+					axisangle2ypr(aa4,ypr);
+					vecscale3f(ypr,ypr,180.0f/PI);
+					vecprint3fb("tcs ypr=",ypr,"\n"); //Galapogos should have roll (around GC X) of -180
+				}
+				if(1){
+					//lets see that TCS2BODY rotation before we use it
+					vecprint4fb("n.r",pnode->rotation.c,"\n");
+					axisangle2ypr(pnode->rotation.c,ypr);
+					vecscale3f(ypr,ypr,180.0f/PI);
+					vecprint3fb("body ypr=",ypr,"\n"); 
+				}
+
 				vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
 				vrmlrot4f_to_quaternion(&qtcs2body,pnode->rotation.c);
 				quaternion_multiply(&qgc2body,&qgc2tcs,&qtcs2body);
 				quaternion_to_vrmlrot4f(&qgc2body,xyza);
 				xyza[3] = -xyza[3];
 				axisangle2ypr(xyza,ypr);
+				if(1){
+					//lets see that combined rotation before we use it
+					float degypr[3];
+					vecscale3f(degypr,ypr,180.0f/PI);
+					vecprint3fb("total ypr=",degypr,"\n"); 
+				}
+
 				espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
 				espdu->entityOrientation.theta = ypr[1];
 				espdu->entityOrientation.phi = ypr[2];
@@ -822,17 +845,22 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						// - and world is GC
 						// local2body = world2local.inverse x world2body
 						// for freewrl world2local is gc2tcs
-						Quaternion qtcs2gc;
+						Quaternion qtcs2gc, q;
 						float ypr[3], xyza[4];
-						ypr[0] = espdu->entityOrientation.phi;
-						ypr[1] = espdu->entityOrientation.psi;
-						ypr[2] = espdu->entityOrientation.theta;
+						ypr[0] = -espdu->entityOrientation.psi;
+						ypr[1] = espdu->entityOrientation.theta;
+						ypr[2] = espdu->entityOrientation.phi;
 						ypr2axisangle(ypr,xyza);
+						if(1)xyza[3] = -xyza[3];
 						vrmlrot4f_to_quaternion(&qgc2body,xyza);
 						vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
-						quaternion_inverse(&qtcs2gc,&qgc2tcs);
-						quaternion_multiply(&qtcs2body,&qtcs2gc,&qgc2body);
-						quaternion_to_vrmlrot4f(&qtcs2body,pnode->rotation.c);
+						if(1)quaternion_inverse(&qtcs2gc,&qgc2tcs);
+						else quaternion_set(&qtcs2gc,&qgc2tcs);
+						if(1) quaternion_multiply(&qtcs2body,&qtcs2gc,&qgc2body);
+						else quaternion_multiply(&qtcs2body,&qgc2body,&qtcs2gc);
+						if(1) quaternion_set(&q,&qtcs2body);
+						else quaternion_inverse(&q,&qtcs2body);
+						quaternion_to_vrmlrot4f(&q,pnode->rotation.c);
 					}
 					{
 						//translation - dug9 debate: could do it one of 2 ways
@@ -840,8 +868,8 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							TRANS_ZERO = 1,
 							TRANS_LOCATION_MINUS_GEOCOORD = 2,
 						};
-						//static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
-						static int transmethod = TRANS_ZERO; 
+						static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
+						//static int transmethod = TRANS_ZERO; 
 
 						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
 						if(transmethod == TRANS_LOCATION_MINUS_GEOCOORD){

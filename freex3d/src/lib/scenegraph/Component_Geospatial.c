@@ -1762,7 +1762,10 @@ static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
 	xtmcoords[2] = gdcoords[2];
 }
 
-/* calculate the rotation needed to apply to this position on the GC coordinate location */
+/* calculate the rotation needed to apply to this position on the GC coordinate location 
+	a) rotate from equatorial plane GC X,Y to TCS (topocentric coordinate system) plane
+	b) rotate from Z up to Y up
+*/
 static void GeoOrient (struct X3D_Node *geoOrigin, Geosys *geoSystem, struct SFVec3d *gdCoords, struct SFVec4d *orient) {
 	Quaternion qx;
 	Quaternion qz;
@@ -1826,7 +1829,7 @@ static void GeoOrient (struct X3D_Node *geoOrigin, Geosys *geoSystem, struct SFV
 	#endif
 
         quaternion_to_vrmlrot(&qr, &orient->c[0], &orient->c[1], &orient->c[2], &orient->c[3]);
-
+		vecnormald(orient->c,orient->c);
 	#ifdef VERBOSE
 	printf ("GeoOrient rotation %lf %lf %lf %lf\n",orient->c[0], orient->c[1], orient->c[2], orient->c[3]);
 	#endif
