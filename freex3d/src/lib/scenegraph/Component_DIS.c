@@ -565,9 +565,10 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			}
 			{
 				//translation
-				float2double(tcs2bodyxyz,pnode->translation.c,3);
-				vecaddd(world2bodyxyz,gc.c,tcs2bodyxyz);
-				vec3d2vector3double(&espdu->entityLocation,world2bodyxyz);
+				struct SFVec3d tcs, world;
+				float2double(tcs.c,pnode->translation.c,3);
+				tcs2gc(gs,&gd,&tcs,1,&world);
+				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
 		}else{
 			//doesn't necessarily make sense to have no geoSystem or geoCoords = 0,0,0
@@ -860,14 +861,18 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
 						if(transmethod == TRANS_LOCATION_MINUS_GEOCOORD){
 							//METHOD 1: translation = Location - geoCoords
-							vecdifd(tcs2bodyxyz,world2bodyxyz,gc.c);
+							struct SFVec3d world, tcs;
+							veccopyd(world.c,world2bodyxyz);
+							gc2tcs(gs,&gd,&world,1,&tcs);
+							veccopyd(tcs2bodyxyz,tcs.c);
 							double2float(pnode->translation.c,tcs2bodyxyz,3);
 						}else{
 							//TRANS_ZERO
 							//METHOD 2: geoCoords = Location; translation = 000
+							// x smoothing doesn't work if done in translation / tcs space
 							veccopyd(gc.c,world2bodyxyz);
 							gc2user(gs,&gc,1,&pnode->geoCoords);
-							node->_change++;
+							//node->_change++;
 							vecset3f(pnode->translation.c,0.0f,0.0f,0.0f);
 						}
 					}
