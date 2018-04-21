@@ -2020,6 +2020,15 @@ const int FIELDS_geo [] = {
 	FIELDNAMES_geoCoords,
 	-1,
 };
+const int FIELDS_geosys [] = {	
+	FIELDNAMES_geoSystem, 
+	-1,
+};
+const int FIELDS_geocoord [] = {	
+	FIELDNAMES_geoCoords,
+	-1,
+};
+
 
 const int FIELDS_es_info [] = {	
 	FIELDNAMES_entityCategory,
@@ -2224,10 +2233,11 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
 	//   transform using DIS
 	//    children
-	if(veclengthd(node->geoCoords.c) != 0.0){
-		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)){
+	if(TRUE){
+	//if(veclengthd(node->geoCoords.c) != 0.0){
+		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geosys)){
 			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-			update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+			update_origin(GEOSYS(node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
 		}
 	}
 }
