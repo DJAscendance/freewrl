@@ -981,8 +981,38 @@ void render_Sphere (struct X3D_Sphere *node) {
 	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
-
+const char *getNodeName(struct X3D_Node *node){
+	//return DEF name if there is one, else NULL
+	const char *name = NULL;
+	if(node){
+		//broto warning - DEF name list should be per-executionContext
+		struct X3D_Proto *context;
+		context = (struct X3D_Proto *)node->_executionContext;
+		if(context){
+			//broto_search_DEFname(ec, fwpars[0]._string);
+			int i;
+			struct brotoDefpair def;
+			if(context->__DEFnames){
+				int ndefs = vectorSize(context->__DEFnames);
+				for(i=0;i<ndefs;i++){
+					def = vector_get(struct brotoDefpair, context->__DEFnames,i);
+					//printf("%x %x %s\n",node,def.node,def.name);
+					if(def.node == node){
+						name = def.name;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return name;
+}
 void render_IndexedFaceSet (struct X3D_IndexedFaceSet *node) {
+	if(0){
+		unsigned char* nn = getNodeName(X3D_NODE(node));
+		if(nn) printf("%s ",nn);
+		else printf(".");
+	}
 	COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
 	if (!node->_intern) return;
 	CULL_FACE(node->solid)
