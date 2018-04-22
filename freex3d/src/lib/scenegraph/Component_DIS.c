@@ -535,6 +535,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		//translation - assumes companion scenes will have same parent transform stack
 		//(x, -z, y).
 		if(pnode->__geoSystem){
+			//a default geo scene is in TCS at Accra (Grenwich & equator)
 			Quaternion qgc2tcs, qtcs2body, qgc2body;
 			struct SFVec3d gd, gc, translate;
 			struct SFVec4d rotate;
@@ -571,6 +572,8 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
 		}else{
+			//non-geo scene
+			//Apr 22, 2018 we no longer use this, but keeping until benchmark against Brutzman
 			//doesn't necessarily make sense to have no geoSystem or geoCoords = 0,0,0
 			//but some old/existing scenes are like that, so here we handling them
 			//but whether node.translation is meant to be tcs2body or global2body might make a difference?
@@ -888,7 +891,9 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						}
 					}
 				}else{
-
+					//non-geosystem scene. Apr 22, 2018 we aren't using this now
+					// -- everything goes through geosystem code above
+					// -- but keeping this until we benchmark against Brutzman
 					//translation - assumes companion scenes will have same parent transform stack
 					//(x, -z, y).
 					pnode->translation.c[0] = espdu->entityLocation.x;
