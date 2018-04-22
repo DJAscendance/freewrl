@@ -2423,6 +2423,13 @@ DRM_RVB = 8,
 DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
 };
 void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0, float *v0, float *a0, float *R0xyza, float *RVxyza){
+	// freewrl: when we say world here, we mean TCS.
+	// we convert DR parameters in world system to/from web3d geo TCS system during pdu2node / node2pdu
+	// so all below formula world coords are in TCS although you wouldn't know it by looking at the code
+	// TCS == topocentric coordinate system, aka LGS Local Geodetic System, see Geospatial component, GeoLocation
+	// LCS == local coordinate system - see Geospatial component, precision requirements, == TCS of geoOrigin / autoOrigin
+	// DIS Local ~= web3d TCS, except with axes swizzled (DIS -Z up, X north, X3D Y up, -Z north)
+	// any DR (dead reckoning) parameters in DIS-Local system are swizzled to/from web3d TCS convention in node2pdu and pdu2node
 	switch(drmethod){
 		//world coords
 		case STATIC: //1
