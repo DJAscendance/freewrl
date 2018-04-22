@@ -855,8 +855,8 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							TRANS_ZERO = 1,
 							TRANS_LOCATION_MINUS_GEOCOORD = 2,
 						};
-						static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
-						//static int transmethod = TRANS_ZERO; 
+						//static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
+						static int transmethod = TRANS_ZERO; 
 
 						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
 						if(transmethod == TRANS_LOCATION_MINUS_GEOCOORD){
@@ -864,16 +864,27 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							struct SFVec3d world, tcs;
 							veccopyd(world.c,world2bodyxyz);
 							gc2tcs(gs,&gd,&world,1,&tcs);
-							veccopyd(tcs2bodyxyz,tcs.c);
-							double2float(pnode->translation.c,tcs2bodyxyz,3);
+							double2float(pnode->translation.c,tcs.c,3);
 						}else{
 							//TRANS_ZERO
 							//METHOD 2: geoCoords = Location; translation = 000
 							// x smoothing doesn't work if done in translation / tcs space
-							veccopyd(gc.c,world2bodyxyz);
-							gc2user(gs,&gc,1,&pnode->geoCoords);
+							struct SFVec3d world, tcs2, tcs1;
+							double deltatcs[3];
+							float deltap[3];
+							static int want_smoothing = 1;
+							if(want_smoothing){
+								gc2tcs(gs,&gd,&gc,1,&tcs1);
+								veccopyd(world.c,world2bodyxyz);
+								gc2tcs(gs,&gd,&world,1,&tcs2);
+								vecdifd(deltatcs,tcs1.c,tcs2.c);
+								double2float(deltap,deltatcs,3);
+								vecadd3f(pnode->_p0.c,pnode->_p0.c,deltap);
+							}
+							gc2user(gs,&world,1,&pnode->geoCoords);
 							//node->_change++;
 							vecset3f(pnode->translation.c,0.0f,0.0f,0.0f);
+
 						}
 					}
 				}else{
@@ -2603,7 +2614,7 @@ void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
 	float p0[3],v0[3],a0[3];
 	double dtime;
 	static int smoothing_frames = 230; //frame count, at 60fps would be 4 seconds, ideally this would be a smoothing time in seconds
-	static int want_smoothing = 1;
+	static int want_smoothing = 1; //0;
 
 	
 	wasTransmitted = FALSE;
