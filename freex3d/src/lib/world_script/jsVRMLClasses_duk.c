@@ -225,6 +225,14 @@ int MFW_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 				//cost: x but then SF won't survive garbage collection of MF
 				//you need to use vivaty deep copy above, or in js do new SFxx(MF[i]) to deep copy
 				fwretval->_web3dval.native = (void *)(p + index*elen); //native = &MF.p[i] 
+				if(sftype == FIELDTYPE_SFString){
+					union anyVrml *any = (union anyVrml*) fwretval->_web3dval.native;
+					if(any->sfstring == NULL){
+						struct Uni_String *sfptr = (struct Uni_String*) malloc(sizeof(struct Uni_String));
+						memset(sfptr,0,sizeof(struct Uni_String));
+						any->sfstring = (struct Uni_String *)sfptr; //native = &MF.p[i] 
+					}
+				}
 				fwretval->_web3dval.gc = 0;
 			}
 		}

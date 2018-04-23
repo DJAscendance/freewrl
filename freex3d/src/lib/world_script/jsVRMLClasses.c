@@ -1155,6 +1155,7 @@ _standardMFGetProperty(JSContext *cx,
 				// in the setter, normally we realloc
 				if(mf_p == NULL){
 					mf_p = malloc(sfsize*upper_power_of_two(newlength));
+					memset(mf_p,0,sfsize*upper_power_of_two(newlength));
 				}else{
 					int k;
 					mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
@@ -1173,7 +1174,13 @@ _standardMFGetProperty(JSContext *cx,
 				case FIELDTYPE_SFTime:
 				case FIELDTYPE_SFDouble:
 				case FIELDTYPE_SFInt32:
+					X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
+					break;
 				case FIELDTYPE_SFString:
+					if(any->sfstring == NULL){
+						any->sfstring = (struct Uni_String*)malloc(sizeof(struct Uni_String));
+						memset(any->sfstring,0,sizeof(struct Uni_String));
+					}
 					X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
 					break;
 				case FIELDTYPE_SFColor:
