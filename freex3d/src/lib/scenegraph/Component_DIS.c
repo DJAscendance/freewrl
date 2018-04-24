@@ -576,10 +576,155 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
 
+			//dead reckoning > send
+			if(1){
+				//first update linear V,A, angularV
+				//all of which are in Local/TCS for us
+				pnode->_change_count++;
+				if(pnode->_change_count > 1){
+					double dtime;
+					float v1[3], tmp[3], a1[3];
+					dtime = TickTime() - pnode->_lastp0time;
+					vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
+					//pnode->_change_count = min(pnode->_change_count,2);
+					if(pnode->_change_count > 2){
+						//a = (v1-v0)/dt
+						vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
+						veccopy3f(pnode->linearAcceleration.c,a1);
+						//v1 = v0 - 1/2at**2
+					
+					}else{
+						vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
+					}
+					veccopy3f(pnode->linearVelocity.c,v1);
+					{
+						//update angular velocity
+						Quaternion qlast,q, qinv, qdif;
+						vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
+						vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+						quaternion_inverse(&qinv,&qlast);
+						quaternion_multiply(&qdif,&q,&qinv);
+						quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
+						pnode->_angularVelocity.c[3] *= 1.0f/dtime;
+					}
+				}
+				veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+				veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
+				pnode->_lastp0time = TickTime();
+			}
+			espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
+			vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+			vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
 
+			//convert Local/TCS linear/angular V,A to world or to Entity, depending on DR parameter
+			//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+			//p.333, p.329
+			/*
+			switch(pnode->deadReckoning){
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				{
+					//convert our TCS/Local to world
+					vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+					tcs2gc_transform(gs,&gd,&rotate,&translate);
+					vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+				}
+				break;
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				{
+					//convert our TCS/Local to entity
+					vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+					vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+				}
+				break;
+				default:
+				break;
+			}
+			*/
+			{
+				//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+				//always wrt entity
+				float axis[3];
+				vecnormalize3f(axis,pnode->_angularVelocity.c);
+				vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
+			}
+			//p.675 E.8.2 Use of Other Parameters for standard algorithms 1 through 9
+			switch(pnode->deadReckoning){
+				//fixed rotation
+				case 1:
+				case 2:
+				case 5:
+				case 6:
+				case 9:
+				{
+					float ypr[3];
+					espdu->deadReckoningParameters.otherParameters[0] = 1;
+					if(pnode->__geoSystem){
+						axisangle2ypr(pnode->rotation.c,ypr); //assume Transform.rotation is wrt TCS/LGS
+					}else{
+						vecset3f(ypr,0.0f,0.0f,0.0f); //we assume we are in local
+					}
+					veccopy3f((float*)&espdu->deadReckoningParameters.otherParameters[3],ypr);
+				}
+				break;
+				//rotating
+				case 3:
+				case 7:
+				case 8:
+				{
+					// p.677 E.8.2.3.2 Issuance of orientation quaternion
+					// a 'squished quaternion' 
+					Quaternion qglobal;
+					double quat4d[4];
+					float quat4f[4];
+					unsigned int iquat0;
+					unsigned short iquat16;
+					espdu->deadReckoningParameters.otherParameters[0] = 2;
+					if(pnode->__geoSystem){
+						//H: W2B = W2L x L2B
+						// World2body = world2local x local2body
+						// where world2local is the gc2tcs (geocentric to topocentric aka local geodetic system) from geospatial
+						// and local2body is the espdu.transform.(translation and rotation) (or its inverse)
+						Quaternion qtcs, qlocal;
+						struct SFVec3d gc, gd, translate;
+						struct SFVec4d rotate;
+						Geosys *gs;
+						gs = GEOSYS(pnode->__geoSystem);
+						user2gc(gs,&pnode->geoCoords,1,&gc);
+						gc2gd(gs,&gc,1,&gd);
+						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
+						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
+						quaternion_multiply(&qglobal,&qlocal,&qtcs);
+					}else{
+						vrmlrot_to_quaternion(&qglobal,0.0,1.0,0.0,0.0); //we've already combined DR with global, so additional DR is zero
+					}
+					quat2double(quat4d,&qglobal); //w in last slot of quat4d
+					double2float(&quat4f[1],quat4d,3);
+					quat4f[0] = quat4d[3]; //now w in first slot of quat4f
+					if(quat4f[0] < 0.0f)
+						vecscale4f(quat4f,quat4f,-1.0f);
+				
+					iquat0 = (unsigned int)(quat4f[0] * 65536);
+					if(quat4f[0] > 65536) iquat0 = 65535;
+					iquat16 = iquat0;
+					memcpy(&espdu->deadReckoningParameters.otherParameters[1],&iquat16,sizeof(short));
+					memcpy(&espdu->deadReckoningParameters.otherParameters[3],&quat4f[1],3*sizeof(float));
+				}
+				break;
+				default:
+				espdu->deadReckoningParameters.otherParameters[0] = (char)0;
+				break;
+			}
 
-
-		}else{
+		}else{  //geo
 			//non-geo scene
 			//Apr 22, 2018 we no longer use this, but keeping until benchmark against Brutzman
 			//doesn't necessarily make sense to have no geoSystem or geoCoords = 0,0,0
@@ -623,7 +768,123 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				espdu->entityOrientation.theta = ypr[1];
 				espdu->entityOrientation.phi = ypr[2];
 			}
-		}
+			//dead reckoning > send
+			if(1){
+				//first update linear V,A, angularV
+				//all of which are in Local/TCS for us
+				pnode->_change_count++;
+				if(pnode->_change_count > 1){
+					double dtime;
+					float v1[3], tmp[3], a1[3];
+					dtime = TickTime() - pnode->_lastp0time;
+					vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
+					//pnode->_change_count = min(pnode->_change_count,2);
+					if(pnode->_change_count > 2){
+						//a = (v1-v0)/dt
+						vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
+						veccopy3f(pnode->linearAcceleration.c,a1);
+						//v1 = v0 - 1/2at**2
+					
+					}else{
+						vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
+					}
+					veccopy3f(pnode->linearVelocity.c,v1);
+					{
+						//update angular velocity
+						Quaternion qlast,q, qinv, qdif;
+						vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
+						vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+						quaternion_inverse(&qinv,&qlast);
+						quaternion_multiply(&qdif,&q,&qinv);
+						quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
+						pnode->_angularVelocity.c[3] *= 1.0f/dtime;
+					}
+				}
+				veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+				veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
+				pnode->_lastp0time = TickTime();
+			}
+			espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
+			vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+			vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+
+			{
+				//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+				//always wrt entity
+				float axis[3];
+				vecnormalize3f(axis,pnode->_angularVelocity.c);
+				vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
+			}
+			//p.675 E.8.2 Use of Other Parameters for standard algorithms 1 through 9
+			switch(pnode->deadReckoning){
+				//fixed rotation
+				case 1:
+				case 2:
+				case 5:
+				case 6:
+				case 9:
+				{
+					float ypr[3];
+					espdu->deadReckoningParameters.otherParameters[0] = 1;
+					if(pnode->__geoSystem){
+						axisangle2ypr(pnode->rotation.c,ypr); //assume Transform.rotation is wrt TCS/LGS
+					}else{
+						vecset3f(ypr,0.0f,0.0f,0.0f); //we assume we are in local
+					}
+					veccopy3f((float*)&espdu->deadReckoningParameters.otherParameters[3],ypr);
+				}
+				break;
+				//rotating
+				case 3:
+				case 7:
+				case 8:
+				{
+					// p.677 E.8.2.3.2 Issuance of orientation quaternion
+					// a 'squished quaternion' 
+					Quaternion qglobal;
+					double quat4d[4];
+					float quat4f[4];
+					unsigned int iquat0;
+					unsigned short iquat16;
+					espdu->deadReckoningParameters.otherParameters[0] = 2;
+					if(pnode->__geoSystem){
+						//H: W2B = W2L x L2B
+						// World2body = world2local x local2body
+						// where world2local is the gc2tcs (geocentric to topocentric aka local geodetic system) from geospatial
+						// and local2body is the espdu.transform.(translation and rotation) (or its inverse)
+						Quaternion qtcs, qlocal;
+						struct SFVec3d gc, gd, translate;
+						struct SFVec4d rotate;
+						Geosys *gs;
+						gs = GEOSYS(pnode->__geoSystem);
+						user2gc(gs,&pnode->geoCoords,1,&gc);
+						gc2gd(gs,&gc,1,&gd);
+						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
+						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
+						quaternion_multiply(&qglobal,&qlocal,&qtcs);
+					}else{
+						vrmlrot_to_quaternion(&qglobal,0.0,1.0,0.0,0.0); //we've already combined DR with global, so additional DR is zero
+					}
+					quat2double(quat4d,&qglobal); //w in last slot of quat4d
+					double2float(&quat4f[1],quat4d,3);
+					quat4f[0] = quat4d[3]; //now w in first slot of quat4f
+					if(quat4f[0] < 0.0f)
+						vecscale4f(quat4f,quat4f,-1.0f);
+				
+					iquat0 = (unsigned int)(quat4f[0] * 65536);
+					if(quat4f[0] > 65536) iquat0 = 65535;
+					iquat16 = iquat0;
+					memcpy(&espdu->deadReckoningParameters.otherParameters[1],&iquat16,sizeof(short));
+					memcpy(&espdu->deadReckoningParameters.otherParameters[3],&quat4f[1],3*sizeof(float));
+				}
+				break;
+				default:
+				espdu->deadReckoningParameters.otherParameters[0] = (char)0;
+				break;
+			}
+		} //if geo else 
 		//vecprint3fb("trans=",pnode->translation.c,"\n");
 		pnode->_sent = TRUE;
 		//articuation parameters
@@ -642,157 +903,12 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			}
 			espdu->articulationParameters = (void*)ap;
 		}
-		//dead reckoning > send
-		if(1){
-			//first update linear V,A, angularV
-			//all of which are in Local/TCS for us
-			pnode->_change_count++;
-			if(pnode->_change_count > 1){
-				double dtime;
-				float v1[3], tmp[3], a1[3];
-				dtime = TickTime() - pnode->_lastp0time;
-				vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
-				//pnode->_change_count = min(pnode->_change_count,2);
-				if(pnode->_change_count > 2){
-					//a = (v1-v0)/dt
-					vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
-					veccopy3f(pnode->linearAcceleration.c,a1);
-					//v1 = v0 - 1/2at**2
-					
-				}else{
-					vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
-				}
-				veccopy3f(pnode->linearVelocity.c,v1);
-				{
-					//update angular velocity
-					Quaternion qlast,q, qinv, qdif;
-					vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
-					vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
-					quaternion_inverse(&qinv,&qlast);
-					quaternion_multiply(&qdif,&q,&qinv);
-					quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
-					pnode->_angularVelocity.c[3] *= 1.0f/dtime;
-				}
-			}
-			veccopy3f(pnode->_lastp0.c,pnode->translation.c);
-			veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
-			pnode->_lastp0time = TickTime();
-		}
-		espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
-		vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
-		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
 
-		//convert Local/TCS linear/angular V,A to world or to Entity, depending on DR parameter
-		//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
-		//p.333, p.329
-		/*
-		switch(pnode->deadReckoning){
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			{
-				//convert our TCS/Local to world
-				vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
-				tcs2gc_transform(gs,&gd,&rotate,&translate);
-				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
-			}
-			break;
-			case 6:
-			case 7:
-			case 8:
-			case 9:
-			{
-				//convert our TCS/Local to entity
-				vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
-				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
-			}
-			break;
-			default:
-			break;
-		}
-		*/
-		{
-			//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
-			//always wrt entity
-			float axis[3];
-			vecnormalize3f(axis,pnode->_angularVelocity.c);
-			vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
-			vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
-		}
-		//p.675 E.8.2 Use of Other Parameters for standard algorithms 1 through 9
-		switch(pnode->deadReckoning){
-			//fixed rotation
-			case 1:
-			case 2:
-			case 5:
-			case 6:
-			case 9:
-			{
-				float ypr[3];
-				espdu->deadReckoningParameters.otherParameters[0] = 1;
-				if(pnode->__geoSystem){
-					axisangle2ypr(pnode->rotation.c,ypr); //assume Transform.rotation is wrt TCS/LGS
-				}else{
-					vecset3f(ypr,0.0f,0.0f,0.0f); //we assume we are in local
-				}
-				veccopy3f((float*)&espdu->deadReckoningParameters.otherParameters[3],ypr);
-			}
-			break;
-			//rotating
-			case 3:
-			case 7:
-			case 8:
-			{
-				// p.677 E.8.2.3.2 Issuance of orientation quaternion
-				// a 'squished quaternion' 
-				Quaternion qglobal;
-				double quat4d[4];
-				float quat4f[4];
-				unsigned int iquat0;
-				unsigned short iquat16;
-				espdu->deadReckoningParameters.otherParameters[0] = 2;
-				if(pnode->__geoSystem){
-					//H: W2B = W2L x L2B
-					// World2body = world2local x local2body
-					// where world2local is the gc2tcs (geocentric to topocentric aka local geodetic system) from geospatial
-					// and local2body is the espdu.transform.(translation and rotation) (or its inverse)
-					Quaternion qtcs, qlocal;
-					struct SFVec3d gc, gd, translate;
-					struct SFVec4d rotate;
-					Geosys *gs;
-					gs = GEOSYS(pnode->__geoSystem);
-					user2gc(gs,&pnode->geoCoords,1,&gc);
-					gc2gd(gs,&gc,1,&gd);
-					gc2tcs_transform(gs,&gd,&translate,&rotate);
-					vrmlrot4d_to_quaternion(&qtcs,rotate.c);
-					vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
-					quaternion_multiply(&qglobal,&qlocal,&qtcs);
-				}else{
-					vrmlrot_to_quaternion(&qglobal,0.0,1.0,0.0,0.0); //we've already combined DR with global, so additional DR is zero
-				}
-				quat2double(quat4d,&qglobal); //w in last slot of quat4d
-				double2float(&quat4f[1],quat4d,3);
-				quat4f[0] = quat4d[3]; //now w in first slot of quat4f
-				if(quat4f[0] < 0.0f)
-					vecscale4f(quat4f,quat4f,-1.0f);
-				
-				iquat0 = (unsigned int)(quat4f[0] * 65536);
-				if(quat4f[0] > 65536) iquat0 = 65535;
-				iquat16 = iquat0;
-				memcpy(&espdu->deadReckoningParameters.otherParameters[1],&iquat16,sizeof(short));
-				memcpy(&espdu->deadReckoningParameters.otherParameters[3],&quat4f[1],3*sizeof(float));
-			}
-			break;
-			default:
-			espdu->deadReckoningParameters.otherParameters[0] = (char)0;
-			break;
-		}
 		//...
 		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	}
+
 	//ephemerals / expendables - no hearbeat requirements?
 	//FIRE
 	if(pnode->_pduchange_fire){
@@ -932,6 +1048,19 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 
 						}
 					}
+					// dead reckoning
+					pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
+					vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
+					vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
+					{
+						//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+						float axis[3], angle;
+						vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
+						angle = veclength3f(axis);
+						vecnormalize3f(pnode->_angularVelocity.c,axis);
+						pnode->_angularVelocity.c[3] = angle;
+					}
+
 				}else{
 					//non-geosystem scene. Apr 22, 2018 we aren't using this now
 					// -- everything goes through geosystem code above
@@ -966,6 +1095,19 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						ypr[2] = espdu->entityOrientation.phi;
 						ypr2axisangle(ypr,pnode->rotation.c);
 					}
+					// dead reckoning
+					pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
+					vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
+					vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
+					{
+						//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+						float axis[3], angle;
+						vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
+						angle = veclength3f(axis);
+						vecnormalize3f(pnode->_angularVelocity.c,axis);
+						pnode->_angularVelocity.c[3] = angle;
+					}
+
 				}
 				//articuation parameters
 				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
@@ -999,18 +1141,6 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
 					pnode->articulationParameterArray.p = pp;
 					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
-				}
-				// dead reckoning
-				pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
-				vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
-				vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
-				{
-					//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
-					float axis[3], angle;
-					vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
-					angle = veclength3f(axis);
-					vecnormalize3f(pnode->_angularVelocity.c,axis);
-					pnode->_angularVelocity.c[3] = angle;
 				}
 				pnode->_pduchange_es = TRUE;
 				if(espdu->entityAppearance | 1 << 20){
