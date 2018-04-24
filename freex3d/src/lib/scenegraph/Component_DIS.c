@@ -2619,12 +2619,13 @@ DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world a
 };
 void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0, float *v0, float *a0, float *R0xyza, float *RVxyza){
 	// freewrl: when we say world here, we mean TCS.
-	// we convert DR parameters in world system to/from web3d geo TCS system during pdu2node / node2pdu
-	// so all below formula world coords are in TCS although you wouldn't know it by looking at the code
 	// TCS == topocentric coordinate system, aka LGS Local Geodetic System, see Geospatial component, GeoLocation
 	// LCS == local coordinate system - see Geospatial component, precision requirements, == TCS of geoOrigin / autoOrigin
 	// DIS Local ~= web3d TCS, except with axes swizzled (DIS -Z up, X north, X3D Y up, -Z north)
+	// we convert DR parameters in world system to/from web3d geo TCS system during pdu2node / node2pdu
+	// so all below formula world coords are in TCS 
 	// any DR (dead reckoning) parameters in DIS-Local system are swizzled to/from web3d TCS convention in node2pdu and pdu2node
+
 	switch(drmethod){
 		//world coords
 		case STATIC: //1
@@ -2632,6 +2633,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			veccopy4f(R1xyza,R0xyza);
 			break;
 		case DRM_FPW: //2
+		case DRM_FPB: //6
 			{
 				float tmp[3];
 				//update position
@@ -2641,6 +2643,8 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			}
 			break;
 		case DRM_RPW: //3
+		case DRM_RPB: //7
+
 			{
 				float tmp[3];
 				Quaternion qv, q1, q0;
@@ -2657,6 +2661,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			}
 			break;
 		case DRM_RVW: //4
+		case DRM_RVB: //8
 			{
 				//update position
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
@@ -2674,6 +2679,8 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			}
 			break;
 		case DRM_FVW: //5
+		case DRM_FVB: //9
+
 			{
 				//F=fixed rotation, V = 2nd order, W=world coords
 				//E.7.2.2 p.666
@@ -2685,7 +2692,9 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 				veccopy4f(R1xyza,R0xyza);
 			}
 			break;
-
+		/*
+		// we convert from TCS to entity/world in node2pdu on send, and on recv comvert entity/world back to TCS
+		// so the above are all TCS
 		//body/entity coords
 		case DRM_FPB: //6
 			{
@@ -2711,7 +2720,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			{
 				//p.669
 				//I think I see 2 problems with the formula they give:
-				//1. their R1, R2 formula divide by |w|^n and when |w| is 0, that's divice by zero 
+				//1. their R1, R2 formula divide by |w|^n and when |w| is 0, that's divide by zero 
 				//   - should produce Identity matrix when |w| is zero
 				//2. P = P0 + Rbw*(R1*Vb + R2*Ab)
 				//  problem: when R1, R2 are Identity (when |w| 0), it doesn't look like V0*t + 1/2*A*t^2
@@ -2746,6 +2755,7 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 
 			}
 			break;
+		*/
 		default:
 			//update translation
 			veccopy3f(p1,p0);
