@@ -576,7 +576,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
 
-			//dead reckoning > send
+			//send > geo > dead reckoning
 			if(1){
 				//first update linear V,A, angularV
 				//all of which are in Local/TCS for us
@@ -613,40 +613,36 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				pnode->_lastp0time = TickTime();
 			}
 			espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
-			vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
-			vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+			{
+				float V[3], A[3];
+				// in TCS aka Local
+				veccopy3f(V,pnode->linearVelocity.c);
+				veccopy3f(A,pnode->linearAcceleration.c);
 
-			//convert Local/TCS linear/angular V,A to world or to Entity, depending on DR parameter
-			//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
-			//p.333, p.329
-			/*
-			switch(pnode->deadReckoning){
-				case 1:
-				case 2:
-				case 3:
-				case 4:
-				case 5:
-				{
+				//convert Local/TCS linear/angular V,A to world or to Entity, depending on DR parameter
+				//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+				//p.333, p.329
+				if(pnode->deadReckoning < 6){
 					//convert our TCS/Local to world
-					vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
-					tcs2gc_transform(gs,&gd,&rotate,&translate);
-					vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
-				}
-				break;
-				case 6:
-				case 7:
-				case 8:
-				case 9:
-				{
+					//Vgc = tcs2gc x Vtcs 
+					Quaternion q;
+					vrmlrot4d_to_quaternion(&q,rotate.c);
+					quaternion_inverse(&q,&q);
+					quaternion_rotation3f(V,&q,V);
+					quaternion_rotation3f(A,&q,A);
+				} else {
 					//convert our TCS/Local to entity
-					vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
-					vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+					//Vbody = tcs2body x Vtcs 
+					Quaternion q;
+					vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+					quaternion_inverse(&q,&q);
+					quaternion_rotation3f(V,&q,V);
+					quaternion_rotation3f(A,&q,A);
 				}
-				break;
-				default:
-				break;
+				vec3f2vector3float(&espdu->entityLinearVelocity,V);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,A);
+
 			}
-			*/
 			{
 				//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
 				//always wrt entity
@@ -1048,12 +1044,39 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 
 						}
 					}
-					// dead reckoning
+					// recv geo dead reckoning
 					pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
-					vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
-					vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
 					{
-						//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+						float V[3], A[3];
+						// in entity or world, depending on drmethod
+						vector3float2vec3f(A,&espdu->deadReckoningParameters.entityLinearAcceleration);
+						vector3float2vec3f(V,&espdu->entityLinearVelocity);
+
+						//convert linear/angular V,A from world or Entity, to local
+						//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+						//p.333, p.329
+						if(pnode->deadReckoning < 6){
+							//convert world to TCS/Local 
+							//vtcs = gc2tcs x Vworld
+							Quaternion q;
+							vrmlrot4d_to_quaternion(&q,rotate.c);
+							quaternion_rotation3f(V,&q,V);
+							quaternion_rotation3f(A,&q,A);
+						} else {
+							//convert entity to TCS/Local
+							//Vtcs = body2tcs x Vbody
+							Quaternion q;
+							vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+							quaternion_rotation3f(V,&q,V);
+							quaternion_rotation3f(A,&q,A);
+						}
+
+						veccopy3f(pnode->linearAcceleration.c,A);
+						veccopy3f(pnode->linearVelocity.c,V);
+
+					}
+					{
+						//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle, in entity space
 						float axis[3], angle;
 						vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
 						angle = veclength3f(axis);
