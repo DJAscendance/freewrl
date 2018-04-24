@@ -93,6 +93,8 @@ https://en.wikipedia.org/wiki/Distributed_Interactive_Simulation
 http://open-dis.sourceforge.net/Open-DIS.html
 http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
 - 2012 DIS draft
+- p.332 7.2.2 espdu struct/contents
+- p.665 Annex E dead reckoning formula
 
 Don's references:
 a. IITSEC 2017 slideset, DIS 101
@@ -516,6 +518,8 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
 	//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
+	//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+	//p.332 7.2.2 espdu struct/contents
 	//Q. how do create/remove work?
 	struct Vector *pdus;
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
@@ -571,6 +575,10 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				tcs2gc(gs,&gd,&tcs,1,&world);
 				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
+
+
+
+
 		}else{
 			//non-geo scene
 			//Apr 22, 2018 we no longer use this, but keeping until benchmark against Brutzman
@@ -634,8 +642,10 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			}
 			espdu->articulationParameters = (void*)ap;
 		}
-		//dead reckoning
+		//dead reckoning > send
 		if(1){
+			//first update linear V,A, angularV
+			//all of which are in Local/TCS for us
 			pnode->_change_count++;
 			if(pnode->_change_count > 1){
 				double dtime;
@@ -668,12 +678,44 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
 			pnode->_lastp0time = TickTime();
 		}
-
 		espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
 		vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
 		vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+
+		//convert Local/TCS linear/angular V,A to world or to Entity, depending on DR parameter
+		//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+		//p.333, p.329
+		/*
+		switch(pnode->deadReckoning){
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			{
+				//convert our TCS/Local to world
+				vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+				tcs2gc_transform(gs,&gd,&rotate,&translate);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+			}
+			break;
+			case 6:
+			case 7:
+			case 8:
+			case 9:
+			{
+				//convert our TCS/Local to entity
+				vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+			}
+			break;
+			default:
+			break;
+		}
+		*/
 		{
 			//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+			//always wrt entity
 			float axis[3];
 			vecnormalize3f(axis,pnode->_angularVelocity.c);
 			vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
