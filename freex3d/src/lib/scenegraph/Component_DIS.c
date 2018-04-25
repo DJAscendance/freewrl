@@ -577,9 +577,10 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			}
 
 			//send > geo > dead reckoning
-			if(1){
+			if(pnode->deadReckoning < 6){
 				//first update linear V,A, angularV
-				//all of which are in Local/TCS for us
+				//for drmethod < 6
+				//all of which are in Local/TCS for freewrl/web3d, instead of world for DIS 
 				pnode->_change_count++;
 				if(pnode->_change_count > 1){
 					double dtime;
@@ -608,10 +609,11 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 						pnode->_angularVelocity.c[3] *= 1.0f/dtime;
 					}
 				}
-				veccopy3f(pnode->_lastp0.c,pnode->translation.c);
-				veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
-				pnode->_lastp0time = TickTime();
 			}
+			veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+			veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
+			pnode->_lastp0time = TickTime();
+			
 			espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
 			{
 				float V[3], A[3];
