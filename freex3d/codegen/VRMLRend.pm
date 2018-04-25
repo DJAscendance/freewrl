@@ -571,6 +571,9 @@ our %ChildC = map {($_=>1)} qw/
 	IsoSurfaceVolumeData
 	ParticleSystem
 	EspduTransform
+	ReceiverPdu
+	TransmitterPdu
+	SignalPdu
 /;
 
 

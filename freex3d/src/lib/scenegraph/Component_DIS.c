@@ -2483,6 +2483,7 @@ void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
+
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
 	// but could be split if needed
@@ -3101,6 +3102,28 @@ void compile_ReceiverPdu (struct X3D_ReceiverPdu *node) {
 	compile_DIS_common((struct X3D_EspduTransform *)node); //assumes transform padding in receiver node
 	compile_ReceiverPdu0(node);
 	MARK_NODE_COMPILED
+}
+
+void child_TransmitterPdu (struct X3D_TransmitterPdu *node) { 
+	COMPILE_IF_REQUIRED
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+	//do stuff
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
+void child_SignalPdu (struct X3D_SignalPdu *node) { 
+	COMPILE_IF_REQUIRED
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+	//do stuff
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
+void child_ReceiverPdu (struct X3D_ReceiverPdu *node) { 
+	COMPILE_IF_REQUIRED
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+	//do stuff
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 
 void fwl_sendreceive_DIS(){
