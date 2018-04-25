@@ -574,6 +574,7 @@ our %ChildC = map {($_=>1)} qw/
 	ReceiverPdu
 	TransmitterPdu
 	SignalPdu
+	DISEntityManager
 /;
 
 

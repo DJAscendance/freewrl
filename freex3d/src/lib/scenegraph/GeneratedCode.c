@@ -2600,7 +2600,8 @@ struct X3D_Virt virt_Cylinder = { NULL,(void *)render_Cylinder,NULL,NULL,(void *
 
 struct X3D_Virt virt_CylinderSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_DISEntityManager = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void child_DISEntityManager(struct X3D_DISEntityManager *);
+struct X3D_Virt virt_DISEntityManager = { NULL,NULL,(void *)child_DISEntityManager,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_DISEntityTypeMapping = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
