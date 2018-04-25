@@ -631,6 +631,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 					quaternion_rotation3f(V,&q,V);
 					quaternion_rotation3f(A,&q,A);
 				} else {
+					if(0){
 					//convert our TCS/Local to entity
 					//Vbody = tcs2body x Vtcs 
 					Quaternion q;
@@ -638,6 +639,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 					quaternion_inverse(&q,&q);
 					quaternion_rotation3f(V,&q,V);
 					quaternion_rotation3f(A,&q,A);
+					}else{
+					//keep entity in entity
+					}
 				}
 				vec3f2vector3float(&espdu->entityLinearVelocity,V);
 				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,A);
@@ -1063,12 +1067,16 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							quaternion_rotation3f(V,&q,V);
 							quaternion_rotation3f(A,&q,A);
 						} else {
+							if(0){
 							//convert entity to TCS/Local
 							//Vtcs = body2tcs x Vbody
 							Quaternion q;
 							vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
 							quaternion_rotation3f(V,&q,V);
 							quaternion_rotation3f(A,&q,A);
+							}else{
+							//keep entity in entity
+							}
 						}
 
 						veccopy3f(pnode->linearAcceleration.c,A);
@@ -2625,7 +2633,15 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 	// we convert DR parameters in world system to/from web3d geo TCS system during pdu2node / node2pdu
 	// so all below formula world coords are in TCS 
 	// any DR (dead reckoning) parameters in DIS-Local system are swizzled to/from web3d TCS convention in node2pdu and pdu2node
-
+	// drmethod 1 - 9
+	// dtime - time in seconds since last frame ie .01
+	// p1 - output new location (TCS)
+	// R1xyza - output new orientation (body2tcs)
+	// p0 - location on last frame
+	// v0 - linear velocity set on last send/recv
+	// a0 - linear acceleration set on last send/recv
+	// R0xyza - orientation on last frame Rbw
+	// RVxyza - angular velocity, in entity/body
 	switch(drmethod){
 		//world coords
 		case STATIC: //1
@@ -2633,7 +2649,6 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			veccopy4f(R1xyza,R0xyza);
 			break;
 		case DRM_FPW: //2
-		case DRM_FPB: //6
 			{
 				float tmp[3];
 				//update position
@@ -2643,7 +2658,6 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			}
 			break;
 		case DRM_RPW: //3
-		case DRM_RPB: //7
 
 			{
 				float tmp[3];
@@ -2661,7 +2675,6 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			}
 			break;
 		case DRM_RVW: //4
-		case DRM_RVB: //8
 			{
 				//update position
 				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
@@ -2679,7 +2692,6 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			}
 			break;
 		case DRM_FVW: //5
-		case DRM_FVB: //9
 
 			{
 				//F=fixed rotation, V = 2nd order, W=world coords
@@ -2692,12 +2704,20 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 				veccopy4f(R1xyza,R0xyza);
 			}
 			break;
-		/*
-		// we convert from TCS to entity/world in node2pdu on send, and on recv comvert entity/world back to TCS
-		// so the above are all TCS
-		//body/entity coords
+		
+		//body/entity > A,V in body coords
 		case DRM_FPB: //6
 			{
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecscale3f(tmp3,v0,dtime);
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
 				//update rotation
 				veccopy4f(R1xyza,R0xyza);
 
@@ -2705,13 +2725,19 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 			break;
 		case DRM_RPB: //7
 			{
-				Quaternion qv, q1, q0;
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
 
-				//update rotation
-				// Rwb1 = DR(dt) * Rwb0
-				vrmlrot4f_to_quaternion(&q0,R0xyza);
 				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
-				quaternion_multiply(&q1,&q0,&qv);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecscale3f(tmp3,v0,dtime);
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
+				//update rotation 
+				// Rwb1 = DR(dt) * Rwb0
+				quaternion_multiply(&q1,&qbw,&qv);
 				quaternion_to_vrmlrot4f(&q1,R1xyza);
 
 			}
@@ -2726,23 +2752,22 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 				//  problem: when R1, R2 are Identity (when |w| 0), it doesn't look like V0*t + 1/2*A*t^2
 				//	should be:
 				//	P = P0 + Rbw*(R1*Vb*dt + R2*.5*Ab*dt*dt)
-				Quaternion qv, qa, q1, q0;
-				float vt[3], att[3], tmp[3], tmp2[3];
+				// proposed simplification:
+				// Rbb = Rv*dt (and maybe + Ra*.5*t^2) where bb means body pose update with dt
+				// P = P0 + Rbw x Rbb(Vb*dt + Ab*.5*dt*dt)
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
 
 				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
-				vrmlrot_to_quaternion(&qa,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime*dtime*.5f);
-				vrmlrot4f_to_quaternion(&q0,R0xyza);
-				quaternion_rotation3f(vt,&qv,v0);
-				quaternion_rotation3f(att,&qa,a0);
-				vecadd3f(tmp,vt,att);
-				quaternion_rotation3f(tmp2,&q0,tmp); //world2body
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime));
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
 				vecadd3f(p1,p0,tmp2);
 
 				//update rotation 
 				// Rwb1 = DR(dt) * Rwb0
-				vrmlrot4f_to_quaternion(&q0,R0xyza);
-				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
-				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_multiply(&q1,&qbw,&qv);
 				quaternion_to_vrmlrot4f(&q1,R1xyza);
 
 			}
@@ -2750,12 +2775,22 @@ void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0
 		case DRM_FVB: //9
 			{
 				//P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime));
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
 				//update rotation
-				veccopy4f(R1xyza,R0xyza);  //WRONG? 
+				veccopy4f(R1xyza,R0xyza);  //no update for 9
 
 			}
 			break;
-		*/
+		
 		default:
 			//update translation
 			veccopy3f(p1,p0);
