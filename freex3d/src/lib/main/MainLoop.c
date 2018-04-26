@@ -3930,6 +3930,7 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 		initialize_targets_simple();
 
 	dtime = Time1970sec();
+
 	vportstack = (Stack *)tg->Mainloop._vportstack;
 	defaultvport = ivec4_init(0,0,100,100);
 	pushviewport(vportstack,defaultvport);
@@ -3940,6 +3941,14 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	//twindows = p->cwindows;
 	//t = twindows;
 	p->windex = -1;
+	if(0){
+		//for testing, if scene ready or not for rendering
+		// can wait a few seconds for scene to load and update
+		static double starttime = 0.0;
+		if(starttime == 0.0) starttime = dtime;
+		if(dtime - starttime < 2.0) return;
+
+	}
 	for(i=0;i<p->nwindow;i++){
 		//a targetwindow might be a supervisor's screen, or HMD
 		freewrl_params_t *dp;

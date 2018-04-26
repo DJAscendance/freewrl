@@ -3126,7 +3126,11 @@ void child_ReceiverPdu (struct X3D_ReceiverPdu *node) {
 	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
+	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
+	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
+	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
 }
+
 void fwl_sendreceive_DIS(){
 	//just the buffer in/out is handled here
 	//the interpretation/parsing/packing of pdus is done in the backend
