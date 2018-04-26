@@ -9270,7 +9270,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->subcategory = 0;
 			tmp2->specific = 0;
 			tmp2->extra = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = FIELDNAMES_mapping;
 		break;
 		}
 		case NODE_DirectionalLight : {
