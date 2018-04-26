@@ -387,6 +387,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"activate",
 	"activeLayer",
 	"addChildren",
+	"addEntity",
 	"addGeometry",
 	"addTrimmingContour",
 	"addedEntities",
@@ -843,6 +844,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"relativeAntennaLocation",
 	"relativeHeight",
 	"removeChildren",
+	"removeEntity",
 	"removeGeometry",
 	"removeTrimmingContour",
 	"removedEntities",
@@ -1197,12 +1199,14 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
        const char *EVENT_IN[] = {
 	"activate",
 	"addChildren",
+	"addEntity",
 	"addGeometry",
 	"addTrimmingContour",
 	"method",
 	"next",
 	"previous",
 	"removeChildren",
+	"removeEntity",
 	"removeGeometry",
 	"removeTrimmingContour",
 	"retainUserOffsets",
@@ -4264,14 +4268,34 @@ const int OFFSETS_CylinderSensor[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DISEntityManager[] = {
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_DISEntityManager, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_DISEntityManager, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_DISEntityManager, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_DISEntityManager, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_port, (int) offsetof (struct X3D_DISEntityManager, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_multicastRelayHost, (int) offsetof (struct X3D_DISEntityManager, multicastRelayHost),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_multicastRelayPort, (int) offsetof (struct X3D_DISEntityManager, multicastRelayPort),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_networkMode, (int) offsetof (struct X3D_DISEntityManager, networkMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isNetworkReader, (int) offsetof (struct X3D_DISEntityManager, isNetworkReader),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isNetworkWriter, (int) offsetof (struct X3D_DISEntityManager, isNetworkWriter),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isStandAlone, (int) offsetof (struct X3D_DISEntityManager, isStandAlone),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_DISEntityManager, readInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_DISEntityManager, writeInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_DISEntityManager, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isRtpHeaderHeard, (int) offsetof (struct X3D_DISEntityManager, isRtpHeaderHeard),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_DISEntityManager, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_DISEntityManager, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_DISEntityManager, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_DISEntityManager, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_DISEntityManager, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_DISEntityManager, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_DISEntityManager, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_DISEntityManager, mapping),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_DISEntityManager, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_addedEntities, (int) offsetof (struct X3D_DISEntityManager, addedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removedEntities, (int) offsetof (struct X3D_DISEntityManager, removedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_addEntity, (int) offsetof (struct X3D_DISEntityManager, addEntity),  (int) FIELDTYPE_SFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_removeEntity, (int) offsetof (struct X3D_DISEntityManager, removeEntity),  (int) FIELDTYPE_SFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DISEntityTypeMapping[] = {
@@ -9247,14 +9271,34 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_DISEntityManager : {
 			struct X3D_DISEntityManager * tmp2;
 			tmp2 = (struct X3D_DISEntityManager *) tmp;
+			tmp2->enabled = TRUE;
+			tmp2->isActive = FALSE;
+			tmp2->timestamp = 0;
 			tmp2->address = newASCIIString("localhost");
 			tmp2->port = 0;
+			tmp2->multicastRelayHost = newASCIIString("");
+			tmp2->multicastRelayPort = 0;
+			tmp2->networkMode = newASCIIString("standAlone");
+			tmp2->isNetworkReader = FALSE;
+			tmp2->isNetworkWriter = FALSE;
+			tmp2->isStandAlone = FALSE;
+			tmp2->readInterval = 0.1;
+			tmp2->writeInterval = 1;
+			tmp2->rtpHeaderExpected = FALSE;
+			tmp2->isRtpHeaderHeard = FALSE;
+			tmp2->_registered = FALSE;
+			tmp2->_dsock = NULL;
+			tmp2->_lasttime = 0;
+			tmp2->_pduchange_networksensor = 0;
+			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
 			tmp2->mapping.n=0; tmp2->mapping.p=0;
 			tmp2->metadata = NULL;
 			tmp2->addedEntities.n=0; tmp2->addedEntities.p=0;
 			tmp2->removedEntities.n=0; tmp2->removedEntities.p=0;
+			tmp2->addEntity = NULL;
+			tmp2->removeEntity = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -14270,8 +14314,15 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_DISEntityManager *tmp;
 			tmp = (struct X3D_DISEntityManager *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);
 			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
+			spacer fprintf (fp," multicastRelayHost (SFString) \t%s\n",tmp->multicastRelayHost->strptr);
+			spacer fprintf (fp," multicastRelayPort (SFInt32) \t%d\n",tmp->multicastRelayPort);
+			spacer fprintf (fp," networkMode (SFString) \t%s\n",tmp->networkMode->strptr);
+			spacer fprintf (fp," readInterval (SFTime) \t%4.3f\n",tmp->readInterval);
+			spacer fprintf (fp," writeInterval (SFTime) \t%4.3f\n",tmp->writeInterval);
+			spacer fprintf (fp," entityID (SFInt32) \t%d\n",tmp->entityID);
 			spacer fprintf (fp," applicationID (SFInt32) \t%d\n",tmp->applicationID);
 			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," mapping (MFNode):\n");
