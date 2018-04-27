@@ -3167,7 +3167,9 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 						struct X3D_Inline * iline;
 						struct X3D_EspduTransform *espdu;
 						struct X3D_Group *grp;
-						iline = createNewX3DNode(NODE_Inline);
+						iline = createNewX3DNode(NODE_Inline); //this assigns a parent resource using parsing thread methods, which is wrong for rendering thread
+						//resource_item_t *pres = iline->_parentResource;
+						iline->_parentResource = X3D_PROTO(node->_executionContext)->_parentResource; //for rendering-thread creation of inlines, use the parent context's parentResource
 						if(isgroup)
 							grp = createNewX3DNode(NODE_Group);
 						else
