@@ -3125,10 +3125,15 @@ void child_ReceiverPdu (struct X3D_ReceiverPdu *node) {
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
 	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
+void print_entitymapping(struct X3D_DISEntityTypeMapping *anode){
+	ConsoleMessage("domain %d category %d country %d kind %d extra %d subcat %d spec %d\n",
+	anode->domain, anode->category,anode->country, anode->kind, anode->extra, anode->subcategory, anode->specific);
+}
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
 	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
 	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
+	static int ADD = 1, REMOVE = 2;
 
 	//like add remove children in opengl utils
 	if(node->addEntities.n){
@@ -3143,9 +3148,13 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 				ibest = -1;
 				iscore = 0;
 				best = NULL;
+				//printf("requested:");
+				//print_entitymapping(anode);
 				for(i=0;i<node->mapping.n;i++){
 					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
-						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[j];
+						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+						//printf("compare %d",i);
+						//print_entitymapping(bnode);
 						jscore = 0;
 						if(anode->domain == bnode->domain) jscore++;
 						if(anode->category == bnode->category) jscore++;
@@ -3162,7 +3171,8 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					}
 				}
 				if(ibest > -1){
-					int isgroup = 1;
+					int isgroup = 0;
+					//printf("ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
 					if (best->_child == NULL) {
 						struct X3D_Inline * iline;
 						struct X3D_EspduTransform *espdu;
@@ -3182,21 +3192,19 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(espdu));
 						}
 						best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+
 						ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
 						if(isgroup)
-							AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, 1,__FILE__,__LINE__);
+							AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
 						else
-							AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, 1,__FILE__,__LINE__);
+							AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
 						/* copy over the URL from parent */
 						shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
-						printf("iline url= [");
-						for(i=0;i<iline->url.n;i++) printf("'%s' ",((struct Uni_String *)iline->url.p[i])->strptr);
-						printf("]\n");
 						iline->load = TRUE;
 					}
 
-					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, 1,__FILE__,__LINE__);
-					AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, 1,__FILE__,__LINE__);
+					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, ADD,__FILE__,__LINE__);
+					AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
 				}
 			}
 		}
@@ -3216,7 +3224,7 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 				best = NULL;
 				for(i=0;i<node->mapping.n;i++){
 					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
-						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[j];
+						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
 						jscore = 0;
 						if(anode->domain == bnode->domain) jscore++;
 						if(anode->category == bnode->category) jscore++;
@@ -3233,16 +3241,21 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					}
 				}
 				if(ibest > -1){
-					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, 2,__FILE__,__LINE__);
+					//printf("remove: ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
+					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, REMOVE,__FILE__,__LINE__);
 					if(best->_child)
-						AddRemoveChildren(X3D_NODE(node),  &node->removedEntities, (struct X3D_Node * *)&best->_child, 1, 2,__FILE__,__LINE__);
+						AddRemoveChildren(X3D_NODE(node),  &node->removedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
 				}
+				//else
+				//	printf("remove: no match found\n");
 			}
 		}
-		if(node->removedEntities.n) MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,removedEntities));
+		if(node->removedEntities.n) {
+			printf("removedEntities.n=%d\n",node->removedEntities.n);
+			MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,removedEntities));
+		}
 		node->removeEntities.n = 0;
 	}
-
 }
 
 void fwl_sendreceive_DIS(){

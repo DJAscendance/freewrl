@@ -1863,8 +1863,8 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 							mf_p = realloc(mf_p,(size_t)sfsize*iupper);
 							memset(mf_p + (size_t)sfsize*mf_n,0,(size_t)(iupper - mf_n)*sfsize);
 						}
-						ptr->v->mfbool.n = newlength;
 					}
+					ptr->v->mfbool.n = newlength;
 					ptr->v->mfbool.p = (int*)mf_p;
 					if(valueChanged)
 						(*valueChanged)++;
