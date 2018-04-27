@@ -3184,7 +3184,7 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 							grp = createNewX3DNode(NODE_Group);
 						else
 							espdu = createNewX3DNode(NODE_EspduTransform);
-						if(1) if(best->_executionContext){
+						if(best->_executionContext){
 							add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(iline));
 							if(isgroup)
 								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(grp));
@@ -3251,7 +3251,7 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 			}
 		}
 		if(node->removedEntities.n) {
-			printf("removedEntities.n=%d\n",node->removedEntities.n);
+			//printf("removedEntities.n=%d\n",node->removedEntities.n);
 			MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,removedEntities));
 		}
 		node->removeEntities.n = 0;
