@@ -321,6 +321,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_collision",
 	"_pduchange_create",
 	"_pduchange_detonation",
+	"_pduchange_em_info",
 	"_pduchange_es",
 	"_pduchange_fire",
 	"_pduchange_networksensor",
@@ -4300,6 +4301,10 @@ const int OFFSETS_DISEntityManager[] = {
 	(int) FIELDNAMES_addEntities, (int) offsetof (struct X3D_DISEntityManager, addEntities),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_removeEntities, (int) offsetof (struct X3D_DISEntityManager, removeEntities),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_entities, (int) offsetof (struct X3D_DISEntityManager, entities),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_create, (int) offsetof (struct X3D_DISEntityManager, _pduchange_create),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pduchange_remove, (int) offsetof (struct X3D_DISEntityManager, _pduchange_remove),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pduchange_em_info, (int) offsetof (struct X3D_DISEntityManager, _pduchange_em_info),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_DISEntityManager, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DISEntityTypeMapping[] = {
@@ -4544,8 +4549,6 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_firingRate, (int) offsetof (struct X3D_EspduTransform, firingRate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_fuse, (int) offsetof (struct X3D_EspduTransform, fuse),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_warhead, (int) offsetof (struct X3D_EspduTransform, warhead),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES__pduchange_create, (int) offsetof (struct X3D_EspduTransform, _pduchange_create),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__pduchange_remove, (int) offsetof (struct X3D_EspduTransform, _pduchange_remove),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_EspduTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_EspduTransform, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_EspduTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9305,6 +9308,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->addEntities.n=0; tmp2->addEntities.p=0;
 			tmp2->removeEntities.n=0; tmp2->removeEntities.p=0;
 			tmp2->entities.n=0; tmp2->entities.p=0;
+			tmp2->_pduchange_create = 0;
+			tmp2->_pduchange_remove = 0;
+			tmp2->_pduchange_em_info = 0;
+			tmp2->_oldState = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -9579,8 +9586,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->firingRate = 0;
 			tmp2->fuse = 0;
 			tmp2->warhead = 0;
-			tmp2->_pduchange_create = 0;
-			tmp2->_pduchange_remove = 0;
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
 			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;

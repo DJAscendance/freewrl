@@ -933,20 +933,6 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
 	}
-	//CREATE
-	if(pnode->_pduchange_create){
-		struct CreateEntityPdu *crpdu;
-		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
-		//copy from espdutransform node to pdu
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
-	}
-	//REMOVE
-	if(pnode->_pduchange_remove){
-		struct RemoveEntityPdu *rmpdu;
-		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
-		//copy from espdutransform node to pdu
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
-	}
 
 	return pdus;
 
@@ -1206,6 +1192,52 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->_pduchange_detonation = TRUE;
 			}
 			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_DISEntityManager * pnode = (struct X3D_DISEntityManager*)node;
+	pdus = newVector(struct Pdu *, 6);
+
+	//ENTITYSTATE
+	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	printf("pduchange create %d remove %d heartbeat %d\n",pnode->_pduchange_create, pnode->_pduchange_remove, isHeartbeat);
+	if(isHeartbeat){
+		//lets say someone joins the exercise late.
+		//how do they get synched up?
+	}
+	//CREATE
+	if(pnode->_pduchange_create){
+		struct CreateEntityPdu *crpdu;
+		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
+	}
+	//REMOVE
+	if(pnode->_pduchange_remove){
+		struct RemoveEntityPdu *rmpdu;
+		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
+	}
+	return pdus;
+
+}
+int dis_pdus2node_em(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_DISEntityManager * pnode = (struct X3D_DISEntityManager*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
 			case PDU_CREATE_ENTITY:
 			{
 				//CREATE
@@ -1233,6 +1265,9 @@ struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	switch(node->_nodeType){
 		case NODE_EspduTransform:
 			pdus = dis_node2pdus_espdu(node, isHeartbeat);
+			break;
+		case NODE_DISEntityManager:
+			pdus = dis_node2pdus_em(node,isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
 		case NODE_TransmitterPdu:
@@ -1289,8 +1324,6 @@ int node_only_transform_changed(struct X3D_Node *node){
 		changed += pnode->_pduchange_collision ? 2:0;
 		changed += pnode->_pduchange_fire ? 4:0;
 		changed += pnode->_pduchange_detonation ? 8:0;
-		changed += pnode->_pduchange_create ? 16:0;
-		changed += pnode->_pduchange_remove ? 32:0;
 	}
 	onlytransform = changed == 1;
 	return onlytransform;
@@ -1307,7 +1340,12 @@ int node_pdus_changed_by_scene(struct X3D_Node *node){
 			changed |= pnode->_pduchange_collision;
 			changed |= pnode->_pduchange_fire;
 			changed |= pnode->_pduchange_detonation;
-			changed |= pnode->_pduchange_create;
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+			struct X3D_DISEntityManager *pnode = (struct X3D_DISEntityManager *)node;
+			changed = pnode->_pduchange_create;
 			changed |= pnode->_pduchange_remove;
 			}
 			break;
@@ -1343,6 +1381,11 @@ void reset_node_pduchanged(struct X3D_Node *node){
 			pnode->_pduchange_collision = FALSE;
 			pnode->_pduchange_fire = FALSE;
 			pnode->_pduchange_detonation = FALSE;
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+			struct X3D_DISEntityManager *pnode = (struct X3D_DISEntityManager *)node;
 			pnode->_pduchange_create = FALSE;
 			pnode->_pduchange_remove = FALSE;
 			}
@@ -1505,6 +1548,9 @@ int write_rtp(unsigned char *buf, struct X3D_Node *node){
 		case NODE_EspduTransform:
 			rtue = ((struct X3D_EspduTransform *)node)->rtpHeaderExpected;
 			break;
+		case NODE_DISEntityManager:
+			rtue = ((struct X3D_DISEntityManager *)node)->rtpHeaderExpected;
+			break;
 		case NODE_ReceiverPdu:
 			rtue = ((struct X3D_ReceiverPdu *)node)->rtpHeaderExpected;
 			break;
@@ -1534,6 +1580,9 @@ void set_rtp_heard(struct X3D_Node *node){
 		case NODE_EspduTransform:
 			((struct X3D_EspduTransform *)node)->isRtpHeaderHeard = TRUE;
 			break;
+		case NODE_DISEntityManager:
+			((struct X3D_DISEntityManager *)node)->isRtpHeaderHeard = TRUE;
+			break;
 		case NODE_ReceiverPdu:
 			((struct X3D_ReceiverPdu *)node)->isRtpHeaderHeard = TRUE;
 			break;
@@ -1555,6 +1604,15 @@ void dis_set_isActive(struct X3D_Node*node, int ival){
 				if(pnode->isActive != ival){
 					pnode->isActive = ival;
 					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isActive));
+				}
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+				struct X3D_DISEntityManager* pnode = (struct X3D_DISEntityManager*)node;
+				if(pnode->isActive != ival){
+					pnode->isActive = ival;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isActive));
 				}
 			}
 			break;
@@ -1614,6 +1672,23 @@ void dis_set_isNetworkMode(struct X3D_Node*node, int networkMode){
 				if(pnode->isNetworkWriter != isNetworkWriter){
 					pnode->isNetworkWriter = isNetworkWriter;
 					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkWriter));
+				}
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+				struct X3D_DISEntityManager* pnode = (struct X3D_DISEntityManager*)node;
+				if(pnode->isStandAlone != isStandAlone){
+					pnode->isStandAlone = isStandAlone;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isStandAlone));
+				}
+				if(pnode->isNetworkReader != isNetworkReader){
+					pnode->isNetworkReader = isNetworkReader;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isNetworkReader));
+				}
+				if(pnode->isNetworkWriter != isNetworkWriter){
+					pnode->isNetworkWriter = isNetworkWriter;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isNetworkWriter));
 				}
 			}
 			break;
@@ -1877,7 +1952,17 @@ void dis_recvloop(){
 						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 						//check site and application ID
 						//distribute to registered nodes by entityID
-						ihit = dis_pdus2node_espdu(node, pdus);
+						ihit = 0;
+						switch(node->_nodeType){
+							case NODE_EspduTransform:
+								ihit = dis_pdus2node_espdu(node, pdus);
+								break;
+							case NODE_DISEntityManager:
+								ihit = dis_pdus2node_em(node, pdus);
+								break;
+							default:
+								break;
+						}
 						if(ihit){
 							if(heard) set_rtp_heard(node);
 							dis_set_isActive(node,TRUE);
@@ -2251,7 +2336,7 @@ const int FIELDS_geocoord [] = {
 };
 
 
-const int FIELDS_es_info [] = {	
+const int FIELDS_em_info [] = {	
 	FIELDNAMES_entityCategory,
 	FIELDNAMES_entityCountry,
 	FIELDNAMES_entityDomain,
@@ -2489,7 +2574,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	// but could be split if needed
 	if(node->isNetworkReader){
 		if(node->_pduchange_es){
-			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_info);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_em_info);
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_force);
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_deadreckoning);
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_articulation);
@@ -2512,16 +2597,12 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_rate);
 		}
 
-		if(node->_pduchange_create){
-		}
-		if(node->_pduchange_remove){
-		}
 		reset_node_pduchanged(X3D_NODE(node));
 
 	}else if(node->isNetworkWriter){
 		int es_info, es_force, es_deadreckoning, es_articulation;
 		es_info = es_force = es_deadreckoning = es_articulation = FALSE;
-		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_em_info)){
 			es_info = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
@@ -2600,6 +2681,32 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 //void fin_EspduTransform0(struct X3D_EspduTransform *node){
 //	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
 //}
+
+void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
+	//we use the same _pduchange flags and _oldState for both receiving and sending
+	// but could be split if needed
+	if(node->isNetworkReader){
+		if(node->_pduchange_em_info){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_em_info);
+		}
+		if(node->_pduchange_create){
+		}
+		if(node->_pduchange_remove){
+		}
+		reset_node_pduchanged(X3D_NODE(node));
+
+	}else if(node->isNetworkWriter){
+		int em_info;
+		em_info = FALSE;
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_em_info)){
+			em_info = TRUE;
+		}
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
+}
+
+
 
 #else //WITH_DIS
 void compile_DIS_common(struct X3D_EspduTransform *node){}

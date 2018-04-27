@@ -2424,6 +2424,13 @@ our %Nodes = (
 		addEntities => ["MFNode", [], "inputOnly", 0,"UNCA_NONE"],#ff
 		removeEntities => ["MFNode", [], "inputOnly", 0,"UNCA_NONE"],#ff
 		entities => ["MFNode", [], "inputOutput", 0, "UNCA_NONE"],#ff
+		# DIS createEntityPdu / removeEntityPdu (not sure what / how this works)
+		_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_em_info => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		# Field Change Detection
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		
 	],"X3DChildNode"),
 
 	"DISEntityTypeMapping" => new VRML::NodeType("DISEntityTypeMapping", [
@@ -2576,8 +2583,8 @@ our %Nodes = (
 		warhead => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# DIS createEntityPdu / removeEntityPdu (not sure what / how this works)
-		_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
-		_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		#_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		#_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		#start same order as Transform >>>
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
