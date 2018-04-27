@@ -3129,6 +3129,118 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
 	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
 	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
+
+	//like add remove children in opengl utils
+	if(node->addEntities.n){
+		int i,j;
+		struct Multi_Node* mfn = &node->entities;
+		node->addedEntities.n = 0;
+		for(j=0;j<node->addEntities.n;j++){
+			
+			if(node->addEntities.p[j]->_nodeType == NODE_DISEntityTypeMapping){
+				int ibest,iscore,jscore;
+				struct X3D_DISEntityTypeMapping *best, *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
+				ibest = -1;
+				iscore = 0;
+				best = NULL;
+				for(i=0;i<node->mapping.n;i++){
+					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
+						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[j];
+						jscore = 0;
+						if(anode->domain == bnode->domain) jscore++;
+						if(anode->category == bnode->category) jscore++;
+						if(anode->country == bnode->country) jscore++;
+						if(anode->kind == bnode->kind) jscore++;
+						if(anode->extra == bnode->extra) jscore++;
+						if(anode->subcategory == bnode->subcategory) jscore++;
+						if(anode->specific == bnode->specific) jscore++;
+						if(jscore > iscore){
+							iscore = jscore;
+							ibest = i;
+							best = bnode;
+						}
+					}
+				}
+				if(ibest > -1){
+					int isgroup = 1;
+					if (best->_child == NULL) {
+						struct X3D_Inline * iline;
+						struct X3D_EspduTransform *espdu;
+						struct X3D_Group *grp;
+						iline = createNewX3DNode(NODE_Inline);
+						if(isgroup)
+							grp = createNewX3DNode(NODE_Group);
+						else
+							espdu = createNewX3DNode(NODE_EspduTransform);
+						if(1) if(best->_executionContext){
+							add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(iline));
+							if(isgroup)
+								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(grp));
+							else
+								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(espdu));
+						}
+						best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+						ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
+						if(isgroup)
+							AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, 1,__FILE__,__LINE__);
+						else
+							AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, 1,__FILE__,__LINE__);
+						/* copy over the URL from parent */
+						shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
+						printf("iline url= [");
+						for(i=0;i<iline->url.n;i++) printf("'%s' ",((struct Uni_String *)iline->url.p[i])->strptr);
+						printf("]\n");
+						iline->load = TRUE;
+					}
+
+					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, 1,__FILE__,__LINE__);
+					AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, 1,__FILE__,__LINE__);
+				}
+			}
+		}
+		if(node->addedEntities.n) MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,addedEntities));
+		node->addEntities.n = 0;
+	}
+	if(node->removeEntities.n){
+		int i,j;
+		struct Multi_Node* mfn = &node->entities;
+		node->removedEntities.n = 0;
+		for(j=0;j<node->removeEntities.n;j++){
+			if(node->removeEntities.p[j]->_nodeType == NODE_DISEntityTypeMapping){
+				int ibest,iscore,jscore;
+				struct X3D_DISEntityTypeMapping *best, *anode = (struct X3D_DISEntityTypeMapping *)node->removeEntities.p[j];
+				ibest = -1;
+				iscore = 0;
+				best = NULL;
+				for(i=0;i<node->mapping.n;i++){
+					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
+						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[j];
+						jscore = 0;
+						if(anode->domain == bnode->domain) jscore++;
+						if(anode->category == bnode->category) jscore++;
+						if(anode->country == bnode->country) jscore++;
+						if(anode->kind == bnode->kind) jscore++;
+						if(anode->extra == bnode->extra) jscore++;
+						if(anode->subcategory == bnode->subcategory) jscore++;
+						if(anode->specific == bnode->specific) jscore++;
+						if(jscore > iscore){
+							iscore = jscore;
+							ibest = i;
+							best = bnode;
+						}
+					}
+				}
+				if(ibest > -1){
+					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, 2,__FILE__,__LINE__);
+					if(best->_child)
+						AddRemoveChildren(X3D_NODE(node),  &node->removedEntities, (struct X3D_Node * *)&best->_child, 1, 2,__FILE__,__LINE__);
+				}
+			}
+		}
+		if(node->removedEntities.n) MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,removedEntities));
+		node->removeEntities.n = 0;
+	}
+
 }
 
 void fwl_sendreceive_DIS(){

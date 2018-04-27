@@ -2421,8 +2421,9 @@ our %Nodes = (
 		addedEntities => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removedEntities => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		#freewrl extra fields
-		addEntity => ["SFNode", "NULL", "inputOnly", 0,"UNCA_NONE"],#ff
-		removeEntity => ["SFNode", "NULL", "inputOnly", 0,"UNCA_NONE"],#ff
+		addEntities => ["MFNode", [], "inputOnly", 0,"UNCA_NONE"],#ff
+		removeEntities => ["MFNode", [], "inputOnly", 0,"UNCA_NONE"],#ff
+		entities => ["MFNode", [], "inputOutput", 0, "UNCA_NONE"],#ff
 	],"X3DChildNode"),
 
 	"DISEntityTypeMapping" => new VRML::NodeType("DISEntityTypeMapping", [
@@ -2435,7 +2436,7 @@ our %Nodes = (
 		subcategory => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		specific => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		extra => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-
+		_child => ["SFNode", "NULL", "initializeOnly",0,0],
 	],"X3DInfoNode"),
 
 	"EspduTransform" => new VRML::NodeType("EspduTransform", [

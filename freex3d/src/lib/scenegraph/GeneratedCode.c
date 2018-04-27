@@ -240,6 +240,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_buffer",
 	"_bufferendtime",
 	"_change_count",
+	"_child",
 	"_class",
 	"_col",
 	"_colourSize",
@@ -387,7 +388,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"activate",
 	"activeLayer",
 	"addChildren",
-	"addEntity",
+	"addEntities",
 	"addGeometry",
 	"addTrimmingContour",
 	"addedEntities",
@@ -561,6 +562,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"endCap",
 	"enterTime",
 	"enteredText",
+	"entities",
 	"entityCategory",
 	"entityCountry",
 	"entityDomain",
@@ -844,7 +846,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"relativeAntennaLocation",
 	"relativeHeight",
 	"removeChildren",
-	"removeEntity",
+	"removeEntities",
 	"removeGeometry",
 	"removeTrimmingContour",
 	"removedEntities",
@@ -1199,14 +1201,14 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
        const char *EVENT_IN[] = {
 	"activate",
 	"addChildren",
-	"addEntity",
+	"addEntities",
 	"addGeometry",
 	"addTrimmingContour",
 	"method",
 	"next",
 	"previous",
 	"removeChildren",
-	"removeEntity",
+	"removeEntities",
 	"removeGeometry",
 	"removeTrimmingContour",
 	"retainUserOffsets",
@@ -1368,6 +1370,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"enabled",
 	"enabledAxes",
 	"encodingScheme",
+	"entities",
 	"entityCategory",
 	"entityCountry",
 	"entityDomain",
@@ -4294,8 +4297,9 @@ const int OFFSETS_DISEntityManager[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_DISEntityManager, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_addedEntities, (int) offsetof (struct X3D_DISEntityManager, addedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removedEntities, (int) offsetof (struct X3D_DISEntityManager, removedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_addEntity, (int) offsetof (struct X3D_DISEntityManager, addEntity),  (int) FIELDTYPE_SFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
-	(int) FIELDNAMES_removeEntity, (int) offsetof (struct X3D_DISEntityManager, removeEntity),  (int) FIELDTYPE_SFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_addEntities, (int) offsetof (struct X3D_DISEntityManager, addEntities),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_removeEntities, (int) offsetof (struct X3D_DISEntityManager, removeEntities),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_entities, (int) offsetof (struct X3D_DISEntityManager, entities),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DISEntityTypeMapping[] = {
@@ -4308,6 +4312,7 @@ const int OFFSETS_DISEntityTypeMapping[] = {
 	(int) FIELDNAMES_subcategory, (int) offsetof (struct X3D_DISEntityTypeMapping, subcategory),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_specific, (int) offsetof (struct X3D_DISEntityTypeMapping, specific),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_extra, (int) offsetof (struct X3D_DISEntityTypeMapping, extra),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__child, (int) offsetof (struct X3D_DISEntityTypeMapping, _child),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DirectionalLight[] = {
@@ -9297,8 +9302,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->addedEntities.n=0; tmp2->addedEntities.p=0;
 			tmp2->removedEntities.n=0; tmp2->removedEntities.p=0;
-			tmp2->addEntity = NULL;
-			tmp2->removeEntity = NULL;
+			tmp2->addEntities.n=0; tmp2->addEntities.p=0;
+			tmp2->removeEntities.n=0; tmp2->removeEntities.p=0;
+			tmp2->entities.n=0; tmp2->entities.p=0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -9314,6 +9320,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->subcategory = 0;
 			tmp2->specific = 0;
 			tmp2->extra = 0;
+			tmp2->_child = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_mapping;
 		break;
 		}
@@ -14330,6 +14337,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," entities (MFNode):\n");
+			for (i=0; i<tmp->entities.n; i++) { dump_scene(fp,level+1,tmp->entities.p[i]); }
 		    break;
 		}
 		case NODE_DISEntityTypeMapping : {

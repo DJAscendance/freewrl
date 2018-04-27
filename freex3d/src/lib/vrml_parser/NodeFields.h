@@ -637,8 +637,9 @@ EXPOSED_FIELD(DISEntityManager,mapping,mfnode,mapping,FIELDTYPE_MFNode,UNCA_NONE
 EXPOSED_FIELD(DISEntityManager,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EVENT_OUT(DISEntityManager,addedEntities,mfnode,addedEntities,FIELDTYPE_MFNode)
 EVENT_OUT(DISEntityManager,removedEntities,mfnode,removedEntities,FIELDTYPE_MFNode)
-EVENT_IN(DISEntityManager,addEntity,sfnode,addEntity,FIELDTYPE_SFNode)
-EVENT_IN(DISEntityManager,removeEntity,sfnode,removeEntity,FIELDTYPE_SFNode)
+EVENT_IN(DISEntityManager,addEntities,mfnode,addEntities,FIELDTYPE_MFNode)
+EVENT_IN(DISEntityManager,removeEntities,mfnode,removeEntities,FIELDTYPE_MFNode)
+EXPOSED_FIELD(DISEntityManager,entities,mfnode,entities,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(DISEntityManager)
 
 /* DISEntityTypeMapping node */
