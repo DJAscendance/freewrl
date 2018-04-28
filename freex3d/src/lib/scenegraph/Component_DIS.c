@@ -275,7 +275,7 @@ c) some kind of abstract interface added to code generation system
 d) change to OO language and use inheritance and polymorphism
 	- maybe in the future
 e) functions with switch-case on nodetype
-For now in DIS we're going to use b) for espduTransform and 3 radio nodes, and e)
+For now in DIS we're going to use b) for espduTransform and 3 radio nodes and entityManager and e)
 
 */
 
@@ -527,7 +527,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
-	printf("pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
+	printf("es pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
 	if(pnode->_pduchange_es || isHeartbeat){
 		float xyz[3];
 		struct EntityStatePdu *espdu;
@@ -1205,7 +1205,7 @@ struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
-	printf("pduchange create %d remove %d heartbeat %d\n",pnode->_pduchange_create, pnode->_pduchange_remove, isHeartbeat);
+	printf("em pduchange create %d remove %d heartbeat %d\n",pnode->_pduchange_create, pnode->_pduchange_remove, isHeartbeat);
 	if(isHeartbeat){
 		//lets say someone joins the exercise late.
 		//how do they get synched up?
@@ -1213,14 +1213,14 @@ struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
 	//CREATE
 	if(pnode->_pduchange_create){
 		struct CreateEntityPdu *crpdu;
-		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
+		crpdu = (struct CreateEntityPdu *) dis_ctor(type_CreateEntityPdu);
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
 	}
 	//REMOVE
 	if(pnode->_pduchange_remove){
 		struct RemoveEntityPdu *rmpdu;
-		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
+		rmpdu = (struct RemoveEntityPdu *) dis_ctor(type_RemoveEntityPdu);
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
 	}
@@ -1288,6 +1288,7 @@ void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *read
 		case NODE_TransmitterPdu:
 		case NODE_SignalPdu:
 		case NODE_EspduTransform:
+		case NODE_DISEntityManager:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
 			*lasttime = pnode->_lasttime;
@@ -1306,6 +1307,7 @@ void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
 		case NODE_TransmitterPdu:
 		case NODE_SignalPdu:
 		case NODE_EspduTransform:
+		case NODE_DISEntityManager:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
 			pnode->_lasttime = lasttime;
@@ -2347,6 +2349,14 @@ const int FIELDS_em_info [] = {
 	FIELDNAMES_entitySubCategory,
 	-1,
 };
+const int FIELDS_create [] = {	
+	FIELDNAMES_addedEntities,
+	-1,
+};
+const int FIELDS_remove [] = {	
+	FIELDNAMES_removedEntities,
+	-1,
+};
 
 const int FIELDS_es_force [] = {
 	FIELDNAMES_forceID,
@@ -2741,16 +2751,22 @@ void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_em_info);
 		}
 		if(node->_pduchange_create){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_create);
 		}
 		if(node->_pduchange_remove){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_remove);
 		}
 		reset_node_pduchanged(X3D_NODE(node));
 
 	}else if(node->isNetworkWriter){
-		int em_info;
-		em_info = FALSE;
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_em_info)){
-			em_info = TRUE;
+			node->_pduchange_em_info = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_create)){
+			node->_pduchange_create = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_remove)){
+			node->_pduchange_remove = TRUE;
 		}
 	}
 	freeMallocedNodeFields(node->_oldState);
@@ -3290,6 +3306,7 @@ void print_entitymapping(struct X3D_DISEntityTypeMapping *anode){
 void compile_DISEntityManager(struct X3D_DISEntityManager *node){
 	compile_DIS_network((struct X3D_EspduTransform *)node);
 	compile_DISEntityManager0(node);
+	MARK_NODE_COMPILED
 }
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
