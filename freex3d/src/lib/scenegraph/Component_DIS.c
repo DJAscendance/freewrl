@@ -1430,6 +1430,7 @@ void dis_sendloop(){
 				double lasttime, dtime, readInterval, writeInterval, isHeartbeat;
 				struct Vector *pdus;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				//printf("registered node type %s\n",stringNodeType(node->_nodeType));
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
 				// finer granularity send decision: a)heartbeat, b)on-change except DR, c) DR dead-reckoning-threshold exceded
@@ -2501,8 +2502,58 @@ const int FIELDS_transmitter [] = {
 	-1,
 };
 
-
+void compile_DIS_network(struct X3D_EspduTransform *node){
+	if(node->_oldState == NULL){
+		//change detection 
+		//later we'll copy the entire node after we detect any changed fields
+		struct X3D_Node *old;
+		old = createNewX3DNode0(node->_nodeType);
+		//shallow_copy_node(old,X3D_NODE(node));
+		node->_oldState = old; //I think one underscore means dispose
+	}
+	if(!node->_registered){
+		void *psock;
+		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
+		node->multicastRelayPort,
+		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
+		node->_registered = TRUE;
+		node->_dsock = psock;
+	}
+	if(node->_registered){
+		//almost every field is [in,out] so can be changed at runtime
+		//IDEA: save duplicate of nodetype in _oldnode field
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_networksensor)){
+			int changed;
+			changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
+					node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
+			if(changed){
+				dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
+				node->_registered = FALSE;
+				node->_dsock = NULL;
+			}
+		}
+	}
+}
+void compile_DIS_geo(struct X3D_EspduTransform *node){
+	//Apr 2018 interpretation of geoSystem/geoCoords for DIS:
+	//- world2body = world2tcs + tcs2body where tcs2body == translation
+	// Scene
+	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
+	//   transform using DIS
+	//    children
+	if(TRUE){
+	//if(veclengthd(node->geoCoords.c) != 0.0){
+		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geosys)){
+			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+			update_origin(GEOSYS(node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+		}
+	}
+}
 void compile_DIS_common(struct X3D_EspduTransform *node){
+	compile_DIS_network(node);
+	compile_DIS_geo(node);
+}
+void compile_DIS_common_OLD(struct X3D_EspduTransform *node){
 	if(node->_oldState == NULL){
 		//change detection 
 		//later we'll copy the entire node after we detect any changed fields
@@ -3236,12 +3287,16 @@ void print_entitymapping(struct X3D_DISEntityTypeMapping *anode){
 	ConsoleMessage("domain %d category %d country %d kind %d extra %d subcat %d spec %d\n",
 	anode->domain, anode->category,anode->country, anode->kind, anode->extra, anode->subcategory, anode->specific);
 }
+void compile_DISEntityManager(struct X3D_DISEntityManager *node){
+	compile_DIS_network((struct X3D_EspduTransform *)node);
+	compile_DISEntityManager0(node);
+}
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
 	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
 	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
 	static int ADD = 1, REMOVE = 2;
-
+	COMPILE_IF_REQUIRED
 	//like add remove children in opengl utils
 	if(node->addEntities.n){
 		int i,j;

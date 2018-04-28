@@ -699,6 +699,7 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimSite
 	HAnimHumanoid
 	EspduTransform
+	DISEntityManager
 	ReceiverPdu
 	SignalPdu
 	TransmitterPdu

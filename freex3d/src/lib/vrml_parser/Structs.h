@@ -4173,6 +4173,7 @@ struct X3D_DISEntityManager {
 	struct X3D_Node *_dsock;
 	double _lasttime;
 	int _pduchange_networksensor;
+	struct X3D_Node *_oldState;
 	int entityID;
 	int applicationID;
 	int siteID;
@@ -4186,7 +4187,6 @@ struct X3D_DISEntityManager {
 	int _pduchange_create;
 	int _pduchange_remove;
 	int _pduchange_em_info;
-	struct X3D_Node *_oldState;
 };
 extern struct X3D_Virt virt_DISEntityManager;
 /***********************/
@@ -4497,13 +4497,13 @@ struct X3D_EspduTransform {
 	struct X3D_Node *_dsock;
 	double _lasttime;
 	int _pduchange_networksensor;
+	struct X3D_Node *_oldState;
 	int entityID;
 	int applicationID;
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
 	struct X3D_Node *__geoSystem;
-	struct X3D_Node *_oldState;
 	int entityCategory;
 	int entityCountry;
 	int entityDomain;
@@ -8968,13 +8968,13 @@ struct X3D_ReceiverPdu {
 	struct X3D_Node *_dsock;
 	double _lasttime;
 	int _pduchange_networksensor;
+	struct X3D_Node *_oldState;
 	int entityID;
 	int applicationID;
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
 	struct X3D_Node *__geoSystem;
-	struct X3D_Node *_oldState;
 	int radioID;
 	int whichGeometry;
 	int receiverState;
@@ -9431,13 +9431,13 @@ struct X3D_SignalPdu {
 	struct X3D_Node *_dsock;
 	double _lasttime;
 	int _pduchange_networksensor;
+	struct X3D_Node *_oldState;
 	int entityID;
 	int applicationID;
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
 	struct X3D_Node *__geoSystem;
-	struct X3D_Node *_oldState;
 	int radioID;
 	int whichGeometry;
 	struct Multi_Int32 data;
@@ -10467,13 +10467,13 @@ struct X3D_TransmitterPdu {
 	struct X3D_Node *_dsock;
 	double _lasttime;
 	int _pduchange_networksensor;
+	struct X3D_Node *_oldState;
 	int entityID;
 	int applicationID;
 	int siteID;
 	struct Multi_String geoSystem;
 	struct SFVec3d geoCoords;
 	struct X3D_Node *__geoSystem;
-	struct X3D_Node *_oldState;
 	int radioID;
 	int whichGeometry;
 	int radioEntityTypeCategory;
