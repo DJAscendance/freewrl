@@ -1388,6 +1388,7 @@ void reset_node_pduchanged(struct X3D_Node *node){
 		case NODE_DISEntityManager:
 			{
 			struct X3D_DISEntityManager *pnode = (struct X3D_DISEntityManager *)node;
+			pnode->_pduchange_em_info = FALSE;
 			pnode->_pduchange_create = FALSE;
 			pnode->_pduchange_remove = FALSE;
 			}
