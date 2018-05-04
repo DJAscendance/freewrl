@@ -1258,7 +1258,7 @@ void increment_pos0(struct point_XYZ *vec);
 void handle_tick_fly2(double dtime) {
 	ttglobal tg;
 	X3D_Viewer_InPlane *inplane;
-	double frameRateAdjustment, xx, yy, zz, rot;
+	double frameRateAdjustment, xx, yy, yyy, zz, rot, a,b,c;
 	struct point_XYZ xyz;
 	Quaternion q, nq;
 	X3D_Viewer *viewer;
@@ -1272,15 +1272,26 @@ void handle_tick_fly2(double dtime) {
 		xx = inplane->xx - inplane->x;
 		yy = inplane->yy - inplane->y;
 		//zz = -xsign_quadratic(yy,.05,5.0,0.0)*viewer->speed * frameRateAdjustment;
-		zz = -xsign_cubic(yy*10.0,.05,5.0,1.0,0.0)*viewer->speed * dtime;
+		//zz = -xsign_cubic(yy*10.0,.05,5.0,1.0,0.0)*viewer->speed * dtime;
+		yyy = yy*1.0;
+		a = 10000.0;
+		b = 100.0;
+		c = 1.0;
+		zz = -xsign_cubic(yyy,a,b,c,0.0)*viewer->speed * dtime; // * sqrt(viewer->Dist + 1.0);
+		//if(yy > 0.0){
+		//	double x;
+		//	x = yyy;
+		//	printf("%lf %lf %lf %lf\n",x*x*x*a,x*x*b,x*c,0.0);
+		//}
 
-		zz *= 0.15;
+		//zz *= 0.15;
 
 		xyz.x = 0.0;
 		xyz.y = 0.0;
 		xyz.z = zz;
 
-		rot = xsign_quadratic(xx,0.1,0.5,0.0)*frameRateAdjustment;
+		//rot = xsign_quadratic(xx,0.1,0.5,0.0)*frameRateAdjustment;
+		rot = xsign_quadratic(xx,2.0,10.0,0.0)*dtime; //frameRateAdjustment;
 		//printf("rot=%lf zz=%lf\n",rot,zz);
 		memcpy(&q,&viewer->Quat,sizeof(Quaternion));
 		vrmlrot_to_quaternion (&nq,0.0,1.0,0.0,0.4*rot);
@@ -1391,16 +1402,26 @@ void handle_tick_tplane(double dtime){
 
 	inplane = &viewer->inplane;
 	if(inplane->on){
-		if(0){
-		pp.x =  xsign_quadratic(inplane->xx - inplane->x,300.0,100.0,0.0) *dtime;
-		pp.y =  xsign_quadratic(inplane->yy - inplane->y,300.0,100.0,0.0) *dtime;
-		}else if(0){
-			pp.x =  xsign_quadratic(inplane->xx - inplane->x,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
-			pp.y =  xsign_quadratic(inplane->yy - inplane->y,30.0,1.0,0.0)*max(1.0,viewer->Dist) * dtime;
-		}else {
-			pp.x =  xsign_quintic((inplane->xx - inplane->x)*100.0,1.0,.3,1.0,.3,0.1,0.0) * dtime;
-			pp.y =  xsign_quintic((inplane->yy - inplane->y)*100.0,1.0,.3,1.0,.3,0.1,0.0) * dtime;
-		}
+		double xxx,yyy,a,b,c,d,e;
+		xxx = (inplane->xx - inplane->x)*1.0;
+		yyy = (inplane->yy - inplane->y)*1.0;
+		a = 10000.0;
+		b = 100.0;
+		c = 1.0;
+
+		pp.x =  xsign_cubic(xxx,a,b,c,0.0) * dtime * viewer->speed; //sqrt(viewer->Dist + 1.0);
+		pp.y =  xsign_cubic(yyy,a,b,c,0.0) * dtime * viewer->speed; //sqrt(viewer->Dist + 1.0);
+		//if(xxx > 0.0){
+		//	double x;
+		//	x = xxx;
+		//	printf("xxx %lf %lf %lf %lf\n",x*x*x*a,x*x*b,x*c,0.0);
+		//}
+		//if(yyy > 0.0){
+		//	double x;
+		//	x = yyy;
+		//	printf("yyy %lf %lf %lf %lf \n",x*x*x*a,x*x*b,x*c,0.0);
+		//}
+
 		pp.z = 0.0;
 		increment_pos0(&pp);
 	}
