@@ -1205,7 +1205,7 @@ struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
-	printf("em pduchange create %d remove %d heartbeat %d\n",pnode->_pduchange_create, pnode->_pduchange_remove, isHeartbeat);
+	printf("em pduchange create %d remove %d heartbeat %d ticktime %lf\n",pnode->_pduchange_create, pnode->_pduchange_remove, isHeartbeat,TickTime());
 	if(isHeartbeat){
 		//lets say someone joins the exercise late.
 		//how do they get synched up?
@@ -1243,6 +1243,7 @@ int dis_pdus2node_em(struct X3D_Node *node, struct Vector *pdus){
 				//CREATE
 				struct CreateEntityPdu *crpdu;
 				//crpdu->mySimulationManagementFamilyPdu.myPdu.
+				printf("hi from pdu2node create_entity\n");
 				pnode->_pduchange_create = TRUE;
 			}
 			break;
@@ -1250,6 +1251,7 @@ int dis_pdus2node_em(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//REMOVE
 				struct RemoveEntityPdu *rmpdu;
+				printf("hi from pdu2node remove_entity\n");
 				pnode->_pduchange_remove = TRUE;
 			}
 			break;
@@ -2193,20 +2195,16 @@ int shallow_compare_field(int typeIndex, union anyVrml* source, union anyVrml* d
 		mfs = (struct Multi_Node*)source;
 		mfd = (struct Multi_Node*)dest;
 		//self assignment is no-op
-		if(mfs->p != mfd->p){
+		if(mfs->n != mfd->n){
 			has_changed = TRUE;
 		}else{
-			if(mfs->n != mfd->n){
-				has_changed = TRUE;
-			}else{
-				ps = (char *)mfs->p;
-				pd = (char *)mfd->p;
-				for(i=0;i<mfs->n;i++)
-				{
-					has_changed = shallow_compare_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
-					ps += isize;
-					pd += isize;
-				}
+			ps = (char *)mfs->p;
+			pd = (char *)mfd->p;
+			for(i=0;i<mfs->n;i++)
+			{
+				has_changed = shallow_compare_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
+				ps += isize;
+				pd += isize;
 			}
 		}
 	}else{ 
@@ -2752,10 +2750,12 @@ void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_em_info);
 		}
 		if(node->_pduchange_create){
-			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_create);
+			if(node->addedEntities.n > 0)
+				mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_create);
 		}
 		if(node->_pduchange_remove){
-			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_remove);
+			if(node->removedEntities.n > 0)
+				mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_remove);
 		}
 		reset_node_pduchanged(X3D_NODE(node));
 
@@ -2764,10 +2764,12 @@ void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 			node->_pduchange_em_info = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_create)){
-			node->_pduchange_create = TRUE;
+			if(node->addedEntities.n > 0)
+				node->_pduchange_create = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_remove)){
-			node->_pduchange_remove = TRUE;
+			if(node->removedEntities.n > 0)
+				node->_pduchange_remove = TRUE;
 		}
 	}
 	freeMallocedNodeFields(node->_oldState);

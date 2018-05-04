@@ -4575,7 +4575,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		// Set the timestamp
 		//tg->Mainloop.lastTime = tg->Mainloop.TickTime;
 		//tg->Mainloop.TickTime = dtime; //Time1970sec();
-		static int debugg_time = FALSE; //TRUE;
+		static int debugg_time = TRUE; //FALSE; //TRUE;
 		if(debugg_time){
 			//sometimes when debugging you have interpolators based on time
 			//and rather than jumping after you stall the draw thread, you'd like 
