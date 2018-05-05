@@ -1198,7 +1198,23 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
-struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
+
+// Simulation Management PDUs relate to the DISEntityManager node
+// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+//5.6 Simulation management p.85
+//6.2.82 Simulation Management PDU Header record p.311
+//- its an abstract type
+//- the pdutype burried in the standard header part is the implied ACTION. ie create, or remove.
+//Table 114 p.313:
+//PDU 				Reference 	Originating ID 	Receiving ID
+//Create Entity 	5.6.5.2 	Simulation ID 	Entity ID or Special Create Entity Identifier
+//Remove Entity 	5.6.5.3 	Simulation ID 	Entity ID
+//Table 12 p.87
+//5.6.5.2 Create Entity PDU p.88 
+
+
+struct Vector * dis_node2pdus_sm(struct X3D_Node *node, int isHeartbeat){
+
 	struct Vector *pdus;
 	struct X3D_DISEntityManager * pnode = (struct X3D_DISEntityManager*)node;
 	pdus = newVector(struct Pdu *, 6);
@@ -1210,11 +1226,18 @@ struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
 		//lets say someone joins the exercise late.
 		//how do they get synched up?
 	}
+	{
+		struct SimulationManagementPdu *simanpdu;
+	}
 	//CREATE
 	if(pnode->_pduchange_create){
 		struct CreateEntityPdu *crpdu;
 		crpdu = (struct CreateEntityPdu *) dis_ctor(type_CreateEntityPdu);
 		//copy from espdutransform node to pdu
+		crpdu->mySimulationManagementFamilyPdu.originatingEntityID.entity = pnode->entityID;
+		//crpdu->mySimulationManagementFamilyPdu.receivingEntityID = ALL_SITES; ???
+		//crpdu->requestID = ??
+		///crpdu->mySimulationManagementFamilyPdu.myPdu.
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
 	}
 	//REMOVE
@@ -1227,7 +1250,7 @@ struct Vector * dis_node2pdus_em(struct X3D_Node *node, int isHeartbeat){
 	return pdus;
 
 }
-int dis_pdus2node_em(struct X3D_Node *node, struct Vector *pdus){
+int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
 	struct X3D_DISEntityManager * pnode = (struct X3D_DISEntityManager*)node;
@@ -1269,7 +1292,7 @@ struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 			pdus = dis_node2pdus_espdu(node, isHeartbeat);
 			break;
 		case NODE_DISEntityManager:
-			pdus = dis_node2pdus_em(node,isHeartbeat);
+			pdus = dis_node2pdus_sm(node,isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
 		case NODE_TransmitterPdu:
@@ -1964,7 +1987,7 @@ void dis_recvloop(){
 								ihit = dis_pdus2node_espdu(node, pdus);
 								break;
 							case NODE_DISEntityManager:
-								ihit = dis_pdus2node_em(node, pdus);
+								ihit = dis_pdus2node_sm(node, pdus);
 								break;
 							default:
 								break;
