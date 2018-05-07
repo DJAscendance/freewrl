@@ -4473,13 +4473,13 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_EspduTransform, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_EspduTransform, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_EspduTransform, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_entityCategory, (int) offsetof (struct X3D_EspduTransform, entityCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entityCountry, (int) offsetof (struct X3D_EspduTransform, entityCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entityDomain, (int) offsetof (struct X3D_EspduTransform, entityDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entityExtra, (int) offsetof (struct X3D_EspduTransform, entityExtra),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entityKind, (int) offsetof (struct X3D_EspduTransform, entityKind),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entitySpecific, (int) offsetof (struct X3D_EspduTransform, entitySpecific),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityDomain, (int) offsetof (struct X3D_EspduTransform, entityDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityCountry, (int) offsetof (struct X3D_EspduTransform, entityCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityCategory, (int) offsetof (struct X3D_EspduTransform, entityCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entitySubCategory, (int) offsetof (struct X3D_EspduTransform, entitySubCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entitySpecific, (int) offsetof (struct X3D_EspduTransform, entitySpecific),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityExtra, (int) offsetof (struct X3D_EspduTransform, entityExtra),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_forceID, (int) offsetof (struct X3D_EspduTransform, forceID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_marking, (int) offsetof (struct X3D_EspduTransform, marking),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_deadReckoning, (int) offsetof (struct X3D_EspduTransform, deadReckoning),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7325,10 +7325,10 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_TransmitterPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_TransmitterPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_TransmitterPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_radioEntityTypeCategory, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_radioEntityTypeCountry, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_radioEntityTypeDomain, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeKind, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeKind),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_radioEntityTypeDomain, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_radioEntityTypeCountry, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_radioEntityTypeCategory, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeNomenclature, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeNomenclature),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeNomenclatureVersion, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeNomenclatureVersion),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_antennaLocation, (int) offsetof (struct X3D_TransmitterPdu, antennaLocation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
@@ -9510,13 +9510,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->entityCategory = 0;
-			tmp2->entityCountry = 0;
-			tmp2->entityDomain = 0;
-			tmp2->entityExtra = 0;
 			tmp2->entityKind = 0;
-			tmp2->entitySpecific = 0;
+			tmp2->entityDomain = 0;
+			tmp2->entityCountry = 0;
+			tmp2->entityCategory = 0;
 			tmp2->entitySubCategory = 0;
+			tmp2->entitySpecific = 0;
+			tmp2->entityExtra = 0;
 			tmp2->forceID = 0;
 			tmp2->marking = newASCIIString("");
 			tmp2->deadReckoning = 0;
@@ -13109,10 +13109,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
-			tmp2->radioEntityTypeCategory = 0;
-			tmp2->radioEntityTypeCountry = 0;
-			tmp2->radioEntityTypeDomain = 0;
 			tmp2->radioEntityTypeKind = 0;
+			tmp2->radioEntityTypeDomain = 0;
+			tmp2->radioEntityTypeCountry = 0;
+			tmp2->radioEntityTypeCategory = 0;
 			tmp2->radioEntityTypeNomenclature = 0;
 			tmp2->radioEntityTypeNomenclatureVersion = 0;
 			tmp2->antennaLocation.c[0] = 0.0f;tmp2->antennaLocation.c[1] = 0.0f;tmp2->antennaLocation.c[2] = 0.0f;
@@ -14525,13 +14525,13 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," geoCoords (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCoords.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," entityCategory (SFInt32) \t%d\n",tmp->entityCategory);
-			spacer fprintf (fp," entityCountry (SFInt32) \t%d\n",tmp->entityCountry);
-			spacer fprintf (fp," entityDomain (SFInt32) \t%d\n",tmp->entityDomain);
-			spacer fprintf (fp," entityExtra (SFInt32) \t%d\n",tmp->entityExtra);
 			spacer fprintf (fp," entityKind (SFInt32) \t%d\n",tmp->entityKind);
-			spacer fprintf (fp," entitySpecific (SFInt32) \t%d\n",tmp->entitySpecific);
+			spacer fprintf (fp," entityDomain (SFInt32) \t%d\n",tmp->entityDomain);
+			spacer fprintf (fp," entityCountry (SFInt32) \t%d\n",tmp->entityCountry);
+			spacer fprintf (fp," entityCategory (SFInt32) \t%d\n",tmp->entityCategory);
 			spacer fprintf (fp," entitySubCategory (SFInt32) \t%d\n",tmp->entitySubCategory);
+			spacer fprintf (fp," entitySpecific (SFInt32) \t%d\n",tmp->entitySpecific);
+			spacer fprintf (fp," entityExtra (SFInt32) \t%d\n",tmp->entityExtra);
 			spacer fprintf (fp," forceID (SFInt32) \t%d\n",tmp->forceID);
 			spacer fprintf (fp," marking (SFString) \t%s\n",tmp->marking->strptr);
 			spacer fprintf (fp," deadReckoning (SFInt32) \t%d\n",tmp->deadReckoning);
@@ -18083,10 +18083,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 			spacer fprintf (fp," radioID (SFInt32) \t%d\n",tmp->radioID);
 			spacer fprintf (fp," whichGeometry (SFInt32) \t%d\n",tmp->whichGeometry);
-			spacer fprintf (fp," radioEntityTypeCategory (SFInt32) \t%d\n",tmp->radioEntityTypeCategory);
-			spacer fprintf (fp," radioEntityTypeCountry (SFInt32) \t%d\n",tmp->radioEntityTypeCountry);
-			spacer fprintf (fp," radioEntityTypeDomain (SFInt32) \t%d\n",tmp->radioEntityTypeDomain);
 			spacer fprintf (fp," radioEntityTypeKind (SFInt32) \t%d\n",tmp->radioEntityTypeKind);
+			spacer fprintf (fp," radioEntityTypeDomain (SFInt32) \t%d\n",tmp->radioEntityTypeDomain);
+			spacer fprintf (fp," radioEntityTypeCountry (SFInt32) \t%d\n",tmp->radioEntityTypeCountry);
+			spacer fprintf (fp," radioEntityTypeCategory (SFInt32) \t%d\n",tmp->radioEntityTypeCategory);
 			spacer fprintf (fp," radioEntityTypeNomenclature (SFInt32) \t%d\n",tmp->radioEntityTypeNomenclature);
 			spacer fprintf (fp," radioEntityTypeNomenclatureVersion (SFInt32) \t%d\n",tmp->radioEntityTypeNomenclatureVersion);
 			spacer fprintf (fp," antennaLocation (SFVec3f): \t");

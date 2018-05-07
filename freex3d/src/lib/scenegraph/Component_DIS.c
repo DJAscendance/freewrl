@@ -514,6 +514,29 @@ double *local2tcsswizzled(double *tcs,double *local){
 	tcs[2] = -local[0]; //north
 	return tcs;
 }
+void node2pdu_entityType(int *entityKind, struct EntityType *entityType){
+	//assumes node field order: kind, domain, country, category, subcategory, specific, extra
+	//p.262 draft standard http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+	entityType->entityKind = (unsigned char) entityKind[0];
+	entityType->domain = (unsigned char) entityKind[1];
+	entityType->country = (unsigned short) entityKind[2];
+	entityType->category = (unsigned char) entityKind[3];
+	entityType->subcategory = (unsigned char) entityKind[4];
+	entityType->specific = (unsigned char) entityKind[5];
+	entityType->extra = (unsigned char) entityKind[6];
+}
+void pdu2node_entityType( struct EntityType *entityType, int *entityKind){
+	//assumes node field order: kind, domain, country, category, subcategory, specific, extra
+	//p.262 draft standard http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+	entityKind[0] = entityType->entityKind;
+	entityKind[1] = entityType->domain;
+	entityKind[2] = entityType->country;
+	entityKind[3] = entityType->category;
+	entityKind[4] = entityType->subcategory;
+	entityKind[5] = entityType->specific;
+	entityKind[6] = entityType->extra;
+}
+
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
@@ -905,6 +928,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			}
 			espdu->articulationParameters = (void*)ap;
 		}
+		node2pdu_entityType(&pnode->entityKind,&espdu->entityType);
 
 		//...
 		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
@@ -1161,6 +1185,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					pnode->articulationParameterArray.p = pp;
 					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
 				}
+				pdu2node_entityType(&espdu->entityType,&pnode->entityKind);
 				pnode->_pduchange_es = TRUE;
 				if(espdu->entityAppearance | 1 << 20){
 					//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
@@ -1168,6 +1193,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					//(why can't they just leave dead reckoning parameters 0, and run through formula? H: specs written in 1990s for 80386 processors)
 					//pnode->_isFrozen = TRUE; //pduchange_es = FALSE;
 				}
+
 				//...
 			}
 			break;
@@ -1210,6 +1236,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 //Create Entity 	5.6.5.2 	Simulation ID 	Entity ID or Special Create Entity Identifier
 //Remove Entity 	5.6.5.3 	Simulation ID 	Entity ID
 //Table 12 p.87
+//Table 3 p.31 - IDs, including specials: All Simulations, no particular node: ALL_SITES 65535, ALL_APPLIC = 65535,  RefID 0
 //5.6.5.2 Create Entity PDU p.88 
 
 
