@@ -36,4 +36,24 @@ void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *ar
 typedef struct _geosys Geosys;
 #define GEOSYS( geosystem ) ((Geosys *)geosystem)
 void update_origin(Geosys *geoSystem, struct X3D_Node *node, struct SFVec3d *userCoord, struct X3D_GeoOrigin *geoOrigin);
+
+//void user2gd(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd);
+//void gd2user(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo);
+void user2gc(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc);
+void gc2user(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo);
+void  gc2lcs(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *lcs);
+void  lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc);
+void   gd2gc(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc);
+void   gc2gd(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
+void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
+void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+void lcs2gc_transform(struct SFVec4d *rotation, struct SFVec3d *translation);
+void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate);
+void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate);
+void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
+void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofin(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord);
+
 #endif /* __FREEWRL_SCENEGRAPH_GEOSPATIAL_H__ */

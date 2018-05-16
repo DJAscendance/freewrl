@@ -304,7 +304,7 @@ our %defaultContainerType = (
 	SplineScalarInterpolator 	=>["children"],
 	SquadOrientationInterpolator 	=>["children"],
 	DISEntityManager	=>["children"],
-	DISEntityTypeMapping	=>["children"],
+	DISEntityTypeMapping	=>["mapping"],
 	EspduTransform		=>["children"],
 	ReceiverPdu		=>["children"],
 	SignalPdu		=>["children"],
@@ -571,6 +571,10 @@ our %ChildC = map {($_=>1)} qw/
 	IsoSurfaceVolumeData
 	ParticleSystem
 	EspduTransform
+	ReceiverPdu
+	TransmitterPdu
+	SignalPdu
+	DISEntityManager
 /;
 
 
@@ -695,6 +699,7 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimSite
 	HAnimHumanoid
 	EspduTransform
+	DISEntityManager
 	ReceiverPdu
 	SignalPdu
 	TransmitterPdu

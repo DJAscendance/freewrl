@@ -227,8 +227,10 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__wireindicesVBO",
 	"__xcolours",
 	"__xparams",
+	"_a0",
 	"_align",
 	"_amb",
+	"_angularVelocity",
 	"_appliedParameters",
 	"_appliedParametersMask",
 	"_bboxCenter",
@@ -237,6 +239,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_boxtris",
 	"_buffer",
 	"_bufferendtime",
+	"_change_count",
+	"_child",
 	"_class",
 	"_col",
 	"_colourSize",
@@ -275,6 +279,10 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_keyValueVBO",
 	"_knot",
 	"_knotrange",
+	"_lastframetime",
+	"_lastp0",
+	"_lastp0time",
+	"_lastr0",
 	"_lasttick",
 	"_lasttime",
 	"_layerId",
@@ -306,12 +314,14 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_origNorms",
 	"_origPoint",
 	"_p",
+	"_p0",
 	"_parentResource",
 	"_particles",
 	"_patch",
 	"_pduchange_collision",
 	"_pduchange_create",
 	"_pduchange_detonation",
+	"_pduchange_em_info",
 	"_pduchange_es",
 	"_pduchange_fire",
 	"_pduchange_networksensor",
@@ -325,6 +335,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_position",
 	"_prepped_planet",
 	"_previousvalue",
+	"_r0",
 	"_radius",
 	"_registered",
 	"_remainder",
@@ -336,6 +347,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_screendata",
 	"_segs",
 	"_selected",
+	"_sent",
 	"_shaderLoadThread",
 	"_shaderUserDefinedFields",
 	"_shaderUserNumber",
@@ -344,6 +356,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_shaderflags_usershaders",
 	"_sideVBO",
 	"_sizeUnits",
+	"_smoothingCount",
+	"_smoothingDelta",
 	"_sortedChildren",
 	"_space",
 	"_status",
@@ -360,6 +374,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_type",
 	"_uKnot",
 	"_usingDisk",
+	"_v0",
 	"_vKnot",
 	"_values",
 	"_verifiedBackColor",
@@ -374,6 +389,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"activate",
 	"activeLayer",
 	"addChildren",
+	"addEntities",
 	"addGeometry",
 	"addTrimmingContour",
 	"addedEntities",
@@ -547,6 +563,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"endCap",
 	"enterTime",
 	"enteredText",
+	"entities",
 	"entityCategory",
 	"entityCountry",
 	"entityDomain",
@@ -830,6 +847,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"relativeAntennaLocation",
 	"relativeHeight",
 	"removeChildren",
+	"removeEntities",
 	"removeGeometry",
 	"removeTrimmingContour",
 	"removedEntities",
@@ -1184,12 +1202,14 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
        const char *EVENT_IN[] = {
 	"activate",
 	"addChildren",
+	"addEntities",
 	"addGeometry",
 	"addTrimmingContour",
 	"method",
 	"next",
 	"previous",
 	"removeChildren",
+	"removeEntities",
 	"removeGeometry",
 	"removeTrimmingContour",
 	"retainUserOffsets",
@@ -1351,6 +1371,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"enabled",
 	"enabledAxes",
 	"encodingScheme",
+	"entities",
 	"entityCategory",
 	"entityCountry",
 	"entityDomain",
@@ -2587,7 +2608,9 @@ struct X3D_Virt virt_Cylinder = { NULL,(void *)render_Cylinder,NULL,NULL,(void *
 
 struct X3D_Virt virt_CylinderSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_DISEntityManager = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void child_DISEntityManager(struct X3D_DISEntityManager *);
+void compile_DISEntityManager(struct X3D_DISEntityManager *);
+struct X3D_Virt virt_DISEntityManager = { NULL,NULL,(void *)child_DISEntityManager,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_DISEntityManager};
 
 struct X3D_Virt virt_DISEntityTypeMapping = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3112,8 +3135,9 @@ struct X3D_Virt virt_ProximitySensor = { NULL,(void *)render_ProximitySensor,NUL
 void render_QuadSet(struct X3D_QuadSet *);
 struct X3D_Virt virt_QuadSet = { NULL,(void *)render_QuadSet,NULL,NULL,(void *)rendray_QuadSet,(void *)make_QuadSet,NULL,NULL,(void *)collide_QuadSet,NULL};
 
+void child_ReceiverPdu(struct X3D_ReceiverPdu *);
 void compile_ReceiverPdu(struct X3D_ReceiverPdu *);
-struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ReceiverPdu};
+struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,(void *)child_ReceiverPdu,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ReceiverPdu};
 
 void render_Rectangle2D(struct X3D_Rectangle2D *);
 void collide_Rectangle2D(struct X3D_Rectangle2D *);
@@ -3153,8 +3177,9 @@ void child_Shape(struct X3D_Shape *);
 void compile_Shape(struct X3D_Shape *);
 struct X3D_Virt virt_Shape = { NULL,NULL,(void *)child_Shape,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Shape};
 
+void child_SignalPdu(struct X3D_SignalPdu *);
 void compile_SignalPdu(struct X3D_SignalPdu *);
-struct X3D_Virt virt_SignalPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_SignalPdu};
+struct X3D_Virt virt_SignalPdu = { NULL,NULL,(void *)child_SignalPdu,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_SignalPdu};
 
 struct X3D_Virt virt_SilhouetteEnhancementVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3249,8 +3274,9 @@ struct X3D_Virt virt_Transform = { (void *)prep_Transform,NULL,(void *)child_Tra
 
 struct X3D_Virt virt_TransformSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void child_TransmitterPdu(struct X3D_TransmitterPdu *);
 void compile_TransmitterPdu(struct X3D_TransmitterPdu *);
-struct X3D_Virt virt_TransmitterPdu = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_TransmitterPdu};
+struct X3D_Virt virt_TransmitterPdu = { NULL,NULL,(void *)child_TransmitterPdu,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_TransmitterPdu};
 
 void render_TriangleFanSet(struct X3D_TriangleFanSet *);
 struct X3D_Virt virt_TriangleFanSet = { NULL,(void *)render_TriangleFanSet,NULL,NULL,(void *)rendray_TriangleFanSet,(void *)make_TriangleFanSet,NULL,NULL,(void *)collide_TriangleFanSet,NULL};
@@ -4247,14 +4273,39 @@ const int OFFSETS_CylinderSensor[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DISEntityManager[] = {
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_DISEntityManager, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_DISEntityManager, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_timestamp, (int) offsetof (struct X3D_DISEntityManager, timestamp),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_address, (int) offsetof (struct X3D_DISEntityManager, address),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_port, (int) offsetof (struct X3D_DISEntityManager, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_multicastRelayHost, (int) offsetof (struct X3D_DISEntityManager, multicastRelayHost),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_multicastRelayPort, (int) offsetof (struct X3D_DISEntityManager, multicastRelayPort),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_networkMode, (int) offsetof (struct X3D_DISEntityManager, networkMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isNetworkReader, (int) offsetof (struct X3D_DISEntityManager, isNetworkReader),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isNetworkWriter, (int) offsetof (struct X3D_DISEntityManager, isNetworkWriter),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isStandAlone, (int) offsetof (struct X3D_DISEntityManager, isStandAlone),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_readInterval, (int) offsetof (struct X3D_DISEntityManager, readInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_writeInterval, (int) offsetof (struct X3D_DISEntityManager, writeInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_rtpHeaderExpected, (int) offsetof (struct X3D_DISEntityManager, rtpHeaderExpected),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isRtpHeaderHeard, (int) offsetof (struct X3D_DISEntityManager, isRtpHeaderHeard),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__registered, (int) offsetof (struct X3D_DISEntityManager, _registered),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_DISEntityManager, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_DISEntityManager, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_DISEntityManager, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_DISEntityManager, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_DISEntityManager, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_DISEntityManager, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_DISEntityManager, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_DISEntityManager, mapping),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_DISEntityManager, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_addedEntities, (int) offsetof (struct X3D_DISEntityManager, addedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removedEntities, (int) offsetof (struct X3D_DISEntityManager, removedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_addEntities, (int) offsetof (struct X3D_DISEntityManager, addEntities),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_removeEntities, (int) offsetof (struct X3D_DISEntityManager, removeEntities),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_entities, (int) offsetof (struct X3D_DISEntityManager, entities),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__pduchange_create, (int) offsetof (struct X3D_DISEntityManager, _pduchange_create),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pduchange_remove, (int) offsetof (struct X3D_DISEntityManager, _pduchange_remove),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pduchange_em_info, (int) offsetof (struct X3D_DISEntityManager, _pduchange_em_info),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DISEntityTypeMapping[] = {
@@ -4267,6 +4318,7 @@ const int OFFSETS_DISEntityTypeMapping[] = {
 	(int) FIELDNAMES_subcategory, (int) offsetof (struct X3D_DISEntityTypeMapping, subcategory),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_specific, (int) offsetof (struct X3D_DISEntityTypeMapping, specific),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_extra, (int) offsetof (struct X3D_DISEntityTypeMapping, extra),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__child, (int) offsetof (struct X3D_DISEntityTypeMapping, _child),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DirectionalLight[] = {
@@ -4414,25 +4466,38 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_EspduTransform, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_EspduTransform, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_EspduTransform, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_EspduTransform, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_EspduTransform, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_EspduTransform, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_EspduTransform, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_EspduTransform, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_EspduTransform, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_EspduTransform, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_EspduTransform, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_entityCategory, (int) offsetof (struct X3D_EspduTransform, entityCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entityCountry, (int) offsetof (struct X3D_EspduTransform, entityCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entityDomain, (int) offsetof (struct X3D_EspduTransform, entityDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entityExtra, (int) offsetof (struct X3D_EspduTransform, entityExtra),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entityKind, (int) offsetof (struct X3D_EspduTransform, entityKind),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_entitySpecific, (int) offsetof (struct X3D_EspduTransform, entitySpecific),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityDomain, (int) offsetof (struct X3D_EspduTransform, entityDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityCountry, (int) offsetof (struct X3D_EspduTransform, entityCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityCategory, (int) offsetof (struct X3D_EspduTransform, entityCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_entitySubCategory, (int) offsetof (struct X3D_EspduTransform, entitySubCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entitySpecific, (int) offsetof (struct X3D_EspduTransform, entitySpecific),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_entityExtra, (int) offsetof (struct X3D_EspduTransform, entityExtra),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_forceID, (int) offsetof (struct X3D_EspduTransform, forceID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_marking, (int) offsetof (struct X3D_EspduTransform, marking),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_deadReckoning, (int) offsetof (struct X3D_EspduTransform, deadReckoning),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linearVelocity, (int) offsetof (struct X3D_EspduTransform, linearVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_linearAcceleration, (int) offsetof (struct X3D_EspduTransform, linearAcceleration),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ACCEL,
+	(int) FIELDNAMES__p0, (int) offsetof (struct X3D_EspduTransform, _p0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__v0, (int) offsetof (struct X3D_EspduTransform, _v0),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__a0, (int) offsetof (struct X3D_EspduTransform, _a0),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__angularVelocity, (int) offsetof (struct X3D_EspduTransform, _angularVelocity),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__r0, (int) offsetof (struct X3D_EspduTransform, _r0),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__change_count, (int) offsetof (struct X3D_EspduTransform, _change_count),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__sent, (int) offsetof (struct X3D_EspduTransform, _sent),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastp0, (int) offsetof (struct X3D_EspduTransform, _lastp0),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastr0, (int) offsetof (struct X3D_EspduTransform, _lastr0),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastp0time, (int) offsetof (struct X3D_EspduTransform, _lastp0time),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__lastframetime, (int) offsetof (struct X3D_EspduTransform, _lastframetime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__smoothingDelta, (int) offsetof (struct X3D_EspduTransform, _smoothingDelta),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__smoothingCount, (int) offsetof (struct X3D_EspduTransform, _smoothingCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_articulationParameterValue0, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue0),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue1, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_set_articulationParameterValue2, (int) offsetof (struct X3D_EspduTransform, set_articulationParameterValue2),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -4485,8 +4550,6 @@ const int OFFSETS_EspduTransform[] = {
 	(int) FIELDNAMES_firingRate, (int) offsetof (struct X3D_EspduTransform, firingRate),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_fuse, (int) offsetof (struct X3D_EspduTransform, fuse),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_warhead, (int) offsetof (struct X3D_EspduTransform, warhead),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES__pduchange_create, (int) offsetof (struct X3D_EspduTransform, _pduchange_create),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__pduchange_remove, (int) offsetof (struct X3D_EspduTransform, _pduchange_remove),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_EspduTransform, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_EspduTransform, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_EspduTransform, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6519,13 +6582,13 @@ const int OFFSETS_ReceiverPdu[] = {
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_ReceiverPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_ReceiverPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_ReceiverPdu, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_ReceiverPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_ReceiverPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_ReceiverPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_ReceiverPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_ReceiverPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_ReceiverPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_ReceiverPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_ReceiverPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_ReceiverPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_ReceiverPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_receiverState, (int) offsetof (struct X3D_ReceiverPdu, receiverState),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6757,13 +6820,13 @@ const int OFFSETS_SignalPdu[] = {
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_SignalPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_SignalPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_SignalPdu, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_SignalPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_SignalPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_SignalPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_SignalPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_SignalPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_SignalPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_SignalPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_SignalPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_SignalPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_SignalPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_data, (int) offsetof (struct X3D_SignalPdu, data),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7253,19 +7316,19 @@ const int OFFSETS_TransmitterPdu[] = {
 	(int) FIELDNAMES__dsock, (int) offsetof (struct X3D_TransmitterPdu, _dsock),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_TransmitterPdu, _lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__pduchange_networksensor, (int) offsetof (struct X3D_TransmitterPdu, _pduchange_networksensor),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_TransmitterPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_entityID, (int) offsetof (struct X3D_TransmitterPdu, entityID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_TransmitterPdu, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_TransmitterPdu, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_TransmitterPdu, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCoords, (int) offsetof (struct X3D_TransmitterPdu, geoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_TransmitterPdu, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldState, (int) offsetof (struct X3D_TransmitterPdu, _oldState),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_radioID, (int) offsetof (struct X3D_TransmitterPdu, radioID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_whichGeometry, (int) offsetof (struct X3D_TransmitterPdu, whichGeometry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_radioEntityTypeCategory, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_radioEntityTypeCountry, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_radioEntityTypeDomain, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeKind, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeKind),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_radioEntityTypeDomain, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeDomain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_radioEntityTypeCountry, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCountry),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_radioEntityTypeCategory, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeCategory),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeNomenclature, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeNomenclature),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_radioEntityTypeNomenclatureVersion, (int) offsetof (struct X3D_TransmitterPdu, radioEntityTypeNomenclatureVersion),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_antennaLocation, (int) offsetof (struct X3D_TransmitterPdu, antennaLocation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
@@ -9217,14 +9280,39 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_DISEntityManager : {
 			struct X3D_DISEntityManager * tmp2;
 			tmp2 = (struct X3D_DISEntityManager *) tmp;
+			tmp2->enabled = TRUE;
+			tmp2->isActive = FALSE;
+			tmp2->timestamp = 0;
 			tmp2->address = newASCIIString("localhost");
 			tmp2->port = 0;
+			tmp2->multicastRelayHost = newASCIIString("");
+			tmp2->multicastRelayPort = 0;
+			tmp2->networkMode = newASCIIString("standAlone");
+			tmp2->isNetworkReader = FALSE;
+			tmp2->isNetworkWriter = FALSE;
+			tmp2->isStandAlone = FALSE;
+			tmp2->readInterval = 0.1;
+			tmp2->writeInterval = 1;
+			tmp2->rtpHeaderExpected = FALSE;
+			tmp2->isRtpHeaderHeard = FALSE;
+			tmp2->_registered = FALSE;
+			tmp2->_dsock = NULL;
+			tmp2->_lasttime = 0;
+			tmp2->_pduchange_networksensor = 0;
+			tmp2->_oldState = NULL;
+			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
 			tmp2->mapping.n=0; tmp2->mapping.p=0;
 			tmp2->metadata = NULL;
 			tmp2->addedEntities.n=0; tmp2->addedEntities.p=0;
 			tmp2->removedEntities.n=0; tmp2->removedEntities.p=0;
+			tmp2->addEntities.n=0; tmp2->addEntities.p=0;
+			tmp2->removeEntities.n=0; tmp2->removeEntities.p=0;
+			tmp2->entities.n=0; tmp2->entities.p=0;
+			tmp2->_pduchange_create = 0;
+			tmp2->_pduchange_remove = 0;
+			tmp2->_pduchange_em_info = 0;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -9240,7 +9328,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->subcategory = 0;
 			tmp2->specific = 0;
 			tmp2->extra = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_child = NULL;
+			tmp2->_defaultContainer = FIELDNAMES_mapping;
 		break;
 		}
 		case NODE_DirectionalLight : {
@@ -9414,25 +9503,38 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
 			tmp2->_pduchange_networksensor = 0;
+			tmp2->_oldState = NULL;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
-			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->_oldState = NULL;
-			tmp2->entityCategory = 0;
-			tmp2->entityCountry = 0;
-			tmp2->entityDomain = 0;
-			tmp2->entityExtra = 0;
 			tmp2->entityKind = 0;
-			tmp2->entitySpecific = 0;
+			tmp2->entityDomain = 0;
+			tmp2->entityCountry = 0;
+			tmp2->entityCategory = 0;
 			tmp2->entitySubCategory = 0;
+			tmp2->entitySpecific = 0;
+			tmp2->entityExtra = 0;
 			tmp2->forceID = 0;
 			tmp2->marking = newASCIIString("");
 			tmp2->deadReckoning = 0;
 			tmp2->linearVelocity.c[0] = 0.0f;tmp2->linearVelocity.c[1] = 0.0f;tmp2->linearVelocity.c[2] = 0.0f;
 			tmp2->linearAcceleration.c[0] = 0.0f;tmp2->linearAcceleration.c[1] = 0.0f;tmp2->linearAcceleration.c[2] = 0.0f;
+			tmp2->_p0.c[0] = 0.0f;tmp2->_p0.c[1] = 0.0f;tmp2->_p0.c[2] = 0.0f;
+			tmp2->_v0.c[0] = 0.0f;tmp2->_v0.c[1] = 0.0f;tmp2->_v0.c[2] = 0.0f;
+			tmp2->_a0.c[0] = 0.0f;tmp2->_a0.c[1] = 0.0f;tmp2->_a0.c[2] = 0.0f;
+			tmp2->_angularVelocity.c[0] = 0;tmp2->_angularVelocity.c[1] = 1;tmp2->_angularVelocity.c[2] = 0;tmp2->_angularVelocity.c[3] = 0;;
+			tmp2->_r0.c[0] = 0;tmp2->_r0.c[1] = 1;tmp2->_r0.c[2] = 0;tmp2->_r0.c[3] = 0;;
+			tmp2->_change_count = 0;
+			tmp2->_sent = 0;
+			tmp2->_lastp0.c[0] = 0.0f;tmp2->_lastp0.c[1] = 0.0f;tmp2->_lastp0.c[2] = 0.0f;
+			tmp2->_lastr0.c[0] = 0;tmp2->_lastr0.c[1] = 1;tmp2->_lastr0.c[2] = 0;tmp2->_lastr0.c[3] = 0;;
+			tmp2->_lastp0time = 0;
+			tmp2->_lastframetime = 0;
+			tmp2->_smoothingDelta.c[0] = 0.0f;tmp2->_smoothingDelta.c[1] = 0.0f;tmp2->_smoothingDelta.c[2] = 0.0f;
+			tmp2->_smoothingCount = 0;
 			tmp2->set_articulationParameterValue0 = 0.0f;
 			tmp2->set_articulationParameterValue1 = 0.0f;
 			tmp2->set_articulationParameterValue2 = 0.0f;
@@ -9485,8 +9587,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->firingRate = 0;
 			tmp2->fuse = 0;
 			tmp2->warhead = 0;
-			tmp2->_pduchange_create = 0;
-			tmp2->_pduchange_remove = 0;
 			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
 			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
@@ -12086,13 +12186,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
 			tmp2->_pduchange_networksensor = 0;
+			tmp2->_oldState = NULL;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->_oldState = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
 			tmp2->receiverState = 0;
@@ -12369,13 +12469,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
 			tmp2->_pduchange_networksensor = 0;
+			tmp2->_oldState = NULL;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->_oldState = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
 			tmp2->data.n=0; tmp2->data.p=0;
@@ -13000,19 +13100,19 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dsock = NULL;
 			tmp2->_lasttime = 0;
 			tmp2->_pduchange_networksensor = 0;
+			tmp2->_oldState = NULL;
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
-			tmp2->_oldState = NULL;
 			tmp2->radioID = 0;
 			tmp2->whichGeometry = 1;
-			tmp2->radioEntityTypeCategory = 0;
-			tmp2->radioEntityTypeCountry = 0;
-			tmp2->radioEntityTypeDomain = 0;
 			tmp2->radioEntityTypeKind = 0;
+			tmp2->radioEntityTypeDomain = 0;
+			tmp2->radioEntityTypeCountry = 0;
+			tmp2->radioEntityTypeCategory = 0;
 			tmp2->radioEntityTypeNomenclature = 0;
 			tmp2->radioEntityTypeNomenclatureVersion = 0;
 			tmp2->antennaLocation.c[0] = 0.0f;tmp2->antennaLocation.c[1] = 0.0f;tmp2->antennaLocation.c[2] = 0.0f;
@@ -14227,8 +14327,15 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_DISEntityManager *tmp;
 			tmp = (struct X3D_DISEntityManager *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," address (SFString) \t%s\n",tmp->address->strptr);
 			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
+			spacer fprintf (fp," multicastRelayHost (SFString) \t%s\n",tmp->multicastRelayHost->strptr);
+			spacer fprintf (fp," multicastRelayPort (SFInt32) \t%d\n",tmp->multicastRelayPort);
+			spacer fprintf (fp," networkMode (SFString) \t%s\n",tmp->networkMode->strptr);
+			spacer fprintf (fp," readInterval (SFTime) \t%4.3f\n",tmp->readInterval);
+			spacer fprintf (fp," writeInterval (SFTime) \t%4.3f\n",tmp->writeInterval);
+			spacer fprintf (fp," entityID (SFInt32) \t%d\n",tmp->entityID);
 			spacer fprintf (fp," applicationID (SFInt32) \t%d\n",tmp->applicationID);
 			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," mapping (MFNode):\n");
@@ -14236,6 +14343,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," entities (MFNode):\n");
+			for (i=0; i<tmp->entities.n; i++) { dump_scene(fp,level+1,tmp->entities.p[i]); }
 		    break;
 		}
 		case NODE_DISEntityTypeMapping : {
@@ -14416,13 +14525,13 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," geoCoords (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCoords.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," entityCategory (SFInt32) \t%d\n",tmp->entityCategory);
-			spacer fprintf (fp," entityCountry (SFInt32) \t%d\n",tmp->entityCountry);
-			spacer fprintf (fp," entityDomain (SFInt32) \t%d\n",tmp->entityDomain);
-			spacer fprintf (fp," entityExtra (SFInt32) \t%d\n",tmp->entityExtra);
 			spacer fprintf (fp," entityKind (SFInt32) \t%d\n",tmp->entityKind);
-			spacer fprintf (fp," entitySpecific (SFInt32) \t%d\n",tmp->entitySpecific);
+			spacer fprintf (fp," entityDomain (SFInt32) \t%d\n",tmp->entityDomain);
+			spacer fprintf (fp," entityCountry (SFInt32) \t%d\n",tmp->entityCountry);
+			spacer fprintf (fp," entityCategory (SFInt32) \t%d\n",tmp->entityCategory);
 			spacer fprintf (fp," entitySubCategory (SFInt32) \t%d\n",tmp->entitySubCategory);
+			spacer fprintf (fp," entitySpecific (SFInt32) \t%d\n",tmp->entitySpecific);
+			spacer fprintf (fp," entityExtra (SFInt32) \t%d\n",tmp->entityExtra);
 			spacer fprintf (fp," forceID (SFInt32) \t%d\n",tmp->forceID);
 			spacer fprintf (fp," marking (SFString) \t%s\n",tmp->marking->strptr);
 			spacer fprintf (fp," deadReckoning (SFInt32) \t%d\n",tmp->deadReckoning);
@@ -14432,6 +14541,27 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," linearAcceleration (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->linearAcceleration.c[i]); }
 			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," _p0 (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_p0.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _change_count (SFInt32) \t%d\n",tmp->_change_count);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _sent (SFInt32) \t%d\n",tmp->_sent);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _lastp0 (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_lastp0.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _smoothingDelta (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_smoothingDelta.c[i]); }
+			fprintf (fp,"\n");
+		    }
 			spacer fprintf (fp," articulationParameterCount (SFInt32) \t%d\n",tmp->articulationParameterCount);
 			spacer fprintf (fp," articulationParameterDesignatorArray (MFInt32):\n");
 			for (i=0; i<tmp->articulationParameterDesignatorArray.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->articulationParameterDesignatorArray.p[i]); }
@@ -17953,10 +18083,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 			spacer fprintf (fp," radioID (SFInt32) \t%d\n",tmp->radioID);
 			spacer fprintf (fp," whichGeometry (SFInt32) \t%d\n",tmp->whichGeometry);
-			spacer fprintf (fp," radioEntityTypeCategory (SFInt32) \t%d\n",tmp->radioEntityTypeCategory);
-			spacer fprintf (fp," radioEntityTypeCountry (SFInt32) \t%d\n",tmp->radioEntityTypeCountry);
-			spacer fprintf (fp," radioEntityTypeDomain (SFInt32) \t%d\n",tmp->radioEntityTypeDomain);
 			spacer fprintf (fp," radioEntityTypeKind (SFInt32) \t%d\n",tmp->radioEntityTypeKind);
+			spacer fprintf (fp," radioEntityTypeDomain (SFInt32) \t%d\n",tmp->radioEntityTypeDomain);
+			spacer fprintf (fp," radioEntityTypeCountry (SFInt32) \t%d\n",tmp->radioEntityTypeCountry);
+			spacer fprintf (fp," radioEntityTypeCategory (SFInt32) \t%d\n",tmp->radioEntityTypeCategory);
 			spacer fprintf (fp," radioEntityTypeNomenclature (SFInt32) \t%d\n",tmp->radioEntityTypeNomenclature);
 			spacer fprintf (fp," radioEntityTypeNomenclatureVersion (SFInt32) \t%d\n",tmp->radioEntityTypeNomenclatureVersion);
 			spacer fprintf (fp," antennaLocation (SFVec3f): \t");

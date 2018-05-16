@@ -887,6 +887,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 				char runstring[STRING_SIZE];
 				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
+				//printf("%s\n",runstring);
 				#if defined(JS_THREADSAFE)
 				JS_BeginRequest(cx);
 				#endif
@@ -1282,6 +1283,7 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 				char runstring[STRING_SIZE];
 				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
+				//printf("%s\n",runstring);
 				#if defined(JS_THREADSAFE)
 				JS_BeginRequest(cx);
 				#endif

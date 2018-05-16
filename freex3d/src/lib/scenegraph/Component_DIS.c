@@ -93,6 +93,8 @@ https://en.wikipedia.org/wiki/Distributed_Interactive_Simulation
 http://open-dis.sourceforge.net/Open-DIS.html
 http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
 - 2012 DIS draft
+- p.332 7.2.2 espdu struct/contents
+- p.665 Annex E dead reckoning formula
 
 Don's references:
 a. IITSEC 2017 slideset, DIS 101
@@ -127,12 +129,103 @@ Choice: option 2.b hack xmlpg CGenerator.java DONE
 	duplicate all the CppUtils (that wrap the pdu classes) in C,
 	and mistakes can happen during transcription (risk)
 
+Problem: Transforms - unclear how goecoords are to be used.
+The DIS specs have 5 terms:
+global, world, local, body, entity
+And there are 2 major geospatial states:
+a) geoCoords not used
+- geoCoords = 0,0,0 (default) 
+b) geoCoords used
+
+Proposed use of terms:
+global == world = gc ^see World Coordinates below
+local - used only for some Dead Reckoning formulas
+	== TCS (topocentric coord sys) from geospatial component, except with axes re-arranged/swizzled
+	Draft DIS specs p.675: 
+	"The local coordinate system used here is defined by North, East, and Down axes 
+	with their origin at the entity's center of bounding volume."
+entity == body - the coordinate system for espdu.transform.children 
+	-except DIS swizzles so Z is down, X forward, see Gimbals.x3d test scene
+World2body = Location,(phi,theta,psi) 
+in web3d we can split world2body in 2 parts, to make dead-reckoning in local coords easier:
+- World2Local x Local2body
+- where:
+-- World2local is the gc2tcs from geospatial 
+-- local2body is the rest of world2body: local2body = world2local.inverse x world2body
+if a) no geoCoords used, then
+- World2local == 0
+and
+- world2body == local2body (we do it all with transform.translation,rotation)
+Freewrl strategy:
+- we will convert the DIS coordinate axes and naming to web3d conventions during node2pdu and pdu2node
+	- convert from geocentric GC to Topocentric TCS if geocoords != 000
+- we will be working in web3d coordinate systems elsehwere, including in dead reckoning
+	(so no need to swizzle axes if our dead reckonging formulas are all in web3d conventions)
+Q. is this compatible with Xj3d convention?
+A. don't know. But Gimbal.x3d is showing (what I interpret as) 
+	the Dead Reckoning Local coord system as being 
+	swizzled and aligned with what looks like our geospatial TCS
+	That could indicate where NPS thinking was on how X3D relates to DIS. 
+	So its a good bet espduTransform.(translation.rotation) are tcs2body aka local2body.
+
+
+World Coordinates: 
+The Entity State PDU Location field is 64bit wgs84 geocentric coordinates.
+In the draft 2012 specs document,
+p.3 1.6.3.1 World coordinate system WGS84, meters.
+p.4 Figure 1 shows world coordinates.
+- they look exactly like GC.
+- Z through Northpole
+- X through prime meridian
+- right handed (Y through bangladesh)
+p.48 e) 1) Location with respect to the world
+p.330 6.2.98 World Coordinates record
+Location of the origin of the entity's or object's coordinate system, target locations,
+	 detonation locations, and other points shall be specified by a set of three coordinates: X, Y, and Z, 
+	 represented by 64-bit floating point numbers. The world coordinate system shall be as specified in 1.6.3. 
+	 The format of the World Coordinates record shall be as shown in Table134.
+p.333
+h) Entity Location. This field shall specify an entity’s physical location in the simulated world, 
+	and shall be represented by a World Coordinates record (see 6.2.98).
+p.334 Entity State PDU table 135
+/World Coordinates
+
 
 */
 //#define WITH_DIS 1
 #ifdef WITH_DIS
 #include "../DIS/DIS.h"
+
+//there's another .pdf with enums
+// SISO-REF-010-2015 Enumerations for Simulation Interoperability V21 20150413.pdf
+// we'll do just a few here as needed
+// SM > DataRecord > datumType
+enum UID66 {
+Kind = 11110,
+Domain  = 11120,
+Country  = 11130,
+Category = 11140,
+Subcategory = 11150,
+Specific = 11160,
+Extra = 11170,
+/*
+31000 Position
+ 31010 Route (Waypoint) type 
+ 31100 MilGrid10 
+ 31200 Geocentric Coordinates 
+ 31210 X 
+ 31220 Y 
+ 31230 Z 
+ 31300 Latitude 
+ 31400 Longitude 
+ ...
+ 31600 Altitude 
+ */
+};
+
 #endif //WITH_DIS
+
+
 
 
 static int allow_DIS = 0;
@@ -212,7 +305,7 @@ c) some kind of abstract interface added to code generation system
 d) change to OO language and use inheritance and polymorphism
 	- maybe in the future
 e) functions with switch-case on nodetype
-For now in DIS we're going to use b) for espduTransform and 3 radio nodes, and e)
+For now in DIS we're going to use b) for espduTransform and 3 radio nodes and entityManager and e)
 
 */
 
@@ -306,10 +399,17 @@ void axisangle2ypr(float *xyza, float *ypr)
 	//p = pitch = elevation
 	//r = roll
 	//assumes z is up, you re-arrange your inputs if other
-	float yaw, pitch, roll, x,y,z,a;
-	x = xyza[0]; y = xyza[1], z=xyza[2], a=xyza[3];
-	yaw = atan2(y,x);
-	pitch = atan(z);
+	float yaw, pitch, roll, x,y,z,a, xyz[3], flen;
+	vecnormalize3f(xyz,xyza);
+	x = xyz[0]; y = xyz[1], z=xyz[2], a=xyza[3];
+	flen = veclength2f(xyz);
+	if(flen == 0.0f){
+		yaw = 0.0f;
+		pitch = acos(-1.0) * .5; //90
+	}else{
+		yaw = atan2(y,x);
+		pitch = atan(z/flen);
+	}
 	roll = a;
 	ypr[0] = yaw;
 	ypr[1] = pitch;
@@ -321,7 +421,7 @@ void ypr2axisangle(float *ypr, float *xyza)
 	//p = pitch = elevation
 	//r = roll
 	//assumes z is up, you re-arrange your inputs if other
-	float yaw, pitch, roll, x,y,z,a;
+	float yaw, pitch, roll, x,y,z,a, xyz[3];
 	yaw = ypr[0];
 	pitch = ypr[1];
 	roll = ypr[2];
@@ -329,10 +429,36 @@ void ypr2axisangle(float *ypr, float *xyza)
 	x = cos(pitch)*cos(yaw);
 	y = cos(pitch)*sin(yaw);
 	z = sin(pitch); //or sqrt(1.0 - (x*x + y*y))
-	xyza[0] = x;
-	xyza[1] = y;
-	xyza[2] = z;
+	xyz[0] = x;
+	xyz[1] = y;
+	xyz[2] = z;
+	vecnormalize3f(xyza,xyz);
 	xyza[3] = a;
+}
+//dis stores vectors in structs .xyz, we do float[3], conversions:
+struct Vector3Float *vec3f2vector3float(struct Vector3Float *b, float *a){
+	b->x = a[0];
+	b->y = a[1];
+	b->z = a[2];
+	return b;
+}
+float *vector3float2vec3f(float *b,struct Vector3Float *a){
+	b[0] = a->x;
+	b[1] = a->y;
+	b[2] = a->z;
+	return b;
+}
+struct Vector3Double *vec3d2vector3double(struct Vector3Double *b, double *a){
+	b->x = a[0];
+	b->y = a[1];
+	b->z = a[2];
+	return b;
+}
+double *vector3double2vec3d(double *b,struct Vector3Double *a){
+	b[0] = a->x;
+	b[1] = a->y;
+	b[2] = a->z;
+	return b;
 }
 // freewrl's once-per-frame timestamp is called TickTime 
 // - and TickTime is a double value representing seconds since 1970, including fractions of a second
@@ -404,11 +530,49 @@ void print_stream(unsigned char *buf, int nbytes){
 		printf("\n");
 	}
 }
+//TCS - geospatial topocentric coordinate system
+//local - DIS equivalent
+double *tcs2localswizzled(double *local,double *tcs){
+	local[0] = -tcs[2]; //north
+	local[1] =  tcs[0]; //east
+	local[2] = -tcs[1]; //vertical
+	return local;
+}
+double *local2tcsswizzled(double *tcs,double *local){
+	tcs[0] =  local[1]; //east
+	tcs[1] = -local[2]; //vertical
+	tcs[2] = -local[0]; //north
+	return tcs;
+}
+void node2pdu_entityType(int *entityKind, struct EntityType *entityType){
+	//assumes node field order: kind, domain, country, category, subcategory, specific, extra
+	//p.262 draft standard http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+	entityType->entityKind = (unsigned char) entityKind[0];
+	entityType->domain = (unsigned char) entityKind[1];
+	entityType->country = (unsigned short) entityKind[2];
+	entityType->category = (unsigned char) entityKind[3];
+	entityType->subcategory = (unsigned char) entityKind[4];
+	entityType->specific = (unsigned char) entityKind[5];
+	entityType->extra = (unsigned char) entityKind[6];
+}
+void pdu2node_entityType( struct EntityType *entityType, int *entityKind){
+	//assumes node field order: kind, domain, country, category, subcategory, specific, extra
+	//p.262 draft standard http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+	entityKind[0] = entityType->entityKind;
+	entityKind[1] = entityType->domain;
+	entityKind[2] = entityType->country;
+	entityKind[3] = entityType->category;
+	entityKind[4] = entityType->subcategory;
+	entityKind[5] = entityType->specific;
+	entityKind[6] = entityType->extra;
+}
 
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
 	//EntityStatePDU, CollisionPDU, DetonationPDU, FirePDU, CreateEntity, and RemoveEntity.
+	//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+	//p.332 7.2.2 espdu struct/contents
 	//Q. how do create/remove work?
 	struct Vector *pdus;
 	struct X3D_EspduTransform * pnode = (struct X3D_EspduTransform*)node;
@@ -416,7 +580,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	printf("es pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
 	if(pnode->_pduchange_es || isHeartbeat){
+		float xyz[3];
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 		//entity
@@ -425,37 +591,357 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		espdu->entityID.site = pnode->siteID;
 		//translation - assumes companion scenes will have same parent transform stack
 		//(x, -z, y).
-		espdu->entityLocation.x = pnode->translation.c[0];
-		espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
-		espdu->entityLocation.z = pnode->translation.c[1];
-		//rotation
-		if(0){
-			//theirs:
-			//X PSI
-			//Y THETA 
-			//Z PHI
-			//(x, -z, y)
-			//OURS	THEIRS 	THEIRS
-			//x		X=x		PSI		
-			//y		Z=y		PHI
-			//z		-Y=z	-THETA
+		if(pnode->__geoSystem){
+			//a default geo scene is in TCS at Accra (Grenwich & equator)
+			Quaternion qgc2tcs, qtcs2body, qgc2body;
+			struct SFVec3d gd, gc, translate;
+			struct SFVec4d rotate;
+			double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
 
-			Quaternion qA;
-			double ypr[3];
-			float *c = pnode->rotation.c;
-			vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
-			quat2euler(ypr,0,&qA);
-			espdu->entityOrientation.psi = ypr[1];
-			espdu->entityOrientation.theta = ypr[2];
-		}
-		if(1){
-			float ypr[3];
-			axisangle2ypr(pnode->rotation.c,ypr);
-			espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
-			espdu->entityOrientation.theta = ypr[1];
-			espdu->entityOrientation.phi = ypr[2];
+			float xyza[4];
+			Geosys *gs;
+			gs = GEOSYS(pnode->__geoSystem);
+			user2gc(gs,&pnode->geoCoords,1,&gc);
+			gc2gd(gs,&gc,1,&gd);
+			gc2tcs_transform(gs,&gd,&translate,&rotate);
+			//somehow get body/entity into world/gc - rotation and translation
+			{
+				//rotation
+				float ypr[3];
+				vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
+				vrmlrot4f_to_quaternion(&qtcs2body,pnode->rotation.c);
+				quaternion_multiply(&qgc2body,&qgc2tcs,&qtcs2body);
+				quaternion_to_vrmlrot4f(&qgc2body,xyza);
+				//vecprint4fb("send  xyza",xyza,"\n");
+				xyza[3] = -xyza[3];
+				axisangle2ypr(xyza,ypr);
 
-		}
+				espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+				espdu->entityOrientation.theta = ypr[1];
+				espdu->entityOrientation.phi = ypr[2];
+
+			}
+			{
+				//translation
+				struct SFVec3d tcs, world;
+				float2double(tcs.c,pnode->translation.c,3);
+				tcs2gc(gs,&gd,&tcs,1,&world);
+				vec3d2vector3double(&espdu->entityLocation,world.c);
+			}
+
+			//send > geo > dead reckoning
+			if(pnode->deadReckoning < 6){
+				//first update linear V,A, angularV
+				//for drmethod < 6
+				//all of which are in Local/TCS for freewrl/web3d, instead of world for DIS 
+				pnode->_change_count++;
+				if(pnode->_change_count > 1){
+					double dtime;
+					float v1[3], tmp[3], a1[3];
+					dtime = TickTime() - pnode->_lastp0time;
+					vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
+					//pnode->_change_count = min(pnode->_change_count,2);
+					if(pnode->_change_count > 2){
+						//a = (v1-v0)/dt
+						vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
+						veccopy3f(pnode->linearAcceleration.c,a1);
+						//v1 = v0 - 1/2at**2
+					
+					}else{
+						vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
+					}
+					veccopy3f(pnode->linearVelocity.c,v1);
+					{
+						//update angular velocity
+						Quaternion qlast,q, qinv, qdif;
+						vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
+						vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+						quaternion_inverse(&qinv,&qlast);
+						quaternion_multiply(&qdif,&q,&qinv);
+						quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
+						pnode->_angularVelocity.c[3] *= 1.0f/dtime;
+					}
+				}
+			}
+			veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+			veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
+			pnode->_lastp0time = TickTime();
+			
+			espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
+			{
+				float V[3], A[3];
+				// in TCS aka Local
+				veccopy3f(V,pnode->linearVelocity.c);
+				veccopy3f(A,pnode->linearAcceleration.c);
+
+				//convert Local/TCS linear/angular V,A to world or to Entity, depending on DR parameter
+				//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+				//p.333, p.329
+				if(pnode->deadReckoning < 6){
+					//convert our TCS/Local to world
+					//Vgc = tcs2gc x Vtcs 
+					Quaternion q;
+					vrmlrot4d_to_quaternion(&q,rotate.c);
+					quaternion_inverse(&q,&q);
+					quaternion_rotation3f(V,&q,V);
+					quaternion_rotation3f(A,&q,A);
+				} else {
+					if(0){
+					//convert our TCS/Local to entity
+					//Vbody = tcs2body x Vtcs 
+					Quaternion q;
+					vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+					quaternion_inverse(&q,&q);
+					quaternion_rotation3f(V,&q,V);
+					quaternion_rotation3f(A,&q,A);
+					}else{
+					//keep entity in entity
+					}
+				}
+				vec3f2vector3float(&espdu->entityLinearVelocity,V);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,A);
+
+			}
+			{
+				//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+				//always wrt entity
+				float axis[3];
+				vecnormalize3f(axis,pnode->_angularVelocity.c);
+				vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
+			}
+			//p.675 E.8.2 Use of Other Parameters for standard algorithms 1 through 9
+			switch(pnode->deadReckoning){
+				//fixed rotation
+				case 1:
+				case 2:
+				case 5:
+				case 6:
+				case 9:
+				{
+					float ypr[3];
+					espdu->deadReckoningParameters.otherParameters[0] = 1;
+					if(pnode->__geoSystem){
+						axisangle2ypr(pnode->rotation.c,ypr); //assume Transform.rotation is wrt TCS/LGS
+					}else{
+						vecset3f(ypr,0.0f,0.0f,0.0f); //we assume we are in local
+					}
+					veccopy3f((float*)&espdu->deadReckoningParameters.otherParameters[3],ypr);
+				}
+				break;
+				//rotating
+				case 3:
+				case 7:
+				case 8:
+				{
+					// p.677 E.8.2.3.2 Issuance of orientation quaternion
+					// a 'squished quaternion' 
+					Quaternion qglobal;
+					double quat4d[4];
+					float quat4f[4];
+					unsigned int iquat0;
+					unsigned short iquat16;
+					espdu->deadReckoningParameters.otherParameters[0] = 2;
+					if(pnode->__geoSystem){
+						//H: W2B = W2L x L2B
+						// World2body = world2local x local2body
+						// where world2local is the gc2tcs (geocentric to topocentric aka local geodetic system) from geospatial
+						// and local2body is the espdu.transform.(translation and rotation) (or its inverse)
+						Quaternion qtcs, qlocal;
+						struct SFVec3d gc, gd, translate;
+						struct SFVec4d rotate;
+						Geosys *gs;
+						gs = GEOSYS(pnode->__geoSystem);
+						user2gc(gs,&pnode->geoCoords,1,&gc);
+						gc2gd(gs,&gc,1,&gd);
+						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
+						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
+						quaternion_multiply(&qglobal,&qlocal,&qtcs);
+					}else{
+						vrmlrot_to_quaternion(&qglobal,0.0,1.0,0.0,0.0); //we've already combined DR with global, so additional DR is zero
+					}
+					quat2double(quat4d,&qglobal); //w in last slot of quat4d
+					double2float(&quat4f[1],quat4d,3);
+					quat4f[0] = quat4d[3]; //now w in first slot of quat4f
+					if(quat4f[0] < 0.0f)
+						vecscale4f(quat4f,quat4f,-1.0f);
+				
+					iquat0 = (unsigned int)(quat4f[0] * 65536);
+					if(quat4f[0] > 65536) iquat0 = 65535;
+					iquat16 = iquat0;
+					memcpy(&espdu->deadReckoningParameters.otherParameters[1],&iquat16,sizeof(short));
+					memcpy(&espdu->deadReckoningParameters.otherParameters[3],&quat4f[1],3*sizeof(float));
+				}
+				break;
+				default:
+				espdu->deadReckoningParameters.otherParameters[0] = (char)0;
+				break;
+			}
+
+		}else{  //geo
+			//non-geo scene
+			//Apr 22, 2018 we no longer use this, but keeping until benchmark against Brutzman
+			//doesn't necessarily make sense to have no geoSystem or geoCoords = 0,0,0
+			//but some old/existing scenes are like that, so here we handling them
+			//but whether node.translation is meant to be tcs2body or global2body might make a difference?
+			//we don't know because we only have freewrl for testing right now - will wait for brutzman
+			if(0){
+				double local2bodyxyz[3], localxyz[3];
+				float2double(local2bodyxyz,pnode->translation.c,3);
+				tcs2localswizzled(localxyz,local2bodyxyz);
+				vec3d2vector3double(&espdu->entityLocation,localxyz);
+			}else{
+				espdu->entityLocation.x = pnode->translation.c[0];
+				espdu->entityLocation.y = -pnode->translation.c[2]; //??? is this right?
+				espdu->entityLocation.z = pnode->translation.c[1];
+			}
+			//rotation
+			if(0){
+				//theirs:
+				//X PSI
+				//Y THETA 
+				//Z PHI
+				//(x, -z, y)
+				//OURS	THEIRS 	THEIRS
+				//x		X=x		PSI		
+				//y		Z=y		PHI
+				//z		-Y=z	-THETA
+
+				Quaternion qA;
+				double ypr[3];
+				float *c = pnode->rotation.c;
+				vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+				quat2euler(ypr,0,&qA);
+				espdu->entityOrientation.psi = ypr[1];
+				espdu->entityOrientation.theta = ypr[2];
+			}
+			if(1){
+				float ypr[3];
+				axisangle2ypr(pnode->rotation.c,ypr);
+				espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+				espdu->entityOrientation.theta = ypr[1];
+				espdu->entityOrientation.phi = ypr[2];
+			}
+			//dead reckoning > send
+			if(1){
+				//first update linear V,A, angularV
+				//all of which are in Local/TCS for us
+				pnode->_change_count++;
+				if(pnode->_change_count > 1){
+					double dtime;
+					float v1[3], tmp[3], a1[3];
+					dtime = TickTime() - pnode->_lastp0time;
+					vecscale3f(v1,vecdif3f(tmp,pnode->translation.c,pnode->_lastp0.c),1.0f/dtime);
+					//pnode->_change_count = min(pnode->_change_count,2);
+					if(pnode->_change_count > 2){
+						//a = (v1-v0)/dt
+						vecscale3f(a1,vecdif3f(tmp,v1,pnode->linearVelocity.c),1.0f/dtime);
+						veccopy3f(pnode->linearAcceleration.c,a1);
+						//v1 = v0 - 1/2at**2
+					
+					}else{
+						vecset3f(pnode->linearAcceleration.c,0.0,0.0,0.0);
+					}
+					veccopy3f(pnode->linearVelocity.c,v1);
+					{
+						//update angular velocity
+						Quaternion qlast,q, qinv, qdif;
+						vrmlrot4f_to_quaternion(&qlast,pnode->_lastr0.c);
+						vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+						quaternion_inverse(&qinv,&qlast);
+						quaternion_multiply(&qdif,&q,&qinv);
+						quaternion_to_vrmlrot4f(&qdif,pnode->_angularVelocity.c);
+						pnode->_angularVelocity.c[3] *= 1.0f/dtime;
+					}
+				}
+				veccopy3f(pnode->_lastp0.c,pnode->translation.c);
+				veccopy4f(pnode->_lastr0.c,pnode->rotation.c);
+				pnode->_lastp0time = TickTime();
+			}
+			espdu->deadReckoningParameters.deadReckoningAlgorithm = pnode->deadReckoning;
+			vec3f2vector3float(&espdu->entityLinearVelocity,pnode->linearVelocity.c);
+			vec3f2vector3float(&espdu->deadReckoningParameters.entityLinearAcceleration,pnode->linearAcceleration.c);
+
+			{
+				//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+				//always wrt entity
+				float axis[3];
+				vecnormalize3f(axis,pnode->_angularVelocity.c);
+				vecscale3f(axis,axis,pnode->_angularVelocity.c[3]);
+				vec3f2vector3float(&espdu->deadReckoningParameters.entityAngularVelocity,axis);
+			}
+			//p.675 E.8.2 Use of Other Parameters for standard algorithms 1 through 9
+			switch(pnode->deadReckoning){
+				//fixed rotation
+				case 1:
+				case 2:
+				case 5:
+				case 6:
+				case 9:
+				{
+					float ypr[3];
+					espdu->deadReckoningParameters.otherParameters[0] = 1;
+					if(pnode->__geoSystem){
+						axisangle2ypr(pnode->rotation.c,ypr); //assume Transform.rotation is wrt TCS/LGS
+					}else{
+						vecset3f(ypr,0.0f,0.0f,0.0f); //we assume we are in local
+					}
+					veccopy3f((float*)&espdu->deadReckoningParameters.otherParameters[3],ypr);
+				}
+				break;
+				//rotating
+				case 3:
+				case 7:
+				case 8:
+				{
+					// p.677 E.8.2.3.2 Issuance of orientation quaternion
+					// a 'squished quaternion' 
+					Quaternion qglobal;
+					double quat4d[4];
+					float quat4f[4];
+					unsigned int iquat0;
+					unsigned short iquat16;
+					espdu->deadReckoningParameters.otherParameters[0] = 2;
+					if(pnode->__geoSystem){
+						//H: W2B = W2L x L2B
+						// World2body = world2local x local2body
+						// where world2local is the gc2tcs (geocentric to topocentric aka local geodetic system) from geospatial
+						// and local2body is the espdu.transform.(translation and rotation) (or its inverse)
+						Quaternion qtcs, qlocal;
+						struct SFVec3d gc, gd, translate;
+						struct SFVec4d rotate;
+						Geosys *gs;
+						gs = GEOSYS(pnode->__geoSystem);
+						user2gc(gs,&pnode->geoCoords,1,&gc);
+						gc2gd(gs,&gc,1,&gd);
+						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
+						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
+						quaternion_multiply(&qglobal,&qlocal,&qtcs);
+					}else{
+						vrmlrot_to_quaternion(&qglobal,0.0,1.0,0.0,0.0); //we've already combined DR with global, so additional DR is zero
+					}
+					quat2double(quat4d,&qglobal); //w in last slot of quat4d
+					double2float(&quat4f[1],quat4d,3);
+					quat4f[0] = quat4d[3]; //now w in first slot of quat4f
+					if(quat4f[0] < 0.0f)
+						vecscale4f(quat4f,quat4f,-1.0f);
+				
+					iquat0 = (unsigned int)(quat4f[0] * 65536);
+					if(quat4f[0] > 65536) iquat0 = 65535;
+					iquat16 = iquat0;
+					memcpy(&espdu->deadReckoningParameters.otherParameters[1],&iquat16,sizeof(short));
+					memcpy(&espdu->deadReckoningParameters.otherParameters[3],&quat4f[1],3*sizeof(float));
+				}
+				break;
+				default:
+				espdu->deadReckoningParameters.otherParameters[0] = (char)0;
+				break;
+			}
+		} //if geo else 
+		//vecprint3fb("trans=",pnode->translation.c,"\n");
+		pnode->_sent = TRUE;
 		//articuation parameters
 		if(pnode->articulationParameterArray.n){
 			struct ArticulationParameter *ap;
@@ -472,10 +958,13 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			}
 			espdu->articulationParameters = (void*)ap;
 		}
+		node2pdu_entityType(&pnode->entityKind,&espdu->entityType);
+
 		//...
-		printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
+		//printf("new espdu protocol %d type %d\n",espdu->myEntityInformationFamilyPdu.myPdu.protocolVersion,espdu->myEntityInformationFamilyPdu.myPdu.pduType);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)espdu);
 	}
+
 	//ephemerals / expendables - no hearbeat requirements?
 	//FIRE
 	if(pnode->_pduchange_fire){
@@ -497,20 +986,6 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		dpdu = (struct DetonationPdu *) dis_ctor(pduToDis(type_DetonationPdu));
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
-	}
-	//CREATE
-	if(pnode->_pduchange_create){
-		struct CreateEntityPdu *crpdu;
-		crpdu = (struct CreateEntityPdu *) dis_ctor(pduToDis(type_CreateEntityPdu));
-		//copy from espdutransform node to pdu
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
-	}
-	//REMOVE
-	if(pnode->_pduchange_remove){
-		struct RemoveEntityPdu *rmpdu;
-		rmpdu = (struct RemoveEntityPdu *) dis_ctor(pduToDis(type_RemoveEntityPdu));
-		//copy from espdutransform node to pdu
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
 	}
 
 	return pdus;
@@ -537,40 +1012,179 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				if(espdu->entityID.entity != pnode->entityID) break;
 				ihit++;
 				pnode->_change++; //mark node changed
-				//translation - assumes companion scenes will have same parent transform stack
-				//(x, -z, y).
-				pnode->translation.c[0] = espdu->entityLocation.x;
-				pnode->translation.c[1] = espdu->entityLocation.z;
-				pnode->translation.c[2] = -espdu->entityLocation.y; 
 				pnode->timestamp = TickTime();
-				//rotation
-				if(0){
-					Quaternion qA;
-					float ypr[3];
-					double r[4];
-					float *c = pnode->rotation.c;
-					ypr[0] = espdu->entityOrientation.phi;
-					ypr[1] = espdu->entityOrientation.psi;
-					ypr[2] = espdu->entityOrientation.theta;
-					euler2quat(&qA,ypr[0],ypr[1],ypr[2]);
-					//quaternion_normalize(&qA);
-					//vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
-					quaternion_to_vrmlrot(&qA,&r[0],&r[1],&r[2],&r[3]);
-					c[0] = (float)r[0];
-					c[1] = (float)r[1];
-					c[2] = (float)r[2];
-					c[3] = (float)r[3];
-				}
-				if(1){
-					float ypr[3];
-					ypr[0] = -espdu->entityOrientation.psi;  //gimbal.js shows -yaw
-					ypr[1] = espdu->entityOrientation.theta;
-					ypr[2] = espdu->entityOrientation.phi;
-					ypr2axisangle(ypr,pnode->rotation.c);
+
+				if(pnode->__geoSystem){
+					Quaternion qgc2tcs, qtcs2body, qgc2body;
+					struct SFVec3d gd, gc, translate;
+					struct SFVec4d rotate;
+					double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
+
+					float xyza[4];
+					Geosys *gs;
+					gs = GEOSYS(pnode->__geoSystem);
+					user2gc(gs,&pnode->geoCoords,1,&gc);
+					gc2gd(gs,&gc,1,&gd);
+					gc2tcs_transform(gs,&gd,&translate,&rotate);
+					//somehow get body/entity into world/gc - rotation and translation
+					{
+						//rotation
+						//assumption (Apr 2018 don't know how Xj3d does it, here's dug9's guess):
+						// pdu is world2body
+						// espdutransform.rotation = local2body
+						// - where local is TCS Topocentric Coord System as described for GeoLocation
+						// - and world is GC
+						// local2body = world2local.inverse x world2body
+						// for freewrl world2local is gc2tcs
+						Quaternion qtcs2gc, q;
+						float ypr[3], xyza[4];
+						ypr[0] = -espdu->entityOrientation.psi;
+						ypr[1] = espdu->entityOrientation.theta;
+						ypr[2] = espdu->entityOrientation.phi;
+						ypr2axisangle(ypr,xyza);
+						xyza[3] = -xyza[3];
+						//vecprint4fb("recv xyza",xyza,"\n");
+
+						vrmlrot4f_to_quaternion(&qgc2body,xyza);
+						vrmlrot4d_to_quaternion(&qgc2tcs,rotate.c);
+						quaternion_inverse(&qtcs2gc,&qgc2tcs);
+						quaternion_multiply(&qtcs2body,&qtcs2gc,&qgc2body);
+						quaternion_set(&q,&qtcs2body);
+						quaternion_to_vrmlrot4f(&q,pnode->rotation.c);
+					}
+					{
+						//translation - dug9 debate: could do it one of 2 ways
+						static enum transmethod {
+							TRANS_ZERO = 1,
+							TRANS_LOCATION_MINUS_GEOCOORD = 2,
+						};
+						//static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
+						static int transmethod = TRANS_ZERO; 
+
+						vector3double2vec3d(world2bodyxyz,&espdu->entityLocation);
+						if(transmethod == TRANS_LOCATION_MINUS_GEOCOORD){
+							//METHOD 1: translation = Location - geoCoords
+							struct SFVec3d world, tcs;
+							veccopyd(world.c,world2bodyxyz);
+							gc2tcs(gs,&gd,&world,1,&tcs);
+							double2float(pnode->translation.c,tcs.c,3);
+						}else{
+							//TRANS_ZERO
+							//METHOD 2: geoCoords = Location; translation = 000
+							// x smoothing doesn't work if done in translation / tcs space
+							struct SFVec3d world, tcs2, tcs1;
+							double deltatcs[3];
+							float deltap[3];
+							static int want_smoothing = 1;
+							if(want_smoothing){
+								gc2tcs(gs,&gd,&gc,1,&tcs1);
+								veccopyd(world.c,world2bodyxyz);
+								gc2tcs(gs,&gd,&world,1,&tcs2);
+								vecdifd(deltatcs,tcs1.c,tcs2.c);
+								double2float(deltap,deltatcs,3);
+								vecadd3f(pnode->_p0.c,pnode->_p0.c,deltap);
+							}
+							gc2user(gs,&world,1,&pnode->geoCoords);
+							//node->_change++;
+							vecset3f(pnode->translation.c,0.0f,0.0f,0.0f);
+
+						}
+					}
+					// recv geo dead reckoning
+					pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
+					{
+						float V[3], A[3];
+						// in entity or world, depending on drmethod
+						vector3float2vec3f(A,&espdu->deadReckoningParameters.entityLinearAcceleration);
+						vector3float2vec3f(V,&espdu->entityLinearVelocity);
+
+						//convert linear/angular V,A from world or Entity, to local
+						//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+						//p.333, p.329
+						if(pnode->deadReckoning < 6){
+							//convert world to TCS/Local 
+							//vtcs = gc2tcs x Vworld
+							Quaternion q;
+							vrmlrot4d_to_quaternion(&q,rotate.c);
+							quaternion_rotation3f(V,&q,V);
+							quaternion_rotation3f(A,&q,A);
+						} else {
+							if(0){
+							//convert entity to TCS/Local
+							//Vtcs = body2tcs x Vbody
+							Quaternion q;
+							vrmlrot4f_to_quaternion(&q,pnode->rotation.c);
+							quaternion_rotation3f(V,&q,V);
+							quaternion_rotation3f(A,&q,A);
+							}else{
+							//keep entity in entity
+							}
+						}
+
+						veccopy3f(pnode->linearAcceleration.c,A);
+						veccopy3f(pnode->linearVelocity.c,V);
+
+					}
+					{
+						//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle, in entity space
+						float axis[3], angle;
+						vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
+						angle = veclength3f(axis);
+						vecnormalize3f(pnode->_angularVelocity.c,axis);
+						pnode->_angularVelocity.c[3] = angle;
+					}
+
+				}else{
+					//non-geosystem scene. Apr 22, 2018 we aren't using this now
+					// -- everything goes through geosystem code above
+					// -- but keeping this until we benchmark against Brutzman
+					//translation - assumes companion scenes will have same parent transform stack
+					//(x, -z, y).
+					pnode->translation.c[0] = espdu->entityLocation.x;
+					pnode->translation.c[1] = espdu->entityLocation.z;
+					pnode->translation.c[2] = -espdu->entityLocation.y; 
+					//rotation
+					if(0){
+						Quaternion qA;
+						float ypr[3];
+						double r[4];
+						float *c = pnode->rotation.c;
+						ypr[0] = espdu->entityOrientation.phi;
+						ypr[1] = espdu->entityOrientation.psi;
+						ypr[2] = espdu->entityOrientation.theta;
+						euler2quat(&qA,ypr[0],ypr[1],ypr[2]);
+						//quaternion_normalize(&qA);
+						//vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+						quaternion_to_vrmlrot(&qA,&r[0],&r[1],&r[2],&r[3]);
+						c[0] = (float)r[0];
+						c[1] = (float)r[1];
+						c[2] = (float)r[2];
+						c[3] = (float)r[3];
+					}
+					if(1){
+						float ypr[3];
+						ypr[0] = -espdu->entityOrientation.psi;  //gimbal.js shows -yaw
+						ypr[1] = espdu->entityOrientation.theta;
+						ypr[2] = espdu->entityOrientation.phi;
+						ypr2axisangle(ypr,pnode->rotation.c);
+					}
+					// dead reckoning
+					pnode->deadReckoning = espdu->deadReckoningParameters.deadReckoningAlgorithm;
+					vector3float2vec3f(pnode->linearAcceleration.c,&espdu->deadReckoningParameters.entityLinearAcceleration);
+					vector3float2vec3f(pnode->linearVelocity.c,&espdu->entityLinearVelocity);
+					{
+						//p.667 E.7.4.1.1: rotational velocity is stored as axis*angle
+						float axis[3], angle;
+						vector3float2vec3f(axis,&espdu->deadReckoningParameters.entityAngularVelocity);
+						angle = veclength3f(axis);
+						vecnormalize3f(pnode->_angularVelocity.c,axis);
+						pnode->_angularVelocity.c[3] = angle;
+					}
+
 				}
 				//articuation parameters
 				pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
-				printf("recv art count %d\n",espdu->numberOfArticulationParameters);
+				//printf("recv art count %d\n",espdu->numberOfArticulationParameters);
 				if(pnode->articulationParameterArray.n){
 					struct ArticulationParameter *ap;
 					float *pp;
@@ -601,7 +1215,15 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					pnode->articulationParameterArray.p = pp;
 					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
 				}
+				pdu2node_entityType(&espdu->entityType,&pnode->entityKind);
 				pnode->_pduchange_es = TRUE;
+				if(espdu->entityAppearance | 1 << 20){
+					//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+					//p.50 no dead reckoning if isFrozen bit is set, bit 21 of entityAppearance
+					//(why can't they just leave dead reckoning parameters 0, and run through formula? H: specs written in 1990s for 80386 processors)
+					//pnode->_isFrozen = TRUE; //pduchange_es = FALSE;
+				}
+
 				//...
 			}
 			break;
@@ -626,11 +1248,82 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->_pduchange_detonation = TRUE;
 			}
 			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+
+// Simulation Management PDUs relate to the DISEntityManager node
+// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+//5.6 Simulation management p.85
+//6.2.82 Simulation Management PDU Header record p.311
+//- its an abstract type
+//- the pdutype burried in the standard header part is the implied ACTION. ie create, or remove.
+//Table 114 p.313:
+//PDU 				Reference 	Originating ID 	Receiving ID
+//Create Entity 	5.6.5.2 	Simulation ID 	Entity ID or Special Create Entity Identifier
+//Remove Entity 	5.6.5.3 	Simulation ID 	Entity ID
+//Table 12 p.87
+//Table 3 p.31 - IDs, including specials: All Simulations, no particular node: ALL_SITES 65535, ALL_APPLIC = 65535,  RefID 0
+//5.6.5.2 Create Entity PDU p.88 
+
+
+struct Vector * dis_node2pdus_sm(struct X3D_Node *node, int isHeartbeat){
+
+	struct Vector *pdus;
+	struct X3D_DISEntityManager * pnode = (struct X3D_DISEntityManager*)node;
+	pdus = newVector(struct Pdu *, 6);
+
+	//ENTITYSTATE
+	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
+	printf("em pduchange create %d remove %d heartbeat %d ticktime %lf\n",pnode->_pduchange_create, pnode->_pduchange_remove, isHeartbeat,TickTime());
+	if(isHeartbeat){
+		//lets say someone joins the exercise late.
+		//how do they get synched up?
+	}
+	{
+		struct SimulationManagementPdu *simanpdu;
+	}
+	//CREATE
+	if(pnode->_pduchange_create){
+		struct CreateEntityPdu *crpdu;
+		crpdu = (struct CreateEntityPdu *) dis_ctor(type_CreateEntityPdu);
+		//copy from espdutransform node to pdu
+		crpdu->mySimulationManagementFamilyPdu.originatingEntityID.entity = pnode->entityID;
+		//crpdu->mySimulationManagementFamilyPdu.receivingEntityID = ALL_SITES; ???
+		//crpdu->requestID = ??
+		///crpdu->mySimulationManagementFamilyPdu.myPdu.
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)crpdu);
+	}
+	//REMOVE
+	if(pnode->_pduchange_remove){
+		struct RemoveEntityPdu *rmpdu;
+		rmpdu = (struct RemoveEntityPdu *) dis_ctor(type_RemoveEntityPdu);
+		//copy from espdutransform node to pdu
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rmpdu);
+	}
+	return pdus;
+
+}
+int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_DISEntityManager * pnode = (struct X3D_DISEntityManager*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
 			case PDU_CREATE_ENTITY:
 			{
 				//CREATE
 				struct CreateEntityPdu *crpdu;
 				//crpdu->mySimulationManagementFamilyPdu.myPdu.
+				printf("hi from pdu2node create_entity\n");
 				pnode->_pduchange_create = TRUE;
 			}
 			break;
@@ -638,6 +1331,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//REMOVE
 				struct RemoveEntityPdu *rmpdu;
+				printf("hi from pdu2node remove_entity\n");
 				pnode->_pduchange_remove = TRUE;
 			}
 			break;
@@ -653,6 +1347,9 @@ struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	switch(node->_nodeType){
 		case NODE_EspduTransform:
 			pdus = dis_node2pdus_espdu(node, isHeartbeat);
+			break;
+		case NODE_DISEntityManager:
+			pdus = dis_node2pdus_sm(node,isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
 		case NODE_TransmitterPdu:
@@ -673,6 +1370,7 @@ void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *read
 		case NODE_TransmitterPdu:
 		case NODE_SignalPdu:
 		case NODE_EspduTransform:
+		case NODE_DISEntityManager:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
 			*lasttime = pnode->_lasttime;
@@ -691,6 +1389,7 @@ void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
 		case NODE_TransmitterPdu:
 		case NODE_SignalPdu:
 		case NODE_EspduTransform:
+		case NODE_DISEntityManager:
 		{
 			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
 			pnode->_lasttime = lasttime;
@@ -699,6 +1398,22 @@ void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
 		break;
 	}
 }
+int node_only_transform_changed(struct X3D_Node *node){
+	int changed, onlytransform = FALSE;
+	changed = 0;
+	if(	node->_nodeType == NODE_EspduTransform)
+	{
+		struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform *)node;
+		changed += pnode->_pduchange_es ? 1 : 0;
+		changed += pnode->_pduchange_collision ? 2:0;
+		changed += pnode->_pduchange_fire ? 4:0;
+		changed += pnode->_pduchange_detonation ? 8:0;
+	}
+	onlytransform = changed == 1;
+	return onlytransform;
+}
+
+
 int node_pdus_changed_by_scene(struct X3D_Node *node){
 	int changed = FALSE;
 	switch(node->_nodeType){
@@ -709,7 +1424,12 @@ int node_pdus_changed_by_scene(struct X3D_Node *node){
 			changed |= pnode->_pduchange_collision;
 			changed |= pnode->_pduchange_fire;
 			changed |= pnode->_pduchange_detonation;
-			changed |= pnode->_pduchange_create;
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+			struct X3D_DISEntityManager *pnode = (struct X3D_DISEntityManager *)node;
+			changed = pnode->_pduchange_create;
 			changed |= pnode->_pduchange_remove;
 			}
 			break;
@@ -745,6 +1465,12 @@ void reset_node_pduchanged(struct X3D_Node *node){
 			pnode->_pduchange_collision = FALSE;
 			pnode->_pduchange_fire = FALSE;
 			pnode->_pduchange_detonation = FALSE;
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+			struct X3D_DISEntityManager *pnode = (struct X3D_DISEntityManager *)node;
+			pnode->_pduchange_em_info = FALSE;
 			pnode->_pduchange_create = FALSE;
 			pnode->_pduchange_remove = FALSE;
 			}
@@ -786,18 +1512,24 @@ void dis_sendloop(){
 				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
 				//b. on send in here, a function is called to pdu-ize a node before marshaling it
 				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
-				double lasttime, readInterval, writeInterval, isHeartbeat;
+				double lasttime, dtime, readInterval, writeInterval, isHeartbeat;
 				struct Vector *pdus;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				//printf("registered node type %s\n",stringNodeType(node->_nodeType));
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
 				if(writeInterval == 0.0) continue; //sentinal value 0 means don't write
-				// finer granularity send decision: a)heartbeat, b)on-change, c)dead-reckoning-threshold
+				// finer granularity send decision: a)heartbeat, b)on-change except DR, c) DR dead-reckoning-threshold exceded
 				// Q. where's our c)dead-reckoning-threshold?
-				isHeartbeat = thistime - lasttime > writeInterval ? TRUE: FALSE; //a)heartbeat: skip for a while more
+				dtime = thistime - lasttime;
+				isHeartbeat = dtime > writeInterval ? TRUE: FALSE; //a)heartbeat: skip for a while more
 				if(!isHeartbeat && !node_pdus_changed_by_scene(node)) continue; //b)on-change: no pdus changed since last send, DIS ettiquette says don't send if no change
+				//if(0) //moved to node _compile/_prep/_child
+				//if(!isHeartbeat && node_only_transform_changed(node)){
+				//	if(transform_within_DeadReckoningTolerance(node,dtime)) continue;
+				//}
+				printf(".");
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
-				dis_set_node_lasttime(node,lasttime);
 				if(j==0) {
 					nb = write_rtp(&buf2[nbytes],node);
 					nbytes += nb;
@@ -805,9 +1537,11 @@ void dis_sendloop(){
 
 				//option b.
 				pdus = dis_node2pdus(node,isHeartbeat);
+				dis_set_node_lasttime(node,lasttime);
+
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
-					printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
+					//printf("in dis_sendloop pdu protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
 				}
 				nb = dis_write_stream(&buf2[nbytes],pdus);
 				if(0){
@@ -900,6 +1634,9 @@ int write_rtp(unsigned char *buf, struct X3D_Node *node){
 		case NODE_EspduTransform:
 			rtue = ((struct X3D_EspduTransform *)node)->rtpHeaderExpected;
 			break;
+		case NODE_DISEntityManager:
+			rtue = ((struct X3D_DISEntityManager *)node)->rtpHeaderExpected;
+			break;
 		case NODE_ReceiverPdu:
 			rtue = ((struct X3D_ReceiverPdu *)node)->rtpHeaderExpected;
 			break;
@@ -929,6 +1666,9 @@ void set_rtp_heard(struct X3D_Node *node){
 		case NODE_EspduTransform:
 			((struct X3D_EspduTransform *)node)->isRtpHeaderHeard = TRUE;
 			break;
+		case NODE_DISEntityManager:
+			((struct X3D_DISEntityManager *)node)->isRtpHeaderHeard = TRUE;
+			break;
 		case NODE_ReceiverPdu:
 			((struct X3D_ReceiverPdu *)node)->isRtpHeaderHeard = TRUE;
 			break;
@@ -950,6 +1690,15 @@ void dis_set_isActive(struct X3D_Node*node, int ival){
 				if(pnode->isActive != ival){
 					pnode->isActive = ival;
 					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isActive));
+				}
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+				struct X3D_DISEntityManager* pnode = (struct X3D_DISEntityManager*)node;
+				if(pnode->isActive != ival){
+					pnode->isActive = ival;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isActive));
 				}
 			}
 			break;
@@ -1009,6 +1758,23 @@ void dis_set_isNetworkMode(struct X3D_Node*node, int networkMode){
 				if(pnode->isNetworkWriter != isNetworkWriter){
 					pnode->isNetworkWriter = isNetworkWriter;
 					MARK_EVENT(node,offsetof(struct X3D_EspduTransform,isNetworkWriter));
+				}
+			}
+			break;
+		case NODE_DISEntityManager:
+			{
+				struct X3D_DISEntityManager* pnode = (struct X3D_DISEntityManager*)node;
+				if(pnode->isStandAlone != isStandAlone){
+					pnode->isStandAlone = isStandAlone;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isStandAlone));
+				}
+				if(pnode->isNetworkReader != isNetworkReader){
+					pnode->isNetworkReader = isNetworkReader;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isNetworkReader));
+				}
+				if(pnode->isNetworkWriter != isNetworkWriter){
+					pnode->isNetworkWriter = isNetworkWriter;
+					MARK_EVENT(node,offsetof(struct X3D_DISEntityManager,isNetworkWriter));
 				}
 			}
 			break;
@@ -1089,15 +1855,15 @@ int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *p
 		}
 		pdutype = (int)(carat[2]);
 		distype = pduToDis(pdutype);
-		printf("pdu type=%d distype=%d",(int)pdutype, distype);
+		//printf("pdu type=%d distype=%d",(int)pdutype, distype);
 		
 		pdubuf = dis_ctor(distype);
 		carat2 = dis_unmarshal(carat,pdubuf,distype);
 		nbytes = (carat2 - carat);
 		pdu = (struct Pdu*)pdubuf;
-		printf("un-marshed version %d pdutype= %d\n",pdu->protocolVersion,pdu->pduType);
+		//printf("un-marshed version %d pdutype= %d\n",pdu->protocolVersion,pdu->pduType);
 		vector_pushBack(struct Pdu*,pdus,pdu);
-		printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
+		//printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
 
 		if(0){
 			//try marshalling, then compare bytestreams
@@ -1184,8 +1950,8 @@ int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *p
 		//dis_dtor(pdubuf,distype);
 		bytesread += nbytes;
 		carat = carat2;
-		printf("bytes left = %d - %d = %d\n",streamsize, (int)(carat - datastream), streamsize - (int)(carat-datastream));
-		printf("\n");
+		//printf("bytes left = %d - %d = %d\n",streamsize, (int)(carat - datastream), streamsize - (int)(carat-datastream));
+		//printf("\n");
 		//if(0) for(i=0;i<npdus;i++){
 		//	if(registeredPdus[i]->pduType == pdutype){
 		//		//I think there should be more filtering here
@@ -1208,7 +1974,7 @@ int dis_write_stream(unsigned char * datastream, struct Vector *pdus)
 	if(pdus && pdus->n){
 		for(i=0;i<pdus->n;i++){
 			struct Pdu *pdu = vector_get(struct Pdu*,pdus,i);
-			printf("dis_wrt_str protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
+			//printf("dis_wrt_str protocol %d pdutype %d\n",pdu->protocolVersion,pdu->pduType);
 			int distype = pduToDis(pdu->pduType);
 			carat = dis_marshal(carat,(unsigned char*)pdu,distype);
 			//printf("pdu %d wrote %d bytes\n",i,nbytes);
@@ -1256,7 +2022,7 @@ void dis_recvloop(){
 			if(nbytes > 0){
 				more = TRUE;
 				dsock->lasttime = thistime;
-				printf("sock read nbytes = %d\n",nbytes);
+				//printf("sock read nbytes = %d\n",nbytes);
 				//free last round
 				for(j=0;j<pdus->n;j++){
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,j);
@@ -1265,14 +2031,24 @@ void dis_recvloop(){
 				pdus->n = 0;
 				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
-				printf("hallelluha %d\n",count++);
+				//printf("hallelluha %d\n",count++);
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
 						int ihit;
 						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 						//check site and application ID
 						//distribute to registered nodes by entityID
-						ihit = dis_pdus2node_espdu(node, pdus);
+						ihit = 0;
+						switch(node->_nodeType){
+							case NODE_EspduTransform:
+								ihit = dis_pdus2node_espdu(node, pdus);
+								break;
+							case NODE_DISEntityManager:
+								ihit = dis_pdus2node_sm(node, pdus);
+								break;
+							default:
+								break;
+						}
 						if(ihit){
 							if(heard) set_rtp_heard(node);
 							dis_set_isActive(node,TRUE);
@@ -1499,20 +2275,16 @@ int shallow_compare_field(int typeIndex, union anyVrml* source, union anyVrml* d
 		mfs = (struct Multi_Node*)source;
 		mfd = (struct Multi_Node*)dest;
 		//self assignment is no-op
-		if(mfs->p != mfd->p){
+		if(mfs->n != mfd->n){
 			has_changed = TRUE;
 		}else{
-			if(mfs->n != mfd->n){
-				has_changed = TRUE;
-			}else{
-				ps = (char *)mfs->p;
-				pd = (char *)mfd->p;
-				for(i=0;i<mfs->n;i++)
-				{
-					has_changed = shallow_compare_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
-					ps += isize;
-					pd += isize;
-				}
+			ps = (char *)mfs->p;
+			pd = (char *)mfd->p;
+			for(i=0;i<mfs->n;i++)
+			{
+				has_changed = shallow_compare_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
+				ps += isize;
+				pd += isize;
 			}
 		}
 	}else{ 
@@ -1636,8 +2408,17 @@ const int FIELDS_geo [] = {
 	FIELDNAMES_geoCoords,
 	-1,
 };
+const int FIELDS_geosys [] = {	
+	FIELDNAMES_geoSystem, 
+	-1,
+};
+const int FIELDS_geocoord [] = {	
+	FIELDNAMES_geoCoords,
+	-1,
+};
 
-const int FIELDS_es_info [] = {	
+
+const int FIELDS_em_info [] = {	
 	FIELDNAMES_entityCategory,
 	FIELDNAMES_entityCountry,
 	FIELDNAMES_entityDomain,
@@ -1647,10 +2428,18 @@ const int FIELDS_es_info [] = {
 	FIELDNAMES_entitySubCategory,
 	-1,
 };
+const int FIELDS_create [] = {	
+	FIELDNAMES_addedEntities,
+	-1,
+};
+const int FIELDS_remove [] = {	
+	FIELDNAMES_removedEntities,
+	-1,
+};
 
 const int FIELDS_es_force [] = {
 	FIELDNAMES_forceID,
-	FIELDNAMES_marking,
+	//FIELDNAMES_marking,
 	-1,
 };
 
@@ -1802,8 +2591,7 @@ const int FIELDS_transmitter [] = {
 	-1,
 };
 
-
-void compile_DIS_common(struct X3D_EspduTransform *node){
+void compile_DIS_network(struct X3D_EspduTransform *node){
 	if(node->_oldState == NULL){
 		//change detection 
 		//later we'll copy the entire node after we detect any changed fields
@@ -1811,6 +2599,14 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 		old = createNewX3DNode0(node->_nodeType);
 		//shallow_copy_node(old,X3D_NODE(node));
 		node->_oldState = old; //I think one underscore means dispose
+	}
+	if(!node->_registered){
+		void *psock;
+		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
+		node->multicastRelayPort,
+		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
+		node->_registered = TRUE;
+		node->_dsock = psock;
 	}
 	if(node->_registered){
 		//almost every field is [in,out] so can be changed at runtime
@@ -1826,6 +2622,35 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 			}
 		}
 	}
+}
+void compile_DIS_geo(struct X3D_EspduTransform *node){
+	//Apr 2018 interpretation of geoSystem/geoCoords for DIS:
+	//- world2body = world2tcs + tcs2body where tcs2body == translation
+	// Scene
+	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
+	//   transform using DIS
+	//    children
+	if(TRUE){
+	//if(veclengthd(node->geoCoords.c) != 0.0){
+		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geosys)){
+			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+			update_origin(GEOSYS(node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+		}
+	}
+}
+void compile_DIS_common(struct X3D_EspduTransform *node){
+	compile_DIS_network(node);
+	compile_DIS_geo(node);
+}
+void compile_DIS_common_OLD(struct X3D_EspduTransform *node){
+	if(node->_oldState == NULL){
+		//change detection 
+		//later we'll copy the entire node after we detect any changed fields
+		struct X3D_Node *old;
+		old = createNewX3DNode0(node->_nodeType);
+		//shallow_copy_node(old,X3D_NODE(node));
+		node->_oldState = old; //I think one underscore means dispose
+	}
 	if(!node->_registered){
 		void *psock;
 		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
@@ -1834,19 +2659,31 @@ void compile_DIS_common(struct X3D_EspduTransform *node){
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
-	//Mar 2018 interpretation of geoSystem/geoCoords for DIS:
-	//- specs say DIS coords are (x,-z,y) cartesian, they can never be geospatial like GD (lat,lon)
-	//- and specs say children of espdu are translated by DIS coordinates in X3D order
-	//- therefore geoCoordinates must apply to the local scene, and aren't transmitted to/from other DIS participants
+	if(node->_registered){
+		//almost every field is [in,out] so can be changed at runtime
+		//IDEA: save duplicate of nodetype in _oldnode field
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_networksensor)){
+			int changed;
+			changed = dis_check_socket_change((struct dis_socket*)node->_dsock,node->address->strptr, node->port,
+					node->multicastRelayHost->strptr,node->multicastRelayPort,	node->networkMode->strptr);
+			if(changed){
+				dis_unregister((struct dis_socket*)node->_dsock,X3D_NODE(node));
+				node->_registered = FALSE;
+				node->_dsock = NULL;
+			}
+		}
+	}
+	//Apr 2018 interpretation of geoSystem/geoCoords for DIS:
+	//- world2body = world2tcs + tcs2body where tcs2body == translation
 	// Scene
 	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
 	//   transform using DIS
 	//    children
-	// like we had wrapped espduTransform with a GeoLocation node
-	if(veclengthd(node->geoCoords.c) != 0.0){
-		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)){
+	if(TRUE){
+	//if(veclengthd(node->geoCoords.c) != 0.0){
+		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geosys)){
 			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
-			update_origin(GEOSYS(&node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
+			update_origin(GEOSYS(node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
 		}
 	}
 }
@@ -1871,12 +2708,13 @@ void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
+
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
 	// but could be split if needed
 	if(node->isNetworkReader){
 		if(node->_pduchange_es){
-			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_info);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_em_info);
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_force);
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_deadreckoning);
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_articulation);
@@ -1899,23 +2737,19 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_rate);
 		}
 
-		if(node->_pduchange_create){
-		}
-		if(node->_pduchange_remove){
-		}
 		reset_node_pduchanged(X3D_NODE(node));
 
 	}else if(node->isNetworkWriter){
 		int es_info, es_force, es_deadreckoning, es_articulation;
 		es_info = es_force = es_deadreckoning = es_articulation = FALSE;
-		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_info)){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_em_info)){
 			es_info = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_force)){
 			es_force = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_deadreckoning)){
-			es_deadreckoning = TRUE;
+			es_deadreckoning = FALSE; //we'll do it elsewhere TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_articulation)){
 			int i,n;
@@ -1947,6 +2781,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			}
 			node->articulationParameterCount = node->articulationParameterArray.n;
 		}
+		//printf("es %d inf %d for %d dr %d art %d\n ",node->_pduchange_es,es_info,es_force,es_deadreckoning,es_articulation);
 		node->_pduchange_es = node->_pduchange_es || es_info || es_force || es_deadreckoning || es_articulation ? TRUE : FALSE;
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_collision)){
 			node->_pduchange_collision = TRUE;
@@ -1974,39 +2809,281 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 
 }
-void prep_EspduTransform0(struct X3D_EspduTransform *node){
-	if(!renderstate()->render_vp) {
-		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
-		/* did either we or the Viewpoint move since last time? */
-		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+//void prep_EspduTransform0(struct X3D_EspduTransform *node){
+//	//if(!renderstate()->render_vp) {
+//		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+//		/* did either we or the Viewpoint move since last time? */
+//		//RECORD_DISTANCE
+//		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+//	//}
+//
+//}
+//void fin_EspduTransform0(struct X3D_EspduTransform *node){
+//	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+//}
+
+void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
+	//we use the same _pduchange flags and _oldState for both receiving and sending
+	// but could be split if needed
+	if(node->isNetworkReader){
+		if(node->_pduchange_em_info){
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_em_info);
+		}
+		if(node->_pduchange_create){
+			if(node->addedEntities.n > 0)
+				mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_create);
+		}
+		if(node->_pduchange_remove){
+			if(node->removedEntities.n > 0)
+				mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_remove);
+		}
+		reset_node_pduchanged(X3D_NODE(node));
+
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_em_info)){
+			node->_pduchange_em_info = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_create)){
+			if(node->addedEntities.n > 0)
+				node->_pduchange_create = TRUE;
+		}
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_remove)){
+			if(node->removedEntities.n > 0)
+				node->_pduchange_remove = TRUE;
+		}
+	}
+	freeMallocedNodeFields(node->_oldState);
+	shallow_copy_node(node->_oldState,X3D_NODE(node));
+}
+
+
+
+
+
+// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+// p.663 DR formula naming:
+//   rotation: fixed (F), rotating (R)
+//   order of position function:  rate of position (P) (first order), rate of velocity (V) (second order)
+//   coords: world coordinates (W)  body axis coordinates (B)
+// p.665 dead reckoning formulas
+enum {
+STATIC  = 1,
+DRM_FPW = 2,
+DRM_RPW = 3,
+DRM_RVW = 4,
+DRM_FVW = 5,  //P = P0 + V0*dt + 1/2*A*dt^2  in world coords
+DRM_FPB = 6,
+DRM_RPB = 7,
+DRM_RVB = 8,
+DRM_FVB = 9,  //P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
+};
+void dead_reckon(int drmethod, double dtime, float *p1, float *R1xyza, float *p0, float *v0, float *a0, float *R0xyza, float *RVxyza){
+	// freewrl: when we say world here, we mean TCS.
+	// TCS == topocentric coordinate system, aka LGS Local Geodetic System, see Geospatial component, GeoLocation
+	// LCS == local coordinate system - see Geospatial component, precision requirements, == TCS of geoOrigin / autoOrigin
+	// DIS Local ~= web3d TCS, except with axes swizzled (DIS -Z up, X north, X3D Y up, -Z north)
+	// we convert DR parameters in world system to/from web3d geo TCS system during pdu2node / node2pdu
+	// so all below formula world coords are in TCS 
+	// any DR (dead reckoning) parameters in DIS-Local system are swizzled to/from web3d TCS convention in node2pdu and pdu2node
+	// drmethod 1 - 9
+	// dtime - time in seconds since last frame ie .01
+	// p1 - output new location (TCS)
+	// R1xyza - output new orientation (body2tcs)
+	// p0 - location on last frame
+	// v0 - linear velocity set on last send/recv
+	// a0 - linear acceleration set on last send/recv
+	// R0xyza - orientation on last frame Rbw
+	// RVxyza - angular velocity, in entity/body
+	switch(drmethod){
+		//world coords
+		case STATIC: //1
+			veccopy3f(p1,p0);
+			veccopy4f(R1xyza,R0xyza);
+			break;
+		case DRM_FPW: //2
+			{
+				float tmp[3];
+				//update position
+				// P = P0 + V0*dt
+				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
+				veccopy4f(R1xyza,R0xyza);
+			}
+			break;
+		case DRM_RPW: //3
+
+			{
+				float tmp[3];
+				Quaternion qv, q1, q0;
+				//update position
+				// P = P0 + V0*dt
+				vecadd3f(p1,p0,vecscale3f(tmp,v0,dtime));
+				//update rotation
+				// Rwb1 = DR(dt) * Rwb0
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
+			}
+			break;
+		case DRM_RVW: //4
+			{
+				//update position
+				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
+				float tmp3[3],tmp2[3],tmp1[3];
+				Quaternion qv, q1, q0;
+
+				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				//update rotation
+				// Rwb1 = DR(dt) * Rwb0
+				vrmlrot4f_to_quaternion(&q0,R0xyza);
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				quaternion_multiply(&q1,&q0,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
+			}
+			break;
+		case DRM_FVW: //5
+
+			{
+				//F=fixed rotation, V = 2nd order, W=world coords
+				//E.7.2.2 p.666
+				//update position
+				//P = P0 + V0*dt + 1/2*A*dt^2  in world coords
+				float tmp3[3],tmp2[3],tmp1[3];
+				vecadd3f(p1,p0,vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime)));
+				//update rotation
+				veccopy4f(R1xyza,R0xyza);
+			}
+			break;
+		
+		//body/entity > A,V in body coords
+		case DRM_FPB: //6
+			{
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecscale3f(tmp3,v0,dtime);
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
+				//update rotation
+				veccopy4f(R1xyza,R0xyza);
+
+			}
+			break;
+		case DRM_RPB: //7
+			{
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecscale3f(tmp3,v0,dtime);
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
+				//update rotation 
+				// Rwb1 = DR(dt) * Rwb0
+				quaternion_multiply(&q1,&qbw,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
+			}
+			break;
+		case DRM_RVB: //8
+			{
+				//p.669
+				//I think I see 2 problems with the formula they give:
+				//1. their R1, R2 formula divide by |w|^n and when |w| is 0, that's divide by zero 
+				//   - should produce Identity matrix when |w| is zero
+				//2. P = P0 + Rbw*(R1*Vb + R2*Ab)
+				//  problem: when R1, R2 are Identity (when |w| 0), it doesn't look like V0*t + 1/2*A*t^2
+				//	should be:
+				//	P = P0 + Rbw*(R1*Vb*dt + R2*.5*Ab*dt*dt)
+				// proposed simplification:
+				// Rbb = Rv*dt (and maybe + Ra*.5*t^2) where bb means body pose update with dt
+				// P = P0 + Rbw x Rbb(Vb*dt + Ab*.5*dt*dt)
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime));
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
+				//update rotation 
+				// Rwb1 = DR(dt) * Rwb0
+				quaternion_multiply(&q1,&qbw,&qv);
+				quaternion_to_vrmlrot4f(&q1,R1xyza);
+
+			}
+			break;
+		case DRM_FVB: //9
+			{
+				//P = P0 + (local2world)x(V0b*dt + 1/2*Ab*dt^2) convert to world after computing in local/entity/b=body space
+				Quaternion qv, qa, q1, qbw;
+				float deltap[3], att[3], tmp[3], tmp1[3], tmp2[3], tmp3[3];
+
+				vrmlrot_to_quaternion(&qv,RVxyza[0],RVxyza[1],RVxyza[2],RVxyza[3]*dtime);
+				vrmlrot4f_to_quaternion(&qbw,R0xyza);
+				vecadd3f(tmp3,vecscale3f(tmp2,v0,dtime),vecscale3f(tmp1,a0,.5f*dtime*dtime));
+				quaternion_rotation3f(deltap,&qv,tmp3);
+				quaternion_rotation3f(tmp2,&qbw,deltap); //world2body
+				vecadd3f(p1,p0,tmp2);
+
+				//update rotation
+				veccopy4f(R1xyza,R0xyza);  //no update for 9
+
+			}
+			break;
+		
+		default:
+			//update translation
+			veccopy3f(p1,p0);
+			//update rotation
+			veccopy4f(R1xyza,R0xyza);
+			break;
 	}
 
 }
-void fin_EspduTransform0(struct X3D_EspduTransform *node){
-	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+#define DRA_POS_THRSH 1.5
+#define DRA_ORIENT_THRSH .175 //RADIANS about 10 degrees
+
+int transform_within_DeadReckoningTolerance1(struct X3D_EspduTransform *node){
+	int withintol = TRUE;
+	float p0[3], gap[3];
+	struct X3D_EspduTransform *oldstate = (struct X3D_EspduTransform *)node->_oldState;
+	veccopy3f(p0,node->_p0.c); //oldstate->translation.c);
+
+	vecdif3f(gap,p0,node->translation.c);
+	if(veclength3f(gap) > DRA_POS_THRSH) 
+		withintol = FALSE;
+	return withintol;
 }
-
-#else //WITH_DIS
-void compile_DIS_common(struct X3D_EspduTransform *node){}
-void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){}
-void compile_SignalPdu0(struct X3D_SignalPdu *node){}
-void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){}
-void compile_EspduTransform0(struct X3D_EspduTransform *node){}
-void prep_EspduTransform0(struct X3D_EspduTransform *node){}
-void fin_EspduTransform0(struct X3D_EspduTransform *node){}
-#endif //WITH_DIS
-
 
 void compile_EspduTransform1 (struct X3D_EspduTransform *node) { 
 	if(node->isNetworkReader){
 		if(node->_pduchange_es){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_es_transform);
+			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_geo);
+		}
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform) 
+		|| shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geo)) {
+			//node->_pduchange_es = TRUE;
+			if(!transform_within_DeadReckoningTolerance1(node)) {
+				node->_pduchange_es = TRUE;
+			}
 		}
 	}
 	//whether its reader, writer or standalone, we need to compile if it changed state
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_es_transform)){
-		node->_pduchange_es = TRUE;
 
 		INITIALIZE_EXTENT;
 
@@ -2026,6 +3103,7 @@ void compile_EspduTransform1 (struct X3D_EspduTransform *node) {
 		REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 		MARK_NODE_COMPILED
 	}
+
 }
 void compile_EspduTransform (struct X3D_EspduTransform *node) { 
 	compile_DIS_common(node);  // must be first in case need to initialize _oldState
@@ -2034,13 +3112,106 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {
 	MARK_NODE_COMPILED
 }
 
+void espdu_update_by_dead_reckoning (struct X3D_EspduTransform *node) {
+	int drmethod, wasTransmitted;
+	float p1[3],v1[3],a1[3], RVxyza[4], R0xyza[4], R1xyza[4];
+	float p0[3],v0[3],a0[3];
+	double dtime;
+	static int smoothing_frames = 230; //frame count, at 60fps would be 4 seconds, ideally this would be a smoothing time in seconds
+	static int want_smoothing = 1; //0;
+
+	
+	wasTransmitted = FALSE;
+	if(node->isNetworkReader){
+		if(node->_lasttime == 0.0) 
+			return;
+		if(node->_pduchange_es){
+			//node start or node received
+			node->_change_count++;
+			wasTransmitted = TRUE;
+			if(want_smoothing && node->_change_count){
+				vecdif3f(node->_smoothingDelta.c,node->translation.c,node->_p0.c);
+				node->_smoothingCount = smoothing_frames;
+				if(node->_change_count > 1) 
+					node->_smoothingCount = 0;
+			}
+			veccopy3f(node->_p0.c,node->translation.c);
+			veccopy4f(node->_r0.c,node->rotation.c);
+		}
+		veccopy3f(p0,node->_p0.c);
+		//veccopy3f(p0,node->translation.c);
+		veccopy3f(v0,node->linearVelocity.c);
+		veccopy3f(a0,node->linearAcceleration.c);
+		veccopy4f(RVxyza,node->_angularVelocity.c);
+		veccopy4f(R0xyza,node->_r0.c);
+
+	}
+	if(node->isStandAlone){
+		veccopy3f(p0,node->translation.c);
+		veccopy3f(v0,node->linearVelocity.c);
+		veccopy3f(a0,node->linearAcceleration.c);
+		veccopy4f(RVxyza,node->_angularVelocity.c);
+		veccopy4f(R0xyza,node->rotation.c);
+	}
+	if(node->isNetworkWriter){
+		if(node->_sent){
+			//to be fair, only use what you send
+			wasTransmitted = TRUE;
+			node->_sent = FALSE;
+			veccopy3f(node->_p0.c,node->translation.c);
+			veccopy4f(node->_r0.c,node->rotation.c);
+		}
+		veccopy3f(p0,node->_p0.c);
+		veccopy3f(v0,node->linearVelocity.c);
+		veccopy3f(a0,node->linearAcceleration.c);
+		veccopy4f(RVxyza,node->_angularVelocity.c);
+		veccopy4f(R0xyza,node->_r0.c);
+	}
+	if(node->_lastframetime == 0.0)
+		veccopy3f(node->_p0.c,p0);
+	if(node->_lastframetime > 0.0){
+		dtime = TickTime() - node->_lastframetime; //lastime();
+		drmethod = node->deadReckoning;
+		//if(drmethod)
+		//	if(!node->__geoSystem) drmethod = DRM_FVW; //if no geocoords, we'll assume transform is already in world coords
+		dead_reckon(drmethod, dtime, p1, R1xyza, p0, v0, a0, R0xyza, RVxyza);
+		veccopy3f(node->_p0.c,p1);
+		veccopy4f(node->_r0.c,R1xyza);
+		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_EspduTransform,_p0));
+	}
+	node->_lastframetime = TickTime();
+	if(node->isNetworkReader){
+		//update translation based on DR
+		if(want_smoothing){
+			//E.9 Smoothing p.678
+			//just done on the receiver/isNetworkReader
+			float psmooth[3], pzero[3], alpha;
+			int n, i;
+			node->_change++;
+			i = node->_smoothingCount;
+			n = smoothing_frames;
+			alpha = 1.0f - (float)min(i,n)/(float)n;
+			vecset3f(pzero,0.0f,0.0f,0.0f);
+			veclerp3f(psmooth,pzero,node->_smoothingDelta.c,alpha);
+			vecdif3f(node->translation.c,node->_p0.c,psmooth);
+			node->_smoothingCount++;
+		}else{
+			veccopy3f(node->translation.c,node->_p0.c);
+		}
+		veccopy4f(node->rotation.c,node->_r0.c);
+	}
+}
+
 /* do transforms, calculate the distance */
 void prep_EspduTransform (struct X3D_EspduTransform *node) {
-
+	if(node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	COMPILE_IF_REQUIRED
-	if(node->__geoSystem) prep_EspduTransform0(node);
+	if(node->__geoSystem) 
+		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords); //prep_EspduTransform0(node); //has render_vp filter
+	if(!node->isNetworkReader) espdu_update_by_dead_reckoning(node);
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
 		* so we do nothing here in that case -ncoder */
+
 
 	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
@@ -2050,6 +3221,8 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+
+
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
@@ -2087,8 +3260,9 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 		} 
 
 		RECORD_DISTANCE
-
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
+
 }
 
 
@@ -2118,7 +3292,9 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 			);
 		}
 	}
-	if(node->__geoSystem) fin_EspduTransform0(node);
+	if(node->__geoSystem) 
+		geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
+
 } 
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
@@ -2176,6 +3352,181 @@ void compile_ReceiverPdu (struct X3D_ReceiverPdu *node) {
 	compile_ReceiverPdu0(node);
 	MARK_NODE_COMPILED
 }
+
+void child_TransmitterPdu (struct X3D_TransmitterPdu *node) { 
+	COMPILE_IF_REQUIRED
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+	//do stuff
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
+void child_SignalPdu (struct X3D_SignalPdu *node) { 
+	COMPILE_IF_REQUIRED
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+	//do stuff
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
+void child_ReceiverPdu (struct X3D_ReceiverPdu *node) { 
+	COMPILE_IF_REQUIRED
+	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
+	//do stuff
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
+	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+}
+void print_entitymapping(struct X3D_DISEntityTypeMapping *anode){
+	ConsoleMessage("domain %d category %d country %d kind %d extra %d subcat %d spec %d\n",
+	anode->domain, anode->category,anode->country, anode->kind, anode->extra, anode->subcategory, anode->specific);
+}
+void compile_DISEntityManager(struct X3D_DISEntityManager *node){
+	compile_DIS_network((struct X3D_EspduTransform *)node);
+	compile_DISEntityManager0(node);
+	MARK_NODE_COMPILED
+}
+void child_DISEntityManager(struct X3D_DISEntityManager *node){
+	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
+	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
+	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
+	static int ADD = 1, REMOVE = 2;
+	COMPILE_IF_REQUIRED
+	//like add remove children in opengl utils
+	if(node->addEntities.n){
+		int i,j;
+		struct Multi_Node* mfn = &node->entities;
+		node->addedEntities.n = 0;
+		for(j=0;j<node->addEntities.n;j++){
+			
+			if(node->addEntities.p[j]->_nodeType == NODE_DISEntityTypeMapping){
+				int ibest,iscore,jscore;
+				struct X3D_DISEntityTypeMapping *best, *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
+				ibest = -1;
+				iscore = 0;
+				best = NULL;
+				//printf("requested:");
+				//print_entitymapping(anode);
+				for(i=0;i<node->mapping.n;i++){
+					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
+						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+						//printf("compare %d",i);
+						//print_entitymapping(bnode);
+						jscore = 0;
+						if(anode->domain == bnode->domain) jscore++;
+						if(anode->category == bnode->category) jscore++;
+						if(anode->country == bnode->country) jscore++;
+						if(anode->kind == bnode->kind) jscore++;
+						if(anode->extra == bnode->extra) jscore++;
+						if(anode->subcategory == bnode->subcategory) jscore++;
+						if(anode->specific == bnode->specific) jscore++;
+						if(jscore > iscore){
+							iscore = jscore;
+							ibest = i;
+							best = bnode;
+						}
+					}
+				}
+				if(ibest > -1){
+					int isgroup = 0;
+					//printf("ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
+					if (best->_child == NULL) {
+						struct X3D_Inline * iline;
+						struct X3D_EspduTransform *espdu;
+						struct X3D_Group *grp;
+						iline = createNewX3DNode(NODE_Inline); //this assigns a parent resource using parsing thread methods, which is wrong for rendering thread
+						//resource_item_t *pres = iline->_parentResource;
+						iline->_parentResource = X3D_PROTO(node->_executionContext)->_parentResource; //for rendering-thread creation of inlines, use the parent context's parentResource
+						if(isgroup)
+							grp = createNewX3DNode(NODE_Group);
+						else
+							espdu = createNewX3DNode(NODE_EspduTransform);
+						if(best->_executionContext){
+							add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(iline));
+							if(isgroup)
+								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(grp));
+							else
+								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(espdu));
+						}
+						best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+
+						ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
+						if(isgroup)
+							AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
+						else
+							AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
+						/* copy over the URL from parent */
+						shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
+						iline->load = TRUE;
+					}
+
+					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, ADD,__FILE__,__LINE__);
+					AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
+				}
+			}
+		}
+		if(node->addedEntities.n) MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,addedEntities));
+		node->addEntities.n = 0;
+	}
+	if(node->removeEntities.n){
+		int i,j;
+		struct Multi_Node* mfn = &node->entities;
+		node->removedEntities.n = 0;
+		for(j=0;j<node->removeEntities.n;j++){
+			if(node->removeEntities.p[j]->_nodeType == NODE_DISEntityTypeMapping){
+				int ibest,iscore,jscore;
+				struct X3D_DISEntityTypeMapping *best, *anode = (struct X3D_DISEntityTypeMapping *)node->removeEntities.p[j];
+				ibest = -1;
+				iscore = 0;
+				best = NULL;
+				for(i=0;i<node->mapping.n;i++){
+					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
+						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+						jscore = 0;
+						if(anode->domain == bnode->domain) jscore++;
+						if(anode->category == bnode->category) jscore++;
+						if(anode->country == bnode->country) jscore++;
+						if(anode->kind == bnode->kind) jscore++;
+						if(anode->extra == bnode->extra) jscore++;
+						if(anode->subcategory == bnode->subcategory) jscore++;
+						if(anode->specific == bnode->specific) jscore++;
+						if(jscore > iscore){
+							iscore = jscore;
+							ibest = i;
+							best = bnode;
+						}
+					}
+				}
+				if(ibest > -1){
+					//printf("remove: ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
+					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, REMOVE,__FILE__,__LINE__);
+					if(best->_child)
+						AddRemoveChildren(X3D_NODE(node),  &node->removedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
+				}
+				//else
+				//	printf("remove: no match found\n");
+			}
+		}
+		if(node->removedEntities.n) {
+			//printf("removedEntities.n=%d\n",node->removedEntities.n);
+			MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,removedEntities));
+		}
+		node->removeEntities.n = 0;
+	}
+}
+#else //WITH_DIS
+
+void compile_DISEntityManager(struct X3D_DISEntityManager *node){}
+void child_DISEntityManager(struct X3D_DISEntityManager *node){}
+void compile_TransmitterPdu(struct X3D_TransmitterPdu *node){}
+void child_TransmitterPdu(struct X3D_TransmitterPdu *node){}
+void compile_SignalPdu(struct X3D_SignalPdu *node){}
+void child_SignalPdu(struct X3D_SignalPdu *node){}
+void compile_ReceiverPdu(struct X3D_ReceiverPdu *node){}
+void child_ReceiverPdu(struct X3D_ReceiverPdu *node){}
+void compile_EspduTransform (struct X3D_EspduTransform *node) {}
+void prep_EspduTransform(struct X3D_EspduTransform *node){}
+void fin_EspduTransform(struct X3D_EspduTransform *node){}
+void child_EspduTransform(struct X3D_EspduTransform *node){}
+
+#endif //WITH_DIS
 
 void fwl_sendreceive_DIS(){
 	//just the buffer in/out is handled here

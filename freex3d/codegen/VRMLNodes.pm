@@ -2383,19 +2383,60 @@ our %Nodes = (
 
 
 	"DISEntityManager" => new VRML::NodeType("DISEntityManager", [
+		#freewrl replaced a few fields with the full network sensor and DIS entity interfaces, to match espduTransform and others
+		# network sensor
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		timestamp => ["SFTime", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		address => ["SFString", "localhost", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		port => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		multicastRelayHost => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		multicastRelayPort => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		networkMode => ["SFString", "standAlone", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isNetworkReader => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isNetworkWriter => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isStandAlone => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		readInterval => ["SFTime", 0.1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		writeInterval => ["SFTime", 1.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		rtpHeaderExpected => ["SFBool", "FALSE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isRtpHeaderHeard => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_registered => ["SFBool","FALSE","initializeOnly",0,"UNCA_NONE"],#ff
+		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
+		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+
+		# DIS Entity
+		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		applicationID => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		#specs fields
+		#address => ["SFString", "localhost", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		#port => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		#applicationID => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		#siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		
 		mapping => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		addedEntities => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removedEntities => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		#freewrl extra fields
+		addEntities => ["MFNode", [], "inputOnly", 0,"UNCA_NONE"],#ff
+		removeEntities => ["MFNode", [], "inputOnly", 0,"UNCA_NONE"],#ff
+		entities => ["MFNode", [], "inputOutput", 0, "UNCA_NONE"],#ff
+		# DIS createEntityPdu / removeEntityPdu (not sure what / how this works)
+		_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_pduchange_em_info => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		# Field Change Detection
+		
 	],"X3DChildNode"),
 
 	"DISEntityTypeMapping" => new VRML::NodeType("DISEntityTypeMapping", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		# Entity Type record:
 		kind => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		domain => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		country => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2403,7 +2444,7 @@ our %Nodes = (
 		subcategory => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		specific => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		extra => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-
+		_child => ["SFNode", "NULL", "initializeOnly",0,0],
 	],"X3DInfoNode"),
 
 	"EspduTransform" => new VRML::NodeType("EspduTransform", [
@@ -2427,6 +2468,8 @@ our %Nodes = (
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		# Field Change Detection
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2434,21 +2477,19 @@ our %Nodes = (
 		siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# Geo
-		geoSystem => ["MFString", ["GC","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString", ["GD","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
-		# Field Change Detection
-		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
-		# Info
-		entityCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		entityCountry => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		entityDomain => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		entityExtra => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		# Info aka Entity Type Record, p262 of 2012 DIS draft specs (all are 8bit except country)
 		entityKind => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		entitySpecific => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		entityDomain => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		entityCountry => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		entityCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		entitySubCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		entitySpecific => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		entityExtra => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		#_pduchange_es_info => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		# team / side / force
@@ -2460,6 +2501,19 @@ our %Nodes = (
 		deadReckoning => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linearVelocity => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		linearAcceleration => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ACCEL"],#ff
+		_p0 => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff
+		_v0 => ["SFVec3f", [0,0,0], "initializeOnly", 0,0],#ff
+		_a0 => ["SFVec3f", [0,0,0], "initializeOnly", 0,0],#ff
+		_angularVelocity => ["SFRotation", [0,1,0,0], "initializeOnly", 0,0],#ff
+		_r0 => ["SFRotation", [0,1,0,0], "initializeOnly", 0,0],#ff
+		_change_count => ["SFInt32", 0, "inputOutput", 0,0],#ff
+		_sent => ["SFInt32", 0, "inputOutput", 0,0],#ff
+		_lastp0 => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff
+		_lastr0 => ["SFRotation", [0,1,0,0], "initializeOnly", 0,0],#ff
+		_lastp0time => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_lastframetime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
+		_smoothingDelta => ["SFVec3f", [0,0,0], "inputOutput", 0,0],#ff
+		_smoothingCount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		#_pduchange_es_deadreckoning => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	
 		# DIS EntityState > articulationParameters
@@ -2530,8 +2584,8 @@ our %Nodes = (
 		warhead => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# DIS createEntityPdu / removeEntityPdu (not sure what / how this works)
-		_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
-		_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		#_pduchange_create => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		#_pduchange_remove => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 
 		#start same order as Transform >>>
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2581,6 +2635,8 @@ our %Nodes = (
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		# Field Change Detection
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2592,8 +2648,6 @@ our %Nodes = (
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
-		# Field Change Detection
-		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 		# DIS Receiver
 		radioID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2629,7 +2683,9 @@ our %Nodes = (
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
-
+		# Field Change Detection
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		
 		# DIS Entity
 		entityID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		applicationID => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2639,9 +2695,6 @@ our %Nodes = (
 		geoSystem => ["MFString", ["GC","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
-		
-		# Field Change Detection
-		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 		# DIS SignalPdu
 		radioID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2677,6 +2730,8 @@ our %Nodes = (
 		_dsock => ["SFNode", "NULL", "initializeOnly", 0,"UNCA_NONE"],#ff
 		_lasttime => ["SFTime",0,"initializeOnly",0,"UNCA_NONE"],#ff
 		_pduchange_networksensor => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		# Field Change Detection
+		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 
 		# DIS Entity
@@ -2689,17 +2744,15 @@ our %Nodes = (
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
-		# Field Change Detection
-		_oldState => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
 
 		# DIS Transmitter
 		radioID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		whichGeometry => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		radioEntityTypeCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		radioEntityTypeCountry => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		radioEntityTypeDomain => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		radioEntityTypeKind => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		radioEntityTypeDomain => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		radioEntityTypeCountry => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		radioEntityTypeCategory => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		radioEntityTypeNomenclature => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		radioEntityTypeNomenclatureVersion => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		antennaLocation => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff

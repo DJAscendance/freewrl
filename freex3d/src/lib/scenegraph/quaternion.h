@@ -87,6 +87,7 @@ vrmlrot_to_quaternion(Quaternion *quat,
 					  const double z,
 					  const double a);
 void vrmlrot4d_to_quaternion(Quaternion *quat, const double *xyza);
+void vrmlrot4f_to_quaternion(Quaternion *quat, const float *xyza);
 void
 quaternion_to_vrmlrot(const Quaternion *quat,
 					  double *x,
@@ -129,6 +130,9 @@ quaternion_rotation(struct point_XYZ *ret,
 		 const struct point_XYZ *v);
 double *
 quaternion_rotationd(double *ret, Quaternion *quat, double *v);
+
+float *
+quaternion_rotation3f(float *ret, Quaternion *quat, float *v);
 
 void
 quaternion_togl(Quaternion *quat);

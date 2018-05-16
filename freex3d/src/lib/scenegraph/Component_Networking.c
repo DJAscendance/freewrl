@@ -655,6 +655,9 @@ void load_Inline (struct X3D_Inline *node) {
 			if (node->url.n == 0) {
 				node->__loadstatus = INLINE_STABLE; /* a "do-nothing" approach */
 			} else {
+				//wrong parent resource? see Component_DIS note on parsing vs rendering _parentResource
+				//parsing: comes from a stack which is pushed and popped
+				//rendering creation of inlines: comes from parent context's _parentResource
 				res = resource_create_multi(&(node->url));
 				res->media_type = resm_unknown;
 				node->__loadstatus = INLINE_REQUEST_RESOURCE;

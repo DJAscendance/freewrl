@@ -3930,6 +3930,7 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 		initialize_targets_simple();
 
 	dtime = Time1970sec();
+
 	vportstack = (Stack *)tg->Mainloop._vportstack;
 	defaultvport = ivec4_init(0,0,100,100);
 	pushviewport(vportstack,defaultvport);
@@ -3940,6 +3941,14 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	//twindows = p->cwindows;
 	//t = twindows;
 	p->windex = -1;
+	if(0){
+		//for testing, if scene ready or not for rendering
+		// can wait a few seconds for scene to load and update
+		static double starttime = 0.0;
+		if(starttime == 0.0) starttime = dtime;
+		if(dtime - starttime < 2.0) return;
+
+	}
 	for(i=0;i<p->nwindow;i++){
 		//a targetwindow might be a supervisor's screen, or HMD
 		freewrl_params_t *dp;
@@ -4566,70 +4575,81 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		// Set the timestamp
 		//tg->Mainloop.lastTime = tg->Mainloop.TickTime;
 		//tg->Mainloop.TickTime = dtime; //Time1970sec();
-		fps_histo_collect();
-		/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
-			something goes totally wrong.
-			Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
-		if(!((freewrl_params_t*)(tg->display.params))->frontend_handles_display_thread){
-			/* 	some users report their device overheats if frame rate is a zillion, so this will limit it to a target number
-				statusbarHud options has an option to set.
-				we see how long it took to do the last loop; now that the frame rate is synced to the
-				vertical retrace of the screens, we should not get more than 60-70fps. We calculate the
-				time here, if it is more than 200fps, we sleep for 1/100th of a second - we should NOT
-				need this, but in case something goes pear-shaped (british expression, there!) we do not
-				consume thousands of frames per second 
-				frames-per-second = FPS = 1/time-per-frame[s];  [s] means seconds, [ms] millisec [us] microseconds [f] frames
-				target_time_per_frame[s] = 1[f]/target_FPS[f/s];
-				suggested_wait_time[s] = target_time_per_frame[s] - elapsed_time_since_last_frame[s];
-										= 1[f]/target_FPS[f/s]    - elapsed_time_since_last_frame[s];
-				if suggested_wait_time < 0 then we can't keep up, no wait time
+		static int debugg_time = FALSE; //TRUE;
+		if(debugg_time){
+			//sometimes when debugging you have interpolators based on time
+			//and rather than jumping after you stall the draw thread, you'd like 
+			//it to continue as if time stood still while you stalled the thread
+			static int frame_count = 0;
+			frame_count++;
+			dtime = .02 * (double)frame_count;
+			sleep(100);
+		}else{
+			fps_histo_collect();
+			/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
+				something goes totally wrong.
+				Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
+			if(!((freewrl_params_t*)(tg->display.params))->frontend_handles_display_thread){
+				/* 	some users report their device overheats if frame rate is a zillion, so this will limit it to a target number
+					statusbarHud options has an option to set.
+					we see how long it took to do the last loop; now that the frame rate is synced to the
+					vertical retrace of the screens, we should not get more than 60-70fps. We calculate the
+					time here, if it is more than 200fps, we sleep for 1/100th of a second - we should NOT
+					need this, but in case something goes pear-shaped (british expression, there!) we do not
+					consume thousands of frames per second 
+					frames-per-second = FPS = 1/time-per-frame[s];  [s] means seconds, [ms] millisec [us] microseconds [f] frames
+					target_time_per_frame[s] = 1[f]/target_FPS[f/s];
+					suggested_wait_time[s] = target_time_per_frame[s] - elapsed_time_since_last_frame[s];
+											= 1[f]/target_FPS[f/s]    - elapsed_time_since_last_frame[s];
+					if suggested_wait_time < 0 then we can't keep up, no wait time
 
-			*/
-			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
-			int wait_time_micro_sec, target_frames_per_second;
-			static int emulating_fps_stutter = 0; //see comment below
-			kludgefactor = 2.0; //2 works on win8.1 with intel i5
-			target_frames_per_second = fwl_get_target_fps(); //default is negative 120 (-120), commandline args are +ve
-			//target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
-			if(target_frames_per_second > 0){
-				//if there was a commandline setting, try and control frame rate
-				elapsed_time_per_frame = TickTime() - lastTime();
-				if(target_frames_per_second > 0)
-					target_time_per_frame = 1.0/(double)target_frames_per_second;
-				else
-					target_time_per_frame = 1.0/30.0;
-				suggested_wait_time = target_time_per_frame - elapsed_time_per_frame;
-				suggested_wait_time *= kludgefactor;
-				if(emulating_fps_stutter){
-					p->total_loop_count++;
-					//stall 5 frames every 5*10=50 frames
-					if(((p->total_loop_count / 5) % 10) == 0){
-						printf("&");
-						suggested_wait_time += .5;
+				*/
+				double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
+				int wait_time_micro_sec, target_frames_per_second;
+				static int emulating_fps_stutter = 0; //see comment below
+				kludgefactor = 2.0; //2 works on win8.1 with intel i5
+				target_frames_per_second = fwl_get_target_fps(); //default is negative 120 (-120), commandline args are +ve
+				//target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
+				if(target_frames_per_second > 0){
+					//if there was a commandline setting, try and control frame rate
+					elapsed_time_per_frame = TickTime() - lastTime();
+					if(target_frames_per_second > 0)
+						target_time_per_frame = 1.0/(double)target_frames_per_second;
+					else
+						target_time_per_frame = 1.0/30.0;
+					suggested_wait_time = target_time_per_frame - elapsed_time_per_frame;
+					suggested_wait_time *= kludgefactor;
+					if(emulating_fps_stutter){
+						p->total_loop_count++;
+						//stall 5 frames every 5*10=50 frames
+						if(((p->total_loop_count / 5) % 10) == 0){
+							printf("&");
+							suggested_wait_time += .5;
+						}
+					}
+					wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
+					if(wait_time_micro_sec > 1)
+						usleep(wait_time_micro_sec);
+				}else{
+					//else if there was no commandline setting, let it rip. except:
+					//FPS STUTTER
+					//- emulating operating-system-caused framerate / FPS stutter 
+					//  win10 > Spring 2017 Creators Updata aka CU aka 1703 > lots of complaints by game users, no clear solution
+					//    google: windows 10 creators update fps stutter
+					//    2nd hand info: nvidia says "...disable Game Mode in Windows 10..." 
+					//- used for testing navigation > walk/fly > 'dead reckoning' testing
+					//   -it should smooth out stutter effects
+					if(emulating_fps_stutter){
+						p->total_loop_count++;
+						//stall 5 frames every 5*10=50 frames
+						if(((p->total_loop_count / 5) % 10) == 0){
+							printf("+");
+							usleep(80000); //.8 second stall
+						}
 					}
 				}
-				wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
-				if(wait_time_micro_sec > 1)
-					usleep(wait_time_micro_sec);
-			}else{
-				//else if there was no commandline setting, let it rip. except:
-				//FPS STUTTER
-				//- emulating operating-system-caused framerate / FPS stutter 
-				//  win10 > Spring 2017 Creators Updata aka CU aka 1703 > lots of complaints by game users, no clear solution
-				//    google: windows 10 creators update fps stutter
-				//    2nd hand info: nvidia says "...disable Game Mode in Windows 10..." 
-				//- used for testing navigation > walk/fly > 'dead reckoning' testing
-				//   -it should smooth out stutter effects
-				if(emulating_fps_stutter){
-					p->total_loop_count++;
-					//stall 5 frames every 5*10=50 frames
-					if(((p->total_loop_count / 5) % 10) == 0){
-						printf("+");
-						usleep(80000); //.8 second stall
-					}
-				}
+
 			}
-
 		}
 	}
 

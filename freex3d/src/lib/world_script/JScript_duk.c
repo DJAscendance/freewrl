@@ -1541,7 +1541,11 @@ int fwval_duk_push(duk_context *ctx, FWval fwretval, int *valueChanged){
 			case FIELDTYPE_SFTime:
 				duk_push_number(ctx,fwretval->_web3dval.anyvrml->sfdouble); break;
 			case FIELDTYPE_SFString:
-				duk_push_string(ctx,fwretval->_web3dval.anyvrml->sfstring->strptr); break;
+				if(fwretval->_web3dval.anyvrml->sfstring->strptr)
+					duk_push_string(ctx,fwretval->_web3dval.anyvrml->sfstring->strptr);
+				else
+					duk_push_string(ctx,"");
+				break;
 			default:
 				push_typed_proxy2(ctx,fwretval->_web3dval.fieldType,fwretval->_web3dval.kind,fwretval->_web3dval.native,valueChanged,fwretval->_web3dval.gc);
 			}
@@ -2453,6 +2457,7 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, int kind,
 
 		// uses conditional rename_function - only renames if object exists and its typeof function
 		sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
+		//printf("%s\n",strline);
 		duk_push_string(ctx,strline);
 		if(duk_peval(ctx) != 0) {
 			printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
