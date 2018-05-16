@@ -2858,15 +2858,7 @@ void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 
 
 
-#else //WITH_DIS
-void compile_DIS_common(struct X3D_EspduTransform *node){}
-void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){}
-void compile_SignalPdu0(struct X3D_SignalPdu *node){}
-void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){}
-void compile_EspduTransform0(struct X3D_EspduTransform *node){}
-void prep_EspduTransform0(struct X3D_EspduTransform *node){}
-void fin_EspduTransform0(struct X3D_EspduTransform *node){}
-#endif //WITH_DIS
+
 
 // http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
 // p.663 DR formula naming:
@@ -3519,6 +3511,22 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 		node->removeEntities.n = 0;
 	}
 }
+#else //WITH_DIS
+
+void compile_DISEntityManager(struct X3D_DISEntityManager *node){}
+void child_DISEntityManager(struct X3D_DISEntityManager *node){}
+void compile_TransmitterPdu(struct X3D_TransmitterPdu *node){}
+void child_TransmitterPdu(struct X3D_TransmitterPdu *node){}
+void compile_SignalPdu(struct X3D_SignalPdu *node){}
+void child_SignalPdu(struct X3D_SignalPdu *node){}
+void compile_ReceiverPdu(struct X3D_ReceiverPdu *node){}
+void child_ReceiverPdu(struct X3D_ReceiverPdu *node){}
+void compile_EspduTransform (struct X3D_EspduTransform *node) {}
+void prep_EspduTransform(struct X3D_EspduTransform *node){}
+void fin_EspduTransform(struct X3D_EspduTransform *node){}
+void child_EspduTransform(struct X3D_EspduTransform *node){}
+
+#endif //WITH_DIS
 
 void fwl_sendreceive_DIS(){
 	//just the buffer in/out is handled here
