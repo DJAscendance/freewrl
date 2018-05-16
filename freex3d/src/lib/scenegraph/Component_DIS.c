@@ -195,7 +195,37 @@ p.334 Entity State PDU table 135
 //#define WITH_DIS 1
 #ifdef WITH_DIS
 #include "../DIS/DIS.h"
+
+//there's another .pdf with enums
+// SISO-REF-010-2015 Enumerations for Simulation Interoperability V21 20150413.pdf
+// we'll do just a few here as needed
+// SM > DataRecord > datumType
+enum UID66 {
+Kind = 11110,
+Domain  = 11120,
+Country  = 11130,
+Category = 11140,
+Subcategory = 11150,
+Specific = 11160,
+Extra = 11170,
+/*
+31000 Position
+ 31010 Route (Waypoint) type 
+ 31100 MilGrid10 
+ 31200 Geocentric Coordinates 
+ 31210 X 
+ 31220 Y 
+ 31230 Z 
+ 31300 Latitude 
+ 31400 Longitude 
+ ...
+ 31600 Altitude 
+ */
+};
+
 #endif //WITH_DIS
+
+
 
 
 static int allow_DIS = 0;
