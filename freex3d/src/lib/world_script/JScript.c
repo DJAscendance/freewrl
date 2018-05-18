@@ -2812,7 +2812,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	SET_JS_TICKTIME
 
 	//step 1 set the field value
-	kind = PKW_inputOnly;
+	kind = JSparamnames[toname].kind; //PKW_inputOnly;
 	if(SM_method() == 2){
 		int type, iifield, *valueChanged, ifound;
 		union anyVrml *value;
@@ -2838,8 +2838,11 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
 		/* get the variable name to hold the incoming value */
+		scriptline[0] = 0;
+		if(kind == PKW_inputOnly)
+			strcat(scriptline,"__eventIn_Value_");
 		//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
-		strcpy(scriptline,JSparamnames[toname].name);
+		strcat(scriptline,JSparamnames[toname].name);
 		#ifdef SETFIELDVERBOSE
 		printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
 		#endif
@@ -2928,7 +2931,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 	JS_BeginRequest(cx);
 #endif
 	/* set the TickTime (possibly again) for this context */
-	kind = PKW_inputOnly;
+	kind = JSparamnames[toname].kind; //PKW_inputOnly;
 	if(SM_method() == 2){
 		int type, iifield, *valueChanged, ifound;
 		union anyVrml *value;
