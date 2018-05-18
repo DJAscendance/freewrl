@@ -869,10 +869,11 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	ScriptControl = getScriptControlIndex(num);
 
 	/* first, make a new name up */
-	if (kind == PKW_inputOnly ) {
-		sprintf (mynewname,"__eventIn_Value_%s",field);
-		//strcpy(mynewname,field);
-	}else if (kind == PKW_inputOutput) {
+	//if (kind == PKW_inputOnly ) {
+	//	sprintf (mynewname,"__eventIn_Value_%s",field);
+	//	//strcpy(mynewname,field);
+	//}else 
+	if (kind == PKW_inputOutput) {
 		//check if user added an eventIn function with the same basename,
 		// which is allowed with inputOutput fields
 		JSContext *cx;
@@ -1901,7 +1902,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 		if(SM_method() == 2)
 			InitScriptFieldB(num, kind, itype, longfieldname, field->value);
 		else
-			InitScriptField(num, kind, itype, fieldname, field->value);
+			InitScriptField(num, kind, itype, longfieldname, field->value);
 	}
 
 
@@ -3434,7 +3435,10 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 	/* get the variable name to hold the incoming value */
 	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
-	strcpy(scriptline,JSparamnames[tnfield].name);
+	scriptline[0] = 0;
+	if(JSparamnames[tnfield].kind == PKW_inputOnly)
+		strcat(scriptline,"__eventIn_Value_");
+	strcat(scriptline,JSparamnames[tnfield].name);
 	#ifdef SETFIELDVERBOSE
 	printf ("getInternalDataPointerForJavascriptObject: line %s\n",scriptline);
 	#endif
@@ -3539,7 +3543,7 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 	JSContext *cx;
 	JSObject *obj;
 	void **pp;
-	int iflag, kind;
+	int iflag, kind, toname;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -3551,13 +3555,13 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
 #endif
-	kind = PKW_inputOnly;
+	toname = tnfield;
+	kind =  JSparamnames[toname].kind; // PKW_inputOnly;
 	if(SM_method() == 2){
-		int type, iifield, *valueChanged, ifound, toname, datatype;
+		int type, iifield, *valueChanged, ifound, datatype;
 		union anyVrml *value;
 		char *fieldname;
 		struct Shader_Script *script = ScriptControl->script;
-		toname = tnfield;
 
 		fieldname = JSparamnames[toname].name;
 		datatype = JSparamnames[toname].type;
