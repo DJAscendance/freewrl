@@ -1554,7 +1554,7 @@ static void parseScriptProtoField_B(void *ud, char **atts) {
 					case NODE_ShaderProgram:  shader =(struct Shader_Script *)(X3D_SHADERPROGRAM(node)->_shaderUserDefinedFields); break;
 					case NODE_PackagedShader: shader =(struct Shader_Script *)(X3D_PACKAGEDSHADER(node)->_shaderUserDefinedFields); break;
 				}
-				jsname = JSparamIndex (fname, atts[mp_type]);
+				jsname = JSparamIndex (fname, atts[mp_type],pkwmode);
 				cname = getJSparamnames()[jsname].name;
 				//sfield = newScriptFieldDecl() // too hard to fathom, I'll break it out:
 				sfield = MALLOC(struct ScriptFieldDecl *, sizeof(struct ScriptFieldDecl));

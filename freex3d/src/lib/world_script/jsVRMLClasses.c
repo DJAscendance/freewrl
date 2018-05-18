@@ -2365,6 +2365,12 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	//if (JSVAL_IS_INT(*vp)) printf ("is INT %d\n",JSVAL_TO_INT(*vp));
 	//if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
 	fieldname = _id_c;
+	//inputOnly field will have a prefix on the var name 
+	// for avoiding javascript namespace clash with eventIn function
+	//(inputOutput renames the function to set_<fieldname> and leaves fieldname)
+	if(!strncmp(fieldname,"__eventIn_Value_",strlen("__eventIn_Value_")))
+		fieldname = &fieldname[strlen("__eventIn_Value_")];
+	//printf("getNative short fieldname %s\n",fieldname);
 	{
 		int type, kind, iifield, ifound, sfsize, sftype;
 		union anyVrml *value;
@@ -2461,6 +2467,11 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 	_id_c = JS_EncodeString(cx,_idStr);
 #endif
 	fieldname = _id_c;
+	//inputOnly field will have a prefix on the var name 
+	// for avoiding javascript namespace clash with eventIn function
+	//(inputOutput renames the function to set_<fieldname> and leaves fieldname)
+	if(!strncmp(fieldname,"__eventIn_Value_",strlen("__eventIn_Value_")))
+		fieldname = &fieldname[strlen("__eventIn_Value_")];
 	if(SM_method() == 2){
 		int type, kind, iifield, *valueChanged, ifound;
 		union anyVrml *value;

@@ -153,12 +153,12 @@ bool resource_fetch(void *res)
 	int type, status;
 	char *url;
 	//char* pound;
-	DEBUG_RES("fetching resource: %s, %s resource %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status) ,res->URLrequest);
 
 	ASSERT(res);
 	type = fwl_resitem_getType(res);
 	url = fwl_resitem_getURL(res);
 	status = fwl_resitem_getStatus(res);
+	//if(0) printf("fetching resource: %s, %s resource %s\n", resourceTypeToString(type), resourceStatusToString(status) ,url);
 
 	//switch (res->type) {
 	switch(type) {

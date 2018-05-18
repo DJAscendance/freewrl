@@ -2453,7 +2453,8 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, int kind,
 	//iglobal = *(int*)scriptcontrol->glob; 
 
 	//any inputOnly or inputOutput eventIn scripts we need to rename to set_?
-	if(kind == PKW_inputOnly || kind == PKW_inputOutput){
+	//if(kind == PKW_inputOnly || 
+	if( kind == PKW_inputOutput){
 
 		// uses conditional rename_function - only renames if object exists and its typeof function
 		sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
@@ -2503,11 +2504,11 @@ void duk_JSInitializeScriptAndFields (int num) {
 		fieldname = ScriptFieldDecl_getName(field);
 		kind = ScriptFieldDecl_getMode(field);
 		itype = ScriptFieldDecl_getType(field);
-		//if (kind != PKW_inputOnly) { //we'll hook input events to the author's functions elsewhere
+		if (kind != PKW_inputOnly) { //we'll hook input events to the author's functions elsewhere
 			//everything else -fields, eventOuts- needs a strict property twin created on the global object
 			field->valueChanged = 0;
 			InitScriptField2(scriptcontrol, itype, kind, fieldname, &field->valueChanged, script->ShaderScriptNode);
-		//}
+		}
 	}
 	
 	if(0) if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
@@ -2671,7 +2672,11 @@ void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int
 
 
 	//get function by name
-	sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+	if(JSparamnames[toname].kind == PKW_inputOutput)
+		sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+	else
+		sprintf(scriptline,"%s",JSparamnames[toname].name);
+
 	duk_push_string(ctx,scriptline);
 	if(duk_peval(ctx) != 0){
 		printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
@@ -2765,7 +2770,11 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	//show_stack(ctx,"before evale field name");
 	{
 		char scriptline[100];
-		sprintf(scriptline,"set_%s",JSparamnames[tnfield].name);
+		if(JSparamnames[tnfield].kind == PKW_inputOutput)
+			sprintf(scriptline,"set_%s",JSparamnames[tnfield].name);
+		else
+			sprintf(scriptline,"%s",JSparamnames[tnfield].name);
+
 		duk_push_string(ctx,scriptline);
 		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
 		if(duk_peval(ctx) != 0){

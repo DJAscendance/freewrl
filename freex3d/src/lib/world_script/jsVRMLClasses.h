@@ -113,9 +113,12 @@ of garbage collection
 			return; \
 		} \
 	}
-#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield) \
+#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind) \
 	if (JSparamnames[tnfield].eventInFunction == NULL) { \
-		sprintf (scriptline,"set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
+		if(kind == PKW_inputOutput) \
+			sprintf (scriptline,"set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
+		else /* PKW_inputOnly */ \
+			sprintf (scriptline,"%s(%s%s,__eventInTickTime)", JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); \
 		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
 		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
 			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \

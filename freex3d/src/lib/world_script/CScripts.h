@@ -184,12 +184,12 @@ void mark_script (int num);
 
 #define MAXJSVARIABLELENGTH 55  /* variable name length can be this long... */
 struct CRjsnameStruct {
-        int     	type;
+        int     	type, kind;
         char    	name[MAXJSVARIABLELENGTH];
 		void *eventInFunction; /* compiled javascript function... if it is required */
 };
 struct CRjsnameStruct *getJSparamnames();
-int JSparamIndex (const char *name, const char *type);
+int JSparamIndex (const char *name, const char *type, int mod);
 struct CRscriptStruct *getScriptControlIndex(int actualscript);
 
 
