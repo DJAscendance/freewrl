@@ -953,17 +953,17 @@ void saveElementsForGPU(int mode, int count, ushort *indices){
 void reallyDrawOnce(){
 	//particle system will call this
 	int i;
-	draw_call_params params;
+	draw_call_params *params;
 	ppRenderFuncs p;
 	ttglobal tg = gglobal();
 	p = (ppRenderFuncs)tg->RenderFuncs.prv;
 
 	for(i=0;i<vectorSize(p->draw_call_params_stack);i++){
-		params = vector_get(draw_call_params,p->draw_call_params_stack,i);
-		if(params.calltype == 1)
-			glDrawArrays(params.arrays.arrays_mode,params.arrays.arrays_first,params.arrays.arrays_count);
-		else if(params.calltype == 2)
-			glDrawElements(params.elements.elements_mode,params.elements.elements_count,GL_UNSIGNED_SHORT,params.elements.elements_indices);
+		params = vector_get_ptr(draw_call_params,p->draw_call_params_stack,i);
+		if(params->calltype == 1)
+			glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
+		else if(params->calltype == 2)
+			glDrawElements(params->elements.elements_mode,params->elements.elements_count,GL_UNSIGNED_SHORT,params->elements.elements_indices);
 	}
 	//p->draw_call_params_stack->n = 0;
 }
