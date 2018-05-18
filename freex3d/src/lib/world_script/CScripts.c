@@ -110,7 +110,7 @@ struct ScriptFieldDecl* newScriptFieldDecl(struct VRMLLexer* me, indexT mod, ind
 
 	/* shaderID will get set when shader is activiated */
  	ret->fieldDecl=newFieldDecl(mod, type, name, 
-		JSparamIndex(lexer_stringUser_fieldName(me,name,mod),FIELDTYPES[type])
+		JSparamIndex(lexer_stringUser_fieldName(me,name,mod),FIELDTYPES[type],mod)
 		, -1);
  ASSERT(ret->fieldDecl);
 

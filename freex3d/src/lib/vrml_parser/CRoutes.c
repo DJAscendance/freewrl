@@ -2074,7 +2074,7 @@ stores ascii names with types (see code for type equivalences).
 
 ********************************************************************/
 
-int JSparamIndex (const char *name, const char *type) {
+int JSparamIndex (const char *name, const char *type, int mod) {
 	size_t len;
 	int ty;
 	int ctr;
@@ -2094,7 +2094,6 @@ int JSparamIndex (const char *name, const char *type) {
 	#endif
 
 	len = strlen(name);
-
 	/* is this a duplicate name and type? types have to be same,
 	   name lengths have to be the same, and the strings have to be the same.
 	*/
@@ -2127,6 +2126,7 @@ int JSparamIndex (const char *name, const char *type) {
 	strncpy (JSparamnames[tg->CRoutes.jsnameindex].name,name,len);
 	JSparamnames[tg->CRoutes.jsnameindex].name[len] = 0; /* make sure terminated */
 	JSparamnames[tg->CRoutes.jsnameindex].type = ty;
+	JSparamnames[tg->CRoutes.jsnameindex].kind = mod;
 	JSparamnames[tg->CRoutes.jsnameindex].eventInFunction = NULL;
 	#ifdef CRVERBOSE
 	printf ("JSparamIndex, returning %d\n",tg->JScript.jsnameindex); 

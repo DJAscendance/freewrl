@@ -869,10 +869,10 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 	ScriptControl = getScriptControlIndex(num);
 
 	/* first, make a new name up */
-	if (kind == PKW_inputOnly || kind == PKW_inputOutput) {
-	//	//sprintf (mynewname,"__eventIn_Value_%s",field);
-	//	strcpy(mynewname,field);
-	//}else if (kind == PKW_inputOutput) {
+	if (kind == PKW_inputOnly ) {
+		sprintf (mynewname,"__eventIn_Value_%s",field);
+		//strcpy(mynewname,field);
+	}else if (kind == PKW_inputOutput) {
 		//check if user added an eventIn function with the same basename,
 		// which is allowed with inputOutput fields
 		JSContext *cx;
@@ -1226,7 +1226,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 		UNUSED(touched); // compiler warning mitigation
 
 		/* get the number representing this type */
-		fptr = JSparamIndex (field, FIELDTYPES[type]);
+		fptr = JSparamIndex (field, FIELDTYPES[type],kind);
 
 		/* set up global variables so that we can reset the touched flag */
 		touched = get_valueChanged_flag (fptr, num);
@@ -1255,7 +1255,7 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 	//Dec 31 2017 this version of initscriptfield for SM treats fields more generically
 
 	struct CRscriptStruct *ScriptControl; //= getScriptControl();
-
+	//char mynewname[256];
 	#ifdef JAVASCRIPTVERBOSE
 	printf ("calling InitScriptField from thread %u\n",pthread_self());
 	printf ("\nInitScriptField, num %d, kind %s type %s field %s value %d\n", num,PROTOKEYWORDS[kind],FIELDTYPES[type],field,value);
@@ -1270,7 +1270,13 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 
 
 	// fix eventIn vs field name conflicts. by renameing inputOutput and inputOnly eventIn functions to set_fieldname
-	if (kind == PKW_inputOnly || kind == PKW_inputOutput) {
+	//if (kind == PKW_inputOnly || 
+	//strcpy(mynewname,field);
+	//if (kind == PKW_inputOnly ) {
+	//	sprintf (mynewname,"__eventIn_Value_%s",field);
+	//	//strcpy(mynewname,field);
+	//} else 
+	if( kind == PKW_inputOutput) {
 		JSContext *cx;
 		JSObject *obj;
 		jsval retval;
@@ -1858,12 +1864,9 @@ void sm_JSInitializeScriptAndFields (int num) {
 	//}
 	/* run through fields in order of entry in the X3D file */
 
-
-
-
-
 	int i,nfields,kind,itype;
 	const char *fieldname;
+	char longfieldname[256];
 	struct Shader_Script *script;
 	struct ScriptFieldDecl *field;
 
@@ -1877,8 +1880,12 @@ void sm_JSInitializeScriptAndFields (int num) {
 		return;
 	}
 
-	// when adding inputOutput fieldnname, check first if there's a user
+	// old way: when adding inputOutput fieldnname, check first if there's a user
 	// eventin function with the same name, and if so rename it to set_fieldname
+	// new way dec 2017: rename inputOutput functions with a set_prefix
+	// may 2018: keep inputOnly function at its normal name and
+	//   prefix inputOnly fieldname with __eventIn_Value_ 
+	//   (inputOutput function is still dec 2017 renamed to set_, and inputOutput field has normal nae)
 	script = ScriptControl->script;
 	//printf("adding fields from script %x\n",script);
 	nfields = Shader_Script_getScriptFieldCount(script);
@@ -1887,8 +1894,12 @@ void sm_JSInitializeScriptAndFields (int num) {
 		fieldname = ScriptFieldDecl_getName(field);
 		kind = ScriptFieldDecl_getMode(field);
 		itype = ScriptFieldDecl_getType(field);
+		longfieldname[0] = 0;
+		if(kind == PKW_inputOnly)
+			strcat(longfieldname,"__eventIn_Value_");
+		strcat(longfieldname,fieldname);
 		if(SM_method() == 2)
-			InitScriptFieldB(num, kind, itype, fieldname, field->value);
+			InitScriptFieldB(num, kind, itype, longfieldname, field->value);
 		else
 			InitScriptField(num, kind, itype, fieldname, field->value);
 	}
@@ -2777,10 +2788,11 @@ void sm_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsi
 /******************************************************************************/
 
 void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
-	char scriptline[100];
+	char scriptline[256];
 	jsval newval;
 	JSContext *cx;
 	JSObject *obj;
+	int kind;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -2800,8 +2812,9 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	SET_JS_TICKTIME
 
 	//step 1 set the field value
+	kind = PKW_inputOnly;
 	if(SM_method() == 2){
-		int type, kind, iifield, *valueChanged, ifound;
+		int type, iifield, *valueChanged, ifound;
 		union anyVrml *value;
 		char *fieldname;
 		struct Shader_Script *script = ScriptControl->script;
@@ -2827,7 +2840,6 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 		/* get the variable name to hold the incoming value */
 		//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
 		strcpy(scriptline,JSparamnames[toname].name);
-
 		#ifdef SETFIELDVERBOSE
 		printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
 		#endif
@@ -2844,7 +2856,7 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 
 	//step 2 run eventin if it exists
 	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+	COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 
 	/* and run the function */
 	RUN_FUNCTION (toname)
@@ -2903,6 +2915,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 	/* for MFStrings we have: */
 	char *chptr;
 	struct Uni_String  **uniptr;
+	int kind;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -2915,8 +2928,9 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 	JS_BeginRequest(cx);
 #endif
 	/* set the TickTime (possibly again) for this context */
+	kind = PKW_inputOnly;
 	if(SM_method() == 2){
-		int type, kind, iifield, *valueChanged, ifound;
+		int type, iifield, *valueChanged, ifound;
 		union anyVrml *value;
 		char *fieldname;
 		struct Shader_Script *script = ScriptControl->script;
@@ -2947,7 +2961,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 		//step 2 run the eventIn if it exists
 		SET_JS_TICKTIME
 		//compile also pushes the field val onto call stack
-		COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+		COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 		RUN_FUNCTION(toname)
 		return;
 	}
@@ -3001,7 +3015,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3051,7 +3065,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3101,7 +3115,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3150,7 +3164,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3190,7 +3204,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3229,7 +3243,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3268,7 +3282,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3308,7 +3322,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3344,7 +3358,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 			break;
 		}
@@ -3378,7 +3392,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 			RUN_FUNCTION(toname)
 
 			break;
@@ -3406,7 +3420,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 
 /* get a pointer to the internal data for this object, or return NULL on error */
 void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, int tnfield, int *iflag) {
-	char scriptline[100];
+	char scriptline[256];
 	void *_privPtr;
 	JSObject *sfObj;
 	jsval retval;
@@ -3518,11 +3532,11 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 	set_one_multielementtype is for SFVecxx, SFColorxxxx, SFNode, SFRotation
 */
 void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
-	char scriptline[100];
+	char scriptline[256];
 	JSContext *cx;
 	JSObject *obj;
 	void **pp;
-	int iflag;
+	int iflag, kind;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -3534,9 +3548,9 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(cx);
 #endif
-
+	kind = PKW_inputOnly;
 	if(SM_method() == 2){
-		int type, kind, iifield, *valueChanged, ifound, toname, datatype;
+		int type, iifield, *valueChanged, ifound, toname, datatype;
 		union anyVrml *value;
 		char *fieldname;
 		struct Shader_Script *script = ScriptControl->script;
@@ -3558,7 +3572,7 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 		//step 2 run the eventIn if it exists
 		SET_JS_TICKTIME
 		//compile also pushes the field val onto call stack
-		COMPILE_FUNCTION_IF_NEEDED_SET(toname)
+		COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
 		RUN_FUNCTION(toname)
 		return;
 	}
@@ -3580,7 +3594,7 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 	/* set the time for this script */
 	SET_JS_TICKTIME
 	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED_SET(tnfield)
+	COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind)
 
 	/* and run the function */
 	#ifdef SETFIELDVERBOSE
