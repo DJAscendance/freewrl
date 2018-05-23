@@ -64,7 +64,7 @@ void _get4f(double *ret, double *mat, int row);
 void _set4f(double len, double *mat, int row);
 
 /* for keeping track of the ECMA values */
-#define ECMAValueTableSize 100
+#define ECMAValueTableSize 300
 /* for keeping track of the ECMA values */
 struct ECMAValueStruct {
 	jsval	JS_address;
