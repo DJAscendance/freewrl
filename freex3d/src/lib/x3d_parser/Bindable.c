@@ -210,9 +210,16 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 	char *typeptr;
 	X3D_Viewer *viewer = ViewerByLayerId(node->_layerId);
 
-        viewer->speed = (double) node->speed;
-	if (node->avatarSize.n<2) {
-		printf ("set_naviinfo, avatarSize smaller than expected\n");
+	viewer->speed = (double) node->speed;
+	if (node->avatarSize.n < 2) {
+		//old cosmo one-number way? kuka scene has  { avatarSize 180 }
+		//printf ("set_naviinfo, avatarSize smaller than expected\n");
+		if(node->avatarSize.n == 1){
+			//take it as height, and scale width and step by it
+			// web3d v3.3 default size: 0.25 1.6 0.75
+			double avScale = (double)(node->avatarSize.p[0])/1.6;
+			set_naviWidthHeightStep (.25*avScale,1.6*avScale,.75*avScale);
+		}
 	} else {
 		set_naviWidthHeightStep ((double)(node->avatarSize.p[0]),
 			(double)(node->avatarSize.p[1]),
