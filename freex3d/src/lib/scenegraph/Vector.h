@@ -90,6 +90,9 @@ void vector_shrink_(int, struct Vector*);
 #define vector_shrink(type, me) \
  vector_shrink_((int)sizeof(type), me)
 
+ /* clear out allocated data, n=0,nalloc=0 so ready for pushBack*/
+ void vector_clear(struct Vector* me);
+
 /* Push back operation. */
 #define vector_pushBack(type, me, el) \
  { \
