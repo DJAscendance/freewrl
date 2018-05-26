@@ -85,6 +85,19 @@ void deleteVector_(int elSize, struct Vector** myp) {
 	FREE_IF_NZ(me);
 	*myp = NULL;
 }
+void vector_clear(struct Vector* me) {
+	//clear out any allocated data, but preserve the vector for vector_pushBack
+	if (!me) {
+		//ConsoleMessage ("Vector - already empty");
+		return;
+	}
+
+	ASSERT(me);
+	if(me->data) {FREE_IF_NZ(me->data);}
+	me->data = NULL;
+	me->allocn = 0;
+	me->n = 0;
+}
 #if defined(WRAP_MALLOC) || defined(DEBUG_MALLOC)
 void deleteVectorDebug_(char *file, int line, int elSize, struct Vector** myp) {
 	struct Vector *me = *myp;
@@ -105,11 +118,11 @@ void deleteVectorDebug_(char *file, int line, int elSize, struct Vector** myp) {
 /* Ensures there's at least one space free. */
 void vector_ensureSpace_(int elSize, struct Vector* me, char *fi, int line) {
 	ASSERT(me);
-    if (me->n>me->allocn)
+    if (me->n > me->allocn)
     {
         ASSERT(FALSE);
     }
-	if(me->n==me->allocn) {
+	if(me->n == me->allocn) {
 		int istart, iend;
 		istart = me->allocn;
 		if(me->allocn)

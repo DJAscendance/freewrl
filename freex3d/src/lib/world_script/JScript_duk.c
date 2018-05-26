@@ -2672,10 +2672,10 @@ void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int
 
 
 	//get function by name
+	scriptline[0] = 0;
 	if(JSparamnames[toname].kind == PKW_inputOutput)
-		sprintf(scriptline,"set_%s",JSparamnames[toname].name);
-	else
-		sprintf(scriptline,"%s",JSparamnames[toname].name);
+		strcat(scriptline,"set_");
+	strcat(scriptline,JSparamnames[toname].name);
 
 	duk_push_string(ctx,scriptline);
 	if(duk_peval(ctx) != 0){
@@ -2770,15 +2770,15 @@ void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int data
 	//show_stack(ctx,"before evale field name");
 	{
 		char scriptline[100];
+		scriptline[0] = 0;
 		if(JSparamnames[tnfield].kind == PKW_inputOutput)
-			sprintf(scriptline,"set_%s",JSparamnames[tnfield].name);
-		else
-			sprintf(scriptline,"%s",JSparamnames[tnfield].name);
+			strcat(scriptline,"set_");
+		strcat(scriptline,JSparamnames[tnfield].name);
 
 		duk_push_string(ctx,scriptline);
 		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
 		if(duk_peval(ctx) != 0){
-			ConsoleMessage("couldn't find eventin function %s\n",JSparamnames[tnfield].name);
+			ConsoleMessage("couldn't find eventin function %s\n",scriptline); //JSparamnames[tnfield].name);
 			duk_pop(ctx);
 			return;
 		}
@@ -2832,11 +2832,15 @@ void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data,
 	//get function by name
 	{
 		char scriptline[100];
-		sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+		scriptline[0] = 0;
+		if(JSparamnames[toname].kind == PKW_inputOutput)
+			strcat(scriptline,"set_");
+		//sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+		strcat(scriptline,JSparamnames[toname].name);
 		duk_push_string(ctx,scriptline);
 		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
 		if(duk_peval(ctx) != 0){
-			ConsoleMessage("couldn't find eventin function %s\n",JSparamnames[toname].name);
+			ConsoleMessage("couldn't find eventin function %s\n",scriptline); //JSparamnames[toname].name);
 			duk_pop(ctx);
 			return;
 		}

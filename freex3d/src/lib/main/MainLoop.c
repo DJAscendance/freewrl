@@ -3004,7 +3004,10 @@ typedef struct pMainloop{
 
 	char* PluginFullPath;
 	//
-	int num_SensorEvents;// = 0;
+	//int num_SensorEvents;// = 0;
+	//int size_SensorEvents;
+	//struct SensStruct **SensorEvents;// = 0;
+	struct Vector *SensorEvents;
 
 	/* Viewport data */
 	GLint viewPort2[10];
@@ -3020,8 +3023,6 @@ typedef struct pMainloop{
 	//int quitThread;// = FALSE;
 	int keypress_wait_for_settle;// = 100;     /* JAS - change keypress to wait, then do 1 per loop */
 	char * keypress_string;//=NULL;            /* Robert Sim - command line key sequence */
-
-	struct SensStruct *SensorEvents;// = 0;
 
     unsigned int loop_count;// = 0;
 	unsigned int once;
@@ -3111,8 +3112,7 @@ void Mainloop_init(struct tMainloop *t){
 		#endif
 
 		//char* PluginFullPath;
-		p->num_SensorEvents = 0;
-
+		p->SensorEvents = newVector(struct SensStruct *,0);
 		p->maxbuffers = 1;                     /*  how many active indexes in bufferarray*/
 		p->bufferarray[0] = FW_GL_BACK;
 		p->bufferarray[1] = 0;
@@ -3124,7 +3124,6 @@ void Mainloop_init(struct tMainloop *t){
 		p->keypress_wait_for_settle = 100;     /* JAS - change keypress to wait, then do 1 per loop */
 		p->keypress_string=NULL;            /* Robert Sim - command line key sequence */
 
-		p->SensorEvents = 0;
 
         p->loop_count = 0;
         p->slowloop_count = 0;
@@ -3177,8 +3176,13 @@ void Mainloop_clear(struct tMainloop *t){
 	FREE_IF_NZ(t->replaceWorldRequest);
 	FREE_IF_NZ(t->tmpFileLocation);
 	{
+		int k;
 		ppMainloop p = (ppMainloop)t->prv;
-		FREE_IF_NZ(p->SensorEvents);
+		for(k=0;k<vectorSize(p->SensorEvents);k++){
+			struct SensStruct *se = vector_get(struct SensStruct *,p->SensorEvents,k);
+			FREE_IF_NZ(se);
+		}
+		deleteVector(struct SensStruct*,p->SensorEvents);
 		deleteVector(ivec4,p->_vportstack);
 		deleteVector(void*,p->_stagestack);
 		deleteVector(int,p->_framebufferstack);
@@ -6403,6 +6407,7 @@ struct X3D_Node* getRayHit() {
 	//double x,y,z;
 	int i;
 	struct X3D_Node *retnode;
+	struct SensStruct *se;
 	ppMainloop p;
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
@@ -6438,8 +6443,9 @@ struct X3D_Node* getRayHit() {
 				rh->hitNode, stringNodeType(rh->hitNode->_nodeType), x, y, z);
 			printf(" dist %f \n", rh->hitNode->_dist);
 			*/
-			for (i=0; i<p->num_SensorEvents; i++) {
-				if (p->SensorEvents[i].fromnode == rh->hitNode) {
+			for(i=0;i<vectorSize(p->SensorEvents);i++){
+				se = vector_get(struct SensStruct *,p->SensorEvents,i);
+				if (se->fromnode == rh->hitNode) {
 					/* printf ("found this node to be sensitive - returning %u\n",rayHit.hitNode); */
 					retnode = ((struct X3D_Node*) rh->hitNode);
 				}
@@ -6476,6 +6482,7 @@ struct X3D_Node* getRayHit() {
 */
 void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	void (*myp)(unsigned *);
+	struct SensStruct *se;
 	int i;
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
@@ -6501,10 +6508,11 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	/* is this node already here? */
 	/* why would it be duplicate? When we parse, we add children to a temp group, then we
 		pass things over to a rootNode; we could possibly have this duplicated */
-	for (i=0; i<p->num_SensorEvents; i++) {
-		if ((p->SensorEvents[i].fromnode == parentNode) &&
-			(p->SensorEvents[i].datanode == datanode) &&
-			(p->SensorEvents[i].interpptr == (void *)myp)) {
+	for (i=0; i<vectorSize(p->SensorEvents); i++) {
+		se = vector_get(struct SensStruct *,p->SensorEvents,i);
+		if ((se->fromnode == parentNode) &&
+			(se->datanode == datanode) &&
+			(se->interpptr == (void *)myp)) {
 			/* printf ("setSensitive, duplicate, returning\n"); */
 			return;
 		}
@@ -6516,15 +6524,12 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	}
 
 	/* record this sensor event for clicking purposes */
-	p->SensorEvents = REALLOC(p->SensorEvents,sizeof (struct SensStruct) * (p->num_SensorEvents+1));
-
+	se =  MALLOC(struct SensStruct*,sizeof(struct SensStruct));
 	/* now, put the function pointer and data pointer into the structure entry */
-	p->SensorEvents[p->num_SensorEvents].fromnode = parentNode;
-	p->SensorEvents[p->num_SensorEvents].datanode = datanode;
-	p->SensorEvents[p->num_SensorEvents].interpptr = (void *)myp;
-
-	/* printf ("saved it in num_SensorEvents %d\n",p->num_SensorEvents);  */
-	p->num_SensorEvents++;
+	se->fromnode = parentNode;
+	se->datanode = datanode;
+	se->interpptr = (void *)myp;
+	vector_pushBack(struct SensStruct *,p->SensorEvents,se);
 }
 
 /* we have a sensor event changed, look up event and do it */
@@ -6533,6 +6538,7 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 	//COS - cursorOverSensitive - a parent transform node / hitPoint node
 	int count;
 	int butStatus2;
+	struct SensStruct *se;
 	ttglobal tg;
 	ppMainloop p;
 	tg = gglobal();
@@ -6541,12 +6547,13 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 	/* if we are not calling a valid node, dont do anything! */
 	if (COS==NULL) return;
 
-	for (count = 0; count < p->num_SensorEvents; count++) {
-		if (p->SensorEvents[count].fromnode == COS) {
+	for (count = 0; count < vectorSize(p->SensorEvents); count++) {
+		se = vector_get(struct SensStruct *,p->SensorEvents,count);
+		if (se->fromnode == COS) {
 			butStatus2 = butStatus;
 			/* should we set/use hypersensitive mode? */
 			if (ev==ButtonPress) {
-				tg->RenderFuncs.hypersensitive = p->SensorEvents[count].fromnode;
+				tg->RenderFuncs.hypersensitive = se->fromnode;
 				tg->RenderFuncs.hyperhit = 1; // 1 means we are starting a hypersensitive drag
 				get_hyperhit(); //added for touch devices which have no isOver preparation
 			} else if (ev==ButtonRelease) {
@@ -6558,7 +6565,7 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 			}
 
 
-			p->SensorEvents[count].interpptr(p->SensorEvents[count].datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
+			se->interpptr(se->datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
 			/* return; do not do this, incase more than 1 node uses this, eg,
 							an Anchor with a child of TouchSensor */
 		}
@@ -7844,36 +7851,38 @@ void fwl_reload()
 
 /* send the description to the statusbar line */
 void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
-        int tmp;
-        char *ns;
-		ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	int tmp;
+	char *ns;
+	struct SensStruct *se;
+	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-		if (CursorOverSensitive == NULL) update_status(NULL);
-        else {
+	if (CursorOverSensitive == NULL) update_status(NULL);
+	else {
 
-                ns = NULL;
-                for (tmp=0; tmp<p->num_SensorEvents; tmp++) {
-                        if (p->SensorEvents[tmp].fromnode == CursorOverSensitive) {
-                                switch (p->SensorEvents[tmp].datanode->_nodeType) {
-                                        case NODE_Anchor: ns = ((struct X3D_Anchor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-										case NODE_LineSensor: ns = ((struct X3D_LineSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-										case NODE_PointSensor: ns = ((struct X3D_PointSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_GeoTouchSensor: ns = ((struct X3D_GeoTouchSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_CylinderSensor: ns = ((struct X3D_CylinderSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        default: {printf ("sendDesc; unknown node type %d\n",p->SensorEvents[tmp].datanode->_nodeType);}
-                                }
-                                /* if there is no description, put the node type on the screen */
-                                if (ns == NULL) {ns = "(over sensitive)";}
-                                else if (ns[0] == '\0') ns = (char *)stringNodeType(p->SensorEvents[tmp].datanode->_nodeType);
+		ns = NULL;
+		for (tmp=0; tmp<vectorSize(p->SensorEvents); tmp++) {
+			se = vector_get(struct SensStruct *,p->SensorEvents,tmp);
+			if (se->fromnode == CursorOverSensitive) {
+				switch (se->datanode->_nodeType) {
+					case NODE_Anchor: ns = ((struct X3D_Anchor *)se->datanode)->description->strptr; break;
+					case NODE_LineSensor: ns = ((struct X3D_LineSensor *)se->datanode)->description->strptr; break;
+					case NODE_PointSensor: ns = ((struct X3D_PointSensor *)se->datanode)->description->strptr; break;
+					case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)se->datanode)->description->strptr; break;
+					case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)se->datanode)->description->strptr; break;
+					case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)se->datanode)->description->strptr; break;
+					case NODE_GeoTouchSensor: ns = ((struct X3D_GeoTouchSensor *)se->datanode)->description->strptr; break;
+					case NODE_CylinderSensor: ns = ((struct X3D_CylinderSensor *)se->datanode)->description->strptr; break;
+					default: {printf ("sendDesc; unknown node type %d\n",se->datanode->_nodeType);}
+				}
+				/* if there is no description, put the node type on the screen */
+				if (ns == NULL) {ns = "(over sensitive)";}
+				else if (ns[0] == '\0') ns = (char *)stringNodeType(se->datanode->_nodeType);
 
-                                /* send this string to the screen */
-								update_status(ns);
-                        }
-                }
-        }
+				/* send this string to the screen */
+				update_status(ns);
+			}
+		}
+	}
 }
 
 
@@ -7893,9 +7902,12 @@ void resetSensorEvents(void) {
 		/* remove any display on-screen */
 		sendDescriptionToStatusBar(NULL);
 		memset(touch,0,sizeof(struct Touch));
-		FREE_IF_NZ(p->SensorEvents);
 	}
-	p->num_SensorEvents = 0;
+	for(ktouch=0;ktouch<vectorSize(p->SensorEvents);ktouch++){
+		struct SensStruct *se = vector_get(struct SensStruct*,p->SensorEvents,ktouch);
+		FREE_IF_NZ(se);
+	}
+	vector_clear(p->SensorEvents);
 	gglobal()->RenderFuncs.hypersensitive = NULL;
 	gglobal()->RenderFuncs.hyperhit = 0;
 

@@ -210,9 +210,16 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 	char *typeptr;
 	X3D_Viewer *viewer = ViewerByLayerId(node->_layerId);
 
-        viewer->speed = (double) node->speed;
-	if (node->avatarSize.n<2) {
-		printf ("set_naviinfo, avatarSize smaller than expected\n");
+	viewer->speed = (double) node->speed;
+	if (node->avatarSize.n < 2) {
+		//old cosmo one-number way? kuka scene has  { avatarSize 180 }
+		//printf ("set_naviinfo, avatarSize smaller than expected\n");
+		if(node->avatarSize.n == 1){
+			//take it as height, and scale width and step by it
+			// web3d v3.3 default size: 0.25 1.6 0.75
+			double avScale = (double)(node->avatarSize.p[0])/1.6;
+			set_naviWidthHeightStep (.25*avScale,1.6*avScale,.75*avScale);
+		}
 	} else {
 		set_naviWidthHeightStep ((double)(node->avatarSize.p[0]),
 			(double)(node->avatarSize.p[1]),
@@ -556,12 +563,15 @@ void bind_node (struct X3D_Node *node, struct Vector *thisStack) {
 			if (oldTOS != node) { 
 				if(!removeNodeFromVector(0, thisStack, node)){
 					if (node->_nodeType == NODE_Viewpoint){
-						printf ("can not pop from stack, not top (%p != %p)\n",node,oldTOS);
-						printf ("%p Viewpoint, description :%s:\n",node,X3D_VIEWPOINT(node)->description->strptr);
-						printf ("%p Viewpoint, description :%s:\n",oldTOS,X3D_VIEWPOINT(oldTOS)->description->strptr);
-						printf ("oldTOS, isBound %d, setBindPtr %d\n",*(offsetPointer_deref(int*, oldTOS, isboundofst(oldTOS))), 
-						*(offsetPointer_deref(int*, oldTOS, setBindofst(oldTOS))));
-						printf("and not found in stack\n");
+						if(0){
+							//bad scene design etiquette, but no harm done
+							printf ("can not pop from stack, not top (%p != %p)\n",node,oldTOS);
+							printf ("%p Viewpoint, description :%s:\n",node,X3D_VIEWPOINT(node)->description->strptr);
+							printf ("%p Viewpoint, description :%s:\n",oldTOS,X3D_VIEWPOINT(oldTOS)->description->strptr);
+							printf ("oldTOS, isBound %d, setBindPtr %d\n",*(offsetPointer_deref(int*, oldTOS, isboundofst(oldTOS))), 
+							*(offsetPointer_deref(int*, oldTOS, setBindofst(oldTOS))));
+							printf("and not found in stack\n");
+						}
 					}
 				}
 				return;
