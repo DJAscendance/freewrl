@@ -457,7 +457,7 @@ void fwl_initializeDisplayThread()
 
 
 // OLD_IPHONE_AQUA  #if !defined(TARGET_AQUA) && !defined(_MSC_VER) 
-#if !defined(_MSC_VER) 
+#if !defined(_MSC_VER) && !defined(TARGET_AQUA)
 	if (gglobal()->internalc.global_trace_threads) {
 		TRACE_MSG("initializeDisplayThread: waiting for display to become initialized...\n");
 		while (IS_DISPLAY_INITIALIZED == FALSE) {

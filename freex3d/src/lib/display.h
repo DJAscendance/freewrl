@@ -60,23 +60,23 @@ Functions:
 #endif
 
 #ifdef AQUA // OLD_IPHONE_AQUA
-OLD_IPHONE_AQUA /**
-OLD_IPHONE_AQUA  * Specific platform : Mac
-OLD_IPHONE_AQUA  */
-OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA #ifdef IPHONE
-OLD_IPHONE_AQUA #include <OpenGLES/ES2/gl.h>
-OLD_IPHONE_AQUA #include <OpenGLES/ES2/glext.h>
-OLD_IPHONE_AQUA #include <OpenGLES/ES3/gl.h>
-OLD_IPHONE_AQUA #include <OpenGLES/ES3/glext.h>
-OLD_IPHONE_AQUA #else
-OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA #include <OpenGL/OpenGL.h>
-OLD_IPHONE_AQUA #include <OpenGL/CGLTypes.h>
-OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA #include <AGL/AGL.h> 
-OLD_IPHONE_AQUA #endif /* defined IPHONE */
-#endif /* defined TARGET_AQUA OLD_IPHONE_AQUA */
+ /**
+  * Specific platform : Mac
+  */
+ 
+ #ifdef IPHONE
+ #include <OpenGLES/ES2/gl.h>
+ #include <OpenGLES/ES2/glext.h>
+ #include <OpenGLES/ES3/gl.h>
+ #include <OpenGLES/ES3/glext.h>
+ #else
+ 
+ #include <OpenGL/OpenGL.h>
+ #include <OpenGL/CGLTypes.h>
+ 
+ #include <AGL/AGL.h> 
+ #endif /* defined IPHONE */
+#endif /* defined TARGET_AQUA  */
 
 #include <libFreeWRL.h>
 
@@ -288,7 +288,7 @@ GLEWContext * glewGetContext();
 
 /* OLD_IPHONE_AQUA
    OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (TARGET_AQUA) || defined(IPHONE) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX) */
-#if defined (_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX)  /* not win32, ie linux */
+#if defined (TARGET_AQUA) || defined (_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX)  /* not win32, ie linux */
 	#include <libtess2.h>
 #endif // linux spefcific for now
 

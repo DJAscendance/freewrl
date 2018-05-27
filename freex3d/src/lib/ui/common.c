@@ -29,7 +29,7 @@
 #include <scenegraph/Vector.h>
 
 // OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (AQUA)  || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
-#if defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined (_MSC_VER) || defined (AQUA) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
 #include "../../buildversion.h"
 #endif
 
@@ -39,7 +39,7 @@
 // talents to help us out.
 
 // OLD_IPHONE_AQUA #if defined (AQUA) || defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
-#if defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined (_MSC_VER) || defined (AQUA) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
 const char *libFreeWRL_get_version(void) {return FW_BUILD_VERSION_STR;}
 //#else desktop linux which has a more complex versioning system
 #endif

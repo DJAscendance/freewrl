@@ -31,16 +31,16 @@
 /* for front ends that do not have these X-11-based defines */
 // OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
 
-#if defined(_MSC_VER) || defined(_ANDROID)
+#if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
 #ifndef _MIMIC_X11_SCREEN_BUTTONS
-        #define _MIMIC_X11_SCREEN_BUTTONS
-                #define KeyPress        2
-                #define KeyRelease      3
-                #define ButtonPress     4
-                #define ButtonRelease   5
-                #define MotionNotify    6
-                #define MapNotify       19
-        #endif
+#define _MIMIC_X11_SCREEN_BUTTONS
+#define KeyPress        2
+#define KeyRelease      3
+#define ButtonPress     4
+#define ButtonRelease   5
+#define MotionNotify    6
+#define MapNotify       19
+#endif
 #endif
 
 
