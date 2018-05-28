@@ -2,7 +2,7 @@
 #import "FWGLView.h"
 #import "UrlDownloader.h"
 #import "../../../freex3d/src/lib/libFreeWRL.h"
-
+#import "../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h"
 // ==================================
 
 
@@ -33,7 +33,8 @@ void fwl_update_boundingBox(struct X3D_IndexedLineSet* node);
 
 int mainloopCount = 0;
 int whichOne=0;
-
+int usingCdllFreewrl = 1;
+void* fwctx = NULL;
 
 // ===================================
 // get the initial URL in, and load'er up!
@@ -57,12 +58,19 @@ int whichOne=0;
     //NSLog(@"calling fwl_init_instance");
   
     //fwl_init_instance();
-    fwl_setCurrentHandle(drawRectconcurrencyHandle, __FILE__,__LINE__);
+	if(!usingCdllFreewrl){
+		fwl_setCurrentHandle(drawRectconcurrencyHandle, __FILE__,__LINE__);
    
 
-    fwl_initializeRenderSceneUpdateScene();
-    
-    
+		fwl_initializeRenderSceneUpdateScene();
+	}else{
+		if(!fwctx) {
+			fwctx = dllFreeWRL_dllFreeWRL();
+			dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+		}
+		
+	}
+	
     //NSLog (@"trying sidebyside");
     //fwl_init_SideBySide();
     //setAnaglyph();
@@ -92,8 +100,13 @@ int whichOne=0;
 
         
     }    
-    
-    fwl_OSX_initializeParameters((const char*)startingString);
+	if(!usingCdllFreewrl){
+    //fwl_OSX_initializeParameters((const char*)startingString);
+	//fwl_startFreeWRL((const char *)startingString);
+	fwl_replaceWorldNeeded((char*)startingString);
+	}else{
+		dllFreeWRL_onLoad(fwctx,(char*)startingString);
+	}
     //NSLog (@"finished calling fwl_OSX_initializeParameters");
     
 
@@ -138,8 +151,10 @@ int whichOne=0;
 - (void) resizeGL
 {
 	NSRect rectView = [self bounds];
-	
-    fwl_setScreenDim(rectView.size.width,rectView.size.height);
+	if(!usingCdllFreewrl)
+		fwl_setScreenDim(rectView.size.width,rectView.size.height);
+	else
+		dllFreeWRL_onResize(fwctx, rectView.size.width,rectView.size.height);
 }
 
 
@@ -218,12 +233,15 @@ mouseDisplaySensitive = mouseOverSensitive; \
    
     ycoor = curHeight - place.y;
     //NSLog (@"mouse moved, place.y %f", place.y);
-    
+	if(!usingCdllFreewrl){
     //fwl_setCurXY((int)xcoor,(int)ycoor);
     //NSLog(@"sending motion notify with %f %f\n", xcoor, ycoor);
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
-        
+	}else{
+		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+	}
+	
     
     
     SET_CURSOR_FOR_ME
@@ -247,11 +265,15 @@ mouseDisplaySensitive = mouseOverSensitive; \
         button = 1;
     }
     ycoor = curHeight - place.y;
+	if(!usingCdllFreewrl){
     //fwl_setCurXY((int)xcoor,(int)ycoor);
     //fwl_setButDown(button, TRUE);
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
-    
+	}else{
+		dllFreeWRL_onMouse(fwctx, ButtonPress, button, xcoor, ycoor);
+	}
+
     SET_CURSOR_FOR_ME
     
 }
@@ -274,9 +296,14 @@ mouseDisplaySensitive = mouseOverSensitive; \
     ycoor = curHeight - place.y;
     //      NSLog(@"xcoor %f ycoor %f\n", xcoor, ycoor);
     //NSLog(@"sending motion notify with %f %f\n", xcoor, ycoor);
+	if(!usingCdllFreewrl){
     //fwl_setCurXY((int)xcoor,(int)ycoor);
     //fwl_setLastMouseEvent(MotionNotify);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
+	}else{
+		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+	}
+	
 }
 
 - (void) mouseUp: (NSEvent *) theEvent
@@ -296,11 +323,17 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
+	if(!usingCdllFreewrl){
+
     //fwl_setButDown(button, FALSE);
     //fwl_setCurXY((int)xcoor,(int)ycoor);
     //fwl_setLastMouseEvent(ButtonRelease);
     fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
-    
+	}else{
+		dllFreeWRL_onMouse(fwctx, ButtonRelease, button, xcoor, ycoor);
+	}
+
+
     SET_CURSOR_FOR_ME
 }
 
@@ -313,10 +346,15 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
-    //fwl_setCurXY((int)xcoor,(int)ycoor);
+	if(!usingCdllFreewrl){
+  //fwl_setCurXY((int)xcoor,(int)ycoor);
     //fwl_setButDown(button, TRUE);
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
+	}else{
+		dllFreeWRL_onMouse(fwctx, ButtonPress, button, xcoor, ycoor);
+	}
+
 }
 - (void) rightMouseUp: (NSEvent *) theEvent
 {
@@ -327,10 +365,15 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
+	if(!usingCdllFreewrl){
     //fwl_setCurXY((int)xcoor,(int)ycoor);
     //fwl_setButDown(button, FALSE);
     //fwl_setLastMouseEvent(ButtonRelease);
     fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
+	}else{
+		dllFreeWRL_onMouse(fwctx, ButtonRelease, button, xcoor, ycoor);
+	}
+
 }
 - (void) rightMouseDragged: (NSEvent *) theEvent
 {
@@ -341,9 +384,14 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
+	if(!usingCdllFreewrl){
     //fwl_setCurXY((int)xcoor,(int)ycoor);
     //fwl_setLastMouseEvent(MotionNotify);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
+	}else{
+		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+	}
+
 }
 - (void) keyUp: (NSEvent*) theEvent
 {
@@ -351,7 +399,11 @@ mouseDisplaySensitive = mouseOverSensitive; \
     NSString* character = [theEvent characters];
     char ks;
     ks = (char) [character characterAtIndex: 0];
+	if(!usingCdllFreewrl){
     fwl_do_keyPress(ks, KeyRelease);
+	}else{
+		dllFreeWRL_onKey(fwctx,KeyRelease,ks);
+	}
     NS_HANDLER
     return;
     NS_ENDHANDLER
@@ -363,7 +415,11 @@ mouseDisplaySensitive = mouseOverSensitive; \
     char ks;
     ks = (char) [character characterAtIndex: 0];
     //NSLog(@"got char down: ll%cll\n", ks);
+	if(!usingCdllFreewrl){
     fwl_do_keyPress(ks, KeyPress);
+	}else{
+		dllFreeWRL_onKey(fwctx,KeyRelease,ks);
+	}
     NS_HANDLER
     return;
     NS_ENDHANDLER
@@ -406,9 +462,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
 
 	// setup viewport and prespective
 	[self resizeGL]; // forces projection matrix update (does test for size changes)
-    
-    fwl_RenderSceneUpdateScene();
-
+    if(!usingCdllFreewrl)
+		fwl_RenderSceneUpdateScene();
+	else
+		dllFreeWRL_onDraw(fwctx);
     // display the Bounding Box, if requested
 	/*
     if (displayBoundingBox) {
@@ -480,13 +537,21 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //if (!initialized) {
     //void *concurrencyHandle = fwl_init_instance();
     //}
-    if (drawRectconcurrencyHandle == NULL) drawRectconcurrencyHandle = fwl_init_instance();
-    
-    fwl_setCurrentHandle(drawRectconcurrencyHandle, __FILE__, __LINE__);
+	if(!usingCdllFreewrl){
+		if (drawRectconcurrencyHandle == NULL) drawRectconcurrencyHandle = fwl_init_instance();
+		fwl_setCurrentHandle(drawRectconcurrencyHandle, __FILE__, __LINE__);
+		//NSLog (@"calling fv_display_initialize");
+		
+		fv_display_initialize();
+	}else{
+		if(!fwctx) {
+			fwctx = dllFreeWRL_dllFreeWRL();
+			dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+		}
 
-    //NSLog (@"calling fv_display_initialize");
-    
-    fv_display_initialize();
+	}
+
+
 
     //printf ("prepareOpenGL, i am thread %p\n",pthread_self());
     

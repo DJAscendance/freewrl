@@ -156,6 +156,7 @@
 		915C4D5420BB4B9900F10923 /* JScript_stub.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5320BB4B9900F10923 /* JScript_stub.c */; };
 		915C4D5620BB4BAA00F10923 /* jsVRMLBrowser_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5520BB4BAA00F10923 /* jsVRMLBrowser_duk.c */; };
 		915C4D5820BB4BC200F10923 /* jsVRMLClasses_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */; };
+		91BA681720BC53CE008DEE57 /* cdllFreeWRL.c in Sources */ = {isa = PBXBuildFile; fileRef = 91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -413,6 +414,8 @@
 		915C4D5320BB4B9900F10923 /* JScript_stub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = JScript_stub.c; sourceTree = "<group>"; };
 		915C4D5520BB4BAA00F10923 /* jsVRMLBrowser_duk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jsVRMLBrowser_duk.c; sourceTree = "<group>"; };
 		915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jsVRMLClasses_duk.c; sourceTree = "<group>"; };
+		91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cdllFreeWRL.c; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.c; sourceTree = "<group>"; };
+		91BA681820BC5403008DEE57 /* cdllFreeWRL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cdllFreeWRL.h; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -811,6 +814,8 @@
 		73D4357F13D71596000293CE /* FreeWRL */ = {
 			isa = PBXGroup;
 			children = (
+				91BA681820BC5403008DEE57 /* cdllFreeWRL.h */,
+				91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */,
 				52DA6B331577E8C000130065 /* OSX_Specific.c */,
 				52DA6B281577D4ED00130065 /* config.h */,
 				52EC0F571579070500697399 /* libtess */,
@@ -933,6 +938,7 @@
 				52DA6AC21577D31900130065 /* MainLoop.c in Sources */,
 				52DA6AC31577D31900130065 /* ProdCon.c in Sources */,
 				915C4D5020BB4A6E00F10923 /* freewrl_wingding_ttf.c in Sources */,
+				91BA681720BC53CE008DEE57 /* cdllFreeWRL.c in Sources */,
 				91531E9020BB80E100B3DC40 /* desktop.c in Sources */,
 				52DA6AC41577D31900130065 /* Snapshot.c in Sources */,
 				52DA6AC61577D31900130065 /* utils.c in Sources */,
