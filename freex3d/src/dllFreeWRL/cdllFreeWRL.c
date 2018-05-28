@@ -27,6 +27,8 @@ void fwl_resitem_enqueuNextMulti(void *res);
 void fwl_resitem_setLocalPath(void *res, char* path);
 void fwl_resitem_enqueue(void *res);
 int file2blob(void *res);
+void frontend_dequeue_get_enqueue(void *fwctx);
+
 #ifdef SSR_SERVER
 //SSR (Server-side rendering)
 void SSRserver_enqueue_request_and_wait(void *fwctx, void *request);
@@ -247,6 +249,8 @@ DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str)
 DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx)
 {
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
+		//build with desktop.c? but frontend does displaythread? then you need the queue processor
+		frontend_dequeue_get_enqueue(fwctx);
 		fwl_draw();
 	}
 	fwl_clearCurrentHandle();
