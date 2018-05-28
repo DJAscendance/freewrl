@@ -58,7 +58,7 @@ static int checkIfX3DVRMLFile(char *fn);
  * people (or, to try to stop) from typing malicious code. */
 
 /* keep a list of children; if one hangs, fwl_doQuit will hang, also. */
-#ifndef _MSC_VER
+#if !( defined(_MSC_VER) )
 #define MAXPROCESSLIST 128
 pid_t childProcess[MAXPROCESSLIST];
 int lastchildProcess = 0;
@@ -566,7 +566,7 @@ void URLencod (char *dest, const char *src, int maxlen) {
 
 /* this is for Unix only */
 // OLD_IPHONE_AQUA #if !defined(AQUA) && !defined(_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(GLES2)
-#if !defined(_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(GLES2)
+#if !defined(AQUA) && !defined(_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK) && !defined(GLES2)
 
 void sendXwinToPlugin()
 {

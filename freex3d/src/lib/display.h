@@ -476,6 +476,7 @@ void rdr_caps_dump(s_renderer_capabilities_t *rdr_caps);
 
 
 #ifdef TARGET_AQUA /* OLD_IPHONE_AQUA */
+/*
 OLD_IPHONE_AQUA #ifndef IPHONE
 OLD_IPHONE_AQUA 
 OLD_IPHONE_AQUA extern int ccurse;
@@ -484,7 +485,7 @@ OLD_IPHONE_AQUA
 OLD_IPHONE_AQUA //#define SCURSE 1
 OLD_IPHONE_AQUA //#define ACURSE 0
 OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA /* for handling Safari window changes at the top of the display event loop */
+OLD_IPHONE_AQUA // for handling Safari window changes at the top of the display event loop
 OLD_IPHONE_AQUA extern int PaneClipnpx;
 OLD_IPHONE_AQUA extern int PaneClipnpy;
 OLD_IPHONE_AQUA 
@@ -498,6 +499,7 @@ OLD_IPHONE_AQUA extern int PaneClipChanged;
 OLD_IPHONE_AQUA 
 OLD_IPHONE_AQUA #include "OpenGL/glu.h"
 OLD_IPHONE_AQUA #endif
+ */
 #endif /* OLD_IPHONE_AQUA TARGET_AQUA */
 
 /**

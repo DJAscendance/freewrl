@@ -236,6 +236,16 @@ int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *sha
 	return TRUE;
 }
 #endif //_MSC_VER
+#ifdef AQUA
+int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
+	if (!fv_create_main_window(params)){ //0 /*argc*/, NULL /*argv*/)) {
+		return FALSE;
+	}
+	fv_bind_GLcontext();
+	return TRUE;
+}
+#endif //AQUA
+
 // OLD_IPHONE_AQUA #ifdef AQUA
 // OLD_IPHONE_AQUA int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
 // OLD_IPHONE_AQUA  	/* make the window, create the OpenGL context, share the context if necessary 
@@ -328,7 +338,7 @@ int fv_display_initialize_desktop(){
     PRINT_GL_ERROR_IF_ANY ("end of fv_display_initialize");
     
 // OLD_IPHONE_AQUA #if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID))
-#if !(defined(_MSC_VER) || defined(_ANDROID))
+#if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID))
         
 	if (RUNNINGASPLUGIN) {
 #if defined(FREEWRL_PLUGIN) && (defined(TARGET_X11) || defined(TARGET_MOTIF))

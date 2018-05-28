@@ -29,6 +29,7 @@
 #define HAVE_PTHREAD 1
 #define HAVE_GETOPT_H 1
 #define HAVE_GLU_TESS 1
+#define STATUSBAR_STD 1
 
 
 #define FREEWRL_MESSAGE_WRAPPER "/usr/bin/say"

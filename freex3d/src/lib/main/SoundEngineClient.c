@@ -41,7 +41,7 @@ Some of this stuff came from files from "wavplay"  - see information below
 #define SOUNDVERBOSE
 
 // OLD_IPHONE_AQUA #if defined(_MSC_VER) || defined (IPHONE) || defined(_ANDROID) || defined(GLES2) || defined (AQUA)
-#if defined(_MSC_VER) || defined(_ANDROID) || defined(GLES2) 
+#if defined(_MSC_VER) || defined(_ANDROID) || defined(GLES2) || defined (AQUA)
 
 void
 Sound_toserver(char *message)

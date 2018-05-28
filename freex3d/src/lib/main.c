@@ -48,7 +48,7 @@ char consoleBuffer[200];
 
 void new_root();
 // OLD_IPHONE_AQUA #if defined (TARGET_AQUA) || defined(_ANDROID)
-#if defined(_ANDROID)
+#if defined(TARGET_AQUA) || defined(_ANDROID)
 
 /* put some config stuff here, as that way the Objective-C Standalone OSX front end does not
  need to worry about specific structures and calls */
@@ -129,11 +129,12 @@ void fwl_OSX_initializeParameters(const char* initialURL) {
 		}
 
 	}
-
+/*
 	if (tg->ProdCon._frontEndOnX3DFileLoadedListener) {
 		char *URLRequest = STRDUP(res->URLrequest);
 		tg->ProdCon._frontEndOnX3DFileLoadedListener(URLRequest);
 	}
+ */
 }
 
 #endif // _ANDROID

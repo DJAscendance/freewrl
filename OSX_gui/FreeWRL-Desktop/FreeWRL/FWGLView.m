@@ -219,10 +219,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
     ycoor = curHeight - place.y;
     //NSLog (@"mouse moved, place.y %f", place.y);
     
-    fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
     //NSLog(@"sending motion notify with %f %f\n", xcoor, ycoor);
-    fwl_setLastMouseEvent(ButtonPress);
-    fwl_handle_aqua(MotionNotify, button, xcoor, ycoor);
+    //fwl_setLastMouseEvent(ButtonPress);
+    fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
         
     
     
@@ -247,10 +247,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
         button = 1;
     }
     ycoor = curHeight - place.y;
-    fwl_setCurXY((int)xcoor,(int)ycoor);
-    fwl_setButDown(button, TRUE);
-    fwl_setLastMouseEvent(ButtonPress);
-    fwl_handle_aqua(ButtonPress, button, xcoor, ycoor);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setButDown(button, TRUE);
+    //fwl_setLastMouseEvent(ButtonPress);
+    fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
     
     SET_CURSOR_FOR_ME
     
@@ -274,9 +274,9 @@ mouseDisplaySensitive = mouseOverSensitive; \
     ycoor = curHeight - place.y;
     //      NSLog(@"xcoor %f ycoor %f\n", xcoor, ycoor);
     //NSLog(@"sending motion notify with %f %f\n", xcoor, ycoor);
-    fwl_setCurXY((int)xcoor,(int)ycoor);
-    fwl_setLastMouseEvent(MotionNotify);
-    fwl_handle_aqua(MotionNotify, button, xcoor, ycoor);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setLastMouseEvent(MotionNotify);
+    fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 }
 
 - (void) mouseUp: (NSEvent *) theEvent
@@ -296,10 +296,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
-    fwl_setButDown(button, FALSE);
-    fwl_setCurXY((int)xcoor,(int)ycoor);
-    fwl_setLastMouseEvent(ButtonRelease);
-    fwl_handle_aqua(ButtonRelease, button, xcoor, ycoor);
+    //fwl_setButDown(button, FALSE);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setLastMouseEvent(ButtonRelease);
+    fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
     
     SET_CURSOR_FOR_ME
 }
@@ -313,10 +313,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
-    fwl_setCurXY((int)xcoor,(int)ycoor);
-    fwl_setButDown(button, TRUE);
-    fwl_setLastMouseEvent(ButtonPress);
-    fwl_handle_aqua(ButtonPress, button, xcoor, ycoor);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setButDown(button, TRUE);
+    //fwl_setLastMouseEvent(ButtonPress);
+    fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
 }
 - (void) rightMouseUp: (NSEvent *) theEvent
 {
@@ -327,10 +327,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
-    fwl_setCurXY((int)xcoor,(int)ycoor);
-    fwl_setButDown(button, FALSE);
-    fwl_setLastMouseEvent(ButtonRelease);
-    fwl_handle_aqua(ButtonRelease, button, xcoor, ycoor);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setButDown(button, FALSE);
+    //fwl_setLastMouseEvent(ButtonRelease);
+    fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
 }
 - (void) rightMouseDragged: (NSEvent *) theEvent
 {
@@ -341,9 +341,9 @@ mouseDisplaySensitive = mouseOverSensitive; \
     myrect = [self frame];
     curHeight = myrect.size.height;
     ycoor = curHeight - place.y;
-    fwl_setCurXY((int)xcoor,(int)ycoor);
-    fwl_setLastMouseEvent(MotionNotify);
-    fwl_handle_aqua(MotionNotify, button, xcoor, ycoor);
+    //fwl_setCurXY((int)xcoor,(int)ycoor);
+    //fwl_setLastMouseEvent(MotionNotify);
+    fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 }
 - (void) keyUp: (NSEvent*) theEvent
 {
@@ -410,6 +410,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     fwl_RenderSceneUpdateScene();
 
     // display the Bounding Box, if requested
+	/*
     if (displayBoundingBox) {
         if (!myBBShowerCompiled) {
             if (bbILS == NULL) {
@@ -422,7 +423,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
             fwl_update_boundingBox(bbILS);
         }
     }
-
+	*/
     mainloopCount ++;
     
 //#define TESTING_LOADING_WORLDS

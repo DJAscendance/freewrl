@@ -1210,7 +1210,7 @@ enum {
 	file2blob_task_chain,
 	file2blob_task_spawn,
 	file2blob_task_enqueue,
-} file2blob_task_tactic;
+} file2blob_task_tactic2;
 
 void resource_remove_cached_file(s_list_t *cfe);
 void delete_temp_file(resource_item_t *res){

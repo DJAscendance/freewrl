@@ -1,7 +1,7 @@
 #import "UrlDownloader.h"
 #import "../../../freex3d/src/lib/libFreeWRL.h"
 
-bool *opFlagPtr;
+bool *opFlagPtr2;
 
 // For when the files are local...
 char *cString = NULL;
@@ -36,7 +36,7 @@ NSString *net_url = nil;
     NSURL * url = [NSURL URLWithString:urlString];
     UrlDownloader * operation = [[self alloc] initWithUrl:url origString:urlString];
     // save the pointer to the "we are downloading already" flag
-    opFlagPtr = opFlag;
+    opFlagPtr2 = opFlag;
     
     return [operation autorelease];
 }
@@ -202,7 +202,7 @@ NSString *net_url = nil;
     }
 
     // tell gui that we can get another file
-    *opFlagPtr = false;
+    *opFlagPtr2 = false;
 
 }
 

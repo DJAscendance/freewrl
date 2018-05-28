@@ -141,7 +141,7 @@ void Textures_clear(struct tTextures *t){
 // OLD_IPHONE_AQUA #if defined(AQUA) /* for AQUA OS X sharing of OpenGL Contexts */
 
 // OLD_IPHONE_AQUA #elif defined(_MSC_VER)
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(AQUA)
 
 
 #else
