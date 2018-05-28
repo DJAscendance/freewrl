@@ -141,6 +141,7 @@
 		73D4359013D71596000293CE /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358E13D71596000293CE /* MainMenu.xib */; };
 		73D435A013D71869000293CE /* UrlDownloader.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4359E13D71869000293CE /* UrlDownloader.m */; };
 		9131754B20BB13FA003CEBB7 /* libImlib2.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */; };
+		9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9149E7D920BCB82E007E850F /* libcurl.tbd */; };
 		91531E9020BB80E100B3DC40 /* desktop.c in Sources */ = {isa = PBXBuildFile; fileRef = 91531E8F20BB80E100B3DC40 /* desktop.c */; };
 		915C4D3E20BB47FC00F10923 /* Component_Followers.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D3D20BB47FC00F10923 /* Component_Followers.c */; };
 		915C4D4020BB48AE00F10923 /* Component_Layering.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D3F20BB48AE00F10923 /* Component_Layering.c */; };
@@ -399,6 +400,7 @@
 		73D4359E13D71869000293CE /* UrlDownloader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UrlDownloader.m; sourceTree = "<group>"; };
 		73D4359F13D71869000293CE /* UrlDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UrlDownloader.h; sourceTree = "<group>"; };
 		9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libImlib2.1.dylib; path = ../../../../../../opt/local/lib/libImlib2.1.dylib; sourceTree = "<group>"; };
+		9149E7D920BCB82E007E850F /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91531E8F20BB80E100B3DC40 /* desktop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desktop.c; sourceTree = "<group>"; };
 		915C4D3D20BB47FC00F10923 /* Component_Followers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_Followers.c; sourceTree = "<group>"; };
 		915C4D3F20BB48AE00F10923 /* Component_Layering.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_Layering.c; sourceTree = "<group>"; };
@@ -423,6 +425,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */,
 				73D4357A13D71596000293CE /* Cocoa.framework in Frameworks */,
 				52DA6B2A1577E13500130065 /* OpenGL.framework in Frameworks */,
 				52DA6B301577E65700130065 /* libxml2.dylib in Frameworks */,
@@ -789,6 +792,7 @@
 		73D4357813D71596000293CE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9149E7D920BCB82E007E850F /* libcurl.tbd */,
 				9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */,
 				52EC0F8D15790F3800697399 /* libfreetype.6.dylib */,
 				52DA6B351577F0DB00130065 /* OpenCL.framework */,

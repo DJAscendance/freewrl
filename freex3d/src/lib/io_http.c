@@ -224,7 +224,7 @@ char* download_url_curl_OLD(char *parsed_request, char *temp_dir)
     success = curl_easy_perform(curl_h); 
 
     if (success != CURLE_OK) {
-        ERROR_MSG("Download failed for url %s\n", res->parsed_request);
+        ERROR_MSG("Download failed for url %s\n", parsed_request);
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(success));
         fclose(file);
         unlink(temp);
@@ -542,13 +542,14 @@ void download_url(void *res)
 	parsed_request = fwl_resitem_getURL(res);
 	temp_dir = fwl_resitem_getTempDir(res);
 
-
+	actual_file = NULL;
 #if defined(HAVE_LIBCURL)
-	if (with_libcurl) {
+	if (with_libcurl)
 		actual_file = download_url_curl(parsed_request,temp_dir);
-	} else {
+	#ifdef HAVE_WGET
+	else
 		actual_file = download_url_wget(parsed_request,temp_dir);
-	}
+	#endif //HAVE_WGET
 
 #elif defined (HAVE_WGET) 
 	actual_file = download_url_wget(parsed_request,temp_dir);
