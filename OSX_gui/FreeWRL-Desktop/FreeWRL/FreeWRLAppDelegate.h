@@ -7,7 +7,6 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "UrlDownloader.h"
 
 
 @interface FreeWRLAppDelegate : NSObject
@@ -21,14 +20,9 @@
                        context:(void *)context;
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication;
-+(void) newDoURL:(NSString *)url 
-          opFlag:(bool *)opFlag;
-
 -(void)dealloc;
 - (void)applicationDidFinishLaunching:(NSNotification *)notification;
 
 +(bool)applicationHasLaunched;
-
--(void)addOperation:(UrlDownloader *)operation;
 
 @end

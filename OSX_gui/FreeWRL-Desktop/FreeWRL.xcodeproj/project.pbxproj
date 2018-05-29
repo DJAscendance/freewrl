@@ -139,7 +139,6 @@
 		73D4358A13D71596000293CE /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358813D71596000293CE /* Credits.rtf */; };
 		73D4358D13D71596000293CE /* FreeWRLAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */; };
 		73D4359013D71596000293CE /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358E13D71596000293CE /* MainMenu.xib */; };
-		73D435A013D71869000293CE /* UrlDownloader.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4359E13D71869000293CE /* UrlDownloader.m */; };
 		9131754B20BB13FA003CEBB7 /* libImlib2.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */; };
 		9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9149E7D920BCB82E007E850F /* libcurl.tbd */; };
 		91531E9020BB80E100B3DC40 /* desktop.c in Sources */ = {isa = PBXBuildFile; fileRef = 91531E8F20BB80E100B3DC40 /* desktop.c */; };
@@ -398,8 +397,6 @@
 		73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeWRLAppDelegate.h; sourceTree = "<group>"; };
 		73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeWRLAppDelegate.m; sourceTree = "<group>"; };
 		73D4358F13D71596000293CE /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		73D4359E13D71869000293CE /* UrlDownloader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UrlDownloader.m; sourceTree = "<group>"; };
-		73D4359F13D71869000293CE /* UrlDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UrlDownloader.h; sourceTree = "<group>"; };
 		9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libImlib2.1.dylib; path = ../../../../../../opt/local/lib/libImlib2.1.dylib; sourceTree = "<group>"; };
 		9149E7D920BCB82E007E850F /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91531E8F20BB80E100B3DC40 /* desktop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desktop.c; sourceTree = "<group>"; };
@@ -830,9 +827,7 @@
 				73295A4913D71F4800D82816 /* FWGLView.m */,
 				73295A4A13D71F4800D82816 /* FWGLView.h */,
 				73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */,
-				73D4359E13D71869000293CE /* UrlDownloader.m */,
 				73CE189513D71AAD0038EB81 /* MainMenu.xib */,
-				73D4359F13D71869000293CE /* UrlDownloader.h */,
 				73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */,
 				73D4358E13D71596000293CE /* MainMenu.xib */,
 				73D4358013D71596000293CE /* Supporting Files */,
@@ -925,7 +920,6 @@
 			files = (
 				73D4358713D71596000293CE /* main.m in Sources */,
 				73D4358D13D71596000293CE /* FreeWRLAppDelegate.m in Sources */,
-				73D435A013D71869000293CE /* UrlDownloader.m in Sources */,
 				73295A4B13D71F4800D82816 /* FWGLView.m in Sources */,
 				52DA6AB21577D31900130065 /* display.c in Sources */,
 				52DA6AB31577D31900130065 /* iglobal.c in Sources */,

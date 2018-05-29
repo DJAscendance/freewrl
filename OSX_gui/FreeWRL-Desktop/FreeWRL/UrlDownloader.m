@@ -1,6 +1,6 @@
 #import "UrlDownloader.h"
 #import "../../../freex3d/src/lib/libFreeWRL.h"
-
+/*
 bool *opFlagPtr2;
 
 // For when the files are local...
@@ -238,3 +238,4 @@ didReceiveResponse:(NSURLResponse *)response
 }
 
 @end
+*/

@@ -7,7 +7,7 @@
 //
 
 #import "FreeWRLAppDelegate.h"
-#import "UrlDownloader.h"
+
 
 static NSString * OperationsChangedContext = @"OperationsChangedContext";
 NSOperationQueue * _queue = nil;
@@ -16,13 +16,6 @@ static bool appRunningNow = false;
 
 
 @implementation FreeWRLAppDelegate
-
--(void)addOperation:(UrlDownloader *)operation {
-    //NSLog (@"Delegate: addOperation");
-    
-    [_queue addOperation:operation];
-}
-
 +(bool)applicationHasLaunched
 {
     return appRunningNow;
@@ -53,20 +46,6 @@ static bool appRunningNow = false;
     [super dealloc];
 }
 
-
-
-+(void)newDoURL:(NSString *)url opFlag:(bool *)opFlag
-{
-   //NSLog (@"Delegate: starting newDoURL queue %p",_queue);
-        
-    opFlagPtr = opFlag;
-    
-    
-    UrlDownloader * operation =
-    [UrlDownloader urlDownloaderWithUrlString:url opFlag:opFlag];
-    [_queue addOperation:operation];
-    
-}
 
 
 - (void)observeValueForKeyPath:(NSString *)keyPath
