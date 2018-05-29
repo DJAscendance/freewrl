@@ -167,6 +167,9 @@ static int curl_initialized = 0;
   libCurl needs to be initialized once.
   We've choosen the very simple method of curl_easy_init
   but, in the future we'll use the full features.
+ except with url2file_task_spawn in desktop.c we do 1 download per thread instance,
+ and the haxx multithreading example shows its not threadsafe so 
+ one curl instance per thread
 */
 void init_curl()
 {
@@ -180,7 +183,6 @@ void init_curl()
         curl_initialized = 1;
     }
 }
-
 /* return the temp file where we got the contents of the URL requested */
 /* old char* download_url_curl(const char *url, const char *tmp) */
 char* download_url_curl_OLD(char *parsed_request, char *temp_dir)
@@ -241,7 +243,7 @@ char* download_url_curl_OLD(char *parsed_request, char *temp_dir)
 
 char* download_url_curl(char *parsed_request, char *temp_dir)
 {
-    static CURL *curl_h = NULL;
+    CURL *curl_h = NULL;
     CURLcode success;
     char *temp, *safe_url;
     FILE *file;
@@ -263,10 +265,10 @@ char* download_url_curl(char *parsed_request, char *temp_dir)
 	return NULL;	
     }   
 
-    if (curl_initialized == 0) {
-		init_curl();
-		curl_h = curl_easy_init();
-    }
+	// https://curl.haxx.se/libcurl/c/threadsafe.html
+	//https://curl.haxx.se/libcurl/c/multithread.html
+	//- we need a separate handle for each thread which we do with url2file_tactic_spawn in desktop.c
+	curl_h = curl_easy_init();
 
    // curl_h = curl_easy_init();
    	safe_url = replace_unsafe(parsed_request);
@@ -291,6 +293,7 @@ char* download_url_curl(char *parsed_request, char *temp_dir)
 		if(response_code == 200){
 			fclose(file);
 			free(safe_url);
+			curl_easy_cleanup(curl_h);
 			return temp;
 		}
 	}
@@ -300,6 +303,7 @@ char* download_url_curl(char *parsed_request, char *temp_dir)
 	unlink(temp);
 	free(safe_url);
 	free(temp);
+	curl_easy_cleanup(curl_h);	
 	return NULL;
 }
 
