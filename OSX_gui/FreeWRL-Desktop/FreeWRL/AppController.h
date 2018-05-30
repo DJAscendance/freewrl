@@ -13,4 +13,5 @@
 	IBOutlet NSTextField *txtLocation;
 }
 - (IBAction)OpenLocation:(id)sender;
+- (IBAction)Load:(id)sender;
 @end

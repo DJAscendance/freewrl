@@ -27,7 +27,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                     </customView>
                     <textField verticalHuggingPriority="750" id="bmj-uK-XoU">
-                        <rect key="frame" x="0.0" y="333" width="480" height="27"/>
+                        <rect key="frame" x="50" y="336" width="430" height="24"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" title="txtLocation" drawsBackground="YES" usesSingleLineMode="YES" id="0O4-MF-QJP">
                             <font key="font" metaFont="system"/>
@@ -35,9 +35,20 @@
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
+                    <button verticalHuggingPriority="750" id="REH-z7-cGm" customClass="BtnLoad">
+                        <rect key="frame" x="-6" y="329" width="62" height="32"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="push" title="Load" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="iUo-E4-KVD">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="Load:" target="Y2d-4u-69T" id="DTh-b9-3dP"/>
+                        </connections>
+                    </button>
                 </subviews>
             </view>
-            <point key="canvasLocation" x="406" y="61"/>
+            <point key="canvasLocation" x="416" y="79"/>
         </window>
         <menu title="MainMenu" systemMenu="main" id="29" userLabel="MainMenu">
             <items>
