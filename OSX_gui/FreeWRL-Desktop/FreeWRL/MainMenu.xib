@@ -73,11 +73,9 @@
                 <menuItem title="File" id="83">
                     <menu key="submenu" title="File" id="81">
                         <items>
-                            <menuItem title="Open..." keyEquivalent="o" id="72"/>
-                            <menuItem title="OpenLocation" id="FRW-pb-b1h">
-                                <modifierMask key="keyEquivalentModifierMask"/>
+                            <menuItem title="OpenFile" keyEquivalent="o" id="FRW-pb-b1h">
                                 <connections>
-                                    <action selector="OpenLocation:" target="Y2d-4u-69T" id="joQ-Nv-DYz"/>
+                                    <action selector="OpenFile:" target="Y2d-4u-69T" id="Qn5-hN-Zau"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Open Recent" id="124">

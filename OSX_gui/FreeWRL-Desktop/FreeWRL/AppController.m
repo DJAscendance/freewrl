@@ -20,7 +20,7 @@ extern void* fwctx;
 	}
 	return self;
 }
-- (IBAction)OpenLocation:(id)sender {
+- (IBAction)OpenFile:(id)sender {
 	NSOpenPanel* openDlg = [NSOpenPanel openPanel];
 	
 	[openDlg setCanChooseFiles:YES];

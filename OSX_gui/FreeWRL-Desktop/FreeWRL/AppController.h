@@ -12,6 +12,6 @@
 	@private
 	IBOutlet NSTextField *txtLocation;
 }
-- (IBAction)OpenLocation:(id)sender;
+- (IBAction)OpenFile:(id)sender;
 - (IBAction)Load:(id)sender;
 @end
