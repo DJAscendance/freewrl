@@ -1,6 +1,6 @@
 #import "FreeWRLAppDelegate.h"
 #import "FWGLView.h"
-#import "UrlDownloader.h"
+//#import "UrlDownloader.h"
 #import "../../../freex3d/src/lib/libFreeWRL.h"
 #import "../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h"
 // ==================================
@@ -21,9 +21,9 @@ NSMutableData *receivedData;
 void *drawRectconcurrencyHandle = NULL;
 char* startingString = "/Users/johncarlson/Source/X3DJSONLD/rubik.x3d";
 
-static int displayBoundingBox = TRUE;
-static int myBBShowerCompiled = FALSE;
-static struct X3D_IndexedLineSet *bbILS = NULL;
+//static int displayBoundingBox = TRUE;
+//static int myBBShowerCompiled = FALSE;
+//static struct X3D_IndexedLineSet *bbILS = NULL;
 
 struct X3D_IndexedLineSet *fwl_makeRootBoundingBox();
 void fwl_update_boundingBox(struct X3D_IndexedLineSet* node);
@@ -181,6 +181,7 @@ void* fwctx = NULL;
 		[animateMenuItem setState: NSOffState];
 }
 
+
 // ---------------------------------
 
 -(IBAction) info: (id) sender
@@ -194,6 +195,7 @@ void* fwctx = NULL;
 //		[infoMenuItem setState: NSOffState];
 	[self setNeedsDisplay: YES];
 }
+
 
 #pragma mark ---- Method Overrides ----
 

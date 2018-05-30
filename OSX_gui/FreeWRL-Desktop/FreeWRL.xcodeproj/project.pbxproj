@@ -138,7 +138,6 @@
 		73D4358713D71596000293CE /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4358613D71596000293CE /* main.m */; };
 		73D4358A13D71596000293CE /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358813D71596000293CE /* Credits.rtf */; };
 		73D4358D13D71596000293CE /* FreeWRLAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */; };
-		73D4359013D71596000293CE /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358E13D71596000293CE /* MainMenu.xib */; };
 		9131754B20BB13FA003CEBB7 /* libImlib2.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */; };
 		9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9149E7D920BCB82E007E850F /* libcurl.tbd */; };
 		91531E9020BB80E100B3DC40 /* desktop.c in Sources */ = {isa = PBXBuildFile; fileRef = 91531E8F20BB80E100B3DC40 /* desktop.c */; };
@@ -156,6 +155,7 @@
 		915C4D5420BB4B9900F10923 /* JScript_stub.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5320BB4B9900F10923 /* JScript_stub.c */; };
 		915C4D5620BB4BAA00F10923 /* jsVRMLBrowser_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5520BB4BAA00F10923 /* jsVRMLBrowser_duk.c */; };
 		915C4D5820BB4BC200F10923 /* jsVRMLClasses_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */; };
+		91611D4020BF0FD80022C367 /* AppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91611D3F20BF0FD80022C367 /* AppController.m */; };
 		9198738620BDFCF7005EF9D6 /* include_duktape.c in Sources */ = {isa = PBXBuildFile; fileRef = 9198738520BDFCF7005EF9D6 /* include_duktape.c */; };
 		91BA681720BC53CE008DEE57 /* cdllFreeWRL.c in Sources */ = {isa = PBXBuildFile; fileRef = 91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */; };
 /* End PBXBuildFile section */
@@ -396,7 +396,6 @@
 		73D4358913D71596000293CE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = en; path = en.lproj/Credits.rtf; sourceTree = "<group>"; };
 		73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeWRLAppDelegate.h; sourceTree = "<group>"; };
 		73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeWRLAppDelegate.m; sourceTree = "<group>"; };
-		73D4358F13D71596000293CE /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libImlib2.1.dylib; path = ../../../../../../opt/local/lib/libImlib2.1.dylib; sourceTree = "<group>"; };
 		9149E7D920BCB82E007E850F /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91531E8F20BB80E100B3DC40 /* desktop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desktop.c; sourceTree = "<group>"; };
@@ -414,6 +413,8 @@
 		915C4D5320BB4B9900F10923 /* JScript_stub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = JScript_stub.c; sourceTree = "<group>"; };
 		915C4D5520BB4BAA00F10923 /* jsVRMLBrowser_duk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jsVRMLBrowser_duk.c; sourceTree = "<group>"; };
 		915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jsVRMLClasses_duk.c; sourceTree = "<group>"; };
+		91611D3E20BF0FD80022C367 /* AppController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppController.h; sourceTree = "<group>"; };
+		91611D3F20BF0FD80022C367 /* AppController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppController.m; sourceTree = "<group>"; };
 		9198738520BDFCF7005EF9D6 /* include_duktape.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = include_duktape.c; sourceTree = "<group>"; };
 		91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cdllFreeWRL.c; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.c; sourceTree = "<group>"; };
 		91BA681820BC5403008DEE57 /* cdllFreeWRL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cdllFreeWRL.h; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h; sourceTree = "<group>"; };
@@ -826,10 +827,11 @@
 				52DA69DB1577D31900130065 /* lib */,
 				73295A4913D71F4800D82816 /* FWGLView.m */,
 				73295A4A13D71F4800D82816 /* FWGLView.h */,
+				91611D3E20BF0FD80022C367 /* AppController.h */,
+				91611D3F20BF0FD80022C367 /* AppController.m */,
 				73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */,
 				73CE189513D71AAD0038EB81 /* MainMenu.xib */,
 				73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */,
-				73D4358E13D71596000293CE /* MainMenu.xib */,
 				73D4358013D71596000293CE /* Supporting Files */,
 			);
 			path = FreeWRL;
@@ -900,7 +902,6 @@
 			files = (
 				73D4358413D71596000293CE /* InfoPlist.strings in Resources */,
 				73D4358A13D71596000293CE /* Credits.rtf in Resources */,
-				73D4359013D71596000293CE /* MainMenu.xib in Resources */,
 				73CE189613D71AAD0038EB81 /* MainMenu.xib in Resources */,
 				73ADF1A613D9C34500154A27 /* X3DFreeWRLIcon.icns in Resources */,
 				52DA6ABF1577D31900130065 /* libFreeWRL.pc.in in Resources */,
@@ -1049,6 +1050,7 @@
 				9198738620BDFCF7005EF9D6 /* include_duktape.c in Sources */,
 				52EC0F871579070500697399 /* tess.c in Sources */,
 				52EC0F881579070500697399 /* tessmono.c in Sources */,
+				91611D4020BF0FD80022C367 /* AppController.m in Sources */,
 				52580658178D9F0200D59A11 /* Component_CAD.c in Sources */,
 				915C4D4820BB490F00F10923 /* Component_Texturing3D.c in Sources */,
 			);
@@ -1071,14 +1073,6 @@
 				73D4358913D71596000293CE /* en */,
 			);
 			name = Credits.rtf;
-			sourceTree = "<group>";
-		};
-		73D4358E13D71596000293CE /* MainMenu.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				73D4358F13D71596000293CE /* en */,
-			);
-			name = MainMenu.xib;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
