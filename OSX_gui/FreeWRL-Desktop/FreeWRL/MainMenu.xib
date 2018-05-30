@@ -78,20 +78,6 @@
                                     <action selector="OpenFile:" target="Y2d-4u-69T" id="Qn5-hN-Zau"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Open Recent" id="124">
-                                <menu key="submenu" title="Open Recent" systemMenu="recentDocuments" id="125">
-                                    <items>
-                                        <menuItem title="Clear Menu" id="126">
-                                            <connections>
-                                                <action selector="clearRecentDocuments:" target="-1" id="127"/>
-                                            </connections>
-                                        </menuItem>
-                                    </items>
-                                </menu>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="79">
-                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
-                            </menuItem>
                             <menuItem title="Close" keyEquivalent="w" id="73">
                                 <connections>
                                     <action selector="performClose:" target="-1" id="193"/>
@@ -100,34 +86,8 @@
                         </items>
                     </menu>
                 </menuItem>
-                <menuItem title="Edit" id="163">
-                    <menu key="submenu" title="Edit" id="169">
-                        <items>
-                            <menuItem title="Copy" keyEquivalent="c" id="157">
-                                <connections>
-                                    <action selector="copy:" target="-1" id="181"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Paste" keyEquivalent="v" id="171">
-                                <connections>
-                                    <action selector="paste:" target="-1" id="176"/>
-                                </connections>
-                            </menuItem>
-                        </items>
-                    </menu>
-                </menuItem>
-                <menuItem title="Help" id="103">
-                    <menu key="submenu" title="Help" id="106">
-                        <items>
-                            <menuItem title="FreeWRL" keyEquivalent="?" id="111">
-                                <connections>
-                                    <accessibilityConnection property="link" destination="106" id="AZt-Fg-bhC"/>
-                                    <action selector="showHelp:" target="-1" id="122"/>
-                                </connections>
-                            </menuItem>
-                        </items>
-                    </menu>
-                </menuItem>
+                <menuItem title="Edit" id="163"/>
+                <menuItem title="Help" id="103"/>
             </items>
         </menu>
         <customObject id="212" userLabel="FreeWRLAppDelegate" customClass="FreeWRLAppDelegate"/>

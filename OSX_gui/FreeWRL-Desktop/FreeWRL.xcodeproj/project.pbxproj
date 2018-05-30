@@ -156,6 +156,7 @@
 		915C4D5620BB4BAA00F10923 /* jsVRMLBrowser_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5520BB4BAA00F10923 /* jsVRMLBrowser_duk.c */; };
 		915C4D5820BB4BC200F10923 /* jsVRMLClasses_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */; };
 		91611D4020BF0FD80022C367 /* AppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91611D3F20BF0FD80022C367 /* AppController.m */; };
+		91611D4420BF4D810022C367 /* fonts in Resources */ = {isa = PBXBuildFile; fileRef = 91611D4320BF4D810022C367 /* fonts */; };
 		9198738620BDFCF7005EF9D6 /* include_duktape.c in Sources */ = {isa = PBXBuildFile; fileRef = 9198738520BDFCF7005EF9D6 /* include_duktape.c */; };
 		91BA681720BC53CE008DEE57 /* cdllFreeWRL.c in Sources */ = {isa = PBXBuildFile; fileRef = 91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */; };
 /* End PBXBuildFile section */
@@ -415,6 +416,7 @@
 		915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jsVRMLClasses_duk.c; sourceTree = "<group>"; };
 		91611D3E20BF0FD80022C367 /* AppController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppController.h; sourceTree = "<group>"; };
 		91611D3F20BF0FD80022C367 /* AppController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppController.m; sourceTree = "<group>"; };
+		91611D4320BF4D810022C367 /* fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fonts; path = ../../../freex3d/appleOSX/OSX_Specific/fonts; sourceTree = "<group>"; };
 		9198738520BDFCF7005EF9D6 /* include_duktape.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = include_duktape.c; sourceTree = "<group>"; };
 		91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cdllFreeWRL.c; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.c; sourceTree = "<group>"; };
 		91BA681820BC5403008DEE57 /* cdllFreeWRL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cdllFreeWRL.h; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h; sourceTree = "<group>"; };
@@ -840,6 +842,7 @@
 		73D4358013D71596000293CE /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				91611D4320BF4D810022C367 /* fonts */,
 				73D4358113D71596000293CE /* FreeWRL-Info.plist */,
 				73D4358213D71596000293CE /* InfoPlist.strings */,
 				73D4358513D71596000293CE /* FreeWRL-Prefix.pch */,
@@ -901,6 +904,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				73D4358413D71596000293CE /* InfoPlist.strings in Resources */,
+				91611D4420BF4D810022C367 /* fonts in Resources */,
 				73D4358A13D71596000293CE /* Credits.rtf in Resources */,
 				73CE189613D71AAD0038EB81 /* MainMenu.xib in Resources */,
 				73ADF1A613D9C34500154A27 /* X3DFreeWRLIcon.icns in Resources */,
