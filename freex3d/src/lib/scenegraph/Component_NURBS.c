@@ -441,8 +441,13 @@ int SurfacePoint(int n,int p,float *U,
 	return 1;
 }
 // <<<<< END MIT LIC
-
+#ifdef AQUA
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#define CALLBACK
+#else
 #include <libnurbs2.h>
+#endif
 static int DEBG = 0; //glu nurbs surface and trim calls
 static int DEBGC = 0; //curve calls
 
