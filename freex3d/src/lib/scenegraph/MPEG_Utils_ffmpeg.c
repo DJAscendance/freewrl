@@ -1,3 +1,4 @@
+#include <config.h>
 
 #ifdef MOVIETEXTURE_FFMPEG
 // http://dranger.com/ffmpeg/tutorial01.html

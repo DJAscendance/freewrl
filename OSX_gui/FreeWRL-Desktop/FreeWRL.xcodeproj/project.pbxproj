@@ -139,6 +139,12 @@
 		73D4358A13D71596000293CE /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358813D71596000293CE /* Credits.rtf */; };
 		73D4358D13D71596000293CE /* FreeWRLAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */; };
 		9131754B20BB13FA003CEBB7 /* libImlib2.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */; };
+		9137216920C17FF900901962 /* MPEG_Utils_ffmpeg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9137216820C17FF900901962 /* MPEG_Utils_ffmpeg.c */; };
+		9137216F20C1880400901962 /* libavutil.56.14.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137216E20C1880200901962 /* libavutil.56.14.100.dylib */; };
+		9137217120C1884A00901962 /* libavcodec.58.18.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217020C1884900901962 /* libavcodec.58.18.100.dylib */; };
+		9137217320C1888700901962 /* libavformat.58.12.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217220C1888500901962 /* libavformat.58.12.100.dylib */; };
+		9137217520C1892300901962 /* libswresample.3.1.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217420C1892200901962 /* libswresample.3.1.100.dylib */; };
+		9137217720C1896B00901962 /* libswscale.5.1.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217620C1896900901962 /* libswscale.5.1.100.dylib */; };
 		9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9149E7D920BCB82E007E850F /* libcurl.tbd */; };
 		91531E9020BB80E100B3DC40 /* desktop.c in Sources */ = {isa = PBXBuildFile; fileRef = 91531E8F20BB80E100B3DC40 /* desktop.c */; };
 		915C4D3E20BB47FC00F10923 /* Component_Followers.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D3D20BB47FC00F10923 /* Component_Followers.c */; };
@@ -158,6 +164,8 @@
 		91611D4020BF0FD80022C367 /* AppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91611D3F20BF0FD80022C367 /* AppController.m */; };
 		91611D4420BF4D810022C367 /* fonts in Resources */ = {isa = PBXBuildFile; fileRef = 91611D4320BF4D810022C367 /* fonts */; };
 		9198738620BDFCF7005EF9D6 /* include_duktape.c in Sources */ = {isa = PBXBuildFile; fileRef = 9198738520BDFCF7005EF9D6 /* include_duktape.c */; };
+		91B2207620C09C7200F9A079 /* libalut.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B2207520C09C7200F9A079 /* libalut.0.dylib */; };
+		91B2207820C09CB600F9A079 /* libopenal.1.15.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B2207720C09CB600F9A079 /* libopenal.1.15.1.dylib */; };
 		91BA681720BC53CE008DEE57 /* cdllFreeWRL.c in Sources */ = {isa = PBXBuildFile; fileRef = 91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */; };
 /* End PBXBuildFile section */
 
@@ -398,6 +406,14 @@
 		73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeWRLAppDelegate.h; sourceTree = "<group>"; };
 		73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeWRLAppDelegate.m; sourceTree = "<group>"; };
 		9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libImlib2.1.dylib; path = ../../../../../../opt/local/lib/libImlib2.1.dylib; sourceTree = "<group>"; };
+		9137216820C17FF900901962 /* MPEG_Utils_ffmpeg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = MPEG_Utils_ffmpeg.c; sourceTree = "<group>"; };
+		9137216A20C1871000901962 /* opt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = opt; path = ../../../../../../opt; sourceTree = "<group>"; };
+		9137216C20C1878500901962 /* libavdevice.58.3.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavdevice.58.3.100.dylib; path = ../../../../../../opt/local/lib/libavdevice.58.3.100.dylib; sourceTree = "<group>"; };
+		9137216E20C1880200901962 /* libavutil.56.14.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavutil.56.14.100.dylib; path = ../../../../../../opt/local/lib/libavutil.56.14.100.dylib; sourceTree = "<group>"; };
+		9137217020C1884900901962 /* libavcodec.58.18.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavcodec.58.18.100.dylib; path = ../../../../../../opt/local/lib/libavcodec.58.18.100.dylib; sourceTree = "<group>"; };
+		9137217220C1888500901962 /* libavformat.58.12.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavformat.58.12.100.dylib; path = ../../../../../../opt/local/lib/libavformat.58.12.100.dylib; sourceTree = "<group>"; };
+		9137217420C1892200901962 /* libswresample.3.1.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libswresample.3.1.100.dylib; path = ../../../../../../opt/local/lib/libswresample.3.1.100.dylib; sourceTree = "<group>"; };
+		9137217620C1896900901962 /* libswscale.5.1.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libswscale.5.1.100.dylib; path = ../../../../../../opt/local/lib/libswscale.5.1.100.dylib; sourceTree = "<group>"; };
 		9149E7D920BCB82E007E850F /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91531E8F20BB80E100B3DC40 /* desktop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desktop.c; sourceTree = "<group>"; };
 		915C4D3D20BB47FC00F10923 /* Component_Followers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_Followers.c; sourceTree = "<group>"; };
@@ -418,6 +434,8 @@
 		91611D3F20BF0FD80022C367 /* AppController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppController.m; sourceTree = "<group>"; };
 		91611D4320BF4D810022C367 /* fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fonts; path = ../../../freex3d/appleOSX/OSX_Specific/fonts; sourceTree = "<group>"; };
 		9198738520BDFCF7005EF9D6 /* include_duktape.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = include_duktape.c; sourceTree = "<group>"; };
+		91B2207520C09C7200F9A079 /* libalut.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libalut.0.dylib; path = ../../../../../../opt/local/lib/libalut.0.dylib; sourceTree = "<group>"; };
+		91B2207720C09CB600F9A079 /* libopenal.1.15.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenal.1.15.1.dylib; path = ../../../../../../opt/local/lib/libopenal.1.15.1.dylib; sourceTree = "<group>"; };
 		91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cdllFreeWRL.c; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.c; sourceTree = "<group>"; };
 		91BA681820BC5403008DEE57 /* cdllFreeWRL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cdllFreeWRL.h; path = ../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -427,6 +445,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9137217720C1896B00901962 /* libswscale.5.1.100.dylib in Frameworks */,
+				9137217520C1892300901962 /* libswresample.3.1.100.dylib in Frameworks */,
+				9137217320C1888700901962 /* libavformat.58.12.100.dylib in Frameworks */,
+				9137217120C1884A00901962 /* libavcodec.58.18.100.dylib in Frameworks */,
+				9137216F20C1880400901962 /* libavutil.56.14.100.dylib in Frameworks */,
+				91B2207820C09CB600F9A079 /* libopenal.1.15.1.dylib in Frameworks */,
+				91B2207620C09C7200F9A079 /* libalut.0.dylib in Frameworks */,
 				9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */,
 				73D4357A13D71596000293CE /* Cocoa.framework in Frameworks */,
 				52DA6B2A1577E13500130065 /* OpenGL.framework in Frameworks */,
@@ -575,6 +600,7 @@
 		52DA6A221577D31900130065 /* scenegraph */ = {
 			isa = PBXGroup;
 			children = (
+				9137216820C17FF900901962 /* MPEG_Utils_ffmpeg.c */,
 				915C4D4D20BB49D800F10923 /* Component_VolumeRendering.c */,
 				915C4D4920BB493E00F10923 /* VeraMono_ttf.c */,
 				915C4D4720BB490F00F10923 /* Component_Texturing3D.c */,
@@ -795,6 +821,15 @@
 		73D4357813D71596000293CE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9137217620C1896900901962 /* libswscale.5.1.100.dylib */,
+				9137217420C1892200901962 /* libswresample.3.1.100.dylib */,
+				9137217220C1888500901962 /* libavformat.58.12.100.dylib */,
+				9137217020C1884900901962 /* libavcodec.58.18.100.dylib */,
+				9137216E20C1880200901962 /* libavutil.56.14.100.dylib */,
+				9137216C20C1878500901962 /* libavdevice.58.3.100.dylib */,
+				9137216A20C1871000901962 /* opt */,
+				91B2207720C09CB600F9A079 /* libopenal.1.15.1.dylib */,
+				91B2207520C09C7200F9A079 /* libalut.0.dylib */,
 				9149E7D920BCB82E007E850F /* libcurl.tbd */,
 				9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */,
 				52EC0F8D15790F3800697399 /* libfreetype.6.dylib */,
@@ -964,6 +999,7 @@
 				52DA6AD71577D31A00130065 /* Collision.c in Sources */,
 				915C4D4420BB48E100F10923 /* Component_ParticleSystems.c in Sources */,
 				52DA6AD81577D31A00130065 /* CollisionGPU.c in Sources */,
+				9137216920C17FF900901962 /* MPEG_Utils_ffmpeg.c in Sources */,
 				52DA6AD91577D31A00130065 /* Component_Core.c in Sources */,
 				52DA6ADA1577D31A00130065 /* Component_CubeMapTexturing.c in Sources */,
 				52DA6ADB1577D31A00130065 /* Component_DIS.c in Sources */,

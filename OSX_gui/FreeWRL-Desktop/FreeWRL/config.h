@@ -32,6 +32,9 @@
 #define STATUSBAR_STD 1
 #define HAVE_LIBCURL 1
 #define JAVASCRIPT_DUK 1
+#define HAVE_ALUT 1
+#define HAVE_OPENAL 1
+#define MOVIETEXTURE_FFMPEG 1
 
 #define FREEWRL_MESSAGE_WRAPPER "/usr/bin/say"
 #define	BROWSER		"/usr/bin/open"
