@@ -145,6 +145,7 @@
 		9137217320C1888700901962 /* libavformat.58.12.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217220C1888500901962 /* libavformat.58.12.100.dylib */; };
 		9137217520C1892300901962 /* libswresample.3.1.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217420C1892200901962 /* libswresample.3.1.100.dylib */; };
 		9137217720C1896B00901962 /* libswscale.5.1.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217620C1896900901962 /* libswscale.5.1.100.dylib */; };
+		9137217920C1926D00901962 /* libode.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217820C1926A00901962 /* libode.6.dylib */; };
 		9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9149E7D920BCB82E007E850F /* libcurl.tbd */; };
 		91531E9020BB80E100B3DC40 /* desktop.c in Sources */ = {isa = PBXBuildFile; fileRef = 91531E8F20BB80E100B3DC40 /* desktop.c */; };
 		915C4D3E20BB47FC00F10923 /* Component_Followers.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D3D20BB47FC00F10923 /* Component_Followers.c */; };
@@ -414,6 +415,7 @@
 		9137217220C1888500901962 /* libavformat.58.12.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavformat.58.12.100.dylib; path = ../../../../../../opt/local/lib/libavformat.58.12.100.dylib; sourceTree = "<group>"; };
 		9137217420C1892200901962 /* libswresample.3.1.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libswresample.3.1.100.dylib; path = ../../../../../../opt/local/lib/libswresample.3.1.100.dylib; sourceTree = "<group>"; };
 		9137217620C1896900901962 /* libswscale.5.1.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libswscale.5.1.100.dylib; path = ../../../../../../opt/local/lib/libswscale.5.1.100.dylib; sourceTree = "<group>"; };
+		9137217820C1926A00901962 /* libode.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libode.6.dylib; path = ../../../../../../opt/local/lib/libode.6.dylib; sourceTree = "<group>"; };
 		9149E7D920BCB82E007E850F /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91531E8F20BB80E100B3DC40 /* desktop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desktop.c; sourceTree = "<group>"; };
 		915C4D3D20BB47FC00F10923 /* Component_Followers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_Followers.c; sourceTree = "<group>"; };
@@ -445,6 +447,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9137217920C1926D00901962 /* libode.6.dylib in Frameworks */,
 				9137217720C1896B00901962 /* libswscale.5.1.100.dylib in Frameworks */,
 				9137217520C1892300901962 /* libswresample.3.1.100.dylib in Frameworks */,
 				9137217320C1888700901962 /* libavformat.58.12.100.dylib in Frameworks */,
@@ -821,6 +824,7 @@
 		73D4357813D71596000293CE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9137217820C1926A00901962 /* libode.6.dylib */,
 				9137217620C1896900901962 /* libswscale.5.1.100.dylib */,
 				9137217420C1892200901962 /* libswresample.3.1.100.dylib */,
 				9137217220C1888500901962 /* libavformat.58.12.100.dylib */,
