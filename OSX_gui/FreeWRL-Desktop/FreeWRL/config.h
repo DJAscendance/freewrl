@@ -7,7 +7,8 @@
 
 #define FRONTEND_DOES_SNAPSHOTS 1
 #define FRONTEND_HANDLES_DISPLAY_THREAD 1
-#define FRONTEND_GETS_FILES 1
+//not now for desktop, using desktop.c:
+//#define FRONTEND_GETS_FILES 1
 
 #define STATUSBAR_HUD 1
 #define DO_COLLISION_GPU 1

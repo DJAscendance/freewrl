@@ -406,6 +406,7 @@
 		73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeWRLAppDelegate.h; sourceTree = "<group>"; };
 		73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeWRLAppDelegate.m; sourceTree = "<group>"; };
 		9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libImlib2.1.dylib; path = ../../../../../../opt/local/lib/libImlib2.1.dylib; sourceTree = "<group>"; };
+		9133960F20C2F573003FD83E /* libxml2.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libxml2.2.dylib; sourceTree = "<group>"; };
 		9137216820C17FF900901962 /* MPEG_Utils_ffmpeg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = MPEG_Utils_ffmpeg.c; sourceTree = "<group>"; };
 		9137216A20C1871000901962 /* opt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = opt; path = ../../../../../../opt; sourceTree = "<group>"; };
 		9137216C20C1878500901962 /* libavdevice.58.3.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavdevice.58.3.100.dylib; path = ../../../../../../opt/local/lib/libavdevice.58.3.100.dylib; sourceTree = "<group>"; };
@@ -803,6 +804,7 @@
 		73D4356A13D71594000293CE = {
 			isa = PBXGroup;
 			children = (
+				9133960F20C2F573003FD83E /* libxml2.2.dylib */,
 				73ADF1A513D9C34500154A27 /* X3DFreeWRLIcon.icns */,
 				73D4357F13D71596000293CE /* FreeWRL */,
 				73D4357813D71596000293CE /* Frameworks */,
