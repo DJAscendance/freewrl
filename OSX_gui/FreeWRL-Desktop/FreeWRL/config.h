@@ -30,13 +30,19 @@
 #define HAVE_GETOPT_H 1
 #define HAVE_GLU_TESS 1
 #define STATUSBAR_STD 1
-#define HAVE_LIBCURL 1
-#define JAVASCRIPT_DUK 1
-#define HAVE_ALUT 1
-#define HAVE_OPENAL 1
-#define MOVIETEXTURE_FFMPEG 1
-#define WITH_RBP 1
-#define NURBS_LIB 1
-
 #define FREEWRL_MESSAGE_WRAPPER "/usr/bin/say"
 #define	BROWSER		"/usr/bin/open"
+//the following can be undefed when starting to build on a clean machine
+//libcurl is part of osx (for pulling http files)
+#define HAVE_LIBCURL 1
+//duktape js engine is compiled into freewrl project, nothing to download or install
+#define JAVASCRIPT_DUK 1
+//macports: sudo port -t install alut (will also install openal)
+#define HAVE_ALUT 1
+#define HAVE_OPENAL 1
+//macports: sudo port -t install ffmpeg
+#define MOVIETEXTURE_FFMPEG 1
+//macports: sudo port -t install ode
+#define WITH_RBP 1
+//nurbs is part of glu in osx opengl, just define
+#define NURBS_LIB 1

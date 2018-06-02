@@ -249,8 +249,10 @@ DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str)
 DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx)
 {
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
+#ifndef FRONTEND_GETS_FILES
 		//build with desktop.c? but frontend does displaythread? then you need the queue processor
 		frontend_dequeue_get_enqueue(fwctx);
+#endif //FRONTEND_GETS_FILES
 		fwl_draw();
 	}
 	fwl_clearCurrentHandle();
