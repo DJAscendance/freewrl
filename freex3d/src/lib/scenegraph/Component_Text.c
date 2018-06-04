@@ -395,10 +395,17 @@ void fwl_fontFileLocation(char *fontFileLocation) {
 	ttglobal tg = gglobal();
 	p = (ppComponent_Text)tg->Component_Text.prv;
 	/* Check if dir exists */
-	if (fontFileLocation)
-	if (do_dir_exists(fontFileLocation)) {
-		FREE_IF_NZ(p->font_directory);
-		p->font_directory = STRDUP(fontFileLocation);
+	if (fontFileLocation){
+		char * lfontFileLocation = STRDUP(fontFileLocation);
+		if(strstr(lfontFileLocation,".ttf")){
+			//osx passes in the veramono.ttf path, strip to get just the directory
+			char * pend = strrchr(lfontFileLocation,'/');
+			if(pend) *pend = '\0';
+		}
+		if (do_dir_exists(lfontFileLocation)) {
+			FREE_IF_NZ(p->font_directory);
+			p->font_directory = lfontFileLocation;
+		}
 	}
 }
 

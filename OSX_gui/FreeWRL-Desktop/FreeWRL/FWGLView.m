@@ -36,6 +36,15 @@ int whichOne=0;
 int usingCdllFreewrl = 1;
 void* fwctx = NULL;
 
+// https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AccessingaBundlesContents/AccessingaBundlesContents.html
+// get a path to fonts/ in app/contents/resources/fonts and pass to backend
+NSBundle* mainBundle = NULL;
+NSString* myFontPath = NULL;
+void getfontfolder(){
+mainBundle = [NSBundle mainBundle];
+	myFontPath = [mainBundle pathForResource:@"VeraMono" ofType:@"ttf" inDirectory:@"fonts"];
+	//the backend will detect and strip /VeraMono.ttf off the path
+}
 // ===================================
 // get the initial URL in, and load'er up!
 
@@ -67,6 +76,8 @@ void* fwctx = NULL;
 		if(!fwctx) {
 			fwctx = dllFreeWRL_dllFreeWRL();
 			dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+			getfontfolder();
+			dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
 		}
 		
 	}
@@ -549,6 +560,8 @@ mouseDisplaySensitive = mouseOverSensitive; \
 		if(!fwctx) {
 			fwctx = dllFreeWRL_dllFreeWRL();
 			dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+			getfontfolder();
+			dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
 		}
 
 	}
