@@ -146,6 +146,7 @@
 		9137217520C1892300901962 /* libswresample.3.1.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217420C1892200901962 /* libswresample.3.1.100.dylib */; };
 		9137217720C1896B00901962 /* libswscale.5.1.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217620C1896900901962 /* libswscale.5.1.100.dylib */; };
 		9137217920C1926D00901962 /* libode.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137217820C1926A00901962 /* libode.6.dylib */; };
+		9146933B20C5D32100236D26 /* fonts in Resources */ = {isa = PBXBuildFile; fileRef = 9146933A20C5D31F00236D26 /* fonts */; };
 		9149E7DA20BCB82E007E850F /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9149E7D920BCB82E007E850F /* libcurl.tbd */; };
 		91531E9020BB80E100B3DC40 /* desktop.c in Sources */ = {isa = PBXBuildFile; fileRef = 91531E8F20BB80E100B3DC40 /* desktop.c */; };
 		915C4D3E20BB47FC00F10923 /* Component_Followers.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D3D20BB47FC00F10923 /* Component_Followers.c */; };
@@ -415,6 +416,7 @@
 		9137217420C1892200901962 /* libswresample.3.1.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libswresample.3.1.100.dylib; path = ../../../../../../opt/local/lib/libswresample.3.1.100.dylib; sourceTree = "<group>"; };
 		9137217620C1896900901962 /* libswscale.5.1.100.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libswscale.5.1.100.dylib; path = ../../../../../../opt/local/lib/libswscale.5.1.100.dylib; sourceTree = "<group>"; };
 		9137217820C1926A00901962 /* libode.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libode.6.dylib; path = ../../../../../../opt/local/lib/libode.6.dylib; sourceTree = "<group>"; };
+		9146933A20C5D31F00236D26 /* fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fonts; path = ../../freex3d/appleOSX/OSX_Specific/fonts; sourceTree = "<group>"; };
 		9149E7D920BCB82E007E850F /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91531E8F20BB80E100B3DC40 /* desktop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desktop.c; sourceTree = "<group>"; };
 		915C4D3D20BB47FC00F10923 /* Component_Followers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_Followers.c; sourceTree = "<group>"; };
@@ -804,6 +806,7 @@
 			isa = PBXGroup;
 			children = (
 				73ADF1A513D9C34500154A27 /* X3DFreeWRLIcon.icns */,
+				9146933A20C5D31F00236D26 /* fonts */,
 				73D4357F13D71596000293CE /* FreeWRL */,
 				73D4357813D71596000293CE /* Frameworks */,
 				73D4357613D71596000293CE /* Products */,
@@ -940,6 +943,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				73D4358413D71596000293CE /* InfoPlist.strings in Resources */,
+				9146933B20C5D32100236D26 /* fonts in Resources */,
 				73D4358A13D71596000293CE /* Credits.rtf in Resources */,
 				73CE189613D71AAD0038EB81 /* MainMenu.xib in Resources */,
 				73ADF1A613D9C34500154A27 /* X3DFreeWRLIcon.icns in Resources */,
@@ -1121,6 +1125,7 @@
 		73D4359113D71596000293CE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				/opt/local/include/freetype2/ = /opt/local/include/freetype2/;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1142,10 +1147,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"HEADER_SEARCH_PATHS[sdk=macosx*]" = /opt/local/include;/opt/local/include/freetype2/;
+				"HEADER_SEARCH_PATHS[sdk=macosx*]" = /opt/local/include;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				ONLY_ACTIVE_ARCH = YES;
-				"OTHER_CFLAGS[sdk=macosx*]" = "-I/opt/local/include/ -I/opt/local/include/freetype2/";
+				"OTHER_CFLAGS[sdk=macosx*]" = (
+					"-I/opt/local/include/",
+					"-I/opt/local/include/freetype2/",
+				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = "-L/opt/local/lib/";
 				SDKROOT = macosx;
 			};
@@ -1154,6 +1162,7 @@
 		73D4359213D71596000293CE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				/opt/local/include/freetype2/ = /opt/local/include/freetype2/;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1171,9 +1180,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"HEADER_SEARCH_PATHS[sdk=macosx*]" = /opt/local/include;/opt/local/include/freetype2/;
+				"HEADER_SEARCH_PATHS[sdk=macosx*]" = /opt/local/include;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				"OTHER_CFLAGS[sdk=macosx*]" = "-I/opt/local/include/ -I/opt/local/include/freetype2/";
+				"OTHER_CFLAGS[sdk=macosx*]" = (
+					"-I/opt/local/include/",
+					"-I/opt/local/include/freetype2/",
+				);
 				"OTHER_LDFLAGS[arch=*]" = "-L/opt/local/lib/";
 				SDKROOT = macosx;
 			};
