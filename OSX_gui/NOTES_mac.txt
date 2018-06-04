@@ -1,0 +1,85 @@
+June 2018 we are building via xcode IDE the freewrl-desktop.
+
+Links
+http://dug9.users.sourceforge.net/web3d/tests/2.wrl
+/Users/doug/source2/freewrl/freewrl/tests/2.wrl
+https://www.macports.org/ports.php
+Has:
+sudo port -t install Imlib2
+- Imlib2
+- with a zillion dependencies, including freetype2, libxml2
+- add /opt/local/lib/imlib2.dylib 
+- it defines IMLIB2 somehow
+- works
+- also pulls freetype2
+- add /opt/local/lib libfreetype to build, works
+malloc and libcurl are in /usr/lib /include
+- add apple libcurl.tbd to build;
+- config.h define HAVE_LIBCURL. works
+sudo port -t install freealut
+- another trillion dependencies, including openal-soft
+- add /opt/local/lib/libalut.dylib and libopenal.dylib 
+- config.h define HAVE_ALUT, HAVE_OPENAL. they work
+sudo port -t install ffmpeg
+- just a billion dependencies
+- config.h define MOVIETEXTURE_FFMPEG
+- add libs from /opt/local/lib to build:
+libavcodec.dylib
+libavformat.dylib
+libavutil.dylib
+libswscale.dylib
+libswresample.dylib
+- they work
+sudo port -t install ode
+- aka open dynamics engine for rigid body physics
+- no dependencies
+- config.h define WITH_RBP
+- add lib to build: /opt/local/lib/libode.dylib
+- works
+nurbs - for osx we use glu and the nurbs that comes with glu
+- config.h define NURBS_LIB
+
+https://developer.apple.com/library/content/documentation/Porting/Conceptual/PortingUnix/intro/intro.html
+- porting tips linux > mac
+
+tests
+sound:
+http://dug9.users.sourceforge.net/web3d/tests/sound/doppler.wrl
+http://dug9.users.sourceforge.net/web3d/tests/sound/mix_sounds.wrl
+http://dug9.users.sourceforge.net/web3d/tests/sound/sound_control.wrl
+http://dug9.users.sourceforge.net/web3d/tests/sound/spatialcone.wrl
+movie:
+http://dug9.users.sourceforge.net/web3d/tests/movietexture/movie_control.wrl
+rbp:
+http://dug9.users.sourceforge.net/web3d/tests/RBP/BallBounceSimpleB.x3d
+http://dug9.users.sourceforge.net/web3d/tests/RBP/BallJointC.x3d
+http://dug9.users.sourceforge.net/web3d/tests/RBP/MotorJointC.x3d
+http://dug9.users.sourceforge.net/web3d/tests/RBP/SliderJointB.x3d
+http://dug9.users.sourceforge.net/web3d/tests/RBP/BounceTrimeshB2.x3d
+nurbs:
+http://dug9.users.sourceforge.net/web3d/tests/NURBS/HoleCentered.x3d
+http://dug9.users.sourceforge.net/web3d/tests/NURBS/NurbsCurveB.x3d
+http://dug9.users.sourceforge.net/web3d/tests/NURBS/NurbsPatch.x3d
+http://dug9.users.sourceforge.net/web3d/tests/NURBS/NurbsPatchSurfaceExampleWithOahuTextureD.x3d
+http://dug9.users.sourceforge.net/web3d/tests/NURBS/nurbsswung.x3d
+
+git commands:
+git reset
+git checkout .
+git branch -m <newname>
+
+Build using the dylib dependencies installed in /opt/local/lib with 
+no attempt to do rpath tricks during linking - leave dependent on locals
+
+Deployment:
+https://github.com/auriamg/macdylibbundler/blob/master/README.md
+- macdylibbundler - download to folder macdylibbundler beside freewrl and run make
+in xcode right click on target freewrl.app, open folder with Finder, and copy 
+freewrl.app to a folder near build
+freewrl (source, .git)
+freewrl_deploy (put freewrl.app in here, and copy fixdylibs.sh in here)
+macdylibbundler (has dylibbundler executable)
+in freewrl_deploy sh fixdylibs.sh - will run for a few minutes, and 
+freewrl.app will swell to 50MB
+- then it should have all the dylibs needed from /opt/local/lib
+- and it should run if you hide the /opt/local/lib folder
