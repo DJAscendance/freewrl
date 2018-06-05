@@ -15,19 +15,19 @@
         <window title="FreeWRL" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="21" userLabel="Window">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" texturedBackground="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="576" y="906" width="480" height="360"/>
+            <rect key="contentRect" x="576" y="906" width="672" height="480"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1418"/>
             <value key="minSize" type="size" width="185" height="124"/>
             <view key="contentView" id="2">
-                <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
+                <rect key="frame" x="0.0" y="0.0" width="672" height="480"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <customView id="206" customClass="FWGLView">
-                        <rect key="frame" x="0.0" y="0.0" width="480" height="335"/>
+                        <rect key="frame" x="0.0" y="0.0" width="672" height="455"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                     </customView>
                     <textField verticalHuggingPriority="750" id="bmj-uK-XoU">
-                        <rect key="frame" x="50" y="336" width="430" height="24"/>
+                        <rect key="frame" x="50" y="456" width="622" height="24"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" usesSingleLineMode="YES" id="0O4-MF-QJP">
                             <font key="font" metaFont="system"/>
@@ -36,7 +36,7 @@
                         </textFieldCell>
                     </textField>
                     <button verticalHuggingPriority="750" id="REH-z7-cGm" customClass="BtnLoad">
-                        <rect key="frame" x="-6" y="329" width="62" height="32"/>
+                        <rect key="frame" x="-6" y="449" width="62" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="push" title="Load" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="iUo-E4-KVD">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
