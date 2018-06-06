@@ -1086,7 +1086,7 @@ JSBool _standardMFAssign(JSContext *cx,
 	/* SF* values that use this routine - check if we need to set valueChanged in private area */
 
 	if (type == FIELDTYPE_SFImage) {
-        	if ((ptr = (SFImageNative *)JS_GetPrivate(cx, obj)) == NULL) {
+        	if ((ptr = (SFImageNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
         	        printf( "JS_GetPrivate failed in standard MF assign.\n");
         	        return JS_FALSE;
         	}
@@ -1133,7 +1133,7 @@ _standardMFGetProperty(JSContext *cx,
 		AnyNative *ptr;
 		union anyVrml *any;
 		int sfsize, sftype;
-		if ((ptr = (AnyNative *)JS_GetPrivate(cx,obj)) == NULL) {
+		if ((ptr = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
 			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
@@ -1462,7 +1462,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 		union anyVrml *any;
 		char *str;
 		JSString *_str;
-		if((ptr = (AnyNative*)JS_GetPrivate(cx,obj)) == NULL){
+		if((ptr = (AnyNative*)JS_GetPrivateFw(cx,obj)) == NULL){
 			printf("in doMFToString - not a Native\n");
 			return JS_FALSE;
 		}
@@ -1772,7 +1772,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 		int sftype, sfsize;
 		int *valueChanged;
 
-		if ((ptr = (AnyNative *)JS_GetPrivate(cx,obj)) == NULL) {
+		if ((ptr = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
 			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
@@ -2022,7 +2022,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
            here's the call to find the parent for the above. */
 
 	me = obj;
-	par = JS_GetParent(cx, me);
+	par = JS_GetParentFw(cx, me);
 	while (par != NULL) {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("for obj %p: ",me);
@@ -2069,7 +2069,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 
 		}
 		me = par;
-		par = JS_GetParent(cx, me);
+		par = JS_GetParentFw(cx, me);
 	}
 	return JS_TRUE;
 
@@ -2377,7 +2377,7 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		int *valueChanged;
 		struct Shader_Script *script;
 		// = sm_get_script();
-		script = JS_GetPrivate(cx,obj);
+		script = JS_GetPrivateFw(cx,obj);
 
 		valueChanged = NULL;
 		value = NULL;
@@ -2479,7 +2479,7 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 		value = NULL;
 		struct Shader_Script *script;
 		// = sm_get_script();
-		script = JS_GetPrivate(cx,obj);
+		script = JS_GetPrivateFw(cx,obj);
 
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){
@@ -2503,7 +2503,7 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 					(*valueChanged) ++;
 			}else if (JSVAL_IS_OBJECT(*vp)) {
 				AnyNative *rhs;
-        		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
+        		if ((rhs = (AnyNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
 					//printf("in setECMANative, RHS was NOT native type \n");
         		}else{
 					//printf("in setECMANative, RHS was native type \n");

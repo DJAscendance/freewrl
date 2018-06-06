@@ -102,6 +102,70 @@ void jsUtils_init(struct tjsUtils *t){
 
 	}
 }
+
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data){
+	int iret = TRUE;
+#if JS_VERSION >= 186
+	JS_SetPrivate(obj, data);
+#else
+	iret = JS_SetPrivate(cx,obj,data);
+#endif
+	return iret;
+}
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp){
+#if JS_VERSION >= 186
+	return JS_NewGlobalObject(cx, clasp, NULL);
+#else
+	return JS_NewGlobalObject(cx,clasp);
+#endif
+}
+void * JS_GetPrivateFw(JSContext *cx,JSObject* obj){
+#if JS_VERSION >= 186
+	return JS_GetPrivate(obj);
+#else
+	return JS_GetPrivate(cx,obj);
+#endif
+}
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *obj){
+#if JS_VERSION >= 186
+	return JS_GetParent(obj);
+#else
+	return JS_GetParent(cx,obj);
+#endif
+}
+
+JSObject * 
+JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, 
+                                JSObject *parent, unsigned argc, jsval *argv) 
+{ 
+    JSObject *global = JS_GetGlobalForScopeChain(cx); 
+    jsval v; 
+    if (!global || !JS_GetProperty(cx, global, clasp->name, &v)) 
+        return NULL; 
+    if (JSVAL_IS_PRIMITIVE(v)) { 
+        JS_ReportError(cx, "cannot construct object: constructor is gone"); 
+        return NULL; 
+    } 
+    return JS_New(cx, JSVAL_TO_OBJECT(v), argc, argv); 
+} 
+
+JSObject * 
+JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent) 
+{ 
+    return JS_ConstructObjectWithArgumentsFw(cx, clasp, parent, 0, NULL); 
+} 
+JSClass* JS_GetClassFw(JSContext *cx, JSObject *obj){
+	return JS_GetClass(obj);
+}
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj){
+#if JS_VERSION >= 186
+	return JS_GetPrototype(obj);
+#else
+	return JS_GetPrototype(cx,obj);
+#endif
+}
+
+
 //	ppjsUtils p = (ppjsUtils)gglobal()->jsUtils.prv;
 #if JS_VERSION < 185
 static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
@@ -164,7 +228,7 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 
 	/* copy this value out to the X3D scene graph */
 	me = obj;
-	par = JS_GetParent(cx, me);
+	par = JS_GetParentFw(cx, me);
 	while (par != NULL) {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("for obj %u: ",me);
@@ -211,7 +275,7 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 
 		}
 		me = par;
-		par = JS_GetParent(cx, me);
+		par = JS_GetParentFw(cx, me);
 	}
 	p->insetSFStr = FALSE;
 	return JS_TRUE;
@@ -309,7 +373,7 @@ void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsv
 	#endif
 
 	/* get a pointer to the internal private data */
-	if ((VPtr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+	if ((VPtr = JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
 		printf( "JS_GetPrivate failed in JS_SF_TO_X3D.\n");
 		return;
 	}
@@ -350,7 +414,7 @@ void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, 
 	union anyVrml *anyv;
 
 	/* get a pointer to the internal private data */
-	if ((ptr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+	if ((ptr = JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
 		printf( "JS_GetPrivate failed in JS_SF_TO_X3D_B.\n");
 		return;
 	}
@@ -486,7 +550,7 @@ void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, in
 
 	}
 	/* get a pointer to the internal private data */
-	if ((VPtr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+	if ((VPtr = JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
 		printf( "JS_GetPrivate failed in X3D_SF_TO_JS.\n");
 		return;
 	}
@@ -568,7 +632,7 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 			return;
 		}
 
-		if (!JS_SetPrivate(cx, newobj, ptr)) {
+		if (!JS_SetPrivateFw(cx, newobj, ptr)) {
 			printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
 			return;
 		}
@@ -920,7 +984,7 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 			return;
 		}
 
-		if (!JS_SetPrivate(cx, newobj, ptr)) {
+		if (!JS_SetPrivateFw(cx, newobj, ptr)) {
 			printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
 			return;
 		}
@@ -931,7 +995,7 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 			//check if ptr is on object constructed from newval, or is it just on the object?
 			AnyNative *ptr2;
 			JSObject *obj2 = JSVAL_TO_OBJECT(*newval);
-			if( (ptr2 = (AnyNative*)JS_GetPrivate(cx,obj2)) == NULL){
+			if( (ptr2 = (AnyNative*)JS_GetPrivateFw(cx,obj2)) == NULL){
 				printf("native pointer doesn't survive reduction to jsval\n");
 			}else{
 				printf("OK native pointer survives reduction to jsval");
@@ -1080,7 +1144,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	printf ("\ngetSFNodeField called on name %s object %u\n",_id_c, obj);
 	#endif
 
-        if ((ptr = (SFNodeNative *)JS_GetPrivate(context, obj)) == NULL) {
+        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(context, obj)) == NULL) {
                 printf( "JS_GetPrivate failed in getSFNodeField.\n");
 #if JS_VERSION >= 185
 		JS_free(context,_id_c);
@@ -1290,7 +1354,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	#endif
 
 	/* get the private data. This will contain a pointer into the FreeWRL scenegraph */
-        if ((ptr = (SFNodeNative *)JS_GetPrivate(context, obj)) == NULL) {
+        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(context, obj)) == NULL) {
                 printf( "JS_GetPrivate failed in setSFNodeField.\n");
 #if JS_VERSION >= 185
 		JS_free(context,_id_c);
@@ -1434,7 +1498,7 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
 		#endif
 
 		/* have we already done this for this node? We really do not want to do this again */
-		if ((nodeNative = (SFNodeNative *)JS_GetPrivate(context,object)) == NULL) {
+		if ((nodeNative = (SFNodeNative *)JS_GetPrivateFw(context,object)) == NULL) {
 			printf ("JS_DefineSFNodeSpecificProperties, can not get private for a SFNode!\n");
 			return JS_FALSE;
 		}
@@ -1567,7 +1631,7 @@ holding object needs to route to FreeWRL... */
 			return JS_FALSE; \
 		} \
 \
-		if ((ptr = (thisSFtype##Native *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {\
+		if ((ptr = (thisSFtype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {\
 			printf( "JS_GetPrivate failed in assignCheck.\n"); \
 			return JS_FALSE; \
 		} else { \

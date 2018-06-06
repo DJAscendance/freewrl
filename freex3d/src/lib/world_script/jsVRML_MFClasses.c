@@ -76,7 +76,7 @@ JS_MY_Finalize(JSContext *cx, JSObject *obj)
 
 	REMOVE_ROOT(cx,obj)
 
-	if ((ptr = (void *)JS_GetPrivate(cx, obj)) != NULL) {
+	if ((ptr = (void *)JS_GetPrivateFw(cx, obj)) != NULL) {
 		/*
 		if(SM_method() == 0)
 			FREE_IF_NZ (ptr);
@@ -182,7 +182,7 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			printf( "AnyfNativeNew failed in MFColorConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFColorConstr.\n");
 			return JS_FALSE;
 		}
@@ -222,7 +222,7 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFColorClass)
 		if(SM_method()==2){
 			AnyNative *any2;
-			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+			if((any2 = JS_GetPrivateFw(cx,_obj)) != NULL){
 				//2018 I think as long as its 3+ contiguous floats, we can use it as a color, 
 				// but in future internal types might change
 				if(any2->type == FIELDTYPE_SFColor || any2->type == FIELDTYPE_SFVec3f || any2->type == FIELDTYPE_SFColorRGBA){
@@ -359,7 +359,7 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			printf( "AnyfNativeNew failed in MFFloatConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFFloatConstr.\n");
 			return JS_FALSE;
 		}
@@ -533,7 +533,7 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			printf( "AnyfNativeNew failed in MFInt32Constr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFInt32Constr.\n");
 			return JS_FALSE;
 		}
@@ -721,7 +721,7 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 			printf( "AnyfNativeNew failed in MFNodeConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFNodeConstr.\n");
 			return JS_FALSE;
 		}
@@ -761,7 +761,7 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 			CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFNodeClass)
 			if(SM_method()==2){
 				AnyNative *any2;
-				if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+				if((any2 = JS_GetPrivateFw(cx,_obj)) != NULL){
 					if(any2->type == FIELDTYPE_SFNode){
 						shallow_copy_field(FIELDTYPE_SFNode,any2->v,(union anyVrml*)&anyv->mfnode.p[i]);
 						anyv->mfnode.n = i+1;
@@ -918,7 +918,7 @@ JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 			printf( "AnyfNativeNew failed in MFTimeConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFTimeConstr.\n");
 			return JS_FALSE;
 		}
@@ -1084,7 +1084,7 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			printf( "AnyfNativeNew failed in MFVec2fConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFVec2fConstr.\n");
 			return JS_FALSE;
 		}
@@ -1123,7 +1123,7 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFVec2fClass)
 		if(SM_method()==2){
 			AnyNative *any2;
-			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+			if((any2 = JS_GetPrivateFw(cx,_obj)) != NULL){
 				//2018 I think as long as its 2+ contiguous floats, we can use it as a vec2f, 
 				// but in future internal types might change
 				if(any2->type == FIELDTYPE_SFVec2f || any2->type == FIELDTYPE_SFColor || any2->type == FIELDTYPE_SFVec3f || any2->type == FIELDTYPE_SFColorRGBA){
@@ -1258,7 +1258,7 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 			printf( "AnyfNativeNew failed in MFVec3fConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFVec3fConstr.\n");
 			return JS_FALSE;
 		}
@@ -1296,7 +1296,7 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 
 		if(SM_method()==2){
 			AnyNative *any2;
-			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+			if((any2 = JS_GetPrivateFw(cx,_obj)) != NULL){
 				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
 				// but in future internal types might change
 				if(any2->type == FIELDTYPE_SFVec3f || any2->type == FIELDTYPE_SFColor || any2->type == FIELDTYPE_SFColorRGBA){
@@ -1483,7 +1483,7 @@ VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
 	if (transObj!=NULL) {
 		CHECK_CLASS(cx,transObj,NULL,__FUNCTION__,SFVec3fClass)
 
-		if ((Vptr = (SFVec3fNative *)JS_GetPrivate(cx, transObj)) == NULL) {
+		if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj)) == NULL) {
 			printf( "JS_GetPrivate failed.\n");
 			return JS_FALSE;
 		}
@@ -1498,7 +1498,7 @@ VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
 
 		CHECK_CLASS(cx,rotObj,NULL,__FUNCTION__,SFRotationClass)
 
-		if ((Rptr = (SFRotationNative*)JS_GetPrivate(cx, rotObj)) == NULL) {
+		if ((Rptr = (SFRotationNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
 			printf( "JS_GetPrivate failed.\n");
 			return JS_FALSE;
 		}
@@ -1526,7 +1526,7 @@ VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
 	if (scaleObj != NULL) {
 		CHECK_CLASS(cx,scaleObj,NULL,__FUNCTION__,SFVec3fClass)
 
-		if ((Vptr = (SFVec3fNative*)JS_GetPrivate(cx, scaleObj)) == NULL) {
+		if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
 			printf( "JS_GetPrivate failed.\n");
 			return JS_FALSE;
 		}
@@ -1632,7 +1632,7 @@ VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
 	/* apply Transform, if requested */
 	if (transObj) {
 		SFVec3fNative * Vptr;
-		Vptr = (SFVec3fNative *)JS_GetPrivate(cx, transObj);
+		Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj);
 		error = (Vptr == NULL);
 	
 		if (!error) {
@@ -1644,7 +1644,7 @@ VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
 
 	if (!error && (rotObj != NULL)) {
 		SFRotationNative * Rptr;
-                Rptr = (SFRotationNative *)JS_GetPrivate(cx, rotObj);
+                Rptr = (SFRotationNative *)JS_GetPrivateFw(cx, rotObj);
 		error = (Rptr == NULL);
 	
 		if (!error) {
@@ -1658,7 +1658,7 @@ VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
 
 	if (!error && (scaleObj != NULL)) {
 		SFVec3fNative * Vptr;
-                Vptr = (SFVec3fNative *)JS_GetPrivate(cx, scaleObj);
+                Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, scaleObj);
 		error = (Vptr == NULL);
 
 		if (!error) {
@@ -1716,7 +1716,7 @@ VrmlMatrixinverse(JSContext *cx, uintN argc, jsval *vp) {
 	_getmatrix (cx, obj,src);
 	matinverseFULL (dest,src);
 
-        retObj = JS_ConstructObject(cx,&VrmlMatrixClass,NULL, NULL);
+        retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
 
         _setmatrix(cx,retObj,dest);
 #if JS_VERSION < 185
@@ -1748,7 +1748,7 @@ VrmlMatrixtranspose(JSContext *cx, uintN argc, jsval *vp) {
 	_getmatrix (cx, obj,src);
 	mattranspose (dest,src);
 
-        retObj = JS_ConstructObject(cx,&VrmlMatrixClass,NULL, NULL);
+        retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
 
         _setmatrix(cx,retObj,dest);
 #if JS_VERSION < 185
@@ -1792,7 +1792,7 @@ VrmlMatrixmultLeft(JSContext *cx, uintN argc, jsval *vp) {
 	_getmatrix(cx,transObj,matrix2);
 	matmultiplyFULL(matrix1,matrix1,matrix2);
 
-	retObj = JS_ConstructObject(cx,&VrmlMatrixClass,NULL, NULL);
+	retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
 
 	/*
        printf ("multLeft calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
@@ -1842,7 +1842,7 @@ VrmlMatrixmultRight(JSContext *cx, uintN argc, jsval *vp) {
 	_getmatrix(cx,transObj,matrix2);
 	matmultiplyFULL(matrix1,matrix2,matrix1);
 
-	retObj = JS_ConstructObject(cx,&VrmlMatrixClass,NULL, NULL);
+	retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
 
 	/*
        printf ("multRight calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
@@ -1885,7 +1885,7 @@ VrmlMatrixmultVecMatrix(JSContext *cx, uintN argc, jsval *vp) {
 
 	if (!error) if (!JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL)) { error = TRUE;}	
 
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivate(cx, transObj)) == NULL) {
+	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj)) == NULL) {
 		error = TRUE;
 	}
 
@@ -1904,8 +1904,8 @@ VrmlMatrixmultVecMatrix(JSContext *cx, uintN argc, jsval *vp) {
 	
 	matrotate2v(matrix1, inp, outp);
 
-	retObj = JS_ConstructObject(cx,&SFVec3fClass,NULL, NULL);
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivate(cx, retObj)) == NULL) {
+	retObj = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, NULL);
+	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, retObj)) == NULL) {
 		printf ("error in new VrmlMatrix\n");
 		return JS_FALSE;
 	}
@@ -1944,7 +1944,7 @@ VrmlMatrixmultMatrixVec(JSContext *cx, uintN argc, jsval *vp) {
 
 	if (!error) if (!JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL)) { error = TRUE;}	
 
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivate(cx, transObj)) == NULL) {
+	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj)) == NULL) {
 		error = TRUE;
 	}
 
@@ -1963,8 +1963,8 @@ VrmlMatrixmultMatrixVec(JSContext *cx, uintN argc, jsval *vp) {
 	
 	matrotate2v(matrix1, inp, outp);
 
-	retObj = JS_ConstructObject(cx,&SFVec3fClass,NULL, NULL);
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivate(cx, retObj)) == NULL) {
+	retObj = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, NULL);
+	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, retObj)) == NULL) {
 		printf ("error in new VrmlMatrix\n");
 		return JS_FALSE;
 	}
@@ -2256,7 +2256,7 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 			printf( "AnyfNativeNew failed in MFRotationConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFRotationConstr.\n");
 			return JS_FALSE;
 		}
@@ -2295,7 +2295,7 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 		CHECK_CLASS(cx,_obj,NULL,__FUNCTION__,SFRotationClass)
 		if(SM_method()==2){
 			AnyNative *any2;
-			if((any2 = JS_GetPrivate(cx,_obj)) != NULL){
+			if((any2 = JS_GetPrivateFw(cx,_obj)) != NULL){
 				if(any2->type == FIELDTYPE_SFRotation ){
 					shallow_copy_field(FIELDTYPE_SFRotation,any2->v,(union anyVrml*)&anyv->mfrotation.p[i]);
 					anyv->mfrotation.n = i+1;
@@ -2580,7 +2580,7 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 			printf( "AnyfNativeNew failed in MFStringConstr.\n");
 			return JS_FALSE;
 		}
-		if (!JS_SetPrivate(cx, obj, any)) {
+		if (!JS_SetPrivateFw(cx, obj, any)) {
 			printf( "JS_SetPrivate failed in MFStringConstr.\n");
 			return JS_FALSE;
 		}
