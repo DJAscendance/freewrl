@@ -81,7 +81,7 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #if JS_VERSION == 186 
 // spidermonkey 17 -last C interface version- is 186
 // https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Releases/17
-// could alternatively define in preprocessor parameters MOZ_CUSTOM_STDINT_H and jsapi will define
+// could alternatively define in preprocessor parameters MOZ_CUSTOM_STDINT_H and jsapi will define, tried but didn't build
 // instead for debugging / tinkering we will define here
 #define uintN unsigned
 #define intN int
@@ -92,11 +92,15 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #define JS_FinalizeStub NULL
 #define JSSCRIPT2 JSScript
 #define JS_GET_CLASS JS_GetClassFw
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
+
 #endif
 #else
 #define JSSCRIPT JSScript
 #define JSSCRIPT2 JSObject
 #endif
+
 
 #define JS_GET_PROPERTY_STUB JS_PropertyStub
 /* #define JS_GET_PROPERTY_STUB js_GetPropertyDebug */

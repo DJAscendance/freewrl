@@ -53,7 +53,6 @@
 #include "jsVRMLClasses.h"
 
 
-
 /********************************************************/
 /*							*/
 /* first part - standard helper functions		*/
@@ -2058,6 +2057,17 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				printf("doMFSetProperty: JS_ValueToId failed.\n");
 				return JS_FALSE;
 			}
+			#if JS_VERSION == 186
+			{
+				JSHandleObject hobj;
+				JSHandleId hiid; 
+				JSMutableHandleValue hvp;
+				hobj._ = &par;
+				hiid._ = &oid;
+				hvp._ = &nf;
+				setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
+			}
+			#else
 
 			if (!setSFNodeField (cx, par, oid,
 #if JS_VERSION >= 185
@@ -2066,6 +2076,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 			    &nf)) {
 				printf ("could not set field of SFNode\n");
 			}
+			#endif
 
 		}
 		me = par;
@@ -2126,11 +2137,14 @@ doMFStringUnquote(JSContext *cx, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-globalResolve(JSContext *cx, JSObject *obj, jsval id)
+globalResolve(JSContext *cx, JSObject *obj, jsval id){
+#elif JS_VERSION == 185
+globalResolve(JSContext *cx, JSObject *obj, jsid id){
 #else
-globalResolve(JSContext *cx, JSObject *obj, jsid id)
+globalResolve(JSContext *cx, JSHandleObject hobj, JSHandleId hiid){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
 #endif
-{
 	UNUSED(cx);
 	UNUSED(obj);
 	UNUSED(id);
@@ -2270,7 +2284,7 @@ void setInECMATable(JSContext *context, char *toFind) {
 	p->ECMAValues[p->maxECMAVal-1].JS_address = (jsval) toFind;
 #else
 	/* since this seems to never be used anyways .. */
-	p->ECMAValues[p->maxECMAVal-1].JS_address = JSVAL_ZERO;
+	p->ECMAValues[p->maxECMAVal-1].JS_address = INT_TO_JSVAL(0); //JSVAL_ZERO;
 #endif
 	p->ECMAValues[p->maxECMAVal-1].valueChanged = TRUE;
 	p->ECMAValues[p->maxECMAVal-1].name = STRDUP(toFind);
@@ -2316,11 +2330,15 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 
 JSBool
 #if JS_VERSION < 185
-getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+getECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	if(SM_method() == 2){
 
 	//printf("in getECMANative\n");
@@ -2440,11 +2458,15 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+setECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	JSString *_idStr;
 	JSString *_vpStr, *_newVpStr;
 	JSBool ret = JS_TRUE;
@@ -2607,11 +2629,16 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 /* used mostly for debugging */
 JSBool
 #if JS_VERSION < 185
-getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+getAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	//printf("in getAssignProperty\n");
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_idStr, *_vpStr;
@@ -2653,11 +2680,15 @@ getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 /* a kind of hack to replace the use of JSPROP_ASSIGNHACK */
 JSBool
 #if JS_VERSION < 185
-setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+setAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	JSObject *_o;
 	JSString *_str;
 	const uintN _argc = 2;

@@ -57,12 +57,11 @@ Javascript C language binding.
 
 #include "JScript.h"
 #include "CScripts.h"
-#include "fieldSet.h"
 #include "jsUtils.h"
+#include "fieldSet.h"
 #include "jsNative.h"
 #include "jsVRMLClasses.h"
 #include "jsVRMLBrowser.h"
-
 
 
 #define X3DBROWSER 1
@@ -86,6 +85,7 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
 #else
 BrowserGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
 #endif
+
 JSBool
 #if JS_VERSION < 185
 BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
@@ -228,11 +228,16 @@ typedef struct intTableIndex{
 
 JSBool
 #if JS_VERSION < 185
-ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ComponentInfoGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	IntTableIndex ptr;
 	int _index, *_table, _nameIndex;
 	jsval rval;
@@ -291,11 +296,15 @@ ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ComponentInfoSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -321,7 +330,7 @@ static JSClass ComponentInfoClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    ComponentInfoFinalize //JS_FinalizeStub
+    JS_FinalizeStub, //ComponentInfoFinalize //JS_FinalizeStub
 };
 
 static JSPropertySpec (ComponentInfoProperties)[] = {
@@ -341,11 +350,16 @@ static JSPropertySpec (ComponentInfoProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ComponentInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	int *_table;
 	jsval rval;
 	jsval id;
@@ -407,10 +421,14 @@ ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 JSBool
 #if JS_VERSION < 185
 ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+#elif JS_VERSION == 185
+ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ComponentInfoArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -444,11 +462,16 @@ static JSPropertySpec (ComponentInfoArrayProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ProfileInfoGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	int *ptr;
 	int _index;
 	jsval rval;
@@ -528,10 +551,14 @@ ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 JSBool
 #if JS_VERSION < 185
 ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+#elif JS_VERSION == 185
+ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ProfileInfoSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -566,11 +593,16 @@ static JSPropertySpec (ProfileInfoProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ProfileInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	jsval rval;
 	jsval id;
 
@@ -622,11 +654,15 @@ ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ProfileInfoArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -664,11 +700,15 @@ int getCRouteCount();
 
 JSBool
 #if JS_VERSION < 185
-X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+X3DRouteGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	int *ptr;
 	int _index;
 	JSString *_str;
@@ -767,11 +807,15 @@ X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+X3DRouteSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -806,11 +850,16 @@ static JSPropertySpec (X3DRouteProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+RouteArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	jsval rval;
 	jsval id;
 
@@ -862,11 +911,15 @@ RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-RouteArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+RouteArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+RouteArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-RouteArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+RouteArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -939,11 +992,15 @@ typedef struct X3D_Node * ExecutionContextNative;
 
 JSBool
 #if JS_VERSION < 185
-ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ExecutionContextGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	ExecutionContextNative *ptr;
 	JSString *_str;
 	jsval rval;
@@ -1113,11 +1170,15 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ExecutionContextSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -1786,7 +1847,7 @@ VrmlBrowserLoadURL(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = INT_TO_JSVAL(0);
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO); 
 #endif
 
 	return JS_TRUE;
@@ -1820,7 +1881,7 @@ VrmlBrowserSetDescription(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 		*rval = INT_TO_JSVAL(0);
 #else
-		JS_SET_RVAL(context,vp,JSVAL_ZERO);
+		JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	} else {
 		printf( "\nIncorrect argument format for setDescription(%s).\n", _c_args);
@@ -2073,7 +2134,7 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = INT_TO_JSVAL(0);
 #else
-	*rval = JSVAL_ZERO;
+	*rval = INT_TO_JSVAL(0); //JSVAL_ZERO;
 #endif
 
 	/* first parameter - expect a MFString Object here */
@@ -2247,7 +2308,7 @@ VrmlBrowserAddRoute(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = _rval;
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	return JS_TRUE;
 }
@@ -2309,7 +2370,7 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = _rval;
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	return JS_TRUE;
 }
@@ -2351,7 +2412,7 @@ VrmlBrowserDeleteRoute(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = _rval;
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	return JS_TRUE;
 }

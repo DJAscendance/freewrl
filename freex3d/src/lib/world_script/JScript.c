@@ -54,8 +54,6 @@ Javascript C language binding.
 #include "jsVRMLBrowser.h"
 
 
-
-
 #ifndef JSCLASS_GLOBAL_FLAGS
 //spidermonkey < 1.7 doesn't have so define here
 #define JSCLASS_GLOBAL_FLAGS 0
@@ -296,7 +294,11 @@ void sm_JSDeleteScriptContext(int num){
 		JS_RemoveObjectRoot(ScriptControl->cx,(JSSCRIPT **)(&ScriptControl->eventsProcessed));
 	}
 #endif
+#if JS_VERSION < 186
 	JS_DestroyContextMaybeGC(ScriptControl->cx);
+#else
+	JS_DestroyContext(ScriptControl->cx);
+#endif
 }
 void sm_jsShutdown(){
 	ttglobal tg = gglobal();

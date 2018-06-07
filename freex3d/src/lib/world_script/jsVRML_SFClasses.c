@@ -60,7 +60,6 @@
 //#include "JScript.h"
 
 
-
 /********************************************************/
 /*							*/
 /* Second part - SF classes				*/
@@ -436,11 +435,17 @@ SFColorConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFColorGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFColorGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFColorGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFColorGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFColorGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
+
 #endif
-{
+
 	jsdouble d;
 	float *cc;
 
@@ -503,11 +508,16 @@ SFColorGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFColorSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFColorSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFColorSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFColorSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFColorSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	jsval _val;
 	float *cc;
 
@@ -864,11 +874,18 @@ SFColorRGBAConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
+	//jsval id;
 #else
-SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFColorRGBAGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
+	//jsval id = JS_NumberValue(0.0); = INT_TO_JSVAL(0)
 #endif
-{
+
 	jsdouble d;
 	float *cc;
 
@@ -879,6 +896,7 @@ SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		return JS_FALSE;
 	}
 #endif
+
 	if(SM_method()==2){
 		AnyNative *any;
 		if ((any = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
@@ -895,6 +913,7 @@ SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		cc = ptr->v.c;
 	}
 	if (JSVAL_IS_INT(id)) {
+		int kk = 1;
 		switch (JSVAL_TO_INT(id)) {
 		case 0:
 			d = cc[0];
@@ -939,11 +958,16 @@ SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFColorRGBASetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFColorRGBASetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFColorRGBASetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFColorRGBASetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFColorRGBASetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	jsval _val;
 	float *cc;
 
@@ -1242,17 +1266,29 @@ SFImageAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
 	return doMFAddProperty(cx, obj, id, vp, "SFImage"); //FIXME: is this ok ??? "SFImageAddProperty");
 }
 
-JSBool
-SFImageGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
+#if JS_VERSION < 186
+JSBool SFImageGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
+#else
+JSBool SFImageGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
+#endif
 	return _standardMFGetProperty(cx, obj, id, vp, "_FreeWRL_Internal = 0", FIELDTYPE_SFImage); //FIXME: is this ok ???  "SFImage");
 }
+
 
 JSBool
 #if JS_VERSION < 185
 SFImageSetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
+#elif JS_VERSION == 185
+SFImageSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
 #else
-SFImageSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
-#endif
+SFImageSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
+#endif	
 	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_SFImage);
 }
 
@@ -1834,8 +1870,12 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 /* undef JSVRMLCLASSESVERBOSE */
 
 void
-SFNodeFinalize(JSContext *cx, JSObject *obj)
-{
+#if JS_VERSION < 186
+SFNodeFinalize(JSContext *cx, JSObject *obj){
+#else
+SFNodeFinalize(JSFreeOp *fop, JSObject *obj){
+JSContext *cx = NULL;
+#endif
 	SFNodeNative *ptr;
 	AnyNative *any;
 
@@ -1881,11 +1921,16 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
 JSBool
 #if JS_VERSION < 185
-SFNodeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFNodeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFNodeGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 
 	/* We can't really get a property of a SFNode. There are no sub-indexes, etc...
 	   so we don't do anything. Check out SFVec3fGetProperty to see how it handles
@@ -2083,11 +2128,15 @@ void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char 
 void JS_MF_TO_X3D(JSContext *cx, JSObject * obj, void *Data, int dataType, jsval *newval);
 JSBool
 #if JS_VERSION < 185
-SFNodeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFNodeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFNodeSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	JSString *_idStr, *_valStr;
 	char *_id_c, *_val_c;
 	SFNodeNative *ptr;
@@ -3161,7 +3210,7 @@ SFRotationAssign(JSContext *cx, uintN argc, jsval *vp) {
 	#if JS_VERSION < 185
 			*rval = 0;
 	#else
-			JS_SET_RVAL(cx,vp,JSVAL_VOID);
+			JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
 	#endif
 		} else {
 
@@ -3353,11 +3402,15 @@ SFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFRotationGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFRotationGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFRotationGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFRotationGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFRotationGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsdouble d;
 	float *cc;
 #if JS_VERSION >= 185
@@ -3431,11 +3484,15 @@ SFRotationGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFRotationSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFRotationSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFRotationSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFRotationSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFRotationSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsval myv;
 	float *cc;
 
@@ -4010,11 +4067,15 @@ SFVec2fConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFVec2fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsdouble d;
 	float *cc;
 #if JS_VERSION >= 185
@@ -4068,11 +4129,15 @@ SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFVec2fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec2fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec2fSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFVec2fSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFVec2fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsval myv;
 	float *cc;
 
@@ -4740,11 +4805,15 @@ SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFVec3fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec3fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec3fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFVec3fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFVec3fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsdouble d;
 	float *cc;
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -4830,11 +4899,15 @@ SFVec3fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFVec3fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec3fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec3fSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFVec3fSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFVec3fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsval myv;
 	float *cc;
 #if JS_VERSION >= 185
@@ -5479,11 +5552,15 @@ SFVec3dConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFVec3dGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec3dGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec3dGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFVec3dGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFVec3dGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	double *cc;
 	jsdouble d;
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -5568,11 +5645,15 @@ SFVec3dGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFVec3dSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec3dSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec3dSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFVec3dSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFVec3dSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	double *cc;
 	jsval myv;
 #if JS_VERSION >= 185
@@ -5846,11 +5927,15 @@ SFVec4fConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFVec4fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec4fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec4fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFVec4fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFVec4fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsdouble d;
 	float *cc;
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -5946,11 +6031,15 @@ SFVec4fGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFVec4fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec4fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec4fSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFVec4fSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFVec4fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsval myv;
 	float *cc;
 
@@ -6233,11 +6322,15 @@ SFVec4dConstr(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 #if JS_VERSION < 185
-SFVec4dGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec4dGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec4dGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-SFVec4dGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+SFVec4dGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsdouble d;
 	double *cc;
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -6329,11 +6422,15 @@ SFVec4dGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+SFVec4dSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	jsval myv;
 	double *cc;
 

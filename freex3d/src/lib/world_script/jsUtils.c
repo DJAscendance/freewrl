@@ -57,7 +57,6 @@ which is the sample application included with the javascript engine.
 #endif
 
 
-
 #ifdef WANT_OSC
 	#include "../scenegraph/ringbuf.h"
 	#define USE_OSC 1
@@ -99,7 +98,6 @@ void jsUtils_init(struct tjsUtils *t){
 		ppjsUtils p = (ppjsUtils)t->prv;
 		p->insetSFStr = FALSE;
 		p->reportWarnings = JS_TRUE;
-
 	}
 }
 
@@ -133,6 +131,15 @@ JSObject* JS_GetParentFw(JSContext *cx, JSObject *obj){
 	return JS_GetParent(cx,obj);
 #endif
 }
+
+#if JS_VERSION > 185
+//https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_NewNumberValue
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval){
+	*rval = JS_NumberValue(d);
+	return JS_TRUE;
+}
+
+#endif
 
 JSObject * 
 JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, 
@@ -169,8 +176,13 @@ JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj){
 //	ppjsUtils p = (ppjsUtils)gglobal()->jsUtils.prv;
 #if JS_VERSION < 185
 static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#else
+#elif JS_VERSION == 185
 static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp) {
+#else
+static JSBool setSF_in_MF (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	int num;
 	jsval pf;
@@ -264,7 +276,17 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 				printf("setSF_in_MF: JS_ValueToId failed.\n");
 				return JS_FALSE;
 			}
-
+			#if JS_VERSION == 186
+			{
+				JSHandleObject hobj;
+				JSHandleId hiid; 
+				JSMutableHandleValue hvp;
+				hobj._ = &par;
+				hiid._ = &oid;
+				hvp._ = &nf;
+				setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
+			}
+			#else
 			if (!setSFNodeField (cx, par, oid,
 #if JS_VERSION >= 185
 			   JS_FALSE,
@@ -272,7 +294,7 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 			   &nf)) {
 				printf ("could not set field of SFNode\n");
 			}
-
+			#endif
 		}
 		me = par;
 		par = JS_GetParentFw(cx, me);
@@ -645,7 +667,6 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 
 	//}
 }
-
 
 /* make an MF type from the X3D node. This can be fairly slow... */
 void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
@@ -1118,7 +1139,14 @@ static int *getFOP (struct X3D_Node *node, const char *str) {
 
 
 /* getter for SFNode accesses */
-static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval *vp) {
+#if JS_VERSION <= 185
+static JSBool getSFNodeField(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
+#else
+static JSBool getSFNodeField(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
+#endif
 	//JSString *_idStr;
 	char *_id_c;
         SFNodeNative *ptr;
@@ -1127,16 +1155,16 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 
 	/* NOTE - caller is (eventually) a JS class constructor, no need to BeginRequest */
 
-	/* _idStr = JS_ValueToString(context, id); */
+	/* _idStr = JS_ValueToString(cx, id); */
 /* #if JS_VERSION < 185 */
 	/* _id_c = JS_GetStringBytes(_idStr); */
 /* #else */
-	/* _id_c = JS_EncodeString(context,_idStr); */
+	/* _id_c = JS_EncodeString(cx,_idStr); */
 /* #endif */
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(JSVAL_TO_STRING(id));
 #else
-	_id_c = JS_EncodeString(context,JSID_TO_STRING(id));
+	_id_c = JS_EncodeString(cx,JSID_TO_STRING(id));
 #endif
 
 	
@@ -1144,10 +1172,10 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	printf ("\ngetSFNodeField called on name %s object %u\n",_id_c, obj);
 	#endif
 
-        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(context, obj)) == NULL) {
+        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
                 printf( "JS_GetPrivate failed in getSFNodeField.\n");
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
                 return JS_FALSE;
         }
@@ -1161,7 +1189,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	if (node == NULL) {
 		printf ("getSFNodeField, can not set field \"%s\", NODE is NULL!\n",_id_c);
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
 		return JS_FALSE;
 	}
@@ -1226,7 +1254,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 				printf("getSFNodeField %d : fVal=%d\n",__LINE__,fVal);
 				#endif
 
-				JS_NewNumberValue(context,(double)fVal,vp);
+				JS_NewNumberValue(cx,(double)fVal,vp);
 				return JS_TRUE;
 			} else {
 				#if TRACK_FIFO_MSG
@@ -1249,7 +1277,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 				printf("getSFNodeField %d : strPtr=%s\n",__LINE__,strPtr);
 				#endif
 
-				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(context,strPtr));
+				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,strPtr));
 				return JS_TRUE;
 			} else {
 				#if TRACK_FIFO_MSG
@@ -1268,7 +1296,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	fieldOffsetsPtr = getFOP(ptr->handle,_id_c);
 	if (fieldOffsetsPtr == NULL) {
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
 		return JS_FALSE;
 	}
@@ -1277,7 +1305,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	printf ("getSFNodeField, fieldOffsetsPtr is %d for node %u, field %s\n",fieldOffsetsPtr, ptr->handle, _id_c);
 	#endif
 #if JS_VERSION >= 185
-	JS_free(context,_id_c);  /* _id_c is not used beyond this point in this fn */
+	JS_free(cx,_id_c);  /* _id_c is not used beyond this point in this fn */
 #endif
 
 
@@ -1294,7 +1322,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 		case FIELDTYPE_SFDouble:
 		case FIELDTYPE_SFInt32:
 		case FIELDTYPE_SFString:
-			X3D_ECMA_TO_JS(context, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
+			X3D_ECMA_TO_JS(cx, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
 				returnElementLength(*(fieldOffsetsPtr+2)), *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_SFColor:
@@ -1303,7 +1331,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 		case FIELDTYPE_SFVec3f:
 		case FIELDTYPE_SFVec3d:
 		case FIELDTYPE_SFRotation:
-			X3D_SF_TO_JS(context, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
+			X3D_SF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
 				returnElementLength(*(fieldOffsetsPtr+2)) * returnElementRowSize(*(fieldOffsetsPtr+2)) , *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_MFColor:
@@ -1316,7 +1344,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 		case FIELDTYPE_MFNode:
 		case FIELDTYPE_MFRotation:
 		case FIELDTYPE_SFImage:
-			X3D_MF_TO_JS(context, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
+			X3D_MF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
 				(char *)FIELDNAMES[*(fieldOffsetsPtr+0)]);
 			break;
 		default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", *(fieldOffsetsPtr+2)) ;
@@ -1332,9 +1360,14 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 
 /* setter for SFNode accesses */
 #if JS_VERSION < 185
-JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval *vp) {
+JSBool setSFNodeField (JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool setSFNodeField (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
 #else
-JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool setSFNodeField (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	char *_id_c;
         SFNodeNative *ptr;
@@ -1346,7 +1379,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(JSVAL_TO_STRING(id));
 #else
-	_id_c = JS_EncodeString(context,JSID_TO_STRING(id));
+	_id_c = JS_EncodeString(cx,JSID_TO_STRING(id));
 #endif
 	
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -1354,10 +1387,10 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	#endif
 
 	/* get the private data. This will contain a pointer into the FreeWRL scenegraph */
-        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(context, obj)) == NULL) {
+        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
                 printf( "JS_GetPrivate failed in setSFNodeField.\n");
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
                 return JS_FALSE;
         }
@@ -1368,7 +1401,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	if (node == NULL) {
 		printf ("setSFNodeField, can not set field \"%s\", NODE is NULL!\n",_id_c);
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
 		return JS_FALSE;
 	}
@@ -1394,7 +1427,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	/* get the table entry giving the type, offset, etc. of this field in this node */
 	fieldOffsetsPtr = getFOP(ptr->handle,_id_c);
 #if JS_VERSION >= 185
-	JS_free(context,_id_c); /* _id_c is not used beyond this point in this fn */
+	JS_free(cx,_id_c); /* _id_c is not used beyond this point in this fn */
 #endif
 	if (fieldOffsetsPtr == NULL) {
 		return JS_FALSE;
@@ -1416,7 +1449,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 		case FIELDTYPE_SFDouble:
 		case FIELDTYPE_SFInt32:
 		case FIELDTYPE_SFString:
-			JS_ECMA_TO_X3D(context, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
+			JS_ECMA_TO_X3D(cx, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
 				returnElementLength(*(fieldOffsetsPtr+2)), *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_SFColor:
@@ -1425,7 +1458,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 		case FIELDTYPE_SFVec3f:
 		case FIELDTYPE_SFVec3d:
 		case FIELDTYPE_SFRotation:
-			JS_SF_TO_X3D(context, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
+			JS_SF_TO_X3D(cx, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
 				returnElementLength(*(fieldOffsetsPtr+2)) * returnElementRowSize(*(fieldOffsetsPtr+2)) , *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_MFColor:
@@ -1438,7 +1471,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 		case FIELDTYPE_MFNode:
 		case FIELDTYPE_MFRotation:
 		case FIELDTYPE_SFImage:
-			JS_MF_TO_X3D(context, obj, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))), *(fieldOffsetsPtr+2), vp);
+			JS_MF_TO_X3D(cx, obj, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))), *(fieldOffsetsPtr+2), vp);
 			break;
 		default: printf ("unhandled type in setSFNodeField\n");
 		return JS_FALSE;
@@ -1644,8 +1677,13 @@ holding object needs to route to FreeWRL... */
 
 #if JS_VERSION < 185
 JSBool js_SetPropertyCheck (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#else
+#elif JS_VERSION == 185
 JSBool js_SetPropertyCheck(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp) {
+#else
+JSBool js_SetPropertyCheck(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	int num=0;
 #if JS_VERSION >= 185
@@ -1829,12 +1867,17 @@ JSBool js_SetPropertyDebug2 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 #if JS_VERSION < 185
-JSBool js_SetPropertyDebug3 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
 #else
-JSBool js_SetPropertyDebug3 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
-	js_SetPropertyDebugWrapped(context,obj,id,vp,"3");
+	js_SetPropertyDebugWrapped(cx,obj,id,vp,"3");
 	#endif
 	return JS_TRUE;
 }
@@ -1850,8 +1893,13 @@ JSBool js_SetPropertyDebug4 (JSContext *context, JSObject *obj, jsid id, JSBool 
 }
 #if JS_VERSION < 185
 JSBool js_SetPropertyDebug5 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug5(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
 #else
-JSBool js_SetPropertyDebug5 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug5(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
 	js_SetPropertyDebugWrapped(context,obj,id,vp,"5");
@@ -1859,9 +1907,14 @@ JSBool js_SetPropertyDebug5 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 #if JS_VERSION < 185
-JSBool js_SetPropertyDebug6 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
 #else
-JSBool js_SetPropertyDebug6 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
 	js_SetPropertyDebugWrapped(context,obj,id,vp,"6");
@@ -1879,12 +1932,17 @@ JSBool js_SetPropertyDebug7 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 #if JS_VERSION < 185
-JSBool js_SetPropertyDebug8 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
 #else
-JSBool js_SetPropertyDebug8 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
-	js_SetPropertyDebugWrapped(context,obj,id,vp,"8");
+	js_SetPropertyDebugWrapped(cx,obj,id,vp,"8");
 	#endif
 	return JS_TRUE;
 }
