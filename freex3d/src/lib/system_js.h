@@ -58,7 +58,6 @@ typedef int JSErrorReport;
 /* int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval *rval); */
 #else
 
-
 #ifdef MOZILLA_JS_UNSTABLE_INCLUDES
 # include "../unstable/jsapi.h" /* JS compiler */
 # include "../unstable/jsdbgapi.h" /* JS debugger */
@@ -66,12 +65,42 @@ typedef int JSErrorReport;
 # include <jsapi.h> /* JS compiler */
 # include <jsdbgapi.h> /* JS debugger */
 #endif
-
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
+void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *me);
+JSObject * JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, JSObject *parent, unsigned argc, jsval *argv); 
+JSObject * JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent);
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj);
+JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #if JS_VERSION >= 185
 #define JSSCRIPT JSObject
+#if JS_VERSION == 185
+#define JSSCRIPT2 JSObject
+#endif
+#if JS_VERSION == 186 
+// spidermonkey 17 -last C interface version- is 186
+// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Releases/17
+// could alternatively define in preprocessor parameters MOZ_CUSTOM_STDINT_H and jsapi will define, tried but didn't build
+// instead for debugging / tinkering we will define here
+#define uintN unsigned
+#define intN int
+#define jsint int32_t
+#define jsuint uint32_t
+#define int32 int32_t
+#define jsdouble double
+#define JS_FinalizeStub NULL
+#define JSSCRIPT2 JSScript
+#define JS_GET_CLASS JS_GetClassFw
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
+
+#endif
 #else
 #define JSSCRIPT JSScript
+#define JSSCRIPT2 JSObject
 #endif
+
 
 #define JS_GET_PROPERTY_STUB JS_PropertyStub
 /* #define JS_GET_PROPERTY_STUB js_GetPropertyDebug */

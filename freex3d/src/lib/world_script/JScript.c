@@ -54,8 +54,6 @@ Javascript C language binding.
 #include "jsVRMLBrowser.h"
 
 
-
-
 #ifndef JSCLASS_GLOBAL_FLAGS
 //spidermonkey < 1.7 doesn't have so define here
 #define JSCLASS_GLOBAL_FLAGS 0
@@ -132,7 +130,7 @@ void sm_js_cleanup_script_context(int counter){
 	//ttglobal tg = gglobal();
 	//ppJScript p = (ppJScript)tg->JScript.prv;
 	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
-	CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
+	//CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
 }
 
 /********************************************************************
@@ -296,7 +294,11 @@ void sm_JSDeleteScriptContext(int num){
 		JS_RemoveObjectRoot(ScriptControl->cx,(JSSCRIPT **)(&ScriptControl->eventsProcessed));
 	}
 #endif
+#if JS_VERSION < 186
 	JS_DestroyContextMaybeGC(ScriptControl->cx);
+#else
+	JS_DestroyContext(ScriptControl->cx);
+#endif
 }
 void sm_jsShutdown(){
 	ttglobal tg = gglobal();
@@ -347,11 +349,15 @@ void sm_JSCreateScriptContext(int num) {
 #endif
 	#if JS_VERSION >= 185
 	if (num == 0) {
+		#if JS_VERSION == 186
+		_globalObj = JS_NewGlobalObjectFw(_context,&p->globalClass);
+		#else
 		_globalObj = JS_NewCompartmentAndGlobalObject(_context, &p->globalClass, NULL);
+		#endif
 	} else {
 		struct CRscriptStruct *cs = getScriptControlIndex(0);
 		JS_SetGlobalObject(_context,cs->glob); //ScriptControl[0].glob);
-		_globalObj = JS_NewGlobalObject(_context,&p->globalClass);
+		_globalObj = JS_NewGlobalObjectFw(_context,&p->globalClass);
 		JS_SetGlobalObject(_context,_globalObj);
 	}
 	#else
@@ -401,7 +407,7 @@ void sm_JSCreateScriptContext(int num) {
 	ScriptControl->cx =  _context;
 	ScriptControl->glob =  _globalObj;
 	if(SM_method()==2){
-		JS_SetPrivate(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
+		JS_SetPrivateFw(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
 	}
 
 
@@ -484,7 +490,7 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(_context);
 #endif
-	CLEANUP_JAVASCRIPT(_context)
+	//CLEANUP_JAVASCRIPT(_context)
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(_context);
 #endif
@@ -1422,7 +1428,7 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 			 case FIELDTYPE_##thistype:  {  \
 				thistype##Native *ptr; \
 				/* printf ("getting private data in GETJSPTR for %p \n",JSglobal_return_val); */ \
-        			if ((ptr = (thistype##Native *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*(jsval *)(tg->JScript.JSglobal_return_val)))) == NULL) { \
+        			if ((ptr = (thistype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*(jsval *)(tg->JScript.JSglobal_return_val)))) == NULL) { \
                 			printf( "JS_GetPrivate failed in get_valueChanged_flag\n"); \
 					JSENDREQUEST_SUBSTITUTION(cx) \
                 			return JS_FALSE; \
@@ -1458,7 +1464,7 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 				JSENDREQUEST_SUBSTITUTION(cx) \
 				return FALSE; \
 			} \
-			if ((ptr = (thisSFtype##Native *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) { \
+			if ((ptr = (thisSFtype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) { \
 				printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n"); \
 				JSENDREQUEST_SUBSTITUTION(cx) \
 				return FALSE; \
@@ -1491,7 +1497,7 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 				JSENDREQUEST_SUBSTITUTION(cx) \
 				break; \
 			} \
-			if ((ptr = (thisSFtype##Native *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) { \
+			if ((ptr = (thisSFtype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) { \
 				printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n"); \
 				JSENDREQUEST_SUBSTITUTION(cx) \
 				break; \
@@ -2099,7 +2105,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 					SFNodeNative *_vec;
 
 					/* printf ("yep, this is an SFNode class\n");  */
-				       if ((_vec = (SFNodeNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+				       if ((_vec = (SFNodeNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
 						printf ("error getting native\n");
 						*nl = NULL;
 					} else {
@@ -2138,7 +2144,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 			}
 			case FIELDTYPE_SFVec2f: {
 				if (JSVAL_IS_OBJECT(mainElement)) {
-	                        	if ((sfvec2f = (SFVec2fNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+	                        	if ((sfvec2f = (SFVec2fNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
 	                                	printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
 	                                	return;
 	                        	}
@@ -2153,7 +2159,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 			case FIELDTYPE_SFVec3f:
 	                case FIELDTYPE_SFColor: {       /* SFColor */
 				if (JSVAL_IS_OBJECT(mainElement)) {
-	                        	if ((sfvec3f = (SFVec3fNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+	                        	if ((sfvec3f = (SFVec3fNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
 	                        	        printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
 	                        	        return;
 	                        	}
@@ -2169,7 +2175,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 			}
 			case FIELDTYPE_SFRotation: {
 				if (JSVAL_IS_OBJECT(mainElement)) {
-	                        	if ((sfrotation = (SFRotationNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+	                        	if ((sfrotation = (SFRotationNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
 	                        	        printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
 	                        	        return;
 	                        	}
@@ -2980,7 +2986,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			float *fp, *fp_in=(float *)Data;
 
 			/* create a new MFRotation object... */
-			newMFObject = JS_ConstructObject(cx, &MFRotationClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFRotationClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -2990,8 +2996,8 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			elementlen = (int) sizeof (float);
 			for (x=0; x<datalen; x++) {
 				/* create a new SFRotation object */
-				newSFObject = JS_ConstructObject(cx,&SFRotationClass,NULL, newMFObject);
-				if ((SFRPptr = (SFRotationNative *)JS_GetPrivate(cx, newSFObject)) == NULL) {
+				newSFObject = JS_ConstructObjectFw(cx,&SFRotationClass,NULL, newMFObject);
+				if ((SFRPptr = (SFRotationNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
 					ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
 #if defined(JS_THREADSAFE)
 					JS_EndRequest(cx);
@@ -3031,7 +3037,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			float *fp, *fp_in=(float *)Data;
 
 			/* create a new MFVec3f object... */
-			newMFObject = JS_ConstructObject(cx, &MFVec3fClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFVec3fClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3041,8 +3047,8 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			elementlen = (int) sizeof (float);
 			for (x=0; x<datalen; x++) {
 				/* create a new SFVec3f object */
-				newSFObject = JS_ConstructObject(cx,&SFVec3fClass,NULL, newMFObject);
-				if ((SFRPptr = (SFVec3fNative *)JS_GetPrivate(cx, newSFObject)) == NULL) {
+				newSFObject = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, newMFObject);
+				if ((SFRPptr = (SFVec3fNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
 					 ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
 #if defined(JS_THREADSAFE)
 					JS_EndRequest(cx);
@@ -3081,7 +3087,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			float *fp, *fp_in=(float *)Data;
 
 			/* create a new MFColor object... */
-			newMFObject = JS_ConstructObject(cx, &MFColorClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFColorClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3091,8 +3097,8 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			elementlen = (int) sizeof (float);
 			for (x=0; x<datalen; x++) {
 				/* create a new SFColor object */
-				newSFObject = JS_ConstructObject(cx,&SFColorClass,NULL, newMFObject);
-				if ((SFRPptr = (SFColorNative *)JS_GetPrivate(cx, newSFObject)) == NULL) {
+				newSFObject = JS_ConstructObjectFw(cx,&SFColorClass,NULL, newMFObject);
+				if ((SFRPptr = (SFColorNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
 					ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
 #if defined(JS_THREADSAFE)
 					JS_EndRequest(cx);
@@ -3131,7 +3137,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			float *fp, *fp_in=(float *)Data;
 
 			/* create a new MFVec2f object... */
-			newMFObject = JS_ConstructObject(cx, &MFVec2fClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFVec2fClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3141,8 +3147,8 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			elementlen = (int) sizeof (float);
 			for (x=0; x<datalen; x++) {
 				/* create a new SFVec2f object */
-				newSFObject = JS_ConstructObject(cx,&SFVec2fClass,NULL, newMFObject);
-				if ((SFRPptr = (SFVec2fNative *)JS_GetPrivate(cx, newSFObject)) == NULL) {
+				newSFObject = JS_ConstructObjectFw(cx,&SFVec2fClass,NULL, newMFObject);
+				if ((SFRPptr = (SFVec2fNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
 					ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
 #if defined(JS_THREADSAFE)
 					JS_EndRequest(cx);
@@ -3179,7 +3185,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			jsval newjsval;
 			float *fp, *fp_in=(float *)Data;
 			/* create a new MFFloat object... */
-			newMFObject = JS_ConstructObject(cx, &MFFloatClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFFloatClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3218,7 +3224,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			double *dp, *dp_in=(double *)Data;
 
 			/* create a new MFTime object... */
-			newMFObject = JS_ConstructObject(cx, &MFTimeClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFTimeClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3257,7 +3263,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			int *ip, *ip_in=(int *)Data;
 
 			/* create a new MFInt32 object... */
-			newMFObject = JS_ConstructObject(cx, &MFInt32Class, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFInt32Class, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3296,7 +3302,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			struct Uni_String * *ip_in=(struct Uni_String **)Data;
 
 			/* create a new MFString object... */
-			newMFObject = JS_ConstructObject(cx, &MFStringClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFStringClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* Data points to a Uni_String */
@@ -3335,7 +3341,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			jsval newjsval;
 			double *ip, *ip_in=(double *)Data;
 			/* create a new MFNode object... */
-			newMFObject = JS_ConstructObject(cx, &MFNodeClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &MFNodeClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3373,7 +3379,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			int *ip_in=(int *)Data;
 
 			/* create a new MFNode object... */
-			newMFObject = JS_ConstructObject(cx, &SFImageClass, NULL ,JS_GetParent(cx, obj));
+			newMFObject = JS_ConstructObjectFw(cx, &SFImageClass, NULL ,JS_GetParentFw(cx, obj));
 			ADD_ROOT (cx, newMFObject)
 
 			/* define the "length" property for this object */
@@ -3471,7 +3477,7 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 
 	sfObj = JSVAL_TO_OBJECT(retval);
 
-	if ((_privPtr = JS_GetPrivate(cx, sfObj)) == NULL)
+	if ((_privPtr = JS_GetPrivateFw(cx, sfObj)) == NULL)
 		printf("JS_GetPrivate failed set_one_MultiElementType.\n");
 
 	if (_privPtr == NULL) return NULL;

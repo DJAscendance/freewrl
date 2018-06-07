@@ -53,7 +53,6 @@
 #include "jsVRMLClasses.h"
 
 
-
 /********************************************************/
 /*							*/
 /* first part - standard helper functions		*/
@@ -1086,7 +1085,7 @@ JSBool _standardMFAssign(JSContext *cx,
 	/* SF* values that use this routine - check if we need to set valueChanged in private area */
 
 	if (type == FIELDTYPE_SFImage) {
-        	if ((ptr = (SFImageNative *)JS_GetPrivate(cx, obj)) == NULL) {
+        	if ((ptr = (SFImageNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
         	        printf( "JS_GetPrivate failed in standard MF assign.\n");
         	        return JS_FALSE;
         	}
@@ -1133,7 +1132,7 @@ _standardMFGetProperty(JSContext *cx,
 		AnyNative *ptr;
 		union anyVrml *any;
 		int sfsize, sftype;
-		if ((ptr = (AnyNative *)JS_GetPrivate(cx,obj)) == NULL) {
+		if ((ptr = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
 			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
@@ -1462,7 +1461,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 		union anyVrml *any;
 		char *str;
 		JSString *_str;
-		if((ptr = (AnyNative*)JS_GetPrivate(cx,obj)) == NULL){
+		if((ptr = (AnyNative*)JS_GetPrivateFw(cx,obj)) == NULL){
 			printf("in doMFToString - not a Native\n");
 			return JS_FALSE;
 		}
@@ -1772,7 +1771,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 		int sftype, sfsize;
 		int *valueChanged;
 
-		if ((ptr = (AnyNative *)JS_GetPrivate(cx,obj)) == NULL) {
+		if ((ptr = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
 			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
@@ -2022,7 +2021,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
            here's the call to find the parent for the above. */
 
 	me = obj;
-	par = JS_GetParent(cx, me);
+	par = JS_GetParentFw(cx, me);
 	while (par != NULL) {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("for obj %p: ",me);
@@ -2058,6 +2057,17 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				printf("doMFSetProperty: JS_ValueToId failed.\n");
 				return JS_FALSE;
 			}
+			#if JS_VERSION == 186
+			{
+				JSHandleObject hobj;
+				JSHandleId hiid; 
+				JSMutableHandleValue hvp;
+				hobj._ = &par;
+				hiid._ = &oid;
+				hvp._ = &nf;
+				setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
+			}
+			#else
 
 			if (!setSFNodeField (cx, par, oid,
 #if JS_VERSION >= 185
@@ -2066,10 +2076,11 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 			    &nf)) {
 				printf ("could not set field of SFNode\n");
 			}
+			#endif
 
 		}
 		me = par;
-		par = JS_GetParent(cx, me);
+		par = JS_GetParentFw(cx, me);
 	}
 	return JS_TRUE;
 
@@ -2126,11 +2137,14 @@ doMFStringUnquote(JSContext *cx, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-globalResolve(JSContext *cx, JSObject *obj, jsval id)
+globalResolve(JSContext *cx, JSObject *obj, jsval id){
+#elif JS_VERSION == 185
+globalResolve(JSContext *cx, JSObject *obj, jsid id){
 #else
-globalResolve(JSContext *cx, JSObject *obj, jsid id)
+globalResolve(JSContext *cx, JSHandleObject hobj, JSHandleId hiid){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
 #endif
-{
 	UNUSED(cx);
 	UNUSED(obj);
 	UNUSED(id);
@@ -2270,7 +2284,7 @@ void setInECMATable(JSContext *context, char *toFind) {
 	p->ECMAValues[p->maxECMAVal-1].JS_address = (jsval) toFind;
 #else
 	/* since this seems to never be used anyways .. */
-	p->ECMAValues[p->maxECMAVal-1].JS_address = JSVAL_ZERO;
+	p->ECMAValues[p->maxECMAVal-1].JS_address = INT_TO_JSVAL(0); //JSVAL_ZERO;
 #endif
 	p->ECMAValues[p->maxECMAVal-1].valueChanged = TRUE;
 	p->ECMAValues[p->maxECMAVal-1].name = STRDUP(toFind);
@@ -2316,11 +2330,15 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 
 JSBool
 #if JS_VERSION < 185
-getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+getECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	if(SM_method() == 2){
 
 	//printf("in getECMANative\n");
@@ -2377,7 +2395,7 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		int *valueChanged;
 		struct Shader_Script *script;
 		// = sm_get_script();
-		script = JS_GetPrivate(cx,obj);
+		script = JS_GetPrivateFw(cx,obj);
 
 		valueChanged = NULL;
 		value = NULL;
@@ -2440,11 +2458,15 @@ getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+setECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	JSString *_idStr;
 	JSString *_vpStr, *_newVpStr;
 	JSBool ret = JS_TRUE;
@@ -2479,7 +2501,7 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 		value = NULL;
 		struct Shader_Script *script;
 		// = sm_get_script();
-		script = JS_GetPrivate(cx,obj);
+		script = JS_GetPrivateFw(cx,obj);
 
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){
@@ -2503,7 +2525,7 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 					(*valueChanged) ++;
 			}else if (JSVAL_IS_OBJECT(*vp)) {
 				AnyNative *rhs;
-        		if ((rhs = (AnyNative *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
+        		if ((rhs = (AnyNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
 					//printf("in setECMANative, RHS was NOT native type \n");
         		}else{
 					//printf("in setECMANative, RHS was native type \n");
@@ -2607,11 +2629,16 @@ setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
 /* used mostly for debugging */
 JSBool
 #if JS_VERSION < 185
-getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+getAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	//printf("in getAssignProperty\n");
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_idStr, *_vpStr;
@@ -2653,11 +2680,15 @@ getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 /* a kind of hack to replace the use of JSPROP_ASSIGNHACK */
 JSBool
 #if JS_VERSION < 185
-setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+setAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	JSObject *_o;
 	JSString *_str;
 	const uintN _argc = 2;
