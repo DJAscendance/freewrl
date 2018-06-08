@@ -627,7 +627,7 @@ proxy_entry *add_ctx_proxycache_entry(duk_context *ctx, struct X3D_Node *node, v
 			for(i=0;i<vectorSize(cache->cache);i++){
 				proxy_entry *pe0 = vector_get(proxy_entry*,cache->cache,i);
 				if(pe0)
-					printf("%d %x %x\n",i,pe0->node,pe0->jsproxy);
+					printf("%d %zx %zx\n",i,pe0->node,pe0->jsproxy);
 				else
 					printf("%d NULL\n",i);
 			}
@@ -655,7 +655,7 @@ void remove_ctx_proxycache_entry_by_nodeptr(duk_context *ctx, struct X3D_Node *n
 			for(i=0;i<vectorSize(cache->cache);i++){
 				proxy_entry *pe0 = vector_get(proxy_entry*,cache->cache,i);
 				if(pe0)
-					printf("%d %x %x\n",i,pe0->node,pe0->jsproxy);
+					printf("%d %zx %zx\n",i,pe0->node,pe0->jsproxy);
 				else
 					printf("%d NULL\n",i);
 			}

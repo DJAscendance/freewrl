@@ -62,6 +62,8 @@ typedef int JSErrorReport;
 # include "../unstable/jsapi.h" /* JS compiler */
 # include "../unstable/jsdbgapi.h" /* JS debugger */
 #else
+//#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
+#undef DEBUG
 # include <jsapi.h> /* JS compiler */
 # include <jsdbgapi.h> /* JS debugger */
 #endif
