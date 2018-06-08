@@ -62,6 +62,7 @@ typedef int JSErrorReport;
 # include "../unstable/jsapi.h" /* JS compiler */
 # include "../unstable/jsdbgapi.h" /* JS debugger */
 #else
+#undef DEBUG
 # include <jsapi.h> /* JS compiler */
 # include <jsdbgapi.h> /* JS debugger */
 #endif
@@ -89,6 +90,7 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #define jsuint uint32_t
 #define int32 int32_t
 #define jsdouble double
+
 #define JS_FinalizeStub NULL
 #define JSSCRIPT2 JSScript
 #define JS_GET_CLASS JS_GetClassFw

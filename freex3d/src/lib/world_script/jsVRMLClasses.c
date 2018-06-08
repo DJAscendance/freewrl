@@ -1655,7 +1655,7 @@ doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
 	}
 #endif
 	len = 0;
-	ind = JSVAL_TO_INT(id);
+	//ind = JSVAL_TO_INT(id);
 
 	#ifdef JSVRMLCLASSESVERBOSE
 		printf("\tdoMFAddProperty:%s id %d (%d) NodeType: ",name,(int)id,ind);
@@ -1712,6 +1712,7 @@ doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
 		printf( "JS_GetProperty failed for \"%s\" in doMFAddProperty.\n",MF_LENGTH_FIELD);
 		return JS_FALSE;
 	}
+	ind = JSVAL_TO_INT(id);
 
 	len = JSVAL_TO_INT(v);
 	if (ind >= len) {

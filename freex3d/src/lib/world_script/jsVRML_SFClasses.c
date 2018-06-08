@@ -67,12 +67,12 @@
 /********************************************************/
 
 /* from http://www.cs.rit.edu/~ncs/color/t_convert.html */
-double MIN(double a, double b, double c) {
+double dMIN3(double a, double b, double c) {
 	double min;
 	if((a<b)&&(a<c))min=a; else if((b<a)&&(b<c))min=b; else min=c; return min;
 }
 
-double MAX(double a, double b, double c) {
+double dMAX3(double a, double b, double c) {
 	double max;
 	if((a>b)&&(a>c))max=a; else if((b>a)&&(b>c))max=b; else max=c; return max;
 }
@@ -80,8 +80,8 @@ double MAX(double a, double b, double c) {
 void convertRGBtoHSV(double r, double g, double b, double *h, double *s, double *v) {
 	double my_min, my_max, delta;
 
-	my_min = MIN( r, g, b );
-	my_max = MAX( r, g, b );
+	my_min = dMIN3( r, g, b );
+	my_max = dMAX3( r, g, b );
 	*v = my_max;				/* v */
 	delta = my_max - my_min;
 	if( my_max != 0 )

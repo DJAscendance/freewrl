@@ -164,6 +164,7 @@
 		915C4D5620BB4BAA00F10923 /* jsVRMLBrowser_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5520BB4BAA00F10923 /* jsVRMLBrowser_duk.c */; };
 		915C4D5820BB4BC200F10923 /* jsVRMLClasses_duk.c in Sources */ = {isa = PBXBuildFile; fileRef = 915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */; };
 		91611D4020BF0FD80022C367 /* AppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91611D3F20BF0FD80022C367 /* AppController.m */; };
+		9169C67920C98B0900383780 /* libmozjs-17.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9169C67820C98B0500383780 /* libmozjs-17.0.dylib */; };
 		9198738620BDFCF7005EF9D6 /* include_duktape.c in Sources */ = {isa = PBXBuildFile; fileRef = 9198738520BDFCF7005EF9D6 /* include_duktape.c */; };
 		91B2207620C09C7200F9A079 /* libalut.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B2207520C09C7200F9A079 /* libalut.0.dylib */; };
 		91B2207820C09CB600F9A079 /* libopenal.1.15.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B2207720C09CB600F9A079 /* libopenal.1.15.1.dylib */; };
@@ -435,6 +436,7 @@
 		915C4D5720BB4BC200F10923 /* jsVRMLClasses_duk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jsVRMLClasses_duk.c; sourceTree = "<group>"; };
 		91611D3E20BF0FD80022C367 /* AppController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppController.h; sourceTree = "<group>"; };
 		91611D3F20BF0FD80022C367 /* AppController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppController.m; sourceTree = "<group>"; };
+		9169C67820C98B0500383780 /* libmozjs-17.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libmozjs-17.0.dylib"; path = "../../../../../../opt/local/lib/libmozjs-17.0.dylib"; sourceTree = "<group>"; };
 		9198738520BDFCF7005EF9D6 /* include_duktape.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = include_duktape.c; sourceTree = "<group>"; };
 		91B2207520C09C7200F9A079 /* libalut.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libalut.0.dylib; path = ../../../../../../opt/local/lib/libalut.0.dylib; sourceTree = "<group>"; };
 		91B2207720C09CB600F9A079 /* libopenal.1.15.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenal.1.15.1.dylib; path = ../../../../../../opt/local/lib/libopenal.1.15.1.dylib; sourceTree = "<group>"; };
@@ -447,6 +449,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9169C67920C98B0900383780 /* libmozjs-17.0.dylib in Frameworks */,
 				9137217920C1926D00901962 /* libode.6.dylib in Frameworks */,
 				9137217720C1896B00901962 /* libswscale.5.1.100.dylib in Frameworks */,
 				9137217520C1892300901962 /* libswresample.3.1.100.dylib in Frameworks */,
@@ -825,6 +828,7 @@
 		73D4357813D71596000293CE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9169C67820C98B0500383780 /* libmozjs-17.0.dylib */,
 				9137217820C1926A00901962 /* libode.6.dylib */,
 				9137217620C1896900901962 /* libswscale.5.1.100.dylib */,
 				9137217420C1892200901962 /* libswresample.3.1.100.dylib */,
@@ -1207,6 +1211,7 @@
 					/opt/local/include/,
 					/opt/local/include/freetype2/,
 					/usr/include/malloc/,
+					"/opt/local/include/js-17.0/",
 				);
 				"HEADER_SEARCH_PATHS[sdk=macosx*]" = /opt/local/include/;
 				INFOPLIST_FILE = "FreeWRL/FreeWRL-Info.plist";
@@ -1240,6 +1245,7 @@
 					/opt/local/include/,
 					/opt/local/include/freetype2/,
 					/usr/include/malloc/,
+					"/opt/local/include/js-17.0/",
 				);
 				INFOPLIST_FILE = "FreeWRL/FreeWRL-Info.plist";
 				LIBRARY_SEARCH_PATHS = (
