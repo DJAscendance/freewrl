@@ -1410,7 +1410,7 @@ char *sf2str(int sftype, union anyVrml *any){
 		break;
 	}
 	case FIELDTYPE_SFNode:
-		sprintf(strbuf,"%x",any->sfnode);
+		sprintf(strbuf,"%zx",any->sfnode);
 		str = strdup(strbuf);
 		break;
 	case FIELDTYPE_SFImage:

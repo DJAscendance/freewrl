@@ -1374,7 +1374,7 @@ int SFNode_valueOf(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	void* *ptr = (void * *)fwn;
 	if(0){
 		struct X3D_Node *node = *ptr;
-		printf("node address=%x nodetype=%s\n",node,stringNodeType(node->_nodeType));
+		printf("node address=%zx nodetype=%s\n",node,stringNodeType(node->_nodeType));
 	}
 	if(0){
 		//see also mfw_getter
@@ -1393,7 +1393,7 @@ int SFNode_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, 
 {
 	char str[512];
 	void **ptr = (void **)fwn;
-	sprintf(str,"_%x_",(*ptr));
+	sprintf(str,"_%zx_",(*ptr));
 	fwretval->_string =  strdup(str);
 	fwretval->itype = 'S';
 	return 1;

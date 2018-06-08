@@ -1340,7 +1340,7 @@ SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
 	{
 		jsdouble nv;
 		char tmpline[100];
-		sprintf (tmpline,"%x",handle);
+		sprintf (tmpline,"%zx",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
@@ -1418,7 +1418,7 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 		jsdouble nv;
 		char buff[STRING];
 		memset(buff, 0, STRING);
-		sprintf (buff,"_%x_",handle);
+		sprintf (buff,"_%zx_",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
