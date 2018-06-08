@@ -38,6 +38,11 @@ sudo port -t install ode
 - works
 nurbs - for osx we use glu and the nurbs that comes with glu
 - config.h define NURBS_LIB
+sudo port -t install mozjs17
+- config.h define JAVASCRIPT_SM
+-- no need to undef JAVASCRIPT_DUK - there's code in common.c that auto prefers SM > SM2 if available
+- in freex3d/src/system_js.h #undef DEBUG before include <jsapi.h> (or you'll get assert failures)
+- add /opt/local/include/js-17.0/ to include paths
 
 https://developer.apple.com/library/content/documentation/Porting/Conceptual/PortingUnix/intro/intro.html
 - porting tips linux > mac

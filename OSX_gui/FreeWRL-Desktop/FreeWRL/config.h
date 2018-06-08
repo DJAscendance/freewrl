@@ -37,7 +37,7 @@
 //libcurl is part of osx (for pulling http files)
 #define HAVE_LIBCURL 1
 //duktape js engine is compiled into freewrl project, nothing to download or install
-//#define JAVASCRIPT_DUK 1
+#define JAVASCRIPT_DUK 1
 //macports: sudo port -t install alut (will also install openal)
 #define HAVE_ALUT 1
 #define HAVE_OPENAL 1
