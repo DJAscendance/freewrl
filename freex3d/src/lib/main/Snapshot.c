@@ -259,7 +259,7 @@ static char * grabScreen(int bytesPerPixel, int x, int y, int width, int height)
 }
 #endif //_MSC_VER
 
-#if defined( _MSC_VER) || defined (IPHONE)
+#if defined( _MSC_VER) || defined (IPHONE) || defined(AQUA)
 /* stubbs for now */
 void setSnapshot() {}
 void fwl_toggleSnapshot(){}
@@ -500,7 +500,7 @@ void Snapshot1(char *fname){
 	FREE(imgbuf);
 }
 #endif /*ifdef win32*/
-#if !(defined(_MSC_VER) || defined(IPHONE))
+#if !(defined(_MSC_VER) || defined(IPHONE) || defined(AQUA))
 
 void fwl_init_SnapGif()
 {

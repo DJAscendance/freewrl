@@ -138,6 +138,8 @@
 		73D4358713D71596000293CE /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4358613D71596000293CE /* main.m */; };
 		73D4358A13D71596000293CE /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 73D4358813D71596000293CE /* Credits.rtf */; };
 		73D4358D13D71596000293CE /* FreeWRLAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */; };
+		910E864A20CC39CA0056C471 /* options.c in Sources */ = {isa = PBXBuildFile; fileRef = 910E864920CC39CA0056C471 /* options.c */; };
+		910E864C20CC3D140056C471 /* fwVersion.c in Sources */ = {isa = PBXBuildFile; fileRef = 910E864B20CC3D140056C471 /* fwVersion.c */; };
 		9131754B20BB13FA003CEBB7 /* libImlib2.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */; };
 		9137216920C17FF900901962 /* MPEG_Utils_ffmpeg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9137216820C17FF900901962 /* MPEG_Utils_ffmpeg.c */; };
 		9137216F20C1880400901962 /* libavutil.56.14.100.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9137216E20C1880200901962 /* libavutil.56.14.100.dylib */; };
@@ -407,6 +409,8 @@
 		73D4358913D71596000293CE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = en; path = en.lproj/Credits.rtf; sourceTree = "<group>"; };
 		73D4358B13D71596000293CE /* FreeWRLAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeWRLAppDelegate.h; sourceTree = "<group>"; };
 		73D4358C13D71596000293CE /* FreeWRLAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeWRLAppDelegate.m; sourceTree = "<group>"; };
+		910E864920CC39CA0056C471 /* options.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = options.c; path = ../../../freex3d/src/bin/options.c; sourceTree = "<group>"; };
+		910E864B20CC3D140056C471 /* fwVersion.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fwVersion.c; path = ../../../freex3d/src_aqua/fwVersion.c; sourceTree = "<group>"; };
 		9131754A20BB13FA003CEBB7 /* libImlib2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libImlib2.1.dylib; path = ../../../../../../opt/local/lib/libImlib2.1.dylib; sourceTree = "<group>"; };
 		9137216820C17FF900901962 /* MPEG_Utils_ffmpeg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = MPEG_Utils_ffmpeg.c; sourceTree = "<group>"; };
 		9137216A20C1871000901962 /* opt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = opt; path = ../../../../../../opt; sourceTree = "<group>"; };
@@ -865,6 +869,8 @@
 		73D4357F13D71596000293CE /* FreeWRL */ = {
 			isa = PBXGroup;
 			children = (
+				910E864B20CC3D140056C471 /* fwVersion.c */,
+				910E864920CC39CA0056C471 /* options.c */,
 				91BA681820BC5403008DEE57 /* cdllFreeWRL.h */,
 				91BA681620BC53CD008DEE57 /* cdllFreeWRL.c */,
 				52DA6B331577E8C000130065 /* OSX_Specific.c */,
@@ -1071,11 +1077,13 @@
 				52DA6B161577D31A00130065 /* CParseLexer.c in Sources */,
 				52DA6B171577D31A00130065 /* CParseParser.c in Sources */,
 				52DA6B191577D31A00130065 /* CRoutes.c in Sources */,
+				910E864C20CC3D140056C471 /* fwVersion.c in Sources */,
 				52DA6B1A1577D31A00130065 /* CScripts.c in Sources */,
 				52DA6B1B1577D31A00130065 /* fieldGet.c in Sources */,
 				52DA6B1C1577D31A00130065 /* fieldSet.c in Sources */,
 				52DA6B1D1577D31A00130065 /* JScript.c in Sources */,
 				52DA6B1E1577D31A00130065 /* jsUtils.c in Sources */,
+				910E864A20CC39CA0056C471 /* options.c in Sources */,
 				52DA6B1F1577D31A00130065 /* jsVRML_MFClasses.c in Sources */,
 				52DA6B201577D31A00130065 /* jsVRML_SFClasses.c in Sources */,
 				52DA6B211577D31A00130065 /* jsVRMLBrowser.c in Sources */,

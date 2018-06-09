@@ -362,7 +362,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	//    break;
 
 /* Snapshot options */
-
+#ifndef FRONTEND_DOES_SNAPSHOTS
 	case 'p': /* --gif, no argument */
 	    fwl_init_SnapGif();
 	    break;
@@ -374,7 +374,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'o': /* --snaptmp, required argument: string */
 	    fwl_set_SnapTmp(optarg);
 	    break;
-
+#endif
 /* Snapshot sequence options */
 
 #if defined(DOSNAPSEQUENCE)
