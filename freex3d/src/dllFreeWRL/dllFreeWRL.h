@@ -60,6 +60,7 @@ public:
 
 	void setDensityFactor(float density_factor);
 	void onInit(int width, int height, void* windowhandle=0, bool bEai = false, bool frontend_handles_display_thread = false);
+	void onInitArgv(int argc, char **argv, bool frontend_handles_display_thread);
 	void onLoad(char* scene_url);
     void onResize(int width, int height);
     int onMouse(int mouseAction,int mouseButton,int x, int y);

@@ -24,6 +24,12 @@
     <ClCompile Include="..\..\src\dllFreeWRL\cdllFreeWRL.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\bin\options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src_windows\getopt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SRC)\dllFreeWRL\dllFreeWRL.h">
