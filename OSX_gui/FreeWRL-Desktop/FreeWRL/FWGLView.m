@@ -19,7 +19,7 @@ NSRect myrect;
 float curHeight;
 NSMutableData *receivedData;
 void *drawRectconcurrencyHandle = NULL;
-char* startingString = "/Users/johncarlson/Source/X3DJSONLD/rubik.x3d";
+char* startingString = nil; //"/Users/johncarlson/Source/X3DJSONLD/rubik.x3d";
 
 //static int displayBoundingBox = TRUE;
 //static int myBBShowerCompiled = FALSE;
@@ -35,6 +35,9 @@ int mainloopCount = 0;
 int whichOne=0;
 int usingCdllFreewrl = 1;
 void* fwctx = NULL;
+#define MAX_ARGC 200
+char *argv[MAX_ARGC];
+int argc = 0;
 
 // https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AccessingaBundlesContents/AccessingaBundlesContents.html
 // get a path to fonts/ in app/contents/resources/fonts and pass to backend
@@ -47,6 +50,41 @@ mainBundle = [NSBundle mainBundle];
 }
 // ===================================
 // get the initial URL in, and load'er up!
+
+void initialize_freewrl(){
+	if(!fwctx) {
+		// lets go through and see what arguments abound
+		int mi, nargs;
+#define BUFSIZE 2048
+		char buff[BUFSIZE];
+		
+		NSProcessInfo* PInfo = [NSProcessInfo processInfo];
+		NSArray* args;
+		args = [PInfo arguments];
+		[args retain];
+		nargs = [args count];
+		argc = 0;
+		if (nargs > MAX_ARGC) nargs = MAX_ARGC;
+		
+		for (mi = 0; mi < nargs; mi++) {
+			if([[args objectAtIndex:mi] hasPrefix: @"-NS"]){
+				mi++;
+				continue;
+			}
+			[[args objectAtIndex:mi] getCString:buff maxLength:BUFSIZE-1 encoding:NSUTF8StringEncoding];
+			argv[argc] = strdup(buff);
+			argc++;
+		}
+		fwctx = dllFreeWRL_dllFreeWRL();
+		//dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+		dllFreeWRL_onInitArgv(fwctx,argc,argv,1);
+		
+		getfontfolder();
+		dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
+	}
+	
+}
+
 
 @interface initializerURL : NSObject
 +(void)firstMethod:(id)param;
@@ -73,9 +111,11 @@ mainBundle = [NSBundle mainBundle];
 
 		fwl_initializeRenderSceneUpdateScene();
 	}else{
-		if(!fwctx) {
+		if(false) initialize_freewrl();
+		if(false)if(!fwctx) {
 			fwctx = dllFreeWRL_dllFreeWRL();
-			dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+			//dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+			dllFreeWRL_onInitArgv(fwctx,argc,argv,1);
 			getfontfolder();
 			dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
 		}
@@ -98,12 +138,13 @@ mainBundle = [NSBundle mainBundle];
     // the user hit return, and we are flying...
     if (fileToOpen != nil) {
         startingString = (char *)[fileToOpen UTF8String];
-    } else {
+    }
+	//else {
 
         //startingString="/Users/john/Desktop/GeoSpatialTesting/7_levels_plus/globe_with_ROOTNODE.x3d";
-         startingString="/Users/john/Desktop/GeoSpatialTesting/occtest.x3dv";
+    //     startingString="/Users/john/Desktop/GeoSpatialTesting/occtest.x3dv";
         //startingString="/Users/john/Desktop/GeoSpatialTesting/freewrl/freewrl/tests/33.wrl";
-    }
+    //}
     
     while ([FreeWRLAppDelegate applicationHasLaunched]) {
         //NSSLog (@"applicationHasLaunched false, sleeping...");
@@ -116,6 +157,7 @@ mainBundle = [NSBundle mainBundle];
 	//fwl_startFreeWRL((const char *)startingString);
 	fwl_replaceWorldNeeded((char*)startingString);
 	}else{
+		if(startingString != NULL)
 		dllFreeWRL_onLoad(fwctx,(char*)startingString);
 	}
     //NSLog (@"finished calling fwl_OSX_initializeParameters");
@@ -442,33 +484,34 @@ mouseDisplaySensitive = mouseOverSensitive; \
 
 - (void) drawRect:(NSRect)rect
 {
-    if (drawRectconcurrencyHandle==NULL) {
-        drawRectconcurrencyHandle = fwl_init_instance();
-    }
-    
-    
-    
-    if (fwg_frontEndWantsFileName() != nil) {
-        //NSLog (@"drawRect mainloopCount %d",mainloopCount);
-        
-        // ensure that the app delegate for loading is called first....
-        //URLSystemRunning = (mainloopCount > 100);
-        
-        
-        //NSLog (@"FRONT END WANTS FILENAME");
-        if (!gettingURL) {
-            if ([FreeWRLAppDelegate applicationHasLaunched]) {
-            gettingURL = true;
-            NSString *myString = [[NSString alloc] initWithUTF8String:fwg_frontEndWantsFileName()];
-            //NSLog (@"string from lib is %@ as a string %s",myString,fwg_frontEndWantsFileName());
-          
-            //NSLog (@"going to add to queue");
-            [FreeWRLAppDelegate newDoURL:myString opFlag:&gettingURL];
-            }
-        }
+	if(!usingCdllFreewrl){
+		if (drawRectconcurrencyHandle==NULL) {
+				drawRectconcurrencyHandle = fwl_init_instance();
+		}
+		
+		
+		
+		if (fwg_frontEndWantsFileName() != nil) {
+			//NSLog (@"drawRect mainloopCount %d",mainloopCount);
+			
+			// ensure that the app delegate for loading is called first....
+			//URLSystemRunning = (mainloopCount > 100);
+			
+			
+			//NSLog (@"FRONT END WANTS FILENAME");
+			if (!gettingURL) {
+				if ([FreeWRLAppDelegate applicationHasLaunched]) {
+				gettingURL = true;
+				NSString *myString = [[NSString alloc] initWithUTF8String:fwg_frontEndWantsFileName()];
+				//NSLog (@"string from lib is %@ as a string %s",myString,fwg_frontEndWantsFileName());
+			  
+				//NSLog (@"going to add to queue");
+				[FreeWRLAppDelegate newDoURL:myString opFlag:&gettingURL];
+				}
+			}
 
-    }
-    
+		}
+	}
     [[self openGLContext] makeCurrentContext];
     
     //printf ("drawRect am thread %p\n",pthread_self());
@@ -539,7 +582,6 @@ mouseDisplaySensitive = mouseOverSensitive; \
 }
 
 // ---------------------------------
-
 // set initial OpenGL state (current context is set)
 // called after context is created
 - (void) prepareOpenGL
@@ -557,9 +599,12 @@ mouseDisplaySensitive = mouseOverSensitive; \
 		
 		fv_display_initialize();
 	}else{
-		if(!fwctx) {
+		if(true) initialize_freewrl();
+		if(false) if(!fwctx) {
 			fwctx = dllFreeWRL_dllFreeWRL();
-			dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+			//dllFreeWRL_onInit(fwctx,100,100,NULL,0,1);
+			dllFreeWRL_onInitArgv(fwctx,argc,argv,1);
+
 			getfontfolder();
 			dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
 		}
@@ -648,14 +693,13 @@ mouseDisplaySensitive = mouseOverSensitive; \
 {
     
 #define BUFFSIZE 2048
-#define MAX_ARGC 200
    // NSLog (@"awakeFromNib");
-    int mi;
+	int mi, nargs;
 #define BUFSIZE 2048
     char buff[BUFSIZE]; 
     char opt[BUFSIZE];
     bool argLookedAt[MAX_ARGC];
-    unsigned long argc;
+    //unsigned long argc;
     
     for (mi=0; mi<MAX_ARGC; mi++) argLookedAt[mi] = false;
 
@@ -667,131 +711,140 @@ mouseDisplaySensitive = mouseOverSensitive; \
     
     // lets go through and see what arguments abound
     NSProcessInfo* PInfo = [NSProcessInfo processInfo];
-    NSArray* args = [PInfo arguments];
+	NSArray* args;
+	args = [PInfo arguments];
     [args retain];
-    argc = [args count];
-    if (argc > MAX_ARGC) argc = MAX_ARGC;
-    
-    
-    //NSLog (@"checking for args");
-    for (mi = 1; mi < argc; mi++) {
-        [[args objectAtIndex:mi] getCString:buff maxLength:BUFSIZE-1 encoding:NSUTF8StringEncoding];
-        if (mi <(argc-1)) {
-            [[args objectAtIndex:mi+1] getCString:opt maxLength:BUFSIZE-1 encoding:NSUTF8StringEncoding];
-        } else {
-            opt[0] = '\0'; // no more arguments possible for this command line argument
-        }
+    argc = 0;
+	nargs = [args count];
+    if (nargs > MAX_ARGC) nargs = MAX_ARGC;
+	if(true){
+		for (mi = 1; mi < nargs; mi++) {
+			[[args objectAtIndex:mi] getCString:buff maxLength:BUFSIZE-1 encoding:NSUTF8StringEncoding];
+			argv[argc] = buff;
+			argc++;
+		}
+	}else{
+		
+		//NSLog (@"checking for args");
+		for (mi = 1; mi < nargs; mi++) {
+			[[args objectAtIndex:mi] getCString:buff maxLength:BUFSIZE-1 encoding:NSUTF8StringEncoding];
+			if (mi <(argc-1)) {
+				[[args objectAtIndex:mi+1] getCString:opt maxLength:BUFSIZE-1 encoding:NSUTF8StringEncoding];
+			} else {
+				opt[0] = '\0'; // no more arguments possible for this command line argument
+			}
 
-        //NSLog (@"arg at %d is %s count is %ld", mi, buff, [args count]);
-        //fprintf (stderr,"FreeWRL arguments at %d is %s count is %ld\n", mi, buff, [args count]);
-        
-        // null argument - ignore if one found
-        if ((argLookedAt[mi]) || (buff == NULL) || ([args objectAtIndex:mi] == NULL) || (!(strcmp(buff, "(null)")))){
-            break;
-        }
+			//NSLog (@"arg at %d is %s count is %ld", mi, buff, [args count]);
+			//fprintf (stderr,"FreeWRL arguments at %d is %s count is %ld\n", mi, buff, [args count]);
+			
+			// null argument - ignore if one found
+			if ((argLookedAt[mi]) || (buff == NULL) || ([args objectAtIndex:mi] == NULL) || (!(strcmp(buff, "(null)")))){
+				break;
+			}
 
-        // found a file name (possibly)
-        else if (([[args objectAtIndex:mi] hasSuffix: @".wrl"]) || 
-                 ([[args objectAtIndex:mi] hasSuffix: @".WRL"]) || 
-                 ([[args objectAtIndex:mi] hasSuffix: @".x3d"]) || 
-                 ([[args objectAtIndex:mi] hasSuffix: @".X3D"]) || 
-                 ([[args objectAtIndex:mi] hasSuffix: @".x3dv"]) || 
-                 ([[args objectAtIndex:mi] hasSuffix: @".X3DV"]) ){
-            fileToOpen = [args objectAtIndex:mi];
-            [fileToOpen getCString: buff maxLength:sizeof(buff)-1 encoding:NSUTF8StringEncoding];
-            
-            // does this name have a prefix? if not, prepend the current working directory
-            if(!([fileToOpen hasPrefix: @"/"])) {
-                char *mywd = getwd(NULL);
-                //int len = strlen(mywd);
-                
-                char totalbuf[2048];
-                [fileToOpen getCString: buff maxLength:sizeof(buff)-1 encoding:NSUTF8StringEncoding];
-                
-                // is this a file WITHOUT a url/uri on the front? 
-                if (!fwl_checkNetworkFile(buff)) {
-                    
-                    // make up a path, using the cwd and the file name
-                    strcpy(totalbuf,mywd);
-                    strcat(totalbuf,"/");
-                    strcat(totalbuf,buff);
-                    fileToOpen= [NSString stringWithCString: totalbuf encoding:NSUTF8StringEncoding];
-                    [fileToOpen retain];
-                }
-            }
-        } else {
-            /* Command line options - from the USE web page, Oct 2011
-             --version
-             --fullscreen
-             --big
-             --geo[metry] geom
-             --eai host:port
-             --server
-             --sig
-             --shutter
-             --anaglyph LR
-             --sidebyside 
-             --eyedist number
-             --screendist number
-             --stereo number
-             */
-            if ([[args objectAtIndex:mi] isEqualTo: @"--version"]) {
-                //NSLog (@"FreeWRL UI Version %s, Library Version %s",fwl_freewrl_get_version(), fwl_libFreeWRL_get_version()); 
-                //printf ("FreeWRL UI Version %s, Library Version %s\n",fwl_freewrl_get_version(), fwl_libFreeWRL_get_version());
-                
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--fullscreen"]) {
-                NSLog (@"command line argument :%s: ignored in this version",buff);
-                
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--big"]) {
-            } else if (([[args objectAtIndex:mi] isEqualTo: @"--geo"]) ||
-                       ([[args objectAtIndex:mi] isEqualTo: @"--geom"]) ||
-                       ([[args objectAtIndex:mi] isEqualTo: @"--geometry"])) {
-                argLookedAt[mi+1] = true; // next argument already peeked at
-                NSLog (@"command line argument :%s: ignored in this version",buff);
-                
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--eai"]) {
-                argLookedAt[mi+1] = true; // next argument already peeked at
-                NSLog (@"command line argument :%s: ignored in this version",buff);
+			// found a file name (possibly)
+			else if (([[args objectAtIndex:mi] hasSuffix: @".wrl"]) || 
+					 ([[args objectAtIndex:mi] hasSuffix: @".WRL"]) || 
+					 ([[args objectAtIndex:mi] hasSuffix: @".x3d"]) || 
+					 ([[args objectAtIndex:mi] hasSuffix: @".X3D"]) || 
+					 ([[args objectAtIndex:mi] hasSuffix: @".x3dv"]) || 
+					 ([[args objectAtIndex:mi] hasSuffix: @".X3DV"]) ){
+				fileToOpen = [args objectAtIndex:mi];
+				[fileToOpen getCString: buff maxLength:sizeof(buff)-1 encoding:NSUTF8StringEncoding];
+				
+				// does this name have a prefix? if not, prepend the current working directory
+				if(!([fileToOpen hasPrefix: @"/"])) {
+					char *mywd = getwd(NULL);
+					//int len = strlen(mywd);
+					
+					char totalbuf[2048];
+					[fileToOpen getCString: buff maxLength:sizeof(buff)-1 encoding:NSUTF8StringEncoding];
+					
+					// is this a file WITHOUT a url/uri on the front? 
+					if (!fwl_checkNetworkFile(buff)) {
+						
+						// make up a path, using the cwd and the file name
+						strcpy(totalbuf,mywd);
+						strcat(totalbuf,"/");
+						strcat(totalbuf,buff);
+						fileToOpen= [NSString stringWithCString: totalbuf encoding:NSUTF8StringEncoding];
+						[fileToOpen retain];
+					}
+				}
+			} else {
+				/* Command line options - from the USE web page, Oct 2011
+				 --version
+				 --fullscreen
+				 --big
+				 --geo[metry] geom
+				 --eai host:port
+				 --server
+				 --sig
+				 --shutter
+				 --anaglyph LR
+				 --sidebyside 
+				 --eyedist number
+				 --screendist number
+				 --stereo number
+				 */
+				if ([[args objectAtIndex:mi] isEqualTo: @"--version"]) {
+					//NSLog (@"FreeWRL UI Version %s, Library Version %s",fwl_freewrl_get_version(), fwl_libFreeWRL_get_version()); 
+					//printf ("FreeWRL UI Version %s, Library Version %s\n",fwl_freewrl_get_version(), fwl_libFreeWRL_get_version());
+					
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--fullscreen"]) {
+					NSLog (@"command line argument :%s: ignored in this version",buff);
+					
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--big"]) {
+				} else if (([[args objectAtIndex:mi] isEqualTo: @"--geo"]) ||
+						   ([[args objectAtIndex:mi] isEqualTo: @"--geom"]) ||
+						   ([[args objectAtIndex:mi] isEqualTo: @"--geometry"])) {
+					argLookedAt[mi+1] = true; // next argument already peeked at
+					NSLog (@"command line argument :%s: ignored in this version",buff);
+					
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--eai"]) {
+					argLookedAt[mi+1] = true; // next argument already peeked at
+					NSLog (@"command line argument :%s: ignored in this version",buff);
 
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--server"]) {
-                NSLog (@"command line argument :%s: ignored in this version",buff);
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--server"]) {
+					NSLog (@"command line argument :%s: ignored in this version",buff);
 
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--sig"]) {
-                NSLog (@"command line argument :%s: ignored in this version",buff);
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--sig"]) {
+					NSLog (@"command line argument :%s: ignored in this version",buff);
 
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--shutter"]) {
-                fwl_init_Shutter();
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--shutter"]) {
+					fwl_init_Shutter();
 
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--keypress"]) {
-                fwl_set_KeyString(opt);
-                argLookedAt[mi+1] = true; // next argument already peeked at
-                
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--keypress"]) {
+					fwl_set_KeyString(opt);
+					argLookedAt[mi+1] = true; // next argument already peeked at
+					
 
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--anaglyph"]) {
-                fwl_set_AnaglyphParameter(opt);
-                argLookedAt[mi+1] = true; // next argument already peeked at
-                
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--sidebyside"]) {
-                fwl_init_SideBySide();
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--anaglyph"]) {
+					fwl_set_AnaglyphParameter(opt);
+					argLookedAt[mi+1] = true; // next argument already peeked at
+					
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--sidebyside"]) {
+					fwl_init_SideBySide();
 
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--eyedist"]) {
-                fwl_set_EyeDist(optarg);
-                argLookedAt[mi+1] = true; // next argument already peeked at
-                
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--screendist"]) {
-                argLookedAt[mi+1] = true; // next argument already peeked at  
-                fwl_set_ScreenDist(opt);
-                
-            } else if ([[args objectAtIndex:mi] isEqualTo: @"--stereo"]) {
-                argLookedAt[mi+1] = true; // next argument already peeked at
-                fwl_set_StereoParameter(opt);
-               
-            } else {
-                NSLog (@"unknown command line argument, :%s:",buff);
-            }
-        }
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--eyedist"]) {
+					fwl_set_EyeDist(optarg);
+					argLookedAt[mi+1] = true; // next argument already peeked at
+					
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--screendist"]) {
+					argLookedAt[mi+1] = true; // next argument already peeked at  
+					fwl_set_ScreenDist(opt);
+					
+				} else if ([[args objectAtIndex:mi] isEqualTo: @"--stereo"]) {
+					argLookedAt[mi+1] = true; // next argument already peeked at
+					fwl_set_StereoParameter(opt);
+				   
+				} else {
+					NSLog (@"unknown command line argument, :%s:",buff);
+				}
+			}
 
-    }
+		}
+	}
     //NSLog (@"arg checking finished");
     
 

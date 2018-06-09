@@ -48,7 +48,7 @@
                     </button>
                 </subviews>
             </view>
-            <point key="canvasLocation" x="416" y="79"/>
+            <point key="canvasLocation" x="400" y="105"/>
         </window>
         <menu title="MainMenu" systemMenu="main" id="29" userLabel="MainMenu">
             <items>

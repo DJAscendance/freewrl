@@ -222,7 +222,11 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 #endif
 
 	*url_index = -1;
-
+#if defined(_DEBUG) || defined(DEBUG)
+	for(c=0;c<argc;c++)
+		printf("argv[%d]=%s\n",c,argv[c]);
+#endif //DEBUG
+	optind = 1;
     while (1) {
 
 	/* Do we want getopt to print errors by itself ? */
@@ -232,23 +236,22 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 
 #if defined(_MSC_VER)
 #define strncasecmp _strnicmp
-#ifdef _DEBUG
-	for(c=0;c<argc;c++)
-	{
-		printf("argv[%d]=%s\n",c,argv[c]);
-	}
-#endif
 	c =	_getopt_internal (argc, argv, optstring, long_options, &option_index, 0);
-#else
+#else //_MSC_VERF
 	c = getopt_long(argc, argv, optstring, long_options, &option_index);
 #endif
-
-# else
+# else //HAVE_GETOPT_LONG
 	c = getopt(argc, argv, optstring);
-# endif
+		
+# endif //HAVE_GETOPT_LONG
+#if defined(_DEBUG) || defined(DEBUG)
+		printf("c=%c argv[%d]=%s\n",c,optind,argv[optind]);
+#define	DEBUG_ARGS printf
+#endif //DEBUG
 
 	if (c == -1)
 	    break;
+
 
 	if ((c == '?')) {
 	    real_option_index = fv_find_opt_for_optopt(optopt);
@@ -539,13 +542,13 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
  //   }
 
     if (optind < argc) {
-	if (optind != (argc-1)) {
-		ERROR_MSG("FreeWRL accepts only one argument: we have %d\n", (argc-optind));
-		return FALSE;
-	}
-	DEBUG_MSG("Start url: %s\n", argv[optind]);
-	//start_url = STRDUP(argv[optind]);
-	*url_index = optind;
+		if (optind != (argc-1)) {
+			ERROR_MSG("FreeWRL accepts only one argument: we have %d\n", (argc-optind));
+			return FALSE;
+		}
+		DEBUG_MSG("Start url: %s\n", argv[optind]);
+		//start_url = STRDUP(argv[optind]);
+		*url_index = optind;
     }
 
     return TRUE;

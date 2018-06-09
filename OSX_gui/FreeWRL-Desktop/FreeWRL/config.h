@@ -34,6 +34,7 @@
 #define FREEWRL_MESSAGE_WRAPPER "/usr/bin/say"
 #define	BROWSER		"/usr/bin/open"
 #define PACKAGE_BUGREPORT "freewrl.sf.net"
+#define HAVE_GETOPT_LONG 1
 //the following can be undefed when starting to build on a clean machine
 //libcurl is part of osx (for pulling http files)
 #define HAVE_LIBCURL 1

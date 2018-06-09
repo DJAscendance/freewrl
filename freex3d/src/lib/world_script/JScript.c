@@ -297,7 +297,7 @@ void sm_JSDeleteScriptContext(int num){
 #if JS_VERSION < 186
 	JS_DestroyContextMaybeGC(ScriptControl->cx);
 #else
-	JS_DestroyContext(ScriptControl->cx);
+	//JS_DestroyContext(ScriptControl->cx);
 #endif
 }
 void sm_jsShutdown(){
