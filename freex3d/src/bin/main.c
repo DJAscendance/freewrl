@@ -46,7 +46,7 @@
  */
 
 /* file/url to start FreeWRL with */
-char *start_url;
+//char *start_url;
 
 /**
  * Signal handlers 
@@ -84,6 +84,8 @@ int main (int argc, char **argv)
 {
     const char *libver;
     const char  *progver;
+	int url_index;
+	char * start_url;
 
 //#if defined(_ANDROID)
 //    int tempIsAndroid = 1 ;
@@ -187,9 +189,9 @@ int main (int argc, char **argv)
 	//fwl_init_StereoDefaults();
 
     /* parse command line arguments */
-    if (fv_parseCommandLine(argc, argv,fv_params)) {
+    if (fv_parseCommandLine(argc, argv,fv_params, &url_index)) {
 		if(argc > 1){
-			start_url = argv[optind];
+			start_url = argv[url_index];
 #ifdef _MSC_VER
 			if(start_url)
 				start_url = strBackslash2fore(start_url);

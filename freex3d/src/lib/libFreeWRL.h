@@ -253,9 +253,10 @@ void fwl_doQuitInstance(void *instance);
 void fwl_updateScreenDim(int wi, int he);
 void fwl_doQuitAndWait();
 void fwl_set_viewer_type(const int type);
-void fwl_set_modeRecord();
-void fwl_set_modeFixture();
-void fwl_set_modePlayback();
+
+//void fwl_set_modeRecord();
+//void fwl_set_modeFixture();
+//void fwl_set_modePlayback();
 
 #define CHANNEL_EAI 0
 //OLDCODE #define CHANNEL_MIDI 1
@@ -293,7 +294,8 @@ void fwl_init_SideBySide(void);
 void fwl_init_UpDown(void);
 void fwl_set_AnaglyphParameter(const char *optArg);
 void fwl_set_StereoParameter(const char *optArg);
-
+void fwl_setDrawBoundingBoxes(int drawbb);
+void fwl_setJsEngine(char *optarg);
 // JAS obsolete void fwl_askForRefreshOK();
 
 /* DISPLAY THREAD */
@@ -426,6 +428,7 @@ char* fwl_resitem_getURL(void *res);
 char* fwl_resitem_getTempDir(void *res);
 void fwl_resitem_setActualFile(void *res, char *fname);
 int	fwl_resitem_getStatus(void *res);
+void fwl_resitem_setStatus(void *resp, int status);
 int	fwl_resitem_getType(void *res);
 int	fwl_resitem_getMediaType(void *res);
 void fwl_resitem_enqueuNextMulti(void *res);

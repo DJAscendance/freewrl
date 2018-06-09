@@ -29,7 +29,7 @@
 #define __FREEWRL_MAIN_OPTIONS_H__
 
 
-extern int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *);
+int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *, int *url_index);
 void fv_parseEnvVars(void);
 
 
