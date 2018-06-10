@@ -473,7 +473,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
 	if(!usingCdllFreewrl){
     fwl_do_keyPress(ks, KeyPress);
 	}else{
-		dllFreeWRL_onKey(fwctx,KeyRelease,ks);
+		dllFreeWRL_onKey(fwctx,KeyPress,ks);
 	}
     NS_HANDLER
     return;
