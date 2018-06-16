@@ -79,10 +79,10 @@ JSContext *cx = NULL;
 	//printJSNodeType(cx,obj);
 	#endif
 
-	//REMOVE_ROOT(cx,obj)
+	REMOVE_ROOT(cx,obj)
 
 	if ((ptr = (void *)JS_GetPrivateFw(cx, obj)) != NULL) {
-		/*
+		
 		if(SM_method() == 0)
 			FREE_IF_NZ (ptr);
 		if(SM_method() == 2){
@@ -90,9 +90,9 @@ JSContext *cx = NULL;
 			if(any->gc) FREE_IF_NZ(any->v);
 		}
 
-		JS_SetPrivate(cx,obj,NULL);
+		JS_SetPrivateFw(cx,obj,NULL);
 		FREE_IF_NZ(ptr);
-		*/
+		
 	}
 
 	#ifdef JSVRMLCLASSESVERBOSE
