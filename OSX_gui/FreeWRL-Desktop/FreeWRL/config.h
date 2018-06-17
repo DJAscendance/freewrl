@@ -51,3 +51,5 @@
 #define NURBS_LIB 1
 //spidermonkey aka mozjs17 via macports -on commandline can switch to duk with -J duk (or to SM with -J sm2)
 #define JAVASCRIPT_SM 1
+#define JAVASCRIPT_ENGINE_VARIANT 1 //1 = SM1 2 = SM2 - (default in libfreewrl is 2, mozjs17 not GCing so SM1 is better on mac
+
