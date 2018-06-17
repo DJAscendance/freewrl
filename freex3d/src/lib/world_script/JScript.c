@@ -127,10 +127,18 @@ void JScript_init(struct tJScript *t){
 
 
 void sm_js_cleanup_script_context(int counter){
-	//ttglobal tg = gglobal();
-	//ppJScript p = (ppJScript)tg->JScript.prv;
 	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
 	//CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
+	#if JS_VERSION <= 185
+		JS_GC(getScriptControlIndex(counter)->cx);
+	#else
+		ttglobal tg = gglobal();
+		ppJScript p = (ppJScript)tg->JScript.prv;
+		//JS_GC((JSRuntime*) p->runtime); //this bombs for us. access violation.
+		//JS_GC(getScriptControlIndex(counter)->cx); //this also bombs for us
+		JS_MaybeGC(getScriptControlIndex(counter)->cx); //this doesn't do gcing.
+		
+	#endif
 }
 
 /********************************************************************
@@ -212,9 +220,13 @@ void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptCont
 
 
 /* MAX_RUNTIME_BYTES controls when garbage collection takes place. */
-/* #define MAX_RUNTIME_BYTES 0x1000000 */
+//#define MAX_RUNTIME_BYTES 0xB00000L
+//#define MAX_RUNTIME_BYTES 0xC00000L
+//#define MAX_RUNTIME_BYTES 0x1000000L 
 #define MAX_RUNTIME_BYTES 0x4000000L
-/* #define MAX_RUNTIME_BYTES 0xC00000L */
+//#define MAX_RUNTIME_BYTES 0xF000000L
+
+
 
 #define STACK_CHUNK_SIZE 8192
 
@@ -309,8 +321,66 @@ void sm_jsShutdown(){
 }
 //========================
 
-
-
+#if JS_VERSION >= 186
+static struct keyname {
+	int key;
+	char *name;
+} gcparamname [] = {
+{JSGC_MAX_BYTES,"JSGC_MAX_BYTES"},
+{JSGC_MAX_MALLOC_BYTES, "JSGC_MAX_MALLOC_BYTES"},
+{JSGC_BYTES,"JSGC_BYTES"},
+{JSGC_NUMBER,"JSGC_NUMBER"},
+{JSGC_MAX_CODE_CACHE_BYTES,"JSGC_MAX_CODE_CACHE_BYTES"},
+{JSGC_MODE,"JSGC_MODE"},
+{JSGC_UNUSED_CHUNKS,"JSGC_UNUSED_CHUNKS"},
+{JSGC_TOTAL_CHUNKS,"JSGC_TOTAL_CHUNKS"},
+{JSGC_SLICE_TIME_BUDGET,"JSGC_SLICE_TIME_BUDGET"},
+{JSGC_MARK_STACK_LIMIT,"JSGC_MARK_STACK_LIMIT"},
+{JSGC_HIGH_FREQUENCY_TIME_LIMIT,"JSGC_HIGH_FREQUENCY_TIME_LIMIT"},
+{JSGC_HIGH_FREQUENCY_LOW_LIMIT,"JSGC_HIGH_FREQUENCY_LOW_LIMIT"},
+{JSGC_HIGH_FREQUENCY_HIGH_LIMIT,"JSGC_HIGH_FREQUENCY_HIGH_LIMIT"},
+{JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX,"JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX"},
+{JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN,"JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN"},
+{JSGC_LOW_FREQUENCY_HEAP_GROWTH,"JSGC_LOW_FREQUENCY_HEAP_GROWTH"},
+{JSGC_DYNAMIC_HEAP_GROWTH,"JSGC_DYNAMIC_HEAP_GROWTH"},
+{JSGC_DYNAMIC_MARK_SLICE,"JSGC_DYNAMIC_MARK_SLICE"},
+{JSGC_ANALYSIS_PURGE_TRIGGER,"JSGC_ANALYSIS_PURGE_TRIGGER"},
+{-1,NULL},
+};
+#else //186
+//<= 185
+static struct keyname {
+	int key;
+	char *name;
+} gcparamname [] = {
+{JSGC_MAX_BYTES,"JSGC_MAX_BYTES"},
+{JSGC_MAX_MALLOC_BYTES, "JSGC_MAX_MALLOC_BYTES"},
+{JSGC_STACKPOOL_LIFESPAN,"JSGC_STACKPOOL_LIFESPAN"},
+{JSGC_TRIGGER_FACTOR,"JSGC_TRIGGER_FACTOR"},
+{JSGC_BYTES,"JSGC_BYTES"},
+{JSGC_NUMBER,"JSGC_NUMBER"},
+{JSGC_MAX_CODE_CACHE_BYTES,"JSGC_MAX_CODE_CACHE_BYTES"},
+{JSGC_MODE,"JSGC_MODE"},
+{JSGC_UNUSED_CHUNKS,"JSGC_UNUSED_CHUNKS"},
+{-1,NULL},
+};
+#endif //186
+const char *getgcparamname(int key){
+	int i = 0;
+	while(gcparamname[i].name != NULL){
+		if(gcparamname[i].key == key){
+			return gcparamname[i].name;
+		}
+		i++;
+	}
+	return "NULL";
+}
+//void reportError(JSContext *cx, const char *message, JSErrorReport *report) {
+//     printf("%s:%u:%s\n",
+//             report->filename ? report->filename : "[no filename]",
+//             (unsigned int) report->lineno,
+//             message);
+//}
 
 
 
@@ -330,15 +400,31 @@ void sm_JSCreateScriptContext(int num) {
 	if (p->runtime == NULL) {
 		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES);
 		if (!p->runtime) freewrlDie("JS_NewRuntime failed");
-
 		#ifdef JAVASCRIPTVERBOSE
 		printf("\tJS runtime created,\n");
 		#endif
+		#ifdef DEBUG
+		// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_GetGCParameter
+		int iend = JS_VERSION == 185 ? 8 : JS_VERSION == 186 ? 19 :  0;
+		for(unsigned int i=0; i<= iend; i++){
+			unsigned int gcparam = JS_GetGCParameter(p->runtime,i);
+			printf("%s = %u\n",getgcparamname(i),gcparam);
+		}
+		//#if JS_VERSION == 186
+		//	JS_SetGCParameter(p->runtime,JSGC_MODE,JSGC_MODE_INCREMENTAL);
+		//	JS_SetGCParameter(p->runtime,JSGC_SLICE_TIME_BUDGET,100); //miliseconds
+		//#endif
+		#endif //DEBUG
 	}
 
 
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
+	#ifdef DEBUG
+	unsigned int opts = JS_GetOptions(_context);
+	printf("options %x\n",opts);
+	#endif //DEBUG
+	//JS_SetErrorReporter(_context, reportError);
 
 	#ifdef JAVASCRIPTVERBOSE
 	printf("\tJS context created,\n");
@@ -347,11 +433,14 @@ void sm_JSCreateScriptContext(int num) {
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(_context);
 #endif
+	//#if JS_VERSION == 186
+	//	JS_SetGCParameterForThread(_context,JSGC_MODE,JSGC_MODE_INCREMENTAL);
+	//	JS_SetGCParameterForThread(_context,JSGC_SLICE_TIME_BUDGET,100); //miliseconds
+	//#endif
+
 	#if JS_VERSION >= 185
-	if (num == 0) {
-		#if JS_VERSION == 186
-		_globalObj = JS_NewGlobalObjectFw(_context,&p->globalClass);
-		#else
+	if (num == 0 && JS_VERSION < 186) {
+		#if JS_VERSION < 186
 		_globalObj = JS_NewCompartmentAndGlobalObject(_context, &p->globalClass, NULL);
 		#endif
 	} else {
@@ -363,6 +452,9 @@ void sm_JSCreateScriptContext(int num) {
 	#else
 	_globalObj = JS_NewObject(_context, &p->globalClass, NULL, NULL);
 	#endif
+	//#ifdef JS_GC_ZEAL
+	//JS_SetGCZeal(_context, 2, 100);
+	//#endif
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(_context);
 #endif
@@ -491,6 +583,7 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	JS_BeginRequest(_context);
 #endif
 	//CLEANUP_JAVASCRIPT(_context)
+	js_cleanup_script_context(num);
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(_context);
 #endif
@@ -512,7 +605,6 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 		JS_EndRequest(_context);
 #endif
 	}
-
 	#ifdef JAVASCRIPTVERBOSE
 	printf ("runscript passed\n");
 	#endif
@@ -1245,7 +1337,8 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 #if defined(JS_THREADSAFE)
 	JS_BeginRequest(ScriptControl->cx);
 #endif
-	CLEANUP_JAVASCRIPT(ScriptControl->cx)
+	//CLEANUP_JAVASCRIPT(ScriptControl->cx)
+	js_cleanup_script_context(num);
 #if defined(JS_THREADSAFE)
 	JS_EndRequest(ScriptControl->cx);
 #endif
