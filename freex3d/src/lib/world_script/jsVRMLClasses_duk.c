@@ -199,10 +199,19 @@ int MFW_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 			// .. (could be pruned out in all SFNode sources and sinks in _duk modules)
 			//can do this costlessly -MF[i] = SF comes in to MFW_Setter that still uses &MF[i]- 
 			// but just for SFnode/MFnode 
-			void *sfptr = malloc(sizeof(void*));
-			memcpy(sfptr,(void *)(p + index*elen),sizeof(void*)); //*sfptr = MF.p[i] = &SF
-			fwretval->_web3dval.native = (void *)sfptr; //native = &sfptr
-			fwretval->_web3dval.gc = 1;
+			void **sfnode = (void **)(p + index*elen);
+			if(*sfnode == NULL){
+				//instant and octaga return javascript null if MF[i] is null, handy for sentinal null comparisons, instead of .valueOf() which octaga and others can't do
+				fwretval->itype = '0';
+				//fwretval->_null = 1; //H: I don't need this
+				nr = 1;
+				return nr;  //====================== lazy programmer return mid-function
+			}else{
+				void *sfptr = malloc(sizeof(void*));
+				memcpy(sfptr,(void *)(p + index*elen),sizeof(void*)); //*sfptr = MF.p[i] = &SF
+				fwretval->_web3dval.native = (void *)sfptr; //native = &sfptr
+				fwretval->_web3dval.gc = 1;
+			}
 		}else{
 			int deepCopyLikeVivaty = FALSE; // FALSE; //TRUE;
 			if(deepCopyLikeVivaty){
