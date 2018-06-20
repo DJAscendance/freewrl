@@ -1183,12 +1183,14 @@ _standardMFGetProperty(JSContext *cx,
 					X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
 					break;
 				case FIELDTYPE_SFColor:
-				case FIELDTYPE_SFNode:
 				case FIELDTYPE_SFVec2f:
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
 					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
+					break;
+				case FIELDTYPE_SFNode:
+					X3D_SF_TO_JS_BNode(cx, any,sfsize, sftype, ptr->valueChanged, vp);
 					break;
 				default: printf ("invalid type in standardMFGetProperty method 2\n"); return JS_FALSE;
 			}
@@ -1820,13 +1822,15 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 
 					break;
 				case FIELDTYPE_SFColor:
-				case FIELDTYPE_SFNode:
 				case FIELDTYPE_SFVec2f:
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
 					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
 					//JS_SF_TO_X3D(cx, any, sfsize, sftype, ptr->valueChanged, vp);
+					break;
+				case FIELDTYPE_SFNode:
+					JS_SF_TO_X3D_BNode(cx, any, sftype, valueChanged, vp); 
 					break;
 				default: printf ("invalid type in standardMFGetProperty method 2\n"); return JS_FALSE;
 			}

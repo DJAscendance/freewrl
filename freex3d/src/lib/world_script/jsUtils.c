@@ -446,6 +446,19 @@ void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, 
 	}
 	shallow_copy_field(dataType,ptr->v,Data);
 }
+void JS_SF_TO_X3D_BNode(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval) {
+	AnyNative *ptr;
+	union anyVrml *anyv;
+	if(JSVAL_IS_NULL(*newval)){
+		union anyVrml any;
+		any.sfnode = NULL;
+		shallow_copy_field(dataType,&any,Data);
+	}else{
+		JS_SF_TO_X3D_B(cx, Data, dataType, valueChanged, newval);
+	}
+
+	/* get a pointer to the internal private data */
+}
 
 void getJSMultiNumType(JSContext *, struct Multi_Vec3f *, int);
 
@@ -667,7 +680,16 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 
 	//}
 }
+void X3D_SF_TO_JS_BNode(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
+{
+	union anyVrml *any = (union anyVrml *)Data;
+	if(any->sfnode == NULL){
+		*newval = JSVAL_NULL;
+	}else{
+		X3D_SF_TO_JS_B(cx, Data, datalen, dataType, valueChanged, newval);
+	}
 
+}
 /* make an MF type from the X3D node. This can be fairly slow... */
 void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
 	int i;
