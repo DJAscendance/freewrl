@@ -56,6 +56,7 @@ typedef struct keyval {
 
 /* textual status messages */
 typedef struct pcommon{
+	int itrap;
 	float myFps; // = (float) 0.0;
 	int target_frames_per_second;
 	char myMenuStatus[MAXSTAT];
@@ -94,6 +95,7 @@ void common_init(struct tcommon *t){
 	t->prv = common_constructor();
 	{
 		ppcommon p = (ppcommon)t->prv;
+		p->itrap = 0; //handy for debugging, see fwl_setTrap, fwl_getTrap
 		p->myFps = (float) 0.0;
 		p->cursorStyle = ACURSE;
 		p->sb_hasString = FALSE;
@@ -141,6 +143,15 @@ void common_clear(struct tcommon *t){
 }
 
 //ppcommon p = (ppcommon)gglobal()->common.prv;
+
+void fwl_setTrap(int k){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->itrap = k;
+}
+int fwl_getTrap(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->itrap;
+}
 
 void fwl_setJsEngine(char *optarg){
 	//this has to be set during startup, can't reset during the run.
