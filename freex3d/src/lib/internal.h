@@ -540,5 +540,5 @@ void free_registered_node_gc(void *node); //free when freeing node ie freeMalloc
 //extern bool global_print_opengl_errors; /* print OpenGL errors as they come ? */
 
 //extern bool global_trace_threads;       /* trace thread creation / switch ... ? */
-
+const char *getNodeName(struct X3D_Node *node);
 #endif /* __LIBFREEWRL_DECL_H__ */
