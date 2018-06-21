@@ -5944,14 +5944,16 @@ int count_fields(struct X3D_Node* node)
 //========
 void **shaderFields(struct X3D_Node* node);
 //convenience wrappers to get details for built-in fields and -on script and protoInstance- dynamic fields
-int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca, const char *cname){
+int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, 
+		int *iifield, int *builtIn, union anyVrml **value, int *iunca, const char **cname){
 	void **shaderfield;
 	*type = 0;
 	*kind = 0;
 	*iifield = -1;
 	*value = NULL;
 	*iunca = UNCA_NONE;
-	cname = NULL;
+	*cname = NULL;
+	*builtIn = TRUE;
 	shaderfield = shaderFields(node);
 	//Q. what about shader script?
 
@@ -5980,7 +5982,8 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				*kind = fdecl->PKWmode;
 				*value = &(sfield->value);
 				*iifield = k; 
-				cname = fieldName;
+				*builtIn = FALSE;
+				*cname = fieldName;
 				return 1;
 			}
 		}
@@ -6008,7 +6011,8 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				*kind = fdecl->PKWmode;
 				*value = &(sfield->value);
 				*iifield = k; 
-				cname = fieldName;
+				*builtIn = FALSE;
+				*cname = fieldName;
 				return 1;
 			}
 		}
@@ -6031,7 +6035,8 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					*iifield = k;
-					cname = fieldName;
+					*builtIn = FALSE;
+					*cname = fieldName;
 					return 1;
 				}
 			}
@@ -6070,9 +6075,10 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				}
 				*kind = kkind;
 				*iifield = ifield; 
+				*builtIn = TRUE;
 				*value = (union anyVrml*)&((char*)node)[field->offset];
 				*iunca = field->unca;
-				cname = FIELDNAMES[field->nameIndex];
+				*cname = FIELDNAMES[field->nameIndex];
 				return 1;
 			}
 			ifield++;
@@ -6081,9 +6087,9 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 	}
 	return 0;
 }
-int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca, const char *cname){
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int* builtIn, union anyVrml **value, int *iunca, const char **cname){
 	int ifound = 0;
-	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,value,iunca,cname);
+	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,builtIn,value,iunca,cname);
 	if(!ifound){
 		int ln, hsn, hcn;
 		const char *nf;
@@ -6091,7 +6097,7 @@ int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *t
 
 		if(hsn){
 			//set_ prefix
-			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,value,iunca,cname);
+			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,builtIn,value,iunca,cname);
 		}
 		ln++;
 		if(hcn) {
@@ -6099,7 +6105,7 @@ int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *t
 			char rootname[MAXJSVARIABLELENGTH];
 			strncpy(rootname,fieldname,ln);
 			rootname[ln] = '\0';
-			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,value,iunca,cname);
+			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,builtIn,value,iunca,cname);
 		}
 	}
 	return ifound;		
@@ -6107,24 +6113,25 @@ int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *t
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
 	int iunca;
 	int ifound;
+	int builtIn;
 	char *cname = NULL;
-	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,value,&iunca,cname); //waste iunca
+	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,&builtIn,value,&iunca,&cname); //waste iunca
 	return ifound;
 }
-int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, const char *cname){
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname){
 	int iunca;
 	int ifound;
-	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,value,&iunca,cname); //waste iunca
+	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,builtIn,value,&iunca,cname); //waste iunca
 	return ifound;
 }
 
-int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value){
+int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, const char **fieldname, int *type, int *kind, union anyVrml **value){
 	int iret = 0;
 	*type = 0;
 	*kind = 0;
 	*fieldname = NULL;
 	*value = NULL;
-	if(node->_nodeType == NODE_Script ) 
+	if(node->_nodeType == NODE_Script && !builtIn ) 
 	{
 		int k;
 		struct Vector *sfields;
@@ -6153,7 +6160,7 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 			iret = 1;
 		}
 		return iret;
-	}else if(node->_nodeType == NODE_Proto ) {
+	}else if(node->_nodeType == NODE_Proto && !builtIn) {
 		int k; //, mode;
 		struct ProtoFieldDecl* pfield;
 		struct X3D_Proto* pnode = (struct X3D_Proto*)node;
@@ -6177,7 +6184,7 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 		return iret;
 	}
 	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
-	{
+	if(builtIn){
 		//typedef struct field_info{
 		//	int nameIndex;
 		//	int offset;
@@ -6220,6 +6227,11 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 		*value = (union anyVrml*)&((char*)node)[offsets[kfield].offset];
 		return 1;
 	}
+	return 0;
+}
+int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value){
+	//I don't know what the routing in javascript needs, but it needs to be clearer.
+	return getFieldFromNodeAndIndexB(node,ifield,TRUE,fieldname,type,kind,value);
 }
 
 

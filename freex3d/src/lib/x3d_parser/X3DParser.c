@@ -522,8 +522,8 @@ static struct X3D_Node *DEFNameIndex (const char *name, struct X3D_Node* node, i
 
 
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
-int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, const char *cname);
-int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca, const char *cname);
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, int *iunca, const char **cname);
 void broto_store_route(struct X3D_Proto* proto, struct X3D_Node* fromNode, int fromOfs, struct X3D_Node* toNode, int toOfs, int ft);
 struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 void broto_store_ImportRoute(struct X3D_Proto* proto, char *fromNode, char *fromField, char *toNode, char* toField);
@@ -1018,7 +1018,7 @@ static void parseUnit(void *ud, char **atts) {
 }
 void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr);
 static void parseFieldValue_B(void *ud, char **atts) {
-	int i, type, kind, iifield, ok;
+	int i, type, kind, iifield, builtIn, ok;
 	const char *fname, *svalue, *cname;
 	union anyVrml *value;
 	struct X3D_Node *node = getNode(ud,TOP);
@@ -1041,18 +1041,19 @@ static void parseFieldValue_B(void *ud, char **atts) {
 	ok = 0;
 	cname = NULL;
 	value = NULL;
+	builtIn = FALSE;
 	if(fname){
-		ok = getFieldFromNodeAndNameC(node,fname,&type,&kind,&iifield,&value,cname);
-		//if(ok){
-		//	//get a pointer to a heap version of the field name (because atts vanishes on return)
-		//	ok = getFieldFromNodeAndIndex(node, iifield, &cname, &type, &kind, &value);
-		//}
+		ok = getFieldFromNodeAndNameC(node,fname,&type,&kind,&iifield,&builtIn,&value,&cname);
+		if(ok){
+			//get a pointer to a heap version of the field name (because atts vanishes on return)
+			ok = getFieldFromNodeAndIndexB(node, iifield, builtIn, &cname, &type, &kind, &value);
+		}
 	}
 	if(cname && value && svalue){
 		deleteMallocedFieldValue(type,value);
 		Parser_scanStringValueToMem_B(value,type,svalue,TRUE);
 	}
-	if(cname && (node->_nodeType == NODE_Proto)){
+	if(cname && (node->_nodeType == NODE_Proto) && !builtIn){
 		//for protoInstances, whether or not you have a value, 
 		//if you declare a field then you are saying you declare the value null or 0 or default at least.
 		//so for SFNode fields where <fieldValue><a node></fieldValue> and we get the node later
@@ -1418,7 +1419,7 @@ void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n,
 void sfunitd(int nodeType,char *fieldname, double *var, int n, int iuncafield);
 void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iuncafield);
 static void parseAttributes_B(void *ud, char **atts) {
-	int i, type, kind, iifield, iunca, isunits;
+	int i, type, kind, iifield, builtIn, iunca, isunits;
 	struct X3D_Node *node;
 	char *name, *svalue, *cname;
 	const char *ignore [] = {"containerField","USE", "DEF"};
@@ -1432,7 +1433,7 @@ static void parseAttributes_B(void *ud, char **atts) {
 		/* see if we have a containerField here */
 		if(findFieldInARR(name,ignore,3) == INT_ID_UNDEFINED){
 			cname = NULL;
-			if(getFieldFromNodeAndNameU(node,name,&type,&kind,&iifield,&value,&iunca,cname)){
+			if(getFieldFromNodeAndNameU(node,name,&type,&kind,&iifield,&builtIn,&value,&iunca,&cname)){
 				deleteMallocedFieldValue(type,value);
 				Parser_scanStringValueToMem_B(value, type,svalue, TRUE);
 				//apply unit conversionFactor to parsed literal field 
@@ -2051,10 +2052,10 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 				parseUnit(ud,myAtts); break;
 			default: printf ("	huh? startElement, X3DSPECIAL, but not handled?? %d, :%s:\n",myNodeIndex,X3DSPECIAL[myNodeIndex]);
 		}
-		if(fwl_getTrap() == 2){
-			printf ("startElement name  %s\n",name); 
-			fwl_setTrap(0);
-		}
+		//if(fwl_getTrap() == 2){
+		//	printf ("startElement name  %s\n",name); 
+		//	fwl_setTrap(0);
+		//}
 		return;
 	}
 	printf ("startElement name  do not currently handle this one :%s: index %d\n",name,myNodeIndex); 
