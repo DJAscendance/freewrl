@@ -758,12 +758,13 @@ void jsRegisterRoute_HIDE(
 struct brotoRoute *createNewBrotoRoute();
 void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromNode, const char *sfromField, struct X3D_Node* toNode, const char *stoField){
 	void *retval;
-	int fromType,toType,fromKind,toKind,fromField,toField;
+	int fromType,toType,fromKind,toKind,fromField,toField,fromBuiltIn,toBuiltIn;
+	char *fromCname,*toCname;
 	int i, len, fromOfs, toOfs;
 	union anyVrml *fromValue, *toValue;
 
-	getFieldFromNodeAndName(fromNode,sfromField,&fromType,&fromKind,&fromField,&fromValue);
-	getFieldFromNodeAndName(toNode,stoField,&toType,&toKind,&toField,&toValue);
+	getFieldFromNodeAndNameC(fromNode,sfromField,&fromType,&fromKind,&fromField,&fromBuiltIn,&fromValue,&fromCname);
+	getFieldFromNodeAndNameC(toNode,stoField,&toType,&toKind,&toField,&toBuiltIn,&toValue,&toCname);
 
 	/* do we have a mismatch here? */
 	if (fromType != toType) {
@@ -782,14 +783,16 @@ void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromN
 			broute = createNewBrotoRoute();
 			broute->from.node = fromNode;
 			broute->from.ifield = fromField;
+			broute->from.builtIn = fromBuiltIn;
 			//broute->from.Ofs = fromOfs;
 			broute->from.ftype = fromType;
 			broute->to.node = toNode;
 			broute->to.ifield = toField;
+			broute->to.builtIn = toBuiltIn;
 			//broute->to.Ofs = toOfs;
 			broute->to.ftype = toType;
 			broute->lastCommand = 1; //added above (won't be added if an import weak route)
-			CRoutes_RegisterSimpleB(broute->from.node,broute->from.ifield,broute->to.node,broute->to.ifield,broute->ft);
+			CRoutes_RegisterSimpleB(broute->from.node,broute->from.ifield,broute->from.builtIn,broute->to.node,broute->to.ifield,broute->to.builtIn,broute->ft);
 			broute->ft = fromType == toType ? fromType : -1;
 			if(!ec->__ROUTES)
 				ec->__ROUTES = newStack(struct brotoRoute *);
@@ -803,7 +806,7 @@ void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromN
 					if(broute->from.node == fromNode && broute->from.ifield == fromField
 						&& broute->to.node == toNode && broute->to.ifield == toField){
 						if(broute->lastCommand == 1)
-							CRoutes_RemoveSimpleB(broute->from.node,broute->from.ifield,broute->to.node,broute->to.ifield,broute->ft);
+							CRoutes_RemoveSimpleB(broute->from.node,broute->from.ifield,broute->from.builtIn,broute->to.node,broute->to.ifield,broute->to.builtIn,broute->ft);
 						broute->lastCommand = 0;
 						vector_remove_elem(struct brotoRoute*,ec->__ROUTES,i);
 						FREE_IF_NZ(broute);
@@ -842,7 +845,7 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 	void *xroute;
 	struct X3D_Node *fromNode, *toNode;
 	char *fromField, *toField;
-	int fromIfield, toIfield;
+	int fromIfield, toIfield, fromBuiltIn, toBuiltIn;
 	int ftype,kind;
 	union anyVrml *value;
 
@@ -852,11 +855,13 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 		struct brotoRoute* broute = (struct brotoRoute*)fwpars[0]._pointer.native;
 		fromNode = broute->from.node;
 		fromIfield = broute->from.ifield;
+		fromBuiltIn = broute->from.builtIn;
 		toNode = broute->to.node;
 		toIfield = broute->to.ifield;
+		toBuiltIn = broute->to.builtIn;
 	}
-	getFieldFromNodeAndIndex(fromNode,fromIfield,&fromField,&ftype,&kind,&value);
-	getFieldFromNodeAndIndex(toNode,toIfield,&toField,&ftype,&kind,&value);
+	getFieldFromNodeAndIndex(fromNode,fromIfield,fromBuiltIn,&fromField,&ftype,&kind,&value);
+	getFieldFromNodeAndIndex(toNode,toIfield,toBuiltIn,&toField,&ftype,&kind,&value);
 	xroute = addDeleteRoute0(fwn,"deleteRoute",fromNode, fromField, toNode, toField);
 	return nr;
 }
@@ -1823,14 +1828,16 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	int type, kind;
 	char *fieldname; // , *stofield; //*sfromfield, 
 	struct X3D_Node *fromNode, *toNode;
-	int fromIndex, toIndex;
+	int fromIndex, toIndex, fromBuiltIn, toBuiltIn;
 	int nr = 1;
 	{
 		struct brotoRoute* broute = (struct brotoRoute*)fwn;
 		fromNode = broute->from.node;
 		fromIndex = broute->from.ifield;
+		fromBuiltIn = broute->from.builtIn;
 		toNode = broute->to.node;
 		toIndex = broute->to.ifield;
+		toBuiltIn = broute->to.builtIn;
 	}
 	if(!fromNode || !toNode) return 0;
 
@@ -1847,7 +1854,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		break;
 	case 1: //fromField
 		//fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
-		getFieldFromNodeAndIndex(fromNode,fromIndex,&fieldname,&type,&kind,&value);
+		getFieldFromNodeAndIndex(fromNode,fromIndex,fromBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname; //NULL;
 		fwretval->itype = 'S';
 		break;
@@ -1861,7 +1868,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		break;
 	case 3: //toField
 		//getFieldFromNodeAndIndex(route->tonodes[0].routeToNode,route->tonodes[0].foffset,&fieldname,&type,&kind,&value);
-		getFieldFromNodeAndIndex(toNode,toIndex,&fieldname,&type,&kind,&value);
+		getFieldFromNodeAndIndex(toNode,toIndex,toBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname;
 		fwretval->itype = 'S';
 		break;
@@ -2085,7 +2092,7 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 	ifield = tpi->integer;
 	//I suspect FieldDefinitions are for ProtoDeclarations only, 
 	// but freewrl Brotos can use the same function for nodes and declares
-	if(getFieldFromNodeAndIndex(node,ifield,&fname,&type,&kind,&value)){
+	if(getFieldFromNodeAndIndex(node,ifield,FALSE,&fname,&type,&kind,&value)){
 		//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 		switch(index){
 		case 0: //name

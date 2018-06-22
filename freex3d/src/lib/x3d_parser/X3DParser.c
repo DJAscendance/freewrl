@@ -549,7 +549,7 @@ static int QA_routeEnd(struct X3D_Proto *context, char* cnode, char* cfield, str
 		}
 	}else{
 		int idir;
-		int type,kind,ifield,source;
+		int type,kind,ifield,source,builtIn;
 		void *decl;
 		union anyVrml *value;
 		if(isFrom) idir = PKW_outputOnly;
@@ -560,6 +560,7 @@ static int QA_routeEnd(struct X3D_Proto *context, char* cnode, char* cfield, str
 			brend->weak = 0;
 			brend->ftype = type;
 			brend->ifield = ifield;
+			brend->builtIn = source == 0? TRUE : FALSE;
 		}
 	}
 	return found;
@@ -593,7 +594,7 @@ void QAandRegister_parsedRoute_B(struct X3D_Proto *context, char* fnode, char* f
 			char oldwayflag = ciflag_get(pflags,1); 
 			char instancingflag = ciflag_get(pflags,0);
 			if(oldwayflag || instancingflag){
-				CRoutes_RegisterSimpleB(route->from.node, route->from.ifield, route->to.node, route->to.ifield, route->ft);
+				CRoutes_RegisterSimpleB(route->from.node, route->from.ifield, route->from.builtIn, route->to.node, route->to.ifield, route->to.builtIn, route->ft);
 				route->lastCommand = 1; //registered
 			}
 			//broto_store_route(context,fromNode,fifield,toNode,tifield,ftype); //new way delay until sceneInstance()
@@ -1044,10 +1045,10 @@ static void parseFieldValue_B(void *ud, char **atts) {
 	builtIn = FALSE;
 	if(fname){
 		ok = getFieldFromNodeAndNameC(node,fname,&type,&kind,&iifield,&builtIn,&value,&cname);
-		if(ok){
-			//get a pointer to a heap version of the field name (because atts vanishes on return)
-			ok = getFieldFromNodeAndIndexB(node, iifield, builtIn, &cname, &type, &kind, &value);
-		}
+		//if(ok){
+		//	//get a pointer to a heap version of the field name (because atts vanishes on return)
+		//	ok = getFieldFromNodeAndIndexB(node, iifield, builtIn, &cname, &type, &kind, &value);
+		//}
 	}
 	if(cname && value && svalue){
 		deleteMallocedFieldValue(type,value);

@@ -1162,10 +1162,10 @@ FWTYPE MFInt32Type = {
 	MFW_Functions, //functions
 };
 
-int getFieldFromNodeAndIndex(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value);
+int getFieldFromNodeAndIterator(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value, int *builtIn);
 int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	struct X3D_Node *node = ((union anyVrml*)pointer)->sfnode;
-	int ftype, kind, ihave, iifield;
+	int ftype, kind, ihave, iifield, builtIn;
 	char ctype;
 	union anyVrml *value;
 
@@ -1173,7 +1173,7 @@ int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **nam
 	index ++;
 	(*jndex) = 0;
 	iifield = index;
-	ihave = getFieldFromNodeAndIndex(node, index, name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, name, &ftype, &kind, &value,&builtIn);
 	switch(ftype){
 		case FIELDTYPE_SFBool: ctype = 'B'; break;
 		case FIELDTYPE_SFInt32: ctype = 'I'; break;
@@ -1194,11 +1194,11 @@ int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **nam
 }
 int SFNode_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	struct X3D_Node *node = ((union anyVrml*)fwn)->sfnode; 
-	int ftype, kind, ihave, nr;
+	int ftype, kind, ihave, nr, builtIn;
 	const char *name;
 	union anyVrml *value;
 	nr = 0;
-	ihave = getFieldFromNodeAndIndex(node, index, &name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value,&builtIn);
 	if(ihave){
 		fwretval->_web3dval.native = value;
 		fwretval->_web3dval.fieldType = ftype;
@@ -1215,11 +1215,11 @@ int SFNode_Setter0(FWType fwt, int index, void *ec, void *fwn, FWval fwval, int 
 	// shared between fwSetterNS() and SFNode_Setter
 	//
 	struct X3D_Node *node = ((union anyVrml*)fwn)->sfnode; 
-	int ftype, kind, ihave, nr; // , interp;
+	int ftype, kind, ihave, nr, builtIn; // , interp;
 	const char *name;
 	union anyVrml *value;
 	nr = FALSE;
-	ihave = getFieldFromNodeAndIndex(node, index, &name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value, &builtIn);
 	if(ihave){
 		//copy W type or primative type, depending on ftype
 		switch(fwval->itype){

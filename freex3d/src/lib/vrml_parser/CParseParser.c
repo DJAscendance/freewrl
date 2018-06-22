@@ -3941,8 +3941,8 @@ static BOOL parser_externbrotoStatement(struct VRMLParser* me)
 //};
 struct brotoRoute *createNewBrotoRoute();
 void broto_store_route(struct X3D_Proto* proto,
-                          struct X3D_Node* fromNode, int fromIndex,
-                          struct X3D_Node* toNode, int toIndex,
+                          struct X3D_Node* fromNode, int fromIndex, int fromBuiltIn,
+                          struct X3D_Node* toNode, int toIndex, int toBuiltIn,
                           int ft)
 {
 	Stack* routes;
@@ -3957,8 +3957,10 @@ void broto_store_route(struct X3D_Proto* proto,
 	route = createNewBrotoRoute();
 	route->from.node = fromNode;
 	route->from.ifield = fromIndex;
+	route->from.builtIn = fromBuiltIn;
 	route->to.node = toNode;
 	route->to.ifield = toIndex;
+	route->to.builtIn = toBuiltIn;
 	route->lastCommand = 1; //??
 	route->ft = ft;
 
@@ -4457,11 +4459,11 @@ void copy_routes2(Stack *routes, struct X3D_Proto* target, struct Vector *p2p)
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
 		fromNode = p2p_lookup(route->from.node,p2p);
 		toNode = p2p_lookup(route->to.node,p2p);
-       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, toNode, route->to.ifield, route->ft);
+       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, route->from.builtIn, toNode, route->to.ifield, route->to.builtIn, route->ft);
 		//we'll also store in the deep broto instance, although they aren't used there (yet), and
 		//if target is the main scene, they are abandoned. Maybe someday they'll be used.
 		//if( target )
-		broto_store_route(target,fromNode,route->from.ifield, toNode, route->to.ifield, route->ft); 
+		broto_store_route(target,fromNode,route->from.ifield,route->from.builtIn, toNode, route->to.ifield, route->to.builtIn, route->ft); 
 	}
 }
 //copy broto defnames to single global scene defnames, for node* to defname lookup in parser_getNameFromNode
@@ -4680,7 +4682,7 @@ void copy_routes(Stack *routes, struct X3D_Proto* target, struct Vector *p2p)
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
 		fromNode = p2p_lookup(route->from.node,p2p);
 		toNode = p2p_lookup(route->to.node,p2p);
-       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, toNode, route->to.ifield, route->ft);
+       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, route->from.builtIn, toNode, route->to.ifield, route->to.builtIn, route->ft);
 		//we'll also store in the deep broto instance, although they aren't used there (yet), and
 		//if target is the main scene, they are abandoned. Maybe someday they'll be used.
 		//if( target )
@@ -4704,6 +4706,7 @@ struct brotoIS
 	char* nodefieldname;
 	int mode;
 	int ifield;
+	int builtIn;
 	int source; //0= builtin field, 1=script, 2={ComposedShader,ShaderProgram,PackagedShader} 3=Proto
 };
 
@@ -4716,7 +4719,7 @@ void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p)
 	if(istable == NULL) return;
 	for(i=0;i<istable->n;i++)
 	{
-		int ifield, iprotofield;
+		int ifield, builtIn, iprotofield;
 		is = vector_get(struct brotoIS*, istable, i);
 		//parser_registerRoute(me, fromNode, fromOfs, toNode, toOfs, toType); //old way direct registration
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
@@ -4724,6 +4727,7 @@ void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p)
 		is->node = node; //replace protodeclare's body node - we need the new one for unregistering these routes
 		pnode = X3D_NODE(target);
 		ifield = is->ifield;
+		builtIn = is->builtIn;
 		//if(node->_nodeType != NODE_Script && node->_nodeType != NODE_Proto)
 		//	ifield = NODE_OFFSETS[node->_nodeType][ifield*5 +1];
 		iprotofield = is->iprotofield;
@@ -4732,13 +4736,13 @@ void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p)
 		if(is->pmode == PKW_outputOnly){ //we should use pmode instead of mode, because pmode is more restrictive, so we don't route from pmode initializeOnly (which causes cycles in 10.wrl)
 			//idir = 0;
 			//if(node->_nodeType == NODE_Script) idir = FROM_SCRIPT;
-			 CRoutes_RegisterSimpleB(node, ifield, pnode, iprotofield, 0);
+			 CRoutes_RegisterSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
 
 		}else if(is->pmode == PKW_inputOnly){
-			CRoutes_RegisterSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RegisterSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else if(is->pmode == PKW_inputOutput){
-			CRoutes_RegisterSimpleB(node, ifield, pnode, iprotofield, 0);
-			CRoutes_RegisterSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RegisterSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
+			CRoutes_RegisterSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else{
 			//initialize Only - nothing to do routing wise
 		}
@@ -4755,7 +4759,7 @@ void unregister_IStableRoutes(Stack* istable, struct X3D_Proto* target){
 	if(istable == NULL) return;
 	for(i=0;i<istable->n;i++)
 	{
-		int ifield, iprotofield;
+		int ifield, builtIn, iprotofield;
 		is = vector_get(struct brotoIS*, istable, i);
 		//parser_registerRoute(me, fromNode, fromOfs, toNode, toOfs, toType); //old way direct registration
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
@@ -4763,6 +4767,7 @@ void unregister_IStableRoutes(Stack* istable, struct X3D_Proto* target){
 		is->node = node; //replace protodeclare's body node - we need the new one for unregistering these routes
 		pnode = X3D_NODE(target);
 		ifield = is->ifield;
+		builtIn = is->builtIn;
 		//if(node->_nodeType != NODE_Script && node->_nodeType != NODE_Proto)
 		//	ifield = NODE_OFFSETS[node->_nodeType][ifield*5 +1];
 		iprotofield = is->iprotofield;
@@ -4771,13 +4776,13 @@ void unregister_IStableRoutes(Stack* istable, struct X3D_Proto* target){
 		if(is->pmode == PKW_outputOnly){ //we should use pmode instead of mode, because pmode is more restrictive, so we don't route from pmode initializeOnly (which causes cycles in 10.wrl)
 			//idir = 0;
 			//if(node->_nodeType == NODE_Script) idir = FROM_SCRIPT;
-			 CRoutes_RemoveSimpleB(node, ifield, pnode, iprotofield, 0);
+			 CRoutes_RemoveSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
 
 		}else if(is->pmode == PKW_inputOnly){
-			CRoutes_RemoveSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RemoveSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else if(is->pmode == PKW_inputOutput){
-			CRoutes_RemoveSimpleB(node, ifield, pnode, iprotofield, 0);
-			CRoutes_RemoveSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RemoveSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
+			CRoutes_RemoveSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else{
 			//initialize Only - nothing to do routing wise
 		}
@@ -5867,6 +5872,7 @@ typedef struct cbDataRootNameAndRouteDir {
 	int mode;
 	int type;
 	int jfield;
+	int builtIn;
 	int source;
 	BOOL publicfield;
 } s_cbDataRootNameAndRouteDir;
@@ -6125,13 +6131,14 @@ int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *t
 	return ifound;
 }
 
-int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, const char **fieldname, int *type, int *kind, union anyVrml **value){
+int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value, int *builtIn){
 	int iret = 0;
+	int nuser = 0;
 	*type = 0;
 	*kind = 0;
 	*fieldname = NULL;
 	*value = NULL;
-	if(node->_nodeType == NODE_Script && !builtIn ) 
+	if(node->_nodeType == NODE_Script ) 
 	{
 		int k;
 		struct Vector *sfields;
@@ -6148,7 +6155,110 @@ int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, co
 		sfields = sp->fields;
 		//fprintf(fp,"sp->fields->n = %d\n",sp->fields->n);
 		k = ifield;
-		if(k > -1 && k < sfields->n)
+		nuser = sfields->n;
+		if(k > -1 && k < nuser)
+		{
+			sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
+			//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
+			fdecl = sfield->fieldDecl;
+			*fieldname = fieldDecl_getShaderScriptName(fdecl);
+			*type = fdecl->fieldType;
+			*kind = fdecl->PKWmode;
+			*value = &(sfield->value);
+			*builtIn = FALSE;
+			iret = 1;
+		}
+		return iret;
+	}else if(node->_nodeType == NODE_Proto ) {
+		int k; //, mode;
+		struct ProtoFieldDecl* pfield;
+		struct X3D_Proto* pnode = (struct X3D_Proto*)node;
+		struct ProtoDefinition* pstruct = (struct ProtoDefinition*) pnode->__protoDef;
+		if(pstruct){
+			if(pstruct->iface){
+				k = ifield;
+				nuser = vectorSize(pstruct->iface);
+				if(k > -1 && k < nuser)
+				{
+					pfield= vector_get(struct ProtoFieldDecl*, pstruct->iface, k);
+					//mode = pfield->mode;
+					*fieldname = pfield->cname;
+					*type = pfield->type;
+					*kind = pfield->mode;
+					*builtIn = FALSE;
+					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+						*value = &(pfield->defaultVal);
+					iret = 1;
+				}
+			}
+		}
+		return iret;
+	}
+	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
+	{
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
+
+		fieldinfo offsets;
+		int k, kkind;
+		int kfield, nbuiltin;
+
+
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
+		nbuiltin = 0;
+
+		kfield = ifield - nuser;
+		for(k=0;k<=kfield;k++)
+			if(offsets[k].nameIndex == -1) return -1; //end of iteration
+		*fieldname = FIELDNAMES[offsets[kfield].nameIndex];
+		*type = offsets[kfield].typeIndex;
+		*builtIn = TRUE;
+		kkind = -1;
+		switch(offsets[kfield].ioType){
+			case KW_initializeOnly: kkind = PKW_initializeOnly; break;
+			case KW_inputOnly: kkind = PKW_inputOnly; break;
+			case KW_outputOnly: kkind = PKW_outputOnly; break;
+			case KW_inputOutput: kkind = PKW_inputOutput; break;
+		}
+		*kind = kkind;
+		*value = (union anyVrml*)&((char*)node)[offsets[kfield].offset];
+		return 1;
+	}
+	return 0; //not found, but not end of iteration
+}
+
+int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, int builtIn, const char **fieldname, int *type, int *kind, union anyVrml **value){
+	int iret = 0;
+	int nuser = 0;
+	*type = 0;
+	*kind = 0;
+	*fieldname = NULL;
+	*value = NULL;
+	if(node->_nodeType == NODE_Script && !builtIn) 
+	{
+		int k;
+		struct Vector *sfields;
+		struct ScriptFieldDecl *sfield;
+		struct FieldDecl *fdecl;
+		struct Shader_Script *sp;
+		struct CRjsnameStruct *JSparamnames = getJSparamnames();
+		struct X3D_Script *snode;
+
+		snode = (struct X3D_Script*)node;
+
+		//sp = *(struct Shader_Script **)&((char*)node)[field->offset];
+		sp = (struct Shader_Script *)snode->__scriptObj;
+		sfields = sp->fields;
+		//fprintf(fp,"sp->fields->n = %d\n",sp->fields->n);
+		k = ifield;
+		nuser = sfields->n;
+		if(k > -1 && k < nuser)
 		{
 			sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
 			//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
@@ -6160,7 +6270,7 @@ int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, co
 			iret = 1;
 		}
 		return iret;
-	}else if(node->_nodeType == NODE_Proto && !builtIn) {
+	}else if(node->_nodeType == NODE_Proto && !builtIn ) {
 		int k; //, mode;
 		struct ProtoFieldDecl* pfield;
 		struct X3D_Proto* pnode = (struct X3D_Proto*)node;
@@ -6168,7 +6278,8 @@ int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, co
 		if(pstruct){
 			if(pstruct->iface){
 				k = ifield;
-				if(k > -1 && k < vectorSize(pstruct->iface))
+				nuser = vectorSize(pstruct->iface);
+				if(k > -1 && k < nuser)
 				{
 					pfield= vector_get(struct ProtoFieldDecl*, pstruct->iface, k);
 					//mode = pfield->mode;
@@ -6200,6 +6311,7 @@ int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, co
 
 
 		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
+
 		kfield = ifield;
 		//convert to index if in absolute offset
 		if(kfield >= offsets[0].offset){
@@ -6213,7 +6325,7 @@ int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, co
 			}
 		}
 		for(k=0;k<=kfield;k++)
-			if(offsets[k].nameIndex == -1) return 0;
+			if(offsets[k].nameIndex == -1) return -1; //end of iteration
 		*fieldname = FIELDNAMES[offsets[kfield].nameIndex];
 		*type = offsets[kfield].typeIndex;
 		kkind = -1;
@@ -6227,13 +6339,8 @@ int getFieldFromNodeAndIndexB(struct X3D_Node* node, int ifield, int builtIn, co
 		*value = (union anyVrml*)&((char*)node)[offsets[kfield].offset];
 		return 1;
 	}
-	return 0;
+	return 0; //not found, but not end of iteration
 }
-int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value){
-	//I don't know what the routing in javascript needs, but it needs to be clearer.
-	return getFieldFromNodeAndIndexB(node,ifield,TRUE,fieldname,type,kind,value);
-}
-
 
 
 void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int type,
@@ -6824,7 +6931,7 @@ int	unregister_broutes(struct X3D_Proto * node){
 				for(i=0;i<vectorSize(node->__ROUTES);i++){
 					route = vector_get(struct brotoRoute*,node->__ROUTES,i);
 					if(route && route->lastCommand){
-						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->to.node,route->to.ifield,route->ft);
+						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->from.builtIn,route->to.node,route->to.ifield,route->to.builtIn,route->ft);
 						route->lastCommand = 0;
 					}
 				}
@@ -7133,7 +7240,7 @@ int unRegisterNodeRoutes(struct X3D_Proto *context, struct X3D_Node* node){
 				route = vector_get(struct brotoRoute*,context->__ROUTES,ii);
 				if(route->from.node == node || route->to.node == node){
 					if( route->lastCommand){
-						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->to.node,route->to.ifield,route->ft);
+						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->from.builtIn, route->to.node,route->to.ifield,route->to.builtIn,route->ft);
 						route->lastCommand = 0;
 					}
 					vector_remove_elem(struct X3D_Node*,context->__ROUTES,ii);
