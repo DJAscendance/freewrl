@@ -4701,6 +4701,7 @@ struct brotoIS
 	char *protofieldname;
 	int pmode;
 	int iprotofield;
+	int pBuiltIn;
 	int type;
 	struct X3D_Node *node;
 	char* nodefieldname;
@@ -6447,8 +6448,8 @@ int getFieldFromNodeAndIndexSource(struct X3D_Node* node, int ifield, int builtI
 }
 
 
-void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int type,
-					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int source)
+void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int pBuiltIn, int type,
+					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int nBuiltIn, int source)
 {
 	Stack* ISs;
 	struct brotoIS* is;
@@ -6458,11 +6459,13 @@ void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int 
 	is->protofieldname = strdup(protofieldname);
 	is->pmode = pmode;
 	is->iprotofield = iprotofield;
+	is->pBuiltIn = pBuiltIn;
 	is->type = type;
 	is->node = node;
 	is->nodefieldname = strdup(nodefieldname);
 	is->mode = mode;
 	is->ifield = ifield;
+	is->builtIn = nBuiltIn;
 	is->source = source;
 
 	ISs = proto->__IS;
@@ -6482,9 +6485,9 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 		register IS in IS-table
 	*/
 	int i;
-    int mode;
-    int type;
-	int source;
+    int type, mode;
+	int ptype, pmode;
+	int source, builtIn, pbuiltIn;
 	int ifield, iprotofield;
 	struct ProtoDefinition* pdef=NULL;
 	struct X3D_Proto* proto;
@@ -6493,9 +6496,11 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	DECLAREUP
 	BOOL foundField;
 	BOOL foundProtoField;
-	struct ProtoFieldDecl* f;
+	struct ProtoFieldDecl *f, ff;
 	union anyVrml *fieldPtr;
+	union anyVrml *defaultPtr;
 	void *fdecl;
+	const char* pname = NULL;
 
 
 
@@ -6550,6 +6555,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	/*Now we need to know the same things about the proto node and field:
 	0. we know it's a user node - all X3D_Proto/Protos are, and they (should) have no public builtin fields
 	   (children should be removed)
+	   PROBLEM 2018 metadata [in/out] is builtin
 	1. does the field/event exist on the proto
 	if so then
 	3. what's it's type - SF/MF,type - needed for compatibility check with node field
@@ -6562,19 +6568,31 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	foundProtoField = FALSE;
 	f = NULL;
 	{
+		//user field
+		pbuiltIn = FALSE;
 		const char* pname = NULL;
 		iprotofield = -1;
-		for(i=0; i!=vectorSize(pdef->iface); ++i)
-		{
-			f=vector_get(struct ProtoFieldDecl*, pdef->iface, i);
-			pname = f->cname;
 
-			foundProtoField = !strcmp(pname,protoFieldName) ? TRUE : FALSE;
-			if(foundProtoField ) {
-				/* printf ("protoDefinition_getField, comparing %d %d and %d %d\n", f->name, ind, f->mode, mode); */
-				//return f;
-				iprotofield = i;
-				break;
+		if(!strcasecmp(protoFieldName,"metadata")){
+			//builtin
+			foundProtoField = getFieldFromNodeAndNameC(X3D_NODE(proto),protoFieldName,&ptype, &pmode, &iprotofield, &pbuiltIn, &defaultPtr, &pname);
+		}else{
+			for(i=0; i!=vectorSize(pdef->iface); ++i)
+			{
+				f=vector_get(struct ProtoFieldDecl*, pdef->iface, i);
+				pname = f->cname;
+
+				foundProtoField = !strcmp(pname,protoFieldName) ? TRUE : FALSE;
+				if(foundProtoField ) {
+					/* printf ("protoDefinition_getField, comparing %d %d and %d %d\n", f->name, ind, f->mode, mode); */
+					//return f;
+					iprotofield = i;
+					ptype = f->type;
+					pmode = f->mode;
+					pname = f->cname;
+					defaultPtr = &f->defaultVal;
+					break;
+				}
 			}
 		}
 		if( !foundProtoField ){
@@ -6587,12 +6605,12 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 			return TRUE;
 		}
 		//check its type
-		if(f->type != type){
+		if(ptype != type){
 			if(!pname) pname = "";
 			ConsoleMessage("Parser error: IS - we have a name match: %s IS %s found protofield %s\n",
 				nodeFieldName,protoFieldName,pname);
 			ConsoleMessage("...But the types don't match: nodefield %s protofield %s\n",
-				FIELDTYPES[type],FIELDTYPES[f->type]);
+				FIELDTYPES[type],FIELDTYPES[ptype]);
 			FREE_IF_NZ(me->lexer->curID);
 			FREEUP
 			FREE_IF_NZ(nodeFieldName);
@@ -6611,12 +6629,12 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 		//
 		// so if our nodefield's mode is inputOutput/exposedField then we are covered for all protoField modes
 		// otherwise, the nodefield's mode must be the same as the protofield's mode
-		if(X3DMODE(mode) != PKW_inputOutput && X3DMODE(mode) != X3DMODE(f->mode)){
-			if(X3DMODE(f->mode) != PKW_inputOutput){
+		if(X3DMODE(mode) != PKW_inputOutput && X3DMODE(mode) != X3DMODE(pmode)){
+			if(X3DMODE(pmode) != PKW_inputOutput){
 				ConsoleMessage("Parser Error: IS - we have a name match: %s IS %s found protofield %s\n",
 					nodeFieldName,protoFieldName,f->fieldString);
 				ConsoleMessage("...But the modes don't jive: nodefield %s protofield %s\n",
-					PROTOKEYWORDS[mode],PROTOKEYWORDS[f->mode]);
+					PROTOKEYWORDS[mode],PROTOKEYWORDS[pmode]);
 				FREE_IF_NZ(me->lexer->curID);
 				FREEUP
 				FREE_IF_NZ(nodeFieldName);
@@ -6624,9 +6642,9 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 				return TRUE;
 			}else{
 				ConsoleMessage("Parser Warning: IS - we have a name match: %s IS %s found protofield %s\n",
-					nodeFieldName,protoFieldName,f->fieldString);
+					nodeFieldName,protoFieldName,pname);
 				ConsoleMessage("...But the modes don't jive: nodefield %s protofield %s\n",
-					PROTOKEYWORDS[mode],PROTOKEYWORDS[f->mode]);
+					PROTOKEYWORDS[mode],PROTOKEYWORDS[pmode]);
 				ConsoleMessage("...will thunk\n");
 			}
 		}
@@ -6634,7 +6652,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 
 	//we have an IS that's compatible/jives
 	//a) copy the value if it's an initializeOnly or inputOutput
-	if(X3DMODE(f->mode) == PKW_initializeOnly || X3DMODE(f->mode) == PKW_inputOutput)
+	if(X3DMODE(pmode) == PKW_initializeOnly || X3DMODE(pmode) == PKW_inputOutput)
 	{
 
 		//Q. how do I do this? Just a memcpy on anyVrml or ???
@@ -6645,7 +6663,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 		//sftype = type - isMF;
 		//from EAI_C_CommonFunctions.c
 		//isize = returnElementLength(sftype) * returnElementRowSize(sftype);
-		shallow_copy_field(type, &(f->defaultVal) , fieldPtr);
+		shallow_copy_field(type, defaultPtr , fieldPtr);
 		//memcpy(fieldPtr,&(f->defaultVal),isize); //sizeof(union anyVrml));
 		//heapdump();
 		//if(0)//should probably only do this for the final deep_copy sceneInstance, not here during parsing
@@ -6658,8 +6676,9 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 
 	}
 	//b) register it in the IS-table for our context
-	broto_store_IS(proto,protoFieldName,X3DMODE(f->mode),iprotofield,type,
-					node,nodeFieldName,X3DMODE(mode),ifield,source);
+	builtIn = source ? FALSE : TRUE;
+	broto_store_IS(proto,protoFieldName,X3DMODE(f->mode),iprotofield,pbuiltIn,type,
+					node,nodeFieldName,X3DMODE(mode),ifield,builtIn,source);
 	/* Add this scriptfielddecl to the list of script fields mapped to this proto field */
 	//sfield = newScriptFieldInstanceInfo(sdecl, script);
 	//vector_pushBack(struct ScriptFieldInstanceInfo*, pField->scriptDests, sfield);
@@ -6909,7 +6928,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 												//type match
 												//printf("etype = %d ptype = %d\n",ef->type, pf->type);
 												//add IS
-												broto_store_IS(node,ef->cname,ef->mode, i, ef->type,	X3D_NODE(pinstance), pf->cname, pf->mode, j, 3);
+												broto_store_IS(node,ef->cname,ef->mode, i, FALSE, ef->type,	X3D_NODE(pinstance), pf->cname, pf->mode, j, FALSE, 3);
 											}
 										}
 									}

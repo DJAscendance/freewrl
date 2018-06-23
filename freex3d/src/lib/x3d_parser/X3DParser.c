@@ -1889,8 +1889,8 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 
 BOOL nodeTypeSupportsUserFields(struct X3D_Node *node);
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
-void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int type,
-					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int source);
+void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int pBuiltIn, int type,
+					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int nBuiltIn, int source);
 
 static void parseConnect_B(void *ud, char **atts) {
 	int i,okp, okn;
@@ -1907,10 +1907,11 @@ static void parseConnect_B(void *ud, char **atts) {
 	}
 	okp = okn = 0;
 	if(nodefield && protofield){
-		int ptype, pkind, pifield, ntype, nkind, nifield;
+		int ptype, pkind, pifield, pBuiltIn, ntype, nkind, nifield, nBuiltIn;
+		char *pname, *nname;
 		union anyVrml *pvalue, *nvalue;
-		okp = getFieldFromNodeAndName(X3D_NODE(proto),protofield,&ptype, &pkind, &pifield, &pvalue);
-		okn = getFieldFromNodeAndName(node, nodefield,&ntype, &nkind, &nifield, &nvalue);
+		okp = getFieldFromNodeAndNameC(X3D_NODE(proto),protofield,&ptype, &pkind, &pifield, &pBuiltIn, &pvalue, &pname);
+		okn = getFieldFromNodeAndNameC(node, nodefield,&ntype, &nkind, &nifield, &nBuiltIn, &nvalue, &nname);
 		//check its mode
 		// http://www.web3d.org/files/specifications/19775-1/V3.2/Part01/concepts.html#t-RulesmappingPROTOTYPEdecl
 		// there's what I call a mode-jive table
@@ -1958,8 +1959,8 @@ static void parseConnect_B(void *ud, char **atts) {
 			//b) register it in the IS-table for our context
 			source = node->_nodeType == NODE_Proto ? 3 : node->_nodeType == NODE_Script ? 1 : nodeTypeSupportsUserFields(node) ? 2 : 0;
 			//Q. do I need to convert builtin from field index to offset? if( source == 0) nifield *=5;
-			broto_store_IS(context,protofield,pkind,pifield,ptype,
-							node,nodefield,nkind,nifield,source);
+			broto_store_IS(context,protofield,pkind,pifield,pBuiltIn,ptype,
+							node,nodefield,nkind,nifield,nBuiltIn,source);
 		}
 	}
 }

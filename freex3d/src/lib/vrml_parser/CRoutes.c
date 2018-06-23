@@ -911,24 +911,24 @@ void CRoutes_RegisterSimple(
 		interpolatorPointer=NULL;
 	CRoutes_Register(1, from, fromOfs, to,toOfs, type, interpolatorPointer, dir, NULL);
 }
-//int usesBuiltin(struct X3D_Node* node){
-//	//builtin 1, user field 0
-//	int retval = 1;
-//	if(node){
-//		switch(node->_nodeType){
-//			case NODE_Script:
-//			case NODE_ComposedShader:
-//			case NODE_Effect:
-//			case NODE_ShaderProgram :
-//			case NODE_PackagedShader:
-//			case NODE_Proto:
-//				retval = 0; break;
-//			default:
-//				retval = 1; break;
-//		}
-//	}
-//	return retval;
-//}
+int usesBuiltin(struct X3D_Node* node){
+	//builtin 1, user field 0
+	int retval = 1;
+	if(node){
+		switch(node->_nodeType){
+			case NODE_Script:
+			case NODE_ComposedShader:
+			case NODE_Effect:
+			case NODE_ShaderProgram :
+			case NODE_PackagedShader:
+			case NODE_Proto:
+				retval = 0; break;
+			default:
+				retval = 1; break;
+		}
+	}
+	return retval;
+}
 void CRoutes_RegisterSimpleB(
 	struct X3D_Node* from, int fromIndex, int fromBuiltIn,
 	struct X3D_Node* to, int toIndex, int toBuiltIn,
@@ -938,6 +938,10 @@ void CRoutes_RegisterSimpleB(
 
 	if(from && to){
 		fromOfs = fromIndex;
+		if(usesBuiltin(from) != fromBuiltIn)
+			printf("error usesBuiltin(from) != fromBuiltin\n");
+		if(usesBuiltin(to) != toBuiltIn)
+			printf("error usesBuiltin(to) != toBuiltin\n");
 		//if(usesBuiltin(from))
 		if(fromBuiltIn)
 			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
