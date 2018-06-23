@@ -860,8 +860,8 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 		toIfield = broute->to.ifield;
 		toBuiltIn = broute->to.builtIn;
 	}
-	getFieldFromNodeAndIndex(fromNode,fromIfield,fromBuiltIn,&fromField,&ftype,&kind,&value);
-	getFieldFromNodeAndIndex(toNode,toIfield,toBuiltIn,&toField,&ftype,&kind,&value);
+	getFieldFromNodeAndIndexSource(fromNode,fromIfield,fromBuiltIn,&fromField,&ftype,&kind,&value);
+	getFieldFromNodeAndIndexSource(toNode,toIfield,toBuiltIn,&toField,&ftype,&kind,&value);
 	xroute = addDeleteRoute0(fwn,"deleteRoute",fromNode, fromField, toNode, toField);
 	return nr;
 }
@@ -1854,7 +1854,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		break;
 	case 1: //fromField
 		//fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
-		getFieldFromNodeAndIndex(fromNode,fromIndex,fromBuiltIn,&fieldname,&type,&kind,&value);
+		getFieldFromNodeAndIndexSource(fromNode,fromIndex,fromBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname; //NULL;
 		fwretval->itype = 'S';
 		break;
@@ -1868,7 +1868,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		break;
 	case 3: //toField
 		//getFieldFromNodeAndIndex(route->tonodes[0].routeToNode,route->tonodes[0].foffset,&fieldname,&type,&kind,&value);
-		getFieldFromNodeAndIndex(toNode,toIndex,toBuiltIn,&fieldname,&type,&kind,&value);
+		getFieldFromNodeAndIndexSource(toNode,toIndex,toBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname;
 		fwretval->itype = 'S';
 		break;
@@ -2092,7 +2092,8 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 	ifield = tpi->integer;
 	//I suspect FieldDefinitions are for ProtoDeclarations only, 
 	// but freewrl Brotos can use the same function for nodes and declares
-	if(getFieldFromNodeAndIndex(node,ifield,FALSE,&fname,&type,&kind,&value)){
+	if(getFieldFromNodeAndIndexSource(node,ifield,TRUE,&fname,&type,&kind,&value)){
+	//if(getFieldFromNodeAndIndex(node,ifield,&fname,&type,&kind,&value)){
 		//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 		switch(index){
 		case 0: //name
