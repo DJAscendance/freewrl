@@ -656,6 +656,18 @@ void zeroUnits(); //UNITS keyword parse-time processing
 /**
  *   parser_process_res_VRML_X3D: this is the final parser (loader) stage, then call the real parser.
  */
+// = spare mutex for testing parse/render thread clash theories, assumes one freewrl instance in process
+static	pthread_mutex_t mutex_test = PTHREAD_MUTEX_INITIALIZER; 
+void fwl_lockTestMutex()
+{
+	pthread_mutex_lock(&mutex_test);
+	//printf(",");
+}
+void fwl_unlockTestMutex()
+{
+	pthread_mutex_unlock(&mutex_test);
+}
+
 
 
 bool parser_process_res_VRML_X3D(resource_item_t *res)
@@ -685,6 +697,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 	UNUSED(parsedOk); // compiler warning mitigation
 
     //printf ("entering parser_process_res_VRML_X3D\n");
+	//fwl_lockTestMutex();
 
 	/* printf("processing VRML/X3D resource: %s\n", res->URLrequest);  */
 	offsetInNode = 0;
@@ -744,12 +757,14 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 		of = res->openned_files;
 		if (!of) {
 			/* error */
+			//fwl_unlockTestMutex();
 			return FALSE;
 		}
 
 
 		if (!of->fileData) {
 			/* error */
+			//fwl_unlockTestMutex();
 			return FALSE;
 		}
 
@@ -820,11 +835,9 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 			}
 		}
 
-
 		/* ACTUALLY CALLS THE PARSER */
 		parsedOk = parser_do_parse_string(of->fileData, of->fileDataSize, ectx, nRn);
 		//printf("after parse_string in standard file parsing\n");
-
 		if ((res != (resource_item_t*)tg->resources.root_res) && ((!tg->resources.root_res) ||(!((resource_item_t*)tg->resources.root_res)->complete))) {
 			tg->CParse.globalParser = t->savedParser;
 		}
@@ -890,6 +903,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 			insert_node = X3D_NODE(res->whereToPlaceData); /* casting here for compiler */
 			offsetInNode = res->offsetFromWhereToPlaceData;
 		}
+
 	}
 
 	/* printf ("parser_process_res_VRML_X3D, res->where %u, insert_node %u, rootNode %u\n",res->where, insert_node, rootNode); */
@@ -910,6 +924,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 				  (struct Multi_Node *)((char *)nRng + offsetof (struct X3D_Group, children)),
 				  (struct X3D_Node* *)nRng->children.p,nRng->children.n,2,__FILE__,__LINE__);
 	}
+
 	res->complete = TRUE;
 
 	if(nRnfree){
@@ -925,7 +940,7 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 	}
 
 	//printf ("exiting praser_process_res_VRML_X3D\n");
-
+	//fwl_unlockTestMutex();
 	return TRUE;
 }
 

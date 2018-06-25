@@ -82,6 +82,7 @@ void Tess_init(struct tTess *t){
 	{
 		ppTess p = (ppTess)t->prv;
 		t->global_IFS_Coords = p->global_IFS_Coords;
+		t->text_IFS_Coords = p->global_IFS_Coords;
 	}
 }
 //ppTess p = (ppTess)gglobal()->Tess.prv;
@@ -225,7 +226,7 @@ void CALLBACK FW_tess_combine_polyrep_data (GLDOUBLE c[3], GLfloat *d[4], GLfloa
 		 }
 		}
 		 */
-
+		printf("$"); //debugging
 	}else{
 		//Aug 3, 2016 this doesn't work, didn't pick through polyrep, don't use.
 		/*	
@@ -348,22 +349,22 @@ void new_tessellation(void) {
 */
 /*	    */
 }
-void register_Text_combiner(){
-	//called before tesselating Text in Component_Text.c
-	ttglobal tg = gglobal();
-	if(tg->Tess.global_tessobj){
-		//FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)NULL);
-		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_text_data);
-	}
-}
-void register_Polyrep_combiner(){
-	//called after tesselating Text in Component_Text.c, so in make_polyrep and make_extrusion in GenPolyrep.c this will be the default
-	ttglobal tg = gglobal();
-	if(tg->Tess.global_tessobj){
-		//FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)NULL);
-		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_polyrep_data);
-	}
-}
+//void register_Text_combiner(){
+//	//called before tesselating Text in Component_Text.c
+//	ttglobal tg = gglobal();
+//	if(tg->Tess.text_tessobj){
+//		//FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)NULL);
+//		FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_text_data);
+//	}
+//}
+//void register_Polyrep_combiner(){
+//	//called after tesselating Text in Component_Text.c, so in make_polyrep and make_extrusion in GenPolyrep.c this will be the default
+//	ttglobal tg = gglobal();
+//	if(tg->Tess.global_tessobj){
+//		//FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)NULL);
+//		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_polyrep_data);
+//	}
+//}
 /* next function should be called once at the end, but where?	*/
 void destruct_tessellation(void) {
 	ttglobal tg = gglobal();
@@ -371,3 +372,49 @@ void destruct_tessellation(void) {
 	printf("Tessellation Object deleted!\n");
 }
 
+void destruct_text_tessellation(void) {
+	ttglobal tg = gglobal();
+	FW_GLU_DELETETESS(tg->Tess.text_tessobj);
+	printf("Tessellation Object deleted!\n");
+}
+
+void CALLBACK FW_text_tess_vertex(void *p) {
+	int *dp;
+	ttglobal tg = gglobal();
+	dp =(int*)p;
+
+	if (tg->Tess.text_IFS_Coord_count == TESS_MAX_COORDS) {
+		/* printf ("FW_IFS_tess_vertex, too many coordinates in this face, change TESS_MAX_COORDS\n"); */
+		/*
+		global_IFS_Coord_count++;
+		global_IFS_Coords[global_IFS_Coord_count] =
+			global_IFS_Coords[global_IFS_Coord_count-1];
+		*/
+	} else {
+		//printf ("FW_IFS_tess_vertex, global_ifs_coord count %d, pointer %d\n",tg->Tess.global_IFS_Coord_count,*dp);
+		//if(*dp < 0){
+		//	printf("dp pointer = %p\n",dp);
+		//}
+		tg->Tess.text_IFS_Coords[tg->Tess.text_IFS_Coord_count++] = *dp;
+	}
+
+}
+
+
+void new_text_tessellation(void) {
+	ttglobal tg = gglobal();
+	tg->Tess.text_tessobj=FW_GLU_NEW_TESS();
+	if(!tg->Tess.text_tessobj)
+		freewrlDie("Got no memory for Tessellation Object!");
+
+	/* register the CallBackfunctions				*/
+	FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj,GLU_TESS_BEGIN,(_GLUfuncptr)FW_tess_begin);
+	FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj,GLU_TESS_EDGE_FLAG,(_GLUfuncptr)FW_tess_edgeflag);
+	//FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj,GLU_VERTEX,(_GLUfuncptr)FW_IFS_tess_vertex);
+	FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj,GLU_TESS_VERTEX,(_GLUfuncptr)FW_text_tess_vertex);
+	FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj,GLU_TESS_ERROR,(_GLUfuncptr)FW_tess_error);
+	FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj,GLU_TESS_END,(_GLUfuncptr)FW_tess_end);
+	FW_GLU_TESS_CALLBACK(tg->Tess.text_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_text_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
+	//FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE,(_GLUfuncptr)FW_tess_combine);
+
+}

@@ -86,6 +86,7 @@ typedef struct iiglobal //InstanceGlobal
 		/* Synchronize / exclusion (main<=>texture) */
 		pthread_mutex_t mutex_texture_list; // = PTHREAD_MUTEX_INITIALIZER;
 		pthread_cond_t texture_list_condition; // = PTHREAD_COND_INITIALIZER;
+
 		bool ResourceThreadRunning;
 		bool TextureThreadRunning;
 		bool ResourceThreadWaiting;
@@ -358,6 +359,10 @@ iOLDCODE	}Component_Networking;
 		int global_IFS_Coord_count;//=0;
 		//GLUtriangulatorObj *global_tessobj;
 		void *global_tessobj;
+		int *text_IFS_Coords;
+		int text_IFS_Coord_count;//=0;
+		//GLUtriangulatorObj *global_tessobj;
+		void *text_tessobj;
 		void *prv;
 	}Tess;
 	struct tViewer{

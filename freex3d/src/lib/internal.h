@@ -455,6 +455,12 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 
 #endif /* defined(WRAP_MALLOC) || defined(DEBUG_MALLOC) */
 
+#if defined(_MSC_VER) && defined(W_DEBUG)
+#define CHECK_MEMORY check_memory();
+#else
+#define CHECK_MEMORY
+#endif
+
 /* This get always defined, but ERROR_MSG is no-op without _DEBUG */
 
 #define FREE_IF_NZ(_ptr) {if (_ptr) { \

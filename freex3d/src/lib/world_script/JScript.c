@@ -130,7 +130,18 @@ void sm_js_cleanup_script_context(int counter){
 	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
 	//CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
 	#if JS_VERSION <= 185
-		JS_GC(getScriptControlIndex(counter)->cx);
+		struct CRscriptStruct *crss = getScriptControlIndex(counter);
+		#define CATCH_JS_GC_THROWS 1
+		#if defined(CATCH_JS_GC_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
+		__try {
+			JS_GC(crss->cx);
+		}
+		__except(EXCEPTION_EXECUTE_HANDLER) {
+			printf("bad js_gc\n");
+		}
+		#else
+			JS_GC(crss->cx);
+		#endif
 	#else
 		ttglobal tg = gglobal();
 		ppJScript p = (ppJScript)tg->JScript.prv;
