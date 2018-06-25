@@ -1024,16 +1024,6 @@ static void parseFieldValue_B(void *ud, char **atts) {
 	union anyVrml *value;
 	struct X3D_Node *node = getNode(ud,TOP);
 
-	/*
-	if(0){
-		const char* nn = getNodeName(X3D_NODE(node));
-		if(nn){
-			if(!strcmp(nn,"R2_0")) 
-				fwl_setTrap(1);
-		}
-	}
-	if(0) printf("parseFieldValue\n");
-	*/
 	fname = svalue = NULL;
 	for(i=0;atts[i];i+=2){
 		if(!strcmp(atts[i],"name")) fname = atts[i+1];
@@ -1045,10 +1035,6 @@ static void parseFieldValue_B(void *ud, char **atts) {
 	builtIn = FALSE;
 	if(fname){
 		ok = getFieldFromNodeAndNameC(node,fname,&type,&kind,&iifield,&builtIn,&value,&cname);
-		//if(ok){
-		//	//get a pointer to a heap version of the field name (because atts vanishes on return)
-		//	ok = getFieldFromNodeAndIndexB(node, iifield, builtIn, &cname, &type, &kind, &value);
-		//}
 	}
 	if(cname && value && svalue){
 		deleteMallocedFieldValue(type,value);
@@ -2054,10 +2040,6 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 				parseUnit(ud,myAtts); break;
 			default: printf ("	huh? startElement, X3DSPECIAL, but not handled?? %d, :%s:\n",myNodeIndex,X3DSPECIAL[myNodeIndex]);
 		}
-		//if(fwl_getTrap() == 2){
-		//	printf ("startElement name  %s\n",name); 
-		//	fwl_setTrap(0);
-		//}
 		return;
 	}
 	printf ("startElement name  do not currently handle this one :%s: index %d\n",name,myNodeIndex); 

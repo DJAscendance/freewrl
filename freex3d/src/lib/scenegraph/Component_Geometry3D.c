@@ -1008,19 +1008,19 @@ const char *getNodeName(struct X3D_Node *node){
 	return name;
 }
 void render_IndexedFaceSet (struct X3D_IndexedFaceSet *node) {
-	static int count = 0;
-	int print_names = 0;
-	if(print_names){
-		unsigned char* nn = getNodeName(X3D_NODE(node));
-		if(nn) printf("[%s ",nn);
-		else printf("[.%d",count);
-		count++;
-	}
+	//static int count = 0;
+	//int print_names = 0;
+	//if(print_names){
+	//	unsigned char* nn = getNodeName(X3D_NODE(node));
+	//	if(nn) printf("[%s ",nn);
+	//	else printf("[.%d",count);
+	//	count++;
+	//}
 	COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
 	if (!node->_intern) return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
-	if(print_names) printf("]");
+	//if(print_names) printf("]");
 }
 
 void render_ElevationGrid (struct X3D_ElevationGrid *node) {
