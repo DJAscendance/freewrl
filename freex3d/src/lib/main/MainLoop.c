@@ -3921,6 +3921,10 @@ void initialize_targets_simple(){
 
 }
 void update_navigation();
+void fwl_lockTestMutex();
+void fwl_unlockTestMutex();
+
+
 void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	double dtime;
 	int i;
@@ -3930,6 +3934,8 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
 
+	//fwl_lockTestMutex();
+	CHECK_MEMORY
 	if(!p->targets_initialized)
 		initialize_targets_simple();
 
@@ -3991,6 +3997,7 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 		if(t->swapbuf) { FW_GL_SWAPBUFFERS }
 //		t = (targetwindow*) t->next;
 	}
+	//fwl_unlockTestMutex();
 	p->windex = 0;
 }
 
@@ -6953,6 +6960,7 @@ void fwl_initializeRenderSceneUpdateScene() {
 	}
 	*/
 	new_tessellation();
+	new_text_tessellation();
 	//fwl_set_viewer_type(VIEWER_EXAMINE);
 	viewer_postGLinit_init();
 

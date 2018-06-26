@@ -1562,6 +1562,8 @@ int fwval_duk_push(duk_context *ctx, FWval fwretval, int *valueChanged){
 		push_typed_proxy2(ctx,fwretval->_pointer.fieldType,fwretval->_pointer.kind,fwretval->_pointer.native,valueChanged,fwretval->_pointer.gc);
 		break;
 	case '0':
+		duk_push_null(ctx);
+		break;
 	default:
 		nr = 0; break;
 	}

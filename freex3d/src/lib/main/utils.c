@@ -1824,5 +1824,33 @@ void *reallocn(void *node, void *pold, size_t newsize){
 }
 #endif /* defined(DEBUG_MALLOC) */
 
+#if defined(_MSC_VER) && defined(W_DEBUG)
+#include <crtdbg.h>
+int check_memory(){
+	static int check_memory_initialized = 0;
+	int iret;
+	if(!check_memory_initialized){
+		// Get current flag  
+		int tmpFlag = _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG );  
+  
+		// Turn on leak-checking bit if not already
+		tmpFlag |= _CRTDBG_LEAK_CHECK_DF;  
+  
+		// Turn on CRT block checking bit if not already
+		tmpFlag |= ~_CRTDBG_CHECK_CRT_DF;  
+  
+		// Set flag to the new value.  
+		_CrtSetDbgFlag( tmpFlag );  
+		check_memory_initialized = 1;
+	}
+	iret = _CrtCheckMemory();
+	if(!iret){
+		printf("ouch - memory violation\n");
+	}
+	return iret;
+}
+#else
+int check_memory(){ return TRUE; }
+#endif
 
 #endif

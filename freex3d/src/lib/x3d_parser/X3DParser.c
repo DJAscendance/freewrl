@@ -522,7 +522,8 @@ static struct X3D_Node *DEFNameIndex (const char *name, struct X3D_Node* node, i
 
 
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
-int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int *iunca);
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, int *iunca, const char **cname);
 void broto_store_route(struct X3D_Proto* proto, struct X3D_Node* fromNode, int fromOfs, struct X3D_Node* toNode, int toOfs, int ft);
 struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 void broto_store_ImportRoute(struct X3D_Proto* proto, char *fromNode, char *fromField, char *toNode, char* toField);
@@ -548,7 +549,7 @@ static int QA_routeEnd(struct X3D_Proto *context, char* cnode, char* cfield, str
 		}
 	}else{
 		int idir;
-		int type,kind,ifield,source;
+		int type,kind,ifield,source,builtIn;
 		void *decl;
 		union anyVrml *value;
 		if(isFrom) idir = PKW_outputOnly;
@@ -559,6 +560,7 @@ static int QA_routeEnd(struct X3D_Proto *context, char* cnode, char* cfield, str
 			brend->weak = 0;
 			brend->ftype = type;
 			brend->ifield = ifield;
+			brend->builtIn = source == 0? TRUE : FALSE;
 		}
 	}
 	return found;
@@ -592,7 +594,7 @@ void QAandRegister_parsedRoute_B(struct X3D_Proto *context, char* fnode, char* f
 			char oldwayflag = ciflag_get(pflags,1); 
 			char instancingflag = ciflag_get(pflags,0);
 			if(oldwayflag || instancingflag){
-				CRoutes_RegisterSimpleB(route->from.node, route->from.ifield, route->to.node, route->to.ifield, route->ft);
+				CRoutes_RegisterSimpleB(route->from.node, route->from.ifield, route->from.builtIn, route->to.node, route->to.ifield, route->to.builtIn, route->ft);
 				route->lastCommand = 1; //registered
 			}
 			//broto_store_route(context,fromNode,fifield,toNode,tifield,ftype); //new way delay until sceneInstance()
@@ -1017,12 +1019,11 @@ static void parseUnit(void *ud, char **atts) {
 }
 void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr);
 static void parseFieldValue_B(void *ud, char **atts) {
-	int i, type, kind, iifield, ok;
+	int i, type, kind, iifield, builtIn, ok;
 	const char *fname, *svalue, *cname;
 	union anyVrml *value;
 	struct X3D_Node *node = getNode(ud,TOP);
 
-	if(0) printf("parseFieldValue\n");
 	fname = svalue = NULL;
 	for(i=0;atts[i];i+=2){
 		if(!strcmp(atts[i],"name")) fname = atts[i+1];
@@ -1031,18 +1032,15 @@ static void parseFieldValue_B(void *ud, char **atts) {
 	ok = 0;
 	cname = NULL;
 	value = NULL;
+	builtIn = FALSE;
 	if(fname){
-		ok = getFieldFromNodeAndName(node,fname,&type,&kind,&iifield,&value);
-		if(ok){
-			//get a pointer to a heap version of the field name (because atts vanishes on return)
-			ok = getFieldFromNodeAndIndex(node, iifield, &cname, &type, &kind, &value);
-		}
+		ok = getFieldFromNodeAndNameC(node,fname,&type,&kind,&iifield,&builtIn,&value,&cname);
 	}
 	if(cname && value && svalue){
 		deleteMallocedFieldValue(type,value);
 		Parser_scanStringValueToMem_B(value,type,svalue,TRUE);
 	}
-	if(cname && (node->_nodeType == NODE_Proto)){
+	if(cname && (node->_nodeType == NODE_Proto) && !builtIn){
 		//for protoInstances, whether or not you have a value, 
 		//if you declare a field then you are saying you declare the value null or 0 or default at least.
 		//so for SFNode fields where <fieldValue><a node></fieldValue> and we get the node later
@@ -1073,7 +1071,6 @@ static void parseFieldValue_B(void *ud, char **atts) {
 		}
 		pfield->alreadySet = TRUE;
 	}
-
 	pushField(ud,cname); //in case there's no value, because its SF or MFNodes in child xml, or in CDATA
 }
 static void endFieldValue_B(void *ud){
@@ -1409,9 +1406,9 @@ void mfunitrotation(int nodeType,char *fieldname, struct SFRotation *var, int n,
 void sfunitd(int nodeType,char *fieldname, double *var, int n, int iuncafield);
 void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iuncafield);
 static void parseAttributes_B(void *ud, char **atts) {
-	int i, type, kind, iifield, iunca, isunits;
+	int i, type, kind, iifield, builtIn, iunca, isunits;
 	struct X3D_Node *node;
-	char *name, *svalue;
+	char *name, *svalue, *cname;
 	const char *ignore [] = {"containerField","USE", "DEF"};
 	union anyVrml *value;
 
@@ -1422,7 +1419,8 @@ static void parseAttributes_B(void *ud, char **atts) {
 		svalue = atts[i+1];
 		/* see if we have a containerField here */
 		if(findFieldInARR(name,ignore,3) == INT_ID_UNDEFINED){
-			if(getFieldFromNodeAndNameU(node,name,&type,&kind,&iifield,&value,&iunca)){
+			cname = NULL;
+			if(getFieldFromNodeAndNameU(node,name,&type,&kind,&iifield,&builtIn,&value,&iunca,&cname)){
 				deleteMallocedFieldValue(type,value);
 				Parser_scanStringValueToMem_B(value, type,svalue, TRUE);
 				//apply unit conversionFactor to parsed literal field 
@@ -1877,8 +1875,8 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 
 BOOL nodeTypeSupportsUserFields(struct X3D_Node *node);
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
-void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int type,
-					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int source);
+void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int pBuiltIn, int type,
+					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int nBuiltIn, int source);
 
 static void parseConnect_B(void *ud, char **atts) {
 	int i,okp, okn;
@@ -1895,10 +1893,11 @@ static void parseConnect_B(void *ud, char **atts) {
 	}
 	okp = okn = 0;
 	if(nodefield && protofield){
-		int ptype, pkind, pifield, ntype, nkind, nifield;
+		int ptype, pkind, pifield, pBuiltIn, ntype, nkind, nifield, nBuiltIn;
+		char *pname, *nname;
 		union anyVrml *pvalue, *nvalue;
-		okp = getFieldFromNodeAndName(X3D_NODE(proto),protofield,&ptype, &pkind, &pifield, &pvalue);
-		okn = getFieldFromNodeAndName(node, nodefield,&ntype, &nkind, &nifield, &nvalue);
+		okp = getFieldFromNodeAndNameC(X3D_NODE(proto),protofield,&ptype, &pkind, &pifield, &pBuiltIn, &pvalue, &pname);
+		okn = getFieldFromNodeAndNameC(node, nodefield,&ntype, &nkind, &nifield, &nBuiltIn, &nvalue, &nname);
 		//check its mode
 		// http://www.web3d.org/files/specifications/19775-1/V3.2/Part01/concepts.html#t-RulesmappingPROTOTYPEdecl
 		// there's what I call a mode-jive table
@@ -1946,8 +1945,8 @@ static void parseConnect_B(void *ud, char **atts) {
 			//b) register it in the IS-table for our context
 			source = node->_nodeType == NODE_Proto ? 3 : node->_nodeType == NODE_Script ? 1 : nodeTypeSupportsUserFields(node) ? 2 : 0;
 			//Q. do I need to convert builtin from field index to offset? if( source == 0) nifield *=5;
-			broto_store_IS(context,protofield,pkind,pifield,ptype,
-							node,nodefield,nkind,nifield,source);
+			broto_store_IS(context,protofield,pkind,pifield,pBuiltIn,ptype,
+							node,nodefield,nkind,nifield,nBuiltIn,source);
 		}
 	}
 }
@@ -2043,7 +2042,6 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 		}
 		return;
 	}
-
 	printf ("startElement name  do not currently handle this one :%s: index %d\n",name,myNodeIndex); 
 }
 

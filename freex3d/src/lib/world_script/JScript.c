@@ -130,7 +130,28 @@ void sm_js_cleanup_script_context(int counter){
 	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
 	//CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
 	#if JS_VERSION <= 185
-		JS_GC(getScriptControlIndex(counter)->cx);
+		struct CRscriptStruct *crss = getScriptControlIndex(counter);
+		#define CATCH_JS_GC_THROWS 1
+		#if defined(CATCH_JS_GC_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
+		CHECK_MEMORY
+		__try {
+			JS_GC(crss->cx);
+		}
+		__except(EXCEPTION_EXECUTE_HANDLER) {
+			printf("bad js_gc for script num %d\n", counter);
+			if(crss->scriptText){
+				struct X3D_Node *scnode = crss->script->ShaderScriptNode;
+				if(scnode){
+					char* nn = getNodeName(X3D_NODE(scnode));
+					if(nn) printf("DEF %s \n",nn);
+					if(crss->scriptText) printf("%s\n",crss->scriptText);
+					
+				}
+			}
+		}
+		#else
+			JS_GC(crss->cx);
+		#endif
 	#else
 		ttglobal tg = gglobal();
 		ppJScript p = (ppJScript)tg->JScript.prv;
@@ -2012,7 +2033,7 @@ void sm_JSInitializeScriptAndFields (int num) {
 		return;
 	}
 
-	FREE_IF_NZ(ScriptControl->scriptText);
+	//FREE_IF_NZ(ScriptControl->scriptText);
 	ScriptControl->_initialized = TRUE;
 	ScriptControl->scriptOK = TRUE;
 

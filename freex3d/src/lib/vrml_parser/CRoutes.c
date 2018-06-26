@@ -930,18 +930,24 @@ int usesBuiltin(struct X3D_Node* node){
 	return retval;
 }
 void CRoutes_RegisterSimpleB(
-	struct X3D_Node* from, int fromIndex,
-	struct X3D_Node* to, int toIndex,
+	struct X3D_Node* from, int fromIndex, int fromBuiltIn,
+	struct X3D_Node* to, int toIndex, int toBuiltIn,
 	int type)  { 
 	//converts from field indexes to pointer offsets
 	int fromOfs,toOfs;
 
 	if(from && to){
 		fromOfs = fromIndex;
-		if(usesBuiltin(from))
+		if(usesBuiltin(from) != fromBuiltIn)
+			printf("error usesBuiltin(from) != fromBuiltin\n");
+		if(usesBuiltin(to) != toBuiltIn)
+			printf("error usesBuiltin(to) != toBuiltin\n");
+		//if(usesBuiltin(from))
+		if(fromBuiltIn)
 			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		toOfs = toIndex;
-		if(usesBuiltin(to))
+		//if(usesBuiltin(to))
+		if(toBuiltIn)
 			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		CRoutes_RegisterSimple(from,fromOfs,to,toOfs,type);
 	}
@@ -968,16 +974,18 @@ void CRoutes_RemoveSimple(
   		interpolatorPointer, 0, NULL);
 }
 
-void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex,
- struct X3D_Node* to, int toIndex, int len){
+void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex, int fromBuiltIn,
+ struct X3D_Node* to, int toIndex, int toBuiltIn, int len){
 	int fromOfs, toOfs;
 	
 	fromOfs = fromIndex;
 	if(from && to){
-		if(usesBuiltin(from))
+		//if(usesBuiltin(from))
+		if(fromBuiltIn)
 			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		toOfs = toIndex;
-		if(usesBuiltin(to))
+		//if(usesBuiltin(to))
+		if(toBuiltIn)
 			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 
 		CRoutes_RemoveSimple(from,fromOfs,to,toOfs,len);

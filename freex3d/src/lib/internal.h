@@ -455,6 +455,12 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 
 #endif /* defined(WRAP_MALLOC) || defined(DEBUG_MALLOC) */
 
+#if defined(_MSC_VER) && defined(W_DEBUG)
+#define CHECK_MEMORY check_memory();
+#else
+#define CHECK_MEMORY
+#endif
+
 /* This get always defined, but ERROR_MSG is no-op without _DEBUG */
 
 #define FREE_IF_NZ(_ptr) {if (_ptr) { \
@@ -540,5 +546,5 @@ void free_registered_node_gc(void *node); //free when freeing node ie freeMalloc
 //extern bool global_print_opengl_errors; /* print OpenGL errors as they come ? */
 
 //extern bool global_trace_threads;       /* trace thread creation / switch ... ? */
-
+const char *getNodeName(struct X3D_Node *node);
 #endif /* __LIBFREEWRL_DECL_H__ */

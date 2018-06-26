@@ -199,10 +199,19 @@ int MFW_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 			// .. (could be pruned out in all SFNode sources and sinks in _duk modules)
 			//can do this costlessly -MF[i] = SF comes in to MFW_Setter that still uses &MF[i]- 
 			// but just for SFnode/MFnode 
-			void *sfptr = malloc(sizeof(void*));
-			memcpy(sfptr,(void *)(p + index*elen),sizeof(void*)); //*sfptr = MF.p[i] = &SF
-			fwretval->_web3dval.native = (void *)sfptr; //native = &sfptr
-			fwretval->_web3dval.gc = 1;
+			void **sfnode = (void **)(p + index*elen);
+			if(*sfnode == NULL){
+				//instant and octaga return javascript null if MF[i] is null, handy for sentinal null comparisons, instead of .valueOf() which octaga and others can't do
+				fwretval->itype = '0';
+				//fwretval->_null = 1; //H: I don't need this
+				nr = 1;
+				return nr;  //====================== lazy programmer return mid-function
+			}else{
+				void *sfptr = malloc(sizeof(void*));
+				memcpy(sfptr,(void *)(p + index*elen),sizeof(void*)); //*sfptr = MF.p[i] = &SF
+				fwretval->_web3dval.native = (void *)sfptr; //native = &sfptr
+				fwretval->_web3dval.gc = 1;
+			}
 		}else{
 			int deepCopyLikeVivaty = FALSE; // FALSE; //TRUE;
 			if(deepCopyLikeVivaty){
@@ -1153,10 +1162,10 @@ FWTYPE MFInt32Type = {
 	MFW_Functions, //functions
 };
 
-int getFieldFromNodeAndIndex(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value);
+int getFieldFromNodeAndIterator(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value, int *builtIn);
 int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	struct X3D_Node *node = ((union anyVrml*)pointer)->sfnode;
-	int ftype, kind, ihave, iifield;
+	int ftype, kind, ihave, iifield, builtIn;
 	char ctype;
 	union anyVrml *value;
 
@@ -1164,7 +1173,7 @@ int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **nam
 	index ++;
 	(*jndex) = 0;
 	iifield = index;
-	ihave = getFieldFromNodeAndIndex(node, index, name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, name, &ftype, &kind, &value,&builtIn);
 	switch(ftype){
 		case FIELDTYPE_SFBool: ctype = 'B'; break;
 		case FIELDTYPE_SFInt32: ctype = 'I'; break;
@@ -1185,11 +1194,11 @@ int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **nam
 }
 int SFNode_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	struct X3D_Node *node = ((union anyVrml*)fwn)->sfnode; 
-	int ftype, kind, ihave, nr;
+	int ftype, kind, ihave, nr, builtIn;
 	const char *name;
 	union anyVrml *value;
 	nr = 0;
-	ihave = getFieldFromNodeAndIndex(node, index, &name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value,&builtIn);
 	if(ihave){
 		fwretval->_web3dval.native = value;
 		fwretval->_web3dval.fieldType = ftype;
@@ -1206,11 +1215,11 @@ int SFNode_Setter0(FWType fwt, int index, void *ec, void *fwn, FWval fwval, int 
 	// shared between fwSetterNS() and SFNode_Setter
 	//
 	struct X3D_Node *node = ((union anyVrml*)fwn)->sfnode; 
-	int ftype, kind, ihave, nr; // , interp;
+	int ftype, kind, ihave, nr, builtIn; // , interp;
 	const char *name;
 	union anyVrml *value;
 	nr = FALSE;
-	ihave = getFieldFromNodeAndIndex(node, index, &name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value, &builtIn);
 	if(ihave){
 		//copy W type or primative type, depending on ftype
 		switch(fwval->itype){

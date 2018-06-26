@@ -59,7 +59,7 @@ extern void Elev_Tri (int vertex_ind,int this_face,int A,int D,int E,int NONORMA
 extern void verify_global_IFS_Coords(int max);
 //extern void Extru_check_normal(struct point_XYZ *facenormals,int this_face,int dire,struct X3D_PolyRep *rep_,int ccw);
 extern void Extru_check_normal(struct SFVec3f *facenormals,int this_face,int dire,struct X3D_PolyRep *rep_,int ccw);
-void register_Polyrep_combiner();
+//void register_Polyrep_combiner();
 /* calculate how many triangles are required for IndexedTriangleFanSet and 
 	IndexedTriangleStripSets */
 static int returnIndexedFanStripIndexSize (struct Multi_Int32 index ) {
@@ -728,6 +728,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	switch (node->_nodeType) {
 		case NODE_IndexedFaceSet:
 			convex = node->convex;
+			//convex = TRUE; //debugging
 			cpv = node->colorPerVertex;
 			npv = node->normalPerVertex;
 			ccw = node->ccw;
@@ -1119,7 +1120,6 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 	this_coord = 0;
 	i = 0;
-
 	for (this_face=0; this_face<faces; this_face++) {
 		int relative_coord;		/* temp, used if not tesselating	*/
 		int tess_contour_start;		/* tess, for creating contours, maybe	*/

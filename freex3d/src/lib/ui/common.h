@@ -24,6 +24,10 @@ Functions:
 #define ACURSE 0 //arrow
 #define NCURSE 2 //none
 
+//debugging functions
+void fwl_setTrap(int);
+int fwl_getTrap();
+
 /* Status update functions */
 
 void setMenuFps(float fps);
