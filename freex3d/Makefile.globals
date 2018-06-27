@@ -15,7 +15,7 @@ endif
 # Compiler warnings: 
 # http://gcc.gnu.org/onlinedocs/gcc-4.3.2/gcc/Preprocessor-Options.html#Preprocessor-Options
 
-CC_WARNINGS=-Wall -Wundef -Wunused-macros
+#CC_WARNINGS=-Wall -Wundef -Wunused-macros
 
 # Compiler options / general flags
 

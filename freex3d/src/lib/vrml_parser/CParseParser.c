@@ -1938,16 +1938,16 @@ int isUnitSpecVersionOK(int specversion){
 // - to preserve radian defaults not authored-over
 // other unit types are applied after node is parsed so as to also convert non-authored-over-defaults
 void sfunitf(int nodetype,char *fieldname, float *var, int n, int iunca) {
-	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	int i,k,specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		int ok;
 		ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
 		if(ok){
 			struct unitsB *uptr;
-			for(int i=0;i<vectorSize(units2vec);i++){
+			for(i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == iunca){
-					for(int k=0;k<n;k++){
+					for(k=0;k<n;k++){
 						var[k] *= uptr->factor;
 					}
 					break;
@@ -1957,17 +1957,17 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iunca) {
 	}
 }
 void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n, int iunca){
-	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	int i,k, specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		//check if we need to convert units on this node->field
 		int ok;
 		ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
 		if(ok){
 			struct unitsB *uptr;
-			for(int i=0;i<vectorSize(units2vec);i++){
+			for(i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == iunca){
-					for(int k=0;k<n;k++){
+					for(k=0;k<n;k++){
 						var[k].c[3] *= uptr->factor;
 					}
 					break;
@@ -1978,16 +1978,16 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 	}
 }
 void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iunca){
-	int specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	int i,k, specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		int ok;
 		ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
 		if(ok){
 			struct unitsB *uptr;
-			for(int i=0;i<vectorSize(units2vec);i++){
+			for(i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == iunca){
-					for(int k=0;k<n;k++){
+					for(k=0;k<n;k++){
 						vecscale3f(var[k].c,var[k].c,(float)uptr->factor);
 					}
 					break;
@@ -2015,7 +2015,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 	if(isUnits() && isUnitSpecVersionOK(specversion)){
 		fieldinfo offsets;
 		fieldinfo field;
-		int ifield;
+		int i,k, ifield;
 		if(isNodeGeospatial(node)){
 			struct unitsB *uptr;
 			int isgeosystemGD;
@@ -2023,7 +2023,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 
 			//get unit conversionFactors for angle and length if available
 			factorA = factorL = factorC = 1.0;
-			for(int i=0;i<vectorSize(units2vec);i++){
+			for(i=0;i<vectorSize(units2vec);i++){
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == UNCA_ANGLE) factorA = uptr->factor;
 				if(uptr->iunca == UNCA_LENGTH) factorL = uptr->factor;
@@ -2087,7 +2087,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 							dvar[2] *= factorL;
 							break;
 						case FIELDTYPE_MFVec3d:
-							for(int k=0;k<value->mfvec3d.n;k++){
+							for(k=0;k<value->mfvec3d.n;k++){
 								sfvar = &value->mfvec3d.p[k];
 								dvar = sfvar->c;
 								dvar[0] *= factorC;
@@ -2123,7 +2123,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 					double factor;
 					struct unitsB *uptr;
 					factor = 1.0;
-					for(int i=0;i<vectorSize(units2vec);i++){
+					for(i=0;i<vectorSize(units2vec);i++){
 						uptr = vector_get_ptr(struct unitsB,units2vec,i);
 						if(uptr->iunca == iunca){
 							factor = uptr->factor;
@@ -2139,7 +2139,7 @@ void applyUnitsToNode(struct X3D_Node *node){
 							value->sffloat *= factor;
 							break;
 						case FIELDTYPE_MFFloat:
-							for(int i=0;i<value->mffloat.n;i++)
+							for(i=0;i<value->mffloat.n;i++)
 								value->mffloat.p[i] *= factor;
 							break;
 						case FIELDTYPE_SFVec3f:
@@ -2155,15 +2155,15 @@ void applyUnitsToNode(struct X3D_Node *node){
 							vecscale2f(value->sfvec2f.c,value->sfvec2f.c,(float)factor);
 							break;
 						case FIELDTYPE_MFVec3f:
-							for(int i=0;i<value->mfvec3f.n;i++)
+							for(i=0;i<value->mfvec3f.n;i++)
 								vecscale3f(value->mfvec3f.p[i].c,value->mfvec3f.p[i].c,(float)factor);
 							break;
 						case FIELDTYPE_SFMatrix3f:
-							for(int i=0;i<9;i++)
+							for(i=0;i<9;i++)
 								value->sfmatrix3f.c[i] *= factor;
 							break;
 						case FIELDTYPE_MFRotation:
-							for(int i=0;i<value->mfrotation.n;i++)
+							for(i=0;i<value->mfrotation.n;i++)
 								value->mfrotation.p[i].c[3] *= factor;
 							break;
 						case FIELDTYPE_SFDouble:

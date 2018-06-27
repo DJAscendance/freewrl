@@ -11,7 +11,7 @@
 # Autoconf startup, we define the package's name, and version:
 # but this is not the program's version, nor the library's version.
 # We also define the maintainer address.
-AC_INIT([freewrl], [4.1.0], [freewrl-help@lists.sourceforge.net])
+AC_INIT([freewrl], [4.3.0], [freewrl-develop@lists.sourceforge.net])
 
 # Little customization: all autotools derived files go in a sub-directory.
 AC_CONFIG_AUX_DIR([config])
@@ -188,14 +188,20 @@ fi
 # Javascript engine options
 # ======================================
 AC_ARG_WITH([javascript],
-        [AS_HELP_STRING([--with-javascript=OPT],[javascript OPT (no,sm,duk) for none, spidermonkey or duktape])],
+        [AS_HELP_STRING([--with-javascript=OPT],[javascript OPT (stub,sm,duk) for none, spidermonkey or duktape])],
         [javascript="$withval"],
         [javascript="check"])
 
 found_JAVASCRIPT_ENGINE=no
 
+
 case "$javascript" in
 no)
+    AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
+	  AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape javascript])
+	;;
+stub)
+        AC_MSG_NOTICE([Not using any Javascript engine library])
 	AC_DEFINE([JAVASCRIPT_STUB],[1], [Define for no javascript])
 	;;
 check|sm|spidermonkey|mozjs)
@@ -205,7 +211,8 @@ check|sm|spidermonkey|mozjs)
 	# seamonkey (firefox-2.0 equivalent packaging)
 	# firefox (2.0 or 1.5)
 	# firefox (firefox-2.0 possible alternate packaging)
-	# NOTE - mozjs-17 and later are not supported.
+	# NOTE - mozjs-17 (aka 186) supported but bad garbage collection, prefer 185
+        # 187 and later are not supported.
 	# AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-17.0])
 	AC_MSG_NOTICE([Determining Javascript engine to build against])
 	case "$os_type" in
@@ -237,63 +244,23 @@ check|sm|spidermonkey|mozjs)
 		AC_MSG_NOTICE([Using $found_JAVASCRIPT_ENGINE for Javascript engine library])
 		AC_DEFINE([JAVASCRIPT_SM],[1], [Define for spidermonkey js engine])
 	fi
+    if test x$found_JAVASCRIPT_ENGINE = xno; then
+	    AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
+    fi
+    AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape js engine])
 	;;
 check|duk)
-	if test x$found_JAVASCRIPT_ENGINE = xno; then
-		AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
-		AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape js engine])
-	fi
+	AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
+	AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape js engine])
 	;;
 *)
 	AC_MSG_ERROR([Invalid input for --with-javascript: $javascript])
 	;;
 esac
 
+
 # XML
 PKG_CHECK_MODULES(XML, libxml-2.0)
-
-# Expat
-EXPAT_LIBS=-lexpat
-AC_ARG_WITH(expat,AS_HELP_STRING([--with-expat=<dir>],[Use expat from here]),[
-		if test "x$withval" != xno ; then
-	                with_expat=yes
-	                EXPAT_CFLAGS="-I$withval/include"
-	                EXPAT_LIBS="-L$withval/lib $EXPAT_LIBS"
-		else
-			AC_MSG_NOTICE([expat support disabled, checking for libxml2 headers instead])
-			with_expat=no
-		fi],[with_expat=check])
-
-# save global cflags/libs
-oCFLAGS=$CFLAGS;oLDFLAGS=$LDFLAGS;oCPPFLAGS=$CPPFLAGS;oLIBS=$LIBS
-
-if test "x$with_expat" != xno ; then
-  # set cflags/libs for this case
-  CPPFLAGS="$CPPFLAGS $EXPAT_CFLAGS"
-  LDFLAGS="$LDFLAGS $EXPAT_LIBS"
-
-  AC_CHECK_HEADERS(expat.h, [AC_DEFINE(HAVE_EXPAT_H)],
-     [AC_MSG_ERROR([Can't find expat.h. Please install expat.])])
-  AC_CHECK_LIB(expat, XML_ParserCreate, [],
-     [AC_MSG_ERROR([Can't find expat library. Please install expat.])])
-else
-  # not using expat so set these to be empty
-  EXPAT_LIBS=
-  EXPAT_CFLAGS=
-  # set cflags/libs for this case
-  CFLAGS="$CFLAGS $XML_CFLAGS"
-  CPPFLAGS="$CPPFLAGS $XML_CFLAGS"
-  LDFLAGS="$LDFLAGS $XML_LIBS"
-  # find libxml/parser.h and set define accordingly
-  AC_CHECK_HEADERS(libxml/parser.h,[AC_DEFINE(HAVE_LIBXML_PARSER_H)],[AC_MSG_ERROR([Could not find headers for libxml2])])
-fi
-
-# restore global cflags/libs
-CPPFLAGS=$oCPPFLAGS;LDFLAGS=$oLDFLAGS;CFLAGS=$oCFLAGS;LIBS=$oLIBS
-
-AC_SUBST(EXPAT_CFLAGS)
-AC_SUBST(EXPAT_LIBS)
-
 
 # ===================================
 # Platform specific: windowing system
@@ -459,6 +426,9 @@ case "$with_OpenCL" in
 	;;
 esac
 
+# Imlib2
+PKG_CHECK_MODULES(IMLIB2, imlib2)
+
 # JPEG
 AC_ARG_WITH(jpeg,AS_HELP_STRING([--with-jpeg=<dir>],[Use jpeg from here]),[],[with_jpeg=check])
 case "$with_jpeg" in
@@ -509,20 +479,18 @@ AC_SUBST(JPEG_LIBS)
 # PNG
 PKG_CHECK_MODULES(PNG, libpng)
 
-# Imlib2
-PKG_CHECK_MODULES(IMLIB2, imlib2)
+
+## freeALUT check
+PKG_CHECK_MODULES([ALUT], [freealut], [
+                    AC_DEFINE([HAVE_ALUT], [1], [Define if you have freeALUT installed.])
+                    LDFLAGS="$LDFLAGS $ALUT_LIBS"
+                  ],[])
 
 ## OpenAL check
 PKG_CHECK_MODULES([OPENAL], [openal], [
                     AC_DEFINE([HAVE_OPENAL], [1], [Define if you have OpenAL installed.])
                     CFLAGS="$CFLAGS $OPENAL_CFLAGS"
                     LDFLAGS="$LDFLAGS $OPENAL_LIBS"
-                  ],[])
-
-## freeALUT check
-PKG_CHECK_MODULES([ALUT], [freealut], [
-                    AC_DEFINE([HAVE_ALUT], [1], [Define if you have freeALUT installed.])
-                    LDFLAGS="$LDFLAGS $ALUT_LIBS"
                   ],[])
 
 # ======================================
@@ -658,17 +626,18 @@ AC_CHECK_TYPES([int32, uint32, int16, uint16], [], [], [[#include <npapi.h>]])
 # ======================================
 # Status bar configuration
 # ======================================
-AC_ARG_WITH([statusbar],
-        [AS_HELP_STRING([--with-statusbar=STATUSBAR],[Select status bar flavour -- 'hud' or 'standard'])],
-        [statusbar="$withval"],
-        [statusbar="hud"])
+#AC_ARG_WITH([statusbar],
+#        [AS_HELP_STRING([--with-statusbar=STATUSBAR],[Select status bar flavour -- 'hud' or 'standard'])],
+#        [statusbar="$withval"],
+#        [statusbar="hud"])
 
-case "$statusbar" in
-     standard|hud) AC_MSG_NOTICE([Status bar flavor: $statusbar]) ;; # valid input
-     *) AC_MSG_ERROR([Invalid input for status bar flavor: $statusbar]) ;;
-esac
-AM_CONDITIONAL([STATUSBAR_STD], [test "$statusbar" = standard])
-AM_CONDITIONAL([STATUSBAR_HUD], [test "$statusbar" = hud])
+#case "$statusbar" in
+#     standard|hud) AC_MSG_NOTICE([Status bar flavor: $statusbar]) ;; # valid input
+#     *) AC_MSG_ERROR([Invalid input for status bar flavor: $statusbar]) ;;
+#esac
+#AM_CONDITIONAL([STATUSBAR_STD], [test "$statusbar" = standard])
+#AM_CONDITIONAL([STATUSBAR_HUD], [test "$statusbar" = hud])
+AC_DEFINE([STATUSBAR_HUD], 1, [always define .. for builtin menu])
 
 # ======================================
 # OSC enable

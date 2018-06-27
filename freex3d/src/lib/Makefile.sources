@@ -206,6 +206,7 @@ ui/common.h \
 ui/common.c \
 ui/aquaInt.h \
 ui/statusbar.h \
+ui/statusbarHud.c \
 ui/CursorDraw.c \
 ui/CursorDraw.h \
 ui/hudIcons_octalpha.h \
