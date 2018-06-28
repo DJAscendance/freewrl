@@ -237,15 +237,10 @@ OLDCODE#endif
 int fwl_StringConsoleMessage(char* message);
 
 void fwl_init_SnapGif(void);
-void fwl_init_PrintShot();
 void fwl_set_SnapFile(const char* file);
 void fwl_set_SnapTmp(const char* file);
-void fwl_init_SnapSeq(); /* Was in main/headers.h */
-void fwl_toggleSnapshot();
 void fwl_set_LineWidth(float lwidth);
 void fwl_set_KeyString(const char *str);
-void fwl_set_SeqFile(const char* file);
-void fwl_set_MaxImages(int max); 
 void fwl_setCurXY(int x, int y);
 void fwl_do_keyPress(char kp, int type);
 void fwl_doQuit(char *, int);

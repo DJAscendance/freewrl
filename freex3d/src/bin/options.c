@@ -76,12 +76,6 @@ void fv_usage()
 	    "  -n|--snapfile <string>  Set output file name pattern with <string>,\n"
 	    "                          (use %%n for iteration number).\n"
 	    "  -o|--snaptmp <string>   Set output directory for snap files.\n"
-#if defined(DOSNAPSEQUENCE)
-	    "\nSnapshot sequence options:\n"
-	    "  -l|--seq                Set snapshot sequence mode.\n"
-	    "  -m|--seqfile <string>   Set sequence file name pattern.\n"
-	    "  -q|--maximg <number>    Set maximum number of files in sequence.\n"
-#endif
 	    "\nMisc options:\n"
 	    "  -V|--eaiverbose         Set EAI subsystem messages.\n"
 	    "  -r|--screendist <float> Set screen distance.\n"
@@ -147,12 +141,6 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"snapfile", required_argument, 0, 'n'},
 	{"snaptmp", required_argument, 0, 'o'},
 
-#if defined(DOSNAPSEQUENCE)
-	{"seq", no_argument, 0, 'l'},
-	{"seqfile", required_argument, 0, 'm'},
-	{"maximg", required_argument, 0, 'q'},
-#endif
-
 	{"eaiverbose", no_argument, 0, 'V'},
 	{"screendist", required_argument, 0, 'r'},
 	{"eyedist", required_argument, 0, 'y'},
@@ -215,11 +203,8 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-#if defined(DOSNAPSEQUENCE)
-	static const char optstring[] = "efg:hi:j:k:vVlpq:m:n:o:bsQW:K:Xcr:y:utCL:d:RFPN:";
-#else
 	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:DJ:x"; //':' means the preceding option requires an arguement
-#endif
+
 
 	*url_index = -1;
 #if defined(_DEBUG) || defined(DEBUG)
@@ -376,22 +361,6 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 
 	case 'o': /* --snaptmp, required argument: string */
 	    fwl_set_SnapTmp(optarg);
-	    break;
-#endif
-/* Snapshot sequence options */
-
-#if defined(DOSNAPSEQUENCE)
-	case 'l': /* --seq, no argument */
-	    fwl_init_SnapSeq();
-	    break;
-
-	case 'm': /* --seqfile, required argument: string */
-	    fwl_set_SeqFile(optarg);
-	    break;
-
-	case 'q': /* --maximg, required argument: number */
-	    sscanf(optarg,"%d",&maxSnapImages);
-	    fwl_set_MaxImages(maxSnapImages);
 	    break;
 #endif
 

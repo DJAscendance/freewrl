@@ -6192,7 +6192,6 @@ void fwl_do_keyPress0(int key, int type) {
 				case ' ': p->keywait = TRUE; ConsoleMessage("\n%c",':'); p->keywaitstring[0] = '\0'; break;
 				case ',': toggle_debugging_trigger(); break; 
 #if !defined(FRONTEND_DOES_SNAPSHOTS)
-				case 's': {fwl_toggleSnapshot(); break;}
 				case 'x': {Snapshot(); break;} /* thanks to luis dias mas dec16,09 */
 #endif //FRONTEND_DOES_SNAPSHOTS
 				//case '[': resource_dump(gglobal()->resources.root_res); break; //doesn't show 'tree', just rootres
