@@ -50,39 +50,15 @@ CProto ???
 #if HAVE_DIRENT_H
 # include <dirent.h>
 #endif
-
-
-///* snapshot stuff */
-//int snapRawCount=0;
-//int snapGoodCount=0;
-//
-//#if defined(DOSNAPSEQUENCE)
-///* need to re-implement this for OSX generating QTVR */
-//int snapsequence=FALSE;		/* --seq - snapshot sequence, not single click  */
-//int maxSnapImages=100; 		/* --maximg command line parameter 		*/
-//char *snapseqB = NULL;		/* --seqb - snap sequence base filename		*/
-//#endif
-//
-//int snapGif = FALSE;		/* --gif save as an animated GIF, not mpg	*/
-//char *snapsnapB = NULL;		/* --snapb -single snapshot files		*/
-//const char default_seqtmp[] = "freewrl_tmp"; /* default value for seqtmp        */
-//char *seqtmp = NULL;		/* --seqtmp - directory for temp files		*/
-//int doSnapshot = FALSE;		/* are we doing a snapshot?			*/
-//int doPrintshot = FALSE; 	/* are we taking a snapshot in order to print? */
-//int savedSnapshot = FALSE;
+#ifdef HAVE_IMLIB2
+#include <Imlib2.h>
+#endif
 
 
 typedef struct pSnapshot{
 	/* snapshot stuff */
 	int snapRawCount;//=0;
 	int snapGoodCount;//=0;
-
-#if defined(DOSNAPSEQUENCE)
-	/* need to re-implement this for OSX generating QTVR */
-	int snapsequence;//=FALSE;		/* --seq - snapshot sequence, not single click  */
-	int maxSnapImages;//=100; 		/* --maximg command line parameter 		*/
-	char *snapseqB;// = NULL;		/* --seqb - snap sequence base filename		*/
-#endif
 
 	int snapGif;// = FALSE;		/* --gif save as an animated GIF, not mpg	*/
 	char *snapsnapB;// = NULL;		/* --snapb -single snapshot files		*/
@@ -99,11 +75,7 @@ void *Snapshot_constructor()
 	memset(v,0,sizeof(struct pSnapshot));
 	return v;
 }
-//void Snapshot_destructor(void *t)
-//{
-//	struct pSnapshot* tt = (struct tSnapshot*)t;
-//	free(tt);
-//}
+
 void Snapshot_init(struct tSnapshot* t)
 {
 	//public
@@ -116,13 +88,6 @@ void Snapshot_init(struct tSnapshot* t)
 		p->snapRawCount=0;
 		p->snapGoodCount=0;
 
-		#if defined(DOSNAPSEQUENCE)
-		/* need to re-implement this for OSX generating QTVR */
-		p->snapsequence=FALSE;		/* --seq - snapshot sequence, not single click  */
-		p->maxSnapImages=100; 		/* --maximg command line parameter 		*/
-		p->snapseqB = NULL;		/* --seqb - snap sequence base filename		*/
-		#endif
-
 		p->snapGif = FALSE;		/* --gif save as an animated GIF, not mpg	*/
 		p->snapsnapB = NULL;		/* --snapb -single snapshot files		*/
 		p->default_seqtmp = "freewrl_tmp"; /* default value for seqtmp        */
@@ -134,22 +99,8 @@ void Snapshot_init(struct tSnapshot* t)
 
 	}
 }
-//bool do_Snapshot(){
-//	if( ((struct tSnapshot*)(gglobal()->Snapshot))->doSnapshot )return true;
-//	return false;
-//}
-void set_snapsequence(int on)
-{
-#ifdef DOSNAPSEQUENCE
-	//struct pSnapshot* p = (struct pSnapshot*)gglobal()->Snapshot.prv;
-	ppSnapshot p = (ppSnapshot)gglobal()->Snapshot.prv;
-	p->snapsequence = on;
-#endif
-}
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
-void saveSnapSequence();
-#endif
+
+
 void set_snapshotModeTesting(int value)
 {
 	ppSnapshot p = (ppSnapshot)gglobal()->Snapshot.prv;
@@ -162,18 +113,6 @@ int isSnapshotModeTesting()
 	return p->modeTesting;
 }
 
-void fwl_set_SeqFile(const char* file)
-{
-#if defined(DOSNAPSEQUENCE)
-    /* need to re-implement this for OSX generating QTVR */
-	//struct pSnapshot* p = (struct pSnapshot*)gglobal()->Snapshot.prv;
-	ppSnapshot p = (ppSnapshot)gglobal()->Snapshot.prv;
-    p->snapseqB = STRDUP(file);
-    printf("snapseqB is %s\n", p->snapseqB);
-#else
-    WARN_MSG("Call to fwl_set_SeqFile when Snapshot Sequence not compiled in.\n");
-#endif
-}
 
 void fwl_set_SnapFile(const char* file)
 {
@@ -184,33 +123,11 @@ void fwl_set_SnapFile(const char* file)
 	printf("%s\n",p->snapsnapB);
 }
 
-void fwl_set_MaxImages(int max)
-{
-#if defined(DOSNAPSEQUENCE)
-    /* need to re-implement this for OSX generating QTVR */
-	//struct pSnapshot* p = (struct pSnapshot*)gglobal()->Snapshot.prv;
-	ppSnapshot p = (ppSnapshot)gglobal()->Snapshot.prv;
-
-    if (max <=0)
-	max = 100;
-    p->maxSnapImages = max;
-#else
-    WARN_MSG("Call to fwl_set_MaxImages when Snapshot Sequence not compiled in.\n");
-#endif
-}
-//typedef struct tSnapshot* ttSnapshot;
-//typedef struct pSnapshot* ppSnapshot;
-//#define TSNAPSHOT &gglobal()->Snapshot
-//#define PSNAPSHOT (ppSnapshot)&gglobal()->Snapshot.prv
-//typedef tglobal* ttglobal;
 void fwl_set_SnapTmp(const char* file)
 {
 	{
 		ttglobal tg = gglobal();
 		tg->Snapshot.doSnapshot = FALSE;
-		//{
-		//	((ppSnapshot)tg->Snapshot.prv)->seqtmp = STRDUP(file);
-		//}
 		{
 			ppSnapshot p = (ppSnapshot)tg->Snapshot.prv;
 			p->seqtmp = STRDUP(file);
@@ -218,26 +135,7 @@ void fwl_set_SnapTmp(const char* file)
 		}
 
 	}
-	//{
-	//	ttSnapshot t = TSNAPSHOT;
-	//	ppSnapshot p = PSNAPSHOT;
-	//	t->doSnapshot = FALSE;
-	//	p->seqtmp = STRDUP(file);
-	//	TRACE_MSG("seqtmp set to %s\n", p->seqtmp);
-	//}
-	//{
-	//	struct tSnapshot* t = &gglobal()->Snapshot;
-	//	struct pSnapshot* p = (struct pSnapshot*)t->prv;
-	//	p->seqtmp = STRDUP(file);
-	//	TRACE_MSG("seqtmp set to %s\n", p->seqtmp);
-	//}
-	//{
-	//	struct pSnapshot* p = (struct pSnapshot*)gglobal()->Snapshot.prv;
-	//	p->seqtmp = STRDUP(file);
-	//	TRACE_MSG("seqtmp set to %s\n", p->seqtmp);
-	//}
 }
-
 
 
 #ifdef _MSC_VER
@@ -273,18 +171,7 @@ void Snapshot () {}
 
 #ifndef IPHONE
 
-//#ifndef _MSC_VER
-//#include <windows.h>
-//#define FDWORD DWORD
-//#define FLONG LONG
-//#define FWORD WORD
-//#define FBYPTE BYTE
-//#define FBI_RGB BI_RGB
-//#define FWBITMAPINFOHEADER BITMAPINFOHEADER
-//#define FWBITMAPFILEHEADER BITMAPFILEHEADER
-//#define FWBITMAPINFO BITMAPINFO
-//#else
-////#include <windows.h>
+
 #define FDWORD unsigned long
 #define FLONG long
 #define FWORD unsigned short
@@ -313,7 +200,7 @@ typedef struct  {
         FWORD    bfReserved2;
         FDWORD   bfOffBits;
 } FWBITMAPFILEHEADER;
-//#include <poppack.h>
+
 typedef struct {
         FBYTE    rgbBlue;
         FBYTE    rgbGreen;
@@ -325,7 +212,7 @@ typedef struct {
     FWBITMAPINFOHEADER    bmiHeader;
     FWRGBQUAD             bmiColors[1];
 } FWBITMAPINFO;
-//#endif
+
 
 //is this like htonl ?
 static void fromLong(unsigned long  myword, char *buffer)
@@ -521,142 +408,89 @@ void fwl_init_PrintShot() {
 /* turn snapshotting on; if sequenced; possibly turn off an convert sequence */
 void fwl_toggleSnapshot() {
 	struct tSnapshot* t = &gglobal()->Snapshot;
+	t->doSnapshot = ! t->doSnapshot;
+}
 
-#ifdef DOSNAPSEQUENCE
-	struct pSnapshot* p = (struct pSnapshot*)t->prv;
+void saveSnapshotBmp0(char *folder, char *prefix, int count, void *buffer, int bpp, int width, int height){
+	char thisRawFile[2000];
+	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.bmp",folder,prefix,count);
+	saveSnapshotBMP(thisRawFile,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+}
+#ifdef HAVE_IMLIB2
+void saveSnapshotImlib2Png(char *folder, char *prefix, int count, char *buffer, int bpp, int width, int height){
+	char thisRawFile[2000];
+	int i,ii,j,k,kk;
+	char* buf32;
+	char *inrow, *outrow;
 
-/* need to re-implement this for OSX generating QTVR */
-	if (!t->doSnapshot) {
-		t->doSnapshot = TRUE;
-	} else {
-		if (p->snapsequence) {
-			t->doSnapshot = FALSE;
-			saveSnapSequence();
+	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.png",folder,prefix,count);
+	// https://docs.enlightenment.org/api/imlib2/html/	
+ 	Imlib_Image image;
+ 	image = imlib_create_image(width,height);
+	imlib_context_set_image(image);
+	imlib_image_set_has_alpha(0);
+	imlib_image_set_format("png");
+	buf32 = (char *)imlib_image_get_data();
+	for(i=0;i<height;i++){
+		inrow = &buffer[(width * bpp)*i];
+		outrow = &buf32[(width *4)*(height -i-1)]; //flip
+		for(j=0;j<width;j++){
+			outrow[j*4 +3] = 255; //how to set transparency?
+			for(k=0;k<bpp;k++){
+				kk = 2 - k; //flip R and B
+				outrow[j*4 +kk] = inrow[j*bpp +k];
+			}
 		}
 	}
-#else
-	t->doSnapshot = ! t->doSnapshot;
-#endif
+	imlib_image_put_back_data((DATA32*)buf32);
+	imlib_save_image(thisRawFile);	
+	imlib_free_image();
 }
+#endif //HAVE_IMLIB2
+void saveSnapshotRawPng(char *folder, char *prefix, int count, void *buffer, int bpp, int width, int height){
+	char thisRawFile[2000];
+	char thisGoodFile[2000];
+	char sysline[2000];
 
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
+	FILE * tmpfile;
 
-/* convert a sequence of snaps into a movie */
-void saveSnapSequence() {
-		char *mytmp, *myseqb;
-		char sysline[2000];
-		char thisRawFile[2000];
-		char thisGoodFile[2000];
-		int xx;
-		struct tSnapshot* t = (struct tSnapshot*)gglobal()->Snapshot;
-	
-		/* make up base names - these may be command line parameters */
-	        if (p->snapseqB == NULL)  myseqb  = "freewrl.seq";
-	        else myseqb = p->snapseqB;
-	        if (p->seqtmp == NULL)    mytmp   = "freewrl_tmp";
-	        else mytmp = p->seqtmp;
-	
-		t->snapGoodCount++;
-	
-		if (t->snapGif) {
-			snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.gif",mytmp,myseqb,t->snapGoodCount);
-		} else {
-			snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.mpg",mytmp,myseqb,t->snapGoodCount);
-		}
-		/* snprintf(sysline,sizeof(sysline),"%s -size %dx%d -depth 8 -flip %s/%s*rgb %s", */
-	
-		/* Dani Rozenbaum - In order to generate 
-		 movies (e.g. with mencoder) images have to be three-band RGB (in other 
-		 words 24-bits) */
-		snprintf(sysline,sizeof(sysline), "%s -size %dx%d -depth 24 -colorspace RGB +matte -flip %s/%s*rgb %s",
-			CONVERT, gglobal()->display.screenWidth, gglobal()->display.screenHeight,mytmp,myseqb,thisGoodFile);
-	
-		/* printf ("convert line %s\n",sysline); */
-	
-		if (system (sysline) != 0) {
-			printf ("Freewrl: error running convert line %s\n",sysline);
-		}
-		printf ("[1] snapshot is:  %s\n",thisGoodFile);
-		/* remove temporary files */
-		for (xx=1; xx <= p->snapRawCount; xx++) {
-			snprintf (thisRawFile, sizeof(thisRawFile), "%s/%s.%04d.rgb",mytmp,myseqb,xx);
-			UNLINK (thisRawFile);
-		}
-		t->snapRawCount=0;
+	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.rgb",folder,prefix,count);
+	tmpfile = fopen(thisRawFile,"w");
+	if (tmpfile == NULL) {
+		printf ("cannot open temp file (%s) for writing\n",thisRawFile);
+		FREE_IF_NZ (buffer);
+		return;
+	}
+
+	if (fwrite(buffer, 1, height*width*3, tmpfile) <= 0) {
+		printf ("error writing snapshot to %s, aborting snapshot\n",thisRawFile);
+		FREE_IF_NZ (buffer);
+		return;
+	}
+	fclose (tmpfile);
+
+	/* convert -size 450x300 -depth 8 -flip /tmp/snappedfile.rgb out.png works. */
+
+
+	snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.png",folder,prefix,count);
+	snprintf(sysline,sizeof(sysline),"%s -size %dx%d -depth 8 -flip %s %s",
+	IMAGECONVERT,width, height,thisRawFile,thisGoodFile);
+
+	if (system (sysline) != 0) {
+		printf ("Freewrl: error running convert line %s\n",sysline);
+	}
+	printf ("[2] snapshot is:  %s\n",thisGoodFile);
+	UNLINK (thisRawFile);
+
 }
-#endif
-
-
-// OLD_IPHONE_AQUA #ifdef AQUA
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA CGContextRef MyCreateBitmapContext(int pixelsWide, int pixelsHigh, unsigned char *buffer) { 
-// OLD_IPHONE_AQUA 	CGContextRef context=NULL; 
-// OLD_IPHONE_AQUA 	CGColorSpaceRef colorSpace; 
-// OLD_IPHONE_AQUA 	unsigned char* bitmapData; 
-// OLD_IPHONE_AQUA 	int bitmapByteCount; 
-// OLD_IPHONE_AQUA 	int bitmapBytesPerRow; 
-// OLD_IPHONE_AQUA 	int i;
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 	bitmapBytesPerRow =(pixelsWide*4); 
-// OLD_IPHONE_AQUA 	bitmapByteCount =(bitmapBytesPerRow*pixelsHigh); 
-// OLD_IPHONE_AQUA 	colorSpace=CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB); 
-// OLD_IPHONE_AQUA 	bitmapData=(unsigned char*) MALLOC(void *, bitmapByteCount); 
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 	if(bitmapData==NULL) 
-// OLD_IPHONE_AQUA 	{ 
-// OLD_IPHONE_AQUA 		fprintf(stderr,"Memorynotallocated!"); 
-// OLD_IPHONE_AQUA 		return NULL; 
-// OLD_IPHONE_AQUA 	} 
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 	/* copy the saved OpenGL data, but, invert it */
-// OLD_IPHONE_AQUA 	for (i=0; i<pixelsHigh; i++) {
-// OLD_IPHONE_AQUA 		memcpy (&bitmapData[i*bitmapBytesPerRow], 
-// OLD_IPHONE_AQUA 			&buffer[(pixelsHigh-i-1)*bitmapBytesPerRow], 
-// OLD_IPHONE_AQUA 			bitmapBytesPerRow);
-// OLD_IPHONE_AQUA 	}
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 	context=CGBitmapContextCreate(bitmapData, 
-// OLD_IPHONE_AQUA 		pixelsWide, 
-// OLD_IPHONE_AQUA 		pixelsHigh, 
-// OLD_IPHONE_AQUA 		8, // bits per component 
-// OLD_IPHONE_AQUA 		bitmapBytesPerRow, 
-// OLD_IPHONE_AQUA 		colorSpace, 
-// OLD_IPHONE_AQUA 		kCGImageAlphaPremultipliedLast); 
-// OLD_IPHONE_AQUA 	if (context== NULL) 
-// OLD_IPHONE_AQUA 	{ 
-// OLD_IPHONE_AQUA 		FREE(bitmapData);
-// OLD_IPHONE_AQUA 		fprintf (stderr, "Context not created!"); 
-// OLD_IPHONE_AQUA 		return NULL; 
-// OLD_IPHONE_AQUA 	} 
-// OLD_IPHONE_AQUA 	CGColorSpaceRelease( colorSpace ); 
-// OLD_IPHONE_AQUA 	return context; 
-// OLD_IPHONE_AQUA } 
-// OLD_IPHONE_AQUA #endif
 
 /* get 1 frame; convert if we are doing 1 image at a time */
 void Snapshot () {
 	GLvoid *buffer;
 	DIR *mydir;
 	
-// OLD_IPHONE_AQUA	#ifndef AQUA
-	char sysline[2000];
-	FILE * tmpfile;
-	char thisRawFile[2000];
 
-// OLD_IPHONE_AQUA	#endif
-
-	char thisGoodFile[2000];
 	char *mytmp, *mysnapb;
-
-// OLD_IPHONE_AQUA 	#ifdef AQUA
-// OLD_IPHONE_AQUA         CFStringRef     path;
-// OLD_IPHONE_AQUA         CFURLRef        url;
-// OLD_IPHONE_AQUA 	CGImageRef	image;
-// OLD_IPHONE_AQUA 	CGImageDestinationRef imageDest;
-// OLD_IPHONE_AQUA 	CGRect myBoundingBox; 
-// OLD_IPHONE_AQUA 	CGContextRef myBitmapContext;
-// OLD_IPHONE_AQUA 	#endif
 
 	struct tSnapshot* t = &gglobal()->Snapshot;
 	struct pSnapshot* p = (struct pSnapshot*)t->prv;
@@ -665,26 +499,11 @@ void Snapshot () {
 	printf("do Snapshot ... \n");
 	/* make up base names - these may be command line parameters */
 	
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
+	if (p->snapsnapB == NULL)
+			mysnapb = "freewrl.snap";
+	else
+			mysnapb = p->snapsnapB;
 
-	if (p->snapsequence) {
-	        if (p->snapseqB == NULL)
-	                mysnapb  = "freewrl.seq";
-	        else
-	                mysnapb = p->snapseqB;
-	} else {
-#endif
-	        if (p->snapsnapB == NULL)
-	                mysnapb = "freewrl.snap";
-	        else
-	                mysnapb = p->snapsnapB;
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
-
-	}
-#endif
-	
 	
 	if (p->seqtmp == NULL)    mytmp   = "freewrl_tmp";
 	else mytmp = p->seqtmp;
@@ -698,142 +517,31 @@ void Snapshot () {
 		}
 	}
 	
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
 
-	/* are we sequencing, or just single snapping? */
-	if (!p->snapsequence) p->doSnapshot=FALSE;  	/* reset snapshot key */
-#endif
+	/* Linux, etc, can get by with 3 bytes per pixel */
+	/* MALLOC 3 bytes per pixel */
+	buffer = MALLOC (GLvoid *, 3*gglobal()->display.screenWidth*gglobal()->display.screenHeight*sizeof(char));
 
-	
-// OLD_IPHONE_AQUA 	#ifdef AQUA	
-// OLD_IPHONE_AQUA 		/* OSX needs 32 bits per byte. */
-// OLD_IPHONE_AQUA 		/* MALLOC 4 bytes per pixel */
-// OLD_IPHONE_AQUA 		buffer = MALLOC (GLvoid *, 4*gglobal()->display.screenWidth*gglobal()->display.screenHeight*sizeof(char));
-// OLD_IPHONE_AQUA 	
-// OLD_IPHONE_AQUA 		/* grab the data */
-// OLD_IPHONE_AQUA 		FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-// OLD_IPHONE_AQUA 		FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-// OLD_IPHONE_AQUA 		FW_GL_READPIXELS (0,0,gglobal()->display.screenWidth,gglobal()->display.screenHeight,GL_RGBA,GL_UNSIGNED_BYTE, buffer);
-// OLD_IPHONE_AQUA 	#else	
+	/* grab the data */
+	FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
+	FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+	FW_GL_READPIXELS (0,0,gglobal()->display.screenWidth,gglobal()->display.screenHeight,GL_RGB,GL_UNSIGNED_BYTE, buffer);
 
-		/* Linux, etc, can get by with 3 bytes per pixel */
-		/* MALLOC 3 bytes per pixel */
-		buffer = MALLOC (GLvoid *, 3*gglobal()->display.screenWidth*gglobal()->display.screenHeight*sizeof(char));
-	
-		/* grab the data */
-		FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-		FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-		FW_GL_READPIXELS (0,0,gglobal()->display.screenWidth,gglobal()->display.screenHeight,GL_RGB,GL_UNSIGNED_BYTE, buffer);
-// OLD_IPHONE_AQUA	#endif
 	
 	/* save this snapshot */
 	p->snapRawCount ++;
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
 
-	if (p->snapRawCount > maxSnapImages) {
-		FREE_IF_NZ (buffer);
-		return;
-	}
-#endif
-
-// OLD_IPHONE_AQUA 	#ifdef AQUA
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		myBoundingBox = CGRectMake (0, 0, gglobal()->display.screenWidth, gglobal()->display.screenHeight); 
-// OLD_IPHONE_AQUA 		myBitmapContext = MyCreateBitmapContext (gglobal()->display.screenWidth, gglobal()->display.screenHeight,buffer); 
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		image = CGBitmapContextCreateImage (myBitmapContext); 
-// OLD_IPHONE_AQUA 		CGContextDrawImage(myBitmapContext, myBoundingBox, image); 
-// OLD_IPHONE_AQUA 		char *bitmapData = CGBitmapContextGetData(myBitmapContext); 
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		CGContextRelease (myBitmapContext); 
-// OLD_IPHONE_AQUA 		if (bitmapData) FREE(bitmapData);
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		p->snapGoodCount++;
-// OLD_IPHONE_AQUA 		if (t->doPrintshot) {
-// OLD_IPHONE_AQUA 			snprintf (thisGoodFile, sizeof(thisGoodFile), "/tmp/FW_print_snap_tmp.png");
-// OLD_IPHONE_AQUA 			p->doPrintshot = FALSE;
-// OLD_IPHONE_AQUA 			t->doSnapshot = p->savedSnapshot;
-// OLD_IPHONE_AQUA 	        	path = CFStringCreateWithCString(NULL, thisGoodFile, kCFStringEncodingUTF8); 
-// OLD_IPHONE_AQUA 			printf("thisGoodFile is %s\n", thisGoodFile);
-// OLD_IPHONE_AQUA 	        	url = CFURLCreateWithFileSystemPath (NULL, path, kCFURLPOSIXPathStyle, FALSE);
-// OLD_IPHONE_AQUA 		} else {
-// OLD_IPHONE_AQUA 			snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.png",mytmp,mysnapb,p->snapGoodCount);
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 	        	path = CFStringCreateWithCString(NULL, thisGoodFile, kCFStringEncodingUTF8); 
-// OLD_IPHONE_AQUA 	        	url = CFURLCreateWithFileSystemPath (NULL, path, kCFURLPOSIXPathStyle, FALSE);
-// OLD_IPHONE_AQUA 		}
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		imageDest = CGImageDestinationCreateWithURL(url, CFSTR("public.png"), 1, NULL);
-// OLD_IPHONE_AQUA 		CFRelease(url);
-// OLD_IPHONE_AQUA 		CFRelease(path);
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		if (!imageDest) {
-// OLD_IPHONE_AQUA 			ConsoleMessage("[1] Snapshot cannot be written");
-// OLD_IPHONE_AQUA 			return;
-// OLD_IPHONE_AQUA 		}
-// OLD_IPHONE_AQUA 
-// OLD_IPHONE_AQUA 		CGImageDestinationAddImage(imageDest, image, NULL);
-// OLD_IPHONE_AQUA 		if (!CGImageDestinationFinalize(imageDest)) {
-// OLD_IPHONE_AQUA 			ConsoleMessage ("[2] Snapshot cannot be written");
-// OLD_IPHONE_AQUA 		}
-// OLD_IPHONE_AQUA 		CFRelease(imageDest);
-// OLD_IPHONE_AQUA 		CGImageRelease(image); 
-// OLD_IPHONE_AQUA 	#else	
-
-		/* save the file */
+	/* save the file */
 	if(p->modeTesting){
-		snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.bmp",mytmp,mysnapb,p->snapRawCount);
-		saveSnapshotBMP(thisRawFile,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
-		FREE_IF_NZ (buffer);
+		saveSnapshotBmp0(mytmp,mysnapb,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
 	}else{
-		snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.rgb",mytmp,mysnapb,p->snapRawCount);
-		tmpfile = fopen(thisRawFile,"w");
-		if (tmpfile == NULL) {
-			printf ("cannot open temp file (%s) for writing\n",thisRawFile);
-			FREE_IF_NZ (buffer);
-			return;
-		}
-
-		if (fwrite(buffer, 1, gglobal()->display.screenHeight*gglobal()->display.screenWidth*3, tmpfile) <= 0) {
-			printf ("error writing snapshot to %s, aborting snapshot\n",thisRawFile);
-			FREE_IF_NZ (buffer);
-			return;
-		}
-		fclose (tmpfile);
-	
-		/* convert -size 450x300 -depth 8 -flip /tmp/snappedfile.rgb out.png works. */
-	
-		FREE_IF_NZ (buffer);
-	
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
-
-		/* now, if we are doing only 1, convert the raw into the good.... */
-		if (!p->snapsequence) {
-#endif
-			//if(!p->modeTesting){
-				t->snapGoodCount++;
-				snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.png",mytmp,mysnapb,t->snapGoodCount);
-				snprintf(sysline,sizeof(sysline),"%s -size %dx%d -depth 8 -flip %s %s",
-				IMAGECONVERT,gglobal()->display.screenWidth, gglobal()->display.screenHeight,thisRawFile,thisGoodFile);
-		
-				if (system (sysline) != 0) {
-					printf ("Freewrl: error running convert line %s\n",sysline);
-				}
-				printf ("[2] snapshot is:  %s\n",thisGoodFile);
-				UNLINK (thisRawFile);
-			//}
-#ifdef DOSNAPSEQUENCE
-/* need to re-implement this for OSX generating QTVR */
-
-		}
-#endif
-
-// OLD_IPHONE_AQUA 	#endif
+#ifdef HAVE_IMLIB2
+		saveSnapshotImlib2Png(mytmp,mysnapb,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+#else
+		saveSnapshotRawPng(mytmp,mysnapb,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+#endif		
 	}
+	FREE_IF_NZ (buffer);
 }
 #endif /*ifdef win32*/
 

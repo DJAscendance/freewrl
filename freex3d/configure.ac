@@ -427,7 +427,7 @@ case "$with_OpenCL" in
 esac
 
 # Imlib2
-PKG_CHECK_MODULES(IMLIB2, imlib2)
+PKG_CHECK_MODULES(IMLIB2, imlib2, [have_imlib2=yes,AC_DEFINE([HAVE_IMLIB2],[1],[Define if IMLIB2 exists])],[have_imlib2=no])
 
 # JPEG
 AC_ARG_WITH(jpeg,AS_HELP_STRING([--with-jpeg=<dir>],[Use jpeg from here]),[],[with_jpeg=check])
@@ -780,9 +780,14 @@ AC_MY_HELPERAPP([wget],[WGET],[http fetcher],[$DEFAULT_WGET],[
         ])
 
 ## Imageconvert check
-AC_MY_HELPERAPP([imageconvert],[IMAGECONVERT],[image converter],[$DEFAULT_IMAGECONVERT],[
+if test x$have_imlib2 = xno; then
+        AC_MY_HELPERAPP([imageconvert],[IMAGECONVERT],[image converter],[$DEFAULT_IMAGECONVERT],[
         AC_MSG_ERROR([No image converter, please specify one using --with-imageconvert=PATH])
         ])
+else
+        AC_DEFINE(IMAGECONVERT,[""],[Imlib2 will save snapshots directly to png])
+        AC_MSG_NOTICE([Using Imlib2 for saving snapshots])
+fi
 
 ## DIS
 AC_ARG_WITH([DIS],
