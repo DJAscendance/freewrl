@@ -408,7 +408,7 @@ bool  process_res_movie(resource_item_t *res){
 	//
 	//s_list_t *l;
 	openned_file_t *of;
-	const char *buffer;
+	char *buffer;
 	int len;
 	struct X3D_MovieTexture *node;
 

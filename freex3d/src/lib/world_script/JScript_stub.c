@@ -51,6 +51,7 @@ struct X3D_Proto;
 			duk_JScript_init(t);
 	#endif
 */
+struct Shader_Script;
 
 #ifdef JAVASCRIPT_DUK
 void duk_kill_javascript(void);

@@ -115,14 +115,14 @@ struct dis_socket {
 
 
 #ifdef WIN32
-int sockwrite(SOCKET s, const char *buf, int len){
+int sockwrite(SOCKET s, char *buf, int len){
 	return send(s,buf,len,0);
 }
-int sockread(SOCKET s, const char *buf, int len){
+int sockread(SOCKET s, char *buf, int len){
 	return recv(s,buf,len,0);
 }
 
-int socksendto(struct dis_socket *dsock, const char *buf, int len){
+int socksendto(struct dis_socket *dsock, char *buf, int len){
 	int iret;
 	if( iret = sendto(dsock->socket, buf, len, 0,
 		(struct sockaddr *)&dsock->saddr, sizeof(struct sockaddr)) == SOCKET_ERROR){
@@ -131,7 +131,7 @@ int socksendto(struct dis_socket *dsock, const char *buf, int len){
 	return iret;
 }
 
-int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len){
+int sockrecvfrom(struct dis_socket *dsock, char *buf, int len){
 	// receive packet from socket
 	int status, fromlen;
 	fromlen = sizeof(struct sockaddr);
@@ -146,11 +146,11 @@ int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len){
 int sockwrite(SOCKET s, const char *buf, int len){
 	return write(s,buf,len);
 }
-int sockread(SOCKET s, const char *buf, int len){
+int sockread(SOCKET s, char *buf, int len){
 	return recv(s,buf,len,0);
 }
 
-int socksendto(struct dis_socket *dsock, const char *buf, int len){
+int socksendto(struct dis_socket *dsock, char *buf, int len){
         int iret;
         if( iret = sendto(dsock->socket, buf, len, 0,
                 (struct sockaddr *)&dsock->saddr, sizeof(struct sockaddr)) == SOCKET_ERROR){
@@ -159,7 +159,7 @@ int socksendto(struct dis_socket *dsock, const char *buf, int len){
 	return iret;
 }
 
-int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len){
+int sockrecvfrom(struct dis_socket *dsock, char *buf, int len){
         // receive packet from socket
         int status, fromlen;
         fromlen = sizeof(struct sockaddr);

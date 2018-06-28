@@ -844,7 +844,7 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 	int nr = 0;
 	void *xroute;
 	struct X3D_Node *fromNode, *toNode;
-	char *fromField, *toField;
+	const char *fromField, *toField;
 	int fromIfield, toIfield, fromBuiltIn, toBuiltIn;
 	int ftype,kind;
 	union anyVrml *value;
@@ -1826,7 +1826,7 @@ FWPropertySpec (X3DRouteProperties)[] = {
 int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	union anyVrml *value;
 	int type, kind;
-	char *fieldname; // , *stofield; //*sfromfield, 
+	const char *fieldname; // , *stofield; //*sfromfield, 
 	struct X3D_Node *fromNode, *toNode;
 	int fromIndex, toIndex, fromBuiltIn, toBuiltIn;
 	int nr = 1;

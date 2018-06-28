@@ -1408,7 +1408,8 @@ void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iunc
 static void parseAttributes_B(void *ud, char **atts) {
 	int i, type, kind, iifield, builtIn, iunca, isunits;
 	struct X3D_Node *node;
-	char *name, *svalue, *cname;
+	const char *cname;
+	char *name, *svalue;
 	const char *ignore [] = {"containerField","USE", "DEF"};
 	union anyVrml *value;
 
@@ -1882,7 +1883,8 @@ static void parseConnect_B(void *ud, char **atts) {
 	int i,okp, okn;
 	struct X3D_Node *node;
 	struct X3D_Proto *context, *proto;
-	char *nodefield, *protofield;
+	char *nodefield;
+	char *protofield;
 	node = getNode(ud,TOP);
 	proto = context = getContext(ud,TOP);
 

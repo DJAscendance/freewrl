@@ -6121,7 +6121,7 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 	int iunca;
 	int ifound;
 	int builtIn;
-	char *cname = NULL;
+	const char *cname = NULL;
 	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,&builtIn,value,&iunca,&cname); //waste iunca
 	return ifound;
 }

@@ -2425,7 +2425,7 @@ void propagate_events_B() {
 									int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
 									markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
 								}else
-#endif JAVASCRIPT_SM
+#endif //JAVASCRIPT_SM
 								{
 									// Jan 2 - seems like all we needed was valueChanged, which method2 updates automatically
 									markme = sfield->valueChanged;

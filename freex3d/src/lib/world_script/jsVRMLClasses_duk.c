@@ -1383,7 +1383,7 @@ int SFNode_valueOf(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	void* *ptr = (void * *)fwn;
 	if(0){
 		struct X3D_Node *node = *ptr;
-		printf("node address=%zx nodetype=%s\n",node,stringNodeType(node->_nodeType));
+		printf("node address=%p nodetype=%s\n",node,stringNodeType(node->_nodeType));
 	}
 	if(0){
 		//see also mfw_getter

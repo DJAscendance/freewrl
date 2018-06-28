@@ -1158,6 +1158,7 @@ void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
 				memcpy(row,&A[i0],l0);
 				P = &self->E[bchars];
 			}
+			/*
 			if(0){
 				//debugging
 				if(!strncmp(row,"`~",2)){
@@ -1179,6 +1180,7 @@ void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
 					}
 				}
 			}
+			*/
 			//OK got row and lenrow, now render it
 			//textchars2panelpixel
 			xy = text2pixel(0,jrow,rowheight,maxadvancepx); 
