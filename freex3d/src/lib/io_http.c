@@ -195,8 +195,12 @@ char* download_url_curl_OLD(char *parsed_request, char *temp_dir)
     if (temp_dir) {
 	    temp = STRDUP(temp_dir);
     } else {
+		#if defined(_tempnam) 
+	    temp = _tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_curl_XXXXXXXX");
+		#else
 	    temp = tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_curl_XXXXXXXX");
-	    if (!temp) {
+	    #endif
+		if (!temp) {
 		    PERROR_MSG("download_url_curl: can't create temporary name.\n");
 		    return NULL;	
 	    }
@@ -488,7 +492,11 @@ char* download_url_wget(char *parsed_request, char *temp_dir)
     if (temp_dir) {
 	    temp = STRDUP(temp_dir);
     } else {
+		#if defined(_tempam)
+	    temp = _tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_wget_XXXXXXXX");
+		#else
 	    temp = tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_wget_XXXXXXXX");
+		#endif
 	    if (!temp) {
 		    PERROR_MSG("download_url_wget: can't create temporary name.\n");
 		    return NULL;

@@ -410,7 +410,7 @@ void saveSnapshotImlib2Png(char *folder, char *prefix, const char *sufx, int cou
 	char* buf32;
 	char *inrow, *outrow;
 
-	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.sufx",folder,prefix,count);
+	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.%s",folder,prefix,count,sufx);
 	// https://docs.enlightenment.org/api/imlib2/html/	
  	Imlib_Image image;
  	image = imlib_create_image(width,height);

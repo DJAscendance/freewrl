@@ -429,6 +429,8 @@ esac
 # Imlib2
 PKG_CHECK_MODULES(IMLIB2, imlib2, [have_imlib2=yes,AC_DEFINE([HAVE_IMLIB2],[1],[Define if IMLIB2 exists])],[have_imlib2=no])
 
+if test x$have_imlib = xno; then
+# if we don't have imlib2, then we use libpng or libjpg or libgif directly
 # JPEG
 AC_ARG_WITH(jpeg,AS_HELP_STRING([--with-jpeg=<dir>],[Use jpeg from here]),[],[with_jpeg=check])
 case "$with_jpeg" in
@@ -476,8 +478,12 @@ CPPFLAGS=$oCPPFLAGS;LDFLAGS=$oLDFLAGS;CFLAGS=$oCFLAGS;LIBS=$oLIBS
 AC_SUBST(JPEG_CFLAGS)
 AC_SUBST(JPEG_LIBS)
 
+
 # PNG
 PKG_CHECK_MODULES(PNG, libpng)
+
+fi
+
 
 
 ## freeALUT check

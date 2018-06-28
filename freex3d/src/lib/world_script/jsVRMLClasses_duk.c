@@ -1402,7 +1402,7 @@ int SFNode_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, 
 {
 	char str[512];
 	void **ptr = (void **)fwn;
-	sprintf(str,"_%zx_",(*ptr));
+	sprintf(str,"_%p_",(*ptr));
 	fwretval->_string =  strdup(str);
 	fwretval->itype = 'S';
 	return 1;
