@@ -1158,6 +1158,7 @@ void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
 				memcpy(row,&A[i0],l0);
 				P = &self->E[bchars];
 			}
+			/*
 			if(0){
 				//debugging
 				if(!strncmp(row,"`~",2)){
@@ -1179,6 +1180,7 @@ void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
 					}
 				}
 			}
+			*/
 			//OK got row and lenrow, now render it
 			//textchars2panelpixel
 			xy = text2pixel(0,jrow,rowheight,maxadvancepx); 
@@ -6192,7 +6194,6 @@ void fwl_do_keyPress0(int key, int type) {
 				case ' ': p->keywait = TRUE; ConsoleMessage("\n%c",':'); p->keywaitstring[0] = '\0'; break;
 				case ',': toggle_debugging_trigger(); break; 
 #if !defined(FRONTEND_DOES_SNAPSHOTS)
-				case 's': {fwl_toggleSnapshot(); break;}
 				case 'x': {Snapshot(); break;} /* thanks to luis dias mas dec16,09 */
 #endif //FRONTEND_DOES_SNAPSHOTS
 				//case '[': resource_dump(gglobal()->resources.root_res); break; //doesn't show 'tree', just rootres

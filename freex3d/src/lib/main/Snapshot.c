@@ -396,40 +396,27 @@ void fwl_init_SnapGif()
     p->snapGif = TRUE;
 }
 
-void fwl_init_PrintShot() {
-	//struct pSnapshot* p = (struct pSnapshot*)gglobal()->Snapshot.prv;
-	ppSnapshot p = (ppSnapshot)gglobal()->Snapshot.prv;
-	p->doPrintshot = TRUE;
-	p->savedSnapshot = p->doSnapshot;
-	p->doSnapshot = TRUE;
-	printf("setting printshot/ snapshot\n");
-}
 
-/* turn snapshotting on; if sequenced; possibly turn off an convert sequence */
-void fwl_toggleSnapshot() {
-	struct tSnapshot* t = &gglobal()->Snapshot;
-	t->doSnapshot = ! t->doSnapshot;
-}
-
-void saveSnapshotBmp0(char *folder, char *prefix, int count, void *buffer, int bpp, int width, int height){
+void saveSnapshotBmp0(char *folder, char *prefix, const char *sufx, int count, void *buffer, int bpp, int width, int height){
 	char thisRawFile[2000];
 	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.bmp",folder,prefix,count);
 	saveSnapshotBMP(thisRawFile,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+	printf ("[2] snapshot is:  %s\n",thisRawFile);
 }
 #ifdef HAVE_IMLIB2
-void saveSnapshotImlib2Png(char *folder, char *prefix, int count, char *buffer, int bpp, int width, int height){
+void saveSnapshotImlib2Png(char *folder, char *prefix, const char *sufx, int count, char *buffer, int bpp, int width, int height){
 	char thisRawFile[2000];
 	int i,ii,j,k,kk;
 	char* buf32;
 	char *inrow, *outrow;
 
-	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.png",folder,prefix,count);
+	snprintf (thisRawFile, sizeof(thisRawFile),"%s/%s.%04d.sufx",folder,prefix,count);
 	// https://docs.enlightenment.org/api/imlib2/html/	
  	Imlib_Image image;
  	image = imlib_create_image(width,height);
 	imlib_context_set_image(image);
 	imlib_image_set_has_alpha(0);
-	imlib_image_set_format("png");
+	imlib_image_set_format(sufx);
 	buf32 = (char *)imlib_image_get_data();
 	for(i=0;i<height;i++){
 		inrow = &buffer[(width * bpp)*i];
@@ -445,9 +432,10 @@ void saveSnapshotImlib2Png(char *folder, char *prefix, int count, char *buffer, 
 	imlib_image_put_back_data((DATA32*)buf32);
 	imlib_save_image(thisRawFile);	
 	imlib_free_image();
+	printf ("[2] snapshot is:  %s\n",thisRawFile);
 }
 #endif //HAVE_IMLIB2
-void saveSnapshotRawPng(char *folder, char *prefix, int count, void *buffer, int bpp, int width, int height){
+void saveSnapshotRawPng(char *folder, char *prefix, const char *sufx, int count, void *buffer, int bpp, int width, int height){
 	char thisRawFile[2000];
 	char thisGoodFile[2000];
 	char sysline[2000];
@@ -472,7 +460,7 @@ void saveSnapshotRawPng(char *folder, char *prefix, int count, void *buffer, int
 	/* convert -size 450x300 -depth 8 -flip /tmp/snappedfile.rgb out.png works. */
 
 
-	snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.png",folder,prefix,count);
+	snprintf (thisGoodFile, sizeof(thisGoodFile),"%s/%s.%04d.%s",folder,prefix,count,sufx);
 	snprintf(sysline,sizeof(sysline),"%s -size %dx%d -depth 8 -flip %s %s",
 	IMAGECONVERT,width, height,thisRawFile,thisGoodFile);
 
@@ -485,10 +473,11 @@ void saveSnapshotRawPng(char *folder, char *prefix, int count, void *buffer, int
 }
 
 /* get 1 frame; convert if we are doing 1 image at a time */
+static const char * suffix [] = {"png","gif"};
 void Snapshot () {
 	GLvoid *buffer;
 	DIR *mydir;
-	
+	const char *sufx;
 
 	char *mytmp, *mysnapb;
 
@@ -531,14 +520,16 @@ void Snapshot () {
 	/* save this snapshot */
 	p->snapRawCount ++;
 
+	sufx = suffix[0];
+	if(p->snapGif) sufx = suffix[1];
 	/* save the file */
 	if(p->modeTesting){
-		saveSnapshotBmp0(mytmp,mysnapb,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+		saveSnapshotBmp0(mytmp,mysnapb,sufx,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
 	}else{
 #ifdef HAVE_IMLIB2
-		saveSnapshotImlib2Png(mytmp,mysnapb,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+		saveSnapshotImlib2Png(mytmp,mysnapb,sufx,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
 #else
-		saveSnapshotRawPng(mytmp,mysnapb,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
+		saveSnapshotRawPng(mytmp,mysnapb,sufx,p->snapRawCount,buffer,3,gglobal()->display.screenWidth, gglobal()->display.screenHeight);
 #endif		
 	}
 	FREE_IF_NZ (buffer);

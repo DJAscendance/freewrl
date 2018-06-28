@@ -1108,7 +1108,7 @@ static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec
 	if(method_geolib())
 		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	else
-	#endif GEOLIB
+	#endif //GEOLIB
 		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	if(0){
 		//round trip verification, want to convert a UTM -> GD -> (UTM, 3TM)

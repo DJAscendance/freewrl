@@ -627,7 +627,7 @@ proxy_entry *add_ctx_proxycache_entry(duk_context *ctx, struct X3D_Node *node, v
 			for(i=0;i<vectorSize(cache->cache);i++){
 				proxy_entry *pe0 = vector_get(proxy_entry*,cache->cache,i);
 				if(pe0)
-					printf("%d %zx %zx\n",i,pe0->node,pe0->jsproxy);
+					printf("%d %p %p\n",i,pe0->node,pe0->jsproxy);
 				else
 					printf("%d NULL\n",i);
 			}
@@ -655,7 +655,7 @@ void remove_ctx_proxycache_entry_by_nodeptr(duk_context *ctx, struct X3D_Node *n
 			for(i=0;i<vectorSize(cache->cache);i++){
 				proxy_entry *pe0 = vector_get(proxy_entry*,cache->cache,i);
 				if(pe0)
-					printf("%d %zx %zx\n",i,pe0->node,pe0->jsproxy);
+					printf("%d %p %p\n",i,pe0->node,pe0->jsproxy);
 				else
 					printf("%d NULL\n",i);
 			}
@@ -1393,7 +1393,7 @@ int cownKeys(duk_context *ctx) {
 	int rc, itype, *valueChanged, arr_idx;
 	void *parent = NULL;
 	int i;
-	char *fieldname;
+	const char *fieldname;
 	int lastProp, jndex; //isFunc, 
 	char type, readOnly;
 	//FWTYPE *getFWTYPE(int itype)
@@ -1430,7 +1430,7 @@ int cenumerate(duk_context *ctx) {
 	int rc, itype, *valueChanged;
 	union anyVrml *parent = NULL;
 	int i;
-	char *fieldname;
+	const char *fieldname;
 	int lastProp, jndex; //isFunc, 
 	char type, readOnly;
 	FWTYPE *fwt;
@@ -1674,7 +1674,7 @@ int cfunction(duk_context *ctx) {
 			if(nr && !strcasecmp(fwFunc,"toString")){
 				if(fwretval.itype == 'S' && fwretval._string){
 					//printf("gcing toString string %s\n",fwretval._string);
-					free(fwretval._string);  //if this bombs take it out and toString strings won't be gcd. There's nothing set up to gc _string in general
+					//free(fwretval._string);  //if this bombs take it out and toString strings won't be gcd. There's nothing set up to gc _string in general
 				}
 			}
 		}else{
