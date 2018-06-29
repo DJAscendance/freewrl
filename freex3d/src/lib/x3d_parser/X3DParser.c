@@ -549,7 +549,7 @@ static int QA_routeEnd(struct X3D_Proto *context, char* cnode, char* cfield, str
 		}
 	}else{
 		int idir;
-		int type,kind,ifield,source,builtIn;
+		int type,kind,ifield,source;
 		void *decl;
 		union anyVrml *value;
 		if(isFrom) idir = PKW_outputOnly;
@@ -1896,7 +1896,7 @@ static void parseConnect_B(void *ud, char **atts) {
 	okp = okn = 0;
 	if(nodefield && protofield){
 		int ptype, pkind, pifield, pBuiltIn, ntype, nkind, nifield, nBuiltIn;
-		char *pname, *nname;
+		const char *pname, *nname;
 		union anyVrml *pvalue, *nvalue;
 		okp = getFieldFromNodeAndNameC(X3D_NODE(proto),protofield,&ptype, &pkind, &pifield, &pBuiltIn, &pvalue, &pname);
 		okn = getFieldFromNodeAndNameC(node, nodefield,&ntype, &nkind, &nifield, &nBuiltIn, &nvalue, &nname);

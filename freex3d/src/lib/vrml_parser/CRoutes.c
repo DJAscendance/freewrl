@@ -3056,12 +3056,15 @@ void Multimemcpy (struct X3D_Node *toNode, struct X3D_Node *fromNode, void *tn, 
 
 	if (toNode != NULL) {
 		if (multitype==ROUTING_SFNODE) {
-			unsigned int fnvalue;
-			unsigned int *fnlocation;
+			//unsigned int fnvalue;
+			//unsigned int *fnlocation;
+			union anyVrml *any;
 			struct X3D_Node *sfnodeptr;
-			fnlocation = (unsigned int*)fn;
-			fnvalue= *fnlocation;
-			sfnodeptr = (struct X3D_Node*)fnvalue;
+			//fnlocation = (unsigned int*)fn;
+			//fnvalue= *fnlocation;
+			//sfnodeptr = (struct X3D_Node*)fnvalue;
+			any = (union anyVrml*)fn;
+			sfnodeptr = any->sfnode;
 #ifdef CRVERBOSE
 			printf ("got a ROUTING_SFNODE, adding %u to %u\n",(unsigned int) fn, (unsigned int) toNode);
 #endif

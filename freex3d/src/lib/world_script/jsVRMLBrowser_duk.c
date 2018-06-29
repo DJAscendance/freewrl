@@ -2086,7 +2086,7 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 	struct string_int * si;
 	union anyVrml *value;
 	struct X3D_Node* node;
-	char *fname;
+	const char *fname;
 	struct tuplePointerInt *tpi = (struct tuplePointerInt*)fwn;
 	node = tpi->pointer;
 	ifield = tpi->integer;

@@ -1082,14 +1082,15 @@ static BOOL parser_componentStatement(struct VRMLParser* me) {
 	//Feb 2016 Core:2 will be all one string now, thanks to allowing : in identifiers Sept 2015
 	{
 		//new way to handle 'Core:2' chunk
-		int i;
+		int i,len;
 		strcpy(cfullname,me->lexer->curID);
 		/* now, we are finished with this COMPONENT */
 		FREE_IF_NZ(me->lexer->curID);
 
 		cname = cfullname;
 		clevel = NULL;
-		for(i=0;i<strlen(cfullname);i++)
+		len = strlen(cfullname);
+		for(i=0;i<len;i++)
 			if(cfullname[i] == ':'){
 				cfullname[i] = '\0';
 				clevel = &cfullname[i+1];
@@ -1788,7 +1789,7 @@ void addUnits(void *ecx, char *category, char *unit, double factor){
 	struct unitsB u2;
 	struct unitsB *uptr, *u2length, *u2mass, *u2force, *u2angle;
 	struct unca *uc;
-	int i, iuc, iunca, lengthmethod;
+	int i, iuc, lengthmethod;
 
 	if(!units2vec || (units2vec->n == 0)){
 		//set default base units and derived units factors for this scenefile
@@ -1948,7 +1949,7 @@ void sfunitf(int nodetype,char *fieldname, float *var, int n, int iunca) {
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == iunca){
 					for(k=0;k<n;k++){
-						var[k] *= uptr->factor;
+						var[k] *= (float)uptr->factor;
 					}
 					break;
 				}
@@ -1968,7 +1969,7 @@ void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n,
 				uptr = vector_get_ptr(struct unitsB,units2vec,i);
 				if(uptr->iunca == iunca){
 					for(k=0;k<n;k++){
-						var[k].c[3] *= uptr->factor;
+						var[k].c[3] *= (float)uptr->factor;
 					}
 					break;
 				}
@@ -2120,13 +2121,13 @@ void applyUnitsToNode(struct X3D_Node *node){
 				//geos are done in the loops above
 				if(!(iunca == UNCA_LENGTH && unitmethod == UNITMETHOD_TWOSTEP)){
 					//one-step: length done here (two-step done at render time with wrapper scale)
-					double factor;
+					float factor;
 					struct unitsB *uptr;
 					factor = 1.0;
 					for(i=0;i<vectorSize(units2vec);i++){
 						uptr = vector_get_ptr(struct unitsB,units2vec,i);
 						if(uptr->iunca == iunca){
-							factor = uptr->factor;
+							factor = (float)uptr->factor;
 							break;
 						}
 					}
@@ -6496,7 +6497,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	DECLAREUP
 	BOOL foundField;
 	BOOL foundProtoField;
-	struct ProtoFieldDecl *f, ff;
+	struct ProtoFieldDecl *f;
 	union anyVrml *fieldPtr;
 	union anyVrml *defaultPtr;
 	void *fdecl;

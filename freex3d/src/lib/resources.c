@@ -154,7 +154,7 @@ resource_item_t* resource_create_single(const char *request)
  *
  *   TODO: finish the multi implementation.
  */
-resource_item_t* resource_create_multi0(s_Multi_String_t *request)
+resource_item_t* resource_create_multi0(const s_Multi_String_t *request)
 {
 	/* anchor to new scene might use the multi0 directly, so plugin_res isn't deleted in killOldWorld */
 	int i;
@@ -174,7 +174,7 @@ resource_item_t* resource_create_multi0(s_Multi_String_t *request)
 	}
 	return item;
 }
-resource_item_t* resource_create_multi(s_Multi_String_t *request)
+resource_item_t* resource_create_multi(const s_Multi_String_t *request)
 {
 	resource_item_t *item = resource_create_multi0(request);
 	resource_tree_append(item);
@@ -1118,7 +1118,7 @@ static void possiblyUnzip (openned_file_t *of) {
 
 		/* make a temporary name for the gunzipped file */
         // sprintf (tempname, "%s",tempnam(gglobal()->Mainloop.tmpFileLocation,"freewrl_tmp")); 
-		tempname = tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_tmp");
+		tempname = TEMPNAM(gglobal()->Mainloop.tmpFileLocation, "freewrl_tmp");
 
 		/* read in the text, unzip it, write it out again */
 		source = gzopen(of->fileFileName,"rb");
