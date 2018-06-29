@@ -158,7 +158,7 @@ int fwiterator_generic(int index, FWTYPE *fwt, void *pointer, const char **name,
 }
 
 int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char *type, char *readOnly){
-	char *name;
+	const char *name;
 	int lastProp, isSet, index = -1;
 	lastProp = -1;
 	isSet = FALSE;
