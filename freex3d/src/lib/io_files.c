@@ -763,6 +763,11 @@ int freewrlSystem (const char *sysline)
 	return -1; /* should we return FALSE or -1 ??? */
 //#endif
 }
+#elif defined(_MSC_VER)
+int freewrlSystem (const char *sysline)
+{
+	return system(sysline);
+}
 #endif
 //goal: remove a directory and its contents - used for removing the temp unzip folder for .z3z / .zip file processing
 #ifdef _MSC_VER
@@ -1169,13 +1174,13 @@ void process_x3z(resource_item_t *res){
 	char request[256];
 	char* tempfolderpath;
 	if (1){
-		tempfolderpath = tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_XXXXXXXX");
+		tempfolderpath = TEMPNAM(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_XXXXXXXX");
 	}else{
 		//for debugging if you need to have the temp unzip files in your working folder where your data files are
 		tempfolderpath = STRDUP(res->URLrequest);
 		tempfolderpath = strBackslash2fore(tempfolderpath);
 		tempfolderpath = remove_filename_from_path(tempfolderpath);
-		tempfolderpath = tempnam(tempfolderpath, "freewrl_download_XXXXXXXX");
+		tempfolderpath = TEMPNAM(tempfolderpath, "freewrl_download_XXXXXXXX");
 	}
 	err = unzip_archive_to_temp_folder(res->actual_file, tempfolderpath);
 	if(!err){

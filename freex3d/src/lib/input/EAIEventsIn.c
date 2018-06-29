@@ -793,6 +793,7 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 
 			case UNREGLISTENER: {
 				struct X3D_Node * node;
+				void *vextra;
 				int offset;
 				int directionFlag = 0;
 
@@ -826,8 +827,9 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 				/* put the address of the listener area in a string format for registering
 				   the route - the route propagation will copy data to here */
 				/* set up the route from this variable to the handle Listener routine */
+				vextra = (void*)((count<<8)+mapEAItypeToFieldType(ctmp[0]));
 				CRoutes_Register  (0,node, offset, NULL, 0, (int) tmp_c,(void *) 
-					&EAIListener, directionFlag, (count<<8)+mapEAItypeToFieldType(ctmp[0])); /* encode id and type here*/
+					&EAIListener, directionFlag, vextra ); /* encode id and type here*/
 
 				sprintf (th->outBuffer,"RE\n%f\n%d\n0",TickTime(),count);
 				break;

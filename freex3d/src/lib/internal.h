@@ -380,6 +380,13 @@ void *reallocn(void *node, void *pold, size_t newsize);
 /**
  * Those macro get defined only when debugging is enabled
  */
+
+#if defined(_tempnam)
+# define TEMPNAM _tempnam
+#else
+# define TEMPNAM tempnam
+#endif
+
 #if defined(WRAP_MALLOC) || defined(DEBUG_MALLOC)
 
 void *freewrlMalloc(int line, char *file, size_t sz, int zeroData);
@@ -424,15 +431,6 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
                       } while (0);
 
 #endif // FW_DEBUG
-/* JAS */
-#ifndef TEMPNAM
-#if defined(_MSC_VER)
-# define TEMPNAM _tempnam
-#else
-# define TEMPNAM tempnam
-#endif
-#endif
-
 
 #else /* defined(WRAP_MALLOC) || defined(DEBUG_MALLOC) */
 #define MALLOCN(_node,_sz) (mallocn(_node,_sz))
