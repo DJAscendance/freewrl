@@ -383,7 +383,7 @@ int privSocketSetup(int channel, int *ANONsocketfd, int *ANONlistenfd) {
 			return FALSE;
 		}
 
-		setsockopt ((*ANONsocketfd), SOL_SOCKET, SO_REUSEADDR, &on, (socklen_t) sizeof(on));
+		setsockopt ((*ANONsocketfd), SOL_SOCKET, SO_REUSEADDR, (char *) &on, (socklen_t) sizeof(int));
 
 #ifdef _MSC_VER
 		/* int ioctlsocket(SOCKET s,long cmd, u_long* argp);  http://msdn.microsoft.com/en-us/library/ms738573(VS.85).aspx */

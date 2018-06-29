@@ -40,11 +40,13 @@ static pthread_mutex_t ssr_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t ssr_queue_condition = PTHREAD_COND_INITIALIZER;
 static bool ssr_server_waiting = FALSE;
 
-void SSRserver_enqueue_request_and_wait(void *fwctx, SSR_request *request){
+void SSRserver_enqueue_request_and_wait(void *fwctx, void *ssr_request){
 	//called by A -> B -> C
 	//in B -the web server- a new thread is created for each A request.
 	//this function is called from those many different temporary threads
 	//the backend _displayThread will own our queue -so it's a thread funnel
+	SSR_request *request;
+	request = (SSR_request *)ssr_request;
 	s_list_t *item = ml_new(request);
 	pthread_mutex_init(&request->requester_mutex,NULL);
 	pthread_cond_init(&request->requester_condition,NULL);

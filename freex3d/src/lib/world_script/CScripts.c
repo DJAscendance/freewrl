@@ -486,7 +486,7 @@ static bool script_initCodeFromBLOB(struct Shader_Script* me, const char* uri, c
 	}
 	return FALSE;
 }
-static void script_initCodeFromMFUri_download(struct Shader_Script* me, struct Multi_String *s){
+static void script_initCodeFromMFUri_download(struct Shader_Script* me, const struct Multi_String *s){
 	 /* Not a valid script text in this MFString. Lets see if this
 		is this a possible file that we have to get? */
 	resource_item_t *res, *parentres;

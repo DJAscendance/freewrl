@@ -142,7 +142,7 @@ void sm_js_cleanup_script_context(int counter){
 			if(crss->scriptText){
 				struct X3D_Node *scnode = crss->script->ShaderScriptNode;
 				if(scnode){
-					char* nn = getNodeName(X3D_NODE(scnode));
+					const char* nn = getNodeName(X3D_NODE(scnode));
 					if(nn) printf("DEF %s \n",nn);
 					if(crss->scriptText) printf("%s\n",crss->scriptText);
 					
