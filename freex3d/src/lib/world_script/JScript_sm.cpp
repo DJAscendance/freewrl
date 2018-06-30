@@ -88,12 +88,12 @@ typedef BOOL _Bool;
 //#include "../input/SensInterps.h"
 //#include "../x3d_parser/Bindable.h"
 //
-#include "JScript.h"
-#include "jsVRMLBrowser.h"
+#include "JScript_sm.h"
+#include "jsVRMLBrowser_sm.h"
 //#include "CScripts.h"
-//#include "jsUtils.h"
+#include "jsUtils_sm.h"
 //#include "jsNative.h"
-#include "jsVRMLClasses.h"
+#include "jsVRMLClasses_sm.h"
 #include "../vrmlparser/CRoutes.h"
 
 
