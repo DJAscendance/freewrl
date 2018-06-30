@@ -40,7 +40,7 @@ Javascript C language binding.
 
 # include <jsapi.h> /* JS compiler */
 //# include <jsdbgapi.h> /* JS debugger */
-extern "C" {
+
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #ifdef JAVASCRIPT_SM
 #define JS_VERSION 187
@@ -69,10 +69,14 @@ JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 typedef int BOOL;
 typedef BOOL _Bool;
 //typedef _Bool bool;
+extern "C" {
 #include <system.h>
 #include "scenegraph/Vector.h"
 #include <display.h>
 #include <internal.h>
+#include "JScript.h"
+
+
 //
 //#include <libFreeWRL.h>
 //
@@ -87,14 +91,17 @@ typedef BOOL _Bool;
 //#include "../input/EAIHelpers.h"
 //#include "../input/SensInterps.h"
 //#include "../x3d_parser/Bindable.h"
-//
-#include "JScript_sm.h"
+#include "../vrml_parser/CRoutes.h"
+
+
+} //extern C
+
+
 #include "jsVRMLBrowser_sm.h"
 //#include "CScripts.h"
 #include "jsUtils_sm.h"
 //#include "jsNative.h"
 #include "jsVRMLClasses_sm.h"
-#include "../vrmlparser/CRoutes.h"
 
 
 #ifndef JSCLASS_GLOBAL_FLAGS
@@ -132,7 +139,7 @@ static JSClass staticGlobalClass = {
 
 
 
-
+extern "C" {
 
 typedef struct pJScript{
 
@@ -3701,6 +3708,7 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 		and if so do some extra work. If not so be it.
 	set_one_multielementtype is for SFVecxx, SFColorxxxx, SFNode, SFRotation
 */
+
 void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
 	char scriptline[256];
 	JSContext *cx;
@@ -3789,8 +3797,8 @@ int sm_runQueuedDirectOutputs(){
 
 	return FALSE;
 }
-
+} //extern "C"
 
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
-} //extern "C"
+
 #endif //defined(JS_SMCPP)
