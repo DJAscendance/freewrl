@@ -26,33 +26,75 @@ Javascript C language binding.
 
 
 #include <config.h>
-#if !defined(JS_SMCPP)
-#include <system.h>
+#if defined(JS_SMCPP)
+#undef DEBUG
+//#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
+//#include <system.h>
+//# include <stdint.h>
+//#include <ctype.h>
+//#undef HAVE_BOOL
+//#include <stdlib.h>
+//#include <math.h>
+//# include <stdio.h>
+//# include <string.h>
+
+# include <jsapi.h> /* JS compiler */
+//# include <jsdbgapi.h> /* JS debugger */
+extern "C" {
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #ifdef JAVASCRIPT_SM
+#define JS_VERSION 187
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
+void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *me);
+JSObject * JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, JSObject *parent, unsigned argc, jsval *argv); 
+JSObject * JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent);
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj);
+JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
+
+#define uintN unsigned
+#define intN int
+#define jsint int32_t
+#define jsuint uint32_t
+#define int32 int32_t
+#define jsdouble double
+
+#define JS_FinalizeStub NULL
+#define JSSCRIPT2 JSScript
+#define JS_GET_CLASS JS_GetClassFw
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
+
+typedef int BOOL;
+typedef BOOL _Bool;
+//typedef _Bool bool;
+#include <system.h>
+#include "scenegraph/Vector.h"
 #include <display.h>
 #include <internal.h>
-
-#include <libFreeWRL.h>
-
+//
+//#include <libFreeWRL.h>
+//
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
-#include "../vrml_parser/CParseGeneral.h"
-#include "../vrml_parser/CRoutes.h"
-#include "../main/Snapshot.h"
-#include "../scenegraph/Collision.h"
-#include "../scenegraph/quaternion.h"
-#include "../scenegraph/Viewer.h"
-#include "../input/EAIHelpers.h"
-#include "../input/SensInterps.h"
-#include "../x3d_parser/Bindable.h"
-
+//#include "../vrml_parser/CParseGeneral.h"
+//#include "../vrml_parser/CRoutes.h"
+//#include "../main/Snapshot.h"
+//#include "../scenegraph/Collision.h"
+//#include "../scenegraph/quaternion.h"
+//#include "../scenegraph/Viewer.h"
+//#include "../input/EAIHelpers.h"
+//#include "../input/SensInterps.h"
+//#include "../x3d_parser/Bindable.h"
+//
 #include "JScript.h"
-#include "CScripts.h"
-#include "jsUtils.h"
-#include "jsNative.h"
-#include "jsVRMLClasses.h"
 #include "jsVRMLBrowser.h"
+//#include "CScripts.h"
+//#include "jsUtils.h"
+//#include "jsNative.h"
+#include "jsVRMLClasses.h"
+#include "../vrmlparser/CRoutes.h"
 
 
 #ifndef JSCLASS_GLOBAL_FLAGS
@@ -71,7 +113,7 @@ static JSClass staticGlobalClass = {
 	"global",		// char *name
 	JSCLASS_GLOBAL_FLAGS,	// uint32 flags
 	JS_PropertyStub,	// JSPropertyOp addProperty
-	JS_PropertyStub,	// JSPropertyOp delProperty
+	JS_DeletePropertyStub,	// JSDeletePropertyOp delProperty
 	JS_PropertyStub,	// JSPropertyOp getProperty
 	JS_StrictPropertyStub,	// JSStrictPropertyOp setProperty
 	JS_EnumerateStub,	// JSEnumerateOp enumerate
@@ -3750,4 +3792,5 @@ int sm_runQueuedDirectOutputs(){
 
 
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
-#endif //!defined(JS_SMCPP)
+} //extern "C"
+#endif //defined(JS_SMCPP)

@@ -27,11 +27,15 @@
 
 
 #include <config.h>
-#if !defined(JS_SMCPP)
+#if defined(JS_SMCPP)
+#undef DEBUG
+//#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
+# include <jsapi.h> /* JS compiler */
+# include <jsdbgapi.h> /* JS debugger */
+extern "C" {
 #include <system.h>
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #ifdef JAVASCRIPT_SM
-
 #include <system_threads.h>
 #include <display.h>
 #include <internal.h>
@@ -2926,4 +2930,5 @@ JSBool MFStringConvertProperty(JSContext *cx, JSHandleObject hobj, JSType type, 
 }
 
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
-#endif //!defined(JS_SMCPP)
+} //extern "C"
+#endif //defined(JS_SMCPP)

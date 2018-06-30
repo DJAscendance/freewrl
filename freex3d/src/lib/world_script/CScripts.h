@@ -117,7 +117,7 @@ struct Shader_Script
  struct Vector* fields;
 };
 struct ScriptFieldDecl* Shader_Script_getScriptField(struct Shader_Script* script, int ifield);
-int Shader_Script_getScriptFieldCount();
+int Shader_Script_getScriptFieldCount(struct Shader_Script* script);
 
 /* Constructor and destructor */
 /* ************************** */
