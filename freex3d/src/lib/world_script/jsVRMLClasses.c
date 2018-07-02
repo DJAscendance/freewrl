@@ -2298,7 +2298,7 @@ void setInECMATable(JSContext *context, char *toFind) {
 }
 
 
-
+/*
 int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int **valueChanged){
 	//sp = (struct Shader_Script *)snode->__scriptObj;
 	int k;
@@ -2327,6 +2327,7 @@ int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, in
 	}
 	return 0;
 }
+*/
 
 void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval *newval);
 void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName);

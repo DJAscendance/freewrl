@@ -772,7 +772,6 @@ int freewrlSystem (const char *sysline)
 //goal: remove a directory and its contents - used for removing the temp unzip folder for .z3z / .zip file processing
 #ifdef _MSC_VER
 //http://msdn.microsoft.com/en-us/windows/desktop/aa365488
-
 #include <TCHAR.H>
 #ifdef UNICODE
 static TCHAR *singleDot = L".";

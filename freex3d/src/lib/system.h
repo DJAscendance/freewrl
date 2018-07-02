@@ -199,7 +199,7 @@ char *__fw_strndup(const char *s, size_t n);
  * Misc
  */
 #if defined(_MSC_VER)
-//#include <Windows.h>
+#include <Windows.h>
 /* FIXME: those calls to bzero & bcopy shall be remove from libeai ;)... */
 
 /*  http://www.opengroup.org/onlinepubs/000095399/functions/bzero.html */

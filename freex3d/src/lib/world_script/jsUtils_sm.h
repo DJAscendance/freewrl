@@ -89,13 +89,12 @@ errorReporter(JSContext *cx,
 			  JSErrorReport *report);
 
 void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval *ret);
-#if JS_VERSION < 185
-JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval *vp);
-#elif JS_VERSION == 185
-JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
-#else
-JSBool setSFNodeField (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
-#endif
+void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval);
+void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *valueChanged, jsval *newval);
+void X3D_SF_TO_JS_BNode(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
+JSBool setSFNodeField (JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+void JS_SF_TO_X3D_BNode(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval);
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 
 const char *classToString(JSClass *myClass);
 #define CHECK_CLASS(cx,obj,argv,fnString,expClass) \
