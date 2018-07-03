@@ -1924,7 +1924,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 			#ifdef JSVRMLCLASSESVERBOSE
 			printf ("is NOT an int\n");
 			#endif
-			//vp->toInt32()
+			i = vp->toInt32();
 			//if (!JS::ToInt32(cx, *vp, &i)) {
 			/*
 			if (!JS::ToInt32(cx, *vp, &i)) {

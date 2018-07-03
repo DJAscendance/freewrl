@@ -36,7 +36,7 @@ pointers there updated.
 #define __FREEWRL_JS_UTILS_H__
 
 
-#include <system_js.h>
+//#include <system_js.h>
 
 #ifndef FALSE
 #define FALSE 0
@@ -104,5 +104,38 @@ const char *classToString(JSClass *myClass);
 		printJSNodeType (cx,obj); \
 		return JS_FALSE; \
 	} 
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
+void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *me);
+JSObject * JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, JSObject *parent, unsigned argc, jsval *argv); 
+JSObject * JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent);
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj);
+JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
+
+#define JSSCRIPT JSScript
+
+
+
+#define JS_GET_PROPERTY_STUB JS_PropertyStub
+/* #define JS_GET_PROPERTY_STUB js_GetPropertyDebug */
+
+#define JS_SET_PROPERTY_STUB1 js_SetPropertyDebug1
+
+/* #define JS_SET_PROPERTY_STUB2 js_SetPropertyDebug2  */
+#if JS_VERSION < 185
+# define JS_SET_PROPERTY_STUB2 JS_PropertyStub
+#else
+# define JS_SET_PROPERTY_STUB2 JS_StrictPropertyStub
+#endif
+
+#define JS_SET_PROPERTY_STUB3 js_SetPropertyDebug3 
+#define JS_SET_PROPERTY_STUB4 js_SetPropertyDebug4 
+#define JS_SET_PROPERTY_STUB5 js_SetPropertyDebug5 
+#define JS_SET_PROPERTY_STUB6 js_SetPropertyDebug6 
+#define JS_SET_PROPERTY_STUB7 js_SetPropertyDebug7 
+#define JS_SET_PROPERTY_STUB8 js_SetPropertyDebug8 
+#define JS_SET_PROPERTY_CHECK js_SetPropertyCheck
+
 
 #endif /* __FREEWRL_JS_UTILS_H__ */

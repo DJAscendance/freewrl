@@ -46,14 +46,7 @@ Javascript C language binding.
 
 #define JS_VERSION 187
 #define JS_THREADSAFE 1 //by default in 186+
-int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
-JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
-void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);
-JSObject* JS_GetParentFw(JSContext *cx, JSObject *me);
-JSObject * JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, JSObject *parent, unsigned argc, jsval *argv); 
-JSObject * JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent);
-JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj);
-JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
+
 #define STRING_SIZE 256
 #define uintN unsigned
 #define intN int
@@ -63,7 +56,6 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #define jsdouble double
 
 #define JS_FinalizeStub NULL
-#define JSSCRIPT2 JSScript
 #define JS_GET_CLASS JS_GetClassFw
 JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 //#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
@@ -73,6 +65,19 @@ typedef BOOL _Bool;
 //typedef _Bool bool;
 
 
+#define JS_GET_PROPERTY_STUB JS_PropertyStub
+/* #define JS_GET_PROPERTY_STUB js_GetPropertyDebug */
+
+#define JS_SET_PROPERTY_STUB1 js_SetPropertyDebug1
+
+/* #define JS_SET_PROPERTY_STUB2 js_SetPropertyDebug2  */
+#if JS_VERSION < 185
+# define JS_SET_PROPERTY_STUB2 JS_PropertyStub
+#else
+# define JS_SET_PROPERTY_STUB2 JS_StrictPropertyStub
+#endif
+
+#define JS_SET_PROPERTY_STUB3 js_SetPropertyDebug3 
 
 
 extern "C" {
@@ -150,6 +155,113 @@ static JSClass staticGlobalClass = {
 
 extern "C" {
 
+void iiglobal_sizeof_from_externC(){
+printf("sizeof iiglobal from externC >>>>>>>>>>>>\n");
+printf(" tdisplay %d\n", sizeof(struct iiglobal::tdisplay));
+printf(" tinternalc %d\n", sizeof(struct iiglobal::tinternalc));
+printf(" tresources %d\n", sizeof(struct iiglobal::tresources));
+printf(" tresources %d\n", sizeof(struct iiglobal::tresources));
+printf(" tthreads %d\n", sizeof(struct iiglobal::tthreads));
+
+#if !defined(FRONTEND_DOES_SNAPSHOTS)
+printf(" tSnapshot %d\n", sizeof(struct iiglobal::tSnapshot));
+#endif
+
+printf(" tEAI_C_CommonFunctions %d\n", sizeof(struct iiglobal::tEAI_C_CommonFunctions));
+printf(" tEAIEventsIn %d\n", sizeof(struct iiglobal::tEAIEventsIn));
+printf(" tEAIHelpers %d\n", sizeof(struct iiglobal::tEAIHelpers));
+
+#if !defined(EXCLUDE_EAI )
+printf(" tEAICore %d\n", sizeof(struct iiglobal::tEAICore));
+#endif
+
+printf(" tSensInterps %d\n", sizeof(struct iiglobal::tSensInterps));
+printf(" tConsoleMessage %d\n", sizeof(struct iiglobal::tConsoleMessage));
+printf(" tMainloop %d\n", sizeof(struct iiglobal::tMainloop));
+printf(" tMainloop %d\n", sizeof(struct iiglobal::tMainloop));
+printf(" tProdCon %d\n", sizeof(struct iiglobal::tProdCon));
+printf(" tProdCon %d\n", sizeof(struct iiglobal::tProdCon));
+
+#if defined (INCLUDE_NON_WEB3D_FORMATS )
+printf(" tColladaParser %d\n", sizeof(struct iiglobal::tColladaParser));
+#endif //INCLUDE_NON_WEB3D_FORMATS
+
+#if defined (INCLUDE_STL_FILES )
+printf(" tSTLHandler %d\n", sizeof(struct iiglobal::tSTLHandler));
+#endif // INCLUDE_STL_FILES
+
+
+
+printf(" tFrustum %d\n", sizeof(struct iiglobal::tFrustum));
+printf(" tLoadTextures %d\n", sizeof(struct iiglobal::tLoadTextures));
+printf(" tOpenGL_Utils %d\n", sizeof(struct iiglobal::tOpenGL_Utils));
+
+#ifdef HAVE_OPENCL
+printf(" tOpenCL_Utils %d\n", sizeof(struct iiglobal::tOpenCL_Utils));
+#endif
+
+printf(" tRenderTextures %d\n", sizeof(struct iiglobal::tRenderTextures));
+printf(" tTextures %d\n", sizeof(struct iiglobal::tTextures));
+printf(" tPluginSocket %d\n", sizeof(struct iiglobal::tPluginSocket));
+printf(" tpluginUtils %d\n", sizeof(struct iiglobal::tpluginUtils));
+printf(" tcollision %d\n", sizeof(struct iiglobal::tcollision));
+printf(" tComponent_CubeMapTexturing %d\n", sizeof(struct iiglobal::tComponent_CubeMapTexturing));
+printf(" tComponent_EnvironSensor %d\n", sizeof(struct iiglobal::tComponent_EnvironSensor));
+printf(" tComponent_Geometry3D %d\n", sizeof(struct iiglobal::tComponent_Geometry3D));
+printf(" tComponent_Geospatial %d\n", sizeof(struct iiglobal::tComponent_Geospatial));
+printf(" tComponent_HAnim %d\n", sizeof(struct iiglobal::tComponent_HAnim));
+printf(" tComponent_Layering %d\n", sizeof(struct iiglobal::tComponent_Layering));
+printf(" tComponent_Layout %d\n", sizeof(struct iiglobal::tComponent_Layout));
+printf(" tComponent_NURBS %d\n", sizeof(struct iiglobal::tComponent_NURBS));
+printf(" tComponent_ParticleSystems %d\n", sizeof(struct iiglobal::tComponent_ParticleSystems));
+printf(" tComponent_ProgrammableShaders %d\n", sizeof(struct iiglobal::tComponent_ProgrammableShaders));
+printf(" tComponent_RigidBodyPhysics %d\n", sizeof(struct iiglobal::tComponent_RigidBodyPhysics));
+printf(" tComponent_Followers %d\n", sizeof(struct iiglobal::tComponent_Followers));
+printf(" tComponent_KeyDevice %d\n", sizeof(struct iiglobal::tComponent_KeyDevice));
+
+printf(" tComponent_Picking %d\n", sizeof(struct iiglobal::tComponent_Picking));
+printf(" tComponent_Rendering %d\n", sizeof(struct iiglobal::tComponent_Rendering));
+printf(" tComponent_Shape %d\n", sizeof(struct iiglobal::tComponent_Shape));
+printf(" tComponent_Sound %d\n", sizeof(struct iiglobal::tComponent_Sound));
+printf(" tComponent_Text %d\n", sizeof(struct iiglobal::tComponent_Text));
+printf(" tComponent_VolumeRendering %d\n", sizeof(struct iiglobal::tComponent_VolumeRendering));
+
+printf(" tRenderFuncs %d\n", sizeof(struct iiglobal::tRenderFuncs));
+printf(" tStreamPoly %d\n", sizeof(struct iiglobal::tStreamPoly));
+printf(" tTess %d\n", sizeof(struct iiglobal::tTess));
+printf(" tViewer %d\n", sizeof(struct iiglobal::tViewer));
+
+#if defined(STATUSBAR_HUD)
+printf(" tstatusbar %d\n", sizeof(struct iiglobal::tstatusbar));
+#endif
+
+printf(" tCParse %d\n", sizeof(struct iiglobal::tCParse));
+printf(" tCParseParser %d\n", sizeof(struct iiglobal::tCParseParser));
+printf(" tCRoutes %d\n", sizeof(struct iiglobal::tCRoutes));
+printf(" tCScripts %d\n", sizeof(struct iiglobal::tCScripts));
+#ifdef JAVASCRIPT_SM
+printf(" tJScript %d\n", sizeof(struct iiglobal::tJScript));
+
+
+printf(" tjsUtils %d\n", sizeof(struct iiglobal::tjsUtils));
+printf(" tjsVRMLBrowser %d\n", sizeof(struct iiglobal::tjsVRMLBrowser));
+printf(" tjsVRMLClasses %d\n", sizeof(struct iiglobal::tjsVRMLClasses));
+#endif //JAVASCRIPT_SM
+#ifdef JAVASCRIPT_DUK
+printf(" tJScript_duk %d\n", sizeof(struct iiglobal::tJScript_duk));
+#endif //JAVASCRIPT_DUK
+printf(" tBindable %d\n", sizeof(struct iiglobal::tBindable));
+
+printf(" tX3DParser %d\n", sizeof(struct iiglobal::tX3DParser));
+
+printf(" tcommon %d\n", sizeof(struct iiglobal::tcommon));
+printf(" tCursorDraw %d\n", sizeof(struct iiglobal::tCursorDraw));
+printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+
+}
+
+
+
 typedef struct pJScript{
 	JSRuntime *runtime;// = NULL;
 	JSClass globalClass;
@@ -167,6 +279,9 @@ void *JScript_constructor(){
 
 void JScript_init(struct iiglobal::tJScript *t){
 	//public
+	printf("sizeof iiglobal=%d\n",sizeof(struct iiglobal));
+	printf("sizeof tJScript=%d\n",sizeof(struct iiglobal::tJScript));
+	iiglobal_sizeof_from_externC();
 	t->JSglobal_return_val = NULL;
 	//private
 	t->prv = JScript_constructor();
@@ -248,7 +363,7 @@ void sm_process_eventsProcessed() {
 				"eventsProcessed()", strlen ("eventsProcessed()"),
 				"compile eventsProcessed()", 1);
 #if JS_VERSION >= 185
-			if (!JS_AddObjectRoot((JSContext *)scriptcontrol->cx,(JSSCRIPT**)(&scriptcontrol->eventsProcessed))) {
+			if (!JS_AddObjectRoot((JSContext *)scriptcontrol->cx,(JSObject**)(&scriptcontrol->eventsProcessed))) {
 				printf ("can not add object root for compiled eventsProcessed() for script %d\n",counter);
 			}
 #endif
@@ -288,7 +403,7 @@ void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptCont
 	if (ScriptControl->eventsProcessed != NULL) {
 #if JS_VERSION >= 185
 		if (ScriptControl->cx != NULL) {
-			JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSSCRIPT**)(&ScriptControl->eventsProcessed));
+			JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSObject**)(&ScriptControl->eventsProcessed));
 		}
 #endif
 		ScriptControl->eventsProcessed = NULL;
@@ -381,7 +496,7 @@ void sm_JSDeleteScriptContext(int num){
 	ScriptControl = getScriptControlIndex(num);
 #if JS_VERSION >= 185
 	if (ScriptControl->eventsProcessed != NULL) {
-		JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSSCRIPT **)(&ScriptControl->eventsProcessed));
+		JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSObject **)(&ScriptControl->eventsProcessed));
 	}
 #endif
 #if JS_VERSION < 186

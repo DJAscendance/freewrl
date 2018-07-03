@@ -51,7 +51,6 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #define jsdouble double
 
 #define JS_FinalizeStub NULL
-#define JSSCRIPT2 JSScript
 #define JS_GET_CLASS JS_GetClassFw
 JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 //#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
@@ -2377,7 +2376,7 @@ SFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 				   cascade (I think)
 				*/
 				char scriptline[100];
-				JSSCRIPT2 *eventInFunction;
+				JSScript *eventInFunction;
 				struct ScriptFieldDecl* myfield; 
 				struct CRjsnameStruct *JSparamnames; // = getJSparamnames();
 				struct Shader_Script *myObj;
@@ -2531,7 +2530,7 @@ SFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 						//if (!JS_AddObjectRoot(cx2,&eventInFunction)) {
 						JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction = eventInFunction;
 						#if JS_VERSION >= 185
-						if (!JS_AddObjectRoot(cx,(JSSCRIPT**)(&JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction))) {
+						if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[myfield->fieldDecl->JSparamNameIndex].eventInFunction))) {
 							printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__);
 							return JS_FALSE;
 						}

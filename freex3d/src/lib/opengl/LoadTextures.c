@@ -2697,7 +2697,7 @@ static void texture_process_list_item(s_list_t *item)
 }
 
 void threadsafe_enqueue_item_signal(s_list_t *item, s_list_t** queue, pthread_mutex_t* queue_lock, pthread_cond_t *queue_nonzero);
-s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, bool* wait);
+s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, BOOL* wait);
 
 void texitem_enqueue(s_list_t *item){
 	ppLoadTextures p;

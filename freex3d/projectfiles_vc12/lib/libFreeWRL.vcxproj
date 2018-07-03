@@ -226,6 +226,7 @@
       <ProgramDataBaseFileName>$(OutDir)vc90.pdb</ProgramDataBaseFileName>
       <WarningLevel>Level1</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <StructMemberAlignment>Default</StructMemberAlignment>
     </ClCompile>
     <Lib>
       <OutputFile>$(OutDir)$(ProjectName).lib</OutputFile>

@@ -36,14 +36,14 @@ Variable use:
 //#include "x3d_parser/X3DParser.h" //for PARENTSTACKSIZE
 //#include "ui/common.h" // for ppcommon
 
-
+#define IBOOL int
 
 typedef struct iiglobal //InstanceGlobal
 {
 	struct tdisplay{
 		void *params; //freewrl_params_t
 		int _global_gl_err; //GLenum
-		bool display_initialized;// = FALSE;
+		IBOOL display_initialized;// = FALSE;
 		int screenWidth;// = 0; /* screen */
 		int screenHeight;// = 0;
 		char *window_title;// = NULL;
@@ -52,12 +52,12 @@ typedef struct iiglobal //InstanceGlobal
 		void *prv;
 	}display;
 	struct tinternalc {
-		bool global_strictParsing;// = FALSE;
-		bool global_plugin_print;// = FALSE;
-		bool global_occlusion_disable;// = FALSE;
+		IBOOL global_strictParsing;// = FALSE;
+		IBOOL global_plugin_print;// = FALSE;
+		IBOOL global_occlusion_disable;// = FALSE;
 		unsigned user_request_texture_size;// = 0;
-		bool global_print_opengl_errors;// = FALSE;
-		bool global_trace_threads;// = FALSE;
+		IBOOL global_print_opengl_errors;// = FALSE;
+		IBOOL global_trace_threads;// = FALSE;
 		void *prv;
 	} internalc;
 	//struct tio_http {
@@ -87,18 +87,18 @@ typedef struct iiglobal //InstanceGlobal
 		pthread_mutex_t mutex_texture_list; // = PTHREAD_MUTEX_INITIALIZER;
 		pthread_cond_t texture_list_condition; // = PTHREAD_COND_INITIALIZER;
 
-		bool ResourceThreadRunning;
-		bool TextureThreadRunning;
-		bool ResourceThreadWaiting;
-		bool TextureThreadWaiting;
-		bool flushing;
+		IBOOL ResourceThreadRunning;
+		IBOOL TextureThreadRunning;
+		IBOOL ResourceThreadWaiting;
+		IBOOL TextureThreadWaiting;
+		IBOOL flushing;
 		int MainLoopQuit;
 		void *prv;
 	} threads;
     
 	struct tSnapshot {
-		bool doSnapshot;
-		bool doPrintshot;
+		IBOOL doSnapshot;
+		IBOOL doPrintshot;
 		int snapGoodCount;
 		void *prv;
 	} Snapshot;
@@ -206,8 +206,8 @@ typedef struct iiglobal //InstanceGlobal
 
 #ifdef HAVE_OPENCL
         struct tOpenCL_Utils{
-                bool OpenCL_Initialized; // = FALSE;
-                bool OpenCL_OK; // = FALSE
+                IBOOL OpenCL_Initialized; // = FALSE;
+                IBOOL OpenCL_OK; // = FALSE
                 void *prv;
         }OpenCL_Utils;
 #endif //HAVE_OPENCL
@@ -449,8 +449,8 @@ iOLDCODE	}Component_Networking;
 #ifdef DISABLER	
 #if defined(WRAP_MALLOC) || defined(DEBUG_MALLOC)
     pthread_mutex_t __memTableGlobalLock;
-    bool __memTable_CheckInit;
-    bool __memTable_ShouldRegisterAllocation;
+    IBOOL __memTable_CheckInit;
+    IBOOL __memTable_ShouldRegisterAllocation;
     dbl_list_t *__memTable;
 #endif
 #endif
