@@ -93,15 +93,6 @@ of garbage collection
                 return; \
         }}
 
-#if JS_VERSION < 185
-#define COMPILE_FUNCTION_IF_NEEDED(tnfield) \
-	if (JSparamnames[tnfield].eventInFunction == NULL) { \
-		sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
-		/* printf ("compiling function %s\n",scriptline); */ \
-		JSparamnames[tnfield].eventInFunction = (void *) JS_CompileScript( \
-			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
-	}
-#else
 #define COMPILE_FUNCTION_IF_NEEDED(tnfield) \
 	if (JSparamnames[tnfield].eventInFunction == NULL) { \
 		sprintf (scriptline,"%s%s(%s%s,__eventInTickTime)", "",JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); \
@@ -127,7 +118,7 @@ of garbage collection
 			return; \
 		} \
 	}
-#endif
+
 #define RUN_FUNCTION(tnfield) \
 	{ \
 		jsval zimbo; \

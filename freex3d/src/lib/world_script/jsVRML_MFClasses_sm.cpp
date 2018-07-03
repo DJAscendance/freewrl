@@ -35,7 +35,7 @@
 # include <jsdbgapi.h> /* JS debugger */
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #define JS_VERSION 187
-#define JS_THREADSAFE 1 //by default in 186+
+//#define JS_THREADSAFE 1 //by default in 186+
 
 #define STRING_SIZE 256
 #define uintN unsigned

@@ -347,9 +347,6 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 	CRoutes_init(&iglobal->CRoutes);
 	CScripts_init(&iglobal->CScripts);
 #ifdef JAVASCRIPT_SM
-	printf("sizeof iiglobal=%d\n",sizeof(struct iiglobal));
-	printf("sizeof tJScript=%d\n",sizeof(struct tJScript));
-	iiglobal_sizeof_from_C();
 	JScript_init(&iglobal->JScript);
 	jsUtils_init(&iglobal->jsUtils);
 	jsVRMLBrowser_init(&iglobal->jsVRMLBrowser);

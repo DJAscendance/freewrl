@@ -34,7 +34,7 @@ Javascript C language binding.
 //# include <jsdbgapi.h> /* JS debugger */
 
 #define JS_VERSION 187
-#define JS_THREADSAFE 1 //by default in 186+
+//#define JS_THREADSAFE 1 //by default in 186+
 int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
 JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
 void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);

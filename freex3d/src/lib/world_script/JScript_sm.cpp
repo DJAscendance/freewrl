@@ -45,7 +45,7 @@ Javascript C language binding.
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 
 #define JS_VERSION 187
-#define JS_THREADSAFE 1 //by default in 186+
+//#define JS_THREADSAFE 1 //by default in 186+
 
 #define STRING_SIZE 256
 #define uintN unsigned
@@ -155,112 +155,6 @@ static JSClass staticGlobalClass = {
 
 extern "C" {
 
-void iiglobal_sizeof_from_externC(){
-printf("sizeof iiglobal from externC >>>>>>>>>>>>\n");
-printf(" tdisplay %d\n", sizeof(struct iiglobal::tdisplay));
-printf(" tinternalc %d\n", sizeof(struct iiglobal::tinternalc));
-printf(" tresources %d\n", sizeof(struct iiglobal::tresources));
-printf(" tresources %d\n", sizeof(struct iiglobal::tresources));
-printf(" tthreads %d\n", sizeof(struct iiglobal::tthreads));
-
-#if !defined(FRONTEND_DOES_SNAPSHOTS)
-printf(" tSnapshot %d\n", sizeof(struct iiglobal::tSnapshot));
-#endif
-
-printf(" tEAI_C_CommonFunctions %d\n", sizeof(struct iiglobal::tEAI_C_CommonFunctions));
-printf(" tEAIEventsIn %d\n", sizeof(struct iiglobal::tEAIEventsIn));
-printf(" tEAIHelpers %d\n", sizeof(struct iiglobal::tEAIHelpers));
-
-#if !defined(EXCLUDE_EAI )
-printf(" tEAICore %d\n", sizeof(struct iiglobal::tEAICore));
-#endif
-
-printf(" tSensInterps %d\n", sizeof(struct iiglobal::tSensInterps));
-printf(" tConsoleMessage %d\n", sizeof(struct iiglobal::tConsoleMessage));
-printf(" tMainloop %d\n", sizeof(struct iiglobal::tMainloop));
-printf(" tMainloop %d\n", sizeof(struct iiglobal::tMainloop));
-printf(" tProdCon %d\n", sizeof(struct iiglobal::tProdCon));
-printf(" tProdCon %d\n", sizeof(struct iiglobal::tProdCon));
-
-#if defined (INCLUDE_NON_WEB3D_FORMATS )
-printf(" tColladaParser %d\n", sizeof(struct iiglobal::tColladaParser));
-#endif //INCLUDE_NON_WEB3D_FORMATS
-
-#if defined (INCLUDE_STL_FILES )
-printf(" tSTLHandler %d\n", sizeof(struct iiglobal::tSTLHandler));
-#endif // INCLUDE_STL_FILES
-
-
-
-printf(" tFrustum %d\n", sizeof(struct iiglobal::tFrustum));
-printf(" tLoadTextures %d\n", sizeof(struct iiglobal::tLoadTextures));
-printf(" tOpenGL_Utils %d\n", sizeof(struct iiglobal::tOpenGL_Utils));
-
-#ifdef HAVE_OPENCL
-printf(" tOpenCL_Utils %d\n", sizeof(struct iiglobal::tOpenCL_Utils));
-#endif
-
-printf(" tRenderTextures %d\n", sizeof(struct iiglobal::tRenderTextures));
-printf(" tTextures %d\n", sizeof(struct iiglobal::tTextures));
-printf(" tPluginSocket %d\n", sizeof(struct iiglobal::tPluginSocket));
-printf(" tpluginUtils %d\n", sizeof(struct iiglobal::tpluginUtils));
-printf(" tcollision %d\n", sizeof(struct iiglobal::tcollision));
-printf(" tComponent_CubeMapTexturing %d\n", sizeof(struct iiglobal::tComponent_CubeMapTexturing));
-printf(" tComponent_EnvironSensor %d\n", sizeof(struct iiglobal::tComponent_EnvironSensor));
-printf(" tComponent_Geometry3D %d\n", sizeof(struct iiglobal::tComponent_Geometry3D));
-printf(" tComponent_Geospatial %d\n", sizeof(struct iiglobal::tComponent_Geospatial));
-printf(" tComponent_HAnim %d\n", sizeof(struct iiglobal::tComponent_HAnim));
-printf(" tComponent_Layering %d\n", sizeof(struct iiglobal::tComponent_Layering));
-printf(" tComponent_Layout %d\n", sizeof(struct iiglobal::tComponent_Layout));
-printf(" tComponent_NURBS %d\n", sizeof(struct iiglobal::tComponent_NURBS));
-printf(" tComponent_ParticleSystems %d\n", sizeof(struct iiglobal::tComponent_ParticleSystems));
-printf(" tComponent_ProgrammableShaders %d\n", sizeof(struct iiglobal::tComponent_ProgrammableShaders));
-printf(" tComponent_RigidBodyPhysics %d\n", sizeof(struct iiglobal::tComponent_RigidBodyPhysics));
-printf(" tComponent_Followers %d\n", sizeof(struct iiglobal::tComponent_Followers));
-printf(" tComponent_KeyDevice %d\n", sizeof(struct iiglobal::tComponent_KeyDevice));
-
-printf(" tComponent_Picking %d\n", sizeof(struct iiglobal::tComponent_Picking));
-printf(" tComponent_Rendering %d\n", sizeof(struct iiglobal::tComponent_Rendering));
-printf(" tComponent_Shape %d\n", sizeof(struct iiglobal::tComponent_Shape));
-printf(" tComponent_Sound %d\n", sizeof(struct iiglobal::tComponent_Sound));
-printf(" tComponent_Text %d\n", sizeof(struct iiglobal::tComponent_Text));
-printf(" tComponent_VolumeRendering %d\n", sizeof(struct iiglobal::tComponent_VolumeRendering));
-
-printf(" tRenderFuncs %d\n", sizeof(struct iiglobal::tRenderFuncs));
-printf(" tStreamPoly %d\n", sizeof(struct iiglobal::tStreamPoly));
-printf(" tTess %d\n", sizeof(struct iiglobal::tTess));
-printf(" tViewer %d\n", sizeof(struct iiglobal::tViewer));
-
-#if defined(STATUSBAR_HUD)
-printf(" tstatusbar %d\n", sizeof(struct iiglobal::tstatusbar));
-#endif
-
-printf(" tCParse %d\n", sizeof(struct iiglobal::tCParse));
-printf(" tCParseParser %d\n", sizeof(struct iiglobal::tCParseParser));
-printf(" tCRoutes %d\n", sizeof(struct iiglobal::tCRoutes));
-printf(" tCScripts %d\n", sizeof(struct iiglobal::tCScripts));
-#ifdef JAVASCRIPT_SM
-printf(" tJScript %d\n", sizeof(struct iiglobal::tJScript));
-
-
-printf(" tjsUtils %d\n", sizeof(struct iiglobal::tjsUtils));
-printf(" tjsVRMLBrowser %d\n", sizeof(struct iiglobal::tjsVRMLBrowser));
-printf(" tjsVRMLClasses %d\n", sizeof(struct iiglobal::tjsVRMLClasses));
-#endif //JAVASCRIPT_SM
-#ifdef JAVASCRIPT_DUK
-printf(" tJScript_duk %d\n", sizeof(struct iiglobal::tJScript_duk));
-#endif //JAVASCRIPT_DUK
-printf(" tBindable %d\n", sizeof(struct iiglobal::tBindable));
-
-printf(" tX3DParser %d\n", sizeof(struct iiglobal::tX3DParser));
-
-printf(" tcommon %d\n", sizeof(struct iiglobal::tcommon));
-printf(" tCursorDraw %d\n", sizeof(struct iiglobal::tCursorDraw));
-printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-
-}
-
-
 
 typedef struct pJScript{
 	JSRuntime *runtime;// = NULL;
@@ -279,9 +173,6 @@ void *JScript_constructor(){
 
 void JScript_init(struct iiglobal::tJScript *t){
 	//public
-	printf("sizeof iiglobal=%d\n",sizeof(struct iiglobal));
-	printf("sizeof tJScript=%d\n",sizeof(struct iiglobal::tJScript));
-	iiglobal_sizeof_from_externC();
 	t->JSglobal_return_val = NULL;
 	//private
 	t->prv = JScript_constructor();
@@ -329,7 +220,7 @@ void sm_js_cleanup_script_context(int counter){
 		ppJScript p = (ppJScript)tg->JScript.prv;
 		//JS_GC((JSRuntime*) p->runtime); //this bombs for us. access violation.
 		//JS_GC(getScriptControlIndex(counter)->cx); //this also bombs for us
-		JS_MaybeGC((JSContext *)getScriptControlIndex(counter)->cx); //this doesn't do gcing.
+		//JS_MaybeGC((JSContext *)getScriptControlIndex(counter)->cx); //this doesn't do gcing.
 		
 	#endif
 }
@@ -353,44 +244,28 @@ void sm_process_eventsProcessed() {
 	for (counter = 0; counter <= tg->CRoutes.max_script_found_and_initialized; counter++) {
 		scriptcontrol = getScriptControlIndex(counter);
 		if(scriptcontrol->thisScriptType != NOSCRIPT ){
-		if (scriptcontrol->eventsProcessed == NULL) {
-#if defined(JS_THREADSAFE)
-			JS_BeginRequest((JSContext *)scriptcontrol->cx);
-#endif
-			scriptcontrol->eventsProcessed = (void *)JS_CompileScript(
-				(JSContext *)scriptcontrol->cx,
-				(JSObject *)scriptcontrol->glob,
-				"eventsProcessed()", strlen ("eventsProcessed()"),
-				"compile eventsProcessed()", 1);
-#if JS_VERSION >= 185
-			if (!JS_AddObjectRoot((JSContext *)scriptcontrol->cx,(JSObject**)(&scriptcontrol->eventsProcessed))) {
-				printf ("can not add object root for compiled eventsProcessed() for script %d\n",counter);
-			}
-#endif
-#if defined(JS_THREADSAFE)
-			JS_EndRequest((JSContext *)scriptcontrol->cx);
-#endif
-		}
-
-#if defined(JS_THREADSAFE)
-		JS_BeginRequest((JSContext *)scriptcontrol->cx);
-#endif
-		if (!JS_ExecuteScript( (JSContext *)scriptcontrol->cx,
-                                 (JSObject *)scriptcontrol->glob,
-				(JSScript *)scriptcontrol->eventsProcessed, &retval)) {
-#if defined(_MSC_VER)
-			printf ("can not run eventsProcessed() for script %d thread %u\n",counter,(unsigned int)pthread_self().x);
-#else
-			printf ("can not run eventsProcessed() for script %d thread %p\n",counter,(void *)pthread_self());
-#endif
-		}
-#if defined(JS_THREADSAFE)
-		JS_EndRequest((JSContext *)scriptcontrol->cx);
-#endif
-		}
-
-	}
-
+			JSContext *cx = (JSContext *)scriptcontrol->cx;
+			JSObject *global = (JSObject *)scriptcontrol->glob;
+			{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+				// out of scope before we JS_DestroyContext.
+				JSAutoRequest ar(cx); // In practice, you would want to exit this any
+									// time you're spinning the event loop
+				{ // Scope B for JSAutoCompartment
+					JSAutoCompartment ac(cx, global);
+					if (scriptcontrol->eventsProcessed == NULL) {
+						scriptcontrol->eventsProcessed = (void *)JS_CompileScript(cx,global,"eventsProcessed()", strlen ("eventsProcessed()"),
+							"compile eventsProcessed()", 1);
+						if (!JS_AddObjectRoot(cx,(JSObject**)(&scriptcontrol->eventsProcessed))) {
+							printf ("can not add object root for compiled eventsProcessed() for script %d\n",counter);
+						}
+					}
+					if (!JS_ExecuteScript(cx,global,(JSScript *)scriptcontrol->eventsProcessed, &retval)) {
+						printf ("can not run eventsProcessed() for script %d\n",counter);
+					}
+				} //Scope B
+			} //Scope A
+		} //if !noscript
+	} //for counter
 }
 
 
@@ -578,7 +453,14 @@ const char *getgcparamname(int key){
 
 
 /* create the script context for this script. This is called from the thread
-   that handles script calling in the fwl_RenderSceneUpdateScene */
+   that handles script calling in the fwl_RenderSceneUpdateScene 
+   July 3, 2018
+   x just changing to cpp for moz24 (from moz185/17) doesn't work. the moz dll bombs/throws.
+   * but following the formula here works - it runs a little script:
+   	https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/How_to_embed_the_JavaScript_engine
+	so a lot of our code needs grooming for these weird stack techniques.
+   
+   */
 void sm_JSCreateScriptContext(int num) {
 	jsval rval;
 	JSContext *_context; 	/* these are set here */
@@ -588,161 +470,69 @@ void sm_JSCreateScriptContext(int num) {
 	struct CRscriptStruct *ScriptControl;
 
 	ScriptControl = getScriptControlIndex(num);
-
 	/* is this the first time through? */
 	if (p->runtime == NULL) {
-		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JSUseHelperThreads::JS_USE_HELPER_THREADS);
+		//p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JSUseHelperThreads::JS_USE_HELPER_THREADS);
+		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JS_USE_HELPER_THREADS); //JSUseHelperThreads::JS_NO_HELPER_THREADS);
 		if (!p->runtime) freewrlDie("JS_NewRuntime failed");
-		#ifdef JAVASCRIPTVERBOSE
-		printf("\tJS runtime created,\n");
-		#endif
-		#ifdef DEBUG
-		// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_GetGCParameter
-		int iend = JS_VERSION == 185 ? 8 : JS_VERSION == 186 ? 19 :  0;
-		for(unsigned int i=0; i<= iend; i++){
-			unsigned int gcparam = JS_GetGCParameter(p->runtime,i);
-			printf("%s = %u\n",getgcparamname(i),gcparam);
-		}
-		//#if JS_VERSION == 186
-		//	JS_SetGCParameter(p->runtime,JSGC_MODE,JSGC_MODE_INCREMENTAL);
-		//	JS_SetGCParameter(p->runtime,JSGC_SLICE_TIME_BUDGET,100); //miliseconds
-		//#endif
-		#endif //DEBUG
 	}
 
 
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
-	#ifdef DEBUG
-	unsigned int opts = JS_GetOptions(_context);
-	printf("options %x\n",opts);
-	#endif //DEBUG
 	//JS_SetErrorReporter(_context, reportError);
+	
+	JSContext *cx = _context;
+	{ //scope A
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS context created,\n");
-	#endif
+		JS::RootedObject global(cx, JS_NewGlobalObject(cx, &p->globalClass, nullptr));
+		if (!global)
+			return ;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	//#if JS_VERSION == 186
-	//	JS_SetGCParameterForThread(_context,JSGC_MODE,JSGC_MODE_INCREMENTAL);
-	//	JS_SetGCParameterForThread(_context,JSGC_SLICE_TIME_BUDGET,100); //miliseconds
-	//#endif
+		JS::RootedValue rval(cx);
 
-	#if JS_VERSION >= 185
-	if (num == 0 && JS_VERSION < 186) {
-		#if JS_VERSION < 186
-		_globalObj = JS_NewCompartmentAndGlobalObject(_context, &p->globalClass, NULL);
-		#endif
-	} else {
-		struct CRscriptStruct *cs = getScriptControlIndex(0);
-		JS_SetGlobalObject(_context,(JSObject*)cs->glob); //ScriptControl[0].glob);
-		_globalObj = JS_NewGlobalObjectFw(_context,&p->globalClass);
-		JS_SetGlobalObject(_context,_globalObj);
-	}
-	#else
-	_globalObj = JS_NewObject(_context, &p->globalClass, NULL, NULL);
-	#endif
-	//#ifdef JS_GC_ZEAL
-	//JS_SetGCZeal(_context, 2, 100);
-	//#endif
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(_context);
-#endif
-	if (!_globalObj) freewrlDie("JS_NewObject failed");
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			JS_InitStandardClasses(cx, global);
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS global object created,\n");
-	#endif
+			printf("got global done\n");
 
+			br = (BrowserNative *) JS_malloc(_context, sizeof(BrowserNative));
+			/* for this script, here are the necessary data areas */
+			_globalObj = global;
+			ScriptControl->cx =  _context;
+			ScriptControl->glob =  _globalObj;
+			if(SM_method()==2){
+				//JS_SetPrivateFw(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
+				JS_SetPrivate((JSObject*)ScriptControl->glob, ScriptControl->script);
+			}
 
-	/* gets JS standard classes */
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_InitStandardClasses(_context, _globalObj))
-#if defined(JS_THREADSAFE)
-	{	JS_EndRequest(_context);
-#endif
-		freewrlDie("JS_InitStandardClasses failed");
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-	}
-#endif
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS standard classes initialized,\n");
-	#endif
+			if (!loadVrmlClasses(_context, _globalObj)){
+				freewrlDie("loadVrmlClasses failed");
+			}
+			if (!VrmlBrowserInit(_context, _globalObj, br)){
+				freewrlDie("VrmlBrowserInit failed");
+			}
+			if (!ActualrunScript(num,DefaultScriptMethods,rval.address()))
+				cleanupDie(num,"runScript failed in VRML::newJS DefaultScriptMethods");
 
-	#ifdef JAVASCRIPTVERBOSE
-	 	reportWarningsOn();
-	#endif
+			const char *script = "'hello'+'world, it is '+new Date()";
+			const char *filename = "noname";
+			int lineno = 1;
+			bool ok = JS_EvaluateScript(cx, global, script, strlen(script), filename, lineno, rval.address());
+			if (!ok)
+				return ;
+		} //scope B
 
-	JS_SetErrorReporter(_context, errorReporter);
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS error reporter set,\n");
-	#endif
-
-	br = (BrowserNative *) JS_malloc(_context, sizeof(BrowserNative));
-
-	/* for this script, here are the necessary data areas */
-	ScriptControl->cx =  _context;
-	ScriptControl->glob =  _globalObj;
-	if(SM_method()==2){
-		JS_SetPrivateFw(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
-	}
-
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!loadVrmlClasses(_context, _globalObj))
-#if defined(JS_THREADSAFE)
-	{	JS_EndRequest(_context);
-#endif
-		freewrlDie("loadVrmlClasses failed");
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-	}
-#endif
-
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tVRML classes loaded,\n");
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!VrmlBrowserInit(_context, _globalObj, br))
-#if defined(JS_THREADSAFE)
-	{	JS_EndRequest(_context);
-#endif
-		freewrlDie("VrmlBrowserInit failed");
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-	}
-#endif
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tVRML Browser interface loaded,\n");
-	#endif
-
-
-	if (!ACTUALRUNSCRIPT(num,DefaultScriptMethods,&rval))
-		cleanupDie(num,"runScript failed in VRML::newJS DefaultScriptMethods");
+		JSString *str = rval.toString();
+		printf("%s\n", JS_EncodeString(cx, str));
+	} //scope A
 
 	/* send this data over to the routing table functions. */
 	CRoutes_js_new (num, JAVASCRIPT);
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tVRML browser initialized, thread %u\n",pthread_self());
-	#endif
 }
 } //extern "C"
 
@@ -753,55 +543,35 @@ int SM_method(){
 }
 
 /* run the script from within C */
-#ifdef JAVASCRIPTVERBOSE
-int ActualrunScript(int num, char *script, jsval *rval, char *fn, int line) {
-#else
 int ActualrunScript(int num, char *script, jsval *rval) {
-#endif
+
 	int len;
-	JSContext *_context;
-	JSObject *_globalObj;
+	JSContext *cx;
+	JSObject *global;
 	struct CRscriptStruct *ScriptControl;
 
 	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
-	_context = (JSContext*)ScriptControl->cx;
-	_globalObj = (JSObject*)ScriptControl->glob;
-
-	#ifdef JAVASCRIPTVERBOSE
-		printf("ActualrunScript script called at %s:%d  num: %d cx %p \"%s\", \n",
-			fn, line, num, _context, script);
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	//CLEANUP_JAVASCRIPT(_context)
-	js_cleanup_script_context(num);
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(_context);
-#endif
+	cx = (JSContext*)ScriptControl->cx;
+	global = (JSObject*)ScriptControl->glob;
 
 	len = (int) strlen(script);
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_EvaluateScript(_context, _globalObj, script, len, FNAME_STUB, LINENO_STUB, rval)) {
-		printf ("ActualrunScript - JS_EvaluateScript failed for %s", script);
-		printf ("\n");
-		ConsoleMessage ("ActualrunScript - JS_EvaluateScript failed for %s", script);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
-	#ifdef JAVASCRIPTVERBOSE
-	printf ("runscript passed\n");
-	#endif
+
+	{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			bool ok = JS_EvaluateScript(cx, global, script, len, FNAME_STUB, LINENO_STUB, rval);
+			if (!ok) {
+				printf ("ActualrunScript - JS_EvaluateScript failed for %s", script);
+				printf ("\n");
+				ConsoleMessage ("ActualrunScript - JS_EvaluateScript failed for %s", script);
+				return JS_FALSE;
+			}
+		} //Scope B
+	} //Scope A
 
 	return JS_TRUE;
 }
@@ -1615,47 +1385,35 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 
 
 static int JSaddGlobalECMANativeProperty(int num, const char *name) {
-	JSContext *_context;
-	JSObject *_globalObj;
+	JSContext *cx;
+	JSObject *global;
 	jsval rval = INT_TO_JSVAL(0);
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 
 	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
-	_context =  (JSContext*)ScriptControl->cx;
-	_globalObj = (JSObject*)ScriptControl->glob;
+	cx =  (JSContext*)ScriptControl->cx;
+	global = (JSObject*)ScriptControl->glob;
 
-	#ifdef  JAVASCRIPTVERBOSE
-		printf("addGlobalECMANativeProperty: name \"%s\"\n", name);
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
 
 /* Note, for JS-185+, JSPROP_PERMANENT makes properties non-configurable, which can cause runtime
  * errors from the JS engine when said property gets redefined to a function by the script.  The
  * example file tests/Javascript_tests/MFFloat.wrl had this issue. */
 
-	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative,
-	//if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative,
-#if JS_VERSION < 185
-		0 | JSPROP_PERMANENT
-#else
-		0
-#endif
-	)) {
-		printf("JS_DefineProperty failed for \"%s\" in addGlobalECMANativeProperty.\n", name);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
+	{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
 
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			bool ok = JS_DefineProperty(cx,global, name, rval, getECMANative, setECMANative,0);
+			if (!ok){
+				printf("JS_DefineProperty failed for \"%s\" in addGlobalECMANativeProperty.\n", name);
+				return JS_FALSE;
+			}
+		} // Scope B
+	} //Scope A
 	return JS_TRUE;
 }
 
@@ -3127,69 +2885,80 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	cx =  (JSContext*)ScriptControl->cx;
 	obj = (JSObject*)ScriptControl->glob;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(cx);
-#endif
-	/* set the time for this script */
-	SET_JS_TICKTIME
+	{ // Scope for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
 
-	//step 1 set the field value
-	kind = JSparamnames[toname].kind; //PKW_inputOnly;
-	if(SM_method() == 2){
-		int type, iifield, *valueChanged, ifound;
-		union anyVrml *value;
-		char *fieldname;
-		struct Shader_Script *script = ScriptControl->script;
-		fieldname = JSparamnames[toname].name;
-		//step 1 update the fieldvalue
-		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
-		if(ifound && type == dataType && isSFType(type)){
-			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
-			union anyVrml *any = (union anyVrml*)Data;
-			//printf("any float=%f",any->sffloat);
-			shallow_copy_field(type,any,value);
-			//if we have an inputOutput field with no eventIn function, we may still be routing
-			//from the out side
-			(*valueChanged) = 1;
-		}else{
-			ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
-			return;
-		}
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope for JSAutoCompartment
+			JSAutoCompartment ac(cx, obj);
 
-	}else{ //SM_method == 2
-		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
+			/* set the time for this script */
+			//SET_JS_TICKTIME
+			{ 
+				jsval zimbo; 
+				JS_NewNumberValue(cx, TickTime(), &zimbo);
+				if (!JS_DefineProperty(cx,obj, "__eventInTickTime", zimbo, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB2, JSPROP_PERMANENT)) {
+						printf( "JS_DefineProperty failed for \"__eventInTickTime\" at %s:%d.\n",__FILE__,__LINE__);
+						return;
+				}
+			}
 
-		/* get the variable name to hold the incoming value */
-		scriptline[0] = 0;
-		if(kind == PKW_inputOnly)
-			strcat(scriptline,"__eventIn_Value_");
-		//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
-		strcat(scriptline,JSparamnames[toname].name);
-		#ifdef SETFIELDVERBOSE
-		printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
-		#endif
+			//step 1 set the field value
+			kind = JSparamnames[toname].kind; //PKW_inputOnly;
+			if(SM_method() == 2){
+				int type, iifield, *valueChanged, ifound;
+				union anyVrml *value;
+				char *fieldname;
+				struct Shader_Script *script = ScriptControl->script;
+				fieldname = JSparamnames[toname].name;
+				//step 1 update the fieldvalue
+				ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+				if(ifound && type == dataType && isSFType(type)){
+					//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+					union anyVrml *any = (union anyVrml*)Data;
+					//printf("any float=%f",any->sffloat);
+					shallow_copy_field(type,any,value);
+					//if we have an inputOutput field with no eventIn function, we may still be routing
+					//from the out side
+					(*valueChanged) = 1;
+				}else{
+					ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
+					return;
+				}
 
-		if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
-			printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
-#if defined(JS_THREADSAFE)
-			JS_EndRequest(cx);
-#endif
-			return;
-        }
+			}else{ //SM_method == 2
+				X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
-	} //SM_method == 2
+				/* get the variable name to hold the incoming value */
+				scriptline[0] = 0;
+				if(kind == PKW_inputOnly)
+					strcat(scriptline,"__eventIn_Value_");
+				//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+				strcat(scriptline,JSparamnames[toname].name);
+				#ifdef SETFIELDVERBOSE
+				printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
+				#endif
 
-	//step 2 run eventin if it exists
-	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+				if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
+					printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
+					return;
+				}
 
-	/* and run the function */
-	RUN_FUNCTION (toname)
+			} //SM_method == 2
+
+			//step 2 run eventin if it exists
+			/* is the function compiled yet? */
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+
+			/* and run the function */
+			RUN_FUNCTION (toname)
+
+		} //Scope B
+
+	} //Scope A
 
 
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(cx);
-#endif
 }
 
 /*  setScriptECMAtype called by getField_ToJavascript for
@@ -3336,7 +3105,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			/* set the length of this MF */
 			SET_LENGTH (cx,newMFObject,datalen)
 
-			/* set the global variable with this new MF object */
+			/* set the obj variable with this new MF object */
 			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
 
 			/* run the function */
