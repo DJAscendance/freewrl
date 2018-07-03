@@ -26,33 +26,91 @@ Javascript C language binding.
 
 
 #include <config.h>
-#if !defined(JS_SMCPP)
-#include <system.h>
-//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 #ifdef JAVASCRIPT_SM
-#include <display.h>
+#if defined(JS_SMCPP)
+#undef DEBUG
+//#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
+//#include <system.h>
+//# include <stdint.h>
+//#include <ctype.h>
+//#undef HAVE_BOOL
+//#include <stdlib.h>
+//#include <math.h>
+//# include <stdio.h>
+//# include <string.h>
+
+# include <jsapi.h> /* JS compiler */
+//# include <jsdbgapi.h> /* JS debugger */
+
+//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+
+#define JS_VERSION 187
+//#define JS_THREADSAFE 1 //by default in 186+
+
+#define STRING_SIZE 256
+#define uintN unsigned
+#define intN int
+#define jsint int32_t
+#define jsuint uint32_t
+#define int32 int32_t
+#define jsdouble double
+
+#define JS_FinalizeStub NULL
+#define JS_GET_CLASS JS_GetClassFw
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+//#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
+
+typedef int BOOL;
+typedef BOOL _Bool;
+//typedef _Bool bool;
+
+
+#define JS_GET_PROPERTY_STUB JS_PropertyStub
+/* #define JS_GET_PROPERTY_STUB js_GetPropertyDebug */
+
+#define JS_SET_PROPERTY_STUB1 js_SetPropertyDebug1
+
+/* #define JS_SET_PROPERTY_STUB2 js_SetPropertyDebug2  */
+# define JS_SET_PROPERTY_STUB2 JS_StrictPropertyStub
+#define JS_SET_PROPERTY_STUB3 js_SetPropertyDebug3 
+
+
+extern "C" {
+#include <system.h>
+#include "scenegraph/Vector.h"
+//#include <display.h>
 #include <internal.h>
-
-#include <libFreeWRL.h>
-
-#include "../vrml_parser/Structs.h"
-#include "../main/headers.h"
-#include "../vrml_parser/CParseGeneral.h"
-#include "../vrml_parser/CRoutes.h"
-#include "../main/Snapshot.h"
-#include "../scenegraph/Collision.h"
-#include "../scenegraph/quaternion.h"
-#include "../scenegraph/Viewer.h"
-#include "../input/EAIHelpers.h"
-#include "../input/SensInterps.h"
-#include "../x3d_parser/Bindable.h"
-
 #include "JScript.h"
-#include "CScripts.h"
-#include "jsUtils.h"
+
+
+//
+//#include <libFreeWRL.h>
+//
+#include "../vrml_parser/Structs.h"
+#include <iglobal.h>
+//#include "../main/headers.h"
+//#include "../vrml_parser/CParseGeneral.h"
+//#include "../vrml_parser/CRoutes.h"
+//#include "../main/Snapshot.h"
+//#include "../scenegraph/Collision.h"
+//#include "../scenegraph/quaternion.h"
+//#include "../scenegraph/Viewer.h"
+//#include "../input/EAIHelpers.h"
+//#include "../input/SensInterps.h"
+//#include "../x3d_parser/Bindable.h"
+#include "../vrml_parser/CRoutes.h"
 #include "jsNative.h"
-#include "jsVRMLClasses.h"
-#include "jsVRMLBrowser.h"
+
+void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char *value, int isXML);
+int getJsEngineVariant();
+
+} //extern "C"
+
+
+#include "jsVRMLBrowser_sm.h"
+//#include "CScripts.h"
+#include "jsUtils_sm.h"
+#include "jsVRMLClasses_sm.h"
 
 
 #ifndef JSCLASS_GLOBAL_FLAGS
@@ -71,7 +129,7 @@ static JSClass staticGlobalClass = {
 	"global",		// char *name
 	JSCLASS_GLOBAL_FLAGS,	// uint32 flags
 	JS_PropertyStub,	// JSPropertyOp addProperty
-	JS_PropertyStub,	// JSPropertyOp delProperty
+	JS_DeletePropertyStub,	// JSDeletePropertyOp delProperty
 	JS_PropertyStub,	// JSPropertyOp getProperty
 	JS_StrictPropertyStub,	// JSStrictPropertyOp setProperty
 	JS_EnumerateStub,	// JSEnumerateOp enumerate
@@ -90,12 +148,10 @@ static JSClass staticGlobalClass = {
 
 
 
+extern "C" {
 
 
 typedef struct pJScript{
-
-
-
 	JSRuntime *runtime;// = NULL;
 	JSClass globalClass;
 	jsval JSglobal_return_value;
@@ -103,13 +159,14 @@ typedef struct pJScript{
 	int ijunk;
 }* ppJScript;
 
-
 void *JScript_constructor(){
 	void *v = MALLOCV(sizeof(struct pJScript));
 	memset(v,0,sizeof(struct pJScript));
 	return v;
 }
-void JScript_init(struct tJScript *t){
+
+
+void JScript_init(struct iiglobal::tJScript *t){
 	//public
 	t->JSglobal_return_val = NULL;
 	//private
@@ -128,39 +185,23 @@ void JScript_init(struct tJScript *t){
 
 
 void sm_js_cleanup_script_context(int counter){
-	//CLEANUP_JAVASCRIPT(p->ScriptControl[counter].cx);
-	//CLEANUP_JAVASCRIPT(getScriptControlIndex(counter)->cx);
-	#if JS_VERSION <= 185
-		struct CRscriptStruct *crss = getScriptControlIndex(counter);
-		#define CATCH_JS_GC_THROWS 1
-		#if defined(CATCH_JS_GC_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
-		CHECK_MEMORY
-		__try {
-			JS_GC(crss->cx);
-		}
-		__except(EXCEPTION_EXECUTE_HANDLER) {
-			printf("bad js_gc for script num %d\n", counter);
-			if(crss->scriptText){
-				struct X3D_Node *scnode = crss->script->ShaderScriptNode;
-				if(scnode){
-					const char* nn = getNodeName(X3D_NODE(scnode));
-					if(nn) printf("DEF %s \n",nn);
-					if(crss->scriptText) printf("%s\n",crss->scriptText);
-					
-				}
-			}
-		}
-		#else
-			JS_GC(crss->cx);
-		#endif
-	#else
-		ttglobal tg = gglobal();
-		ppJScript p = (ppJScript)tg->JScript.prv;
-		//JS_GC((JSRuntime*) p->runtime); //this bombs for us. access violation.
-		//JS_GC(getScriptControlIndex(counter)->cx); //this also bombs for us
-		JS_MaybeGC(getScriptControlIndex(counter)->cx); //this doesn't do gcing.
-		
-	#endif
+	ttglobal tg = gglobal();
+	ppJScript p = (ppJScript)tg->JScript.prv;
+	JSContext *cx;
+	JSObject *global;
+
+	cx = (JSContext *)getScriptControlIndex(counter)->cx;
+	global = (JSObject *)getScriptControlIndex(counter)->glob;
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			JS_MaybeGC(cx); 
+		} //Scope B
+	} //Scope A
+
 }
 
 /********************************************************************
@@ -182,44 +223,28 @@ void sm_process_eventsProcessed() {
 	for (counter = 0; counter <= tg->CRoutes.max_script_found_and_initialized; counter++) {
 		scriptcontrol = getScriptControlIndex(counter);
 		if(scriptcontrol->thisScriptType != NOSCRIPT ){
-		if (scriptcontrol->eventsProcessed == NULL) {
-#if defined(JS_THREADSAFE)
-			JS_BeginRequest(scriptcontrol->cx);
-#endif
-			scriptcontrol->eventsProcessed = (void *)JS_CompileScript(
-				scriptcontrol->cx,
-				scriptcontrol->glob,
-				"eventsProcessed()", strlen ("eventsProcessed()"),
-				"compile eventsProcessed()", 1);
-#if JS_VERSION >= 185
-			if (!JS_AddObjectRoot(scriptcontrol->cx,(JSSCRIPT**)(&scriptcontrol->eventsProcessed))) {
-				printf ("can not add object root for compiled eventsProcessed() for script %d\n",counter);
-			}
-#endif
-#if defined(JS_THREADSAFE)
-			JS_EndRequest(scriptcontrol->cx);
-#endif
-		}
-
-#if defined(JS_THREADSAFE)
-		JS_BeginRequest(scriptcontrol->cx);
-#endif
-		if (!JS_ExecuteScript( scriptcontrol->cx,
-                                 scriptcontrol->glob,
-				scriptcontrol->eventsProcessed, &retval)) {
-#if defined(_MSC_VER)
-			printf ("can not run eventsProcessed() for script %d thread %u\n",counter,(unsigned int)pthread_self().x);
-#else
-			printf ("can not run eventsProcessed() for script %d thread %p\n",counter,(void *)pthread_self());
-#endif
-		}
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(scriptcontrol->cx);
-#endif
-		}
-
-	}
-
+			JSContext *cx = (JSContext *)scriptcontrol->cx;
+			JSObject *global = (JSObject *)scriptcontrol->glob;
+			{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+				// out of scope before we JS_DestroyContext.
+				JSAutoRequest ar(cx); // In practice, you would want to exit this any
+									// time you're spinning the event loop
+				{ // Scope B for JSAutoCompartment
+					JSAutoCompartment ac(cx, global);
+					if (scriptcontrol->eventsProcessed == NULL) {
+						scriptcontrol->eventsProcessed = (void *)JS_CompileScript(cx,global,"eventsProcessed()", strlen ("eventsProcessed()"),
+							"compile eventsProcessed()", 1);
+						if (!JS_AddObjectRoot(cx,(JSObject**)(&scriptcontrol->eventsProcessed))) {
+							printf ("can not add object root for compiled eventsProcessed() for script %d\n",counter);
+						}
+					}
+					if (!JS_ExecuteScript(cx,global,(JSScript *)scriptcontrol->eventsProcessed, &retval)) {
+						printf ("can not run eventsProcessed() for script %d\n",counter);
+					}
+				} //Scope B
+			} //Scope A
+		} //if !noscript
+	} //for counter
 }
 
 
@@ -230,11 +255,11 @@ void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptCont
 	struct CRscriptStruct *ScriptControl;
 	ScriptControl = getScriptControlIndex(num);
 	if (ScriptControl->eventsProcessed != NULL) {
-#if JS_VERSION >= 185
+
 		if (ScriptControl->cx != NULL) {
-			JS_RemoveObjectRoot(ScriptControl->cx,(JSSCRIPT**)(&ScriptControl->eventsProcessed));
+			JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSObject**)(&ScriptControl->eventsProcessed));
 		}
-#endif
+
 		ScriptControl->eventsProcessed = NULL;
 	}
 }
@@ -323,16 +348,13 @@ void sm_JSDeleteScriptContext(int num){
 	//ppJScript p = (ppJScript)gglobal()->JScript.prv;
 	/* printf ("kill_javascript, context is %p\n",ScriptControl[i].cx); */
 	ScriptControl = getScriptControlIndex(num);
-#if JS_VERSION >= 185
+
 	if (ScriptControl->eventsProcessed != NULL) {
-		JS_RemoveObjectRoot(ScriptControl->cx,(JSSCRIPT **)(&ScriptControl->eventsProcessed));
+		JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSObject **)(&ScriptControl->eventsProcessed));
 	}
-#endif
-#if JS_VERSION < 186
-	JS_DestroyContextMaybeGC(ScriptControl->cx);
-#else
+
 	//JS_DestroyContext(ScriptControl->cx);
-#endif
+
 }
 void sm_jsShutdown(){
 	ttglobal tg = gglobal();
@@ -343,7 +365,7 @@ void sm_jsShutdown(){
 }
 //========================
 
-#if JS_VERSION >= 186
+
 static struct keyname {
 	int key;
 	char *name;
@@ -369,24 +391,7 @@ static struct keyname {
 {JSGC_ANALYSIS_PURGE_TRIGGER,"JSGC_ANALYSIS_PURGE_TRIGGER"},
 {-1,NULL},
 };
-#else //186
-//<= 185
-static struct keyname {
-	int key;
-	char *name;
-} gcparamname [] = {
-{JSGC_MAX_BYTES,"JSGC_MAX_BYTES"},
-{JSGC_MAX_MALLOC_BYTES, "JSGC_MAX_MALLOC_BYTES"},
-{JSGC_STACKPOOL_LIFESPAN,"JSGC_STACKPOOL_LIFESPAN"},
-{JSGC_TRIGGER_FACTOR,"JSGC_TRIGGER_FACTOR"},
-{JSGC_BYTES,"JSGC_BYTES"},
-{JSGC_NUMBER,"JSGC_NUMBER"},
-{JSGC_MAX_CODE_CACHE_BYTES,"JSGC_MAX_CODE_CACHE_BYTES"},
-{JSGC_MODE,"JSGC_MODE"},
-{JSGC_UNUSED_CHUNKS,"JSGC_UNUSED_CHUNKS"},
-{-1,NULL},
-};
-#endif //186
+
 const char *getgcparamname(int key){
 	int i = 0;
 	while(gcparamname[i].name != NULL){
@@ -407,7 +412,14 @@ const char *getgcparamname(int key){
 
 
 /* create the script context for this script. This is called from the thread
-   that handles script calling in the fwl_RenderSceneUpdateScene */
+   that handles script calling in the fwl_RenderSceneUpdateScene 
+   July 3, 2018
+   x just changing to cpp for moz24 (from moz185/17) doesn't work. the moz dll bombs/throws.
+   * but following the formula here works - it runs a little script:
+   	https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/How_to_embed_the_JavaScript_engine
+	so a lot of our code needs grooming for these weird stack techniques.
+   
+   */
 void sm_JSCreateScriptContext(int num) {
 	jsval rval;
 	JSContext *_context; 	/* these are set here */
@@ -417,163 +429,73 @@ void sm_JSCreateScriptContext(int num) {
 	struct CRscriptStruct *ScriptControl;
 
 	ScriptControl = getScriptControlIndex(num);
-
 	/* is this the first time through? */
 	if (p->runtime == NULL) {
-		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES);
+		//p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JSUseHelperThreads::JS_USE_HELPER_THREADS);
+		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JS_USE_HELPER_THREADS); //JSUseHelperThreads::JS_NO_HELPER_THREADS);
 		if (!p->runtime) freewrlDie("JS_NewRuntime failed");
-		#ifdef JAVASCRIPTVERBOSE
-		printf("\tJS runtime created,\n");
-		#endif
-		#ifdef DEBUG
-		// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_GetGCParameter
-		int iend = JS_VERSION == 185 ? 8 : JS_VERSION == 186 ? 19 :  0;
-		for(unsigned int i=0; i<= iend; i++){
-			unsigned int gcparam = JS_GetGCParameter(p->runtime,i);
-			printf("%s = %u\n",getgcparamname(i),gcparam);
-		}
-		//#if JS_VERSION == 186
-		//	JS_SetGCParameter(p->runtime,JSGC_MODE,JSGC_MODE_INCREMENTAL);
-		//	JS_SetGCParameter(p->runtime,JSGC_SLICE_TIME_BUDGET,100); //miliseconds
-		//#endif
-		#endif //DEBUG
 	}
 
 
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
-	#ifdef DEBUG
-	unsigned int opts = JS_GetOptions(_context);
-	printf("options %x\n",opts);
-	#endif //DEBUG
 	//JS_SetErrorReporter(_context, reportError);
+	
+	JSContext *cx = _context;
+	{ //scope A
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS context created,\n");
-	#endif
+		JS::RootedObject global(cx, JS_NewGlobalObject(cx, &p->globalClass, nullptr));
+		if (!global)
+			return ;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	//#if JS_VERSION == 186
-	//	JS_SetGCParameterForThread(_context,JSGC_MODE,JSGC_MODE_INCREMENTAL);
-	//	JS_SetGCParameterForThread(_context,JSGC_SLICE_TIME_BUDGET,100); //miliseconds
-	//#endif
+		JS::RootedValue rval(cx);
 
-	#if JS_VERSION >= 185
-	if (num == 0 && JS_VERSION < 186) {
-		#if JS_VERSION < 186
-		_globalObj = JS_NewCompartmentAndGlobalObject(_context, &p->globalClass, NULL);
-		#endif
-	} else {
-		struct CRscriptStruct *cs = getScriptControlIndex(0);
-		JS_SetGlobalObject(_context,cs->glob); //ScriptControl[0].glob);
-		_globalObj = JS_NewGlobalObjectFw(_context,&p->globalClass);
-		JS_SetGlobalObject(_context,_globalObj);
-	}
-	#else
-	_globalObj = JS_NewObject(_context, &p->globalClass, NULL, NULL);
-	#endif
-	//#ifdef JS_GC_ZEAL
-	//JS_SetGCZeal(_context, 2, 100);
-	//#endif
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(_context);
-#endif
-	if (!_globalObj) freewrlDie("JS_NewObject failed");
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			JS_InitStandardClasses(cx, global);
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS global object created,\n");
-	#endif
+			br = (BrowserNative *) JS_malloc(_context, sizeof(BrowserNative));
+			/* for this script, here are the necessary data areas */
+			_globalObj = global;
+			ScriptControl->cx =  _context;
+			ScriptControl->glob =  _globalObj;
+			if(SM_method()==2){
+				//JS_SetPrivateFw(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
+				JS_SetPrivate((JSObject*)ScriptControl->glob, ScriptControl->script);
+			}
 
+			if (!loadVrmlClasses(_context, _globalObj)){
+				freewrlDie("loadVrmlClasses failed");
+			}
+			if (!VrmlBrowserInit(_context, _globalObj, br)){
+				freewrlDie("VrmlBrowserInit failed");
+			}
+			if (!ActualrunScript(num,DefaultScriptMethods,rval.address()))
+				cleanupDie(num,"runScript failed in VRML::newJS DefaultScriptMethods");
 
-	/* gets JS standard classes */
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_InitStandardClasses(_context, _globalObj))
-#if defined(JS_THREADSAFE)
-	{	JS_EndRequest(_context);
-#endif
-		freewrlDie("JS_InitStandardClasses failed");
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-	}
-#endif
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS standard classes initialized,\n");
-	#endif
+			if(0) {
+				//baby step test
+				const char *script = "'hello'+'world, it is '+new Date()";
+				const char *filename = "noname";
+				int lineno = 1;
+				bool ok = JS_EvaluateScript(cx, global, script, strlen(script), filename, lineno, rval.address());
+				if (!ok)
+					return ;
+				JSString *str = rval.toString();
+				printf("%s\n", JS_EncodeString(cx, str));
+			}
+		} //scope B
 
-	#ifdef JAVASCRIPTVERBOSE
-	 	reportWarningsOn();
-	#endif
-
-	JS_SetErrorReporter(_context, errorReporter);
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tJS error reporter set,\n");
-	#endif
-
-	br = (BrowserNative *) JS_malloc(_context, sizeof(BrowserNative));
-
-	/* for this script, here are the necessary data areas */
-	ScriptControl->cx =  _context;
-	ScriptControl->glob =  _globalObj;
-	if(SM_method()==2){
-		JS_SetPrivateFw(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
-	}
-
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!loadVrmlClasses(_context, _globalObj))
-#if defined(JS_THREADSAFE)
-	{	JS_EndRequest(_context);
-#endif
-		freewrlDie("loadVrmlClasses failed");
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-	}
-#endif
-
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tVRML classes loaded,\n");
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!VrmlBrowserInit(_context, _globalObj, br))
-#if defined(JS_THREADSAFE)
-	{	JS_EndRequest(_context);
-#endif
-		freewrlDie("VrmlBrowserInit failed");
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-	}
-#endif
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tVRML Browser interface loaded,\n");
-	#endif
-
-
-	if (!ACTUALRUNSCRIPT(num,DefaultScriptMethods,&rval))
-		cleanupDie(num,"runScript failed in VRML::newJS DefaultScriptMethods");
+	} //scope A
 
 	/* send this data over to the routing table functions. */
 	CRoutes_js_new (num, JAVASCRIPT);
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf("\tVRML browser initialized, thread %u\n",pthread_self());
-	#endif
 }
-int getJsEngineVariant();
+} //extern "C"
+
 int SM_method(){
 	return getJsEngineVariant() == 2? 2 : 0;
 	//return 2; //new way dec 31, 2017
@@ -581,97 +503,74 @@ int SM_method(){
 }
 
 /* run the script from within C */
-#ifdef JAVASCRIPTVERBOSE
-int ActualrunScript(int num, char *script, jsval *rval, char *fn, int line) {
-#else
 int ActualrunScript(int num, char *script, jsval *rval) {
-#endif
+
 	int len;
-	JSContext *_context;
-	JSObject *_globalObj;
+	JSContext *cx;
+	JSObject *global;
 	struct CRscriptStruct *ScriptControl;
 
 	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
-	_context = (JSContext*)ScriptControl->cx;
-	_globalObj = (JSObject*)ScriptControl->glob;
-
-	#ifdef JAVASCRIPTVERBOSE
-		printf("ActualrunScript script called at %s:%d  num: %d cx %p \"%s\", \n",
-			fn, line, num, _context, script);
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	//CLEANUP_JAVASCRIPT(_context)
-	js_cleanup_script_context(num);
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(_context);
-#endif
+	cx = (JSContext*)ScriptControl->cx;
+	global = (JSObject*)ScriptControl->glob;
 
 	len = (int) strlen(script);
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_EvaluateScript(_context, _globalObj, script, len, FNAME_STUB, LINENO_STUB, rval)) {
-		printf ("ActualrunScript - JS_EvaluateScript failed for %s", script);
-		printf ("\n");
-		ConsoleMessage ("ActualrunScript - JS_EvaluateScript failed for %s", script);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
-	#ifdef JAVASCRIPTVERBOSE
-	printf ("runscript passed\n");
-	#endif
+
+	{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			bool ok = JS_EvaluateScript(cx, global, script, len, FNAME_STUB, LINENO_STUB, rval);
+			if (!ok) {
+				printf ("ActualrunScript - JS_EvaluateScript failed for %s", script);
+				printf ("\n");
+				ConsoleMessage ("ActualrunScript - JS_EvaluateScript failed for %s", script);
+				return JS_FALSE;
+			}
+		} //Scope B
+	} //Scope A
 
 	return JS_TRUE;
 }
 
-int sm_jsActualrunScript(int num, char *script) {
-	jsval rval; //discard
-	return ACTUALRUNSCRIPT(num,script,&rval);
-}
-
 /* run the script from within Javascript  */
-int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval *rval) {
-
+int jsrrunScript(JSContext *cx, JSObject *global, char *script, jsval *rval) {
 	int len;
 
 	#ifdef JAVASCRIPTVERBOSE
 		printf("jsrrunScript script cx %p \"%s\", \n",
 			   _context, script);
 	#endif
-
 	len = (int) strlen(script);
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_EvaluateScript(_context, _globalObj, script, len,
-						   FNAME_STUB, LINENO_STUB, rval)) {
-		ConsoleMessage ("jsrunScript - JS_EvaluateScript failed for %s", script);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
-
-	#ifdef JAVASCRIPTVERBOSE
-	printf ("runscript passed\n");
-	#endif
-
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			if (!JS_EvaluateScript(cx, global, script, len,
+								   FNAME_STUB, LINENO_STUB, rval)) {
+				ConsoleMessage ("jsrunScript - JS_EvaluateScript failed for %s", script);
+				return JS_FALSE;
+			}
+		} //Scope B
+	} //Scope A
 	return JS_TRUE;
 }
+
+
+extern "C" {
+
+int sm_jsActualrunScript(int num, char *script) {
+	jsval rval; //discard
+	return ACTUALRUNSCRIPT(num,script,&rval);
+}
+
+
+
 
 //put source = NULL if you want it to malloc
 //if its a script field, send in the pointer to the script field valuechanged, or NULL if new thing()
@@ -685,7 +584,7 @@ void *AnyNativeNew(int type, union anyVrml* source, int *valueChanged){
 	ptr->v = source;
 	ptr->gc = 0;
 	if(ptr->v == NULL){
-		ptr->v = MALLOC(void *,sizeofSForMF(type));
+		ptr->v = (union anyVrml *)MALLOC(void *,sizeofSForMF(type));
 		memset(ptr->v,0,sizeofSForMF(type));
 		ptr->gc = 1;
 	}
@@ -903,6 +802,7 @@ void SFVec4dNativeAssign(void *top, void *fromp) {
 	(to->v) = (from->v);
 }
 
+} //extern "C"
 
 
 static char* re_strcat(char *_Dest, char *_Source, int *destLen, int *destDim)
@@ -931,7 +831,7 @@ static char* re_strcat(char *_Dest, char *_Source, int *destLen, int *destDim)
 	if(*destLen > *destDim -1)
 	{
 		*destDim = *destDim + srclen + 1 + 100;
-		_Dest = REALLOC(_Dest,*destDim);
+		_Dest = (char *)REALLOC(_Dest,*destDim);
 	}
 	_Dest = strcat(_Dest,_Source);
 	return _Dest;
@@ -1003,21 +903,24 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 		obj = (JSObject*)ScriptControl->glob;
 
 		if (JS_GetProperty(cx,obj,field,&retval)){
-			if (JSVAL_IS_OBJECT(retval)){
+			//if (JSVAL_IS_OBJECT(retval)){
+			if(retval.isObject()){
 				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
 				char runstring[STRING_SIZE];
 				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
 				//printf("%s\n",runstring);
-				#if defined(JS_THREADSAFE)
-				JS_BeginRequest(cx);
-				#endif
-				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
-					printf("sorry couldn't rename function: %s",runstring);
-				}
-				#if defined(JS_THREADSAFE)
-				JS_EndRequest(cx);
-				#endif
+				{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+					// out of scope before we JS_DestroyContext.
+					JSAutoRequest ar(cx); // In practice, you would want to exit this any
+										// time you're spinning the event loop
+					{ // Scope B  for JSAutoCompartment
+						JSAutoCompartment ac(cx, obj);
+						if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
+							printf("sorry couldn't rename function: %s",runstring);
+						}
+					} //Scope B
+				} //Scope A
 			}
 		}
 		strcpy(mynewname,field); //now this is OK, won't overwrite function
@@ -1304,7 +1207,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 							if((int)strlen(sptr[0]->strptr)+2 > tdim-1)
 							{
 								tdim = (int) strlen(sptr[0]->strptr) + 1 + 100;
-								thisValue = REALLOC(thisValue,tdim);
+								thisValue = (char *)REALLOC(thisValue,tdim);
 							}
 							sprintf (thisValue,"\"%s\"",sptr[0]->strptr);
 						} else { /* must be a Void */
@@ -1356,21 +1259,11 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 		resetScriptTouchedFlag(num, fptr);
 	}
 	ScriptControl = getScriptControlIndex(num);
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(ScriptControl->cx);
-#endif
-	//CLEANUP_JAVASCRIPT(ScriptControl->cx)
 	js_cleanup_script_context(num);
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(ScriptControl->cx);
-#endif
 
 	FREE_IF_NZ (smallfield);
 	FREE_IF_NZ (sftype);
 
-	#ifdef JAVASCRIPTVERBOSE
-	printf ("finished InitScriptField\n");
-	#endif
 }
 
 void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, union anyVrml value) {
@@ -1383,10 +1276,10 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 	printf ("\nInitScriptField, num %d, kind %s type %s field %s value %d\n", num,PROTOKEYWORDS[kind],FIELDTYPES[type],field,value);
 	#endif
 
-    if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
-            ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
-            return;
-    }
+	if ((kind != PKW_inputOnly) && (kind != PKW_outputOnly) && (kind != PKW_initializeOnly) && (kind != PKW_inputOutput)) {
+		ConsoleMessage ("InitScriptField: invalid kind for script: %d\n",kind);
+		return;
+	}
 
 	ScriptControl = getScriptControlIndex(num);
 
@@ -1406,21 +1299,24 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 		obj = (JSObject*)ScriptControl->glob;
 
 		if (JS_GetProperty(cx,obj,field,&retval)){
-			if (JSVAL_IS_OBJECT(retval)){
+			//if (JSVAL_IS_OBJECT(retval)){
+			if(retval.isObject()){
 				//I think functions are objects, doesn't seem to be a JSVAL_IS_FUNC
 				char runstring[STRING_SIZE];
 				// rename fieldname to set_fieldname
 				sprintf(runstring,"_rename_function(this,'%s','set_%s');",field,field);
 				//printf("%s\n",runstring);
-				#if defined(JS_THREADSAFE)
-				JS_BeginRequest(cx);
-				#endif
-				if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
-					printf("sorry couldn't rename function: %s",runstring);
-				}
-				#if defined(JS_THREADSAFE)
-				JS_EndRequest(cx);
-				#endif
+				{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+					// out of scope before we JS_DestroyContext.
+					JSAutoRequest ar(cx); // In practice, you would want to exit this any
+										// time you're spinning the event loop
+					{ // Scope B  for JSAutoCompartment
+						JSAutoCompartment ac(cx, obj);
+						if(!JS_EvaluateScript(cx,obj, runstring, (int) strlen(runstring), FNAME_STUB, LINENO_STUB, &retval)){
+							printf("sorry couldn't rename function: %s",runstring);
+						}
+					} //Scope B
+				} //Scope A
 			}
 		}
 		// and if so rename it to set_
@@ -1434,108 +1330,70 @@ void InitScriptFieldB(int num, indexT kind, indexT type, const char* field, unio
 
 
 static int JSaddGlobalECMANativeProperty(int num, const char *name) {
-	JSContext *_context;
-	JSObject *_globalObj;
+	JSContext *cx;
+	JSObject *global;
 	jsval rval = INT_TO_JSVAL(0);
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 
 	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
-	_context =  (JSContext*)ScriptControl->cx;
-	_globalObj = (JSObject*)ScriptControl->glob;
+	cx =  (JSContext*)ScriptControl->cx;
+	global = (JSObject*)ScriptControl->glob;
 
-	#ifdef  JAVASCRIPTVERBOSE
-		printf("addGlobalECMANativeProperty: name \"%s\"\n", name);
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
 
 /* Note, for JS-185+, JSPROP_PERMANENT makes properties non-configurable, which can cause runtime
  * errors from the JS engine when said property gets redefined to a function by the script.  The
  * example file tests/Javascript_tests/MFFloat.wrl had this issue. */
 
-	if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative,
-	//if (!JS_DefineProperty(_context, _globalObj, name, rval, getECMANative, setECMANative,
-#if JS_VERSION < 185
-		0 | JSPROP_PERMANENT
-#else
-		0
-#endif
-	)) {
-		printf("JS_DefineProperty failed for \"%s\" in addGlobalECMANativeProperty.\n", name);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
+	{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
 
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			bool ok = JS_DefineProperty(cx,global, name, rval, getECMANative, setECMANative,0);
+			if (!ok){
+				printf("JS_DefineProperty failed for \"%s\" in addGlobalECMANativeProperty.\n", name);
+				return JS_FALSE;
+			}
+		} // Scope B
+	} //Scope A
 	return JS_TRUE;
 }
 
 static int JSaddGlobalAssignProperty(int num, const char *name, const char *str) {
 	jsval _rval = INT_TO_JSVAL(0);
-	JSContext *_context;
-	JSObject *_globalObj;
+	JSContext *cx;
+	JSObject *global;
 	struct CRscriptStruct *ScriptControl;
 
 	ScriptControl = getScriptControlIndex(num);
 
 	/* get context and global object for this script */
-	_context =  (JSContext*)ScriptControl->cx;
-	_globalObj = (JSObject*)ScriptControl->glob;
+	cx =  (JSContext*)ScriptControl->cx;
+	global = (JSObject*)ScriptControl->glob;
 
-	#ifdef JAVASCRIPTVERBOSE
-		printf("addGlobalAssignProperty: cx: %p obj %p name \"%s\", evaluate script \"%s\"\n",
-			   _context, _globalObj, name, str);
-	#endif
-
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_EvaluateScript(_context, _globalObj, str, (int) strlen(str), FNAME_STUB, LINENO_STUB, &_rval)) {
-		ConsoleMessage ("JSaddGlobalAssignProperty - JS_EvaluateScript failed for %s", str);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(_context);
-#endif
-	if (!JS_DefineProperty(_context, _globalObj, name, _rval, getAssignProperty, setAssignProperty, 0 | JSPROP_PERMANENT)) {
-		printf("JS_DefineProperty failed for \"%s\" in addGlobalAssignProperty.\n", name);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(_context);
-#endif
-		return JS_FALSE;
-#if defined(JS_THREADSAFE)
-	} else {
-		JS_EndRequest(_context);
-#endif
-	}
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx,global);
+			if (!JS_EvaluateScript(cx,global, str, (int) strlen(str), FNAME_STUB, LINENO_STUB, &_rval)) {
+				ConsoleMessage ("JSaddGlobalAssignProperty - JS_EvaluateScript failed for %s", str);
+				return JS_FALSE;
+			}
+			if (!JS_DefineProperty(cx,global, name, _rval, getAssignProperty, setAssignProperty, 0 | JSPROP_PERMANENT)) {
+				printf("JS_DefineProperty failed for \"%s\" in addGlobalAssignProperty.\n", name);
+				return JS_FALSE;
+			}
+		} //Scope B
+	} //Scope A
 	return JS_TRUE;
 }
 
 /* defines for getting touched flags and exact Javascript pointers */
-
-/* ... make a #define to handle JS requests that can easily be substituted into these other #defines */
-#if defined(JS_THREADSAFE)
-# define JSBEGINREQUEST_SUBSTITUTION(mycx) JS_BeginRequest(mycx);
-# define JSENDREQUEST_SUBSTITUTION(mycx) JS_EndRequest(mycx);
-#else
-# define JSBEGINREQUEST_SUBSTITUTION(mycx) /* */
-# define JSENDREQUEST_SUBSTITUTION(mycx) /* */
-#endif
 
 /****************************** ECMA types ******************************************/
 /* where we have a Native structure to go along with it */
@@ -1543,10 +1401,9 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 			 case FIELDTYPE_##thistype:  {  \
 				thistype##Native *ptr; \
 				/* printf ("getting private data in GETJSPTR for %p \n",JSglobal_return_val); */ \
-        			if ((ptr = (thistype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*(jsval *)(tg->JScript.JSglobal_return_val)))) == NULL) { \
-                			printf( "JS_GetPrivate failed in get_valueChanged_flag\n"); \
-					JSENDREQUEST_SUBSTITUTION(cx) \
-                			return JS_FALSE; \
+				if ((ptr = (thistype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*(jsval *)(tg->JScript.JSglobal_return_val)))) == NULL) { \
+					printf( "JS_GetPrivate failed in get_valueChanged_flag\n"); \
+					return JS_FALSE; \
 				} \
 				/* if (ptr->valueChanged > 0) printf ("private is %d valueChanged %d\n",ptr,ptr->valueChanged); */ \
 				tg->CRoutes.JSSFpointer = (void *)ptr; /* save this for quick extraction of values */ \
@@ -1555,10 +1412,10 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 			}
 
 #define RESET_TOUCHED_TYPE_A(thistype) \
-                case FIELDTYPE_##thistype: { \
-                        ((thistype##Native *)tg->CRoutes.JSSFpointer)->valueChanged = 0; \
-                        break; \
-                }
+			case FIELDTYPE_##thistype: { \
+					((thistype##Native *)tg->CRoutes.JSSFpointer)->valueChanged = 0; \
+					break; \
+			}
 
 #define GETJSPTR_TYPE_MF_A(thisMFtype,thisSFtype) \
 	case FIELDTYPE_##thisMFtype: { \
@@ -1568,7 +1425,6 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 		int i; \
 		if (!JS_GetProperty(cx, JSVAL_TO_OBJECT(*(jsval *)(tg->JScript.JSglobal_return_val)), "length", &mainElement)) { \
 			printf ("JS_GetProperty failed for \"length\" in get_valueChanged_flag\n"); \
-			JSENDREQUEST_SUBSTITUTION(cx) \
 			return FALSE; \
 		} \
 		len = JSVAL_TO_INT(mainElement); \
@@ -1576,12 +1432,10 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 		for (i = 0; i < len; i++) { \
 			if (!JS_GetElement(cx, JSVAL_TO_OBJECT(*(jsval*)(tg->JScript.JSglobal_return_val)), i, &mainElement)) { \
 				printf ("JS_GetElement failed for %d in get_valueChanged_flag\n",i); \
-				JSENDREQUEST_SUBSTITUTION(cx) \
 				return FALSE; \
 			} \
 			if ((ptr = (thisSFtype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) { \
 				printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n"); \
-				JSENDREQUEST_SUBSTITUTION(cx) \
 				return FALSE; \
 			} \
 			if (ptr->valueChanged > 0) touched = TRUE; /* did this element change? */ \
@@ -1597,11 +1451,9 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 		int len; \
 		int i; \
 		JSContext *cx; \
-		cx = scriptcontrol->cx; \
-		JSBEGINREQUEST_SUBSTITUTION(cx) \
+		cx = (JSContext*)scriptcontrol->cx; \
 		if (!JS_GetProperty(cx, JSVAL_TO_OBJECT(*(jsval*)(tg->JScript.JSglobal_return_val)), "length", &mainElement)) { \
 			printf ("JS_GetProperty failed for \"length\" in get_valueChanged_flag\n"); \
-			JSENDREQUEST_SUBSTITUTION(cx) \
 			break; \
 		} \
 		len = JSVAL_TO_INT(mainElement); \
@@ -1609,37 +1461,24 @@ static int JSaddGlobalAssignProperty(int num, const char *name, const char *str)
 		for (i = 0; i < len; i++) { \
 			if (!JS_GetElement(cx, JSVAL_TO_OBJECT(*(jsval*)(tg->JScript.JSglobal_return_val)), i, &mainElement)) { \
 				printf ("JS_GetElement failed for %d in get_valueChanged_flag\n",i); \
-				JSENDREQUEST_SUBSTITUTION(cx) \
 				break; \
 			} \
 			if ((ptr = (thisSFtype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) { \
 				printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n"); \
-				JSENDREQUEST_SUBSTITUTION(cx) \
 				break; \
 			} \
 			ptr->valueChanged = 0; \
 		} \
-		JSENDREQUEST_SUBSTITUTION(cx) \
 		break; \
 	}
 
 /****************************** ECMA types ******************************************/
 
-#ifdef OLDCODE
-OLDCODE /* "Bool" might be already declared - we DO NOT want it to be declared as an "int" */
-OLDCODE #define savedBool Bool
-OLDCODE #ifdef Bool
-OLDCODE #undef Bool
-OLDCODE #endif
-#endif //OLDCODE
-
-/* NOTE - BeginRequest is already called prior to any GET_* defines */
-
 #define GET_ECMA_TOUCHED(thistype) \
-	case FIELDTYPE_SF##thistype: {	\
-				touched = findNameInECMATable( scriptcontrol->cx,fullname);\
-				break;\
-			}
+	case FIELDTYPE_SF##thistype: {\
+		touched = findNameInECMATable( (JSContext*)scriptcontrol->cx,fullname);\
+		break;\
+	}
 
 #define GET_ECMA_MF_TOUCHED(thistype) \
 	case FIELDTYPE_MF##thistype: {\
@@ -1656,23 +1495,19 @@ OLDCODE #endif
 	case FIELDTYPE_##thistype: {\
 		jsval myv = INT_TO_JSVAL(0); \
 		/* printf ("RESET_ECMA_MF_TOUCHED called on %d ",JSglobal_return_val); */ \
-		JSBEGINREQUEST_SUBSTITUTION(scriptcontrol->cx) \
-        	if (!JS_SetProperty(scriptcontrol->cx, JSVAL_TO_OBJECT(*(jsval*)(tg->JScript.JSglobal_return_val)), "MF_ECMA_has_changed", &myv)) { \
-        		printf( "JS_SetProperty failed for \"MF_ECMA_has_changed\" in RESET_ECMA_MF_TOUCHED.\n"); \
-        	}\
-                /* if (!JS_GetProperty( p->ScriptControl[actualscript].cx, JSVAL_TO_OBJECT(JSglobal_return_val), "MF_ECMA_has_changed", &mainElement)) { \
-                        printf ("JS_GetProperty failed for \"MF_ECMA_HAS_changed\" in get_valueChanged_flag\n"); \
-		} \
-                printf ("and MF_ECMA_has_changed is %d\n",JSVAL_TO_INT(mainElement)); */\
-		JSENDREQUEST_SUBSTITUTION(scriptcontrol->cx) \
+		if (!JS_SetProperty(cx, JSVAL_TO_OBJECT(*(jsval*)(tg->JScript.JSglobal_return_val)), "MF_ECMA_has_changed", &myv)) { \
+			printf( "JS_SetProperty failed for \"MF_ECMA_has_changed\" in RESET_ECMA_MF_TOUCHED.\n"); \
+		}\
+			/* if (!JS_GetProperty( p->ScriptControl[actualscript].cx, JSVAL_TO_OBJECT(JSglobal_return_val), "MF_ECMA_has_changed", &mainElement)) { \
+					printf ("JS_GetProperty failed for \"MF_ECMA_HAS_changed\" in get_valueChanged_flag\n"); \
+			} \
+		printf ("and MF_ECMA_has_changed is %d\n",JSVAL_TO_INT(mainElement)); */\
 	break; \
 	}
 
 #define RESET_TOUCHED_TYPE_ECMA(thistype) \
 			case FIELDTYPE_##thistype: { \
-				JSBEGINREQUEST_SUBSTITUTION(scriptcontrol->cx) \
-				resetNameInECMATable( scriptcontrol->cx,JSparamnames[fptr].name); \
-				JSENDREQUEST_SUBSTITUTION(scriptcontrol->cx) \
+				resetNameInECMATable( cx,JSparamnames[fptr].name); \
 				break; \
 			}
 
@@ -1729,7 +1564,7 @@ OLDCODE #define Bool savedBool
 /* FIELDTYPE_MFString	*/
 /*                                                                          */
 /****************************************************************************/
-
+extern "C" {
 int sm1_get_valueChanged_flag (int fptr, int actualscript) {
 
 
@@ -1749,113 +1584,62 @@ int sm1_get_valueChanged_flag (int fptr, int actualscript) {
 	cx =  (JSContext*)scriptcontrol->cx;
 	fullname = JSparamnames[fptr].name;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(cx);
-#endif
-	#ifdef CRVERBOSE
-	printf ("\ngetting property for fullname %s, cx %p, interpobj %d script %d, fptr %d (%s:%s)\n",
-		fullname,cx,interpobj,actualscript, fptr,
-		JSparamnames[fptr].name, FIELDTYPES[JSparamnames[fptr].type]);
-	#endif
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, interpobj);
 
-	if (!JS_GetProperty(cx,  interpobj ,fullname,tg->JScript.JSglobal_return_val)) {
-               	printf ("cant get property for %s\n",fullname);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(cx);
-#endif
-		return FALSE;
-        } else {
-		#ifdef CRVERBOSE
-		printf ("so, property is %d (%p)\n",*(jsval*)tg->JScript.JSglobal_return_val,*(jsval *)tg->JScript.JSglobal_return_val);
-		printf("get_valueChanged_flag: node type: %s name %s\n",FIELDTYPES[JSparamnames[fptr].type],JSparamnames[fptr].name);
-		#endif
+			if (!JS_GetProperty(cx,  interpobj ,fullname,(jsval*)tg->JScript.JSglobal_return_val)) {
+				printf ("cant get property for %s\n",fullname);
+				return FALSE;
+			} else {
 
-		switch (JSparamnames[fptr].type) {
-			GETJSPTR_TYPE_A(SFRotation)
-			GETJSPTR_TYPE_A(SFNode)
-			GETJSPTR_TYPE_A(SFVec2f)
-			/* GETJSPTR_TYPE_A(SFVec2d) */
-			GETJSPTR_TYPE_A(SFVec3f)
-			GETJSPTR_TYPE_A(SFVec3d)
-			GETJSPTR_TYPE_A(SFVec4f)
-			GETJSPTR_TYPE_A(SFVec4d)
-			GETJSPTR_TYPE_A(SFImage)
-			GETJSPTR_TYPE_A(SFColor)
-			GETJSPTR_TYPE_A(SFColorRGBA)
+				switch (JSparamnames[fptr].type) {
+					GETJSPTR_TYPE_A(SFRotation)
+					GETJSPTR_TYPE_A(SFNode)
+					GETJSPTR_TYPE_A(SFVec2f)
+					/* GETJSPTR_TYPE_A(SFVec2d) */
+					GETJSPTR_TYPE_A(SFVec3f)
+					GETJSPTR_TYPE_A(SFVec3d)
+					GETJSPTR_TYPE_A(SFVec4f)
+					GETJSPTR_TYPE_A(SFVec4d)
+					GETJSPTR_TYPE_A(SFImage)
+					GETJSPTR_TYPE_A(SFColor)
+					GETJSPTR_TYPE_A(SFColorRGBA)
 
-			GETJSPTR_TYPE_MF_A(MFRotation,SFRotation)
-			GETJSPTR_TYPE_MF_A(MFNode,SFNode)
-			GETJSPTR_TYPE_MF_A(MFVec2f,SFVec2f)
-			GETJSPTR_TYPE_MF_A(MFVec3f,SFVec3f)
-			GETJSPTR_TYPE_MF_A(MFVec4f,SFVec4f)
-			GETJSPTR_TYPE_MF_A(MFVec4d,SFVec4d)
-			/* GETJSPTR_TYPE_MF_A(MFImage,SFImage)  */
-			GETJSPTR_TYPE_MF_A(MFColor,SFColor)
-			GETJSPTR_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
+					GETJSPTR_TYPE_MF_A(MFRotation,SFRotation)
+					GETJSPTR_TYPE_MF_A(MFNode,SFNode)
+					GETJSPTR_TYPE_MF_A(MFVec2f,SFVec2f)
+					GETJSPTR_TYPE_MF_A(MFVec3f,SFVec3f)
+					GETJSPTR_TYPE_MF_A(MFVec4f,SFVec4f)
+					GETJSPTR_TYPE_MF_A(MFVec4d,SFVec4d)
+					/* GETJSPTR_TYPE_MF_A(MFImage,SFImage)  */
+					GETJSPTR_TYPE_MF_A(MFColor,SFColor)
+					GETJSPTR_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
 
-			GET_ECMA_MF_TOUCHED(Int32)
-			GET_ECMA_MF_TOUCHED(Bool)
-			GET_ECMA_MF_TOUCHED(Time)
-			GET_ECMA_MF_TOUCHED(Double)
-			GET_ECMA_MF_TOUCHED(Float)
-			GET_ECMA_MF_TOUCHED(String)
+					GET_ECMA_MF_TOUCHED(Int32)
+					GET_ECMA_MF_TOUCHED(Bool)
+					GET_ECMA_MF_TOUCHED(Time)
+					GET_ECMA_MF_TOUCHED(Double)
+					GET_ECMA_MF_TOUCHED(Float)
+					GET_ECMA_MF_TOUCHED(String)
 
-			GET_ECMA_TOUCHED(Int32)
-			GET_ECMA_TOUCHED(Bool)
-			GET_ECMA_TOUCHED(Float)
-			GET_ECMA_TOUCHED(Time)
-			GET_ECMA_TOUCHED(Double)
-			GET_ECMA_TOUCHED(String)
+					GET_ECMA_TOUCHED(Int32)
+					GET_ECMA_TOUCHED(Bool)
+					GET_ECMA_TOUCHED(Float)
+					GET_ECMA_TOUCHED(Time)
+					GET_ECMA_TOUCHED(Double)
+					GET_ECMA_TOUCHED(String)
 
-			default: {printf ("not handled yet in get_valueChanged_flag %s\n",FIELDTYPES[JSparamnames[fptr].type]);
+					default: {printf ("not handled yet in get_valueChanged_flag %s\n",FIELDTYPES[JSparamnames[fptr].type]);
+					}
+				}
 			}
-		}
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(cx);
-#endif
-	}
 
-#ifdef CHECKER
-	if (JSparamnames[fptr].type == FIELDTYPE_MFString) {
-		int len; int i;
-                jsval mainElement;
-                int len;
-
-		unsigned CRCCheck = 0;
-                cx = p->ScriptControl[actualscript].cx;
-#if defined(JS_THREADSAFE)
-		JS_BeginRequest(cx);
-#endif
-                if (!JS_GetProperty(cx, JSglobal_return_val, "length", &mainElement)) {
-                        printf ("JS_GetProperty failed for length_flag\n");
-                }
-                len = JSVAL_TO_INT(mainElement);
-                /* go through each element of the main array. */
-                for (i = 0; i < len; i++) {
-                        if (!JS_GetElement(cx, JSglobal_return_val, i, &mainElement)) {
-                                printf ("JS_GetElement failed for %d in get_valueChanged_flag\n",i);
-                                break;
-                        }
-		CRCCheck += (unsigned) mainElement;
-
-/*
-                if (JSVAL_IS_OBJECT(mainElement)) printf ("sc, element %d is an OBJECT\n",i);
-                if (JSVAL_IS_STRING(mainElement)) printf ("sc, element %d is an STRING\n",i);
-                if (JSVAL_IS_NUMBER(mainElement)) printf ("sc, element %d is an NUMBER\n",i);
-                if (JSVAL_IS_DOUBLE(mainElement)) printf ("sc, element %d is an DOUBLE\n",i);
-                if (JSVAL_IS_INT(mainElement)) printf ("sc, element %d is an INT\n",i);
-*/
-
-                }
-		printf ("CRCcheck %u\n",CRCCheck);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(cx);
-#endif
-	}
-#endif
-
-
-
+		} //Scope B
+	} //Scope A
 	return touched;
 
 }
@@ -1867,50 +1651,55 @@ void sm1_resetScriptTouchedFlag(int actualscript, int fptr) {
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg = gglobal();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
-	//ppJScript p = (ppJScript)tg->JScript.prv;
-	#ifdef CRVERBOSE
-	printf ("resetScriptTouchedFlag, name %s type %s script %d, fptr %d\n",JSparamnames[fptr].name, stringFieldtypeType(JSparamnames[fptr].type), actualscript, fptr);
-	#endif
+	JSContext *cx;
+	JSObject *global;
 	scriptcontrol = getScriptControlIndex(actualscript);
-	switch (JSparamnames[fptr].type) {
-		RESET_TOUCHED_TYPE_A(SFRotation)
-		RESET_TOUCHED_TYPE_A(SFNode)
-		RESET_TOUCHED_TYPE_A(SFVec2f)
-		RESET_TOUCHED_TYPE_A(SFVec3f)
-		RESET_TOUCHED_TYPE_A(SFVec4f)
-		/* RESET_TOUCHED_TYPE_A(SFVec2d) */
-		RESET_TOUCHED_TYPE_A(SFVec3d)
-		RESET_TOUCHED_TYPE_A(SFVec4d)
-		RESET_TOUCHED_TYPE_A(SFImage)
-		RESET_TOUCHED_TYPE_A(SFColor)
-		RESET_TOUCHED_TYPE_A(SFColorRGBA)
-		RESET_TOUCHED_TYPE_MF_A(MFRotation,SFRotation)
-		RESET_TOUCHED_TYPE_MF_A(MFNode,SFNode)
-		RESET_TOUCHED_TYPE_MF_A(MFVec2f,SFVec2f)
-		RESET_TOUCHED_TYPE_MF_A(MFVec3f,SFVec3f)
-		RESET_TOUCHED_TYPE_MF_A(MFVec4f,SFVec4f)
-		RESET_TOUCHED_TYPE_MF_A(MFVec4d,SFVec4d)
-		/* RESET_TOUCHED_TYPE_MF_A(MFImage,SFImage) */
-		RESET_TOUCHED_TYPE_MF_A(MFColor,SFColor)
-		RESET_TOUCHED_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
+	cx = (JSContext*)scriptcontrol->cx;
+	global = (JSObject*)scriptcontrol->glob;
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
 
-		RESET_TOUCHED_TYPE_ECMA (SFInt32)
-		RESET_TOUCHED_TYPE_ECMA (SFBool)
-		RESET_TOUCHED_TYPE_ECMA (SFFloat)
-		RESET_TOUCHED_TYPE_ECMA (SFTime)
-		RESET_TOUCHED_TYPE_ECMA (SFDouble)
-		RESET_TOUCHED_TYPE_ECMA (SFString)
-		RESET_ECMA_MF_TOUCHED(MFInt32)
-		RESET_ECMA_MF_TOUCHED(MFBool)
-		RESET_ECMA_MF_TOUCHED(MFFloat)
-		RESET_ECMA_MF_TOUCHED(MFTime)
-		RESET_ECMA_MF_TOUCHED(MFString)
+			switch (JSparamnames[fptr].type) {
+				RESET_TOUCHED_TYPE_A(SFRotation)
+				RESET_TOUCHED_TYPE_A(SFNode)
+				RESET_TOUCHED_TYPE_A(SFVec2f)
+				RESET_TOUCHED_TYPE_A(SFVec3f)
+				RESET_TOUCHED_TYPE_A(SFVec4f)
+				/* RESET_TOUCHED_TYPE_A(SFVec2d) */
+				RESET_TOUCHED_TYPE_A(SFVec3d)
+				RESET_TOUCHED_TYPE_A(SFVec4d)
+				RESET_TOUCHED_TYPE_A(SFImage)
+				RESET_TOUCHED_TYPE_A(SFColor)
+				RESET_TOUCHED_TYPE_A(SFColorRGBA)
+				RESET_TOUCHED_TYPE_MF_A(MFRotation,SFRotation)
+				RESET_TOUCHED_TYPE_MF_A(MFNode,SFNode)
+				RESET_TOUCHED_TYPE_MF_A(MFVec2f,SFVec2f)
+				RESET_TOUCHED_TYPE_MF_A(MFVec3f,SFVec3f)
+				RESET_TOUCHED_TYPE_MF_A(MFVec4f,SFVec4f)
+				RESET_TOUCHED_TYPE_MF_A(MFVec4d,SFVec4d)
+				/* RESET_TOUCHED_TYPE_MF_A(MFImage,SFImage) */
+				RESET_TOUCHED_TYPE_MF_A(MFColor,SFColor)
+				RESET_TOUCHED_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
 
-
-		default: {printf ("can not reset touched_flag for %s\n",stringFieldtypeType(JSparamnames[fptr].type));
-		}
-	}
-
+				RESET_TOUCHED_TYPE_ECMA (SFInt32)
+				RESET_TOUCHED_TYPE_ECMA (SFBool)
+				RESET_TOUCHED_TYPE_ECMA (SFFloat)
+				RESET_TOUCHED_TYPE_ECMA (SFTime)
+				RESET_TOUCHED_TYPE_ECMA (SFDouble)
+				RESET_TOUCHED_TYPE_ECMA (SFString)
+				RESET_ECMA_MF_TOUCHED(MFInt32)
+				RESET_ECMA_MF_TOUCHED(MFBool)
+				RESET_ECMA_MF_TOUCHED(MFFloat)
+				RESET_ECMA_MF_TOUCHED(MFTime)
+				RESET_ECMA_MF_TOUCHED(MFString)
+				default: {printf ("can not reset touched_flag for %s\n",stringFieldtypeType(JSparamnames[fptr].type));}
+			}
+		} //Scope B
+	} //Scope A
 }
 
 int sm2_get_valueChanged_flag (int fptr, int actualscript){
@@ -2047,7 +1836,7 @@ void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, u
 
 }
 
-
+} //extern "C"
 
 
 /****************************************************************/
@@ -2062,7 +1851,7 @@ void sm_SaveScriptField (int num, indexT kind, indexT type, const char* field, u
 /****************************************************************/
 void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 	float *fl;
-	int *il;
+	long *il;
 	double *dl;
 	struct X3D_Node * *nl;
 
@@ -2071,9 +1860,9 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 	int len;
 	int i;
 	char *strp;
-#if JS_VERSION >= 185
+
 	char *strpp; /* we need this to reliably free the results of JS_EncodeString() */
-#endif
+
 	int elesize;
 	SFVec2fNative *sfvec2f;
 	SFVec3fNative *sfvec3f;
@@ -2106,10 +1895,11 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 		printf ("getJSMultiNumType: using JSglobal_return_val\n");
 		#endif
 
-		myJSVal = tg->JScript.JSglobal_return_val;
+		myJSVal = (jsval *)tg->JScript.JSglobal_return_val;
 	}
 
-	if (!JSVAL_IS_OBJECT(*myJSVal)) {
+	///if (!JSVAL_IS_OBJECT(*myJSVal)) {
+	if(!(*myJSVal).isObject()){
 		printf ("getJSMultiNumType - did not get an object\n");
 		return;
 	}
@@ -2159,7 +1949,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 
 	/* set these three up, but we only use one of them */
 	fl = (float *) tn->p;
-	il = (int *) tn->p;
+	il = (long *) tn->p;
 	dl = (double *) tn->p;
 	nl = (struct X3D_Node * *) tn->p;
 	ms = (struct Uni_String * *) tn->p;
@@ -2181,7 +1971,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 			case FIELDTYPE_SFVec2f:
 				*fl = (float) 0.0;  fl++; *fl = (float) 0.0;  fl++; break;
 			case FIELDTYPE_SFVec3f:
-	                case FIELDTYPE_SFColor:
+			case FIELDTYPE_SFColor:
 				*fl = (float) 0.0;  fl++; *fl = (float) 0.0;  fl++; *fl = (float) 0.0;  fl++; break;
 			case FIELDTYPE_SFRotation:
 				*fl = (float) 0.0;  fl++; *fl = (float) 0.0;  fl++; *fl = (float) 0.0;  fl++; *fl = (float) 0.0;  fl++; break;
@@ -2190,20 +1980,20 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 
 			default : {printf ("getJSMultiNumType unhandled eletype: %d\n",
 					eletype);
-				   return;
+					return;
 				}
 			}
 		} else {
 			#ifdef SETFIELDVERBOSE
 			JSString *_tmpStr;
 
-	                _tmpStr = JS_ValueToString(cx, mainElement);
+			_tmpStr = JS_ValueToString(cx, mainElement);
 #if JS_VERSION < 185
 			strp = JS_GetStringBytes(_tmpStr);
 #else
 			strp = strpp = JS_EncodeString(cx,_tmpStr);
 #endif
-	                printf ("sub element %d is \"%s\" \n",i,strp);
+			printf ("sub element %d is \"%s\" \n",i,strp);
 #if JS_VERSION >= 185
 			JS_free(cx,strpp);
 #endif
@@ -2220,7 +2010,7 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 					SFNodeNative *_vec;
 
 					/* printf ("yep, this is an SFNode class\n");  */
-				       if ((_vec = (SFNodeNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+					if ((_vec = (SFNodeNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
 						printf ("error getting native\n");
 						*nl = NULL;
 					} else {
@@ -2237,10 +2027,12 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 				break;
 			}
 			case FIELDTYPE_SFInt32: {
-				if (!JS_ValueToInt32(cx, mainElement ,il)) {
-					printf ("error\n");
-					*il=0;
-				}
+				//if (!JS::ToInt32(cx, mainElement ,il)) {
+				//	printf ("error\n");
+				//	*il=0;
+				//}
+				*il = 0;
+				if(mainElement.isInt32()) *il = mainElement.toInt32();
 				il++;
 				break;
 			}
@@ -2258,27 +2050,29 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 				break;
 			}
 			case FIELDTYPE_SFVec2f: {
-				if (JSVAL_IS_OBJECT(mainElement)) {
-	                        	if ((sfvec2f = (SFVec2fNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
-	                                	printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
-	                                	return;
-	                        	}
-	                        	memcpy ((void *)fl, (void *)&(sfvec2f->v),2*sizeof(float));
+				//if (JSVAL_IS_OBJECT(mainElement)) {
+				if(mainElement.isObject()){
+					if ((sfvec2f = (SFVec2fNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+							printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
+							return;
+					}
+					memcpy ((void *)fl, (void *)&(sfvec2f->v),2*sizeof(float));
 					fl += 2;
 				} else {
 					/* we are working in a value that kind of exists, but is undefined */
 					*fl = (float) 0.0; fl++; *fl = (float) 0.0; fl++;
 				}
-	                        break;
+				break;
 			}
 			case FIELDTYPE_SFVec3f:
-	                case FIELDTYPE_SFColor: {       /* SFColor */
-				if (JSVAL_IS_OBJECT(mainElement)) {
-	                        	if ((sfvec3f = (SFVec3fNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
-	                        	        printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
-	                        	        return;
-	                        	}
-	                        	memcpy ((void *)fl, (void *)&(sfvec3f->v),3*sizeof(float));
+			case FIELDTYPE_SFColor: {       /* SFColor */
+					//if (JSVAL_IS_OBJECT(mainElement)) {
+					if(mainElement.isObject()){
+					if ((sfvec3f = (SFVec3fNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+							printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
+							return;
+					}
+					memcpy ((void *)fl, (void *)&(sfvec3f->v),3*sizeof(float));
 					fl += 3;
 				} else {
 					/* we are working in a value that kind of exists, but is undefined */
@@ -2286,46 +2080,44 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 					*fl = (float) 0.0; fl++;
 					*fl = (float) 0.0; fl++;
 				}
-	                        break;
+				break;
 			}
 			case FIELDTYPE_SFRotation: {
-				if (JSVAL_IS_OBJECT(mainElement)) {
-	                        	if ((sfrotation = (SFRotationNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
-	                        	        printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
-	                        	        return;
-	                        	}
-	                        	memcpy ((void *)fl, (void *)&(sfrotation->v),4*sizeof(float));
+				//if (JSVAL_IS_OBJECT(mainElement)) {
+				if(mainElement.isObject()){
+					if ((sfrotation = (SFRotationNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {
+							printf( "JS_GetPrivate failed for obj in setField_javascriptEventOut.\n");
+							return;
+					}
+					memcpy ((void *)fl, (void *)&(sfrotation->v),4*sizeof(float));
 					fl += 4;
 				} else {
 					/* we are working in a value that kind of exists, but is undefined */
 					*fl = (float) 0.0; fl++;	*fl = (float) 0.0; fl++;
 					*fl = (float) 0.0; fl++;	*fl = (float) 0.0; fl++;
 				}
-	                        break;
+				break;
 			}
 
 			case FIELDTYPE_SFString: {
 				JSString *strval;
 
-	                        strval = JS_ValueToString(cx, mainElement);
-#if JS_VERSION < 185
-	                        strp = JS_GetStringBytes(strval);
-#else
+				strval = JS_ValueToString(cx, mainElement);
 				strp = strpp = JS_EncodeString(cx,strval);
-#endif
+
 
 
 				#ifdef SETFIELDVERBOSE
 				printf ("getJSMultiNumType, got string %s\n",strp);
 				#endif
 
-	                        /* copy the string over, delete the old one, if need be */
-	                        verify_Uni_String (*ms,strp);
+				/* copy the string over, delete the old one, if need be */
+				verify_Uni_String (*ms,strp);
 				ms++;
-#if JS_VERSION >= 185
+
 				JS_free(cx,strpp);
-#endif
-	                        break;
+
+				break;
 			}
 
 			default : {printf ("getJSMultiNumType unhandled eletype: %d\n",
@@ -2428,11 +2220,9 @@ void getMFStringtype (JSContext *cx, jsval *from, struct Multi_String *to) {
 			return;
 		}
 		strval = JS_ValueToString(cx, _v);
-#if JS_VERSION < 185
-		valStr = JS_GetStringBytes(strval);
-#else
+
 		valStr = JS_EncodeString(cx,strval);
-#endif
+
 
 		/* printf ("new string %d is %s\n",i,valStr); */
 
@@ -2441,9 +2231,9 @@ void getMFStringtype (JSContext *cx, jsval *from, struct Multi_String *to) {
 			/* MALLOC a new string, of correct len for terminator */
 			svptr[i] =  newASCIIString(valStr);
 		}
-#if JS_VERSION >= 185
+
 		JS_free(cx,valStr);
-#endif
+
 	}
 	/*
 	printf ("\n new structure: %d %d\n",svptr,newlen);
@@ -2459,34 +2249,18 @@ void getMFStringtype (JSContext *cx, jsval *from, struct Multi_String *to) {
 
 
 void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, JSContext *scriptContext) {
-        int ival;
-        double tval;
-        float fl[4];
+	long ival;
+	double tval;
+	float fl[4];
 	char *memptr;
-        JSString *strval; /* strings */
+	JSString *strval; /* strings */
 	char *strp;
-#if JS_VERSION >= 185
 	char *strpp;  /* strp is modified, so we cannot use it to free JS_EncodeString results */
-#endif
 	ttglobal tg = gglobal();
 
-	/* NOTE - parent calls BeginRequest so we don't have to */
 
 	/* set up a pointer to where to put this stuff */
 	memptr = offsetPointer_deref(char *, tn, tptr);
-
-	#ifdef SETFIELDVERBOSE
-	strval = JS_ValueToString(scriptContext, *(jsval *)tg->JScript.JSglobal_return_val);
-#if JS_VERSION < 185
-       	strp = JS_GetStringBytes(strval);
-#else
-	strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
-	printf ("start of setField_javascriptEventOut, to %ld:%d = %p, fieldtype %d string %s\n",(long)tn, tptr, memptr, fieldType, strp);
-#if JS_VERSION >= 185
-	JS_free(scriptContext,strpp);
-#endif
-	#endif
 
 #define GETJSVAL_TYPE_A(thistype,field) \
 		case FIELDTYPE_##thistype: { \
@@ -2499,34 +2273,39 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 		case FIELDTYPE_##MFtype: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_##SFtype); break;}
 
 	switch (fieldType) {
-                        GETJSVAL_TYPE_A(SFRotation,v)
-                        /* GETJSVAL_TYPE_A(SFNode,handle) */
-                        /* not implemented yet? GETJSVAL_TYPE_A(SFVec2d,v) */
-                        GETJSVAL_TYPE_A(SFVec3d,v)
-                        GETJSVAL_TYPE_A(SFVec4d,v)
-                        GETJSVAL_TYPE_A(SFVec2f,v)
-                        GETJSVAL_TYPE_A(SFVec3f,v)
-                        GETJSVAL_TYPE_A(SFVec4f,v)
-                        GETJSVAL_TYPE_A(SFColor,v)
-                        GETJSVAL_TYPE_A(SFColorRGBA,v)
+		GETJSVAL_TYPE_A(SFRotation,v)
+		/* GETJSVAL_TYPE_A(SFNode,handle) */
+		/* not implemented yet? GETJSVAL_TYPE_A(SFVec2d,v) */
+		GETJSVAL_TYPE_A(SFVec3d,v)
+		GETJSVAL_TYPE_A(SFVec4d,v)
+		GETJSVAL_TYPE_A(SFVec2f,v)
+		GETJSVAL_TYPE_A(SFVec3f,v)
+		GETJSVAL_TYPE_A(SFVec4f,v)
+		GETJSVAL_TYPE_A(SFColor,v)
+		GETJSVAL_TYPE_A(SFColorRGBA,v)
 
-                        GETJSVAL_TYPE_MF_A(MFRotation,SFRotation)
-                        GETJSVAL_TYPE_MF_A(MFVec2d,SFVec2d)
-                        GETJSVAL_TYPE_MF_A(MFVec3d,SFVec3d)
-                        GETJSVAL_TYPE_MF_A(MFVec4d,SFVec4d)
-                        GETJSVAL_TYPE_MF_A(MFVec2f,SFVec2f)
-                        GETJSVAL_TYPE_MF_A(MFVec3f,SFVec3f)
-                        GETJSVAL_TYPE_MF_A(MFVec4f,SFVec4f)
-                        GETJSVAL_TYPE_MF_A(MFColor,SFColor)
-                        GETJSVAL_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
+		GETJSVAL_TYPE_MF_A(MFRotation,SFRotation)
+		GETJSVAL_TYPE_MF_A(MFVec2d,SFVec2d)
+		GETJSVAL_TYPE_MF_A(MFVec3d,SFVec3d)
+		GETJSVAL_TYPE_MF_A(MFVec4d,SFVec4d)
+		GETJSVAL_TYPE_MF_A(MFVec2f,SFVec2f)
+		GETJSVAL_TYPE_MF_A(MFVec3f,SFVec3f)
+		GETJSVAL_TYPE_MF_A(MFVec4f,SFVec4f)
+		GETJSVAL_TYPE_MF_A(MFColor,SFColor)
+		GETJSVAL_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
 
 
 		case FIELDTYPE_SFInt32:
 		case FIELDTYPE_SFBool:	{	/* SFBool */
-			if (!JS_ValueToInt32(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val),&ival)) {
+			jsval val;
+			val = *(jsval*)(tg->JScript.JSglobal_return_val);
+			//if (!JS::ToInt32(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val),&ival)) {
+			ival=0;
+			if(! (val.isBoolean() || val.isInt32())){
 				printf ("error\n");
-				ival=0;
 			}
+			if(val.isBoolean()) ival = val.isTrue() ? TRUE : FALSE;
+			if(val.isInt32()) ival = val.toInt32() == 0 ? FALSE : TRUE;
 			memcpy ((void *)memptr, (void *)&ival,len);
 			break;
 		}
@@ -2549,16 +2328,9 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 		case FIELDTYPE_SFImage: {
 			/* the string should be saved as an SFImage */
 			strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
-#if JS_VERSION < 185
-	        	strp = JS_GetStringBytes(strval);
-#else
-	        	strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
-
+			strp = strpp = JS_EncodeString(scriptContext,strval);
 			Parser_scanStringValueToMem(tn, tptr, FIELDTYPE_SFImage, strp, FALSE);
-#if JS_VERSION >= 185
 			JS_free(scriptContext,strpp);
-#endif
 			break;
 		}
 
@@ -2567,24 +2339,16 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 			intptr_t *newptr;
 
 			strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
-#if JS_VERSION < 185
-			strp = JS_GetStringBytes(strval);
-#else
 			strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
-
 			/* copy the string over, delete the old one, if need be */
 			/* printf ("fieldSet SFString, tn %d tptr %d offset from struct %d\n",
 				tn, tptr, offsetof (struct X3D_TextureCoordinateGenerator, mode)); */
 			newptr = (intptr_t *)memptr;
 			ms = (struct Uni_String*) *newptr;
 			verify_Uni_String (ms,strp);
-#if JS_VERSION >= 185
 			JS_free(scriptContext,strpp);
-#endif
 			break;
 		}
-
 
 			/* a series of Floats... */
 		case FIELDTYPE_MFFloat: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_SFFloat); break;}
@@ -2592,34 +2356,28 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 		case FIELDTYPE_MFTime: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_SFTime); break;}
 		case FIELDTYPE_MFDouble: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_SFDouble); break;}
 		case FIELDTYPE_MFNode: {
-				struct X3D_Node *mynode;
+			struct X3D_Node *mynode;
 
-				strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
-#if JS_VERSION < 185
-				strp = JS_GetStringBytes(strval);
-#else
-				strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
+			strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
+			strp = strpp = JS_EncodeString(scriptContext,strval);
 
-				/* we will have at least one node here, in an ascii string */
-				while ((*strp > '\0') && (*strp <= ' ')) strp ++;
-				/* are we at a bracket? */
-				if (*strp == '[') strp ++;
-				while ((*strp > '\0') && (*strp <= ' ')) strp ++;
+			/* we will have at least one node here, in an ascii string */
+			while ((*strp > '\0') && (*strp <= ' ')) strp ++;
+			/* are we at a bracket? */
+			if (*strp == '[') strp ++;
+			while ((*strp > '\0') && (*strp <= ' ')) strp ++;
 
-				/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
+			/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
-				mynode = X3D_NODE(atol(strp));
-#if JS_VERSION >= 185
-				JS_free(scriptContext,strpp);
-#endif
+			mynode = X3D_NODE(atol(strp));
+			JS_free(scriptContext,strpp);
 
-				/* printf ("mynode is %p %d, \n",mynode,mynode);
-				printf ("mynode is %p %d, type %d\n",mynode,mynode,mynode->_nodeType);
-				printf ("calling getMFNodeType now\n"); */
+			/* printf ("mynode is %p %d, \n",mynode,mynode);
+			printf ("mynode is %p %d, type %d\n",mynode,mynode,mynode->_nodeType);
+			printf ("calling getMFNodeType now\n"); */
 
 
-				getMFNodetype (mynode,(struct Multi_Node *)memptr,X3D_NODE(tn),extraData); break;
+			getMFNodetype (mynode,(struct Multi_Node *)memptr,X3D_NODE(tn),extraData); break;
 		}
 		case FIELDTYPE_MFString: {
 			getMFStringtype (
@@ -2632,34 +2390,19 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 		case FIELDTYPE_SFNode: {
 			//unsigned int valuecopied;
 			//unsigned int *ptr2value;
-				/* printf ("doing TYPEA memcpy to %u, from %u, len %d\n",(void *)memptr, (void *) &(((SFNodeNative *)JSSFpointer)->handle),returnElementLength(FIELDTYPE_SFNode));*/
+			/* printf ("doing TYPEA memcpy to %u, from %u, len %d\n",(void *)memptr, (void *) &(((SFNodeNative *)JSSFpointer)->handle),returnElementLength(FIELDTYPE_SFNode));*/
 			memcpy ((void *)memptr, (void *) &(((SFNodeNative *)tg->CRoutes.JSSFpointer)->handle),returnElementLength(FIELDTYPE_SFNode));
-				//ptr2value = (unsigned int*)memptr;
-				//valuecopied = *ptr2value;
-				//printf("value of memptr %u after memcpy in script route= %u\n",(void*)memptr,valuecopied);
-				break;
+			//ptr2value = (unsigned int*)memptr;
+			//valuecopied = *ptr2value;
+			//printf("value of memptr %u after memcpy in script route= %u\n",(void*)memptr,valuecopied);
+			break;
 		}
-
-
 		default: {	printf("WARNING: unhandled from type %s\n", stringFieldtypeType(fieldType));
 		}
 	}
-
-	#ifdef SETFIELDVERBOSE
-	printf ("done setField_javascriptEventOut\n");
-	if (fieldType == FIELDTYPE_MFInt32) {
-		printf ("setField_javascriptEventOut, checking the pointers...\n");
-		printf ("node type is %s\n",stringNodeType(X3D_NODE(tn)->_nodeType));
-	}
-	if (fieldType == FIELDTYPE_SFNode) {
-		printf ("setField_javascriptEventOut, checking the pointers...\n");
-		printf ("node type is %s\n",stringNodeType(X3D_NODE(tn)->_nodeType));
-	}
-
-	#endif
 }
 
-void Parser_scanStringValueToMem_B(union anyVrml* any, indexT ctype, const char *value, int isXML);
+
 
 void setField_javascriptEventOut_B(union anyVrml* any,
 			int fieldType, unsigned len, int extraData, JSContext *scriptContext)
@@ -2667,34 +2410,16 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 	//dug9 Feb 2013 for new propagate_events - like setField_javascriptEventout except:
 	// writes to *anyVrml instead of (toNode,toOffset) combo (which doesn't work for Proto fields)
 	// and doesn't update parents for SFNode,MFNode - that's done later.
-        int ival;
-        double tval;
-        float fl[4];
+	long ival;
+	double tval;
+	float fl[4];
 	char *memptr;
-        JSString *strval; /* strings */
+	JSString *strval; /* strings */
 	char *strp;
-#if JS_VERSION >= 185
 	char *strpp;  /* strp is modified, so we cannot use it to free JS_EncodeString results */
-#endif
 	ttglobal tg = gglobal();
-
-	/* NOTE - parent calls BeginRequest so we don't have to */
-
 	/* set up a pointer to where to put this stuff */
 	memptr = (char *)any; //offsetPointer_deref(char *, tn, tptr);
-
-	#ifdef SETFIELDVERBOSE
-	strval = JS_ValueToString(scriptContext, *(jsval *)tg->JScript.JSglobal_return_val);
-#if JS_VERSION < 185
-       	strp = JS_GetStringBytes(strval);
-#else
-	strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
-	printf ("start of setField_javascriptEventOut, to %ld:%d = %p, fieldtype %d string %s\n",(long)any, fieldType, memptr, fieldType, strp);
-#if JS_VERSION >= 185
-	JS_free(scriptContext,strpp);
-#endif
-	#endif
 
 #define GETJSVAL_TYPE_A(thistype,field) \
 		case FIELDTYPE_##thistype: { \
@@ -2707,34 +2432,39 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 		case FIELDTYPE_##MFtype: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_##SFtype); break;}
 
 	switch (fieldType) {
-                        GETJSVAL_TYPE_A(SFRotation,v)
-                        /* GETJSVAL_TYPE_A(SFNode,handle) */
-                        /* not implemented yet? GETJSVAL_TYPE_A(SFVec2d,v) */
-                        GETJSVAL_TYPE_A(SFVec3d,v)
-                        GETJSVAL_TYPE_A(SFVec4d,v)
-                        GETJSVAL_TYPE_A(SFVec2f,v)
-                        GETJSVAL_TYPE_A(SFVec3f,v)
-                        GETJSVAL_TYPE_A(SFVec4f,v)
-                        GETJSVAL_TYPE_A(SFColor,v)
-                        GETJSVAL_TYPE_A(SFColorRGBA,v)
+		GETJSVAL_TYPE_A(SFRotation,v)
+		/* GETJSVAL_TYPE_A(SFNode,handle) */
+		/* not implemented yet? GETJSVAL_TYPE_A(SFVec2d,v) */
+		GETJSVAL_TYPE_A(SFVec3d,v)
+		GETJSVAL_TYPE_A(SFVec4d,v)
+		GETJSVAL_TYPE_A(SFVec2f,v)
+		GETJSVAL_TYPE_A(SFVec3f,v)
+		GETJSVAL_TYPE_A(SFVec4f,v)
+		GETJSVAL_TYPE_A(SFColor,v)
+		GETJSVAL_TYPE_A(SFColorRGBA,v)
 
-                        GETJSVAL_TYPE_MF_A(MFRotation,SFRotation)
-                        GETJSVAL_TYPE_MF_A(MFVec2d,SFVec2d)
-                        GETJSVAL_TYPE_MF_A(MFVec3d,SFVec3d)
-                        GETJSVAL_TYPE_MF_A(MFVec4d,SFVec4d)
-                        GETJSVAL_TYPE_MF_A(MFVec2f,SFVec2f)
-                        GETJSVAL_TYPE_MF_A(MFVec3f,SFVec3f)
-                        GETJSVAL_TYPE_MF_A(MFVec4f,SFVec4f)
-                        GETJSVAL_TYPE_MF_A(MFColor,SFColor)
-                        GETJSVAL_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
+		GETJSVAL_TYPE_MF_A(MFRotation,SFRotation)
+		GETJSVAL_TYPE_MF_A(MFVec2d,SFVec2d)
+		GETJSVAL_TYPE_MF_A(MFVec3d,SFVec3d)
+		GETJSVAL_TYPE_MF_A(MFVec4d,SFVec4d)
+		GETJSVAL_TYPE_MF_A(MFVec2f,SFVec2f)
+		GETJSVAL_TYPE_MF_A(MFVec3f,SFVec3f)
+		GETJSVAL_TYPE_MF_A(MFVec4f,SFVec4f)
+		GETJSVAL_TYPE_MF_A(MFColor,SFColor)
+		GETJSVAL_TYPE_MF_A(MFColorRGBA,SFColorRGBA)
 
 
 		case FIELDTYPE_SFInt32:
 		case FIELDTYPE_SFBool:	{	/* SFBool */
-			if (!JS_ValueToInt32(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val),&ival)) {
+			
+			jsval val = *(jsval*)(tg->JScript.JSglobal_return_val);
+			if(!val.isBoolean() || val.isInt32()){
+			//if (!JS::ToInt32(scriptContext, ,&ival)) {
 				printf ("error\n");
 				ival=0;
 			}
+			if(val.isBoolean()) ival = val.isTrue() ? TRUE : FALSE;
+			if(val.isInt32()) ival = val.toInt32() == 0 ? FALSE : TRUE;
 			memcpy ((void *)memptr, (void *)&ival,len);
 			break;
 		}
@@ -2757,16 +2487,9 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 		case FIELDTYPE_SFImage: {
 			/* the string should be saved as an SFImage */
 			strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
-#if JS_VERSION < 185
-	        	strp = JS_GetStringBytes(strval);
-#else
-	        	strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
-
+			strp = strpp = JS_EncodeString(scriptContext,strval);
 			Parser_scanStringValueToMem_B(any, FIELDTYPE_SFImage, strp, FALSE);
-#if JS_VERSION >= 185
 			JS_free(scriptContext,strpp);
-#endif
 			break;
 		}
 
@@ -2775,11 +2498,7 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 			intptr_t *newptr;
 
 			strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
-#if JS_VERSION < 185
-			strp = JS_GetStringBytes(strval);
-#else
 			strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
 
 			/* copy the string over, delete the old one, if need be */
 			/* printf ("fieldSet SFString, tn %d tptr %d offset from struct %d\n",
@@ -2787,16 +2506,14 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 			newptr = (intptr_t *)memptr;
 			ms = (struct Uni_String*) *newptr;
 			if(!ms) {
-				ms = malloc(sizeof(struct Uni_String));
+				ms = (struct Uni_String*)malloc(sizeof(struct Uni_String));
 				*newptr = (intptr_t) ms;
 				ms->len = 0;
 				ms->strptr = NULL;
 				ms->touched = FALSE;
 			}
 			verify_Uni_String (ms,strp);
-#if JS_VERSION >= 185
 			JS_free(scriptContext,strpp);
-#endif
 			break;
 		}
 
@@ -2807,39 +2524,32 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 		case FIELDTYPE_MFTime: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_SFTime); break;}
 		case FIELDTYPE_MFDouble: {getJSMultiNumType (scriptContext, (struct Multi_Vec3f *)memptr,FIELDTYPE_SFDouble); break;}
 		case FIELDTYPE_MFNode: {
-				struct X3D_Node *mynode;
+			struct X3D_Node *mynode;
 
-				strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
-#if JS_VERSION < 185
-				strp = JS_GetStringBytes(strval);
-#else
-				strp = strpp = JS_EncodeString(scriptContext,strval);
-#endif
+			strval = JS_ValueToString(scriptContext, *(jsval*)(tg->JScript.JSglobal_return_val));
+			strp = strpp = JS_EncodeString(scriptContext,strval);
+			/* we will have at least one node here, in an ascii string */
+			while ((*strp > '\0') && (*strp <= ' ')) strp ++;
+			/* are we at a bracket? */
+			if (*strp == '[') strp ++;
+			while ((*strp > '\0') && (*strp <= ' ')) strp ++;
 
-				/* we will have at least one node here, in an ascii string */
-				while ((*strp > '\0') && (*strp <= ' ')) strp ++;
-				/* are we at a bracket? */
-				if (*strp == '[') strp ++;
-				while ((*strp > '\0') && (*strp <= ' ')) strp ++;
+			/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
-				/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
+			mynode = X3D_NODE(atol(strp));
+			JS_free(scriptContext,strpp);
 
-				mynode = X3D_NODE(atol(strp));
-#if JS_VERSION >= 185
-				JS_free(scriptContext,strpp);
-#endif
-
-				/* printf ("mynode is %p %d, \n",mynode,mynode);
-				printf ("mynode is %p %d, type %d\n",mynode,mynode,mynode->_nodeType);
-				printf ("calling getMFNodeType now\n"); */
+			/* printf ("mynode is %p %d, \n",mynode,mynode);
+			printf ("mynode is %p %d, type %d\n",mynode,mynode,mynode->_nodeType);
+			printf ("calling getMFNodeType now\n"); */
 
 
-				//getMFNodetype (mynode,(struct Multi_Node *)memptr,X3D_NODE(tn),extraData);
-				any->mfnode.n = 1;
-				any->mfnode.p = MALLOC(struct X3D_Node **, sizeof(struct X3D_Node *));
-				any->mfnode.p[0] = mynode;
-				//Q. can we do add/remove children outside?
-				break;
+			//getMFNodetype (mynode,(struct Multi_Node *)memptr,X3D_NODE(tn),extraData);
+			any->mfnode.n = 1;
+			any->mfnode.p = MALLOC(struct X3D_Node **, sizeof(struct X3D_Node *));
+			any->mfnode.p[0] = mynode;
+			//Q. can we do add/remove children outside?
+			break;
 		}
 		case FIELDTYPE_MFString: {
 			getMFStringtype (
@@ -2854,56 +2564,52 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 			//unsigned int *ptr2value;
 				/* printf ("doing TYPEA memcpy to %u, from %u, len %d\n",(void *)memptr, (void *) &(((SFNodeNative *)JSSFpointer)->handle),returnElementLength(FIELDTYPE_SFNode));*/
 			memcpy ((void *)memptr, (void *) &(((SFNodeNative *)tg->CRoutes.JSSFpointer)->handle),returnElementLength(FIELDTYPE_SFNode));
-				//ptr2value = (unsigned int*)memptr;
-				//valuecopied = *ptr2value;
-				//printf("value of memptr %u after memcpy in script route= %u\n",(void*)memptr,valuecopied);
-				break;
+			//ptr2value = (unsigned int*)memptr;
+			//valuecopied = *ptr2value;
+			//printf("value of memptr %u after memcpy in script route= %u\n",(void*)memptr,valuecopied);
+			break;
 		}
-
-
 		default: {	printf("WARNING: unhandled from type %s\n", stringFieldtypeType(fieldType));
 		}
 	}
 
-	#ifdef SETFIELDVERBOSE
-	printf ("done setField_javascriptEventOut\n");
-	if (fieldType == FIELDTYPE_MFInt32) {
-		printf ("setField_javascriptEventOut, checking the pointers...\n");
-		printf ("node type is %s\n",stringNodeType(X3D_NODE(any)->_nodeType));
-	}
-	if (fieldType == FIELDTYPE_SFNode) {
-		printf ("setField_javascriptEventOut, checking the pointers...\n");
-		printf ("node type is %s\n",stringNodeType(X3D_NODE(any)->_nodeType));
-	}
-
-	#endif
 }
 
+extern "C" {
 void sm_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
 	struct CRscriptStruct *scriptcontrol;
-
+	JSContext *cx;
+	JSObject *global;
 	scriptcontrol = getScriptControlIndex(actualscript);
-#if defined(JS_THREADSAFE)
-		JS_BeginRequest(scriptcontrol->cx);
-#endif
-		setField_javascriptEventOut(tn,tptr,fieldType, len, extraData, scriptcontrol->cx);
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(scriptcontrol->cx);
-#endif
+	cx = (JSContext*)scriptcontrol->cx;
+	global = (JSObject*)scriptcontrol->glob;
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			setField_javascriptEventOut(tn,tptr,fieldType, len, extraData, (JSContext*)scriptcontrol->cx);
+		} //Scope B
+	} //Scope A
 }
 
 void sm_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
 	struct CRscriptStruct *scriptcontrol;
-
+	JSContext *cx;
+	JSObject *global;
 	scriptcontrol = getScriptControlIndex(actualscript);
-#if defined(JS_THREADSAFE)
-		JS_BeginRequest(scriptcontrol->cx);
-#endif
-		setField_javascriptEventOut_B(any,fieldType, len, extraData, scriptcontrol->cx);
-
-#if defined(JS_THREADSAFE)
-		JS_EndRequest(scriptcontrol->cx);
-#endif
+	cx = (JSContext*)scriptcontrol->cx;
+	global = (JSObject*)scriptcontrol->glob;
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, global);
+			setField_javascriptEventOut_B(any,fieldType, len, extraData, (JSContext*)scriptcontrol->cx);
+		} //Scope B
+	} //Scope A
 }
 
 
@@ -2927,69 +2633,80 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 	cx =  (JSContext*)ScriptControl->cx;
 	obj = (JSObject*)ScriptControl->glob;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(cx);
-#endif
-	/* set the time for this script */
-	SET_JS_TICKTIME
+	{ // Scope for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
 
-	//step 1 set the field value
-	kind = JSparamnames[toname].kind; //PKW_inputOnly;
-	if(SM_method() == 2){
-		int type, iifield, *valueChanged, ifound;
-		union anyVrml *value;
-		char *fieldname;
-		struct Shader_Script *script = ScriptControl->script;
-		fieldname = JSparamnames[toname].name;
-		//step 1 update the fieldvalue
-		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
-		if(ifound && type == dataType && isSFType(type)){
-			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
-			union anyVrml *any = (union anyVrml*)Data;
-			//printf("any float=%f",any->sffloat);
-			shallow_copy_field(type,any,value);
-			//if we have an inputOutput field with no eventIn function, we may still be routing
-			//from the out side
-			(*valueChanged) = 1;
-		}else{
-			ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
-			return;
-		}
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope for JSAutoCompartment
+			JSAutoCompartment ac(cx, obj);
 
-	}else{ //SM_method == 2
-		X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
+			/* set the time for this script */
+			//SET_JS_TICKTIME
+			{ 
+				jsval zimbo; 
+				JS_NewNumberValue(cx, TickTime(), &zimbo);
+				if (!JS_DefineProperty(cx,obj, "__eventInTickTime", zimbo, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB2, JSPROP_PERMANENT)) {
+						printf( "JS_DefineProperty failed for \"__eventInTickTime\" at %s:%d.\n",__FILE__,__LINE__);
+						return;
+				}
+			}
 
-		/* get the variable name to hold the incoming value */
-		scriptline[0] = 0;
-		if(kind == PKW_inputOnly)
-			strcat(scriptline,"__eventIn_Value_");
-		//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
-		strcat(scriptline,JSparamnames[toname].name);
-		#ifdef SETFIELDVERBOSE
-		printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
-		#endif
+			//step 1 set the field value
+			kind = JSparamnames[toname].kind; //PKW_inputOnly;
+			if(SM_method() == 2){
+				int type, iifield, *valueChanged, ifound;
+				union anyVrml *value;
+				char *fieldname;
+				struct Shader_Script *script = ScriptControl->script;
+				fieldname = JSparamnames[toname].name;
+				//step 1 update the fieldvalue
+				ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+				if(ifound && type == dataType && isSFType(type)){
+					//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+					union anyVrml *any = (union anyVrml*)Data;
+					//printf("any float=%f",any->sffloat);
+					shallow_copy_field(type,any,value);
+					//if we have an inputOutput field with no eventIn function, we may still be routing
+					//from the out side
+					(*valueChanged) = 1;
+				}else{
+					ConsoleMessage("sm_set_one_ECMAtype did not find field %s type %d\n",fieldname, dataType);
+					return;
+				}
 
-		if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
-			printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
-#if defined(JS_THREADSAFE)
-			JS_EndRequest(cx);
-#endif
-			return;
-        }
+			}else{ //SM_method == 2
+				X3D_ECMA_TO_JS(cx, Data, datalen, dataType, &newval);
 
-	} //SM_method == 2
+				/* get the variable name to hold the incoming value */
+				scriptline[0] = 0;
+				if(kind == PKW_inputOnly)
+					strcat(scriptline,"__eventIn_Value_");
+				//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[toname].name);
+				strcat(scriptline,JSparamnames[toname].name);
+				#ifdef SETFIELDVERBOSE
+				printf ("set_one_ECMAtype, calling JS_DefineProperty on name %s obj %u, setting setECMANative, 0 \n",scriptline,obj);
+				#endif
 
-	//step 2 run eventin if it exists
-	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+				if (!JS_DefineProperty(cx,obj, scriptline, newval, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_PERMANENT)) {
+					printf( "JS_DefineProperty failed for \"ECMA in\" at %s:%d.\n",__FILE__,__LINE__);
+					return;
+				}
 
-	/* and run the function */
-	RUN_FUNCTION (toname)
+			} //SM_method == 2
+
+			//step 2 run eventin if it exists
+			/* is the function compiled yet? */
+			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+
+			/* and run the function */
+			RUN_FUNCTION (toname)
+
+		} //Scope B
+
+	} //Scope A
 
 
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(cx);
-#endif
 }
 
 /*  setScriptECMAtype called by getField_ToJavascript for
@@ -3014,10 +2731,10 @@ void sm_setScriptECMAtype (int num) {
 	len = CRoutes[num].len;
 
 	for (to_counter = 0; to_counter < CRoutes[num].tonode_count; to_counter++) {
-                struct Shader_Script *myObj;
+		struct Shader_Script *myObj;
 
 		to_ptr = &(CRoutes[num].tonodes[to_counter]);
-                myObj = X3D_SCRIPT(to_ptr->routeToNode)->__scriptObj;
+		myObj = (struct Shader_Script*)X3D_SCRIPT(to_ptr->routeToNode)->__scriptObj;
 		/* printf ("setScriptECMAtype, myScriptNumber is %d\n",myObj->num); */
 		tptr = to_ptr->foffset;
 		set_one_ECMAtype (myObj->num, tptr, JSparamnames[tptr].type, fn,len);
@@ -3049,489 +2766,483 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 	cx =  (JSContext*)ScriptControl->cx;
 	obj = (JSObject*)ScriptControl->glob;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(cx);
-#endif
-	/* set the TickTime (possibly again) for this context */
-	kind = JSparamnames[toname].kind; //PKW_inputOnly;
-	if(SM_method() == 2){
-		int type, iifield, *valueChanged, ifound;
-		union anyVrml *value;
-		char *fieldname;
-		struct Shader_Script *script = ScriptControl->script;
-		fieldname = JSparamnames[toname].name;
-		//step 1 update the fieldvalue
-		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
-		if(ifound && type == dataType && !isSFType(type)){
-			//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
-			union anyVrml any;
-			any.mfbool.n = datalen;
-			any.mfbool.p = Data;
-			//printf("address of any.p %x value.p %x",any.mfbool.p,value->mfbool.p);
-			//printf("any.n=%d \n",any.mffloat.n);
-			//printf("mfany= %f %f %f",any.mffloat.p[0],any.mffloat.p[1],any.mffloat.p[2]);
-			//printf("target value.n= %d\n",value->mfbool.n);
-			shallow_copy_field(type,&any,value);
-			//printf("after shallow_copy_field:\n");
-			//printf("target value.n= %d\n",value->mfbool.n);
-			//printf("mfvalue= %f %f %f",value->mffloat.p[0],value->mffloat.p[1],value->mffloat.p[2]);
+	{ // Scope A  for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B  for JSAutoCompartment
+			JSAutoCompartment ac(cx, obj);
 
-			//if we have an inputOutput field with no eventIn function, we may still be routing
-			//from the out side
-			(*valueChanged) = 1;
-		}else{
-			ConsoleMessage("sm_set_one_MFElementType did not find field %s type %d\n",fieldname, dataType);
-			return;
-		}
-		//step 2 run the eventIn if it exists
-		SET_JS_TICKTIME
-		//compile also pushes the field val onto call stack
-		COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-		RUN_FUNCTION(toname)
-		return;
-	}
-	SET_JS_TICKTIME
+			/* set the TickTime (possibly again) for this context */
+			kind = JSparamnames[toname].kind; //PKW_inputOnly;
+			if(SM_method() == 2){
+				int type, iifield, *valueChanged, ifound;
+				union anyVrml *value;
+				char *fieldname;
+				struct Shader_Script *script = ScriptControl->script;
+				fieldname = JSparamnames[toname].name;
+				//step 1 update the fieldvalue
+				ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+				if(ifound && type == dataType && !isSFType(type)){
+					//we have an MF field, and mf coming in, we'll call our field LHS and incoming RHS
+					union anyVrml any;
+					any.mfbool.n = datalen;
+					any.mfbool.p = (int *)Data;
+					//printf("address of any.p %x value.p %x",any.mfbool.p,value->mfbool.p);
+					//printf("any.n=%d \n",any.mffloat.n);
+					//printf("mfany= %f %f %f",any.mffloat.p[0],any.mffloat.p[1],any.mffloat.p[2]);
+					//printf("target value.n= %d\n",value->mfbool.n);
+					shallow_copy_field(type,&any,value);
+					//printf("after shallow_copy_field:\n");
+					//printf("target value.n= %d\n",value->mfbool.n);
+					//printf("mfvalue= %f %f %f",value->mffloat.p[0],value->mffloat.p[1],value->mffloat.p[2]);
 
-	/* make up the name */
-	switch (dataType) {
-		case FIELDTYPE_MFRotation: {
-			JSObject *newMFObject;
-			JSObject *newSFObject;
-			SFRotationNative 	*SFRPptr;
-			float *fp, *fp_in=(float *)Data;
-
-			/* create a new MFRotation object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFRotationClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (float);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFRotation object */
-				newSFObject = JS_ConstructObjectFw(cx,&SFRotationClass,NULL, newMFObject);
-				if ((SFRPptr = (SFRotationNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
-					ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
-#if defined(JS_THREADSAFE)
-					JS_EndRequest(cx);
-#endif
+					//if we have an inputOutput field with no eventIn function, we may still be routing
+					//from the out side
+					(*valueChanged) = 1;
+				}else{
+					ConsoleMessage("sm_set_one_MFElementType did not find field %s type %d\n",fieldname, dataType);
 					return;
 				}
-
-				/* fill the private pointer area */
-				fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[2] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[3] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
+				//step 2 run the eventIn if it exists
+				SET_JS_TICKTIME
+				//compile also pushes the field val onto call stack
+				COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+				RUN_FUNCTION(toname)
+				return;
 			}
+			SET_JS_TICKTIME
 
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
+			/* make up the name */
+			switch (dataType) {
+				case FIELDTYPE_MFRotation: {
+					JSObject *newMFObject;
+					JSObject *newSFObject;
+					SFRotationNative 	*SFRPptr;
+					float *fp, *fp_in=(float *)Data;
 
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+					/* create a new MFRotation object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFRotationClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
 
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
 
-		case FIELDTYPE_MFVec3f: {
-			JSObject *newMFObject;
-			JSObject *newSFObject;
-			SFVec3fNative 	*SFRPptr;
-			float *fp, *fp_in=(float *)Data;
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (float);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFRotation object */
+						newSFObject = JS_ConstructObjectFw(cx,&SFRotationClass,NULL, newMFObject);
+						if ((SFRPptr = (SFRotationNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
+							ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
+							return;
+						}
 
-			/* create a new MFVec3f object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFVec3fClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
+						/* fill the private pointer area */
+						fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[2] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[3] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
 
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
 
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (float);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFVec3f object */
-				newSFObject = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, newMFObject);
-				if ((SFRPptr = (SFVec3fNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
-					 ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
-#if defined(JS_THREADSAFE)
-					JS_EndRequest(cx);
-#endif
-					return;
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the obj variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
 				}
 
-				/* fill the private pointer area */
-				fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[2] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+				case FIELDTYPE_MFVec3f: {
+					JSObject *newMFObject;
+					JSObject *newSFObject;
+					SFVec3fNative 	*SFRPptr;
+					float *fp, *fp_in=(float *)Data;
 
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+					/* create a new MFVec3f object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFVec3fClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (float);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFVec3f object */
+						newSFObject = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, newMFObject);
+						if ((SFRPptr = (SFVec3fNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
+							 ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
+							return;
+						}
+
+						/* fill the private pointer area */
+						fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[2] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
 				}
+
+				case FIELDTYPE_MFColor: {
+					JSObject *newMFObject;
+					JSObject *newSFObject;
+					SFColorNative 	*SFRPptr;
+					float *fp, *fp_in=(float *)Data;
+
+					/* create a new MFColor object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFColorClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (float);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFColor object */
+						newSFObject = JS_ConstructObjectFw(cx,&SFColorClass,NULL, newMFObject);
+						if ((SFRPptr = (SFColorNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
+							ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
+							return;
+						}
+
+						/* fill the private pointer area */
+						fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[2] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+
+				case FIELDTYPE_MFVec2f: {
+					JSObject *newMFObject;
+					JSObject *newSFObject;
+					SFVec2fNative 	*SFRPptr;
+					float *fp, *fp_in=(float *)Data;
+
+					/* create a new MFVec2f object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFVec2fClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (float);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFVec2f object */
+						newSFObject = JS_ConstructObjectFw(cx,&SFVec2fClass,NULL, newMFObject);
+						if ((SFRPptr = (SFVec2fNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
+							ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
+							return;
+						}
+
+						/* fill the private pointer area */
+						fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+						fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								ConsoleMessage("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+
+
+				case FIELDTYPE_MFFloat: {
+					JSObject *newMFObject;
+					jsval newjsval;
+					float *fp, *fp_in=(float *)Data;
+					/* create a new MFFloat object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFFloatClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (float);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFFloat object */
+
+						fp = (float *)fp_in;
+						JS_NewNumberValue(cx,(double)*fp,&newjsval);
+						fp_in = offsetPointer_deref(float *,fp_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+				case FIELDTYPE_MFTime: {
+					JSObject *newMFObject;
+					jsval newjsval;
+					double *dp, *dp_in=(double *)Data;
+
+					/* create a new MFTime object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFTimeClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (double);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFTime object */
+
+						dp = (double *)dp_in;
+						JS_NewNumberValue(cx,(double)*dp,&newjsval);
+						dp_in = offsetPointer_deref(double *,dp_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+				case FIELDTYPE_MFInt32: {
+					JSObject *newMFObject;
+					jsval newjsval;
+					int *ip, *ip_in=(int *)Data;
+
+					/* create a new MFInt32 object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFInt32Class, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (float);
+					for (x=0; x<datalen; x++) {
+						/* create a new SFInt32 object */
+
+						ip = (int *)ip_in;
+						newjsval = INT_TO_JSVAL((int)ip); /* NOTE--this is assigning the pointer itself as an int, not its content */
+						ip_in = offsetPointer_deref(int *,ip_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+				case FIELDTYPE_MFString: {
+					JSObject *newMFObject;
+					jsval newjsval;
+					struct Uni_String * *ip_in=(struct Uni_String **)Data;
+
+					/* create a new MFString object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFStringClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* Data points to a Uni_String */
+					uniptr = (struct Uni_String **) ip_in;
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					for (x=0; x<datalen; x++) {
+						/* create a new SFString object */
+
+						chptr = uniptr[x]->strptr;
+						newjsval = STRING_TO_JSVAL( JS_NewStringCopyZ(cx,chptr));
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+				case FIELDTYPE_MFNode: {
+					JSObject *newMFObject;
+					jsval newjsval;
+					double *ip, *ip_in=(double *)Data;
+					/* create a new MFNode object... */
+					newMFObject = JS_ConstructObjectFw(cx, &MFNodeClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					elementlen = (int) sizeof (void *);
+					for (x=0; x<datalen; x++) {
+						ip = ip_in;
+						newjsval = INT_TO_JSVAL((int)ip); /* NOTE--assigning pointer itself as int, not its content */
+						ip_in = offsetPointer_deref(double *,ip_in,elementlen);
+
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
+							JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+								printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+					break;
+				}
+
+				case FIELDTYPE_SFImage:	{
+					JSObject *newMFObject;
+					jsval newjsval;
+					int *ip_in=(int *)Data;
+
+					/* create a new MFNode object... */
+					newMFObject = JS_ConstructObjectFw(cx, &SFImageClass, NULL ,JS_GetParentFw(cx, obj));
+					ADD_ROOT (cx, newMFObject)
+
+					/* define the "length" property for this object */
+					DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
+
+					/* fill in private pointer area */
+					for (x=0; x<datalen; x++) {
+						newjsval = INT_TO_JSVAL(ip_in[x]);
+						/* put this object into the MF class */
+						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
+											  JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
+							printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
+						}
+					}
+
+					/* set the length of this MF */
+					SET_LENGTH (cx,newMFObject,datalen)
+
+					/* set the global variable with this new MF object */
+					SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
+
+					/* run the function */
+					COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+					RUN_FUNCTION(toname)
+
+					break;
+					}
+
+				default: {
+						printf ("setMFElement, SHOULD NOT DISPLAY THIS\n");
+						strcat (scriptline,"(");
+					}
 			}
+		} //Scope B
+	} //Scope A
 
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-
-		case FIELDTYPE_MFColor: {
-			JSObject *newMFObject;
-			JSObject *newSFObject;
-			SFColorNative 	*SFRPptr;
-			float *fp, *fp_in=(float *)Data;
-
-			/* create a new MFColor object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFColorClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (float);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFColor object */
-				newSFObject = JS_ConstructObjectFw(cx,&SFColorClass,NULL, newMFObject);
-				if ((SFRPptr = (SFColorNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
-					ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
-#if defined(JS_THREADSAFE)
-					JS_EndRequest(cx);
-#endif
-					return;
-				}
-
-				/* fill the private pointer area */
-				fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[2] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-
-		case FIELDTYPE_MFVec2f: {
-			JSObject *newMFObject;
-			JSObject *newSFObject;
-			SFVec2fNative 	*SFRPptr;
-			float *fp, *fp_in=(float *)Data;
-
-			/* create a new MFVec2f object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFVec2fClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (float);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFVec2f object */
-				newSFObject = JS_ConstructObjectFw(cx,&SFVec2fClass,NULL, newMFObject);
-				if ((SFRPptr = (SFVec2fNative *)JS_GetPrivateFw(cx, newSFObject)) == NULL) {
-					ConsoleMessage ("failure in getting SF class at %s:%d\n",__FILE__,__LINE__);
-#if defined(JS_THREADSAFE)
-					JS_EndRequest(cx);
-#endif
-					return;
-				}
-
-				/* fill the private pointer area */
-				fp = (float *)fp_in; SFRPptr->v.c[0] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-				fp = (float *)fp_in; SFRPptr->v.c[1] = *fp; fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, OBJECT_TO_JSVAL(newSFObject),
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						ConsoleMessage("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-
-
-		case FIELDTYPE_MFFloat: {
-			JSObject *newMFObject;
-			jsval newjsval;
-			float *fp, *fp_in=(float *)Data;
-			/* create a new MFFloat object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFFloatClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (float);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFFloat object */
-
-				fp = (float *)fp_in;
-				JS_NewNumberValue(cx,(double)*fp,&newjsval);
-				fp_in = offsetPointer_deref(float *,fp_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-		case FIELDTYPE_MFTime: {
-			JSObject *newMFObject;
-			jsval newjsval;
-			double *dp, *dp_in=(double *)Data;
-
-			/* create a new MFTime object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFTimeClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (double);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFTime object */
-
-				dp = (double *)dp_in;
-				JS_NewNumberValue(cx,(double)*dp,&newjsval);
-				dp_in = offsetPointer_deref(double *,dp_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-		case FIELDTYPE_MFInt32: {
-			JSObject *newMFObject;
-			jsval newjsval;
-			int *ip, *ip_in=(int *)Data;
-
-			/* create a new MFInt32 object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFInt32Class, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (float);
-			for (x=0; x<datalen; x++) {
-				/* create a new SFInt32 object */
-
-				ip = (int *)ip_in;
-				newjsval = INT_TO_JSVAL((int)ip); /* NOTE--this is assigning the pointer itself as an int, not its content */
-				ip_in = offsetPointer_deref(int *,ip_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-		case FIELDTYPE_MFString: {
-			JSObject *newMFObject;
-			jsval newjsval;
-			struct Uni_String * *ip_in=(struct Uni_String **)Data;
-
-			/* create a new MFString object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFStringClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* Data points to a Uni_String */
-			uniptr = (struct Uni_String **) ip_in;
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			for (x=0; x<datalen; x++) {
-				/* create a new SFString object */
-
-				chptr = uniptr[x]->strptr;
-				newjsval = STRING_TO_JSVAL( JS_NewStringCopyZ(cx,chptr));
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-		case FIELDTYPE_MFNode: {
-			JSObject *newMFObject;
-			jsval newjsval;
-			double *ip, *ip_in=(double *)Data;
-			/* create a new MFNode object... */
-			newMFObject = JS_ConstructObjectFw(cx, &MFNodeClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			elementlen = (int) sizeof (void *);
-			for (x=0; x<datalen; x++) {
-				ip = ip_in;
-				newjsval = INT_TO_JSVAL((int)ip); /* NOTE--assigning pointer itself as int, not its content */
-				ip_in = offsetPointer_deref(double *,ip_in,elementlen);
-
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
-					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-						printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-			break;
-		}
-
-		case FIELDTYPE_SFImage:	{
-			JSObject *newMFObject;
-			jsval newjsval;
-			int *ip_in=(int *)Data;
-
-			/* create a new MFNode object... */
-			newMFObject = JS_ConstructObjectFw(cx, &SFImageClass, NULL ,JS_GetParentFw(cx, obj));
-			ADD_ROOT (cx, newMFObject)
-
-			/* define the "length" property for this object */
-			DEFINE_LENGTH_NORV(cx,newMFObject,datalen)
-
-			/* fill in private pointer area */
-			for (x=0; x<datalen; x++) {
-				newjsval = INT_TO_JSVAL(ip_in[x]);
-				/* put this object into the MF class */
-				if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,
-				                      JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB3, JSPROP_ENUMERATE)) {
-					printf("failure in inserting SF class at %s:%d\n",__FILE__,__LINE__);
-				}
-			}
-
-			/* set the length of this MF */
-			SET_LENGTH (cx,newMFObject,datalen)
-
-			/* set the global variable with this new MF object */
-			SET_EVENTIN_VALUE (cx,obj,toname,newMFObject)
-
-			/* run the function */
-			COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-			RUN_FUNCTION(toname)
-
-			break;
-			}
-
-		default: {
-				printf ("setMFElement, SHOULD NOT DISPLAY THIS\n");
-				strcat (scriptline,"(");
-			}
-	}
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(cx);
-#endif
 }
+
+} //extern "C"
 
 /****************************************************************/
 /* sets a SFVec3f and SFColor and SFVec3d 			*/
@@ -3550,9 +3261,6 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 	JSObject *sfObj;
 	jsval retval;
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
-
-	/* NOTE -- this is only called once, and the caller has already defined a JS_BeginRequest() */
-
 
 	/* get the variable name to hold the incoming value */
 	//sprintf (scriptline,"__eventIn_Value_%s", JSparamnames[tnfield].name);
@@ -3573,7 +3281,8 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 		//return NULL;
 	}
 	*iflag = 1;
-	if (!JSVAL_IS_OBJECT(retval)){
+	//if (!JSVAL_IS_OBJECT(retval)){
+	if(!retval.isObject()){
 		// you don't have an inputOnly static object with this name (but might have a field static object,
 		//return NULL;
 		//could be inputOutput which has a norma field name
@@ -3583,7 +3292,8 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 			printf ("no field for eventIn function: %s\n",JSparamnames[tnfield].name);
 			return NULL;
 		}
-		if (!JSVAL_IS_OBJECT(retval)){
+		//if (!JSVAL_IS_OBJECT(retval)){
+		if(!retval.isObject()){
 			printf ("no field for eventIn function: %s\n",JSparamnames[tnfield].name);
 			return NULL;
 		}
@@ -3659,6 +3369,7 @@ void **getInternalDataPointerForJavascriptObject(JSContext *cx, JSObject *obj, i
 		and if so do some extra work. If not so be it.
 	set_one_multielementtype is for SFVecxx, SFColorxxxx, SFNode, SFRotation
 */
+extern "C" {
 void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen ) {
 	char scriptline[256];
 	JSContext *cx;
@@ -3673,67 +3384,62 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 	cx =  (JSContext*)ScriptControl->cx;
 	obj = (JSObject*)ScriptControl->glob;
 
-#if defined(JS_THREADSAFE)
-	JS_BeginRequest(cx);
-#endif
-	toname = tnfield;
-	kind =  JSparamnames[toname].kind; // PKW_inputOnly;
-	if(SM_method() == 2){
-		int type, iifield, *valueChanged, ifound, datatype;
-		union anyVrml *value;
-		char *fieldname;
-		struct Shader_Script *script = ScriptControl->script;
+	{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
+		// out of scope before we JS_DestroyContext.
+		JSAutoRequest ar(cx); // In practice, you would want to exit this any
+							// time you're spinning the event loop
+		{ // Scope B for JSAutoCompartment
+			JSAutoCompartment ac(cx, obj);
+			toname = tnfield;
+			kind =  JSparamnames[toname].kind; // PKW_inputOnly;
+			if(SM_method() == 2){
+				int type, iifield, *valueChanged, ifound, datatype;
+				union anyVrml *value;
+				char *fieldname;
+				struct Shader_Script *script = ScriptControl->script;
 
-		fieldname = JSparamnames[toname].name;
-		datatype = JSparamnames[toname].type;
+				fieldname = JSparamnames[toname].name;
+				datatype = JSparamnames[toname].type;
 
-		//step 1 update the fieldvalue
-		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
-		if(ifound && type == datatype && isSFType(type)){
-			//we have an SF field, and sf coming in, we'll call our field LHS and incoming RHS
-			shallow_copy_field(type,Data,value);
-			(*valueChanged) = 1;
-		}else{
-			ConsoleMessage("sm_set_one_MultiElementType did not find field %s type %d\n",fieldname, datatype);
-			return;
-		}
-		//step 2 run the eventIn if it exists
-		SET_JS_TICKTIME
-		//compile also pushes the field val onto call stack
-		COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
-		RUN_FUNCTION(toname)
-		return;
-	}
+				//step 1 update the fieldvalue
+				ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+				if(ifound && type == datatype && isSFType(type)){
+					//we have an SF field, and sf coming in, we'll call our field LHS and incoming RHS
+					shallow_copy_field(type,(union anyVrml*)Data,value);
+					(*valueChanged) = 1;
+				}else{
+					ConsoleMessage("sm_set_one_MultiElementType did not find field %s type %d\n",fieldname, datatype);
+					return;
+				}
+				//step 2 run the eventIn if it exists
+				SET_JS_TICKTIME
+				//compile also pushes the field val onto call stack
+				COMPILE_FUNCTION_IF_NEEDED_SET(toname,kind)
+				RUN_FUNCTION(toname)
+				return;
+			}
+			/* copy over the data from the VRML side into the script variable. */
+			iflag = 0;
+			pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
+			if(pp == NULL){
+				//no script function with this name - you might be routing to an inputOutput field
+				printf("function not found\n");
+				return;
+			}
+			memcpy (pp,Data, dataLen);
+			/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
+			printf ("and, sending the data to pointer %p\n",pp); */
 
+			//if we added a __eventIn_Value_<fieldname> for inputOnly field
+			/* set the time for this script */
+			SET_JS_TICKTIME
+			/* is the function compiled yet? */
+			COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind)
 
-	/* copy over the data from the VRML side into the script variable. */
-	iflag = 0;
-	pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
-	if(pp == NULL){
-		//no script function with this name - you might be routing to an inputOutput field
-		printf("function not found\n");
-		return;
-	}
-	memcpy (pp,Data, dataLen);
-	/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
-	printf ("and, sending the data to pointer %p\n",pp); */
+			RUN_FUNCTION (tnfield)
+		} // Scope B
+	} // Scope A
 
-	//if we added a __eventIn_Value_<fieldname> for inputOnly field
-	/* set the time for this script */
-	SET_JS_TICKTIME
-	/* is the function compiled yet? */
-	COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind)
-
-	/* and run the function */
-	#ifdef SETFIELDVERBOSE
-	printf ("set_one_MultiElementType: running script %s\n",scriptline);
-	#endif
-
-	RUN_FUNCTION (tnfield)
-
-#if defined(JS_THREADSAFE)
-	JS_EndRequest(cx);
-#endif
 }
 
 int sm_runQueuedDirectOutputs(){
@@ -3747,7 +3453,9 @@ int sm_runQueuedDirectOutputs(){
 
 	return FALSE;
 }
+} //extern "C"
+
+#endif //defined(JS_SMCPP)
+#endif //JAVASCRIPT_SM
 
 
-#endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
-#endif //!defined(JS_SMCPP)

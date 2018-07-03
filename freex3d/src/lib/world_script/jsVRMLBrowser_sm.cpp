@@ -26,43 +26,112 @@ Javascript C language binding.
 
 
 #include <config.h>
-#if !defined(JS_SMCPP)
-#include <system.h>
-//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#if defined(JS_SMCPP)
 #ifdef JAVASCRIPT_SM
+#undef DEBUG
+//#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
+# include <jsapi.h> /* JS compiler */
+//# include <jsdbgapi.h> /* JS debugger */
+
+#define JS_VERSION 187
+//#define JS_THREADSAFE 1 //by default in 186+
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
+void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *me);
+JSObject * JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, JSObject *parent, unsigned argc, jsval *argv); 
+JSObject * JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent);
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj);
+JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
+#define STRING_SIZE 256
+#define uintN unsigned
+#define intN int
+#define jsint int32_t
+#define jsuint uint32_t
+#define int32 int32_t
+#define jsdouble double
+
+#define JS_FinalizeStub NULL
+#define JSSCRIPT2 JSScript
+#define JS_GET_CLASS JS_GetClassFw
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+//#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
+
+typedef int BOOL;
+typedef BOOL _Bool;
+//typedef _Bool bool;
+
+
+
+extern "C" {
+#include <system.h>
+
 #include <display.h>
 #include <internal.h>
 
-#include <libFreeWRL.h>
-#include <list.h>
-
-#include "../vrml_parser/Structs.h"
+//#include <libFreeWRL.h>
+//#include <list.h>
+//
+//#include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../opengl/OpenGL_Utils.h"
-#include "../main/headers.h"
+//#include "../main/headers.h"
 #include "../main/ProdCon.h"
 #include "../scenegraph/RenderFuncs.h"
-#include "../vrml_parser/CParseGeneral.h"
-#include "../scenegraph/Vector.h"
-#include "../vrml_parser/CFieldDecls.h"
-#include "../vrml_parser/CParseParser.h"
-#include "../vrml_parser/CParseLexer.h"
-#include "../vrml_parser/CParse.h"
-#include "../main/Snapshot.h"
-#include "../scenegraph/Collision.h"
-#include "../scenegraph/quaternion.h"
-#include "../scenegraph/Viewer.h"
-#include "../x3d_parser/Bindable.h"
-#include "../input/EAIHeaders.h"	/* for implicit declarations */
+//#include "../vrml_parser/CParseGeneral.h"
+//#include "../scenegraph/Vector.h"
+//#include "../vrml_parser/CFieldDecls.h"
+//#include "../vrml_parser/CParseParser.h"
+//#include "../vrml_parser/CParseLexer.h"
+//#include "../vrml_parser/CParse.h"
+//#include "../main/Snapshot.h"
+//#include "../scenegraph/Collision.h"
+//#include "../scenegraph/quaternion.h"
+//#include "../scenegraph/Viewer.h"
+void getCurrentSpeed();
+//#include "../x3d_parser/Bindable.h"
+//#include "../input/EAIHeaders.h"	/* for implicit declarations */
 #include "../ui/common.h"
+
 
 #include "JScript.h"
 #include "CScripts.h"
-#include "jsUtils.h"
 #include "fieldSet.h"
 #include "jsNative.h"
-#include "jsVRMLClasses.h"
-#include "jsVRMLBrowser.h"
+
+struct X3D_Anchor* get_EAIEventsIn_AnchorNode();
+
+//ComonentInfo{
+//String name;
+//Numeric level;
+//String Title;
+//String providerUrl;
+//}
+int capabilitiesHandler_getTableLength(int* table);
+int capabilitiesHandler_getComponentLevel(int *table, int comp);
+int capabilitiesHandler_getProfileLevel(int prof);
+const int *capabilitiesHandler_getProfileComponent(int prof);
+const int *capabilitiesHandler_getCapabilitiesTable();
+typedef struct intTableIndex{
+	int* table;
+	int index;
+} *IntTableIndex;
+
+//X3DRoute{
+//SFNode sourceNode;
+//String sourceField;
+//SFNode destinationNode;
+//String destinationField;
+//}
+struct CRStruct *getCRoutes();
+int getCRouteCount();
+
+
+} //extern "C"
+
+#include "jsUtils_sm.h"
+#include "jsVRMLClasses_sm.h"
+#include "jsVRMLBrowser_sm.h"
 
 
 #define X3DBROWSER 1
@@ -84,7 +153,7 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 #elif JS_VERSION == 185
 BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
 #else
-BrowserGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 #endif
 
 JSBool
@@ -93,7 +162,7 @@ BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 #elif JS_VERSION == 185
 BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp);
 #else
-BrowserSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+BrowserSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 #endif
 
 #endif
@@ -158,7 +227,7 @@ static JSClass Browser = {
     "Browser",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
 #ifdef X3DBROWSER
     JS_PropertyStub, //BrowserGetProperty, //JS_PropertyStub, 
 	BrowserSetProperty, //JS_StrictPropertyStub, 
@@ -211,21 +280,7 @@ static JSFunctionSpec (BrowserFunctions)[] = {
    The Array types return the info type wrapper with private native member == index into
    the native array.
 */
-//ComonentInfo{
-//String name;
-//Numeric level;
-//String Title;
-//String providerUrl;
-//}
-int capabilitiesHandler_getTableLength(int* table);
-int capabilitiesHandler_getComponentLevel(int *table, int comp);
-int capabilitiesHandler_getProfileLevel(int prof);
-const int *capabilitiesHandler_getProfileComponent(int prof);
-const int *capabilitiesHandler_getCapabilitiesTable();
-typedef struct intTableIndex{
-	int* table;
-	int index;
-} *IntTableIndex;
+
 
 JSBool
 #if JS_VERSION < 185
@@ -233,10 +288,10 @@ ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ComponentInfoGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ComponentInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 
 	IntTableIndex ptr;
@@ -301,10 +356,10 @@ ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ComponentInfoSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ComponentInfoSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -325,7 +380,7 @@ static JSClass ComponentInfoClass = {
     "ComponentInfo",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     ComponentInfoGetProperty, 
 	ComponentInfoSetProperty, 
     JS_EnumerateStub,
@@ -355,10 +410,10 @@ ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 #elif JS_VERSION == 185
 ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ComponentInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 
 	int *_table;
@@ -394,7 +449,7 @@ ComponentInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hii
 		}else if(index > -1 && index < COMPONENTS_COUNT )
 		{
 			JSObject *_obj;
-			IntTableIndex tableindex = MALLOC(void *, sizeof(struct intTableIndex));
+			IntTableIndex tableindex = (IntTableIndex)MALLOC(void *, sizeof(struct intTableIndex));
 			//int* _index = MALLOC(void *, sizeof(int));
 			_obj = JS_NewObject(cx,&ComponentInfoClass,NULL,obj);
 			tableindex->index = index;
@@ -425,10 +480,10 @@ ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 #elif JS_VERSION == 185
 ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ComponentInfoArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ComponentInfoArraySetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -439,7 +494,7 @@ static JSClass ComponentInfoArrayClass = {
     "ComponentInfoArray",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     ComponentInfoArrayGetProperty, 
 	ComponentInfoArraySetProperty, 
     JS_EnumerateStub,
@@ -467,10 +522,10 @@ ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ProfileInfoGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 
 	int *ptr;
@@ -555,10 +610,10 @@ ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 #elif JS_VERSION == 185
 ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ProfileInfoSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ProfileInfoSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -568,7 +623,7 @@ static JSClass ProfileInfoClass = {
     "ProfileInfo",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     ProfileInfoGetProperty, 
 	ProfileInfoSetProperty, 
     JS_EnumerateStub,
@@ -598,10 +653,10 @@ ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ProfileInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ProfileInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 
 	jsval rval;
@@ -630,7 +685,7 @@ ProfileInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,
 		//if(index < getNumberOfProfiles() )
 		{
 			JSObject *_obj;
-			int* _index = MALLOC(void *, sizeof(int));
+			int* _index = (int*)MALLOC(void *, sizeof(int));
 			_obj = JS_NewObject(cx,&ProfileInfoClass,NULL,obj);
 			*_index = index;
 			if (!JS_DefineProperties(cx, _obj, ProfileInfoProperties)) {
@@ -659,10 +714,10 @@ ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ProfileInfoArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ProfileInfoArraySetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -673,7 +728,7 @@ static JSClass ProfileInfoArrayClass = {
     "ProfileInfo",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     ProfileInfoArrayGetProperty, 
 	ProfileInfoArraySetProperty, 
     JS_EnumerateStub,
@@ -690,14 +745,6 @@ static JSPropertySpec (ProfileInfoArrayProperties)[] = {
 
 
 
-//X3DRoute{
-//SFNode sourceNode;
-//String sourceField;
-//SFNode destinationNode;
-//String destinationField;
-//}
-struct CRStruct *getCRoutes();
-int getCRouteCount();
 
 JSBool
 #if JS_VERSION < 185
@@ -705,10 +752,10 @@ X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-X3DRouteGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	int *ptr;
 	int _index;
@@ -753,7 +800,7 @@ X3DRouteGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMuta
 				//route.routeFromNode
 				{
 					JSObject *_obj;
-					SFNodeNative *sfnn = MALLOC(void *, sizeof(SFNodeNative));
+					SFNodeNative *sfnn = (SFNodeNative *)MALLOC(void *, sizeof(SFNodeNative));
 					memset(sfnn,0,sizeof(SFNodeNative)); //I don't know if I'm supposed to set something else dug9 aug5,2013
 					if(index==0)
 						sfnn->handle = fromNode;
@@ -812,10 +859,10 @@ X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-X3DRouteSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+X3DRouteSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -825,7 +872,7 @@ static JSClass X3DRouteClass = {
     "X3DRoute",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     X3DRouteGetProperty, 
 	X3DRouteSetProperty, 
     JS_EnumerateStub,
@@ -855,10 +902,10 @@ RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-RouteArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+RouteArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 
 	jsval rval;
@@ -887,7 +934,7 @@ RouteArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMu
 		//if(index < getNumberOfProfiles() )
 		{
 			JSObject *_obj;
-			int* _index = MALLOC(void *, sizeof(int));
+			int* _index = (int*) MALLOC(void *, sizeof(int));
 			_obj = JS_NewObject(cx,&X3DRouteClass,NULL,obj);
 			*_index = index;
 			if (!JS_DefineProperties(cx, _obj, X3DRouteProperties)) {
@@ -916,10 +963,10 @@ RouteArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 RouteArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-RouteArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+RouteArraySetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -930,7 +977,7 @@ static JSClass RouteArrayClass = {
     "RouteArray",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     RouteArrayGetProperty, 
 	RouteArraySetProperty, 
     JS_EnumerateStub,
@@ -997,10 +1044,10 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ExecutionContextGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	ExecutionContextNative *ptr;
 	JSString *_str;
@@ -1049,7 +1096,7 @@ ExecutionContextGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,
 				int index = gglobal()->Mainloop.scene_profile;
 
 				JSObject *_obj;
-				int* _index = MALLOC(void *, sizeof(int));
+				int* _index = MALLOC(int *, sizeof(int));
 				_obj = JS_NewObject(cx,&ProfileInfoClass,NULL,obj);
 				*_index = index;
 				if (!JS_DefineProperties(cx, _obj, ProfileInfoProperties)) {
@@ -1175,10 +1222,10 @@ ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ExecutionContextSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+ExecutionContextSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
@@ -1187,7 +1234,7 @@ static JSClass ExecutionContextClass = {
     "ExecutionContext",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_DeletePropertyStub,
     ExecutionContextGetProperty, 
 	ExecutionContextSetProperty,
     JS_EnumerateStub,
@@ -1215,10 +1262,10 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-BrowserGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 	BrowserNative *ptr;
 	jsdouble d;
@@ -1352,7 +1399,7 @@ BrowserGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutab
 			//H: I have to return an ExecutionContextNative here with its guts set to our rootNode or ???
 			{
 				JSObject *_obj;
-				ExecutionContextNative ec = MALLOC(void *, sizeof(ExecutionContextNative));
+				ExecutionContextNative ec = MALLOC(ExecutionContextNative, sizeof(ExecutionContextNative));
 				_obj = JS_NewObject(cx,&ExecutionContextClass,NULL,obj);
 
 				//ec->handle = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
@@ -1392,10 +1439,10 @@ BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
 #elif JS_VERSION == 185
 BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-BrowserSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
-	JSObject *obj = *hobj._;
-	jsid iid = *hiid._;
-	jsval *vp = hvp._;
+BrowserSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	JSObject *obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval *vp = hvp.address();
 #endif
 
 	BrowserNative *ptr;
@@ -1446,6 +1493,7 @@ BrowserSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool s
 
 #endif
 
+extern "C" {
 
 ///* for setting field values to the output of a CreateVrml style of call */
 ///* it is kept at zero, unless it has been used. Then it is reset to zero */
@@ -1462,7 +1510,7 @@ void *jsVRMLBrowser_constructor(){
 	memset(v,0,sizeof(struct pjsVRMLBrowser));
 	return v;
 }
-void jsVRMLBrowser_init(struct tjsVRMLBrowser *t){
+void jsVRMLBrowser_init(struct iiglobal::tjsVRMLBrowser *t){
 	//public
 	//private
 	t->prv = jsVRMLBrowser_constructor();
@@ -1475,6 +1523,8 @@ void jsVRMLBrowser_init(struct tjsVRMLBrowser *t){
 	}
 
 }
+} //extern "C"
+
 //	ppjsVRMLBrowser p = (ppjsVRMLBrowser)gglobal()->jsVRMLBrowser.prv;
 /* we add/remove routes with this call */
 void jsRegisterRoute(
@@ -1779,7 +1829,7 @@ VrmlBrowserReplaceWorld(JSContext *context, uintN argc, jsval *vp) {
 
 	return JS_TRUE;
 }
-struct X3D_Anchor* get_EAIEventsIn_AnchorNode();
+
 JSBool
 #if JS_VERSION < 185
 VrmlBrowserLoadURL(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
@@ -1938,7 +1988,7 @@ VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
 
 		/* do the call to make the VRML code  - create a new browser just for this string */
 		gglobal()->ProdCon.savedParser = (void *)globalParser; globalParser = NULL;
-		retGroup = createNewX3DNode0(NODE_Group); //don't register
+		retGroup = (struct X3D_Group*)createNewX3DNode0(NODE_Group); //don't register
 		ra = EAI_CreateVrml("String",_c,X3D_NODE(rootNode()),retGroup);
 		globalParser = (struct VRMLParser*)gglobal()->ProdCon.savedParser; /* restore it */
 
@@ -1956,7 +2006,7 @@ VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
 			// sometimes wantedsize is borderline so alloc some more if it's equal
 			if (wantedsize >= MallocdSize) {
 				MallocdSize = wantedsize +200;
-				xstr = REALLOC (xstr,MallocdSize);
+				xstr = (char *)REALLOC (xstr,MallocdSize);
 			}
 			
 			
@@ -2039,7 +2089,7 @@ VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
 
 		/* do the call to make the VRML code  - create a new browser just for this string */
 		//gglobal()->ProdCon.savedParser = (void *)globalParser; globalParser = NULL;
-		retGroup = createNewX3DNode(NODE_Group);
+		retGroup = (struct X3D_Group*)createNewX3DNode(NODE_Group);
 		ra = EAI_CreateX3d("String",_c,X3D_NODE(retGroup),retGroup);
 		//globalParser = (struct VRMLParser*)gglobal()->ProdCon.savedParser; /* restore it */
 
@@ -2055,7 +2105,7 @@ VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
 			wantedsize = (int) (strlen(tmpstr) + strlen(xstr));
 			if (wantedsize > MallocdSize) {
 				MallocdSize = wantedsize +200;
-				xstr = REALLOC (xstr,MallocdSize);
+				xstr = (char *)REALLOC (xstr,MallocdSize);
 			}
 			
 			
@@ -2139,7 +2189,8 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 #endif
 
 	/* first parameter - expect a MFString Object here */
-	if (JSVAL_IS_OBJECT(argv[0])) {
+	//if (JSVAL_IS_OBJECT(argv[0])) {
+	if (argv[0].isObject()) {
 		if ((_cls[0] = JS_GET_CLASS(context, JSVAL_TO_OBJECT(argv[0]))) == NULL) {
                         printf( "JS_GetClass failed for arg 0 in VrmlBrowserLoadURL.\n");
                         return JS_FALSE;
@@ -2150,7 +2201,8 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 	}
 
 	/* second parameter - expect a SFNode Object here */
-	if (JSVAL_IS_OBJECT(argv[1])) {
+	//if (JSVAL_IS_OBJECT(argv[1])) {
+	if (argv[1].isObject()) {
 		if ((_cls[1] = JS_GET_CLASS(context, JSVAL_TO_OBJECT(argv[1]))) == NULL) {
                         printf( "JS_GetClass failed for arg 1 in VrmlBrowserLoadURL.\n");
                         return JS_FALSE;
@@ -2690,4 +2742,5 @@ void println(Object or String);
 */
 
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
-#endif //!defined(JS_SMCPP)
+
+#endif //defined(JS_SMCPP)

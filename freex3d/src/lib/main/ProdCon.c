@@ -1128,7 +1128,7 @@ void threadsafe_enqueue_item_signal(s_list_t *item, s_list_t** queue, pthread_mu
 	pthread_mutex_unlock(queue_lock);
 }
 
-s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, bool *waiting )
+s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, BOOL *waiting )
 {
 	s_list_t *item = NULL;
 	pthread_mutex_lock(queue_lock);
