@@ -481,8 +481,6 @@ void sm_JSCreateScriptContext(int num) {
 			JSAutoCompartment ac(cx, global);
 			JS_InitStandardClasses(cx, global);
 
-			printf("got global done\n");
-
 			br = (BrowserNative *) JS_malloc(_context, sizeof(BrowserNative));
 			/* for this script, here are the necessary data areas */
 			_globalObj = global;
@@ -502,16 +500,19 @@ void sm_JSCreateScriptContext(int num) {
 			if (!ActualrunScript(num,DefaultScriptMethods,rval.address()))
 				cleanupDie(num,"runScript failed in VRML::newJS DefaultScriptMethods");
 
-			const char *script = "'hello'+'world, it is '+new Date()";
-			const char *filename = "noname";
-			int lineno = 1;
-			bool ok = JS_EvaluateScript(cx, global, script, strlen(script), filename, lineno, rval.address());
-			if (!ok)
-				return ;
+			if(0) {
+				//baby step test
+				const char *script = "'hello'+'world, it is '+new Date()";
+				const char *filename = "noname";
+				int lineno = 1;
+				bool ok = JS_EvaluateScript(cx, global, script, strlen(script), filename, lineno, rval.address());
+				if (!ok)
+					return ;
+				JSString *str = rval.toString();
+				printf("%s\n", JS_EncodeString(cx, str));
+			}
 		} //scope B
 
-		JSString *str = rval.toString();
-		printf("%s\n", JS_EncodeString(cx, str));
 	} //scope A
 
 	/* send this data over to the routing table functions. */
