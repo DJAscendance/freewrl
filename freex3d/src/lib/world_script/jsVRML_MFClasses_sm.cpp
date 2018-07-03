@@ -132,30 +132,20 @@ JSContext *cx = NULL;
 
 
 JSBool
-#if JS_VERSION < 185
-MFColorToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFColorToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
 	jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFColor", rval);
-#else
 	if (!doMFToString(cx, obj, "MFColor", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFColorAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFColorClass,FIELDTYPE_SFColor);
-#else
 MFColorAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
@@ -163,13 +153,10 @@ MFColorAssign(JSContext *cx, uintN argc, jsval *vp) {
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFColorClass,FIELDTYPE_SFColor)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFColorConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFColorConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFColorClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -179,7 +166,7 @@ MFColorConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	JSObject *_obj;
@@ -275,94 +262,62 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 }
 
 JSBool
-#if JS_VERSION < 185
-MFColorAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFColorAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
+
 MFColorAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFAddProperty(cx, obj, id, vp,"MFColorAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFColorGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFColorGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFColorGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return _standardMFGetProperty(cx, obj, id, vp,
 			"_FreeWRL_Internal = new SFColor()", FIELDTYPE_MFColor);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFColorSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFColorSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFColorSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFColor);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFFloatToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFFloatToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFFloat", rval);
-#else
 	if (!doMFToString(cx, obj, "MFFloat", &rval)) { 
 		return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFFloatAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFFloatAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
 	SET_MF_ECMA_HAS_CHANGED
 
-#if JS_VERSION < 185
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFFloatClass,FIELDTYPE_SFFloat);
-#else
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFFloatClass,FIELDTYPE_SFFloat)) { return JS_FALSE; }
         JS_SET_RVAL(cx,vp,rval);
         return JS_TRUE;
-#endif
 }
 
 JSBool
-#if JS_VERSION < 185
-MFFloatConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFFloatConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFFloatClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -372,7 +327,7 @@ MFFloatConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 
@@ -454,102 +409,71 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 }
 
 JSBool
-#if JS_VERSION < 185
-MFFloatAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFFloatAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFFloatAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	return doMFAddProperty(cx, obj, id, vp,"MFFloatAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFFloatGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFFloatGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFFloatGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return _standardMFGetProperty(cx, obj, id, vp,
 			"_FreeWRL_Internal = 0.0", FIELDTYPE_MFFloat);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFFloatSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFFloatSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFFloatSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFFloat);
 }
 
 
 JSBool
-#if JS_VERSION < 185
-MFInt32ToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFInt32ToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFInt32ToString\n");
 	#endif
 
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFInt32", rval);
-#else
 	if (!doMFToString(cx, obj, "MFInt32", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFInt32Assign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFInt32Assign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFInt32Assign\n");
 	#endif
 
 	SET_MF_ECMA_HAS_CHANGED
 
-#if JS_VERSION < 185
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFInt32Class,FIELDTYPE_SFInt32);
-#else
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFInt32Class,FIELDTYPE_SFInt32)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 
 JSBool
-#if JS_VERSION < 185
-MFInt32Constr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFInt32Constr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFInt32Class,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -559,7 +483,7 @@ MFInt32Constr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	int32 _i;
@@ -654,16 +578,11 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 }
 
 JSBool
-#if JS_VERSION < 185
-MFInt32AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFInt32AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFInt32AddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif	
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFInt32AddProperty\n");
 	#endif
@@ -672,16 +591,11 @@ MFInt32AddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 }
 
 JSBool
-#if JS_VERSION < 185
-MFInt32GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFInt32GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFInt32GetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif		
+	
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFInt32GetProperty\n");
 	#endif
@@ -691,16 +605,11 @@ MFInt32GetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 }
 
 JSBool
-#if JS_VERSION < 185
-MFInt32SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFInt32SetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFInt32SetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFInt32SetProperty\n");
 	#endif
@@ -710,55 +619,40 @@ MFInt32SetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 
 
 JSBool
-#if JS_VERSION < 185
-MFNodeToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
 	
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFNODETOSTRING, obj %p\n",obj);
 	#endif
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFNode", rval);
-#else
 	if (!doMFToString(cx, obj, "MFNode", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFNodeAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFNodeAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFNODEASSIGN, obj %p\n",obj);
 	#endif
 
-#if JS_VERSION < 185
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFNodeClass,FIELDTYPE_SFNode);
-#else
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFNodeClass,FIELDTYPE_SFNode)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFNodeConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFNodeClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -768,7 +662,7 @@ MFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	JSObject *_obj;
@@ -872,16 +766,11 @@ JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 }
 
 JSBool
-#if JS_VERSION < 185
-MFNodeAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFNodeAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFNodeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("startof MFNODEADDPROPERTY\n");
 	#endif
@@ -889,16 +778,11 @@ MFNodeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 }
 
 JSBool
-#if JS_VERSION < 185
-MFNodeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFNodeGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFNodeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("start of MFNODEGETPROPERTY obj %p\n",obj);
 	#endif
@@ -908,88 +792,59 @@ MFNodeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 }
 
 JSBool
-#if JS_VERSION < 185
-MFNodeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFNodeSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif	/* printf ("start of MFNODESETPROPERTY obj %d\n",obj); */
+	/* printf ("start of MFNODESETPROPERTY obj %d\n",obj); */
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFNode);
 }
 
 
 JSBool
-#if JS_VERSION < 185
-MFTimeAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFTimeAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFTimeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFAddProperty(cx, obj, id, vp,"MFTimeAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFTimeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFTimeGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFTimeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return _standardMFGetProperty(cx, obj, id, vp,
 			 "_FreeWRL_Internal = 0.0",
 			FIELDTYPE_MFTime);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFTimeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFTimeSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFTimeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif	
+
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFTime);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFTimeToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFTimeToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
 	jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFTime", rval);
-#else
 	if (!doMFToString(cx, obj, "MFTime", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFTimeConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFTimeConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFTimeClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -999,7 +854,7 @@ MFTimeConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	jsdouble _d;
@@ -1083,94 +938,64 @@ JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 }
 
 JSBool
-#if JS_VERSION < 185
-MFTimeAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFTimeAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	SET_MF_ECMA_HAS_CHANGED
 
-#if JS_VERSION < 185
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFTimeClass,FIELDTYPE_SFTime);
-#else
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFTimeClass,FIELDTYPE_SFTime)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 
 
 JSBool
-#if JS_VERSION < 185
-MFVec2fAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
-#elif JS_VERSION == 185
-MFVec2fAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFVec2fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFAddProperty(cx, obj, id, vp,"MFVec2fAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec2fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFVec2fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFVec2fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return _standardMFGetProperty(cx, obj, id, vp,
 			 "_FreeWRL_Internal = new SFVec2f()",FIELDTYPE_MFVec2f);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec2fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFVec2fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFVec2fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif	
+
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFVec2f);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec2fToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFVec2fToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFVec2f", rval);
-#else
 	if (!doMFToString(cx, obj, "MFVec2f", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec2fConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFVec2fConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFVec2fClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -1180,7 +1005,7 @@ MFVec2fConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	JSObject *_obj;
@@ -1274,10 +1099,6 @@ JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec2fAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFVec2fClass,FIELDTYPE_SFVec2f);
-#else
 MFVec2fAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
@@ -1285,78 +1106,53 @@ MFVec2fAssign(JSContext *cx, uintN argc, jsval *vp) {
         if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFVec2fClass,FIELDTYPE_SFVec2f)) { return JS_FALSE; }
         JS_SET_RVAL(cx,vp,rval);
         return JS_TRUE;
-#endif
+
 }
 
 /* MFVec3f */
 JSBool
-#if JS_VERSION < 185
-MFVec3fAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFVec3fAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFVec3fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	return doMFAddProperty(cx, obj, id, vp,"MFVec3fAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec3fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFVec3fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFVec3fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return _standardMFGetProperty(cx, obj, id, vp,
 			 "_FreeWRL_Internal = new SFVec3f()",FIELDTYPE_MFVec3f);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec3fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFVec3fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFVec3fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif	
+
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFVec3f);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec3fToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFVec3fToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
 	/* printf ("CALLED MFVec3fToString\n");*/
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFVec3f", rval);
-#else
         if (!doMFToString(cx, obj, "MFVec3f", &rval)) { return JS_FALSE; }
         JS_SET_RVAL(cx,vp,rval);
         return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec3fConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFVec3fClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -1366,7 +1162,7 @@ MFVec3fConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	JSObject *_obj;
@@ -1463,10 +1259,6 @@ JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 }
 
 JSBool
-#if JS_VERSION < 185
-MFVec3fAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFVec3fClass,FIELDTYPE_SFVec3f);
-#else
 MFVec3fAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
@@ -1474,7 +1266,6 @@ MFVec3fAssign(JSContext *cx, uintN argc, jsval *vp) {
         if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFVec3fClass,FIELDTYPE_SFVec3f)) { return JS_FALSE; }
         JS_SET_RVAL(cx,vp,rval);
         return JS_TRUE;
-#endif
 }
 
 /* VrmlMatrix */
@@ -1538,24 +1329,16 @@ static void _getmatrix (JSContext *cx, JSObject *obj, double *fl) {
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
 	UNUSED(argc);
 	UNUSED(argv);
 
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFFloat", rval);
-#else
         if (!doMFToString(cx, obj, "MFFloat", &rval)) { return JS_FALSE; }
         JS_SET_RVAL(cx,vp,rval);
         return JS_TRUE;
-#endif
 }
 
 /* get rows; used for scale and rot in getTransform */
@@ -1573,13 +1356,9 @@ void _set4f(double len, double *mat, int row) {
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixgetTransform(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
 	int i;
     	JSObject *transObj = NULL;
 	JSObject *rotObj = NULL;
@@ -1681,11 +1460,8 @@ VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
 		Vptr->valueChanged = 1;
 	}
 
-#if JS_VERSION < 185
-	*rval = JSVAL_VOID;
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
-#endif
+
 	return JS_TRUE;
 }
 
@@ -1697,13 +1473,9 @@ VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
    its default as specified for the Transform node. */
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixsetTransform(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
     	JSObject *transObj = NULL;
 	JSObject *rotObj = NULL;
 	JSObject *scaleObj = NULL;
@@ -1833,22 +1605,17 @@ VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
 	FW_GL_POP_MATRIX();
 #endif
 
-#if JS_VERSION >= 185	
 /* JS 185+ -requires- rval to be set on true return; assume we will return the 'this' object */
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
-#endif
+
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixinverse(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixinverse(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
 	double src[16];
 	double dest[16];
 	JSObject *retObj;
@@ -1864,23 +1631,15 @@ VrmlMatrixinverse(JSContext *cx, uintN argc, jsval *vp) {
         retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
 
         _setmatrix(cx,retObj,dest);
-#if JS_VERSION < 185
-        *rval = OBJECT_TO_JSVAL(retObj);
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-#endif
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixtranspose(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixtranspose(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
 	double src[16];
 	double dest[16];
 	JSObject *retObj;
@@ -1896,24 +1655,17 @@ VrmlMatrixtranspose(JSContext *cx, uintN argc, jsval *vp) {
         retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
 
         _setmatrix(cx,retObj,dest);
-#if JS_VERSION < 185
-        *rval = OBJECT_TO_JSVAL(retObj);
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-#endif
 	return JS_TRUE;
 }
 
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixmultLeft(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixmultLeft(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
+
         JSObject *transObj = NULL;
 	JSObject *retObj = NULL;
 
@@ -1947,23 +1699,15 @@ VrmlMatrixmultLeft(JSContext *cx, uintN argc, jsval *vp) {
                 matrix1[3],  matrix1[7],  matrix1[11],  matrix1[15]);
 	*/
 	_setmatrix(cx,retObj,matrix1);
-#if JS_VERSION < 185
-	*rval = OBJECT_TO_JSVAL(retObj);
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-#endif
 
 	return JS_TRUE;
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixmultRight(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixmultRight(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
         JSObject *transObj = NULL;
 	JSObject *retObj = NULL;
 
@@ -1997,24 +1741,16 @@ VrmlMatrixmultRight(JSContext *cx, uintN argc, jsval *vp) {
                 matrix1[3],  matrix1[7],  matrix1[11],  matrix1[15]);
 	*/
 	_setmatrix(cx,retObj,matrix1);
-#if JS_VERSION < 185
-	*rval = OBJECT_TO_JSVAL(retObj);
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-#endif
 
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixmultVecMatrix(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixmultVecMatrix(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
         JSObject *transObj = NULL;
 	JSObject *retObj = NULL;
 	SFVec3fNative *Vptr;
@@ -2056,24 +1792,17 @@ VrmlMatrixmultVecMatrix(JSContext *cx, uintN argc, jsval *vp) {
 	}
 
 	COPY_POINT_XYZ_TO_SFVEC3F(Vptr->v.c,outp);
-#if JS_VERSION < 185
-	*rval = OBJECT_TO_JSVAL(retObj);
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-#endif
 
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixmultMatrixVec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixmultMatrixVec(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
-#endif
+
         JSObject *transObj = NULL;
 	JSObject *retObj = NULL;
 	SFVec3fNative *Vptr;
@@ -2115,21 +1844,13 @@ VrmlMatrixmultMatrixVec(JSContext *cx, uintN argc, jsval *vp) {
 	}
 
 	COPY_POINT_XYZ_TO_SFVEC3F(Vptr->v.c,outp);
-#if JS_VERSION < 185
-	*rval = OBJECT_TO_JSVAL(retObj);
-#else
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-#endif
 
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	return _standardMFAssign (cx, obj, argc, argv, rval, &VrmlMatrixClass,FIELDTYPE_FreeWRLPTR/*does not matter*/);
-#else
 VrmlMatrixAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
@@ -2137,13 +1858,9 @@ VrmlMatrixAssign(JSContext *cx, uintN argc, jsval *vp) {
         if (!_standardMFAssign (cx, obj, argc, argv, &rval, &VrmlMatrixClass,FIELDTYPE_FreeWRLPTR/*does not matter*/)) { return JS_FALSE; }
         JS_SET_RVAL(cx,vp,rval);
         return JS_TRUE;
-#endif
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlMatrixConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&VrmlMatrixClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -2153,7 +1870,7 @@ VrmlMatrixConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	jsdouble _d;
@@ -2218,40 +1935,29 @@ JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-VrmlMatrixAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 VrmlMatrixAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	return doMFAddProperty(cx, obj, id, vp,"VrmlMatrixAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-VrmlMatrixGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 VrmlMatrixGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	int32 _length, _index;
 	jsval _length_val;
 
-#if JS_VERSION >= 185
+
 	jsval id;
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in VrmlMatrixGetproperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 
     if (!JS_GetProperty(cx, obj,  MF_LENGTH_FIELD, &_length_val)) {
 		printf( "JS_GetProperty failed for \"%s\" in VrmlMatrixGetProperty.\n", MF_LENGTH_FIELD);
@@ -2305,87 +2011,58 @@ VrmlMatrixGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlMatrixSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-VrmlMatrixSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFSetProperty(cx, obj, id, vp,1000); /* do not have a FIELDTYPE for this */
 }
 
 /* MFRotation */
 JSBool
-#if JS_VERSION < 185
-MFRotationAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFRotationAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFRotationAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFAddProperty(cx, obj, id, vp,"MFRotationAddProperty");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFRotationGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFRotationGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
-#else
 MFRotationGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return _standardMFGetProperty(cx, obj, id, vp,
 			 "_FreeWRL_Internal = new SFRotation()",FIELDTYPE_MFRotation);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFRotationSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFRotationSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFRotationSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFRotation);
 }
 
 JSBool
-#if JS_VERSION < 185
-MFRotationToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFRotationToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFRotation", rval);
-#else
 	if (!doMFToString(cx, obj, "MFRotation", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 JSBool
-#if JS_VERSION < 185
-MFRotationConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFRotationClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -2395,7 +2072,7 @@ MFRotationConstr(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 	JSObject *_obj;
@@ -2488,10 +2165,6 @@ JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 }
 
 JSBool
-#if JS_VERSION < 185
-MFRotationAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFRotationClass,FIELDTYPE_SFRotation);
-#else
 MFRotationAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
@@ -2500,21 +2173,11 @@ MFRotationAssign(JSContext *cx, uintN argc, jsval *vp) {
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFRotationClass,FIELDTYPE_SFRotation)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 /* MFStrings */
 JSBool
-#if JS_VERSION < 185
-MFStringAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#elif JS_VERSION == 185
-MFStringAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp) {
-	jsval id;
-	if (!JS_IdToValue(cx,iid,&id)) {
-		printf("JS_IdToValue failed in MFStringAddProperty\n");
-		return JS_FALSE;
-	}
-#else
 MFStringAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
@@ -2524,7 +2187,7 @@ MFStringAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 		printf("JS_IdToValue failed in MFStringAddProperty\n");
 		return JS_FALSE;
 	}
-#endif
+
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf("MFStringAddProperty: vp = %p\n", obj);
@@ -2574,36 +2237,28 @@ MFStringAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 			return JS_FALSE;
 		}
 	}
-#if JS_VERSION < 185
-	return doMFAddProperty(cx, obj, id, vp,"MFStringAddProperty");
-#else
 	return doMFAddProperty(cx, obj, iid, vp,"MFStringAddProperty");
-#endif
+
 }
 
 
 JSBool
-#if JS_VERSION < 185
-MFStringGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-MFStringGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 MFStringGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 
 	JSString *_str;
 	int32 _length, _index;
     jsval _length_val;
-#if JS_VERSION >= 185
+
 	jsval id;
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in MFStringGetProperty\n");
 		return JS_FALSE;
 	}
-#endif
+
 	if(SM_method()==2){
 		return _standardMFGetProperty(cx, obj, iid, vp,
 			 "_FreeWRL_Internal = new SFString()",FIELDTYPE_MFString);
@@ -2652,16 +2307,11 @@ MFStringGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 }
 
 JSBool
-#if JS_VERSION < 185
-MFStringSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-MFStringSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
-#else
 MFStringSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	JSBool rv;
 
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -2695,14 +2345,11 @@ printf ("MFStringSetProperty, setting vp of type...\n");
 }
 
 JSBool
-#if JS_VERSION < 185
-MFStringToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFStringToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 	UNUSED(argc);
 	UNUSED(argv);
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -2710,20 +2357,14 @@ MFStringToString(JSContext *cx, uintN argc, jsval *vp) {
 	#endif
 
 
-#if JS_VERSION < 185
-	return doMFToString(cx, obj, "MFString", rval);
-#else
 	if (!doMFToString(cx, obj, "MFString", &rval)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,rval);
 	return JS_TRUE;
-#endif
+
 }
 
 
 JSBool
-#if JS_VERSION < 185
-MFStringConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFStringConstr(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_NewObject(cx,&MFStringClass,NULL,NULL);
         jsval *argv = JS_ARGV(cx,vp);
@@ -2733,7 +2374,7 @@ MFStringConstr(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#endif
+
 	JSObject *_arrayObj;
 	int isArray;
 
@@ -2836,12 +2477,9 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 				// cstring: we own it
 				JSString *_str;
 				_str = JS_ValueToString(cx, vp);
-#if JS_VERSION < 185
-				cstring = JS_GetStringBytes(_str);
-#else
 				cstring = JS_EncodeString(cx,_str); //if utf16: lossy - will drop first byte, garbage
 				//JS_free(cx,_str); bombs if I do this
-#endif
+
 			}else{
 				//could try and convert object or ecma primitive to string via toString()
 			}
@@ -2873,14 +2511,11 @@ JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *
 }
 
 JSBool
-#if JS_VERSION < 185
-MFStringAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 MFStringAssign(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval;
-#endif
+
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf("MFStringAssign: obj = %p args %d... ", obj, argc);
@@ -2889,64 +2524,45 @@ MFStringAssign(JSContext *cx, uintN argc, jsval *vp) {
 		SET_MF_ECMA_HAS_CHANGED
 	}
 
-#if JS_VERSION < 185
-	return _standardMFAssign (cx, obj, argc, argv, rval, &MFStringClass,FIELDTYPE_SFString);
-#else
 	if (!_standardMFAssign (cx, obj, argc, argv, &rval, &MFStringClass,FIELDTYPE_SFString)) { return JS_FALSE; }
 	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(obj));
 	return JS_TRUE;
-#endif
+
 }
 
 /* testing.. */
-#if JS_VERSION < 185
-JSBool MFStringDeleteProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) { 
-#elif JS_VERSION == 185
-JSBool MFStringDeleteProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 JSBool MFStringDeleteProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JSBool *succeeded){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("MFStringDeleteProperty\n"); 
 	#endif
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 186
-MFStringEnumerateProperty(JSContext *cx, JSObject *obj) { 
-#else //186 aka 17
 MFStringEnumerateProperty(JSContext *cx, JS::Handle<JSObject*> hobj) {
 	JSObject *obj = *hobj.address();
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("MFStringEnumerateProperty\n"); 
 	#endif
 	return JS_TRUE;
 }
 
-#if JS_VERSION < 185
-JSBool MFStringResolveProperty(JSContext *cx, JSObject *obj, jsval id) { 
-#elif JS_VERSION == 185
-JSBool MFStringResolveProperty(JSContext *cx, JSObject *obj, jsid id) { 
-#else
 JSBool MFStringResolveProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid){
 	JSObject *obj = *hobj.address();
 	jsid id = *hiid.address();
-#endif
+
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("MFStringResolveProperty\n"); 
 	#endif
 	return JS_TRUE;
 }
-#if JS_VERSION < 186
-JSBool MFStringConvertProperty(JSContext *cx, JSObject *obj, JSType type, jsval *vp) { 
-#else
 JSBool MFStringConvertProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JSType type, JS::MutableHandle<JS::Value> hvp) {
 	JSObject *obj = *hobj.address();
 	jsval *vp = hvp.address();
-#endif
+
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("MFStringConvertProperty\n"); 

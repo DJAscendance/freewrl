@@ -71,12 +71,7 @@ typedef BOOL _Bool;
 #define JS_SET_PROPERTY_STUB1 js_SetPropertyDebug1
 
 /* #define JS_SET_PROPERTY_STUB2 js_SetPropertyDebug2  */
-#if JS_VERSION < 185
-# define JS_SET_PROPERTY_STUB2 JS_PropertyStub
-#else
 # define JS_SET_PROPERTY_STUB2 JS_StrictPropertyStub
-#endif
-
 #define JS_SET_PROPERTY_STUB3 js_SetPropertyDebug3 
 
 
@@ -260,11 +255,11 @@ void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptCont
 	struct CRscriptStruct *ScriptControl;
 	ScriptControl = getScriptControlIndex(num);
 	if (ScriptControl->eventsProcessed != NULL) {
-#if JS_VERSION >= 185
+
 		if (ScriptControl->cx != NULL) {
 			JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSObject**)(&ScriptControl->eventsProcessed));
 		}
-#endif
+
 		ScriptControl->eventsProcessed = NULL;
 	}
 }
@@ -353,16 +348,13 @@ void sm_JSDeleteScriptContext(int num){
 	//ppJScript p = (ppJScript)gglobal()->JScript.prv;
 	/* printf ("kill_javascript, context is %p\n",ScriptControl[i].cx); */
 	ScriptControl = getScriptControlIndex(num);
-#if JS_VERSION >= 185
+
 	if (ScriptControl->eventsProcessed != NULL) {
 		JS_RemoveObjectRoot((JSContext *)ScriptControl->cx,(JSObject **)(&ScriptControl->eventsProcessed));
 	}
-#endif
-#if JS_VERSION < 186
-	JS_DestroyContextMaybeGC(ScriptControl->cx);
-#else
+
 	//JS_DestroyContext(ScriptControl->cx);
-#endif
+
 }
 void sm_jsShutdown(){
 	ttglobal tg = gglobal();
@@ -373,7 +365,7 @@ void sm_jsShutdown(){
 }
 //========================
 
-#if JS_VERSION >= 186
+
 static struct keyname {
 	int key;
 	char *name;
@@ -399,24 +391,7 @@ static struct keyname {
 {JSGC_ANALYSIS_PURGE_TRIGGER,"JSGC_ANALYSIS_PURGE_TRIGGER"},
 {-1,NULL},
 };
-#else //186
-//<= 185
-static struct keyname {
-	int key;
-	char *name;
-} gcparamname [] = {
-{JSGC_MAX_BYTES,"JSGC_MAX_BYTES"},
-{JSGC_MAX_MALLOC_BYTES, "JSGC_MAX_MALLOC_BYTES"},
-{JSGC_STACKPOOL_LIFESPAN,"JSGC_STACKPOOL_LIFESPAN"},
-{JSGC_TRIGGER_FACTOR,"JSGC_TRIGGER_FACTOR"},
-{JSGC_BYTES,"JSGC_BYTES"},
-{JSGC_NUMBER,"JSGC_NUMBER"},
-{JSGC_MAX_CODE_CACHE_BYTES,"JSGC_MAX_CODE_CACHE_BYTES"},
-{JSGC_MODE,"JSGC_MODE"},
-{JSGC_UNUSED_CHUNKS,"JSGC_UNUSED_CHUNKS"},
-{-1,NULL},
-};
-#endif //186
+
 const char *getgcparamname(int key){
 	int i = 0;
 	while(gcparamname[i].name != NULL){
@@ -1885,9 +1860,9 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 	int len;
 	int i;
 	char *strp;
-#if JS_VERSION >= 185
+
 	char *strpp; /* we need this to reliably free the results of JS_EncodeString() */
-#endif
+
 	int elesize;
 	SFVec2fNative *sfvec2f;
 	SFVec3fNative *sfvec3f;
@@ -2128,11 +2103,8 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 				JSString *strval;
 
 				strval = JS_ValueToString(cx, mainElement);
-#if JS_VERSION < 185
-				strp = JS_GetStringBytes(strval);
-#else
 				strp = strpp = JS_EncodeString(cx,strval);
-#endif
+
 
 
 				#ifdef SETFIELDVERBOSE
@@ -2142,9 +2114,9 @@ void getJSMultiNumType (JSContext *cx, struct Multi_Vec3f *tn, int eletype) {
 				/* copy the string over, delete the old one, if need be */
 				verify_Uni_String (*ms,strp);
 				ms++;
-#if JS_VERSION >= 185
+
 				JS_free(cx,strpp);
-#endif
+
 				break;
 			}
 
@@ -2248,11 +2220,9 @@ void getMFStringtype (JSContext *cx, jsval *from, struct Multi_String *to) {
 			return;
 		}
 		strval = JS_ValueToString(cx, _v);
-#if JS_VERSION < 185
-		valStr = JS_GetStringBytes(strval);
-#else
+
 		valStr = JS_EncodeString(cx,strval);
-#endif
+
 
 		/* printf ("new string %d is %s\n",i,valStr); */
 
@@ -2261,9 +2231,9 @@ void getMFStringtype (JSContext *cx, jsval *from, struct Multi_String *to) {
 			/* MALLOC a new string, of correct len for terminator */
 			svptr[i] =  newASCIIString(valStr);
 		}
-#if JS_VERSION >= 185
+
 		JS_free(cx,valStr);
-#endif
+
 	}
 	/*
 	printf ("\n new structure: %d %d\n",svptr,newlen);

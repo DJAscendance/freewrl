@@ -1765,13 +1765,13 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 	jsval nf;
 	char * _cc;
 	jsid oid;
-#if JS_VERSION >= 185
+
 	jsval id;
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("doMFSetProperty, JS_IdToValue failed.\n");
 		return JS_FALSE;
 	}
-#endif
+
 	if(SM_method() == 2){
 		AnyNative *ptr;
 		union anyVrml* any;
@@ -1844,11 +1844,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 			char *_id_c;
 
 			_idStr = JS_ValueToString(cx, id);
-#if JS_VERSION < 185
-		_	id_c = JS_GetStringBytes(_idStr);
-#else
 			_id_c = JS_EncodeString(cx,_idStr);
-#endif
 			if (strcmp ("length",_id_c) == 0) {
 				//create js int
 				//assign length to it
@@ -2137,9 +2133,8 @@ doMFStringUnquote(JSContext *cx, jsval *vp)
 
 		FREE_IF_NZ (_tmp_vpStr);
 	}
-#if JS_VERSION >= 185
+
 	JS_free(cx,_buff);
-#endif
 
 	return JS_TRUE;
 }
@@ -2342,12 +2337,12 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 	JSString *_idStr, *_vpStr;
 	char *_id_c, *fieldname, *_vp_c;
 
-#if JS_VERSION >= 185
+
 	jsval id;
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("getECMANative: JS_IdToValue failed -- returning JS_TRUE anyways\n");
 	}
-#endif
+
 
 	_idStr = JS_ValueToString(cx, id);
 //	_vpStr = JS_ValueToString(cx, *vp);
@@ -2439,10 +2434,10 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 	}
 
 
-#if JS_VERSION >= 185
+
 		JS_free(cx,_id_c);
 		//JS_free(cx,_vp_c);
-#endif
+
 	//#endif
 	} //if SM_method() == 2
 	return JS_TRUE;
@@ -2462,13 +2457,12 @@ setECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 
 	char *_vp_c, *_new_vp_c;
 	size_t len = 0;
-#if JS_VERSION >= 185
+
 	jsval id;
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf( "JS_IdToValue failed\n");
 		return JS_FALSE;
 	}
-#endif
 
 	_idStr = JS_ValueToString(cx, id);
 	_id_c = JS_EncodeString(cx,_idStr);
@@ -2560,11 +2554,7 @@ setECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 
 	if (JSVAL_IS_STRING(*vp)) {
 		_vpStr = JS_ValueToString(cx, *vp);
-#if JS_VERSION < 185
-		_vp_c = JS_GetStringBytes(_vpStr);
-#else
 		_vp_c = JS_EncodeString(cx,_vpStr);
-#endif
 
 		len = strlen(_vp_c);
 
@@ -2587,9 +2577,8 @@ setECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 				   obj, _id_c, _new_vp_c);
 		#endif
 		FREE_IF_NZ (_new_vp_c);
-#if JS_VERSION >= 185
 		JS_free(cx,_vp_c);
-#endif
+
 	} else {
 		#ifdef JSVRMLCLASSESVERBOSE
 		_vpStr = JS_ValueToString(cx, *vp);
@@ -2606,9 +2595,8 @@ setECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 		#endif
 	}
 	} //if SM_Mehod == 2
-#if JS_VERSION >= 185
+
 	JS_free(cx,_id_c);
-#endif
 	return ret;
 }
 
@@ -2676,7 +2664,7 @@ setAssignProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 	jsval newVal, initVal, _argv[_argc];
 #endif
 	char *_id_c;
-#if JS_VERSION >= 185
+
 	jsval id;
 	//printf("in setAssignProperty\n");
 
@@ -2684,7 +2672,7 @@ setAssignProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 		printf("setAssignProperty: JS_IdToValue failed.\n");
 		return JS_FALSE;
 	}
-#endif
+
 
 	if (JSVAL_IS_STRING(id)) {
 		if (!JS_ConvertValue(cx, *vp, JSTYPE_OBJECT, &newVal)) {
@@ -2693,16 +2681,10 @@ setAssignProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 		}
 
 		_str = JSVAL_TO_STRING(id);
-#if JS_VERSION < 185
-		_id_c = JS_GetStringBytes(_str);
-#else
 		_id_c = JS_EncodeString(cx,_str);
-#endif
 		if (!JS_GetProperty(cx, obj, _id_c, &initVal)) {
 			printf( "JS_GetProperty failed in setAssignProperty.\n");
-#if JS_VERSION >= 185
 			JS_free(cx,_id_c);
-#endif
 			return JS_FALSE;
 		}
 		#ifdef JSVRMLCLASSESVERBOSE
@@ -2737,10 +2719,8 @@ setAssignProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 		printf ("newVal is %s\n",JS_EncodeString(cx,JS_ValueToString(cx,newVal)));
 #endif
 		#endif
-#if JS_VERSION >= 185
-		JS_free(cx,_id_c);
-#endif
 
+		JS_free(cx,_id_c);
 
 		_o = JSVAL_TO_OBJECT(initVal);
 
