@@ -506,6 +506,20 @@ PKG_CHECK_MODULES([OPENAL], [openal], [
                     LDFLAGS="$LDFLAGS $OPENAL_LIBS"
                   ],[])
 
+
+## ffmpeg check libavcodec-dev libavutil-dev libavformat-dev,  libavresample-dev, libswscale-dev
+## https://autotools.io/pkgconfig/pkg_check_modules.html
+PKG_CHECK_MODULES([FFMPEG],[libavcodec,libavutil,libavformat,libavresample,libswscale], [
+        AC_DEFINE([MOVIETEXTURE_FFMPEG], [1], [Define if you have ffmpeg libs installed.])
+        CFLAGS="$CFLAGS $FFMPEG_CFLAGS"
+        LDFLAGS="$LDFLAGS $FFMPEG_LIBS"
+        AC_DEFINE([HAVE_AVRESAMPLE], [1], [Define if you have avresample instead of (older) swresample.])
+        ],
+        [AC_MSG_NOTICE([Not building mpeg module])]
+        )
+
+
+
 # ======================================
 # LibFreeWRLEAI configuration
 # ======================================

@@ -113,6 +113,7 @@ scenegraph/Component_CAD.c \
 scenegraph/NormalCalcs.c \
 scenegraph/Component_Geospatial.h \
 scenegraph/MPEG_Utils.c \
+scenegraph/MPEG_Utils_ffmpeg.c \
 scenegraph/sounds.h \
 scenegraph/Tess.h \
 scenegraph/Tess.c \

@@ -28,11 +28,17 @@
 //#include "libswresample/swresample.h"
 //#include "libavutil/opt.h"
 //#include "libavcodec/avfft.h"
+
+#ifdef HAVE_AVRESAMPLE
+//on linux July 2018 its call av, not sw, both lib and header
+#include "libavresample/avresample.h"
+#else //HAVE_SWRESAMPLE
 #include "libswresample/swresample.h"
+#endif
 
 #include "internal.h"
 #include "Vector.h"
-#include "../opengl/textures.h"
+#include "../opengl/Textures.h"
 void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname);
 // compatibility with newer API
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,28,1)
@@ -109,7 +115,11 @@ int movie_load_from_file(char *fname, void **opaque){
 	unsigned int audio_buf_size;
 	unsigned int audio_buf_index;
 	uint8_t * audio_buf;
+#ifdef HAVE_AVRESAMPLE
+	AvrContext *swr; 
+#else	
 	SwrContext *swr; 
+#endif
 	int audio_resample_target_fmt;
 	int do_audio_resample;
 	struct SwsContext *sws_ctx;
