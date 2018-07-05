@@ -70,6 +70,7 @@ AC_HEADER_STDBOOL
 # Checks for library functions.
 AC_FUNC_FORK
 AC_PROG_GCC_TRADITIONAL
+AC_PROG_CXX
 dnl AC_FUNC_MALLOC
 AC_CHECK_FUNCS([strchr strrchr strdup strndup strerror getopt getopt_long getopt_long_only malloc calloc realloc usleep gettimeofday])
 
@@ -212,14 +213,17 @@ check|sm|spidermonkey|mozjs)
 	# firefox (2.0 or 1.5)
 	# firefox (firefox-2.0 possible alternate packaging)
 	# NOTE - mozjs-17 (aka 186) supported but bad garbage collection, prefer 185
-        # 187 and later are not supported.
+        # NOTE - mozjs-24 (aka 187) cpp supported but bad garbage collection, prever 185
 	# AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-17.0])
 	AC_MSG_NOTICE([Determining Javascript engine to build against])
 	case "$os_type" in
 	mac)
+                #our 'normal' build on mac is via xcode IDE, not this configure.ac
         	AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[spidermonkey],[>=],[1.7.0])
 		;;
 	*)
+                AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-24])
+                AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-17.0])
 		AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs187])
 		AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs185])
 		AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozilla-js],[<],[3.0])
@@ -243,6 +247,9 @@ check|sm|spidermonkey|mozjs)
 	else
 		AC_MSG_NOTICE([Using $found_JAVASCRIPT_ENGINE for Javascript engine library])
 		AC_DEFINE([JAVASCRIPT_SM],[1], [Define for spidermonkey js engine])
+                if test x$found_JAVASCRIPT_ENGINE = xmozjs-24; then
+                      AC_DEFINE([JS_SMCPP],[1], [Define for spidermonkey c++ js engine >= 24])  
+                fi
 	fi
     if test x$found_JAVASCRIPT_ENGINE = xno; then
 	    AC_MSG_NOTICE([Using internal duktape for Javascript engine library])

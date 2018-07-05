@@ -56,9 +56,10 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 #define JS_GET_CLASS JS_GetClassFw
 JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 //#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
-
-typedef int BOOL;
-typedef BOOL _Bool;
+#ifndef IBOOL
+typedef int IBOOL;
+#endif
+typedef IBOOL _Bool;
 //typedef _Bool bool;
 
 
@@ -139,32 +140,15 @@ int getCRouteCount();
 
 
 #ifndef X3DBROWSER
-#if JS_VERSION < 185
-#define SetPropertyStub JS_PropertyStub
-#else
 #define SetPropertyStub JS_StrictPropertyStub
-#endif
 #endif // ndef X3DBROWSER
 
 #ifdef X3DBROWSER
 JSBool
-#if JS_VERSION < 185
-BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-#elif JS_VERSION == 185
-BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
-#else
 BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
-#endif
 
 JSBool
-#if JS_VERSION < 185
-BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-#elif JS_VERSION == 185
-BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp);
-#else
 BrowserSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
-#endif
-
 #endif
 int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval *rval);
 /* 
@@ -283,16 +267,11 @@ static JSFunctionSpec (BrowserFunctions)[] = {
 
 
 JSBool
-#if JS_VERSION < 185
-ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 ComponentInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 
 	IntTableIndex ptr;
 	int _index, *_table, _nameIndex;
@@ -301,12 +280,12 @@ ComponentInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<j
 
 	UNUSED(rval); // compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in ComponentInfoGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 	if ((ptr = (IntTableIndex)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
 		return JS_FALSE;
@@ -323,44 +302,26 @@ ComponentInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<j
 			case 0://name
 			case 1://Title
 				_nameIndex = _table[2*_index];
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(COMPONENTS[_index]);
-#else
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,COMPONENTS[_nameIndex])));
-#endif
 				break;
 			case 2://level
 				{
 				int level = capabilitiesHandler_getComponentLevel(_table,_index);
-#if JS_VERSION < 185
-			*rval = INT_TO_JSVAL(lev);
-#else
 			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(level));
-#endif
 				}
 				break;
 			case 3://providerUrl
-#if JS_VERSION < 185
-				*rval = STRING_TO_JSVAL("freewrl.sourceforge.net");
-#else
 				JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,"freewrl.sourceforge.net")));
-#endif
 				break;
 		}
 	}
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 185
-ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 ComponentInfoSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -405,16 +366,10 @@ static JSPropertySpec (ComponentInfoProperties)[] = {
 //}
 
 JSBool
-#if JS_VERSION < 185
-ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 
 	int *_table;
 	jsval rval;
@@ -422,12 +377,12 @@ ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Han
 
 	UNUSED(rval); // compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in ComponentInfoArrayGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 	if ((_table = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
@@ -441,11 +396,7 @@ ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Han
 //extern const int COMPONENTS_COUNT;
 
 			int _length = capabilitiesHandler_getTableLength(_table); //COMPONENTS_COUNT;
-#if JS_VERSION < 185
-			*rval = INT_TO_JSVAL(_length);
-#else
 			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
-#endif
 		}else if(index > -1 && index < COMPONENTS_COUNT )
 		{
 			JSObject *_obj;
@@ -464,27 +415,17 @@ ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Han
 				return JS_FALSE;
 			}
 
-#if JS_VERSION < 185
-			*rval = OBJECT_TO_JSVAL(_obj);
-#else
 			JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 
 		}
 	}
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 185
-ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-#elif JS_VERSION == 185
-ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 ComponentInfoArraySetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -517,16 +458,10 @@ static JSPropertySpec (ComponentInfoArrayProperties)[] = {
 //}
 
 JSBool
-#if JS_VERSION < 185
-ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 
 	int *ptr;
 	int _index;
@@ -535,12 +470,11 @@ ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsi
 
 	UNUSED(rval); // compiler warning mitigation
 
-#if JS_VERSION >= 185
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 	if ((ptr = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
@@ -555,28 +489,17 @@ ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsi
 		switch(index){
 			case 0://name
 			case 1://Title
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(COMPONENTS[_index]);
-#else
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,PROFILES[_index])));
-#endif
 				break;
 			case 2://level
 				{
 				int level = capabilitiesHandler_getProfileLevel(_index);
-#if JS_VERSION < 185
-			*rval = INT_TO_JSVAL(lev);
-#else
 			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(level));
-#endif
+
 				}
 				break;
 			case 3://providerUrl
-#if JS_VERSION < 185
-				*rval = STRING_TO_JSVAL("freewrl.sourceforge.net");
-#else
 				JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,"freewrl.sourceforge.net")));
-#endif
 				break;
 			case 4://components ComponentInfoArray
 				{
@@ -593,11 +516,7 @@ ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsi
 						printf( "JS_SetPrivate failed in ComponentInfoArray.\n");
 						return JS_FALSE;
 					}
-#if JS_VERSION < 185
-					*rval = OBJECT_TO_JSVAL(_obj);
-#else
 					JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 				}
 				break;
 		}
@@ -605,16 +524,11 @@ ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsi
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 185
-ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-#elif JS_VERSION == 185
-ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 ProfileInfoSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -648,39 +562,28 @@ static JSPropertySpec (ProfileInfoProperties)[] = {
 //}
 
 JSBool
-#if JS_VERSION < 185
-ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 ProfileInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 
 	jsval rval;
 	jsval id;
 
 	UNUSED(rval); // compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in ProfileInfoArrayGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
 
     if (JSVAL_IS_INT(id)) 
 	{
 		int index = JSVAL_TO_INT(id);
 		if(index == -1){
 			int _length = PROFILES_COUNT;
-#if JS_VERSION < 185
-			*rval = INT_TO_JSVAL(_length);
-#else
 			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
-#endif
 		}else
 		//if(index < getNumberOfProfiles() )
 		{
@@ -698,27 +601,17 @@ ProfileInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				return JS_FALSE;
 			}
 
-#if JS_VERSION < 185
-			*rval = OBJECT_TO_JSVAL(_obj);
-#else
 			JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
-
 		}
 	}
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 185
-ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 ProfileInfoArraySetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -747,16 +640,11 @@ static JSPropertySpec (ProfileInfoArrayProperties)[] = {
 
 
 JSBool
-#if JS_VERSION < 185
-X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	int *ptr;
 	int _index;
 	JSString *_str;
@@ -768,12 +656,12 @@ X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 
 	UNUSED(rval); // compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 	if ((ptr = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
@@ -822,31 +710,19 @@ X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 						return JS_FALSE;
 					}
 
-#if JS_VERSION < 185
-					*rval = OBJECT_TO_JSVAL(_obj);
-#else
 					JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 				}
 				break;
 
 			case 1://sourceField
 				fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
 				_str = JS_NewStringCopyZ(cx,fieldname);
-#if JS_VERSION < 185
-				*rval = STRING_TO_JSVAL(_str);
-#else
 				JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-#endif
 				break;
 			case 3://destinationField
 				fieldname = findFIELDNAMESfromNodeOffset0(toNode,toOffset);
 				_str = JS_NewStringCopyZ(cx,fieldname);
-#if JS_VERSION < 185
-				*rval = STRING_TO_JSVAL(_str);
-#else
 				JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-#endif
 
 				break;
 		}
@@ -854,16 +730,10 @@ X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 185
-X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 X3DRouteSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -897,39 +767,30 @@ static JSPropertySpec (X3DRouteProperties)[] = {
 //}
 
 JSBool
-#if JS_VERSION < 185
-RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 RouteArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 
 	jsval rval;
 	jsval id;
 
 	UNUSED(rval); //compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in RouteArrayGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 
     if (JSVAL_IS_INT(id)) 
 	{
 		int index = JSVAL_TO_INT(id);
 		if(index == -1){
 			int _length = getCRouteCount();
-#if JS_VERSION < 185
-			*rval = INT_TO_JSVAL(_length);
-#else
 			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
-#endif
 		}else
 		//if(index < getNumberOfProfiles() )
 		{
@@ -947,27 +808,17 @@ RouteArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid
 				return JS_FALSE;
 			}
 
-#if JS_VERSION < 185
-			*rval = OBJECT_TO_JSVAL(_obj);
-#else
 			JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 
 		}
 	}
 	return JS_TRUE;
 }
 JSBool
-#if JS_VERSION < 185
-RouteArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-RouteArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 RouteArraySetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -1039,16 +890,11 @@ static JSPropertySpec (ExecutionContextProperties)[] = {
 typedef struct X3D_Node * ExecutionContextNative;
 
 JSBool
-#if JS_VERSION < 185
-ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	ExecutionContextNative *ptr;
 	JSString *_str;
 	jsval rval;
@@ -1056,12 +902,12 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 
 	UNUSED(rval); //compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in ExecutionContextGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 
 	if ((ptr = (ExecutionContextNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
@@ -1076,20 +922,12 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				sprintf(cs,"{%d,%d,%d}",inputFileVersion[0],inputFileVersion[1],inputFileVersion[2]);
 				_str = JS_NewStringCopyZ(cx,cs);
 			}
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(_str);
-#else
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-#endif
 			break;
 		case 1: //encoding string readonly
 			//Valid values are "ASCII", "VRML", "XML", "BINARY", "SCRIPTED", "BIFS", "NONE" 
 			_str = JS_NewStringCopyZ(cx, "not filled in yet sb. VRML or XML or .."); 
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(_str);
-#else
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-#endif
 			break;
 		case 2: //profile ProfileInfo readonly
 			{
@@ -1109,11 +947,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 					return JS_FALSE;
 				}
 
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 			}
 			break;
 		case 3: //components ComponentInfoArray readonly
@@ -1133,20 +967,12 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 					printf( "JS_SetPrivate failed in ExecutionContext_ComponentInfoArray.\n");
 					return JS_FALSE;
 				}
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 			}
 			break;
 		case 4: //worldURL string readonly
 			_str = JS_NewStringCopyZ(cx, gglobal()->Mainloop.url);
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(_str);
-#else
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-#endif
 			break;
 		case 5: //rootNodes MFNode (readonly if !isScene, else rw)
 			{
@@ -1176,11 +1002,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				//	return JS_FALSE;
 				//}
 
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 			}
 			break;
 		case 6: //protos protoDeclarationArray  rw
@@ -1199,11 +1021,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				//	printf( "JS_SetPrivate failed in ExecutionContext_X3DRouteArray.\n");
 				//	return JS_FALSE;
 				//}
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 			}
 			break;
 		case 9: //isScene readonly (extra to specs)
@@ -1217,16 +1035,10 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 
 
 JSBool
-#if JS_VERSION < 185
-ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 ExecutionContextSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -1257,16 +1069,11 @@ static JSPropertySpec (BrowserProperties)[] = {
 };
 
 JSBool
-#if JS_VERSION < 185
-BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
-#else
 BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
+
 	BrowserNative *ptr;
 	jsdouble d;
 	JSString *_str;
@@ -1275,12 +1082,11 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 
 	UNUSED(rval); // compiler warning mitigation
 
-#if JS_VERSION >= 185
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in BrowserGetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
 
 	//right now we don't need/use the ptr to BrowserNative which is a stub struct, 
 	//because browser is conceptually a global static singleton 
@@ -1297,19 +1103,11 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 		switch (JSVAL_TO_INT(id)) {
 		case 0: //name
 			_str = JS_NewStringCopyZ(cx,BrowserName);
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(_str);
-#else
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-#endif
 			break;
 		case 1: //version
 			_str = JS_NewStringCopyZ(cx, libFreeWRL_get_version());
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(_str);
-#else
 			JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
 			break;
 		case 2: //currentSpeed
 			/* get the variable updated */
@@ -1329,11 +1127,7 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 			break;
 		case 4: //description
 			_str = JS_NewStringCopyZ(cx, get_status());
-#if JS_VERSION < 185
-			*rval = STRING_TO_JSVAL(_str);
-#else
 			JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
 			break;
 		case 5: //supportedComponents
 			{
@@ -1353,12 +1147,7 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 					return JS_FALSE;
 				}
 
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
-
 			}
 			break;
 
@@ -1381,12 +1170,7 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 				//	return JS_FALSE;
 				//}
 
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
-
 			}
 			break;
 		case 7: //currentScene
@@ -1418,11 +1202,7 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 					return JS_FALSE;
 				}
 
-#if JS_VERSION < 185
-				*rval = OBJECT_TO_JSVAL(_obj);
-#else
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-#endif
 
 			}
 
@@ -1434,28 +1214,22 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 
 
 JSBool
-#if JS_VERSION < 185
-BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
-#elif JS_VERSION == 185
-BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
-#else
 BrowserSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
-#endif
 
 	BrowserNative *ptr;
 	jsval _val;
 	JSString *ss;
 	char *cs;
-#if JS_VERSION >= 185
+
 	jsval id;
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("JS_IdToValue failed in BrowserSetProperty.\n");
 		return JS_FALSE;
 	}
-#endif
+
 
 	if ((ptr = (BrowserNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in BrowserSetProperty.\n");
@@ -1647,13 +1421,10 @@ VrmlBrowserInit(JSContext *context, JSObject *globalObj, BrowserNative *brow)
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserGetName(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserGetName(JSContext *context, uintN argc, jsval *vp) {
 	JSObject *obj = JS_THIS_OBJECT(context,vp);
 	jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	JSString *_str;
 
 	UNUSED(obj);
@@ -1661,24 +1432,18 @@ VrmlBrowserGetName(JSContext *context, uintN argc, jsval *vp) {
 	UNUSED(argv);
 
 	_str = JS_NewStringCopyZ(context,BrowserName);
-#if JS_VERSION < 185
-	*rval = STRING_TO_JSVAL(_str);
-#else
 	JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
+
 	return JS_TRUE;
 }
 
 
 /* get the string stored in FWVER into a jsObject */
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserGetVersion(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserGetVersion(JSContext *context, uintN argc, jsval *vp) {
 	JSObject *obj = JS_THIS_OBJECT(context,vp);
 	jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	JSString *_str;
 
 	UNUSED(obj);
@@ -1686,23 +1451,16 @@ VrmlBrowserGetVersion(JSContext *context, uintN argc, jsval *vp) {
 	UNUSED(argv);
 
 	_str = JS_NewStringCopyZ(context, libFreeWRL_get_version());
-#if JS_VERSION < 185
-	*rval = STRING_TO_JSVAL(_str);
-#else
 	JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserGetCurrentSpeed(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserGetCurrentSpeed(JSContext *context, uintN argc, jsval *vp) {
 	JSObject *obj = JS_THIS_OBJECT(context,vp);
 	jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	JSString *_str;
 	char string[1000];
 
@@ -1714,23 +1472,16 @@ VrmlBrowserGetCurrentSpeed(JSContext *context, uintN argc, jsval *vp) {
 	getCurrentSpeed();
 	sprintf (string,"%f",gglobal()->Mainloop.BrowserSpeed);
 	_str = JS_NewStringCopyZ(context,string);
-#if JS_VERSION < 185
-        *rval = STRING_TO_JSVAL(_str);
-#else
         JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserGetCurrentFrameRate(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserGetCurrentFrameRate(JSContext *context, uintN argc, jsval *vp) {
 	JSObject *obj = JS_THIS_OBJECT(context,vp);
 	jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	JSString *_str;
 	char FPSstring[1000];
 
@@ -1740,23 +1491,16 @@ VrmlBrowserGetCurrentFrameRate(JSContext *context, uintN argc, jsval *vp) {
 
 	sprintf (FPSstring,"%6.2f",gglobal()->Mainloop.BrowserFPS);
 	_str = JS_NewStringCopyZ(context,FPSstring);
-#if JS_VERSION < 185
-        *rval = STRING_TO_JSVAL(_str);
-#else
         JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserGetWorldURL(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserGetWorldURL(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	JSString *_str;
 
 	UNUSED(obj);
@@ -1764,30 +1508,21 @@ VrmlBrowserGetWorldURL(JSContext *context, uintN argc, jsval *vp) {
 	UNUSED(argv);
 
 	_str = JS_NewStringCopyZ(context,BrowserFullPath);
-#if JS_VERSION < 185
-        *rval = STRING_TO_JSVAL(_str);
-#else
         JS_SET_RVAL(context,vp,STRING_TO_JSVAL(_str));
-#endif
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserReplaceWorld(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserReplaceWorld(JSContext *context, uintN argc, jsval *vp) {
         jsval *argv = JS_ARGV(context,vp);
-#endif
 	JSObject *_obj;
 	JSString *_str;
 	JSClass *_cls;
 	jsval _rval = INT_TO_JSVAL(0);
-	char *_c_args = "MFNode nodes",
-		*_costr,
+	const char *_c_args = "MFNode nodes",
 		*_c_format = "o";
-	char *tptr;
+	char *_costr,*tptr;
 
 	if (JS_ConvertArguments(context, argc, argv, _c_format, &_obj)) {
 		if ((_cls = JS_GET_CLASS(context, _obj)) == NULL) {
@@ -1800,11 +1535,8 @@ VrmlBrowserReplaceWorld(JSContext *context, uintN argc, jsval *vp) {
 			return JS_FALSE;
 		}
 		_str = JS_ValueToString(context, argv[0]);
-#if JS_VERSION < 185
-		_costr = JS_GetStringBytes(_str);
-#else
 		_costr = JS_EncodeString(context,_str);
-#endif
+
 		/* sanitize string, for the EAI_RW call (see EAI_RW code) */
 		tptr = _costr;
 		while (*tptr != '\0') {
@@ -1814,36 +1546,27 @@ VrmlBrowserReplaceWorld(JSContext *context, uintN argc, jsval *vp) {
 			tptr++;
 		}
 		EAI_RW(_costr);
-#if JS_VERSION >= 185
+
 		JS_free(context,_costr);
-#endif
 	} else {
 		printf( "\nIncorrect argument format for replaceWorld(%s).\n", _c_args);
 		return JS_FALSE;
 	}
-#if JS_VERSION < 185
-	*rval = _rval;
-#else
 	JS_SET_RVAL(context,vp,_rval);
-#endif
 
 	return JS_TRUE;
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserLoadURL(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserLoadURL(JSContext *context, uintN argc, jsval *vp) {
         jsval *argv = JS_ARGV(context,vp);
-#endif
 	JSObject *_obj[2];
 	JSString *_str[2];
 	JSClass *_cls[2];
-	char *_c_args = "MFString url, MFString parameter",
-		*_costr[2],
+	const char *_c_args = "MFString url, MFString parameter",
 		*_c_format = "o o";
 	#define myBufSize 2000
+	char *_costr[2];
 	char myBuf[myBufSize];
 
 	if (JS_ConvertArguments(context, argc, argv, _c_format, &(_obj[0]), &(_obj[1]))) {
@@ -1861,18 +1584,10 @@ VrmlBrowserLoadURL(JSContext *context, uintN argc, jsval *vp) {
 			return JS_FALSE;
 		}
 		_str[0] = JS_ValueToString(context, argv[0]);
-#if JS_VERSION < 185
-		_costr[0] = JS_GetStringBytes(_str[0]);
-#else
 		_costr[0] = JS_EncodeString(context,_str[0]);
-#endif
 
 		_str[1] = JS_ValueToString(context, argv[1]);
-#if JS_VERSION < 185
-		_costr[1] = JS_GetStringBytes(_str[1]);
-#else
 		_costr[1] = JS_EncodeString(context,_str[1]);
-#endif
 
 		/* we use the EAI code for this - so reformat this for the EAI format */
 		{
@@ -1887,53 +1602,34 @@ VrmlBrowserLoadURL(JSContext *context, uintN argc, jsval *vp) {
 		}
 		gglobal()->RenderFuncs.BrowserAction = TRUE;
 
-#if JS_VERSION >= 185
 		JS_free(context,_costr[0]);
 		JS_free(context,_costr[1]);
-#endif
 	} else {
 		printf( "\nIncorrect argument format for loadURL(%s).\n", _c_args);
 		return JS_FALSE;
 	}
-#if JS_VERSION < 185
-	*rval = INT_TO_JSVAL(0);
-#else
 	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO); 
-#endif
 
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserSetDescription(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	char *_c_format = "s";
-#else
 VrmlBrowserSetDescription(JSContext *context, uintN argc, jsval *vp) {
         jsval *argv = JS_ARGV(context,vp);
 	JSString *js_c;
-	char *_c_format = "S";
-#endif
-	char *_c, *_c_args = "SFString description";
+	const char *_c_format = "S", *_c_args = "SFString description";
+	char *_c;
 
 	UNUSED(_c); // compiler warning mitigation
 
 	if (argc == 1 &&
-#if JS_VERSION < 185
-		JS_ConvertArguments(context, argc, argv, _c_format, &_c)) {
-#else
 		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
 			/* _c = JS_EncodeString(context,js_c);
 			...why encode the string when we just have to JS_free it later? */
-#endif
 
 		/* we do not do anything with the description. If we ever wanted to, it is in _c */
-#if JS_VERSION < 185
-		*rval = INT_TO_JSVAL(0);
-#else
 		JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
-#endif
 	} else {
 		printf( "\nIncorrect argument format for setDescription(%s).\n", _c_args);
 		return JS_FALSE;
@@ -1943,25 +1639,21 @@ VrmlBrowserSetDescription(JSContext *context, uintN argc, jsval *vp) {
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserCreateVrmlFromString(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	char *_c_format = "s";
-#else
 VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
 	jsval _my_rval;
 	jsval *rval = &_my_rval;
-	char *_c_format = "S";
+	const char *_c_format = "S", *_c_args = "SFString vrmlSyntax";
 	JSString *js_c;
-#endif
-	char *_c, *_c_args = "SFString vrmlSyntax";
+
+	char *_c;
 
 	/* for the return of the nodes */
 	struct X3D_Group *retGroup;
 	char *xstr; 
 	char *tmpstr;
-	char *separator;
+	const char *separator;
 	int ra;
 	int count;
 	int wantedsize;
@@ -1975,12 +1667,9 @@ VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
 	*rval = INT_TO_JSVAL(0);
 
 	if (argc == 1 &&
-#if JS_VERSION < 185
-		JS_ConvertArguments(context, argc, argv, _c_format, &_c)) {
-#else
 		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
 			_c = JS_EncodeString(context,js_c);
-#endif
+
 		#ifdef JSVERBOSE
 			printf("VrmlBrowserCreateVrmlFromString: obj = %u, str = \"%s\"\n",
 				   obj, _c);
@@ -2017,9 +1706,7 @@ VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
 		strcat (xstr,")");
 		//markForDispose(X3D_NODE(retGroup),FALSE); //change in Nov 2014 does FREE_IF_NZ
 
-#if JS_VERSION >= 185
 		JS_free(context,_c);
-#endif
 		
 		#ifdef JSVERBOSE
 		printf ("running runscript on :%s:\n",xstr);
@@ -2035,34 +1722,27 @@ VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
 	}
 
 	/* save this value, in case we need it */
-#if JS_VERSION < 185
-	tg->jsVRMLBrowser.JSCreate_global_return_val = *rval;
-#else
 	JS_SET_RVAL(context,vp,*rval);
-#endif
+
 	return JS_TRUE;
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserCreateX3DFromString(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	char *_c_format = "s";
-#else
 VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
 	jsval _my_rval;
 	jsval *rval = &_my_rval;
-	char *_c_format = "S";
+	const char *_c_format = "S", *_c_args = "SFString x3dSyntax";
 	JSString *js_c;
-#endif
-	char *_c, *_c_args = "SFString x3dSyntax"; //x3d
+
+	char *_c; //x3d
 
 	/* for the return of the nodes */
 	struct X3D_Group *retGroup;
 	char *xstr; 
 	char *tmpstr;
-	char *separator;
+	const char *separator;
 	int ra;
 	int count;
 	int wantedsize;
@@ -2076,12 +1756,9 @@ VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
 	*rval = INT_TO_JSVAL(0);
 
 	if (argc == 1 &&
-#if JS_VERSION < 185
-		JS_ConvertArguments(context, argc, argv, _c_format, &_c)) {
-#else
 		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
 			_c = JS_EncodeString(context,js_c);
-#endif
+
 		#ifdef JSVERBOSE
 			printf("VrmlBrowserCreateVrmlFromString: obj = %u, str = \"%s\"\n",
 				   obj, _c);
@@ -2116,9 +1793,7 @@ VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
 		strcat (xstr,")");
 		markForDispose(X3D_NODE(retGroup),FALSE);
 
-#if JS_VERSION >= 185
 		JS_free(context,_c);
-#endif
 		
 		#ifdef JSVERBOSE
 		printf ("running runscript on :%s:\n",xstr);
@@ -2134,24 +1809,17 @@ VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
 	}
 
 	/* save this value, in case we need it */
-#if JS_VERSION < 185
-	*(jsval*)(gglobal()->jsVRMLBrowser.JSCreate_global_return_val) = *rval;
-#else
 	JS_SET_RVAL(context,vp,*rval);
-#endif
 	return JS_TRUE;
 }
 
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserCreateVrmlFromURL(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#else
 VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
         jsval *argv = JS_ARGV(context,vp);
 	jsval _my_rval;
 	jsval *rval = &_my_rval;
-#endif
+
 	JSString *_str[2];
 	JSClass *_cls[2];
 	SFNodeNative *oldPtr;
@@ -2182,11 +1850,7 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 	#endif
 
 	/* rval is always zero, so lets just set it */
-#if JS_VERSION < 185
-	*rval = INT_TO_JSVAL(0);
-#else
 	*rval = INT_TO_JSVAL(0); //JSVAL_ZERO;
-#endif
 
 	/* first parameter - expect a MFString Object here */
 	//if (JSVAL_IS_OBJECT(argv[0])) {
@@ -2227,11 +1891,8 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 	/* third parameter should be a string */
 	if (JSVAL_IS_STRING(argv[2])) {
 		_str[1] = JSVAL_TO_STRING(argv[2]);
-#if JS_VERSION < 185
-		fieldStr = JS_GetStringBytes(_str[1]);
-#else
 		fieldStr = JS_EncodeString(context,_str[1]);
-#endif
+
 		#ifdef JSVERBOSE
 		printf ("field string is :%s:\n",fieldStr); 
 		#endif
@@ -2246,12 +1907,7 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 
 	/* get the URL listing as a string */
 	_str[0] = JS_ValueToString(context, argv[0]);
-#if JS_VERSION < 185
-	_costr0 = JS_GetStringBytes(_str[0]);
-#else
 	_costr0 = JS_EncodeString(context,_str[0]);
-#endif
-
 
 	#ifdef JSVERBOSE
 	printf ("URL string is %s\n",_costr0);
@@ -2261,19 +1917,19 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 	/* get a pointer to the SFNode structure, in order to properly place the new string */
 	if ((oldPtr = (SFNodeNative *)JS_GetPrivateFw(context, JSVAL_TO_OBJECT(argv[1]))) == NULL) {
 		printf( "JS_GetPrivate failed in VrmlBrowserLoadURL for SFNode parameter.\n");
-#if JS_VERSION >= 185
+
 		JS_free(context,_costr0);
 		JS_free(context,fieldStr);
-#endif
+
 		return JS_FALSE;
 	}
 	myptr = X3D_NODE(oldPtr->handle);
 	if (myptr == NULL) {
 		printf ("CreateVrmlFromURL, internal error - SFNodeNative memory pointer is NULL\n");
-#if JS_VERSION >= 185
+
 		JS_free(context,_costr0);
 		JS_free(context,fieldStr);
-#endif
+
 		return JS_FALSE;
 	}
 
@@ -2288,10 +1944,10 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 	/* bounds checks */
 	if (sizeof (_costr0) > (myFileSizeLimit-200)) {
 		printf ("VrmlBrowserCreateVrmlFromURL, url too long...\n");
-#if JS_VERSION >= 185
+
 		JS_free(context,_costr0);
 		JS_free(context,fieldStr);
-#endif
+
 		return JS_FALSE;
 	}
 
@@ -2319,10 +1975,10 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 		findFieldInOFFSETS(myptr->_nodeType, fieldInt, &offs, &type, &accessType);
 	} else {
 		ConsoleMessage ("Can not find field :%s: in nodeType :%s:",fieldStr,stringNodeType(myptr->_nodeType));
-#if JS_VERSION >= 185
+
 		JS_free(context,_costr0);
 		JS_free(context,fieldStr);
-#endif
+
 		return JS_FALSE;
 	}
 
@@ -2337,44 +1993,31 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 	//}
 
 	MARK_EVENT(myptr,offs);
-#if JS_VERSION >= 185
+
 	JS_SET_RVAL(context,vp,*rval);
 	JS_free(context,fieldStr);
 	JS_free(context,_costr0);
-#endif
+
 	return JS_TRUE;
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserAddRoute(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	jsval _rval = INT_TO_JSVAL(0);
-#else
 VrmlBrowserAddRoute(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	if (!doVRMLRoute(context, obj, argc, argv, "addRoute")) {
 		printf( "doVRMLRoute failed in VrmlBrowserAddRoute.\n");
 		return JS_FALSE;
 	}
-#if JS_VERSION < 185
-	*rval = _rval;
-#else
 	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
-#endif
 	return JS_TRUE;
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserPrint(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	jsval _rval = INT_TO_JSVAL(0);
-#else
 VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
-#endif
 	unsigned int count;
 	JSString *_str;
 	char *_id_c;
@@ -2384,11 +2027,7 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 	for (count=0; count < argc; count++) {
 		if (JSVAL_IS_STRING(argv[count])) {
 			_str = JSVAL_TO_STRING(argv[count]);
-#if JS_VERSION < 185
-			_id_c = JS_GetStringBytes(_str);
-#else
 			_id_c = JS_EncodeString(context,_str);
-#endif
 			// OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER)
 			#if defined(AQUA) || defined(_MSC_VER)
 			ConsoleMessage(_id_c); /* statusbar hud */
@@ -2402,9 +2041,7 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 					gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 				#endif
 			#endif
-#if JS_VERSION >= 185
 			JS_free(context,_id_c);
-#endif
 		} else {
 	/*		printf ("unknown arg type %d\n",count); */
 		}
@@ -2420,23 +2057,15 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 			printf ("\n");
 		#endif
 	#endif
-#if JS_VERSION < 185
-	*rval = _rval;
-#else
 	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
-#endif
 	return JS_TRUE;
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserPrintln(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {	
-    VrmlBrowserPrint(context,obj,argc,argv,rval);
-#else
 VrmlBrowserPrintln(JSContext *context, uintN argc, jsval *vp) {
 	/* note, vp holds rval, since it is set in here we should be good */
 	VrmlBrowserPrint(context,argc,vp); 
-#endif
+
 	// OLD_IPHONE_AQUA  #if defined(AQUA) || defined(_MSC_VER)
 	#if defined(AQUA) ||  defined(_MSC_VER)
 		//ConsoleMessage("\n"); /* statusbar hud */
@@ -2450,23 +2079,16 @@ VrmlBrowserPrintln(JSContext *context, uintN argc, jsval *vp) {
 }
 
 JSBool
-#if JS_VERSION < 185
-VrmlBrowserDeleteRoute(JSContext *context, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	jsval _rval = INT_TO_JSVAL(0);
-#else
 VrmlBrowserDeleteRoute(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
-#endif
+
 	if (!doVRMLRoute(context, obj, argc, argv, "deleteRoute")) {
 		printf( "doVRMLRoute failed in VrmlBrowserDeleteRoute.\n");
 		return JS_FALSE;
 	}
-#if JS_VERSION < 185
-	*rval = _rval;
-#else
+
 	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
-#endif
 	return JS_TRUE;
 }
 
@@ -2481,15 +2103,11 @@ static JSBool doVRMLRoute(JSContext *context, JSObject *obj, uintN argc, jsval *
 	SFNodeNative *fromNative, *toNative;
 	JSClass *_cls[2];
 	char 
-		*fromFieldString, *toFieldString,
-		*_c_args =
+		*fromFieldString, *toFieldString;
+	const char	*_c_args =
 		"SFNode fromNode, SFString fromEventOut, SFNode toNode, SFString toEventIn",
-#if JS_VERSION < 185
-		*_c_format = "o s o s";
-#else
 		*_c_format = "oSoS";
 	JSString *fromFieldStringJS, *toFieldStringJS;
-#endif
 	struct X3D_Node *fromNode;
 	struct X3D_Node *toNode;
 	int fromOfs, toOfs, len;
@@ -2505,13 +2123,10 @@ static JSBool doVRMLRoute(JSContext *context, JSObject *obj, uintN argc, jsval *
 
 	/* get the arguments, and ensure that they are obj, string, obj, string */
 	if (JS_ConvertArguments(context, argc, argv, _c_format,
-#if JS_VERSION < 185
-				&fromNodeObj, &fromFieldString, &toNodeObj, &toFieldString)) {
-#else
 				&fromNodeObj, &fromFieldStringJS, &toNodeObj, &toFieldStringJS)) {
 		fromFieldString = JS_EncodeString(context,fromFieldStringJS);
 		toFieldString = JS_EncodeString(context,toFieldStringJS);
-#endif
+
 		if ((_cls[0] = JS_GET_CLASS(context, fromNodeObj)) == NULL) {
 			printf("JS_GetClass failed for arg 0 in doVRMLRoute called from %s.\n",
 					callingFunc);
@@ -2580,10 +2195,9 @@ static JSBool doVRMLRoute(JSContext *context, JSObject *obj, uintN argc, jsval *
 
 		jsRegisterRoute(fromNode, fromOfs, toNode, toOfs, len,callingFunc);
 
-#if JS_VERSION >= 185
 		JS_free(context,fromFieldString);
 		JS_free(context,toFieldString);
-#endif
+
 	} else {
 		printf( "\nIncorrect argument format for %s(%s).\n",
 				callingFunc, _c_args);

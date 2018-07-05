@@ -60,8 +60,7 @@ Javascript C language binding.
 JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 //#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
 
-typedef int BOOL;
-typedef BOOL _Bool;
+
 //typedef _Bool bool;
 
 
@@ -76,6 +75,10 @@ typedef BOOL _Bool;
 
 
 extern "C" {
+#ifndef IBOOL
+typedef int IBOOL;
+#endif
+typedef IBOOL _Bool;
 #include <system.h>
 #include "scenegraph/Vector.h"
 //#include <display.h>
@@ -368,7 +371,7 @@ void sm_jsShutdown(){
 
 static struct keyname {
 	int key;
-	char *name;
+	const char *name;
 } gcparamname [] = {
 {JSGC_MAX_BYTES,"JSGC_MAX_BYTES"},
 {JSGC_MAX_MALLOC_BYTES, "JSGC_MAX_MALLOC_BYTES"},
@@ -805,7 +808,7 @@ void SFVec4dNativeAssign(void *top, void *fromp) {
 } //extern "C"
 
 
-static char* re_strcat(char *_Dest, char *_Source, int *destLen, int *destDim)
+static char* re_strcat(char *_Dest, const char *_Source, int *destLen, int *destDim)
 {
 	/* strcats, but first checks strlen on source and destination
 	   and reallocs if necessary - good when you are doing a lot of strcatting of un-pre-known elements
@@ -3099,7 +3102,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 						/* create a new SFInt32 object */
 
 						ip = (int *)ip_in;
-						newjsval = INT_TO_JSVAL((int)ip); /* NOTE--this is assigning the pointer itself as an int, not its content */
+						newjsval = INT_TO_JSVAL((int)*ip);
 						ip_in = offsetPointer_deref(int *,ip_in,elementlen);
 
 						/* put this object into the MF class */
@@ -3163,7 +3166,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 				case FIELDTYPE_MFNode: {
 					JSObject *newMFObject;
 					jsval newjsval;
-					double *ip, *ip_in=(double *)Data;
+					void **ip, **ip_in=(void **)Data;
 					/* create a new MFNode object... */
 					newMFObject = JS_ConstructObjectFw(cx, &MFNodeClass, NULL ,JS_GetParentFw(cx, obj));
 					ADD_ROOT (cx, newMFObject)
@@ -3175,8 +3178,8 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 					elementlen = (int) sizeof (void *);
 					for (x=0; x<datalen; x++) {
 						ip = ip_in;
-						newjsval = INT_TO_JSVAL((int)ip); /* NOTE--assigning pointer itself as int, not its content */
-						ip_in = offsetPointer_deref(double *,ip_in,elementlen);
+						newjsval = PRIVATE_TO_JSVAL((void*)*ip); //July 4, 2018 SM1 routing MFNode doesn't work
+						ip_in = offsetPointer_deref(void **,ip_in,elementlen);
 
 						/* put this object into the MF class */
 						if (!JS_DefineElement(cx, newMFObject, (jsint) x, newjsval,

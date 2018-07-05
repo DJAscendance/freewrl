@@ -56,8 +56,10 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 //#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
 
-typedef int BOOL;
-typedef BOOL _Bool;
+#ifndef IBOOL
+typedef int IBOOL;
+#endif
+typedef IBOOL _Bool;
 //typedef _Bool bool;
 
 
@@ -916,7 +918,8 @@ JSFunctionSpec (X3DMatrix4Functions)[] = {
 
 struct JSLoadPropElement {
 	JSClass *fwclass;
-	void *constr;
+	//void *constr;
+	JSBool (*constr)(JSContext*, unsigned int, jsval*);
 	void *Functions;
 	void *Properties;
 	const char *id;
@@ -935,30 +938,30 @@ struct JSLoadPropElement JSLoadProps [] = {
         { &X4DMatrix4Class, X4DMatrix4Constr, &X4DMatrix4Functions, &X4DMatrix4Properties, "X4DMatrix4Class"},
 #endif /* NEWCLASSES */
 
-        { &SFColorClass, SFColorConstr, &SFColorFunctions, &SFColorProperties, "SFColorClass"},
-        { &SFVec2fClass, SFVec2fConstr, &SFVec2fFunctions, &SFVec2fProperties, "SFVec2fClass"},
-        { &SFColorRGBAClass, SFColorRGBAConstr, &SFColorRGBAFunctions, &SFColorRGBAProperties, "SFColorRGBAClass"},
-        { &SFVec3fClass, SFVec3fConstr, &SFVec3fFunctions, &SFVec3fProperties, "SFVec3fClass"},
-        { &SFVec3dClass, SFVec3dConstr, &SFVec3dFunctions, &SFVec3dProperties, "SFVec3dClass"},
-        { &SFRotationClass, SFRotationConstr, &SFRotationFunctions, &SFRotationProperties, "SFRotationClass"},
-        { &SFNodeClass, SFNodeConstr, &SFNodeFunctions, &SFNodeProperties, "SFNodeClass"},
-        { &MFFloatClass, MFFloatConstr, &MFFloatFunctions, NULL, "MFFloatClass"},
-        { &MFTimeClass, MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
-        { &MFInt32Class, MFInt32Constr, &MFInt32Functions, NULL, "MFInt32Class"},
-        { &MFColorClass, MFColorConstr, &MFColorFunctions, NULL, "MFColorClass"},
-        { &MFVec2fClass, MFVec2fConstr, &MFVec2fFunctions, NULL, "MFVec2fClass"},
+        { &SFColorClass, &SFColorConstr, &SFColorFunctions, &SFColorProperties, "SFColorClass"},
+        { &SFVec2fClass, &SFVec2fConstr, &SFVec2fFunctions, &SFVec2fProperties, "SFVec2fClass"},
+        { &SFColorRGBAClass, &SFColorRGBAConstr, &SFColorRGBAFunctions, &SFColorRGBAProperties, "SFColorRGBAClass"},
+        { &SFVec3fClass, &SFVec3fConstr, &SFVec3fFunctions, &SFVec3fProperties, "SFVec3fClass"},
+        { &SFVec3dClass, &SFVec3dConstr, &SFVec3dFunctions, &SFVec3dProperties, "SFVec3dClass"},
+        { &SFRotationClass, &SFRotationConstr, &SFRotationFunctions, &SFRotationProperties, "SFRotationClass"},
+        { &SFNodeClass, &SFNodeConstr, &SFNodeFunctions, &SFNodeProperties, "SFNodeClass"},
+        { &MFFloatClass, &MFFloatConstr, &MFFloatFunctions, NULL, "MFFloatClass"},
+        { &MFTimeClass, &MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
+        { &MFInt32Class, &MFInt32Constr, &MFInt32Functions, NULL, "MFInt32Class"},
+        { &MFColorClass, &MFColorConstr, &MFColorFunctions, NULL, "MFColorClass"},
+        { &MFVec2fClass, &MFVec2fConstr, &MFVec2fFunctions, NULL, "MFVec2fClass"},
 
-        { &MFVec3fClass, MFVec3fConstr, &MFVec3fFunctions, NULL, "MFVec3fClass"},
+        { &MFVec3fClass, &MFVec3fConstr, &MFVec3fFunctions, NULL, "MFVec3fClass"},
 
-        { &SFVec4fClass, SFVec4fConstr, &SFVec4fFunctions, &SFVec4fProperties, "SFVec4fClass"},
-        { &SFVec4dClass, SFVec4dConstr, &SFVec4dFunctions, &SFVec4dProperties, "SFVec4dClass"},
+        { &SFVec4fClass, &SFVec4fConstr, &SFVec4fFunctions, &SFVec4fProperties, "SFVec4fClass"},
+        { &SFVec4dClass, &SFVec4dConstr, &SFVec4dFunctions, &SFVec4dProperties, "SFVec4dClass"},
 
-        { &MFRotationClass, MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
-        { &MFNodeClass, MFNodeConstr, &MFNodeFunctions, NULL, "MFNodeClass"},
-        { &SFImageClass, SFImageConstr, &SFImageFunctions, &SFImageProperties, "SFImageClass"},
+        { &MFRotationClass, &MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
+        { &MFNodeClass, &MFNodeConstr, &MFNodeFunctions, NULL, "MFNodeClass"},
+        { &SFImageClass, &SFImageConstr, &SFImageFunctions, &SFImageProperties, "SFImageClass"},
 /*        { &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, &MFColorRGBAProperties, "MFColorRGBAClass"},*/
-        { &MFStringClass, MFStringConstr, &MFStringFunctions, NULL, "MFStringClass"},
-        { &VrmlMatrixClass, VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
+        { &MFStringClass, &MFStringConstr, &MFStringFunctions, NULL, "MFStringClass"},
+        { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
         { NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -1132,7 +1135,7 @@ _standardMFGetProperty(JSContext *cx,
 		jsid iid,
 
 		jsval *vp,
-		char *makeNewElement,
+		const char *makeNewElement,
 		int type) {
 
 	int32 _length, _index;
@@ -1430,7 +1433,7 @@ char *sf2str(int sftype, union anyVrml *any){
 		break;
 	}
 	case FIELDTYPE_SFNode:
-		sprintf(strbuf,"%zx",any->sfnode);
+		sprintf(strbuf,"%p",any->sfnode);
 		str = strdup(strbuf);
 		break;
 	case FIELDTYPE_SFImage:
@@ -1533,7 +1536,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 		printf ("doMFToString - doing an image\n");
 		#endif
 	}
-
+	_tmp_valStr = NULL;
 	buff_size = LARGESTRING;
 	_buff = MALLOC(char *, buff_size * sizeof(char));
 	memset(_buff, 0, buff_size);
@@ -1542,7 +1545,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 		if (!JS_GetElement(cx, obj, i, &_v)) {
 			printf("warning, no element %d of %d in doMFToString for a type of %s.\n",
 				i, len,className);
-			_tmp_valStr = "NULL";
+			_tmp_valStr = strdup("NULL");
 		} else {
 
 			#ifdef JSVRMLCLASSESVERBOSE
@@ -1553,7 +1556,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 
 			_tmpStr = JS_ValueToString(cx, _v);
 			if (_tmpStr==NULL) {
-				_tmp_valStr = "NULL";
+				_tmp_valStr = strdup("NULL");
 			} else {
 				_tmp_valStr = JS_EncodeString(cx,_tmpStr);
 				encodedTmpValstr = JS_TRUE;
@@ -1576,7 +1579,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 				printf( "JS_realloc failed for %d in doMFToString for %s.\n", i, className);
 
 				if (encodedTmpValstr == JS_TRUE) JS_free(cx,_tmp_valStr);
-
+				if(_tmp_valStr) {free(_tmpStr); _tmpStr = NULL;}
 				return JS_FALSE;
 			}
 		}
@@ -1592,6 +1595,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 				JS_free(cx,_tmp_valStr);
 				encodedTmpValstr = JS_FALSE;
 			}
+			if(_tmp_valStr) {free(_tmpStr); _tmpStr = NULL;}
 
 			break;
 		}
@@ -1632,6 +1636,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 			JS_free(cx,_tmp_valStr);
 			encodedTmpValstr = JS_FALSE;
 		}
+		if(_tmp_valStr) {free(_tmpStr); _tmpStr = NULL;}
 
     }
 
@@ -1653,7 +1658,7 @@ JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *
 }
 
 JSBool
-doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
+doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, const char *name) {
 
 	JSString *str;
 	jsval v;

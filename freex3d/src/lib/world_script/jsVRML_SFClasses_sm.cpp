@@ -55,8 +55,10 @@ JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
 JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 //#define JSVAL_IS_OBJECT(retval) JSVAL_IS_OBJECT_OR_NULL_IMPL(retval)
 
-typedef int BOOL;
-typedef BOOL _Bool;
+#ifndef IBOOL
+typedef int IBOOL;
+#endif
+typedef IBOOL _Bool;
 //typedef _Bool bool;
 
 
@@ -1382,7 +1384,7 @@ SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
 	{
 		jsdouble nv;
 		char tmpline[100];
-		sprintf (tmpline,"%zx",handle);
+		sprintf (tmpline,"%p",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
@@ -1460,7 +1462,7 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 		jsdouble nv;
 		char buff[STRING];
 		memset(buff, 0, STRING);
-		sprintf (buff,"_%zx_",handle);
+		sprintf (buff,"_%p_",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
@@ -1772,7 +1774,7 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 				res->whereToPlaceData = myGroup;
 				res->ectx = myGroup;
 				res->media_type = resm_vrml;
-				res->parsed_request = "From the EAI bootcamp of life ";
+				res->parsed_request = strdup("From the EAI bootcamp of life ");
 				res->offsetFromWhereToPlaceData = (int) offsetof (struct X3D_Group, children);
 				#ifdef JSVRMLCLASSESVERBOSE
 				printf ("SFNodeConstr, sending resource to parser\n");

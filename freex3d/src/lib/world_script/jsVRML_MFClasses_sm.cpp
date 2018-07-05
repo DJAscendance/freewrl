@@ -46,8 +46,10 @@
 #define jsdouble double
 
 #define JS_FinalizeStub NULL
-typedef int BOOL;
-typedef BOOL _Bool;
+#ifndef IBOOL
+typedef int IBOOL;
+#endif
+typedef IBOOL _Bool;
 
 
 

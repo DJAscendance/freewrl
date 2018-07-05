@@ -88,6 +88,14 @@ world_script/jsVRMLClasses.c \
 world_script/jsVRML_MFClasses.c \
 world_script/jsVRML_SFClasses.c \
 world_script/world_script.h \
+world_script/jsUtils_sm.h \
+world_script/jsVRMLClasses_sm.h \
+world_script/JScript_sm.cpp \
+world_script/jsVRMLBrowser_sm.cpp \
+world_script/jsUtils_sm.cpp \
+world_script/jsVRML_SFClasses_sm.cpp \
+world_script/jsVRML_MFClasses_sm.cpp \
+world_script/jsVRMLClasses_sm.cpp \
  \
 scenegraph/RenderFuncs.c \
 scenegraph/RenderFuncs.h \

@@ -147,7 +147,7 @@ void freeMFString(struct Multi_String **ms){
 
 /* do these strings differ?? If so, copy the new string over the old, and 
 touch the touched flag */
-void verify_Uni_String(struct  Uni_String *unis, char *str) {
+void verify_Uni_String(struct  Uni_String *unis, const char *str) {
 	char *ns;
 	char *os;
 	size_t len;

@@ -316,10 +316,10 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 		xsens1 = getCollisionSensorFromCsensor(xshape1->_csensor);
 		xsens2 = getCollisionSensorFromCsensor(xshape2->_csensor);
 		if(0) if(count < 20){
-			if(xsens1) printf("have csens1 %zx\n",xsens1);
-			if(xsens2) printf("have csens2 %zx\n",xsens2);
-			if(xcol1) printf("have ccol1 %zx\n",xcol1);
-			if(xcol2) printf("have ccol2 %zx\n",xcol2);
+			if(xsens1) printf("have csens1 %p\n",xsens1);
+			if(xsens2) printf("have csens2 %p\n",xsens2);
+			if(xcol1) printf("have ccol1 %p\n",xcol1);
+			if(xcol2) printf("have ccol2 %p\n",xcol2);
 		}
 		if(xcol1 && !xcol1->enabled ) return;
 		if(xcol2 && !xcol2->enabled ) return;

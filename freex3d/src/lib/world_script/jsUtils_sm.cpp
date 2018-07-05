@@ -47,8 +47,10 @@ which is the sample application included with the javascript engine.
 #define jsdouble double
 
 #define JS_FinalizeStub NULL
-typedef int BOOL;
-typedef BOOL _Bool;
+#ifndef IBOOL
+typedef int IBOOL;
+#endif
+typedef IBOOL _Bool;
 
 extern "C" {
 #include <system.h>
@@ -231,13 +233,13 @@ static JSBool setSF_in_MF (JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle
 		num = id.toInt32();
 		/* get a pointer to the object at the index in the parent */ 
 		if (!JS_GetElement(cx, obj, num, &ele)) { 
-			printf ("error getting child %d in setSF_in_MF\n",num); 
+			printf ("error getting child %ld in setSF_in_MF\n",num); 
 			return JS_FALSE; 
 		} 
 		/* THIS is the touching that will cause us to be called recursively,
 		   which is why insetSFStr is TRUE right here */
 		if (!JS_SetElement(cx,obj,num,vp)) { 
-			printf ("can not set element %d in MFString\n",num); 
+			printf ("can not set element %ld in MFString\n",num); 
 			return JS_FALSE; 
 		} 
 	} else {
@@ -531,7 +533,7 @@ void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, in
 
 	void *VPtr;
 	jsval rval;
-	char *script = NULL;
+	const char *script = NULL;
 
 	/* NOTE - caller is (eventually) a class constructor, no need to BeginRequest */
 
@@ -682,7 +684,7 @@ void X3D_SF_TO_JS_BNode(JSContext *cx, void *Data, unsigned datalen, int dataTyp
 void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
 	int i;
 	jsval rval;
-	char *script = NULL;
+	const char *script = NULL;
 	struct Multi_Int32 *MIptr;
 	struct Multi_Float *MFptr;
 	struct Multi_Time *MTptr;

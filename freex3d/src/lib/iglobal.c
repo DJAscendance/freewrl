@@ -135,105 +135,105 @@ pthread_key_t threadSpecificKey;  //set like a global variable in the global sco
 
 void iiglobal_sizeof_from_C(){
 printf("sizeof_iiblobal_fromC >>>>>>>>>>>>>>>>>>>>>>\n");
-printf(" tdisplay %d\n", sizeof(struct tdisplay));
-printf(" tinternalc %d\n", sizeof(struct tinternalc));
-printf(" tresources %d\n", sizeof(struct tresources));
-printf(" tresources %d\n", sizeof(struct tresources));
-printf(" tthreads %d\n", sizeof(struct tthreads));
+printf(" tdisplay %d\n", (int)sizeof(struct tdisplay));
+printf(" tinternalc %d\n", (int)sizeof(struct tinternalc));
+printf(" tresources %d\n", (int)sizeof(struct tresources));
+printf(" tresources %d\n", (int)sizeof(struct tresources));
+printf(" tthreads %d\n", (int)sizeof(struct tthreads));
 
 #if !defined(FRONTEND_DOES_SNAPSHOTS)
-printf(" tSnapshot %d\n", sizeof(struct tSnapshot));
+printf(" tSnapshot %d\n", (int)sizeof(struct tSnapshot));
 #endif
 
-printf(" tEAI_C_CommonFunctions %d\n", sizeof(struct tEAI_C_CommonFunctions));
-printf(" tEAIEventsIn %d\n", sizeof(struct tEAIEventsIn));
-printf(" tEAIHelpers %d\n", sizeof(struct tEAIHelpers));
+printf(" tEAI_C_CommonFunctions %d\n", (int)sizeof(struct tEAI_C_CommonFunctions));
+printf(" tEAIEventsIn %d\n", (int)sizeof(struct tEAIEventsIn));
+printf(" tEAIHelpers %d\n", (int)sizeof(struct tEAIHelpers));
 
 #if !defined(EXCLUDE_EAI )
-printf(" tEAICore %d\n", sizeof(struct tEAICore));
+printf(" tEAICore %d\n", (int)sizeof(struct tEAICore));
 #endif
 
-printf(" tSensInterps %d\n", sizeof(struct tSensInterps));
-printf(" tConsoleMessage %d\n", sizeof(struct tConsoleMessage));
-printf(" tMainloop %d\n", sizeof(struct tMainloop));
-printf(" tMainloop %d\n", sizeof(struct tMainloop));
-printf(" tProdCon %d\n", sizeof(struct tProdCon));
-printf(" tProdCon %d\n", sizeof(struct tProdCon));
+printf(" tSensInterps %d\n", (int)sizeof(struct tSensInterps));
+printf(" tConsoleMessage %d\n", (int)sizeof(struct tConsoleMessage));
+printf(" tMainloop %d\n", (int)sizeof(struct tMainloop));
+printf(" tMainloop %d\n", (int)sizeof(struct tMainloop));
+printf(" tProdCon %d\n", (int)sizeof(struct tProdCon));
+printf(" tProdCon %d\n", (int)sizeof(struct tProdCon));
 
 #if defined (INCLUDE_NON_WEB3D_FORMATS )
-printf(" tColladaParser %d\n", sizeof(struct tColladaParser));
+printf(" tColladaParser %d\n", (int)sizeof(struct tColladaParser));
 #endif //INCLUDE_NON_WEB3D_FORMATS
 
 #if defined (INCLUDE_STL_FILES )
-printf(" tSTLHandler %d\n", sizeof(struct tSTLHandler));
+printf(" tSTLHandler %d\n", (int)sizeof(struct tSTLHandler));
 #endif // INCLUDE_STL_FILES
 
 
 
-printf(" tFrustum %d\n", sizeof(struct tFrustum));
-printf(" tLoadTextures %d\n", sizeof(struct tLoadTextures));
-printf(" tOpenGL_Utils %d\n", sizeof(struct tOpenGL_Utils));
+printf(" tFrustum %d\n", (int)sizeof(struct tFrustum));
+printf(" tLoadTextures %d\n", (int)sizeof(struct tLoadTextures));
+printf(" tOpenGL_Utils %d\n", (int)sizeof(struct tOpenGL_Utils));
 
 #ifdef HAVE_OPENCL
-printf(" tOpenCL_Utils %d\n", sizeof(struct tOpenCL_Utils));
+printf(" tOpenCL_Utils %d\n", (int)sizeof(struct tOpenCL_Utils));
 #endif
 
-printf(" tRenderTextures %d\n", sizeof(struct tRenderTextures));
-printf(" tTextures %d\n", sizeof(struct tTextures));
-printf(" tPluginSocket %d\n", sizeof(struct tPluginSocket));
-printf(" tpluginUtils %d\n", sizeof(struct tpluginUtils));
-printf(" tcollision %d\n", sizeof(struct tcollision));
-printf(" tComponent_CubeMapTexturing %d\n", sizeof(struct tComponent_CubeMapTexturing));
-printf(" tComponent_EnvironSensor %d\n", sizeof(struct tComponent_EnvironSensor));
-printf(" tComponent_Geometry3D %d\n", sizeof(struct tComponent_Geometry3D));
-printf(" tComponent_Geospatial %d\n", sizeof(struct tComponent_Geospatial));
-printf(" tComponent_HAnim %d\n", sizeof(struct tComponent_HAnim));
-printf(" tComponent_Layering %d\n", sizeof(struct tComponent_Layering));
-printf(" tComponent_Layout %d\n", sizeof(struct tComponent_Layout));
-printf(" tComponent_NURBS %d\n", sizeof(struct tComponent_NURBS));
-printf(" tComponent_ParticleSystems %d\n", sizeof(struct tComponent_ParticleSystems));
-printf(" tComponent_ProgrammableShaders %d\n", sizeof(struct tComponent_ProgrammableShaders));
-printf(" tComponent_RigidBodyPhysics %d\n", sizeof(struct tComponent_RigidBodyPhysics));
-printf(" tComponent_Followers %d\n", sizeof(struct tComponent_Followers));
-printf(" tComponent_KeyDevice %d\n", sizeof(struct tComponent_KeyDevice));
+printf(" tRenderTextures %d\n", (int)sizeof(struct tRenderTextures));
+printf(" tTextures %d\n", (int)sizeof(struct tTextures));
+printf(" tPluginSocket %d\n", (int)sizeof(struct tPluginSocket));
+printf(" tpluginUtils %d\n", (int)sizeof(struct tpluginUtils));
+printf(" tcollision %d\n", (int)sizeof(struct tcollision));
+printf(" tComponent_CubeMapTexturing %d\n", (int)sizeof(struct tComponent_CubeMapTexturing));
+printf(" tComponent_EnvironSensor %d\n", (int)sizeof(struct tComponent_EnvironSensor));
+printf(" tComponent_Geometry3D %d\n", (int)sizeof(struct tComponent_Geometry3D));
+printf(" tComponent_Geospatial %d\n", (int)sizeof(struct tComponent_Geospatial));
+printf(" tComponent_HAnim %d\n", (int)sizeof(struct tComponent_HAnim));
+printf(" tComponent_Layering %d\n", (int)sizeof(struct tComponent_Layering));
+printf(" tComponent_Layout %d\n", (int)sizeof(struct tComponent_Layout));
+printf(" tComponent_NURBS %d\n", (int)sizeof(struct tComponent_NURBS));
+printf(" tComponent_ParticleSystems %d\n", (int)sizeof(struct tComponent_ParticleSystems));
+printf(" tComponent_ProgrammableShaders %d\n", (int)sizeof(struct tComponent_ProgrammableShaders));
+printf(" tComponent_RigidBodyPhysics %d\n", (int)sizeof(struct tComponent_RigidBodyPhysics));
+printf(" tComponent_Followers %d\n", (int)sizeof(struct tComponent_Followers));
+printf(" tComponent_KeyDevice %d\n", (int)sizeof(struct tComponent_KeyDevice));
 
-printf(" tComponent_Picking %d\n", sizeof(struct tComponent_Picking));
-printf(" tComponent_Rendering %d\n", sizeof(struct tComponent_Rendering));
-printf(" tComponent_Shape %d\n", sizeof(struct tComponent_Shape));
-printf(" tComponent_Sound %d\n", sizeof(struct tComponent_Sound));
-printf(" tComponent_Text %d\n", sizeof(struct tComponent_Text));
-printf(" tComponent_VolumeRendering %d\n", sizeof(struct tComponent_VolumeRendering));
+printf(" tComponent_Picking %d\n", (int)sizeof(struct tComponent_Picking));
+printf(" tComponent_Rendering %d\n", (int)sizeof(struct tComponent_Rendering));
+printf(" tComponent_Shape %d\n", (int)sizeof(struct tComponent_Shape));
+printf(" tComponent_Sound %d\n", (int)sizeof(struct tComponent_Sound));
+printf(" tComponent_Text %d\n", (int)sizeof(struct tComponent_Text));
+printf(" tComponent_VolumeRendering %d\n", (int)sizeof(struct tComponent_VolumeRendering));
 
-printf(" tRenderFuncs %d\n", sizeof(struct tRenderFuncs));
-printf(" tStreamPoly %d\n", sizeof(struct tStreamPoly));
-printf(" tTess %d\n", sizeof(struct tTess));
-printf(" tViewer %d\n", sizeof(struct tViewer));
+printf(" tRenderFuncs %d\n", (int)sizeof(struct tRenderFuncs));
+printf(" tStreamPoly %d\n", (int)sizeof(struct tStreamPoly));
+printf(" tTess %d\n", (int)sizeof(struct tTess));
+printf(" tViewer %d\n", (int)sizeof(struct tViewer));
 
 #if defined(STATUSBAR_HUD)
-printf(" tstatusbar %d\n", sizeof(struct tstatusbar));
+printf(" tstatusbar %d\n", (int)sizeof(struct tstatusbar));
 #endif
 
-printf(" tCParse %d\n", sizeof(struct tCParse));
-printf(" tCParseParser %d\n", sizeof(struct tCParseParser));
-printf(" tCRoutes %d\n", sizeof(struct tCRoutes));
-printf(" tCScripts %d\n", sizeof(struct tCScripts));
+printf(" tCParse %d\n", (int)sizeof(struct tCParse));
+printf(" tCParseParser %d\n", (int)sizeof(struct tCParseParser));
+printf(" tCRoutes %d\n", (int)sizeof(struct tCRoutes));
+printf(" tCScripts %d\n", (int)sizeof(struct tCScripts));
 #ifdef JAVASCRIPT_SM
-printf(" tJScript %d\n", sizeof(struct tJScript));
+printf(" tJScript %d\n", (int)sizeof(struct tJScript));
 
 
-printf(" tjsUtils %d\n", sizeof(struct tjsUtils));
-printf(" tjsVRMLBrowser %d\n", sizeof(struct tjsVRMLBrowser));
-printf(" tjsVRMLClasses %d\n", sizeof(struct tjsVRMLClasses));
+printf(" tjsUtils %d\n", (int)sizeof(struct tjsUtils));
+printf(" tjsVRMLBrowser %d\n", (int)sizeof(struct tjsVRMLBrowser));
+printf(" tjsVRMLClasses %d\n", (int)sizeof(struct tjsVRMLClasses));
 #endif //JAVASCRIPT_SM
 #ifdef JAVASCRIPT_DUK
-printf(" tJScript_duk %d\n", sizeof(struct tJScript_duk));
+printf(" tJScript_duk %d\n", (int)sizeof(struct tJScript_duk));
 #endif //JAVASCRIPT_DUK
-printf(" tBindable %d\n", sizeof(struct tBindable));
+printf(" tBindable %d\n", (int)sizeof(struct tBindable));
 
-printf(" tX3DParser %d\n", sizeof(struct tX3DParser));
+printf(" tX3DParser %d\n", (int)sizeof(struct tX3DParser));
 
-printf(" tcommon %d\n", sizeof(struct tcommon));
-printf(" tCursorDraw %d\n", sizeof(struct tCursorDraw));
+printf(" tcommon %d\n", (int)sizeof(struct tcommon));
+printf(" tCursorDraw %d\n", (int)sizeof(struct tCursorDraw));
 printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 }
 

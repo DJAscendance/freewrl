@@ -190,7 +190,7 @@ void JS_MY_Finalize(JSFreeOp *fop, JSObject *obj);
 
 JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *rval); 
 
-JSBool doMFAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp, char *name); 
+JSBool doMFAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp, const char *name); 
 JSBool doMFSetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp, int type); 
 
 JSBool getBrowser(JSContext *context, JSObject *obj, BrowserNative **brow); 
@@ -484,7 +484,7 @@ JSBool VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Hand
 
 
 JSBool _standardMFAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval, JSClass *myClass, int type);
-JSBool _standardMFGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp, char *makeNewElement, int type);
+JSBool _standardMFGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp, const char *makeNewElement, int type);
 
 void printJSNodeType (JSContext *context, JSObject *myobj);
 
