@@ -176,7 +176,6 @@ scenegraph/GenPolyRep.c \
 scenegraph/Component_VRML1.c \
 scenegraph/Component_VolumeRendering.c \
 scenegraph/VeraMono_ttf.c \
-scenegraph/socketutils.c \
  \
 input/EAI_C_CommonFunctions.c \
 input/EAIEventsIn.c \
@@ -251,10 +250,8 @@ plugin/PluginSocket.h  \
 ../libtess/tess.h \
 ../libtess/tessmono.c \
 ../libtess/tessmono.h \
-../libtess/libtess2.h \
- \
-DIS/DIS.c \
-DIS/DIS.h
+../libtess/libtess2.h
+
 
 EXTRA_DIST = \
 scenegraph/OSCcallbacks.c
