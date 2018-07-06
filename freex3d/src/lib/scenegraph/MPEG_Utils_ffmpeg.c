@@ -29,12 +29,10 @@
 //#include "libavutil/opt.h"
 //#include "libavcodec/avfft.h"
 
-#ifdef HAVE_AVRESAMPLE
-//on linux July 2018 its call av, not sw, both lib and header
-#include "libavresample/avresample.h"
-#else //HAVE_SWRESAMPLE
+//we don't support libav variant, which has libavresample 
+// ... (ubuntu 1404LTS has libav, can get ffmpeg on 1606)
 #include "libswresample/swresample.h"
-#endif
+
 
 #include "internal.h"
 #include "Vector.h"
@@ -115,11 +113,7 @@ int movie_load_from_file(char *fname, void **opaque){
 	unsigned int audio_buf_size;
 	unsigned int audio_buf_index;
 	uint8_t * audio_buf;
-#ifdef HAVE_AVRESAMPLE
-	AvrContext *swr; 
-#else	
 	SwrContext *swr; 
-#endif
 	int audio_resample_target_fmt;
 	int do_audio_resample;
 	struct SwsContext *sws_ctx;
