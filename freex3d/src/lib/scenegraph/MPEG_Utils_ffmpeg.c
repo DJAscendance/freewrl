@@ -191,7 +191,6 @@ int movie_load_from_file(char *fname, void **opaque){
 
 	//audio prep
 	if(audioStream > -1){
-		AVCodecParameters *aparams;
 
 		aCodecCtxOrig=pFormatCtx->streams[audioStream]->codec;
 		aCodec = avcodec_find_decoder(aCodecCtxOrig->codec_id);
@@ -201,15 +200,28 @@ int movie_load_from_file(char *fname, void **opaque){
 		}
 
 		// Copy context
-		aCodecCtx = avcodec_alloc_context3(aCodec);
-		aparams = avcodec_parameters_alloc();
-		avcodec_parameters_from_context(aparams, aCodecCtxOrig);
-		avcodec_parameters_to_context(aCodecCtx,aparams);
-		avcodec_parameters_free(&aparams);
 		//if(avcodec_copy_context(aCodecCtx, aCodecCtxOrig) != 0) {
 		//	fprintf(stderr, "Couldn't copy codec context");
 		//	return -1; // Error copying codec context
 		//}
+		#if LIBAVCODEC_VERSION_MAJOR == 56 //ffmpeg 2.8
+		// https://ffmpeg.org/doxygen/2.8/filtering_video_8c-example.html //in open_input_file
+		aCodecCtx = aCodecCtxOrig;
+		#elif LIBAVCODEC_VERSION_MAJOR == 570  //ffmpeg 3.2
+		{
+			AVCodecParameters *aparams;
+			aCodecCtx = avcodec_alloc_context3(aCodec);
+			aparams = avcodec_parameters_alloc();
+			avcodec_parameters_from_context(aparams, aCodecCtxOrig);
+			avcodec_parameters_to_context(aCodecCtx,aparams);
+			avcodec_parameters_free(&aparams);
+		}
+		#elif LIBAVCODEC_VERSION_MAJOR >= 57 //58 //ffmpeg 4.0 and 3.2 also runs here
+		// https://ffmpeg.org/doxygen/4.0/filtering_video_8c-example.html  //in open_input_file
+		aCodecCtx = avcodec_alloc_context3(aCodecCtxOrig->codec);
+		avcodec_parameters_to_context(aCodecCtx, pFormatCtx->streams[audioStream]->codecpar);
+		av_opt_set_int(aCodecCtx, "refcounted_frames", 1, 0);
+		#endif
 
 		// Set audio settings from codec info
 		fw_movie.channels = aCodecCtx->channels;
@@ -280,7 +292,6 @@ int movie_load_from_file(char *fname, void **opaque){
 	buffer = NULL;
 	//video prep
 	if(videoStream > -1){
-		AVCodecParameters *vparams;		
 		int numBytes;
 		int av_pix_fmt;
 
@@ -295,16 +306,26 @@ int movie_load_from_file(char *fname, void **opaque){
 			return -1; // Codec not found
 		}
 		// Copy context
-		pCodecCtx = avcodec_alloc_context3(pCodec);
-		vparams = avcodec_parameters_alloc();
-		avcodec_parameters_from_context(vparams, pCodecCtxOrig);
-		avcodec_parameters_to_context(pCodecCtx, vparams);
-		avcodec_parameters_free(&vparams);
-		//if(avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0) {
-		//	fprintf(stderr, "Couldn't copy codec context");
-		//	return -1; // Error copying codec context
-		//}
+		#if LIBAVCODEC_VERSION_MAJOR == 56 //ffmpeg 2.8
+		// https://ffmpeg.org/doxygen/2.8/filtering_video_8c-example.html //in open_input_file
+		pCodecCtx = pCodecCtxOrig;
+		#elif LIBAVCODEC_VERSION_MAJOR == 570  //ffmpeg 3.2
+		{
+			AVCodecParameters *vparams;		
+			pCodecCtx = avcodec_alloc_context3(pCodec);
+			vparams = avcodec_parameters_alloc();
+			avcodec_parameters_from_context(vparams, pCodecCtxOrig);
+			avcodec_parameters_to_context(pCodecCtx, vparams);
+			avcodec_parameters_free(&vparams);
+		}
+		#elif LIBAVCODEC_VERSION_MAJOR >= 57 //58 //ffmpeg 4.0 and 3.2 also runs here
+		// https://ffmpeg.org/doxygen/4.0/filtering_video_8c-example.html  //in open_input_file
+		pCodecCtx = avcodec_alloc_context3(pCodecCtxOrig->codec);
+		avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[videoStream]->codecpar);
+		av_opt_set_int(pCodecCtx, "refcounted_frames", 1, 0);
+		#endif
 		// Open codec
+
 		if(avcodec_open2(pCodecCtx, pCodec, NULL)<0)
 			return -1; // Could not open codec
 		//fw_movie.pVideoCodecCtx = pCodecCtx;
