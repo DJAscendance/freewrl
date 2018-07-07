@@ -388,9 +388,14 @@ int movie_load_from_file(char *fname, void **opaque){
 		// Is this a packet from the video stream?
 		if(packet.stream_index==videoStream) {
 			// Decode video frame
-			//avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+			#if LIBAVCODEC_VERSION_MAJOR < 57
+			// ffmpeg 2.8
+			avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+			#else
+			// ffmpeg 3.2 - 4.0
 			avcodec_send_packet(pCodecCtx,&packet);
 			frameFinished = avcodec_receive_frame(pCodecCtx,pFrame) == 0? TRUE : FALSE;
+			#endif
 			// Did we get a video frame?
 			if(frameFinished) {
 				// Convert the image from its native format to RGB
@@ -434,11 +439,14 @@ int movie_load_from_file(char *fname, void **opaque){
 			int buf_size;
 			int got_frame = 0;
 			int data_size = 0;
-			//int len1;
-			//len1 = avcodec_decode_audio4(aCodecCtx, aFrame, &got_frame, &packet);
+			#if LIBAVCODEC_VERSION_MAJOR < 57
+			// ffmpeg 2.8
+			int len1;
+			len1 = avcodec_decode_audio4(aCodecCtx, aFrame, &got_frame, &packet);
+			#else //3.2 - 4.0
 			avcodec_send_packet(aCodecCtx, &packet);
 			got_frame = avcodec_receive_frame(aCodecCtx, aFrame) == 0 ? TRUE : FALSE;
-
+			#endif
 			buf_size = audio_buf_size - audio_buf_index;
 			if(got_frame) {
 				//aFrameOut->format = aCodecCtx->sample_fmt;
