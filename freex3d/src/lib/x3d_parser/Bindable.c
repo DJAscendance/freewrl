@@ -52,6 +52,8 @@ Bindable nodes - Background, TextureBackground, Fog, NavigationInfo, Viewpoint, 
 #include "../ui/common.h"
 #include "../scenegraph/LinearAlgebra.h"
 
+void setup_projection();
+
 /* for Background spheres */
 struct MyVertex
  {

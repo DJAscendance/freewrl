@@ -343,6 +343,7 @@ void setField_fromJavascript (struct X3D_Node *ptr, char *field, char *value, in
 unsigned int setField_FromEAI (char *ptr);
 
 #define EXTENTTOBBOX
+float *extent6f_clear(float *extent6);
 #define INITIALIZE_EXTENT extent6f_clear(node->_extent);
   //{ node->EXTENT_MAX_X = (float) -10000.0; \
   //      node->EXTENT_MAX_Y = (float) -10000.0; \
@@ -712,6 +713,7 @@ extern GLfloat boxtex[], boxnorms[], BackgroundVert[];
 extern GLfloat Backnorms[];
 
 extern void new_tessellation(void);
+extern void new_text_tessellation(void);
 extern void initializePerlThread(void);
 //extern void setWantEAI(int flag);
 extern void setPluginPipe(const char *optarg);
@@ -807,6 +809,7 @@ void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node);
 
 
 void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
+void collide_genericfaceset (struct X3D_IndexedFaceSet *node );
 #define rendray_Text render_ray_polyrep
 #define rendray_ElevationGrid  render_ray_polyrep
 //#define collide_ElevationGrid collide_genericfaceset

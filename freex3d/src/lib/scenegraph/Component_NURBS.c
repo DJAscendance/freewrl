@@ -1803,7 +1803,6 @@ void compile_NurbsSurface(struct X3D_NurbsPatchSurface *node, struct Multi_Node 
 }
 
 void render_ray_polyrep(void *node);
-void collide_genericfaceset(void *node);
 void render_polyrep(void *node);
 
 void compile_NurbsPatchSurface(struct X3D_NurbsPatchSurface *node){
@@ -1819,7 +1818,7 @@ void rendray_NurbsPatchSurface (struct X3D_NurbsPatchSurface *node) {
 void collide_NurbsPatchSurface (struct X3D_NurbsPatchSurface *node) {
 		COMPILE_IF_REQUIRED
 		if (!node->_intern) return;
-		collide_genericfaceset(node);
+		collide_genericfaceset(X3D_INDEXEDFACESET(node));
 }
 
 void render_NurbsPatchSurface (struct X3D_NurbsPatchSurface *node) {
@@ -1843,7 +1842,7 @@ void rendray_NurbsTrimmedSurface (struct X3D_NurbsTrimmedSurface *node) {
 void collide_NurbsTrimmedSurface (struct X3D_NurbsTrimmedSurface *node) {
 		COMPILE_IF_REQUIRED
 		if (!node->_intern) return;
-		collide_genericfaceset(node);
+		collide_genericfaceset(X3D_INDEXEDFACESET(node));
 }
 
 void render_NurbsTrimmedSurface (struct X3D_NurbsTrimmedSurface *node) {
@@ -2370,7 +2369,7 @@ void rendray_NurbsSwungSurface (struct X3D_NurbsSwungSurface *node) {
 void collide_NurbsSwungSurface (struct X3D_NurbsSwungSurface *node) {
 		COMPILE_IF_REQUIRED
 		if (!node->_intern) return;
-		collide_genericfaceset(node->_patch);
+		collide_genericfaceset(X3D_INDEXEDFACESET(node->_patch));
 }
 
 void render_NurbsSwungSurface (struct X3D_NurbsSwungSurface *node) {
@@ -2984,11 +2983,11 @@ void collide_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 	COMPILE_IF_REQUIRED
 	if(node->_method == 1){
 		if (!node->_patch) return;
-		collide_genericfaceset(node->_patch);
+		collide_genericfaceset(X3D_INDEXEDFACESET(node->_patch));
 	}
 	if(node->_method == 2){
 		if (!node->_intern) return;
-		collide_genericfaceset(node);
+		collide_genericfaceset(X3D_INDEXEDFACESET(node));
 	}
 }
 

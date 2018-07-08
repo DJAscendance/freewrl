@@ -900,6 +900,8 @@ void unRegisterPolyRep(struct X3D_Node *tmp)
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
 /* do TextureBackground textures, if possible */
 void reallyDraw();
+void push_render_geom(int igeom);
+void pop_render_geom();
 void loadBackgroundTextures (struct X3D_Background *node) {
 	struct X3D_ImageTexture *thistex;
 	struct X3D_TextureProperties *thistp;

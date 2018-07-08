@@ -622,6 +622,8 @@ printf("%s[%d] %f %f %f %s",name,i,p[0],p[1],p[2],eol);
 }
 int extent6f_isSet(float *extent6);
 static float testextent [] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
+void reallyDrawOnce();
+void clearDraw();
 void extent6f_draw(float *extent)
 {
 	//draw bouneding box / extent as lines

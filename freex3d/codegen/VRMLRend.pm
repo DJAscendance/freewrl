@@ -103,6 +103,7 @@ our %defaultContainerType = (
 	GeoTouchSensor		=>["children"],
 	GeoTransform		=>["children"],
 	GeoViewpoint 		=>["children"],
+	GeoConvert		=>["children"],
 	Group 			=>["children"],
 	ViewpointGroup		=>["children"],
 	HAnimDisplacer		=>["displacers"],

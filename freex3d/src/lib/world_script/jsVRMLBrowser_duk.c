@@ -756,6 +756,7 @@ void jsRegisterRoute_HIDE(
  		 returnInterpolatorPointer(to->_nodeType), 0, 0);
 }
 struct brotoRoute *createNewBrotoRoute();
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
 void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromNode, const char *sfromField, struct X3D_Node* toNode, const char *stoField){
 	void *retval;
 	int fromType,toType,fromKind,toKind,fromField,toField,fromBuiltIn,toBuiltIn;

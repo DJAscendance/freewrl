@@ -55,6 +55,9 @@
 #include "Component_DIS.h"
 #include "Component_Grouping.h"
 
+//from CparseParser
+void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
+
 #ifndef WIN32
 #define SOCKET int
 #include <sys/socket.h>
@@ -1054,9 +1057,9 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					}
 					{
 						//translation - dug9 debate: could do it one of 2 ways
-						static enum transmethod {
+						enum transmethod {
 							TRANS_ZERO = 1,
-							TRANS_LOCATION_MINUS_GEOCOORD = 2,
+							TRANS_LOCATION_MINUS_GEOCOORD = 2
 						};
 						//static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
 						static int transmethod = TRANS_ZERO; 
@@ -1497,7 +1500,14 @@ void reset_node_pduchanged(struct X3D_Node *node){
 			break;
 	}
 }
+//in socketutils.c:
+void socket_open(struct dis_socket *dsock);
+int sockwrite(SOCKET s, const char *buf, int len);
+int sockread(SOCKET s, const char *buf, int len);
+int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len);
+int socksendto(struct dis_socket *dsock, const char *buf, int len);
 
+int write_rtp(unsigned char *buf, struct X3D_Node *node);
 void dis_sendloop(){
 	double thistime;
 	int i,j, nbytes, nb;
@@ -1986,12 +1996,6 @@ int dis_write_stream(unsigned char * datastream, struct Vector *pdus)
 }
 
 
-//in socketutils.c:
-void socket_open(struct dis_socket *dsock);
-int sockwrite(SOCKET s, const char *buf, int len);
-int sockread(SOCKET s, const char *buf, int len);
-int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len);
-int socksendto(struct dis_socket *dsock, const char *buf, int len);
 
 static double lasttime;
 static char buf[32768];

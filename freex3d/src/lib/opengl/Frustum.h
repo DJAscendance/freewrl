@@ -143,6 +143,7 @@ float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4);
 float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4);
 float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4);
 void extent6f_printf(float *extent6);
+void extent6f_draw(float *extent); //in CursorDraw.c
 
 
 #endif /* __FREEWRL_FRUSTUM_H__ */

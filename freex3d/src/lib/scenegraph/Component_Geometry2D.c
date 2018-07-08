@@ -902,7 +902,7 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 	iv.x = node->size.c[0];
 	jv.y = node->size.c[1]; 
 	kv.z = 0.0;
-	ov.x = -((node->size).c[0])/2; ov.y = -((node->size).c[1])/2; ov.z = 0.0;
+	ov.x = -(node->size.c[0])/2; ov.y = -(node->size.c[1])/2; ov.z = 0.0;
 
 	/* get the transformed position of the Box, and the scale-corrected radius. */
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
@@ -916,8 +916,8 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 		int i;
 		for(i=0;i<3;i++)
 		{
-			shapeMBBmin[i] = DOUBLE_MIN(-(node->size).c[i]*.5,(node->size).c[i]*.5);
-			shapeMBBmax[i] = DOUBLE_MAX(-(node->size).c[i]*.5,(node->size).c[i]*.5);
+			shapeMBBmin[i] = DOUBLE_MIN(-(node->size.c[i])*.5,node->size.c[i]*.5);
+			shapeMBBmax[i] = DOUBLE_MAX(-(node->size.c[i])*.5,node->size.c[i]*.5);
 		}
 		if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
 	}

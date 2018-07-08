@@ -35,6 +35,7 @@ CProto ???
 
 #include "../vrml_parser/Structs.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Frustum.h"
 #include "../main/headers.h"
 
 #include "LinearAlgebra.h"
@@ -42,6 +43,7 @@ CProto ???
 #include "Viewer.h"
 #include "../x3d_parser/Bindable.h"
 #include "ui/common.h" // for ppcommon
+
 
 //moved to libfreewrl.h
 //enum {

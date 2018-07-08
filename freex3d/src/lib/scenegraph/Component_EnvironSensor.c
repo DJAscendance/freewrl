@@ -45,7 +45,6 @@ X3D Environmental Sensors Component
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
 
-
 ///* can we do a VisibiltySensor? Only if we have OpenGL support for OcclusionCulling */
 //int candoVisibility = TRUE;
 typedef struct pComponent_EnvironSensor{
