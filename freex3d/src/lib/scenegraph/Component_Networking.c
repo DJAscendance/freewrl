@@ -294,6 +294,7 @@ void remove_OSCsensor(struct X3D_Node * node) {}
 
 int loadstatus_AudioClip(struct X3D_AudioClip *node);
 int loadstatus_Script(struct X3D_Script *script);
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
 void render_LoadSensor (struct X3D_LoadSensor *node) {
 	int count;
 	int nowLoading;

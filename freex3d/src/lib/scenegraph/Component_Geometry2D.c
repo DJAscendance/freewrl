@@ -912,13 +912,16 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 
 	{
 		/*  minimum bounding box MBB test in avatar/collision space */
-		GLDOUBLE shapeMBBmin[3], shapeMBBmax[3];
-		int i;
-		for(i=0;i<3;i++)
-		{
-			shapeMBBmin[i] = DOUBLE_MIN(-(node->size.c[i])*.5,node->size.c[i]*.5);
-			shapeMBBmax[i] = DOUBLE_MAX(-(node->size.c[i])*.5,node->size.c[i]*.5);
-		}
+		double shapeMBBmin[3], shapeMBBmax[3], dsize[3];
+		//int i;
+		float2double(dsize,node->size.c,3);
+		vecscaled(shapeMBBmax,dsize,.5);
+		vecscaled(shapeMBBmax,dsize,-.5);
+		//for(i=0;i<3;i++)
+		//{
+		//	shapeMBBmin[i] = DOUBLE_MIN(-(node->size.c[i])*.5,node->size.c[i]*.5);
+		//	shapeMBBmax[i] = DOUBLE_MAX(-(node->size.c[i])*.5,node->size.c[i]*.5);
+		//}
 		if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
 	}
 	/* get transformed box edges and position */

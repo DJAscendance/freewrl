@@ -50,7 +50,7 @@
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
 #include "RenderFuncs.h"
-
+#include "../ui/common.h"
 
 typedef float shaderVec4[4];
 

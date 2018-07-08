@@ -1375,6 +1375,7 @@ void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname);
 void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
 void pushnset_viewport(float *vpFraction);
 void popnset_viewport();
+void render_bound_background();
 
 // called from MainLoop.c
 

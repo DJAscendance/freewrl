@@ -760,7 +760,7 @@ int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *t
 void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromNode, const char *sfromField, struct X3D_Node* toNode, const char *stoField){
 	void *retval;
 	int fromType,toType,fromKind,toKind,fromField,toField,fromBuiltIn,toBuiltIn;
-	char *fromCname,*toCname;
+	const char *fromCname,*toCname;
 	int i, len, fromOfs, toOfs;
 	union anyVrml *fromValue, *toValue;
 
