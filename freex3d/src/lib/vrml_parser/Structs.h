@@ -2661,6 +2661,7 @@ struct X3D_Node {
 #define X3D_IMAGETEXTURE(node) ((struct X3D_ImageTexture*)node)
 #define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)
 #define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)
+void mark_event (struct X3D_Node *from, int totalptr);
 #undef DEBUG_VALIDNODE
 #ifdef DEBUG_VALIDNODE	
 #define X3D_NODE_CHECK(node) checkNode(node,__FILE__,__LINE__)

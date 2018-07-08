@@ -237,6 +237,7 @@ struct brotoDefpair{
 	struct X3D_Node* node;
 	char* name;
 };
+void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
 /* structure used for both import and export tables*/
 struct IMEXPORT {
 	struct X3D_Node *nodeptr; //used in exports to point to exported node in inline body, not used in imports

@@ -9768,6 +9768,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem = NULL;
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldgcCoords.c[0] = 0;tmp2->__oldgcCoords.c[1] = 0;tmp2->__oldgcCoords.c[2] = 0;;
+			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
 		case NODE_GeoCoordinate : {

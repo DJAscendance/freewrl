@@ -51,7 +51,7 @@ render_NavigationInfo(struct X3D_NavigationInfo *node);
 
 void render_Background(struct X3D_Background *node);
 void render_TextureBackground(struct X3D_TextureBackground *node);
-
+void render_bound_background();
 void set_naviWidthHeightStep(double wid, double hei, double step) ;
 /* viewer dimentions (for collision detection) */
 struct sNaviInfo {

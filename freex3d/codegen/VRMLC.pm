@@ -1095,7 +1095,7 @@ sub gen {
 	"#define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)\n".
 	"#define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)\n".
 
-
+	"void mark_event (struct X3D_Node *from, int totalptr);\n".
 	"#undef DEBUG_VALIDNODE\n".
 	"#ifdef DEBUG_VALIDNODE	\n".
 	"#define X3D_NODE_CHECK(node) checkNode(node,__FILE__,__LINE__)\n".

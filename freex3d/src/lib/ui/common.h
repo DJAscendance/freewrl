@@ -61,6 +61,7 @@ void fwl_setDrawBoundingBoxes(int drawbb);
 int fwl_getDrawBoundingBoxes();
 void fwl_set_depth_slices(int nslices);
 int fwl_get_depth_slices();
+int fwl_getDrawBoundingBoxes();
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif

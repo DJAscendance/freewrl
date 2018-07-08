@@ -660,7 +660,7 @@ struct name_num {
     {"VeraMoBI","monospace","bold italic","bold oblique",	0x13,1,1,4},	/* Monospace Bold Ital */
 	{NULL,		NULL,		NULL,		NULL,				0,0,0,0},
 };
-struct name_num *get_fontname_entry_by_num(num){
+struct name_num *get_fontname_entry_by_num(int num){
 	int i;
 	struct name_num *retval = NULL;
 	i = 0;

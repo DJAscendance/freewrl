@@ -472,7 +472,7 @@ void proximity_LOD (struct X3D_LOD *node) {
 	}
 	if(i != node->level_changed){
 		node->level_changed = i;
-		MARK_EVENT(node,offsetof(struct X3D_LOD,level_changed));
+		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_LOD,level_changed));
 	}
 }
 
