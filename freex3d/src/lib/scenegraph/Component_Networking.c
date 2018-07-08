@@ -565,7 +565,7 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 	*/
 	struct X3D_Node* newnodef, *newnodet; 
 	int source, type, kind, ifield, builtIn;
-	char *cname;
+	const char *cname;
 	union anyVrml *value;
 	int changed = 0;
 

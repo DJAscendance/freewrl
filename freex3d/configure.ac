@@ -41,7 +41,7 @@ AC_CONFIG_FILES([vtempl],[chmod +x vtempl])
 AC_CONFIG_HEADER([config.h])
 
 # Before libtool 2.2 we need to disable C++ and Fortran explicitely:
-# C++ is not used, so related checks are not needed
+# C++ is not used (2018: it is now) so related checks are not needed
 m4_defun([_LT_AC_LANG_CXX_CONFIG], [:])
 # Same line for Fortran
 m4_defun([_LT_AC_LANG_F77_CONFIG], [:])
@@ -178,11 +178,17 @@ fi
 
 
 # libcurl [optional]
-AC_MY_SWITCH(libcurl,[enable libcurl (could be used instead of wget)],off)
+have_curl=no
+AC_MY_SWITCH(libcurl,[enable libcurl (could be used instead of wget)],on)
 if test x$sw_libcurl = xno; then
    :
 else
-   PKG_CHECK_MODULES(LIBCURL, libcurl, AC_DEFINE(HAVE_LIBCURL, 1, [Define if you have the libcurl library.]))
+   PKG_CHECK_MODULES(LIBCURL, libcurl,[
+        AC_DEFINE(HAVE_LIBCURL, 1, [Define if you have the libcurl library.])
+        [have_curl=yes]
+        ],[
+        AC_MSG_NOTICE([Please install a libcurl-dev variant. Thunking to wget.])
+        ])
 fi
 
 # ======================================
@@ -434,7 +440,10 @@ case "$with_OpenCL" in
 esac
 
 # Imlib2
-PKG_CHECK_MODULES(IMLIB2, imlib2, [have_imlib2=yes,AC_DEFINE([HAVE_IMLIB2],[1],[Define if IMLIB2 exists])],[have_imlib2=no])
+PKG_CHECK_MODULES(IMLIB2, imlib2, 
+        [have_imlib2=yes,AC_DEFINE([HAVE_IMLIB2],[1],[Define if IMLIB2 exists])],
+        [have_imlib2=no,AC_MSG_NOTICE([Please install libimlib2]),
+        ])
 
 if test x$have_imlib = xno; then
 # if we don't have imlib2, then we use libpng or libjpg or libgif directly
@@ -495,16 +504,20 @@ fi
 
 ## freeALUT check
 PKG_CHECK_MODULES([ALUT], [freealut], [
-                    AC_DEFINE([HAVE_ALUT], [1], [Define if you have freeALUT installed.])
-                    LDFLAGS="$LDFLAGS $ALUT_LIBS"
-                  ],[])
+        AC_DEFINE([HAVE_ALUT], [1], [Define if you have freeALUT installed.])
+        LDFLAGS="$LDFLAGS $ALUT_LIBS"
+        ],[
+        AC_MSG_NOTICE([please install libalut which will install libopenal])                          
+        ])
 
 ## OpenAL check
 PKG_CHECK_MODULES([OPENAL], [openal], [
-                    AC_DEFINE([HAVE_OPENAL], [1], [Define if you have OpenAL installed.])
-                    CFLAGS="$CFLAGS $OPENAL_CFLAGS"
-                    LDFLAGS="$LDFLAGS $OPENAL_LIBS"
-                  ],[])
+        AC_DEFINE([HAVE_OPENAL], [1], [Define if you have OpenAL installed.])
+        CFLAGS="$CFLAGS $OPENAL_CFLAGS"
+        LDFLAGS="$LDFLAGS $OPENAL_LIBS"
+        ],[
+        AC_MSG_NOTICE([please install libalut which will install libopenal])
+        ])
 
 
 ## ffmpeg check libavcodec-dev libavutil-dev libavformat-dev,  libavresample-dev, libswscale-dev
@@ -513,12 +526,9 @@ PKG_CHECK_MODULES([FFMPEG],[libavcodec,libavutil,libavformat,libswresample,libsw
         AC_DEFINE([MOVIETEXTURE_FFMPEG], [1], [Define if you have ffmpeg libs installed.])
         CFLAGS="$CFLAGS $FFMPEG_CFLAGS"
         LDFLAGS="$LDFLAGS $FFMPEG_LIBS"
-        AC_DEFINE([HAVE_AVRESAMPLE], [1], [Define if you have avresample instead of (older) swresample.])
-        ],
-        [AC_MSG_NOTICE([Not building ffmpeg module])]
-        )
-
-
+        ],[
+        AC_MSG_NOTICE([Not building ffmpeg module, please install libavcodec-dev libavutil-dev libavformat-dev,  libavresample-dev, libswscale-dev])
+        ])
 
 # ======================================
 # LibFreeWRLEAI configuration
@@ -535,14 +545,14 @@ AC_SUBST(MAYBE_LIBEAI)
 # ======================================
 # Sound module configuration
 # ======================================
-
-AC_MY_SWITCH(sound,[enable building of sound module],on)
-if test x$sw_sound = xno; then
-  AC_MSG_NOTICE([Not building sound module])
-  MAYBE_SOUND=
-else
-  MAYBE_SOUND=sound
-fi
+# ** this is an old technology - not used now **
+#AC_MY_SWITCH(sound,[enable building of sound module],on)
+#if test x$sw_sound = xno; then
+#  AC_MSG_NOTICE([Not building sound module])
+#  MAYBE_SOUND=
+#else
+#  MAYBE_SOUND=sound
+#fi
 # do AC_SUBST(MAYBE_SOUND) after checking for existance of soundconv
 
 # ======================================
@@ -682,12 +692,12 @@ fi
 # RBP enable
 # ======================================
 
-AC_MY_SWITCH(rbp,[enable building of RigidBodyPhysics (needs libODE)],off)
+AC_MY_SWITCH(rbp,[enable building of RigidBodyPhysics (needs libODE)],on)
 if test x$sw_rbp = xyes; then
     PKG_CHECK_MODULES(ODE, ode,
         AC_DEFINE([WITH_RBP],[1],
                   [Define if ODE exists and RBP support wanted]),
-                  AC_MSG_ERROR([Skipping RBP. No libode installed.]))
+                  AC_MSG_ERROR([Skipping RBP -no libode installed, plesae install libode]))
 fi
 AC_SUBST(ODE_CFLAGS)
 AC_SUBST(ODE_LIBS)
@@ -788,13 +798,13 @@ AC_MY_HELPERAPP([browser],[BROWSER],[internet browser],[$DEFAULT_BROWSER],[
         ])
 
 ## Soundconv program check (sox)
-if test x$MAYBE_SOUND = xsound; then
-    AC_MY_HELPERAPP([soundconv],[SOUNDCONV],[sound converter],[$DEFAULT_SOUNDCONV],[
-        MAYBE_SOUND=
-        AC_MSG_WARN([No soundconv helper -- Not building sound module])
-        ])
-fi
-AC_SUBST([MAYBE_SOUND])
+#if test x$MAYBE_SOUND = xsound; then
+#    AC_MY_HELPERAPP([soundconv],[SOUNDCONV],[sound converter],[$DEFAULT_SOUNDCONV],[
+#        MAYBE_SOUND=
+#        AC_MSG_WARN([No soundconv helper -- Not building sound module])
+#        ])
+#fi
+#AC_SUBST([MAYBE_SOUND])
 
 ## Unzip check
 AC_MY_HELPERAPP([unzip],[UNZIP],[zip decompressor],[$DEFAULT_UNZIP],[
@@ -802,9 +812,13 @@ AC_MY_HELPERAPP([unzip],[UNZIP],[zip decompressor],[$DEFAULT_UNZIP],[
         ])
 
 ## Wget check
-AC_MY_HELPERAPP([wget],[WGET],[http fetcher],[$DEFAULT_WGET],[
+if test x$have_curl = xno; then
+        AC_MY_HELPERAPP([wget],[WGET],[http fetcher],[$DEFAULT_WGET],[
         AC_MSG_ERROR([No http fetcher, please specify one using --with-wget=PATH])
         ])
+else
+        AC_MSG_NOTICE([http fetcher: relying on libcurl])
+fi
 
 ## Imageconvert check
 if test x$have_imlib2 = xno; then
@@ -819,9 +833,9 @@ fi
 ## DIS
 AC_ARG_WITH([DIS],
             [AS_HELP_STRING([--with-DIS],
-            [Enable support for Distributed Interactive Simulation (default=no)])],
+            [Enable support for Distributed Interactive Simulation (default=yes)])],
             [],
-            [with_DIS=no])
+            [with_DIS=yes])
 AM_CONDITIONAL([WITH_DIS],[test x"$with_DIS" = xyes])
 if test x"$with_DIS" = xyes; then
 	AC_DEFINE([WITH_DIS],[1], [Define if DIS support wanted])
@@ -833,7 +847,7 @@ fi
 # =======
 
 FREEWRL_PROGRAM="freewrl"
-FREEWRL_SOUND_MANAGER="freewrl_snd"
+#FREEWRL_SOUND_MANAGER="freewrl_snd"
 FREEWRL_MESSAGE_WRAPPER="freewrl_msg"
 case $os_type in
      # FIXME: name of plugin?
@@ -845,8 +859,8 @@ esac
 AC_SUBST(FREEWRL_PROGRAM)
 AC_DEFINE_UNQUOTED(FREEWRL_PROGRAM, "$FREEWRL_PROGRAM", [The FreeWRL program name.])
 
-AC_SUBST(FREEWRL_SOUND_MANAGER)
-AC_DEFINE_UNQUOTED(FREEWRL_SOUND_MANAGER, "$FREEWRL_SOUND_MANAGER", [The FreeWRL sound wrapper program name.])
+#AC_SUBST(FREEWRL_SOUND_MANAGER)
+#AC_DEFINE_UNQUOTED(FREEWRL_SOUND_MANAGER, "$FREEWRL_SOUND_MANAGER", [The FreeWRL sound wrapper program name.])
 
 AC_SUBST(FREEWRL_MESSAGE_WRAPPER)
 AC_DEFINE_UNQUOTED(FREEWRL_MESSAGE_WRAPPER, "$FREEWRL_MESSAGE_WRAPPER", [The FreeWRL message wrapper program name.])
