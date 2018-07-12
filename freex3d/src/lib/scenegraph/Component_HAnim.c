@@ -834,7 +834,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				//trigger recompile of skin->shapes when rendering skin
 				//Nov 6, 2016: recompiling a shape / polyrep on each frame eats memory 
 				//NODE_NEEDS_COMPILING
-				if(0){
+				if(1){
 					int k;
 					Stack *parents;
 					node->skinCoord->_change++;
