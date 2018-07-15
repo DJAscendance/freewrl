@@ -24,6 +24,12 @@ Thumbs.db
 .libs/
 Makefile
 Makefile.in
+# linux_appimage folder
+*.AppDir
+*.AppImage
+appimagetool
+# linux_appimage/linuxsolibbundler folder
+solibbundler
 # need for win32 config.h
 config.in
 config.h.in
