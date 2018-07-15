@@ -94,7 +94,21 @@ int main (int argc, char **argv)
 //#endif
 
     freewrl_params_t *fv_params = NULL;
-
+#ifdef __linux__
+	char * libpath = getenv("LD_LIBRARY_PATH");
+	printf("\nlibrary path %s\n",libpath);
+	if(strstr(libpath,"/tmp/.mount")){
+		//freewrl is being used in an appimage
+		char fontdir[2000];
+		//assume the first entry is to /lib
+		char *ce = strstr(libpath,"/lib/:");
+		*ce = (char)0;
+		strcpy(fontdir,libpath);
+		strcat(fontdir,"/fonts");
+		printf("setting FONTS_DIR %s\n",fontdir);
+		setenv("FREEWRL_FONTS_DIR",fontdir,1);
+	}
+#endif
     char consoleBuffer[200];
 	fwl_init_instance(); //before setting any structs we need a struct allocated
 	fwg_register_consolemessage_callback(fw_printstring);
