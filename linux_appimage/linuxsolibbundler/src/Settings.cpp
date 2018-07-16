@@ -96,7 +96,7 @@ bool isPrefixBundled(std::string prefix)
     if(prefix.find("@executable_path") != std::string::npos) return false;
     if(prefix.compare(0,5,"ib64/") == 0) return false;
     if(prefix.compare(0,5,"/lib/") == 0) return false;
-    if(prefix.compare(0,9,"/usr/lib/") == 0) return false;
+    //if(prefix.compare(0,9,"/usr/lib/") == 0) return false; //on linux ths is where our 3rd party libs are.
     // should leave /usr/local/lib 
     if(isPrefixIgnored(prefix)) return false;
     std::cout << " - bundled";
