@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 #include "Settings.h"
 #include <vector>
+#include <iostream>
+
 
 namespace Settings
 {
@@ -81,7 +83,7 @@ bool isPrefixIgnored(std::string prefix)
     const int prefix_amount = prefixes_to_ignore.size();
     for(int n=0; n<prefix_amount; n++)
     {
-        if(prefix.compare(prefixes_to_ignore[n]) == 0) return true;
+        if(prefix.compare(0,prefixes_to_ignore[n].length(),prefixes_to_ignore[n]) == 0) return true;
     }
 
     return false;
@@ -89,11 +91,15 @@ bool isPrefixIgnored(std::string prefix)
 
 bool isPrefixBundled(std::string prefix)
 {
+    std::cout << "\nprefix" << prefix;
     if(prefix.find(".framework") != std::string::npos) return false;
     if(prefix.find("@executable_path") != std::string::npos) return false;
-    if(prefix.compare("/usr/lib/") == 0) return false;
+    if(prefix.compare(0,5,"ib64/") == 0) return false;
+    if(prefix.compare(0,5,"/lib/") == 0) return false;
+    if(prefix.compare(0,9,"/usr/lib/") == 0) return false;
+    // should leave /usr/local/lib 
     if(isPrefixIgnored(prefix)) return false;
-    
+    std::cout << " - bundled";
     return true;
 }
 

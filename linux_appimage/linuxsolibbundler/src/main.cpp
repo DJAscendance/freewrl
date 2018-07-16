@@ -137,7 +137,7 @@ int main (int argc, char * const argv[])
         showHelp();
         exit(0);
     }
-    
+    Settings::ignore_prefix("ib64"); //don't know what this is, maybe exported from core
     std::cout << "* Collecting dependencies"; fflush(stdout);
     
     const int amount = Settings::fileToFixAmount();
