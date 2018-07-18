@@ -96,6 +96,7 @@ Dependency::Dependency(std::string path)
 {
     char original_file_buffer[PATH_MAX];
     std::string original_file;
+    std::string version;
 	copied = false;
     if (Settings::doRpaths() && isRpath(path))
     {
@@ -154,9 +155,33 @@ Dependency::Dependency(std::string path)
 		if(usr_specified_path.compare("skip") != 0)
 			paths.push_back(usr_specified_path);
     }
-    
-    //new_name  = filename.substr(0, filename.find(".")) + ".so";
-    new_name = filename;
+    if(filename.find("libssl.") != std::string::npos){
+        //runtime wants the full version, maybe for security
+        new_name = filename;
+    }else if(filename.find("libcrypto.") != std::string::npos){
+        //runtime wants the full version, maybe for security
+        new_name = filename;
+    }else{
+        version = "";
+        {
+            std::string sonum;
+            sonum = filename.substr(filename.find(".so")+1);  //get so.3.2.1
+            size_t found = sonum.find(".");
+            if(found != std::string::npos){
+                version = sonum.substr(found+1); //get 3.2.1
+                found = version.find(".");
+                if(found != std::string::npos){
+                    version = version.substr(0,found); //get 3
+                }
+            }
+        }
+        new_name  = filename.substr(0, filename.find(".so")) + ".so";
+        if(version.length() > 0)
+            new_name = new_name + "."+version;
+        if(new_name.compare("libopenjpeg.so.1") == 0)
+            new_name = "libopenjpeg.so.5";
+    }
+    //new_name = filename;
 }
 
 void Dependency::print()
