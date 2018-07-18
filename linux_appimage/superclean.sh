@@ -7,3 +7,5 @@ rm solibbundler
 cd ..
 rm appimagetool
 rm *.AppImage
+rm excludelist*
+

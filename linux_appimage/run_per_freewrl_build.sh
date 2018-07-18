@@ -8,7 +8,8 @@ cp /usr/local/bin/freewrl freewrl.AppDir/usr/bin
 -d freewrl.AppDir/usr/lib \
 -p '@executable_path/../lib' \
 -of \
--od
+-od \
+-e excludelist
  #-i /usr/lib
 # package into .appimage
 ./appimagetool freewrl.AppDir

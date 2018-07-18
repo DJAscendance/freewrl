@@ -59,6 +59,8 @@ void inside_lib_path(std::string p);
 bool doRpaths();
 void doRpaths(bool permission);
 
+bool isFilenameBundled(std::string filename);
+void exclusions_file(std::string path);
 
 }
 #endif

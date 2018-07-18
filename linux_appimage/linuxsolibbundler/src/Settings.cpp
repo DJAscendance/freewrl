@@ -25,7 +25,7 @@ THE SOFTWARE.
 #include "Settings.h"
 #include <vector>
 #include <iostream>
-
+#include "Utils.h"
 
 namespace Settings
 {
@@ -106,5 +106,68 @@ bool isPrefixBundled(std::string prefix)
 bool doRpaths_bool = false;
 bool doRpaths() { return doRpaths_bool;}
 void doRpaths(bool permission) {doRpaths_bool = permission;}
+
+
+std::vector<std::string> exclusions;
+bool exclusions_loaded = false;
+void exclusions_file(std::string efilename){
+    if (!fileExists(efilename))
+    {
+        std::cerr << "\n/!\\ WARNING : can't read exclusions file '" << efilename << "'\n";
+        return;
+    }
+	std::string cmd = "cat " + efilename + " | grep -v -e '^#' | grep -v -e '^$'";
+    std::string output = system_get_output(cmd);
+
+    std::vector<std::string> lc_lines;
+    tokenize(output, "\n", &lc_lines);
+
+    size_t pos = 0;
+    bool read_rpath = false;
+    while (pos < lc_lines.size())
+    {
+        std::string line = lc_lines[pos];
+        pos++;
+		exclusions.push_back(line);
+	}
+    std::cout << "Exclusions:" << exclusions.size() << std::endl;
+	for(unsigned int i=0;i<exclusions.size();i++){
+		std::cout << exclusions[i] << std::endl;
+	}
+
+	exclusions_loaded = true;
+}
+std::string soname(std::string filename){
+    std::string rootname = filename.substr(0,filename.find(".so."));
+    std::string version = filename.substr(filename.find(".so.")+4);
+    std::string interface_version = version;
+    size_t dot = version.find(".");
+    if( dot != std::string::npos)
+         interface_version = version.substr(0,dot);
+    std::string so_name = rootname + ".so." + interface_version;
+    //std::cout << " " << filename << " > " << so_name << std::endl;
+    return so_name;
+}
+bool isFilenameBundled(std::string filename)
+{
+	if(!exclusions_loaded) return true;
+    std::cout << "\nfilename " << filename;
+    /*
+	if(std::find(exclusions.begin(), exclusions.end(), filename) == exclusions.end()){
+	    std::cout << " - bundled";
+		return true;
+	}
+    return false;
+    */
+    for(unsigned int i=0;i<exclusions.size();i++){
+
+        if(exclusions[i].compare(soname(filename)) == 0){
+            std::cout << " - excluded";
+            return false;
+        }
+    }
+    std::cout << " - bundled";
+    return true;
+}
 
 }

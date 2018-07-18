@@ -179,6 +179,7 @@ void addDependency(std::string path)
     }
     
     if(!Settings::isPrefixBundled(dep.getPrefix())) return;
+    if(!Settings::isFilenameBundled(dep.getOriginalFileName())) return;
     
     deps.push_back(dep);
 }

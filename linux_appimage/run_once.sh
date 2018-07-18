@@ -10,6 +10,7 @@ chmod a+x appimagetool
 wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/AppRun-x86_64"
 mv AppRun-x86_64 AppRun
 chmod a+x AppRun
+wget  "https://raw.githubusercontent.com/AppImage/AppImages/master/excludelist" 
 mkdir -p freewrl.AppDir
 mkdir -p freewrl.AppDir/usr
 mkdir -p freewrl.AppDir/usr/bin

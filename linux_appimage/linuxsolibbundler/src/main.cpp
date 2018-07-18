@@ -62,6 +62,7 @@ void showHelp()
     std::cout << "-od, --overwrite-dir (totally overwrite output directory if it already exists. implies --create-dir)" << std::endl;
     std::cout << "-cd, --create-dir (creates output directory if necessary)" << std::endl;
     std::cout << "-i, --ignore <location to ignore> (will ignore libraries in this directory)" << std::endl;
+    std::cout << "-e, --exclusions <name of exclusions list file> (will skip files in this list, one per row, # comment lines" << std::endl;
     std::cout << "-h, --help" << std::endl;
 }
 
@@ -120,6 +121,12 @@ int main (int argc, char * const argv[])
         {
             showHelp();
             exit(0);    
+        }
+        else if(strcmp(argv[i],"-e")==0 || strcmp(argv[i],"--exclusions")==0)
+        {
+            i++;
+            Settings::exclusions_file(argv[i]);
+            continue;
         }
         else if(i>0)
         {
