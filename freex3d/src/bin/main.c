@@ -99,14 +99,14 @@ int main (int argc, char **argv)
 	printf("\nlibrary path %s\n",libpath);
 	if(strstr(libpath,"/tmp/.mount")){
 		//freewrl is being used in an appimage
-		char fontdir[2000];
+		char targetdir[2000];
 		//assume the first entry is to /lib
 		char *ce = strstr(libpath,"/lib/:");
 		*ce = (char)0;
-		strcpy(fontdir,libpath);
-		strcat(fontdir,"/fonts");
-		printf("setting FONTS_DIR %s\n",fontdir);
-		setenv("FREEWRL_FONTS_DIR",fontdir,1);
+		strcpy(targetdir,libpath);
+		strcat(targetdir,"/fonts");
+		printf("setting FONTS_DIR %s\n",targetdir);
+		setenv("FREEWRL_FONTS_DIR",targetdir,1);
 	}
 #endif
     char consoleBuffer[200];
