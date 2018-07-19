@@ -91,7 +91,38 @@ void initSearchPaths(){
 // if some libs are missing prefixes, this will be set to true
 // more stuff will then be necessary to do
 bool missing_prefixes = false;
+class soname {
+public:
+    std::string rootname;
+    std::string v1, v2, v3;
+    int num;
+};
+soname soname_split(std::string filename){
+    soname s = soname();
+    s.rootname = filename.substr(0,filename.find(".so."));
+    std::string version = filename.substr(filename.find(".so.")+4);
+    std::string interface_version = version;
+    std::string v1,v2,v3;
+    size_t dot = version.find(".");
+    if( dot != std::string::npos){
+         interface_version = version.substr(0,dot);
+         std::string v2 = version.substr(dot+1);
+         dot = v2.find(".");
+         if(dot != std::string::npos){
+             std::string v3 = v2.substr(dot+1);
+             v2 = v2.substr(0,dot);
+         }
+    }
+    s.v1 = interface_version;
+    s.v2 = v2;
+    s.v3 = v3;
+    s.num = 0;
+    if(s.v1.size()) s.num = 1;
+    if(s.v2.size()) s.num = 2;
+    if(s.v3.size()) s.num = 3;
 
+     return s;
+}
 Dependency::Dependency(std::string path)
 {
     char original_file_buffer[PATH_MAX];
@@ -161,7 +192,21 @@ Dependency::Dependency(std::string path)
     }else if(filename.find("libcrypto.") != std::string::npos){
         //runtime wants the full version, maybe for security
         new_name = filename;
-    }else{
+    }
+    /*
+    else if(filename.find("libbz2.") != std::string::npos){
+        //runtime wants 2-part version, maybe for security
+        soname so = soname_split(filename);
+        new_name = so.rootname + ".so." + so.v1;
+        if(so.num > 1){
+            new_name = new_name + "."+so.v2;
+            //for strange reason it wants 2 digits
+        }else{
+            new_name = new_name + ".0";
+        }
+        //std::cout << "\nlibbz2 treatment: " << so.num << " " + so.v1 + "." + so.v2 << std::endl;
+    }*/
+    else{
         version = "";
         {
             std::string sonum;

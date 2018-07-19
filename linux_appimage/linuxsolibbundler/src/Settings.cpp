@@ -91,7 +91,7 @@ bool isPrefixIgnored(std::string prefix)
 
 bool isPrefixBundled(std::string prefix)
 {
-    std::cout << "\nprefix" << prefix;
+    std::cout << "\n" << prefix;
     if(prefix.find(".framework") != std::string::npos) return false;
     if(prefix.find("@executable_path") != std::string::npos) return false;
     if(prefix.compare(0,5,"ib64/") == 0) return false;
@@ -99,7 +99,6 @@ bool isPrefixBundled(std::string prefix)
     //if(prefix.compare(0,9,"/usr/lib/") == 0) return false; //on linux ths is where our 3rd party libs are.
     // should leave /usr/local/lib 
     if(isPrefixIgnored(prefix)) return false;
-    std::cout << " - bundled";
     return true;
 }
 
@@ -151,7 +150,7 @@ std::string soname(std::string filename){
 bool isFilenameBundled(std::string filename)
 {
 	if(!exclusions_loaded) return true;
-    std::cout << "\nfilename " << filename;
+    std::cout << " filename " << filename;
     /*
 	if(std::find(exclusions.begin(), exclusions.end(), filename) == exclusions.end()){
 	    std::cout << " - bundled";
