@@ -28,7 +28,10 @@ cp -r /usr/lib/x86_64-linux-gnu/imlib2 freewrl.AppDir/usr/imlib2
 mkdir freewrl.AppDir/usr/lib/x86_64-linux-gnu
 mv freewrl.AppDir/usr/imlib2 freewrl.AppDir/usr/lib/x86_64-linux-gnu/imlib2
 sed -i -e 's#/usr#././#g' freewrl.AppDir/usr/lib/libImlib2.so.1
-# seems like a problem with versioning bz2 
-ln -sf freewrl.AppDir/usr/lib/libbz2.so.1 freewrl.AppDir/usr/lib/libbz2.so.1.0
+# seems like a problem with versioning bz2, create relative symplink
+cd freewrl.AppDir/usr/lib
+ln -sf libbz2.so.1 libbz2.so.1.0
+cd ../../..
+#ln -sf freewrl.AppDir/usr/lib/libbz2.so.1 freewrl.AppDir/usr/lib/libbz2.so.1.0
 # package into .appimage
 ./appimagetool freewrl.AppDir
