@@ -339,7 +339,7 @@ int len_constants(){
 	int len = (sizeof(lookup_X3DConstants) / sizeof(struct string_int)) -1;
 	return len;
 }
-int X3DConstantsIterator(int index, FWTYPE *fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int X3DConstantsIterator(int index, FWType fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	index ++;
 	(*jndex) = 0;
 	if(index < len_constants()){
@@ -352,7 +352,7 @@ int X3DConstantsIterator(int index, FWTYPE *fwt, FWPointer *pointer, const char 
 	}
 	return -1;
 }
-FWTYPE X3DConstantsType = {
+struct FWTYPE X3DConstantsType = {
 	AUXTYPE_X3DConstants,
 	'P',
 	"X3DConstants",
@@ -1020,7 +1020,7 @@ int BrowserSetter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 }
 
 
-FWTYPE BrowserType = {
+struct FWTYPE BrowserType = {
 	AUXTYPE_X3DBrowser,
 	'P',
 	"X3DBrowser",
@@ -1102,7 +1102,7 @@ FWPropertySpec (ComponentInfoArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE ComponentInfoArrayType = {
+struct FWTYPE ComponentInfoArrayType = {
 	AUXTYPE_ComponentInfoArray,
 	'P',
 	"ComponentInfoArray",
@@ -1153,7 +1153,7 @@ int ComponentInfoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretv
 	return nr;
 }
 
-FWTYPE ComponentInfoType = {
+struct FWTYPE ComponentInfoType = {
 	AUXTYPE_ComponentInfo,
 	'P',
 	"ComponentInfo",
@@ -1201,7 +1201,7 @@ FWPropertySpec (ProfileInfoArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE ProfileInfoArrayType = {
+struct FWTYPE ProfileInfoArrayType = {
 	AUXTYPE_ProfileInfoArray,
 	'P',
 	"ProfileInfoArray",
@@ -1269,7 +1269,7 @@ int ProfileInfoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 	return nr;
 }
 
-FWTYPE ProfileInfoType = {
+struct FWTYPE ProfileInfoType = {
 	AUXTYPE_ProfileInfo,
 	'P',
 	"ProfileInfo",
@@ -1749,7 +1749,7 @@ int X3DExecutionContextGetter(FWType fwt, int index, void *ec, void *fwn, FWval 
 	return nr;
 }
 
-FWTYPE X3DExecutionContextType = {
+struct FWTYPE X3DExecutionContextType = {
 	AUXTYPE_X3DExecutionContext,
 	'P',
 	"X3DExecutionContext",
@@ -1795,7 +1795,7 @@ FWPropertySpec (X3DRouteArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE X3DRouteArrayType = {
+struct FWTYPE X3DRouteArrayType = {
 	AUXTYPE_X3DRouteArray,
 	'P',
 	"X3DRouteArray",
@@ -1880,7 +1880,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 }
 
 
-FWTYPE X3DRouteType = {
+struct FWTYPE X3DRouteType = {
 	AUXTYPE_X3DRoute,
 	'P',
 	"X3DRoute",
@@ -1925,7 +1925,7 @@ FWPropertySpec (X3DProtoArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE X3DProtoArrayType = {
+struct FWTYPE X3DProtoArrayType = {
 	AUXTYPE_X3DProtoArray,
 	'P',
 	"X3DProtoArray",
@@ -1940,7 +1940,7 @@ FWTYPE X3DProtoArrayType = {
 	NULL,
 };
 
-FWTYPE X3DExternProtoArrayType = {
+struct FWTYPE X3DExternProtoArrayType = {
 	AUXTYPE_X3DExternProtoArray,
 	'P',
 	"X3DExternProtoArray",
@@ -1997,7 +1997,7 @@ int X3DProtoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 }
 
 
-FWTYPE X3DProtoType = {
+struct FWTYPE X3DProtoType = {
 	AUXTYPE_X3DProto,
 	'P',
 	"X3DProtoDeclaration",
@@ -2011,7 +2011,7 @@ FWTYPE X3DProtoType = {
 	0,0, //takes int index in prop
 	NULL,
 };
-FWTYPE X3DExternProtoType = {
+struct FWTYPE X3DExternProtoType = {
 	AUXTYPE_X3DExternProto,
 	'P',
 	"X3DExternProtoDeclaration",
@@ -2061,7 +2061,7 @@ FWPropertySpec (X3DFieldDefinitionArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE X3DFieldDefinitionArrayType = {
+struct FWTYPE X3DFieldDefinitionArrayType = {
 	AUXTYPE_X3DFieldDefinitionArray,
 	'P',
 	"X3DFieldDefinitionArray",
@@ -2119,7 +2119,7 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 }
 
 
-FWTYPE X3DFieldDefinitionType = {
+struct FWTYPE X3DFieldDefinitionType = {
 	AUXTYPE_X3DFieldDefinition,
 	'P',
 	"X3DFieldDefinition",
@@ -2139,7 +2139,7 @@ FWTYPE X3DFieldDefinitionType = {
 
 
 
-void initVRMLBrowser(FWTYPE** typeArray, int *n){
+void initVRMLBrowser(FWType* typeArray, int *n){
 	typeArray[*n] = &X3DRouteType; (*n)++;
 	typeArray[*n] = &X3DRouteArrayType; (*n)++;
 	typeArray[*n] = &X3DExecutionContextType; (*n)++;

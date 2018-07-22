@@ -48,7 +48,7 @@ To do list Jan 2017
 #include "JScript.h"
 #include "FWTYPE.h"
 #define FIELDTYPE_MFImage	43 
-typedef int indexT;
+//typedef int indexT;
 
 #ifdef DEBUG_MALLOC
 #define malloc(A) MALLOCV(A)
@@ -56,16 +56,16 @@ typedef int indexT;
 #define realloc(A,B) REALLOC(A,B)
 #endif
 
-FWTYPE *fwtypesArray[60];  //true statics - they only need to be defined once per process, we have about 50 types as of july 2014
+FWType fwtypesArray[60];  //true statics - they only need to be defined once per process, we have about 50 types as of july 2014
 int FWTYPES_COUNT = 0;
 
-void initVRMLBrowser(FWTYPE** typeArray, int *n);
-void initVRMLFields(FWTYPE** typeArray, int *n);
+void initVRMLBrowser(FWType* typeArray, int *n);
+void initVRMLFields(FWType* typeArray, int *n);
 void initFWTYPEs(){
 	initVRMLBrowser(fwtypesArray, &FWTYPES_COUNT);
 	initVRMLFields(fwtypesArray, &FWTYPES_COUNT);
 }
-FWTYPE *getFWTYPE(int itype){
+FWType getFWTYPE(int itype){
 	int i;
 	for(i=0;i<FWTYPES_COUNT;i++){
 		if(itype == fwtypesArray[i]->itype)
@@ -77,7 +77,7 @@ FWTYPE *getFWTYPE(int itype){
 #define strcasecmp _stricmp
 #endif
 
-FWFunctionSpec *getFWFunc(FWTYPE *fwt,const char *key){
+FWFunctionSpec *getFWFunc(FWType fwt,const char *key){
 	int i = 0;
 	FWFunctionSpec *fs = fwt->Functions;
 	if(fs)
@@ -90,7 +90,7 @@ FWFunctionSpec *getFWFunc(FWTYPE *fwt,const char *key){
 	}
 	return NULL;
 }
-FWPropertySpec *getFWProp(FWTYPE *fwt,const char *key, int *index){
+FWPropertySpec *getFWProp(FWType fwt,const char *key, int *index){
 	int i = 0;
 	FWPropertySpec *ps = fwt->Properties;
 	*index = 0;
@@ -115,7 +115,7 @@ int len_functions(FWFunctionSpec *fs){
 	if(fs) while(fs[len].name) len++;
 	return len;
 }
-int fwiterator_generic(int index, FWTYPE *fwt, void *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int fwiterator_generic(int index, FWType fwt, void *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	//start iterating by passing -1 for index. When you get -1 back, you are done.
 	//FWPointer is for SFNode: it will have an instance-specific result from its custom iterator
 	//next property
@@ -157,7 +157,7 @@ int fwiterator_generic(int index, FWTYPE *fwt, void *pointer, const char **name,
 	return -1;
 }
 
-int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char *type, char *readOnly){
+int fwhas_generic(FWType fwt, void *pointer, const char *key, int *jndex, char *type, char *readOnly){
 	const char *name;
 	int lastProp, isSet, index = -1;
 	lastProp = -1;
@@ -842,7 +842,7 @@ void convert_duk_to_fwvals_old(duk_context *ctx, int nargs, int istack, struct A
 	//struct Uni_String *uni;
 	nUsable = arglist.iVarArgStartsAt > -1 ? nargs : arglist.nfixedArg;
 	nNeeded = max(nUsable,arglist.nfixedArg);
-	pars = malloc(nNeeded*sizeof(FWVAL));
+	pars = malloc(nNeeded*sizeof(struct FWVAL));
 	(*args) = pars;
 	//QC and genericization of incoming parameters
 	(*argc) = nNeeded;
@@ -1012,7 +1012,7 @@ void convert_duk_to_fwvals_new(duk_context *ctx, int nargs, int istack, struct A
 
 	nUsable = arglist.iVarArgStartsAt > -1 ? nargs : arglist.nfixedArg;
 	nNeeded = max(nUsable,arglist.nfixedArg);
-	pars = malloc(nNeeded*sizeof(FWVAL));
+	pars = malloc(nNeeded*sizeof(struct FWVAL));
 	(*args) = pars;
 	//QC and genericization of incoming parameters
 	(*argc) = nNeeded;
@@ -1209,7 +1209,7 @@ void convert_duk_to_fwvals(duk_context *ctx, int nargs, int istack, struct ArgLi
 
 int cfwconstructor(duk_context *ctx) {
 	int i, j, rc, nargs, argc, ifound;
-	FWTYPE *fwt;
+	FWType fwt;
 	FWval args;
 	void *fwpointer;
 	int *valueChanged = NULL; //so called 'internal' variables inside the script context don't point to a valueChanged
@@ -1326,7 +1326,7 @@ int cfwconstructor(duk_context *ctx) {
 		//int ivarsa = fwt->ConstructorArgs[ifound].iVarArgStartsAt;
 		char *neededTypes = fwt->ConstructorArgs[ifound].argtypes;
 		//int fill = fwt->ConstructorArgs[ifound].fillMissingFixedWithZero == 'T';
-		args = realloc(args,nfixed * sizeof(FWVAL));
+		args = realloc(args,nfixed * sizeof(struct FWVAL));
 		for(j=nargs;j<nfixed;j++){
 			switch(neededTypes[j]){
 			case 'B':
@@ -1358,7 +1358,7 @@ int chas(duk_context *ctx) {
 	const char *key;
 	int nr, index;
 	char type, readOnly;
-	FWTYPE *fwt;
+	FWType fwt;
 	union anyVrml *parent = NULL;
 
 	itype = 0;
@@ -1397,7 +1397,7 @@ int cownKeys(duk_context *ctx) {
 	int lastProp, jndex; //isFunc, 
 	char type, readOnly;
 	//FWTYPE *getFWTYPE(int itype)
-	FWTYPE *fwt;
+	FWType fwt;
 	itype = -1;
 
 	/* get type of parent object for this property*/
@@ -1433,7 +1433,7 @@ int cenumerate(duk_context *ctx) {
 	const char *fieldname;
 	int lastProp, jndex; //isFunc, 
 	char type, readOnly;
-	FWTYPE *fwt;
+	FWType fwt;
 	int arr_idx;
 
 	itype =0;
@@ -1622,7 +1622,7 @@ int cfunction(duk_context *ctx) {
 	const char *fwFunc = NULL;
 	union anyVrml* parent = NULL;
 	//union anyVrml* field = NULL;
-	FWTYPE *fwt;
+	FWType fwt;
 	FWFunctionSpec *fs;
 
 	itype = 0;
@@ -1655,7 +1655,7 @@ int cfunction(duk_context *ctx) {
 	if(fs){
 		FWval pars;
 		int argc;
-		FWVAL fwretval;
+		struct FWVAL fwretval;
 		struct X3D_Node *scriptnode;
 		void *ec = NULL;
 		convert_duk_to_fwvals(ctx, nargs, 0, fs->arglist, &pars, &argc);
@@ -1760,7 +1760,7 @@ int cget(duk_context *ctx) {
 	if(itype > -1){
 		//itype is in AUXTYPE_ range
 		const char *key = NULL;// = duk_require_string(ctx,-2);
-		FWTYPE *fwt = getFWTYPE(itype);
+		FWType fwt = getFWTYPE(itype);
 		int jndex, found;
 		char type, readOnly;
 		found = 0;
@@ -1810,7 +1810,7 @@ int cget(duk_context *ctx) {
 				nr = 1;
 			}
 		}else if(found && fwt->Getter){
-			FWVAL fwretval;
+			struct FWVAL fwretval;
 			struct X3D_Node *scriptnode;
 			void *ec = NULL;
 			//>>just SFNode function getNodeName needs to know the script node context (it can't use its own - it may be an IMPORT)
@@ -1879,7 +1879,7 @@ int cset(duk_context *ctx) {
 	if(itype > -1) {
 		//itype is in FIELDTYPE_ and AUXTYPE_ range
 		const char* key;
-		FWTYPE *fwt = getFWTYPE(itype);
+		FWType fwt = getFWTYPE(itype);
 		int jndex, found;
 		char type, readOnly;
 		//check numeric indexer
@@ -2166,7 +2166,7 @@ int fwsetterNS(duk_context *ctx) {
 	if(itype > -1 && itype < AUXTYPE_X3DConstants){
 		//code borrowed from cget and modified to not set setEventIn on self (auto-eventing this script)
 		//const char* key;
-		FWTYPE *fwt = getFWTYPE(FIELDTYPE_SFNode);
+		FWType fwt = getFWTYPE(FIELDTYPE_SFNode);
 		int jndex, found;
 		char type, readOnly;
 		//check properties - if a property, call the type-specific setter
@@ -2317,14 +2317,14 @@ int push_duk_fieldvalue(duk_context *ctx, int itype, int mode, const char* field
 
 int fwgetter0(duk_context *ctx,void *parent,int itype, const char *key, int *valueChanged){
 	//uses fwtype SFNode's getter
-	FWTYPE *fwt = getFWTYPE(itype);
+	FWType fwt = getFWTYPE(itype);
 	int jndex, found, nr;
 	char type, readOnly;
 	nr = 0;
 	//check properties - if a property, call the type-specific setter
 	found = fwhas_generic(fwt,parent,key,&jndex,&type,&readOnly); //SFNode_Iterator
 	if(found && fwt->Getter){
-		FWVAL fwretval;
+		struct FWVAL fwretval;
 		struct X3D_Node *scriptnode;
 		void *ec = NULL;
 		//>>just SFNode function getNodeName needs to know the script node context (it can't use its own - it may be an IMPORT)
@@ -2691,7 +2691,7 @@ void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int
 	//push ecma value as arg
 	{
 		int rc;
-		FWVAL fwval;
+		struct FWVAL fwval;
 		fwval._web3dval.native = Data;
 		fwval._web3dval.fieldType = dataType;
 		fwval._web3dval.gc = 0;

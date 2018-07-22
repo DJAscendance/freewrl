@@ -335,7 +335,8 @@ typedef struct {
 	GLuint textureID;
 } pfont_t;
 
-typedef struct buttonSet buttonSet;
+struct _buttonSet;
+typedef struct _buttonSet buttonSet;
 typedef struct {
 	int width;
 	int height;
@@ -354,11 +355,11 @@ typedef struct {
 	buttonSet *buttonset;
 } pmenuItem_t;
 
-typedef struct buttonSet {
+struct _buttonSet {
 	int n;
 	int index;
 	pmenuItem_t ** items;
-} buttonSet;
+};
 //Mar 2015 separate menubar from list of menuitems
 //  menuitmes - icons and actions which are prepared and can be placed on a menubar
 //  menubar - (new) container holding a runtime-changable arrangement of menuitems

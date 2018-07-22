@@ -80,11 +80,13 @@ void Multi_String_print(struct Multi_String *url);
 
 #ifdef _MSC_VER
 #include "ImageLoader.h"
-#else
+#else //_MSC_VER
 #if !(defined(_ANDROID) || defined(ANDROIDNDK))
+#ifdef HAVE_IMLIB2
 		#include <Imlib2.h>
-	#endif
-#endif
+#endif //HAVE_IMLIB2
+#endif //NOT ANDROID
+#endif //_MSC_VER
 
 
 
@@ -2438,6 +2440,7 @@ ConsoleMessage(me);}
 /* LINUX */
 
 #if !defined (_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK)
+#ifdef HAVE_IMLIB2
 	Imlib_Image image;
 	Imlib_Load_Error error_return;
 	char *fname;
@@ -2525,8 +2528,8 @@ ConsoleMessage(me);}
 	FREE(fname);
 	return (ret);
 
-
-#endif
+#endif //HAVE_IMLIB2
+#endif //NOT MSC, ANDROID
 
 
 	return FALSE;

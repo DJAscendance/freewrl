@@ -292,7 +292,7 @@ Geodetic to Geocentric:
 	7:	GD: TRUE: decimal degrees, FALSE radians
 */
 
-typedef struct _geosys {
+struct _geosys {
 	int spatial_system;				//0
 	int ellipsoid;					//1
 	int xtm_zone;					//2
@@ -302,7 +302,7 @@ typedef struct _geosys {
 	int geoid_height;			//6
 	int gd_degrees;					//7
 	int relativeHeight;				//8
-} Geosys;
+};
 //#define GEOSYS( geosystem ) ((Geosys *)geosystem)
 
 int isNodetypeGeospatial(int nodetype, int specversion){

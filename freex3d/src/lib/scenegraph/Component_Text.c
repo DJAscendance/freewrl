@@ -2198,10 +2198,15 @@ void make_Text (struct X3D_Text *node)
 
 static int iyup = 0;  //iyup = 1 means y is up on texture (like freewrl) (doesn't work right), iyup=0 means y-down texture coords (works)
 
-typedef struct AtlasFont AtlasFont;
-typedef struct Atlas Atlas;
-typedef struct AtlasEntry AtlasEntry;
-typedef struct GUIElement GUIElement;
+struct _AtlasFont;
+struct _Atlas;
+struct _AtlasEntry;
+struct _GUIElement;
+
+typedef struct _AtlasFont AtlasFont;
+typedef struct _Atlas Atlas;
+typedef struct _AtlasEntry AtlasEntry;
+typedef struct _GUIElement GUIElement;
 
 typedef struct ivec2 {int X; int Y;} ivec2;
 // OLDCODE static ivec2 ivec2_init(int x, int y);
@@ -2235,7 +2240,7 @@ typedef struct AtlasEntrySet {
 
 
 //atlas entry has the box for one glyph, or one widget icon
-typedef struct AtlasEntry {
+struct _AtlasEntry {
 	char *name;
 	int type;
 	ivec2 apos; //position in atlas texture, pixels from UL of texture image
@@ -2243,7 +2248,7 @@ typedef struct AtlasEntry {
 	int ichar;  //int pseudoname instead of char * name, used for unicode char
 	ivec2 pos;  //shift/offset from target placement ie glyph image shift from lower left corner of character
 	ivec2 advance; //used for glyphs, advance to the next char which may be different -wider- than pixel row width
-} AtlasEntry;
+};
 
 
 //atlas is an image buffer. It doesn't care what's stored in the image, although it
@@ -2256,7 +2261,7 @@ typedef struct AtlasEntry {
 //  resizable by design, and if it's just a few chars, its more efficent to do glyph by glyph than
 //  render several atlases. But in theory if its just a few chars, you could render just those chars
 //  to an atlas at different sizes.
-typedef struct Atlas {
+struct _Atlas {
 	char *name;
 	int type;
 	unsigned char *texture;  //the GLubyte* buffer
@@ -2266,7 +2271,7 @@ typedef struct Atlas {
 	ivec2 size;  //pixels, of texture: X=width, Y=height
 	int rowheight;  //if items are in regular rows, this is a hint, during making of the atlas
 	ivec2 pen;  //have a cursor, so it's easy to position an additional entry in unoccupied place in atlas
-} Atlas;
+};
 
 
 // named type is for upcasting any GUI* to a simple name
@@ -2279,7 +2284,7 @@ typedef struct GUINamedType {
 //GUIFont instances go in a public lookup table, so a fontface is loaded only once
 //and if an atlas has been generated for that fontface by the programmer, it's added
 //to the font
-typedef struct AtlasFont {
+struct _AtlasFont {
 	char *name;
 	int type;
 	char *path;
@@ -2287,19 +2292,19 @@ typedef struct AtlasFont {
 	int EMsize;
 	//struct Vector atlasSizes; //GUIAtlasEntrySet*
 	AtlasEntrySet *set;
-} AtlasFont;
+};
 
 
 typedef struct vec2 {float X; float Y;} vec2;
 typedef struct vec4 {float X; float Y; float Z; float W;} vec4;
 
-typedef struct GUIElement 
+struct _GUIElement 
 {
 	char *name;
 	GUIElementType type;  //element = 0, panel 1, image 2, button 3, checkBox 4, textCaption 5, textPanel 6
 	//ivec2 anchors;
 	void * userData;
-} GUIElement;
+};
 
 
 

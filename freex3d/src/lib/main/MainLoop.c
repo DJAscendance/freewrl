@@ -440,7 +440,8 @@ float defaultClipBoundary [] = {0.0f, 1.0f, 0.0f, 1.0f}; //left,right,bottom,top
 		finishedwithglobalshader(), and restoreglobalshader() before and after gl_useProgram section
 */
 
-typedef struct contenttype contenttype;
+struct _contenttype;
+typedef struct _contenttype contenttype;
 void register_contenttype(void *ct);
 void free_contenttypes();
 typedef struct tcontenttype {
@@ -454,9 +455,9 @@ typedef struct tcontenttype {
 	void (*render)(void *self); 
 	int (*pick)(void *self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex);  // a generalization of mouse. HMD IMU vs mouse?
 } tcontenttype;
-typedef struct contenttype {
+struct _contenttype {
 	tcontenttype t1; //superclass in abstract derived class
-}contenttype;
+};
 void content_render(void *_self){
 	//generic render for intermediate level content types (leaf/terminal content types will have their own render())
 	contenttype *c, *self;
@@ -810,12 +811,13 @@ typedef struct consoleLine {
 	int endline;
 } consoleLine;
 
-typedef struct BUTitem BUTitem;
-typedef struct BUTitem {
+struct _BUTitem;
+typedef struct _BUTitem BUTitem;
+struct _BUTitem {
 	unsigned char *B;
 	BUTitem *prev;
 	BUTitem *next;
-}BUTitem;
+};
 typedef struct contenttype_textpanel {
 	tcontenttype t1;
 	AtlasEntrySet *set;
