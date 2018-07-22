@@ -11,7 +11,7 @@ libanl.so.1
 libBrokenLocale.so.1
 libcidn.so.1
 libcrypt.so.1
-#libc.so.6 freewrl
+libc.so.6
 libdl.so.2
 libm.so.6
 libmvec.so.1
@@ -31,7 +31,7 @@ libutil.so.1
 # These files are all part of the GNU C Library which should never be bundled.
 # List was generated from a fresh build of glibc 2.25.
 
-# freewrl libstdc++.so.6
+libstdc++.so.6
 # Workaround for:
 # usr/lib/libstdc++.so.6: version `GLIBCXX_3.4.21' not found
 
@@ -116,7 +116,7 @@ libharfbuzz.so.0
 # Removing these has worked e.g., for Krita. Feel free to report if
 # you think that some of these should go into AppImages and why.
 libcom_err.so.2
-#libcrypt.so.1
+libcrypt.so.1
 libexpat.so.1
 libgcc_s.so.1
 libglib-2.0.so.0

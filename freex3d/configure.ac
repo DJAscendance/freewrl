@@ -330,7 +330,7 @@ AC_PATH_XTRA
 # Check all X11 stuff with pkg-config
 case "$os_type" in
      mac) PKG_CHECK_MODULES(XAW, xproto x11 xt xmu) ;;
-     *)   PKG_CHECK_MODULES(XAW, xproto x11 xt xmu) ;;
+     *)   PKG_CHECK_MODULES(XAW, xproto x11 xt xmu xaw7) ;;
 esac
 
 # Check for XFree86/Xorg VMODE extension
@@ -499,10 +499,12 @@ AC_SUBST(JPEG_LIBS)
 
 
 # PNG
-PKG_CHECK_MODULES(PNG, libpng)
+# PKG_CHECK_MODULES(PNG, libpng)
 
 fi
 
+# PNG
+PKG_CHECK_MODULES(PNG, libpng)
 
 
 
