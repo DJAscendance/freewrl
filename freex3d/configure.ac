@@ -330,7 +330,7 @@ AC_PATH_XTRA
 # Check all X11 stuff with pkg-config
 case "$os_type" in
      mac) PKG_CHECK_MODULES(XAW, xproto x11 xt xmu) ;;
-     *)   PKG_CHECK_MODULES(XAW, xproto x11 xt xmu xaw7) ;;
+     *)   PKG_CHECK_MODULES(XAW, xproto x11 xt xmu) ;;
 esac
 
 # Check for XFree86/Xorg VMODE extension
@@ -440,10 +440,10 @@ case "$with_OpenCL" in
 esac
 
 # Imlib2
+have_imlib2=no
 PKG_CHECK_MODULES(IMLIB2, imlib2, 
-        [have_imlib2=yes,AC_DEFINE([HAVE_IMLIB2],[1],[Define if IMLIB2 exists])],
-        [have_imlib2=no,AC_MSG_NOTICE([Please install libimlib2]),
-        ])
+        [[have_imlib2=yes] AC_DEFINE(HAVE_IMLIB2,1,[Define if IMLIB2 exists])],
+        [AC_MSG_NOTICE([Please install libimlib2]) ])
 
 if test x$have_imlib = xno; then
 # if we don't have imlib2, then we use libpng or libjpg or libgif directly
@@ -462,6 +462,7 @@ case "$with_jpeg" in
 	JPEG_LIBS="-L$with_jpeg/lib -ljpeg"
 	;;
 esac
+
 # save global cflags/libs
 oCFLAGS=$CFLAGS;oLDFLAGS=$LDFLAGS;oCPPFLAGS=$CPPFLAGS;oLIBS=$LIBS
 # set cflags/libs for this case
@@ -495,10 +496,13 @@ AC_SUBST(JPEG_CFLAGS)
 AC_SUBST(JPEG_LIBS)
 
 
+
+
 # PNG
 PKG_CHECK_MODULES(PNG, libpng)
 
 fi
+
 
 
 
@@ -683,22 +687,22 @@ AC_DEFINE([STATUSBAR_HUD], 1, [always define .. for builtin menu])
 AC_MY_SWITCH(osc,[enable building of OSC plugin support],off)
 if test x$sw_osc = xyes; then
     PKG_CHECK_MODULES(LIBLO, liblo,
-        AC_DEFINE([WANT_OSC],[1],
-                  [Define if liblo exists and OSC support wanted]),
-                  AC_MSG_ERROR([Skipping OSC. No liblo installed.]))
+        [AC_DEFINE([WANT_OSC],[1],[Define if liblo exists and OSC support wanted])],
+        [AC_MSG_NOTICE([Skipping OSC. No liblo installed.])])
 fi
 
 # ======================================
 # RBP enable
 # ======================================
 
-AC_MY_SWITCH(rbp,[enable building of RigidBodyPhysics (needs libODE)],on)
+AC_MY_SWITCH(rbp,[enable building of RigidBodyPhysics which needs libODE],off)
+AC_MSG_NOTICE([got to A])
 if test x$sw_rbp = xyes; then
     PKG_CHECK_MODULES(ODE, ode,
-        AC_DEFINE([WITH_RBP],[1],
-                  [Define if ODE exists and RBP support wanted]),
-                  AC_MSG_ERROR([Skipping RBP -no libode installed, plesae install libode]))
+        [AC_DEFINE([WITH_RBP],[1],[Define if ODE exists and RBP support wanted])],
+        [AC_MSG_NOTICE([Skipping RBP. No libode installed, plesae install libode])])
 fi
+
 AC_SUBST(ODE_CFLAGS)
 AC_SUBST(ODE_LIBS)
 
@@ -823,7 +827,7 @@ fi
 ## Imageconvert check
 if test x$have_imlib2 = xno; then
         AC_MY_HELPERAPP([imageconvert],[IMAGECONVERT],[image converter],[$DEFAULT_IMAGECONVERT],[
-        AC_MSG_ERROR([No image converter, please specify one using --with-imageconvert=PATH])
+        AC_MSG_NOTICE([No image converter and no Imlib2 - render snapshots cannot be saved])
         ])
 else
         AC_DEFINE(IMAGECONVERT,[""],[Imlib2 will save snapshots directly to png])
