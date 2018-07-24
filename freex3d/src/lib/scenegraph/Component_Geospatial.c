@@ -73,6 +73,12 @@ void push_planetId(int planetId);
 int current_planetId();
 void pop_planetId();
 
+// according to some -web3d.org participants Andreas, Dick- the LCS 
+// was an accommodation for old float-transform-stack browsers
+// and its not a spec requirement - GC is more normal if you have a double transform stack like freewrl
+// so to skip LCS set the following to TRUE, or to use an LCS, set to FALSE.
+static int USE_GC_FOR_LCS = TRUE;
+
 /*
 Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
 * acronyms: nodes
@@ -509,7 +515,7 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 			memset(&planet,0,sizeof(struct Planet));
 			vecset4d(planet.autoOrient.c,0.0,0.0,1.0,0.0);
 			vecsetd(planet.autoOrigin.c,0.0,0.0,0.0);
-			planet.autoOriginSet = FALSE; //FALSE;
+			planet.autoOriginSet = USE_GC_FOR_LCS; // FALSE; //FALSE;
 			
 			p->planet_stack = newStack(struct Planet);
 			stack_push(struct Planet,p->planet_stack,planet); //default planet
@@ -563,7 +569,7 @@ struct Planet *add_planet(int planetId){
 	vecset4d(planet.autoOrient.c,0.0,0.0,1.0,0.0);
 	vecsetd(planet.autoOrigin.c,0.0,0.0,0.0);
 	planet.ID = planetId;
-	planet.autoOriginSet = FALSE; //FALSE;
+	planet.autoOriginSet = USE_GC_FOR_LCS; //FALSE; //FALSE;
 	stack_push(struct Planet,p->planet_stack,planet); //default planet
 	ppointer = vector_get_ptr(struct Planet,p->planet_stack,p->planet_stack->n-1);
 	return ppointer;
