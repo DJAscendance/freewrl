@@ -5492,12 +5492,11 @@ void startOfLoopNodeUpdates(void) {
 				//}
 
 				AddRemoveChildren(node,childrenPtr,(struct X3D_Node * *) addChildren->p,addChildren->n,1,__FILE__,__LINE__);
-
 				// now go through and tell the addChildren field that the
 				// event has been processed.
 				for (i=0; i<addChildren->n; i++) {
 					struct X3D_Node *ch = X3D_NODE(addChildren->p[i]);
-					remove_parent(ch,node);
+					add_parent(ch,node,__FILE__,__LINE__);
 				}
 
 				addChildren->n=0;

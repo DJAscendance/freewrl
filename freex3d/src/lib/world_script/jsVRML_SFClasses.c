@@ -1419,7 +1419,7 @@ SFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
 		jsdouble nv;
 		char buff[STRING];
 		memset(buff, 0, STRING);
-		sprintf (buff,"_%zx_",handle);
+		sprintf (buff,"_%p_",handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
