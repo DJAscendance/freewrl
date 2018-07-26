@@ -1345,6 +1345,87 @@ int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
+int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnode, struct Vector * pdus){
+	int ihit = 0;
+	if(pnode){
+		int i;
+		// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#DISEntityManager
+		// https://github.com/open-dis/DISTutorial/blob/master/EntityDiscovery.md
+		// entity discovery happening here
+		struct Pdu* pdu;
+		for(i=0;i<pdus->n;i++) {
+			pdu = vector_get(struct Pdu*,pdus,i);
+			switch(pdu->pduType){
+				case PDU_ENTITY_STATE:
+				case PDU_RECEIVER:
+				case PDU_TRANSMITTER:
+				case PDU_SIGNAL:
+				{
+					int j, already_done;
+					int entityID, siteID, applicationID;
+					struct EntityStatePdu *espdu;
+					struct X3D_EspduTransform* et;
+					espdu = (struct EntityStatePdu*)pdu;
+					already_done = FALSE;
+					for(j=0;j<pnode->addEntities.n;j++){
+						//skip if we already got this entity and are just awaiting creation
+						struct X3D_Node *candi = (struct X3D_Node*)pnode->addEntities.p[j];
+						if(candi->_nodeType == NODE_DISEntityTypeMapping){
+							struct X3D_DISEntityTypeMapping *et = (struct X3D_DISEntityTypeMapping *)candi;
+							//already_done = FALSE;
+						}else if(candi->_nodeType == NODE_EspduTransform || candi->_nodeType == NODE_ReceiverPdu 
+							|| candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
+							//else if radio etc
+							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)pnode->addEntities.p[j];
+							if(et->entityID == espdu->entityID.entity &&
+								et->applicationID == espdu->entityID.application &&
+								et->siteID == espdu->entityID.site) already_done = TRUE;
+							if(already_done) break;
+						}
+
+					}
+					if(already_done) continue;
+					//we'll use EspduTransform just as a temp struct, not to register
+					// for the purpose of communicating with whatever can create a local copy
+					// of a discovered entity.
+					// right now, that's our EntityManager node.
+					et = createNewX3DNode0(NODE_EspduTransform); 
+					int nodetype = 0;
+					switch(pdu->pduType){
+						case PDU_ENTITY_STATE: nodetype = NODE_EspduTransform; break;
+						case PDU_RECEIVER: nodetype = NODE_ReceiverPdu; break;
+						case PDU_TRANSMITTER: nodetype = NODE_TransmitterPdu; break;
+						case PDU_SIGNAL: nodetype = NODE_SignalPdu; break;
+						default: break;
+					}
+					et->_nodeType = nodetype;
+					et->applicationID = espdu->entityID.application;
+					et->siteID = espdu->entityID.site;
+					et->entityID = espdu->entityID.entity;
+					et->address = newASCIIString(dsock->address);
+					et->port = dsock->port;
+					et->multicastRelayHost = newASCIIString(dsock->multicastRelayHost);
+					et->multicastRelayPort = dsock->multicastRelayPort;
+					{
+						void * pp = pnode->addEntities.p;
+						pnode->addEntities.p = realloc(pp,sizeof(struct X3D_Node*)*upper_power_of_two(pnode->addEntities.n + 1));
+						pnode->addEntities.p[pnode->addEntities.n] = (struct X3D_Node*)et;
+						pnode->addEntities.n++;
+						// >> do I need pnode->_pduchange_create = TRUE;
+					}
+					// ?? do I need MARK_EVENT(X3D_NODE(pnode),offsetof (struct X3D_DISEntityManager,  addEntities));
+					//will get mapped and instanced as geom during entityManager scenegraph visit and compile
+					// >> pnode->_change ++;
+					ihit = 1;
+				}
+				break;
+				default:
+				break;
+			}
+		}
+	}
+	return ihit;
+}
 struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus = NULL;
 	switch(node->_nodeType){
@@ -2016,14 +2097,17 @@ void dis_recvloop(){
 	if(!pdus) pdus = newVector(struct Pdu*,20);
 
 	//since not select()ing we have to check all sockets (if readInterval?)
+	//for 'Entity Discovery' at least one DIS node needs to be in scene, with IP/port to check
 	for(i=0;i<sockets_recv->n;i++){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
 		//things may have built up in the input socket, so we loop till flushed
 		do{
+			struct X3D_DISEntityManager* sockem = NULL;
 			heard = FALSE;
 			more = FALSE;
 			nbytes = sockrecvfrom(dsock,buf,32000);
 			if(nbytes > 0){
+				int nhit = 0;
 				more = TRUE;
 				dsock->lasttime = thistime;
 				//printf("sock read nbytes = %d\n",nbytes);
@@ -2036,6 +2120,9 @@ void dis_recvloop(){
 				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
 				//printf("hallelluha %d\n",count++);
+				//check pdus against all nodes registered on the port
+				// in case the message is for an existing node
+
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
 						int ihit;
@@ -2048,6 +2135,7 @@ void dis_recvloop(){
 								ihit = dis_pdus2node_espdu(node, pdus);
 								break;
 							case NODE_DISEntityManager:
+								sockem = (struct X3D_DISEntityManager*) node;
 								ihit = dis_pdus2node_sm(node, pdus);
 								break;
 							default:
@@ -2057,8 +2145,15 @@ void dis_recvloop(){
 							if(heard) set_rtp_heard(node);
 							dis_set_isActive(node,TRUE);
 							dis_set_node_lasttime(node,thistime);
+							nhit += ihit;
 						}
 					}
+				}
+				if(nhit == 0){
+					// any 'left-over' pdus might be 'entity discovery' candidates
+					printf("leftovers ...");
+					nhit = dis_pdus2newnode(dsock,sockem, pdus);
+					printf(" %d used\n",nhit);
 				}
 			}
 		}while(more);
@@ -2069,8 +2164,12 @@ void dis_recvloop(){
 				double readinterval, writeinterval, lasttime;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 				dis_get_node_lasttime(node,&lasttime,&readinterval,&writeinterval);
-				if(thistime - lasttime > 5.0)   //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
+				if(thistime - lasttime > 5.0) {
+					 //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
 					dis_set_isActive(node,FALSE);
+				}
+				//if its been several (?) heartbeat increments since we last heard from an entity
+				// the DIS specs talk about removing (opposite of adding by 'entity discovery')
 			}
 		}
 	}
@@ -2634,8 +2733,8 @@ void compile_DIS_geo(struct X3D_EspduTransform *node){
 	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
 	//   transform using DIS
 	//    children
-	if(TRUE){
-	//if(veclengthd(node->geoCoords.c) != 0.0){
+	//if(TRUE){
+	if(veclengthd(node->geoCoords.c) != 0.0){
 		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geosys)){
 			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 			update_origin(GEOSYS(node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
@@ -3387,10 +3486,19 @@ void compile_DISEntityManager(struct X3D_DISEntityManager *node){
 	compile_DISEntityManager0(node);
 	MARK_NODE_COMPILED
 }
+static int app_entity_last_id = 0;
+int newEntityID(){
+//for current app instance
+	app_entity_last_id++;
+	return app_entity_last_id;
+}
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
-	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
-	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
+	//Solution 1: modify DISEntityManager to have networkMode='networkWriter' 
+	// and an MFnode initializeOnly field of EntityTypeMapping nodes
+	//Solution 2: 'entity discovery' by listening -> entity manager for creation
+	// - done in the pdu receive loop, if there are 'leftover pdus' they are
+	//   examined as candidates for entity discovery, and sent here via .addEntities
 	static int ADD = 1, REMOVE = 2;
 	COMPILE_IF_REQUIRED
 	//like add remove children in opengl utils
@@ -3399,75 +3507,153 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 		struct Multi_Node* mfn = &node->entities;
 		node->addedEntities.n = 0;
 		for(j=0;j<node->addEntities.n;j++){
-			
-			if(node->addEntities.p[j]->_nodeType == NODE_DISEntityTypeMapping){
-				int ibest,iscore,jscore;
-				struct X3D_DISEntityTypeMapping *best, *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
-				ibest = -1;
-				iscore = 0;
-				best = NULL;
-				//printf("requested:");
+			int ibest,iscore,jscore;
+			int entityID, applicationID, siteID;
+			int port, multicastRelayPort;
+			struct Uni_String *address, *networkMode, *multicastRelayHost;
+			struct X3D_Node *candi;
+			struct X3D_DISEntityTypeMapping *best;
+			// = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
+			ibest = -1;
+			iscore = 0;
+			best = NULL;
+			candi = node->addEntities.p[j];
+			if(candi->_nodeType == NODE_DISEntityTypeMapping)
+			{
+				//problem: the DISEntityTypeMapping doesn't have a field for entityID
+				//	- that's OK when we are just told to create-and-own a new entity
+				//		-we can assign our siteID, applicationID and increment our entityID count for entityID
+				//  x but not for entity discovery
+				//  * so we added some fields _entityID,_applicationID,_siteID for copying from sniffed pdu
+				//      and sending to the .addEntities list
 				//print_entitymapping(anode);
+				struct X3D_DISEntityTypeMapping *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
 				for(i=0;i<node->mapping.n;i++){
-					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
-						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
-						//printf("compare %d",i);
-						//print_entitymapping(bnode);
-						jscore = 0;
-						if(anode->domain == bnode->domain) jscore++;
-						if(anode->category == bnode->category) jscore++;
-						if(anode->country == bnode->country) jscore++;
-						if(anode->kind == bnode->kind) jscore++;
-						if(anode->extra == bnode->extra) jscore++;
-						if(anode->subcategory == bnode->subcategory) jscore++;
-						if(anode->specific == bnode->specific) jscore++;
-						if(jscore > iscore){
-							iscore = jscore;
-							ibest = i;
-							best = bnode;
-						}
+					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+					//printf("compare %d",i);
+					//print_entitymapping(bnode);
+					jscore = 0;
+					if(anode->domain == bnode->domain) jscore++;
+					if(anode->category == bnode->category) jscore++;
+					if(anode->country == bnode->country) jscore++;
+					if(anode->kind == bnode->kind) jscore++;
+					if(anode->extra == bnode->extra) jscore++;
+					if(anode->subcategory == bnode->subcategory) jscore++;
+					if(anode->specific == bnode->specific) jscore++;
+					if(jscore > iscore){
+						iscore = jscore;
+						ibest = i;
+						best = bnode;
 					}
 				}
 				if(ibest > -1){
-					int isgroup = 0;
-					//printf("ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
-					if (best->_child == NULL) {
-						struct X3D_Inline * iline;
-						struct X3D_EspduTransform *espdu;
-						struct X3D_Group *grp;
-						iline = createNewX3DNode(NODE_Inline); //this assigns a parent resource using parsing thread methods, which is wrong for rendering thread
-						//resource_item_t *pres = iline->_parentResource;
-						iline->_parentResource = X3D_PROTO(node->_executionContext)->_parentResource; //for rendering-thread creation of inlines, use the parent context's parentResource
-						if(isgroup)
-							grp = createNewX3DNode(NODE_Group);
-						else
-							espdu = createNewX3DNode(NODE_EspduTransform);
-						if(best->_executionContext){
-							add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(iline));
-							if(isgroup)
-								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(grp));
-							else
-								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(espdu));
-						}
-						best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+					applicationID = node->applicationID;
+					siteID = node->siteID;
+					entityID = newEntityID(); //anode->_entityID;
+					address = node->address;
+					port = node->port;
+					networkMode = newASCIIString ("networkWriter"); //if we're ordered to create, usually that also means own
+					multicastRelayHost = node->multicastRelayHost;
+					multicastRelayPort = node->multicastRelayPort;
 
-						ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
-						if(isgroup)
-							AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
-						else
-							AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
-						/* copy over the URL from parent */
-						shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
-						iline->load = TRUE;
+				}
+			} else if(candi->_nodeType == NODE_EspduTransform || candi->_nodeType == NODE_ReceiverPdu 
+					|| candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
+				//this comes from 'entity discovery' from leftovver pdus
+				struct X3D_EspduTransform *anode = (struct X3D_EspduTransform *)node->addEntities.p[j];
+				for(i=0;i<node->mapping.n;i++){
+					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+					//printf("compare %d",i);
+					//print_entitymapping(bnode);
+					jscore = 0;
+					if(anode->entityDomain == bnode->domain) jscore++;
+					if(anode->entityCategory == bnode->category) jscore++;
+					if(anode->entityCountry == bnode->country) jscore++;
+					if(anode->entityKind == bnode->kind) jscore++;
+					if(anode->entityExtra == bnode->extra) jscore++;
+					if(anode->entitySubCategory == bnode->subcategory) jscore++;
+					if(anode->entitySpecific == bnode->specific) jscore++;
+					if(jscore > iscore){
+						iscore = jscore;
+						ibest = i;
+						best = bnode;
 					}
-
-					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, ADD,__FILE__,__LINE__);
-					AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
+				}
+				if(ibest > -1){
+					applicationID = anode->applicationID;
+					siteID = anode->siteID;
+					entityID = anode->entityID;
+					address = anode->address;
+					port = anode->port;
+					networkMode = newASCIIString ("networkReader"); //if we discovered entity by its heartbeats, then we're reading
+					multicastRelayHost = anode->multicastRelayHost;
+					multicastRelayPort = anode->multicastRelayPort;
 				}
 			}
+
+			if(ibest > -1){
+				int isgroup = 0;
+				//printf("ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
+				//if (best->_child == NULL) {
+					struct X3D_Inline * iline;
+					struct X3D_EspduTransform *espdu;
+					//struct X3D_Group *grp;
+					iline = createNewX3DNode(NODE_Inline); //this assigns a parent resource using parsing thread methods, which is wrong for rendering thread
+					//resource_item_t *pres = iline->_parentResource;
+					iline->_parentResource = X3D_PROTO(node->_executionContext)->_parentResource; //for rendering-thread creation of inlines, use the parent context's parentResource
+					//if(isgroup){
+					//	grp = createNewX3DNode(NODE_Group);
+					//}else{
+						//this is 'normal' according to specs we are supposed to generate espdus
+						espdu = createNewX3DNode(NODE_EspduTransform);
+						//populate entity fields - so it starts swallowing the heartbeat and update pdus of the entity
+						espdu->enabled = TRUE;
+						espdu->isActive = TRUE;
+						espdu->entityID = entityID;
+						espdu->applicationID = applicationID;
+						espdu->siteID = siteID;
+						espdu->port = port;
+						espdu->address = address;
+						espdu->multicastRelayHost = multicastRelayHost;
+						espdu->multicastRelayPort = multicastRelayPort;
+						espdu->networkMode = networkMode;
+						/*
+						void *dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
+								int multicastRelayPort,
+								char *networkMode, int port,double readInterval,int rtpHeaderExpected,int siteID,double writeInterval)
+						*/
+						dis_register(X3D_NODE(espdu),address->strptr,applicationID,entityID,multicastRelayHost->strptr,multicastRelayPort,
+							networkMode->strptr,port,5.0,FALSE,siteID,5.0);
+					//}
+					//if(best->_executionContext){
+						add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(iline));
+						//if(isgroup)
+						//	add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(grp));
+						//else
+							add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(espdu));
+					//}
+					//best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+
+					//ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
+					//if(isgroup)
+					//	AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
+					//else
+						AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
+					/* copy over the URL from parent */
+					shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
+					iline->load = TRUE;
+				//}
+
+				//AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
+				//AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
+				AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
+
+			}
+
 		}
 		if(node->addedEntities.n) MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,addedEntities));
 		node->addEntities.n = 0;
+		FREE_IF_NZ(node->addEntities.p);
 	}
 	if(node->removeEntities.n){
 		int i,j;
