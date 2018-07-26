@@ -1366,6 +1366,12 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					struct EntityStatePdu *espdu;
 					struct X3D_EspduTransform* et;
 					espdu = (struct EntityStatePdu*)pdu;
+					
+					//don't send to yourself
+					if(	pnode->applicationID == espdu->entityID.application &&
+						pnode->siteID == espdu->entityID.site) 
+						continue;
+
 					already_done = FALSE;
 					for(j=0;j<pnode->addEntities.n;j++){
 						//skip if we already got this entity and are just awaiting creation
@@ -1373,8 +1379,9 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 						if(candi->_nodeType == NODE_DISEntityTypeMapping){
 							struct X3D_DISEntityTypeMapping *et = (struct X3D_DISEntityTypeMapping *)candi;
 							//already_done = FALSE;
-						}else if(candi->_nodeType == NODE_EspduTransform || candi->_nodeType == NODE_ReceiverPdu 
-							|| candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
+						}else if(candi->_nodeType == NODE_EspduTransform) {
+							// || candi->_nodeType == NODE_ReceiverPdu 
+							// || candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
 							//else if radio etc
 							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)pnode->addEntities.p[j];
 							if(et->entityID == espdu->entityID.entity &&
@@ -1384,7 +1391,8 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 						}
 
 					}
-					if(already_done) continue;
+					if(already_done) 
+						continue;
 					//we'll use EspduTransform just as a temp struct, not to register
 					// for the purpose of communicating with whatever can create a local copy
 					// of a discovered entity.
@@ -3557,8 +3565,9 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					multicastRelayPort = node->multicastRelayPort;
 
 				}
-			} else if(candi->_nodeType == NODE_EspduTransform || candi->_nodeType == NODE_ReceiverPdu 
-					|| candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
+			} else if(candi->_nodeType == NODE_EspduTransform) {
+				// || candi->_nodeType == NODE_ReceiverPdu 
+				//	|| candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
 				//this comes from 'entity discovery' from leftovver pdus
 				struct X3D_EspduTransform *anode = (struct X3D_EspduTransform *)node->addEntities.p[j];
 				for(i=0;i<node->mapping.n;i++){
