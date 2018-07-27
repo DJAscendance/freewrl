@@ -830,7 +830,8 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 				/* set up the route from this variable to the handle Listener routine */
 				//dug9 I have no idea what extra is doing, Jun 29, 2018 I'm cleaning up compiler complaints
 				iextra = (count<<8)+mapEAItypeToFieldType(ctmp[0]);
-				memset(vextra,0,sizeof(void*));
+				//memset(vextra,0,sizeof(void*));
+				vextra = NULL;
 				memcpy(vextra,&iextra,4);
 				CRoutes_Register  (0,node, offset, NULL, 0, (int) tmp_c,(void *) 
 					&EAIListener, directionFlag, vextra ); /* encode id and type here*/
