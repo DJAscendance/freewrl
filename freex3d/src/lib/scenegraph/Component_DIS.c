@@ -1345,6 +1345,23 @@ int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
+void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
+	//4 nodes have the same field order for common fields, can be cast to Espdu 
+	switch(node->_nodeType){
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
+		case NODE_EspduTransform:
+		case NODE_DISEntityManager:
+		{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
+			pnode->_lasttime = lasttime;
+		}
+		break;
+		break;
+	}
+}
+
 int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnode, struct Vector * pdus){
 	int ihit = 0;
 	if(pnode){
@@ -1443,6 +1460,28 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 	}
 	return ihit;
 }
+int dis_entity_retire(struct X3D_DISEntityManager *pnode, struct X3D_Node *node){
+	//we only retire the entities that were created by 'entity_discovery'
+	int iret = 0;
+	if(node->_nodeType == NODE_EspduTransform){
+		if(pnode && pnode->_nodeType == NODE_DISEntityManager){
+			int i;
+			static int ADD = 1, REMOVE = 2;
+			iret = -1;
+			for(i=0;i<pnode->entities.n;i++){
+				if(pnode->entities.p[i] == node){
+					//yes - created by entity discovery
+					AddRemoveChildren(X3D_NODE(pnode),  &pnode->entities, (struct X3D_Node * *)&node, 1, REMOVE,__FILE__,__LINE__);
+					AddRemoveChildren(X3D_NODE(pnode),  &pnode->removedEntities, (struct X3D_Node * *)&node, 1, ADD,__FILE__,__LINE__);
+
+					iret = 1;
+					break;
+				}
+			}
+		}
+	}
+	return iret;
+}
 struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus = NULL;
 	switch(node->_nodeType){
@@ -1480,22 +1519,6 @@ void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *read
 		}
 		break;
 		default:
-		break;
-	}
-}
-void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
-	//4 nodes have the same field order for common fields, can be cast to Espdu 
-	switch(node->_nodeType){
-		case NODE_ReceiverPdu:
-		case NODE_TransmitterPdu:
-		case NODE_SignalPdu:
-		case NODE_EspduTransform:
-		case NODE_DISEntityManager:
-		{
-			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
-			pnode->_lasttime = lasttime;
-		}
-		break;
 		break;
 	}
 }
@@ -2176,6 +2199,14 @@ void dis_recvloop(){
 		}while(more);
 		if(dsock->registered){
 			//check if any node listeners have gone inactive
+			struct X3D_DISEntityManager* sockem = NULL;
+			for(j=0;j<dsock->registered->n;j++){
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_DISEntityManager){
+					sockem = (struct X3D_DISEntityManager*)node;
+				}
+				if(sockem) break;
+			}
 			for(j=0;j<dsock->registered->n;j++){
 				//update isActive
 				double readinterval, writeinterval, lasttime;
@@ -2187,7 +2218,24 @@ void dis_recvloop(){
 				}
 				//if its been several (?) heartbeat increments since we last heard from an entity
 				// the DIS specs talk about removing (opposite of adding by 'entity discovery')
+				if(thistime - lasttime > (5.0 * 3) ){
+					//if in entitymanager state.entities, removeChildren
+					int ihit = 0;
+					if(sockem && node->_nodeType == NODE_EspduTransform ){
+						ihit = dis_entity_retire(sockem,node);
+					}
+					if(ihit == 1) {
+						printf(" retired one\n");
+						//printf("thisttime %lf lasttime %lf\n",thistime,lasttime);
+					}
+					//if(ihit == -1) printf(" cetiree not in EM list\n");
+				}
 			}
+			if(sockem && sockem->removedEntities.n) {
+				//printf("removedEntities.n=%d\n",node->removedEntities.n);
+				MARK_EVENT(X3D_NODE(sockem),offsetof(struct X3D_DISEntityManager,removedEntities));
+			}
+
 		}
 	}
 
@@ -3635,6 +3683,8 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 						espdu->multicastRelayHost = multicastRelayHost;
 						espdu->multicastRelayPort = multicastRelayPort;
 						espdu->networkMode = networkMode;
+						dis_set_node_lasttime(X3D_NODE(espdu),TickTime());
+
 						/*
 						void *dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
 								int multicastRelayPort,
@@ -3662,7 +3712,7 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					iline->load = TRUE;
 				//}
 
-				//AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
+				AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
 				//AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
 				AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
 
