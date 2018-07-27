@@ -2974,22 +2974,34 @@ void compile_DIS_common_OLD(struct X3D_EspduTransform *node){
 }
 // >> RADIO
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
-		node->_pduchange_transmitter = TRUE;
+	if(node->isNetworkReader){
+		mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_transmitter);
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
+			node->_pduchange_transmitter = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_SignalPdu0(struct X3D_SignalPdu *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_signal)){
-		node->_pduchange_signal = TRUE;
+	if(node->isNetworkReader){
+		mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_signal);
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_signal)){
+			node->_pduchange_signal = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_receiver)){
-		node->_pduchange_receiver = TRUE;
+	if(node->isNetworkReader){
+		mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_receiver);
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_receiver)){
+			node->_pduchange_receiver = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
