@@ -994,6 +994,48 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	return pdus;
 
 }
+struct Vector * dis_node2pdus_receiver(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_ReceiverPdu * pnode = (struct X3D_ReceiverPdu*)node;
+	pdus = newVector(struct Pdu *, 6);
+	// Q. what about network sensor>
+	// Q. what about _geoCoords?
+	if(pnode->_pduchange_receiver){
+		struct ReceiverPdu *rpdu;
+		rpdu = (struct ReceiverPdu *) dis_ctor(pduToDis(type_ReceiverPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
+	}
+	return pdus;
+}
+struct Vector * dis_node2pdus_transmitter(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_TransmitterPdu * pnode = (struct X3D_TransmitterPdu*)node;
+	pdus = newVector(struct Pdu *, 6);
+
+	// Q. what about network sensor>
+	// Q. what about _geoCoords?
+	if(pnode->_pduchange_transmitter){
+		struct TransmitterPdu *rpdu;
+		rpdu = (struct TransmitterPdu *) dis_ctor(pduToDis(type_TransmitterPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
+	}
+	return pdus;
+}
+struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_SignalPdu * pnode = (struct X3D_SignalPdu*)node;
+	pdus = newVector(struct Pdu *, 6);
+
+	// Q. what about network sensor>
+	// Q. what about _geoCoords?
+	if(pnode->_pduchange_signal){
+		struct SignalPdu *rpdu;
+		rpdu = (struct SignalPdu *) dis_ctor(pduToDis(type_SignalPdu));
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
+	}
+	return pdus;
+}
+
 int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
@@ -1258,6 +1300,66 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	return ihit;
 }
 
+int dis_pdus2node_receiver(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_ReceiverPdu * pnode = (struct X3D_ReceiverPdu*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_RECEIVER:
+			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_TransmitterPdu * pnode = (struct X3D_TransmitterPdu*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_TRANSMITTER:
+			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_SignalPdu * pnode = (struct X3D_SignalPdu*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_SIGNAL:
+			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+
+
+
 // Simulation Management PDUs relate to the DISEntityManager node
 // http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
 //5.6 Simulation management p.85
@@ -1492,8 +1594,14 @@ struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 			pdus = dis_node2pdus_sm(node,isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
+			pdus = dis_node2pdus_receiver(node,isHeartbeat);
+			break;
 		case NODE_TransmitterPdu:
+			pdus = dis_node2pdus_transmitter(node,isHeartbeat);
+			break;
 		case NODE_SignalPdu:
+			pdus = dis_node2pdus_signal(node,isHeartbeat);
+			break;
 		break;
 	}
 	return pdus;
@@ -2178,6 +2286,15 @@ void dis_recvloop(){
 								sockem = (struct X3D_DISEntityManager*) node;
 								ihit = dis_pdus2node_sm(node, pdus);
 								break;
+							case NODE_ReceiverPdu:
+								ihit = dis_pdus2node_receiver(node, pdus);
+								break;
+							case NODE_TransmitterPdu:
+								ihit = dis_pdus2node_transmitter(node, pdus);
+								break;
+							case NODE_SignalPdu:
+								ihit = dis_pdus2node_signal(node, pdus);
+								break;
 							default:
 								break;
 						}
@@ -2855,6 +2972,7 @@ void compile_DIS_common_OLD(struct X3D_EspduTransform *node){
 		}
 	}
 }
+// >> RADIO
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
 	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
 		node->_pduchange_transmitter = TRUE;
@@ -2876,6 +2994,7 @@ void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
+// << RADIO
 
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
@@ -3503,6 +3622,7 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 }
 
 
+// >> RADIO
 // first parts of radio node structs ynchronized so as to match Espdu struct so
 // the 3 radio nodes can be cast to EspduTransform for common field handling
 void compile_TransmitterPdu (struct X3D_TransmitterPdu *node) { 
@@ -3542,6 +3662,9 @@ void child_ReceiverPdu (struct X3D_ReceiverPdu *node) {
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
 	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
+
+//<< RADIO
+
 void print_entitymapping(struct X3D_DISEntityTypeMapping *anode){
 	ConsoleMessage("domain %d category %d country %d kind %d extra %d subcat %d spec %d\n",
 	anode->domain, anode->category,anode->country, anode->kind, anode->extra, anode->subcategory, anode->specific);
