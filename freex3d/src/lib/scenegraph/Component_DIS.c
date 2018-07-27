@@ -1372,9 +1372,9 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 						pnode->siteID == espdu->entityID.site) 
 						continue;
 
+					//skip if we already got this entity and are just awaiting creation
 					already_done = FALSE;
 					for(j=0;j<pnode->addEntities.n;j++){
-						//skip if we already got this entity and are just awaiting creation
 						struct X3D_Node *candi = (struct X3D_Node*)pnode->addEntities.p[j];
 						if(candi->_nodeType == NODE_DISEntityTypeMapping){
 							struct X3D_DISEntityTypeMapping *et = (struct X3D_DISEntityTypeMapping *)candi;
@@ -1393,11 +1393,12 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					}
 					if(already_done) 
 						continue;
-					//we'll use EspduTransform just as a temp struct, not to register
-					// for the purpose of communicating with whatever can create a local copy
-					// of a discovered entity.
+
+					//we'll use an EspduTransform struct just as a temp struct, not to register.
+					// -for the purpose of communicating with whatever can create a local copy
+					//  of a discovered entity.
 					// right now, that's our EntityManager node.
-					et = createNewX3DNode0(NODE_EspduTransform); 
+					et = createNewX3DNode0(NODE_EspduTransform); //the 0 creator which does not register the node
 					int nodetype = 0;
 					switch(pdu->pduType){
 						case PDU_ENTITY_STATE: nodetype = NODE_EspduTransform; break;
@@ -1414,6 +1415,14 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					et->port = dsock->port;
 					et->multicastRelayHost = newASCIIString(dsock->multicastRelayHost);
 					et->multicastRelayPort = dsock->multicastRelayPort;
+					et->entityCategory = espdu->entityType.category;
+					et->entityCountry = espdu->entityType.country;
+					et->entityDomain = espdu->entityType.domain;
+					et->entityKind = espdu->entityType.entityKind;
+					et->entityExtra = espdu->entityType.extra;
+					et->entitySpecific = espdu->entityType.specific;
+					et->entitySubCategory = espdu->entityType.subcategory;
+					
 					{
 						void * pp = pnode->addEntities.p;
 						pnode->addEntities.p = realloc(pp,sizeof(struct X3D_Node*)*upper_power_of_two(pnode->addEntities.n + 1));
