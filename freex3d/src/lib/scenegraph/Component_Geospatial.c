@@ -3119,19 +3119,22 @@ void geoprep0(Geosys *geoSystem, struct SFVec3d *userCoord){
 	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
 }
 void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
-	if(!renderstate()->render_vp) {
-		FW_GL_PUSH_MATRIX();
-		geoprep0(geoSystem,userCoord);
+	if(geoSystem){
+		if(!renderstate()->render_vp) {
+			FW_GL_PUSH_MATRIX();
+			geoprep0(geoSystem,userCoord);
+		}
 	}
 }
 void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
-	if(!renderstate()->render_vp) {
-		FW_GL_POP_MATRIX();
-	}else{
-		geoprepT0(geoSystem,userCoord);
+	if(geoSystem){
+		if(!renderstate()->render_vp) {
+			FW_GL_POP_MATRIX();
+		}else{
+			geoprepT0(geoSystem,userCoord);
+		}
 	}
-
 }
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
