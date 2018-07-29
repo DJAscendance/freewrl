@@ -3092,6 +3092,7 @@ void geoprep0(Geosys *geoSystem, struct SFVec3d *userCoord){
 	//geonode TCS to transform stack LCS
 	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
 	struct SFVec4d rotation1, rotation2;
+	double A,F;
 	Geosys *gs = geoSystem;
 
 	//How this works
@@ -3108,15 +3109,22 @@ void geoprep0(Geosys *geoSystem, struct SFVec3d *userCoord){
 	// LCS < GC object  push first
 	// GC < TCS object  push second
 	//    draw TCS object
-	user2gc(gs,userCoord,1,&gcCoord);
-	gc2gd(gs,&gcCoord,1, &gdCoord);
+	getEllipsoidParams(gs->ellipsoid, &A, &F);
+	if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
+		//likely DIS with local coordinates ie near molten core of earth
+		// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
+		FW_GL_TRANSLATE_D(userCoord->c[0],userCoord->c[1],userCoord->c[2]);
+	}else{
+		user2gc(gs,userCoord,1,&gcCoord);
 
-	gc2lcs_transform(&translation1,&rotation1);
-	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
-	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
-	tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
-	FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
-	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		gc2lcs_transform(&translation1,&rotation1);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		gc2gd(gs,&gcCoord,1, &gdCoord);
+		tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+	}
 }
 void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
@@ -3999,22 +4007,29 @@ void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord){
 
 	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
 	struct SFVec4d rotation1, rotation2;
+	double A,F;
 	Geosys *gs = geoSystem;
 
 	//How this works
 	//we need to get from child LCS to TCS for this node via the transform stack
 	// the stack goes in this order:
 	// GT-TCS < LCS-children
-	user2gc(gs,userCoord,1,&gcCoord);
-	gc2gd(gs,&gcCoord,1, &gdCoord);
+	getEllipsoidParams(gs->ellipsoid, &A, &F);
+	if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
+		//likely DIS with local coordinates ie near molten core of earth
+		// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
+		FW_GL_TRANSLATE_D(-userCoord->c[0],-userCoord->c[1],-userCoord->c[2]);
+	}else{
+		user2gc(gs,userCoord,1,&gcCoord);
+		gc2gd(gs,&gcCoord,1, &gdCoord);
 
-	gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
-	FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
-	FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
-	lcs2gc_transform(&rotation1,&translation1);
-	FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
-	FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
-
+		gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		lcs2gc_transform(&rotation1,&translation1);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+	}
 }
 void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	//LCS -> TCS

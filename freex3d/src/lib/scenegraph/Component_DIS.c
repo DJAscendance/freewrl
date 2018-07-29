@@ -2915,8 +2915,8 @@ void compile_DIS_geo(struct X3D_EspduTransform *node){
 	//  geoCoords used like GeoLocation, to convert ordinary nodes to geospatial 
 	//   transform using DIS
 	//    children
-	//if(TRUE){
-	if(veclengthd(node->geoCoords.c) != 0.0){
+	if(TRUE){
+	//if(veclengthd(node->geoCoords.c) != 0.0){
 		if(!node->__geoSystem || shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_geosys)){
 			compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 			update_origin(GEOSYS(node->__geoSystem), X3D_NODE(node), &node->geoCoords, NULL);
