@@ -569,7 +569,17 @@ void pdu2node_entityType( struct EntityType *entityType, int *entityKind){
 	entityKind[5] = entityType->specific;
 	entityKind[6] = entityType->extra;
 }
-
+static int dis_event_number = 0;
+int dis_next_event_number(){
+	dis_event_number++;
+	return dis_event_number;
+}
+static int dis_fire_mission_index = 0;
+int dis_next_fire_mission_index(){
+	dis_fire_mission_index++;
+	return dis_fire_mission_index;
+}
+struct X3D_Node * dis_find_registered_node_by_entityid(int entityid, int sendlist, int recvlist);
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
@@ -977,7 +987,53 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	if(pnode->_pduchange_fire){
 		struct FirePdu *fpdu;
 		fpdu = (struct FirePdu *) dis_ctor(type_FirePdu);
+		if(pnode->fired1 || pnode->fired2){
+			pnode->firedTime = TickTime();
+		}
 		//copy from espdutransform node to pdu
+		fpdu->burstDescriptor.fuse = pnode->fuse;
+		struct X3D_EspduTransform * muni = (struct X3D_EspduTransform * )dis_find_registered_node_by_entityid(pnode->munitionEntityID,TRUE,FALSE);
+		if(muni){
+			fpdu->burstDescriptor.munition.category = muni->entityCategory; //get munition entity from pnode->munitionEntity, then munitionEntity.cateogory.
+			fpdu->burstDescriptor.munition.country = muni->entityCountry;
+			fpdu->burstDescriptor.munition.domain = muni->entityDomain;
+			fpdu->burstDescriptor.munition.entityKind = muni->entityKind;
+			fpdu->burstDescriptor.munition.extra = muni->entityExtra;
+			fpdu->burstDescriptor.munition.specific = muni->entitySpecific;
+			fpdu->burstDescriptor.munition.subcategory = muni->entitySubCategory;
+		}
+		fpdu->burstDescriptor.quantity = pnode->munitionQuantity;
+		fpdu->burstDescriptor.rate = pnode->firingRate;
+		fpdu->burstDescriptor.warhead = pnode->warhead;
+
+		fpdu->eventID.application = 0;
+		fpdu->eventID.eventNumber = pnode->eventNumber; //dis_next_event_number(); //increment in sender script node
+		fpdu->eventID.site = 0; //target if known
+
+		fpdu->fireMissionIndex = dis_next_fire_mission_index();
+		{
+			double loc[3];
+			float2double(loc,pnode->munitionStartPoint.c,3);
+			//am I supposed to convert to wworld from local here?
+			//or can/should I assume that its local to Weapon Espdu here, and local to target scene's copy of Weapon Espdu?
+			vec3d2vector3double(&fpdu->locationInWorldCoordinates,loc);  //is this current location, or starting location?
+		}
+		//unique munition entity if known
+		fpdu->munitionID.application = pnode->munitionApplicationID;
+		fpdu->munitionID.entity = pnode->munitionEntityID;
+		fpdu->munitionID.site = pnode->munitionSiteID;
+
+		//fpdu->myWarfareFamilyPdu.firingEntityID;
+		//fpdu->myWarfareFamilyPdu.myPdu;
+		//fpdu->myWarfareFamilyPdu.targetEntityID;
+		fpdu->range = pnode->firingRange;
+		{
+			float delta[3];
+			vecdif3f(delta,pnode->munitionEndPoint.c,pnode->munitionStartPoint.c);
+			//lets say 3 seconds to deliver any munition
+			vecscale3f(delta,delta,1.0f/3.0f);
+			vec3f2vector3float(&fpdu->velocity,delta);
+		}
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)fpdu);
 	}
 	//COLLISION
@@ -1617,6 +1673,45 @@ struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 static struct Vector *sockets_send = NULL;
 static struct Vector *sockets_recv = NULL;
 
+struct X3D_Node * dis_find_registered_node_by_entityid(int entityid, int sendlist, int recvlist){
+	int i,j;
+	struct X3D_Node *node, *pnode = NULL;
+	if(sendlist)
+	for(i=0;i<sockets_send->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
+		if(dsock->registered){
+			for(j=0;j<dsock->registered->n;j++){
+				int ihit;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_EspduTransform){
+					struct X3D_EspduTransform *espdu = (struct X3D_EspduTransform *)node;
+					if(espdu->entityID == entityid){
+						pnode = node;
+						break;
+					}
+				}
+			}
+		}
+	}
+	if(recvlist)
+	for(i=0;i<sockets_recv->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
+		if(dsock->registered){
+			for(j=0;j<dsock->registered->n;j++){
+				int ihit;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_EspduTransform){
+					struct X3D_EspduTransform *espdu = (struct X3D_EspduTransform *)node;
+					if(espdu->entityID == entityid){
+						pnode = node;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return pnode;
+}
 unsigned char buf2[32767];
 
 void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
@@ -3603,6 +3698,52 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 		geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 } 
+void render_munitions(struct X3D_EspduTransform *node){
+	//I have no ideas. something about quantity, velocity, start/end or startpoint
+	//a) update locations based on time and trajectory - like partical physics
+	//b) render each munition instance
+	if(!renderstate()->render_vp) {
+
+		if(node->fired1){
+			int i;
+			struct X3D_EspduTransform * mnode;
+			static int eventNumber = 0;
+			if(node->eventNumber > eventNumber){
+				node->firedTime = TickTime();
+				eventNumber = node->eventNumber;
+			}
+			double dtime =  (TickTime() - (double)node->munitionQuantity) - node->firedTime ;
+			if(dtime > 5.0) return; //already finished
+			mnode = (struct X3D_EspduTransform*)dis_find_registered_node_by_entityid(node->munitionEntityID,TRUE,TRUE);
+			if(mnode){
+				for(i=0;i<node->munitionQuantity;i++){
+					//how about a 1 second gap between burst pals
+					dtime = max(0.0,(TickTime() - (double)i)  - node->firedTime);
+					dtime = min(5.0,dtime);
+					float delta[3], velocity[3], progress[3], loc[3];
+					vecdif3f(delta,node->munitionEndPoint.c,node->munitionStartPoint.c);
+					vecscale3f(velocity,delta,1.0f/3.0f);
+					vecscale3f(progress,velocity,(float)dtime);
+					if(veclength3f(progress) > veclength3f(delta)) {
+						// detonate or whatever you do when munition reaches target
+						veccopy3f(loc,node->munitionEndPoint.c);
+					} else {
+						vecadd3f(loc,node->munitionStartPoint.c,progress);
+						// render munition instance
+					}
+					FW_GL_PUSH_MATRIX();
+					FW_GL_TRANSLATE_F(loc[0],loc[1],loc[2]);
+					//static int k = 0;
+					//if(k++ % 120 == 0) 
+					//	printf("%lf %lf %lf\n",loc[0],loc[1],loc[2]);
+					//strip espdu wrapper (otherwise we have geoLocation wrapping geoLocation - double geo transform
+					normalChildren(mnode->children);
+					FW_GL_POP_MATRIX();
+				}
+			}
+		}
+	}
+}
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
@@ -3632,6 +3773,13 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 	#endif
 
 	normalChildren(node->_sortedChildren);
+
+	//render munitions
+	render_munitions(node);
+	//render detonations
+
+	//render collisions
+
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
