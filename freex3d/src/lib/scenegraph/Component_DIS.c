@@ -976,21 +976,21 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//FIRE
 	if(pnode->_pduchange_fire){
 		struct FirePdu *fpdu;
-		fpdu = (struct FirePdu *) dis_ctor(pduToDis(type_FirePdu));
+		fpdu = (struct FirePdu *) dis_ctor(type_FirePdu);
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)fpdu);
 	}
 	//COLLISION
 	if(pnode->_pduchange_collision){
 		struct CollisionPdu *cpdu;
-		cpdu = (struct CollisionPdu *) dis_ctor(pduToDis(type_CollisionPdu));
+		cpdu = (struct CollisionPdu *) dis_ctor(type_CollisionPdu);
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)cpdu);
 	}
 	//DETONATION
 	if(pnode->_pduchange_detonation){
 		struct DetonationPdu *dpdu;
-		dpdu = (struct DetonationPdu *) dis_ctor(pduToDis(type_DetonationPdu));
+		dpdu = (struct DetonationPdu *) dis_ctor(type_DetonationPdu);
 		//copy from espdutransform node to pdu
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
 	}
@@ -1006,7 +1006,7 @@ struct Vector * dis_node2pdus_receiver(struct X3D_Node *node, int isHeartbeat){
 	// Q. what about _geoCoords?
 	if(pnode->_pduchange_receiver){
 		struct ReceiverPdu *rpdu;
-		rpdu = (struct ReceiverPdu *) dis_ctor(pduToDis(type_ReceiverPdu));
+		rpdu = (struct ReceiverPdu *) dis_ctor(type_ReceiverPdu);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
 	}
 	return pdus;
@@ -1020,7 +1020,7 @@ struct Vector * dis_node2pdus_transmitter(struct X3D_Node *node, int isHeartbeat
 	// Q. what about _geoCoords?
 	if(pnode->_pduchange_transmitter){
 		struct TransmitterPdu *rpdu;
-		rpdu = (struct TransmitterPdu *) dis_ctor(pduToDis(type_TransmitterPdu));
+		rpdu = (struct TransmitterPdu *) dis_ctor(type_TransmitterPdu);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
 	}
 	return pdus;
@@ -1034,7 +1034,7 @@ struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
 	// Q. what about _geoCoords?
 	if(pnode->_pduchange_signal){
 		struct SignalPdu *rpdu;
-		rpdu = (struct SignalPdu *) dis_ctor(pduToDis(type_SignalPdu));
+		rpdu = (struct SignalPdu *) dis_ctor(type_SignalPdu);
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
 	}
 	return pdus;
