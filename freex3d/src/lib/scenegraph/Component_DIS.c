@@ -605,8 +605,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			Geosys *gs;
 			gs = GEOSYS(pnode->__geoSystem);
 			user2gc(gs,&pnode->geoCoords,1,&gc);
-			gc2gd(gs,&gc,1,&gd);
-			gc2tcs_transform(gs,&gd,&translate,&rotate);
+			//gc2gd(gs,&gc,1,&gd);
+			//gc2tcs_transform(gs,&gd,&translate,&rotate);
+			gc2tcsB_transform(gs,&gc,&translate,&rotate);
 			//somehow get body/entity into world/gc - rotation and translation
 			{
 				//rotation
@@ -628,7 +629,8 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				//translation
 				struct SFVec3d tcs, world;
 				float2double(tcs.c,pnode->translation.c,3);
-				tcs2gc(gs,&gd,&tcs,1,&world);
+				//tcs2gc(gs,&gd,&tcs,1,&world);
+				tcs2gcB(gs,&gc,&tcs,1,&world);
 				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
 
@@ -756,8 +758,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 						Geosys *gs;
 						gs = GEOSYS(pnode->__geoSystem);
 						user2gc(gs,&pnode->geoCoords,1,&gc);
-						gc2gd(gs,&gc,1,&gd);
-						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						//gc2gd(gs,&gc,1,&gd);
+						//gc2tcs_transform(gs,&gd,&translate,&rotate);
+						gc2tcsB_transform(gs,&gc,&translate,&rotate);
 						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
 						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
 						quaternion_multiply(&qglobal,&qlocal,&qtcs);
@@ -917,8 +920,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 						Geosys *gs;
 						gs = GEOSYS(pnode->__geoSystem);
 						user2gc(gs,&pnode->geoCoords,1,&gc);
-						gc2gd(gs,&gc,1,&gd);
-						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						//gc2gd(gs,&gc,1,&gd);
+						//gc2tcs_transform(gs,&gd,&translate,&rotate);
+						gc2tcsB_transform(gs,&gc,&translate,&rotate);
 						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
 						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
 						quaternion_multiply(&qglobal,&qlocal,&qtcs);
@@ -1069,8 +1073,9 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					Geosys *gs;
 					gs = GEOSYS(pnode->__geoSystem);
 					user2gc(gs,&pnode->geoCoords,1,&gc);
-					gc2gd(gs,&gc,1,&gd);
-					gc2tcs_transform(gs,&gd,&translate,&rotate);
+					//gc2gd(gs,&gc,1,&gd);
+					//gc2tcs_transform(gs,&gd,&translate,&rotate);
+					gc2tcsB_transform(gs,&gc,&translate,&rotate);
 					//somehow get body/entity into world/gc - rotation and translation
 					{
 						//rotation
@@ -1111,7 +1116,8 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							//METHOD 1: translation = Location - geoCoords
 							struct SFVec3d world, tcs;
 							veccopyd(world.c,world2bodyxyz);
-							gc2tcs(gs,&gd,&world,1,&tcs);
+							//gc2tcs(gs,&gd,&world,1,&tcs);
+							gc2tcsB(gs,&gc,&world,1,&tcs);
 							double2float(pnode->translation.c,tcs.c,3);
 						}else{
 							//TRANS_ZERO
@@ -1122,9 +1128,11 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							float deltap[3];
 							static int want_smoothing = 1;
 							if(want_smoothing){
-								gc2tcs(gs,&gd,&gc,1,&tcs1);
+								//gc2tcs(gs,&gd,&gc,1,&tcs1);
+								gc2tcsB(gs,&gc,&gc,1,&tcs1);
 								veccopyd(world.c,world2bodyxyz);
 								gc2tcs(gs,&gd,&world,1,&tcs2);
+								gc2tcsB(gs,&gc,&world,1,&tcs2);
 								vecdifd(deltatcs,tcs1.c,tcs2.c);
 								double2float(deltap,deltatcs,3);
 								vecadd3f(pnode->_p0.c,pnode->_p0.c,deltap);

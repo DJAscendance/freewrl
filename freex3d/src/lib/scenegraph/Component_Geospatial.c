@@ -3085,6 +3085,39 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	#endif
 }
 
+
+void tcs2gcB_transform(Geosys *geoSystem, struct SFVec3d *gcCoord, struct SFVec3d* translate, struct SFVec4d *rotate)
+{
+	struct SFVec3d gdCoord;
+	double A,F;
+	Geosys *gs = geoSystem;
+
+	getEllipsoidParams(gs->ellipsoid, &A, &F);
+	if(gs->spatial_system == GEOSP_GC && veclengthd(gcCoord->c) < A/2.0){
+		vecset4d(rotate->c,0.0,1.0,0.0,0.0);
+		veccopyd(translate->c,gcCoord->c);
+	}else{
+		gc2gd(gs,gcCoord,1, &gdCoord);
+		tcs2gc_transform(gs,&gdCoord,rotate,translate);
+	}
+}
+void gc2tcsB_transform(Geosys *geoSystem, struct SFVec3d *gcCoord, struct SFVec3d* translate, struct SFVec4d *rotate)
+{	
+	struct SFVec3d gdCoord;
+	double A,F;
+	Geosys *gs = geoSystem;
+	
+	getEllipsoidParams(gs->ellipsoid, &A, &F);
+	if(gs->spatial_system == GEOSP_GC && veclengthd(gcCoord->c) < A/2.0){
+		//..can I do a gc2tcs_transform that's equivalent?
+		vecset4d(rotate->c,0.0,1.0,0.0,0.0);
+		vecsetd(translate->c,-gcCoord->c[0],-gcCoord->c[1],-gcCoord->c[2]);
+	}else{
+		gc2gd(gs,gcCoord,1, &gdCoord);
+		gc2tcs_transform(gs,&gdCoord,translate,rotate);
+	}
+}
+
 	//PROXIMITYSENSOR(GeoProximitySensor,__movedCoords,INITIALIZE_GEOSPATIAL(node),COMPILE_IF_REQUIRED)
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void geoprep0(Geosys *geoSystem, struct SFVec3d *userCoord){
@@ -3109,19 +3142,29 @@ void geoprep0(Geosys *geoSystem, struct SFVec3d *userCoord){
 	// LCS < GC object  push first
 	// GC < TCS object  push second
 	//    draw TCS object
-	getEllipsoidParams(gs->ellipsoid, &A, &F);
-	if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
-		//likely DIS with local coordinates ie near molten core of earth
-		// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
-		FW_GL_TRANSLATE_D(userCoord->c[0],userCoord->c[1],userCoord->c[2]);
+	if(0){
+		getEllipsoidParams(gs->ellipsoid, &A, &F);
+		if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
+			//likely DIS with local coordinates ie near molten core of earth
+			// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
+			FW_GL_TRANSLATE_D(userCoord->c[0],userCoord->c[1],userCoord->c[2]);
+		}else{
+			user2gc(gs,userCoord,1,&gcCoord);
+
+			gc2lcs_transform(&translation1,&rotation1);
+			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+			FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+			gc2gd(gs,&gcCoord,1, &gdCoord);
+			tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+			FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+			FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		}
 	}else{
 		user2gc(gs,userCoord,1,&gcCoord);
-
 		gc2lcs_transform(&translation1,&rotation1);
 		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
 		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
-		gc2gd(gs,&gcCoord,1, &gdCoord);
-		tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+		tcs2gcB_transform(gs,&gcCoord,&translation2,&rotation2);
 		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
 		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
 	}
@@ -4014,21 +4057,34 @@ void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord){
 	//we need to get from child LCS to TCS for this node via the transform stack
 	// the stack goes in this order:
 	// GT-TCS < LCS-children
-	getEllipsoidParams(gs->ellipsoid, &A, &F);
-	if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
-		//likely DIS with local coordinates ie near molten core of earth
-		// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
-		FW_GL_TRANSLATE_D(-userCoord->c[0],-userCoord->c[1],-userCoord->c[2]);
+	if(0){
+		getEllipsoidParams(gs->ellipsoid, &A, &F);
+		if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
+			//likely DIS with local coordinates ie near molten core of earth
+			// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
+			FW_GL_TRANSLATE_D(-userCoord->c[0],-userCoord->c[1],-userCoord->c[2]);
+		}else{
+			user2gc(gs,userCoord,1,&gcCoord);
+			gc2gd(gs,&gcCoord,1, &gdCoord);
+
+			gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+			FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+			FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+			lcs2gc_transform(&rotation1,&translation1);
+			FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		}
 	}else{
 		user2gc(gs,userCoord,1,&gcCoord);
-		gc2gd(gs,&gcCoord,1, &gdCoord);
-
-		gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+		//gc2gd(gs,&gcCoord,1, &gdCoord);
+		//gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+		gc2tcsB_transform(gs,&gcCoord,&translation2,&rotation2);
 		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
 		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
 		lcs2gc_transform(&rotation1,&translation1);
 		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
 		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+
 	}
 }
 void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
@@ -4774,6 +4830,45 @@ void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, 
 	struct SFVec4d rotate;
 	struct SFVec3d translate;
 	tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], rotate.c[3]);
+	for(i=0;i<n;i++){
+		quaternion_rotationd(pp,&qlo,tcs[i].c);
+		vecaddd(gc[i].c,translate.c,pp);
+	}
+	
+}
+
+void  tcs2gcB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+void  gc2tcsB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
+
+void  gc2tcsB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs){
+	// GC -> TCS
+	// convert from GC to node local aligned aka topocentric coordinate system TCS
+	//TCS =  localOrient x (GC - gdcenter)
+
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	tcs2gcB_transform(geoSystem, gccenter, &translate, &rotate);
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], -rotate.c[3]);
+	for(i=0;i<n;i++){
+		vecdifd(pp,gc[i].c,translate.c);
+		quaternion_rotationd(tcs[i].c,&qlo,pp);
+	}
+
+}
+void  tcs2gcB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc){
+	// TCS -> GC
+	// convert from node-local-algined aka topocentric coordinate system TCS to GC
+	// GC = (inverse(localOrient) x TCS) + gdcenter
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	tcs2gcB_transform(geoSystem, gccenter, &translate,  &rotate);
 	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], rotate.c[3]);
 	for(i=0;i<n;i++){
 		quaternion_rotationd(pp,&qlo,tcs[i].c);

@@ -57,5 +57,9 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord);
+void tcs2gcB_transform(Geosys *geoSystem, struct SFVec3d *gcCoord, struct SFVec3d* translate, struct SFVec4d *rotate);
+void gc2tcsB_transform(Geosys *geoSystem, struct SFVec3d *gcCoord, struct SFVec3d* translate, struct SFVec4d *rotate);
+void tcs2gcB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+void gc2tcsB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
 
 #endif /* __FREEWRL_SCENEGRAPH_GEOSPATIAL_H__ */
