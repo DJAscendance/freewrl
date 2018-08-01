@@ -1664,6 +1664,9 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 						case PDU_SIGNAL: nodetype = NODE_SignalPdu; break;
 						default: break;
 					}
+					//copy world coordinates as approx GC, in case < earths radius / 2 (earths core) test later, we use GC instead of default GD,WE
+					vector3double2vec3d(et->geoCoords.c,&espdu->entityLocation);
+
 					et->_nodeType = nodetype;
 					et->applicationID = espdu->entityID.application;
 					et->siteID = espdu->entityID.site;
@@ -3970,6 +3973,7 @@ int newEntityID(){
 	app_entity_last_id++;
 	return app_entity_last_id;
 }
+#define GEOEL_WE_A	(double)6378137
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
 	//Solution 1: modify DISEntityManager to have networkMode='networkWriter' 
@@ -3991,6 +3995,8 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 			struct Uni_String *address, *networkMode, *multicastRelayHost;
 			struct X3D_Node *candi;
 			struct X3D_DISEntityTypeMapping *best;
+			int use_GC = FALSE;
+
 			// = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
 			ibest = -1;
 			iscore = 0;
@@ -4067,6 +4073,7 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					networkMode = newASCIIString ("networkReader"); //if we discovered entity by its heartbeats, then we're reading
 					multicastRelayHost = anode->multicastRelayHost;
 					multicastRelayPort = anode->multicastRelayPort;
+					if(veclengthd(anode->geoCoords.c) < GEOEL_WE_A/2.0) use_GC = TRUE; //earths core GD,WE doesn't work well here 
 				}
 			}
 
@@ -4085,6 +4092,10 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					//}else{
 						//this is 'normal' according to specs we are supposed to generate espdus
 						espdu = createNewX3DNode(NODE_EspduTransform);
+						if(use_GC) {
+							espdu->geoSystem.p[0] = newASCIIString("GC");
+							espdu->geoSystem.n = 1;
+						}
 						//populate entity fields - so it starts swallowing the heartbeat and update pdus of the entity
 						espdu->enabled = TRUE;
 						espdu->isActive = TRUE;
