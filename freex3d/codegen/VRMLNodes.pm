@@ -2477,7 +2477,7 @@ our %Nodes = (
 		siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# Geo
-		geoSystem => ["MFString", ["GD","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString", ["GC"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 
@@ -2644,7 +2644,7 @@ our %Nodes = (
 		siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# Geo
-		geoSystem => ["MFString", ["GC","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString", ["GC"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
@@ -2692,7 +2692,7 @@ our %Nodes = (
 		siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# Geo
-		geoSystem => ["MFString", ["GC","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString", ["GC"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 		
@@ -2740,7 +2740,7 @@ our %Nodes = (
 		siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# Geo
-		geoSystem => ["MFString", ["GC","WE"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString", ["GC"], "initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCoords => ["SFVec3d", [0,0,0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
 

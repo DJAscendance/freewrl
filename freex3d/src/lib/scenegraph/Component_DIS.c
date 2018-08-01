@@ -987,6 +987,12 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	if(pnode->_pduchange_fire){
 		struct FirePdu *fpdu;
 		fpdu = (struct FirePdu *) dis_ctor(type_FirePdu);
+		fpdu->myWarfareFamilyPdu.firingEntityID.entity = pnode->entityID;
+		fpdu->myWarfareFamilyPdu.firingEntityID.application = pnode->applicationID;
+		fpdu->myWarfareFamilyPdu.firingEntityID.site = pnode->siteID;
+		//fpdu->myWarfareFamilyPdu.myPdu;
+		//fpdu->myWarfareFamilyPdu.targetEntityID;
+
 		if(pnode->fired1 || pnode->fired2){
 			pnode->firedTime = TickTime();
 		}
@@ -1023,9 +1029,6 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		fpdu->munitionID.entity = pnode->munitionEntityID;
 		fpdu->munitionID.site = pnode->munitionSiteID;
 
-		//fpdu->myWarfareFamilyPdu.firingEntityID;
-		//fpdu->myWarfareFamilyPdu.myPdu;
-		//fpdu->myWarfareFamilyPdu.targetEntityID;
 		fpdu->range = pnode->firingRange;
 		{
 			float delta[3];
@@ -1095,7 +1098,7 @@ struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
 	}
 	return pdus;
 }
-
+struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int country, int category, int subcategory, int specific, int extra);
 int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
@@ -1340,6 +1343,77 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//FIRE
 				struct FirePdu *fpdu;
+				fpdu = (struct FirePdu*)pdu;
+				if(fpdu->myWarfareFamilyPdu.firingEntityID.application != pnode->applicationID) break;
+				if(fpdu->myWarfareFamilyPdu.firingEntityID.site != pnode->siteID) break;
+				if(fpdu->myWarfareFamilyPdu.firingEntityID.entity != pnode->entityID) break;
+
+				//fpdu->myWarfareFamilyPdu.myPdu;
+				//fpdu->myWarfareFamilyPdu.targetEntityID;
+
+				
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+				
+				//if(pnode->fired1 || pnode->fired2){
+					pnode->firedTime = TickTime();
+				//}
+				pnode->fired1 = TRUE;
+				//copy from espdutransform node to pdu
+				pnode->fuse = fpdu->burstDescriptor.fuse;
+				//pnode->munitionEntityID = fpdu->burstDescriptor.munition.
+				//the following doesn't work in target scene
+				struct X3D_EspduTransform * muni;
+				//  kind, domain, country, category, subcategory, specific, extra
+				muni = (struct X3D_EspduTransform * )dis_find_or_create_espdu_by_category(
+					fpdu->burstDescriptor.munition.entityKind,
+					fpdu->burstDescriptor.munition.domain,
+					fpdu->burstDescriptor.munition.country,
+					fpdu->burstDescriptor.munition.category,
+					fpdu->burstDescriptor.munition.subcategory,
+					fpdu->burstDescriptor.munition.specific,
+					fpdu->burstDescriptor.munition.extra
+					);
+				if(!muni) printf("no muni\n");
+				else printf("got muni\n");
+				pnode->munitionEntityID = muni->entityID;
+				pnode->munitionSiteID = muni->siteID;
+				pnode->munitionApplicationID = muni->applicationID;
+				pnode->munitionQuantity = fpdu->burstDescriptor.quantity;
+				pnode->firingRate = fpdu->burstDescriptor.rate;
+				pnode->warhead = fpdu->burstDescriptor.warhead;
+
+				//fpdu->eventID.application = 0;
+				pnode->eventNumber = fpdu->eventID.eventNumber; //dis_next_event_number(); //increment in sender script node
+				//fpdu->eventID.site = 0; //target if known
+
+				pnode->fireMissionIndex = fpdu->fireMissionIndex;
+				{
+					double loc[3];
+					//am I supposed to convert to wworld from local here?
+					//or can/should I assume that its local to Weapon Espdu here, and local to target scene's copy of Weapon Espdu?
+					vector3double2vec3d(loc,&fpdu->locationInWorldCoordinates);  //is this current location, or starting location?
+					double2float(pnode->munitionStartPoint.c,loc,3);
+				}
+				//unique munition entity if known
+				pnode->munitionApplicationID = fpdu->munitionID.application;
+				pnode->munitionEntityID = fpdu->munitionID.entity;
+				pnode->munitionSiteID = fpdu->munitionID.site;
+
+				//fpdu->myWarfareFamilyPdu.firingEntityID;
+				//fpdu->myWarfareFamilyPdu.myPdu;
+				//fpdu->myWarfareFamilyPdu.targetEntityID;
+				pnode->firingRange = fpdu->range;
+				{
+					float delta[3];
+					vector3float2vec3f(delta,&fpdu->velocity);
+					//lets say 3 seconds to deliver any munition
+					vecscale3f(delta,delta,3.0f/1.0f);
+					vecadd3f(pnode->munitionEndPoint.c,pnode->munitionStartPoint.c,delta);
+				}
+
+
 				pnode->_pduchange_fire = TRUE;
 			}
 			break;
@@ -1712,6 +1786,52 @@ struct X3D_Node * dis_find_registered_node_by_entityid(int entityid, int sendlis
 	}
 	return pnode;
 }
+
+
+				//  kind, domain, country, category, subcategory, specific, extra
+struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int country, int category, int subcategory, int specific, int extra){
+	int i,j,k, ibest, iscore;
+	struct X3D_EspduTransform *best = NULL;
+	ibest = -1;
+	iscore = 0;
+	//check EM already-instanced list
+	for(i=0;i<sockets_recv->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
+		if(dsock->registered){
+			for(j=0;j<dsock->registered->n;j++){
+				int ihit;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_DISEntityManager){
+					struct X3D_DISEntityManager *em = (struct X3D_DISEntityManager *)node;
+					if(em->entities.n){
+						for(k=0;k<em->entities.n;k++){
+							struct X3D_EspduTransform *bnode = (struct X3D_EspduTransform *)em->entities.p[k];
+							if(bnode->_nodeType == NODE_EspduTransform){
+								int jscore = 0;
+								if(domain == bnode->entityDomain) jscore++;
+								if(category == bnode->entityCategory) jscore++;
+								if(country == bnode->entityCountry) jscore++;
+								if(kind == bnode->entityKind) jscore++;
+								if(extra == bnode->entityExtra) jscore++;
+								if(subcategory == bnode->entitySubCategory) jscore++;
+								if(specific == bnode->entitySpecific) jscore++;
+								if(jscore > iscore){
+									iscore = jscore;
+									ibest = i;
+									best = bnode;
+								}
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return (struct X3D_Node*)best;
+}
+
+
 unsigned char buf2[32767];
 
 void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
@@ -3712,13 +3832,13 @@ void render_munitions(struct X3D_EspduTransform *node){
 				node->firedTime = TickTime();
 				eventNumber = node->eventNumber;
 			}
-			double dtime =  (TickTime() - (double)node->munitionQuantity) - node->firedTime ;
+			double dtime =  TickTime() - (double)node->munitionQuantity/(double)max(1,node->firingRate) - node->firedTime ;
 			if(dtime > 5.0) return; //already finished
 			mnode = (struct X3D_EspduTransform*)dis_find_registered_node_by_entityid(node->munitionEntityID,TRUE,TRUE);
 			if(mnode){
 				for(i=0;i<node->munitionQuantity;i++){
 					//how about a 1 second gap between burst pals
-					dtime = max(0.0,(TickTime() - (double)i)  - node->firedTime);
+					dtime = max(0.0,TickTime() - (double)i/(double)max(1,node->firingRate)  - node->firedTime);
 					dtime = min(5.0,dtime);
 					float delta[3], velocity[3], progress[3], loc[3];
 					vecdif3f(delta,node->munitionEndPoint.c,node->munitionStartPoint.c);
@@ -3727,6 +3847,8 @@ void render_munitions(struct X3D_EspduTransform *node){
 					if(veclength3f(progress) > veclength3f(delta)) {
 						// detonate or whatever you do when munition reaches target
 						veccopy3f(loc,node->munitionEndPoint.c);
+						if(i==(node->munitionQuantity-1))
+							node->fired1 = FALSE; //last munition in burst hit target
 					} else {
 						vecadd3f(loc,node->munitionStartPoint.c,progress);
 						// render munition instance
