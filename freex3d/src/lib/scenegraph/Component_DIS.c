@@ -1051,6 +1051,74 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		struct DetonationPdu *dpdu;
 		dpdu = (struct DetonationPdu *) dis_ctor(type_DetonationPdu);
 		//copy from espdutransform node to pdu
+
+		dpdu->myWarfareFamilyPdu.firingEntityID.entity = pnode->entityID;
+		dpdu->myWarfareFamilyPdu.firingEntityID.application = pnode->applicationID;
+		dpdu->myWarfareFamilyPdu.firingEntityID.site = pnode->siteID;
+		//fpdu->myWarfareFamilyPdu.myPdu;
+		//fpdu->myWarfareFamilyPdu.targetEntityID;
+
+		pnode->detonateTime = TickTime();
+		dpdu->detonationResult = pnode->detonationResult;
+		//copy from espdutransform node to pdu
+		dpdu->burstDescriptor.fuse = pnode->fuse;
+		struct X3D_EspduTransform * muni = (struct X3D_EspduTransform * )dis_find_registered_node_by_entityid(pnode->munitionEntityID,TRUE,FALSE);
+		if(muni){
+			dpdu->burstDescriptor.munition.category = muni->entityCategory; //get munition entity from pnode->munitionEntity, then munitionEntity.cateogory.
+			dpdu->burstDescriptor.munition.country = muni->entityCountry;
+			dpdu->burstDescriptor.munition.domain = muni->entityDomain;
+			dpdu->burstDescriptor.munition.entityKind = muni->entityKind;
+			dpdu->burstDescriptor.munition.extra = muni->entityExtra;
+			dpdu->burstDescriptor.munition.specific = muni->entitySpecific;
+			dpdu->burstDescriptor.munition.subcategory = muni->entitySubCategory;
+		}
+		dpdu->burstDescriptor.quantity = pnode->munitionQuantity;
+		dpdu->burstDescriptor.rate = pnode->firingRate;
+		dpdu->burstDescriptor.warhead = pnode->warhead;
+
+		dpdu->eventID.application = 0;
+		dpdu->eventID.eventNumber = pnode->eventNumber; //dis_next_event_number(); //increment in sender script node
+		dpdu->eventID.site = 0; //target if known
+
+		//articuation parameters
+		if(pnode->articulationParameterArray.n){
+			struct ArticulationParameter *ap;
+			int i, np = pnode->articulationParameterArray.n;
+			ap = malloc(np * sizeof(struct ArticulationParameter));
+			dpdu->numberOfArticulationParameters = np;
+			//printf("sending %d articulation parameters:\n",np);
+			for(i=0;i<np;i++){
+				ap[i].parameterTypeDesignator = 0; //0 is articulated part
+				ap[i].parameterType = 1029; //1024 - rudder + 5 X
+				ap[i].parameterValue = pnode->articulationParameterArray.p[i];
+				ap[i].partAttachedTo = 0;
+				//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
+			}
+			dpdu->articulationParameters = (void*)ap;
+		}
+
+		{
+			double loc[3];
+			float2double(loc,pnode->detonationLocation.c,3);
+			//am I supposed to convert to wworld from local here?
+			//or can/should I assume that its local to Weapon Espdu here, and local to target scene's copy of Weapon Espdu?
+			vec3d2vector3double(&dpdu->locationInWorldCoordinates,loc);  
+			vec3f2vector3float(&dpdu->locationInEntityCoordinates,pnode->detonationRelativeLocation.c);  
+		}
+		//unique munition entity if known
+		dpdu->munitionID.application = pnode->munitionApplicationID;
+		dpdu->munitionID.entity = pnode->munitionEntityID;
+		dpdu->munitionID.site = pnode->munitionSiteID;
+
+		{
+			float delta[3];
+			vecdif3f(delta,pnode->munitionEndPoint.c,pnode->munitionStartPoint.c);
+			//lets say .5 seconds to detonate any munition
+			vecscale3f(delta,delta,1.0f/.5f);
+			vec3f2vector3float(&dpdu->velocity,delta);
+		}
+
+
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
 	}
 
@@ -1376,10 +1444,12 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					fpdu->burstDescriptor.munition.extra
 					);
 				if(!muni) printf("no muni\n");
-				else printf("got muni\n");
-				pnode->munitionEntityID = muni->entityID;
-				pnode->munitionSiteID = muni->siteID;
-				pnode->munitionApplicationID = muni->applicationID;
+				else {
+					printf("got muni\n");
+					pnode->munitionEntityID = muni->entityID;
+					pnode->munitionSiteID = muni->siteID;
+					pnode->munitionApplicationID = muni->applicationID;
+				}
 				pnode->munitionQuantity = fpdu->burstDescriptor.quantity;
 				pnode->firingRate = fpdu->burstDescriptor.rate;
 				pnode->warhead = fpdu->burstDescriptor.warhead;
@@ -1412,8 +1482,6 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					vecscale3f(delta,delta,3.0f/1.0f);
 					vecadd3f(pnode->munitionEndPoint.c,pnode->munitionStartPoint.c,delta);
 				}
-
-
 				pnode->_pduchange_fire = TRUE;
 			}
 			break;
@@ -1428,7 +1496,98 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//DETONATION
 				struct DetonationPdu *dpdu;
+				dpdu = (struct DetonationPdu*)pdu;
+				if(dpdu->myWarfareFamilyPdu.firingEntityID.application != pnode->applicationID) break;
+				if(dpdu->myWarfareFamilyPdu.firingEntityID.site != pnode->siteID) break;
+				if(dpdu->myWarfareFamilyPdu.firingEntityID.entity != pnode->entityID) break;
+
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+
+				pnode->detonateTime = TickTime();
+				pnode->fuse = dpdu->burstDescriptor.fuse;
+				//pnode->munitionEntityID = fpdu->burstDescriptor.munition.
+				//the following doesn't work in target scene
+				struct X3D_EspduTransform * muni;
+				//  kind, domain, country, category, subcategory, specific, extra
+				muni = (struct X3D_EspduTransform * )dis_find_or_create_espdu_by_category(
+					dpdu->burstDescriptor.munition.entityKind,
+					dpdu->burstDescriptor.munition.domain,
+					dpdu->burstDescriptor.munition.country,
+					dpdu->burstDescriptor.munition.category,
+					dpdu->burstDescriptor.munition.subcategory,
+					dpdu->burstDescriptor.munition.specific,
+					dpdu->burstDescriptor.munition.extra
+					);
+				if(!muni) printf("no muni\n");
+				else {
+					printf("got muni\n");
+					pnode->munitionEntityID = muni->entityID;
+					pnode->munitionSiteID = muni->siteID;
+					pnode->munitionApplicationID = muni->applicationID;
+				}
+				pnode->munitionQuantity = dpdu->burstDescriptor.quantity;
+				pnode->firingRate = dpdu->burstDescriptor.rate;
+				pnode->warhead = dpdu->burstDescriptor.warhead;
+
+				//fpdu->eventID.application = 0;
+				pnode->eventNumber = dpdu->eventID.eventNumber; //dis_next_event_number(); //increment in sender script node
+				//unique munition entity if known
+				pnode->munitionApplicationID = dpdu->munitionID.application;
+				pnode->munitionEntityID = dpdu->munitionID.entity;
+				pnode->munitionSiteID = dpdu->munitionID.site;
+				{
+					double loc[3];
+					vector3double2vec3d(loc,&dpdu->locationInWorldCoordinates);
+					double2float(pnode->detonationLocation.c,loc,3);
+					vector3float2vec3f(pnode->detonationRelativeLocation.c,&dpdu->locationInEntityCoordinates);
+				}
+				pnode->detonationResult = dpdu->detonationResult;
+
+				{
+					float delta[3];
+					vector3float2vec3f(delta,&dpdu->velocity);
+					//lets say .5 seconds to explode a munition
+					vecscale3f(delta,delta,.5f/1.0f);
+					veccopy3f(pnode->munitionStartPoint.c,pnode->detonationRelativeLocation.c);
+					vecadd3f(pnode->munitionEndPoint.c,pnode->munitionStartPoint.c,delta);
+				}
+				//articuation parameters
+				pnode->articulationParameterArray.n = dpdu->numberOfArticulationParameters;
+				//printf("recv art count %d\n",espdu->numberOfArticulationParameters);
+				if(pnode->articulationParameterArray.n){
+					struct ArticulationParameter *ap;
+					float *pp;
+					int i, np = pnode->articulationParameterArray.n;
+					ap = dpdu->articulationParameters;
+					pp = malloc(np * sizeof(float));
+					//printf("received %d articulation parameters:\n",np);
+					for(i=0;i<np;i++){
+						//ap[i].parameterTypeDesignator = 0; //0 is articulated part
+						//ap[i].parameterType = 1029; //1024 - rudder + 5 X
+						pp[i] = (float)ap[i].parameterValue;
+						//printf("%d %f\n",i,pp[i]);
+						//ap[i].partAttachedTo = 0;
+						switch(i){
+							case 0: pnode->articulationParameterValue0_changed = pp[i]; break;
+							case 1: pnode->articulationParameterValue1_changed = pp[i]; break;
+							case 2: pnode->articulationParameterValue2_changed = pp[i]; break;
+							case 3: pnode->articulationParameterValue3_changed = pp[i]; break;
+							case 4: pnode->articulationParameterValue4_changed = pp[i]; break;
+							case 5: pnode->articulationParameterValue5_changed = pp[i]; break;
+							case 6: pnode->articulationParameterValue6_changed = pp[i]; break;
+							case 7: pnode->articulationParameterValue7_changed = pp[i]; break;
+							default:
+							break;
+						}
+					}
+					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
+					pnode->articulationParameterArray.p = pp;
+					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
+				}
 				pnode->_pduchange_detonation = TRUE;
+
 			}
 			break;
 			default:
@@ -3850,8 +4009,10 @@ void render_munitions(struct X3D_EspduTransform *node){
 					if(veclength3f(progress) > veclength3f(delta)) {
 						// detonate or whatever you do when munition reaches target
 						veccopy3f(loc,node->munitionEndPoint.c);
-						if(i==(node->munitionQuantity-1))
+						if(i==(node->munitionQuantity-1)){
 							node->fired1 = FALSE; //last munition in burst hit target
+							node->detonateTime = TickTime();
+						}
 					} else {
 						vecadd3f(loc,node->munitionStartPoint.c,progress);
 						// render munition instance
@@ -3862,6 +4023,32 @@ void render_munitions(struct X3D_EspduTransform *node){
 					//if(k++ % 120 == 0) 
 					//	printf("%lf %lf %lf\n",loc[0],loc[1],loc[2]);
 					//strip espdu wrapper (otherwise we have geoLocation wrapping geoLocation - double geo transform
+					normalChildren(mnode->children);
+					FW_GL_POP_MATRIX();
+				}
+			}
+		}
+	}
+}
+void render_detonation(struct X3D_EspduTransform *node){
+	//I have no ideas. something about quantity, velocity, start/end or startpoint
+	//a) update locations based on time and trajectory - like partical physics
+	//b) render each munition instance
+	if(!renderstate()->render_vp) {
+		double dtime = TickTime() - node->detonateTime;
+		if( dtime > 0.0 && dtime < .5){
+			int i;
+			struct X3D_EspduTransform * mnode;
+			mnode = (struct X3D_EspduTransform*)dis_find_registered_node_by_entityid(node->munitionEntityID,TRUE,TRUE);
+			if(mnode){
+				for(i=0;i<node->munitionQuantity;i++){
+					float loc[3], fscale;
+					//how about a 1 second gap between burst pals
+					veccopy3f(loc,node->detonationRelativeLocation.c);
+					FW_GL_PUSH_MATRIX();
+					FW_GL_TRANSLATE_F(loc[0],loc[1],loc[2]);
+					fscale = dtime * 10.0f;
+					FW_GL_SCALE_F(fscale,fscale,fscale);
 					normalChildren(mnode->children);
 					FW_GL_POP_MATRIX();
 				}
@@ -3902,7 +4089,7 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//render munitions
 	render_munitions(node);
 	//render detonations
-
+	render_detonation(node);
 	//render collisions
 
 
