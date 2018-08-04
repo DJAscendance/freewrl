@@ -1507,6 +1507,8 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pnode->eventApplicationID = cpdu->collidingEntityID.application;
 				pnode->eventSiteID = cpdu->collidingEntityID.site;
 				pnode->collisionType = cpdu->collisionType;
+				if(pnode->collisionType) pnode->isCollided = TRUE;
+				else pnode->isCollided = FALSE;
 				//cpdu->eventID;
 				//cpdu->location;
 				//cpdu->mass;
@@ -4422,7 +4424,7 @@ void dis_collide(){
 
 			usehit *uhit = vector_get_ptr(usehit,dis_collide_stack,i);
 			espdu = (struct X3D_EspduTransform*)uhit->node;
-			//if(espdu->isNetworkReader) continue; //do only OWNED/isWriter,isNeutral, listen for the rest
+			if(espdu->isNetworkReader) continue; //do only OWNED/isWriter,isNeutral, listen for the rest
 			ihit = 0;
 			//invert matrix
 			matinverseAFFINE(mvmInverse,uhit->mvm);
