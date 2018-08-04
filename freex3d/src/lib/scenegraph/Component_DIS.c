@@ -611,7 +611,6 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			struct SFVec3d gd, gc, translate;
 			struct SFVec4d rotate;
 			double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
-
 			float xyza[4];
 			Geosys *gs;
 			gs = GEOSYS(pnode->__geoSystem);
@@ -993,7 +992,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		fpdu->myWarfareFamilyPdu.firingEntityID.site = pnode->siteID;
 		//fpdu->myWarfareFamilyPdu.myPdu;
 		//fpdu->myWarfareFamilyPdu.targetEntityID;
-
+		printf("FIREPDU ");
 		if(pnode->fired1 || pnode->fired2){
 			pnode->firedTime = TickTime();
 		}
@@ -1206,7 +1205,6 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					struct SFVec3d gd, gc, translate;
 					struct SFVec4d rotate;
 					double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
-
 					float xyza[4];
 					Geosys *gs;
 					gs = GEOSYS(pnode->__geoSystem);
@@ -1501,10 +1499,10 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				//COLLISION
 				struct CollisionPdu *cpdu;
 				cpdu = (struct CollisionPdu *)pdu;
+
 				if(cpdu->issuingEntityID.application != pnode->applicationID) break;
 				if(cpdu->issuingEntityID.site != pnode->siteID) break;
 				if(cpdu->issuingEntityID.entity != pnode->entityID) break;
-
 				pnode->eventEntityID = cpdu->collidingEntityID.entity;
 				pnode->eventApplicationID = cpdu->collidingEntityID.application;
 				pnode->eventSiteID = cpdu->collidingEntityID.site;
@@ -2186,7 +2184,8 @@ void dis_sendloop(){
 
 				//option b.
 				pdus = dis_node2pdus(node,isHeartbeat);
-				dis_set_node_lasttime(node,lasttime);
+				if(isHeartbeat)
+					dis_set_node_lasttime(node,lasttime);
 
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
@@ -3437,7 +3436,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_fire);
 		}
 		if(node->_pduchange_fire || node->_pduchange_collision){
-			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_events);
+			//mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_events);
 		}
 		if(node->_pduchange_detonation){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_detonation);
@@ -3497,8 +3496,8 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			node->_pduchange_collision = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_events)){
-			node->_pduchange_collision = TRUE;
-			node->_pduchange_fire = TRUE;
+			//node->_pduchange_collision = TRUE;
+			//node->_pduchange_fire = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_fire)){
 			node->_pduchange_fire = TRUE;
@@ -4423,6 +4422,7 @@ void dis_collide(){
 
 			usehit *uhit = vector_get_ptr(usehit,dis_collide_stack,i);
 			espdu = (struct X3D_EspduTransform*)uhit->node;
+			//if(espdu->isNetworkReader) continue; //do only OWNED/isWriter,isNeutral, listen for the rest
 			ihit = 0;
 			//invert matrix
 			matinverseAFFINE(mvmInverse,uhit->mvm);
@@ -4441,10 +4441,10 @@ void dis_collide(){
 						extent6f_intersect_extent6f(eaXb,ee,eeba);
 						if(extent6f_isSet(eaXb)){
 							//they overlap/intersect/collide
-							extent6f_printf(ee); printf("ee  \n"); 
-							extent6f_printf(eeb); printf("eeb \n"); 
-							extent6f_printf(eeba); printf("eeba\n"); 
-							extent6f_printf(eaXb); printf("eaXb\n");
+							//extent6f_printf(ee); printf("ee  \n"); 
+							//extent6f_printf(eeb); printf("eeb \n"); 
+							//extent6f_printf(eeba); printf("eeba\n"); 
+							//extent6f_printf(eaXb); printf("eaXb\n");
 							//we'll just change A, and just for its collistion with B
 							struct X3D_EspduTransform *espdub = (struct X3D_EspduTransform*)uhitb->node;
 							if(espdu->isCollided == FALSE){
