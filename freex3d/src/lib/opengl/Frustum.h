@@ -132,6 +132,7 @@ void extent6f_from_vec3f2(float *extent6, float *pmin, float *pmax);
 void extent6f_to_box3f8(float *extent6, float *p3f8);
 float *extent6f_from_box3fn(float *extent6,float *p, int n);
 float *extent6f_union_extent6f(float *extent6, float *ein6);
+float *extent6f_intersect_extent6f(float *extent6, float *eina, float *einb);
 float *extent6f_union_vec3f(float *extent6, float *p3);
 float *extent6f_scale3f(float *eout6, float *ein6, float *s3);
 float *extent6f_translate3f(float *eout6, float *ein6, float *p3);

@@ -514,7 +514,7 @@ void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz
 void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me);
 void FRUSTUM_GEO(struct X3D_Node *me){
 	int i;
-	if (me->_nodeType == NODE_GeoTransform || me->_nodeType == NODE_GeoLocation) { 
+	if (me->_nodeType == NODE_GeoTransform || me->_nodeType == NODE_GeoLocation || me->_nodeType == NODE_EspduTransform) { 
 		if( extent6f_isSet(me->_extent)) {
 			float e[6];
 			double mat[16];
@@ -557,7 +557,8 @@ int extent6f_isSet(float *extent6){
 	float *e = extent6;
 	//is max >= min for any dimensions? if so, then is set.
 	//iret = (e[0] >= e[1] && e[2] >= e[3] && e[4] >= e[5]) ? TRUE : FALSE;
-	iret = (e[0] >= e[1] || e[2] >= e[3] || e[4] >= e[5]) ? TRUE : FALSE;
+	//iret = (e[0] >= e[1] || e[2] >= e[3] || e[4] >= e[5]) ? TRUE : FALSE;
+	iret = (e[0] >= e[1] && e[2] >= e[3] && e[4] >= e[5]) ? TRUE : FALSE;
 	return iret;
 }
 float *extent6f_copy(float *eout6, float *ein6){
@@ -590,6 +591,18 @@ float *extent6f_union_extent6f(float *extent6, float *ein6){
 		extent6[i*2 + 0] = max(extent6[i*2 + 0], ein6[i*2 + 0]);
 	}
 	else if(isb) extent6f_copy(extent6,ein6);
+	return extent6;
+}
+float *extent6f_intersect_extent6f(float *extent6, float *eina, float *einb){
+	int i,isa,isb;
+	extent6f_clear(extent6);
+	isa = extent6f_isSet(eina);
+	isb = extent6f_isSet(einb);
+	if(isa && isb)
+	for(i=0;i<3;i++){
+		extent6[i*2 + 1] = max(eina[i*2 + 1], einb[i*2 + 1]);
+		extent6[i*2 + 0] = min(eina[i*2 + 0], einb[i*2 + 0]);
+	}
 	return extent6;
 }
 float *extent6f_union_vec3f(float *extent6, float *p3){

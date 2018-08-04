@@ -5384,6 +5384,12 @@ void startOfLoopNodeUpdates(void) {
 					CHILDREN_NODE(GeoLocation)
 				END_NODE
 
+				BEGIN_NODE (EspduTransform)
+					propagateExtent(X3D_NODE(node));
+					CHILDREN_NODE(EspduTransform)
+				END_NODE
+
+
 				BEGIN_NODE(MetadataSFBool) CMD(SFBool,node); END_NODE
 				BEGIN_NODE(MetadataSFFloat) CMD(SFFloat,node); END_NODE
 				BEGIN_NODE(MetadataMFFloat) CMD(MFFloat,node); END_NODE

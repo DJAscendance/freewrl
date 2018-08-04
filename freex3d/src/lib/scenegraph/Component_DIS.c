@@ -54,6 +54,7 @@
 #include "Component_Geospatial.h"
 #include "Component_DIS.h"
 #include "Component_Grouping.h"
+#include "RenderFuncs.h"
 
 //from CparseParser
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
@@ -1044,6 +1045,16 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		struct CollisionPdu *cpdu;
 		cpdu = (struct CollisionPdu *) dis_ctor(type_CollisionPdu);
 		//copy from espdutransform node to pdu
+		cpdu->issuingEntityID.application = pnode->applicationID;
+		cpdu->issuingEntityID.site = pnode->siteID;
+		cpdu->issuingEntityID.entity = pnode->entityID;
+
+		cpdu->collidingEntityID.entity = pnode->eventEntityID;
+		cpdu->collidingEntityID.application = pnode->eventApplicationID;
+		cpdu->collidingEntityID.site = pnode->eventSiteID;
+		cpdu->collisionType = pnode->collisionType;
+		cpdu->eventID.eventNumber = pnode->eventNumber;
+
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)cpdu);
 	}
 	//DETONATION
@@ -1489,6 +1500,20 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//COLLISION
 				struct CollisionPdu *cpdu;
+				cpdu = (struct CollisionPdu *)pdu;
+				if(cpdu->issuingEntityID.application != pnode->applicationID) break;
+				if(cpdu->issuingEntityID.site != pnode->siteID) break;
+				if(cpdu->issuingEntityID.entity != pnode->entityID) break;
+
+				pnode->eventEntityID = cpdu->collidingEntityID.entity;
+				pnode->eventApplicationID = cpdu->collidingEntityID.application;
+				pnode->eventSiteID = cpdu->collidingEntityID.site;
+				pnode->collisionType = cpdu->collisionType;
+				//cpdu->eventID;
+				//cpdu->location;
+				//cpdu->mass;
+				//cpdu->myEntityInformationFamilyPdu.myPdu.exerciseID;
+				//cpdu->velocity;
 				pnode->_pduchange_collision = TRUE;
 			}
 			break;
@@ -3309,6 +3334,7 @@ void compile_DIS_geo(struct X3D_EspduTransform *node){
 	}
 }
 void compile_DIS_common(struct X3D_EspduTransform *node){
+	//INITIALIZE_EXTENT;
 	compile_DIS_network(node);
 	compile_DIS_geo(node);
 }
@@ -4056,6 +4082,7 @@ void render_detonation(struct X3D_EspduTransform *node){
 		}
 	}
 }
+void dis_register_collide(struct X3D_Node* node,double *transform);
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
@@ -4065,7 +4092,11 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 
 	/* any children at all? */
 	if (nc==0) return;
-
+	{
+		double modelviewMatrix[16];
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+		dis_register_collide(X3D_NODE(node),modelviewMatrix);
+	}
 	//if(node->__sibAffectors.n)
 	//	printf("have transform sibaffectors\n");
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
@@ -4380,6 +4411,97 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 		node->removeEntities.n = 0;
 	}
 }
+Stack *dis_collide_stack = NULL;
+void dis_collide(){
+	int i,j;
+	if(dis_collide_stack){
+		for(i=0;i<dis_collide_stack->n;i++){
+			int ihit;
+			float ee[6];
+			double mvmInverse[16], m2m[16];
+			struct X3D_EspduTransform *espdu;
+
+			usehit *uhit = vector_get_ptr(usehit,dis_collide_stack,i);
+			espdu = (struct X3D_EspduTransform*)uhit->node;
+			ihit = 0;
+			//invert matrix
+			matinverseAFFINE(mvmInverse,uhit->mvm);
+			extent6f_copy(ee,uhit->node->_extent);
+			for(j=0;j<dis_collide_stack->n;j++){
+				if(j != i){
+					float eeb[6],eeba[6],eaXb[6];
+					usehit *uhitb = vector_get_ptr(usehit,dis_collide_stack,j);
+					extent6f_copy(eeb,uhitb->node->_extent);
+					if(extent6f_isSet(eeb)){
+						//multiply matrices
+						matmultiplyAFFINE(m2m,mvmInverse,uhitb->mvm);
+						//convert B extent to A-space
+						extent6f_mattransform4d(eeba,eeb,m2m);
+						//compare extents
+						extent6f_intersect_extent6f(eaXb,ee,eeba);
+						if(extent6f_isSet(eaXb)){
+							//they overlap/intersect/collide
+							extent6f_printf(ee); printf("ee  \n"); 
+							extent6f_printf(eeb); printf("eeb \n"); 
+							extent6f_printf(eeba); printf("eeba\n"); 
+							extent6f_printf(eaXb); printf("eaXb\n");
+							//we'll just change A, and just for its collistion with B
+							struct X3D_EspduTransform *espdub = (struct X3D_EspduTransform*)uhitb->node;
+							if(espdu->isCollided == FALSE){
+								espdu->collideTime = TickTime();
+								espdu->eventNumber = dis_next_event_number();
+							}
+							espdu->collisionType = 33;
+							espdu->isCollided = TRUE;
+							espdu->eventSiteID = espdub->siteID;
+							espdu->eventApplicationID = espdub->applicationID;
+							espdu->eventEntityID = espdub->entityID;
+							ihit++;
+							//H we automatically do this during node compile:
+							MARK_EVENT(X3D_NODE(espdu),offsetof(struct X3D_EspduTransform,isCollided));
+							break;
+						}
+					}
+				}
+			}
+			if(ihit == 0) {
+				if(espdu->isCollided){
+					espdu->isCollided = FALSE;
+					espdu->collideTime = 0.0;
+					espdu->collisionType = 0;
+					espdu->eventSiteID = 0;
+					espdu->eventApplicationID = 0;
+					espdu->eventEntityID = 0;
+					MARK_EVENT(X3D_NODE(espdu),offsetof(struct X3D_EspduTransform,isCollided));
+				}
+			}
+		}
+	}
+}
+void dis_clear_collide(){
+	if(dis_collide_stack) dis_collide_stack->n = 0;
+}
+void dis_register_collide(struct X3D_Node* node,double *transform){
+	//call from child_espduTransform 
+	int i, ifound;
+	if(!dis_collide_stack) dis_collide_stack = newStack(usehit);
+	ifound = -1;
+	for(i=0;i<dis_collide_stack->n;i++){
+		usehit *uhit = vector_get_ptr(usehit,dis_collide_stack,i);
+		if(uhit->node == node){
+			ifound = i;
+			break;
+		}
+	}
+	if(ifound == -1){
+		usehit uhit;
+		uhit.node = node;
+		memcpy(uhit.mvm,transform,16*sizeof(double));
+		uhit.userdata = NULL;
+		vector_pushBack(usehit,dis_collide_stack,uhit);
+	}
+
+}
 #else //WITH_DIS
 
 void compile_DISEntityManager(struct X3D_DISEntityManager *node){}
@@ -4426,8 +4548,10 @@ void fwl_sendreceive_DIS(){
 	if(allow_DIS){
 #ifdef WITH_DIS
 		//printf("yo from fwl_sendreceive_DIS\n");
+		dis_collide();
 		dis_sendloop();
 		dis_recvloop();
+		dis_clear_collide();
 #endif //WITH_DIS
 	}
 }
