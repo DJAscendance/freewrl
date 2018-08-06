@@ -1144,6 +1144,20 @@ struct Vector * dis_node2pdus_receiver(struct X3D_Node *node, int isHeartbeat){
 	if(pnode->_pduchange_receiver){
 		struct ReceiverPdu *rpdu;
 		rpdu = (struct ReceiverPdu *) dis_ctor(type_ReceiverPdu);
+//SFInt32  [in,out] radioID                  0            [0,65535]
+//SFFloat  [in,out] receivedPower            0.0          [0,?)
+//SFInt32  [in,out] receiverState            0            [0,65535]
+//SFInt32  [in,out] transmitterApplicationID 1            [0,65535]
+//SFInt32  [in,out] transmitterEntityID      0            [0,65535]
+//SFInt32  [in,out] transmitterRadioID       0            [0,65535]
+//SFInt32  [in,out] transmitterSiteID        0            [0,65535]
+		rpdu->myRadioCommunicationsFamilyPdu.radioId = pnode->radioID;
+		rpdu->receivedPoser = pnode->receivedPower;
+		rpdu->receiverState = pnode->receiverState;
+		rpdu->transmitterRadioId = pnode->transmitterRadioID;
+		rpdu->transmitterEntityId.entity = pnode->transmitterEntityID;
+		rpdu->transmitterEntityId.site = pnode->transmitterSiteID;
+		rpdu->transmitterEntityId.application = pnode->transmitterSiteID;
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
 	}
 	return pdus;
@@ -1156,9 +1170,62 @@ struct Vector * dis_node2pdus_transmitter(struct X3D_Node *node, int isHeartbeat
 	// Q. what about network sensor>
 	// Q. what about _geoCoords?
 	if(pnode->_pduchange_transmitter){
-		struct TransmitterPdu *rpdu;
-		rpdu = (struct TransmitterPdu *) dis_ctor(type_TransmitterPdu);
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
+		struct TransmitterPdu *tpdu;
+		tpdu = (struct TransmitterPdu *) dis_ctor(type_TransmitterPdu);
+
+  //SFVec3f  [in,out] antennaLocation                    0 0 0        (-8,8)
+  //SFInt32  [in,out] antennaPatternLength               0            [0,65535]
+  //SFInt32  [in,out] antennaPatternType                 0            [0,65535]
+  //SFInt32  [in,out] cryptoKeyID                        0            [0,65535]           
+  //SFInt32  [in,out] cryptoSystem                       0            [0,65535]
+  //SFInt32  [in,out] frequency                          0      
+  //SFInt32  [in,out] inputSource                        0            [0,255]
+  //SFInt32  [in,out] lengthOfModulationParameters       0            [0,255]
+  //SFInt32  [in,out] modulationTypeDetail               0            [0,65535]
+  //SFInt32  [in,out] modulationTypeMajor                0            [0,65535]
+  //SFInt32  [in,out] modulationTypeSpreadSpectrum       0            [0,65535]
+  //SFInt32  [in,out] modulationTypeSystem               0            [0,65535]
+  //SFFloat  [in,out] power                              0.0          [0,8)
+  //SFInt32  [in,out] radioEntityTypeCategory            0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeCountry             0            [0,65535]
+  //SFInt32  [in,out] radioEntityTypeDomain              0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeKind                0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeNomenclature        0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeNomenclatureVersion 0            [0,65535]
+  //SFInt32  [in,out] radioID                            0            [0,255]
+  //SFVec3f  [in,out] relativeAntennaLocation            0 0 0        (-8,8)
+  //SFFloat  [in,out] transmitFrequencyBandwidth         0.0          (-8,8)
+  //SFInt32  [in,out] transmitState                      0            [0,255]
+		{
+			double loc[3];
+			float2double(loc,pnode->antennaLocation.c,3);
+			vec3d2vector3double(&tpdu->antennaLocation,loc);
+			vec3f2vector3float(&tpdu->relativeAntennaLocation,pnode->relativeAntennaLocation.c);
+		}
+		tpdu->antennaPatternCount = pnode->antennaPatternLength;
+		tpdu->antennaPatternType = pnode->antennaPatternType;
+		tpdu->cryptoKeyId = pnode->cryptoKeyID;
+		tpdu->cryptoSystem = pnode->cryptoSystem;
+		tpdu->frequency = pnode->frequency;
+		tpdu->inputSource = pnode->inputSource;
+		tpdu->modulationType.detail = pnode->modulationTypeDetail;
+		tpdu->modulationType.major = pnode->modulationTypeMajor;
+		tpdu->modulationType.spreadSpectrum = pnode->modulationTypeSpreadSpectrum;
+		tpdu->modulationType.system = pnode->modulationTypeSystem;
+		// memcpy(tpdu->modulationParametersList, ????) we have no field for it
+		tpdu->modulationParameterCount = pnode->lengthOfModulationParameters; //==0 since no field for parameters
+		tpdu->power = pnode->power;
+		tpdu->radioEntityType.category = pnode->radioEntityTypeCategory;
+		tpdu->radioEntityType.country = pnode->radioEntityTypeCountry;
+		tpdu->radioEntityType.domain = pnode->radioEntityTypeDomain;
+		tpdu->radioEntityType.entityKind = pnode->radioEntityTypeKind;
+		tpdu->radioEntityType.nomenclature = pnode->radioEntityTypeNomenclature;
+		tpdu->radioEntityType.nomenclatureVersion = pnode->radioEntityTypeNomenclatureVersion;
+		tpdu->myRadioCommunicationsFamilyPdu.radioId = pnode->radioID;
+		tpdu->transmitFrequencyBandwidth = pnode->transmitFrequencyBandwidth;
+		tpdu->transmitState = pnode->transmitState;
+
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)tpdu);
 	}
 	return pdus;
 }
@@ -1170,9 +1237,28 @@ struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
 	// Q. what about network sensor>
 	// Q. what about _geoCoords?
 	if(pnode->_pduchange_signal){
-		struct SignalPdu *rpdu;
-		rpdu = (struct SignalPdu *) dis_ctor(type_SignalPdu);
-		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
+		struct SignalPdu *spdu;
+		spdu = (struct SignalPdu *) dis_ctor(type_SignalPdu);
+
+  //MFInt32  [in,out] data               []           [0,255]                  
+  //SFInt32  [in,out] dataLength         0            [0,65535]
+  //SFInt32  [in,out] encodingScheme     0            [0,65535]
+  //SFInt32  [in,out] radioID            0            [0,65535]
+  //SFInt32  [in,out] sampleRate         0            [0,65535]
+  //SFInt32  [in,out] samples            0            [0,65535]
+  //SFInt32  [in,out] tdlType            0            [0,65535]
+
+		memcpy(spdu->data,pnode->data.p,pnode->dataLength);
+		spdu->dataLength = pnode->dataLength;
+		spdu->encodingScheme = pnode->encodingScheme;
+		spdu->sampleRate = pnode->sampleRate;
+		spdu->samples = pnode->samples;
+		spdu->tdlType = pnode->tdlType;
+		spdu->myRadioCommunicationsFamilyPdu.radioId = pnode->radioID;
+		spdu->myRadioCommunicationsFamilyPdu.entityId.entity = pnode->entityID;
+		spdu->myRadioCommunicationsFamilyPdu.entityId.site = pnode->siteID;
+		spdu->myRadioCommunicationsFamilyPdu.entityId.application = pnode->applicationID;
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)spdu);
 	}
 	return pdus;
 }
@@ -1634,6 +1720,23 @@ int dis_pdus2node_receiver(struct X3D_Node *node, struct Vector *pdus){
 		pdu = vector_get(struct Pdu*,pdus,i);
 		switch(pdu->pduType){
 			case PDU_RECEIVER:
+			{
+				struct ReceiverPdu *rpdu;
+				rpdu = (struct ReceiverPdu*)pdu;
+
+				if(pnode->radioID != rpdu->myRadioCommunicationsFamilyPdu.radioId) break;
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+
+				pnode->receivedPower = rpdu->receivedPoser; //spelling Poser / Power
+				pnode->receiverState = rpdu->receiverState;
+				pnode->transmitterRadioID = rpdu->transmitterRadioId;
+				pnode->transmitterEntityID = rpdu->transmitterEntityId.entity;
+				pnode->transmitterSiteID = rpdu->transmitterEntityId.site;
+				pnode->transmitterSiteID = rpdu->transmitterEntityId.application;
+				pnode->_pduchange_receiver = TRUE;
+			}
 			break;
 			default:
 				break;
@@ -1653,6 +1756,49 @@ int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
 		pdu = vector_get(struct Pdu*,pdus,i);
 		switch(pdu->pduType){
 			case PDU_TRANSMITTER:
+			{
+				struct TransmitterPdu *tpdu;
+				tpdu = (struct TransmitterPdu*)pdu;
+
+				if(pnode->radioID != tpdu->myRadioCommunicationsFamilyPdu.radioId) break;
+				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
+				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+				{
+					double loc[3];
+					vector3double2vec3d(loc,&tpdu->antennaLocation);
+					double2float(pnode->antennaLocation.c,loc,3);
+					vector3float2vec3f(pnode->relativeAntennaLocation.c,&tpdu->relativeAntennaLocation);
+				}
+				pnode->antennaPatternLength = tpdu->antennaPatternCount;
+				pnode->antennaPatternType = tpdu->antennaPatternType;
+				pnode->cryptoKeyID = tpdu->cryptoKeyId;
+				pnode->cryptoSystem = tpdu->cryptoSystem;
+				pnode->frequency = tpdu->frequency;
+				pnode->inputSource = tpdu->inputSource;
+				pnode->modulationTypeDetail = tpdu->modulationType.detail;
+				pnode->modulationTypeMajor = tpdu->modulationType.major;
+				pnode->modulationTypeSpreadSpectrum = tpdu->modulationType.spreadSpectrum;
+				pnode->modulationTypeSystem = tpdu->modulationType.system;
+				// memcpy(tpdu->modulationParametersList, ????) we have no field for it
+				pnode->lengthOfModulationParameters = tpdu->modulationParameterCount; //==0 since no field for parameters
+				pnode->power = tpdu->power;
+				pnode->radioEntityTypeCategory = tpdu->radioEntityType.category;
+				pnode->radioEntityTypeCountry = tpdu->radioEntityType.country;
+				pnode->radioEntityTypeDomain = tpdu->radioEntityType.domain;
+				pnode->radioEntityTypeKind = tpdu->radioEntityType.entityKind;
+				pnode->radioEntityTypeNomenclature = tpdu->radioEntityType.nomenclature;
+				pnode->radioEntityTypeNomenclatureVersion = tpdu->radioEntityType.nomenclatureVersion;
+				pnode->radioID = tpdu->myRadioCommunicationsFamilyPdu.radioId;
+				pnode->transmitFrequencyBandwidth = tpdu->transmitFrequencyBandwidth;
+				pnode->transmitState = tpdu->transmitState;
+				pnode->_pduchange_transmitter = TRUE;
+
+			}
 			break;
 			default:
 				break;
@@ -1672,6 +1818,28 @@ int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 		pdu = vector_get(struct Pdu*,pdus,i);
 		switch(pdu->pduType){
 			case PDU_SIGNAL:
+			{
+				struct SignalPdu *spdu;
+				spdu = (struct SignalPdu*)pdu;
+
+				if(pnode->radioID != spdu->myRadioCommunicationsFamilyPdu.radioId) break;
+				if(spdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
+				if(spdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				if(spdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+
+				memcpy(pnode->data.p,spdu->data,pnode->dataLength);
+				pnode->dataLength = spdu->dataLength;
+				pnode->data.n = (spdu->dataLength + 4) / 4;
+				pnode->encodingScheme = spdu->encodingScheme;
+				pnode->sampleRate = spdu->sampleRate;
+				pnode->samples = spdu->samples;
+				pnode->tdlType = spdu->tdlType;
+				pnode->_pduchange_signal = TRUE;
+			}
 			break;
 			default:
 				break;
