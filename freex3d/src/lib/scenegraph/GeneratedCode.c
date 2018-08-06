@@ -12191,7 +12191,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
-			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
 			tmp2->radioID = 0;
@@ -12474,7 +12474,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
-			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
 			tmp2->radioID = 0;
@@ -13105,7 +13105,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->entityID = 0;
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
-			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GC");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->geoCoords.c[0] = 0;tmp2->geoCoords.c[1] = 0;tmp2->geoCoords.c[2] = 0;;
 			tmp2->__geoSystem = NULL;
 			tmp2->radioID = 0;

@@ -54,6 +54,7 @@
 #include "Component_Geospatial.h"
 #include "Component_DIS.h"
 #include "Component_Grouping.h"
+#include "RenderFuncs.h"
 
 //from CparseParser
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
@@ -569,7 +570,17 @@ void pdu2node_entityType( struct EntityType *entityType, int *entityKind){
 	entityKind[5] = entityType->specific;
 	entityKind[6] = entityType->extra;
 }
-
+static int dis_event_number = 0;
+int dis_next_event_number(){
+	dis_event_number++;
+	return dis_event_number;
+}
+static int dis_fire_mission_index = 0;
+int dis_next_fire_mission_index(){
+	dis_fire_mission_index++;
+	return dis_fire_mission_index;
+}
+struct X3D_Node * dis_find_registered_node_by_entityid(int entityid, int sendlist, int recvlist);
 struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#EspduTransform
 	//EspuTransform integrates the following pdus:
@@ -600,13 +611,13 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 			struct SFVec3d gd, gc, translate;
 			struct SFVec4d rotate;
 			double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
-
 			float xyza[4];
 			Geosys *gs;
 			gs = GEOSYS(pnode->__geoSystem);
 			user2gc(gs,&pnode->geoCoords,1,&gc);
-			gc2gd(gs,&gc,1,&gd);
-			gc2tcs_transform(gs,&gd,&translate,&rotate);
+			//gc2gd(gs,&gc,1,&gd);
+			//gc2tcs_transform(gs,&gd,&translate,&rotate);
+			gc2tcsB_transform(gs,&gc,&translate,&rotate);
 			//somehow get body/entity into world/gc - rotation and translation
 			{
 				//rotation
@@ -628,7 +639,8 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 				//translation
 				struct SFVec3d tcs, world;
 				float2double(tcs.c,pnode->translation.c,3);
-				tcs2gc(gs,&gd,&tcs,1,&world);
+				//tcs2gc(gs,&gd,&tcs,1,&world);
+				tcs2gcB(gs,&gc,&tcs,1,&world);
 				vec3d2vector3double(&espdu->entityLocation,world.c);
 			}
 
@@ -756,8 +768,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 						Geosys *gs;
 						gs = GEOSYS(pnode->__geoSystem);
 						user2gc(gs,&pnode->geoCoords,1,&gc);
-						gc2gd(gs,&gc,1,&gd);
-						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						//gc2gd(gs,&gc,1,&gd);
+						//gc2tcs_transform(gs,&gd,&translate,&rotate);
+						gc2tcsB_transform(gs,&gc,&translate,&rotate);
 						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
 						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
 						quaternion_multiply(&qglobal,&qlocal,&qtcs);
@@ -917,8 +930,9 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 						Geosys *gs;
 						gs = GEOSYS(pnode->__geoSystem);
 						user2gc(gs,&pnode->geoCoords,1,&gc);
-						gc2gd(gs,&gc,1,&gd);
-						gc2tcs_transform(gs,&gd,&translate,&rotate);
+						//gc2gd(gs,&gc,1,&gd);
+						//gc2tcs_transform(gs,&gd,&translate,&rotate);
+						gc2tcsB_transform(gs,&gc,&translate,&rotate);
 						vrmlrot4d_to_quaternion(&qtcs,rotate.c);
 						vrmlrot4f_to_quaternion(&qlocal,pnode->rotation.c);
 						quaternion_multiply(&qglobal,&qlocal,&qtcs);
@@ -972,28 +986,293 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	//FIRE
 	if(pnode->_pduchange_fire){
 		struct FirePdu *fpdu;
-		fpdu = (struct FirePdu *) dis_ctor(pduToDis(type_FirePdu));
+		fpdu = (struct FirePdu *) dis_ctor(type_FirePdu);
+		fpdu->myWarfareFamilyPdu.firingEntityID.entity = pnode->entityID;
+		fpdu->myWarfareFamilyPdu.firingEntityID.application = pnode->applicationID;
+		fpdu->myWarfareFamilyPdu.firingEntityID.site = pnode->siteID;
+		//fpdu->myWarfareFamilyPdu.myPdu;
+		//fpdu->myWarfareFamilyPdu.targetEntityID;
+		printf("FIREPDU ");
+		if(pnode->fired1 || pnode->fired2){
+			pnode->firedTime = TickTime();
+		}
 		//copy from espdutransform node to pdu
+		fpdu->burstDescriptor.fuse = pnode->fuse;
+		struct X3D_EspduTransform * muni = (struct X3D_EspduTransform * )dis_find_registered_node_by_entityid(pnode->munitionEntityID,TRUE,FALSE);
+		if(muni){
+			fpdu->burstDescriptor.munition.category = muni->entityCategory; //get munition entity from pnode->munitionEntity, then munitionEntity.cateogory.
+			fpdu->burstDescriptor.munition.country = muni->entityCountry;
+			fpdu->burstDescriptor.munition.domain = muni->entityDomain;
+			fpdu->burstDescriptor.munition.entityKind = muni->entityKind;
+			fpdu->burstDescriptor.munition.extra = muni->entityExtra;
+			fpdu->burstDescriptor.munition.specific = muni->entitySpecific;
+			fpdu->burstDescriptor.munition.subcategory = muni->entitySubCategory;
+		}
+		fpdu->burstDescriptor.quantity = pnode->munitionQuantity;
+		fpdu->burstDescriptor.rate = pnode->firingRate;
+		fpdu->burstDescriptor.warhead = pnode->warhead;
+
+		fpdu->eventID.application = 0;
+		fpdu->eventID.eventNumber = pnode->eventNumber; //dis_next_event_number(); //increment in sender script node
+		fpdu->eventID.site = 0; //target if known
+
+		fpdu->fireMissionIndex = dis_next_fire_mission_index();
+		{
+			double loc[3];
+			float2double(loc,pnode->munitionStartPoint.c,3);
+			//am I supposed to convert to wworld from local here?
+			//or can/should I assume that its local to Weapon Espdu here, and local to target scene's copy of Weapon Espdu?
+			vec3d2vector3double(&fpdu->locationInWorldCoordinates,loc);  //is this current location, or starting location?
+		}
+		//unique munition entity if known
+		fpdu->munitionID.application = pnode->munitionApplicationID;
+		fpdu->munitionID.entity = pnode->munitionEntityID;
+		fpdu->munitionID.site = pnode->munitionSiteID;
+
+		fpdu->range = pnode->firingRange;
+		{
+			float delta[3];
+			vecdif3f(delta,pnode->munitionEndPoint.c,pnode->munitionStartPoint.c);
+			//lets say 3 seconds to deliver any munition
+			vecscale3f(delta,delta,1.0f/3.0f);
+			vec3f2vector3float(&fpdu->velocity,delta);
+		}
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)fpdu);
 	}
 	//COLLISION
 	if(pnode->_pduchange_collision){
 		struct CollisionPdu *cpdu;
-		cpdu = (struct CollisionPdu *) dis_ctor(pduToDis(type_CollisionPdu));
+		cpdu = (struct CollisionPdu *) dis_ctor(type_CollisionPdu);
 		//copy from espdutransform node to pdu
+		cpdu->issuingEntityID.application = pnode->applicationID;
+		cpdu->issuingEntityID.site = pnode->siteID;
+		cpdu->issuingEntityID.entity = pnode->entityID;
+
+		cpdu->collidingEntityID.entity = pnode->eventEntityID;
+		cpdu->collidingEntityID.application = pnode->eventApplicationID;
+		cpdu->collidingEntityID.site = pnode->eventSiteID;
+		cpdu->collisionType = pnode->collisionType;
+		cpdu->eventID.eventNumber = pnode->eventNumber;
+
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)cpdu);
 	}
 	//DETONATION
 	if(pnode->_pduchange_detonation){
 		struct DetonationPdu *dpdu;
-		dpdu = (struct DetonationPdu *) dis_ctor(pduToDis(type_DetonationPdu));
+		dpdu = (struct DetonationPdu *) dis_ctor(type_DetonationPdu);
 		//copy from espdutransform node to pdu
+
+		dpdu->myWarfareFamilyPdu.firingEntityID.entity = pnode->entityID;
+		dpdu->myWarfareFamilyPdu.firingEntityID.application = pnode->applicationID;
+		dpdu->myWarfareFamilyPdu.firingEntityID.site = pnode->siteID;
+		//fpdu->myWarfareFamilyPdu.myPdu;
+		//fpdu->myWarfareFamilyPdu.targetEntityID;
+
+		pnode->detonateTime = TickTime();
+		dpdu->detonationResult = pnode->detonationResult;
+		//copy from espdutransform node to pdu
+		dpdu->burstDescriptor.fuse = pnode->fuse;
+		struct X3D_EspduTransform * muni = (struct X3D_EspduTransform * )dis_find_registered_node_by_entityid(pnode->munitionEntityID,TRUE,FALSE);
+		if(muni){
+			dpdu->burstDescriptor.munition.category = muni->entityCategory; //get munition entity from pnode->munitionEntity, then munitionEntity.cateogory.
+			dpdu->burstDescriptor.munition.country = muni->entityCountry;
+			dpdu->burstDescriptor.munition.domain = muni->entityDomain;
+			dpdu->burstDescriptor.munition.entityKind = muni->entityKind;
+			dpdu->burstDescriptor.munition.extra = muni->entityExtra;
+			dpdu->burstDescriptor.munition.specific = muni->entitySpecific;
+			dpdu->burstDescriptor.munition.subcategory = muni->entitySubCategory;
+		}
+		dpdu->burstDescriptor.quantity = pnode->munitionQuantity;
+		dpdu->burstDescriptor.rate = pnode->firingRate;
+		dpdu->burstDescriptor.warhead = pnode->warhead;
+
+		dpdu->eventID.application = 0;
+		dpdu->eventID.eventNumber = pnode->eventNumber; //dis_next_event_number(); //increment in sender script node
+		dpdu->eventID.site = 0; //target if known
+
+		//articuation parameters
+		if(pnode->articulationParameterArray.n){
+			struct ArticulationParameter *ap;
+			int i, np = pnode->articulationParameterArray.n;
+			ap = malloc(np * sizeof(struct ArticulationParameter));
+			dpdu->numberOfArticulationParameters = np;
+			//printf("sending %d articulation parameters:\n",np);
+			for(i=0;i<np;i++){
+				ap[i].parameterTypeDesignator = 0; //0 is articulated part
+				ap[i].parameterType = 1029; //1024 - rudder + 5 X
+				ap[i].parameterValue = pnode->articulationParameterArray.p[i];
+				ap[i].partAttachedTo = 0;
+				//printf("%d %f\n",i,pnode->articulationParameterArray.p[i]);
+			}
+			dpdu->articulationParameters = (void*)ap;
+		}
+
+		{
+			double loc[3];
+			float2double(loc,pnode->detonationLocation.c,3);
+			//am I supposed to convert to wworld from local here?
+			//or can/should I assume that its local to Weapon Espdu here, and local to target scene's copy of Weapon Espdu?
+			vec3d2vector3double(&dpdu->locationInWorldCoordinates,loc);  
+			vec3f2vector3float(&dpdu->locationInEntityCoordinates,pnode->detonationRelativeLocation.c);  
+		}
+		//unique munition entity if known
+		dpdu->munitionID.application = pnode->munitionApplicationID;
+		dpdu->munitionID.entity = pnode->munitionEntityID;
+		dpdu->munitionID.site = pnode->munitionSiteID;
+
+		{
+			float delta[3];
+			vecdif3f(delta,pnode->munitionEndPoint.c,pnode->munitionStartPoint.c);
+			//lets say .5 seconds to detonate any munition
+			vecscale3f(delta,delta,1.0f/.5f);
+			vec3f2vector3float(&dpdu->velocity,delta);
+		}
+
+
 		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)dpdu);
 	}
 
 	return pdus;
 
 }
+
+struct Vector * dis_node2pdus_receiver(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_ReceiverPdu * pnode = (struct X3D_ReceiverPdu*)node;
+	pdus = newVector(struct Pdu *, 6);
+	// Q. what about network sensor>
+	// Q. what about _geoCoords?
+	if(pnode->_pduchange_receiver){
+		struct ReceiverPdu *rpdu;
+		rpdu = (struct ReceiverPdu *) dis_ctor(type_ReceiverPdu);
+//SFInt32  [in,out] radioID                  0            [0,65535]
+//SFFloat  [in,out] receivedPower            0.0          [0,?)
+//SFInt32  [in,out] receiverState            0            [0,65535]
+//SFInt32  [in,out] transmitterApplicationID 1            [0,65535]
+//SFInt32  [in,out] transmitterEntityID      0            [0,65535]
+//SFInt32  [in,out] transmitterRadioID       0            [0,65535]
+//SFInt32  [in,out] transmitterSiteID        0            [0,65535]
+		rpdu->myRadioCommunicationsFamilyPdu.radioId = pnode->radioID;
+		rpdu->receivedPoser = pnode->receivedPower;
+		rpdu->receiverState = pnode->receiverState;
+		rpdu->transmitterRadioId = pnode->transmitterRadioID;
+		rpdu->transmitterEntityId.entity = pnode->transmitterEntityID;
+		rpdu->transmitterEntityId.site = pnode->transmitterSiteID;
+		rpdu->transmitterEntityId.application = pnode->transmitterSiteID;
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)rpdu);
+	}
+	return pdus;
+}
+struct Vector * dis_node2pdus_transmitter(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_TransmitterPdu * pnode = (struct X3D_TransmitterPdu*)node;
+	pdus = newVector(struct Pdu *, 6);
+
+	// Q. what about network sensor>
+	// Q. what about _geoCoords?
+	if(pnode->_pduchange_transmitter){
+		struct TransmitterPdu *tpdu;
+		tpdu = (struct TransmitterPdu *) dis_ctor(type_TransmitterPdu);
+
+  //SFVec3f  [in,out] antennaLocation                    0 0 0        (-8,8)
+  //SFInt32  [in,out] antennaPatternLength               0            [0,65535]
+  //SFInt32  [in,out] antennaPatternType                 0            [0,65535]
+  //SFInt32  [in,out] cryptoKeyID                        0            [0,65535]           
+  //SFInt32  [in,out] cryptoSystem                       0            [0,65535]
+  //SFInt32  [in,out] frequency                          0      
+  //SFInt32  [in,out] inputSource                        0            [0,255]
+  //SFInt32  [in,out] lengthOfModulationParameters       0            [0,255]
+  //SFInt32  [in,out] modulationTypeDetail               0            [0,65535]
+  //SFInt32  [in,out] modulationTypeMajor                0            [0,65535]
+  //SFInt32  [in,out] modulationTypeSpreadSpectrum       0            [0,65535]
+  //SFInt32  [in,out] modulationTypeSystem               0            [0,65535]
+  //SFFloat  [in,out] power                              0.0          [0,8)
+  //SFInt32  [in,out] radioEntityTypeCategory            0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeCountry             0            [0,65535]
+  //SFInt32  [in,out] radioEntityTypeDomain              0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeKind                0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeNomenclature        0            [0,255]
+  //SFInt32  [in,out] radioEntityTypeNomenclatureVersion 0            [0,65535]
+  //SFInt32  [in,out] radioID                            0            [0,255]
+  //SFVec3f  [in,out] relativeAntennaLocation            0 0 0        (-8,8)
+  //SFFloat  [in,out] transmitFrequencyBandwidth         0.0          (-8,8)
+  //SFInt32  [in,out] transmitState                      0            [0,255]
+		{
+			double loc[3];
+			float2double(loc,pnode->antennaLocation.c,3);
+			vec3d2vector3double(&tpdu->antennaLocation,loc);
+			vec3f2vector3float(&tpdu->relativeAntennaLocation,pnode->relativeAntennaLocation.c);
+		}
+		tpdu->antennaPatternCount = pnode->antennaPatternLength;
+		tpdu->antennaPatternType = pnode->antennaPatternType;
+		tpdu->cryptoKeyId = pnode->cryptoKeyID;
+		tpdu->cryptoSystem = pnode->cryptoSystem;
+		tpdu->frequency = pnode->frequency;
+		tpdu->inputSource = pnode->inputSource;
+		tpdu->modulationType.detail = pnode->modulationTypeDetail;
+		tpdu->modulationType.major = pnode->modulationTypeMajor;
+		tpdu->modulationType.spreadSpectrum = pnode->modulationTypeSpreadSpectrum;
+		tpdu->modulationType.system = pnode->modulationTypeSystem;
+		// memcpy(tpdu->modulationParametersList, ????) we have no field for it
+		tpdu->modulationParameterCount = pnode->lengthOfModulationParameters; //==0 since no field for parameters
+		tpdu->power = pnode->power;
+		tpdu->radioEntityType.category = pnode->radioEntityTypeCategory;
+		tpdu->radioEntityType.country = pnode->radioEntityTypeCountry;
+		tpdu->radioEntityType.domain = pnode->radioEntityTypeDomain;
+		tpdu->radioEntityType.entityKind = pnode->radioEntityTypeKind;
+		tpdu->radioEntityType.nomenclature = pnode->radioEntityTypeNomenclature;
+		tpdu->radioEntityType.nomenclatureVersion = pnode->radioEntityTypeNomenclatureVersion;
+		tpdu->myRadioCommunicationsFamilyPdu.radioId = pnode->radioID;
+		tpdu->transmitFrequencyBandwidth = pnode->transmitFrequencyBandwidth;
+		tpdu->transmitState = pnode->transmitState;
+
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)tpdu);
+	}
+	return pdus;
+}
+#define ONE_INT32_PER_SIGNAL_DATA_BYTE TRUE
+struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
+	struct Vector *pdus;
+	struct X3D_SignalPdu * pnode = (struct X3D_SignalPdu*)node;
+	pdus = newVector(struct Pdu *, 6);
+
+	// Q. what about network sensor>
+	// Q. what about _geoCoords?
+	if(pnode->_pduchange_signal){
+		struct SignalPdu *spdu;
+		spdu = (struct SignalPdu *) dis_ctor(type_SignalPdu);
+
+  //MFInt32  [in,out] data               []           [0,255]                  
+  //SFInt32  [in,out] dataLength         0            [0,65535]
+  //SFInt32  [in,out] encodingScheme     0            [0,65535]
+  //SFInt32  [in,out] radioID            0            [0,65535]
+  //SFInt32  [in,out] sampleRate         0            [0,65535]
+  //SFInt32  [in,out] samples            0            [0,65535]
+  //SFInt32  [in,out] tdlType            0            [0,65535]
+		spdu->data = realloc(spdu->data,pnode->dataLength*sizeof(unsigned char));
+  		if(ONE_INT32_PER_SIGNAL_DATA_BYTE){
+			int k;
+			unsigned char *cdata = (unsigned char *)spdu->data;
+			for(k=0;k<spdu->dataLength;k++){
+				cdata[k] = (unsigned char)((unsigned int)pnode->data.p[k] % 256);
+			}
+		}else{
+			memcpy(spdu->data,pnode->data.p,pnode->dataLength);
+			spdu->dataLength = pnode->dataLength;
+		}
+		spdu->encodingScheme = pnode->encodingScheme;
+		spdu->sampleRate = pnode->sampleRate;
+		spdu->samples = pnode->samples;
+		spdu->tdlType = pnode->tdlType;
+		spdu->myRadioCommunicationsFamilyPdu.radioId = pnode->radioID;
+		spdu->myRadioCommunicationsFamilyPdu.entityId.entity = pnode->entityID;
+		spdu->myRadioCommunicationsFamilyPdu.entityId.site = pnode->siteID;
+		spdu->myRadioCommunicationsFamilyPdu.entityId.application = pnode->applicationID;
+		vector_pushBack(struct Pdu*,pdus,(struct Pdu*)spdu);
+	}
+	return pdus;
+}
+struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int country, int category, int subcategory, int specific, int extra);
 int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
@@ -1022,13 +1301,13 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 					struct SFVec3d gd, gc, translate;
 					struct SFVec4d rotate;
 					double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
-
 					float xyza[4];
 					Geosys *gs;
 					gs = GEOSYS(pnode->__geoSystem);
 					user2gc(gs,&pnode->geoCoords,1,&gc);
-					gc2gd(gs,&gc,1,&gd);
-					gc2tcs_transform(gs,&gd,&translate,&rotate);
+					//gc2gd(gs,&gc,1,&gd);
+					//gc2tcs_transform(gs,&gd,&translate,&rotate);
+					gc2tcsB_transform(gs,&gc,&translate,&rotate);
 					//somehow get body/entity into world/gc - rotation and translation
 					{
 						//rotation
@@ -1069,7 +1348,8 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							//METHOD 1: translation = Location - geoCoords
 							struct SFVec3d world, tcs;
 							veccopyd(world.c,world2bodyxyz);
-							gc2tcs(gs,&gd,&world,1,&tcs);
+							//gc2tcs(gs,&gd,&world,1,&tcs);
+							gc2tcsB(gs,&gc,&world,1,&tcs);
 							double2float(pnode->translation.c,tcs.c,3);
 						}else{
 							//TRANS_ZERO
@@ -1080,9 +1360,11 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 							float deltap[3];
 							static int want_smoothing = 1;
 							if(want_smoothing){
-								gc2tcs(gs,&gd,&gc,1,&tcs1);
+								//gc2tcs(gs,&gd,&gc,1,&tcs1);
+								gc2tcsB(gs,&gc,&gc,1,&tcs1);
 								veccopyd(world.c,world2bodyxyz);
 								gc2tcs(gs,&gd,&world,1,&tcs2);
+								gc2tcsB(gs,&gc,&world,1,&tcs2);
 								vecdifd(deltatcs,tcs1.c,tcs2.c);
 								double2float(deltap,deltatcs,3);
 								vecadd3f(pnode->_p0.c,pnode->_p0.c,deltap);
@@ -1234,6 +1516,77 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//FIRE
 				struct FirePdu *fpdu;
+				fpdu = (struct FirePdu*)pdu;
+				if(fpdu->myWarfareFamilyPdu.firingEntityID.application != pnode->applicationID) break;
+				if(fpdu->myWarfareFamilyPdu.firingEntityID.site != pnode->siteID) break;
+				if(fpdu->myWarfareFamilyPdu.firingEntityID.entity != pnode->entityID) break;
+
+				//fpdu->myWarfareFamilyPdu.myPdu;
+				//fpdu->myWarfareFamilyPdu.targetEntityID;
+
+				
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+				
+				//if(pnode->fired1 || pnode->fired2){
+					pnode->firedTime = TickTime();
+				//}
+				pnode->fired1 = TRUE;
+				//copy from espdutransform node to pdu
+				pnode->fuse = fpdu->burstDescriptor.fuse;
+				//pnode->munitionEntityID = fpdu->burstDescriptor.munition.
+				//the following doesn't work in target scene
+				struct X3D_EspduTransform * muni;
+				//  kind, domain, country, category, subcategory, specific, extra
+				muni = (struct X3D_EspduTransform * )dis_find_or_create_espdu_by_category(
+					fpdu->burstDescriptor.munition.entityKind,
+					fpdu->burstDescriptor.munition.domain,
+					fpdu->burstDescriptor.munition.country,
+					fpdu->burstDescriptor.munition.category,
+					fpdu->burstDescriptor.munition.subcategory,
+					fpdu->burstDescriptor.munition.specific,
+					fpdu->burstDescriptor.munition.extra
+					);
+				if(!muni) printf("no muni\n");
+				else {
+					printf("got muni\n");
+					pnode->munitionEntityID = muni->entityID;
+					pnode->munitionSiteID = muni->siteID;
+					pnode->munitionApplicationID = muni->applicationID;
+				}
+				pnode->munitionQuantity = fpdu->burstDescriptor.quantity;
+				pnode->firingRate = fpdu->burstDescriptor.rate;
+				pnode->warhead = fpdu->burstDescriptor.warhead;
+
+				//fpdu->eventID.application = 0;
+				pnode->eventNumber = fpdu->eventID.eventNumber; //dis_next_event_number(); //increment in sender script node
+				//fpdu->eventID.site = 0; //target if known
+
+				pnode->fireMissionIndex = fpdu->fireMissionIndex;
+				{
+					double loc[3];
+					//am I supposed to convert to wworld from local here?
+					//or can/should I assume that its local to Weapon Espdu here, and local to target scene's copy of Weapon Espdu?
+					vector3double2vec3d(loc,&fpdu->locationInWorldCoordinates);  //is this current location, or starting location?
+					double2float(pnode->munitionStartPoint.c,loc,3);
+				}
+				//unique munition entity if known
+				pnode->munitionApplicationID = fpdu->munitionID.application;
+				pnode->munitionEntityID = fpdu->munitionID.entity;
+				pnode->munitionSiteID = fpdu->munitionID.site;
+
+				//fpdu->myWarfareFamilyPdu.firingEntityID;
+				//fpdu->myWarfareFamilyPdu.myPdu;
+				//fpdu->myWarfareFamilyPdu.targetEntityID;
+				pnode->firingRange = fpdu->range;
+				{
+					float delta[3];
+					vector3float2vec3f(delta,&fpdu->velocity);
+					//lets say 3 seconds to deliver any munition
+					vecscale3f(delta,delta,3.0f/1.0f);
+					vecadd3f(pnode->munitionEndPoint.c,pnode->munitionStartPoint.c,delta);
+				}
 				pnode->_pduchange_fire = TRUE;
 			}
 			break;
@@ -1241,6 +1594,22 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//COLLISION
 				struct CollisionPdu *cpdu;
+				cpdu = (struct CollisionPdu *)pdu;
+
+				if(cpdu->issuingEntityID.application != pnode->applicationID) break;
+				if(cpdu->issuingEntityID.site != pnode->siteID) break;
+				if(cpdu->issuingEntityID.entity != pnode->entityID) break;
+				pnode->eventEntityID = cpdu->collidingEntityID.entity;
+				pnode->eventApplicationID = cpdu->collidingEntityID.application;
+				pnode->eventSiteID = cpdu->collidingEntityID.site;
+				pnode->collisionType = cpdu->collisionType;
+				if(pnode->collisionType) pnode->isCollided = TRUE;
+				else pnode->isCollided = FALSE;
+				//cpdu->eventID;
+				//cpdu->location;
+				//cpdu->mass;
+				//cpdu->myEntityInformationFamilyPdu.myPdu.exerciseID;
+				//cpdu->velocity;
 				pnode->_pduchange_collision = TRUE;
 			}
 			break;
@@ -1248,7 +1617,98 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 			{
 				//DETONATION
 				struct DetonationPdu *dpdu;
+				dpdu = (struct DetonationPdu*)pdu;
+				if(dpdu->myWarfareFamilyPdu.firingEntityID.application != pnode->applicationID) break;
+				if(dpdu->myWarfareFamilyPdu.firingEntityID.site != pnode->siteID) break;
+				if(dpdu->myWarfareFamilyPdu.firingEntityID.entity != pnode->entityID) break;
+
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+
+				pnode->detonateTime = TickTime();
+				pnode->fuse = dpdu->burstDescriptor.fuse;
+				//pnode->munitionEntityID = fpdu->burstDescriptor.munition.
+				//the following doesn't work in target scene
+				struct X3D_EspduTransform * muni;
+				//  kind, domain, country, category, subcategory, specific, extra
+				muni = (struct X3D_EspduTransform * )dis_find_or_create_espdu_by_category(
+					dpdu->burstDescriptor.munition.entityKind,
+					dpdu->burstDescriptor.munition.domain,
+					dpdu->burstDescriptor.munition.country,
+					dpdu->burstDescriptor.munition.category,
+					dpdu->burstDescriptor.munition.subcategory,
+					dpdu->burstDescriptor.munition.specific,
+					dpdu->burstDescriptor.munition.extra
+					);
+				if(!muni) printf("no muni\n");
+				else {
+					printf("got muni\n");
+					pnode->munitionEntityID = muni->entityID;
+					pnode->munitionSiteID = muni->siteID;
+					pnode->munitionApplicationID = muni->applicationID;
+				}
+				pnode->munitionQuantity = dpdu->burstDescriptor.quantity;
+				pnode->firingRate = dpdu->burstDescriptor.rate;
+				pnode->warhead = dpdu->burstDescriptor.warhead;
+
+				//fpdu->eventID.application = 0;
+				pnode->eventNumber = dpdu->eventID.eventNumber; //dis_next_event_number(); //increment in sender script node
+				//unique munition entity if known
+				pnode->munitionApplicationID = dpdu->munitionID.application;
+				pnode->munitionEntityID = dpdu->munitionID.entity;
+				pnode->munitionSiteID = dpdu->munitionID.site;
+				{
+					double loc[3];
+					vector3double2vec3d(loc,&dpdu->locationInWorldCoordinates);
+					double2float(pnode->detonationLocation.c,loc,3);
+					vector3float2vec3f(pnode->detonationRelativeLocation.c,&dpdu->locationInEntityCoordinates);
+				}
+				pnode->detonationResult = dpdu->detonationResult;
+
+				{
+					float delta[3];
+					vector3float2vec3f(delta,&dpdu->velocity);
+					//lets say .5 seconds to explode a munition
+					vecscale3f(delta,delta,.5f/1.0f);
+					veccopy3f(pnode->munitionStartPoint.c,pnode->detonationRelativeLocation.c);
+					vecadd3f(pnode->munitionEndPoint.c,pnode->munitionStartPoint.c,delta);
+				}
+				//articuation parameters
+				pnode->articulationParameterArray.n = dpdu->numberOfArticulationParameters;
+				//printf("recv art count %d\n",espdu->numberOfArticulationParameters);
+				if(pnode->articulationParameterArray.n){
+					struct ArticulationParameter *ap;
+					float *pp;
+					int i, np = pnode->articulationParameterArray.n;
+					ap = dpdu->articulationParameters;
+					pp = malloc(np * sizeof(float));
+					//printf("received %d articulation parameters:\n",np);
+					for(i=0;i<np;i++){
+						//ap[i].parameterTypeDesignator = 0; //0 is articulated part
+						//ap[i].parameterType = 1029; //1024 - rudder + 5 X
+						pp[i] = (float)ap[i].parameterValue;
+						//printf("%d %f\n",i,pp[i]);
+						//ap[i].partAttachedTo = 0;
+						switch(i){
+							case 0: pnode->articulationParameterValue0_changed = pp[i]; break;
+							case 1: pnode->articulationParameterValue1_changed = pp[i]; break;
+							case 2: pnode->articulationParameterValue2_changed = pp[i]; break;
+							case 3: pnode->articulationParameterValue3_changed = pp[i]; break;
+							case 4: pnode->articulationParameterValue4_changed = pp[i]; break;
+							case 5: pnode->articulationParameterValue5_changed = pp[i]; break;
+							case 6: pnode->articulationParameterValue6_changed = pp[i]; break;
+							case 7: pnode->articulationParameterValue7_changed = pp[i]; break;
+							default:
+							break;
+						}
+					}
+					if(pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
+					pnode->articulationParameterArray.p = pp;
+					//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
+				}
 				pnode->_pduchange_detonation = TRUE;
+
 			}
 			break;
 			default:
@@ -1257,6 +1717,157 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
+
+int dis_pdus2node_receiver(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_ReceiverPdu * pnode = (struct X3D_ReceiverPdu*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_RECEIVER:
+			{
+				struct ReceiverPdu *rpdu;
+				rpdu = (struct ReceiverPdu*)pdu;
+
+				if(pnode->radioID != rpdu->myRadioCommunicationsFamilyPdu.radioId) break;
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+
+				pnode->receivedPower = rpdu->receivedPoser; //spelling Poser / Power
+				pnode->receiverState = rpdu->receiverState;
+				pnode->transmitterRadioID = rpdu->transmitterRadioId;
+				pnode->transmitterEntityID = rpdu->transmitterEntityId.entity;
+				pnode->transmitterSiteID = rpdu->transmitterEntityId.site;
+				pnode->transmitterSiteID = rpdu->transmitterEntityId.application;
+				pnode->_pduchange_receiver = TRUE;
+			}
+			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_TransmitterPdu * pnode = (struct X3D_TransmitterPdu*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_TRANSMITTER:
+			{
+				struct TransmitterPdu *tpdu;
+				tpdu = (struct TransmitterPdu*)pdu;
+
+				if(pnode->radioID != tpdu->myRadioCommunicationsFamilyPdu.radioId) break;
+				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
+				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+				{
+					double loc[3];
+					vector3double2vec3d(loc,&tpdu->antennaLocation);
+					double2float(pnode->antennaLocation.c,loc,3);
+					vector3float2vec3f(pnode->relativeAntennaLocation.c,&tpdu->relativeAntennaLocation);
+				}
+				pnode->antennaPatternLength = tpdu->antennaPatternCount;
+				pnode->antennaPatternType = tpdu->antennaPatternType;
+				pnode->cryptoKeyID = tpdu->cryptoKeyId;
+				pnode->cryptoSystem = tpdu->cryptoSystem;
+				pnode->frequency = tpdu->frequency;
+				pnode->inputSource = tpdu->inputSource;
+				pnode->modulationTypeDetail = tpdu->modulationType.detail;
+				pnode->modulationTypeMajor = tpdu->modulationType.major;
+				pnode->modulationTypeSpreadSpectrum = tpdu->modulationType.spreadSpectrum;
+				pnode->modulationTypeSystem = tpdu->modulationType.system;
+				// memcpy(tpdu->modulationParametersList, ????) we have no field for it
+				pnode->lengthOfModulationParameters = tpdu->modulationParameterCount; //==0 since no field for parameters
+				pnode->power = tpdu->power;
+				pnode->radioEntityTypeCategory = tpdu->radioEntityType.category;
+				pnode->radioEntityTypeCountry = tpdu->radioEntityType.country;
+				pnode->radioEntityTypeDomain = tpdu->radioEntityType.domain;
+				pnode->radioEntityTypeKind = tpdu->radioEntityType.entityKind;
+				pnode->radioEntityTypeNomenclature = tpdu->radioEntityType.nomenclature;
+				pnode->radioEntityTypeNomenclatureVersion = tpdu->radioEntityType.nomenclatureVersion;
+				pnode->radioID = tpdu->myRadioCommunicationsFamilyPdu.radioId;
+				pnode->transmitFrequencyBandwidth = tpdu->transmitFrequencyBandwidth;
+				pnode->transmitState = tpdu->transmitState;
+				pnode->_pduchange_transmitter = TRUE;
+
+			}
+			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+// #define ONE_INT32_PER_SIGNAL_DATA_BYTE TRUE
+int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
+	int i, ihit;
+	struct Pdu* pdu;
+	struct X3D_SignalPdu * pnode = (struct X3D_SignalPdu*)node;
+
+	ihit = 0;
+	if(!pdus) return ihit;
+	for(i=0;i<pdus->n;i++)
+	{
+		pdu = vector_get(struct Pdu*,pdus,i);
+		switch(pdu->pduType){
+			case PDU_SIGNAL:
+			{
+				struct SignalPdu *spdu;
+				spdu = (struct SignalPdu*)pdu;
+
+				if(pnode->radioID != spdu->myRadioCommunicationsFamilyPdu.radioId) break;
+				if(spdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
+				if(spdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				if(spdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+
+				ihit++;
+				pnode->_change++; //mark node changed
+				pnode->timestamp = TickTime();
+				if(ONE_INT32_PER_SIGNAL_DATA_BYTE){
+					int k;
+					unsigned char *cdata = (unsigned char *)spdu->data;
+					pnode->data.p = realloc(pnode->data.p,spdu->dataLength*sizeof(int));
+					for(k=0;k<spdu->dataLength;k++){
+						pnode->data.p[k] = (int)(cdata[k]);
+					}
+				}else{
+					memcpy(pnode->data.p,spdu->data,pnode->dataLength);
+					pnode->data.n = (spdu->dataLength + 4) / 4;
+				}
+				pnode->dataLength = spdu->dataLength;
+				pnode->encodingScheme = spdu->encodingScheme;
+				pnode->sampleRate = spdu->sampleRate;
+				pnode->samples = spdu->samples;
+				pnode->tdlType = spdu->tdlType;
+				pnode->_pduchange_signal = TRUE;
+			}
+			break;
+			default:
+				break;
+		}
+	}
+	return ihit;
+}
+
+
 
 // Simulation Management PDUs relate to the DISEntityManager node
 // http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
@@ -1345,6 +1956,146 @@ int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
+void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
+	//4 nodes have the same field order for common fields, can be cast to Espdu 
+	switch(node->_nodeType){
+		case NODE_ReceiverPdu:
+		case NODE_TransmitterPdu:
+		case NODE_SignalPdu:
+		case NODE_EspduTransform:
+		case NODE_DISEntityManager:
+		{
+			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
+			pnode->_lasttime = lasttime;
+		}
+		break;
+		break;
+	}
+}
+
+int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnode, struct Vector * pdus){
+	int ihit = 0;
+	if(pnode){
+		int i;
+		// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/dis.html#DISEntityManager
+		// https://github.com/open-dis/DISTutorial/blob/master/EntityDiscovery.md
+		// entity discovery happening here
+		struct Pdu* pdu;
+		for(i=0;i<pdus->n;i++) {
+			pdu = vector_get(struct Pdu*,pdus,i);
+			switch(pdu->pduType){
+				case PDU_ENTITY_STATE:
+				case PDU_RECEIVER:
+				case PDU_TRANSMITTER:
+				case PDU_SIGNAL:
+				{
+					int j, already_done;
+					int entityID, siteID, applicationID;
+					struct EntityStatePdu *espdu;
+					struct X3D_EspduTransform* et;
+					espdu = (struct EntityStatePdu*)pdu;
+					
+					//don't send to yourself
+					if(	pnode->applicationID == espdu->entityID.application &&
+						pnode->siteID == espdu->entityID.site) 
+						continue;
+
+					//skip if we already got this entity and are just awaiting creation
+					already_done = FALSE;
+					for(j=0;j<pnode->addEntities.n;j++){
+						struct X3D_Node *candi = (struct X3D_Node*)pnode->addEntities.p[j];
+						if(candi->_nodeType == NODE_DISEntityTypeMapping){
+							struct X3D_DISEntityTypeMapping *et = (struct X3D_DISEntityTypeMapping *)candi;
+							//already_done = FALSE;
+						}else if(candi->_nodeType == NODE_EspduTransform) {
+							// || candi->_nodeType == NODE_ReceiverPdu 
+							// || candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
+							//else if radio etc
+							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)pnode->addEntities.p[j];
+							if(et->entityID == espdu->entityID.entity &&
+								et->applicationID == espdu->entityID.application &&
+								et->siteID == espdu->entityID.site) already_done = TRUE;
+							if(already_done) break;
+						}
+
+					}
+					if(already_done) 
+						continue;
+
+					//we'll use an EspduTransform struct just as a temp struct, not to register.
+					// -for the purpose of communicating with whatever can create a local copy
+					//  of a discovered entity.
+					// right now, that's our EntityManager node.
+					et = createNewX3DNode0(NODE_EspduTransform); //the 0 creator which does not register the node
+					int nodetype = 0;
+					switch(pdu->pduType){
+						case PDU_ENTITY_STATE: nodetype = NODE_EspduTransform; break;
+						case PDU_RECEIVER: nodetype = NODE_ReceiverPdu; break;
+						case PDU_TRANSMITTER: nodetype = NODE_TransmitterPdu; break;
+						case PDU_SIGNAL: nodetype = NODE_SignalPdu; break;
+						default: break;
+					}
+					//copy world coordinates as approx GC, in case < earths radius / 2 (earths core) test later, we use GC instead of default GD,WE
+					vector3double2vec3d(et->geoCoords.c,&espdu->entityLocation);
+
+					et->_nodeType = nodetype;
+					et->applicationID = espdu->entityID.application;
+					et->siteID = espdu->entityID.site;
+					et->entityID = espdu->entityID.entity;
+					et->address = newASCIIString(dsock->address);
+					et->port = dsock->port;
+					et->multicastRelayHost = newASCIIString(dsock->multicastRelayHost);
+					et->multicastRelayPort = dsock->multicastRelayPort;
+					et->entityCategory = espdu->entityType.category;
+					et->entityCountry = espdu->entityType.country;
+					et->entityDomain = espdu->entityType.domain;
+					et->entityKind = espdu->entityType.entityKind;
+					et->entityExtra = espdu->entityType.extra;
+					et->entitySpecific = espdu->entityType.specific;
+					et->entitySubCategory = espdu->entityType.subcategory;
+					
+					{
+						void * pp = pnode->addEntities.p;
+						pnode->addEntities.p = realloc(pp,sizeof(struct X3D_Node*)*upper_power_of_two(pnode->addEntities.n + 1));
+						pnode->addEntities.p[pnode->addEntities.n] = (struct X3D_Node*)et;
+						pnode->addEntities.n++;
+						// >> do I need pnode->_pduchange_create = TRUE;
+					}
+					// ?? do I need MARK_EVENT(X3D_NODE(pnode),offsetof (struct X3D_DISEntityManager,  addEntities));
+					//will get mapped and instanced as geom during entityManager scenegraph visit and compile
+					// >> pnode->_change ++;
+					ihit = 1;
+				}
+				break;
+				default:
+				break;
+			}
+		}
+	}
+	return ihit;
+}
+int dis_entity_retire(struct X3D_DISEntityManager *pnode, struct X3D_Node *node){
+	//we only retire the entities that were created by 'entity_discovery'
+	int iret = 0;
+	if(node->_nodeType == NODE_EspduTransform){
+		if(pnode && pnode->_nodeType == NODE_DISEntityManager){
+			int i;
+			static int ADD = 1, REMOVE = 2;
+			iret = -1;
+			for(i=0;i<pnode->entities.n;i++){
+				if(pnode->entities.p[i] == node){
+					//yes - created by entity discovery
+					AddRemoveChildren(X3D_NODE(pnode),  &pnode->entities, (struct X3D_Node * *)&node, 1, REMOVE,__FILE__,__LINE__);
+					AddRemoveChildren(X3D_NODE(pnode),  &pnode->removedEntities, (struct X3D_Node * *)&node, 1, ADD,__FILE__,__LINE__);
+
+					iret = 1;
+					break;
+				}
+			}
+		}
+	}
+	return iret;
+}
 struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus = NULL;
 	switch(node->_nodeType){
@@ -1355,14 +2106,105 @@ struct Vector * dis_node2pdus(struct X3D_Node *node, int isHeartbeat){
 			pdus = dis_node2pdus_sm(node,isHeartbeat);
 			break;
 		case NODE_ReceiverPdu:
+			pdus = dis_node2pdus_receiver(node,isHeartbeat);
+			break;
 		case NODE_TransmitterPdu:
+			pdus = dis_node2pdus_transmitter(node,isHeartbeat);
+			break;
 		case NODE_SignalPdu:
+			pdus = dis_node2pdus_signal(node,isHeartbeat);
+			break;
 		break;
 	}
 	return pdus;
 }
 static struct Vector *sockets_send = NULL;
 static struct Vector *sockets_recv = NULL;
+
+struct X3D_Node * dis_find_registered_node_by_entityid(int entityid, int sendlist, int recvlist){
+	int i,j;
+	struct X3D_Node *node, *pnode = NULL;
+	if(sendlist)
+	for(i=0;i<sockets_send->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
+		if(dsock->registered){
+			for(j=0;j<dsock->registered->n;j++){
+				int ihit;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_EspduTransform){
+					struct X3D_EspduTransform *espdu = (struct X3D_EspduTransform *)node;
+					if(espdu->entityID == entityid){
+						pnode = node;
+						break;
+					}
+				}
+			}
+		}
+	}
+	if(recvlist)
+	for(i=0;i<sockets_recv->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
+		if(dsock->registered){
+			for(j=0;j<dsock->registered->n;j++){
+				int ihit;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_EspduTransform){
+					struct X3D_EspduTransform *espdu = (struct X3D_EspduTransform *)node;
+					if(espdu->entityID == entityid){
+						pnode = node;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return pnode;
+}
+
+
+				//  kind, domain, country, category, subcategory, specific, extra
+struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int country, int category, int subcategory, int specific, int extra){
+	int i,j,k, ibest, iscore;
+	struct X3D_EspduTransform *best = NULL;
+	ibest = -1;
+	iscore = 0;
+	//check EM already-instanced list
+	for(i=0;i<sockets_recv->n;i++){
+		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
+		if(dsock->registered){
+			for(j=0;j<dsock->registered->n;j++){
+				int ihit;
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_DISEntityManager){
+					struct X3D_DISEntityManager *em = (struct X3D_DISEntityManager *)node;
+					if(em->entities.n){
+						for(k=0;k<em->entities.n;k++){
+							struct X3D_EspduTransform *bnode = (struct X3D_EspduTransform *)em->entities.p[k];
+							if(bnode->_nodeType == NODE_EspduTransform){
+								int jscore = 0;
+								if(domain == bnode->entityDomain) jscore++;
+								if(category == bnode->entityCategory) jscore++;
+								if(country == bnode->entityCountry) jscore++;
+								if(kind == bnode->entityKind) jscore++;
+								if(extra == bnode->entityExtra) jscore++;
+								if(subcategory == bnode->entitySubCategory) jscore++;
+								if(specific == bnode->entitySpecific) jscore++;
+								if(jscore > iscore){
+									iscore = jscore;
+									ibest = i;
+									best = bnode;
+								}
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return (struct X3D_Node*)best;
+}
+
 
 unsigned char buf2[32767];
 
@@ -1382,22 +2224,6 @@ void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *read
 		}
 		break;
 		default:
-		break;
-	}
-}
-void dis_set_node_lasttime(struct X3D_Node *node, double lasttime){
-	//4 nodes have the same field order for common fields, can be cast to Espdu 
-	switch(node->_nodeType){
-		case NODE_ReceiverPdu:
-		case NODE_TransmitterPdu:
-		case NODE_SignalPdu:
-		case NODE_EspduTransform:
-		case NODE_DISEntityManager:
-		{
-			struct X3D_EspduTransform *pnode = (struct X3D_EspduTransform*)node;
-			pnode->_lasttime = lasttime;
-		}
-		break;
 		break;
 	}
 }
@@ -1547,7 +2373,8 @@ void dis_sendloop(){
 
 				//option b.
 				pdus = dis_node2pdus(node,isHeartbeat);
-				dis_set_node_lasttime(node,lasttime);
+				if(isHeartbeat)
+					dis_set_node_lasttime(node,lasttime);
 
 				if(pdus && pdus->n) {
 					struct Pdu* pdu = vector_get(struct Pdu*,pdus,0);
@@ -2016,14 +2843,17 @@ void dis_recvloop(){
 	if(!pdus) pdus = newVector(struct Pdu*,20);
 
 	//since not select()ing we have to check all sockets (if readInterval?)
+	//for 'Entity Discovery' at least one DIS node needs to be in scene, with IP/port to check
 	for(i=0;i<sockets_recv->n;i++){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
 		//things may have built up in the input socket, so we loop till flushed
 		do{
+			struct X3D_DISEntityManager* sockem = NULL;
 			heard = FALSE;
 			more = FALSE;
 			nbytes = sockrecvfrom(dsock,buf,32000);
 			if(nbytes > 0){
+				int nhit = 0;
 				more = TRUE;
 				dsock->lasttime = thistime;
 				//printf("sock read nbytes = %d\n",nbytes);
@@ -2036,6 +2866,9 @@ void dis_recvloop(){
 				dis_read_stream(buf,nbytes,pdus,&heard);
 				//print some stuff to the console, to prove we got a state update
 				//printf("hallelluha %d\n",count++);
+				//check pdus against all nodes registered on the port
+				// in case the message is for an existing node
+
 				if(dsock->registered){
 					for(j=0;j<dsock->registered->n;j++){
 						int ihit;
@@ -2048,7 +2881,17 @@ void dis_recvloop(){
 								ihit = dis_pdus2node_espdu(node, pdus);
 								break;
 							case NODE_DISEntityManager:
+								sockem = (struct X3D_DISEntityManager*) node;
 								ihit = dis_pdus2node_sm(node, pdus);
+								break;
+							case NODE_ReceiverPdu:
+								ihit = dis_pdus2node_receiver(node, pdus);
+								break;
+							case NODE_TransmitterPdu:
+								ihit = dis_pdus2node_transmitter(node, pdus);
+								break;
+							case NODE_SignalPdu:
+								ihit = dis_pdus2node_signal(node, pdus);
 								break;
 							default:
 								break;
@@ -2057,21 +2900,57 @@ void dis_recvloop(){
 							if(heard) set_rtp_heard(node);
 							dis_set_isActive(node,TRUE);
 							dis_set_node_lasttime(node,thistime);
+							nhit += ihit;
 						}
 					}
+				}
+				if(nhit == 0){
+					// any 'left-over' pdus might be 'entity discovery' candidates
+					printf("leftovers ...");
+					nhit = dis_pdus2newnode(dsock,sockem, pdus);
+					printf(" %d used\n",nhit);
 				}
 			}
 		}while(more);
 		if(dsock->registered){
 			//check if any node listeners have gone inactive
+			struct X3D_DISEntityManager* sockem = NULL;
+			for(j=0;j<dsock->registered->n;j++){
+				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
+				if(node->_nodeType == NODE_DISEntityManager){
+					sockem = (struct X3D_DISEntityManager*)node;
+				}
+				if(sockem) break;
+			}
 			for(j=0;j<dsock->registered->n;j++){
 				//update isActive
 				double readinterval, writeinterval, lasttime;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 				dis_get_node_lasttime(node,&lasttime,&readinterval,&writeinterval);
-				if(thistime - lasttime > 5.0)   //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
+				if(thistime - lasttime > 5.0) {
+					 //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
 					dis_set_isActive(node,FALSE);
+				}
+				//if its been several (?) heartbeat increments since we last heard from an entity
+				// the DIS specs talk about removing (opposite of adding by 'entity discovery')
+				if(thistime - lasttime > (5.0 * 3) ){
+					//if in entitymanager state.entities, removeChildren
+					int ihit = 0;
+					if(sockem && node->_nodeType == NODE_EspduTransform ){
+						ihit = dis_entity_retire(sockem,node);
+					}
+					if(ihit == 1) {
+						printf(" retired one\n");
+						//printf("thisttime %lf lasttime %lf\n",thistime,lasttime);
+					}
+					//if(ihit == -1) printf(" cetiree not in EM list\n");
+				}
 			}
+			if(sockem && sockem->removedEntities.n) {
+				//printf("removedEntities.n=%d\n",node->removedEntities.n);
+				MARK_EVENT(X3D_NODE(sockem),offsetof(struct X3D_DISEntityManager,removedEntities));
+			}
+
 		}
 	}
 
@@ -2643,6 +3522,7 @@ void compile_DIS_geo(struct X3D_EspduTransform *node){
 	}
 }
 void compile_DIS_common(struct X3D_EspduTransform *node){
+	//INITIALIZE_EXTENT;
 	compile_DIS_network(node);
 	compile_DIS_geo(node);
 }
@@ -2691,27 +3571,41 @@ void compile_DIS_common_OLD(struct X3D_EspduTransform *node){
 		}
 	}
 }
+// >> RADIO
 void compile_TransmitterPdu0(struct X3D_TransmitterPdu *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
-		node->_pduchange_transmitter = TRUE;
+	if(node->isNetworkReader){
+		mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_transmitter);
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_transmitter)){
+			node->_pduchange_transmitter = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_SignalPdu0(struct X3D_SignalPdu *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_signal)){
-		node->_pduchange_signal = TRUE;
+	if(node->isNetworkReader){
+		mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_signal);
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_signal)){
+			node->_pduchange_signal = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
 void compile_ReceiverPdu0(struct X3D_ReceiverPdu *node){
-	if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_receiver)){
-		node->_pduchange_receiver = TRUE;
+	if(node->isNetworkReader){
+		mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_receiver);
+	}else if(node->isNetworkWriter){
+		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_receiver)){
+			node->_pduchange_receiver = TRUE;
+		}
 	}
 	freeMallocedNodeFields(node->_oldState);
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 }
+// << RADIO
 
 void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
@@ -2731,7 +3625,7 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_fire);
 		}
 		if(node->_pduchange_fire || node->_pduchange_collision){
-			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_events);
+			//mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_events);
 		}
 		if(node->_pduchange_detonation){
 			mark_changed_node_fields(X3D_NODE(node), node->_oldState, FIELDS_detonation);
@@ -2791,8 +3685,8 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 			node->_pduchange_collision = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_events)){
-			node->_pduchange_collision = TRUE;
-			node->_pduchange_fire = TRUE;
+			//node->_pduchange_collision = TRUE;
+			//node->_pduchange_fire = TRUE;
 		}
 		if(shallow_compare_node_fields(X3D_NODE(node),node->_oldState,FIELDS_fire)){
 			node->_pduchange_fire = TRUE;
@@ -3300,6 +4194,83 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 		geofin(GEOSYS(node->__geoSystem),&node->geoCoords); //has vp_render filters //fin_EspduTransform0(node);
 
 } 
+void render_munitions(struct X3D_EspduTransform *node){
+	//I have no ideas. something about quantity, velocity, start/end or startpoint
+	//a) update locations based on time and trajectory - like partical physics
+	//b) render each munition instance
+	if(!renderstate()->render_vp) {
+
+		if(node->fired1){
+			int i;
+			struct X3D_EspduTransform * mnode;
+			static int eventNumber = 0;
+			if(node->eventNumber > eventNumber){
+				node->firedTime = TickTime();
+				eventNumber = node->eventNumber;
+			}
+			double dtime =  TickTime() - (double)node->munitionQuantity/(double)max(1,node->firingRate) - node->firedTime ;
+			if(dtime > 5.0) return; //already finished
+			mnode = (struct X3D_EspduTransform*)dis_find_registered_node_by_entityid(node->munitionEntityID,TRUE,TRUE);
+			if(mnode){
+				for(i=0;i<node->munitionQuantity;i++){
+					//how about a 1 second gap between burst pals
+					dtime = max(0.0,TickTime() - (double)i/(double)max(1,node->firingRate)  - node->firedTime);
+					dtime = min(5.0,dtime);
+					float delta[3], velocity[3], progress[3], loc[3];
+					vecdif3f(delta,node->munitionEndPoint.c,node->munitionStartPoint.c);
+					vecscale3f(velocity,delta,1.0f/3.0f);
+					vecscale3f(progress,velocity,(float)dtime);
+					if(veclength3f(progress) > veclength3f(delta)) {
+						// detonate or whatever you do when munition reaches target
+						veccopy3f(loc,node->munitionEndPoint.c);
+						if(i==(node->munitionQuantity-1)){
+							node->fired1 = FALSE; //last munition in burst hit target
+							node->detonateTime = TickTime();
+						}
+					} else {
+						vecadd3f(loc,node->munitionStartPoint.c,progress);
+						// render munition instance
+					}
+					FW_GL_PUSH_MATRIX();
+					FW_GL_TRANSLATE_F(loc[0],loc[1],loc[2]);
+					//static int k = 0;
+					//if(k++ % 120 == 0) 
+					//	printf("%lf %lf %lf\n",loc[0],loc[1],loc[2]);
+					//strip espdu wrapper (otherwise we have geoLocation wrapping geoLocation - double geo transform
+					normalChildren(mnode->children);
+					FW_GL_POP_MATRIX();
+				}
+			}
+		}
+	}
+}
+void render_detonation(struct X3D_EspduTransform *node){
+	//I have no ideas. something about quantity, velocity, start/end or startpoint
+	//a) update locations based on time and trajectory - like partical physics
+	//b) render each munition instance
+	if(!renderstate()->render_vp) {
+		double dtime = TickTime() - node->detonateTime;
+		if( dtime > 0.0 && dtime < .5){
+			int i;
+			struct X3D_EspduTransform * mnode;
+			mnode = (struct X3D_EspduTransform*)dis_find_registered_node_by_entityid(node->munitionEntityID,TRUE,TRUE);
+			if(mnode){
+				for(i=0;i<node->munitionQuantity;i++){
+					float loc[3], fscale;
+					//how about a 1 second gap between burst pals
+					veccopy3f(loc,node->detonationRelativeLocation.c);
+					FW_GL_PUSH_MATRIX();
+					FW_GL_TRANSLATE_F(loc[0],loc[1],loc[2]);
+					fscale = dtime * 10.0f;
+					FW_GL_SCALE_F(fscale,fscale,fscale);
+					normalChildren(mnode->children);
+					FW_GL_POP_MATRIX();
+				}
+			}
+		}
+	}
+}
+void dis_register_collide(struct X3D_Node* node,double *transform);
 void child_EspduTransform (struct X3D_EspduTransform *node) {
 	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
@@ -3309,7 +4280,11 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 
 	/* any children at all? */
 	if (nc==0) return;
-
+	{
+		double modelviewMatrix[16];
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+		dis_register_collide(X3D_NODE(node),modelviewMatrix);
+	}
 	//if(node->__sibAffectors.n)
 	//	printf("have transform sibaffectors\n");
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
@@ -3330,6 +4305,13 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 
 	normalChildren(node->_sortedChildren);
 
+	//render munitions
+	render_munitions(node);
+	//render detonations
+	render_detonation(node);
+	//render collisions
+
+
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
@@ -3339,6 +4321,7 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 }
 
 
+// >> RADIO
 // first parts of radio node structs ynchronized so as to match Espdu struct so
 // the 3 radio nodes can be cast to EspduTransform for common field handling
 void compile_TransmitterPdu (struct X3D_TransmitterPdu *node) { 
@@ -3378,6 +4361,9 @@ void child_ReceiverPdu (struct X3D_ReceiverPdu *node) {
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
 	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
+
+//<< RADIO
+
 void print_entitymapping(struct X3D_DISEntityTypeMapping *anode){
 	ConsoleMessage("domain %d category %d country %d kind %d extra %d subcat %d spec %d\n",
 	anode->domain, anode->category,anode->country, anode->kind, anode->extra, anode->subcategory, anode->specific);
@@ -3387,10 +4373,20 @@ void compile_DISEntityManager(struct X3D_DISEntityManager *node){
 	compile_DISEntityManager0(node);
 	MARK_NODE_COMPILED
 }
+static int app_entity_last_id = 0;
+int newEntityID(){
+//for current app instance
+	app_entity_last_id++;
+	return app_entity_last_id;
+}
+#define GEOEL_WE_A	(double)6378137
 void child_DISEntityManager(struct X3D_DISEntityManager *node){
 	//Problem: web3d doesn't have a sender entitymanager. So its dependant on other (unknown) ?commercial? programs.
-	//Solution: modify DISEntityManager to have networkMode='networkWriter' 
-	// and an MFnode initializeOnly field of EntityTypeMapping nodes 
+	//Solution 1: modify DISEntityManager to have networkMode='networkWriter' 
+	// and an MFnode initializeOnly field of EntityTypeMapping nodes
+	//Solution 2: 'entity discovery' by listening -> entity manager for creation
+	// - done in the pdu receive loop, if there are 'leftover pdus' they are
+	//   examined as candidates for entity discovery, and sent here via .addEntities
 	static int ADD = 1, REMOVE = 2;
 	COMPILE_IF_REQUIRED
 	//like add remove children in opengl utils
@@ -3399,75 +4395,163 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 		struct Multi_Node* mfn = &node->entities;
 		node->addedEntities.n = 0;
 		for(j=0;j<node->addEntities.n;j++){
-			
-			if(node->addEntities.p[j]->_nodeType == NODE_DISEntityTypeMapping){
-				int ibest,iscore,jscore;
-				struct X3D_DISEntityTypeMapping *best, *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
-				ibest = -1;
-				iscore = 0;
-				best = NULL;
-				//printf("requested:");
+			int ibest,iscore,jscore;
+			int entityID, applicationID, siteID;
+			int port, multicastRelayPort;
+			struct Uni_String *address, *networkMode, *multicastRelayHost;
+			struct X3D_Node *candi;
+			struct X3D_DISEntityTypeMapping *best;
+			int use_GC = FALSE;
+
+			// = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
+			ibest = -1;
+			iscore = 0;
+			best = NULL;
+			candi = node->addEntities.p[j];
+			if(candi->_nodeType == NODE_DISEntityTypeMapping)
+			{
+				//problem: the DISEntityTypeMapping doesn't have a field for entityID
+				//	- that's OK when we are just told to create-and-own a new entity
+				//		-we can assign our siteID, applicationID and increment our entityID count for entityID
+				//  x but not for entity discovery
+				//  * so we added some fields _entityID,_applicationID,_siteID for copying from sniffed pdu
+				//      and sending to the .addEntities list
 				//print_entitymapping(anode);
+				struct X3D_DISEntityTypeMapping *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
 				for(i=0;i<node->mapping.n;i++){
-					if(node->mapping.p[i]->_nodeType == NODE_DISEntityTypeMapping){
-						struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
-						//printf("compare %d",i);
-						//print_entitymapping(bnode);
-						jscore = 0;
-						if(anode->domain == bnode->domain) jscore++;
-						if(anode->category == bnode->category) jscore++;
-						if(anode->country == bnode->country) jscore++;
-						if(anode->kind == bnode->kind) jscore++;
-						if(anode->extra == bnode->extra) jscore++;
-						if(anode->subcategory == bnode->subcategory) jscore++;
-						if(anode->specific == bnode->specific) jscore++;
-						if(jscore > iscore){
-							iscore = jscore;
-							ibest = i;
-							best = bnode;
-						}
+					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+					//printf("compare %d",i);
+					//print_entitymapping(bnode);
+					jscore = 0;
+					if(anode->domain == bnode->domain) jscore++;
+					if(anode->category == bnode->category) jscore++;
+					if(anode->country == bnode->country) jscore++;
+					if(anode->kind == bnode->kind) jscore++;
+					if(anode->extra == bnode->extra) jscore++;
+					if(anode->subcategory == bnode->subcategory) jscore++;
+					if(anode->specific == bnode->specific) jscore++;
+					if(jscore > iscore){
+						iscore = jscore;
+						ibest = i;
+						best = bnode;
 					}
 				}
 				if(ibest > -1){
-					int isgroup = 0;
-					//printf("ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
-					if (best->_child == NULL) {
-						struct X3D_Inline * iline;
-						struct X3D_EspduTransform *espdu;
-						struct X3D_Group *grp;
-						iline = createNewX3DNode(NODE_Inline); //this assigns a parent resource using parsing thread methods, which is wrong for rendering thread
-						//resource_item_t *pres = iline->_parentResource;
-						iline->_parentResource = X3D_PROTO(node->_executionContext)->_parentResource; //for rendering-thread creation of inlines, use the parent context's parentResource
-						if(isgroup)
-							grp = createNewX3DNode(NODE_Group);
-						else
-							espdu = createNewX3DNode(NODE_EspduTransform);
-						if(best->_executionContext){
-							add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(iline));
-							if(isgroup)
-								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(grp));
-							else
-								add_node_to_broto_context(X3D_PROTO(best->_executionContext),X3D_NODE(espdu));
-						}
-						best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+					applicationID = node->applicationID;
+					siteID = node->siteID;
+					entityID = newEntityID(); //anode->_entityID;
+					address = node->address;
+					port = node->port;
+					networkMode = newASCIIString ("networkWriter"); //if we're ordered to create, usually that also means own
+					multicastRelayHost = node->multicastRelayHost;
+					multicastRelayPort = node->multicastRelayPort;
 
-						ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
-						if(isgroup)
-							AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
-						else
-							AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
-						/* copy over the URL from parent */
-						shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
-						iline->load = TRUE;
+				}
+			} else if(candi->_nodeType == NODE_EspduTransform) {
+				// || candi->_nodeType == NODE_ReceiverPdu 
+				//	|| candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
+				//this comes from 'entity discovery' from leftovver pdus
+				struct X3D_EspduTransform *anode = (struct X3D_EspduTransform *)node->addEntities.p[j];
+				for(i=0;i<node->mapping.n;i++){
+					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+					//printf("compare %d",i);
+					//print_entitymapping(bnode);
+					jscore = 0;
+					if(anode->entityDomain == bnode->domain) jscore++;
+					if(anode->entityCategory == bnode->category) jscore++;
+					if(anode->entityCountry == bnode->country) jscore++;
+					if(anode->entityKind == bnode->kind) jscore++;
+					if(anode->entityExtra == bnode->extra) jscore++;
+					if(anode->entitySubCategory == bnode->subcategory) jscore++;
+					if(anode->entitySpecific == bnode->specific) jscore++;
+					if(jscore > iscore){
+						iscore = jscore;
+						ibest = i;
+						best = bnode;
 					}
-
-					AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&best, 1, ADD,__FILE__,__LINE__);
-					AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
+				}
+				if(ibest > -1){
+					applicationID = anode->applicationID;
+					siteID = anode->siteID;
+					entityID = anode->entityID;
+					address = anode->address;
+					port = anode->port;
+					networkMode = newASCIIString ("networkReader"); //if we discovered entity by its heartbeats, then we're reading
+					multicastRelayHost = anode->multicastRelayHost;
+					multicastRelayPort = anode->multicastRelayPort;
+					if(veclengthd(anode->geoCoords.c) < GEOEL_WE_A/2.0) use_GC = TRUE; //earths core GD,WE doesn't work well here 
 				}
 			}
+
+			if(ibest > -1){
+				int isgroup = 0;
+				//printf("ibest = %d iscore= %d url=%s\n",ibest,iscore,best->url.p[0]->strptr);
+				//if (best->_child == NULL) {
+					struct X3D_Inline * iline;
+					struct X3D_EspduTransform *espdu;
+					//struct X3D_Group *grp;
+					iline = createNewX3DNode(NODE_Inline); //this assigns a parent resource using parsing thread methods, which is wrong for rendering thread
+					//resource_item_t *pres = iline->_parentResource;
+					iline->_parentResource = X3D_PROTO(node->_executionContext)->_parentResource; //for rendering-thread creation of inlines, use the parent context's parentResource
+					//if(isgroup){
+					//	grp = createNewX3DNode(NODE_Group);
+					//}else{
+						//this is 'normal' according to specs we are supposed to generate espdus
+						espdu = createNewX3DNode(NODE_EspduTransform);
+						if(use_GC) {
+							espdu->geoSystem.p[0] = newASCIIString("GC");
+							espdu->geoSystem.n = 1;
+						}
+						//populate entity fields - so it starts swallowing the heartbeat and update pdus of the entity
+						espdu->enabled = TRUE;
+						espdu->isActive = TRUE;
+						espdu->entityID = entityID;
+						espdu->applicationID = applicationID;
+						espdu->siteID = siteID;
+						espdu->port = port;
+						espdu->address = address;
+						espdu->multicastRelayHost = multicastRelayHost;
+						espdu->multicastRelayPort = multicastRelayPort;
+						espdu->networkMode = networkMode;
+						dis_set_node_lasttime(X3D_NODE(espdu),TickTime());
+
+						/*
+						void *dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
+								int multicastRelayPort,
+								char *networkMode, int port,double readInterval,int rtpHeaderExpected,int siteID,double writeInterval)
+						*/
+						dis_register(X3D_NODE(espdu),address->strptr,applicationID,entityID,multicastRelayHost->strptr,multicastRelayPort,
+							networkMode->strptr,port,5.0,FALSE,siteID,5.0);
+					//}
+					//if(best->_executionContext){
+						add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(iline));
+						//if(isgroup)
+						//	add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(grp));
+						//else
+							add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(espdu));
+					//}
+					//best->_child = isgroup ? X3D_NODE(grp) : X3D_NODE(espdu);
+
+					//ADD_PARENT(X3D_NODE(best->_child), X3D_NODE(best));
+					//if(isgroup)
+					//	AddRemoveChildren(X3D_NODE(grp),  &grp->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
+					//else
+						AddRemoveChildren(X3D_NODE(espdu),  &espdu->children, (struct X3D_Node * *)&iline, 1, ADD,__FILE__,__LINE__);
+					/* copy over the URL from parent */
+					shallow_copy_field(FIELDTYPE_MFString,(union anyVrml*)&best->url,(union anyVrml*)&iline->url);
+					iline->load = TRUE;
+				//}
+
+				AddRemoveChildren(X3D_NODE(node),  mfn, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
+				//AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&best->_child, 1, ADD,__FILE__,__LINE__);
+				AddRemoveChildren(X3D_NODE(node),  &node->addedEntities, (struct X3D_Node * *)&espdu, 1, ADD,__FILE__,__LINE__);
+
+			}
+
 		}
 		if(node->addedEntities.n) MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_DISEntityManager,addedEntities));
 		node->addEntities.n = 0;
+		FREE_IF_NZ(node->addEntities.p);
 	}
 	if(node->removeEntities.n){
 		int i,j;
@@ -3515,6 +4599,98 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 		node->removeEntities.n = 0;
 	}
 }
+Stack *dis_collide_stack = NULL;
+void dis_collide(){
+	int i,j;
+	if(dis_collide_stack){
+		for(i=0;i<dis_collide_stack->n;i++){
+			int ihit;
+			float ee[6];
+			double mvmInverse[16], m2m[16];
+			struct X3D_EspduTransform *espdu;
+
+			usehit *uhit = vector_get_ptr(usehit,dis_collide_stack,i);
+			espdu = (struct X3D_EspduTransform*)uhit->node;
+			if(espdu->isNetworkReader) continue; //do only OWNED/isWriter,isNeutral, listen for the rest
+			ihit = 0;
+			//invert matrix
+			matinverseAFFINE(mvmInverse,uhit->mvm);
+			extent6f_copy(ee,uhit->node->_extent);
+			for(j=0;j<dis_collide_stack->n;j++){
+				if(j != i){
+					float eeb[6],eeba[6],eaXb[6];
+					usehit *uhitb = vector_get_ptr(usehit,dis_collide_stack,j);
+					extent6f_copy(eeb,uhitb->node->_extent);
+					if(extent6f_isSet(eeb)){
+						//multiply matrices
+						matmultiplyAFFINE(m2m,mvmInverse,uhitb->mvm);
+						//convert B extent to A-space
+						extent6f_mattransform4d(eeba,eeb,m2m);
+						//compare extents
+						extent6f_intersect_extent6f(eaXb,ee,eeba);
+						if(extent6f_isSet(eaXb)){
+							//they overlap/intersect/collide
+							//extent6f_printf(ee); printf("ee  \n"); 
+							//extent6f_printf(eeb); printf("eeb \n"); 
+							//extent6f_printf(eeba); printf("eeba\n"); 
+							//extent6f_printf(eaXb); printf("eaXb\n");
+							//we'll just change A, and just for its collistion with B
+							struct X3D_EspduTransform *espdub = (struct X3D_EspduTransform*)uhitb->node;
+							if(espdu->isCollided == FALSE){
+								espdu->collideTime = TickTime();
+								espdu->eventNumber = dis_next_event_number();
+							}
+							espdu->collisionType = 33;
+							espdu->isCollided = TRUE;
+							espdu->eventSiteID = espdub->siteID;
+							espdu->eventApplicationID = espdub->applicationID;
+							espdu->eventEntityID = espdub->entityID;
+							ihit++;
+							//H we automatically do this during node compile:
+							MARK_EVENT(X3D_NODE(espdu),offsetof(struct X3D_EspduTransform,isCollided));
+							break;
+						}
+					}
+				}
+			}
+			if(ihit == 0) {
+				if(espdu->isCollided){
+					espdu->isCollided = FALSE;
+					espdu->collideTime = 0.0;
+					espdu->collisionType = 0;
+					espdu->eventSiteID = 0;
+					espdu->eventApplicationID = 0;
+					espdu->eventEntityID = 0;
+					MARK_EVENT(X3D_NODE(espdu),offsetof(struct X3D_EspduTransform,isCollided));
+				}
+			}
+		}
+	}
+}
+void dis_clear_collide(){
+	if(dis_collide_stack) dis_collide_stack->n = 0;
+}
+void dis_register_collide(struct X3D_Node* node,double *transform){
+	//call from child_espduTransform 
+	int i, ifound;
+	if(!dis_collide_stack) dis_collide_stack = newStack(usehit);
+	ifound = -1;
+	for(i=0;i<dis_collide_stack->n;i++){
+		usehit *uhit = vector_get_ptr(usehit,dis_collide_stack,i);
+		if(uhit->node == node){
+			ifound = i;
+			break;
+		}
+	}
+	if(ifound == -1){
+		usehit uhit;
+		uhit.node = node;
+		memcpy(uhit.mvm,transform,16*sizeof(double));
+		uhit.userdata = NULL;
+		vector_pushBack(usehit,dis_collide_stack,uhit);
+	}
+
+}
 #else //WITH_DIS
 
 void compile_DISEntityManager(struct X3D_DISEntityManager *node){}
@@ -3561,8 +4737,10 @@ void fwl_sendreceive_DIS(){
 	if(allow_DIS){
 #ifdef WITH_DIS
 		//printf("yo from fwl_sendreceive_DIS\n");
+		dis_collide();
 		dis_sendloop();
 		dis_recvloop();
+		dis_clear_collide();
 #endif //WITH_DIS
 	}
 }

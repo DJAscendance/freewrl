@@ -5384,6 +5384,12 @@ void startOfLoopNodeUpdates(void) {
 					CHILDREN_NODE(GeoLocation)
 				END_NODE
 
+				BEGIN_NODE (EspduTransform)
+					propagateExtent(X3D_NODE(node));
+					CHILDREN_NODE(EspduTransform)
+				END_NODE
+
+
 				BEGIN_NODE(MetadataSFBool) CMD(SFBool,node); END_NODE
 				BEGIN_NODE(MetadataSFFloat) CMD(SFFloat,node); END_NODE
 				BEGIN_NODE(MetadataMFFloat) CMD(MFFloat,node); END_NODE
@@ -5492,12 +5498,11 @@ void startOfLoopNodeUpdates(void) {
 				//}
 
 				AddRemoveChildren(node,childrenPtr,(struct X3D_Node * *) addChildren->p,addChildren->n,1,__FILE__,__LINE__);
-
 				// now go through and tell the addChildren field that the
 				// event has been processed.
 				for (i=0; i<addChildren->n; i++) {
 					struct X3D_Node *ch = X3D_NODE(addChildren->p[i]);
-					remove_parent(ch,node);
+					add_parent(ch,node,__FILE__,__LINE__);
 				}
 
 				addChildren->n=0;
