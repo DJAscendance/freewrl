@@ -1135,6 +1135,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 	return pdus;
 
 }
+
 struct Vector * dis_node2pdus_receiver(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus;
 	struct X3D_ReceiverPdu * pnode = (struct X3D_ReceiverPdu*)node;
@@ -1229,6 +1230,7 @@ struct Vector * dis_node2pdus_transmitter(struct X3D_Node *node, int isHeartbeat
 	}
 	return pdus;
 }
+#define ONE_INT32_PER_SIGNAL_DATA_BYTE TRUE
 struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
 	struct Vector *pdus;
 	struct X3D_SignalPdu * pnode = (struct X3D_SignalPdu*)node;
@@ -1247,9 +1249,17 @@ struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
   //SFInt32  [in,out] sampleRate         0            [0,65535]
   //SFInt32  [in,out] samples            0            [0,65535]
   //SFInt32  [in,out] tdlType            0            [0,65535]
-
-		memcpy(spdu->data,pnode->data.p,pnode->dataLength);
-		spdu->dataLength = pnode->dataLength;
+		spdu->data = realloc(spdu->data,pnode->dataLength*sizeof(unsigned char));
+  		if(ONE_INT32_PER_SIGNAL_DATA_BYTE){
+			int k;
+			unsigned char *cdata = (unsigned char *)spdu->data;
+			for(k=0;k<spdu->dataLength;k++){
+				cdata[k] = (unsigned char)((unsigned int)pnode->data.p[k] % 256);
+			}
+		}else{
+			memcpy(spdu->data,pnode->data.p,pnode->dataLength);
+			spdu->dataLength = pnode->dataLength;
+		}
 		spdu->encodingScheme = pnode->encodingScheme;
 		spdu->sampleRate = pnode->sampleRate;
 		spdu->samples = pnode->samples;
@@ -1806,6 +1816,7 @@ int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
 	}
 	return ihit;
 }
+// #define ONE_INT32_PER_SIGNAL_DATA_BYTE TRUE
 int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
 	struct Pdu* pdu;
@@ -1830,10 +1841,18 @@ int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 				ihit++;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
-
-				memcpy(pnode->data.p,spdu->data,pnode->dataLength);
+				if(ONE_INT32_PER_SIGNAL_DATA_BYTE){
+					int k;
+					unsigned char *cdata = (unsigned char *)spdu->data;
+					pnode->data.p = realloc(pnode->data.p,spdu->dataLength*sizeof(int));
+					for(k=0;k<spdu->dataLength;k++){
+						pnode->data.p[k] = (int)(cdata[k]);
+					}
+				}else{
+					memcpy(pnode->data.p,spdu->data,pnode->dataLength);
+					pnode->data.n = (spdu->dataLength + 4) / 4;
+				}
 				pnode->dataLength = spdu->dataLength;
-				pnode->data.n = (spdu->dataLength + 4) / 4;
 				pnode->encodingScheme = spdu->encodingScheme;
 				pnode->sampleRate = spdu->sampleRate;
 				pnode->samples = spdu->samples;
