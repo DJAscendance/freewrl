@@ -2297,12 +2297,13 @@ void compile_NurbsSwungSurface(struct X3D_NurbsSwungSurface *node){
 	// then delegate to NurbsPatchSurface
 	//Swung: 
 	patch = (struct X3D_NurbsPatchSurface*) node->_patch;
-	controlPoint = (struct X3D_Coordinate*)patch->controlPoint;
 	if(!patch){
 		patch = (struct X3D_NurbsPatchSurface*)createNewX3DNode(NODE_NurbsPatchSurface);
 		controlPoint = (struct X3D_Coordinate*)createNewX3DNode(NODE_Coordinate);
 		node->_patch = X3D_NODE(patch);
 		patch->controlPoint = X3D_NODE(controlPoint);
+	}else{
+		controlPoint = (struct X3D_Coordinate*)patch->controlPoint;
 	}
 
 	trajectoryxz = (struct X3D_NurbsCurve2D *)node->trajectoryCurve;
