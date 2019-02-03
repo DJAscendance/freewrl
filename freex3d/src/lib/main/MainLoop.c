@@ -4273,7 +4273,8 @@ int fwl_handle_mouse_multi(int mev, int butnum, int mouseX, int mouseY, unsigned
 	fwl_handle_mouse_multi_yup(mev,butnum,mouseX,yup,ID,windex);
 	return getCursorStyle();
 }
-int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
+
+int fwl_handle_mouse0(int mev, int butnum, int mouseX, int mouseY, int windex){
 	int cstyle, tactic_up_drag;
 	static unsigned int ID = 1;
 	ttglobal tg = gglobal();
@@ -4323,6 +4324,10 @@ int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
 		cstyle = fwl_handle_mouse_multi(mev,butnum,mouseX,mouseY,ID,windex);
 	}
 	return cstyle;
+}
+int(*fwl_handle_mousePTR)(const int mev, const unsigned int button, int x, int y, int windex) = fwl_handle_mouse0;
+int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
+	return fwl_handle_mousePTR(mev, butnum, mouseX, mouseY, windex);
 }
 int fwl_handle_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
 	int cstyle;

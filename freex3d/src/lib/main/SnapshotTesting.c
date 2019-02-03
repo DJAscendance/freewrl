@@ -32,6 +32,9 @@ void fwl_set_modePlayback()
 void fwl_set_nameTest(char *nameTest)
 {
 }
+void fwl_set_testPath(char *testPath)
+{
+}
 #endif //ifndef USE_SNAPSHOT_TESTING
 
 
@@ -92,6 +95,7 @@ Summary of testing command line options:
 	on whether you did a snapshot and/or log command during recording.
 -P or --playback
 	Identical to option -F or --fixture except puts test fixtures into /playback folder.
+-Y or --testpath <path to top test folder>
 
 */
 
@@ -145,6 +149,7 @@ typedef struct pSnapshotTesting{
 	int modePlayback;
 	int fwplayOpened;
 	char *nameTest;
+	char *testPath;
 	int frameNum; //for Record, Playback - frame# =0 after scene loaded
 	struct playbackRecord* playback;
 	int playbackCount;
@@ -172,6 +177,7 @@ void SnapshotTesting_init(struct tSnapshotTesting *t){
 		p->modeFixture = FALSE;
 		p->modePlayback = FALSE;
 		p->nameTest = NULL;
+		p->testPath = NULL;
 		p->frameNum = 0;
 		p->playbackCount = 0;
 		p->playback = NULL;
@@ -193,6 +199,15 @@ static ppSnapshotTesting get_ppSnapshotTesting(){
 	}
 	return (ppSnapshotTesting)SnapshotTesting.prv;
 }
+
+/*
+When playing back, you don't have key and mouse events to trigger dequeueing
+- so during record, you enqueue mouse and key from their message threads
+- and dequeue to use them in the scene, during rendersceneupdatescene, giving the frame's timestamp to all mouse and key dequeued
+- then during Fixture and Playback, we dequeue again in the rendersceneupdatescene on the timestamped frame
+- and forward them to the key and mouse message queuus
+*/
+
 
 int dequeueKeyPress(ppSnapshotTesting p,int *key, int *type){
 	if(p->keypressQueueCount > 0){
@@ -307,8 +322,8 @@ void fwl_do_rawKeyPressTESTING(int key, int type) {
 		fwl_do_keyPress0(key,type);
 	}
 }
-void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x, int y, int ID);
-void fwl_handle_aqua_multiTESTING(const int mev, const unsigned int button, int x, int y, int ID)
+int fwl_handle_mouse0(const int mev, const unsigned int button, int x, int y, int windex);
+int fwl_handle_aqua_TESTING(const int mev, const unsigned int button, int x, int y, int windex)
 {
 	ppSnapshotTesting p;
 	//ttglobal tg = gglobal();
@@ -317,12 +332,12 @@ void fwl_handle_aqua_multiTESTING(const int mev, const unsigned int button, int 
 
 	if(p->modeRecord || p->modeFixture || p->modePlayback){
 		if(p->modeRecord){
-			queueMouseMulti(p,mev,button,x,y,ID);
+			queueMouseMulti(p,mev,button,x,y,windex);
 		}
 		//else ignor so test isn't ruined by random mouse movement during playback
-		return;
+		return 0;
 	}
-	fwl_handle_aqua_multiNORMAL(mev, button, x, y, ID);
+	return fwl_handle_mouse0(mev, button, x, y, windex);
 }
 
 void fwl_set_modeRecord()
@@ -357,6 +372,28 @@ void fwl_set_nameTest(char *nameTest)
 	p = get_ppSnapshotTesting();
     p->nameTest = STRDUP(nameTest);
 }
+void fwl_set_testPath(char *testPath)
+{
+	ppSnapshotTesting p;
+	int ierr;
+	//ttglobal tg = gglobal();
+	//p = (ppSnapshotTesting)tg->SnapshotTesting.prv;
+	p = get_ppSnapshotTesting();
+	p->testPath = STRDUP(testPath);
+	ierr = chdir(p->testPath);
+	if (ierr == -1) {
+		//folder may not exist yet. Try and create it.
+		mkdir(p->testPath);
+		ierr = chdir(p->testPath);
+	}
+	if (1) {
+		//where are we?
+		char cwd[1000];
+		getcwd(cwd, 999);
+		printf("current working directory= %s\n", cwd);
+	}
+	//printf("ierr = %d", ierr);
+}
 
 char *nameLogFileFolderTESTING(char *logfilename, int size){
 	ppSnapshotTesting p;
@@ -389,8 +426,9 @@ char *nameLogFileFolderTESTING(char *logfilename, int size){
 }
 
 
-int fw_mkdir(char* path);
+int fw_mkdir(const char* path);
 void fwl_RenderSceneUpdateScene0(double dtime);
+void fwl_RenderSceneUpdateSceneTARGETWINDOWS();
 void fwl_RenderSceneUpdateSceneTESTING() {
 	double dtime;
 	//ttglobal tg = gglobal();
@@ -539,6 +577,12 @@ void fwl_RenderSceneUpdateSceneTESTING() {
 			int i;
 			char temp[1000];
 			if(p->frameNum == 1){
+				if(0){
+					//where are we?
+					char cwd[1000];
+					getcwd(cwd, 999);
+					printf("current working directory= %s\n", cwd);
+				}
 				p->recordingFile = fopen(p->recordingFName, "w");
 				if(p->recordingFile == NULL){
 					printf("ouch recording file %s not found\n", p->recordingFName);
@@ -724,6 +768,7 @@ void fwl_RenderSceneUpdateSceneTESTING() {
 						}
 					}
 					fwl_do_keyPress0(key, type);
+
 				}
 			}
 			if(strlen(mouseStr)>2){
@@ -738,26 +783,27 @@ void fwl_RenderSceneUpdateSceneTESTING() {
 						if(mouseStr[i] == ';') break;
 
 					sscanf(&mouseStr[ii],"%d,%d,%d,%d,%d;",&mev,&button,&ix,&iy,&ID);
-					fwl_handle_aqua_multiNORMAL(mev,button,ix,iy,ID);
-
+					//fwl_handle_aqua_multiNORMAL(mev,button,ix,iy,ID);
+					fwl_handle_mouse0(mev, button, ix, iy, ID);
 					//printf("%d,%d,%f,%f;",mev,button,x,y);
 					ii=i+1;
 				}while(ii<len-1);
 			}
 		}
 	}
-	fwl_RenderSceneUpdateScene0(dtime);
+	fwl_RenderSceneUpdateSceneTARGETWINDOWS();
+	//fwl_RenderSceneUpdateScene0(dtime);
 }
 extern void (*fwl_do_rawKeyPressPTR)(int key, int type);
-extern void (*fwl_handle_aqua_multiPTR)(const int mev, const unsigned int button, int x, int y, int ID);
+extern int (*fwl_handle_mousePTR)(const int mev, const unsigned int button, int x, int y, int windex);
 extern void (*fwl_RenderSceneUpdateScenePTR)();
 extern void (*handlePTR)(const int mev, const unsigned int button, const float x, const float y);
 extern char * (*nameLogFileFolderPTR)(char *logfilename, int size);
 void SnapshotTesting_setHandlers(){
 	fwl_do_rawKeyPressPTR = fwl_do_rawKeyPressTESTING;
-	fwl_handle_aqua_multiPTR = fwl_handle_aqua_multiTESTING;
+	fwl_handle_mousePTR = fwl_handle_aqua_TESTING;
 	fwl_RenderSceneUpdateScenePTR = fwl_RenderSceneUpdateSceneTESTING;
-	handlePTR = handleTESTING;
+	//handlePTR = handleTESTING;
 	nameLogFileFolderPTR = nameLogFileFolderTESTING;
 }
 
