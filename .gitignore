@@ -9,6 +9,7 @@ ipch
 *.user
 *.suo
 *.sdf
+.vs/
 Thumbs.db
 *.opensdf
 #make ignore:
