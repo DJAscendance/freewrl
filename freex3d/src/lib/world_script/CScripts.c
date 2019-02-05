@@ -110,7 +110,7 @@ struct ScriptFieldDecl* newScriptFieldDecl(struct VRMLLexer* me, indexT mod, ind
 
 	/* shaderID will get set when shader is activiated */
  	ret->fieldDecl=newFieldDecl(mod, type, name, 
-		JSparamIndex(lexer_stringUser_fieldName(me,name,mod),FIELDTYPES[type])
+		JSparamIndex(lexer_stringUser_fieldName(me,name,mod),FIELDTYPES[type],mod)
 		, -1);
  ASSERT(ret->fieldDecl);
 
@@ -486,7 +486,7 @@ static bool script_initCodeFromBLOB(struct Shader_Script* me, const char* uri, c
 	}
 	return FALSE;
 }
-static void script_initCodeFromMFUri_download(struct Shader_Script* me, struct Multi_String *s){
+static void script_initCodeFromMFUri_download(struct Shader_Script* me, const struct Multi_String *s){
 	 /* Not a valid script text in this MFString. Lets see if this
 		is this a possible file that we have to get? */
 	resource_item_t *res, *parentres;
@@ -582,4 +582,34 @@ char *shader_initCodeFromMFUri(const struct Multi_String* s) {
 
 	/* failure... */
  	return NULL;
+}
+
+
+int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int **valueChanged){
+	//sp = (struct Shader_Script *)snode->__scriptObj;
+	int k;
+	struct ScriptFieldDecl *sfield;
+	struct Vector *sfields;
+	struct FieldDecl *fdecl;
+	struct CRjsnameStruct *JSparamnames = getJSparamnames();
+
+
+	sfields = sp->fields;
+	for(k=0;k<sfields->n;k++)
+	{
+		char *fieldName;
+		sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
+		//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
+		fdecl = sfield->fieldDecl;
+		fieldName = fieldDecl_getShaderScriptName(fdecl);
+		if(!strcmp(fieldName,fieldname)){
+			*type = fdecl->fieldType;
+			*kind = fdecl->PKWmode;
+			*value = &(sfield->value);
+			*valueChanged = &(sfield->valueChanged);
+			*iifield = k; 
+			return 1;
+		}
+	}
+	return 0;
 }

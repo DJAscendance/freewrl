@@ -58,6 +58,7 @@ void Component_EnvironSensor_init(struct tComponent_EnvironSensor *t);
 void Component_Geometry3D_init(struct tComponent_Geometry3D *t);
 void Component_Geometry3D_clear(struct tComponent_Geometry3D *t);
 void Component_Geospatial_init(struct tComponent_Geospatial *t);
+void Component_Geospatial_clear(struct tComponent_Geospatial *t);
 void Component_HAnim_init(struct tComponent_HAnim *t);
 void Component_HAnim_clear(struct tComponent_HAnim *t);
 void Component_Layering_init(struct tComponent_Layering *t);
@@ -107,13 +108,17 @@ void CParseParser_init(struct tCParseParser *t);
 void CRoutes_init(struct tCRoutes *t);
 void CRoutes_clear(struct tCRoutes *t);
 void CScripts_init(struct tCScripts *t);
+#ifdef JAVASCRIPT_SM
 void JScript_init(struct tJScript *t);
 
 
 void jsUtils_init(struct tjsUtils *t);
 void jsVRMLBrowser_init(struct tjsVRMLBrowser *t);
 void jsVRMLClasses_init(struct tjsVRMLClasses *t);
-
+#endif //JAVASCRIPT_SM
+#ifdef JAVASCRIPT_DUK
+void JScript_duk_init(struct tJScript_duk *t);
+#endif //JAVASCRIPT_DUK
 void Bindable_init(struct tBindable *t);
 void Bindable_clear(struct tBindable *t);
 
@@ -127,6 +132,111 @@ void CursorDraw_init(struct tCursorDraw *t);
 //static ttglobal iglobal; //<< for initial development witn single instance
 static int done_main_UI_thread_once = 0;
 pthread_key_t threadSpecificKey;  //set like a global variable in the global scope in a .c file
+
+void iiglobal_sizeof_from_C(){
+printf("sizeof_iiblobal_fromC >>>>>>>>>>>>>>>>>>>>>>\n");
+printf(" tdisplay %d\n", (int)sizeof(struct tdisplay));
+printf(" tinternalc %d\n", (int)sizeof(struct tinternalc));
+printf(" tresources %d\n", (int)sizeof(struct tresources));
+printf(" tresources %d\n", (int)sizeof(struct tresources));
+printf(" tthreads %d\n", (int)sizeof(struct tthreads));
+
+#if !defined(FRONTEND_DOES_SNAPSHOTS)
+printf(" tSnapshot %d\n", (int)sizeof(struct tSnapshot));
+#endif
+
+printf(" tEAI_C_CommonFunctions %d\n", (int)sizeof(struct tEAI_C_CommonFunctions));
+printf(" tEAIEventsIn %d\n", (int)sizeof(struct tEAIEventsIn));
+printf(" tEAIHelpers %d\n", (int)sizeof(struct tEAIHelpers));
+
+#if !defined(EXCLUDE_EAI )
+printf(" tEAICore %d\n", (int)sizeof(struct tEAICore));
+#endif
+
+printf(" tSensInterps %d\n", (int)sizeof(struct tSensInterps));
+printf(" tConsoleMessage %d\n", (int)sizeof(struct tConsoleMessage));
+printf(" tMainloop %d\n", (int)sizeof(struct tMainloop));
+printf(" tMainloop %d\n", (int)sizeof(struct tMainloop));
+printf(" tProdCon %d\n", (int)sizeof(struct tProdCon));
+printf(" tProdCon %d\n", (int)sizeof(struct tProdCon));
+
+#if defined (INCLUDE_NON_WEB3D_FORMATS )
+printf(" tColladaParser %d\n", (int)sizeof(struct tColladaParser));
+#endif //INCLUDE_NON_WEB3D_FORMATS
+
+#if defined (INCLUDE_STL_FILES )
+printf(" tSTLHandler %d\n", (int)sizeof(struct tSTLHandler));
+#endif // INCLUDE_STL_FILES
+
+
+
+printf(" tFrustum %d\n", (int)sizeof(struct tFrustum));
+printf(" tLoadTextures %d\n", (int)sizeof(struct tLoadTextures));
+printf(" tOpenGL_Utils %d\n", (int)sizeof(struct tOpenGL_Utils));
+
+#ifdef HAVE_OPENCL
+printf(" tOpenCL_Utils %d\n", (int)sizeof(struct tOpenCL_Utils));
+#endif
+
+printf(" tRenderTextures %d\n", (int)sizeof(struct tRenderTextures));
+printf(" tTextures %d\n", (int)sizeof(struct tTextures));
+printf(" tPluginSocket %d\n", (int)sizeof(struct tPluginSocket));
+printf(" tpluginUtils %d\n", (int)sizeof(struct tpluginUtils));
+printf(" tcollision %d\n", (int)sizeof(struct tcollision));
+printf(" tComponent_CubeMapTexturing %d\n", (int)sizeof(struct tComponent_CubeMapTexturing));
+printf(" tComponent_EnvironSensor %d\n", (int)sizeof(struct tComponent_EnvironSensor));
+printf(" tComponent_Geometry3D %d\n", (int)sizeof(struct tComponent_Geometry3D));
+printf(" tComponent_Geospatial %d\n", (int)sizeof(struct tComponent_Geospatial));
+printf(" tComponent_HAnim %d\n", (int)sizeof(struct tComponent_HAnim));
+printf(" tComponent_Layering %d\n", (int)sizeof(struct tComponent_Layering));
+printf(" tComponent_Layout %d\n", (int)sizeof(struct tComponent_Layout));
+printf(" tComponent_NURBS %d\n", (int)sizeof(struct tComponent_NURBS));
+printf(" tComponent_ParticleSystems %d\n", (int)sizeof(struct tComponent_ParticleSystems));
+printf(" tComponent_ProgrammableShaders %d\n", (int)sizeof(struct tComponent_ProgrammableShaders));
+printf(" tComponent_RigidBodyPhysics %d\n", (int)sizeof(struct tComponent_RigidBodyPhysics));
+printf(" tComponent_Followers %d\n", (int)sizeof(struct tComponent_Followers));
+printf(" tComponent_KeyDevice %d\n", (int)sizeof(struct tComponent_KeyDevice));
+
+printf(" tComponent_Picking %d\n", (int)sizeof(struct tComponent_Picking));
+printf(" tComponent_Rendering %d\n", (int)sizeof(struct tComponent_Rendering));
+printf(" tComponent_Shape %d\n", (int)sizeof(struct tComponent_Shape));
+printf(" tComponent_Sound %d\n", (int)sizeof(struct tComponent_Sound));
+printf(" tComponent_Text %d\n", (int)sizeof(struct tComponent_Text));
+printf(" tComponent_VolumeRendering %d\n", (int)sizeof(struct tComponent_VolumeRendering));
+
+printf(" tRenderFuncs %d\n", (int)sizeof(struct tRenderFuncs));
+printf(" tStreamPoly %d\n", (int)sizeof(struct tStreamPoly));
+printf(" tTess %d\n", (int)sizeof(struct tTess));
+printf(" tViewer %d\n", (int)sizeof(struct tViewer));
+
+#if defined(STATUSBAR_HUD)
+printf(" tstatusbar %d\n", (int)sizeof(struct tstatusbar));
+#endif
+
+printf(" tCParse %d\n", (int)sizeof(struct tCParse));
+printf(" tCParseParser %d\n", (int)sizeof(struct tCParseParser));
+printf(" tCRoutes %d\n", (int)sizeof(struct tCRoutes));
+printf(" tCScripts %d\n", (int)sizeof(struct tCScripts));
+#ifdef JAVASCRIPT_SM
+printf(" tJScript %d\n", (int)sizeof(struct tJScript));
+
+
+printf(" tjsUtils %d\n", (int)sizeof(struct tjsUtils));
+printf(" tjsVRMLBrowser %d\n", (int)sizeof(struct tjsVRMLBrowser));
+printf(" tjsVRMLClasses %d\n", (int)sizeof(struct tjsVRMLClasses));
+#endif //JAVASCRIPT_SM
+#ifdef JAVASCRIPT_DUK
+printf(" tJScript_duk %d\n", (int)sizeof(struct tJScript_duk));
+#endif //JAVASCRIPT_DUK
+printf(" tBindable %d\n", (int)sizeof(struct tBindable));
+
+printf(" tX3DParser %d\n", (int)sizeof(struct tX3DParser));
+
+printf(" tcommon %d\n", (int)sizeof(struct tcommon));
+printf(" tCursorDraw %d\n", (int)sizeof(struct tCursorDraw));
+printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+}
+
 
 ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID...)
 {
@@ -236,13 +346,15 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 	CParseParser_init(&iglobal->CParseParser);
 	CRoutes_init(&iglobal->CRoutes);
 	CScripts_init(&iglobal->CScripts);
+#ifdef JAVASCRIPT_SM
 	JScript_init(&iglobal->JScript);
-
-
 	jsUtils_init(&iglobal->jsUtils);
 	jsVRMLBrowser_init(&iglobal->jsVRMLBrowser);
 	jsVRMLClasses_init(&iglobal->jsVRMLClasses);
-
+#endif //JAVASCRIPT_SM
+#ifdef JAVASCRIPT_DUK
+	JScript_duk_init(&iglobal->JScript_duk);
+#endif //JAVASCRIPT_DUK
 	Bindable_init(&iglobal->Bindable);
 	X3DParser_init(&iglobal->X3DParser);
 	common_init(&iglobal->common);
@@ -280,11 +392,16 @@ void __iglobal_fields_destructor(ttglobal tg)
 	X3DParser_clear(&tg->X3DParser); FREE_IF_NZ(tg->X3DParser.prv);
 	Bindable_clear(&tg->Bindable); FREE_IF_NZ(tg->Bindable.prv);
 
+#ifdef JAVASCRIPT_DUK
+	FREE_IF_NZ(tg->JScript_duk.prv);
+#endif //JAVASCRIPT_DUK
+#ifdef JAVASCRIPT_SM
 	FREE_IF_NZ(tg->jsVRMLClasses.prv);
 	FREE_IF_NZ(tg->jsVRMLBrowser.prv);
 	FREE_IF_NZ(tg->jsUtils.prv);
 
 	FREE_IF_NZ(tg->JScript.prv);
+#endif //JAVASCRIPT_SM
 	FREE_IF_NZ(tg->CScripts.prv);
 	CRoutes_clear(&tg->CRoutes); FREE_IF_NZ(tg->CRoutes.prv);
 	FREE_IF_NZ(tg->CParseParser.prv);
@@ -315,7 +432,7 @@ OLDCODE	FREE_IF_NZ(tg->Component_Networking.prv);
 	Component_Layering_clear(&tg->Component_Layering); FREE_IF_NZ(tg->Component_Layering.prv);
 	Component_Layout_clear(&tg->Component_Layout); FREE_IF_NZ(tg->Component_Layout.prv);
 	Component_HAnim_clear(&tg->Component_HAnim); FREE_IF_NZ(tg->Component_HAnim.prv);
-	FREE_IF_NZ(tg->Component_Geospatial.prv);
+	Component_Geospatial_clear(&tg->Component_Geospatial); FREE_IF_NZ(tg->Component_Geospatial.prv);
 	Component_Geometry3D_clear(&tg->Component_Geometry3D); FREE_IF_NZ(tg->Component_Geometry3D.prv);
 	FREE_IF_NZ(tg->Component_EnvironSensor.prv);
 	Component_CubeMapTexturing_clear(&tg->Component_CubeMapTexturing); FREE_IF_NZ(tg->Component_CubeMapTexturing.prv);

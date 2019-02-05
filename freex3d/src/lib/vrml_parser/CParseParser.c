@@ -49,6 +49,7 @@
 #include "CParse.h"
 #include "CRoutes.h"			/* for upper_power_of_two */
 #include "../opengl/OpenGL_Utils.h"
+#include "../scenegraph/LinearAlgebra.h"
 
 #define PARSE_ERROR(msg) \
  { \
@@ -1081,14 +1082,15 @@ static BOOL parser_componentStatement(struct VRMLParser* me) {
 	//Feb 2016 Core:2 will be all one string now, thanks to allowing : in identifiers Sept 2015
 	{
 		//new way to handle 'Core:2' chunk
-		int i;
+		int i,len;
 		strcpy(cfullname,me->lexer->curID);
 		/* now, we are finished with this COMPONENT */
 		FREE_IF_NZ(me->lexer->curID);
 
 		cname = cfullname;
 		clevel = NULL;
-		for(i=0;i<strlen(cfullname);i++)
+		len = strlen(cfullname);
+		for(i=0;i<len;i++)
 			if(cfullname[i] == ':'){
 				cfullname[i] = '\0';
 				clevel = &cfullname[i+1];
@@ -1341,7 +1343,7 @@ static BOOL parser_unitStatement(struct VRMLParser* me) {
     }
 
     if ((categoryname != NULL) && (unitname != NULL) && (conversionfactor != 0.0)) { 
-	  handleUnitDataStringString(categoryname,unitname,conversionfactor); 
+	  handleUnitDataStringString(me->ectx,categoryname,unitname,conversionfactor); 
 	}
 
     /* cleanup */
@@ -1633,58 +1635,606 @@ void parser_specificInitNode_B(struct X3D_Node* n, struct VRMLParser* me)
 /* Built-in fields */
 /* Parses a built-in field and sets it in node */
 
+/*
+	UNIT statement http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+	unit categories http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/concepts.html#Standardunitscoordinates
+	problem: not all derived unit categories are represent. Missing: 
+	   torque = force * length, ie kg * m**2 / s**2
+	   moment of inertia = mass * length**2, ie kg*m**2
+	solution: 
+		automatically compute all derived units factors from base unit factors scene designer specifies
+		http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
+		"Direct modification of conversion factors for derived units is not allowed." 
+	problem: force is/should be/could be a derived unit 
+	   force = mass * length / time**2, ie newton = kg * m / s**2
+	problem: what if scene designer mixes force and mass incoherently? 
+		Then how should torque factor be calculated - from force or from mass et al?
+	solution: force is calculated as a derived unit unless explicitly set
+		then Torque is computed from force
+
+	3 kinds of units
+	#1 length - 
+		option1 one-step: applied during parsing to all length unit fields (with #3.a below)
+			applied after all node fields are parsed, so geoSystem is known for interpreting geo coords
+				and so even defaults like Cylinder.height 2.0 are scaled
+		option2 two-step: applied during rendering as a relative scale between scenefile-contexts 
+			by context-wrapper-transform (see Component_Grouping.c prep_ and fin_unitscale
+	#2 angle - applied during parsing of literal (authored over-ride of default) 
+		so that defaults aren't scaled 
+		That's because a few like viewpoint.fieldOfView, ArcClose2D.endAngle are already have 
+			common-sense default values SI radians
+	#3 the others: mass, force and derived units - converted to SI / standard units at parse time
+		separately for each scene file
+		a) for #1.option1 one-step derived units - all factors are combined
+		b) for #1.option2 two-step one length factor is removed from each derived unit that involves length
+
+	see src/lib/main/headers.h for latest enum
+enum {
+	UNCA_NONE = 0,
+	UNCA_LENGTH = 1,
+	UNCA_BLENGTH,  //bboxCenter, bboxSize
+	UNCA_ANGLE,
+	UNCA_PLANE, //first 3 are plane normal, 4th is scaleable distance
+	UNCA_MASS,
+	UNCA_FORCE,
+	UNCA_ACCEL,
+	UNCA_ANGLERATE,
+	UNCA_AREA,
+	UNCA_SPEED,
+	UNCA_VOLUME,
+	UNCA_TORQUE,
+	UNCA_MOMENT,
+	UNCA_GEO, //don't know if its angle or length untill geoSystem field parsed
+};
+
+	Oct 4, 2017 current state:
+	what's working:
+		one-step and two-step both seem to be working
+			with 2-step a glitch in particle systems wind physics 
+		geo coords seem to be working with one-step
+			strict interpretation ie v3.3 is in base units by default, not degrees
+		force as derived unit unless specified - works
+		tested with length, angle, geo, RBP mass and speed, particles mass, area, speed
+	what's missing/uncertain:
+	- 2 ways to do length: 
+		one-step (parse time) 
+			- uncertainties: which utility/interpolator nodes are in world coords 
+		two-step (render-time for length, parse-time for everything else)
+			- uncertainties: how handle derived units properly, wrong to scale geo or Layout
+	- static unca table - assumes only one freewrl instance running in one process
+		-so only one parsing thread, doing one scenefile at a time
+		-so static variables here are good for parsing one file, then discarded
+	- future needs:
+		-if multiple freewrl instances in one process (browser plugins ...) then move 
+			unca table to gglobal 
+		-if unit converter nodes (proposed by dug9 to web3d) are implemented, then
+			unca table to resource_item_t or (new) scenefile_table in gglobal,
+			with pointer stored in each context pointing to units table to use
+	
+*/
+
+#define UNCA_BASE 0X01 //BASE units like angle, length, mass - specified by scene author
+#define UNCA_DRVD 0x10 //DERIVED units like torque, moments - computed below from base units
+#define UNCA_BOTH 0x11 //BASE and DERIVED - for force which specs say is base, but could/should/might be scene-authored as derived
+struct unca {
+	char *catname;
+	int iunca;
+	int lengthpower; //L 0-none 1=length 2=area 3=volume -1 = 1/length -2 = 1/length**2
+	int derived;     //D
+	int ichanged;    //C
+	double factor;   //F
+	char *uname;
+} uncas [] = {
+	//catname		iunca		  L D          C F  uname              
+	//base
+	{"length",      UNCA_LENGTH,   1,UNCA_BASE,0,1.0,"meters",           },
+	{"angle",       UNCA_ANGLE,    0,UNCA_BASE,0,1.0,"radians",          },
+	{"mass",        UNCA_MASS,     0,UNCA_BASE,0,1.0,"kilograms",        },
+	//force both derived and base, compute if needed before torque
+	{"force",       UNCA_FORCE,    1,UNCA_BOTH,0,1.0,"newtons",          },
+	//drived, should not need to lookup from scene designer input
+	{"acceleration",UNCA_ACCEL,    1,UNCA_DRVD,0,1.0,"meters/second**2", },
+	{"angular_rate",UNCA_ANGLERATE,0,UNCA_DRVD,0,1.0,"radians/second",   },
+	{"area",        UNCA_AREA,     2,UNCA_DRVD,0,1.0,"meters**2",        },
+	{"speed",       UNCA_SPEED,    1,UNCA_DRVD,0,1.0,"meters/seccond",   },
+	{"volume",      UNCA_VOLUME,   3,UNCA_DRVD,0,1.0,"meters**3",        },
+	{"torque",      UNCA_TORQUE,   2,UNCA_DRVD,0,1.0,"kg*meters**2/second**2",},
+	{"moment",      UNCA_MOMENT,   2,UNCA_DRVD,0,1.0,"kg*meters**2",     },
+
+	{NULL,0},
+};
+
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+#define UNITMETHOD_ONESTEP 1	//parse-time for all units
+#define UNITMETHOD_TWOSTEP 2	//parse-time for non-length, render-time for length
+static int unitmethod = UNITMETHOD_ONESTEP;
+static int UNITSTRICT33 = TRUE;  //TRUE only web3d version 3.3+ scene files gets units applied as per specs (strict), FALSE any version can have UNITS
+
+static int isunits = 0;  //#2 the others, parse-time 
+static double unitlengthfactor = 1.0;
+double getunitlengthfactor(){
+	return unitlengthfactor;
+}
+int isUnits(){
+	return isunits;
+}
+void setUnits(int isOn){
+	isunits = isOn;
+}
+static Stack * units2vec = NULL;
+void zeroUnits(){
+	isunits = 0;
+	if(units2vec) units2vec->n = 0;
+	unitlengthfactor = 1.0;
+}
+static int do_lengthunits = 0;
+
+struct unitsB {
+	char *catname;
+	int iunca;
+	int lengthpower; //L 0-none 1=length 2=area 3=volume -1 = 1/length -2 = 1/length**2
+	int derived;     //D
+	int ichanged;    //C
+	double factor;   //F
+	char uname[40];
+};
+enum {
+	LENGTHMETHOD_NONE = 0,
+	LENGTHMETHOD_FULL,
+	LENGTHMETHOD_MINUSONE,
+};
+void addUnits(void *ecx, char *category, char *unit, double factor){
+	struct unitsB u2;
+	struct unitsB *uptr, *u2length, *u2mass, *u2force, *u2angle;
+	struct unca *uc;
+	int i, iuc, lengthmethod;
+
+	if(!units2vec || (units2vec->n == 0)){
+		//set default base units and derived units factors for this scenefile
+		//by copying from statics
+		if(!units2vec)
+			units2vec = newVector(struct unitsB,20);
+		iuc = 0;
+		do {
+			uc = &uncas[iuc];
+			memcpy(&u2,uc,sizeof(struct unca));
+			memset(&u2.uname,0,20);
+			strncpy(&u2.uname[0],uc->uname,min(39,strlen(uc->uname)+1));
+			vector_pushBack(struct unitsB,units2vec,u2);
+			iuc++;
+		}while(uncas[iuc].catname);
+	}
+	//find category name in base units (derived not allowed)
+	for(i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(!strcasecmp(uptr->catname,category)){
+			//copy in new unit and factor, and set changed flag
+			if(uptr->derived & UNCA_BASE){
+				strncpy(&uptr->uname[0],unit,min(39,strlen(unit)+1));
+				uptr->factor = factor;
+				uptr->ichanged = TRUE;
+				if(uptr->iunca == UNCA_LENGTH) {
+					//for length units, we rescale during rendering
+					struct X3D_Proto *ec = (struct X3D_Proto*)ecx;
+					unitlengthfactor = factor;
+					ec->__unitlengthfactor = unitlengthfactor;
+					do_lengthunits = TRUE; //tell rendering to apply unitlengthfactor
+				}
+				setUnits(TRUE);
+			}
+			break;
+		}
+	}
+	//pull out our base units for easy access
+	u2mass = u2angle = u2length = u2force = NULL;
+	for(i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(uptr->derived & UNCA_BASE){
+			switch(uptr->iunca){
+				case UNCA_MASS:
+					u2mass = uptr; break;
+				case UNCA_ANGLE:
+					u2angle = uptr; break;
+				case UNCA_LENGTH:
+					u2length = uptr; break;
+				case UNCA_FORCE:
+					u2force = uptr; break;
+				default:
+					break;
+			}
+		}
+	}
+	//recalculate derived units from base units
+	//WARNING: I'm not sure how much of the length-derived we should be re-factoring here
+	// because some effects are done by runtime rescaling of the context
+	// which is a 3D re-scaling
+	lengthmethod = LENGTHMETHOD_FULL; 
+	if(unitmethod == UNITMETHOD_TWOSTEP)
+		lengthmethod = LENGTHMETHOD_MINUSONE;
+	for(i=0;i<vectorSize(units2vec);i++){
+		uptr = vector_get_ptr(struct unitsB,units2vec,i);
+		if(uptr->derived & UNCA_DRVD){
+			double factor = uptr->factor;
+			switch(uptr->iunca){
+				case UNCA_FORCE:
+					if(!uptr->ichanged){
+						//web3d specs list force as a base unit, not derived.
+						//but it should be derived, and so if it hasn't been set above
+						//we compute it here
+						if(lengthmethod == LENGTHMETHOD_FULL)
+							factor = u2mass->factor * u2length->factor;
+						if(lengthmethod == LENGTHMETHOD_MINUSONE)
+							factor = u2mass->factor;
+					}
+					break;
+				case UNCA_ACCEL:
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor;
+					break;
+				case UNCA_ANGLERATE:
+					factor = u2angle->factor;
+					break;
+				case UNCA_AREA:
+					if(lengthmethod == LENGTHMETHOD_FULL) 
+						factor = u2length->factor * u2length->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2length->factor;
+					break;
+				case UNCA_SPEED:
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor;
+					break;
+				case UNCA_MOMENT:
+					// moment of intertia (for rotational momentum) 
+					// mass * length**2
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2length->factor * u2length->factor * u2mass->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2length->factor * u2mass->factor;
+					if(lengthmethod == LENGTHMETHOD_NONE)
+						factor = u2mass->factor;
+					break;
+				case UNCA_VOLUME:
+					{
+						double dpow = 0.0; //remember anything**0 == 1
+						if(lengthmethod == LENGTHMETHOD_FULL)
+							dpow = 3.0;
+						if(lengthmethod == LENGTHMETHOD_MINUSONE)
+							dpow = 2.0;
+						factor = pow(u2length->factor,dpow);
+					}
+					break;
+				case UNCA_TORQUE:
+					// torque = force * length = (mass * length / time**2) * length
+					if(lengthmethod == LENGTHMETHOD_FULL)
+						factor = u2force->factor * u2length->factor;
+					if(lengthmethod == LENGTHMETHOD_MINUSONE)
+						factor = u2force->factor;
+					break;
+				default:
+					break;
+			}
+			uptr->factor = factor;
+			u2.ichanged = TRUE;
+		}
+	}
+
+}
+
+int doLengthUnits(){
+	//called by Component_Grouping to see if 2-step units 
+	return ( do_lengthunits && unitmethod == UNITMETHOD_TWOSTEP ) ? TRUE : FALSE;
+}
+int isUnitSpecVersionOK(int specversion){
+	//strict: specs say only versions >= 3.3 of specs should apply UNIT statement units
+	//called
+	//a) during parse-time i) after literals parsed ii) after node-parsed
+	//b) (in component_grouping.c) at render-time for length units if doing 2-step method
+	return (!UNITSTRICT33 || specversion > 320) ? TRUE : FALSE;
+}
+
+// Oct 4, 2017 change: only ANGLES get units applied at field-literal-parse-time
+// - to preserve radian defaults not authored-over
+// other unit types are applied after node is parsed so as to also convert non-authored-over-defaults
+void sfunitf(int nodetype,char *fieldname, float *var, int n, int iunca) {
+	int i,k,specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		int ok;
+		ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
+		if(ok){
+			struct unitsB *uptr;
+			for(i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
+					for(k=0;k<n;k++){
+						var[k] *= (float)uptr->factor;
+					}
+					break;
+				}
+			}
+		}
+	}
+}
+void mfunitrotation(int nodetype,char *fieldname, struct SFRotation *var, int n, int iunca){
+	int i,k, specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		//check if we need to convert units on this node->field
+		int ok;
+		ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
+		if(ok){
+			struct unitsB *uptr;
+			for(i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
+					for(k=0;k<n;k++){
+						var[k].c[3] *= (float)uptr->factor;
+					}
+					break;
+				}
+			}
+		}
+
+	}
+}
+void mfunit3f(int nodetype,char *fieldname, struct SFVec3f *var, int n, int iunca){
+	int i,k, specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		int ok;
+		ok = iunca && (iunca == UNCA_ANGLE || iunca == UNCA_ANGLERATE);
+		if(ok){
+			struct unitsB *uptr;
+			for(i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == iunca){
+					for(k=0;k<n;k++){
+						vecscale3f(var[k].c,var[k].c,(float)uptr->factor);
+					}
+					break;
+				}
+			}
+		}
+
+	}
+}
+
+void sfunitd(int nodeType,char *fieldname, double *var, int n, int iunca) {
+	if(isUnits()){
+	}
+}
+int isNodeGeospatial(struct X3D_Node* node);
+void applyUnitsToNode(struct X3D_Node *node){
+	//v3.3+ if there were any UNIT statements, apply to the parsed node, so both defaults
+	// and explicitly/literally set values get converted
+	//- except angles, do those as literals (above) since already in SI units (fieldOfView, ArcClose2D startAngle endAngle etc)
+	//parsed-node method - apply unit factors right after node is parsed (all fields parsed)
+	//this method would scale also defaults not explicitly set in the scenefile
+	//except angles - continue to do them on literals, to avoid doing it to defaults which are usually 
+	//  sensible angles in radians already
+	int specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	if(isUnits() && isUnitSpecVersionOK(specversion)){
+		fieldinfo offsets;
+		fieldinfo field;
+		int i,k, ifield;
+		if(isNodeGeospatial(node)){
+			struct unitsB *uptr;
+			int isgeosystemGD;
+			double factorA, factorL, factorC;
+
+			//get unit conversionFactors for angle and length if available
+			factorA = factorL = factorC = 1.0;
+			for(i=0;i<vectorSize(units2vec);i++){
+				uptr = vector_get_ptr(struct unitsB,units2vec,i);
+				if(uptr->iunca == UNCA_ANGLE) factorA = uptr->factor;
+				if(uptr->iunca == UNCA_LENGTH) factorL = uptr->factor;
+			}
+			
+			
+			//find geoSystem field, to see if GD (geodetic) with lat,long
+			offsets = (fieldinfo)NODE_OFFSETS[(node)->_nodeType];
+			ifield = 0;
+			field = &offsets[ifield];
+			//printf("\n");
+			isgeosystemGD = TRUE;
+			while( field->nameIndex > -1) 
+			{
+				const char *name = FIELDNAMES[field->nameIndex];
+				if(!strcmp(name,"geoSystem")){
+					union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
+					struct Uni_String *ustring = value->mfstring.p[0];
+					if(strcmp(ustring->strptr,"GD"))
+						isgeosystemGD = FALSE;
+					break;
+				}
+				ifield++;
+				field = &offsets[ifield];
+			} //while fieldindex
+
+			//decide what factors apply to first 2 values in SFVec3d
+			if(isgeosystemGD) 
+				factorC = factorA; //first 2 coords are lat,long in some order, apply angle factor
+			else 
+				factorC = factorL; //first 2 coords are length either utm N,E or GC x,y, apply length factor
+
+			//find all UNCA_GEO fields in node, and apply unit factors
+			//printf("isGeo ");
+			offsets = (fieldinfo)NODE_OFFSETS[(node)->_nodeType];
+			ifield = 0;
+			field = &offsets[ifield];
+			//printf("\n");
+			while( field->nameIndex > -1) 
+			{
+				int iunca = field->unca;
+				const char *name = FIELDNAMES[field->nameIndex];
+				union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
+				if(iunca == UNCA_GEO){
+					struct SFVec3d *sfvar;
+					double *dvar;
+					//angles are done only at literal parse time, not to default field values which are already radians SI
+					switch(field->typeIndex){
+						case FIELDTYPE_SFDouble:
+							//printf("sfdouble ");
+							value->sfdouble *= factorC; //if SFDouble and lableled UNCA_GEO, assume its lat or long,x or y,east or north
+							break;
+						case FIELDTYPE_MFDouble:
+							//geoelevationgrid.height is done below via LENGTH, not sure where else mfdouble for geo
+							printf("mfdouble nixpa7 "); 
+							break;
+						case FIELDTYPE_SFVec3d:
+							dvar = value->sfvec2d.c;
+							dvar[0] *= factorC;
+							dvar[1] *= factorC;
+							dvar[2] *= factorL;
+							break;
+						case FIELDTYPE_MFVec3d:
+							for(k=0;k<value->mfvec3d.n;k++){
+								sfvar = &value->mfvec3d.p[k];
+								dvar = sfvar->c;
+								dvar[0] *= factorC;
+								dvar[1] *= factorC;
+								dvar[2] *= factorL;
+							}
+							break;
+						default:
+							break;
+					}
+				}
+				ifield++;
+				field = &offsets[ifield];
+			} //while fieldindex
+
+		}
+		// apply unitfactors to other non-geo units except angle
+		offsets = (fieldinfo)NODE_OFFSETS[(node)->_nodeType];
+		ifield = 0;
+		field = &offsets[ifield];
+		//printf("\n");
+		while( field->nameIndex > -1) 
+		{
+			int iunca = field->unca;
+			if(iunca == UNCA_PLANE) iunca = UNCA_LENGTH;
+			const char *name = FIELDNAMES[field->nameIndex];
+			union anyVrml *value = (union anyVrml*)&((char*)node)[field->offset];
+			if(iunca != UNCA_NONE && iunca != UNCA_ANGLE && iunca != UNCA_ANGLERATE && iunca != UNCA_GEO){
+				//angles are done only at literal parse time, not to default field values which are already radians SI
+				//geos are done in the loops above
+				if(!(iunca == UNCA_LENGTH && unitmethod == UNITMETHOD_TWOSTEP)){
+					//one-step: length done here (two-step done at render time with wrapper scale)
+					float factor;
+					struct unitsB *uptr;
+					factor = 1.0;
+					for(i=0;i<vectorSize(units2vec);i++){
+						uptr = vector_get_ptr(struct unitsB,units2vec,i);
+						if(uptr->iunca == iunca){
+							factor = (float)uptr->factor;
+							break;
+						}
+					}
+					iunca = field->unca; //restore if plane
+					switch(field->typeIndex){
+						case FIELDTYPE_SFRotation:
+							value->sfrotation.c[3] *= factor;
+							break;
+						case FIELDTYPE_SFFloat:
+							value->sffloat *= factor;
+							break;
+						case FIELDTYPE_MFFloat:
+							for(i=0;i<value->mffloat.n;i++)
+								value->mffloat.p[i] *= factor;
+							break;
+						case FIELDTYPE_SFVec3f:
+							vecscale3f(value->sfvec3f.c,value->sfvec3f.c,(float)factor);
+							break;
+						case FIELDTYPE_SFVec4f:
+							if(iunca == UNCA_PLANE)
+								value->sfvec4f.c[3] *= factor;
+							else
+								vecscale4f(value->sfvec4f.c,value->sfvec4f.c,(float)factor);
+							break;
+						case FIELDTYPE_SFVec2f:
+							vecscale2f(value->sfvec2f.c,value->sfvec2f.c,(float)factor);
+							break;
+						case FIELDTYPE_MFVec3f:
+							for(i=0;i<value->mfvec3f.n;i++)
+								vecscale3f(value->mfvec3f.p[i].c,value->mfvec3f.p[i].c,(float)factor);
+							break;
+						case FIELDTYPE_SFMatrix3f:
+							for(i=0;i<9;i++)
+								value->sfmatrix3f.c[i] *= factor;
+							break;
+						case FIELDTYPE_MFRotation:
+							for(i=0;i<value->mfrotation.n;i++)
+								value->mfrotation.p[i].c[3] *= factor;
+							break;
+						case FIELDTYPE_SFDouble:
+							value->sfdouble *= factor;
+							break;
+						//missing a few mfdouble, mfvec3d, a few more matrix types...
+						default:
+							break;
+					}
+				} //if not 2-step lengths
+			} //if not angles or geo
+			ifield++;
+			field = &offsets[ifield];
+		} //while fieldindex
+	} //if isunits
+}
+
 
 /* The init codes used. */
-#define INIT_CODE_sfnode(var) \
+#define INIT_CODE_sfnode(var,fieldname) \
   ADD_PARENT(node2->var, X3D_NODE(node2));
-#define INIT_CODE_mfnode(var) \
+#define INIT_CODE_mfnode(var,fieldname) \
   mfnode_add_parent(&node2->var, X3D_NODE(node2));
-#define INIT_CODE_sfbool(var)
-#define INIT_CODE_sfcolor(var)
-#define INIT_CODE_sfcolorrgba(var)
-#define INIT_CODE_sffloat(var)
-#define INIT_CODE_sfimage(var)
-#define INIT_CODE_sfint32(var)
-#define INIT_CODE_sfrotation(var)
-#define INIT_CODE_sfstring(var)
-#define INIT_CODE_sftime(var)
-#define INIT_CODE_sfvec2f(var)
-#define INIT_CODE_sfvec3f(var)
-#define INIT_CODE_sfvec3d(var)
-#define INIT_CODE_mfbool(var)
-#define INIT_CODE_mfcolor(var)
-#define INIT_CODE_mfcolorrgba(var)
-#define INIT_CODE_mffloat(var)
-#define INIT_CODE_mfint32(var)
-#define INIT_CODE_mfrotation(var)
-#define INIT_CODE_mfstring(var)
-#define INIT_CODE_mftime(var)
-#define INIT_CODE_mfvec2f(var)
-#define INIT_CODE_mfvec3f(var)
-#define INIT_CODE_mfvec3d(var)
-#define INIT_CODE_sfdouble(var)
-#define INIT_CODE_mfdouble(var)
-#define INIT_CODE_sfvec4d(var)
-#define INIT_CODE_mfmatrix3f(var)
-#define INIT_CODE_mfmatrix4f(var)
+#define INIT_CODE_sfbool(var,fieldname)
+#define INIT_CODE_sfcolor(var,fieldname)
+#define INIT_CODE_sfcolorrgba(var,fieldname)
+#define INIT_CODE_sffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname, (float*)&node2->var, 1,iunca);
+#define INIT_CODE_sfimage(var,fieldname)
+#define INIT_CODE_sfint32(var,fieldname)
+#define INIT_CODE_sfrotation(var,fieldname) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1,iunca);
+#define INIT_CODE_sfstring(var,fieldname)
+#define INIT_CODE_sftime(var,fieldname)
+#define INIT_CODE_sfvec2f(var,fieldname) sfunitf(node2->_nodeType,fieldname, node2->var.c, 2, iunca);
+#define INIT_CODE_sfvec3f(var,fieldname) sfunitf(node2->_nodeType,fieldname, node2->var.c, 3, iunca);
+#define INIT_CODE_sfvec3d(var,fieldname)
+#define INIT_CODE_mfbool(var,fieldname)
+#define INIT_CODE_mfcolor(var,fieldname)
+#define INIT_CODE_mfcolorrgba(var,fieldname)
+#define INIT_CODE_mffloat(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.p, node2->var.n,iunca);
+#define INIT_CODE_mfint32(var,fieldname)
+#define INIT_CODE_mfrotation(var,fieldname) mfunitrotation(node2->_nodeType,fieldname, node2->var.p, node2->var.n,iunca);
+#define INIT_CODE_mfstring(var,fieldname)
+#define INIT_CODE_mftime(var,fieldname)
+#define INIT_CODE_mfvec2f(var,fieldname)
+#define INIT_CODE_mfvec3f(var,fieldname) mfunit3f(node2->_nodeType,fieldname, node2->var.p, node2->var.n, iunca);
+#define INIT_CODE_mfvec3d(var,fieldname)
+#define INIT_CODE_sfdouble(var,fieldname)
+#define INIT_CODE_mfdouble(var,fieldname)
+#define INIT_CODE_sfvec4d(var,fieldname)
+#define INIT_CODE_mfmatrix3f(var,fieldname)
+#define INIT_CODE_mfmatrix4f(var,fieldname)
 
-#define INIT_CODE_mfmatrix3d(var)
-#define INIT_CODE_mfmatrix4d(var)
-#define INIT_CODE_mfvec2d(var)
-#define INIT_CODE_mfvec4d(var)
-#define INIT_CODE_mfvec4f(var)
-#define INIT_CODE_sfmatrix3d(var)
-#define INIT_CODE_sfmatrix3f(var)
-#define INIT_CODE_sfmatrix4d(var)
-#define INIT_CODE_sfmatrix4f(var)
-#define INIT_CODE_sfvec2d(var)
-#define INIT_CODE_sfvec4f(var)
+#define INIT_CODE_mfmatrix3d(var,fieldname)
+#define INIT_CODE_mfmatrix4d(var,fieldname)
+#define INIT_CODE_mfvec2d(var,fieldname)
+#define INIT_CODE_mfvec4d(var,fieldname)
+#define INIT_CODE_mfvec4f(var,fieldname)
+#define INIT_CODE_sfmatrix3d(var,fieldname)
+#define INIT_CODE_sfmatrix3f(var,fieldname) sfunitf(node2->_nodeType,fieldname,node2->var.c, 9,iunca);
+#define INIT_CODE_sfmatrix4d(var,fieldname)
+#define INIT_CODE_sfmatrix4f(var,fieldname)
+#define INIT_CODE_sfvec2d(var,fieldname)
+#define INIT_CODE_sfvec4f(var,fieldname) {if(iunca==UNCA_PLANE) sfunitf(node2->_nodeType,fieldname, &node2->var.c[3], 1, UNCA_LENGTH); else sfunitf(node2->_nodeType,fieldname, node2->var.c, 4, iunca); }
 
 /* Parses a fieldvalue for a built-in field and sets it in node */
 static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 {
     int fieldO;
     int fieldE;
+	int iunca;
 	//BOOL retval;
 	DECLAREUP
     ASSERT(me->lexer);
@@ -1772,13 +2322,14 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 /* For a normal "field value" (i.e. position 1 0 1) statement gets the actual value of the field 
    from the file (next token(s) to be processed) and stores it in the node
    For an IS statement, adds this node-field combo as a destination to the appropriate protoFieldDecl */
-#define PROCESS_FIELD_B(exposed, node, field, fieldType, var, fe) \
+#define PROCESS_FIELD_B(exposed, node, field, fieldType, var, fe, junca) \
   case exposed##FIELD_##field: \
    if(!parser_fieldValue(me, \
     X3D_NODE(node2), (int) offsetof(struct X3D_##node, var), \
     FTIND_##fieldType, fe, FALSE, NULL, NULL)) {\
         PARSE_ERROR("Expected " #fieldType " Value for a fieldtype!") }\
-	INIT_CODE_##fieldType(var) \
+	iunca = junca; \
+	INIT_CODE_##fieldType(var,#field) \
    return TRUE;
  
    //INIT_CODE_##fieldType(var) \  we're doing this add_parent during instancing as of feb 2013
@@ -1809,11 +2360,11 @@ if(fieldE!=ID_UNDEFINED)
      {
 
 /* Process exposed fields */
-#define EXPOSED_FIELD(node, field, fieldType, var, realType) \
-    PROCESS_FIELD_B(EXPOSED_, node, field, fieldType, var, fieldE)
+#define EXPOSED_FIELD(node, field, fieldType, var, realType,iunca) \
+    PROCESS_FIELD_B(EXPOSED_, node, field, fieldType, var, fieldE,iunca)
 
 /* Ignore just fields */
-#define FIELD(n, f, t, v, realType)
+#define FIELD(n, f, t, v, realType,iunca)
 
 /* Process it */
 #include "NodeFields.h"
@@ -1842,11 +2393,11 @@ if(fieldO!=ID_UNDEFINED)
      {
 
          /* Process fields */
-#define FIELD(node, field, fieldType, var, realType) \
-    PROCESS_FIELD_B(, node, field, fieldType, var, ID_UNDEFINED)
+#define FIELD(node, field, fieldType, var, realType,iunca) \
+    PROCESS_FIELD_B(, node, field, fieldType, var, ID_UNDEFINED,iunca)
 
          /* Ignore exposed fields */
-#define EXPOSED_FIELD(n, f, t, v, realType)
+#define EXPOSED_FIELD(n, f, t, v, realType,iunca)
 
          /* Process it */
 #include "NodeFields.h"
@@ -2066,6 +2617,7 @@ if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { \
   return TRUE; \
  } 
 
+
     PARSER_MFFIELD(bool, Bool)
     PARSER_MFFIELD(color, Color)
     PARSER_MFFIELD(colorrgba, ColorRGBA)
@@ -2161,6 +2713,7 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
 
     /* are we in the VRML (x3dv) parser? */
     if (!me->parsingX3DfromXML) {
+		//try proper TRUE FALSE
         if(lexer_keyword(me->lexer, KW_TRUE)) {
             *rv=TRUE;
             return TRUE;
@@ -2169,19 +2722,50 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
             *rv=FALSE;
             return TRUE;
         }
+		//try x3d true false
+        if(lexer_keyword(me->lexer, KW_true)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_false)) {
+            *rv=FALSE;
+            return TRUE;
+        }
         return FALSE;
-    }
-    /* possibly, this is from the XML Parser */
-    if (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"true")) {
+    }else{
+		//try proper x3d true false
+        if(lexer_keyword(me->lexer, KW_true)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_false)) {
+            *rv=FALSE;
+            return TRUE;
+        }
+		//try wrl stype TRUE FALSE
+        if(lexer_keyword(me->lexer, KW_TRUE)) {
+            *rv=TRUE;
+            return TRUE;
+        }
+        if(lexer_keyword(me->lexer, KW_FALSE)) {
+            *rv=FALSE;
+            return TRUE;
+        }
+
+        return FALSE;
+
+	}
+	/*
+    // possibly, this is from the XML Parser 
+    if (!strncmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"true",4)) {
         *rv = TRUE;
         return TRUE;
     }
-    if (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"false")) {
+    if (!strncmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"false",5)) {
         *rv = FALSE;
         return TRUE;
     }
-
-    /* possibly this is from the XML parser, but there is a case problem */
+    // possibly this is from the XML parser, but there is a case problem
     if (!gglobal()->internalc.global_strictParsing && (!strcmp(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel],"TRUE"))) {
 	CPARSE_ERROR_CURID("found upper case TRUE in XML file - should be lower case");
         *rv = TRUE;
@@ -2192,6 +2776,7 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
         *rv = FALSE;
         return TRUE;
     }
+	*/
 
 
         
@@ -2709,6 +3294,7 @@ static BOOL parser_node_B(struct VRMLParser* me, vrmlNodeT* ret, int ind) {
 			break;
 		}
 
+		applyUnitsToNode(node);
 		/* Init code for Scripts */
 		if(script) {
 #ifdef CPARSERVERBOSE
@@ -3160,6 +3746,8 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 
     /* PROTO body */
     /* Make sure that the next oken is a '{'.  Skip over it. */
@@ -3316,6 +3904,8 @@ static BOOL parser_externbrotoStatement(struct VRMLParser* me)
 	proto->__protoDef = obj;
 	proto->__prototype = X3D_NODE(proto); //point to self, so shallow and deep instances will inherit this value
 	proto->__typename = (void *)STRDUP(obj->protoName);
+	proto->__unitlengthfactor = getunitlengthfactor();
+	proto->__specversion = inputFileVersion[0]*100 + inputFileVersion[1]*10 + inputFileVersion[2];
 
 	/* EXTERNPROTO url */
 	{
@@ -3352,8 +3942,8 @@ static BOOL parser_externbrotoStatement(struct VRMLParser* me)
 //};
 struct brotoRoute *createNewBrotoRoute();
 void broto_store_route(struct X3D_Proto* proto,
-                          struct X3D_Node* fromNode, int fromIndex,
-                          struct X3D_Node* toNode, int toIndex,
+                          struct X3D_Node* fromNode, int fromIndex, int fromBuiltIn,
+                          struct X3D_Node* toNode, int toIndex, int toBuiltIn,
                           int ft)
 {
 	Stack* routes;
@@ -3368,8 +3958,10 @@ void broto_store_route(struct X3D_Proto* proto,
 	route = createNewBrotoRoute();
 	route->from.node = fromNode;
 	route->from.ifield = fromIndex;
+	route->from.builtIn = fromBuiltIn;
 	route->to.node = toNode;
 	route->to.ifield = toIndex;
+	route->to.builtIn = toBuiltIn;
 	route->lastCommand = 1; //??
 	route->ft = ft;
 
@@ -3516,7 +4108,7 @@ BOOL route_parse_nodefield(struct VRMLParser* me, int *NodeIndex, struct X3D_Nod
 	if(foundField)
 	{
 		if(source == 0)
-			*Ofs = NODE_OFFSETS[(*Node)->_nodeType][ifield*5 + 1];
+			*Ofs = NODE_OFFSETS[(*Node)->_nodeType][ifield*FIELDOFFSET_LENGTH + 1];
 		else
 			*Ofs = ifield;
 		*ScriptField = fdecl;
@@ -3532,7 +4124,7 @@ BOOL route_parse_nodefield(struct VRMLParser* me, int *NodeIndex, struct X3D_Nod
 	PARSER_FINALLY;  
 	return FALSE;  
 }
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 BOOL route_parse_nodefield_B(struct VRMLParser* me, char **ssnode, char **ssfield)
 {
 	/* parse a route node.field
@@ -3751,7 +4343,7 @@ struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *nam
 	}
 	return NULL;
 }
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name){
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name){
 	int i;
 	struct IMEXPORT *def;
 	if(context->__IMPORTS)
@@ -3761,7 +4353,7 @@ struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name){
 	}
 	return NULL;
 }
-struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name){
+struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name){
 	int i;
 	struct IMEXPORT *def;
 	if(context->__EXPORTS)
@@ -3773,7 +4365,7 @@ struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name){
 }
 
 
-BOOL isAvailableBroto(char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto)
+BOOL isAvailableBroto(const char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto)
 {
 	/*	search list of already-defined binary protos in current context, 
 		and in ancestor proto contexts*/
@@ -3868,11 +4460,11 @@ void copy_routes2(Stack *routes, struct X3D_Proto* target, struct Vector *p2p)
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
 		fromNode = p2p_lookup(route->from.node,p2p);
 		toNode = p2p_lookup(route->to.node,p2p);
-       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, toNode, route->to.ifield, route->ft);
+       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, route->from.builtIn, toNode, route->to.ifield, route->to.builtIn, route->ft);
 		//we'll also store in the deep broto instance, although they aren't used there (yet), and
 		//if target is the main scene, they are abandoned. Maybe someday they'll be used.
 		//if( target )
-		broto_store_route(target,fromNode,route->from.ifield, toNode, route->to.ifield, route->ft); 
+		broto_store_route(target,fromNode,route->from.ifield,route->from.builtIn, toNode, route->to.ifield, route->to.builtIn, route->ft); 
 	}
 }
 //copy broto defnames to single global scene defnames, for node* to defname lookup in parser_getNameFromNode
@@ -4002,7 +4594,9 @@ struct X3D_Proto *brotoInstance(struct X3D_Proto* proto, BOOL ideep)
 	struct X3D_Proto *p;
 	if(ideep){
 		int pflags;
+		pushInputResource(proto->_parentResource);
 		p = createNewX3DNode(NODE_Proto);
+		popInputResource();
 		//memcpy(p,proto,sizeof(struct X3D_Proto)); //dangerous, make sure you re-instance all pointer variables
 		p->__children.n = 0; //don't copy children in here - see below
 		p->__children.p = NULL;
@@ -4035,6 +4629,8 @@ struct X3D_Proto *brotoInstance(struct X3D_Proto* proto, BOOL ideep)
 	//memcpy(p,proto,sizeof(struct X3D_Proto)); //dangerous, make sure you re-instance all pointer variables
 	p->__prototype = proto->__prototype;
 	p->_nodeType = proto->_nodeType;
+	p->__unitlengthfactor = proto->__unitlengthfactor;
+	p->__specversion = proto->__specversion;
 	p->_defaultContainer = proto->_defaultContainer;
 	p->_renderFlags = proto->_renderFlags;
 	pobj = proto->__protoDef;
@@ -4087,7 +4683,7 @@ void copy_routes(Stack *routes, struct X3D_Proto* target, struct Vector *p2p)
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
 		fromNode = p2p_lookup(route->from.node,p2p);
 		toNode = p2p_lookup(route->to.node,p2p);
-       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, toNode, route->to.ifield, route->ft);
+       	CRoutes_RegisterSimpleB(fromNode, route->from.ifield, route->from.builtIn, toNode, route->to.ifield, route->to.builtIn, route->ft);
 		//we'll also store in the deep broto instance, although they aren't used there (yet), and
 		//if target is the main scene, they are abandoned. Maybe someday they'll be used.
 		//if( target )
@@ -4106,11 +4702,13 @@ struct brotoIS
 	char *protofieldname;
 	int pmode;
 	int iprotofield;
+	int pBuiltIn;
 	int type;
 	struct X3D_Node *node;
 	char* nodefieldname;
 	int mode;
 	int ifield;
+	int builtIn;
 	int source; //0= builtin field, 1=script, 2={ComposedShader,ShaderProgram,PackagedShader} 3=Proto
 };
 
@@ -4123,7 +4721,7 @@ void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p)
 	if(istable == NULL) return;
 	for(i=0;i<istable->n;i++)
 	{
-		int ifield, iprotofield;
+		int ifield, builtIn, iprotofield;
 		is = vector_get(struct brotoIS*, istable, i);
 		//parser_registerRoute(me, fromNode, fromOfs, toNode, toOfs, toType); //old way direct registration
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
@@ -4131,6 +4729,7 @@ void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p)
 		is->node = node; //replace protodeclare's body node - we need the new one for unregistering these routes
 		pnode = X3D_NODE(target);
 		ifield = is->ifield;
+		builtIn = is->builtIn;
 		//if(node->_nodeType != NODE_Script && node->_nodeType != NODE_Proto)
 		//	ifield = NODE_OFFSETS[node->_nodeType][ifield*5 +1];
 		iprotofield = is->iprotofield;
@@ -4139,13 +4738,13 @@ void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p)
 		if(is->pmode == PKW_outputOnly){ //we should use pmode instead of mode, because pmode is more restrictive, so we don't route from pmode initializeOnly (which causes cycles in 10.wrl)
 			//idir = 0;
 			//if(node->_nodeType == NODE_Script) idir = FROM_SCRIPT;
-			 CRoutes_RegisterSimpleB(node, ifield, pnode, iprotofield, 0);
+			 CRoutes_RegisterSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
 
 		}else if(is->pmode == PKW_inputOnly){
-			CRoutes_RegisterSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RegisterSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else if(is->pmode == PKW_inputOutput){
-			CRoutes_RegisterSimpleB(node, ifield, pnode, iprotofield, 0);
-			CRoutes_RegisterSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RegisterSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
+			CRoutes_RegisterSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else{
 			//initialize Only - nothing to do routing wise
 		}
@@ -4162,7 +4761,7 @@ void unregister_IStableRoutes(Stack* istable, struct X3D_Proto* target){
 	if(istable == NULL) return;
 	for(i=0;i<istable->n;i++)
 	{
-		int ifield, iprotofield;
+		int ifield, builtIn, iprotofield;
 		is = vector_get(struct brotoIS*, istable, i);
 		//parser_registerRoute(me, fromNode, fromOfs, toNode, toOfs, toType); //old way direct registration
 		//broto_store_route(me,fromNode,fromOfs,toNode,toOfs,toType); //new way delay until sceneInstance()
@@ -4170,6 +4769,7 @@ void unregister_IStableRoutes(Stack* istable, struct X3D_Proto* target){
 		is->node = node; //replace protodeclare's body node - we need the new one for unregistering these routes
 		pnode = X3D_NODE(target);
 		ifield = is->ifield;
+		builtIn = is->builtIn;
 		//if(node->_nodeType != NODE_Script && node->_nodeType != NODE_Proto)
 		//	ifield = NODE_OFFSETS[node->_nodeType][ifield*5 +1];
 		iprotofield = is->iprotofield;
@@ -4178,13 +4778,13 @@ void unregister_IStableRoutes(Stack* istable, struct X3D_Proto* target){
 		if(is->pmode == PKW_outputOnly){ //we should use pmode instead of mode, because pmode is more restrictive, so we don't route from pmode initializeOnly (which causes cycles in 10.wrl)
 			//idir = 0;
 			//if(node->_nodeType == NODE_Script) idir = FROM_SCRIPT;
-			 CRoutes_RemoveSimpleB(node, ifield, pnode, iprotofield, 0);
+			 CRoutes_RemoveSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
 
 		}else if(is->pmode == PKW_inputOnly){
-			CRoutes_RemoveSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RemoveSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else if(is->pmode == PKW_inputOutput){
-			CRoutes_RemoveSimpleB(node, ifield, pnode, iprotofield, 0);
-			CRoutes_RemoveSimpleB(pnode, iprotofield, node, ifield, 0);
+			CRoutes_RemoveSimpleB(node, ifield, builtIn, pnode, iprotofield, FALSE, 0);
+			CRoutes_RemoveSimpleB(pnode, iprotofield, FALSE, node, ifield, builtIn, 0);
 		}else{
 			//initialize Only - nothing to do routing wise
 		}
@@ -4436,24 +5036,27 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 		char *ps, *pd;
 		mfs = (struct Multi_Node*)source;
 		mfd = (struct Multi_Node*)dest;
-		//we need to malloc and do more copying
-		deleteMallocedFieldValue(typeIndex,dest);
-		nele = mfs->n;
-		if( sftype == FIELDTYPE_SFNode ) nele = (int) upper_power_of_two(nele);
-		if(!nele){
-			mfd->p = NULL;
-			mfd->n = 0;
-		}else{
-			mfd->p = MALLOC (struct X3D_Node **, isize*nele);
-			bzero(mfd->p,isize*nele);
-			mfd->n = mfs->n;
-			ps = (char *)mfs->p;
-			pd = (char *)mfd->p;
-			for(i=0;i<mfs->n;i++)
-			{
-				shallow_copy_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
-				ps += isize;
-				pd += isize;
+		//self assignment is no-op
+		if(mfs->p != mfd->p){
+			//we need to malloc and do more copying
+			deleteMallocedFieldValue(typeIndex,dest);
+			nele = mfs->n;
+			if( sftype == FIELDTYPE_SFNode ) nele = (int) upper_power_of_two(nele);
+			if(!nele){
+				mfd->p = NULL;
+				mfd->n = 0;
+			}else{
+				mfd->p = MALLOC (struct X3D_Node **, isize*nele);
+				bzero(mfd->p,isize*nele);
+				mfd->n = mfs->n;
+				ps = (char *)mfs->p;
+				pd = (char *)mfd->p;
+				for(i=0;i<mfs->n;i++)
+				{
+					shallow_copy_field(sftype,(union anyVrml*)ps,(union anyVrml*)pd);
+					ps += isize;
+					pd += isize;
+				}
 			}
 		}
 	}else{ 
@@ -4464,13 +5067,15 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 				{
 					//go deep, same as copy_field
 					struct Uni_String **ss, *sd;
-					deleteMallocedFieldValue(typeIndex,dest);
-					ss = (struct Uni_String **)source;
-					if(*ss){
-						sd = (struct Uni_String *)MALLOC (struct Uni_String*, sizeof(struct Uni_String));
-						memcpy(sd,*ss,sizeof(struct Uni_String));
-						sd->strptr = STRDUP((*ss)->strptr);
-						dest->sfstring = sd;
+					if(source != dest){
+						deleteMallocedFieldValue(typeIndex,dest);
+						ss = (struct Uni_String **)source;
+						if(*ss){
+							sd = (struct Uni_String *)MALLOC (struct Uni_String*, sizeof(struct Uni_String));
+							memcpy(sd,*ss,sizeof(struct Uni_String));
+							sd->strptr = STRDUP((*ss)->strptr);
+							dest->sfstring = sd;
+						}
 					}
 				}
 				break;
@@ -4585,18 +5190,19 @@ void deep_copy_node(struct X3D_Node** source, struct X3D_Node** dest, struct Vec
 	shaderfield = shaderFields(*source);
 	//copy fields
 	{
-		typedef struct field_info{
-			int nameIndex;
-			int offset;
-			int typeIndex;
-			int ioType;
-			int version;
-		} *finfo;
-		finfo offsets;
-		finfo field;
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
+		fieldinfo offsets;
+		fieldinfo field;
 		int ifield;
 
-		offsets = (finfo)NODE_OFFSETS[(*source)->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[(*source)->_nodeType];
 		ifield = 0;
 		field = &offsets[ifield];
 		//printf("\n");
@@ -5268,6 +5874,7 @@ typedef struct cbDataRootNameAndRouteDir {
 	int mode;
 	int type;
 	int jfield;
+	int builtIn;
 	int source;
 	BOOL publicfield;
 } s_cbDataRootNameAndRouteDir;
@@ -5289,6 +5896,23 @@ BOOL cbRootNameAndRouteDir(void *callbackData,struct X3D_Node* node,int jfield,u
 	}
 	return found;
 }
+BOOL cbExactNameAndRouteDir(void *callbackData,struct X3D_Node* node,int jfield,union anyVrml *fieldPtr,char *fieldName, int mode,int type,int source,BOOL publicfield)
+{
+
+	BOOL found;
+	s_cbDataRootNameAndRouteDir *cbd = (s_cbDataRootNameAndRouteDir*)callbackData;
+	found = !strcmp(fieldName,cbd->fname) ? TRUE : FALSE;
+	found = found && (mode == cbd->PKW_eventType || mode == PKW_inputOutput);
+	if(found){
+		cbd->fname = fieldName;
+		cbd->jfield = jfield;
+		cbd->mode = mode;
+		cbd->type = type;
+		cbd->publicfield = publicfield;
+		cbd->source = source;
+	}
+	return found;
+}
 BOOL find_anyfield_by_nameAndRouteDir(struct X3D_Node* node, union anyVrml **anyptr, 
 			int *imode, int *itype, char* nodeFieldName, int *isource, void** fdecl, int *ifield, int PKW_eventType)
 {
@@ -5296,7 +5920,9 @@ BOOL find_anyfield_by_nameAndRouteDir(struct X3D_Node* node, union anyVrml **any
 	s_cbDataRootNameAndRouteDir cbd;
 	cbd.fname = nodeFieldName;
 	cbd.PKW_eventType = PKW_eventType;
-	found = walk_fields(node,cbRootNameAndRouteDir,&cbd);
+	found = walk_fields(node,cbExactNameAndRouteDir,&cbd);
+	if(!found)
+		found = walk_fields(node,cbRootNameAndRouteDir,&cbd);
 	if(found){
 		*anyptr = cbd.fieldValue;
 		*imode = cbd.mode;
@@ -5326,14 +5952,19 @@ int count_fields(struct X3D_Node* node)
 //========
 void **shaderFields(struct X3D_Node* node);
 //convenience wrappers to get details for built-in fields and -on script and protoInstance- dynamic fields
-int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *type, int *kind, 
+		int *iifield, int *builtIn, union anyVrml **value, int *iunca, const char **cname){
 	void **shaderfield;
 	*type = 0;
 	*kind = 0;
 	*iifield = -1;
 	*value = NULL;
+	*iunca = UNCA_NONE;
+	*cname = NULL;
+	*builtIn = TRUE;
 	shaderfield = shaderFields(node);
 	//Q. what about shader script?
+
 	if(node->_nodeType == NODE_Script) 
 	{
 		int k;
@@ -5359,6 +5990,8 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				*kind = fdecl->PKWmode;
 				*value = &(sfield->value);
 				*iifield = k; 
+				*builtIn = FALSE;
+				*cname = fieldName;
 				return 1;
 			}
 		}
@@ -5386,6 +6019,8 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				*kind = fdecl->PKWmode;
 				*value = &(sfield->value);
 				*iifield = k; 
+				*builtIn = FALSE;
+				*cname = fieldName;
 				return 1;
 			}
 		}
@@ -5408,25 +6043,30 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					*iifield = k;
+					*builtIn = FALSE;
+					*cname = fieldName;
 					return 1;
 				}
 			}
 		}
 	}
-	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
+	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script, metadata on Proto)
+	//june 2018 problem: iifield index returned for Script.url and Proto.metadata doesn't discriminate
+	// between builtin here and authored list above.
 	{
-		typedef struct field_info{
-			int nameIndex;
-			int offset;
-			int typeIndex;
-			int ioType;
-			int version;
-		} *finfo;
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
 
-		finfo offsets;
-		finfo field;
+		fieldinfo offsets;
+		fieldinfo field;
 		int ifield;
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
 		ifield = 0;
 		field = &offsets[ifield];
 		while( field->nameIndex > -1) //<< generalized for scripts and builtins?
@@ -5443,7 +6083,10 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				}
 				*kind = kkind;
 				*iifield = ifield; 
+				*builtIn = TRUE;
 				*value = (union anyVrml*)&((char*)node)[field->offset];
+				*iunca = field->unca;
+				*cname = FIELDNAMES[field->nameIndex];
 				return 1;
 			}
 			ifield++;
@@ -5452,9 +6095,9 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 	}
 	return 0;
 }
-int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+int getFieldFromNodeAndNameU(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int* builtIn, union anyVrml **value, int *iunca, const char **cname){
 	int ifound = 0;
-	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,value);
+	ifound = getFieldFromNodeAndName0(node,fieldname,type,kind,iifield,builtIn,value,iunca,cname);
 	if(!ifound){
 		int ln, hsn, hcn;
 		const char *nf;
@@ -5462,7 +6105,7 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 
 		if(hsn){
 			//set_ prefix
-			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,value);
+			ifound = getFieldFromNodeAndName0(node,nf,type,kind,iifield,builtIn,value,iunca,cname);
 		}
 		ln++;
 		if(hcn) {
@@ -5470,11 +6113,26 @@ int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *ty
 			char rootname[MAXJSVARIABLELENGTH];
 			strncpy(rootname,fieldname,ln);
 			rootname[ln] = '\0';
-			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,value);
+			ifound = getFieldFromNodeAndName0(node,rootname,type,kind,iifield,builtIn,value,iunca,cname);
 		}
 	}
 	return ifound;		
 }
+int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value){
+	int iunca;
+	int ifound;
+	int builtIn;
+	const char *cname = NULL;
+	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,&builtIn,value,&iunca,&cname); //waste iunca
+	return ifound;
+}
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname){
+	int iunca;
+	int ifound;
+	ifound = getFieldFromNodeAndNameU(node,fieldname,type,kind,iifield,builtIn,value,&iunca,cname); //waste iunca
+	return ifound;
+}
+
 int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value){
 	int iret = 0;
 	*type = 0;
@@ -5535,20 +6193,21 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 	}
 	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
 	{
-		typedef struct field_info{
-			int nameIndex;
-			int offset;
-			int typeIndex;
-			int ioType;
-			int version;
-		} *finfo;
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
 
-		finfo offsets;
+		fieldinfo offsets;
 		int k, kkind;
 		int kfield;
 
 
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
 		kfield = ifield;
 		//convert to index if in absolute offset
 		if(kfield >= offsets[0].offset){
@@ -5578,10 +6237,220 @@ int getFieldFromNodeAndIndex(struct X3D_Node* node, int ifield, const char **fie
 	}
 }
 
+int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **fieldname, int *type, int *kind, union anyVrml **value, int *builtIn){
+	int iret = 0;
+	int nuser = 0;
+	*type = 0;
+	*kind = 0;
+	*fieldname = NULL;
+	*value = NULL;
+	if(node->_nodeType == NODE_Script ) 
+	{
+		int k;
+		struct Vector *sfields;
+		struct ScriptFieldDecl *sfield;
+		struct FieldDecl *fdecl;
+		struct Shader_Script *sp;
+		struct CRjsnameStruct *JSparamnames = getJSparamnames();
+		struct X3D_Script *snode;
+
+		snode = (struct X3D_Script*)node;
+
+		//sp = *(struct Shader_Script **)&((char*)node)[field->offset];
+		sp = (struct Shader_Script *)snode->__scriptObj;
+		sfields = sp->fields;
+		//fprintf(fp,"sp->fields->n = %d\n",sp->fields->n);
+		k = ifield;
+		nuser = sfields->n;
+		if(k > -1 && k < nuser)
+		{
+			sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
+			//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
+			fdecl = sfield->fieldDecl;
+			*fieldname = fieldDecl_getShaderScriptName(fdecl);
+			*type = fdecl->fieldType;
+			*kind = fdecl->PKWmode;
+			*value = &(sfield->value);
+			*builtIn = FALSE;
+			iret = 1;
+		}
+		return iret;
+	}else if(node->_nodeType == NODE_Proto ) {
+		int k; //, mode;
+		struct ProtoFieldDecl* pfield;
+		struct X3D_Proto* pnode = (struct X3D_Proto*)node;
+		struct ProtoDefinition* pstruct = (struct ProtoDefinition*) pnode->__protoDef;
+		if(pstruct){
+			if(pstruct->iface){
+				k = ifield;
+				nuser = vectorSize(pstruct->iface);
+				if(k > -1 && k < nuser)
+				{
+					pfield= vector_get(struct ProtoFieldDecl*, pstruct->iface, k);
+					//mode = pfield->mode;
+					*fieldname = pfield->cname;
+					*type = pfield->type;
+					*kind = pfield->mode;
+					*builtIn = FALSE;
+					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+						*value = &(pfield->defaultVal);
+					iret = 1;
+				}
+			}
+		}
+		return iret;
+	}
+	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
+	{
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
+
+		fieldinfo offsets;
+		int k, kkind;
+		int kfield, nbuiltin;
 
 
-void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int type,
-					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int source)
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
+		nbuiltin = 0;
+
+		kfield = ifield - nuser;
+		for(k=0;k<=kfield;k++)
+			if(offsets[k].nameIndex == -1) return -1; //end of iteration
+		*fieldname = FIELDNAMES[offsets[kfield].nameIndex];
+		*type = offsets[kfield].typeIndex;
+		*builtIn = TRUE;
+		kkind = -1;
+		switch(offsets[kfield].ioType){
+			case KW_initializeOnly: kkind = PKW_initializeOnly; break;
+			case KW_inputOnly: kkind = PKW_inputOnly; break;
+			case KW_outputOnly: kkind = PKW_outputOnly; break;
+			case KW_inputOutput: kkind = PKW_inputOutput; break;
+		}
+		*kind = kkind;
+		*value = (union anyVrml*)&((char*)node)[offsets[kfield].offset];
+		return 1;
+	}
+	return 0; //not found, but not end of iteration
+}
+
+int getFieldFromNodeAndIndexSource(struct X3D_Node* node, int ifield, int builtIn, const char **fieldname, int *type, int *kind, union anyVrml **value){
+	int iret = 0;
+	int nuser = 0;
+	*type = 0;
+	*kind = 0;
+	*fieldname = NULL;
+	*value = NULL;
+	if(node->_nodeType == NODE_Script && !builtIn) 
+	{
+		int k;
+		struct Vector *sfields;
+		struct ScriptFieldDecl *sfield;
+		struct FieldDecl *fdecl;
+		struct Shader_Script *sp;
+		struct CRjsnameStruct *JSparamnames = getJSparamnames();
+		struct X3D_Script *snode;
+
+		snode = (struct X3D_Script*)node;
+
+		//sp = *(struct Shader_Script **)&((char*)node)[field->offset];
+		sp = (struct Shader_Script *)snode->__scriptObj;
+		sfields = sp->fields;
+		//fprintf(fp,"sp->fields->n = %d\n",sp->fields->n);
+		k = ifield;
+		nuser = sfields->n;
+		if(k > -1 && k < nuser)
+		{
+			sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
+			//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
+			fdecl = sfield->fieldDecl;
+			*fieldname = fieldDecl_getShaderScriptName(fdecl);
+			*type = fdecl->fieldType;
+			*kind = fdecl->PKWmode;
+			*value = &(sfield->value);
+			iret = 1;
+		}
+		return iret;
+	}else if(node->_nodeType == NODE_Proto && !builtIn ) {
+		int k; //, mode;
+		struct ProtoFieldDecl* pfield;
+		struct X3D_Proto* pnode = (struct X3D_Proto*)node;
+		struct ProtoDefinition* pstruct = (struct ProtoDefinition*) pnode->__protoDef;
+		if(pstruct){
+			if(pstruct->iface){
+				k = ifield;
+				nuser = vectorSize(pstruct->iface);
+				if(k > -1 && k < nuser)
+				{
+					pfield= vector_get(struct ProtoFieldDecl*, pstruct->iface, k);
+					//mode = pfield->mode;
+					*fieldname = pfield->cname;
+					*type = pfield->type;
+					*kind = pfield->mode;
+					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+						*value = &(pfield->defaultVal);
+					iret = 1;
+				}
+			}
+		}
+		return iret;
+	}
+	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
+	if(builtIn){
+		//typedef struct field_info{
+		//	int nameIndex;
+		//	int offset;
+		//	int typeIndex;
+		//	int ioType;
+		//	int version;
+		//	int unca;
+		//} *finfo;
+
+		fieldinfo offsets;
+		int k, kkind;
+		int kfield;
+
+
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
+
+		kfield = ifield;
+		//convert to index if in absolute offset
+		if(kfield >= offsets[0].offset){
+			int k = 0;
+			while(offsets[k].nameIndex > -1){
+				if(ifield == offsets[k].offset){
+					kfield = k;
+					break;
+				}
+				k++;
+			}
+		}
+		for(k=0;k<=kfield;k++)
+			if(offsets[k].nameIndex == -1) return -1; //end of iteration
+		*fieldname = FIELDNAMES[offsets[kfield].nameIndex];
+		*type = offsets[kfield].typeIndex;
+		kkind = -1;
+		switch(offsets[kfield].ioType){
+			case KW_initializeOnly: kkind = PKW_initializeOnly; break;
+			case KW_inputOnly: kkind = PKW_inputOnly; break;
+			case KW_outputOnly: kkind = PKW_outputOnly; break;
+			case KW_inputOutput: kkind = PKW_inputOutput; break;
+		}
+		*kind = kkind;
+		*value = (union anyVrml*)&((char*)node)[offsets[kfield].offset];
+		return 1;
+	}
+	return 0; //not found, but not end of iteration
+}
+
+
+void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int iprotofield, int pBuiltIn, int type,
+					struct X3D_Node *node, char* nodefieldname, int mode, int ifield, int nBuiltIn, int source)
 {
 	Stack* ISs;
 	struct brotoIS* is;
@@ -5591,11 +6460,13 @@ void broto_store_IS(struct X3D_Proto *proto,char *protofieldname,int pmode, int 
 	is->protofieldname = strdup(protofieldname);
 	is->pmode = pmode;
 	is->iprotofield = iprotofield;
+	is->pBuiltIn = pBuiltIn;
 	is->type = type;
 	is->node = node;
 	is->nodefieldname = strdup(nodefieldname);
 	is->mode = mode;
 	is->ifield = ifield;
+	is->builtIn = nBuiltIn;
 	is->source = source;
 
 	ISs = proto->__IS;
@@ -5615,9 +6486,9 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 		register IS in IS-table
 	*/
 	int i;
-    int mode;
-    int type;
-	int source;
+    int type, mode;
+	int ptype, pmode;
+	int source, builtIn, pbuiltIn;
 	int ifield, iprotofield;
 	struct ProtoDefinition* pdef=NULL;
 	struct X3D_Proto* proto;
@@ -5626,9 +6497,11 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	DECLAREUP
 	BOOL foundField;
 	BOOL foundProtoField;
-	struct ProtoFieldDecl* f;
+	struct ProtoFieldDecl *f;
 	union anyVrml *fieldPtr;
+	union anyVrml *defaultPtr;
 	void *fdecl;
+	const char* pname = NULL;
 
 
 
@@ -5683,6 +6556,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	/*Now we need to know the same things about the proto node and field:
 	0. we know it's a user node - all X3D_Proto/Protos are, and they (should) have no public builtin fields
 	   (children should be removed)
+	   PROBLEM 2018 metadata [in/out] is builtin
 	1. does the field/event exist on the proto
 	if so then
 	3. what's it's type - SF/MF,type - needed for compatibility check with node field
@@ -5695,19 +6569,31 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 	foundProtoField = FALSE;
 	f = NULL;
 	{
+		//user field
+		pbuiltIn = FALSE;
 		const char* pname = NULL;
 		iprotofield = -1;
-		for(i=0; i!=vectorSize(pdef->iface); ++i)
-		{
-			f=vector_get(struct ProtoFieldDecl*, pdef->iface, i);
-			pname = f->cname;
 
-			foundProtoField = !strcmp(pname,protoFieldName) ? TRUE : FALSE;
-			if(foundProtoField ) {
-				/* printf ("protoDefinition_getField, comparing %d %d and %d %d\n", f->name, ind, f->mode, mode); */
-				//return f;
-				iprotofield = i;
-				break;
+		if(!strcasecmp(protoFieldName,"metadata")){
+			//builtin
+			foundProtoField = getFieldFromNodeAndNameC(X3D_NODE(proto),protoFieldName,&ptype, &pmode, &iprotofield, &pbuiltIn, &defaultPtr, &pname);
+		}else{
+			for(i=0; i!=vectorSize(pdef->iface); ++i)
+			{
+				f=vector_get(struct ProtoFieldDecl*, pdef->iface, i);
+				pname = f->cname;
+
+				foundProtoField = !strcmp(pname,protoFieldName) ? TRUE : FALSE;
+				if(foundProtoField ) {
+					/* printf ("protoDefinition_getField, comparing %d %d and %d %d\n", f->name, ind, f->mode, mode); */
+					//return f;
+					iprotofield = i;
+					ptype = f->type;
+					pmode = f->mode;
+					pname = f->cname;
+					defaultPtr = &f->defaultVal;
+					break;
+				}
 			}
 		}
 		if( !foundProtoField ){
@@ -5720,12 +6606,12 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 			return TRUE;
 		}
 		//check its type
-		if(f->type != type){
+		if(ptype != type){
 			if(!pname) pname = "";
 			ConsoleMessage("Parser error: IS - we have a name match: %s IS %s found protofield %s\n",
 				nodeFieldName,protoFieldName,pname);
 			ConsoleMessage("...But the types don't match: nodefield %s protofield %s\n",
-				FIELDTYPES[type],FIELDTYPES[f->type]);
+				FIELDTYPES[type],FIELDTYPES[ptype]);
 			FREE_IF_NZ(me->lexer->curID);
 			FREEUP
 			FREE_IF_NZ(nodeFieldName);
@@ -5744,12 +6630,12 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 		//
 		// so if our nodefield's mode is inputOutput/exposedField then we are covered for all protoField modes
 		// otherwise, the nodefield's mode must be the same as the protofield's mode
-		if(X3DMODE(mode) != PKW_inputOutput && X3DMODE(mode) != X3DMODE(f->mode)){
-			if(X3DMODE(f->mode) != PKW_inputOutput){
+		if(X3DMODE(mode) != PKW_inputOutput && X3DMODE(mode) != X3DMODE(pmode)){
+			if(X3DMODE(pmode) != PKW_inputOutput){
 				ConsoleMessage("Parser Error: IS - we have a name match: %s IS %s found protofield %s\n",
 					nodeFieldName,protoFieldName,f->fieldString);
 				ConsoleMessage("...But the modes don't jive: nodefield %s protofield %s\n",
-					PROTOKEYWORDS[mode],PROTOKEYWORDS[f->mode]);
+					PROTOKEYWORDS[mode],PROTOKEYWORDS[pmode]);
 				FREE_IF_NZ(me->lexer->curID);
 				FREEUP
 				FREE_IF_NZ(nodeFieldName);
@@ -5757,9 +6643,9 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 				return TRUE;
 			}else{
 				ConsoleMessage("Parser Warning: IS - we have a name match: %s IS %s found protofield %s\n",
-					nodeFieldName,protoFieldName,f->fieldString);
+					nodeFieldName,protoFieldName,pname);
 				ConsoleMessage("...But the modes don't jive: nodefield %s protofield %s\n",
-					PROTOKEYWORDS[mode],PROTOKEYWORDS[f->mode]);
+					PROTOKEYWORDS[mode],PROTOKEYWORDS[pmode]);
 				ConsoleMessage("...will thunk\n");
 			}
 		}
@@ -5767,7 +6653,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 
 	//we have an IS that's compatible/jives
 	//a) copy the value if it's an initializeOnly or inputOutput
-	if(X3DMODE(f->mode) == PKW_initializeOnly || X3DMODE(f->mode) == PKW_inputOutput)
+	if(X3DMODE(pmode) == PKW_initializeOnly || X3DMODE(pmode) == PKW_inputOutput)
 	{
 
 		//Q. how do I do this? Just a memcpy on anyVrml or ???
@@ -5778,7 +6664,7 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 		//sftype = type - isMF;
 		//from EAI_C_CommonFunctions.c
 		//isize = returnElementLength(sftype) * returnElementRowSize(sftype);
-		shallow_copy_field(type, &(f->defaultVal) , fieldPtr);
+		shallow_copy_field(type, defaultPtr , fieldPtr);
 		//memcpy(fieldPtr,&(f->defaultVal),isize); //sizeof(union anyVrml));
 		//heapdump();
 		//if(0)//should probably only do this for the final deep_copy sceneInstance, not here during parsing
@@ -5791,8 +6677,9 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node)
 
 	}
 	//b) register it in the IS-table for our context
-	broto_store_IS(proto,protoFieldName,X3DMODE(f->mode),iprotofield,type,
-					node,nodeFieldName,X3DMODE(mode),ifield,source);
+	builtIn = source ? FALSE : TRUE;
+	broto_store_IS(proto,protoFieldName,X3DMODE(f->mode),iprotofield,pbuiltIn,type,
+					node,nodeFieldName,X3DMODE(mode),ifield,builtIn,source);
 	/* Add this scriptfielddecl to the list of script fields mapped to this proto field */
 	//sfield = newScriptFieldInstanceInfo(sdecl, script);
 	//vector_pushBack(struct ScriptFieldInstanceInfo*, pField->scriptDests, sfield);
@@ -5900,7 +6787,9 @@ void load_externProtoDeclare (struct X3D_Proto *node) {
 				/* printf ("load_Inline, we have type  %s  status %s\n",
 					resourceTypeToString(res->type), resourceStatusToString(res->status)); */
 				res->actions = resa_download | resa_load; //not resa_parse which we do below
+				pushInputResource(res);
 				libraryScene = createNewX3DNode0(NODE_Proto);
+				popInputResource();
 				res->ectx = (void*)libraryScene;
 				res->whereToPlaceData = X3D_NODE(libraryScene);
 				res->offsetFromWhereToPlaceData = offsetof (struct X3D_Proto, __children);
@@ -6012,6 +6901,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 							struct Vector *ei, *pi;
 							struct ProtoFieldDecl *ef, *pf;
 
+							pushInputResource(pinstance->_parentResource);
 							ed = node->__protoDef;
 							ei = ed->iface;
 							pd = pinstance->__protoDef;
@@ -6032,14 +6922,14 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 									for(j=0;j<pi->n;j++){
 										pf = protoDefinition_getFieldByNum(pd, j);
 										pname = pf->cname;
-										if(!strcmp(ename,pname)){
+										if(!strcmp(ename,pname) || !fieldSynonymCompare(ename,pname)){
 											//name match
 											//printf("ename = %s pname = %s\n",ename,pname);
 											if(ef->type == pf->type){
 												//type match
 												//printf("etype = %d ptype = %d\n",ef->type, pf->type);
 												//add IS
-												broto_store_IS(node,ef->cname,ef->mode, i, ef->type,	X3D_NODE(pinstance), pf->cname, pf->mode, j, 3);
+												broto_store_IS(node,ef->cname,ef->mode, i, FALSE, ef->type,	X3D_NODE(pinstance), pf->cname, pf->mode, j, FALSE, 3);
 											}
 										}
 									}
@@ -6083,6 +6973,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 							nnode = X3D_NODE(pinstance);
                 			AddRemoveChildren(X3D_NODE(node), &node->__children, &nnode, 1, 1,__FILE__,__LINE__);
 							add_parent(X3D_NODE(pinstance),X3D_NODE(node),__FILE__,__LINE__);
+							popInputResource();
 						} //if (pinstance != NULL) 
 					}
 				}
@@ -6164,7 +7055,7 @@ int	unregister_broutes(struct X3D_Proto * node){
 				for(i=0;i<vectorSize(node->__ROUTES);i++){
 					route = vector_get(struct brotoRoute*,node->__ROUTES,i);
 					if(route && route->lastCommand){
-						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->to.node,route->to.ifield,route->ft);
+						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->from.builtIn,route->to.node,route->to.ifield,route->to.builtIn,route->ft);
 						route->lastCommand = 0;
 					}
 				}
@@ -6191,6 +7082,8 @@ int	unInitializeScript(struct X3D_Node *node);
 void delete_polyrep(struct X3D_Node *node);
 void unRegisterPolyRep(struct X3D_Node *node);
 void delete_glbuffers(struct X3D_Node *node);
+void unRegisterGeoElevationGrid(struct X3D_Node *node);
+
 int unRegisterX3DAnyNode(struct X3D_Node *node){
 	//this is for 'live' scenery, not protoDeclarations or proto library scenes
 	//web3d has a concept of a browser. A browser contains and renders a scene.
@@ -6224,6 +7117,8 @@ int unRegisterX3DAnyNode(struct X3D_Node *node){
 	unRegisterX3DNode(node);
 	// is this a bindable node? 
 	unRegisterBindable(node);
+	// is this a geoElevationGrid?
+	unRegisterGeoElevationGrid(node);
 	// is this a OSC sensor node? 
 	remove_OSCsensor(node); // WANT_OSC 
 	// is this a pick sensor node? 
@@ -6469,7 +7364,7 @@ int unRegisterNodeRoutes(struct X3D_Proto *context, struct X3D_Node* node){
 				route = vector_get(struct brotoRoute*,context->__ROUTES,ii);
 				if(route->from.node == node || route->to.node == node){
 					if( route->lastCommand){
-						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->to.node,route->to.ifield,route->ft);
+						CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->from.builtIn, route->to.node,route->to.ifield,route->to.builtIn,route->ft);
 						route->lastCommand = 0;
 					}
 					vector_remove_elem(struct X3D_Node*,context->__ROUTES,ii);

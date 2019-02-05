@@ -26,8 +26,10 @@
 
 
 #include <config.h>
+#if !defined(JS_SMCPP)
 #include <system.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#ifdef JAVASCRIPT_SM
 #include <system_threads.h>
 #include <display.h>
 #include <internal.h>
@@ -52,7 +54,6 @@
 #include "jsVRMLClasses.h"
 
 
-
 /********************************************************/
 /*							*/
 /* first part - standard helper functions		*/
@@ -63,7 +64,7 @@ void _get4f(double *ret, double *mat, int row);
 void _set4f(double len, double *mat, int row);
 
 /* for keeping track of the ECMA values */
-#define ECMAValueTableSize 100
+#define ECMAValueTableSize 300
 /* for keeping track of the ECMA values */
 struct ECMAValueStruct {
 	jsval	JS_address;
@@ -115,11 +116,13 @@ JSClass SFColorClass = {
 };
 
 JSPropertySpec (SFColorProperties)[] = {
-	{"r", 0, JSPROP_ENUMERATE},
-	{"g", 1, JSPROP_ENUMERATE},
-	{"b", 2, JSPROP_ENUMERATE},
+	{"r", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"g", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"b", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
+
+
 
 JSFunctionSpec (SFColorFunctions)[] = {
 	{"getHSV", SFColorGetHSV, 0},
@@ -145,10 +148,10 @@ JSClass SFColorRGBAClass = {
 };
 
 JSPropertySpec (SFColorRGBAProperties)[] = {
-	{"r", 0, JSPROP_ENUMERATE},
-	{"g", 1, JSPROP_ENUMERATE},
-	{"b", 2, JSPROP_ENUMERATE},
-	{"a", 3, JSPROP_ENUMERATE},
+	{"r", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"g", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"b", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"a", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -176,10 +179,10 @@ JSClass SFImageClass = {
 };
 
 JSPropertySpec (SFImageProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"comp", 2, JSPROP_ENUMERATE},
-	{"array", 3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"comp", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"array", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -208,6 +211,17 @@ JSPropertySpec (SFNodeProperties)[] = {
 	{0}
 };
 
+/*
+struct JSFunctionSpec {
+    const char      *name;
+    JSNative        call;
+    uint16          nargs;
+    uint16          flags;
+};
+*/
+
+
+// JS_FS("js_function", jjjs_function, 1, 0, 0),
 JSFunctionSpec (SFNodeFunctions)[] = {
 #ifdef NEWCLASSES
 	{"getNodeName", SFNodeGetNodeName, 0},
@@ -216,9 +230,11 @@ JSFunctionSpec (SFNodeFunctions)[] = {
 	{"toVRMLString",SFNodeToVRMLString, 0},
 	{"toXMLString", SFNodeToXMLString, 0},
 #endif
-	{"toString", SFNodeToString, 0}, /* depreciated JAS */
-	{"assign", SFNodeAssign, 0},
-	{0}
+	JS_FS("equals", SFNodeEquals, 1,0),
+	JS_FS("toString", SFNodeToString, 0, 0),
+	JS_FS("valueOf", SFNodeValueOf, 0, 0), 
+	{"assign", SFNodeAssign, 0, 0},
+	JS_FS_END
 };
 
 
@@ -237,10 +253,10 @@ JSClass SFRotationClass = {
 };
 
 JSPropertySpec (SFRotationProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
-	{"angle",3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"angle",3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -273,8 +289,8 @@ JSClass SFVec2fClass = {
 };
 
 JSPropertySpec (SFVec2fProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -306,8 +322,8 @@ JSClass SFVec2dClass = {
 };
 
 JSPropertySpec (SFVec2dProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -340,10 +356,10 @@ JSClass SFVec4fClass = {
 };
 
 JSPropertySpec (SFVec4fProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
-	{"w", 3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"w", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -369,10 +385,10 @@ JSClass SFVec4dClass = {
 };
 
 JSPropertySpec (SFVec4dProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
-	{"w", 3, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"w", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -388,21 +404,30 @@ JSFunctionSpec (SFVec4dFunctions)[] = {
 
 JSClass SFVec3fClass = {
 	"SFVec3f",
-	JSCLASS_HAS_PRIVATE,
+	JSCLASS_HAS_PRIVATE, //JSPROP_SHARED | JSPROP_ENUMERATE
 	JS_PropertyStub,
 	JS_PropertyStub,
-	SFVec3fGetProperty,
-	SFVec3fSetProperty,
+	SFVec3fGetProperty,   // 185 this is (JSPropertyOp*)
+	SFVec3fSetProperty,   // 185 this should be (JSStrictPropertyOp*)
 	JS_EnumerateStub,
 	JS_ResolveStub,
 	JS_ConvertStub,
 	JS_MY_Finalize
 };
-
+// 90% down page shows a bit of getter/setter
+//  https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_Cookbook 
+//JSPropertySpec (SFVec3fProperties)[] = {
+//	{"x", 0, JSPROP_ENUMERATE, NULL, NULL }, //| JSPROP_PERMANENT
+//	{"y", 1, JSPROP_ENUMERATE, NULL, NULL },
+//	{"z", 2, JSPROP_ENUMERATE, NULL, NULL },
+//	{0}
+//};
+// we seem to need the SHARED in order to set ie translation.x = -3,
+// otherwise it creates a new orphan js property .x unrelated to the C sfvec3f.c[0] property
 JSPropertySpec (SFVec3fProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE, NULL, NULL }, //| JSPROP_PERMANENT
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE, NULL, NULL },
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE, NULL, NULL },
 	{0}
 };
 
@@ -436,9 +461,9 @@ JSClass SFVec3dClass = {
 };
 
 JSPropertySpec (SFVec3dProperties)[] = {
-	{"x", 0, JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_ENUMERATE},
-	{"z", 2, JSPROP_ENUMERATE},
+	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"z", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}
 };
 
@@ -480,7 +505,7 @@ JSFunctionSpec (MFColorFunctions)[] = {
 
 JSClass MFFloatClass = {
 	"MFFloat",
-	JSCLASS_HAS_PRIVATE,
+	JSCLASS_HAS_PRIVATE, //  | JSPROP_SHARED | JSPROP_ENUMERATE,
 	MFFloatAddProperty,
 	JS_PropertyStub,
 	MFFloatGetProperty,
@@ -1032,7 +1057,6 @@ JSBool _standardMFAssign(JSContext *cx,
 		printf("JS_InstanceOf failed for fieldType %s.\n",stringFieldtypeType(type));
 		return JS_FALSE;
 	}
-
 	if (!JS_GetProperty(cx, _from_obj, MF_LENGTH_FIELD, &val)) {
 		printf("JS_GetProperty failed for \"%s\" in %s.\n",MF_LENGTH_FIELD,stringFieldtypeType(type));
 		return JS_FALSE;
@@ -1062,7 +1086,7 @@ JSBool _standardMFAssign(JSContext *cx,
 	/* SF* values that use this routine - check if we need to set valueChanged in private area */
 
 	if (type == FIELDTYPE_SFImage) {
-        	if ((ptr = (SFImageNative *)JS_GetPrivate(cx, obj)) == NULL) {
+        	if ((ptr = (SFImageNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
         	        printf( "JS_GetPrivate failed in standard MF assign.\n");
         	        return JS_FALSE;
         	}
@@ -1071,7 +1095,7 @@ JSBool _standardMFAssign(JSContext *cx,
 
 	return _simplecopyElements(cx, _from_obj, obj, len,type);
 }
-
+void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
 /* standardized GetProperty for MF's */
 JSBool
 _standardMFGetProperty(JSContext *cx,
@@ -1093,8 +1117,9 @@ _standardMFGetProperty(JSContext *cx,
 	jsval newEle;
 #if JS_VERSION >= 185
 	jsval id;
+	//printf("in _standardMFGetProperty\n ");
 	if (!JS_IdToValue(cx,iid,&id)) {
-		printf( "JS_IdToValue failed\n");
+		//printf( "JS_IdToValue failed\n");
 		return JS_FALSE;
 	}
 #endif
@@ -1104,103 +1129,352 @@ _standardMFGetProperty(JSContext *cx,
 	printJSNodeType (cx,obj);
 	#endif
 
-	if (!JS_GetProperty(cx, obj, MF_LENGTH_FIELD, &_length_val)) {
-		printf( "JS_GetProperty failed for \"%s\" in %d.\n",MF_LENGTH_FIELD,type);
-		return JS_FALSE;
-	}
-
-	_length = JSVAL_TO_INT(_length_val);
-	#ifdef JSVRMLCLASSESVERBOSE
-	printf ("standarg get property, len %d\n",_length);
-	#endif
-
-	if (JSVAL_IS_INT(id)) {
-		_index = JSVAL_TO_INT(id);
-		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("standard get property, index requested %d length is %d\n",_index,_length);
-		#endif
-
-		if (_index >= _length) {
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("\n\nconstructing new object\n");
-			#endif
-			/*  we were making this with C calls, but it would fail with a*/
-			/*  segfault; so, now, we run a script to do it.*/
-
-
-			newElemenLen = (int)strlen(makeNewElement);
-
-			if (!JS_EvaluateScript(cx, obj, makeNewElement, newElemenLen,
-				FNAME_STUB, LINENO_STUB, &newEle)) {
-				ConsoleMessage ("standardMFGetProperty: JS_EvaluateScript failed for %s", makeNewElement);
-				return JS_FALSE;
-			}
-
-/* error? newEle is already a jsval
-			*vp = OBJECT_TO_JSVAL(newEle); */
-			*vp = newEle;
-
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("defining element %d now... is %d %#x\n",_index,(int)*vp,(unsigned int)*vp);
-			#endif
-
-			if (!JS_DefineElement(cx, obj, (jsint) _index, *vp,
-				JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB8,
-				JSPROP_ENUMERATE)) {
-				printf( "JS_DefineElement failed in %d.\n",type);
-				return JS_FALSE;
-			}
-
-			if (!doMFSetProperty(cx,obj,
-#if JS_VERSION < 185
-			                     id,
-#else
-			                     iid,
-#endif
-			                     vp,type)) {
-				printf ("wow, cant assign property\n");
-			}
-		}
-		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("object might already have this index\n");
-		#endif
-		if (!JS_LookupElement(cx, obj, _index, vp)) {
-			printf( "JS_LookupElement failed in %d.\n",type);
+	if(SM_method() == 2){
+		AnyNative *ptr;
+		union anyVrml *any;
+		int sfsize, sftype;
+		if ((ptr = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
+			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
 			return JS_FALSE;
 		}
-		if (JSVAL_IS_NULL(*vp)) {
-			printf( "warning: %d: obj = %p, jsval = %d does not exist!\n",type,
-				obj, (int) _index);
-			return JS_TRUE;
-		}
-	} else if (JSVAL_IS_STRING(id)) {
-		#ifdef JSVRMLCLASSESVERBOSE
-		JSString *_str;
-		char * asciiStr;
+		sftype = type2SF(ptr->type);
+		sfsize = sizeofSForMF(sftype);
 
-		printf ("HAVE STRING HERE!\n");
-		_str = JS_ValueToString(cx, id);
+		if (JSVAL_IS_INT(id)) {
+			char *mf_p;
+			int mf_n;
+			int newlength;
+			int index = JSVAL_TO_INT(id);
+			if(index < 0) return JS_FALSE;
+
+			//>> allow resize by mf[10000] = 0.0;
+			newlength = index + 1;
+			mf_n = ptr->v->mfbool.n;
+			mf_p = (char *)ptr->v->mfbool.p;
+			if(newlength > mf_n ) {
+				// in the setter, normally we realloc
+				if(mf_p == NULL){
+					mf_p = malloc(sfsize*upper_power_of_two(newlength));
+					memset(mf_p,0,sfsize*upper_power_of_two(newlength));
+				}else{
+					int k;
+					mf_p = realloc(mf_p,sizeof(int) + sfsize*upper_power_of_two(newlength));
+					for(k=mf_n;k<newlength;k++)
+						memset(mf_p + (size_t)sfsize*k,0,sfsize);
+				}
+				ptr->v->mfbool.n = newlength;
+			}
+			ptr->v->mfbool.p = (int*)mf_p;
+			//<< allow resize by mf[10000] = 0.0;
+
+			any = (union anyVrml*)(mf_p + (index * sfsize));
+			switch(type2SF(ptr->type)){
+				case FIELDTYPE_SFBool:
+				case FIELDTYPE_SFFloat:
+				case FIELDTYPE_SFTime:
+				case FIELDTYPE_SFDouble:
+				case FIELDTYPE_SFInt32:
+					X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
+					break;
+				case FIELDTYPE_SFString:
+					if(any->sfstring == NULL){
+						any->sfstring = (struct Uni_String*)malloc(sizeof(struct Uni_String));
+						memset(any->sfstring,0,sizeof(struct Uni_String));
+					}
+					X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
+					break;
+				case FIELDTYPE_SFColor:
+				case FIELDTYPE_SFVec2f:
+				case FIELDTYPE_SFVec3f:
+				case FIELDTYPE_SFVec3d:
+				case FIELDTYPE_SFRotation:
+					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
+					break;
+				case FIELDTYPE_SFNode:
+					X3D_SF_TO_JS_BNode(cx, any,sfsize, sftype, ptr->valueChanged, vp);
+					break;
+				default: printf ("invalid type in standardMFGetProperty method 2\n"); return JS_FALSE;
+			}
+			return JS_TRUE;
+		}else if(JSVAL_IS_STRING(id)){
+			JSString *_idStr;
+			char *_id_c;
+
+			_idStr = JS_ValueToString(cx, id);
+			if(_idStr){
 #if JS_VERSION < 185
-		asciiStr = JS_GetStringBytes(_str);
+				_id_c = JS_GetStringBytes(_idStr);
 #else
-		asciiStr = JS_EncodeString(cx,_str);
+				_id_c = JS_EncodeString(cx,_idStr);
 #endif
-		printf ("we have as a parameter :%s:\n",asciiStr);
-#if JS_VERSION >= 185
-		JS_free(cx,asciiStr);
-#endif
+				if (strcmp ("length",_id_c) == 0) {
+					//create js int
+					//assign length to it
+					// length = ptr->v->mfbool.n;
+					int mf_n;
+					jsval retval;
+
+					mf_n = ptr->v->mfbool.n;
+					retval = INT_TO_JSVAL(mf_n);
+					*vp = retval;
+					return JS_TRUE;
+
+				}
+			}
+		}
+	}else{
+		if (!JS_GetProperty(cx, obj, MF_LENGTH_FIELD, &_length_val)) {
+			printf( "JS_GetProperty failed for \"%s\" in %d.\n",MF_LENGTH_FIELD,type);
+			return JS_FALSE;
+		}
+
+		_length = JSVAL_TO_INT(_length_val);
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("standarg get property, len %d\n",_length);
 		#endif
 
-	}
+		if (JSVAL_IS_INT(id)) {
+			_index = JSVAL_TO_INT(id);
+			#ifdef JSVRMLCLASSESVERBOSE
+			printf ("standard get property, index requested %d length is %d\n",_index,_length);
+			#endif
+
+			if (_index >= _length) {
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("\n\nconstructing new object\n");
+				#endif
+				/*  we were making this with C calls, but it would fail with a*/
+				/*  segfault; so, now, we run a script to do it.*/
+
+
+				newElemenLen = (int)strlen(makeNewElement);
+
+				if (!JS_EvaluateScript(cx, obj, makeNewElement, newElemenLen,
+					FNAME_STUB, LINENO_STUB, &newEle)) {
+					ConsoleMessage ("standardMFGetProperty: JS_EvaluateScript failed for %s", makeNewElement);
+					return JS_FALSE;
+				}
+
+	/* error? newEle is already a jsval
+				*vp = OBJECT_TO_JSVAL(newEle); */
+				*vp = newEle;
+
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("defining element %d now... is %d %#x\n",_index,(int)*vp,(unsigned int)*vp);
+				#endif
+
+				if (!JS_DefineElement(cx, obj, (jsint) _index, *vp,
+					JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB8,
+					JSPROP_ENUMERATE)) {
+					printf( "JS_DefineElement failed in %d.\n",type);
+					return JS_FALSE;
+				}
+
+				if (!doMFSetProperty(cx,obj,
+	#if JS_VERSION < 185
+									 id,
+	#else
+									 iid,
+	#endif
+									 vp,type)) {
+					printf ("wow, cant assign property\n");
+				}
+			}
+			#ifdef JSVRMLCLASSESVERBOSE
+			printf ("object might already have this index\n");
+			#endif
+			if (!JS_LookupElement(cx, obj, _index, vp)) {
+				printf( "JS_LookupElement failed in %d.\n",type);
+				return JS_FALSE;
+			}
+			if (JSVAL_IS_NULL(*vp)) {
+				printf( "warning: %d: obj = %p, jsval = %d does not exist!\n",type,
+					obj, (int) _index);
+				return JS_TRUE;
+			}
+		} else if (JSVAL_IS_STRING(id)) {
+			#ifdef JSVRMLCLASSESVERBOSE
+			JSString *_str;
+			char * asciiStr;
+
+			printf ("HAVE STRING HERE!\n");
+			_str = JS_ValueToString(cx, id);
+	#if JS_VERSION < 185
+			asciiStr = JS_GetStringBytes(_str);
+	#else
+			asciiStr = JS_EncodeString(cx,_str);
+	#endif
+			printf ("we have as a parameter :%s:\n",asciiStr);
+	#if JS_VERSION >= 185
+			JS_free(cx,asciiStr);
+	#endif
+			#endif
+
+		}
+	} //SM_method == 2
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("_standardMFGetProperty finishing; element is %u\n",(unsigned int)*vp);
 	#endif
 
 	return JS_TRUE;
 }
+/*
+	"SFFloat",
+	"SFRotation",
+	"SFVec3f",
+	"SFBool",
+	"SFInt32",
+	"SFNode",
+	"SFColor",
+	"SFColorRGBA",
+	"SFTime",
+	"SFString",
+	"SFVec2f",
+	"SFImage",
+	"SFVec3d",
+	"SFDouble",
+	"SFMatrix3f",
+	"SFMatrix3d",
+	"SFMatrix4f",
+	"SFMatrix4d",
+	"SFVec2d",
+	"SFVec4f",
+	"SFVec4d",
+	"FreeWRLThread",
+*/
+char *mf2str(int type, union anyVrml *ptr);
+char *sf2str(int sftype, union anyVrml *any){
+	//caller must free / gc the return string
+	int i;
+	char strbuf[100];
+	char *str = NULL;
+	switch(sftype){
+	case FIELDTYPE_SFBool:
+		if(any->sfbool) str = strdup("true");
+		else str = strdup("false");
+		break;
+	case FIELDTYPE_SFInt32:
+		sprintf(strbuf,"%d",any->sfint32);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFFloat:
+		sprintf(strbuf,"%g",any->sffloat);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFDouble:
+	case FIELDTYPE_SFTime:
+		sprintf(strbuf,"%g",any->sfdouble);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFString:{
+		str = malloc(strlen(any->sfstring->strptr)+3);
+		strcpy(str,"\"");
+		str = strcat(str,any->sfstring->strptr);
+		str = strcat(str,"\"");
+		}
+		break;
+	case FIELDTYPE_SFVec2f:
+		 {
+		sprintf(strbuf,"%f %f",any->sfvec2f.c[0],any->sfvec2f.c[1]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec2d:
+		 {
+		sprintf(strbuf,"%g %g",any->sfvec2d.c[0],any->sfvec2d.c[1]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec3f:
+	case FIELDTYPE_SFColor:
+		 {
+		sprintf(strbuf,"%f %f %f",any->sfvec3f.c[0],any->sfvec3f.c[1],any->sfvec3f.c[2]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec3d:
+		 {
+		sprintf(strbuf,"%g %g %g",any->sfvec3d.c[0],any->sfvec3d.c[1],any->sfvec3d.c[2]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFColorRGBA:
+	case FIELDTYPE_SFRotation:
+	case FIELDTYPE_SFVec4f:
+		 {
+		sprintf(strbuf,"%f %f %f %f",any->sfvec4f.c[0],any->sfvec4f.c[1],any->sfvec4f.c[2],any->sfvec4f.c[3]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFVec4d:
+		 {
+		sprintf(strbuf,"%g %g %g %g",any->sfvec4d.c[0],any->sfvec4d.c[1],any->sfvec4d.c[2],any->sfvec4d.c[3]);
+		str = strdup(strbuf);
+		break;
+	}
+	case FIELDTYPE_SFNode:
+		sprintf(strbuf,"%zx",any->sfnode);
+		str = strdup(strbuf);
+		break;
+	case FIELDTYPE_SFImage:
+		str = mf2str(FIELDTYPE_MFInt32,any);
+		break;
+	case FIELDTYPE_SFMatrix3f:
+	case FIELDTYPE_SFMatrix3d:
+	case FIELDTYPE_SFMatrix4f:
+	case FIELDTYPE_SFMatrix4d:
+		return NULL;
+	break;
+	default: break;
+	}
+	return str;
+}
+char *mf2str(int type, union anyVrml *ptr){
+	int len, elen, sftype, i;
+	char *p, *str = NULL;
+	static int showType = 0;
+
+	len = strlen("[ ");
+	if(showType) len += strlen(FIELDTYPES[type]);
+	str = malloc(len +1);
+	str[0] = 0;
+	if(showType) strcat(str,FIELDTYPES[type]);
+	str = strcat(str,"[ ");
+	//sftype = mf2sf(fwt->itype);
+	sftype = type2SF(type);
+	p = (char *)ptr->mfbool.p;
+	elen = sizeofSF(sftype);
+	for(i=0;i<ptr->mfbool.n;i++)
+	{
+		char * sf = sf2str(sftype,(union anyVrml*)p);
+		str = realloc(str,strlen(str)+strlen(sf)+2);
+		str = strcat(str,sf);
+		str = strcat(str," ");
+		free(sf);
+		p = p + elen;
+	}
+	str[strlen(str)-1] = ']';
+	return str;
+}
 
 JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *rval)
 {
+	if(SM_method() == 2){
+		AnyNative *ptr;
+		union anyVrml *any;
+		char *str;
+		JSString *_str;
+		if((ptr = (AnyNative*)JS_GetPrivateFw(cx,obj)) == NULL){
+			printf("in doMFToString - not a Native\n");
+			return JS_FALSE;
+		}
+		any = ptr->v;
+		str = mf2str(ptr->type,any);
+		_str = JS_NewStringCopyZ(cx,str);
+		*rval = STRING_TO_JSVAL(_str);
+
+		return JS_TRUE;
+	}
     JSString *_str, *_tmpStr;
     jsval _v;
 	char *_buff, *_tmp_valStr, *_tmp_buff;
@@ -1384,7 +1658,7 @@ doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
 	}
 #endif
 	len = 0;
-	ind = JSVAL_TO_INT(id);
+	//ind = JSVAL_TO_INT(id);
 
 	#ifdef JSVRMLCLASSESVERBOSE
 		printf("\tdoMFAddProperty:%s id %d (%d) NodeType: ",name,(int)id,ind);
@@ -1441,6 +1715,7 @@ doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
 		printf( "JS_GetProperty failed for \"%s\" in doMFAddProperty.\n",MF_LENGTH_FIELD);
 		return JS_FALSE;
 	}
+	ind = JSVAL_TO_INT(id);
 
 	len = JSVAL_TO_INT(v);
 	if (ind >= len) {
@@ -1464,6 +1739,9 @@ doMFAddProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, char *name) {
 	return JS_TRUE;
 }
 
+void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval);
+void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval);
+void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval);
 
 JSBool
 #if JS_VERSION < 185
@@ -1491,7 +1769,116 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 		return JS_FALSE;
 	}
 #endif
+	if(SM_method() == 2){
+		AnyNative *ptr;
+		union anyVrml* any;
+		int sftype, sfsize;
+		int *valueChanged;
 
+		if ((ptr = (AnyNative *)JS_GetPrivateFw(cx,obj)) == NULL) {
+			printf( "JS_GetPrivate failed in standardMFGetterProperty\n");
+			return JS_FALSE;
+		}
+		valueChanged = ptr->valueChanged;
+		sftype = type2SF(ptr->type);
+		sfsize = sizeofSForMF(sftype);
+
+		if (JSVAL_IS_INT(id)) {
+			// [index] property
+			char *mf_p;
+			int mf_n, iupper;
+			int newlength;
+			int index = JSVAL_TO_INT(id);
+			if(index < 0) return JS_FALSE;
+
+			newlength = index + 1;
+			mf_n = ptr->v->mfbool.n;
+			mf_p = (char *)ptr->v->mfbool.p;
+			iupper = upper_power_of_two(newlength);
+			if(newlength > mf_n ) {
+				// in the setter, normally we realloc
+				if(mf_p == NULL){
+					mf_p = malloc(sfsize*iupper);
+					memset(mf_p,0,(size_t)sfsize*iupper);
+				}else{
+					int k;
+					mf_p = realloc(mf_p,(size_t)sfsize*iupper);
+					memset(mf_p + (size_t)sfsize*mf_n,0,(size_t)(iupper - mf_n)*sfsize);
+				}
+				ptr->v->mfbool.n = newlength;
+			}
+			ptr->v->mfbool.p = (int*)mf_p;
+			any = (union anyVrml*)(mf_p + (index * sfsize));
+			switch(type2SF(ptr->type)){
+				case FIELDTYPE_SFBool:
+				case FIELDTYPE_SFFloat:
+				case FIELDTYPE_SFTime:
+				case FIELDTYPE_SFDouble:
+				case FIELDTYPE_SFInt32:
+				case FIELDTYPE_SFString:
+					//X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
+					JS_ECMA_TO_X3D(cx, any, sfsize,sftype,vp);
+					if(valueChanged)
+						(*valueChanged)++;
+
+					break;
+				case FIELDTYPE_SFColor:
+				case FIELDTYPE_SFVec2f:
+				case FIELDTYPE_SFVec3f:
+				case FIELDTYPE_SFVec3d:
+				case FIELDTYPE_SFRotation:
+					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
+					//JS_SF_TO_X3D(cx, any, sfsize, sftype, ptr->valueChanged, vp);
+					break;
+				case FIELDTYPE_SFNode:
+					JS_SF_TO_X3D_BNode(cx, any, sftype, valueChanged, vp); 
+					break;
+				default: printf ("invalid type in standardMFGetProperty method 2\n"); return JS_FALSE;
+			}
+			return JS_TRUE;
+		}else if(JSVAL_IS_STRING(id)){
+			JSString *_idStr;
+			char *_id_c;
+
+			_idStr = JS_ValueToString(cx, id);
+#if JS_VERSION < 185
+		_	id_c = JS_GetStringBytes(_idStr);
+#else
+			_id_c = JS_EncodeString(cx,_idStr);
+#endif
+			if (strcmp ("length",_id_c) == 0) {
+				//create js int
+				//assign length to it
+				// length = ptr->v->mfbool.n;
+				if(JSVAL_IS_INT(*vp)){
+					char *mf_p;
+					int mf_n, iupper;
+					int newlength = JSVAL_TO_INT(*vp);
+
+					mf_n = ptr->v->mfbool.n;
+					mf_p = (char *)ptr->v->mfbool.p;
+					iupper = upper_power_of_two(newlength);
+					if(newlength > mf_n ) {
+						// in the setter, normally we realloc
+						if(mf_p == NULL){
+							mf_p = malloc(sfsize*iupper);
+							memset(mf_p,0,(size_t)sfsize*iupper);
+						}else{
+							int k;
+							mf_p = realloc(mf_p,(size_t)sfsize*iupper);
+							memset(mf_p + (size_t)sfsize*mf_n,0,(size_t)(iupper - mf_n)*sfsize);
+						}
+					}
+					ptr->v->mfbool.n = newlength;
+					ptr->v->mfbool.p = (int*)mf_p;
+					if(valueChanged)
+						(*valueChanged)++;
+					return JS_TRUE;
+				}
+			}
+		} // if else JSVAL_IS
+		return JS_FALSE;
+	}else{ //SM_method == 2
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_str;
 	char * _c;
@@ -1640,7 +2027,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
            here's the call to find the parent for the above. */
 
 	me = obj;
-	par = JS_GetParent(cx, me);
+	par = JS_GetParentFw(cx, me);
 	while (par != NULL) {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("for obj %p: ",me);
@@ -1676,6 +2063,17 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				printf("doMFSetProperty: JS_ValueToId failed.\n");
 				return JS_FALSE;
 			}
+			#if JS_VERSION == 186
+			{
+				JSHandleObject hobj;
+				JSHandleId hiid; 
+				JSMutableHandleValue hvp;
+				hobj._ = &par;
+				hiid._ = &oid;
+				hvp._ = &nf;
+				setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
+			}
+			#else
 
 			if (!setSFNodeField (cx, par, oid,
 #if JS_VERSION >= 185
@@ -1684,13 +2082,15 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 			    &nf)) {
 				printf ("could not set field of SFNode\n");
 			}
+			#endif
 
 		}
 		me = par;
-		par = JS_GetParent(cx, me);
+		par = JS_GetParentFw(cx, me);
 	}
-
 	return JS_TRUE;
+
+	}//SM_method == 2
 }
 
 JSBool
@@ -1743,11 +2143,14 @@ doMFStringUnquote(JSContext *cx, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-globalResolve(JSContext *cx, JSObject *obj, jsval id)
+globalResolve(JSContext *cx, JSObject *obj, jsval id){
+#elif JS_VERSION == 185
+globalResolve(JSContext *cx, JSObject *obj, jsid id){
 #else
-globalResolve(JSContext *cx, JSObject *obj, jsid id)
+globalResolve(JSContext *cx, JSHandleObject hobj, JSHandleId hiid){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
 #endif
-{
 	UNUSED(cx);
 	UNUSED(obj);
 	UNUSED(id);
@@ -1844,6 +2247,9 @@ void resetNameInECMATable(JSContext *context, char *toFind) {
 	}
 }
 
+
+
+
 /* set the valueChanged flag - add a new entry to the table if required */
 void setInECMATable(JSContext *context, char *toFind) {
 	int i;
@@ -1884,51 +2290,301 @@ void setInECMATable(JSContext *context, char *toFind) {
 	p->ECMAValues[p->maxECMAVal-1].JS_address = (jsval) toFind;
 #else
 	/* since this seems to never be used anyways .. */
-	p->ECMAValues[p->maxECMAVal-1].JS_address = JSVAL_ZERO;
+	p->ECMAValues[p->maxECMAVal-1].JS_address = INT_TO_JSVAL(0); //JSVAL_ZERO;
 #endif
 	p->ECMAValues[p->maxECMAVal-1].valueChanged = TRUE;
 	p->ECMAValues[p->maxECMAVal-1].name = STRDUP(toFind);
 	p->ECMAValues[p->maxECMAVal-1].context = context;
 }
 
+
+/*
+int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int **valueChanged){
+	//sp = (struct Shader_Script *)snode->__scriptObj;
+	int k;
+	struct ScriptFieldDecl *sfield;
+	struct Vector *sfields;
+	struct FieldDecl *fdecl;
+	struct CRjsnameStruct *JSparamnames = getJSparamnames();
+
+
+	sfields = sp->fields;
+	for(k=0;k<sfields->n;k++)
+	{
+		char *fieldName;
+		sfield = vector_get(struct ScriptFieldDecl *,sfields,k);
+		//if(sfield->ASCIIvalue) printf("Ascii value=%s\n",sfield->ASCIIvalue);
+		fdecl = sfield->fieldDecl;
+		fieldName = fieldDecl_getShaderScriptName(fdecl);
+		if(!strcmp(fieldName,fieldname)){
+			*type = fdecl->fieldType;
+			*kind = fdecl->PKWmode;
+			*value = &(sfield->value);
+			*valueChanged = &(sfield->valueChanged);
+			*iifield = k; 
+			return 1;
+		}
+	}
+	return 0;
+}
+*/
+
+void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval *newval);
+void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName);
+void X3D_MF_TO_JS_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval);
+void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, jsval *newval);
+void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
+
 JSBool
 #if JS_VERSION < 185
-setECMANative(JSContext *context, JSObject *obj, jsval id, jsval *vp)
+getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+getECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+	if(SM_method() == 2){
+
+	//printf("in getECMANative\n");
+	//#ifdef JSVRMLCLASSESVERBOSE
+	JSString *_idStr, *_vpStr;
+	char *_id_c, *fieldname, *_vp_c;
+
+#if JS_VERSION >= 185
+	jsval id;
+	if (!JS_IdToValue(cx,iid,&id)) {
+		printf("getECMANative: JS_IdToValue failed -- returning JS_TRUE anyways\n");
+	}
+#endif
+
+	_idStr = JS_ValueToString(cx, id);
+//	_vpStr = JS_ValueToString(cx, *vp);
+#if JS_VERSION < 185
+	_id_c = JS_GetStringBytes(_idStr);
+	_vp_c = JS_GetStringBytes(_vpStr);
+#else
+	_id_c = JS_EncodeString(cx,_idStr);
+//	_vp_c = JS_EncodeString(cx,_vpStr);
+#endif
+	//printf("getECMANative: obj = %p, id = \"%s\", vp = %s\n",
+	//		   obj, _id_c, _vp_c);
+	//printf("getECMANative: obj = %p, id = \"%s\"\n",  obj, _id_c);
+
+	//printf ("what is vp? \n");
+	//if (JSVAL_IS_OBJECT(*vp)) {
+	//	printf ("is OBJECT\n");
+	//	if (JSVAL_IS_OBJECT(vp[1])) printf ("vp1 is OBJECT\n");
+	//	if (JSVAL_IS_STRING(vp[1])) {
+	//		 printf ("vp1 is STRING\n");
+	//		JSString * jstr = JS_ValueToString(cx, vp[1]);
+	//		char * cstr = JS_EncodeString(cx,jstr);
+	//		printf("vp1 str=|%s|\n",cstr);
+	//	}
+	//	if (JSVAL_IS_INT(vp[1])) printf ("vp1 is INT %d\n",JSVAL_TO_INT(*vp));
+	//	if (JSVAL_IS_DOUBLE(vp[1])) printf ("vp1 is DOUBLE\n");
+	//}
+	//if (JSVAL_IS_STRING(*vp)) printf ("is STRING\n");
+	//if (JSVAL_IS_INT(*vp)) printf ("is INT %d\n",JSVAL_TO_INT(*vp));
+	//if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
+	fieldname = _id_c;
+	//inputOnly field will have a prefix on the var name 
+	// for avoiding javascript namespace clash with eventIn function
+	//(inputOutput renames the function to set_<fieldname> and leaves fieldname)
+	if(!strncmp(fieldname,"__eventIn_Value_",strlen("__eventIn_Value_")))
+		fieldname = &fieldname[strlen("__eventIn_Value_")];
+	//printf("getNative short fieldname %s\n",fieldname);
+	{
+		int type, kind, iifield, ifound, sfsize, sftype;
+		union anyVrml *value;
+		int *valueChanged;
+		struct Shader_Script *script;
+		// = sm_get_script();
+		script = JS_GetPrivateFw(cx,obj);
+
+		valueChanged = NULL;
+		value = NULL;
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound){
+			sftype = type2SF(type);
+			sfsize = sizeofSForMF(sftype);
+			//similar to SFNodeGetProperty
+			//printf("getECMANative found field %s in script type %d kind %d index %d vC %d \n",fieldname,type,kind,iifield,*valueChanged);
+			//set up a return value
+			switch (type) {
+			case FIELDTYPE_SFBool:
+			case FIELDTYPE_SFFloat:
+			case FIELDTYPE_SFTime:
+			case FIELDTYPE_SFDouble:
+			case FIELDTYPE_SFInt32:
+			case FIELDTYPE_SFString:
+				X3D_ECMA_TO_JS(cx, value,sfsize,type,vp);
+				break;
+			case FIELDTYPE_SFColor:
+			case FIELDTYPE_SFNode:
+			case FIELDTYPE_SFVec2f:
+			case FIELDTYPE_SFVec3f:
+			case FIELDTYPE_SFVec3d:
+			case FIELDTYPE_SFRotation:
+			//void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
+				X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
+				break;
+			case FIELDTYPE_MFColor:
+			case FIELDTYPE_MFVec3f:
+			case FIELDTYPE_MFVec2f:
+			case FIELDTYPE_MFFloat:
+			case FIELDTYPE_MFTime:
+			case FIELDTYPE_MFInt32:
+			case FIELDTYPE_MFString:
+			case FIELDTYPE_MFNode:
+			case FIELDTYPE_MFRotation:
+			case FIELDTYPE_SFImage:
+			//static void X3D_MF_TO_JS(JSContext *cx, void *Data, int dataType, jsval *newval, char *fieldName) {
+				X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
+				break;
+			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+				return JS_FALSE;
+			}
+		}else{
+			printf("getECMANative didn't find field %s in script\n",fieldname);
+		}
+	}
+
+
+#if JS_VERSION >= 185
+		JS_free(cx,_id_c);
+		//JS_free(cx,_vp_c);
+#endif
+	//#endif
+	} //if SM_method() == 2
+	return JS_TRUE;
+}
+
+
+JSBool
+#if JS_VERSION < 185
+setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
+#else
+setECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
+#endif
 	JSString *_idStr;
 	JSString *_vpStr, *_newVpStr;
 	JSBool ret = JS_TRUE;
-	char *_id_c;
+	char *_id_c, *fieldname;
 
 	char *_vp_c, *_new_vp_c;
 	size_t len = 0;
 #if JS_VERSION >= 185
 	jsval id;
-	if (!JS_IdToValue(context,iid,&id)) {
+	if (!JS_IdToValue(cx,iid,&id)) {
 		printf( "JS_IdToValue failed\n");
 		return JS_FALSE;
 	}
 #endif
 
-	_idStr = JS_ValueToString(context, id);
+	_idStr = JS_ValueToString(cx, id);
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(_idStr);
 #else
-	_id_c = JS_EncodeString(context,_idStr);
+	_id_c = JS_EncodeString(cx,_idStr);
 #endif
+	fieldname = _id_c;
+	//inputOnly field will have a prefix on the var name 
+	// for avoiding javascript namespace clash with eventIn function
+	//(inputOutput renames the function to set_<fieldname> and leaves fieldname)
+	if(!strncmp(fieldname,"__eventIn_Value_",strlen("__eventIn_Value_")))
+		fieldname = &fieldname[strlen("__eventIn_Value_")];
+	if(SM_method() == 2){
+		int type, kind, iifield, *valueChanged, ifound;
+		union anyVrml *value;
+		valueChanged = NULL;
+		value = NULL;
+		struct Shader_Script *script;
+		// = sm_get_script();
+		script = JS_GetPrivateFw(cx,obj);
 
+		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
+		if(ifound){
+			//its a script field
+			//but in setECMANative obj == global. 
+			//And global has no one single private (it could - we could put scriptcontrol) 
+			//printf("set found field %s in script type %d kind %d index %d \n",fieldname,type,kind,iifield);
+			//type of incoming RHS
+			//setField_fromJavascript (X3D_NODE(ptr->handle), _id_c, _val_c, FALSE);
+			//printf("in setECMANative RHS ");
+			//if (JSVAL_IS_OBJECT(*vp)) printf ("is OBJECT\n");
+			//if (JSVAL_IS_STRING(*vp)) printf ("is STRING\n");
+			//if (JSVAL_IS_INT(*vp)) printf ("is INT\n");
+			//if (JSVAL_IS_DOUBLE(*vp)) printf ("is DOUBLE\n");
+
+			//in js, null is an object
+			if (JSVAL_IS_NULL(*vp)){
+				if(type == FIELDTYPE_SFNode)
+					value->sfnode = NULL;
+				if(valueChanged)
+					(*valueChanged) ++;
+			}else if (JSVAL_IS_OBJECT(*vp)) {
+				AnyNative *rhs;
+        		if ((rhs = (AnyNative *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*vp))) == NULL) {
+					//printf("in setECMANative, RHS was NOT native type \n");
+        		}else{
+					//printf("in setECMANative, RHS was native type \n");
+					//can do an assign here
+					//printf("lhstype = %d rhstype= %d\n",type,rhs->type);
+					if(type == rhs->type){
+						if(valueChanged)
+							(*valueChanged) ++;
+						//shallow assumes the top has already been malloced (just base part of MF needed)
+						//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
+						shallow_copy_field(rhs->type,rhs->v,value);
+					}
+				}
+
+			} else {
+				//printf("in setECMANative, RHS was a scalar type \n");
+				if(isSFType(type)){
+					int	sfsize = sizeofSForMF(type);
+
+					switch(type2SF(type)){
+						case FIELDTYPE_SFBool:
+						case FIELDTYPE_SFFloat:
+						case FIELDTYPE_SFTime:
+						case FIELDTYPE_SFDouble:
+						case FIELDTYPE_SFInt32:
+						case FIELDTYPE_SFString:
+							//X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
+							JS_ECMA_TO_X3D(cx, value, sfsize,type,vp);
+							//printf("setECMANative after converting, sffloat value=%f\n",value->sffloat);
+							if(valueChanged)
+								(*valueChanged) ++;
+							break;
+						default:
+							break;
+					}
+				}
+			}
+
+
+		}else{
+			printf("set didn't find field %s in script\n",fieldname);
+		}
+	} else {
         /* "register" this ECMA value for routing changed flag stuff */
-       	setInECMATable(context, _id_c);
+       	setInECMATable(cx, _id_c);
 
 	if (JSVAL_IS_STRING(*vp)) {
-		_vpStr = JS_ValueToString(context, *vp);
+		_vpStr = JS_ValueToString(cx, *vp);
 #if JS_VERSION < 185
 		_vp_c = JS_GetStringBytes(_vpStr);
 #else
-		_vp_c = JS_EncodeString(context,_vpStr);
+		_vp_c = JS_EncodeString(cx,_vpStr);
 #endif
 
 		len = strlen(_vp_c);
@@ -1944,7 +2600,7 @@ setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval 
 		memset(_new_vp_c, 0, len);
 		/* JAS sprintf(_new_vp_c, "\"%.*s\"", len, _vp_c);*/
 		sprintf(_new_vp_c, "%.*s", (int) len, _vp_c);
-		_newVpStr = JS_NewStringCopyZ(context, _new_vp_c);
+		_newVpStr = JS_NewStringCopyZ(cx, _new_vp_c);
 		*vp = STRING_TO_JSVAL(_newVpStr);
 
 		#ifdef JSVRMLCLASSESVERBOSE
@@ -1953,25 +2609,26 @@ setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval 
 		#endif
 		FREE_IF_NZ (_new_vp_c);
 #if JS_VERSION >= 185
-		JS_free(context,_vp_c);
+		JS_free(cx,_vp_c);
 #endif
 	} else {
 		#ifdef JSVRMLCLASSESVERBOSE
-		_vpStr = JS_ValueToString(context, *vp);
+		_vpStr = JS_ValueToString(cx, *vp);
 #if JS_VERSION < 185
 		_vp_c = JS_GetStringBytes(_vpStr);
 #else
-		_vp_c = JS_EncodeString(context,_vpStr);
+		_vp_c = JS_EncodeString(cx,_vpStr);
 #endif
 		printf("setECMANative: obj = %p, id = \"%s\", vp = %s\n",
 			   obj, _id_c, _vp_c);
 #if JS_VERSION >= 185
-		JS_free(context,_vp_c);
+		JS_free(cx,_vp_c);
 #endif
 		#endif
 	}
+	} //if SM_Mehod == 2
 #if JS_VERSION >= 185
-	JS_free(context,_id_c);
+	JS_free(cx,_id_c);
 #endif
 	return ret;
 }
@@ -1979,11 +2636,17 @@ setECMANative(JSContext *context, JSObject *obj, jsid iid, JSBool strict, jsval 
 /* used mostly for debugging */
 JSBool
 #if JS_VERSION < 185
-getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+getAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
+	//printf("in getAssignProperty\n");
 	#ifdef JSVRMLCLASSESVERBOSE
 	JSString *_idStr, *_vpStr;
 	char *_id_c, *_vp_c;
@@ -2024,11 +2687,15 @@ getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 /* a kind of hack to replace the use of JSPROP_ASSIGNHACK */
 JSBool
 #if JS_VERSION < 185
-setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+setAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	JSObject *_o;
 	JSString *_str;
 	const uintN _argc = 2;
@@ -2040,6 +2707,8 @@ setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 	char *_id_c;
 #if JS_VERSION >= 185
 	jsval id;
+	//printf("in setAssignProperty\n");
+
 	if (!JS_IdToValue(cx,iid,&id)) {
 		printf("setAssignProperty: JS_IdToValue failed.\n");
 		return JS_FALSE;
@@ -2137,3 +2806,4 @@ setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *
 }
 
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
+#endif //!defined(JS_SMCPP)

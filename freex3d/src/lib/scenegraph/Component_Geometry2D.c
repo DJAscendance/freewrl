@@ -47,6 +47,7 @@ X3D Geometry2D  Component
 
 #include "Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
+#include "../x3d_parser/Bindable.h"
 
 #include <float.h>
 #if defined(_MSC_VER) && _MSC_VER < 1500
@@ -128,8 +129,170 @@ void render_Arc2D (struct X3D_Arc2D *node) {
 }
 
 /***********************************************************************************/
+void compile_ArcClose2D (struct X3D_ArcClose2D *node){
+        /*  have to regen the shape*/
+	char *ct;
+	struct SFVec2f *fp, *tp;
+	//GLfloat *tp;
+	struct SFVec2f *sfp, *stp;
+	//GLfloat *stp;
+	struct SFVec2f *ofp, *otp;
+	//GLfloat *otp;
+	int i,j,k;
+	GLfloat id;
+	GLfloat od;
+	int tmpint;
+	int simpleDisc;
+	int closure;
+	ushort *lindex;
+	float start, end, radius, angle, angle_increment;
+	int numPoints, arcpoints;
 
-void compile_ArcClose2D (struct X3D_ArcClose2D *node) {
+	MARK_NODE_COMPILED
+
+
+	ct = node->closureType->strptr;
+	//xx = node->closureType->len;
+	tmpint = 0;
+
+	if (strcmp(ct,"PIE") == 0) {
+		closure = PIE;
+	} else if (strcmp(ct,"CHORD") == 0) {
+		closure = CHORD;
+	} else {
+		printf ("ArcClose2D, closureType %s invalid\n",node->closureType->strptr);
+	}
+	start = node->startAngle;
+	end = node->endAngle;
+	radius = node->radius;
+	/* is this a circle? */
+	simpleDisc =  APPROX(start,end);
+
+	/* bounds check, and sort values */
+	if(end < start)
+		end += 2.0*PI;
+
+	if (radius < 0.0) radius = 1.0f;
+
+	if(0) if (start > end) {
+		float tmp = start;
+		start = end;
+		end = tmp;
+	}
+
+	if (simpleDisc) {
+		numPoints = SEGMENTS_PER_CIRCLE;
+	} else {
+		numPoints = (int) ((float)(SEGMENTS_PER_CIRCLE * (end - start))/(PI*2.0f));
+		numPoints++; //one more point than segments
+		if (numPoints>SEGMENTS_PER_CIRCLE) numPoints=SEGMENTS_PER_CIRCLE;
+	}
+	arcpoints = numPoints;
+	//add one point for pie center or half-chord - we'll fan from this point.
+	numPoints ++;
+
+	tmpint = SEGMENTS_PER_CIRCLE+2;
+	fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (numPoints));
+	tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (numPoints)); 
+	lindex = MALLOC (ushort *, sizeof(ushort) * (numPoints*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
+	//if(!node->_gc) node->_gc = newVector(void *,4); H: FreeWRLPTR gets freed, no need for _gc
+	//vector_pushBack(void*,node->_gc,lindex);
+
+	/* initial TriangleFan point */
+	(*fp).c[0] = 0.0f; (*fp).c[1] = 0.0f; fp++;
+	(*tp).c[0] = 0.5f; (*tp).c[1] = 0.5f; tp++;
+
+	angle = start;
+	angle_increment = (end - start)/(float)(arcpoints -1);
+	for (i=0,k=0,j=1;i<arcpoints;i++,k+=4,j++) {
+		float x,y;
+		x = cosf(angle);
+		y = sinf(angle);
+		(*fp).c[0] = node->radius * x;
+		(*fp).c[1] = node->radius * y;
+		fp++;
+
+		lindex[k + 0] = 0;
+		lindex[k + 1] = j;
+		lindex[k + 2] = j;
+		lindex[k + 3] = j+1;
+
+		(*tp).c[0] = 0.5f + x*.5f; //center 0,0 in middle of texture
+		(*tp).c[1] = 0.5f + y*.5f;	
+		tp++;
+		angle += angle_increment;
+		angle = max(angle, start);
+	}
+	if(closure == CHORD){
+		sfp[0].c[0] = .5f * (sfp[1].c[0] + sfp[arcpoints].c[0]); 
+		sfp[0].c[1] = .5f * (sfp[1].c[1] + sfp[arcpoints].c[1]); 
+		stp[0].c[0] = .5f * (stp[1].c[0] + stp[arcpoints].c[0]); 
+		stp[0].c[1] = .5f * (stp[1].c[1] + stp[arcpoints].c[1]); 
+	}
+	node->__wireindices = lindex;
+
+
+	/* compiling done, set up for rendering. thread safe */
+	node->__numPoints = 0;
+	ofp = node->__points.p;
+	otp = node->__texCoords.p;
+	node->__points.p = sfp;
+	node->__texCoords.p = stp;
+	node->__simpleDisk = simpleDisc;
+	node->__numPoints = numPoints;
+	FREE_IF_NZ (ofp);
+	FREE_IF_NZ (otp);
+
+	/* we can set the extents here... */
+	{
+        float myminx = FLT_MAX;
+        float mymaxx = -FLT_MAX;
+        float myminy = FLT_MAX;
+        float mymaxy = -FLT_MAX;
+		for (i=0; i<numPoints; i++) {
+			/* do X first */
+			if (sfp[i].c[0] > mymaxx) mymaxx = sfp[i].c[0];
+			if (sfp[i].c[0] < myminx) myminx = sfp[i].c[0];
+			fp++;
+			/* do Y second */
+			if (sfp[i].c[1] > mymaxy) mymaxy = sfp[i].c[1];
+			if (sfp[i].c[1] < myminy) myminy = sfp[i].c[1];
+		}
+
+		node->EXTENT_MAX_X = myminx; //node->radius;
+		node->EXTENT_MIN_X = mymaxx; // -node->radius;
+		node->EXTENT_MAX_Y = myminy; //node->radius;
+		node->EXTENT_MIN_Y = mymaxy; //-node->radius;
+	}
+}
+#define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
+void render_ArcClose2D (struct X3D_ArcClose2D *node){
+	COMPILE_IF_REQUIRED
+	if (node->__numPoints>0) {	
+		struct textureVertexInfo mtf = {(GLfloat *)node->__texCoords.p,2,GL_FLOAT,0,NULL,NULL};
+		/* for BoundingBox calculations */
+		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
+			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
+
+		CULL_FACE(node->solid)
+
+		textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
+
+
+		/* do the array drawing; sides are simple 0-1-2-3, 4-5-6-7, etc quads */
+		if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+			//wireframe triangles
+			sendElementsToGPU(GL_LINES,((node->__numPoints-1)*4 -1 ),node->__wireindices); //should be segs x 2 lines/seg = (pts-1) x 2 lines / pt
+		}else{
+			sendArraysToGPU (GL_TRIANGLE_FAN, 0, node->__numPoints);
+		}
+
+		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
+	}
+}
+
+void compile_ArcClose2D_LINE (struct X3D_ArcClose2D *node) {
 	//int xx;
 	char *ct;
 	struct SFVec2f *tmpptr_a, *tmpptr_b;
@@ -163,7 +326,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node) {
 }
 
 
-void render_ArcClose2D (struct X3D_ArcClose2D *node) {
+void render_ArcClose2D_LINE (struct X3D_ArcClose2D *node) {
 	ttglobal tg = gglobal();
 	COMPILE_IF_REQUIRED
 	if (node->__numPoints>0) {	
@@ -268,7 +431,7 @@ void render_Polypoint2D (struct X3D_Polypoint2D *node){
 }
 
 /***********************************************************************************/
-#define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
+
 void compile_Disk2D (struct X3D_Disk2D *node){
         /*  have to regen the shape*/
 	struct SFVec2f *fp, *tp;
@@ -640,7 +803,7 @@ static void *createLines (float start, float end, float radius, int closed, int 
 	arcpoints = numPoints;
 
 	/* closure type */
-	if (closed == CHORD) numPoints++;
+	if (closed == CHORD) numPoints+=2;
 	if (closed == PIE) numPoints+=2;
 
 	points = MALLOC (float *, sizeof(float)*numPoints*2);
@@ -655,7 +818,13 @@ static void *createLines (float start, float end, float radius, int closed, int 
 
 	/* do we have to draw any pies, cords, etc, etc? */
 	if (closed == CHORD) {
-		/* loop back to origin */
+		/* go to mid-chord */
+		*fp = .5f*(points[0] + points[(arcpoints-1)*2]); 
+		fp++;
+		*fp = .5f*(points[1] + points[(arcpoints-1)*2 +1]);
+		fp++; 
+
+		/* loop back to first point */
 		*fp = radius * cosf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
 		fp++;
 		*fp = radius * sinf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
@@ -663,6 +832,7 @@ static void *createLines (float start, float end, float radius, int closed, int 
 	} else if (closed == PIE) {
 		/* go to origin */
 		*fp = 0.0f; fp++; *fp=0.0f; fp++; 
+		/* go back to first point */
 		*fp = radius * cosf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
 		fp++;
 		*fp = radius * sinf(0.0f/((float)SEGMENTS_PER_CIRCLE));	
@@ -732,7 +902,7 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 	iv.x = node->size.c[0];
 	jv.y = node->size.c[1]; 
 	kv.z = 0.0;
-	ov.x = -((node->size).c[0])/2; ov.y = -((node->size).c[1])/2; ov.z = 0.0;
+	ov.x = -(node->size.c[0])/2; ov.y = -(node->size.c[1])/2; ov.z = 0.0;
 
 	/* get the transformed position of the Box, and the scale-corrected radius. */
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
@@ -742,13 +912,16 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 
 	{
 		/*  minimum bounding box MBB test in avatar/collision space */
-		GLDOUBLE shapeMBBmin[3], shapeMBBmax[3];
-		int i;
-		for(i=0;i<3;i++)
-		{
-			shapeMBBmin[i] = DOUBLE_MIN(-(node->size).c[i]*.5,(node->size).c[i]*.5);
-			shapeMBBmax[i] = DOUBLE_MAX(-(node->size).c[i]*.5,(node->size).c[i]*.5);
-		}
+		double shapeMBBmin[3], shapeMBBmax[3], dsize[3];
+		//int i;
+		float2double(dsize,node->size.c,3);
+		vecscaled(shapeMBBmax,dsize,.5);
+		vecscaled(shapeMBBmax,dsize,-.5);
+		//for(i=0;i<3;i++)
+		//{
+		//	shapeMBBmin[i] = DOUBLE_MIN(-(node->size.c[i])*.5,node->size.c[i]*.5);
+		//	shapeMBBmax[i] = DOUBLE_MAX(-(node->size.c[i])*.5,node->size.c[i]*.5);
+		//}
 		if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
 	}
 	/* get transformed box edges and position */

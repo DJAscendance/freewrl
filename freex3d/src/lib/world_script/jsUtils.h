@@ -91,8 +91,10 @@ errorReporter(JSContext *cx,
 void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval *ret);
 #if JS_VERSION < 185
 JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval *vp);
-#else
+#elif JS_VERSION == 185
 JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else
+JSBool setSFNodeField (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
 
 const char *classToString(JSClass *myClass);

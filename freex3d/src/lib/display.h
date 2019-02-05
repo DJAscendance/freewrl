@@ -60,23 +60,23 @@ Functions:
 #endif
 
 #ifdef AQUA // OLD_IPHONE_AQUA
-OLD_IPHONE_AQUA /**
-OLD_IPHONE_AQUA  * Specific platform : Mac
-OLD_IPHONE_AQUA  */
-OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA #ifdef IPHONE
-OLD_IPHONE_AQUA #include <OpenGLES/ES2/gl.h>
-OLD_IPHONE_AQUA #include <OpenGLES/ES2/glext.h>
-OLD_IPHONE_AQUA #include <OpenGLES/ES3/gl.h>
-OLD_IPHONE_AQUA #include <OpenGLES/ES3/glext.h>
-OLD_IPHONE_AQUA #else
-OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA #include <OpenGL/OpenGL.h>
-OLD_IPHONE_AQUA #include <OpenGL/CGLTypes.h>
-OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA #include <AGL/AGL.h> 
-OLD_IPHONE_AQUA #endif /* defined IPHONE */
-#endif /* defined TARGET_AQUA OLD_IPHONE_AQUA */
+ /**
+  * Specific platform : Mac
+  */
+ 
+ #ifdef IPHONE
+ #include <OpenGLES/ES2/gl.h>
+ #include <OpenGLES/ES2/glext.h>
+ #include <OpenGLES/ES3/gl.h>
+ #include <OpenGLES/ES3/glext.h>
+ #else
+ 
+ #include <OpenGL/OpenGL.h>
+ #include <OpenGL/CGLTypes.h>
+ 
+ #include <AGL/AGL.h> 
+ #endif /* defined IPHONE */
+#endif /* defined TARGET_AQUA  */
 
 #include <libFreeWRL.h>
 
@@ -288,7 +288,7 @@ GLEWContext * glewGetContext();
 
 /* OLD_IPHONE_AQUA
    OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (TARGET_AQUA) || defined(IPHONE) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX) */
-#if defined (_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX)  /* not win32, ie linux */
+#if defined (TARGET_AQUA) || defined (_MSC_VER) || defined(_ANDROID) || defined(ANDROIDNDK) || defined(QNX)  /* not win32, ie linux */
 	#include <libtess2.h>
 #endif // linux spefcific for now
 
@@ -476,6 +476,7 @@ void rdr_caps_dump(s_renderer_capabilities_t *rdr_caps);
 
 
 #ifdef TARGET_AQUA /* OLD_IPHONE_AQUA */
+/*
 OLD_IPHONE_AQUA #ifndef IPHONE
 OLD_IPHONE_AQUA 
 OLD_IPHONE_AQUA extern int ccurse;
@@ -484,7 +485,7 @@ OLD_IPHONE_AQUA
 OLD_IPHONE_AQUA //#define SCURSE 1
 OLD_IPHONE_AQUA //#define ACURSE 0
 OLD_IPHONE_AQUA 
-OLD_IPHONE_AQUA /* for handling Safari window changes at the top of the display event loop */
+OLD_IPHONE_AQUA // for handling Safari window changes at the top of the display event loop
 OLD_IPHONE_AQUA extern int PaneClipnpx;
 OLD_IPHONE_AQUA extern int PaneClipnpy;
 OLD_IPHONE_AQUA 
@@ -498,6 +499,7 @@ OLD_IPHONE_AQUA extern int PaneClipChanged;
 OLD_IPHONE_AQUA 
 OLD_IPHONE_AQUA #include "OpenGL/glu.h"
 OLD_IPHONE_AQUA #endif
+ */
 #endif /* OLD_IPHONE_AQUA TARGET_AQUA */
 
 /**
@@ -734,6 +736,7 @@ void resetGeometry();
 
 	#define FW_GL_TRANSLATE_F(xxx,yyy,zzz) fw_glTranslatef(xxx,yyy,zzz)
 	#define FW_GL_TRANSLATE_D(xxx,yyy,zzz) fw_glTranslated(xxx,yyy,zzz)
+	#define FW_GL_TRANSFORM_D(mat16) fw_glTransformd(mat16)
 	#define FW_GL_ROTATE_F(aaa,xxx,yyy,zzz) fw_glRotatef(aaa,xxx,yyy,zzz)
 	#define FW_GL_ROTATE_D(aaa,xxx,yyy,zzz) fw_glRotated(aaa,xxx,yyy,zzz)
 	#define FW_GL_ROTATE_RADIANS(aaa,xxx,yyy,zzz) fw_glRotateRad(aaa,xxx,yyy,zzz)
@@ -753,12 +756,13 @@ void resetGeometry();
 	#define FW_TEXCOORD_POINTER_TYPE 67655
 	//void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line);
 	//                           datasize, dataType, stride, pointer
-	#define FW_GL_VERTEX_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,0,__FILE__,__LINE__); }
-	#define FW_GL_COLOR_POINTER(aaa, bbb, ccc, ddd) {sendAttribToGPU(FW_COLOR_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,0,__FILE__,__LINE__); }
-	#define FW_GL_NORMAL_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,0,__FILE__,__LINE__); }
-	#define FW_GL_FOG_POINTER(aaa, bbb, ccc) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, aaa, GL_FALSE, bbb, ccc,0,__FILE__,__LINE__); }
-	#define FW_GL_TEXCOORD_POINTER(aaa, bbb, ccc, ddd, eee) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, aaa, bbb, GL_FALSE, ccc, ddd,eee,__FILE__,__LINE__); }
-	#define FW_GL_BINDBUFFER(xxx,yyy) {sendBindBufferToGPU(xxx,yyy,__FILE__,__LINE__); }
+	#define FW_GL_VERTEX_POINTER(dataSize, dataType, stride, pointer) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+
+	#define FW_GL_COLOR_POINTER(dataSize, dataType, stride, pointer) {sendAttribToGPU(FW_COLOR_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+	#define FW_GL_NORMAL_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+	#define FW_GL_FOG_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+	#define FW_GL_TEXCOORD_POINTER(dataSize, dataType, stride, pointer, texID) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,texID,__FILE__,__LINE__); }
+	#define FW_GL_BINDBUFFER(target,buffer) {sendBindBufferToGPU(target,buffer,__FILE__,__LINE__); }
 
 
 

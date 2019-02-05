@@ -116,7 +116,7 @@ FWFunctionSpec (SFFloat_Functions)[] = {
 
 
 //#define FIELDTYPE_SFFloat	0
-FWTYPE SFFloatType = {
+struct FWTYPE SFFloatType = {
 	FIELDTYPE_SFFloat,
 	'F',
 	"SFFloat",
@@ -199,10 +199,19 @@ int MFW_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 			// .. (could be pruned out in all SFNode sources and sinks in _duk modules)
 			//can do this costlessly -MF[i] = SF comes in to MFW_Setter that still uses &MF[i]- 
 			// but just for SFnode/MFnode 
-			void *sfptr = malloc(sizeof(void*));
-			memcpy(sfptr,(void *)(p + index*elen),sizeof(void*)); //*sfptr = MF.p[i] = &SF
-			fwretval->_web3dval.native = (void *)sfptr; //native = &sfptr
-			fwretval->_web3dval.gc = 1;
+			void **sfnode = (void **)(p + index*elen);
+			if(*sfnode == NULL){
+				//instant and octaga return javascript null if MF[i] is null, handy for sentinal null comparisons, instead of .valueOf() which octaga and others can't do
+				fwretval->itype = '0';
+				//fwretval->_null = 1; //H: I don't need this
+				nr = 1;
+				return nr;  //====================== lazy programmer return mid-function
+			}else{
+				void *sfptr = malloc(sizeof(void*));
+				memcpy(sfptr,(void *)(p + index*elen),sizeof(void*)); //*sfptr = MF.p[i] = &SF
+				fwretval->_web3dval.native = (void *)sfptr; //native = &sfptr
+				fwretval->_web3dval.gc = 1;
+			}
 		}else{
 			int deepCopyLikeVivaty = FALSE; // FALSE; //TRUE;
 			if(deepCopyLikeVivaty){
@@ -225,6 +234,14 @@ int MFW_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 				//cost: x but then SF won't survive garbage collection of MF
 				//you need to use vivaty deep copy above, or in js do new SFxx(MF[i]) to deep copy
 				fwretval->_web3dval.native = (void *)(p + index*elen); //native = &MF.p[i] 
+				if(sftype == FIELDTYPE_SFString){
+					union anyVrml *any = (union anyVrml*) fwretval->_web3dval.native;
+					if(any->sfstring == NULL){
+						struct Uni_String *sfptr = (struct Uni_String*) malloc(sizeof(struct Uni_String));
+						memset(sfptr,0,sizeof(struct Uni_String));
+						any->sfstring = (struct Uni_String *)sfptr; //native = &MF.p[i] 
+					}
+				}
 				fwretval->_web3dval.gc = 0;
 			}
 		}
@@ -236,7 +253,7 @@ int MFW_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	return nr;
 }
 int mf2sf(int itype);
-FWTYPE *getFWTYPE(int itype);
+FWType getFWTYPE(int itype);
 char *sfToString(FWType fwt, void *fwn){
 	//caller must free / gc the return string
 	int i;
@@ -275,10 +292,10 @@ char *sfToString(FWType fwt, void *fwn){
 		while(fwt->Functions[i].name){
 			if(!strcmp(fwt->Functions[i].name,"toString")){
 				FWval fwpars = NULL;
-				FWVAL fwretval;
+				struct FWVAL fwretval;
 				//typedef int (* FWFunction)(FWType fwtype, void* ec, void * fwn, int argc, FWval fwpars, FWval fwretval);
 				fwt->Functions[i].call(fwt,NULL,fwn,1,fwpars,&fwretval);
-				str = fwretval._string;
+				str = strdup(fwretval._string);
 				break;
 			}
 			i++;
@@ -293,7 +310,7 @@ char *mfToString(FWType fwt, void * fwn){
 	//caller must free / gc the return string
 	int i, sftype, len, showType, elen;
 	char *p, *str;
-	FWTYPE *fwtsf;
+	FWType fwtsf;
 
 	struct Multi_Any *ptr = (struct Multi_Any *)fwn;
 	showType = 1; //=1 to see MFColor[], =0 to see []
@@ -412,7 +429,7 @@ ArgListType (MFFloat_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 
-FWTYPE MFFloatType = {
+struct FWTYPE MFFloatType = {
 	FIELDTYPE_MFFloat,
 	'W',
 	"MFFloat",
@@ -709,7 +726,7 @@ ArgListType (SFRotation_ConstructorArgs)[] = {
 	{-1,0,0,NULL},
 };
 //#define FIELDTYPE_SFRotation	2
-FWTYPE SFRotationType = {
+struct FWTYPE SFRotationType = {
 	FIELDTYPE_SFRotation,
 	'W',
 	"SFRotation",
@@ -727,7 +744,7 @@ FWTYPE SFRotationType = {
 
 
 //#define FIELDTYPE_MFRotation	3
-FWTYPE MFRotationType = {
+struct FWTYPE MFRotationType = {
 	FIELDTYPE_MFRotation,
 	'W',
 	"MFRotation",
@@ -949,7 +966,7 @@ ArgListType (SFVec3f_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_SFVec3f	4
-FWTYPE SFVec3fType = {
+struct FWTYPE SFVec3fType = {
 	FIELDTYPE_SFVec3f,
 	'W',
 	"SFVec3f",
@@ -965,7 +982,7 @@ FWTYPE SFVec3fType = {
 };
 
 //#define FIELDTYPE_MFVec3f	5
-FWTYPE MFVec3fType = {
+struct FWTYPE MFVec3fType = {
 	FIELDTYPE_MFVec3f,
 	'W',
 	"MFVec3f",
@@ -1007,7 +1024,7 @@ FWFunctionSpec (SFBool_Functions)[] = {
 };
 
 //#define FIELDTYPE_SFBool	6
-FWTYPE SFBoolType = {
+struct FWTYPE SFBoolType = {
 	FIELDTYPE_SFBool,
 	'B',
 	"SFBool",
@@ -1051,7 +1068,7 @@ ArgListType (MFBool_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_MFBool	7
-FWTYPE MFBoolType = {
+struct FWTYPE MFBoolType = {
 	FIELDTYPE_MFBool,
 	'W',
 	"MFBool",
@@ -1088,7 +1105,7 @@ FWFunctionSpec (SFInt32_Functions)[] = {
 	{0}
 };
 //#define FIELDTYPE_SFInt32	8
-FWTYPE SFInt32Type = {
+struct FWTYPE SFInt32Type = {
 	FIELDTYPE_SFInt32,
 	'I',
 	"SFInt32",
@@ -1130,7 +1147,7 @@ ArgListType (MFInt32_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_MFInt32	9
-FWTYPE MFInt32Type = {
+struct FWTYPE MFInt32Type = {
 	FIELDTYPE_MFInt32,
 	'W',
 	"MFInt32",
@@ -1145,10 +1162,10 @@ FWTYPE MFInt32Type = {
 	MFW_Functions, //functions
 };
 
-int getFieldFromNodeAndIndex(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value);
-int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int getFieldFromNodeAndIterator(struct X3D_Node* node, int iifield, const char **fieldname, int *type, int *kind, union anyVrml **value, int *builtIn);
+int SFNode_Iterator(int index, FWType fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	struct X3D_Node *node = ((union anyVrml*)pointer)->sfnode;
-	int ftype, kind, ihave, iifield;
+	int ftype, kind, ihave, iifield, builtIn;
 	char ctype;
 	union anyVrml *value;
 
@@ -1156,7 +1173,7 @@ int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name, int
 	index ++;
 	(*jndex) = 0;
 	iifield = index;
-	ihave = getFieldFromNodeAndIndex(node, index, name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, name, &ftype, &kind, &value,&builtIn);
 	switch(ftype){
 		case FIELDTYPE_SFBool: ctype = 'B'; break;
 		case FIELDTYPE_SFInt32: ctype = 'I'; break;
@@ -1177,11 +1194,11 @@ int SFNode_Iterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name, int
 }
 int SFNode_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	struct X3D_Node *node = ((union anyVrml*)fwn)->sfnode; 
-	int ftype, kind, ihave, nr;
+	int ftype, kind, ihave, nr, builtIn;
 	const char *name;
 	union anyVrml *value;
 	nr = 0;
-	ihave = getFieldFromNodeAndIndex(node, index, &name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value,&builtIn);
 	if(ihave){
 		fwretval->_web3dval.native = value;
 		fwretval->_web3dval.fieldType = ftype;
@@ -1198,11 +1215,11 @@ int SFNode_Setter0(FWType fwt, int index, void *ec, void *fwn, FWval fwval, int 
 	// shared between fwSetterNS() and SFNode_Setter
 	//
 	struct X3D_Node *node = ((union anyVrml*)fwn)->sfnode; 
-	int ftype, kind, ihave, nr; // , interp;
+	int ftype, kind, ihave, nr, builtIn; // , interp;
 	const char *name;
 	union anyVrml *value;
 	nr = FALSE;
-	ihave = getFieldFromNodeAndIndex(node, index, &name, &ftype, &kind, &value);
+	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value, &builtIn);
 	if(ihave){
 		//copy W type or primative type, depending on ftype
 		switch(fwval->itype){
@@ -1366,7 +1383,7 @@ int SFNode_valueOf(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	void* *ptr = (void * *)fwn;
 	if(0){
 		struct X3D_Node *node = *ptr;
-		printf("node address=%x nodetype=%s\n",node,stringNodeType(node->_nodeType));
+		printf("node address=%p nodetype=%s\n",node,stringNodeType(node->_nodeType));
 	}
 	if(0){
 		//see also mfw_getter
@@ -1385,12 +1402,12 @@ int SFNode_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, 
 {
 	char str[512];
 	void **ptr = (void **)fwn;
-	sprintf(str,"_%x_",(*ptr));
+	sprintf(str,"_%p_",(*ptr));
 	fwretval->_string =  strdup(str);
 	fwretval->itype = 'S';
 	return 1;
 }
-FWFunctionSpec (SFNodeFunctions)[] = {
+FWFunctionSpec (SFNode_Functions)[] = {
 	{"getNodeName",	SFNode_getNodeName, 'S',{0,0,0,NULL}},
 	// nov 2014 dug9: I was too lazy to implement the following, good luck:
 	//{"getNodeType", SFNode_getNodeType, 'W',{0,0,0,NULL}},
@@ -1404,7 +1421,7 @@ FWFunctionSpec (SFNodeFunctions)[] = {
 };
 
 //#define FIELDTYPE_SFNode	10
-FWTYPE SFNodeType = {
+struct FWTYPE SFNodeType = {
 	FIELDTYPE_SFNode,
 	'W',
 	"SFNode",
@@ -1416,13 +1433,13 @@ FWTYPE SFNodeType = {
 	SFNode_Getter, //Getter,
 	SFNode_Setter, //Setter,
 	0,0, //index prop type,readonly
-	SFNodeFunctions, //functions
+	SFNode_Functions, //functions
 };
 
 
 
 //#define FIELDTYPE_MFNode	11
-FWTYPE MFNodeType = {
+struct FWTYPE MFNodeType = {
 	FIELDTYPE_MFNode,
 	'W',
 	"MFNode",
@@ -1439,21 +1456,21 @@ FWTYPE MFNodeType = {
 
 
 /* from http://www.cs.rit.edu/~ncs/color/t_convert.html */
-double MIN(double a, double b, double c) {
+double MIND3(double a, double b, double c) {
 	double min;
 	if((a<b)&&(a<c))min=a; else if((b<a)&&(b<c))min=b; else min=c; return min;
 }
 
-double MAX(double a, double b, double c) {
+double MAXD3(double a, double b, double c) {
 	double max;
 	if((a>b)&&(a>c))max=a; else if((b>a)&&(b>c))max=b; else max=c; return max;
 }
 
-void convertRGBtoHSV(double r, double g, double b, double *h, double *s, double *v) {
+void convertRGBtoHSV_duk(double r, double g, double b, double *h, double *s, double *v) {
 	double my_min, my_max, delta;
 
-	my_min = MIN( r, g, b );
-	my_max = MAX( r, g, b );
+	my_min = MIND3( r, g, b );
+	my_max = MAXD3( r, g, b );
 	*v = my_max;				/* v */
 	delta = my_max - my_min;
 	if( my_max != 0 )
@@ -1474,7 +1491,7 @@ void convertRGBtoHSV(double r, double g, double b, double *h, double *s, double 
 	if( *h < 0 )
 		*h += 360;
 }
-void convertHSVtoRGB( double h, double s, double v ,double *r, double *g, double *b)
+void convertHSVtoRGB_duk( double h, double s, double v ,double *r, double *g, double *b)
 {
 	int i;
 	double f, p, q, t;
@@ -1506,7 +1523,7 @@ int SFColor_getHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	struct SFColor *ptr = (struct SFColor *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertRGBtoHSV((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
+	convertRGBtoHSV_duk((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
 	//supposed to return numeric[3] - don't have that set up so sfvec3d
 	sf3d = malloc(sizeof(struct SFVec3d)); //garbage collector please
 	memcpy(sf3d->c,xp,sizeof(double)*3);
@@ -1522,7 +1539,7 @@ int SFColor_setHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, F
 	struct SFColor *ptr = (struct SFColor *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertHSVtoRGB((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
+	convertHSVtoRGB_duk((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
 	ptr->c[0] = (float)xp[0];
 	ptr->c[1] = (float)xp[1];
 	ptr->c[2] = (float)xp[2];
@@ -1618,7 +1635,7 @@ ArgListType (SFColor_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 //#define FIELDTYPE_SFColor	12
-FWTYPE SFColorType = {
+struct FWTYPE SFColorType = {
 	FIELDTYPE_SFColor,
 	'W',
 	"SFColor",
@@ -1635,7 +1652,7 @@ FWTYPE SFColorType = {
 
 
 //#define FIELDTYPE_MFColor	13
-FWTYPE MFColorType = {
+struct FWTYPE MFColorType = {
 	FIELDTYPE_MFColor,
 	'W',
 	"MFColor",
@@ -1657,7 +1674,7 @@ int SFColorRGBA_getHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 	struct SFColorRGBA *ptr = (struct SFColorRGBA *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertRGBtoHSV((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
+	convertRGBtoHSV_duk((double)ptr->c[0], (double)ptr->c[1], (double)ptr->c[2],&xp[0],&xp[1],&xp[2]);
 	//supposed to return numeric[3] - don't have that set up so sfvec3d
 	sf3d = malloc(sizeof(struct SFVec3d)); //garbage collector please
 	memcpy(sf3d->c,xp,sizeof(double)*3);
@@ -1673,7 +1690,7 @@ int SFColorRGBA_setHSV(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 	struct SFColorRGBA *ptr = (struct SFColorRGBA *)fwn;
 	double xp[3];
 	/* convert rgb to hsv */
-	convertHSVtoRGB((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
+	convertHSVtoRGB_duk((double)fwpars[0]._numeric, (double)fwpars[1]._numeric, (double)fwpars[2]._numeric,&xp[0],&xp[1],&xp[2]);
 	ptr->c[0] = (float)xp[0];
 	ptr->c[1] = (float)xp[1];
 	ptr->c[2] = (float)xp[2];
@@ -1776,7 +1793,7 @@ ArgListType (SFColorRGBA_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_SFColorRGBA	14
-FWTYPE SFColorRGBAType = {
+struct FWTYPE SFColorRGBAType = {
 	FIELDTYPE_SFColorRGBA,
 	'W',
 	"SFColorRGBA",
@@ -1791,7 +1808,7 @@ FWTYPE SFColorRGBAType = {
 	SFColorRGBA_Functions, //functions
 };
 //#define FIELDTYPE_MFColorRGBA	15
-FWTYPE MFColorRGBAType = {
+struct FWTYPE MFColorRGBAType = {
 	FIELDTYPE_MFColorRGBA,
 	'W',
 	"MFColorRGBA",
@@ -1830,7 +1847,7 @@ FWFunctionSpec (SFDouble_Functions)[] = {
 };
 
 //#define FIELDTYPE_SFTime	16
-FWTYPE SFTimeType = {
+struct FWTYPE SFTimeType = {
 	FIELDTYPE_SFTime,
 	'D',
 	"SFTime",
@@ -1871,7 +1888,7 @@ ArgListType (MFTime_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_MFTime	17
-FWTYPE MFTimeType = {
+struct FWTYPE MFTimeType = {
 	FIELDTYPE_MFTime,
 	'W',
 	"MFTime",
@@ -1908,7 +1925,7 @@ FWFunctionSpec (SFString_Functions)[] = {
 };
 
 //#define FIELDTYPE_SFString	18
-FWTYPE SFStringType = {
+struct FWTYPE SFStringType = {
 	FIELDTYPE_SFString,
 	'S',
 	"SFString",
@@ -1974,7 +1991,7 @@ ArgListType (MFString_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 //#define FIELDTYPE_MFString	19
-FWTYPE MFStringType = {
+struct FWTYPE MFStringType = {
 	FIELDTYPE_MFString,
 	'W',
 	"MFString",
@@ -2170,7 +2187,7 @@ ArgListType (SFVec2f_ConstructorArgs)[] = {
 };
 
 //#define FIELDTYPE_SFVec2f	20
-FWTYPE SFVec2fType = {
+struct FWTYPE SFVec2fType = {
 	FIELDTYPE_SFVec2f,
 	'W',
 	"SFVec2f",
@@ -2186,7 +2203,7 @@ FWTYPE SFVec2fType = {
 };
 
 //#define FIELDTYPE_MFVec2f	21
-FWTYPE MFVec2fType = {
+struct FWTYPE MFVec2fType = {
 	FIELDTYPE_MFVec2f,
 	'W',
 	"MFVec2f",
@@ -2340,7 +2357,7 @@ ArgListType (SFImage_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_SFImage	22
-FWTYPE SFImageType = {
+struct FWTYPE SFImageType = {
 	FIELDTYPE_SFImage,
 	'W',
 	"SFImage",
@@ -2356,7 +2373,7 @@ FWTYPE SFImageType = {
 };
 
 #define FIELDTYPE_MFImage	43 
-FWTYPE MFImageType = {
+struct FWTYPE MFImageType = {
 	FIELDTYPE_MFImage,
 	'W',
 	"MFImage",
@@ -2576,7 +2593,7 @@ ArgListType (SFVec3d_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 //#define FIELDTYPE_SFVec3d	25
-FWTYPE SFVec3dType = {
+struct FWTYPE SFVec3dType = {
 	FIELDTYPE_SFVec3d,
 	'W',
 	"SFVec3d",
@@ -2593,7 +2610,7 @@ FWTYPE SFVec3dType = {
 
 
 //#define FIELDTYPE_MFVec3d	26
-FWTYPE MFVec3dType = {
+struct FWTYPE MFVec3dType = {
 	FIELDTYPE_MFVec3d,
 	'W',
 	"MFVec3d",
@@ -2611,7 +2628,7 @@ FWTYPE MFVec3dType = {
 
 
 //#define FIELDTYPE_SFDouble	27
-FWTYPE SFDoubleType = {
+struct FWTYPE SFDoubleType = {
 	FIELDTYPE_SFDouble,
 	'D',
 	"SFDouble",
@@ -2651,7 +2668,7 @@ ArgListType (MFDouble_ConstructorArgs)[] = {
 };
 
 //#define FIELDTYPE_MFDouble	28
-FWTYPE MFDoubleType = {
+struct FWTYPE MFDoubleType = {
 	FIELDTYPE_MFDouble,
 	'W',
 	"MFDouble",
@@ -3019,7 +3036,7 @@ ArgListType (X3DMatrix3_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 //#define FIELDTYPE_SFMatrix3f	29
-FWTYPE X3DMatrix3Type = {
+struct FWTYPE X3DMatrix3Type = {
 	AUXTYPE_X3DMatrix3,
 	'P',
 	"X3DMatrix3",
@@ -3367,7 +3384,7 @@ ArgListType (X3DMatrix4_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 
-FWTYPE X3DMatrix4Type = {
+struct FWTYPE X3DMatrix4Type = {
 	AUXTYPE_X3DMatrix4,
 	'P',
 	"X3DMatrix4",
@@ -3564,7 +3581,7 @@ ArgListType (SFVec2d_ConstructorArgs)[] = {
 };
 
 //#define FIELDTYPE_SFVec2d	37
-FWTYPE SFVec2dType = {
+struct FWTYPE SFVec2dType = {
 	FIELDTYPE_SFVec2d,
 	'W',
 	"SFVec2d",
@@ -3580,7 +3597,7 @@ FWTYPE SFVec2dType = {
 };
 
 //#define FIELDTYPE_MFVec2d	38
-FWTYPE MFVec2dType = {
+struct FWTYPE MFVec2dType = {
 	FIELDTYPE_MFVec2d,
 	'W',
 	"MFVec2d",
@@ -3681,7 +3698,7 @@ ArgListType (SFVec4f_ConstructorArgs)[] = {
 
 
 //#define FIELDTYPE_SFVec4f	39
-FWTYPE SFVec4fType = {
+struct FWTYPE SFVec4fType = {
 	FIELDTYPE_SFVec4f,
 	'W',
 	"SFVec4f",
@@ -3697,7 +3714,7 @@ FWTYPE SFVec4fType = {
 };
 
 //#define FIELDTYPE_MFVec4f	40
-FWTYPE MFVec4fType = {
+struct FWTYPE MFVec4fType = {
 	FIELDTYPE_MFVec4f,
 	'W',
 	"MFVec4f",
@@ -3796,7 +3813,7 @@ ArgListType (SFVec4d_ConstructorArgs)[] = {
 		{-1,0,0,NULL},
 };
 //#define FIELDTYPE_SFVec4d	41
-FWTYPE SFVec4dType = {
+struct FWTYPE SFVec4dType = {
 	FIELDTYPE_SFVec4d,
 	'W',
 	"SFVec4d",
@@ -3812,7 +3829,7 @@ FWTYPE SFVec4dType = {
 };
 
 //#define FIELDTYPE_MFVec4d	42
-FWTYPE MFVec4dType = {
+struct FWTYPE MFVec4dType = {
 	FIELDTYPE_MFVec4d,
 	'W',
 	"MFVec4d",
@@ -3827,7 +3844,7 @@ FWTYPE MFVec4dType = {
 	MFW_Functions, //functions
 };
 
-void initVRMLFields(FWTYPE** typeArray, int *n){
+void initVRMLFields(FWType* typeArray, int *n){
 	typeArray[*n] = &SFFloatType; (*n)++;
 	typeArray[*n] = &MFFloatType; (*n)++;
 	typeArray[*n] = &SFRotationType; (*n)++;

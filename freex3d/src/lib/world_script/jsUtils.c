@@ -27,8 +27,10 @@ which is the sample application included with the javascript engine.
 
 
 #include <config.h>
+#if !defined(JS_SMCPP)
 #include <system.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#ifdef JAVASCRIPT_SM
 #include <display.h>
 #include <internal.h>
 
@@ -54,7 +56,6 @@ which is the sample application included with the javascript engine.
 #ifdef _MSC_VER
 #include <pthread.h> // win32 needs the strtok_r 
 #endif
-
 
 
 #ifdef WANT_OSC
@@ -98,14 +99,91 @@ void jsUtils_init(struct tjsUtils *t){
 		ppjsUtils p = (ppjsUtils)t->prv;
 		p->insetSFStr = FALSE;
 		p->reportWarnings = JS_TRUE;
-
 	}
 }
+
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data){
+	int iret = TRUE;
+#if JS_VERSION >= 186
+	JS_SetPrivate(obj, data);
+#else
+	iret = JS_SetPrivate(cx,obj,data);
+#endif
+	return iret;
+}
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp){
+#if JS_VERSION >= 186
+	return JS_NewGlobalObject(cx, clasp, NULL);
+#else
+	return JS_NewGlobalObject(cx,clasp);
+#endif
+}
+void * JS_GetPrivateFw(JSContext *cx,JSObject* obj){
+#if JS_VERSION >= 186
+	return JS_GetPrivate(obj);
+#else
+	return JS_GetPrivate(cx,obj);
+#endif
+}
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *obj){
+#if JS_VERSION >= 186
+	return JS_GetParent(obj);
+#else
+	return JS_GetParent(cx,obj);
+#endif
+}
+
+#if JS_VERSION > 185
+//https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference/JS_NewNumberValue
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval){
+	*rval = JS_NumberValue(d);
+	return JS_TRUE;
+}
+
+#endif
+
+JSObject * 
+JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, 
+                                JSObject *parent, unsigned argc, jsval *argv) 
+{ 
+    JSObject *global = JS_GetGlobalForScopeChain(cx); 
+    jsval v; 
+    if (!global || !JS_GetProperty(cx, global, clasp->name, &v)) 
+        return NULL; 
+    if (JSVAL_IS_PRIMITIVE(v)) { 
+        JS_ReportError(cx, "cannot construct object: constructor is gone"); 
+        return NULL; 
+    } 
+    return JS_New(cx, JSVAL_TO_OBJECT(v), argc, argv); 
+} 
+
+JSObject * 
+JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent) 
+{ 
+    return JS_ConstructObjectWithArgumentsFw(cx, clasp, parent, 0, NULL); 
+} 
+JSClass* JS_GetClassFw(JSContext *cx, JSObject *obj){
+	return JS_GetClass(obj);
+}
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj){
+#if JS_VERSION >= 186
+	return JS_GetPrototype(obj);
+#else
+	return JS_GetPrototype(cx,obj);
+#endif
+}
+
+
 //	ppjsUtils p = (ppjsUtils)gglobal()->jsUtils.prv;
 #if JS_VERSION < 185
 static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#else
+#elif JS_VERSION == 185
 static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp) {
+#else
+static JSBool setSF_in_MF (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	int num;
 	jsval pf;
@@ -163,7 +241,7 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 
 	/* copy this value out to the X3D scene graph */
 	me = obj;
-	par = JS_GetParent(cx, me);
+	par = JS_GetParentFw(cx, me);
 	while (par != NULL) {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("for obj %u: ",me);
@@ -199,7 +277,17 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 				printf("setSF_in_MF: JS_ValueToId failed.\n");
 				return JS_FALSE;
 			}
-
+			#if JS_VERSION == 186
+			{
+				JSHandleObject hobj;
+				JSHandleId hiid; 
+				JSMutableHandleValue hvp;
+				hobj._ = &par;
+				hiid._ = &oid;
+				hvp._ = &nf;
+				setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
+			}
+			#else
 			if (!setSFNodeField (cx, par, oid,
 #if JS_VERSION >= 185
 			   JS_FALSE,
@@ -207,10 +295,10 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 			   &nf)) {
 				printf ("could not set field of SFNode\n");
 			}
-
+			#endif
 		}
 		me = par;
-		par = JS_GetParent(cx, me);
+		par = JS_GetParentFw(cx, me);
 	}
 	p->insetSFStr = FALSE;
 	return JS_TRUE;
@@ -218,7 +306,7 @@ static JSBool setSF_in_MF (JSContext *cx, JSObject *obj, jsid iid, JSBool strict
 
 /* take an ECMA value in the X3D Scenegraph, and return a jsval with it in */
 /* This is FAST as w deal just with pointers */
-static void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
+void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
 	float fl;
 	double dl;
 	int il;
@@ -272,13 +360,16 @@ static void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int data
 #endif
 
 			oldS = (struct Uni_String *) *((intptr_t *)Data);
+			if(oldS == NULL) {
+				*(struct Uni_String **)Data = newASCIIString(_id_c);
+			}else{
+				#ifdef JSVRMLCLASSESVERBOSE
+				printf ("JS_ECMA_TO_X3D, replacing \"%s\" with \"%s\" \n", oldS->strptr, _id_c);
+				#endif
 
-			#ifdef JSVRMLCLASSESVERBOSE
-			printf ("JS_ECMA_TO_X3D, replacing \"%s\" with \"%s\" \n", oldS->strptr, _id_c);
-			#endif
-
-			/* replace the C string if it needs to be replaced. */
-			verify_Uni_String (oldS,_id_c);
+				/* replace the C string if it needs to be replaced. */
+				verify_Uni_String (oldS,_id_c);
+			}
 #if JS_VERSION >= 185
 			JS_free(cx,_id_c);
 #endif
@@ -290,7 +381,7 @@ static void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int data
 
 
 /* take a Javascript  ECMA value and put it in the X3D Scenegraph. */
-static void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
+void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval) {
         SFColorNative *Cptr;
 	SFVec3fNative *V3ptr;
 	SFVec3dNative *V3dptr;
@@ -305,7 +396,7 @@ static void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataTy
 	#endif
 
 	/* get a pointer to the internal private data */
-	if ((VPtr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+	if ((VPtr = JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
 		printf( "JS_GetPrivate failed in JS_SF_TO_X3D.\n");
 		return;
 	}
@@ -341,10 +432,39 @@ static void JS_SF_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataTy
 	}
 }
 
+void JS_SF_TO_X3D_B(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval) {
+	AnyNative *ptr;
+	union anyVrml *anyv;
+
+	/* get a pointer to the internal private data */
+	if ((ptr = JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+		printf( "JS_GetPrivate failed in JS_SF_TO_X3D_B.\n");
+		return;
+	}
+	if(ptr->type != dataType){
+		printf("JS assigning type %d to %d failed\n",ptr->type,dataType);
+		return;
+	}
+	shallow_copy_field(dataType,ptr->v,Data);
+}
+void JS_SF_TO_X3D_BNode(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval) {
+	AnyNative *ptr;
+	union anyVrml *anyv;
+	if(JSVAL_IS_NULL(*newval)){
+		union anyVrml any;
+		any.sfnode = NULL;
+		shallow_copy_field(dataType,&any,Data);
+	}else{
+		JS_SF_TO_X3D_B(cx, Data, dataType, valueChanged, newval);
+	}
+
+	/* get a pointer to the internal private data */
+}
+
 void getJSMultiNumType(JSContext *, struct Multi_Vec3f *, int);
 
 /* make an MF type from the X3D node. This can be fairly slow... */
-static void JS_MF_TO_X3D(JSContext *cx, JSObject * obj, void *Data, int dataType, jsval *newval) {
+void JS_MF_TO_X3D(JSContext *cx, JSObject * obj, void *Data, int dataType, jsval *newval) {
 	ttglobal tg = gglobal();
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("calling JS_MF_TO_X3D on type %s\n",FIELDTYPES[dataType]);
@@ -415,7 +535,7 @@ void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval 
 
 /* take an ECMA value in the X3D Scenegraph, and return a jsval with it in */
 /* this is not so fast; we call a script to make a default type, then we fill it in */
-static void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, jsval *newval) {
+void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, int dataType, jsval *newval) {
         SFColorNative *Cptr;
 	SFVec3fNative *V3ptr;
 	SFVec3dNative *V3dptr;
@@ -466,7 +586,7 @@ static void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned data
 
 	}
 	/* get a pointer to the internal private data */
-	if ((VPtr = JS_GetPrivate(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
+	if ((VPtr = JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(*newval))) == NULL) {
 		printf( "JS_GetPrivate failed in X3D_SF_TO_JS.\n");
 		return;
 	}
@@ -509,8 +629,70 @@ static void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned data
 	}
 }
 
+void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
+{
+	//for SM_method() == 2
+	// this copies pointers rather than deep copying values
+	jsval rval;
+
+	/* NOTE - caller is (eventually) a class constructor, no need to BeginRequest */
+
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("calling X3D_SF_TO_JS on type %s, newval %u\n",FIELDTYPES[dataType],*newval);
+	#endif
+
+	//if (!JSVAL_IS_OBJECT(*newval)) {
+		/* find a script to create the correct object */
+		JSObject *newobj;
+		AnyNative *ptr;
+		switch (dataType) {
+			case FIELDTYPE_SFVec3f:
+				newobj = JS_NewObject(cx,&SFVec3fClass,NULL,NULL); break;
+			case FIELDTYPE_SFVec3d:
+				newobj = JS_NewObject(cx,&SFVec3dClass,NULL,NULL); break;
+			case FIELDTYPE_SFColor:
+				newobj = JS_NewObject(cx,&SFColorClass,NULL,NULL); break;
+			case FIELDTYPE_SFNode:
+				newobj = JS_NewObject(cx,&SFNodeClass,NULL,NULL); break;
+			case FIELDTYPE_SFVec2f:
+				newobj = JS_NewObject(cx,&SFVec2fClass,NULL,NULL); break;
+			case FIELDTYPE_SFRotation:
+				newobj = JS_NewObject(cx,&SFRotationClass,NULL,NULL); break;
+			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;
+		}
+
+		/* create the object */
+		//set private
+		if ((ptr = (AnyNative *) AnyNativeNew(dataType,Data,valueChanged)) == NULL) {
+			printf( "AnyNativeNew failed in X3D_MF_TO_SF_B.\n");
+			return;
+		}
+
+		if (!JS_SetPrivateFw(cx, newobj, ptr)) {
+			printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
+			return;
+		}
+
+		/* this is the return pointer, lets save it right now */
+		*newval = OBJECT_TO_JSVAL(newobj);
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("X3D_SF_TO_JS_B, so, newval now is %u\n",*newval);
+		#endif
+
+	//}
+}
+void X3D_SF_TO_JS_BNode(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
+{
+	union anyVrml *any = (union anyVrml *)Data;
+	if(any->sfnode == NULL){
+		*newval = JSVAL_NULL;
+	}else{
+		X3D_SF_TO_JS_B(cx, Data, datalen, dataType, valueChanged, newval);
+	}
+
+}
 /* make an MF type from the X3D node. This can be fairly slow... */
-static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
+void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
 	int i;
 	jsval rval;
 	char *script = NULL;
@@ -803,6 +985,73 @@ static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType,
 	#endif
 }
 
+
+void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *valueChanged, jsval *newval) {
+	// for SM_method == 2, simplifies MF handling
+	//1. create object, with MF getter/setter that looks for [i] or ["length"] 
+	//2. add the AnyNative (pass in more details please)
+	//3. set as return value
+
+	jsval rval;
+	char *script = NULL;
+	AnyNative *ptr;
+	JSObject *newobj = NULL;
+
+
+//	if (!JSVAL_IS_OBJECT(*newval)) { //don't know what this guards against
+		switch (dataType) {
+			case FIELDTYPE_MFString:
+				newobj = JS_NewObject(cx,&MFStringClass,NULL,NULL); break;
+			case FIELDTYPE_MFFloat: 
+				newobj = JS_NewObject(cx,&MFFloatClass,NULL,NULL); break;
+			case FIELDTYPE_MFTime: 
+				newobj = JS_NewObject(cx,&MFTimeClass,NULL,NULL); break;
+			case FIELDTYPE_MFInt32: 
+				newobj = JS_NewObject(cx,&MFInt32Class,NULL,NULL); break;
+			case FIELDTYPE_SFImage: 
+				newobj = JS_NewObject(cx,&SFImageClass,NULL,NULL); break;
+			case FIELDTYPE_MFVec3f: 
+				newobj = JS_NewObject(cx,&MFVec3fClass,NULL,NULL); break;
+			case FIELDTYPE_MFColor: 
+				newobj = JS_NewObject(cx,&MFColorClass,NULL,NULL); break;
+			case FIELDTYPE_MFNode: 
+				newobj = JS_NewObject(cx,&MFNodeClass,NULL,NULL); break;
+			case FIELDTYPE_MFVec2f: 
+				newobj = JS_NewObject(cx,&MFVec2fClass,NULL,NULL); break;
+			case FIELDTYPE_MFRotation: 
+				newobj = JS_NewObject(cx,&MFRotationClass,NULL,NULL); break;
+			default: printf ("invalid type in X3D_MF_TO_JS\n"); return;
+		}
+		//set private
+		if ((ptr = (AnyNative *) AnyNativeNew(dataType,Data,valueChanged)) == NULL) {
+			printf( "AnyNativeNew failed in X3D_MF_TO_SF_B.\n");
+			return;
+		}
+
+		if (!JS_SetPrivateFw(cx, newobj, ptr)) {
+			printf( "JS_SetPrivate failed in X3D_MF_TO_SF_B.\n");
+			return;
+		}
+
+		/* this is the return pointer, lets save it right now */
+		*newval = OBJECT_TO_JSVAL(newobj);
+		if(0){
+			//check if ptr is on object constructed from newval, or is it just on the object?
+			AnyNative *ptr2;
+			JSObject *obj2 = JSVAL_TO_OBJECT(*newval);
+			if( (ptr2 = (AnyNative*)JS_GetPrivateFw(cx,obj2)) == NULL){
+				printf("native pointer doesn't survive reduction to jsval\n");
+			}else{
+				printf("OK native pointer survives reduction to jsval");
+				printf("ptr->v->mf.n=%d\n",ptr2->v->mfbool.n);
+			}
+		}
+	return;
+
+}
+
+
+
 void
 reportWarningsOn() { 
 	ppjsUtils p = (ppjsUtils)gglobal()->jsUtils.prv;
@@ -898,7 +1147,7 @@ static int *getFOP (struct X3D_Node *node, const char *str) {
 					#endif
 					return fieldOffsetsPtr;
 				}
-			fieldOffsetsPtr += 5;
+			fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 		}
 
 		/* failed to find field?? */
@@ -913,7 +1162,14 @@ static int *getFOP (struct X3D_Node *node, const char *str) {
 
 
 /* getter for SFNode accesses */
-static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval *vp) {
+#if JS_VERSION <= 185
+static JSBool getSFNodeField(JSContext *cx, JSObject *obj, jsid id, jsval *vp){
+#else
+static JSBool getSFNodeField(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
+#endif
 	//JSString *_idStr;
 	char *_id_c;
         SFNodeNative *ptr;
@@ -922,16 +1178,16 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 
 	/* NOTE - caller is (eventually) a JS class constructor, no need to BeginRequest */
 
-	/* _idStr = JS_ValueToString(context, id); */
+	/* _idStr = JS_ValueToString(cx, id); */
 /* #if JS_VERSION < 185 */
 	/* _id_c = JS_GetStringBytes(_idStr); */
 /* #else */
-	/* _id_c = JS_EncodeString(context,_idStr); */
+	/* _id_c = JS_EncodeString(cx,_idStr); */
 /* #endif */
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(JSVAL_TO_STRING(id));
 #else
-	_id_c = JS_EncodeString(context,JSID_TO_STRING(id));
+	_id_c = JS_EncodeString(cx,JSID_TO_STRING(id));
 #endif
 
 	
@@ -939,10 +1195,10 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	printf ("\ngetSFNodeField called on name %s object %u\n",_id_c, obj);
 	#endif
 
-        if ((ptr = (SFNodeNative *)JS_GetPrivate(context, obj)) == NULL) {
+        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
                 printf( "JS_GetPrivate failed in getSFNodeField.\n");
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
                 return JS_FALSE;
         }
@@ -956,7 +1212,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	if (node == NULL) {
 		printf ("getSFNodeField, can not set field \"%s\", NODE is NULL!\n",_id_c);
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
 		return JS_FALSE;
 	}
@@ -1021,7 +1277,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 				printf("getSFNodeField %d : fVal=%d\n",__LINE__,fVal);
 				#endif
 
-				JS_NewNumberValue(context,(double)fVal,vp);
+				JS_NewNumberValue(cx,(double)fVal,vp);
 				return JS_TRUE;
 			} else {
 				#if TRACK_FIFO_MSG
@@ -1044,7 +1300,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 				printf("getSFNodeField %d : strPtr=%s\n",__LINE__,strPtr);
 				#endif
 
-				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(context,strPtr));
+				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,strPtr));
 				return JS_TRUE;
 			} else {
 				#if TRACK_FIFO_MSG
@@ -1063,7 +1319,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	fieldOffsetsPtr = getFOP(ptr->handle,_id_c);
 	if (fieldOffsetsPtr == NULL) {
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
 		return JS_FALSE;
 	}
@@ -1072,7 +1328,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 	printf ("getSFNodeField, fieldOffsetsPtr is %d for node %u, field %s\n",fieldOffsetsPtr, ptr->handle, _id_c);
 	#endif
 #if JS_VERSION >= 185
-	JS_free(context,_id_c);  /* _id_c is not used beyond this point in this fn */
+	JS_free(cx,_id_c);  /* _id_c is not used beyond this point in this fn */
 #endif
 
 
@@ -1089,7 +1345,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 		case FIELDTYPE_SFDouble:
 		case FIELDTYPE_SFInt32:
 		case FIELDTYPE_SFString:
-			X3D_ECMA_TO_JS(context, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
+			X3D_ECMA_TO_JS(cx, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
 				returnElementLength(*(fieldOffsetsPtr+2)), *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_SFColor:
@@ -1098,7 +1354,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 		case FIELDTYPE_SFVec3f:
 		case FIELDTYPE_SFVec3d:
 		case FIELDTYPE_SFRotation:
-			X3D_SF_TO_JS(context, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
+			X3D_SF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
 				returnElementLength(*(fieldOffsetsPtr+2)) * returnElementRowSize(*(fieldOffsetsPtr+2)) , *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_MFColor:
@@ -1111,7 +1367,7 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 		case FIELDTYPE_MFNode:
 		case FIELDTYPE_MFRotation:
 		case FIELDTYPE_SFImage:
-			X3D_MF_TO_JS(context, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
+			X3D_MF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
 				(char *)FIELDNAMES[*(fieldOffsetsPtr+0)]);
 			break;
 		default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", *(fieldOffsetsPtr+2)) ;
@@ -1127,9 +1383,14 @@ static JSBool getSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval 
 
 /* setter for SFNode accesses */
 #if JS_VERSION < 185
-JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, jsval *vp) {
+JSBool setSFNodeField (JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool setSFNodeField (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
 #else
-JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool setSFNodeField (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	char *_id_c;
         SFNodeNative *ptr;
@@ -1141,7 +1402,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 #if JS_VERSION < 185
 	_id_c = JS_GetStringBytes(JSVAL_TO_STRING(id));
 #else
-	_id_c = JS_EncodeString(context,JSID_TO_STRING(id));
+	_id_c = JS_EncodeString(cx,JSID_TO_STRING(id));
 #endif
 	
 	#ifdef JSVRMLCLASSESVERBOSE
@@ -1149,10 +1410,10 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	#endif
 
 	/* get the private data. This will contain a pointer into the FreeWRL scenegraph */
-        if ((ptr = (SFNodeNative *)JS_GetPrivate(context, obj)) == NULL) {
+        if ((ptr = (SFNodeNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
                 printf( "JS_GetPrivate failed in setSFNodeField.\n");
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
                 return JS_FALSE;
         }
@@ -1163,7 +1424,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	if (node == NULL) {
 		printf ("setSFNodeField, can not set field \"%s\", NODE is NULL!\n",_id_c);
 #if JS_VERSION >= 185
-		JS_free(context,_id_c);
+		JS_free(cx,_id_c);
 #endif
 		return JS_FALSE;
 	}
@@ -1189,7 +1450,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 	/* get the table entry giving the type, offset, etc. of this field in this node */
 	fieldOffsetsPtr = getFOP(ptr->handle,_id_c);
 #if JS_VERSION >= 185
-	JS_free(context,_id_c); /* _id_c is not used beyond this point in this fn */
+	JS_free(cx,_id_c); /* _id_c is not used beyond this point in this fn */
 #endif
 	if (fieldOffsetsPtr == NULL) {
 		return JS_FALSE;
@@ -1211,7 +1472,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 		case FIELDTYPE_SFDouble:
 		case FIELDTYPE_SFInt32:
 		case FIELDTYPE_SFString:
-			JS_ECMA_TO_X3D(context, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
+			JS_ECMA_TO_X3D(cx, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
 				returnElementLength(*(fieldOffsetsPtr+2)), *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_SFColor:
@@ -1220,7 +1481,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 		case FIELDTYPE_SFVec3f:
 		case FIELDTYPE_SFVec3d:
 		case FIELDTYPE_SFRotation:
-			JS_SF_TO_X3D(context, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
+			JS_SF_TO_X3D(cx, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))),
 				returnElementLength(*(fieldOffsetsPtr+2)) * returnElementRowSize(*(fieldOffsetsPtr+2)) , *(fieldOffsetsPtr+2), vp);
 			break;
 		case FIELDTYPE_MFColor:
@@ -1233,7 +1494,7 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 		case FIELDTYPE_MFNode:
 		case FIELDTYPE_MFRotation:
 		case FIELDTYPE_SFImage:
-			JS_MF_TO_X3D(context, obj, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))), *(fieldOffsetsPtr+2), vp);
+			JS_MF_TO_X3D(cx, obj, ((void *)( ((unsigned char *) node) + *(fieldOffsetsPtr+1))), *(fieldOffsetsPtr+2), vp);
 			break;
 		default: printf ("unhandled type in setSFNodeField\n");
 		return JS_FALSE;
@@ -1249,7 +1510,8 @@ JSBool setSFNodeField (JSContext *context, JSObject *obj, jsid id, JSBool strict
 
 	return JS_TRUE;
 }
-
+#define UNHIDE_DEFINE_SFNODESPECIFIC 1
+#ifdef UNHIDE_DEFINE_SFNODESPECIFIC
 /* for SFNodes, go through and insure that all properties are defined for the specific node type */
 int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, struct X3D_Node * ptr) {
 	int *fieldOffsetsPtr;
@@ -1292,10 +1554,11 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
 		#endif
 
 		/* have we already done this for this node? We really do not want to do this again */
-		if ((nodeNative = (SFNodeNative *)JS_GetPrivate(context,object)) == NULL) {
+		if ((nodeNative = (SFNodeNative *)JS_GetPrivateFw(context,object)) == NULL) {
 			printf ("JS_DefineSFNodeSpecificProperties, can not get private for a SFNode!\n");
 			return JS_FALSE;
 		}
+		if(SM_method() == 0)
 		if (nodeNative->fieldsExpanded) {
 			#ifdef JSVRMLCLASSESVERBOSE
 			printf ("JS_DefineSFNodeSpecificProperties, already done for node\n");
@@ -1375,11 +1638,12 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
         			        return JS_FALSE;
         			}
 			}
-			fieldOffsetsPtr += 5;
+			fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 		}
 
 		/* set a flag indicating that we have been here already */
-		nodeNative->fieldsExpanded = TRUE;
+		if(SM_method() == 0)
+			nodeNative->fieldsExpanded = TRUE;
 	}
 	#ifdef JSVRMLCLASSESVERBOSE
 	printf ("JS_DefineSFNodeSpecificProperties, returning TRUE\n");
@@ -1387,7 +1651,7 @@ int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, str
 
 	return TRUE;
 }
-
+#endif // UNHIDE_DEFINE_SFNODESPECIFIC
 
 /********************************************************************************************/
 /* new addition April 2009. It was noted that the following code would not send an event to
@@ -1423,7 +1687,7 @@ holding object needs to route to FreeWRL... */
 			return JS_FALSE; \
 		} \
 \
-		if ((ptr = (thisSFtype##Native *)JS_GetPrivate(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {\
+		if ((ptr = (thisSFtype##Native *)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(mainElement))) == NULL) {\
 			printf( "JS_GetPrivate failed in assignCheck.\n"); \
 			return JS_FALSE; \
 		} else { \
@@ -1436,8 +1700,13 @@ holding object needs to route to FreeWRL... */
 
 #if JS_VERSION < 185
 JSBool js_SetPropertyCheck (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-#else
+#elif JS_VERSION == 185
 JSBool js_SetPropertyCheck(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp) {
+#else
+JSBool js_SetPropertyCheck(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	int num=0;
 #if JS_VERSION >= 185
@@ -1621,12 +1890,17 @@ JSBool js_SetPropertyDebug2 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 #if JS_VERSION < 185
-JSBool js_SetPropertyDebug3 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
 #else
-JSBool js_SetPropertyDebug3 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
-	js_SetPropertyDebugWrapped(context,obj,id,vp,"3");
+	js_SetPropertyDebugWrapped(cx,obj,id,vp,"3");
 	#endif
 	return JS_TRUE;
 }
@@ -1642,8 +1916,13 @@ JSBool js_SetPropertyDebug4 (JSContext *context, JSObject *obj, jsid id, JSBool 
 }
 #if JS_VERSION < 185
 JSBool js_SetPropertyDebug5 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug5(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp){
 #else
-JSBool js_SetPropertyDebug5 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug5(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
 	js_SetPropertyDebugWrapped(context,obj,id,vp,"5");
@@ -1651,9 +1930,14 @@ JSBool js_SetPropertyDebug5 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 #if JS_VERSION < 185
-JSBool js_SetPropertyDebug6 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
 #else
-JSBool js_SetPropertyDebug6 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
 	js_SetPropertyDebugWrapped(context,obj,id,vp,"6");
@@ -1671,12 +1955,17 @@ JSBool js_SetPropertyDebug7 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 #if JS_VERSION < 185
-JSBool js_SetPropertyDebug8 (JSContext *context, JSObject *obj, jsval id, jsval *vp) {
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+#elif JS_VERSION == 185
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
 #else
-JSBool js_SetPropertyDebug8 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp) {
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid id = *hiid._;
+	jsval *vp = hvp._;
 #endif
 	#ifdef JSVRMLCLASSESVERBOSE 
-	js_SetPropertyDebugWrapped(context,obj,id,vp,"8");
+	js_SetPropertyDebugWrapped(cx,obj,id,vp,"8");
 	#endif
 	return JS_TRUE;
 }
@@ -1691,5 +1980,5 @@ JSBool js_SetPropertyDebug9 (JSContext *context, JSObject *obj, jsid id, JSBool 
 	return JS_TRUE;
 }
 
-
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
+#endif //!defined(JS_SMCPP)

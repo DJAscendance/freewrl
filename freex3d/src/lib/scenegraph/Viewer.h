@@ -92,18 +92,6 @@ int fwl_setNavMode(char *mode);
 		viewer->Dist = test; \
 	}
 
-#define INITIATE_SLERP \
-	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT) { \
-        viewer->SLERPing = TRUE; \
-        viewer->startSLERPtime = TickTime(); \
-        memcpy (&viewer->startSLERPPos, &viewer->Pos, sizeof (struct point_XYZ)); \
-        memcpy (&viewer->startSLERPAntiPos, &viewer->AntiPos, sizeof (struct point_XYZ)); \
-        memcpy (&viewer->startSLERPQuat, &viewer->Quat, sizeof (Quaternion)); \
-        memcpy (&viewer->startSLERPAntiQuat, &viewer->AntiQuat, sizeof (Quaternion));  \
-        memcpy (&viewer->startSLERPbindTimeQuat, &viewer->bindTimeQuat, sizeof (Quaternion)); \
-        memcpy (&viewer->startSLERPprepVPQuat, &viewer->prepVPQuat, sizeof (Quaternion)); \
-	} else { viewer->SLERPing = FALSE; }
-
 
 #define INITIATE_POSITION \
         xd = vp->position.c[0]-vp->centerOfRotation.c[0]; \
@@ -115,29 +103,6 @@ int fwl_setNavMode(char *mode);
         viewer->examine.Origin.x = vp->centerOfRotation.c[0]; \
         viewer->examine.Origin.y = vp->centerOfRotation.c[1]; \
 	viewer->examine.Origin.z = vp->centerOfRotation.c[2];
-
-#define INITIATE_POSITION_ANTIPOSITION \
-        viewer->Pos.x = vp->position.c[0]; \
-        viewer->Pos.y = vp->position.c[1]; \
-        viewer->Pos.z = vp->position.c[2]; \
-        viewer->AntiPos.x = vp->position.c[0]; \
-        viewer->AntiPos.y = vp->position.c[1]; \
-        viewer->AntiPos.z = vp->position.c[2]; \
-        viewer->currentPosInModel.x = vp->position.c[0]; \
-        viewer->currentPosInModel.y = vp->position.c[1]; \
-        viewer->currentPosInModel.z = vp->position.c[2]; \
-        vrmlrot_to_quaternion (&viewer->Quat,vp->orientation.c[0], \
-                vp->orientation.c[1],vp->orientation.c[2],-vp->orientation.c[3]); /* dug9 sign change on orientation Jan 18,2010 to accomodate level_to_bound() */ \
-        vrmlrot_to_quaternion (&viewer->bindTimeQuat,vp->orientation.c[0], \
-                vp->orientation.c[1],vp->orientation.c[2],-vp->orientation.c[3]); /* '' */ \
-        vrmlrot_to_quaternion (&q_i,vp->orientation.c[0], \
-                vp->orientation.c[1],vp->orientation.c[2],-vp->orientation.c[3]); /* '' */ \
-        quaternion_inverse(&(viewer->AntiQuat),&q_i);  \
-	vrmlrot_to_quaternion(&viewer->prepVPQuat,vp->orientation.c[0],vp->orientation.c[1],vp->orientation.c[2],-vp->orientation.c[3]);
-
-
-/* extern struct point_XYZ ViewerPosition; */
-/* extern struct orient ViewerOrientation; */
 
 
 typedef struct viewer_walk {
@@ -193,18 +158,18 @@ typedef struct viewer_fly {
 } X3D_Viewer_Fly;
 
 
+
 typedef struct viewer {
-	struct point_XYZ Pos;
-	struct point_XYZ AntiPos;
 	struct point_XYZ currentPosInModel;
+	struct point_XYZ Pos;
 	Quaternion Quat;
-	Quaternion AntiQuat;
-	Quaternion bindTimeQuat;
+	struct point_XYZ Pos0;
+	Quaternion Quat0;
+	struct point_XYZ Up; // 0 1 0 except geoVP
 	int headlight;
 	int collision; //added July 7, 2012
 	double speed;
 	double Dist; //examine dist
-	//double exploreDist; //explore dist
 	/*stereovision...*/
 	int isStereo; /*=1 stereovision of any type (all types require viewpoint to shift left and right in scene) */
 	int isStereoB;
@@ -252,19 +217,15 @@ typedef struct viewer {
 	double lasttime;
 
 	struct point_XYZ startSLERPPos;
-	struct point_XYZ startSLERPAntiPos;
 	Quaternion startSLERPQuat;
-	Quaternion startSLERPAntiQuat;
-	Quaternion startSLERPbindTimeQuat;
-	Quaternion prepVPQuat;
-	Quaternion startSLERPprepVPQuat;
 
 	double startSLERPDist, endSLERPDist;
 	struct point_XYZ endSLERPPos;
 	Quaternion endSLERPQuat;
 
-
-	struct X3D_GeoViewpoint *GeoSpatialNode; /* NULL, unless we are a GeoViewpoint */
+	double slerp_viewmatrix[16];
+	double slerp_posorimatrix[16];
+	int vp2rnSaved;
 
 	int doExamineModeDistanceCalculations;	
 
@@ -287,8 +248,13 @@ typedef struct viewer {
 X3D_Viewer *ViewerByLayerId(int layerid);
 //extern X3D_Viewer Viewer; /* in VRMLC.pm */
 X3D_Viewer *Viewer();
+struct X3D_Node *getActiveLayerBoundViewpoint();
 void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type);
 void viewer_default(void);
+void viewer_update_user_offsets0(X3D_Viewer *viewer);
+void viewer_fetch_user_offsets0(X3D_Viewer *viewer);
+void viewer_update_LCS(X3D_Viewer *viewer);
+void viewer_fetch_LCS(X3D_Viewer *viewer);
 
 void Viewer_anaglyph_setSide(int iside);
 void Viewer_anaglyph_clearSides();
@@ -318,13 +284,7 @@ void handle_key(const char key, double keytime);
 void handle_keyrelease (const char key, double keytime);
 void handle_tick();
 void set_stereo_offset0(); /*int iside, double eyehalf, double eyehalfangle);*/
-/*
-void
-set_stereo_offset(unsigned int buffer,
-				  const double eyehalf,
-				  const double eyehalfangle,
-				  double fieldofview);
-*/
+
 void increment_pos( struct point_XYZ *vec);
 
 void bind_Viewpoint(struct X3D_Viewpoint *node);
@@ -336,7 +296,7 @@ extern float eyedist;
 extern float screendist;
 
 void getCurrentSpeed(void);
-void getCurrentPosInModel (int addInAntiPos);
+void getCurrentPosInModelB ();
 
 void toggle_collision(void);
 void viewer_lastP_clear(void);
@@ -346,7 +306,7 @@ void toggleOrSetStereo(int type);
 void setAnaglyphSideColor(char val, int iside);
 void updateEyehalf(void);
 void viewer_level_to_bound(void);
-
+void viewer_viewall();
 int getAnaglyphPrimarySide(int primary, int iside);
 void setAnaglyphPrimarySide(int primary, int iside);
 int viewer_getKeyChord();

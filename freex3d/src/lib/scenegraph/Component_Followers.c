@@ -213,13 +213,7 @@ float *arr3f(float *A, int i){
 	//memcpy(T,&A[3*i],3*sizeof(float));
 	return &A[3*i];
 }
-float *veclerp3f(float *T, float *A, float *B, float alpha){
-	int i;
-	for(i=0;i<3;i++){
-		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
-	}
-	return T;
-}
+
 float tmp3f1[6][3];
 void *tmp3f [] = {&tmp3f[0],&tmp3f[1],&tmp3f[2],&tmp3f[3],&tmp3f[4],&tmp3f[5]};
 
@@ -2007,13 +2001,7 @@ void do_PositionDamper2DTick_default(void * ptr){
 	}
 
 }
-float *veclerp2f(float *T, float *A, float *B, float alpha){
-	int i;
-	for(i=0;i<2;i++){
-		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
-	}
-	return T;
-}
+
 struct SFVec2f *sfvec2f_copy(struct SFVec2f* T, struct SFVec2f *A){
 	veccopy2f(T->c,A->c);
 	return T;

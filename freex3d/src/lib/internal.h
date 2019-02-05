@@ -35,10 +35,10 @@
 #include <io_files.h>
 
 
+#include "scenegraph/Vector.h"
 #include "vrml_parser/Structs.h"
 #include "main/headers.h"
 #include "vrml_parser/CParseGeneral.h"
-#include "scenegraph/Vector.h"
 #include "vrml_parser/CFieldDecls.h"
 #include "world_script/JScript.h"
 #include "world_script/CScripts.h"
@@ -380,6 +380,13 @@ void *reallocn(void *node, void *pold, size_t newsize);
 /**
  * Those macro get defined only when debugging is enabled
  */
+
+#if defined(_tempnam)
+# define TEMPNAM _tempnam
+#else
+# define TEMPNAM tempnam
+#endif
+
 #if defined(WRAP_MALLOC) || defined(DEBUG_MALLOC)
 
 void *freewrlMalloc(int line, char *file, size_t sz, int zeroData);
@@ -424,15 +431,6 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
                       } while (0);
 
 #endif // FW_DEBUG
-/* JAS */
-#ifndef TEMPNAM
-#if defined(_MSC_VER)
-# define TEMPNAM _tempnam
-#else
-# define TEMPNAM tempnam
-#endif
-#endif
-
 
 #else /* defined(WRAP_MALLOC) || defined(DEBUG_MALLOC) */
 #define MALLOCN(_node,_sz) (mallocn(_node,_sz))
@@ -454,6 +452,12 @@ void *freewrlStrndup(int line, char *file, const char *str, size_t n);
 # define ASSERT(_whatever)
 
 #endif /* defined(WRAP_MALLOC) || defined(DEBUG_MALLOC) */
+
+#if defined(_MSC_VER) && defined(W_DEBUG)
+#define CHECK_MEMORY check_memory();
+#else
+#define CHECK_MEMORY
+#endif
 
 /* This get always defined, but ERROR_MSG is no-op without _DEBUG */
 
@@ -540,5 +544,5 @@ void free_registered_node_gc(void *node); //free when freeing node ie freeMalloc
 //extern bool global_print_opengl_errors; /* print OpenGL errors as they come ? */
 
 //extern bool global_trace_threads;       /* trace thread creation / switch ... ? */
-
+const char *getNodeName(struct X3D_Node *node);
 #endif /* __LIBFREEWRL_DECL_H__ */

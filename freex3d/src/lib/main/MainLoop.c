@@ -440,7 +440,8 @@ float defaultClipBoundary [] = {0.0f, 1.0f, 0.0f, 1.0f}; //left,right,bottom,top
 		finishedwithglobalshader(), and restoreglobalshader() before and after gl_useProgram section
 */
 
-typedef struct contenttype contenttype;
+struct _contenttype;
+typedef struct _contenttype contenttype;
 void register_contenttype(void *ct);
 void free_contenttypes();
 typedef struct tcontenttype {
@@ -454,9 +455,9 @@ typedef struct tcontenttype {
 	void (*render)(void *self); 
 	int (*pick)(void *self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex);  // a generalization of mouse. HMD IMU vs mouse?
 } tcontenttype;
-typedef struct contenttype {
+struct _contenttype {
 	tcontenttype t1; //superclass in abstract derived class
-}contenttype;
+};
 void content_render(void *_self){
 	//generic render for intermediate level content types (leaf/terminal content types will have their own render())
 	contenttype *c, *self;
@@ -810,12 +811,13 @@ typedef struct consoleLine {
 	int endline;
 } consoleLine;
 
-typedef struct BUTitem BUTitem;
-typedef struct BUTitem {
+struct _BUTitem;
+typedef struct _BUTitem BUTitem;
+struct _BUTitem {
 	unsigned char *B;
 	BUTitem *prev;
 	BUTitem *next;
-}BUTitem;
+};
 typedef struct contenttype_textpanel {
 	tcontenttype t1;
 	AtlasEntrySet *set;
@@ -1158,6 +1160,7 @@ void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
 				memcpy(row,&A[i0],l0);
 				P = &self->E[bchars];
 			}
+			/*
 			if(0){
 				//debugging
 				if(!strncmp(row,"`~",2)){
@@ -1179,6 +1182,7 @@ void textpanel_render_blobmethod(contenttype_textpanel *_self, ivec4 ivport){
 					}
 				}
 			}
+			*/
 			//OK got row and lenrow, now render it
 			//textchars2panelpixel
 			xy = text2pixel(0,jrow,rowheight,maxadvancepx); 
@@ -3004,7 +3008,10 @@ typedef struct pMainloop{
 
 	char* PluginFullPath;
 	//
-	int num_SensorEvents;// = 0;
+	//int num_SensorEvents;// = 0;
+	//int size_SensorEvents;
+	//struct SensStruct **SensorEvents;// = 0;
+	struct Vector *SensorEvents;
 
 	/* Viewport data */
 	GLint viewPort2[10];
@@ -3021,11 +3028,10 @@ typedef struct pMainloop{
 	int keypress_wait_for_settle;// = 100;     /* JAS - change keypress to wait, then do 1 per loop */
 	char * keypress_string;//=NULL;            /* Robert Sim - command line key sequence */
 
-	struct SensStruct *SensorEvents;// = 0;
-
     unsigned int loop_count;// = 0;
 	unsigned int once;
     unsigned int slowloop_count;// = 0;
+	unsigned int total_loop_count; //let ti overflow at 4B
 	//scene
 	//window
 	//2D_inputdevice
@@ -3110,8 +3116,7 @@ void Mainloop_init(struct tMainloop *t){
 		#endif
 
 		//char* PluginFullPath;
-		p->num_SensorEvents = 0;
-
+		p->SensorEvents = newVector(struct SensStruct *,0);
 		p->maxbuffers = 1;                     /*  how many active indexes in bufferarray*/
 		p->bufferarray[0] = FW_GL_BACK;
 		p->bufferarray[1] = 0;
@@ -3123,7 +3128,6 @@ void Mainloop_init(struct tMainloop *t){
 		p->keypress_wait_for_settle = 100;     /* JAS - change keypress to wait, then do 1 per loop */
 		p->keypress_string=NULL;            /* Robert Sim - command line key sequence */
 
-		p->SensorEvents = 0;
 
         p->loop_count = 0;
         p->slowloop_count = 0;
@@ -3176,8 +3180,13 @@ void Mainloop_clear(struct tMainloop *t){
 	FREE_IF_NZ(t->replaceWorldRequest);
 	FREE_IF_NZ(t->tmpFileLocation);
 	{
+		int k;
 		ppMainloop p = (ppMainloop)t->prv;
-		FREE_IF_NZ(p->SensorEvents);
+		for(k=0;k<vectorSize(p->SensorEvents);k++){
+			struct SensStruct *se = vector_get(struct SensStruct *,p->SensorEvents,k);
+			FREE_IF_NZ(se);
+		}
+		deleteVector(struct SensStruct*,p->SensorEvents);
 		deleteVector(ivec4,p->_vportstack);
 		deleteVector(void*,p->_stagestack);
 		deleteVector(int,p->_framebufferstack);
@@ -3310,7 +3319,8 @@ void set_viewmatrix();
 static void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive);
 /* void fwl_do_keyPress(char kp, int type); Now in lib.h */
 void render_collisions(int Viewer_type);
-int slerp_viewpoint(int itype);
+int slerp_viewpoint2();
+int slerp_viewpoint3();
 static void render_pre(void);
 
 static int setup_pickside(int x, int y);
@@ -3915,6 +3925,10 @@ void initialize_targets_simple(){
 
 }
 void update_navigation();
+void fwl_lockTestMutex();
+void fwl_unlockTestMutex();
+
+
 void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	double dtime;
 	int i;
@@ -3924,10 +3938,13 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
 
+	//fwl_lockTestMutex();
+	CHECK_MEMORY
 	if(!p->targets_initialized)
 		initialize_targets_simple();
 
 	dtime = Time1970sec();
+
 	vportstack = (Stack *)tg->Mainloop._vportstack;
 	defaultvport = ivec4_init(0,0,100,100);
 	pushviewport(vportstack,defaultvport);
@@ -3938,6 +3955,14 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 	//twindows = p->cwindows;
 	//t = twindows;
 	p->windex = -1;
+	if(0){
+		//for testing, if scene ready or not for rendering
+		// can wait a few seconds for scene to load and update
+		static double starttime = 0.0;
+		if(starttime == 0.0) starttime = dtime;
+		if(dtime - starttime < 2.0) return;
+
+	}
 	for(i=0;i<p->nwindow;i++){
 		//a targetwindow might be a supervisor's screen, or HMD
 		freewrl_params_t *dp;
@@ -3976,6 +4001,7 @@ void fwl_RenderSceneUpdateSceneTARGETWINDOWS() {
 		if(t->swapbuf) { FW_GL_SWAPBUFFERS }
 //		t = (targetwindow*) t->next;
 	}
+	//fwl_unlockTestMutex();
 	p->windex = 0;
 }
 
@@ -4526,6 +4552,8 @@ void fwl_RenderSceneUpdateScene(void){
 void setup_picking();
 void setup_projection();
 void rbp_run_physics();
+void fwl_sendreceive_DIS();
+void fps_histo_collect();
 void fwl_RenderSceneUpdateScene0(double dtime) {
 	//Nov 2015 change: just viewport-independent, once-per-frame-scene-updates here
 	//-functionality relying on a viewport -setup_projection(), setup_picking()- has been 
@@ -4559,43 +4587,88 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 			p->BrowserInitTime = dtime;
 		p->once = TRUE;
 	} else {
-		/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
-			something goes totally wrong.
-			Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
-		if(!((freewrl_params_t*)(tg->display.params))->frontend_handles_display_thread){
-			/* 	some users report their device overheats if frame rate is a zillion, so this will limit it to a target number
-				statusbarHud options has an option to set.
-				we see how long it took to do the last loop; now that the frame rate is synced to the
-				vertical retrace of the screens, we should not get more than 60-70fps. We calculate the
-				time here, if it is more than 200fps, we sleep for 1/100th of a second - we should NOT
-				need this, but in case something goes pear-shaped (british expression, there!) we do not
-				consume thousands of frames per second 
-				frames-per-second = FPS = 1/time-per-frame[s];  [s] means seconds, [ms] millisec [us] microseconds [f] frames
-				target_time_per_frame[s] = 1[f]/target_FPS[f/s];
-				suggested_wait_time[s] = target_time_per_frame[s] - elapsed_time_since_last_frame[s];
-										= 1[f]/target_FPS[f/s]    - elapsed_time_since_last_frame[s];
-				if suggested_wait_time < 0 then we can't keep up, no wait time
+		// Set the timestamp
+		//tg->Mainloop.lastTime = tg->Mainloop.TickTime;
+		//tg->Mainloop.TickTime = dtime; //Time1970sec();
+		static int debugg_time = FALSE; //TRUE;
+		if(debugg_time){
+			//sometimes when debugging you have interpolators based on time
+			//and rather than jumping after you stall the draw thread, you'd like 
+			//it to continue as if time stood still while you stalled the thread
+			static int frame_count = 0;
+			frame_count++;
+			dtime = .02 * (double)frame_count;
+			sleep(100);
+		}else{
+			fps_histo_collect();
+			/* NOTE: front ends now sync with the monitor, meaning, this sleep is no longer needed unless
+				something goes totally wrong.
+				Perhaps could be moved up a level, since mobile controls in frontend, but npapi and activex plugins also need displaythread  */
+			if(!((freewrl_params_t*)(tg->display.params))->frontend_handles_display_thread){
+				/* 	some users report their device overheats if frame rate is a zillion, so this will limit it to a target number
+					statusbarHud options has an option to set.
+					we see how long it took to do the last loop; now that the frame rate is synced to the
+					vertical retrace of the screens, we should not get more than 60-70fps. We calculate the
+					time here, if it is more than 200fps, we sleep for 1/100th of a second - we should NOT
+					need this, but in case something goes pear-shaped (british expression, there!) we do not
+					consume thousands of frames per second 
+					frames-per-second = FPS = 1/time-per-frame[s];  [s] means seconds, [ms] millisec [us] microseconds [f] frames
+					target_time_per_frame[s] = 1[f]/target_FPS[f/s];
+					suggested_wait_time[s] = target_time_per_frame[s] - elapsed_time_since_last_frame[s];
+											= 1[f]/target_FPS[f/s]    - elapsed_time_since_last_frame[s];
+					if suggested_wait_time < 0 then we can't keep up, no wait time
 
-			*/
-			double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
-			int wait_time_micro_sec, target_frames_per_second;
-			kludgefactor = 2.0; //2 works on win8.1 with intel i5
-			target_frames_per_second = fwl_get_target_fps();
-			elapsed_time_per_frame = TickTime() - lastTime();
-			if(target_frames_per_second > 0)
-				target_time_per_frame = 1.0/(double)target_frames_per_second;
-			else
-				target_time_per_frame = 1.0/30.0;
-			suggested_wait_time = target_time_per_frame - elapsed_time_per_frame;
-			suggested_wait_time *= kludgefactor;
+				*/
+				double elapsed_time_per_frame, suggested_wait_time, target_time_per_frame, kludgefactor;
+				int wait_time_micro_sec, target_frames_per_second;
+				static int emulating_fps_stutter = 0; //see comment below
+				kludgefactor = 2.0; //2 works on win8.1 with intel i5
+				target_frames_per_second = fwl_get_target_fps(); //default is negative 120 (-120), commandline args are +ve
+				//target_frames_per_second = abs(target_frames_per_second); //comment this to disable fps throttling
+				if(target_frames_per_second > 0){
+					//if there was a commandline setting, try and control frame rate
+					elapsed_time_per_frame = TickTime() - lastTime();
+					if(target_frames_per_second > 0)
+						target_time_per_frame = 1.0/(double)target_frames_per_second;
+					else
+						target_time_per_frame = 1.0/30.0;
+					suggested_wait_time = target_time_per_frame - elapsed_time_per_frame;
+					suggested_wait_time *= kludgefactor;
+					if(emulating_fps_stutter){
+						p->total_loop_count++;
+						//stall 5 frames every 5*10=50 frames
+						if(((p->total_loop_count / 5) % 10) == 0){
+							printf("&");
+							suggested_wait_time += .5;
+						}
+					}
+					wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
+					if(wait_time_micro_sec > 1)
+						usleep(wait_time_micro_sec);
+				}else{
+					//else if there was no commandline setting, let it rip. except:
+					//FPS STUTTER
+					//- emulating operating-system-caused framerate / FPS stutter 
+					//  win10 > Spring 2017 Creators Updata aka CU aka 1703 > lots of complaints by game users, no clear solution
+					//    google: windows 10 creators update fps stutter
+					//    2nd hand info: nvidia says "...disable Game Mode in Windows 10..." 
+					//- used for testing navigation > walk/fly > 'dead reckoning' testing
+					//   -it should smooth out stutter effects
+					if(emulating_fps_stutter){
+						p->total_loop_count++;
+						//stall 5 frames every 5*10=50 frames
+						if(((p->total_loop_count / 5) % 10) == 0){
+							printf("+");
+							usleep(80000); //.8 second stall
+						}
+					}
+				}
 
-			wait_time_micro_sec = (int)(suggested_wait_time * 1000000.0);
-			if(wait_time_micro_sec > 1)
-				usleep(wait_time_micro_sec);
+			}
 		}
 	}
 
-	// Set the timestamp
+	//// Set the timestamp
 	tg->Mainloop.lastTime = tg->Mainloop.TickTime;
 	tg->Mainloop.TickTime = dtime; //Time1970sec();
 
@@ -4605,6 +4678,8 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 		Snapshot();
 	}
 	#endif //FRONTEND_DOES_SNAPSHOTS
+
+	fwl_sendreceive_DIS(); //Component_DIS.c
 
 	OcclusionCulling();
 
@@ -4744,7 +4819,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 	if (p->onScreen)
 	{
 		render_pre();
-		slerp_viewpoint(3); //does explore / lookat vp slerp
+		slerp_viewpoint3(); //does explore / lookat vp slerp
 
 	}
 
@@ -5525,9 +5600,15 @@ void setup_pickray(int x, int y){
 }
 void generate_GeneratedCubeMapTextures();
 /* Render the scene */
+int get_n_depth_slices();
+void get_depth_slice(int islice, double *znear, double *zfar);
+void fw_depth_slice_push(double nearplane, double farplane);
+void fw_depth_slice_pop();
 static void render()
 {
-	int count;
+	//warning you must also maintain generate_GeneratedCubeMapTextures() which is a hacked clone of this function
+	int count, nslice, islice;
+	double znear,zfar;
 	static double shuttertime;
 	static int shutterside;
 	X3D_Viewer *viewer;
@@ -5583,34 +5664,42 @@ static void render()
 		//BackEndLightsOff();
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
+		render_bound_background();
 
-		/*  turn light #0 off only if it is not a headlight.*/
-		if (!fwl_get_headlight()) {
-			setLightState(HEADLIGHT_LIGHT,FALSE);
-			setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
-		}
+		nslice = get_n_depth_slices();
 
-		/*  Other lights*/
-		PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
+		for(islice=0;islice<nslice;islice++){
+			get_depth_slice(islice,&znear,&zfar);
+			fw_depth_slice_push(znear,zfar);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			/*  turn light #0 off only if it is not a headlight.*/
+			if (!fwl_get_headlight()) {
+				setLightState(HEADLIGHT_LIGHT,FALSE);
+				setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
+			}
 
-		render_hier(rootNode(), VF_globalLight );
-		PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
-		render_hier(rootNode(), VF_Other );
+			/*  Other lights*/
+			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
+
+			render_hier(rootNode(), VF_globalLight );
+			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
+			render_hier(rootNode(), VF_Other );
 
 
-		/*  4. Nodes (not the blended ones)*/
-		profile_start("hier_geom");
-		render_hier(rootNode(), VF_Geom);
-		profile_end("hier_geom");
-		PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-
-		/*  5. Blended Nodes*/
-		if (tg->RenderFuncs.have_transparency) {
-			/*  render the blended nodes*/
-			render_hier(rootNode(), VF_Geom | VF_Blend);
+			/*  4. Nodes (not the blended ones)*/
+			profile_start("hier_geom");
+			render_hier(rootNode(), VF_Geom);
+			profile_end("hier_geom");
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-		}
 
+			/*  5. Blended Nodes*/
+			if (tg->RenderFuncs.have_transparency) {
+				/*  render the blended nodes*/
+				render_hier(rootNode(), VF_Geom | VF_Blend);
+				PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
+			}
+			fw_depth_slice_pop();
+		}
 		if (viewer->isStereo) {
 #ifndef DISABLER
 			if (viewer->sidebyside){
@@ -5815,7 +5904,7 @@ void setup_viewpoint_part2() {
 	boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint();
 	if(boundvp)
 		boundvp->_donethispass = 0; //used in prep_Viewpoint
-	render_hier(rootNode(), VF_Viewpoint);
+	render_hier(rootNode(), VF_Viewpoint | VF_Background);
 	if(boundvp)
 		boundvp->_donethispass = 0; //used in prep_Viewpoint
 	//printf("\n<<<part2\n");
@@ -5860,18 +5949,24 @@ void setup_viewpoint_part3() {
 	//	viewer->isStereo = bstack->isStereo;
 	//	viewer->iside = iside;
 	//}
+	//if(0){
+	//	printmatrix2(bstack->screenorientationmatrix,"screenOrientationMatrix");
+	//	printmatrix2(bstack->posorimatrix,"posorimatrix");
+	//	printmatrix2(bstack->viewtransformmatrix,"viewmatrix");
+	//}
 	//multiply it all together, and capture any slerp
 	//Feb 2016 - I think we should slerp the main/normal position of the viewpoint. 
 	// - then if its stereo, offset by half-base during rendernig or picking
-			matcopy(viewmatrix,bstack->screenorientationmatrix);
-		//if(0) if(isStereo)
-		//		matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
-			matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
-			matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
-			fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
-
-		if(slerp_viewpoint(2)) //just starting block, does vp-bind type slerp
-				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
+	matcopy(viewmatrix,bstack->screenorientationmatrix);
+	//if(0) if(isStereo)
+	//		matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
+	matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
+	slerp_viewpoint2(); //modifies viewtransformmatrix
+	matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
+	fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+	//if(1) fw_glSetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
+	//if(slerp_viewpoint2(bstack->posorimatrix,bstack->viewtransformmatrix)) //just starting block, does vp-bind type slerp
+	//	fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewtransformmatrix);
 
 }
 void setup_viewpoint(){
@@ -5907,8 +6002,8 @@ void set_viewmatrix0(int iplace) {
 			matmultiplyAFFINE(viewmatrix,bstack->stereooffsetmatrix[iside],viewmatrix);
 		}
 		matmultiplyAFFINE(viewmatrix,bstack->posorimatrix,viewmatrix); 
-		matmultiplyAFFINE(viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
-		fw_glSetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+		matmultiplyAFFINE(bstack->viewmatrix,bstack->viewtransformmatrix,viewmatrix); 
+		fw_glSetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 }
 void set_viewmatrix() {
 	set_viewmatrix0(0);
@@ -6010,6 +6105,7 @@ void sendKeyToKeySensor(const char key, int upDown);
 char lookup_fly_key(int key);
 //#endif
 void dump_scenegraph(int method);
+void fps_histo_toggle();
 void fwl_do_keyPress0(int key, int type) {
 	int lkp;
 	ppMainloop p;
@@ -6077,6 +6173,7 @@ void fwl_do_keyPress0(int key, int type) {
 				case 'm': { fwl_set_viewer_type(VIEWER_LOOKAT); break; }
 				case 'g': { fwl_set_viewer_type(VIEWER_EXPLORE); break; }
 				case 'h': { fwl_toggle_headlight(); break; }
+				case 'H': { fps_histo_toggle(); break; }
 				case '/': { print_viewer(); break; }
 				//case '\\': { dump_scenegraph(); break; }
 				case '\\': { dump_scenegraph(1); break; }
@@ -6099,7 +6196,6 @@ void fwl_do_keyPress0(int key, int type) {
 				case ' ': p->keywait = TRUE; ConsoleMessage("\n%c",':'); p->keywaitstring[0] = '\0'; break;
 				case ',': toggle_debugging_trigger(); break; 
 #if !defined(FRONTEND_DOES_SNAPSHOTS)
-				case 's': {fwl_toggleSnapshot(); break;}
 				case 'x': {Snapshot(); break;} /* thanks to luis dias mas dec16,09 */
 #endif //FRONTEND_DOES_SNAPSHOTS
 				//case '[': resource_dump(gglobal()->resources.root_res); break; //doesn't show 'tree', just rootres
@@ -6239,7 +6335,7 @@ void fwl_gotoViewpoint (char *findThisOne) {
     	}
 }
 
-void setup_viewpoint_slerp(double *center, double pivot_radius, double vp_radius);
+void setup_viewpoint_slerp3(double *center, double pivot_radius, double vp_radius);
 
 int getRayHitAndSetLookatTarget() {
 	/* called from mainloop for LOOKAT navigation:
@@ -6299,7 +6395,7 @@ int getRayHitAndSetLookatTarget() {
 				vp_radius = .8 * veclengthd(center);
 			}
 			Viewer()->LookatMode = 3; //go to viewpiont transition mode
-			setup_viewpoint_slerp(center,pivot_radius,vp_radius);
+			setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
 		}
     }
     return Viewer()->LookatMode;
@@ -6321,6 +6417,7 @@ struct X3D_Node* getRayHit() {
 	//double x,y,z;
 	int i;
 	struct X3D_Node *retnode;
+	struct SensStruct *se;
 	ppMainloop p;
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
@@ -6356,8 +6453,9 @@ struct X3D_Node* getRayHit() {
 				rh->hitNode, stringNodeType(rh->hitNode->_nodeType), x, y, z);
 			printf(" dist %f \n", rh->hitNode->_dist);
 			*/
-			for (i=0; i<p->num_SensorEvents; i++) {
-				if (p->SensorEvents[i].fromnode == rh->hitNode) {
+			for(i=0;i<vectorSize(p->SensorEvents);i++){
+				se = vector_get(struct SensStruct *,p->SensorEvents,i);
+				if (se->fromnode == rh->hitNode) {
 					/* printf ("found this node to be sensitive - returning %u\n",rayHit.hitNode); */
 					retnode = ((struct X3D_Node*) rh->hitNode);
 				}
@@ -6394,6 +6492,7 @@ struct X3D_Node* getRayHit() {
 */
 void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	void (*myp)(unsigned *);
+	struct SensStruct *se;
 	int i;
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
@@ -6402,6 +6501,7 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 		case NODE_TouchSensor: myp = (void *)do_TouchSensor; break;
 		case NODE_GeoTouchSensor: myp = (void *)do_GeoTouchSensor; break;
 		case NODE_LineSensor: myp = (void *)do_LineSensor; break;
+		case NODE_PointSensor: myp = (void *)do_PointSensor; break;
 		case NODE_PlaneSensor: myp = (void *)do_PlaneSensor; break;
 		case NODE_CylinderSensor: myp = (void *)do_CylinderSensor; break;
 		case NODE_SphereSensor: myp = (void *)do_SphereSensor; break;
@@ -6418,10 +6518,11 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	/* is this node already here? */
 	/* why would it be duplicate? When we parse, we add children to a temp group, then we
 		pass things over to a rootNode; we could possibly have this duplicated */
-	for (i=0; i<p->num_SensorEvents; i++) {
-		if ((p->SensorEvents[i].fromnode == parentNode) &&
-			(p->SensorEvents[i].datanode == datanode) &&
-			(p->SensorEvents[i].interpptr == (void *)myp)) {
+	for (i=0; i<vectorSize(p->SensorEvents); i++) {
+		se = vector_get(struct SensStruct *,p->SensorEvents,i);
+		if ((se->fromnode == parentNode) &&
+			(se->datanode == datanode) &&
+			(se->interpptr == (void *)myp)) {
 			/* printf ("setSensitive, duplicate, returning\n"); */
 			return;
 		}
@@ -6433,15 +6534,12 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	}
 
 	/* record this sensor event for clicking purposes */
-	p->SensorEvents = REALLOC(p->SensorEvents,sizeof (struct SensStruct) * (p->num_SensorEvents+1));
-
+	se =  MALLOC(struct SensStruct*,sizeof(struct SensStruct));
 	/* now, put the function pointer and data pointer into the structure entry */
-	p->SensorEvents[p->num_SensorEvents].fromnode = parentNode;
-	p->SensorEvents[p->num_SensorEvents].datanode = datanode;
-	p->SensorEvents[p->num_SensorEvents].interpptr = (void *)myp;
-
-	/* printf ("saved it in num_SensorEvents %d\n",p->num_SensorEvents);  */
-	p->num_SensorEvents++;
+	se->fromnode = parentNode;
+	se->datanode = datanode;
+	se->interpptr = (void *)myp;
+	vector_pushBack(struct SensStruct *,p->SensorEvents,se);
 }
 
 /* we have a sensor event changed, look up event and do it */
@@ -6450,6 +6548,7 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 	//COS - cursorOverSensitive - a parent transform node / hitPoint node
 	int count;
 	int butStatus2;
+	struct SensStruct *se;
 	ttglobal tg;
 	ppMainloop p;
 	tg = gglobal();
@@ -6458,12 +6557,13 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 	/* if we are not calling a valid node, dont do anything! */
 	if (COS==NULL) return;
 
-	for (count = 0; count < p->num_SensorEvents; count++) {
-		if (p->SensorEvents[count].fromnode == COS) {
+	for (count = 0; count < vectorSize(p->SensorEvents); count++) {
+		se = vector_get(struct SensStruct *,p->SensorEvents,count);
+		if (se->fromnode == COS) {
 			butStatus2 = butStatus;
 			/* should we set/use hypersensitive mode? */
 			if (ev==ButtonPress) {
-				tg->RenderFuncs.hypersensitive = p->SensorEvents[count].fromnode;
+				tg->RenderFuncs.hypersensitive = se->fromnode;
 				tg->RenderFuncs.hyperhit = 1; // 1 means we are starting a hypersensitive drag
 				get_hyperhit(); //added for touch devices which have no isOver preparation
 			} else if (ev==ButtonRelease) {
@@ -6475,7 +6575,7 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 			}
 
 
-			p->SensorEvents[count].interpptr(p->SensorEvents[count].datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
+			se->interpptr(se->datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
 			/* return; do not do this, incase more than 1 node uses this, eg,
 							an Anchor with a child of TouchSensor */
 		}
@@ -6863,6 +6963,7 @@ void fwl_initializeRenderSceneUpdateScene() {
 	}
 	*/
 	new_tessellation();
+	new_text_tessellation();
 	//fwl_set_viewer_type(VIEWER_EXAMINE);
 	viewer_postGLinit_init();
 
@@ -7761,35 +7862,38 @@ void fwl_reload()
 
 /* send the description to the statusbar line */
 void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
-        int tmp;
-        char *ns;
-		ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
+	int tmp;
+	char *ns;
+	struct SensStruct *se;
+	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-		if (CursorOverSensitive == NULL) update_status(NULL);
-        else {
+	if (CursorOverSensitive == NULL) update_status(NULL);
+	else {
 
-                ns = NULL;
-                for (tmp=0; tmp<p->num_SensorEvents; tmp++) {
-                        if (p->SensorEvents[tmp].fromnode == CursorOverSensitive) {
-                                switch (p->SensorEvents[tmp].datanode->_nodeType) {
-                                        case NODE_Anchor: ns = ((struct X3D_Anchor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-										case NODE_LineSensor: ns = ((struct X3D_LineSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_GeoTouchSensor: ns = ((struct X3D_GeoTouchSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        case NODE_CylinderSensor: ns = ((struct X3D_CylinderSensor *)p->SensorEvents[tmp].datanode)->description->strptr; break;
-                                        default: {printf ("sendDesc; unknown node type %d\n",p->SensorEvents[tmp].datanode->_nodeType);}
-                                }
-                                /* if there is no description, put the node type on the screen */
-                                if (ns == NULL) {ns = "(over sensitive)";}
-                                else if (ns[0] == '\0') ns = (char *)stringNodeType(p->SensorEvents[tmp].datanode->_nodeType);
+		ns = NULL;
+		for (tmp=0; tmp<vectorSize(p->SensorEvents); tmp++) {
+			se = vector_get(struct SensStruct *,p->SensorEvents,tmp);
+			if (se->fromnode == CursorOverSensitive) {
+				switch (se->datanode->_nodeType) {
+					case NODE_Anchor: ns = ((struct X3D_Anchor *)se->datanode)->description->strptr; break;
+					case NODE_LineSensor: ns = ((struct X3D_LineSensor *)se->datanode)->description->strptr; break;
+					case NODE_PointSensor: ns = ((struct X3D_PointSensor *)se->datanode)->description->strptr; break;
+					case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)se->datanode)->description->strptr; break;
+					case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)se->datanode)->description->strptr; break;
+					case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)se->datanode)->description->strptr; break;
+					case NODE_GeoTouchSensor: ns = ((struct X3D_GeoTouchSensor *)se->datanode)->description->strptr; break;
+					case NODE_CylinderSensor: ns = ((struct X3D_CylinderSensor *)se->datanode)->description->strptr; break;
+					default: {printf ("sendDesc; unknown node type %d\n",se->datanode->_nodeType);}
+				}
+				/* if there is no description, put the node type on the screen */
+				if (ns == NULL) {ns = "(over sensitive)";}
+				else if (ns[0] == '\0') ns = (char *)stringNodeType(se->datanode->_nodeType);
 
-                                /* send this string to the screen */
-								update_status(ns);
-                        }
-                }
-        }
+				/* send this string to the screen */
+				update_status(ns);
+			}
+		}
+	}
 }
 
 
@@ -7809,9 +7913,12 @@ void resetSensorEvents(void) {
 		/* remove any display on-screen */
 		sendDescriptionToStatusBar(NULL);
 		memset(touch,0,sizeof(struct Touch));
-		FREE_IF_NZ(p->SensorEvents);
 	}
-	p->num_SensorEvents = 0;
+	for(ktouch=0;ktouch<vectorSize(p->SensorEvents);ktouch++){
+		struct SensStruct *se = vector_get(struct SensStruct*,p->SensorEvents,ktouch);
+		FREE_IF_NZ(se);
+	}
+	vector_clear(p->SensorEvents);
 	gglobal()->RenderFuncs.hypersensitive = NULL;
 	gglobal()->RenderFuncs.hyperhit = 0;
 

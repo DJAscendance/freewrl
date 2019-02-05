@@ -38,11 +38,11 @@
 	#include <GLES2/gl2.h>
 	#define GLdouble double
 #else
-// OLD_IPHONE_AQUA #ifdef AQUA
-// OLD_IPHONE_AQUA #include <OpenGL/gl.h>
-// OLD_IPHONE_AQUA #else
+#ifdef AQUA
+#include <OpenGL/gl.h>
+#else
     #include <GL/gl.h>
-// OLD_IPHONE_AQUA #endif
+#endif
 #endif
 
 

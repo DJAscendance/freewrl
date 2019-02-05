@@ -153,12 +153,12 @@ bool resource_fetch(void *res)
 	int type, status;
 	char *url;
 	//char* pound;
-	DEBUG_RES("fetching resource: %s, %s resource %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status) ,res->URLrequest);
 
 	ASSERT(res);
 	type = fwl_resitem_getType(res);
 	url = fwl_resitem_getURL(res);
 	status = fwl_resitem_getStatus(res);
+	//if(0) printf("fetching resource: %s, %s resource %s\n", resourceTypeToString(type), resourceStatusToString(status) ,url);
 
 	//switch (res->type) {
 	switch(type) {
@@ -412,7 +412,6 @@ void _displayThread(void *globalcontext)
 		// and doesn't call this _displayThread)
 		fwMessageLoop(); 
 #endif
-
 		frontend_dequeue_get_enqueue(globalcontext); //this is non-blocking (returns immediately) if queue empty
 		more = fwl_draw();
 		/* swap the rendering area */
@@ -458,7 +457,7 @@ void fwl_initializeDisplayThread()
 
 
 // OLD_IPHONE_AQUA  #if !defined(TARGET_AQUA) && !defined(_MSC_VER) 
-#if !defined(_MSC_VER) 
+#if !defined(_MSC_VER) && !defined(TARGET_AQUA)
 	if (gglobal()->internalc.global_trace_threads) {
 		TRACE_MSG("initializeDisplayThread: waiting for display to become initialized...\n");
 		while (IS_DISPLAY_INITIALIZED == FALSE) {

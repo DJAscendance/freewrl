@@ -156,6 +156,6 @@ echo "Configure options are: $my_options"
 if [ $run_configure -eq 1 ] ; then
     ./configure $my_options
 else
-    echo "Please run configure now."
+    echo "Please run ./configure --help to see latest options."
 fi
 

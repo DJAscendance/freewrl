@@ -1825,10 +1825,25 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 
 	// stripUnusedDefines(CompleteCode);
     // http://freecode.com/projects/unifdef/  example: unifdef -UTEX -UGMTEX shader.vs > out.vs will strip the TEX and MTEX sections out
-
+	// or hack something like https://github.com/evanplaice/pypreprocessor 
+	// dug9 hacked py3 for shader pre-processing: http://dug9.users.sourceforge.net/web3d/tests/largetexture/preprocessor_dug9_3T.py
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
+	if(0){
+		//write out ubershader text to files (for preprocessing and analysis)
+		static int n = 0;
+		char filenamestr[100];
+		n++;
+		sprintf(filenamestr,"shader_vertex_%d.txt",n);
+		FILE* fp = fopen(filenamestr,"w+");
+		fwrite(*vertexSource,strlen(*vertexSource)+1,1,fp);
+		fclose(fp);
+		sprintf(filenamestr,"shader_frag_%d.txt",n);
+		fp = fopen(filenamestr,"w+");
+		fwrite(*fragmentSource,strlen(*fragmentSource)+1,1,fp);
+		fclose(fp);
+	}
 	return retval;
 }
 

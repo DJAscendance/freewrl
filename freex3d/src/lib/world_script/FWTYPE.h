@@ -44,15 +44,18 @@ typedef struct ArgListType {
 	char *argtypes; //if varargs, then argtypes[nfixedArg] == type of varArg, and all varargs are assumed the same type
 } ArgListType;
 
+struct FWTYPE;
 typedef struct FWTYPE *FWType;
+struct FWVAL;
 typedef struct FWVAL *FWval;
+struct WEB3DNATIVE;
 typedef struct WEB3DNATIVE FWPointer;
 
 typedef void * (* FWConstructor)(FWType fwtype, int ic, FWval fwpars);
 typedef int (* FWFunction)(FWType fwtype, void* ec, void * fwn, int argc, FWval fwpars, FWval fwretval);
 typedef int (* FWGet)(FWType fwtype, int index, void *ec, void * fwn, FWval fwretval);
 typedef int (* FWSet)(FWType fwtype, int index, void *ec, void * fwn, FWval fwsetval);
-typedef int (* FWIterator)(int index, FWType fwt, FWPointer *pointer, char **name, int *lastProp, int *jndex, char *type, char *readOnly);
+typedef int (* FWIterator)(int index, FWType fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly);
 
 typedef struct FWFunctionSpec {
     const char		*name;
@@ -61,7 +64,7 @@ typedef struct FWFunctionSpec {
 	struct ArgListType arglist;
 } FWFunctionSpec;
 
-typedef struct FWTYPE{
+struct FWTYPE{
 	int itype; //AUXTYPE_ or FIELDTYPE_
 	char ctype;  //what it maps to in fwval.itype: B,I,F,D,S,W,P
 	char *name;
@@ -75,10 +78,10 @@ typedef struct FWTYPE{
 	FWSet Setter;
 	char takesIndexer; char indexerReadOnly;//getter can take in integer index ie MF[33]. put 0 or FALSE for no, else put the type the property takes/gives ie 'W' 'S' 'I' 'N' 'B' 'P'
 	FWFunctionSpec *Functions;
-} FWTYPE, *FWType;
+};
 
 //wrapper around *native with a few extras 
-typedef struct WEB3DNATIVE {
+struct WEB3DNATIVE {
 	int fieldType;      //type of vrml field (use FIELDTYPE_SFNode for nodes, else ie FIELDTYPE_SFVec3f)
 	union {
 	void *native;		//pointer to auxtype - you would assign to this
@@ -87,7 +90,7 @@ typedef struct WEB3DNATIVE {
 	int *valueChanged; 	//pointer to valueChanged != NULL if this FWNATIVe is a reference to a Script->Field
 	int kind; //inputOnly, outputOnly, initializeOnly, inputOutput in PKW_ constant values 
 	char gc; //'T' or 1 if you malloced the pointer and want the engine to free() when it garbage collects the related obj
-} FWPointer;// *Web3dNative, 
+};
 
 #define AUXTYPE_X3DConstants 1001
 #define AUXTYPE_X3DBrowser 1002
@@ -109,7 +112,7 @@ typedef struct WEB3DNATIVE {
 #define AUXTYPE_X3DMatrix4 1024
 
 //our version of a variant, except in C types and our union anyVrml
-typedef struct FWVAL{
+struct FWVAL{
 	char itype; //0 = null, F=Float D=Double I=Integer B=Boolean S=String, Z=flexiString (MF or S) W=Object-web3d O-js Object P=ptr
 	union {
 		//union anyScalar{
@@ -123,7 +126,7 @@ typedef struct FWVAL{
 		FWPointer _web3dval;
 		void* _jsobject; //placeholder for js function callback objects
 	};
-} FWVAL, *FWval;
+};
 FWval FWvalsNew(int argc);
 
 //typedef void (* FWFinalizer)(FWType fwtype, FWNative fwn);

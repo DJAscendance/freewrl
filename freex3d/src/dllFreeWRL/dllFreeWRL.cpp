@@ -53,6 +53,12 @@ void CdllFreeWRL::onInit(int width, int height, void* windowhandle, bool bEai, b
 	dllFreeWRL_onInit(this->globalcontexthandle, width, height, windowhandle, BEai, FEHDT);
 	return;
 }
+void CdllFreeWRL::onInitArgv(int argc, char **argv, bool frontend_handles_display_thread)
+{
+	int FEHDT = frontend_handles_display_thread ? 1 : 0;
+	dllFreeWRL_onInitArgv(this->globalcontexthandle, argc, argv, FEHDT);
+	return;
+}
 void CdllFreeWRL::setDensityFactor(float density_factor)
 {
 	dllFreeWRL_setDensityFactor(this->globalcontexthandle, density_factor);
@@ -83,7 +89,6 @@ void CdllFreeWRL::onLoad(char* scene_url)
 {
 	dllFreeWRL_onLoad(this->globalcontexthandle, scene_url);
 }
-
 
 void CdllFreeWRL::onResize(int width,int height){
 	dllFreeWRL_onResize(this->globalcontexthandle, width, height);

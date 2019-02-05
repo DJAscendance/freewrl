@@ -46,7 +46,7 @@
  */
 
 /* file/url to start FreeWRL with */
-char *start_url;
+//char *start_url;
 
 /**
  * Signal handlers 
@@ -84,6 +84,8 @@ int main (int argc, char **argv)
 {
     const char *libver;
     const char  *progver;
+	int url_index;
+	char * start_url;
 
 //#if defined(_ANDROID)
 //    int tempIsAndroid = 1 ;
@@ -92,7 +94,21 @@ int main (int argc, char **argv)
 //#endif
 
     freewrl_params_t *fv_params = NULL;
-
+#ifdef __linux__
+	char * libpath = getenv("LD_LIBRARY_PATH");
+	printf("\nlibrary path %s\n",libpath);
+	if(strstr(libpath,"/tmp/.mount")){
+		//freewrl is being used in an appimage
+		char targetdir[2000];
+		//assume the first entry is to /lib
+		char *ce = strstr(libpath,"/lib/:");
+		*ce = (char)0;
+		strcpy(targetdir,libpath);
+		strcat(targetdir,"/fonts");
+		printf("setting FONTS_DIR %s\n",targetdir);
+		setenv("FREEWRL_FONTS_DIR",targetdir,1);
+	}
+#endif
     char consoleBuffer[200];
 	fwl_init_instance(); //before setting any structs we need a struct allocated
 	fwg_register_consolemessage_callback(fw_printstring);
@@ -176,7 +192,7 @@ int main (int argc, char **argv)
     fv_params = calloc(1, sizeof(freewrl_params_t));
 
     /* Default values */
-    fv_params->width = 640;
+    fv_params->width = 672; //640
     fv_params->height = 480;
 
     fv_params->fullscreen = FALSE;
@@ -187,9 +203,9 @@ int main (int argc, char **argv)
 	//fwl_init_StereoDefaults();
 
     /* parse command line arguments */
-    if (fv_parseCommandLine(argc, argv,fv_params)) {
+    if (fv_parseCommandLine(argc, argv,fv_params, &url_index)) {
 		if(argc > 1){
-			start_url = argv[optind];
+			start_url = argv[url_index];
 #ifdef _MSC_VER
 			if(start_url)
 				start_url = strBackslash2fore(start_url);

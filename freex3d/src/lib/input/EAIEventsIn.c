@@ -793,6 +793,8 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 
 			case UNREGLISTENER: {
 				struct X3D_Node * node;
+				void *vextra;
+				unsigned int iextra;
 				int offset;
 				int directionFlag = 0;
 
@@ -826,8 +828,13 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 				/* put the address of the listener area in a string format for registering
 				   the route - the route propagation will copy data to here */
 				/* set up the route from this variable to the handle Listener routine */
+				//dug9 I have no idea what extra is doing, Jun 29, 2018 I'm cleaning up compiler complaints
+				iextra = (count<<8)+mapEAItypeToFieldType(ctmp[0]);
+				//memset(vextra,0,sizeof(void*));
+				vextra = NULL;
+				memcpy(vextra,&iextra,4);
 				CRoutes_Register  (0,node, offset, NULL, 0, (int) tmp_c,(void *) 
-					&EAIListener, directionFlag, (count<<8)+mapEAItypeToFieldType(ctmp[0])); /* encode id and type here*/
+					&EAIListener, directionFlag, vextra ); /* encode id and type here*/
 
 				sprintf (th->outBuffer,"RE\n%f\n%d\n0",TickTime(),count);
 				break;
@@ -1359,7 +1366,7 @@ static void makeFIELDDEFret(int myptr, int repno) {
 			}
 			myc ++; 
 		}
-		np +=5;
+		np += FIELDOFFSET_LENGTH;
 	}
 
 	sprintf (th->outBuffer,"RE\n%f\n%d\n",TickTime(),repno);
@@ -1382,7 +1389,7 @@ static void makeFIELDDEFret(int myptr, int repno) {
 			sprintf (myline,"\"%s\" ",stringFieldType(np[0])) ;
 			outBufferCat( myline);
 		}
-		np += 5;
+		np += FIELDOFFSET_LENGTH;
 	}
 /*
 	sprintf (myline, "]");

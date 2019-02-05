@@ -141,7 +141,7 @@ void Textures_clear(struct tTextures *t){
 // OLD_IPHONE_AQUA #if defined(AQUA) /* for AQUA OS X sharing of OpenGL Contexts */
 
 // OLD_IPHONE_AQUA #elif defined(_MSC_VER)
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(AQUA)
 
 
 #else
@@ -156,7 +156,7 @@ int findTextureFile(textureTableIndexStruct_s *entry);
 //void _textureThread(void);
 
 void move_texture_to_opengl(textureTableIndexStruct_s*);
-struct Uni_String *newASCIIString(char *str);
+struct Uni_String *newASCIIString(const char *str);
 
 int readpng_init(FILE *infile, ulg *pWidth, ulg *pHeight);
 void readpng_cleanup(int free_image_data);
@@ -201,14 +201,15 @@ static void myScaleImage(int srcX,int srcY,int destX,int destY,unsigned char *sr
 		for (yex=0; yex<destX; yex++) {
 			float fx, fy;
 			int row, column;
-			int oldIndex;
+			size_t oldIndex, newIndex;
 
 			fx = YscaleFactor * ((float) wye);
 			fy = XscaleFactor * ((float) yex);
 			row = (int)(fx);
 			column = (int)(fy);
-			oldIndex = row * srcX + column; /* so many rows, each row has srcX columns */
-			dest32[wye*destX+yex] = src32[oldIndex];
+			oldIndex = (size_t)row * (size_t)srcX + (size_t)column; /* so many rows, each row has srcX columns */
+			newIndex = (size_t)wye * (size_t)destX + (size_t)yex; //wye*destX+yex
+			dest32[newIndex] = src32[oldIndex];
 		}
 	}
 }
@@ -256,7 +257,7 @@ static void myScaleImage3D(int srcX,int srcY,int srcZ, int destX,int destY,int d
 		}
 	}
 }
-int iclamp(int ival, int istart, int iend) { 
+int iclamp(int ival, int istart, int iend) {
 	int iret = ival;
 	iret = ival > iend? iend : ival;
 	iret = iret < istart ? istart : iret;
@@ -342,25 +343,25 @@ void compute_3D_alpha_gradient_store_rgb(char *dest,int x,int y, int z){
 						gradient[2] -= cube[0][1][2] + 2*cube[1][1][2] + cube[2][1][2];
 						gradient[2] += cube[1][0][0] + 2*cube[1][1][0] + cube[1][2][0];
 						gradient[2] -= cube[1][9][2] + 2*cube[1][1][2] + cube[1][2][2];
-						for(k=0;k<3;k++) 
+						for(k=0;k<3;k++)
 							gradient[k] /= 2;
 
 					}
 				}
 
 				//scale gradient to -127 to +127 in each dimension
-				//roberts: a1 - a0 could be in range (255 - 0) to (0 -255) or -255 to 255, 
+				//roberts: a1 - a0 could be in range (255 - 0) to (0 -255) or -255 to 255,
 				// we need -127 to 127 signed char on each dim
-				for(k=0;k<3;k++) gradient[k] /= 2;  
+				for(k=0;k<3;k++) gradient[k] /= 2;
 				for(k=0;k<3;k++) {
 					maxgradient[k] = max(maxgradient[k],gradient[k]);
 					mingradient[k] = min(mingradient[k],gradient[k]);
 				}
 
-				//but when texture2D / sampler2D convert from image pixel to float, 
+				//but when texture2D / sampler2D convert from image pixel to float,
 				//the expect the pixels to be unsigned char.
 				//so we add 127 here, and subtract .5 in the shader, once they are float
-				for(k=0;k<3;k++) gradient[k] += 127;  
+				for(k=0;k<3;k++) gradient[k] += 127;
 
 				//set gradient in RGB channels
 				for(k=0;k<3;k++) urgba[k] = (unsigned char)gradient[k];
@@ -396,6 +397,9 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
    int x,
        y;
    int texelSize = 4;
+   size_t total_size;
+   GLubyte *dest, *pix;
+
 
    *dstWidth = srcWidth / 2;
    if ( *dstWidth <= 0 )
@@ -405,7 +409,9 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
    if ( *dstHeight <= 0 )
       *dstHeight = 1;
 
-   *dst = MALLOC(void *, sizeof(GLubyte) * texelSize * (*dstWidth) * (*dstHeight) );
+   total_size = sizeof(GLubyte) * (size_t)texelSize * (size_t)(*dstWidth) * (size_t)(*dstHeight);
+   *dst = MALLOC(void *, total_size );
+   dest = *dst;
    if ( *dst == NULL )
       return;
 
@@ -413,7 +419,7 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
    {
       for( x = 0; x < *dstWidth; x++ )
       {
-         int srcIndex[4];
+         size_t srcIndex[4], x2, y2, swidth, texsize, kd;
          float r = 0.0f,
                g = 0.0f,
                b = 0.0f,
@@ -423,22 +429,31 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
 
         // Compute the offsets for 2x2 grid of pixels in previous
          // image to perform box filter
-         srcIndex[0] = 
-            (((y * 2) * srcWidth) + (x * 2)) * texelSize;
-         srcIndex[1] = 
-            (((y * 2) * srcWidth) + (x * 2 + 1)) * texelSize; 
-         srcIndex[2] = 
-            ((((y * 2) + 1) * srcWidth) + (x * 2)) * texelSize;
-         srcIndex[3] = 
-            ((((y * 2) + 1) * srcWidth) + (x * 2 + 1)) * texelSize;
+         //srcIndex[0] =
+         //   (((y * 2) * srcWidth) + (x * 2)) * texelSize;
+         //srcIndex[1] =
+         //   (((y * 2) * srcWidth) + (x * 2 + 1)) * texelSize;
+         //srcIndex[2] =
+         //   ((((y * 2) + 1) * srcWidth) + (x * 2)) * texelSize;
+         //srcIndex[3] =
+         //   ((((y * 2) + 1) * srcWidth) + (x * 2 + 1)) * texelSize;
+
+		 swidth = srcWidth;
+		 texsize = texelSize;
+		 y2 = y * 2L;
+		 x2 = x * 2L;
+         srcIndex[0] = (y2*swidth + x2) * texsize;
+         srcIndex[1] = (y2*swidth + x2 + (size_t)1L) * texsize;
+         srcIndex[2] = ((y2 + 1L)*swidth + x2) * texsize;
+         srcIndex[3] = ((y2 + 1L)*swidth + x2 + (size_t)1L) * texsize;
 
          // Sum all pixels
          for ( sample = 0; sample < 4; sample++ )
          {
-            r += src[srcIndex[sample]];
-            g += src[srcIndex[sample] + 1];
-            b += src[srcIndex[sample] + 2];
-            a += src[srcIndex[sample] + 3];
+            r += src[srcIndex[sample] + (size_t)0L];
+            g += src[srcIndex[sample] + (size_t)1L];
+            b += src[srcIndex[sample] + (size_t)2L];
+            a += src[srcIndex[sample] + (size_t)3L];
          }
 
          // Average results
@@ -448,10 +463,17 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
          a /= 4.0f;
 
          // Store resulting pixels
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize ] = (GLubyte)( r );
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize + 1] = (GLubyte)( g );
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize + 2] = (GLubyte)( b );
-         (*dst)[ ( y * (*dstWidth) + x ) * texelSize + 3] = (GLubyte)( a );
+		 kd = ((size_t)y * (size_t)(*dstWidth) + (size_t)x ) * (size_t)texelSize;
+		 pix = dest + kd;
+         pix[0] = (GLubyte)( r );
+         pix[1] = (GLubyte)( g );
+         pix[2] = (GLubyte)( b );
+         pix[3] = (GLubyte)( a );
+
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize ] = (GLubyte)( r );
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize + 1] = (GLubyte)( g );
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize + 2] = (GLubyte)( b );
+         //(*dst)[ ( y * (*dstWidth) + x ) * texelSize + 3] = (GLubyte)( a );
       }
    }
 }
@@ -459,25 +481,34 @@ static void GenMipMap2D( GLubyte *src, GLubyte **dst, int srcWidth, int srcHeigh
 static void myTexImage2D (int generateMipMaps, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, GLubyte *pixels) {
 	GLubyte *prevImage = NULL;
 	GLubyte *newImage = NULL;
-	
+	size_t total_size;
+
 	/* first, base image */
 	FW_GL_TEXIMAGE2D(target,level,internalformat,width,height,border,format,type,pixels);
-
+	{
+		GLenum err;
+		err = glGetError();
+		switch(err){
+			case GL_NO_ERROR: break;
+			default:
+				ConsoleMessage("glError %d in glTexImage2D\n",(int)err);
+		}
+	}
 	if (!generateMipMaps) return;
 	if ((width <=1) && (height <=1)) return;
 
 
 	/* go and create a bunch of mipmaps */
+	total_size = (size_t)4L * width * height;
+	prevImage = MALLOC(GLubyte *, total_size);
+	memcpy (prevImage, pixels, total_size);
 
-	prevImage = MALLOC(GLubyte *, width * height * 4);
-	memcpy (prevImage, pixels, width * height * 4);
-	
 	/* from the OpenGL-ES 2.0 book, page 189 */
 	level = 1;
 
 	while ((width > 1) && (height > 1)) {
 		GLint newWidth, newHeight;
-		
+
 		GenMipMap2D(prevImage,&newImage, width, height, &newWidth, &newHeight);
 
 		FW_GL_TEXIMAGE2D(target,level,internalformat,newWidth,newHeight,0,format,GL_UNSIGNED_BYTE,newImage);
@@ -486,7 +517,7 @@ static void myTexImage2D (int generateMipMaps, GLenum target, GLint level, GLint
 		prevImage = newImage;
 		level++;
 		width = newWidth;
-		height = newHeight;				
+		height = newHeight;
 	}
 
 	FREE_IF_NZ(newImage);
@@ -545,7 +576,7 @@ int fwl_isTextureParsing() {
 	ppTextures p = (ppTextures)gglobal()->Textures.prv;
 
 	/* return currentlyWorkingOn>=0; */
-#ifdef TEXVERBOSE 
+#ifdef TEXVERBOSE
     if (p->textureInProcess > 0) {
 	printf("call to fwl_isTextureParsing %d, returning %d\n",
 	       p->textureInProcess,p->textureInProcess > 0);
@@ -572,7 +603,7 @@ void releaseTexture(struct X3D_Node *node) {
 			tableIndex  = ((struct X3D_ImageTexture3D *)node)->__textureTableIndex;
 		} else if (node->_nodeType == NODE_ComposedTexture3D) {
 			tableIndex  = ((struct X3D_ComposedTexture3D *)node)->__textureTableIndex;
-            
+
 		} else return;
 
 #ifdef TEXVERBOSE
@@ -661,8 +692,8 @@ int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node){
 	} else if (thisTextureType==NODE_ComposedTexture3D){
 		struct X3D_ComposedTexture3D* pt = (struct X3D_ComposedTexture3D*) node;
 		thisTexture = pt->__textureTableIndex;
-	} else { 
-		ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType)); 
+	} else {
+		ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType));
 	}
 	return thisTexture;
 }
@@ -689,7 +720,7 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 		(it->_nodeType == NODE_PixelTexture3D) ||
 		(it->_nodeType == NODE_ImageTexture3D) ||
 		(it->_nodeType == NODE_ComposedTexture3D) ||
-		(it->_nodeType == NODE_MovieTexture) 
+		(it->_nodeType == NODE_MovieTexture)
         ) {
 		ppTextures p = (ppTextures)gglobal()->Textures.prv;
 		if(iaction){
@@ -744,7 +775,7 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 				mt = (struct X3D_MovieTexture *) tmp;
 				mt->__textureTableIndex = textureNumber;
 				break; }
-                
+
 			case NODE_ImageCubeMapTexture: {
 				struct X3D_ImageCubeMapTexture *v1t;
 				v1t = (struct X3D_ImageCubeMapTexture *) tmp;
@@ -755,7 +786,7 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 			case NODE_GeneratedCubeMapTexture: {
 				struct X3D_GeneratedCubeMapTexture *v1t;
 				v1t = (struct X3D_GeneratedCubeMapTexture *) tmp;
-				v1t->__textureTableIndex = textureNumber; 
+				v1t->__textureTableIndex = textureNumber;
 				break;
 			}
 
@@ -770,7 +801,7 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 		}else{
 			//REMOVE
 			//we're using int indexes so we can't compact the vector to remove the element
-			//we need to flag it some how, and many functions use tti *getTableIndex(int num) 
+			//we need to flag it some how, and many functions use tti *getTableIndex(int num)
 			//and check if the returned value is null before trying to use it.
 			//we'll try using NULL as the signal its deleted.
 			textureTableIndexStruct_s * tti = NULL;
@@ -815,11 +846,11 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 				v1t = (struct X3D_ImageCubeMapTexture *) tmp;
 				textureNumber = &v1t->__textureTableIndex;
 				break; }
-                
+
 			case NODE_GeneratedCubeMapTexture: {
 				struct X3D_GeneratedCubeMapTexture *v1t;
 				v1t = (struct X3D_GeneratedCubeMapTexture *) tmp;
-				textureNumber = &v1t->__textureTableIndex; 
+				textureNumber = &v1t->__textureTableIndex;
 				break; }
 			}
 			if(textureNumber){
@@ -828,12 +859,12 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 					// (*textureNumber) = -1; //is there a better flag?
 					vector_set(textureTableIndexStruct_s *,p->activeTextureTable,*textureNumber,NULL);
 					//unregister/unbind/deallocate anything else that was registered/bound/allocated above
-					
-					//Problem: when unloading an inline (including geoLOD inlines) with images that haven't yet loaded, 
+
+					//Problem: when unloading an inline (including geoLOD inlines) with images that haven't yet loaded,
 					// load_inline > unload_broto > unregister_broto_instance > unRegisterX3DAnyNode > unRegisterTexture > registerTexture0 (here)
 					// if we zap the tti, then when the resource thread finishes downloading the image and goes to paste
 					// into wheretoplacedata* which is a tti* that's been zapped, we crash.
-					//Solution: 
+					//Solution:
 					// quick fix: don't zap tti here, leave a memory leak TRIED, WORKED AS BANDAID
 					// proper fix: redesign resource fetch so it has a way to check if tti still exists, IMPLEMENTED Dec5,2014
 					//  for example, have it use the table index number instead of a pointer directly to *tti,
@@ -869,6 +900,8 @@ void unRegisterPolyRep(struct X3D_Node *tmp)
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
 /* do TextureBackground textures, if possible */
 void reallyDraw();
+void push_render_geom(int igeom);
+void pop_render_geom();
 void loadBackgroundTextures (struct X3D_Background *node) {
 	struct X3D_ImageTexture *thistex;
 	struct X3D_TextureProperties *thistp;
@@ -908,7 +941,7 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 								/* future changes to the spec do no harm */
 
 				thistex->textureProperties = X3D_NODE(thistp);
-				ADD_PARENT(X3D_NODE(thistp), X3D_NODE(thistex));	
+				ADD_PARENT(X3D_NODE(thistp), X3D_NODE(thistex));
 
 #ifdef TEXVERBOSE
 				printf ("bg, creating shadow texture node url.n = %d\n",thisurl.n);
@@ -934,18 +967,20 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			/* we have an image specified for this face */
 			gglobal()->RenderFuncs.textureStackTop = 0;
 			/* render the proper texture */
+			push_render_geom(1);
 			render_node(X3D_NODE(thistex));
-		        //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
-				textureTransform_start();
-				setupShaderB();
+			pop_render_geom();
+		    //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
+			textureTransform_start();
+			setupShaderB();
 
-        		textureCoord_send(&mtf);
-        		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,BackgroundVert);
-        		FW_GL_NORMAL_POINTER(GL_FLOAT,0,Backnorms);
+        	textureCoord_send(&mtf);
+        	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,BackgroundVert);
+        	FW_GL_NORMAL_POINTER(GL_FLOAT,0,Backnorms);
 
-        		sendArraysToGPU (GL_TRIANGLES, count*6, 6);
-				reallyDraw();
-				textureTransform_end();
+        	sendArraysToGPU (GL_TRIANGLES, count*6, 6);
+			reallyDraw();
+			textureTransform_end();
 
 		}
 	}
@@ -1018,14 +1053,14 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 
         		sendArraysToGPU (GL_TRIANGLES, count*6, 6);
 				reallyDraw();
-			} 
+			}
 		}
 	}
 }
 
 
 /* load in a texture, if possible */
-void loadTextureNode (struct X3D_Node *node, void *vparam) 
+void loadTextureNode (struct X3D_Node *node, void *vparam)
 {
     //printf ("loadTextureNode, node %p, params %p",node,param);
     if (NODE_NEEDS_COMPILING) {
@@ -1038,41 +1073,41 @@ void loadTextureNode (struct X3D_Node *node, void *vparam)
 	   we just accept that the current texture parameters have to
 	   be left behind. */
 	MARK_NODE_COMPILED;
-	
+
 	/* this will cause bind_image to create a new "slot" for this texture */
 	/* cast to GLuint because __texture defined in VRMLNodes.pm as SFInt */
-	
+
 	switch (node->_nodeType) {
 
 		case NODE_MovieTexture: {
-	    	//releaseTexture(node); 
+	    	//releaseTexture(node);
 		}
 		break;
 
 		case NODE_PixelTexture:
-	    		releaseTexture(node); 
+	    		releaseTexture(node);
 		break;
 
 		case NODE_ImageTexture:
-	    		releaseTexture(node); 
+	    		releaseTexture(node);
 		break;
 
 		case NODE_ImageCubeMapTexture:
-	    		releaseTexture(node); 
+	    		releaseTexture(node);
 		break;
 
 		case NODE_GeneratedCubeMapTexture:
-	    		//releaseTexture(node); 
+	    		//releaseTexture(node);
 		break;
 
 		case NODE_PixelTexture3D:
-	    		releaseTexture(node); 
+	    		releaseTexture(node);
 		break;
 		case NODE_ImageTexture3D:
-	    		releaseTexture(node); 
+	    		releaseTexture(node);
 		break;
 		case NODE_ComposedTexture3D:
-	    		releaseTexture(node); 
+	    		releaseTexture(node);
 		break;
 
 		default: {
@@ -1119,13 +1154,13 @@ static void compileMultiTexture (struct X3D_MultiTexture *node) {
 			paramPtr++;
 		}
 	}
-    
+
 	/* how many textures can we use? no sense scanning those we cant use */
-	//max = node->mode.n; 
+	//max = node->mode.n;
 	max = node->texture.n;
 	if (max > rdr_caps->texture_units) max = rdr_caps->texture_units;
 
-	// warn users that function and source parameters not looked at right now 
+	// warn users that function and source parameters not looked at right now
 	//if ((node->source.n>0) || (node->function.n>0)) {
 	//    ConsoleMessage ("currently, MultiTexture source and function parameters defaults used");
 	//}
@@ -1155,7 +1190,7 @@ static void compileMultiTexture (struct X3D_MultiTexture *node) {
 					modergb = findFieldInMULTITEXTUREMODE(srgb);
 					if(modergb == -1)
 						modergb = MTMODE_MODULATE;
-					else 
+					else
 						modergb +=1; //one-based defines
 					modealpha = findFieldInMULTITEXTUREMODE(salpha);
 					if(modealpha == -1)
@@ -1194,13 +1229,13 @@ static void compileMultiTexture (struct X3D_MultiTexture *node) {
 					sourcergb = findFieldInMULTITEXTURESOURCE(srgb);
 					if(sourcergb == -1)
 						sourcergb = INT_ID_UNDEFINED; //default
-					else 
+					else
 						sourcergb +=1; //one-based defines
 					sourcealpha = findFieldInMULTITEXTURESOURCE(salpha);
 					free(splittable);
 					source = sourcergb;
 					sourcea = sourcealpha;
-				} 
+				}
 			}
 			if(source > -1){
 				paramPtr->multitex_source[0] = source;
@@ -1245,7 +1280,7 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 			(int) node->texture.p[0], (int) node->texture.p[1]);
 	printf ("	change %d ichange %d\n",node->_change, node->_ichange);
 #endif
-	
+
 	/* new node, or node paramaters changed */
         if (NODE_NEEDS_COMPILING) {
             compileMultiTexture(node);
@@ -1258,34 +1293,34 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 	*/
 
 	/* how many textures can we use? */
-	max = node->texture.n; 
+	max = node->texture.n;
     //printf ("texture.n %d, texture_units %d, MAX_MULTITEXTURE %d\n", node->texture.n, gglobal()->display.rdr_caps.texture_units, MAX_MULTITEXTURE);
-    
+
 	if (max > rdr_caps->texture_units) max = rdr_caps->texture_units;
     if (max > MAX_MULTITEXTURE) max = MAX_MULTITEXTURE;
-    
-    
+
+
 	/* go through and get all of the textures */
 	paramPtr = (struct multiTexParams *) node->__xparams;
-    
+
 #ifdef TEXVERBOSE
     printf ("loadMultiTExture, param stack:\n");
     for (count=0; count<max; count++) {
         printf ("   tex %d source %d mode %d\n",count,paramPtr[count].multitex_source,paramPtr[count].multitex_mode);
     }
-#endif 
+#endif
 
 	for (count=0; count < max; count++) {
 #ifdef TEXVERBOSE
 		printf ("loadMultiTexture, working on texture %d\n",count);
 #endif
-        
+
 		/* get the texture */
 		nt = X3D_IMAGETEXTURE(node->texture.p[count]);
 
 		switch (nt->_nodeType) {
 			case NODE_PixelTexture:
-			case NODE_ImageTexture : 
+			case NODE_ImageTexture :
 				/* printf ("MultiTexture %d is a ImageTexture param %d\n",count,*paramPtr);  */
 				loadTextureNode (X3D_NODE(nt),paramPtr);
 				break;
@@ -1302,9 +1337,9 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 		   for "normal" textures; at least 1 for MultiTextures. */
 
         	tg->RenderFuncs.textureStackTop++;
-			
- 
-		
+
+
+
         paramPtr++;
 
 #ifdef TEXVERBOSE
@@ -1356,18 +1391,29 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	unsigned char *mytexdata;
 
-	
+	// JAS - if multi-threading using a creation program,
+	// we can have issues sending textures here, so
+	// single thread this.
+	#ifdef PATH_PLANNER
+	pthread_mutex_t gl_mutex1 = PTHREAD_MUTEX_INITIALIZER;
+	#endif //PATH_PLANNER
+
 	/* for getting repeatS and repeatT info. */
 	struct X3D_PixelTexture *pt = NULL;
 	struct X3D_MovieTexture *mt = NULL;
 	struct X3D_ImageTexture *it = NULL;
 	struct X3D_PixelTexture3D *pt3d = NULL;
-    
+
 	struct X3D_TextureProperties *tpNode = NULL;
 	int haveValidTexturePropertiesNode;
 	GLfloat texPri;
 	struct SFColorRGBA borderColour;
 	s_renderer_capabilities_t *rdr_caps;
+
+	#ifdef PATH_PLANNER
+	pthread_mutex_lock( &gl_mutex1 );
+	#endif //PATH_PLANNER
+
     ttglobal tg = gglobal();
 	rdr_caps = tg->display.rdr_caps;
 
@@ -1386,6 +1432,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
     if (!checkNode(me->scenegraphNode, __FILE__,__LINE__)) {
         ConsoleMessage ("main node disappeared, ignoring texture\n");
         me->status = TEXTURE_INVALID;
+
+	#ifdef PATH_PLANNER
+	pthread_mutex_unlock( &gl_mutex1 );
+	#endif //PATH_PLANNER
+
         return;
     }
 	/* printf ("move_texture_to_opengl, node of type %s\n",stringNodeType(me->scenegraphNode->_nodeType));  */
@@ -1403,8 +1454,10 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	}
 
 	/* do we need to convert this to an OpenGL texture stream?*/
- 
-	/* we need to get parameters. */	
+
+//printf ("JAS - moveTex, texture %d, TEXTURE_INVALID %d at %s:%d\n",me->OpenGLTexture,TEXTURE_INVALID,__FILE__,__LINE__);
+
+	/* we need to get parameters. */
 	if (me->OpenGLTexture == TEXTURE_INVALID) {
 /* 		me->OpenGLTexture = MALLOC (GLuint *, sizeof (GLuint) * me->frames); */
         if ((getAppearanceProperties()->cubeFace==0) || (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT)) {
@@ -1453,11 +1506,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		tpNode = X3D_TEXTUREPROPERTIES(mi->textureProperties);
 	}
 	//texure3D faked via texture2D (in non-extended GLES2)
-	//.. needs repeats for manual wrap vs clamp, will send in 
+	//.. needs repeats for manual wrap vs clamp, will send in
 	//.. passedInGenTex
 	me->repeatSTR[0] = Src;
 	me->repeatSTR[1] = Trc;
-	me->repeatSTR[2] = Rrc; 
+	me->repeatSTR[2] = Rrc;
 
 
 	/* do we have a TextureProperties node? */
@@ -1476,11 +1529,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 			anisotropicDegree = tpNode->anisotropicDegree;
 			if ((anisotropicDegree < 1.0) || (anisotropicDegree>rdr_caps->anisotropicDegree)) {
-				/* we can be quiet here 
+				/* we can be quiet here
 				   ConsoleMessage ("anisotropicDegree error %f, must be between 1.0 and %f",anisotropicDegree, gglobal()->display.rdr_caps.anisotropicDegree);
 				*/
 				anisotropicDegree = rdr_caps->anisotropicDegree;
-			}			
+			}
 
 			borderWidth = tpNode->borderWidth;
 			if (borderWidth < 0) borderWidth=0; if (borderWidth>1) borderWidth = 1;
@@ -1488,7 +1541,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#t-TextureMagnificationModes
 
 			switch (findFieldInTEXTUREMAGNIFICATIONKEYWORDS(tpNode->magnificationFilter->strptr)) {
-				case TMAG_AVG_PIXEL: 
+				case TMAG_AVG_PIXEL:
 					magFilter = GL_LINEAR; break; // GL_NEAREST; break;
 				case TMAG_DEFAULT: magFilter = GL_LINEAR; break;
 				case TMAG_FASTEST: magFilter = GL_LINEAR; break;  /* DEFAULT */
@@ -1513,19 +1566,19 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 						tpNode->minificationFilter->strptr);
 			}
 			else switch (findFieldInTEXTUREMINIFICATIONKEYWORDS(tpNode->minificationFilter->strptr)) {
-				case TMIN_AVG_PIXEL: 
-				case TMIN_AVG_PIXEL_AVG_MIPMAP: 
-				case TMIN_AVG_PIXEL_NEAREST_MIPMAP: 
-				case TMIN_DEFAULT: 
-				case TMIN_FASTEST: 
-				case TMIN_NICEST: 
+				case TMIN_AVG_PIXEL:
+				case TMIN_AVG_PIXEL_AVG_MIPMAP:
+				case TMIN_AVG_PIXEL_NEAREST_MIPMAP:
+				case TMIN_DEFAULT:
+				case TMIN_FASTEST:
+				case TMIN_NICEST:
 				case TMIN_NEAREST_PIXEL: minFilter = GL_NEAREST; break;
 				case TMIN_NEAREST_PIXEL_NEAREST_MIPMAP: minFilter = GL_LINEAR; break;
 				default: minFilter = GL_NEAREST;
 					ConsoleMessage ("unknown minificationFilter of %s",
 						tpNode->minificationFilter->strptr);
 			}
-					
+
 			switch (findFieldInTEXTURECOMPRESSIONKEYWORDS(tpNode->textureCompression->strptr)) {
 				case TC_DEFAULT: compression = GL_FASTEST; break;
 				case TC_FASTEST: compression = GL_NONE; break; /* DEFAULT */
@@ -1543,7 +1596,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			BOUNDARY_TO_GL(T);
 			BOUNDARY_TO_GL(R);
 		}
-	} 
+	}
 
 
 
@@ -1558,12 +1611,12 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		{
 			// experimental code to deal with oblong texture images
 			// The 'cause' of blurry oblong textures with GLES2 is the anisotropic
-			// scaling of the image needed to square up the image for mipmapping. 
+			// scaling of the image needed to square up the image for mipmapping.
 			// For example if your texture image is oblong by a factor of 3, then
 			// your avatar will need to be 3 times closer to the object to see the
 			// same mipmap level as you would with an unscaled image.
 			// (OpenGL redbook talks about MipMap levels and rho and lambda.)
-			// here we detect if there's big anisotropic scaling/squaring coming up, 
+			// here we detect if there's big anisotropic scaling/squaring coming up,
 			// and if so turn off mipmapping and squaring
 			// scene authors need to make their repeating textures (brick, siding,
 			// shingles etc) squarish to get mipmapping and avoid moire/scintilation
@@ -1588,6 +1641,10 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	//ConsoleMessage ("move_texture_to_opengl cubeFace %x\n",getAppearanceProperties()->cubeFace);
 
 	/* is this a CubeMap? If so, lets try this... */
+	//if(0){
+	//	printf("before texture to GPU and mipmapping thread=%x time = %lf\n",pthread_self().p,Time1970sec());
+	//}
+
 
 	if (getAppearanceProperties()->cubeFace != 0) {
 		//this is a single cubmap face pixeltexture tti (ie from __subTextures in ImageCubemap)
@@ -1649,13 +1706,13 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 		if (me->nodeType == NODE_ImageCubeMapTexture) {
 			if(me->z == 1){
-				/* if we have an single 2D image, ImageCubeMap, we have most likely got a png map; 
+				/* if we have an single 2D image, ImageCubeMap, we have most likely got a png map;
 				   ________
 				  |	 T    | - Top
 				  |L F R B| - Left, Front, Right, Back
 				  |__D____| - Down(bottom)
 					let the  render_ImageCubeMapTexture code unpack the maps from this one png */
-				/* this is ok - what is happening is that we have one image, that needs to be 
+				/* this is ok - what is happening is that we have one image, that needs to be
 					split up into each face */
 				/* this should print if we are actually working ok
 				if (me->status != TEX_LOADED) {
@@ -1685,7 +1742,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			}
 
 			glBindTexture (GL_TEXTURE_2D, me->OpenGLTexture);
-			
+
 			/* save this to determine whether we need to do material node
 			  within appearance or not */
 
@@ -1699,12 +1756,12 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			- clamp to border
 			subset of opengl supported by web3d:
 			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#Texturecoordinates
-			(*1) If repeatS is TRUE (the default), the texture map is repeated outside 
+			(*1) If repeatS is TRUE (the default), the texture map is repeated outside
 				the [0.0, 1.0] texture coordinate range in the S direction so that it fills the shape.
-			(*2) If repeatS is FALSE, the texture coordinates are clamped in the S direction to lie 
+			(*2) If repeatS is FALSE, the texture coordinates are clamped in the S direction to lie
 				within the [0.0, 1.0] range.
 			*/
-				
+
 			FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Src);
 			FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Trc);
 #if !defined(GL_ES_VERSION_2_0)
@@ -1725,46 +1782,62 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			x = me->x;
 			y = me->y; // * me->z; //takes care of texture3D using strip image
 			z = me->z;
-		
+
 			FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
 			FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
 			me->magFilter = magFilter ==  GL_LINEAR ? 1 : 0;  //needed in frag shader for TEX3D simulation of texture3D with texture2D
-			
+
 			/* BGRA is seemingly faster on desktop machines... */
 			//#if defined (GL_BGRA)
 			//iformat = GL_RGBA; format = GL_BGRA;
 			//#else
 			iformat = GL_RGBA; format = GL_RGBA;
 			//#endif
-			
+
 			/* do the image. */
 			if(x && y) {
 				unsigned char *dest = mytexdata;
-		
+
 				/* do we have to do power of two textures? */
 				if (npot) { //rdr_caps->av_npot_texture) {
 					rx = x; ry = y; rz = z;
 				} else {
 					/* find a power of two that fits */
+					static int round_down = 1;
+					static int trunc_down = 0;
 					rx = 1;
 					sx = x;
 					while(sx) {sx /= 2; rx *= 2;}
 					if(rx/2 == x) {rx /= 2;}
-					ry = 1; 
+					//if its just a few pixels over a power of 2, round down
+					if(round_down)
+						if(x < rx && (float)(x - rx/2)/(float)(rx - rx/2) < .25) rx = rx/2;
+					//or we might only scale down, never up, if we don't want to malloc again
+					if(trunc_down)
+						if(x < rx) rx = rx/2;
+					ry = 1;
 					sy = y;
 					while(sy) {sy /= 2; ry *= 2;}
 					if(ry/2 == y) {ry /= 2;}
+					if(round_down)
+						if(y < ry && (float)(y - ry/2)/(float)(ry - ry/2) < .25) ry = ry/2;
+					if(trunc_down)
+						if(y < ry) ry = ry/2;
 
-					rz = 1; 
+					rz = 1;
 					sz = z;
 					while(sz) {sz /= 2; rz *= 2;}
 					if(rz/2 == z) {rz /= 2;}
+					if(round_down)
+						if(z < rz && (float)(z - rz/2)/(float)(rz - rz/2) < .25) rz = rz/2;
+					if(trunc_down)
+						if(z < rz) rz = rz/2;
 				}
-		
+
 				if (gglobal()->internalc.global_print_opengl_errors) {
 					DEBUG_MSG("initial texture scale to %d %d\n",rx,ry);
 				}
-		
+
 				//ConsoleMessage ("loadTextureNode, runtime texture size %d",gglobal()->display.rdr_caps.runtime_max_texture_size);
 				if(z > 1){
 					//its a texture3D / volume image
@@ -1780,7 +1853,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 						//     desktop computer max_size (of 2D image in one dimension) 16384
 						//     android phone max_size 4096
 						//     and so would be resampled (blurry) in y and good in x
-						//     using tiles means room for more full z slices ie 256x256x256 == 4096x4096 == 16M, 
+						//     using tiles means room for more full z slices ie 256x256x256 == 4096x4096 == 16M,
 						//			512x512x512 == 134M == 16384x16384/2, and therefore less blurry images
 						//  tiles start in upper left with z=0, increase in y,
 						//  then when hit ny tiles in a y strip, move right one tile, and restart at top
@@ -1790,8 +1863,8 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 						//  2  6  10
 						//  3  7  11
 						//  4  8
-						//  
-						// 
+						//
+						//
 						int rc,sc,c,cube_root, max_size;
 						unsigned char *texdataTiles = NULL;
 						uint32 *p2, *p1;
@@ -1801,30 +1874,30 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 						max_size = rdr_caps->runtime_max_texture_size;
 						//if(32bit) I find process doesn't have enough RAM left for opengl to malloc 512x512x512x4byte.
 						//could try single channel, single byte textures, but for now we'll keep it under 17M pixels
-						if(x * y * z > 256 * 256 * 256) 
+						if(x * y * z > 256 * 256 * 256)
 							max_size = min(max_size,4096);
 						//max_size = 2048; //can re-set here for experiments
 						cube_root = (int)pow( max_size * max_size  + 3, 1.0/3.0);
 						c = cube_root;
 						//need lower-power-of-two so we squeeze into space available, and leave a little
-						rc = 1; 
+						rc = 1;
 						sc = c;
 						while(sc) {sc /= 2; rc *= 2;}
 						if(rc > c) {rc /= 2;}
 						//ConsoleMessage("pow2 cube root %d\n",rc);
 						cube_root = rc;
 						if(rx != x || ry != y || rz != z || rx > cube_root || ry > cube_root || rz > cube_root) {
-							/* do we have texture limits??? 
-							dug9: windows intel i5: desktop opengl and uwp/angleproject 16384 
+							/* do we have texture limits???
+							dug9: windows intel i5: desktop opengl and uwp/angleproject 16384
 							16384 x 16394 = 268M. cube-root 268M = 645.xx lets round down to pow2: 512
 							android LG nexus 4096
-							4096 x 4096 = 16.7M; cube-root 16.7M = 256. 
+							4096 x 4096 = 16.7M; cube-root 16.7M = 256.
 							*/
 							if (rx > cube_root) rx = cube_root;
 							if (ry > cube_root) ry = cube_root;
 							if (rz > cube_root) rz = cube_root;
 						}
-		
+
 						if (gglobal()->internalc.global_print_opengl_errors) {
 							DEBUG_MSG("texture size after maxTextureSize taken into account: %d %d, from %d %d\n",rx,ry,x,y);
 						}
@@ -1905,16 +1978,16 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 				}else{
 					//ordinary 2D image textures
 					if(rx != x || ry != y || rx > rdr_caps->runtime_max_texture_size || ry > rdr_caps->runtime_max_texture_size) {
-						/* do we have texture limits??? 
-						dug9: windows intel i5: desktop opengl and uwp/angleproject 16384 
+						/* do we have texture limits???
+						dug9: windows intel i5: desktop opengl and uwp/angleproject 16384
 						16384 x 16394 = 268M. cube-root 268M = 645.xx lets round down to pow2: 512
 						android LG nexus 4096
-						4096 x 4096 = 16.7M; cube-root 16.7M = 256. 
+						4096 x 4096 = 16.7M; cube-root 16.7M = 256.
 						*/
-						if (rx > rdr_caps->runtime_max_texture_size) rx = rdr_caps->runtime_max_texture_size;
-						if (ry > rdr_caps->runtime_max_texture_size) ry = rdr_caps->runtime_max_texture_size;
+						rx = min(rx,rdr_caps->runtime_max_texture_size);
+						ry = min(ry,rdr_caps->runtime_max_texture_size);
 					}
-		
+
 					if (gglobal()->internalc.global_print_opengl_errors) {
 						DEBUG_MSG("texture size after maxTextureSize taken into account: %d %d, from %d %d\n",rx,ry,x,y);
 					}
@@ -1922,7 +1995,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 					/* it is a power of 2, lets make sure it is square */
 					/* ES 2.0 needs this for cross-platform; do not need to do this for desktops, but
-					   lets just keep things consistent 
+					   lets just keep things consistent
 					   But if not mipmapping, then (experience with win32 GLES2 emulator and QNX device)
 					   then it's not necessary to square the image, although current code will get here with
 					   generateMipMap always true.
@@ -1933,7 +2006,6 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 							else rx=ry;
 						}
 					}
-
 					/* if scaling is ok... */
 					if ((x==rx) && (y==ry)) {
 						dest = mytexdata;
@@ -1941,19 +2013,19 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 						/* try this texture on for size, keep scaling down until we can do it */
 						/* all textures are 4 bytes/pixel */
-						dest = MALLOC(unsigned char *, 4 * rx * ry);
+						size_t total_size = (size_t)4L * rx * ry;
+						dest = MALLOC(unsigned char *, total_size); //4 * rx * ry);
 
 						myScaleImage(x,y,rx,ry,mytexdata,dest);
 					}
-				
-		
+					if(rx > 8192 || ry > 8192) ConsoleMessage("texture size rx %d ry %d\n",rx,ry);
 					myTexImage2D(generateMipMaps, GL_TEXTURE_2D, 0, iformat,  rx, ry, 0, format, GL_UNSIGNED_BYTE, dest);
 				}
 				if(mytexdata != dest) {
 					FREE_IF_NZ(dest);
 				}
 			}
-		
+
 			/* we can get rid of the original texture data here */
 			FREE_IF_NZ (me->texdata);
 		}
@@ -1965,6 +2037,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* and, now, the Texture is loaded */
 	me->status = TEX_LOADED;
+
+	#ifdef PATH_PLANNER
+	pthread_mutex_unlock( &gl_mutex1 );
+	#endif //PATH_PLANNER
+
 }
 
 
@@ -2003,7 +2080,7 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	//#define DEBUG_TEX ConsoleMessage
 
 //	GET_THIS_TEXTURE;
-//#define GET_THIS_TEXTURE 
+//#define GET_THIS_TEXTURE
 	thisTextureType = node->_nodeType;
 	if (thisTextureType==NODE_ImageTexture){
 		it = (struct X3D_ImageTexture*) node;
@@ -2036,8 +2113,8 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 		struct X3D_ComposedTexture3D *pt3d;
 		pt3d = (struct X3D_ComposedTexture3D*) node;
 		thisTexture = pt3d->__textureTableIndex;
-	} else { 
-		ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType)); 
+	} else {
+		ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType));
 		return;
 	}
 
@@ -2045,6 +2122,8 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	if (myTableIndex->status != TEX_LOADED) {
 		DEBUG_TEX("new_bind_image, I am %p, textureStackTop %d, thisTexture is %d myTableIndex %p status %s\n",
 		node,tg->RenderFuncs.textureStackTop,thisTexture,myTableIndex, texst(myTableIndex->status));
+		//printf ("new_bind_image (%d), I am %p, textureStackTop %d, thisTexture is %d myTableIndex %p status %s\n",
+		//__LINE__,node,tg->RenderFuncs.textureStackTop,thisTexture,myTableIndex, texst(myTableIndex->status));
 	}
 
 	/* default here; this is just a blank texture */
@@ -2069,38 +2148,49 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 		case TEX_NEEDSBINDING:
 			DEBUG_TEX("texture loaded into memory... now lets load it into OpenGL...\n");
 			move_texture_to_opengl(myTableIndex);
-			break;
+
+			// do always #ifdef PATH_PLANNER
+			// JAS - skipping a rendering loop
+			// if we are ok, go direct to rendering this texture.
+			if (myTableIndex->status != TEX_LOADED) {
+				printf ("issue going from TEX_NEEDSBINDING to TEX_LOADED, is %s\n",
+					texst(myTableIndex->status));
+				break;
+			}
+			// do always #else
+			// do always break;
+			// do always #endif  //PATH_PLANNER
 
 		case TEX_LOADED:
 			//DEBUG_TEX("now binding to pre-bound tex %u\n", myTableIndex->OpenGLTexture);
-	
+
 			/* set the texture depth - required for Material diffuseColor selection */
 			if (myTableIndex->hasAlpha) tg->RenderFuncs.last_texture_type =  TEXTURE_ALPHA;
 			else tg->RenderFuncs.last_texture_type = TEXTURE_NO_ALPHA;
 
 //printf ("last_texture_type = TEXTURE_NO_ALPHA now\n"); last_texture_type=TEXTURE_NO_ALPHA;
-	
+
 			if (myTableIndex->OpenGLTexture == TEXTURE_INVALID) {
-	
+
 				DEBUG_TEX("no openGLtexture here status %s\n", texst(myTableIndex->status));
 				return;
 			}
-	
+
 			tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop] = myTableIndex->OpenGLTexture;
             //printf ("new_bind, boundTextureStack[%d] set to %d\n",tg->RenderFuncs.textureStackTop,myTableIndex->OpenGLTexture);
-                
+
 
 			/* save the texture params for when we go through the MultiTexture stack. Non
 			   MultiTextures should have this textureStackTop as 0 */
-			 
+
 			if (param != NULL) {
 				struct multiTexParams *textureParameterStack = (struct multiTexParams *) tg->RenderTextures.textureParameterStack;
-				memcpy(&(textureParameterStack[tg->RenderFuncs.textureStackTop]), param,sizeof (struct multiTexParams)); 
-				//memcpy(&(tg->RenderTextures.textureParameterStack[tg->RenderFuncs.textureStackTop]), param,sizeof (struct multiTexParams)); 
+				memcpy(&(textureParameterStack[tg->RenderFuncs.textureStackTop]), param,sizeof (struct multiTexParams));
+				//memcpy(&(tg->RenderTextures.textureParameterStack[tg->RenderFuncs.textureStackTop]), param,sizeof (struct multiTexParams));
 			}
 			p->textureInProcess = -1; /* we have finished the whole process */
 			break;
-			
+
 		case TEX_UNSQUASHED:
 		default: {
 			printf ("unknown texture status %d\n",myTableIndex->status);
@@ -2108,4 +2198,3 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	}
 	//#define DEBUG_TEX
 }
-

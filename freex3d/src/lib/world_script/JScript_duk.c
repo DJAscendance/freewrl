@@ -48,7 +48,7 @@ To do list Jan 2017
 #include "JScript.h"
 #include "FWTYPE.h"
 #define FIELDTYPE_MFImage	43 
-typedef int indexT;
+//typedef int indexT;
 
 #ifdef DEBUG_MALLOC
 #define malloc(A) MALLOCV(A)
@@ -56,16 +56,16 @@ typedef int indexT;
 #define realloc(A,B) REALLOC(A,B)
 #endif
 
-FWTYPE *fwtypesArray[60];  //true statics - they only need to be defined once per process, we have about 50 types as of july 2014
+FWType fwtypesArray[60];  //true statics - they only need to be defined once per process, we have about 50 types as of july 2014
 int FWTYPES_COUNT = 0;
 
-void initVRMLBrowser(FWTYPE** typeArray, int *n);
-void initVRMLFields(FWTYPE** typeArray, int *n);
+void initVRMLBrowser(FWType* typeArray, int *n);
+void initVRMLFields(FWType* typeArray, int *n);
 void initFWTYPEs(){
 	initVRMLBrowser(fwtypesArray, &FWTYPES_COUNT);
 	initVRMLFields(fwtypesArray, &FWTYPES_COUNT);
 }
-FWTYPE *getFWTYPE(int itype){
+FWType getFWTYPE(int itype){
 	int i;
 	for(i=0;i<FWTYPES_COUNT;i++){
 		if(itype == fwtypesArray[i]->itype)
@@ -77,7 +77,7 @@ FWTYPE *getFWTYPE(int itype){
 #define strcasecmp _stricmp
 #endif
 
-FWFunctionSpec *getFWFunc(FWTYPE *fwt,const char *key){
+FWFunctionSpec *getFWFunc(FWType fwt,const char *key){
 	int i = 0;
 	FWFunctionSpec *fs = fwt->Functions;
 	if(fs)
@@ -90,7 +90,7 @@ FWFunctionSpec *getFWFunc(FWTYPE *fwt,const char *key){
 	}
 	return NULL;
 }
-FWPropertySpec *getFWProp(FWTYPE *fwt,const char *key, int *index){
+FWPropertySpec *getFWProp(FWType fwt,const char *key, int *index){
 	int i = 0;
 	FWPropertySpec *ps = fwt->Properties;
 	*index = 0;
@@ -115,7 +115,7 @@ int len_functions(FWFunctionSpec *fs){
 	if(fs) while(fs[len].name) len++;
 	return len;
 }
-int fwiterator_generic(int index, FWTYPE *fwt, void *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int fwiterator_generic(int index, FWType fwt, void *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	//start iterating by passing -1 for index. When you get -1 back, you are done.
 	//FWPointer is for SFNode: it will have an instance-specific result from its custom iterator
 	//next property
@@ -157,8 +157,8 @@ int fwiterator_generic(int index, FWTYPE *fwt, void *pointer, const char **name,
 	return -1;
 }
 
-int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char *type, char *readOnly){
-	char *name;
+int fwhas_generic(FWType fwt, void *pointer, const char *key, int *jndex, char *type, char *readOnly){
+	const char *name;
 	int lastProp, isSet, index = -1;
 	lastProp = -1;
 	isSet = FALSE;
@@ -173,7 +173,7 @@ int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char 
 		isSet = TRUE;
 
 	if(isSet){
-		char* key2 = &key[4];
+		const char* key2 = &key[4];
 		while( (index = fwiterator_generic(index,fwt,pointer,&name, &lastProp, jndex, type, readOnly)) > -1){
 			if(!strcasecmp(name,key2)){
 				//found it
@@ -186,21 +186,21 @@ int fwhas_generic(FWTYPE *fwt, void *pointer, const char *key, int *jndex, char 
 
 
 
-typedef struct pJScript{
+typedef struct pJScript_duk{
 	int ijunk;
-}* ppJScript;
+}* ppJScript_duk;
 
 
-void *JScript_constructor(){
-	void *v = MALLOCV(sizeof(struct pJScript));
-	memset(v,0,sizeof(struct pJScript));
+void *JScript_duk_constructor(){
+	void *v = MALLOCV(sizeof(struct pJScript_duk));
+	memset(v,0,sizeof(struct pJScript_duk));
 	return v;
 }
-void JScript_init(struct tJScript *t){
+void JScript_duk_init(struct tJScript_duk *t){
 	//public
 	t->JSglobal_return_val = NULL;
 	//private
-	t->prv = JScript_constructor();
+	t->prv = JScript_duk_constructor();
 	{
 		//ppJScript p = (ppJScript)t->prv;
 		//initialize statics
@@ -210,10 +210,10 @@ void JScript_init(struct tJScript *t){
 //	ppJScript p = (ppJScript)gglobal()->JScript.prv;
 
 //stubs the linker will be looking for
-void jsVRMLBrowser_init(void *t){}
-void jsUtils_init(void *t){}
-void jsVRMLClasses_init(void *t){}
-
+//void jsVRMLBrowser_init(void *t){}
+//void jsUtils_init(void *t){}
+//void jsVRMLClasses_init(void *t){}
+//
 
 
 
@@ -277,7 +277,7 @@ char * itype2string(int itype){
 int getFieldFromNodeAndName(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value);
 
 
-int get_valueChanged_flag (int fptr, int actualscript){
+int duk_get_valueChanged_flag (int fptr, int actualscript){
 	char *fullname;
 	union anyVrml* value;
 	int type, kind, ifield, found;
@@ -294,13 +294,13 @@ int get_valueChanged_flag (int fptr, int actualscript){
 	found = getFieldFromNodeAndName(node,fullname,&type,&kind,&ifield,&value);
 	if(found){
 		field = Shader_Script_getScriptField(script, ifield);
-		gglobal()->JScript.JSglobal_return_val = (void *)&field->value;
+		gglobal()->JScript_duk.JSglobal_return_val = (void *)&field->value;
 		return field->valueChanged;
 	}
-	gglobal()->JScript.JSglobal_return_val = NULL;
+	gglobal()->JScript_duk.JSglobal_return_val = NULL;
 	return 0;
 }
-void resetScriptTouchedFlag(int actualscript, int fptr){
+void duk_resetScriptTouchedFlag(int actualscript, int fptr){
 	char *fullname;
 	union anyVrml* value;
 	int type, kind, ifield, found;
@@ -454,8 +454,10 @@ static char *DefaultScriptMethodsB = " function print(x) {Browser.print(x)}; " \
 			" function createX3DFromString(x) {Browser.createX3DFromString(x)}; "\
 			" function createX3DFromURL(x,y,z) {Browser.createX3DFromURL(x,y,z)}; "\
 			" function addRoute(a,b,c,d) {Browser.addRoute(a,b,c,d)}; "\
-			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "
+			" function deleteRoute(a,b,c,d) {Browser.deleteRoute(a,b,c,d)}; "\
+			" function _rename_function(obj,oldf,newf) {if(typeof obj[oldf] === 'function') {obj[newf]=obj[oldf]; delete obj[oldf];}}; "\
 			"";
+			//" function _rename_function(obj,oldf,newf) {obj[newf]=obj[oldf]; delete obj[oldf];}; "
 
 /*add x3d v3.3 ecmascript X3DConstants table 
 // http://www.web3d.org/files/specifications/19777-1/V3.0/index.html
@@ -625,7 +627,7 @@ proxy_entry *add_ctx_proxycache_entry(duk_context *ctx, struct X3D_Node *node, v
 			for(i=0;i<vectorSize(cache->cache);i++){
 				proxy_entry *pe0 = vector_get(proxy_entry*,cache->cache,i);
 				if(pe0)
-					printf("%d %x %x\n",i,pe0->node,pe0->jsproxy);
+					printf("%d %p %p\n",i,pe0->node,pe0->jsproxy);
 				else
 					printf("%d NULL\n",i);
 			}
@@ -653,7 +655,7 @@ void remove_ctx_proxycache_entry_by_nodeptr(duk_context *ctx, struct X3D_Node *n
 			for(i=0;i<vectorSize(cache->cache);i++){
 				proxy_entry *pe0 = vector_get(proxy_entry*,cache->cache,i);
 				if(pe0)
-					printf("%d %x %x\n",i,pe0->node,pe0->jsproxy);
+					printf("%d %p %p\n",i,pe0->node,pe0->jsproxy);
 				else
 					printf("%d NULL\n",i);
 			}
@@ -834,14 +836,13 @@ int push_typed_proxy2(duk_context *ctx, int itype, int kind, void *fwpointer, in
 }
 
 
-
-void convert_duk_to_fwvals(duk_context *ctx, int nargs, int istack, struct ArgListType arglist, FWval *args, int *argc){
+void convert_duk_to_fwvals_old(duk_context *ctx, int nargs, int istack, struct ArgListType arglist, FWval *args, int *argc){
 	int nUsable,nNeeded, i, ii;
 	FWval pars;
 	//struct Uni_String *uni;
 	nUsable = arglist.iVarArgStartsAt > -1 ? nargs : arglist.nfixedArg;
 	nNeeded = max(nUsable,arglist.nfixedArg);
-	pars = malloc(nNeeded*sizeof(FWVAL));
+	pars = malloc(nNeeded*sizeof(struct FWVAL));
 	(*args) = pars;
 	//QC and genericization of incoming parameters
 	(*argc) = nNeeded;
@@ -989,10 +990,226 @@ void convert_duk_to_fwvals(duk_context *ctx, int nargs, int istack, struct ArgLi
 	}
 }
 
+void convert_duk_to_fwvals_new(duk_context *ctx, int nargs, int istack, struct ArgListType arglist, FWval *args, int *argc){
+	int nUsable,nNeeded, i, ii, jj, k, len;
+	FWval pars;
+	//struct Uni_String *uni;
+	
+	//we don't handle js lists [] very well, so we'll expand them and treat them like a flat list of args
+	if(nargs > 0){
+		int margs = 0;
+		for(i=0;i<nargs;i++){
+			ii = istack;
+			len = 1;
+			if( duk_is_array(ctx, ii)){
+				//if the script goes myField = new String('hi'); then it comes in here as an object (versus myField = 'hi'; which is a string)
+				len = duk_get_length(ctx, ii);
+			}
+			margs += len;
+		}
+		nargs = margs;
+	}
+
+	nUsable = arglist.iVarArgStartsAt > -1 ? nargs : arglist.nfixedArg;
+	nNeeded = max(nUsable,arglist.nfixedArg);
+	pars = malloc(nNeeded*sizeof(struct FWVAL));
+	(*args) = pars;
+	//QC and genericization of incoming parameters
+	(*argc) = nNeeded;
+	ii = istack;
+	for(i=0;i<nUsable;){
+		//const char* str;
+		int trhs, ipop; //RHS or incoming javascript primitive type
+		char ctype; //LHS or target type
+		len = 1;
+		if( duk_is_array(ctx, ii)){
+			//if the script goes myField = new String('hi'); then it comes in here as an object (versus myField = 'hi'; which is a string)
+			len = duk_get_length(ctx, ii);
+		}
+		for(k=0;k<len;k++,i++){
+			if(i < arglist.nfixedArg) 
+				ctype = arglist.argtypes[i];
+			else 
+				ctype = arglist.argtypes[arglist.iVarArgStartsAt];
+			pars[i].itype = ctype;
+			jj = -1;
+			if( duk_is_array(ctx, ii)){
+				duk_get_prop_index(ctx, ii, k);
+			} else {
+				duk_dup(ctx,ii);
+			}
+			if( duk_is_object(ctx,jj) ){
+				int rc, isPrimitive;
+				//if the script goes myField = new String('hi'); then it comes in here as an object (versus myField = 'hi'; which is a string)
+				rc = duk_get_prop_string(ctx,jj,"fwItype");
+				duk_pop(ctx);
+				isPrimitive = rc == 0;
+				if(isPrimitive){
+					//void duk_to_primitive(duk_context *ctx, duk_idx_t index, duk_int_t hint); DUK_HINT_NONE
+					//http://www.duktape.org/api.html#duk_to_primitive
+					duk_to_primitive(ctx,jj,DUK_HINT_NONE);
+				}
+			}
+			//determine RHS / actual ecma type on stack
+			trhs = duk_get_type(ctx, jj);
+			//switch(trhs){
+			//	case DUK_TYPE_NUMBER: stype ="number"; break;
+			//	case DUK_TYPE_STRING: stype ="string"; break;
+
+			//	case DUK_TYPE_OBJECT: stype ="object"; break;
+			//	case DUK_TYPE_NONE: stype ="none"; break;
+			//	case DUK_TYPE_UNDEFINED: stype ="undefined"; break;
+			//	case DUK_TYPE_BOOLEAN: stype ="boolean"; break;
+			//	case DUK_TYPE_NULL: stype ="null"; break;
+			//	case DUK_TYPE_POINTER: stype ="pointer"; break;
+			//	default:
+			//}
+			//if( duk_is_null(ctx,ii)){
+			//	printf("rhs is null\n");
+			//}
+
+			switch(ctype){
+			case 'B': {
+				int bb = duk_get_boolean(ctx,jj); //duk_to_boolean(ctx,ii);
+				pars[i]._boolean = bb; // duk_to_boolean(ctx,ii); 
+				}
+				break;
+			case 'I': pars[i]._integer = duk_to_int(ctx,jj); break;
+			case 'F': pars[i]._numeric = duk_to_number(ctx,jj); break;
+			case 'D': pars[i]._numeric = duk_to_number(ctx,jj); break;
+			case 'S': pars[i]._string = duk_to_string(ctx,jj); break;
+			case 'Z': //flexi-string idea - allow either String or MFString (no such thing as SFString from ecma - it uses String for that)
+				if(duk_is_string(ctx,jj)){
+					pars[i]._string = duk_get_string(ctx,jj); 
+					pars[i].itype = 'S';
+					break;
+				}
+				if(!duk_is_object(ctx,jj))
+					break;
+				//else fall through to W
+			case 'W': {
+					int rc, isOK, itypeRHS = -1;
+					union anyVrml *fieldRHS = NULL;
+					if(trhs == DUK_TYPE_NULL){
+						itypeRHS = 10;
+						fieldRHS = malloc(sizeof(union anyVrml));
+						fieldRHS->sfnode = NULL;
+					}else if(trhs == DUK_TYPE_OBJECT){
+						rc = duk_get_prop_string(ctx,jj,"fwItype");
+						if(rc == 1){
+							itypeRHS = duk_to_int(ctx,-1);
+						}
+						duk_pop(ctx);
+						rc = duk_get_prop_string(ctx,jj,"fwField");
+						if(rc == 1) fieldRHS = duk_to_pointer(ctx,-1);
+						duk_pop(ctx);
+					}
+					/*we don't need the RHS fwChanged=valueChanged* because we are only changing the LHS*/
+					isOK = FALSE;
+					//if(fieldRHS != NULL && itypeRHS > -1){
+					if(itypeRHS > -1){
+						// its one of our proxy field types or null. But is it the type we need?
+						//medium_copy_field(itypeRHS,fieldRHS,&pars[i]._web3dval.native); //medium copy - copies p[] in MF types but not deep copy *(p[i]) if p[i] is pointer type ie SFNode* or Uni_String*
+						pars[i]._web3dval.native = fieldRHS;
+						pars[i]._web3dval.fieldType = itypeRHS;
+						pars[i].itype = 'W';
+						// see below *valueChanged = TRUE;
+						isOK = TRUE;
+					}
+				}
+				break;
+			case 'P': {
+					int rc, isOK, itypeRHS = -1;
+					union anyVrml *fieldRHS = NULL;
+					rc = duk_get_prop_string(ctx,jj,"fwItype");
+					if(rc == 1){
+						//printf(duk_type_to_string(duk_get_type(ctx, -1)));
+						itypeRHS = duk_to_int(ctx,-1);
+					}
+					duk_pop(ctx);
+					rc = duk_get_prop_string(ctx,jj,"fwField");
+					if(rc == 1) fieldRHS = duk_to_pointer(ctx,-1);
+					duk_pop(ctx);
+					/*we don't need the RHS fwChanged=valueChanged* because we are only changing the LHS*/
+					isOK = FALSE;
+					if(fieldRHS != NULL && itypeRHS >= AUXTYPE_X3DConstants){
+						/* its one of our auxiliary types - Browser, X3DConstants, ProfileInfo, ComponentInfo, X3DRoute ...*/
+						pars[i]._pointer.native = fieldRHS;
+						pars[i]._pointer.fieldType = itypeRHS;
+						pars[i].itype = 'P';
+						// see below *valueChanged = TRUE;
+						isOK = TRUE;
+					}
+				}
+				break;
+
+			case 'O': break; //object pointer ie to js function callback object
+			}
+			duk_pop(ctx);
+		} //k
+		ii = ii + 1;
+	}
+		
+	for(i=nUsable;i<nNeeded;i++){
+		//fill
+		char ctype = arglist.argtypes[i];
+		pars[i].itype = ctype;
+		switch(ctype){
+		case 'B': pars[i]._boolean = FALSE; break;
+		case 'I': pars[i]._integer = 0; break;
+		case 'F': pars[i]._numeric = 0.0; break;
+		case 'D': pars[i]._numeric = 0.0; break;
+		case 'S': pars[i]._string = NULL; break;
+		case 'Z': pars[i]._string = NULL; pars[i].itype = 'S'; break;
+		case 'W': 
+			pars[i]._web3dval.fieldType = FIELDTYPE_SFNode; 
+			pars[i]._web3dval.native = NULL; break;
+		//case 'P': 
+		//	pars[i]._web3dval.fieldType = FIELDTYPE_SFNode; //I don't have a good default value - do I need an AUXTYPE_NULL?
+		//	pars[i]._web3dval.native = NULL; break;
+		case 'O': 
+			pars[i]._jsobject = NULL; break; 
+		default:
+			pars[i].itype = '0';
+		}
+	}
+}
+
+void convert_duk_to_fwvals(duk_context *ctx, int nargs, int istack, struct ArgListType arglist, FWval *args, int *argc){
+/*
+	if(nargs != 1 && nargs != 0 && nargs != 2)
+		convert_duk_to_fwvals_old(ctx,nargs,istack,arglist,args,argc);
+	else if(nargs == 2){
+		int ftype = -1;
+		FWval pargs;
+		convert_duk_to_fwvals_old(ctx,nargs,istack,arglist,args,argc);
+		pargs = (*args);
+		printf("old argc %d\n",*argc);
+		for(int i=0;i<*argc;i++){
+			printf("args[%d] %x\n",i,pargs[i]);
+			printf("old args[%d] type %d ftype %d\n",i,pargs[i].itype, ftype);
+		}
+		printf("===\n");
+		*args = NULL;
+		convert_duk_to_fwvals_new(ctx,nargs,istack,arglist,args,argc);
+		printf("new argc %d\n",*argc);
+		pargs = (*args);
+		for(int i=0;i<*argc;i++){
+			//, args[i]->_web3dval.fieldType
+			printf("args[%d] %x\n",i,pargs[i]);
+			printf("new args[%d] type %d ftype %d\n",i,pargs[i].itype, ftype);
+		}
+
+	}
+	else
+	*/
+		convert_duk_to_fwvals_new(ctx,nargs,istack,arglist,args,argc);
+}
+
 
 int cfwconstructor(duk_context *ctx) {
 	int i, j, rc, nargs, argc, ifound;
-	FWTYPE *fwt;
+	FWType fwt;
 	FWval args;
 	void *fwpointer;
 	int *valueChanged = NULL; //so called 'internal' variables inside the script context don't point to a valueChanged
@@ -1061,6 +1278,10 @@ int cfwconstructor(duk_context *ctx) {
 							//in theory, we could make sure somehow that we had the right kind of 'W' : add a FIELDTYPE_ / AUXTYPE_ array in arglist struct
 							isOK = TRUE;
 						}
+						if(!isOK){
+							//is it a list ie new MFVec3f([A3f,B3f])?
+
+						}
 					}
 					break;
 				case DUK_TYPE_NONE: 
@@ -1105,7 +1326,7 @@ int cfwconstructor(duk_context *ctx) {
 		//int ivarsa = fwt->ConstructorArgs[ifound].iVarArgStartsAt;
 		char *neededTypes = fwt->ConstructorArgs[ifound].argtypes;
 		//int fill = fwt->ConstructorArgs[ifound].fillMissingFixedWithZero == 'T';
-		args = realloc(args,nfixed * sizeof(FWVAL));
+		args = realloc(args,nfixed * sizeof(struct FWVAL));
 		for(j=nargs;j<nfixed;j++){
 			switch(neededTypes[j]){
 			case 'B':
@@ -1137,7 +1358,7 @@ int chas(duk_context *ctx) {
 	const char *key;
 	int nr, index;
 	char type, readOnly;
-	FWTYPE *fwt;
+	FWType fwt;
 	union anyVrml *parent = NULL;
 
 	itype = 0;
@@ -1172,11 +1393,11 @@ int cownKeys(duk_context *ctx) {
 	int rc, itype, *valueChanged, arr_idx;
 	void *parent = NULL;
 	int i;
-	char *fieldname;
+	const char *fieldname;
 	int lastProp, jndex; //isFunc, 
 	char type, readOnly;
 	//FWTYPE *getFWTYPE(int itype)
-	FWTYPE *fwt;
+	FWType fwt;
 	itype = -1;
 
 	/* get type of parent object for this property*/
@@ -1209,10 +1430,10 @@ int cenumerate(duk_context *ctx) {
 	int rc, itype, *valueChanged;
 	union anyVrml *parent = NULL;
 	int i;
-	char *fieldname;
+	const char *fieldname;
 	int lastProp, jndex; //isFunc, 
 	char type, readOnly;
-	FWTYPE *fwt;
+	FWType fwt;
 	int arr_idx;
 
 	itype =0;
@@ -1320,7 +1541,11 @@ int fwval_duk_push(duk_context *ctx, FWval fwretval, int *valueChanged){
 			case FIELDTYPE_SFTime:
 				duk_push_number(ctx,fwretval->_web3dval.anyvrml->sfdouble); break;
 			case FIELDTYPE_SFString:
-				duk_push_string(ctx,fwretval->_web3dval.anyvrml->sfstring->strptr); break;
+				if(fwretval->_web3dval.anyvrml->sfstring->strptr)
+					duk_push_string(ctx,fwretval->_web3dval.anyvrml->sfstring->strptr);
+				else
+					duk_push_string(ctx,"");
+				break;
 			default:
 				push_typed_proxy2(ctx,fwretval->_web3dval.fieldType,fwretval->_web3dval.kind,fwretval->_web3dval.native,valueChanged,fwretval->_web3dval.gc);
 			}
@@ -1337,6 +1562,8 @@ int fwval_duk_push(duk_context *ctx, FWval fwretval, int *valueChanged){
 		push_typed_proxy2(ctx,fwretval->_pointer.fieldType,fwretval->_pointer.kind,fwretval->_pointer.native,valueChanged,fwretval->_pointer.gc);
 		break;
 	case '0':
+		duk_push_null(ctx);
+		break;
 	default:
 		nr = 0; break;
 	}
@@ -1395,7 +1622,7 @@ int cfunction(duk_context *ctx) {
 	const char *fwFunc = NULL;
 	union anyVrml* parent = NULL;
 	//union anyVrml* field = NULL;
-	FWTYPE *fwt;
+	FWType fwt;
 	FWFunctionSpec *fs;
 
 	itype = 0;
@@ -1428,7 +1655,7 @@ int cfunction(duk_context *ctx) {
 	if(fs){
 		FWval pars;
 		int argc;
-		FWVAL fwretval;
+		struct FWVAL fwretval;
 		struct X3D_Node *scriptnode;
 		void *ec = NULL;
 		convert_duk_to_fwvals(ctx, nargs, 0, fs->arglist, &pars, &argc);
@@ -1447,7 +1674,7 @@ int cfunction(duk_context *ctx) {
 			if(nr && !strcasecmp(fwFunc,"toString")){
 				if(fwretval.itype == 'S' && fwretval._string){
 					//printf("gcing toString string %s\n",fwretval._string);
-					free(fwretval._string);  //if this bombs take it out and toString strings won't be gcd. There's nothing set up to gc _string in general
+					//free(fwretval._string);  //if this bombs take it out and toString strings won't be gcd. There's nothing set up to gc _string in general
 				}
 			}
 		}else{
@@ -1533,7 +1760,7 @@ int cget(duk_context *ctx) {
 	if(itype > -1){
 		//itype is in AUXTYPE_ range
 		const char *key = NULL;// = duk_require_string(ctx,-2);
-		FWTYPE *fwt = getFWTYPE(itype);
+		FWType fwt = getFWTYPE(itype);
 		int jndex, found;
 		char type, readOnly;
 		found = 0;
@@ -1583,7 +1810,7 @@ int cget(duk_context *ctx) {
 				nr = 1;
 			}
 		}else if(found && fwt->Getter){
-			FWVAL fwretval;
+			struct FWVAL fwretval;
 			struct X3D_Node *scriptnode;
 			void *ec = NULL;
 			//>>just SFNode function getNodeName needs to know the script node context (it can't use its own - it may be an IMPORT)
@@ -1652,7 +1879,7 @@ int cset(duk_context *ctx) {
 	if(itype > -1) {
 		//itype is in FIELDTYPE_ and AUXTYPE_ range
 		const char* key;
-		FWTYPE *fwt = getFWTYPE(itype);
+		FWType fwt = getFWTYPE(itype);
 		int jndex, found;
 		char type, readOnly;
 		//check numeric indexer
@@ -1773,7 +2000,7 @@ function defineAccessor(obj, key, set, get) { \
 
 /* create the script context for this script. This is called from the thread
    that handles script calling in the fwl_RenderSceneUpdateScene */
-void JSCreateScriptContext(int num) {
+void duk_JSCreateScriptContext(int num) {
 	int i, iglobal; // , rc;
 	//jsval rval;
 	duk_context *ctx; 	/* these are set here */
@@ -1939,7 +2166,7 @@ int fwsetterNS(duk_context *ctx) {
 	if(itype > -1 && itype < AUXTYPE_X3DConstants){
 		//code borrowed from cget and modified to not set setEventIn on self (auto-eventing this script)
 		//const char* key;
-		FWTYPE *fwt = getFWTYPE(FIELDTYPE_SFNode);
+		FWType fwt = getFWTYPE(FIELDTYPE_SFNode);
 		int jndex, found;
 		char type, readOnly;
 		//check properties - if a property, call the type-specific setter
@@ -2088,16 +2315,16 @@ int push_duk_fieldvalue(duk_context *ctx, int itype, int mode, const char* field
 }
 
 
-int fwgetter0(duk_context *ctx,void *parent,int itype, char *key, int *valueChanged){
+int fwgetter0(duk_context *ctx,void *parent,int itype, const char *key, int *valueChanged){
 	//uses fwtype SFNode's getter
-	FWTYPE *fwt = getFWTYPE(itype);
+	FWType fwt = getFWTYPE(itype);
 	int jndex, found, nr;
 	char type, readOnly;
 	nr = 0;
 	//check properties - if a property, call the type-specific setter
 	found = fwhas_generic(fwt,parent,key,&jndex,&type,&readOnly); //SFNode_Iterator
 	if(found && fwt->Getter){
-		FWVAL fwretval;
+		struct FWVAL fwretval;
 		struct X3D_Node *scriptnode;
 		void *ec = NULL;
 		//>>just SFNode function getNodeName needs to know the script node context (it can't use its own - it may be an IMPORT)
@@ -2135,7 +2362,7 @@ int fwgetterNS(duk_context *ctx) {
 	/* retrieve key from nonstandard arg */
 	//show_stack(ctx,"in fwgetterNS at start");
 	fieldname = duk_require_string(ctx,0);
-	//printf("\nfwgetterNS key=%s\n",key);
+	//printf("\nfwgetterNS key=%s\n",fieldname);
 
 	/* retrieve field pointer from Cfunc */
 	duk_push_current_function(ctx);
@@ -2204,7 +2431,7 @@ void add_duk_global_property(duk_context *ctx, int itype, const char *fieldname,
 	duk_pop(ctx);
 }
 
-void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, const char* fieldname, int *valueChanged, struct X3D_Node* parent)
+void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, int kind, const char* fieldname, int *valueChanged, struct X3D_Node* parent)
 {
 	/* Creates a javascript-context twin of a Script node for fields of type:
 	 *  field/initializeOnly, eventOut/outputOnly, and the field/eventOut part of exposedField/inputOutput
@@ -2217,18 +2444,38 @@ void InitScriptField2(struct CRscriptStruct *scriptcontrol, int itype, const cha
 	 * InitScriptField2 version: instead of jsNative, hook back into Script_Node->fields[i] for get/set storage
 	*/
 	duk_context *ctx;
+	int haveFunc;
+	char strline[256];
+
 	//int iglobal;
 	//printf("in InitScriptField\n");
 
 	// create twin property
 	ctx = scriptcontrol->cx;
 	//iglobal = *(int*)scriptcontrol->glob; 
+
+	//any inputOnly or inputOutput eventIn scripts we need to rename to set_?
+	//if(kind == PKW_inputOnly || 
+	if( kind == PKW_inputOutput){
+
+		// uses conditional rename_function - only renames if object exists and its typeof function
+		sprintf(strline,"_rename_function(this,\"%s\",\"set_%s\");",fieldname,fieldname);
+		//printf("%s\n",strline);
+		duk_push_string(ctx,strline);
+		if(duk_peval(ctx) != 0) {
+			printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
+			printf("rename didn't work\n");
+		}
+		duk_pop(ctx);
+
+
+	}
 	add_duk_global_property(ctx,itype,fieldname, valueChanged,parent);
 
 	return;
 }
 
-void JSInitializeScriptAndFields (int num) {
+void duk_JSInitializeScriptAndFields (int num) {
 	/*  1. creates javascript-context twins of Script node dynamic/authored fields
 		2. runs the script as written by the scene author, which has the effect of
 			declaring all the author's functions (and checking author's syntax)
@@ -2241,8 +2488,16 @@ void JSInitializeScriptAndFields (int num) {
 	//ScriptControlArray = getScriptControl();
 	scriptcontrol = getScriptControlIndex(num); //&ScriptControlArray[num];
 
+	//run user's code first to set their functions
+	if(1) if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
+		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
+		scriptcontrol->scriptOK = FALSE;
+		scriptcontrol->_initialized = TRUE;
+		return;
+	}
 
 	/* run through fields in order of entry in the X3D file */
+	// and if a fieldname == function name, change function name to set_
 	script = scriptcontrol->script;
 	//printf("adding fields from script %p\n",script);
 	nfields = Shader_Script_getScriptFieldCount(script);
@@ -2254,11 +2509,11 @@ void JSInitializeScriptAndFields (int num) {
 		if (kind != PKW_inputOnly) { //we'll hook input events to the author's functions elsewhere
 			//everything else -fields, eventOuts- needs a strict property twin created on the global object
 			field->valueChanged = 0;
-			InitScriptField2(scriptcontrol, itype, fieldname, &field->valueChanged, script->ShaderScriptNode);
+			InitScriptField2(scriptcontrol, itype, kind, fieldname, &field->valueChanged, script->ShaderScriptNode);
 		}
 	}
 	
-	if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
+	if(0) if (!jsActualrunScript(num, scriptcontrol->scriptText)) {
 		ConsoleMessage ("JSInitializeScriptAndFields, script failure\n");
 		scriptcontrol->scriptOK = FALSE;
 		scriptcontrol->_initialized = TRUE;
@@ -2271,7 +2526,7 @@ void JSInitializeScriptAndFields (int num) {
 	return;
 }
 
-int jsActualrunScript(int num, char *script){
+int duk_jsActualrunScript(int num, char *script){
 	int len, rc, iret;
 	duk_context *ctx;
 	int iglobal;
@@ -2314,16 +2569,16 @@ int jsActualrunScript(int num, char *script){
 
 	return iret;
 }
-void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){
+void duk_SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value){
 	return;
 }
 static int duk_once = 0;
-void process_eventsProcessed(){
+void duk_process_eventsProcessed(){
 	duk_context *ctx;
 	int rc, counter;
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg;
-	ppJScript p;
+	ppJScript_duk p;
 
 	//if(!duk_once) printf("in process_eventsProcessed\n");
 	//call function eventsProcessed () {
@@ -2331,7 +2586,7 @@ void process_eventsProcessed(){
 	duk_once++;
 
 	tg = gglobal();
-	p = (ppJScript)tg->JScript.prv;
+	p = (ppJScript_duk)tg->JScript_duk.prv;
 	for (counter = 0; counter <= tg->CRoutes.max_script_found_and_initialized; counter++) {
 		scriptcontrol = getScriptControlIndex(counter);
 		if(scriptcontrol){
@@ -2355,11 +2610,11 @@ void process_eventsProcessed(){
 
 	return;
 }
-void js_cleanup_script_context(int counter){
+void duk_js_cleanup_script_context(int counter){
 	//printf("in js_cleanup_script_context\n");
 	return;
 }
-void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
+void duk_js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript){
 	//I think in here there is nothing to do for brotos, because the job of _B was to copy values out of javascript and
 	//into script fields, and the _B broto approach to routing would then do routing from the script fields.
 	//here in the duk / proxy method, we are already doing the setting of script fields directly.
@@ -2367,7 +2622,7 @@ void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigne
 	return;
 }
 
-void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData) {
+void duk_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData) {
 	//this proxy method already writes to the script field, so there's nothing to update in javascript
 	//- can just copy anyVrml from script field to endpoint on Route 
 	// (Brotos don't come in this function)
@@ -2379,23 +2634,23 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 	/* set up a pointer to where to put this stuff */
 	memptr = offsetPointer_deref(char *, tn, tptr);
 	//the from -our current script field value- is coming in through JSglobal_return_val 
-	fromptr = tg->JScript.JSglobal_return_val;
+	fromptr = tg->JScript_duk.JSglobal_return_val;
 	
 	medium_copy_field0(fieldType,fromptr,memptr); //will copy p data in MF
 	return;
 }
-void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
+void duk_js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript) {
 	struct CRscriptStruct *scriptcontrol;
 
 	scriptcontrol = getScriptControlIndex(actualscript);
-	setField_javascriptEventOut(tn,tptr,fieldType, len, extraData);
+	duk_setField_javascriptEventOut(tn,tptr,fieldType, len, extraData);
 }
 
 
 
 
-void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
-	//char scriptline[100];
+void duk_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int datalen) {
+	char scriptline[100];
 	//FWVAL newval;
 	duk_context *ctx;
 	int obj, rc;
@@ -2419,12 +2674,24 @@ void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int dat
 
 
 	//get function by name
-	duk_eval_string(ctx,JSparamnames[toname].name); //gets the evenin function on the stack
+	scriptline[0] = 0;
+	if(JSparamnames[toname].kind == PKW_inputOutput)
+		strcat(scriptline,"set_");
+	strcat(scriptline,JSparamnames[toname].name);
+
+	duk_push_string(ctx,scriptline);
+	if(duk_peval(ctx) != 0){
+		printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
+		printf("ouch - no function named %s\n",scriptline);
+		duk_pop(ctx);
+		return;
+	}
+	//duk_eval_string(ctx,scriptline); //JSparamnames[toname].name); //gets the evenin function on the stack
 
 	//push ecma value as arg
 	{
 		int rc;
-		FWVAL fwval;
+		struct FWVAL fwval;
 		fwval._web3dval.native = Data;
 		fwval._web3dval.fieldType = dataType;
 		fwval._web3dval.gc = 0;
@@ -2437,6 +2704,7 @@ void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int dat
 	//run function
 	rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
 	if (rc != DUK_EXEC_SUCCESS) {
+	  printf("Script error: %s\n", duk_safe_to_string(ctx, -1));
 	  printf("error: '%s' happened in js function %s called from set_one_ECMAType\n", duk_to_string(ctx, -1),JSparamnames[toname].name);
 	}
 
@@ -2455,7 +2723,7 @@ void set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int dat
         case FIELDTYPE_SFString:
 */
 
-void setScriptECMAtype (int num) {
+void duk_setScriptECMAtype (int num) {
 	void *fn;
 	int tptr;
 	int len;
@@ -2478,7 +2746,7 @@ void setScriptECMAtype (int num) {
 	}
 }
 
-void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen){
+void duk_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen){
 	//tonode - script array num
 	//tnfield - integer index into jsparamname[] array
 	//void* Data - pointer to anyVrml of the from node
@@ -2488,6 +2756,7 @@ void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen)
 	int obj, rc;
 	int itype;
 	void *datacopy;
+	int isEventin;
 	struct CRscriptStruct *ScriptControl; // = getScriptControl();
 	struct CRjsnameStruct *JSparamnames = getJSparamnames();
 
@@ -2500,23 +2769,44 @@ void set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataLen)
 	
 	//printf("in set_one_MultiElementType\n");
 	//get function by name
-	duk_eval_string(ctx,JSparamnames[tnfield].name); //gets the evenin function on the stack
-	itype = JSparamnames[tnfield].type;
-	//medium copy
-	datacopy = NULL;
-	medium_copy_field(itype,Data,&datacopy);
-	push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
-	duk_push_number(ctx,TickTime());
-	//duk_call(ctx,2);
-	rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
-	if (rc != DUK_EXEC_SUCCESS) {
-	  printf("error: '%s' happened in js function %s called from set_one_Multi_ElementType\n", duk_to_string(ctx, -1),JSparamnames[tnfield].name);
+	//show_stack(ctx,"before evale field name");
+	{
+		char scriptline[100];
+		scriptline[0] = 0;
+		if(JSparamnames[tnfield].kind == PKW_inputOutput)
+			strcat(scriptline,"set_");
+		strcat(scriptline,JSparamnames[tnfield].name);
+
+		duk_push_string(ctx,scriptline);
+		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
+		if(duk_peval(ctx) != 0){
+			ConsoleMessage("couldn't find eventin function %s\n",scriptline); //JSparamnames[tnfield].name);
+			duk_pop(ctx);
+			return;
+		}
 	}
-	//show_stack(ctx,"after calling isOver");
+	isEventin = duk_is_ecmascript_function(ctx, -1);
+	if(isEventin){
+		//you might not have an eventin, especially if it was an inputOutput field
+		// you may just want to route to/from the field value
+		itype = JSparamnames[tnfield].type;
+		//medium copy
+		datacopy = NULL;
+		medium_copy_field(itype,Data,&datacopy);
+		push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
+		duk_push_number(ctx,TickTime());
+		//duk_call(ctx,2);
+		rc = duk_pcall(ctx, 2);  /* [ ... func 2 3 ] -> [ 5 ] */
+		if (rc != DUK_EXEC_SUCCESS) {
+		  printf("error: '%s' happened in js function %s called from set_one_Multi_ElementType\n", duk_to_string(ctx, -1),JSparamnames[tnfield].name);
+		}
+		//show_stack(ctx,"after calling isOver");
+	}
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
+	//show_stack(ctx,"before return");
 	return;
 }
-void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){
+void duk_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int datalen){
 	//tonode - script array num
 	//tnfield - integer index into jsparamname[] array
 	//void* Data - MF.p
@@ -2524,7 +2814,7 @@ void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int
 	//FWVAL newval;
 	duk_context *ctx;
 	int obj;
-	int itype;
+	int itype, isEventin;
 	union anyVrml *any;
 	void *datacopy = NULL;
 	//char *source = (char *)Data - sizeof(int); //backup so we get the whole MF including .n
@@ -2542,39 +2832,56 @@ void set_one_MFElementType(int tonode, int toname, int dataType, void *Data, int
 	
 	//printf("in set_one_MFElementType\n");
 	//get function by name
-	duk_eval_string(ctx,JSparamnames[toname].name); //gets the evenin function on the stack
-	itype = dataType; //JSparamnames[toname].type;
-	//medium copy
-	maData.n = datalen;
-	maData.p = Data;
-	source = (char *)&maData;
-	any = (void*)source;
+	{
+		char scriptline[100];
+		scriptline[0] = 0;
+		if(JSparamnames[toname].kind == PKW_inputOutput)
+			strcat(scriptline,"set_");
+		//sprintf(scriptline,"set_%s",JSparamnames[toname].name);
+		strcat(scriptline,JSparamnames[toname].name);
+		duk_push_string(ctx,scriptline);
+		//duk_eval_string(ctx,scriptline); //JSparamnames[tnfield].name); //gets the evenin function on the stack
+		if(duk_peval(ctx) != 0){
+			ConsoleMessage("couldn't find eventin function %s\n",scriptline); //JSparamnames[toname].name);
+			duk_pop(ctx);
+			return;
+		}
+	}
+	isEventin = duk_is_ecmascript_function(ctx, -1);
+	if(isEventin){
+		itype = dataType; //JSparamnames[toname].type;
+		//medium copy
+		maData.n = datalen;
+		maData.p = Data;
+		source = (char *)&maData;
+		any = (void*)source;
 
-	medium_copy_field(itype,source,&datacopy);
-	any = datacopy;
-	push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
-	duk_push_number(ctx,TickTime());
-	duk_call(ctx,2);
+		medium_copy_field(itype,source,&datacopy);
+		any = datacopy;
+		push_typed_proxy2(ctx,itype,PKW_inputOutput,datacopy,NULL,'T');
+		duk_push_number(ctx,TickTime());
+		duk_call(ctx,2);
+	}
 	//show_stack(ctx,"after calling isOver");
 	duk_pop(ctx); //pop undefined that results from void myfunc(){}
 	return;
 }
-int jsIsRunning(){
+int duk_jsIsRunning(){
 	//printf("in jsIsRunning\n");
 	return 1;
 }
-void JSDeleteScriptContext(int num){
+void duk_JSDeleteScriptContext(int num){
 	struct CRscriptStruct *ScriptControl;
 	//printf("in JSDeleteScriptContext\n");
 	ScriptControl = getScriptControlIndex(num);
 	duk_destroy_heap(ScriptControl->cx);
 	return;
 }
-void jsShutdown(){
+void duk_jsShutdown(){
 	//printf("in jsShutdown\n");
 	return;
 }
-void jsClearScriptControlEntries(int num){
+void duk_jsClearScriptControlEntries(int num){
 	//printf("in jsClearScriptControlEntries\n");
 	return;
 }
@@ -2642,7 +2949,7 @@ int jsrrunScript(duk_context *ctx, char *script, FWval retval) {
 int isScriptControlOK(int actualscript);
 int isScriptControlInitialized(int actualscript);
 void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union anyVrml *any, int len);
-int runQueuedDirectOutputs()
+int duk_runQueuedDirectOutputs()
 {
 	/*
 	http://www.web3d.org/files/specifications/19775-1/V3.3/Part01/components/scripting.html#directoutputs
@@ -2686,7 +2993,7 @@ int runQueuedDirectOutputs()
 	
 	if(!doneOnce){
 		//	printf("in runQueuedDirectOutputs\n");
-		printf("duktape javascript engine version %ld\n", DUK_VERSION);
+		printf("javascript engine duktape version %ld\n", DUK_VERSION);
 		doneOnce++;
 	}
 	moreAction = FALSE;

@@ -59,6 +59,7 @@ typedef struct pComponent_Shape{
 
 	/* Any user defined shaders here? */
 	struct X3D_Node * userShaderNode;
+	int modulation;
     
 }* ppComponent_Shape;
 
@@ -71,8 +72,20 @@ void Component_Shape_init(struct tComponent_Shape *t){
 	//public
 	//private
 	t->prv = Component_Shape_constructor();
-}
+	{
+		ppComponent_Shape p = (ppComponent_Shape)t->prv;
+		p->modulation = 1; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+	}
 
+}
+void fwl_set_modulation(int modulation){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	p->modulation = modulation; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+}
+int fwl_get_modulation(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	return p->modulation; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+}
 //getters
 struct matpropstruct *getAppearanceProperties(){
 	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
@@ -403,7 +416,7 @@ struct X3D_Node *getGeomTexCoordField(struct X3D_Node *realGeomNode){
 			memcpy(&tc,offsetPointer_deref(void*, realGeomNode,*(fieldOffsetsPtr+1)),sizeof(struct X3D_Node *));
 			break;
 		}
-		fieldOffsetsPtr += 5;
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 	}
 	return tc;
 
@@ -754,9 +767,12 @@ bool setupShaderB();
 void textureTransform_start();
 void reallyDraw();
 
+
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
 	//int channels;
+	struct X3D_Virt *v;
+
 	ppComponent_Shape p;
     	ttglobal tg = gglobal();
 	struct fw_MaterialParameters defaultMaterials = {
@@ -863,7 +879,7 @@ void child_Shape (struct X3D_Shape *node) {
 			// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
 			//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
 			//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
-			int modulation = 1; //freewrl default 1 (dug9 Aug 27, 2016 interpretation of Lighting specs)
+			int modulation = p->modulation; //freewrl default 1 (dug9 Aug 27, 2016 interpretation of Lighting specs)
 			channels = getImageChannelCountFromTTI(node->appearance);
 
 			if(modulation == 0)
@@ -961,6 +977,7 @@ void child_Shape (struct X3D_Shape *node) {
 		textureTransform_start();
 		setupShaderB();
 		render_node(tmpNG);
+		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);

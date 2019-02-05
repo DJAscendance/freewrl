@@ -80,11 +80,13 @@ void Multi_String_print(struct Multi_String *url);
 
 #ifdef _MSC_VER
 #include "ImageLoader.h"
-#else
+#else //_MSC_VER
 #if !(defined(_ANDROID) || defined(ANDROIDNDK))
+#ifdef HAVE_IMLIB2
 		#include <Imlib2.h>
-	#endif
-#endif
+#endif //HAVE_IMLIB2
+#endif //NOT ANDROID
+#endif //_MSC_VER
 
 
 
@@ -242,11 +244,15 @@ void texture_dump_list()
 #endif
 }
 
+static size_t st(int k){
+	return (size_t)k;
+}
 static void texture_swap_B_R(textureTableIndexStruct_s* this_tex)
 {
 	//swap red and blue // BGRA - converts back and forth from BGRA to RGBA 
 	//search for GL_RGBA in textures.c
-	int x,y,z,i,j,k,ipix,ibyte;
+	int x,y,z,i,j,k;
+	size_t ipix, ibyte;
 	unsigned char R,B,*data;
 	x = this_tex->x;
 	y = this_tex->y;
@@ -256,12 +262,14 @@ static void texture_swap_B_R(textureTableIndexStruct_s* this_tex)
 		for(j=0;j<y;j++){
 			for(k=0;k<x;k++)
 			{
-				ipix = (i*y + j)*x + k;
-				ibyte = ipix * 4; //assumes tti->texdata is 4 bytes per pixel, in BGRA or RGBA order
+				//ipix = (i*y + j)*x + k;
+				//ibyte = ipix * 4L; //assumes tti->texdata is 4 bytes per pixel, in BGRA or RGBA order
+				ipix = (st(i)*st(y) + st(j))*st(x) + st(k);
+				ibyte = ipix * st(4); //assumes tti->texdata is 4 bytes per pixel, in BGRA or RGBA order
 				R = data[ibyte];
-				B = data[ibyte+2];
+				B = data[ibyte+st(2)];
 				data[ibyte] = B;
-				data[ibyte+2] = R;
+				data[ibyte+st(2)] = R;
 			}
 		}
 	}
@@ -2034,6 +2042,7 @@ static int loadImageTexture_png(textureTableIndexStruct_s* this_tex, char *filen
 	
 	//from memory (if from file there s png_set_io
 	if(tactic == TACTIC_FROM_FILE){
+		size_t rvt;
 		char header[8];
 		fp = fopen(filename,"rb");
 		rvt=fread(header, 1, 8, fp);
@@ -2265,7 +2274,7 @@ static void __reallyloadImageTexture(textureTableIndexStruct_s* this_tex, char *
  *                           load it now.
  */
 int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename); 
-bool texture_load_from_file(textureTableIndexStruct_s* this_tex, char *filename)
+int texture_load_from_file(textureTableIndexStruct_s* this_tex, char *filename)
 {
 
 /* Android, put it here... */
@@ -2431,6 +2440,7 @@ ConsoleMessage(me);}
 /* LINUX */
 
 #if !defined (_MSC_VER) && !defined(_ANDROID) && !defined(ANDROIDNDK)
+#ifdef HAVE_IMLIB2
 	Imlib_Image image;
 	Imlib_Load_Error error_return;
 	char *fname;
@@ -2518,8 +2528,8 @@ ConsoleMessage(me);}
 	FREE(fname);
 	return (ret);
 
-
-#endif
+#endif //HAVE_IMLIB2
+#endif //NOT MSC, ANDROID
 
 
 	return FALSE;
@@ -2668,13 +2678,16 @@ static void texture_process_list_item(s_list_t *item)
 			// no point in trying again, 
 			// you'll just get the same result in a vicious cycle
 		}
+		//printf("texture_process LOADING\n");
 		break;
 	case TEX_READ:
 		entry->status = TEX_NEEDSBINDING;
 		remove_it = TRUE;
+		//printf("texture_process READ\n");
 		break;		
 	default:
 		//DEBUG_MSG("Could not process texture entry: %s\n", entry->filename);
+		//printf("texture_process default\n");
 		remove_it = TRUE;
 		break;
 	}
@@ -2687,7 +2700,7 @@ static void texture_process_list_item(s_list_t *item)
 }
 
 void threadsafe_enqueue_item_signal(s_list_t *item, s_list_t** queue, pthread_mutex_t* queue_lock, pthread_cond_t *queue_nonzero);
-s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, bool* wait);
+s_list_t* threadsafe_dequeue_item_wait(s_list_t** queue, pthread_mutex_t *queue_lock, pthread_cond_t *queue_nonzero, BOOL* wait);
 
 void texitem_enqueue(s_list_t *item){
 	ppLoadTextures p;

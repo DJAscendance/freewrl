@@ -236,6 +236,16 @@ int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *sha
 	return TRUE;
 }
 #endif //_MSC_VER
+#ifdef AQUA
+int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
+	if (!fv_create_main_window(params)){ //0 /*argc*/, NULL /*argv*/)) {
+		return FALSE;
+	}
+	fv_bind_GLcontext();
+	return TRUE;
+}
+#endif //AQUA
+
 // OLD_IPHONE_AQUA #ifdef AQUA
 // OLD_IPHONE_AQUA int fv_create_window_and_context(freewrl_params_t *params, freewrl_params_t *share){
 // OLD_IPHONE_AQUA  	/* make the window, create the OpenGL context, share the context if necessary 
@@ -328,7 +338,7 @@ int fv_display_initialize_desktop(){
     PRINT_GL_ERROR_IF_ANY ("end of fv_display_initialize");
     
 // OLD_IPHONE_AQUA #if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID))
-#if !(defined(_MSC_VER) || defined(_ANDROID))
+#if !(defined(TARGET_AQUA) || defined(_MSC_VER) || defined(_ANDROID))
         
 	if (RUNNINGASPLUGIN) {
 #if defined(FREEWRL_PLUGIN) && (defined(TARGET_X11) || defined(TARGET_MOTIF))
@@ -526,9 +536,16 @@ bool initialize_rdr_caps()
 	p->rdr_caps.av_multitexture = 1;
 
 	FW_GL_GETINTEGERV(GL_MAX_TEXTURE_SIZE, &tmp);
-	p->rdr_caps.runtime_max_texture_size = (int) tmp;
 	p->rdr_caps.system_max_texture_size = (int) tmp;
-
+	ConsoleMessage("maximum texture size system/gpu: %d ",p->rdr_caps.system_max_texture_size);
+#ifdef _MSC_VER
+	//Jan 2018 desktop windows:
+	// we're having problems with black textures with intel and nvidia, when at max reported texture size
+	if(tmp > 8192) tmp = tmp/2; 
+#endif
+	p->rdr_caps.runtime_max_texture_size = (int) tmp;
+	ConsoleMessage("runtime/freewrl: %d\n",tmp);
+	ConsoleMessage("processor architecture %s\n",sizeof(void*)>4?"x64":"x86");
 	// GL_MAX_TEXTURE_UNITS is for fixed function, and should be deprecated.
 	// use GL_MAX_TEXTURE_IMAGE_UNITS now, according to the OpenGL.org wiki
 
@@ -563,10 +580,14 @@ bool initialize_rdr_caps()
 	) {
 		if (p->rdr_caps.runtime_max_texture_size > 1024) p->rdr_caps.runtime_max_texture_size = 1024;
 	}
-
+	if(1){
+		int actualbits;
+		glGetIntegerv(GL_DEPTH_BITS, &actualbits);
+		ConsoleMessage("depth bits %d\n",actualbits);
+	}
 	/* print some debug infos */
 	rdr_caps_dump(&p->rdr_caps);
-
+	
 	//make this the renderer caps for this thread.
 	//memcpy(&gglobal()->display.rdr_caps,&rdr_caps,sizeof(rdr_caps));
 	return TRUE;

@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-
+/*
 @interface UrlDownloader : NSOperation
 {
     NSURL * _url;
@@ -27,3 +27,4 @@
 - (void) awakeFromNib;
 
 @end
+*/

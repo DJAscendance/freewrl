@@ -294,6 +294,7 @@ void remove_OSCsensor(struct X3D_Node * node) {}
 
 int loadstatus_AudioClip(struct X3D_AudioClip *node);
 int loadstatus_Script(struct X3D_Script *script);
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
 void render_LoadSensor (struct X3D_LoadSensor *node) {
 	int count;
 	int nowLoading;
@@ -506,10 +507,10 @@ void child_Anchor (struct X3D_Anchor *node) {
 }
 
 struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
-struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, char *name);
-struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, char *name);
+struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
+struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name);
 
-struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, char *name, int *source){
+struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, const char *name, int *source){
 	/*chain-of-command pattern looks in DEFnames and if not found looks in IMPORTS and if found
 		checks Inline's EXPORT table if available, and if found, checks Inline's DEF table to get node*
 		(name,node*) 'mapping': 
@@ -563,10 +564,11 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 	   whatever state inline is in, we'll get the latest mapping of name to node*
 	*/
 	struct X3D_Node* newnodef, *newnodet; 
-	int source, type, kind, ifield;
+	int source, type, kind, ifield, builtIn;
+	const char *cname;
 	union anyVrml *value;
-
 	int changed = 0;
+
 	newnodef = route->from.node;
 	newnodet = route->to.node;
 	if(route->from.weak){
@@ -576,9 +578,10 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 		changed = changed || ic;
 		if(newnodef && ic) {
 			route->from.weak = 3; //an extra marker indicating wether its currently 'satisified' or unknown
-			getFieldFromNodeAndName(newnodef,route->from.cfield,&type,&kind,&ifield,&value);
+			getFieldFromNodeAndNameC(newnodef,route->from.cfield,&type,&kind,&ifield,&builtIn, &value, &cname);
 			if(ifield < 0) ConsoleMessage("bad FROM field ROUTE %s.%s TO %s.%s\n",route->from.cnode,route->from.cfield,route->to.cnode,route->to.cfield);
 			route->from.ifield = ifield;
+			route->from.builtIn = builtIn;
 			route->from.ftype = type;
 			route->ft = type;
 		}
@@ -591,10 +594,11 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 		changed = changed || ic;
 		if(newnodet && ic) {
 			route->to.weak = 3; //an extra marker indicating wether its currently 'satisified' or unknown
-			getFieldFromNodeAndName(newnodet,route->to.cfield,&type,&kind,&ifield,&value);
+			getFieldFromNodeAndNameC(newnodet,route->to.cfield,&type,&kind,&ifield,&builtIn,&value,&cname);
 			if(ifield < 0) 
 				ConsoleMessage("bad TO field ROUTE %s.%s TO %s.%s\n",route->from.cnode,route->from.cfield,route->to.cnode,route->to.cfield);
 			route->to.ifield = ifield;
+			route->to.builtIn = builtIn;
 			route->to.ftype = type;
 			route->ft = type;
 		}
@@ -603,14 +607,14 @@ void update_weakRoute(struct X3D_Proto *context, struct brotoRoute *route){
 	if(changed){
 		if(route->lastCommand){
 			//its registered, so unregister
-			CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->to.node,route->to.ifield,route->ft);
+			CRoutes_RemoveSimpleB(route->from.node,route->from.ifield,route->from.builtIn,route->to.node,route->to.ifield,route->to.builtIn,route->ft);
 			route->lastCommand = 0;
 		}
 		route->from.node = newnodef;
 		route->to.node = newnodet;
 		if(route->from.node && route->to.node && route->from.ifield > -1 && route->to.ifield > -1){ //both satisfied
 			route->lastCommand = 1;
-			CRoutes_RegisterSimpleB(route->from.node,route->from.ifield,route->to.node,route->to.ifield,route->ft);
+			CRoutes_RegisterSimpleB(route->from.node,route->from.ifield,route->from.builtIn,route->to.node,route->to.ifield,route->to.builtIn,route->ft);
 		}
 	}
 }
@@ -655,6 +659,9 @@ void load_Inline (struct X3D_Inline *node) {
 			if (node->url.n == 0) {
 				node->__loadstatus = INLINE_STABLE; /* a "do-nothing" approach */
 			} else {
+				//wrong parent resource? see Component_DIS note on parsing vs rendering _parentResource
+				//parsing: comes from a stack which is pushed and popped
+				//rendering creation of inlines: comes from parent context's _parentResource
 				res = resource_create_multi(&(node->url));
 				res->media_type = resm_unknown;
 				node->__loadstatus = INLINE_REQUEST_RESOURCE;
@@ -711,6 +718,7 @@ void load_Inline (struct X3D_Inline *node) {
 				if (res->status == ress_parsed) {
 					/* this might be a good place to populate parent context IMPORT table with our EXPORT nodes? */
 					node->__loadstatus = INLINE_IMPORTING; //INLINE_STABLE; 
+
 				} 
 			}
 
@@ -807,7 +815,8 @@ void compile_Inline(struct X3D_Inline *node) {
 	} 
 	MARK_NODE_COMPILED
 }
-
+void prep_unitscale (struct X3D_Proto *ec);
+void fin_unitscale (struct X3D_Proto *ec);
 void child_Inline (struct X3D_Inline *node) {
 
 	//static int usingSortedChildren = 0;
@@ -817,13 +826,13 @@ void child_Inline (struct X3D_Inline *node) {
 	//LOCAL_LIGHT_SAVE
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
-
+	prep_unitscale(X3D_PROTO(node));
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 
 	normalChildren(node->_sortedChildren);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
+	fin_unitscale(X3D_PROTO(node));
 	//LOCAL_LIGHT_OFF
 
 }

@@ -420,7 +420,6 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 		quat->x = 0.0;
 		quat->y = 0.0;
 		quat->z = 0.0;
-
 	} else {
 		s = sin(a/2.0);
 		/* normalize rotation axis to convert VRML rotation to quaternion */
@@ -430,6 +429,12 @@ vrmlrot_to_quaternion(Quaternion *quat, const double x, const double y, const do
 		quat->z = s * (z / scale);
 		quaternion_normalize(quat);
 	}
+}
+void vrmlrot4d_to_quaternion(Quaternion *quat, const double *xyza){
+	vrmlrot_to_quaternion(quat,xyza[0],xyza[1],xyza[2],xyza[3]);
+}
+void vrmlrot4f_to_quaternion(Quaternion *quat, const float *xyza){
+	vrmlrot_to_quaternion(quat,xyza[0],xyza[1],xyza[2],xyza[3]);
 }
 
 /*
@@ -457,23 +462,60 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 	
 	//double scale = sqrt(VECSQ(*quat));
 	Quaternion qn;
-	double scale;
+	double s2, scale;
 
 	quaternion_set(&qn,quat);
 	quaternion_normalize(&qn);
-	scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
-	if (APPROX(scale, 0.0)) {
+	// Mar 2018 having some rare numerical problems in here when quat is w=1 xyz = +-0 +-0 +-0
+	// in Component_Geospatial prep_geoViewpoint
+	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/
+	// does scale a bit different
+	//our scale:
+	//scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
+	//euc scale (seems to work for my problem cases):
+	//no - the problem now is sqrt(0) comes out -1.#IND
+	// or more preciesly MSVC gives NaN if value is negative, and ours might be 
+	// a tiny tiny bit negative.
+	s2 = 1.0 - qn.w;
+	if (APPROX(s2, 0.0) || s2 < 0.0) {
 		*x = 0;
 		*y = 0;
 		*z = 1;
 		*a = 0;
 	} else {
+		scale = sqrt(1.0 - qn.w);
 		*x = qn.x / scale;
 		*y = qn.y / scale;
 		*z = qn.z / scale;
 		*a = 2.0 * acos(qn.w);
 	}
 }
+void quaternion_to_vrmlrot4d(const Quaternion *quat, double *xyza){
+	quaternion_to_vrmlrot(quat, &xyza[0], &xyza[1], &xyza[2], &xyza[3]);
+}
+void quaternion_to_vrmlrot4f(const Quaternion *quat, float *rot)
+{
+	
+	//double scale = sqrt(VECSQ(*quat));
+	Quaternion qn;
+	double scale;
+
+	quaternion_set(&qn,quat);
+	quaternion_normalize(&qn);
+	scale = sqrt((qn.x * qn.x) + (qn.y * qn.y) + (qn.z * qn.z));
+	if (APPROX(scale, 0.0)) {
+		rot[0] = 0.0f;
+		rot[1] = 0.0f;
+		rot[2] = 1.0f;
+		rot[3] = 0.0f;
+	} else {
+		rot[0] = qn.x / scale;
+		rot[1] = qn.y / scale;
+		rot[2] = qn.z / scale;
+		rot[3] = 2.0 * acos(qn.w);
+	}
+}
+
 
 void
 quaternion_conjugate(Quaternion *quat)
@@ -512,7 +554,7 @@ void
 quaternion_normalize(Quaternion *quat)
 {
 	double n = quaternion_norm(quat);
-	if (APPROX(n, 1)) {
+	if (APPROX(n, 1.0)) {
 		return;
 	}
 	quat->w /= n;
@@ -520,7 +562,7 @@ quaternion_normalize(Quaternion *quat)
 	quat->y /= n;
 	quat->z /= n;
 }
-
+// adding quaternions is rarely needed but we do something like it in squad interpolator
 void quaternion_add(Quaternion *ret, const Quaternion *q1, const Quaternion *q2) {
 	double t1[3];
 	double t2[3];
@@ -553,7 +595,8 @@ void quaternion_add(Quaternion *ret, const Quaternion *q1, const Quaternion *q2)
 	/* Q(*dest)[3] = Q(*q1)[3] * Q(*q2)[3] - inner_v3f((v3f *) q1, (v3f *) q2); */
 	ret->w = q1->w * q2->w - ( q1->x * q2->x + q1->y * q2->y + q1->z * q2->z );
 }
-
+// mostly we multiply quaterions, and rotate points
+// http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/transforms/index.htm
 void
 quaternion_multiply(Quaternion *ret, const Quaternion *q1, const Quaternion *q2)
 {
@@ -576,10 +619,11 @@ quaternion_scalar_multiply(Quaternion *quat, const double s)
 	quat->z *= s;
 }
 
-/*
+/* 
  * Rotate vector v by unit quaternion q:
  *
  * v' = q q_v q^-1, where q_v = [0, v]
+ * the so-called sandwich product p2 = q * p * q'
  */
 void
 quaternion_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct point_XYZ *v)
@@ -600,11 +644,50 @@ quaternion_rotation(struct point_XYZ *ret, const Quaternion *quat, const struct 
  	/* printf("Quaternion rotation: ret = {%f, %f, %f}, quat = {%f, %f, %f, %f}, v = {%f, %f, %f}\n", ret->x, ret->y, ret->z, quat->w, quat->x, quat->y, quat->z, v->x, v->y, v->z); */
 }
 void
-quaternion_rotationd(double *ret, Quaternion *quat, double *v){
+quaternion_rotationd_old(double *ret, Quaternion *quat, double *v){
 	struct point_XYZ rp,vp;
 	double2pointxyz(&vp,v);
 	quaternion_rotation(&rp,quat,&vp);
 	pointxyz2double(ret,&rp);
+}
+double *
+quaternion_rotationd(double *ret, Quaternion *quat, double *v)
+{
+	Quaternion q_v, q_i, q_r1, q_r2;
+
+	q_v.w = 0.0;
+	q_v.x = v[0];
+	q_v.y = v[1];
+	q_v.z = v[2];
+	quaternion_inverse(&q_i, quat);
+	quaternion_multiply(&q_r1, &q_v, &q_i);
+	quaternion_multiply(&q_r2, quat, &q_r1);
+
+	ret[0] = q_r2.x;
+	ret[1] = q_r2.y;
+	ret[2] = q_r2.z;
+ 	/* printf("Quaternion rotation: ret = {%f, %f, %f}, quat = {%f, %f, %f, %f}, v = {%f, %f, %f}\n", ret->x, ret->y, ret->z, quat->w, quat->x, quat->y, quat->z, v->x, v->y, v->z); */
+	return ret;
+}
+
+float *
+quaternion_rotation3f(float *ret, Quaternion *quat, float *v)
+{
+	Quaternion q_v, q_i, q_r1, q_r2;
+
+	q_v.w = 0.0;
+	q_v.x = v[0];
+	q_v.y = v[1];
+	q_v.z = v[2];
+	quaternion_inverse(&q_i, quat);
+	quaternion_multiply(&q_r1, &q_v, &q_i);
+	quaternion_multiply(&q_r2, quat, &q_r1);
+
+	ret[0] = q_r2.x;
+	ret[1] = q_r2.y;
+	ret[2] = q_r2.z;
+ 	/* printf("Quaternion rotation: ret = {%f, %f, %f}, quat = {%f, %f, %f, %f}, v = {%f, %f, %f}\n", ret->x, ret->y, ret->z, quat->w, quat->x, quat->y, quat->z, v->x, v->y, v->z); */
+	return ret;
 }
 
 void
@@ -709,7 +792,7 @@ void vrmlrot_normalize(float *ret)
 	{
 		ret[2] = 1.0f;
 	}
-	ret[3] = (float) fmod(ret[3],MATH_PI); //acos(-1.0));
+	ret[3] = (float) atan2(sin(ret[3]), cos(ret[3]));
 }
 
 void vrmlrot_multiply(float* ret, float *a, float *b) 

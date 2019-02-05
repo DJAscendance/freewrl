@@ -2998,16 +2998,18 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 }
 
-void calculateViewingSpeed();
+void calculateViewingSpeed(X3D_Viewer *);
 static void handle_GeoLODRange(struct X3D_GeoLOD *node) {
 	int oldInRange;
+	X3D_Viewer *viewer;
 	GLDOUBLE cx,cy,cz;
 	/* find the length of the line between the moved center and our current viewer position */
-	getCurrentPosInModel(FALSE);
-	calculateViewingSpeed();
-	cx = Viewer()->currentPosInModel.x - node->__movedCoords.c[0];
-	cy = Viewer()->currentPosInModel.y - node->__movedCoords.c[1];
-	cz = Viewer()->currentPosInModel.z - node->__movedCoords.c[2];
+	viewer = Viewer();
+	getCurrentPosInModelB();
+	//calculateViewingSpeedB(viewer);
+	cx = viewer->currentPosInModel.x - node->__movedCoords.c[0];
+	cy = viewer->currentPosInModel.y - node->__movedCoords.c[1];
+	cz = viewer->currentPosInModel.z - node->__movedCoords.c[2];
 
 	 //printf ("geoLOD, distance between me and center is %lf\n", sqrt (cx*cx + cy*cy + cz*cz));
 
@@ -3143,8 +3145,171 @@ void drawBBOX(struct X3D_Node *node) {
 
 }
 #endif //DEBUGGING_CODE
+struct depth_slice {
+	double znear, zfar;
+};
+static struct depth_slice depth_slices_three [] = { 
+{1.e-1, 1.01e3},
+{1.e3, 1.01e7 },
+{1.e7, 1.01e11},
+};
+static struct depth_slice depth_slices_two [] = { 
+{1.e-1, 1.05e4},
+{1.e4, 1.0e9 },
+};
+static struct depth_slice depth_slices_one [] = {
+{.07, 21000.0},
+};
+static int n_depth_slices = 1; //should be in gglobal
+static int want_depth_slices = 0; //0=auto 1=1 2=2 3=3
+int iclamp(int ival, int istart, int iend);
+void fwl_set_depth_slices(int nslices){
+	want_depth_slices = iclamp(nslices,0,3);
+	//printf("want slices=%d %d\n",nslices,want_depth_slices);
+}
+int fwl_get_depth_slices(){
+	return want_depth_slices;
+}
+static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ){
+	// This Feb 3, 2018 method depth slicing method is great for working on geospatial 
+	// - you can just do 2 or 3 depth slices and benefits:
+	// * get a great range from .1 to 1B m or 100B m. 
+	// * keep depth range stable (no flutter due to nearplane-changing side-effects when yawing toward planet)
+	// * reduces z-fighting (same bits, but over shorter ranges)
+	// * portable - uses normal opengl 2.1, fancy stuff is our code
+	// * works the same on non-geo and geo scenes / viewpionts
+	// x Slows frame rate 30%? -like stereo does, an extra loop or 2 on the draw, 
+	//- 1slice .07 - 21000 - our familiar old range, one loop, no performance hit
+	//- 2slice: .1 - 1B - Mars can disappear while still multiple (~5) pixels wide
+	//- 3slice: .1 - 100B - Mars still visible as sub-pixel on horizon
+	// haven't tried other ideas, such as rendering to a float32 fbo, with reversed z:
+	//   https://developer.nvidia.com/content/depth-precision-visualized
+	//   due to it being less portable
+	float extent6[6];
+	int previous_n, iwant;
+	struct X3D_Node* rn;
+	static int once = 0;
+	X3D_Viewer *viewer = ViewerByLayerId(layerid);
+	viewer->nearPlane = DEFAULT_NEARPLANE;
+	viewer->farPlane = DEFAULT_FARPLANE;
 
-static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
+	iwant = fwl_get_depth_slices();
+	previous_n = n_depth_slices;
+	if(iwant == 0) //auto
+	{
+		n_depth_slices = 1;
+		//regular non-geo scene, or geo scene with non-geo vp
+		rn = rootNode();
+		if(rn) {
+			//include vp current location in scene diameter
+			// for Mars.x3d, as you navigate away, when its about 4 pixels wide, 
+			// slices change from 2 to 3 so it goes to a point on the horizon
+			float scene_diameter;
+			double MM[16];
+			float vpf[3];
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+			//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+			//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+			//compute scene diameter in vp space
+			// seems to work with 
+			// a) regular scene (townsite 1,2,3 as move away, and back)
+			// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+			// and no flutter when yawing viewpoint toward/away from planet
+			// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+			extent6f_copy(extent6,rn->_extent);
+			extent6f_mattransform4d(extent6,extent6,MM);
+			//include currently bound viewpoint in scene_diameter
+			vecset3f(vpf,0.0f,0.0f,0.0f); 
+			extent6f_union_vec3f(extent6,vpf);
+			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+
+			if(scene_diameter > 21000.0f ) n_depth_slices = 2;
+			if(scene_diameter > 1.e9 ) n_depth_slices = 3;
+		}
+	}else{
+		n_depth_slices = want_depth_slices;
+	}
+	if(0) if(!once || previous_n != n_depth_slices)
+		ConsoleMessage("depth slices: %d \n",n_depth_slices);
+	once = 1;
+}
+void calculateViewingDistIfJustBound(struct X3D_Node *vpnode, int layerid ){
+	if(Viewer()->doExamineModeDistanceCalculations){
+		float extent6[6];
+		struct X3D_Node* rn;
+
+		rn = rootNode();
+		if(rn) {
+			float scene_diameter, vpradius;
+			double MM[16];
+			float vpf[3], center[3], vpoffset[3];
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+			//Q. is nearPlane farPlane used in setup_viewpoint in root space or vp space?
+			//H: vp space - its opengl and opengl doesn't know about 'scene root space'
+			//compute scene diameter in vp space
+			// seems to work with 
+			// a) regular scene (townsite 1,2,3 as move away, and back)
+			// b) geo scenes (mars 2-3 on horizon and back) world33 (2-3 on horizon)
+			// and no flutter when yawing viewpoint toward/away from planet
+			// only cost: an extra 1 or 2 draw loops on 'big' scenes, slower frame rate
+			extent6f_copy(extent6,rn->_extent);
+			extent6f_mattransform4d(extent6,extent6,MM);
+			//include currently bound viewpoint in scene_diameter
+			vecset3f(vpf,0.0f,0.0f,0.0f); 
+			extent6f_get_center3f(extent6,center);
+			//extent6f_union_vec3f(extent6,vpf);
+			vecdif3f(vpoffset,center,vpf);
+			scene_diameter = extent6f_get_maxradius(extent6) * 2.0;
+			vpradius = veclength3f(vpoffset);
+			//printf("scene_diameter %f vpradius %f\n",scene_diameter,vpradius);
+			Viewer()->Dist = vpradius; // + scene_diameter;
+			//Viewer()->Dist = scene_diameter;
+			Viewer()->doExamineModeDistanceCalculations = FALSE;
+			
+		}
+	}
+}
+
+int get_n_depth_slices(){
+	return n_depth_slices;
+}
+void get_depth_slice(int islice, double *znear, double *zfar){
+	
+	switch(n_depth_slices){
+		default:
+		case 1: 
+			*znear = depth_slices_one[islice].znear;
+			*zfar = depth_slices_one[islice].zfar;
+			break;
+		case 2:
+			*znear = depth_slices_two[1-islice].znear;
+			*zfar = depth_slices_two[1-islice].zfar;
+			break;
+		case 3:
+			*znear = depth_slices_three[2-islice].znear;
+			*zfar = depth_slices_three[2-islice].zfar;
+			break;
+	}
+	//printf("%d %lf %lf\n",islice,*znear,*zfar);
+}
+static void calculateNearFarplanes_OLD(struct X3D_Node *vpnode, int layerid ) {
+/*
+	in theory, you get the bounding box of your scene, and transform that into camera space of bound viewpoint
+	(that's in the camera coordinate system, before projection, with z coming toward the camera, at world scale)
+	and take the near and far of that box to help decide on a near/far range
+	to help get the most out of your zbuffer range.
+	- some or all of bbox might be behind the camera, in that case near should be some +ve default
+	- the far might be closer than near or behind the bbox - in that case far should be some default
+	- stabilizing near far so it doesn't flutter frame to frame, if that's a problem
+	- computing near/far separately for each Layer (each layer has a different binding stack / active viewpoint / scenery)
+	challenge scenes:
+		geo: mars http://www.web3d.org/x3d/content/examples/Basic/Geospatial/Mars.x3d
+			- enormous range, do the faces on the planet z-sort right 
+			- (Oct 1 2017 problem with online mars: mixes x3d v3.3 and degrees with no units specified)
+		geo: world http://www.web3d.org/x3d/content/examples/Basic/Geospatial/World.x3d
+			- big range, do the menu boxes show (have been cropping, use Dist menu button)
+	
+*/
 	struct point_XYZ bboxPoints[8];
 	GLDOUBLE cfp = -DBL_MAX;
 	GLDOUBLE cnp = DBL_MAX;
@@ -3185,6 +3350,18 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 
 	if (vpnode->_nodeType == NODE_GeoViewpoint) {
 		doingGeoSpatial = true;
+	}
+	if(0){
+		//stabilizes for ortho, viewpoint and geoviewpoint
+		viewer->nearPlane = DEFAULT_NEARPLANE;
+		viewer->farPlane = DEFAULT_FARPLANE;
+		viewer->backgroundPlane = DEFAULT_BACKGROUNDPLANE;
+		if(doingGeoSpatial){
+			viewer->nearPlane = 10000.0;
+			viewer->farPlane = 2100000000.0;
+			viewer->backgroundPlane = 2000000000.0;
+		}
+		return;
 	}
 
 	if (rn == NULL) {
@@ -3228,7 +3405,24 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	moveAndRotateThisPoint(&bboxPoints[6], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MIN_Z,MM);
 	moveAndRotateThisPoint(&bboxPoints[7], rn->EXTENT_MAX_X, rn->EXTENT_MAX_Y, rn->EXTENT_MAX_Z,MM);
 
+	if(0){
+		//verifier: alternate cfp,cnp calc, to check, set once
+		static int done_once = 0;
+		if(done_once) return;
+		double bmin, bmax;
+		bmin = bmax = bboxPoints[0].z;
+		for (ci=0; ci<8; ci++) {
+			bmin = min(bmin,bboxPoints[ci].z);
+			bmax = max(bmax,bboxPoints[ci].z);
+		}
+		viewer->nearPlane = max(.1,bmin); //bmax;
+		viewer->farPlane = bmax; //bmin;
+		//viewer->backgroundPlane = bmin;
+		//done_once = 1;
+		printf("\rnear %lf far %lf",viewer->nearPlane,viewer->farPlane);
 
+		return;
+	}
 
 	for (ci=0; ci<8; ci++) {
 		bboxMovedCentreZ += bboxPoints[ci].z;
@@ -3298,15 +3492,47 @@ static void calculateNearFarplanes(struct X3D_Node *vpnode, int layerid ) {
 	}
 
 	/* lets use these values; leave room for a Background or TextureBackground node here */
-	viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
-	/* backgroundPlane goes between the farthest geometry, and the farPlane */
-	if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
-		viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
-	} else {
+	if(1){
+		//code changed March 2015 - started to get zbuffer problems with geoscenes
+		//viewer->nearPlane = min(cnp,DEFAULT_NEARPLANE);
+		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
+		/* backgroundPlane goes between the farthest geometry, and the farPlane */
+		if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {
+			viewer->farPlane = max(cfp * 10.0,DEFAULT_FARPLANE);
+			viewer->backgroundPlane = max(cfp*5.0,DEFAULT_BACKGROUNDPLANE);
+		} else {
+			viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
+			viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		}
+	} 
+	if(0) { 
+		//2018 render_background reworked to render before other nodes, and render close to frontplane, with depth off
+		viewer->nearPlane = cnp; //changed sept 2017 - cnp can be massive like 4.5 million for geo
 		viewer->farPlane = max(cfp,DEFAULT_FARPLANE);
-		viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		// NOT USED 2018 viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		printf("\rnear %lf far %lf",viewer->nearPlane,viewer->farPlane);
 	}
+	if(0) { 
+		//for debugging extents
+		viewer->nearPlane = .07; //changed sept 2017 - cnp can be massive like 4.5 million for geo
+		viewer->farPlane = DEFAULT_FARPLANE;
+		// NOT USED 2018 viewer->backgroundPlane = max(cfp,DEFAULT_BACKGROUNDPLANE); /* just set it to something */
+		printf("\rnear %lf far %lf",viewer->nearPlane,viewer->farPlane);
+	}
+
+	if(0){
+		//pre- march 2015 code, with one line changed, worked for most geo scenes
+		viewer->nearPlane = cnp;
+		/* backgroundPlane goes between the farthest geometry, and the farPlane */
+		if (vectorSize(getActiveBindableStacks(tg)->background)!= 0) {  //changed sept 2017
+			viewer->farPlane = cfp * 10.0;
+			viewer->backgroundPlane = cfp*5.0;
+		} else {
+			viewer->farPlane = cfp;
+			viewer->backgroundPlane = cfp; /* just set it to something */
+		}
+	}
+
 }
 
 void doglClearColor() {
@@ -3607,6 +3833,14 @@ void fw_glPopMatrix(void) {
 //}
 //#undef POPMAT
 
+void fw_glTransformd(GLDOUBLE *mat) {
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+
+	//printf ("fw_glTranslated %lf %lf %lf\n",x,y,z);
+	//printf ("translated, currentMatrix %p\n",p->currentMatrix);
+	matmultiplyAFFINE(p->currentMatrix,mat,p->currentMatrix);
+ 	FW_GL_LOADMATRIX(p->currentMatrix);
+}
 
 void fw_glTranslated(GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
@@ -3669,6 +3903,7 @@ void fw_glRotateRad (GLDOUBLE angle, GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	matrotate(myMat,angle,x,y,z);
 
 	//printmatrix2 (myMat, "rotation matrix");
+
 	matmultiplyAFFINE(p->currentMatrix,myMat,p->currentMatrix);
 
 	//printmatrix2 (p->currentMatrix,"currentMatrix after rotate");
@@ -4613,7 +4848,7 @@ void *sibAffectorPtr(struct X3D_Node *node){
 			fieldPtr = offsetPointer_deref(char *, node,fieldOffsetsPtr[1]);
 			break;
 		}
-		fieldOffsetsPtr += 5; // &fieldOffsetsPtr[5]; //5 ints per table entry
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH; // &fieldOffsetsPtr[5]; //5 ints per table entry
 	}
 	return fieldPtr;
 }
@@ -4923,6 +5158,7 @@ void startOfLoopNodeUpdates(void) {
 
 				/* get ready to mark these nodes as Mouse Sensitive */
 				BEGIN_NODE(LineSensor) SIBLING_SENSITIVE(LineSensor) END_NODE
+				BEGIN_NODE(PointSensor) SIBLING_SENSITIVE(PointSensor) END_NODE
 				BEGIN_NODE(PlaneSensor) SIBLING_SENSITIVE(PlaneSensor) END_NODE
 				BEGIN_NODE(SphereSensor) SIBLING_SENSITIVE(SphereSensor) END_NODE
 				BEGIN_NODE(CylinderSensor) SIBLING_SENSITIVE(CylinderSensor) END_NODE
@@ -5148,6 +5384,12 @@ void startOfLoopNodeUpdates(void) {
 					CHILDREN_NODE(GeoLocation)
 				END_NODE
 
+				BEGIN_NODE (EspduTransform)
+					propagateExtent(X3D_NODE(node));
+					CHILDREN_NODE(EspduTransform)
+				END_NODE
+
+
 				BEGIN_NODE(MetadataSFBool) CMD(SFBool,node); END_NODE
 				BEGIN_NODE(MetadataSFFloat) CMD(SFFloat,node); END_NODE
 				BEGIN_NODE(MetadataMFFloat) CMD(MFFloat,node); END_NODE
@@ -5256,12 +5498,11 @@ void startOfLoopNodeUpdates(void) {
 				//}
 
 				AddRemoveChildren(node,childrenPtr,(struct X3D_Node * *) addChildren->p,addChildren->n,1,__FILE__,__LINE__);
-
 				// now go through and tell the addChildren field that the
 				// event has been processed.
 				for (i=0; i<addChildren->n; i++) {
 					struct X3D_Node *ch = X3D_NODE(addChildren->p[i]);
-					remove_parent(ch,node);
+					add_parent(ch,node,__FILE__,__LINE__);
 				}
 
 				addChildren->n=0;
@@ -5301,9 +5542,11 @@ void startOfLoopNodeUpdates(void) {
 			struct X3D_Node *boundvp = vector_back(struct X3D_Node*,bstack->viewpoint);
 			update_renderFlag(boundvp, VF_Viewpoint);
 			calculateNearFarplanes(boundvp, bstack->layerId);
+			calculateViewingDistIfJustBound(boundvp,bstack->layerId);
 			//update_renderFlag(vector_back(struct X3D_Node*,
 			//	tg->Bindable.viewpoint_stack), VF_Viewpoint);
 			//calculateNearFarplanes(vector_back(struct X3D_Node*, tg->Bindable.viewpoint_stack));
+			foundbound = TRUE;
 		}
 	}
 	if(!foundbound){
@@ -5429,7 +5672,7 @@ void markForDispose(struct X3D_Node *node, int recursive){
 			}
 			default:; /* do nothing - field not malloc'd */
 		}
-		fieldOffsetsPtr+=5;
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 	}
 
 
@@ -5524,7 +5767,7 @@ BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(), void* callbackDa
 		jfield++;
 		foundField = callbackFunc(callbackData,node,jfield,fieldPtr,fname,mode,type,source,publicfield);
 		if( foundField )break;
-		fieldOffsetsPtr+=5;
+		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 	}
 	if(!foundField)
 	{
@@ -5834,7 +6077,11 @@ BOOL cbFreeMallocedBuiltinField(void *callbackData,struct X3D_Node* node,int jfi
 			//#define FIELDTYPE_FreeWRLPTR	22
 			//#define FIELDTYPE_SFImage	23
 			//if(strcmp(fieldName,"__oldurl") && strcmp(fieldName,"__oldSFString") && strcmp(fieldName,"__oldMFString") && strcmp(fieldName,"_parentVector")) {
-			if(strcmp(fieldName,"__oldurl") && strcmp(fieldName,"_parentVector")) {
+			//Mar2018 new rule: 
+			// if it has two leading underscores '__' then don't free (see other callbacks for freeing) new mar2018
+			// else if mentioned on the next line, don't free
+			// else free
+			if( strncmp(fieldName,"__",2) && strcmp(fieldName,"__oldurl") && strcmp(fieldName,"_parentVector")) {
 			//if(1){
 				//skip double underscore prefixed fields, which we will treat as not-to-be-deleted, because duplicates like GeoViewpoint __oldMFString which is a duplicate of navType
 				deleteMallocedFieldValue(type,fieldPtr);
@@ -6211,7 +6458,7 @@ OLDCODE				break;
 OLDCODE
 OLDCODE			default:; // do nothing - field not malloc'd 
 OLDCODE		}
-OLDCODE		fieldOffsetsPtr+=5;
+OLDCODE		fieldOffsetsPtr += FIELDOFFSET_LENGTH;
 OLDCODE	}
 OLDCODE
 OLDCODE	FREE_IF_NZ(structptr);
@@ -6805,7 +7052,7 @@ void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOU
 	//printmatrix2(ndp,"ndp = ndp2*dp");
 
 	/* method = 1; */
-	 FW_GL_LOADMATRIX(ndp);
+//	 FW_GL_LOADMATRIX(ndp);
 	/* put the matrix back on our matrix stack */
 	memcpy (p->FW_ProjectionView[p->projectionviewTOS],ndp,16*sizeof (GLDOUBLE));
 }

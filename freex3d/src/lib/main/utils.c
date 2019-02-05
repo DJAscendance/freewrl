@@ -40,6 +40,40 @@
 char *BrowserFullPath = NULL;
 char *BrowserName = "FreeWRL VRML/X3D Browser";
 
+static unsigned int fps_histo[120];
+static int collect_fps_histo = 0;
+void fps_histo_print(){
+	int i;
+	for(i=0;i<120;i++){
+		printf("%3d %d\n",i,fps_histo[i]);
+		fps_histo[i]=0;
+	}
+}
+void fps_histo_toggle(){
+	if(collect_fps_histo == 0){
+		printf("turning on fps histo collection - hit H again to print and end\n");
+		collect_fps_histo = 1;
+	}else if(collect_fps_histo == 1){
+		printf("fps histo:\n");
+		fps_histo_print();
+		collect_fps_histo = 0;
+	}
+}
+void fps_histo_collect(){
+	if(collect_fps_histo == 1){
+		double dt, fps;
+		dt = TickTime() - lastTime();
+		fps = 1.0/dt;
+		if(fps < 0.0) 
+			fps_histo[0] +=1;
+		else if(fps > 119.0)
+			fps_histo[119] +=1;
+		else
+			fps_histo[(int)fps] +=1;
+
+	}
+}
+
 const char* freewrl_get_browser_program()
 {
     char *tmp;
@@ -687,15 +721,16 @@ void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack 
 	int isDefed;
 	char *nodeName;
 	//(int) FIELDNAMES_children, (int) offsetof (struct X3D_Group, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33),
-	typedef struct field_info{
-		int nameIndex;
-		int offset;
-		int typeIndex;
-		int ioType;
-		int version;
-	} *finfo;
-	finfo offsets;
-	finfo field;
+	//typedef struct field_info{
+	//	int nameIndex;
+	//	int offset;
+	//	int typeIndex;
+	//	int ioType;
+	//	int version;
+	//	int unca;
+	//} *finfo;
+	fieldinfo offsets;
+	fieldinfo field;
 	int ifield;
 
 	#ifdef FW_DEBUG
@@ -723,7 +758,7 @@ void dump_scene2(FILE *fp, int level, struct X3D_Node* node, int recurse, Stack 
 	if(recurse && !isDefed)
 	{
 		vector_pushBack(struct X3D_Node*, DEFedNodes, node);
-		offsets = (finfo)NODE_OFFSETS[node->_nodeType];
+		offsets = (fieldinfo)NODE_OFFSETS[node->_nodeType];
 		ifield = 0;
 		field = &offsets[ifield];
 		while( field->nameIndex > -1) //<< generalized for scripts and builtins?
@@ -1789,5 +1824,33 @@ void *reallocn(void *node, void *pold, size_t newsize){
 }
 #endif /* defined(DEBUG_MALLOC) */
 
+#if defined(_MSC_VER) && defined(W_DEBUG)
+#include <crtdbg.h>
+int check_memory(){
+	static int check_memory_initialized = 0;
+	int iret;
+	if(!check_memory_initialized){
+		// Get current flag  
+		int tmpFlag = _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG );  
+  
+		// Turn on leak-checking bit if not already
+		tmpFlag |= _CRTDBG_LEAK_CHECK_DF;  
+  
+		// Turn on CRT block checking bit if not already
+		tmpFlag |= ~_CRTDBG_CHECK_CRT_DF;  
+  
+		// Set flag to the new value.  
+		_CrtSetDbgFlag( tmpFlag );  
+		check_memory_initialized = 1;
+	}
+	iret = _CrtCheckMemory();
+	if(!iret){
+		printf("ouch - memory violation\n");
+	}
+	return iret;
+}
+#else
+int check_memory(){ return TRUE; }
+#endif
 
 #endif

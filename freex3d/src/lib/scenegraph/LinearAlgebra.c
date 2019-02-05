@@ -38,7 +38,25 @@
 
 #include "LinearAlgebra.h"
 
+double angleNormalized(double angle){
+	//will normalize to +- 2*PI (+-180) range
+	return atan2(sin(angle),cos(angle));
+}
+
+
 #define DJ_KEEP_COMPILER_WARNING 0
+void vecprint3fb(char *name, float *p, char *eol){
+	printf("%s %f %f %f %s",name,p[0],p[1],p[2],eol);
+}
+void vecprint4fb(char *name, float *p, char *eol){
+	printf("%s %f %f %f %f %s",name,p[0],p[1],p[2],p[3],eol);
+}
+void vecprint3db(char *name, double *p, char *eol){
+	printf("%s %lf %lf %lf %s",name,p[0],p[1],p[2],eol);
+}
+void vecprint4db(char *name, double *p, char *eol){
+	printf("%s %lf %lf %lf %lf %s",name,p[0],p[1],p[2],p[3],eol);
+}
 double signd(double val){
 	return val < 0.0 ? -1.0 : val > 0.0 ? 1.0 : 0;
 }
@@ -55,6 +73,10 @@ double * vecmuld(double *c, double *a, double *b){
 }
 double * vecsetd(double *b, double x, double y, double z){
 	b[0] = x, b[1] = y; b[2] = z;
+	return b;
+}
+double * vecset4d(double *b, double x, double y, double z, double a){
+	b[0] = x, b[1] = y; b[2] = z; b[3] = a;
 	return b;
 }
 float *double2float(float *b, const double *a, int n){
@@ -156,6 +178,14 @@ double *vecdifd(double *c, double* a, double *b)
 	c[2] = a[2] - b[2];
 	return c;
 }
+double *vecdif4d(double *c, double* a, double *b)
+{
+	c[0] = a[0] - b[0];
+	c[1] = a[1] - b[1];
+	c[2] = a[2] - b[2];
+	c[3] = a[3] - b[3];
+	return c;
+}
 float *vecdif3f(float *c, float *a, float *b)
 {
 	c[0] = a[0] - b[0];
@@ -177,11 +207,35 @@ double *vecnegated(double *b, double *a)
 	b[2] = -a[2];
 	return b;
 }
+double *vecswizzle2d(double *inout ){
+	double tmp = inout[0];
+	inout[0] = inout[1];
+	inout[1] = tmp;
+	return inout;
+}
+
+double *veccopy4d(double *c, double *a)
+{
+	c[0] = a[0];
+	c[1] = a[1];
+	c[2] = a[2];
+	c[3] = a[3];
+	return c;
+}
+
+
 float *veccopy3f(float *b, float *a)
 {
 	b[0] = a[0];
 	b[1] = a[1];
 	b[2] = a[2];
+	return b;
+}
+float *vecnegate3f(float *b, float *a)
+{
+	b[0] = -a[0];
+	b[1] = -a[1];
+	b[2] = -a[2];
 	return b;
 }
 int vecsame2f(float *b, float *a){
@@ -211,6 +265,10 @@ double * veccrossd(double *c, double *a, double *b)
 double veclengthd( double *p )
 {
 	return sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);
+}
+double veclength4d( double *p )
+{
+	return sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2] + p[3]*p[3]);
 }
 double vecdotd(double *a, double *b)
 {
@@ -265,6 +323,11 @@ float *vecset3f(float *b, float x, float y, float z)
 	b[0] = x; b[1] = y; b[2] = z;
 	return b;
 }
+float *vecset4f(float *b, float x, float y, float z, float a)
+{
+	b[0] = x; b[1] = y; b[2] = z; b[3] = a;
+	return b;
+}
 float veclength3f(float *a){
 	return (float)sqrt(vecdot3f(a, a));
 }
@@ -282,7 +345,19 @@ float *veccopy4f(float *b, float *a)
 	b[3] = a[3];
 	return b;
 }
-
+float calc_angle_between_two_vectors3f(float * a, float * b){
+	//scalar angle between 2 vectors (doesn't say which way on a great circle)
+	float an[3], bn[3], dotf, anglef, flen;
+	flen = veclength3f(a);
+	if(flen <= 0.0f) return 0.0f;
+	flen = veclength3f(b);
+	if(flen <= 0.0f) return 0.0f;
+	vecnormalize3f(an,a);
+	vecnormalize3f(bn,b);
+	dotf = vecdot3f(an,bn);
+	anglef = acos(dotf);
+	return anglef;
+}
 float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b)
 {
     float length_a, length_b, scalar, temp;
@@ -323,6 +398,12 @@ int vecsame3f(float *a, float *b){
 int vecsame4f(float *a, float *b){
 	int i,isame = TRUE;
 	for(i=0;i<4;i++)
+		if(a[i] != b[i]) isame = FALSE;
+	return isame;
+}
+int vecsamed(double *a, double *b){
+	int i,isame = TRUE;
+	for(i=0;i<3;i++)
 		if(a[i] != b[i]) isame = FALSE;
 	return isame;
 }
@@ -427,6 +508,45 @@ struct point_XYZ* double2pointxyz(struct point_XYZ* r, double* p){
 	r->x = p[0]; r->y = p[1]; r->z = p[2];
 	return r;
 }
+double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat){
+	//takes a full affine matrix 
+	// and returns a pure rotation matrix
+	//could be used in background and/or billboard
+	//in freewrl terminology, an affine matrix has no perspectives (typical for modelview matrix):
+	//- perspectives are zero
+	//- has translations rotations, scale and shear
+	//- shear is not seen in web3d or very rare (an assymmetric offdiagonal); here we assume no shear
+	double sx,sy,sz, pp[3], q[3],p[3],d[3], matinv[16], matt[16], matr[16], mats[16];
+
+	//cancel / undo translation part
+	matinverseAFFINE(matinv,fullmat);
+	vecsetd(pp,0.0,0.0,0.0);
+	transformAFFINEd(pp,pp,matinv);
+	mattranslate(matt,pp[0],pp[1],pp[2]);
+	matmultiplyAFFINE(matr,matt,fullmat);
+
+	//cancel/undo scale part, so that our background mesh stays at radius 1.0
+	/* Get scale */
+	vecsetd(p,0.0,0.0,0.0);
+	transformAFFINEd(p,p,matr);
+	vecsetd(q,1.0,0.0,0.0);
+	transformAFFINEd(q,q,matr);
+	sx = 1.0/veclengthd(vecdifd(d,q,p));
+	vecsetd(q,0.0,1.0,0.0);
+	transformAFFINEd(q,q,matr);
+	vecdifd(d,q,p);
+	sy = 1.0/veclengthd(vecdifd(d,q,p));
+	vecsetd(q,0.0,0.0,1.0);
+	transformAFFINEd(q,q,matr);
+	sz = 1.0/veclengthd(vecdifd(d,q,p));
+	/* Undo the scale effects */
+	matscale(mats,sx,sy,sz);
+	matmultiplyAFFINE(rotmat,mats,matr);
+
+	//result should be pure rotation matrix (with possible rare shear)
+	return rotmat; //we return it too, in case you want to do fancy chain multiplication 
+}
+
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat){
 	// r = a x mat
 	struct point_XYZ pa, pr;
@@ -947,6 +1067,18 @@ GLDOUBLE* mattranslate(GLDOUBLE* r, double dx, double dy, double dz)
     r[14] = dz;
     return r;
 }
+GLDOUBLE* matscale(GLDOUBLE* r, double sx, double sy, double sz)
+{
+
+    r[0] = r[5] = r[10] = r[15] =
+    r[1] = r[2] = r[3] = r[4] =
+	r[6] = r[7] = r[8] = r[9] =
+	r[11] = r[12] = r[13] =  r[14] = 0.0;
+	r[0] = sx;
+	r[5] = sy;
+	r[10] = sz;
+    return r;
+}
 
 GLDOUBLE* matmultiplyFULL(GLDOUBLE* r, GLDOUBLE* mm , GLDOUBLE* nn)
 {
@@ -1146,6 +1278,56 @@ float *axisangle_rotate3f(float* b, float *a, float *axisangle)
 	vecadd3f(b,vecscale3f(t1, a, cosine), vecadd3f(t2, vecscale3f(t3, cross, sine), vecscale3f(t4, axis, dot*(1.0f - cosine))));
 	return b;
 }
+struct SFRotation *sfrotation_multiply(struct SFRotation* T, struct SFRotation *A, struct SFRotation *B);
+float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB)
+{
+	if(1){
+		//this is a float[4] version of / wrapper for sfrotation_multiply
+		struct SFRotation A,B,C;
+		veccopy4f(A.c,axisAngleA);
+		veccopy4f(B.c,axisAngleB);
+		sfrotation_multiply(&C,&A,&B);
+		veccopy4f(axisAngleC,C.c);
+	}else{
+		// Dec 2017, dug9: I think the rodrigues chain is too hard for us:
+		//     https://math.stackexchange.com/questions/382760/composition-of-two-axis-angle-rotations
+		//   and its math looks a lot like quaternion math anyway, I've read its equivalent
+		// http://www.mathoman.com/en/index.php/1537-axis-and-angle-of-the-composition-of-two-rotations
+		// one way I can visualize: rotating a point by 2 rotations, then using the start and end points
+		//   to get an angle between them and axis perpendicular to the new angle
+		// dug9's (untested) formula 
+		// (uses full angles, not the half-angles seen in rodrigues or quaternions, so likely wrong)
+		// for axis angles C = A * B
+		// 1. find an arbitrary point p1 (xyz) on the perpendicular plane to B's axis, on unit sphere
+		//	i) using a cross product trick:
+		//		a) find the largest compoent of B.axis {x,y,z}
+		//		b) exhange that compoent with any other component ie a2 = {y,x,z) 
+		//		c) p1 = normalize( a2 cross B.axis )
+		//		problem: what if A.axis is right on p1? then A.angle will have no effect / be 'missed' in result
+		//	ii) perpendicular to both axes
+		//		perpaxis = B.axis cross A.axis
+		//		if(length(perpaxis) == 0)
+		//			axes are parallel, just add angle
+		//			C = (B.axis, B.angle + A.angle)
+		//		else
+		//			p1 = normalize(perpaxis)
+		// 2. rotate point p1 by B -> p2. (It will still be on B's perpendicular plane)
+		// 3. rotate point p2 by A -> p3. (now we have 2 points on a sphere, p1, p3)
+		// 4. find the perpendicular axis shared by origin O (0,0,0), p1 and p3.
+		//		axis_sinealpha = (p1-O) cross (p3 - O) = p1 cross p3 (cross product is scaled by sin(alpha))
+		//      sine_alpha = length(axis_sinealpha)
+		//      axis = axis_sinealpha / sine_alpha
+		// 5. find the cosine_alpha = p3 dot p1
+		// 6. find the full circle angle
+		//		angle = atan2(sine_alpha,cosine_alpha)
+		// 7. C = (axis,angle)
+		// Hypothesis: substituting half-angles in A,B before beginning, and doubling the final angle in C
+		//   will give the quaternion/rodrigues equivalent full angle
+		// not implemented.
+		veccopy4f(axisAngleC,axisAngleA);
+	}
+	return axisAngleC; //so can chain
+}
 float *matidentity4f(float *b){
 	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i,j;
@@ -1282,7 +1464,12 @@ double matrotate2v(GLDOUBLE* res, struct point_XYZ iv/*original*/, struct point_
     matrotate(res,a,cv.x,cv.y,cv.z);
     return a;
 }
-
+double matrotate2vd(GLDOUBLE* res, double * iv/*original*/, double * dv/*result*/) {
+	struct point_XYZ piv, pdv;
+	double2pointxyz(&piv,iv);
+	double2pointxyz(&pdv,dv);
+	return matrotate2v(res,piv,pdv);
+}
 
 #define SHOW_NONSINGULARS 0  //or 1 for noisy
 /****
@@ -1690,7 +1877,27 @@ void printmatrix2(GLDOUBLE* mat,char* description ) {
 	printmatrix3(mat,description,row_major);
 }
 
-
+float *veclerp3f(float *T, float *A, float *B, float alpha){
+	int i;
+	for(i=0;i<3;i++){
+		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
+	}
+	return T;
+}
+float *veclerp2f(float *T, float *A, float *B, float alpha){
+	int i;
+	for(i=0;i<2;i++){
+		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
+	}
+	return T;
+}
+double *veclerpd(double *T, double *A, double *B, double alpha){
+	int i;
+	for(i=0;i<3;i++){
+		T[i] = (1.0f - alpha)*A[i] + alpha*B[i];
+	}
+	return T;
+}
 
 void general_slerp(double *ret, double *p1, double *p2, int size, const double t)
 {

@@ -117,7 +117,7 @@ struct Shader_Script
  struct Vector* fields;
 };
 struct ScriptFieldDecl* Shader_Script_getScriptField(struct Shader_Script* script, int ifield);
-int Shader_Script_getScriptFieldCount();
+int Shader_Script_getScriptFieldCount(struct Shader_Script* script);
 
 /* Constructor and destructor */
 /* ************************** */
@@ -184,14 +184,14 @@ void mark_script (int num);
 
 #define MAXJSVARIABLELENGTH 55  /* variable name length can be this long... */
 struct CRjsnameStruct {
-        int     	type;
+        int     	type, kind;
         char    	name[MAXJSVARIABLELENGTH];
 		void *eventInFunction; /* compiled javascript function... if it is required */
 };
 struct CRjsnameStruct *getJSparamnames();
-int JSparamIndex (const char *name, const char *type);
+int JSparamIndex (const char *name, const char *type, int mod);
 struct CRscriptStruct *getScriptControlIndex(int actualscript);
 
-
+int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int **valueChanged);
 
 #endif /* __FREEWRL_CSCRIPTS_H__ */

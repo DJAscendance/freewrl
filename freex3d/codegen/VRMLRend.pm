@@ -94,6 +94,7 @@ our %defaultContainerType = (
 	GeoCoordinate 		=>["coord"],
 	GeoElevationGrid 	=>["geometry"],
 	GeoLocation 		=>["children"],
+	GeoPlanet 		=>["children"],
 	GeoLOD 			=>["children"],
 	GeoMetadata		=>["children"],
 	GeoOrigin 		=>["geoOrigin"],
@@ -102,6 +103,7 @@ our %defaultContainerType = (
 	GeoTouchSensor		=>["children"],
 	GeoTransform		=>["children"],
 	GeoViewpoint 		=>["children"],
+	GeoConvert		=>["children"],
 	Group 			=>["children"],
 	ViewpointGroup		=>["children"],
 	HAnimDisplacer		=>["displacers"],
@@ -138,6 +140,7 @@ our %defaultContainerType = (
 	PickableGroup 		=>["children"],
 	PixelTexture 		=>["texture"],
 	PlaneSensor 		=>["children"],
+	PointSensor 		=>["children"],
 	PointLight 		=>["children"],
 	PointSet 		=>["geometry"],
 	PositionInterpolator 	=>["children"],
@@ -302,7 +305,7 @@ our %defaultContainerType = (
 	SplineScalarInterpolator 	=>["children"],
 	SquadOrientationInterpolator 	=>["children"],
 	DISEntityManager	=>["children"],
-	DISEntityTypeMapping	=>["children"],
+	DISEntityTypeMapping	=>["mapping"],
 	EspduTransform		=>["children"],
 	ReceiverPdu		=>["children"],
 	SignalPdu		=>["children"],
@@ -355,10 +358,11 @@ our %defaultContainerType = (
 #
 # All of these will have a render_xxx name associated with them.
 
+
 our %RendC = map {($_=>1)} qw/
-	Fog
 	Background
 	TextureBackground
+	Fog
 	Box
 	Cylinder
 	Cone
@@ -418,6 +422,8 @@ our %RendC = map {($_=>1)} qw/
 	ComposedTexture3D
 	PixelTexture3D
 	ImageTexture3D
+	GeoProximitySensor
+	ProximitySensor
 	
 /;
 
@@ -471,6 +477,7 @@ our %PrepC = map {($_=>1)} qw/
 	SpotLight
 	DirectionalLight
 	GeoLocation
+	GeoPlanet
 	GeoViewpoint
 	GeoTransform
 	CADAssembly
@@ -482,6 +489,7 @@ our %PrepC = map {($_=>1)} qw/
 	LayoutLayer
 	CollidableOffset
 	CollidableShape
+	EspduTransform
 /;
 
 #######################################################################
@@ -496,6 +504,7 @@ our %PrepC = map {($_=>1)} qw/
 
 our %FinC = map {($_=>1)} qw/
 	GeoLocation
+	GeoPlanet
 	Transform
 	Billboard
 	HAnimSite
@@ -509,8 +518,8 @@ our %FinC = map {($_=>1)} qw/
 	LayoutLayer	
 	CollidableOffset
 	CollidableShape	
+	EspduTransform
 /;
-
 
 #######################################################################
 #######################################################################
@@ -538,6 +547,7 @@ our %ChildC = map {($_=>1)} qw/
 	Transform
 	Anchor
 	GeoLocation
+	GeoPlanet
 	GeoTransform
 	Switch
 	CADLayer
@@ -561,6 +571,11 @@ our %ChildC = map {($_=>1)} qw/
 	SegmentedVolumeData
 	IsoSurfaceVolumeData
 	ParticleSystem
+	EspduTransform
+	ReceiverPdu
+	TransmitterPdu
+	SignalPdu
+	DISEntityManager
 /;
 
 
@@ -600,9 +615,9 @@ our %CompileC = map {($_=>1)} qw/
 	Sphere
 	Teapot
 	GeoLocation
+	GeoPlanet
 	GeoCoordinate
 	GeoElevationGrid
-	GeoLocation
 	GeoLOD
 	GeoMetadata
 	GeoOrigin
@@ -684,6 +699,12 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimJoint
 	HAnimSite
 	HAnimHumanoid
+	EspduTransform
+	DISEntityManager
+	ReceiverPdu
+	SignalPdu
+	TransmitterPdu
+	
 /;
 
 
@@ -776,6 +797,7 @@ our %CollisionC = map {($_=>1)} qw/
 	Extrusion
 	Text
 	GeoElevationGrid
+	ElevationGrid
 	NurbsPatchSurface
 	NurbsSwungSurface
 	NurbsSweptSurface	
@@ -915,6 +937,8 @@ our %KeywordC = map {($_=>1)} qw/
 	field
 	eventIn
 	eventOut
+	true
+	false
 /;
 
 
@@ -990,8 +1014,7 @@ our %ProfileC = map {($_=>1)} qw/
 # a listing of Geospatial Elipsoid keywords.
 #
 #
-
-our %GEOSpatialKeywordC = map {($_=>1)} qw/
+our %GEOEllipsoidKeywordC = map {($_=>1)} qw/
 	AA
 	AM
 	AN
@@ -1006,12 +1029,6 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	EE
 	EF
 	FA
-	GC
-	GCC
-	GCC
-	GD
-	GDC
-	GDC
 	HE
 	HO
 	ID
@@ -1019,10 +1036,22 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	KA
 	RF
 	SA
-	UTM
 	WD
 	WE
+/;
+
+our %GEOSpatialKeywordC = map {($_=>1)} qw/
+	GC
+	GD
+	UTM
+	3TM
 	WGS84
+	R
+	A
+	B
+	F
+	IF
+	P
 	coordinateSystem
 	copyright
 	dataFormat
@@ -1205,6 +1234,7 @@ our %X3DSpecialC = map {($_=>1)} qw/
 	Header
 	head
 	meta
+	unit
 	ExternProtoDeclare
 	ProtoDeclare
 	ProtoInterface

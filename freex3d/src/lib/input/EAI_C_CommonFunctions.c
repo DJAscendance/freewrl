@@ -86,7 +86,7 @@ void EAI_C_CommonFunctions_init(struct tEAI_C_CommonFunctions* t){
 
 
 /* create a structure to hold a string; it has a length, and a string pointer */
-struct Uni_String *newASCIIString(char *str) {
+struct Uni_String *newASCIIString(const char *str) {
 	struct Uni_String *retval;
 	int len;
 	int eaiverbose = gglobal()->EAI_C_CommonFunctions.eaiverbose;
@@ -147,7 +147,7 @@ void freeMFString(struct Multi_String **ms){
 
 /* do these strings differ?? If so, copy the new string over the old, and 
 touch the touched flag */
-void verify_Uni_String(struct  Uni_String *unis, char *str) {
+void verify_Uni_String(struct  Uni_String *unis, const char *str) {
 	char *ns;
 	char *os;
 	size_t len;
@@ -160,15 +160,18 @@ void verify_Uni_String(struct  Uni_String *unis, char *str) {
 	}
 
 	/* are they different? */
-	if (strcmp(str,unis->strptr)!= 0) {
-		os = unis->strptr;
-		len = strlen(str);
-		ns = MALLOC (char *,len+1);
-		strncpy(ns,str,len+1);
-		unis->strptr = ns;
-		FREE_IF_NZ (os);
-		unis->touched++;
-	}
+	if(!unis->strptr) 
+		unis->strptr = strdup(str);
+	else
+		if (strcmp(str,unis->strptr)!= 0) {
+			os = unis->strptr;
+			len = strlen(str);
+			ns = MALLOC (char *,len+1);
+			strncpy(ns,str,len+1);
+			unis->strptr = ns;
+			FREE_IF_NZ (os);
+			unis->touched++;
+		}
 }
 		
 

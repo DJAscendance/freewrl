@@ -354,7 +354,7 @@ void fudgeIfNeeded(int myptr,int myoffset){
 			scanning = FALSE;
 		}
 		myc ++;
-		np +=5;
+		np += FIELDOFFSET_LENGTH;
 	}
 
 	/* If foundSet is zero, then the field name is not set_ABC */
@@ -409,7 +409,7 @@ void fudgeIfNeeded(int myptr,int myoffset){
 			}
 		}
 		myc ++;
-		np +=5;
+		np += FIELDOFFSET_LENGTH;
 	}
 	if (!foundAlt) return;
 
@@ -490,7 +490,7 @@ void dumpOne_X3D_Node(struct X3D_Node * boxptr) {
 			}
 			myc ++;
 		}
-		np +=5;
+		np += FIELDOFFSET_LENGTH;
 	}
 }
 
@@ -753,7 +753,7 @@ char *findFIELDNAMESfromNodeOffset(struct X3D_Node *node, int offset) {
 	np = (int *) NODE_OFFSETS[node->_nodeType];
 	np++;  /* go to the offset field */
 
-	while ((*np != -1) && (*np != offset)) np +=5;
+	while ((*np != -1) && (*np != offset)) np += FIELDOFFSET_LENGTH;
 
 	if (*np == -1) return "fieldNotFound";
 
@@ -894,7 +894,7 @@ void findFieldInOFFSETS(int nodeType, const int field, int *coffset, int *ctype,
 	#endif
 
 	while ((*x != field) && (*x != -1)) {
-		x += 5;
+		x += FIELDOFFSET_LENGTH;
 	}
 	if (*x == field) {
 		x++; *coffset = (int)*x; x++; *ctype = (int)*x; x++; *ckind = (int)*x; x++; X3DLevel = (int)*x;

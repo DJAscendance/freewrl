@@ -29,7 +29,7 @@
 #include <scenegraph/Vector.h>
 
 // OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (AQUA)  || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
-#if defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined (_MSC_VER) || defined (AQUA) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
 #include "../../buildversion.h"
 #endif
 
@@ -39,7 +39,7 @@
 // talents to help us out.
 
 // OLD_IPHONE_AQUA #if defined (AQUA) || defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
-#if defined (_MSC_VER) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
+#if defined (_MSC_VER) || defined (AQUA) || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
 const char *libFreeWRL_get_version(void) {return FW_BUILD_VERSION_STR;}
 //#else desktop linux which has a more complex versioning system
 #endif
@@ -56,6 +56,7 @@ typedef struct keyval {
 
 /* textual status messages */
 typedef struct pcommon{
+	int itrap;
 	float myFps; // = (float) 0.0;
 	int target_frames_per_second;
 	char myMenuStatus[MAXSTAT];
@@ -79,6 +80,9 @@ typedef struct pcommon{
 	float density_factor;
 	int pedal;
 	int hover;
+	int jsengine;
+	int jsengine_variant;
+	int draw_bounding_boxes;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -91,6 +95,7 @@ void common_init(struct tcommon *t){
 	t->prv = common_constructor();
 	{
 		ppcommon p = (ppcommon)t->prv;
+		p->itrap = 0; //handy for debugging, see fwl_setTrap, fwl_getTrap
 		p->myFps = (float) 0.0;
 		p->cursorStyle = ACURSE;
 		p->sb_hasString = FALSE;
@@ -106,6 +111,18 @@ void common_init(struct tcommon *t){
 		p->density_factor = 1.0f;  //how much to scale up UI elements for small high res screens ie mobile, see fwl_setDensityFactor
 		p->pedal = 0; //pedal mode moves in-scene cursor by drag amount ie indirect/offset drag
 		p->hover = 0; //hover mode means your drags only do isOver -no navigation or sensor click
+		p->jsengine = JSENGINE_STUB;
+#ifdef JAVASCRIPT_DUK
+		p->jsengine = JSENGINE_DUK;
+#endif
+#ifdef JAVASCRIPT_SM
+		p->jsengine = JSENGINE_SM;
+		p->jsengine_variant = 2;  //1= pre-2018 SM1 2= 2018+ SM2
+#ifdef JAVASCRIPT_ENGINE_VARIANT
+		p->jsengine_variant = JAVASCRIPT_ENGINE_VARIANT;  //1= pre-2018 SM1 2= 2018+ SM2
+#endif
+		p->draw_bounding_boxes = FALSE;
+#endif
 	}
 }
 void common_clear(struct tcommon *t){
@@ -127,6 +144,67 @@ void common_clear(struct tcommon *t){
 
 //ppcommon p = (ppcommon)gglobal()->common.prv;
 
+void fwl_setTrap(int k){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->itrap = k;
+}
+int fwl_getTrap(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->itrap;
+}
+
+void fwl_setJsEngine(char *optarg){
+	//this has to be set during startup, can't reset during the run.
+	int engine, engine_variant, ivalid;
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	engine = -1;
+	engine_variant = -1;
+	ivalid = FALSE;
+
+	if(strlen(optarg) >= 2 && (!strncmp(optarg,"SM",2) || !strncmp(optarg,"sm",2))){
+		ivalid = TRUE;
+		#ifdef JAVASCRIPT_SM
+		engine = JSENGINE_SM;
+		if(strlen(optarg) >= 3){
+			if(optarg[2] == '2') engine_variant = 2;
+			if(optarg[2] == '1') engine_variant = 1;
+		}
+		#else
+		ConsoleMessage("not built with spidermonkey js engine\n");
+		#endif
+	}
+	if(!strcmp(optarg,"DUK") || !strcmp(optarg,"duk")){
+		ivalid = TRUE;
+		#ifdef JAVASCRIPT_DUK
+		engine = JSENGINE_DUK;
+		#else
+		ConsoleMessage("not built with duktape js engine\n");
+		#endif
+	}
+	if(!strcmp(optarg,"NONE") || !strcmp(optarg,"none")){
+		ivalid = TRUE;
+		engine = JSENGINE_STUB;
+	}
+	if(engine == -1){
+		static char *engine_names [] = {"NONE","DUK","SM"};
+		ConsoleMessage("could not do js preference %s, trying %s\n",optarg,engine_names[p->jsengine]);
+	}
+	if(!ivalid){
+		ConsoleMessage("invalid --javascript / -J otpion, should be SM, DUK or NONE\n");
+	}
+	if(ivalid && engine > -1){
+		p->jsengine = engine; //should be JSENGINE_SM 1 or JSENGINE_DUK 2 or 0 for stubs)
+		if(engine_variant > -1) p->jsengine_variant = engine_variant;
+	}
+}
+int getJsEngine(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->jsengine;
+}
+int getJsEngineVariant(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->jsengine_variant;
+}
 /* Status update functions (generic = all platform) */
 void setFpsBar();
 void setMenuFps(float fps)
@@ -222,7 +300,7 @@ char *getMessageBar()
 double get_viewer_dist();
 char *getDistBar(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
-	snprintf(p->distbar, 10, "DIST %4f", (float)get_viewer_dist());
+	snprintf(p->distbar, 10, "D%8f", (float)get_viewer_dist()); //DIST %4f
 
 	return p->distbar;
 }
@@ -803,4 +881,12 @@ int fwl_getHover(){
 void fwl_setHover(int hover){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->hover = hover; //0 means off, 1 means on
+}
+void fwl_setDrawBoundingBoxes(int drawbb){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->draw_bounding_boxes = drawbb; //0 means off, 1 means on
+}
+int fwl_getDrawBoundingBoxes(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->draw_bounding_boxes; //0 means off, 1 means on
 }

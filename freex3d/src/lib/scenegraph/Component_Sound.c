@@ -909,7 +909,7 @@ bool  process_res_audio(resource_item_t *res){
 	//s_list_t *l;
 	openned_file_t *of;
 	//struct Shader_Script* ss;
-	const char *buffer;
+	char *buffer;
 	int len;
 	struct X3D_AudioClip *node;
 

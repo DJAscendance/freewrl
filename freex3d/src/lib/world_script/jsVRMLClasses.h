@@ -104,8 +104,22 @@ of garbage collection
 #else
 #define COMPILE_FUNCTION_IF_NEEDED(tnfield) \
 	if (JSparamnames[tnfield].eventInFunction == NULL) { \
-		sprintf (scriptline,"%s(__eventIn_Value_%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
-		/* printf ("compiling function %s\n",scriptline); */ \
+		sprintf (scriptline,"%s%s(%s%s,__eventInTickTime)", "",JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); \
+		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
+		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
+			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
+		if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) { \
+			printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__); \
+			return; \
+		} \
+	}
+#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind) \
+	if (JSparamnames[tnfield].eventInFunction == NULL) { \
+		if(kind == PKW_inputOutput) \
+			sprintf (scriptline,"set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name); \
+		else /* PKW_inputOnly */ \
+			sprintf (scriptline,"%s(%s%s,__eventInTickTime)", JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); \
+		/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ \
 		JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript( \
 			cx, obj, scriptline, strlen(scriptline), "compile eventIn",1); \
 		if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) { \
@@ -117,7 +131,7 @@ of garbage collection
 #define RUN_FUNCTION(tnfield) \
 	{jsval zimbo; \
 	if (!JS_ExecuteScript(cx, obj, JSparamnames[tnfield].eventInFunction, &zimbo)) { \
-		printf ("failed to set parameter for eventIn %s in FreeWRL code %s:%d\n",JSparamnames[tnfield].name,__FILE__,__LINE__); \
+		printf ("eventIn %s failed to complete successfully, in FreeWRL code %s:%d\n",JSparamnames[tnfield].name,__FILE__,__LINE__); \
 		/* printf ("myThread is %u\n",pthread_self());*/ \
 	}} 
 
@@ -174,7 +188,11 @@ of garbage collection
 
 
 /* helper functions */
+#if JS_VERSION < 186
 void JS_MY_Finalize(JSContext *cx, JSObject *obj);
+#else
+void JS_MY_Finalize(JSFreeOp *fop, JSObject *obj);
+#endif
 
 JSBool doMFToString(JSContext *cx, JSObject *obj, const char *className, jsval *rval); 
 #if JS_VERSION < 185
@@ -190,13 +208,12 @@ JSBool doMFStringUnquote(JSContext *cx, jsval *vp);
 
 /* class functions */
 
-JSBool
-globalResolve(JSContext *cx,
-			  JSObject *obj,
 #if JS_VERSION < 185
-			  jsval id);
+JSBool globalResolve(JSContext *cx, JSObject *obj, jsval id);
+#elif JS_VERSION == 185
+JSBool globalResolve(JSContext *cx, JSObject *obj, jsid id);
 #else
-			  jsid id);
+JSBool globalResolve(JSContext *cx, JSHandleObject hobj, JSHandleId hiid);
 #endif
 
 JSBool
@@ -204,40 +221,39 @@ loadVrmlClasses(JSContext *context,
 				JSObject *globalObj);
 
 
-JSBool
-setECMANative(JSContext *cx,
-			  JSObject *obj,
+
 #if JS_VERSION < 185
-			  jsval id,
+JSBool getECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool getECMANative(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
 #else
-			  jsid id,
-			  JSBool strict,
+JSBool getECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
 #endif
-			  jsval *vp);
 
-
-JSBool
-getAssignProperty(JSContext *context,
-				  JSObject *obj,
 #if JS_VERSION < 185
-				  jsval id,
+JSBool setECMANative(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool setECMANative(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp);
 #else
-				  jsid id,
+JSBool setECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				  jsval *vp);
 
-JSBool
-setAssignProperty(JSContext *context,
-				  JSObject *obj,
+
 #if JS_VERSION < 185
-				  jsval id,
+JSBool getAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool getAssignProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
 #else
-				  jsid id,
-				  JSBool strict,
+JSBool getAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
 #endif
-				  jsval *vp);
 
-
+#if JS_VERSION < 185
+JSBool setAssignProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool setAssignProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp);
+#else
+JSBool setAssignProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+#endif
 
 #if JS_VERSION < 185
 JSBool
@@ -265,9 +281,12 @@ JSBool SFColorConstr(JSContext *cx, uintN argc, jsval *vp);
 #if JS_VERSION < 185
 JSBool SFColorGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
 JSBool SFColorSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-#else
+#elif JS_VERSION == 185
 JSBool SFColorGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
 JSBool SFColorSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else
+JSBool SFColorGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFColorSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
 
 #if JS_VERSION < 185
@@ -296,9 +315,12 @@ JSBool SFColorRGBAConstr(JSContext *cx, uintN argc, jsval *vp);
 #if JS_VERSION < 185
 JSBool SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
 JSBool SFColorRGBASetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-#else
+#elif JS_VERSION == 185
 JSBool SFColorRGBAGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
 JSBool SFColorRGBASetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else
+JSBool SFColorRGBAGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFColorRGBASetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
 
 #if JS_VERSION < 185
@@ -329,27 +351,18 @@ JSBool SFImageAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFImageConstr(JSContext *cx, uintN argc, jsval *vp);
 #endif
 
-JSBool
-SFImageGetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
 
-JSBool
-SFImageSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-				   JSBool strict,
-#endif
-				   jsval *vp);
 
+#if JS_VERSION < 185
+JSBool SFImageGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool SFImageSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool SFImageGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool SFImageSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else
+JSBool SFImageGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFImageSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+#endif
 
 
 #if JS_VERSION < 185
@@ -359,9 +372,19 @@ SFNodeToString(JSContext *cx,
 			   uintN argc,
 			   jsval *argv,
 			   jsval *rval);
-
+JSBool
+SFNodeValueOf(JSContext *cx,
+			   JSObject *obj,
+			   uintN argc,
+			   jsval *argv,
+			   jsval *rval);
 JSBool
 SFNodeAssign(JSContext *cx, JSObject *obj,
+			 uintN argc,
+			 jsval *argv,
+			 jsval *rval);
+JSBool
+SFNodeEquals(JSContext *cx, JSObject *obj,
 			 uintN argc,
 			 jsval *argv,
 			 jsval *rval);
@@ -374,33 +397,28 @@ SFNodeConstr(JSContext *cx,
 			 jsval *rval);
 #else
 JSBool SFNodeToString(JSContext *cx, uintN argc, jsval *vp);
+JSBool SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeAssign(JSContext *cx, uintN argc, jsval *vp);
+JSBool SFNodeEquals(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFNodeConstr(JSContext *cx, uintN argc, jsval *vp);
 #endif
 
+#if JS_VERSION < 186
 void SFNodeFinalize(JSContext *cx, JSObject *obj);
-
-JSBool
-SFNodeGetProperty(JSContext *cx,
-				  JSObject *obj,
-#if JS_VERSION < 185
-				  jsval id,
 #else
-				  jsid id,
+void SFNodeFinalize(JSFreeOp *fop, JSObject *obj);
 #endif
-				  jsval *vp);
 
-JSBool
-SFNodeSetProperty(JSContext *cx,
-				  JSObject *obj,
 #if JS_VERSION < 185
-				  jsval id,
+JSBool SFNodeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool SFNodeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool SFNodeGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool SFNodeSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 #else
-				  jsid id,
-				  JSBool strict,
+JSBool SFNodeGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFNodeSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				  jsval *vp);
-
 
 #if JS_VERSION < 185
 JSBool
@@ -479,27 +497,17 @@ JSBool SFRotationConstr(JSContext *cx, uintN argc, jsval *vp);
 #endif
 
 
-JSBool
-SFRotationGetProperty(JSContext *cx,
-					  JSObject *obj,
-#if JS_VERSION < 185
-					  jsval id,
-#else
-					  jsid id,
-#endif
-					  jsval *vp);
 
-JSBool
-SFRotationSetProperty(JSContext *cx,
-					  JSObject *obj,
 #if JS_VERSION < 185
-					  jsval id,
+JSBool SFRotationGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool SFRotationSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool SFRotationGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool SFRotationSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 #else
-					  jsid id,
-					  JSBool strict,
+JSBool SFRotationGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFRotationSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-					  jsval *vp);
-
 
 #if JS_VERSION < 185
 JSBool
@@ -593,27 +601,16 @@ JSBool SFVec2fAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec2fConstr(JSContext *cx, uintN argc, jsval *vp);
 #endif
 
-JSBool
-SFVec2fGetProperty(JSContext *cx,
-				   JSObject *obj,
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool SFVec2fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool SFVec2fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool SFVec2fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool SFVec2fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFVec2fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-SFVec2fSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-				   JSBool strict,
-#endif
-				   jsval *vp);
-
 
 #if JS_VERSION < 185
 JSBool SFVec3fAdd(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
@@ -643,8 +640,13 @@ JSBool SFVec3fSubtract(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp);
+#if JS_VERSION == 185
 JSBool SFVec3fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
 JSBool SFVec3fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool SFVec3fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFVec3fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+#endif
 #endif
 
 #if JS_VERSION < 185
@@ -675,8 +677,13 @@ JSBool SFVec3dSubtract(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3dToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3dAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3dConstr(JSContext *cx, uintN argc, jsval *vp);
+#if JS_VERSION == 185
 JSBool SFVec3dGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
 JSBool SFVec3dSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool SFVec3dGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFVec3dSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+#endif
 #endif
 
 
@@ -695,13 +702,23 @@ JSBool SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 JSBool SFVec4fToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec4fAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec4fConstr(JSContext *cx, uintN argc, jsval *vp);
+#if JS_VERSION == 185
 JSBool SFVec4fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
 JSBool SFVec4fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool SFVec4fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFVec4fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+#endif
 JSBool SFVec4dToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec4dAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec4dConstr(JSContext *cx, uintN argc, jsval *vp);
+#if JS_VERSION == 185
 JSBool SFVec4dGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
 JSBool SFVec4dSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool SFVec4dGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool SFVec4dSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+#endif
 #endif
 
 #if JS_VERSION < 185
@@ -732,38 +749,19 @@ JSBool MFColorConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFColorAddProperty(JSContext *cx,
-				   JSObject *obj,
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool MFColorAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFColorGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFColorSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFColorAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFColorGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFColorSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFColorAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFColorGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFColorSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-MFColorGetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
-
-JSBool
-MFColorSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-				   JSBool strict,
-#endif
-				   jsval *vp);
-
-
 
 #if JS_VERSION < 185
 JSBool
@@ -793,38 +791,20 @@ JSBool MFFloatConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFFloatAddProperty(JSContext *cx,
-				   JSObject *obj,
+
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool MFFloatAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFFloatGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFFloatSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFFloatAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFFloatGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFFloatSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFFloatAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFFloatGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFFloatSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-MFFloatGetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
-
-JSBool
-MFFloatSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-                                   JSBool strict,
-#endif
-				   jsval *vp);
-
-
 
 #if JS_VERSION < 185
 JSBool
@@ -854,37 +834,19 @@ JSBool MFInt32Constr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFInt32AddProperty(JSContext *cx,
-				   JSObject *obj,
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool MFInt32AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFInt32GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFInt32SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFInt32AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFInt32GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFInt32SetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFInt32AddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFInt32GetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFInt32SetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-MFInt32GetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
-
-JSBool
-MFInt32SetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsid id,
-#else
-				   jsid id,
-                                   JSBool strict,
-#endif
-				   jsval *vp);
-
 
 #if JS_VERSION < 185
 JSBool
@@ -914,38 +876,20 @@ JSBool MFNodeConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFNodeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFNodeAddProperty(JSContext *cx,
-				  JSObject *obj,
+
 #if JS_VERSION < 185
-				  jsval id,
-#else
-				  jsid id,
+JSBool MFNodeAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFNodeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFNodeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFNodeAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFNodeGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFNodeSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFNodeAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFNodeGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFNodeSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				  jsval *vp);
-
-JSBool
-MFNodeGetProperty(JSContext *cx,
-				  JSObject *obj,
-#if JS_VERSION < 185
-				  jsval id,
-#else
-				  jsid id,
-#endif
-				  jsval *vp);
-
-JSBool
-MFNodeSetProperty(JSContext *cx,
-				  JSObject *obj,
-#if JS_VERSION < 185
-				  jsval id,
-#else
-				  jsid id,
-                                  JSBool strict,
-#endif
-				  jsval *vp);
-
-
 
 #if JS_VERSION < 185
 JSBool
@@ -975,37 +919,19 @@ JSBool MFRotationConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFRotationConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFRotationGetProperty(JSContext *cx,
-					  JSObject *obj,
 #if JS_VERSION < 185
-					  jsval id,
-#else
-					  jsid id,
+JSBool MFRotationAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFRotationGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFRotationSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFRotationAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFRotationGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFRotationSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFRotationAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFRotationGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFRotationSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-					  jsval *vp);
-
-JSBool
-MFRotationSetProperty(JSContext *cx,
-					  JSObject *obj,
-#if JS_VERSION < 185
-					  jsval id,
-#else
-					  jsid id,
-                                          JSBool strict,
-#endif
-					  jsval *vp);
-
-JSBool
-MFRotationAddProperty(JSContext *cx,
-					  JSObject *obj,
-#if JS_VERSION < 185
-					  jsval id,
-#else
-					  jsid id,
-#endif
-					  jsval *vp);
-
 
 #if JS_VERSION < 185
 JSBool
@@ -1035,49 +961,35 @@ JSBool MFStringConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFStringConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFStringGetProperty(JSContext *cx,
-					JSObject *obj,
-#if JS_VERSION < 185
-					jsval id,
-#else
-					jsid id,
-#endif
-					jsval *vp);
-
-JSBool
-MFStringSetProperty(JSContext *cx,
-					JSObject *obj,
-#if JS_VERSION < 185
-					jsval id,
-#else
-					jsid id,
-                                        JSBool strict,
-#endif
-					jsval *vp);
 
 
-JSBool
-MFStringAddProperty(JSContext *cx,
-					JSObject *obj,
-#if JS_VERSION < 185
-					jsval id,
-#else
-					jsid id,
-#endif
-					jsval *vp);
-
-JSBool MFStringEnumerateProperty(JSContext *cx, JSObject *obj) ;
-#if JS_VERSION < 185
-JSBool MFStringDeleteProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) ;
-JSBool MFStringResolveProperty(JSContext *cx, JSObject *obj, jsval id) ;
-#else
-JSBool MFStringDeleteProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) ;
-JSBool MFStringResolveProperty(JSContext *cx, JSObject *obj, jsid id) ;
-#endif
+#if JS_VERSION < 186
 JSBool MFStringConvertProperty(JSContext *cx, JSObject *obj, JSType type, jsval *vp) ;
-       
+JSBool MFStringEnumerateProperty(JSContext *cx, JSObject *obj) ;
+#else
+JSBool MFStringConvertProperty(JSContext *cx, JSHandleObject hobj, JSType type, JSMutableHandleValue hvp);
+JSBool MFStringEnumerateProperty(JSContext *cx, JSHandleObject hobj);
+#endif
 
+#if JS_VERSION < 185
+JSBool MFStringAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFStringDeleteProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFStringGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFStringSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+JSBool MFStringResolveProperty(JSContext *cx, JSObject *obj, jsval id) ;
+#elif JS_VERSION == 185
+JSBool MFStringAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFStringDeleteProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFStringGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFStringSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+JSBool MFStringResolveProperty(JSContext *cx, JSObject *obj, jsid id) ;
+#else //186 aka 17
+JSBool MFStringAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFStringDeleteProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFStringGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFStringSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+JSBool MFStringResolveProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid);
+#endif
 
 #if JS_VERSION < 185
 JSBool
@@ -1107,38 +1019,19 @@ JSBool MFTimeConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFTimeAddProperty(JSContext *cx,
-				  JSObject *obj,
 #if JS_VERSION < 185
-				  jsval id,
-#else
-				  jsid id,
+JSBool MFTimeAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFTimeGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFTimeSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFTimeAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFTimeGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFTimeSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFTimeAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFTimeGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFTimeSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				  jsval *vp);
-
-JSBool
-MFTimeGetProperty(JSContext *cx,
-				  JSObject *obj,
-#if JS_VERSION < 185
-				  jsval id,
-#else
-				  jsid id,
-#endif
-				  jsval *vp);
-
-JSBool
-MFTimeSetProperty(JSContext *cx,
-				  JSObject *obj,
-#if JS_VERSION < 185
-				  jsval id,
-#else
-				  jsid id,
-                                  JSBool strict,
-#endif
-				  jsval *vp);
-
-
 
 #if JS_VERSION < 185
 JSBool
@@ -1168,38 +1061,19 @@ JSBool MFVec2fConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFVec2fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFVec2fAddProperty(JSContext *cx,
-				   JSObject *obj,
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool MFVec2fAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFVec2fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFVec2fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFVec2fAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFVec2fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFVec2fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFVec2fAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFVec2fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFVec2fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-MFVec2fGetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
-
-JSBool
-MFVec2fSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-                                   JSBool strict,
-#endif
-				   jsval *vp);
-
-
 
 #if JS_VERSION < 185
 JSBool
@@ -1229,36 +1103,20 @@ JSBool MFVec3fConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-MFVec3fAddProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
 
-JSBool
-MFVec3fGetProperty(JSContext *cx,
-				   JSObject *obj,
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool MFVec3fAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFVec3fGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool MFVec3fSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool MFVec3fAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFVec3fGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool MFVec3fSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool MFVec3fAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFVec3fGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool MFVec3fSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-MFVec3fSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-                                   JSBool strict,
-#endif
-				   jsval *vp);
 
 #if JS_VERSION < 185
 JSBool
@@ -1306,36 +1164,19 @@ JSBool VrmlMatrixConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 #endif
 
-JSBool
-VrmlMatrixAddProperty(JSContext *cx,
-				   JSObject *obj,
 #if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
+JSBool VrmlMatrixAddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool VrmlMatrixGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp); 
+JSBool VrmlMatrixSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+#elif JS_VERSION == 185
+JSBool VrmlMatrixAddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool VrmlMatrixGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp); 
+JSBool VrmlMatrixSetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool VrmlMatrixAddProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool VrmlMatrixGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
+JSBool VrmlMatrixSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
-				   jsval *vp);
-
-JSBool
-VrmlMatrixGetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-#endif
-				   jsval *vp);
-
-JSBool
-VrmlMatrixSetProperty(JSContext *cx,
-				   JSObject *obj,
-#if JS_VERSION < 185
-				   jsval id,
-#else
-				   jsid id,
-				   JSBool strict,
-#endif
-				   jsval *vp);
 
 JSBool _standardMFAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval, JSClass *myClass, int type);
 #if JS_VERSION < 185
@@ -1414,7 +1255,7 @@ JSBool js_SetPropertyDebug6 (JSContext *context, JSObject *obj, jsval id, jsval 
 JSBool js_SetPropertyDebug7 (JSContext *context, JSObject *obj, jsval id, jsval *vp);
 JSBool js_SetPropertyDebug8 (JSContext *context, JSObject *obj, jsval id, jsval *vp);
 JSBool js_SetPropertyDebug9 (JSContext *context, JSObject *obj, jsval id, jsval *vp);
-#else
+#elif JS_VERSION == 185
 JSBool js_GetPropertyDebug (JSContext *context, JSObject *obj, jsid id, jsval *vp);
 JSBool js_SetPropertyCheck (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 JSBool js_SetPropertyDebug1 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
@@ -1426,6 +1267,13 @@ JSBool js_SetPropertyDebug6 (JSContext *context, JSObject *obj, jsid id, JSBool 
 JSBool js_SetPropertyDebug7 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 JSBool js_SetPropertyDebug8 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 JSBool js_SetPropertyDebug9 (JSContext *context, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+#else //186 aka 17
+JSBool js_SetPropertyCheck(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+JSBool js_SetPropertyDebug5(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+JSBool js_SetPropertyDebug6 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+JSBool js_SetPropertyDebug3 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+JSBool js_SetPropertyDebug8 (JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
+
 #endif
 
 #endif /*  JS_VRML_CLASSES */

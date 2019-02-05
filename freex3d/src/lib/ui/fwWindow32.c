@@ -739,6 +739,84 @@ void printbitssimple(int n) {
 		if(j%8 == 0) printf(" ");
 	}
 }
+
+static HWND last_key_hWnd = NULL;
+static int clipboard_functions_registered = 0;
+static void win32_clipboard_copy(char *str){
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms649016(v=vs.85).aspx
+
+	int len;
+    LPTSTR  lptstrCopy; 
+    HGLOBAL hglbCopy; 
+    if (!OpenClipboard(last_key_hWnd)) 
+        return; 
+    EmptyClipboard(); 
+ 
+    // If text is selected, copy it using the CF_TEXT format. 
+	len = strlen(str);
+
+    if (!len)     // zero length
+    {   
+        CloseClipboard();                   // selection 
+        return; 
+    } 
+
+ 
+    hglbCopy = GlobalAlloc(GMEM_MOVEABLE, 
+        (len + 1) * sizeof(TCHAR)); 
+    if (hglbCopy == NULL) 
+    { 
+        CloseClipboard(); 
+        return; 
+    } 
+
+    // Lock the handle and copy the text to the buffer. 
+ 
+    lptstrCopy = GlobalLock(hglbCopy); 
+    memcpy(lptstrCopy, str, 
+        len * sizeof(TCHAR)); 
+    lptstrCopy[len] = (TCHAR) 0;    // null character 
+    GlobalUnlock(hglbCopy); 
+ 
+    // Place the handle on the clipboard. 
+ 
+    SetClipboardData(CF_TEXT, hglbCopy); 
+    CloseClipboard(); 
+
+
+
+}
+static void win32_clipboard_paste() {
+	//CTRL-V == 22 == clipboard paste in win32
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms649016(v=vs.85).aspx
+	HGLOBAL   hglb;
+	LPTSTR    lptstr; 
+	//paste
+	if (IsClipboardFormatAvailable(CF_TEXT)) {
+	if (OpenClipboard(last_key_hWnd)) {
+ 		hglb = GetClipboardData(CF_TEXT); 
+		if (hglb != NULL) 
+		{ 
+			lptstr = GlobalLock(hglb); 
+			if (lptstr != NULL) 
+			{ 
+				int m, len = strlen(lptstr);
+				for(m=0;m<len;m++)
+					if(lptstr[m] != 22) //prevent infinite recusion
+						fwl_do_rawKeyPress(lptstr[m],KEYPRESS);
+				GlobalUnlock(hglb); 
+			} 
+		} 
+		CloseClipboard(); 
+		}
+	} 
+}
+
+
+
+void fwl_set_clipboard_copy( void (*fn)(char *));
+void fwl_set_clipboard_paste( void (*fn));
+
 void statusbar_set_window_size(int width, int height);
 int statusbar_handle_mouse(int mev, int butnum, int mouseX, int mouseY);
 int fwl_hwnd_to_windex(void *hWnd);
@@ -766,7 +844,12 @@ static int shiftState = 0;
     mev = 0;
     butnum = 0;
 	windex = fwl_hwnd_to_windex(hWnd); //sets it if doesn't exist
-
+	last_key_hWnd = hWnd; //for clpboard funcs above
+	if(!clipboard_functions_registered){
+		fwl_set_clipboard_paste(win32_clipboard_paste);
+		fwl_set_clipboard_copy(win32_clipboard_copy);
+		clipboard_functions_registered = 1;
+	}
     //ghWnd = hWnd;
     switch( msg ) {
 

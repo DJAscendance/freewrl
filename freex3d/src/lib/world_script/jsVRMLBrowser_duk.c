@@ -311,7 +311,7 @@ struct string_int lookup_X3DConstants[] = {
 	{NULL,0}
 };
 
-struct string_int *lookup_string_int(struct string_int *table, char *searchkey, int *index){
+struct string_int *lookup_string_int(struct string_int *table, const char *searchkey, int *index){
 	int i;
 	//struct string_int *retval = NULL;
 	*index = -1;
@@ -339,7 +339,7 @@ int len_constants(){
 	int len = (sizeof(lookup_X3DConstants) / sizeof(struct string_int)) -1;
 	return len;
 }
-int X3DConstantsIterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name, int *lastProp, int *jndex, char *type, char *readOnly){
+int X3DConstantsIterator(int index, FWType fwt, FWPointer *pointer, const char **name, int *lastProp, int *jndex, char *type, char *readOnly){
 	index ++;
 	(*jndex) = 0;
 	if(index < len_constants()){
@@ -352,7 +352,7 @@ int X3DConstantsIterator(int index, FWTYPE *fwt, FWPointer *pointer, char **name
 	}
 	return -1;
 }
-FWTYPE X3DConstantsType = {
+struct FWTYPE X3DConstantsType = {
 	AUXTYPE_X3DConstants,
 	'P',
 	"X3DConstants",
@@ -370,19 +370,19 @@ FWTYPE X3DConstantsType = {
 
 
 
-int VrmlBrowserGetName(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetName(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	fwretval->_string = BrowserName;
 	fwretval->itype = 'S';
 	return 1;
 }
-int VrmlBrowserGetVersion(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetVersion(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	fwretval->_string = libFreeWRL_get_version();
 	fwretval->itype = 'S';
 	return 1;
 }
-int VrmlBrowserGetCurrentSpeed(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetCurrentSpeed(FWType fwtype, void *ec, void * fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	char string[1000];
 	sprintf (string,"%f",gglobal()->Mainloop.BrowserSpeed);
@@ -391,7 +391,7 @@ int VrmlBrowserGetCurrentSpeed(FWType fwtype, void *ec, void * fwn, int argc, FW
 	return 1;
 }
 
-int VrmlBrowserGetCurrentFrameRate(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetCurrentFrameRate(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	char string[1000];
 	sprintf (string,"%6.2f",gglobal()->Mainloop.BrowserFPS);
@@ -399,7 +399,7 @@ int VrmlBrowserGetCurrentFrameRate(FWType fwtype, void *ec, void *fwn, int argc,
 	fwretval->itype = 'S';
 	return 1;
 }
-int VrmlBrowserGetWorldURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserGetWorldURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	fwretval->_string = BrowserFullPath;
 	fwretval->itype = 'S';
@@ -457,7 +457,7 @@ const char *flexiString(FWval fwpars, char *buffer)
 	return _costr;
 }
 
-int VrmlBrowserReplaceWorld(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserReplaceWorld(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	//char *tptr;
 	char*_costr;
@@ -469,7 +469,7 @@ int VrmlBrowserReplaceWorld(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 
 
 /* used in loadURL*/
-void conCat (char *out, char *in) {
+void conCat_duk (char *out, char *in) {
 
 	while (strlen (in) > 0) {
 		strcat (out," :loadURLStringBreak:");
@@ -492,7 +492,7 @@ void conCat (char *out, char *in) {
 	}
 }
 
-void createLoadUrlString(char *out, int outLen, char *url, char *param) {
+void createLoadUrlString_duk(char *out, int outLen, char *url, char *param) {
 	int commacount1;
 	int commacount2;
 	char *tptr;
@@ -532,12 +532,12 @@ void createLoadUrlString(char *out, int outLen, char *url, char *param) {
 	while (*out != '\0') out++;
 
 	/* go through the elements and find which (if any) url exists */	
-	conCat (out,url);
+	conCat_duk (out,url);
 	while (*out != '\0') out++;
-	conCat (out,param);
+	conCat_duk (out,param);
 }
 struct X3D_Anchor* get_EAIEventsIn_AnchorNode();
-int VrmlBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	char *url, *parameter;
 	char bufferUrl[1000];
@@ -549,7 +549,7 @@ int VrmlBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 		/* we use the EAI code for this - so reformat this for the EAI format */
 		{
 			/* make up the URL from what we currently know */
-			createLoadUrlString(myBuf,1000,url, parameter);
+			createLoadUrlString_duk(myBuf,1000,url, parameter);
 			createLoadURL(myBuf);
 
 			/* now tell the fwl_RenderSceneUpdateScene that BrowserAction is requested... */
@@ -558,14 +558,14 @@ int VrmlBrowserLoadURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 		gglobal()->RenderFuncs.BrowserAction = TRUE;
 	return 0;
 }
-int VrmlBrowserSetDescription(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserSetDescription(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	//const char *_costr = NULL;
 	if(fwpars[0].itype == 'S')
 		gglobal()->Mainloop.BrowserDescription = fwpars[0]._string;
 	return 0;
 }
-int VrmlBrowserCreateX3DFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateX3DFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	/* for the return of the nodes */
 	struct X3D_Group *retGroup;
@@ -605,7 +605,7 @@ int VrmlBrowserCreateX3DFromString(FWType fwtype, void *ec, void *fwn, int argc,
 	return iret;
 }
 //int jsrrunScript(duk_context *ctx, char *script, FWval retval);
-int VrmlBrowserCreateVrmlFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateVrmlFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	/* for the return of the nodes */
 	struct X3D_Group *retGroup;
@@ -645,7 +645,7 @@ int VrmlBrowserCreateVrmlFromString(FWType fwtype, void *ec, void *fwn, int argc
 }
 void *createNewX3DNode(int nt);
 void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
-int VrmlBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	int i, iret, isVRML,isX3D;
 	struct X3D_Node *node;
@@ -673,9 +673,9 @@ int VrmlBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc
 	if(!node){
 		//more general might have parameters ie createNode("Cone { radius .5 }")
 		if(isVRML)
-			iret = VrmlBrowserCreateVrmlFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
+			iret = VRBrowserCreateVrmlFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
 		else
-			iret = VrmlBrowserCreateX3DFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
+			iret = VRBrowserCreateX3DFromString(fwtype,ec,fwn,argc,fwpars,fwretval);
 		if(iret){
 			node = fwretval->_web3dval.anyvrml->mfnode.p[0];
 			node->_executionContext = ec;
@@ -692,7 +692,7 @@ int VrmlBrowserCreateNodeFromString(FWType fwtype, void *ec, void *fwn, int argc
 	return iret;
 }
 void send_resource_to_parser_async(resource_item_t *res);
-int VrmlBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	//Browser.createVrmlFromURL(urlString,group,'addChildren');
 	//(MFString,SFNode,string)
@@ -700,7 +700,7 @@ int VrmlBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, F
 	union anyVrml *value;
 	struct X3D_Node *target_node;
 	struct Multi_String *url;
-	char *cfield;
+	const char *cfield;
 	resource_item_t *res;
 	
 	url = NULL;
@@ -742,7 +742,7 @@ int VrmlBrowserCreateVrmlFromURL(FWType fwtype, void *ec, void *fwn, int argc, F
 }
 
 /* we add/remove routes with this call */
-void jsRegisterRoute(
+void jsRegisterRoute_HIDE(
 	struct X3D_Node* from, int fromOfs,
 	struct X3D_Node* to, int toOfs,
 	int len, const char *adrem) {
@@ -756,14 +756,16 @@ void jsRegisterRoute(
  		 returnInterpolatorPointer(to->_nodeType), 0, 0);
 }
 struct brotoRoute *createNewBrotoRoute();
-void *addDeleteRoute0(void *fwn, char*callingFunc, struct X3D_Node* fromNode, char *sfromField, struct X3D_Node* toNode, char *stoField){
+int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
+void *addDeleteRoute0(void *fwn, const char* callingFunc, struct X3D_Node* fromNode, const char *sfromField, struct X3D_Node* toNode, const char *stoField){
 	void *retval;
-	int fromType,toType,fromKind,toKind,fromField,toField;
+	int fromType,toType,fromKind,toKind,fromField,toField,fromBuiltIn,toBuiltIn;
+	const char *fromCname,*toCname;
 	int i, len, fromOfs, toOfs;
 	union anyVrml *fromValue, *toValue;
 
-	getFieldFromNodeAndName(fromNode,sfromField,&fromType,&fromKind,&fromField,&fromValue);
-	getFieldFromNodeAndName(toNode,stoField,&toType,&toKind,&toField,&toValue);
+	getFieldFromNodeAndNameC(fromNode,sfromField,&fromType,&fromKind,&fromField,&fromBuiltIn,&fromValue,&fromCname);
+	getFieldFromNodeAndNameC(toNode,stoField,&toType,&toKind,&toField,&toBuiltIn,&toValue,&toCname);
 
 	/* do we have a mismatch here? */
 	if (fromType != toType) {
@@ -782,14 +784,16 @@ void *addDeleteRoute0(void *fwn, char*callingFunc, struct X3D_Node* fromNode, ch
 			broute = createNewBrotoRoute();
 			broute->from.node = fromNode;
 			broute->from.ifield = fromField;
+			broute->from.builtIn = fromBuiltIn;
 			//broute->from.Ofs = fromOfs;
 			broute->from.ftype = fromType;
 			broute->to.node = toNode;
 			broute->to.ifield = toField;
+			broute->to.builtIn = toBuiltIn;
 			//broute->to.Ofs = toOfs;
 			broute->to.ftype = toType;
 			broute->lastCommand = 1; //added above (won't be added if an import weak route)
-			CRoutes_RegisterSimpleB(broute->from.node,broute->from.ifield,broute->to.node,broute->to.ifield,broute->ft);
+			CRoutes_RegisterSimpleB(broute->from.node,broute->from.ifield,broute->from.builtIn,broute->to.node,broute->to.ifield,broute->to.builtIn,broute->ft);
 			broute->ft = fromType == toType ? fromType : -1;
 			if(!ec->__ROUTES)
 				ec->__ROUTES = newStack(struct brotoRoute *);
@@ -803,7 +807,7 @@ void *addDeleteRoute0(void *fwn, char*callingFunc, struct X3D_Node* fromNode, ch
 					if(broute->from.node == fromNode && broute->from.ifield == fromField
 						&& broute->to.node == toNode && broute->to.ifield == toField){
 						if(broute->lastCommand == 1)
-							CRoutes_RemoveSimpleB(broute->from.node,broute->from.ifield,broute->to.node,broute->to.ifield,broute->ft);
+							CRoutes_RemoveSimpleB(broute->from.node,broute->from.ifield,broute->from.builtIn,broute->to.node,broute->to.ifield,broute->to.builtIn,broute->ft);
 						broute->lastCommand = 0;
 						vector_remove_elem(struct brotoRoute*,ec->__ROUTES,i);
 						FREE_IF_NZ(broute);
@@ -827,7 +831,7 @@ void * addDeleteRoute(void *fwn, char* callingFunc, int argc, FWval fwpars, FWva
 	//	fromNode = fwpars[0]._web3dval.native; 
 	//	toNode   = fwpars[2]._web3dval.native; 
 	//}
-	fromNode = fwpars[0]._web3dval.anyvrml->sfnode; //.native; 
+	fromNode = fwpars[0]._web3dval.anyvrml->sfnode; //.native;
 	toNode   = fwpars[2]._web3dval.anyvrml->sfnode; //.native; 
 
 	fromField = fwpars[1]._string; 
@@ -841,8 +845,8 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 	int nr = 0;
 	void *xroute;
 	struct X3D_Node *fromNode, *toNode;
-	char *fromField, *toField;
-	int fromIfield, toIfield;
+	const char *fromField, *toField;
+	int fromIfield, toIfield, fromBuiltIn, toBuiltIn;
 	int ftype,kind;
 	union anyVrml *value;
 
@@ -852,16 +856,18 @@ int X3DExecutionContext_deleteRoute(FWType fwtype, void *ec, void *fwn, int argc
 		struct brotoRoute* broute = (struct brotoRoute*)fwpars[0]._pointer.native;
 		fromNode = broute->from.node;
 		fromIfield = broute->from.ifield;
+		fromBuiltIn = broute->from.builtIn;
 		toNode = broute->to.node;
 		toIfield = broute->to.ifield;
+		toBuiltIn = broute->to.builtIn;
 	}
-	getFieldFromNodeAndIndex(fromNode,fromIfield,&fromField,&ftype,&kind,&value);
-	getFieldFromNodeAndIndex(toNode,toIfield,&toField,&ftype,&kind,&value);
+	getFieldFromNodeAndIndexSource(fromNode,fromIfield,fromBuiltIn,&fromField,&ftype,&kind,&value);
+	getFieldFromNodeAndIndexSource(toNode,toIfield,toBuiltIn,&toField,&ftype,&kind,&value);
 	xroute = addDeleteRoute0(fwn,"deleteRoute",fromNode, fromField, toNode, toField);
 	return nr;
 }
 
-int VrmlBrowserAddRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
+int VRBrowserAddRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	void *xroute;
 	int nr = 0;
 	xroute = addDeleteRoute(fwn,"addRoute",argc,fwpars,fwretval);
@@ -874,13 +880,13 @@ int VrmlBrowserAddRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 	}
 	return nr;
 }
-int VrmlBrowserDeleteRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
+int VRBrowserDeleteRoute(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	void *xroute;
 	int nr = 0;
 	xroute = addDeleteRoute(fwn,"deleteRoute",argc,fwpars,fwretval);
 	return nr;
 }
-int VrmlBrowserPrint(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserPrint(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	const char *_costr = NULL;
 	if(fwpars[0].itype == 'S'){
@@ -890,7 +896,7 @@ int VrmlBrowserPrint(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars,
 	}
 	return 0;
 }
-int VrmlBrowserPrintln(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
+int VRBrowserPrintln(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)
 {
 	const char *_costr = NULL;
 	if(fwpars[0].itype == 'S'){
@@ -902,22 +908,22 @@ int VrmlBrowserPrintln(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 }
 
 FWFunctionSpec (BrowserFunctions)[] = {
-	{"getName",	VrmlBrowserGetName, 'S',{0,0,0,NULL}},
-	{"getVersion", VrmlBrowserGetVersion, 'S',{0,0,0,NULL}},
-	{"getCurrentSpeed", VrmlBrowserGetCurrentSpeed, 'S',{0,0,0,NULL}},
-	{"getCurrentFrameRate", VrmlBrowserGetCurrentFrameRate, 'S',{0,0,0,NULL}},
-	{"getWorldURL", VrmlBrowserGetWorldURL, 'S',{0,0,0,NULL}},
-	{"replaceWorld", VrmlBrowserReplaceWorld, '0',{1,-1,0,"Z"}},
-	{"loadURL", VrmlBrowserLoadURL, '0',{2,1,'T',"FF"}},
-	{"setDescription", VrmlBrowserSetDescription, '0',{1,-1,0,"S"}},
-	{"createVrmlFromString", VrmlBrowserCreateVrmlFromString, 'W',{1,-1,0,"S"}},
-	{"createVrmlFromURL", VrmlBrowserCreateVrmlFromURL,'0',{3,3,0,"WWS"}},
-	{"createX3DFromString", VrmlBrowserCreateX3DFromString, 'W',{1,-1,0,"S"}},
-	{"createX3DFromURL", VrmlBrowserCreateVrmlFromURL, '0',{3,3,0,"WWS"}},
-	{"addRoute", VrmlBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
-	{"deleteRoute", VrmlBrowserDeleteRoute, '0',{4,-1,0,"WSWS"}},
-	{"print", VrmlBrowserPrint, '0',{1,-1,0,"S"}},
-	{"println", VrmlBrowserPrintln, '0',{1,-1,0,"S"}},
+	{"getName",	VRBrowserGetName, 'S',{0,0,0,NULL}},
+	{"getVersion", VRBrowserGetVersion, 'S',{0,0,0,NULL}},
+	{"getCurrentSpeed", VRBrowserGetCurrentSpeed, 'S',{0,0,0,NULL}},
+	{"getCurrentFrameRate", VRBrowserGetCurrentFrameRate, 'S',{0,0,0,NULL}},
+	{"getWorldURL", VRBrowserGetWorldURL, 'S',{0,0,0,NULL}},
+	{"replaceWorld", VRBrowserReplaceWorld, '0',{1,-1,0,"Z"}},
+	{"loadURL", VRBrowserLoadURL, '0',{2,1,'T',"FF"}},
+	{"setDescription", VRBrowserSetDescription, '0',{1,-1,0,"S"}},
+	{"createVrmlFromString", VRBrowserCreateVrmlFromString, 'W',{1,-1,0,"S"}},
+	{"createVrmlFromURL", VRBrowserCreateVrmlFromURL,'0',{3,3,0,"WWS"}},
+	{"createX3DFromString", VRBrowserCreateX3DFromString, 'W',{1,-1,0,"S"}},
+	{"createX3DFromURL", VRBrowserCreateVrmlFromURL, '0',{3,3,0,"WWS"}},
+	{"addRoute", VRBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
+	{"deleteRoute", VRBrowserDeleteRoute, '0',{4,-1,0,"WSWS"}},
+	{"print", VRBrowserPrint, '0',{1,-1,0,"S"}},
+	{"println", VRBrowserPrintln, '0',{1,-1,0,"S"}},
 
 	//{importDocument, X3dBrowserImportDocument, 0), //not sure we need/want this, what does it do?
 	//{getRenderingProperty, X3dGetRenderingProperty, 0},
@@ -1014,7 +1020,7 @@ int BrowserSetter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 }
 
 
-FWTYPE BrowserType = {
+struct FWTYPE BrowserType = {
 	AUXTYPE_X3DBrowser,
 	'P',
 	"X3DBrowser",
@@ -1096,7 +1102,7 @@ FWPropertySpec (ComponentInfoArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE ComponentInfoArrayType = {
+struct FWTYPE ComponentInfoArrayType = {
 	AUXTYPE_ComponentInfoArray,
 	'P',
 	"ComponentInfoArray",
@@ -1147,7 +1153,7 @@ int ComponentInfoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretv
 	return nr;
 }
 
-FWTYPE ComponentInfoType = {
+struct FWTYPE ComponentInfoType = {
 	AUXTYPE_ComponentInfo,
 	'P',
 	"ComponentInfo",
@@ -1195,7 +1201,7 @@ FWPropertySpec (ProfileInfoArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE ProfileInfoArrayType = {
+struct FWTYPE ProfileInfoArrayType = {
 	AUXTYPE_ProfileInfoArray,
 	'P',
 	"ProfileInfoArray",
@@ -1263,7 +1269,7 @@ int ProfileInfoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 	return nr;
 }
 
-FWTYPE ProfileInfoType = {
+struct FWTYPE ProfileInfoType = {
 	AUXTYPE_ProfileInfo,
 	'P',
 	"ProfileInfo",
@@ -1282,7 +1288,7 @@ FWTYPE ProfileInfoType = {
 
 
 struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
-struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, char *name, int *source);
+struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, const char *name, int *source);
 int X3DExecutionContext_getNamedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
 	struct X3D_Node* node = NULL;
@@ -1309,7 +1315,7 @@ int X3DExecutionContext_updateNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	struct X3D_Node* node = NULL;
 	struct brotoDefpair *bd;
 	int found = 0;
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	node = X3D_NODE(fwpars[1]._web3dval.native);
 	if(_ec->__DEFnames){
@@ -1347,7 +1353,7 @@ int X3DExecutionContext_removeNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	if(_ec->__DEFnames){
 		struct brotoDefpair *bd;
@@ -1436,7 +1442,7 @@ int X3DExecutionContext_updateImportedNode(FWType fwtype, void *ec, void *fwn, i
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	char *mxname, *as, *nline;
+	const char *as, *mxname, *nline;
 	int found = 0;
 	struct IMEXPORT *mxp;
 
@@ -1479,7 +1485,7 @@ int X3DExecutionContext_removeImportedNode(FWType fwtype, void *ec, void *fwn, i
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	//struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	if(_ec->__IMPORTS){
 		struct IMEXPORT *mxp;
@@ -1525,7 +1531,7 @@ int X3DScene_updateExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	int found = 0;
 	struct IMEXPORT *mxp;
 
@@ -1572,7 +1578,7 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	//struct X3D_Node* node = NULL;
 
-	char *defname;
+	const char *defname;
 	defname = fwpars[0]._string;
 	if(_ec->__EXPORTS){
 		struct IMEXPORT *mxp;
@@ -1594,7 +1600,7 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 }
 int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
-	char *name, *value;
+	const char *name, *value;
 	name = fwpars[0]._string;
 	value = fwpars[1]._string;
 	//strdup and put in a global or per-scene or per execution context (name,value) list
@@ -1602,7 +1608,8 @@ int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 }
 int X3DScene_getMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
-	char *name, *value;
+	const char *name;
+	char *value;
 	value = NULL;
 	name = fwpars[0]._string;
 	//do a search in the perscene/perexecution context array
@@ -1616,9 +1623,9 @@ int X3DScene_getMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 
 static FWFunctionSpec (X3DExecutionContextFunctions)[] = {
 	//executionContext
-	{"addRoute", VrmlBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
+	{"addRoute", VRBrowserAddRoute, 'P',{4,-1,0,"WSWS"}},
 	{"deleteRoute", X3DExecutionContext_deleteRoute,'0',{1,-1,0,"P"}},
-	{"createNode", VrmlBrowserCreateNodeFromString, 'W',{1,-1,0,"S"}},
+	{"createNode", VRBrowserCreateNodeFromString, 'W',{1,-1,0,"S"}},
 	{"createProto", X3DExecutionContext_createProto, 'W',{1,-1,0,"S"}},
 	{"getImportedNode", X3DExecutionContext_getImportedNode, 'W',{1,-1,0,"S"}},
 	{"updateImportedNode", X3DExecutionContext_updateImportedNode, '0',{3,-1,0,"SSS"}},
@@ -1663,7 +1670,12 @@ int X3DExecutionContextGetter(FWType fwt, int index, void *ec, void *fwn, FWval 
 		case 0: //specificationVersion
 		{
 			char str[32]; 
-			sprintf(str,"{%d,%d,%d}",inputFileVersion[0],inputFileVersion[1],inputFileVersion[2]);
+			//sprintf(str,"{%d,%d,%d}",inputFileVersion[0],inputFileVersion[1],inputFileVersion[2]);
+			if(ecc->__loadResource || ecc->_parentResource){
+				int specver;
+				specver = ecc->__specversion;
+				sprintf(str,"{%d.%d.%d}",specver/100,(specver/10)%10,specver % 10);
+			}
 			fwretval->_string = strdup(str);
 			fwretval->itype = 'S';
 		}
@@ -1737,7 +1749,7 @@ int X3DExecutionContextGetter(FWType fwt, int index, void *ec, void *fwn, FWval 
 	return nr;
 }
 
-FWTYPE X3DExecutionContextType = {
+struct FWTYPE X3DExecutionContextType = {
 	AUXTYPE_X3DExecutionContext,
 	'P',
 	"X3DExecutionContext",
@@ -1783,7 +1795,7 @@ FWPropertySpec (X3DRouteArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE X3DRouteArrayType = {
+struct FWTYPE X3DRouteArrayType = {
 	AUXTYPE_X3DRouteArray,
 	'P',
 	"X3DRouteArray",
@@ -1815,16 +1827,18 @@ FWPropertySpec (X3DRouteProperties)[] = {
 int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	union anyVrml *value;
 	int type, kind;
-	char *fieldname; // , *stofield; //*sfromfield, 
+	const char *fieldname; // , *stofield; //*sfromfield, 
 	struct X3D_Node *fromNode, *toNode;
-	int fromIndex, toIndex;
+	int fromIndex, toIndex, fromBuiltIn, toBuiltIn;
 	int nr = 1;
 	{
 		struct brotoRoute* broute = (struct brotoRoute*)fwn;
 		fromNode = broute->from.node;
 		fromIndex = broute->from.ifield;
+		fromBuiltIn = broute->from.builtIn;
 		toNode = broute->to.node;
 		toIndex = broute->to.ifield;
+		toBuiltIn = broute->to.builtIn;
 	}
 	if(!fromNode || !toNode) return 0;
 
@@ -1841,7 +1855,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		break;
 	case 1: //fromField
 		//fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
-		getFieldFromNodeAndIndex(fromNode,fromIndex,&fieldname,&type,&kind,&value);
+		getFieldFromNodeAndIndexSource(fromNode,fromIndex,fromBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname; //NULL;
 		fwretval->itype = 'S';
 		break;
@@ -1855,7 +1869,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		break;
 	case 3: //toField
 		//getFieldFromNodeAndIndex(route->tonodes[0].routeToNode,route->tonodes[0].foffset,&fieldname,&type,&kind,&value);
-		getFieldFromNodeAndIndex(toNode,toIndex,&fieldname,&type,&kind,&value);
+		getFieldFromNodeAndIndexSource(toNode,toIndex,toBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname;
 		fwretval->itype = 'S';
 		break;
@@ -1866,7 +1880,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 }
 
 
-FWTYPE X3DRouteType = {
+struct FWTYPE X3DRouteType = {
 	AUXTYPE_X3DRoute,
 	'P',
 	"X3DRoute",
@@ -1911,7 +1925,7 @@ FWPropertySpec (X3DProtoArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE X3DProtoArrayType = {
+struct FWTYPE X3DProtoArrayType = {
 	AUXTYPE_X3DProtoArray,
 	'P',
 	"X3DProtoArray",
@@ -1926,7 +1940,7 @@ FWTYPE X3DProtoArrayType = {
 	NULL,
 };
 
-FWTYPE X3DExternProtoArrayType = {
+struct FWTYPE X3DExternProtoArrayType = {
 	AUXTYPE_X3DExternProtoArray,
 	'P',
 	"X3DExternProtoArray",
@@ -1983,7 +1997,7 @@ int X3DProtoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 }
 
 
-FWTYPE X3DProtoType = {
+struct FWTYPE X3DProtoType = {
 	AUXTYPE_X3DProto,
 	'P',
 	"X3DProtoDeclaration",
@@ -1997,7 +2011,7 @@ FWTYPE X3DProtoType = {
 	0,0, //takes int index in prop
 	NULL,
 };
-FWTYPE X3DExternProtoType = {
+struct FWTYPE X3DExternProtoType = {
 	AUXTYPE_X3DExternProto,
 	'P',
 	"X3DExternProtoDeclaration",
@@ -2047,7 +2061,7 @@ FWPropertySpec (X3DFieldDefinitionArrayProperties)[] = {
 	{NULL,0,0,0},
 };
 
-FWTYPE X3DFieldDefinitionArrayType = {
+struct FWTYPE X3DFieldDefinitionArrayType = {
 	AUXTYPE_X3DFieldDefinitionArray,
 	'P',
 	"X3DFieldDefinitionArray",
@@ -2073,13 +2087,14 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 	struct string_int * si;
 	union anyVrml *value;
 	struct X3D_Node* node;
-	char *fname;
+	const char *fname;
 	struct tuplePointerInt *tpi = (struct tuplePointerInt*)fwn;
 	node = tpi->pointer;
 	ifield = tpi->integer;
 	//I suspect FieldDefinitions are for ProtoDeclarations only, 
 	// but freewrl Brotos can use the same function for nodes and declares
-	if(getFieldFromNodeAndIndex(node,ifield,&fname,&type,&kind,&value)){
+	if(getFieldFromNodeAndIndexSource(node,ifield,TRUE,&fname,&type,&kind,&value)){
+	//if(getFieldFromNodeAndIndex(node,ifield,&fname,&type,&kind,&value)){
 		//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 		switch(index){
 		case 0: //name
@@ -2104,7 +2119,7 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 }
 
 
-FWTYPE X3DFieldDefinitionType = {
+struct FWTYPE X3DFieldDefinitionType = {
 	AUXTYPE_X3DFieldDefinition,
 	'P',
 	"X3DFieldDefinition",
@@ -2124,7 +2139,7 @@ FWTYPE X3DFieldDefinitionType = {
 
 
 
-void initVRMLBrowser(FWTYPE** typeArray, int *n){
+void initVRMLBrowser(FWType* typeArray, int *n){
 	typeArray[*n] = &X3DRouteType; (*n)++;
 	typeArray[*n] = &X3DRouteArrayType; (*n)++;
 	typeArray[*n] = &X3DExecutionContextType; (*n)++;

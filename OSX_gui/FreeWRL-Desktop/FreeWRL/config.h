@@ -7,7 +7,8 @@
 
 #define FRONTEND_DOES_SNAPSHOTS 1
 #define FRONTEND_HANDLES_DISPLAY_THREAD 1
-#define FRONTEND_GETS_FILES 1
+//not now for desktop, using desktop.c:
+//#define FRONTEND_GETS_FILES 1
 
 #define STATUSBAR_HUD 1
 #define DO_COLLISION_GPU 1
@@ -29,7 +30,26 @@
 #define HAVE_PTHREAD 1
 #define HAVE_GETOPT_H 1
 #define HAVE_GLU_TESS 1
-
-
+#define STATUSBAR_STD 1
 #define FREEWRL_MESSAGE_WRAPPER "/usr/bin/say"
 #define	BROWSER		"/usr/bin/open"
+#define PACKAGE_BUGREPORT "freewrl.sf.net"
+#define HAVE_GETOPT_LONG 1
+//the following can be undefed when starting to build on a clean machine
+//libcurl is part of osx (for pulling http files)
+#define HAVE_LIBCURL 1
+//duktape js engine is compiled into freewrl project, nothing to download or install
+#define JAVASCRIPT_DUK 1
+//macports: sudo port -t install alut (will also install openal)
+#define HAVE_ALUT 1
+#define HAVE_OPENAL 1
+//macports: sudo port -t install ffmpeg
+#define MOVIETEXTURE_FFMPEG 1
+//macports: sudo port -t install ode
+#define WITH_RBP 1
+//nurbs is part of glu in osx opengl, just define
+#define NURBS_LIB 1
+//spidermonkey aka mozjs17 via macports -on commandline can switch to duk with -J duk (or to SM with -J sm2)
+#define JAVASCRIPT_SM 1
+#define JAVASCRIPT_ENGINE_VARIANT 1 //1 = SM1 2 = SM2 - (default in libfreewrl is 2, mozjs17 not GCing so SM1 is better on mac
+

@@ -28,6 +28,8 @@ Linear algebra.
 #ifndef __FREEWRL_LINEAR_ALGEBRA_H__
 #define __FREEWRL_LINEAR_ALGEBRA_H__
 
+double angleNormalized(double angle);
+
 #define VECSQ(a) VECPT(a,a)
 #define VECPT(a,b) ((a).x*(b).x + (a).y*(b).y + (a).z*(b).z)
 #define VECDIFF(a,b,c) {(c).x = (a).x-(b).x;(c).y = (a).y-(b).y;(c).z = (a).z-(b).z;}
@@ -157,7 +159,7 @@ GLDOUBLE vecnormal(struct point_XYZ*r, struct point_XYZ* v);
 #define normalize_vector(pt) vecnormal(pt,pt)
 
 float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b);
-
+float calc_angle_between_two_vectors3f(float * a, float * b);
 double vecangle(struct point_XYZ* V1, struct point_XYZ* V2);
 
 
@@ -165,9 +167,11 @@ double vecangle(struct point_XYZ* V1, struct point_XYZ* V2);
 
 void veccross(struct point_XYZ *c , struct point_XYZ a, struct point_XYZ b);
 
+int vecsamed(double *a, double *b);
 double signd(double val);
 double * vecsignd(double *b, double *a);
 double *vecsetd(double *b, double x, double y, double z);
+double *vecset4d(double *b, double x, double y, double z, double a);
 double * vecmuld(double *c, double *a, double *b);
 double * vecaddd(double *c, double *a, double *b);
 double *vecdifd(double *c, double* a, double *b);
@@ -178,13 +182,18 @@ double* vecscaled(double* r, double* v, double s);
 double vecnormald(double *r, double *v);
 double *veccopyd(double *c, double *a);
 double *vecnegated(double *b, double *a);
-
+double *vecswizzle2d(double *inout );
 double * vecadd2d(double *c, double *a, double *b);
 double *vecdif2d(double *c, double* a, double *b);
 double veclength2d( double *p );
 double vecdot2d(double *a, double *b);
 double* vecscale2d(double* r, double* v, double s);
 double vecnormal2d(double *r, double *v);
+void vecprint3db(char *name, double *p, char *eol);
+void vecprint4db(char *name, double *p, char *eol);
+double *veccopy4d(double *c, double *a);
+double veclength4d( double *p );
+double *vecdif4d(double *c, double* a, double *b);
 
 int vecsame2f(float *a, float *b);
 float *vecset2f(float *b, float x, float y);
@@ -197,6 +206,7 @@ float* vecscale2f(float* r, float* v, float s);
 float vecnormal2f(float *r, float *v);
 float *vecmult2f(float *c, float *a, float *b);
 
+void vecprint3fb(char *name, float *p, char *eol);
 int vecsame3f(float *a, float *b);
 float *veccopy3f(float *b, float *a);
 float *vecset3f(float *b, float x, float y, float z);
@@ -208,18 +218,21 @@ float *vecscale3f(float *b, float *a, float scale);
 float *vecmult3f(float *c, float *a, float *b);
 float veclength3f(float *a);
 float *vecnormalize3f(float *b, float *a);
+float *vecnegate3f(float *b, float *a);
 float det3f(float *a, float *b, float *c);
 float *axisangle_rotate3f(float* b, float *a, float *axisangle);
+float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB);
 BOOL line_intersect_line_3f(float *p1, float *v1, float *p2, float *v2, float *t, float *s, float *x1, float *x2);
 BOOL line_intersect_planed_3f(float *p, float *v, float *N, float d, float *pi, float *t);
 BOOL line_intersect_plane_3f(float *p, float *v, float *N, float *pp, float *pi, float *t);
 BOOL line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi);
 
-
+void vecprint4fb(char *name, float *p, char *eol);
 float vecdot4f( float *a, float *b );
 float *vecscale4f(float *b, float *a, float scale);
 float *veccopy4f(float *b, float *a);
 int vecsame4f(float *a, float *b);
+float *vecset4f(float *b, float x, float y, float z, float a);
 
 GLDOUBLE det3x3(GLDOUBLE* data);
 
@@ -241,6 +254,7 @@ struct point_XYZ* transformAFFINE(struct point_XYZ* r, const struct point_XYZ* a
 GLDOUBLE* pointxyz2double(double* r, struct point_XYZ *p); /* instead of casting struct to array, this is more rigorous */
 struct point_XYZ* double2pointxyz(struct point_XYZ* r, double* p); /* ditto */
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat); /* same as transformAFFINE which is the same as transform() - just different parameter types */
+double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat);
 double *transformUPPER3X3d(double *r, double *a, const GLDOUBLE* mat);
 double *transformFULL4d(double *r4, double *a4, double *mat);
 
@@ -282,10 +296,11 @@ GLDOUBLE* matrotate(GLDOUBLE* Result, double Theta, double x, double y, double z
 
 /*rotates dv back on iv*/
 double matrotate2v(GLDOUBLE* res, struct point_XYZ iv/*original*/, struct point_XYZ dv/*result*/);
+double matrotate2vd(GLDOUBLE* res, double * iv/*original*/, double * dv/*result*/);
 void rotate_v2v_axisAngled(double* axis, double* angle, double *orig, double *result);
 
 GLDOUBLE* mattranslate(GLDOUBLE* r, double dx, double dy, double dz);
-
+GLDOUBLE* matscale(GLDOUBLE* r, double sx, double sy, double sz);
 GLDOUBLE* matmultiply(GLDOUBLE* r, GLDOUBLE* m , GLDOUBLE* n);
 GLDOUBLE* matmultiplyFULL(GLDOUBLE* r, GLDOUBLE* m , GLDOUBLE* n);
 GLDOUBLE* matmultiplyAFFINE(GLDOUBLE* r, GLDOUBLE* m , GLDOUBLE* n);
@@ -302,4 +317,8 @@ void printmatrix2(GLDOUBLE* mat,char* description );
 void printmatrix3(GLDOUBLE *mat, char *description, int row_major);
 void general_slerp(double *ret, double *p1, double *p2, int size, const double t);
 void point_XYZ_slerp(struct point_XYZ *ret, struct point_XYZ *p1, struct point_XYZ *p2, const double t);
+
+float *veclerp3f(float *T, float *A, float *B, float alpha);
+float *veclerp2f(float *T, float *A, float *B, float alpha);
+double *veclerpd(double *T, double *A, double *B, double alpha);
 #endif /* __FREEWRL_LINEAR_ALGEBRA_H__ */

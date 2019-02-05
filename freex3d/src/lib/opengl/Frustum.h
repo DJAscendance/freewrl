@@ -122,4 +122,29 @@ int is_GeoLODchild_inrange (struct X3D_GeoLOD* gpnode, struct X3D_Node *me);
 int is_CADLayerchild_inrange(struct X3D_CADLayer *node, struct X3D_Node *me);
 
 
+//extent6f {xmax,xmin,ymax,ymin,zmax,zmin}
+float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax);
+float *extent6f_clear(float *extent6);
+int extent6f_isSet(float *extent6);
+float *extent6f_copy(float *eout6, float *ein6);
+void extent6f_to_vec3f(float *extent6, float *pmin, float *pmax);
+void extent6f_from_vec3f2(float *extent6, float *pmin, float *pmax);
+void extent6f_to_box3f8(float *extent6, float *p3f8);
+float *extent6f_from_box3fn(float *extent6,float *p, int n);
+float *extent6f_union_extent6f(float *extent6, float *ein6);
+float *extent6f_intersect_extent6f(float *extent6, float *eina, float *einb);
+float *extent6f_union_vec3f(float *extent6, float *p3);
+float *extent6f_scale3f(float *eout6, float *ein6, float *s3);
+float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
+float *extent6f_translate3d(float *eout6, float *ein6, double *p3);
+float *extent6f_get_center3f(float *extent6, float *center3);
+float extent6f_get_maxsize(float *extent6);
+float extent6f_get_maxradius(float *extent6);
+float *extent6f_rotate4f(float *eout6, float *ein6, float *vrot4);
+float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4);
+float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4);
+void extent6f_printf(float *extent6);
+void extent6f_draw(float *extent); //in CursorDraw.c
+
+
 #endif /* __FREEWRL_FRUSTUM_H__ */

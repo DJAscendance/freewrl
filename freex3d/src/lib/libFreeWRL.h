@@ -31,16 +31,16 @@
 /* for front ends that do not have these X-11-based defines */
 // OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
 
-#if defined(_MSC_VER) || defined(_ANDROID)
+#if defined(AQUA) || defined(_MSC_VER) || defined(_ANDROID)
 #ifndef _MIMIC_X11_SCREEN_BUTTONS
-        #define _MIMIC_X11_SCREEN_BUTTONS
-                #define KeyPress        2
-                #define KeyRelease      3
-                #define ButtonPress     4
-                #define ButtonRelease   5
-                #define MotionNotify    6
-                #define MapNotify       19
-        #endif
+#define _MIMIC_X11_SCREEN_BUTTONS
+#define KeyPress        2
+#define KeyRelease      3
+#define ButtonPress     4
+#define ButtonRelease   5
+#define MotionNotify    6
+#define MapNotify       19
+#endif
 #endif
 
 
@@ -183,12 +183,14 @@ void fwl_set_occlusion_disable(bool flag);
 void fwl_set_print_opengl_errors(bool flag);
 void fwl_set_trace_threads(bool flag);
 void fwl_set_texture_size(unsigned int texture_size);
+unsigned int fwl_get_texture_size();
 void fwl_set_glClearColor (float red , float green , float blue , float alpha);
 void fwl_thread_dump(void);
 int fwg_get_unread_message_count(void);
 char *fwg_get_last_message();
 void fwl_set_logfile(char *);
 void fwl_set_nameTest(char *);
+void fwl_set_jsengine(char *);
 
 #if defined(_ANDROID)
 int DROIDDEBUG( const char*pFmtStr, ...);
@@ -235,15 +237,10 @@ OLDCODE#endif
 int fwl_StringConsoleMessage(char* message);
 
 void fwl_init_SnapGif(void);
-void fwl_init_PrintShot();
 void fwl_set_SnapFile(const char* file);
 void fwl_set_SnapTmp(const char* file);
-void fwl_init_SnapSeq(); /* Was in main/headers.h */
-void fwl_toggleSnapshot();
 void fwl_set_LineWidth(float lwidth);
 void fwl_set_KeyString(const char *str);
-void fwl_set_SeqFile(const char* file);
-void fwl_set_MaxImages(int max); 
 void fwl_setCurXY(int x, int y);
 void fwl_do_keyPress(char kp, int type);
 void fwl_doQuit(char *, int);
@@ -251,9 +248,10 @@ void fwl_doQuitInstance(void *instance);
 void fwl_updateScreenDim(int wi, int he);
 void fwl_doQuitAndWait();
 void fwl_set_viewer_type(const int type);
-void fwl_set_modeRecord();
-void fwl_set_modeFixture();
-void fwl_set_modePlayback();
+
+//void fwl_set_modeRecord();
+//void fwl_set_modeFixture();
+//void fwl_set_modePlayback();
 
 #define CHANNEL_EAI 0
 //OLDCODE #define CHANNEL_MIDI 1
@@ -287,10 +285,12 @@ void fwl_init_StereoDefaults(void); //don't need to call now March 2012
 void fwl_set_EyeDist(const char *optArg);
 void fwl_init_Shutter(void);
 void fwl_init_SideBySide(void);
+
 void fwl_init_UpDown(void);
 void fwl_set_AnaglyphParameter(const char *optArg);
 void fwl_set_StereoParameter(const char *optArg);
-
+void fwl_setDrawBoundingBoxes(int drawbb);
+void fwl_setJsEngine(char *optarg);
 // JAS obsolete void fwl_askForRefreshOK();
 
 /* DISPLAY THREAD */
@@ -398,6 +398,9 @@ void fwl_set_sbh_wantMenubar(int want);
 int fwl_get_sbh_wantMenubar();
 void fwl_set_sbh_wantStatusbar(int want);
 int fwl_get_sbh_wantStatusbar();
+void fwl_set_modulation(int modulation);
+int fwl_get_modulation();
+
 
 int fwl_commandline(char *cmdline);
 int fwl_getShift();
@@ -420,6 +423,7 @@ char* fwl_resitem_getURL(void *res);
 char* fwl_resitem_getTempDir(void *res);
 void fwl_resitem_setActualFile(void *res, char *fname);
 int	fwl_resitem_getStatus(void *res);
+void fwl_resitem_setStatus(void *resp, int status);
 int	fwl_resitem_getType(void *res);
 int	fwl_resitem_getMediaType(void *res);
 void fwl_resitem_enqueuNextMulti(void *res);
@@ -428,6 +432,11 @@ void fwl_resitem_enqueue(void *res);
 void fwl_resitem_setDownloadThread(void *res, void *thread);
 void *fwl_resitem_getDownloadThread(void *res);
 void *fwl_resitem_getGlobal(void *res);
+
+void fwl_init_DIS();
+int fwl_get_allow_DIS();
+void fwl_set_allow_DIS(int allow);
+
 
 int file2blob(void *res);
 #ifdef SSR_SERVER

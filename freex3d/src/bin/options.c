@@ -68,20 +68,14 @@ void fv_usage()
 	    "  -b|--big                Set window size to 800x600.\n"
 	    "\nGeneral options:\n"
 	    "  -e|--eai                Enable EAI.\n"
-	    "  -f|--fast               Set global texture size to -256 (fast).\n"
+	   // "  -f|--fast               Set global texture size to -256 (fast).\n"
 	    "  -W|--linewidth <float>  Set line width.\n"
-	    "  -Q|--nocollision        Disable collision management.\n"
+	    //"  -Q|--nocollision        Disable collision management.\n"
 	    "\nSnapshot options:\n"
 	    "  -p|--gif                Set file format to GIF (default is PNG).\n"
 	    "  -n|--snapfile <string>  Set output file name pattern with <string>,\n"
 	    "                          (use %%n for iteration number).\n"
 	    "  -o|--snaptmp <string>   Set output directory for snap files.\n"
-#if defined(DOSNAPSEQUENCE)
-	    "\nSnapshot sequence options:\n"
-	    "  -l|--seq                Set snapshot sequence mode.\n"
-	    "  -m|--seqfile <string>   Set sequence file name pattern.\n"
-	    "  -q|--maximg <number>    Set maximum number of files in sequence.\n"
-#endif
 	    "\nMisc options:\n"
 	    "  -V|--eaiverbose         Set EAI subsystem messages.\n"
 	    "  -r|--screendist <float> Set screen distance.\n"
@@ -92,10 +86,10 @@ void fv_usage()
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
 	    "  -U|--updown			   Set updown stereo.\n"
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
-		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
-		"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
-		"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
-		"  -N|--nametest <string>  Set name of .fwplay test file\n"
+		//"  -R|--record             Record to /recording/<scene>.fwplay.\n"
+		//"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
+		//"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
+		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
 		"  -G|--colorscheme <string>  UI colorscheme by builtin name: {original,angry,\n"
 		"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
 		"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
@@ -104,7 +98,10 @@ void fv_usage()
 		"  -w|--want TF            Want statusbar(T/F) menubar(T/F)\n"	
 		"  -E|--FPS <int>          Target Maximum Frames Per Second\n"	
 		"  =^|--shadingStyle <int> 0=Flat 1=gouraud 2=phong 3=wire\n"
-		"  -N|--nametest <string>  Set name of .fwplay test file\n"
+		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
+		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
+		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
+		"  -x|--boxes              Draw bounding boxes\n"
 	    "\nInternal options:\n"
 	    "  -i|--plugin <string>    Called from plugin.\n"
 	    "  -j|--fd <number>        Pipe to command the program.\n"
@@ -136,19 +133,13 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"big", no_argument, 0, 'b'},
 
 	{"eai", no_argument, 0, 'e'},
-	{"fast", no_argument, 0, 'f'},
+	//{"fast", no_argument, 0, 'f'},
 	{"linewidth", required_argument, 0, 'W'},
-	{"nocollision", no_argument, 0, 'Q'},
+	//{"nocollision", no_argument, 0, 'Q'},
 
 	{"gif", no_argument, 0, 'p'},
 	{"snapfile", required_argument, 0, 'n'},
 	{"snaptmp", required_argument, 0, 'o'},
-
-#if defined(DOSNAPSEQUENCE)
-	{"seq", no_argument, 0, 'l'},
-	{"seqfile", required_argument, 0, 'm'},
-	{"maximg", required_argument, 0, 'q'},
-#endif
 
 	{"eaiverbose", no_argument, 0, 'V'},
 	{"screendist", required_argument, 0, 'r'},
@@ -167,13 +158,16 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"curl", no_argument, 0, 'C'},
 
 	{"display", required_argument, 0, 'd'}, /* Roberto Gerson */
-	{"record", no_argument, 0, 'R'},
-	{"fixture", no_argument, 0, 'F'},
-	{"playback", no_argument, 0, 'P'},
-	{"nametest", required_argument, 0, 'N'},
+	//{"record", no_argument, 0, 'R'},
+	//{"fixture", no_argument, 0, 'F'},
+	//{"playback", no_argument, 0, 'P'},
+	//{"nametest", required_argument, 0, 'N'},
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
+	{"DIS",no_argument,0,'D'},
+	{"javascript",required_argument,0,'J'},
+	{"boxes",no_argument,0,'x'},
 	{0, 0, 0, 0}
     };
 
@@ -198,7 +192,7 @@ int fv_find_opt_for_optopt(char c) {
 
 //freewrl_params_t *fv_params = NULL;
 
-int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
+int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int *url_index)
 {
     int c, itmp;
     float ftmp;
@@ -209,14 +203,15 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
     //char *logFileName = NULL;
     //FILE *fp;
 
-#if defined(DOSNAPSEQUENCE)
-	static const char optstring[] = "efg:hi:j:k:vVlpq:m:n:o:bsQW:K:Xcr:y:utCL:d:RFPN:";
-#else
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:"; //':' means the preceding option requires an arguement
-#endif
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:DJ:x"; //':' means the preceding option requires an arguement
 
 
-
+	*url_index = -1;
+#if defined(_DEBUG) || defined(DEBUG)
+	for(c=0;c<argc;c++)
+		printf("argv[%d]=%s\n",c,argv[c]);
+#endif //DEBUG
+	optind = 1;
     while (1) {
 
 	/* Do we want getopt to print errors by itself ? */
@@ -226,23 +221,22 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 
 #if defined(_MSC_VER)
 #define strncasecmp _strnicmp
-#ifdef _DEBUG
-	for(c=0;c<argc;c++)
-	{
-		printf("argv[%d]=%s\n",c,argv[c]);
-	}
-#endif
 	c =	_getopt_internal (argc, argv, optstring, long_options, &option_index, 0);
-#else
+#else //_MSC_VERF
 	c = getopt_long(argc, argv, optstring, long_options, &option_index);
 #endif
-
-# else
+# else //HAVE_GETOPT_LONG
 	c = getopt(argc, argv, optstring);
-# endif
+		
+# endif //HAVE_GETOPT_LONG
+#if defined(_DEBUG) || defined(DEBUG)
+		printf("c=%c argv[%d]=%s\n",c,optind,argv[optind]);
+#define	DEBUG_ARGS printf
+#endif //DEBUG
 
 	if (c == -1)
 	    break;
+
 
 	if ((c == '?')) {
 	    real_option_index = fv_find_opt_for_optopt(optopt);
@@ -264,20 +258,23 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	case '?': /* getopt error: unknown option or missing argument */
 	    ERROR_MSG("ERROR: unknown option or missing argument to option: %c (%s)\n", 
 		     c, real_option_name);
-	    fwExit(1);
-	    break;
+	    //fwExit(1);
+		return FALSE;
+	   // break;
 
 	    /* Options handling */
 
 	case 'h': /* --help, no argument */
 	    fv_usage();
-	    fwExit(0);
-	    break;
+	    //fwExit(0);
+		return FALSE;
+	    //break;
 
 	case 'v': /* --version, no argument */
 	    fv_print_version();
-	    fwExit(0);
-	    break;
+	    //fwExit(0);
+		return FALSE;
+	    //break;
 
 /* Window options */
 
@@ -306,8 +303,9 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 
 	case 'g': /* --geometry, required argument: string (ex: 1024x768+100+50) */
 	    if (!optarg) {
-		ERROR_MSG("Argument missing for option -g/--geometry\n");
-		fwExit(1);
+			ERROR_MSG("Argument missing for option -g/--geometry\n");
+			//fwExit(1);
+			return FALSE;
 	    } else {
 		    if (!fwl_parse_geometry_string(optarg, 
 						   &fv_params->width, &fv_params->height,
@@ -337,22 +335,22 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	    fv_params->enableEAI = TRUE;
 	    break;
 
-	case 'f': /* --fast, no argument */
-		/* does nothing right now */
-	    break;
+	//case 'f': /* --fast, no argument */
+	//	/* does nothing right now */
+	//    break;
 
 	case 'W': /* --linewidth, required argument: float */
 	    sscanf(optarg,"%g", &ftmp);
 	    fwl_set_LineWidth(ftmp);
 	    break;
 
-	case 'Q': /* --nocollision, no argument */
-	    //fv_params->collision = FALSE; //this is the default
-	    ConsoleMessage ("ignoring collision off mode on command line");
-	    break;
+	//case 'Q': /* --nocollision, no argument */
+	//    //fv_params->collision = FALSE; //this is the default
+	//    ConsoleMessage ("ignoring collision off mode on command line");
+	//    break;
 
 /* Snapshot options */
-
+#ifndef FRONTEND_DOES_SNAPSHOTS
 	case 'p': /* --gif, no argument */
 	    fwl_init_SnapGif();
 	    break;
@@ -363,22 +361,6 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 
 	case 'o': /* --snaptmp, required argument: string */
 	    fwl_set_SnapTmp(optarg);
-	    break;
-
-/* Snapshot sequence options */
-
-#if defined(DOSNAPSEQUENCE)
-	case 'l': /* --seq, no argument */
-	    fwl_init_SnapSeq();
-	    break;
-
-	case 'm': /* --seqfile, required argument: string */
-	    fwl_set_SeqFile(optarg);
-	    break;
-
-	case 'q': /* --maximg, required argument: number */
-	    sscanf(optarg,"%d",&maxSnapImages);
-	    fwl_set_MaxImages(maxSnapImages);
 	    break;
 #endif
 
@@ -402,6 +384,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	    /*setXEventStereo();*/
 	    break;
 
+	case 'x': /* bounding boxes */
+	    fwl_setDrawBoundingBoxes(1);
+	    break;
+
 	case 't': /* --stereo, required argument: float */
 	    fwl_set_StereoParameter(optarg);
 	    break;
@@ -412,6 +398,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 	case 'B': /* --sidebyside, no argument */
 	    fwl_init_SideBySide();
 	    break;
+	case 'D': /* --DIS, no argument */
+	    fwl_init_DIS();
+	    break;
+
 	case 'U': /* --updown, no argument */
 	    fwl_init_UpDown();
 	    break;
@@ -469,22 +459,25 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 		return FALSE;
 	    }
 	    break;
+	case 'J': /* --javascript, required argument: string */
+		fwl_setJsEngine(optarg);
+	    break;
 
-#ifdef USE_SNAPSHOT_TESTING  
-	// link to lib/main/SnapshotTesting.c
-	case 'R': /* --record, no arg */
-		fwl_set_modeRecord();
-		break;
-	case 'F': /* --fixture, no arg */
-		fwl_set_modeFixture();
-		break;
-	case 'P': /* --playback, no arg */
-		fwl_set_modePlayback();
-		break;
-	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
-		fwl_set_nameTest(optarg);
-		break;
-#endif
+//#ifdef USE_SNAPSHOT_TESTING  
+//	// link to lib/main/SnapshotTesting.c
+//	case 'R': /* --record, no arg */
+//		fwl_set_modeRecord();
+//		break;
+//	case 'F': /* --fixture, no arg */
+//		fwl_set_modeFixture();
+//		break;
+//	case 'P': /* --playback, no arg */
+//		fwl_set_modePlayback();
+//		break;
+//	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
+//		fwl_set_nameTest(optarg);
+//		break;
+//#endif
 
 #ifdef HAVE_LIBCURL
 	case 'C': /* --curl, no argument */
@@ -494,7 +487,8 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
 
 	default:
 	    ERROR_MSG("ERROR: getopt returned character code 0%o, unknown error.\n", c);
-	    fwExit(1);
+	    //fwExit(1);
+		return FALSE;
 	    break;
 	}
     }
@@ -517,12 +511,13 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params)
  //   }
 
     if (optind < argc) {
-	if (optind != (argc-1)) {
-		ERROR_MSG("FreeWRL accepts only one argument: we have %d\n", (argc-optind));
-		return FALSE;
-	}
-	DEBUG_MSG("Start url: %s\n", argv[optind]);
-	start_url = STRDUP(argv[optind]);
+		if (optind != (argc-1)) {
+			ERROR_MSG("FreeWRL accepts only one argument: we have %d\n", (argc-optind));
+			return FALSE;
+		}
+		DEBUG_MSG("Start url: %s\n", argv[optind]);
+		//start_url = STRDUP(argv[optind]);
+		*url_index = optind;
     }
 
     return TRUE;

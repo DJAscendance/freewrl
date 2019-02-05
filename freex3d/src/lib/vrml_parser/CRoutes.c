@@ -450,6 +450,10 @@ unsigned long upper_power_of_two(unsigned long v)
     return v;
 
 }
+unsigned long lower_power_of_two(unsigned long v)
+{
+	return upper_power_of_two(v - 1) / 2L;
+}
 
 void AddRemoveChildren (
 		struct X3D_Node *parent,
@@ -926,19 +930,25 @@ int usesBuiltin(struct X3D_Node* node){
 	return retval;
 }
 void CRoutes_RegisterSimpleB(
-	struct X3D_Node* from, int fromIndex,
-	struct X3D_Node* to, int toIndex,
+	struct X3D_Node* from, int fromIndex, int fromBuiltIn,
+	struct X3D_Node* to, int toIndex, int toBuiltIn,
 	int type)  { 
 	//converts from field indexes to pointer offsets
 	int fromOfs,toOfs;
 
 	if(from && to){
 		fromOfs = fromIndex;
-		if(usesBuiltin(from))
-			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*5 + 1]; //for builtins, convert from field index to byte offset
+		if(usesBuiltin(from) != fromBuiltIn)
+			printf("error usesBuiltin(from) != fromBuiltin\n");
+		if(usesBuiltin(to) != toBuiltIn)
+			printf("error usesBuiltin(to) != toBuiltin\n");
+		//if(usesBuiltin(from))
+		if(fromBuiltIn)
+			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		toOfs = toIndex;
-		if(usesBuiltin(to))
-			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*5 + 1]; //for builtins, convert from field index to byte offset
+		//if(usesBuiltin(to))
+		if(toBuiltIn)
+			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		CRoutes_RegisterSimple(from,fromOfs,to,toOfs,type);
 	}
 }
@@ -964,17 +974,19 @@ void CRoutes_RemoveSimple(
   		interpolatorPointer, 0, NULL);
 }
 
-void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex,
- struct X3D_Node* to, int toIndex, int len){
+void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex, int fromBuiltIn,
+ struct X3D_Node* to, int toIndex, int toBuiltIn, int len){
 	int fromOfs, toOfs;
 	
 	fromOfs = fromIndex;
 	if(from && to){
-		if(usesBuiltin(from))
-			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*5 + 1]; //for builtins, convert from field index to byte offset
+		//if(usesBuiltin(from))
+		if(fromBuiltIn)
+			fromOfs = NODE_OFFSETS[(from)->_nodeType][fromIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 		toOfs = toIndex;
-		if(usesBuiltin(to))
-			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*5 + 1]; //for builtins, convert from field index to byte offset
+		//if(usesBuiltin(to))
+		if(toBuiltIn)
+			toOfs = NODE_OFFSETS[(to)->_nodeType][toIndex*FIELDOFFSET_LENGTH + 1]; //for builtins, convert from field index to byte offset
 
 		CRoutes_RemoveSimple(from,fromOfs,to,toOfs,len);
 	}
@@ -1700,7 +1712,7 @@ void mark_script (int num) {
 }
 
 
-int runQueuedDirectOutputs();
+
 
 /********************************************************************
 
@@ -2070,7 +2082,7 @@ stores ascii names with types (see code for type equivalences).
 
 ********************************************************************/
 
-int JSparamIndex (const char *name, const char *type) {
+int JSparamIndex (const char *name, const char *type, int mod) {
 	size_t len;
 	int ty;
 	int ctr;
@@ -2090,7 +2102,6 @@ int JSparamIndex (const char *name, const char *type) {
 	#endif
 
 	len = strlen(name);
-
 	/* is this a duplicate name and type? types have to be same,
 	   name lengths have to be the same, and the strings have to be the same.
 	*/
@@ -2123,6 +2134,7 @@ int JSparamIndex (const char *name, const char *type) {
 	strncpy (JSparamnames[tg->CRoutes.jsnameindex].name,name,len);
 	JSparamnames[tg->CRoutes.jsnameindex].name[len] = 0; /* make sure terminated */
 	JSparamnames[tg->CRoutes.jsnameindex].type = ty;
+	JSparamnames[tg->CRoutes.jsnameindex].kind = mod;
 	JSparamnames[tg->CRoutes.jsnameindex].eventInFunction = NULL;
 	#ifdef CRVERBOSE
 	printf ("JSparamIndex, returning %d\n",tg->JScript.jsnameindex); 
@@ -2221,7 +2233,7 @@ union anyVrml* get_anyVrml(struct X3D_Node* node, int offset, int *type, int *mo
 						fromMode = PKW_from_KW(offsets[3]);
 						break;
 					}
-					offsets += 5;
+					offsets += FIELDOFFSET_LENGTH;
 				}
 			}
 			break;
@@ -2407,9 +2419,20 @@ void propagate_events_B() {
 							//so we'll check if this is the same fromNode/fromOffset as the last loop and skip 
 							markme = last_markme;
 							if(!(fromNode==lastFromNode && fromOffset==lastFromOffset)){
-								//gatherScriptEventOut_B copies from javascript to the script field ->value
-								int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
-								markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
+#ifdef JAVASCRIPT_SM
+								if(SM_method() == 0){
+									//gatherScriptEventOut_B copies from javascript to the script field ->value
+									int JSparamNameIndex = sfield->fieldDecl->JSparamNameIndex;
+									markme = gatherScriptEventOut_B(fromAny,shader,JSparamNameIndex,type,0,len);
+								}else
+#endif //JAVASCRIPT_SM
+								{
+									// Jan 2 - seems like all we needed was valueChanged, which method2 updates automatically
+									markme = sfield->valueChanged;
+									//printf("fromAny.sffloat %f\n",fromAny->sffloat);
+									sfield->valueChanged = 0;
+								}
+
 							}
 							if(markme){
 								if (p->CRoutes[counter].intTimeStamp!=p->thisIntTimeStamp) {
@@ -2451,7 +2474,7 @@ void propagate_events_B() {
 								modeFrom = PKW_from_KW(offsets[3]);
 								break;
 							}
-							offsets += 5;
+							offsets += FIELDOFFSET_LENGTH;
 						}
 					}
 					break;
@@ -2547,7 +2570,7 @@ void propagate_events_B() {
 										modeTo = PKW_from_KW(offsets[3]);
 										break;
 									}
-									offsets += 5;
+									offsets += FIELDOFFSET_LENGTH;
 								}
 							}
 							break;
@@ -2645,7 +2668,7 @@ void propagate_events_B() {
 									/* mark that this script has been active SCRIPTS ARE INTEGER NUMBERS */
 									mark_script(shader->num);
 									if(isMF){ 
-										// note the casting of parameter 4, the toAny type
+										// note the casting of parameter 4, the toAny type, seems unnecessary, bureaucratic
 										getField_ToJavascript_B(shader->num, JSparamNameIndex, type, (union anyVrml* ) toAny->mfnode.p, toAny->mfnode.n); //mfp->p, mfp->n);
 									} else {
 										getField_ToJavascript_B(shader->num, JSparamNameIndex, type, toAny, len);
@@ -3033,12 +3056,15 @@ void Multimemcpy (struct X3D_Node *toNode, struct X3D_Node *fromNode, void *tn, 
 
 	if (toNode != NULL) {
 		if (multitype==ROUTING_SFNODE) {
-			unsigned int fnvalue;
-			unsigned int *fnlocation;
+			//unsigned int fnvalue;
+			//unsigned int *fnlocation;
+			union anyVrml *any;
 			struct X3D_Node *sfnodeptr;
-			fnlocation = (unsigned int*)fn;
-			fnvalue= *fnlocation;
-			sfnodeptr = (struct X3D_Node*)fnvalue;
+			//fnlocation = (unsigned int*)fn;
+			//fnvalue= *fnlocation;
+			//sfnodeptr = (struct X3D_Node*)fnvalue;
+			any = (union anyVrml*)fn;
+			sfnodeptr = any->sfnode;
 #ifdef CRVERBOSE
 			printf ("got a ROUTING_SFNODE, adding %u to %u\n",(unsigned int) fn, (unsigned int) toNode);
 #endif

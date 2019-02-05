@@ -41,7 +41,7 @@ void JSInitializeScriptAndFields (int num);
 void JSCreateScriptContext(int num);
 void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
 
-void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
+//void SaveScriptField (int num, indexT kind, indexT type, const char* field, union anyVrml value);
 void js_setField_javascriptEventOut_B(union anyVrml* any, int fieldType, unsigned len, int extraData, int actualscript);
 void js_setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fieldType, unsigned len, int extraData, int actualscript);
 
@@ -57,6 +57,6 @@ void jsShutdown();
 void JSDeleteScriptContext(int num);
 void InitScriptField(int num, indexT kind, indexT type, const char* field, union anyVrml value);
 void jsClearScriptControlEntries(int num); //struct CRscriptStruct *ScriptControl);
-
-
+int runQueuedDirectOutputs();
+int SM_method();
 #endif /* __FREEWRL_JS_JSCRIPT_H__ */

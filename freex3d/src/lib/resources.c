@@ -154,7 +154,7 @@ resource_item_t* resource_create_single(const char *request)
  *
  *   TODO: finish the multi implementation.
  */
-resource_item_t* resource_create_multi0(s_Multi_String_t *request)
+resource_item_t* resource_create_multi0(const s_Multi_String_t *request)
 {
 	/* anchor to new scene might use the multi0 directly, so plugin_res isn't deleted in killOldWorld */
 	int i;
@@ -174,7 +174,7 @@ resource_item_t* resource_create_multi0(s_Multi_String_t *request)
 	}
 	return item;
 }
-resource_item_t* resource_create_multi(s_Multi_String_t *request)
+resource_item_t* resource_create_multi(const s_Multi_String_t *request)
 {
 	resource_item_t *item = resource_create_multi0(request);
 	resource_tree_append(item);
@@ -1118,7 +1118,7 @@ static void possiblyUnzip (openned_file_t *of) {
 
 		/* make a temporary name for the gunzipped file */
         // sprintf (tempname, "%s",tempnam(gglobal()->Mainloop.tmpFileLocation,"freewrl_tmp")); 
-		tempname = tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_tmp");
+		tempname = TEMPNAM(gglobal()->Mainloop.tmpFileLocation, "freewrl_tmp");
 
 		/* read in the text, unzip it, write it out again */
 		source = gzopen(of->fileFileName,"rb");
@@ -1170,10 +1170,12 @@ bool resource_is_root_loaded()
 /* keep the last base resource around, for times when we are making nodes during runtime, eg
    textures in Background nodes */
 
+
 void pushInputResource(resource_item_t *url) 
 {
 	presources p = gglobal()->resources.prv;
 	DEBUG_MSG("pushInputResource current Resource is %s", url->parsed_request);
+	//printf("pushInputResource %s\n", url->parsed_request);
 
             
         
@@ -1200,6 +1202,7 @@ void popInputResource() {
 
 	/* lets just keep this one around, to see if it is really the bottom of the stack */
     DEBUG_MSG("popInputResource, stack size %d",vectorSize(p->resStack));
+    //printf("popInputResource, stack size %d\n",vectorSize(p->resStack));
     
 	cwu = stack_top(resource_item_t *, p->resStack);
 
@@ -1235,12 +1238,14 @@ resource_item_t *getInputResource()
 		} else {
 			DEBUG_MSG("so, returning %s\n",p->lastBaseResource->parsed_request);
 		}
+		//printf("getLastResource  %s\n",p->lastBaseResource->parsed_request);
 		return p->lastBaseResource;
 	}
 
 
 	cwu = stack_top(resource_item_t *, p->resStack);
 	DEBUG_MSG("getInputResource current Resource is %lu %lx %s\n", (unsigned long int) cwu, (unsigned long int) cwu, cwu->parsed_request);
+	//printf("getCurrentResource  %s\n",cwu->parsed_request);
 	return cwu;
 }
 

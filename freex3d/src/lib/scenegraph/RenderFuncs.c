@@ -50,7 +50,7 @@
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
 #include "RenderFuncs.h"
-
+#include "../ui/common.h"
 
 typedef float shaderVec4[4];
 
@@ -794,7 +794,8 @@ void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int
     s_shader_capabilities_t *me = getAppearanceProperties()->currentShaderProperties;
 
 	// checking to see that we really have the data
-	if (me==NULL) return;
+	if (me==NULL) 
+		return;
 
 #ifdef RENDERVERBOSE
 
@@ -951,18 +952,35 @@ void saveElementsForGPU(int mode, int count, ushort *indices){
 
 void reallyDrawOnce(){
 	//particle system will call this
+	//H: this might be a bit like glDrawMultiElements - a list of more primitive triangle fans etc that would make up a 3D shape
 	int i;
-	draw_call_params params;
+	draw_call_params *params;
 	ppRenderFuncs p;
 	ttglobal tg = gglobal();
 	p = (ppRenderFuncs)tg->RenderFuncs.prv;
 
 	for(i=0;i<vectorSize(p->draw_call_params_stack);i++){
-		params = vector_get(draw_call_params,p->draw_call_params_stack,i);
-		if(params.calltype == 1)
-			glDrawArrays(params.arrays.arrays_mode,params.arrays.arrays_first,params.arrays.arrays_count);
-		else if(params.calltype == 2)
-			glDrawElements(params.elements.elements_mode,params.elements.elements_count,GL_UNSIGNED_SHORT,params.elements.elements_indices);
+		params = vector_get_ptr(draw_call_params,p->draw_call_params_stack,i);
+		if(params->calltype == 1){
+			// in msvc you can do try catch in flat C, but not recommended in general - use c++
+			// but works when testing/debugging if the video driver is throwing c++ exceptions
+			// because we're sending it junk, to stop it from vapor-crashing 
+			// https://msdn.microsoft.com/en-us/library/1deeycx5.aspx
+			#define CATCH_GLDRAWARRAYS_THROWS 1
+			#if defined(CATCH_GLDRAWARRAYS_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
+			__try {
+				glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
+			}
+			__except(EXCEPTION_EXECUTE_HANDLER) {
+				printf("\n ouch from reallyDrawOnce glDrawArrays \n");
+				printf("i= %d n= %d",i,vectorSize(p->draw_call_params_stack));
+			}
+			#else
+			glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
+			#endif
+		}else if(params->calltype == 2){
+			glDrawElements(params->elements.elements_mode,params->elements.elements_count,GL_UNSIGNED_SHORT,params->elements.elements_indices);
+		}
 	}
 	//p->draw_call_params_stack->n = 0;
 }
@@ -1231,7 +1249,7 @@ void rayhit(float rat, float cx,float cy,float cz, float nx,float ny,float nz,
 	tg->RenderFuncs.hitPointDist = rat;
 	p->rayHit=p->rayph;
 #ifdef RENDERVERBOSE 
-//	printf ("Rayhit, hp.x y z: - %f %f %f rat %f hitPointDist %f\n",hp.x,hp.y,hp.z, rat, tg->RenderFuncs.hitPointDist);
+	printf ("Rayhit, hp.x y z: - %f %f %f hitPointDist %f %s\n",p->hp.x,p->hp.y,p->hp.z, rat, descr);
 #endif
 }
 
@@ -1257,7 +1275,23 @@ for (i=0; i<16; i++) printf ("%4.3lf ",projMatrix[i]); printf ("\n");
 		//FLOPs	112 double:	matmultiplyAFFINE 36, matinverseAFFINE 49, 3x transform (affine) 9 =27
 		GLDOUBLE  mvpi[16]; //mvp[16],
 		struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
-
+		{
+			//PointSensor needs an original camera axis (not modified pickray camera)
+			// to use as a plane normal to intersect the pickray/bearing with
+			ttglobal tg;
+			double mvi[16];
+			struct point_XYZ view_cam_axis, local_cam_axis;
+			tg = gglobal();
+			view_cam_axis.x = 0.0;
+			view_cam_axis.y = 0.0;
+			view_cam_axis.z = -1.0;
+			matinverseAFFINE(mvi,modelMatrix);
+			transformAFFINE(&local_cam_axis,&view_cam_axis,mvi);
+			tg->RenderFuncs.camera_axis[0] = local_cam_axis.x;
+			tg->RenderFuncs.camera_axis[1] = local_cam_axis.y;
+			tg->RenderFuncs.camera_axis[2] = local_cam_axis.z;
+			 
+		}
 		prepare_model_view_pickmatrix_inverse0(modelMatrix, mvpi);
 		transform(t_r1,&r11,mvpi);
 		transform(t_r2,&r2,mvpi);
@@ -1623,6 +1657,8 @@ void pop_sensor(){
 }
 int getWindex();
 int render_foundLayerViewpoint();
+void extent6f_draw(float *extent);
+static int draw_extents = TRUE;
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
 
@@ -1649,7 +1685,6 @@ void render_node(struct X3D_Node *node) {
 #endif
 		return;
 	}
-
 	virt = virtTable[node->_nodeType];
 
 #ifdef RENDERVERBOSE 
@@ -1733,6 +1768,8 @@ void render_node(struct X3D_Node *node) {
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
+		if(p->renderstate.render_boxes) extent6f_draw(node->_extent);
+
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		push_ray(); //upd_ray(); 
@@ -2025,6 +2062,8 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	rs->render_collision = rwhat & VF_Collision;
 	rs->render_other = rwhat & VF_Other;
 	rs->render_cube = rwhat & VF_Cube;
+	rs->render_background = rwhat & VF_Background;
+	rs->render_boxes = (rwhat & VF_Geom) && fwl_getDrawBoundingBoxes();
 	//p->nextFreeLight = 0;
 	p->lastShader = -1; //in sendLights,and optimization
 	tg->RenderFuncs.hitPointDist = -1;
@@ -2118,6 +2157,7 @@ void *returnInterpolatorPointer (int nodeType) {
 		case NODE_IntegerTrigger: do_interp = do_IntegerTrigger; break;
 		case NODE_IntegerSequencer: do_interp = do_IntegerSequencer; break;
 		case NODE_TimeTrigger: do_interp = do_TimeTrigger; break;
+		case NODE_GeoConvert: do_interp = do_GeoConvert; break;
 		default:
 			do_interp = NULL;
 	}
@@ -2212,7 +2252,7 @@ void checkParentLink (struct X3D_Node *node,struct X3D_Node *parent) {
 			}
 
 		}
-		offsetptr+=5;
+		offsetptr += FIELDOFFSET_LENGTH;
 	}
 }
 

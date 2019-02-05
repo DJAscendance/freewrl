@@ -382,7 +382,7 @@ bool movie_load(resource_item_t *res){
 	return retval;
 }
 int	parse_audioclip(struct X3D_AudioClip *node,char *bbuffer, int len);
-int parse_movie(node,buffer,len){
+int parse_movie(struct X3D_MovieTexture *node, char *buffer,int len){
 	//Option B - parse blob
 	//if your movie api will take a blob, you can call it from here to parse
 	//convert BLOB (binary large object) into video and audio structures
@@ -408,7 +408,7 @@ bool  process_res_movie(resource_item_t *res){
 	//
 	//s_list_t *l;
 	openned_file_t *of;
-	const char *buffer;
+	char *buffer;
 	int len;
 	struct X3D_MovieTexture *node;
 

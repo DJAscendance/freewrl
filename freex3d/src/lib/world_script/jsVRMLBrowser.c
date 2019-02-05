@@ -26,8 +26,10 @@ Javascript C language binding.
 
 
 #include <config.h>
+#if !defined(JS_SMCPP)
 #include <system.h>
-#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+//#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#ifdef JAVASCRIPT_SM
 #include <display.h>
 #include <internal.h>
 
@@ -56,12 +58,11 @@ Javascript C language binding.
 
 #include "JScript.h"
 #include "CScripts.h"
-#include "fieldSet.h"
 #include "jsUtils.h"
+#include "fieldSet.h"
 #include "jsNative.h"
 #include "jsVRMLClasses.h"
 #include "jsVRMLBrowser.h"
-
 
 
 #define X3DBROWSER 1
@@ -80,18 +81,76 @@ Javascript C language binding.
 JSBool
 #if JS_VERSION < 185
 BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-#else
+#elif JS_VERSION == 185
 BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp);
+#else
+BrowserGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp);
 #endif
+
 JSBool
 #if JS_VERSION < 185
 BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-#else
+#elif JS_VERSION == 185
 BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp);
+#else
+BrowserSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp);
 #endif
 
 #endif
 int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval *rval);
+/* 
+//js 17 aka 186
+struct JSClass {
+    const char          *name;
+    uint32_t            flags;
+
+    // Mandatory non-null function pointer members. 
+    JSPropertyOp        addProperty;
+    JSPropertyOp        delProperty;
+    JSPropertyOp        getProperty;
+    JSStrictPropertyOp  setProperty;
+    JSEnumerateOp       enumerate;
+    JSResolveOp         resolve;
+    JSConvertOp         convert;
+    JSFinalizeOp        finalize;
+
+    // Optionally non-null members start here. 
+    JSCheckAccessOp     checkAccess;
+    JSNative            call;
+    JSHasInstanceOp     hasInstance; // +
+    JSNative            construct;
+    JSTraceOp           trace;
+
+    void                *reserved[40];
+};
+//js 185
+struct JSClass {
+    const char          *name;
+    uint32              flags;
+
+    // Mandatory non-null function pointer members. 
+    JSPropertyOp        addProperty;
+    JSPropertyOp        delProperty;
+    JSPropertyOp        getProperty;
+    JSStrictPropertyOp  setProperty;
+    JSEnumerateOp       enumerate;
+    JSResolveOp         resolve;
+    JSConvertOp         convert;
+    JSFinalizeOp        finalize;
+
+    // Optionally non-null members start here. 
+    JSClassInternal     reserved0;   // -
+    JSCheckAccessOp     checkAccess;
+    JSNative            call;
+    JSNative            construct;
+    JSXDRObjectOp       xdrObject; //-
+    JSHasInstanceOp     hasInstance; //changed place with construct
+    JSMarkOp            mark;  //changed from JSTraceOp
+
+    JSClassInternal     reserved1;
+    void                *reserved[19]; //-
+};
+*/
 
 
 //Q. is this a true sharable static?
@@ -101,8 +160,8 @@ static JSClass Browser = {
     JS_PropertyStub,
     JS_PropertyStub,
 #ifdef X3DBROWSER
-    BrowserGetProperty, 
-	BrowserSetProperty,
+    JS_PropertyStub, //BrowserGetProperty, //JS_PropertyStub, 
+	BrowserSetProperty, //JS_StrictPropertyStub, 
 #else
 	JS_PropertyStub,
 	SetPropertyStub,
@@ -170,11 +229,16 @@ typedef struct intTableIndex{
 
 JSBool
 #if JS_VERSION < 185
-ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ComponentInfoGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	IntTableIndex ptr;
 	int _index, *_table, _nameIndex;
 	jsval rval;
@@ -188,7 +252,7 @@ ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		return JS_FALSE;
 	}
 #endif
-	if ((ptr = (IntTableIndex)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (IntTableIndex)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
 		return JS_FALSE;
 	}
@@ -233,11 +297,15 @@ ComponentInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ComponentInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ComponentInfoSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -245,7 +313,7 @@ void
 ComponentInfoFinalize(JSContext *cx, JSObject *obj)
 {
 	IntTableIndex ptr;
-	if ((ptr = (IntTableIndex)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (IntTableIndex)JS_GetPrivateFw(cx, obj)) == NULL) {
 		return;
 	} else {
 		FREE_IF_NZ (ptr);
@@ -263,7 +331,7 @@ static JSClass ComponentInfoClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    ComponentInfoFinalize //JS_FinalizeStub
+    JS_FinalizeStub, //ComponentInfoFinalize //JS_FinalizeStub
 };
 
 static JSPropertySpec (ComponentInfoProperties)[] = {
@@ -283,11 +351,16 @@ static JSPropertySpec (ComponentInfoProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ComponentInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	int *_table;
 	jsval rval;
 	jsval id;
@@ -300,7 +373,7 @@ ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		return JS_FALSE;
 	}
 #endif
-	if ((_table = (int *)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((_table = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
 	}
@@ -331,7 +404,7 @@ ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				return JS_FALSE;
 			}
 
-			if (!JS_SetPrivate(cx, _obj, (void*)tableindex)) {
+			if (!JS_SetPrivateFw(cx, _obj, (void*)tableindex)) {
 				printf( "JS_SetPrivate failed in ComponentInfoArray.\n");
 				return JS_FALSE;
 			}
@@ -349,10 +422,14 @@ ComponentInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 JSBool
 #if JS_VERSION < 185
 ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+#elif JS_VERSION == 185
+ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ComponentInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ComponentInfoArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -386,11 +463,16 @@ static JSPropertySpec (ComponentInfoArrayProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ProfileInfoGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	int *ptr;
 	int _index;
 	jsval rval;
@@ -404,7 +486,7 @@ ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		return JS_FALSE;
 	}
 #endif
-	if ((ptr = (int *)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
 	}
@@ -452,7 +534,7 @@ ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 						return JS_FALSE;
 					}
 				
-					if (!JS_SetPrivate(cx, _obj, (void*)_table)) {
+					if (!JS_SetPrivateFw(cx, _obj, (void*)_table)) {
 						printf( "JS_SetPrivate failed in ComponentInfoArray.\n");
 						return JS_FALSE;
 					}
@@ -470,10 +552,14 @@ ProfileInfoGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 JSBool
 #if JS_VERSION < 185
 ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+#elif JS_VERSION == 185
+ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ProfileInfoSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ProfileInfoSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -508,11 +594,16 @@ static JSPropertySpec (ProfileInfoProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ProfileInfoArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	jsval rval;
 	jsval id;
 
@@ -547,7 +638,7 @@ ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				return JS_FALSE;
 			}
 
-			if (!JS_SetPrivate(cx, _obj, (void*)_index)) {
+			if (!JS_SetPrivateFw(cx, _obj, (void*)_index)) {
 				printf( "JS_SetPrivate failed in ProfileInfoArray.\n");
 				return JS_FALSE;
 			}
@@ -564,11 +655,15 @@ ProfileInfoArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ProfileInfoArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ProfileInfoArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -606,11 +701,15 @@ int getCRouteCount();
 
 JSBool
 #if JS_VERSION < 185
-X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+X3DRouteGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	int *ptr;
 	int _index;
 	JSString *_str;
@@ -628,7 +727,7 @@ X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 		return JS_FALSE;
 	}
 #endif
-	if ((ptr = (int *)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
 		return JS_FALSE;
 	}
@@ -671,7 +770,7 @@ X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 						return JS_FALSE;
 					}
 
-					if (!JS_SetPrivate(cx, _obj, (void*)sfnn)) {
+					if (!JS_SetPrivateFw(cx, _obj, (void*)sfnn)) {
 						printf( "JS_SetPrivate failed in Route sourceNode.\n");
 						return JS_FALSE;
 					}
@@ -709,11 +808,15 @@ X3DRouteGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-X3DRouteSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+X3DRouteSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -748,11 +851,16 @@ static JSPropertySpec (X3DRouteProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+RouteArrayGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	jsval rval;
 	jsval id;
 
@@ -787,7 +895,7 @@ RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				return JS_FALSE;
 			}
 
-			if (!JS_SetPrivate(cx, _obj, (void*)_index)) {
+			if (!JS_SetPrivateFw(cx, _obj, (void*)_index)) {
 				printf( "JS_SetPrivate failed in RouteArray.\n");
 				return JS_FALSE;
 			}
@@ -804,11 +912,15 @@ RouteArrayGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 }
 JSBool
 #if JS_VERSION < 185
-RouteArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+RouteArraySetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+RouteArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-RouteArraySetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+RouteArraySetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -881,11 +993,15 @@ typedef struct X3D_Node * ExecutionContextNative;
 
 JSBool
 #if JS_VERSION < 185
-ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+ExecutionContextGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	ExecutionContextNative *ptr;
 	JSString *_str;
 	jsval rval;
@@ -900,7 +1016,7 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	}
 #endif
 
-	if ((ptr = (ExecutionContextNative *)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (ExecutionContextNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
 		return JS_FALSE;
 	}
@@ -941,7 +1057,7 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 					return JS_FALSE;
 				}
 
-				if (!JS_SetPrivate(cx, _obj, (void*)_index)) {
+				if (!JS_SetPrivateFw(cx, _obj, (void*)_index)) {
 					printf( "JS_SetPrivate failed in ExecutionContextProfileInfoArray.\n");
 					return JS_FALSE;
 				}
@@ -966,7 +1082,7 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 					return JS_FALSE;
 				}
 			
-				if (!JS_SetPrivate(cx, _obj, (void*)_table)) {
+				if (!JS_SetPrivateFw(cx, _obj, (void*)_table)) {
 					printf( "JS_SetPrivate failed in ExecutionContext_ComponentInfoArray.\n");
 					return JS_FALSE;
 				}
@@ -1008,7 +1124,7 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 					return JS_FALSE;
 				}
 //OUCH NEEDS WORK i DON'T KNOW WHAT I'M DOING
-				//if (!JS_SetPrivate(cx, _obj, &scene->children)) {
+				//if (!JS_SetPrivateFw(cx, _obj, &scene->children)) {
 				//	printf( "JS_SetPrivate failed in ExecutionContext.\n");
 				//	return JS_FALSE;
 				//}
@@ -1032,7 +1148,7 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 					printf( "JS_DefineProperties failed in ExecutionContext_X3DRouteArrayProperties.\n");
 					return JS_FALSE;
 				}
-					//if (!JS_SetPrivate(cx, _obj, (void*)_table)) {
+					//if (!JS_SetPrivateFw(cx, _obj, (void*)_table)) {
 				//	printf( "JS_SetPrivate failed in ExecutionContext_X3DRouteArray.\n");
 				//	return JS_FALSE;
 				//}
@@ -1055,11 +1171,15 @@ ExecutionContextGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-ExecutionContextSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+ExecutionContextSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	//can I, should I force it to read-only this way?
 	return JS_FALSE;
 }
@@ -1091,11 +1211,15 @@ static JSPropertySpec (BrowserProperties)[] = {
 
 JSBool
 #if JS_VERSION < 185
-BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+BrowserGetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp){
 #else
-BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
+BrowserGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
 	BrowserNative *ptr;
 	jsdouble d;
 	JSString *_str;
@@ -1117,7 +1241,7 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 	// and 1:1 with static for unchanging things like browser version, components and profiles supported), 
 	//and in practice all the bits and pieces are scattered throughout freewrl
 	//but for fun we'll get it:
-	if ((ptr = (BrowserNative *)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (BrowserNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in BrowserGetProperty.\n");
 		return JS_FALSE;
 	}
@@ -1177,7 +1301,7 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				//	printf( "JS_DefineProperties failed in ExecutionContextFunctions.\n");
 				//	return JS_FALSE;
 				//}
-				if (!JS_SetPrivate(cx, _obj, (void*)capabilitiesHandler_getCapabilitiesTable())) {
+				if (!JS_SetPrivateFw(cx, _obj, (void*)capabilitiesHandler_getCapabilitiesTable())) {
 					printf( "JS_SetPrivate failed in ExecutionContext.\n");
 					return JS_FALSE;
 				}
@@ -1205,7 +1329,7 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 				//	return JS_FALSE;
 				//}
 				//set private not needed
-				//if (!JS_SetPrivate(cx, _obj, ec)) {
+				//if (!JS_SetPrivateFw(cx, _obj, ec)) {
 				//	printf( "JS_SetPrivate failed in ExecutionContext.\n");
 				//	return JS_FALSE;
 				//}
@@ -1242,7 +1366,7 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 					return JS_FALSE;
 				}
 
-				if (!JS_SetPrivate(cx, _obj, ec)) {
+				if (!JS_SetPrivateFw(cx, _obj, ec)) {
 					printf( "JS_SetPrivate failed in ExecutionContext.\n");
 					return JS_FALSE;
 				}
@@ -1264,11 +1388,16 @@ BrowserGetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp)
 
 JSBool
 #if JS_VERSION < 185
-BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+BrowserSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp){
+#elif JS_VERSION == 185
+BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp){
 #else
-BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval *vp)
+BrowserSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool strict, JSMutableHandleValue hvp){
+	JSObject *obj = *hobj._;
+	jsid iid = *hiid._;
+	jsval *vp = hvp._;
 #endif
-{
+
 	BrowserNative *ptr;
 	jsval _val;
 	JSString *ss;
@@ -1281,7 +1410,7 @@ BrowserSetProperty(JSContext *cx, JSObject *obj, jsid iid, JSBool strict, jsval 
 	}
 #endif
 
-	if ((ptr = (BrowserNative *)JS_GetPrivate(cx, obj)) == NULL) {
+	if ((ptr = (BrowserNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf( "JS_GetPrivate failed in BrowserSetProperty.\n");
 		return JS_FALSE;
 	}
@@ -1459,7 +1588,7 @@ VrmlBrowserInit(JSContext *context, JSObject *globalObj, BrowserNative *brow)
 		return JS_FALSE;
 	}
 #endif
-	if (!JS_SetPrivate(context, obj, brow)) {
+	if (!JS_SetPrivateFw(context, obj, brow)) {
 		printf( "JS_SetPrivate failed in VrmlBrowserInit.\n");
 		return JS_FALSE;
 	}
@@ -1719,7 +1848,7 @@ VrmlBrowserLoadURL(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = INT_TO_JSVAL(0);
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO); 
 #endif
 
 	return JS_TRUE;
@@ -1753,7 +1882,7 @@ VrmlBrowserSetDescription(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 		*rval = INT_TO_JSVAL(0);
 #else
-		JS_SET_RVAL(context,vp,JSVAL_ZERO);
+		JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	} else {
 		printf( "\nIncorrect argument format for setDescription(%s).\n", _c_args);
@@ -2006,7 +2135,7 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = INT_TO_JSVAL(0);
 #else
-	*rval = JSVAL_ZERO;
+	*rval = INT_TO_JSVAL(0); //JSVAL_ZERO;
 #endif
 
 	/* first parameter - expect a MFString Object here */
@@ -2078,7 +2207,7 @@ VrmlBrowserCreateVrmlFromURL(JSContext *context, uintN argc, jsval *vp) {
 
 
 	/* get a pointer to the SFNode structure, in order to properly place the new string */
-	if ((oldPtr = (SFNodeNative *)JS_GetPrivate(context, JSVAL_TO_OBJECT(argv[1]))) == NULL) {
+	if ((oldPtr = (SFNodeNative *)JS_GetPrivateFw(context, JSVAL_TO_OBJECT(argv[1]))) == NULL) {
 		printf( "JS_GetPrivate failed in VrmlBrowserLoadURL for SFNode parameter.\n");
 #if JS_VERSION >= 185
 		JS_free(context,_costr0);
@@ -2180,7 +2309,7 @@ VrmlBrowserAddRoute(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = _rval;
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	return JS_TRUE;
 }
@@ -2209,7 +2338,7 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 			_id_c = JS_EncodeString(context,_str);
 #endif
 			// OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER)
-			#if defined(_MSC_VER)
+			#if defined(AQUA) || defined(_MSC_VER)
 			ConsoleMessage(_id_c); /* statusbar hud */
 			gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 			#else
@@ -2231,7 +2360,7 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 	/* the \n should be done with println below, or in javascript print("\n"); 
 	  except web3d V3 specs don't have Browser.println so print will do \n like the old days*/
 	// OLD_IPHONE_AQUA  #if defined(AQUA)  || defined(_MSC_VER)
-	#if defined(_MSC_VER)
+	#if defined(AQUA)  || defined(_MSC_VER)
 	ConsoleMessage("\n"); /* statusbar hud */
 	gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 	#elif !defined(_MSC_VER)
@@ -2242,7 +2371,7 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = _rval;
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	return JS_TRUE;
 }
@@ -2257,7 +2386,7 @@ VrmlBrowserPrintln(JSContext *context, uintN argc, jsval *vp) {
 	VrmlBrowserPrint(context,argc,vp); 
 #endif
 	// OLD_IPHONE_AQUA  #if defined(AQUA) || defined(_MSC_VER)
-	#if defined(_MSC_VER)
+	#if defined(AQUA) ||  defined(_MSC_VER)
 		//ConsoleMessage("\n"); /* statusbar hud */
 		gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
 	#else
@@ -2284,7 +2413,7 @@ VrmlBrowserDeleteRoute(JSContext *context, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	*rval = _rval;
 #else
-	JS_SET_RVAL(context,vp,JSVAL_ZERO);
+	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 #endif
 	return JS_TRUE;
 }
@@ -2351,11 +2480,11 @@ static JSBool doVRMLRoute(JSContext *context, JSObject *obj, uintN argc, jsval *
 		}
 
 		/* get the "private" data for these nodes. It will consist of a SFNodeNative structure */
-		if ((fromNative = (SFNodeNative *)JS_GetPrivate(context, fromNodeObj)) == NULL) {
+		if ((fromNative = (SFNodeNative *)JS_GetPrivateFw(context, fromNodeObj)) == NULL) {
 			printf ("problem getting native props\n");
 			return JS_FALSE;
 		}
-		if ((toNative = (SFNodeNative *)JS_GetPrivate(context, toNodeObj)) == NULL) {
+		if ((toNative = (SFNodeNative *)JS_GetPrivateFw(context, toNodeObj)) == NULL) {
 			printf ("problem getting native props\n");
 			return JS_FALSE;
 		}
@@ -2560,5 +2689,5 @@ void println(Object or String);
 }
 */
 
-
 #endif /* !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK) */
+#endif //!defined(JS_SMCPP)

@@ -48,6 +48,7 @@ X3D Text Component
 #include "Component_Shape.h"
 #include "../scenegraph/Tess.h"
 #include "../scenegraph/Polyrep.h"
+#include "../x3d_parser/Bindable.h"
 
 
 #ifdef _ANDROID
@@ -394,10 +395,17 @@ void fwl_fontFileLocation(char *fontFileLocation) {
 	ttglobal tg = gglobal();
 	p = (ppComponent_Text)tg->Component_Text.prv;
 	/* Check if dir exists */
-	if (fontFileLocation)
-	if (do_dir_exists(fontFileLocation)) {
-		FREE_IF_NZ(p->font_directory);
-		p->font_directory = STRDUP(fontFileLocation);
+	if (fontFileLocation){
+		char * lfontFileLocation = STRDUP(fontFileLocation);
+		if(strstr(lfontFileLocation,".ttf")){
+			//osx passes in the veramono.ttf path, strip to get just the directory
+			char * pend = strrchr(lfontFileLocation,'/');
+			if(pend) *pend = '\0';
+		}
+		if (do_dir_exists(lfontFileLocation)) {
+			FREE_IF_NZ(p->font_directory);
+			p->font_directory = lfontFileLocation;
+		}
 	}
 }
 
@@ -510,7 +518,7 @@ static void FW_NewVertexPoint ()
     v2[2]=p->FW_rep_->actualCoord[p->FW_pointctr*3+2];
 	//July 2016 if you change things around here, you may want to check Tess.c Combiner callback
 	/* printf("glu s.b. rev 1.2 or newer, is: %s\n",gluGetString(GLU_VERSION)); */
-    FW_GLU_TESS_VERTEX(tg->Tess.global_tessobj,v2,&p->FW_RIA[p->FW_RIA_indx]);
+    FW_GLU_TESS_VERTEX(tg->Tess.text_tessobj,v2,&p->FW_RIA[p->FW_RIA_indx]);
 
     if (p->TextVerbose) {
         printf ("FW_NewVertexPoint %f %f %f index %d\n",
@@ -539,7 +547,7 @@ static int FW_moveto (FT_Vector* to, void* user)
 
     /* Have we started a new line */
     if (p->contour_started) {
-       FW_GLU_NEXT_CONTOUR(tg->Tess.global_tessobj,GLU_UNKNOWN);
+       FW_GLU_NEXT_CONTOUR(tg->Tess.text_tessobj,GLU_UNKNOWN);
     }
 
     /* well if not, tell us that we have started one */
@@ -652,7 +660,7 @@ struct name_num {
     {"VeraMoBI","monospace","bold italic","bold oblique",	0x13,1,1,4},	/* Monospace Bold Ital */
 	{NULL,		NULL,		NULL,		NULL,				0,0,0,0},
 };
-struct name_num *get_fontname_entry_by_num(num){
+struct name_num *get_fontname_entry_by_num(int num){
 	int i;
 	struct name_num *retval = NULL;
 	i = 0;
@@ -1026,7 +1034,7 @@ static void FW_draw_outline (FT_OutlineGlyph oglyph)
 	p = (ppComponent_Text)tg->Component_Text.prv;
 
     /* gluTessBeginPolygon(global_tessobj,NULL); */
-	gluTessNormal(tg->Tess.global_tessobj,0.0,0.0,1.0);
+	gluTessNormal(tg->Tess.text_tessobj,0.0,0.0,1.0);
    // FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
     //p->FW_rep_->actualCoord[p->FW_pointctr*3+0] = (float) (OUT2GLB(p->last_point.x,p->shrink_x) + p->pen_x);
 	cbdata.coords = p->FW_rep_->actualCoord;
@@ -1036,16 +1044,16 @@ static void FW_draw_outline (FT_OutlineGlyph oglyph)
     //p->FW_RIA[p->FW_RIA_indx]=p->FW_pointctr;
 	//July 2016 if you change things around here, you may want to also check Tess.c Combiner callback
 
-	gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata );
-	gluTessBeginContour( tg->Tess.global_tessobj );
+	gluTessBeginPolygon( tg->Tess.text_tessobj, &cbdata );
+	gluTessBeginContour( tg->Tess.text_tessobj );
     p->FW_Vertex = 0;
 
     /* thisptr may possibly be null; I dont think it is use in freetype */
     retval = FT_Outline_Decompose( &oglyph->outline, &p->FW_outline_interface, &thisptr);
 
     /* gluTessEndPolygon(global_tessobj); */
-	gluTessEndContour( tg->Tess.global_tessobj );
-	gluTessEndPolygon( tg->Tess.global_tessobj );
+	gluTessEndContour( tg->Tess.text_tessobj );
+	gluTessEndPolygon( tg->Tess.text_tessobj );
     //FW_GLU_END_POLYGON(tg->Tess.global_tessobj);
 
     if (retval != FT_Err_Ok)
@@ -1281,7 +1289,7 @@ static unsigned int len_utf8(unsigned char *utf8string)
 
 #include <malloc.h>
 
-void register_Polyrep_combiner();
+//void register_Polyrep_combiner();
 void prep_screentext(struct X3D_Text *tnode, int num, double screensize);
 /* take a text string, font spec, etc, and make it into an OpenGL Polyrep or rowvec[] for screen(pixel) font
    For placing text on the screen directly from freewrl ie GUI or HUD like use the CaptionText contenttype 
@@ -1291,7 +1299,7 @@ void prep_screentext(struct X3D_Text *tnode, int num, double screensize);
    maxextent [m]
    length[] [m]
    */
-void register_Text_combiner();
+//void register_Text_combiner();
 void FW_rendertext(struct X3D_Text *tnode, unsigned int numrows,struct Uni_String **ptr,
 				unsigned int nl, float *length, double maxext,
 				double spacing, double mysize, unsigned int fsparam,
@@ -1701,7 +1709,7 @@ p->myff = 4;
 
 	if(!tnode->_isScreen){
 		//vector glyph construction
-		register_Text_combiner(); //Tess.c
+		//register_Text_combiner(); //Tess.c
 		p->FW_rep_ = rp;
 		//PER TEXT NODE
 		//rep->actualCoords[FW_pointctr] cumulative XYZ points over all glyphs in Text node 
@@ -1729,7 +1737,7 @@ p->myff = 4;
 				p->shrink_y = chr.sy; //[1]
 				//PER GLYPH
 				//gobal_IFS_Coords[global_IFS_Coord_count] - Triangle vertex indexes into actualCoords
-				tg->Tess.global_IFS_Coord_count = 0;
+				tg->Tess.text_IFS_Coord_count = 0;
 				//FW_RIA[FW_RIA_indx] - glyph outline contour point indexes into actualCoord
 				p->FW_RIA_indx = 0;    // index into FW_RIA    
 				kk = rowvec[row].chr[i].iglyph;
@@ -1738,17 +1746,17 @@ p->myff = 4;
 				/* copy over the tesselated coords for the character to
 					* the rep structure */
 
-				for (x=0; x<tg->Tess.global_IFS_Coord_count; x++) {
+				for (x=0; x<tg->Tess.text_IFS_Coord_count; x++) {
 						/*printf ("copying %d\n",global_IFS_Coords[x]); */
 
 					/* did the tesselator give us back garbage? */
 
-					if ((tg->Tess.global_IFS_Coords[x] >= p->cindexmaxsize) ||
+					if ((tg->Tess.text_IFS_Coords[x] >= p->cindexmaxsize) ||
 						(p->indx_count >= p->cindexmaxsize) ||
-						(tg->Tess.global_IFS_Coords[x] < 0)) {
+						(tg->Tess.text_IFS_Coords[x] < 0)) {
 							if (p->TextVerbose)
 							printf ("Tesselated index %d out of range; skipping indx_count, %d cindexmaxsize %d global_IFS_Coord_count %d\n",
-							tg->Tess.global_IFS_Coords[x],p->indx_count,p->cindexmaxsize,tg->Tess.global_IFS_Coord_count);
+							tg->Tess.text_IFS_Coords[x],p->indx_count,p->cindexmaxsize,tg->Tess.text_IFS_Coord_count);
 						/* just use last point - this sometimes happens when */
 						/* we have intersecting lines. Lets hope first point is */
 						/* not invalid... JAS */
@@ -1759,7 +1767,7 @@ p->myff = 4;
 						printf("global_ifs_coords is %d indx_count is %d \n",global_IFS_Coords[x],p->indx_count);
 						printf("filling up cindex; index %d now points to %d\n",p->indx_count,global_IFS_Coords[x]);
 						*/
-						p->FW_rep_->cindex[p->indx_count++] = tg->Tess.global_IFS_Coords[x];
+						p->FW_rep_->cindex[p->indx_count++] = tg->Tess.text_IFS_Coords[x];
 					}
 				}
 
@@ -1773,7 +1781,7 @@ p->myff = 4;
 					//this can show you if you have the right idea
 					static int _once = 0;
 					int ii,jj,ntris;
-					ntris = tg->Tess.global_IFS_Coord_count / 3;
+					ntris = tg->Tess.text_IFS_Coord_count / 3;
 					if(!_once){
 						//_once means it will output the first character in the text string here
 						FILE *fptris = fopen("test_glyph_triangles.wrl","w+");
@@ -1903,7 +1911,7 @@ p->myff = 4;
 				p->FW_rep_->GeneratedTexCoords[0][i*3+2] = p->FW_rep_->actualCoord[i*3+1]*1.66f;
 			}
 		}
-		register_Polyrep_combiner(); //Tess.c - polyrep is the default
+		//register_Polyrep_combiner(); //Tess.c - polyrep is the default
 	} //if isScreenFont
 
 	if (p->TextVerbose) printf ("exiting FW_Render_text\n");
@@ -2190,10 +2198,15 @@ void make_Text (struct X3D_Text *node)
 
 static int iyup = 0;  //iyup = 1 means y is up on texture (like freewrl) (doesn't work right), iyup=0 means y-down texture coords (works)
 
-typedef struct AtlasFont AtlasFont;
-typedef struct Atlas Atlas;
-typedef struct AtlasEntry AtlasEntry;
-typedef struct GUIElement GUIElement;
+struct _AtlasFont;
+struct _Atlas;
+struct _AtlasEntry;
+struct _GUIElement;
+
+typedef struct _AtlasFont AtlasFont;
+typedef struct _Atlas Atlas;
+typedef struct _AtlasEntry AtlasEntry;
+typedef struct _GUIElement GUIElement;
 
 typedef struct ivec2 {int X; int Y;} ivec2;
 // OLDCODE static ivec2 ivec2_init(int x, int y);
@@ -2227,7 +2240,7 @@ typedef struct AtlasEntrySet {
 
 
 //atlas entry has the box for one glyph, or one widget icon
-typedef struct AtlasEntry {
+struct _AtlasEntry {
 	char *name;
 	int type;
 	ivec2 apos; //position in atlas texture, pixels from UL of texture image
@@ -2235,7 +2248,7 @@ typedef struct AtlasEntry {
 	int ichar;  //int pseudoname instead of char * name, used for unicode char
 	ivec2 pos;  //shift/offset from target placement ie glyph image shift from lower left corner of character
 	ivec2 advance; //used for glyphs, advance to the next char which may be different -wider- than pixel row width
-} AtlasEntry;
+};
 
 
 //atlas is an image buffer. It doesn't care what's stored in the image, although it
@@ -2248,7 +2261,7 @@ typedef struct AtlasEntry {
 //  resizable by design, and if it's just a few chars, its more efficent to do glyph by glyph than
 //  render several atlases. But in theory if its just a few chars, you could render just those chars
 //  to an atlas at different sizes.
-typedef struct Atlas {
+struct _Atlas {
 	char *name;
 	int type;
 	unsigned char *texture;  //the GLubyte* buffer
@@ -2258,7 +2271,7 @@ typedef struct Atlas {
 	ivec2 size;  //pixels, of texture: X=width, Y=height
 	int rowheight;  //if items are in regular rows, this is a hint, during making of the atlas
 	ivec2 pen;  //have a cursor, so it's easy to position an additional entry in unoccupied place in atlas
-} Atlas;
+};
 
 
 // named type is for upcasting any GUI* to a simple name
@@ -2271,7 +2284,7 @@ typedef struct GUINamedType {
 //GUIFont instances go in a public lookup table, so a fontface is loaded only once
 //and if an atlas has been generated for that fontface by the programmer, it's added
 //to the font
-typedef struct AtlasFont {
+struct _AtlasFont {
 	char *name;
 	int type;
 	char *path;
@@ -2279,19 +2292,19 @@ typedef struct AtlasFont {
 	int EMsize;
 	//struct Vector atlasSizes; //GUIAtlasEntrySet*
 	AtlasEntrySet *set;
-} AtlasFont;
+};
 
 
 typedef struct vec2 {float X; float Y;} vec2;
 typedef struct vec4 {float X; float Y; float Z; float W;} vec4;
 
-typedef struct GUIElement 
+struct _GUIElement 
 {
 	char *name;
 	GUIElementType type;  //element = 0, panel 1, image 2, button 3, checkBox 4, textCaption 5, textPanel 6
 	//ivec2 anchors;
 	void * userData;
-} GUIElement;
+};
 
 
 

@@ -55,6 +55,188 @@ X3D Geospatial Component
 #include "Children.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "../ui/common.h"
+#ifdef HAVE_GEOLIB
+#include "fwgeolib.h"
+#define GEOLIB
+#endif
+
+int method_geolib(){
+#ifdef GEOLIB
+	return 0; //freewrl hand coded way, was working fine for more than decade
+	//return 1; //geographicLib / Karney, for testing - a way to independently verify transforms when hacking/refactoring code
+#else
+	return 0; //freewrl hand coded way
+#endif
+}
+
+void push_planetId(int planetId);
+int current_planetId();
+void pop_planetId();
+
+// according to some -web3d.org participants Andreas, Dick- the LCS 
+// was an accommodation for old float-transform-stack browsers
+// and its not a spec requirement - GC is more normal if you have a double transform stack like freewrl
+// so to skip LCS set the following to TRUE, or to use an LCS, set to FALSE.
+static int USE_GC_FOR_LCS = TRUE;
+
+/*
+Jan 2018 dug9 understanding of ellipsoids, units, geoid, origins
+* acronyms: nodes
+	GVP	- geoViewpoint
+	GEG	- GeoElevationGrid
+	GL	- geoLocation
+	GT	- geoTransform
+	GPS	- geoProximitySensor
+	GTS	- geoTouchSensor
+	GPI	- geoPositionInterpolator
+	GP	- geoPlanet (non-spec - (meaning not in web3d.org specs for their v3.3 geoSpatial component, invented here))
+	GCV	- geoConverter (non-spec)
+
+* acronyms: other
+	LCS		- Local Coordinate System - shared cartesian coordinate system near nodes
+			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#high-precisioncoords
+	TCS		- topocentric coordinate system at specific geo location, with -Z north, Y up as per GL
+			http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
+			- surveyors call it the local geodetic system LGS http://www2.unb.ca/gge/Pubs/LN16.pdf p.50 
+			-- because its at ellipsoid height (not at terrrain height)
+			-- except LGS looks too much like LCS, and since LGS is a subset of topocentric coordinate systems, TCS is our chosen name
+	FCFS	- First Come First Served - how AutoOrigin is generated automatically now 2018: 
+			- first geoNode's TCS -> shared LCS
+	XTM		- general acronym for transverse mercator map projections: either UTM or 3TM
+	GC		- geoCentric coordinates
+	GD		- geodetic coordinates (latitude, longitude aka lat,lon)
+	user	- coordinate system entered by the scene author that are in the geoSystem entered by the scene author, for the same node
+				- one of GC, GD, XTM(UTM,3TM)
+				- if GD, then lat,lon in degrees or radians as per geoSystem, lat or lon first
+				- if XTM, then easting or northing first as per geoSystem
+
+
+
+* XTM: {UTM,3TM} - 3TM is UTM with no false easting or northing, scale factor .9999, and 3 degree zones
+  Feb 2018 we added 3TM capability
+* geosystem preservation, aka User Coordinates
+  we keep coordinates as they are given to us, and only convert degrees (if neceessary)
+  or swizzle (exchange x, y to y, x) NE/latlon if/when needed for internal calculation purposes,
+  and for shape mesh/polyrep.
+  That way fields are ready for SAI and routing in users units. 
+  It doesn't make sense to route directly  between different geosystems. 
+  In theory there could/should be converter node types for that, 
+  where you can set both input geosystem, and output geosystem, 
+  or a flag on each node, saying to route in/out in (common) GC.
+* concentric ellipsoids:
+	we don't have a list of ellipsoid offsets (3DOF or 6DOF datum shift (and rotate)) to go between 'datums'.
+   so we treat different ellipsoids as being otherwise axes-aligned and co-centric 
+	with each other when transforming
+	for insight into datum transforms see: http://www.dtic.mil/dtic/tr/fulltext/u2/a307127.pdf Appendix B
+* v3.3 compiled-in vs freewrl compiled + supplyable ellipsoids
+	The specs give a table of ellipsoids to compile in, and user can choose by name
+	Feb 2018 we added  ('A#' 'F#', 'R#') to geoSystem so the user can supply other ellipsoids or spheres if needed
+* ellipsoid neutrality:
+	we don't try and force any one particular ellipsoid standard. The geoViewpoint's ellipsoid is
+	the one we use for SPEED, LEVEL calculations
+-- most coords are LCS at some point, in preparation for 3D viewing, 
+	and whatever ellipsoid they came from, they can mix as LCS XYZ
+* single planet v3.3 vs multiple planets via <GeoPlanet/>
+	following specs 3.3, we can only do one world/planet in a scene. We can't do a planet and several moons 
+	in geocoords in the same scene. Thats because we need to subtract the geoviewpoint
+	location -or geoOrigin / autoOrigin- from geoshapes, to get coordinates into single precision float range
+	for display. And to do that, we assume the geoviewpoint and geoShapes are on the
+	same planet. 
+	+ Feb 2018 we did 'depth slices' in rendering - up to 3 slices - to improve rendering
+	with large coordinates at the single planet and multi-planet scale
+	+ Mar 2018 we added <GeoPlanet planetId='0'> <GeoNode1/><GeoNode2.../> </GeoPlanet>
+	  that converts LCS to GC for orbital mechanics, and pushes and pops a planetId from a stack, 
+	  for use in node-node interactions. So we can now do multiple planets
+* UNITS as per specs
+	while we are interpreting radians as default for web3d specs v3.3, and degrees < 3.3
+	we haven't tested linear UNITS conversion on parsing for geocoordinates. 
+	Internally we are assuming meters. (all ellipsoid constants are in meters, 
+	as are falseEasting and falseNorthing constants for UTM, and geoid height correction)
+* geoid correction: needs a review to ensure 2-way, round-trip symmetry
+	if set, it means the scenefile height data is with repect to mean sea level MSL
+	and when converting to GC, where MSL is higher than the ellipsoid the correction is down
+	and vice versa when converting back from GC to GD or XTM. 
+	A test: using lat,lon of mount everest -which would have a mass that pulls sea level up-
+	the correction should be GC = gdtogc(lat,lon, gdheight -abs(geoid_correction(lat,lon)) )
+* geoOrigin / autoOrigin - the specs changed in v3.3 to deprecate geoOrigin
+	we are supposed to automatically compute an origin to use
+	Feb 2018 we are using FCFS First Come First Served - the first geoNode to compile_ we use
+	its geoOrigin / geoPoint / geo something as an arbitrary origin for a LCS local coordinate
+	system.
+* LCS local coordinate system - a shared cartesion coordinate system for all geoNodes on one planet.
+	the specs use this name for geoOrigins:
+	LCSxyz = originRotation x (GCxyz - originXYZ)
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#high-precisioncoords
+	All regular nodes not wrapped in GeoLocation use the LCS by default, or should.
+	Viewer: a few nav modes use LCS (examine, turntable)
+	GeoPlanet converts children's LCS back into GC coordinates for orbital mechanics, regular nodes working in GC,
+	and inter-planet transform stacks
+	NOTE: freewrl has double precision transform stacks, and if geoViewpoint and geo<Geometry> are in
+	the same local on a planet, then their local2gc x gc2local will largely cancel out in double
+	precision matrix multiplication - no geoOrigin / autoOrigin is needed, can put the stack in GC.
+	Its when mixing regular and geonodes without wrapping/unwrapping with GL and GT that local coords LCS
+	is helpful for precision. But this scenario is not reliably reproduced among browsers - there's no
+	clear specification for how to mix geo and non-geo without GT/GL wrappers: there's a geoOrigin or
+	autoOrigin, but it doesn't show the math how to use it (or does it?)
+	And for GEG freewrl uses floats internally for rendering mesh, so may need hlep from a transform wrapper
+	to maintain precision (but won't help with a one-mesh world without breaking up mesh)
+* TCS topocentric coordinate system aka NodeLocalSystem NLS
+	somewhat related, for any giving GeoLocationNode, the topocentric coordinate system TCS with X east, -Z north, Y up
+	http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoLocation
+	in freewrl we use the topocentric alignment at Origin for our originRotation aka AutoOrient
+	Viewer: most nav modes use TopoCentric TCS (walk, fly, spherical, keyboard)
+* relative heights - not in the specs but we use it with GVP in WALK mode and GL (geoLocation) 
+	2 methods of RELATIVE:
+	1. maintainRelative: (implicitly enforced in GVP WALK + COLLIDE)
+		you give an absolute height, and relativeHeight0 = absolute - terrainHeight
+		From then on absolute = terrainHeight + relativeHeight0
+		initial position is the relative height from then on -as you animate the xy / latlong position.
+	2. relativeHeight: (explicit field in GVP and GL)
+		- the .position or .geoCoords you give it initially, via route or direct access is 
+		  relative to terrain height, so absolute = gdCoords.c[2] + terrainHeight(gdCoords.c[0],.c[1])
+		if no terrain underneath GL, then terrainHeight = ellipsoid height == 0 
+* routing geo coordinates, GeoConvert
+	the v3.3 specs don't mention explicitly what system the geoCoordinate
+	events are in, but they must be in the geoSystem of the source node.
+	It doesn't make sense to route GD output to GC or XTM input on another node.
+	And v3.3 gives no way to convert.
+	+ Mar 2018 we added new nodetype GeoConvert. You use 2 of them, like so:
+	source.geoCoord -> user1 -> .set_geoCoord (geoConvert1) .gcCoord_Changed -> GC 
+	GC -> .set_gcCoord (geoConvert2) .geoCoord_changed -> user2 -> destination.position
+	where geoConvert1.geoSystem == source.geoSystem and geoConvert2.geoSystem == destination.geoSystem
+
+
+* Transform stack versus GeoCoordinates
+	There are 2 ways to get the relative pose of two nodes:
+	a) via transform stack
+	b) via GeoCoordinates
+	Our current theory of operation:
+	1) when doing geoNode-geoNode interactions, you should use geoCoords for both  via GC intermediary
+	- that means ignoring transforms in between, and ignoring the modelview matrix
+	- GC intermediary allows you to use different geoSystem for each geoNode
+	2) when doing geo-regular, regular-geo interactions, you should use the transform stack
+	- push/pop transforms like regular nodes do
+	- transform stack is in/wrt LCS (the shared autoOrigin-related cartesian system)
+	- RENDERING and geometry vertices are wrt stacks and LCS
+	- and so get the effect of transforms inbetween
+	- or better/more consistent across browsers: use helper nodes geoLocation and geoTransform
+	2a) geoLocation can wrap regular nodes to convert to geo
+	2b) geoTransform can wrap geoNodes to convert to regular stack
+	3) planets can be separated a few different ways:
+		a) Layers - using Layer_Component, with one planet per layer 
+			x problem: each layer has an active viewpoint, leading to confused rendering
+		b) use transform stack somehow to tell if 2 nodes are close enough to be on the same planet
+		c) use a geoTransform to wrap each planet 
+			(this implies you can only use one geoTransform per planet
+			which may not be what specs meant, or how other browsers are using it)
+		d) wrap geonodes in Planet nodes to keep them separate (but not web3d specs node)
+		We use d) Planet
+			- but geoTransform might be more specs-aligned by adding a planetId field to it
+			- so a planet can have multiple geoTransforms if they share the same planetId
+
+			
+*/
+
 
 /*
 Coordinate Conversion algorithms were taken from 2 locations after
@@ -105,207 +287,213 @@ Geodetic to Geocentric:
 
 
 *********************************************************************/
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+
+struct _geosys {
+	int spatial_system;				//0
+	int ellipsoid;					//1
+	int xtm_zone;					//2
+	int xtm_northing_first;			//3
+	int utm_northern_hemisphere;	//4
+	int gd_latitude_first;			//5
+	int geoid_height;			//6
+	int gd_degrees;					//7
+	int relativeHeight;				//8
+};
+//#define GEOSYS( geosystem ) ((Geosys *)geosystem)
+
+int isNodetypeGeospatial(int nodetype, int specversion){
+	//its geospatial if it has a geoSystem field (GeoMetadata doesn't, a few DIS v3.3 do)
+	int iret = 
+			nodetype == NODE_GeoCoordinate || nodetype == NODE_GeoElevationGrid || nodetype == NODE_GeoLOD 
+		|| nodetype == NODE_GeoLocation || nodetype == NODE_GeoPositionInterpolator 
+		|| nodetype == NODE_GeoProximitySensor || nodetype == NODE_GeoTouchSensor 
+		|| nodetype == NODE_GeoTransform || nodetype == NODE_GeoViewpoint || nodetype == NODE_GeoOrigin ? TRUE : FALSE;
+	if(!iret && specversion > 320) {
+		iret =
+			nodetype == NODE_EspduTransform || nodetype == NODE_ReceiverPdu || nodetype == NODE_SignalPdu 
+		|| nodetype == NODE_TransmitterPdu ? TRUE : FALSE;
+	}
+	return iret;
+}
+int isNodeGeospatial(struct X3D_Node* node){
+	return isNodetypeGeospatial(node->_nodeType, X3D_PROTO(node->_executionContext)->__specversion);
+}
+
+#define STRICT33 TRUE //TRUE: if v3.3 assume incoming GD in base angle units (radians) FALSE: assume like v3.2-- degrees
 
 /* defines used to get a SFVec3d into/outof a function that expects a MFVec3d */
 #define MF_SF_TEMPS	struct Multi_Vec3d mIN; struct Multi_Vec3d  mOUT; struct Multi_Vec3d gdCoords;
 #define FREE_MF_SF_TEMPS FREE_IF_NZ(gdCoords.p); FREE_IF_NZ(mOUT.p); FREE_IF_NZ(mIN.p);
 
-
-#define INIT_MF_FROM_SF(myNode, myField) \
-	mIN.n = 1; \
-	mIN.p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d)); \
-	mIN.p[0].c[0] = myNode-> myField .c[0];\
-	mIN.p[0].c[1] = myNode-> myField .c[1];\
-	mIN.p[0].c[2] = myNode-> myField .c[2];\
-	mOUT.n=0; mOUT.p = NULL; \
-	gdCoords.n=0; gdCoords.p = NULL;
-
-#define MF_FIELD_IN_OUT &mIN, &mOUT, &gdCoords
-#define COPY_MF_TO_SF(myNode, myField) \
-	myNode-> myField .c[0] = mOUT.p[0].c[0]; \
-	myNode-> myField .c[1] = mOUT.p[0].c[1]; \
-	myNode-> myField .c[2] = mOUT.p[0].c[2]; \
-	FREE_IF_NZ(mIN.p); FREE_IF_NZ(mOUT.p);
-
-
-#define MOVE_TO_ORIGIN(me)	GeoMove(X3D_GEOORIGIN(me->geoOrigin), &me->__geoSystem, &mIN, &mOUT, &gdCoords);
-#define COMPILE_GEOSYSTEM(me) compile_geoSystem (me->_nodeType, &me->geoSystem, &me->__geoSystem);
+#define COMPILE_GEOSYSTEM(me) compile_geoSystem (X3D_NODE(me), me->_nodeType, &me->geoSystem, &me->__geoSystem);
 
 #define RADIANS_PER_DEGREE (double)0.0174532925199432957692
 #define DEGREES_PER_RADIAN (double)57.2957795130823208768
 
-#define ENSURE_SPACE(variableInQuestion) \
-	/* enough room for output? */ \
-	if (variableInQuestion ->n < inCoords->n) { \
-		if (variableInQuestion ->p != NULL) { \
-			FREE_IF_NZ(variableInQuestion->p); \
-		} \
-		variableInQuestion ->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inCoords->n); \
-		variableInQuestion ->n = inCoords->n; \
-	} 
 
 /* for UTM, GC, GD conversions */
-#define ELEVATION_OUT   outc->p[i].c[elevation]
-#define ELEVATION_IN    inc->p[i].c[elevation]
-#define EASTING_IN	inc->p[i].c[easting]
-#define NORTHING_IN	inc->p[i].c[northing]
 #define UTM_SCALE 	(double)0.9996
-#define LATITUDE_OUT	outc->p[i].c[latitude]
-#define LONGITUDE_OUT	outc->p[i].c[longitude]
-#define LATITUDE_IN	inc->p[i].c[latitude]
-#define LONGITUDE_IN	inc->p[i].c[longitude]
+#define UTM_FALSE_EASTING 500000.0 //500k m
+#define UTM_FALSE_NORTHING 10000000.0 //10M m
+#define UTM_ZONE_SIZE 6.0
 
-#define GC_X_OUT 	outc->p[i].c[0] 
-#define GC_Y_OUT 	outc->p[i].c[1]
-#define GC_Z_OUT 	outc->p[i].c[2]
+#define U3TM_SCALE 	(double)0.9999
+#define U3TM_FALSE_EASTING 0.0 
+#define U3TM_FALSE_NORTHING 0.0 
+#define U3TM_ZONE_SIZE 3.0
+
 
 /* for Gd_Gc conversions */
-#define GEOSP_AA_A	(double)6377563.396
-#define GEOSP_AA_F	(double)299.3249646
-#define GEOSP_AM_A	(double)6377340.189
-#define GEOSP_AM_F	(double)299.3249646
-#define GEOSP_AN_A	(double)6378160
-#define GEOSP_AN_F	(double)298.25
-#define GEOSP_BN_A	(double)6377483.865
-#define GEOSP_BN_F	(double)299.1528128
-#define GEOSP_BR_A	(double)6377397.155
-#define GEOSP_BR_F	(double)299.1528128
-#define GEOSP_CC_A	(double)6378206.4
-#define GEOSP_CC_F	(double)294.9786982
-#define GEOSP_CD_A	(double)6378249.145
-#define GEOSP_CD_F	(double)293.465
-#define GEOSP_EA_A	(double)6377276.345
-#define GEOSP_EA_F	(double)300.8017
-#define GEOSP_EB_A	(double)6377298.556
-#define GEOSP_EB_F	(double)300.8017
-#define GEOSP_EC_A	(double)6377301.243
-#define GEOSP_EC_F	(double)300.8017
-#define GEOSP_ED_A	(double)6377295.664
-#define GEOSP_ED_F	(double)300.8017
-#define GEOSP_EE_A	(double)6377304.063
-#define GEOSP_EE_F	(double)300.8017
-#define GEOSP_EF_A	(double)6377309.613
-#define GEOSP_EF_F	(double)300.8017
-#define GEOSP_FA_A	(double)6378155
-#define GEOSP_FA_F	(double)298.3
-#define GEOSP_HE_A	(double)6378200
-#define GEOSP_HE_F	(double)298.3
-#define GEOSP_HO_A	(double)6378270
-#define GEOSP_HO_F	(double)297
-#define GEOSP_ID_A	(double)6378160
-#define GEOSP_ID_F	(double)298.247
-#define GEOSP_IN_A	(double)6378388
-#define GEOSP_IN_F	(double)297
-#define GEOSP_KA_A	(double)6378245
-#define GEOSP_KA_F	(double)298.3
-#define GEOSP_RF_A	(double)6378137
-#define GEOSP_RF_F	(double)298.257222101
-#define GEOSP_SA_A	(double)6378160
-#define GEOSP_SA_F	(double)298.25
-#define GEOSP_WD_A	(double)6378135
-#define GEOSP_WD_F	(double)298.26
-#define GEOSP_WE_A	(double)6378137
-#define GEOSP_WE_F	(double)298.257223563
+#define GEOEL_AA_A	(double)6377563.396
+#define GEOEL_AA_F	(double)299.3249646
+#define GEOEL_AM_A	(double)6377340.189
+#define GEOEL_AM_F	(double)299.3249646
+#define GEOEL_AN_A	(double)6378160
+#define GEOEL_AN_F	(double)298.25
+#define GEOEL_BN_A	(double)6377483.865
+#define GEOEL_BN_F	(double)299.1528128
+#define GEOEL_BR_A	(double)6377397.155
+#define GEOEL_BR_F	(double)299.1528128
+#define GEOEL_CC_A	(double)6378206.4
+#define GEOEL_CC_F	(double)294.9786982
+#define GEOEL_CD_A	(double)6378249.145
+#define GEOEL_CD_F	(double)293.465
+#define GEOEL_EA_A	(double)6377276.345
+#define GEOEL_EA_F	(double)300.8017
+#define GEOEL_EB_A	(double)6377298.556
+#define GEOEL_EB_F	(double)300.8017
+#define GEOEL_EC_A	(double)6377301.243
+#define GEOEL_EC_F	(double)300.8017
+#define GEOEL_ED_A	(double)6377295.664
+#define GEOEL_ED_F	(double)300.8017
+#define GEOEL_EE_A	(double)6377304.063
+#define GEOEL_EE_F	(double)300.8017
+#define GEOEL_EF_A	(double)6377309.613
+#define GEOEL_EF_F	(double)300.8017
+#define GEOEL_FA_A	(double)6378155
+#define GEOEL_FA_F	(double)298.3
+#define GEOEL_HE_A	(double)6378200
+#define GEOEL_HE_F	(double)298.3
+#define GEOEL_HO_A	(double)6378270
+#define GEOEL_HO_F	(double)297
+#define GEOEL_ID_A	(double)6378160
+#define GEOEL_ID_F	(double)298.247
+#define GEOEL_IN_A	(double)6378388
+#define GEOEL_IN_F	(double)297
+#define GEOEL_KA_A	(double)6378245
+#define GEOEL_KA_F	(double)298.3
+#define GEOEL_RF_A	(double)6378137
+#define GEOEL_RF_F	(double)298.257222101
+#define GEOEL_SA_A	(double)6378160
+#define GEOEL_SA_F	(double)298.25
+#define GEOEL_WD_A	(double)6378135
+#define GEOEL_WD_F	(double)298.26
+#define GEOEL_WE_A	(double)6378137
+#define GEOEL_WE_F	(double)298.257223563
 
-#define ELLIPSOID(typ) \
-	case typ: Gd_Gc(inCoords,outCoords,typ##_A, typ##_F,geoSystem->p[3], geoSystem->p[4]); break;
 
-#define UTM_ELLIPSOID(typ) \
-	case typ: Utm_Gd (inCoords, gdCoords, typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[2], TRUE); \
-		  Gd_Gc(gdCoords,outCoords,typ##_A, typ##_F, geoSystem->p[3], geoSystem->p[4]); break;
 
-#define GCC_X gcc->c[0]
-#define GCC_Y gcc->c[1]
-#define GCC_Z gcc->c[2]
-#define GDC_LAT gdc->c[0]
-#define GDC_LON gdc->c[1]
-#define GDC_ELE gdc->c[2]
+#define ELLIPSOIDB(typ) \
+	case typ: *semimajor = typ##_A; *flattening = 1.0/typ##_F; break;
+
+struct ellipsoid { double a, b, f;} extra_ellipsoid[10];
+int nextra_ellipsoid = 1; //we start at 1 so we can use negative numbers as sentinal values to get here
+
+int getEllipsoidParams(int etype, double *semimajor, double *flattening){
+	//returns a, f where f is flattening (not inverse flattening) ie flattening = 1/298
+	int iret = 0;
+	*semimajor = *flattening = 0.0;
+	if(etype < 0){
+		//sentinal value etype is negative
+		*semimajor = extra_ellipsoid[-etype].a;
+		*flattening = extra_ellipsoid[-etype].f;
+	}else{
+		switch (etype) {
+			ELLIPSOIDB(GEOEL_AA)
+			ELLIPSOIDB(GEOEL_AM)
+			ELLIPSOIDB(GEOEL_AN)
+			ELLIPSOIDB(GEOEL_BN)
+			ELLIPSOIDB(GEOEL_BR)
+			ELLIPSOIDB(GEOEL_CC)
+			ELLIPSOIDB(GEOEL_CD)
+			ELLIPSOIDB(GEOEL_EA)
+			ELLIPSOIDB(GEOEL_EB)
+			ELLIPSOIDB(GEOEL_EC)
+			ELLIPSOIDB(GEOEL_ED)
+			ELLIPSOIDB(GEOEL_EE)
+			ELLIPSOIDB(GEOEL_EF)
+			ELLIPSOIDB(GEOEL_FA)
+			ELLIPSOIDB(GEOEL_HE)
+			ELLIPSOIDB(GEOEL_HO)
+			ELLIPSOIDB(GEOEL_ID)
+			ELLIPSOIDB(GEOEL_IN)
+			ELLIPSOIDB(GEOEL_KA)
+			ELLIPSOIDB(GEOEL_RF)
+			ELLIPSOIDB(GEOEL_SA)
+			ELLIPSOIDB(GEOEL_WD)
+			ELLIPSOIDB(GEOEL_WE)
+			default: printf ("unknown ellipsoid type: %s\n", stringGEOSPATIALType(etype));
+		}
+	}
+	if(*semimajor > 0.0) iret = 1;
+	//printf("ellipsoid etype %d semi-major %lf flattening %lf\n",etype,*semimajor,*flattening);
+	return iret;
+}
 
 
 #define INITIALIZE_GEOSPATIAL(me) \
 	initializeGeospatial((struct X3D_GeoOrigin **) &me->geoOrigin); 
 
-#define CONVERT_BACK_TO_GD_OR_UTM(thisField) \
-	/* compileGeosystem - encode the return value such that srf->p[x] is... \
-                        0:      spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); \
-                        1:      spatial coordinates (defaults to GEOSP_WE) \
-                        2:      UTM zone number, 1..60. INT_ID_UNDEFINED = not specified \
-                        3:      UTM:    if "S" - value is FALSE, not S, value is TRUE \
-                                GD:     if "latitude_first" TRUE, if "longitude_first", FALSE \
-                                GC:     if "northing_first" TRUE, if "easting_first", FALSE */ \
- \
-	/* do we need to change this from a GCC? */ \
-	if (node->__geoSystem.n != 0) { /* do we have a GeoSystem specified?? if not, dont do this! */ \
-		struct SFVec3d gdCoords; \
- \
-		if (node->__geoSystem.p[0] != GEOSP_GC) { \
-			/* have to convert to GD or UTM. Go to GD first */ \
-			bool dugsInterpretationOfSpecs = true; \
-			if(dugsInterpretationOfSpecs) \
-			{ \
-				retractOrigin((struct X3D_GeoOrigin *)node->geoOrigin, \
-						&thisField); \
-			}else{ \
-				if (Viewer()->GeoSpatialNode != NULL) { \
-        						retractOrigin((struct X3D_GeoOrigin *)Viewer()->GeoSpatialNode->geoOrigin, \
-						&thisField); \
-				} \
-			} \
- \
-			/* printf ("changed retracted, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ \
- \
-			/* now, convert to a GDC */ \
-			gccToGdc (&thisField, &gdCoords); \
-			memcpy (&thisField, &gdCoords, sizeof (struct SFVec3d)); \
- \
-			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ \
-		 \
-			/* is this a GD? if so, go no further */ \
-			if (node->__geoSystem.p[0] == GEOSP_GD) { \
-				/* do we need to flip lat and lon? */ \
-				if (!(node->__geoSystem.p[3])) { \
-					double tmp; \
-					tmp = thisField.c[0]; \
-					thisField.c[0] = thisField.c[1]; \
-					thisField.c[1] = tmp; \
-				} \
- \
-			} else { \
-				/* convert this to UTM */ \
-				int zone;  \
-				double easting; \
-				double northing; \
-				 \
-				/* get the zone from the geoSystem; if undefined, we will calculate */ \
-				zone = node->__geoSystem.p[2]; \
-				gdToUtm(thisField.c[0], \
-					thisField.c[1], \
-					&zone, &easting, &northing); \
- \
-				thisField.c[0] = northing; \
-				thisField.c[1] = easting; \
- \
-			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ \
-			}  \
-		} \
-	}
 
-//int geoLodLevel = 0;
+void CONVERT_BACK_TO_GD_OR_UTMB(Geosys *targetGeoSystem, struct X3D_Node *GeoOrigin, 
+		struct SFVec3d *thisField);
 
-static int gcToGdInit = FALSE;
-
-static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf);
-static void moveCoords(struct Multi_Int32*, struct Multi_Vec3d *, struct Multi_Vec3d *, struct Multi_Vec3d *);
-static void Gd_Gc (struct Multi_Vec3d *, struct Multi_Vec3d *, double, double, int, int);
-static void gccToGdc (struct SFVec3d *, struct SFVec3d *); 
+void compile_geoSystem (struct X3D_Node *, int nodeType, struct Multi_String *args, struct X3D_Node **srf);
+static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc);
 void calculateViewingSpeed(void);
 
-/* for converting from GC to GD */
-static double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
-                 CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
+struct Planet {
+	int ID;
+	Stack *gegs;
+	struct SFVec4d autoOrient;   //tilts to get from GC xyz to TCS at autoOrigin GC
+	struct SFVec3d autoOrigin;   //GC coords
+	int autoOriginSet;
+};
+
+void clear_planets(Stack *planet_stack){
+	// call from Component_Geospatial_clear() at end of run
+	int i;
+	struct Planet *planet;
+	if(planet_stack)
+	for(i=0;i<vectorSize(planet_stack);i++){
+		planet = vector_get_ptr(struct Planet,planet_stack,i);
+		if(planet && planet->gegs) 	deleteVector(struct X3D_Node *, planet->gegs);
+	}
+	deleteVector(struct Planet,planet_stack);
+}
 
 typedef struct pComponent_Geospatial{
+	//struct SFVec4d autoOrient;
+	//struct SFVec3d autoOrigin;
+	//int autoOriginSet;
+	//struct X3D_GeoOrigin *go;
 	int geoLodLevel;// = 0;
+	void * gcgdpars[50];
+	Stack *planet_stack;
+	Stack *current_planet_stack;
+#ifdef GEOLIB
+	void * fgeopars[50];
+#endif //GEOLIB
 
 }* ppComponent_Geospatial;
 void *Component_Geospatial_constructor(){
@@ -318,11 +506,90 @@ void Component_Geospatial_init(struct tComponent_Geospatial *t){
 	//private
 	t->prv = Component_Geospatial_constructor();
 	{
+		
 		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
+		//p->go = createNewX3DNode0(NODE_GeoOrigin);
 		p->geoLodLevel = 0;
+		{
+			struct Planet planet;
+			memset(&planet,0,sizeof(struct Planet));
+			vecset4d(planet.autoOrient.c,0.0,0.0,1.0,0.0);
+			vecsetd(planet.autoOrigin.c,0.0,0.0,0.0);
+			planet.autoOriginSet = USE_GC_FOR_LCS; // FALSE; //FALSE;
+			
+			p->planet_stack = newStack(struct Planet);
+			stack_push(struct Planet,p->planet_stack,planet); //default planet
+
+		}
+		p->current_planet_stack = newStack(int);
+		stack_push(int,p->current_planet_stack,0); //default planet
+		memset(p->gcgdpars,0,50*sizeof(void*));
+		#ifdef GEOLIB
+		memset(p->fgeopars,0,50*sizeof(void*));
+		#endif //GEOLIB
+	}
+}
+
+void Component_Geospatial_clear(struct tComponent_Geospatial *t){
+	if(t->prv )
+	{
+		ppComponent_Geospatial p = (ppComponent_Geospatial)t->prv;
+		if(p->planet_stack){
+			clear_planets(p->planet_stack);
+			p->planet_stack = NULL;
+		}	
+		if(p->current_planet_stack){
+			FREE_IF_NZ(p->current_planet_stack->data);
+			FREE_IF_NZ(p->current_planet_stack);
+			p->current_planet_stack = NULL;
+		}
+
 	}
 }
 //ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+void push_planetId(int planetId){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	stack_push(int,current_planet_stack,planetId);
+}
+int current_planetId(){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	return stack_top(int,current_planet_stack);
+}
+void pop_planetId(){
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	Stack *current_planet_stack = (Stack*)p->current_planet_stack;
+	stack_pop(int,current_planet_stack);
+}
+struct Planet *add_planet(int planetId){
+	struct Planet planet, *ppointer;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	memset(&planet,0,sizeof(struct Planet));
+	vecset4d(planet.autoOrient.c,0.0,0.0,1.0,0.0);
+	vecsetd(planet.autoOrigin.c,0.0,0.0,0.0);
+	planet.ID = planetId;
+	planet.autoOriginSet = USE_GC_FOR_LCS; //FALSE; //FALSE;
+	stack_push(struct Planet,p->planet_stack,planet); //default planet
+	ppointer = vector_get_ptr(struct Planet,p->planet_stack,p->planet_stack->n-1);
+	return ppointer;
+}
+struct Planet *current_planet(){
+	int planetId, i;
+	struct Planet *planet;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	planetId = stack_top(int,p->current_planet_stack);
+	//we should sort planets by planetId or use a hash, or compile planetId to index
+	planet = NULL;
+	for(i=0;i<vectorSize(p->planet_stack);i++){
+		planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+		if(planetId == planet->ID){
+			return planet;
+		}
+	}
+	return NULL;
+}
+
 
 // http://www.colorado.edu/geography/gcraft/notes/datum/geoid84.html
 char geoid[][36] = {
@@ -385,109 +652,209 @@ static double geoidCorrection(double latitudeDeg, double longitudeDeg)
 	d = -d; // to correct a geoid map to ellpsoid, subtract this amount
 	return (double)d;
 }
-/* move ourselves BACK to the from the GeoOrigin */
-static void retractOrigin(struct X3D_GeoOrigin *myGeoOrigin, struct SFVec3d *gcCoords) {
-	if (myGeoOrigin != NULL) {
-		if(myGeoOrigin->rotateYUp == TRUE)
-		{
-			int i;
-			Quaternion rq;
-			struct SFVec3d temp;
-			vrmlrot_to_quaternion(&rq,myGeoOrigin->__rotyup.c[0], myGeoOrigin->__rotyup.c[1], myGeoOrigin->__rotyup.c[2], myGeoOrigin->__rotyup.c[3]); 
-			//quaternion_multi_rotation(outxyz,&rq,inxyz,8);
-			quaternion_rotation((struct point_XYZ *)temp.c, &rq, (const struct point_XYZ *)gcCoords->c);
-			for(i=0;i<3;i++)
-				gcCoords->c[i] = temp.c[i];
+
+
+/* convert GD ellipsiod to GC coordinates. swizzles and converts degrad as needed. */
+
+// swizzles and converts degrad as needed
+static void Gd_Gc3d_fw(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
+	int geotype, lat_first, geoid;
+	double radius, flattening;
+	geotype = geoSystem->ellipsoid;
+	lat_first = geoSystem->gd_latitude_first;
+	geoid = geoSystem->geoid_height;
+	if(getEllipsoidParams(geotype,&radius,&flattening))
+	{
+		int i;
+		double A = radius;
+		double A2 = radius*radius;
+		double F = flattening;
+		double C = A*((double)1.0 - F);
+		double C2 = C*C;
+		double Eps2 = F*((double)2.0 - F);
+		double Eps25 = (double) 0.25 * Eps2;
+
+		int latitude = 0;
+		int longitude = 1;
+		int elevation = 2;
+
+		double source_lat;
+		double source_lon;
+		double slat;
+		double slat2;
+		double clat;
+		double Rn;
+		double RnPh;
+
+		if (!lat_first) {
+			printf ("Gd_Gc, NOT lat first\n");
+			latitude = 1; longitude = 0;
 		}
-		gcCoords->c[0] += myGeoOrigin->__movedCoords.c[0];
-		gcCoords->c[1] += myGeoOrigin->__movedCoords.c[1];
-		gcCoords->c[2] += myGeoOrigin->__movedCoords.c[2];
+
+		///* enough room for output? */
+		//if (outc->n < inc->n) {
+		//	FREE_IF_NZ(outc->p);
+		//	outc->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inc->n);
+		//	outc->n = inc->n;
+		//}
+		#ifdef VERBOSE
+		printf ("Gd_Gc, have n of %d\n",inc->n);
+		#endif
+
+		for (i=0; i<n; i++) {
+			#ifdef VERBOSE
+			printf ("Gd_Gc, ining lat %lf long %lf ele %lf   ",LATITUDE_IN, LONGITUDE_IN, ELEVATION_IN);
+			#endif
+
+			if(geoSystem->gd_degrees == FALSE){
+				//version 3.3+ by default in 'angle base units' which are radians
+				source_lat = inc[i].c[latitude]; //LATITUDE_IN;
+				source_lon = inc[i].c[longitude]; //LONGITUDE_IN;
+			}else{
+				//version 3.2- by default in degrees
+				source_lat = RADIANS_PER_DEGREE * inc[i].c[latitude];// LATITUDE_IN;
+				source_lon = RADIANS_PER_DEGREE * inc[i].c[longitude]; //LONGITUDE_IN;
+			}
+	
+			#ifdef VERBOSE
+			printf ("Source Latitude  %lf Source Longitude %lf\n",source_lat, source_lon);
+			#endif
+
+			slat = sin(source_lat);
+			slat2 = slat*slat;
+			clat = cos(source_lat);
+	
+			#ifdef VERBOSE
+			printf ("slat %lf slat2 %lf clat %lf\n",slat, slat2, clat);
+			#endif
+
+
+			/* square root approximation for Rn */
+			Rn = A / ( (.25 - Eps25 * slat2 + .9999944354799/4) + (.25-Eps25 * slat2)/(.25 - Eps25 * slat2 + .9999944354799/4));
+	
+			RnPh = Rn + inc[i].c[elevation]; //ELEVATION_IN;
+			
+			//MAR 2018 we are doing geoid at the user2something, something2user level now, higher in the call stack
+			if(geoid && FALSE){
+				double dlatin, dlongin;
+				dlatin = inc[i].c[latitude]; //LATITUDE_IN;
+				dlongin = inc[i].c[longitude]; //LONGITUDE_IN;
+				if(geoSystem->gd_degrees == FALSE){
+					dlatin *= DEGREES_PER_RADIAN;
+					dlongin *= DEGREES_PER_RADIAN;
+				}
+				RnPh += geoidCorrection(dlatin,dlongin); //LATITUDE_IN,LONGITUDE_IN);
+			}
+			#ifdef VERBOSE
+			printf ("Rn %lf RnPh %lf\n",Rn, RnPh);
+			#endif
+
+			outc[i].c[0] = RnPh * clat * cos(source_lon); //GC_X_OUT 
+			outc[i].c[1] = RnPh * clat * sin(source_lon);
+			outc[i].c[2]  = ((C2 / A2) * Rn + inc[i].c[elevation]) * slat; //ELEVATION_IN
+
+			#ifdef VERBOSE
+			printf ("Gd_Gc, outing x %lf y %lf z %lf\n", GC_X_OUT, GC_Y_OUT, GC_Z_OUT);
+			#endif
+		}
 	}
 }
-
-
-/* convert GD ellipsiod to GC coordinates */
-static void Gd_Gc (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double eccentricity, int lat_first, int geoid) {
+#ifdef GEOLIB
+double dclamp(double fval, double fstart, double fend);
+static void* fwgeo_gc[50];
+static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
+	int i,geotype;
+	double semimajor, flattening, gd[3], gc[3];
+	//printf("hi from Gd_Gc3d_geolib\n");
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+	if(FALSE && flattening == 0.0){
+		//easy spherical coords, but geolib OK without this, just for testing here
+		double radius;
+		for(i=0;i<n;i++){
+			veccopyd(gd,inc[i].c);
+			if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+			if(geoSystem->gd_degrees) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+			radius = semimajor + gd[2];
+			gc[0] = cos(gd[0])*cos(gd[1])*radius;
+			gc[1] = cos(gd[0])*sin(gd[1])*radius;
+			gc[2] = sin(gd[0])*radius;
+			veccopyd(outc[i].c,gc);
+			//if(i<10) printf("gd2gc sphere %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+		}
+	}
+	else
+	{
+		geotype = geoSystem->ellipsoid;
+		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
+		if(!fwgeo_gc[geotype]){
+			fwgeo_gc[geotype] = fgeo_initializeGC(semimajor,flattening);
+		}
+		for(i=0;i<n;i++){
+			veccopyd(gd,inc[i].c);
+			if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+			if(!geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN); //geolib uses degrees
+			// if you get 1.#QNAN00000000000 coming out here, its because geolib insists on -90,90 for lat
+			// and GEG has a bit of rounding error noise that exceeds slightly .0000001
+			//if(n>1 && i < 200) printf("before clamp %ld %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
+			gd[0] = dclamp(gd[0],-90.0,90.0);
+			fgeo_gd2gc(fwgeo_gc[geotype], gd[0], gd[1], gd[2], &gc[0], &gc[1], &gc[2]);
+			veccopyd(outc[i].c,gc);
+			//if(i<10) printf("gd2gc geolb %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+		}
+	}
+	if(n>1) 
+		getchar();
+}
+#endif //GEOLIB
+static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
 	int i;
-	double A = radius;
-	double A2 = radius*radius;
-	double F = (double)(1/eccentricity);
-	double C = A*((double)1.0 - F);
-	double C2 = C*C;
-	double Eps2 = F*((double)2.0 - F);
-	double Eps25 = (double) 0.25 * Eps2;
-
-	int latitude = 0;
-	int longitude = 1;
-	int elevation = 2;
-
-	double source_lat;
-	double source_lon;
-	double slat;
-	double slat2;
-	double clat;
-	double Rn;
-	double RnPh;
-
-	if (!lat_first) {
-		printf ("Gd_Gc, NOT lat first\n");
-		latitude = 1; longitude = 0;
-	}
-
-	/* enough room for output? */
-	if (outc->n < inc->n) {
-		FREE_IF_NZ(outc->p);
-		outc->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inc->n);
-		outc->n = inc->n;
-	}
-	#ifdef VERBOSE
-	printf ("Gd_Gc, have n of %d\n",inc->n);
-	#endif
-
-	for (i=0; i<inc->n; i++) {
-		#ifdef VERBOSE
-		printf ("Gd_Gc, ining lat %lf long %lf ele %lf   ",LATITUDE_IN, LONGITUDE_IN, ELEVATION_IN);
-		#endif
-
-		source_lat = RADIANS_PER_DEGREE * LATITUDE_IN;
-		source_lon = RADIANS_PER_DEGREE * LONGITUDE_IN;
-	
-		#ifdef VERBOSE
-		printf ("Source Latitude  %lf Source Longitude %lf\n",source_lat, source_lon);
-		#endif
-
-		slat = sin(source_lat);
-		slat2 = slat*slat;
-		clat = cos(source_lat);
-	
-		#ifdef VERBOSE
-		printf ("slat %lf slat2 %lf clat %lf\n",slat, slat2, clat);
-		#endif
-
-
-		/* square root approximation for Rn */
-		Rn = A / ( (.25 - Eps25 * slat2 + .9999944354799/4) + (.25-Eps25 * slat2)/(.25 - Eps25 * slat2 + .9999944354799/4));
-	
-		RnPh = Rn + ELEVATION_IN;
-		if(geoid)
-			RnPh += geoidCorrection(LATITUDE_IN,LONGITUDE_IN);
-
-		#ifdef VERBOSE
-		printf ("Rn %lf RnPh %lf\n",Rn, RnPh);
-		#endif
-
-		GC_X_OUT = RnPh * clat * cos(source_lon);
-		GC_Y_OUT = RnPh * clat * sin(source_lon);
-		GC_Z_OUT = ((C2 / A2) * Rn + ELEVATION_IN) * slat;
-
-		#ifdef VERBOSE
-		printf ("Gd_Gc, outing x %lf y %lf z %lf\n", GC_X_OUT, GC_Y_OUT, GC_Z_OUT);
-		#endif
+#ifdef GEOLIB
+	if(method_geolib()){
+		Gd_Gc3d_geolib(geoSystem,inc,n,outc);
+		//printf("geolib gd:\n");
+		//for(i=0;i<min(200,n);i++){
+		//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+		//}
+	}else
+#endif //GEOLIB
+	{
+		double semimajor, flattening;
+		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+		if(flattening == 0.0){
+			//easy spherical coords
+			//Gd_Gc3d_fw and/or its gc2gd complement has a problem with moon geoSystem 'R173...' 'F0.0'
+			double radius, gd[3], gc[3];
+			for(i=0;i<n;i++){
+				veccopyd(gd,inc[i].c);
+				if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+				if(geoSystem->gd_degrees) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+				radius = semimajor + gd[2];
+				gc[0] = cos(gd[0])*cos(gd[1])*radius;
+				gc[1] = cos(gd[0])*sin(gd[1])*radius;
+				gc[2] = sin(gd[0])*radius;
+				veccopyd(outc[i].c,gc);
+				//if(i<10) printf("gd2gc sphere %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+			}
+		}
+		else
+		{
+			Gd_Gc3d_fw(geoSystem,inc,n,outc);
+			//printf("fw gd:\n");
+			//for(i=0;i<min(5,n);i++){
+			//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+			//}
+			//printf("\n");
+		}
 	}
 }
+/* convert UTM to GC coordinates by converting to GD as an intermediary step 
+   we swizzle both lat,long and east,north
+   we convert to radians if necessary
+*/
+static void Xtm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, double radius, double flatten, 
+	double scaleFactor, double falseEasting, double falseNorthing, double zoneSize) {
 
-/* convert UTM to GC coordinates by converting to GD as an intermediary step */
-static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double radius, double flatten, int hemisphere_north, int zone, int northing_first) {
+	int hemisphere_north, zone, northing_first;
 	int i;
 	int northing = 0;	/* for determining which input value is northing */
 	int easting = 1;	/* for determining which input value is easting */
@@ -496,7 +863,7 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 	int longitude = 1;	/* always return longtitude as second value */
 
 	/* create the ERM constants. */
-	double F = 1.0/flatten;
+	double F = flatten;
 	double Eccentricity   = (F) * (2.0-F);
 
 	double myEasting;
@@ -508,7 +875,7 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 	double myD;
 	double Latitude;
 	double Longitude;
-	double longitudeOrigin;
+	double longitudeOriginDeg;
 	double myeccPrimeSquared;
 	double myNorthing;
 	double northingDRCT1;
@@ -518,8 +885,20 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 	double calcConstantTerm3;
 	double calcConstantTerm4;
 
+	if(geoSystem->gd_latitude_first == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
+
+	hemisphere_north = geoSystem->utm_northern_hemisphere;
+	zone = geoSystem->xtm_zone;
+	northing_first = geoSystem->xtm_northing_first;
+
+
 	/* is the values specified with an "easting_first?" */
 	if (!northing_first) { northing = 1; easting = 0; }
+	//printf("Xtm_Gd hemisphere-north=%d zone=%d northing_first=%d\n",hemisphere_north,zone,northing_first);
+	//printf("Xtm_Gd scalefactor %lf falseEasting %lf falseNorthing %lf zoneSize %lf\n",scaleFactor, falseEasting, falseNorthing, zoneSize);
 
 	#ifdef VERBOSE
 	if (!northing_first) printf ("UTM to GD, not northing first, flipping norhting and easting\n");
@@ -532,14 +911,14 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 
 
 	/* enough room for output? */
-	if (outc->n < inc->n) {
-		FREE_IF_NZ(outc->p);
-		outc->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inc->n);
-		outc->n = inc->n;
-	}
+	//if (outc->n < inc->n) {
+	//	FREE_IF_NZ(outc->p);
+	//	outc->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inc->n);
+	//	outc->n = inc->n;
+	//}
 
 	/* constants for all UTM vertices */
-	longitudeOrigin = (zone -1) * 6 - 180 + 3;
+	longitudeOriginDeg = (zone -1) * zoneSize - 180. + zoneSize*.5;
 	myeccPrimeSquared = Eccentricity/(((double) 1.0) - Eccentricity);
 	eccRoot = (((double)1.0) - sqrt (((double)1.0) - Eccentricity))/
 	       (((double)1.0) + sqrt (((double)1.0) - Eccentricity));
@@ -554,18 +933,19 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 
 	#ifdef VERBOSE
 	printf ("zone %d\n",zone);
-	printf ("longitudeOrigin %lf\n",longitudeOrigin);
+	printf ("longitudeOriginDeg %lf\n",longitudeOriginDeg);
 	printf ("myeccPrimeSquared %lf\n",myeccPrimeSquared);
 	printf ("eccRoot %lf\n",eccRoot);
 	#endif
 
 	/* go through each vertex specified */
-        for(i=0;i<inc->n;i++) {
+    for(i=0;i<n;i++) {
 		/* get the values for THIS UTM vertex */
-		ELEVATION_OUT = ELEVATION_IN;
-		myEasting = EASTING_IN - 500000;
-		if (hemisphere_north) myNorthing = NORTHING_IN;
-		else myNorthing = NORTHING_IN - (double)10000000.0;
+		outc[i].c[elevation] = inc[i].c[elevation]; //ELEVATION_OUT = ELEVATION_IN;
+				
+		myEasting = inc[i].c[easting] - falseEasting; //UTM_FALSE_EASTING; //500000; //EASTING_IN 
+		if (hemisphere_north) myNorthing = inc[i].c[northing]; //NORTHING_IN;
+		else myNorthing = inc[i].c[northing] - falseNorthing; //(double)UTM_FALSE_NORTHING; //10000000.0; //NORTHING_IN
 
 		#ifdef VERBOSE
 		printf ("myEasting %lf\n",myEasting);
@@ -574,8 +954,7 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 
 
 		/* scale the northing */
-		myNorthing= myNorthing / UTM_SCALE;
-
+		myNorthing= myNorthing / scaleFactor;
 		northingDRCT1 = myNorthing /(radius * calcConstantTerm1);
 
 		myphi1rad = northingDRCT1 + 
@@ -587,26 +966,29 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 		myT1 = tan(myphi1rad) * tan(myphi1rad); 
 		myC1 = Eccentricity * cos(myphi1rad) * cos (myphi1rad);
 		myR1 = radius * (((double)1.0) - Eccentricity) / pow(((double)1.0) - Eccentricity * sin(myphi1rad) * sin (myphi1rad), 1.5);
-		myD = myEasting/(myN1*UTM_SCALE);
+		myD = myEasting/(myN1*scaleFactor);
 
 		Latitude = myphi1rad-(myN1*tan(myphi1rad)/myR1)*
 				(myD*myD/((double)2.0) -
 			(((double)5.0) + ((double)3.0) *myT1+ ((double)10.0) *myC1-
 			((double)4.0) *myC1*myC1- ((double)9.0) *myeccPrimeSquared)*
-			
 			myD*myD*myD*myD/((double)24.0) +(((double)61.0) +((double)90.0) *
 			myT1+((double)298.0) *myC1+ ((double)45.0) *myT1*myT1-
 			((double)252.0) * myeccPrimeSquared- ((double)3.0) *myC1*myC1)*myD*myD*myD*myD*myD*myD/((double)720.0));
-
 
 		Longitude = (myD-(((double)1.0)+((double)2.0)*myT1+myC1)*myD*myD*myD/((double)6.0)+(((double)5.0) - ((double)2.0) *myC1+
 			((double)28.0) *myT1-((double)3.0) *myC1*myC1+
 			((double)8.0) *myeccPrimeSquared+((double)24.0) *myT1*myT1)*myD*myD*myD*myD*myD/120)/cos(myphi1rad);
 
-
-
-		LATITUDE_OUT = Latitude * DEGREES_PER_RADIAN;
-		LONGITUDE_OUT = longitudeOrigin + Longitude * DEGREES_PER_RADIAN;
+		if(geoSystem->gd_degrees == FALSE){
+			//version 3.3+ works in angle base units (radians) by default
+			outc[i].c[latitude] = Latitude ; //LATITUDE_OUT
+			outc[i].c[longitude] = longitudeOriginDeg*RADIANS_PER_DEGREE + Longitude; //LONGITUDE_OUT
+		}else{
+			//version 3.2- works in degrees by default
+			outc[i].c[latitude] = Latitude * DEGREES_PER_RADIAN;
+			outc[i].c[longitude] = longitudeOriginDeg + (Longitude * DEGREES_PER_RADIAN);
+		}
 
 
 		#ifdef VERBOSE
@@ -626,6 +1008,163 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
         } 
 }
 
+#ifdef GEOLIB
+static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, 
+	double radius, double flatten, 	double scaleFactor, double falseEasting, double falseNorthing, 
+	double zoneSize) {
+
+	int hemisphere_north, zone, northing_first, geotype;
+	int i;
+	int northing = 0;	/* for determining which input value is northing */
+	int easting = 1;	/* for determining which input value is easting */
+	int elevation = 2;	/* elevation is always third value, input AND output */
+	int latitude = 0;	/* always return latitude as first value */
+	int longitude = 1;	/* always return longtitude as second value */
+
+	/* create the ERM constants. */
+	double F = flatten;
+	double dlon0;
+	double dLatitude;
+	double dLongitude;
+	double dlongitudeOrigin;
+	double myEasting;
+	double myNorthing;
+	void *fgeo;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+	if(geoSystem->gd_latitude_first == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
+
+	hemisphere_north = geoSystem->utm_northern_hemisphere;
+	zone = geoSystem->xtm_zone;
+	northing_first = geoSystem->xtm_northing_first;
+	geotype = geoSystem->ellipsoid;
+	if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
+	if(!p->fgeopars[geotype])
+		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
+	fgeo = p->fgeopars[geotype];
+	/* is the values specified with an "easting_first?" */
+	if (!northing_first) { northing = 1; easting = 0; }
+	//printf("Xtm_Gd hemisphere-north=%d zone=%d northing_first=%d\n",hemisphere_north,zone,northing_first);
+	//printf("Xtm_Gd scalefactor %lf falseEasting %lf falseNorthing %lf zoneSize %lf\n",scaleFactor, falseEasting, falseNorthing, zoneSize);
+
+	#ifdef VERBOSE
+	if (!northing_first) printf ("UTM to GD, not northing first, flipping norhting and easting\n");
+	#endif
+		
+	#ifdef VERBOSE
+	if (northing_first) printf ("Utm_Gd: northing first\n"); else printf ("Utm_Gd: NOT northing_first\n");
+	if (!hemisphere_north) printf ("Utm_Gd: NOT hemisphere_north\n"); else printf ("Utm_Gd: hemisphere_north\n"); 
+	#endif
+
+	/* constants for all UTM vertices */
+	dlongitudeOrigin = (zone -1) * zoneSize - 180. + zoneSize*.5;
+
+	/* go through each vertex specified */
+    for(i=0;i<n;i++) {
+		/* get the values for THIS UTM vertex */
+		outc[i].c[elevation] = inc[i].c[elevation]; //ELEVATION_OUT = ELEVATION_IN;
+				
+		myEasting = inc[i].c[easting] - falseEasting; //UTM_FALSE_EASTING; //500000; //EASTING_IN 
+		if (hemisphere_north) myNorthing = inc[i].c[northing]; //NORTHING_IN;
+		else myNorthing = inc[i].c[northing] - falseNorthing; //(double)UTM_FALSE_NORTHING; //10000000.0; //NORTHING_IN
+
+		myEasting /= scaleFactor;
+		myNorthing /= scaleFactor;
+
+		#ifdef VERBOSE
+		printf ("myEasting %lf\n",myEasting);
+		printf ("myNorthing %lf\n",myNorthing);
+		#endif
+
+		//this adds CM longitude on, no need to add it later.
+		// works in decimal degrees
+		fgeo_tm2gd(fgeo,myEasting, myNorthing, dlongitudeOrigin, &dLatitude, &dLongitude);
+
+		if(geoSystem->gd_degrees == FALSE){
+			//version 3.3+ works in angle base units (radians) by default
+			outc[i].c[latitude] = dLatitude * RADIANS_PER_DEGREE ; //LATITUDE_OUT
+			outc[i].c[longitude] = dLongitude*RADIANS_PER_DEGREE ; //LONGITUDE_OUT
+		}else{
+			//version 3.2- works in degrees by default
+			outc[i].c[latitude] = dLatitude;
+			outc[i].c[longitude] = dLongitude;
+		}
+	} 
+}
+#endif //GEOLIB
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords);
+static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords);
+static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
+	double semimajor, flattening;
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+	#ifdef GEOLIB
+	if(method_geolib())
+		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	else
+	#endif //GEOLIB
+		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	if(0){
+		//round trip verification, want to convert a UTM -> GD -> (UTM, 3TM)
+		double xtm[3], neh[3];
+		int izone = -1;
+		printf("in UTM_gd3d\n");
+		printf("UTM y %lf x %lf h %lf zone %d\n",inc->c[0],inc->c[1],inc->c[2],geoSystem->xtm_zone);
+		gdToUtm3d(geoSystem,outc->c, xtm); 
+		veccopyd(neh,xtm);
+		if(!geoSystem->xtm_northing_first) vecswizzle2d(neh);
+		printf("UTM y %lf x %lf h %lf zone %d\n",neh[0],neh[1],neh[2],geoSystem->xtm_zone);
+		izone = -1;
+		gdTo3tm3d(geoSystem,outc->c, xtm); 
+		veccopyd(neh,xtm);
+		if(!geoSystem->xtm_northing_first) vecswizzle2d(neh);
+		printf("3TM y %lf x %lf h %lf zone %d\n",neh[0],neh[1],neh[2],geoSystem->xtm_zone);
+	}
+}
+static void U3tm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
+	double semimajor, flattening;
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+	#ifdef GEOLIB
+	if(method_geolib())
+		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
+	else
+	#endif //GEOLIB
+		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE);
+
+}
+double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord);
+double userHeight2ellipsoidHeight(Geosys *geoSystem, struct SFVec3d *gdCoord){
+	double additionalHeight = 0.0;
+	if(geoSystem->geoid_height == TRUE){
+		//MSL (mean sea level) to ellipsoid height
+		// ellipsoidHeight = MSL + geoid(location)
+		//  so gd are in ellipsoid heights like GPS? (vs sea level heights)
+		double gddegrees[3];
+		if(geoSystem->gd_degrees) veccopyd(gddegrees,gdCoord->c);
+		else vecscaled(gddegrees,gdCoord->c,DEGREES_PER_RADIAN);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gddegrees);
+		additionalHeight += geoidCorrection(gddegrees[0],gddegrees[1]);
+	}
+	if(geoSystem->relativeHeight == TRUE){
+		// ellipsoidHeight = height + TerrainHeight(planet,location)
+		struct Planet *planet = current_planet();
+		additionalHeight += getTerrainHeight( planet->ID, geoSystem, gdCoord);
+	}
+	return additionalHeight;
+}
+
 /* take a set of coords, and a geoSystem, and create a set of moved coords */
 /* we keep around the GD coords because we need them for rotation calculations */
 /* parameters: 
@@ -634,120 +1173,87 @@ static void Utm_Gd (struct Multi_Vec3d *inc, struct Multi_Vec3d *outc, double ra
 	outCoords:	area for GC coordinates. Will MALLOC size if required 
 	gdCoords:	GD coordinates, used for rotation calculations in later stages. WILL MALLOC THIS */
 
-static void moveCoords (struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords, struct Multi_Vec3d *gdCoords) {
 
+static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFVec4d *yup,
+	struct SFVec3d *inCoords, int n, struct SFVec3d *outCoords, struct SFVec3d *gdCoords) {
+	// offset is in GC
 	int i;
 
-	/* tmpCoords used for UTM coding */
-	gdCoords->n=0; gdCoords->p=NULL;
-
-	/* make sure the output has enough space for our converted data */
-	ENSURE_SPACE(outCoords)
-	ENSURE_SPACE(gdCoords)
-
 	/* GD Geosystem - copy coordinates, and convert them to GC */
-	switch (geoSystem->p[0]) {
+	switch (geoSystem->spatial_system) {
 		case  GEOSP_GD:
+			{
+				/* just copy the coordinates for the GD temporary return  */
+				memcpy (gdCoords, inCoords, sizeof (struct SFVec3d) * n);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				
 				/* GD_Gd_Gc_convert (inCoords, outCoords); */
-				switch (geoSystem->p[1]) {
-					ELLIPSOID(GEOSP_AA)
-					ELLIPSOID(GEOSP_AM)
-					ELLIPSOID(GEOSP_AN)
-					ELLIPSOID(GEOSP_BN)
-					ELLIPSOID(GEOSP_BR)
-					ELLIPSOID(GEOSP_CC)
-					ELLIPSOID(GEOSP_CD)
-					ELLIPSOID(GEOSP_EA)
-					ELLIPSOID(GEOSP_EB)
-					ELLIPSOID(GEOSP_EC)
-					ELLIPSOID(GEOSP_ED)
-					ELLIPSOID(GEOSP_EE)
-					ELLIPSOID(GEOSP_EF)
-					ELLIPSOID(GEOSP_FA)
-					ELLIPSOID(GEOSP_HE)
-					ELLIPSOID(GEOSP_HO)
-					ELLIPSOID(GEOSP_ID)
-					ELLIPSOID(GEOSP_IN)
-					ELLIPSOID(GEOSP_KA)
-					ELLIPSOID(GEOSP_RF)
-					ELLIPSOID(GEOSP_SA)
-					ELLIPSOID(GEOSP_WD)
-					ELLIPSOID(GEOSP_WE)
-					default: printf ("unknown Gd_Gc: %s\n", stringGEOSPATIALType(geoSystem->p[1]));
-				}
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
 
-				/* now, for the GD coord return values; is this in the correct format for calculating 
-				   rotations? */
-				gdCoords->n = inCoords->n;
-
-				/* is the GD value NOT the WGS84 ellipsoid? */
-				if (geoSystem->p[1] != GEOSP_WE) {
-					/*no, convert BACK from the GC to GD, WGS84 level for the gd value returns */
-					for (i=0; i<outCoords->n; i++) {
-						gccToGdc (&outCoords->p[i], &gdCoords->p[i]);
-					}
-				} else {
-					/* just copy the coordinates for the GD temporary return  */
-					memcpy (gdCoords->p, inCoords->p, sizeof (struct SFVec3d) * inCoords->n);
-					//Q. should geoid correction be added, so gd are in ellipsoid heights like GPS? (vs sea level heights)
-					if(geoSystem->p[4] == TRUE)
-						for(i=0;i<gdCoords->n;i++)
-							gdCoords->p[i].c[2] += geoidCorrection(gdCoords->p[i].c[1-geoSystem->p[3]],gdCoords->p[i].c[geoSystem->p[3]]);
-				}
+			}
 			break;
 		case GEOSP_GC:
 			/* an earth-fixed geocentric coord; no conversion required for gc value returns */
-			for (i=0; i< inCoords->n; i++) {
-				outCoords->p[i].c[0] = inCoords->p[i].c[0];
-				outCoords->p[i].c[1] = inCoords->p[i].c[1];
-				outCoords->p[i].c[2] = inCoords->p[i].c[2];
-
-				/* convert this coord from GC to GD, WGS84 ellipsoid for gd value returns */
-				gccToGdc (&inCoords->p[i], &gdCoords->p[i]);
+			for (i=0; i< n; i++) {
+				veccopyd(outCoords[i].c,inCoords[i].c);
+				/* convert this coord from GC to GD, using ellipsoid in geoSystem[1] */
+				gccToGdc (geoSystem, &inCoords[i], &gdCoords[i]);
 			}
 
 			break;
 		case GEOSP_UTM:
+			{
 				/* GD coords will be returned from the conversion process....*/
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
-				switch (geoSystem->p[1]) {
-					UTM_ELLIPSOID(GEOSP_AA)
-					UTM_ELLIPSOID(GEOSP_AM)
-					UTM_ELLIPSOID(GEOSP_AN)
-					UTM_ELLIPSOID(GEOSP_BN)
-					UTM_ELLIPSOID(GEOSP_BR)
-					UTM_ELLIPSOID(GEOSP_CC)
-					UTM_ELLIPSOID(GEOSP_CD)
-					UTM_ELLIPSOID(GEOSP_EA)
-					UTM_ELLIPSOID(GEOSP_EB)
-					UTM_ELLIPSOID(GEOSP_EC)
-					UTM_ELLIPSOID(GEOSP_ED)
-					UTM_ELLIPSOID(GEOSP_EE)
-					UTM_ELLIPSOID(GEOSP_EF)
-					UTM_ELLIPSOID(GEOSP_FA)
-					UTM_ELLIPSOID(GEOSP_HE)
-					UTM_ELLIPSOID(GEOSP_HO)
-					UTM_ELLIPSOID(GEOSP_ID)
-					UTM_ELLIPSOID(GEOSP_IN)
-					UTM_ELLIPSOID(GEOSP_KA)
-					UTM_ELLIPSOID(GEOSP_RF)
-					UTM_ELLIPSOID(GEOSP_SA)
-					UTM_ELLIPSOID(GEOSP_WD)
-					UTM_ELLIPSOID(GEOSP_WE)
-					default: printf ("unknown Gd_Gc: %s\n", stringGEOSPATIALType(geoSystem->p[1]));
-				}
+				Utm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords);
+			}
 			break;
+		case GEOSP_3TM:
+			{
+				/* GD coords will be returned from the conversion process....*/
+				/* first, convert UTM to GC, then GD, then GD to GC */
+				/* see the compileGeosystem function for geoSystem fields */
+				U3tm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords); 
+			}
+			break;
+
 		default :
-			printf ("incorrect geoSystem field, %s\n",stringGEOSPATIALType(geoSystem->p[0]));
+			printf ("incorrect geoSystem field, %s\n",stringGEOSPATIALType(geoSystem->spatial_system));
 			return;
 
+	}
+	if(offset || yup){
+		if(offset)
+		for(i=0;i<n;i++){
+			//take offset off GC coords
+			vecdifd(outCoords[i].c,outCoords[i].c,offset->c); 
+		}
+		if(yup){
+			Quaternion qup;
+			vrmlrot_to_quaternion(&qup,yup->c[0],yup->c[1],yup->c[2],-yup->c[3]);
+			for(i=0;i<n;i++){
+				//take offset off GC coords
+				quaternion_rotationd(outCoords[i].c,&qup,outCoords[i].c);
+			}
+		}
 	}
 }
 
 
 static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
-	MF_SF_TEMPS
+	//MF_SF_TEMPS
+	int specversion;
 	struct X3D_GeoOrigin *node = NULL;
 
 	#ifdef VERBOSE
@@ -764,44 +1270,61 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 			/* printf ("um, just setting geoorign to %u\n",(*nodeptr)); */
 			node = X3D_GEOORIGIN(*nodeptr);
 		}
-
+		specversion = X3D_PROTO(node->_executionContext)->__specversion;
 		/* printf ("initGeoSpatial ich %d ch %d\n",node->_ichange, node->_change); */
 
 		if NODE_NEEDS_COMPILING {
-			compile_geoSystem (node->_nodeType, &node->geoSystem, &node->__geoSystem);
-			INIT_MF_FROM_SF(node,geoCoords)
-			moveCoords(&node->__geoSystem, MF_FIELD_IN_OUT);
-			COPY_MF_TO_SF(node, __movedCoords)
-
+			//struct SFVec3d gdCoords;
+			//struct SFVec3d offset;
+			compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
+			//INIT_MF_FROM_SF(node,geoCoords)
+			moveCoords3d(GEOSYS(node->__geoSystem), NULL, NULL,
+					&node->geoCoords,1, &node->__movedCoords, &node->__movedgd);
+			//COPY_MF_TO_SF(node, __movedCoords)
+			node->rotateYUp = FALSE; //Mar2018 rotateYup isn't working properly for us, get a wild angle
+			//... H: we already do it with autoOrient H: we do it better with autoOrient H: we did it wrong all along
 			if(node->rotateYUp == TRUE)
 			{
-					struct SFVec4d orient;
-					int i;
-					Quaternion qz,qx,qr;
+				struct SFVec4d orient;
+				int i;
+				Quaternion qz,qx,qr;
+				double dangle;
+				Geosys *gs;
 					 
-					vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, RADIANS_PER_DEGREE*((double)90.0 + gdCoords.p[0].c[1]));
+				dangle = node->__movedgd.c[1];
+				gs = GEOSYS(node->__geoSystem);
+				//if(node->__geoSystem->.p[7] == TRUE)
+				if(gs->gd_degrees)
+					dangle *= RADIANS_PER_DEGREE;
+				dangle += RADIANS_PER_DEGREE*90.0;
+				vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, dangle);
 
-					#ifdef VERBOSE 
-					printf ("GeoOrient qz angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",((double)90.0 + gdCoords->c[1]), 
-						RADIANS_PER_DEGREE*((double)90.0 + gdCoords->c[1]),qz.x, qz.y, qz.z,qz.w);
-					#endif
+				#ifdef VERBOSE 
+				printf ("GeoOrient qz angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",dangle*DEGREES_PER_RADIAN, 
+					dangle,qz.x, qz.y, qz.z,qz.w);
+				#endif
 
-					vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, RADIANS_PER_DEGREE*((double)180.0 - gdCoords.p[0].c[0]));
+				dangle =  node->__movedgd.c[0];
+				if(gs->gd_degrees == TRUE)
+					dangle *= RADIANS_PER_DEGREE;
+				dangle = RADIANS_PER_DEGREE*180.0 - dangle;
+				vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0,dangle);
 
-					#ifdef VERBOSE 
-					printf ("GeoOrient qx angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",
-						((double)180.0 - gdCoords->c[0]), RADIANS_PER_DEGREE*((double)180.0 - gdCoords->c[0]), qx.x, qx.y, qx.z,qx.w);
-					#endif
+				#ifdef VERBOSE 
+				printf ("GeoOrient qx angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",
+					dangle*DEGREES_PER_RADIAN, dangle, qx.x, qx.y, qx.z,qx.w);
+				#endif
 
-					quaternion_add (&qr, &qx, &qz);
+				//quaternion_add (&qr, &qx, &qz);
+				quaternion_multiply(&qr,&qz,&qx);
 
-					#ifdef VERBOSE
-					printf ("GeoOrient qr %lf %lf %lf %lf\n",qr.x, qr.y, qr.z,qr.w);
-					#endif
+				#ifdef VERBOSE
+				printf ("GeoOrient qr %lf %lf %lf %lf\n",qr.x, qr.y, qr.z,qr.w);
+				#endif
 
-					quaternion_to_vrmlrot(&qr, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
-					for(i=0;i<4;i++)
-						node->__rotyup.c[i] = orient.c[i];
+				quaternion_to_vrmlrot(&qr, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
+				for(i=0;i<4;i++)
+					node->__rotyup.c[i] = orient.c[i];
 			}else{
 				int i;
 				for(i=0;i<4;i++)
@@ -819,169 +1342,107 @@ static void initializeGeospatial (struct X3D_GeoOrigin **nodeptr)  {
 				node->__geoSystem.p[1],
 				node->__geoSystem.p[2],
 				node->__geoSystem.p[3]);
+				node->__geoSystem.p[4]);
+				node->__geoSystem.p[5]);
+				node->__geoSystem.p[6]);
+				node->__geoSystem.p[7]);
 			printf ("initializeGeospatial, done\n\n");
 			#endif
 
-			FREE_MF_SF_TEMPS
+			//FREE_MF_SF_TEMPS
 			MARK_NODE_COMPILED
 		}
 	}
 }
 
-/* calculate a translation that moves a Geo node to local space */
-static void GeoMove(struct X3D_GeoOrigin *geoOrigin, struct Multi_Int32* geoSystem, struct Multi_Vec3d *inCoords, struct Multi_Vec3d *outCoords,
-		struct Multi_Vec3d *gdCoords) {
-	int i;
-	struct X3D_GeoOrigin * myOrigin;
-	Quaternion rq;
-
-	#ifdef VERBOSE
-	printf ("\nstart of GeoMove... %d coords\n",inCoords->n);
-	#endif
-
-	/* enough room for output? */
-	if (inCoords->n==0) {return;}
-	if (outCoords->n < inCoords->n) {
-		if (outCoords->n!=0) {
-			FREE_IF_NZ(outCoords->p);
-		}
-		outCoords->p = MALLOC(struct SFVec3d *, sizeof (struct SFVec3d) * inCoords->n);
-		outCoords->n = inCoords->n;
-	}
-
-	/* set out values to 0.0 for now */
-	for (i=0; i<outCoords->n; i++) {
-		outCoords->p[i].c[0] = (double) 0.0; outCoords->p[i].c[1] = (double) 0.0; outCoords->p[i].c[2] = (double) 0.0;
-	}
-
-	#ifdef VERBOSE
-	for (i=0; i<outCoords->n; i++) {
-		printf ("start of GeoMove, inCoords %d: %lf %lf %lf\n",i, inCoords->p[i].c[0], inCoords->p[i].c[1], inCoords->p[i].c[2]);
-	}
-	#endif
-
-
-
-	/* check the GeoOrigin attached node */
-	myOrigin = NULL;
-	if (geoOrigin != NULL) {
-		if (X3D_GEOORIGIN(geoOrigin)->_nodeType != NODE_GeoOrigin) {
-			ConsoleMessage ("GeoMove, expected a GeoOrigin, found a %s",stringNodeType(X3D_GEOORIGIN(geoOrigin)->_nodeType));
-			printf ("GeoMove, expected a GeoOrigin, found a %s\n",stringNodeType(X3D_GEOORIGIN(geoOrigin)->_nodeType));
-			return;
-		}
-
-		myOrigin = geoOrigin; /* local one */
-	}
-	/* printf ("GeoMove, using myOrigin %u, passed in geoOrigin %u with vals %lf %lf %lf\n",myOrigin, myOrigin,
-		myOrigin->geoCoords.c[0], myOrigin->geoCoords.c[1], myOrigin->geoCoords.c[2] ); */ 
-		
-	moveCoords(geoSystem, inCoords, outCoords, gdCoords);
-
-
-	for (i=0; i<outCoords->n; i++) {
-
-	#ifdef VERBOSE
-	printf ("GeoMove, before subtracting origin %lf %lf %lf\n", outCoords->p[i].c[0], outCoords->p[i].c[1], outCoords->p[i].c[2]);
-	if (myOrigin != NULL) printf ("	... origin %lf %lf %lf\n",myOrigin->__movedCoords.c[0], myOrigin->__movedCoords.c[1], myOrigin->__movedCoords.c[2]);
-	#endif
-
-	if (myOrigin != NULL) {
-		struct SFVec3d temp;
-
-		outCoords->p[i].c[0] -= myOrigin->__movedCoords.c[0];
-		outCoords->p[i].c[1] -= myOrigin->__movedCoords.c[1];
-		outCoords->p[i].c[2] -= myOrigin->__movedCoords.c[2];
-		if(myOrigin->rotateYUp == TRUE)
-		{
-			if(i==0)
-			{
-			vrmlrot_to_quaternion(&rq,myOrigin->__rotyup.c[0], myOrigin->__rotyup.c[1], myOrigin->__rotyup.c[2], -myOrigin->__rotyup.c[3]); 
-			}
-			//quaternion_multi_rotation(outxyz,&rq,inxyz,8);
-			quaternion_rotation((struct point_XYZ *)temp.c, &rq, (const struct point_XYZ *)outCoords->p[i].c);
-			outCoords->p[i].c[0] = temp.c[0];
-			outCoords->p[i].c[1] = temp.c[1];
-			outCoords->p[i].c[2] = temp.c[2];
-		}
-	}
-
-	#ifdef VERBOSE
-	printf ("GeoMove, after subtracting origin %lf %lf %lf\n", outCoords->p[i].c[0], outCoords->p[i].c[1], outCoords->p[i].c[2]);
-	#endif
-	}
-}
-
+/* for converting from GC to GD */
+struct gcgd {
+double A, F, C, A2, C2, Eps2, Eps21, Eps25, C254, C2DA, CEE,
+                 CE2, CEEps2, TwoCEE, tem, ARat1, ARat2, BRat1, BRat2, B1,B2,B3,B4,B5;
+};
 
 /* for converting BACK to GD from GC */
-static void initializeGcToGdParams(void) {
-        A = GEOSP_WE_A;
-        F = GEOSP_WE_F;
-            
-        /*  Create the ERM constants. */
-        A2     = A * A;
-        F      =1/(F);
-        C      =(A) * (1-F);
-        C2     = C * C;
-        Eps2   =(F) * (2.0-F);
-        Eps21  =Eps2 - 1.0;
-        Eps25  =.25 * (Eps2);
-        C254   =54.0 * C2;        
+struct gcgd* initializeGcToGdParams(int type, double A, double F) {
+	struct gcgd *g;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	if(type < 0) type = -type + GEOELLIPSOID_COUNT;
+	if(p->gcgdpars[type]) return p->gcgdpars[type];
+	g = malloc(sizeof(struct gcgd));
+	p->gcgdpars[type] = g;
+    /*  Create the ERM constants. */
+	g->A = A;
+    g->A2     = A * A;
+    g->F      =F;
+    g->C      =(A) * (1-g->F);
+    g->C2     = g->C * g->C;
+    g->Eps2   =(g->F) * (2.0-g->F);
+    g->Eps21  =g->Eps2 - 1.0;
+    g->Eps25  =.25 * (g->Eps2);
+    g->C254   =54.0 * g->C2;        
         
-        C2DA   = C2 / A;
-        CE2    = A2 - C2;
-        tem    = CE2 / C2;
-        CEE    = Eps2 * Eps2;        
-        TwoCEE =2.0 * CEE;
-        CEEps2 =Eps2 * CE2;
+    g->C2DA   = g->C2 / A;
+    g->CE2    = g->A2 - g->C2;
+    g->tem    = g->CE2 / g->C2;
+    g->CEE    = g->Eps2 * g->Eps2;        
+    g->TwoCEE =2.0 * g->CEE;
+    g->CEEps2 =g->Eps2 * g->CE2;
          
-        /* UPPER BOUNDS ON POINT */
+    /* UPPER BOUNDS ON POINT */
      
 
-        ARat1  =pow((A + 50005.0),2);
-        ARat2  =(ARat1) / pow((C+50005.0),2);
+    g->ARat1  =pow((A + 50005.0),2);
+    g->ARat2  =(g->ARat1) / pow((g->C+50005.0),2);
     
-        /* LOWER BOUNDS ON POINT */
+    /* LOWER BOUNDS ON POINT */
         
-        BRat1  =pow((A-10005.0),2);
-        BRat2  =(BRat1) / pow((C-10005.0),2);
+    g->BRat1  =pow((A-10005.0),2);
+    g->BRat2  =(g->BRat1) / pow((g->C-10005.0),2);
           
 	/* use WE ellipsoid */
-	B1=0.100225438677758E+01;
-	B2=-0.393246903633930E-04;
-	B3=0.241216653453483E+12;
-	B4=0.133733602228679E+14;
-	B5=0.984537701867943E+00;
-	gcToGdInit = TRUE;
+	g->B1=0.100225438677758E+01;
+	g->B2=-0.393246903633930E-04;
+	g->B3=0.241216653453483E+12;
+	g->B4=0.133733602228679E+14;
+	g->B5=0.984537701867943E+00;
+	return g;
 }
 
-
-/* convert BACK to a GD coordinate, from GC coordinates using WE ellipsoid */
-static void gccToGdc (struct SFVec3d *gcc, struct SFVec3d *gdc) {
-        double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
-               s,roe,arg,v,zo;
-
+/* convert BACK to a GD coordinate, from GC coordinates using ellipsoid */
+static void gccToGdc_fw (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc) {
+	int latitude = 0;
+	int longitude = 1;
+	int elevation = 2;
+	double GCC_X, GCC_Y, GCC_Z;
+	double A,F;
+	double w2,w,z2,testu,testb,top,top2,rr,q,s12,rnn,s1,zp2,wp,wp2,cf,gee,alpha,cl,arg2,p,xarg,r2,r1,ro,
+		s,roe,arg,v,zo;
+	struct gcgd *g;
 	#ifdef VERBOSE
 	printf ("gccToGdc input %lf %lf %lf\n",GCC_X, GCC_Y, GCC_Z);
 	#endif
-	
-
-	if (!gcToGdInit) initializeGcToGdParams();
+	GCC_X = gcc->c[0];
+	GCC_Y = gcc->c[1];
+	GCC_Z = gcc->c[2];
+	if(geoSystem->gd_latitude_first == FALSE){
+		latitude = 1; longitude = 0;
+	}
+	getEllipsoidParams(geoSystem->ellipsoid,&A,&F);
+	g = initializeGcToGdParams(geoSystem->ellipsoid,A,F);
 
         w2=GCC_X * GCC_X + GCC_Y * GCC_Y;
         w=sqrt(w2);
         z2=GCC_Z * GCC_Z;
 
-        testu=w2 + ARat2 * z2;
-        testb=w2 + BRat2 * z2;
+        testu=w2 + g->ARat2 * z2;
+        testb=w2 + g->BRat2 * z2;
 
-        if ((testb > BRat1) && (testu < ARat1)) 
+        if ((testb > g->BRat1) && (testu < g->ARat1)) 
         {    
 
             /*POINT IS BETWEEN-10 KIL AND 50 KIL, SO COMPUTE TANGENT LATITUDE */
     
-            top= GCC_Z * (B1 + (B2 * w2 + B3) /
-                 (B4 + w2 * B5 + z2));
+            top= GCC_Z * (g->B1 + (g->B2 * w2 + g->B3) /
+                 (g->B4 + w2 * g->B5 + z2));
 
             top2=top*top;
 
@@ -997,7 +1458,7 @@ static void gccToGdc (struct SFVec3d *gcc, struct SFVec3d *gdc) {
 
             s12=top2/rr;
 
-            rnn = A / ( (.25 - Eps25*s12 + .9999944354799/4) + (.25-Eps25*s12)/(.25 - Eps25*s12 + .9999944354799/4));
+            rnn = g->A / ( (.25 - g->Eps25*s12 + .9999944354799/4) + (.25-g->Eps25*s12)/(.25 - g->Eps25*s12 + .9999944354799/4));
             s1=top/q;
         
             /******************************************************************/
@@ -1005,11 +1466,11 @@ static void gccToGdc (struct SFVec3d *gcc, struct SFVec3d *gdc) {
             /* TEST FOR H NEAR POLE.  if SIN(¯)**2 <= SIN(45.)**2 THEN NOT NEAR A POLE.*/  
     
             if (s12 < .50)
-                GDC_ELE = q-rnn;
+                gdc->c[elevation] = q-rnn;
             else
-                GDC_ELE = GCC_Z / s1 + (Eps21 * rnn);
-                GDC_LAT = atan(top / w);
-                GDC_LON = atan2(GCC_Y,GCC_X);
+                gdc->c[elevation] = GCC_Z / s1 + (g->Eps21 * rnn);
+                gdc->c[latitude] = atan(top / w);
+                gdc->c[longitude] = atan2(GCC_Y,GCC_X);
         }
               /* POINT ABOVE 50 KILOMETERS OR BELOW -10 KILOMETERS  */
         else /* Do Exact Solution  ************ */
@@ -1017,124 +1478,313 @@ static void gccToGdc (struct SFVec3d *gcc, struct SFVec3d *gdc) {
             wp2=GCC_X * GCC_X + GCC_Y * GCC_Y;
             zp2=GCC_Z * GCC_Z;
             wp=sqrt(wp2);
-            cf=C254 * zp2;
-            gee=wp2 - (Eps21 * zp2) - CEEps2;
+            cf=g->C254 * zp2;
+            gee=wp2 - (g->Eps21 * zp2) - g->CEEps2;
             alpha=cf / (gee*gee);
-            cl=CEE * wp2 * alpha / gee;
+            cl=g->CEE * wp2 * alpha / gee;
             arg2=cl * (cl + 2.0);
             s1=1.0 + cl + sqrt(arg2);
             s=pow(s1,(1.0/3.0));
             p=alpha / (3.0 * pow(( s + (1.0/s) + 1.0),2));
-            xarg= 1.0 + (TwoCEE * p);
+            xarg= 1.0 + (g->TwoCEE * p);
             q=sqrt(xarg);
-            r2= -p * (2.0 * (1.0 - Eps2) * zp2 / ( q * ( 1.0 + q) ) + wp2);
+            r2= -p * (2.0 * (1.0 - g->Eps2) * zp2 / ( q * ( 1.0 + q) ) + wp2);
             r1=(1.0 + (1.0 / q));
-            r2 /=A2;
+            r2 /=g->A2;
 
             /*    DUE TO PRECISION ERRORS THE ARGUMENT MAY BECOME NEGATIVE IF SO SET THE ARGUMENT TO ZERO.*/
 
             if (r1+r2 > 0.0)
-                ro = A * sqrt( .50 * (r1+r2));
+                ro = g->A * sqrt( .50 * (r1+r2));
             else
                 ro=0.0;
 
-            ro=ro - p * Eps2 * wp / ( 1.0 + q);
+            ro=ro - p * g->Eps2 * wp / ( 1.0 + q);
             //arg0 = pow(( wp - Eps2 * ro),2) + zp2;
-            roe = Eps2 * ro;
+            roe = g->Eps2 * ro;
             arg = pow(( wp - roe),2) + zp2;
-            v=sqrt(arg - Eps2 * zp2);
-            zo=C2DA * GCC_Z / v;
-            GDC_ELE = sqrt(arg) * (1.0 - C2DA / v);
-            top=GCC_Z+ tem*zo;
-            GDC_LAT = atan( top / wp );
-            GDC_LON =atan2(GCC_Y,GCC_X);
+            v=sqrt(arg - g->Eps2 * zp2);
+            zo=g->C2DA * GCC_Z / v;
+            gdc->c[elevation] = sqrt(arg) * (1.0 - g->C2DA / v);
+            top=GCC_Z+ g->tem*zo;
+            gdc->c[latitude] = atan( top / wp );
+            gdc->c[longitude] =atan2(GCC_Y,GCC_X);
         }  /* end of Exact solution */
 
-        GDC_LAT *= DEGREES_PER_RADIAN;
-        GDC_LON *= DEGREES_PER_RADIAN;
+		if(geoSystem->gd_degrees == TRUE){
+			//v3.2- works in degrees by default, v3.3+ works in 'angle base units' (radians) by default
+			gdc->c[latitude] *= DEGREES_PER_RADIAN;
+			gdc->c[longitude] *= DEGREES_PER_RADIAN;
+		}
 #undef VERBOSE
 
 }
+#ifdef GEOLIB
+static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
+	int geotype;
+	double gd[3],gc[3], semimajor,flattening;
+	//printf("hi from gccToGdc_geolib\n");
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+	if(FALSE && flattening == 0.0){
+		//easy spherical coords, although geolib doesn't need help, just for testing here
+		double radius, horizontal_radius;
+		veccopyd(gc,gcc->c);
+		//printf("gc2gd gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+		radius = veclengthd(gc);
+		horizontal_radius = veclength2d(gc);
+		gd[0] = atan2(gc[2],horizontal_radius);
+		gd[1] = atan2(gc[1],gc[0]);
+		gd[2] = radius - semimajor;
+		//printf("radius %lf semimajor %lf\n",radius,semimajor);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		//printf("gc2gd sphere gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+		veccopyd(gdc->c,gd);
+	}
+	else
+	{
+		geotype = geoSystem->ellipsoid;
+		if(geotype < 0) geotype = -geotype + GEOELLIPSOID_COUNT;
+		if(!fwgeo_gc[geotype]){
+			fwgeo_gc[geotype] = fgeo_initializeGC(semimajor,flattening);
+		}
+		veccopyd(gc,gcc->c);
+		// function(semimajor,flattening,gc[0],gc[1],gc[2],&gd[0],&gd[1],&gd[2]);
+		fgeo_gc2gd(fwgeo_gc[geotype],gc[0],gc[1],gc[2], &gd[0],&gd[1],&gd[2]);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(!geoSystem->gd_degrees) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		veccopyd(gdc->c,gd);
+		//printf("gc2gd geolb gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+	}
 
-/* convert a GDC BACK to a UTM coordinate */
-static void gdToUtm(double latitude, double longitude, int *zone, double *easting, double *northing) {
+}
+#endif //GEOLIB
+static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
+#ifdef GEOLIB
+	if(method_geolib()){
+		gccToGdc_geolib(geoSystem,gcc,gdc);
+		//vecprint3db("gl gdc ",gdc->c,"\n");
+	}else
+#endif //GEOLIB
+	{
+		double semimajor, flattening;
+		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+		if(flattening == 0.0){
+			//easy spherical coords
+			//gccToGdc_fw and/or its gd2gc complement has a problem with moon geoSystem 'R173...' 'F0.0'
+			double radius, horizontal_radius, gd[3], gc[3];
+			veccopyd(gc,gcc->c);
+			//printf("gc2gd gc %lf %lf %lf\n",gc[0],gc[1],gc[2]);
+			radius = veclengthd(gc);
+			horizontal_radius = veclength2d(gc);
+			gd[0] = atan2(gc[2],horizontal_radius);
+			gd[1] = atan2(gc[1],gc[0]);
+			gd[2] = radius - semimajor;
+			//printf("radius %lf semimajor %lf\n",radius,semimajor);
+			if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+			if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+			//printf("gc2gd sphere gd %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+			veccopyd(gdc->c,gd);
+		}
+		else
+		{
+			gccToGdc_fw(geoSystem,gcc,gdc);
+			//vecprint3db("fw gdc ",gdc->c,"\n");
+		}
+	}
+}
+/* convert a GDC BACK to a UTM coordinate ASSUMES LAT LON RADIANS*/
+static void gdToXtm(double radius, double flattening, double latitude, double longitude, double scaleFactor, 
+	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
+{
 #define DEG2RAD (PI/180.00)
-#define GEOSP_WE_INV 0.00669438
+//#define GEOSP_WE_INV 0.00669438
 	double lat_radian;
 	double long_radian;
 	double myScale;
-	int longOrigin;
-	double longOriginradian;
-	double eccentprime;
+	double longOrigin;
+	double longOriginradian, dlon;
+	double eccentprime, e2, A, F;
 	double NNN;
 	double TTT;
 	double CCC;
 	double AAA;
 	double MMM;
 
-	/* calculate the zone number if it is less than zero. If greater than zero, leave alone! */
-	if (*zone < 0) 
-		*zone = (int) (((longitude + 180.0)/6.0) + 1);
+	A = radius;
+	F = flattening;
+	//e2 = 2.0*F - F*F;
+	e2 = F*(2. - F);
 
-	lat_radian = latitude * DEG2RAD;
-	long_radian = longitude * DEG2RAD;
-	myScale = 0.9996;
-	longOrigin = (*zone - 1)*6 - 180 + 3;
+	/* calculate the zone number if it is less than zero. If greater than zero, leave alone! */
+	dlon = longitude * DEGREES_PER_RADIAN;
+	if (*zone < 0) 
+		*zone = (int) (((dlon + 180.0)/zoneSize) + 1);
+
+	lat_radian = latitude;
+	long_radian = longitude;
+	myScale = scaleFactor; //0.9996;
+	longOrigin = (*zone - 1)*zoneSize - 180.0 + zoneSize/2.0; //3;
 	longOriginradian = longOrigin * DEG2RAD;
-	eccentprime = GEOSP_WE_INV/(1-GEOSP_WE_INV);
+	eccentprime = e2/(1.0-e2);
 
 	/* 
 	printf ("lat_radian %lf long_radian %lf myScale %lf longOrigin %d longOriginradian %lf eccentprime %lf\n",
 	   lat_radian, long_radian, myScale, longOrigin, longOriginradian, eccentprime);
 	*/
+	//http://www.engr.usask.ca/classes/CE/316/notes/CE%20316%20CH%204C%2031-1-12%20-INSTRUCTOR.pdf
 
-	NNN = GEOSP_WE_A / sqrt(1-GEOSP_WE_INV * sin(lat_radian)*sin(lat_radian));
+	NNN = A / sqrt(1.0-e2 * sin(lat_radian)*sin(lat_radian));
 	TTT = tan(lat_radian) * tan(lat_radian);
 	CCC = eccentprime * cos(lat_radian)*cos(lat_radian);
 	AAA = cos(lat_radian) * (long_radian - longOriginradian);
-	MMM = GEOSP_WE_A
-            * ( ( 1 - GEOSP_WE_INV/4 - 3 * GEOSP_WE_INV * GEOSP_WE_INV/64
-                  - 5 * GEOSP_WE_INV * GEOSP_WE_INV * GEOSP_WE_INV/256
+	MMM = A
+            * ( ( 1. - e2/4 - 3. * e2 * e2/64
+                  - 5.0 * e2 * e2 * e2/256.0
                 ) * lat_radian
-              - ( 3 * GEOSP_WE_INV/8 + 3 * GEOSP_WE_INV * GEOSP_WE_INV/32
-                  + 45 * GEOSP_WE_INV * GEOSP_WE_INV * GEOSP_WE_INV/1024
-                ) * sin(2 * lat_radian)
-              + ( 15 * GEOSP_WE_INV * GEOSP_WE_INV/256 +
-                  45 * GEOSP_WE_INV * GEOSP_WE_INV * GEOSP_WE_INV/1024
-                ) * sin(4 * lat_radian)
-              - ( 35 * GEOSP_WE_INV * GEOSP_WE_INV * GEOSP_WE_INV/3072
-                ) * sin(6 * lat_radian)
+              - ( 3. * e2/8 + 3. * e2 * e2/32.
+                  + 45. * e2 * e2 * e2/1024.
+                ) * sin(2. * lat_radian)
+              + ( 15. * e2 * e2/256. +
+                  45. * e2 * e2 * e2/1024.
+                ) * sin(4. * lat_radian)
+              - ( 35. * e2 * e2 * e2/3072.
+                ) * sin(6. * lat_radian)
               );
 
 	/* printf ("N %lf T %lf C %lf A %lf M %lf\n",NNN,TTT,CCC,AAA,MMM); */
 
 	*easting = myScale*NNN*(AAA+(1-TTT+CCC)*AAA*AAA*AAA/6
-                    + (5-18*TTT+TTT*TTT+72*CCC-58*eccentprime)*AAA*AAA*AAA*AAA*AAA/120)
-                    + 500000.0;
+                    + (5.-18.*TTT+TTT*TTT+72.*CCC-58.*eccentprime)*AAA*AAA*AAA*AAA*AAA/120.)
+                    + falseEasting; //500000.0;
 
 	*northing= myScale * ( MMM + NNN*tan(lat_radian) * 
-		( AAA*AAA/2+(5-TTT+9*CCC+4*CCC*CCC)*AAA*AAA*AAA*AAA/24 + (61-58*TTT+TTT*TTT+600*CCC-330*eccentprime) * AAA*AAA*AAA*AAA*AAA*AAA/720));
+		( AAA*AAA/2.+(5.-TTT+9.*CCC+4.*CCC*CCC)*AAA*AAA*AAA*AAA/24 + (61.-58.*TTT+TTT*TTT+600.*CCC-330.*eccentprime) * AAA*AAA*AAA*AAA*AAA*AAA/720.));
 
-	/*if (latitude < 0) *northing += 10000000.0;*/
+	if (latitude < 0) *northing += falseNorthing; //10000000.0;*/
 
 	#ifdef VERBOSE
 	printf ("gdToUtm: lat %lf long %lf zone %d -> easting %lf northing %lf\n",latitude, longitude, *zone,*easting, *northing);
 	#endif
 }
 
-/* calculate the rotation needed to apply to this position on the GC coordinate location */
-static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem, struct SFVec3d *gdCoords, struct SFVec4d *orient) {
+#ifdef GEOLIB
+//assumes LAT, LON in radians
+static void gdToXtm_geolib(int geotype, double radius, double flattening, double latitude, double longitude, double scaleFactor, 
+	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
+{
+	double F, dlon0, dlat, dlon;
+	void *fgeo;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+	F = flattening;
+	if(!p->fgeopars[geotype])
+		p->fgeopars[geotype] = fgeo_initializeTM(radius, F, 1.0);
+	fgeo = p->fgeopars[geotype];
+
+	/* calculate the zone number if it is less than zero. If greater than zero, leave alone! */
+	//Q. is longitude in degrees, or does that depend on UNITS, specversion and strict33?
+	dlon = longitude * DEGREES_PER_RADIAN;
+	if (*zone < 0) 
+		*zone = (int) (((dlon + 180.0)/zoneSize) + 1);
+
+	dlon0 = (*zone -1) * zoneSize - 180. + zoneSize*.5;
+	dlat = latitude * DEGREES_PER_RADIAN;
+	
+	fgeo_gd2tm(fgeo,dlat,dlon,dlon0,easting, northing);
+	*easting *= scaleFactor;
+	*northing *= scaleFactor;
+
+	if (latitude < 0.0) *northing += falseNorthing; //10000000.0;
+	*easting += falseEasting;
+
+	#ifdef VERBOSE
+	printf ("gdToUtm: lat %lf long %lf zone %d -> easting %lf northing %lf\n",latitude, longitude, *zone,*easting, *northing);
+	#endif
+}
+#endif //GEOLIB
+
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+
+static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
+	double semimajor, flattening;
+	double gdradians[3];
+	int geotype, northing_first, latitude_first, is_degrees, *zone;
+	
+	geotype = geoSystem->ellipsoid; //ellipsoid index
+	northing_first = geoSystem->xtm_northing_first;
+	latitude_first = geoSystem->gd_latitude_first;
+	is_degrees = geoSystem->gd_degrees;
+	
+	if(is_degrees) vecscaled(gdradians,gdcoords,RADIANS_PER_DEGREE);
+	else veccopyd(gdradians,gdcoords);
+	if(!latitude_first) vecswizzle2d(gdradians); //unswizzle if swizzled
+	
+	getEllipsoidParams(geotype,&semimajor,&flattening);
+	zone = &geoSystem->xtm_zone;
+#ifdef GEOLIB
+	if(method_geolib())
+		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	else
+#endif //GEOLIB
+		gdToXtm(semimajor,flattening, gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	
+	if(!northing_first) vecswizzle2d(xtmcoords);
+	xtmcoords[2] = gdcoords[2];
+}
+static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
+	double semimajor, flattening;
+	double gdradians[3];
+	int geotype, northing_first, latitude_first, is_degrees, *zone;
+	
+	geotype = geoSystem->ellipsoid; //ellipsoid index
+	northing_first = geoSystem->xtm_northing_first;
+	latitude_first = geoSystem->gd_latitude_first;
+	is_degrees = geoSystem->gd_degrees;
+	
+	if(is_degrees) vecscaled(gdradians,gdcoords,RADIANS_PER_DEGREE);
+	else veccopyd(gdradians,gdcoords);
+	if(!latitude_first) vecswizzle2d(gdradians);
+	
+	getEllipsoidParams(geotype,&semimajor,&flattening);
+	zone = &geoSystem->xtm_zone;
+#ifdef GEOLIB
+	if(method_geolib())
+		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	else
+#endif //GEOLIB
+		gdToXtm(semimajor, flattening, gdradians[0],gdradians[1], U3TM_SCALE, U3TM_FALSE_EASTING, U3TM_FALSE_NORTHING, U3TM_ZONE_SIZE, zone,  &xtmcoords[1], &xtmcoords[0]);
+	
+	if(!northing_first) vecswizzle2d(xtmcoords);
+	xtmcoords[2] = gdcoords[2];
+}
+
+/* calculate the rotation needed to apply to this position on the GC coordinate location 
+	a) rotate from equatorial plane GC X,Y to TCS (topocentric coordinate system) plane
+	b) rotate from Z up to Y up
+*/
+static void GeoOrient (struct X3D_Node *geoOrigin, Geosys *geoSystem, struct SFVec3d *gdCoords, struct SFVec4d *orient) {
 	Quaternion qx;
 	Quaternion qz;
 	Quaternion qr;
+	double dangle, gdcoords[3];
 
 	orient->c[0] = 0.0; 
 	orient->c[1] = 1.0; 
 	orient->c[2] = 0.0; 
 	orient->c[3] = 0.0; 
 	/* is this a straight GC geoSystem? If so, we do not do any orientation */
-	if (geoSystem->n > 0) {
-		if (geoSystem->p[0] == GEOSP_GC) {
+	if (geoSystem != NULL) {
+		if (geoSystem->spatial_system == GEOSP_GC) {
 			#ifdef VERBOSE
 			printf ("GeoOrient - simple GC, so no orient\n");
 			#endif
@@ -1151,84 +1801,158 @@ static void GeoOrient (struct X3D_Node *geoOrigin, struct Multi_Int32 *geoSystem
 	#endif
 
 	/* initialize qx and qz */
-	vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, RADIANS_PER_DEGREE*((double)90.0 + gdCoords->c[1]));
+	veccopyd(gdcoords,gdCoords->c);
+	if(!geoSystem->gd_latitude_first) vecswizzle2d(gdcoords);
+	dangle = gdcoords[1]; //longitude
+	if(geoSystem->gd_degrees == TRUE)
+		dangle *= RADIANS_PER_DEGREE;
+	dangle += RADIANS_PER_DEGREE*90.0;
+	vrmlrot_to_quaternion (&qz,0.0, 0.0, 1.0, dangle);
 
 	#ifdef VERBOSE 
 	printf ("GeoOrient qz angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",((double)90.0 + gdCoords->c[1]), 
 		RADIANS_PER_DEGREE*((double)90.0 + gdCoords->c[1]),qz.x, qz.y, qz.z,qz.w);
 	#endif
 
-	vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, RADIANS_PER_DEGREE*((double)180.0 - gdCoords->c[0]));
+	dangle = gdcoords[0]; //latitude
+	if(geoSystem->gd_degrees == TRUE)
+		dangle *= RADIANS_PER_DEGREE;
+	dangle = RADIANS_PER_DEGREE*180.0 - dangle;
+	vrmlrot_to_quaternion (&qx,1.0, 0.0, 0.0, dangle);
 
 	#ifdef VERBOSE 
 	printf ("GeoOrient qx angle (deg) %lf angle (rad) %lf quat: %lf %lf %lf %lf\n",
 		((double)180.0 - gdCoords->c[0]), RADIANS_PER_DEGREE*((double)180.0 - gdCoords->c[0]), qx.x, qx.y, qx.z,qx.w);
 	#endif
 
-	quaternion_add (&qr, &qx, &qz);
+	//quaternion_add (&qr, &qx, &qz);
+	//quaternion_print(&qr,"added\n");
+	quaternion_multiply(&qr, &qz, &qx);
+	//quaternion_print(&qr,"multiplied\n");
 
 	#ifdef VERBOSE
 	printf ("GeoOrient qr %lf %lf %lf %lf\n",qr.x, qr.y, qr.z,qr.w);
 	#endif
 
         quaternion_to_vrmlrot(&qr, &orient->c[0], &orient->c[1], &orient->c[2], &orient->c[3]);
-
+		vecnormald(orient->c,orient->c);
 	#ifdef VERBOSE
 	printf ("GeoOrient rotation %lf %lf %lf %lf\n",orient->c[0], orient->c[1], orient->c[2], orient->c[3]);
 	#endif
 }
 
-
 /* compileGeosystem - encode the return value such that srf->p[x] is...
-			0:	spatial reference frame	(GEOSP_UTM, GEOSP_GC, GEOSP_GD);
-			1:	spatial coordinates (defaults to GEOSP_WE)
-			2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified
-			3:	UTM:	if "S" - value is FALSE, not S, value is TRUE 
-				GD:	if "latitude_first" TRUE, if "longitude_first", FALSE
-				GC:	if "northing_first" TRUE, if "easting_first", FALSE 
-			4:  GD: TRUE if heights are relative to sea level WGS84 
-					(fw converts to ellipsoid heights using geoid correction, allowing
-					GPS and topographic data to be blended in the same scene)
-				*/
-
-static void compile_geoSystem (int nodeType, struct Multi_String *args, struct Multi_Int32 *srf) {
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+struct stringint{
+	char *c;
 	int i;
+};
+char * stringint_int2string(struct stringint *table, int itype){
+	int i = 0;
+	while(table[i].c){
+		if(table[i].i == itype) return table[i].c;
+		i++;
+	}
+	return NULL;
+}
+int stringint_string2int(struct stringint *table, const char *ctype){
+	int i = 0;
+	while(table[i].c){
+		if(!strcmp(table[i].c,ctype)) return table[i].i;
+		i++;
+	}
+	return -1;
+}
+struct stringint lookup_ellipsoids [] = {
+	{"AA",GEOEL_AA},
+	{"AM",GEOEL_AM},
+	{"AN",GEOEL_AN},
+	{"BN",GEOEL_BN},
+	{"BR",GEOEL_BR},
+	{"CC",GEOEL_CC},
+	{"CD",GEOEL_CD},
+	{"EA",GEOEL_EA},
+	{"EB",GEOEL_EB},
+	{"EC",GEOEL_EC},
+	{"ED",GEOEL_ED},
+	{"EE",GEOEL_EE},
+	{"EF",GEOEL_EF},
+	{"FA",GEOEL_FA},
+	{"HE",GEOEL_HE},
+	{"HO",GEOEL_HO},
+	{"ID",GEOEL_ID},
+	{"IN",GEOEL_IN},
+	{"KA",GEOEL_KA},
+	{"RF",GEOEL_RF},
+	{"SA",GEOEL_SA},
+	{"WD",GEOEL_WD},
+	{"WE",GEOEL_WE},
+	{NULL,-1},
+};
+struct stringint lookup_spatialreferencesys [] = {
+	{"GC",GEOSP_GC},
+	{"GD",GEOSP_GD},
+	{"UTM",GEOSP_UTM},
+	{"3TM",GEOSP_3TM},
+	{NULL,-1},
+};
+
+
+void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String *args, struct X3D_Node **nodegeosys) {
+	int i, specversion, nextra;
 	indexT this_srf = INT_ID_UNDEFINED;
 	indexT this_srf_ind = INT_ID_UNDEFINED;
+	struct ellipsoid ee;
+	Geosys *srf = GEOSYS(*nodegeosys);
 
 	#ifdef VERBOSE
 	printf ("start of compile_geoSystem\n");
 	#endif
 
 	/* malloc the area required for internal settings, if required */
-	if (srf->p==NULL) {
-		srf->n=5;
-		srf->p=MALLOC(int *, sizeof(int) * 5);
+	if (srf==NULL) {
+		srf = malloc(sizeof(Geosys));
+		register_node_gc(node,(void*)srf);
+		*nodegeosys = X3D_NODE(srf);
 	}
 
 	/* set these as defaults */
-	srf->p[0] = GEOSP_GD; 
-	srf->p[1] = GEOSP_WE;
-	srf->p[2] = INT_ID_UNDEFINED;
-	srf->p[3] = TRUE;
-	srf->p[4] = FALSE; //geoid - not GC, just GD/UTM
-
+	srf->spatial_system = GEOSP_GD; 
+	srf->ellipsoid = GEOEL_WE;
+	srf->xtm_zone = INT_ID_UNDEFINED;
+	srf->xtm_northing_first = TRUE; //XTM: northing first
+	srf->utm_northern_hemisphere = TRUE; //northern hemisphere for UTM
+	srf->gd_latitude_first = TRUE; //GD: lat first
+	srf->geoid_height = FALSE; //geoid - not GC, just GD/UTM
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	if(specversion > 320 && STRICT33){
+		//version 3.3+ by default in 'angle base units' which are radians
+		srf->gd_degrees = FALSE; //GD: TRUE decimal degrees, FALSE: radians
+	}else{
+		//version 3.2- by default in degrees
+		srf->gd_degrees = TRUE; //GD: TRUE decimal degrees, FALSE: radians
+	}
+	srf->relativeHeight = FALSE; //relative height flag, not set below, its set during specific node compile
 	/* if nothing specified, we just use these defaults */
 	if (args->n==0) return;
 
+	//2018 we allow the user to specify ellipsoid (A and (B or IF (inverse flattening) or F (flattening)) or R radius
+	nextra = FALSE;
+	ee.a = ee.b = ee.f = 0.0;
+
 	/* first go through, and find the Spatial Reference Frame, GD, UTM, or GC */
 	for (i=0; i<args->n; i++) {
-		/* printf ("geoSystem args %d %s\n",i, args->p[i]->strptr); */
-		indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
-
-		if ((tc == GEOSP_GD) || (tc == GEOSP_GDC)) {
-			this_srf = GEOSP_GD;
-			this_srf_ind = i;
-		} else if ((tc == GEOSP_GC) || (tc == GEOSP_GCC)) {
-			this_srf = GEOSP_GC;
-			this_srf_ind = i;
-		} else if (tc == GEOSP_UTM) {
-			this_srf = GEOSP_UTM;
+		int itype = stringint_string2int(lookup_spatialreferencesys,args->p[i]->strptr);
+		if(itype > -1){
+			this_srf = itype;
 			this_srf_ind = i;
 		}
 	}
@@ -1239,131 +1963,223 @@ static void compile_geoSystem (int nodeType, struct Multi_String *args, struct M
 		return;
 	}
 
-	srf->p[0] = (int) this_srf;
+	srf->spatial_system = (int) this_srf;
 	/* go through and ensure that we have the correct parameters for this spatial reference frame */
 	if (this_srf == GEOSP_GC) {
-		/* possible parameter: GC:	if "northing_first" TRUE, if "easting_first", FALSE */
-		srf->p[1] = INT_ID_UNDEFINED;
-		for (i=0; i<args->n; i++) {
-			if (strcmp("northing_first",args->p[i]->strptr) == 0) { srf->p[3] = TRUE;
-			} else if (strcmp("easting_first",args->p[i]->strptr) == 0) { srf->p[3] = FALSE;
-			} else if (i!=this_srf_ind) ConsoleMessage ("geoSystem GC parameter %s not allowed geospatial coordinates",args->p[i]->strptr);
-		}
-	} else if (this_srf == GEOSP_GD) {
-		srf->p[1] = GEOSP_WE;
-		/* possible parameters: ellipsoid, gets put into element 1.
-				if "latitude_first" TRUE, if "longitude_first", FALSE */
-
-		/* is there an optional argument? */
-		for (i=0; i<args->n; i++) {
-			/* printf ("geosp_gd, ind %d i am %d string %s\n",i, this_srf_ind,args->p[i]->strptr); */
-			if (strcmp("latitude_first", args->p[i]->strptr) == 0) {
-				srf->p[3] = TRUE;
-			} else if (strcmp("longitude_first", args->p[i]->strptr) == 0) {
-				srf->p[3] = FALSE;
-			} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
-				srf->p[4] = TRUE; //geoid
-			} else {
-				if (i!= this_srf_ind) {
-					indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
-					switch (tc) {
-						case INT_ID_UNDEFINED:
-						case GEOSP_GC:
-						case GEOSP_GCC:
-						case GEOSP_GD:
-						case GEOSP_GDC:
-						case GEOSP_UTM:
-						ConsoleMessage("expected valid GC parameter in node %s",stringNodeType(nodeType));
-						srf->p[1] = GEOSP_WE;
-						break;
-
-						default:
-						srf->p[1] = (int) tc;
-					}
-				}
-			}
-		}
-	} else {
-		/* this must be UTM */
-		/* encode the return value such that srf->p[x] is...
-			0:	spatial reference frame	(GEOSP_UTM, GEOSP_GC, GEOSP_GD);
-			1:	spatial coordinates (defaults to GEOSP_WE)
-			2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified
-			3:	UTM:	if "S" - value is FALSE, not S, value is TRUE  */
-		/* first go through, and find the Spatial Reference Frame, GD, UTM, or GC */
+		//srf->p[1] = INT_ID_UNDEFINED;
+		//nothing to do 
+	} else if (this_srf == GEOSP_GD || this_srf == GEOSP_3TM || this_srf == GEOSP_UTM) {
 		for (i=0; i<args->n; i++) {
 			if (i != this_srf_ind) {
-				if (strcmp ("S",args->p[i]->strptr) == 0) {
-					srf->p[3] = FALSE;
-				} else if (strcmp ("N",args->p[i]->strptr) == 0) {
-					srf->p[3] = TRUE; // default
-				} else if (args->p[i]->strptr[0] == 'Z') {
-					int zone = -1;
-					sscanf(args->p[i]->strptr,"Z%d",&zone);
-					/* printf ("zone found as %d\n",zone); */
-					srf->p[2] = zone;
-				} else if(strcmp ("WGS84",args->p[i]->strptr) == 0){
-					srf->p[4] = TRUE; //geoid
-				} else { 
-					indexT tc = findFieldInGEOSPATIAL(args->p[i]->strptr);
-					switch (tc) {
-						case INT_ID_UNDEFINED:
-						case GEOSP_GC:
-						case GEOSP_GCC:
-						case GEOSP_GD:
-						case GEOSP_GDC:
-						case GEOSP_UTM:
-							ConsoleMessage("expected valid UTM Ellipsoid parameter in node %s",stringNodeType(nodeType));
-							srf->p[1] = GEOSP_WE;
-						break;
-
-					default:
-						srf->p[1] = (int)tc;
+				int iellipse;
+				char *str = args->p[i]->strptr;
+				/* printf ("geosp_gd, ind %d i am %d string %s\n",i, this_srf_ind,args->p[i]->strptr); */
+				iellipse = stringint_string2int(lookup_ellipsoids,str);
+				if(iellipse > -1){
+					srf->ellipsoid = iellipse;
+				}else{
+					//GD specifics
+					if (strcmp("latitude_first", str) == 0) {
+						srf->gd_latitude_first = TRUE;
+					} else if (strcmp("longitude_first", str) == 0) {
+						srf->gd_latitude_first = FALSE;
+					} else if(strcmp ("WGS84",str) == 0){
+						srf->geoid_height = TRUE; //geoid
+					} else 
+					//ellipsoid parameters specified
+					if(str[0] == 'R') {
+						//radius
+						double radius;
+						sscanf(args->p[i]->strptr,"R%lf",&radius);
+						nextra = TRUE;
+						ee.a = radius;
+					} else if (str[0] == 'A') {
+						//radius
+						double a;
+						sscanf(str,"A%lf",&a);
+						nextra = TRUE;
+						ee.a = a;
+					} else if (str[0] == 'B') {
+						//radius
+						double b;
+						sscanf(str,"B%lf",&b);
+						nextra = TRUE;
+						ee.b = b;
+					} else if (!strncmp(str,"IF",2)) {
+						//radius
+						double invf;
+						sscanf(str,"IF%lf",&invf);
+						nextra = TRUE;
+						ee.f = 1.0/invf;
+					} else if (str[0] == 'F') {
+						//radius
+						double f;
+						sscanf(str,"F%lf",&f);
+						nextra = TRUE;
+						ee.f = f;
+					} else 
+					//XTM
+					if (strcmp ("S",str) == 0) {
+						srf->utm_northern_hemisphere = FALSE;
+					} else if (strcmp ("N",str) == 0) {
+						srf->utm_northern_hemisphere = TRUE; // default
+					} else if (str[0] == 'Z') {
+						int zone = -1;
+						sscanf(str,"Z%d",&zone);
+						/* printf ("zone found as %d\n",zone); */
+						srf->xtm_zone = zone;
+					} else if (strcmp("northing_first",str) == 0) { 
+						srf->xtm_northing_first = TRUE;
+					} else if (strcmp("easting_first",str) == 0) { 
+						srf->xtm_northing_first = FALSE;
+					} else 
+					//UNHANDLED
+					{
+						ConsoleMessage("geoSystem parameter %s not handled, in node %s",str,stringNodeType(nodeType));
 					}
 				}
 			}
-					
-		}		
+		}
+	} 
+
+	if(nextra){
+		int ifound;
+		if(ee.f == 0.0){
+			//compute ellipsoid inverse flattening if not given
+			double a,b,invf;
+			a = extra_ellipsoid[nextra_ellipsoid].a;
+			b = extra_ellipsoid[nextra_ellipsoid].b;
+			ee.f = 1.0;
+			if(ee.a != 0.0 && ee.b != 0.0){
+				ee.f = (ee.a-ee.b)/ee.a;
+			}else if(ee.a != 0.0){
+				//likely radius, in which case (a-b) == 0
+				ee.f  = 0.0;
+			}
+
+		}
+		//see if we already have this ellipsoid, if not add it, else use it
+		// (in case we have hundreds of nodes with the same user-defined ellipsoid)
+		ifound = nextra_ellipsoid;
+		for(i=1;i<nextra_ellipsoid;i++){
+			if(extra_ellipsoid[i].a == ee.a && extra_ellipsoid[i].f == ee.f){
+				ifound = i;
+				break;
+			}
+		}
+		extra_ellipsoid[ifound] = ee;
+		srf->ellipsoid = -ifound; //negative sentinal value for extra ellipsoids
+		if(ifound == nextra_ellipsoid)
+			nextra_ellipsoid++;
 	}
+
 	#ifdef VERBOSE
 	printf ("printf done compileGeoSystem\n");
 	#endif
 
 }
+//ever get tired of those long parameter lists?
+//how about wrapping up the call parameters in a struct
+// and passing (a pointer to) the struct?
+//especially to 'demacroize' while keeping generallized across related nodes
+//we don't have the concept of an 'interface' -cluster of related fields-
+//and in general we can't rely on fields being in a consistent order or offset from node start.
+
+//TRANSFORMING FROM GEOSPATIAL  TO SHARED LOCAL aka LCS LOCAL COORDINATE SYSTEM
+// terminology:
+// geocentric GC - center of molten core of eath is 0,0,0
+// geospatial aligned GCA - X through Grenwich, Z through north pole
+// node local (NL): relative to node's own 'origin' ie position, geoGridOrigin, etc
+// node local aligned (NLA): Y 'up', -Z toward north pole
+// shared local (SL): relative to a single shared origin for all geo nodes for a planet
+// shared local aligned (SLA): relative to 'up' and 'north' at the shared origin
+// root node, root node aligned RNRNA - the regular scene 0,0,0 at the root level, and alignemnt
+// SLSLA aka LCS could be designed to be co-incident with and aligned with RNRNA
+// procedure:
+// A. convert to GC
+//  1. convert node 'origin' from XTM -> GD -> GC
+//  2. convert any geometry in the node from XTM -> GD -> GC
+// B. convert to NLNLA
+//  3. subtract node origin GC from geometry GC to get node-local geocentric-aligned NLGCA
+//  4. compute LocalOrientation - the rotation to apply to NLGCA to get NLNLA node local aligned = LocalOrient
+// C. convert to SLSLA
+//  5. compute tilt to get node geometry from NLNLA to NLSLA shared local aligned = offsetOrient
+//  6. compute offset to get NLSLA to shared local SLSLA 
+// summary order of transforms:
+//  GC2NL
+//  GCA2NLA - H: this depends how the node is defined.
+//  NLA2SLA
+//  NL2SL
+/* moved to Component_Geospatial.h
+//void user2gd(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd);
+//void gd2user(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo);
+void user2gc(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc);
+void gc2user(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo);
+void  gc2lcs(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *lcs);
+void  lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc);
+void   gd2gc(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc);
+void   gc2gd(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd);
+void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
+void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+void lcs2gc_transform(struct SFVec4d *rotation, struct SFVec3d *translation);
+void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate);
+void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate);
+void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate);
+void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofin(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord);
+*/
+
+void update_origin(Geosys *geoSystem, struct X3D_Node *node, struct SFVec3d *userCoord, struct X3D_GeoOrigin *geoOrigin)
+{
+	// assumes __geoSystem is already compiled.
+	// version < 3.3 - will try and use geoOrigin
+	// version 3.3+ - ignors geoOrigin and uses FCFS (first (node) come first served) shared origin for a planet
+	struct Planet *planet;
+	int specversion;
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+
+	planet = current_planet();
+	if(!planet->autoOriginSet){
+		if(geoOrigin && specversion < 330 ){
+			//geoOrgin is deprecated and tolerated in 3.0 - 3.2, but not tolerated in 3.3+
+			//to simplify, we are using FCFS on a single geoOrigin.
+			struct SFVec3d offset, *poffset;
+			struct SFVec4d yup, *pyup;
+			pyup = NULL;
+			poffset = NULL;
+			double *cc;
+			initializeGeospatial(&geoOrigin); 
+			veccopyd(planet->autoOrigin.c,geoOrigin->__movedCoords.c);
+			GeoOrient(X3D_NODE(geoOrigin), GEOSYS(geoOrigin->__geoSystem), &geoOrigin->__movedgd, &planet->autoOrient);
+			planet->autoOriginSet = TRUE;
+		}else{
+			struct SFVec3d gdCoord;
+			user2gc(geoSystem,userCoord,1,&planet->autoOrigin);
+			gc2gd(geoSystem,&planet->autoOrigin,1,&gdCoord);
+			GeoOrient(X3D_NODE(geoOrigin), geoSystem, &gdCoord, &planet->autoOrient);
+			planet->autoOriginSet = TRUE;
+		}
+	}
+}
 
 /************************************************************************/
 void compile_GeoCoordinate (struct X3D_GeoCoordinate * node) {
-	MF_SF_TEMPS
 	int i;
-
-	#ifdef VERBOSE
-	printf ("compiling GeoCoordinate\n");
-	#endif
-
-	/* standard MACROS expect specific field names */
-	mIN = node->point;
-	mOUT.p = NULL; mOUT.n = 0;
-
-
-	INITIALIZE_GEOSPATIAL(node)
+	struct SFVec3d gcCoord, lcsCoord;
+	Geosys *gs;
 	COMPILE_GEOSYSTEM(node)
-	MOVE_TO_ORIGIN(node)
-
-	/* convert the doubles down to floats, because coords are used as floats in FreeWRL. */
+	gs = GEOSYS(node->__geoSystem);
 	FREE_IF_NZ(node->__movedCoords.p);
-	node->__movedCoords.p = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)  * mOUT.n);
-	for (i=0; i<mOUT.n; i++) {
-		node->__movedCoords.p[i].c[0] = (float) mOUT.p[i].c[0];
-		node->__movedCoords.p[i].c[1] = (float) mOUT.p[i].c[1];
-		node->__movedCoords.p[i].c[2] = (float) mOUT.p[i].c[2];
-		#ifdef VERBOSE
-		printf ("coord %d now is %f %f %f\n", i, node->__movedCoords.p[i].c[0],node->__movedCoords.p[i].c[1],node->__movedCoords.p[i].c[2]);
-		#endif
-	}
-	node->__movedCoords.n = mOUT.n;
+	node->__movedCoords.p = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)  *node->point.n);
 
-	FREE_IF_NZ(gdCoords.p);
-	FREE_IF_NZ(mOUT.p);
+	for(i=0;i<node->point.n;i++){
+		user2gc(gs,&node->point.p[i],1,&gcCoord);
+		gc2lcs(gs,&gcCoord,1,&lcsCoord);
+		double2float(node->__movedCoords.p[i].c,lcsCoord.c,3);
+	}
+	node->__movedCoords.n = node->point.n;
 	MARK_NODE_COMPILED
 	
 	/* events */
@@ -1391,8 +2207,9 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	int nquads;
 	int *cindexptr;
 	float *texcoord = NULL;
-	double myHeightAboveEllip = 0.0;
+	//double myHeightAboveEllip = 0.0;
 	int mySRF = 0;
+	Geosys *gs;
 	
 	nx = node->xDimension;
 	xSp = node->xSpacing;
@@ -1403,8 +2220,8 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 	COMPILE_GEOSYSTEM(node)
 	/* various values for converting to GD/UTM, etc */
-	if (node->__geoSystem.n != 0)  {
-		mySRF = node->__geoSystem.p[0];
+	if (node->__geoSystem != NULL)  {
+		mySRF = GEOSYS(node->__geoSystem)->spatial_system;
 		/* NOTE - DO NOT DO THIS CALCULATION - it is added in later 
 		myHeightAboveEllip = getEllipsoidRadius(node->__geoSystem.p[1]);
 		*/
@@ -1415,7 +2232,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* work out how many triangles/quads we will have */
 	ntri = (nx && nz ? 2 * (nx-1) * (nz-1) : 0);
 	nquads = ntri/2;
-
+	//printf("nx %d nz %d nquads %d ntri %d\n",nx,nz,nquads,ntri);
 	/* check validity of input fields */
 	if(nh != nx * nz) {
 		if (nh > nx * nz) {
@@ -1432,11 +2249,11 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		return FALSE;
 	}
 
-    //printf ("checkX3DGeoElevationGrid - node->texCoord %p\n",node->texCoord);
-    
+	//printf ("checkX3DGeoElevationGrid - node->texCoord %p\n",node->texCoord);
+
 
 	/* any texture coordinates passed in? if so, DO NOT generate any texture coords here. */
-        if (!(node->texCoord)) {
+	if (!(node->texCoord)) {
 		/* allocate memory for texture coords */
 		FREE_IF_NZ(rep->GeneratedTexCoords[0]);
 
@@ -1458,7 +2275,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	node->_coordIndex.p = MALLOC (int *, sizeof(int) * nquads * 5);
 	cindexptr = node->_coordIndex.p;
 
-	node->_coordIndex.n = nquads * 5;
+	node->_coordIndex.n = nquads * 5; //H: 4 points and -1 to end the face
 	/* return the newpoints array to the caller */
 	*points = newpoints;
 	*npoints = node->_coordIndex.n;
@@ -1468,8 +2285,8 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	#endif
 
 	/* ElevationGrids go 1 - 2 - 3 - 4 we go 1 - 4 - 3 - 2 */
-    //printf ("GeoElevationGrids, nz %d, nx %d\n",nz,nx);
-    
+	//printf ("GeoElevationGrids, nz %d, nx %d\n",nz,nx);
+
 	for (j = 0; j < (nz -1); j++) {
 		for (i=0; i < (nx-1) ; i++) {
 			#ifdef VERBOSE
@@ -1497,7 +2314,6 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	/* if the texCoord node exists, let render_TextureCoordinate (or whatever the node is) do our work for us */
 	if (!(node->texCoord)) {
         //printf ("geoelevationgrid, doing %d x %d texture coords; tcoord %p\n",nz-1,nx-1,texcoord);
-        
 		for (j = 0; j < (nz -1); j++) {
 			for (i=0; i < (nx-1) ; i++) {
 				/* first triangle, 3 vertexes */
@@ -1523,29 +2339,29 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
 #else
 				/* first tri */
-/* 1 */				*texcoord = ((float) (i+0)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
-			
-/* 4 */				*texcoord = ((float) (i+1)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
+				*texcoord = ((float) (i+0)/(nx-1)); texcoord++; /* 1 */
+				*texcoord = ((float) (j+0)/(nz-1)); texcoord++; 
 
-/* 3 */				*texcoord = ((float) (i+1)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+1)/(nz-1)); texcoord ++; 
-	
+				*texcoord = ((float) (i+1)/(nx-1)); texcoord++; /* 4 */
+				*texcoord = ((float) (j+0)/(nz-1)); texcoord++; 
+
+				*texcoord = ((float) (i+1)/(nx-1)); texcoord++; /* 3 */
+				*texcoord = ((float) (j+1)/(nz-1)); texcoord++; 
+
 				/* second tri */
-/* 1 */				*texcoord = ((float) (i+0)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+0)/(nz-1)); texcoord ++; 
+				*texcoord = ((float) (i+0)/(nx-1)); texcoord++; /* 1 */
+				*texcoord = ((float) (j+0)/(nz-1)); texcoord++; 
 
-/* 3 */				*texcoord = ((float) (i+1)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+1)/(nz-1)); texcoord ++; 
-	
-/* 2 */				*texcoord = ((float) (i+0)/(nx-1)); texcoord++;
-				*texcoord = ((float)(j+1)/(nz-1)); texcoord ++; 
+				*texcoord = ((float) (i+1)/(nx-1)); texcoord++; /* 3 */
+				*texcoord = ((float) (j+1)/(nz-1)); texcoord++; 
+
+				*texcoord = ((float) (i+0)/(nx-1)); texcoord++; /* 2 */
+				*texcoord = ((float) (j+1)/(nz-1)); texcoord++; 
 			
 #endif
 			}
 		}
-        //for (i=0; i<10; i++) printf ("geoele tc %d is %f\n",i,rep->GeneratedTexCoords[i]);
+		//for (i=0; i<10; i++) printf ("geoele tc %d is %f\n",i,rep->GeneratedTexCoords[i]);
 	}
 			
 	/* Render_Polyrep will use this number of triangles */
@@ -1555,13 +2371,13 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 	mIN.n = nx * nz; 
 	mIN.p = MALLOC (struct SFVec3d *, sizeof (struct SFVec3d) * mIN.n);
 
-        mOUT.n=0; mOUT.p = NULL;
-        gdCoords.n=0; gdCoords.p = NULL;
-
+	mOUT.n=0; mOUT.p = NULL;
+	gdCoords.n=0; gdCoords.p = NULL;
+	struct SFVec3d lastpoint, firstpoint;
 	/* make up a series of points, then go and convert them to local coords */
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
-		
+			int k = i+(j*nx);
 			#ifdef VERBOSE
 		 	printf ("		%lf %lf %lf # (hei ind %d) point [%d, %d]\n",
 				xSp * i,
@@ -1573,65 +2389,103 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		
 			/* Make up a new vertex. Add the geoGridOrigin to every point */
 
-			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM)) {
+			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM)) {
 				/* GD - give it to em in Latitude/Longitude/Elevation order */
 				/* UTM- or give it to em in Northing/Easting/Elevation order */
 				/* latitude - range of -90 to +90 */
-				mIN.p[i+(j*nx)].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
+				mIN.p[k].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
 	
 				/* longitude - range -180 to +180, or 0 to 360 */
-				mIN.p[i+(j*nx)].c[1] =xSp * i + node->geoGridOrigin.c[1];
+				mIN.p[k].c[1] =xSp * i + node->geoGridOrigin.c[1];
 	
 				/* elevation, above geoid */
-				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2]
-					+ myHeightAboveEllip; 
+				mIN.p[k].c[2] = (height[k] *(node->yScale)) + node->geoGridOrigin.c[2];
+				veccopyd(lastpoint.c,mIN.p[k].c);
+				if(i==0 && j==0) veccopyd(firstpoint.c,mIN.p[k].c);
+					//+ myHeightAboveEllip; 
 			} else {
 				/* nothing quite specified here - what do we really do??? */
-				mIN.p[i+(j*nx)].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
+				mIN.p[k].c[0] = zSp * j + node->geoGridOrigin.c[0]; 
 	
-				mIN.p[i+(j*nx)].c[1] =xSp * i + node->geoGridOrigin.c[1];
+				mIN.p[k].c[1] =xSp * i + node->geoGridOrigin.c[1];
 	
-				mIN.p[i+(j*nx)].c[2] = (height[i+(j*nx)] *(node->yScale)) + node->geoGridOrigin.c[2]
-					+ myHeightAboveEllip; 
+				mIN.p[k].c[2] = (height[k] *(node->yScale)) + node->geoGridOrigin.c[2];
+					//+ myHeightAboveEllip; 
 
 			}
 			/* printf ("height made up of %lf, geoGridOrigin %lf, myHeightAboveEllip %lf\n",(height[i+(j*nx)] *(node->yScale)),node->geoGridOrigin.c[2], myHeightAboveEllip); */
 		}
 	}
 	#ifdef VERBOSE
-	printf ("points before moving origin:\n");
+	vecprint3db("firstpoint",firstpoint.c,"\n");
+	vecprint3db(" lastpoint",lastpoint.c,"\n");
+	vecprint3db("nx*nz",mIN.p[nx*nz -1].c,"\n");
+	printf ("points before moving origin, lat, lon, height, index:\n");
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
-			printf ("	%lf %lf %lf # lat/long/height before MOVE, index %d\n",mIN.p[i+(j*nx)].c[0],
-				mIN.p[i+(j*nx)].c[1],mIN.p[i+(j*nx)].c[2],i+(j*nx));
+			int k = i+(j*nx);
+			printf ("	%lf %lf %lf %d\n",mIN.p[k].c[0],
+				mIN.p[k].c[1],mIN.p[k].c[2],k);
 
 		}
+		printf("\n");
 	}
 	#endif
 
 	/* convert this point to a local coordinate */
-        MOVE_TO_ORIGIN(node)
+	{
+		Geosys *gs;
+		compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+		gs = GEOSYS(node->__geoSystem);
+
+		update_origin(gs, X3D_NODE(node), &node->geoGridOrigin, X3D_GEOORIGIN(node->geoOrigin));
+		mOUT.p = MALLOC(struct SFVec3d*,sizeof(struct SFVec3d)*mIN.n);
+		mOUT.n = mIN.n;
+		user2gc(gs,mIN.p,mIN.n,mOUT.p);
+		#ifdef VERBOSE
+		printf ("points in gc XYZ, index:\n");
+		for (j=0; j<nz; j++) {
+			for (i=0; i < nx; i++) {
+				double ci[3], co[3];
+				int k = i+(j*nx);
+				veccopyd(co,mOUT.p[k].c);
+				printf ("	%lf %lf %lf %d\n",co[0],co[1],co[2],k);
+				veccopyd(ci,mIN.p[k].c);
+				printf ("	%lf %lf %lf %d\n",ci[0],ci[1],ci[2],k);
+
+			}
+			printf("\n");
+		}
+		#endif
+
+		gc2lcs(gs,mOUT.p,mOUT.n,mOUT.p);
+
+	}
+
 
 	/* copy the resulting array back to the ElevationGrid */
 
-	#ifdef VERBOSE
-	printf ("points:\n");
-	#endif
-
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
-		/* copy this coordinate into our ElevationGrid array */
-		newpoints[0] = (float) mOUT.p[i+(j*nx)].c[0];
-		newpoints[1] = (float) mOUT.p[i+(j*nx)].c[1];
-		newpoints[2] = (float) mOUT.p[i+(j*nx)].c[2];
-
-		#ifdef VERBOSE
-		printf ("	%f %f %f # converted, index %d\n",newpoints[0],newpoints[1],newpoints[2],i+(j*nx));
-		#endif
-
-		newpoints += 3;
+			/* copy this coordinate into our ElevationGrid array */
+			int k = i+(j*nx);
+			double2float(newpoints,mOUT.p[k].c,3);
+			newpoints += 3;
 		}
 	}
+	#ifdef VERBOSE
+	printf ("points converted to mesh coords, xyz index:\n");
+	newpoints = rep->actualCoord;
+	for (j=0; j<nz; j++) {
+		for (i=0; i < nx; i++) {
+			/* copy this coordinate into our ElevationGrid array */
+			int k = i+(j*nx);
+			printf ("	%f %f %f %d\n",newpoints[0],newpoints[1],newpoints[2],k);
+			newpoints += 3;
+		}
+		printf("\n");
+	}
+	#endif //VERBOSE
 	FREE_MF_SF_TEMPS;
 	return TRUE;
 }
@@ -1639,59 +2493,62 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 /* a GeoElevationGrid creates a "real" elevationGrid node as a child for rendering. */
 void compile_GeoElevationGrid (struct X3D_GeoElevationGrid * node) {
-
-	#ifdef VERBOSE
-	printf ("compiling GeoElevationGrid\n");
-	#endif
-	printf ("compiling GeoElevationGrid\n");
-
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	MARK_NODE_COMPILED
-	
-	/* events */
-	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoElevationGrid, metadata)) */
-
+// 2018 not called, see compile stack in render_
 }
-
-
+int planetInPlanets(int planet, struct Multi_Int32 *planets){
+	int i,ifound = -1;
+	for(i=0;i<planets->n;i++)
+		if(planets->p[i] == planet) ifound = i;
+	return ifound > -1;
+}
+void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID);
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
-	INITIALIZE_GEOSPATIAL(node)
+	/*compile stack for geoElevationGrid:
+	checkX3DGeoElelvationGridFields *see function above
+	make_genericfaceset
+	compile_polyrep
+	compileNode
+	render_GeoElevationGrid *you are here
+	*/
+	//INITIALIZE_GEOSPATIAL(node)
+	int planetID = 0; 
+	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
+	planetID = current_planetId();
 	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
 	CULL_FACE(node->solid)
 	render_polyrep(node);
+	if(!planetInPlanets(planetID,&node->__planets)){
+		//planetID default 0 for now
+		// will be "P#" in geosystem, or <GeoPlanet ID="#"><GeoElevationGrid/></GeoPlanet>
+		RegisterGeoElevationGrid(X3D_NODE(node), planetID);
+		node->__planets.p = realloc(node->__planets.p,(node->__planets.n+1)*sizeof(int));
+		node->__planets.p[node->__planets.n] = planetID;
+		node->__planets.n++;
+	}
 }
 
 /************************************************************************/
 /* GeoLocation								*/
 /************************************************************************/
-
+//double adjust_geoLocationRelativeHeight(struct X3D_GeoLocation *node,int planetID);
 void compile_GeoLocation (struct X3D_GeoLocation * node) {
 	// JAS int i;
-	MF_SF_TEMPS
+	int specversion;
+	struct SFVec3d gdCoord, gcCoord;
+	struct SFVec4d locOrient;
+	struct Planet *planet;
+	Geosys *gs;
 
+	planet = current_planet();
 	#ifdef VERBOSE
 	printf ("compiling GeoLocation\n");
 	#endif
+		//step 1 compute origin
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
+	if(node->relativeHeight) gs->relativeHeight = TRUE; //handy for user2anything conversion function: don't need to pass node
 
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, geoCoords)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
-
-	/* work out the local orientation */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
-
-	#ifdef VERBOSE
-	printf ("compile_GeoLocation, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-	printf ("	rotation is %lf %lf %lf %lf\n",
-			node->__localOrient.c[0],
-			node->__localOrient.c[1],
-			node->__localOrient.c[2],
-			node->__localOrient.c[3]);
-	#endif
+	update_origin(gs, X3D_NODE(node), &node->geoCoords, X3D_GEOORIGIN(node->geoOrigin));
 
 	/* did the geoCoords change?? */
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCoords, node->__oldgeoCoords, offsetof (struct X3D_GeoLocation, geoCoords))
@@ -1701,7 +2558,6 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
 	
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLocation, metadata)) */
@@ -1716,7 +2572,7 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 void child_GeoLocation (struct X3D_GeoLocation *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	OCCLUSIONTEST
@@ -1757,57 +2613,37 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	#endif
 
 	//LOCAL_LIGHT_OFF
-	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 }
 
 /* do transforms, calculate the distance */
 void prep_GeoLocation (struct X3D_GeoLocation *node) {
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
-        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
-         * so we do nothing here in that case -ncoder */
+	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+	* so we do nothing here in that case -ncoder */
 
 	/* printf ("prep_GeoLocation, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		FW_GL_PUSH_MATRIX();
-
-		/* TRANSLATION */
-		FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-
-		//printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
-
-		FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-
-		/*
-		printf ("geoLocation trans %7.4f %7.4f %7.4f\n",node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-		printf ("geoLocation rotat %7.4f %7.4f %7.4f %7.4f\n",my_rotation, node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-		*/
-
+		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
-        }
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
 }
 void fin_GeoLocation (struct X3D_GeoLocation *node) {
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-            FW_GL_POP_MATRIX();
-        } else {
-		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-		FW_GL_ROTATE_RADIANS(-node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-		FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
-
-		}
-        }
+	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
 }
 
 /************************************************************************/
@@ -1920,42 +2756,16 @@ static void GeoUnLODrootUrl (struct X3D_GeoLOD *node) {
 
 
 void compile_GeoLOD (struct X3D_GeoLOD * node) {
-	MF_SF_TEMPS
+	Geosys *gs;
+	struct SFVec3d gcCoord;
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
 
-	#ifdef VERBOSE
-	printf ("compiling GeoLOD %u\n",node);
-	#endif
-
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, center)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
-
-	#ifdef VERBOSE
-	printf ("compile_GeoLOD %u, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node, node->center.c[0], node->center.c[1], node->center.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-
-	printf ("children.n %d childurl 1: %u 2: %u 3: %u 4: %u rootUrl: %u rootNode: %d\n",
-	node->children,
-	node->child1Url,
-	node->child2Url,
-	node->child3Url,
-	node->child4Url,
-	node->rootUrl,
-	node->rootNode.n);
-	#endif
-
+	update_origin(gs, X3D_NODE(node), &node->center, X3D_GEOORIGIN(node->geoOrigin));
+	user2gc(gs,&node->center,1,&gcCoord);
+	gc2lcs(gs,&gcCoord,1,&node->__movedCoords);
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
-	
-	/* events */
-	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLOD, metadata)) */
 
-
-	#ifdef VERBOSE
-	printf ("compiled GeoLOD\n\n");
-	#endif
 }
 #undef VERBOSE
 
@@ -1964,7 +2774,6 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 	int i;
 	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
 
-	INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	#ifdef VERBOSE
@@ -2092,7 +2901,7 @@ void compile_GeoOrigin (struct X3D_GeoOrigin * node) {
 	{
 		int i;
 		for(i=0;i<4;i++)
-			node->__rotyup.c[0] = 0.0;
+			node->__rotyup.c[i] = 0.0;
 		node->__rotyup.c[1] = 1.0;
 	}
 	MARK_NODE_COMPILED
@@ -2109,30 +2918,26 @@ void compile_GeoOrigin (struct X3D_GeoOrigin * node) {
 /************************************************************************/
 
 void compile_GeoPositionInterpolator (struct X3D_GeoPositionInterpolator * node) {
-	MF_SF_TEMPS
 
 	#ifdef VERBOSE
 	printf ("compiling GeoPositionInterpolator\n");
 	#endif
 
-	/* standard MACROS expect specific field names */
-	mIN = node->keyValue;
-	mOUT.p = NULL; mOUT.n = 0;
-
-
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	MOVE_TO_ORIGIN(node)
-
-	
-	/* keep the output values of this process */
+	int i;
+	Geosys *gs;
+	struct SFVec3d gcCoord, lcsCoord;
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
 	FREE_IF_NZ(node->__movedValue.p);
-	node->__movedValue.p = mOUT.p;
-	node->__movedValue.n = mOUT.n;
-
-	FREE_IF_NZ(gdCoords.p);
+	node->__movedValue.p = MALLOC(struct SFVec3f*,node->keyValue.n * sizeof(struct SFVec3f));
+	node->__movedValue.n = node->keyValue.n;
+	for(i=0;i<node->keyValue.n;i++){
+		user2gc(gs,&node->keyValue.p[i],1,&gcCoord);
+		gc2lcs(gs,&gcCoord,1,&lcsCoord);
+		double2float(node->__movedValue.p[i].c,lcsCoord.c,3);
+	}
 	MARK_NODE_COMPILED
-	
+
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoPositionInterpolator, metadata)) */
 }
@@ -2143,10 +2948,16 @@ void compile_GeoPositionInterpolator (struct X3D_GeoPositionInterpolator * node)
 /* there is no need to look at whether it is active or not		*/
 
 /* GeoPositionInterpolator == PositionIterpolator but with geovalue_changed and coordinate conversions */
+// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geodata.html#GeoPositionInterpolator
+// Mar 2018 interpretation: value_changed in LCS, geovalue_changed in geo coords
+// I think we should either do 2 separate interpolations: 1) LCS 2) user geocoords
+// or interpolate in geocoords and convert the resulting geovalue_changed to LCS for value_changed
 void do_GeoPositionInterpolator (void *innode) {
+	int specversion;
 	struct X3D_GeoPositionInterpolator *node;
 	int kin, kvin, counter, tmp;
-	struct SFVec3d *kVs;
+	struct SFVec3d *kVs_user; //geo
+	struct SFVec3f *kVs_lcs; //LCS
 	/* struct SFColor *kVs */
 
 	if (!innode) return;
@@ -2154,7 +2965,8 @@ void do_GeoPositionInterpolator (void *innode) {
 
 	if (NODE_NEEDS_COMPILING) compile_GeoPositionInterpolator(node);
 	kvin = node->__movedValue.n;
-	kVs = node->__movedValue.p;
+	kVs_lcs = node->__movedValue.p;
+	kVs_user = node->keyValue.p;
 	kin = node->key.n;
 	MARK_EVENT (innode, offsetof (struct X3D_GeoPositionInterpolator, value_changed)); 
 	MARK_EVENT (innode, offsetof (struct X3D_GeoPositionInterpolator, geovalue_changed)); 
@@ -2190,25 +3002,41 @@ void do_GeoPositionInterpolator (void *innode) {
 
 	/* set_fraction less than or greater than keys */
 	if (node->set_fraction <= ((node->key).p[0])) {
-		memcpy ((void *)&node->geovalue_changed, (void *)&kVs[0], sizeof (struct SFVec3d));
+		veccopyd(node->geovalue_changed.c,kVs_user[0].c);
+		veccopy3f(node->value_changed.c,kVs_lcs[0].c);
 	} else if (node->set_fraction >= node->key.p[kin-1]) {
-		memcpy ((void *)&node->geovalue_changed, (void *)&kVs[kvin-1], sizeof (struct SFVec3d));
+		memcpy ((void *)&node->geovalue_changed, (void *)&kVs_user[kvin-1], sizeof (struct SFVec3d));
+		veccopyd(node->geovalue_changed.c,kVs_user[kvin-1].c);
+		veccopy3f(node->value_changed.c,kVs_lcs[kvin-1].c);
 	} else {
 		/* have to go through and find the key before */
+		float fpart, fdif[3];
+		double dpart, ddif[3];
 		counter = find_key(kin,((float)(node->set_fraction)),node->key.p);
-		for (tmp=0; tmp<3; tmp++) {
-			node->geovalue_changed.c[tmp] =
-				(node->set_fraction - node->key.p[counter-1]) /
-				(node->key.p[counter] - node->key.p[counter-1]) *
-				(kVs[counter].c[tmp] - kVs[counter-1].c[tmp]) + kVs[counter-1].c[tmp];
-		}
+
+		//LCS to value_changed
+		fpart = (node->set_fraction - node->key.p[counter-1]) /
+				(node->key.p[counter] - node->key.p[counter-1]);
+		veclerp3f(node->value_changed.c,kVs_lcs[counter-1].c,kVs_lcs[counter].c,fpart);
+
+		//geo to geovalue_changed
+		dpart = fpart;
+		veclerpd(node->geovalue_changed.c,kVs_user[counter-1].c,kVs_user[counter].c,dpart);
+
+		//for (tmp=0; tmp<3; tmp++) {
+		//	node->geovalue_changed.c[tmp] =
+		//		(node->set_fraction - node->key.p[counter-1]) /
+		//		(node->key.p[counter] - node->key.p[counter-1]) *
+		//		(kVs[counter].c[tmp] - kVs[counter-1].c[tmp]) + kVs[counter-1].c[tmp];
+		//}
+
 	}
 
 	/* convert this back into the requested spatial format */
-	CONVERT_BACK_TO_GD_OR_UTM(node->geovalue_changed)
-
-	/* set the (float) value_changed, as well */
-	for (tmp=0;tmp<3;tmp++) node->value_changed.c[tmp] = (float)node->geovalue_changed.c[tmp];
+	//CONVERT_BACK_TO_GD_OR_UTM(node->geovalue_changed)
+	//CONVERT_BACK_TO_GD_OR_UTMB(GEOSYS(node->__geoSystem), node->geoOrigin, &node->geovalue_changed);
+	///* set the (float) value_changed, as well */
+	//for (tmp=0;tmp<3;tmp++) node->value_changed.c[tmp] = (float)node->geovalue_changed.c[tmp];
 
 	#ifdef SEVERBOSE
 	printf ("Pos/Col, new value (%f %f %f)\n",
@@ -2222,33 +3050,29 @@ void do_GeoPositionInterpolator (void *innode) {
 /************************************************************************/
 
 void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
-	MF_SF_TEMPS
+	int specversion;
 
 	#ifdef VERBOSE
 	printf ("compiling GeoProximitySensor\n");
 	#endif
+	int i;
+	Geosys *gs;
+	struct SFVec3d gcCoord, lcsCoord, gdCoord;
+	specversion = X3D_PROTO(node->_executionContext)->__specversion;
+	if(specversion < 330){
+		//in web3d version 3.3 they changed the name from .geoCenter to .center.
+		//we'll copy here and use .center in other GPS functions
+		if(!(veclengthd(node->geoCenter.c) == 0.0))
+			veccopyd(node->center.c,node->geoCenter.c);
+	}
 
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, geoCenter)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
-
-	/* work out the local orientation */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
-	#ifdef VERBOSE
-	printf ("compile_GeoProximitySensor, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCenter.c[0], node->geoCenter.c[1], node->geoCenter.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-	printf ("	rotation is %lf %lf %lf %lf\n",
-			node->__localOrient.c[0],
-			node->__localOrient.c[1],
-			node->__localOrient.c[2],
-			node->__localOrient.c[3]);
-	#endif
-
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
+	user2gc(gs,&node->center,1,&gcCoord);
+	gc2lcs(gs,&gcCoord,1,&node->__movedCoords);
+	gc2gd(gs,&gcCoord,1,&gdCoord);
+	GeoOrient(node->geoOrigin, GEOSYS(node->__geoSystem), &gdCoord, &node->__localOrient);
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
-
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCenter, node->__oldGeoCenter,offsetof (struct X3D_GeoProximitySensor, geoCenter))
 	MARK_SFVEC3F_INOUT_EVENT(node->size, node->__oldSize,offsetof (struct X3D_GeoProximitySensor, size))
 	
@@ -2261,8 +3085,118 @@ void compile_GeoProximitySensor (struct X3D_GeoProximitySensor * node) {
 	#endif
 }
 
+
+void tcs2gcB_transform(Geosys *geoSystem, struct SFVec3d *gcCoord, struct SFVec3d* translate, struct SFVec4d *rotate)
+{
+	struct SFVec3d gdCoord;
+	double A,F;
+	Geosys *gs = geoSystem;
+
+	getEllipsoidParams(gs->ellipsoid, &A, &F);
+	if(gs->spatial_system == GEOSP_GC && veclengthd(gcCoord->c) < A/2.0){
+		vecset4d(rotate->c,0.0,1.0,0.0,0.0);
+		veccopyd(translate->c,gcCoord->c);
+	}else{
+		gc2gd(gs,gcCoord,1, &gdCoord);
+		tcs2gc_transform(gs,&gdCoord,rotate,translate);
+	}
+}
+void gc2tcsB_transform(Geosys *geoSystem, struct SFVec3d *gcCoord, struct SFVec3d* translate, struct SFVec4d *rotate)
+{	
+	struct SFVec3d gdCoord;
+	double A,F;
+	Geosys *gs = geoSystem;
+	
+	getEllipsoidParams(gs->ellipsoid, &A, &F);
+	if(gs->spatial_system == GEOSP_GC && veclengthd(gcCoord->c) < A/2.0){
+		//..can I do a gc2tcs_transform that's equivalent?
+		vecset4d(rotate->c,0.0,1.0,0.0,0.0);
+		vecsetd(translate->c,-gcCoord->c[0],-gcCoord->c[1],-gcCoord->c[2]);
+	}else{
+		gc2gd(gs,gcCoord,1, &gdCoord);
+		gc2tcs_transform(gs,&gdCoord,translate,rotate);
+	}
+}
+
 	//PROXIMITYSENSOR(GeoProximitySensor,__movedCoords,INITIALIZE_GEOSPATIAL(node),COMPILE_IF_REQUIRED)
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
+void geoprep0(Geosys *geoSystem, struct SFVec3d *userCoord){
+
+	//geonode TCS to transform stack LCS
+	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+	struct SFVec4d rotation1, rotation2;
+	double A,F;
+	Geosys *gs = geoSystem;
+
+	//How this works
+	//the modelview matrix transforms the object -in this case proximitySensor bounding box- 
+	// into viewpoint space.
+	//the geo object is aligned and sized in object TCS (topocentric coordinate system)
+	//so we need to get from TCS for this node into LCS for the transform stack
+	// the viewpoint code gets us from LCS into viewpoint space (aka TCS for viewpoint)
+	// object-TCS > LCS -transform stack- LCS > TCS-vp
+	// the stack goes in this order:
+	// vp-TCS < LCS
+	// LCS < TCS-object
+	// here we do a 2-step TCS > LCS: TCS > GC, GC > LCS, which on the stack looks like
+	// LCS < GC object  push first
+	// GC < TCS object  push second
+	//    draw TCS object
+	if(0){
+		getEllipsoidParams(gs->ellipsoid, &A, &F);
+		if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
+			//likely DIS with local coordinates ie near molten core of earth
+			// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
+			FW_GL_TRANSLATE_D(userCoord->c[0],userCoord->c[1],userCoord->c[2]);
+		}else{
+			user2gc(gs,userCoord,1,&gcCoord);
+
+			gc2lcs_transform(&translation1,&rotation1);
+			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+			FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+			gc2gd(gs,&gcCoord,1, &gdCoord);
+			tcs2gc_transform(gs,&gdCoord,&rotation2,&translation2);
+			FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+			FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		}
+	}else{
+		user2gc(gs,userCoord,1,&gcCoord);
+		gc2lcs_transform(&translation1,&rotation1);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		tcs2gcB_transform(gs,&gcCoord,&translation2,&rotation2);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+	}
+}
+void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
+	if(geoSystem){
+		if(!renderstate()->render_vp) {
+			FW_GL_PUSH_MATRIX();
+			geoprep0(geoSystem,userCoord);
+		}
+	}
+}
+void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord);
+void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
+	if(geoSystem){
+		if(!renderstate()->render_vp) {
+			FW_GL_POP_MATRIX();
+		}else{
+			geoprepT0(geoSystem,userCoord);
+		}
+	}
+}
+void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
+	//just for rendering the extent/bounding box
+	if(renderstate()->render_boxes) {
+		COMPILE_IF_REQUIRED 
+		geoprep(GEOSYS(node->__geoSystem),&node->center);
+		extent6f_draw(node->_extent);
+		geofin(GEOSYS(node->__geoSystem),&node->center);
+	}
+}
+
 void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) { 
 	/* Viewer pos = t_r2 */ 
 	double cx,cy,cz; 
@@ -2281,36 +3215,15 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	GLDOUBLE view2prox[16]; 
  
 	if(!((node->enabled))) return; 
-	INITIALIZE_GEOSPATIAL(node) 
 	COMPILE_IF_REQUIRED 
  
-	/* printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",*/ 
-	/* render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision);*/ 
- 
-	/* transforms viewers coordinate space into sensors coordinate space. 
-	 * this gives the orientation of the viewer relative to the sensor. 
-	 */ 
+	geoprep(GEOSYS(node->__geoSystem),&node->center);
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix); 
-	if(0){
-		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, projMatrix); 
-		FW_GLU_UNPROJECT(orig.x,orig.y,orig.z,modelMatrix,projMatrix,viewport, 
-			&t_orig.x,&t_orig.y,&t_orig.z); 
-		FW_GLU_UNPROJECT(zvec.x,zvec.y,zvec.z,modelMatrix,projMatrix,viewport, 
-			&t_zvec.x,&t_zvec.y,&t_zvec.z); 
-		FW_GLU_UNPROJECT(yvec.x,yvec.y,yvec.z,modelMatrix,projMatrix,viewport, 
-			&t_yvec.x,&t_yvec.y,&t_yvec.z); 
-		VECDIFF(t_zvec, t_orig, dr1r2);  /* Z axis */
-		VECDIFF(t_yvec, t_orig, dr2r3);  /* Y axis */
-
-	}
+	geofin(GEOSYS(node->__geoSystem),&node->center);
 	matinverseAFFINE(view2prox,modelMatrix); 
 	if(1){
 		//feature-AFFINE_GLU_UNPROJECT
 		transform(&t_orig,&orig,view2prox);
-		transform(&zvec,&zvec,view2prox);
-		transform(&yvec,&yvec,view2prox);
-		VECDIFF(zvec, t_orig, dr1r2);
-		VECDIFF(yvec, t_orig, dr2r3);
 	}
     transform(&t_center,&orig, view2prox); 
  
@@ -2320,10 +3233,18 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	printf ("unprojected, t_yvec (0,0.05,0) %lf %lf %lf\n",t_yvec.x, t_yvec.y, t_yvec.z); 
 	printf ("unprojected, t_zvec (0,0,-0.05) %lf %lf %lf\n",t_zvec.x, t_zvec.y, t_zvec.z); 
 	*/ 
-	cx = t_center.x - ((node->__movedCoords ).c[0]); 
-	cy = t_center.y - ((node->__movedCoords ).c[1]); 
-	cz = t_center.z - ((node->__movedCoords ).c[2]); 
- 
+	//inside test in TCS
+	cx = t_center.x;  //minus 0,0,0
+	cy = t_center.y; 
+	cz = t_center.z; 
+	{
+		float cc[3];
+		//how draw bounding box? doesn't seem to draw on proximity pass
+		// H: you need a render_proximity
+		vecscale3f(cc,node->size.c,.5);
+		extent6f_constructor(node->_extent,-cc[0],cc[0],-cc[1],cc[1],-cc[2],cc[2]);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
 	if(((node->size).c[0]) == 0 || ((node->size).c[1]) == 0 || ((node->size).c[2]) == 0) return; 
  
 	if(fabs(cx) > ((node->size).c[0])/2 || 
@@ -2335,92 +3256,44 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	(node->__hit) /*cget*/ = 1; 
  
 	/* Position */ 
+	//in TCS
 	((node->__t1).c[0]) = (float)t_center.x; 
 	((node->__t1).c[1]) = (float)t_center.y; 
 	((node->__t1).c[2]) = (float)t_center.z; 
  
  
-	/* printf ("      dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
-	printf ("      dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
-	*/ 
- 
-	len = sqrt(VECSQ(dr1r2)); VECSCALE(dr1r2,1/len); 
-	len = sqrt(VECSQ(dr2r3)); VECSCALE(dr2r3,1/len); 
- 
-	/* printf ("scaled dr1r2 %lf %lf %lf\n",dr1r2.x, dr1r2.y, dr1r2.z); 
-	printf ("scaled dr2r3 %lf %lf %lf\n",dr2r3.x, dr2r3.y, dr2r3.z); 
-	*/ 
- 
-	/* 
-	printf("PROX_INT: (%f %f %f) (%f %f %f) (%f %f %f)\n (%f %f %f) (%f %f %f)\n", 
-		t_orig.x, t_orig.y, t_orig.z, 
-		t_zvec.x, t_zvec.y, t_zvec.z, 
-		t_yvec.x, t_yvec.y, t_yvec.z, 
-		dr1r2.x, dr1r2.y, dr1r2.z, 
-		dr2r3.x, dr2r3.y, dr2r3.z 
-		); 
-	*/ 
- 
-	if(fabs(VECPT(dr1r2, dr2r3)) > 0.001) { 
-		printf ("Sorry, can't handle unevenly scaled ProximitySensors yet :(" 
-		  "dp: %f v: (%f %f %f) (%f %f %f)\n", VECPT(dr1r2, dr2r3), 
-		  	dr1r2.x,dr1r2.y,dr1r2.z, 
-		  	dr2r3.x,dr2r3.y,dr2r3.z 
-			); 
-		return; 
-	} 
- 
- 
-	if(APPROX(dr1r2.z,1.0)) { 
-		/* rotation */ 
-		((node->__t2).c[0]) = (float) 0; 
-		((node->__t2).c[1]) = (float) 0; 
-		((node->__t2).c[2]) = (float) 1; 
-		((node->__t2).c[3]) = (float) atan2(-dr2r3.x,dr2r3.y); 
-	} else if(APPROX(dr2r3.y,1.0)) { 
-		/* rotation */ 
-		((node->__t2).c[0]) = (float) 0; 
-		((node->__t2).c[1]) = (float) 1; 
-		((node->__t2).c[2]) = (float) 0; 
-		((node->__t2).c[3]) = (float) atan2(dr1r2.x,dr1r2.z); 
-	} else { 
-		/* Get the normal vectors of the possible rotation planes */ 
-		nor1 = dr1r2; 
-		nor1.z -= 1.0; 
-		nor2 = dr2r3; 
-		nor2.y -= 1.0; 
- 
-		/* Now, the intersection of the planes, obviously cp */ 
-		VECCP(nor1,nor2,ins); 
- 
-		len = sqrt(VECSQ(ins)); VECSCALE(ins,1/len); 
- 
-		/* the angle */ 
-		VECCP(dr1r2,ins, nor1);
-		VECCP(zpvec, ins, nor2); 
-		len = sqrt(VECSQ(nor1)); VECSCALE(nor1,1/len); 
-		len = sqrt(VECSQ(nor2)); VECSCALE(nor2,1/len); 
-		VECCP(nor1,nor2,ins); 
- 
-		((node->__t2).c[3]) = (float) -atan2(sqrt(VECSQ(ins)), VECPT(nor1,nor2)); 
- 
-		/* rotation  - should normalize sometime... */ 
-		((node->__t2).c[0]) = (float) ins.x; 
-		((node->__t2).c[1]) = (float) ins.y; 
-		((node->__t2).c[2]) = (float) ins.z; 
-	} 
-	/* 
-	printf("NORS: (%f %f %f) (%f %f %f) (%f %f %f)\n", 
-		nor1.x, nor1.y, nor1.z, 
-		nor2.x, nor2.y, nor2.z, 
-		ins.x, ins.y, ins.z 
-	); 
-	*/ 
+	{
+		Quaternion quat;
+		double oo[4];
+		struct SFVec3d tcsCoord, gcCoord, userCoord;
+		matrix_to_quaternion(&quat,modelMatrix);
+		quaternion_normalize(&quat);
+		quaternion_to_vrmlrot(&quat,&oo[0],&oo[1],&oo[2],&oo[3]);
+		vecnormald(oo,oo);
+		oo[3] = -oo[3];
+		double2float(node->__t2.c,oo,4);
+		float2double(tcsCoord.c,node->__t1.c,3);
+		// generate geoCoord_changed here instead of in do_GPS
+		{
+			struct X3D_Node *boundvp = getActiveLayerBoundViewpoint();
+		
+			if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
+				struct SFVec3d gcCoord, geoCoord;
+				struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *)boundvp;
+				user2gc(GEOSYS(gvp->__geoSystem),&gvp->position,1,&gcCoord);
+			} else {
+				tcs2gc(GEOSYS(node->__geoSystem),&node->center,&tcsCoord,1,&gcCoord);
+			}
+			gc2user(GEOSYS(node->__geoSystem),&gcCoord,1,&userCoord);
+			veccopyd(node->__t3.c,userCoord.c);
+		}
+	}
 } 
 
 
 /* GeoProximitySensor code for ClockTick */
 void do_GeoProximitySensorTick( void *ptr) {
+	int specversion;
 	struct X3D_GeoProximitySensor *node = (struct X3D_GeoProximitySensor *)ptr;
 
 	/* if not enabled, do nothing */
@@ -2463,31 +3336,10 @@ void do_GeoProximitySensorTick( void *ptr) {
 
 			#endif
 
-			/* possibly we have to convert this from GCC to GDC, and maybe even then to UTM */
-		
-			/* prep the geoCoord changed; first, get the position. Right now, we use the
-			  Viewer position, as it is more accurate (not clipped by the nearPlane) than
-			  the position_changed field  */
-
-			node->geoCoord_changed.c[0] = (double) node->position_changed.c[0];
-			node->geoCoord_changed.c[1] = (double) node->position_changed.c[1];
-			node->geoCoord_changed.c[2] = (double) node->position_changed.c[2];
-
-			/* then add in the nearPlane, as the way we get the position is via a clipped frustum */
-			/* if we get this via the position_changed field, we have to:
-				node->geoCoord_changed.c[2] += Viewer.nearPlane;
-			*/
-			node->geoCoord_changed.c[2] += Viewer()->nearPlane;
-			MARK_EVENT (ptr, offsetof(struct X3D_GeoProximitySensor, geoCoord_changed));
-
-			#ifdef VERBOSE
-			printf ("\ngeoCoord_changed as a GCC, %lf %lf %lf\n",
-				node->geoCoord_changed.c[0],
-				node->geoCoord_changed.c[1],
-				node->geoCoord_changed.c[2]);
-			#endif
-
-			CONVERT_BACK_TO_GD_OR_UTM(node->geoCoord_changed)
+			if(!vecsamed(node->geoCoord_changed.c,node->__t3.c)){
+				veccopyd(node->geoCoord_changed.c,node->__t3.c);
+				MARK_EVENT (ptr, offsetof(struct X3D_GeoProximitySensor, geoCoord_changed));
+			}
 		}
 		if (memcmp ((void *) &node->orientation_changed, (void *) &node->__t2,sizeof(struct SFRotation))) {
 			#ifdef SEVERBOSE
@@ -2523,9 +3375,7 @@ void compile_GeoTouchSensor (struct X3D_GeoTouchSensor * node) {
 	#ifdef VERBOSE
 	printf ("compiling GeoTouchSensor\n");
 	#endif
-
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
 	MARK_NODE_COMPILED
 
 	/* events */
@@ -2535,7 +3385,7 @@ void compile_GeoTouchSensor (struct X3D_GeoTouchSensor * node) {
 
 void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 
-
+	int specversion;
 	struct X3D_GeoTouchSensor *node = (struct X3D_GeoTouchSensor *)ptr;
 	struct point_XYZ normalval;	/* different structures for normalization calls */
 	ttglobal tg;
@@ -2607,28 +3457,27 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 		#endif
 
 		memcpy ((void *) &node->hitPoint_changed, (void *) &node->_oldhitPoint, sizeof(struct SFColor));
+		//vecprint3fb("hitpoint",node->hitPoint_changed.c,"\n");
 		MARK_EVENT(ptr, offsetof (struct X3D_GeoTouchSensor, hitPoint_changed));
 
 		/* convert this back into the requested GeoSpatial format... */
-			node->hitGeoCoord_changed.c[0] = (double) node->hitPoint_changed.c[0];
-			node->hitGeoCoord_changed.c[1] = (double) node->hitPoint_changed.c[1];
-			node->hitGeoCoord_changed.c[2] = (double) node->hitPoint_changed.c[2];
+		node->hitGeoCoord_changed.c[0] = (double) node->hitPoint_changed.c[0];
+		node->hitGeoCoord_changed.c[1] = (double) node->hitPoint_changed.c[1];
+		node->hitGeoCoord_changed.c[2] = (double) node->hitPoint_changed.c[2];
 
-			/* then add in the nearPlane, as the way we get the position is via a clipped frustum */
-			/* if we get this via the position_changed field, we have to:
-				node->hitGeoCoord_changed.c[2] += nearPlane;
-			*/
-			node->hitGeoCoord_changed.c[2] += Viewer()->nearPlane;
-			MARK_EVENT (ptr, offsetof(struct X3D_GeoTouchSensor, hitGeoCoord_changed));
+		MARK_EVENT (ptr, offsetof(struct X3D_GeoTouchSensor, hitGeoCoord_changed));
 
-			#ifdef SENSVERBOSE
-			printf ("\nhitGeoCoord_changed as a GCC, %lf %lf %lf\n",
-				node->hitGeoCoord_changed.c[0],
-				node->hitGeoCoord_changed.c[1],
-				node->hitGeoCoord_changed.c[2]);
-			#endif
-
-			CONVERT_BACK_TO_GD_OR_UTM(node->hitGeoCoord_changed)
+		#ifdef SENSVERBOSE
+		printf ("\nhitGeoCoord_changed as a GCC, %lf %lf %lf\n",
+			node->hitGeoCoord_changed.c[0],
+			node->hitGeoCoord_changed.c[1],
+			node->hitGeoCoord_changed.c[2]);
+		#endif
+		struct SFVec3d gcCoord;
+		Geosys *gs = GEOSYS(node->__geoSystem);
+		lcs2gc(gs,&node->hitGeoCoord_changed,1,&gcCoord);
+		gc2user(gs,&gcCoord,1,&node->hitGeoCoord_changed);
+		//vecprint3db("user",node->hitGeoCoord_changed.c,"\n");
 	}
 
 	/* have to normalize normal; change it from SFColor to struct point_XYZ. */
@@ -2649,63 +3498,17 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /************************************************************************/
 /* GeoViewpoint								*/
 /************************************************************************/
-
+void calculateViewingSpeedB();
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
-	struct SFVec4d localOrient;
-	struct SFVec4d orient;
-	int i;
-	Quaternion localQuat;
-	Quaternion relQuat;
-	Quaternion combQuat;
-	MF_SF_TEMPS
+	Geosys *gs;
+	struct SFVec3d gcCoord;
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
 
-	#ifdef VERBOSE
-	printf ("compileViewpoint is %u, its geoOrigin is %u \n",node, node->geoOrigin);
-	if (node->geoOrigin!=NULL) printf ("type %s\n",stringNodeType(X3D_GEOORIGIN(node->geoOrigin)->_nodeType));
-	#endif
-
-
-	/* did any of the "set_" inputOnly fields get set?  if not, just use the non-set fields */
-	USE_SET_SFVEC3D_IF_CHANGED(set_position,position)
-	USE_SET_SFROTATION_IF_CHANGED(set_orientation,orientation)  
-
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, position)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedPosition)
-
-	/* work out the local orientation and copy doubles to floats */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &localOrient);
-
-	/* Quaternize the local Geospatial quaternion, and the specified rotation from the GeoViewpoint orientation field */
-	vrmlrot_to_quaternion (&localQuat, localOrient.c[0], localOrient.c[1], localOrient.c[2], localOrient.c[3]);
-	vrmlrot_to_quaternion (&relQuat, node->orientation.c[0], node->orientation.c[1], node->orientation.c[2], node->orientation.c[3]);
-
-	/* add these together */
-        quaternion_add (&combQuat, &relQuat, &localQuat);
-
-	/* get the rotation; 2 steps to convert doubles to floats;
-           should be quaternion_to_vrmlrot(&combQuat, &node->__movedOrientation.c[0]... */
-        quaternion_to_vrmlrot(&combQuat, &orient.c[0], &orient.c[1], &orient.c[2], &orient.c[3]);
-	for (i=0; i<4; i++) node->__movedOrientation.c[i] = (float) orient.c[i];
-
-        #ifdef VERBOSE
-	printf ("compile_GeoViewpoint, final position %lf %lf %lf\n",node->__movedPosition.c[0],
-		node->__movedPosition.c[1], node->__movedPosition.c[2]);
-
-	printf ("compile_GeoViewpoint, getLocalOrientation %lf %lf %lf %lf\n",localOrient.c[0],
-		localOrient.c[1], localOrient.c[2], localOrient.c[3]);
-	printf ("compile_GeoViewpoint, initial orientation: %lf %lf %lf %lf\n",node->orientation.c[0],
-		node->orientation.c[1], node->orientation.c[2], node->orientation.c[3]);
-	printf ("compile_GeoViewpoint, final rotation %lf %lf %lf %lf\n",node->__movedOrientation.c[0], 
-		node->__movedOrientation.c[1], node->__movedOrientation.c[2], node->__movedOrientation.c[3]);
-	printf ("compile_GeoViewpoint, elevation from the WGS84 ellipsoid is %lf\n",gdCoords.p[0].c[2]);
-        #endif
-
+	update_origin(gs, X3D_NODE(node), &node->position, X3D_GEOORIGIN(node->geoOrigin));
+	user2gc(gs,&node->position,1,&gcCoord);
+	gc2gd(gs,&gcCoord,1,&node->__movedgd);
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
 	
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoViewpoint, metadata)) */
@@ -2724,23 +3527,210 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	#endif
 }
 struct X3D_Node *getActiveLayerBoundViewpoint();
+void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoorigin, 
+		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField);
+
+void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//Theory of operation:
+	// NLA - node local alignment
+	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
+	//  (-Z to north pole, X east, Y up) at GVP
+
+	struct SFVec3d tcsCoord, gdCoord; //GCpos, 
+	//Quaternion qlc2gc;
+	Geosys *gs;
+	struct SFVec3d gcCoord;
+	gs = GEOSYS(node->__geoSystem);
+
+	Quaternion qlo, q2;
+	struct SFVec4d lo;
+
+	//1. update .position
+	//convert current TCS back to GC
+	pointxyz2double(tcsCoord.c,Pos);
+	user2gc(gs,&node->position,1,&gcCoord);
+	gc2gd(gs,&gcCoord,1,&gdCoord);
+	tcs2gc(gs,&gdCoord,&tcsCoord,1,&gcCoord);
+	//convert GC back to .position and new gd
+	gc2user(gs,&gcCoord,1,&node->position);
+	gc2gd(gs,&gcCoord,1,&gdCoord);
+
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
+
+	//2. update .orientation that's in TCS and stays in TCS, although TCS at a different location
+	//Why? lets say we move straight ahead. Viewer->Quat doesn't change. But the same .orientation
+	//at 2 different locations means we turned. So we need to un-do the implied turn.
+	int FREEFLY = !Viewer()->collision;
+	if(FREEFLY){
+		//if we want to fly in any direction without being clamped to the planet surface
+		// then we need to undo the implied 3 axis rotation between the previous and current location
+		struct SFVec3d translate1, translate2;
+		struct SFVec4d rotate1, rotate2, rotate3;
+		Quaternion q1,q2,q3,q4;
+		gc2tcs_transform(gs, &node->__movedgd, &translate1, &rotate1);
+		gc2tcs_transform(gs, &gdCoord, &translate2, &rotate2);
+		rotate2.c[3] = -rotate2.c[3];
+		vrmlrot4d_to_quaternion(&q1,rotate1.c);
+		vrmlrot4d_to_quaternion(&q2,rotate2.c);
+		quaternion_multiply(&q3,&q1,&q2);
+		quaternion_multiply(&q4,Quat,&q3);
+		quaternion_to_vrmlrot4d(&q4,rotate3.c);
+		rotate3.c[3] = -rotate3.c[3];
+		double2float(node->orientation.c,rotate3.c,4);
+	}else{
+		//else if we're following the curvature of the earth, then we just undo the implied azimuth part of the rotation
+		//2.a comput aziumth correction dAzimuth = sin(latitude) x (Longitude2 - Longitude1)
+		//     or dA = sin(phi)*dlambda
+		double oo[4], pp[3];
+		double deltagd[3], gd[3];
+		vecdifd(deltagd,node->__movedgd.c,gdCoord.c);
+		veccopyd(gd,node->__movedgd.c);
+		//veccopyd(gd,gdCoord.c);
+		//5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+		//7:	GD: TRUE: decimal degrees, FALSE radians
+		if(!gs->gd_latitude_first){
+			//get latitude first
+			vecswizzle2d(deltagd); 
+			vecswizzle2d(gd);
+		}
+		if(gs->gd_degrees) {
+			//get radians
+			vecscale2d(deltagd,deltagd,RADIANS_PER_DEGREE);
+			vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		}
+		double dazimuth, dlambda;
+		Quaternion qaz, qq;
+		//as we cross the mid-pacific time zone (PI from grenwich)
+		// our longitude goes from -PI to +PI. 
+		// For azimuth correction we want the incremental/acute longitude difference
+		dlambda = angleNormalized(deltagd[1]); 
+		//if(fabs(gd[0]) > 30.0*RADIANS_PER_DEGREE){
+			dazimuth = sin(gd[0])*dlambda;
+			vrmlrot_to_quaternion(&qaz,0.0,1.0,0.0,-dazimuth);  //?? different sign than old offset0 way??
+			quaternion_multiply(&qq,Quat,&qaz);
+		//}else{
+		//	qq = *Quat;
+		//}
+		quaternion_to_vrmlrot(&qq,&oo[0],&oo[1],&oo[2],&oo[3]);
+		oo[3] = -oo[3];
+		double2float(node->orientation.c,oo,4);
+	}
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
+	//update gdcoord for next delta
+	veccopyd(node->__movedgd.c,gdCoord.c);
+
+
+}
+
+void geoviewpoint_fetch_TCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//Theory of operation:
+	// NLA - node local alignment
+	// we use viewer as a 3D pointing device relative to our GVP node's local coordinate system
+	//  (-Z to north pole, X east, Y up) at GVP
+	double oo[4];
+	struct SFVec3d gcCoord, gdCoord, tcsCoord;
+	Geosys *gs;
+	gs = GEOSYS(node->__geoSystem);
+
+	float2double(oo,node->orientation.c,4);
+	vrmlrot_to_quaternion(Quat,oo[0],oo[1],oo[2], -oo[3]);
+	user2gc(gs,&node->position,1,&gcCoord);
+	gc2gd(gs,&gcCoord,1,&gdCoord);
+	gc2tcs(gs,&gdCoord,&gcCoord,1,&tcsCoord);
+	double2pointxyz(Pos,tcsCoord.c);
+	//Pos->x = Pos->y = Pos->z = 0.0;
+}
+
+void geoviewpoint_fetch_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	//returns LCS/LCA - should be similar to prep_geoViewpoint
+	//
+	//LCS - local coordinate system - a shared euclidean system for a planet's data
+	//UCS - user coordinate system, what the scene author specifies in the scene file
+	//      might be GC, GD (degrees or radians, lat or long first), XTM (UTM/3TM, easting or northing first) and w/wo geoid
+	//LCA/GCA/UCA - alignment - the orientation part
+	struct Planet *planet;
+	struct SFVec3d LCpos;;
+	struct SFVec4d lo;
+	Quaternion qoo, qlo, qao, qgc;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	
+	double oo[4], gd[3];
+
+	planet = current_planet();
+	//step 1 convert user coordinates UCS  to LCS coordinates 
+	// GC = f(UCS)   //function depends on user coordinate system
+	// LCS = (GC - autoOffset) x autoOrient^
+	moveCoords3d(GEOSYS(node->__geoSystem),&planet->autoOrigin,&planet->autoOrient,&node->position,1,&LCpos,&node->__movedgd);
+	vecnegated(LCpos.c,LCpos.c); //like prep_viewpoint?
+	double2pointxyz(Pos,LCpos.c);
+
+	//step 2 convert user alignement UCA to local coordinate alignement LCA
+	//step 2a convert UCA to GCA
+	//GCA = f(UCA)
+	//    = LO^ x UCA (for GD and XTM)
+	float2double(oo,node->orientation.c,4);
+	oo[3] = -oo[3]; //like prep_viewpoint?
+	vrmlrot_to_quaternion(&qoo,oo[0],oo[1],oo[2], oo[3]);
+	GeoOrient(X3D_NODE(node->geoOrigin), GEOSYS(node->__geoSystem), &node->__movedgd, &lo);
+	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], -lo.c[3]);
+	quaternion_multiply(&qgc,&qoo,&qlo);
+	//step 2b convert from GCA to LCA
+	//LCA = AO^ x GCA
+	vrmlrot_to_quaternion(&qao,planet->autoOrient.c[0],planet->autoOrient.c[1],planet->autoOrient.c[2], -planet->autoOrient.c[3]);
+	quaternion_multiply(Quat,&qgc,&qao);
+	quaternion_normalize(Quat);
+
+}
+
+void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, struct point_XYZ *Pos){
+	struct Planet *planet;
+	double pos[3], oo[4];
+	struct SFVec3d GCpos, gdCoord;
+	struct SFVec4d lo;
+	Quaternion qao, qaoi, qgc, qlo, qoo;
+	//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	
+	planet = current_planet();
+	//step 1 convert LCS to UCS
+	//step 1.a converte LCS to GC
+	// GC = (autoOrient x LCPos) + autoOffset
+	vrmlrot_to_quaternion(&qao,planet->autoOrient.c[0],planet->autoOrient.c[1],planet->autoOrient.c[2],planet->autoOrient.c[3]);
+	pointxyz2double(pos,Pos);
+	vecnegated(pos,pos); //like prep_viewpoint?
+	quaternion_rotationd(pos,&qao,pos);
+	vecaddd(GCpos.c,planet->autoOrigin.c,pos);
+
+	//step 1.b UCS = f(GC)
+	CONVERT_BACK_TO_GD_OR_UTMC(GEOSYS(node->__geoSystem), node->geoOrigin, &GCpos, &node->__movedgd, &node->position);
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,position));
+	//step 2 convert LCA to UCA
+	//step 2a. convert LCA to GCA
+	//GCA = AO x LCA
+	quaternion_inverse(&qaoi,&qao);
+	quaternion_multiply(&qgc,Quat,&qao);
+	//step 2.b convert GCA to UCA
+	// UCA = f(GCA)
+	//     = LO x GCA for GD and XTM
+	GeoOrient(X3D_NODE(node->geoOrigin), GEOSYS(node->__geoSystem), &node->__movedgd, &lo);
+	vrmlrot_to_quaternion(&qlo,lo.c[0],lo.c[1],lo.c[2], lo.c[3]);
+	quaternion_multiply(&qoo,&qgc,&qlo);
+	quaternion_normalize(&qoo);
+	quaternion_to_vrmlrot(&qoo,&oo[0],&oo[1],&oo[2],&oo[3]);
+	oo[3] = -oo[3];
+	double2float(node->orientation.c,oo,4);
+	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
+	
+}
+
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
+	struct Planet *planet;
 	double a1;
 	GLint viewPort[10];
 	if (!renderstate()->render_vp) return;
 
 	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+		X3D_Viewer *viewer = Viewer();
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
-
-		INITIALIZE_GEOSPATIAL(node)
-
-			/* printf ("RVP, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);
-			printf ("VP stack %d tos %d\n",viewpoint_tos, viewpoint_stack[viewpoint_tos]);
-			*/
-
-		/* check the set_bind eventin to see if it is TRUE or FALSE */
-		/* code to perform binding is now in set_viewpoint. */
-
 		COMPILE_IF_REQUIRED
 
 		#ifdef VERBOSE
@@ -2748,30 +3738,62 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		#endif
 
 		/* perform GeoViewpoint translations */
-		FW_GL_ROTATE_RADIANS(-node->__movedOrientation.c[3],node->__movedOrientation.c[0],node->__movedOrientation.c[1],
-			node->__movedOrientation.c[2]); 
+		{
+			struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+			struct SFVec4d rotation1, rotation2;
+			double oo[4];
+			Geosys *gs = GEOSYS(node->__geoSystem);
 
-		FW_GL_TRANSLATE_D(-node->__movedPosition.c[0],-node->__movedPosition.c[1],-node->__movedPosition.c[2]);
+			//How this works
+			//we need to get from an orientation in TCS to LCS via the transform stack
+			// the stack goes in this order:
+			// GVP.orientation < GVP-TCS < LCS-transform_stack
+			user2gc(gs,&node->position,1,&gcCoord);
+			gc2gd(gs,&gcCoord,1, &gdCoord);
+
+			float2double(oo,node->orientation.c,4);
+			oo[3] = -oo[3];
+			FW_GL_ROTATE_RADIANS(oo[3],oo[0],oo[1],oo[2]);
+
+			//geoprepT
+			gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+			FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+			FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+			lcs2gc_transform(&rotation1,&translation1);
+			FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+
+		}
+
+		planet = current_planet();
+		node->_prepped_planet = planet->ID;
 
 		/* we have  a new currentPosInModel now... */
 		/* printf ("currentPosInModel was %lf %lf %lf\n", Viewer.currentPosInModel.x, Viewer.currentPosInModel.y, Viewer.currentPosInModel.z); */
 
 		/* the AntiPos has been applied in the trans and rots above, so we do not need to do it here */
-		getCurrentPosInModel(FALSE); 
+		//getCurrentPosInModel(FALSE); 
 
 
-		/* now, lets work on the GeoViewpoint fieldOfView */
+		/* now, lets work on the GeoViewpoint fieldOfView. 
+			Q why now, here? 
+			A.the window can be resized on any frame. so can't do it once in compile_geoviewpoint 
+			 -and analogously we do it in prep_viewpoint and prep_orthoviewpoint
+		*/
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		if(viewPort[2] > viewPort[3]) {
 			a1=0;
-			Viewer()->fieldofview = node->fieldOfView/3.1415926536*180;
+			viewer->fieldofview = node->fieldOfView/3.1415926536*180;
 		} else {
 			a1 = node->fieldOfView;
 			a1 = atan2(sin(a1),viewPort[2]/((float)viewPort[3]) * cos(a1));
-			Viewer()->fieldofview = a1/3.1415926536*180;
+			viewer->fieldofview = a1/3.1415926536*180;
 		}
-
-		calculateViewingSpeed();
+		if(viewer->type != VIEWER_WALK){
+			//adjust target walk height in FLY mode
+			calculateViewingSpeedB();
+			node->_resetRelativeHeight = !node->relativeHeight;
+		}
 		#ifdef VERBOSE
 		printf ("prep_GeoViewpoint, fieldOfView %f \n",node->fieldOfView); 
 		#endif
@@ -2779,75 +3801,39 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 }
 
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
-/* this is called from the Viewer functions */
-void calculateViewingSpeed() {
-	struct SFVec3d gcCoords;
-	struct SFVec3d gdCoords;
-		
+void calculateViewingSpeedB() {
 	/* the current position is the GC coordinate */
-	gcCoords.c[0]= Viewer()->currentPosInModel.x;
-	gcCoords.c[1] = Viewer()->currentPosInModel.y;
-	gcCoords.c[2] = Viewer()->currentPosInModel.z;
+	ttglobal tg = gglobal();
+	struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
 		
-        #ifdef VERBOSE
-        printf ("calculateViewingSpeed, currentPosInModel %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
-        #endif
-		
-	if (Viewer()->GeoSpatialNode != NULL) {
-		/* do we have a valid __geoSystem?? */
-        INITIALIZE_GEOSPATIAL(Viewer()->GeoSpatialNode)
+	if(boundvp->_nodeType == NODE_GeoViewpoint){
+		double height, heightmin;
+		int resetHeight;
+		struct SFVec3d *gdCoords;
+		struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
+		X3D_Viewer *viewer = Viewer();
 
-
-/*
-        COMPILE_IF_REQUIRED
-
-*/
-
-
-
-
-		if (Viewer()->GeoSpatialNode->__geoSystem.n>0) {
-			/* is the __geoSystem NOT gc coords? */
-			/* printf ("have a GeoSpatial viewpoint, currently %d\n",Viewer.GeoSpatialNode->__geoSystem.p[0]);  */
-			if (Viewer()->GeoSpatialNode->__geoSystem.p[0] != GEOSP_GC) {
-		
-/*
-		        	retractOrigin((struct X3D_GeoOrigin *)Viewer.GeoSpatialNode->geoOrigin, &gcCoords);
-*/
-		
-		        	#ifdef VERBOSE
-				printf ("\n");
-				printf ("for GeoViewpoint :%s:\n",Viewer.GeoSpatialNode->description->strptr);
-		        	printf ("calculateViewingSpeed,  currentPosInModel: %lf %lf %lf\n", gcCoords.c[0], gcCoords.c[1], gcCoords.c[2]);
-		        	#endif
-		
-		        	/* convert from local (gc) to gd coordinates, using WGS84 ellipsoid */
-		        	gccToGdc (&gcCoords, &gdCoords);
-		
-				#ifdef VERBOSE
-				printf ("speed is calculated from geodetic height %lf %lf %lf\n",gdCoords.c[0], gdCoords.c[1], gdCoords.c[2]); 
-				#endif
-			
-				/* speed is dependent on elevation above WGS84 ellipsoid */
-				Viewer()->speed  = fabs(sqrt(gcCoords.c[0]*gcCoords.c[0] + gcCoords.c[1]*gcCoords.c[1] + gcCoords.c[2]*gcCoords.c[2])
-					-GEOSP_WE_A) * Viewer()->GeoSpatialNode->speedFactor;
-				if (Viewer()->speed < 1.0) Viewer()->speed=1.0;
-
-				#ifdef VERBOSE
-				printf ("height above center %f WGS84 ellipsoid is %lf\n",Viewer.speed,GEOSP_WE_A); 
-				#endif
-/*
-				Viewer.speed = fabs(Viewer.speed * Viewer.GeoSpatialNode->speedFactor);
-				if (Viewer.speed < Viewer.GeoSpatialNode->speedFactor) Viewer.speed = Viewer.GeoSpatialNode->speedFactor;
-*/
-
-				/* set the navigation info - use the GeoVRML algorithms */
-				set_naviWidthHeightStep(
-					Viewer()->speed*0.25,
-					Viewer()->speed*1.6,
-					Viewer()->speed*0.25);
-			}
+        //INITIALIZE_GEOSPATIAL(node)
+		COMPILE_IF_REQUIRED(X3D_NODE(node));
+		gdCoords = &node->__movedgd;
+		height = gdCoords->c[2];
+		heightmin = max(abs(height),50.0);
+		viewer->speed  = heightmin * node->speedFactor;
+		if(0){
+			static int count = 0;
+			count++;
+			if(count % 20 == 0)
+				printf("height %lf speedFactor %lf speed %lf\n",height,node->speedFactor,viewer->speed);
 		}
+		if (viewer->speed < 1.0) viewer->speed=1.0;
+
+
+		/* set the navigation info - use the GeoVRML algorithms */
+		set_naviWidthHeightStep(
+			height/1.6 *0.25,
+			height,
+			height/1.6 *0.25);
+
 	}
 }
 
@@ -2858,20 +3844,54 @@ static void calculateExamineModeDistance(void) {
 Viewer()->doExamineModeDistanceCalculations = TRUE;
 
 }
-
 void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	X3D_Viewer *viewer;
-	Quaternion q_i;
 
 	/* did bind_node tell us we could bind this guy? */
 	if (!(node->isBound)) return;
 
 	viewer = ViewerByLayerId(node->_layerId);
 
-	INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	/* set Viewer position and orientation */
+
+	if(!node->_initializedOnce) {
+		veccopyd(node->_position.c,node->position.c);
+		veccopy4f(node->_orientation.c,node->orientation.c);
+		node->_initializedOnce = TRUE;
+	}
+	if(!node->retainUserOffsets){
+		veccopyd(node->position.c,node->_position.c);
+		veccopy4f(node->orientation.c,node->_orientation.c);
+	}
+
+
+	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
+		//save the previous vp pose, in root space, for future slerps
+		viewer->vp2rnSaved = TRUE; //we bind after prep_viewpoint > setup_viewpoint in rendersceneupdatescene0
+		//we bind from the root, so this would be setup_viewpoint_1() and _2() 
+		//- the viewmatrix including .position,.orientation,.Pos,.Quat, stereo
+		{
+			bindablestack* bstack = getActiveBindableStacks(gglobal());
+			matcopy(viewer->slerp_viewmatrix,bstack->viewtransformmatrix);
+			matcopy(viewer->slerp_posorimatrix,bstack->posorimatrix);
+			
+		}
+
+        viewer->SLERPing = FALSE;
+        viewer->startSLERPtime = TickTime(); 
+		/* slerp Mark II */
+		viewer->SLERPing2 = TRUE;
+		viewer->SLERPing2justStarted = TRUE;
+		//printf("binding\n");
+
+	} else { 
+		viewer->SLERPing = FALSE; 
+		viewer->SLERPing2 = FALSE;
+	}
+	
+	viewer->wasBound = TRUE;
 
 	#ifdef VERBOSE
 	printf ("bind_GeoViewpoint, setting Viewer to %lf %lf %lf orient %f %f %f %f\n",node->__movedPosition.c[0],node->__movedPosition.c[1],
@@ -2880,31 +3900,16 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	printf ("	node %u fieldOfView %f\n",node,node->fieldOfView);
 	#endif
 
-	viewer->GeoSpatialNode = node;
-
-	viewer->Pos.x = node->__movedPosition.c[0];
-	viewer->Pos.y = node->__movedPosition.c[1];
-	viewer->Pos.z = node->__movedPosition.c[2];
-	viewer->AntiPos.x = node->__movedPosition.c[0];
-	viewer->AntiPos.y = node->__movedPosition.c[1];
-	viewer->AntiPos.z = node->__movedPosition.c[2];
-
-	/* printf ("bind_GeoViewpoint, pos %f %f %f antipos %f %f %f\n",Viewer.Pos.x, Viewer.Pos.y, Viewer.Pos.z, Viewer.AntiPos.x, Viewer.AntiPos.y, Viewer.AntiPos.z); */
-
 	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
 
-	vrmlrot_to_quaternion (&q_i,node->__movedOrientation.c[0],
-		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
-	quaternion_inverse(&(viewer->AntiQuat),&q_i);
-
-	resolve_pos();
-
-	calculateViewingSpeed();
+	calculateViewingSpeedB();
+	node->_resetRelativeHeight = !node->relativeHeight;
 
 	calculateExamineModeDistance();
 	setMenuStatusVP (node->description->strptr);
-
+	fwl_set_viewer_type (VIEWER_WALK);
+	fwl_setCollision(TRUE);
 }
 
 
@@ -2913,154 +3918,197 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 /************************************************************************/
 
 void compile_GeoTransform (struct X3D_GeoTransform * node) {
-	MF_SF_TEMPS
-
 	#ifdef VERBOSE
 	printf ("compiling GeoLocation\n");
 	#endif
 
-	/* work out the position */
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_GEOSYSTEM(node)
-	INIT_MF_FROM_SF(node, geoCenter)
-	MOVE_TO_ORIGIN(node)
-	COPY_MF_TO_SF(node, __movedCoords)
+	Geosys *gs;
+	compile_geoSystem(X3D_NODE(node),node->_nodeType,&node->geoSystem,&node->__geoSystem);
+	gs = GEOSYS(node->__geoSystem);
+	update_origin(gs, X3D_NODE(node), &node->geoCenter, X3D_GEOORIGIN(node->geoOrigin));
 
-	/* work out the local orientation */
-	GeoOrient(node->geoOrigin, &node->__geoSystem, &gdCoords.p[0], &node->__localOrient);
 
 	MARK_SFVEC3D_INOUT_EVENT(node->geoCenter, node->__oldGeoCenter,offsetof (struct X3D_GeoTransform, geoCenter))
 	MARK_MFNODE_INOUT_EVENT(node->children, node->__oldChildren, offsetof (struct X3D_GeoTransform, children))
 
 
-	/* re-figure out which modifiers are actually in use */
-	/* printf ("re-rendering for %d\n",node);*/
+	INITIALIZE_EXTENT;
+
+	/* printf ("changed Transform for node %u\n",node); */
+	node->__do_center = verify_translate ((GLfloat *)node->center.c);
 	node->__do_trans = verify_translate ((GLfloat *)node->translation.c);
-	if (node->__do_trans) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, translation));
-
 	node->__do_scale = verify_scale ((GLfloat *)node->scale.c);
-	if (node->__do_scale) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, scale));
-
 	node->__do_rotation = verify_rotate ((GLfloat *)node->rotation.c);
-	if (node->__do_rotation) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, rotation));
-
 	node->__do_scaleO = verify_rotate ((GLfloat *)node->scaleOrientation.c);
-	if (node->__do_scaleO) MARK_EVENT(X3D_NODE(node), offsetof (struct X3D_GeoTransform, scaleOrientation));
 
-
-
-	#ifdef VERBOSE
-	printf ("compile_GeoTransform, orig coords %lf %lf %lf, moved %lf %lf %lf\n", node->geoCoords.c[0], node->geoCoords.c[1], node->geoCoords.c[2], node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-	printf ("	rotation is %lf %lf %lf %lf\n",
-			node->__localOrient.c[0],
-			node->__localOrient.c[1],
-			node->__localOrient.c[2],
-			node->__localOrient.c[3]);
-	#endif
+	node->__do_anything = (node->__do_center ||
+			node->__do_trans ||
+			node->__do_scale ||
+			node->__do_rotation ||
+			node->__do_scaleO);
 
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
-	FREE_MF_SF_TEMPS
-	
-	/* events */
-	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoTransform, metadata)) */
-
-
-	#ifdef VERBOSE
-	printf ("compiled GeoTransform\n\n");
-	#endif
 }
 
+
+//March 2018 GT GeoTransform strategy:
+//- do compile_ prep_ fin_ child_ like Transform, except:
+//-- center = 0,0,0 always
+//-- in compile, also compile geosystem
+//-- in child, wrap normalChildren call with a geoprepT and geofinT
 
 /* do transforms, calculate the distance */
 void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
-	INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
-        /* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
-         * so we do nothing here in that case -ncoder */
+	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
+		* so we do nothing here in that case -ncoder */
 
 	/* printf ("prep_Transform, render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
-	 render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
+	render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		FW_GL_PUSH_MATRIX();
+		/* do we actually have any thing to rotate/translate/scale?? */
+		if (node->__do_anything) {
+
+			FW_GL_PUSH_MATRIX();
+
+			/* TRANSLATION */
+			if (node->__do_trans)
+				FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+
+			/* CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+
+			/* ROTATION */
+			if (node->__do_rotation) {
+				FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
+			}
+
+			/* SCALEORIENTATION */
+			if (node->__do_scaleO) {
+				FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
+			}
 
 
-		/* TRANSLATION */
-		if (node->__do_trans)
-			FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
+			/* SCALE */
+			if (node->__do_scale)
+				FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
 
-                /* GeoTransform TRANSLATION */
-                FW_GL_TRANSLATE_D(node->__movedCoords.c[0], node->__movedCoords.c[1], node->__movedCoords.c[2]);
-                
-                //printf ("prep_GeoLoc trans to %lf %lf %lf\n",node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]);
-                
-                        
-                FW_GL_ROTATE_RADIANS(node->__localOrient.c[3], node->__localOrient.c[0],node->__localOrient.c[1],node->__localOrient.c[2]);
-                
-		/* ROTATION */
-		if (node->__do_rotation) {
-			FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
-		}
+			/* REVERSE SCALE ORIENTATION */
+			if (node->__do_scaleO)
+				FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
 
-		/* SCALEORIENTATION */
-		if (node->__do_scaleO) {
-			FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3], node->scaleOrientation.c[0],
-				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-		}
-
-		/* SCALE */
-		if (node->__do_scale)
-			FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]);
-
-		/* REVERSE SCALE ORIENTATION */
-		if (node->__do_scaleO)
-			FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0],
-				node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-
-		/* REVERSE CENTER */
-                FW_GL_TRANSLATE_D(-node->__movedCoords.c[0], -node->__movedCoords.c[1], -node->__movedCoords.c[2]);
+			/* REVERSE CENTER */
+			if (node->__do_center)
+				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+		} 
 
 		RECORD_DISTANCE
-        }
+
+	}
 }
 
 
 void fin_GeoTransform (struct X3D_GeoTransform *node) {
-	INITIALIZE_GEOSPATIAL(node)
-	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-            FW_GL_POP_MATRIX();
-        } else {
-           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-                FW_GL_TRANSLATE_D(((node->__movedCoords).c[0]),((node->__movedCoords).c[1]),((node->__movedCoords).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
-                );
-                FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3],node->scaleOrientation.c[0],node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
-                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
-                );
-                FW_GL_TRANSLATE_D(-(((node->__movedCoords).c[0])),-(((node->__movedCoords).c[1])),-(((node->__movedCoords).c[2]))
-                );
-                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
-                );
-            }
-        }
+	if(!renderstate()->render_vp) {
+		if (node->__do_anything) {
+			FW_GL_POP_MATRIX();
+		}
+	} else {
+		/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+		if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+			);
+			FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+			);
+			FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
+			);
+			FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+			);
+		}
+	}
 } 
+void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord){
+	//LCS -> TCS
+	//transform stack LCS (shared Local Coordinate System) 
+	// to this node TCS (topocentric coordinate system
 
+	struct SFVec3d translation1, translation2, gcCoord, gdCoord;
+	struct SFVec4d rotation1, rotation2;
+	double A,F;
+	Geosys *gs = geoSystem;
+
+	//How this works
+	//we need to get from child LCS to TCS for this node via the transform stack
+	// the stack goes in this order:
+	// GT-TCS < LCS-children
+	if(0){
+		getEllipsoidParams(gs->ellipsoid, &A, &F);
+		if(gs->spatial_system == GEOSP_GC && veclengthd(userCoord->c) < A/2.0){
+			//likely DIS with local coordinates ie near molten core of earth
+			// and around here the ellipsoid radius M is fiddly, so we thunk to simple GC aligned local
+			FW_GL_TRANSLATE_D(-userCoord->c[0],-userCoord->c[1],-userCoord->c[2]);
+		}else{
+			user2gc(gs,userCoord,1,&gcCoord);
+			gc2gd(gs,&gcCoord,1, &gdCoord);
+
+			gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+			FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+			FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+			lcs2gc_transform(&rotation1,&translation1);
+			FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+			FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+		}
+	}else{
+		user2gc(gs,userCoord,1,&gcCoord);
+		//gc2gd(gs,&gcCoord,1, &gdCoord);
+		//gc2tcs_transform(gs,&gdCoord,&translation2,&rotation2);
+		gc2tcsB_transform(gs,&gcCoord,&translation2,&rotation2);
+		FW_GL_ROTATE_RADIANS(rotation2.c[3],rotation2.c[0],rotation2.c[1],rotation2.c[2]);
+		FW_GL_TRANSLATE_D(translation2.c[0],translation2.c[1],translation2.c[2]);
+		lcs2gc_transform(&rotation1,&translation1);
+		FW_GL_TRANSLATE_D(translation1.c[0],translation1.c[1],translation1.c[2]);
+		FW_GL_ROTATE_RADIANS(rotation1.c[3],rotation1.c[0],rotation1.c[1],rotation1.c[2]);
+
+	}
+}
+void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
+	//LCS -> TCS
+	//transform stack LCS (shared Local Coordinate System) 
+	// to this node TCS (topocentric coordinate system
+	if(!renderstate()->render_vp) {
+		FW_GL_PUSH_MATRIX();
+		geoprepT0(geoSystem,userCoord);
+	}
+
+}
+void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord){
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	}else{
+		geoprep0(geoSystem,userCoord);
+	}
+
+}
 void child_GeoTransform (struct X3D_GeoTransform *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
-	INITIALIZE_GEOSPATIAL(node)
+	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 	OCCLUSIONTEST
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
@@ -3092,9 +4140,9 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-
+	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter);
 	normalChildren(node->children);
-
+	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter);
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
@@ -3102,4 +4150,802 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
+}
+
+//CONVERT_BACK_TO_GD_OR_UTMB(geoSystem, geoOrigin, thisField);
+void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoorigin, 
+		struct SFVec3d *LCSpos, struct SFVec3d *gdCoords, struct SFVec3d *thisField) {
+	//assumes incoming thisField is in GC system
+	//outputs thisField in targetGeoSystem
+
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+ 
+	/* do we need to change this from a GCC? */ 
+	Geosys *geoSystem = targetGeoSystem;
+	struct X3D_GeoOrigin *geoOrigin = (struct X3D_GeoOrigin*)geoorigin;
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	veccopyd(thisField->c,LCSpos->c);
+	// already in GC system //if(0) vecaddd(thisField->c,thisField->c,p->autoOrigin.c);
+
+	if (geoSystem != NULL) { /* do we have a GeoSystem specified?? if not, dont do this! */ 
+ 
+		if (geoSystem->spatial_system != GEOSP_GC) { 
+			/* have to convert to GD or UTM. Go to GD first */ 
+			gccToGdc (geoSystem, thisField, gdCoords);
+			if(geoSystem->geoid_height || geoSystem->relativeHeight)
+				gdCoords->c[2] -= userHeight2ellipsoidHeight(geoSystem,gdCoords);
+			veccopyd(thisField->c,gdCoords->c);
+
+			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
+		 
+			/* is this a GD? if so, go no further */ 
+			if (geoSystem->spatial_system == GEOSP_UTM || geoSystem->spatial_system == GEOSP_3TM ) { 
+				/* convert this to UTM  or 3TM */ 
+				double dtemp[3];
+
+				if(geoSystem->spatial_system == GEOSP_UTM){
+					gdToUtm3d(geoSystem,thisField->c, dtemp); 
+					veccopyd(thisField->c,dtemp);
+				}else if(geoSystem->spatial_system == GEOSP_3TM) {
+					gdTo3tm3d(geoSystem,thisField->c, dtemp);
+					veccopyd(thisField->c,dtemp);
+				} 
+ 
+			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ 
+			}  
+		} 
+	}
+}
+
+/*
+WALK navigation:
+(VPbindPose) +  userOffsets[ (cumulative navigation) + (camera tilts/orientation) ]
+The gravity height adustment (and general collision) goes into cumulative navigation
+The mouse navigation goes into cumulative navigation
+The LEVEL and FLY tilts go into orientation
+
+GEO WALK navigation:
+almost everything is related to ellipsoid / GD coordinates
+- LEVEL - relative to current gdCoords/GD position/GD up vector
+- orientation (camera tilts) relative to GD vertical
+- gravity correction - along GD vertical
+- SPEED - relative to GD height above GEG terrain, ellipsoid or GD radius from GC center, along GD vertical
+retainedUserOffsets are stored as absolute GD postion + orientation:
+ userOffsets = retainedGDposition - vpBind + orientation
+except: GD pose transformed into SLSLA for rendering, picking and extents
+
+*/
+
+/* compileGeosystem - encode the return value such that srf->p[x] is... 
+	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
+	1:	ellipsoid index (defaults to GEOSP_WE) 
+	2:	UTM zone number, 1..60. INT_ID_UNDEFINED = not specified 
+	3:	UTM:    if "northing_first" TRUE, if "easting_first", FALSE 
+	4:	UTM:    if "S" - value is FALSE, not S, value is TRUE
+	5:	GD:     if "latitude_first" TRUE, if "longitude_first", FALSE 
+	6:	GD: true if geoid height
+	7:	GD: TRUE: decimal degrees, FALSE radians
+*/
+int geoelevationgrid_getGDHeight0(struct X3D_GeoElevationGrid *node, struct SFVec3d *gdCoord, Geosys *geoSystem, double *gridHeight){
+	int hit;
+	//we'll work in gd coord.
+	struct point_XYZ result;
+	float centerf[3],bottomf[3];
+	double centerd[3], bottomd[3], spined[3], vertvecd[3];
+	struct SFVec3d xxCoord;
+	double cosine;
+	double tmin[3],tmax[3]; /* MBB for facet */
+	struct sNaviInfo *naviinfo;
+	Geosys *nodeSystem;
+	GLDOUBLE awidth, atop, abottom, astep;
+	ttglobal tg = gglobal();
+	//naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+
+	nodeSystem = GEOSYS(node->__geoSystem);
+	hit = -1; //caller: watch out, this can be -1 on return. only 1 means true hit
+	//get target node's gdCoord into GEG's gdcoord 
+	veccopyd(xxCoord.c,gdCoord->c); 
+	//printf("gdCoord %lf %lf %lf\n",gdCoord->c[0],gdCoord->c[1],gdCoord->c[2]);
+	if(geoSystem->gd_latitude_first != GEOSYS(node->__geoSystem)->gd_latitude_first) 
+		vecswizzle2d(xxCoord.c);
+	if(geoSystem->gd_degrees != GEOSYS(node->__geoSystem)->gd_degrees) 
+		if(geoSystem->gd_degrees == TRUE)
+			vecscale2d(xxCoord.c,xxCoord.c,RADIANS_PER_DEGREE);
+		else
+			vecscale2d(xxCoord.c,xxCoord.c,DEGREES_PER_RADIAN);
+
+
+	//get target nodes' gd coord into GEG's geosystem if not gd
+	int XTM = FALSE;
+	if(nodeSystem->spatial_system == GEOSP_UTM || nodeSystem->spatial_system == GEOSP_3TM ) { 
+		// convert GVP's gdCoord to UTM  or 3TM, in GEGs user order
+		XTM = TRUE;
+		double dtemp[3];
+		if(nodeSystem->spatial_system == GEOSP_UTM){
+			gdToUtm3d(GEOSYS(node->__geoSystem),xxCoord.c, dtemp); 
+			veccopyd(xxCoord.c,dtemp);
+		}else if(nodeSystem->spatial_system == GEOSP_3TM) {
+			gdTo3tm3d(GEOSYS(node->__geoSystem),xxCoord.c, dtemp);
+			veccopyd(xxCoord.c,dtemp);
+		} 
+ 	} else if(nodeSystem->spatial_system == GEOSP_GC) {
+		//no such thing as GC GEG
+		return hit;
+	}
+
+
+	int inside;
+	double emin[2],emax[2];
+	//not sure what space the GEG's node->_extent is in, so will recalculate here in its user coordinates
+	double size[2], spacing[2];
+	int idimension[2];
+	//we'll put dimension and spacing into x/easting/longitude-first order, 
+	// to capture xDimension,zDimension naming, then swizzle as needed
+	idimension[0] = node->xDimension; //assume x is longitude/easting
+	idimension[1] = node->zDimension; //assume z is latitude/northing
+	spacing[0] = node->xSpacing; //x long/east
+	spacing[1] = node->zSpacing; //z lat/north
+	//GEGs Geosystem
+	//to do some extent math, we'll swizzle into user order
+	int swizzle_xzdimension = (XTM && nodeSystem->xtm_northing_first) || (!XTM && nodeSystem->gd_latitude_first);
+	if(swizzle_xzdimension) {
+		//swizzle spacing,dimension into GEG's user order
+		//printf("early dimension swizzle\n");
+		int itmp = idimension[0];
+		idimension[0] = idimension[1];
+		idimension[1] = itmp;
+		vecswizzle2d(spacing);
+	}
+	size[0] = spacing[0]*(idimension[0] -1); //take off one column and one row to get cells (vs points)
+	size[1] = spacing[1]*(idimension[1] -1);
+	emin[0] = min(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
+	emax[0] = max(node->geoGridOrigin.c[0],node->geoGridOrigin.c[0]+size[0]);
+	emin[1] = min(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
+	emax[1] = max(node->geoGridOrigin.c[1],node->geoGridOrigin.c[1]+size[1]);
+	//printf("xxCoord= %lf %lf %lf\n",xxCoord.c[0],xxCoord.c[1],xxCoord.c[2]);
+	//printf("emin= %lf %lf emax= %lf %lf\n",emin[0],emin[1],emax[0],emax[1]);
+	inside  = xxCoord.c[0] <= emax[0] && xxCoord.c[0] >= emin[0];
+	inside &= xxCoord.c[1] <= emax[1] && xxCoord.c[1] >= emin[1];
+	//printf("b");
+	if(inside){
+		double spinelength, vcenterd[3], pp[2];
+		//double x,z,
+		double cx,cz;
+		double deltah, gridpointf[3];
+		//printf("c\n");
+		hit = 0;
+		//see if grid height is below, between or above avatar
+		pp[0] = xxCoord.c[0] - node->geoGridOrigin.c[0]; //latitude first/northing first default? or x == 0, z == 1?
+		pp[1] = xxCoord.c[1] - node->geoGridOrigin.c[1];
+		
+		//get pp from user order into x-first, z-second order - our old math below assumes x-first order
+		if(swizzle_xzdimension) {
+			//printf("swizzling user into xz\n");
+			vecswizzle2d(pp);
+		}
+		//printf("x,z= %lf %lf\n",pp[0],pp[1]);
+		//node->xDimension
+		// z h2  h3
+		// ^ h0  h1
+		// |-->x
+		//(ix,iz)
+		double hh[4],gridheight;
+		int i0,i1,i2,i3, ix, iz;
+		ix = (int)(pp[0]/node->xSpacing);
+		iz = (int)(pp[1]/node->zSpacing);
+		//int nh = node->height.n;
+		//printf("total h = %d\n",nh);
+
+		//printf("xspacing,zspacing,xdimension zdimension= %lf %lf %d %d\n",node->xSpacing,node->zSpacing,node->xDimension, node->zDimension);
+		//printf("ix,iz= %d %d\n",ix,iz);
+		i0 = iz * node->xDimension + ix;
+		i1 = i0 + 1;
+		i2 = i0 + node->xDimension;
+		i3 = i2 + 1;
+		//printf("i0-i3 = %d %d %d %d\n",i0,i1,i2,i3); //should all be < height.n
+		hh[0] = node->height.p[i0];
+		hh[1] = node->height.p[i1];
+		hh[2] = node->height.p[i2];
+		hh[3] = node->height.p[i3];
+		//normalize cell x and z
+		cx = (pp[0] - ix*node->xSpacing)/node->xSpacing;
+		cz = (pp[1] - iz*node->zSpacing)/node->zSpacing;
+		//height interpolation by finite elements > bilinear interpolotion of height
+		// (could do cubic using 3x3 chunks)
+		//printf("cx %lf cz %lf\n",cx,cz);
+		gridheight =  hh[0]*(1.0f - cz)*(1.0f - cx)
+					+ hh[1]*(1.0f - cz)*cx 
+					+ hh[2]*cz*(1.0f - cx) 
+					+ hh[3]*cz*cx;
+		gridheight *= node->yScale;
+		//printf("_");
+		*gridHeight = gridheight;
+		//printf("\tgridheight=%lf\n",gridheight);
+		hit = 1;
+	}
+	return hit;
+}
+
+int geoelevationgrid_disp2(struct X3D_GeoElevationGrid *node, struct X3D_GeoViewpoint *gvp){
+	// general polyrep collision does a few ugly things:
+	// 1. transforms all the points into collision/avatar space
+	// 2. iterates over all the triangles (a few times)
+	// this geoElevationGrid optimization will take a few shortcuts:
+	// a) only do gravity, if enabled
+	// b) transform avatar gravity vector into grid space
+	// c) use geoElevationGrid rows, columns, xspace,zspace, to look up heights by avatar position N,E or lat,lon in grid space
+	// d) see if its a collision
+	// e) update the climing / falling parameters (and skip wall penetration detection and bump collision testing)
+	// if for some reason it can't handle it, it returns -1, and then the generic collision can be called
+	struct sFallInfo *fi;
+	int hit,i;
+
+	hit = -1; //0 handled, and no colliision, 1=handled and collision, -1=not handled (not woaking, or gravity vector not perpendicular to grid)
+	fi = FallInfo();
+
+	if(fi->walking)
+	{
+		struct point_XYZ result;
+		float centerf[3],bottomf[3];
+		double centerd[3], bottomd[3], spined[3], vertvecd[3], gridheight;
+		struct SFVec3d *gdCoord, xxCoord;
+		Geosys *geoSystem;
+		double cosine;
+		double tmin[3],tmax[3]; /* MBB for facet */
+		struct sNaviInfo *naviinfo;
+		GLDOUBLE awidth, atop, abottom, astep;
+		ttglobal tg = gglobal();
+		naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
+
+		//GVP gdcoord and geosys
+		gdCoord = &gvp->__movedgd;
+		geoSystem = GEOSYS(node->__geoSystem);
+		hit = geoelevationgrid_getGDHeight0(node, gdCoord, geoSystem, &gridheight);
+		static int count =0;
+		count++;
+		//if(hit != 1) printf("no carpet %d\n",count);
+		if(hit  == 1){
+			//hit = 1;
+			// scraped from:
+			//	accumulateFallingClimbing(abottom,atop,astep,p,num,n,tmin,tmax); //y1, y2, p, num, n);
+			if(gvp->_resetRelativeHeight){
+				naviinfo->height = gdCoord->c[2] - gridheight;
+				gvp->_resetRelativeHeight = FALSE; //we do just once per WALK 'session' (WALK turned on, or bind with WALK on)
+				//printf("walking resetRelative gridHeight=%lf gdCoordc2=%lf\n",gridheight,gdCoord->c[2]);
+			}
+			//printf("=\n");
+			double abottom = gdCoord->c[2] - naviinfo->height; //100; // - avatar height?
+			double hhh = gridheight - abottom;
+			//printf("gridHeight %lf avatarHeight %lf gdc2 %lf naviih %lf\n",hhh,abottom,gdCoord->c[2],naviinfo->height);
+			double hhbelowfoot = hhh; //hhh - abottom;
+			//fi->fallHeight = 1000000.0;
+			if( hhh < 0.0 )
+			{
+				//printf("V");
+				/* falling */
+				if( hhh < abottom && hhh > -fi->fallHeight) 
+				{
+					//printf("v");
+					/* FALLING */
+					if(fi->hits ==0)
+						fi->hfall = hhbelowfoot; //hh - y1;
+					else
+						if(hhbelowfoot > fi->hfall) fi->hfall = hhbelowfoot; //hh - y1;
+					fi->hits++;
+					fi->isFall = 1;
+					//printf("hfall %lf\n",fi->hfall);
+				}else{
+					//printf("~");
+					/* regular below / nadir collision - below avatar center but above avatar's feet which are at 0.0 - avatar.height*/
+					if( hhh >= abottom  ) /* && hh <= (y1-ystep) ) //no step height implementation */
+					{
+						/* CLIMBING. handled elsewhere for displacements, except annihilates any fall*/
+						fi->canFall = 0;
+
+						if( fi->isClimb == 0 )
+							fi->hclimb = hhbelowfoot; //hh - y1;
+						else
+							fi->hclimb = DOUBLE_MAX(fi->hclimb,hhbelowfoot);
+						fi->isClimb = 1;
+					}
+				}
+			}
+			double head = 0.0;
+			double hhabovehead = hhh - head;
+			abottom = 0.0;
+			if( hhabovehead > 0.0 )
+			{
+				//printf("H");
+				/* climbing from undergound */
+				//if( hhabovehead < fi->climbHeight) 
+				{
+					//printf("^");
+					/* CLIMBING */
+					fi->canFall = 0;
+
+					if( fi->isClimb == 0 ){
+						fi->hclimb = hhabovehead + abottom; //hh - y1;
+					}else{
+						fi->hclimb = DOUBLE_MAX(fi->hclimb,hhabovehead + abottom);
+					}
+					fi->isClimb = 1;
+					//printf("hclimb %lf abottom %lf hhabovehead %lf\n",fi->hclimb,abottom,hhabovehead);
+				}
+			}
+		}
+	}
+
+	return hit;
+}
+
+void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	/* 
+	For examine and fly navigation modes, there's no gravity direction. 
+	Specifications say for geo walk navigation mode gravity vector is down along GD ellipsoid vertical 
+	with respect to (wrt) the current GD (geodetic/ellipsoidal latitude, longitude, height)
+	posistion of the viewpoint, not including the viewpoint's orientation 
+	field. 
+	When you collide in geo walk mode, the avatar collision
+	volume is aligned to current viewpoint GD vertical. 
+	*/
+
+	int ihit = -1;
+	int compatible;
+	struct X3D_Node *boundvp;
+	
+	compatible = FALSE;
+	boundvp = getActiveLayerBoundViewpoint();
+	if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
+		struct X3D_GeoViewpoint *gvp;
+		struct Planet *planet = current_planet();;
+		gvp = (struct X3D_GeoViewpoint *)boundvp;
+		if(gvp->_prepped_planet == planet->ID) compatible = TRUE;
+	}
+	if(node->_nodeType == NODE_GeoElevationGrid && compatible ){
+		ihit = geoelevationgrid_disp2((struct X3D_GeoElevationGrid*)node, (struct X3D_GeoViewpoint *)boundvp);
+		//if(ihit==0) printf("0");
+		//if(ihit==1) printf("1");
+		//if(ihit==-1) printf(".");
+	}
+	if(0) if(ihit == -1){
+		//above couldn't handle it, thunking to generic 
+		//problem: if its a really dense grid, the framerate plummets
+		collide_genericfaceset ((struct X3D_IndexedFaceSet *)node );
+	}
+
+}
+double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord){
+	int i,j,nfound;
+	struct Planet *planet;
+	double highest;
+	//find planet
+	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	highest = 0.0; //this means we can't go below ground. It also means if no GEG found, then we are relative to ellipsoid
+	if(!p->planet_stack) return highest; //no GEGs registered, stick to absolute height
+	nfound = 0;
+	planet = NULL;
+	for(i=0;i<vectorSize(p->planet_stack);i++){
+		planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+		if(planet && planet->ID == planetID) {
+			if(!planet->gegs) return highest; //no gegs registered
+			for(j=0;j<vectorSize(planet->gegs);j++){
+				double gridheight;
+				struct X3D_GeoElevationGrid *geg = vector_get(struct X3D_GeoElevationGrid*,planet->gegs,j);
+				if(geg)
+				if( geoelevationgrid_getGDHeight0(geg,gdCoord,geoSystem,&gridheight) == 1){
+					//make a list of hits, and pick the highest one, in case there are grid overlays etc.
+					nfound++;
+					if(nfound == 1) highest = gridheight;
+					highest = max(highest,gridheight);
+					//printf("p %d g %x h %lf\n",planetID,geg,highest);
+				}
+			}
+		}
+	}
+	return highest;
+}
+
+void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID){
+	//call this from render_geoelevationgrid, or collide_?, so we get the planet from
+	// a) geoSystem "P#"
+	// b) X3DGeoPlanet.planetID="#" which is pushed and popped, so DEF/USE can put get GEG in different planets
+	// this implies you can have DEF/USE multiple USEs of GEGs for different planets (but just once per planet?), 
+	// so {planet,geg} 
+	// should be the unique index
+	if(node && node->_nodeType == NODE_GeoElevationGrid){
+		int i,j,ifound;
+		struct Planet *planet;
+		//add to planet
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		if(!p->planet_stack) p->planet_stack = newStack(struct Planet);
+		ifound = -1;
+		planet = NULL;
+		for(i=0;i<vectorSize(p->planet_stack);i++){
+			planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+			if(planet->ID == planetID) {
+				//right planet
+				ifound = i;
+				break;
+			}
+		}
+		if(ifound == -1){
+			struct Planet newplanet;
+			memset(&newplanet,0,sizeof(struct Planet));
+			newplanet.ID = planetID;
+			//printf("adding planet # %d\n",planetID);
+			vector_pushBack(struct Planet,p->planet_stack,newplanet);
+			ifound = p->planet_stack->n -1;
+			planet = vector_get_ptr(struct Planet,p->planet_stack,ifound);
+		}
+		if(planet->gegs == NULL) planet->gegs = newStack(struct X3D_Node*);
+		//printf("adding GEG %x to planet # %d\n",node,planetID);
+		vector_pushBack(struct X3D_Node*,planet->gegs,node);
+	}
+}
+void unRegisterGeoElevationGrid(struct X3D_Node *node){
+	//call this from unRegisterX3DAnyNode, which is called from unload_broto, which is called 
+	// when unloading an Inline (including GeoLOD inlines)
+	if(node && node->_nodeType == NODE_GeoElevationGrid){
+		int i,j;
+		//remove all instances from all planets
+		ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+		if(!p->planet_stack) return;
+		for(i=0;i<vectorSize(p->planet_stack);i++){
+			struct Planet *planet = vector_get_ptr(struct Planet,p->planet_stack,i);
+			if(planet->gegs)
+			for(j=0;j<vectorSize(planet->gegs);j++){
+				int k = vectorSize(planet->gegs) - j -1;
+				struct X3D_Node *geg = vector_get(struct X3D_Node*,planet->gegs,k);
+				if(geg == node){
+					vector_set(struct X3D_Node*,planet->gegs,k,NULL);
+				}
+			}
+		}
+	}
+
+}
+
+
+void compile_GeoPlanet(struct X3D_GeoPlanet *node){
+	{
+		struct Planet *planet = current_planet();
+		if(planet == NULL){
+			planet = add_planet(node->planetId);
+			//printf("planet=%x\n",planet);
+		}
+	}
+	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	MARK_NODE_COMPILED
+	
+	/* events */
+	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoLocation, metadata)) */
+
+	INITIALIZE_EXTENT;
+
+}
+
+void prep_GeoPlanet(struct X3D_GeoPlanet *node){
+	push_planetId(node->planetId);
+	COMPILE_IF_REQUIRED
+	if(!renderstate()->render_vp) {
+		double aoo[4],ao[3];
+		struct Planet *planet;
+		//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+
+		planet = current_planet();
+		//we need to get the LCS to GC transform on the stack
+		FW_GL_PUSH_MATRIX();
+		veccopyd(ao,planet->autoOrigin.c);
+		veccopy4d(aoo,planet->autoOrient.c);
+		FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
+		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
+
+
+		/* did either we or the Viewpoint move since last time? */
+		RECORD_DISTANCE
+		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	}
+
+}
+	
+void child_GeoPlanet(struct X3D_GeoPlanet *node){
+	CHILDREN_COUNT
+	//LOCAL_LIGHT_SAVE
+	//INITIALIZE_GEOSPATIAL(node)
+	COMPILE_IF_REQUIRED
+//	OCCLUSIONTEST
+	RETURN_FROM_CHILD_IF_NOT_FOR_ME
+
+	//LOCAL_LIGHT_CHILDREN(node->children);
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	normalChildren(node->children);
+
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+}
+void fin_GeoPlanet(struct X3D_GeoPlanet *node){
+	//pop LCS to GC transform
+	COMPILE_IF_REQUIRED
+	OCCLUSIONTEST
+
+	if(!renderstate()->render_vp) {
+		FW_GL_POP_MATRIX();
+	} else {
+		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+			double aoo[4],ao[3];
+			struct Planet *planet;
+			//ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+			planet = current_planet();
+			veccopyd(ao,planet->autoOrigin.c);
+			veccopy4d(aoo,planet->autoOrient.c);
+
+			FW_GL_ROTATE_RADIANS(-aoo[3], aoo[0],aoo[1],aoo[2]);
+			FW_GL_TRANSLATE_D(-ao[0], -ao[1], -ao[2]);
+
+		}
+	}
+	pop_planetId();
+
+}
+
+//by 'user' coordinates we mean as authored in the scene file and specfied by geosystem by the scene author
+// when converting from GC to user, we might find the user _is_ GC. 
+// with these functions you don't need to know or care about shortcuts.
+void user2gc(Geosys * geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gc){
+	//UNTESTED
+	int i;
+	struct SFVec3d gdCoord;
+	for(i=0;i<n;i++){
+		moveCoords3d(geoSystem,NULL,NULL,&geo[i],1,&gc[i],&gdCoord);
+	}
+}
+void gc2user(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *geo){
+	//UNTESTED
+	int i;
+	struct SFVec3d gdCoord;
+	for(i=0;i<n;i++){
+		CONVERT_BACK_TO_GD_OR_UTMC(geoSystem,NULL,&gc[i],&gdCoord,&geo[i]);
+	}
+}
+void gc2lcs_transform(struct SFVec3d *translate, struct SFVec4d *rotate){
+	//converts from GC geocentric, to LCS local coordinate system
+	//LCS = GC - origin
+	int i;
+	struct Planet *planet;
+	planet = current_planet();
+	veccopyd(translate->c,planet->autoOrigin.c);
+	//vecscaled(translate->c,translate->c,-1.0);
+	vecnegated(translate->c,translate->c);
+	veccopy4d(rotate->c,planet->autoOrient.c);
+	rotate->c[3] = -rotate->c[3];
+}
+void gc2lcs(Geosys * geoSystem, struct SFVec3d *gc, int n, struct SFVec3d *lcs){
+	//converts from GC geocentric, to LCS local coordinate system
+	//LCS = GC - origin
+
+	int i;
+	struct SFVec3d translate;
+	struct SFVec4d rotate;
+	Quaternion qup;
+	gc2lcs_transform(&translate, &rotate);
+	vrmlrot_to_quaternion(&qup,rotate.c[0],rotate.c[1],rotate.c[2],rotate.c[3]);
+	for(i=0;i<n;i++){
+		vecaddd(lcs[i].c,gc[i].c,translate.c);
+		quaternion_rotationd(lcs[i].c,&qup,lcs[i].c);
+		//vecprint3db("lcs1",lcs[i].c,"\n");
+	}
+
+}
+void lcs2gc_transform(struct SFVec4d *rotation, struct SFVec3d *translation){
+	//converts from local coorinate system to GC geocentric
+	//GC = LCS + origin
+	int i;
+	struct Planet *planet;
+	planet = current_planet();
+	veccopy4d(rotation->c,planet->autoOrient.c);
+	veccopyd(translation->c,planet->autoOrigin.c);
+}
+void lcs2gc(Geosys * geoSystem, struct SFVec3d *lcs, int n, struct SFVec3d *gc){
+	//converts from local coorinate system to GC geocentric
+	//GC = LCS + origin
+	int i;
+	struct SFVec4d rotation;
+	struct SFVec3d translation;
+	Quaternion qup;
+	lcs2gc_transform(&rotation, &translation);
+	vrmlrot_to_quaternion(&qup,rotation.c[0],rotation.c[1],rotation.c[2],rotation.c[3]);
+	for(i=0;i<n;i++){
+		quaternion_rotationd(gc[i].c,&qup,lcs[i].c);
+		vecaddd(gc[i].c,gc[i].c,translation.c);
+	}
+	//vecprint3db("gc1",gc[0].c,"\n");
+}
+
+
+
+void  gc2tcs_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *translate, struct SFVec4d *rotate){
+	// GC -> TCS
+	// convert from GC to node local aligned aka topocentric coordinate system TCS
+	//TCS =  localOrient x (GC - gdcenter)
+
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d lo;
+	struct SFVec3d gcCenter;
+	GeoOrient(NULL,geoSystem,gdcenter,rotate);
+	rotate->c[3] = -rotate->c[3];
+	gd2gc(geoSystem,gdcenter,1,translate);
+	//vecscaled(translate->c,translate->c,-1.0);
+	vecnegated(translate->c,translate->c);
+
+}
+void  tcs2gc_transform(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec4d *rotate, struct SFVec3d *translate){
+	// TCS -> GC
+	// convert from node-local-algined aka topocentric coordinate system TCS to GC
+	// GC = (inverse(localOrient) x TCS) + gdcenter
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d lo;
+	struct SFVec3d gcCenter;
+	GeoOrient(NULL,geoSystem,gdcenter,rotate);
+	gd2gc(geoSystem,gdcenter,1,translate);
+	
+}
+void  gc2tcs(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs){
+	// GC -> TCS
+	// convert from GC to node local aligned aka topocentric coordinate system TCS
+	//TCS =  localOrient x (GC - gdcenter)
+
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], -rotate.c[3]);
+	for(i=0;i<n;i++){
+		vecdifd(pp,gc[i].c,translate.c);
+		quaternion_rotationd(tcs[i].c,&qlo,pp);
+	}
+
+}
+void  tcs2gc(Geosys * geoSystem, struct SFVec3d *gdcenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc){
+	// TCS -> GC
+	// convert from node-local-algined aka topocentric coordinate system TCS to GC
+	// GC = (inverse(localOrient) x TCS) + gdcenter
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	tcs2gc_transform(geoSystem, gdcenter, &rotate, &translate);
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], rotate.c[3]);
+	for(i=0;i<n;i++){
+		quaternion_rotationd(pp,&qlo,tcs[i].c);
+		vecaddd(gc[i].c,translate.c,pp);
+	}
+	
+}
+
+void  tcs2gcB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc);
+void  gc2tcsB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs);
+
+void  gc2tcsB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *gc,  int n, struct SFVec3d *tcs){
+	// GC -> TCS
+	// convert from GC to node local aligned aka topocentric coordinate system TCS
+	//TCS =  localOrient x (GC - gdcenter)
+
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	tcs2gcB_transform(geoSystem, gccenter, &translate, &rotate);
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], -rotate.c[3]);
+	for(i=0;i<n;i++){
+		vecdifd(pp,gc[i].c,translate.c);
+		quaternion_rotationd(tcs[i].c,&qlo,pp);
+	}
+
+}
+void  tcs2gcB(Geosys * geoSystem, struct SFVec3d *gccenter, struct SFVec3d *tcs, int n, struct SFVec3d *gc){
+	// TCS -> GC
+	// convert from node-local-algined aka topocentric coordinate system TCS to GC
+	// GC = (inverse(localOrient) x TCS) + gdcenter
+	int i;
+	double pp[3];
+	Quaternion qlo;
+	struct SFVec4d rotate;
+	struct SFVec3d translate;
+	tcs2gcB_transform(geoSystem, gccenter, &translate,  &rotate);
+	vrmlrot_to_quaternion(&qlo,rotate.c[0],rotate.c[1],rotate.c[2], rotate.c[3]);
+	for(i=0;i<n;i++){
+		quaternion_rotationd(pp,&qlo,tcs[i].c);
+		vecaddd(gc[i].c,translate.c,pp);
+	}
+	
+}
+
+
+/*
+//as with geoConvert, its more reliable to go user2gc gc2anything and vice versa, rather 
+// than user2gd. That's because ideally we go geo2geo(source_geosystem,dest_geosystem).
+// and when we do user2gd its confusing which geosystem we are using for the gd
+// and are the gd lat first, radians, or are they what the user are?
+void user2gd(struct Multi_Int32* geoSystem, struct SFVec3d *geo, int n, struct SFVec3d *gd){
+	//UNTESTED
+	int i;
+	struct SFVec3d gcCoord;
+	for(i=0;i<n;i++)
+		moveCoords3d(geoSystem,NULL,NULL,&geo[i],1,&gcCoord,&gd[i]);
+}
+void gd2user(struct Multi_Int32* geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *geo){
+	//UNTESTED
+	int i;
+	struct SFVec3d gdCoord, gcCoord;
+	for(i=0;i<n;i++){
+		Gd_Gc3d(geoSystem,&gd[i],1,&gcCoord);
+		gc2user(geoSystem,&gcCoord,1,&geo[i]);
+	}
+}
+*/
+void gd2gc(Geosys * geoSystem, struct SFVec3d *gd,  int n, struct SFVec3d *gc){
+	//UNTESTED
+	int i;
+	for(i=0;i<n;i++){
+		Gd_Gc3d(geoSystem,&gd[i],1,&gc[i]);
+	}
+}
+void gc2gd(Geosys * geoSystem, struct SFVec3d *gc,  int n, struct SFVec3d *gd){
+	//UNTESTED
+	int i;
+	for(i=0;i<n;i++){
+		gccToGdc (geoSystem, &gc[i], &gd[i]);
+	}
+}
+void do_GeoConvert (void *px){
+	// web3d v3.3 specs missing a converter node - you can route between
+	// geoNodes, but what if 2 nodes have different geoSystem?
+	// this geoConvert node solves that, you create 2 of these and chain them:
+	// myGeoNode1 -> set_geoCoord (geoConvert1) gcCoord_changed -> set_gcCoord (geoConvert2) geoCoord_changed -> myGeoNode2
+	// where geoConvert1.geoSystem == myGeoNode1.geoSystem
+	// and geoConvert2.geoSystem == myGeoNode2.geoSystem
+	//
+	// If we've done above nodes well, then any scene routing of geoCoords should be 
+	// in so-called 'user coords' -as specified by the scene designer in geoSystem
+	// for example longitude first, degrees etc.
+	// That means we shouldn't see any LCS - the Local Coordinate System you get after taking off geoOrigin or AutoOrigin 
+	// we'll just see full geo coords and full gc coords in routing
+
+	struct X3D_GeoConvert *node;
+	node = (struct X3D_GeoConvert *) px;
+	if (!node) return;
+	if(node->__geoSystem == NULL)
+		compile_geoSystem (X3D_NODE(node),node->_nodeType, &node->geoSystem, &node->__geoSystem);
+
+	if (!vecsamed(node->__oldgeoCoords.c,node->set_geoCoords.c)) {
+		struct SFVec3d gdCoord;
+		//user2gc
+		moveCoords3d(GEOSYS(node->__geoSystem),NULL,NULL,&node->set_geoCoords,1,&node->gcCoords_changed,&gdCoord);
+		MARK_EVENT (px, offsetof (struct X3D_GeoConvert, gcCoords_changed));
+		veccopyd(node->__oldgeoCoords.c,node->set_geoCoords.c);
+	} 
+	if (!vecsamed(node->__oldgcCoords.c,node->set_gcCoords.c)){
+		struct SFVec3d gdCoord;
+		//gc2user
+		CONVERT_BACK_TO_GD_OR_UTMC(GEOSYS(node->__geoSystem),NULL,&node->set_gcCoords,&gdCoord,&node->geoCoords_changed);
+		MARK_EVENT (px, offsetof (struct X3D_GeoConvert, geoCoords_changed));
+		veccopyd(node->__oldgcCoords.c,node->set_gcCoords.c);
+	}
 }

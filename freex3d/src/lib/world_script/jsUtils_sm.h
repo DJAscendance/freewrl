@@ -1,0 +1,141 @@
+/*
+
+
+CProto.h - this is the object representing a PROTO definition and being
+capable of instantiating it.
+ 
+We keep a vector of pointers to all that pointers which point to "inner
+memory" and need therefore be updated when copying.  Such pointers include
+field-destinations and parts of ROUTEs.  Those pointers are then simply
+copied, their new positions put in the new vector, and afterwards are all
+pointers there updated.
+
+*/
+
+/****************************************************************************
+    This file is part of the FreeWRL/FreeX3D Distribution.
+
+    Copyright 2009 CRC Canada. (http://www.crc.gc.ca)
+
+    FreeWRL/FreeX3D is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FreeWRL/FreeX3D is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
+****************************************************************************/
+
+
+#ifndef __FREEWRL_JS_UTILS_H__
+#define __FREEWRL_JS_UTILS_H__
+
+
+//#include <system_js.h>
+
+#ifndef FALSE
+#define FALSE 0
+#endif /* FALSE */
+
+#define CLEANUP_JAVASCRIPT(cx) \
+	/* printf ("calling JS_GC at %s:%d cx %u thread %u\n",__FILE__,__LINE__,cx,pthread_self()); */ \
+	JS_GC(cx);
+
+#define LARGESTRING 2048
+#define STRING 512
+#define SMALLSTRING 128
+
+#define FNAME_STUB "file"
+#define LINENO_STUB 0
+
+
+
+//extern struct ECMAValueStruct ECMAValues[];
+//extern int maxECMAVal;
+int findInECMATable(JSContext *context, jsval toFind);
+int findNameInECMATable(JSContext *context, char *toFind);
+void resetNameInECMATable(JSContext *context, char *toFind);
+
+/* We keep around the results of script routing, or just script running... */
+//extern jsval JSCreate_global_return_val;
+//extern jsval JSglobal_return_val;
+//extern void *JSSFpointer;
+
+int jsrrunScript(JSContext *_context, JSObject *_globalObj, char *script, jsval *rval);
+int JS_DefineSFNodeSpecificProperties (JSContext *context, JSObject *object, struct X3D_Node * ptr);
+
+#ifdef JAVASCRIPTVERBOSE
+# define ACTUALRUNSCRIPT(a,b,c) ActualrunScript(a,b,c,__FILE__,__LINE__)
+/* now in JScript.h -- int ActualrunScript(intptr_t num, char *script, jsval *rval, char *fn, int line); */
+#else
+# define ACTUALRUNSCRIPT(a,b,c) ActualrunScript(a,b,c)
+/* now in JScript.h -- int ActualrunScript(intptr_t num, char *script, jsval *rval); */
+#endif
+
+void
+reportWarningsOn(void);
+
+void
+reportWarningsOff(void);
+
+void
+errorReporter(JSContext *cx,
+			  const char *message,
+			  JSErrorReport *report);
+
+void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval *ret);
+void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, jsval *newval);
+void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *valueChanged, jsval *newval);
+void X3D_SF_TO_JS_BNode(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval);
+JSBool setSFNodeField (JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+void JS_SF_TO_X3D_BNode(JSContext *cx, void *Data, int dataType, int *valueChanged, jsval *newval);
+JSBool JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+
+const char *classToString(JSClass *myClass);
+#define CHECK_CLASS(cx,obj,argv,fnString,expClass) \
+/* printf ("CHECK_CLASS, obj %u, argv %u\n",obj,argv);*/ \
+    	if (!JS_InstanceOf(cx, obj, &expClass, argv)) { \
+		printf ("Javascript Instance problem in '%s' - expected a '%s', got a ", fnString, classToString(&expClass)); \
+		printJSNodeType (cx,obj); \
+		return JS_FALSE; \
+	} 
+int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
+JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
+void * JS_GetPrivateFw(JSContext *cx,JSObject*_obj);
+JSObject* JS_GetParentFw(JSContext *cx, JSObject *me);
+JSObject * JS_ConstructObjectWithArgumentsFw(JSContext *cx, JSClass *clasp, JSObject *parent, unsigned argc, jsval *argv); 
+JSObject * JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *parent);
+JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj);
+JSClass * JS_GetClassFw(JSContext *cx, JSObject * obj);
+
+#define JSSCRIPT JSScript
+
+
+
+#define JS_GET_PROPERTY_STUB JS_PropertyStub
+/* #define JS_GET_PROPERTY_STUB js_GetPropertyDebug */
+
+#define JS_SET_PROPERTY_STUB1 js_SetPropertyDebug1
+
+/* #define JS_SET_PROPERTY_STUB2 js_SetPropertyDebug2  */
+#if JS_VERSION < 185
+# define JS_SET_PROPERTY_STUB2 JS_PropertyStub
+#else
+# define JS_SET_PROPERTY_STUB2 JS_StrictPropertyStub
+#endif
+
+#define JS_SET_PROPERTY_STUB3 js_SetPropertyDebug3 
+#define JS_SET_PROPERTY_STUB4 js_SetPropertyDebug4 
+#define JS_SET_PROPERTY_STUB5 js_SetPropertyDebug5 
+#define JS_SET_PROPERTY_STUB6 js_SetPropertyDebug6 
+#define JS_SET_PROPERTY_STUB7 js_SetPropertyDebug7 
+#define JS_SET_PROPERTY_STUB8 js_SetPropertyDebug8 
+#define JS_SET_PROPERTY_CHECK js_SetPropertyCheck
+
+
+#endif /* __FREEWRL_JS_UTILS_H__ */

@@ -335,7 +335,8 @@ typedef struct {
 	GLuint textureID;
 } pfont_t;
 
-typedef struct buttonSet buttonSet;
+struct _buttonSet;
+typedef struct _buttonSet buttonSet;
 typedef struct {
 	int width;
 	int height;
@@ -354,11 +355,11 @@ typedef struct {
 	buttonSet *buttonset;
 } pmenuItem_t;
 
-typedef struct buttonSet {
+struct _buttonSet {
 	int n;
 	int index;
 	pmenuItem_t ** items;
-} buttonSet;
+};
 //Mar 2015 separate menubar from list of menuitems
 //  menuitmes - icons and actions which are prepared and can be placed on a menubar
 //  menubar - (new) container holding a runtime-changable arrangement of menuitems
@@ -432,7 +433,7 @@ typedef struct pstatusbar{
 	char messagebar[200];
 	int bmfontsize;// = 2; /* 0,1 or 2 */
 	int optionsLoaded;// = 0;
-	char * optionsVal[30];
+	char * optionsVal[35];
 	int osystem;// = 3; //mac 1btn = 0, mac nbutton = 1, linux game descent = 2, windows =3
 	XY bmWH;// = {10,15}; /* simple bitmap font from redbook above, width and height in pixels */
 	int bmScale; //1 or 2 for the hud pixel fonts, changes between ..ForOptions and ..Regular 
@@ -474,7 +475,7 @@ void statusbar_init(struct tstatusbar *t){
 		p->hadString = 0;
 		p->wantStatusbar = 1;
 		p->wantButtons = p->wantStatusbar;
-		p->showButtons = p->wantButtons;
+		p->showButtons = 0; //p->wantButtons;
 		p->showStatus = p->wantStatusbar;
 		//p->statusbar_pinned = 1;
 		//p->menubar_pinned = 0;
@@ -528,7 +529,7 @@ void statusbar_init(struct tstatusbar *t){
 
 //ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
 
-void initProgramObject(){
+static void init_ProgramObject(){
 	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
 
    // Load the shaders and get a linked program object
@@ -540,7 +541,7 @@ void initProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 26;
+static int lenOptions   = 30;
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -698,9 +699,12 @@ FXY screen2normalizedScreenScale( GLfloat x, GLfloat y);
 
 // OLD_IPHONE_AQUA #endif
 
-void printString3(GLfloat sx, GLfloat sy, char *s, int len)
+void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 {
-	int i, j;
+	//this one ran for a decade, but 2018 was correlated with 
+	// bombing on windows x64 release build with Background node in scene - 
+	// one of those hard-to-track mysterious things, crashing in shader
+	int i, j, len1;
     int ichar;
 	FXY charScreenSize;
 	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
@@ -714,9 +718,10 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 	if(!s) return;
 	//len = (int) strlen(s);
 	if(len == 0) return;
-	sizeofvert = len * sizeof(GLfloat) * 4 * 3;
-	sizeoftex = len * sizeof(GLfloat) * 4 * 2;
-	sizeofind = len * sizeof(GLshort) * 2 * 3;
+	len1 = 2*len + 1;
+	sizeofvert = len1 * sizeof(GLfloat) * 4 * 3;
+	sizeoftex = len1 * sizeof(GLfloat) * 4 * 2;
+	sizeofind = len1 * sizeof(GLshort) * 2 * 3;
 	vert = (GLfloat*)alloca(sizeofvert); //2 new vertex, 3D
 	tex  = (GLfloat*)alloca(sizeoftex); //4 new texture coords, 2D
 	ind  = (GLushort*)alloca(sizeofind); //2 triangles, 3 points each
@@ -779,10 +784,102 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 	// Set the base map sampler to texture unit to 0
 	glUniform1i ( p->textureLoc, 0 );
 	glDrawElements ( GL_TRIANGLES, i*3*2, GL_UNSIGNED_SHORT, ind );
+
+	//glDisableVertexAttribArray( p->texCoordLoc );
+	//glDisableVertexAttribArray ( p->positionLoc );
+		//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+		//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 	//FREE(vert);
 	//FREE(tex);
 	//FREE(ind);
 
+
+}
+void printString3(GLfloat sx, GLfloat sy, char *s, int len)
+{
+	//this version draws one char at a time 
+	// (like the scrolling ! text, in Component_text.c dug9gui_DrawSubImage() does)
+	// - no alloca
+	// - fixed size arrays big enough for 1 char
+	int i, j, len1;
+    int ichar;
+	FXY charScreenSize;
+	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
+	GLfloat x,y,z;
+    GLfloat vert[12];
+    GLfloat tex[8];
+    GLushort ind[6];
+	int sizeoftex, sizeofvert, sizeofind;
+
+	// construct triangle list
+	if(!s) return;
+	//len = (int) strlen(s);
+	if(len == 0) return;
+	glActiveTexture ( GL_TEXTURE0 );
+	glBindTexture ( GL_TEXTURE_2D, p->pfont.textureID );
+	// Set the base map sampler to texture unit to 0
+	glUniform1i ( p->textureLoc, 0 );
+
+	glEnableVertexAttribArray ( p->positionLoc );
+	glEnableVertexAttribArray ( p->texCoordLoc );
+
+	x=y=z = 0.0f;
+	x = sx;
+	y = sy;
+	i = 0;
+	// 1 2     coords and tex coords pattern
+	// 0 3
+	for(j=0;j<len;j++)
+	{
+		ichar = (int)s[j];
+		if (ichar == '\t') ichar = ' '; //trouble with tabs, quick hack
+		if(p->pfont.have[ichar])
+		{
+			charScreenSize = screen2normalizedScreenScale(p->pfont.owh[0][1][ichar]*p->bmScale,p->pfont.owh[1][1][ichar]*p->bmScale);
+			vert[0] = x;
+			vert[1] = y;
+			vert[2] = z;
+			vert[3] = x;
+			vert[4] = y + charScreenSize.y;
+			vert[5] = z;
+			vert[6] = x + charScreenSize.x; 
+			vert[7] = y + charScreenSize.y; 
+			vert[8] = z;
+			vert[9] = x + charScreenSize.x; 
+			vert[10] = y;
+			vert[11] = z;
+			x = x + charScreenSize.x; 
+			tex[0] = p->pfont.tex[0][0][ichar];
+			tex[1] = p->pfont.tex[1][0][ichar];
+			tex[2] = p->pfont.tex[0][0][ichar];
+			tex[3] = p->pfont.tex[1][1][ichar];
+			tex[4] = p->pfont.tex[0][1][ichar];
+			tex[5] = p->pfont.tex[1][1][ichar];
+			tex[6] = p->pfont.tex[0][1][ichar];
+			tex[7] = p->pfont.tex[1][0][ichar];
+			ind[0] = 0;
+			ind[1] = 1;
+			ind[2] = 2;
+			ind[3] = 2;
+			ind[4] = 3;
+			ind[5] = 0;
+			//bindTexture and DrawElements calls are the same for GL and GLES2
+
+			// Load the vertex position
+			glVertexAttribPointer ( p->positionLoc, 3, GL_FLOAT, 
+								   GL_FALSE, 0, vert );
+			// Load the texture coordinate
+			glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
+								   GL_FALSE, 0, tex );  //fails - p->texCoordLoc is 429xxxxx - garbage
+
+			glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+		}
+	}
+	//glDisableVertexAttribArray ( p->positionLoc );
+	//glDisableVertexAttribArray ( p->texCoordLoc );
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 }
 void printString2(GLfloat sx, GLfloat sy, char *s){
@@ -846,6 +943,10 @@ char * optionsText[] = {
 "screen orientation \36    \37",
 "shading style:",
 "  flat  gouraud  phong  wire",
+"  draw bounding boxes",
+"depth slices  auto  1   2   3",
+"  allow DIS",
+"mat modulation  none  matxtex  matxcpvxtex",
 NULL,
 };
 //0123456789012345678901234567890
@@ -875,7 +976,7 @@ void fwl_setOrientation2(int degrees);
 int fwl_getShadingStyle();
 void initOptionsVal()
 {
-	int i,j,k, iside, ieither, shadingStyle;
+	int i,j,k,m, iside, ieither, shadingStyle;
 	X3D_Viewer *viewer;
 	ppstatusbar p = (ppstatusbar)gglobal()->statusbar.prv;
 	viewer = Viewer();
@@ -883,9 +984,9 @@ void initOptionsVal()
 	for(i=0;i<lenOptions;i++)
 	{
 		if(!p->optionsVal[i])
-			p->optionsVal[i] = MALLOC(char*, 30);
-		for(j=0;j<30;j++) p->optionsVal[i][j] = ' ';
-		p->optionsVal[i][29] = '\0';
+			p->optionsVal[i] = MALLOC(char*, 48);
+		for(j=0;j<48;j++) p->optionsVal[i][j] = ' ';
+		p->optionsVal[i][47] = '\0';
 	}
 	p->optionsVal[1][0] = 034; //[]
 	p->optionsVal[2][0] = 034; //[]
@@ -916,7 +1017,7 @@ void initOptionsVal()
 	p->optionsVal[15][0] = p->statusbar_pinned ? 035 : 034; 
 	p->optionsVal[16][0] = p->menubar_pinned ? 035 : 034; 
 	sprintf(p->optionsVal[18]," %s ",fwl_get_ui_colorschemename());
-	sprintf(p->optionsVal[19],"            %4d",fwl_get_target_fps());
+	sprintf(p->optionsVal[19],"            %4d",abs(fwl_get_target_fps()));
 	p->optionsVal[20][0] = 034; //[]
 	if(fwl_get_emulate_multitouch())
 		p->optionsVal[20][0] = 035; //[*] '*';
@@ -936,7 +1037,28 @@ void initOptionsVal()
 		default:
 			break;
 	}
-
+	p->optionsVal[26][0] = 034; //[]
+	if(fwl_getDrawBoundingBoxes())
+		p->optionsVal[26][0] = 035; //[*] '*';
+	m = fwl_get_depth_slices();
+	p->optionsVal[27][13] = p->optionsVal[27][19] = p->optionsVal[27][23] = p->optionsVal[27][27] =034;
+	switch(m){
+		// 012345678901234567890123456789  13 19 23 27
+		case 0: p->optionsVal[27][13] = 035; break; //[*]
+		case 1: p->optionsVal[27][19] = 035; break; //[*]
+		case 2: p->optionsVal[27][23] = 035; break; //[*]
+		case 3: p->optionsVal[27][27] = 035; break; //[*]
+	}
+	p->optionsVal[28][0] = 034; //[]
+	if(fwl_get_allow_DIS())
+		p->optionsVal[28][0] = 035; //[*] '*';
+	m = fwl_get_modulation();
+	p->optionsVal[29][15] = p->optionsVal[29][21] = p->optionsVal[29][30] =034;
+	switch(m){
+		case 0: p->optionsVal[29][15] = 035; break; //[*]
+		case 1: p->optionsVal[29][21] = 035; break; //[*]
+		case 2: p->optionsVal[29][30] = 035; break; //[*]
+	}
 	p->optionsLoaded = 1;
 }
 void updateOptionsVal()
@@ -973,6 +1095,10 @@ char * optionsCase[] = {
 "                  PP    QQ",
 " ",
 "RR    SS       TT     UU",
+"VVVVVVVVVV",
+"            aa    bb  cc  dd",
+"WWWWWWWWWW",
+"              eeee  ffff     gggg",
 NULL,
 };
 
@@ -995,7 +1121,7 @@ XY screen2text(int x, int y)
 	topOffset = p->side_top;
 	if(p->pmenu.top) topOffset += p->buttonSize;
 	rc.x = x/(p->bmWH.x*p->bmScale) -1; //10; 
-	rc.y = (int)((p->vport.H -y - topOffset)/(p->bmWH.y*p->bmScale)); //15.0 ); 
+	rc.y = (int)((p->vport.H -y - topOffset)/(p->bmWH.y*p->bmScale)) +1; //15.0 ); 
 	rc.y -= 1;
 	return rc;
 }
@@ -1009,7 +1135,7 @@ XY text2screen( int col, int row)
 	topOffset = p->side_top;
 	if(p->pmenu.top) topOffset += p->buttonSize;
 	xy.x = (col+1)*p->bmWH.x*p->bmScale; //10; 
-	xy.y = p->vport.H - topOffset - (row+2)*p->bmWH.y*p->bmScale; //15;
+	xy.y = p->vport.H - topOffset - (row+1)*p->bmWH.y*p->bmScale; //15;
 	return xy;
 }
 FXY screen2normalizedScreenScale( GLfloat x, GLfloat y)
@@ -1187,7 +1313,7 @@ int handleOptionPress(int mouseX, int mouseY)
 		{
 			//for target frames_per_second choices, we'd like a nice pow2 series like 7, 15, 30, 60, 120, 240 FPS
 			int i15, tfps;
-			tfps = fwl_get_target_fps();
+			tfps = abs(fwl_get_target_fps());
 			i15 = (int)((double)tfps / 15.0 + .5);
 			if(opt == 'K') i15 /= 2;
 			if(opt == 'L') i15 = max(1,i15*2);
@@ -1225,6 +1351,30 @@ int handleOptionPress(int mouseX, int mouseY)
 			fwl_setShadingStyle(shadingStyle);
 		}
 		break;
+	case 'V': {
+		fwl_setDrawBoundingBoxes(1 - fwl_getDrawBoundingBoxes());
+		break;
+		}
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+		{
+			fwl_set_depth_slices(opt - 'a');
+		}
+		break;
+	case 'W': {
+		fwl_set_allow_DIS(1 - fwl_get_allow_DIS());
+		break;
+		}
+	case 'e':
+	case 'f':
+	case 'g':
+		{
+			fwl_set_modulation(opt - 'e');
+		}
+		break;
+
 	default: 
 		break;
 	}
@@ -1473,6 +1623,7 @@ ACTION_SHIFT,
 ACTION_HOVER,
 ACTION_PEDAL,
 ACTION_LEVEL,
+ACTION_VIEWALL,
 ACTION_HEADLIGHT,
 ACTION_COLLISION,
 ACTION_PREV,
@@ -1491,10 +1642,10 @@ int action;
 char *help;
 } button_helps [] = {
 {ACTION_WALK, "WALK"},
-{ACTION_FLY2, "FLY2"},
-{ACTION_TILT, "TILT"},
-{ACTION_TPLANE, "TRANSLATE"},
-{ACTION_RPLANE, "ROLL"},
+//{ACTION_FLY2, "FLY2"},
+//{ACTION_TILT, "TILT"},
+//{ACTION_TPLANE, "TRANSLATE"},
+//{ACTION_RPLANE, "ROLL"},
 {ACTION_FLY, "FLY {yaw-z,xy,yaw-pitch,roll}"},
 {ACTION_EXAMINE, "EXAMINE"},
 {ACTION_EXPLORE, "EXPLORE {examine,recenter}"},
@@ -1520,6 +1671,7 @@ char *help;
 {ACTION_RELOAD, "Reload"},
 {ACTION_URL, "URL"},
 {ACTION_FILE, "FILE"},
+{ACTION_VIEWALL, "VIEWALL"},
 {ACTION_BLANK, NULL},
 };
 const char *help_for_action(int action){
@@ -1550,7 +1702,7 @@ void convertPng2hexAlpha()
 	*/
 	int w,h,ii,size;
 	static int mbuts = 1; //2; //8; // 17;
-	static char * butFnames[] = {"hover.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
+	static char * butFnames[] = {"viewall.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
 	textureTableIndexStruct_s butts;
 
 	FILE* out = fopen("hudIcons_octalpha_h","w+");
@@ -1683,7 +1835,7 @@ void initButtons()
 		static GLubyte * buttonlist [] = {
 			walk, fly, examine,
 			yawz, xy, yawpitch, roll,
-			explore, spherical, turntable, lookat, distance, 
+			explore, spherical, turntable, lookat, distance, viewall,
 			shift, hover, pedal, level, headlight,
 			collision, prev, next, help, messages, 
 			options, reload, url, file, blank
@@ -1691,12 +1843,12 @@ void initButtons()
 		static int actionlist [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
 			ACTION_YAWZ, ACTION_XY, ACTION_YAWPITCH, ACTION_ROLL,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST, 
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST, ACTION_VIEWALL,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, 
 			ACTION_COLLISION, ACTION_PREV,ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, 
 			ACTION_OPTIONS,ACTION_RELOAD, ACTION_URL, ACTION_FILE, ACTION_BLANK,
 			};
-		static int NACTION = 27; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
+		static int NACTION = 28; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
 		//radiosets are to indicate what things are deselected (if any) when another thing is selected
 		static int radiosets [][9] = {
 			{8,ACTION_FLY,ACTION_WALK,ACTION_EXAMINE,ACTION_EXPLORE,ACTION_SPHERICAL,ACTION_TURNTABLE,ACTION_LOOKAT,ACTION_DIST},
@@ -1714,7 +1866,7 @@ void initButtons()
 
 		static int mainbar_linux [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST,
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_VIEWALL, ACTION_DIST,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, ACTION_COLLISION, ACTION_PREV,
 			ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, ACTION_OPTIONS, 
 			//ACTION_RELOAD, ACTION_URL, 
@@ -2300,14 +2452,14 @@ int handleButtonRelease(int mouseX, int mouseY)
 			{
 				case ACTION_WALK:	
 					fwl_set_viewer_type (VIEWER_WALK); break; 
-				case ACTION_FLY2:	
-					fwl_set_viewer_type (VIEWER_FLY2); break; 
-				case ACTION_TILT:	
-					fwl_set_viewer_type (VIEWER_TILT); break; 
-				case ACTION_TPLANE:	
-					fwl_set_viewer_type (VIEWER_TPLANE); break; 
-				case ACTION_RPLANE:	
-					fwl_set_viewer_type (VIEWER_RPLANE); break; 
+				//case ACTION_FLY2:	
+				//	fwl_set_viewer_type (VIEWER_FLY2); break; 
+				//case ACTION_TILT:	
+				//	fwl_set_viewer_type (VIEWER_TILT); break; 
+				//case ACTION_TPLANE:	
+				//	fwl_set_viewer_type (VIEWER_TPLANE); break; 
+				//case ACTION_RPLANE:	
+				//	fwl_set_viewer_type (VIEWER_RPLANE); break; 
 				case ACTION_FLY:	
 					fwl_set_viewer_type(VIEWER_FLY); 
 					if(p->pmenu.bitems[i].item->buttonset){
@@ -2334,7 +2486,8 @@ int handleButtonRelease(int mouseX, int mouseY)
 				case ACTION_HOVER:	 fwl_setHover(p->pmenu.bitems[i].item->butStatus); 
 				break;
 				case ACTION_PEDAL:	 fwl_setPedal(p->pmenu.bitems[i].item->butStatus); break;
-				case ACTION_LEVEL:	 viewer_level_to_bound(); break;
+				case ACTION_VIEWALL: viewer_viewall(); break;
+				case ACTION_LEVEL: viewer_level_to_bound(); break;
 				case ACTION_HEADLIGHT: fwl_toggle_headlight(); break;
 				case ACTION_COLLISION: toggle_collision(); break; 
 				case ACTION_PREV:	fwl_Prev_ViewPoint(); break;
@@ -2530,8 +2683,8 @@ void renderButtons()
 		*/
 	}
 	//clean up
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 	p->hadString = 1;
 }
 void updateViewportSize();
@@ -2562,9 +2715,10 @@ GLfloat cursorTex[] = {
 	ttglobal tg = gglobal();
 	p = (ppstatusbar)tg->statusbar.prv;
 
-	FW_GL_DEPTHMASK(GL_FALSE);
+	finishedWithGlobalShader();
+	glDepthMask(GL_FALSE);
 	glDisable(GL_DEPTH_TEST);
-	if(p->programObject == 0) initProgramObject();
+	if(p->programObject == 0) init_ProgramObject();
 	glUseProgram ( p->programObject );
 
 	//updateViewportSize();
@@ -2610,12 +2764,12 @@ GLfloat cursorTex[] = {
 	glUniform1i ( p->textureLoc, 0 );
 	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); //just render the active ones
 
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 
 	glEnable(GL_DEPTH_TEST);
-	FW_GL_DEPTHMASK(GL_TRUE);
+	glDepthMask(GL_TRUE);
 	restoreGlobalShader();
 
 }
@@ -2965,7 +3119,7 @@ M       void toggle_collision()                             //"
 	//init-once things are done everytime for convenience
 	//fwl_setClipPlane(p->statusBarSize);
 	if(!p->fontInitialized) initFont();
-	if(p->programObject == 0) initProgramObject();
+	if(p->programObject == 0) init_ProgramObject();
 	//MVC statusbarHud is in View and Controller just called us and told us 
 	//..to poll the Model to update and draw ourself
 	updateViewportSize();
@@ -2984,7 +3138,6 @@ M       void toggle_collision()                             //"
 	menu_over_status = !p->menubar_pinned && p->showButtons;
 	p->show_status = p->wantStatusbar && ((p->showStatus || p->statusbar_pinned) && !menu_over_status);
 	p->show_status = p->show_status || showAction(p, ACTION_HELP); //if ? help button on, then show statusbar to get button hints
-
 
 
 	p->yoff_status = 0;
@@ -3017,13 +3170,6 @@ M       void toggle_collision()                             //"
 		if (p->show_menu) //p->showButtons)
 		{
 			renderButtons();
-#ifndef KIOSK
-			glDepthMask(GL_TRUE);
-			if (p->posType == 1) {
-				glEnable(GL_DEPTH_TEST);
-			}
-			//continue;
-#endif
 		}
 		if(p->show_status)
 		{
@@ -3036,16 +3182,14 @@ M       void toggle_collision()                             //"
 			itrim = 1; //if width of window it floods entire window instead of just menubar
 			#endif
 
+
 			glScissor(p->vport.X, p->vport.Y + p->side_bottom, p->vport.W -itrim, p->statusBarSize * p->statusBarRows); //p->clipPlane);
 			glEnable(GL_SCISSOR_TEST);
 			//glClearColor(.922f, .91f, .844f, 1.0f); //windowing gray
 			glClearColor(colorClear[0],colorClear[1],colorClear[2],colorClear[3]);
 			glClear(GL_COLOR_BUFFER_BIT);
 			glDisable(GL_SCISSOR_TEST);
-
-			// you must call drawStatusBar() from render() just before swapbuffers 
-			glDepthMask(FALSE);
-			glDisable(GL_DEPTH_TEST);
+			
 
 			//glUniform4f(p->color4fLoc, .2f, .2f, .2f, 1.0f);
 			glUniform4f(p->color4fLoc,colorStatusbarText[0],colorStatusbarText[1],colorStatusbarText[2],colorStatusbarText[3]);
@@ -3123,6 +3267,14 @@ M       void toggle_collision()                             //"
 			printOptions();
 	}
 	//rely on Model to reset clearcolor on each frame. glClearColor(0.0f,0.0f,0.0f,1.0f); 
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	
+	//Background.x3d bug (dug9's win10, x64, Release, nVidia, jan 2018) - next line seems to help:
+	glDisableVertexAttribArray( p->texCoordLoc );
+	//but don't seem to need this line:
+	//glDisableVertexAttribArray ( p->positionLoc );
+
 	glDepthMask(TRUE);
 	glEnable(GL_DEPTH_TEST);
 }

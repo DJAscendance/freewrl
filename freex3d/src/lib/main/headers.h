@@ -36,8 +36,8 @@ const char* freewrl_get_browser_program();
 
 void Multi_String_print(struct Multi_String *url);
 
-/* see if an inputOnly "set_" field has changed */
-#define IO_FLOAT -2335549.0f
+///* see if an inputOnly "set_" field has changed */
+//#define IO_FLOAT -2335549.0f
 
 /* specification versions, for close adherence to requested spec levels */
 #define SPEC_VRML 0x01
@@ -48,7 +48,33 @@ void Multi_String_print(struct Multi_String *url);
 #define SPEC_X3D34 0x20
 #define SPEC_VRML1 0x01 /* same as SPEC_VRML */
 
-
+/*UNIT statement base and derived 'unit categories', un-ca or UNCA for short */
+enum {
+	UNCA_NONE = 0,
+	UNCA_LENGTH = 1,
+	UNCA_BLENGTH,  //bboxCenter, bboxSize
+	UNCA_ANGLE,
+	UNCA_PLANE, //first 3 are plane normal, 4th is scaleable distance
+	UNCA_MASS,
+	UNCA_FORCE,
+	UNCA_ACCEL,
+	UNCA_ANGLERATE,
+	UNCA_AREA,
+	UNCA_SPEED,
+	UNCA_VOLUME,
+	UNCA_TORQUE,
+	UNCA_MOMENT,
+	UNCA_GEO, //don't know if its angle or length untill geoSystem field parsed
+};
+#define FIELDOFFSET_LENGTH 6  //search also for struct field_info
+typedef struct field_info{
+	int nameIndex;
+	int offset;
+	int typeIndex;
+	int ioType;
+	int version;
+	int unca;
+} *fieldinfo;
 
 int viewer_iside();
 /* children fields path optimizations */
@@ -101,7 +127,7 @@ extern char *BrowserFullPath;
 #define VF_HideRight                 0x4000 /*stereo don't draw on right side*/
 #define VF_USE						 0x8000 /*for 2-node scenarios like pickingsensor and transform sensor, signals a node_USE to save its modelview matrix for do_handling*/
 #define VF_Cube                      0x10000 //when generating generatedcubemap texture to fbo (don't render generatedcubemap parent nodes)
-
+#define VF_Background				0x20000
 /* for z depth buffer calculations */
 #define DEFAULT_NEARPLANE 0.07
 #define DEFAULT_FARPLANE 21000.0
@@ -279,32 +305,32 @@ struct X3D_Node* getTypeNode(struct X3D_Node *node);
 /* for deciding on using set_ SF fields, with nodes with explicit "set_" fields...  note that MF fields are handled by
 the EVIN_AND_FIELD_SAME MACRO */
 
-#define USE_SET_SFVEC3D_IF_CHANGED(setField,regField) \
-if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
-        !APPROX(node->setField.c[1],node->regField.c[1]) || \
-        !APPROX(node->setField.c[2],node->regField.c[2]) ) { \
-        /* now, is the setField at our default value??  if not, we just use the regField */ \
-        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT)) { \
-		/* printf ("just use regField\n"); */ \
-        } else { \
-		 /* printf ("use the setField as the real poistion field\n"); */ \
-        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFVec3d)); \
-	} \
-}
+//#define USE_SET_SFVEC3D_IF_CHANGED(setField,regField) \
+//if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
+//        !APPROX(node->setField.c[1],node->regField.c[1]) || \
+//        !APPROX(node->setField.c[2],node->regField.c[2]) ) { \
+//        /* now, is the setField at our default value??  if not, we just use the regField */ \
+//        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT)) { \
+//		/* printf ("just use regField\n"); */ \
+//        } else { \
+//		 /* printf ("use the setField as the real poistion field\n"); */ \
+//        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFVec3d)); \
+//	} \
+//}
 
-#define USE_SET_SFROTATION_IF_CHANGED(setField,regField) \
-if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
-        !APPROX(node->setField.c[1],node->regField.c[1]) || \
-        !APPROX(node->setField.c[2],node->regField.c[2]) || \
-        !APPROX(node->setField.c[3],node->regField.c[3]) ) { \
-        /* now, is the setField at our default value??  if not, we just use the regField */ \
-        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT) && APPROX(node->setField.c[3],IO_FLOAT)) { \
-		/* printf ("just use SFRotation regField\n"); */ \
-        } else { \
-		/* printf ("use the setField SFRotation as the real poistion field\n");  */ \
-        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFRotation)); \
-	} \
-}
+//#define USE_SET_SFROTATION_IF_CHANGED(setField,regField) \
+//if (!APPROX (node->setField.c[0],node->regField.c[0]) || \
+//        !APPROX(node->setField.c[1],node->regField.c[1]) || \
+//        !APPROX(node->setField.c[2],node->regField.c[2]) || \
+//        !APPROX(node->setField.c[3],node->regField.c[3]) ) { \
+//        /* now, is the setField at our default value??  if not, we just use the regField */ \
+//        if (APPROX(node->setField.c[0], IO_FLOAT) && APPROX(node->setField.c[1],IO_FLOAT) && APPROX(node->setField.c[2],IO_FLOAT) && APPROX(node->setField.c[3],IO_FLOAT)) { \
+//		/* printf ("just use SFRotation regField\n"); */ \
+//        } else { \
+//		/* printf ("use the setField SFRotation as the real poistion field\n");  */ \
+//        	memcpy (node->regField.c, node->setField.c, sizeof (struct SFRotation)); \
+//	} \
+//}
 
 
 
@@ -317,12 +343,14 @@ void setField_fromJavascript (struct X3D_Node *ptr, char *field, char *value, in
 unsigned int setField_FromEAI (char *ptr);
 
 #define EXTENTTOBBOX
-#define INITIALIZE_EXTENT        { node->EXTENT_MAX_X = (float) -10000.0; \
-        node->EXTENT_MAX_Y = (float) -10000.0; \
-        node->EXTENT_MAX_Z = (float) -10000.0; \
-        node->EXTENT_MIN_X = (float) 10000.0; \
-        node->EXTENT_MIN_Y = (float) 10000.0; \
-        node->EXTENT_MIN_Z = (float) 10000.0; }
+float *extent6f_clear(float *extent6);
+#define INITIALIZE_EXTENT extent6f_clear(node->_extent);
+  //{ node->EXTENT_MAX_X = (float) -10000.0; \
+  //      node->EXTENT_MAX_Y = (float) -10000.0; \
+  //      node->EXTENT_MAX_Z = (float) -10000.0; \
+  //      node->EXTENT_MIN_X = (float) 10000.0; \
+  //      node->EXTENT_MIN_Y = (float) 10000.0; \
+  //      node->EXTENT_MIN_Z = (float) 10000.0; }
 
 /********************************
 	Verbosity
@@ -464,7 +492,7 @@ void prep_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors);
 
 void normalize_ifs_face (float *point_normal,
-                         struct point_XYZ *facenormals,
+                         struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
                          int *pointfaces,
                         int mypoint,
                         int curpoly,
@@ -584,6 +612,7 @@ BOOL isManagedField(int mode, int type, BOOL isPublic);
 
 void AddRemoveChildren (struct X3D_Node *parent, struct Multi_Node *tn, struct X3D_Node * *nodelist, int len, int ar, char * where, int lin);
 unsigned long upper_power_of_two(unsigned long v);
+unsigned long lower_power_of_two(unsigned long v);
 void update_node(struct X3D_Node *ptr);
 //void update_renderFlag(struct X3D_Node *ptr, int flag);
 void UPDATE_RENDERFLAG(struct X3D_Node *ptr, int flag,char *fi, int li);
@@ -593,13 +622,13 @@ int get_touched_flag(uintptr_t fptr, uintptr_t actualscript);
 void getMultiElementtype(char *strp, struct Multi_Vec3f *tn, int eletype);
 void CRoutes_RemoveSimple(struct X3D_Node* from, int fromOfs,
  struct X3D_Node* to, int toOfs, int len);
- void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex,
- struct X3D_Node* to, int toIndex, int len);
+ void CRoutes_RemoveSimpleB(struct X3D_Node* from, int fromIndex, int fromBuiltin,
+ struct X3D_Node* to, int toIndex, int toBuiltin, int len);
 void CRoutes_RegisterSimple(struct X3D_Node* from, int fromOfs,
  struct X3D_Node* to, int toOfs, int len);
  void CRoutes_RegisterSimpleB(
-	struct X3D_Node* from, int fromIndex,
-	struct X3D_Node* to, int toIndex,
+	struct X3D_Node* from, int fromIndex, int fromBuiltIn,
+	struct X3D_Node* to, int toIndex, int toBuiltIn,
 	int type);
 void CRoutes_Register(int adrem,        struct X3D_Node *from,
                                  int fromoffset,
@@ -684,6 +713,7 @@ extern GLfloat boxtex[], boxnorms[], BackgroundVert[];
 extern GLfloat Backnorms[];
 
 extern void new_tessellation(void);
+extern void new_text_tessellation(void);
 extern void initializePerlThread(void);
 //extern void setWantEAI(int flag);
 extern void setPluginPipe(const char *optarg);
@@ -759,7 +789,8 @@ void freewrlDie(const char *format);
 
 //extern int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
 typedef struct trenderstate{
-int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision,render_cube;
+int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,
+verbose,render_blend,render_geom,render_collision,render_cube,render_background, render_boxes;
 }* ttrenderstate;
 //extern struct trenderstate renderstate;
 ttrenderstate renderstate();
@@ -773,12 +804,15 @@ void add_parent(struct X3D_Node *node_, struct X3D_Node *parent_,char *file, int
 void remove_parent(struct X3D_Node *child, struct X3D_Node *parent);
 void EAI_readNewWorld(char *inputstring);
 
+void collide_ElevationGrid(struct X3D_ElevationGrid *node);
+void collide_GeoElevationGrid(struct X3D_GeoElevationGrid *node);
 
 
 void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
+void collide_genericfaceset (struct X3D_IndexedFaceSet *node );
 #define rendray_Text render_ray_polyrep
 #define rendray_ElevationGrid  render_ray_polyrep
-#define collide_ElevationGrid collide_genericfaceset
+//#define collide_ElevationGrid collide_genericfaceset
 #define rendray_Extrusion render_ray_polyrep
 #define rendray_IndexedFaceSet render_ray_polyrep 
 #define make_IndexedFaceSet make_genericfaceset
@@ -812,7 +846,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *this_);
 #define make_TriangleSet  make_genericfaceset
 #define make_TriangleStripSet  make_genericfaceset
 #define rendray_GeoElevationGrid  render_ray_polyrep
-#define collide_GeoElevationGrid collide_genericfaceset
+//#define collide_GeoElevationGrid collide_genericfaceset
 #define make_GeoElevationGrid make_genericfaceset
 
 
@@ -825,6 +859,8 @@ void do_IntegerSequencer (void *node);
 void do_IntegerTrigger (void *node);
 void do_TimeTrigger (void *node);
 
+/* GeoSpatial event utility */
+void do_GeoConvert(void *node);
 
 #define ADD_PARENT(a,b) add_parent(a,b,__FILE__,__LINE__)
 //#define NODE_ADD_PARENT(a) ADD_PARENT(a,X3D_NODE(ptr))
@@ -881,7 +917,7 @@ void resetSensorEvents();
 
 /* META data, component, profile  stuff */
 void handleMetaDataStringString(struct Uni_String *val1,struct Uni_String *val2);
-void handleUnitDataStringString(char *categoryname,char *unitname, double conversionfactor);
+void handleUnitDataStringString(void *ec, char *categoryname,char *unitname, double conversionfactor);
 void handleProfile(int myp);
 void handleComponent(int com, int lev);
 void handleExport (char *node, char *as);
@@ -937,4 +973,5 @@ typedef struct polyrep_combiner_data {
 	int *ria;
 	int *riaindex;
 } polyrep_combiner_data;
+
 #endif /* __FREEWRL_HEADERS_H__ */

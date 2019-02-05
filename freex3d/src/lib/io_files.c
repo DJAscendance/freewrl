@@ -548,7 +548,7 @@ int determineFileType(const char *buffer, const int len)
 		/* skip past the header; we will look for lines like: 
 		   <?xml version="1.0" encoding="UTF-8"?>
 		   <!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.0//EN"   "http://www.web3d.org/specifications/x3d-3.0.dtd">
-		   <X3D
+		   <X3D ... version='3.3' ...>
 		*/
 		rv++;
 		while (!foundStart) {
@@ -574,16 +574,18 @@ int determineFileType(const char *buffer, const int len)
 #endif //INCLUDE_NON_WEB3D_FORMATS
 
 	} else {
+		//.wrl
 		if (strncmp((const char*)buffer,"#VRML V2.0 utf8",15) == 0) {
 			inputFileVersion[0] = 2;
 			return IS_TYPE_VRML;
 		}
-
+		//.x3dv
 		if (strncmp ((const char*)buffer, "#X3D",4) == 0) {
 			inputFileVersion[0] = 3;
 			/* ok, have X3D here, what version? */
 
 			if (strncmp ((const char*)buffer,"#X3D V3.0 utf8",14) == 0) {
+				inputFileVersion[1] = 0;
 				return IS_TYPE_VRML;
 			}
 			if (strncmp ((const char*)buffer,"#X3D V3.1 utf8",14) == 0) {
@@ -598,8 +600,9 @@ int determineFileType(const char *buffer, const int len)
 				inputFileVersion[1] = 3;
 				return IS_TYPE_VRML;
 			}
-			if (strncmp ((const char*)buffer,"#X3D V3.4 utf8",14) == 0) {
-				inputFileVersion[1] = 4;
+			if (strncmp ((const char*)buffer,"#X3D V4.0 utf8",14) == 0) {
+				inputFileVersion[0] = 4;
+				inputFileVersion[1] = 0;
 				return IS_TYPE_VRML;
 			}
 			/* if we fall off the end, we just assume X3D 3.0 */
@@ -760,11 +763,15 @@ int freewrlSystem (const char *sysline)
 	return -1; /* should we return FALSE or -1 ??? */
 //#endif
 }
+#elif defined(_MSC_VER)
+int freewrlSystem (const char *sysline)
+{
+	return system(sysline);
+}
 #endif
 //goal: remove a directory and its contents - used for removing the temp unzip folder for .z3z / .zip file processing
 #ifdef _MSC_VER
 //http://msdn.microsoft.com/en-us/windows/desktop/aa365488
-
 #include <TCHAR.H>
 #ifdef UNICODE
 static TCHAR *singleDot = L".";
@@ -1166,13 +1173,13 @@ void process_x3z(resource_item_t *res){
 	char request[256];
 	char* tempfolderpath;
 	if (1){
-		tempfolderpath = tempnam(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_XXXXXXXX");
+		tempfolderpath = TEMPNAM(gglobal()->Mainloop.tmpFileLocation, "freewrl_download_XXXXXXXX");
 	}else{
 		//for debugging if you need to have the temp unzip files in your working folder where your data files are
 		tempfolderpath = STRDUP(res->URLrequest);
 		tempfolderpath = strBackslash2fore(tempfolderpath);
 		tempfolderpath = remove_filename_from_path(tempfolderpath);
-		tempfolderpath = tempnam(tempfolderpath, "freewrl_download_XXXXXXXX");
+		tempfolderpath = TEMPNAM(tempfolderpath, "freewrl_download_XXXXXXXX");
 	}
 	err = unzip_archive_to_temp_folder(res->actual_file, tempfolderpath);
 	if(!err){
@@ -1207,7 +1214,7 @@ enum {
 	file2blob_task_chain,
 	file2blob_task_spawn,
 	file2blob_task_enqueue,
-} file2blob_task_tactic;
+} file2blob_task_tactic2;
 
 void resource_remove_cached_file(s_list_t *cfe);
 void delete_temp_file(resource_item_t *res){

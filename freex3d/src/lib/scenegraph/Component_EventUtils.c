@@ -67,7 +67,7 @@ void do_BooleanFilter (void *node){
 
 /* WHAT ARE NEXT AND PREVIOUS FIELDS FOR???? NOT MENTIONED IN SPEC (AT LEAST
 REVISION FOUND WHEN IMPLEMENTING */
-
+int iwrap(int i, int istart, int iend);
 void do_BooleanSequencer (void *node){
 	struct X3D_BooleanSequencer *px;
 	int kin, kvin;
@@ -95,27 +95,41 @@ void do_BooleanSequencer (void *node){
 		printf ("BooleanSequencer, kin %d kvin %d, vc %f\n",kin,kvin,px->value_changed);
 		printf ("	and set_fraction is %f\n",px->set_fraction);
 	#endif
-
-	/* set_fraction less than or greater than keys */
-	if (px->set_fraction <= px->key.p[0]) {
-		 px->value_changed = kVs[0];
-	} else if (px->set_fraction >= px->key.p[kin-1]) {
-		 px->value_changed = kVs[kvin-1];
-	} else {
-		/* have to go through and find the key before */
-		counter=find_key(kin,(float)(px->set_fraction),px->key.p);
-		/* printf ("counter %d\n",counter); */
-		//px->value_changed = px->key.p[counter]; //yikes - key is a MF float
-		//should it be keyvalue? like integer_sequencer?:
-		/* bounds check */
-		if (counter >= px->keyValue.n) counter = px->keyValue.n-1;
-		px->value_changed =	px->keyValue.p[counter];
-
+	if(px->next || px->previous){
+		counter = px->_index;
+		if(px->next) counter += 1;
+		if(px->previous) counter -= 1;
+		counter = iwrap(counter,0,kin);
+		px->value_changed = px->keyValue.p[counter];
+		px->set_fraction = px->key.p[counter];
+		px->_index = counter;
+		px->next = FALSE;  //clear
+		px->previous = FALSE;
+	}else{
+		/* set_fraction less than or greater than keys */
+		if (px->set_fraction <= px->key.p[0]) {
+			 px->value_changed = kVs[0];
+			 px->_index = 0;
+		} else if (px->set_fraction >= px->key.p[kin-1]) {
+			 px->value_changed = kVs[kvin-1];
+			 px->_index = kvin-1;
+		} else {
+			/* have to go through and find the key before */
+			counter=find_key(kin,(float)(px->set_fraction),px->key.p);
+			/* printf ("counter %d\n",counter); */
+			//px->value_changed = px->key.p[counter]; //yikes - key is a MF float
+			//should it be keyvalue? like integer_sequencer?:
+			/* bounds check */
+			if (counter >= px->keyValue.n) counter = px->keyValue.n-1;
+			px->value_changed =	px->keyValue.p[counter];
+			px->_index = counter;
+		}
 	}
-
-	if (oldValue != px->value_changed) {
+	//maybe should be unconditional, in case downstream node is waiting for timestamp, not value? 
+	//dug9: Not sure what's right
+	//if (oldValue != px->value_changed) {
 		MARK_EVENT (node, offsetof (struct X3D_BooleanSequencer, value_changed));
-	}
+	//}
 }
 
 	
@@ -151,13 +165,37 @@ void do_BooleanTrigger (void *node){
 /* see the spec for a description */
 
 /* WHAT ARE NEXT AND PREVIOUS FIELDS FOR???? NOT MENTIONED IN SPEC (AT LEAST
-REVISION FOUND WHEN IMPLEMENTING */
+REVISION FOUND WHEN IMPLEMENTING 
 
+dug9 hypothesis Nov 19, 2017:
+1) get an index to use as key[index] and keyValue[index]
+option a)
+- take the current set_fraction value (leftover from any prior event)
+- if(previous)
+	round it down to the nearest key
+- if(next)
+	round it up to the nearest key
+- take the index of that key
+option b)
+- keep a private index field
+- initialize index to 0 when creating node
+- after each event, save closest index (for set_fraction event)
+-- or exact index if next,previous event
+2) increment/decrement index if next/prev set
+	- then clear next/prev
+3) use index
+	set_fraction = key[index]
+	fraction_changed = keyValue[index]
+Implementation
+- option choice: 1.b - looks easier to track for mulitple input paths set_,next,prev
+
+*/
 void do_IntegerSequencer (void *node){
 	struct X3D_IntegerSequencer *px;
 	int kin, kvin;
 	int *kVs;
 	int counter;
+	int oldValue;
 
 	if (!node) return;
 	px = (struct X3D_IntegerSequencer *) node;
@@ -165,7 +203,8 @@ void do_IntegerSequencer (void *node){
 	kvin = px->keyValue.n;
 	kVs = px->keyValue.p;
 
-	MARK_EVENT (node, offsetof (struct X3D_IntegerSequencer, value_changed));
+	//MARK_EVENT (node, offsetof (struct X3D_IntegerSequencer, value_changed));
+	oldValue = px->value_changed;
 
 	#ifdef SEVERBOSE
 		printf ("IntegerSequencer, kin %d kvin %d, sf %f vc %d\n",kin,kvin,px->set_fraction, px->value_changed);
@@ -177,23 +216,40 @@ void do_IntegerSequencer (void *node){
 		return;
 	}
 	if (kin>kvin) kin=kvin; /* means we don't use whole of keyValue, but... */
+	if(px->next || px->previous){
+		counter = px->_index;
+		if(px->next) counter += 1;
+		if(px->previous) counter -= 1;
+		counter = iwrap(counter,0,kin);
+		px->value_changed = px->keyValue.p[counter];
+		px->set_fraction = px->key.p[counter];
+		px->_index = counter;
+		px->next = FALSE;  //clear
+		px->previous = FALSE;
+	}else{
+		/* set_fraction less than or greater than keys */
+		if (px->set_fraction <= px->key.p[0]) {
+			 px->value_changed = kVs[0];
+			 px->_index = 0;
+		} else if (px->set_fraction >= px->key.p[kin-1]) {
+			 px->value_changed = kVs[kvin-1];
+			 px->_index = kvin-1;
+		} else {
+			/* have to go through and find the key before */
 
-	/* set_fraction less than or greater than keys */
-	if (px->set_fraction <= px->key.p[0]) {
-		 px->value_changed = kVs[0];
-	} else if (px->set_fraction >= px->key.p[kin-1]) {
-		 px->value_changed = kVs[kvin-1];
-	} else {
-		/* have to go through and find the key before */
+			counter=find_key(kin+1,(float)(px->set_fraction),px->key.p)-1;
 
-		counter=find_key(kin+1,(float)(px->set_fraction),px->key.p)-1;
+			/* bounds check */
+			if (counter >= px->keyValue.n) counter = px->keyValue.n-1;
 
-		/* bounds check */
-		if (counter >= px->keyValue.n) counter = px->keyValue.n-1;
-
-		px->value_changed =
-			px->keyValue.p[counter];
+			px->value_changed =	px->keyValue.p[counter];
+			px->_index = counter;
+		}
 	}
+	//if (oldValue != px->value_changed) {
+		MARK_EVENT (node, offsetof (struct X3D_IntegerSequencer, value_changed));
+	//}
+
 }
 
 /******************************************************************************/

@@ -52,6 +52,8 @@ Bindable nodes - Background, TextureBackground, Fog, NavigationInfo, Viewpoint, 
 #include "../ui/common.h"
 #include "../scenegraph/LinearAlgebra.h"
 
+void setup_projection();
+
 /* for Background spheres */
 struct MyVertex
  {
@@ -199,7 +201,7 @@ void set_naviWidthHeightStep(double wid, double hei, double step) {
 	p->naviinfo.height = hei;
 	p->naviinfo.step = step;
 
-	/* printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer.speed); */
+	//printf ("set_naviWdithHeightStep - width %lf height %lf step %lf speed %lf\n",wid,hei,step,Viewer()->speed); 
 
 }
 
@@ -210,9 +212,16 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 	char *typeptr;
 	X3D_Viewer *viewer = ViewerByLayerId(node->_layerId);
 
-        viewer->speed = (double) node->speed;
-	if (node->avatarSize.n<2) {
-		printf ("set_naviinfo, avatarSize smaller than expected\n");
+	viewer->speed = (double) node->speed;
+	if (node->avatarSize.n < 2) {
+		//old cosmo one-number way? kuka scene has  { avatarSize 180 }
+		//printf ("set_naviinfo, avatarSize smaller than expected\n");
+		if(node->avatarSize.n == 1){
+			//take it as height, and scale width and step by it
+			// web3d v3.3 default size: 0.25 1.6 0.75
+			double avScale = (double)(node->avatarSize.p[0])/1.6;
+			set_naviWidthHeightStep (.25*avScale,1.6*avScale,.75*avScale);
+		}
 	} else {
 		set_naviWidthHeightStep ((double)(node->avatarSize.p[0]),
 			(double)(node->avatarSize.p[1]),
@@ -556,12 +565,15 @@ void bind_node (struct X3D_Node *node, struct Vector *thisStack) {
 			if (oldTOS != node) { 
 				if(!removeNodeFromVector(0, thisStack, node)){
 					if (node->_nodeType == NODE_Viewpoint){
-						printf ("can not pop from stack, not top (%p != %p)\n",node,oldTOS);
-						printf ("%p Viewpoint, description :%s:\n",node,X3D_VIEWPOINT(node)->description->strptr);
-						printf ("%p Viewpoint, description :%s:\n",oldTOS,X3D_VIEWPOINT(oldTOS)->description->strptr);
-						printf ("oldTOS, isBound %d, setBindPtr %d\n",*(offsetPointer_deref(int*, oldTOS, isboundofst(oldTOS))), 
-						*(offsetPointer_deref(int*, oldTOS, setBindofst(oldTOS))));
-						printf("and not found in stack\n");
+						if(0){
+							//bad scene design etiquette, but no harm done
+							printf ("can not pop from stack, not top (%p != %p)\n",node,oldTOS);
+							printf ("%p Viewpoint, description :%s:\n",node,X3D_VIEWPOINT(node)->description->strptr);
+							printf ("%p Viewpoint, description :%s:\n",oldTOS,X3D_VIEWPOINT(oldTOS)->description->strptr);
+							printf ("oldTOS, isBound %d, setBindPtr %d\n",*(offsetPointer_deref(int*, oldTOS, isboundofst(oldTOS))), 
+							*(offsetPointer_deref(int*, oldTOS, setBindofst(oldTOS))));
+							printf("and not found in stack\n");
+						}
 					}
 				}
 				return;
@@ -731,20 +743,22 @@ static void moveBackgroundCentre () {
 		FW_GLU_UNPROJECT(0.0f,0.0f,0.0f,mod,proj,viewport,&x,&y,&z);
 		FW_GL_TRANSLATE_D(x,y,z);
 
-		LIGHTING_OFF
+		if(0){
+			if(0) LIGHTING_OFF
 
-		FW_GLU_UNPROJECT(0.0f,0.0f,0.0f,mod,unit,viewport,&x,&y,&z);
-		/* Get scale */
-		FW_GLU_PROJECT(x+1,y,z,mod,unit,viewport,&x1,&y1,&z1);
-		sx = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
-		FW_GLU_PROJECT(x,y+1,z,mod,unit,viewport,&x1,&y1,&z1);
-		sy = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
-		FW_GLU_PROJECT(x,y,z+1,mod,unit,viewport,&x1,&y1,&z1);
-		sz = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
+			FW_GLU_UNPROJECT(0.0f,0.0f,0.0f,mod,unit,viewport,&x,&y,&z);
+			/* Get scale */
+			FW_GLU_PROJECT(x+1,y,z,mod,unit,viewport,&x1,&y1,&z1);
+			sx = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
+			FW_GLU_PROJECT(x,y+1,z,mod,unit,viewport,&x1,&y1,&z1);
+			sy = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
+			FW_GLU_PROJECT(x,y,z+1,mod,unit,viewport,&x1,&y1,&z1);
+			sz = 1/sqrt( x1*x1 + y1*y1 + z1*z1*4 );
 
-		/* Undo the translation and scale effects */
-		FW_GL_SCALE_D(sx,sy,sz);
-		//printf("moveBackground old T %f %f %f old S %f %f %f\n",x,y,z,sx,sy,sz);
+			/* Undo the translation and scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+			//printf("moveBackground old T %f %f %f old S %f %f %f\n",x,y,z,sx,sy,sz);
+		}
 	}
 	if(1){
 		//feature-AFFINE_GLU_UNPROJECT
@@ -755,9 +769,9 @@ static void moveBackgroundCentre () {
 		matinverseAFFINE(modi,mod);
 		transform(&p,&p,modi);
 		FW_GL_TRANSLATE_D(p.x,p.y,p.z);
-
-		LIGHTING_OFF
-
+		//printf("moveBackground new T %f %f %f \n",p.x,p.y,p.z);
+		//LIGHTING_OFF
+		if(1){ //jan 2018
 		/* Get scale */
 		q = p;
 		q.x += 1.0;
@@ -771,7 +785,9 @@ static void moveBackgroundCentre () {
 		q.z += 1.0;
 		transform(&q,&q,mod);
 		sz = 1.0/sqrt( q.x*q.x + q.y*q.y + q.z*q.z );
+		}
 		/* Undo the translation and scale effects */
+		// dug9 jan 2018: if(0)		
 		FW_GL_SCALE_D(sx,sy,sz);
 		//printf("moveBackground new T %f %f %f new S %f %f %f\n",x,y,z,sx,sy,sz);
 		//printf("\n");
@@ -802,12 +818,12 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	hdiv = 20;
 
 	/* We draw spheres, one for the sky, one for the ground - outsideRadius and insideRadius */
-	outsideRadius =  DEFAULT_FARPLANE* 0.750;
-	insideRadius = DEFAULT_FARPLANE * 0.50;
+	//outsideRadius =  DEFAULT_FARPLANE* 0.750;
+	//insideRadius = DEFAULT_FARPLANE * 0.50;
 
 	/* lets try these values - we will scale when we draw this */
-	outsideRadius = 1.0;
-	insideRadius = 0.5;
+	outsideRadius = 1.001;// 1.0;
+	insideRadius = 1.0005; // 0.5;
 
 	/* handle Background and TextureBackgrounds here */
 	if (node->_nodeType == NODE_Background) {
@@ -880,7 +896,7 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		va1 = 0;
 		va2 = PI/2;
 
-		for(v=0; v<2; v++) {
+		for(v=0; v < 2; v++) {
 			for(h=0; h<hdiv; h++) {
 				ha1 = h * PI*2 / hdiv;
 				ha2 = (h+1) * PI*2 / hdiv;
@@ -1044,14 +1060,49 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		/* send this data along ... */
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->__VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof (struct MyVertex)*actq, combinedBuffer, GL_STATIC_DRAW);
+
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
 
 		/* and, we can free it */
 		FREE_IF_NZ(combinedBuffer);
+		//node->__combined = X3D_NODE(combinedBuffer);
 	}
 }
 void reallyDraw();
-void render_Background (struct X3D_Background *node) {
+void render_Background(struct X3D_Background *node){
+	if (renderstate()->render_blend) return;
+	if(!node->isBound) return;
+	{
+		//we need the model matrix - between root node and background - to capture any scene authored background tilts
+		double viewi[16], mat[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+
+		bstack = getActiveBindableStacks(tg);
+		matinverseAFFINE(viewi,bstack->viewmatrix);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+	}
+
+}
+void render_TextureBackground(struct X3D_TextureBackground *node){
+	if (renderstate()->render_blend) return;
+	if(!node->isBound) return;
+	{
+		//we need the model matrix - between root node and background - to capture any scene authored background tilts
+		double viewi[16], mat[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+
+		bstack = getActiveBindableStacks(tg);
+		matinverseAFFINE(viewi,bstack->viewmatrix);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
+		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+	}
+}
+void render_Background_OLD (struct X3D_Background *node) {
 	ttglobal tg = gglobal();
     
 	X3D_Viewer *viewer = Viewer();
@@ -1080,24 +1131,29 @@ void render_Background (struct X3D_Background *node) {
 	   all geometry fits within the spheres 
 		dug9 Sept 2014: background could in theory be a tiny box or sphere that wraps around the avatar, if
 		you can draw it first on each frame _and_ turn off 'depth' when you draw it.   
+		dug9 Jan 2018: turned off scaling of background geom, and toggled depth test)
+			- due to problems with float coordinate rounding when doing a geoSpatial scene 
+			- (with GC geocentric) coords at rootnode when using geoViewpoint
+			- still problem with geo-horizon leveling of background (for near-ground)
 	*/
-	FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	//if(0) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	glDisable(GL_DEPTH_TEST);
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	LIGHTING_OFF
 
-		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-		FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-		FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
-
-		setupShaderB();
+	if(setupShaderB()){
 		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
 		reallyDraw();
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-		finishedWithGlobalShader();
+	}
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
 
 	/* now, for the textures, if they exist */
 	if (((node->backUrl).n>0) ||
@@ -1120,6 +1176,208 @@ void render_Background (struct X3D_Background *node) {
 
 		finishedWithGlobalShader();
 	}
+	glEnable(GL_DEPTH_TEST);
+
+	FW_GL_POP_MATRIX();
+
+	/* is fog enabled? if so, disable it right now */
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glEnable(GL_FOG);
+}
+//void prep_Background (struct X3D_Background *node) {
+//	ttglobal tg = gglobal();
+//    
+//	/* if we are rendering blended nodes, don't bother with this one */
+//	if (!renderstate()->render_background) return;
+//
+//	/* printf ("RBG, num %d node %d ib %d sb %d gepvp\n",node->__BGNumber, node,node->isBound,node->set_bind);    */
+//	/* check the set_bind eventin to see if it is TRUE or FALSE */
+//	if (node->set_bind < 100) {
+//		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->background);
+//	}
+//}
+void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+void fw_depth_slice_push(double nearplane, double farplane){
+	//lets say you have a big scene -maybe a planet and a few moons to scale, 
+	//and avatar on the surface of a moon, planting a flag and looking up at the main planet
+	//And lets say your 24bit depth buffer seems a bit strained.
+	//one idea is to iterate from far to near, over depth slices.
+	//start with the farthest slices, slices can 'touch' but not overlap
+	//then you could have your usual .1 to 21000 for human-size things close by,
+	// and 21000 to infinity for distant mountains, planets etc.
+	// and backgrounds could be rendered in .1 to 10 range 
+	//  - enough to cover sphere radius 1 or box size 2 -
+	//  - with depth testing off, before anything else
+	// haven't tried it in render() but I think you would do this:
+	// render_background
+	// for(i=0;i<dept_slices;i++){
+	//   fw_depth_slice_push(nearp[i],farp[i]); 
+	//   glClear(GL_DEPTH)
+	//   render_hier() - theres a few of these
+	//   fw_depth_slice_pop();
+	// }
+	// would that work?
+	double save_nearPlane, save_farPlane;
+	X3D_Viewer *viewer = Viewer();
+
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_PUSH_MATRIX();
+
+	save_nearPlane = viewer->nearPlane;
+	save_farPlane = viewer->farPlane;
+	viewer->nearPlane =  nearplane;
+	viewer->farPlane = farplane;
+	setup_projection(); //will put back in modelview mode
+	viewer->nearPlane = save_nearPlane;
+	viewer->farPlane = save_farPlane;
+}
+void fw_depth_slice_pop(){
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_POP_MATRIX();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+}
+
+void render_prepped_Background(struct X3D_Background *node){
+	double bgscale;
+	int didPerspective;
+	ttglobal tg = gglobal();
+	X3D_Viewer *viewer = Viewer();
+
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
+
+	/* Cannot start_list() because of moving center, so we do our own list later */
+
+	if(0){
+		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
+		moveBackgroundCentre();
+	}else if(1){
+		//March 2018 - this re-allows scene-file authored tilts to the background like other browsers
+		// <Transform> <Background> </Transform> - tilts captured in render_Background
+		// which we broke a few months ago
+		double pp[3], mvmat[16], mvinv[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+		bstack = getActiveBindableStacks(tg);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
+		//we now need to cancel/undo the translation part 
+		// by moving the background back to where the vp is at 0,0,0
+		// see also:
+		// double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat);
+		// which I made from this code, but didn't have time to try here.
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
+		matinverseAFFINE(mvinv,mvmat);
+		vecsetd(pp,0.0,0.0,0.0);
+		transformAFFINEd(pp,pp,mvinv);
+		FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+		if(1){ 
+			//cancel/undo scale part, so that our background mesh stays at radius 1.0
+			double sx,sy,sz, q[3],p[3],d[3];
+			/* Get scale */
+			vecsetd(p,0.0,0.0,0.0);
+			transformAFFINEd(p,p,mvmat);
+			vecsetd(q,1.0,0.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sx = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,1.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sy = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,0.0,1.0);
+			transformAFFINEd(q,q,mvmat);
+			sz = 1.0/veclengthd(vecdifd(d,q,p));
+			/* Undo the scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+		}
+	}else if(0){
+		//instead of transforming back to viewpoint, can we just replace transform top-of-stack with identity?
+		//benefit: good for diagnosing background problems: near/far plane vs offset
+		//problem: then the horizon (or orientation with texture background)- doesn't change with a tilt (or yaw) 
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_LOAD_IDENTITY();
+		if(1){
+			//this adds vertical tilt but not horizontal yaw
+			double matA2BVVA[16],matBVVA2A[16];
+			avatar2BoundViewpointVerticalAvatar(matA2BVVA,matBVVA2A);
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX,matBVVA2A);
+		}
+	}
+
+	if (NODE_NEEDS_COMPILING) {
+		recalculateBackgroundVectors(node);
+	}
+
+	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
+	   all geometry fits within the spheres 
+		dug9 Sept 2014: background could in theory be a tiny box or sphere that wraps around the avatar, if
+		you can draw it first on each frame _and_ turn off 'depth' when you draw it.   
+		dug9 Jan 2018: turned off scaling of background geom, and toggled depth test)
+			- due to problems with float coordinate rounding when doing a geoSpatial scene 
+			- (with GC geocentric) coords at rootnode when using geoViewpoint
+			- still problem with geo-horizon leveling of background (for near-ground)
+	*/
+	didPerspective = FALSE;
+	
+	if(0){
+		//we need to scale because somewhere else we set up a perspective transformation that 
+		//may have a big number for a nearPlane (ie with geo scenes stretching depth range)
+		//and the perspective transforms our z's into gl's 0 to 1 range for depth
+		//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+		bgscale = 1.0;
+		//if( viewer->nearPlane >= bgscale*.5) 
+		bgscale = viewer->nearPlane + (viewer->farPlane - viewer->nearPlane)*.3;
+		//printf("near %lf far %lf bgscale %lf\n",viewer->nearPlane,viewer->farPlane,bgscale);
+		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+	}else{
+		//alternately we can replace the perspective transform, or scale the depth range
+		GLclampd znear, zfar;
+		fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
+		didPerspective = TRUE;
+	}
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	LIGHTING_OFF
+
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
+
+	if(setupShaderB()){
+		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
+		reallyDraw();
+	}
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
+
+	/* now, for the textures, if they exist */
+	if (((node->backUrl).n>0) ||
+			((node->frontUrl).n>0) ||
+			((node->leftUrl).n>0) ||
+			((node->rightUrl).n>0) ||
+			((node->topUrl).n>0) ||
+			((node->bottomUrl).n>0)) {
+        	glEnable(GL_TEXTURE_2D);
+
+        	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,BackgroundVert);
+        	FW_GL_NORMAL_POINTER (GL_FLOAT,0,Backnorms);
+        	FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex,0);
+
+		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
+
+
+		loadBackgroundTextures(node);
+		finishedWithGlobalShader();
+	}
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+	if(didPerspective){
+		fw_depth_slice_pop();
+	}
+		
 	FW_GL_POP_MATRIX();
 
 	/* is fog enabled? if so, disable it right now */
@@ -1127,7 +1385,7 @@ void render_Background (struct X3D_Background *node) {
 }
 
 
-void render_TextureBackground (struct X3D_TextureBackground *node) {
+void render_TextureBackground_OLD (struct X3D_TextureBackground *node) {
 	ttglobal tg = gglobal();
     
 	X3D_Viewer *viewer = Viewer();
@@ -1156,23 +1414,23 @@ void render_TextureBackground (struct X3D_TextureBackground *node) {
 
 	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
 	   all geometry fits within the spheres */
-	FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	glDisable(GL_DEPTH_TEST);
 
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 
-		enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-		FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-		FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
-
-		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-		reallyDraw();
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-		finishedWithGlobalShader();
+	sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
+	reallyDraw();
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
 
 	/* now, for the textures, if they exist */
 	if ((node->backTexture !=0) ||
@@ -1190,10 +1448,160 @@ void render_TextureBackground (struct X3D_TextureBackground *node) {
 		loadTextureBackgroundTextures(node);
 
 		finishedWithGlobalShader();
+
+	}
+	glEnable(GL_DEPTH_TEST);
+
+	/* pushes are done in moveBackgroundCentre */
+	FW_GL_POP_MATRIX();
+
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glEnable (GL_FOG);
+}
+
+//void prep_TextureBackground (struct X3D_TextureBackground *node) {
+//	ttglobal tg = gglobal();
+//    
+//	X3D_Viewer *viewer = Viewer();
+//	/* if we are rendering blended nodes, don't bother with this one */
+//	if (renderstate()->render_blend) return;
+//
+//
+//	/* printf ("RTBG, node %d ib %d sb %d gepvp\n",node,node->isBound,node->set_bind);  */
+//	/* check the set_bind eventin to see if it is TRUE or FALSE */
+//	if (node->set_bind < 100) {
+//		bind_node (X3D_NODE(node), getActiveBindableStacks(tg)->background);
+//	}
+//}
+void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
+	double bgscale;
+	int didPerspective;
+	X3D_Viewer *viewer = Viewer();
+	ttglobal tg = gglobal();
+
+	/* is fog enabled? if so, disable it right now */
+	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
+
+	/* Cannot start_list() because of moving center, so we do our own list later */
+	if(0){
+		moveBackgroundCentre();
+	}else if(1){
+		//March 2018 - this re-allows scene-file authored tilts to the background like other browsers
+		// <Transform> <Background> </Transform> - tilts captured in render_Background
+		// which we broke a few months ago
+		double pp[3], mvmat[16], mvinv[16];
+		bindablestack *bstack;
+		ttglobal tg = gglobal();
+		bstack = getActiveBindableStacks(tg);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
+		//we now need to cancel/undo the translation part 
+		// by moving the background back to where the vp is at 0,0,0
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
+		matinverseAFFINE(mvinv,mvmat);
+		vecsetd(pp,0.0,0.0,0.0);
+		transformAFFINEd(pp,pp,mvinv);
+		FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
+		if(1){ 
+			//cancel/undo scale part, so that our background mesh stays at diameter 1.0
+			double sx,sy,sz, q[3],p[3],d[3];
+			/* Get scale */
+			vecsetd(p,0.0,0.0,0.0);
+			transformAFFINEd(p,p,mvmat);
+			vecsetd(q,1.0,0.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sx = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,1.0,0.0);
+			transformAFFINEd(q,q,mvmat);
+			sy = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(q,0.0,0.0,1.0);
+			transformAFFINEd(q,q,mvmat);
+			sz = 1.0/veclengthd(vecdifd(d,q,p));
+			/* Undo the scale effects */
+			FW_GL_SCALE_D(sx,sy,sz);
+		}
+	}
+
+
+	if  NODE_NEEDS_COMPILING
+		/* recalculateBackgroundVectors will determine exact node type */
+		recalculateBackgroundVectors((struct X3D_Background *)node);	
+
+	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
+	   all geometry fits within the spheres */
+	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+	didPerspective = FALSE;
+
+	if(0){
+		bgscale = 1.0;
+		if( viewer->nearPlane > bgscale) bgscale = viewer->nearPlane;
+		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
+	}else{
+		//alternately we can replace the perspective transform, or scale the depth range
+		GLclampd znear, zfar;
+		fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
+		didPerspective = TRUE;
+	}
+
+	glDisable(GL_DEPTH_TEST);
+
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
+
+	sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
+	reallyDraw();
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
+
+	/* now, for the textures, if they exist */
+	if ((node->backTexture !=0) ||
+			(node->frontTexture !=0) ||
+			(node->leftTexture !=0) ||
+			(node->rightTexture !=0) ||
+			(node->topTexture !=0) ||
+			(node->bottomTexture !=0)) {
+
+
+		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
+
+		loadTextureBackgroundTextures(node);
+
+		finishedWithGlobalShader();
+
+	}
+	glEnable(GL_DEPTH_TEST);
+	if(didPerspective){
+		fw_depth_slice_pop();
 	}
 
 	/* pushes are done in moveBackgroundCentre */
 	FW_GL_POP_MATRIX();
 
 	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glEnable (GL_FOG);
+}
+
+void render_bound_background(){
+	//Jan 2018 changed to render bound Background first, before other nodes, 
+	// - so can turn off gl depth and don't need to scale it up - can be unit sphere, unit cube
+
+	ttglobal tg = gglobal();
+	if (vectorSize(getActiveBindableStacks(tg)->background) >0){
+		struct X3D_Node * node = vector_back(struct X3D_Node *,getActiveBindableStacks(tg)->background);
+		switch(node->_nodeType){
+			case NODE_Background: 
+				render_prepped_Background((struct X3D_Background*)node); 
+				break;
+			case NODE_TextureBackground: 
+				render_prepped_TextureBackground((struct X3D_TextureBackground*)node); 
+				break;
+			default: break;
+		}
+	}
 }

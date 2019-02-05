@@ -137,6 +137,7 @@ struct sCollisionGPU {
 struct sFallInfo
 {
 	double fallHeight; /*[100.0] a setting - the maximum you want to search for ground beneath before giving up and staying at your current level */
+	double climbHeight; //100 the max you want to search above for ground above you
 	double fallStep; /*[1.0] a setting - how much maximum on a frame to fall ie so it's not 1 frame to fall all the way, you can spread it out */
 	double hfall;  /*if canFall && isFall then this is how far to fall to hit ground, in collision space dist +down */
 	double hclimb; /* if isClimb then (similar to hfall) this is how far to climb to get back on top of the ground - redundant with cylinder collisions, so this is a primitive thunk */

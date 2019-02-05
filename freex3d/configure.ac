@@ -11,7 +11,7 @@
 # Autoconf startup, we define the package's name, and version:
 # but this is not the program's version, nor the library's version.
 # We also define the maintainer address.
-AC_INIT([freewrl], [3.0.0], [freewrl-help@lists.sourceforge.net])
+AC_INIT([freewrl], [4.3.0], [freewrl-develop@lists.sourceforge.net])
 
 # Little customization: all autotools derived files go in a sub-directory.
 AC_CONFIG_AUX_DIR([config])
@@ -41,7 +41,7 @@ AC_CONFIG_FILES([vtempl],[chmod +x vtempl])
 AC_CONFIG_HEADER([config.h])
 
 # Before libtool 2.2 we need to disable C++ and Fortran explicitely:
-# C++ is not used, so related checks are not needed
+# C++ is not used (2018: it is now) so related checks are not needed
 m4_defun([_LT_AC_LANG_CXX_CONFIG], [:])
 # Same line for Fortran
 m4_defun([_LT_AC_LANG_F77_CONFIG], [:])
@@ -70,6 +70,7 @@ AC_HEADER_STDBOOL
 # Checks for library functions.
 AC_FUNC_FORK
 AC_PROG_GCC_TRADITIONAL
+AC_PROG_CXX
 dnl AC_FUNC_MALLOC
 AC_CHECK_FUNCS([strchr strrchr strdup strndup strerror getopt getopt_long getopt_long_only malloc calloc realloc usleep gettimeofday])
 
@@ -177,25 +178,37 @@ fi
 
 
 # libcurl [optional]
-AC_MY_SWITCH(libcurl,[enable libcurl (could be used instead of wget)],off)
+have_curl=no
+AC_MY_SWITCH(libcurl,[enable libcurl (could be used instead of wget)],on)
 if test x$sw_libcurl = xno; then
    :
 else
-   PKG_CHECK_MODULES(LIBCURL, libcurl, AC_DEFINE(HAVE_LIBCURL, 1, [Define if you have the libcurl library.]))
+   PKG_CHECK_MODULES(LIBCURL, libcurl,[
+        AC_DEFINE(HAVE_LIBCURL, 1, [Define if you have the libcurl library.])
+        [have_curl=yes]
+        ],[
+        AC_MSG_NOTICE([Please install a libcurl-dev variant. Thunking to wget.])
+        ])
 fi
 
 # ======================================
 # Javascript engine options
 # ======================================
 AC_ARG_WITH([javascript],
-        [AS_HELP_STRING([--with-javascript=OPT],[javascript OPT (no,sm,duk) for none, spidermonkey or duktape])],
+        [AS_HELP_STRING([--with-javascript=OPT],[javascript OPT (stub,sm,duk) for none, spidermonkey or duktape])],
         [javascript="$withval"],
         [javascript="check"])
 
 found_JAVASCRIPT_ENGINE=no
 
+
 case "$javascript" in
 no)
+    AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
+	  AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape javascript])
+	;;
+stub)
+        AC_MSG_NOTICE([Not using any Javascript engine library])
 	AC_DEFINE([JAVASCRIPT_STUB],[1], [Define for no javascript])
 	;;
 check|sm|spidermonkey|mozjs)
@@ -205,14 +218,18 @@ check|sm|spidermonkey|mozjs)
 	# seamonkey (firefox-2.0 equivalent packaging)
 	# firefox (2.0 or 1.5)
 	# firefox (firefox-2.0 possible alternate packaging)
-	# NOTE - mozjs-17 and later are not supported.
+	# NOTE - mozjs-17 (aka 186) supported but bad garbage collection, prefer 185
+        # NOTE - mozjs-24 (aka 187) cpp supported but bad garbage collection, prever 185
 	# AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-17.0])
 	AC_MSG_NOTICE([Determining Javascript engine to build against])
 	case "$os_type" in
 	mac)
+                #our 'normal' build on mac is via xcode IDE, not this configure.ac
         	AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[spidermonkey],[>=],[1.7.0])
 		;;
 	*)
+                AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-24])
+                AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs-17.0])
 		AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs187])
 		AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozjs185])
 		AC_MY_CHECK_MODULE(JAVASCRIPT_ENGINE,[mozilla-js],[<],[3.0])
@@ -236,64 +253,27 @@ check|sm|spidermonkey|mozjs)
 	else
 		AC_MSG_NOTICE([Using $found_JAVASCRIPT_ENGINE for Javascript engine library])
 		AC_DEFINE([JAVASCRIPT_SM],[1], [Define for spidermonkey js engine])
+                if test x$found_JAVASCRIPT_ENGINE = xmozjs-24; then
+                      AC_DEFINE([JS_SMCPP],[1], [Define for spidermonkey c++ js engine >= 24])  
+                fi
 	fi
+    if test x$found_JAVASCRIPT_ENGINE = xno; then
+	    AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
+    fi
+    AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape js engine])
 	;;
 check|duk)
-	if test x$found_JAVASCRIPT_ENGINE = xno; then
-		AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
-		AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape js engine])
-	fi
+	AC_MSG_NOTICE([Using internal duktape for Javascript engine library])
+	AC_DEFINE([JAVASCRIPT_DUK],[1], [Define for duktape js engine])
 	;;
 *)
 	AC_MSG_ERROR([Invalid input for --with-javascript: $javascript])
 	;;
 esac
 
+
 # XML
 PKG_CHECK_MODULES(XML, libxml-2.0)
-
-# Expat
-EXPAT_LIBS=-lexpat
-AC_ARG_WITH(expat,AS_HELP_STRING([--with-expat=<dir>],[Use expat from here]),[
-		if test "x$withval" != xno ; then
-	                with_expat=yes
-	                EXPAT_CFLAGS="-I$withval/include"
-	                EXPAT_LIBS="-L$withval/lib $EXPAT_LIBS"
-		else
-			AC_MSG_NOTICE([expat support disabled, checking for libxml2 headers instead])
-			with_expat=no
-		fi],[with_expat=check])
-
-# save global cflags/libs
-oCFLAGS=$CFLAGS;oLDFLAGS=$LDFLAGS;oCPPFLAGS=$CPPFLAGS;oLIBS=$LIBS
-
-if test "x$with_expat" != xno ; then
-  # set cflags/libs for this case
-  CPPFLAGS="$CPPFLAGS $EXPAT_CFLAGS"
-  LDFLAGS="$LDFLAGS $EXPAT_LIBS"
-
-  AC_CHECK_HEADERS(expat.h, [AC_DEFINE(HAVE_EXPAT_H)],
-     [AC_MSG_ERROR([Can't find expat.h. Please install expat.])])
-  AC_CHECK_LIB(expat, XML_ParserCreate, [],
-     [AC_MSG_ERROR([Can't find expat library. Please install expat.])])
-else
-  # not using expat so set these to be empty
-  EXPAT_LIBS=
-  EXPAT_CFLAGS=
-  # set cflags/libs for this case
-  CFLAGS="$CFLAGS $XML_CFLAGS"
-  CPPFLAGS="$CPPFLAGS $XML_CFLAGS"
-  LDFLAGS="$LDFLAGS $XML_LIBS"
-  # find libxml/parser.h and set define accordingly
-  AC_CHECK_HEADERS(libxml/parser.h,[AC_DEFINE(HAVE_LIBXML_PARSER_H)],[AC_MSG_ERROR([Could not find headers for libxml2])])
-fi
-
-# restore global cflags/libs
-CPPFLAGS=$oCPPFLAGS;LDFLAGS=$oLDFLAGS;CFLAGS=$oCFLAGS;LIBS=$oLIBS
-
-AC_SUBST(EXPAT_CFLAGS)
-AC_SUBST(EXPAT_LIBS)
-
 
 # ===================================
 # Platform specific: windowing system
@@ -459,6 +439,14 @@ case "$with_OpenCL" in
 	;;
 esac
 
+# Imlib2
+have_imlib2=no
+PKG_CHECK_MODULES(IMLIB2, imlib2, 
+        [[have_imlib2=yes] AC_DEFINE(HAVE_IMLIB2,1,[Define if IMLIB2 exists])],
+        [AC_MSG_NOTICE([Please install libimlib2]) ])
+
+if test x$have_imlib = xno; then
+# if we don't have imlib2, then we use libpng or libjpg or libgif directly
 # JPEG
 AC_ARG_WITH(jpeg,AS_HELP_STRING([--with-jpeg=<dir>],[Use jpeg from here]),[],[with_jpeg=check])
 case "$with_jpeg" in
@@ -474,6 +462,7 @@ case "$with_jpeg" in
 	JPEG_LIBS="-L$with_jpeg/lib -ljpeg"
 	;;
 esac
+
 # save global cflags/libs
 oCFLAGS=$CFLAGS;oLDFLAGS=$LDFLAGS;oCPPFLAGS=$CPPFLAGS;oLIBS=$LIBS
 # set cflags/libs for this case
@@ -506,24 +495,46 @@ CPPFLAGS=$oCPPFLAGS;LDFLAGS=$oLDFLAGS;CFLAGS=$oCFLAGS;LIBS=$oLIBS
 AC_SUBST(JPEG_CFLAGS)
 AC_SUBST(JPEG_LIBS)
 
+
+
+
+# PNG
+# PKG_CHECK_MODULES(PNG, libpng)
+
+fi
+
 # PNG
 PKG_CHECK_MODULES(PNG, libpng)
 
-# Imlib2
-PKG_CHECK_MODULES(IMLIB2, imlib2)
 
-## OpenAL check
-PKG_CHECK_MODULES([OPENAL], [openal], [
-                    AC_DEFINE([HAVE_OPENAL], [1], [Define if you have OpenAL installed.])
-                    CFLAGS="$CFLAGS $OPENAL_CFLAGS"
-                    LDFLAGS="$LDFLAGS $OPENAL_LIBS"
-                  ],[])
 
 ## freeALUT check
 PKG_CHECK_MODULES([ALUT], [freealut], [
-                    AC_DEFINE([HAVE_ALUT], [1], [Define if you have freeALUT installed.])
-                    LDFLAGS="$LDFLAGS $ALUT_LIBS"
-                  ],[])
+        AC_DEFINE([HAVE_ALUT], [1], [Define if you have freeALUT installed.])
+        LDFLAGS="$LDFLAGS $ALUT_LIBS"
+        ],[
+        AC_MSG_NOTICE([please install libalut which will install libopenal])                          
+        ])
+
+## OpenAL check
+PKG_CHECK_MODULES([OPENAL], [openal], [
+        AC_DEFINE([HAVE_OPENAL], [1], [Define if you have OpenAL installed.])
+        CFLAGS="$CFLAGS $OPENAL_CFLAGS"
+        LDFLAGS="$LDFLAGS $OPENAL_LIBS"
+        ],[
+        AC_MSG_NOTICE([please install libalut which will install libopenal])
+        ])
+
+
+## ffmpeg check libavcodec-dev libavutil-dev libavformat-dev,  libavresample-dev, libswscale-dev
+## https://autotools.io/pkgconfig/pkg_check_modules.html
+PKG_CHECK_MODULES([FFMPEG],[libavcodec,libavutil,libavformat,libswresample,libswscale], [
+        AC_DEFINE([MOVIETEXTURE_FFMPEG], [1], [Define if you have ffmpeg libs installed.])
+        CFLAGS="$CFLAGS $FFMPEG_CFLAGS"
+        LDFLAGS="$LDFLAGS $FFMPEG_LIBS"
+        ],[
+        AC_MSG_NOTICE([Not building ffmpeg module, please install libavcodec-dev libavutil-dev libavformat-dev,  libavresample-dev, libswscale-dev])
+        ])
 
 # ======================================
 # LibFreeWRLEAI configuration
@@ -540,14 +551,14 @@ AC_SUBST(MAYBE_LIBEAI)
 # ======================================
 # Sound module configuration
 # ======================================
-
-AC_MY_SWITCH(sound,[enable building of sound module],on)
-if test x$sw_sound = xno; then
-  AC_MSG_NOTICE([Not building sound module])
-  MAYBE_SOUND=
-else
-  MAYBE_SOUND=sound
-fi
+# ** this is an old technology - not used now **
+#AC_MY_SWITCH(sound,[enable building of sound module],on)
+#if test x$sw_sound = xno; then
+#  AC_MSG_NOTICE([Not building sound module])
+#  MAYBE_SOUND=
+#else
+#  MAYBE_SOUND=sound
+#fi
 # do AC_SUBST(MAYBE_SOUND) after checking for existance of soundconv
 
 # ======================================
@@ -658,17 +669,18 @@ AC_CHECK_TYPES([int32, uint32, int16, uint16], [], [], [[#include <npapi.h>]])
 # ======================================
 # Status bar configuration
 # ======================================
-AC_ARG_WITH([statusbar],
-        [AS_HELP_STRING([--with-statusbar=STATUSBAR],[Select status bar flavour -- 'hud' or 'standard'])],
-        [statusbar="$withval"],
-        [statusbar="hud"])
+#AC_ARG_WITH([statusbar],
+#        [AS_HELP_STRING([--with-statusbar=STATUSBAR],[Select status bar flavour -- 'hud' or 'standard'])],
+#        [statusbar="$withval"],
+#        [statusbar="hud"])
 
-case "$statusbar" in
-     standard|hud) AC_MSG_NOTICE([Status bar flavor: $statusbar]) ;; # valid input
-     *) AC_MSG_ERROR([Invalid input for status bar flavor: $statusbar]) ;;
-esac
-AM_CONDITIONAL([STATUSBAR_STD], [test "$statusbar" = standard])
-AM_CONDITIONAL([STATUSBAR_HUD], [test "$statusbar" = hud])
+#case "$statusbar" in
+#     standard|hud) AC_MSG_NOTICE([Status bar flavor: $statusbar]) ;; # valid input
+#     *) AC_MSG_ERROR([Invalid input for status bar flavor: $statusbar]) ;;
+#esac
+#AM_CONDITIONAL([STATUSBAR_STD], [test "$statusbar" = standard])
+#AM_CONDITIONAL([STATUSBAR_HUD], [test "$statusbar" = hud])
+AC_DEFINE([STATUSBAR_HUD], 1, [always define .. for builtin menu])
 
 # ======================================
 # OSC enable
@@ -677,22 +689,22 @@ AM_CONDITIONAL([STATUSBAR_HUD], [test "$statusbar" = hud])
 AC_MY_SWITCH(osc,[enable building of OSC plugin support],off)
 if test x$sw_osc = xyes; then
     PKG_CHECK_MODULES(LIBLO, liblo,
-        AC_DEFINE([WANT_OSC],[1],
-                  [Define if liblo exists and OSC support wanted]),
-                  AC_MSG_ERROR([Skipping OSC. No liblo installed.]))
+        [AC_DEFINE([WANT_OSC],[1],[Define if liblo exists and OSC support wanted])],
+        [AC_MSG_NOTICE([Skipping OSC. No liblo installed.])])
 fi
 
 # ======================================
 # RBP enable
 # ======================================
 
-AC_MY_SWITCH(rbp,[enable building of RigidBodyPhysics (needs libODE)],off)
+AC_MY_SWITCH(rbp,[enable building of RigidBodyPhysics which needs libODE],off)
+AC_MSG_NOTICE([got to A])
 if test x$sw_rbp = xyes; then
     PKG_CHECK_MODULES(ODE, ode,
-        AC_DEFINE([WITH_RBP],[1],
-                  [Define if ODE exists and RBP support wanted]),
-                  AC_MSG_ERROR([Skipping RBP. No libode installed.]))
+        [AC_DEFINE([WITH_RBP],[1],[Define if ODE exists and RBP support wanted])],
+        [AC_MSG_NOTICE([Skipping RBP. No libode installed, plesae install libode])])
 fi
+
 AC_SUBST(ODE_CFLAGS)
 AC_SUBST(ODE_LIBS)
 
@@ -792,13 +804,13 @@ AC_MY_HELPERAPP([browser],[BROWSER],[internet browser],[$DEFAULT_BROWSER],[
         ])
 
 ## Soundconv program check (sox)
-if test x$MAYBE_SOUND = xsound; then
-    AC_MY_HELPERAPP([soundconv],[SOUNDCONV],[sound converter],[$DEFAULT_SOUNDCONV],[
-        MAYBE_SOUND=
-        AC_MSG_WARN([No soundconv helper -- Not building sound module])
-        ])
-fi
-AC_SUBST([MAYBE_SOUND])
+#if test x$MAYBE_SOUND = xsound; then
+#    AC_MY_HELPERAPP([soundconv],[SOUNDCONV],[sound converter],[$DEFAULT_SOUNDCONV],[
+#        MAYBE_SOUND=
+#        AC_MSG_WARN([No soundconv helper -- Not building sound module])
+#        ])
+#fi
+#AC_SUBST([MAYBE_SOUND])
 
 ## Unzip check
 AC_MY_HELPERAPP([unzip],[UNZIP],[zip decompressor],[$DEFAULT_UNZIP],[
@@ -806,22 +818,42 @@ AC_MY_HELPERAPP([unzip],[UNZIP],[zip decompressor],[$DEFAULT_UNZIP],[
         ])
 
 ## Wget check
-AC_MY_HELPERAPP([wget],[WGET],[http fetcher],[$DEFAULT_WGET],[
+if test x$have_curl = xno; then
+        AC_MY_HELPERAPP([wget],[WGET],[http fetcher],[$DEFAULT_WGET],[
         AC_MSG_ERROR([No http fetcher, please specify one using --with-wget=PATH])
         ])
+else
+        AC_MSG_NOTICE([http fetcher: relying on libcurl])
+fi
 
 ## Imageconvert check
-AC_MY_HELPERAPP([imageconvert],[IMAGECONVERT],[image converter],[$DEFAULT_IMAGECONVERT],[
-        AC_MSG_ERROR([No image converter, please specify one using --with-imageconvert=PATH])
+if test x$have_imlib2 = xno; then
+        AC_MY_HELPERAPP([imageconvert],[IMAGECONVERT],[image converter],[$DEFAULT_IMAGECONVERT],[
+        AC_MSG_NOTICE([No image converter and no Imlib2 - render snapshots cannot be saved])
         ])
+else
+        AC_DEFINE(IMAGECONVERT,[""],[Imlib2 will save snapshots directly to png])
+        AC_MSG_NOTICE([Using Imlib2 for saving snapshots])
+fi
 
+## DIS
+AC_ARG_WITH([DIS],
+            [AS_HELP_STRING([--with-DIS],
+            [Enable support for Distributed Interactive Simulation (default=yes)])],
+            [],
+            [with_DIS=yes])
+AM_CONDITIONAL([WITH_DIS],[test x"$with_DIS" = xyes])
+if test x"$with_DIS" = xyes; then
+	AC_DEFINE([WITH_DIS],[1], [Define if DIS support wanted])
+fi
+ 
 
 # =======
 # Targets
 # =======
 
 FREEWRL_PROGRAM="freewrl"
-FREEWRL_SOUND_MANAGER="freewrl_snd"
+#FREEWRL_SOUND_MANAGER="freewrl_snd"
 FREEWRL_MESSAGE_WRAPPER="freewrl_msg"
 case $os_type in
      # FIXME: name of plugin?
@@ -833,8 +865,8 @@ esac
 AC_SUBST(FREEWRL_PROGRAM)
 AC_DEFINE_UNQUOTED(FREEWRL_PROGRAM, "$FREEWRL_PROGRAM", [The FreeWRL program name.])
 
-AC_SUBST(FREEWRL_SOUND_MANAGER)
-AC_DEFINE_UNQUOTED(FREEWRL_SOUND_MANAGER, "$FREEWRL_SOUND_MANAGER", [The FreeWRL sound wrapper program name.])
+#AC_SUBST(FREEWRL_SOUND_MANAGER)
+#AC_DEFINE_UNQUOTED(FREEWRL_SOUND_MANAGER, "$FREEWRL_SOUND_MANAGER", [The FreeWRL sound wrapper program name.])
 
 AC_SUBST(FREEWRL_MESSAGE_WRAPPER)
 AC_DEFINE_UNQUOTED(FREEWRL_MESSAGE_WRAPPER, "$FREEWRL_MESSAGE_WRAPPER", [The FreeWRL message wrapper program name.])

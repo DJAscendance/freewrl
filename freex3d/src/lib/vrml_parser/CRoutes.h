@@ -67,6 +67,7 @@ struct brouteEnd{
 	//int builtin; //flag 1 = builtin node, 0= script, proto with user fields (Q. what about routing to Script.url?)
 	//int Ofs; //integer offset for builtin field, in bytes from node*
 	int ifield; //integer routable field index - for scripts,protos the index of user field, for builtins the index into OFFESTS[] array
+	int builtIn; //TRUE if ifield is index into builtin fields, FALSE if index into user fields in script, broto etc
 	int ftype; //field type
 };
 

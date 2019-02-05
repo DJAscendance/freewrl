@@ -36,14 +36,14 @@ Variable use:
 //#include "x3d_parser/X3DParser.h" //for PARENTSTACKSIZE
 //#include "ui/common.h" // for ppcommon
 
-
+#define IBOOL int
 
 typedef struct iiglobal //InstanceGlobal
 {
 	struct tdisplay{
 		void *params; //freewrl_params_t
 		int _global_gl_err; //GLenum
-		bool display_initialized;// = FALSE;
+		IBOOL display_initialized;// = FALSE;
 		int screenWidth;// = 0; /* screen */
 		int screenHeight;// = 0;
 		char *window_title;// = NULL;
@@ -52,12 +52,12 @@ typedef struct iiglobal //InstanceGlobal
 		void *prv;
 	}display;
 	struct tinternalc {
-		bool global_strictParsing;// = FALSE;
-		bool global_plugin_print;// = FALSE;
-		bool global_occlusion_disable;// = FALSE;
+		IBOOL global_strictParsing;// = FALSE;
+		IBOOL global_plugin_print;// = FALSE;
+		IBOOL global_occlusion_disable;// = FALSE;
 		unsigned user_request_texture_size;// = 0;
-		bool global_print_opengl_errors;// = FALSE;
-		bool global_trace_threads;// = FALSE;
+		IBOOL global_print_opengl_errors;// = FALSE;
+		IBOOL global_trace_threads;// = FALSE;
 		void *prv;
 	} internalc;
 	//struct tio_http {
@@ -86,18 +86,19 @@ typedef struct iiglobal //InstanceGlobal
 		/* Synchronize / exclusion (main<=>texture) */
 		pthread_mutex_t mutex_texture_list; // = PTHREAD_MUTEX_INITIALIZER;
 		pthread_cond_t texture_list_condition; // = PTHREAD_COND_INITIALIZER;
-		bool ResourceThreadRunning;
-		bool TextureThreadRunning;
-		bool ResourceThreadWaiting;
-		bool TextureThreadWaiting;
-		bool flushing;
+
+		IBOOL ResourceThreadRunning;
+		IBOOL TextureThreadRunning;
+		IBOOL ResourceThreadWaiting;
+		IBOOL TextureThreadWaiting;
+		IBOOL flushing;
 		int MainLoopQuit;
 		void *prv;
 	} threads;
     
 	struct tSnapshot {
-		bool doSnapshot;
-		bool doPrintshot;
+		IBOOL doSnapshot;
+		IBOOL doPrintshot;
 		int snapGoodCount;
 		void *prv;
 	} Snapshot;
@@ -205,8 +206,8 @@ typedef struct iiglobal //InstanceGlobal
 
 #ifdef HAVE_OPENCL
         struct tOpenCL_Utils{
-                bool OpenCL_Initialized; // = FALSE;
-                bool OpenCL_OK; // = FALSE
+                IBOOL OpenCL_Initialized; // = FALSE;
+                IBOOL OpenCL_OK; // = FALSE
                 void *prv;
         }OpenCL_Utils;
 #endif //HAVE_OPENCL
@@ -328,6 +329,7 @@ iOLDCODE	}Component_Networking;
 		float hyp_save_posn[3];
 		float hyp_save_norm[3];
 		float ray_save_posn[3]; //getRayHit() > last intersection of pickray/bearing with geometry, transformed into the coordinates of the geometry
+		float camera_axis[3];
 		void *hypersensitive;//= 0; 
 		int hyperhit;// = 0;
 		//struct point_XYZ hp;
@@ -357,6 +359,10 @@ iOLDCODE	}Component_Networking;
 		int global_IFS_Coord_count;//=0;
 		//GLUtriangulatorObj *global_tessobj;
 		void *global_tessobj;
+		int *text_IFS_Coords;
+		int text_IFS_Coord_count;//=0;
+		//GLUtriangulatorObj *global_tessobj;
+		void *text_tessobj;
 		void *prv;
 	}Tess;
 	struct tViewer{
@@ -388,6 +394,7 @@ iOLDCODE	}Component_Networking;
 	struct tCScripts{
 		void *prv;
 	}CScripts;
+#ifdef JAVASCRIPT_SM
 	struct tJScript{
 		void * JSglobal_return_val;
 		void *prv;
@@ -404,6 +411,13 @@ iOLDCODE	}Component_Networking;
 	struct tjsVRMLClasses{
 		void *prv;
 	}jsVRMLClasses;
+#endif
+#ifdef JAVASCRIPT_DUK
+	struct tJScript_duk{
+		void * JSglobal_return_val;
+		void *prv;
+	}JScript_duk;
+#endif
 	struct tBindable{
 		//struct sNaviInfo naviinfo;
   //      struct Vector *background_stack;
@@ -435,8 +449,8 @@ iOLDCODE	}Component_Networking;
 #ifdef DISABLER	
 #if defined(WRAP_MALLOC) || defined(DEBUG_MALLOC)
     pthread_mutex_t __memTableGlobalLock;
-    bool __memTable_CheckInit;
-    bool __memTable_ShouldRegisterAllocation;
+    IBOOL __memTable_CheckInit;
+    IBOOL __memTable_ShouldRegisterAllocation;
     dbl_list_t *__memTable;
 #endif
 #endif

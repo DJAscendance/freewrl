@@ -21,12 +21,15 @@ int getCursorStyle();
 void *fwl_frontenditem_dequeue();
 char* fwl_resitem_getURL(void *res);
 int	fwl_resitem_getStatus(void *res);
+void fwl_resitem_setStatus(void *resp, int status);
 int	fwl_resitem_getType(void *res);
 int	fwl_resitem_getMediaType(void *res);
 void fwl_resitem_enqueuNextMulti(void *res);
 void fwl_resitem_setLocalPath(void *res, char* path);
 void fwl_resitem_enqueue(void *res);
 int file2blob(void *res);
+void frontend_dequeue_get_enqueue(void *fwctx);
+int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *, int *url_index);
 #ifdef SSR_SERVER
 //SSR (Server-side rendering)
 void SSRserver_enqueue_request_and_wait(void *fwctx, void *request);
@@ -99,6 +102,39 @@ DLLFREEWRL_API void dllFreeWRL_onInit(void *fwctx, int width, int height, void* 
 	fwl_clearCurrentHandle();
 	return;
 }
+
+DLLFREEWRL_API void dllFreeWRL_onInitArgv(void *fwctx, int argc, char **argv, int frontend_handles_display_thread)
+{
+	int ok;
+	struct freewrl_params *params;
+	char *start_url = NULL;
+	int url_index;
+	fwl_setCurrentHandle(fwctx, __FILE__, __LINE__);
+	/* Before we parse the command line, setup the FreeWRL default parameters */
+	params = (freewrl_params_t*) malloc( sizeof(freewrl_params_t));
+	memset(params,0,sizeof(freewrl_params_t));
+	/* Default values */
+	params->width = 600;
+	params->height = 400;
+	fv_parseCommandLine(argc, argv,params, &url_index);
+	if(url_index > -1)
+		start_url = argv[url_index];
+	params->frontend_handles_display_thread = frontend_handles_display_thread;
+	ok = fwl_initFreeWRL(params);
+
+#ifndef FRONTEND_HANDLES_DISPLAY_THREAD
+	if(ok)
+		if(!frontend_handles_display_thread)
+			fwl_initializeDisplayThread();
+#endif
+	fwl_setScreenDim(params->width, params->height);
+	if(start_url)
+		fwl_replaceWorldNeeded(start_url);
+
+	fwl_clearCurrentHandle();
+	return;
+}
+
 DLLFREEWRL_API void dllFreeWRL_setTempFolder(void *fwctx, char *tmpFolder)
 {
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
@@ -131,14 +167,11 @@ DLLFREEWRL_API void *dllFreeWRL_dllFreeWRL2(char* scene_url, int width, int heig
 
 DLLFREEWRL_API void dllFreeWRL_onLoad(void *fwctx, char* scene_url)
 {
-	char * url;
-	url = strdup(scene_url);
 	if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
-		fwl_replaceWorldNeeded(url);
+		fwl_replaceWorldNeeded(scene_url);
 	}
 	fwl_clearCurrentHandle();
 }
-
 
 DLLFREEWRL_API void dllFreeWRL_onResize(void *fwctx, int width,int height){
 	if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
@@ -247,6 +280,10 @@ DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str)
 DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx)
 {
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
+#ifndef FRONTEND_GETS_FILES
+		//build with desktop.c? but frontend does displaythread? then you need the queue processor
+		frontend_dequeue_get_enqueue(fwctx);
+#endif //FRONTEND_GETS_FILES
 		fwl_draw();
 	}
 	fwl_clearCurrentHandle();

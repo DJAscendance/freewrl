@@ -24,6 +24,10 @@ Functions:
 #define ACURSE 0 //arrow
 #define NCURSE 2 //none
 
+//debugging functions
+void fwl_setTrap(int);
+int fwl_getTrap();
+
 /* Status update functions */
 
 void setMenuFps(float fps);
@@ -33,7 +37,8 @@ char* getMenuStatus();
 void setMessageBar();
 
 /* Generic (virtual) update functions */
-
+int getJsEngine();
+int getJsEngineVariant();
 void loadCursors();
 void setCursor();
 void setArrowCursor();
@@ -52,6 +57,10 @@ char *get_status();
 char *getMenuStatus();
 void showConsoleText(int on);
 int getShowConsoleText();
+void fwl_setDrawBoundingBoxes(int drawbb);
+int fwl_getDrawBoundingBoxes();
+void fwl_set_depth_slices(int nslices);
+int fwl_get_depth_slices();
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif
@@ -113,6 +122,8 @@ ALT,CTRL,SHIFT true/false
 #define NUM9  49
 #define NUMDEC 50
 
-
+#define JSENGINE_STUB 0
+#define JSENGINE_DUK 1
+#define JSENGINE_SM 2
 
 #endif /* __LIBFREEWRL_UI_COMMON_H__ */

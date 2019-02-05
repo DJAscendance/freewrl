@@ -280,32 +280,10 @@ void handleMetaDataStringString(struct Uni_String *val1, struct Uni_String *val2
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/core.html#UNITStatement
 // http://www.web3d.org/documents/specifications/19776-2/V3.3/Part02/grammar.html#General
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/concepts.html#t-Standardunits
-const char * unitcategories [] = {
-	"angle",
-	"force",
-	"length",
-	"mass",
-	"acceleration",
-	"angular_rate",
-	"area",
-	"speed",
-	"volume",
-};
-//#define UNITCATEGORIES_COUNT 9
-const char * unitnames [] = {
-	"radian",
-	"newton",
-	"metre",
-	"kilogram",
-};
-//#define UNITNAMES_COUNT 4
-void handleUnitDataStringString(char *categoryname, char *unitname, double conversionfactor) {
-	//int i1, i2;
-	//i1 = findFieldInARR(categoryname,unitcategories,UNITCATEGORIES_COUNT);
-	//i2 = findFieldInARR(unitname,unitnames,UNITNAMES_COUNT);
-	#ifdef CAPABILITIESVERBOSE
-	printf ("handleMetaDataStringString, :%s:, :%s:\n",val1->strptr, val2->strptr);
-	#endif
+void addUnits(void *ec, char *category, char *unit, double factor);
+void handleUnitDataStringString(void *ec, char *categoryname, char *unitname, double conversionfactor) {
+	addUnits(ec, categoryname,unitname,conversionfactor);
+	//printf ("handleUnitDataStringString, :%s:, :%s: :%lf:\n",categoryname,unitname,conversionfactor);
 }
 
 void handleProfile (int myProfile) {

@@ -172,7 +172,7 @@ sub get_rendfunc {
 				}
 			} elsif ($_ eq "Compile") {
 				$v .= $comma."void compile_".${n}."(struct X3D_".${n}." *);\n";
-			}
+			} 
 		}
 	}
 
@@ -843,7 +843,37 @@ sub gen {
 
 
 	#####################
+	# process GEOELLIPSOID keywords
+	
+	push @str, "\n/* Table of built-in GEOELLIPSOID keywords */\nextern const char *GEOELLIPSOID[];\n";
+	push @str, "extern const int GEOELLIPSOID_COUNT;\n";
+
+	push @genFuncs1, "\n/* Table of GEOELLIPSOID keywords */\n       const char *GEOELLIPSOID[] = {\n";
+
+        @sf = sort keys %VRML::Rend::GEOEllipsoidKeywordC if %VRML::Rend::GEOEllipsoidKeywordC;
+	$keywordIntegerType = 0;
+	for (@sf) {
+		# print "node $_ is tagged as $nodeIntegerType\n";
+		# tag each node type with a integer key.
+		push @str, "#define GEOEL_".$_."	$keywordIntegerType\n";
+		$keywordIntegerType ++;
+		push @genFuncs1, "	\"$_\",\n";
+	}
+	push @str, "\n";
+	push @genFuncs1, "};\nconst int GEOELLIPSOID_COUNT = ARR_SIZE(GEOELLIPSOID);\n\n";
+
+	# make a function to print Keyword name from an integer type.
+	push @genFuncs2, "/* Return a pointer to a string representation of the GEOELLIPSOID keyword type */\n".
+		"const char *stringGEOELLIPSOIDType (int st) {\n".
+		"	if ((st < 0) || (st >= GEOELLIPSOID_COUNT)) return \"(keyword invalid)\"; \n".
+		"	return GEOELLIPSOID[st];\n}\n\n";
+	push @str, "const char *stringGEOELLIPSOIDType(int st);\n";
+	
+	
+	#####################
 	# process GEOSPATIAL keywords
+	
+	
 	push @str, "\n/* Table of built-in GEOSPATIAL keywords */\nextern const char *GEOSPATIAL[];\n";
 	push @str, "extern const int GEOSPATIAL_COUNT;\n";
 
@@ -1065,7 +1095,7 @@ sub gen {
 	"#define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)\n".
 	"#define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)\n".
 
-
+	"void mark_event (struct X3D_Node *from, int totalptr);\n".
 	"#undef DEBUG_VALIDNODE\n".
 	"#ifdef DEBUG_VALIDNODE	\n".
 	"#define X3D_NODE_CHECK(node) checkNode(node,__FILE__,__LINE__)\n".
@@ -1154,7 +1184,9 @@ sub gen {
 
 		push @genFuncs2, "\t\t\ttmp2 = (struct X3D_$node *) tmp;\n";
 
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		# foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 			my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 			my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
 			my $def = $VRML::NodeType::Nodes{$node}{Defaults}{$field};
@@ -1266,7 +1298,9 @@ sub gen {
 			push @genFuncs2, "\t\t\tspacer fprintf (fp,\" _nparents (int) %d\\n\",vectorSize(tmp->_parentVector)); /* DJTRACK_PICKSENSORS */\n";
 			push @genFuncs2, "\t\t\tfor (i=0; i<vectorSize(tmp->_parentVector); i++) { spacer fprintf (fp,\"    %d: %p\\n\",i, vector_get(struct X3D_Node *, tmp->_parentVector,i)); }\n";
 		}
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		#foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 
 			my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 			my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
@@ -1411,15 +1445,18 @@ sub gen {
 
 		push @genFuncs1, "\nconst int OFFSETS_".$node."[] = {\n";
 
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		#foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 		    my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 		    #$ft =~ tr/a-z/A-Z/; # convert to uppercase
 		    my $fk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
 		    my $specVersion = $VRML::NodeType::Nodes{$node}{SpecLevel}{$field};
+		    my $unca = $VRML::NodeType::Nodes{$node}{Unca}{$field};
 		    push @genFuncs1, "	(int) FIELDNAMES_$field, (int) offsetof (struct X3D_$node, $field), ".
-			" (int) FIELDTYPE_$ft, (int) KW_$fk, (int) $specVersion,\n";
+			" (int) FIELDTYPE_$ft, (int) KW_$fk, (int) $specVersion, (int) $unca,\n";
 		};
-		push @genFuncs1, "	-1, -1, -1, -1, -1};\n";
+		push @genFuncs1, "	-1, -1, -1, -1, -1, -1};\n";
 	}
 	#####################
 	# create an array for each node. The array contains the following:
@@ -1451,7 +1488,9 @@ sub gen {
 		push @fieldNodes, "\n/* $node node */\n";
 		push @fieldNodes, "BEGIN_NODE($node)\n";
 
- 		foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		#foreach my $field (sort keys %{$VRML::NodeType::Nodes{$node}{Defaults}}) {
+ 		my @fnames = @{$VRML::NodeType::Nodes{$node}->{fnames}};
+ 		foreach my $field (@fnames) {
 			if (index($field,"_") !=0) {
 				my $fk = "";
 				my $ofk = $VRML::NodeType::Nodes{$node}{FieldKinds}{$field};
@@ -1467,9 +1506,13 @@ sub gen {
 				my $ft = $VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 				my $origFt = "FIELDTYPE_".$VRML::NodeType::Nodes{$node}{FieldTypes}{$field};
 				$ft =~ tr/A-Z/a-z/; # convert to lowercase
-
-				push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt)\n";
-			}
+				my $unca = $VRML::NodeType::Nodes{$node}{Unca}{$field};
+				if ("initializeOnly" eq $ofk or "inputOutput" eq $ofk){
+					push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt,$unca)\n";
+				}else{
+					push @fieldNodes, "$fk($node,$field,$ft,$field,$origFt)\n";
+				}
+			}	
 		};
 		push @fieldNodes, "END_NODE($node)\n";
 	}
@@ -1633,13 +1676,6 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLfloat transparency;		/* what the transparency value was during compile, put in color array if RGBA colors */
 	int isRGBAcolorNode;		/* color was originally an RGBA, DO NOT re-write if transparency changes */
 	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
-};
-
-/* viewer dimentions (for collision detection) */
-struct sNaviInfo {
-        double width;
-        double height;
-        double step;
 };
 
 ';
