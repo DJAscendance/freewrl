@@ -96,6 +96,9 @@ int main (int argc, char **argv)
     freewrl_params_t *fv_params = NULL;
 #ifdef __linux__
 	char * libpath = getenv("LD_LIBRARY_PATH");
+	if(libpath == NULL){
+		libpath = "/usr/local/lib";
+	}
 	printf("\nlibrary path %s\n",libpath);
 	if(strstr(libpath,"/tmp/.mount")){
 		//freewrl is being used in an appimage

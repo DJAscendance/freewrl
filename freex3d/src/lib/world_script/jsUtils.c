@@ -163,7 +163,7 @@ JS_ConstructObjectFw(JSContext *cx, JSClass *clasp, void *whatever, JSObject *pa
     return JS_ConstructObjectWithArgumentsFw(cx, clasp, parent, 0, NULL); 
 } 
 JSClass* JS_GetClassFw(JSContext *cx, JSObject *obj){
-	return JS_GetClass(obj);
+	return JS_GetClass(cx,obj);
 }
 JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj){
 #if JS_VERSION >= 186

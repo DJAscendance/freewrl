@@ -11,6 +11,7 @@ ipch
 *.sdf
 Thumbs.db
 *.opensdf
+*.VC.db
 #make ignore:
 #eclipseCDT ignore:
 #Linux ignore
