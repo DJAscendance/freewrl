@@ -4273,6 +4273,33 @@ int fwl_handle_mouse_multi(int mev, int butnum, int mouseX, int mouseY, unsigned
 	fwl_handle_mouse_multi_yup(mev,butnum,mouseX,yup,ID,windex);
 	return getCursorStyle();
 }
+
+
+// JAS 
+// for Linux, and maybe Windows? If you leave the main window, and a mouse
+// button is clicked, release the button. Otherwise, the scene will rotate
+// even if you are trying to read your email... 
+void fwl_handle_mouse_window_leave() {
+        ttglobal tg = gglobal();
+        ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+        int i;
+        targetwindow *targets;
+
+        targets = (targetwindow*)p->cwindows;
+        for(i=0;i<4;i++){
+                // printf ("for i %d, hwnd %p ",i,targets[i].hwnd); 
+                // printf ("stage %p, next %p swapbuf %d\n",targets[i].stage,targets[i].next,targets[i].swapbuf);
+
+                // release all buttons, on window "i".
+                if (targets[i].hwnd != NULL) {
+                        fwl_handle_mouse(ButtonRelease,1,0,0,i);
+                        fwl_handle_mouse(ButtonRelease,2,0,0,i);
+                        fwl_handle_mouse(ButtonRelease,3,0,0,i);
+                }
+        }
+}
+
+
 int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
 	int cstyle, tactic_up_drag;
 	static unsigned int ID = 1;

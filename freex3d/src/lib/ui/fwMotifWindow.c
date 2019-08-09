@@ -101,6 +101,13 @@ static void StateWatcher (Widget w, XtPointer unused, XEvent *event, Boolean *co
 #endif
     if (event->type == MapNotify) setDisplayed (TRUE);
     else if (event->type == UnmapNotify) setDisplayed (FALSE);
+
+    if (event->type == LeaveNotify) {
+    // printf ("JAS - throwing a ButtonRelease from StateWatcher\n");
+        void fwl_handle_mouse_window_leave();
+        fwl_handle_mouse_window_leave();
+    }
+
 }
 
 static void fv_DrawArea_events (Widget w, XtPointer unused, XEvent *event, Boolean *cont)
@@ -224,7 +231,14 @@ int fv_create_main_window(freewrl_params_t * params) //int argc, char *argv[])
 	fv_setScreenDim(width,height);
 	
 	/* lets see when this goes iconic */
-	XtAddEventHandler(freewrlTopWidget, StructureNotifyMask, FALSE, StateWatcher, NULL);
+	/* JAS - add LeaveWindowMask so we know to release mouse
+	   buttons so that the object does not rotate/move etc when
+	   we are out of the window */
+
+	XtAddEventHandler(freewrlTopWidget, 
+		LeaveWindowMask |
+		StructureNotifyMask, FALSE, StateWatcher, NULL);
+
 	/* all events for DrawArea should be passed to FreeWRL (MainLoop) control */
 	XtAddEventHandler(freewrlDrawArea, event_mask, False, fv_DrawArea_events, NULL);
 
