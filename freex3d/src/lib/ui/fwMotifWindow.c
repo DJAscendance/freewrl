@@ -133,6 +133,50 @@ static void fv_DrawArea_events (Widget w, XtPointer unused, XEvent *event, Boole
     handle_Xevents(*event);
 }
 
+#define MOTIF_ICON
+#ifdef MOTIF_ICON
+
+/////////////////////////////////////////////
+//
+// Change the application icon to whatever is in the
+// file "icon.h". See the standalone app "iconToString.c"
+// for instructions on how to create "icon.h".
+//
+// this HAS to be called after widget is realized, after the
+//   XtRealizeWidget (toplevel); 
+// call
+#include "../../../icons/icon.h"
+
+void set_app_icon(Widget top) {
+	Display *d = XtDisplay(top);
+	Atom net_wm_icon = XInternAtom(d, "_NET_WM_ICON", False);
+	Atom cardinal = XInternAtom(d, "CARDINAL", False);
+	Window w = XtWindow(top);
+	
+	//printf ("sizeof buffer %ld\n",sizeof(buffer));
+	// first two elements of the icon.h buffer[] are the
+	// width and height - not sure which is which, but
+	// for this case, it does not matter.
+
+	long wid = 0;
+	long hei = 0;
+	if (sizeof(buffer) > (sizeof(long) * 2)) {
+		wid = buffer[0];
+		hei = buffer[1];
+	} else {
+		printf ("ERROR IN ICON SIZE - nothing there??\n");
+		exit(1);
+	}
+
+	// printf ("wid %ld hei %ld\n",wid,hei);
+	
+	// set the icon now.
+	int length = 2 + (wid * hei);
+	XChangeProperty(d, w, net_wm_icon, cardinal,
+        32, PropModeReplace, (const unsigned char*) buffer, length);
+}
+#endif //MOTIF_ICON
+
 /**
  *   create_main_window: (virtual) create the window with Motif.
  */
@@ -193,6 +237,13 @@ int fv_create_main_window(freewrl_params_t * params) //int argc, char *argv[])
 	
 	
 	XtRealizeWidget (freewrlTopWidget);
+
+
+#ifdef MOTIF_ICON
+        // JAS - set the icon here
+        set_app_icon(freewrlTopWidget);
+#endif //MOTIF_ICON
+
 
 	/* FIXME: see fwBareWindow.c */
 	/* Roberto Gerson */
