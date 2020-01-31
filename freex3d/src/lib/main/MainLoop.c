@@ -4300,7 +4300,7 @@ void fwl_handle_mouse_window_leave() {
 }
 
 
-int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
+int fwl_handle_mouse0(int mev, int butnum, int mouseX, int mouseY, int windex){
 	int cstyle, tactic_up_drag;
 	static unsigned int ID = 1;
 	ttglobal tg = gglobal();
@@ -4351,7 +4351,7 @@ int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
 	}
 	return cstyle;
 }
-int(*fwl_handle_mousePTR)(const int mev, const unsigned int button, int x, int y, int windex) = fwl_handle_mouse0;
+int(*fwl_handle_mousePTR)(int mev, int button, int x, int y, int windex) = fwl_handle_mouse0;
 int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
 	return fwl_handle_mousePTR(mev, butnum, mouseX, mouseY, windex);
 }
