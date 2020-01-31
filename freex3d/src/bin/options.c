@@ -86,10 +86,13 @@ void fv_usage()
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
 	    "  -U|--updown			   Set updown stereo.\n"
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
-		//"  -R|--record             Record to /recording/<scene>.fwplay.\n"
-		//"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
-		//"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
-		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
+#ifdef USE_SNAPSHOT_TESTING
+		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
+		"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
+		"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
+		"  -N|--nametest <string>  Set name of .fwplay test file\n"
+		"  -Y|--testpath <string>  Set path to recording directory\n"
+#endif
 		"  -G|--colorscheme <string>  UI colorscheme by builtin name: {original,angry,\n"
 		"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
 		"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
@@ -158,10 +161,13 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"curl", no_argument, 0, 'C'},
 
 	{"display", required_argument, 0, 'd'}, /* Roberto Gerson */
-	//{"record", no_argument, 0, 'R'},
-	//{"fixture", no_argument, 0, 'F'},
-	//{"playback", no_argument, 0, 'P'},
-	//{"nametest", required_argument, 0, 'N'},
+#ifdef USE_SNAPSHOT_TESTING
+	{"record", no_argument, 0, 'R'},
+	{"fixture", no_argument, 0, 'F'},
+	{"playback", no_argument, 0, 'P'},
+	{"nametest", required_argument, 0, 'N'},
+	{"testpath", required_argument, 0, 'Y'},
+#endif
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
@@ -203,7 +209,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:DJ:x"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -463,21 +469,24 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 		fwl_setJsEngine(optarg);
 	    break;
 
-//#ifdef USE_SNAPSHOT_TESTING  
-//	// link to lib/main/SnapshotTesting.c
-//	case 'R': /* --record, no arg */
-//		fwl_set_modeRecord();
-//		break;
-//	case 'F': /* --fixture, no arg */
-//		fwl_set_modeFixture();
-//		break;
-//	case 'P': /* --playback, no arg */
-//		fwl_set_modePlayback();
-//		break;
-//	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
-//		fwl_set_nameTest(optarg);
-//		break;
-//#endif
+#ifdef USE_SNAPSHOT_TESTING  
+	// link to lib/main/SnapshotTesting.c
+	case 'R': /* --record, no arg */
+		fwl_set_modeRecord();
+		break;
+	case 'F': /* --fixture, no arg */
+		fwl_set_modeFixture();
+		break;
+	case 'P': /* --playback, no arg */
+		fwl_set_modePlayback();
+		break;
+	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
+		fwl_set_nameTest(optarg);
+		break;
+	case 'Y': /* --testPath directory where to put recording, playback */
+		fwl_set_testPath(optarg);
+		break;
+#endif
 
 #ifdef HAVE_LIBCURL
 	case 'C': /* --curl, no argument */

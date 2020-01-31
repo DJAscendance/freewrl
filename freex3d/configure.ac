@@ -683,6 +683,11 @@ AC_CHECK_TYPES([int32, uint32, int16, uint16], [], [], [[#include <npapi.h>]])
 AC_DEFINE([STATUSBAR_HUD], 1, [always define .. for builtin menu])
 
 # ======================================
+# Snapshot Testing - we'll try unconditionally
+# ======================================
+AC_DEFINE(USE_SNAPSHOT_TESTING, 1, [Define if you want snapshot testing])
+
+# ======================================
 # OSC enable
 # ======================================
 
