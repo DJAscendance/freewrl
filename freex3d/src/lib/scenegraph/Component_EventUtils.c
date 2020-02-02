@@ -150,6 +150,27 @@ void do_BooleanToggle (void *node){
 }
 
 /******************************************************************************/
+
+/******************************************************************************/
+
+/* testing... */
+void do_FloatMultiply (void *node){
+        struct X3D_FloatMultiply *px;
+
+        if (!node) return;
+        px = (struct X3D_FloatMultiply *) node;
+
+        /* has the value changed? */
+        if (!APPROX(px->set_float,px->newFloat)) {
+                /* value has changed */
+                printf ("FloatMultiply, value has changed\n");
+                px->newFloat = px->set_float * 2.0;
+                MARK_EVENT(node, offsetof (struct X3D_FloatMultiply, newFloat));
+        }
+}
+
+/******************************************************************************/
+
 /* see the spec for a description */
 void do_BooleanTrigger (void *node){
 	struct X3D_BooleanTrigger *px;

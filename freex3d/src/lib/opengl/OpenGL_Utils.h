@@ -60,6 +60,13 @@ typedef enum vertexShaderResources {
 
     vertexLightingEquation,
 
+
+    
+	vertexProjValDec,
+	vertexProjCalTexCoord,
+	vertexMultiProjValDec,
+	vertexMultiProjCalTexCoord,
+
 	vertexMainStart,
 
     vertexPointSizeAssign,
@@ -67,13 +74,16 @@ typedef enum vertexShaderResources {
 
     vertexOneMaterialCalculation,
     vertexNormPosCalculation,
-        vertexSingleTextureCalculation,
+       vertexSingleTextureCalculation,
     vertexADSLCalculation,
 	vertexSimpleColourCalculation,
     vertexHatchPositionCalculation,
 
     vertexUserDefinedInput,
 
+	vertexProjTexCalculation,
+	vertexMultiProjTexCalculation,
+    
 	vertexMainEnd,
 	vertexEndMarker
 } vertexShaderResources_t;
@@ -101,6 +111,14 @@ typedef enum fragmenShaderResources {
     fragmentMultiTexModel,
     fragmentFillPropModel,
 
+
+
+	fragmentProjValDec,
+	fragmentProjCalTexCoord,
+    fragmentMultiProjValDec,
+	fragmentMultiProjCalTexCoord,
+
+
 	fragmentMainStart,
 
     fragmentUserDefinedInput,
@@ -110,6 +128,8 @@ typedef enum fragmenShaderResources {
     fragmentADSLAssign,
     fragmentTextureAssign,
     fragmentFillPropAssign,
+
+    fragmentProjTexAssign,
 
 	fragmentMainEnd,
 	fragmentEndMarker
@@ -125,6 +145,11 @@ OLDCODE     int multitex_source[2];
 OLDCODE     int multitex_function;
 OLDCODE };
 #endif //OLDCODE 
+
+struct projective_Texdata {
+    struct Uni_String *des;
+	GLDOUBLE TenLinearGexMat[16];
+};
 
 
 void do_textureTransform (struct X3D_Node *textureNode, int ttnum);
@@ -201,5 +226,11 @@ void setPickrayMatrix(int index, GLDOUBLE *mat);
 void freeMallocedNodeFields(struct X3D_Node* node);
 void unRegisterX3DNode(struct X3D_Node * tmp);
 
+//khyoo
+
+void fw_gluPerspectiveTexture(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+void fw_gluPerspectiveTextureLookAt(GLDOUBLE ex, GLDOUBLE ey, GLDOUBLE ez, 
+				  GLDOUBLE cx, GLDOUBLE cy, GLDOUBLE cz, 
+                  GLDOUBLE ux,GLDOUBLE uy,GLDOUBLE uz);
 
 #endif /* __FREEWRL_OPENGL_UTILS_H__ */

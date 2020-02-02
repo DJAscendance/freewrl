@@ -786,7 +786,7 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 		sprintf (myShaderTextureName,"X3D_Texture%d",(int) i);
 		myVar = GET_UNIFORM(myShader,myShaderTextureName);
 		if (myVar != INT_ID_UNDEFINED) {
-			/* printf ("for texture %s, we got %d\n", myShaderTextureName,myVar); */
+			printf ("for texture %s, we got %d\n", myShaderTextureName,myVar);
 			GLUNIFORM1I(myVar,(int) i);
 		}
 	}

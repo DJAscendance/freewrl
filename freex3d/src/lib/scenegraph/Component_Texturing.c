@@ -41,6 +41,7 @@ X3D Texturing Component
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
 
+float TenLinearGexMatCam0[16];
 
 void render_PixelTexture (struct X3D_PixelTexture *node) {
 	loadTextureNode(X3D_NODE(node),NULL);
@@ -48,12 +49,86 @@ void render_PixelTexture (struct X3D_PixelTexture *node) {
 }
 
 void render_ImageTexture (struct X3D_ImageTexture *node) {
+	struct projective_Texdata *data;
+	ttglobal tg = gglobal();
+	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+	
 	/* printf ("render_ImageTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
-	loadTextureNode(X3D_NODE(node),NULL);
+
+	if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
+	{
+		//convertDbtoFl(tg->ProjectiveTextures.data[0].TenLinearGexMat, TenLinearGexMatCam0);
+		convertDbtoFl(data[0].TenLinearGexMat, TenLinearGexMatCam0);
+		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0);
+
+	}
+	loadTextureNode(X3D_NODE(node),NULL); //이미지 텍스처
+	
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 }
 
+void render_ProjectiveTexture (struct X3D_ProjectiveTexture *node) {
+	struct projective_Texdata *data;
+	ttglobal tg = gglobal();
+	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+	int i;
+	if(node->value)
+	{
+		for(i=0;i<4;i++)
+		{
+			//if(!strcmp(node->projectorName->strptr,tg->ProjectiveTextures.data[i].des->strptr))
+			if(!strcmp(node->projectorName->strptr,data[i].des->strptr))
+			{
+				
+				if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
+				{
+					//convertDbtoFl(tg->ProjectiveTextures.data[i].TenLinearGexMat, TenLinearGexMatCam0);
+					convertDbtoFl(data[i].TenLinearGexMat, TenLinearGexMatCam0);
+					GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0);
+				}
+				break;
+			}
+		}
+		tg->ProjectiveTextures.ProjActive = true;
+		loadTextureNode(X3D_NODE(node),NULL); //이미지 텍스처
+
+		gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
+	}
+}
+
 void render_MultiTexture (struct X3D_MultiTexture *node) {
+
+	loadMultiTexture(node);
+}
+
+
+void render_MultipleProjectiveTexture (struct X3D_MultipleProjectiveTexture *node) {
+
+	struct projective_Texdata *data;
+	ttglobal tg = gglobal();
+	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+	int i;
+
+	for(i=0;i<4;i++)
+	{
+		if(tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[0] != 0 || 
+			tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[1] != 0 || 
+			tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[2] != 0 || 
+			tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[3] != 0
+			)
+		{
+			//if(tg->ProjectiveTextures.data[i].des != NULL)
+			if(data[i].des != NULL)
+			{
+
+				//convertDbtoFl(tg->ProjectiveTextures.data[i].TenLinearGexMat, TenLinearGexMatCam0);
+				convertDbtoFl(data[i].TenLinearGexMat, TenLinearGexMatCam0);
+				GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[i],1,GL_FALSE, TenLinearGexMatCam0);
+			}
+		}
+		
+	}
+
 	loadMultiTexture(node);
 }
 void render_AudioClip(struct X3D_AudioClip * node);

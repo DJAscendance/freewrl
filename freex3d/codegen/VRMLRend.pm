@@ -64,10 +64,18 @@ our %defaultContainerType = (
 	CADAssembly		=>["children"],
 	CADPart			=>["children"],
 
+	ProjectiveTexture       =>["texture"],
+	MultipleProjectiveTexture =>["texture"],
+	OrthoProjector 		=>["children"],
+	PerspectiveProjector 	=>["children"],
+	TextureProjectorPerspective =>["children"],
+	TextureProjectorParallel =>["children"],
+	ProjectiveTextureGroup 	=>["children"],
 
 	Anchor 			=>["children"],
 	Appearance 		=>["appearance"],
 	AudioClip 		=>["source"],
+	FloatMultiply           =>["children"],
 	Background 		=>["children"],
 	Billboard 		=>["children"],
 	Box 			=>["geometry"],
@@ -401,7 +409,9 @@ our %RendC = map {($_=>1)} qw/
 	ComposedShader
 	PixelTexture
 	ImageTexture
+	ProjectiveTexture
 	MultiTexture
+	MultipleProjectiveTexture 
 	MovieTexture
 	ComposedCubeMapTexture
 	GeneratedCubeMapTexture
@@ -482,6 +492,11 @@ our %PrepC = map {($_=>1)} qw/
 	GeoTransform
 	CADAssembly
 	CADPart
+	OrthoProjector
+	PerspectiveProjector
+	TextureProjectorPerspective 
+	TextureProjectorParallel
+	ProjectiveTextureGroup
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -511,6 +526,11 @@ our %FinC = map {($_=>1)} qw/
 	HAnimJoint
 	GeoTransform
 	CADPart
+	OrthoProjector
+	PerspectiveProjector
+	TextureProjectorPerspective 
+	TextureProjectorParallel
+	ProjectiveTextureGroup
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -560,6 +580,11 @@ our %ChildC = map {($_=>1)} qw/
 	Appearance
 	Shape
 	Viewport
+	OrthoProjector
+	PerspectiveProjector
+	TextureProjectorPerspective
+	TextureProjectorParallel 
+	ProjectiveTextureGroup
 	LayoutGroup
 	ScreenGroup
 	LayerSet
@@ -590,6 +615,11 @@ our %CompileC = map {($_=>1)} qw/
 	ImageCubeMapTexture
 	GeneratedCubeMapTexture
 	Transform
+	OrthoProjector
+	PerspectiveProjector
+	TextureProjectorPerspective 
+	TextureProjectorParallel
+	ProjectiveTextureGroup
 	Group
 	Proto
 	Inline
@@ -1222,6 +1252,41 @@ our %TextureCoordGenModeC = map {($_=>1)} qw/
 	NOISE
 /;
 
+our %MultipleProjectiveTextureSourceC = map {($_=>1)} qw/
+	DIFFUSE
+	SPECULAR
+	FACTOR
+/;
+
+our %MultipleProjectiveTextureFunctionC = map {($_=>1)} qw/
+	COMPLEMENT
+	ALPHAREPLICATE
+/;
+
+
+our %MultipleProjectiveTextureModeC = map {($_=>1)} qw/
+	MODULATE2X
+	MODULATE4X
+	ADDSMOOTH
+	BLENDDIFFUSEALPHA
+	BLENDCURRENTALPHA
+	MODULATEALPHA_ADDCOLOR
+	MODULATEINVALPHA_ADDCOLOR
+	MODULATEINVCOLOR_ADDALPHA
+	SELECTARG1
+	SELECTARG2
+	DOTPRODUCT3
+	MODULATE
+	REPLACE
+	SUBTRACT
+	ADDSIGNED2X
+	ADDSIGNED
+	ADD
+	OFF
+/;
+
+
+
 
 #
 # X3DSPECIAL Keywords
@@ -1252,3 +1317,4 @@ our %X3DSpecialC = map {($_=>1)} qw/
 /;
 
 1;
+

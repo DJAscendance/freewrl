@@ -894,6 +894,13 @@ EXPOSED_FIELD(FillProperties,hatchStyle,sfint32,hatchStyle,FIELDTYPE_SFInt32,UNC
 EXPOSED_FIELD(FillProperties,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(FillProperties)
 
+/* FloatMultiply node */
+BEGIN_NODE(FloatMultiply)
+EVENT_IN(FloatMultiply,set_float,sffloat,set_float,FIELDTYPE_SFFloat)
+EVENT_OUT(FloatMultiply,newFloat,sffloat,newFloat,FIELDTYPE_SFFloat)
+EXPOSED_FIELD(FloatMultiply,metadata,sfnode,metadata,FIELDTYPE_SFNode,0)
+END_NODE(FloatMultiply)
+
 /* FloatVertexAttribute node */
 BEGIN_NODE(FloatVertexAttribute)
 EXPOSED_FIELD(FloatVertexAttribute,value,mffloat,value,FIELDTYPE_MFFloat,UNCA_NONE)
@@ -2049,6 +2056,17 @@ EXPOSED_FIELD(MultiTextureTransform,metadata,sfnode,metadata,FIELDTYPE_SFNode,UN
 EXPOSED_FIELD(MultiTextureTransform,textureTransform,mfnode,textureTransform,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(MultiTextureTransform)
 
+/* MultipleProjectiveTexture node */
+BEGIN_NODE(MultipleProjectiveTexture)
+EXPOSED_FIELD(MultipleProjectiveTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MultipleProjectiveTexture,alpha,sffloat,alpha,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(MultipleProjectiveTexture,color,sfcolor,color,FIELDTYPE_SFColor,UNCA_NONE)
+EXPOSED_FIELD(MultipleProjectiveTexture,function,mfstring,function,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(MultipleProjectiveTexture,mode,mfstring,mode,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(MultipleProjectiveTexture,source,mfstring,source,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(MultipleProjectiveTexture,texture,mfnode,texture,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MultipleProjectiveTexture)
+
 /* NavigationInfo node */
 BEGIN_NODE(NavigationInfo)
 EVENT_IN(NavigationInfo,set_bind,sfbool,set_bind,FIELDTYPE_SFBool)
@@ -2284,6 +2302,15 @@ EXPOSED_FIELD(OrientationInterpolator,metadata,sfnode,metadata,FIELDTYPE_SFNode,
 EVENT_OUT(OrientationInterpolator,value_changed,sfrotation,value_changed,FIELDTYPE_SFRotation)
 END_NODE(OrientationInterpolator)
 
+/* OrthoProjector node */
+BEGIN_NODE(OrthoProjector)
+EXPOSED_FIELD(OrthoProjector,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(OrthoProjector,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(OrthoProjector,centerOfProjection,sfvec3f,centerOfProjection,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(OrthoProjector,direction,sfvec3f,direction,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(OrthoProjector,volume,mffloat,volume,FIELDTYPE_MFFloat,UNCA_NONE)
+END_NODE(OrthoProjector)
+
 /* OrthoViewpoint node */
 BEGIN_NODE(OrthoViewpoint)
 EVENT_IN(OrthoViewpoint,set_bind,sfbool,set_bind,FIELDTYPE_SFBool)
@@ -2331,6 +2358,18 @@ FIELD(ParticleSystem,physics,mfnode,physics,FIELDTYPE_MFNode,UNCA_NONE)
 FIELD(ParticleSystem,texCoordRamp,sfnode,texCoordRamp,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(ParticleSystem,texCoordKey,mffloat,texCoordKey,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(ParticleSystem)
+
+/* PerspectiveProjector node */
+BEGIN_NODE(PerspectiveProjector)
+EXPOSED_FIELD(PerspectiveProjector,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,centerOfProjection,sfvec3f,centerOfProjection,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,direction,sfvec3f,direction,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,upVector,sfvec3f,upVector,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,fieldOfView,sffloat,fieldOfView,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,aspectRatio,sffloat,aspectRatio,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PerspectiveProjector,nearFar,mffloat,nearFar,FIELDTYPE_MFFloat,UNCA_NONE)
+END_NODE(PerspectiveProjector)
 
 /* PickableGroup node */
 BEGIN_NODE(PickableGroup)
@@ -2572,6 +2611,33 @@ EXPOSED_FIELD(ProjectionVolumeStyle,metadata,sfnode,metadata,FIELDTYPE_SFNode,UN
 EXPOSED_FIELD(ProjectionVolumeStyle,intensityThreshold,sffloat,intensityThreshold,FIELDTYPE_SFFloat,UNCA_NONE)
 FIELD(ProjectionVolumeStyle,type,sfstring,type,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(ProjectionVolumeStyle)
+
+/* ProjectiveTexture node */
+BEGIN_NODE(ProjectiveTexture)
+EXPOSED_FIELD(ProjectiveTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTexture,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(ProjectiveTexture,repeatS,sfbool,repeatS,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(ProjectiveTexture,repeatT,sfbool,repeatT,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(ProjectiveTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTexture,value,sfbool,value,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTexture,projectorName,sfstring,projectorName,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(ProjectiveTexture)
+
+/* ProjectiveTextureGroup node */
+BEGIN_NODE(ProjectiveTextureGroup)
+EVENT_IN(ProjectiveTextureGroup,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
+EVENT_IN(ProjectiveTextureGroup,removeChildren,mfnode,removeChildren,FIELDTYPE_MFNode)
+EXPOSED_FIELD(ProjectiveTextureGroup,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,alpha,sffloat,alpha,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,color,sfcolor,color,FIELDTYPE_SFColor,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,function,mfstring,function,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,mode,mfstring,mode,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,source,mfstring,source,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,transparent,sfbool,transparent,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(ProjectiveTextureGroup,projectionTexture,mfnode,projectionTexture,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(ProjectiveTextureGroup)
 
 /* Proto node */
 BEGIN_NODE(Proto)
@@ -3121,6 +3187,38 @@ EXPOSED_FIELD(TextureCoordinateGenerator,metadata,sfnode,metadata,FIELDTYPE_SFNo
 EXPOSED_FIELD(TextureCoordinateGenerator,mode,sfstring,mode,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(TextureCoordinateGenerator,parameter,mffloat,parameter,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(TextureCoordinateGenerator)
+
+/* TextureProjectorParallel node */
+BEGIN_NODE(TextureProjectorParallel)
+EXPOSED_FIELD(TextureProjectorParallel,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,location,sfvec3f,location,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,direction,sfvec3f,direction,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,upVector,sfvec3f,upVector,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,fieldOfView,sfcolorrgba,fieldOfView,FIELDTYPE_SFColorRGBA,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,aspectRatio,sffloat,aspectRatio,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,nearDistance,sffloat,nearDistance,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,farDistance,sffloat,farDistance,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,global,sfbool,global,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,on,sfbool,on,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,texture,sfnode,texture,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(TextureProjectorParallel)
+
+/* TextureProjectorPerspective node */
+BEGIN_NODE(TextureProjectorPerspective)
+EXPOSED_FIELD(TextureProjectorPerspective,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,location,sfvec3f,location,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,direction,sfvec3f,direction,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,upVector,sfvec3f,upVector,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,fieldOfView,sffloat,fieldOfView,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,aspectRatio,sffloat,aspectRatio,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,nearDistance,sffloat,nearDistance,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,farDistance,sffloat,farDistance,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,global,sfbool,global,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,on,sfbool,on,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,texture,sfnode,texture,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(TextureProjectorPerspective)
 
 /* TextureProperties node */
 BEGIN_NODE(TextureProperties)

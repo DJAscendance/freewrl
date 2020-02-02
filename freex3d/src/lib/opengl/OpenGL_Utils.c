@@ -7,22 +7,22 @@
 
 
 /****************************************************************************
-    This file is part of the FreeWRL/FreeX3D Distribution.
+This file is part of the FreeWRL/FreeX3D Distribution.
 
-    Copyright 2009 CRC Canada. (http://www.crc.gc.ca)
+Copyright 2009 CRC Canada. (http://www.crc.gc.ca)
 
-    FreeWRL/FreeX3D is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+FreeWRL/FreeX3D is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    FreeWRL/FreeX3D is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+FreeWRL/FreeX3D is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 ****************************************************************************/
 
 #include <config.h>
@@ -75,6 +75,59 @@ void kill_rendering(void);
 
 static void mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
 
+float projTexGenMatCam0[16] ={ 1.0308042, -1.0504768, -0.64150029, -0.57735026,
+0.28867513, 1.2349281, -0.64150029, 0.57735026,
+-1.6081543, -1.0504768, -0.64150029, -0.57735026,
+0.86602539, 0.86602539, 0.81338978, 1.7320508
+
+};
+
+float projViewMat[16] = {
+
+	1,0,0,0,
+	0,1,0,0,
+	0,0,1,0,
+	0,0,0,1
+
+};
+float invprojViewMat[16];
+bool projflag = true;
+GLint projTexture;
+
+GLuint LoadTexture( const char * filename, int width, int height )
+{
+	GLuint texture;
+	unsigned char * data;
+	FILE * file;
+
+	//The following code will read in our RAW file
+	file = fopen( filename, "rb" );
+	if ( file == NULL ) return 0;
+	data = (unsigned char *)malloc( width * height * 3 );
+	fread( data, width * height * 3, 1, file );
+	fclose( file );
+
+	glEnable(GL_TEXTURE_2D);
+
+	FW_GL_GENTEXTURES (1,&texture);
+	glBindTexture (GL_TEXTURE_2D, texture);
+	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	FW_GL_TEXIMAGE2D(GL_TEXTURE_2D, 0, GL_RGBA,  width, height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
+
+	printf("\n\n !!!! bind it !!!! \n\n");
+
+	free( data ); //free the texture
+
+	glDisable(GL_TEXTURE_2D);
+
+	return texture; //return whether it was successfull
+}
+
+
+
 #undef DEBUG_FW_LOADMAT
 #ifdef DEBUG_FW_LOADMAT
 static void fw_glLoadMatrixd(GLDOUBLE *val,char *, int);
@@ -118,65 +171,6 @@ static void makeAndCompileShader(struct shaderTableEntry *);
 #define MATRIX_SIZE 16		/* 4 x 4 matrix */
 typedef GLDOUBLE MATRIX4[MATRIX_SIZE];
 
-#ifdef OLDCODE
-OLDCODE
-OLDCODE#ifdef DISABLER
-OLDCODEvoid fwl_glGenQueries(GLsizei n, GLuint* ids)
-OLDCODE{
-OLDCODE#if defined(IPHONE)
-OLDCODE	s_renderer_capabilities_t *rdr_caps;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	rdr_caps = tg->display.rdr_caps;
-OLDCODE	if (rdr_caps->have_GL_VERSION_3_0)
-OLDCODE	{
-OLDCODE		glGenQueries(n, ids);
-OLDCODE	}
-OLDCODE	else
-OLDCODE	{
-OLDCODE		glGenQueriesEXT(n, ids);
-OLDCODE	}
-OLDCODE#else
-OLDCODE	glGenQueries(n, ids);
-OLDCODE#endif
-OLDCODE}
-OLDCODEvoid fwl_glDeleteQueries(GLsizei n, const GLuint* ids)
-OLDCODE{
-OLDCODE#if defined(IPHONE)
-OLDCODE	s_renderer_capabilities_t *rdr_caps;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	rdr_caps = tg->display.rdr_caps;
-OLDCODE	if (rdr_caps->have_GL_VERSION_3_0)
-OLDCODE	{
-OLDCODE		glDeleteQueries(n, ids);
-OLDCODE	}
-OLDCODE	else
-OLDCODE	{
-OLDCODE		glDeleteQueriesEXT(n, ids);
-OLDCODE	}
-OLDCODE#else
-OLDCODE	glDeleteQueries(n, ids);
-OLDCODE#endif
-OLDCODE}
-OLDCODEvoid fwl_glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* params)
-OLDCODE{
-OLDCODE#if defined(IPHONE)
-OLDCODE	s_renderer_capabilities_t *rdr_caps;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	rdr_caps = tg->display.rdr_caps;
-OLDCODE	if (rdr_caps->have_GL_VERSION_3_0)
-OLDCODE	{
-OLDCODE		glGetQueryObjectuiv(id, pname, params);
-OLDCODE	}
-OLDCODE	else
-OLDCODE	{
-OLDCODE		glGetQueryObjectuivEXT(id, pname, params);
-OLDCODE	}
-OLDCODE#else
-OLDCODE	glGetQueryObjectuiv(id, pname, params);
-OLDCODE#endif
-OLDCODE}
-OLDCODE#endif
-#endif //OLDCODE
 
 
 typedef struct pOpenGL_Utils{
@@ -1198,70 +1192,6 @@ void fwl_set_MaterialFloatValue(struct Vector **shapeNodes, int whichEntry, int 
 	}
 }
 
-#ifdef OLDCODE
-OLDCODE#undef JASTESTING
-OLDCODE#ifdef JASTESTING
-OLDCODE
-OLDCODE
-OLDCODE/* this is for looking at and manipulating the node memory table. Expect it to disappear sometime */
-OLDCODEvoid printNodeMemoryTable(void) {
-OLDCODE
-OLDCODE	int tc;
-OLDCODE	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
-OLDCODE
-OLDCODE	int foundHoleCount = 0;
-OLDCODE
-OLDCODE	LOCK_MEMORYTABLE
-OLDCODE	for (tc=0; tc<vectorSize(p->linearNodeTable); tc++){
-OLDCODE		struct X3D_Node *node = vector_get(struct X3D_Node *,p->linearNodeTable,tc);
-OLDCODE
-OLDCODE		if (node != NULL) {
-OLDCODE		if (node->_nodeType == NODE_Shape)  {
-OLDCODE		//ConsoleMessage ("have shape/n");
-OLDCODE		struct X3D_Shape *sh = X3D_SHAPE(node);
-OLDCODE		if (sh->appearance != NULL) {
-OLDCODE			struct X3D_Appearance *ap = X3D_APPEARANCE(sh->appearance);
-OLDCODE					//ConsoleMessage ("have appearance\n");
-OLDCODE			if (ap->material != NULL) {
-OLDCODE				int i;
-OLDCODE				struct X3D_Material *mt = X3D_MATERIAL(ap->material);
-OLDCODE				//ConsoleMessage("have material\n");
-OLDCODE
-OLDCODE/*
-OLDCODE				for (i=0; i<3; i++) {
-OLDCODE				mt->diffuseColor.c[i] += 0.2;
-OLDCODE				if (mt->diffuseColor.c[i] > 0.95) mt->diffuseColor.c[i] = 0.2;
-OLDCODE				}
-OLDCODE*/
-OLDCODE
-OLDCODE				mt->transparency += 0.05;
-OLDCODE				if (mt->transparency > 1.0) mt->transparency=0.0;
-OLDCODE				mt->_change ++;
-OLDCODE			}
-OLDCODE
-OLDCODE		}
-OLDCODE
-OLDCODE/*
-OLDCODE		ConsoleMessage ("mem table %d is %s ref %d\n",tc,stringNodeType(node->_nodeType),node->referenceCount);
-OLDCODE		ConsoleMessage ("   shape appearance %p, geometry %p bbox %f %f %f bbcen %f %f %f\n",
-OLDCODE			sh->appearance, sh->geometry,sh->bboxSize.c[0],sh->bboxSize.c[1],sh->bboxSize.c[2],
-OLDCODE			sh->bboxCenter.c[0],sh->bboxCenter.c[1],sh->bboxCenter.c[2]);
-OLDCODE*/
-OLDCODE
-OLDCODE
-OLDCODE		}
-OLDCODE		} else {
-OLDCODE			foundHoleCount ++;
-OLDCODE		}
-OLDCODE	}
-OLDCODE
-OLDCODE	//ConsoleMessage ("potentialHoleCount %d, foundHoleCount %d",p->potentialHoleCount, foundHoleCount);
-OLDCODE
-OLDCODE	UNLOCK_MEMORYTABLE
-OLDCODE
-OLDCODE}
-OLDCODE#endif //JASTESTING
-#endif //OLDCODE
 
 #endif //ANDROID
 
@@ -1517,6 +1447,123 @@ s_shader_capabilities_t *getMyShader(unsigned int rq_cap0) {
 
 /* VERTEX inputs */
 
+/*
+
+Update for Projective Texture  VertexShader Value, Function by Yoo Kwan Hee, Kim In Kwon
+
+Start
+
+*/
+
+static const GLchar *vertProjValDec = "\
+									  uniform mat4 projTexGenMatCam0; \n \
+									  varying vec4 projTexCoord; \n";
+
+static const GLchar *vertProjCalTexCoord ="\
+										  void vertProjCalTexCoord(void) { \
+										  projTexCoord = projTexGenMatCam0 * fw_Vertex; \
+										  } \n";
+
+static const GLchar *vertProjTexCalculation ="\
+											 vertProjCalTexCoord();\n";
+
+/*
+
+Update for Projective Texture  FragmentShader Value, Function by Yoo Kwan Hee, Kim In Kwon
+
+Start
+
+*/
+
+static const GLchar *fragProjValDec = "\
+									  varying vec4 projTexCoord; \n \
+									  vec4 ProjMapColor_forCam1; \n";
+
+static const GLchar *fragProjCalTexCoord ="\
+										  void fragProjCalTexCoord(void) { \
+										  if( projTexCoord.q > 0.0 ){ \n \
+										  ProjMapColor_forCam1 = texture2DProj(fw_Texture_unit0, projTexCoord);\n \
+										  }\n \
+										  } \n";
+
+static const GLchar *fragProjTexCalculation ="\
+											 fragProjCalTexCoord();\n \
+											 finalFrag += ProjMapColor_forCam1;\n \
+											 \n";
+
+/*
+
+Update for multi Projective Texture  VertexShader Value, Function by Yoo Kwan Hee, Kim In Kwon
+
+Start
+
+*/
+
+static const GLchar *vertMultiProjValDec = "\
+									  uniform mat4 MultiprojTexGenMatCam1; \n \
+									  uniform mat4 MultiprojTexGenMatCam2; \n \
+									  uniform mat4 MultiprojTexGenMatCam3; \n \
+									  uniform mat4 MultiprojTexGenMatCam4; \n \
+									  varying vec4 MultiprojTexCoord1; \n \
+									  varying vec4 MultiprojTexCoord2; \n \
+									  varying vec4 MultiprojTexCoord3; \n \
+									  varying vec4 MultiprojTexCoord4; \n";
+
+static const GLchar *vertMultiProjCalTexCoord ="\
+										  void vertMultiProjCalTexCoord(void) { \
+										  MultiprojTexCoord1 = MultiprojTexGenMatCam1 * fw_Vertex; \
+										  MultiprojTexCoord2 = MultiprojTexGenMatCam2 * fw_Vertex; \
+										  MultiprojTexCoord3 = MultiprojTexGenMatCam3 * fw_Vertex; \
+										  MultiprojTexCoord4 = MultiprojTexGenMatCam4 * fw_Vertex; \
+										  } \n";
+
+static const GLchar *vertMultiProjTexCalculation ="\
+											 vertMultiProjCalTexCoord();\n";
+
+/*
+
+Update for multi Projective Texture  FragmentShader Value, Function by Yoo Kwan Hee, Kim In Kwon
+
+Start
+
+*/
+
+static const GLchar *fragMultiProjValDec = "\
+									  varying vec4 MultiprojTexCoord1; \n \
+									  varying vec4 MultiprojTexCoord2; \n \
+									  varying vec4 MultiprojTexCoord3; \n \
+									  varying vec4 MultiprojTexCoord4; \n \
+									  vec4 final_color = vec4(1.0, 1.0, 1.0, 0.0); \n";
+
+static const GLchar *fragMultiProjCalTexCoord ="\
+										  void fragMultiProjCalTexCoord(void) { \
+										  if( MultiprojTexCoord1.q > 0.0 ){ \n \
+										  vec4 ProjMapColor_forCam1 = texture2DProj(fw_Texture_unit0, MultiprojTexCoord1);\n \
+										  final_color = ProjMapColor_forCam1;\n \
+										  }\n \
+										  if( MultiprojTexCoord2.q > 0.0 ){ \n \
+										  vec4 ProjMapColor_forCam2 = texture2DProj(fw_Texture_unit1, MultiprojTexCoord2);\n \
+										  final_color = final_color+ ProjMapColor_forCam2;\n \
+										  }\n \
+										  if( MultiprojTexCoord3.q > 0.0 ){ \n \
+										  vec4 ProjMapColor_forCam3 = texture2DProj(fw_Texture_unit2, MultiprojTexCoord3);\n \
+										  final_color = final_color+ ProjMapColor_forCam3;\n \
+										  }\n \
+										  } \n";
+
+static const GLchar *fragMultiProjTexCalculation ="\
+											 fragMultiProjCalTexCoord();\n \
+											 finalFrag += final_color;\n \
+											 \n";
+
+/*
+
+Update for Projective Texture  FragmentShader Value, Function by Yoo Kwan Hee, Kim In Kwon
+
+End
+*/
+
+
 static const GLchar *vertPosDec = "\
 	attribute      vec4 fw_Vertex; \n \
 	uniform         mat4 fw_ModelViewMatrix; \n \
@@ -1574,6 +1621,8 @@ static const GLchar *vertEnd = "}";
 static const GLchar *vertPos = "gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * fw_Vertex;\n ";
 
 static const GLchar *vertNormPosCalc = "\
+									   vertexNorm = normalize(fw_NormalMatrix * fw_Normal);\n \
+									   vertexPos = fw_ModelViewMatrix * fw_Vertex;\n ";
 	vertexNorm = normalize(fw_NormalMatrix * fw_Normal);\n \
 	vertexPos = fw_ModelViewMatrix * fw_Vertex;\n ";
 
@@ -2400,6 +2449,16 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			didADSLmaterial = true;
 			fragmentSource[fragmentOneColourDeclare] = varyingFrontColour;
 			fragmentSource[fragmentOneColourAssign] = fragFrontColAss;
+			
+			vertexSource[vertexProjValDec] = vertProjValDec;
+			vertexSource[vertexProjCalTexCoord] = vertProjCalTexCoord;
+			vertexSource[vertexProjTexCalculation] = vertProjTexCalculation;
+
+			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
+			fragmentSource[fragmentProjValDec] = fragProjValDec;
+			fragmentSource[fragmentProjCalTexCoord] = fragProjCalTexCoord;
+			fragmentSource[fragmentProjTexAssign] = fragProjTexCalculation;
+			
 		}
 
 
@@ -2424,6 +2483,10 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) ||
 			DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE) ||
 			DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)) {
+
+				ttglobal tg = gglobal();
+
+
 			vertexSource[vertexTexCoordInputDeclare] = vertTexCoordDec;
 			vertexSource[vertexTexCoordOutputDeclare] = varyingTexCoord;
 			vertexSource[vertexTextureMatrixDeclare] = vertTexMatrixDec;
@@ -2433,7 +2496,25 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 
 			fragmentSource[fragmentTexCoordDeclare] = varyingTexCoord;
 			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
+
+				//이부분을 건드리면됨
+
+				vertexSource[vertexProjValDec] = vertProjValDec;
+				vertexSource[vertexProjCalTexCoord] = vertProjCalTexCoord;
+				vertexSource[vertexProjTexCalculation] = vertProjTexCalculation;
+				fragmentSource[fragmentProjValDec] = fragProjValDec;
+				fragmentSource[fragmentProjCalTexCoord] = fragProjCalTexCoord;
+				//fragmentSource[fragmentProjTexAssign] = fragProjTexCalculation;
+
+				if(!tg->ProjectiveTextures.ProjActive)
+				{
 			fragmentSource[fragmentTextureAssign] = fragSingTexAss;
+		}
+				else
+				{
+					fragmentSource[fragmentTextureAssign] = fragProjTexCalculation;
+					tg->ProjectiveTextures.ProjActive = false;
+				}
 		}
 
 		/* Cubemaps - do not multi-texture these yet */
@@ -2461,6 +2542,19 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
 			fragmentSource[fragmentMultiTexModel] = fragMulTexFunc;
 			fragmentSource[fragmentTextureAssign] = fragMulTexCalc;
+
+			//perspective multi texture
+
+			vertexSource[vertexMultiProjValDec] = vertMultiProjValDec;
+			vertexSource[vertexMultiProjCalTexCoord] = vertMultiProjCalTexCoord;
+			vertexSource[vertexMultiProjTexCalculation] = vertMultiProjTexCalculation;
+			fragmentSource[fragmentMultiProjValDec] = fragMultiProjValDec;
+			fragmentSource[fragmentMultiProjCalTexCoord] = fragMultiProjCalTexCoord;
+
+
+			//fragmentSource[fragmentTextureAssign] = fragMulTexCalc;
+			fragmentSource[fragmentTextureAssign] = fragMultiProjTexCalculation;
+
 		}
 
 		/* TextureCoordinateGenerator - do calcs in Vertex, fragment like one texture */
@@ -2672,6 +2766,8 @@ static void makeAndCompileShader(struct shaderTableEntry *me) {
 	getShaderCommonInterfaces(myShader);
 }
 static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
+	ttglobal tg = gglobal();
+
 	GLuint myProg = me->myShaderProgram;
 	int i;
 
@@ -2718,6 +2814,19 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	#endif /* DEBUG */
 
 
+	/* Projective Texture Shader value Setting */
+	//me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0");
+	//me->projViewMat = GET_UNIFORM(myProg,"projViewMat");
+	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
+	tg->ProjectiveTextures._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0");
+	tg->ProjectiveTextures._projViewMat_Location = GET_UNIFORM(myProg,"projViewMat");
+	tg->ProjectiveTextures._projMap_forCam1_Location = GET_UNIFORM(myProg,"projMap_forCam1");
+	
+	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[0] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam1");
+	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[1] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam2");
+	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[2] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam3");
+	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[3] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam4");
+	
 	me->myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 	me->myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");
 	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
@@ -6478,7 +6587,7 @@ OLDCODE*/
 	}
 	}
 #else
-	static void fw_glLoadMatrixd(GLDOUBLE *val) {
+static void fw_glLoadMatrixd(GLDOUBLE *val) {
 #endif
 
 	/* printf ("loading matrix...\n"); */
@@ -7057,6 +7166,81 @@ void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOU
 	memcpy (p->FW_ProjectionView[p->projectionviewTOS],ndp,16*sizeof (GLDOUBLE));
 }
 
+void fw_gluPerspectiveTexture(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar) {
+	GLDOUBLE xmin, xmax, ymin, ymax;
+
+	GLDOUBLE *dp;
+	GLDOUBLE ndp[16];
+	GLDOUBLE ndp2[16];
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+
+	ymax = zNear * tan(fovy * M_PI / 360.0);
+	ymin = -ymax;
+	xmin = ymin * aspect;
+	xmax = ymax * aspect;
+
+	/* do the glFrsutum on the top of the stack, and send that along */
+	FW_GL_MATRIX_MODE(GL_TEXTURE);
+	FW_GL_LOAD_IDENTITY();
+
+	dp = p->FW_TextureView[p->textureviewTOS];
+
+	mesa_Frustum(xmin, xmax, ymin, ymax, zNear, zFar, ndp);
+	mattranspose(ndp2,ndp);
+
+	//printmatrix2(ndp,"ndp");
+	//printmatrix2(ndp2,"ndp2 = transpose(ndp)");
+	//JAS printmatrix2(dp,"dp");
+
+	matmultiply(ndp,ndp2,dp);
+
+	//printmatrix2(ndp,"ndp = ndp2*dp");
+	FW_GL_LOADMATRIX(ndp);
+
+	/* put the matrix back on our matrix stack */
+	memcpy (p->FW_TextureView[p->textureviewTOS],ndp,16*sizeof (GLDOUBLE));
+}
+
+void fw_gluPerspectiveTextureLookAt(GLDOUBLE ex, GLDOUBLE ey, GLDOUBLE ez, 
+									GLDOUBLE cx, GLDOUBLE cy, GLDOUBLE cz, 
+									GLDOUBLE ux,GLDOUBLE uy,GLDOUBLE uz)
+{
+	GLDOUBLE sx, sy, sz;
+	GLDOUBLE fx, fy, fz;
+	GLDOUBLE *dp;
+	GLDOUBLE ndp[16];
+	GLDOUBLE ndp1[16];
+	GLDOUBLE ndp2[16];
+	GLDOUBLE ndp3[16];
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+	FW_GL_MATRIX_MODE(GL_TEXTURE);
+
+	//FW_GL_LOAD_IDENTITY();
+	dp = p->FW_TextureView[p->textureviewTOS];
+
+	sx=cx-ex; sy=cy-ey; sz=cz-ez;
+	fx=sy*ux-uy*sz; fy=sz*ux-sx*uz; fz=sx*uy-sy*ux;
+
+	ndp1[0]=sx;ndp1[4]=sy;ndp1[8]=sz;ndp1[12]=0;
+	ndp1[1]=ux;ndp1[5]=uy;ndp1[9]=uz;ndp1[13]=0;
+	ndp1[2]=-fx;ndp1[6]=-fy;ndp1[10]=-fz;ndp1[14]=0;
+	ndp1[3]=0;ndp1[7]=0;ndp1[11]=0;ndp1[15]=1;
+
+	ndp2[0]=1;ndp2[4]=0;ndp2[8]=0;ndp2[12]=-ex;
+	ndp2[1]=0;ndp2[5]=1;ndp2[9]=0;ndp2[13]=-ey;
+	ndp2[2]=0;ndp2[6]=0;ndp2[10]=1;ndp2[14]=-ez;
+	ndp2[3]=0;ndp2[7]=0;ndp2[11]=0;ndp2[15]=1;
+
+	matmultiply(ndp3,ndp1,ndp2);
+	matmultiply(ndp,ndp3,dp);
+	//printmatrix2(ndp,"ndp = ndp3*dp");
+	FW_GL_LOADMATRIX(ndp);
+
+	/* put the matrix back on our matrix stack */
+	memcpy (p->FW_TextureView[p->textureviewTOS],ndp,16*sizeof (GLDOUBLE));
+}
+
+
 
 /* gluPickMatrix replacement */
 void fw_gluPickMatrix(GLDOUBLE xx, GLDOUBLE yy, GLDOUBLE width, GLDOUBLE height, GLint *vp) {
@@ -7155,4 +7339,140 @@ mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBL
 	M(3,2) = 0.0F;
 	M(3,3) = 1.0F;
 #undef M
+}
+
+
+/* Projective Texture gluPerspective */
+void projPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar, GLDOUBLE *matrix) {
+	GLDOUBLE xmin, xmax, ymin, ymax;
+
+	GLDOUBLE ndp[16];
+	GLDOUBLE ndp2[16];
+
+	ymax = zNear * tan(fovy * M_PI / 360.0);
+	ymin = -ymax;
+	xmin = ymin * aspect;
+	xmax = ymax * aspect;
+
+	mesa_Frustum(xmin, xmax, ymin, ymax, zNear, zFar, ndp);
+	mattranspose(ndp2,ndp);
+	//memcpy (p->FW_ProjectionView[p->projectionviewTOS],ndp,16*sizeof (float));
+	memcpy (matrix,ndp2,16*sizeof (GLDOUBLE));
+}
+
+/* Projective Texture gluLookAt */
+void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
+				GLDOUBLE centerx, GLDOUBLE centery, GLDOUBLE centerz,
+				GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE *matrix)
+{
+	GLDOUBLE m[16];
+	GLDOUBLE x[3], y[3], z[3];
+	GLDOUBLE mag;
+
+	z[0] = eyex - centerx;
+	z[1] = eyey - centery;
+	z[2] = eyez - centerz;
+	mag = sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]);
+	if (mag) {         
+		z[0] /= mag;
+		z[1] /= mag;
+		z[2] /= mag;
+	}
+
+	y[0] = upx;
+	y[1] = upy;
+	y[2] = upz;
+
+	x[0] = y[1] * z[2] - y[2] * z[1];
+	x[1] = -y[0] * z[2] + y[2] * z[0];
+	x[2] = y[0] * z[1] - y[1] * z[0];
+
+	y[0] = z[1] * x[2] - z[2] * x[1];
+	y[1] = -z[0] * x[2] + z[2] * x[0];
+	y[2] = z[0] * x[1] - z[1] * x[0];
+
+	mag = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
+	if (mag) {
+		x[0] /= mag;
+		x[1] /= mag;
+		x[2] /= mag;
+	}
+
+	mag = sqrt(y[0] * y[0] + y[1] * y[1] + y[2] * y[2]);
+	if (mag) {
+		y[0] /= mag;
+		y[1] /= mag;
+		y[2] /= mag;
+	}
+
+#define M(row,col)  m[col*4+row]
+	M(0, 0) = x[0];
+	M(0, 1) = x[1];
+	M(0, 2) = x[2];
+	M(0, 3) = 0.0;
+	M(1, 0) = y[0];
+	M(1, 1) = y[1];
+	M(1, 2) = y[2];
+	M(1, 3) = 0.0;
+	M(2, 0) = z[0];
+	M(2, 1) = z[1];
+	M(2, 2) = z[2];
+	M(2, 3) = 0.0;
+	M(3, 0) = 0.0;
+	M(3, 1) = 0.0;
+	M(3, 2) = 0.0;
+	M(3, 3) = 1.0;
+#undef M
+	
+	glMultMatrixd(m);
+
+    glTranslated(-eyex, -eyey, -eyez);
+
+	//memcpy (matrix,m,16*sizeof (GLDOUBLE));
+}
+
+void projOrtho (GLDOUBLE l, GLDOUBLE r, GLDOUBLE b,	GLDOUBLE t, 
+				GLDOUBLE n, GLDOUBLE f,GLDOUBLE *matrix)
+{
+	GLDOUBLE m[16];
+
+
+#define M(row,col)  m[col*4+row]
+	M(0, 0) = 2.0/(r-l);
+	M(0, 1) = 0.0;
+	M(0, 2) = 0.0;
+	M(0, 3) = -((r+l) / r-l);
+	M(1, 0) = 0.0;
+	M(1, 1) = 2.0/(t-b);
+	M(1, 2) = 0.0;
+	M(1, 3) = -((t+b)/(r-b));
+	M(2, 0) = 0.0;
+	M(2, 1) = 0.0;
+	M(2, 2) = -2.0/(f-n);
+	M(2, 3) = -((f+n)/(f-n));
+	M(3, 0) = 0.0;
+	M(3, 1) = 0.0;
+	M(3, 2) = 0.0;
+	M(3, 3) = 1.0;
+#undef M
+/*
+	m[0] = 2.0/(r-l);
+	m[1] = 0.0;
+	m[2] = 0.0;
+	m[3] = -((r+l) / r-l);
+	m[4] = 0.0;
+	m[5] = 2.0/(t-b);
+	m[6] = 0.0;
+	m[7] = -((t+b)/(r-b));
+	m[8] = 0.0;
+	m[9] = 0.0;
+	m[10] = -2.0/(f-n);
+	m[11] = -((f+n)/(f-n));
+	m[12] = 0.0;
+	m[13] = 0.0;
+	m[14] = 0.0;
+	m[15] = 1.0;
+*/
+	memcpy (matrix,m,16*sizeof (GLDOUBLE));
+
 }

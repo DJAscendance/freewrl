@@ -2585,6 +2585,10 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 		parentPath = (resource_item_t *)(((struct X3D_ImageTexture *)entry->scenegraphNode)->_parentResource);
 		restype = resm_image;
 		break;
+	case NODE_ProjectiveTexture:
+		url = & (((struct X3D_ProjectiveTexture *)entry->scenegraphNode)->url);
+		parentPath = (resource_item_t *)(((struct X3D_ProjectiveTexture *)entry->scenegraphNode)->_parentResource);
+		break;
 
 	case NODE_ImageTexture3D:
 		url = & (((struct X3D_ImageTexture3D *)entry->scenegraphNode)->url);
@@ -2604,7 +2608,7 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 		restype = resm_movie;
 		return TRUE;  //like pixeltexture - assume the pixels are delivered magically, not from file, so just return
 		break;
-	case NODE_ImageCubeMapTexture:
+	case NODE_ImageCubeMapTexture:	
 		url = & (((struct X3D_ImageCubeMapTexture *)entry->scenegraphNode)->url);
 		parentPath = (resource_item_t *)(((struct X3D_ImageCubeMapTexture *)entry->scenegraphNode)->_parentResource);
 		restype = resm_image;
@@ -2620,6 +2624,7 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 
 	//TEX_LOADING
 	res = resource_create_multi(url);
+				printf("really loading texture data from %s into %p\n", res->actual_file, entry);
 	res->type=rest_multi;
 	res->media_type = restype; //resm_image; /* quick hack */
 	resource_identify(parentPath, res);

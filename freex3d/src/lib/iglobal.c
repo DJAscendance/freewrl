@@ -47,7 +47,9 @@ void OpenCL_Utils_init(struct tOpenCL_Utils *t);
 //void RasterFont_init(struct tRasterFont *t);
 void RenderTextures_init(struct tRenderTextures *t);
 void Textures_init(struct tTextures *t);
+void perspectiveTextures_init(struct proTextures *t);
 void Textures_clear(struct tTextures *t);
+
 void PluginSocket_init(struct tPluginSocket *t);
 void pluginUtils_init(struct tpluginUtils *t);
 void collision_init(struct tcollision *t);
@@ -306,6 +308,7 @@ ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID..
 	//RasterFont_init(&iglobal->RasterFont);
 	RenderTextures_init(&iglobal->RenderTextures);
 	Textures_init(&iglobal->Textures);
+	ProjectiveTextures_init(&iglobal->ProjectiveTextures);
 #ifndef DISABLER	
 #ifndef NO_PLUGINSOCKET
 	PluginSocket_init(&iglobal->PluginSocket);
@@ -439,6 +442,7 @@ OLDCODE	FREE_IF_NZ(tg->Component_Networking.prv);
 	collision_clear(&tg->collision); FREE_IF_NZ(tg->collision.prv);
 	FREE_IF_NZ(tg->pluginUtils.prv);
 	FREE_IF_NZ(tg->PluginSocket.prv);
+	ProjectiveTextures_clear(&tg->ProjectiveTextures); FREE_IF_NZ(tg->ProjectiveTextures.prv);
 	Textures_clear(&tg->Textures); FREE_IF_NZ(tg->Textures.prv);
 	FREE_IF_NZ(tg->RenderTextures.prv);
 	//FREE_IF_NZ(tg->RasterFont.prv);

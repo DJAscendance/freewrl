@@ -341,6 +341,7 @@ void fv_change_GLcontext(freewrl_params_t* d);
 /* OpenGL renderer capabilities */
 
 
+/* Location Information of Shader Valuation */
 typedef struct s_shader_capabilities{
 	GLint compiledOK;
 	GLuint myShaderProgram;
@@ -389,6 +390,12 @@ typedef struct s_shader_capabilities{
 	GLint Colours;
 	GLint TexCoords[MAX_MULTITEXTURE];
 	GLint FogCoords; //Aug 2016
+	
+	/* Projective Texture */
+	GLint projTexGenMatCam0;
+	GLint projViewMat;
+	GLint projMap_forCam1;
+
 
 	GLint TextureUnit[MAX_MULTITEXTURE];
 	GLint TextureMode[MAX_MULTITEXTURE];
