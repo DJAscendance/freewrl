@@ -1621,8 +1621,6 @@ static const GLchar *vertEnd = "}";
 static const GLchar *vertPos = "gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * fw_Vertex;\n ";
 
 static const GLchar *vertNormPosCalc = "\
-									   vertexNorm = normalize(fw_NormalMatrix * fw_Normal);\n \
-									   vertexPos = fw_ModelViewMatrix * fw_Vertex;\n ";
 	vertexNorm = normalize(fw_NormalMatrix * fw_Normal);\n \
 	vertexPos = fw_ModelViewMatrix * fw_Vertex;\n ";
 
