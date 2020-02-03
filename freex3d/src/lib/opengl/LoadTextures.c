@@ -2624,7 +2624,6 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 
 	//TEX_LOADING
 	res = resource_create_multi(url);
-				printf("really loading texture data from %s into %p\n", res->actual_file, entry);
 	res->type=rest_multi;
 	res->media_type = restype; //resm_image; /* quick hack */
 	resource_identify(parentPath, res);

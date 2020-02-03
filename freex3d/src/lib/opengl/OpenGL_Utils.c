@@ -2679,7 +2679,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne);
 static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker], const GLchar *fragmentSource[fragmentEndMarker], 
 	shaderflagsstruct whichOne) {
-	int iret, userDefined, usingCastlePlugs = 1;
+	int iret, userDefined, usingCastlePlugs = 0;
 	userDefined = whichOne.usershaders ? TRUE : FALSE;
 
 	if(usingCastlePlugs && !userDefined) { // && !DESIRE(whichOne,SHADINGSTYLE_PHONG)) {
@@ -3680,6 +3680,24 @@ void clear_shader_table()
 /**
  *   fwl_initializa_GL: initialize GLEW (->rdr caps) and OpenGL initial state
  */
+ void GLAPIENTRY MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+//https://www.khronos.org/opengl/wiki/Debug_Output
+	if(severity == GL_DEBUG_SEVERITY_HIGH){
+		fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+		type, severity, message );
+		printf("press enter:");
+		getchar();
+	}
+}
+
 bool fwl_initialize_GL()
 {
 	char blankTexture[] = {0x40, 0x40, 0x40, 0xFF};
@@ -3701,7 +3719,15 @@ bool fwl_initialize_GL()
 #endif
 #endif /* KEEP_FV_INLIB */
 
-
+//#define DEBUG_OPENGL 1
+#ifdef DEBUG_OPENGL
+	{
+	// https://www.khronos.org/opengl/wiki/OpenGL_Error
+	// During init, enable debug output
+	glEnable              ( GL_DEBUG_OUTPUT );
+	glDebugMessageCallback( MessageCallback, 0 );
+	}
+#endif //DEBUG_OPENGL
 	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start 4");
 
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
@@ -7422,10 +7448,10 @@ void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
 	M(3, 3) = 1.0;
 #undef M
 	
-	glMultMatrixd(m);
-
-    glTranslated(-eyex, -eyey, -eyez);
-
+	//glMultMatrixd(m);
+	FW_GL_TRANSFORM_D(m);
+    //glTranslated(-eyex, -eyey, -eyez);
+	FW_GL_TRANSLATE_D(-eyex, -eyey, -eyez);
 	//memcpy (matrix,m,16*sizeof (GLDOUBLE));
 }
 

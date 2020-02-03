@@ -273,7 +273,7 @@ void compile_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective
 
 
 void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
-	
+
 	int i,j = 0;
 	int flag = 0;
 	static int datacount = 0;
@@ -292,16 +292,21 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	
 	
 	
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
+	//glMatrixMode(GL_MODELVIEW);
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	//glPushMatrix();
+	FW_GL_PUSH_MATRIX();
+	//glLoadIdentity();
+	FW_GL_LOAD_IDENTITY();
 	
 	projLookAt((GLDOUBLE)node->_loc.c[0],(GLDOUBLE)node->_loc.c[1],(GLDOUBLE)node->_loc.c[2], 
 		(GLDOUBLE)node->_dir.c[0],(GLDOUBLE)node->_dir.c[1],(GLDOUBLE)node->_dir.c[2],
 		(GLDOUBLE)node->_upVec.c[0],(GLDOUBLE)node->_upVec.c[1],(GLDOUBLE)node->_upVec.c[2],ViewMat);
 	
-	glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
-	
+	//glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,ViewMat);
+	//viewmat is also on the modelview stack
+
 	projPerspective((GLDOUBLE)degree,
 		(GLDOUBLE)node->aspectRatio, // aspectRatio
 		(GLDOUBLE)node->nearDistance,(GLDOUBLE)node->farDistance, // near, far
@@ -309,16 +314,25 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	
 
 	
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glLoadMatrixd(bias);
-	glMultMatrixd(ProjMat);
-	glMultMatrixd(ViewMat);
-	glGetDoublev(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
-	
-	fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
+	//glMatrixMode(GL_MODELVIEW);
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	//glPushMatrix();
+	FW_GL_PUSH_MATRIX();
+	//glLoadIdentity();
+	FW_GL_LOAD_IDENTITY();
+
+	//glLoadMatrixd(bias);
+ 	FW_GL_TRANSFORM_D(bias);
+	//glMultMatrixd(ProjMat);
+	FW_GL_TRANSFORM_D(ProjMat);
+	//glMultMatrixd(ViewMat);
+	FW_GL_TRANSFORM_D(ViewMat);
+	//glGetDoublev(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
+	//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
 	matinverse(invcViewMat,cViewMat);
+
 	
 	for(i=0; i<4; i++)
 	{
@@ -358,7 +372,11 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, f_TenLinearGexMatCam0);
 		
 	}*/
-	glPopMatrix();
+	//glPopMatrix();
+	//I seem to need an extra pop
+	FW_GL_POP_MATRIX();
+	FW_GL_POP_MATRIX();
+
 
  }
 

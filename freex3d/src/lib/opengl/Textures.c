@@ -538,6 +538,7 @@ static void myTexImage2D (int generateMipMaps, GLenum target, GLint level, GLint
 	size_t total_size;
 
 	/* first, base image */
+
 	FW_GL_TEXIMAGE2D(target,level,internalformat,width,height,border,format,type,pixels);
 	{
 		GLenum err;
@@ -1199,7 +1200,7 @@ void loadTextureNode (struct X3D_Node *node, void *vparam)
 		break;
 
 		case NODE_ProjectiveTexture:
-	    		releaseTexture(node); // ������ �ؽ��İ� �ִٸ� �����.
+	    		releaseTexture(node); //
 		break;
 
 		case NODE_ImageCubeMapTexture:
@@ -1723,6 +1724,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 		if(me->nodeType == NODE_ProjectiveTexture || me->nodeType == NODE_ImageTexture)
 		{
+			// preference by korean projective texture attempt
 			Src = GL_CLAMP_TO_BORDER; Trc = GL_CLAMP_TO_BORDER;
 		}
 		else

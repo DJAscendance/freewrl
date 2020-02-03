@@ -2811,7 +2811,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	# Chapter 29:		ProjectiveTexture Component
+	# Chapter 43:		ProjectiveTexture Component
 
 	###################################################################################
 ##### ProjectiveTexture >>>
