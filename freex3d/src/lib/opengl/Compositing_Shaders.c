@@ -603,6 +603,13 @@ varying vec4 cpv_Color; \n\
 uniform vec3 particlePosition; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
+#ifdef PROJTEX \n\
+uniform mat4 projTexGenMatCam0; \n\
+varying vec4 projTexCoord; \n\
+void vertProjCalTexCoord(void) { \n\
+	projTexCoord = projTexGenMatCam0 * fw_Vertex; \n\
+} \n\
+#endif //PROJTEX \n\
  \n\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
 	vec4 tempv = vector; \n\
@@ -634,6 +641,9 @@ void main(void) \n\
   castle_UnlitColor = vec4(1.0,1.0,1.0,1.0); \n\
   castle_MaterialDiffuseAlpha = 1.0; \n\
   #endif //LIT \n\
+  #ifdef PROJTEX \n\
+	vertProjCalTexCoord(); \n\
+  #endif //PROJETEX \n\
   \n\
   #ifdef FILL \n\
   hatchPosition = fw_Vertex.xy; \n\
@@ -1095,7 +1105,15 @@ vec3 castle_ColorES; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LITE \n\
 #endif //LIT\n\
- \n\
+#ifdef PROJTEX \n\
+varying vec4 projTexCoord; \n\
+vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
+	if( projTexCoord.q > 0.0 ){ \n\
+		frag_color += texture2DProj(fw_Texture_unit0, projTexCoord); \n\
+	} \n\
+	return frag_color; \n\
+} \n\
+#endif //PROJTEX \n\
 /* Wrapper for calling PLUG texture_coord_shift */ \n\
 vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 { \n\
@@ -1159,6 +1177,10 @@ void main(void) \n\
   #endif //MATFIR \n\
   fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
   #endif //LIT \n\
+  #ifdef PROJTEX \n\
+  fragment_color = fragProjCalTexCoord(fragment_color); \n\
+  //fragment_color += ProjMapColor_forCam1; \n\
+  #endif //PROJTEX \n\
   \n\
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
   /* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
@@ -1747,6 +1769,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_VERTEX,"UNLIT",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"UNLIT",CompleteCode);
 	}
+	if(DESIRE(whichOne.base,HAVE_PROJECTIVETEXTURE)){
+		AddDefine(SHADERPART_VERTEX,"PROJTEX",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"PROJTEX",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"TEX",CompleteCode);
+	}
 	if (DESIRE(whichOne.base,ONE_TEX_APPEARANCE_SHADER) ||
 		DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) ||
 		DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE) ||
@@ -1830,20 +1857,22 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
-	if(0){
-		//write out ubershader text to files (for preprocessing and analysis)
-		static int n = 0;
-		char filenamestr[100];
-		n++;
-		sprintf(filenamestr,"shader_vertex_%d.txt",n);
-		FILE* fp = fopen(filenamestr,"w+");
-		fwrite(*vertexSource,strlen(*vertexSource)+1,1,fp);
+//#define DEBUGSHADER 1
+#ifdef DEBUGSHADER
+	{
+		//after writing to file you can run unifdef, sunifdef or coan on output to see reduced shader
+		// http://coan2.sourceforge.net/
+		//coan source -m composed_shader.vert > shader.vert
+		FILE *fp = fopen("C:/tmp/composed_shader.vert","w+");
+		fwrite(*vertexSource,strlen(*vertexSource),1,fp);
 		fclose(fp);
-		sprintf(filenamestr,"shader_frag_%d.txt",n);
-		fp = fopen(filenamestr,"w+");
-		fwrite(*fragmentSource,strlen(*fragmentSource)+1,1,fp);
+		fp = fopen("C:/tmp/composed_shader.frag","w+");
+		fwrite(*fragmentSource,strlen(*fragmentSource),1,fp);
 		fclose(fp);
 	}
+#endif //DEBUGSHADER
+#undef DEBUGSHADER
+
 	return retval;
 }
 
@@ -2850,6 +2879,20 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 	// an editor that has line numbers, to get to the ERROR line
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
+//#define DEBUGSHADER 1
+#ifdef DEBUGSHADER
+	{
+		//after writing to file you can run unifdef, sunifdef or coan on output to see reduced shader
+		// http://coan2.sourceforge.net/
+		//coan source -m composed_shader.vert > shader.vert
+		FILE *fp = fopen("C:/tmp/composed_shader.vert","w+");
+		fwrite(*vertexSource,strlen(*vertexSource),1,fp);
+		fclose(fp);
+		fp = fopen("C:/tmp/composed_shader.frag","w+");
+		fwrite(*fragmentSource,strlen(*fragmentSource),1,fp);
+		fclose(fp);
+	}
+#endif //DEBUGSHADER
 	return retval;
 
 }

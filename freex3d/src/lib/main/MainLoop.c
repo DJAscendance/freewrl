@@ -5712,7 +5712,7 @@ static void render()
 			/*  Other lights*/
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 
-			render_hier(rootNode(), VF_globalLight );
+			render_hier(rootNode(), VF_globalLight ); //also do global TextureProjectors: TextureProjectorPerspective global=true, TextureProjectorParallel global=true
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
 			render_hier(rootNode(), VF_Other );
 

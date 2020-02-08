@@ -40,12 +40,48 @@ X3D Texturing Component
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
+#include "LinearAlgebra.h"
 
 float TenLinearGexMatCam0[16];
+void convertDbtoFl(GLDOUBLE * dmt, float *fmt);
 
 void render_PixelTexture (struct X3D_PixelTexture *node) {
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
+}
+
+void resend_textureprojector_matrix()
+{
+	struct projective_Texdata *data;
+	ttglobal tg = gglobal();
+	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+
+	if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
+	{
+
+		//convertDbtoFl(tg->ProjectiveTextures.data[0].TenLinearGexMat, TenLinearGexMatCam0);
+		//convertDbtoFl(data[0].TenLinearGexMat, TenLinearGexMatCam0);
+		float TenLinearGexMatCam0f[16];
+		double2float(TenLinearGexMatCam0f,data[0].TenLinearGexMat,16);
+		if(0){
+		for(int j=0;j<4;j++)
+		{
+			printf("[ ");
+			for(int i=0;i<4;i++)
+				printf("%lf ",data[0].TenLinearGexMat[j*4 +i]);
+			printf("]\n");
+		}
+		for(int j=0;j<4;j++)
+		{
+			printf("[ ");
+			for(int i=0;i<4;i++)
+				printf("%f ",TenLinearGexMatCam0f[j*4 +i]);
+			printf("]\n");
+		}
+		}
+		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0f);
+	}
+
 }
 
 void render_ImageTexture (struct X3D_ImageTexture *node) {
@@ -54,14 +90,17 @@ void render_ImageTexture (struct X3D_ImageTexture *node) {
 	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
 	
 	/* printf ("render_ImageTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
-
+	/*
 	if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
 	{
 		//convertDbtoFl(tg->ProjectiveTextures.data[0].TenLinearGexMat, TenLinearGexMatCam0);
-		convertDbtoFl(data[0].TenLinearGexMat, TenLinearGexMatCam0);
-		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0);
-
+		//convertDbtoFl(data[0].TenLinearGexMat, TenLinearGexMatCam0);
+		float TenLinearGexMatCam0f[16];
+		double2float(TenLinearGexMatCam0f,data[0].TenLinearGexMat,16);
+		// problme in 2020: this uniform is being set too early in the frame now - need to do it from render_shape
+		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0f);
 	}
+	*/
 	loadTextureNode(X3D_NODE(node),NULL); //이미지 텍스처
 	
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */

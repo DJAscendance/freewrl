@@ -768,7 +768,7 @@ void update_effect_uniforms();
 bool setupShaderB();
 void textureTransform_start();
 void reallyDraw();
-
+void resend_textureprojector_matrix();
 
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
@@ -978,6 +978,7 @@ void child_Shape (struct X3D_Shape *node) {
 		//----- glDrawArrays/glDrawElements
 		textureTransform_start();
 		setupShaderB();
+		resend_textureprojector_matrix();
 		render_node(tmpNG);
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		reallyDraw();

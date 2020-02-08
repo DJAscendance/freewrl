@@ -2655,18 +2655,25 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			vertexShaderResources_t x1;
 			fragmentShaderResources_t x2;
 			int i;
-
+			FILE* fp = fopen("C:/tmp/vertex_vc13.src","w+");
 			ConsoleMessage ("Vertex source:\n");
+			fprintf(fp,"Vertex source:\n");
 			for (x1=vertexGLSLVersion; x1<vertexEndMarker; x1++) {
-				if (strlen(vertexSource[x1])>0)
+				if (strlen(vertexSource[x1])>0){
 					ConsoleMessage("%s",vertexSource[x1]);
+					fprintf(fp,"%s",vertexSource[x1]);
+				}
 			}
 			ConsoleMessage("Fragment Source:\n");
+			fprintf(fp,"Fragment Source:\n");
 			i=0;
 			for (x2=fragmentGLSLVersion; x2<fragmentEndMarker; x2++) {
-				if (strlen(fragmentSource[x2])>0)
+				if (strlen(fragmentSource[x2])>0){
 					ConsoleMessage("%s",fragmentSource[x2]);
+					fprintf(fp,"%s",fragmentSource[x2]);
+				}
 			}
+			fclose(fp);
 		}
 	#endif //VERBOSE
 //#undef VERBOSE
@@ -2679,7 +2686,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne);
 static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker], const GLchar *fragmentSource[fragmentEndMarker], 
 	shaderflagsstruct whichOne) {
-	int iret, userDefined, usingCastlePlugs = 0;
+	int iret, userDefined, usingCastlePlugs = 1;
 	userDefined = whichOne.usershaders ? TRUE : FALSE;
 
 	if(usingCastlePlugs && !userDefined) { // && !DESIRE(whichOne,SHADINGSTYLE_PHONG)) {
@@ -2760,7 +2767,6 @@ static void makeAndCompileShader(struct shaderTableEntry *me) {
 
 	glGetProgramiv(myProg,GL_LINK_STATUS, &success);
 	(*myShader).compiledOK = (success == GL_TRUE);
-
 	getShaderCommonInterfaces(myShader);
 }
 static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
@@ -2816,7 +2822,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0");
 	//me->projViewMat = GET_UNIFORM(myProg,"projViewMat");
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
-	tg->ProjectiveTextures._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0");
+	tg->ProjectiveTextures._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
 	tg->ProjectiveTextures._projViewMat_Location = GET_UNIFORM(myProg,"projViewMat");
 	tg->ProjectiveTextures._projMap_forCam1_Location = GET_UNIFORM(myProg,"projMap_forCam1");
 	
@@ -4001,6 +4007,14 @@ void fw_glTranslatef(float x, float y, float z) {
 	FW_GL_LOADMATRIX(p->currentMatrix);
 }
 
+/* perform current = current * mat */
+void fw_glMultMatrixd (GLDOUBLE *mat) {
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+
+	matmultiplyFULL(p->currentMatrix,mat,p->currentMatrix);
+	//FW_GL_LOADMATRIX(p->currentMatrix);
+}
+
 /* perform rotation, assuming that the angle is in radians. */
 void fw_glRotateRad (GLDOUBLE angle, GLDOUBLE x, GLDOUBLE y, GLDOUBLE z) {
 	MATRIX4 myMat;
@@ -4913,6 +4927,8 @@ int isSiblingAffector(struct X3D_Node *node){
 		case NODE_LocalFog:
 		case NODE_ClipPlane:
 		case NODE_Effect:
+		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjectorParallel:
 			ret = 1; break;
 		default:
 			ret = 0; break;
@@ -4933,10 +4949,10 @@ int hasSiblingAffectorField(struct X3D_Node *node, int whereFrom){
 	// and this filter has already been applied ie we are inside AddRemoveChildren
 	int ret = 0;
 	// except:
-if (node==NULL) {
-	printf ("hasSiblingAffectorField, node %p from line %d\n",node,whereFrom);
-	return 0;
-}
+	if (node==NULL) {
+		printf ("hasSiblingAffectorField, node %p from line %d\n",node,whereFrom);
+		return 0;
+	}
 	switch(node->_nodeType){
 		case NODE_Proto:
 		case NODE_Inline:
@@ -4992,10 +5008,10 @@ void AddToSibAffectors(struct X3D_Node *parent, struct X3D_Node *affector){
 	// - a kind of short list so child_ functions do:
 	//   a short loop (prep_sibAffectors), full loop (normalChildren), short loop (fin_sibAffectors)
 
-//JAS
-if (parent==NULL) {
-printf ("in AddToSibAffectors, we have node parent NULL, node is a %s\n",stringNodeType(affector->_nodeType));
-}
+	//JAS
+	if (parent==NULL) {
+	printf ("in AddToSibAffectors, we have node parent NULL, node is a %s\n",stringNodeType(affector->_nodeType));
+	}
 
 
 	if(hasSiblingAffectorField(parent,__LINE__) && isSiblingAffector(affector)){
@@ -5244,6 +5260,26 @@ void startOfLoopNodeUpdates(void) {
 				END_NODE
 				BEGIN_NODE(Effect)
 					ADD_TO_PARENT_SIBAFFECTORS
+				END_NODE
+				BEGIN_NODE(TextureProjectorPerspective)
+					if (X3D_TEXTUREPROJECTORPERSPECTIVE(node)->on) {
+						if (X3D_TEXTUREPROJECTORPERSPECTIVE(node)->global)
+							update_renderFlag(pnode,VF_globalLight);
+						else{
+							//LOCAL_LIGHT_PARENT_FLAG
+							ADD_TO_PARENT_SIBAFFECTORS
+						}
+					}
+				END_NODE
+				BEGIN_NODE(TextureProjectorParallel)
+					if (X3D_TEXTUREPROJECTORPARALLEL(node)->on) {
+						if (X3D_TEXTUREPROJECTORPARALLEL(node)->global)
+							update_renderFlag(pnode,VF_globalLight);
+						else{
+							//LOCAL_LIGHT_PARENT_FLAG
+							ADD_TO_PARENT_SIBAFFECTORS
+						}
+					}
 				END_NODE
 
 
@@ -6613,7 +6649,7 @@ OLDCODE*/
 #else
 static void fw_glLoadMatrixd(GLDOUBLE *val) {
 #endif
-
+	//hypothesis this is for old fix-function pipeline and isn't used?
 	/* printf ("loading matrix...\n"); */
 	#ifndef GL_ES_VERSION_2_0
 	glLoadMatrixd(val);

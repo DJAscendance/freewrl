@@ -637,11 +637,11 @@ void textureTransform_start() {
 			glUniform2i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0], p->textureParameterStack[i].multitex_mode[1]);
 			glUniform2i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0], p->textureParameterStack[i].multitex_source[1]);
 			//glUniform1i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0]);
+			//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
+			glUniform1i(me->TextureFunction[i],p->textureParameterStack[i].multitex_function);
 
 			//SET_TEXTURE_UNIT_AND_BIND(0,0,tg->RenderFuncs.boundTextureStack[0]);
 			glUniform1i(me->projMap_forCam1,0);
-			//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
-			glUniform1i(me->TextureFunction[i],p->textureParameterStack[i].multitex_function);
 		}
 	#ifdef TEXVERBOSE
 	} else {

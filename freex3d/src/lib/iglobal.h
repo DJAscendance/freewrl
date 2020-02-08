@@ -264,9 +264,9 @@ typedef struct iiglobal //InstanceGlobal
 		//struct projective_Texdata data[4];
 		void *data;
 		bool ProjActive;
+		int globalProjector;
 		void *prv;
 	}ProjectiveTextures;
-
 	struct tPluginSocket{
 		void *prv;
 	}PluginSocket;

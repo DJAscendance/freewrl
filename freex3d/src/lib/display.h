@@ -738,12 +738,14 @@ void resetGeometry();
 	#define FW_GL_GETDOUBLEV(aaa,bbb) fw_glGetDoublev(aaa,bbb);
 	#define FW_GL_SETDOUBLEV(aaa,bbb) fw_glSetDoublev(aaa,bbb);
 	#define FW_GL_LOAD_IDENTITY fw_glLoadIdentity
+	#define FW_GL_LOAD_MATRIX_D(mat16) fw_glLoadMatrixd(mat16)
 	#define FW_GL_POP_MATRIX() fw_glPopMatrix()
 	#define FW_GL_PUSH_MATRIX() fw_glPushMatrix()
 
 	#define FW_GL_TRANSLATE_F(xxx,yyy,zzz) fw_glTranslatef(xxx,yyy,zzz)
 	#define FW_GL_TRANSLATE_D(xxx,yyy,zzz) fw_glTranslated(xxx,yyy,zzz)
 	#define FW_GL_TRANSFORM_D(mat16) fw_glTransformd(mat16)
+	#define FW_GL_MULTMATRIX_D(mat16) fw_glMultMatrixd(mat16)
 	#define FW_GL_ROTATE_F(aaa,xxx,yyy,zzz) fw_glRotatef(aaa,xxx,yyy,zzz)
 	#define FW_GL_ROTATE_D(aaa,xxx,yyy,zzz) fw_glRotated(aaa,xxx,yyy,zzz)
 	#define FW_GL_ROTATE_RADIANS(aaa,xxx,yyy,zzz) fw_glRotateRad(aaa,xxx,yyy,zzz)
