@@ -1094,7 +1094,7 @@ sub gen {
 	"#define X3D_IMAGETEXTURE(node) ((struct X3D_ImageTexture*)node)\n".
 	"#define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)\n".
 	"#define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)\n".
-	"#define X3D_PROJECTIVETEXTURE(node) ((struct X3D_ProjectiveTexture*)node)\n".
+	#"#define X3D_PROJECTIVETEXTURE(node) ((struct X3D_ProjectiveTexture*)node)\n".
 	"#define X3D_TEXTUREPROJECTORPERSPECTIVE(node) ((struct X3D_TextureProjectorPerspective*)node)\n",
 	"#define X3D_TEXTUREPROJECTORPARALLEL(node) ((struct X3D_TextureProjectorParallel*)node)\n",
 

@@ -607,6 +607,7 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DParticlePhysicsModelNode		67
 #define X3DComposableVolumeRenderStyleNode 68
 #define X3DVolumeDataNode 69
+#define X3DTextureProjectorNode			70
 
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);

@@ -352,16 +352,16 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 					/* is it finished loading? */
 					nowFinished ++;
 				}
-		case NODE_ProjectiveTexture:
-			/* printf ("opengl tex is %d\n",tnode->__texture); */
-			/* is this texture thought of yet? */
-			nowLoading++;
-			if (fwl_isTextureLoaded(tnode->__textureTableIndex)) {
-				/* is it finished loading? */
-				nowFinished ++;
-			}
-				
-			break;
+		//case NODE_ProjectiveTexture:
+		//	/* printf ("opengl tex is %d\n",tnode->__texture); */
+		//	/* is this texture thought of yet? */
+		//	nowLoading++;
+		//	if (fwl_isTextureLoaded(tnode->__textureTableIndex)) {
+		//		/* is it finished loading? */
+		//		nowFinished ++;
+		//	}
+		//		
+		//	break;
 			}
 			break;
 		case NODE_Inline:

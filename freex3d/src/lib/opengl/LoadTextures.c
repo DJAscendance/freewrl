@@ -2585,10 +2585,10 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 		parentPath = (resource_item_t *)(((struct X3D_ImageTexture *)entry->scenegraphNode)->_parentResource);
 		restype = resm_image;
 		break;
-	case NODE_ProjectiveTexture:
-		url = & (((struct X3D_ProjectiveTexture *)entry->scenegraphNode)->url);
-		parentPath = (resource_item_t *)(((struct X3D_ProjectiveTexture *)entry->scenegraphNode)->_parentResource);
-		break;
+	//case NODE_ProjectiveTexture:
+	//	url = & (((struct X3D_ProjectiveTexture *)entry->scenegraphNode)->url);
+	//	parentPath = (resource_item_t *)(((struct X3D_ProjectiveTexture *)entry->scenegraphNode)->_parentResource);
+	//	break;
 
 	case NODE_ImageTexture3D:
 		url = & (((struct X3D_ImageTexture3D *)entry->scenegraphNode)->url);
