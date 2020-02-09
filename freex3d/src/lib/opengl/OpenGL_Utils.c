@@ -75,58 +75,6 @@ void kill_rendering(void);
 
 static void mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
 
-float projTexGenMatCam0[16] ={ 1.0308042, -1.0504768, -0.64150029, -0.57735026,
-0.28867513, 1.2349281, -0.64150029, 0.57735026,
--1.6081543, -1.0504768, -0.64150029, -0.57735026,
-0.86602539, 0.86602539, 0.81338978, 1.7320508
-
-};
-
-float projViewMat[16] = {
-
-	1,0,0,0,
-	0,1,0,0,
-	0,0,1,0,
-	0,0,0,1
-
-};
-float invprojViewMat[16];
-bool projflag = true;
-GLint projTexture;
-
-GLuint LoadTexture( const char * filename, int width, int height )
-{
-	GLuint texture;
-	unsigned char * data;
-	FILE * file;
-
-	//The following code will read in our RAW file
-	file = fopen( filename, "rb" );
-	if ( file == NULL ) return 0;
-	data = (unsigned char *)malloc( width * height * 3 );
-	fread( data, width * height * 3, 1, file );
-	fclose( file );
-
-	glEnable(GL_TEXTURE_2D);
-
-	FW_GL_GENTEXTURES (1,&texture);
-	glBindTexture (GL_TEXTURE_2D, texture);
-	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	FW_GL_TEXPARAMETERI( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	FW_GL_TEXIMAGE2D(GL_TEXTURE_2D, 0, GL_RGBA,  width, height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
-
-	printf("\n\n !!!! bind it !!!! \n\n");
-
-	free( data ); //free the texture
-
-	glDisable(GL_TEXTURE_2D);
-
-	return texture; //return whether it was successfull
-}
-
-
 
 #undef DEBUG_FW_LOADMAT
 #ifdef DEBUG_FW_LOADMAT

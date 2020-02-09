@@ -36,26 +36,6 @@ Variable use:
 //#include "x3d_parser/X3DParser.h" //for PARENTSTACKSIZE
 //#include "ui/common.h" // for ppcommon
 
-typedef enum {RGB, RGBA, RGBA1} TEXTURETYPE;
-
-typedef struct {
-	int ns, nt;
-	GLubyte *tmap;
-} Texture;
-Texture texture_sy128, texture_sy191, texture_ch128, texture_sp;  // Texture ¼±¾ð
-
-/*
-typedef struct projectiveShaderLocation {
-	GLint _projTexGenMatCam0_Location;
-	GLint _projTexCoord_Location;
-	GLint _projViewMat_Location;
-	GLint _projMap_forCam1_Location;
-} * projShaderLocation;
-*/
-
-GLuint tex_name[4];	
-
-
 
 #define IBOOL int
 

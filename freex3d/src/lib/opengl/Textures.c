@@ -598,8 +598,6 @@ void releaseTexture(struct X3D_Node *node) {
 
 		if (node->_nodeType == NODE_ImageTexture) {
 			tableIndex  = ((struct X3D_ImageTexture *)node)->__textureTableIndex;
-		//} else if (node->_nodeType == NODE_ProjectiveTexture) {
-		//	tableIndex  = ((struct X3D_ProjectiveTexture *)node)->__textureTableIndex;
 		} else if (node->_nodeType == NODE_PixelTexture) {
 			tableIndex  = ((struct X3D_PixelTexture *)node)->__textureTableIndex;
 		} else if (node->_nodeType == NODE_MovieTexture) {
@@ -637,36 +635,6 @@ void releaseTexture(struct X3D_Node *node) {
 	}
 }
 
-
-void releaseProjectiveTexture(struct X3D_Node *node) {
-
-	int tableIndex;
-	textureTableIndexStruct_s *ti;
-
-	tableIndex  = ((struct X3D_ImageTexture *)node)->__textureTableIndex;
-		
-
-#ifdef TEXVERBOSE
-	printf ("releaseTexture, calling getTableIndex\n");
-	ti = getTableIndex(tableIndex);
-	printf ("releaseTexture, ti %p, ti->status %d\n",ti,ti->status);
-	ti->status = TEX_NOTLOADED;
-
-	if (ti->OpenGLTexture != TEXTURE_INVALID) {
-		printf ("deleting %d textures, starting at %u\n",ti->frames, ti->OpenGLTexture);
-		ti->OpenGLTexture = TEXTURE_INVALID;
-/* 		FREE_IF_NZ(ti->OpenGLTexture); */
-	}
-#endif
-
-	ti = getTableIndex(tableIndex);
-	ti->status = TEX_NOTLOADED;
-	if (ti->OpenGLTexture != TEXTURE_INVALID) {
-		FW_GL_DELETETEXTURES(1, &ti->OpenGLTexture);
-		ti->OpenGLTexture = TEXTURE_INVALID;
-/* 		FREE_IF_NZ(ti->OpenGLTexture); */
-	}
-}
 
 
 textureTableIndexStruct_s *getTableIndex(int indx) {
@@ -730,9 +698,6 @@ int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node){
 	} else if (thisTextureType==NODE_ComposedTexture3D){
 		struct X3D_ComposedTexture3D* pt = (struct X3D_ComposedTexture3D*) node;
 		thisTexture = pt->__textureTableIndex;
-	//} else if (thisTextureType==NODE_ProjectiveTexture){
-	//	struct X3D_ProjectiveTexture* pt = (struct X3D_ProjectiveTexture*) node;
-	//	thisTexture = pt->__textureTableIndex;
 	} else {
 		ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType));
 	}
@@ -756,7 +721,6 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 	/* printf ("registerTexture, found a %s\n",stringNodeType(it->_nodeType));  */
 
 	if ((it->_nodeType == NODE_ImageTexture) ||
-		//(it->_nodeType == NODE_ProjectiveTexture) ||
 		(it->_nodeType == NODE_PixelTexture) ||
 		(it->_nodeType == NODE_ImageCubeMapTexture) ||
 		(it->_nodeType == NODE_GeneratedCubeMapTexture) ||
@@ -793,11 +757,6 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 			case NODE_ImageTexture:
 				it->__textureTableIndex = textureNumber;
 				break;
-		//case NODE_ProjectiveTexture: {
-		//	struct X3D_ProjectiveTexture *pjt;
-		//	pjt = (struct X3D_ProjectiveTexture *) tmp;
-		//	pjt->__textureTableIndex = textureNumber;
-		//	break; }
 			case NODE_PixelTexture: {
 				struct X3D_PixelTexture *pt;
 				pt = (struct X3D_PixelTexture *) tmp;
@@ -1054,7 +1013,6 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 			/* we have an image specified for this face */
 			/* the X3D spec says that a X3DTextureNode has to be one of... */
 			if ((thistex->_nodeType == NODE_ImageTexture) ||
-				//(thistex->_nodeType == NODE_ProjectiveTexture) ||
 			    (thistex->_nodeType == NODE_PixelTexture) ||
 			    (thistex->_nodeType == NODE_MovieTexture) ||
 			    (thistex->_nodeType == NODE_MultiTexture)) {
@@ -1072,15 +1030,6 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 						}
 						break;
 					}
-					////case NODE_ProjectiveTexture: {
-					////	if (X3D_PROJECTIVETEXTURE(thistex)->textureProperties == NULL) {
-					////		thistp = createNewX3DNode (NODE_TextureProperties);
-					////		X3D_PROJECTIVETEXTURE(thistex)->textureProperties = X3D_NODE(thistp);
-					////		ADD_PARENT(X3D_NODE(thistp),thistex);
-					////	}
-					////	break;
-					////}
-
 					case NODE_PixelTexture: {
 						if (X3D_PIXELTEXTURE(thistex)->textureProperties == NULL) {
 							thistp = createNewX3DNode (NODE_TextureProperties);
@@ -1148,10 +1097,6 @@ void loadTextureNode (struct X3D_Node *node, void *vparam)
 		case NODE_ImageTexture:
 	    		releaseTexture(node);
 		break;
-
-		//case NODE_ProjectiveTexture:
-	 //   		releaseTexture(node); //
-		//break;
 
 		case NODE_ImageCubeMapTexture:
 	    		releaseTexture(node);
@@ -1385,10 +1330,6 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 				/* printf ("MultiTexture %d is a ImageTexture param %d\n",count,*paramPtr);  */
 				loadTextureNode (X3D_NODE(nt),paramPtr);
 				break;
-			////case NODE_ProjectiveTexture : 
-			////	/* printf ("MultiTexture %d is a ImageTexture param %d\n",count,*paramPtr);  */
-			////	loadTextureNode (X3D_NODE(nt),paramPtr);
-			////	break;
 			case NODE_MultiTexture:
 				printf ("MultiTexture texture %d is a MULTITEXTURE!!\n",count);
 				break;
@@ -1468,7 +1409,6 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	struct X3D_MovieTexture *mt = NULL;
 	struct X3D_ImageTexture *it = NULL;
 	struct X3D_PixelTexture3D *pt3d = NULL;
-	struct X3D_ProjectiveTexture *pr = NULL;
 
 	struct X3D_TextureProperties *tpNode = NULL;
 	int haveValidTexturePropertiesNode;
@@ -1542,10 +1482,6 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		it = (struct X3D_ImageTexture *) me->scenegraphNode;
 		Src = it->repeatS; Trc = it->repeatT;
 		tpNode = X3D_TEXTUREPROPERTIES(it->textureProperties);
-	//} else if (me->nodeType == NODE_ProjectiveTexture) {
-	//	pr = (struct X3D_ProjectiveTexture *) me->scenegraphNode;
-	//	Src = pr->repeatS; Trc = pr->repeatT;
-	//	tpNode = X3D_TEXTUREPROPERTIES(pr->textureProperties);
 	} else if (me->nodeType == NODE_PixelTexture) {
 		pt = (struct X3D_PixelTexture *) me->scenegraphNode;
 		Src = pt->repeatS; Trc = pt->repeatT;
@@ -1672,18 +1608,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	if (!haveValidTexturePropertiesNode) {
 
-		if( /* me->nodeType == NODE_ProjectiveTexture ||*/ me->nodeType == NODE_ImageTexture)
-		{
-			// preference by korean projective texture attempt
-			Src = GL_CLAMP_TO_BORDER; Trc = GL_CLAMP_TO_BORDER;
-		}
-		else
-		{
-			/* convert TRUE/FALSE to GL_TRUE/GL_FALSE for wrapS and wrapT */
-			Src = Src ? GL_REPEAT : GL_CLAMP_TO_EDGE; //GL_CLAMP;   //du9 changed from CLAMP to CLAMP_TO_EDGE Sept18,2011 to fix panorama seamline visibility
-			Trc = Trc ? GL_REPEAT : GL_CLAMP_TO_EDGE; //GL_CLAMP;
-			Rrc = Rrc ? GL_REPEAT : GL_CLAMP_TO_EDGE; //GL_CLAMP;
-		}
+		/* convert TRUE/FALSE to GL_TRUE/GL_FALSE for wrapS and wrapT */
+		Src = Src ? GL_REPEAT : GL_CLAMP_TO_EDGE; //GL_CLAMP;   //du9 changed from CLAMP to CLAMP_TO_EDGE Sept18,2011 to fix panorama seamline visibility
+		Trc = Trc ? GL_REPEAT : GL_CLAMP_TO_EDGE; //GL_CLAMP;
+		Rrc = Rrc ? GL_REPEAT : GL_CLAMP_TO_EDGE; //GL_CLAMP
+
 		generateMipMaps = GL_TRUE;
 
 		if(me->x > 0 && me->y > 0)
@@ -2147,7 +2076,6 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	struct X3D_ImageTexture *it;
 	struct X3D_PixelTexture *pt;
 	struct X3D_MovieTexture *mt;
-	struct X3D_ProjectiveTexture *pjt;
 	struct X3D_ImageCubeMapTexture *ict;
 	struct X3D_GeneratedCubeMapTexture *gct;
 

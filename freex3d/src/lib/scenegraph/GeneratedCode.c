@@ -785,7 +785,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"navType",
 	"nearDistance",
 	"networkMode",
-	"newFloat",
 	"next",
 	"normal",
 	"normalIndex",
@@ -901,7 +900,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"set_coordinate",
 	"set_crossSection",
 	"set_destination",
-	"set_float",
 	"set_fraction",
 	"set_gcCoords",
 	"set_geoCoords",
@@ -1172,7 +1170,6 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"motor3Angle",
 	"motor3AngleRate",
 	"motor3Axis",
-	"newFloat",
 	"normal_changed",
 	"orientation_changed",
 	"origin",
@@ -1238,7 +1235,6 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"set_coordinate",
 	"set_crossSection",
 	"set_destination",
-	"set_float",
 	"set_fraction",
 	"set_gcCoords",
 	"set_geoCoords",
@@ -2239,7 +2235,6 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"ExplosionEmitter",
 	"Extrusion",
 	"FillProperties",
-	"FloatMultiply",
 	"FloatVertexAttribute",
 	"Fog",
 	"FogCoordinate",
@@ -2669,8 +2664,6 @@ struct X3D_Virt virt_Extrusion = { NULL,(void *)render_Extrusion,NULL,NULL,(void
 
 void render_FillProperties(struct X3D_FillProperties *);
 struct X3D_Virt virt_FillProperties = { NULL,(void *)render_FillProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-
-struct X3D_Virt virt_FloatMultiply = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_FloatVertexAttribute = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3425,7 +3418,6 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_ExplosionEmitter,
 	 &virt_Extrusion,
 	 &virt_FillProperties,
-	 &virt_FloatMultiply,
 	 &virt_FloatVertexAttribute,
 	 &virt_Fog,
 	 &virt_FogCoordinate,
@@ -4639,12 +4631,6 @@ const int OFFSETS_FillProperties[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_FillProperties, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__enabled, (int) offsetof (struct X3D_FillProperties, _enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__hatchScale, (int) offsetof (struct X3D_FillProperties, _hatchScale),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) 0, (int) 0,
-	-1, -1, -1, -1, -1, -1};
-
-const int OFFSETS_FloatMultiply[] = {
-	(int) FIELDNAMES_set_float, (int) offsetof (struct X3D_FloatMultiply, set_float),  (int) FIELDTYPE_SFFloat, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) 0,
-	(int) FIELDNAMES_newFloat, (int) offsetof (struct X3D_FloatMultiply, newFloat),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) 0,
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_FloatMultiply, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_FloatVertexAttribute[] = {
@@ -7708,7 +7694,6 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_ExplosionEmitter,
 	OFFSETS_Extrusion,
 	OFFSETS_FillProperties,
-	OFFSETS_FloatMultiply,
 	OFFSETS_FloatVertexAttribute,
 	OFFSETS_Fog,
 	OFFSETS_FogCoordinate,
@@ -8257,7 +8242,6 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ExplosionEmitter : {tmp = MALLOC (struct X3D_ExplosionEmitter *, sizeof (struct X3D_ExplosionEmitter)); break;}
 		case NODE_Extrusion : {tmp = MALLOC (struct X3D_Extrusion *, sizeof (struct X3D_Extrusion)); break;}
 		case NODE_FillProperties : {tmp = MALLOC (struct X3D_FillProperties *, sizeof (struct X3D_FillProperties)); break;}
-		case NODE_FloatMultiply : {tmp = MALLOC (struct X3D_FloatMultiply *, sizeof (struct X3D_FloatMultiply)); break;}
 		case NODE_FloatVertexAttribute : {tmp = MALLOC (struct X3D_FloatVertexAttribute *, sizeof (struct X3D_FloatVertexAttribute)); break;}
 		case NODE_Fog : {tmp = MALLOC (struct X3D_Fog *, sizeof (struct X3D_Fog)); break;}
 		case NODE_FogCoordinate : {tmp = MALLOC (struct X3D_FogCoordinate *, sizeof (struct X3D_FogCoordinate)); break;}
@@ -9764,15 +9748,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_enabled = TRUE;
 			tmp2->_hatchScale.c[0] = 0.1f;tmp2->_hatchScale.c[1] = 0.1f;;
 			tmp2->_defaultContainer = FIELDNAMES_fillProperties;
-		break;
-		}
-		case NODE_FloatMultiply : {
-			struct X3D_FloatMultiply * tmp2;
-			tmp2 = (struct X3D_FloatMultiply *) tmp;
-			tmp2->set_float = 0.0f;
-			tmp2->newFloat = 0.0f;
-			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
 		case NODE_FloatVertexAttribute : {
@@ -14819,15 +14794,6 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
-		case NODE_FloatMultiply : {
-			struct X3D_FloatMultiply *tmp;
-			tmp = (struct X3D_FloatMultiply *) node;
-			UNUSED(tmp); // compiler warning mitigation
-		    if(allFields) {
-			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
-		    }
-		    break;
-		}
 		case NODE_FloatVertexAttribute : {
 			struct X3D_FloatVertexAttribute *tmp;
 			tmp = (struct X3D_FloatVertexAttribute *) node;
@@ -18691,7 +18657,6 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_ExplosionEmitter: return X3DParticleEmitterNode; break;
 	case NODE_Extrusion: return X3DGeometryNode; break;
 	case NODE_FillProperties: return X3DAppearanceChildNode; break;
-	case NODE_FloatMultiply: return X3DChildNode; break;
 	case NODE_FloatVertexAttribute: return X3DVertexAttributeNode; break;
 	case NODE_Fog: return X3DBindableNode; break;
 	case NODE_FogCoordinate: return X3DGeometricPropertyNode; break;

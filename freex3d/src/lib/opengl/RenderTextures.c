@@ -640,8 +640,6 @@ void textureTransform_start() {
 			//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
 			glUniform1i(me->TextureFunction[i],p->textureParameterStack[i].multitex_function);
 
-			//SET_TEXTURE_UNIT_AND_BIND(0,0,tg->RenderFuncs.boundTextureStack[0]);
-			glUniform1i(me->projMap_forCam1,0);
 		}
 	#ifdef TEXVERBOSE
 	} else {

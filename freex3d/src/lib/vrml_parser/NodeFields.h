@@ -894,13 +894,6 @@ EXPOSED_FIELD(FillProperties,hatchStyle,sfint32,hatchStyle,FIELDTYPE_SFInt32,UNC
 EXPOSED_FIELD(FillProperties,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(FillProperties)
 
-/* FloatMultiply node */
-BEGIN_NODE(FloatMultiply)
-EVENT_IN(FloatMultiply,set_float,sffloat,set_float,FIELDTYPE_SFFloat)
-EVENT_OUT(FloatMultiply,newFloat,sffloat,newFloat,FIELDTYPE_SFFloat)
-EXPOSED_FIELD(FloatMultiply,metadata,sfnode,metadata,FIELDTYPE_SFNode,0)
-END_NODE(FloatMultiply)
-
 /* FloatVertexAttribute node */
 BEGIN_NODE(FloatVertexAttribute)
 EXPOSED_FIELD(FloatVertexAttribute,value,mffloat,value,FIELDTYPE_MFFloat,UNCA_NONE)

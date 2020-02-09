@@ -4701,14 +4701,6 @@ our %Nodes = (
 	###################################################################################
 
 	# testing...
-# came with ProjectiveTexture merge
-	"FloatMultiply" => new VRML::NodeType("FloatMultiply", [
-		set_float => ["SFFloat",undef,"inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)",0],
-		newFloat => ["SFFloat", 0, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)",0],
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)",0],
-	],"X3DChildNode"),
-
-
 
 	###################################################################################
 #
