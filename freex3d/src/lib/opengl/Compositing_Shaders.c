@@ -1109,7 +1109,10 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 varying vec4 projTexCoord; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	if( projTexCoord.q > 0.0 ){ \n\
-		frag_color += texture2DProj(fw_Texture_unit0, projTexCoord); \n\
+		vec4 ptex = vec4(projTexCoord.xy / projTexCoord.z,1.0,1.0); \n\
+		if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
+			if(ptex.y >= 0.0 && ptex.y <= 1.0) \n\
+				frag_color *= texture2DProj(fw_Texture_unit0, ptex); //modulate \n\
 	} \n\
 	return frag_color; \n\
 } \n\
