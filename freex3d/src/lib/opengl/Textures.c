@@ -141,56 +141,6 @@ void Textures_clear(struct tTextures *t){
 	}
 }
 
-//struct projective_Texdata data[4];
-typedef struct pProjectiveTextures{
-	struct Vector *activeProjectiveTextureTable;
-	textureTableIndexStruct_s* loadThisProjectiveTexture;
-
-	/* current index into loadparams that texture thread is working on */
-	int currentlyWorkingOn;// = -1;
-	int textureInProcess;// = -1;
-	struct projective_Texdata data[4];
-}* ppProjectiveTextures;
-
-void *ProjectiveTextures_constructor(){
-	void *v = malloc(sizeof(struct pProjectiveTextures));
-	memset(v,0,sizeof(struct pProjectiveTextures));
-	return v;
-}
-void ProjectiveTextures_init(struct tProjectiveTextures *t){
-	//public
-
-	//private 
-	
-	t->prv = ProjectiveTextures_constructor();
-	{
-		ppProjectiveTextures p = (ppProjectiveTextures)t->prv;
-		p->activeProjectiveTextureTable = NULL;
-		t->data = &p->data;
-		/* current index into loadparams that texture thread is working on */
-		p->currentlyWorkingOn = -1;
-
-		p->textureInProcess = -1;
-	}
-}
-
-void ProjectiveTextures_clear(struct tTextures *t){
-	//public
-	glDeleteBuffers (1,&t->defaultBlankTexture);
-	//private
-	{
-		//int i;
-		ppTextures p = (ppTextures)t->prv;
-		//for(i=0;i<vectorSize(p->activeTextureTable);i++){
-		//	textureTableIndexStruct_s *tti = vector_get(textureTableIndexStruct_s *,p->activeTextureTable,i);
-		//	if(tti && tti->texdata)
-		//		FREE_IF_NZ(tti->texdata);
-		//}
-		deleteVector(textureTableIndexStruct_s *, p->activeTextureTable);
-	}
-}
-
-
 
 // OLD_IPHONE_AQUA #if defined(AQUA) /* for AQUA OS X sharing of OpenGL Contexts */
 

@@ -2504,14 +2504,14 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 				fragmentSource[fragmentProjCalTexCoord] = fragProjCalTexCoord;
 				//fragmentSource[fragmentProjTexAssign] = fragProjTexCalculation;
 
-				if(!tg->ProjectiveTextures.ProjActive)
+				if(!tg->Component_ProjectiveTextureMapping.ProjActive)
 				{
-			fragmentSource[fragmentTextureAssign] = fragSingTexAss;
-		}
+					fragmentSource[fragmentTextureAssign] = fragSingTexAss;
+				}
 				else
 				{
 					fragmentSource[fragmentTextureAssign] = fragProjTexCalculation;
-					tg->ProjectiveTextures.ProjActive = false;
+					tg->Component_ProjectiveTextureMapping.ProjActive = false;
 				}
 		}
 
@@ -2822,14 +2822,14 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0");
 	//me->projViewMat = GET_UNIFORM(myProg,"projViewMat");
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
-	tg->ProjectiveTextures._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
-	tg->ProjectiveTextures._projViewMat_Location = GET_UNIFORM(myProg,"projViewMat");
-	tg->ProjectiveTextures._projMap_forCam1_Location = GET_UNIFORM(myProg,"projMap_forCam1");
+	tg->Component_ProjectiveTextureMapping._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
+	tg->Component_ProjectiveTextureMapping._projViewMat_Location = GET_UNIFORM(myProg,"projViewMat");
+	tg->Component_ProjectiveTextureMapping._projMap_forCam1_Location = GET_UNIFORM(myProg,"projMap_forCam1");
 	
-	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[0] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam1");
-	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[1] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam2");
-	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[2] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam3");
-	tg->ProjectiveTextures._MultiprojTexGenMatCam_Location[3] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam4");
+	tg->Component_ProjectiveTextureMapping._MultiprojTexGenMatCam_Location[0] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam1");
+	tg->Component_ProjectiveTextureMapping._MultiprojTexGenMatCam_Location[1] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam2");
+	tg->Component_ProjectiveTextureMapping._MultiprojTexGenMatCam_Location[2] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam3");
+	tg->Component_ProjectiveTextureMapping._MultiprojTexGenMatCam_Location[3] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam4");
 	
 	me->myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 	me->myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");

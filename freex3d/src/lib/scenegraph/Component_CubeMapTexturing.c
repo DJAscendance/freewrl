@@ -309,7 +309,6 @@ void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
 			/* we have an image specified for this face */
 			/* the X3D spec says that a X3DTextureNode has to be one of... */
 			if ((thistex->_nodeType == NODE_ImageTexture) ||
-			//	(thistex->_nodeType == NODE_ProjectiveTexture) ||
 			    (thistex->_nodeType == NODE_PixelTexture) ||
 			    (thistex->_nodeType == NODE_MovieTexture) ||
 			    (thistex->_nodeType == NODE_MultiTexture)) {

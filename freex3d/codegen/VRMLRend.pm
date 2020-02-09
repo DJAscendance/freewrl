@@ -64,13 +64,8 @@ our %defaultContainerType = (
 	CADAssembly		=>["children"],
 	CADPart			=>["children"],
 
-	ProjectiveTexture       =>["texture"],
-	MultipleProjectiveTexture =>["texture"],
-	OrthoProjector 		=>["children"],
-	PerspectiveProjector 	=>["children"],
 	TextureProjectorPerspective =>["children"],
 	TextureProjectorParallel =>["children"],
-	ProjectiveTextureGroup 	=>["children"],
 
 	Anchor 			=>["children"],
 	Appearance 		=>["appearance"],
@@ -492,11 +487,8 @@ our %PrepC = map {($_=>1)} qw/
 	GeoTransform
 	CADAssembly
 	CADPart
-	OrthoProjector
-	PerspectiveProjector
 	TextureProjectorPerspective 
 	TextureProjectorParallel
-	ProjectiveTextureGroup
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -526,11 +518,8 @@ our %FinC = map {($_=>1)} qw/
 	HAnimJoint
 	GeoTransform
 	CADPart
-	OrthoProjector
-	PerspectiveProjector
 	TextureProjectorPerspective 
 	TextureProjectorParallel
-	ProjectiveTextureGroup
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -580,11 +569,8 @@ our %ChildC = map {($_=>1)} qw/
 	Appearance
 	Shape
 	Viewport
-	OrthoProjector
-	PerspectiveProjector
 	TextureProjectorPerspective
 	TextureProjectorParallel 
-	ProjectiveTextureGroup
 	LayoutGroup
 	ScreenGroup
 	LayerSet
@@ -615,11 +601,8 @@ our %CompileC = map {($_=>1)} qw/
 	ImageCubeMapTexture
 	GeneratedCubeMapTexture
 	Transform
-	OrthoProjector
-	PerspectiveProjector
 	TextureProjectorPerspective 
 	TextureProjectorParallel
-	ProjectiveTextureGroup
 	Group
 	Proto
 	Inline

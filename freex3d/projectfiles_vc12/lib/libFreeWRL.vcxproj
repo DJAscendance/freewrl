@@ -393,7 +393,7 @@
     <ClCompile Include="$(SRC)\lib\scenegraph\Component_RigidBodyPhysics.c" />
     <ClCompile Include="$(SRC)\lib\scenegraph\VeraMono_ttf.c" />
     <ClCompile Include="..\..\src\lib\DIS\DIS.c" />
-    <ClCompile Include="..\..\src\lib\scenegraph\Component_ProjectiveTexture.c" />
+    <ClCompile Include="..\..\src\lib\scenegraph\Component_ProjectiveTextureMapping.c" />
     <ClCompile Include="..\..\src\lib\scenegraph\fwgeolib.cpp">
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug_glew|Win32'">EditAndContinue</DebugInformationFormat>
     </ClCompile>

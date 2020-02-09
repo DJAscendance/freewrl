@@ -255,7 +255,7 @@ typedef struct iiglobal //InstanceGlobal
 		unsigned int defaultBlankTexture;
 		void *prv;
 	}Textures;
-	struct tProjectiveTextures{
+	struct tComponent_ProjectiveTextureMapping{
 		GLint _projTexGenMatCam0_Location;
 		GLint _MultiprojTexGenMatCam_Location[4];
 		GLint _projTexCoord_Location;
@@ -266,7 +266,7 @@ typedef struct iiglobal //InstanceGlobal
 		bool ProjActive;
 		int globalProjector;
 		void *prv;
-	}ProjectiveTextures;
+	}Component_ProjectiveTextureMapping;
 	struct tPluginSocket{
 		void *prv;
 	}PluginSocket;

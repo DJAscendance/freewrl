@@ -48,8 +48,6 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 
 
-struct X3D_Node *tmpN;
-
 //we'll share VF_globalLight render pass with global lights
 // this filter will allow global=true on the VF_globalLight render_hier pass
 // and wll allow global=false on regular pass
@@ -61,231 +59,80 @@ struct X3D_Node *tmpN;
 		/* else printf ("and this is a local light\n"); */
 
 
-/*
-GLfloat eyePlaneS[] = { 1.0, 0.0, 0.0, 0.0 };
-GLfloat eyePlaneT[] = { 0.0, 1.0, 0.0, 0.0 };
-GLfloat eyePlaneR[] = { 0.0, 0.0, 1.0, 0.0 };
-GLfloat eyePlaneQ[] = { 0.0, 0.0, 0.0, 1.0 };
-*/
-static int dataCount=0;
 
-static GLDOUBLE ProjViewMatCam0[16];
-static GLDOUBLE ProjProjectionMatCam0[16];
-GLDOUBLE TenLinearGexMatCam0[16];
-
-float f_TenLinearGexMatCam0[16];
-static float f_invcViewMat[16];
-
-static float ViewMatrix[16] ={
-	1,0,0,0,
-	0,1,0,0,
-	0,0,1,0,
-	0,0,0,1
-};
-
-
+// camera space (-1,-1) to (1,1)
+// texture space (0,0) to (1,1)
+// convert: scale by .5, and add .5
 const GLDOUBLE bias[16] = { 0.5, 0.0, 0.0, 0.0,
 0.0, 0.5, 0.0, 0.0,
 0.0, 0.0, 0.5, 0.0,
 0.5, 0.5, 0.5, 1.0 };
 
 
-GLint loc_texgenmat;
+typedef struct pComponent_ProjectiveTextureMapping{
+	struct Vector *activeProjectiveTextureTable;
+	//textureTableIndexStruct_s* loadThisProjectiveTexture;
+
+	/* current index into loadparams that texture thread is working on */
+	int currentlyWorkingOn;// = -1;
+	int textureInProcess;// = -1;
+	struct projective_Texdata data[4];
+}* ppComponent_ProjectiveTextureMapping;
+
+void *Component_ProjectiveTextureMapping_constructor(){
+	void *v = malloc(sizeof(struct pComponent_ProjectiveTextureMapping));
+	memset(v,0,sizeof(struct pComponent_ProjectiveTextureMapping));
+	return v;
+}
+void Component_ProjectiveTextureMapping_init(struct tComponent_ProjectiveTextureMapping *t){
+	//public
+
+	//private 
+	
+	t->prv = Component_ProjectiveTextureMapping_constructor();
+	{
+		ppComponent_ProjectiveTextureMapping p = (ppComponent_ProjectiveTextureMapping)t->prv;
+		p->activeProjectiveTextureTable = NULL;
+		t->data = &p->data;
+		/* current index into loadparams that texture thread is working on */
+		p->currentlyWorkingOn = -1;
+
+		p->textureInProcess = -1;
+	}
+}
+
+void Component_ProjectiveTextureMapping_clear(struct tComponent_ProjectiveTextureMapping *t){
+	//public
+	//private
+	{
+		ppComponent_ProjectiveTextureMapping p = (ppComponent_ProjectiveTextureMapping)t->prv;
+	}
+}
 
 
 
-bool flag = true;
-GLuint projTexture;
-
-//float TenLinearGexMatCam0[16];
-//void convertDbtoFl(GLDOUBLE * dmt, float *fmt);
 
 
 void resend_textureprojector_matrix()
 {
+	//called from render_shape to refresh uniform before shade draw
 	struct projective_Texdata *data;
 	ttglobal tg = gglobal();
-	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+	data = (struct projective_Texdata*)tg->Component_ProjectiveTextureMapping.data;
 
-	if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
+	if(	tg->Component_ProjectiveTextureMapping._projTexGenMatCam0_Location != 0 || 
+		tg->Component_ProjectiveTextureMapping._projViewMat_Location != 0 || 
+		tg->Component_ProjectiveTextureMapping._projMap_forCam1_Location != 0)
 	{
 
 		//convertDbtoFl(tg->ProjectiveTextures.data[0].TenLinearGexMat, TenLinearGexMatCam0);
 		//convertDbtoFl(data[0].TenLinearGexMat, TenLinearGexMatCam0);
 		float TenLinearGexMatCam0f[16];
 		double2float(TenLinearGexMatCam0f,data[0].TenLinearGexMat,16);
-		if(0){
-		for(int j=0;j<4;j++)
-		{
-			printf("[ ");
-			for(int i=0;i<4;i++)
-				printf("%lf ",data[0].TenLinearGexMat[j*4 +i]);
-			printf("]\n");
-		}
-		for(int j=0;j<4;j++)
-		{
-			printf("[ ");
-			for(int i=0;i<4;i++)
-				printf("%f ",TenLinearGexMatCam0f[j*4 +i]);
-			printf("]\n");
-		}
-		}
-		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0f);
+		GLUNIFORMMATRIX4FV (tg->Component_ProjectiveTextureMapping._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0f);
 	}
 
 }
-
-
-
-void convertDbtoFl(GLDOUBLE * dmt, float *fmt)
-{
-	float spval[16];
-	int i;
-	float *sp; 
-	GLDOUBLE *dp;
-	
-	dp = dmt;
-	sp = spval;
-
-	/* convert GLDOUBLE to float */
-	for (i=0; i<16; i++) {
-		*sp = (float)*dp;
-		sp ++; dp ++;
-	}
-
-	memcpy (fmt,spval,16*sizeof (float));
-}
-
-
-// For a Perspective Node
-//void compile_PerspectiveProjector (struct X3D_PerspectiveProjector *node) { 
-//
-//
-//	/* LookAt Matrix Complete */
-//	struct point_XYZ vec;
-//	int i;
-//
-//	for (i=0; i<3; i++) node->_loc.c[i] = node->centerOfProjection.c[i];
-//	node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
-//	
-//	vec.x = (double) node->direction.c[0];
-//	vec.y = (double) node->direction.c[1];
-//	vec.z = (double) node->direction.c[2];
-//
-//	normalize_vector(&vec);
-//
-//	node->_dir.c[0] = (float) vec.x;
-//	node->_dir.c[1] = (float) vec.y;
-//	node->_dir.c[2] = (float) vec.z;
-//	node->_dir.c[3] = 1.0f;
-//
-//	vec.x = (double) node->upVector.c[0];
-//	vec.y = (double) node->upVector.c[1];
-//	vec.z = (double) node->upVector.c[2];
-//
-//	normalize_vector(&vec);
-//
-//	node->_upVec.c[0] = (float) vec.x;
-//	node->_upVec.c[1] = (float) vec.y;
-//	node->_upVec.c[2] = (float) vec.z;
-//
-//	MARK_NODE_COMPILED;
-//	
-//}
-
-
-
-//void child_PerspectiveProjector (struct X3D_PerspectiveProjector *node) {
-//
-//}
-//void render_PerspectiveProjector (struct X3D_PerspectiveProjector *node) {
-//	
-//	int i,j = 0;
-//	int flag = 0;
-//	static int datacount = 0;
-//	/*
-//	if(node->texture)
-//	{
-//		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
-//		render_node(tmpN);
-//	}
-//	*/
-//	GLDOUBLE cViewMat[16];
-//	GLDOUBLE invcViewMat[16];
-//	GLDOUBLE ViewMat[16];
-//	GLDOUBLE ProjMat[16];
-//	
-//	GLint tex1;
-//	struct projective_Texdata *data;
-//	ttglobal tg = gglobal();
-//	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
-//	
-//	
-//	
-//	glMatrixMode(GL_MODELVIEW);
-//	glPushMatrix();
-//	glLoadIdentity();
-//	
-//	projLookAt((GLDOUBLE)node->_loc.c[0],(GLDOUBLE)node->_loc.c[1],(GLDOUBLE)node->_loc.c[2], 
-//		(GLDOUBLE)node->_dir.c[0],(GLDOUBLE)node->_dir.c[1],(GLDOUBLE)node->_dir.c[2],
-//		(GLDOUBLE)node->_upVec.c[0],(GLDOUBLE)node->_upVec.c[1],(GLDOUBLE)node->_upVec.c[2],ViewMat);
-//	
-//	glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
-//
-//	projPerspective((GLDOUBLE)node->fieldOfView,
-//		(GLDOUBLE)node->aspectRatio, // aspectRatio
-//		(GLDOUBLE)node->nearFar.p[0],(GLDOUBLE)node->nearFar.p[1], // near, far
-//		ProjMat);
-//	
-//
-//	
-//	glMatrixMode(GL_MODELVIEW);
-//	glPushMatrix();
-//	glLoadIdentity();
-//	glLoadMatrixd(bias);
-//	glMultMatrixd(ProjMat);
-//	glMultMatrixd(ViewMat);
-//	glGetDoublev(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
-//	
-//	fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-//	matinverse(invcViewMat,cViewMat);
-//	
-//	for(i=0; i<4; i++)
-//	{
-//		//if(node->description == tg->ProjectiveTextures.data[i].des)
-//		if(node->description == data[i].des)
-//		{
-//			flag = 1;
-//			break;
-//		}
-//		else flag = 0;
-//	}
-//
-//	for(j=0; j<4; j++)
-//	{
-//		//if(tg->ProjectiveTextures.data[j].des == NULL && !flag)
-//		if(data[j].des == NULL && !flag)
-//		{
-//			//tg->ProjectiveTextures.data[j].des = node->description; 
-//			data[j].des = node->description; 
-//			////tg->ProjectiveTextures.data[j].TenLinearGexMat = TenLinearGexMatCam0;
-//			//memcpy (tg->ProjectiveTextures.data[j].TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-//			memcpy (data[j].TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-//			//datacount = j;
-//			break;
-//		}
-//	}
-//	/*
-//	if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
-//	{
-//		convertDbtoFl(tg->ProjectiveTextures.data[datacount].TenLinearGexMat, f_TenLinearGexMatCam0);
-//		GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, f_TenLinearGexMatCam0);
-//		
-//	}*/
-//	glPopMatrix();
-//
-// }
-
 
 void compile_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) { 
 
@@ -334,14 +181,16 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	GLint tex1;
 	struct projective_Texdata *data;
 	ttglobal tg = gglobal();
-	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+	data = (struct projective_Texdata*)tg->Component_ProjectiveTextureMapping.data;
 	
 	RETURN_IF_RENDER_STATE_NOT_US
 	COMPILE_IF_REQUIRED;
 	
 	if(node->on) {
 		double tempmat[16];
-		if(node->global) tg->ProjectiveTextures.globalProjector = TRUE;
+		GLDOUBLE TenLinearGexMatCam0[16];
+
+		if(node->global) tg->Component_ProjectiveTextureMapping.globalProjector = TRUE;
 		//glMatrixMode(GL_MODELVIEW);
 		FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		//glPushMatrix();
@@ -457,18 +306,11 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	
 		if(node->texture)
 		{
+			struct X3D_Node *tmpN;
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
 			render_node(tmpN);
 		}
-		/*
-		if(tg->ProjectiveTextures._projTexGenMatCam0_Location != 0 || tg->ProjectiveTextures._projViewMat_Location != 0 || tg->ProjectiveTextures._projMap_forCam1_Location != 0)
-		{
-			convertDbtoFl(tg->ProjectiveTextures.data[datacount].TenLinearGexMat, f_TenLinearGexMatCam0);
-			GLUNIFORMMATRIX4FV (tg->ProjectiveTextures._projTexGenMatCam0_Location,1,GL_FALSE, f_TenLinearGexMatCam0);
-		
-		}*/
-		//glPopMatrix();
-		//I seem to need an extra pop
+
 		FW_GL_POP_MATRIX();
 		FW_GL_POP_MATRIX();
 
@@ -490,18 +332,6 @@ void prep_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *no
 void child_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
 }
 
-
-//void prep_PerspectiveProjector (struct X3D_PerspectiveProjector *node) {
-//	
-//	COMPILE_IF_REQUIRED;
-//
-//	render_PerspectiveProjector(node);
-//}
-
-
-void fin_PerspectiveProjector (struct X3D_PerspectiveProjector *node) {
-
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -560,11 +390,12 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 	GLDOUBLE invcViewMat[16];
 	GLDOUBLE ViewMat[16];
 	GLDOUBLE orthoMat[16];
+	GLDOUBLE TenLinearGexMatCam0[16];
 	
 	GLint tex1;
 	struct projective_Texdata *data;
 	ttglobal tg = gglobal();
-	data = (struct projective_Texdata*)tg->ProjectiveTextures.data;
+	data = (struct projective_Texdata*)tg->Component_ProjectiveTextureMapping.data;
 	
 	
 	
@@ -620,6 +451,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 	
 	if(node->texture)
 	{
+		struct X3D_Node *tmpN;
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
 		render_node(tmpN);
 	}
@@ -635,38 +467,6 @@ void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *node)
 }
 
 
-
-// For a Parallel Node
-void compile_OrthoProjector (struct X3D_OrthoProjector *node) { 
-
-}
-
-void child_OrthoProjector (struct X3D_OrthoProjector *node) {
-}
-
-void prep_OrthoProjector (struct X3D_OrthoProjector *node) {
-
-}
-
-void fin_OrthoProjector (struct X3D_OrthoProjector *node) {
-
-}
-
-// For a ProjectiveTextureGroup Node
-void compile_ProjectiveTextureGroup (struct X3D_ProjectiveTextureGroup *node) { 
-
-}
-
-void child_ProjectiveTextureGroup (struct X3D_ProjectiveTextureGroup *node) {
-}
-
-void prep_ProjectiveTextureGroup(struct X3D_ProjectiveTextureGroup *node) {
-
-}
-
-void fin_ProjectiveTextureGroup (struct X3D_ProjectiveTextureGroup *node) {
-
-} 
 
 void render_TextureProjector(struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
