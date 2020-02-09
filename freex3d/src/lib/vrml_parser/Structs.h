@@ -2230,17 +2230,18 @@ extern const int COMPONENTS_COUNT;
 #define COM_ParticleSystems	21
 #define COM_Picking	22
 #define COM_PointDeviceSensor	23
-#define COM_Rendering	24
-#define COM_RigidBodyPhysics	25
-#define COM_Scripting	26
-#define COM_Shaders	27
-#define COM_Shape	28
-#define COM_Sound	29
-#define COM_Text	30
-#define COM_Texturing	31
-#define COM_Texturing3D	32
-#define COM_Time	33
-#define COM_VolumeRendering	34
+#define COM_ProjectiveTextureMapping	24
+#define COM_Rendering	25
+#define COM_RigidBodyPhysics	26
+#define COM_Scripting	27
+#define COM_Shaders	28
+#define COM_Shape	29
+#define COM_Sound	30
+#define COM_Text	31
+#define COM_Texturing	32
+#define COM_Texturing3D	33
+#define COM_Time	34
+#define COM_VolumeRendering	35
 
 const char *stringComponentType(int st);
 

@@ -1896,6 +1896,7 @@ const char *COMPONENTS[] = {
 	"ParticleSystems",
 	"Picking",
 	"PointDeviceSensor",
+	"ProjectiveTextureMapping",
 	"Rendering",
 	"RigidBodyPhysics",
 	"Scripting",

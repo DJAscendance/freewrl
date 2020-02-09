@@ -75,6 +75,7 @@ static const int capabilities[] = {
 	COM_ParticleSystems,	3, 	/* Nov 2016 */
 	COM_Sound,	1, 		/* May 12, 2009 */
 	COM_VolumeRendering,  4, /* Oct 1, 2016 */
+	COM_ProjectiveTextureMapping, 2, /* Feb 9, 2020 */
 	INT_ID_UNDEFINED, 	INT_ID_UNDEFINED,
 };
 
