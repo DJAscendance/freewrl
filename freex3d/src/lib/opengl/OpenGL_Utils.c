@@ -2440,7 +2440,7 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 
 			fragmentSource[fragmentTexCoordDeclare] = varyingTexCoord;
 			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
-
+			/*
 				//이부분을 건드리면됨
 
 				vertexSource[vertexProjValDec] = vertProjValDec;
@@ -2459,6 +2459,9 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 					fragmentSource[fragmentTextureAssign] = fragProjTexCalculation;
 					tg->Component_PTM.ProjActive = false;
 				}
+			*/
+					fragmentSource[fragmentTextureAssign] = fragSingTexAss;
+
 		}
 
 		/* Cubemaps - do not multi-texture these yet */

@@ -236,14 +236,16 @@ typedef struct iiglobal //InstanceGlobal
 		void *prv;
 	}Textures;
 	struct tComponent_PTM{
+		/*
 		GLint _projTexGenMatCam0_Location;
 		GLint _MultiprojTexGenMatCam_Location[4];
 		GLint _projTexCoord_Location;
 		GLint _projViewMat_Location;
 		GLint _projMap_forCam1_Location;
 		//struct projective_Texdata data[4];
-		void *data;
-		bool ProjActive;
+		*/
+		//void *data;
+		//bool ProjActive;
 		int globalProjector;
 		void *prv;
 	}Component_PTM;
