@@ -1273,7 +1273,6 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 	int i;
 
 
-
 	ppOpenGL_Utils p = gglobal()->OpenGL_Utils.prv;
 	struct Vector *myShaderTable = p->myShaderTable;
 	struct shaderTableEntry *new = NULL;
@@ -1294,7 +1293,6 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 			}
 		}
 	}
-
 
 	// if here, we did not find the shader already compiled for us.
 
@@ -2663,7 +2661,6 @@ static void makeAndCompileShader(struct shaderTableEntry *me) {
 	vertexShaderResources_t x1;
 	fragmentShaderResources_t x2;
 
-
 #ifdef VERBOSE
 	ConsoleMessage ("makeAndCompileShader called");
 #endif //VERBOSE
@@ -2687,7 +2684,6 @@ static void makeAndCompileShader(struct shaderTableEntry *me) {
 	if (!getSpecificShaderSource(vertexSource, fragmentSource, me->whichOne)) {
 		return;
 	}
-
 
 	myVertexShader = CREATE_SHADER (VERTEX_SHADER);
 	SHADER_SOURCE(myVertexShader, vertexEndMarker, ((const GLchar **)vertexSource), NULL);
@@ -2770,6 +2766,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0");
 	//me->projViewMat = GET_UNIFORM(myProg,"projViewMat");
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
+	me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
+	/*
 	tg->Component_PTM._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
 	tg->Component_PTM._projViewMat_Location = GET_UNIFORM(myProg,"projViewMat");
 	tg->Component_PTM._projMap_forCam1_Location = GET_UNIFORM(myProg,"projMap_forCam1");
@@ -2778,7 +2776,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[1] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam2");
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[2] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam3");
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[3] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam4");
-	
+	*/
 	me->myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 	me->myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");
 	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
