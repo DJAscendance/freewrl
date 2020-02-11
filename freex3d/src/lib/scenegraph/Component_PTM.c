@@ -69,6 +69,12 @@ const GLDOUBLE bias[16] = { 0.5, 0.0, 0.0, 0.0,
 0.5, 0.5, 0.5, 1.0 };
 
 
+struct projective_Texdata {
+    struct Uni_String *des;
+	GLDOUBLE TenLinearGexMat[16];
+};
+
+
 typedef struct pComponent_PTM{
 	struct Vector *activeProjectiveTextureTable;
 	//textureTableIndexStruct_s* loadThisProjectiveTexture;

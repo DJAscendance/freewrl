@@ -146,11 +146,6 @@ OLDCODE     int multitex_function;
 OLDCODE };
 #endif //OLDCODE 
 
-struct projective_Texdata {
-    struct Uni_String *des;
-	GLDOUBLE TenLinearGexMat[16];
-};
-
 
 void do_textureTransform (struct X3D_Node *textureNode, int ttnum);
 void markForDispose(struct X3D_Node *node, int recursive);
