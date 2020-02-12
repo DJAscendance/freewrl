@@ -44,6 +44,7 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #include "../opengl/Material.h"
 #include "Component_Shape.h"
 #include "LinearAlgebra.h"
+#include "Vector.h"
 #include "Children.h"
 #include <stdlib.h>
 
@@ -54,9 +55,10 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #define RETURN_IF_RENDER_STATE_NOT_US \
 		if (renderstate()->render_light== VF_globalLight) { \
 			if (!node->global) return;\
-			/* printf ("and this is a global light\n"); */\
-		} else if (node->global) return; \
-		/* else printf ("and this is a local light\n"); */
+		} else { \
+			if (node->global) return; \
+			if(renderstate()->render_geom != VF_Geom) return; \
+		}
 
 
 
@@ -74,9 +76,15 @@ struct projective_Texdata {
 	GLDOUBLE TenLinearGexMat[16];
 };
 
+struct projector_tuple {
+    struct Uni_String *des;
+	GLDOUBLE TenLinearGexMat[16];
+	int global;
+	GLuint texture;
+};
 
 typedef struct pComponent_PTM{
-	struct Vector *activeProjectiveTextureTable;
+	struct Vector *projector_stack; //activeProjectiveTextureTable;
 	//textureTableIndexStruct_s* loadThisProjectiveTexture;
 
 	/* current index into loadparams that texture thread is working on */
@@ -98,7 +106,9 @@ void Component_PTM_init(struct tComponent_PTM *t){
 	t->prv = Component_PTM_constructor();
 	{
 		ppComponent_PTM p = (ppComponent_PTM)t->prv;
-		p->activeProjectiveTextureTable = NULL;
+		//p->activeProjectiveTextureTable = NULL;
+		p->projector_stack = newStack(struct projector_tuple);
+
 		//t->data = &p->data;
 		/* current index into loadparams that texture thread is working on */
 		p->currentlyWorkingOn = -1;
@@ -116,7 +126,33 @@ void Component_PTM_clear(struct tComponent_PTM *t){
 }
 
 
+void projectorTable_clear(){
+	//called once per frame, before the search for global=true projectors
+	//will clear any global=true projectors from last frame
+	ppComponent_PTM p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	clearStack(p->projector_stack);
+}
+void projectorTable_push(struct projector_tuple *ptuple ){
+	//called when we find a global=true, on=true projector, and
+	//called in sib_prep for a global=false, on=false projector
+	ppComponent_PTM p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	//we need a deep copy because the ptm node can't hold it
+	// because it can be DEF/USED with different transform each use
+	stack_push(struct projector_tuple,p->projector_stack,*ptuple);
 
+}
+void projectorTable_pop(){
+	//called in sib_fin for a global=false, on=true projector
+	ppComponent_PTM p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	stack_pop(struct projective_Texdata,p->projector_stack);
+
+}
 
 
 void resend_textureprojector_matrix()
@@ -329,7 +365,16 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
 			render_node(tmpN);
 		}
-
+		{
+			GLuint texture;
+			struct projector_tuple ptuple;
+			ptuple.des = node->description;
+			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
+			ptuple.global = node->global;
+			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
+			ptuple.texture = texture;
+			projectorTable_push(&ptuple);
+		}
 		FW_GL_POP_MATRIX();
 		FW_GL_POP_MATRIX();
 
@@ -337,15 +382,20 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
  }
 
 
-void fin_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
+void fin_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) 
+{
+	RETURN_IF_RENDER_STATE_NOT_US
+	if(node->on)
+		if(!node->global)
+			projectorTable_pop(); //just pop local projectors that we pushed above - globals are cleared once per frame
 }
 
 void prep_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *node) {
 
 
-	if (!renderstate()->render_light) return;
-	/* this will be a global textureprojector here... */
-	render_TextureProjectorPerspective(node);
+	//if (!renderstate()->render_light) return;
+	///* this will be a global textureprojector here... */
+	//render_TextureProjectorPerspective(node);
 
 }
 void child_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {

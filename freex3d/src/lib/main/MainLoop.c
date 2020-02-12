@@ -5694,6 +5694,7 @@ static void render()
 			BackEndClearBuffer(2);
 		//BackEndLightsOff();
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+		projectorTable_clear();
 
 		render_bound_background();
 
