@@ -2769,7 +2769,15 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0");
 	//me->projViewMat = GET_UNIFORM(myProg,"projViewMat");
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
-	me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
+	for(int i=0;i<4;i++){
+		char line[24];
+		sprintf(line,"projTexGenMatCam[%d]",i);
+		me->projTexGenMatCam[i] = GET_UNIFORM(myProg,line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
+		sprintf(line,"textureUnit[%d]",i);
+		me->textureUnit[i] = GET_UNIFORM(myProg,line);
+	}
+	me->pCount = GET_UNIFORM(myProg,"pCount");
+
 	/*
 	tg->Component_PTM._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
 	tg->Component_PTM._projViewMat_Location = GET_UNIFORM(myProg,"projViewMat");

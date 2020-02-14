@@ -604,10 +604,13 @@ uniform vec3 particlePosition; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
 #ifdef PROJTEX \n\
-uniform mat4 projTexGenMatCam0; \n\
-varying vec4 projTexCoord; \n\
+uniform mat4 projTexGenMatCam[4]; \n\
+uniform int pCount; \n\
+varying vec4 projTexCoord[4]; \n\
 void vertProjCalTexCoord(void) { \n\
-	projTexCoord = projTexGenMatCam0 * fw_Vertex; \n\
+	for(int i=0;i<pCount;i++){ \n\
+		projTexCoord[i] = projTexGenMatCam[i] * fw_Vertex; \n\
+	} \n\
 } \n\
 #endif //PROJTEX \n\
  \n\
@@ -1106,13 +1109,18 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LITE \n\
 #endif //LIT\n\
 #ifdef PROJTEX \n\
-varying vec4 projTexCoord; \n\
+uniform sampler2D textureUnit[4]; \n\
+uniform int pCount; \n\
+varying vec4 projTexCoord[4]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
-	if( projTexCoord.q > 0.0 ){ \n\
-		vec4 ptex = vec4(projTexCoord.xy / projTexCoord.z,1.0,1.0); \n\
-		if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
-			if(ptex.y >= 0.0 && ptex.y <= 1.0) \n\
-				frag_color *= texture2DProj(fw_Texture_unit0, ptex); //modulate \n\
+	for(int i=0;i<pCount;i++) { \n\
+		if( projTexCoord[i].q > 0.0 ){ \n\
+			vec4 ptex = vec4(projTexCoord[i].xy / projTexCoord[i].z,1.0,1.0); \n\
+			if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
+				if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
+					frag_color *= texture2DProj(textureUnit[i], ptex); //modulate \n\
+				} \n\
+		} \n\
 	} \n\
 	return frag_color; \n\
 } \n\

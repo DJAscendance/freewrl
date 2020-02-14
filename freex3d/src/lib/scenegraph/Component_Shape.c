@@ -180,7 +180,7 @@ struct X3D_Node *getThis_textureTransform(){
 	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 	return p->this_textureTransform;
 }
-
+void clear_bound_textures();
 void child_Appearance (struct X3D_Appearance *node) {
 	struct X3D_Node *tmpN;
 	ttglobal tg = gglobal();
@@ -188,7 +188,7 @@ void child_Appearance (struct X3D_Appearance *node) {
 	/* printf ("in Appearance, this %d, nodeType %d\n",node, node->_nodeType);
 	   printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	   render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
-	
+	//clear_bound_textures();
 	/* Render the material node... */
 	RENDER_MATERIAL_SUBNODES(node->material);
 	
@@ -974,10 +974,12 @@ void child_Shape (struct X3D_Shape *node) {
 		//--------- sendLightInfo
 		//           Uniforms sent for lights
 		//----- glDrawArrays/glDrawElements
+
+		resend_textureprojector_matrix();
 		textureTransform_start();
 		setupShaderB();
-		resend_textureprojector_matrix();
 		render_node(tmpNG);
+
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);

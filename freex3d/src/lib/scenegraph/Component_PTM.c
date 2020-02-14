@@ -81,6 +81,7 @@ struct projector_tuple {
 	GLDOUBLE TenLinearGexMat[16];
 	int global;
 	GLuint texture;
+	struct X3D_Node * textureNode;
 };
 
 typedef struct pComponent_PTM{
@@ -150,14 +151,35 @@ void projectorTable_pop(){
 	ppComponent_PTM p;
 	ttglobal tg = gglobal();
 	p = (ppComponent_PTM)tg->Component_PTM.prv;
-	stack_pop(struct projective_Texdata,p->projector_stack);
+	if(p->projector_stack->n < 1)
+		printf("ouch from projectorTable_opo()\n");
+	stack_pop(struct projector_tuple,p->projector_stack);
 
 }
+void clear_bound_textures(){
+	for(int i=0;i<16;i++){
+		glActiveTexture(GL_TEXTURE0 + i); 
+		glBindTexture(GL_TEXTURE_2D,0); 
+	}
+}
 
+void print_bound_textures(char *str){
+	GLint whichID;
+	printf("ActiveTexture boundUnit %s\n",str);
+	for(int i=0;i<16;i++){
+		glActiveTexture(GL_TEXTURE0 + i); 
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &whichID); 
+		printf("%12d  %12d\n",i,whichID);
+	}
+}
 
+int get_bound_image(struct X3D_Node *node);
+int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node);
+int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 void resend_textureprojector_matrix()
 {
 	//called from render_shape to refresh uniform before shade draw
+	int pcount,tcount;
 	s_shader_capabilities_t *me;
 	struct projective_Texdata *data;
 	ppComponent_PTM p;
@@ -169,19 +191,42 @@ void resend_textureprojector_matrix()
     me = getAppearanceProperties()->currentShaderProperties;
 
 
-	//if(	tg->Component_PTM._projTexGenMatCam0_Location != 0 || 
-	//	tg->Component_PTM._projViewMat_Location != 0 || 
-	//	tg->Component_PTM._projMap_forCam1_Location != 0)
-	if(me->projTexGenMatCam0 > 0)
+	tcount = min(p->projector_stack->n,4);
+	pcount = 0;
+	for(int i=0;i<tcount;i++)
 	{
-
-		//convertDbtoFl(tg->ProjectiveTextures.data[0].TenLinearGexMat, TenLinearGexMatCam0);
-		//convertDbtoFl(data[0].TenLinearGexMat, TenLinearGexMatCam0);
 		float TenLinearGexMatCam0f[16];
-		double2float(TenLinearGexMatCam0f, data[0].TenLinearGexMat,16);
-		//GLUNIFORMMATRIX4FV (tg->Component_PTM._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0f);
-		GLUNIFORMMATRIX4FV (me->projTexGenMatCam0,1,GL_FALSE, TenLinearGexMatCam0f);
+		struct projector_tuple *ptuple;
+		GLint texture;
+		int tti;
+		if(me->projTexGenMatCam[i] > -1){
+			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
+			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
+			//GLUNIFORMMATRIX4FV (tg->Component_PTM._projTexGenMatCam0_Location,1,GL_FALSE, TenLinearGexMatCam0f);
+			GLUNIFORMMATRIX4FV (me->projTexGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
+			//glActiveTexture?
+			//glBindTexture?
+			texture = ptuple->texture;
+			int toffset = 4;
+			//print_bound_textures("start");
+			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+
+			render_node(ptuple->textureNode);
+
+			tti = getTextureTableIndexFromFromTextureNode(ptuple->textureNode);
+			texture = getGlTextureNumberFromTextureNode(ptuple->textureNode);
+			//printf("{%d,%d}",tti,texture2);
+
+			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+			glBindTexture(GL_TEXTURE_2D,texture); 
+
+			glUniform1i(me->textureUnit[i],pcount+toffset);
+			glActiveTexture(GL_TEXTURE0);
+			//print_bound_textures("end");
+			pcount++;
+		}
 	}
+	GLUNIFORM1I(me->pCount,pcount);
 
 }
 
@@ -243,6 +288,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	if(node->on) {
 		double tempmat[16];
 		GLDOUBLE TenLinearGexMatCam0[16];
+		struct X3D_Node *tmpN = NULL;
 
 		if(node->global) tg->Component_PTM.globalProjector = TRUE;
 		//glMatrixMode(GL_MODELVIEW);
@@ -361,9 +407,20 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	
 		if(node->texture)
 		{
-			struct X3D_Node *tmpN;
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
-			render_node(tmpN);
+			if(0){
+				if(node->global == TRUE)
+					tmpN->_renderFlags |= VF_globalLight;
+				int toffset = 4;
+				int pcount = p->projector_stack->n; //haven't pushed yet
+				glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+
+				render_node(tmpN);
+				if(node->global == TRUE)
+					tmpN->_renderFlags |= VF_globalLight;
+				glActiveTexture(GL_TEXTURE0); 
+			}
+
 		}
 		{
 			GLuint texture;
@@ -373,6 +430,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			ptuple.global = node->global;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			ptuple.texture = texture;
+			ptuple.textureNode = tmpN;
 			projectorTable_push(&ptuple);
 		}
 		FW_GL_POP_MATRIX();
@@ -393,9 +451,9 @@ void fin_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *no
 void prep_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *node) {
 
 
-	//if (!renderstate()->render_light) return;
-	///* this will be a global textureprojector here... */
-	//render_TextureProjectorPerspective(node);
+	if (!renderstate()->render_light) return;
+	/* this will be a global textureprojector here... */
+	render_TextureProjectorPerspective(node);
 
 }
 void child_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
@@ -551,6 +609,17 @@ void render_TextureProjector(struct X3D_Node *sibAffector){
 			break;
 	}
 }
+void fin_TextureProjector(struct X3D_Node *sibAffector){
+	switch(sibAffector->_nodeType){
+		case NODE_TextureProjectorParallel:
+			fin_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
+			break;
+		case NODE_TextureProjectorPerspective:
+		default:
+			fin_TextureProjectorPerspective((struct X3D_TextureProjectorPerspective*)sibAffector);
+			break;
+	}
+}
 
 void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	if ( renderstate()->render_light != VF_globalLight){
@@ -566,6 +635,7 @@ void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffe
 
 void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	if (renderstate()->render_light != VF_globalLight) {
+		fin_TextureProjector(sibAffector);
 		popShaderFlags();
 	}
 }

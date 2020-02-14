@@ -392,9 +392,11 @@ typedef struct s_shader_capabilities{
 	GLint FogCoords; //Aug 2016
 	
 	/* Projective Texture */
-	GLint projTexGenMatCam0;
-	GLint projViewMat;
-	GLint projMap_forCam1;
+	GLint projTexGenMatCam[4];
+	GLint textureUnit[4];
+	GLint pCount;
+	//GLint projViewMat;
+	//GLint projMap_forCam1;
 
 
 	GLint TextureUnit[MAX_MULTITEXTURE];
