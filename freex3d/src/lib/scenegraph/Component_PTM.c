@@ -231,51 +231,20 @@ void compile_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective
 
 
 	/* LookAt Matrix Complete */
-	struct point_XYZ vec;
-	int i;
-
-	if(1){
-		float dir[3], up[3], cross1[3],cross2[3];
-		veccopy3f(node->_loc.c,node->location.c);
-		veccopy3f(dir,node->direction.c);
-		veccopy3f(up,node->upVector.c);
-		vecnormalize3f(dir,dir);
-		vecnormalize3f(up,up);
-		veccross3f(cross1,dir,up);
-		vecnormalize3f(cross1,cross1);
-		veccross3f(cross2,cross1,dir);
-		vecnormalize3f(cross2,cross2);
-		veccopy3f(node->_dir.c,dir);
-		node->_dir.c[3] = 0.0f;
-		veccopy3f(node->_upVec.c,up);
-		node->_upVec.c[3] = 0.0f;
-
-	}else{
-		for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
-		node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
-	
-		vec.x = (double) node->direction.c[0];
-		vec.y = (double) node->direction.c[1];
-		vec.z = (double) node->direction.c[2];
-
-		normalize_vector(&vec);
-
-		node->_dir.c[0] = (float) vec.x;
-		node->_dir.c[1] = (float) vec.y;
-		node->_dir.c[2] = (float) vec.z;
-		node->_dir.c[3] = 1.0f;
-
-		vec.x = (double) node->upVector.c[0];
-		vec.y = (double) node->upVector.c[1];
-		vec.z = (double) node->upVector.c[2];
-
-		normalize_vector(&vec);
-
-		node->_upVec.c[0] = (float) vec.x;
-		node->_upVec.c[1] = (float) vec.y;
-		node->_upVec.c[2] = (float) vec.z;
-
-	}
+	float dir[3], up[3], cross1[3],cross2[3];
+	veccopy3f(node->_loc.c,node->location.c);
+	veccopy3f(dir,node->direction.c);
+	veccopy3f(up,node->upVector.c);
+	vecnormalize3f(dir,dir);
+	vecnormalize3f(up,up);
+	veccross3f(cross1,dir,up);
+	vecnormalize3f(cross1,cross1);
+	veccross3f(cross2,cross1,dir);
+	vecnormalize3f(cross2,cross2);
+	veccopy3f(node->_dir.c,dir);
+	node->_dir.c[3] = 0.0f;
+	veccopy3f(node->_upVec.c,up);
+	node->_upVec.c[3] = 0.0f;
 
 	MARK_NODE_COMPILED;
 }
@@ -322,68 +291,26 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		FW_GL_PUSH_MATRIX();
 		//glLoadIdentity();
 		FW_GL_LOAD_IDENTITY();
-		if(1){
+		{
 			double loc[3],dir[3],up[3],eye[3];
 			float2double(loc,node->_loc.c,3);
 			float2double(dir,node->_dir.c,3);
 			float2double(up,node->_upVec.c,3);
-			if(0){
-			vecscaled(dir,dir,-1.0);
-			vecaddd(eye,dir,loc);
-			}else{
 			vecdifd(eye,loc,dir);
-			}
-			if(1)
-				projLookAt(eye[0],eye[1],eye[2], loc[0],loc[1],loc[2], up[0],up[1],up[2],ViewMat);
-			else
-				projLookAt( loc[0],loc[1],loc[2], dir[0],dir[1],dir[2], up[0],up[1],up[2],ViewMat);
-		}else{
-			projLookAt((GLDOUBLE)node->_loc.c[0],(GLDOUBLE)node->_loc.c[1],(GLDOUBLE)node->_loc.c[2], 
-				(GLDOUBLE)-node->_dir.c[0],(GLDOUBLE)-node->_dir.c[1],(GLDOUBLE)-node->_dir.c[2],
-				(GLDOUBLE)node->_upVec.c[0],(GLDOUBLE)node->_upVec.c[1],(GLDOUBLE)node->_upVec.c[2],ViewMat);
-		}
-		//glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
+			projLookAt(eye[0],eye[1],eye[2], loc[0],loc[1],loc[2], up[0],up[1],up[2],ViewMat);
+		}		//glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,ViewMat);
 		//viewmat is also on the modelview stack
 		FW_GL_POP_MATRIX();
 		//printmatrix2(ViewMat,"ViewMat");
-		int method = 1;
-		if(method==1){
-			int method1A = 1;
-			if(method1A == 1){
-				//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
-				//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-				//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
-				matinverse(modelviewinv,modelview);
-				//B. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
-				matmultiplyAFFINE(eye2projector,modelviewinv,ViewMat);
 
-			}else if(method1A == 2){
-				//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
-				//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-				//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
-				matinverse(modelviewinv,modelview);
-				//B. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
-				matmultiplyAFFINE(eye2projector,modelviewinv,ViewMat);
+		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
+		//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
+		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
+		matinverse(modelviewinv,modelview);
+		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
+		matmultiplyAFFINE(eye2projector,modelviewinv,ViewMat);
 
-			}else if(method1A == 3){
-				//B. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
-				matmultiplyAFFINE(modelviewnode,ViewMat,modelview);
-				//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
-				//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-				//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
-				matinverse(eye2projector,modelviewnode);
-
-			}else{
-				//B. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
-				matmultiplyAFFINE(modelviewnode,ViewMat,modelview);
-
-				//C. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
-				//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-				//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
-				matinverse(eye2projector,modelviewnode);
-			}
-		}
 
 		//D. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
 		projPerspective((GLDOUBLE)degree,
@@ -410,21 +337,8 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		//printmatrix2(tempmat,"projmat applied");
 
 		//C. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-		if(method==1){
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-			matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
-		} 
-		if(method==0){
-			//glMultMatrixd(ViewMat);
-			FW_GL_MULTMATRIX_D(ViewMat);
-			//glGetDoublev(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
-			//printmatrix2(TenLinearGexMatCam0,"TenLinearGexMatCam0");
-
-			//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
-			matinverse(invcViewMat,cViewMat);
-		}
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
+		matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
 		FW_GL_POP_MATRIX();
 
 	
