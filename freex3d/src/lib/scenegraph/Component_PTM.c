@@ -287,10 +287,6 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
 
-		//glPushMatrix();
-		FW_GL_PUSH_MATRIX();
-		//glLoadIdentity();
-		FW_GL_LOAD_IDENTITY();
 		{
 			double loc[3],dir[3],up[3],eye[3];
 			float2double(loc,node->_loc.c,3);
@@ -298,48 +294,50 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			float2double(up,node->_upVec.c,3);
 			vecdifd(eye,loc,dir);
 			projLookAt(eye[0],eye[1],eye[2], loc[0],loc[1],loc[2], up[0],up[1],up[2],ViewMat);
-		}		//glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,ViewMat);
-		//viewmat is also on the modelview stack
-		FW_GL_POP_MATRIX();
-		//printmatrix2(ViewMat,"ViewMat");
+		}
 
 		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
-		//fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, cViewMat);
 		matinverse(modelviewinv,modelview);
 		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
 		matmultiplyAFFINE(eye2projector,modelviewinv,ViewMat);
 
 
-		//D. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
+		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
 		projPerspective((GLDOUBLE)degree,
 			(GLDOUBLE)node->aspectRatio, // aspectRatio
 			(GLDOUBLE)node->nearDistance,(GLDOUBLE)node->farDistance, // near, far
 			ProjMat);
-		//printmatrix2(ProjMat,"ProjMat");
 
-		//glMatrixMode(GL_MODELVIEW);
-		FW_GL_MATRIX_MODE(GL_MODELVIEW);
-		//glPushMatrix();
-		FW_GL_PUSH_MATRIX();
-		//glLoadIdentity();
-		FW_GL_LOAD_IDENTITY();
+		if(1){
+			matidentity4d(tempmat);
+			matmultiplyFULL(tempmat,bias,tempmat);
+			matmultiplyFULL(tempmat,ProjMat,tempmat);
 
-		//glLoadMatrixd(bias);
- 		FW_GL_MULTMATRIX_D(bias);
-		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-		//printmatrix2(tempmat,"bias applied");
+			//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
+			matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
+		}else{
+			//glMatrixMode(GL_MODELVIEW);
+			FW_GL_MATRIX_MODE(GL_MODELVIEW);
+			//glPushMatrix();
+			FW_GL_PUSH_MATRIX();
+			//glLoadIdentity();
+			FW_GL_LOAD_IDENTITY();
 
-		//glMultMatrixd(ProjMat);
-		FW_GL_MULTMATRIX_D(ProjMat);
-		//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-		//printmatrix2(tempmat,"projmat applied");
+			//glLoadMatrixd(bias);
+ 			FW_GL_MULTMATRIX_D(bias);
+			//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
+			//printmatrix2(tempmat,"bias applied");
 
-		//C. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-		matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
-		FW_GL_POP_MATRIX();
+			//glMultMatrixd(ProjMat);
+			FW_GL_MULTMATRIX_D(ProjMat);
+			//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
+			//printmatrix2(tempmat,"projmat applied");
+
+			//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
+			matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
+			FW_GL_POP_MATRIX();
+		}
 
 	
 		if(0) for(i=0; i<4; i++)

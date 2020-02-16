@@ -7440,12 +7440,17 @@ void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
 	M(3, 2) = 0.0;
 	M(3, 3) = 1.0;
 #undef M
-	
+	if(0){
 	//glMultMatrixd(m);
 	FW_GL_TRANSFORM_D(m);
     //glTranslated(-eyex, -eyey, -eyez);
 	FW_GL_TRANSLATE_D(-eyex, -eyey, -eyez);
-	//memcpy (matrix,m,16*sizeof (GLDOUBLE));
+	}else{
+		double eye[3];
+		vecsetd(eye,-eyex,-eyey,-eyez);
+		mattranslate4d(m,eye);
+		memcpy (matrix,m,16*sizeof (GLDOUBLE));
+	}
 }
 
 void projOrtho (GLDOUBLE l, GLDOUBLE r, GLDOUBLE b,	GLDOUBLE t, 
