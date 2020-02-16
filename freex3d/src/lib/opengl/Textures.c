@@ -713,7 +713,19 @@ textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *texture
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode){
 	textureTableIndexStruct_s *tts = getTableTableFromTextureNode(textureNode);
 	return tts->OpenGLTexture;
-
+}
+int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz){
+	int iret;
+	textureTableIndexStruct_s *tts = getTableTableFromTextureNode(textureNode);
+	ixyz[0] = ixyz[1] = ixyz[2] = 0;
+	iret = 0;
+	if(tts){
+		ixyz[0] = tts->x;
+		ixyz[1] = tts->y;
+		ixyz[2] = tts->z;
+		iret = 1;
+	}
+	return iret;
 }
 /* is this node a texture node? if so, lets keep track of its textures. */
 /* worry about threads - do not make anything reallocable */

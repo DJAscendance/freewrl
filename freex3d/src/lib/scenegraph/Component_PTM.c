@@ -176,6 +176,7 @@ void print_bound_textures(char *str){
 int get_bound_image(struct X3D_Node *node);
 int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
+int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
 void resend_textureprojector_matrix()
 {
 	//called from render_shape to refresh uniform before shade draw
@@ -198,7 +199,7 @@ void resend_textureprojector_matrix()
 		float TenLinearGexMatCam0f[16];
 		struct projector_tuple *ptuple;
 		GLint texture;
-		int tti;
+		//int tti;
 		if(me->projTexGenMatCam[i] > -1){
 			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
@@ -209,10 +210,8 @@ void resend_textureprojector_matrix()
 			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
 
 			render_node(ptuple->textureNode);
-
-			tti = getTextureTableIndexFromFromTextureNode(ptuple->textureNode);
+			//tti = getTextureTableIndexFromFromTextureNode(ptuple->textureNode);
 			texture = getGlTextureNumberFromTextureNode(ptuple->textureNode);
-			//printf("{%d,%d}",tti,texture2);
 
 			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
 			glBindTexture(GL_TEXTURE_2D,texture); 
@@ -319,6 +318,21 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		if(node->texture)
 		{
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
+			if(tmpN){
+				int ixyz[3];
+				float aspectRatio;
+				if(getTextureSizeFromTextureNode(tmpN, ixyz)){
+					if(ixyz[0] > 0 && ixyz[1] > 0){
+						aspectRatio = (float)ixyz[0]/(float)ixyz[1];
+						if(!APPROX(node->aspectRatio,aspectRatio)){
+							node->aspectRatio = aspectRatio;
+							MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_TextureProjectorPerspective, aspectRatio));
+							//printf("aspectRatio= %f\n",node->aspectRatio);
+						}
+					}
+				}
+			}
+
 
 		}
 		{
