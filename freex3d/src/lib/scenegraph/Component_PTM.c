@@ -308,117 +308,17 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			(GLDOUBLE)node->nearDistance,(GLDOUBLE)node->farDistance, // near, far
 			ProjMat);
 
-		if(1){
-			matidentity4d(tempmat);
-			matmultiplyFULL(tempmat,bias,tempmat);
-			matmultiplyFULL(tempmat,ProjMat,tempmat);
+		matidentity4d(tempmat);
+		matmultiplyFULL(tempmat,bias,tempmat);
+		matmultiplyFULL(tempmat,ProjMat,tempmat);
 
-			//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-			matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
-		}else{
-			//glMatrixMode(GL_MODELVIEW);
-			FW_GL_MATRIX_MODE(GL_MODELVIEW);
-			//glPushMatrix();
-			FW_GL_PUSH_MATRIX();
-			//glLoadIdentity();
-			FW_GL_LOAD_IDENTITY();
-
-			//glLoadMatrixd(bias);
- 			FW_GL_MULTMATRIX_D(bias);
-			//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-			//printmatrix2(tempmat,"bias applied");
-
-			//glMultMatrixd(ProjMat);
-			FW_GL_MULTMATRIX_D(ProjMat);
-			//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-			//printmatrix2(tempmat,"projmat applied");
-
-			//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,tempmat);
-			matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
-			FW_GL_POP_MATRIX();
-		}
-
+		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
+		matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
 	
-		if(0) for(i=0; i<4; i++)
-		{
-			//if(node->description == tg->ProjectiveTextures.data[i].des)
-			if(node->description == data[i].des)
-			{
-				flag = 1;
-				break;
-			}
-			else flag = 0;
-		}
-
-		//for(j=0; j<4; j++)
-		{
-			int j = 0;
-			//if(tg->ProjectiveTextures.data[j].des == NULL && !flag)
-			//if(data[j].des == NULL && !flag)
-			{
-				//tg->ProjectiveTextures.data[j].des = node->description; 
-				data[j].des = node->description; 
-				////tg->ProjectiveTextures.data[j].TenLinearGexMat = TenLinearGexMatCam0;
-				//memcpy (tg->ProjectiveTextures.data[j].TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-				if(0){
-					static double vc11[] = {2.396053, -1.649305, -0.681921, -0.613728, -0.248332, 3.069382, -0.551849, -0.496664, -3.009781, -1.649305, -0.681921, -0.613728, 2.586181, 0.687683, 4.635957, 5.172361};
-					for(int k=0;k<4;k++)
-					{
-						printf("[ ");
-						for(int i=0;i<4;i++)
-							printf("%lf ",TenLinearGexMatCam0[k*4 +i]);
-						printf("]\n");
-					}
-					if(1) memcpy(TenLinearGexMatCam0,vc11,16*sizeof(double));
-					for(int k=0;k<4;k++)
-					{
-						printf("[ ");
-						for(int i=0;i<4;i++)
-							printf("%lf ",vc11[k*4 +i]);
-						printf("]\n");
-					}
-					for(int k=0;k<4;k++)
-					{
-						printf("[ ");
-						for(int i=0;i<4;i++)
-							printf("%lf ",TenLinearGexMatCam0[k*4 +i]);
-						printf("]\n");
-					}
-				}
-				if(0){
-					double out4[4], in4[4];
-					in4[0] = .2; in4[1] = .2; in4[2] = 0.2; in4[3] = 1.0;
-					transformFULL4d(out4,in4,TenLinearGexMatCam0);
-					out4[0] /= out4[3];
-					out4[1] /= out4[3];
-					out4[2] /= out4[3];
-					printf("transformed .2 .2 0 = %lf %lf %lf\n",out4[0],out4[1],out4[2]);
-					out4[0] /= out4[2];
-					out4[1] /= out4[2];
-					printf("projected = %lf %lf \n",out4[0],out4[1]);
-				}
-				memcpy (data[j].TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-				//datacount = j;
-				//break;
-			}
-		}
 	
 		if(node->texture)
 		{
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
-			if(0){
-				if(node->global == TRUE)
-					tmpN->_renderFlags |= VF_globalLight;
-				int toffset = 4;
-				int pcount = p->projector_stack->n; //haven't pushed yet
-				glActiveTexture(GL_TEXTURE0+toffset+pcount); 
-
-				render_node(tmpN);
-				if(node->global == TRUE)
-					tmpN->_renderFlags |= VF_globalLight;
-				glActiveTexture(GL_TEXTURE0); 
-			}
 
 		}
 		{
