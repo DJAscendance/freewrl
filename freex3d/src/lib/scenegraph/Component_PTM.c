@@ -248,6 +248,7 @@ void compile_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective
 void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
 				GLDOUBLE centerx, GLDOUBLE centery, GLDOUBLE centerz,
 				GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE *matrix);
+void projPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar, GLDOUBLE *matrix);
 void printmatrix2(GLDOUBLE* mat,char* description );
 void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
 	int i,j = 0;
