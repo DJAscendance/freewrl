@@ -174,7 +174,6 @@ void print_bound_textures(char *str){
 }
 
 int get_bound_image(struct X3D_Node *node);
-int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
 void resend_textureprojector_matrix()
@@ -187,7 +186,6 @@ void resend_textureprojector_matrix()
 	ttglobal tg = gglobal();
 	p = (ppComponent_PTM)tg->Component_PTM.prv;
 	data = p->data;
-	//data = (struct projective_Texdata*)tg->Component_PTM.data;
 
     me = getAppearanceProperties()->currentShaderProperties;
 
@@ -199,7 +197,6 @@ void resend_textureprojector_matrix()
 		float TenLinearGexMatCam0f[16];
 		struct projector_tuple *ptuple;
 		GLint texture;
-		//int tti;
 		if(me->projTexGenMatCam[i] > -1){
 			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
@@ -210,7 +207,6 @@ void resend_textureprojector_matrix()
 			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
 
 			render_node(ptuple->textureNode);
-			//tti = getTextureTableIndexFromFromTextureNode(ptuple->textureNode);
 			texture = getGlTextureNumberFromTextureNode(ptuple->textureNode);
 
 			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
