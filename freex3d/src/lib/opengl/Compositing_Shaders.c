@@ -609,7 +609,7 @@ uniform int pCount; \n\
 varying vec4 projTexCoord[4]; \n\
 void vertProjCalTexCoord(void) { \n\
 	for(int i=0;i<pCount;i++){ \n\
-		projTexCoord[i] = projTexGenMatCam[i] * fw_Vertex; \n\
+		projTexCoord[i] = projTexGenMatCam[i] * castle_vertex_eye; \n\
 	} \n\
 } \n\
 #endif //PROJTEX \n\
@@ -644,9 +644,6 @@ void main(void) \n\
   castle_UnlitColor = vec4(1.0,1.0,1.0,1.0); \n\
   castle_MaterialDiffuseAlpha = 1.0; \n\
   #endif //LIT \n\
-  #ifdef PROJTEX \n\
-	vertProjCalTexCoord(); \n\
-  #endif //PROJETEX \n\
   \n\
   #ifdef FILL \n\
   hatchPosition = fw_Vertex.xy; \n\
@@ -674,6 +671,9 @@ void main(void) \n\
   #endif //CASTLE_BUGGY_GLSL_READ_VARYING \n\
   \n\
   castle_vertex_eye = fw_ModelViewMatrix * vertex_object; \n\
+  #ifdef PROJTEX \n\
+	vertProjCalTexCoord(); \n\
+  #endif //PROJETEX \n\
   #ifdef PARTICLE \n\
   //sprite: align to viewer \n\
   if(fw_ParticleGeomType == 4){ \n\
@@ -1118,7 +1118,8 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 			vec4 ptex = vec4(projTexCoord[i].xy / projTexCoord[i].z,1.0,1.0); \n\
 			if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
 				if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
-					frag_color *= texture2DProj(textureUnit[i], ptex); //modulate \n\
+					vec4 pcolor = texture2DProj(textureUnit[i], ptex); \n\
+					frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
 				} \n\
 		} \n\
 	} \n\
