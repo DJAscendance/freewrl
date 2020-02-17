@@ -1116,22 +1116,27 @@ varying vec4 projTexCoord[4]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	for(int i=0;i<pCount;i++) { \n\
 		if( projTexCoord[i].q > 0.0 ){ \n\
-			if(projectorType[i] == 0){ \n\
-				//perspective \n\
-				vec4 ptex = vec4(projTexCoord[i].xy / projTexCoord[i].z,1.0,1.0); \n\
-				if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
-					if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
-						vec4 pcolor = texture2DProj(textureUnit[i], ptex); \n\
-						frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
-					} \n\
-			} else { \n\
-				//parallel/ortho \n\
-				vec2 ptex = projTexCoord[i].xy; \n\
-				if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
-					if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
-						vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
-						frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
-					} \n\
+			vec4 pp = projTexCoord[i]; \n\
+			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
+			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
+			inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
+			if(inside){ \n\
+				vec3 pptex = pp.xyz/pp.w; \n\
+				if(projectorType[i] == 0){ \n\
+					//perspective \n\
+					vec4 ptex = vec4(pptex,1.0); //vec4(pptex.xy / pptex.z,1.0,1.0); \n\
+					ptex.x = (ptex.x * .5) + .5; \n\
+					ptex.y = (ptex.y * .5) + .5; \n\
+					vec4 pcolor = texture2DProj(textureUnit[i], ptex); \n\
+					frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+				} else { \n\
+					//parallel/ortho \n\
+					vec2 ptex = pptex.xy; \n\
+					ptex.x = (ptex.x * .5) + .5; \n\
+					ptex.y = (ptex.y * .5) + .5; \n\
+					vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
+					frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+				} \n\
 			} \n\
 		} \n\
 	} \n\

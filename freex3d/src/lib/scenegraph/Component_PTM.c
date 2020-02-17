@@ -256,7 +256,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	int i,j = 0;
 	int flag = 0;
 	static int datacount = 0;
-	float degree = node->fieldOfView* 180/3.14;
+	float degree = node->fieldOfView* 180.0/3.141596;
 	GLDOUBLE cViewMat[16];
 	GLDOUBLE invcViewMat[16];
 	GLDOUBLE ViewMat[16];
@@ -302,12 +302,12 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 
 		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
 		projPerspective((GLDOUBLE)degree,
-			(GLDOUBLE)node->aspectRatio, // aspectRatio
+			(GLDOUBLE)node->aspectRatio, // aspectRatio = width/height see below, gets from image
 			(GLDOUBLE)node->nearDistance,(GLDOUBLE)node->farDistance, // near, far
 			ProjMat);
 
 		matidentity4d(tempmat);
-		matmultiplyFULL(tempmat,bias,tempmat);
+//		matmultiplyFULL(tempmat,bias,tempmat);
 		matmultiplyFULL(tempmat,ProjMat,tempmat);
 
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
@@ -464,7 +464,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance,orthoMat);
 
 		matidentity4d(tempmat);
-		matmultiplyFULL(tempmat,bias,tempmat);
+//		matmultiplyFULL(tempmat,bias,tempmat); //in shader now
 		matmultiplyFULL(tempmat,orthoMat,tempmat);
 
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
