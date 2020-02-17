@@ -12986,8 +12986,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->upVector.c[0] = 0.0f;tmp2->upVector.c[1] = 1.0f;tmp2->upVector.c[2] = 0.0f;
 			tmp2->fieldOfView.p = MALLOC (float *, sizeof(float)*4);
 			tmp2->fieldOfView.p[0] = -1.0f;
-			tmp2->fieldOfView.p[1] = 1.0f;
-			tmp2->fieldOfView.p[2] = -1.0f;
+			tmp2->fieldOfView.p[1] = -1.0f;
+			tmp2->fieldOfView.p[2] = 1.0f;
 			tmp2->fieldOfView.p[3] = 1.0f;
 			tmp2->fieldOfView.n=4;;
 			tmp2->aspectRatio = 1.0f;
