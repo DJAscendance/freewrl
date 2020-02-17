@@ -1110,17 +1110,29 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LIT\n\
 #ifdef PROJTEX \n\
 uniform sampler2D textureUnit[4]; \n\
+uniform int projectorType[4]; //0=perspective 1=ortho/parallel \n\
 uniform int pCount; \n\
 varying vec4 projTexCoord[4]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	for(int i=0;i<pCount;i++) { \n\
 		if( projTexCoord[i].q > 0.0 ){ \n\
-			vec4 ptex = vec4(projTexCoord[i].xy / projTexCoord[i].z,1.0,1.0); \n\
-			if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
-				if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
-					vec4 pcolor = texture2DProj(textureUnit[i], ptex); \n\
-					frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
-				} \n\
+			if(projectorType[i] == 0){ \n\
+				//perspective \n\
+				vec4 ptex = vec4(projTexCoord[i].xy / projTexCoord[i].z,1.0,1.0); \n\
+				if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
+					if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
+						vec4 pcolor = texture2DProj(textureUnit[i], ptex); \n\
+						frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+					} \n\
+			} else { \n\
+				//parallel/ortho \n\
+				vec2 ptex = projTexCoord[i].xy; \n\
+				if(ptex.x >= 0.0 &&  ptex.x <= 1.0) //clip \n\
+					if(ptex.y >= 0.0 && ptex.y <= 1.0){ \n\
+						vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
+						frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+					} \n\
+			} \n\
 		} \n\
 	} \n\
 	return frag_color; \n\

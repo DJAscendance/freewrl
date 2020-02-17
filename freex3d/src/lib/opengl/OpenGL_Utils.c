@@ -95,7 +95,7 @@ struct shaderTableEntry {
 
 int unload_broto(struct X3D_Proto* node);
 
-static void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
+void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
 static void getShaderCommonInterfaces (s_shader_capabilities_t *me);
 static void makeAndCompileShader(struct shaderTableEntry *);
 
@@ -2775,6 +2775,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		me->projTexGenMatCam[i] = GET_UNIFORM(myProg,line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
 		sprintf(line,"textureUnit[%d]",i);
 		me->textureUnit[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"projectorType[%d]",i);
+		me->projectorType[i] = GET_UNIFORM(myProg,line);
 	}
 	me->pCount = GET_UNIFORM(myProg,"pCount");
 
@@ -7332,8 +7334,7 @@ mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOU
 /**
  * Build a glOrtho marix.
  */
-static void
-mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m)
+void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m)
 {
 #define M(row,col)  m[col*4+row]
 	M(0,0) = 2.0F / (right-left);

@@ -10166,7 +10166,7 @@ struct X3D_TextureProjectorParallel {
 	struct SFVec3f location;
 	struct SFVec3f direction;
 	struct SFVec3f upVector;
-	struct SFColorRGBA fieldOfView;
+	struct Multi_Float fieldOfView;
 	float aspectRatio;
 	float nearDistance;
 	float farDistance;

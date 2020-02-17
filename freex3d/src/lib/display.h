@@ -394,6 +394,7 @@ typedef struct s_shader_capabilities{
 	/* Projective Texture */
 	GLint projTexGenMatCam[4];
 	GLint textureUnit[4];
+	GLint projectorType[4];
 	GLint pCount;
 	//GLint projViewMat;
 	//GLint projMap_forCam1;

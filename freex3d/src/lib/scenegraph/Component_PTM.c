@@ -80,6 +80,7 @@ struct projector_tuple {
     struct Uni_String *des;
 	GLDOUBLE TenLinearGexMat[16];
 	int global;
+	int type; //0=perspective, 1=ortho/parallel
 	GLuint texture;
 	struct X3D_Node * textureNode;
 };
@@ -201,6 +202,7 @@ void resend_textureprojector_matrix()
 			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
 			GLUNIFORMMATRIX4FV (me->projTexGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
+			GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			texture = ptuple->texture;
 			int toffset = 4;
 			//print_bound_textures("start");
@@ -338,6 +340,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
 			ptuple.global = node->global;
+			ptuple.type = 0; //0=perspective 1=ortho/parallel
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			ptuple.texture = texture;
 			ptuple.textureNode = tmpN;
@@ -375,58 +378,48 @@ void child_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *
 void child_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) {
 }
 void fin_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) {
-}
 
+	RETURN_IF_RENDER_STATE_NOT_US
+	if(node->on)
+		if(!node->global)
+			projectorTable_pop(); //just pop local projectors that we pushed above - globals are cleared once per frame
+
+}
 
 void compile_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) { 
 
-
-	
-	struct point_XYZ vec;
-	int i;
-
-	for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
-	node->_loc.c[3] = 1.0f;
-	
-	vec.x = (double) node->direction.c[0];
-	vec.y = (double) node->direction.c[1];
-	vec.z = (double) node->direction.c[2];
-
-	normalize_vector(&vec);
-
-	node->_dir.c[0] = (float) vec.x;
-	node->_dir.c[1] = (float) vec.y;
-	node->_dir.c[2] = (float) vec.z;
-	node->_dir.c[3] = 1.0f;
-
-	vec.x = (double) node->upVector.c[0];
-	vec.y = (double) node->upVector.c[1];
-	vec.z = (double) node->upVector.c[2];
-
-	normalize_vector(&vec);
-
-	node->_upVec.c[0] = (float) vec.x;
-	node->_upVec.c[1] = (float) vec.y;
-	node->_upVec.c[2] = (float) vec.z;
+	/* LookAt Matrix Complete */
+	float dir[3], up[3], cross1[3],cross2[3];
+	veccopy3f(node->_loc.c,node->location.c);
+	veccopy3f(dir,node->direction.c);
+	veccopy3f(up,node->upVector.c);
+	vecnormalize3f(dir,dir);
+	vecnormalize3f(up,up);
+	veccross3f(cross1,dir,up);
+	vecnormalize3f(cross1,cross1);
+	veccross3f(cross2,cross1,dir);
+	vecnormalize3f(cross2,cross2);
+	veccopy3f(node->_dir.c,dir);
+	node->_dir.c[3] = 0.0f;
+	veccopy3f(node->_upVec.c,up);
+	node->_upVec.c[3] = 0.0f;
 
 	MARK_NODE_COMPILED;
+
 }
 
-
+void projOrtho (GLDOUBLE l, GLDOUBLE r, GLDOUBLE b,	GLDOUBLE t, 
+				GLDOUBLE n, GLDOUBLE f,GLDOUBLE *matrix);
+void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
 void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) {
-	
 	int i,j = 0;
 	int flag = 0;
 	static int datacount = 0;
-	
-	
-	
+	//float degree = node->fieldOfView* 180/3.14;
 	GLDOUBLE cViewMat[16];
 	GLDOUBLE invcViewMat[16];
 	GLDOUBLE ViewMat[16];
 	GLDOUBLE orthoMat[16];
-	GLDOUBLE TenLinearGexMatCam0[16];
-	
 	GLint tex1;
 	struct projective_Texdata *data;
 	ppComponent_PTM p;
@@ -435,72 +428,89 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 	data = p->data;
 	//data = (struct projective_Texdata*)tg->Component_PTM.data;
 	
-	
-	
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	
-	projLookAt((GLDOUBLE)node->_loc.c[0],(GLDOUBLE)node->_loc.c[1],(GLDOUBLE)node->_loc.c[2], 
-		(GLDOUBLE)node->_dir.c[0],(GLDOUBLE)node->_dir.c[1],(GLDOUBLE)node->_dir.c[2],
-		(GLDOUBLE)node->_upVec.c[0],(GLDOUBLE)node->_upVec.c[1],(GLDOUBLE)node->_upVec.c[2],ViewMat);
-	
-	glGetDoublev(GL_MODELVIEW_MATRIX, ViewMat);
-
-	projOrtho((GLDOUBLE)node->fieldOfView.c[0],(GLDOUBLE)node->fieldOfView.c[1],(GLDOUBLE)node->fieldOfView.c[2],(GLDOUBLE)node->fieldOfView.c[3],
-		(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance,orthoMat);
-	
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glLoadMatrixd(bias);
-	glMultMatrixd(orthoMat);
-	glMultMatrixd(ViewMat);
-	glGetDoublev(GL_MODELVIEW_MATRIX, TenLinearGexMatCam0);
-	
-	fw_glGetDoublev(GL_MODELVIEW_MATRIX, cViewMat);
-	matinverse(invcViewMat,cViewMat);
-	
-	for(i=0; i<4; i++)
-	{
-		//if(node->description == tg->ProjectiveTextures.data[i].des)
-		if(node->description == data[i].des)
-		{
-			flag = 1;
-			break;
-		}
-		else flag = 0;
-	}
-
-	for(j=0; j<4; j++)
-	{
-		//if(tg->ProjectiveTextures.data[j].des == NULL && !flag)
-		if(data[j].des == NULL && !flag)
-		{
-			//tg->ProjectiveTextures.data[j].des = node->description; 
-			data[j].des = node->description; 
-			////tg->ProjectiveTextures.data[j].TenLinearGexMat = TenLinearGexMatCam0;
-			//memcpy (tg->ProjectiveTextures.data[j].TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			memcpy (data[j].TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			//datacount = j;
-			break;
-		}
-	}
-	
-	if(node->texture)
-	{
-		struct X3D_Node *tmpN;
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
-		render_node(tmpN);
-	}
-
-	glPopMatrix();
-
- }
-void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *node)
-{
+	RETURN_IF_RENDER_STATE_NOT_US
 	COMPILE_IF_REQUIRED;
 
+	if(node->on) {
+		double tempmat[16];
+		GLDOUBLE TenLinearGexMatCam0[16];
+		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
+		struct X3D_Node *tmpN = NULL;
+
+		if(node->global) tg->Component_PTM.globalProjector = TRUE;
+
+		//A. COMPUTE NODE-POSE MATRIX FOR: .position, .dir, .upVector
+		//glMatrixMode(GL_MODELVIEW);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
+
+		{
+			double loc[3],dir[3],up[3],eye[3];
+			float2double(loc,node->_loc.c,3);
+			float2double(dir,node->_dir.c,3);
+			float2double(up,node->_upVec.c,3);
+			vecdifd(eye,loc,dir);
+			projLookAt(eye[0],eye[1],eye[2], loc[0],loc[1],loc[2], up[0],up[1],up[2],ViewMat);
+		}
+
+		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
+		matinverse(modelviewinv,modelview);
+		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
+		matmultiplyAFFINE(eye2projector,modelviewinv,ViewMat);
+
+
+		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
+		mesa_Ortho((GLDOUBLE)node->fieldOfView.p[0],(GLDOUBLE)node->fieldOfView.p[2],(GLDOUBLE)node->fieldOfView.p[1],(GLDOUBLE)node->fieldOfView.p[3],
+			(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance,orthoMat);
+
+		matidentity4d(tempmat);
+		matmultiplyFULL(tempmat,bias,tempmat);
+		matmultiplyFULL(tempmat,orthoMat,tempmat);
+
+		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
+		matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
+	
+		{
+			float aspectRatio, denom, *fov;
+			fov = node->fieldOfView.p;
+			denom = fov[3]-fov[1];
+			if(denom > 0.0){
+				aspectRatio = (fov[2]-fov[0])/denom;
+				if(!APPROX(node->aspectRatio,aspectRatio)){
+					node->aspectRatio = aspectRatio;
+					MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_TextureProjectorParallel, aspectRatio));
+					printf("aspectRatio= %f\n",node->aspectRatio);
+				}
+			}
+		}
+
+	
+		if(node->texture)
+		{
+			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
+		}
+		{
+			GLuint texture;
+			struct projector_tuple ptuple;
+			ptuple.des = node->description;
+			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
+			ptuple.global = node->global;
+			ptuple.type = 1; //0=perspective, 1=ortho
+			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
+			ptuple.texture = texture;
+			ptuple.textureNode = tmpN;
+			projectorTable_push(&ptuple);
+		}
+
+
+	} //if(node->on)
+}
+
+
+void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *node)
+{
+	if (!renderstate()->render_light) return;
+	/* this will be a global textureprojector here... */
 	render_TextureProjectorParallel(node);
 }
 
