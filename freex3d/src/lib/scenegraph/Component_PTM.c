@@ -204,7 +204,13 @@ void resend_textureprojector_matrix()
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
 			GLUNIFORMMATRIX4FV (me->projTexGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
 			GLUNIFORM1I(me->projectorType[i],ptuple->type);
+			//backCull in theory could automatically always do it, 
+			// or projector->backCull=TRUE default, 
+			// and turn off when Gl_CULL_FACE is off, meaning web3d solid=FALSE
+			// X HOWEVER freewrl Feb 2020 isn't reliably discriminating solid=true/false for different geometry types
+			// - THEREFORE we will let projector->backCull be definitive and scene authors will set manually until freewrl solid is fixed
 			GLUNIFORM1I(me->pbackCull[i],ptuple->backCull);
+			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
 			texture = ptuple->texture;
 			int toffset = 4;
 			//print_bound_textures("start");
