@@ -698,6 +698,9 @@ int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node){
 	} else if (thisTextureType==NODE_ComposedTexture3D){
 		struct X3D_ComposedTexture3D* pt = (struct X3D_ComposedTexture3D*) node;
 		thisTexture = pt->__textureTableIndex;
+	} else if (thisTextureType==NODE_MultiTexture){
+		struct X3D_MultiTexture* pt = (struct X3D_MultiTexture*) node;
+		thisTexture = getTextureTableIndexFromFromTextureNode(X3D_NODE(pt->texture.p[0]));
 	} else {
 		ConsoleMessage ("Invalid type for texture, %s\n",stringNodeType(thisTextureType));
 	}
@@ -712,6 +715,7 @@ textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *texture
 }
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode){
 	textureTableIndexStruct_s *tts = getTableTableFromTextureNode(textureNode);
+	if(tts == NULL) return 0;
 	return tts->OpenGLTexture;
 }
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz){
