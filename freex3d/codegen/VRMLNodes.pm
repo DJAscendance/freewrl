@@ -2799,12 +2799,11 @@ our %Nodes = (
 		global => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		texture=>["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-
+		backCull => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
 		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		__projTexture=>["SFNode","NULL","inputOutput", 0,0],#ff
 
 	], "X3DTextureProjectorNode"),
 	
@@ -2822,12 +2821,11 @@ our %Nodes = (
 		global => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		texture => ["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-
+		backCull => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
 		_dir => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		_loc => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		_upVec => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		__projTexture => ["SFNode","NULL","inputOutput", 0,0],#ff
 
 	], "X3DTextureProjectorNode"),
 

@@ -3136,6 +3136,7 @@ EXPOSED_FIELD(TextureProjectorParallel,farDistance,sffloat,farDistance,FIELDTYPE
 EXPOSED_FIELD(TextureProjectorParallel,global,sfbool,global,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(TextureProjectorParallel,on,sfbool,on,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(TextureProjectorParallel,texture,sfnode,texture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,backCull,sfbool,backCull,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(TextureProjectorParallel)
 
 /* TextureProjectorPerspective node */
@@ -3152,6 +3153,7 @@ EXPOSED_FIELD(TextureProjectorPerspective,farDistance,sffloat,farDistance,FIELDT
 EXPOSED_FIELD(TextureProjectorPerspective,global,sfbool,global,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(TextureProjectorPerspective,on,sfbool,on,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(TextureProjectorPerspective,texture,sfnode,texture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorPerspective,backCull,sfbool,backCull,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(TextureProjectorPerspective)
 
 /* TextureProperties node */

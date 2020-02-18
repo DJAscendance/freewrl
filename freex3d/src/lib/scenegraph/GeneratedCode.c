@@ -185,7 +185,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__planets",
 	"__points",
 	"__position",
-	"__projTexture",
 	"__protoDeclares",
 	"__protoDef",
 	"__protoFlags",
@@ -448,6 +447,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"axisRotation",
 	"back",
 	"backAmbientIntensity",
+	"backCull",
 	"backDiffuseColor",
 	"backEmissiveColor",
 	"backShininess",
@@ -1300,6 +1300,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"axisRotation",
 	"back",
 	"backAmbientIntensity",
+	"backCull",
 	"backDiffuseColor",
 	"backEmissiveColor",
 	"backShininess",
@@ -7197,10 +7198,10 @@ const int OFFSETS_TextureProjectorParallel[] = {
 	(int) FIELDNAMES_global, (int) offsetof (struct X3D_TextureProjectorParallel, global),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_on, (int) offsetof (struct X3D_TextureProjectorParallel, on),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_texture, (int) offsetof (struct X3D_TextureProjectorParallel, texture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_backCull, (int) offsetof (struct X3D_TextureProjectorParallel, backCull),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__dir, (int) offsetof (struct X3D_TextureProjectorParallel, _dir),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__loc, (int) offsetof (struct X3D_TextureProjectorParallel, _loc),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__upVec, (int) offsetof (struct X3D_TextureProjectorParallel, _upVec),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___projTexture, (int) offsetof (struct X3D_TextureProjectorParallel, __projTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureProjectorPerspective[] = {
@@ -7216,10 +7217,10 @@ const int OFFSETS_TextureProjectorPerspective[] = {
 	(int) FIELDNAMES_global, (int) offsetof (struct X3D_TextureProjectorPerspective, global),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_on, (int) offsetof (struct X3D_TextureProjectorPerspective, on),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_texture, (int) offsetof (struct X3D_TextureProjectorPerspective, texture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_backCull, (int) offsetof (struct X3D_TextureProjectorPerspective, backCull),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__dir, (int) offsetof (struct X3D_TextureProjectorPerspective, _dir),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__loc, (int) offsetof (struct X3D_TextureProjectorPerspective, _loc),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__upVec, (int) offsetof (struct X3D_TextureProjectorPerspective, _upVec),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___projTexture, (int) offsetof (struct X3D_TextureProjectorPerspective, __projTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureProperties[] = {
@@ -12996,10 +12997,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->global = FALSE;
 			tmp2->on = FALSE;
 			tmp2->texture = NULL;
+			tmp2->backCull = FALSE;
 			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
 			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
 			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
-			tmp2->__projTexture = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -13018,10 +13019,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->global = FALSE;
 			tmp2->on = FALSE;
 			tmp2->texture = NULL;
+			tmp2->backCull = FALSE;
 			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
 			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
 			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
-			tmp2->__projTexture = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_children;
 		break;
 		}
@@ -17992,9 +17993,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," global (SFBool) \t%d\n",tmp->global);
 			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
 			spacer fprintf (fp," texture (SFNode):\n"); dump_scene(fp,level+1,tmp->texture); 
-		    if(allFields) {
-			spacer fprintf (fp," __projTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->__projTexture); 
-		    }
+			spacer fprintf (fp," backCull (SFBool) \t%d\n",tmp->backCull);
 		    break;
 		}
 		case NODE_TextureProjectorPerspective : {
@@ -18021,9 +18020,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," global (SFBool) \t%d\n",tmp->global);
 			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
 			spacer fprintf (fp," texture (SFNode):\n"); dump_scene(fp,level+1,tmp->texture); 
-		    if(allFields) {
-			spacer fprintf (fp," __projTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->__projTexture); 
-		    }
+			spacer fprintf (fp," backCull (SFBool) \t%d\n",tmp->backCull);
 		    break;
 		}
 		case NODE_TextureProperties : {

@@ -1113,28 +1113,28 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 #ifdef PROJTEX \n\
 uniform sampler2D textureUnit[4]; \n\
 uniform int projectorType[4]; //0=perspective 1=ortho/parallel \n\
+uniform int pbackCull[4]; \n\
 uniform int pCount; \n\
-uniform vec3 projEyePos[4]; \n\
 varying vec4 projTexCoord[4]; \n\
 varying vec4 projTexNorm[4]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	for(int i=0;i<pCount;i++) { \n\
-		float dotval = 0.0; \n\
-		vec3 pc = projTexCoord[i].xyz/projTexCoord[i].w; \n\
-		vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
-		vec3 nvec = normalize(pc-pn); \n\
-		vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
-		dotval = dot(nvec,peye); \n\
 		if( projTexCoord[i].q > 0.0 ){ \n\
 			vec4 pp = projTexCoord[i]; \n\
 			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
 			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
 			inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
 			if(inside){ \n\
+				bool facingProjector = true; \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
-				bool facingProjector = dotval > 0.0; \n\
-				bool backsideCulling = true; //doesn't work \n\
-				if(!backsideCulling || facingProjector){ \n\
+				if(pbackCull[i] == 1){ \n\
+					vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
+					vec3 nvec = normalize(pptex.xyz-pn); \n\
+					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
+					float dotval = dot(nvec,peye); \n\
+					facingProjector = (dotval > 0.0); \n\
+				} \n\
+				if(facingProjector){ \n\
 					if(projectorType[i] == 0){ \n\
 						//perspective \n\
 						vec4 ptex = vec4(pptex,1.0); //vec4(pptex.xy / pptex.z,1.0,1.0); \n\

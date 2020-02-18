@@ -2777,8 +2777,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		me->textureUnit[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"projectorType[%d]",i);
 		me->projectorType[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"projEyePos[%d]",i);
-		me->projEyePos[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"pbackCull[%d]",i);
+		me->pbackCull[i] = GET_UNIFORM(myProg,line);
 	}
 	me->pCount = GET_UNIFORM(myProg,"pCount");
 

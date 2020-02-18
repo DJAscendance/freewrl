@@ -79,7 +79,7 @@ struct projective_Texdata {
 struct projector_tuple {
     struct Uni_String *des;
 	GLDOUBLE TenLinearGexMat[16];
-	double peye[3];
+	int backCull;
 	int global;
 	int type; //0=perspective, 1=ortho/parallel
 	GLuint texture;
@@ -196,7 +196,7 @@ void resend_textureprojector_matrix()
 	pcount = 0;
 	for(int i=0;i<tcount;i++)
 	{
-		float TenLinearGexMatCam0f[16], peyef[3];
+		float TenLinearGexMatCam0f[16];
 		struct projector_tuple *ptuple;
 		GLint texture;
 		if(me->projTexGenMatCam[i] > -1){
@@ -204,9 +204,7 @@ void resend_textureprojector_matrix()
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
 			GLUNIFORMMATRIX4FV (me->projTexGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
 			GLUNIFORM1I(me->projectorType[i],ptuple->type);
-			double2float(peyef,ptuple->peye,3);
-			GLUNIFORM3FV(me->projEyePos[i],1,peyef);
-			//printf("peyef %f %f %f\n",peyef[0],peyef[1],peyef[2]);
+			GLUNIFORM1I(me->pbackCull[i],ptuple->backCull);
 			texture = ptuple->texture;
 			int toffset = 4;
 			//print_bound_textures("start");
@@ -277,7 +275,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	COMPILE_IF_REQUIRED;
 
 	if(node->on) {
-		double tempmat[16], peye[3];
+		double tempmat[16];
 		GLDOUBLE TenLinearGexMatCam0[16];
 		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
 		struct X3D_Node *tmpN = NULL;
@@ -302,11 +300,6 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		matinverse(modelviewinv,modelview);
 		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
 		matmultiplyAFFINE(eye2projector,modelviewinv,ViewMat);
-		vecsetd(peye,0.0,0.0,0.0);
-		transformAFFINEd(peye,peye,eye2projector);
-		//matinverse(modelviewinv,eye2projector);
-		//transformAFFINEd(peye,peye,modelviewinv);
-		//printf("%lf %lf %lf\n",peye[0],peye[1],peye[2]);
 
 		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
 		projPerspective((GLDOUBLE)degree,
@@ -347,7 +340,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			struct projector_tuple ptuple;
 			ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			veccopyd(ptuple.peye,peye);
+			ptuple.backCull = node->backCull == TRUE? 1 : 0;
 			//printf("peye = %lf %lf %lf\n",ptuple.peye[0],ptuple.peye[1],ptuple.peye[2]);
 			ptuple.global = node->global;
 			ptuple.type = 0; //0=perspective 1=ortho/parallel
@@ -442,7 +435,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 	COMPILE_IF_REQUIRED;
 
 	if(node->on) {
-		double tempmat[16], peye[3];
+		double tempmat[16];
 		GLDOUBLE TenLinearGexMatCam0[16];
 		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
 		struct X3D_Node *tmpN = NULL;
@@ -453,8 +446,6 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		//glMatrixMode(GL_MODELVIEW);
 		FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
-		vecsetd(peye,0.0,0.0,0.0);
-		transformAFFINEd(peye,peye,modelview);
 		{
 			double loc[3],dir[3],up[3],eye[3];
 			float2double(loc,node->_loc.c,3);
@@ -505,7 +496,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			struct projector_tuple ptuple;
 			ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			veccopyd(ptuple.peye,peye);
+			ptuple.backCull = node->backCull == TRUE? 1 : 0;
 			ptuple.global = node->global;
 			ptuple.type = 1; //0=perspective, 1=ortho
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
