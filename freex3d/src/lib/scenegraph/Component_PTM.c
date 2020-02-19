@@ -178,6 +178,7 @@ void print_bound_textures(char *str){
 int get_bound_image(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
+int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height);
 void resend_textureprojector_matrix()
 {
 	//called from render_shape to refresh uniform before shade draw
@@ -191,9 +192,31 @@ void resend_textureprojector_matrix()
 
     me = getAppearanceProperties()->currentShaderProperties;
 
-
-	tcount = min(p->projector_stack->n,4);
+	// while the number of texture samplers are a limited resource in GLSL,
+	// there could be many projectors re-using the same sampler.
+	// to accommodate multitexture per projector, and avoid [][] 2 dimenstional arrays in GLSL
+	// we have a single list of texture descriptors, and a tcounts[] that says how many texture descriptors per projector
+	// per child_shape shader run:
+	//   pcount; //number of projectors, <= MAX_PROJ
+	// per sampler2D: 
+	//   textureUnit[MAX_TEX]
+	// per projector:
+	//   projTexGenMatCam[MAX_PROJ]
+	//   backCull[MAX_PROJ]
+	//   ntdesc[MAX_PROJ]
+	// per texture descriptor
+	//.  tunits[MAX_TDESC]  //indexes into textureUnit[] array
+	//   modes[MAX_TDESC]
+	//   sources[MAX_TDESC]
+	//   funcs[MAX_TDESC]
+	int MAX_PROJ = 8;
+	int MAX_TDESC = 16;
+	int MAX_TEX = 4;
+	tcount = min(p->projector_stack->n,MAX_PROJ);
 	pcount = 0;
+	int nunit = 0;
+	int kdesc = 0;
+	int unitTextures[4];
 	for(int i=0;i<tcount;i++)
 	{
 		float TenLinearGexMatCam0f[16];
@@ -203,7 +226,7 @@ void resend_textureprojector_matrix()
 			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
 			GLUNIFORMMATRIX4FV (me->projTexGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
-			GLUNIFORM1I(me->projectorType[i],ptuple->type);
+			//GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
 			// and turn off when Gl_CULL_FACE is off, meaning web3d solid=FALSE
@@ -211,20 +234,51 @@ void resend_textureprojector_matrix()
 			// - THEREFORE we will let projector->backCull be definitive and scene authors will set manually until freewrl solid is fixed
 			GLUNIFORM1I(me->pbackCull[i],ptuple->backCull);
 			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
-			texture = ptuple->texture;
+
+			int ntdesc = 0; //number of texture descriptors in this projector
+			struct X3D_NODE * tlist[4];
+			int modes[4];
+			int sources[4];
+			int funcs[4];
+			int textures[4];
+			int width[4], height[4];
+
 			int toffset = 4;
-			//print_bound_textures("start");
 			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
-
 			render_node(ptuple->textureNode);
-			texture = getGlTextureNumberFromTextureNode(ptuple->textureNode);
 
-			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
-			glBindTexture(GL_TEXTURE_2D,texture); 
+			ntdesc = getTextureDescriptors(ptuple->textureNode,textures, modes,sources, funcs, width, height);
+			GLUNIFORM1I(me->ntdesc[i],ntdesc);
+			for(int j=0;j<ntdesc;j++,kdesc++){
+				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
+				int kunit;
+				//texture = ptuple->texture;
+				texture = textures[j];
+				kunit = -1;
+				for(int k=0;k<nunit;k++){
+					if(unitTextures[k] == texture){
+						kunit = k;
+						break;
+					}
+				}
+				if(kunit == -1){
+					int toffset = 4;
+					nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
+					kunit = nunit-1;
+					//print_bound_textures("start");
+					glActiveTexture(GL_TEXTURE0+toffset+kunit); 
+					glBindTexture(GL_TEXTURE_2D,texture); 
+					glUniform1i(me->textureUnit[kunit],kunit+toffset);
+					glActiveTexture(GL_TEXTURE0);
+					//print_bound_textures("end");
+				}
+				unitTextures[kunit] = texture;
+				GLUNIFORM1I(me->tunits[kdesc],kunit);
+				GLUNIFORM1I(me->modes[kdesc],modes[j]);
+				GLUNIFORM1I(me->sources[kdesc],sources[j]);
+				GLUNIFORM1I(me->funcs[kdesc],funcs[j]);
 
-			glUniform1i(me->textureUnit[i],pcount+toffset);
-			glActiveTexture(GL_TEXTURE0);
-			//print_bound_textures("end");
+			}
 			pcount++;
 		}
 	}

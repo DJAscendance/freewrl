@@ -718,6 +718,7 @@ int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode){
 	if(tts == NULL) return 0;
 	return tts->OpenGLTexture;
 }
+
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz){
 	int iret;
 	textureTableIndexStruct_s *tts = getTableTableFromTextureNode(textureNode);
@@ -731,6 +732,8 @@ int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz){
 	}
 	return iret;
 }
+
+
 /* is this node a texture node? if so, lets keep track of its textures. */
 /* worry about threads - do not make anything reallocable */
 void registerTexture0(int iaction, struct X3D_Node *tmp) {
@@ -1377,6 +1380,41 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 	}
 	//tg->RenderFuncs.multitexturenode = (void*)node;
 }
+
+int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height){
+	int ntexture = 0;
+	if( textureNode == NULL) return 0;
+	if(textureNode->_nodeType == NODE_MultiTexture){
+		struct multiTexParams *xparam;
+		struct X3D_MultiTexture* pt = (struct X3D_MultiTexture*) textureNode;
+		xparam = (struct multiTexParams *)pt->__xparams;
+		ntexture = pt->texture.n;
+		for(int i=0;i<ntexture;i++){
+			int iret, ixyz[3];
+
+			textures[i] = getGlTextureNumberFromTextureNode(pt->texture.p[i]);
+			iret = getTextureSizeFromTextureNode(pt->texture.p[i],ixyz);
+
+			modes[i] = xparam[i].multitex_mode[0] + + 100*xparam[i].multitex_mode[1];
+			sources[i] = xparam[i].multitex_source[0] + 100*xparam[i].multitex_source[1];
+			funcs[i] = xparam[i].multitex_function;
+		}
+	}else{
+		//single texture, use web3d default texture descriptor
+		int iret, ixyz[3];
+		ntexture = 1;
+		textures[0] = getGlTextureNumberFromTextureNode(textureNode);
+		//web3d.org defaults? not sure, I think its replace
+		modes[0] = MTMODE_REPLACE;
+		sources[0] = INT_ID_UNDEFINED;
+		funcs[0] = INT_ID_UNDEFINED;
+		iret = getTextureSizeFromTextureNode(textureNode,ixyz);
+		width[0] = ixyz[0];
+		height[0] = ixyz[1];
+	}
+	return ntexture;
+}
+
 
 #define BOUNDARY_TO_GL(direct) \
 				switch (findFieldInTEXTUREBOUNDARYKEYWORDS(tpNode->boundaryMode##direct->strptr)) { \

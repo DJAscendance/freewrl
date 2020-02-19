@@ -604,10 +604,10 @@ uniform vec3 particlePosition; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
 #ifdef PROJTEX \n\
-uniform mat4 projTexGenMatCam[4]; \n\
+uniform mat4 projTexGenMatCam[8]; \n\
 uniform int pCount; \n\
-varying vec4 projTexCoord[4]; \n\
-varying vec4 projTexNorm[4]; \n\
+varying vec4 projTexCoord[8]; \n\
+varying vec4 projTexNorm[8]; \n\
 void vertProjCalTexCoord(void) { \n\
 	for(int i=0;i<pCount;i++){ \n\
 		projTexCoord[i] = projTexGenMatCam[i] * castle_vertex_eye; \n\
@@ -865,7 +865,7 @@ uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
 uniform int textureCount; \n\
 #endif //TEX3DLAY \n\
-#ifdef MTEX \n\
+#if defined(MTEX) || defined(PROJTEX) \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
@@ -1111,13 +1111,21 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LITE \n\
 #endif //LIT\n\
 #ifdef PROJTEX \n\
+//per sampler: \n\
 uniform sampler2D textureUnit[4]; \n\
-uniform int projectorType[4]; //0=perspective 1=ortho/parallel \n\
-uniform int pbackCull[4]; \n\
+//per projector: \n\
+uniform int pbackCull[8]; \n\
+uniform int ntdesc[8]; \n\
 uniform int pCount; \n\
-varying vec4 projTexCoord[4]; \n\
-varying vec4 projTexNorm[4]; \n\
+varying vec4 projTexCoord[8]; \n\
+varying vec4 projTexNorm[8]; \n\
+//per texture descriptor (projector 1:m texdescriptor m:1 sampler): \n\
+uniform int tunits[16]; \n\
+uniform int modes[16]; \n\
+uniform int sources[16]; \n\
+uniform int funcs[16]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
+	int k=0; \n\
 	for(int i=0;i<pCount;i++) { \n\
 		if( projTexCoord[i].q > 0.0 ){ \n\
 			vec4 pp = projTexCoord[i]; \n\
@@ -1135,21 +1143,21 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 					facingProjector = (dotval > 0.0); \n\
 				} \n\
 				if(facingProjector){ \n\
-					if(projectorType[i] == 0){ \n\
-						//perspective \n\
-						vec4 ptex = vec4(pptex,1.0); //vec4(pptex.xy / pptex.z,1.0,1.0); \n\
-						ptex.x = (ptex.x * .5) + .5; \n\
-						ptex.y = (ptex.y * .5) + .5; \n\
-						vec4 pcolor = texture2DProj(textureUnit[i], ptex); \n\
-						frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
-					} else { \n\
-						//parallel/ortho \n\
-						vec2 ptex = pptex.xy; \n\
-						ptex.x = (ptex.x * .5) + .5; \n\
-						ptex.y = (ptex.y * .5) + .5; \n\
-						vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
-						frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+					//parallel/ortho \n\
+					vec2 ptex = pptex.xy; \n\
+					ptex.x = (ptex.x * .5) + .5; \n\
+					ptex.y = (ptex.y * .5) + .5; \n\
+					int ndesc = ntdesc[i]; \n\
+					vec4 prev = frag_color; \n\
+					for(int j=0;j<ndesc;j++,k++){ \n\
+						int kk = tunits[k]; \n\
+						int modea = int(modes[k] / 100); \n\
+						int mode = modes[k] - 100*modea; \n\
+						finalColCalc(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
+						//vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
+						//frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
 					} \n\
+					frag_color = prev;\n\
 				} \n\
 			} \n\
 		} \n\
@@ -1220,14 +1228,13 @@ void main(void) \n\
   #endif //MATFIR \n\
   fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
   #endif //LIT \n\
-  #ifdef PROJTEX \n\
-  fragment_color = fragProjCalTexCoord(fragment_color); \n\
-  //fragment_color += ProjMapColor_forCam1; \n\
-  #endif //PROJTEX \n\
   \n\
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
   /* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
   /* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
+  #ifdef PROJTEX \n\
+  fragment_color = fragProjCalTexCoord(fragment_color); \n\
+  #endif //PROJTEX \n\
   \n\
   #undef normal_eye_fragment \n\
   \n\

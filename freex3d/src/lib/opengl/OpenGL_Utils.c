@@ -2769,16 +2769,35 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projTexGenMatCam0 = GET_UNIFORM(myProg,"projTexGenMatCam0");
 	//me->projViewMat = GET_UNIFORM(myProg,"projViewMat");
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
+	// projector 1:m texture_descriptor m:1 sampler2D
+	// max 8     1:m     16             m:1    4
 	for(int i=0;i<4;i++){
+		//per (projector related) sampler2D
+		char line[24];
+		sprintf(line,"textureUnit[%d]",i);
+		me->textureUnit[i] = GET_UNIFORM(myProg,line);
+	}
+	for(int i=0;i<8;i++){
+		//per projector
 		char line[24];
 		sprintf(line,"projTexGenMatCam[%d]",i);
 		me->projTexGenMatCam[i] = GET_UNIFORM(myProg,line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
-		sprintf(line,"textureUnit[%d]",i);
-		me->textureUnit[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"projectorType[%d]",i);
-		me->projectorType[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"pbackCull[%d]",i);
 		me->pbackCull[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"ntdesc[%d]",i);
+		me->ntdesc[i] = GET_UNIFORM(myProg,line);
+	}
+	for(int i=0;i<16;i++){
+		//per texture descriptor
+		char line[24];
+		sprintf(line,"tunits[%d]",i);
+		me->tunits[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"modes[%d]",i);
+		me->modes[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"sources[%d]",i);
+		me->sources[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"funcs[%d]",i);
+		me->funcs[i] = GET_UNIFORM(myProg,line);	
 	}
 	me->pCount = GET_UNIFORM(myProg,"pCount");
 
