@@ -277,9 +277,9 @@ void resend_textureprojector_matrix()
 				GLUNIFORM1I(me->modes[kdesc],modes[j]);
 				GLUNIFORM1I(me->sources[kdesc],sources[j]);
 				GLUNIFORM1I(me->funcs[kdesc],funcs[j]);
-
 			}
 			pcount++;
+			tg->RenderFuncs.textureStackTop = 1; //keep this frmo building up
 		}
 	}
 	GLUNIFORM1I(me->pCount,pcount);
