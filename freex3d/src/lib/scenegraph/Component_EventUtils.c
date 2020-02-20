@@ -150,6 +150,10 @@ void do_BooleanToggle (void *node){
 }
 
 /******************************************************************************/
+
+/******************************************************************************/
+
+
 /* see the spec for a description */
 void do_BooleanTrigger (void *node){
 	struct X3D_BooleanTrigger *px;

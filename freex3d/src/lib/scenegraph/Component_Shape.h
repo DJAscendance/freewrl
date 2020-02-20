@@ -92,6 +92,7 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 
 /* CubeMapTexturing */
 #define HAVE_CUBEMAP_TEXTURE   0x00400
+/* more OR-able flags for compositing shaders */
 #define FOG_APPEARANCE_SHADER  0X00800
 #define HAVE_FOG_COORDS        0x01000
 #define TEXTURE_REPLACE_PRIOR  0x02000
@@ -108,6 +109,7 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 #define CLIPPLANE_SHADER       0x1000000
 #define PARTICLE_SHADER        0X2000000
 #define HAVE_UNLIT_COLOR       0x4000000
+#define HAVE_PROJECTIVETEXTURE 0X8000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume

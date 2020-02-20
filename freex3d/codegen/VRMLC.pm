@@ -1071,7 +1071,7 @@ sub gen {
 	"#define X3D_TRIANGLESTRIPSET(node) ((struct X3D_TriangleStripSet*)node)\n".
 	"#define X3D_QUADSET(node) ((struct X3D_QuadSet*)node)\n".
 	"#define X3D_INDEXEDQUADSET(node) ((struct X3D_IndexedQuadSet*)node)\n".
-
+	"#define X3D_ORTHOTEXTURE(node) ((struct X3D_OrthoTexture*)node)\n".
 	"#define X3D_VIEWPORT(node) ((struct X3D_Viewport*)node)\n".
 	"#define X3D_LAYOUT(node) ((struct X3D_Layout*)node)\n".
 	"#define X3D_LAYERSET(node) ((struct X3D_LayerSet*)node)\n".
@@ -1094,6 +1094,8 @@ sub gen {
 	"#define X3D_IMAGETEXTURE(node) ((struct X3D_ImageTexture*)node)\n".
 	"#define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)\n".
 	"#define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)\n".
+	"#define X3D_TEXTUREPROJECTORPERSPECTIVE(node) ((struct X3D_TextureProjectorPerspective*)node)\n",
+	"#define X3D_TEXTUREPROJECTORPARALLEL(node) ((struct X3D_TextureProjectorParallel*)node)\n",
 
 	"void mark_event (struct X3D_Node *from, int totalptr);\n".
 	"#undef DEBUG_VALIDNODE\n".

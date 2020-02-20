@@ -40,6 +40,7 @@ X3D Texturing Component
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
+#include "LinearAlgebra.h"
 
 
 void render_PixelTexture (struct X3D_PixelTexture *node) {
@@ -47,15 +48,18 @@ void render_PixelTexture (struct X3D_PixelTexture *node) {
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 }
 
+
 void render_ImageTexture (struct X3D_ImageTexture *node) {
-	/* printf ("render_ImageTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
-	loadTextureNode(X3D_NODE(node),NULL);
+	loadTextureNode(X3D_NODE(node),NULL); //이미지 텍스처
+	
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 }
 
 void render_MultiTexture (struct X3D_MultiTexture *node) {
+
 	loadMultiTexture(node);
 }
+
 void render_AudioClip(struct X3D_AudioClip * node);
 void render_MovieTexture (struct X3D_MovieTexture *node) {
 	//july 2016 movietexture fields put in same order as audioclip, so can up-caste and delegate

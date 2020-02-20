@@ -234,6 +234,7 @@ void sib_prep_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 void sib_prep_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 void sib_prep_ClipPlane(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 void sib_prep_Effect(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 
 void sib_prep(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
@@ -249,6 +250,9 @@ void sib_prep(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 			sib_prep_ClipPlane(parent,sibAffector); break;
 		case NODE_Effect: 
 			sib_prep_Effect(parent,sibAffector); break;
+		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjectorParallel: 
+			sib_prep_TextureProjector(parent,sibAffector); break;
 		default:
 			break;
 	}
@@ -260,6 +264,7 @@ void sib_fin_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 void sib_fin_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 void sib_fin_ClipPlane(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 void sib_fin_Effect(struct X3D_Node *parent, struct X3D_Node *sibAffector);
+void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector);
 
 void sib_fin(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
@@ -275,6 +280,10 @@ void sib_fin(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 			sib_fin_ClipPlane(parent,sibAffector); break;
 		case NODE_Effect:
 			sib_fin_Effect(parent,sibAffector); break;
+		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjectorParallel: 
+			sib_fin_TextureProjector(parent,sibAffector); break;
+
 		default:
 			break;
 	}

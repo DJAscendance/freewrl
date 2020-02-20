@@ -132,6 +132,8 @@ typedef struct Vector Stack;
  newVector(type, 4)
 #define deleteStack(type, me) \
  deleteVector(type, me)
+#define clearStack(me) \
+ vector_clear(me)
 
 /* Push and pop */
 #define stack_push(type, me, el) \

@@ -1000,6 +1000,7 @@ void sendArraysToGPU (int mode, int first, int count) {
 	#ifdef RENDERVERBOSE
 	printf ("sendArraysToGPU start\n"); 
 	#endif
+    
 
 	// when glDrawArrays bombs it's usually some function left an array
 	// enabled that's not supposed to be - try disabling something
@@ -1018,7 +1019,7 @@ void sendArraysToGPU (int mode, int first, int count) {
 		saveArraysForGPU(mode,first,count);
 		profile_end("draw_arr");
 	}
-	#ifdef RENDERVERBOSE
+			#ifdef RENDERVERBOSE
 	printf ("sendArraysToGPU end\n"); 
 	#endif
 }
@@ -2020,7 +2021,9 @@ void push_globalRenderFlags(){
 		default:
 			shaderflags.base |= SHADINGSTYLE_GOURAUD; break;
 	}
-
+	if(tg->Component_PTM.globalProjector){
+		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
+	}
 	pushShaderFlags(shaderflags); //push nodified copy
 }
 void pop_globalRenderFlags(){
@@ -2038,6 +2041,8 @@ void pop_globalRenderFlags(){
 			popFogParams();
 		}
 	}
+	tg->Component_PTM.globalProjector = 0; //watch outL if you do ashort-cut stereo with 2 render_heir(geom) then this shoulod be zeroed after last one or on next frame start
+
 }
 void render_hier(struct X3D_Node *g, int rwhat) {
 	/// not needed now - see below struct point_XYZ upvec = {0,1,0};
@@ -2178,6 +2183,7 @@ void *returnInterpolatorPointer (const char *x) {
 	} else if (strcmp("NurbsOrientationInterpolator",x)==0) { return (void *)do_NurbsOrienatationInterpolator;
 	} else if (strcmp("NurbsSurfaceInterpolator",x)==0) { return (void *)do_NurbsSurfaceInterpolator;
 	} else if (strcmp("BooleanFilter",x)==0) { return (void *)do_BooleanFilter;
+	} else if (strcmp("FloatMultiply",x)==0) { return (void *)do_FloatMultiply;
 	} else if (strcmp("BooleanSequencer",x)==0) { return (void *)do_BooleanSequencer;
 	} else if (strcmp("BooleanToggle",x)==0) { return (void *)do_BooleanToggle;
 	} else if (strcmp("BooleanTrigger",x)==0) { return (void *)do_BooleanTrigger;

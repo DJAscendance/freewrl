@@ -48,6 +48,7 @@ void OpenCL_Utils_init(struct tOpenCL_Utils *t);
 void RenderTextures_init(struct tRenderTextures *t);
 void Textures_init(struct tTextures *t);
 void Textures_clear(struct tTextures *t);
+
 void PluginSocket_init(struct tPluginSocket *t);
 void pluginUtils_init(struct tpluginUtils *t);
 void collision_init(struct tcollision *t);
@@ -68,6 +69,8 @@ void Component_ParticleSystems_init(struct tComponent_ParticleSystems *t);
 void Component_ParticleSystems_clear(struct tComponent_ParticleSystems *t);
 void Component_ProgrammableShaders_init(struct tComponent_ProgrammableShaders *t);
 void Component_ProgrammableShaders_clear(struct tComponent_ProgrammableShaders *t);
+void Component_PTM_init(struct tComponent_PTM *t);
+void Component_PTM_clear(struct tComponent_PTM *t);
 void Component_RigidBodyPhysics_init(struct tComponent_RigidBodyPhysics *t);
 void Component_RigidBodyPhysics_clear(struct tComponent_RigidBodyPhysics *t);
 void Component_Followers_init(struct tComponent_Followers *t);
@@ -193,6 +196,7 @@ printf(" tComponent_Layout %d\n", (int)sizeof(struct tComponent_Layout));
 printf(" tComponent_NURBS %d\n", (int)sizeof(struct tComponent_NURBS));
 printf(" tComponent_ParticleSystems %d\n", (int)sizeof(struct tComponent_ParticleSystems));
 printf(" tComponent_ProgrammableShaders %d\n", (int)sizeof(struct tComponent_ProgrammableShaders));
+printf(" tComponent_PTM %d\n",(int)sizeof(struct tComponent_PTM));
 printf(" tComponent_RigidBodyPhysics %d\n", (int)sizeof(struct tComponent_RigidBodyPhysics));
 printf(" tComponent_Followers %d\n", (int)sizeof(struct tComponent_Followers));
 printf(" tComponent_KeyDevice %d\n", (int)sizeof(struct tComponent_KeyDevice));
@@ -306,6 +310,7 @@ ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID..
 	//RasterFont_init(&iglobal->RasterFont);
 	RenderTextures_init(&iglobal->RenderTextures);
 	Textures_init(&iglobal->Textures);
+	Component_PTM_init(&iglobal->Component_PTM);
 #ifndef DISABLER	
 #ifndef NO_PLUGINSOCKET
 	PluginSocket_init(&iglobal->PluginSocket);
@@ -439,6 +444,7 @@ OLDCODE	FREE_IF_NZ(tg->Component_Networking.prv);
 	collision_clear(&tg->collision); FREE_IF_NZ(tg->collision.prv);
 	FREE_IF_NZ(tg->pluginUtils.prv);
 	FREE_IF_NZ(tg->PluginSocket.prv);
+	Component_PTM_clear(&tg->Component_PTM); FREE_IF_NZ(tg->Component_PTM.prv);
 	Textures_clear(&tg->Textures); FREE_IF_NZ(tg->Textures.prv);
 	FREE_IF_NZ(tg->RenderTextures.prv);
 	//FREE_IF_NZ(tg->RasterFont.prv);

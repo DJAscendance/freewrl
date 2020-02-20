@@ -48,13 +48,14 @@ extern struct point_XYZ r1, r2;         /* in VRMLC.pm */
 
 
 /* function protos */
-int nextlight(void);
 void render_node(struct X3D_Node *node);
 
 struct X3D_Anchor *AnchorsAnchor();
 void setAnchorsAnchor(struct X3D_Anchor* anchor);
 
 void clearLightTable();
+int nextlight(void);
+void projectorTable_clear();
 
 void setLightState(GLint light, int status);
 void setLightType(GLint light, int type);

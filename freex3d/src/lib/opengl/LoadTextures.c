@@ -2604,7 +2604,7 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 		restype = resm_movie;
 		return TRUE;  //like pixeltexture - assume the pixels are delivered magically, not from file, so just return
 		break;
-	case NODE_ImageCubeMapTexture:
+	case NODE_ImageCubeMapTexture:	
 		url = & (((struct X3D_ImageCubeMapTexture *)entry->scenegraphNode)->url);
 		parentPath = (resource_item_t *)(((struct X3D_ImageCubeMapTexture *)entry->scenegraphNode)->_parentResource);
 		restype = resm_image;

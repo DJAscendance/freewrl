@@ -280,6 +280,8 @@ void make_orthogonal_vector_space(struct point_XYZ* i, struct point_XYZ* j, stru
 GLDOUBLE* matinverse(GLDOUBLE* res, GLDOUBLE* m);
 GLDOUBLE* matinverseFULL(GLDOUBLE* res, GLDOUBLE* m);
 GLDOUBLE* matinverseAFFINE(GLDOUBLE* res, GLDOUBLE* m);
+double *matidentity4d(double *b);
+double *mattranslate4d(double *mat, double* xyz);
 
 float* matinverse4f(float* res, float* mm);
 GLDOUBLE* mattranspose(GLDOUBLE* res, GLDOUBLE* m);

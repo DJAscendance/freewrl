@@ -45,7 +45,8 @@ void Multi_String_print(struct Multi_String *url);
 #define SPEC_X3D31 0x04
 #define SPEC_X3D32 0x08
 #define SPEC_X3D33 0x10
-#define SPEC_X3D34 0x20
+#define SPEC_X3D34 0x20  //there was never a 3.4 - it jumped to 4.0
+#define SPEC_X3D40 0X40
 #define SPEC_VRML1 0x01 /* same as SPEC_VRML */
 
 /*UNIT statement base and derived 'unit categories', un-ca or UNCA for short */
@@ -606,6 +607,7 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DParticlePhysicsModelNode		67
 #define X3DComposableVolumeRenderStyleNode 68
 #define X3DVolumeDataNode 69
+#define X3DTextureProjectorNode			70
 
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);

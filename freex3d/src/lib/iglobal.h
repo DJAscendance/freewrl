@@ -36,10 +36,13 @@ Variable use:
 //#include "x3d_parser/X3DParser.h" //for PARENTSTACKSIZE
 //#include "ui/common.h" // for ppcommon
 
+
 #define IBOOL int
 
 typedef struct iiglobal //InstanceGlobal
 {
+
+
 	struct tdisplay{
 		void *params; //freewrl_params_t
 		int _global_gl_err; //GLenum
@@ -232,6 +235,20 @@ typedef struct iiglobal //InstanceGlobal
 		unsigned int defaultBlankTexture;
 		void *prv;
 	}Textures;
+	struct tComponent_PTM{
+		/*
+		GLint _projTexGenMatCam0_Location;
+		GLint _MultiprojTexGenMatCam_Location[4];
+		GLint _projTexCoord_Location;
+		GLint _projViewMat_Location;
+		GLint _projMap_forCam1_Location;
+		//struct projective_Texdata data[4];
+		*/
+		//void *data;
+		//bool ProjActive;
+		int globalProjector;
+		void *prv;
+	}Component_PTM;
 	struct tPluginSocket{
 		void *prv;
 	}PluginSocket;
@@ -465,4 +482,4 @@ ttglobal gglobal(); //gets based on threadID, errors out if no threadID
 //ppcommon gglobal_common(); // lets the front end get the myMenuStatus without hassle. dug9 Mar2014: poll for the values with get_status, get_... in common.c
 ttglobal gglobal0(); //will return null if thread not yet initialized
 //ttglobal gglobalH(void *handle); //use window handle
-//ttglobal gglobalH0(void *handle); //test if window handle is in the table yet
+//ttglobal gglobalH0(void *handle); //test if window handle is in thetable yet
