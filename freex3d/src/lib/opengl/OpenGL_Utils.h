@@ -60,6 +60,13 @@ typedef enum vertexShaderResources {
 
     vertexLightingEquation,
 
+
+    
+	vertexProjValDec,
+	vertexProjCalTexCoord,
+	vertexMultiProjValDec,
+	vertexMultiProjCalTexCoord,
+
 	vertexMainStart,
 
     vertexPointSizeAssign,
@@ -67,13 +74,16 @@ typedef enum vertexShaderResources {
 
     vertexOneMaterialCalculation,
     vertexNormPosCalculation,
-        vertexSingleTextureCalculation,
+       vertexSingleTextureCalculation,
     vertexADSLCalculation,
 	vertexSimpleColourCalculation,
     vertexHatchPositionCalculation,
 
     vertexUserDefinedInput,
 
+	vertexProjTexCalculation,
+	vertexMultiProjTexCalculation,
+    
 	vertexMainEnd,
 	vertexEndMarker
 } vertexShaderResources_t;
@@ -101,6 +111,14 @@ typedef enum fragmenShaderResources {
     fragmentMultiTexModel,
     fragmentFillPropModel,
 
+
+
+	fragmentProjValDec,
+	fragmentProjCalTexCoord,
+    fragmentMultiProjValDec,
+	fragmentMultiProjCalTexCoord,
+
+
 	fragmentMainStart,
 
     fragmentUserDefinedInput,
@@ -110,6 +128,8 @@ typedef enum fragmenShaderResources {
     fragmentADSLAssign,
     fragmentTextureAssign,
     fragmentFillPropAssign,
+
+    fragmentProjTexAssign,
 
 	fragmentMainEnd,
 	fragmentEndMarker
@@ -153,6 +173,7 @@ void fw_glPushMatrix(void);
 void fw_glPopMatrix(void);
 void fw_glTranslated(GLDOUBLE a, GLDOUBLE b, GLDOUBLE c);
 void fw_glTransformd(GLDOUBLE *mat);
+void fw_glMultMatrixd(GLDOUBLE *mat);
 void fw_glTranslatef(float a, float b, float c);
 void fw_glRotateRad (GLDOUBLE a, GLDOUBLE b, GLDOUBLE c, GLDOUBLE d);
 void fw_glRotated (GLDOUBLE a, GLDOUBLE b, GLDOUBLE c, GLDOUBLE d);
@@ -201,5 +222,11 @@ void setPickrayMatrix(int index, GLDOUBLE *mat);
 void freeMallocedNodeFields(struct X3D_Node* node);
 void unRegisterX3DNode(struct X3D_Node * tmp);
 
+//khyoo
+
+void fw_gluPerspectiveTexture(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+void fw_gluPerspectiveTextureLookAt(GLDOUBLE ex, GLDOUBLE ey, GLDOUBLE ez, 
+				  GLDOUBLE cx, GLDOUBLE cy, GLDOUBLE cz, 
+                  GLDOUBLE ux,GLDOUBLE uy,GLDOUBLE uz);
 
 #endif /* __FREEWRL_OPENGL_UTILS_H__ */

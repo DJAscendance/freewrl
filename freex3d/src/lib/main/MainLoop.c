@@ -4300,7 +4300,7 @@ void fwl_handle_mouse_window_leave() {
 }
 
 
-int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
+int fwl_handle_mouse0(int mev, int butnum, int mouseX, int mouseY, int windex){
 	int cstyle, tactic_up_drag;
 	static unsigned int ID = 1;
 	ttglobal tg = gglobal();
@@ -4351,7 +4351,7 @@ int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex){
 	}
 	return cstyle;
 }
-int(*fwl_handle_mousePTR)(const int mev, const unsigned int button, int x, int y, int windex) = fwl_handle_mouse0;
+int(*fwl_handle_mousePTR)(int mev, int button, int x, int y, int windex) = fwl_handle_mouse0;
 int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
 	return fwl_handle_mousePTR(mev, butnum, mouseX, mouseY, windex);
 }
@@ -5694,6 +5694,7 @@ static void render()
 			BackEndClearBuffer(2);
 		//BackEndLightsOff();
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+		projectorTable_clear();
 
 		render_bound_background();
 
@@ -5712,7 +5713,7 @@ static void render()
 			/*  Other lights*/
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 
-			render_hier(rootNode(), VF_globalLight );
+			render_hier(rootNode(), VF_globalLight ); //also do global TextureProjectors: TextureProjectorPerspective global=true, TextureProjectorParallel global=true
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
 			render_hier(rootNode(), VF_Other );
 

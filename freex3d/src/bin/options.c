@@ -26,8 +26,10 @@
 
 #include <config.h>
 #include <system.h>
-#include <internal.h>
-
+//#include <internal.h>
+#define ERROR_MSG
+#define DEBUG_MSG
+#define TRACE_MSG
 #include <libFreeWRL.h>
 
 #include "main.h"
@@ -238,6 +240,8 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 #if defined(_DEBUG) || defined(DEBUG)
 		printf("c=%c argv[%d]=%s\n",c,optind,argv[optind]);
 #define	DEBUG_ARGS printf
+#else
+#define DEBUG_ARGS
 #endif //DEBUG
 
 	if (c == -1)

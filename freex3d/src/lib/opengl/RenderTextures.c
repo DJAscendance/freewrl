@@ -639,6 +639,7 @@ void textureTransform_start() {
 			//glUniform1i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0]);
 			//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
 			glUniform1i(me->TextureFunction[i],p->textureParameterStack[i].multitex_function);
+
 		}
 	#ifdef TEXVERBOSE
 	} else {

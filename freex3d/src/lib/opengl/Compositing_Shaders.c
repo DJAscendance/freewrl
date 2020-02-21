@@ -603,6 +603,18 @@ varying vec4 cpv_Color; \n\
 uniform vec3 particlePosition; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
+#ifdef PROJTEX \n\
+uniform mat4 projTexGenMatCam[8]; \n\
+uniform int pCount; \n\
+varying vec4 projTexCoord[8]; \n\
+varying vec4 projTexNorm[8]; \n\
+void vertProjCalTexCoord(void) { \n\
+	for(int i=0;i<pCount;i++){ \n\
+		projTexCoord[i] = projTexGenMatCam[i] * castle_vertex_eye; \n\
+		projTexNorm[i] = projTexGenMatCam[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+	} \n\
+} \n\
+#endif //PROJTEX \n\
  \n\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
 	vec4 tempv = vector; \n\
@@ -673,6 +685,9 @@ void main(void) \n\
   } \n\
   #endif //PARTICLE \n\
   castle_normal_eye = normalize(fw_NormalMatrix * normal_object); \n\
+  #ifdef PROJTEX \n\
+	vertProjCalTexCoord(); \n\
+  #endif //PROJETEX \n\
   \n\
   /* PLUG: vertex_eye_space (castle_vertex_eye, castle_normal_eye) */ \n\
    \n\
@@ -850,7 +865,7 @@ uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
 uniform int textureCount; \n\
 #endif //TEX3DLAY \n\
-#ifdef MTEX \n\
+#if defined(MTEX) || defined(PROJTEX) \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
@@ -1095,7 +1110,61 @@ vec3 castle_ColorES; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LITE \n\
 #endif //LIT\n\
- \n\
+#ifdef PROJTEX \n\
+//per sampler: \n\
+uniform sampler2D textureUnit[4]; \n\
+//per projector: \n\
+uniform int pbackCull[8]; \n\
+uniform int ntdesc[8]; \n\
+uniform int pCount; \n\
+varying vec4 projTexCoord[8]; \n\
+varying vec4 projTexNorm[8]; \n\
+//per texture descriptor (projector 1:m texdescriptor m:1 sampler): \n\
+uniform int tunits[16]; \n\
+uniform int modes[16]; \n\
+uniform int sources[16]; \n\
+uniform int funcs[16]; \n\
+vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
+	int k=0; \n\
+	for(int i=0;i<pCount;i++) { \n\
+		if( projTexCoord[i].q > 0.0 ){ \n\
+			vec4 pp = projTexCoord[i]; \n\
+			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
+			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
+			inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
+			if(inside){ \n\
+				bool facingProjector = true; \n\
+				vec3 pptex = pp.xyz/pp.w; \n\
+				if(pbackCull[i] == 1){ \n\
+					vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
+					vec3 nvec = normalize(pptex.xyz-pn); \n\
+					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
+					float dotval = dot(nvec,peye); \n\
+					facingProjector = (dotval > 0.0); \n\
+				} \n\
+				if(facingProjector){ \n\
+					//parallel/ortho \n\
+					vec2 ptex = pptex.xy; \n\
+					ptex.x = (ptex.x * .5) + .5; \n\
+					ptex.y = (ptex.y * .5) + .5; \n\
+					int ndesc = ntdesc[i]; \n\
+					vec4 prev = frag_color; \n\
+					for(int j=0;j<ndesc;j++,k++){ \n\
+						int kk = tunits[k]; \n\
+						int modea = int(modes[k] / 100); \n\
+						int mode = modes[k] - 100*modea; \n\
+						finalColCalc(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
+						//vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
+						//frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+					} \n\
+					frag_color = prev;\n\
+				} \n\
+			} \n\
+		} \n\
+	} \n\
+	return frag_color; \n\
+} \n\
+#endif //PROJTEX \n\
 /* Wrapper for calling PLUG texture_coord_shift */ \n\
 vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 { \n\
@@ -1163,6 +1232,9 @@ void main(void) \n\
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
   /* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
   /* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
+  #ifdef PROJTEX \n\
+  fragment_color = fragProjCalTexCoord(fragment_color); \n\
+  #endif //PROJTEX \n\
   \n\
   #undef normal_eye_fragment \n\
   \n\
@@ -1747,6 +1819,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_VERTEX,"UNLIT",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"UNLIT",CompleteCode);
 	}
+	if(DESIRE(whichOne.base,HAVE_PROJECTIVETEXTURE)){
+		AddDefine(SHADERPART_VERTEX,"PROJTEX",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"PROJTEX",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"TEX",CompleteCode);
+	}
 	if (DESIRE(whichOne.base,ONE_TEX_APPEARANCE_SHADER) ||
 		DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) ||
 		DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE) ||
@@ -1830,20 +1907,22 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
-	if(0){
-		//write out ubershader text to files (for preprocessing and analysis)
-		static int n = 0;
-		char filenamestr[100];
-		n++;
-		sprintf(filenamestr,"shader_vertex_%d.txt",n);
-		FILE* fp = fopen(filenamestr,"w+");
-		fwrite(*vertexSource,strlen(*vertexSource)+1,1,fp);
+//#define DEBUGSHADER 1
+#ifdef DEBUGSHADER
+	{
+		//after writing to file you can run unifdef, sunifdef or coan on output to see reduced shader
+		// http://coan2.sourceforge.net/
+		//coan source -m composed_shader.vert > shader.vert
+		FILE *fp = fopen("C:/tmp/composed_shader.vert","w+");
+		fwrite(*vertexSource,strlen(*vertexSource),1,fp);
 		fclose(fp);
-		sprintf(filenamestr,"shader_frag_%d.txt",n);
-		fp = fopen(filenamestr,"w+");
-		fwrite(*fragmentSource,strlen(*fragmentSource)+1,1,fp);
+		fp = fopen("C:/tmp/composed_shader.frag","w+");
+		fwrite(*fragmentSource,strlen(*fragmentSource),1,fp);
 		fclose(fp);
 	}
+#endif //DEBUGSHADER
+#undef DEBUGSHADER
+
 	return retval;
 }
 
@@ -2850,6 +2929,20 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 	// an editor that has line numbers, to get to the ERROR line
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
+//#define DEBUGSHADER 1
+#ifdef DEBUGSHADER
+	{
+		//after writing to file you can run unifdef, sunifdef or coan on output to see reduced shader
+		// http://coan2.sourceforge.net/
+		//coan source -m composed_shader.vert > shader.vert
+		FILE *fp = fopen("C:/tmp/composed_shader.vert","w+");
+		fwrite(*vertexSource,strlen(*vertexSource),1,fp);
+		fclose(fp);
+		fp = fopen("C:/tmp/composed_shader.frag","w+");
+		fwrite(*fragmentSource,strlen(*fragmentSource),1,fp);
+		fclose(fp);
+	}
+#endif //DEBUGSHADER
 	return retval;
 
 }

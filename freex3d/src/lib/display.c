@@ -557,6 +557,7 @@ bool initialize_rdr_caps()
 	#endif
 
 	p->rdr_caps.texture_units = (int) tmp;
+	ConsoleMessage("maxiumum image texture units %d \n",p->rdr_caps.texture_units);
 
 	/* max supported texturing anisotropicDegree- can be changed in TextureProperties */
 #ifdef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT

@@ -60,6 +60,7 @@
  * Version embedded
  */
 const char *libFreeWRL_get_version();
+const char *freewrl_get_version();
 
 /* for front ends to get the versions */
 const char *fwl_libFreeWRL_get_version(); /* library version */

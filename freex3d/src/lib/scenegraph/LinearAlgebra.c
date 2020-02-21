@@ -1328,6 +1328,28 @@ float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngle
 	}
 	return axisAngleC; //so can chain
 }
+double *matidentity4d(double *b){
+	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
+	int i,j;
+	double *mat[4];
+	for(i=0;i<4;i++){
+		mat[i] = &b[i*4];
+		for(j=0;j<4;j++)
+			mat[i][j] = 0.0;
+		mat[i][i] = 1.0;
+	}
+	return b;
+}
+double *mattranslate4d(double *mat, double* xyz){
+	// untested, want it to work like fw_glTranslated
+	double mtemp[16];
+	matidentity4d(mtemp);
+	mtemp[12] = xyz[0];
+	mtemp[13] = xyz[1];
+	mtemp[14] = xyz[2];
+	matmultiplyFULL(mat,mtemp,mat);
+	return mat;
+}
 float *matidentity4f(float *b){
 	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i,j;
