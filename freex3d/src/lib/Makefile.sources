@@ -175,6 +175,7 @@ scenegraph/statics.c \
 scenegraph/GenPolyRep.c \
 scenegraph/Component_VRML1.c \
 scenegraph/Component_VolumeRendering.c \
+scenegraph/Component_PTM.c \
 scenegraph/VeraMono_ttf.c \
  \
 input/EAI_C_CommonFunctions.c \
