@@ -3602,7 +3602,7 @@ void setup_stagesNORMAL(){
 		cstage->t1.contents = cswitch;
 		last = &cswitch->t1.contents;
 		//contenttype_switch_set_which(cswitch,2); //set in big render loop below, based on hyper_case
-		p->hyper_case[i] = 8; //which block below 0 - 9
+		p->hyper_case[i] = 11; //which block below 0 - 9
 
 		p->EMULATE_MULTITOUCH =	FALSE;
 		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
@@ -3887,6 +3887,131 @@ void setup_stagesNORMAL(){
 
 			*last = csbh; 
 			last = &csbh->t1.next; //don't need this line if truely the last, but doesn't hurt to have the address
+
+		}
+		{
+			//11. most of above, monster front end
+			// stereo chooser: switch + 4 stereo vision modes, sbh, textpanel
+			contenttype *cscene0, *cscene1, *cscene2;
+			contenttype *cstereo1, *cstereo2, *cstereo3, *cstereo4, *cswitch0;
+			contenttype *csbh, *ctextpanel, **next;
+			
+			csbh = new_contenttype_statusbar();
+			ctextpanel = new_contenttype_textpanel("VeraMono",8,60,120,TRUE);
+			cswitch0 = new_contenttype_switch();
+			cstereo1 = new_contenttype_stereo_shutter();
+			cstereo2 = new_contenttype_stereo_sidebyside();
+			cstereo3 = new_contenttype_stereo_anaglyph(); //anaglyph appears to work
+			cstereo4 = new_contenttype_stereo_updown();
+			//0 mono 1 shutter 2 sidebyside 3 analgyph 4 updown
+			contenttype_switch_set_which_ptr(cswitch0,&tg->Viewer.stereotype);
+
+
+			//stereo scenes 0,1
+			cscene0 = new_contenttype_scene();
+			cscene1 = new_contenttype_scene();
+			cscene0->t1.next = cscene1;
+			//mono scene 2
+			cscene2 = new_contenttype_scene();
+
+
+			//ConsoleMessage("Going to register textpanel for ConsoleMessages\n"); //should not show in textpanel
+			textpanel_register_as_console(ctextpanel);
+			//ConsoleMessage("Registered textpanel for ConsoleMessages\n"); //should be first message to show in textpanel
+
+			csbh->t1.contents = ctextpanel;
+			ctextpanel->t1.contents = cswitch0;
+			cswitch0->t1.contents = cscene2; //mono scene
+			cscene2->t1.next = cstereo1;     //whichCase 0
+			cstereo1->t1.contents = cscene0; //same scene0,scene1 stereo pair
+			cstereo2->t1.contents = cscene0; //2
+			cstereo3->t1.contents = cscene0; //3
+			cstereo4->t1.contents = cscene0; //4
+			cstereo1->t1.next = cstereo2;
+			cstereo2->t1.next = cstereo3;
+			cstereo3->t1.next = cstereo4;
+			next = &cstereo4->t1.next;
+			{
+				//9. cardboard sidebyside stereo with per-eye fbo 
+				contenttype *cscene0, *cscene1;
+				contenttype *cstereo;
+				contenttype *cstagefbo0, *cstagefbo1;
+				contenttype *ctexturegrid0, *ctexturegrid1;
+			
+				cstereo = new_contenttype_stereo_sidebyside();
+
+				cstagefbo0 = new_contenttype_stagefbo(512,512);
+				ctexturegrid0 = new_contenttype_texturegrid(5,5);
+
+				cstagefbo1 = new_contenttype_stagefbo(512,512);
+				ctexturegrid1 = new_contenttype_texturegrid(5,5);
+				cscene0 = new_contenttype_scene();
+				cscene1 = new_contenttype_scene();
+
+				if(1){
+					//googleCardboard barrel distortions to counteract/compensate for magnifying lenses
+					float xc;
+					X3D_Viewer *viewer = Viewer();
+
+					//ideally this gets run whenever screendist is changed
+					xc = 1.0f - (float) viewer->screendist;
+					texturegrid_barrel_distort2(ctexturegrid0, xc,.1f);
+					xc = (float)viewer->screendist;
+					texturegrid_barrel_distort2(ctexturegrid1, xc,.1f);
+				}
+
+
+				cstereo->t1.contents = ctexturegrid0;
+				ctexturegrid0->t1.next = ctexturegrid1;
+				ctexturegrid0->t1.contents = cstagefbo0;
+				ctexturegrid1->t1.contents = cstagefbo1;
+				cstagefbo0->t1.contents = cscene0;
+				cstagefbo1->t1.contents = cscene1;
+				*next = cstereo;
+				next = &cstereo->t1.next;
+			}
+			{
+				//10. quadrant
+				contenttype *cscene0, *cscene1, *cscene2, *cscene3;
+				contenttype *cquadrant; //, *cmultitouch;
+
+				cquadrant = new_contenttype_quadrant();
+
+				cscene0 = new_contenttype_scene();
+				cscene1 = new_contenttype_scene();
+				cscene2 = new_contenttype_scene();
+				cscene3 = new_contenttype_scene();
+
+				//csbh->t1.contents = cquadrant;
+				cquadrant->t1.contents = cscene0;
+				cscene0->t1.next = cscene1;
+				cscene1->t1.next = cscene2;
+				cscene2->t1.next = cscene3;
+				*next = cquadrant;
+				next = &cquadrant->t1.next;
+				//cstereo3->t1.next = cquadrant;
+			}
+
+			//next = &cstereo3->t1.next;
+			{
+				//multitouch eumulation
+				// and screen orientation (like when you turn a smartphone 90 degrees, up changes.
+				contenttype *cscene, *corientation, *cmultitouch, *cstagefbo;
+
+				cmultitouch = new_contenttype_multitouch();
+				corientation = new_contenttype_orientation();
+				cstagefbo = new_contenttype_stagefbo(512,512);
+				cscene = new_contenttype_scene();
+
+				cmultitouch->t1.contents = corientation;
+				corientation->t1.contents = cstagefbo;
+				cstagefbo->t1.contents = cscene;
+				*next = cmultitouch;
+				next = &cmultitouch->t1.next;
+			}
+			*last = csbh; 
+			last = &csbh->t1.next;
+
 
 		}
 

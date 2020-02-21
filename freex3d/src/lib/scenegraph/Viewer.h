@@ -49,6 +49,8 @@ int fwl_setNavMode(char *mode);
 #define VIEWER_STEREO_SIDEBYSIDE 2
 #define VIEWER_STEREO_ANAGLYPH 3
 #define VIEWER_STEREO_UPDOWN 4
+#define VIEWER_STEREO_CARDBOARD 5
+#define VIEWER_STEREO_QUADRANT 6
 
 
 #define X_AXIS 0
@@ -179,6 +181,8 @@ typedef struct viewer {
 	int updown; /*=1 if 2 viewport method*/
 	int updownB; //for contenttype_stereo_updown
 	int shutterGlasses;
+	int cardboard;
+	int quadrant;
 	int haveQuadbuffer;
 	int anaglyph; /* = 1 if analglyph is turned on */
 	int anaglyphB; //for contenttype_stereo_anaglyph

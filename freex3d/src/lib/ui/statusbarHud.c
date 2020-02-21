@@ -541,7 +541,7 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 30;
+static int lenOptions   = 32;
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -923,6 +923,8 @@ char * optionsText[] = {
 "  up-down",
 "  anaglyph",
 "  shutter",
+"  cardboard",
+"  quadrant",
 "Eyebase - object space",
 "\36       \37",
 "Your Eyebase = fiducials",
@@ -993,8 +995,10 @@ void initOptionsVal()
 	p->optionsVal[3][0] = 034; //[]
 	p->optionsVal[4][0] = 034; //[]
 	p->optionsVal[5][0] = 034; //[]
+	p->optionsVal[6][0] = 034; //[]
+	p->optionsVal[7][0] = 034; //[]
 
-	if(!(viewer->sidebyside || viewer->updown || viewer->anaglyph || viewer->shutterGlasses))
+	if(!(viewer->sidebyside || viewer->updown || viewer->anaglyph || viewer->shutterGlasses || viewer->cardboard || viewer->quadrant))
 		p->optionsVal[1][0] = 035; //[*] '*';
 	if(viewer->sidebyside)
 		p->optionsVal[2][0] = 035; //[*] '*';
@@ -1004,60 +1008,64 @@ void initOptionsVal()
 		p->optionsVal[4][0] = 035; //[*] '*';
 	if(viewer->shutterGlasses)
 		p->optionsVal[5][0] = 035; //[*] '*';
-	sprintf(p->optionsVal[7],"  %4.3f",viewer->eyedist); //.eyebase); //.060f);
-	sprintf(p->optionsVal[9],"  %4.3f",viewer->screendist); //.6f);
+	if(viewer->cardboard)
+		p->optionsVal[6][0] = 035; //[*] '*';
+	if(viewer->quadrant)
+		p->optionsVal[7][0] = 035; //[*] '*';
+	sprintf(p->optionsVal[9],"  %4.3f",viewer->eyedist); //.eyebase); //.060f);
+	sprintf(p->optionsVal[11],"  %4.3f",viewer->screendist); //.6f);
 	//sprintf(p->optionsVal[7],"  %4.3f",viewer->stereoParameter); //.toein.4f);
 	for(i=0;i<3;i++){
 		for(j=0;j<3;j++){
 			k = getAnaglyphPrimarySide(j,i);
-			p->optionsVal[12+i][j+1] = (k ? 035 : ' ');
+			p->optionsVal[14+i][j+1] = (k ? 035 : ' ');
 		}
 	}
 	fwl_get_sbh_pin(&p->statusbar_pinned,&p->menubar_pinned);
-	p->optionsVal[15][0] = p->statusbar_pinned ? 035 : 034; 
-	p->optionsVal[16][0] = p->menubar_pinned ? 035 : 034; 
-	sprintf(p->optionsVal[18]," %s ",fwl_get_ui_colorschemename());
-	sprintf(p->optionsVal[19],"            %4d",abs(fwl_get_target_fps()));
-	p->optionsVal[20][0] = 034; //[]
+	p->optionsVal[17][0] = p->statusbar_pinned ? 035 : 034; 
+	p->optionsVal[18][0] = p->menubar_pinned ? 035 : 034; 
+	sprintf(p->optionsVal[20]," %s ",fwl_get_ui_colorschemename());
+	sprintf(p->optionsVal[21],"            %4d",abs(fwl_get_target_fps()));
+	p->optionsVal[22][0] = 034; //[]
 	if(fwl_get_emulate_multitouch())
-		p->optionsVal[20][0] = 035; //[*] '*';
+		p->optionsVal[22][0] = 035; //[*] '*';
 	fwl_getPickraySide(&iside,&ieither);
-	p->optionsVal[22][1] = p->optionsVal[22][7] = p->optionsVal[22][14] = 034;
-	if(iside==0) p->optionsVal[22][1] = 035;
-	else p->optionsVal[22][7] = 035;
-	if(ieither) p->optionsVal[22][14] = 035;
-	sprintf(p->optionsVal[23],"                    %4d",fwl_getOrientation2());
+	p->optionsVal[24][1] = p->optionsVal[24][7] = p->optionsVal[24][14] = 034;
+	if(iside==0) p->optionsVal[24][1] = 035;
+	else p->optionsVal[24][7] = 035;
+	if(ieither) p->optionsVal[24][14] = 035;
+	sprintf(p->optionsVal[25],"                    %4d",fwl_getOrientation2());
 	shadingStyle = fwl_getShadingStyle();
-	p->optionsVal[25][1] = p->optionsVal[25][7] = p->optionsVal[25][16] = p->optionsVal[25][23] =034;
+	p->optionsVal[27][1] = p->optionsVal[27][7] = p->optionsVal[27][16] = p->optionsVal[27][23] =034;
 	switch(shadingStyle){
-		case 0: p->optionsVal[25][1]  = 035; break;
-		case 1: p->optionsVal[25][7]  = 035; break;
-		case 2: p->optionsVal[25][16] = 035; break;
-		case 3: p->optionsVal[25][23] = 035; break;
+		case 0: p->optionsVal[27][1]  = 035; break;
+		case 1: p->optionsVal[27][7]  = 035; break;
+		case 2: p->optionsVal[27][16] = 035; break;
+		case 3: p->optionsVal[27][23] = 035; break;
 		default:
 			break;
 	}
-	p->optionsVal[26][0] = 034; //[]
+	p->optionsVal[28][0] = 034; //[]
 	if(fwl_getDrawBoundingBoxes())
-		p->optionsVal[26][0] = 035; //[*] '*';
+		p->optionsVal[28][0] = 035; //[*] '*';
 	m = fwl_get_depth_slices();
-	p->optionsVal[27][13] = p->optionsVal[27][19] = p->optionsVal[27][23] = p->optionsVal[27][27] =034;
+	p->optionsVal[29][13] = p->optionsVal[29][19] = p->optionsVal[29][23] = p->optionsVal[29][27] =034;
 	switch(m){
 		// 012345678901234567890123456789  13 19 23 27
-		case 0: p->optionsVal[27][13] = 035; break; //[*]
-		case 1: p->optionsVal[27][19] = 035; break; //[*]
-		case 2: p->optionsVal[27][23] = 035; break; //[*]
-		case 3: p->optionsVal[27][27] = 035; break; //[*]
+		case 0: p->optionsVal[29][13] = 035; break; //[*]
+		case 1: p->optionsVal[29][19] = 035; break; //[*]
+		case 2: p->optionsVal[29][23] = 035; break; //[*]
+		case 3: p->optionsVal[29][27] = 035; break; //[*]
 	}
-	p->optionsVal[28][0] = 034; //[]
+	p->optionsVal[30][0] = 034; //[]
 	if(fwl_get_allow_DIS())
-		p->optionsVal[28][0] = 035; //[*] '*';
+		p->optionsVal[30][0] = 035; //[*] '*';
 	m = fwl_get_modulation();
-	p->optionsVal[29][15] = p->optionsVal[29][21] = p->optionsVal[29][30] =034;
+	p->optionsVal[31][15] = p->optionsVal[31][21] = p->optionsVal[31][30] =034;
 	switch(m){
-		case 0: p->optionsVal[29][15] = 035; break; //[*]
-		case 1: p->optionsVal[29][21] = 035; break; //[*]
-		case 2: p->optionsVal[29][30] = 035; break; //[*]
+		case 0: p->optionsVal[31][15] = 035; break; //[*]
+		case 1: p->optionsVal[31][21] = 035; break; //[*]
+		case 2: p->optionsVal[31][30] = 035; break; //[*]
 	}
 	p->optionsLoaded = 1;
 }
@@ -1075,8 +1083,10 @@ char * optionsCase[] = {
 "44444444",
 "33333333",
 "11111111",
+"55555555",
+"66666666",
 "       ",
-"55     66",
+"AA     BB",
 "              ",
 "DDEEEEEFF",
 "        ",
@@ -1225,6 +1235,8 @@ int handleOptionPress(int mouseX, int mouseY)
 	case '2': 
 	case '3': 
 	case '4': 
+	case '5': 
+	case '6': 
 		toggleOrSetStereo(opt-'0');
 		break;
 	case '7': 
@@ -1256,13 +1268,13 @@ int handleOptionPress(int mouseX, int mouseY)
 		setAnaglyphPrimarySide(opt-'x',2); //L,R,N
 		//setAnaglyphSideColor(opt,1);
 		break;
-	case '5': {
+	case 'A': {
 		/* eyebase */
 		printf("reduce eyebase");
 		viewer->eyedist *= .9;
 		updateEyehalf();
 		break;}
-	case '6': {
+	case 'B': {
 		/* eyebase */
 		printf("increase eyebase");
 		viewer->eyedist *= 1.1;
