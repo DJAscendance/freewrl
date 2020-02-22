@@ -2720,6 +2720,7 @@ typedef struct contenttype_orientation {
 void render_orientation(void *_self);
 void orientation_render(void *_self){
 	contenttype *c, *self;
+	ttglobal tg = gglobal();
 	self = (contenttype *)_self;
 	pushnset_viewport(self->t1.viewport);
 	c = self->t1.contents;
@@ -2730,7 +2731,6 @@ void orientation_render(void *_self){
 			int fbowidth,fboheight;
 			Stack* vpstack;
 			stage *s;
-			ttglobal tg = gglobal();
 
 			s = (stage*)c;
 			vpstack = (Stack*)tg->Mainloop._vportstack;
@@ -2753,11 +2753,16 @@ void orientation_render(void *_self){
 
 			if(s->ivport.W !=  fbowidth || s->ivport.H != fboheight)
 				stage_resize(c,fbowidth,fboheight);
-			c->t1.render(c);
+			if(tg->Mainloop.screenOrientation2 == 0){
+				c->t1.contents->t1.render(c->t1.contents);
+			}else{
+				c->t1.render(c);
+			}
 		}		
 	}
 	//render self last
-	render_orientation(_self);
+	if(tg->Mainloop.screenOrientation2 != 0)
+		render_orientation(_self);
 	popnset_viewport();
 }
 
@@ -3902,7 +3907,26 @@ void setup_stagesNORMAL(){
 			contenttype *cstereo1, *cstereo2, *cstereo3, *cstereo4, *cswitch0;
 			contenttype *csbh, *ctextpanel, **next;
 			
+			next = last;
+
+			if(1){
+				// screen orientation (like when you turn a smartphone 90 degrees, up changes.
+				//putting screen orientatino first shows how statusbarHud will look on mobile in different orienations
+				contenttype *corientation, *cstagefbo;
+
+				corientation = new_contenttype_orientation();
+				cstagefbo = new_contenttype_stagefbo(512,512);
+
+				*next = corientation;
+				corientation->t1.contents = cstagefbo;
+				next = &cstagefbo->t1.contents;
+			}
+
 			csbh = new_contenttype_statusbar();
+			*next = csbh;
+			next = &csbh->t1.next;
+
+
 			ctextpanel = new_contenttype_textpanel("VeraMono",8,60,120,TRUE);
 			cswitch0 = new_contenttype_switch();
 			cstereo1 = new_contenttype_stereo_shutter();
@@ -3934,17 +3958,6 @@ void setup_stagesNORMAL(){
 				cmultitouch = new_contenttype_multitouch();
 				*next = cmultitouch;
 				next = &cmultitouch->t1.contents;
-			}
-			if(0){
-				// screen orientation (like when you turn a smartphone 90 degrees, up changes.
-				contenttype *corientation, *cstagefbo;
-
-				corientation = new_contenttype_orientation();
-				cstagefbo = new_contenttype_stagefbo(512,512);
-
-				*next = corientation;
-				corientation->t1.contents = cstagefbo;
-				next = &cstagefbo->t1.contents;
 			}
 
 			//ctextpanel->t1.contents = cswitch0;
@@ -4020,8 +4033,6 @@ void setup_stagesNORMAL(){
 				//cstereo3->t1.next = cquadrant;
 			}
 
-			*last = csbh; 
-			last = &csbh->t1.next;
 
 
 		}

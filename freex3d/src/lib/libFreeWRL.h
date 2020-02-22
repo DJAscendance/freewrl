@@ -291,6 +291,7 @@ void fwl_init_SideBySide(void);
 void fwl_init_UpDown(void);
 void fwl_init_cardboard(void);
 void fwl_init_quadrant(void);
+void fwl_setOrientation2(int degrees);
 void fwl_set_AnaglyphParameter(const char *optArg);
 void fwl_set_StereoParameter(const char *optArg);
 void fwl_setDrawBoundingBoxes(int drawbb);

@@ -88,7 +88,8 @@ void fv_usage()
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
 	    "  -U|--updown			   Set updown stereo.\n"
 		"  -q|--cardboard		   set cardboard stereo \n"	
-		"  -Q|--quadrant		   set quadrant view \n"	
+		"  -Q|--quadrant		   set quadrant view \n"
+		"  -O|--screenorient	   set screen orientation degrees {0 90 180 270} \n"
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
 #ifdef USE_SNAPSHOT_TESTING
 		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
@@ -157,6 +158,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"sidebyside", no_argument, 0, 'B'},
 	{"cardboard", no_argument, 0, 'q'},
 	{"quadrant", no_argument, 0, 'Q'},
+	{"screenorient", required_argument, 0, 'O'},
 	{"updown", no_argument, 0, 'U'},
 	{"keypress", required_argument, 0, 'K'},
 	{"plugin", required_argument, 0, 'i'},
@@ -215,7 +217,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQqW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -426,7 +428,14 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'Q': /* --quadrant, no argument */
 	    fwl_init_quadrant();
 	    break;
-
+	case 'O': /* --anaglyph, required argument: string */
+		{
+			int degrees;
+			sscanf(optarg,"%d",&degrees);
+			if(degrees != 0 && degrees != 90 && degrees != 180 && degrees != 270 ) degrees = 0;
+			fwl_setOrientation2(degrees);
+		}
+	    break;
 	case 'K': /* --keypress, required argument: string */
 	    /* initial string of keypresses once main url is loaded */
 		fwl_set_KeyString(optarg);
