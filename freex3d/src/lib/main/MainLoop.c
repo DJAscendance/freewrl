@@ -2802,7 +2802,10 @@ int orientation_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, u
 		}
 		c = self->t1.contents;
 		while(c){
-			iret = c->t1.pick(c,mev,butnum,x,y,ID, windex);
+			if(tg->Mainloop.screenOrientation2 == 0)
+				iret = c->t1.contents->t1.pick(c,mev,butnum,x,y,ID, windex);
+			else
+				iret = c->t1.pick(c,mev,butnum,x,y,ID, windex);
 			if(iret > 0) break; //handled 
 			c = c->t1.next;
 		}
