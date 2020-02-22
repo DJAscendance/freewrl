@@ -1029,7 +1029,7 @@ void initOptionsVal()
 	// 0123456789 123456789 123456789 123456789 123456789
 	//"  mouse   emulate-multitouch   multitouch   gesture",,
 	p->optionsVal[22][0] = p->optionsVal[22][8] = p->optionsVal[22][29] = p->optionsVal[22][42] = 034; //[]
-	switch(fwl_get_emulate_multitouch()){
+	switch(fwl_get_touchtype()){
 		case 0: p->optionsVal[22][0] = 035; break; //[*] '*';
 		case 1: p->optionsVal[22][8] = 035; break; 
 		case 2: p->optionsVal[22][29] = 035; break; 
@@ -1293,10 +1293,10 @@ int handleOptionPress(int mouseX, int mouseY)
 		viewer->screendist -= .02; //*= .9;
 		updateEyehalf();
 		break;}
-	case 'h': fwl_set_emulate_multitouch(0); break;
-	case 'i': fwl_set_emulate_multitouch(1); break;
-	case 'j': fwl_set_emulate_multitouch(2); break;
-	case 'k': fwl_set_emulate_multitouch(3); break;
+	case 'h': fwl_set_touchtype(0); break;
+	case 'i': fwl_set_touchtype(1); break;
+	case 'j': fwl_set_touchtype(2); break;
+	case 'k': fwl_set_touchtype(3); break;
 	case 'E': {
 		/* screendist */
 		printf("set screendist");

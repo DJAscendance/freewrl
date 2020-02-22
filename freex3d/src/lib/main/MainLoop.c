@@ -1335,7 +1335,6 @@ contenttype *new_contenttype_layer(){
 
 int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex);
 void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle);
-int fwl_get_emulate_multitouch();
 //void render_multitouch();
 void render_multitouch2(struct Touch* touchlist, int ntouch);
 
@@ -1376,7 +1375,7 @@ int multitouch_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, un
 		int ihandle;
 		//record for rendering
 		ihandle = 0;
-		if(fwl_get_emulate_multitouch()){
+		if(fwl_get_touchtype() == TOUCHTYPE_EMULATE_MULTITOUCH){
 			ihandle = emulate_multitouch2(self->touchlist,self->ntouch,&self->IDD,&self->lastbut,&mev,&butnum,mouseX,mouseY,&ID,windex);
 			iret = ihandle < 0 ? 0 : 1;
 		}
@@ -3293,7 +3292,7 @@ void fwl_getWindowSize1(int windex, int *width, int *height){
 
 //true statics:
 int isBrowserPlugin = FALSE; //I can't think of a scenario where sharing this across instances would be a problem
-void fwl_set_emulate_multitouch(int ion){
+void fwl_set_touchtype(int ion){
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 	p->touch_type = ion; //0= mouse/single 1=emulate multitouch 2=touchpad multitouch 3=touchpad gestures
 	//clear up for a fresh start when toggling emulation on/off
@@ -3301,7 +3300,7 @@ void fwl_set_emulate_multitouch(int ion){
 	//	p->touchlist[i].ID = -1;
 	//p->touchlist[0].ID = 0;
 }
-int fwl_get_emulate_multitouch(){
+int fwl_get_touchtype(){
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 	return p->touch_type;
 }
@@ -3618,7 +3617,7 @@ void setup_stagesNORMAL(){
 		//contenttype_switch_set_which(cswitch,2); //set in big render loop below, based on hyper_case
 		p->hyper_case[i] = 11; //which block below 0 - 9
 
-		p->touch_type = TOUCHTYPE_SINGLE;
+		//p->touch_type = TOUCHTYPE_SINGLE;
 		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
 		// (via chain of next pointers, via *last helper)
 		{

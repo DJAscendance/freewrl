@@ -415,8 +415,8 @@ void fwl_setHover(int hover);
 int fwl_getPedal();
 void fwl_setPedal(int pedal);
 int fwl_getCtrl();
-void fwl_set_emulate_multitouch(int ion);
-int fwl_get_emulate_multitouch();
+void fwl_set_touchtype(int ion);
+int fwl_get_touchtype();
 
 // a few function prototypes from around libfreewrl
 void fwl_setConsole_writePrimitive(int ibool);
