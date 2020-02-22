@@ -136,6 +136,12 @@ struct SensStruct {
 #define RMB 3
 // and course #define MMB 2
 // but it gives a compiler warning on Linux...
+enum {
+	TOUCHTYPE_SINGLE = 0, //regular mouse click and drag
+	TOUCHTYPE_EMULATE_MULTITOUCH = 1, //mouse + emulator layer to add/delete/drag touches
+	TOUCHTYPE_MULTITOUCH = 2, //touchpad array of individual touches
+	TOUCHTYPE_GESTURE = 3,  //operating system interprets multiple touches as various higher level gestures
+};
 
 //conceptually a Touch isa Drag. A touch device will send in multiple coordinates, with the same ID,
 // and what that means is you are updating the terminal endpoint of a Touch or Drag. 
@@ -1815,12 +1821,11 @@ void stereo_anaglyph_render(void *_self){
 	contenttype_stereo_anaglyph *self;
 	X3D_Viewer *viewer;
 
-
 	self = (contenttype_stereo_anaglyph *)_self;
 	viewer = Viewer();
 	viewer->isStereoB = 1; //we're using the B so old isStereo not activated, backend thinks its rendering a mono scene
 	viewer->anaglyphB = 1; //except we need the shader for luminance = f(R,G,B)
-	clear_shader_table(); //tiggers reconfiguring shader, so it looks for anaglyphB flag 
+//	clear_shader_table(); //tiggers reconfiguring shader, so it looks for anaglyphB flag 
 	//setStereoBufferStyle(1);
 
 	pushnset_viewport(self->t1.viewport); //generic viewport
@@ -1844,10 +1849,11 @@ void stereo_anaglyph_render(void *_self){
 	}
 	Viewer_anaglyph_clearSides(); //clear all channels
 	//glColorMask(1,1,1,1);
-	clear_shader_table();
+//	clear_shader_table();
 
 	viewer->anaglyphB = 0;
 	viewer->isStereoB = 0;
+
 	popnset_viewport();
 }
 int stereo_anaglyph_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
@@ -3042,7 +3048,7 @@ typedef struct pMainloop{
 	int ntouch;// =0;
 	unsigned int currentTouch;// = -1;
 	struct Touch touchlist[20];
-	int EMULATE_MULTITOUCH;// = 1;
+	int touch_type;// = 1;
 
 	FILE* logfile;
 	FILE* logerr;
@@ -3143,7 +3149,7 @@ void Mainloop_init(struct tMainloop *t){
 		p->ntouch =20;
 		p->currentTouch = 0; //-1;
 		//p->touchlist[20];
-		p->EMULATE_MULTITOUCH = 0;
+		p->touch_type = TOUCHTYPE_SINGLE;
 		memset(p->touchlist,0,20*sizeof(struct Touch));
 		// .inUse flag 0 //for(i=0;i<p->ntouch;i++) p->touchlist[i].ID = -1;
 
@@ -3281,7 +3287,7 @@ void fwl_getWindowSize1(int windex, int *width, int *height){
 int isBrowserPlugin = FALSE; //I can't think of a scenario where sharing this across instances would be a problem
 void fwl_set_emulate_multitouch(int ion){
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-	p->EMULATE_MULTITOUCH = ion;
+	p->touch_type = ion; //0= mouse/single 1=emulate multitouch 2=touchpad multitouch 3=touchpad gestures
 	//clear up for a fresh start when toggling emulation on/off
 	//for(i=0;i<p->ntouch;i++)
 	//	p->touchlist[i].ID = -1;
@@ -3289,7 +3295,7 @@ void fwl_set_emulate_multitouch(int ion){
 }
 int fwl_get_emulate_multitouch(){
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-	return p->EMULATE_MULTITOUCH;
+	return p->touch_type;
 }
 
 /*
@@ -3604,7 +3610,7 @@ void setup_stagesNORMAL(){
 		//contenttype_switch_set_which(cswitch,2); //set in big render loop below, based on hyper_case
 		p->hyper_case[i] = 11; //which block below 0 - 9
 
-		p->EMULATE_MULTITOUCH =	FALSE;
+		p->touch_type = TOUCHTYPE_SINGLE;
 		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
 		// (via chain of next pointers, via *last helper)
 		{
@@ -3634,7 +3640,7 @@ void setup_stagesNORMAL(){
 
 			*last = cmultitouch; //paste into previous blocks top-level (just below switch) next
 			last = &cmultitouch->t1.next;
-			p->EMULATE_MULTITOUCH =	TRUE;
+			//p->touch_type = TOUCHTYPE_EMULATE_MULTITOUCH;
 
 			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
 		}
@@ -3918,9 +3924,28 @@ void setup_stagesNORMAL(){
 			//ConsoleMessage("Going to register textpanel for ConsoleMessages\n"); //should not show in textpanel
 			textpanel_register_as_console(ctextpanel);
 			//ConsoleMessage("Registered textpanel for ConsoleMessages\n"); //should be first message to show in textpanel
-
+			//ctextpanel->t1.contents = cswitch0;
+			next = &ctextpanel->t1.contents;
 			csbh->t1.contents = ctextpanel;
-			ctextpanel->t1.contents = cswitch0;
+			{
+				//multitouch eumulation
+				// and screen orientation (like when you turn a smartphone 90 degrees, up changes.
+				contenttype *cscene, *corientation, *cmultitouch, *cstagefbo;
+
+				cmultitouch = new_contenttype_multitouch();
+				corientation = new_contenttype_orientation();
+				cstagefbo = new_contenttype_stagefbo(512,512);
+				//cscene = new_contenttype_scene();
+
+				cmultitouch->t1.contents = corientation;
+				corientation->t1.contents = cstagefbo;
+				//cstagefbo->t1.contents = cscene;
+				*next = cmultitouch;
+				next = &cstagefbo->t1.contents;
+			}
+
+			//ctextpanel->t1.contents = cswitch0;
+			*next = cswitch0;
 			cswitch0->t1.contents = cscene2; //mono scene
 			cscene2->t1.next = cstereo1;     //whichCase 0
 			cstereo1->t1.contents = cscene0; //same scene0,scene1 stereo pair
@@ -3992,23 +4017,6 @@ void setup_stagesNORMAL(){
 				//cstereo3->t1.next = cquadrant;
 			}
 
-			//next = &cstereo3->t1.next;
-			{
-				//multitouch eumulation
-				// and screen orientation (like when you turn a smartphone 90 degrees, up changes.
-				contenttype *cscene, *corientation, *cmultitouch, *cstagefbo;
-
-				cmultitouch = new_contenttype_multitouch();
-				corientation = new_contenttype_orientation();
-				cstagefbo = new_contenttype_stagefbo(512,512);
-				cscene = new_contenttype_scene();
-
-				cmultitouch->t1.contents = corientation;
-				corientation->t1.contents = cstagefbo;
-				cstagefbo->t1.contents = cscene;
-				*next = cmultitouch;
-				next = &cmultitouch->t1.next;
-			}
 			*last = csbh; 
 			last = &csbh->t1.next;
 
@@ -4253,7 +4261,7 @@ void render_multitouch2(struct Touch *touchlist, int ntouch){
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
 
-	if(p->EMULATE_MULTITOUCH) {
+	if(p->touch_type == TOUCHTYPE_EMULATE_MULTITOUCH) {
 		int i;
 		for(i=0;i<ntouch;i++){
 			if(touchlist[i].ID > -1)

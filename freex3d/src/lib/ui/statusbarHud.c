@@ -939,7 +939,7 @@ char * optionsText[] = {
 "colorScheme:",
 "",
 "target FPS \36    \37",
-"  emulate multitouch (mousewheel)",
+"  mouse   emulate-multitouch   multitouch   gesture",
 "pickray eye:",
 "  left  right  either",
 "screen orientation \36    \37",
@@ -986,7 +986,7 @@ void initOptionsVal()
 	for(i=0;i<lenOptions;i++)
 	{
 		if(!p->optionsVal[i])
-			p->optionsVal[i] = MALLOC(char*, 48);
+			p->optionsVal[i] = MALLOC(char*, 55);
 		for(j=0;j<48;j++) p->optionsVal[i][j] = ' ';
 		p->optionsVal[i][47] = '\0';
 	}
@@ -1026,9 +1026,16 @@ void initOptionsVal()
 	p->optionsVal[18][0] = p->menubar_pinned ? 035 : 034; 
 	sprintf(p->optionsVal[20]," %s ",fwl_get_ui_colorschemename());
 	sprintf(p->optionsVal[21],"            %4d",abs(fwl_get_target_fps()));
-	p->optionsVal[22][0] = 034; //[]
-	if(fwl_get_emulate_multitouch())
-		p->optionsVal[22][0] = 035; //[*] '*';
+	// 0123456789 123456789 123456789 123456789 123456789
+	//"  mouse   emulate-multitouch   multitouch   gesture",,
+	p->optionsVal[22][0] = p->optionsVal[22][8] = p->optionsVal[22][29] = p->optionsVal[22][42] = 034; //[]
+	switch(fwl_get_emulate_multitouch()){
+		case 0: p->optionsVal[22][0] = 035; break; //[*] '*';
+		case 1: p->optionsVal[22][8] = 035; break; 
+		case 2: p->optionsVal[22][29] = 035; break; 
+		case 3: p->optionsVal[22][42] = 035; break; 
+		default: break;
+	}
 	fwl_getPickraySide(&iside,&ieither);
 	p->optionsVal[24][1] = p->optionsVal[24][7] = p->optionsVal[24][14] = 034;
 	if(iside==0) p->optionsVal[24][1] = 035;
@@ -1099,7 +1106,7 @@ char * optionsCase[] = {
 "        ",
 "99999999",
 "          KK    LL",
-"GGGGGGGGGGG",
+"hhhhhh iiiiiiiiiiiiiiiiiii  jjjjjjjjjjj  kkkkkkkkkk",
 " ",
 "MM    NN     OO",
 "                  PP    QQ",
@@ -1286,10 +1293,10 @@ int handleOptionPress(int mouseX, int mouseY)
 		viewer->screendist -= .02; //*= .9;
 		updateEyehalf();
 		break;}
-	case 'G': {
-		fwl_set_emulate_multitouch(1 - fwl_get_emulate_multitouch());
-		break;
-		}
+	case 'h': fwl_set_emulate_multitouch(0); break;
+	case 'i': fwl_set_emulate_multitouch(1); break;
+	case 'j': fwl_set_emulate_multitouch(2); break;
+	case 'k': fwl_set_emulate_multitouch(3); break;
 	case 'E': {
 		/* screendist */
 		printf("set screendist");
