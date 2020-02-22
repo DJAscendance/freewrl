@@ -2791,7 +2791,8 @@ void viewer_postGLinit_init(void)
 	if( viewer->sidebyside ) type = VIEWER_STEREO_SIDEBYSIDE;
 	if( viewer->updown ) type = VIEWER_STEREO_UPDOWN;
 	if( viewer->anaglyph ==1 ) type = VIEWER_STEREO_ANAGLYPH;
-
+	if( viewer->cardboard ==1 ) type = VIEWER_STEREO_CARDBOARD;
+	if( viewer->quadrant == 1 ) type = VIEWER_STEREO_QUADRANT;
 	if(type==VIEWER_STEREO_SHUTTERGLASSES)
 	{
 		// does this opengl driver/hardware support GL_STEREO? p.469, p.729 RedBook and

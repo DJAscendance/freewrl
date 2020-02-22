@@ -87,6 +87,8 @@ void fv_usage()
 	    "  -A|--anaglyph <string>  Set anaglyph color pair ie: RB for left red, right blue. any of RGBCAM.\n"
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
 	    "  -U|--updown			   Set updown stereo.\n"
+		"  -q|--cardboard		   set cardboard stereo \n"	
+		"  -Q|--quadrant		   set quadrant view \n"	
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
 #ifdef USE_SNAPSHOT_TESTING
 		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
@@ -153,6 +155,8 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"stereo", required_argument, 0, 't'},
 	{"anaglyph", required_argument, 0, 'A'},
 	{"sidebyside", no_argument, 0, 'B'},
+	{"cardboard", no_argument, 0, 'q'},
+	{"quadrant", no_argument, 0, 'Q'},
 	{"updown", no_argument, 0, 'U'},
 	{"keypress", required_argument, 0, 'K'},
 	{"plugin", required_argument, 0, 'i'},
@@ -211,7 +215,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQqW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -237,6 +241,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	c = getopt(argc, argv, optstring);
 		
 # endif //HAVE_GETOPT_LONG
+//#define _DEBUG 1
 #if defined(_DEBUG) || defined(DEBUG)
 		printf("c=%c argv[%d]=%s\n",c,optind,argv[optind]);
 #define	DEBUG_ARGS printf
@@ -414,6 +419,12 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 
 	case 'U': /* --updown, no argument */
 	    fwl_init_UpDown();
+	    break;
+	case 'q': /* --cardboard, no argument */
+	    fwl_init_cardboard();
+	    break;
+	case 'Q': /* --quadrant, no argument */
+	    fwl_init_quadrant();
 	    break;
 
 	case 'K': /* --keypress, required argument: string */
