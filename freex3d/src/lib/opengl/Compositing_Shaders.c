@@ -1137,6 +1137,7 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
 				if(pbackCull[i] == 1){ \n\
 					vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
+					//if(!gl_FrontFacing) pn = -pn; \n\
 					vec3 nvec = normalize(pptex.xyz-pn); \n\
 					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
 					float dotval = dot(nvec,peye); \n\

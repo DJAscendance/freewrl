@@ -3927,20 +3927,23 @@ void setup_stagesNORMAL(){
 			//ctextpanel->t1.contents = cswitch0;
 			next = &ctextpanel->t1.contents;
 			csbh->t1.contents = ctextpanel;
-			{
+			if(1){
 				//multitouch eumulation
-				// and screen orientation (like when you turn a smartphone 90 degrees, up changes.
-				contenttype *cscene, *corientation, *cmultitouch, *cstagefbo;
+				contenttype *cmultitouch;
 
 				cmultitouch = new_contenttype_multitouch();
+				*next = cmultitouch;
+				next = &cmultitouch->t1.contents;
+			}
+			if(0){
+				// screen orientation (like when you turn a smartphone 90 degrees, up changes.
+				contenttype *corientation, *cstagefbo;
+
 				corientation = new_contenttype_orientation();
 				cstagefbo = new_contenttype_stagefbo(512,512);
-				//cscene = new_contenttype_scene();
 
-				cmultitouch->t1.contents = corientation;
+				*next = corientation;
 				corientation->t1.contents = cstagefbo;
-				//cstagefbo->t1.contents = cscene;
-				*next = cmultitouch;
 				next = &cstagefbo->t1.contents;
 			}
 
