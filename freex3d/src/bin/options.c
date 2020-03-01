@@ -444,6 +444,9 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 			sscanf(optarg,"%d",&ttype);
 			if(ttype < 0 || ttype > 3) ttype = 0;
 			fwl_set_touchtype(ttype);
+			//ms windows: gestures are default, need to register window for touches if desired
+			fv_params->touchtype = ttype;
+
 		}
 	    break;
 	case 'K': /* --keypress, required argument: string */

@@ -16,6 +16,7 @@
 #include <display.h>
 #include <main/headers.h>
 #include <windows.h>
+#include <windowsx.h>
 #include <shlwapi.h>
 
 #include <internal.h>
@@ -811,8 +812,92 @@ static void win32_clipboard_paste() {
 		}
 	} 
 }
+//touch >>
+// This function is used to return an index given an ID
+int GetContactIndex(int dwID, int *idLookup, int maxpoints){
+  for (int i=0; i < maxpoints; i++){
+    if (idLookup[i] == -1){
+      idLookup[i] = dwID;
+      return i;
+    }else{
+      if (idLookup[i] == dwID){
+        return i;
+      }
+    }
+  }
+  // Out of contacts
+  return -1;
+}
+//<< touch
+//gesture >>
 
+LRESULT DecodeGesture(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
+    // Create a structure to populate and retrieve the extra message info.
+    GESTUREINFO gi;  
+    
+    ZeroMemory(&gi, sizeof(GESTUREINFO));
+    
+    gi.cbSize = sizeof(GESTUREINFO);
 
+    BOOL bResult  = GetGestureInfo((HGESTUREINFO)lParam, &gi);
+    BOOL bHandled = FALSE;
+
+    if (bResult){
+        // now interpret the gesture
+        switch (gi.dwID){
+           case GID_ZOOM:
+               // Code for zooming goes here     
+               bHandled = TRUE;
+               break;
+           case GID_PAN:
+               // Code for panning goes here
+               bHandled = TRUE;
+               break;
+           case GID_ROTATE:
+               // Code for rotation goes here
+               bHandled = TRUE;
+               break;
+           case GID_TWOFINGERTAP:
+               // Code for two-finger tap goes here
+               bHandled = TRUE;
+               break;
+           case GID_PRESSANDTAP:
+               // Code for roll over goes here
+               bHandled = TRUE;
+               break;
+           default:
+               // A gesture was not recognized
+               break;
+        }
+    }else{
+        DWORD dwErr = GetLastError();
+        if (dwErr > 0){
+            //MessageBoxW(hWnd, L"Error!", L"Could not retrieve a GESTUREINFO structure.", MB_OK);
+        }
+    }
+    //if (bHandled){
+    //    return 0;
+    //}else{
+    //    return DefWindowProc(hWnd, message, wParam, lParam);
+    //}
+	return 0;
+  }
+void onGestureNotify(HWND hWnd){
+	GESTURECONFIG config = { 0 };
+	config.dwWant =GC_ALLGESTURES | GC_ROTATE; // GC_ROTATE;
+	config.dwID = GID_ROTATE;
+	config.dwBlock = 0;
+
+	BOOL result = SetGestureConfig(
+		hWnd,
+		0,
+		1,
+		&config,
+		sizeof(GESTURECONFIG)
+	);
+
+}
+//<< gesture
 
 void fwl_set_clipboard_copy( void (*fn)(char *));
 void fwl_set_clipboard_paste( void (*fn));
@@ -830,6 +915,11 @@ LRESULT CALLBACK PopupWndProc(
     PAINTSTRUCT ps;
     LONG lRet = 1; 
     RECT rect; 
+	//touch>>
+	UINT cInputs;
+	PTOUCHINPUT pInputs;
+	POINT ptInput;   
+	//<<touch
 	int keyraw;
     int mev;
     int butnum;
@@ -1090,6 +1180,78 @@ static int shiftState = 0;
 	    break;
 	}
 
+	//WM_TOUCH needs capable device and minimum windows 7 and one way to tell: is it x64 (we're in windows code) - that's vista and beyond. close enough,
+	// although there are x86 versions of windows 8.1 etc.
+//#if defined(_M_AMD64) || defined(_M_X64)
+	// touch >>
+	//https://docs.microsoft.com/en-us/windows/win32/wintouch/detecting-and-tracking-multiple-touch-points
+	case WM_TOUCH:  
+	{
+		#define MAXPOINTS 20
+		static int idLookup[MAXPOINTS];
+		static int initialized = 0;
+		printf("got a WM_TOUCH index x y action\n");
+		static TOUCHINPUT pInputs[MAXPOINTS];  //if you open multiple windows in the same (future?) freewrl instance, then this can't be static
+		if(!initialized){
+			initialized = 1;
+			for(int i=0;i<MAXPOINTS;i++) idLookup[i] = -1;
+		}
+		cInputs = LOWORD(wParam);
+		cInputs = min(20,cInputs);
+		//pInputs = new TOUCHINPUT[cInputs];
+		if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs, sizeof(TOUCHINPUT))){
+			for (int i=0; i < (int)(cInputs); i++){
+				int index, cursorStyle, touchAction;
+				TOUCHINPUT ti = pInputs[i];
+				index = GetContactIndex(ti.dwID,idLookup,MAXPOINTS);
+				if (ti.dwID != 0 && index < MAXPOINTS){                            
+					// Do something with your touch input handle
+					ptInput.x = TOUCH_COORD_TO_PIXEL(ti.x);
+					ptInput.y = TOUCH_COORD_TO_PIXEL(ti.y);
+					ScreenToClient(hWnd, &ptInput);
+					touchAction = MotionNotify;
+					if (ti.dwFlags & TOUCHEVENTF_UP) touchAction = ButtonRelease;
+					if (ti.dwFlags & TOUCHEVENTF_DOWN) touchAction = ButtonPress;
+					if (ti.dwFlags & TOUCHEVENTF_UP){
+						printf("touch up ID %d ",index);
+						//points[index][0] = -1;
+						//points[index][1] = -1;                
+					}else{
+						printf("x %d y %d ID %d ",ptInput.x,ptInput.y,index);
+						//points[index][0] = ptInput.x;
+						//points[index][1] = ptInput.y;                
+					}
+					printf("[%d %d %d %d]\n",index,ptInput.x,ptInput.y,touchAction);
+					cursorStyle = fwl_handle_touch(touchAction, index, ptInput.x, ptInput.y, 0);
+				}
+			}
+		}
+		// If you handled the message and don't want anything else done with it, you can close it
+		CloseTouchInputHandle((HTOUCHINPUT)lParam);
+		//delete [] pInputs;
+		break;
+	}
+	//<< touch
+//#endif
+	case WM_GESTURENOTIFY:
+		onGestureNotify(hWnd);
+	break;
+
+	case WM_GESTURE:
+	{
+		// https://docs.microsoft.com/en-us/windows/win32/wintouch/getting-started-with-multi-touch-gestures
+		// Insert handler code here to interpret the gesture.
+		int iretg;            
+		iretg = DecodeGesture(hWnd, msg, wParam, lParam);
+		printf("got a WM_GESTURE\n");
+		break;
+	}
+	case WM_HSCROLL:
+	case WM_VSCROLL:
+	printf("got a WM_SCROLL\n");
+	break;
+
+
 	/* falls through to default ? */
 
 /**************************************************************\
@@ -1224,6 +1386,7 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	HWND  ghWnd;   
     //RECT rect; 
 	int width, height;
+	int haveTOUCH;
     int nCmdShow = SW_SHOW;
 	
 	//printf("starting createWindow32\n"); 
@@ -1308,9 +1471,29 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
         return NULL; 
 
     //printf("made a window\n");
-
+	haveTOUCH = 0;
+//#if defined(_M_AMD64) || defined(_M_X64)
+   // register the window for touch instead of gestures
+   // needs to be windows7+
+   {
+		// https://docs.microsoft.com/en-us/windows/win32/wintouch/getting-started-with-multi-touch-messages
+		// test for touch
+		//int value = GetSystemMetrics(SM_DIGITIZER);
+		//if (value & NID_READY){ /* stack ready */}
+		//if (value  & NID_MULTI_INPUT){
+			/* digitizer is multitouch */ 
+			//printf("Multitouch device found\n");
+			//}
+			//if (value & NID_INTEGRATED_TOUCH){ /* Integrated touch */}
+			// TOUCHTYPE_MULTITOUCH == 2 TOUCHTYPE_GESTURE == 3
+			if(d->touchtype == 2){
+				RegisterTouchWindow(ghWnd, 0);
+				haveTOUCH = 1;
+			}
+		//}
+   }
+//#endif 
     //GetClientRect(ghWnd, &rect); 
-   
     ShowWindow( ghWnd, SW_SHOW); /* SW_SHOWNORMAL); /*nCmdShow );*/
     //printf("showed window\n");
 	//d->winToEmbedInto = (long int)ghWnd;

@@ -79,6 +79,7 @@ typedef struct freewrl_params {
 	int xpos;
 	int ypos;
 	long int winToEmbedInto;
+	int touchtype;
 	bool fullscreen;
 	bool multithreading;
 	bool enableEAI;
