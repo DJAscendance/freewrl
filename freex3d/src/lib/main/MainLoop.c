@@ -3620,6 +3620,8 @@ void setup_stagesNORMAL(){
 		//p->touch_type = TOUCHTYPE_SINGLE;
 		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
 		// (via chain of next pointers, via *last helper)
+		switch(p->hyper_case[i]){
+		case 0:
 		{
 			//0. normal: scene, statusbarHud, 
 			contenttype *cscene, *csbh;
@@ -3633,6 +3635,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
 		}
+		break;
+		case 1:
 		{
 			//MAY 18, 2016 MULTITOUCH EMULATION DOESN'T WORK NOW after setup_picking() and onTouch() changes
 			//1. normal + multitouch emulation, scene, statusbarHud, 
@@ -3651,6 +3655,8 @@ void setup_stagesNORMAL(){
 
 			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
 		}
+		break;
+		case 2:
 		{
 			//2. TextPanel (dual-ringbuffer, for ConsoleMessage) + CaptionText
 			contenttype *csbh, *cscene, *ctextpanel, *ctext;
@@ -3682,6 +3688,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 
 		}
+		break;
+		case 3:
 		{
 			//3. captiontext, scene, statusbarHud, 
 			contenttype *cscene, *csbh, *ctext;
@@ -3715,6 +3723,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 
 		}
+		break;
+		case 4:
 		{
 			//4. e3dmouse: multitouch emulation, layer, (e3dmouse > scene), statusbarHud, 
 			contenttype *csbh, *cscene, *ce3dmouse; // UNUSED cmultitouch
@@ -3731,6 +3741,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 
 		}
+		break;
+		case 5:
 		{
 			//5. experimental render to fbo, then fbo to screen
 			//.. this will allow screen orientation to be re-implemented as a 2-stage render with rotation between
@@ -3751,6 +3763,8 @@ void setup_stagesNORMAL(){
 			last = &cmultitouch->t1.next;
 
 		}
+		break;
+		case 6:
 		{
 			//6. multitouch emulation, orientation, fbo, layer { scene, statusbarHud }
 			contenttype *csbh, *cscene, *corientation, *cmultitouch, *cstagefbo;
@@ -3770,6 +3784,8 @@ void setup_stagesNORMAL(){
 			last = &cmultitouch->t1.next;
 
 		}
+		break;
+		case 7:
 		{
 			//7. rotates just the scene, leaves statusbar un-rotated
 			//multitouch emulation,  layer, {{orientation, fbo, scene}, statusbarHud }
@@ -3790,6 +3806,8 @@ void setup_stagesNORMAL(){
 			last = &cmultitouch->t1.next;
 
 		}
+		break;
+		case 8:
 		{
 			//8. stereo chooser: switch + 4 stereo vision modes, sbh, textpanel
 			contenttype *cscene0, *cscene1, *cscene2;
@@ -3834,7 +3852,9 @@ void setup_stagesNORMAL(){
 			*last = csbh; 
 			last = &csbh->t1.next;
 
-		} 
+		}
+		break;
+		case 9:
 		{
 			//9. sidebyside stereo with per-eye fbo
 			contenttype *cscene0, *cscene1;
@@ -3878,7 +3898,9 @@ void setup_stagesNORMAL(){
 			*last = csbh; 
 			last = &csbh->t1.next;
 
-		} 
+		}
+		break;
+		case 10:
 		{
 			//10. quadrant
 			contenttype *cscene0, *cscene1, *cscene2, *cscene3;
@@ -3902,9 +3924,13 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next; //don't need this line if truely the last, but doesn't hurt to have the address
 
 		}
+		break;
+		case 11:
 		{
 			//11. most of above, monster front end
+			// orientation, statusbarHud, stereoChooser, multitouch, 
 			// stereo chooser: switch + 4 stereo vision modes, sbh, textpanel
+			// quadrant
 			contenttype *cscene0, *cscene1, *cscene2;
 			contenttype *cstereo1, *cstereo2, *cstereo3, *cstereo4, *cswitch0;
 			contenttype *csbh, *ctextpanel, **next;
@@ -4035,9 +4061,11 @@ void setup_stagesNORMAL(){
 				//cstereo3->t1.next = cquadrant;
 			}
 
-
-
 		}
+		break;
+		default:
+		break;
+		} //end switch
 
 		t->stage = cstage;
 //		t = t->next;
