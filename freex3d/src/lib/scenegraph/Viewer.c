@@ -2661,10 +2661,27 @@ void setMono()
 	viewer->sidebyside = 0;
 	viewer->updown = 0;
 	viewer->shutterGlasses = 0;
+	viewer->cardboard = 0;
+	viewer->quadrant = 0;
 	tg->display.shutterGlasses = 0;
 
 }
-
+void fwl_init_quadrant(){
+	X3D_Viewer *viewer;
+	ttglobal tg = gglobal();
+	viewer = Viewer();
+	setMono();
+	viewer->quadrant = 1;
+	
+}
+void fwl_init_cardboard(){
+	X3D_Viewer *viewer;
+	ttglobal tg = gglobal();
+	viewer = Viewer();
+	setMono();
+	viewer->cardboard = 1;
+	
+}
 /*
 #define VIEWER_STEREO_OFF 0
 #define VIEWER_STEREO_SHUTTERGLASSES 1
@@ -2686,6 +2703,8 @@ static void setStereo(int type)
 	case VIEWER_STEREO_SIDEBYSIDE: {fwl_init_SideBySide(); break;}
 	case VIEWER_STEREO_ANAGLYPH: {setAnaglyph(); break;}
 	case VIEWER_STEREO_UPDOWN: {fwl_init_UpDown(); break;}
+	case VIEWER_STEREO_CARDBOARD: {fwl_init_cardboard(); break;}
+	case VIEWER_STEREO_QUADRANT: {fwl_init_quadrant(); break;}
 	default: break;
 	}
 }
@@ -2698,7 +2717,7 @@ void toggleOrSetStereo(int type)
 	viewer = Viewer();
 
 	shut = viewer->shutterGlasses ? 1 : 0;
-	curtype = viewer->isStereo*( (shut)*1 + viewer->sidebyside*2 + viewer->anaglyph*3 + viewer->updown*4);
+	curtype = viewer->isStereo*( (shut)*1 + viewer->sidebyside*2 + viewer->anaglyph*3 + viewer->updown*4 + viewer->cardboard*5 + viewer->quadrant*6);
 	if(type != curtype) {
 		setStereo(type);
 	} else {
@@ -2772,7 +2791,8 @@ void viewer_postGLinit_init(void)
 	if( viewer->sidebyside ) type = VIEWER_STEREO_SIDEBYSIDE;
 	if( viewer->updown ) type = VIEWER_STEREO_UPDOWN;
 	if( viewer->anaglyph ==1 ) type = VIEWER_STEREO_ANAGLYPH;
-
+	if( viewer->cardboard ==1 ) type = VIEWER_STEREO_CARDBOARD;
+	if( viewer->quadrant == 1 ) type = VIEWER_STEREO_QUADRANT;
 	if(type==VIEWER_STEREO_SHUTTERGLASSES)
 	{
 		// does this opengl driver/hardware support GL_STEREO? p.469, p.729 RedBook and

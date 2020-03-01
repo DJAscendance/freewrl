@@ -87,6 +87,10 @@ void fv_usage()
 	    "  -A|--anaglyph <string>  Set anaglyph color pair ie: RB for left red, right blue. any of RGBCAM.\n"
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
 	    "  -U|--updown			   Set updown stereo.\n"
+		"  -q|--cardboard		   set cardboard stereo \n"	
+		"  -Q|--quadrant		   set quadrant view \n"
+		"  -O|--screenorient	   set screen orientation degrees {0 90 180 270} \n"
+		"  -T|--touchtype		   set pointing device touch type {0=single 1=emulate multitouch 2=multitouch 3=gesture \n"
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
 #ifdef USE_SNAPSHOT_TESTING
 		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
@@ -153,6 +157,10 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"stereo", required_argument, 0, 't'},
 	{"anaglyph", required_argument, 0, 'A'},
 	{"sidebyside", no_argument, 0, 'B'},
+	{"cardboard", no_argument, 0, 'q'},
+	{"quadrant", no_argument, 0, 'Q'},
+	{"screenorient", required_argument, 0, 'O'},
+	{"touchtype", required_argument, 0, 'T'},
 	{"updown", no_argument, 0, 'U'},
 	{"keypress", required_argument, 0, 'K'},
 	{"plugin", required_argument, 0, 'i'},
@@ -211,7 +219,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DJ:x"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -237,6 +245,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	c = getopt(argc, argv, optstring);
 		
 # endif //HAVE_GETOPT_LONG
+//#define _DEBUG 1
 #if defined(_DEBUG) || defined(DEBUG)
 		printf("c=%c argv[%d]=%s\n",c,optind,argv[optind]);
 #define	DEBUG_ARGS printf
@@ -415,7 +424,31 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'U': /* --updown, no argument */
 	    fwl_init_UpDown();
 	    break;
+	case 'q': /* --cardboard, no argument */
+	    fwl_init_cardboard();
+	    break;
+	case 'Q': /* --quadrant, no argument */
+	    fwl_init_quadrant();
+	    break;
+	case 'O': /* --screenorient {0,90,180,270} */
+		{
+			int degrees;
+			sscanf(optarg,"%d",&degrees);
+			if(degrees != 0 && degrees != 90 && degrees != 180 && degrees != 270 ) degrees = 0;
+			fwl_setOrientation2(degrees);
+		}
+	    break;
+	case 'T': /* --touchtype {0=single/mouse 1=emulate multitouch 2=multitouch 3=gesture */
+		{
+			int ttype;
+			sscanf(optarg,"%d",&ttype);
+			if(ttype < 0 || ttype > 3) ttype = 0;
+			fwl_set_touchtype(ttype);
+			//ms windows: gestures are default, need to register window for touches if desired
+			fv_params->touchtype = ttype;
 
+		}
+	    break;
 	case 'K': /* --keypress, required argument: string */
 	    /* initial string of keypresses once main url is loaded */
 		fwl_set_KeyString(optarg);

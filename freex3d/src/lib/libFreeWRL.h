@@ -79,6 +79,7 @@ typedef struct freewrl_params {
 	int xpos;
 	int ypos;
 	long int winToEmbedInto;
+	int touchtype;
 	bool fullscreen;
 	bool multithreading;
 	bool enableEAI;
@@ -289,6 +290,9 @@ void fwl_init_Shutter(void);
 void fwl_init_SideBySide(void);
 
 void fwl_init_UpDown(void);
+void fwl_init_cardboard(void);
+void fwl_init_quadrant(void);
+void fwl_setOrientation2(int degrees);
 void fwl_set_AnaglyphParameter(const char *optArg);
 void fwl_set_StereoParameter(const char *optArg);
 void fwl_setDrawBoundingBoxes(int drawbb);
@@ -412,8 +416,8 @@ void fwl_setHover(int hover);
 int fwl_getPedal();
 void fwl_setPedal(int pedal);
 int fwl_getCtrl();
-void fwl_set_emulate_multitouch(int ion);
-int fwl_get_emulate_multitouch();
+void fwl_set_touchtype(int ion);
+int fwl_get_touchtype();
 
 // a few function prototypes from around libfreewrl
 void fwl_setConsole_writePrimitive(int ibool);

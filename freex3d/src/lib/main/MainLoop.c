@@ -136,6 +136,12 @@ struct SensStruct {
 #define RMB 3
 // and course #define MMB 2
 // but it gives a compiler warning on Linux...
+enum {
+	TOUCHTYPE_SINGLE = 0, //regular mouse click and drag
+	TOUCHTYPE_EMULATE_MULTITOUCH = 1, //mouse + emulator layer to add/delete/drag touches
+	TOUCHTYPE_MULTITOUCH = 2, //touchpad array of individual touches
+	TOUCHTYPE_GESTURE = 3,  //operating system interprets multiple touches as various higher level gestures
+};
 
 //conceptually a Touch isa Drag. A touch device will send in multiple coordinates, with the same ID,
 // and what that means is you are updating the terminal endpoint of a Touch or Drag. 
@@ -1329,7 +1335,6 @@ contenttype *new_contenttype_layer(){
 
 int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex);
 void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle);
-int fwl_get_emulate_multitouch();
 //void render_multitouch();
 void render_multitouch2(struct Touch* touchlist, int ntouch);
 
@@ -1370,7 +1375,7 @@ int multitouch_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, un
 		int ihandle;
 		//record for rendering
 		ihandle = 0;
-		if(fwl_get_emulate_multitouch()){
+		if(fwl_get_touchtype() == TOUCHTYPE_EMULATE_MULTITOUCH){
 			ihandle = emulate_multitouch2(self->touchlist,self->ntouch,&self->IDD,&self->lastbut,&mev,&butnum,mouseX,mouseY,&ID,windex);
 			iret = ihandle < 0 ? 0 : 1;
 		}
@@ -1815,12 +1820,11 @@ void stereo_anaglyph_render(void *_self){
 	contenttype_stereo_anaglyph *self;
 	X3D_Viewer *viewer;
 
-
 	self = (contenttype_stereo_anaglyph *)_self;
 	viewer = Viewer();
 	viewer->isStereoB = 1; //we're using the B so old isStereo not activated, backend thinks its rendering a mono scene
 	viewer->anaglyphB = 1; //except we need the shader for luminance = f(R,G,B)
-	clear_shader_table(); //tiggers reconfiguring shader, so it looks for anaglyphB flag 
+//	clear_shader_table(); //tiggers reconfiguring shader, so it looks for anaglyphB flag 
 	//setStereoBufferStyle(1);
 
 	pushnset_viewport(self->t1.viewport); //generic viewport
@@ -1844,10 +1848,11 @@ void stereo_anaglyph_render(void *_self){
 	}
 	Viewer_anaglyph_clearSides(); //clear all channels
 	//glColorMask(1,1,1,1);
-	clear_shader_table();
+//	clear_shader_table();
 
 	viewer->anaglyphB = 0;
 	viewer->isStereoB = 0;
+
 	popnset_viewport();
 }
 int stereo_anaglyph_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
@@ -2714,6 +2719,7 @@ typedef struct contenttype_orientation {
 void render_orientation(void *_self);
 void orientation_render(void *_self){
 	contenttype *c, *self;
+	ttglobal tg = gglobal();
 	self = (contenttype *)_self;
 	pushnset_viewport(self->t1.viewport);
 	c = self->t1.contents;
@@ -2724,7 +2730,6 @@ void orientation_render(void *_self){
 			int fbowidth,fboheight;
 			Stack* vpstack;
 			stage *s;
-			ttglobal tg = gglobal();
 
 			s = (stage*)c;
 			vpstack = (Stack*)tg->Mainloop._vportstack;
@@ -2747,11 +2752,16 @@ void orientation_render(void *_self){
 
 			if(s->ivport.W !=  fbowidth || s->ivport.H != fboheight)
 				stage_resize(c,fbowidth,fboheight);
-			c->t1.render(c);
+			if(tg->Mainloop.screenOrientation2 == 0){
+				c->t1.contents->t1.render(c->t1.contents);
+			}else{
+				c->t1.render(c);
+			}
 		}		
 	}
 	//render self last
-	render_orientation(_self);
+	if(tg->Mainloop.screenOrientation2 != 0)
+		render_orientation(_self);
 	popnset_viewport();
 }
 
@@ -2791,7 +2801,10 @@ int orientation_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, u
 		}
 		c = self->t1.contents;
 		while(c){
-			iret = c->t1.pick(c,mev,butnum,x,y,ID, windex);
+			if(tg->Mainloop.screenOrientation2 == 0)
+				iret = c->t1.contents->t1.pick(c,mev,butnum,x,y,ID, windex);
+			else
+				iret = c->t1.pick(c,mev,butnum,x,y,ID, windex);
 			if(iret > 0) break; //handled 
 			c = c->t1.next;
 		}
@@ -3042,7 +3055,7 @@ typedef struct pMainloop{
 	int ntouch;// =0;
 	unsigned int currentTouch;// = -1;
 	struct Touch touchlist[20];
-	int EMULATE_MULTITOUCH;// = 1;
+	int touch_type;// = 1;
 
 	FILE* logfile;
 	FILE* logerr;
@@ -3143,7 +3156,7 @@ void Mainloop_init(struct tMainloop *t){
 		p->ntouch =20;
 		p->currentTouch = 0; //-1;
 		//p->touchlist[20];
-		p->EMULATE_MULTITOUCH = 0;
+		p->touch_type = TOUCHTYPE_SINGLE;
 		memset(p->touchlist,0,20*sizeof(struct Touch));
 		// .inUse flag 0 //for(i=0;i<p->ntouch;i++) p->touchlist[i].ID = -1;
 
@@ -3279,17 +3292,17 @@ void fwl_getWindowSize1(int windex, int *width, int *height){
 
 //true statics:
 int isBrowserPlugin = FALSE; //I can't think of a scenario where sharing this across instances would be a problem
-void fwl_set_emulate_multitouch(int ion){
+void fwl_set_touchtype(int ion){
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-	p->EMULATE_MULTITOUCH = ion;
+	p->touch_type = ion; //0= mouse/single 1=emulate multitouch 2=touchpad multitouch 3=touchpad gestures
 	//clear up for a fresh start when toggling emulation on/off
 	//for(i=0;i<p->ntouch;i++)
 	//	p->touchlist[i].ID = -1;
 	//p->touchlist[0].ID = 0;
 }
-int fwl_get_emulate_multitouch(){
+int fwl_get_touchtype(){
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
-	return p->EMULATE_MULTITOUCH;
+	return p->touch_type;
 }
 
 /*
@@ -3602,11 +3615,13 @@ void setup_stagesNORMAL(){
 		cstage->t1.contents = cswitch;
 		last = &cswitch->t1.contents;
 		//contenttype_switch_set_which(cswitch,2); //set in big render loop below, based on hyper_case
-		p->hyper_case[i] = 8; //which block below 0 - 9
+		p->hyper_case[i] = 11; //which block below 0 - 9
 
-		p->EMULATE_MULTITOUCH =	FALSE;
+		//p->touch_type = TOUCHTYPE_SINGLE;
 		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
 		// (via chain of next pointers, via *last helper)
+		switch(p->hyper_case[i]){
+		case 0:
 		{
 			//0. normal: scene, statusbarHud, 
 			contenttype *cscene, *csbh;
@@ -3620,6 +3635,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
 		}
+		break;
+		case 1:
 		{
 			//MAY 18, 2016 MULTITOUCH EMULATION DOESN'T WORK NOW after setup_picking() and onTouch() changes
 			//1. normal + multitouch emulation, scene, statusbarHud, 
@@ -3634,10 +3651,12 @@ void setup_stagesNORMAL(){
 
 			*last = cmultitouch; //paste into previous blocks top-level (just below switch) next
 			last = &cmultitouch->t1.next;
-			p->EMULATE_MULTITOUCH =	TRUE;
+			//p->touch_type = TOUCHTYPE_EMULATE_MULTITOUCH;
 
 			//tg->Mainloop.AllowNavDrag = TRUE; //experimental approach to allow both navigation and dragging at the same time, with 2 separate touches
 		}
+		break;
+		case 2:
 		{
 			//2. TextPanel (dual-ringbuffer, for ConsoleMessage) + CaptionText
 			contenttype *csbh, *cscene, *ctextpanel, *ctext;
@@ -3669,6 +3688,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 
 		}
+		break;
+		case 3:
 		{
 			//3. captiontext, scene, statusbarHud, 
 			contenttype *cscene, *csbh, *ctext;
@@ -3702,6 +3723,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 
 		}
+		break;
+		case 4:
 		{
 			//4. e3dmouse: multitouch emulation, layer, (e3dmouse > scene), statusbarHud, 
 			contenttype *csbh, *cscene, *ce3dmouse; // UNUSED cmultitouch
@@ -3718,6 +3741,8 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next;
 
 		}
+		break;
+		case 5:
 		{
 			//5. experimental render to fbo, then fbo to screen
 			//.. this will allow screen orientation to be re-implemented as a 2-stage render with rotation between
@@ -3738,6 +3763,8 @@ void setup_stagesNORMAL(){
 			last = &cmultitouch->t1.next;
 
 		}
+		break;
+		case 6:
 		{
 			//6. multitouch emulation, orientation, fbo, layer { scene, statusbarHud }
 			contenttype *csbh, *cscene, *corientation, *cmultitouch, *cstagefbo;
@@ -3757,6 +3784,8 @@ void setup_stagesNORMAL(){
 			last = &cmultitouch->t1.next;
 
 		}
+		break;
+		case 7:
 		{
 			//7. rotates just the scene, leaves statusbar un-rotated
 			//multitouch emulation,  layer, {{orientation, fbo, scene}, statusbarHud }
@@ -3777,6 +3806,8 @@ void setup_stagesNORMAL(){
 			last = &cmultitouch->t1.next;
 
 		}
+		break;
+		case 8:
 		{
 			//8. stereo chooser: switch + 4 stereo vision modes, sbh, textpanel
 			contenttype *cscene0, *cscene1, *cscene2;
@@ -3821,7 +3852,9 @@ void setup_stagesNORMAL(){
 			*last = csbh; 
 			last = &csbh->t1.next;
 
-		} 
+		}
+		break;
+		case 9:
 		{
 			//9. sidebyside stereo with per-eye fbo
 			contenttype *cscene0, *cscene1;
@@ -3865,7 +3898,9 @@ void setup_stagesNORMAL(){
 			*last = csbh; 
 			last = &csbh->t1.next;
 
-		} 
+		}
+		break;
+		case 10:
 		{
 			//10. quadrant
 			contenttype *cscene0, *cscene1, *cscene2, *cscene3;
@@ -3889,6 +3924,148 @@ void setup_stagesNORMAL(){
 			last = &csbh->t1.next; //don't need this line if truely the last, but doesn't hurt to have the address
 
 		}
+		break;
+		case 11:
+		{
+			//11. most of above, monster front end
+			// orientation, statusbarHud, stereoChooser, multitouch, 
+			// stereo chooser: switch + 4 stereo vision modes, sbh, textpanel
+			// quadrant
+			contenttype *cscene0, *cscene1, *cscene2;
+			contenttype *cstereo1, *cstereo2, *cstereo3, *cstereo4, *cswitch0;
+			contenttype *csbh, *ctextpanel, **next;
+			
+			next = last;
+
+			if(1){
+				// screen orientation (like when you turn a smartphone 90 degrees, up changes.
+				//putting screen orientatino first shows how statusbarHud will look on mobile in different orienations
+				contenttype *corientation, *cstagefbo;
+
+				corientation = new_contenttype_orientation();
+				cstagefbo = new_contenttype_stagefbo(512,512);
+
+				*next = corientation;
+				corientation->t1.contents = cstagefbo;
+				next = &cstagefbo->t1.contents;
+			}
+
+			csbh = new_contenttype_statusbar();
+			*next = csbh;
+			next = &csbh->t1.next;
+
+
+			ctextpanel = new_contenttype_textpanel("VeraMono",8,60,120,TRUE);
+			cswitch0 = new_contenttype_switch();
+			cstereo1 = new_contenttype_stereo_shutter();
+			cstereo2 = new_contenttype_stereo_sidebyside();
+			cstereo3 = new_contenttype_stereo_anaglyph(); //anaglyph appears to work
+			cstereo4 = new_contenttype_stereo_updown();
+			//0 mono 1 shutter 2 sidebyside 3 analgyph 4 updown
+			contenttype_switch_set_which_ptr(cswitch0,&tg->Viewer.stereotype);
+
+
+			//stereo scenes 0,1
+			cscene0 = new_contenttype_scene();
+			cscene1 = new_contenttype_scene();
+			cscene0->t1.next = cscene1;
+			//mono scene 2
+			cscene2 = new_contenttype_scene();
+
+
+			//ConsoleMessage("Going to register textpanel for ConsoleMessages\n"); //should not show in textpanel
+			textpanel_register_as_console(ctextpanel);
+			//ConsoleMessage("Registered textpanel for ConsoleMessages\n"); //should be first message to show in textpanel
+			//ctextpanel->t1.contents = cswitch0;
+			next = &ctextpanel->t1.contents;
+			csbh->t1.contents = ctextpanel;
+			if(1){
+				//multitouch eumulation
+				contenttype *cmultitouch;
+
+				cmultitouch = new_contenttype_multitouch();
+				*next = cmultitouch;
+				next = &cmultitouch->t1.contents;
+			}
+
+			//ctextpanel->t1.contents = cswitch0;
+			*next = cswitch0;
+			cswitch0->t1.contents = cscene2; //mono scene
+			cscene2->t1.next = cstereo1;     //whichCase 0
+			cstereo1->t1.contents = cscene0; //same scene0,scene1 stereo pair
+			cstereo2->t1.contents = cscene0; //2
+			cstereo3->t1.contents = cscene0; //3
+			cstereo4->t1.contents = cscene0; //4
+			cstereo1->t1.next = cstereo2;
+			cstereo2->t1.next = cstereo3;
+			cstereo3->t1.next = cstereo4;
+			next = &cstereo4->t1.next;
+			{
+				//9. cardboard sidebyside stereo with per-eye fbo 
+				contenttype *cscene0, *cscene1;
+				contenttype *cstereo;
+				contenttype *cstagefbo0, *cstagefbo1;
+				contenttype *ctexturegrid0, *ctexturegrid1;
+			
+				cstereo = new_contenttype_stereo_sidebyside();
+
+				cstagefbo0 = new_contenttype_stagefbo(512,512);
+				ctexturegrid0 = new_contenttype_texturegrid(5,5);
+
+				cstagefbo1 = new_contenttype_stagefbo(512,512);
+				ctexturegrid1 = new_contenttype_texturegrid(5,5);
+				cscene0 = new_contenttype_scene();
+				cscene1 = new_contenttype_scene();
+
+				if(1){
+					//googleCardboard barrel distortions to counteract/compensate for magnifying lenses
+					float xc;
+					X3D_Viewer *viewer = Viewer();
+
+					//ideally this gets run whenever screendist is changed
+					xc = 1.0f - (float) viewer->screendist;
+					texturegrid_barrel_distort2(ctexturegrid0, xc,.1f);
+					xc = (float)viewer->screendist;
+					texturegrid_barrel_distort2(ctexturegrid1, xc,.1f);
+				}
+
+
+				cstereo->t1.contents = ctexturegrid0;
+				ctexturegrid0->t1.next = ctexturegrid1;
+				ctexturegrid0->t1.contents = cstagefbo0;
+				ctexturegrid1->t1.contents = cstagefbo1;
+				cstagefbo0->t1.contents = cscene0;
+				cstagefbo1->t1.contents = cscene1;
+				*next = cstereo;
+				next = &cstereo->t1.next;
+			}
+			{
+				//10. quadrant
+				contenttype *cscene0, *cscene1, *cscene2, *cscene3;
+				contenttype *cquadrant; //, *cmultitouch;
+
+				cquadrant = new_contenttype_quadrant();
+
+				cscene0 = new_contenttype_scene();
+				cscene1 = new_contenttype_scene();
+				cscene2 = new_contenttype_scene();
+				cscene3 = new_contenttype_scene();
+
+				//csbh->t1.contents = cquadrant;
+				cquadrant->t1.contents = cscene0;
+				cscene0->t1.next = cscene1;
+				cscene1->t1.next = cscene2;
+				cscene2->t1.next = cscene3;
+				*next = cquadrant;
+				next = &cquadrant->t1.next;
+				//cstereo3->t1.next = cquadrant;
+			}
+
+		}
+		break;
+		default:
+		break;
+		} //end switch
 
 		t->stage = cstage;
 //		t = t->next;
@@ -4128,7 +4305,7 @@ void render_multitouch2(struct Touch *touchlist, int ntouch){
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
 
-	if(p->EMULATE_MULTITOUCH) {
+	if(p->touch_type == TOUCHTYPE_EMULATE_MULTITOUCH) {
 		int i;
 		for(i=0;i<ntouch;i++){
 			if(touchlist[i].ID > -1)
