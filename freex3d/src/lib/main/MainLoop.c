@@ -3615,12 +3615,12 @@ void setup_stagesNORMAL(){
 		cstage->t1.contents = cswitch;
 		last = &cswitch->t1.contents;
 		//contenttype_switch_set_which(cswitch,2); //set in big render loop below, based on hyper_case
-		p->hyper_case[i] = 11; //which block below 0 - 9
+		p->hyper_case[i] = 0; //11; //which block below 0 - 9
 
 		//p->touch_type = TOUCHTYPE_SINGLE;
 		// these prepared ways of using freewrl are put into the switch contenttype cswitch above 
 		// (via chain of next pointers, via *last helper)
-		switch(p->hyper_case[i]){
+		switch(11){ //p->hyper_case[i]){
 		case 0:
 		{
 			//0. normal: scene, statusbarHud, 
@@ -4071,6 +4071,7 @@ void setup_stagesNORMAL(){
 //		t = t->next;
 	}
 }
+/*
 int fwl_hyper_option(char *val){
 	//keyboard on graphics window: ' ' (spacebar) will get : prompt
 	//then :hyper_otion,3[Enter] will change the hyperoption for all windows
@@ -4086,6 +4087,7 @@ int fwl_hyper_option(char *val){
 	}
 	return 1;
 }
+*/
 void initialize_targets_simple(){
 
 	ttglobal tg = gglobal();
