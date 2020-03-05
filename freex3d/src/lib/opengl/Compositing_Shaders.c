@@ -815,8 +815,9 @@ void main(void) \n\
 static const GLchar *genericFragmentGLES2 = "\
 /* DEFINES */ \n\
 #ifdef MOBILE \n\
-//precision highp float; \n\
 precision mediump float; \n\
+#else \n\
+precision highp float; \n\
 #endif //MOBILE \n\
 /* Generic GLSL fragment shader, used on OpenGL ES. */ \n\
  \n\
@@ -1641,7 +1642,7 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
           /* ambient light computation */ \n\
           ambient += myMat.ambient*myLightAmbient; \n\
           /* specular light computation */ \n\
-          attenuation *= (myMat.shininess/128.0); \n\
+          //attenuation *= (myMat.shininess/16.0); ///128.0); \n\
           specular += myLightSpecular * powerFactor * attenuation; \n\
         } \n\
       } \n\

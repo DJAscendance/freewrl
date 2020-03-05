@@ -82,7 +82,13 @@ void compile_DirectionalLight (struct X3D_DirectionalLight *node) {
     CHBOUNDS(node->_amb);
     MARK_NODE_COMPILED;
 }
-
+enum {
+	LIGHT_DIRECTION 1,
+	LIGHT_POSITION 2,
+	LIGHT_COLOR 3,
+	LIGHT_INTENSITY 4,
+	LIGHT_AMBIENT 5,
+};
 
 void render_DirectionalLight (struct X3D_DirectionalLight *node) {
 	/* if we are doing global lighting, is this one for us? */
