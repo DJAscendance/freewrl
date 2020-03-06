@@ -540,12 +540,12 @@ uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
 struct fw_LightSourceParameters { \n\
-  vec4 ambient;  \n\
-  vec4 diffuse;   \n\
-  vec4 specular; \n\
-  vec4 position;   \n\
-  vec4 halfVector;  \n\
-  vec4 spotDirection; \n\
+  float ambient;  \n\
+  vec3 color;   \n\
+  float intensity; \n\
+  vec3 location;   \n\
+  vec3 halfVector;  \n\
+  vec3 direction; \n\
   float spotBeamWidth; \n\
   float spotCutoff; \n\
   vec3 Attenuations; \n\
@@ -815,8 +815,9 @@ void main(void) \n\
 static const GLchar *genericFragmentGLES2 = "\
 /* DEFINES */ \n\
 #ifdef MOBILE \n\
-//precision highp float; \n\
 precision mediump float; \n\
+//#else \n\
+//precision highp float; \n\
 #endif //MOBILE \n\
 /* Generic GLSL fragment shader, used on OpenGL ES. */ \n\
  \n\
@@ -828,12 +829,12 @@ uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
 struct fw_LightSourceParameters { \n\
-  vec4 ambient;  \n\
-  vec4 diffuse;   \n\
-  vec4 specular; \n\
-  vec4 position;   \n\
-  vec4 halfVector;  \n\
-  vec4 spotDirection; \n\
+  float ambient;  \n\
+  vec3 color;   \n\
+  float intensity; \n\
+  vec3 location;   \n\
+  vec3 halfVector;  \n\
+  vec3 direction; \n\
   float spotBeamWidth; \n\
   float spotCutoff; \n\
   vec3 Attenuations; \n\
@@ -1552,100 +1553,97 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
   //if(useMatDiffuse) \n\
   matdiffuse = myMat.diffuse; \n\
   \n\
-  /* apply the lights to this material */ \n\
-  /* weird but ANGLE needs constant loop */ \n\
+  // apply the lights to this material \n\
+  // weird but ANGLE needs constant loop \n\
   for (i=0; i<MAX_LIGHTS; i++) {\n\
     if(i < lightcount) { \n\
-      vec4 myLightDiffuse = fw_LightSource[i].diffuse; \n\
-      vec4 myLightAmbient = fw_LightSource[i].ambient; \n\
-      vec4 myLightSpecular = fw_LightSource[i].specular; \n\
-      vec4 myLightPosition = fw_LightSource[i].position; \n\
+      fw_LightSourceParameters light = fw_LightSource[i]; \n\
       int myLightType = lightType[i]; \n\
-      vec3 myLightDir = fw_LightSource[i].spotDirection.xyz; \n\
-      vec3  VP;     /* vector of light direction and distance */ \n\
-      VP = myLightPosition.xyz - myPosition.xyz; \n\
-      vec3 L = myLightDir; /*directional light*/ \n\
-      if(myLightType < 2) /*point and spot*/ \n\
+      vec3  VP;     // vector of light direction and distance \n\
+      VP = light.location.xyz - myPosition.xyz; \n\
+      vec3 L = -light.direction; //directional light \n\
+      if(myLightType < 2) //point and spot \n\
         L = normalize(VP); \n\
       float NdotL = max(dot(N, L), 0.0); //Lambertian diffuse term \n\
-	  /*specular reflection models, phong or blinn-phong*/ \n\
+	  //specular reflection models, phong or blinn-phong \n\
 	  //#define PHONG 1 \n\
 	  #ifdef PHONG \n\
 	  //Phong \n\
 	  vec3 R = normalize(-reflect(L,N)); \n\
 	  float RdotE = max(dot(R,E),0.0); \n\
 	  float specbase = RdotE; \n\
-	  float specpow = .3 * myMat.shininess; //assume shini tuned to blinn, adjust for phong \n\
+	  // assume shader gets shininess in 0 to 1 range, and scales it to 0 to 128 range here \n\
+	  float specpow = myMat.shininess*128.0; //.3 * myMat.shininess; //assume shini tuned to blinn, adjust for phong \n\
 	  #else //PHONG \n\
 	  //Blinn-Phong \n\
-      vec3 H = normalize(L + E); //halfvector\n\
+      vec3 H = normalize(L + E); //halfvector x3d specs this is L+v/|L+v|\n\
       float NdotH = max(dot(N,H),0.0); \n\
 	  float specbase = NdotH; \n\
-	  float specpow = myMat.shininess; \n\
+	  float specpow = myMat.shininess*128.0; \n\
 	  #endif //PHONG \n\
-      float powerFactor = 0.0; /* for light dropoff */ \n\
+      float powerFactor = 0.0; // for light dropoff \n\
       if (specbase > 0.0) { \n\
         powerFactor = pow(specbase,specpow); \n\
-        /* tone down the power factor if myMat.shininess borders 0 */ \n\
-        if (myMat.shininess < 1.0) { \n\
+        // tone down the power factor if myMat.shininess borders 0 \n\
+        if(false) if (myMat.shininess < 1.0) { \n\
           powerFactor *= myMat.shininess; \n\
         } \n\
       } \n\
       \n\
       if (myLightType==1) { \n\
-        /* SpotLight */ \n\
+        // SpotLight  \n\
         float spotDot, multiplier; \n\
         float spotAttenuation = 0.0; \n\
-        float attenuation; /* computed attenuation factor */ \n\
-        float D; /* distance to vertex */ \n\
+        float attenuation; // computed attenuation factor \n\
+        float D; // distance to vertex \n\
         D = length(VP); \n\
-        attenuation = 1.0/(fw_LightSource[i].Attenuations.x + (fw_LightSource[i].Attenuations.y * D) + (fw_LightSource[i].Attenuations.z *D*D)); \n\
+        attenuation = 1.0/(light.Attenuations.x + (light.Attenuations.y * D) + (light.Attenuations.z *D*D)); \n\
 		multiplier = 0.0; \n\
-        spotDot = dot (-L,myLightDir); \n\
-        /* check against spotCosCutoff */ \n\
-        if (spotDot > fw_LightSource[i].spotCutoff) { \n\
-          //?? what was this: spotAttenuation = pow(spotDot,fw_LightSource[i].spotExponent); \n\
-		  if(spotDot > fw_LightSource[i].spotBeamWidth) { \n\
+        spotDot = dot (-L,light.direction); \n\
+        // check against spotCosCutoff \n\
+        if (spotDot > light.spotCutoff) { \n\
+          //?? what was this: spotAttenuation = pow(spotDot,light.spotExponent); \n\
+		  if(spotDot > light.spotBeamWidth) { \n\
 			multiplier = 1.0; \n\
 		  } else { \n\
-		    multiplier = (spotDot - fw_LightSource[i].spotCutoff)/(fw_LightSource[i].spotBeamWidth - fw_LightSource[i].spotCutoff); \n\
+		    multiplier = (spotDot - light.spotCutoff)/(light.spotBeamWidth - light.spotCutoff); \n\
 		  } \n\
         } \n\
         //attenuation *= spotAttenuation; \n\
 		attenuation *= multiplier; \n\
-        /* diffuse light computation */ \n\
-        diffuse += NdotL* matdiffuse*myLightDiffuse * attenuation; \n\
-        /* ambient light computation */ \n\
-        ambient += myMat.ambient*myLightAmbient; \n\
-        /* specular light computation */ \n\
-        specular += myLightSpecular * powerFactor * attenuation; \n\
+        // diffuse light computation  \n\
+        diffuse += NdotL* matdiffuse*vec4(light.color,1.0) * attenuation; \n\
+        // ambient light computation \n\
+        ambient += myMat.ambient*light.ambient; \n\
+        // specular light computation \n\
+        specular += myMat.specular * light.intensity * powerFactor * attenuation; \n\
         \n\
       } else if (myLightType == 2) { \n\
-        /* DirectionalLight */ \n\
-        /* Specular light computation */ \n\
-        specular += myMat.specular *myLightSpecular*powerFactor; \n\
-        /* diffuse light computation */ \n\
-        diffuse += NdotL*matdiffuse*myLightDiffuse; \n\
-        /* ambient light computation */ \n\
-        ambient += myMat.ambient*myLightAmbient; \n\
+        // DirectionalLight \n\
+        // Specular light computation  \n\
+        specular += myMat.specular *light.intensity*powerFactor; \n\
+        // diffuse light computation \n\
+        diffuse += NdotL*matdiffuse*vec4(light.color,1.0); \n\
+        // ambient light computation \n\
+        ambient += myMat.ambient*light.ambient; \n\
       } else { \n\
-        /* PointLight */ \n\
-        float attenuation = 0.0; /* computed attenuation factor */ \n\
-        float D = length(VP);  /* distance to vertex */ \n\
-        /* are we within range? */ \n\
-        if (D <= fw_LightSource[i].lightRadius) { \n\
-          /* this is actually the SFVec3f attenuation field */ \n\
-          attenuation = 1.0/(fw_LightSource[i].Attenuations.x + (fw_LightSource[i].Attenuations.y * D) + (fw_LightSource[i].Attenuations.z *D*D)); \n\
-          /* diffuse light computation */ \n\
-          diffuse += NdotL* matdiffuse*myLightDiffuse * attenuation; \n\
-          /* ambient light computation */ \n\
-          ambient += myMat.ambient*myLightAmbient; \n\
-          /* specular light computation */ \n\
-          attenuation *= (myMat.shininess/128.0); \n\
-          specular += myLightSpecular * powerFactor * attenuation; \n\
+        // PointLight \n\
+        float attenuation = 0.0; // computed attenuation factor \n\
+        float D = length(VP);  // distance to vertex \n\
+        // are we within range? \n\
+        if (D <= light.lightRadius) { \n\
+          // this is actually the SFVec3f attenuation field \n\
+          attenuation = 1.0/max(1.0,(light.Attenuations.x + (light.Attenuations.y * D) + (light.Attenuations.z *D*D))); \n\
+          // diffuse light computation \n\
+          diffuse += NdotL* matdiffuse*vec4(light.color,1.0) * attenuation; \n\
+          // ambient light computation \n\
+          ambient += myMat.ambient*light.ambient; \n\
+          // specular light computation \n\
+          //attenuation *= (myMat.shininess/16.0); ///128.0); \n\
+          specular += myMat.specular * light.intensity * powerFactor * attenuation; \n\
         } \n\
       } \n\
-    } \n\
+    }  \n\
   } \n\
   vertexcolor = clamp(vec4(vec3(ambient + diffuse ) + vertexcolor.rgb ,myAlph), 0.0, 1.0); \n\
   specularcolor = clamp(specular.rgb + specularcolor, 0.0, 1.0); \n\
@@ -2542,12 +2540,12 @@ uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
 struct fw_LightSourceParameters { \n\
-  vec4 ambient;  \n\
-  vec4 diffuse;   \n\
-  vec4 specular; \n\
-  vec4 position;   \n\
-  vec4 halfVector;  \n\
-  vec4 spotDirection; \n\
+  float ambient;  \n\
+  vec3 color;   \n\
+  float intensity; \n\
+  vec3 location;   \n\
+  vec3 halfVector;  \n\
+  vec3 direction; \n\
   float spotBeamWidth; \n\
   float spotCutoff; \n\
   vec3 Attenuations; \n\

@@ -366,11 +366,11 @@ typedef struct s_shader_capabilities{
 	GLint lightcount;
 	//GLint lightType;
 	GLint lightType[MAX_LIGHTS];
-	GLint lightAmbient[MAX_LIGHTS];
-	GLint lightDiffuse[MAX_LIGHTS];
-	GLint lightSpecular[MAX_LIGHTS];
-	GLint lightPosition[MAX_LIGHTS];
-	GLint lightSpotDir[MAX_LIGHTS];
+	GLint lightAmbientIntensity[MAX_LIGHTS];
+	GLint lightColor[MAX_LIGHTS];
+	GLint lightIntensity[MAX_LIGHTS];
+	GLint lightLocation[MAX_LIGHTS];
+	GLint lightDirection[MAX_LIGHTS];
 	GLint lightAtten[MAX_LIGHTS];
 	//GLint lightConstAtten[MAX_LIGHTS];
 	//GLint lightLinAtten[MAX_LIGHTS];

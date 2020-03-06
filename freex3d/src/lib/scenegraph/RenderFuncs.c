@@ -89,16 +89,14 @@ typedef struct pRenderFuncs{
 	int profile_entry_count;
 	struct profile_entry profile_entries[100];
 	int profiling_on;
-	float light_linAtten[MAX_LIGHT_STACK];
-	float light_constAtten[MAX_LIGHT_STACK];
-	float light_quadAtten[MAX_LIGHT_STACK];
+	float light_attenuation[MAX_LIGHT_STACK][3];
 	float light_spotCutoffAngle[MAX_LIGHT_STACK];
 	float light_spotBeamWidth[MAX_LIGHT_STACK];
-	shaderVec4 light_amb[MAX_LIGHT_STACK];
-	shaderVec4 light_dif[MAX_LIGHT_STACK];
-	shaderVec4 light_pos[MAX_LIGHT_STACK];
-	shaderVec4 light_spec[MAX_LIGHT_STACK];
-	shaderVec4 light_spotDir[MAX_LIGHT_STACK];
+	float light_ambientIntensity[MAX_LIGHT_STACK];
+	float light_color[MAX_LIGHT_STACK][3];
+	float light_location[MAX_LIGHT_STACK][3];
+	float light_intensity[MAX_LIGHT_STACK];
+	float light_direction[MAX_LIGHT_STACK][3];
     float light_radius[MAX_LIGHT_STACK];
 	GLint lightType[MAX_LIGHT_STACK]; //0=point 1=spot 2=directional
 	/* Rearrange to take advantage of headlight when off */
@@ -483,6 +481,44 @@ void popLocalLight(){
 }
 
 
+void transformPositionToEye(float *pos)
+{
+	int i;
+    GLDOUBLE modelMatrix[16], *b;
+	float *a;
+	float aux[4];
+    FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+    /* pre-multiply the light position, as per the orange book, page 216,
+     "OpenGL specifies that light positions are transformed by the modelview
+     matrix when they are provided to OpenGL..." */
+    /* DirectionalLight?  PointLight, SpotLight? */
+
+	// assumes pos[3] = 0.0; only use first 3 of these numbers
+	transformf(aux,pos,modelMatrix);
+
+	for(i=0;i<3;i++){
+		pos[i] = aux[i];
+	}
+}
+
+void transformDirectionToEye(float *dir)
+{
+	int i;
+    GLDOUBLE modelMatrix[16], *b;
+	float *a;
+	float aux[4];
+    FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	b = modelMatrix;
+	a = dir;
+	aux[0] = (float) (b[0]*a[0] +b[4]*a[1] +b[8]*a[2] );
+	aux[1] = (float) (b[1]*a[0] +b[5]*a[1] +b[9]*a[2] );
+	aux[2] = (float) (b[2]*a[0] +b[6]*a[1] +b[10]*a[2]);
+	for(i=0;i<3;i++)
+		dir[i] = aux[i];
+}
+
 void transformLightToEye(float *pos, float* dir)
 {
 	int i;
@@ -513,7 +549,7 @@ auxt[0],auxt[1],auxt[2],auxt[3],
 pos[0],pos[1],pos[2],pos[3]);
 */
 
-	for(i=0;i<4;i++){
+	for(i=0;i<3;i++){
 		pos[i] = auxt[i];
 	}
 	b = modelMatrix;
@@ -545,7 +581,7 @@ void fwglLightfv (int light, int pname, GLfloat *params) {
     
 	//printLTDebug(__FILE__,__LINE__);
 
-
+/*
 	switch (pname) {
 		case GL_AMBIENT:
 			memcpy ((void *)p->light_amb[light],(void *)params,sizeof(shaderVec4));
@@ -556,18 +592,6 @@ void fwglLightfv (int light, int pname, GLfloat *params) {
 		case GL_POSITION:
 			memcpy ((void *)p->light_pos[light],(void *)params,sizeof(shaderVec4));
 			//the following function call assumes spotdir has already been set - set it first from render_light
-
-/*
-ConsoleMessage("fwglLightfv - NOT transforming pos %3.2f %3.2f %3.2f %3.2f spd %3.2f %3.2f %3.2f %3.2f",
-			p->light_pos[light][0],
-			p->light_pos[light][1],
-			p->light_pos[light][2],
-			p->light_pos[light][3],
-			p->light_spotDir[light][0],
-			p->light_spotDir[light][1],
-			p->light_spotDir[light][2],
-			p->light_spotDir[light][3]);
-*/
 			if (light != HEADLIGHT_LIGHT)  transformLightToEye(p->light_pos[light], p->light_spotDir[light]);
 			break;
 		case GL_SPECULAR:
@@ -576,6 +600,32 @@ ConsoleMessage("fwglLightfv - NOT transforming pos %3.2f %3.2f %3.2f %3.2f spd %
 		case GL_SPOT_DIRECTION:
 			//call spot_direction before spot_position, so direction gets transformed above in spot position
 			memcpy ((void *)p->light_spotDir[light],(void *)params,sizeof(shaderVec4));
+			break;
+		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
+	}
+	*/
+	switch (pname) {
+		case LIGHT_AMBIENT:
+			p->light_ambientIntensity[light] = params[0];
+			break;
+		case LIGHT_INTENSITY:
+			p->light_intensity[light] = params[0];
+			break;
+		case LIGHT_COLOR:
+			veccopy3f(p->light_color[light],params);
+			break;
+		case LIGHT_POSITION:
+			veccopy3f(p->light_location[light],params);
+			//the following function call assumes spotdir has already been set - set it first from render_light
+			if (light != HEADLIGHT_LIGHT)  transformPositionToEye(p->light_location[light]);
+			break;
+		case LIGHT_DIRECTION:
+			//call spot_direction before spot_position, so direction gets transformed above in spot position
+			veccopy3f(p->light_direction[light],params);
+			if (light != HEADLIGHT_LIGHT)  transformDirectionToEye(p->light_direction[light]);
+			break;
+		case LIGHT_ATTENUATION:
+			veccopy3f(p->light_attenuation[light],params);
 			break;
 		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
 	}
@@ -598,14 +648,20 @@ void fwglLightf (int light, int pname, GLfloat param) {
 	
     
 	switch (pname) {
-		case GL_CONSTANT_ATTENUATION:
-			p->light_constAtten[light] = param;
+		//case GL_CONSTANT_ATTENUATION:
+		//	p->light_constAtten[light] = param;
+		//	break;
+		//case GL_LINEAR_ATTENUATION:
+		//	p->light_linAtten[light] = param;
+		//	break;
+		//case GL_QUADRATIC_ATTENUATION:
+		//	p->light_quadAtten[light] = param;
+		//	break;
+		case LIGHT_AMBIENT:
+			p->light_ambientIntensity[light] = param;
 			break;
-		case GL_LINEAR_ATTENUATION:
-			p->light_linAtten[light] = param;
-			break;
-		case GL_QUADRATIC_ATTENUATION:
-			p->light_quadAtten[light] = param;
+		case LIGHT_INTENSITY:
+			p->light_intensity[light] = param;
 			break;
 		case GL_SPOT_CUTOFF:
 			p->light_spotCutoffAngle[light] = param;
@@ -707,11 +763,11 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 		//2 - directionlight
 		//save a bit of bandwidth by not sending unused parameters for a light type
 		if(p->lightType[i]<2 ){ //not direction
-			shaderVec4 light_Attenuations;
-			light_Attenuations[0] = p->light_constAtten[i];
-			light_Attenuations[1] = p->light_linAtten[i];
-			light_Attenuations[2] = p->light_quadAtten[i];
-			GLUNIFORM3FV(me->lightAtten[j],1,light_Attenuations);
+			//shaderVec4 light_Attenuations;
+			//light_Attenuations[0] = p->light_constAtten[i];
+			//light_Attenuations[1] = p->light_linAtten[i];
+			//light_Attenuations[2] = p->light_quadAtten[i];
+			GLUNIFORM3FV(me->lightAtten[j],1,p->light_attenuation[i]); //.light_Attenuations);
 			//GLUNIFORM1F (me->lightConstAtten[j], p->light_constAtten[i]);
 			//GLUNIFORM1F (me->lightLinAtten[j], p->light_linAtten[i]);
 			//GLUNIFORM1F(me->lightQuadAtten[j], p->light_quadAtten[i]);
@@ -723,11 +779,11 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 		if(p->lightType[i]==0){ //point
 			GLUNIFORM1F(me->lightRadius[j],p->light_radius[i]);
 		}
-		GLUNIFORM4FV(me->lightSpotDir[j],1, p->light_spotDir[i]);
-		GLUNIFORM4FV(me->lightPosition[j],1,p->light_pos[i]);
-		GLUNIFORM4FV(me->lightAmbient[j],1,p->light_amb[i]);
-		GLUNIFORM4FV(me->lightDiffuse[j],1,p->light_dif[i]);
-		GLUNIFORM4FV(me->lightSpecular[j],1,p->light_spec[i]);
+		GLUNIFORM3FV(me->lightDirection[j],1, p->light_direction[i]);
+		GLUNIFORM3FV(me->lightLocation[j],1,p->light_location[i]);
+		GLUNIFORM1F(me->lightAmbientIntensity[j],p->light_ambientIntensity[i]);
+		GLUNIFORM3FV(me->lightColor[j],1,p->light_color[i]);
+		GLUNIFORM1F(me->lightIntensity[j],p->light_intensity[i]);
 		GLUNIFORM1I(me->lightType[j],p->lightType[i]);
     }
 	GLUNIFORM1I(me->lightcount,lightcount);
@@ -1046,38 +1102,40 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 
 void initializeLightTables() {
 	int i;
-        float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-        float dif[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
-        float As[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
+	float dir[] = { 0.0f, 0.0f, -1.0f, 0.0f };
+	float dif[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
+	float As[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float At[] = { 1.0f, 0.0f, 0.0f, 0.0f };
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
 
-      PRINT_GL_ERROR_IF_ANY("start of initializeightTables");
+	PRINT_GL_ERROR_IF_ANY("start of initializeightTables");
 
 	for(i=0; i<MAX_LIGHT_STACK; i++) {
-                p->lightOnOff[i] = TRUE;
-                setLightState(i,FALSE);
+		p->lightOnOff[i] = TRUE;
+		setLightState(i,FALSE);
             
-		FW_GL_LIGHTFV(i, GL_SPOT_DIRECTION, pos);
-       		FW_GL_LIGHTFV(i, GL_POSITION, pos);
-       		FW_GL_LIGHTFV(i, GL_AMBIENT, As);
-       		FW_GL_LIGHTFV(i, GL_DIFFUSE, dif);
-       		FW_GL_LIGHTFV(i, GL_SPECULAR, shin);
-         	FW_GL_LIGHTF(i, GL_CONSTANT_ATTENUATION,1.0f);
-       		FW_GL_LIGHTF(i, GL_LINEAR_ATTENUATION,0.0f);
-       		FW_GL_LIGHTF(i, GL_QUADRATIC_ATTENUATION,0.0f);
-       		FW_GL_LIGHTF(i, GL_SPOT_CUTOFF,0.0f);
-       		FW_GL_LIGHTF(i, GL_SPOT_BEAMWIDTH,0.0f);
-           	FW_GL_LIGHTF(i, GL_LIGHT_RADIUS, 100000.0); /* just make it large for now*/ 
+		FW_GL_LIGHTFV(i, LIGHT_DIRECTION, dir);
+		FW_GL_LIGHTFV(i, LIGHT_POSITION, pos);
+		FW_GL_LIGHTF(i, LIGHT_AMBIENT, 0.0f);
+		FW_GL_LIGHTFV(i, LIGHT_COLOR, dif);
+		FW_GL_LIGHTF(i, LIGHT_INTENSITY, 0.0F);
+		FW_GL_LIGHTFV(i, LIGHT_ATTENUATION,At);
+		//FW_GL_LIGHTF(i, GL_LINEAR_ATTENUATION,0.0f);
+		//FW_GL_LIGHTF(i, GL_QUADRATIC_ATTENUATION,0.0f);
+		FW_GL_LIGHTF(i, GL_SPOT_CUTOFF,0.0f);
+		FW_GL_LIGHTF(i, GL_SPOT_BEAMWIDTH,0.0f);
+		FW_GL_LIGHTF(i, GL_LIGHT_RADIUS, 100000.0); /* just make it large for now*/ 
             
-            	PRINT_GL_ERROR_IF_ANY("initizlizeLight2.10");
-        }
-        setLightState(HEADLIGHT_LIGHT, TRUE);
+		PRINT_GL_ERROR_IF_ANY("initizlizeLight2.10");
+	}
+	setLightState(HEADLIGHT_LIGHT, TRUE);
 
-    LIGHTING_INITIALIZE
+	LIGHTING_INITIALIZE
 	
 
-    PRINT_GL_ERROR_IF_ANY("end initializeLightTables");
+	PRINT_GL_ERROR_IF_ANY("end initializeLightTables");
 }
 
 

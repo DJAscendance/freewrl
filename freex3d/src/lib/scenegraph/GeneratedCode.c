@@ -455,6 +455,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"backTexture",
 	"backTransparency",
 	"backUrl",
+	"baseColorFactor",
+	"baseColorTexture",
 	"bboxCenter",
 	"bboxSize",
 	"beamWidth",
@@ -539,6 +541,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"detonationRelativeLocation",
 	"detonationResult",
 	"diffuseColor",
+	"diffuseFactor",
 	"dimensions",
 	"directOutput",
 	"direction",
@@ -557,6 +560,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"effects",
 	"elapsedTime",
 	"emissiveColor",
+	"emissiveFactor",
+	"emissiveTexture",
 	"emitter",
 	"enabled",
 	"enabledAxes",
@@ -632,6 +637,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"geometryType",
 	"geovalue_changed",
 	"global",
+	"glossinessFactor",
 	"gotEvents",
 	"gradientThreshold",
 	"gradients",
@@ -747,6 +753,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"maxTorque1",
 	"maxTorque2",
 	"metadata",
+	"metallicFactor",
 	"method",
 	"minAngle",
 	"minAngle1",
@@ -787,12 +794,17 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"networkMode",
 	"next",
 	"normal",
+	"normalBias",
 	"normalIndex",
 	"normalPerVertex",
+	"normalScale",
+	"normalTexture",
 	"normal_changed",
 	"normalizeVelocity",
 	"numComponents",
 	"objectType",
+	"occlusionRoughnessMetallicTexture",
+	"occlusionTexture",
 	"offset",
 	"offsetUnits",
 	"on",
@@ -870,6 +882,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"rotateYUp",
 	"rotation",
 	"rotation_changed",
+	"roughnessFactor",
+	"roughnessMetallicTexture",
 	"rtpHeaderExpected",
 	"sampleRate",
 	"samples",
@@ -948,6 +962,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"spatialize",
 	"specific",
 	"specularColor",
+	"specularFactor",
+	"specularGlossinessTexture",
 	"speed",
 	"speedFactor",
 	"spine",
@@ -1308,6 +1324,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"backTexture",
 	"backTransparency",
 	"backUrl",
+	"baseColorFactor",
+	"baseColorTexture",
 	"beamWidth",
 	"bodies",
 	"body1",
@@ -1361,6 +1379,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"detonationRelativeLocation",
 	"detonationResult",
 	"diffuseColor",
+	"diffuseFactor",
 	"dimensions",
 	"direction",
 	"disableAngularSpeed",
@@ -1374,6 +1393,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"edgeColor",
 	"effects",
 	"emissiveColor",
+	"emissiveFactor",
+	"emissiveTexture",
 	"enabled",
 	"enabledAxes",
 	"encodingScheme",
@@ -1426,6 +1447,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"geometry1",
 	"geometry2",
 	"global",
+	"glossinessFactor",
 	"gotEvents",
 	"gradientThreshold",
 	"gradients",
@@ -1497,6 +1519,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"maxTorque1",
 	"maxTorque2",
 	"metadata",
+	"metallicFactor",
 	"minAngle",
 	"minAngle1",
 	"minBack",
@@ -1524,8 +1547,13 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"nearDistance",
 	"networkMode",
 	"normal",
+	"normalBias",
+	"normalScale",
+	"normalTexture",
 	"normalizeVelocity",
 	"objectType",
+	"occlusionRoughnessMetallicTexture",
+	"occlusionTexture",
 	"offset",
 	"offsetUnits",
 	"on",
@@ -1574,6 +1602,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"rightTexture",
 	"rightUrl",
 	"rotation",
+	"roughnessFactor",
+	"roughnessMetallicTexture",
 	"sampleRate",
 	"samples",
 	"scale",
@@ -1610,6 +1640,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"softnessErrorCorrection",
 	"source",
 	"specularColor",
+	"specularFactor",
+	"specularGlossinessTexture",
 	"speed",
 	"startTime",
 	"stiffness",
@@ -2365,6 +2397,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"OrthoViewpoint",
 	"PackagedShader",
 	"ParticleSystem",
+	"PhysicalMaterial",
 	"PickableGroup",
 	"PixelTexture",
 	"PixelTexture3D",
@@ -3076,6 +3109,10 @@ void child_ParticleSystem(struct X3D_ParticleSystem *);
 void compile_ParticleSystem(struct X3D_ParticleSystem *);
 struct X3D_Virt virt_ParticleSystem = { NULL,NULL,(void *)child_ParticleSystem,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ParticleSystem};
 
+void render_PhysicalMaterial(struct X3D_PhysicalMaterial *);
+void compile_PhysicalMaterial(struct X3D_PhysicalMaterial *);
+struct X3D_Virt virt_PhysicalMaterial = { NULL,(void *)render_PhysicalMaterial,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_PhysicalMaterial};
+
 void prep_PickableGroup(struct X3D_PickableGroup *);
 void child_PickableGroup(struct X3D_PickableGroup *);
 void other_PickableGroup(struct X3D_PickableGroup *);
@@ -3548,6 +3585,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_OrthoViewpoint,
 	 &virt_PackagedShader,
 	 &virt_ParticleSystem,
+	 &virt_PhysicalMaterial,
 	 &virt_PickableGroup,
 	 &virt_PixelTexture,
 	 &virt_PixelTexture3D,
@@ -6233,6 +6271,25 @@ const int OFFSETS_ParticleSystem[] = {
 	(int) FIELDNAMES__remainder, (int) offsetof (struct X3D_ParticleSystem, _remainder),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_PhysicalMaterial[] = {
+	(int) FIELDNAMES_baseColorFactor, (int) offsetof (struct X3D_PhysicalMaterial, baseColorFactor),  (int) FIELDTYPE_SFColorRGBA, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metallicFactor, (int) offsetof (struct X3D_PhysicalMaterial, metallicFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_roughnessFactor, (int) offsetof (struct X3D_PhysicalMaterial, roughnessFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_diffuseFactor, (int) offsetof (struct X3D_PhysicalMaterial, diffuseFactor),  (int) FIELDTYPE_SFColorRGBA, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_specularFactor, (int) offsetof (struct X3D_PhysicalMaterial, specularFactor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_glossinessFactor, (int) offsetof (struct X3D_PhysicalMaterial, glossinessFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_emissiveFactor, (int) offsetof (struct X3D_PhysicalMaterial, emissiveFactor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_normalBias, (int) offsetof (struct X3D_PhysicalMaterial, normalBias),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_normalScale, (int) offsetof (struct X3D_PhysicalMaterial, normalScale),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_baseColorTexture, (int) offsetof (struct X3D_PhysicalMaterial, baseColorTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_emissiveTexture, (int) offsetof (struct X3D_PhysicalMaterial, emissiveTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_roughnessMetallicTexture, (int) offsetof (struct X3D_PhysicalMaterial, roughnessMetallicTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_specularGlossinessTexture, (int) offsetof (struct X3D_PhysicalMaterial, specularGlossinessTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_occlusionRoughnessMetallicTexture, (int) offsetof (struct X3D_PhysicalMaterial, occlusionRoughnessMetallicTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_occlusionTexture, (int) offsetof (struct X3D_PhysicalMaterial, occlusionTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_normalTexture, (int) offsetof (struct X3D_PhysicalMaterial, normalTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_PickableGroup[] = {
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_PickableGroup, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_PickableGroup, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7824,6 +7881,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_OrthoViewpoint,
 	OFFSETS_PackagedShader,
 	OFFSETS_ParticleSystem,
+	OFFSETS_PhysicalMaterial,
 	OFFSETS_PickableGroup,
 	OFFSETS_PixelTexture,
 	OFFSETS_PixelTexture3D,
@@ -8372,6 +8430,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_OrthoViewpoint : {tmp = MALLOC (struct X3D_OrthoViewpoint *, sizeof (struct X3D_OrthoViewpoint)); break;}
 		case NODE_PackagedShader : {tmp = MALLOC (struct X3D_PackagedShader *, sizeof (struct X3D_PackagedShader)); break;}
 		case NODE_ParticleSystem : {tmp = MALLOC (struct X3D_ParticleSystem *, sizeof (struct X3D_ParticleSystem)); break;}
+		case NODE_PhysicalMaterial : {tmp = MALLOC (struct X3D_PhysicalMaterial *, sizeof (struct X3D_PhysicalMaterial)); break;}
 		case NODE_PickableGroup : {tmp = MALLOC (struct X3D_PickableGroup *, sizeof (struct X3D_PickableGroup)); break;}
 		case NODE_PixelTexture : {tmp = MALLOC (struct X3D_PixelTexture *, sizeof (struct X3D_PixelTexture)); break;}
 		case NODE_PixelTexture3D : {tmp = MALLOC (struct X3D_PixelTexture3D *, sizeof (struct X3D_PixelTexture3D)); break;}
@@ -11802,6 +11861,28 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_geometryType = 0;
 			tmp2->_remainder = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_shape;
+		break;
+		}
+		case NODE_PhysicalMaterial : {
+			struct X3D_PhysicalMaterial * tmp2;
+			tmp2 = (struct X3D_PhysicalMaterial *) tmp;
+			tmp2->baseColorFactor.c[0] = 1;tmp2->baseColorFactor.c[1] = 1;tmp2->baseColorFactor.c[2] = 1;tmp2->baseColorFactor.c[3] = 1;;
+			tmp2->metallicFactor = 0.0f;
+			tmp2->roughnessFactor = 0.2f;
+			tmp2->diffuseFactor.c[0] = 1;tmp2->diffuseFactor.c[1] = 1;tmp2->diffuseFactor.c[2] = 1;tmp2->diffuseFactor.c[3] = 1;;
+			tmp2->specularFactor.c[0] = 1.0f;tmp2->specularFactor.c[1] = 1.0f;tmp2->specularFactor.c[2] = 1.0f;;
+			tmp2->glossinessFactor = 1.0f;
+			tmp2->emissiveFactor.c[0] = 0.0f;tmp2->emissiveFactor.c[1] = 0.0f;tmp2->emissiveFactor.c[2] = 0.0f;;
+			tmp2->normalBias.c[0] = -1.0f;tmp2->normalBias.c[1] = -1.0f;tmp2->normalBias.c[2] = 1.0f;
+			tmp2->normalScale = 1.0f;
+			tmp2->baseColorTexture = NULL;
+			tmp2->emissiveTexture = NULL;
+			tmp2->roughnessMetallicTexture = NULL;
+			tmp2->specularGlossinessTexture = NULL;
+			tmp2->occlusionRoughnessMetallicTexture = NULL;
+			tmp2->occlusionTexture = NULL;
+			tmp2->normalTexture = NULL;
+			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
 		}
 		case NODE_PickableGroup : {
@@ -16841,6 +16922,38 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 		    break;
 		}
+		case NODE_PhysicalMaterial : {
+			struct X3D_PhysicalMaterial *tmp;
+			tmp = (struct X3D_PhysicalMaterial *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," baseColorFactor (SFColorRGBA): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->baseColorFactor.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," metallicFactor (SFFloat) \t%4.3f\n",tmp->metallicFactor);
+			spacer fprintf (fp," roughnessFactor (SFFloat) \t%4.3f\n",tmp->roughnessFactor);
+			spacer fprintf (fp," diffuseFactor (SFColorRGBA): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->diffuseFactor.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," specularFactor (SFColor): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->specularFactor.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," glossinessFactor (SFFloat) \t%4.3f\n",tmp->glossinessFactor);
+			spacer fprintf (fp," emissiveFactor (SFColor): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->emissiveFactor.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," normalBias (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->normalBias.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," normalScale (SFFloat) \t%4.3f\n",tmp->normalScale);
+			spacer fprintf (fp," baseColorTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->baseColorTexture); 
+			spacer fprintf (fp," emissiveTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->emissiveTexture); 
+			spacer fprintf (fp," roughnessMetallicTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->roughnessMetallicTexture); 
+			spacer fprintf (fp," specularGlossinessTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->specularGlossinessTexture); 
+			spacer fprintf (fp," occlusionRoughnessMetallicTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->occlusionRoughnessMetallicTexture); 
+			spacer fprintf (fp," occlusionTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->occlusionTexture); 
+			spacer fprintf (fp," normalTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->normalTexture); 
+		    break;
+		}
 		case NODE_PickableGroup : {
 			struct X3D_PickableGroup *tmp;
 			tmp = (struct X3D_PickableGroup *) node;
@@ -18787,6 +18900,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_OrthoViewpoint: return X3DBindableNode; break;
 	case NODE_PackagedShader: return X3DProgrammableShaderObject; break;
 	case NODE_ParticleSystem: return X3DShapeNode; break;
+	case NODE_PhysicalMaterial: return X3DMaterialNode; break;
 	case NODE_PickableGroup: return X3DGroupingNode; break;
 	case NODE_PixelTexture: return X3DTextureNode; break;
 	case NODE_PixelTexture3D: return X3DTextureNode; break;

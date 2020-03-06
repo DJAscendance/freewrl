@@ -2332,6 +2332,26 @@ FIELD(ParticleSystem,texCoordRamp,sfnode,texCoordRamp,FIELDTYPE_SFNode,UNCA_NONE
 FIELD(ParticleSystem,texCoordKey,mffloat,texCoordKey,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(ParticleSystem)
 
+/* PhysicalMaterial node */
+BEGIN_NODE(PhysicalMaterial)
+EXPOSED_FIELD(PhysicalMaterial,baseColorFactor,sfcolorrgba,baseColorFactor,FIELDTYPE_SFColorRGBA,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,metallicFactor,sffloat,metallicFactor,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,roughnessFactor,sffloat,roughnessFactor,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,diffuseFactor,sfcolorrgba,diffuseFactor,FIELDTYPE_SFColorRGBA,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,specularFactor,sfcolor,specularFactor,FIELDTYPE_SFColor,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,glossinessFactor,sffloat,glossinessFactor,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,emissiveFactor,sfcolor,emissiveFactor,FIELDTYPE_SFColor,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,normalBias,sfvec3f,normalBias,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,normalScale,sffloat,normalScale,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,baseColorTexture,sfnode,baseColorTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,roughnessMetallicTexture,sfnode,roughnessMetallicTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,specularGlossinessTexture,sfnode,specularGlossinessTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,occlusionRoughnessMetallicTexture,sfnode,occlusionRoughnessMetallicTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,occlusionTexture,sfnode,occlusionTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(PhysicalMaterial)
+
 /* PickableGroup node */
 BEGIN_NODE(PickableGroup)
 EVENT_IN(PickableGroup,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
