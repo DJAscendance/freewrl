@@ -1103,6 +1103,7 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 void initializeLightTables() {
 	int i;
 	float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
+	float dir[] = { 0.0f, 0.0f, -1.0f, 0.0f };
 	float dif[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
 	float As[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -1115,7 +1116,7 @@ void initializeLightTables() {
 		p->lightOnOff[i] = TRUE;
 		setLightState(i,FALSE);
             
-		FW_GL_LIGHTFV(i, LIGHT_DIRECTION, pos);
+		FW_GL_LIGHTFV(i, LIGHT_DIRECTION, dir);
 		FW_GL_LIGHTFV(i, LIGHT_POSITION, pos);
 		FW_GL_LIGHTF(i, LIGHT_AMBIENT, 0.0f);
 		FW_GL_LIGHTFV(i, LIGHT_COLOR, dif);
