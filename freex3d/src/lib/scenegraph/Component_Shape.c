@@ -353,15 +353,15 @@ void compile_Material (struct X3D_Material *node) {
 	memcpy((void *)(&node->_verifiedColor.p[0]), node->emissiveColor.c, sizeof (float) * 3);
 
 	/* Shininess */
-	node->_verifiedColor.p[16] = node->shininess * 128.0f;
+	node->_verifiedColor.p[16] = node->shininess;
 
-#define MAX_SHIN 128.0f
-#define MIN_SHIN 0.01f
-		if ((node->_verifiedColor.p[16] > MAX_SHIN) || (node->_verifiedColor.p[16] < MIN_SHIN)) {
-			if (node->_verifiedColor.p[16]>MAX_SHIN){node->_verifiedColor.p[16] = MAX_SHIN;}else{node->_verifiedColor.p[16]=MIN_SHIN;}
-		}
-#undef MAX_SHIN
-#undef MIN_SHIN
+//#define MAX_SHIN 128.0f
+//#define MIN_SHIN 0.01f
+//		if ((node->_verifiedColor.p[16] > MAX_SHIN) || (node->_verifiedColor.p[16] < MIN_SHIN)) {
+//			if (node->_verifiedColor.p[16]>MAX_SHIN){node->_verifiedColor.p[16] = MAX_SHIN;}else{node->_verifiedColor.p[16]=MIN_SHIN;}
+//		}
+//#undef MAX_SHIN
+//#undef MIN_SHIN
 
 	MARK_NODE_COMPILED
 }
@@ -1206,7 +1206,7 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	memcpy((void *)(&node->_verifiedFrontColor.p[0]), node->emissiveColor.c, sizeof (float) * 3);
 
 	/* Shininess */
-	node->_verifiedFrontColor.p[16] = node->shininess * 128.0f;
+	node->_verifiedFrontColor.p[16] = node->shininess;
 
 #define MAX_SHIN 128.0f
 #define MIN_SHIN 0.01f
@@ -1231,15 +1231,15 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 		memcpy((void *)(&node->_verifiedBackColor.p[0]), node->backEmissiveColor.c, sizeof (float) * 3);
 	
 		/* Shininess */
-		node->_verifiedBackColor.p[16] = node->shininess * 128.0f;
+		node->_verifiedBackColor.p[16] = node->shininess;
 	
-#define MAX_SHIN 128.0f
-#define MIN_SHIN 0.01f
-		if ((node->_verifiedBackColor.p[16] > MAX_SHIN) || (node->_verifiedBackColor.p[16] < MIN_SHIN)) {
-			if (node->_verifiedBackColor.p[16]>MAX_SHIN){node->_verifiedBackColor.p[16] = MAX_SHIN;}else{node->_verifiedBackColor.p[16]=MIN_SHIN;}
-		}
-#undef MAX_SHIN
-#undef MIN_SHIN
+////#define MAX_SHIN 128.0f
+////#define MIN_SHIN 0.01f
+////		if ((node->_verifiedBackColor.p[16] > MAX_SHIN) || (node->_verifiedBackColor.p[16] < MIN_SHIN)) {
+////			if (node->_verifiedBackColor.p[16]>MAX_SHIN){node->_verifiedBackColor.p[16] = MAX_SHIN;}else{node->_verifiedBackColor.p[16]=MIN_SHIN;}
+////		}
+////#undef MAX_SHIN
+////#undef MIN_SHIN
 
 	} else {
 		/* just copy the front materials to the back */

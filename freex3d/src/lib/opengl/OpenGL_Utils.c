@@ -2936,30 +2936,30 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 			strcpy(&uniformName[18],"ambient");
 
 			//ConsoleMessage ("have uniform name request :%s:",uniformName);
-			me->lightAmbient[i] = GET_UNIFORM(myProg,uniformName);
+			me->lightAmbientIntensity[i] = GET_UNIFORM(myProg,uniformName);
 
 			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightAmbient[i]);
 
-			strcpy(&uniformName[18],"diffuse");
-			me->lightDiffuse[i] = GET_UNIFORM(myProg,uniformName);
+			strcpy(&uniformName[18],"color");
+			me->lightColor[i] = GET_UNIFORM(myProg,uniformName);
 			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightDiffuse[i]);
 
 
-			strcpy(&uniformName[18],"specular");
-			me->lightSpecular[i] = GET_UNIFORM(myProg,uniformName);
+			strcpy(&uniformName[18],"intensity");
+			me->lightIntensity[i] = GET_UNIFORM(myProg,uniformName);
 			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpecular[i]);
 
 
-			strcpy(&uniformName[18],"position");
-			me->lightPosition[i] = GET_UNIFORM(myProg,uniformName);
+			strcpy(&uniformName[18],"location");
+			me->lightLocation[i] = GET_UNIFORM(myProg,uniformName);
 			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightPosition[i]);
 
 
 			// flag used to determine if we have to send light position info to this shader
-			if (me->lightPosition[i] != -1) me->haveLightInShader = true;
+			if (me->lightLocation[i] != -1) me->haveLightInShader = true;
 
-			strcpy(&uniformName[18],"spotDirection");
-			me->lightSpotDir[i] = GET_UNIFORM(myProg,uniformName);
+			strcpy(&uniformName[18],"direction");
+			me->lightDirection[i] = GET_UNIFORM(myProg,uniformName);
 			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightSpotDir[i]);
 
 

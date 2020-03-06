@@ -57,6 +57,17 @@ void clearLightTable();
 int nextlight(void);
 void projectorTable_clear();
 
+
+enum {
+	LIGHT_DIRECTION = 1,
+	LIGHT_POSITION = 2,
+	LIGHT_COLOR = 3,
+	LIGHT_INTENSITY = 4,
+	LIGHT_AMBIENT = 5,
+	LIGHT_ATTENUATION = 6,
+};
+
+
 void setLightState(GLint light, int status);
 void setLightType(GLint light, int type);
 //JAS void saveLightState2(int *ls);
