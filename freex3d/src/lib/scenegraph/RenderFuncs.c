@@ -1105,7 +1105,7 @@ void initializeLightTables() {
 	float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
 	float dir[] = { 0.0f, 0.0f, -1.0f, 0.0f };
 	float dif[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
+	//float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
 	float As[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float At[] = { 1.0f, 0.0f, 0.0f, 0.0f };
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
@@ -1120,7 +1120,7 @@ void initializeLightTables() {
 		FW_GL_LIGHTFV(i, LIGHT_POSITION, pos);
 		FW_GL_LIGHTF(i, LIGHT_AMBIENT, 0.0f);
 		FW_GL_LIGHTFV(i, LIGHT_COLOR, dif);
-		FW_GL_LIGHTF(i, LIGHT_INTENSITY, 0.0F);
+		FW_GL_LIGHTF(i, LIGHT_INTENSITY, 1.0f);
 		FW_GL_LIGHTFV(i, LIGHT_ATTENUATION,At);
 		//FW_GL_LIGHTF(i, GL_LINEAR_ATTENUATION,0.0f);
 		//FW_GL_LIGHTF(i, GL_QUADRATIC_ATTENUATION,0.0f);
