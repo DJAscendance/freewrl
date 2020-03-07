@@ -1523,130 +1523,104 @@ void PLUG_add_light_contribution (inout vec4 vertexcolor, in vec4 myPosition, in
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
 void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, in float shininess ) { \n\
-  //working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
-  //myPosition, myNormal - of surface vertex, in eyespace \n\
-  //vertexcolor - diffuse+ambient -will be replaced or modulated by texture color \n\
-  //specularcolor - specular+emissive or non-diffuse (emissive added outside this function) \n\
-  //algo: uses Blinn-Phong specular reflection: half-vector pow(N*H,shininess) \n\
-  int i; \n\
-  vec4 diffuse = vec4(0., 0., 0., 0.); \n\
-  vec4 ambient = vec4(0., 0., 0., 0.); \n\
-  vec4 specular = vec4(0., 0., 0., 1.); \n\
-  vec3 N = normalize (myNormal); \n\
-  \n\
-  vec3 E = -normalize(myPosition.xyz); \n \
-  vec4 matdiffuse = vec4(1.0,1.0,1.0,1.0); \n\
-  float myAlph = 0.0;\n\
-  \n\
-  fw_MaterialParameters myMat = fw_FrontMaterial; \n\
-  \n\
-  /* back Facing materials - flip the normal and grab back materials */ \n\
-  bool backFacing = (dot(N,E) < 0.0); \n\
-  if (backFacing) { \n\
-	N = -N; \n\
-    #ifdef TWO \n\
-	myMat = fw_BackMaterial; \n\
-    #endif //TWO \n\
-  } \n\
-  \n\
-  myAlph = myMat.diffuse.a; \n\
-  //if(useMatDiffuse) \n\
-  matdiffuse = myMat.diffuse; \n\
-  \n\
-  // apply the lights to this material \n\
-  // weird but ANGLE needs constant loop \n\
-  for (i=0; i<MAX_LIGHTS; i++) {\n\
-    if(i < lightcount) { \n\
-      fw_LightSourceParameters light = fw_LightSource[i]; \n\
-      int myLightType = lightType[i]; \n\
-      vec3  VP;     // vector of light direction and distance \n\
-      VP = light.location.xyz - myPosition.xyz; \n\
-      vec3 L = -light.direction; //directional light \n\
-      if(myLightType < 2) //point and spot \n\
-        L = normalize(VP); \n\
-      float NdotL = max(dot(N, L), 0.0); //Lambertian diffuse term \n\
-	  //specular reflection models, phong or blinn-phong \n\
-	  //#define PHONG 1 \n\
-	  #ifdef PHONG \n\
-	  //Phong \n\
-	  vec3 R = normalize(-reflect(L,N)); \n\
-	  float RdotE = max(dot(R,E),0.0); \n\
-	  float specbase = RdotE; \n\
-	  // assume shader gets shininess in 0 to 1 range, and scales it to 0 to 128 range here \n\
-	  float specpow = myMat.shininess*128.0; //.3 * myMat.shininess; //assume shini tuned to blinn, adjust for phong \n\
-	  #else //PHONG \n\
-	  //Blinn-Phong \n\
-      vec3 H = normalize(L + E); //halfvector x3d specs this is L+v/|L+v|\n\
-      float NdotH = max(dot(N,H),0.0); \n\
-	  float specbase = NdotH; \n\
-	  float specpow = myMat.shininess*128.0; \n\
-	  #endif //PHONG \n\
-      float powerFactor = 0.0; // for light dropoff \n\
-      if (specbase > 0.0) { \n\
-        powerFactor = pow(specbase,specpow); \n\
-        // tone down the power factor if myMat.shininess borders 0 \n\
-        if(false) if (myMat.shininess < 1.0) { \n\
-          powerFactor *= myMat.shininess; \n\
-        } \n\
-      } \n\
-      \n\
-      if (myLightType==1) { \n\
-        // SpotLight  \n\
-        float spotDot, multiplier; \n\
-        float spotAttenuation = 0.0; \n\
-        float attenuation; // computed attenuation factor \n\
-        float D; // distance to vertex \n\
-        D = length(VP); \n\
-        attenuation = 1.0/(light.Attenuations.x + (light.Attenuations.y * D) + (light.Attenuations.z *D*D)); \n\
-		multiplier = 0.0; \n\
-        spotDot = dot (-L,light.direction); \n\
-        // check against spotCosCutoff \n\
-        if (spotDot > light.spotCutoff) { \n\
-          //?? what was this: spotAttenuation = pow(spotDot,light.spotExponent); \n\
-		  if(spotDot > light.spotBeamWidth) { \n\
-			multiplier = 1.0; \n\
-		  } else { \n\
-		    multiplier = (spotDot - light.spotCutoff)/(light.spotBeamWidth - light.spotCutoff); \n\
-		  } \n\
-        } \n\
-        //attenuation *= spotAttenuation; \n\
-		attenuation *= multiplier; \n\
-        // diffuse light computation  \n\
-        diffuse += NdotL* matdiffuse*vec4(light.color,1.0) * attenuation; \n\
-        // ambient light computation \n\
-        ambient += myMat.ambient*light.ambient; \n\
-        // specular light computation \n\
-        specular += myMat.specular * light.intensity * powerFactor * attenuation; \n\
-        \n\
-      } else if (myLightType == 2) { \n\
-        // DirectionalLight \n\
-        // Specular light computation  \n\
-        specular += myMat.specular *light.intensity*powerFactor; \n\
-        // diffuse light computation \n\
-        diffuse += NdotL*matdiffuse*vec4(light.color,1.0); \n\
-        // ambient light computation \n\
-        ambient += myMat.ambient*light.ambient; \n\
-      } else { \n\
-        // PointLight \n\
-        float attenuation = 0.0; // computed attenuation factor \n\
-        float D = length(VP);  // distance to vertex \n\
-        // are we within range? \n\
-        if (D <= light.lightRadius) { \n\
-          // this is actually the SFVec3f attenuation field \n\
-          attenuation = 1.0/max(1.0,(light.Attenuations.x + (light.Attenuations.y * D) + (light.Attenuations.z *D*D))); \n\
-          // diffuse light computation \n\
-          diffuse += NdotL* matdiffuse*vec4(light.color,1.0) * attenuation; \n\
-          // ambient light computation \n\
-          ambient += myMat.ambient*light.ambient; \n\
-          // specular light computation \n\
-          //attenuation *= (myMat.shininess/16.0); ///128.0); \n\
-          specular += myMat.specular * light.intensity * powerFactor * attenuation; \n\
-        } \n\
-      } \n\
-    }  \n\
-  } \n\
-  vertexcolor = clamp(vec4(vec3(ambient + diffuse ) + vertexcolor.rgb ,myAlph), 0.0, 1.0); \n\
-  specularcolor = clamp(specular.rgb + specularcolor, 0.0, 1.0); \n\
+	//working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
+	//myPosition, myNormal - of surface vertex, in eyespace \n\
+	//vertexcolor - diffuse+ambient -will be replaced or modulated by texture color \n\
+	//specularcolor - specular+emissive or non-diffuse (emissive added outside this function) \n\
+	//algo: uses Blinn-Phong specular reflection: half-vector pow(N*H,shininess) \n\
+	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingequations \n\
+	// fog and emissive are done elsewhere, this function does: \n\
+	// SUM(on[i] x attenuation[i] x spot[i] x ILrgb[i] x (ambient[i] + diffuse[i] + specular[i])) \n\
+	int i; \n\
+	vec3 N = normalize (myNormal); \n\
+		\n\
+	vec3 E = -normalize(myPosition.xyz); \n \
+	vec4 matdiffuse = vec4(1.0,1.0,1.0,1.0); \n\
+	float myAlph = 0.0;\n\
+		\n\
+	fw_MaterialParameters myMat = fw_FrontMaterial; \n\
+		\n\
+	/* back Facing materials - flip the normal and grab back materials */ \n\
+	bool backFacing = (dot(N,E) < 0.0); \n\
+	if (backFacing) { \n\
+		N = -N; \n\
+		#ifdef TWO \n\
+		myMat = fw_BackMaterial; \n\
+		#endif //TWO \n\
+	} \n\
+		\n\
+	myAlph = myMat.diffuse.a; \n\
+	//if(useMatDiffuse) \n\
+	matdiffuse = myMat.diffuse; \n\
+		\n\
+	// apply the lights to this material \n\
+	// weird but ANGLE needs constant loop \n\
+	vec4 sum_vertex = vec4(0.,0.,0.,0.); \n\
+	vec4 sum_specular = vec4(0.,0.,0.,0.); \n\
+	for (i=0; i<lightcount; i++) {\n\
+		vec4 diffuse = vec4(0., 0., 0., 0.); \n\
+		vec4 ambient = vec4(0., 0., 0., 0.); \n\
+		vec4 specular = vec4(0., 0., 0., 1.); \n\
+		float on = 1.0; //we only send active/on lights to shader, so this is for radius \n\
+		float spot = 1.0; \n\
+		float attenuation = 1.0; //directional default \n\
+		fw_LightSourceParameters light = fw_LightSource[i]; \n\
+		int myLightType = lightType[i]; \n\
+		// VP vector of light direction and distance \n\
+		vec3 VP = light.location.xyz - myPosition.xyz; \n\
+		vec3 L = -light.direction; //directional light \n\
+		if(myLightType < 2){ \n\
+			//point and spot \n\
+			L = normalize(VP); \n\
+			float D = length(VP);  // distance to vertex \n\
+			// are we within range? \n\
+			if (D > light.lightRadius) on = 0.0; \n\
+			attenuation = 1.0/max(1.0,(light.Attenuations.x + (light.Attenuations.y * D) + (light.Attenuations.z *D*D))); \n\
+		} \n\
+		float NdotL = max(dot(N, L), 0.0); //Lambertian diffuse term \n\
+		//specular reflection models, phong or blinn-phong \n\
+		//#define PHONG 1 \n\
+		#ifdef PHONG \n\
+			//Phong \n\
+			vec3 R = normalize(-reflect(L,N)); \n\
+			float RdotE = max(dot(R,E),0.0); \n\
+			float specbase = RdotE; \n\
+			// assume shader gets shininess in 0 to 1 range, and scales it to 0 to 128 range here \n\
+			float specpow = myMat.shininess*128.0; //.3 * myMat.shininess; //assume shini tuned to blinn, adjust for phong \n\
+		#else //PHONG \n\
+			//Blinn-Phong \n\
+			vec3 H = normalize(L + E); //halfvector x3d specs this is L+v/|L+v|\n\
+			float NdotH = max(dot(N,H),0.0); \n\
+			float specbase = NdotH; \n\
+			float specpow = myMat.shininess*128.0; \n\
+		#endif //PHONG \n\
+		float powerFactor = 0.0; // for light dropoff \n\
+		if (specbase > 0.0) { \n\
+			powerFactor = pow(specbase,specpow); \n\
+			// tone down the power factor if myMat.shininess borders 0 \n\
+		} \n\
+			\n\
+		ambient += light.ambient * matdiffuse * myMat.ambient; \n\
+		specular += light.intensity * myMat.specular *powerFactor; \n\
+		diffuse += light.intensity * matdiffuse * NdotL; \n\
+		if (myLightType==1) { \n\
+			// SpotLight  \n\
+			spot = 0.0; \n\
+			float spotDot = dot (-L,light.direction); \n\
+			// check against spotCosCutoff \n\
+			if (spotDot > light.spotCutoff) { \n\
+				if(spotDot > light.spotBeamWidth) { \n\
+					spot = 1.0; \n\
+				} else { \n\
+					spot = (spotDot - light.spotCutoff)/(light.spotBeamWidth - light.spotCutoff); \n\
+				} \n\
+			} \n\
+		} \n\
+		sum_vertex   += on * attenuation * spot * vec4(light.color,1.0) * (ambient + diffuse); \n\
+		sum_specular += on * attenuation * spot * vec4(light.color,1.0) * (specular); \n\
+	} \n\
+	vertexcolor = vec4(clamp(sum_vertex + vertexcolor, 0.0, 1.0).rgb,myAlph); \n\
+	specularcolor = clamp(sum_specular.rgb + specularcolor, 0.0, 1.0); \n\
 } \n\
 ";
 
