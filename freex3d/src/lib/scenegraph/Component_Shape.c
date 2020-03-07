@@ -1208,13 +1208,13 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	/* Shininess */
 	node->_verifiedFrontColor.p[16] = node->shininess;
 
-#define MAX_SHIN 128.0f
-#define MIN_SHIN 0.01f
-	if ((node->_verifiedFrontColor.p[16] > MAX_SHIN) || (node->_verifiedFrontColor.p[16] < MIN_SHIN)) {
-		if (node->_verifiedFrontColor.p[16]>MAX_SHIN){node->_verifiedFrontColor.p[16] = MAX_SHIN;}else{node->_verifiedFrontColor.p[16]=MIN_SHIN;}
-	}
-#undef MAX_SHIN
-#undef MIN_SHIN
+//#define MAX_SHIN 128.0f
+//#define MIN_SHIN 0.01f
+//	if ((node->_verifiedFrontColor.p[16] > MAX_SHIN) || (node->_verifiedFrontColor.p[16] < MIN_SHIN)) {
+//		if (node->_verifiedFrontColor.p[16]>MAX_SHIN){node->_verifiedFrontColor.p[16] = MAX_SHIN;}else{node->_verifiedFrontColor.p[16]=MIN_SHIN;}
+//	}
+//#undef MAX_SHIN
+//#undef MIN_SHIN
 
 	if (node->separateBackColor) {
 
