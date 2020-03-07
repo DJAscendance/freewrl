@@ -203,7 +203,7 @@ void OpenGL_Utils_init(struct tOpenGL_Utils *t)
 		// userDefinedShaders - assume 0, unless the user is a geek.
 		p->userDefinedShaderCount = 0;
 
-		p->shadingStyle = 1; //0=flat, 1=gouraud (default), 2=phong, 3=wireframe
+		p->shadingStyle = 2; //0=flat, 1=gouraud (default), 2=phong, 3=wireframe
 		//ConsoleMessage ("setting usePhongShaders to true"); p->usePhongShaders=true;
 		p->maxStackUsed = 0;
 	}
