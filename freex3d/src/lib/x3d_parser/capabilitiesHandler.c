@@ -138,6 +138,7 @@ static const int FullProfile[] = {
 	COM_Picking,			3,
 	COM_Followers,			1,
 	COM_ParticleSystems,		3,
+	COM_ProjectiveTextureMapping, 2,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
