@@ -521,7 +521,6 @@ attribute vec4 fw_MultiTexCoord3; \n\
 varying vec2 hatchPosition; \n\
 #endif //FILL \n\
 \n\
-/* PLUG-DECLARATIONS */ \n\
  \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
@@ -623,9 +622,11 @@ void vertProjCalTexCoord(void) { \n\
 	float winv = 1.0/temp.w; \n\
 	return temp.xyz * winv; \n\
  } \n\
+/* PLUG-DECLARATIONS */ \n\
 void main(void) \n\
 { \n\
   #ifdef LIT \n\
+  fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
   castle_MaterialDiffuseAlpha = fw_FrontMaterial.diffuse.a; \n\
   #ifdef TEX \n\
   #ifdef TAREP \n\
@@ -694,7 +695,17 @@ void main(void) \n\
   #ifdef LIT \n\
   castle_ColorES = castle_Emissive; \n\
   castle_Color = vec4(castle_SceneColor, 1.0); \n\
-  /* PLUG: add_light_contribution2 (castle_Color, castle_ColorES, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess) */ \n\
+	/* back Facing materials - flip the normal and grab back materials */ \n\
+	vec3 E = -normalize(castle_vertex_eye.xyz); \n \
+	vec3 N = normalize (castle_normal_eye); \n\
+	bool backFacing = (dot(N,E) < 0.0); \n\
+	if (backFacing) { \n\
+		N = -N; \n\
+		#ifdef TWO \n\
+		ourMat = fw_BackMaterial; \n\
+		#endif //TWO \n\
+	} \n\
+  /* PLUG: add_light_contribution2 (castle_Color, castle_ColorES, castle_vertex_eye, N, ourMat) //castle_MaterialShininess) */ \n\
   /* PLUG: add_light_contribution (castle_Color, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess) */ \n\
   castle_Color.a = castle_MaterialDiffuseAlpha; \n\
   /* Clamp sum of lights colors to be <= 1. See template.fs for comments. */ \n\
@@ -1082,7 +1093,6 @@ struct fogParams \n\
 uniform fogParams fw_fogparams; \n\
 #endif //FOG \n\
  \n\
-/* PLUG-DECLARATIONS */ \n\
  \n\
 #ifdef HAS_GEOMETRY_SHADER \n\
 #define castle_vertex_eye castle_vertex_eye_geoshader \n\
@@ -1175,6 +1185,7 @@ vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 } \n\
  \n\
 vec4 matdiff_color; \n\
+/* PLUG-DECLARATIONS */ \n\
 void main(void) \n\
 { \n\
   vec4 fragment_color = vec4(1.0,1.0,1.0,1.0); \n\
@@ -1182,12 +1193,23 @@ void main(void) \n\
   float castle_MaterialDiffuseAlpha = castle_Color.a; \n\
   \n\
   #ifdef LITE \n\
+	fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
+	/* back Facing materials - flip the normal and grab back materials */ \n\
+	//bool backFacing = (dot(N,E) < 0.0); \n\
+	vec3 N = normalize (castle_normal_eye); \n\
+	if (!gl_FrontFacing){ //backFacing) { \n\
+		N = -N; \n\
+		#ifdef TWO \n\
+		ourMat = fw_BackMaterial; \n\
+		#endif //TWO \n\
+	} \n\
   //per-fragment lighting aka PHONG \n\
   //start over with the color, since we have material and lighting in here \n\
+  fw_MaterialParameters myMat = fw_FrontMaterial; \n\
   castle_MaterialDiffuseAlpha = fw_FrontMaterial.diffuse.a; \n\
   matdiff_color = vec4(0,0,0,1.0); \n\
   castle_ColorES = fw_FrontMaterial.emission.rgb; \n\
-  /* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, castle_normal_eye, fw_FrontMaterial.shininess) */ \n\
+  /* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, ourMat) */ \n\
   #endif //LITE \n\
   \n\
   #ifdef LIT \n\
@@ -1522,7 +1544,7 @@ void PLUG_add_light_contribution (inout vec4 vertexcolor, in vec4 myPosition, in
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
-void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, in float shininess ) { \n\
+void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, in fw_MaterialParameters myMat){ \n\
 	//working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
 	//myPosition, myNormal - of surface vertex, in eyespace \n\
 	//vertexcolor - diffuse+ambient -will be replaced or modulated by texture color \n\
@@ -1538,16 +1560,16 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 	vec4 matdiffuse = vec4(1.0,1.0,1.0,1.0); \n\
 	float myAlph = 0.0;\n\
 		\n\
-	fw_MaterialParameters myMat = fw_FrontMaterial; \n\
+	//fw_MaterialParameters myMat = fw_FrontMaterial; \n\
 		\n\
-	/* back Facing materials - flip the normal and grab back materials */ \n\
-	bool backFacing = (dot(N,E) < 0.0); \n\
-	if (backFacing) { \n\
-		N = -N; \n\
-		#ifdef TWO \n\
-		myMat = fw_BackMaterial; \n\
-		#endif //TWO \n\
-	} \n\
+	///* back Facing materials - flip the normal and grab back materials */ \n\
+	//bool backFacing = (dot(N,E) < 0.0); \n\
+	//if (backFacing) { \n\
+	//	N = -N; \n\
+	//	#ifdef TWO \n\
+	//	myMat = fw_BackMaterial; \n\
+	//	#endif //TWO \n\
+	//} \n\
 		\n\
 	myAlph = myMat.diffuse.a; \n\
 	//if(useMatDiffuse) \n\
