@@ -835,7 +835,7 @@ void child_Shape (struct X3D_Shape *node) {
 				{0.0f, 0.0f, 0.0f, 1.0f}, /* Ambient */
 				{0.8f, 0.8f, 0.8f, 1.0f}, /* Diffuse */
 				{0.0f, 0.0f, 0.0f, 1.0f}, /* Specular */
-				10.0f};                   /* Shininess */
+				.2f};                   /* Shininess */
 
 	COMPILE_IF_REQUIRED
 
@@ -884,13 +884,13 @@ void child_Shape (struct X3D_Shape *node) {
 			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
 			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
 			/* copy the emissive colour over for lines and points */
-			memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
+			//memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
 
 		} else if (p->material_twoSided != NULL) {
 			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_twoSided->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
 			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_twoSided->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
 			/* copy the emissive colour over for lines and points */
-			memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
+			//memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
 		} else {
 			/* no materials selected.... */
 		}
