@@ -1060,6 +1060,7 @@ sub gen {
 	"#define X3D_POINTLIGHT(node) ((struct X3D_PointLight*)node)\n".
 	"#define X3D_SPOTLIGHT(node) ((struct X3D_SpotLight*)node)\n".
 	"#define X3D_DIRECTIONALLIGHT(node) ((struct X3D_DirectionalLight*)node)\n".
+	"#define X3D_ENVIRONMENTLIGHT(node) ((struct X3D_EnvironmentLight*)node)\n".
 	"#define X3D_INDEXEDFACESET(node) ((struct X3D_IndexedFaceSet*)node)\n".
 	"#define X3D_INDEXEDLINESET(node) ((struct X3D_IndexedLineSet*)node)\n".
 	"#define X3D_ELEVATIONGRID(node) ((struct X3D_ElevationGrid*)node)\n".

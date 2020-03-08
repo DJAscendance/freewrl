@@ -333,6 +333,13 @@ void prep_SpotLight (struct X3D_SpotLight *node) {
 	render_SpotLight(node);
 }
 
+void compile_EnvironmentLight(struct X3D_EnvironmentLight * node){
+}
+void render_EnvironmentLight(struct X3D_EnvironmentLight * node){
+}
+void prep_EnvironmentLight(struct X3D_EnvironmentLight * node){
+}
+
 int getLocalLight();
 void pushLocalLight(int lastlight);
 void popLocalLight();

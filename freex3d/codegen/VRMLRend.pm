@@ -159,6 +159,7 @@ our %defaultContainerType = (
 	Sphere 			=>["geometry"],
 	SphereSensor 		=>["children"],
 	SpotLight 		=>["children"],
+	EnvironmentLight	=>["children"],
 	StaticGroup		=>["children"],
 	StringSensor		=>["children"],
 	Switch 			=>["children"],
@@ -420,6 +421,7 @@ our %RendC = map {($_=>1)} qw/
 	DirectionalLight
 	SpotLight
 	PointLight
+	EnvironmentLight
 	HAnimHumanoid
 	HAnimJoint
 	QuadSet
@@ -485,6 +487,7 @@ our %PrepC = map {($_=>1)} qw/
 	PointLight
 	SpotLight
 	DirectionalLight
+	EnvironmentLight
 	GeoLocation
 	GeoPlanet
 	GeoViewpoint
@@ -700,6 +703,7 @@ our %CompileC = map {($_=>1)} qw/
 	SpotLight
 	PointLight
 	DirectionalLight
+	EnvironmentLight
 	NurbsCurve
 	NurbsPatchSurface
 	NurbsSwungSurface
