@@ -4292,13 +4292,13 @@ struct X3D_DirectionalLight {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct X3D_Node *metadata;
+	int global;
+	int on;
 	float ambientIntensity;
+	float intensity;
 	struct SFColor color;
 	struct SFVec3f direction;
-	int global;
-	float intensity;
-	struct X3D_Node *metadata;
-	int on;
 	struct SFVec4f _dir;
 	struct SFVec4f _col;
 	struct SFVec4f _amb;
@@ -4537,9 +4537,14 @@ struct X3D_EnvironmentLight {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct X3D_Node *metadata;
+	int global;
+	int on;
+	float ambientIntensity;
+	float intensity;
+	struct SFColor color;
 	struct X3D_Node *diffuseTexture;
 	struct X3D_Node *specularTexture;
-	struct X3D_Node *metadata;
 };
 extern struct X3D_Virt virt_EnvironmentLight;
 /***********************/
@@ -8494,14 +8499,14 @@ struct X3D_PointLight {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	float ambientIntensity;
-	struct SFVec3f attenuation;
-	struct SFColor color;
-	int global;
-	float intensity;
-	struct SFVec3f location;
 	struct X3D_Node *metadata;
+	int global;
 	int on;
+	float ambientIntensity;
+	float intensity;
+	struct SFColor color;
+	struct SFVec3f attenuation;
+	struct SFVec3f location;
 	float radius;
 	struct SFVec4f _loc;
 	struct SFVec4f _col;
@@ -9858,17 +9863,17 @@ struct X3D_SpotLight {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct X3D_Node *metadata;
+	int global;
+	int on;
 	float ambientIntensity;
+	float intensity;
+	struct SFColor color;
 	struct SFVec3f attenuation;
 	float beamWidth;
-	struct SFColor color;
 	float cutOffAngle;
 	struct SFVec3f direction;
-	int global;
-	float intensity;
 	struct SFVec3f location;
-	struct X3D_Node *metadata;
-	int on;
 	float radius;
 	struct SFVec4f _dir;
 	struct SFVec4f _loc;
