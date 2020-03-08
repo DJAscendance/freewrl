@@ -1557,12 +1557,6 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 	vec3 N = normalize (myNormal); \n\
 		\n\
 	vec3 E = -normalize(myPosition.xyz); \n \
-	vec4 matdiffuse = vec4(1.0,1.0,1.0,1.0); \n\
-	float myAlph = 0.0;\n\
-		\n\
-	myAlph = myMat.diffuse.a; \n\
-	//if(useMatDiffuse) \n\
-	matdiffuse = myMat.diffuse; \n\
 		\n\
 	// apply the lights to this material \n\
 	// weird but ANGLE needs constant loop \n\
@@ -1611,9 +1605,9 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 			// tone down the power factor if myMat.shininess borders 0 \n\
 		} \n\
 			\n\
-		ambient += light.ambient * matdiffuse * myMat.ambient; \n\
+		ambient += light.ambient * myMat.diffuse * myMat.ambient; \n\
 		specular += light.intensity * myMat.specular *powerFactor; \n\
-		diffuse += light.intensity * matdiffuse * NdotL; \n\
+		diffuse += light.intensity * myMat.diffuse * NdotL; \n\
 		if (myLightType==1) { \n\
 			// SpotLight  \n\
 			spot = 0.0; \n\
@@ -1630,7 +1624,7 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 		sum_vertex   += on * attenuation * spot * vec4(light.color,1.0) * (ambient + diffuse); \n\
 		sum_specular += on * attenuation * spot * vec4(light.color,1.0) * (specular); \n\
 	} \n\
-	vertexcolor = vec4(clamp(sum_vertex + vertexcolor, 0.0, 1.0).rgb,myAlph); \n\
+	vertexcolor.rgb = clamp(sum_vertex + vertexcolor, 0.0, 1.0).rgb; \n\
 	specularcolor = clamp(sum_specular.rgb + specularcolor, 0.0, 1.0); \n\
 } \n\
 ";
