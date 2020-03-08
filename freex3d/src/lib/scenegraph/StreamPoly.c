@@ -112,13 +112,13 @@ static GLfloat Zsize = 0.0;
    Used for copying color X3DColorNode values over for streaming the
    structure. */
 
-static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA, GLfloat thisTransparency) {
+static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA) {
 	int i;
 	int pc;
 
 	if (isRGBA) pc = 4; else pc = 3;
 
-	/* if (isRGBA) printf ("do_glColor4fv, isRGBA\n"); else printf ("do_glColor4fv, NOT RGBA, setting alpha to thisTransparency %f\n",thisTransparency); */
+	/* if (isRGBA) printf ("do_glColor4fv, isRGBA\n"); else printf ("do_glColor4fv, NOT RGBA, setting alpha to 1\n"); */
 
 	/* parameter checks */
 	for (i=0; i<pc; i++) {
@@ -135,7 +135,7 @@ static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA, 
 		dest->c[3] = param[3];
 	} else {
 		/* we calculate the transparency of the node. VRML 0.0 = fully visible, OpenGL 1.0 = fully visible */
-		dest->c[3] = 1.0f - thisTransparency;
+		dest->c[3] = 1.0f;
 	}
 	/* printf ("do_glColor4fv, resulting is R %f G %f B %f A %f\n",dest->c[0],dest->c[1],dest->c[2], dest->c[3]); */
 }
@@ -147,7 +147,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	struct X3D_PolyRep *r;
 	int i, j, k, nmtexcoord;
 	int hasc;
-	GLfloat thisTrans;
+	//GLfloat thisTrans;
 
 	struct SFVec3f *points= NULL; int npoints=0;
 	struct SFColor *colors= NULL; int ncolors=0;
@@ -411,44 +411,6 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	}
 
 
-	/* figure out transparency for this node. Go through scene graph, and looksie for it. */
-	thisTrans = 0.0f; /* 0.0 = solid, OpenGL 1.0 = solid, we reverse it when writing buffers */
-	 
-	// printf ("figuring out what the transparency of this node is \n");
-	// printf ("nt %s\n",stringNodeType(X3D_NODE(node)->_nodeType));
-	
-	/* parent[0] should be a NODE_Shape */
-	if(0){ 
-		//Sept 1, 2016: we are modulating CPV transparency with material transparency 
-		// .. in the UberShader, so we don't need to modulate it here
-		struct X3D_Shape *parent;
-
-		if (node->_parentVector != NULL) {
-			if (vectorSize(node->_parentVector) != 0) {
-				parent = vector_get(struct X3D_Shape *, node->_parentVector, 0);
-				// printf ("nt, parent is of type %s\n",stringNodeType(parent->_nodeType)); 
-				if (parent->_nodeType == NODE_Shape) {
-					struct X3D_Appearance *app;
-					POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance *, parent->appearance,app)
-					if (app != NULL)  {
-						// printf ("appearance is of type %s\n",stringNodeType(app->_nodeType)); 
-						if (app->_nodeType == NODE_Appearance) {
-							struct X3D_Material *mat;
-							POSSIBLE_PROTO_EXPANSION(struct X3D_Material *, app->material,mat)
-							if (mat != NULL) {
-								// printf ("material is of type %s\n",stringNodeType(mat->_nodeType)); 
-								if (mat->_nodeType == NODE_Material) {
-									thisTrans = mat->transparency;
-									// printf ("Set transparency to %f\n",thisTrans);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
 	/* now, lets go through the old, non-linear polyrep structure, and
 	   put it in a stream format */
 
@@ -531,9 +493,9 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					printf ("\n");
 				#endif
 				if (isRGBA)
-					do_glColor4fv(&newcolors[i],oldColorsRGBA[coli].c,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],oldColorsRGBA[coli].c,isRGBA);
 				else
-					do_glColor4fv(&newcolors[i],colors[coli].c,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],colors[coli].c,isRGBA);
 			} else if(r->color) {
 				#ifdef STREAM_POLY_VERBOSE
 					printf ("coloUr");
@@ -541,9 +503,9 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					printf ("\n");
 				#endif
 				if (isRGBA)
-					do_glColor4fv(&newcolors[i],r->color+4*coli,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],r->color+4*coli,isRGBA);
 				else
-					do_glColor4fv(&newcolors[i],r->color+3*coli,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],r->color+3*coli,isRGBA);
 			}
 		}
 
@@ -712,7 +674,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	r->streamed=TRUE;
 
 	/* record the transparency, in case we need to re-do this field */
-	r->transparency = thisTrans;
+	//r->transparency = thisTrans;
 	r->isRGBAcolorNode = isRGBA;
 
 	/* send the data to VBOs if required */

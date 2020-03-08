@@ -77,7 +77,7 @@ void RenderTextures_init(struct tRenderTextures *t){
 /* which texture unit are we going to use? is this texture not OFF?? Should we set the
    background coloUr??? Larry the Cucumber, help! */
 
-static int setActiveTexture (int c, GLfloat thisTransparency,  GLint *texUnit, GLint *texMode) 
+static int setActiveTexture (int c, GLint *texUnit, GLint *texMode) 
 {
 	ppRenderTextures p;
 	ttglobal tg = gglobal();
@@ -510,7 +510,7 @@ void textureTransform_start() {
 		if (tg->RenderFuncs.boundTextureStack[c]!=0) {
 			isMulti = isMultiTexture(tg->RenderFuncs.texturenode);
 			//printf ("passedInGenTex, C, boundTextureStack %d\n",tg->RenderFuncs.boundTextureStack[c]);
-			if (setActiveTexture(c,getAppearanceProperties()->transparency,texUnit,texMode)) {
+			if (setActiveTexture(c,texUnit,texMode)) {
 				//printf ("passedInGenTex, going to bind to texture %d\n",tg->RenderFuncs.boundTextureStack[c]);
 				GLuint texture;
 				struct X3D_Node *tt = getThis_textureTransform();

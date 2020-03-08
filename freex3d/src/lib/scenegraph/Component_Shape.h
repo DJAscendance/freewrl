@@ -159,7 +159,7 @@ struct matpropstruct {
 	/* which shader is active; 0 = no shader active */
 	s_shader_capabilities_t *currentShaderProperties;
 
-	float	transparency;
+	//float	transparency;
 	//GLfloat	emissionColour[3];
 	GLint	cubeFace;	/* for cubemapping, if 0, not cube mapping */
 	int 	cullFace;	/* is this single-sided or two-sided? Simply used to reduce calls to
