@@ -132,7 +132,8 @@ our %defaultContainerType = (
 	LOD 			=>["children"],
 	Material 		=>["material"],
 	PhysicalMaterial 	=>["material"],
-	TwoSidedMaterial	=>["material"],
+	TwoSidedMaterial 	=>["material"],
+	UnlitMaterial		=>["material"],
 	MultiTexture		=>["texture"],
 	MultiTextureCoordinate  =>["texCoord"],
 	MultiTextureTransform	=>["textureTransform"],
@@ -399,6 +400,7 @@ our %RendC = map {($_=>1)} qw/
 	LineProperties
 	FillProperties
 	Material
+	UnlitMaterial
 	PhysicalMaterial
 	TwoSidedMaterial
 	ProgramShader
@@ -612,6 +614,7 @@ our %CompileC = map {($_=>1)} qw/
 	CADPart
 	ViewpointGroup
 	Material
+	UnlitMaterial
 	PhysicalMaterial
 	TwoSidedMaterial
 	IndexedLineSet

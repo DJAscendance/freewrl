@@ -1560,17 +1560,6 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 	vec4 matdiffuse = vec4(1.0,1.0,1.0,1.0); \n\
 	float myAlph = 0.0;\n\
 		\n\
-	//fw_MaterialParameters myMat = fw_FrontMaterial; \n\
-		\n\
-	///* back Facing materials - flip the normal and grab back materials */ \n\
-	//bool backFacing = (dot(N,E) < 0.0); \n\
-	//if (backFacing) { \n\
-	//	N = -N; \n\
-	//	#ifdef TWO \n\
-	//	myMat = fw_BackMaterial; \n\
-	//	#endif //TWO \n\
-	//} \n\
-		\n\
 	myAlph = myMat.diffuse.a; \n\
 	//if(useMatDiffuse) \n\
 	matdiffuse = myMat.diffuse; \n\

@@ -1261,3 +1261,7 @@ void render_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	}
 }
 
+void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
+}
+void render_UnlitMaterial (struct X3D_UnlitMaterial *node) {
+}

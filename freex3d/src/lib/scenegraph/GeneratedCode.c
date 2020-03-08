@@ -637,7 +637,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"geometryType",
 	"geovalue_changed",
 	"global",
-	"glossinessFactor",
 	"gotEvents",
 	"gradientThreshold",
 	"gradients",
@@ -804,7 +803,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"numComponents",
 	"objectType",
 	"occlusionRoughnessMetallicTexture",
-	"occlusionTexture",
 	"offset",
 	"offsetUnits",
 	"on",
@@ -962,7 +960,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"spatialize",
 	"specific",
 	"specularColor",
-	"specularFactor",
 	"specularGlossinessTexture",
 	"speed",
 	"speedFactor",
@@ -1447,7 +1444,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"geometry1",
 	"geometry2",
 	"global",
-	"glossinessFactor",
 	"gotEvents",
 	"gradientThreshold",
 	"gradients",
@@ -1553,7 +1549,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"normalizeVelocity",
 	"objectType",
 	"occlusionRoughnessMetallicTexture",
-	"occlusionTexture",
 	"offset",
 	"offsetUnits",
 	"on",
@@ -1640,7 +1635,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"softnessErrorCorrection",
 	"source",
 	"specularColor",
-	"specularFactor",
 	"specularGlossinessTexture",
 	"speed",
 	"startTime",
@@ -2482,6 +2476,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"TriangleStripSet",
 	"TwoSidedMaterial",
 	"UniversalJoint",
+	"UnlitMaterial",
 	"Viewpoint",
 	"ViewpointGroup",
 	"Viewport",
@@ -3359,6 +3354,10 @@ struct X3D_Virt virt_TwoSidedMaterial = { NULL,(void *)render_TwoSidedMaterial,N
 
 struct X3D_Virt virt_UniversalJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void render_UnlitMaterial(struct X3D_UnlitMaterial *);
+void compile_UnlitMaterial(struct X3D_UnlitMaterial *);
+struct X3D_Virt virt_UnlitMaterial = { NULL,(void *)render_UnlitMaterial,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_UnlitMaterial};
+
 void prep_Viewpoint(struct X3D_Viewpoint *);
 struct X3D_Virt virt_Viewpoint = { (void *)prep_Viewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3670,6 +3669,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_TriangleStripSet,
 	 &virt_TwoSidedMaterial,
 	 &virt_UniversalJoint,
+	 &virt_UnlitMaterial,
 	 &virt_Viewpoint,
 	 &virt_ViewpointGroup,
 	 &virt_Viewport,
@@ -5505,6 +5505,9 @@ const int OFFSETS_Material[] = {
 	(int) FIELDNAMES_shininess, (int) offsetof (struct X3D_Material, shininess),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_specularColor, (int) offsetof (struct X3D_Material, specularColor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_Material, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_baseColorTexture, (int) offsetof (struct X3D_Material, baseColorTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_specularGlossinessTexture, (int) offsetof (struct X3D_Material, specularGlossinessTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_emissiveTexture, (int) offsetof (struct X3D_Material, emissiveTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__verifiedColor, (int) offsetof (struct X3D_Material, _verifiedColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -6276,17 +6279,13 @@ const int OFFSETS_PhysicalMaterial[] = {
 	(int) FIELDNAMES_metallicFactor, (int) offsetof (struct X3D_PhysicalMaterial, metallicFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_roughnessFactor, (int) offsetof (struct X3D_PhysicalMaterial, roughnessFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_diffuseFactor, (int) offsetof (struct X3D_PhysicalMaterial, diffuseFactor),  (int) FIELDTYPE_SFColorRGBA, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_specularFactor, (int) offsetof (struct X3D_PhysicalMaterial, specularFactor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_glossinessFactor, (int) offsetof (struct X3D_PhysicalMaterial, glossinessFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_emissiveFactor, (int) offsetof (struct X3D_PhysicalMaterial, emissiveFactor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_normalBias, (int) offsetof (struct X3D_PhysicalMaterial, normalBias),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_normalScale, (int) offsetof (struct X3D_PhysicalMaterial, normalScale),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_baseColorTexture, (int) offsetof (struct X3D_PhysicalMaterial, baseColorTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_emissiveTexture, (int) offsetof (struct X3D_PhysicalMaterial, emissiveTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_roughnessMetallicTexture, (int) offsetof (struct X3D_PhysicalMaterial, roughnessMetallicTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_specularGlossinessTexture, (int) offsetof (struct X3D_PhysicalMaterial, specularGlossinessTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_occlusionRoughnessMetallicTexture, (int) offsetof (struct X3D_PhysicalMaterial, occlusionRoughnessMetallicTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_occlusionTexture, (int) offsetof (struct X3D_PhysicalMaterial, occlusionTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_normalTexture, (int) offsetof (struct X3D_PhysicalMaterial, normalTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -7570,6 +7569,11 @@ const int OFFSETS_UniversalJoint[] = {
 	(int) FIELDNAMES___old_body2, (int) offsetof (struct X3D_UniversalJoint, __old_body2),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_UnlitMaterial[] = {
+	(int) FIELDNAMES_emissiveFactor, (int) offsetof (struct X3D_UnlitMaterial, emissiveFactor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_emissiveTexture, (int) offsetof (struct X3D_UnlitMaterial, emissiveTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_Viewpoint[] = {
 	(int) FIELDNAMES__layerId, (int) offsetof (struct X3D_Viewpoint, _layerId),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__donethispass, (int) offsetof (struct X3D_Viewpoint, _donethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -7966,6 +7970,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_TriangleStripSet,
 	OFFSETS_TwoSidedMaterial,
 	OFFSETS_UniversalJoint,
+	OFFSETS_UnlitMaterial,
 	OFFSETS_Viewpoint,
 	OFFSETS_ViewpointGroup,
 	OFFSETS_Viewport,
@@ -8515,6 +8520,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_TriangleStripSet : {tmp = MALLOC (struct X3D_TriangleStripSet *, sizeof (struct X3D_TriangleStripSet)); break;}
 		case NODE_TwoSidedMaterial : {tmp = MALLOC (struct X3D_TwoSidedMaterial *, sizeof (struct X3D_TwoSidedMaterial)); break;}
 		case NODE_UniversalJoint : {tmp = MALLOC (struct X3D_UniversalJoint *, sizeof (struct X3D_UniversalJoint)); break;}
+		case NODE_UnlitMaterial : {tmp = MALLOC (struct X3D_UnlitMaterial *, sizeof (struct X3D_UnlitMaterial)); break;}
 		case NODE_Viewpoint : {tmp = MALLOC (struct X3D_Viewpoint *, sizeof (struct X3D_Viewpoint)); break;}
 		case NODE_ViewpointGroup : {tmp = MALLOC (struct X3D_ViewpointGroup *, sizeof (struct X3D_ViewpointGroup)); break;}
 		case NODE_Viewport : {tmp = MALLOC (struct X3D_Viewport *, sizeof (struct X3D_Viewport)); break;}
@@ -10841,6 +10847,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->shininess = 0.2f;
 			tmp2->specularColor.c[0] = 0.0f;tmp2->specularColor.c[1] = 0.0f;tmp2->specularColor.c[2] = 0.0f;;
 			tmp2->transparency = 0.0f;
+			tmp2->baseColorTexture = NULL;
+			tmp2->specularGlossinessTexture = NULL;
+			tmp2->emissiveTexture = NULL;
 			tmp2->_verifiedColor.p = MALLOC (float *, sizeof(float)*17);
 			tmp2->_verifiedColor.p[0] = 0.0f;
 			tmp2->_verifiedColor.p[1] = 0.0f;
@@ -11870,17 +11879,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metallicFactor = 0.0f;
 			tmp2->roughnessFactor = 0.2f;
 			tmp2->diffuseFactor.c[0] = 1;tmp2->diffuseFactor.c[1] = 1;tmp2->diffuseFactor.c[2] = 1;tmp2->diffuseFactor.c[3] = 1;;
-			tmp2->specularFactor.c[0] = 1.0f;tmp2->specularFactor.c[1] = 1.0f;tmp2->specularFactor.c[2] = 1.0f;;
-			tmp2->glossinessFactor = 1.0f;
 			tmp2->emissiveFactor.c[0] = 0.0f;tmp2->emissiveFactor.c[1] = 0.0f;tmp2->emissiveFactor.c[2] = 0.0f;;
 			tmp2->normalBias.c[0] = -1.0f;tmp2->normalBias.c[1] = -1.0f;tmp2->normalBias.c[2] = 1.0f;
 			tmp2->normalScale = 1.0f;
 			tmp2->baseColorTexture = NULL;
 			tmp2->emissiveTexture = NULL;
 			tmp2->roughnessMetallicTexture = NULL;
-			tmp2->specularGlossinessTexture = NULL;
 			tmp2->occlusionRoughnessMetallicTexture = NULL;
-			tmp2->occlusionTexture = NULL;
 			tmp2->normalTexture = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
@@ -13487,6 +13492,14 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_body1 = NULL;
 			tmp2->__old_body2 = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_joints;
+		break;
+		}
+		case NODE_UnlitMaterial : {
+			struct X3D_UnlitMaterial * tmp2;
+			tmp2 = (struct X3D_UnlitMaterial *) tmp;
+			tmp2->emissiveFactor.c[0] = 0.0f;tmp2->emissiveFactor.c[1] = 0.0f;tmp2->emissiveFactor.c[2] = 0.0f;;
+			tmp2->emissiveTexture = NULL;
+			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
 		}
 		case NODE_Viewpoint : {
@@ -16012,6 +16025,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->specularColor.c[i]); }
 			fprintf (fp,"\n");
 			spacer fprintf (fp," transparency (SFFloat) \t%4.3f\n",tmp->transparency);
+			spacer fprintf (fp," baseColorTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->baseColorTexture); 
+			spacer fprintf (fp," specularGlossinessTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->specularGlossinessTexture); 
+			spacer fprintf (fp," emissiveTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->emissiveTexture); 
 		    break;
 		}
 		case NODE_Matrix3VertexAttribute : {
@@ -16934,10 +16950,6 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," diffuseFactor (SFColorRGBA): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->diffuseFactor.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," specularFactor (SFColor): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->specularFactor.c[i]); }
-			fprintf (fp,"\n");
-			spacer fprintf (fp," glossinessFactor (SFFloat) \t%4.3f\n",tmp->glossinessFactor);
 			spacer fprintf (fp," emissiveFactor (SFColor): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->emissiveFactor.c[i]); }
 			fprintf (fp,"\n");
@@ -16948,9 +16960,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," baseColorTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->baseColorTexture); 
 			spacer fprintf (fp," emissiveTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->emissiveTexture); 
 			spacer fprintf (fp," roughnessMetallicTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->roughnessMetallicTexture); 
-			spacer fprintf (fp," specularGlossinessTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->specularGlossinessTexture); 
 			spacer fprintf (fp," occlusionRoughnessMetallicTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->occlusionRoughnessMetallicTexture); 
-			spacer fprintf (fp," occlusionTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->occlusionTexture); 
 			spacer fprintf (fp," normalTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->normalTexture); 
 		    break;
 		}
@@ -18537,6 +18547,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_UnlitMaterial : {
+			struct X3D_UnlitMaterial *tmp;
+			tmp = (struct X3D_UnlitMaterial *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," emissiveFactor (SFColor): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->emissiveFactor.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," emissiveTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->emissiveTexture); 
+		    break;
+		}
 		case NODE_Viewpoint : {
 			struct X3D_Viewpoint *tmp;
 			tmp = (struct X3D_Viewpoint *) node;
@@ -18985,6 +19005,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_TriangleStripSet: return X3DGeometryNode; break;
 	case NODE_TwoSidedMaterial: return X3DMaterialNode; break;
 	case NODE_UniversalJoint: return X3DRigidJointNode; break;
+	case NODE_UnlitMaterial: return X3DMaterialNode; break;
 	case NODE_Viewpoint: return X3DBindableNode; break;
 	case NODE_ViewpointGroup: return X3DGroupingNode; break;
 	case NODE_Viewport: return X3DViewportNode; break;

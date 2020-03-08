@@ -1582,6 +1582,9 @@ EXPOSED_FIELD(Material,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,shininess,sffloat,shininess,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Material,specularColor,sfcolor,specularColor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(Material,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(Material,baseColorTexture,sfnode,baseColorTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(Material,specularGlossinessTexture,sfnode,specularGlossinessTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(Material,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(Material)
 
 /* Matrix3VertexAttribute node */
@@ -2338,17 +2341,13 @@ EXPOSED_FIELD(PhysicalMaterial,baseColorFactor,sfcolorrgba,baseColorFactor,FIELD
 EXPOSED_FIELD(PhysicalMaterial,metallicFactor,sffloat,metallicFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,roughnessFactor,sffloat,roughnessFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,diffuseFactor,sfcolorrgba,diffuseFactor,FIELDTYPE_SFColorRGBA,UNCA_NONE)
-EXPOSED_FIELD(PhysicalMaterial,specularFactor,sfcolor,specularFactor,FIELDTYPE_SFColor,UNCA_NONE)
-EXPOSED_FIELD(PhysicalMaterial,glossinessFactor,sffloat,glossinessFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,emissiveFactor,sfcolor,emissiveFactor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,normalBias,sfvec3f,normalBias,FIELDTYPE_SFVec3f,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,normalScale,sffloat,normalScale,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,baseColorTexture,sfnode,baseColorTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,roughnessMetallicTexture,sfnode,roughnessMetallicTexture,FIELDTYPE_SFNode,UNCA_NONE)
-EXPOSED_FIELD(PhysicalMaterial,specularGlossinessTexture,sfnode,specularGlossinessTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,occlusionRoughnessMetallicTexture,sfnode,occlusionRoughnessMetallicTexture,FIELDTYPE_SFNode,UNCA_NONE)
-EXPOSED_FIELD(PhysicalMaterial,occlusionTexture,sfnode,occlusionTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(PhysicalMaterial)
 
@@ -3442,6 +3441,12 @@ EVENT_OUT(UniversalJoint,body1Axis,sfvec3f,body1Axis,FIELDTYPE_SFVec3f)
 EVENT_OUT(UniversalJoint,body2AnchorPoint,sfvec3f,body2AnchorPoint,FIELDTYPE_SFVec3f)
 EVENT_OUT(UniversalJoint,body2Axis,sfvec3f,body2Axis,FIELDTYPE_SFVec3f)
 END_NODE(UniversalJoint)
+
+/* UnlitMaterial node */
+BEGIN_NODE(UnlitMaterial)
+EXPOSED_FIELD(UnlitMaterial,emissiveFactor,sfcolor,emissiveFactor,FIELDTYPE_SFColor,UNCA_NONE)
+EXPOSED_FIELD(UnlitMaterial,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(UnlitMaterial)
 
 /* Viewpoint node */
 BEGIN_NODE(Viewpoint)
