@@ -43,6 +43,7 @@ X3D Shape Component
 #include "Component_ProgrammableShaders.h"
 #include "Component_Shape.h"
 #include "RenderFuncs.h"
+#include "LinearAlgebra.h"
 
 #define NOTHING 0
 
@@ -295,73 +296,35 @@ struct X3D_TwoSidedMaterial *get_material_twoSided(){
 
 /* bounds check the material node fields */
 void compile_Material (struct X3D_Material *node) {
-	int i;
-	float trans;
-
+	float *p;
 	/* verify that the numbers are within range */
-	if (node->ambientIntensity < 0.0f) node->ambientIntensity=0.0f;
-	if (node->ambientIntensity > 1.0f) node->ambientIntensity=1.0f;
-	if (node->shininess < 0.0f) node->shininess=0.0f;
-	if (node->shininess > 1.0f) node->shininess=1.0f;
-	if (node->transparency < 0.0f) node->transparency=MIN_NODE_TRANSPARENCY;
-	if (node->transparency >= 1.0f) node->transparency=MAX_NODE_TRANSPARENCY;
+	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
+	node->shininess = fclamp(node->shininess,0.0f,1.0f);
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->diffuseColor.c,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
-	for (i=0; i<3; i++) {
-		if (node->diffuseColor.c[i] < 0.0f) node->diffuseColor.c[i]=0.0f;
-		if (node->diffuseColor.c[i] > 1.0f) node->diffuseColor.c[i]=1.0f;
-		if (node->emissiveColor.c[i] < 0.0f) node->emissiveColor.c[i]=0.0f;
-		if (node->emissiveColor.c[i] > 1.0f) node->emissiveColor.c[i]=1.0f;
-		if (node->specularColor.c[i] < 0.0f) node->specularColor.c[i]=0.0f;
-		if (node->specularColor.c[i] > 1.0f) node->specularColor.c[i]=1.0f;
-	}
 
-	/* set the transparency here for the material */
-	/* Remember, VRML/X3D transparency 0.0 = solid; OpenGL 1.0 = solid, so we reverse it... */
-	trans = 1.0f - node->transparency;
-
-	/* we now keep verified params in a structure that maps to Shaders well...
-	struct gl_MaterialParameters {
-		vec4 emission;
-		vec4 ambient;
-		vec4 diffuse;
-		vec4 specular;
-		float shininess;
-	};
-	which is stored in the _verifiedColor[17] array here.
-	emission [0]..[3];
-	ambient [4]..[7];
-	diffuse [8]..[11];
-	specular [12]..[15];
-	shininess [16]
-*/
-	/* first, put in the transparency */
-	node->_verifiedColor.p[3] = trans;
-	node->_verifiedColor.p[7] = trans;
-	node->_verifiedColor.p[11] = trans;
-	node->_verifiedColor.p[15] = trans;
-
+	p = node->_verifiedColor.p;
 	/* DiffuseColor */
-	memcpy((void *)(&node->_verifiedColor.p[8]), node->diffuseColor.c, sizeof (float) * 3);
-
-	/* Ambient  - diffuseColor * ambientIntensity */
-	for(i=0; i<3; i++) { node->_verifiedColor.p[i+4] = node->_verifiedColor.p[i+8] * node->ambientIntensity; }
-
-	/* Specular */
-	memcpy((void *)(&node->_verifiedColor.p[12]), node->specularColor.c, sizeof (float) * 3);
+	veccopy3f(&p[0], node->diffuseColor.c);
 
 	/* Emissive */
-	memcpy((void *)(&node->_verifiedColor.p[0]), node->emissiveColor.c, sizeof (float) * 3);
+	veccopy3f(&p[3], node->emissiveColor.c);
+
+	/* Specular */
+	veccopy3f(&p[6], node->specularColor.c);
+
+	/* Ambient  - diffuseColor * ambientIntensity */
+	p[9] = node->ambientIntensity;
 
 	/* Shininess */
-	node->_verifiedColor.p[16] = node->shininess;
+	p[10] = node->shininess;
 
-//#define MAX_SHIN 128.0f
-//#define MIN_SHIN 0.01f
-//		if ((node->_verifiedColor.p[16] > MAX_SHIN) || (node->_verifiedColor.p[16] < MIN_SHIN)) {
-//			if (node->_verifiedColor.p[16]>MAX_SHIN){node->_verifiedColor.p[16] = MAX_SHIN;}else{node->_verifiedColor.p[16]=MIN_SHIN;}
-//		}
-//#undef MAX_SHIN
-//#undef MIN_SHIN
+	/* Transparency */
+	p[11] = node->transparency; //will send in raw form to shaders, and o = 1-t there.
+
 
 	MARK_NODE_COMPILED
 }
@@ -561,6 +524,21 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
     
 	if (realAppearanceNode->material != NULL) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->material,realMaterialNode);
+		if(realMaterialNode)  {    
+			if (realMaterialNode->_nodeType == NODE_Material) {
+				retval |= MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_TwoSidedMaterial) {
+				retval |= TWO_MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_PhysicalMaterial) {
+				retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
+			}
+		}
+	}
+	// v4 Appearance.backMaterial (vs v3.3-- TwoSidedMaterial)
+	if(0) if (realAppearanceNode->backMaterial != NULL) {
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->backMaterial,realMaterialNode);
 		if(realMaterialNode)  {    
 			if (realMaterialNode->_nodeType == NODE_Material) {
 				retval |= MATERIAL_APPEARANCE_SHADER;
@@ -829,13 +807,14 @@ void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Virt *v;
 
 	ppComponent_Shape p;
-    	ttglobal tg = gglobal();
+   	ttglobal tg = gglobal();
 	struct fw_MaterialParameters defaultMaterials = {
-				{0.0f, 0.0f, 0.0f, 1.0f}, /* Emission */
-				{0.0f, 0.0f, 0.0f, 1.0f}, /* Ambient */
-				{0.8f, 0.8f, 0.8f, 1.0f}, /* Diffuse */
-				{0.0f, 0.0f, 0.0f, 1.0f}, /* Specular */
-				.2f};                   /* Shininess */
+				{0.8f, 0.8f, 0.8f}, // Diffuse 
+				{0.0f, 0.0f, 0.0f}, // Emissive
+				{0.0f, 0.0f, 0.0f}, // Specular
+				.2f, // Ambient 
+				.2f, // Shininess
+				0.0f}; //transparency     
 
 	COMPILE_IF_REQUIRED
 
@@ -1146,104 +1125,68 @@ void compile_Shape (struct X3D_Shape *node) {
 
 
 void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
-	int i;
-	float trans;
-
+	float *p;
 	/* verify that the numbers are within range */
-	if (node->ambientIntensity < 0.0) node->ambientIntensity=0.0f;
-	if (node->ambientIntensity > 1.0) node->ambientIntensity=1.0f;
-	if (node->shininess < 0.0) node->shininess=0.0f;
-	if (node->shininess > 1.0) node->shininess=1.0f;
-	if (node->transparency < 0.0) node->transparency=MIN_NODE_TRANSPARENCY;
-	if (node->transparency >= 1.0) node->transparency=MAX_NODE_TRANSPARENCY;
-
-	if (node->backAmbientIntensity < 0.0) node->backAmbientIntensity=0.0f;
-	if (node->backAmbientIntensity > 1.0) node->backAmbientIntensity=1.0f;
-	if (node->backShininess < 0.0) node->backShininess=0.0f;
-	if (node->backShininess > 1.0) node->backShininess=1.0f;
-	if (node->backTransparency < 0.0) node->backTransparency=0.0f;
-	if (node->backTransparency > 1.0) node->backTransparency=1.0f;
-
-	for (i=0; i<3; i++) {
-		if (node->diffuseColor.c[i] < 0.0) node->diffuseColor.c[i]=0.0f;
-		if (node->diffuseColor.c[i] > 1.0) node->diffuseColor.c[i]=1.0f;
-		if (node->emissiveColor.c[i] < 0.0) node->emissiveColor.c[i]=0.0f;
-		if (node->emissiveColor.c[i] > 1.0) node->emissiveColor.c[i]=1.0f;
-		if (node->specularColor.c[i] < 0.0) node->specularColor.c[i]=0.0f;
-		if (node->specularColor.c[i] > 1.0) node->specularColor.c[i]=1.0f;
-
-		if (node->backDiffuseColor.c[i] < 0.0) node->backDiffuseColor.c[i]=0.0f;
-		if (node->backDiffuseColor.c[i] > 1.0) node->backDiffuseColor.c[i]=1.0f;
-		if (node->backEmissiveColor.c[i] < 0.0) node->backEmissiveColor.c[i]=0.0f;
-		if (node->backEmissiveColor.c[i] > 1.0) node->backEmissiveColor.c[i]=1.0f;
-		if (node->backSpecularColor.c[i] < 0.0) node->backSpecularColor.c[i]=0.0f;
-		if (node->backSpecularColor.c[i] > 1.0) node->backSpecularColor.c[i]=1.0f;
-	}
-
-	/* first, put in the transparency */
-	trans = 1.0f - node->transparency;
-	node->_verifiedFrontColor.p[3] = trans;
-	node->_verifiedFrontColor.p[7] = trans;
-	node->_verifiedFrontColor.p[11] = trans;
-	node->_verifiedFrontColor.p[15] = trans;
-	trans = 1.0f - node->backTransparency;
-	node->_verifiedBackColor.p[3] = trans;
-	node->_verifiedBackColor.p[7] = trans;
-	node->_verifiedBackColor.p[11] = trans;
-	node->_verifiedBackColor.p[15] = trans;
+	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
+	node->shininess = fclamp(node->shininess,0.0f,1.0f);
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->diffuseColor.c,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
 
+	p = node->_verifiedFrontColor.p;
 	/* DiffuseColor */
-	memcpy((void *)(&node->_verifiedFrontColor.p[8]), node->diffuseColor.c, sizeof (float) * 3);
-
-	/* Ambient  - diffuseFrontColor * ambientIntensity */
-	for(i=0; i<4; i++) { node->_verifiedFrontColor.p[i+4] = node->_verifiedFrontColor.p[i+8] * node->ambientIntensity; }
-
-	/* Specular */
-	memcpy((void *)(&node->_verifiedFrontColor.p[12]), node->specularColor.c, sizeof (float) * 3);
+	veccopy3f(&p[0], node->diffuseColor.c);
 
 	/* Emissive */
-	memcpy((void *)(&node->_verifiedFrontColor.p[0]), node->emissiveColor.c, sizeof (float) * 3);
+	veccopy3f(&p[3], node->emissiveColor.c);
+
+	/* Specular */
+	veccopy3f(&p[6], node->specularColor.c);
+
+	/* Ambient  - diffuseColor * ambientIntensity */
+	p[9] = node->ambientIntensity;
 
 	/* Shininess */
-	node->_verifiedFrontColor.p[16] = node->shininess;
+	p[10] = node->shininess;
 
-//#define MAX_SHIN 128.0f
-//#define MIN_SHIN 0.01f
-//	if ((node->_verifiedFrontColor.p[16] > MAX_SHIN) || (node->_verifiedFrontColor.p[16] < MIN_SHIN)) {
-//		if (node->_verifiedFrontColor.p[16]>MAX_SHIN){node->_verifiedFrontColor.p[16] = MAX_SHIN;}else{node->_verifiedFrontColor.p[16]=MIN_SHIN;}
-//	}
-//#undef MAX_SHIN
-//#undef MIN_SHIN
+	/* Transparency */
+	p[11] = node->transparency; //will send in raw form to shaders, and o = 1-t there.
+
+
 
 	if (node->separateBackColor) {
+		node->backAmbientIntensity = fclamp(node->backAmbientIntensity,0.0f,1.0f);
+		node->backShininess = fclamp(node->backShininess,0.0f,1.0f);
+		node->backTransparency = fclamp(node->backTransparency,0.0f,1.0f);
+		fvecclamp3f(node->backDiffuseColor.c,0.0f,1.0f);
+		fvecclamp3f(node->backEmissiveColor.c,0.0f,1.0f);
+		fvecclamp3f(node->backSpecularColor.c,0.0f,1.0f);
 
+
+		p = node->_verifiedBackColor.p;
 		/* DiffuseColor */
-		memcpy((void *)(&node->_verifiedBackColor.p[8]), node->backDiffuseColor.c, sizeof (float) * 3);
-	
-		/* Ambient  - diffuseBackColor * ambientIntensity */
-		for(i=0; i<3; i++) { node->_verifiedBackColor.p[i+4] = node->_verifiedBackColor.p[i+8] * node->ambientIntensity; }
-	
-		/* Specular */
-		memcpy((void *)(&node->_verifiedBackColor.p[12]), node->backSpecularColor.c, sizeof (float) * 3);
-	
+		veccopy3f(&p[0], node->backDiffuseColor.c);
+
 		/* Emissive */
-		memcpy((void *)(&node->_verifiedBackColor.p[0]), node->backEmissiveColor.c, sizeof (float) * 3);
-	
+		veccopy3f(&p[3], node->backEmissiveColor.c);
+
+		/* Specular */
+		veccopy3f(&p[6], node->backSpecularColor.c);
+
+		/* Ambient  - diffuseColor * ambientIntensity */
+		p[9] = node->backAmbientIntensity;
+
 		/* Shininess */
-		node->_verifiedBackColor.p[16] = node->shininess;
-	
-////#define MAX_SHIN 128.0f
-////#define MIN_SHIN 0.01f
-////		if ((node->_verifiedBackColor.p[16] > MAX_SHIN) || (node->_verifiedBackColor.p[16] < MIN_SHIN)) {
-////			if (node->_verifiedBackColor.p[16]>MAX_SHIN){node->_verifiedBackColor.p[16] = MAX_SHIN;}else{node->_verifiedBackColor.p[16]=MIN_SHIN;}
-////		}
-////#undef MAX_SHIN
-////#undef MIN_SHIN
+		p[10] = node->backShininess;
+
+		/* Transparency */
+		p[11] = node->backTransparency; //will send in raw form to shaders, and o = 1-t there.
 
 	} else {
 		/* just copy the front materials to the back */
-		memcpy(node->_verifiedBackColor.p, node->_verifiedFrontColor.p, sizeof (float) * 17);
+		memcpy(node->_verifiedBackColor.p, node->_verifiedFrontColor.p, sizeof (float) * 12);
 	}
 
 

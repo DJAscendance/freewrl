@@ -144,11 +144,12 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 
 
 struct fw_MaterialParameters {
-	float emission[4];
-	float ambient[4];
-	float diffuse[4];
-	float specular[4];
+	float diffuse[3];
+	float emissive[3];
+	float specular[3];
+	float ambient;
 	float shininess; 
+	float transparency;
 };
 
 struct matpropstruct {

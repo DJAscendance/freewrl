@@ -145,6 +145,15 @@ double angleNormalized(double angle);
 float *double2float(float *b, const double *a, int n);
 double *float2double(double *b, float *a, int n);
 
+float fclamp(float fval, float fstart, float fend);
+float *vecclamp2f(float *fval, float *fstart, float *fend);
+float *vecclamp3f(float *fval, float *fstart, float *fend);
+float *fvecclamp3f(float *fval, float fstart, float fend);
+// #define APPROX(a,b) (fabs((a)-(b))<0.00000001)
+int approx3f(float *a, float *b);
+int approx4f(float *a, float *b);
+
+
 /* next define abbreviates VECROTATE with use of the SFRotation struct	*/
 #define VECRROTATE(ro,c) VECROTATE((ro).c[0],(ro).c[1],(ro).c[2],(ro).c[3],c)
 

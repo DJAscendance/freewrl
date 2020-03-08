@@ -4034,9 +4034,10 @@ static void render_screentext_aligned(struct X3D_Text *tnode, int screenAligned)
 			if (!myap) {
 				glUniform4f(p->color4fLoc,.5f,.5f,.5f,1.0f); //default
 			}else{
-				float *dc;
+				float *dc, o;
 				dc = myap->fw_FrontMaterial.diffuse;
-				glUniform4f(p->color4fLoc,dc[0],dc[1],dc[2],dc[3]); //0.7f,0.7f,0.9f,1.0f);
+				o = 1.0f - myap->fw_FrontMaterial.transparency;
+				glUniform4f(p->color4fLoc,dc[0],dc[1],dc[2],o); //0.7f,0.7f,0.9f,1.0f);
 			}
 		}
 

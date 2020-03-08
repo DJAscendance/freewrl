@@ -444,7 +444,7 @@ started with: http://svn.code.sf.net/p/castle-engine/code/trunk/castle_game_engi
  castle_MaterialDiffuseAlpha fw_FrontMaterial.diffuse.a
  castle_MaterialShininess	fw_FrontMaterial.shininess
  castle_SceneColor			fw_FrontMaterial.ambient
- castle_castle_UnlitColor	fw_FrontMaterial.emission
+ castle_castle_UnlitColor	fw_FrontMaterial.emissive
 							fw_FrontMaterial.specular
  per-vertex attributes
  castle_Vertex				fw_Vertex
@@ -561,11 +561,12 @@ uniform vec4 fw_UnlitColor; \n\
 #endif //UNLIT \n\
 #ifdef LIT \n\
 struct fw_MaterialParameters { \n\
-  vec4 emission; \n\
-  vec4 ambient; \n\
-  vec4 diffuse; \n\
-  vec4 specular; \n\
+  vec3 diffuse; \n\
+  vec3 emissive; \n\
+  vec3 specular; \n\
+  float ambient; \n\
   float shininess; \n\
+  float transparency; \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
@@ -627,7 +628,7 @@ void main(void) \n\
 { \n\
   #ifdef LIT \n\
   fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
-  castle_MaterialDiffuseAlpha = fw_FrontMaterial.diffuse.a; \n\
+  castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
   #ifdef TEX \n\
   #ifdef TAREP \n\
   //to modulate or not to modulate, this is the question \n\
@@ -636,9 +637,9 @@ void main(void) \n\
   #endif //TAREP \n\
   #endif //TEX \n\
   castle_MaterialShininess =	fw_FrontMaterial.shininess; \n\
-  castle_SceneColor = fw_FrontMaterial.ambient.rgb; \n\
-  castle_Specular =	fw_FrontMaterial.specular; \n\
-  castle_Emissive = fw_FrontMaterial.emission.rgb; \n\
+  castle_SceneColor = fw_FrontMaterial.diffuse*fw_FrontMaterial.ambient; \n\
+  castle_Specular =	vec4(fw_FrontMaterial.specular,1.0); \n\
+  castle_Emissive = fw_FrontMaterial.emissive; \n\
   #ifdef LINE \n\
    castle_SceneColor = vec3(0.0,0.0,0.0); //line gets color from castle_Emissive \n\
   #endif //LINE\n\
@@ -1105,11 +1106,12 @@ varying vec3 castle_normal_eye; \n\
 #ifdef LITE \n\
 //per-fragment lighting ie phong \n\
 struct fw_MaterialParameters { \n\
-  vec4 emission; \n\
-  vec4 ambient; \n\
-  vec4 diffuse; \n\
-  vec4 specular; \n\
+  vec3 diffuse; \n\
+  vec3 emissive; \n\
+  vec3 specular; \n\
+  float ambient; \n\
   float shininess; \n\
+  float transparency; \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\
@@ -1206,9 +1208,9 @@ void main(void) \n\
   //per-fragment lighting aka PHONG \n\
   //start over with the color, since we have material and lighting in here \n\
   fw_MaterialParameters myMat = fw_FrontMaterial; \n\
-  castle_MaterialDiffuseAlpha = fw_FrontMaterial.diffuse.a; \n\
+  castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
   matdiff_color = vec4(0,0,0,1.0); \n\
-  castle_ColorES = fw_FrontMaterial.emission.rgb; \n\
+  castle_ColorES = fw_FrontMaterial.emissive; \n\
   /* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, ourMat) */ \n\
   #endif //LITE \n\
   \n\
@@ -1560,12 +1562,12 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 		\n\
 	// apply the lights to this material \n\
 	// weird but ANGLE needs constant loop \n\
-	vec4 sum_vertex = vec4(0.,0.,0.,0.); \n\
-	vec4 sum_specular = vec4(0.,0.,0.,0.); \n\
+	vec3 sum_vertex = vec3(0.,0.,0.); \n\
+	vec3 sum_specular = vec3(0.,0.,0.); \n\
 	for (i=0; i<lightcount; i++) {\n\
-		vec4 diffuse = vec4(0., 0., 0., 0.); \n\
-		vec4 ambient = vec4(0., 0., 0., 0.); \n\
-		vec4 specular = vec4(0., 0., 0., 1.); \n\
+		vec3 diffuse = vec3(0., 0., 0.); \n\
+		vec3 ambient = vec3(0., 0., 0.); \n\
+		vec3 specular = vec3(0., 0., 0.); \n\
 		float on = 1.0; //we only send active/on lights to shader, so this is for radius \n\
 		float spot = 1.0; \n\
 		float attenuation = 1.0; //directional default \n\
@@ -1621,11 +1623,11 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 				} \n\
 			} \n\
 		} \n\
-		sum_vertex   += on * attenuation * spot * vec4(light.color,1.0) * (ambient + diffuse); \n\
-		sum_specular += on * attenuation * spot * vec4(light.color,1.0) * (specular); \n\
+		sum_vertex   += on * attenuation * spot * light.color * (ambient + diffuse); \n\
+		sum_specular += on * attenuation * spot * light.color * (specular); \n\
 	} \n\
-	vertexcolor.rgb = clamp(sum_vertex + vertexcolor, 0.0, 1.0).rgb; \n\
-	specularcolor = clamp(sum_specular.rgb + specularcolor, 0.0, 1.0); \n\
+	vertexcolor.rgb = clamp(sum_vertex + vertexcolor.rgb, 0.0, 1.0); \n\
+	specularcolor = clamp(sum_specular + specularcolor, 0.0, 1.0); \n\
 } \n\
 ";
 
@@ -2549,11 +2551,12 @@ uniform fogParams fw_fogparams; \n\
 #ifdef LITE \n\
 //per-fragment lighting ie phong \n\
 struct fw_MaterialParameters { \n\
-  vec4 emission; \n\
-  vec4 ambient; \n\
-  vec4 diffuse; \n\
-  vec4 specular; \n\
+  vec3 diffuse; \n\
+  vec3 emissive; \n\
+  vec3 specular; \n\
+  float ambient; \n\
   float shininess; \n\
+  float transparency; \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\
@@ -2575,7 +2578,7 @@ void voxel_apply_SHADED (inout vec4 voxel, inout vec3 gradient) { \n\
 	  ng = normalize(gradient); \n\
 	vec4 color = vec4(1.0); \n\
 	#ifdef LIT \n\
-	vec3 castle_ColorES = fw_FrontMaterial.specular.rgb; \n\
+	vec3 castle_ColorES = fw_FrontMaterial.specular; \n\
 	color.rgb = fw_FrontMaterial.diffuse.rgb; \n\
 	#else //LIT \n\
 	color.rgb = vec3(0,0,0.0,0.0); \n\

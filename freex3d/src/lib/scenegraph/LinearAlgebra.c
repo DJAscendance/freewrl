@@ -38,6 +38,56 @@
 
 #include "LinearAlgebra.h"
 
+float fclamp(float fval, float fstart, float fend) { 
+	float fret = fval;
+	fret = fval > fend? fend : fval;		//min(fval,fend)
+	fret = fret < fstart ? fstart : fret;	//max(fval,fstart)
+	return fret;
+}
+float *vecclamp2f(float *fval, float *fstart, float *fend){
+	int i;
+	for(i=0;i<2;i++){
+		if(fstart[i] <= fend[i])
+			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
+	}
+	return fval;  //so you can chain
+}
+float *vecclamp3f(float *fval, float *fstart, float *fend){
+	int i;
+	for(i=0;i<3;i++){
+		if(fstart[i] <= fend[i])
+			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
+	}
+	return fval;  //so you can chain
+}
+float *fvecclamp3f(float *fval, float fstart, float fend){
+	int i;
+	for(i=0;i<3;i++){
+		if(fstart <= fend)
+			fval[i] = fclamp(fval[i],fstart,fend);
+	}
+	return fval;  //so you can chain
+}
+// #define APPROX(a,b) (fabs((a)-(b))<0.00000001)
+int approx3f(float *a, float *b){
+	float tol = 0.00000001;
+	int i, iret = TRUE;
+	for(i=0;i<3;i++){
+		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
+	}
+	return iret;
+}
+int approx4f(float *a, float *b){
+	float tol = 0.00000001;
+	int i, iret = TRUE;
+	for(i=0;i<4;i++){
+		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
+	}
+	return iret;
+}
+
+
+
 double angleNormalized(double angle){
 	//will normalize to +- 2*PI (+-180) range
 	return atan2(sin(angle),cos(angle));

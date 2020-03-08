@@ -10916,7 +10916,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->specularShininessTextureChannel = 0;
 			tmp2->transparency = 0.0f;
 			tmp2->metadata = NULL;
-			tmp2->_verifiedColor.p = MALLOC (float *, sizeof(float)*17);
+			tmp2->_verifiedColor.p = MALLOC (float *, sizeof(float)*12);
 			tmp2->_verifiedColor.p[0] = 0.0f;
 			tmp2->_verifiedColor.p[1] = 0.0f;
 			tmp2->_verifiedColor.p[2] = 0.0f;
@@ -10929,12 +10929,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_verifiedColor.p[9] = 0.0f;
 			tmp2->_verifiedColor.p[10] = 0.0f;
 			tmp2->_verifiedColor.p[11] = 0.0f;
-			tmp2->_verifiedColor.p[12] = 0.0f;
-			tmp2->_verifiedColor.p[13] = 0.0f;
-			tmp2->_verifiedColor.p[14] = 0.0f;
-			tmp2->_verifiedColor.p[15] = 0.0f;
-			tmp2->_verifiedColor.p[16] = 0.0f;
-			tmp2->_verifiedColor.n=17;;
+			tmp2->_verifiedColor.n=12;;
 			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
 		}
@@ -13492,7 +13487,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->separateBackColor = FALSE;
 			tmp2->specularColor.c[0] = 0.0f;tmp2->specularColor.c[1] = 0.0f;tmp2->specularColor.c[2] = 0.0f;;
 			tmp2->transparency = 0.0f;
-			tmp2->_verifiedFrontColor.p = MALLOC (float *, sizeof(float)*17);
+			tmp2->_verifiedFrontColor.p = MALLOC (float *, sizeof(float)*12);
 			tmp2->_verifiedFrontColor.p[0] = 0.0f;
 			tmp2->_verifiedFrontColor.p[1] = 0.0f;
 			tmp2->_verifiedFrontColor.p[2] = 0.0f;
@@ -13505,13 +13500,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_verifiedFrontColor.p[9] = 0.0f;
 			tmp2->_verifiedFrontColor.p[10] = 0.0f;
 			tmp2->_verifiedFrontColor.p[11] = 0.0f;
-			tmp2->_verifiedFrontColor.p[12] = 0.0f;
-			tmp2->_verifiedFrontColor.p[13] = 0.0f;
-			tmp2->_verifiedFrontColor.p[14] = 0.0f;
-			tmp2->_verifiedFrontColor.p[15] = 0.0f;
-			tmp2->_verifiedFrontColor.p[16] = 0.0f;
-			tmp2->_verifiedFrontColor.n=17;;
-			tmp2->_verifiedBackColor.p = MALLOC (float *, sizeof(float)*17);
+			tmp2->_verifiedFrontColor.n=12;;
+			tmp2->_verifiedBackColor.p = MALLOC (float *, sizeof(float)*12);
 			tmp2->_verifiedBackColor.p[0] = 0.0f;
 			tmp2->_verifiedBackColor.p[1] = 0.0f;
 			tmp2->_verifiedBackColor.p[2] = 0.0f;
@@ -13524,12 +13514,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_verifiedBackColor.p[9] = 0.0f;
 			tmp2->_verifiedBackColor.p[10] = 0.0f;
 			tmp2->_verifiedBackColor.p[11] = 0.0f;
-			tmp2->_verifiedBackColor.p[12] = 0.0f;
-			tmp2->_verifiedBackColor.p[13] = 0.0f;
-			tmp2->_verifiedBackColor.p[14] = 0.0f;
-			tmp2->_verifiedBackColor.p[15] = 0.0f;
-			tmp2->_verifiedBackColor.p[16] = 0.0f;
-			tmp2->_verifiedBackColor.n=17;;
+			tmp2->_verifiedBackColor.n=12;;
 			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
 		}

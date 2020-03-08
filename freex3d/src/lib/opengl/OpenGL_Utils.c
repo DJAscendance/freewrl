@@ -2811,17 +2811,19 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[2] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam3");
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[3] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam4");
 	*/
-	me->myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 	me->myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");
-	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
-	me->myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+	me->myMaterialEmissive = GET_UNIFORM(myProg,"fw_FrontMaterial.emissive");
 	me->myMaterialSpecular = GET_UNIFORM(myProg,"fw_FrontMaterial.specular");
+	me->myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
+	me->myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
 
-	me->myMaterialBackEmission = GET_UNIFORM(myProg,"fw_BackMaterial.emission");
 	me->myMaterialBackDiffuse = GET_UNIFORM(myProg,"fw_BackMaterial.diffuse");
-	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
-	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+	me->myMaterialBackEmissive = GET_UNIFORM(myProg,"fw_BackMaterial.emissive");
 	me->myMaterialBackSpecular = GET_UNIFORM(myProg,"fw_BackMaterial.specular");
+	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
+	me->myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
 
 	//me->lightState = GET_UNIFORM(myProg,"lightState");
 	//me->lightType = GET_UNIFORM(myProg,"lightType");
@@ -6786,6 +6788,9 @@ if (me->myMat != -1) { GLUNIFORM2FV(me->myMat,1,myVal);}
 #define SEND_VEC4(myMat,myVal) \
 if (me->myMat != -1) { GLUNIFORM4FV(me->myMat,1,myVal);}
 
+#define SEND_VEC3(myMat,myVal) \
+if (me->myMat != -1) { GLUNIFORM3FV(me->myMat,1,myVal);}
+
 #define SEND_FLOAT(myMat,myVal) \
 if (me->myMat != -1) { GLUNIFORM1F(me->myMat,myVal);}
 
@@ -6852,17 +6857,19 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 /* eventually do this with code blocks in glsl */
 	profile_start("sendvec");
-	SEND_VEC4(myMaterialAmbient,fw_FrontMaterial->ambient);
-	SEND_VEC4(myMaterialDiffuse,fw_FrontMaterial->diffuse);
-	SEND_VEC4(myMaterialSpecular,fw_FrontMaterial->specular);
-	SEND_VEC4(myMaterialEmission,fw_FrontMaterial->emission);
+	SEND_VEC3(myMaterialDiffuse,fw_FrontMaterial->diffuse);
+	SEND_VEC3(myMaterialEmissive,fw_FrontMaterial->emissive);
+	SEND_VEC3(myMaterialSpecular,fw_FrontMaterial->specular);
+	SEND_FLOAT(myMaterialAmbient,fw_FrontMaterial->ambient);
 	SEND_FLOAT(myMaterialShininess,fw_FrontMaterial->shininess);
+	SEND_FLOAT(myMaterialTransparency,fw_FrontMaterial->transparency);
 
-	SEND_VEC4(myMaterialBackAmbient,fw_BackMaterial->ambient);
-	SEND_VEC4(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
-	SEND_VEC4(myMaterialBackSpecular,fw_BackMaterial->specular);
-	SEND_VEC4(myMaterialBackEmission,fw_BackMaterial->emission);
+	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
+	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
+	SEND_VEC3(myMaterialBackSpecular,fw_BackMaterial->specular);
+	SEND_FLOAT(myMaterialBackAmbient,fw_BackMaterial->ambient);
 	SEND_FLOAT(myMaterialBackShininess,fw_BackMaterial->shininess);
+	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
 	profile_end("sendvec");
 
 	if (me->haveLightInShader) sendLightInfo(me);
