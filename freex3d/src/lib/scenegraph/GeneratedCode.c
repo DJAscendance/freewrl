@@ -381,9 +381,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_v0",
 	"_vKnot",
 	"_values",
-	"_verifiedBackColor",
-	"_verifiedColor",
-	"_verifiedFrontColor",
 	"_weightFunction1",
 	"_weightFunction2",
 	"_world",
@@ -5550,7 +5547,6 @@ const int OFFSETS_Material[] = {
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_Material, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_Material, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__material, (int) offsetof (struct X3D_Material, _material),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__verifiedColor, (int) offsetof (struct X3D_Material, _verifiedColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Matrix3VertexAttribute[] = {
@@ -7586,8 +7582,6 @@ const int OFFSETS_TwoSidedMaterial[] = {
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_TwoSidedMaterial, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__frontMaterial, (int) offsetof (struct X3D_TwoSidedMaterial, _frontMaterial),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__backMaterial, (int) offsetof (struct X3D_TwoSidedMaterial, _backMaterial),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__verifiedFrontColor, (int) offsetof (struct X3D_TwoSidedMaterial, _verifiedFrontColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__verifiedBackColor, (int) offsetof (struct X3D_TwoSidedMaterial, _verifiedBackColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_UniversalJoint[] = {
@@ -10925,20 +10919,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transparency = 0.0f;
 			tmp2->metadata = NULL;
 			tmp2->_material = 0;
-			tmp2->_verifiedColor.p = MALLOC (float *, sizeof(float)*12);
-			tmp2->_verifiedColor.p[0] = 0.0f;
-			tmp2->_verifiedColor.p[1] = 0.0f;
-			tmp2->_verifiedColor.p[2] = 0.0f;
-			tmp2->_verifiedColor.p[3] = 0.0f;
-			tmp2->_verifiedColor.p[4] = 0.0f;
-			tmp2->_verifiedColor.p[5] = 0.0f;
-			tmp2->_verifiedColor.p[6] = 0.0f;
-			tmp2->_verifiedColor.p[7] = 0.0f;
-			tmp2->_verifiedColor.p[8] = 0.0f;
-			tmp2->_verifiedColor.p[9] = 0.0f;
-			tmp2->_verifiedColor.p[10] = 0.0f;
-			tmp2->_verifiedColor.p[11] = 0.0f;
-			tmp2->_verifiedColor.n=12;;
 			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
 		break;
 		}
@@ -13499,34 +13479,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transparency = 0.0f;
 			tmp2->_frontMaterial = 0;
 			tmp2->_backMaterial = 0;
-			tmp2->_verifiedFrontColor.p = MALLOC (float *, sizeof(float)*12);
-			tmp2->_verifiedFrontColor.p[0] = 0.0f;
-			tmp2->_verifiedFrontColor.p[1] = 0.0f;
-			tmp2->_verifiedFrontColor.p[2] = 0.0f;
-			tmp2->_verifiedFrontColor.p[3] = 0.0f;
-			tmp2->_verifiedFrontColor.p[4] = 0.0f;
-			tmp2->_verifiedFrontColor.p[5] = 0.0f;
-			tmp2->_verifiedFrontColor.p[6] = 0.0f;
-			tmp2->_verifiedFrontColor.p[7] = 0.0f;
-			tmp2->_verifiedFrontColor.p[8] = 0.0f;
-			tmp2->_verifiedFrontColor.p[9] = 0.0f;
-			tmp2->_verifiedFrontColor.p[10] = 0.0f;
-			tmp2->_verifiedFrontColor.p[11] = 0.0f;
-			tmp2->_verifiedFrontColor.n=12;;
-			tmp2->_verifiedBackColor.p = MALLOC (float *, sizeof(float)*12);
-			tmp2->_verifiedBackColor.p[0] = 0.0f;
-			tmp2->_verifiedBackColor.p[1] = 0.0f;
-			tmp2->_verifiedBackColor.p[2] = 0.0f;
-			tmp2->_verifiedBackColor.p[3] = 0.0f;
-			tmp2->_verifiedBackColor.p[4] = 0.0f;
-			tmp2->_verifiedBackColor.p[5] = 0.0f;
-			tmp2->_verifiedBackColor.p[6] = 0.0f;
-			tmp2->_verifiedBackColor.p[7] = 0.0f;
-			tmp2->_verifiedBackColor.p[8] = 0.0f;
-			tmp2->_verifiedBackColor.p[9] = 0.0f;
-			tmp2->_verifiedBackColor.p[10] = 0.0f;
-			tmp2->_verifiedBackColor.p[11] = 0.0f;
-			tmp2->_verifiedBackColor.n=12;;
 			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
 		}

@@ -585,13 +585,6 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					//SFString []       phaseFunction  "Henyey-Greenstein" ["Henyey-Greenstein","NONE",...]
 					//MATERIAL
 					if(style->material){
-						//struct fw_MaterialParameters defaultMaterials = {
-						//			{0.0f, 0.0f, 0.0f}, // Diffuse 
-						//			{0.8f, 0.8f, 0.8f}, // Emissive
-						//			{0.0f, 0.0f, 0.0f}, // Specular
-						//			.2f, // Ambient 
-						//			.2f, // Shininess
-						//			0.0f}; //transparency     
 
 						struct X3D_Material *matone;
 						struct X3D_TwoSidedMaterial *mattwo;
@@ -612,8 +605,6 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						GLint myMaterialBackTransparency;
 						struct matpropstruct *myap = getAppearanceProperties();
 
-						//memcpy (&myap->fw_FrontMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-						//memcpy (&myap->fw_BackMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
 						void initialize_front_and_back_material_params();
 						RENDER_MATERIAL_SUBNODES(style->material);
 						//struct matpropstruct matprop;

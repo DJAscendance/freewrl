@@ -611,11 +611,6 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
-		_verifiedColor => ["MFFloat",[
-			0.0, 0.0, 0.0, 
-			0.0, 0.0, 0.0, 
-			0.0, 0.0, 0.0, 
-			0.0, 0.0, 0.0, ],"initializeOnly",0,0],#ff # for making materials shader-friendly
 	],"X3DMaterialNode"),
 
 	"PhysicalMaterial" => new VRML::NodeType ("PhysicalMaterial", [
@@ -689,16 +684,6 @@ our %Nodes = (
 		_frontMaterial => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_backMaterial => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
-		_verifiedFrontColor => ["MFFloat",[
-			0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0],"initializeOnly",0,0],#ff # for making materials shader-friendly
-		_verifiedBackColor => ["MFFloat",[
-			0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0,],"initializeOnly",0,0],#ff # for making materials shader-friendly
 	],"X3DMaterialNode"),
 
 
