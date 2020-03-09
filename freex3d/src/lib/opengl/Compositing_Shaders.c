@@ -567,6 +567,9 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
+  int type; \n\
+  int tindex[4]; \n\
+  int cindex[4]; \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
@@ -1112,6 +1115,9 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
+  int type; \n\
+  int tindex[4]; \n\
+  int cindex[4]; \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\
@@ -2557,6 +2563,9 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
+    int type; \n\
+  int tindex[4]; \n\
+  int cindex[4]; \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\

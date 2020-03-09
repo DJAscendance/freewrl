@@ -2817,6 +2817,16 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
 	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
 	me->myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
+	me->myMaterialType = GET_UNIFORM(myProg,"fw_FrontMaterial.type");
+	me->myMaterialTransdex = GET_UNIFORM(myProg,"fw_FrontMaterial.transdex");
+	for(int i=0;i<4;i++){
+		char line[200];
+		sprintf(line,"fw_FrontMaterial.cindex[%d]",i);
+		me->myMaterialCindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.tindex[%d]",i);
+		me->myMaterialTindex[i] = GET_UNIFORM(myProg,line);
+	}
+
 
 	me->myMaterialBackDiffuse = GET_UNIFORM(myProg,"fw_BackMaterial.diffuse");
 	me->myMaterialBackEmissive = GET_UNIFORM(myProg,"fw_BackMaterial.emissive");
@@ -2824,6 +2834,15 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
 	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
 	me->myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
+	me->myMaterialBackType = GET_UNIFORM(myProg,"fw_BackMaterial.type");
+	me->myMaterialBackTransdex = GET_UNIFORM(myProg,"fw_BackMaterial.transdex");
+	for(int i=0;i<4;i++){
+		char line[200];
+		sprintf(line,"fw_BackMaterial.cindex[%d]",i);
+		me->myMaterialBackCindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.tindex[%d]",i);
+		me->myMaterialBackTindex[i] = GET_UNIFORM(myProg,line);
+	}
 
 	//me->lightState = GET_UNIFORM(myProg,"lightState");
 	//me->lightType = GET_UNIFORM(myProg,"lightType");
@@ -6863,6 +6882,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_FLOAT(myMaterialAmbient,fw_FrontMaterial->ambient);
 	SEND_FLOAT(myMaterialShininess,fw_FrontMaterial->shininess);
 	SEND_FLOAT(myMaterialTransparency,fw_FrontMaterial->transparency);
+	SEND_INT(myMaterialType,fw_FrontMaterial->type);
+	SEND_INT(myMaterialTransdex,fw_FrontMaterial->transdex);
+	for(int i=0;i<4;i++){
+		SEND_INT(myMaterialCindex[i],fw_FrontMaterial->cindex[i]);
+		SEND_INT(myMaterialTindex[i],fw_FrontMaterial->tindex[i]);
+	}
 
 	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
 	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
@@ -6870,6 +6895,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_FLOAT(myMaterialBackAmbient,fw_BackMaterial->ambient);
 	SEND_FLOAT(myMaterialBackShininess,fw_BackMaterial->shininess);
 	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
+	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
+	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
+	for(int i=0;i<4;i++){
+		SEND_INT(myMaterialBackCindex[i],fw_BackMaterial->cindex[i]);
+		SEND_INT(myMaterialBackTindex[i],fw_BackMaterial->tindex[i]);
+	}
 	profile_end("sendvec");
 
 	if (me->haveLightInShader) sendLightInfo(me);

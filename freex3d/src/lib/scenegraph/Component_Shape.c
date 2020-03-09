@@ -843,6 +843,20 @@ int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode ){
 	return channels;
 }
 
+void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
+	memset(mat,0,sizeof(struct fw_MaterialParameters));
+	mat->ambient = .2f;
+	mat->shininess = .2f;
+	mat->type = MAT_NONE;
+}
+void initialize_front_and_back_material_params(){
+	ppComponent_Shape p;
+   	ttglobal tg = gglobal();
+	p = (ppComponent_Shape)tg->Component_Shape.prv;
+
+	initialize_fw_MaterialParameters(&p->appearanceProperties.fw_FrontMaterial);
+	initialize_fw_MaterialParameters(&p->appearanceProperties.fw_BackMaterial);
+}
 
 //unsigned int getShaderFlags();
 shaderflagsstruct getShaderFlags();
@@ -860,13 +874,13 @@ void child_Shape (struct X3D_Shape *node) {
 
 	ppComponent_Shape p;
    	ttglobal tg = gglobal();
-	struct fw_MaterialParameters defaultMaterials = {
-				{0.8f, 0.8f, 0.8f}, // Diffuse 
-				{0.0f, 0.0f, 0.0f}, // Emissive
-				{0.0f, 0.0f, 0.0f}, // Specular
-				.2f, // Ambient 
-				.2f, // Shininess
-				0.0f}; //transparency     
+	////struct fw_MaterialParameters defaultMaterials = {
+	////			{0.8f, 0.8f, 0.8f}, // Diffuse 
+	////			{0.0f, 0.0f, 0.0f}, // Emissive
+	////			{0.0f, 0.0f, 0.0f}, // Specular
+	////			.2f, // Ambient 
+	////			.2f, // Shininess
+	////			0.0f}; //transparency     
 
 	COMPILE_IF_REQUIRED
 
@@ -892,8 +906,11 @@ void child_Shape (struct X3D_Shape *node) {
 	tg->RenderFuncs.shapenode = node;
 	
 	/* copy the material stuff in preparation for copying all to the shader */
-	memcpy (&p->appearanceProperties.fw_FrontMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-	memcpy (&p->appearanceProperties.fw_BackMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
+	//memcpy (&p->appearanceProperties.fw_FrontMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
+	//memcpy (&p->appearanceProperties.fw_BackMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
+	//initialize_fw_MaterialParameters(&p->appearanceProperties.fw_FrontMaterial);
+	//initialize_fw_MaterialParameters(&p->appearanceProperties.fw_BackMaterial);
+	initialize_front_and_back_material_params();
 
 	if((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
 		return; //don't draw if this node uses a generatedcubemaptexture and its a cubemaptexture generation pass; is there more optimal place to do this?
