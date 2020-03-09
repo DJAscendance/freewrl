@@ -53,10 +53,10 @@ typedef struct pComponent_Shape{
 
 	/* pointer for a TextureTransform type of node */
 	struct X3D_Node *  this_textureTransform;  /* do we have some kind of textureTransform? */
-
+	int isBackMaterial;
 	/* for doing shader material properties */
-	struct X3D_TwoSidedMaterial *material_twoSided;
-	struct X3D_Material *material_oneSided;
+	//struct X3D_TwoSidedMaterial *material_twoSided;
+	//struct X3D_Material *material_oneSided;
 
 	/* Any user defined shaders here? */
 	struct X3D_Node * userShaderNode;
@@ -76,6 +76,7 @@ void Component_Shape_init(struct tComponent_Shape *t){
 	{
 		ppComponent_Shape p = (ppComponent_Shape)t->prv;
 		p->modulation = 1; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+		p->isBackMaterial = 0;
 	}
 
 }
@@ -182,6 +183,19 @@ struct X3D_Node *getThis_textureTransform(){
 	return p->this_textureTransform;
 }
 void clear_bound_textures();
+void push_isBackMaterial(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	p->isBackMaterial += 1;
+}
+void pop_isBackMaterial(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	p->isBackMaterial -= 1;
+}
+int get_isBackMaterial(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	return p->isBackMaterial;
+
+}
 void child_Appearance (struct X3D_Appearance *node) {
 	struct X3D_Node *tmpN;
 	ttglobal tg = gglobal();
@@ -192,6 +206,11 @@ void child_Appearance (struct X3D_Appearance *node) {
 	//clear_bound_textures();
 	/* Render the material node... */
 	RENDER_MATERIAL_SUBNODES(node->material);
+	if(node->backMaterial){
+		push_isBackMaterial();
+		RENDER_MATERIAL_SUBNODES(node->backMaterial);
+		pop_isBackMaterial();
+	}
 	
 	if (node->fillProperties) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->fillProperties,tmpN);
@@ -279,20 +298,31 @@ void child_Appearance (struct X3D_Appearance *node) {
 void render_Material (struct X3D_Material *node) {
 	COMPILE_IF_REQUIRED
 	{
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
-	/* record this node for OpenGL-ES and OpenGL-3.1 operation */
-	p->material_oneSided = node;
+		/* record this node for OpenGL-ES and OpenGL-3.1 operation */
+		//p->material_oneSided = node;
+		//if(get_isBackMaterial()){
+		//	p->material_twoSided = node;
+		//}
+		if (node != NULL) {
+			if(get_isBackMaterial()){
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+			}else{
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+			}
+		}
+
 	}
 }
-struct X3D_Material *get_material_oneSided(){
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
-	return p->material_oneSided;
-}
-struct X3D_TwoSidedMaterial *get_material_twoSided(){
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
-	return p->material_twoSided;
-}
+//struct X3D_Material *get_material_oneSided(){
+//	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+//	return p->material_oneSided;
+//}
+//struct X3D_TwoSidedMaterial *get_material_twoSided(){
+//	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+//	return p->material_twoSided;
+//}
 
 /* bounds check the material node fields */
 void compile_Material (struct X3D_Material *node) {
@@ -511,7 +541,7 @@ static int getShapeFogShader (struct X3D_Node *myGeom) {
 
 static int getAppearanceShader (struct X3D_Node *myApp) {
 	struct X3D_Appearance *realAppearanceNode;
-	struct X3D_Node *realMaterialNode;
+	struct X3D_Node *realMaterialNode, *realBackMaterialNode;
 
 
 	int retval = NOTHING;
@@ -522,33 +552,26 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 	POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance *, myApp,realAppearanceNode);
 	if (!realAppearanceNode || realAppearanceNode->_nodeType != NODE_Appearance) return retval;
     
-	if (realAppearanceNode->material != NULL) {
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->material,realMaterialNode);
-		if(realMaterialNode)  {    
-			if (realMaterialNode->_nodeType == NODE_Material) {
-				retval |= MATERIAL_APPEARANCE_SHADER;
-			}
-			if (realMaterialNode->_nodeType == NODE_TwoSidedMaterial) {
-				retval |= TWO_MATERIAL_APPEARANCE_SHADER;
-			}
-			if (realMaterialNode->_nodeType == NODE_PhysicalMaterial) {
-				retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
-			}
-		}
-	}
 	// v4 Appearance.backMaterial (vs v3.3-- TwoSidedMaterial)
-	if(0) if (realAppearanceNode->backMaterial != NULL) {
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->backMaterial,realMaterialNode);
-		if(realMaterialNode)  {    
-			if (realMaterialNode->_nodeType == NODE_Material) {
+	realMaterialNode = realBackMaterialNode = NULL;
+	if (realAppearanceNode->backMaterial != NULL) {
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->backMaterial,realBackMaterialNode);
+	}
+	if (realAppearanceNode->material != NULL) {
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->material,realMaterialNode);	
+	}
+	if(realMaterialNode) {
+		if(realBackMaterialNode || realMaterialNode->_nodeType == NODE_TwoSidedMaterial )  {    
+			retval |= TWO_MATERIAL_APPEARANCE_SHADER;
+		}
+		if (realMaterialNode->_nodeType == NODE_Material || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_Material)) {
 				retval |= MATERIAL_APPEARANCE_SHADER;
-			}
-			if (realMaterialNode->_nodeType == NODE_TwoSidedMaterial) {
-				retval |= TWO_MATERIAL_APPEARANCE_SHADER;
-			}
-			if (realMaterialNode->_nodeType == NODE_PhysicalMaterial) {
-				retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
-			}
+		}
+		if (realMaterialNode->_nodeType == NODE_PhysicalMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_PhysicalMaterial)) {
+			retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
+		}
+		if (realMaterialNode->_nodeType == NODE_UnlitMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_UnlitMaterial)) {
+			retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
 		}
 	}
 
@@ -858,21 +881,21 @@ void child_Shape (struct X3D_Shape *node) {
 		RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
 
 
+		//if(0)
+		//if (p->material_oneSided != NULL) {
+		//	memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+		//	memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+		//	/* copy the emissive colour over for lines and points */
+		//	//memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
 
-		if (p->material_oneSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			//memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
-
-		} else if (p->material_twoSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_twoSided->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_twoSided->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			//memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
-		} else {
-			/* no materials selected.... */
-		}
+		//} else if (p->material_twoSided != NULL) {
+		//	memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_twoSided->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
+		//	memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_twoSided->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+		//	/* copy the emissive colour over for lines and points */
+		//	//memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
+		//} else {
+		//	/* no materials selected.... */
+		//}
 
 		/* enable the shader for this shape */
 		//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
@@ -1038,8 +1061,8 @@ void child_Shape (struct X3D_Shape *node) {
 
 	//ConsoleMessage("turning shader off");
 	finishedWithGlobalShader();
-	p->material_twoSided = NULL;
-	p->material_oneSided = NULL;
+	//p->material_twoSided = NULL;
+	//p->material_oneSided = NULL;
 	p->userShaderNode = NULL;
 	tg->RenderFuncs.shapenode = NULL;
     
@@ -1197,10 +1220,14 @@ void render_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	
 	COMPILE_IF_REQUIRED
 	{
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
-	/* record this node for OpenGL-ES and OpenGL-3.1 operation */
-	p->material_twoSided = node;
+		if (node != NULL) {
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
+			memcpy (&p->appearanceProperties.fw_BackMaterial, node->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+		}
+	///* record this node for OpenGL-ES and OpenGL-3.1 operation */
+	//p->material_twoSided = node;
 	}
 }
 

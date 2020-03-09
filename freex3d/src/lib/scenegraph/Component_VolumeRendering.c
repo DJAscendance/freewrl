@@ -618,23 +618,23 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						//struct matpropstruct matprop;
 						//s_shader_capabilities_t mysp;
 						//sendFogToShader(mysp); 
-						matone = get_material_oneSided();
-						mattwo = get_material_twoSided();
-						//sendMaterialsToShader(mysp);
-						if (matone != NULL) {
-							memcpy (&myap->fw_FrontMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-							memcpy (&myap->fw_BackMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-							/* copy the emissive colour over for lines and points */
-							//memcpy(&myap->emissionColour,matone->_verifiedColor.p, 3*sizeof(float));
+						//matone = get_material_oneSided();
+						//mattwo = get_material_twoSided();
+						////sendMaterialsToShader(mysp);
+						//if (matone != NULL) {
+						//	memcpy (&myap->fw_FrontMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+						//	memcpy (&myap->fw_BackMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+						//	/* copy the emissive colour over for lines and points */
+						//	//memcpy(&myap->emissionColour,matone->_verifiedColor.p, 3*sizeof(float));
 
-						} else if (mattwo != NULL) {
-							memcpy (&myap->fw_FrontMaterial, mattwo->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-							memcpy (&myap->fw_BackMaterial, mattwo->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-							/* copy the emissive colour over for lines and points */
-							//memcpy(&myap->emissionColour,mattwo->_verifiedFrontColor.p, 3*sizeof(float));
-						} else {
-							/* no materials selected.... */
-						}
+						//} else if (mattwo != NULL) {
+						//	memcpy (&myap->fw_FrontMaterial, mattwo->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
+						//	memcpy (&myap->fw_BackMaterial, mattwo->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+						//	/* copy the emissive colour over for lines and points */
+						//	//memcpy(&myap->emissionColour,mattwo->_verifiedFrontColor.p, 3*sizeof(float));
+						//} else {
+						//	/* no materials selected.... */
+						//}
 
 
 
