@@ -609,6 +609,7 @@ our %Nodes = (
 		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		#deprecated for v4 with unlit material (below)?
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
 		_verifiedColor => ["MFFloat",[
 			0.0, 0.0, 0.0, 
@@ -638,6 +639,7 @@ our %Nodes = (
 		
 		roughness => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DMaterialNode"),
 
 	"UnlitMaterial" => new VRML::NodeType ("UnlitMaterial", [
@@ -648,6 +650,7 @@ our %Nodes = (
 
 		normalTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		normalTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DMaterialNode"),
 
 	"Shape" => new VRML::NodeType ("Shape", [
@@ -683,6 +686,9 @@ our %Nodes = (
 		separateBackColor =>["SFBool","FALSE","inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		specularColor => ["SFColor", [0, 0, 0], "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		_frontMaterial => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_backMaterial => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+
 		_verifiedFrontColor => ["MFFloat",[
 			0.0, 0.0, 0.0,
 			0.0, 0.0, 0.0,

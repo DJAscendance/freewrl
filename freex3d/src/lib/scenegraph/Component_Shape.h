@@ -151,6 +151,8 @@ struct fw_MaterialParameters {
 	float ambient;
 	float shininess; 
 	float transparency;
+	int type;
+	int textureUnits[5];
 };
 
 struct matpropstruct {

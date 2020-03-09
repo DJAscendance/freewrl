@@ -47,6 +47,13 @@ X3D Shape Component
 
 #define NOTHING 0
 
+enum {
+	MAT_NONE = 0,
+	MAT_EMISSIVE = 1,
+	MAT_REGULAR = 2,
+	MAT_PHYSICAL = 3,
+};
+
 typedef struct pComponent_Shape{
 
 	struct matpropstruct appearanceProperties;
@@ -306,10 +313,18 @@ void render_Material (struct X3D_Material *node) {
 		//	p->material_twoSided = node;
 		//}
 		if (node != NULL) {
-			if(get_isBackMaterial()){
-				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+			if(1){
+				if(get_isBackMaterial()){
+					memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+				}else{
+					memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+				}
 			}else{
-				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+				if(get_isBackMaterial()){
+					memcpy (&p->appearanceProperties.fw_BackMaterial, node->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+				}else{
+					memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+				}
 			}
 		}
 
@@ -327,6 +342,7 @@ void render_Material (struct X3D_Material *node) {
 /* bounds check the material node fields */
 void compile_Material (struct X3D_Material *node) {
 	float *p;
+	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
 	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
 	node->shininess = fclamp(node->shininess,0.0f,1.0f);
@@ -335,26 +351,39 @@ void compile_Material (struct X3D_Material *node) {
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
 	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
+	if(1){
+		if(!node->_material){
+			node->_material = malloc(sizeof(struct fw_MaterialParameters));
+			memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+		}
+		q = (struct fw_MaterialParameters *)node->_material;
+		veccopy3f(q->diffuse,node->diffuseColor.c);
+		veccopy3f(q->emissive,node->emissiveColor.c);
+		veccopy3f(q->specular,node->specularColor.c);
+		q->ambient = node->ambientIntensity;
+		q->shininess = node->shininess;
+		q->transparency = node->transparency;
+		q->type = MAT_REGULAR;
+	}else{
+		p = node->_verifiedColor.p;
+		/* DiffuseColor */
+		veccopy3f(&p[0], node->diffuseColor.c);
 
-	p = node->_verifiedColor.p;
-	/* DiffuseColor */
-	veccopy3f(&p[0], node->diffuseColor.c);
+		/* Emissive */
+		veccopy3f(&p[3], node->emissiveColor.c);
 
-	/* Emissive */
-	veccopy3f(&p[3], node->emissiveColor.c);
+		/* Specular */
+		veccopy3f(&p[6], node->specularColor.c);
 
-	/* Specular */
-	veccopy3f(&p[6], node->specularColor.c);
+		/* Ambient  - diffuseColor * ambientIntensity */
+		p[9] = node->ambientIntensity;
 
-	/* Ambient  - diffuseColor * ambientIntensity */
-	p[9] = node->ambientIntensity;
+		/* Shininess */
+		p[10] = node->shininess;
 
-	/* Shininess */
-	p[10] = node->shininess;
-
-	/* Transparency */
-	p[11] = node->transparency; //will send in raw form to shaders, and o = 1-t there.
-
+		/* Transparency */
+		p[11] = node->transparency; //will send in raw form to shaders, and o = 1-t there.
+	}
 
 	MARK_NODE_COMPILED
 }
@@ -1146,9 +1175,9 @@ void compile_Shape (struct X3D_Shape *node) {
 	MARK_NODE_COMPILED
 }
 
-
 void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	float *p;
+	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
 	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
 	node->shininess = fclamp(node->shininess,0.0f,1.0f);
@@ -1157,27 +1186,41 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
 	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
+	if(1){
+		if(!node->_frontMaterial){
+			node->_frontMaterial = malloc(sizeof(struct fw_MaterialParameters));
+			memset(node->_frontMaterial,0,sizeof(struct fw_MaterialParameters));
+		}
+		q = (struct fw_MaterialParameters *)node->_frontMaterial;
+		veccopy3f(q->diffuse,node->diffuseColor.c);
+		veccopy3f(q->emissive,node->emissiveColor.c);
+		veccopy3f(q->specular,node->specularColor.c);
+		q->ambient = node->ambientIntensity;
+		q->shininess = node->shininess;
+		q->transparency = node->transparency;
+		q->type = MAT_REGULAR;
 
-	p = node->_verifiedFrontColor.p;
-	/* DiffuseColor */
-	veccopy3f(&p[0], node->diffuseColor.c);
+	}else{
+		p = node->_verifiedFrontColor.p;
+		/* DiffuseColor */
+		veccopy3f(&p[0], node->diffuseColor.c);
 
-	/* Emissive */
-	veccopy3f(&p[3], node->emissiveColor.c);
+		/* Emissive */
+		veccopy3f(&p[3], node->emissiveColor.c);
 
-	/* Specular */
-	veccopy3f(&p[6], node->specularColor.c);
+		/* Specular */
+		veccopy3f(&p[6], node->specularColor.c);
 
-	/* Ambient  - diffuseColor * ambientIntensity */
-	p[9] = node->ambientIntensity;
+		/* Ambient  - diffuseColor * ambientIntensity */
+		p[9] = node->ambientIntensity;
 
-	/* Shininess */
-	p[10] = node->shininess;
+		/* Shininess */
+		p[10] = node->shininess;
 
-	/* Transparency */
-	p[11] = node->transparency; //will send in raw form to shaders, and o = 1-t there.
+		/* Transparency */
+		p[11] = node->transparency; //will send in raw form to shaders, and o = 1-t there.
 
-
+	}
 
 	if (node->separateBackColor) {
 		node->backAmbientIntensity = fclamp(node->backAmbientIntensity,0.0f,1.0f);
@@ -1187,32 +1230,54 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 		fvecclamp3f(node->backEmissiveColor.c,0.0f,1.0f);
 		fvecclamp3f(node->backSpecularColor.c,0.0f,1.0f);
 
+		if(1){
+			if(!node->_backMaterial){
+				node->_backMaterial = malloc(sizeof(struct fw_MaterialParameters));
+				memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
+			}
+			q = (struct fw_MaterialParameters *)node->_backMaterial;
+			veccopy3f(q->diffuse,node->backDiffuseColor.c);
+			veccopy3f(q->emissive,node->backEmissiveColor.c);
+			veccopy3f(q->specular,node->backSpecularColor.c);
+			q->ambient = node->backAmbientIntensity;
+			q->shininess = node->backShininess;
+			q->transparency = node->backTransparency;
+			q->type = MAT_REGULAR;
+			
+		}else{
+			p = node->_verifiedBackColor.p;
+			/* DiffuseColor */
+			veccopy3f(&p[0], node->backDiffuseColor.c);
 
-		p = node->_verifiedBackColor.p;
-		/* DiffuseColor */
-		veccopy3f(&p[0], node->backDiffuseColor.c);
+			/* Emissive */
+			veccopy3f(&p[3], node->backEmissiveColor.c);
 
-		/* Emissive */
-		veccopy3f(&p[3], node->backEmissiveColor.c);
+			/* Specular */
+			veccopy3f(&p[6], node->backSpecularColor.c);
 
-		/* Specular */
-		veccopy3f(&p[6], node->backSpecularColor.c);
+			/* Ambient  - diffuseColor * ambientIntensity */
+			p[9] = node->backAmbientIntensity;
 
-		/* Ambient  - diffuseColor * ambientIntensity */
-		p[9] = node->backAmbientIntensity;
+			/* Shininess */
+			p[10] = node->backShininess;
 
-		/* Shininess */
-		p[10] = node->backShininess;
-
-		/* Transparency */
-		p[11] = node->backTransparency; //will send in raw form to shaders, and o = 1-t there.
+			/* Transparency */
+			p[11] = node->backTransparency; //will send in raw form to shaders, and o = 1-t there.
+		}
 
 	} else {
 		/* just copy the front materials to the back */
-		memcpy(node->_verifiedBackColor.p, node->_verifiedFrontColor.p, sizeof (float) * 12);
+		if(1){
+			if(!node->_backMaterial){
+				node->_backMaterial = malloc(sizeof(struct fw_MaterialParameters));
+				memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
+			}
+			memcpy(node->_backMaterial,node->_frontMaterial,sizeof(struct fw_MaterialParameters));
+		}else
+			memcpy(node->_verifiedBackColor.p, node->_verifiedFrontColor.p, sizeof (float) * 12);
+
+
 	}
-
-
 	MARK_NODE_COMPILED
 }
 
@@ -1221,10 +1286,16 @@ void render_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	COMPILE_IF_REQUIRED
 	{
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
-
-		if (node != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, node->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+		if(1){
+			if (node != NULL) {
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_frontMaterial, sizeof (struct fw_MaterialParameters));
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_backMaterial, sizeof (struct fw_MaterialParameters));
+			}
+		}else{
+			if (node != NULL) {
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+			}
 		}
 	///* record this node for OpenGL-ES and OpenGL-3.1 operation */
 	//p->material_twoSided = node;

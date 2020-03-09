@@ -233,6 +233,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_angularVelocity",
 	"_appliedParameters",
 	"_appliedParametersMask",
+	"_backMaterial",
 	"_bboxCenter",
 	"_bboxSize",
 	"_body",
@@ -258,6 +259,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_floatOutFIFO",
 	"_forceout",
 	"_frameSpeed",
+	"_frontMaterial",
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
@@ -288,6 +290,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_layerId",
 	"_loc",
 	"_ltex",
+	"_material",
 	"_method",
 	"_motor1",
 	"_motor2",
@@ -5546,6 +5549,7 @@ const int OFFSETS_Material[] = {
 	(int) FIELDNAMES_specularShininessTextureChannel, (int) offsetof (struct X3D_Material, specularShininessTextureChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_Material, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_Material, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__material, (int) offsetof (struct X3D_Material, _material),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__verifiedColor, (int) offsetof (struct X3D_Material, _verifiedColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -6326,6 +6330,7 @@ const int OFFSETS_PhysicalMaterial[] = {
 	(int) FIELDNAMES_metallicRoughnessTextureChannel, (int) offsetof (struct X3D_PhysicalMaterial, metallicRoughnessTextureChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_roughness, (int) offsetof (struct X3D_PhysicalMaterial, roughness),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_PhysicalMaterial, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__material, (int) offsetof (struct X3D_PhysicalMaterial, _material),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PickableGroup[] = {
@@ -7579,6 +7584,8 @@ const int OFFSETS_TwoSidedMaterial[] = {
 	(int) FIELDNAMES_separateBackColor, (int) offsetof (struct X3D_TwoSidedMaterial, separateBackColor),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_specularColor, (int) offsetof (struct X3D_TwoSidedMaterial, specularColor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_TwoSidedMaterial, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__frontMaterial, (int) offsetof (struct X3D_TwoSidedMaterial, _frontMaterial),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__backMaterial, (int) offsetof (struct X3D_TwoSidedMaterial, _backMaterial),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__verifiedFrontColor, (int) offsetof (struct X3D_TwoSidedMaterial, _verifiedFrontColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__verifiedBackColor, (int) offsetof (struct X3D_TwoSidedMaterial, _verifiedBackColor),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -7614,6 +7621,7 @@ const int OFFSETS_UnlitMaterial[] = {
 	(int) FIELDNAMES_emissiveTextureChannel, (int) offsetof (struct X3D_UnlitMaterial, emissiveTextureChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_normalTexture, (int) offsetof (struct X3D_UnlitMaterial, normalTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_normalTextureChannel, (int) offsetof (struct X3D_UnlitMaterial, normalTextureChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__material, (int) offsetof (struct X3D_UnlitMaterial, _material),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Viewpoint[] = {
@@ -10916,6 +10924,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->specularShininessTextureChannel = 0;
 			tmp2->transparency = 0.0f;
 			tmp2->metadata = NULL;
+			tmp2->_material = 0;
 			tmp2->_verifiedColor.p = MALLOC (float *, sizeof(float)*12);
 			tmp2->_verifiedColor.p[0] = 0.0f;
 			tmp2->_verifiedColor.p[1] = 0.0f;
@@ -10930,7 +10939,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_verifiedColor.p[10] = 0.0f;
 			tmp2->_verifiedColor.p[11] = 0.0f;
 			tmp2->_verifiedColor.n=12;;
-			tmp2->_defaultContainer = FIELDNAMES_material;
+			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
 		break;
 		}
 		case NODE_Matrix3VertexAttribute : {
@@ -11949,7 +11958,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metallicRoughnessTextureChannel = 0;
 			tmp2->roughness = 1.0f;
 			tmp2->transparency = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_material;
+			tmp2->_material = 0;
+			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
 		break;
 		}
 		case NODE_PickableGroup : {
@@ -13487,6 +13497,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->separateBackColor = FALSE;
 			tmp2->specularColor.c[0] = 0.0f;tmp2->specularColor.c[1] = 0.0f;tmp2->specularColor.c[2] = 0.0f;;
 			tmp2->transparency = 0.0f;
+			tmp2->_frontMaterial = 0;
+			tmp2->_backMaterial = 0;
 			tmp2->_verifiedFrontColor.p = MALLOC (float *, sizeof(float)*12);
 			tmp2->_verifiedFrontColor.p[0] = 0.0f;
 			tmp2->_verifiedFrontColor.p[1] = 0.0f;
@@ -13554,7 +13566,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->emissiveTextureChannel = 0;
 			tmp2->normalTexture = NULL;
 			tmp2->normalTextureChannel = 0;
-			tmp2->_defaultContainer = FIELDNAMES_material;
+			tmp2->_material = 0;
+			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
 		break;
 		}
 		case NODE_Viewpoint : {
