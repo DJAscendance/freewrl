@@ -217,6 +217,8 @@ void resend_textureprojector_matrix()
 	int nunit = 0;
 	int kdesc = 0;
 	int unitTextures[4];
+	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+
 	for(int i=0;i<tcount;i++)
 	{
 		float TenLinearGexMatCam0f[16];
@@ -279,7 +281,7 @@ void resend_textureprojector_matrix()
 				GLUNIFORM1I(me->funcs[kdesc],funcs[j]);
 			}
 			pcount++;
-			tg->RenderFuncs.textureStackTop = 1; //keep this frmo building up
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
 	}
 	GLUNIFORM1I(me->pCount,pcount);
