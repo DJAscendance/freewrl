@@ -154,8 +154,9 @@ struct fw_MaterialParameters {
 	int type; //MAT_TYPE: 0 MAT_NONE 1 MAT_EMISSIVE 2 MAT_REGULAR 3 MAT_PHYSICAL
 	// used in frag, for texture maps:
 	int transdex; // which tindex to use for transparency -1 None, else 0-3
-	int tindex[4]; //texture unit index: [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness
-	int cindex[4]; //texture coordinate channel
+	int tindex[5]; //texture unit index: [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness
+	int cindex[5]; //texture coordinate channel
+	struct X3D_Node *textures[5]; //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive,
 };
 
 struct matpropstruct {
