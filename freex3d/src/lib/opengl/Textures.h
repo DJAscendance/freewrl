@@ -117,4 +117,9 @@ void bind_image(int type, struct Uni_String *parenturl, struct Multi_String url,
 void init_multitexture_handling(void);
 
 
+//RenderTextures.c
+void clear_textureUnit_used();
+int next_textureUnit();
+int bind_or_share_next_textureUnit(const int samplerType, GLint texture);
+
 #endif /* __FREEWRL_TEXTURES_H__ */

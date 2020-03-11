@@ -54,6 +54,10 @@ int multitex_function;
 
 typedef struct pRenderTextures{
 	struct multiTexParams textureParameterStack[MAX_MULTITEXTURE];
+	int textureUnit_used;
+	GLint texture_in_unit[32];
+	GLint sampler_type[32];
+
 }* ppRenderTextures;
 
 void *RenderTextures_constructor(){
@@ -67,8 +71,62 @@ void RenderTextures_init(struct tRenderTextures *t){
 		ppRenderTextures p = (ppRenderTextures)t->prv;
 		/* variables for keeping track of status */
 		t->textureParameterStack = (void *)p->textureParameterStack;
+		p->textureUnit_used = 0;
 	}
 }
+
+
+void clear_textureUnit_used(){
+	//call this in child_shape just before you start sending data / textures to the shader program
+	ppRenderTextures p;
+	ttglobal tg = gglobal();
+	p = (ppRenderTextures)tg->RenderTextures.prv;
+	p->textureUnit_used = 0;
+}
+int next_textureUnit(){
+	ppRenderTextures p;
+	ttglobal tg = gglobal();
+	p = (ppRenderTextures)tg->RenderTextures.prv;
+	p->textureUnit_used++;
+	return p->textureUnit_used -1;
+}
+
+int textureUnit_used(){
+	ppRenderTextures p;
+	ttglobal tg = gglobal();
+	p = (ppRenderTextures)tg->RenderTextures.prv;
+	return p->textureUnit_used;
+}
+int bind_or_share_next_textureUnit(const int samplerType, GLint texture){
+	// call this when sending textures to the shader 
+	// benefits over gl_activeTexture + glBindTexture:
+	// this one automatically
+	// a) checks if this texture is already bound, perhaps by another PTM projector, or another material
+	//   and if so return the texture unit OR
+	// b) if not already bound, increments the texture unit, binds (and returns its  texture unit index
+
+	ppRenderTextures p;
+	ttglobal tg = gglobal();
+	p = (ppRenderTextures)tg->RenderTextures.prv;
+
+	//check if sharable
+	int unit = -1;
+	for(int i=0;i<p->textureUnit_used;i++){
+		if(p->texture_in_unit[i] == texture && samplerType == p->sampler_type[i]){
+			unit = i;
+			break;
+		}
+	}
+	if(unit == -1) {
+		unit = next_textureUnit();
+		p->texture_in_unit[unit] = texture;
+		p->sampler_type[unit] = samplerType;
+		glActiveTexture(GL_TEXTURE0+unit); 
+		glBindTexture(samplerType,texture);
+	}
+	return unit;
+}
+
 
 
 /* function params */
