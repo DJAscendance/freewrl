@@ -6901,6 +6901,11 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		SEND_INT(myMaterialBackCindex[i],fw_BackMaterial->cindex[i]);
 		SEND_INT(myMaterialBackTindex[i],fw_BackMaterial->tindex[i]);
 	}
+
+	//send v4 material textures to shader
+	// int next_textureUnit2D();
+	// sharable GLint textures? > fewer units needed
+
 	profile_end("sendvec");
 
 	if (me->haveLightInShader) sendLightInfo(me);

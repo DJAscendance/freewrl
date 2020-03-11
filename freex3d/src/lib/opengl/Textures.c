@@ -1395,7 +1395,7 @@ int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *mode
 			textures[i] = getGlTextureNumberFromTextureNode(pt->texture.p[i]);
 			iret = getTextureSizeFromTextureNode(pt->texture.p[i],ixyz);
 
-			modes[i] = xparam[i].multitex_mode[0] + + 100*xparam[i].multitex_mode[1];
+			modes[i] = xparam[i].multitex_mode[0] + 100*xparam[i].multitex_mode[1];
 			sources[i] = xparam[i].multitex_source[0] + 100*xparam[i].multitex_source[1];
 			funcs[i] = xparam[i].multitex_function;
 		}

@@ -865,6 +865,52 @@ void textureTransform_start();
 void reallyDraw();
 void resend_textureprojector_matrix();
 
+
+static int textureUnit_used = 0;
+static GLint texture_in_unit[32];
+static GLint sampler_type[32];
+void clear_textureUnit2D(){
+	textureUnit_used = 0;
+}
+int next_textureUnit2D(){
+	textureUnit_used++;
+	return textureUnit_used -1;
+}
+int next_textureUnit2D_experiment(GLint texture){
+	//check if sharable
+	int unit = -1;
+	for(int i=0;i<textureUnit_used;i++){
+		if(texture_in_unit[i] == texture){
+			unit = i;
+			break;
+		}
+	}
+	if(unit == -1) unit = next_textureUnit2D();
+	return unit;
+}
+int textureUnit2D_used(){
+	return textureUnit_used;
+}
+int bind_or_share_next_textureUnit(const int samplerType, GLint texture){
+	//check if sharable
+	int unit = -1;
+	for(int i=0;i<textureUnit_used;i++){
+		if(texture_in_unit[i] == texture && samplerType == sampler_type[i]){
+			unit = i;
+			break;
+		}
+	}
+	if(unit == -1) {
+		unit = next_textureUnit2D();
+		texture_in_unit[unit] = texture;
+		sampler_type[unit] = samplerType;
+		glActiveTexture(GL_TEXTURE0+unit); 
+		glBindTexture(samplerType,texture);
+	}
+	return unit;
+}
+
+
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
 	//int channels;
@@ -1047,10 +1093,12 @@ void child_Shape (struct X3D_Shape *node) {
 		//--------- sendLightInfo
 		//           Uniforms sent for lights
 		//----- glDrawArrays/glDrawElements
-
-		resend_textureprojector_matrix();
-		textureTransform_start();
-		setupShaderB();
+		
+		//we have a shader, now start sending it data
+		clear_textureUnit2D(); //appearance.texter, material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+		textureTransform_start(); //send regular appearance.textures to shader
+		resend_textureprojector_matrix();  
+		setupShaderB();  //send materials, fill patters miscalaneous to shader
 		render_node(tmpNG);
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));

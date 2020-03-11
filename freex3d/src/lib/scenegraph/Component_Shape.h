@@ -191,6 +191,10 @@ struct matpropstruct {
 struct matpropstruct* getAppearanceProperties();
 void setUserShaderNode(struct X3D_Node *me);
 
+void clear_textureUnit2D();
+int next_textureUnit2D();
+int textureUnit2D_used();
+
 #define MIN_NODE_TRANSPARENCY 0.0f
 #define MAX_NODE_TRANSPARENCY 0.99f  /* if 1.0, then occlusion culling will cause flashing */
 

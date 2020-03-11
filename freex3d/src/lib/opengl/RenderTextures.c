@@ -478,6 +478,7 @@ void textureTransform_start() {
 	int c;
 	int i, isStrict, isMulti, isIdentity;
 	GLint texUnit[MAX_MULTITEXTURE];
+	GLint tunit[MAX_MULTITEXTURE];
 	GLint texMode[MAX_MULTITEXTURE];
 	s_shader_capabilities_t *me;
 	struct X3D_Node *tnode;
@@ -597,14 +598,22 @@ void textureTransform_start() {
 				}
 
 				texture = tg->RenderFuncs.boundTextureStack[c];
-
 				// SET_TEXTURE_UNIT_AND_BIND
-				glActiveTexture(GL_TEXTURE0+c); 
-				//printf("active texture %d texture %d c %d\n",GL_TEXTURE0+c,texture,c);
-				if (getAppearanceProperties()->cubeFace==0) {
-					glBindTexture(GL_TEXTURE_2D,texture); 
-				} else {
-					glBindTexture(GL_TEXTURE_CUBE_MAP,texture); 
+				if(1){
+					if (getAppearanceProperties()->cubeFace==0) {
+						tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_2D,texture);
+					} else {
+						tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_CUBE_MAP,texture);
+					}
+				}else{
+					glActiveTexture(GL_TEXTURE0+c); 
+					//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
+					//printf("active texture %d texture %d c %d\n",GL_TEXTURE0+c,texture,c);
+					if (getAppearanceProperties()->cubeFace==0) {
+						glBindTexture(GL_TEXTURE_2D,texture); 
+					} else {
+						glBindTexture(GL_TEXTURE_CUBE_MAP,texture); 
+					}
 				}
 			}
 		}
@@ -632,7 +641,11 @@ void textureTransform_start() {
 			//	p->textureParameterStack[i].multitex_function);
 			//	once++;
 			//}
-			glUniform1i(me->TextureUnit[i],i);
+			if(1)
+				glUniform1i(me->TextureUnit[i],tunit[i]);
+			else
+				glUniform1i(me->TextureUnit[i],i);
+
 			//the 2i wasn't working for me even with ivec2 in shader
 			glUniform2i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0], p->textureParameterStack[i].multitex_mode[1]);
 			glUniform2i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0], p->textureParameterStack[i].multitex_source[1]);

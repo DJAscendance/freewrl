@@ -246,7 +246,8 @@ void resend_textureprojector_matrix()
 			int width[4], height[4];
 
 			int toffset = 4;
-			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+			//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
 			render_node(ptuple->textureNode);
 
 			ntdesc = getTextureDescriptors(ptuple->textureNode,textures, modes,sources, funcs, width, height);
@@ -257,22 +258,33 @@ void resend_textureprojector_matrix()
 				//texture = ptuple->texture;
 				texture = textures[j];
 				kunit = -1;
-				for(int k=0;k<nunit;k++){
-					if(unitTextures[k] == texture){
-						kunit = k;
-						break;
-					}
-				}
-				if(kunit == -1){
-					int toffset = 4;
+				if(1){
+					// this method of sharing texture units assumes samplers are not a limited resource
+					// -- just texture units are - and so doesn't try to share/conserve samplers.
+					// and this way should work / harmonize with how v4 material textures share texture units
+					int kkunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D,texture);
 					nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
 					kunit = nunit-1;
-					//print_bound_textures("start");
-					glActiveTexture(GL_TEXTURE0+toffset+kunit); 
-					glBindTexture(GL_TEXTURE_2D,texture); 
-					glUniform1i(me->textureUnit[kunit],kunit+toffset);
+					glUniform1i(me->textureUnit[kunit],kkunit);
 					glActiveTexture(GL_TEXTURE0);
-					//print_bound_textures("end");
+				}else{
+					for(int k=0;k<nunit;k++){
+						if(unitTextures[k] == texture){
+							kunit = k;
+							break;
+						}
+					}
+					if(kunit == -1){
+						int toffset = 4;
+						nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
+						kunit = nunit-1;
+						//print_bound_textures("start");
+						glActiveTexture(GL_TEXTURE0+toffset+kunit); 
+						glBindTexture(GL_TEXTURE_2D,texture); 
+						glUniform1i(me->textureUnit[kunit],kunit+toffset);
+						glActiveTexture(GL_TEXTURE0);
+						//print_bound_textures("end");
+					}
 				}
 				unitTextures[kunit] = texture;
 				GLUNIFORM1I(me->tunits[kdesc],kunit);
