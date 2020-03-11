@@ -305,7 +305,6 @@ void child_Appearance (struct X3D_Appearance *node) {
 void render_Material (struct X3D_Material *node) {
 	COMPILE_IF_REQUIRED
 	{
-		struct X3D_Node **tnodes;
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
 		/* record this node for OpenGL-ES and OpenGL-3.1 operation */
@@ -316,35 +315,10 @@ void render_Material (struct X3D_Material *node) {
 		if (node != NULL) {
 			if(get_isBackMaterial()){
 				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
-				tnodes = p->appearanceProperties.fw_BackMaterial.textures;
 			}else{
 				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
-				tnodes = p->appearanceProperties.fw_FrontMaterial.textures;
-			}
-			memset(tnodes,0,5*sizeof(void *)); //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive
-			if(node->ambientTexture)
-			{
-				POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->ambientTexture,tnodes[0]);
-			}
-			if(node->normalTexture)
-			{
-				POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[1]);
-			}
-			if(node->diffuseTexture)
-			{
-				POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->diffuseTexture,tnodes[2]);
-			}
-			if(node->specularShininessTexture)
-			{
-				POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->specularShininessTexture,tnodes[3]);
-			}
-			if(node->emissiveTexture)
-			{
-				POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[4]);
 			}
 		}
-
-
 	}
 }
 //struct X3D_Material *get_material_oneSided(){
@@ -359,6 +333,7 @@ void render_Material (struct X3D_Material *node) {
 /* bounds check the material node fields */
 void compile_Material (struct X3D_Material *node) {
 	float *p;
+	struct X3D_Node **tnodes;
 	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
 	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
@@ -381,6 +356,29 @@ void compile_Material (struct X3D_Material *node) {
 	q->shininess = node->shininess;
 	q->transparency = node->transparency;
 	q->type = MAT_REGULAR;
+
+	tnodes = q->textures;
+	memset(tnodes,0,5*sizeof(void *)); //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive
+	if(node->ambientTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->ambientTexture,tnodes[0]);
+	}
+	if(node->normalTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[1]);
+	}
+	if(node->diffuseTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->diffuseTexture,tnodes[2]);
+	}
+	if(node->specularShininessTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->specularShininessTexture,tnodes[3]);
+	}
+	if(node->emissiveTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[4]);
+	}
 
 
 	MARK_NODE_COMPILED
