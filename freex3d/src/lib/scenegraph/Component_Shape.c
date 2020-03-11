@@ -210,7 +210,6 @@ void child_Appearance (struct X3D_Appearance *node) {
 	/* printf ("in Appearance, this %d, nodeType %d\n",node, node->_nodeType);
 	   printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	   render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
-	//clear_bound_textures();
 	/* Render the material node... */
 	RENDER_MATERIAL_SUBNODES(node->material);
 	if(node->backMaterial){
@@ -1055,10 +1054,12 @@ void child_Shape (struct X3D_Shape *node) {
 		//----- glDrawArrays/glDrawElements
 		
 		//we have a shader, now start sending it data
+		//clear_bound_textures(); //testing only
 		clear_textureUnit_used(); //appearance.texter, material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
 		textureTransform_start(); //send regular appearance.textures to shader
 		resend_textureprojector_matrix();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
+		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
 		render_node(tmpNG);
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
