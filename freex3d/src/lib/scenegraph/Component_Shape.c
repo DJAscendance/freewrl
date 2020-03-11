@@ -357,6 +357,7 @@ void compile_Material (struct X3D_Material *node) {
 	q->transparency = node->transparency;
 	q->type = MAT_REGULAR;
 
+	//new v4 textures
 	tnodes = q->textures;
 	memset(tnodes,0,5*sizeof(void *)); //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive
 	if(node->ambientTexture)
@@ -379,7 +380,12 @@ void compile_Material (struct X3D_Material *node) {
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[4]);
 	}
-
+	int *cindex = q->cindex;
+	cindex[0] = node->ambientTextureChannel;
+	cindex[1] = node->normalTextureChannel;
+	cindex[2] = node->diffuseTextureChannel;
+	cindex[3] = node->specularShininessTextureChannel;
+	cindex[4] = node->emissiveTextureChannel;
 
 	MARK_NODE_COMPILED
 }
