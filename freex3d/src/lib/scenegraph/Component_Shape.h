@@ -156,6 +156,9 @@ struct fw_MaterialParameters {
 	int transdex; // which tindex to use for transparency -1 None, else 0-3
 	int tindex[5]; //texture unit index: [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness
 	int cindex[5]; //texture coordinate channel
+	int mtex[5]; //flag = 1 if it's a multitexture / needs multitexture functionality applied
+	int nt; // number of texture maps 0 if none
+	int mt; // number of multitextures 0 if none
 	struct X3D_Node *textures[5]; //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive,
 };
 

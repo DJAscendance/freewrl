@@ -6845,9 +6845,35 @@ void sendClipplanesToShader(s_shader_capabilities_t *me){
 	GLUNIFORM1I(me->nclipplanes,nsend);
 }
 
+
+static int nunit = 0;
+static int unit[32];
+void clear_material_samplers(){
+	nunit = 0;
+}
+int share_or_next_material_sampler_index(GLint texture){
+	int kunit, index;
+	kunit = bind_or_share_next_textureUnit(GL_SAMPLER_2D, texture);
+	index = -1;
+	for(int i=0;i<nunit;i++){
+		if(unit[i] == kunit){
+			index = i;
+		}
+	}
+	if(index == -1){
+		unit[nunit] = kunit;
+		index = nunit;
+		nunit++;
+	}
+	return index;
+}
+GLint tunit(int index){
+	return unit[index];
+}
+
 void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct matpropstruct *myap = getAppearanceProperties();
-	struct fw_MaterialParameters *fw_FrontMaterial;
+	struct fw_MaterialParameters *fw_FrontMaterial, *mp;
 	struct fw_MaterialParameters *fw_BackMaterial;
 
 	if (!myap) return;
@@ -6884,9 +6910,18 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_FLOAT(myMaterialTransparency,fw_FrontMaterial->transparency);
 	SEND_INT(myMaterialType,fw_FrontMaterial->type);
 	SEND_INT(myMaterialTransdex,fw_FrontMaterial->transdex);
-	for(int i=0;i<4;i++){
-		SEND_INT(myMaterialCindex[i],fw_FrontMaterial->cindex[i]);
-		SEND_INT(myMaterialTindex[i],fw_FrontMaterial->tindex[i]);
+	mp = fw_FrontMaterial;
+	for(int i=0;i<5;i++){
+		mp->tindex[i] = -1;
+		if(mp->textures[i]){
+			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
+			int kunit = share_or_next_material_sampler_index(textures[0]);
+			mp->tindex[i] = kunit;
+			glUniform1i(me->TextureUnit[i],unit[kunit]);
+		}
+		SEND_INT(myMaterialCindex[i],mp->cindex[i]);
+		SEND_INT(myMaterialTindex[i],mp->tindex[i]);
 	}
 
 	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
@@ -6897,9 +6932,18 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
 	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
 	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
-	for(int i=0;i<4;i++){
-		SEND_INT(myMaterialBackCindex[i],fw_BackMaterial->cindex[i]);
-		SEND_INT(myMaterialBackTindex[i],fw_BackMaterial->tindex[i]);
+	mp = fw_BackMaterial;
+	for(int i=0;i<5;i++){
+		mp->tindex[i] = -1;
+		if(mp->textures[i]){
+			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
+			int kunit = share_or_next_material_sampler_index(textures[0]);
+			mp->tindex[i] = kunit;
+			glUniform1i(me->TextureUnit[i],unit[kunit]);
+		}
+		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
+		SEND_INT(myMaterialBackTindex[i],mp->tindex[i]);
 	}
 
 	//send v4 material textures to shader

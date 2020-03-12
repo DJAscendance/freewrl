@@ -681,7 +681,7 @@ our %Nodes = (
 		separateBackColor =>["SFBool","FALSE","inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		specularColor => ["SFColor", [0, 0, 0], "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
-		_frontMaterial => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_backMaterial => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
 	],"X3DMaterialNode"),

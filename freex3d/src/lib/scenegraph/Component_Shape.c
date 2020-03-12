@@ -344,9 +344,10 @@ void compile_Material (struct X3D_Material *node) {
 
 	if(!node->_material){
 		node->_material = malloc(sizeof(struct fw_MaterialParameters));
-		memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 		register_node_gc(node,node->_material);
 	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+
 	q = (struct fw_MaterialParameters *)node->_material;
 	veccopy3f(q->diffuse,node->diffuseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
@@ -385,7 +386,15 @@ void compile_Material (struct X3D_Material *node) {
 	cindex[2] = node->diffuseTextureChannel;
 	cindex[3] = node->specularShininessTextureChannel;
 	cindex[4] = node->emissiveTextureChannel;
-
+	for(int i=0;i<5;i++){
+		if(tnodes[i]){
+			q->nt++;
+			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
+				q->mtex[i] = 1;
+				q->mt++;
+			}
+		}
+	}
 	MARK_NODE_COMPILED
 }
 
@@ -568,6 +577,9 @@ static int getShapeFogShader (struct X3D_Node *myGeom) {
 	/* if we are down here, we KNOW we do not have a color field */
 	return NOTHING; /* do not add any capabilites here */
 }
+void compile_material_if_required(struct X3D_Node *node){
+	COMPILE_IF_REQUIRED(node);
+}
 
 static int getAppearanceShader (struct X3D_Node *myApp) {
 	struct X3D_Appearance *realAppearanceNode;
@@ -590,18 +602,116 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 	if (realAppearanceNode->material != NULL) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->material,realMaterialNode);	
 	}
-	if(realMaterialNode) {
-		if(realBackMaterialNode || realMaterialNode->_nodeType == NODE_TwoSidedMaterial )  {    
-			retval |= TWO_MATERIAL_APPEARANCE_SHADER;
-		}
-		if (realMaterialNode->_nodeType == NODE_Material || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_Material)) {
-				retval |= MATERIAL_APPEARANCE_SHADER;
-		}
-		if (realMaterialNode->_nodeType == NODE_PhysicalMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_PhysicalMaterial)) {
-			retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
-		}
-		if (realMaterialNode->_nodeType == NODE_UnlitMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_UnlitMaterial)) {
-			retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
+	if(realMaterialNode || realBackMaterialNode) {
+		if(1){
+			struct fw_MaterialParameters *p, *q;
+			int material, texture, multitex, twosided, physical, unlit;
+			material = texture = multitex = twosided = physical = unlit = FALSE;
+		
+			p = q = NULL;
+			if(realMaterialNode){
+				compile_material_if_required(realMaterialNode);
+				switch(realMaterialNode->_nodeType){
+					case NODE_Material:
+						{
+							struct X3D_Material *mnode = (struct X3D_Material*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							material = TRUE;
+						}
+						break;
+					case NODE_PhysicalMaterial:
+						{
+							struct X3D_PhysicalMaterial *mnode = (struct X3D_PhysicalMaterial*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							physical = TRUE;
+						}
+						break;
+					case NODE_UnlitMaterial:
+						{
+							struct X3D_UnlitMaterial *mnode = (struct X3D_UnlitMaterial*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							unlit = TRUE;
+						}
+						break;
+					case NODE_TwoSidedMaterial:
+						{
+							struct X3D_TwoSidedMaterial *mnode = (struct X3D_TwoSidedMaterial*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							q = (struct fw_MaterialParameters*)mnode->_backMaterial;
+							material = TRUE;
+							twosided = TRUE;
+						}
+						break;
+					default:
+						break;
+				}
+			}
+			if(realBackMaterialNode){
+				compile_material_if_required(realBackMaterialNode);
+				switch(realBackMaterialNode->_nodeType){
+					case NODE_Material:
+						{
+							struct X3D_Material *mnode = (struct X3D_Material*)realBackMaterialNode;
+							q = (struct fw_MaterialParameters*)mnode->_material;
+							material = TRUE;
+						}
+						break;
+					case NODE_PhysicalMaterial:
+						{
+							struct X3D_PhysicalMaterial *mnode = (struct X3D_PhysicalMaterial*)realBackMaterialNode;
+							q = (struct fw_MaterialParameters*)mnode->_material;
+							physical = TRUE;
+						}
+						break;
+					case NODE_UnlitMaterial:
+						{
+							struct X3D_UnlitMaterial *mnode = (struct X3D_UnlitMaterial*)realBackMaterialNode;
+							q = (struct fw_MaterialParameters*)mnode->_material;
+							unlit = TRUE;
+						}
+						break;
+					case NODE_TwoSidedMaterial:
+						{
+							//not permitted
+							//struct X3D_TwoSidedMaterial *mnode = (struct X3D_TwoSidedMaterial*)realMaterialNode;
+							//p = (struct fw_MaterialParameters*)mnode->_material;
+							//q = (struct fw_MaterialParameters*)mnode->_backMaterial;
+							//unlit = TRUE;
+						}
+						break;
+					default:
+						break;
+				}
+			}
+			if(p){
+				if(p->nt) texture = TRUE;
+				if(p->mt) multitex = TRUE;
+			}
+			if(q){
+				if(q->nt) texture = TRUE;
+				if(q->mt) multitex = TRUE;
+				twosided = TRUE;
+			}
+			if(twosided) retval |= TWO_MATERIAL_APPEARANCE_SHADER;
+			if(material) retval |= MATERIAL_APPEARANCE_SHADER;
+			if(physical) retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
+			if(unlit) retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
+			// need to learn | vs xor etc so this isn't un-applied below if there's a regular appearance.texture
+			if(texture) retval |= ONE_TEX_APPEARANCE_SHADER;
+			if(multitex) retval |= MULTI_TEX_APPEARANCE_SHADER;
+		} else {
+			if(realBackMaterialNode || realMaterialNode->_nodeType == NODE_TwoSidedMaterial )  {    
+				retval |= TWO_MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_Material || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_Material)) {
+					retval |= MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_PhysicalMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_PhysicalMaterial)) {
+				retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_UnlitMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_UnlitMaterial)) {
+				retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
+			}
 		}
 	}
 
@@ -1055,7 +1165,7 @@ void child_Shape (struct X3D_Shape *node) {
 		
 		//we have a shader, now start sending it data
 		//clear_bound_textures(); //testing only
-		clear_textureUnit_used(); //appearance.texter, material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
 		textureTransform_start(); //send regular appearance.textures to shader
 		resend_textureprojector_matrix();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
@@ -1183,12 +1293,12 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
 	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
-	if(!node->_frontMaterial){
-		node->_frontMaterial = malloc(sizeof(struct fw_MaterialParameters));
-		memset(node->_frontMaterial,0,sizeof(struct fw_MaterialParameters));
-		register_node_gc(node,node->_frontMaterial);
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
 	}
-	q = (struct fw_MaterialParameters *)node->_frontMaterial;
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+	q = (struct fw_MaterialParameters *)node->_material;
 	veccopy3f(q->diffuse,node->diffuseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	veccopy3f(q->specular,node->specularColor.c);
@@ -1208,9 +1318,9 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 
 		if(!node->_backMaterial){
 			node->_backMaterial = malloc(sizeof(struct fw_MaterialParameters));
-			memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
 			register_node_gc(node,node->_backMaterial);
 		}
+		memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
 		q = (struct fw_MaterialParameters *)node->_backMaterial;
 		veccopy3f(q->diffuse,node->backDiffuseColor.c);
 		veccopy3f(q->emissive,node->backEmissiveColor.c);
@@ -1224,10 +1334,10 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 		/* just copy the front materials to the back */
 		if(!node->_backMaterial){
 			node->_backMaterial = malloc(sizeof(struct fw_MaterialParameters));
-			memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
 			register_node_gc(node,node->_backMaterial);
 		}
-		memcpy(node->_backMaterial,node->_frontMaterial,sizeof(struct fw_MaterialParameters));
+		memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
+		memcpy(node->_backMaterial,node->_material,sizeof(struct fw_MaterialParameters));
 	}
 	MARK_NODE_COMPILED
 }
@@ -1238,7 +1348,7 @@ void render_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	{
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 		if (node != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_frontMaterial, sizeof (struct fw_MaterialParameters));
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
 			memcpy (&p->appearanceProperties.fw_BackMaterial, node->_backMaterial, sizeof (struct fw_MaterialParameters));
 		}
 	}

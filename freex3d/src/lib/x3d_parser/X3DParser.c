@@ -1967,7 +1967,7 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 	#ifdef X3DPARSERVERBOSE
 	//printf ("startElement: %s : level %d parserMode: %s \n",name,parentIndex,parserModeStrings[getMode(ud,TOP)]);
 	printf ("X3DstartElement: %s: atts %p\n",name,atts);
-	//printf ("startElement, myAtts :%p contents %p\n",myAtts,myAtts[0]);
+	printf ("startElement, myAtts :%p contents %p\n",myAtts,myAtts[0]);
 	{ int i;
 			for (i = 0; myAtts[i]; i += 2) {
 					printf("	      X3DStartElement field:%s=%s\n", myAtts[i], atts[i + 1]);

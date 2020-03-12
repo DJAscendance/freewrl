@@ -259,7 +259,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_floatOutFIFO",
 	"_forceout",
 	"_frameSpeed",
-	"_frontMaterial",
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
@@ -7580,7 +7579,7 @@ const int OFFSETS_TwoSidedMaterial[] = {
 	(int) FIELDNAMES_separateBackColor, (int) offsetof (struct X3D_TwoSidedMaterial, separateBackColor),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_specularColor, (int) offsetof (struct X3D_TwoSidedMaterial, specularColor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_TwoSidedMaterial, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES__frontMaterial, (int) offsetof (struct X3D_TwoSidedMaterial, _frontMaterial),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__material, (int) offsetof (struct X3D_TwoSidedMaterial, _material),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__backMaterial, (int) offsetof (struct X3D_TwoSidedMaterial, _backMaterial),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -10442,7 +10441,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->textureProperties = 0;
 			tmp2->__textureTableIndex = 0;
 			tmp2->_parentResource = getInputResource();
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = FIELDNAMES_texture + (FIELDNAMES_diffuseTexture << 10) + (FIELDNAMES_emissiveTexture << 20);
 		break;
 		}
 		case NODE_ImageTexture3D : {
@@ -13477,7 +13476,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->separateBackColor = FALSE;
 			tmp2->specularColor.c[0] = 0.0f;tmp2->specularColor.c[1] = 0.0f;tmp2->specularColor.c[2] = 0.0f;;
 			tmp2->transparency = 0.0f;
-			tmp2->_frontMaterial = 0;
+			tmp2->_material = 0;
 			tmp2->_backMaterial = 0;
 			tmp2->_defaultContainer = FIELDNAMES_material;
 		break;
