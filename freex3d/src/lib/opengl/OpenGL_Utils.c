@@ -2819,12 +2819,26 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
 	me->myMaterialType = GET_UNIFORM(myProg,"fw_FrontMaterial.type");
 	me->myMaterialTransdex = GET_UNIFORM(myProg,"fw_FrontMaterial.transdex");
-	for(int i=0;i<4;i++){
+	me->myMaterialNt = GET_UNIFORM(myProg,"fw_FrontMaterial.nt");
+	for(int i=0;i<10;i++){
+		char line[200];
+		sprintf(line,"fw_FrontMaterial.tindex[%d]",i);
+		me->myMaterialTindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.mode[%d]",i);
+		me->myMaterialMode[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.source[%d]",i);
+		me->myMaterialSource[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.func[%d]",i);
+		me->myMaterialFunc[i] = GET_UNIFORM(myProg,line);
+	}
+	for(int i=0;i<5;i++){
 		char line[200];
 		sprintf(line,"fw_FrontMaterial.cindex[%d]",i);
 		me->myMaterialCindex[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"fw_FrontMaterial.tindex[%d]",i);
-		me->myMaterialTindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.tstart[%d]",i);
+		me->myMaterialTstart[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.tcount[%d]",i);
+		me->myMaterialTcount[i] = GET_UNIFORM(myProg,line);
 	}
 
 
@@ -2836,12 +2850,26 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
 	me->myMaterialBackType = GET_UNIFORM(myProg,"fw_BackMaterial.type");
 	me->myMaterialBackTransdex = GET_UNIFORM(myProg,"fw_BackMaterial.transdex");
-	for(int i=0;i<4;i++){
+	me->myMaterialBackNt = GET_UNIFORM(myProg,"fw_BackMaterial.nt");
+	for(int i=0;i<10;i++){
+		char line[200];
+		sprintf(line,"fw_BackMaterial.tindex[%d]",i);
+		me->myMaterialBackTindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.mode[%d]",i);
+		me->myMaterialBackMode[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.source[%d]",i);
+		me->myMaterialBackSource[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.func[%d]",i);
+		me->myMaterialBackFunc[i] = GET_UNIFORM(myProg,line);
+	}
+	for(int i=0;i<5;i++){
 		char line[200];
 		sprintf(line,"fw_BackMaterial.cindex[%d]",i);
 		me->myMaterialBackCindex[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"fw_BackMaterial.tindex[%d]",i);
-		me->myMaterialBackTindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.tstart[%d]",i);
+		me->myMaterialBackTstart[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.tcount[%d]",i);
+		me->myMaterialBackTcount[i] = GET_UNIFORM(myProg,line);
 	}
 
 	//me->lightState = GET_UNIFORM(myProg,"lightState");
@@ -6865,6 +6893,7 @@ int share_or_next_material_sampler_index(GLint texture){
 		index = nunit;
 		nunit++;
 	}
+	//glUniform1i(me->TextureUnit[i],unit[kunit]);
 	return index;
 }
 GLint tunit(int index){
@@ -6875,7 +6904,7 @@ void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct matpropstruct *myap = getAppearanceProperties();
 	struct fw_MaterialParameters *fw_FrontMaterial, *mp;
 	struct fw_MaterialParameters *fw_BackMaterial;
-
+	int nt;
 	if (!myap) return;
 	fw_FrontMaterial = &myap->fw_FrontMaterial;
 	fw_BackMaterial = &myap->fw_BackMaterial;
@@ -6911,18 +6940,29 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_INT(myMaterialType,fw_FrontMaterial->type);
 	SEND_INT(myMaterialTransdex,fw_FrontMaterial->transdex);
 	mp = fw_FrontMaterial;
+	nt = 0;
 	for(int i=0;i<5;i++){
-		mp->tindex[i] = -1;
+		mp->tcount[i] = 0;
+		mp->tstart[i] = nt;
 		if(mp->textures[i]){
 			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
 			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
-			int kunit = share_or_next_material_sampler_index(textures[0]);
-			mp->tindex[i] = kunit;
-			glUniform1i(me->TextureUnit[i],unit[kunit]);
+			mp->tcount[i] = ntdesc;
+			for(int j=0;j<ntdesc;j++){
+				int kunit = share_or_next_material_sampler_index(textures[j]);
+				mp->tindex[nt] = kunit;
+				mp->source[nt] = sources[j];
+				mp->mode[nt] = modes[j];
+				mp->func[nt] = funcs[j];
+				glUniform1i(me->TextureUnit[nt],unit[kunit]);
+				nt++;
+			}
 		}
 		SEND_INT(myMaterialCindex[i],mp->cindex[i]);
 		SEND_INT(myMaterialTindex[i],mp->tindex[i]);
 	}
+	mp->nt = nt;
+	SEND_INT(myMaterialNt,mp->nt);
 
 	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
 	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
@@ -6933,18 +6973,29 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
 	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
 	mp = fw_BackMaterial;
+	nt = 0;
 	for(int i=0;i<5;i++){
-		mp->tindex[i] = -1;
+		mp->tcount[i] = 0;
+		mp->tstart[i] = nt;
 		if(mp->textures[i]){
 			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
 			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
-			int kunit = share_or_next_material_sampler_index(textures[0]);
-			mp->tindex[i] = kunit;
-			glUniform1i(me->TextureUnit[i],unit[kunit]);
+			mp->tcount[i] = ntdesc;
+			for(int j=0;j<ntdesc;j++){
+				int kunit = share_or_next_material_sampler_index(textures[j]);
+				mp->tindex[nt] = kunit;
+				mp->source[nt] = sources[j];
+				mp->mode[nt] = modes[j];
+				mp->func[nt] = funcs[j];
+				glUniform1i(me->TextureUnit[nt],unit[kunit]);
+				nt++;
+			}
 		}
 		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
 		SEND_INT(myMaterialBackTindex[i],mp->tindex[i]);
 	}
+	mp->nt = nt;
+	SEND_INT(myMaterialBackNt,mp->nt);
 
 	//send v4 material textures to shader
 	// int next_textureUnit2D();

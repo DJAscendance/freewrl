@@ -154,12 +154,19 @@ struct fw_MaterialParameters {
 	int type; //MAT_TYPE: 0 MAT_NONE 1 MAT_EMISSIVE 2 MAT_REGULAR 3 MAT_PHYSICAL
 	// used in frag, for texture maps:
 	int transdex; // which tindex to use for transparency -1 None, else 0-3
-	int tindex[5]; //texture unit index: [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness
-	int cindex[5]; //texture coordinate channel
-	int mtex[5]; //flag = 1 if it's a multitexture / needs multitexture functionality applied
-	int nt; // number of texture maps 0 if none
-	int mt; // number of multitextures 0 if none
+	// multi-te4xtues are dis-aggregated at send-to-shader stage
+	int tindex[10]; //texture unit indexes, 
+	int mode[10];  //multitexture modulate mode
+	int source[10]; //multitexture modulate mode
+	int func[10]; //multitexture modulate mode
+	int nt; // number of single texture maps 0 if none
+	// [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness
 	struct X3D_Node *textures[5]; //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive,
+	int tcount[5]; // for material.textureXXX if its a single texture 1, if multitexture n
+	int tstart[5]; // where in tindex to start looping
+	int cindex[5]; //texture coordinate channel
+	//int mtex[5];   //flag = 1 if it's a multitexture / needs multitexture functionality applied
+	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
 };
 
 struct matpropstruct {

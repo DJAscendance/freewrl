@@ -568,8 +568,16 @@ struct fw_MaterialParameters { \n\
   float shininess; \n\
   float transparency; \n\
   int type; \n\
-  int tindex[5]; \n\
-  int cindex[5]; \n\
+  // multitextures are disaggregated \n\
+  int tindex[10]; \n\
+  int mode[10]; \n\
+  int source[10]; \n\
+  int func[1]; \n\
+  int nt; //total single textures \n\
+  // [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness \n\
+  int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+  int tstart[5]; // where in packed tindex list to start looping \n\
+  int cindex[5]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
@@ -1101,7 +1109,7 @@ uniform fogParams fw_fogparams; \n\
 #ifdef HAS_GEOMETRY_SHADER \n\
 #define castle_vertex_eye castle_vertex_eye_geoshader \n\
 #define castle_normal_eye castle_normal_eye_geoshader \n\
-#endif \n\
+#endif // HAS_GEOMETRY_SHADER \n\
  \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
@@ -1116,8 +1124,16 @@ struct fw_MaterialParameters { \n\
   float shininess; \n\
   float transparency; \n\
   int type; \n\
-  int tindex[5]; \n\
-  int cindex[5]; \n\
+  // multitextures are disaggregated \n\
+  int tindex[10]; \n\
+  int mode[10]; \n\
+  int source[10]; \n\
+  int func[1]; \n\
+  int nt; //total single textures \n\
+  // [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness \n\
+  int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+  int tstart[5]; // where in packed tindex list to start looping \n\
+  int cindex[5]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\
@@ -2563,9 +2579,17 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
-    int type; \n\
-  int tindex[5]; \n\
-  int cindex[5]; \n\
+  int type; \n\
+  // multitextures are disaggregated \n\
+  int tindex[10]; \n\
+  int mode[10]; \n\
+  int source[10]; \n\
+  int func[1]; \n\
+  int nt; //total single textures \n\
+  // [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness \n\
+  int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+  int tstart[5]; // where in packed tindex list to start looping \n\
+  int cindex[5]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\

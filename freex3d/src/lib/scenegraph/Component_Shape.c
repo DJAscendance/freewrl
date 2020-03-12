@@ -386,12 +386,20 @@ void compile_Material (struct X3D_Material *node) {
 	cindex[2] = node->diffuseTextureChannel;
 	cindex[3] = node->specularShininessTextureChannel;
 	cindex[4] = node->emissiveTextureChannel;
+	q->nt = 0; //assume no material.texturexxx to start
 	for(int i=0;i<5;i++){
+		q->tcount[i] = 0; //default: no texture for this material function
+		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
 		if(tnodes[i]){
-			q->nt++;
 			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
-				q->mtex[i] = 1;
+				struct X3D_MultiTexture *mt = (struct X3D_MultiTexture*)tnodes[i];
+				q->tcount[i] = mt->texture.n;
+				q->nt += mt->texture.n;
 				q->mt++;
+			}else{
+				//single texture
+				q->nt++;
+				q->tcount[i] = 1;
 			}
 		}
 	}
@@ -690,7 +698,7 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 			if(q){
 				if(q->nt) texture = TRUE;
 				if(q->mt) multitex = TRUE;
-				twosided = TRUE;
+				twosided = TRUE; //not sure it makes sense what we are doing with TWO, should it be pipeline culling CULL_FACE GL_BACK, GL_FRONT? but need now for Appearance.backMaterial
 			}
 			if(twosided) retval |= TWO_MATERIAL_APPEARANCE_SHADER;
 			if(material) retval |= MATERIAL_APPEARANCE_SHADER;
