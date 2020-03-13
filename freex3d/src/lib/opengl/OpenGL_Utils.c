@@ -3082,7 +3082,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->TexCoords[1] = GET_ATTRIB(myProg,"fw_MultiTexCoord1");
 	me->TexCoords[2] = GET_ATTRIB(myProg,"fw_MultiTexCoord2");
 	me->TexCoords[3] = GET_ATTRIB(myProg,"fw_MultiTexCoord3");
-
+	me->nTexCoordChannels = GET_UNIFORM(myProg,"nTexCoordChannels");
 
 	for (i=0; i<MAX_MULTITEXTURE; i++) {
 		char line[200];
@@ -6911,6 +6911,7 @@ void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct fw_MaterialParameters *fw_FrontMaterial, *mp;
 	struct fw_MaterialParameters *fw_BackMaterial;
 	int nt;
+	ttglobal tg = gglobal();
 	if (!myap) return;
 	fw_FrontMaterial = &myap->fw_FrontMaterial;
 	fw_BackMaterial = &myap->fw_BackMaterial;
@@ -6947,11 +6948,13 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_INT(myMaterialTransdex,fw_FrontMaterial->transdex);
 	mp = fw_FrontMaterial;
 	nt = 0;
+	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 	for(int i=0;i<5;i++){
 		mp->tcount[i] = 0;
 		mp->tstart[i] = nt;
 		if(mp->textures[i]){
 			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			render_node(mp->textures[i]);
 			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
 			mp->tcount[i] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
@@ -6960,15 +6963,19 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
-				glUniform1i(me->textureUnit[kunit],tunit(kunit));
+				int iunit = tunit(kunit);
+				glUniform1i(me->textureUnit[kunit],iunit); //tunit(kunit));
 				SEND_INT(myMaterialTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
 		SEND_INT(myMaterialCindex[i],mp->cindex[i]);
+		SEND_INT(myMaterialTcount[i],mp->tcount[i]);
+		SEND_INT(myMaterialTstart[i],mp->tstart[i]);
 	}
 	mp->nt = nt;
-	SEND_INT(myMaterialNt,mp->nt);
+	//SEND_INT(myMaterialNt,mp->nt);
 
 	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
 	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
@@ -6985,6 +6992,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		mp->tstart[i] = nt;
 		if(mp->textures[i]){
 			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			render_node(mp->textures[i]);
 			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
 			mp->tcount[i] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
@@ -6997,11 +7005,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				SEND_INT(myMaterialBackTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
 		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
+		SEND_INT(myMaterialBackTcount[i],mp->tcount[i]);
+		SEND_INT(myMaterialBackTstart[i],mp->tstart[i]);
 	}
 	mp->nt = nt;
-	SEND_INT(myMaterialBackNt,mp->nt);
+	//SEND_INT(myMaterialBackNt,mp->nt);
 
 	//send v4 material textures to shader
 	// int next_textureUnit2D();

@@ -411,6 +411,7 @@ typedef struct s_shader_capabilities{
 	GLint Normals;
 	GLint Colours;
 	GLint TexCoords[MAX_MULTITEXTURE];
+	GLint nTexCoordChannels;
 	GLint FogCoords; //Aug 2016
 	
 	//shared PTM and PBR

@@ -489,6 +489,7 @@ attribute vec3 fw_Normal; \n\
 #ifdef TEX \n\
 uniform mat4 fw_TextureMatrix0; \n\
 attribute vec4 fw_MultiTexCoord0; \n\
+uniform int nTexCoordChannels; \n\
 //varying vec3 v_texC; \n\
 varying vec3 fw_TexCoord[4]; \n\
 #ifdef TEX3D \n\
@@ -765,6 +766,7 @@ void main(void) \n\
   } \n\
   #endif //TGEN \n\
   fw_TexCoord[0] = dehomogenize(fw_TextureMatrix0, texcoord); \n\
+  //fw_TexCoord[0] = texcoord.xyz; \n\
   #ifdef MTEX \n\
   fw_TexCoord[1] = dehomogenize(fw_TextureMatrix1,fw_MultiTexCoord1); \n\
   fw_TexCoord[2] = dehomogenize(fw_TextureMatrix2,fw_MultiTexCoord2); \n\
@@ -1260,7 +1262,7 @@ void main(void) \n\
   #ifdef TEXREP \n\
   fragment_color = vec4(1.0,1.0,1.0,1.0); //texture replaces prior \n\
   #endif //TEXREP \n\
-  #endif //TEX \n\
+ #endif //TEX \n\
   \n\
   /* Fragment shader on mobile doesn't get a normal vector now, for speed. */ \n\
   //#define normal_eye_fragment castle_normal_eye //vec3(0.0) \n\
@@ -1280,6 +1282,24 @@ void main(void) \n\
   #endif //LIT \n\
   \n\
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
+#ifdef LIT \n\
+#ifdef LITE \n\
+#ifdef PBR \n\
+  myMat = fw_FrontMaterial; \n\
+  #ifdef TWO \n\
+  //if(!gl_FrontFacing) myMat = fw_BackMaterial; \n\
+  #endif //TWO \n\
+  if(myMat.type == 2 && myMat.tcount[2] > 0){ \n\
+	//vec4 dc = texture2D(textureUnit[0], vec2(.5,.5)); //fw_TexCoord[0].st); \n\
+	vec4 dc = texture2D(textureUnit[myMat.tindex[myMat.tstart[2]]],fw_TexCoord[myMat.cindex[2]].xy); \n\
+	//vec4 dc = texture2D(textureUnit[myMat.tindex[myMat.tstart[2]]],fw_TexCoord[0].st); \n\
+	//vec4 dc = vec4(fw_TexCoord[0],1.0); \n\
+	fragment_color.rgb = dc.rgb; \n\
+	fragment_color.a = 1.0; //dc.a; \n\
+  } \n\
+  #endif //PBR \n\
+  #endif //LITE \n\
+  #endif //LIT \n\
   /* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
   /* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
   #ifdef PROJTEX \n\
