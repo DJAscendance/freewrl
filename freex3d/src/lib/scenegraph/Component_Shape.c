@@ -1174,6 +1174,7 @@ void child_Shape (struct X3D_Shape *node) {
 		//we have a shader, now start sending it data
 		//clear_bound_textures(); //testing only
 		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
 		textureTransform_start(); //send regular appearance.textures to shader
 		resend_textureprojector_matrix();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader

@@ -1145,9 +1145,11 @@ vec3 castle_ColorES; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LITE \n\
 #endif //LIT\n\
+#if defined(TEX) || defined(PROJTEX) \n\
+//shared sampler2D array -PTM or PBR use \n\
+uniform sampler2D textureUnit[16]; \n\
+#endif //defined(TEX) || defined(PROJTEX \n\
 #ifdef PROJTEX \n\
-//per sampler: \n\
-uniform sampler2D textureUnit[4]; \n\
 //per projector: \n\
 uniform int pbackCull[8]; \n\
 uniform int ntdesc[8]; \n\

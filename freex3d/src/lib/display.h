@@ -413,8 +413,10 @@ typedef struct s_shader_capabilities{
 	GLint TexCoords[MAX_MULTITEXTURE];
 	GLint FogCoords; //Aug 2016
 	
-	/* Projective Texture */
-	GLint textureUnit[4];
+	//shared PTM and PBR
+	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
+
+	/* PTM Projective Texture */
 	GLint projTexGenMatCam[16];
 	GLint pbackCull[16];
 	GLint ntdesc[16];

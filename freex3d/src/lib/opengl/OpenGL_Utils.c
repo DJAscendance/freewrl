@@ -2771,9 +2771,9 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
 	// projector 1:m texture_descriptor m:1 sampler2D
 	// max 8     1:m     16             m:1    4
-	for(int i=0;i<4;i++){
-		//per (projector related) sampler2D
-		char line[24];
+	for(int i=0;i<16;i++){
+		//per (projector related) sampler2D and shared with PBR
+		char line[32];
 		sprintf(line,"textureUnit[%d]",i);
 		me->textureUnit[i] = GET_UNIFORM(myProg,line);
 	}
@@ -6876,12 +6876,18 @@ void sendClipplanesToShader(s_shader_capabilities_t *me){
 
 static int nunit = 0;
 static int unit[32];
+void clear_material_samplers();
+int share_or_next_material_sampler_index(GLint texture);
+GLint tunit(int index);
+int sampler_units_used(){
+	return nunit;
+}
 void clear_material_samplers(){
 	nunit = 0;
 }
 int share_or_next_material_sampler_index(GLint texture){
 	int kunit, index;
-	kunit = bind_or_share_next_textureUnit(GL_SAMPLER_2D, texture);
+	kunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, texture);
 	index = -1;
 	for(int i=0;i<nunit;i++){
 		if(unit[i] == kunit){
@@ -6954,12 +6960,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
-				glUniform1i(me->TextureUnit[nt],unit[kunit]);
+				glUniform1i(me->textureUnit[kunit],tunit(kunit));
+				SEND_INT(myMaterialTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
 		}
 		SEND_INT(myMaterialCindex[i],mp->cindex[i]);
-		SEND_INT(myMaterialTindex[i],mp->tindex[i]);
 	}
 	mp->nt = nt;
 	SEND_INT(myMaterialNt,mp->nt);
@@ -6987,12 +6993,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
-				glUniform1i(me->TextureUnit[nt],unit[kunit]);
+				glUniform1i(me->textureUnit[kunit],tunit(kunit));
+				SEND_INT(myMaterialBackTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
 		}
 		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
-		SEND_INT(myMaterialBackTindex[i],mp->tindex[i]);
 	}
 	mp->nt = nt;
 	SEND_INT(myMaterialBackNt,mp->nt);

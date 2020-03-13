@@ -169,6 +169,11 @@ struct fw_MaterialParameters {
 	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
 };
 
+// helpers for sharing sampler2D (and texture units)
+void clear_material_samplers();
+int share_or_next_material_sampler_index(GLint texture);
+GLint tunit(int index);
+
 struct matpropstruct {
 	/* material properties for current shape */
 	struct fw_MaterialParameters fw_FrontMaterial;
