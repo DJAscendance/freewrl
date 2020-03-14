@@ -556,7 +556,7 @@ uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;
 #ifdef UNLIT \n\
 uniform vec4 fw_UnlitColor; \n\
 #endif //UNLIT \n\
-#ifdef LIT \n\
+//#ifdef LIT \n\
 struct fw_MaterialParameters { \n\
   vec3 diffuse; \n\
   vec3 emissive; \n\
@@ -574,17 +574,18 @@ struct fw_MaterialParameters { \n\
   int source[10]; \n\
   int func[1]; \n\
   int nt; //total single textures \n\
-  // [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness \n\
+  // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
   int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[5]; // where in packed tindex list to start looping \n\
   int cindex[5]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
+//#ifdef TWO \n\
+uniform fw_MaterialParameters fw_BackMaterial; \n\
+//#endif //TWO \n\
+#ifdef LIT \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
 vec3 castle_Emissive; \n\
-#ifdef TWO \n\
-uniform fw_MaterialParameters fw_BackMaterial; \n\
-#endif //TWO \n\
 #endif //LIT \n\
 #ifdef FOG \n\
 struct fogParams \n\
@@ -1120,8 +1121,8 @@ uniform fogParams fw_fogparams; \n\
  \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
-#ifdef LIT \n\
-#ifdef LITE \n\
+//#ifdef LIT \n\
+//#ifdef LITE \n\
 //per-fragment lighting ie phong \n\
 struct fw_MaterialParameters { \n\
   vec3 diffuse; \n\
@@ -1140,15 +1141,17 @@ struct fw_MaterialParameters { \n\
   int source[10]; \n\
   int func[1]; \n\
   int nt; //total single textures \n\
-  // [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness \n\
+  // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
   int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[5]; // where in packed tindex list to start looping \n\
   int cindex[5]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
-#ifdef TWO \n\
+//#ifdef TWO \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
-#endif //TWO \n\
+//#endif //TWO \n\
+#ifdef LIT \n\
+#ifdef LITE \n\
 vec3 castle_ColorES; \n\
 #else //LITE \n\
 //per-vertex lighting - interpolated Emissive-specular \n\
@@ -2619,7 +2622,7 @@ struct fw_MaterialParameters { \n\
   int source[10]; \n\
   int func[1]; \n\
   int nt; //total single textures \n\
-  // [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness \n\
+  // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
   int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[5]; // where in packed tindex list to start looping \n\
   int cindex[5]; // which geometry multitexcoord channel 0=default \n\

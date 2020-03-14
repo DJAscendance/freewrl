@@ -163,7 +163,7 @@ struct fw_MaterialParameters {
 	int source[10]; //multitexture modulate mode
 	int func[10]; //multitexture modulate mode
 	int nt; // number of single texture maps 0 if none
-	// [0] normal [1] emissive [2] diffuse [3] specular/shiny OR metallic/roughness
+	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
 	struct X3D_Node *textures[5]; //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive,
 	int tcount[5]; // for material.textureXXX if its a single texture 1, if multitexture n
 	int tstart[5]; // where in tindex to start looping
