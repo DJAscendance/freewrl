@@ -487,22 +487,18 @@ attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
  \n\
 #ifdef TEX \n\
-uniform mat4 fw_TextureMatrix0; \n\
+uniform mat4 fw_TextureMatrix[4]; \n\
+uniform int nTexMatrix; \n\
 attribute vec4 fw_MultiTexCoord0; \n\
+attribute vec4 fw_MultiTexCoord1; \n\
+attribute vec4 fw_MultiTexCoord2; \n\
+attribute vec4 fw_MultiTexCoord3; \n\
 uniform int nTexCoordChannels; \n\
 //varying vec3 v_texC; \n\
 varying vec3 fw_TexCoord[4]; \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
-#ifdef MTEX \n\
-uniform mat4 fw_TextureMatrix1; \n\
-uniform mat4 fw_TextureMatrix2; \n\
-uniform mat4 fw_TextureMatrix3; \n\
-attribute vec4 fw_MultiTexCoord1; \n\
-attribute vec4 fw_MultiTexCoord2; \n\
-attribute vec4 fw_MultiTexCoord3; \n\
-#endif //MTEX \n\
 #ifdef TGEN \n\
  #define TCGT_CAMERASPACENORMAL    0  \n\
  #define TCGT_CAMERASPACEPOSITION    1 \n\
@@ -765,13 +761,19 @@ void main(void) \n\
 	texcoord.xyz = texcoord3; \n\
   } \n\
   #endif //TGEN \n\
-  fw_TexCoord[0] = dehomogenize(fw_TextureMatrix0, texcoord); \n\
-  //fw_TexCoord[0] = texcoord.xyz; \n\
-  #ifdef MTEX \n\
-  fw_TexCoord[1] = dehomogenize(fw_TextureMatrix1,fw_MultiTexCoord1); \n\
-  fw_TexCoord[2] = dehomogenize(fw_TextureMatrix2,fw_MultiTexCoord2); \n\
-  fw_TexCoord[3] = dehomogenize(fw_TextureMatrix3,fw_MultiTexCoord3); \n\
-  #endif //MTEX \n\
+  vec4 tcoord[4]; \n\
+  tcoord[0] = fw_MultiTexCoord0; \n\
+  tcoord[1] = fw_MultiTexCoord1; \n\
+  tcoord[2] = fw_MultiTexCoord2; \n\
+  tcoord[3] = fw_MultiTexCoord3; \n\
+  mat4 ttrans = mat4(1.0); \n\
+  vec4 tc = vec4(0.0,0.0,0.0,1.0); \n\
+  for(int i=0;i<4;i++){ \n\
+	//spec rules: not enough transforms use identity, not enough coords use last ones\n\
+	if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
+	if(i < nTexCoordChannels) tc = tcoord[i]; \n\
+	fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
+  } \n\
   #endif //TEX \n\
   \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\

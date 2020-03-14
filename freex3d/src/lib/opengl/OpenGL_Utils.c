@@ -3065,11 +3065,11 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->NormalMatrix = GET_UNIFORM(myProg,"fw_NormalMatrix");
 	me->ModelViewInverseMatrix = GET_UNIFORM(myProg,"fw_ModelViewInverseMatrix");
 	//for (i=0; i<MAX_MULTITEXTURE; i++) {
-	me->TextureMatrix[0] = GET_UNIFORM(myProg,"fw_TextureMatrix0");
-	me->TextureMatrix[1] = GET_UNIFORM(myProg,"fw_TextureMatrix1");
-	me->TextureMatrix[2] = GET_UNIFORM(myProg,"fw_TextureMatrix2");
-	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix3");
-
+	me->TextureMatrix[0] = GET_UNIFORM(myProg,"fw_TextureMatrix[0]");
+	me->TextureMatrix[1] = GET_UNIFORM(myProg,"fw_TextureMatrix[1]");
+	me->TextureMatrix[2] = GET_UNIFORM(myProg,"fw_TextureMatrix[2]");
+	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix[3]");
+	me->nTexMatrix = GET_UNIFORM(myProg,"nTexMatrix");
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
 
 	me->Normals = GET_ATTRIB(myProg,"fw_Normal");
@@ -4185,7 +4185,16 @@ void fw_glGetDoublev (int ty, GLDOUBLE *mat) {
 	}
 	memcpy((void *)mat, (void *) dp, sizeof (GLDOUBLE) * MATRIX_SIZE);
 }
-
+void fw_glGetInteger( int ty, int *params){
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+	switch(ty){
+		case GL_TEXTURE_STACK_DEPTH:
+			params[0] = p->textureviewTOS;
+		break;
+		default:
+		break;
+	}
+}
 void fw_glSetDoublev (int ty, GLDOUBLE *mat) {
 	GLDOUBLE *dp;
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
@@ -6723,23 +6732,24 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 	GLUNIFORMMATRIX4FV(ProjectionMatrix,1,GL_FALSE,spval);
 	profile_end("sendmtx");
 	/* TextureMatrix */
-	if(TextureMatrix)
-	for(j=0;j<MAX_MULTITEXTURE;j++) {
-		int itexturestackposition = j+1;
-		if (TextureMatrix[j] != -1 && itexturestackposition <= p->textureviewTOS) {
-			sp = spval;
-			dp = p->FW_TextureView[itexturestackposition]; //[p->textureviewTOS];
+	if(TextureMatrix){
+		for(j=0;j<MAX_MULTITEXTURE;j++) {
+			int itexturestackposition = j+1;
+			if (TextureMatrix[j] != -1 && itexturestackposition <= p->textureviewTOS) {
+				sp = spval;
+				dp = p->FW_TextureView[itexturestackposition]; //[p->textureviewTOS];
 
-			//ConsoleMessage ("sendExplicitMatriciesToShader, sizeof GLDOUBLE %d sizeof float %d\n",sizeof(GLDOUBLE), sizeof(float));
-			//printmatrix2(dp,"dp");
-			/* convert GLDOUBLE to float */
-			for (i=0; i<16; i++) {
-				*sp = (float) *dp;
-				sp ++; dp ++;
+				//ConsoleMessage ("sendExplicitMatriciesToShader, sizeof GLDOUBLE %d sizeof float %d\n",sizeof(GLDOUBLE), sizeof(float));
+				//printmatrix2(dp,"dp");
+				/* convert GLDOUBLE to float */
+				for (i=0; i<16; i++) {
+					*sp = (float) *dp;
+					sp ++; dp ++;
+				}
+				profile_start("sendmtx");
+				GLUNIFORMMATRIX4FV(TextureMatrix[j],1,GL_FALSE,spval);
+				profile_end("sendmtx");
 			}
-			profile_start("sendmtx");
-			GLUNIFORMMATRIX4FV(TextureMatrix[j],1,GL_FALSE,spval);
-			profile_end("sendmtx");
 		}
 	}
 

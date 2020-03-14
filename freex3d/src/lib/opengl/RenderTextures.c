@@ -306,7 +306,7 @@ int isTex3D(struct X3D_Node *node);
 
 void textureTransform_start() {
 	int c;
-	int i, isStrict, isMulti, isIdentity;
+	int i, isStrict, isMulti, isIdentity,ntransforms[2];
 	GLint texUnit[MAX_MULTITEXTURE];
 	GLint tunit[MAX_MULTITEXTURE];
 	GLint texMode[MAX_MULTITEXTURE];
@@ -333,6 +333,7 @@ void textureTransform_start() {
 		//it should ignore the singleTextureTransform and use identities. 
 		//strict: This is a change of functionality for freewrl Aug 31, 2016
 	isIdentity = TRUE;
+	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH,&ntransforms[0]);
 	for (c=0; c<tg->RenderFuncs.textureStackTop; c++) {
 		FW_GL_PUSH_MATRIX(); //POPPED in textureDraw_end
 		FW_GL_LOAD_IDENTITY();
@@ -448,6 +449,9 @@ void textureTransform_start() {
 			}
 		}
 	}
+	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH,&ntransforms[1]);
+	glUniform1i(me->nTexMatrix, ntransforms[1]-ntransforms[0]);
+
 	/* set up the selected shader for this texture(s) config */
 	if (me != NULL) {
 		tnode = tg->RenderFuncs.texturenode;
