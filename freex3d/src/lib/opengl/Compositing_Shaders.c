@@ -1273,7 +1273,7 @@ vec3 getEmissive(){ \n\
 	vec3 E = mat.emissive; \n\
 	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
 		vec4 ec = texture2D(textureUnit[mat.tindex[mat.tstart[1]]],fw_TexCoord[mat.cindex[1]].xy); \n\
-		E.rgb *= ec.rgb * ec.a; \n\
+		E.rgb *= ec.rgb; \n\
 	} \n\
 	return E; \n\
 } \n\
