@@ -1273,7 +1273,7 @@ vec3 getEmissive(){ \n\
 	vec3 E = mat.emissive; \n\
 	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
 		vec4 ec = texture2D(textureUnit[mat.tindex[mat.tstart[1]]],fw_TexCoord[mat.cindex[1]].xy); \n\
-		E.rgb *= ec.rgb; \n\
+		E.rgb *= ec.rgb * ec.a; \n\
 	} \n\
 	return E; \n\
 } \n\
@@ -1357,7 +1357,7 @@ void main(void) \n\
 //STEP4 OCCLUSION \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
-	//fragment_color += getEmiisive(); \n\
+	fragment_color.rgb += getEmissive(); \n\
 //STEP6 FOG \n\
 	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
 	#undef normal_eye_fragment \n\

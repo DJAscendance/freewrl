@@ -1318,6 +1318,7 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
 	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
 
 	if(!node->_material){
 		node->_material = malloc(sizeof(struct fw_MaterialParameters));
