@@ -1588,11 +1588,13 @@ END_NODE(LocalFog)
 
 /* Material node */
 BEGIN_NODE(Material)
+EXPOSED_FIELD(Material,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,emissiveColor,sfcolor,emissiveColor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(Material,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,emissiveTextureChannel,sfint32,emissiveTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(Material,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,normalTextureChannel,sfint32,normalTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(Material,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Material,ambientIntensity,sffloat,ambientIntensity,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Material,ambientTexture,sfnode,ambientTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,ambientTextureChannel,sfint32,ambientTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
@@ -1603,8 +1605,6 @@ EXPOSED_FIELD(Material,specularColor,sfcolor,specularColor,FIELDTYPE_SFColor,UNC
 EXPOSED_FIELD(Material,shininess,sffloat,shininess,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Material,specularShininessTexture,sfnode,specularShininessTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,specularShininessTextureChannel,sfint32,specularShininessTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
-EXPOSED_FIELD(Material,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
-EXPOSED_FIELD(Material,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(Material)
 
 /* Matrix3VertexAttribute node */
@@ -2357,11 +2357,13 @@ END_NODE(ParticleSystem)
 
 /* PhysicalMaterial node */
 BEGIN_NODE(PhysicalMaterial)
+EXPOSED_FIELD(PhysicalMaterial,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,emissiveColor,sfcolor,emissiveColor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,emissiveTextureChannel,sfint32,emissiveTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,normalTextureChannel,sfint32,normalTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,baseColor,sfcolor,baseColor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,baseColorTexture,sfnode,baseColorTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,baseTextureChannel,sfint32,baseTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
@@ -2369,7 +2371,6 @@ EXPOSED_FIELD(PhysicalMaterial,metallic,sffloat,metallic,FIELDTYPE_SFFloat,UNCA_
 EXPOSED_FIELD(PhysicalMaterial,metallicRoughnessTexture,sfnode,metallicRoughnessTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,metallicRoughnessTextureChannel,sfint32,metallicRoughnessTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,roughness,sffloat,roughness,FIELDTYPE_SFFloat,UNCA_NONE)
-EXPOSED_FIELD(PhysicalMaterial,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
 END_NODE(PhysicalMaterial)
 
 /* PickableGroup node */
@@ -3465,11 +3466,13 @@ END_NODE(UniversalJoint)
 
 /* UnlitMaterial node */
 BEGIN_NODE(UnlitMaterial)
+EXPOSED_FIELD(UnlitMaterial,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(UnlitMaterial,emissiveColor,sfcolor,emissiveColor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(UnlitMaterial,emissiveTexture,sfnode,emissiveTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(UnlitMaterial,emissiveTextureChannel,sfint32,emissiveTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(UnlitMaterial,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(UnlitMaterial,normalTextureChannel,sfint32,normalTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(UnlitMaterial,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
 END_NODE(UnlitMaterial)
 
 /* Viewpoint node */

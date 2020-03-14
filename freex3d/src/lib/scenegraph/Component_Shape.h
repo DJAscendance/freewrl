@@ -145,12 +145,15 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 
 
 struct fw_MaterialParameters {
-	float diffuse[3];
+	float diffuse[3];   //MAT_REGULAR
 	float emissive[3];
-	float specular[3];
-	float ambient;
-	float shininess; 
-	float transparency;
+	float specular[3];  //MAT_REGULAR
+	float ambient;      //MAT_REGULAR
+	float shininess;    //MAT_REGULAR
+	float transparency; 
+	float baseColor[3]; //MAT_PHYSICAL
+	float metallic;     //MAT_PHYSICAL
+	float roughness;    //MAT_PHYSICAL 
 	int type; //MAT_TYPE: 0 MAT_NONE 1 MAT_EMISSIVE 2 MAT_REGULAR 3 MAT_PHYSICAL
 	// used in frag, for texture maps:
 	int transdex; // which tindex to use for transparency -1 None, else 0-3

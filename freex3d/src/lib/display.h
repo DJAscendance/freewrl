@@ -352,6 +352,9 @@ typedef struct s_shader_capabilities{
 	GLint myMaterialAmbient;
 	GLint myMaterialShininess;
 	GLint myMaterialTransparency;
+	GLint myMaterialBaseColor;
+	GLint myMaterialMetallic;
+	GLint myMaterialRoughness;
 	GLint myMaterialType;
 	GLint myMaterialTransdex;
 	GLint myMaterialNt;
@@ -369,6 +372,9 @@ typedef struct s_shader_capabilities{
 	GLint myMaterialBackAmbient;
 	GLint myMaterialBackShininess;
 	GLint myMaterialBackTransparency;
+	GLint myMaterialBackBaseColor;
+	GLint myMaterialBackMetallic;
+	GLint myMaterialBackRoughness;
 	GLint myMaterialBackType;
 	GLint myMaterialBackTransdex;
 	GLint myMaterialBackNt;

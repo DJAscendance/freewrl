@@ -49,7 +49,7 @@ X3D Shape Component
 
 enum {
 	MAT_NONE = 0,
-	MAT_EMISSIVE = 1,
+	MAT_UNLIT = 1,
 	MAT_REGULAR = 2,
 	MAT_PHYSICAL = 3,
 };
@@ -331,7 +331,6 @@ void render_Material (struct X3D_Material *node) {
 
 /* bounds check the material node fields */
 void compile_Material (struct X3D_Material *node) {
-	float *p;
 	struct X3D_Node **tnodes;
 	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
@@ -405,56 +404,6 @@ void compile_Material (struct X3D_Material *node) {
 	}
 	MARK_NODE_COMPILED
 }
-
-/*
-
-PBR Physics Based Rendering
-https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#materials 
-- describes how to do BRDF calculations (don't I have a book on BRDF? with shaders?)
-https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#appendix-b-brdf-implementation
-- Appendix B shows the BRDF math, and link to example viewer implementation:
-https://github.com/KhronosGroup/glTF-Sample-Viewer/ 
-https://github.com/KhronosGroup/glTF-Sample-Viewer/blob/master/src/shaders/metallic-roughness.frag
-- implements BRDF in frag, including ifdefs for 'maps' vs scalars.
-https://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf 
-- Schlick BRDF model
-example x3dom:
-https://github.com/x3dom/x3dom/blob/master/src/nodes/Shape/PhysicalMaterial.js
-exmaple CGE:
-https://github.com/castle-engine/castle-engine/blob/master/src/x3d/opengl/glsl/source/lighting_model_physical/shading_phong.fs
-
-H: specular-glossiness and metallic-roughness are different ways to declare the same thing
-so only one is needed. And since web3d does specular-glossiness in the regular material, no need for it in the physical.
-
-PhysicalMaterialNode:	
-the textures are optional, and have specific packing of effects
-occlusionRoughnessMetallicTexture  (occlusion=R,Roughness=G,Metallic=B)
-
-There are a lot of (optional) textures with this, with the v4 extended Material node, and with PTM projective texture mapping.
-IDEA: generalize what we did with PTM: 
-- have a generic list of sampler2D textureUnit[xx] 
-- and through a separate int32 array say which textureUnit goes with which texture.
-That would allow combining PTM and (PhysicalMaterial or Matierial with textures) 
--- in a flexible way that minimizes (GPU limited resource) sampler2Ds
-
-GPU textureUnits / samplers needed:
-Gross: 7
-max needed: 4 (assuming physics channel packing): normal, emissive, baseColor, occlusion-metallic-roughness
-possible Array-ization assuming same widthxheight for all:
-1 samplerArray for the physics, 1 sampler2D for baseColorTexture
-
-*/
-void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
-	MARK_NODE_COMPILED
-
-	//the scalars/primitives are mandatory, check their ranges
-}
-
-void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
-	
-	COMPILE_IF_REQUIRED
-}
-
 
 
 
@@ -1364,6 +1313,182 @@ void render_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 }
 
 void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
+	struct X3D_Node **tnodes;
+	struct fw_MaterialParameters *q;
+	/* verify that the numbers are within range */
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
+	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+
+	q = (struct fw_MaterialParameters *)node->_material;
+	veccopy3f(q->emissive,node->emissiveColor.c);
+	q->transparency = node->transparency;
+	q->type = MAT_UNLIT;
+
+	//new v4 textures
+	tnodes = q->textures;
+	memset(tnodes,0,5*sizeof(void *)); //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive
+	if(node->normalTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[1]);
+	}
+	if(node->emissiveTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[4]);
+	}
+	int *cindex = q->cindex;
+	cindex[1] = node->normalTextureChannel;
+	cindex[4] = node->emissiveTextureChannel;
+	q->nt = 0; //assume no material.texturexxx to start
+	for(int i=0;i<5;i++){
+		q->tcount[i] = 0; //default: no texture for this material function
+		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
+		if(tnodes[i]){
+			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
+				struct X3D_MultiTexture *mt = (struct X3D_MultiTexture*)tnodes[i];
+				q->tcount[i] = mt->texture.n;
+				q->nt += mt->texture.n;
+				q->mt++;
+			}else{
+				//single texture
+				q->nt++;
+				q->tcount[i] = 1;
+			}
+		}
+	}
+	MARK_NODE_COMPILED
 }
 void render_UnlitMaterial (struct X3D_UnlitMaterial *node) {
+	COMPILE_IF_REQUIRED
+	{
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		if (node != NULL) {
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+		}
+	}
 }
+
+
+/*
+
+PBR Physics Based Rendering
+https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#materials 
+- describes how to do BRDF calculations (don't I have a book on BRDF? with shaders?)
+https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#appendix-b-brdf-implementation
+- Appendix B shows the BRDF math, and link to example viewer implementation:
+https://github.com/KhronosGroup/glTF-Sample-Viewer/ 
+https://github.com/KhronosGroup/glTF-Sample-Viewer/blob/master/src/shaders/metallic-roughness.frag
+- implements BRDF in frag, including ifdefs for 'maps' vs scalars.
+https://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf 
+- Schlick BRDF model
+example x3dom:
+https://github.com/x3dom/x3dom/blob/master/src/nodes/Shape/PhysicalMaterial.js
+exmaple CGE:
+https://github.com/castle-engine/castle-engine/blob/master/src/x3d/opengl/glsl/source/lighting_model_physical/shading_phong.fs
+
+H: specular-glossiness and metallic-roughness are different ways to declare the same thing
+so only one is needed. And since web3d does specular-glossiness in the regular material, no need for it in the physical.
+
+PhysicalMaterialNode:	
+the textures are optional, and have specific packing of effects
+occlusionRoughnessMetallicTexture  (occlusion=R,Roughness=G,Metallic=B)
+
+There are a lot of (optional) textures with this, with the v4 extended Material node, and with PTM projective texture mapping.
+IDEA: generalize what we did with PTM: 
+- have a generic list of sampler2D textureUnit[xx] 
+- and through a separate int32 array say which textureUnit goes with which texture.
+That would allow combining PTM and (PhysicalMaterial or Matierial with textures) 
+-- in a flexible way that minimizes (GPU limited resource) sampler2Ds
+
+GPU textureUnits / samplers needed:
+Gross: 7
+max needed: 4 (assuming physics channel packing): normal, emissive, baseColor, occlusion-metallic-roughness
+possible Array-ization assuming same widthxheight for all:
+1 samplerArray for the physics, 1 sampler2D for baseColorTexture
+
+*/
+void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
+	struct X3D_Node **tnodes;
+	struct fw_MaterialParameters *q;
+	/* verify that the numbers are within range */
+	node->roughness = fclamp(node->roughness,0.0f,1.0f);
+	node->metallic = fclamp(node->metallic,0.0f,1.0f);
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->baseColor.c,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
+	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+
+	q = (struct fw_MaterialParameters *)node->_material;
+	veccopy3f(q->baseColor,node->baseColor.c);
+	veccopy3f(q->emissive,node->emissiveColor.c);
+	q->metallic = node->transparency;
+	q->roughness = node->transparency;
+	q->transparency = node->transparency;
+	q->type = MAT_PHYSICAL;
+
+	//new v4 textures
+	tnodes = q->textures;
+	memset(tnodes,0,5*sizeof(void *)); //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive
+	if(node->baseColorTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseColorTexture,tnodes[0]);
+	}
+	if(node->normalTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[1]);
+	}
+	//
+	if(node->metallicRoughnessTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->metallicRoughnessTexture,tnodes[3]);
+	}
+	if(node->emissiveTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[4]);
+	}
+	int *cindex = q->cindex;
+	cindex[0] = node->baseTextureChannel;
+	cindex[1] = node->normalTextureChannel;
+	//
+	cindex[3] = node->metallicRoughnessTextureChannel;
+	cindex[4] = node->emissiveTextureChannel;
+	q->nt = 0; //assume no material.texturexxx to start
+	for(int i=0;i<5;i++){
+		q->tcount[i] = 0; //default: no texture for this material function
+		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
+		if(tnodes[i]){
+			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
+				struct X3D_MultiTexture *mt = (struct X3D_MultiTexture*)tnodes[i];
+				q->tcount[i] = mt->texture.n;
+				q->nt += mt->texture.n;
+				q->mt++;
+			}else{
+				//single texture
+				q->nt++;
+				q->tcount[i] = 1;
+			}
+		}
+	}
+	MARK_NODE_COMPILED
+}
+
+void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
+	
+	COMPILE_IF_REQUIRED
+	{
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		if (node != NULL) {
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+		}
+	}
+}
+

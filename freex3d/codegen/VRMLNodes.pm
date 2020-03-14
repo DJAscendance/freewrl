@@ -585,12 +585,15 @@ our %Nodes = (
 
 	"Material" => new VRML::NodeType ("Material", [
 		#base class Material
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		emissiveColor => ["SFColor", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		emissiveTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		emissiveTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
 		normalTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		normalTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
 		#this class Material
 		ambientIntensity => ["SFFloat", 0.2, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -606,21 +609,20 @@ our %Nodes = (
 		specularShininessTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		specularShininessTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
-		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		#deprecated for v4 with unlit material (below)?
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
 	],"X3DMaterialNode"),
 
 	"PhysicalMaterial" => new VRML::NodeType ("PhysicalMaterial", [
 		#base class Material
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		emissiveColor => ["SFColor", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		emissiveTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		emissiveTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
 		normalTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		normalTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 
 		#this class Material
 		#X3DOM convention https://github.com/x3dom/x3dom/blob/master/src/nodes/Shape/PhysicalMaterial.js
@@ -633,18 +635,18 @@ our %Nodes = (
 		metallicRoughnessTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		
 		roughness => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DMaterialNode"),
 
 	"UnlitMaterial" => new VRML::NodeType ("UnlitMaterial", [
 		#base class Material
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		emissiveColor => ["SFColor", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		emissiveTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		emissiveTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
 		normalTexture => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		normalTextureChannel => ["SFInt32", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		transparency => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_material => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DMaterialNode"),
 

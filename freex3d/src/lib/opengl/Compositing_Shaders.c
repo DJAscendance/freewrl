@@ -564,6 +564,9 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
+  vec3 baseColor; \n\
+  float metallic; \n\
+  float roughness; \n\
   int type; \n\
   // multitextures are disaggregated \n\
   int tindex[10]; \n\
@@ -1127,6 +1130,9 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
+  vec3 baseColor; \n\
+  float metallic; \n\
+  float roughness; \n\
   int type; \n\
   // multitextures are disaggregated \n\
   int tindex[10]; \n\
@@ -2603,6 +2609,9 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float transparency; \n\
+  vec3 baseColor; \n\
+  float metallic; \n\
+  float roughness; \n\
   int type; \n\
   // multitextures are disaggregated \n\
   int tindex[10]; \n\

@@ -6388,11 +6388,14 @@ struct X3D_Material {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct X3D_Node *metadata;
 	struct SFColor emissiveColor;
 	struct X3D_Node *emissiveTexture;
 	int emissiveTextureChannel;
 	struct X3D_Node *normalTexture;
 	int normalTextureChannel;
+	float transparency;
+	void * _material;
 	float ambientIntensity;
 	struct X3D_Node *ambientTexture;
 	int ambientTextureChannel;
@@ -6403,9 +6406,6 @@ struct X3D_Material {
 	float shininess;
 	struct X3D_Node *specularShininessTexture;
 	int specularShininessTextureChannel;
-	float transparency;
-	struct X3D_Node *metadata;
-	void * _material;
 };
 extern struct X3D_Virt virt_Material;
 /***********************/
@@ -8327,11 +8327,14 @@ struct X3D_PhysicalMaterial {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct X3D_Node *metadata;
 	struct SFColor emissiveColor;
 	struct X3D_Node *emissiveTexture;
 	int emissiveTextureChannel;
 	struct X3D_Node *normalTexture;
 	int normalTextureChannel;
+	float transparency;
+	void * _material;
 	struct SFColor baseColor;
 	struct X3D_Node *baseColorTexture;
 	int baseTextureChannel;
@@ -8339,8 +8342,6 @@ struct X3D_PhysicalMaterial {
 	struct X3D_Node *metallicRoughnessTexture;
 	int metallicRoughnessTextureChannel;
 	float roughness;
-	float transparency;
-	void * _material;
 };
 extern struct X3D_Virt virt_PhysicalMaterial;
 /***********************/
@@ -10899,11 +10900,13 @@ struct X3D_UnlitMaterial {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct X3D_Node *metadata;
 	struct SFColor emissiveColor;
 	struct X3D_Node *emissiveTexture;
 	int emissiveTextureChannel;
 	struct X3D_Node *normalTexture;
 	int normalTextureChannel;
+	float transparency;
 	void * _material;
 };
 extern struct X3D_Virt virt_UnlitMaterial;
