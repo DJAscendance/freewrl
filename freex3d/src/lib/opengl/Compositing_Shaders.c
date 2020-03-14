@@ -1227,7 +1227,6 @@ vec4 matdiff_color; \n\
 /* PLUG-DECLARATIONS */ \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
-float alpha; \n\
 vec3 getNormal(){ \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	if (!gl_FrontFacing) //backFacing \n\
@@ -1236,21 +1235,51 @@ vec3 getNormal(){ \n\
 } \n\
 float getAlpha(){ \n\
 	float A = 1.0 - mat.transparency; \n\
+	if(mat.type > 0) { \n\
+		int main_image = 2; \n\
+		if(mat.type == 1) main_image = 1; \n\
+		if(mat.tcount[main_image] > 0) { \n\
+			vec4 dc = texture2D(textureUnit[mat.tindex[mat.tstart[main_image]]],fw_TexCoord[mat.cindex[main_image]].xy); \n\
+			A *= dc.a; \n\
+		} \n\
+	} \n\
 	return A; \n\
 } \n\
 vec3 getDiffuse(){ \n\
 	vec3 D = mat.diffuse; \n\
 	if(mat.type == 2 && mat.tcount[2] > 0){ \n\
 		vec4 dc = texture2D(textureUnit[mat.tindex[mat.tstart[2]]],fw_TexCoord[mat.cindex[2]].xy); \n\
-		D.rgb = dc.rgb*D; \n\
-		alpha = dc.a*getAlpha(); \n\
+		D.rgb *= dc.rgb; \n\
 	} \n\
 	return D; \n\
+} \n\
+vec3 getSpecular() { \n\
+	vec3 S = mat.specular; \n\
+	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
+		vec4 sc = texture2D(textureUnit[mat.tindex[mat.tstart[3]]],fw_TexCoord[mat.cindex[3]].xy); \n\
+		S.rgb *= sc.rgb; \n\
+	} \n\
+	return S; \n\
+} \n\
+float getShininess() { \n\
+	float S = mat.shininess; \n\
+	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
+		vec4 sc = texture2D(textureUnit[mat.tindex[mat.tstart[3]]],fw_TexCoord[mat.cindex[3]].xy); \n\
+		S *= sc.a; \n\
+	} \n\
+	return S; \n\
+} \n\
+vec3 getEmissive(){ \n\
+	vec3 E = mat.emissive; \n\
+	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
+		vec4 ec = texture2D(textureUnit[mat.tindex[mat.tstart[1]]],fw_TexCoord[mat.cindex[1]].xy); \n\
+		E.rgb *= ec.rgb; \n\
+	} \n\
+	return E; \n\
 } \n\
 void main(void) \n\
 { \n\
 //STEP0 INITIALIZE \n\
-	alpha = 1.0; \n\
 //STEP1 MATERIALS \n\
 	mat = fw_FrontMaterial; \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
@@ -1261,21 +1290,22 @@ void main(void) \n\
 		#endif //TWO \n\
 	} \n\
 	vec3 N = getNormal(); \n\
-	alpha = getAlpha(); \n\
 	vec4 fragment_color = vec4(1.0,1.0,1.0,1.0); \n\
 	matdiff_color = castle_Color; \n\
 	float castle_MaterialDiffuseAlpha = castle_Color.a; \n\
 	\n\
 //STEP2 LIGHTS \n\
-	#ifdef LITE \n\
-	//per-fragment lighting aka PHONG \n\
-	//start over with the color, since we have material and lighting in here \n\
-	//castle_MaterialDiffuseAlpha = (1.0 - mat.transparency); \n\
-	castle_MaterialDiffuseAlpha = getAlpha(); \n\
-	matdiff_color = vec4(0,0,0,1.0); \n\
-	castle_ColorES = fw_FrontMaterial.emissive; \n\
-	/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, mat) */ \n\
-	#endif //LITE \n\
+	if(mat.type > 1){ \n\
+		#ifdef LITE \n\
+		//per-fragment lighting aka PHONG \n\
+		//start over with the color, since we have material and lighting in here \n\
+		//castle_MaterialDiffuseAlpha = (1.0 - mat.transparency); \n\
+		castle_MaterialDiffuseAlpha = getAlpha(); \n\
+		matdiff_color = vec4(0,0,0,1.0); \n\
+		castle_ColorES = fw_FrontMaterial.emissive; \n\
+		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, mat) */ \n\
+		#endif //LITE \n\
+	} \n\
 	\n\
 	#ifdef LIT \n\
 	#ifdef MATFIR \n\
@@ -1327,6 +1357,7 @@ void main(void) \n\
 //STEP4 OCCLUSION \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
+	//fragment_color += getEmiisive(); \n\
 //STEP6 FOG \n\
 	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
 	#undef normal_eye_fragment \n\
