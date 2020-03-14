@@ -486,7 +486,7 @@ uniform mat4 fw_ModelViewInverseMatrix; \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
  \n\
-#ifdef TEX \n\
+//#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
 uniform int nTexMatrix; \n\
 attribute vec4 fw_MultiTexCoord0; \n\
@@ -513,7 +513,7 @@ uniform int tex3dUseVertex; \n\
  #define TCGT_SPHERE_REFLECT_LOCAL    10 \n\
  uniform int fw_textureCoordGenType; \n\
 #endif //TGEN \n\
-#endif //TEX \n\
+//#endif //TEX \n\
 #ifdef FILL \n\
 varying vec2 hatchPosition; \n\
 #endif //FILL \n\
@@ -731,7 +731,7 @@ void main(void) \n\
   cpv_Color = fw_Color; \n\
   #endif //CPV \n\
   \n\
-  #ifdef TEX \n\
+  //#ifdef TEX \n\
   vec4 texcoord = fw_MultiTexCoord0; \n\
   #ifdef TEX3D \n\
   //to re-use vertex coords as texturecoords3D, we need them in 0-1 range: CPU calc of fw_TextureMatrix0 \n\
@@ -778,7 +778,7 @@ void main(void) \n\
 	if(i < nTexCoordChannels) tc = tcoord[i]; \n\
 	fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
   } \n\
-  #endif //TEX \n\
+ // #endif //TEX \n\
   \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
   \n\
@@ -879,7 +879,7 @@ uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;
 varying vec4 cpv_Color; \n\
 #endif //CPV \n\
 \n\
-#ifdef TEX \n\
+//#ifdef TEX \n\
 #ifdef CUB \n\
 uniform samplerCube fw_Texture_unit0; \n\
 #else //CUB \n\
@@ -1049,7 +1049,7 @@ void finalColCalc(inout vec4 prevColour, in int mode, in int modea, in int func,
   prevColour = rv;  \n\
 } \n\
 #endif //MTEX \n\
-#endif //TEX \n\
+//#endif //TEX \n\
 #ifdef FILL \n\
 uniform vec4 HatchColour; \n\
 uniform bool hatched; uniform bool filled;\n\
@@ -1158,10 +1158,10 @@ vec3 castle_ColorES; \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
 #endif //LITE \n\
 #endif //LIT\n\
-#if defined(TEX) || defined(PROJTEX) \n\
+//#if defined(TEX) || defined(PROJTEX) \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[16]; \n\
-#endif //defined(TEX) || defined(PROJTEX \n\
+//#endif //defined(TEX) || defined(PROJTEX \n\
 #ifdef PROJTEX \n\
 //per projector: \n\
 uniform int pbackCull[8]; \n\
@@ -1225,103 +1225,115 @@ vec2 texture_coord_shifted(in vec2 tex_coord) \n\
  \n\
 vec4 matdiff_color; \n\
 /* PLUG-DECLARATIONS */ \n\
+//GETTERS \n\
+fw_MaterialParameters mat; \n\
+float alpha; \n\
+vec3 getNormal(){ \n\
+	vec3 N = normalize (castle_normal_eye); \n\
+	if (!gl_FrontFacing) //backFacing \n\
+		N = -N; \n\
+	return N; \n\
+} \n\
+float getAlpha(){ \n\
+	float A = 1.0 - mat.transparency; \n\
+	return A; \n\
+} \n\
+vec3 getDiffuse(){ \n\
+	vec3 D = mat.diffuse; \n\
+	if(mat.type == 2 && mat.tcount[2] > 0){ \n\
+		vec4 dc = texture2D(textureUnit[mat.tindex[mat.tstart[2]]],fw_TexCoord[mat.cindex[2]].xy); \n\
+		D.rgb = dc.rgb*D; \n\
+		alpha = dc.a*getAlpha(); \n\
+	} \n\
+	return D; \n\
+} \n\
 void main(void) \n\
 { \n\
-  vec4 fragment_color = vec4(1.0,1.0,1.0,1.0); \n\
-  matdiff_color = castle_Color; \n\
-  float castle_MaterialDiffuseAlpha = castle_Color.a; \n\
-  \n\
-  #ifdef LITE \n\
-	fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
+//STEP0 INITIALIZE \n\
+	alpha = 1.0; \n\
+//STEP1 MATERIALS \n\
+	mat = fw_FrontMaterial; \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
 	//bool backFacing = (dot(N,E) < 0.0); \n\
-	vec3 N = normalize (castle_normal_eye); \n\
 	if (!gl_FrontFacing){ //backFacing) { \n\
-		N = -N; \n\
 		#ifdef TWO \n\
-		ourMat = fw_BackMaterial; \n\
+		mat = fw_BackMaterial; \n\
 		#endif //TWO \n\
 	} \n\
-  //per-fragment lighting aka PHONG \n\
-  //start over with the color, since we have material and lighting in here \n\
-  fw_MaterialParameters myMat = fw_FrontMaterial; \n\
-  castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
-  matdiff_color = vec4(0,0,0,1.0); \n\
-  castle_ColorES = fw_FrontMaterial.emissive; \n\
-  /* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, ourMat) */ \n\
-  #endif //LITE \n\
-  \n\
-  #ifdef LIT \n\
-  #ifdef MATFIR \n\
-  fragment_color.rgb = matdiff_color.rgb; \n\
-  #endif //MATFIR \n\
-  #endif //LIT \n\
-  #ifdef UNLIT \n\
-  fragment_color = castle_Color; \n\
-  #endif //UNLIT \n\
-  \n\
-  #ifdef CPV \n\
-  #ifdef CPVREP \n\
-  fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
-  fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
-  #else \n\
-  fragment_color *= cpv_Color; //CPV modulates prior \n\
-  #endif //CPVREP \n\
-  #endif //CPV \n\
-  \n\
-  #ifdef TEX \n\
-  #ifdef TEXREP \n\
-  fragment_color = vec4(1.0,1.0,1.0,1.0); //texture replaces prior \n\
-  #endif //TEXREP \n\
- #endif //TEX \n\
-  \n\
-  /* Fragment shader on mobile doesn't get a normal vector now, for speed. */ \n\
-  //#define normal_eye_fragment castle_normal_eye //vec3(0.0) \n\
-  #define normal_eye_fragment vec3(0.0) \n\
-  \n\
-  #ifdef FILL \n\
-  fillPropCalc(matdiff_color, hatchPosition, algorithm); \n\
-  #endif //FILL \n\
-  \n\
-  #ifdef LIT \n\
-  #ifndef MATFIR \n\
-  //modulate texture with mat.diffuse \n\
-  fragment_color.rgb *= matdiff_color.rgb; \n\
-  fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
-  #endif //MATFIR \n\
-  fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
-  #endif //LIT \n\
-  \n\
-  /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
-#ifdef LIT \n\
-#ifdef LITE \n\
-#ifdef PBR \n\
-  myMat = fw_FrontMaterial; \n\
-  #ifdef TWO \n\
-  //if(!gl_FrontFacing) myMat = fw_BackMaterial; \n\
-  #endif //TWO \n\
-  if(myMat.type == 2 && myMat.tcount[2] > 0){ \n\
-	//vec4 dc = texture2D(textureUnit[0], vec2(.5,.5)); //fw_TexCoord[0].st); \n\
-	vec4 dc = texture2D(textureUnit[myMat.tindex[myMat.tstart[2]]],fw_TexCoord[myMat.cindex[2]].xy); \n\
-	//vec4 dc = texture2D(textureUnit[myMat.tindex[myMat.tstart[2]]],fw_TexCoord[0].st); \n\
-	//vec4 dc = vec4(fw_TexCoord[0],1.0); \n\
-	fragment_color.rgb = dc.rgb; \n\
-	fragment_color.a = 1.0; //dc.a; \n\
-  } \n\
-  #endif //PBR \n\
-  #endif //LITE \n\
-  #endif //LIT \n\
-  /* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
-  /* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
-  #ifdef PROJTEX \n\
-  fragment_color = fragProjCalTexCoord(fragment_color); \n\
-  #endif //PROJTEX \n\
-  \n\
-  #undef normal_eye_fragment \n\
-  \n\
-  gl_FragColor = fragment_color; \n\
-  \n\
-  /* PLUG: fragment_end (gl_FragColor) */ \n\
+	vec3 N = getNormal(); \n\
+	alpha = getAlpha(); \n\
+	vec4 fragment_color = vec4(1.0,1.0,1.0,1.0); \n\
+	matdiff_color = castle_Color; \n\
+	float castle_MaterialDiffuseAlpha = castle_Color.a; \n\
+	\n\
+//STEP2 LIGHTS \n\
+	#ifdef LITE \n\
+	//per-fragment lighting aka PHONG \n\
+	//start over with the color, since we have material and lighting in here \n\
+	//castle_MaterialDiffuseAlpha = (1.0 - mat.transparency); \n\
+	castle_MaterialDiffuseAlpha = getAlpha(); \n\
+	matdiff_color = vec4(0,0,0,1.0); \n\
+	castle_ColorES = fw_FrontMaterial.emissive; \n\
+	/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, mat) */ \n\
+	#endif //LITE \n\
+	\n\
+	#ifdef LIT \n\
+	#ifdef MATFIR \n\
+	fragment_color.rgb = matdiff_color.rgb; \n\
+	#endif //MATFIR \n\
+	#endif //LIT \n\
+	#ifdef UNLIT \n\
+	fragment_color = castle_Color; \n\
+	#endif //UNLIT \n\
+	\n\
+	#ifdef CPV \n\
+	#ifdef CPVREP \n\
+	fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
+	fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
+	#else \n\
+	fragment_color *= cpv_Color; //CPV modulates prior \n\
+	#endif //CPVREP \n\
+	#endif //CPV \n\
+	\n\
+	#ifdef TEX \n\
+	#ifdef TEXREP \n\
+	fragment_color = vec4(1.0,1.0,1.0,1.0); //texture replaces prior \n\
+	#endif //TEXREP \n\
+	#endif //TEX \n\
+	\n\
+	/* Fragment shader on mobile doesn't get a normal vector now, for speed. */ \n\
+	//#define normal_eye_fragment castle_normal_eye //vec3(0.0) \n\
+	#define normal_eye_fragment vec3(0.0) \n\
+	\n\
+	#ifdef FILL \n\
+	fillPropCalc(matdiff_color, hatchPosition, algorithm); \n\
+	#endif //FILL \n\
+	\n\
+	#ifdef LIT \n\
+	#ifndef MATFIR \n\
+	//modulate texture with mat.diffuse \n\
+	fragment_color.rgb *= matdiff_color.rgb; \n\
+	fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
+	#endif //MATFIR \n\
+	fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
+	#endif //LIT \n\
+	\n\
+	/* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
+//STEP3 PROJECTORS AND IBL image based lighting \n\
+	#ifdef PROJTEX \n\
+	fragment_color = fragProjCalTexCoord(fragment_color); \n\
+	#endif //PROJTEX \n\
+	\n\
+//STEP4 OCCLUSION \n\
+	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
+//STEP5 EMISSIVE \n\
+//STEP6 FOG \n\
+	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
+	#undef normal_eye_fragment \n\
+	\n\
+	gl_FragColor = fragment_color; \n\
+	\n\
+	/* PLUG: fragment_end (gl_FragColor) */ \n\
 } \n";
 
 
