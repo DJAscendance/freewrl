@@ -476,6 +476,11 @@ define MAT if material is valid
 static const GLchar *genericVertexGLES2 = "\
 /* DEFINES */ \n\
 /* Generic GLSL vertex shader, used on OpenGL ES. */ \n\
+#ifdef MOBILE \n\
+// we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
+// https://www.khronos.org/registry/OpenGL/extensions/OES/OES_gpu_shader5.txt \n\
+#extension GL_OES_gpu_shader5 : require     //(or enable) \n\
+#endif \n\
  \n\
 uniform mat4 fw_ModelViewMatrix; \n\
 uniform mat4 fw_ProjectionMatrix; \n\
@@ -847,6 +852,9 @@ static const GLchar *genericFragmentGLES2 = "\
 /* DEFINES */ \n\
 #ifdef MOBILE \n\
 precision mediump float; \n\
+// we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
+// https://www.khronos.org/registry/OpenGL/extensions/OES/OES_gpu_shader5.txt \n\
+#extension GL_OES_gpu_shader5 : require     //(or enable) \n\
 //#else \n\
 //precision highp float; \n\
 #endif //MOBILE \n\
