@@ -1235,8 +1235,13 @@ vec4 matdiff_color; \n\
 /* PLUG-DECLARATIONS */ \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
+// material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
 vec3 getNormal(){ \n\
 	vec3 N = normalize (castle_normal_eye); \n\
+	if(mat.tcount[0] > 0){ \n\
+		vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
+		N.xyz *= nc.xyz; \n\
+	} \n\
 	if (!gl_FrontFacing) //backFacing \n\
 		N = -N; \n\
 	return N; \n\
@@ -1284,6 +1289,14 @@ vec3 getEmissive(){ \n\
 		E.rgb *= ec.rgb; \n\
 	} \n\
 	return E; \n\
+} \n\
+float getAmbient(){ \n\
+	float amb = mat.ambient; \n\
+	if(mat.type == 2 && mat.tcount[4] > 0){ \n\
+		vec4 ac = texture2D(textureUnit[mat.tindex[mat.tstart[4]]],fw_TexCoord[mat.cindex[4]].xy); \n\
+		amb *= ac.r; \n\
+	} \n\
+	return amb; \n\
 } \n\
 void main(void) \n\
 { \n\
