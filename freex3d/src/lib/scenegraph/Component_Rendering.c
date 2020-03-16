@@ -399,6 +399,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			pt ++;
 		}
 	}
+	/*
 	if(0){
 		int k=0;
 		vertCountPtr = (ushort *) node->__vertexCount;
@@ -416,53 +417,8 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			}
 		}
 	}
-	if(0){
-		/* go and match colors with vertices */
-		ipoly = 0;
-		ivertex = 0;
-		for (i=0; i<node->coordIndex.n; i++) {
-			if (node->coordIndex.p[i] != -1) {
-				/* have a vertex, match colour  */
-				if (node->colorPerVertex) {
-					if (colorIndInt != NULL) 
-						curcolor = colorIndInt[ivertex];
-					else
-						curcolor = colorIndShort[ivertex];
-				} else {
-					if (colorIndInt != NULL)
-						curcolor = colorIndInt[ipoly];
-					else
-						curcolor = colorIndShort[ipoly];
-				}
-				ivertex++;
-				//ConsoleMessage ("ipoly %d, i %d, node->coordIndex.p %d curcolor %d\n",ipoly,i,node->coordIndex.p[i], curcolor);
-				if ((curcolor < 0) || (curcolor >= cc->color.n)) {
-					ConsoleMessage ("IndexedLineSet, colorIndex %d (for vertex %d or segment %d) out of range (0..%d)\n",
-						curcolor, i, ipoly, cc->color.n);
-					return;
-				}
-
-				oldcolor = (struct SFColorRGBA *) &(cc->color.p[curcolor]);
-
-				/* copy the correct color over for this vertex */
-				if (cc->_nodeType == NODE_Color) {
-					memcpy (newcolors, defcolorRGBA, sizeof (defcolorRGBA));
-					memcpy (newcolors, oldcolor,sizeof(struct SFColor));
-				} else {
-					memcpy (newcolors, oldcolor,sizeof(struct SFColorRGBA));
-				}
-				//printf ("colout selected %f %f %f %f\n",newcolors->c[0],newcolors->c[1],newcolors->c[2],newcolors->c[3]);
-				newcolors ++; 
-			} else {
-				ipoly++;
-			}
-		}
-	}
-
-	/* finished worrying about colours */
-
+	*/
 	/* finish this for loop off... */
-	//*vertCountPtr = segLength;
 	node->__segCount = nSegments; /* we passed, so we can render */
 }
 
@@ -497,18 +453,8 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			// draw. Note the casting of the last param - it is ok, because we tell that
 			// we are sending in ushorts; it gets around a compiler warning.
 			sendElementsToGPU(GL_LINE_STRIP,(int)count[i],indxStartPtr[i]);
-			//float *v, *c;
-			//ushort *u;
-			//u = node->__vertIndx;
-			//v = node->__vertices;
-			//c = node->__xcolours;
-			//for(int j=0;j<count[i];j++){
-			//	int k = j + *indxStartPtr[i];
-			//	//printf("i %d j %d k %d u %d c %3.1f %3.1f %3.1f v %1.1f %3.1f %3.1f\n",i,j,k,u[k],c[4*k],c[4*k+1],c[4*k+2],v[3*k],v[3*k+1],v[3*k+2]);
-			//}
 		}
 	}
-	//printf("============\n");
 }
 
 void compile_PointSet (struct X3D_PointSet *node) {
