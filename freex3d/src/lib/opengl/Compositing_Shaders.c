@@ -723,7 +723,7 @@ void main(void) \n\
 		ourMat = fw_BackMaterial; \n\
 		#endif //TWO \n\
 	} \n\
-  /* PLUG: add_light_contribution2 (castle_Color, castle_ColorES, castle_vertex_eye, N, ourMat) //castle_MaterialShininess) */ \n\
+  /* PLUG: add_light_contribution2 (castle_Color, castle_ColorES, castle_vertex_eye, N, ourMat.shininess, ourMat.ambient, ourMat.diffuse, ourMat.specular) */ \n\
   /* PLUG: add_light_contribution (castle_Color, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess) */ \n\
   castle_Color.a = castle_MaterialDiffuseAlpha; \n\
   /* Clamp sum of lights colors to be <= 1. See template.fs for comments. */ \n\
@@ -1236,11 +1236,17 @@ vec4 matdiff_color; \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
+vec4 sample_map(int iunit){ \n\
+	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	return nc; \n\
+} \n\
 vec3 getNormal(){ \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	if(mat.tcount[0] > 0){ \n\
-		vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
+		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
+		vec4 nc = sample_map(0); \n\
 		N.xyz *= nc.xyz; \n\
+		//N.xyz = nc.xyz; \n\
 	} \n\
 	if (!gl_FrontFacing) //backFacing \n\
 		N = -N; \n\
@@ -1252,7 +1258,7 @@ float getAlpha(){ \n\
 		int main_image = 2; \n\
 		if(mat.type == 1) main_image = 1; \n\
 		if(mat.tcount[main_image] > 0) { \n\
-			vec4 dc = texture2D(textureUnit[mat.tindex[mat.tstart[main_image]]],fw_TexCoord[mat.cindex[main_image]].xy); \n\
+			vec4 dc = sample_map(main_image); \n\
 			A *= dc.a; \n\
 		} \n\
 	} \n\
@@ -1261,7 +1267,7 @@ float getAlpha(){ \n\
 vec3 getDiffuse(){ \n\
 	vec3 D = mat.diffuse; \n\
 	if(mat.type == 2 && mat.tcount[2] > 0){ \n\
-		vec4 dc = texture2D(textureUnit[mat.tindex[mat.tstart[2]]],fw_TexCoord[mat.cindex[2]].xy); \n\
+		vec4 dc = sample_map(2); \n\
 		D.rgb *= dc.rgb; \n\
 	} \n\
 	return D; \n\
@@ -1269,7 +1275,7 @@ vec3 getDiffuse(){ \n\
 vec3 getSpecular() { \n\
 	vec3 S = mat.specular; \n\
 	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = texture2D(textureUnit[mat.tindex[mat.tstart[3]]],fw_TexCoord[mat.cindex[3]].xy); \n\
+		vec4 sc = sample_map(3); \n\
 		S.rgb *= sc.rgb; \n\
 	} \n\
 	return S; \n\
@@ -1277,7 +1283,7 @@ vec3 getSpecular() { \n\
 float getShininess() { \n\
 	float S = mat.shininess; \n\
 	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = texture2D(textureUnit[mat.tindex[mat.tstart[3]]],fw_TexCoord[mat.cindex[3]].xy); \n\
+		vec4 sc = sample_map(3); \n\
 		S *= sc.a; \n\
 	} \n\
 	return S; \n\
@@ -1285,7 +1291,7 @@ float getShininess() { \n\
 vec3 getEmissive(){ \n\
 	vec3 E = mat.emissive; \n\
 	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
-		vec4 ec = texture2D(textureUnit[mat.tindex[mat.tstart[1]]],fw_TexCoord[mat.cindex[1]].xy); \n\
+		vec4 ec = sample_map(1); \n\
 		E.rgb *= ec.rgb; \n\
 	} \n\
 	return E; \n\
@@ -1293,7 +1299,7 @@ vec3 getEmissive(){ \n\
 float getAmbient(){ \n\
 	float amb = mat.ambient; \n\
 	if(mat.type == 2 && mat.tcount[4] > 0){ \n\
-		vec4 ac = texture2D(textureUnit[mat.tindex[mat.tstart[4]]],fw_TexCoord[mat.cindex[4]].xy); \n\
+		vec4 ac = sample_map(1); \n\
 		amb *= ac.r; \n\
 	} \n\
 	return amb; \n\
@@ -1317,14 +1323,19 @@ void main(void) \n\
 	\n\
 //STEP2 LIGHTS \n\
 	if(mat.type > 1){ \n\
+		//matdiff_color = vec4(getDiffuse(),getAlpha()); \n\
+		matdiff_color = vec4(0,0,0,1.0); \n\
 		#ifdef LITE \n\
 		//per-fragment lighting aka PHONG \n\
 		//start over with the color, since we have material and lighting in here \n\
 		//castle_MaterialDiffuseAlpha = (1.0 - mat.transparency); \n\
 		castle_MaterialDiffuseAlpha = getAlpha(); \n\
-		matdiff_color = vec4(0,0,0,1.0); \n\
 		castle_ColorES = fw_FrontMaterial.emissive; \n\
-		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, mat) */ \n\
+		float shiny = getShininess(); \n\
+		float amby = getAmbient(); \n\
+		vec3 diffy = getDiffuse(); \n\
+		vec3 specy = getSpecular(); \n\
+		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, shiny, amby, diffy, specy ) */ \n\
 		#endif //LITE \n\
 	} \n\
 	\n\
@@ -1360,7 +1371,9 @@ void main(void) \n\
 	fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
 	#endif //LIT \n\
 	\n\
+	#ifdef DONT \n\
 	/* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
+	#endif //DONT \n\
 //STEP3 PROJECTORS AND IBL image based lighting \n\
 	#ifdef PROJTEX \n\
 	fragment_color = fragProjCalTexCoord(fragment_color); \n\
@@ -1665,7 +1678,8 @@ void PLUG_add_light_contribution (inout vec4 vertexcolor, in vec4 myPosition, in
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
-void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, in fw_MaterialParameters myMat){ \n\
+void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
+		in float mat_shininess, in float mat_ambient, in vec3 mat_diffuse, in vec3 mat_specular){ \n\
 	//working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
 	//myPosition, myNormal - of surface vertex, in eyespace \n\
 	//vertexcolor - diffuse+ambient -will be replaced or modulated by texture color \n\
@@ -1712,23 +1726,23 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 			float RdotE = max(dot(R,E),0.0); \n\
 			float specbase = RdotE; \n\
 			// assume shader gets shininess in 0 to 1 range, and scales it to 0 to 128 range here \n\
-			float specpow = myMat.shininess*128.0; //.3 * myMat.shininess; //assume shini tuned to blinn, adjust for phong \n\
+			float specpow = mat_shininess*128.0; \n\
 		#else //PHONG \n\
 			//Blinn-Phong \n\
 			vec3 H = normalize(L + E); //halfvector x3d specs this is L+v/|L+v|\n\
 			float NdotH = max(dot(N,H),0.0); \n\
 			float specbase = NdotH; \n\
-			float specpow = myMat.shininess*128.0; \n\
+			float specpow = mat_shininess*128.0; \n\
 		#endif //PHONG \n\
 		float powerFactor = 0.0; // for light dropoff \n\
 		if (specbase > 0.0) { \n\
 			powerFactor = pow(specbase,specpow); \n\
-			// tone down the power factor if myMat.shininess borders 0 \n\
+			// tone down the power factor if mat_shininess borders 0 \n\
 		} \n\
 			\n\
-		ambient += light.ambient * myMat.diffuse * myMat.ambient; \n\
-		specular += light.intensity * myMat.specular *powerFactor; \n\
-		diffuse += light.intensity * myMat.diffuse * NdotL; \n\
+		ambient += light.ambient * mat_diffuse * mat_ambient; \n\
+		specular += light.intensity * mat_specular *powerFactor; \n\
+		diffuse += light.intensity * mat_diffuse * NdotL; \n\
 		if (myLightType==1) { \n\
 			// SpotLight  \n\
 			spot = 0.0; \n\
@@ -2717,9 +2731,10 @@ void voxel_apply_SHADED (inout vec4 voxel, inout vec3 gradient) { \n\
 	color.rgb = vec3(0,0,0.0,0.0); \n\
 	vec3 castle_ColorES = vec3(0.0,0.0,0.0); \n\
 	#endif //LIT	\n\
-	// void add_light_contribution2(inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, in float shininess ); \n\
+	// void add_light_contribution2(inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
+	//   in float mat_shininess, in float mat_ambient, in vec3 mat_diffuse, in vec3 mat_specular); \n\
 	vec4 vertex_eye4 = vec4(vertex_eye,1.0); \n\
-	/* PLUG: add_light_contribution2 (color, castle_ColorES, vertex_eye4, ng, fw_FrontMaterial.shininess) */ \n\
+	/* PLUG: add_light_contribution2 (color, castle_ColorES, vertex_eye4, ng, fw_FrontMaterial.shininess, fw_FrontMaterial.ambient, fw_FrontMaterial.diffuse, fw_FrontMaterial..specular) */ \n\
 	// voxel.rgb = color.rgb; \n\
 	color.rgb = mix(color.rgb,castle_ColorES,dot(ng,normal_eye)); \n\
 	voxel.rgb = color.rgb; \n\
