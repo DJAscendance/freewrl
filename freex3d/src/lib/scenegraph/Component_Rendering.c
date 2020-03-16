@@ -133,7 +133,7 @@ void render_TriangleSet (struct X3D_TriangleSet *node) {
 
 
 void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
-	int i;		/* temporary */
+	int i, ivertex;		/* temporary */
 	struct SFVec3f *points;
 	struct SFVec3f *newpoints;
 	struct SFVec3f *oldpoint;
@@ -143,7 +143,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	int maxCoordFound;		/* for bounds checking				*/
 	struct X3D_Color *cc;
 	int nSegments;			/* how many individual lines in this shape 	*/
-	int curSeg;			/* for colours, !cpv, this is the color index 	*/
+	int ipoly;			/* for colours, !cpv, this is the color index 	*/
 	int nVertices;			/* how many vertices in the streamed set	*/
 	int segLength;			/* temporary					*/
 	ushort *vertCountPtr;		/* temporary, for vertexCount filling		*/
@@ -219,7 +219,29 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	   and, what the maximum coordinate is. So, lets create the new index... 
 	   create the index for the arrays. Really simple... Used to index
 	   into the coords, so, eg, __vertArr is [0,1,2], which means use
-	   coordinates 0, 1, and 2 */
+	   coordinates 0, 1, and 2 
+	   
+		https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html#IndexedLineSet
+		11.4.5 has a 2D table for when 
+
+		1) color field not NULL
+					CPV=true						CPV=false
+		colorIndex	A colorIndex	per vertex		C colorIndex[ipoly] per polyline
+		NULL		B coordIndex	per vertex		D Color[ipoly] per polyline
+
+		can be passed to opengl as:
+			A. GL_LINE_STRIP vertex 1:1 color
+			B. GL_LINE_STRIP vertex 1:1 color
+			C. GL_LINE_STRIP vertex m:1 constant color for polyline
+			D. GL_LINE_STRIP vertex m:1 constant color for polyline
+		and tell the vetex shader to look in attribute fw_Color for a color
+			- and do that in compile_shape > whichShapeColorShader = getShapeColourShader(node) and shape node->_shaderflags_base |= whichShapeColorShader
+
+		2) color field NULL
+		- if Material > material.emissive
+		-- else (1,1,1)
+	   
+   */
 	FREE_IF_NZ (node->__vertArr);
 	node->__vertArr = MALLOC (ushort *, sizeof(ushort)*(nVertices+1));
 	pt = (ushort *)node->__vertArr;
@@ -242,43 +264,9 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	FREE_IF_NZ (node->__vertexCount);
 	node->__vertexCount = MALLOC (ushort *,sizeof(ushort)*(nSegments));
 
+	int *colorIndInt2 = NULL;
 
-	indxStartPtr = (ushort **)node->__vertIndx;
-	newpoints = node->__vertices;
-	vertCountPtr = (ushort *) node->__vertexCount;
-    
-	pt = (ushort *)node->__vertArr;
-
-	vtc=0;
-	segLength=0;
-	*indxStartPtr = pt; /* first segment starts off at index zero */
-
-	indxStartPtr++;
-
-	for (i=0; i<node->coordIndex.n; i++) {
-		/* count segments; dont bother if the very last number is -1 */
-		if (node->coordIndex.p[i] == -1) {
-			if (i!=((node->coordIndex.n)-1)) {
-				/* new segment */
-				*indxStartPtr =  pt;
-				indxStartPtr++;
-
-				/* record the old segment length */
-				*vertCountPtr = segLength;
-				segLength=0;
-				vertCountPtr ++;
-			}
-		} else {
-			/* new vertex */
-			oldpoint = &points[node->coordIndex.p[i]];
-			memcpy (newpoints, oldpoint,sizeof(struct SFColor));
-			newpoints ++; 
-			segLength ++;
-			pt ++;
-		}
-	}
-
-	/* do we have to worry about colours? */
+		/* do we have to worry about colours? */
 	/* sanity check the colors, if they exist */
 	if (node->color) {
 		/* we resort the color nodes so that we have an RGBA color node per vertex */
@@ -304,46 +292,153 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 					ConsoleMessage ("IndexedLineSet - expect more colorIndexes to match coords\n");
 					return;
 				}
-                		colorIndInt = node->colorIndex.p; /* use ColorIndex */
+				//cae A use colorIndex[ivertex] to get a color per vertex
+                colorIndInt = node->colorIndex.p; /* use ColorIndex */
 			} else {
-				colorIndShort = node->__vertArr;
+				//cae B use coordIndex[ivertex] to get a color per vertex
+				//colorIndShort = node->__vertArr;
+				colorIndInt2 = node->coordIndex.p;
 			}
 		} else {
 
-			/* so, we have a color per line segment. Lets check this stuff... */
+			/* so, we have a color per polyline. Lets check this stuff... */
 			if ((node->colorIndex.n)>0) {
 				if ((node->colorIndex.n) < (nSegments)) {
 					ConsoleMessage ("IndexedLineSet - expect more colorIndexes to match coords\n");
 					return;
 				}
+				// case C. use colorIndex[ipolyline] to get a color per polyline
 				colorIndInt = node->colorIndex.p; /* use ColorIndex */
 			} else {
 				/* we are using the simple index for colour selection */
-				colorIndShort = node->__vertArr;                 
+				// case D: use [jpolyline] to get color per polyline
+				colorIndShort = node->__vertArr;
+				//colorIndInt2 = node->coordIndex.p;                 
 			}
 		}
 
+	}
 
+
+
+	indxStartPtr = (ushort **)node->__vertIndx;
+	newpoints = node->__vertices;
+	vertCountPtr = (ushort *) node->__vertexCount;
+    
+	pt = (ushort *)node->__vertArr;
+
+	vtc=0;
+	segLength=0;
+	*indxStartPtr = pt; /* first segment starts off at index zero */
+
+	indxStartPtr++;
+
+	ipoly = 0;
+	ivertex = 0;
+	for (i=0; i<node->coordIndex.n+1; i++) {
+		/* count segments; dont bother if the very last number is -1 */
+		//because we may or may not have a -1 at the end of coordIndex - no requirement
+		if (node->coordIndex.p[i] == -1 || i == (node->coordIndex.n)) {
+			/* record the old segment length */
+			*vertCountPtr = segLength;
+			*indxStartPtr =  pt;
+			ipoly++;
+			if(i < (node->coordIndex.n)){
+				/* new segment */
+				indxStartPtr++;
+				segLength=0;
+				vertCountPtr ++;
+				if(colorIndInt2) 
+					ivertex++;
+			}
+		} else {
+			/* new vertex */
+			oldpoint = &points[node->coordIndex.p[i]];
+			memcpy (newpoints, oldpoint,sizeof(struct SFColor));
+			if(node->color){
+				/* have a vertex, match colour  */
+				do {
+					if (node->colorPerVertex) {
+						if (colorIndInt != NULL) 
+							curcolor = colorIndInt[ivertex];
+						else
+							curcolor = colorIndInt2[ivertex];
+							//curcolor = colorIndShort[ivertex];
+					} else {
+						if (colorIndInt != NULL)
+							curcolor = colorIndInt[ipoly];
+						else
+							//curcolor = colorIndInt2[ipoly];
+							curcolor = ipoly;//colorIndShort[ipoly];
+					}
+					ivertex++;
+				}while(curcolor == -1 && curcolor < cc->color.n);
+				if ((curcolor < 0) || (curcolor >= cc->color.n)) {
+					ConsoleMessage ("IndexedLineSet, colorIndex %d (for vertex %d or segment %d) out of range (0..%d)\n",
+						curcolor, i, ipoly, cc->color.n);
+					return;
+				}
+
+
+				/* copy the correct color over for this vertex */
+				if (cc->_nodeType == NODE_Color) {
+					struct SFColor* oldcolor = (struct SFColor *) cc->color.p;
+					memcpy (newcolors, defcolorRGBA, sizeof (defcolorRGBA));
+					memcpy (newcolors, &oldcolor[curcolor],sizeof(struct SFColor));
+				} else {
+					struct SFColorRGBA *oldcolor = (struct SFColorRGBA *)cc->color.p;
+					memcpy (newcolors, &oldcolor[curcolor],sizeof(struct SFColorRGBA));
+				}
+				//printf ("ipoly %d ci %d colour selected %f %f %f %f\n",ipoly, curcolor, newcolors->c[0],newcolors->c[1],newcolors->c[2],newcolors->c[3]);
+
+				newcolors ++; 
+
+			}
+			newpoints ++; 
+			segLength ++;
+			pt ++;
+		}
+	}
+	if(0){
+		int k=0;
+		vertCountPtr = (ushort *) node->__vertexCount;
+		newcolors = (struct SFColorRGBA *) node->__xcolours;
+		float * vert = node->__vertices;
+		printf("ipoly=%d \n",ipoly);
+		for(int j=0;j<ipoly;j++){
+			printf("poly %d verts %d\n",j,(int)vertCountPtr[j]);
+			for(int i=0;i<vertCountPtr[j];i++){
+
+				struct SFColorRGBA *rgba = &newcolors[k];
+				//printf ("ipoly %d ci %d colour selected %f %f %f %f\n",j, i, rgba->c[0],rgba->c[1],rgba->c[2],rgba->c[3]);
+				printf(" ipoly %d ci %d coord %3.1f %3.1f %3.1f\n",j,i,vert[3*k],vert[3*k+1],vert[3*k+2]);
+				k++;
+			}
+		}
+	}
+	if(0){
 		/* go and match colors with vertices */
-		curSeg = 0;
+		ipoly = 0;
+		ivertex = 0;
 		for (i=0; i<node->coordIndex.n; i++) {
 			if (node->coordIndex.p[i] != -1) {
 				/* have a vertex, match colour  */
 				if (node->colorPerVertex) {
 					if (colorIndInt != NULL) 
-						curcolor = colorIndInt[i];
+						curcolor = colorIndInt[ivertex];
 					else
-						curcolor = colorIndShort[i];
+						curcolor = colorIndShort[ivertex];
 				} else {
 					if (colorIndInt != NULL)
-						curcolor = colorIndInt[curSeg];
+						curcolor = colorIndInt[ipoly];
 					else
-						curcolor = colorIndShort[curSeg];
+						curcolor = colorIndShort[ipoly];
 				}
-				//ConsoleMessage ("curSeg %d, i %d, node->coordIndex.p %d curcolor %d\n",curSeg,i,node->coordIndex.p[i], curcolor);
+				ivertex++;
+				//ConsoleMessage ("ipoly %d, i %d, node->coordIndex.p %d curcolor %d\n",ipoly,i,node->coordIndex.p[i], curcolor);
 				if ((curcolor < 0) || (curcolor >= cc->color.n)) {
 					ConsoleMessage ("IndexedLineSet, colorIndex %d (for vertex %d or segment %d) out of range (0..%d)\n",
-						curcolor, i, curSeg, cc->color.n);
+						curcolor, i, ipoly, cc->color.n);
 					return;
 				}
 
@@ -359,7 +454,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 				//printf ("colout selected %f %f %f %f\n",newcolors->c[0],newcolors->c[1],newcolors->c[2],newcolors->c[3]);
 				newcolors ++; 
 			} else {
-				curSeg++;
+				ipoly++;
 			}
 		}
 	}
@@ -367,7 +462,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	/* finished worrying about colours */
 
 	/* finish this for loop off... */
-	*vertCountPtr = segLength;
+	//*vertCountPtr = segLength;
 	node->__segCount = nSegments; /* we passed, so we can render */
 }
 
@@ -401,9 +496,19 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 		for (i=0; i<node->__segCount; i++) {
 			// draw. Note the casting of the last param - it is ok, because we tell that
 			// we are sending in ushorts; it gets around a compiler warning.
-			sendElementsToGPU(GL_LINE_STRIP,count[i],indxStartPtr[i]);
+			sendElementsToGPU(GL_LINE_STRIP,(int)count[i],indxStartPtr[i]);
+			//float *v, *c;
+			//ushort *u;
+			//u = node->__vertIndx;
+			//v = node->__vertices;
+			//c = node->__xcolours;
+			//for(int j=0;j<count[i];j++){
+			//	int k = j + *indxStartPtr[i];
+			//	//printf("i %d j %d k %d u %d c %3.1f %3.1f %3.1f v %1.1f %3.1f %3.1f\n",i,j,k,u[k],c[4*k],c[4*k+1],c[4*k+2],v[3*k],v[3*k+1],v[3*k+2]);
+			//}
 		}
 	}
+	//printf("============\n");
 }
 
 void compile_PointSet (struct X3D_PointSet *node) {

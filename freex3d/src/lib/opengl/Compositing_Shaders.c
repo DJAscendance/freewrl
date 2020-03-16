@@ -1324,15 +1324,6 @@ void main(void) \n\
 	fragment_color = castle_Color; \n\
 	#endif //UNLIT \n\
 	\n\
-	#ifdef CPV \n\
-	#ifdef CPVREP \n\
-	fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
-	fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
-	#else \n\
-	fragment_color *= cpv_Color; //CPV modulates prior \n\
-	#endif //CPVREP \n\
-	#endif //CPV \n\
-	\n\
 	#ifdef TEX \n\
 	#ifdef TEXREP \n\
 	fragment_color = vec4(1.0,1.0,1.0,1.0); //texture replaces prior \n\
@@ -1366,6 +1357,15 @@ void main(void) \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
 	fragment_color.rgb += getEmissive(); \n\
+	#ifdef CPV \n\
+	//#ifdef CPVREP \n\
+	fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
+	//fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
+	//#else \n\
+	//fragment_color *= cpv_Color; //CPV modulates prior \n\
+	//#endif //CPVREP \n\
+	#endif //CPV \n\
+	\n\
 //STEP6 FOG \n\
 	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
 	#undef normal_eye_fragment \n\
