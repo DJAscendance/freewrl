@@ -889,6 +889,7 @@ varying vec4 cpv_Color; \n\
 \n\
 /* PLUG-DECLARATIONS */ \n\
 //#ifdef TEX \n\
+uniform int textureCount; \n\
 #ifdef CUB \n\
 uniform samplerCube fw_Texture_unit0; \n\
 #else //CUB \n\
@@ -904,7 +905,7 @@ uniform int magFilter; \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
-uniform int textureCount; \n\
+//uniform int textureCount; \n\
 #endif //TEX3DLAY \n\
 #if defined(MTEX) || defined(PROJTEX) \n\
 uniform sampler2D fw_Texture_unit1; \n\
@@ -922,7 +923,7 @@ uniform int fw_Texture_function0;  \n\
 uniform int fw_Texture_function1;  \n\
 uniform int fw_Texture_function2;  \n\
 uniform int fw_Texture_function3;  \n\
-uniform int textureCount; \n\
+//uniform int textureCount; \n\
 uniform vec4 mt_Color; \n\
 void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord){ \n\
 	/* PLUG: finalColCalc ( prevColour, mode, modea, func, tex, texcoord ) */ \n\
@@ -1105,7 +1106,25 @@ vec4 matdiff_color; \n\
 fw_MaterialParameters mat; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
 vec4 sample_map(int iunit){ \n\
-	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	#ifdef NOT_MTEX //not working \n\
+		vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
+		//vec4 nc = vec4(0.0,0.0,0.0,1.0); \n\
+		int istart = mat.tstart[iunit];\n\
+		int ndesc = mat.tcount[iunit]; \n\
+		vec4 prev = nc; \n\
+		for(int k=istart;k<(istart+ndesc);k++){ \n\
+			int kk = mat.tindex[k]; \n\
+			int modea = int(mat.mode[k] / 100); \n\
+			int mode = mat.mode[k] - 100*modea; \n\
+			vec3 ptex = fw_TexCoord[mat.cindex[iunit]]; \n\
+			finalColCalcA(prev, mode, modea, mat.func[k], textureUnit[kk], ptex.xy); \n\
+			//vec4 ncc = texture2D(textureUnit[kk],ptex.xy); \n\
+			//prev.rgb = clamp(prev.rgb + ncc.rgb,0.0,1.0); \n\
+		} \n\
+		nc = prev; \n\
+	#else //MTEX \n\
+		vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	#endif //MTEX \n\
 	return nc; \n\
 } \n\
 vec3 getNormal(){ \n\
@@ -1252,9 +1271,11 @@ void main(void) \n\
 	fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
 	#endif //LIT \n\
 	\n\
-	//#ifdef DONT \n\
-	/* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
-	//#endif //DONT \n\
+	#ifdef TEX \n\
+	if(textureCount > 0){ \n\
+		/* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
+	} \n\
+	#endif //TEX \n\
 //STEP3 PROJECTORS AND IBL image based lighting \n\
 	#ifdef PROJTEX \n\
 	fragment_color = fragProjCalTexCoord(fragment_color); \n\
