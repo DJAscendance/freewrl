@@ -1204,6 +1204,30 @@ float getAmbient(){ \n\
 	} \n\
 	return amb; \n\
 } \n\
+vec3 getBaseColor(){ \n\
+	vec3 B = mat.baseColor; \n\
+	if(mat.type == 3 && mat.tcount[2] > 0){ \n\
+		vec4 bc = sample_map(2); \n\
+		B.rgb *= bc.rgb; \n\
+	} \n\
+	return B; \n\
+} \n\
+float getMetallic(){ \n\
+	float met = mat.metallic; \n\
+	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
+		vec4 mr = sample_map(3); \n\
+		met *= mr.b; \n\
+	} \n\
+	return met; \n\
+} \n\
+float getRoughness(){ \n\
+	float rou = mat.roughness; \n\
+	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
+		vec4 mr = sample_map(3); \n\
+		rou *= mr.g; \n\
+	} \n\
+	return rou; \n\
+} \n\
 void main(void) \n\
 { \n\
 //STEP0 INITIALIZE \n\
@@ -1222,7 +1246,8 @@ void main(void) \n\
 	float castle_MaterialDiffuseAlpha = castle_Color.a; \n\
 	\n\
 //STEP2 LIGHTS \n\
-	if(mat.type > 1){ \n\
+	if(mat.type == 2){ \n\
+		//MAT_REGULAR \n\
 		//matdiff_color = vec4(getDiffuse(),getAlpha()); \n\
 		matdiff_color = vec4(0,0,0,1.0); \n\
 		#ifdef LITE \n\
@@ -1236,6 +1261,18 @@ void main(void) \n\
 		vec3 diffy = getDiffuse(); \n\
 		vec3 specy = getSpecular(); \n\
 		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, shiny, amby, diffy, specy ) */ \n\
+		#endif //LITE \n\
+	} else if(mat.type == 3){ \n\
+		//MAT_PHYSICAL \n\
+		matdiff_color = vec4(0,0,0,1.0); \n\
+		#ifdef LITE \n\
+		castle_MaterialDiffuseAlpha = 1.0; //getAlpha(); \n\
+		castle_ColorES = getBaseColor(); //fw_FrontMaterial.emissive; \n\
+		float metalilic = getMetallic(); \n\
+		float roughness = getRoughness(); \n\
+		vec3 base = getBaseColor(); \n\
+		matdiff_color.rgb = vec3(getRoughness(),0.0,getMetallic()); \n\
+		/* PLUG: add_light_contribution3 (matdiff_color, castle_ColorES, castle_vertex_eye, N, shiny, amby, diffy, specy ) */ \n\
 		#endif //LITE \n\
 	} \n\
 	\n\
@@ -1880,7 +1917,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	//generic
 	vs = strdup(getGenericVertex());
 	fs = strdup(getGenericFragment());
-		
+	printf("size of frag shader %d\n",strlen(fs));
 	CompleteCode[SHADERPART_VERTEX] = vs;
 	CompleteCode[SHADERPART_GEOMETRY] = NULL;
 	CompleteCode[SHADERPART_FRAGMENT] = fs;
@@ -1919,7 +1956,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	//material appearance
 	//2 material appearance
 	//phong vs gourard
-	if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER)){
+	if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER)
+		|| DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER)){
 		//if(isLit)
 		if(DESIRE(whichOne.base,MAT_FIRST)){
 			//strict table 17-3 with no other modulation means Texture > CPV > mat.diffuse > (111)

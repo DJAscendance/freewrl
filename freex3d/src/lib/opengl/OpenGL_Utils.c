@@ -6954,14 +6954,17 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 /* eventually do this with code blocks in glsl */
 	profile_start("sendvec");
-	SEND_VEC3(myMaterialDiffuse,fw_FrontMaterial->diffuse);
-	SEND_VEC3(myMaterialEmissive,fw_FrontMaterial->emissive);
-	SEND_VEC3(myMaterialSpecular,fw_FrontMaterial->specular);
-	SEND_FLOAT(myMaterialAmbient,fw_FrontMaterial->ambient);
-	SEND_FLOAT(myMaterialShininess,fw_FrontMaterial->shininess);
-	SEND_FLOAT(myMaterialTransparency,fw_FrontMaterial->transparency);
-	SEND_INT(myMaterialType,fw_FrontMaterial->type);
-	SEND_INT(myMaterialTransdex,fw_FrontMaterial->transdex);
+	GLUNIFORM3FV(me->myMaterialDiffuse,1,fw_FrontMaterial->diffuse);
+	GLUNIFORM3FV(me->myMaterialEmissive,1,fw_FrontMaterial->emissive);
+	GLUNIFORM3FV(me->myMaterialSpecular,1,fw_FrontMaterial->specular);
+	GLUNIFORM3FV(me->myMaterialBaseColor,1,fw_FrontMaterial->baseColor);
+	GLUNIFORM1F(me->myMaterialAmbient,fw_FrontMaterial->ambient);
+	GLUNIFORM1F(me->myMaterialShininess,fw_FrontMaterial->shininess);
+	GLUNIFORM1F(me->myMaterialTransparency,fw_FrontMaterial->transparency);
+	GLUNIFORM1F(me->myMaterialRoughness,fw_FrontMaterial->roughness);
+	GLUNIFORM1F(me->myMaterialMetallic,fw_FrontMaterial->metallic);
+	GLUNIFORM1I(me->myMaterialType,fw_FrontMaterial->type);
+	GLUNIFORM1I(me->myMaterialTransdex,fw_FrontMaterial->transdex);
 	mp = fw_FrontMaterial;
 	nt = 0;
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
@@ -6981,14 +6984,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->func[nt] = funcs[j];
 				int iunit = tunit(kunit);
 				glUniform1i(me->textureUnit[kunit],iunit); //tunit(kunit));
-				SEND_INT(myMaterialTindex[nt],mp->tindex[nt]);
+				GLUNIFORM1I(me->myMaterialTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
-		SEND_INT(myMaterialCindex[i],mp->cindex[i]);
-		SEND_INT(myMaterialTcount[i],mp->tcount[i]);
-		SEND_INT(myMaterialTstart[i],mp->tstart[i]);
+		GLUNIFORM1I(me->myMaterialCindex[i],mp->cindex[i]);
+		GLUNIFORM1I(me->myMaterialTcount[i],mp->tcount[i]);
+		GLUNIFORM1I(me->myMaterialTstart[i],mp->tstart[i]);
 	}
 	mp->nt = nt;
 	//SEND_INT(myMaterialNt,mp->nt);
@@ -6996,9 +6999,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
 	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
 	SEND_VEC3(myMaterialBackSpecular,fw_BackMaterial->specular);
+	SEND_VEC3(myMaterialBackBaseColor,fw_BackMaterial->baseColor);
 	SEND_FLOAT(myMaterialBackAmbient,fw_BackMaterial->ambient);
 	SEND_FLOAT(myMaterialBackShininess,fw_BackMaterial->shininess);
 	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
+	SEND_FLOAT(myMaterialBackRoughness,fw_BackMaterial->roughness);
+	SEND_FLOAT(myMaterialBackMetallic,fw_BackMaterial->metallic);
 	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
 	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
 	mp = fw_BackMaterial;

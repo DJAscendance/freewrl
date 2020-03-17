@@ -1433,8 +1433,8 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	q = (struct fw_MaterialParameters *)node->_material;
 	veccopy3f(q->baseColor,node->baseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
-	q->metallic = node->transparency;
-	q->roughness = node->transparency;
+	q->metallic = node->metallic;
+	q->roughness = node->roughness;
 	q->transparency = node->transparency;
 	q->type = MAT_PHYSICAL;
 
@@ -1442,7 +1442,6 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
 	tnodes = q->textures;
 	memset(tnodes,0,5*sizeof(void *)); 
-	if(node->baseColorTexture)
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
@@ -1451,6 +1450,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 	}
+	if(node->baseColorTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseColorTexture,tnodes[2]);
 	}
