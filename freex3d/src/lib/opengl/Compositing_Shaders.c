@@ -1111,10 +1111,23 @@ vec4 sample_map(int iunit){ \n\
 vec3 getNormal(){ \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	if(mat.tcount[0] > 0){ \n\
+		// https://learnopengl.com/Advanced-Lighting/Normal-Mapping  \n\
+		//texture transform applied in vertex shader \n\
+		vec2 UV = fw_TexCoord[mat.cindex[0]].xy; \n\
+			\n\
+		// Retrieve the tangent space matrix \n\
+		vec3 pos_dx = dFdx(castle_vertex_eye.xyz); \n\
+		vec3 pos_dy = dFdy(castle_vertex_eye.xyz); \n\
+		vec3 tex_dx = dFdx(vec3(UV, 0.0)); \n\
+		vec3 tex_dy = dFdy(vec3(UV, 0.0)); \n\
+		vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t); \n\
+			\n\
+		t = normalize(t - N * dot(N, t)); \n\
+		vec3 b = normalize(cross(N, t)); \n\
+		mat3 tbn = mat3(t, b, N); \n\
 		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
 		vec4 nc = sample_map(0); \n\
-		N.xyz *= nc.xyz; \n\
-		//N.xyz = nc.xyz; \n\
+		N = normalize(tbn * (2.0 * nc.xyz - 1.0)); \n\
 	} \n\
 	if (!gl_FrontFacing) //backFacing \n\
 		N = -N; \n\
