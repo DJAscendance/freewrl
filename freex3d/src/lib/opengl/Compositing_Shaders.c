@@ -887,6 +887,7 @@ uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;
 varying vec4 cpv_Color; \n\
 #endif //CPV \n\
 \n\
+/* PLUG-DECLARATIONS */ \n\
 //#ifdef TEX \n\
 #ifdef CUB \n\
 uniform samplerCube fw_Texture_unit0; \n\
@@ -923,138 +924,8 @@ uniform int fw_Texture_function2;  \n\
 uniform int fw_Texture_function3;  \n\
 uniform int textureCount; \n\
 uniform vec4 mt_Color; \n\
-#define MTMODE_ADD	1\n \
-#define MTMODE_ADDSIGNED	2\n \
-#define MTMODE_ADDSIGNED2X	3\n \
-#define MTMODE_ADDSMOOTH	4\n \
-#define MTMODE_BLENDCURRENTALPHA	5\n \
-#define MTMODE_BLENDDIFFUSEALPHA	6\n \
-#define MTMODE_BLENDFACTORALPHA	7\n \
-#define MTMODE_BLENDTEXTUREALPHA	8\n \
-#define MTMODE_DOTPRODUCT3	9\n \
-#define MTMODE_MODULATE	10\n \
-#define MTMODE_MODULATE2X	11\n \
-#define MTMODE_MODULATE4X	12\n \
-#define MTMODE_MODULATEALPHA_ADDCOLOR	13\n \
-#define MTMODE_MODULATEINVALPHA_ADDCOLOR	14\n \
-#define MTMODE_MODULATEINVCOLOR_ADDALPHA	15\n \
-#define MTMODE_OFF	16\n \
-#define MTMODE_REPLACE	17\n \
-#define MTMODE_SELECTARG1	18\n \
-#define MTMODE_SELECTARG2	19\n \
-#define MTMODE_SUBTRACT	20\n \
-#define MTSRC_DIFFUSE	1 \n\
-#define MTSRC_FACTOR	2 \n\
-#define MTSRC_SPECULAR	3 \n\
-#define MTFN_ALPHAREPLICATE	0 \n\
-#define MTFN_COMPLEMENT	1 \n\
-#define MT_DEFAULT -1 \n\
-\n\
-void finalColCalc(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord) { \n\
-  vec4 texel = texture2D(tex,texcoord); \n\
-  vec4 rv = vec4(1.,0.,1.,1.);   \n\
-  if (mode==MTMODE_OFF) {  \n\
-    rv = vec4(prevColour); \n\
-  } else if (mode==MTMODE_REPLACE) { \n\
-    rv = vec4(texture2D(tex, texcoord)); \n\
-  }else if (mode==MTMODE_MODULATE) {  \n\
-    vec3 ct,cf;  \n\
-    float at,af;  \n\
-    cf = prevColour.rgb;  \n\
-    af = prevColour.a;  \n\
-    ct = texel.rgb;  \n\
-    at = texel.a;  \n\
-    rv = vec4(ct*cf, at*af);  \n\
-  } else if (mode==MTMODE_MODULATE2X) {  \n\
-    vec3 ct,cf;  \n\
-    float at,af;  \n\
-    cf = prevColour.rgb;  \n\
-    af = prevColour.a;  \n\
-    ct = texel.rgb;  \n\
-    at = texel.a;  \n\
-    rv = vec4(vec4(ct*cf, at*af)*vec4(2.,2.,2.,2.));  \n\
-  }else if (mode==MTMODE_MODULATE4X) {  \n\
-    vec3 ct,cf;  \n\
-    float at,af;  \n\
-    cf = prevColour.rgb; \n\
-    af = prevColour.a;  \n\
-    ct = texel.rgb;  \n\
-    at = texel.a;  \n\
-    rv = vec4(vec4(ct*cf, at*af)*vec4(4.,4.,4.,4.));  \n\
-  }else if (mode== MTMODE_ADDSIGNED) { \n\
-    rv = vec4 (prevColour + texel - vec4 (0.5, 0.5, 0.5, -.5));  \n\
-  } else if (mode== MTMODE_ADDSIGNED2X) { \n\
-    rv = vec4 ((prevColour + texel - vec4 (0.5, 0.5, 0.5, -.5))*vec4(2.,2.,2.,2.));  \n\
-  } else if (mode== MTMODE_ADD) { \n\
-    rv= vec4 (prevColour + texel);  \n\
-  } else if (mode== MTMODE_SUBTRACT) { \n\
-    rv = vec4 (texel - prevColour); //jas had prev - tex \n\
-  } else if (mode==MTMODE_ADDSMOOTH) {  \n\
-    rv = vec4 (prevColour + (prevColour - vec4 (1.,1.,1.,1.)) * texel);  \n\
-  } else if (mode==MTMODE_BLENDDIFFUSEALPHA) {  \n\
-    rv = vec4 (mix(prevColour,texel,castle_Color.a)); \n\
-  } else if (mode==MTMODE_BLENDTEXTUREALPHA) {  \n\
-    rv = vec4 (mix(prevColour,texel,texel.a)); \n\
-  } else if (mode==MTMODE_BLENDFACTORALPHA) {  \n\
-    rv = vec4 (mix(prevColour,texel,mt_Color.a)); \n\
-  } else if (mode==MTMODE_BLENDCURRENTALPHA) {  \n\
-    rv = vec4 (mix(prevColour,texel,prevColour.a)); \n\
-  } else if (mode==MTMODE_SELECTARG1) {  \n\
-    rv = texel;  \n\
-  } else if (mode==MTMODE_SELECTARG2) {  \n\
-    rv = prevColour;  \n\
-  } \n\
-  if(modea != 0){ \n\
-    if (modea==MTMODE_OFF) {  \n\
-      rv.a = prevColour.a; \n\
-    } else if (modea==MTMODE_REPLACE) { \n\
-      rv.a = 1.0; \n\
-    }else if (modea==MTMODE_MODULATE) {  \n\
-      float at,af;  \n\
-      af = prevColour.a;  \n\
-      at = texel.a;  \n\
-      rv.a = at*af;  \n\
-    } else if (modea==MTMODE_MODULATE2X) {  \n\
-      float at,af;  \n\
-      af = prevColour.a;  \n\
-      at = texel.a;  \n\
-      rv.a = at*af*2.0;  \n\
-    }else if (modea==MTMODE_MODULATE4X) {  \n\
-      float at,af;  \n\
-      af = prevColour.a;  \n\
-      at = texel.a;  \n\
-      rv.a = at*af*4.0;  \n\
-    }else if (modea== MTMODE_ADDSIGNED) { \n\
-      rv.a = (prevColour.a + texel.a + .5);  \n\
-    } else if (modea== MTMODE_ADDSIGNED2X) { \n\
-      rv.a = ((prevColour.a + texel.a + .5))*2.0;  \n\
-    } else if (modea== MTMODE_ADD) { \n\
-      rv.a = prevColour.a + texel.a;  \n\
-    } else if (modea== MTMODE_SUBTRACT) { \n\
-      rv.a = texel.a - prevColour.a;  //jas had prev - texel \n\
-    } else if (modea==MTMODE_ADDSMOOTH) {  \n\
-      rv.a = (prevColour.a + (prevColour.a - 1.)) * texel.a;  \n\
-    } else if (modea==MTMODE_BLENDDIFFUSEALPHA) {  \n\
-      rv.a = mix(prevColour.a,texel.a,castle_Color.a); \n\
-    } else if (modea==MTMODE_BLENDTEXTUREALPHA) {  \n\
-      rv.a = mix(prevColour.a,texel.a,texel.a); \n\
-    } else if (modea==MTMODE_BLENDFACTORALPHA) {  \n\
-      rv.a = mix(prevColour.a,texel.a,mt_Color.a); \n\
-    } else if (modea==MTMODE_BLENDCURRENTALPHA) {  \n\
-      rv.a = mix(prevColour.a,texel.a,prevColour.a); \n\
-    } else if (modea==MTMODE_SELECTARG1) {  \n\
-      rv.a = texel.a;  \n\
-    } else if (modea==MTMODE_SELECTARG2) {  \n\
-      rv.a = prevColour.a;  \n\
-    } \n\
-  } \n\
-  if(func == MTFN_COMPLEMENT){ \n\
-	//rv = vec4(1.0,1.0,1.0,1.0) - rv; \n\
-	rv = vec4( vec3(1.0,1.0,1.0) - rv.rgb, rv.a); \n\
-  }else if(func == MTFN_ALPHAREPLICATE){ \n\
-	rv = vec4(rv.a,rv.a,rv.a,rv.a); \n\
-  } \n\
-  prevColour = rv;  \n\
+void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord){ \n\
+	/* PLUG: finalColCalc ( prevColour, mode, modea, func, tex, texcoord ) */ \n\
 } \n\
 #endif //MTEX \n\
 //#endif //TEX \n\
@@ -1212,9 +1083,7 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 						int kk = tunits[k]; \n\
 						int modea = int(modes[k] / 100); \n\
 						int mode = modes[k] - 100*modea; \n\
-						finalColCalc(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
-						//vec4 pcolor = texture2D(textureUnit[i], ptex.xy); \n\
-						//frag_color = (vec4(.5, .5, .5, .5) + frag_color)*pcolor; //modulate + add \n\
+						finalColCalcA(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
 					} \n\
 					frag_color = prev;\n\
 				} \n\
@@ -1232,7 +1101,6 @@ vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 } \n\
  \n\
 vec4 matdiff_color; \n\
-/* PLUG-DECLARATIONS */ \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
@@ -1371,9 +1239,9 @@ void main(void) \n\
 	fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
 	#endif //LIT \n\
 	\n\
-	#ifdef DONT \n\
+	//#ifdef DONT \n\
 	/* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
-	#endif //DONT \n\
+	//#endif //DONT \n\
 //STEP3 PROJECTORS AND IBL image based lighting \n\
 	#ifdef PROJTEX \n\
 	fragment_color = fragProjCalTexCoord(fragment_color); \n\
@@ -1400,6 +1268,146 @@ void main(void) \n\
 	\n\
 	/* PLUG: fragment_end (gl_FragColor) */ \n\
 } \n";
+
+
+
+static const GLchar *plug_finalColCalc = "\
+#if defined(MTEX) || defined(PROJTEX) \n\
+#define MTMODE_ADD	1\n \
+#define MTMODE_ADDSIGNED	2\n \
+#define MTMODE_ADDSIGNED2X	3\n \
+#define MTMODE_ADDSMOOTH	4\n \
+#define MTMODE_BLENDCURRENTALPHA	5\n \
+#define MTMODE_BLENDDIFFUSEALPHA	6\n \
+#define MTMODE_BLENDFACTORALPHA	7\n \
+#define MTMODE_BLENDTEXTUREALPHA	8\n \
+#define MTMODE_DOTPRODUCT3	9\n \
+#define MTMODE_MODULATE	10\n \
+#define MTMODE_MODULATE2X	11\n \
+#define MTMODE_MODULATE4X	12\n \
+#define MTMODE_MODULATEALPHA_ADDCOLOR	13\n \
+#define MTMODE_MODULATEINVALPHA_ADDCOLOR	14\n \
+#define MTMODE_MODULATEINVCOLOR_ADDALPHA	15\n \
+#define MTMODE_OFF	16\n \
+#define MTMODE_REPLACE	17\n \
+#define MTMODE_SELECTARG1	18\n \
+#define MTMODE_SELECTARG2	19\n \
+#define MTMODE_SUBTRACT	20\n \
+#define MTSRC_DIFFUSE	1 \n\
+#define MTSRC_FACTOR	2 \n\
+#define MTSRC_SPECULAR	3 \n\
+#define MTFN_ALPHAREPLICATE	0 \n\
+#define MTFN_COMPLEMENT	1 \n\
+#define MT_DEFAULT -1 \n\
+\n\
+void PLUG_finalColCalc(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord) { \n\
+  vec4 texel = texture2D(tex,texcoord); \n\
+  vec4 rv = vec4(1.,0.,1.,1.);   \n\
+  if (mode==MTMODE_OFF) {  \n\
+    rv = vec4(prevColour); \n\
+  } else if (mode==MTMODE_REPLACE) { \n\
+    rv = vec4(texture2D(tex, texcoord)); \n\
+  }else if (mode==MTMODE_MODULATE) {  \n\
+    vec3 ct,cf;  \n\
+    float at,af;  \n\
+    cf = prevColour.rgb;  \n\
+    af = prevColour.a;  \n\
+    ct = texel.rgb;  \n\
+    at = texel.a;  \n\
+    rv = vec4(ct*cf, at*af);  \n\
+  } else if (mode==MTMODE_MODULATE2X) {  \n\
+    vec3 ct,cf;  \n\
+    float at,af;  \n\
+    cf = prevColour.rgb;  \n\
+    af = prevColour.a;  \n\
+    ct = texel.rgb;  \n\
+    at = texel.a;  \n\
+    rv = vec4(vec4(ct*cf, at*af)*vec4(2.,2.,2.,2.));  \n\
+  }else if (mode==MTMODE_MODULATE4X) {  \n\
+    vec3 ct,cf;  \n\
+    float at,af;  \n\
+    cf = prevColour.rgb; \n\
+    af = prevColour.a;  \n\
+    ct = texel.rgb;  \n\
+    at = texel.a;  \n\
+    rv = vec4(vec4(ct*cf, at*af)*vec4(4.,4.,4.,4.));  \n\
+  }else if (mode== MTMODE_ADDSIGNED) { \n\
+    rv = vec4 (prevColour + texel - vec4 (0.5, 0.5, 0.5, -.5));  \n\
+  } else if (mode== MTMODE_ADDSIGNED2X) { \n\
+    rv = vec4 ((prevColour + texel - vec4 (0.5, 0.5, 0.5, -.5))*vec4(2.,2.,2.,2.));  \n\
+  } else if (mode== MTMODE_ADD) { \n\
+    rv= vec4 (prevColour + texel);  \n\
+  } else if (mode== MTMODE_SUBTRACT) { \n\
+    rv = vec4 (texel - prevColour); //jas had prev - tex \n\
+  } else if (mode==MTMODE_ADDSMOOTH) {  \n\
+    rv = vec4 (prevColour + (prevColour - vec4 (1.,1.,1.,1.)) * texel);  \n\
+  } else if (mode==MTMODE_BLENDDIFFUSEALPHA) {  \n\
+    rv = vec4 (mix(prevColour,texel,castle_Color.a)); \n\
+  } else if (mode==MTMODE_BLENDTEXTUREALPHA) {  \n\
+    rv = vec4 (mix(prevColour,texel,texel.a)); \n\
+  } else if (mode==MTMODE_BLENDFACTORALPHA) {  \n\
+    rv = vec4 (mix(prevColour,texel,mt_Color.a)); \n\
+  } else if (mode==MTMODE_BLENDCURRENTALPHA) {  \n\
+    rv = vec4 (mix(prevColour,texel,prevColour.a)); \n\
+  } else if (mode==MTMODE_SELECTARG1) {  \n\
+    rv = texel;  \n\
+  } else if (mode==MTMODE_SELECTARG2) {  \n\
+    rv = prevColour;  \n\
+  } \n\
+  if(modea != 0){ \n\
+    if (modea==MTMODE_OFF) {  \n\
+      rv.a = prevColour.a; \n\
+    } else if (modea==MTMODE_REPLACE) { \n\
+      rv.a = 1.0; \n\
+    }else if (modea==MTMODE_MODULATE) {  \n\
+      float at,af;  \n\
+      af = prevColour.a;  \n\
+      at = texel.a;  \n\
+      rv.a = at*af;  \n\
+    } else if (modea==MTMODE_MODULATE2X) {  \n\
+      float at,af;  \n\
+      af = prevColour.a;  \n\
+      at = texel.a;  \n\
+      rv.a = at*af*2.0;  \n\
+    }else if (modea==MTMODE_MODULATE4X) {  \n\
+      float at,af;  \n\
+      af = prevColour.a;  \n\
+      at = texel.a;  \n\
+      rv.a = at*af*4.0;  \n\
+    }else if (modea== MTMODE_ADDSIGNED) { \n\
+      rv.a = (prevColour.a + texel.a + .5);  \n\
+    } else if (modea== MTMODE_ADDSIGNED2X) { \n\
+      rv.a = ((prevColour.a + texel.a + .5))*2.0;  \n\
+    } else if (modea== MTMODE_ADD) { \n\
+      rv.a = prevColour.a + texel.a;  \n\
+    } else if (modea== MTMODE_SUBTRACT) { \n\
+      rv.a = texel.a - prevColour.a;  //jas had prev - texel \n\
+    } else if (modea==MTMODE_ADDSMOOTH) {  \n\
+      rv.a = (prevColour.a + (prevColour.a - 1.)) * texel.a;  \n\
+    } else if (modea==MTMODE_BLENDDIFFUSEALPHA) {  \n\
+      rv.a = mix(prevColour.a,texel.a,castle_Color.a); \n\
+    } else if (modea==MTMODE_BLENDTEXTUREALPHA) {  \n\
+      rv.a = mix(prevColour.a,texel.a,texel.a); \n\
+    } else if (modea==MTMODE_BLENDFACTORALPHA) {  \n\
+      rv.a = mix(prevColour.a,texel.a,mt_Color.a); \n\
+    } else if (modea==MTMODE_BLENDCURRENTALPHA) {  \n\
+      rv.a = mix(prevColour.a,texel.a,prevColour.a); \n\
+    } else if (modea==MTMODE_SELECTARG1) {  \n\
+      rv.a = texel.a;  \n\
+    } else if (modea==MTMODE_SELECTARG2) {  \n\
+      rv.a = prevColour.a;  \n\
+    } \n\
+  } \n\
+  if(func == MTFN_COMPLEMENT){ \n\
+	//rv = vec4(1.0,1.0,1.0,1.0) - rv; \n\
+	rv = vec4( vec3(1.0,1.0,1.0) - rv.rgb, rv.a); \n\
+  }else if(func == MTFN_ALPHAREPLICATE){ \n\
+	rv = vec4(rv.a,rv.a,rv.a,rv.a); \n\
+  } \n\
+  prevColour = rv;  \n\
+} \n\
+#endif //defined(MTEX) || defined(PROJTEX) \n";
+
 
 
 
@@ -1590,7 +1598,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
-      finalColCalc(source,fw_Texture_mode0[0],fw_Texture_mode0[1],fw_Texture_function0, fw_Texture_unit0,fw_TexCoord[0].st); \n\
+      finalColCalcA(source,fw_Texture_mode0[0],fw_Texture_mode0[1],fw_Texture_function0, fw_Texture_unit0,fw_TexCoord[0].st); \n\
       finalFrag = source; \n\
     } \n\
   } \n\
@@ -1608,7 +1616,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
-      finalColCalc(source,fw_Texture_mode1[0],fw_Texture_mode1[1],fw_Texture_function1, fw_Texture_unit1,fw_TexCoord[1].st); \n\
+      finalColCalcA(source,fw_Texture_mode1[0],fw_Texture_mode1[1],fw_Texture_function1, fw_Texture_unit1,fw_TexCoord[1].st); \n\
       finalFrag = source; \n\
     } \n\
   } \n\
@@ -1626,7 +1634,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
-      finalColCalc(source,fw_Texture_mode2[0],fw_Texture_mode2[1],fw_Texture_function2,fw_Texture_unit2,fw_TexCoord[2].st); \n\
+      finalColCalcA(source,fw_Texture_mode2[0],fw_Texture_mode2[1],fw_Texture_function2,fw_Texture_unit2,fw_TexCoord[2].st); \n\
       finalFrag = source; \n\
     } \n\
   } \n\
@@ -1644,7 +1652,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
-      finalColCalc(source,fw_Texture_mode3[0],fw_Texture_mode3[1],fw_Texture_function3,fw_Texture_unit3,fw_TexCoord[3].st); \n\
+      finalColCalcA(source,fw_Texture_mode3[0],fw_Texture_mode3[1],fw_Texture_function3,fw_Texture_unit3,fw_TexCoord[3].st); \n\
       finalFrag = source; \n\
     } \n\
   } \n\
@@ -1927,7 +1935,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		If you do want to modulate ie the above quote "to modulate", comment out the define
 		I put a mantis issue to web3d.org for clarification Aug 16, 2016
 	*/
-
+	int colCalc_loaded = FALSE;
 	if(DESIRE(whichOne.base,HAVE_UNLIT_COLOR)){
 		AddDefine(SHADERPART_VERTEX,"UNLIT",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"UNLIT",CompleteCode);
@@ -1936,11 +1944,14 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_VERTEX,"PROJTEX",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"PROJTEX",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"TEX",CompleteCode);
+		if(!colCalc_loaded) Plug(SHADERPART_FRAGMENT,plug_finalColCalc,CompleteCode,&unique_int);	
+		colCalc_loaded = TRUE;
 	}
 	if (DESIRE(whichOne.base,ONE_TEX_APPEARANCE_SHADER) ||
 		DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) ||
 		DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE) ||
 		DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)) {
+
 		AddDefine(SHADERPART_VERTEX,"TEX",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"TEX",CompleteCode);
 		if(DESIRE(whichOne.base,HAVE_TEXTURECOORDINATEGENERATOR) )
@@ -1977,6 +1988,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			if(DESIRE(whichOne.base,TEXALPHA_REPLACE_PRIOR))
 				AddDefine(SHADERPART_VERTEX,"TAREP",CompleteCode);
 
+			if(!colCalc_loaded) Plug(SHADERPART_FRAGMENT,plug_finalColCalc,CompleteCode,&unique_int);	
+			colCalc_loaded = TRUE;
 			Plug(SHADERPART_FRAGMENT,plug_fragment_texture_apply,CompleteCode,&unique_int);
 
 			//if(texture has alpha ie channels == 2 or 4) then vertex diffuse = 111 and fragment diffuse*=texture
@@ -2032,6 +2045,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		fp = fopen("C:/tmp/composed_shader.frag","w+");
 		fwrite(*fragmentSource,strlen(*fragmentSource),1,fp);
 		fclose(fp);
+		printf("wrote shader\n");
 	}
 #endif //DEBUGSHADER
 #undef DEBUGSHADER
