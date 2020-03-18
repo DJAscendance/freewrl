@@ -179,7 +179,7 @@ void free_polyrep(struct X3D_PolyRep *rep){
 	//see also delete_polyrep - did dug9 duplicate the function or is it different?
 	if(rep){
 		rep->ntri = 0;
-		rep->transparency = 0;
+		//rep->transparency = 0;
 		//Q. are any of these added to GC tables? If not..
 		glDeleteBuffers(VBO_COUNT, rep->VBO_buffers);
 		FREE_IF_NZ(rep->actualCoord);

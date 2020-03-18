@@ -75,42 +75,43 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 #define MATERIAL_APPEARANCE_SHADER 0x0002
 #define TWO_MATERIAL_APPEARANCE_SHADER 0x0004
 #define PHYSICAL_MATERIAL_APPEARANCE_SHADER 0x0008
-#define ONE_TEX_APPEARANCE_SHADER 0x0010
-#define MULTI_TEX_APPEARANCE_SHADER 0x0020
+#define UNLIT_MATERIAL_APPEARANCE_SHADER 0x0010
+#define ONE_TEX_APPEARANCE_SHADER 0x0020
+#define MULTI_TEX_APPEARANCE_SHADER 0x0040
 
 /* PolyRep (etc) color field present */
-#define COLOUR_MATERIAL_SHADER 0x00040
+#define COLOUR_MATERIAL_SHADER 0x00080
 
 /*  - fillProperties present */
-#define FILL_PROPERTIES_SHADER 0x00080
+#define FILL_PROPERTIES_SHADER 0x00100
 
 /*  - lines, points */
-#define HAVE_LINEPOINTS_COLOR 0x0100
-#define HAVE_LINEPOINTS_APPEARANCE 0x00200
+#define HAVE_LINEPOINTS_COLOR 0x00200
+#define HAVE_LINEPOINTS_APPEARANCE 0x00400
 
 /* TextureCoordinateGenerator */
-#define HAVE_TEXTURECOORDINATEGENERATOR 0x00400
+#define HAVE_TEXTURECOORDINATEGENERATOR 0x00800
 
 /* CubeMapTexturing */
-#define HAVE_CUBEMAP_TEXTURE   0x00800
+#define HAVE_CUBEMAP_TEXTURE   0x01000
 /* more OR-able flags for compositing shaders */
-#define FOG_APPEARANCE_SHADER  0X01000
-#define HAVE_FOG_COORDS        0x02000
-#define TEXTURE_REPLACE_PRIOR  0x04000
-#define TEXALPHA_REPLACE_PRIOR 0x08000
-#define CPV_REPLACE_PRIOR      0x1000
-#define SHADINGSTYLE_FLAT      0x20000
-#define SHADINGSTYLE_GOURAUD   0x40000
-#define SHADINGSTYLE_PHONG     0x80000
-#define SHADINGSTYLE_WIRE      0x100000
-#define MAT_FIRST              0x200000
-#define WANT_ANAGLYPH          0x400000
-#define TEX3D_SHADER           0X800000
-#define TEX3D_LAYER_SHADER     0x1000000
-#define CLIPPLANE_SHADER       0x2000000
-#define PARTICLE_SHADER        0X4000000
-#define HAVE_UNLIT_COLOR       0x8000000
-#define HAVE_PROJECTIVETEXTURE 0X10000000
+#define FOG_APPEARANCE_SHADER  0X02000
+#define HAVE_FOG_COORDS        0x04000
+#define TEXTURE_REPLACE_PRIOR  0x08000
+#define TEXALPHA_REPLACE_PRIOR 0x10000
+#define CPV_REPLACE_PRIOR      0x20000
+#define SHADINGSTYLE_FLAT      0x40000
+#define SHADINGSTYLE_GOURAUD   0x80000
+#define SHADINGSTYLE_PHONG     0x100000
+#define SHADINGSTYLE_WIRE      0x200000
+#define MAT_FIRST              0x400000
+#define WANT_ANAGLYPH          0x800000
+#define TEX3D_SHADER           0X1000000
+#define TEX3D_LAYER_SHADER     0x2000000
+#define CLIPPLANE_SHADER       0x4000000
+#define PARTICLE_SHADER        0X8000000
+#define HAVE_UNLIT_COLOR       0x10000000
+#define HAVE_PROJECTIVETEXTURE 0X20000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume
@@ -144,12 +145,37 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 
 
 struct fw_MaterialParameters {
-	float emission[4];
-	float ambient[4];
-	float diffuse[4];
-	float specular[4];
-	float shininess; 
+	float diffuse[3];   //MAT_REGULAR
+	float emissive[3];
+	float specular[3];  //MAT_REGULAR
+	float ambient;      //MAT_REGULAR
+	float shininess;    //MAT_REGULAR
+	float transparency; 
+	float baseColor[3]; //MAT_PHYSICAL
+	float metallic;     //MAT_PHYSICAL
+	float roughness;    //MAT_PHYSICAL 
+	int type; //MAT_TYPE: 0 MAT_NONE 1 MAT_EMISSIVE 2 MAT_REGULAR 3 MAT_PHYSICAL
+	// used in frag, for texture maps:
+	int transdex; // which tindex to use for transparency -1 None, else 0-3
+	// multi-te4xtues are dis-aggregated at send-to-shader stage
+	int tindex[10]; //texture unit indexes, 
+	int mode[10];  //multitexture modulate mode
+	int source[10]; //multitexture modulate mode
+	int func[10]; //multitexture modulate mode
+	int nt; // number of single texture maps 0 if none
+	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	struct X3D_Node *textures[5]; //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive,
+	int tcount[5]; // for material.textureXXX if its a single texture 1, if multitexture n
+	int tstart[5]; // where in tindex to start looping
+	int cindex[5]; //texture coordinate channel
+	//int mtex[5];   //flag = 1 if it's a multitexture / needs multitexture functionality applied
+	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
 };
+
+// helpers for sharing sampler2D (and texture units)
+void clear_material_samplers();
+int share_or_next_material_sampler_index(GLint texture);
+GLint tunit(int index);
 
 struct matpropstruct {
 	/* material properties for current shape */
@@ -159,8 +185,8 @@ struct matpropstruct {
 	/* which shader is active; 0 = no shader active */
 	s_shader_capabilities_t *currentShaderProperties;
 
-	float	transparency;
-	GLfloat	emissionColour[3];
+	//float	transparency;
+	//GLfloat	emissionColour[3];
 	GLint	cubeFace;	/* for cubemapping, if 0, not cube mapping */
 	int 	cullFace;	/* is this single-sided or two-sided? Simply used to reduce calls to
 						GL_ENABLE(GL_CULL_FACE), etc */
@@ -182,6 +208,7 @@ struct matpropstruct {
 
 struct matpropstruct* getAppearanceProperties();
 void setUserShaderNode(struct X3D_Node *me);
+
 
 #define MIN_NODE_TRANSPARENCY 0.0f
 #define MAX_NODE_TRANSPARENCY 0.99f  /* if 1.0, then occlusion culling will cause flashing */

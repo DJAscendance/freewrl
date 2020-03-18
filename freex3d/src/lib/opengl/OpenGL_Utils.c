@@ -203,7 +203,7 @@ void OpenGL_Utils_init(struct tOpenGL_Utils *t)
 		// userDefinedShaders - assume 0, unless the user is a geek.
 		p->userDefinedShaderCount = 0;
 
-		p->shadingStyle = 1; //0=flat, 1=gouraud (default), 2=phong, 3=wireframe
+		p->shadingStyle = 2; //0=flat, 1=gouraud (default), 2=phong, 3=wireframe
 		//ConsoleMessage ("setting usePhongShaders to true"); p->usePhongShaders=true;
 		p->maxStackUsed = 0;
 	}
@@ -2771,9 +2771,9 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	//me->projMap_forCam1 = GET_UNIFORM(myProg,"projMap_forCam1");
 	// projector 1:m texture_descriptor m:1 sampler2D
 	// max 8     1:m     16             m:1    4
-	for(int i=0;i<4;i++){
-		//per (projector related) sampler2D
-		char line[24];
+	for(int i=0;i<16;i++){
+		//per (projector related) sampler2D and shared with PBR
+		char line[32];
 		sprintf(line,"textureUnit[%d]",i);
 		me->textureUnit[i] = GET_UNIFORM(myProg,line);
 	}
@@ -2811,17 +2811,72 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[2] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam3");
 	tg->Component_PTM._MultiprojTexGenMatCam_Location[3] = GET_UNIFORM(myProg,"MultiprojTexGenMatCam4");
 	*/
-	me->myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 	me->myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");
-	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
-	me->myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+	me->myMaterialEmissive = GET_UNIFORM(myProg,"fw_FrontMaterial.emissive");
 	me->myMaterialSpecular = GET_UNIFORM(myProg,"fw_FrontMaterial.specular");
+	me->myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
+	me->myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
+	me->myMaterialBaseColor = GET_UNIFORM(myProg,"fw_FrontMaterial.baseColor");
+	me->myMaterialMetallic = GET_UNIFORM(myProg,"fw_FrontMaterial.metallic");
+	me->myMaterialRoughness = GET_UNIFORM(myProg,"fw_FrontMaterial.roughness");
+	me->myMaterialType = GET_UNIFORM(myProg,"fw_FrontMaterial.type");
+	me->myMaterialTransdex = GET_UNIFORM(myProg,"fw_FrontMaterial.transdex");
+	me->myMaterialNt = GET_UNIFORM(myProg,"fw_FrontMaterial.nt");
+	for(int i=0;i<10;i++){
+		char line[200];
+		sprintf(line,"fw_FrontMaterial.tindex[%d]",i);
+		me->myMaterialTindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.mode[%d]",i);
+		me->myMaterialMode[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.source[%d]",i);
+		me->myMaterialSource[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.func[%d]",i);
+		me->myMaterialFunc[i] = GET_UNIFORM(myProg,line);
+	}
+	for(int i=0;i<5;i++){
+		char line[200];
+		sprintf(line,"fw_FrontMaterial.cindex[%d]",i);
+		me->myMaterialCindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.tstart[%d]",i);
+		me->myMaterialTstart[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_FrontMaterial.tcount[%d]",i);
+		me->myMaterialTcount[i] = GET_UNIFORM(myProg,line);
+	}
 
-	me->myMaterialBackEmission = GET_UNIFORM(myProg,"fw_BackMaterial.emission");
+
 	me->myMaterialBackDiffuse = GET_UNIFORM(myProg,"fw_BackMaterial.diffuse");
-	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
-	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+	me->myMaterialBackEmissive = GET_UNIFORM(myProg,"fw_BackMaterial.emissive");
 	me->myMaterialBackSpecular = GET_UNIFORM(myProg,"fw_BackMaterial.specular");
+	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
+	me->myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
+	me->myMaterialBackBaseColor = GET_UNIFORM(myProg,"fw_BaclMaterial.baseColor");
+	me->myMaterialBackMetallic = GET_UNIFORM(myProg,"fw_BackMaterial.metallic");
+	me->myMaterialBackRoughness = GET_UNIFORM(myProg,"fw_BackMaterial.roughness");
+	me->myMaterialBackType = GET_UNIFORM(myProg,"fw_BackMaterial.type");
+	me->myMaterialBackTransdex = GET_UNIFORM(myProg,"fw_BackMaterial.transdex");
+	me->myMaterialBackNt = GET_UNIFORM(myProg,"fw_BackMaterial.nt");
+	for(int i=0;i<10;i++){
+		char line[200];
+		sprintf(line,"fw_BackMaterial.tindex[%d]",i);
+		me->myMaterialBackTindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.mode[%d]",i);
+		me->myMaterialBackMode[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.source[%d]",i);
+		me->myMaterialBackSource[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.func[%d]",i);
+		me->myMaterialBackFunc[i] = GET_UNIFORM(myProg,line);
+	}
+	for(int i=0;i<5;i++){
+		char line[200];
+		sprintf(line,"fw_BackMaterial.cindex[%d]",i);
+		me->myMaterialBackCindex[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.tstart[%d]",i);
+		me->myMaterialBackTstart[i] = GET_UNIFORM(myProg,line);
+		sprintf(line,"fw_BackMaterial.tcount[%d]",i);
+		me->myMaterialBackTcount[i] = GET_UNIFORM(myProg,line);
+	}
 
 	//me->lightState = GET_UNIFORM(myProg,"lightState");
 	//me->lightType = GET_UNIFORM(myProg,"lightType");
@@ -3016,11 +3071,11 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->NormalMatrix = GET_UNIFORM(myProg,"fw_NormalMatrix");
 	me->ModelViewInverseMatrix = GET_UNIFORM(myProg,"fw_ModelViewInverseMatrix");
 	//for (i=0; i<MAX_MULTITEXTURE; i++) {
-	me->TextureMatrix[0] = GET_UNIFORM(myProg,"fw_TextureMatrix0");
-	me->TextureMatrix[1] = GET_UNIFORM(myProg,"fw_TextureMatrix1");
-	me->TextureMatrix[2] = GET_UNIFORM(myProg,"fw_TextureMatrix2");
-	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix3");
-
+	me->TextureMatrix[0] = GET_UNIFORM(myProg,"fw_TextureMatrix[0]");
+	me->TextureMatrix[1] = GET_UNIFORM(myProg,"fw_TextureMatrix[1]");
+	me->TextureMatrix[2] = GET_UNIFORM(myProg,"fw_TextureMatrix[2]");
+	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix[3]");
+	me->nTexMatrix = GET_UNIFORM(myProg,"nTexMatrix");
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
 
 	me->Normals = GET_ATTRIB(myProg,"fw_Normal");
@@ -3033,7 +3088,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->TexCoords[1] = GET_ATTRIB(myProg,"fw_MultiTexCoord1");
 	me->TexCoords[2] = GET_ATTRIB(myProg,"fw_MultiTexCoord2");
 	me->TexCoords[3] = GET_ATTRIB(myProg,"fw_MultiTexCoord3");
-
+	me->nTexCoordChannels = GET_UNIFORM(myProg,"nTexCoordChannels");
 
 	for (i=0; i<MAX_MULTITEXTURE; i++) {
 		char line[200];
@@ -4136,7 +4191,16 @@ void fw_glGetDoublev (int ty, GLDOUBLE *mat) {
 	}
 	memcpy((void *)mat, (void *) dp, sizeof (GLDOUBLE) * MATRIX_SIZE);
 }
-
+void fw_glGetInteger( int ty, int *params){
+	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
+	switch(ty){
+		case GL_TEXTURE_STACK_DEPTH:
+			params[0] = p->textureviewTOS;
+		break;
+		default:
+		break;
+	}
+}
 void fw_glSetDoublev (int ty, GLDOUBLE *mat) {
 	GLDOUBLE *dp;
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
@@ -6674,23 +6738,24 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 	GLUNIFORMMATRIX4FV(ProjectionMatrix,1,GL_FALSE,spval);
 	profile_end("sendmtx");
 	/* TextureMatrix */
-	if(TextureMatrix)
-	for(j=0;j<MAX_MULTITEXTURE;j++) {
-		int itexturestackposition = j+1;
-		if (TextureMatrix[j] != -1 && itexturestackposition <= p->textureviewTOS) {
-			sp = spval;
-			dp = p->FW_TextureView[itexturestackposition]; //[p->textureviewTOS];
+	if(TextureMatrix){
+		for(j=0;j<MAX_MULTITEXTURE;j++) {
+			int itexturestackposition = j+1;
+			if (TextureMatrix[j] != -1 && itexturestackposition <= p->textureviewTOS) {
+				sp = spval;
+				dp = p->FW_TextureView[itexturestackposition]; //[p->textureviewTOS];
 
-			//ConsoleMessage ("sendExplicitMatriciesToShader, sizeof GLDOUBLE %d sizeof float %d\n",sizeof(GLDOUBLE), sizeof(float));
-			//printmatrix2(dp,"dp");
-			/* convert GLDOUBLE to float */
-			for (i=0; i<16; i++) {
-				*sp = (float) *dp;
-				sp ++; dp ++;
+				//ConsoleMessage ("sendExplicitMatriciesToShader, sizeof GLDOUBLE %d sizeof float %d\n",sizeof(GLDOUBLE), sizeof(float));
+				//printmatrix2(dp,"dp");
+				/* convert GLDOUBLE to float */
+				for (i=0; i<16; i++) {
+					*sp = (float) *dp;
+					sp ++; dp ++;
+				}
+				profile_start("sendmtx");
+				GLUNIFORMMATRIX4FV(TextureMatrix[j],1,GL_FALSE,spval);
+				profile_end("sendmtx");
 			}
-			profile_start("sendmtx");
-			GLUNIFORMMATRIX4FV(TextureMatrix[j],1,GL_FALSE,spval);
-			profile_end("sendmtx");
 		}
 	}
 
@@ -6786,6 +6851,9 @@ if (me->myMat != -1) { GLUNIFORM2FV(me->myMat,1,myVal);}
 #define SEND_VEC4(myMat,myVal) \
 if (me->myMat != -1) { GLUNIFORM4FV(me->myMat,1,myVal);}
 
+#define SEND_VEC3(myMat,myVal) \
+if (me->myMat != -1) { GLUNIFORM3FV(me->myMat,1,myVal);}
+
 #define SEND_FLOAT(myMat,myVal) \
 if (me->myMat != -1) { GLUNIFORM1F(me->myMat,myVal);}
 
@@ -6821,11 +6889,45 @@ void sendClipplanesToShader(s_shader_capabilities_t *me){
 	GLUNIFORM1I(me->nclipplanes,nsend);
 }
 
+
+static int nunit = 0;
+static int unit[32];
+void clear_material_samplers();
+int share_or_next_material_sampler_index(GLint texture);
+GLint tunit(int index);
+int sampler_units_used(){
+	return nunit;
+}
+void clear_material_samplers(){
+	nunit = 0;
+}
+int share_or_next_material_sampler_index(GLint texture){
+	int kunit, index;
+	kunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, texture);
+	index = -1;
+	for(int i=0;i<nunit;i++){
+		if(unit[i] == kunit){
+			index = i;
+		}
+	}
+	if(index == -1){
+		unit[nunit] = kunit;
+		index = nunit;
+		nunit++;
+	}
+	//glUniform1i(me->TextureUnit[i],unit[kunit]);
+	return index;
+}
+GLint tunit(int index){
+	return unit[index];
+}
+
 void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct matpropstruct *myap = getAppearanceProperties();
-	struct fw_MaterialParameters *fw_FrontMaterial;
+	struct fw_MaterialParameters *fw_FrontMaterial, *mp;
 	struct fw_MaterialParameters *fw_BackMaterial;
-
+	int nt;
+	ttglobal tg = gglobal();
 	if (!myap) return;
 	fw_FrontMaterial = &myap->fw_FrontMaterial;
 	fw_BackMaterial = &myap->fw_BackMaterial;
@@ -6852,17 +6954,92 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 /* eventually do this with code blocks in glsl */
 	profile_start("sendvec");
-	SEND_VEC4(myMaterialAmbient,fw_FrontMaterial->ambient);
-	SEND_VEC4(myMaterialDiffuse,fw_FrontMaterial->diffuse);
-	SEND_VEC4(myMaterialSpecular,fw_FrontMaterial->specular);
-	SEND_VEC4(myMaterialEmission,fw_FrontMaterial->emission);
-	SEND_FLOAT(myMaterialShininess,fw_FrontMaterial->shininess);
+	GLUNIFORM3FV(me->myMaterialDiffuse,1,fw_FrontMaterial->diffuse);
+	GLUNIFORM3FV(me->myMaterialEmissive,1,fw_FrontMaterial->emissive);
+	GLUNIFORM3FV(me->myMaterialSpecular,1,fw_FrontMaterial->specular);
+	GLUNIFORM3FV(me->myMaterialBaseColor,1,fw_FrontMaterial->baseColor);
+	GLUNIFORM1F(me->myMaterialAmbient,fw_FrontMaterial->ambient);
+	GLUNIFORM1F(me->myMaterialShininess,fw_FrontMaterial->shininess);
+	GLUNIFORM1F(me->myMaterialTransparency,fw_FrontMaterial->transparency);
+	GLUNIFORM1F(me->myMaterialRoughness,fw_FrontMaterial->roughness);
+	GLUNIFORM1F(me->myMaterialMetallic,fw_FrontMaterial->metallic);
+	GLUNIFORM1I(me->myMaterialType,fw_FrontMaterial->type);
+	GLUNIFORM1I(me->myMaterialTransdex,fw_FrontMaterial->transdex);
+	mp = fw_FrontMaterial;
+	nt = 0;
+	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+	for(int i=0;i<5;i++){
+		mp->tcount[i] = 0;
+		mp->tstart[i] = nt;
+		if(mp->textures[i]){
+			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			render_node(mp->textures[i]);
+			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
+			mp->tcount[i] = ntdesc;
+			for(int j=0;j<ntdesc;j++){
+				int kunit = share_or_next_material_sampler_index(textures[j]);
+				mp->tindex[nt] = kunit;
+				mp->source[nt] = sources[j];
+				mp->mode[nt] = modes[j];
+				mp->func[nt] = funcs[j];
+				int iunit = tunit(kunit);
+				glUniform1i(me->textureUnit[kunit],iunit); //tunit(kunit));
+				GLUNIFORM1I(me->myMaterialTindex[nt],mp->tindex[nt]);
+				nt++;
+			}
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
+		}
+		GLUNIFORM1I(me->myMaterialCindex[i],mp->cindex[i]);
+		GLUNIFORM1I(me->myMaterialTcount[i],mp->tcount[i]);
+		GLUNIFORM1I(me->myMaterialTstart[i],mp->tstart[i]);
+	}
+	mp->nt = nt;
+	//SEND_INT(myMaterialNt,mp->nt);
 
-	SEND_VEC4(myMaterialBackAmbient,fw_BackMaterial->ambient);
-	SEND_VEC4(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
-	SEND_VEC4(myMaterialBackSpecular,fw_BackMaterial->specular);
-	SEND_VEC4(myMaterialBackEmission,fw_BackMaterial->emission);
+	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
+	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
+	SEND_VEC3(myMaterialBackSpecular,fw_BackMaterial->specular);
+	SEND_VEC3(myMaterialBackBaseColor,fw_BackMaterial->baseColor);
+	SEND_FLOAT(myMaterialBackAmbient,fw_BackMaterial->ambient);
 	SEND_FLOAT(myMaterialBackShininess,fw_BackMaterial->shininess);
+	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
+	SEND_FLOAT(myMaterialBackRoughness,fw_BackMaterial->roughness);
+	SEND_FLOAT(myMaterialBackMetallic,fw_BackMaterial->metallic);
+	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
+	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
+	mp = fw_BackMaterial;
+	nt = 0;
+	for(int i=0;i<5;i++){
+		mp->tcount[i] = 0;
+		mp->tstart[i] = nt;
+		if(mp->textures[i]){
+			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			render_node(mp->textures[i]);
+			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
+			mp->tcount[i] = ntdesc;
+			for(int j=0;j<ntdesc;j++){
+				int kunit = share_or_next_material_sampler_index(textures[j]);
+				mp->tindex[nt] = kunit;
+				mp->source[nt] = sources[j];
+				mp->mode[nt] = modes[j];
+				mp->func[nt] = funcs[j];
+				glUniform1i(me->textureUnit[kunit],tunit(kunit));
+				SEND_INT(myMaterialBackTindex[nt],mp->tindex[nt]);
+				nt++;
+			}
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
+		}
+		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
+		SEND_INT(myMaterialBackTcount[i],mp->tcount[i]);
+		SEND_INT(myMaterialBackTstart[i],mp->tstart[i]);
+	}
+	mp->nt = nt;
+	//SEND_INT(myMaterialBackNt,mp->nt);
+
+	//send v4 material textures to shader
+	// int next_textureUnit2D();
+	// sharable GLint textures? > fewer units needed
+
 	profile_end("sendvec");
 
 	if (me->haveLightInShader) sendLightInfo(me);

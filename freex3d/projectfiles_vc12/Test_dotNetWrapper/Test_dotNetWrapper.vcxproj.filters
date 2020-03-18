@@ -15,39 +15,39 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src_windows\Test_dotNetWrapper\AssemblyInfo.cpp">
+    <ClCompile Include="$(SRCWIN)\Test_dotNetWrapper\AssemblyInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src_windows\Test_dotNetWrapper\stdafx.cpp">
+    <ClCompile Include="$(SRCWIN)\Test_dotNetWrapper\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src_windows\Test_dotNetWrapper\Test_dotNetWrapper.cpp">
+    <ClCompile Include="$(SRCWIN)\Test_dotNetWrapper\Test_dotNetWrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src_windows\Test_dotNetWrapper\Form1.h">
+    <ClInclude Include="$(SRCWIN)\Test_dotNetWrapper\Form1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src_windows\Test_dotNetWrapper\resource.h">
+    <ClInclude Include="$(SRCWIN)\Test_dotNetWrapper\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src_windows\Test_dotNetWrapper\stdafx.h">
+    <ClInclude Include="$(SRCWIN)\Test_dotNetWrapper\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\src_windows\Test_dotNetWrapper\app.ico">
+    <Image Include="$(SRCWIN)\Test_dotNetWrapper\app.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\src_windows\Test_dotNetWrapper\app.rc">
+    <ResourceCompile Include="$(SRCWIN)\Test_dotNetWrapper\app.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\..\src_windows\Test_dotNetWrapper\Form1.resX">
+    <EmbeddedResource Include="$(SRCWIN)\Test_dotNetWrapper\Form1.resX">
       <Filter>Resource Files</Filter>
     </EmbeddedResource>
   </ItemGroup>

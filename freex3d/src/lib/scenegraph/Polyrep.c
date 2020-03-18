@@ -47,35 +47,6 @@
 #include "Tess.h"
 
 
-/* Polyrep rendering, node has a color field, which is an RGB field (not RGBA) and transparency is changing */
-static void recalculateColorField(struct X3D_PolyRep *r) {
-	int n;
-	struct SFColorRGBA *newcolors;
-	float *op, *np;
-
-	/* first, make sure we do not do this over and over... */
-	r->transparency = getAppearanceProperties()->transparency;
-
-	newcolors = MALLOC (struct SFColorRGBA *, sizeof (struct SFColorRGBA)*r->ntri*3);
-	op = r->color;
-	np = (float *)newcolors;
-
-	for (n=0; n<r->ntri*3; n++) {
-		*np = *op; np++; op++;  		/* R */
-		*np = *op; np++; op++;  		/* G */
-		*np = *op; np++; op++;  		/* B */
-		*np = getAppearanceProperties()->transparency; np++; op++;	/* A */
-	}
-	FREE_IF_NZ(r->color);
-	r->color = (float *)newcolors;
-
-	/* VBOs need this re-bound */
-
-	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
-	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
-	FREE_IF_NZ(r->color);
-}
 
 /* How many faces are in this IndexedFaceSet?			*/
 
@@ -851,15 +822,10 @@ void render_polyrep(void *node) {
 	}
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#t-Litcolourandalpha
 	//if lit, use colors if colornode and (intensity or no texture)
- 	hasc = ((pr->VBO_buffers[COLOR_VBO]!=0) || pr->color) && (tg->RenderFuncs.last_texture_type!=TEXTURE_NO_ALPHA);
+ 	hasc = ((pr->VBO_buffers[COLOR_VBO]!=0) || pr->color);
 
  	/* Do we have any colours? Are textures, if present, not RGB? */
  	if(hasc){
- 		if (!pr->isRGBAcolorNode) 
- 			if (!APPROX(pr->transparency,getAppearanceProperties()->transparency)) {
- 				recalculateColorField(pr);
- 			}
- 		
  		LIGHTING_ON
     }
 

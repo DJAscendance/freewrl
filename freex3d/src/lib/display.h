@@ -346,17 +346,45 @@ typedef struct s_shader_capabilities{
 	GLint compiledOK;
 	GLuint myShaderProgram;
 
-	GLint myMaterialAmbient;
 	GLint myMaterialDiffuse;
+	GLint myMaterialEmissive;
 	GLint myMaterialSpecular;
+	GLint myMaterialAmbient;
 	GLint myMaterialShininess;
-	GLint myMaterialEmission;
+	GLint myMaterialTransparency;
+	GLint myMaterialBaseColor;
+	GLint myMaterialMetallic;
+	GLint myMaterialRoughness;
+	GLint myMaterialType;
+	GLint myMaterialTransdex;
+	GLint myMaterialNt;
+	GLint myMaterialTindex[10];
+	GLint myMaterialMode[10];
+	GLint myMaterialSource[10];
+	GLint myMaterialFunc[10];
+	GLint myMaterialTcount[5];
+	GLint myMaterialTstart[5];
+	GLint myMaterialCindex[5];
 
-	GLint myMaterialBackAmbient;
 	GLint myMaterialBackDiffuse;
+	GLint myMaterialBackEmissive;
 	GLint myMaterialBackSpecular;
+	GLint myMaterialBackAmbient;
 	GLint myMaterialBackShininess;
-	GLint myMaterialBackEmission;
+	GLint myMaterialBackTransparency;
+	GLint myMaterialBackBaseColor;
+	GLint myMaterialBackMetallic;
+	GLint myMaterialBackRoughness;
+	GLint myMaterialBackType;
+	GLint myMaterialBackTransdex;
+	GLint myMaterialBackNt;
+	GLint myMaterialBackTindex[10];
+	GLint myMaterialBackMode[10];
+	GLint myMaterialBackSource[10];
+	GLint myMaterialBackFunc[10];
+	GLint myMaterialBackTcount[5];
+	GLint myMaterialBackTstart[5];
+	GLint myMaterialBackCindex[5];
 
 	GLint myPointSize;
     
@@ -385,14 +413,18 @@ typedef struct s_shader_capabilities{
 	GLint NormalMatrix;
 	GLint ModelViewInverseMatrix;
 	GLint TextureMatrix[MAX_MULTITEXTURE];
+	GLint nTexMatrix;
 	GLint Vertices;
 	GLint Normals;
 	GLint Colours;
 	GLint TexCoords[MAX_MULTITEXTURE];
+	GLint nTexCoordChannels;
 	GLint FogCoords; //Aug 2016
 	
-	/* Projective Texture */
-	GLint textureUnit[4];
+	//shared PTM and PBR
+	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
+
+	/* PTM Projective Texture */
 	GLint projTexGenMatCam[16];
 	GLint pbackCull[16];
 	GLint ntdesc[16];

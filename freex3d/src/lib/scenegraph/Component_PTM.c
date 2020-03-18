@@ -175,6 +175,8 @@ void print_bound_textures(char *str){
 	}
 }
 
+
+
 int get_bound_image(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
@@ -217,6 +219,8 @@ void resend_textureprojector_matrix()
 	int nunit = 0;
 	int kdesc = 0;
 	int unitTextures[4];
+	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+
 	for(int i=0;i<tcount;i++)
 	{
 		float TenLinearGexMatCam0f[16];
@@ -244,7 +248,8 @@ void resend_textureprojector_matrix()
 			int width[4], height[4];
 
 			int toffset = 4;
-			glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
+			//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
 			render_node(ptuple->textureNode);
 
 			ntdesc = getTextureDescriptors(ptuple->textureNode,textures, modes,sources, funcs, width, height);
@@ -254,32 +259,21 @@ void resend_textureprojector_matrix()
 				int kunit;
 				//texture = ptuple->texture;
 				texture = textures[j];
-				kunit = -1;
-				for(int k=0;k<nunit;k++){
-					if(unitTextures[k] == texture){
-						kunit = k;
-						break;
-					}
-				}
-				if(kunit == -1){
-					int toffset = 4;
-					nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
-					kunit = nunit-1;
-					//print_bound_textures("start");
-					glActiveTexture(GL_TEXTURE0+toffset+kunit); 
-					glBindTexture(GL_TEXTURE_2D,texture); 
-					glUniform1i(me->textureUnit[kunit],kunit+toffset);
-					glActiveTexture(GL_TEXTURE0);
-					//print_bound_textures("end");
-				}
-				unitTextures[kunit] = texture;
-				GLUNIFORM1I(me->tunits[kdesc],kunit);
+
+				nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
+				kunit = nunit-1;
+				int ksamp = share_or_next_material_sampler_index(texture);
+				int itextureunit = tunit(ksamp);
+				glUniform1i(me->textureUnit[ksamp],itextureunit); //tunit(kkunit));
+				GLUNIFORM1I(me->tunits[kdesc],ksamp); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
+				glActiveTexture(GL_TEXTURE0);
+
 				GLUNIFORM1I(me->modes[kdesc],modes[j]);
 				GLUNIFORM1I(me->sources[kdesc],sources[j]);
 				GLUNIFORM1I(me->funcs[kdesc],funcs[j]);
 			}
 			pcount++;
-			tg->RenderFuncs.textureStackTop = 1; //keep this frmo building up
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
 	}
 	GLUNIFORM1I(me->pCount,pcount);

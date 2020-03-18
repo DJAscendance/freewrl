@@ -377,6 +377,7 @@ struct X3D_TwoSidedMaterial *get_material_twoSided();
 void pushnset_viewport(float *vpFraction);
 void popnset_viewport();
 int haveFrameBufferObject();
+void initialize_front_and_back_material_params();
 void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 	struct X3D_OpacityMapVolumeStyle *style0 = (struct X3D_OpacityMapVolumeStyle*)vstyle;
 	if(style0->enabled){
@@ -584,54 +585,48 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					//SFString []       phaseFunction  "Henyey-Greenstein" ["Henyey-Greenstein","NONE",...]
 					//MATERIAL
 					if(style->material){
-						struct fw_MaterialParameters defaultMaterials = {
-									{0.0f, 0.0f, 0.0f, 1.0f}, /* Emission */
-									{0.0f, 0.0f, 0.0f, 1.0f}, /* Ambient */
-									{0.8f, 0.8f, 0.8f, 1.0f}, /* Diffuse */
-									{0.0f, 0.0f, 0.0f, 1.0f}, /* Specular */
-									10.0f};                   /* Shininess */
 
 						struct X3D_Material *matone;
 						struct X3D_TwoSidedMaterial *mattwo;
 						struct fw_MaterialParameters *fw_FrontMaterial;
 						struct fw_MaterialParameters *fw_BackMaterial;
-						GLint myMaterialAmbient;
 						GLint myMaterialDiffuse;
+						GLint myMaterialEmissive;
 						GLint myMaterialSpecular;
+						GLint myMaterialAmbient;
 						GLint myMaterialShininess;
-						GLint myMaterialEmission;
+						GLint myMaterialTransparency;
 
-						GLint myMaterialBackAmbient;
 						GLint myMaterialBackDiffuse;
+						GLint myMaterialBackEmissive;
 						GLint myMaterialBackSpecular;
 						GLint myMaterialBackShininess;
-						GLint myMaterialBackEmission;
+						GLint myMaterialBackAmbient;
+						GLint myMaterialBackTransparency;
 						struct matpropstruct *myap = getAppearanceProperties();
 
-						memcpy (&myap->fw_FrontMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-						memcpy (&myap->fw_BackMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-
+						void initialize_front_and_back_material_params();
 						RENDER_MATERIAL_SUBNODES(style->material);
 						//struct matpropstruct matprop;
 						//s_shader_capabilities_t mysp;
 						//sendFogToShader(mysp); 
-						matone = get_material_oneSided();
-						mattwo = get_material_twoSided();
-						//sendMaterialsToShader(mysp);
-						if (matone != NULL) {
-							memcpy (&myap->fw_FrontMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-							memcpy (&myap->fw_BackMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-							/* copy the emissive colour over for lines and points */
-							memcpy(&myap->emissionColour,matone->_verifiedColor.p, 3*sizeof(float));
+						//matone = get_material_oneSided();
+						//mattwo = get_material_twoSided();
+						////sendMaterialsToShader(mysp);
+						//if (matone != NULL) {
+						//	memcpy (&myap->fw_FrontMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+						//	memcpy (&myap->fw_BackMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+						//	/* copy the emissive colour over for lines and points */
+						//	//memcpy(&myap->emissionColour,matone->_verifiedColor.p, 3*sizeof(float));
 
-						} else if (mattwo != NULL) {
-							memcpy (&myap->fw_FrontMaterial, mattwo->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-							memcpy (&myap->fw_BackMaterial, mattwo->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-							/* copy the emissive colour over for lines and points */
-							memcpy(&myap->emissionColour,mattwo->_verifiedFrontColor.p, 3*sizeof(float));
-						} else {
-							/* no materials selected.... */
-						}
+						//} else if (mattwo != NULL) {
+						//	memcpy (&myap->fw_FrontMaterial, mattwo->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
+						//	memcpy (&myap->fw_BackMaterial, mattwo->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+						//	/* copy the emissive colour over for lines and points */
+						//	//memcpy(&myap->emissionColour,mattwo->_verifiedFrontColor.p, 3*sizeof(float));
+						//} else {
+						//	/* no materials selected.... */
+						//}
 
 
 
@@ -645,31 +640,35 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						/* eventually do this with code blocks in glsl */
 
 
-						myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 						myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");
-						myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
-						myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+						myMaterialEmissive = GET_UNIFORM(myProg,"fw_FrontMaterial.emissive");
 						myMaterialSpecular = GET_UNIFORM(myProg,"fw_FrontMaterial.specular");
+						myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+						myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
+						myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
 
-						myMaterialBackEmission = GET_UNIFORM(myProg,"fw_BackMaterial.emission");
 						myMaterialBackDiffuse = GET_UNIFORM(myProg,"fw_BackMaterial.diffuse");
-						myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
-						myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+						myMaterialBackEmissive = GET_UNIFORM(myProg,"fw_BackMaterial.emissive");
 						myMaterialBackSpecular = GET_UNIFORM(myProg,"fw_BackMaterial.specular");
+						myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+						myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
+						myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
 
 
 						profile_start("sendvec");
-						GLUNIFORM4FV(myMaterialAmbient,1,fw_FrontMaterial->ambient);
-						GLUNIFORM4FV(myMaterialDiffuse,1,fw_FrontMaterial->diffuse);
-						GLUNIFORM4FV(myMaterialSpecular,1,fw_FrontMaterial->specular);
-						GLUNIFORM4FV(myMaterialEmission,1,fw_FrontMaterial->emission);
+						GLUNIFORM3FV(myMaterialDiffuse,1,fw_FrontMaterial->diffuse);
+						GLUNIFORM3FV(myMaterialEmissive,1,fw_FrontMaterial->emissive);
+						GLUNIFORM3FV(myMaterialSpecular,1,fw_FrontMaterial->specular);
+						GLUNIFORM1F(myMaterialAmbient,fw_FrontMaterial->ambient);
 						GLUNIFORM1F(myMaterialShininess,fw_FrontMaterial->shininess);
+						GLUNIFORM1F(myMaterialTransparency,fw_FrontMaterial->transparency);
 
-						GLUNIFORM4FV(myMaterialBackAmbient,1,fw_BackMaterial->ambient);
-						GLUNIFORM4FV(myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
-						GLUNIFORM4FV(myMaterialBackSpecular,1,fw_BackMaterial->specular);
-						GLUNIFORM4FV(myMaterialBackEmission,1,fw_BackMaterial->emission);
+						GLUNIFORM3FV(myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
+						GLUNIFORM3FV(myMaterialBackSpecular,1,fw_BackMaterial->specular);
+						GLUNIFORM3FV(myMaterialBackEmissive,1,fw_BackMaterial->emissive);
+						GLUNIFORM1F(myMaterialBackAmbient,fw_BackMaterial->ambient);
 						GLUNIFORM1F(myMaterialBackShininess,fw_BackMaterial->shininess);
+						GLUNIFORM1F(myMaterialBackTransparency,fw_BackMaterial->transparency);
 						profile_end("sendvec");
 
 

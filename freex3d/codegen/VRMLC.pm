@@ -1060,6 +1060,7 @@ sub gen {
 	"#define X3D_POINTLIGHT(node) ((struct X3D_PointLight*)node)\n".
 	"#define X3D_SPOTLIGHT(node) ((struct X3D_SpotLight*)node)\n".
 	"#define X3D_DIRECTIONALLIGHT(node) ((struct X3D_DirectionalLight*)node)\n".
+	"#define X3D_ENVIRONMENTLIGHT(node) ((struct X3D_EnvironmentLight*)node)\n".
 	"#define X3D_INDEXEDFACESET(node) ((struct X3D_IndexedFaceSet*)node)\n".
 	"#define X3D_INDEXEDLINESET(node) ((struct X3D_IndexedLineSet*)node)\n".
 	"#define X3D_ELEVATIONGRID(node) ((struct X3D_ElevationGrid*)node)\n".
@@ -1675,7 +1676,6 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	int texgentype; /* if we do have a TextureCoordinateGenerator, what "TCGT_XXX" type is it? */
 	GLfloat minVals[3];		/* for collision and default texture coord generation */
 	GLfloat maxVals[3];		/* for collision and default texture coord generation */
-	GLfloat transparency;		/* what the transparency value was during compile, put in color array if RGBA colors */
 	int isRGBAcolorNode;		/* color was originally an RGBA, DO NOT re-write if transparency changes */
 	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
 };

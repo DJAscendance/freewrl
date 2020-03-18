@@ -114,7 +114,7 @@ our %defaultContainerType = (
 	HAnimJoint		=>["joints"],
 	HAnimSegment		=>["segments"],
 	HAnimSite		=>["sites"],
-	ImageTexture 		=>["texture"],
+	ImageTexture 		=>["texture","diffuseTexture","emissiveTexture","normalTexture","ambientTexture"],
 	ImageCubeMapTexture 	=>["texture"],
 	GeneratedCubeMapTexture	=>["texture"],
 	ComposedCubeMapTexture	=>["texture"],
@@ -130,9 +130,10 @@ our %defaultContainerType = (
 	LineSensor 		=>["children"],
 	LoadSensor		=>["children"],
 	LOD 			=>["children"],
-	Material 		=>["material"],
-	PhysicalMaterial 	=>["material"],
-	TwoSidedMaterial	=>["material"],
+	Material 		=>["material","backMaterial"],
+	PhysicalMaterial 	=>["material","backMaterial"],
+	TwoSidedMaterial 	=>["material"],
+	UnlitMaterial		=>["material","backMaterial"],
 	MultiTexture		=>["texture"],
 	MultiTextureCoordinate  =>["texCoord"],
 	MultiTextureTransform	=>["textureTransform"],
@@ -158,6 +159,7 @@ our %defaultContainerType = (
 	Sphere 			=>["geometry"],
 	SphereSensor 		=>["children"],
 	SpotLight 		=>["children"],
+	EnvironmentLight	=>["children"],
 	StaticGroup		=>["children"],
 	StringSensor		=>["children"],
 	Switch 			=>["children"],
@@ -399,6 +401,7 @@ our %RendC = map {($_=>1)} qw/
 	LineProperties
 	FillProperties
 	Material
+	UnlitMaterial
 	PhysicalMaterial
 	TwoSidedMaterial
 	ProgramShader
@@ -418,6 +421,7 @@ our %RendC = map {($_=>1)} qw/
 	DirectionalLight
 	SpotLight
 	PointLight
+	EnvironmentLight
 	HAnimHumanoid
 	HAnimJoint
 	QuadSet
@@ -483,6 +487,7 @@ our %PrepC = map {($_=>1)} qw/
 	PointLight
 	SpotLight
 	DirectionalLight
+	EnvironmentLight
 	GeoLocation
 	GeoPlanet
 	GeoViewpoint
@@ -612,6 +617,7 @@ our %CompileC = map {($_=>1)} qw/
 	CADPart
 	ViewpointGroup
 	Material
+	UnlitMaterial
 	PhysicalMaterial
 	TwoSidedMaterial
 	IndexedLineSet
@@ -697,6 +703,7 @@ our %CompileC = map {($_=>1)} qw/
 	SpotLight
 	PointLight
 	DirectionalLight
+	EnvironmentLight
 	NurbsCurve
 	NurbsPatchSurface
 	NurbsSwungSurface

@@ -43,8 +43,16 @@ X3D Shape Component
 #include "Component_ProgrammableShaders.h"
 #include "Component_Shape.h"
 #include "RenderFuncs.h"
+#include "LinearAlgebra.h"
 
 #define NOTHING 0
+
+enum {
+	MAT_NONE = 0,
+	MAT_UNLIT = 1,
+	MAT_REGULAR = 2,
+	MAT_PHYSICAL = 3,
+};
 
 typedef struct pComponent_Shape{
 
@@ -52,10 +60,10 @@ typedef struct pComponent_Shape{
 
 	/* pointer for a TextureTransform type of node */
 	struct X3D_Node *  this_textureTransform;  /* do we have some kind of textureTransform? */
-
+	int isBackMaterial;
 	/* for doing shader material properties */
-	struct X3D_TwoSidedMaterial *material_twoSided;
-	struct X3D_Material *material_oneSided;
+	//struct X3D_TwoSidedMaterial *material_twoSided;
+	//struct X3D_Material *material_oneSided;
 
 	/* Any user defined shaders here? */
 	struct X3D_Node * userShaderNode;
@@ -75,6 +83,7 @@ void Component_Shape_init(struct tComponent_Shape *t){
 	{
 		ppComponent_Shape p = (ppComponent_Shape)t->prv;
 		p->modulation = 1; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+		p->isBackMaterial = 0;
 	}
 
 }
@@ -181,6 +190,19 @@ struct X3D_Node *getThis_textureTransform(){
 	return p->this_textureTransform;
 }
 void clear_bound_textures();
+void push_isBackMaterial(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	p->isBackMaterial += 1;
+}
+void pop_isBackMaterial(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	p->isBackMaterial -= 1;
+}
+int get_isBackMaterial(){
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+	return p->isBackMaterial;
+
+}
 void child_Appearance (struct X3D_Appearance *node) {
 	struct X3D_Node *tmpN;
 	ttglobal tg = gglobal();
@@ -188,9 +210,13 @@ void child_Appearance (struct X3D_Appearance *node) {
 	/* printf ("in Appearance, this %d, nodeType %d\n",node, node->_nodeType);
 	   printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	   render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
-	//clear_bound_textures();
 	/* Render the material node... */
 	RENDER_MATERIAL_SUBNODES(node->material);
+	if(node->backMaterial){
+		push_isBackMaterial();
+		RENDER_MATERIAL_SUBNODES(node->backMaterial);
+		pop_isBackMaterial();
+	}
 	
 	if (node->fillProperties) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->fillProperties,tmpN);
@@ -278,143 +304,107 @@ void child_Appearance (struct X3D_Appearance *node) {
 void render_Material (struct X3D_Material *node) {
 	COMPILE_IF_REQUIRED
 	{
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
-	/* record this node for OpenGL-ES and OpenGL-3.1 operation */
-	p->material_oneSided = node;
+		/* record this node for OpenGL-ES and OpenGL-3.1 operation */
+		//p->material_oneSided = node;
+		//if(get_isBackMaterial()){
+		//	p->material_twoSided = node;
+		//}
+		if (node != NULL) {
+			if(get_isBackMaterial()){
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}else{
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}
+		}
 	}
 }
-struct X3D_Material *get_material_oneSided(){
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
-	return p->material_oneSided;
-}
-struct X3D_TwoSidedMaterial *get_material_twoSided(){
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
-	return p->material_twoSided;
-}
+//struct X3D_Material *get_material_oneSided(){
+//	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+//	return p->material_oneSided;
+//}
+//struct X3D_TwoSidedMaterial *get_material_twoSided(){
+//	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+//	return p->material_twoSided;
+//}
 
 /* bounds check the material node fields */
 void compile_Material (struct X3D_Material *node) {
-	int i;
-	float trans;
-
+	struct X3D_Node **tnodes;
+	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
-	if (node->ambientIntensity < 0.0f) node->ambientIntensity=0.0f;
-	if (node->ambientIntensity > 1.0f) node->ambientIntensity=1.0f;
-	if (node->shininess < 0.0f) node->shininess=0.0f;
-	if (node->shininess > 1.0f) node->shininess=1.0f;
-	if (node->transparency < 0.0f) node->transparency=MIN_NODE_TRANSPARENCY;
-	if (node->transparency >= 1.0f) node->transparency=MAX_NODE_TRANSPARENCY;
+	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
+	node->shininess = fclamp(node->shininess,0.0f,1.0f);
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->diffuseColor.c,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
-	for (i=0; i<3; i++) {
-		if (node->diffuseColor.c[i] < 0.0f) node->diffuseColor.c[i]=0.0f;
-		if (node->diffuseColor.c[i] > 1.0f) node->diffuseColor.c[i]=1.0f;
-		if (node->emissiveColor.c[i] < 0.0f) node->emissiveColor.c[i]=0.0f;
-		if (node->emissiveColor.c[i] > 1.0f) node->emissiveColor.c[i]=1.0f;
-		if (node->specularColor.c[i] < 0.0f) node->specularColor.c[i]=0.0f;
-		if (node->specularColor.c[i] > 1.0f) node->specularColor.c[i]=1.0f;
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
 	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
-	/* set the transparency here for the material */
-	/* Remember, VRML/X3D transparency 0.0 = solid; OpenGL 1.0 = solid, so we reverse it... */
-	trans = 1.0f - node->transparency;
+	q = (struct fw_MaterialParameters *)node->_material;
+	veccopy3f(q->diffuse,node->diffuseColor.c);
+	veccopy3f(q->emissive,node->emissiveColor.c);
+	veccopy3f(q->specular,node->specularColor.c);
+	q->ambient = node->ambientIntensity;
+	q->shininess = node->shininess;
+	q->transparency = node->transparency;
+	q->type = MAT_REGULAR;
 
-	/* we now keep verified params in a structure that maps to Shaders well...
-	struct gl_MaterialParameters {
-		vec4 emission;
-		vec4 ambient;
-		vec4 diffuse;
-		vec4 specular;
-		float shininess;
-	};
-	which is stored in the _verifiedColor[17] array here.
-	emission [0]..[3];
-	ambient [4]..[7];
-	diffuse [8]..[11];
-	specular [12]..[15];
-	shininess [16]
-*/
-	/* first, put in the transparency */
-	node->_verifiedColor.p[3] = trans;
-	node->_verifiedColor.p[7] = trans;
-	node->_verifiedColor.p[11] = trans;
-	node->_verifiedColor.p[15] = trans;
-
-	/* DiffuseColor */
-	memcpy((void *)(&node->_verifiedColor.p[8]), node->diffuseColor.c, sizeof (float) * 3);
-
-	/* Ambient  - diffuseColor * ambientIntensity */
-	for(i=0; i<3; i++) { node->_verifiedColor.p[i+4] = node->_verifiedColor.p[i+8] * node->ambientIntensity; }
-
-	/* Specular */
-	memcpy((void *)(&node->_verifiedColor.p[12]), node->specularColor.c, sizeof (float) * 3);
-
-	/* Emissive */
-	memcpy((void *)(&node->_verifiedColor.p[0]), node->emissiveColor.c, sizeof (float) * 3);
-
-	/* Shininess */
-	node->_verifiedColor.p[16] = node->shininess;
-
-//#define MAX_SHIN 128.0f
-//#define MIN_SHIN 0.01f
-//		if ((node->_verifiedColor.p[16] > MAX_SHIN) || (node->_verifiedColor.p[16] < MIN_SHIN)) {
-//			if (node->_verifiedColor.p[16]>MAX_SHIN){node->_verifiedColor.p[16] = MAX_SHIN;}else{node->_verifiedColor.p[16]=MIN_SHIN;}
-//		}
-//#undef MAX_SHIN
-//#undef MIN_SHIN
-
+	//new v4 textures
+	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	tnodes = q->textures;
+	memset(tnodes,0,5*sizeof(void *));
+	if(node->normalTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
+	}
+	if(node->emissiveTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
+	}
+	if(node->diffuseTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->diffuseTexture,tnodes[2]);
+	}
+	if(node->specularShininessTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->specularShininessTexture,tnodes[3]);
+	}
+	if(node->ambientTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->ambientTexture,tnodes[4]);
+	}
+	int *cindex = q->cindex;
+	cindex[0] = node->normalTextureChannel;
+	cindex[1] = node->emissiveTextureChannel;
+	cindex[2] = node->diffuseTextureChannel;
+	cindex[3] = node->specularShininessTextureChannel;
+	cindex[4] = node->ambientTextureChannel;
+	q->nt = 0; //assume no material.texturexxx to start
+	for(int i=0;i<5;i++){
+		q->tcount[i] = 0; //default: no texture for this material function
+		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
+		if(tnodes[i]){
+			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
+				struct X3D_MultiTexture *mt = (struct X3D_MultiTexture*)tnodes[i];
+				q->tcount[i] = mt->texture.n;
+				q->nt += mt->texture.n;
+				q->mt++;
+			}else{
+				//single texture
+				q->nt++;
+				q->tcount[i] = 1;
+			}
+		}
+	}
 	MARK_NODE_COMPILED
 }
-
-/*
-
-PBR Physics Based Rendering
-https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#materials 
-- describes how to do BRDF calculations (don't I have a book on BRDF? with shaders?)
-https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#appendix-b-brdf-implementation
-- Appendix B shows the BRDF math, and link to example viewer implementation:
-https://github.com/KhronosGroup/glTF-Sample-Viewer/ 
-https://github.com/KhronosGroup/glTF-Sample-Viewer/blob/master/src/shaders/metallic-roughness.frag
-- implements BRDF in frag, including ifdefs for 'maps' vs scalars.
-https://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf 
-- Schlick BRDF model
-example x3dom:
-https://github.com/x3dom/x3dom/blob/master/src/nodes/Shape/PhysicalMaterial.js
-exmaple CGE:
-https://github.com/castle-engine/castle-engine/blob/master/src/x3d/opengl/glsl/source/lighting_model_physical/shading_phong.fs
-
-H: specular-glossiness and metallic-roughness are different ways to declare the same thing
-so only one is needed. And since web3d does specular-glossiness in the regular material, no need for it in the physical.
-
-PhysicalMaterialNode:	
-the textures are optional, and have specific packing of effects
-occlusionRoughnessMetallicTexture  (occlusion=R,Roughness=G,Metallic=B)
-
-There are a lot of (optional) textures with this, with the v4 extended Material node, and with PTM projective texture mapping.
-IDEA: generalize what we did with PTM: 
-- have a generic list of sampler2D textureUnit[xx] 
-- and through a separate int32 array say which textureUnit goes with which texture.
-That would allow combining PTM and (PhysicalMaterial or Matierial with textures) 
--- in a flexible way that minimizes (GPU limited resource) sampler2Ds
-
-GPU textureUnits / samplers needed:
-Gross: 7
-max needed: 4 (assuming physics channel packing): normal, emissive, baseColor, occlusion-metallic-roughness
-possible Array-ization assuming same widthxheight for all:
-1 samplerArray for the physics, 1 sampler2D for baseColorTexture
-
-*/
-void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
-	MARK_NODE_COMPILED
-
-	//the scalars/primitives are mandatory, check their ranges
-}
-
-void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
-	
-	COMPILE_IF_REQUIRED
-}
-
 
 
 
@@ -545,10 +535,13 @@ static int getShapeFogShader (struct X3D_Node *myGeom) {
 	/* if we are down here, we KNOW we do not have a color field */
 	return NOTHING; /* do not add any capabilites here */
 }
+void compile_material_if_required(struct X3D_Node *node){
+	COMPILE_IF_REQUIRED(node);
+}
 
 static int getAppearanceShader (struct X3D_Node *myApp) {
 	struct X3D_Appearance *realAppearanceNode;
-	struct X3D_Node *realMaterialNode;
+	struct X3D_Node *realMaterialNode, *realBackMaterialNode;
 
 
 	int retval = NOTHING;
@@ -559,17 +552,123 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 	POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance *, myApp,realAppearanceNode);
 	if (!realAppearanceNode || realAppearanceNode->_nodeType != NODE_Appearance) return retval;
     
+	// v4 Appearance.backMaterial (vs v3.3-- TwoSidedMaterial)
+	realMaterialNode = realBackMaterialNode = NULL;
+	if (realAppearanceNode->backMaterial != NULL) {
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->backMaterial,realBackMaterialNode);
+	}
 	if (realAppearanceNode->material != NULL) {
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->material,realMaterialNode);
-		if(realMaterialNode)  {    
-			if (realMaterialNode->_nodeType == NODE_Material) {
-				retval |= MATERIAL_APPEARANCE_SHADER;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->material,realMaterialNode);	
+	}
+	if(realMaterialNode || realBackMaterialNode) {
+		if(1){
+			struct fw_MaterialParameters *p, *q;
+			int material, texture, multitex, twosided, physical, unlit;
+			material = texture = multitex = twosided = physical = unlit = FALSE;
+		
+			p = q = NULL;
+			if(realMaterialNode){
+				compile_material_if_required(realMaterialNode);
+				switch(realMaterialNode->_nodeType){
+					case NODE_Material:
+						{
+							struct X3D_Material *mnode = (struct X3D_Material*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							material = TRUE;
+						}
+						break;
+					case NODE_PhysicalMaterial:
+						{
+							struct X3D_PhysicalMaterial *mnode = (struct X3D_PhysicalMaterial*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							physical = TRUE;
+						}
+						break;
+					case NODE_UnlitMaterial:
+						{
+							struct X3D_UnlitMaterial *mnode = (struct X3D_UnlitMaterial*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							unlit = TRUE;
+						}
+						break;
+					case NODE_TwoSidedMaterial:
+						{
+							struct X3D_TwoSidedMaterial *mnode = (struct X3D_TwoSidedMaterial*)realMaterialNode;
+							p = (struct fw_MaterialParameters*)mnode->_material;
+							q = (struct fw_MaterialParameters*)mnode->_backMaterial;
+							material = TRUE;
+							twosided = TRUE;
+						}
+						break;
+					default:
+						break;
+				}
 			}
-			if (realMaterialNode->_nodeType == NODE_TwoSidedMaterial) {
+			if(realBackMaterialNode){
+				compile_material_if_required(realBackMaterialNode);
+				switch(realBackMaterialNode->_nodeType){
+					case NODE_Material:
+						{
+							struct X3D_Material *mnode = (struct X3D_Material*)realBackMaterialNode;
+							q = (struct fw_MaterialParameters*)mnode->_material;
+							material = TRUE;
+						}
+						break;
+					case NODE_PhysicalMaterial:
+						{
+							struct X3D_PhysicalMaterial *mnode = (struct X3D_PhysicalMaterial*)realBackMaterialNode;
+							q = (struct fw_MaterialParameters*)mnode->_material;
+							physical = TRUE;
+						}
+						break;
+					case NODE_UnlitMaterial:
+						{
+							struct X3D_UnlitMaterial *mnode = (struct X3D_UnlitMaterial*)realBackMaterialNode;
+							q = (struct fw_MaterialParameters*)mnode->_material;
+							unlit = TRUE;
+						}
+						break;
+					case NODE_TwoSidedMaterial:
+						{
+							//not permitted
+							//struct X3D_TwoSidedMaterial *mnode = (struct X3D_TwoSidedMaterial*)realMaterialNode;
+							//p = (struct fw_MaterialParameters*)mnode->_material;
+							//q = (struct fw_MaterialParameters*)mnode->_backMaterial;
+							//unlit = TRUE;
+						}
+						break;
+					default:
+						break;
+				}
+			}
+			if(p){
+				if(p->nt) texture = TRUE;
+				if(p->mt) multitex = TRUE;
+			}
+			if(q){
+				if(q->nt) texture = TRUE;
+				if(q->mt) multitex = TRUE;
+				twosided = TRUE; //not sure it makes sense what we are doing with TWO, should it be pipeline culling CULL_FACE GL_BACK, GL_FRONT? but need now for Appearance.backMaterial
+			}
+			if(twosided) retval |= TWO_MATERIAL_APPEARANCE_SHADER;
+			if(material) retval |= MATERIAL_APPEARANCE_SHADER;
+			if(physical) retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
+			if(unlit) retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
+			// need to learn | vs xor etc so this isn't un-applied below if there's a regular appearance.texture
+			if(texture) retval |= ONE_TEX_APPEARANCE_SHADER;
+			if(multitex) retval |= MULTI_TEX_APPEARANCE_SHADER;
+		} else {
+			if(realBackMaterialNode || realMaterialNode->_nodeType == NODE_TwoSidedMaterial )  {    
 				retval |= TWO_MATERIAL_APPEARANCE_SHADER;
 			}
-			if (realMaterialNode->_nodeType == NODE_PhysicalMaterial) {
+			if (realMaterialNode->_nodeType == NODE_Material || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_Material)) {
+					retval |= MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_PhysicalMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_PhysicalMaterial)) {
 				retval |= PHYSICAL_MATERIAL_APPEARANCE_SHADER;
+			}
+			if (realMaterialNode->_nodeType == NODE_UnlitMaterial || (realBackMaterialNode && realBackMaterialNode->_nodeType == NODE_UnlitMaterial)) {
+				retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
 			}
 		}
 	}
@@ -813,6 +912,20 @@ int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode ){
 	return channels;
 }
 
+void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
+	memset(mat,0,sizeof(struct fw_MaterialParameters));
+	mat->ambient = .2f;
+	mat->shininess = .2f;
+	mat->type = MAT_NONE;
+}
+void initialize_front_and_back_material_params(){
+	ppComponent_Shape p;
+   	ttglobal tg = gglobal();
+	p = (ppComponent_Shape)tg->Component_Shape.prv;
+
+	initialize_fw_MaterialParameters(&p->appearanceProperties.fw_FrontMaterial);
+	initialize_fw_MaterialParameters(&p->appearanceProperties.fw_BackMaterial);
+}
 
 //unsigned int getShaderFlags();
 shaderflagsstruct getShaderFlags();
@@ -823,19 +936,15 @@ void textureTransform_start();
 void reallyDraw();
 void resend_textureprojector_matrix();
 
+
+
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
 	//int channels;
 	struct X3D_Virt *v;
 
 	ppComponent_Shape p;
-    	ttglobal tg = gglobal();
-	struct fw_MaterialParameters defaultMaterials = {
-				{0.0f, 0.0f, 0.0f, 1.0f}, /* Emission */
-				{0.0f, 0.0f, 0.0f, 1.0f}, /* Ambient */
-				{0.8f, 0.8f, 0.8f, 1.0f}, /* Diffuse */
-				{0.0f, 0.0f, 0.0f, 1.0f}, /* Specular */
-				10.0f};                   /* Shininess */
+   	ttglobal tg = gglobal();
 
 	COMPILE_IF_REQUIRED
 
@@ -861,8 +970,7 @@ void child_Shape (struct X3D_Shape *node) {
 	tg->RenderFuncs.shapenode = node;
 	
 	/* copy the material stuff in preparation for copying all to the shader */
-	memcpy (&p->appearanceProperties.fw_FrontMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-	memcpy (&p->appearanceProperties.fw_BackMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
+	initialize_front_and_back_material_params();
 
 	if((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
 		return; //don't draw if this node uses a generatedcubemaptexture and its a cubemaptexture generation pass; is there more optimal place to do this?
@@ -877,23 +985,6 @@ void child_Shape (struct X3D_Shape *node) {
 
 		//prep_Appearance
 		RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
-
-
-
-		if (p->material_oneSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
-
-		} else if (p->material_twoSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_twoSided->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_twoSided->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
-		} else {
-			/* no materials selected.... */
-		}
 
 		/* enable the shader for this shape */
 		//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
@@ -1029,10 +1120,15 @@ void child_Shape (struct X3D_Shape *node) {
 		//--------- sendLightInfo
 		//           Uniforms sent for lights
 		//----- glDrawArrays/glDrawElements
-
-		resend_textureprojector_matrix();
-		textureTransform_start();
-		setupShaderB();
+		
+		//we have a shader, now start sending it data
+		//clear_bound_textures(); //testing only
+		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+		textureTransform_start(); //send regular appearance.textures to shader
+		resend_textureprojector_matrix();  
+		setupShaderB();  //send materials, fill patters miscalaneous to shader
+		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
 		render_node(tmpNG);
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
@@ -1059,8 +1155,8 @@ void child_Shape (struct X3D_Shape *node) {
 
 	//ConsoleMessage("turning shader off");
 	finishedWithGlobalShader();
-	p->material_twoSided = NULL;
-	p->material_oneSided = NULL;
+	//p->material_twoSided = NULL;
+	//p->material_oneSided = NULL;
 	p->userShaderNode = NULL;
 	tg->RenderFuncs.shapenode = NULL;
     
@@ -1143,110 +1239,65 @@ void compile_Shape (struct X3D_Shape *node) {
 
 	MARK_NODE_COMPILED
 }
-
+//void register_node_gc(void *node, void *p);
 
 void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
-	int i;
-	float trans;
-
+	float *p;
+	struct fw_MaterialParameters *q;
 	/* verify that the numbers are within range */
-	if (node->ambientIntensity < 0.0) node->ambientIntensity=0.0f;
-	if (node->ambientIntensity > 1.0) node->ambientIntensity=1.0f;
-	if (node->shininess < 0.0) node->shininess=0.0f;
-	if (node->shininess > 1.0) node->shininess=1.0f;
-	if (node->transparency < 0.0) node->transparency=MIN_NODE_TRANSPARENCY;
-	if (node->transparency >= 1.0) node->transparency=MAX_NODE_TRANSPARENCY;
+	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
+	node->shininess = fclamp(node->shininess,0.0f,1.0f);
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->diffuseColor.c,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+	fvecclamp3f(node->specularColor.c,0.0f,1.0f);
 
-	if (node->backAmbientIntensity < 0.0) node->backAmbientIntensity=0.0f;
-	if (node->backAmbientIntensity > 1.0) node->backAmbientIntensity=1.0f;
-	if (node->backShininess < 0.0) node->backShininess=0.0f;
-	if (node->backShininess > 1.0) node->backShininess=1.0f;
-	if (node->backTransparency < 0.0) node->backTransparency=0.0f;
-	if (node->backTransparency > 1.0) node->backTransparency=1.0f;
-
-	for (i=0; i<3; i++) {
-		if (node->diffuseColor.c[i] < 0.0) node->diffuseColor.c[i]=0.0f;
-		if (node->diffuseColor.c[i] > 1.0) node->diffuseColor.c[i]=1.0f;
-		if (node->emissiveColor.c[i] < 0.0) node->emissiveColor.c[i]=0.0f;
-		if (node->emissiveColor.c[i] > 1.0) node->emissiveColor.c[i]=1.0f;
-		if (node->specularColor.c[i] < 0.0) node->specularColor.c[i]=0.0f;
-		if (node->specularColor.c[i] > 1.0) node->specularColor.c[i]=1.0f;
-
-		if (node->backDiffuseColor.c[i] < 0.0) node->backDiffuseColor.c[i]=0.0f;
-		if (node->backDiffuseColor.c[i] > 1.0) node->backDiffuseColor.c[i]=1.0f;
-		if (node->backEmissiveColor.c[i] < 0.0) node->backEmissiveColor.c[i]=0.0f;
-		if (node->backEmissiveColor.c[i] > 1.0) node->backEmissiveColor.c[i]=1.0f;
-		if (node->backSpecularColor.c[i] < 0.0) node->backSpecularColor.c[i]=0.0f;
-		if (node->backSpecularColor.c[i] > 1.0) node->backSpecularColor.c[i]=1.0f;
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
 	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+	q = (struct fw_MaterialParameters *)node->_material;
+	veccopy3f(q->diffuse,node->diffuseColor.c);
+	veccopy3f(q->emissive,node->emissiveColor.c);
+	veccopy3f(q->specular,node->specularColor.c);
+	q->ambient = node->ambientIntensity;
+	q->shininess = node->shininess;
+	q->transparency = node->transparency;
+	q->type = MAT_REGULAR;
 
-	/* first, put in the transparency */
-	trans = 1.0f - node->transparency;
-	node->_verifiedFrontColor.p[3] = trans;
-	node->_verifiedFrontColor.p[7] = trans;
-	node->_verifiedFrontColor.p[11] = trans;
-	node->_verifiedFrontColor.p[15] = trans;
-	trans = 1.0f - node->backTransparency;
-	node->_verifiedBackColor.p[3] = trans;
-	node->_verifiedBackColor.p[7] = trans;
-	node->_verifiedBackColor.p[11] = trans;
-	node->_verifiedBackColor.p[15] = trans;
-
-
-	/* DiffuseColor */
-	memcpy((void *)(&node->_verifiedFrontColor.p[8]), node->diffuseColor.c, sizeof (float) * 3);
-
-	/* Ambient  - diffuseFrontColor * ambientIntensity */
-	for(i=0; i<4; i++) { node->_verifiedFrontColor.p[i+4] = node->_verifiedFrontColor.p[i+8] * node->ambientIntensity; }
-
-	/* Specular */
-	memcpy((void *)(&node->_verifiedFrontColor.p[12]), node->specularColor.c, sizeof (float) * 3);
-
-	/* Emissive */
-	memcpy((void *)(&node->_verifiedFrontColor.p[0]), node->emissiveColor.c, sizeof (float) * 3);
-
-	/* Shininess */
-	node->_verifiedFrontColor.p[16] = node->shininess;
-
-#define MAX_SHIN 128.0f
-#define MIN_SHIN 0.01f
-	if ((node->_verifiedFrontColor.p[16] > MAX_SHIN) || (node->_verifiedFrontColor.p[16] < MIN_SHIN)) {
-		if (node->_verifiedFrontColor.p[16]>MAX_SHIN){node->_verifiedFrontColor.p[16] = MAX_SHIN;}else{node->_verifiedFrontColor.p[16]=MIN_SHIN;}
-	}
-#undef MAX_SHIN
-#undef MIN_SHIN
 
 	if (node->separateBackColor) {
+		node->backAmbientIntensity = fclamp(node->backAmbientIntensity,0.0f,1.0f);
+		node->backShininess = fclamp(node->backShininess,0.0f,1.0f);
+		node->backTransparency = fclamp(node->backTransparency,0.0f,1.0f);
+		fvecclamp3f(node->backDiffuseColor.c,0.0f,1.0f);
+		fvecclamp3f(node->backEmissiveColor.c,0.0f,1.0f);
+		fvecclamp3f(node->backSpecularColor.c,0.0f,1.0f);
 
-		/* DiffuseColor */
-		memcpy((void *)(&node->_verifiedBackColor.p[8]), node->backDiffuseColor.c, sizeof (float) * 3);
-	
-		/* Ambient  - diffuseBackColor * ambientIntensity */
-		for(i=0; i<3; i++) { node->_verifiedBackColor.p[i+4] = node->_verifiedBackColor.p[i+8] * node->ambientIntensity; }
-	
-		/* Specular */
-		memcpy((void *)(&node->_verifiedBackColor.p[12]), node->backSpecularColor.c, sizeof (float) * 3);
-	
-		/* Emissive */
-		memcpy((void *)(&node->_verifiedBackColor.p[0]), node->backEmissiveColor.c, sizeof (float) * 3);
-	
-		/* Shininess */
-		node->_verifiedBackColor.p[16] = node->shininess;
-	
-////#define MAX_SHIN 128.0f
-////#define MIN_SHIN 0.01f
-////		if ((node->_verifiedBackColor.p[16] > MAX_SHIN) || (node->_verifiedBackColor.p[16] < MIN_SHIN)) {
-////			if (node->_verifiedBackColor.p[16]>MAX_SHIN){node->_verifiedBackColor.p[16] = MAX_SHIN;}else{node->_verifiedBackColor.p[16]=MIN_SHIN;}
-////		}
-////#undef MAX_SHIN
-////#undef MIN_SHIN
+		if(!node->_backMaterial){
+			node->_backMaterial = malloc(sizeof(struct fw_MaterialParameters));
+			register_node_gc(node,node->_backMaterial);
+		}
+		memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
+		q = (struct fw_MaterialParameters *)node->_backMaterial;
+		veccopy3f(q->diffuse,node->backDiffuseColor.c);
+		veccopy3f(q->emissive,node->backEmissiveColor.c);
+		veccopy3f(q->specular,node->backSpecularColor.c);
+		q->ambient = node->backAmbientIntensity;
+		q->shininess = node->backShininess;
+		q->transparency = node->backTransparency;
+		q->type = MAT_REGULAR;
 
 	} else {
 		/* just copy the front materials to the back */
-		memcpy(node->_verifiedBackColor.p, node->_verifiedFrontColor.p, sizeof (float) * 17);
+		if(!node->_backMaterial){
+			node->_backMaterial = malloc(sizeof(struct fw_MaterialParameters));
+			register_node_gc(node,node->_backMaterial);
+		}
+		memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
+		memcpy(node->_backMaterial,node->_material,sizeof(struct fw_MaterialParameters));
 	}
-
-
 	MARK_NODE_COMPILED
 }
 
@@ -1254,10 +1305,192 @@ void render_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	
 	COMPILE_IF_REQUIRED
 	{
-	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		if (node != NULL) {
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			memcpy (&p->appearanceProperties.fw_BackMaterial, node->_backMaterial, sizeof (struct fw_MaterialParameters));
+		}
+	}
+}
 
-	/* record this node for OpenGL-ES and OpenGL-3.1 operation */
-	p->material_twoSided = node;
+void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
+	struct X3D_Node **tnodes;
+	struct fw_MaterialParameters *q;
+	/* verify that the numbers are within range */
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
+	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+
+	q = (struct fw_MaterialParameters *)node->_material;
+	veccopy3f(q->emissive,node->emissiveColor.c);
+	q->transparency = node->transparency;
+	q->type = MAT_UNLIT;
+
+	//new v4 textures
+	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	tnodes = q->textures;
+	memset(tnodes,0,5*sizeof(void *));
+	if(node->normalTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
+	}
+	if(node->emissiveTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
+	}
+	int *cindex = q->cindex;
+	cindex[0] = node->normalTextureChannel;
+	cindex[1] = node->emissiveTextureChannel;
+	q->nt = 0; //assume no material.texturexxx to start
+	for(int i=0;i<5;i++){
+		q->tcount[i] = 0; //default: no texture for this material function
+		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
+		if(tnodes[i]){
+			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
+				struct X3D_MultiTexture *mt = (struct X3D_MultiTexture*)tnodes[i];
+				q->tcount[i] = mt->texture.n;
+				q->nt += mt->texture.n;
+				q->mt++;
+			}else{
+				//single texture
+				q->nt++;
+				q->tcount[i] = 1;
+			}
+		}
+	}
+	MARK_NODE_COMPILED
+}
+void render_UnlitMaterial (struct X3D_UnlitMaterial *node) {
+	COMPILE_IF_REQUIRED
+	{
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		if (node != NULL) {
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+		}
+	}
+}
+
+
+/*
+
+PBR Physics Based Rendering
+https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#materials 
+- describes how to do BRDF calculations (don't I have a book on BRDF? with shaders?)
+https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#appendix-b-brdf-implementation
+- Appendix B shows the BRDF math, and link to example viewer implementation:
+https://github.com/KhronosGroup/glTF-Sample-Viewer/ 
+https://github.com/KhronosGroup/glTF-Sample-Viewer/blob/master/src/shaders/metallic-roughness.frag
+- implements BRDF in frag, including ifdefs for 'maps' vs scalars.
+https://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf 
+- Schlick BRDF model
+example x3dom:
+https://github.com/x3dom/x3dom/blob/master/src/nodes/Shape/PhysicalMaterial.js
+exmaple CGE:
+https://github.com/castle-engine/castle-engine/blob/master/src/x3d/opengl/glsl/source/lighting_model_physical/shading_phong.fs
+
+H: specular-glossiness and metallic-roughness are different ways to declare the same thing
+so only one is needed. And since web3d does specular-glossiness in the regular material, no need for it in the physical.
+
+PhysicalMaterialNode:	
+the textures are optional, and have specific packing of effects
+occlusionRoughnessMetallicTexture  (occlusion=R,Roughness=G,Metallic=B)
+
+There are a lot of (optional) textures with this, with the v4 extended Material node, and with PTM projective texture mapping.
+IDEA: generalize what we did with PTM: 
+- have a generic list of sampler2D textureUnit[xx] 
+- and through a separate int32 array say which textureUnit goes with which texture.
+That would allow combining PTM and (PhysicalMaterial or Matierial with textures) 
+-- in a flexible way that minimizes (GPU limited resource) sampler2Ds
+
+GPU textureUnits / samplers needed:
+Gross: 7
+max needed: 4 (assuming physics channel packing): normal, emissive, baseColor, occlusion-metallic-roughness
+possible Array-ization assuming same widthxheight for all:
+1 samplerArray for the physics, 1 sampler2D for baseColorTexture
+
+*/
+void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
+	struct X3D_Node **tnodes;
+	struct fw_MaterialParameters *q;
+	/* verify that the numbers are within range */
+	node->roughness = fclamp(node->roughness,0.0f,1.0f);
+	node->metallic = fclamp(node->metallic,0.0f,1.0f);
+	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	fvecclamp3f(node->baseColor.c,0.0f,1.0f);
+	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
+
+	if(!node->_material){
+		node->_material = malloc(sizeof(struct fw_MaterialParameters));
+		register_node_gc(node,node->_material);
+	}
+	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
+
+	q = (struct fw_MaterialParameters *)node->_material;
+	veccopy3f(q->baseColor,node->baseColor.c);
+	veccopy3f(q->emissive,node->emissiveColor.c);
+	q->metallic = node->metallic;
+	q->roughness = node->roughness;
+	q->transparency = node->transparency;
+	q->type = MAT_PHYSICAL;
+
+	//new v4 textures   
+	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	tnodes = q->textures;
+	memset(tnodes,0,5*sizeof(void *)); 
+	if(node->normalTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
+	}
+	if(node->emissiveTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
+	}
+	if(node->baseColorTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseColorTexture,tnodes[2]);
+	}
+	if(node->metallicRoughnessTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->metallicRoughnessTexture,tnodes[3]);
+	}
+	int *cindex = q->cindex;
+	cindex[0] = node->normalTextureChannel;
+	cindex[1] = node->emissiveTextureChannel;
+	cindex[2] = node->baseTextureChannel;
+	cindex[3] = node->metallicRoughnessTextureChannel;
+	q->nt = 0; //assume no material.texturexxx to start
+	for(int i=0;i<5;i++){
+		q->tcount[i] = 0; //default: no texture for this material function
+		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
+		if(tnodes[i]){
+			if(tnodes[i]->_nodeType == NODE_MultiTexture) {
+				struct X3D_MultiTexture *mt = (struct X3D_MultiTexture*)tnodes[i];
+				q->tcount[i] = mt->texture.n;
+				q->nt += mt->texture.n;
+				q->mt++;
+			}else{
+				//single texture
+				q->nt++;
+				q->tcount[i] = 1;
+			}
+		}
+	}
+	MARK_NODE_COMPILED
+}
+
+void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
+	
+	COMPILE_IF_REQUIRED
+	{
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		if (node != NULL) {
+			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+		}
 	}
 }
 
