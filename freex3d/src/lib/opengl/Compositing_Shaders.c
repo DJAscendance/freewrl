@@ -868,16 +868,16 @@ uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
 struct fw_LightSourceParameters { \n\
-  float ambient;  \n\
-  vec3 color;   \n\
-  float intensity; \n\
-  vec3 location;   \n\
-  vec3 halfVector;  \n\
-  vec3 direction; \n\
-  float spotBeamWidth; \n\
-  float spotCutoff; \n\
-  vec3 Attenuations; \n\
-  float lightRadius; \n\
+	float ambient;  \n\
+	vec3 color;   \n\
+	float intensity; \n\
+	vec3 location;   \n\
+	vec3 halfVector;  \n\
+	vec3 direction; \n\
+	float spotBeamWidth; \n\
+	float spotCutoff; \n\
+	vec3 Attenuations; \n\
+	float lightRadius; \n\
 }; \n\
 \n\
 uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;\n\
@@ -938,61 +938,60 @@ uniform vec2 HatchPct; \n\
 uniform int algorithm; \n\
 varying vec2 hatchPosition; \n\
 void fillPropCalc(inout vec4 prevColour, vec2 MCposition, int algorithm) { \n\
-  vec4 colour; \n\
-  vec2 position, useBrick; \n\
-  \n\
-  position = MCposition / HatchScale; \n\
-  \n\
-  if (algorithm == 0) {/* bricking  */ \n\
-    if (fract(position.y * 0.5) > 0.5) \n\
-      position.x += 0.5; \n\
-  } \n\
-  \n\
-  /* algorithm 1, 2 = no futzing required here  */ \n\
-  if (algorithm == 3) { /* positive diagonals */ \n\
-    vec2 curpos = position; \n\
-    position.x -= curpos.y; \n\
-  } \n\
-  \n\
-  if (algorithm == 4) {  /* negative diagonals */ \n\
-    vec2 curpos = position; \n\
-    position.x += curpos.y; \n\
-  } \n\
-  \n\
-  if (algorithm == 6) {  /* diagonal crosshatch */ \n\
-    vec2 curpos = position; \n\
-    if (fract(position.y) > 0.5)  { \n\
-      if (fract(position.x) < 0.5) position.x += curpos.y; \n\
-      else position.x -= curpos.y; \n\
-    } else { \n\
-      if (fract(position.x) > 0.5) position.x += curpos.y; \n\
-      else position.x -= curpos.y; \n\
-    } \n\
-  } \n\
-  \n\
-  position = fract(position); \n\
-  \n\
-  useBrick = step(position, HatchPct); \n\
-  \n\
-  if (filled) {colour = prevColour;} else { colour=vec4(0.,0.,0.,0); }\n\
-  if (hatched) { \n\
-      colour = mix(HatchColour, colour, useBrick.x * useBrick.y); \n\
-  } \n\
-  prevColour = colour; \n\
+	vec4 colour; \n\
+	vec2 position, useBrick; \n\
+	\n\
+	position = MCposition / HatchScale; \n\
+	\n\
+	if (algorithm == 0) {/* bricking  */ \n\
+		if (fract(position.y * 0.5) > 0.5) \n\
+			position.x += 0.5; \n\
+	} \n\
+	\n\
+	/* algorithm 1, 2 = no futzing required here  */ \n\
+	if (algorithm == 3) { /* positive diagonals */ \n\
+		vec2 curpos = position; \n\
+		position.x -= curpos.y; \n\
+	} \n\
+	\n\
+	if (algorithm == 4) {  /* negative diagonals */ \n\
+		vec2 curpos = position; \n\
+		position.x += curpos.y; \n\
+	} \n\
+	\n\
+	if (algorithm == 6) {  /* diagonal crosshatch */ \n\
+		vec2 curpos = position; \n\
+		if (fract(position.y) > 0.5)  { \n\
+			if (fract(position.x) < 0.5) position.x += curpos.y; \n\
+			else position.x -= curpos.y; \n\
+		} else { \n\
+			if (fract(position.x) > 0.5) position.x += curpos.y; \n\
+			else position.x -= curpos.y; \n\
+		} \n\
+	} \n\
+	\n\
+	position = fract(position); \n\
+	\n\
+	useBrick = step(position, HatchPct); \n\
+	\n\
+	if (filled) {colour = prevColour;} else { colour=vec4(0.,0.,0.,0); }\n\
+	if (hatched) { \n\
+		colour = mix(HatchColour, colour, useBrick.x * useBrick.y); \n\
+	} \n\
+	prevColour = colour; \n\
 } \n\
 #endif //FILL \n\
 #ifdef FOG \n\
 struct fogParams \n\
 {  \n\
-  vec4 fogColor; \n\
-  float visibilityRange; \n\
-  float fogScale; \n\
-  int fogType; // 0 None, 1= FOGTYPE_LINEAR, 2 = FOGTYPE_EXPONENTIAL \n\
-  // ifdefed int haveFogCoords; \n\
+	vec4 fogColor; \n\
+	float visibilityRange; \n\
+	float fogScale; \n\
+	int fogType; // 0 None, 1= FOGTYPE_LINEAR, 2 = FOGTYPE_EXPONENTIAL \n\
+	// ifdefed int haveFogCoords; \n\
 }; \n\
 uniform fogParams fw_fogparams; \n\
 #endif //FOG \n\
- \n\
  \n\
 #ifdef HAS_GEOMETRY_SHADER \n\
 #define castle_vertex_eye castle_vertex_eye_geoshader \n\
@@ -1005,26 +1004,26 @@ varying vec3 castle_normal_eye; \n\
 //#ifdef LITE \n\
 //per-fragment lighting ie phong \n\
 struct fw_MaterialParameters { \n\
-  vec3 diffuse; \n\
-  vec3 emissive; \n\
-  vec3 specular; \n\
-  float ambient; \n\
-  float shininess; \n\
-  float transparency; \n\
-  vec3 baseColor; \n\
-  float metallic; \n\
-  float roughness; \n\
-  int type; \n\
-  // multitextures are disaggregated \n\
-  int tindex[10]; \n\
-  int mode[10]; \n\
-  int source[10]; \n\
-  int func[1]; \n\
-  int nt; //total single textures \n\
-  // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
-  int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
-  int tstart[5]; // where in packed tindex list to start looping \n\
-  int cindex[5]; // which geometry multitexcoord channel 0=default \n\
+	vec3 diffuse; \n\
+	vec3 emissive; \n\
+	vec3 specular; \n\
+	float ambient; \n\
+	float shininess; \n\
+	float transparency; \n\
+	vec3 baseColor; \n\
+	float metallic; \n\
+	float roughness; \n\
+	int type; \n\
+	// multitextures are disaggregated \n\
+	int tindex[10]; \n\
+	int mode[10]; \n\
+	int source[10]; \n\
+	int func[1]; \n\
+	int nt; //total single textures \n\
+	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
+	int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+	int tstart[5]; // where in packed tindex list to start looping \n\
+	int cindex[5]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\
@@ -1097,10 +1096,120 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 /* Wrapper for calling PLUG texture_coord_shift */ \n\
 vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 { \n\
-  /* PLUG: texture_coord_shift (tex_coord) */ \n\
-  return tex_coord; \n\
+	/* PLUG: texture_coord_shift (tex_coord) */ \n\
+	return tex_coord; \n\
 } \n\
- \n\
+//literal string size break \n" "\
+//PHYSICAL LIGHTING >> \n\
+// https://github.com/KhronosGroup/glTF-Sample-Viewer \n\
+const float M_PI = 3.141592653589793; \n\
+struct MaterialInfo \n\
+{ \n\
+    float perceptualRoughness;    // roughness value, as authored by the model creator (input to shader) \n\
+    vec3 reflectance0;            // full reflectance color (normal incidence angle) \n\
+	 \n\
+    float alphaRoughness;         // roughness mapped to a more linear change in the roughness (proposed by [2]) \n\
+    vec3 diffuseColor;            // color contribution from diffuse lighting \n\
+	 \n\
+    vec3 reflectance90;           // reflectance color at grazing angle \n\
+    vec3 specularColor;           // color contribution from specular lighting \n\
+}; \n\
+struct AngularInfo \n\
+{ \n\
+	float NdotL; // cos angle between normal and light direction \n\
+	float NdotV; // cos angle between normal and view direction \n\
+	float NdotH; // cos angle between normal and half vector \n\
+	float LdotH; // cos angle between light direction and half vector \n\
+	float VdotH; // cos angle between view direction and half vector \n\
+	vec3 padding; \n\
+}; \n\
+AngularInfo getAngularInfo(vec3 pointToLight, vec3 normal, vec3 view) \n\
+{ \n\
+	// Standard one-letter names \n\
+	vec3 n = normalize(normal); // Outward direction of surface point \n\
+	vec3 v = normalize(view);   // Direction from surface point to view \n\
+	vec3 l = normalize(pointToLight); // Direction from surface point to light \n\
+	vec3 h = normalize(l + v); // Direction of the vector between l and v \n\
+	float NdotL = clamp(dot(n, l), 0.0, 1.0); \n\
+	float NdotV = clamp(dot(n, v), 0.0, 1.0); \n\
+	float NdotH = clamp(dot(n, h), 0.0, 1.0); \n\
+	float LdotH = clamp(dot(l, h), 0.0, 1.0); \n\
+	float VdotH = clamp(dot(v, h), 0.0, 1.0); \n\
+	AngularInfo ai = AngularInfo( \n\
+		NdotL, \n\
+		NdotV, \n\
+		NdotH, \n\
+		LdotH, \n\
+		VdotH, \n\
+		vec3(0, 0, 0) \n\
+	); \n\
+	return ai; \n\
+} \n\
+// sRGB to linear approximation \n\
+const float GAMMA = 2.2; \n\
+vec4 SRGBtoLINEAR(vec4 srgbIn) \n\
+{ \n\
+	return vec4(pow(srgbIn.xyz, vec3(GAMMA)), srgbIn.w); \n\
+} \n\
+const float INV_GAMMA = 1.0 / GAMMA; \n\
+// linear to sRGB approximation \n\
+vec3 LINEARtoSRGB(vec3 color) \n\
+{ \n\
+	return pow(color, vec3(INV_GAMMA)); \n\
+} \n\
+// Lambert lighting \n\
+// see https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/ \n\
+vec3 diffuse(MaterialInfo materialInfo) \n\
+{ \n\
+    return materialInfo.diffuseColor / M_PI; \n\
+} \n\
+// TFresnel reflectance F() \n\
+vec3 specularReflection(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
+{ \n\
+	return materialInfo.reflectance0 + (materialInfo.reflectance90 - materialInfo.reflectance0) * pow(clamp(1.0 - angularInfo.VdotH, 0.0, 1.0), 5.0); \n\
+} \n\
+// Smith Joint GGX \n\
+// Note: Vis = G / (4 * NdotL * NdotV) \n\
+float visibilityOcclusion(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
+{ \n\
+	float NdotL = angularInfo.NdotL; \n\
+	float NdotV = angularInfo.NdotV; \n\
+	float alphaRoughnessSq = materialInfo.alphaRoughness * materialInfo.alphaRoughness; \n\
+	float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - alphaRoughnessSq) + alphaRoughnessSq); \n\
+	float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - alphaRoughnessSq) + alphaRoughnessSq); \n\
+		\n\
+	float GGX = GGXV + GGXL; \n\
+	if (GGX > 0.0) \n\
+	{ \n\
+		return 0.5 / GGX; \n\
+	} \n\
+	return 0.0; \n\
+} \n\
+// model the distribution of microfacet normals (aka D()) \n\
+float microfacetDistribution(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
+{ \n\
+	float alphaRoughnessSq = materialInfo.alphaRoughness * materialInfo.alphaRoughness; \n\
+	float f = (angularInfo.NdotH * alphaRoughnessSq - angularInfo.NdotH) * angularInfo.NdotH + 1.0; \n\
+	return alphaRoughnessSq / (M_PI * f * f); \n\
+} \n\
+vec3 getPointShade(vec3 pointToLight, MaterialInfo materialInfo, vec3 normal, vec3 view) \n\
+{ \n\
+	AngularInfo angularInfo = getAngularInfo(pointToLight, normal, view); \n\
+	if (angularInfo.NdotL > 0.0 || angularInfo.NdotV > 0.0) \n\
+	{ \n\
+		// microfacet specular shading model \n\
+		vec3 F = specularReflection(materialInfo, angularInfo); \n\
+		float Vis = visibilityOcclusion(materialInfo, angularInfo); \n\
+		float D = microfacetDistribution(materialInfo, angularInfo); \n\
+		// Calculation of analytical lighting contribution \n\
+		vec3 diffuseContrib = (1.0 - F) * diffuse(materialInfo); \n\
+		vec3 specContrib = F * Vis * D; \n\
+		// reflectance (BRDF) scaled by the energy of the light (cosine law) \n\
+		return angularInfo.NdotL * (diffuseContrib + specContrib); \n\
+	} \n\
+	return vec3(0.0, 0.0, 0.0); \n\
+} \n\
+// << PhYSICAL LIGHTING \n\
 vec4 matdiff_color; \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
@@ -1123,7 +1232,7 @@ vec4 sample_map(int iunit){ \n\
 		} \n\
 		nc = prev; \n\
 	#else //MTEX \n\
-		vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
 	#endif //MTEX \n\
 	return nc; \n\
 } \n\
@@ -1228,6 +1337,14 @@ float getRoughness(){ \n\
 	} \n\
 	return rou; \n\
 } \n\
+vec4 getVertexColor() { \n\
+	vec4 color = vec4(1.0,1.0,1.0,1.0); \n\
+	#ifdef CPV \n\
+		color = cpv_color; \n\
+	#endif //CPV \n\
+	return color; \n\
+} \n\
+//literal string size break \n" "\
 void main(void) \n\
 { \n\
 //STEP0 INITIALIZE \n\
