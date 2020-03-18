@@ -1114,37 +1114,6 @@ struct MaterialInfo \n\
     vec3 reflectance90;           // reflectance color at grazing angle \n\
     vec3 specularColor;           // color contribution from specular lighting \n\
 }; \n\
-struct AngularInfo \n\
-{ \n\
-	float NdotL; // cos angle between normal and light direction \n\
-	float NdotV; // cos angle between normal and view direction \n\
-	float NdotH; // cos angle between normal and half vector \n\
-	float LdotH; // cos angle between light direction and half vector \n\
-	float VdotH; // cos angle between view direction and half vector \n\
-	vec3 padding; \n\
-}; \n\
-AngularInfo getAngularInfo(vec3 pointToLight, vec3 normal, vec3 view) \n\
-{ \n\
-	// Standard one-letter names \n\
-	vec3 n = normalize(normal); // Outward direction of surface point \n\
-	vec3 v = normalize(view);   // Direction from surface point to view \n\
-	vec3 l = normalize(pointToLight); // Direction from surface point to light \n\
-	vec3 h = normalize(l + v); // Direction of the vector between l and v \n\
-	float NdotL = clamp(dot(n, l), 0.0, 1.0); \n\
-	float NdotV = clamp(dot(n, v), 0.0, 1.0); \n\
-	float NdotH = clamp(dot(n, h), 0.0, 1.0); \n\
-	float LdotH = clamp(dot(l, h), 0.0, 1.0); \n\
-	float VdotH = clamp(dot(v, h), 0.0, 1.0); \n\
-	AngularInfo ai = AngularInfo( \n\
-		NdotL, \n\
-		NdotV, \n\
-		NdotH, \n\
-		LdotH, \n\
-		VdotH, \n\
-		vec3(0, 0, 0) \n\
-	); \n\
-	return ai; \n\
-} \n\
 // sRGB to linear approximation \n\
 const float GAMMA = 2.2; \n\
 vec4 SRGBtoLINEAR(vec4 srgbIn) \n\
@@ -1156,58 +1125,6 @@ const float INV_GAMMA = 1.0 / GAMMA; \n\
 vec3 LINEARtoSRGB(vec3 color) \n\
 { \n\
 	return pow(color, vec3(INV_GAMMA)); \n\
-} \n\
-// Lambert lighting \n\
-// see https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/ \n\
-vec3 diffuse(MaterialInfo materialInfo) \n\
-{ \n\
-    return materialInfo.diffuseColor / M_PI; \n\
-} \n\
-// TFresnel reflectance F() \n\
-vec3 specularReflection(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
-{ \n\
-	return materialInfo.reflectance0 + (materialInfo.reflectance90 - materialInfo.reflectance0) * pow(clamp(1.0 - angularInfo.VdotH, 0.0, 1.0), 5.0); \n\
-} \n\
-// Smith Joint GGX \n\
-// Note: Vis = G / (4 * NdotL * NdotV) \n\
-float visibilityOcclusion(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
-{ \n\
-	float NdotL = angularInfo.NdotL; \n\
-	float NdotV = angularInfo.NdotV; \n\
-	float alphaRoughnessSq = materialInfo.alphaRoughness * materialInfo.alphaRoughness; \n\
-	float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - alphaRoughnessSq) + alphaRoughnessSq); \n\
-	float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - alphaRoughnessSq) + alphaRoughnessSq); \n\
-		\n\
-	float GGX = GGXV + GGXL; \n\
-	if (GGX > 0.0) \n\
-	{ \n\
-		return 0.5 / GGX; \n\
-	} \n\
-	return 0.0; \n\
-} \n\
-// model the distribution of microfacet normals (aka D()) \n\
-float microfacetDistribution(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
-{ \n\
-	float alphaRoughnessSq = materialInfo.alphaRoughness * materialInfo.alphaRoughness; \n\
-	float f = (angularInfo.NdotH * alphaRoughnessSq - angularInfo.NdotH) * angularInfo.NdotH + 1.0; \n\
-	return alphaRoughnessSq / (M_PI * f * f); \n\
-} \n\
-vec3 getPointShade(vec3 pointToLight, MaterialInfo materialInfo, vec3 normal, vec3 view) \n\
-{ \n\
-	AngularInfo angularInfo = getAngularInfo(pointToLight, normal, view); \n\
-	if (angularInfo.NdotL > 0.0 || angularInfo.NdotV > 0.0) \n\
-	{ \n\
-		// microfacet specular shading model \n\
-		vec3 F = specularReflection(materialInfo, angularInfo); \n\
-		float Vis = visibilityOcclusion(materialInfo, angularInfo); \n\
-		float D = microfacetDistribution(materialInfo, angularInfo); \n\
-		// Calculation of analytical lighting contribution \n\
-		vec3 diffuseContrib = (1.0 - F) * diffuse(materialInfo); \n\
-		vec3 specContrib = F * Vis * D; \n\
-		// reflectance (BRDF) scaled by the energy of the light (cosine law) \n\
-		return angularInfo.NdotL * (diffuseContrib + specContrib); \n\
-	} \n\
-	return vec3(0.0, 0.0, 0.0); \n\
 } \n\
 // << PhYSICAL LIGHTING \n\
 vec4 matdiff_color; \n\
@@ -1385,11 +1302,40 @@ void main(void) \n\
 		#ifdef LITE \n\
 		castle_MaterialDiffuseAlpha = 1.0; //getAlpha(); \n\
 		castle_ColorES = getBaseColor(); //fw_FrontMaterial.emissive; \n\
-		float metalilic = getMetallic(); \n\
-		float roughness = getRoughness(); \n\
-		vec3 base = getBaseColor(); \n\
+		float metallic = getMetallic(); \n\
+		float perceptualRoughness = getRoughness(); \n\
+		vec3 baseColor = getBaseColor(); \n\
 		matdiff_color.rgb = vec3(getRoughness(),0.0,getMetallic()); \n\
-		/* PLUG: add_light_contribution3 (matdiff_color, castle_ColorES, castle_vertex_eye, N, shiny, amby, diffy, specy ) */ \n\
+		//unlit \n\
+		vec3 specularColor= vec3(0.0); \n\
+	    vec3 f0 = vec3(0.04); \n\
+		baseColor *= getVertexColor().xyz; //hunh? \n\
+		vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0) * (1.0 - metallic); \n\
+		specularColor = mix(f0, baseColor.rgb, metallic); \n\
+		//gl_FragColor = vec4(LINEARtoSRGB(baseColor.rgb), getAlpha()); \n\
+		//return; \n\
+		//lit \n\
+		float alphaRoughness = perceptualRoughness * perceptualRoughness; \n\
+		// Compute reflectance. \n\
+		float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b); \n\
+		vec3 specularEnvironmentR0 = specularColor.rgb; \n\
+		// Anything less than 2% is physically impossible and is instead considered to be shadowing. \n\
+		vec3 specularEnvironmentR90 = vec3(clamp(reflectance * 50.0, 0.0, 1.0)); \n\
+		MaterialInfo materialInfo = MaterialInfo( \n\
+			perceptualRoughness, \n\
+			specularEnvironmentR0, \n\
+			alphaRoughness, \n\
+			diffuseColor, \n\
+			specularEnvironmentR90, \n\
+			specularColor \n\
+		); \n\
+		// LIGHTING \n\
+		vec3 color = vec3(0.0, 0.0, 0.0); \n\
+		vec3 normal = getNormal(); \n\
+		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
+		//color += apply_lights_physical( materialInfo, normal, view ); \n\
+		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, N, materialInfo ) */  \n\
+		matdiff_color.rgb = color; \n\
 		#endif //LITE \n\
 	} \n\
 	\n\
@@ -1856,6 +1802,140 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 }\n";
 
 
+
+/* PLUG: add_light_physical (color, view, normal, materialInfo ); */
+static const GLchar *plug_frag_lighting_physical = "\n\
+struct AngularInfo \n\
+{ \n\
+	float NdotL; // cos angle between normal and light direction \n\
+	float NdotV; // cos angle between normal and view direction \n\
+	float NdotH; // cos angle between normal and half vector \n\
+	float LdotH; // cos angle between light direction and half vector \n\
+	float VdotH; // cos angle between view direction and half vector \n\
+	vec3 padding; \n\
+}; \n\
+AngularInfo getAngularInfo(vec3 pointToLight, vec3 normal, vec3 view) \n\
+{ \n\
+	// Standard one-letter names \n\
+	vec3 n = normalize(normal); // Outward direction of surface point \n\
+	vec3 v = normalize(view);   // Direction from surface point to view \n\
+	vec3 l = normalize(pointToLight); // Direction from surface point to light \n\
+	vec3 h = normalize(l + v); // Direction of the vector between l and v \n\
+	float NdotL = clamp(dot(n, l), 0.0, 1.0); \n\
+	float NdotV = clamp(dot(n, v), 0.0, 1.0); \n\
+	float NdotH = clamp(dot(n, h), 0.0, 1.0); \n\
+	float LdotH = clamp(dot(l, h), 0.0, 1.0); \n\
+	float VdotH = clamp(dot(v, h), 0.0, 1.0); \n\
+	AngularInfo ai = AngularInfo( \n\
+		NdotL, \n\
+		NdotV, \n\
+		NdotH, \n\
+		LdotH, \n\
+		VdotH, \n\
+		vec3(0, 0, 0) \n\
+	); \n\
+	return ai; \n\
+} \n\
+// Lambert lighting \n\
+// see https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/ \n\
+vec3 diffuse(MaterialInfo materialInfo) \n\
+{ \n\
+    return materialInfo.diffuseColor / M_PI; \n\
+} \n\
+// TFresnel reflectance F() \n\
+vec3 specularReflection(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
+{ \n\
+	return materialInfo.reflectance0 + (materialInfo.reflectance90 - materialInfo.reflectance0) * pow(clamp(1.0 - angularInfo.VdotH, 0.0, 1.0), 5.0); \n\
+} \n\
+// Smith Joint GGX \n\
+// Note: Vis = G / (4 * NdotL * NdotV) \n\
+float visibilityOcclusion(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
+{ \n\
+	float NdotL = angularInfo.NdotL; \n\
+	float NdotV = angularInfo.NdotV; \n\
+	float alphaRoughnessSq = materialInfo.alphaRoughness * materialInfo.alphaRoughness; \n\
+	float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - alphaRoughnessSq) + alphaRoughnessSq); \n\
+	float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - alphaRoughnessSq) + alphaRoughnessSq); \n\
+		\n\
+	float GGX = GGXV + GGXL; \n\
+	if (GGX > 0.0) \n\
+	{ \n\
+		return 0.5 / GGX; \n\
+	} \n\
+	return 0.0; \n\
+} \n\
+// model the distribution of microfacet normals (aka D()) \n\
+float microfacetDistribution(MaterialInfo materialInfo, AngularInfo angularInfo) \n\
+{ \n\
+	float alphaRoughnessSq = materialInfo.alphaRoughness * materialInfo.alphaRoughness; \n\
+	float f = (angularInfo.NdotH * alphaRoughnessSq - angularInfo.NdotH) * angularInfo.NdotH + 1.0; \n\
+	return alphaRoughnessSq / (M_PI * f * f); \n\
+} \n\
+vec3 getPointShade(vec3 pointToLight, MaterialInfo materialInfo, vec3 normal, vec3 view) \n\
+{ \n\
+	AngularInfo angularInfo = getAngularInfo(pointToLight, normal, view); \n\
+	if (angularInfo.NdotL > 0.0 || angularInfo.NdotV > 0.0) \n\
+	{ \n\
+		// microfacet specular shading model \n\
+		vec3 F = specularReflection(materialInfo, angularInfo); \n\
+		float Vis = visibilityOcclusion(materialInfo, angularInfo); \n\
+		float D = microfacetDistribution(materialInfo, angularInfo); \n\
+		// Calculation of analytical lighting contribution \n\
+		vec3 diffuseContrib = (1.0 - F) * diffuse(materialInfo); \n\
+		vec3 specContrib = F * Vis * D; \n\
+		// reflectance (BRDF) scaled by the energy of the light (cosine law) \n\
+		return angularInfo.NdotL * (diffuseContrib + specContrib); \n\
+	} \n\
+	return vec3(0.0, 0.0, 0.0); \n\
+} \n\
+void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec3 myNormal, in struct MaterialInfo mat){ \n\
+	//working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
+	//myPosition, myNormal - of surface vertex, in eyespace \n\
+	int i; \n\
+	vec3 N = normalize (myNormal); \n\
+		\n\
+	vec3 E = -normalize(myPosition.xyz); \n \
+		\n\
+	// apply the lights to this material \n\
+	// weird but ANGLE needs constant loop \n\
+	for (i=0; i<lightcount; i++) {\n\
+		float on = 1.0; //we only send active/on lights to shader, so this is for radius \n\
+		float spot = 1.0; \n\
+		float attenuation = 1.0; //directional default \n\
+		fw_LightSourceParameters light = fw_LightSource[i]; \n\
+		int myLightType = lightType[i]; \n\
+		// VP vector of light direction and distance \n\
+		vec3 VP = light.location.xyz - myPosition.xyz; \n\
+		vec3 L = -light.direction; //directional light \n\
+		if(myLightType < 2){ \n\
+			//point and spot \n\
+			L = normalize(VP); \n\
+			float D = length(VP);  // distance to vertex \n\
+			// are we within range? \n\
+			if (D > light.lightRadius) on = 0.0; \n\
+			attenuation = 1.0/max(1.0,(light.Attenuations.x + (light.Attenuations.y * D) + (light.Attenuations.z *D*D))); \n\
+		} \n\
+		vec3 shade = getPointShade(-VP, mat, -N, -E); \n\
+		if (myLightType==1) { \n\
+			// SpotLight  \n\
+			spot = 0.0; \n\
+			float spotDot = dot (-L,light.direction); \n\
+			// check against spotCosCutoff \n\
+			if (spotDot > light.spotCutoff) { \n\
+				if(spotDot > light.spotBeamWidth) { \n\
+					spot = 1.0; \n\
+				} else { \n\
+					spot = (spotDot - light.spotCutoff)/(light.spotBeamWidth - light.spotCutoff); \n\
+				} \n\
+			} \n\
+		} \n\
+		vertexcolor   += on * attenuation * spot * light.color * light.intensity * shade; \n\
+		//vertexcolor   += shade; //vec3(0.0,1.0,1.0); \n\
+	} \n\
+	vertexcolor = clamp(vertexcolor, 0.0, 1.0); \n\
+} \n\
+";
+
 //add_light_contribution (castle_Color, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess)
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingequations
 // simplified thoery: lightOut = emissive + f(light_in,material,light_eqn)
@@ -1864,13 +1944,6 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 // http://http.developer.nvidia.com/CgTutorial/cg_tutorial_chapter05.html
 // incoming eyeposition and eyenormal are of the surface vertex and normal
 // .. in the view/eye coordinate system (so eye is at 0,0,0 and eye direction is 0,0,-1
-
-#ifdef OLDCODE
-static const GLchar *plug_vertex_lighting_matemissive = "\n\
-void PLUG_add_light_contribution (inout vec4 vertexcolor, in vec4 myPosition, in vec3 myNormal, in float shininess ) {\n\
-	vertexcolor.rgb += fw_FrontMaterial.emissive.rgb; \n\
-";
-#endif //OLDCODE
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
@@ -2034,7 +2107,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	//generic
 	vs = strdup(getGenericVertex());
 	fs = strdup(getGenericFragment());
-	printf("size of frag shader %d\n",strlen(fs));
+	//printf("size of frag shader %d\n",strlen(fs));  //MS vc has literal string size limit 65535
+
 	CompleteCode[SHADERPART_VERTEX] = vs;
 	CompleteCode[SHADERPART_GEOMETRY] = NULL;
 	CompleteCode[SHADERPART_FRAGMENT] = fs;
@@ -2085,7 +2159,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			//when we say phong in freewrl, we really mean per-fragment lighting
 			AddDefine(SHADERPART_FRAGMENT,"LIT",CompleteCode);
 			AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
-			Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
+			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
+			if(DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_FRAGMENT,plug_frag_lighting_physical,CompleteCode,&unique_int); //use lights
+			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
 
 			if(DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
 				AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
