@@ -1301,11 +1301,9 @@ void main(void) \n\
 		matdiff_color = vec4(0,0,0,1.0); \n\
 		#ifdef LITE \n\
 		castle_MaterialDiffuseAlpha = 1.0; //getAlpha(); \n\
-		castle_ColorES = getBaseColor(); //fw_FrontMaterial.emissive; \n\
 		float metallic = getMetallic(); \n\
 		float perceptualRoughness = getRoughness(); \n\
 		vec3 baseColor = getBaseColor(); \n\
-		matdiff_color.rgb = vec3(getRoughness(),0.0,getMetallic()); \n\
 		//unlit \n\
 		vec3 specularColor= vec3(0.0); \n\
 	    vec3 f0 = vec3(0.04); \n\
@@ -1335,7 +1333,8 @@ void main(void) \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
 		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, N, materialInfo ) */  \n\
-		matdiff_color.rgb = color; \n\
+		//matdiff_color.rgb = color; \n\
+		matdiff_color = vec4(LINEARtoSRGB(color), getAlpha()); \n\
 		#endif //LITE \n\
 	} \n\
 	\n\
