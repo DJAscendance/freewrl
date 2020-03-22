@@ -1257,7 +1257,7 @@ float getRoughness(){ \n\
 vec4 getVertexColor() { \n\
 	vec4 color = vec4(1.0,1.0,1.0,1.0); \n\
 	#ifdef CPV \n\
-		color = cpv_color; \n\
+		color = cpv_Color; \n\
 	#endif //CPV \n\
 	return color; \n\
 } \n\
