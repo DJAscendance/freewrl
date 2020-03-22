@@ -41,13 +41,17 @@ Polyrep ???
 //extern struct point_XYZ t_r2;
 //extern struct point_XYZ t_r3;
 
+struct facepar {
+int OK;
+int start;
+int end;
+};
 
-
-int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex);
+int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex, struct facepar *faceok);
 
 int 
 IFS_face_normals(struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
-				 int *faceok,
+				 struct facepar *faceok,
 				 int *pointfaces,
 				 int faces,
 				 int npoints,

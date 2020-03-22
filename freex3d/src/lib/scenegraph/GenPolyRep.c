@@ -686,7 +686,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	int convex=TRUE;
 	//struct point_XYZ *facenormals; /*  normals for each face*/
 	struct SFVec3f *facenormals;
-	int	*faceok = NULL;	/*  is this face ok? (ie, not degenerate triangles, etc)*/
+	struct facepar	*faceok = NULL;	/*  is this face ok? (ie, not degenerate triangles, etc)*/
 	int	*pointfaces = NULL;
 
 	GLDOUBLE tess_v[3];             /*param.to FW_GLU_TESS_VERTEX()*/
@@ -1036,25 +1036,27 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	}
 
 	/* count the faces in this polyrep and allocate memory. */
-	faces = count_IFS_faces (cin,orig_coordIndex);
+	faceok = MALLOC(struct facepar *, sizeof(struct facepar)*(cin/2+1));
+	faces = count_IFS_faces (cin,orig_coordIndex,faceok);
 	#ifdef VERBOSE
 	printf ("faces %d, cin %d npoints %d\n",faces,cin,npoints);
 	#endif
 
 	if (faces == 0) {
 		rep_->ntri = 0;
+		FREE_IF_NZ(faceok);
 		return;
 	}
 
 	/* are there any coordinates? */
 	if (npoints <= 0) {
 		rep_->ntri = 0;
+		FREE_IF_NZ(faceok);
 		return;
 	}
 
 	//facenormals = MALLOC(struct point_XYZ *, sizeof(struct point_XYZ)*faces); // sizeof(*facenormals)
 	facenormals = MALLOC(struct SFVec3f *, sizeof(struct SFVec3f)*faces); // sizeof(*facenormals)
-	faceok = MALLOC(int *, sizeof(int)*faces);
 	pointfaces = MALLOC(int *, sizeof(int)*npoints*POINT_FACES); /* save max x points */ //sizeof(*pointfaces)
 
 	/* generate the face-normals table, so for each face, we know the normal
@@ -1069,6 +1071,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	}
 
 	/* wander through to see how much memory needs allocating for triangles */
+	/*
 	for(i=0; i<cin; i++) {
 		if((orig_coordIndex->p[i]) == -1) {
 			ntri += nvert-2;
@@ -1078,11 +1081,18 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		}
 	}
 	if(nvert>2) {ntri += nvert-2;}
+	*/
+	//https://en.wikipedia.org/wiki/Delaunay_triangulation
+	//if there are b vertices on the convex hull, then any triangulation of the points has at most 2n - 2 - b triangles, plus one exterior face
+	for(i=0;i<faces;i++){
+		nvert = faceok[i].end - faceok[i].start +1;
+		ntri += 2*nvert-2-nvert;
+	}
 
 
-	#ifdef VERBOSE
+	//#ifdef VERBOSE
 	printf ("vert %d ntri %d\n",nvert,ntri);
-	#endif
+	//#endif
 
 	/* Tesselation MAY use more triangles; lets estimate how many more */
 	if(!convex) { ntri =ntri*2; }
@@ -1131,19 +1141,19 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		tess_contour_start = 0;
 		
 
-		if (!faceok[this_face]) {
-			#ifdef VERBOSE
-			printf ("in generate of faces, face %d is invalid, skipping...\n",this_face);
-			#endif
+		if (faceok[this_face].OK) {
+		//	#ifdef VERBOSE
+		//	printf ("in generate of faces, face %d is invalid, skipping...\n",this_face);
+		//	#endif
 
-			/* skip past the seperator, except if we are t the end */
+		//	/* skip past the seperator, except if we are t the end */
 
-			/*  skip to either end or the next -1*/
-			while ((this_coord < cin) && ((orig_coordIndex->p[this_coord]) != -1)) this_coord++;
+		//	/*  skip to either end or the next -1*/
+		//	while ((this_coord < cin) && ((orig_coordIndex->p[this_coord]) != -1)) this_coord++;
 
-			/*  skip past the -1*/
-			if ((this_coord < (cin-1)) && ((orig_coordIndex->p[this_coord]) == -1)) this_coord++;
-		} else {
+		//	/*  skip past the -1*/
+		//	if ((this_coord < (cin-1)) && ((orig_coordIndex->p[this_coord]) == -1)) this_coord++;
+		//} else {
 
 			#ifdef VERBOSE
 			printf ("working on face %d coord %d total coords %d coordIndex %d\n",
@@ -1161,6 +1171,8 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 			/* If we have concave, tesselate! */
 			// July 2016 dug9 changed Tess.c combiner callback so it works for Text
 			// but did not fix combiner scenarios here, wich were not working right when face edges intersect (which specs say don't worry about)
+			this_coord = faceok[this_face].start;
+
 			if (!convex) {
 				//register_Polyrep_combiner(); //default, Component_Text resets to this after compiling its text
 				//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
