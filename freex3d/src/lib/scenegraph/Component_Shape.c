@@ -1450,9 +1450,9 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 	}
-	if(node->baseColorTexture)
+	if(node->baseTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseColorTexture,tnodes[2]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseTexture,tnodes[2]);
 	}
 	if(node->metallicRoughnessTexture)
 	{
