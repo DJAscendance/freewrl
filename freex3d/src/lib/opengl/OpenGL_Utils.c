@@ -6996,17 +6996,17 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	mp->nt = nt;
 	//SEND_INT(myMaterialNt,mp->nt);
 
-	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
-	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
-	SEND_VEC3(myMaterialBackSpecular,fw_BackMaterial->specular);
-	SEND_VEC3(myMaterialBackBaseColor,fw_BackMaterial->baseColor);
-	SEND_FLOAT(myMaterialBackAmbient,fw_BackMaterial->ambient);
-	SEND_FLOAT(myMaterialBackShininess,fw_BackMaterial->shininess);
-	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
-	SEND_FLOAT(myMaterialBackRoughness,fw_BackMaterial->roughness);
-	SEND_FLOAT(myMaterialBackMetallic,fw_BackMaterial->metallic);
-	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
-	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
+	GLUNIFORM3FV(me->myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
+	GLUNIFORM3FV(me->myMaterialBackEmissive,1,fw_BackMaterial->emissive);
+	GLUNIFORM3FV(me->myMaterialBackSpecular,1,fw_BackMaterial->specular);
+	GLUNIFORM3FV(me->myMaterialBackBaseColor,1,fw_BackMaterial->baseColor);
+	GLUNIFORM1F(me->myMaterialBackAmbient,fw_BackMaterial->ambient);
+	GLUNIFORM1F(me->myMaterialBackShininess,fw_BackMaterial->shininess);
+	GLUNIFORM1F(me->myMaterialBackTransparency,fw_BackMaterial->transparency);
+	GLUNIFORM1F(me->myMaterialBackRoughness,fw_BackMaterial->roughness);
+	GLUNIFORM1F(me->myMaterialBackMetallic,fw_BackMaterial->metallic);
+	GLUNIFORM1I(me->myMaterialBackType,fw_BackMaterial->type);
+	GLUNIFORM1I(me->myMaterialBackTransdex,fw_BackMaterial->transdex);
 	mp = fw_BackMaterial;
 	nt = 0;
 	for(int i=0;i<5;i++){
@@ -7024,14 +7024,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
 				glUniform1i(me->textureUnit[kunit],tunit(kunit));
-				SEND_INT(myMaterialBackTindex[nt],mp->tindex[nt]);
+				GLUNIFORM1I(me->myMaterialBackTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
-		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
-		SEND_INT(myMaterialBackTcount[i],mp->tcount[i]);
-		SEND_INT(myMaterialBackTstart[i],mp->tstart[i]);
+		GLUNIFORM1I(me->myMaterialBackCindex[i],mp->cindex[i]);
+		GLUNIFORM1I(me->myMaterialBackTcount[i],mp->tcount[i]);
+		GLUNIFORM1I(me->myMaterialBackTstart[i],mp->tstart[i]);
 	}
 	mp->nt = nt;
 	//SEND_INT(myMaterialBackNt,mp->nt);

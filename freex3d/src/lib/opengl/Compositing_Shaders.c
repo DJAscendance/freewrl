@@ -1131,7 +1131,7 @@ vec4 matdiff_color; \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
-vec4 sample_map(int iunit){ \n\
+vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	#ifdef NOT_MTEX //not working \n\
 		vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
 		//vec4 nc = vec4(0.0,0.0,0.0,1.0); \n\
@@ -1150,6 +1150,7 @@ vec4 sample_map(int iunit){ \n\
 		nc = prev; \n\
 	#else //MTEX \n\
 	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
 	#endif //MTEX \n\
 	return nc; \n\
 } \n\
@@ -1171,7 +1172,7 @@ vec3 getNormal(){ \n\
 		vec3 b = normalize(cross(N, t)); \n\
 		mat3 tbn = mat3(t, b, N); \n\
 		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
-		vec4 nc = sample_map(0); \n\
+		vec4 nc = sample_map(0,false); \n\
 		N = normalize(tbn * (2.0 * nc.xyz - 1.0)); \n\
 	} \n\
 	if (!gl_FrontFacing) //backFacing \n\
@@ -1184,7 +1185,7 @@ float getAlpha(){ \n\
 		int main_image = 2; \n\
 		if(mat.type == 1) main_image = 1; \n\
 		if(mat.tcount[main_image] > 0) { \n\
-			vec4 dc = sample_map(main_image); \n\
+			vec4 dc = sample_map(main_image,false); \n\
 			A *= dc.a; \n\
 		} \n\
 	} \n\
@@ -1193,7 +1194,7 @@ float getAlpha(){ \n\
 vec3 getDiffuse(){ \n\
 	vec3 D = mat.diffuse; \n\
 	if(mat.type == 2 && mat.tcount[2] > 0){ \n\
-		vec4 dc = sample_map(2); \n\
+		vec4 dc = sample_map(2,true); \n\
 		D.rgb *= dc.rgb; \n\
 	} \n\
 	return D; \n\
@@ -1201,7 +1202,7 @@ vec3 getDiffuse(){ \n\
 vec3 getSpecular() { \n\
 	vec3 S = mat.specular; \n\
 	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = sample_map(3); \n\
+		vec4 sc = sample_map(3,true); \n\
 		S.rgb *= sc.rgb; \n\
 	} \n\
 	return S; \n\
@@ -1209,7 +1210,7 @@ vec3 getSpecular() { \n\
 float getShininess() { \n\
 	float S = mat.shininess; \n\
 	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = sample_map(3); \n\
+		vec4 sc = sample_map(3,false); \n\
 		S *= sc.a; \n\
 	} \n\
 	return S; \n\
@@ -1217,7 +1218,7 @@ float getShininess() { \n\
 vec3 getEmissive(){ \n\
 	vec3 E = mat.emissive; \n\
 	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
-		vec4 ec = sample_map(1); \n\
+		vec4 ec = sample_map(1,true); \n\
 		E.rgb *= ec.rgb; \n\
 	} \n\
 	return E; \n\
@@ -1225,7 +1226,7 @@ vec3 getEmissive(){ \n\
 float getAmbient(){ \n\
 	float amb = mat.ambient; \n\
 	if(mat.type == 2 && mat.tcount[4] > 0){ \n\
-		vec4 ac = sample_map(1); \n\
+		vec4 ac = sample_map(1,true); \n\
 		amb *= ac.r; \n\
 	} \n\
 	return amb; \n\
@@ -1233,7 +1234,7 @@ float getAmbient(){ \n\
 vec3 getBaseColor(){ \n\
 	vec3 B = mat.baseColor; \n\
 	if(mat.type == 3 && mat.tcount[2] > 0){ \n\
-		vec4 bc = sample_map(2); \n\
+		vec4 bc = sample_map(2,true); \n\
 		B.rgb *= bc.rgb; \n\
 	} \n\
 	return B; \n\
@@ -1241,7 +1242,7 @@ vec3 getBaseColor(){ \n\
 float getMetallic(){ \n\
 	float met = mat.metallic; \n\
 	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
-		vec4 mr = sample_map(3); \n\
+		vec4 mr = sample_map(3,false); \n\
 		met *= mr.b; \n\
 	} \n\
 	return met; \n\
@@ -1249,7 +1250,7 @@ float getMetallic(){ \n\
 float getRoughness(){ \n\
 	float rou = mat.roughness; \n\
 	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
-		vec4 mr = sample_map(3); \n\
+		vec4 mr = sample_map(3,false); \n\
 		rou *= mr.g; \n\
 	} \n\
 	return rou; \n\
@@ -1333,8 +1334,8 @@ void main(void) \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
 		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, N, materialInfo ) */  \n\
-		//matdiff_color.rgb = color; \n\
-		matdiff_color = vec4(LINEARtoSRGB(color), getAlpha()); \n\
+		matdiff_color.rgb = color; \n\
+		matdiff_color.a = getAlpha(); \n\
 		#endif //LITE \n\
 	} \n\
 	\n\
@@ -1385,12 +1386,12 @@ void main(void) \n\
 //STEP5 EMISSIVE \n\
 	fragment_color.rgb += getEmissive(); \n\
 	#ifdef CPV \n\
-	//#ifdef CPVREP \n\
+	#ifdef CPVREP \n\
 	fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
-	//fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
-	//#else \n\
-	//fragment_color *= cpv_Color; //CPV modulates prior \n\
-	//#endif //CPVREP \n\
+	fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
+	#else \n\
+	fragment_color *= cpv_Color; //CPV modulates prior \n\
+	#endif //CPVREP \n\
 	#endif //CPV \n\
 	\n\
 //STEP6 FOG \n\
@@ -1400,6 +1401,7 @@ void main(void) \n\
 	gl_FragColor = fragment_color; \n\
 	\n\
 	/* PLUG: fragment_end (gl_FragColor) */ \n\
+	gl_FragColor.rgb = LINEARtoSRGB(gl_FragColor.rgb); \n\
 } \n";
 
 
