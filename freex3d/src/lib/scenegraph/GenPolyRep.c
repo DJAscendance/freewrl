@@ -1091,7 +1091,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 
 	//#ifdef VERBOSE
-	printf ("vert %d ntri %d\n",nvert,ntri);
+	//printf ("vert %d ntri %d\n",nvert,ntri);
 	//#endif
 
 	/* Tesselation MAY use more triangles; lets estimate how many more */

@@ -145,7 +145,6 @@ int IFS_face_normals (
 		//facenormals[i].z = 1.0;
 		vecset3f(facenormals[i].c,0.0f, 0.0f, 1.0f);
 
-		if(new_way){
 		if((faceok[i].end - faceok[i].start + 1) < 3) {
 			printf ("IndexedFaceNormals: have a face with two or less vertexes\n");
 			faceok[i].OK = FALSE;
@@ -162,52 +161,15 @@ int IFS_face_normals (
 				}
 			}
 		}
-		}else{ //new way
-		
-		if (tmp_a >= cin-2) {
-			printf ("last face in Indexed Geometry has not enough vertexes\n");
-			faceok[i].OK = FALSE;
-		} else {
-			// does this face have at least 3 vertexes? 
-			if ((coordIndex->p[tmp_a] == -1) ||
-			    (coordIndex->p[tmp_a+1] == -1) ||
-			    (coordIndex->p[tmp_a+2] == -1)) {
-				printf ("IndexedFaceNormals: have a face with two or less vertexes\n");
-				faceok[i].OK = FALSE;
-
-				if (coordIndex->p[tmp_a] != -1) tmp_a++;
-			} else {
-				// check to see that the coordIndex does not point to a
-				//   point that is outside the range of our point array 
-				checkpoint = tmp_a;
-				while (checkpoint < cin) {
-					if (coordIndex->p[checkpoint] == -1) {
-						checkpoint = cin; //  stop the scan
-					} else {
-						// printf ("verifying %d for face %d\n",coordIndex->p[checkpoint],i); 
-						if ((coordIndex->p[checkpoint] < 0) ||
-						    (coordIndex->p[checkpoint] >= npoints)) {
-							printf ("Indexed Geometry face %d has a point out of range,",i);
-							printf (" point is %d, should be between 0 and %d\n",
-								coordIndex->p[checkpoint],npoints-1);
-							faceok[i].OK = FALSE;
-						}
-						checkpoint++;
-					}
-				}
-			}
-		}
-		} //new way
 		/* face has passed checks so far... */
 		if (faceok[i].OK) {
 			/* printf ("face %d ok\n",i); */
 			/* check for degenerate triangles -- we go through all triangles in a face to see which
 			   triangle has the largest vector length */
 			this_face_finished = FALSE;
-			if(new_way)
-				tmp_a = faceok[i].start;
+			tmp_a = faceok[i].start;
 			pt_1 = tmp_a;
-			printf("face %d first index pt_1 %d\n",i,pt_1);
+			//printf("face %d first index pt_1 %d\n",i,pt_1);
 			if (ccw) {
 				/* printf ("IFS face normals CCW\n"); */
 				pt_2 = tmp_a+1; pt_3 = tmp_a+2;
@@ -218,7 +180,7 @@ int IFS_face_normals (
 
 			do {
 				float fnorm[3], fnormlen, delta[3];
-				printf("do pt1 %d pt2 %d pt3 %d\n",pt_1,pt_2,pt_3);
+				//printf("do pt1 %d pt2 %d pt3 %d\n",pt_1,pt_2,pt_3);
 
 				/* first three coords give us the normal */
 				c1 = &(points[coordIndex->p[pt_1]]);
@@ -281,12 +243,7 @@ int IFS_face_normals (
 				/* skip forward to the next couple of points - if possible */
 				/* printf ("looking at %d, cin is %d\n",tmp_a, cin); */
 				tmp_a ++;
-				if(new_way)
 				this_face_finished = tmp_a + 2 > faceok[i].end;
-				else //new way
-				if ((tmp_a >= cin-2) || (coordIndex->p[tmp_a+2] == -1)) {
-					this_face_finished = TRUE;  tmp_a +=2;
-				}
 			} while (!this_face_finished);
 
 			if (APPROX(this_vl,0.0)) {
@@ -310,22 +267,6 @@ int IFS_face_normals (
 
 		}
 
-		if(!new_way){
-		// skip forward to next ifs - we have the normal - but check for bad Points!
-		if (i<faces-1) {
-			if (tmp_a <= 0) {
-				// this is an error in the input file; lets try and continue 
-				tmp_a = 1;
-			} 
-
-			if (tmp_a > 0) {
-				while (((coordIndex->p[tmp_a-1]) != -1) && (tmp_a < cin-2)) {
-					// printf ("skipping past %d for face %d\n",coordIndex->p[tmp_a-1],i);
-					tmp_a++;
-				}
-			}
-		}
-		} //new way
 		// printf ("for face %d, vec len is %f\n",i,this_vl);
 	}
 
