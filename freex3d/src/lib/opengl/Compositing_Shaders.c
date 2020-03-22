@@ -771,7 +771,7 @@ void main(void) \n\
   } \n\
   #endif //TGEN \n\
   vec4 tcoord[4]; \n\
-  tcoord[0] = fw_MultiTexCoord0; \n\
+  tcoord[0] = texcoord; //fw_MultiTexCoord0; \n\
   tcoord[1] = fw_MultiTexCoord1; \n\
   tcoord[2] = fw_MultiTexCoord2; \n\
   tcoord[3] = fw_MultiTexCoord3; \n\
