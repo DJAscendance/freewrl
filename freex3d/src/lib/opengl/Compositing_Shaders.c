@@ -1385,6 +1385,9 @@ void main(void) \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
 	fragment_color.rgb += getEmissive(); \n\
+	#ifdef LINE \n\
+	fragment_color.rgb = getEmissive(); \n\
+	#endif //LINE \n\
 	#ifdef CPV \n\
 	#ifdef CPVREP \n\
 	fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
@@ -1398,10 +1401,10 @@ void main(void) \n\
 	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
 	#undef normal_eye_fragment \n\
 	\n\
+	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
 	gl_FragColor = fragment_color; \n\
 	\n\
 	/* PLUG: fragment_end (gl_FragColor) */ \n\
-	gl_FragColor.rgb = LINEARtoSRGB(gl_FragColor.rgb); \n\
 } \n";
 
 
@@ -2149,7 +2152,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	//2 material appearance
 	//phong vs gourard
 	if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER)
-		|| DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER)){
+		|| DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,UNLIT_MATERIAL_APPEARANCE_SHADER)){
 		//if(isLit)
 		if(DESIRE(whichOne.base,MAT_FIRST)){
 			//strict table 17-3 with no other modulation means Texture > CPV > mat.diffuse > (111)
@@ -2178,6 +2181,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			//lines and points 
 			if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
 				AddDefine(SHADERPART_VERTEX,"LINE",CompleteCode);
+				AddDefine(SHADERPART_FRAGMENT,"LINE",CompleteCode);
 			}else{
 				AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
 				Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
