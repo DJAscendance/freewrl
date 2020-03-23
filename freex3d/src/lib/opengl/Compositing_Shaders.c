@@ -1384,7 +1384,12 @@ void main(void) \n\
 //STEP4 OCCLUSION \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
-	fragment_color.rgb += getEmissive(); \n\
+	if(mat.type == 1) { \n\
+		fragment_color.rgb = getEmissive(); \n\
+		fragment_color.a = getAlpha(); \n\
+	}else if(mat.type > 1){ \n\
+		fragment_color.rgb += getEmissive(); \n\
+	} \n\
 	#ifdef LINE \n\
 	fragment_color.rgb = getEmissive(); \n\
 	#endif //LINE \n\
@@ -2159,7 +2164,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			AddDefine(SHADERPART_VERTEX,"MATFIR",CompleteCode);
 			AddDefine(SHADERPART_FRAGMENT,"MATFIR",CompleteCode);
 		}
-		if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG) && !DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR)){
+		if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG) && !DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) && !DESIRE(whichOne.base,UNLIT_MATERIAL_APPEARANCE_SHADER)){
 			//when we say phong in freewrl, we really mean per-fragment lighting
 			AddDefine(SHADERPART_FRAGMENT,"LIT",CompleteCode);
 			AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
@@ -2182,6 +2187,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
 				AddDefine(SHADERPART_VERTEX,"LINE",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"LINE",CompleteCode);
+			}else if(DESIRE(whichOne.base,UNLIT_MATERIAL_APPEARANCE_SHADER)){
+				//nothing
 			}else{
 				AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
 				Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
@@ -2209,6 +2216,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	*/
 	int colCalc_loaded = FALSE;
 	if(DESIRE(whichOne.base,HAVE_UNLIT_COLOR)){
+		//used by particles
 		AddDefine(SHADERPART_VERTEX,"UNLIT",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"UNLIT",CompleteCode);
 	}
