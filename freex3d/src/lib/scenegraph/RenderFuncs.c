@@ -2077,7 +2077,7 @@ void push_globalRenderFlags(){
 		case 2: shaderflags.base |= SHADINGSTYLE_PHONG; break;
 		case 3: shaderflags.base |= SHADINGSTYLE_WIRE; break;
 		default:
-			shaderflags.base |= SHADINGSTYLE_GOURAUD; break;
+			shaderflags.base |= SHADINGSTYLE_PHONG; break;
 	}
 	if(tg->Component_PTM.globalProjector){
 		shaderflags.base |= HAVE_PROJECTIVETEXTURE;

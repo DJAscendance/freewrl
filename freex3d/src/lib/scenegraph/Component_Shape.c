@@ -956,7 +956,7 @@ void child_Shape (struct X3D_Shape *node) {
 
 	RECORD_DISTANCE
 
-	if((renderstate()->render_collision) || (renderstate()->render_sensitive)) {
+	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
 		render_node(tmpNG);
@@ -1132,6 +1132,9 @@ void child_Shape (struct X3D_Shape *node) {
 		render_node(tmpNG);
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
+		//over-ride solid TRUE backface culling if scene author has a backMaterial / TWO sided material
+		if(shader_requirements.base & TWO_MATERIAL_APPEARANCE_SHADER)
+			glDisable(GL_CULL_FACE);
 		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1370,7 +1373,11 @@ void render_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	{
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 		if (node != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			if(get_isBackMaterial()){
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}else{
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}
 		}
 	}
 }
@@ -1489,7 +1496,11 @@ void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	{
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 		if (node != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			if(get_isBackMaterial()){
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}else{
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}
 		}
 	}
 }
