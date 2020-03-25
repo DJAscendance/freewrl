@@ -916,6 +916,7 @@ void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
 	memset(mat,0,sizeof(struct fw_MaterialParameters));
 	mat->ambient = .2f;
 	mat->shininess = .2f;
+	mat->diffuse[0] = mat->diffuse[1] = mat->diffuse[2] = .5f;
 	mat->type = MAT_NONE;
 }
 void initialize_front_and_back_material_params(){

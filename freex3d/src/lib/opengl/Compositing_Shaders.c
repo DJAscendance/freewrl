@@ -1129,7 +1129,6 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 } \n\
 // << PhYSICAL LIGHTING \n\
 //GETTERS \n\
-vec4 matdiff_color; //used by multi-texturing functions \n\
 fw_MaterialParameters mat; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
 vec4 sample_map(int iunit, bool apply_gamma){ \n\
@@ -1282,10 +1281,6 @@ void main(void) \n\
 	#ifndef PHONG \n\
 		fragment_color = castle_Color; \n\
 	#endif //PHONG \n\
-	if(mat.type == 1) fragment_color.r = 1.0; \n\
-	if(mat.type == 2) fragment_color.g = 1.0; \n\
-	if(mat.type == 3) fragment_color.b = 1.0; \n\
-	if(mat.type == 0) fragment_color.rgb = vec3(.1); \n\
 //STEP2 LIGHTS \n\
 	#ifdef PHONG \n\
 	//per-fragment lighting aka PHONG \n\
@@ -1340,13 +1335,6 @@ void main(void) \n\
 		#endif //LITE \n\
 	} \n\
 	#endif //PHONG \n\
-	matdiff_color = fragment_color; //used by MTEX for modulation source\n\
-	\n\
-	#ifdef TEX \n\
-	#ifdef TEXREP \n\
-	fragment_color = vec4(1.0,1.0,1.0,1.0); //texture replaces prior \n\
-	#endif //TEXREP \n\
-	#endif //TEX \n\
 	\n\
 	#ifdef FILL \n\
 	fillPropCalc(fragment_color, hatchPosition, algorithm); \n\
@@ -1366,7 +1354,7 @@ void main(void) \n\
 //STEP4 OCCLUSION \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
-	if(mat.type < 2) { \n\
+	if(mat.type == 1) { \n\
 		fragment_color.rgb = getEmissive(); \n\
 		fragment_color.a = getAlpha(); \n\
 	}else if(mat.type > 1){ \n\
@@ -1708,6 +1696,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   #ifdef MTEX \n\
   vec4 source; \n\
   int isource,iasource, mode; \n\
+  vec4 matdiff_color = finalFrag; \n\
   //finalFrag = texture2D(fw_Texture_unit0, fw_TexCoord[0].st) * finalFrag; \n\
   if(textureCount>0){ \n\
     if(fw_Texture_mode0[0] != MTMODE_OFF) { \n\
