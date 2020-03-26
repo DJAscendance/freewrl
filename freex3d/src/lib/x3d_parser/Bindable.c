@@ -1336,6 +1336,7 @@ void render_prepped_Background(struct X3D_Background *node){
 	}
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
+	initialize_front_and_back_material_params();
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER | CPV_REPLACE_PRIOR));
 	LIGHTING_OFF
 
