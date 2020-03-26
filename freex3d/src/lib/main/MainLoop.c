@@ -2666,6 +2666,7 @@ void render_texturegrid(void *_self){
 	// Load the texture coordinate
 	texCoordLoc = scap->TexCoords[0];
 	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
+	glUniform1i(scap->nTexCoordChannels,1);
 	glEnableVertexAttribArray (positionLoc );
 	glEnableVertexAttribArray ( texCoordLoc);
 
@@ -2681,6 +2682,7 @@ void render_texturegrid(void *_self){
 	textureLoc = scap->TextureUnit[0];
 	textureMatrix0 = scap->TextureMatrix[0];
 	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
+	glUniform1i(scap->nTexMatrix, 1);
 
 	glUniform1i ( textureLoc, 0 );
 	//window coordinates natively go from -1 to 1 in x and y
@@ -2932,6 +2934,8 @@ void render_orientation(void *_self){
 	// Load the texture coordinate
 	texCoordLoc = scap->TexCoords[0];
 	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
+	glUniform1i(scap->nTexCoordChannels,1);
+
 	glEnableVertexAttribArray (positionLoc );
 	glEnableVertexAttribArray ( texCoordLoc);
 
@@ -2943,6 +2947,7 @@ void render_orientation(void *_self){
 	textureLoc = scap->TextureUnit[0];
 	textureMatrix0 = scap->TextureMatrix[0];
 	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
+	glUniform1i(scap->nTexMatrix, 1);
 
 	glUniform1i ( textureLoc, 0 );
 	//window coordinates natively go from -1 to 1 in x and y
