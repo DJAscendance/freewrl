@@ -1135,6 +1135,7 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		}
 		return;
 	}
+
 	if(skycolor->n && skycolor->n != skyangle->n +1){
 		ConsoleMessage("warning Background: skyColor.n %d should have one more entry than skyAngle.n %d\n",skycolor->n,skyangle->n);
 	}
@@ -1142,6 +1143,10 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		ConsoleMessage("warning Background: groundColor.n %d should have one more entry than groundAngle.n %d\n",groundcolor->n,groundangle->n);
 	}
 
+
+	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/enveffects.html#Backgrounds
+	// we stick to this pretty close, except:
+	//- one groundColor is a special case meaning nadir to horizone single color (vs specs: discard/no mention special case)
 
 	// calculate how many quads are required
 	estq=0;actq=0;
@@ -1151,8 +1156,9 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		if(skyangle->p[skyangle->n-1]< M_PI) s_vdiv += 1;
 	}
 	int g_vdiv = groundangle->n > 0 ? groundangle->n : 0;
+	g_vdiv = groundcolor->n == 1 ? 1 : g_vdiv; //exception to web3d rules
 	vdiv = s_vdiv + g_vdiv;
-	estq = hdiv * vdiv; //20 horizontal, 10 vertical, and both sky and ground 
+	estq = hdiv * vdiv; // both sky and ground share one (point,color) array
 
 	// now, MALLOC space for new arrays  - 3 points per vertex, 6 per quad. 
 	newPoints = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
@@ -1167,8 +1173,12 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	if(g_vdiv)
 	for(int i=0;i<g_vdiv+1;i++){
 		if(i==0) g_angle[i] = 0.0f;
-		else g_angle[i] = min(groundangle->p[i-1],M_PI/2.0f);
-		veccopy3f(g_color[i].c,groundcolor->p[i].c);
+		else {
+			if(groundcolor->n == 1) g_angle[i] = M_PI/2.0f;
+			 else g_angle[i] = min(groundangle->p[i-1],M_PI/2.0f);
+		}
+		if(groundcolor->n==1) veccopy3f(g_color[i].c,groundcolor->p[0].c);
+		else veccopy3f(g_color[i].c,groundcolor->p[i].c);
 		//printf("g_angle[%d] %f g_color %f %f %f\n",i, g_angle[i], g_color[i].c[0], g_color[i].c[1], g_color[i].c[2]);
 	}
 	s_angle[0] = 0.0f;
