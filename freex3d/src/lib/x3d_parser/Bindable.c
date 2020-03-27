@@ -794,7 +794,7 @@ static void moveBackgroundCentre () {
 	}
 }
 
-static void recalculateBackgroundVectors(struct X3D_Background *node) {
+static void recalculateBackgroundVectors_old(struct X3D_Background *node) {
 	struct SFColor *c1,*c2;
 	int hdiv;			/* number of horizontal strips allowed */
 	int h,v;
@@ -848,21 +848,21 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	}
 
 	/* do we have NO background triangles? (ie, maybe all textures??) */
-	if ((skyColCt == 0) & (gndColCt == 0)) {
-        	if (node->_nodeType == NODE_Background) {
+	if ((skyColCt == 0) && (gndColCt == 0)) {
+		if (node->_nodeType == NODE_Background) {
 			MARK_NODE_COMPILED
-                	/* do we have an old background to destroy? */
-                	FREE_IF_NZ (node->__points.p);
-                	FREE_IF_NZ (node->__colours.p);
-                	node->__quadcount = 0;
-        	} else {
-                	tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
+			/* do we have an old background to destroy? */
+			FREE_IF_NZ (node->__points.p);
+			FREE_IF_NZ (node->__colours.p);
+			node->__quadcount = 0;
+		} else {
+			tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
 
-                	/* do we have an old background to destroy? */
-                	FREE_IF_NZ (tbnode->__points.p);
-                	FREE_IF_NZ (tbnode->__colours.p);
-                	tbnode->__quadcount = 0;
-        	}
+			/* do we have an old background to destroy? */
+			FREE_IF_NZ (tbnode->__points.p);
+			FREE_IF_NZ (tbnode->__colours.p);
+			tbnode->__quadcount = 0;
+		}
 		return;
 	}
 
@@ -889,7 +889,6 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	/* now, MALLOC space for new arrays  - 3 points per vertex, 6 per quad. */
 	newPoints = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
 	newColors = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
-
 
 	if(skyColCt == 1) {
 		c1 = &skyCol[0];
@@ -1068,6 +1067,241 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		//node->__combined = X3D_NODE(combinedBuffer);
 	}
 }
+static void recalculateBackgroundVectors(struct X3D_Background *node) {
+	float *c1,*c2;
+	int hdiv, vdiv;			/* number of horizontal strips allowed */
+	int h,v;
+	double va1, va2, ha1, ha2;	/* JS - vert and horiz angles 	*/
+	int estq;
+	int actq;
+	struct Multi_Float *skyangle, *groundangle;
+	struct Multi_Color *skycolor, *groundcolor, *colours;
+	struct Multi_Vec3f *points;
+	int *quadcount;
+
+	/* filled in if this is a TextureBackground node */
+	struct X3D_TextureBackground *tbnode;
+
+	// generic structures between nodes used for taking individual pointers from node defns 
+	struct SFColor *skyCol; int skyColCt;
+	struct SFColor *gndCol; int gndColCt;
+	float  *skyAng; int skyAngCt;
+	float  *gndAng; int gndAngCt;
+	float *newPoints; float *newColors;
+	double outsideRadius, insideRadius;
+
+	/* initialization */
+	tbnode = NULL;
+	hdiv = 20;
+	vdiv = 20;
+
+	// We draw spheres, one for the sky, one for the ground - outsideRadius and insideRadius
+	//outsideRadius =  DEFAULT_FARPLANE* 0.750;
+	//insideRadius = DEFAULT_FARPLANE * 0.50;
+
+	/* lets try these values - we will scale when we draw this */
+	outsideRadius = 1.001;// 1.0;
+	insideRadius = 1.0005; // 0.5;
+
+	// handle Background and TextureBackgrounds here
+	if (node->_nodeType == NODE_Background) {
+		skycolor = &node->skyColor;
+		skyangle = &node->skyAngle;
+		groundcolor = &node->groundColor;
+		groundangle = &node->groundAngle;
+		colours = &node->__colours;
+		points = &node->__points;
+		quadcount = &node->__quadcount;
+	} else {
+		tbnode = (struct X3D_TextureBackground *) node;
+		skycolor = &tbnode->skyColor;
+		skyangle = &tbnode->skyAngle;
+		groundcolor = &tbnode->groundColor;
+		groundangle = &tbnode->groundAngle;
+		colours = (struct Multi_Color*)&tbnode->__colours;
+		points = &tbnode->__points;
+		quadcount = &tbnode->__quadcount;
+	}
+
+	// do we have NO background triangles? (ie, maybe all textures??)
+	if ((skycolor->n == 0) && (groundcolor->n == 0)) {
+		FREE_IF_NZ (points->p);
+		FREE_IF_NZ (colours->p);
+		*quadcount = 0;
+		if (node->_nodeType == NODE_Background) {
+			MARK_NODE_COMPILED
+		} else {
+			tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
+		}
+		return;
+	}
+	if(skycolor->n && skycolor->n != skyangle->n +1){
+		ConsoleMessage("warning Background: skyColor.n %d should have one more entry than skyAngle.n %d\n",skycolor->n,skyangle->n);
+	}
+	if(groundcolor->n && groundcolor->n != groundangle->n +1){
+		ConsoleMessage("warning Background: groundColor.n %d should have one more entry than groundAngle.n %d\n",groundcolor->n,groundangle->n);
+	}
+
+
+	// calculate how many quads are required
+	estq=0;actq=0;
+	int s_vdiv = max(skyangle->n,2);
+	if(skyangle->n > 0){
+		if(skyangle->p[skyangle->n-1]< 1.57) s_vdiv += 1; //M_PI/2.0
+		if(skyangle->p[skyangle->n-1]< M_PI) s_vdiv += 1;
+	}
+	int g_vdiv = groundangle->n > 0 ? groundangle->n : 0;
+	vdiv = s_vdiv + g_vdiv;
+	estq = hdiv * vdiv; //20 horizontal, 10 vertical, and both sky and ground 
+
+	// now, MALLOC space for new arrays  - 3 points per vertex, 6 per quad. 
+	newPoints = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
+	newColors = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
+	
+	float *g_angle = MALLOC (float *, sizeof (float) * (g_vdiv+1));
+	float *s_angle = MALLOC (float *, sizeof (float) * (s_vdiv+1));
+	struct SFColor * g_color = MALLOC(struct SFColor*,sizeof(struct SFColor)*(g_vdiv+1) );
+	struct SFColor * s_color = MALLOC(struct SFColor*,sizeof(struct SFColor)*(s_vdiv+1) );
+
+	g_angle[0] = 0.0f;
+	if(g_vdiv)
+	for(int i=0;i<g_vdiv+1;i++){
+		if(i==0) g_angle[i] = 0.0f;
+		else g_angle[i] = min(groundangle->p[i-1],M_PI/2.0f);
+		veccopy3f(g_color[i].c,groundcolor->p[i].c);
+		//printf("g_angle[%d] %f g_color %f %f %f\n",i, g_angle[i], g_color[i].c[0], g_color[i].c[1], g_color[i].c[2]);
+	}
+	s_angle[0] = 0.0f;
+	float lastcolor[3];
+	veccopy3f(lastcolor,skycolor->p[skycolor->n-1].c);
+	for(int i=0;i<s_vdiv+1;i++){
+		if(i==0) s_angle[i] = 0.0f;
+		else if(i-1<skyangle->n)
+			s_angle[i] = skyangle->p[i-1];
+		else if(i==s_vdiv) s_angle[i] = M_PI;
+		else s_angle[i] = M_PI/2.0;
+		veccopy3f(s_color[i].c,lastcolor);
+		if(i < skycolor->n ){
+			veccopy3f(s_color[i].c,skycolor->p[i].c);
+		}
+		//printf("s_angle[%d] %f s_color %f %f %f\n",i,s_angle[i], s_color[i].c[0], s_color[i].c[1], s_color[i].c[2]);
+
+	}
+
+	//sky
+	int count = 0;
+	for(int i=0; i < s_vdiv; i++) {
+		va1 = s_angle[i];
+		va2 = s_angle[i+1];
+		c1 = s_color[i].c;
+		c2 = s_color[i+1].c;
+
+		for(h=0; h<hdiv; h++) {
+			ha1 = h * PI*2 / hdiv;
+			ha2 = (h+1) * PI*2 / hdiv;
+			saveBGVert(newColors,newPoints, &actq,c2,outsideRadius, sin(va2)*cos(ha1), cos(va2), sin(va2) * sin(ha1)); //0
+			saveBGVert(newColors,newPoints, &actq,c2,outsideRadius, sin(va2)*cos(ha2), cos(va2), sin(va2) * sin(ha2)); //1
+			saveBGVert(newColors,newPoints, &actq,c1,outsideRadius, sin(va1)*cos(ha2), cos(va1), sin(va1) * sin(ha2)); //2
+			saveBGVert(newColors,newPoints, &actq,c2,outsideRadius, sin(va2)*cos(ha1), cos(va2), sin(va2) * sin(ha1)); //0
+			saveBGVert(newColors,newPoints, &actq,c1,outsideRadius, sin(va1)*cos(ha2), cos(va1), sin(va1) * sin(ha2)); //2
+			saveBGVert(newColors,newPoints, &actq,c1,outsideRadius, sin(va1)*cos(ha1), cos(va1), sin(va1) * sin(ha1)); //3
+			count += 6;
+		}
+	}
+	//printf("skycount %d hdiv %d vdiv %d\n",count,hdiv,s_vdiv);
+	//ground
+	count = 0;
+	for(int i=0; i<g_vdiv; i++) {
+		va1 = M_PI - g_angle[i];
+		va2 = M_PI - g_angle[i+1]; 
+		c1 = g_color[i].c;
+		c2 = g_color[i+1].c;
+		for(h=0; h<hdiv; h++) {
+			ha1 = h * PI*2 / hdiv;
+			ha2 = (h+1) * PI*2 / hdiv;
+
+			saveBGVert(newColors,newPoints,&actq,c1,insideRadius, sin(va1)*cos(ha1), cos(va1), sin(va1)*sin(ha1)); //0
+			saveBGVert(newColors,newPoints,&actq,c1,insideRadius, sin(va1)*cos(ha2), cos(va1), sin(va1)*sin(ha2)); //1
+			saveBGVert(newColors,newPoints,&actq,c2,insideRadius, sin(va2)*cos(ha2), cos(va2), sin(va2)*sin(ha2)); //2
+			saveBGVert(newColors,newPoints,&actq,c1,insideRadius, sin(va1)*cos(ha1), cos(va1), sin(va1)*sin(ha1)); //0
+			saveBGVert(newColors,newPoints,&actq,c2,insideRadius, sin(va2)*cos(ha2), cos(va2), sin(va2)*sin(ha2)); //2
+			saveBGVert(newColors,newPoints,&actq,c2,insideRadius, sin(va2)*cos(ha1), cos(va2), sin(va2)*sin(ha1)); //3
+			count +=6;
+		}
+	}
+	//printf("groundcount %d hdiv %d vdiv %d\n",count,hdiv,g_vdiv);
+
+	/* We have guessed at the quad count; lets make sure
+	 * we record what we have. */
+	if (actq > (estq*6)) {
+		printf ("Background quadcount error, %d > %d\n",
+				actq,estq);
+		actq = 0;
+	}
+
+	/* save changes */
+	/* if we are doing shaders, we write the vertex and color info to a VBO, else we keep pointers in the node */
+	if (node->_nodeType == NODE_Background) {
+
+		MARK_NODE_COMPILED
+
+		/* do we have an old background to destroy? */
+		FREE_IF_NZ (node->__points.p);
+		FREE_IF_NZ (node->__colours.p);
+		node->__quadcount = actq;
+	} else {
+		tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
+		/* do we have an old background to destroy? */
+		FREE_IF_NZ (tbnode->__points.p);
+		FREE_IF_NZ (tbnode->__colours.p);
+		tbnode->__quadcount = actq;
+
+	}
+
+
+	{
+		struct MyVertex *combinedBuffer = MALLOC(struct MyVertex *, sizeof (struct MyVertex) * actq * 2);
+		int i;
+		float *npp = newPoints;
+		float *ncp = newColors;
+
+
+		if (node->_nodeType == NODE_Background) {
+			if (node->__VBO == 0) glGenBuffers(1,(unsigned int*) &node->__VBO);
+		} else {
+			if (tbnode->__VBO == 0) glGenBuffers(1,(unsigned int*) &tbnode->__VBO);
+		}
+
+		/* stream both the vertex and colours together (could have done this above, but
+		   maybe can redo this if we go 100% material shaders */
+
+		/* NOTE - we use SFColorRGBA - and set the Alpha to 1 so that we can use the
+		   shader with other nodes with Color fields */
+
+		for (i=0; i<actq; i++) {
+			combinedBuffer[i].vert.c[0] = *npp; npp++;
+			combinedBuffer[i].vert.c[1] = *npp; npp++;
+			combinedBuffer[i].vert.c[2] = *npp; npp++;
+			combinedBuffer[i].col.c[0] = *ncp; ncp++;
+			combinedBuffer[i].col.c[1] = *ncp; ncp++;
+			combinedBuffer[i].col.c[2] = *ncp; ncp++;
+			combinedBuffer[i].col.c[3] = 1.0f;
+		}
+		FREE_IF_NZ(newPoints);
+		FREE_IF_NZ(newColors);
+
+		/* send this data along ... */
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->__VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof (struct MyVertex)*actq, combinedBuffer, GL_STATIC_DRAW);
+
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+
+		/* and, we can free it */
+		FREE_IF_NZ(combinedBuffer);
+		//node->__combined = X3D_NODE(combinedBuffer);
+	}
+}
+
 void reallyDraw();
 void render_Background(struct X3D_Background *node){
 	if (renderstate()->render_blend) return;
