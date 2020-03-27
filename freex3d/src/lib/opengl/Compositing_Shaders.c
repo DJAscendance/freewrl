@@ -1278,7 +1278,7 @@ void main(void) \n\
 	vec3 N = getNormal(); \n\
 	\n\
 //STEP1 INITIALIZE \n\
-	vec4 fragment_color = vec4(0.0,0.0,0.0,1.0); \n\
+	vec4 fragment_color = vec4(1.0); \n\
 	#ifndef PHONG \n\
 		fragment_color = castle_Color; \n\
 	#endif //PHONG \n\
@@ -1331,7 +1331,7 @@ void main(void) \n\
 		vec3 normal = getNormal(); \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
-		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, N, materialInfo ) */  \n\
+		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, normal, materialInfo ) */  \n\
 		fragment_color = vec4(color,getAlpha()); \n\
 		#endif //LITE \n\
 	} \n\
