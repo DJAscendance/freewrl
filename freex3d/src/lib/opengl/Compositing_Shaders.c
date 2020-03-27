@@ -219,7 +219,7 @@ void extractPlugName(char *start, char *PlugName,char *PlugDeclaredParameters){
 	PlugDeclaredParameters[len] = '\0';
 	//printf("PlugName %s PlugDeclaredParameters %s\n",PlugName,PlugDeclaredParameters);
 }
-#define SBUFSIZE 32767 //must hold final size of composited shader part, could do per-gglobal-instance malloced buffer instead and resize to largest composited shader
+#define SBUFSIZE 65534 //32767 //must hold final size of composited shader part, could do per-gglobal-instance malloced buffer instead and resize to largest composited shader
 #define PBUFSIZE 16384 //must hold largets PlugValue
 int fw_strcpy_s(char *dest, int destsize, const char *source){
 	int ier = -1;
@@ -1256,6 +1256,7 @@ float getRoughness(){ \n\
 	return rou; \n\
 } \n\
 vec4 getVertexColor() { \n\
+	//H: this is supposed to be from vertex shader \n\
 	vec4 color = vec4(1.0,1.0,1.0,1.0); \n\
 	#ifdef CPV \n\
 		color = cpv_Color; \n\
@@ -1307,7 +1308,7 @@ void main(void) \n\
 		//unlit \n\
 		vec3 specularColor= vec3(0.0); \n\
 	    vec3 f0 = vec3(0.04); \n\
-		baseColor *= getVertexColor().xyz; //hunh? \n\
+		// ?? baseColor *= getVertexColor().xyz; //hunh? \n\
 		vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0) * (1.0 - metallic); \n\
 		specularColor = mix(f0, baseColor.rgb, metallic); \n\
 		//lit \n\
@@ -1692,7 +1693,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */
 static const GLchar *plug_fragment_texture_apply =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
-\n\
+ \n\
   #ifdef MTEX \n\
   vec4 source; \n\
   int isource,iasource, mode; \n\
@@ -2243,7 +2244,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 				//AddDefine(SHADERPART_FRAGMENT,"TEX3D",CompleteCode);
 				Plug(SHADERPART_FRAGMENT,plug_fragment_texture3D_apply_volume,CompleteCode,&unique_int);
 			}
-		}else{
+		}else {
 			if(DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE)){
 				AddDefine(SHADERPART_VERTEX,"CUB",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"CUB",CompleteCode);
@@ -2301,6 +2302,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
+	//printf("size of finished fragment shader %d bytes\n",strlen(*fragmentSource));
 //#define DEBUGSHADER 1
 #ifdef DEBUGSHADER
 	{
