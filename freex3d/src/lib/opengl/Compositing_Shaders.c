@@ -1368,6 +1368,9 @@ void main(void) \n\
 	if(mat.type == 0) { \n\
 		fragment_color = cpv_Color; //no mat to modulate with \n\
 	}else{ \n\
+		#ifndef MODC \n\
+		fragment_color = vec4(1.0); \n\
+		#endif //MODC \n\
 		fragment_color *= cpv_Color; //CPV modulates prior \n\
 	} \n\
 	#endif //CPV \n\
