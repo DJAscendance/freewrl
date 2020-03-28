@@ -1581,7 +1581,7 @@ void render_prepped_Background(struct X3D_Background *node){
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 	initialize_front_and_back_material_params();
-	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER | CPV_REPLACE_PRIOR));
+	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 	LIGHTING_OFF
 
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1611,7 +1611,7 @@ void render_prepped_Background(struct X3D_Background *node){
         	FW_GL_NORMAL_POINTER (GL_FLOAT,0,Backnorms);
         	FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex,0);
 
-		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER | CPV_REPLACE_PRIOR));
+		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
 
 
 		loadBackgroundTextures(node);

@@ -2145,10 +2145,6 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if DESIRE(whichOne.base,COLOUR_MATERIAL_SHADER) {
 		AddDefine(SHADERPART_VERTEX,"CPV",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"CPV",CompleteCode);
-		//if(DESIRE(whichOne.base,CPV_REPLACE_PRIOR)){
-		//	AddDefine(SHADERPART_VERTEX,"CPVREP",CompleteCode);
-		//	AddDefine(SHADERPART_FRAGMENT,"CPVREP",CompleteCode);
-		//}
 	}
 	if(DESIRE(whichOne.base,MODULATE_COLOR)){
 		AddDefine(SHADERPART_VERTEX,"MODC",CompleteCode);
@@ -2170,25 +2166,14 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
 			AddDefine(SHADERPART_VERTEX,"TWO",CompleteCode);
 		}
-		//if(DESIRE(whichOne.base,MAT_FIRST)){
-		//	//strict table 17-3 with no other modulation means Texture > CPV > mat.diffuse > (111)
-		//	AddDefine(SHADERPART_VERTEX,"MATFIR",CompleteCode);
-		//	AddDefine(SHADERPART_FRAGMENT,"MATFIR",CompleteCode);
-		//}
-		//add light function to whichever shader part is doing the lighting
-		//if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))){
-			//when we say phong in freewrl, we really mean per-fragment lighting
-			AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
-			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
-			if(DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER))
-				Plug(SHADERPART_FRAGMENT,plug_frag_lighting_physical,CompleteCode,&unique_int); //use lights
-			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
-				Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
-			AddDefine(SHADERPART_FRAGMENT,"PHONG",CompleteCode);
-		//}else{
-		//	AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
-		//	Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
-		//}
+		//when we say phong in freewrl, we really mean per-fragment lighting
+		AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
+		//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
+		if(DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER))
+			Plug(SHADERPART_FRAGMENT,plug_frag_lighting_physical,CompleteCode,&unique_int); //use lights
+		if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
+			Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
+		AddDefine(SHADERPART_FRAGMENT,"PHONG",CompleteCode);
 		//lines and points with material (rendered emissive)
 		if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
 			AddDefine(SHADERPART_VERTEX,"LINE",CompleteCode);
@@ -2261,19 +2246,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 				AddDefine(SHADERPART_VERTEX,"MTEX",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"MTEX",CompleteCode);
 			}
-			//if(DESIRE(whichOne.base,TEXTURE_REPLACE_PRIOR) )
-			//	AddDefine(SHADERPART_FRAGMENT,"TEXREP",CompleteCode);
-			//if(DESIRE(whichOne.base,TEXALPHA_REPLACE_PRIOR))
-			//	AddDefine(SHADERPART_VERTEX,"TAREP",CompleteCode);
 
 			if(!colCalc_loaded) Plug(SHADERPART_FRAGMENT,plug_finalColCalc,CompleteCode,&unique_int);	
 			colCalc_loaded = TRUE;
 			Plug(SHADERPART_FRAGMENT,plug_fragment_texture_apply,CompleteCode,&unique_int);
 
-			//if(texture has alpha ie channels == 2 or 4) then vertex diffuse = 111 and fragment diffuse*=texture
-			//H: we currently assume image alpha, and maybe fill the alpha channel with (1-material.transparency)?
-			//AddDefine(SHADERPART_VERTEX,"TAT",CompleteCode);
-			//AddDefine(SHADERPART_FRAGMENT,"TAT",CompleteCode);
 		}
 	}
 

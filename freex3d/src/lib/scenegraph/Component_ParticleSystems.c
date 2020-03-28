@@ -1100,6 +1100,9 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	//s_shader_capabilities_t *caps;
 	// static int once = 0;
 	COMPILE_IF_REQUIRED
+	/* copy the material stuff in preparation for copying all to the shader */
+	initialize_front_and_back_material_params();
+
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
 	if(node->isActive){
@@ -1285,7 +1288,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
 			// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
 
-			int channels;
+			int channels,modulation,scenefile_specversion;
 			//modulation:
 			//- for Castle-style full-modulation of texture x CPV x mat.diffuse
 			//     and texalpha x (1-mat.trans), set 2
@@ -1296,26 +1299,29 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
 			//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
 			//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
-			int modulation = 1; //freewrl default 1 (dug9 Aug 27, 2016 interpretation of Lighting specs)
 			channels = getImageChannelCountFromTTI(node->appearance);
-
-			if(modulation == 0)
-				shader_requirements.base |= MAT_FIRST; //strict use of table 17-3, CPV can replace mat.diffuse, so texture > cpv > diffuse > 111
-
-			if(shader_requirements.base & COLOUR_MATERIAL_SHADER){
-				//printf("has a color node\n");
-				//lets turn it off, and see if we get texture
-				//shader_requirements &= ~(COLOUR_MATERIAL_SHADER);
-				if(modulation == 0) 
-					shader_requirements.base |= CPV_REPLACE_PRIOR;
+			// specversion <= 330 use v3.3 table 17-3
+			// specversion >= 400 modulate everything
+			scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
+			// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
+			switch(fwl_get_modulation()){
+				case 0:
+					//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
+					modulation = scenefile_specversion >= 400 ? TRUE : FALSE; 
+					break;
+				case 1:
+					modulation = FALSE; break;
+				case 2:
+					modulation = TRUE; break;
+				default:
+					modulation = FALSE;
+			}
+			if(modulation == TRUE){
+				shader_requirements.base |= MODULATE_COLOR;
+				if(channels && (channels == 1 || channels == 3))
+					shader_requirements.base |= MODULATE_ALPHA;
 			}
 
-			if(channels && (channels == 3 || channels == 4) && modulation < 2)
-				shader_requirements.base |= TEXTURE_REPLACE_PRIOR;
-			//if the image has a real alpha, we may want to turn off alpha modulation, 
-			// see comment about modulate in Compositing_Shaders.c
-			if(channels && (channels == 2 || channels == 4) && modulation == 0)
-				shader_requirements.base |= TEXALPHA_REPLACE_PRIOR;
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 
 			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
@@ -1386,7 +1392,10 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 
 		//send materials, textures, matrices to shader
+		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
 		textureTransform_start();
+		// maybe too much? resend_textureprojector_matrix();  
 		setupShaderB();
 		//send vertex buffer to shader
 		allowsTexcoordRamp = FALSE;

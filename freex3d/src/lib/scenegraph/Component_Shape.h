@@ -97,9 +97,9 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 /* more OR-able flags for compositing shaders */
 #define FOG_APPEARANCE_SHADER	0X02000
 #define HAVE_FOG_COORDS			0x04000
-#define TEXTURE_REPLACE_PRIOR	0x08000
-#define TEXALPHA_REPLACE_PRIOR	0x10000
-#define CPV_REPLACE_PRIOR		0x20000
+#define MODULATE_COLOR			0x08000
+#define MODULATE_ALPHA			0x10000
+//#define						0x20000
 #define SHADINGSTYLE_FLAT		0x40000
 #define SHADINGSTYLE_GOURAUD	0x80000
 #define SHADINGSTYLE_PHONG		0x100000
@@ -112,8 +112,6 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 #define PARTICLE_SHADER			0X8000000
 #define HAVE_UNLIT_COLOR		0x10000000
 #define HAVE_PROJECTIVETEXTURE	0X20000000
-#define MODULATE_COLOR			0X40000000
-#define MODULATE_ALPHA			0X80000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume

@@ -1048,20 +1048,6 @@ void child_Shape (struct X3D_Shape *node) {
 				if(channels && (channels == 1 || channels == 3))
 					shader_requirements.base |= MODULATE_ALPHA;
 			}
-			if(0) if(modulation == FALSE){
-				//strict use of table 17-3, CPV can replace mat.diffuse, so texture > cpv > diffuse > 111
-				shader_requirements.base |= MAT_FIRST; 
-				//if the image has a real alpha, we may want to turn off alpha modulation, 
-				// see comment about modulate in Compositing_Shaders.c
-				shader_requirements.base |= TEXTURE_REPLACE_PRIOR;
-				if(channels && (channels == 2 || channels == 4)){
-					shader_requirements.base |= TEXALPHA_REPLACE_PRIOR;
-				}
-				if(shader_requirements.base & COLOUR_MATERIAL_SHADER){
-					shader_requirements.base |= CPV_REPLACE_PRIOR;
-				}
-			}
-
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 
 			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
