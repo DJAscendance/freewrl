@@ -1099,7 +1099,15 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	//
 	//s_shader_capabilities_t *caps;
 	// static int once = 0;
+   	ttglobal tg = gglobal();
+
 	COMPILE_IF_REQUIRED
+
+	/* initialization. This will get overwritten if there is a texture in an Appearance
+	   node in this shape (see child_Appearance) */
+	tg->RenderFuncs.last_texture_type = NOTEXTURE;
+	tg->RenderFuncs.shapenode = node;
+
 	/* copy the material stuff in preparation for copying all to the shader */
 	initialize_front_and_back_material_params();
 
@@ -1120,7 +1128,6 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		int haveColorRamp,haveTexcoordRamp;
 
 		struct X3D_Node *tmpNG;
-		ttglobal tg = gglobal();
 
 		ttime = TickTime();
 		dtime = (float)(ttime - node->_lasttime); //increment to particle age
@@ -1241,24 +1248,6 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 		//prep_Appearance
 		RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
-
-
-#ifdef HAVE_P
-		if (p->material_oneSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			//memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
-
-		} else if (p->material_twoSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_twoSided->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_twoSided->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			//memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
-		} else {
-			/* no materials selected.... */
-		}
-#endif
 
 		/* enable the shader for this shape */
 		//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
@@ -1461,7 +1450,11 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		haveColorRamp = haveColorRamp && cr > -1;
 		haveTexcoordRamp = node->texCoordRamp ? TRUE : FALSE;
 		haveTexcoordRamp = haveTexcoordRamp && allowsTexcoordRamp && texcoord; 
-
+		if(haveTexcoordRamp){
+			//glUniform1i(scap->nTexMatrix,0);
+			glUniform1i(scap->nTexCoordChannels,1);
+			//glUniform1i(scap->textureCount,1);
+		}
 		for(i=0;i<vectorSize(_particles);i++){
 			particle pp = vector_get(particle,_particles,i);
 			//update particle-specific uniforms
