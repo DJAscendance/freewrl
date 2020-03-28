@@ -646,13 +646,6 @@ void main(void) \n\
   #ifdef LIT \n\
   fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
   castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
-  #ifdef TEX \n\
-  #ifdef TAREP \n\
-  //to modulate or not to modulate, this is the question \n\
-  //in here, we turn off modulation and use image alpha \n\
-  castle_MaterialDiffuseAlpha = 1.0; \n\
-  #endif //TAREP \n\
-  #endif //TEX \n\
   castle_MaterialShininess =	fw_FrontMaterial.shininess; \n\
   castle_SceneColor = fw_FrontMaterial.diffuse*fw_FrontMaterial.ambient; \n\
   castle_Specular =	vec4(fw_FrontMaterial.specular,1.0); \n\
@@ -1343,6 +1336,12 @@ void main(void) \n\
 	\n\
 	#ifdef TEX \n\
 	if(textureCount > 0){ \n\
+		#ifndef MODA \n\
+		fragment_color.a = 1.0; \n\
+		#endif //MODA \n\
+		#ifndef MODC \n\
+		fragment_color.rgb = vec3(1.0); \n\
+		#endif //MODC \n\
 		/* PLUG: texture_apply (fragment_color, N) */ \n\
 	} \n\
 	#endif //TEX \n\
@@ -2143,10 +2142,17 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if DESIRE(whichOne.base,COLOUR_MATERIAL_SHADER) {
 		AddDefine(SHADERPART_VERTEX,"CPV",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"CPV",CompleteCode);
-		if(DESIRE(whichOne.base,CPV_REPLACE_PRIOR)){
-			AddDefine(SHADERPART_VERTEX,"CPVREP",CompleteCode);
-			AddDefine(SHADERPART_FRAGMENT,"CPVREP",CompleteCode);
-		}
+		//if(DESIRE(whichOne.base,CPV_REPLACE_PRIOR)){
+		//	AddDefine(SHADERPART_VERTEX,"CPVREP",CompleteCode);
+		//	AddDefine(SHADERPART_FRAGMENT,"CPVREP",CompleteCode);
+		//}
+	}
+	if(DESIRE(whichOne.base,MODULATE_COLOR)){
+		AddDefine(SHADERPART_VERTEX,"MODC",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"MODC",CompleteCode);
+	}
+	if(DESIRE(whichOne.base,MODULATE_ALPHA)){
+		AddDefine(SHADERPART_FRAGMENT,"MODA",CompleteCode);
 	}
 	//material appearance
 	//2 material appearance
@@ -2161,11 +2167,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
 			AddDefine(SHADERPART_VERTEX,"TWO",CompleteCode);
 		}
-		if(DESIRE(whichOne.base,MAT_FIRST)){
-			//strict table 17-3 with no other modulation means Texture > CPV > mat.diffuse > (111)
-			AddDefine(SHADERPART_VERTEX,"MATFIR",CompleteCode);
-			AddDefine(SHADERPART_FRAGMENT,"MATFIR",CompleteCode);
-		}
+		//if(DESIRE(whichOne.base,MAT_FIRST)){
+		//	//strict table 17-3 with no other modulation means Texture > CPV > mat.diffuse > (111)
+		//	AddDefine(SHADERPART_VERTEX,"MATFIR",CompleteCode);
+		//	AddDefine(SHADERPART_FRAGMENT,"MATFIR",CompleteCode);
+		//}
 		//add light function to whichever shader part is doing the lighting
 		//if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))){
 			//when we say phong in freewrl, we really mean per-fragment lighting
@@ -2252,10 +2258,10 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 				AddDefine(SHADERPART_VERTEX,"MTEX",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"MTEX",CompleteCode);
 			}
-			if(DESIRE(whichOne.base,TEXTURE_REPLACE_PRIOR) )
-				AddDefine(SHADERPART_FRAGMENT,"TEXREP",CompleteCode);
-			if(DESIRE(whichOne.base,TEXALPHA_REPLACE_PRIOR))
-				AddDefine(SHADERPART_VERTEX,"TAREP",CompleteCode);
+			//if(DESIRE(whichOne.base,TEXTURE_REPLACE_PRIOR) )
+			//	AddDefine(SHADERPART_FRAGMENT,"TEXREP",CompleteCode);
+			//if(DESIRE(whichOne.base,TEXALPHA_REPLACE_PRIOR))
+			//	AddDefine(SHADERPART_VERTEX,"TAREP",CompleteCode);
 
 			if(!colCalc_loaded) Plug(SHADERPART_FRAGMENT,plug_finalColCalc,CompleteCode,&unique_int);	
 			colCalc_loaded = TRUE;

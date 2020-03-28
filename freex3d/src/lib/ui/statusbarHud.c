@@ -948,7 +948,7 @@ char * optionsText[] = {
 "  draw bounding boxes",
 "depth slices  auto  1   2   3",
 "  allow DIS",
-"mat modulation  none  matxtex  matxcpvxtex",
+"mat modulation  file_ver  v3.3-  v4.0+",
 NULL,
 };
 //0123456789012345678901234567890
@@ -1068,11 +1068,11 @@ void initOptionsVal()
 	if(fwl_get_allow_DIS())
 		p->optionsVal[30][0] = 035; //[*] '*';
 	m = fwl_get_modulation();
-	p->optionsVal[31][15] = p->optionsVal[31][21] = p->optionsVal[31][30] =034;
+	p->optionsVal[31][15] = p->optionsVal[31][25] = p->optionsVal[31][32] =034;
 	switch(m){
 		case 0: p->optionsVal[31][15] = 035; break; //[*]
-		case 1: p->optionsVal[31][21] = 035; break; //[*]
-		case 2: p->optionsVal[31][30] = 035; break; //[*]
+		case 1: p->optionsVal[31][25] = 035; break; //[*]
+		case 2: p->optionsVal[31][32] = 035; break; //[*]
 	}
 	p->optionsLoaded = 1;
 }
@@ -1115,7 +1115,7 @@ char * optionsCase[] = {
 "VVVVVVVVVV",
 "            aa    bb  cc  dd",
 "WWWWWWWWWW",
-"              eeee  ffff     gggg",
+"              eeee      ffff   gggg",
 NULL,
 };
 

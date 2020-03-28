@@ -82,7 +82,7 @@ void Component_Shape_init(struct tComponent_Shape *t){
 	t->prv = Component_Shape_constructor();
 	{
 		ppComponent_Shape p = (ppComponent_Shape)t->prv;
-		p->modulation = 1; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+		p->modulation = 0; //0 by scenefile spec version 1) v3.3(replace)- 2) v4.0+ (modulate everything)
 		p->isBackMaterial = 0;
 	}
 
@@ -1015,7 +1015,7 @@ void child_Shape (struct X3D_Shape *node) {
 			// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
 			// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
 
-			int channels;
+			int channels,modulation,scenefile_specversion;
 			//modulation:
 			//- for Castle-style full-modulation of texture x CPV x mat.diffuse
 			//     and texalpha x (1-mat.trans), set 2
@@ -1026,26 +1026,42 @@ void child_Shape (struct X3D_Shape *node) {
 			// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
 			//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
 			//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
-			int modulation = p->modulation; //freewrl default 1 (dug9 Aug 27, 2016 interpretation of Lighting specs)
 			channels = getImageChannelCountFromTTI(node->appearance);
-
-			if(modulation == 0)
-				shader_requirements.base |= MAT_FIRST; //strict use of table 17-3, CPV can replace mat.diffuse, so texture > cpv > diffuse > 111
-
-			if(shader_requirements.base & COLOUR_MATERIAL_SHADER){
-				//printf("has a color node\n");
-				//lets turn it off, and see if we get texture
-				//shader_requirements &= ~(COLOUR_MATERIAL_SHADER);
-				if(modulation == 0) 
+			// specversion <= 330 use v3.3 table 17-3
+			// specversion >= 400 modulate everything
+			scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
+			// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
+			switch(p->modulation){
+				case 0:
+					//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
+					modulation = scenefile_specversion >= 400 ? TRUE : FALSE; 
+					break;
+				case 1:
+					modulation = FALSE; break;
+				case 2:
+					modulation = TRUE; break;
+				default:
+					modulation = FALSE;
+			}
+			if(modulation == TRUE){
+				shader_requirements.base |= MODULATE_COLOR;
+				if(channels && (channels == 1 || channels == 3))
+					shader_requirements.base |= MODULATE_ALPHA;
+			}
+			if(0) if(modulation == FALSE){
+				//strict use of table 17-3, CPV can replace mat.diffuse, so texture > cpv > diffuse > 111
+				shader_requirements.base |= MAT_FIRST; 
+				//if the image has a real alpha, we may want to turn off alpha modulation, 
+				// see comment about modulate in Compositing_Shaders.c
+				shader_requirements.base |= TEXTURE_REPLACE_PRIOR;
+				if(channels && (channels == 2 || channels == 4)){
+					shader_requirements.base |= TEXALPHA_REPLACE_PRIOR;
+				}
+				if(shader_requirements.base & COLOUR_MATERIAL_SHADER){
 					shader_requirements.base |= CPV_REPLACE_PRIOR;
+				}
 			}
 
-			if(channels && (channels == 3 || channels == 4) && modulation < 2)
-				shader_requirements.base |= TEXTURE_REPLACE_PRIOR;
-			//if the image has a real alpha, we may want to turn off alpha modulation, 
-			// see comment about modulate in Compositing_Shaders.c
-			if(channels && (channels == 2 || channels == 4) && modulation == 0)
-				shader_requirements.base |= TEXALPHA_REPLACE_PRIOR;
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 
 			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
