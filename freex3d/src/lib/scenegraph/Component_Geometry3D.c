@@ -2750,6 +2750,60 @@ void collide_Teapot (struct X3D_Teapot *node){
 	collide_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
 
+//PYRAMID
+static struct X3D_IndexedFaceSet *pyramidifs = NULL;
+static struct X3D_Coordinate *pyramid_coord;
+static struct X3D_TextureCoordinate *pyramid_texcoord;
+static int pyramid_coordindex_p [] = {3, 2, 1, 0, -1, 0, 1, 4, -1, 1, 2, 4, -1, 2, 3, 4, -1, 3, 0, 4, -1};
+static int pyramid_coordindex_n = 21;
+static float pyramid_coord_p [] = {-1.0f,-1.0f,1.0f, 1.0f,-1.0f,1.0f, 1.0f,-1.0f,-1.0f, -1.0f,-1.0f,-1.0f, 0.0f,1.0f,0.0f};
+static int pyramid_coord_n = 5; 
+//texture coord rule: first linesegment of face is bottom of image
+static int pyramid_texcoordindex_p [] = {0, 1, 2, 3, -1, 0, 1, 4, -1, 0, 1, 4, -1, 0, 1, 4, -1, 0, 1, 4, -1};
+static int pyramid_texcoordindex_n = 21;
+static float pyramid_texcoord_p [] = {0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f, .5f,1.0f};
+static int pyramid_texcoord_n = 5; 
+struct X3D_PolyRep * create_polyrep();
+void compile_Pyramid (struct X3D_Pyramid *tnode){
+	if(tnode->__ifsnode == NULL){
+		if(pyramidifs == NULL){
+			pyramidifs = createNewX3DNode0(NODE_IndexedFaceSet); //IIRC createnewX3DNode0 doesn't add to nodelist or garbage collection
+			pyramidifs->_intern = create_polyrep();
+			pyramid_coord = createNewX3DNode0(NODE_Coordinate);
+			pyramid_texcoord = createNewX3DNode0(NODE_TextureCoordinate);
+			pyramidifs->creaseAngle = 0.0F; //(float)PI;
+			pyramidifs->normalPerVertex = FALSE;
+			pyramidifs->ccw = TRUE;
+			pyramidifs->coord = X3D_NODE(pyramid_coord);
+			pyramid_coord->point.p = (struct SFVec3f*)pyramid_coord_p;
+			pyramid_coord->point.n = pyramid_coord_n;
+			pyramidifs->coordIndex.p = pyramid_coordindex_p;
+			pyramidifs->coordIndex.n = pyramid_coordindex_n;
+
+			pyramid_texcoord->point.p = (struct SFVec2f*)pyramid_texcoord_p;
+			pyramid_texcoord->point.n = pyramid_texcoord_n;
+			pyramidifs->texCoord = X3D_NODE(pyramid_texcoord);
+			pyramidifs->texCoordIndex.p = pyramid_texcoordindex_p;
+			pyramidifs->texCoordIndex.n = pyramid_texcoordindex_n;
+			pyramidifs->solid = tnode->solid;
+		}
+		tnode->__ifsnode = pyramidifs;
+		make_IndexedFaceSet(tnode->__ifsnode);
+	}
+}
+void rendray_Pyramid (struct X3D_Pyramid *node){
+	if(node->__ifsnode == NULL) compile_Pyramid(node);
+	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+
+}
+void render_Pyramid (struct X3D_Pyramid *node){
+	if(node->__ifsnode == NULL) compile_Pyramid(node);
+	render_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+}
+void collide_Pyramid (struct X3D_Pyramid *node){
+	if(node->__ifsnode == NULL) compile_Pyramid(node);
+	collide_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+}
 
 
 void delete_glbuffers(struct X3D_Node *node){

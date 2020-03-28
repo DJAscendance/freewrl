@@ -2639,6 +2639,12 @@ EVENT_OUT(ProximitySensor,centerOfRotation_changed,sfvec3f,centerOfRotation_chan
 EXPOSED_FIELD(ProximitySensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(ProximitySensor)
 
+/* Pyramid node */
+BEGIN_NODE(Pyramid)
+EXPOSED_FIELD(Pyramid,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(Pyramid,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
+END_NODE(Pyramid)
+
 /* QuadSet node */
 BEGIN_NODE(QuadSet)
 EXPOSED_FIELD(QuadSet,attrib,mfnode,attrib,FIELDTYPE_MFNode,UNCA_NONE)

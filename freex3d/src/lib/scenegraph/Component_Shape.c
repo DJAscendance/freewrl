@@ -1133,9 +1133,7 @@ void child_Shape (struct X3D_Shape *node) {
 		render_node(tmpNG);
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
-		//over-ride solid TRUE backface culling if scene author has a backMaterial / TWO sided material
-		if(shader_requirements.base & TWO_MATERIAL_APPEARANCE_SHADER)
-			glDisable(GL_CULL_FACE);
+		//solid TRUE/FALSE on geom controls if backface culling
 		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);

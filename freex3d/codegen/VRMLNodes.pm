@@ -814,6 +814,11 @@ our %Nodes = (
 		__ifsnode => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
+	"Pyramid" => new VRML::NodeType("Pyramid", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		solid => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__ifsnode => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+ 	],"X3DGeometryNode"),
 
 
 	###################################################################################
