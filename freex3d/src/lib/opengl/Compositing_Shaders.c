@@ -1266,21 +1266,26 @@ vec4 getDiffuseFactor() { \n\
 	mixfactor = 1.0; \n\
 	#endif //CPV \n\
 	#ifdef TEX \n\
+		#ifndef MODC \n\
+		mixfactor = 0.0;; \n\
+		#endif //MODC \n\
+	#endif //TEX \n\
+	vec4 IC = getVertexColor(); \n\
+	vec4 D = getDiffuseOrBase(); \n\
+	dcolor *= mix(D,IC,mixfactor); \n\
+	#ifdef TEX \n\
 	if(textureCount > 0){ \n\
 		//#ifndef MODA \n\
 		//dcolor.a = 1.0; \n\
 		//#endif //MODA \n\
-		#ifndef MODC \n\
-		mixfactor = 0.0;; \n\
-		#endif //MODC \n\
 		vec3 N = getNormal(); \n\
 		/* PLUG: texture_apply (dcolor, N) */ \n\
 	} \n\
 	#endif //TEX \n\
-	vec4 IC = getVertexColor(); \n\
-	vec4 D = getDiffuseOrBase(); \n\
-	vec4 diffusefactor = dcolor * mix(D,IC,mixfactor); \n\
-	return diffusefactor; \n\
+	//vec4 IC = getVertexColor(); \n\
+	//vec4 D = getDiffuseOrBase(); \n\
+	//vec4 diffusefactor = dcolor * mix(D,IC,mixfactor); \n\
+	return dcolor; \n\
 } \n\
 //literal string size break \n" "\
 void main(void) \n\

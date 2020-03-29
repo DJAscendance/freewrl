@@ -256,7 +256,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 
 	FREE_IF_NZ (node->__vertIndx);
-	node->__vertIndx = MALLOC (ushort **,sizeof(ushort*)*(nSegments));
+	node->__vertIndx = MALLOC (ushort **,sizeof(ushort*)*(nSegments)*2);
 
 	FREE_IF_NZ (node->__vertices);
 	node->__vertices = MALLOC (struct SFVec3f *, sizeof(struct SFVec3f)*(nVertices+1));
