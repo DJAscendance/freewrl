@@ -348,6 +348,7 @@ void compile_Material (struct X3D_Material *node) {
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->diffuse,node->diffuseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	veccopy3f(q->specular,node->specularColor.c);
@@ -916,7 +917,8 @@ void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
 	memset(mat,0,sizeof(struct fw_MaterialParameters));
 	mat->ambient = .2f;
 	mat->shininess = .2f;
-	mat->diffuse[0] = mat->diffuse[1] = mat->diffuse[2] = .5f;
+	vecset3f(mat->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader if at 1
+	vecset3f(mat->baseColor,1.0f,1.0f,1.0f);
 	mat->type = MAT_NONE;
 }
 void initialize_front_and_back_material_params(){
@@ -1031,6 +1033,7 @@ void child_Shape (struct X3D_Shape *node) {
 			// specversion >= 400 modulate everything
 			scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
 			// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
+			/*
 			switch(p->modulation){
 				case 0:
 					//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
@@ -1048,6 +1051,9 @@ void child_Shape (struct X3D_Shape *node) {
 				if(channels && (channels == 1 || channels == 3))
 					shader_requirements.base |= MODULATE_ALPHA;
 			}
+			*/
+			if(channels && (channels == 1 || channels == 2) )
+				shader_requirements.base |= MODULATE_COLOR; //TEXTURE_REPLACE_PRIOR;
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 
 			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
@@ -1262,6 +1268,7 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	}
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->diffuse,node->diffuseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	veccopy3f(q->specular,node->specularColor.c);
@@ -1285,6 +1292,7 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 		}
 		memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
 		q = (struct fw_MaterialParameters *)node->_backMaterial;
+		vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
 		veccopy3f(q->diffuse,node->backDiffuseColor.c);
 		veccopy3f(q->emissive,node->backEmissiveColor.c);
 		veccopy3f(q->specular,node->backSpecularColor.c);
@@ -1331,6 +1339,8 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
+	vecset3f(q->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	q->transparency = node->transparency;
 	q->type = MAT_UNLIT;
@@ -1439,6 +1449,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->baseColor,node->baseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	q->metallic = node->metallic;

@@ -1250,11 +1250,37 @@ float getRoughness(){ \n\
 } \n\
 vec4 getVertexColor() { \n\
 	//H: this is supposed to be from vertex shader \n\
-	vec4 color = vec4(1.0,1.0,1.0,1.0); \n\
+	vec4 color = vec4(1.0); \n\
 	#ifdef CPV \n\
 		color = cpv_Color; \n\
 	#endif //CPV \n\
 	return color; \n\
+} \n\
+vec4 getDiffuseOrBase(){ \n\
+	return vec4(getBaseColor()*getDiffuse(),getAlpha()); \n\
+} \n\
+vec4 getDiffuseFactor() { \n\
+	vec4 dcolor = vec4(1.0); \n\
+	float mixfactor = 0.0; \n\
+	#ifdef CPV \n\
+	mixfactor = 1.0; \n\
+	#endif //CPV \n\
+	#ifdef TEX \n\
+	if(textureCount > 0){ \n\
+		//#ifndef MODA \n\
+		//dcolor.a = 1.0; \n\
+		//#endif //MODA \n\
+		#ifndef MODC \n\
+		mixfactor = 0.0;; \n\
+		#endif //MODC \n\
+		vec3 N = getNormal(); \n\
+		/* PLUG: texture_apply (dcolor, N) */ \n\
+	} \n\
+	#endif //TEX \n\
+	vec4 IC = getVertexColor(); \n\
+	vec4 D = getDiffuseOrBase(); \n\
+	vec4 diffusefactor = dcolor * mix(D,IC,mixfactor); \n\
+	return diffusefactor; \n\
 } \n\
 //literal string size break \n" "\
 void main(void) \n\
@@ -1271,10 +1297,11 @@ void main(void) \n\
 	vec3 N = getNormal(); \n\
 	\n\
 //STEP1 INITIALIZE \n\
-	vec4 fragment_color = vec4(1.0); \n\
-	#ifndef PHONG \n\
-		fragment_color = castle_Color; \n\
-	#endif //PHONG \n\
+	vec4 diffuseFactor = getDiffuseFactor(); \n\
+	//#ifndef PHONG \n\
+	//	fragment_color = castle_Color; \n\
+	//#endif //PHONG \n\
+	vec4 fragment_color =  diffuseFactor; \n\
 //STEP2 LIGHTS \n\
 	#ifdef PHONG \n\
 	//per-fragment lighting aka PHONG \n\
@@ -1286,11 +1313,12 @@ void main(void) \n\
 		vec3 matdiff_color = vec3(0.0,0.0,0.0); \n\
 		float shiny = getShininess(); \n\
 		float amby = getAmbient(); \n\
-		vec3 diffy = getDiffuse(); \n\
+		vec3 diffy = diffuseFactor.rgb; //getDiffuse(); \n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
 		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, normy, shiny, amby, diffy, specy ) */ \n\
-		fragment_color = vec4(matdiff_color + castle_ColorES,getAlpha()); \n\
+		fragment_color.rgb = matdiff_color + castle_ColorES; \n\
+		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
 	} else if(mat.type == 3){ \n\
 		//MAT_PHYSICAL \n\
@@ -1325,7 +1353,7 @@ void main(void) \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
 		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, normal, materialInfo ) */  \n\
-		fragment_color = vec4(color,getAlpha()); \n\
+		fragment_color.rgb = color; \n\
 		#endif //LITE \n\
 	} \n\
 	#endif //PHONG \n\
@@ -1334,7 +1362,7 @@ void main(void) \n\
 	fillPropCalc(fragment_color, hatchPosition, algorithm); \n\
 	#endif //FILL \n\
 	\n\
-	#ifdef TEX \n\
+	#ifdef NOT_TEX \n\
 	if(textureCount > 0){ \n\
 		#ifndef MODA \n\
 		fragment_color.a = 1.0; \n\
@@ -1356,7 +1384,7 @@ void main(void) \n\
 //STEP5 EMISSIVE \n\
 	if(mat.type == 1) { \n\
 		fragment_color.rgb = getEmissive(); \n\
-		fragment_color.a = getAlpha(); \n\
+		//fragment_color.a = getAlpha(); \n\
 	}else if(mat.type > 1){ \n\
 		fragment_color.rgb += getEmissive(); \n\
 	} \n\
@@ -1364,7 +1392,7 @@ void main(void) \n\
 	#ifdef LINE \n\
 	fragment_color.rgb = getEmissive(); \n\
 	#endif //LINE \n\
-	#ifdef CPV \n\
+	#ifdef NOT_CPV \n\
 	if(mat.type == 0) { \n\
 		fragment_color = cpv_Color; //no mat to modulate with \n\
 	}else{ \n\

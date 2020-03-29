@@ -1383,6 +1383,7 @@ void render_Background_OLD (struct X3D_Background *node) {
 	//if(0) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
 	glDisable(GL_DEPTH_TEST);
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	initialize_front_and_back_material_params();
 	LIGHTING_OFF
 
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1414,7 +1415,7 @@ void render_Background_OLD (struct X3D_Background *node) {
         	FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex,0);
 
 		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
-
+		initialize_front_and_back_material_params();
 
 		loadBackgroundTextures(node);
 
