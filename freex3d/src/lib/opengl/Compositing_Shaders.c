@@ -1409,8 +1409,7 @@ void main(void) \n\
 	#endif //CPV \n\
 	\n\
 //STEP6 FOG \n\
-	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
-	#undef normal_eye_fragment \n\
+	/* PLUG: fog_apply (fragment_color, N) */ \n\
 	\n\
 	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
 	gl_FragColor = fragment_color; \n\
