@@ -9534,7 +9534,7 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_DirectionalLight * tmp2;
 			tmp2 = (struct X3D_DirectionalLight *) tmp;
 			tmp2->metadata = NULL;
-			tmp2->global = TRUE;
+			tmp2->global = FALSE;
 			tmp2->on = TRUE;
 			tmp2->ambientIntensity = 0.0f;
 			tmp2->intensity = 1.0f;
