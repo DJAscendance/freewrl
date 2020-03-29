@@ -256,13 +256,13 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 
 	FREE_IF_NZ (node->__vertIndx);
-	node->__vertIndx = MALLOC (ushort **,sizeof(ushort*)*(nSegments));
-
+	node->__vertIndx = MALLOC (ushort **,sizeof(ushort*)*(nSegments+2));
+	//printf("mallocing %d segnments at address %u\n",nSegments+2,node->__vertIndx);
 	FREE_IF_NZ (node->__vertices);
 	node->__vertices = MALLOC (struct SFVec3f *, sizeof(struct SFVec3f)*(nVertices+1));
 
 	FREE_IF_NZ (node->__vertexCount);
-	node->__vertexCount = MALLOC (ushort *,sizeof(ushort)*(nSegments));
+	node->__vertexCount = MALLOC (ushort *,sizeof(ushort)*(nSegments+2));
 
 	int *colorIndInt2 = NULL;
 
@@ -322,6 +322,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 
 	indxStartPtr = (ushort **)node->__vertIndx;
+	//printf("0 address %u\n",indxStartPtr);
 	newpoints = node->__vertices;
 	vertCountPtr = (ushort *) node->__vertexCount;
     
@@ -332,6 +333,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	*indxStartPtr = pt; /* first segment starts off at index zero */
 
 	indxStartPtr++;
+	//printf("1 address %u\n",indxStartPtr);
 
 	ipoly = 0;
 	ivertex = 0;
@@ -346,6 +348,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			if(i < (node->coordIndex.n)){
 				/* new segment */
 				indxStartPtr++;
+				//printf("2 address %u\n",indxStartPtr);
 				segLength=0;
 				vertCountPtr ++;
 				if(colorIndInt2) 
