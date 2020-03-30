@@ -1289,9 +1289,9 @@ vec4 getDiffuseFactor() { \n\
 		/* PLUG: texture_apply (tcolor, N) */ \n\
 		dcolor.rgb = tcolor.rgb; \n\
 		#ifdef MODA \n\
-			dcolor.a = tcolor.a; \n\
-		#else //MODA \n\
 			dcolor.a *= tcolor.a; \n\
+		#else //MODA \n\
+			dcolor.a = tcolor.a; \n\
 		#endif //MODA \n\
 	} \n\
 	#endif //TEX \n\
