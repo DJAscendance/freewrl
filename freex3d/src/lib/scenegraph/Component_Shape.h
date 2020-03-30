@@ -99,7 +99,7 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 #define HAVE_FOG_COORDS			0x04000
 #define MODULATE_COLOR			0x08000
 #define MODULATE_ALPHA			0x10000
-//#define						0x20000
+#define MODULATE_TEXTURE		0x20000
 #define SHADINGSTYLE_FLAT		0x40000
 #define SHADINGSTYLE_GOURAUD	0x80000
 #define SHADINGSTYLE_PHONG		0x100000

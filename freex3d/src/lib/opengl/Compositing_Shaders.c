@@ -1260,31 +1260,41 @@ vec4 getDiffuseOrBase(){ \n\
 	return vec4(getBaseColor()*getDiffuse(),getAlpha()); \n\
 } \n\
 vec4 getDiffuseFactor() { \n\
+	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingoff \n\
+	// table 17-2, 17-3 logic here \n\
+	// function returns ODrgb (lit) or Irgb (unlit) \n\
+	// MODT - freewrl out-of-spec option: alwasy modulate texture with diffuse \n\
+	// MODC - illuminance texture, modulate texture with any CPV/CPF or mat.diffuse if no CPV \n\
+	// MODA - texture has no interesting alpha, use material.diffuse.a \n\
 	vec4 dcolor = vec4(1.0); \n\
-	float mixfactor = 0.0; \n\
+	float mixcpv = 0.0; \n\
 	#ifdef CPV \n\
-	mixfactor = 1.0; \n\
+	mixcpv = 1.0; \n\
 	#endif //CPV \n\
 	#ifdef TEX \n\
 		#ifndef MODC \n\
-		mixfactor = 0.0;; \n\
+		mixcpv = 0.0;; \n\
 		#endif //MODC \n\
 	#endif //TEX \n\
 	vec4 IC = getVertexColor(); \n\
 	vec4 D = getDiffuseOrBase(); \n\
-	dcolor *= mix(D,IC,mixfactor); \n\
+	dcolor *= mix(D,IC,mixcpv); \n\
 	#ifdef TEX \n\
 	if(textureCount > 0){ \n\
-		//#ifndef MODA \n\
-		//dcolor.a = 1.0; \n\
-		//#endif //MODA \n\
 		vec3 N = getNormal(); \n\
-		/* PLUG: texture_apply (dcolor, N) */ \n\
+		vec4 tcolor = vec4(1.0); \n\
+		#if defined(MODT) || defined(MODC) \n\
+			tcolor.rgb = dcolor.rgb; \n\
+		#endif //MODT || MODC \n\
+		/* PLUG: texture_apply (tcolor, N) */ \n\
+		dcolor.rgb = tcolor.rgb; \n\
+		#ifdef MODA \n\
+			dcolor.a = tcolor.a; \n\
+		#else //MODA \n\
+			dcolor.a *= tcolor.a; \n\
+		#endif //MODA \n\
 	} \n\
 	#endif //TEX \n\
-	//vec4 IC = getVertexColor(); \n\
-	//vec4 D = getDiffuseOrBase(); \n\
-	//vec4 diffusefactor = dcolor * mix(D,IC,mixfactor); \n\
 	return dcolor; \n\
 } \n\
 //literal string size break \n" "\
@@ -2179,11 +2189,17 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_FRAGMENT,"CPV",CompleteCode);
 	}
 	if(DESIRE(whichOne.base,MODULATE_COLOR)){
+		//we have a grayscale / illuminance image, modulate any color-per-vertes/face
 		AddDefine(SHADERPART_VERTEX,"MODC",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"MODC",CompleteCode);
 	}
 	if(DESIRE(whichOne.base,MODULATE_ALPHA)){
+		// image texture doesn't havve an interesting alpha, use material alpha
 		AddDefine(SHADERPART_FRAGMENT,"MODA",CompleteCode);
+	}
+	if(DESIRE(whichOne.base,MODULATE_TEXTURE)){
+		// freewrl out-of-spec menu option: change single texture replace prior to texture modulate material diffuse
+		AddDefine(SHADERPART_FRAGMENT,"MODT",CompleteCode);
 	}
 	//material appearance
 	//2 material appearance
@@ -2275,6 +2291,9 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 				AddDefine(SHADERPART_VERTEX,"CUB",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"CUB",CompleteCode);
 			} else if(DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
+				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture 
+				//- source can be DIFFUSE or SPECULAR, from Gauraud (vertex) lighting
+				AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //
 				AddDefine(SHADERPART_VERTEX,"MTEX",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"MTEX",CompleteCode);
 			}

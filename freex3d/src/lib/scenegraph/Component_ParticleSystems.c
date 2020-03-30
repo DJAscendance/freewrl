@@ -1306,10 +1306,12 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 					modulation = FALSE;
 			}
 			if(modulation == TRUE){
-				shader_requirements.base |= MODULATE_COLOR;
-				if(channels && (channels == 1 || channels == 3))
-					shader_requirements.base |= MODULATE_ALPHA;
+				shader_requirements.base |= MODULATE_TEXTURE; //web3d most browsers default: texture replaces prior by default
 			}
+			if(!channels || (channels == 1 || channels == 3))
+				shader_requirements.base |= MODULATE_ALPHA;  //A = (1-TM)
+			if(channels && (channels == 1 || channels == 2) )
+				shader_requirements.base |= MODULATE_COLOR;  //ODrgb = IT x ICrgb
 
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 

@@ -1033,8 +1033,8 @@ void child_Shape (struct X3D_Shape *node) {
 			// specversion >= 400 modulate everything
 			scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
 			// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
-			/*
-			switch(p->modulation){
+			
+			switch(fwl_get_modulation()){
 				case 0:
 					//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
 					modulation = scenefile_specversion >= 400 ? TRUE : FALSE; 
@@ -1047,13 +1047,12 @@ void child_Shape (struct X3D_Shape *node) {
 					modulation = FALSE;
 			}
 			if(modulation == TRUE){
-				shader_requirements.base |= MODULATE_COLOR;
-				if(channels && (channels == 1 || channels == 3))
-					shader_requirements.base |= MODULATE_ALPHA;
+				shader_requirements.base |= MODULATE_TEXTURE; //web3d most browsers default: texture replaces prior by default
 			}
-			*/
+			if(!channels || (channels == 1 || channels == 3))
+				shader_requirements.base |= MODULATE_ALPHA;  //A = (1-TM)
 			if(channels && (channels == 1 || channels == 2) )
-				shader_requirements.base |= MODULATE_COLOR; //TEXTURE_REPLACE_PRIOR;
+				shader_requirements.base |= MODULATE_COLOR;  //ODrgb = IT x ICrgb
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 
 			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
