@@ -1314,15 +1314,15 @@ void main(void) \n\
 		//MAT_REGULAR \n\
 		#ifdef LITE \n\
 		//start over with the color, since we have material and lighting in here \n\
-		castle_ColorES = vec3(0.0,0.0,0.0); \n\
-		vec3 matdiff_color = vec3(0.0,0.0,0.0); \n\
+		vec3 cumulative_specular = vec3(0.0,0.0,0.0); \n\
+		vec3 cumulative_diffuse = vec3(0.0,0.0,0.0); \n\
 		float shiny = getShininess(); \n\
 		float amby = getAmbient(); \n\
 		vec3 diffy = diffuseFactor.rgb; //getDiffuse(); \n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
-		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, normy, shiny, amby, diffy, specy ) */ \n\
-		fragment_color.rgb = matdiff_color + castle_ColorES; \n\
+		/* PLUG: add_light_contribution2 (cumulative_diffuse, cumulative_specular, castle_vertex_eye, normy, shiny, amby, diffy, specy ) */ \n\
+		fragment_color.rgb = cumulative_diffuse + cumulative_specular; \n\
 		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
 	} else if(mat.type == 3){ \n\
