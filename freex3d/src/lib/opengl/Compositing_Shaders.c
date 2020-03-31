@@ -1312,6 +1312,15 @@ void main(void) \n\
 	vec3 N = getNormal(); \n\
 	\n\
 //STEP1 INITIALIZE \n\
+	#ifdef LINE \n\
+		vec4 dcolor = vec4(1.0); \n\
+		dcolor.rgb = getEmissive(); \n\
+		#ifdef CPV \n\
+		dcolor= getVertexColor(); \n\
+		#endif //CVP \n\
+		gl_FragColor = dcolor; \n\
+		return; \n\
+	#endif //LINE \n\
 	vec4 diffuseFactor = getDiffuseFactor(); \n\
 	//#ifndef PHONG \n\
 	//	fragment_color = castle_Color; \n\
@@ -1401,10 +1410,10 @@ void main(void) \n\
 		fragment_color.rgb = getEmissive(); \n\
 		//fragment_color.a = getAlpha(); \n\
 	}else if(mat.type > 1){ \n\
-		fragment_color.rgb += getEmissive(); \n\
+		//fragment_color.rgb += getEmissive(); \n\
 	} \n\
 	\n\
-	#ifdef LINE \n\
+	#ifdef NOT_LINE \n\
 	fragment_color.rgb = getEmissive(); \n\
 	#endif //LINE \n\
 	#ifdef NOT_CPV \n\
