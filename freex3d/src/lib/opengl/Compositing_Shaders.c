@@ -1408,9 +1408,9 @@ void main(void) \n\
 //STEP5 EMISSIVE \n\
 	if(mat.type == 1) { \n\
 		fragment_color.rgb = getEmissive(); \n\
-		//fragment_color.a = getAlpha(); \n\
+		fragment_color.a = getAlpha(); \n\
 	}else if(mat.type > 1){ \n\
-		//fragment_color.rgb += getEmissive(); \n\
+		fragment_color.rgb += getEmissive(); \n\
 	} \n\
 	\n\
 	#ifdef NOT_LINE \n\
