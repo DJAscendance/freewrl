@@ -1024,12 +1024,12 @@ uniform fw_MaterialParameters fw_FrontMaterial; \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#endif //TWO \n\
 #ifdef LIT \n\
-#ifdef LITE \n\
-vec3 castle_ColorES; \n\
-#else //LITE \n\
+//#ifdef LITE \n\
+//vec3 castle_ColorES; \n\
+//#else //LITE \n\
 //per-vertex lighting - interpolated Emissive-specular \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
-#endif //LITE \n\
+//#endif //LITE \n\
 #endif //LIT\n\
 //#if defined(TEX) || defined(PROJTEX) \n\
 //shared sampler2D array -PTM or PBR use \n\
@@ -1094,6 +1094,9 @@ vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 	return tex_coord; \n\
 } \n\
 //literal string size break \n" "\
+//statics for multitexturing function\n\
+vec3 mtex_specular; \n\
+vec4 mtex_diffuse; \n\
 //PHYSICAL LIGHTING >> \n\
 // https://github.com/KhronosGroup/glTF-Sample-Viewer \n\
 const float M_PI = 3.141592653589793; \n\
@@ -1297,10 +1300,40 @@ vec4 getDiffuseFactor() { \n\
 	#endif //TEX \n\
 	return dcolor; \n\
 } \n\
+vec4 getGouraudColor() { \n\
+	vec4 dcolor = vec4(1.0); \n\
+	#ifdef LIT\n\
+	dcolor *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
+	#endif //LIT \n\
+	#ifdef CPV \n\
+		dcolor = cpv_Color; \n\
+	#endif //CPV \n\
+	#ifdef TEX \n\
+	if(textureCount > 0){ \n\
+		vec3 N = getNormal(); \n\
+		vec4 tcolor = vec4(1.0); \n\
+		//#if defined(MODT) || defined(MODC) \n\
+			tcolor.rgb = dcolor.rgb; \n\
+		//#endif //MODT || MODC \n\
+		/* PLUG: texture_apply (tcolor, N) */ \n\
+		dcolor.rgb = tcolor.rgb; \n\
+		#ifdef MODA \n\
+			dcolor.a *= tcolor.a; \n\
+		#else //MODA \n\
+			dcolor.a = tcolor.a; \n\
+		#endif //MODA \n\
+	} \n\
+	#endif //TEX \n\
+	return dcolor; \n\
+} \n\
 //literal string size break \n" "\
 void main(void) \n\
 { \n\
 //STEP0 MATERIALS \n\
+	#ifdef LIT \n\
+	mtex_specular = castle_ColorES; \n\
+	mtex_diffuse = castle_Color; \n\
+	#endif //LIT \n\
 	mat = fw_FrontMaterial; \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
 	//bool backFacing = (dot(N,E) < 0.0); \n\
@@ -1322,11 +1355,14 @@ void main(void) \n\
 		return; \n\
 	#endif //LINE \n\
 	vec4 diffuseFactor = getDiffuseFactor(); \n\
-	//#ifndef PHONG \n\
-	//	fragment_color = castle_Color; \n\
-	//#endif //PHONG \n\
 	vec4 fragment_color =  diffuseFactor; \n\
 //STEP2 LIGHTS \n\
+	#ifndef PHONG \n\
+		//#ifdef LIT\n\
+		//fragment_color *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
+		//#endif //LIT \n\
+		fragment_color = getGouraudColor(); \n\
+	#endif //not PHONG \n\
 	#ifdef PHONG \n\
 	//per-fragment lighting aka PHONG \n\
 	if(mat.type == 2){ \n\
@@ -1750,19 +1786,19 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   #ifdef MTEX \n\
   vec4 source; \n\
   int isource,iasource, mode; \n\
-  vec4 matdiff_color = finalFrag; \n\
+  //vec4 matdiff_color = finalFrag; \n\
   //finalFrag = texture2D(fw_Texture_unit0, fw_TexCoord[0].st) * finalFrag; \n\
   if(textureCount>0){ \n\
     if(fw_Texture_mode0[0] != MTMODE_OFF) { \n\
       isource = fw_Texture_source0[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source0[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1775,12 +1811,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
       isource = fw_Texture_source1[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source1[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1793,12 +1829,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
       isource = fw_Texture_source2[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source2[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1811,12 +1847,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
       isource = fw_Texture_source3[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source3[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -2223,14 +2259,23 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
 			AddDefine(SHADERPART_VERTEX,"TWO",CompleteCode);
 		}
-		//when we say phong in freewrl, we really mean per-fragment lighting
-		AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
-		//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
-		if(DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER))
-			Plug(SHADERPART_FRAGMENT,plug_frag_lighting_physical,CompleteCode,&unique_int); //use lights
-		if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
-			Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
-		AddDefine(SHADERPART_FRAGMENT,"PHONG",CompleteCode);
+		
+		if(DESIRE(whichOne.base,SHADINGSTYLE_GOURAUD) || DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
+			//when we say gouraud in freewrl, we really mean per-vertex lighting, in vertex shader
+			AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
+			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
+			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
+		} if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG)){
+			//when we say phong in freewrl, we really mean per-fragment lighting in fragment shader
+			AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
+			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
+			if(DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_FRAGMENT,plug_frag_lighting_physical,CompleteCode,&unique_int); //use lights
+			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
+			AddDefine(SHADERPART_FRAGMENT,"PHONG",CompleteCode);
+		}
 		//lines and points with material (rendered emissive)
 		if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
 			AddDefine(SHADERPART_VERTEX,"LINE",CompleteCode);
@@ -2302,7 +2347,6 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			} else if(DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
 				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture 
 				//- source can be DIFFUSE or SPECULAR, from Gauraud (vertex) lighting
-				AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //
 				AddDefine(SHADERPART_VERTEX,"MTEX",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"MTEX",CompleteCode);
 			}
