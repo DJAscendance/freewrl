@@ -2365,7 +2365,7 @@ EXPOSED_FIELD(PhysicalMaterial,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNo
 EXPOSED_FIELD(PhysicalMaterial,normalTextureChannel,sfint32,normalTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,baseColor,sfcolor,baseColor,FIELDTYPE_SFColor,UNCA_NONE)
-EXPOSED_FIELD(PhysicalMaterial,baseColorTexture,sfnode,baseColorTexture,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PhysicalMaterial,baseTexture,sfnode,baseTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,baseTextureChannel,sfint32,baseTextureChannel,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,metallic,sffloat,metallic,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(PhysicalMaterial,metallicRoughnessTexture,sfnode,metallicRoughnessTexture,FIELDTYPE_SFNode,UNCA_NONE)
@@ -2638,6 +2638,12 @@ EVENT_OUT(ProximitySensor,exitTime,sftime,exitTime,FIELDTYPE_SFTime)
 EVENT_OUT(ProximitySensor,centerOfRotation_changed,sfvec3f,centerOfRotation_changed,FIELDTYPE_SFVec3f)
 EXPOSED_FIELD(ProximitySensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(ProximitySensor)
+
+/* Pyramid node */
+BEGIN_NODE(Pyramid)
+EXPOSED_FIELD(Pyramid,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(Pyramid,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
+END_NODE(Pyramid)
 
 /* QuadSet node */
 BEGIN_NODE(QuadSet)

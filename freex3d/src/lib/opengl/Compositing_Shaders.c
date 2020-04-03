@@ -219,7 +219,7 @@ void extractPlugName(char *start, char *PlugName,char *PlugDeclaredParameters){
 	PlugDeclaredParameters[len] = '\0';
 	//printf("PlugName %s PlugDeclaredParameters %s\n",PlugName,PlugDeclaredParameters);
 }
-#define SBUFSIZE 32767 //must hold final size of composited shader part, could do per-gglobal-instance malloced buffer instead and resize to largest composited shader
+#define SBUFSIZE 65534 //32767 //must hold final size of composited shader part, could do per-gglobal-instance malloced buffer instead and resize to largest composited shader
 #define PBUFSIZE 16384 //must hold largets PlugValue
 int fw_strcpy_s(char *dest, int destsize, const char *source){
 	int ier = -1;
@@ -577,7 +577,7 @@ struct fw_MaterialParameters { \n\
   int tindex[10]; \n\
   int mode[10]; \n\
   int source[10]; \n\
-  int func[1]; \n\
+  int func[10]; \n\
   int nt; //total single textures \n\
   // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
   int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
@@ -646,13 +646,6 @@ void main(void) \n\
   #ifdef LIT \n\
   fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
   castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
-  #ifdef TEX \n\
-  #ifdef TAREP \n\
-  //to modulate or not to modulate, this is the question \n\
-  //in here, we turn off modulation and use image alpha \n\
-  castle_MaterialDiffuseAlpha = 1.0; \n\
-  #endif //TAREP \n\
-  #endif //TEX \n\
   castle_MaterialShininess =	fw_FrontMaterial.shininess; \n\
   castle_SceneColor = fw_FrontMaterial.diffuse*fw_FrontMaterial.ambient; \n\
   castle_Specular =	vec4(fw_FrontMaterial.specular,1.0); \n\
@@ -669,7 +662,7 @@ void main(void) \n\
   #ifdef FILL \n\
   hatchPosition = fw_Vertex.xy; \n\
   #endif //FILL \n\
-  \n\
+  //\n\
   vec4 vertex_object = fw_Vertex; \n\
   #ifdef PARTICLE \n\
   if(fw_ParticleGeomType != 4){ \n\
@@ -723,9 +716,10 @@ void main(void) \n\
 		ourMat = fw_BackMaterial; \n\
 		#endif //TWO \n\
 	} \n\
-  /* PLUG: add_light_contribution2 (castle_Color, castle_ColorES, castle_vertex_eye, N, ourMat.shininess, ourMat.ambient, ourMat.diffuse, ourMat.specular) */ \n\
-  /* PLUG: add_light_contribution (castle_Color, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess) */ \n\
-  castle_Color.a = castle_MaterialDiffuseAlpha; \n\
+  vec3 vcolor = vec3(0.0,0.0,0.0); \n\
+  /* PLUG: add_light_contribution2 (vcolor, castle_ColorES, castle_vertex_eye, N, ourMat.shininess, ourMat.ambient, ourMat.diffuse, ourMat.specular) */ \n\
+  /* PLUG: add_light_contribution (vcolor, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess) */ \n\
+  castle_Color = vec4(vcolor, castle_MaterialDiffuseAlpha); \n\
   /* Clamp sum of lights colors to be <= 1. See template.fs for comments. */ \n\
   castle_Color.rgb = min(castle_Color.rgb, 1.0); \n\
   #else //LIT \n\
@@ -771,7 +765,7 @@ void main(void) \n\
   } \n\
   #endif //TGEN \n\
   vec4 tcoord[4]; \n\
-  tcoord[0] = fw_MultiTexCoord0; \n\
+  tcoord[0] = texcoord; //fw_MultiTexCoord0; \n\
   tcoord[1] = fw_MultiTexCoord1; \n\
   tcoord[2] = fw_MultiTexCoord2; \n\
   tcoord[3] = fw_MultiTexCoord3; \n\
@@ -783,6 +777,10 @@ void main(void) \n\
 	if(i < nTexCoordChannels) tc = tcoord[i]; \n\
 	fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
   } \n\
+  #ifdef FILL \n\
+  hatchPosition = fw_TexCoord[0].xy; \n\
+  #endif //FILL \n\
+  \n\
  // #endif //TEX \n\
   \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
@@ -930,57 +928,18 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 } \n\
 #endif //MTEX \n\
 //#endif //TEX \n\
+//literal string size break \n" "\
 #ifdef FILL \n\
-uniform vec4 HatchColour; \n\
-uniform bool hatched; uniform bool filled;\n\
-uniform vec2 HatchScale; \n\
-uniform vec2 HatchPct; \n\
-uniform int algorithm; \n\
+struct fillproperties { \n\
+	vec4 HatchColour; \n\
+	int HatchAlgo; \n\
+	bool hatched; \n\
+	bool filled; \n\
+}; \n\
+uniform struct fillproperties fillprops; \n\
 varying vec2 hatchPosition; \n\
-void fillPropCalc(inout vec4 prevColour, vec2 MCposition, int algorithm) { \n\
-	vec4 colour; \n\
-	vec2 position, useBrick; \n\
-	\n\
-	position = MCposition / HatchScale; \n\
-	\n\
-	if (algorithm == 0) {/* bricking  */ \n\
-		if (fract(position.y * 0.5) > 0.5) \n\
-			position.x += 0.5; \n\
-	} \n\
-	\n\
-	/* algorithm 1, 2 = no futzing required here  */ \n\
-	if (algorithm == 3) { /* positive diagonals */ \n\
-		vec2 curpos = position; \n\
-		position.x -= curpos.y; \n\
-	} \n\
-	\n\
-	if (algorithm == 4) {  /* negative diagonals */ \n\
-		vec2 curpos = position; \n\
-		position.x += curpos.y; \n\
-	} \n\
-	\n\
-	if (algorithm == 6) {  /* diagonal crosshatch */ \n\
-		vec2 curpos = position; \n\
-		if (fract(position.y) > 0.5)  { \n\
-			if (fract(position.x) < 0.5) position.x += curpos.y; \n\
-			else position.x -= curpos.y; \n\
-		} else { \n\
-			if (fract(position.x) > 0.5) position.x += curpos.y; \n\
-			else position.x -= curpos.y; \n\
-		} \n\
-	} \n\
-	\n\
-	position = fract(position); \n\
-	\n\
-	useBrick = step(position, HatchPct); \n\
-	\n\
-	if (filled) {colour = prevColour;} else { colour=vec4(0.,0.,0.,0); }\n\
-	if (hatched) { \n\
-		colour = mix(HatchColour, colour, useBrick.x * useBrick.y); \n\
-	} \n\
-	prevColour = colour; \n\
-} \n\
 #endif //FILL \n\
+//literal string size break \n" "\
 #ifdef FOG \n\
 struct fogParams \n\
 {  \n\
@@ -1018,7 +977,7 @@ struct fw_MaterialParameters { \n\
 	int tindex[10]; \n\
 	int mode[10]; \n\
 	int source[10]; \n\
-	int func[1]; \n\
+	int func[10]; \n\
 	int nt; //total single textures \n\
 	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
 	int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
@@ -1030,12 +989,12 @@ uniform fw_MaterialParameters fw_FrontMaterial; \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#endif //TWO \n\
 #ifdef LIT \n\
-#ifdef LITE \n\
-vec3 castle_ColorES; \n\
-#else //LITE \n\
+//#ifdef LITE \n\
+//vec3 castle_ColorES; \n\
+//#else //LITE \n\
 //per-vertex lighting - interpolated Emissive-specular \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
-#endif //LITE \n\
+//#endif //LITE \n\
 #endif //LIT\n\
 //#if defined(TEX) || defined(PROJTEX) \n\
 //shared sampler2D array -PTM or PBR use \n\
@@ -1100,6 +1059,9 @@ vec2 texture_coord_shifted(in vec2 tex_coord) \n\
 	return tex_coord; \n\
 } \n\
 //literal string size break \n" "\
+//statics for multitexturing function\n\
+vec3 mtex_specular; \n\
+vec4 mtex_diffuse; \n\
 //PHYSICAL LIGHTING >> \n\
 // https://github.com/KhronosGroup/glTF-Sample-Viewer \n\
 const float M_PI = 3.141592653589793; \n\
@@ -1127,11 +1089,10 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 	return pow(color, vec3(INV_GAMMA)); \n\
 } \n\
 // << PhYSICAL LIGHTING \n\
-vec4 matdiff_color; \n\
 //GETTERS \n\
 fw_MaterialParameters mat; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
-vec4 sample_map(int iunit){ \n\
+vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	#ifdef NOT_MTEX //not working \n\
 		vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
 		//vec4 nc = vec4(0.0,0.0,0.0,1.0); \n\
@@ -1150,11 +1111,14 @@ vec4 sample_map(int iunit){ \n\
 		nc = prev; \n\
 	#else //MTEX \n\
 	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
 	#endif //MTEX \n\
 	return nc; \n\
 } \n\
 vec3 getNormal(){ \n\
 	vec3 N = normalize (castle_normal_eye); \n\
+	if (!gl_FrontFacing) //backFacing \n\
+		N = -N; \n\
 	if(mat.tcount[0] > 0){ \n\
 		// https://learnopengl.com/Advanced-Lighting/Normal-Mapping  \n\
 		//texture transform applied in vertex shader \n\
@@ -1171,11 +1135,9 @@ vec3 getNormal(){ \n\
 		vec3 b = normalize(cross(N, t)); \n\
 		mat3 tbn = mat3(t, b, N); \n\
 		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
-		vec4 nc = sample_map(0); \n\
+		vec4 nc = sample_map(0,false); \n\
 		N = normalize(tbn * (2.0 * nc.xyz - 1.0)); \n\
 	} \n\
-	if (!gl_FrontFacing) //backFacing \n\
-		N = -N; \n\
 	return N; \n\
 } \n\
 float getAlpha(){ \n\
@@ -1184,7 +1146,7 @@ float getAlpha(){ \n\
 		int main_image = 2; \n\
 		if(mat.type == 1) main_image = 1; \n\
 		if(mat.tcount[main_image] > 0) { \n\
-			vec4 dc = sample_map(main_image); \n\
+			vec4 dc = sample_map(main_image,false); \n\
 			A *= dc.a; \n\
 		} \n\
 	} \n\
@@ -1193,7 +1155,7 @@ float getAlpha(){ \n\
 vec3 getDiffuse(){ \n\
 	vec3 D = mat.diffuse; \n\
 	if(mat.type == 2 && mat.tcount[2] > 0){ \n\
-		vec4 dc = sample_map(2); \n\
+		vec4 dc = sample_map(2,true); \n\
 		D.rgb *= dc.rgb; \n\
 	} \n\
 	return D; \n\
@@ -1201,7 +1163,7 @@ vec3 getDiffuse(){ \n\
 vec3 getSpecular() { \n\
 	vec3 S = mat.specular; \n\
 	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = sample_map(3); \n\
+		vec4 sc = sample_map(3,true); \n\
 		S.rgb *= sc.rgb; \n\
 	} \n\
 	return S; \n\
@@ -1209,7 +1171,7 @@ vec3 getSpecular() { \n\
 float getShininess() { \n\
 	float S = mat.shininess; \n\
 	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = sample_map(3); \n\
+		vec4 sc = sample_map(3,false); \n\
 		S *= sc.a; \n\
 	} \n\
 	return S; \n\
@@ -1217,7 +1179,7 @@ float getShininess() { \n\
 vec3 getEmissive(){ \n\
 	vec3 E = mat.emissive; \n\
 	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
-		vec4 ec = sample_map(1); \n\
+		vec4 ec = sample_map(1,true); \n\
 		E.rgb *= ec.rgb; \n\
 	} \n\
 	return E; \n\
@@ -1225,7 +1187,7 @@ vec3 getEmissive(){ \n\
 float getAmbient(){ \n\
 	float amb = mat.ambient; \n\
 	if(mat.type == 2 && mat.tcount[4] > 0){ \n\
-		vec4 ac = sample_map(1); \n\
+		vec4 ac = sample_map(1,true); \n\
 		amb *= ac.r; \n\
 	} \n\
 	return amb; \n\
@@ -1233,7 +1195,7 @@ float getAmbient(){ \n\
 vec3 getBaseColor(){ \n\
 	vec3 B = mat.baseColor; \n\
 	if(mat.type == 3 && mat.tcount[2] > 0){ \n\
-		vec4 bc = sample_map(2); \n\
+		vec4 bc = sample_map(2,true); \n\
 		B.rgb *= bc.rgb; \n\
 	} \n\
 	return B; \n\
@@ -1241,7 +1203,7 @@ vec3 getBaseColor(){ \n\
 float getMetallic(){ \n\
 	float met = mat.metallic; \n\
 	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
-		vec4 mr = sample_map(3); \n\
+		vec4 mr = sample_map(3,false); \n\
 		met *= mr.b; \n\
 	} \n\
 	return met; \n\
@@ -1249,23 +1211,94 @@ float getMetallic(){ \n\
 float getRoughness(){ \n\
 	float rou = mat.roughness; \n\
 	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
-		vec4 mr = sample_map(3); \n\
+		vec4 mr = sample_map(3,false); \n\
 		rou *= mr.g; \n\
 	} \n\
 	return rou; \n\
 } \n\
 vec4 getVertexColor() { \n\
-	vec4 color = vec4(1.0,1.0,1.0,1.0); \n\
+	//H: this is supposed to be from vertex shader \n\
+	vec4 color = vec4(1.0); \n\
 	#ifdef CPV \n\
-		color = cpv_color; \n\
+		color = cpv_Color; \n\
 	#endif //CPV \n\
 	return color; \n\
+} \n\
+vec4 getDiffuseOrBase(){ \n\
+	return vec4(getBaseColor()*getDiffuse(),getAlpha()); \n\
+} \n\
+vec4 getDiffuseFactor() { \n\
+	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingoff \n\
+	// table 17-2, 17-3 logic here \n\
+	// function returns ODrgb (lit) or Irgb (unlit) \n\
+	// MODT - freewrl out-of-spec option: alwasy modulate texture with diffuse \n\
+	// MODC - illuminance texture, modulate texture with any CPV/CPF or mat.diffuse if no CPV \n\
+	// MODA - texture has no interesting alpha, use material.diffuse.a \n\
+	vec4 dcolor = vec4(1.0); \n\
+	float mixcpv = 0.0; \n\
+	#ifdef CPV \n\
+	mixcpv = 1.0; \n\
+	#endif //CPV \n\
+	#ifdef TEX \n\
+		#ifndef MODC \n\
+		mixcpv = 0.0;; \n\
+		#endif //MODC \n\
+	#endif //TEX \n\
+	vec4 IC = getVertexColor(); \n\
+	vec4 D = getDiffuseOrBase(); \n\
+	dcolor *= mix(D,IC,mixcpv); \n\
+	#ifdef TEX \n\
+	if(textureCount > 0){ \n\
+		vec3 N = getNormal(); \n\
+		vec4 tcolor = vec4(1.0); \n\
+		#if defined(MODT) || defined(MODC) \n\
+			tcolor.rgb = dcolor.rgb; \n\
+		#endif //MODT || MODC \n\
+		/* PLUG: texture_apply (tcolor, N) */ \n\
+		dcolor.rgb = tcolor.rgb; \n\
+		#ifdef MODA \n\
+			dcolor.a *= tcolor.a; \n\
+		#else //MODA \n\
+			dcolor.a = tcolor.a; \n\
+		#endif //MODA \n\
+	} \n\
+	#endif //TEX \n\
+	return dcolor; \n\
+} \n\
+vec4 getGouraudColor() { \n\
+	vec4 dcolor = vec4(1.0); \n\
+	#ifdef LIT\n\
+	dcolor *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
+	#endif //LIT \n\
+	#ifdef CPV \n\
+		dcolor = cpv_Color; \n\
+	#endif //CPV \n\
+	#ifdef TEX \n\
+	if(textureCount > 0){ \n\
+		vec3 N = getNormal(); \n\
+		vec4 tcolor = vec4(1.0); \n\
+		//#if defined(MODT) || defined(MODC) \n\
+			tcolor.rgb = dcolor.rgb; \n\
+		//#endif //MODT || MODC \n\
+		/* PLUG: texture_apply (tcolor, N) */ \n\
+		dcolor.rgb = tcolor.rgb; \n\
+		#ifdef MODA \n\
+			dcolor.a *= tcolor.a; \n\
+		#else //MODA \n\
+			dcolor.a = tcolor.a; \n\
+		#endif //MODA \n\
+	} \n\
+	#endif //TEX \n\
+	return dcolor; \n\
 } \n\
 //literal string size break \n" "\
 void main(void) \n\
 { \n\
-//STEP0 INITIALIZE \n\
-//STEP1 MATERIALS \n\
+//STEP0 MATERIALS \n\
+	#ifdef LIT \n\
+	mtex_specular = castle_ColorES; \n\
+	mtex_diffuse = castle_Color; \n\
+	#endif //LIT \n\
 	mat = fw_FrontMaterial; \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
 	//bool backFacing = (dot(N,E) < 0.0); \n\
@@ -1275,43 +1308,55 @@ void main(void) \n\
 		#endif //TWO \n\
 	} \n\
 	vec3 N = getNormal(); \n\
-	vec4 fragment_color = vec4(1.0,1.0,1.0,1.0); \n\
-	matdiff_color = castle_Color; \n\
-	float castle_MaterialDiffuseAlpha = castle_Color.a; \n\
 	\n\
+//STEP1 INITIALIZE \n\
+	#ifdef LINE \n\
+		vec4 dcolor = vec4(1.0); \n\
+		dcolor.rgb = getEmissive(); \n\
+		#ifdef CPV \n\
+		dcolor= getVertexColor(); \n\
+		#endif //CVP \n\
+		gl_FragColor = dcolor; \n\
+		return; \n\
+	#endif //LINE \n\
+	vec4 diffuseFactor = getDiffuseFactor(); \n\
+	vec4 fragment_color =  diffuseFactor; \n\
 //STEP2 LIGHTS \n\
+	#ifndef PHONG \n\
+		//#ifdef LIT\n\
+		//fragment_color *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
+		//#endif //LIT \n\
+		fragment_color = getGouraudColor(); \n\
+	#endif //not PHONG \n\
+	#ifdef PHONG \n\
+	//per-fragment lighting aka PHONG \n\
 	if(mat.type == 2){ \n\
 		//MAT_REGULAR \n\
-		//matdiff_color = vec4(getDiffuse(),getAlpha()); \n\
-		matdiff_color = vec4(0,0,0,1.0); \n\
 		#ifdef LITE \n\
-		//per-fragment lighting aka PHONG \n\
 		//start over with the color, since we have material and lighting in here \n\
-		//castle_MaterialDiffuseAlpha = (1.0 - mat.transparency); \n\
-		castle_MaterialDiffuseAlpha = getAlpha(); \n\
-		castle_ColorES = fw_FrontMaterial.emissive; \n\
+		vec3 cumulative_specular = vec3(0.0,0.0,0.0); \n\
+		vec3 cumulative_diffuse = vec3(0.0,0.0,0.0); \n\
 		float shiny = getShininess(); \n\
 		float amby = getAmbient(); \n\
-		vec3 diffy = getDiffuse(); \n\
+		vec3 diffy = diffuseFactor.rgb; //getDiffuse(); \n\
 		vec3 specy = getSpecular(); \n\
-		/* PLUG: add_light_contribution2 (matdiff_color, castle_ColorES, castle_vertex_eye, N, shiny, amby, diffy, specy ) */ \n\
+		vec3 normy = getNormal(); \n\
+		/* PLUG: add_light_contribution2 (cumulative_diffuse, cumulative_specular, castle_vertex_eye, normy, shiny, amby, diffy, specy ) */ \n\
+		fragment_color.rgb = cumulative_diffuse + cumulative_specular; \n\
+		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
 	} else if(mat.type == 3){ \n\
 		//MAT_PHYSICAL \n\
-		matdiff_color = vec4(0,0,0,1.0); \n\
 		#ifdef LITE \n\
-		castle_MaterialDiffuseAlpha = 1.0; //getAlpha(); \n\
 		float metallic = getMetallic(); \n\
 		float perceptualRoughness = getRoughness(); \n\
 		vec3 baseColor = getBaseColor(); \n\
 		//unlit \n\
 		vec3 specularColor= vec3(0.0); \n\
 	    vec3 f0 = vec3(0.04); \n\
-		baseColor *= getVertexColor().xyz; //hunh? \n\
+		// ?? baseColor *= getVertexColor().xyz; //hunh? \n\
 		vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0) * (1.0 - metallic); \n\
 		specularColor = mix(f0, baseColor.rgb, metallic); \n\
-		//gl_FragColor = vec4(LINEARtoSRGB(baseColor.rgb), getAlpha()); \n\
-		//return; \n\
 		//lit \n\
 		float alphaRoughness = perceptualRoughness * perceptualRoughness; \n\
 		// Compute reflectance. \n\
@@ -1332,49 +1377,29 @@ void main(void) \n\
 		vec3 normal = getNormal(); \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
-		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, N, materialInfo ) */  \n\
-		//matdiff_color.rgb = color; \n\
-		matdiff_color = vec4(LINEARtoSRGB(color), getAlpha()); \n\
+		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, normal, materialInfo ) */  \n\
+		fragment_color.rgb = color; \n\
 		#endif //LITE \n\
 	} \n\
-	\n\
-	#ifdef LIT \n\
-	#ifdef MATFIR \n\
-	fragment_color.rgb = matdiff_color.rgb; \n\
-	#endif //MATFIR \n\
-	#endif //LIT \n\
-	#ifdef UNLIT \n\
-	fragment_color = castle_Color; \n\
-	#endif //UNLIT \n\
-	\n\
-	#ifdef TEX \n\
-	#ifdef TEXREP \n\
-	fragment_color = vec4(1.0,1.0,1.0,1.0); //texture replaces prior \n\
-	#endif //TEXREP \n\
-	#endif //TEX \n\
-	\n\
-	/* Fragment shader on mobile doesn't get a normal vector now, for speed. */ \n\
-	//#define normal_eye_fragment castle_normal_eye //vec3(0.0) \n\
-	#define normal_eye_fragment vec3(0.0) \n\
+	#endif //PHONG \n\
 	\n\
 	#ifdef FILL \n\
-	fillPropCalc(matdiff_color, hatchPosition, algorithm); \n\
+	//fillPropCalc(fragment_color, hatchPosition); \n\
+	/* PLUG: fragment_fillPropertiesApply (fragment_color, hatchPosition) */ \n\
 	#endif //FILL \n\
 	\n\
-	#ifdef LIT \n\
-	#ifndef MATFIR \n\
-	//modulate texture with mat.diffuse \n\
-	fragment_color.rgb *= matdiff_color.rgb; \n\
-	fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
-	#endif //MATFIR \n\
-	fragment_color.rgb = clamp(fragment_color.rgb + castle_ColorES, 0.0, 1.0); \n\
-	#endif //LIT \n\
-	\n\
-	#ifdef TEX \n\
+	#ifdef NOT_TEX \n\
 	if(textureCount > 0){ \n\
-		/* PLUG: texture_apply (fragment_color, normal_eye_fragment) */ \n\
+		#ifndef MODA \n\
+		fragment_color.a = 1.0; \n\
+		#endif //MODA \n\
+		#ifndef MODC \n\
+		fragment_color.rgb = vec3(1.0); \n\
+		#endif //MODC \n\
+		/* PLUG: texture_apply (fragment_color, N) */ \n\
 	} \n\
 	#endif //TEX \n\
+  \n\
 //STEP3 PROJECTORS AND IBL image based lighting \n\
 	#ifdef PROJTEX \n\
 	fragment_color = fragProjCalTexCoord(fragment_color); \n\
@@ -1383,25 +1408,386 @@ void main(void) \n\
 //STEP4 OCCLUSION \n\
 	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
 //STEP5 EMISSIVE \n\
-	fragment_color.rgb += getEmissive(); \n\
-	#ifdef CPV \n\
-	//#ifdef CPVREP \n\
-	fragment_color = cpv_Color; //CPV replaces mat.diffuse prior \n\
-	//fragment_color.a *= castle_MaterialDiffuseAlpha; \n\
-	//#else \n\
-	//fragment_color *= cpv_Color; //CPV modulates prior \n\
-	//#endif //CPVREP \n\
+	if(mat.type == 1) { \n\
+		fragment_color.rgb = getEmissive(); \n\
+		fragment_color.a = getAlpha(); \n\
+	}else if(mat.type > 1){ \n\
+		fragment_color.rgb += getEmissive(); \n\
+	} \n\
+	\n\
+	#ifdef NOT_LINE \n\
+	fragment_color.rgb = getEmissive(); \n\
+	#endif //LINE \n\
+	#ifdef NOT_CPV \n\
+	if(mat.type == 0) { \n\
+		fragment_color = cpv_Color; //no mat to modulate with \n\
+	}else{ \n\
+		#ifndef MODC \n\
+		fragment_color = vec4(1.0); \n\
+		#endif //MODC \n\
+		fragment_color *= cpv_Color; //CPV modulates prior \n\
+	} \n\
 	#endif //CPV \n\
 	\n\
 //STEP6 FOG \n\
-	/* PLUG: fog_apply (fragment_color, normal_eye_fragment) */ \n\
-	#undef normal_eye_fragment \n\
+	/* PLUG: fog_apply (fragment_color, N) */ \n\
 	\n\
+	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
 	gl_FragColor = fragment_color; \n\
 	\n\
 	/* PLUG: fragment_end (gl_FragColor) */ \n\
 } \n";
 
+
+
+static const GLchar *plug_fragment_fillProperties_apply = "\
+//FILL \n\
+float either(float x, float y){ \n\
+	//returns 1 if either are > 0, else 0 \n\
+	return step(.5,x+y); \n\
+} \n\
+float inrange(float curpos, float fx, float linewidth){ \n\
+	//returns 1.0 if on line, else 0.0 \n\
+	//return step(fx-linewidth*.5,curpos) - step(fx+linewidth*.5,curpos);; \n\
+	//either in this cycle or (with +linewidth) the prior cycle \n\
+	float fxfloor = floor(fx+linewidth); \n\
+	//return step(ffx,curpos) - step(fract(ffx+linewidth),curpos); \n\
+	return either(step(fx,curpos) - step(fx+linewidth,curpos),step(fx-fxfloor,curpos) - step(fx-fxfloor+linewidth,curpos)); \n\
+	//return either(step(fx,curpos) - step(fx+linewidth,curpos),step(fx-1.0,curpos) - step(fx+linewidth-1.0,curpos)); \n\
+} \n\
+float inrange3(float curpos, float fx, float linewidth, float cycle_height){ \n\
+	//returns 1.0 if on line, else 0.0 \n\
+	float inside = 0.0; \n\
+	if(cycle_height < 1.0){ \n\
+		float ncycle = 1.0/cycle_height; \n\
+		int ny = int(ceil(ncycle)) +2; \n\
+		for(int i=0;i<ny;i++){ \n\
+			float ffx = fx + float(i-2)*cycle_height; \n\
+			inside = either(inside,step(ffx,curpos)-step(ffx+linewidth,curpos)); \n\
+		} \n\
+	}else if(cycle_height > 1.0){ \n\
+		float ncycle = cycle_height; \n\
+		int ny = int(ceil(ncycle)) +1; \n\
+		for(int i=0;i<ny;i++){ \n\
+			float ffx = fx - float(i); \n\
+			inside = either(inside,step(ffx,curpos)-step(ffx+linewidth,curpos)); \n\
+		} \n\
+	} else { \n\
+		inside = either(step(fx,curpos) - step(fx+linewidth,curpos),step(fx-1.0,curpos) - step(fx+linewidth-1.0,curpos)); \n\
+	} \n\
+	return inside; \n\
+} \n\
+float rand(float n){return fract(sin(n) * 43758.5453123);} \n\
+float noise(float p){ \n\
+	float fl = floor(p); \n\
+  float fc = fract(p); \n\
+	return mix(rand(fl), rand(fl + 1.0), fc); \n\
+} \n\
+float rand(vec2 c){ \n\
+	return fract(sin(dot(c.xy ,vec2(12.9898,78.233))) * 43758.5453); \n\
+} \n\
+void PLUG_fragment_fillPropertiesApply(inout vec4 prevColour, vec2 MCposition) { \n\
+	// written as procedural texture \n\
+	// http://learnwebgl.brown37.net/10_surface_properties/texture_mapping_procedural.html \n\
+	// https://thebookofshaders.com/05/ \n\
+	// https://isotc.iso.org/livelink/livelink/fetch/-8916524/8916549/8916590/6208440/class_pages/hatchstyle.html \n\
+	// instead of y = f(x), you set fx = f(current_x)); (where y would need to be, to be on the line) \n\
+	// then test if current_y is in range(fx-linewidth/2,fx+linewidth/2) \n\
+	// the x and y are more conveniently processed in cycle-space if you have a repeating pattern \n\
+	// so if your pattern repeats 10 times per 1 unit of texture coordinates, your cycle is 1/10 = .1 in size \n\
+	vec4 colour; \n\
+	vec2 position; // position in cycle, as cycle fraction \n\
+	float cyclesize; //in texcoords \n\
+	float linewidth; //in cycle space \n\
+	position = MCposition; // /HatchScale; \n\
+	vec2 percent = vec2(0); //fraction of background color to show, usually 1 or 0 \n\
+	float fx; // f(x) evaluated at x = cyclepostion.x \n\
+	float fxrange; //normally the pattern is square, if not fxrange is the height, assuming width is 1 \n\
+	\n\
+	switch(fillprops.HatchAlgo) { \n\
+	case 0: // horizontal lines \n\
+	case 1: \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 2: // vertical lines \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.x = 1.0 - inrange(position.x,fx,linewidth); \n\
+		break; \n\
+	case 3: // positive diagonals \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 4: //negative diagonals \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0-position.x; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 5: // # hv cross hatching \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = inrange(position.x,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x, percent.y); \n\
+		break; \n\
+	case 6: // diagonal crosshatch \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		fx = 1.0-position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 7: //7 positive diagonals wide \n\
+		cyclesize = .2; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 8: //8 double positive diagonals, candycane \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .25; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 9: //9 positive diagonal dash-diagonal \n\
+		//solid diagonal \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash it with negative diagonal \n\
+		cyclesize = .4; \n\
+		linewidth = .5; \n\
+		fx = 1.0 - position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//solid diagonal \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 10: //10 wide diagonal crosshatch \n\
+		cyclesize = .2; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		fx = 1.0-position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 11: //11 positive diagonal railroad \n\
+		//negative diagonal for railroad ties \n\
+		cyclesize = .2; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash it with positive diagonal \n\
+		cyclesize = .2; \n\
+		linewidth = .5; \n\
+		fx = position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//HV cross hatch to remove every second tie \n\
+		cyclesize = .2; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//add solid diagonals \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 12: // 12 4 +diag, 4 spaces \n\
+		//diagonal fill \n\
+		cyclesize = .1; \n\
+		linewidth = .4; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//remove diagonals \n\
+		cyclesize = .8; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - percent.x*percent.y; \n\
+		break; \n\
+	case 13: //13 cork horizontal dashes \n\
+		//horizontals \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash using +ve diags \n\
+		cyclesize = .3; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5 * position.x; \n\
+		fxrange = .5 * 1.0; \n\
+		percent.y = 1.0 - inrange3(position.y,fx,linewidth,fxrange); \n\
+		percent.x = 1.0 - percent.x*percent.y; \n\
+		break; \n\
+	case 14: //steps over +ve diags \n\
+		//HV grid for steps \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = inrange(position.x,fx,linewidth); \n\
+		percent.x = either(percent.x, percent.y); \n\
+		//clear out parts of grid with +ve diag \n\
+		cyclesize = .2; \n\
+		linewidth = .45; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .52; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//add +ve diag over steps \n\
+		cyclesize = .2; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .2; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 15: // titaniaum diag diag-dash diag \n\
+		//diagonal for dashing \n\
+		cyclesize = .4; \n\
+		linewidth = .05; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .25; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash with negative diagonal \n\
+		cyclesize = .3; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - position.x; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//solid diagonals \n\
+		cyclesize = .2; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 16: //marble diag-dash \n\
+		//diagonal for dashing \n\
+		cyclesize = .2; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash with negative diagonal \n\
+		cyclesize = .2; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - position.x; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - percent.x*percent.y; \n\
+		break; \n\
+	case 17: //earth 5 diags erasing -ve diags \n\
+		//negaative diags \n\
+		cyclesize = .1; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - .5*position.x; \n\
+		fxrange = 1.0 - .5*1.0; \n\
+		percent.x = inrange3(position.y,fx,linewidth,fxrange); \n\
+		//clear gaps with thick +ve diags \n\
+		cyclesize = .5; \n\
+		linewidth = .4; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		// add 5 diagonals in gap \n\
+		vec2 percent2 = vec2(0.0); \n\
+		//diagonal fill \n\
+		cyclesize = .05; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent2.x = inrange(position.y,fx,linewidth); \n\
+		//remove diagonals \n\
+		cyclesize = .5; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x +.5; \n\
+		percent2.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent2.x = percent2.x*percent2.y; \n\
+		percent.x = 1.0 - either(percent.x,percent2.x); \n\
+		break; \n\
+	case 18: //sand randcom dots \n\
+		cyclesize = 1.0; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = rand(position); \n\
+		position.x = linewidth*floor(position.x/linewidth); \n\
+		//fx = noise(position.x*position.y); \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		percent.y = inrange(position.x,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 19: //repeating stanggerd rows of dots \n\
+		// use a find diagonal crosshatch \n\
+		cyclesize = .05; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		fx = 1.0-position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = either(percent.x,percent.y); \n\
+		break; \n\
+	} \n\
+	\n\
+	if (fillprops.filled) {colour = prevColour;} else { colour=vec4(0.,0.,0.,0); }\n\
+	if (fillprops.hatched) { \n\
+		//colour = mix(fillprops.HatchColour, colour, useBrick.x * useBrick.y); \n\
+		colour = mix(fillprops.HatchColour, colour, percent.x ); \n\
+	} \n\
+	prevColour = colour; \n\
+} \n\
+\n";
 
 
 static const GLchar *plug_finalColCalc = "\
@@ -1712,22 +2098,23 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */
 static const GLchar *plug_fragment_texture_apply =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
-\n\
+ \n\
   #ifdef MTEX \n\
   vec4 source; \n\
   int isource,iasource, mode; \n\
+  //vec4 matdiff_color = finalFrag; \n\
   //finalFrag = texture2D(fw_Texture_unit0, fw_TexCoord[0].st) * finalFrag; \n\
   if(textureCount>0){ \n\
     if(fw_Texture_mode0[0] != MTMODE_OFF) { \n\
       isource = fw_Texture_source0[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source0[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1740,12 +2127,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
       isource = fw_Texture_source1[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source1[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1758,12 +2145,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
       isource = fw_Texture_source2[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source2[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1776,12 +2163,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
       isource = fw_Texture_source3[0]; //castle-style dual sources \n\
       iasource = fw_Texture_source3[1]; \n\
       if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = matdiff_color; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(castle_ColorES.rgb,1.0); \n\
+      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
       else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
       if(iasource != 0){ \n\
         if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = matdiff_color.a; \n\
+        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
         else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
         else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
       } \n\
@@ -1946,7 +2333,7 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
-void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
+void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
 		in float mat_shininess, in float mat_ambient, in vec3 mat_diffuse, in vec3 mat_specular){ \n\
 	//working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
 	//myPosition, myNormal - of surface vertex, in eyespace \n\
@@ -2027,7 +2414,7 @@ void PLUG_add_light_contribution2 (inout vec4 vertexcolor, inout vec3 specularco
 		sum_vertex   += on * attenuation * spot * light.color * (ambient + diffuse); \n\
 		sum_specular += on * attenuation * spot * light.color * (specular); \n\
 	} \n\
-	vertexcolor.rgb = clamp(sum_vertex + vertexcolor.rgb, 0.0, 1.0); \n\
+	vertexcolor = clamp(sum_vertex + vertexcolor, 0.0, 1.0); \n\
 	specularcolor = clamp(sum_specular + specularcolor, 0.0, 1.0); \n\
 } \n\
 ";
@@ -2082,6 +2469,27 @@ void PLUG_fog_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
 #endif //CLIP \n\
 ";
 
+
+//assumes little endian
+void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+
+    for (i=size-1;i>=0;i--)
+    {
+        for (j=7;j>=0;j--)
+        {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+		printf(" ");
+    }
+    printf("\n");
+}
+
+
 #if defined(GL_ES_VERSION_2_0)
 static int isMobile = TRUE;
 #else
@@ -2127,6 +2535,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddVersion(SHADERPART_FRAGMENT, 110, CompleteCode); //lower precision floats
 	}
 
+	// printBits(sizeof(int),&whichOne.base); //debugging _shaderflags
+
 	unique_int = 0; //helps generate method name PLUG_xxx_<unique_int> to avoid clash when multiple PLUGs supplied for same PLUG point
 	//Add in:
 	//Lit
@@ -2138,50 +2548,54 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if DESIRE(whichOne.base,COLOUR_MATERIAL_SHADER) {
 		AddDefine(SHADERPART_VERTEX,"CPV",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"CPV",CompleteCode);
-		if(DESIRE(whichOne.base,CPV_REPLACE_PRIOR)){
-			AddDefine(SHADERPART_VERTEX,"CPVREP",CompleteCode);
-			AddDefine(SHADERPART_FRAGMENT,"CPVREP",CompleteCode);
-		}
+	}
+	if(DESIRE(whichOne.base,MODULATE_COLOR)){
+		//we have a grayscale / illuminance image, modulate any color-per-vertes/face
+		AddDefine(SHADERPART_VERTEX,"MODC",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"MODC",CompleteCode);
+	}
+	if(DESIRE(whichOne.base,MODULATE_ALPHA)){
+		// image texture doesn't havve an interesting alpha, use material alpha
+		AddDefine(SHADERPART_FRAGMENT,"MODA",CompleteCode);
+	}
+	if(DESIRE(whichOne.base,MODULATE_TEXTURE)){
+		// freewrl out-of-spec menu option: change single texture replace prior to texture modulate material diffuse
+		AddDefine(SHADERPART_FRAGMENT,"MODT",CompleteCode);
 	}
 	//material appearance
 	//2 material appearance
 	//phong vs gourard
 	if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER)
-		|| DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER)){
-		//if(isLit)
-		if(DESIRE(whichOne.base,MAT_FIRST)){
-			//strict table 17-3 with no other modulation means Texture > CPV > mat.diffuse > (111)
-			AddDefine(SHADERPART_VERTEX,"MATFIR",CompleteCode);
-			AddDefine(SHADERPART_FRAGMENT,"MATFIR",CompleteCode);
+		|| DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,UNLIT_MATERIAL_APPEARANCE_SHADER)){
+		//we have a material node of some type
+		AddDefine(SHADERPART_VERTEX,"LIT",CompleteCode);
+		AddDefine(SHADERPART_FRAGMENT,"LIT",CompleteCode);
+
+		if(DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER)){
+			AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
+			AddDefine(SHADERPART_VERTEX,"TWO",CompleteCode);
 		}
-		if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG) && !DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR)){
-			//when we say phong in freewrl, we really mean per-fragment lighting
-			AddDefine(SHADERPART_FRAGMENT,"LIT",CompleteCode);
+		
+		if(DESIRE(whichOne.base,SHADINGSTYLE_GOURAUD) || DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
+			//when we say gouraud in freewrl, we really mean per-vertex lighting, in vertex shader
+			AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
+			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
+			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
+		} if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG)){
+			//when we say phong in freewrl, we really mean per-fragment lighting in fragment shader
 			AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
 			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
 			if(DESIRE(whichOne.base,PHYSICAL_MATERIAL_APPEARANCE_SHADER))
 				Plug(SHADERPART_FRAGMENT,plug_frag_lighting_physical,CompleteCode,&unique_int); //use lights
 			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
 				Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
-
-			if(DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
-				AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
-			//but even if we mean per-fragment, for another dot product per fragment we can upgrade
-			//from blinn-phong to phong and get the real phong reflection model 
-			//(although dug9 can't tell the difference):
 			AddDefine(SHADERPART_FRAGMENT,"PHONG",CompleteCode);
-		}else{
-			AddDefine(SHADERPART_VERTEX,"LIT",CompleteCode);
-			AddDefine(SHADERPART_FRAGMENT,"LIT",CompleteCode);
-			//lines and points 
-			if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
-				AddDefine(SHADERPART_VERTEX,"LINE",CompleteCode);
-			}else{
-				AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
-				Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
-				if(DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
-					AddDefine(SHADERPART_VERTEX,"TWO",CompleteCode);
-			}
+		}
+		//lines and points with material (rendered emissive)
+		if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
+			AddDefine(SHADERPART_VERTEX,"LINE",CompleteCode);
+			AddDefine(SHADERPART_FRAGMENT,"LINE",CompleteCode);
 		}
 	}
 	//textureCoordinategen
@@ -2203,6 +2617,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	*/
 	int colCalc_loaded = FALSE;
 	if(DESIRE(whichOne.base,HAVE_UNLIT_COLOR)){
+		//used by particles
 		AddDefine(SHADERPART_VERTEX,"UNLIT",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"UNLIT",CompleteCode);
 	}
@@ -2241,27 +2656,21 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 				//AddDefine(SHADERPART_FRAGMENT,"TEX3D",CompleteCode);
 				Plug(SHADERPART_FRAGMENT,plug_fragment_texture3D_apply_volume,CompleteCode,&unique_int);
 			}
-		}else{
+		}else {
 			if(DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE)){
 				AddDefine(SHADERPART_VERTEX,"CUB",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"CUB",CompleteCode);
 			} else if(DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
+				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture 
+				//- source can be DIFFUSE or SPECULAR, from Gauraud (vertex) lighting
 				AddDefine(SHADERPART_VERTEX,"MTEX",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"MTEX",CompleteCode);
 			}
-			if(DESIRE(whichOne.base,TEXTURE_REPLACE_PRIOR) )
-				AddDefine(SHADERPART_FRAGMENT,"TEXREP",CompleteCode);
-			if(DESIRE(whichOne.base,TEXALPHA_REPLACE_PRIOR))
-				AddDefine(SHADERPART_VERTEX,"TAREP",CompleteCode);
 
 			if(!colCalc_loaded) Plug(SHADERPART_FRAGMENT,plug_finalColCalc,CompleteCode,&unique_int);	
 			colCalc_loaded = TRUE;
 			Plug(SHADERPART_FRAGMENT,plug_fragment_texture_apply,CompleteCode,&unique_int);
 
-			//if(texture has alpha ie channels == 2 or 4) then vertex diffuse = 111 and fragment diffuse*=texture
-			//H: we currently assume image alpha, and maybe fill the alpha channel with (1-material.transparency)?
-			//AddDefine(SHADERPART_VERTEX,"TAT",CompleteCode);
-			//AddDefine(SHADERPART_FRAGMENT,"TAT",CompleteCode);
 		}
 	}
 
@@ -2269,6 +2678,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if(DESIRE(whichOne.base,FILL_PROPERTIES_SHADER)) {
 		AddDefine(SHADERPART_VERTEX,"FILL",CompleteCode);		
 		AddDefine(SHADERPART_FRAGMENT,"FILL",CompleteCode);		
+		Plug(SHADERPART_FRAGMENT,plug_fragment_fillProperties_apply,CompleteCode,&unique_int);
 	}
 	//FOG
 	if(DESIRE(whichOne.base,FOG_APPEARANCE_SHADER)){
@@ -2299,6 +2709,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
+	//printf("size of finished fragment shader %d bytes\n",strlen(*fragmentSource));
 //#define DEBUGSHADER 1
 #ifdef DEBUGSHADER
 	{
@@ -2978,7 +3389,7 @@ struct fw_MaterialParameters { \n\
   int tindex[10]; \n\
   int mode[10]; \n\
   int source[10]; \n\
-  int func[1]; \n\
+  int func[10]; \n\
   int nt; //total single textures \n\
   // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
   int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
@@ -3003,7 +3414,7 @@ void voxel_apply_SHADED (inout vec4 voxel, inout vec3 gradient) { \n\
 	vec3 ng = vec3(0.0); \n\
 	if(len > 0.0) \n\
 	  ng = normalize(gradient); \n\
-	vec4 color = vec4(1.0); \n\
+	vec3 color = vec3(1.0); \n\
 	#ifdef LIT \n\
 	vec3 castle_ColorES = fw_FrontMaterial.specular; \n\
 	color.rgb = fw_FrontMaterial.diffuse.rgb; \n\
@@ -3011,12 +3422,12 @@ void voxel_apply_SHADED (inout vec4 voxel, inout vec3 gradient) { \n\
 	color.rgb = vec3(0,0,0.0,0.0); \n\
 	vec3 castle_ColorES = vec3(0.0,0.0,0.0); \n\
 	#endif //LIT	\n\
-	// void add_light_contribution2(inout vec4 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
+	// void add_light_contribution2(inout vec3 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
 	//   in float mat_shininess, in float mat_ambient, in vec3 mat_diffuse, in vec3 mat_specular); \n\
 	vec4 vertex_eye4 = vec4(vertex_eye,1.0); \n\
 	/* PLUG: add_light_contribution2 (color, castle_ColorES, vertex_eye4, ng, fw_FrontMaterial.shininess, fw_FrontMaterial.ambient, fw_FrontMaterial.diffuse, fw_FrontMaterial..specular) */ \n\
 	// voxel.rgb = color.rgb; \n\
-	color.rgb = mix(color.rgb,castle_ColorES,dot(ng,normal_eye)); \n\
+	color = mix(color,castle_ColorES,dot(ng,normal_eye)); \n\
 	voxel.rgb = color.rgb; \n\
 	//voxel.rgb = voxel.rgb * color.rgb; \n\
 } \n\

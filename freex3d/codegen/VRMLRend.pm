@@ -164,6 +164,7 @@ our %defaultContainerType = (
 	StringSensor		=>["children"],
 	Switch 			=>["children"],
 	Teapot 			=>["geometry"],
+	Pyramid			=>["geometry"],
 	Text 			=>["geometry"],
 	TextureBackground 	=>["children"],
 	TextureCoordinate 	=>["texCoord"],
@@ -375,6 +376,7 @@ our %RendC = map {($_=>1)} qw/
 	Sphere
 	IndexedFaceSet
 	Teapot
+	Pyramid
 	Extrusion
 	ElevationGrid
 	Arc2D
@@ -636,6 +638,7 @@ our %CompileC = map {($_=>1)} qw/
 	Cylinder
 	Sphere
 	Teapot
+	Pyramid
 	GeoLocation
 	GeoPlanet
 	GeoCoordinate
@@ -807,6 +810,7 @@ our %CollisionC = map {($_=>1)} qw/
 	Cone
 	Cylinder
 	Teapot
+	Pyramid
 	ElevationGrid
 	IndexedFaceSet
 	IndexedQuadSet
@@ -904,6 +908,7 @@ our %RendRayC = map {($_=>1)} qw/
 	Cylinder
 	Cone
 	Teapot
+	Pyramid
 	GeoElevationGrid
 	ElevationGrid
 	Text

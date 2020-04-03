@@ -450,11 +450,9 @@ typedef struct s_shader_capabilities{
 
 	/* fill properties */
 	GLint hatchColour;
-	GLint hatchPercent;
-	GLint hatchScale;
 	GLint filledBool;
 	GLint hatchedBool;
-	GLint algorithm;
+	GLint hatchAlgo;
     
 	/* TextureCoordinateGenerator type */
 	GLint texCoordGenType;

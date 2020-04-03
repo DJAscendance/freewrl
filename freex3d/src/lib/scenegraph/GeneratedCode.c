@@ -458,7 +458,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"backTransparency",
 	"backUrl",
 	"baseColor",
-	"baseColorTexture",
+	"baseTexture",
 	"baseTextureChannel",
 	"bboxCenter",
 	"bboxSize",
@@ -1330,7 +1330,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"backTransparency",
 	"backUrl",
 	"baseColor",
-	"baseColorTexture",
+	"baseTexture",
 	"baseTextureChannel",
 	"beamWidth",
 	"bodies",
@@ -2427,6 +2427,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"ProjectionVolumeStyle",
 	"Proto",
 	"ProximitySensor",
+	"Pyramid",
 	"QuadSet",
 	"ReceiverPdu",
 	"Rectangle2D",
@@ -3193,6 +3194,12 @@ void render_ProximitySensor(struct X3D_ProximitySensor *);
 void proximity_ProximitySensor(struct X3D_ProximitySensor *);
 struct X3D_Virt virt_ProximitySensor = { NULL,(void *)render_ProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_ProximitySensor,NULL,NULL,NULL};
 
+void render_Pyramid(struct X3D_Pyramid *);
+void rendray_Pyramid(struct X3D_Pyramid *);
+void collide_Pyramid(struct X3D_Pyramid *);
+void compile_Pyramid(struct X3D_Pyramid *);
+struct X3D_Virt virt_Pyramid = { NULL,(void *)render_Pyramid,NULL,NULL,(void *)rendray_Pyramid,NULL,NULL,NULL,(void *)collide_Pyramid,(void *)compile_Pyramid};
+
 void render_QuadSet(struct X3D_QuadSet *);
 struct X3D_Virt virt_QuadSet = { NULL,(void *)render_QuadSet,NULL,NULL,(void *)rendray_QuadSet,(void *)make_QuadSet,NULL,NULL,(void *)collide_QuadSet,NULL};
 
@@ -3626,6 +3633,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_ProjectionVolumeStyle,
 	 &virt_Proto,
 	 &virt_ProximitySensor,
+	 &virt_Pyramid,
 	 &virt_QuadSet,
 	 &virt_ReceiverPdu,
 	 &virt_Rectangle2D,
@@ -6321,7 +6329,7 @@ const int OFFSETS_PhysicalMaterial[] = {
 	(int) FIELDNAMES_transparency, (int) offsetof (struct X3D_PhysicalMaterial, transparency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__material, (int) offsetof (struct X3D_PhysicalMaterial, _material),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_baseColor, (int) offsetof (struct X3D_PhysicalMaterial, baseColor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_baseColorTexture, (int) offsetof (struct X3D_PhysicalMaterial, baseColorTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_baseTexture, (int) offsetof (struct X3D_PhysicalMaterial, baseTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_baseTextureChannel, (int) offsetof (struct X3D_PhysicalMaterial, baseTextureChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metallic, (int) offsetof (struct X3D_PhysicalMaterial, metallic),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metallicRoughnessTexture, (int) offsetof (struct X3D_PhysicalMaterial, metallicRoughnessTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
@@ -6667,6 +6675,12 @@ const int OFFSETS_ProximitySensor[] = {
 	(int) FIELDNAMES___t1, (int) offsetof (struct X3D_ProximitySensor, __t1),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___t2, (int) offsetof (struct X3D_ProximitySensor, __t2),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_ProximitySensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_Pyramid[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_Pyramid, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_solid, (int) offsetof (struct X3D_Pyramid, solid),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___ifsnode, (int) offsetof (struct X3D_Pyramid, __ifsnode),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_QuadSet[] = {
@@ -7956,6 +7970,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_ProjectionVolumeStyle,
 	OFFSETS_Proto,
 	OFFSETS_ProximitySensor,
+	OFFSETS_Pyramid,
 	OFFSETS_QuadSet,
 	OFFSETS_ReceiverPdu,
 	OFFSETS_Rectangle2D,
@@ -8507,6 +8522,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ProjectionVolumeStyle : {tmp = MALLOC (struct X3D_ProjectionVolumeStyle *, sizeof (struct X3D_ProjectionVolumeStyle)); break;}
 		case NODE_Proto : {tmp = MALLOC (struct X3D_Proto *, sizeof (struct X3D_Proto)); break;}
 		case NODE_ProximitySensor : {tmp = MALLOC (struct X3D_ProximitySensor *, sizeof (struct X3D_ProximitySensor)); break;}
+		case NODE_Pyramid : {tmp = MALLOC (struct X3D_Pyramid *, sizeof (struct X3D_Pyramid)); break;}
 		case NODE_QuadSet : {tmp = MALLOC (struct X3D_QuadSet *, sizeof (struct X3D_QuadSet)); break;}
 		case NODE_ReceiverPdu : {tmp = MALLOC (struct X3D_ReceiverPdu *, sizeof (struct X3D_ReceiverPdu)); break;}
 		case NODE_Rectangle2D : {tmp = MALLOC (struct X3D_Rectangle2D *, sizeof (struct X3D_Rectangle2D)); break;}
@@ -9518,7 +9534,7 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_DirectionalLight * tmp2;
 			tmp2 = (struct X3D_DirectionalLight *) tmp;
 			tmp2->metadata = NULL;
-			tmp2->global = TRUE;
+			tmp2->global = FALSE;
 			tmp2->on = TRUE;
 			tmp2->ambientIntensity = 0.0f;
 			tmp2->intensity = 1.0f;
@@ -11936,7 +11952,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transparency = 0.0f;
 			tmp2->_material = 0;
 			tmp2->baseColor.c[0] = 1.0f;tmp2->baseColor.c[1] = 1.0f;tmp2->baseColor.c[2] = 1.0f;;
-			tmp2->baseColorTexture = NULL;
+			tmp2->baseTexture = NULL;
 			tmp2->baseTextureChannel = 0;
 			tmp2->metallic = 1.0f;
 			tmp2->metallicRoughnessTexture = NULL;
@@ -12354,6 +12370,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__t2.c[0] = 0;tmp2->__t2.c[1] = 1;tmp2->__t2.c[2] = 0;tmp2->__t2.c[3] = 0;;
 			tmp2->__oldEnabled = TRUE;
 			tmp2->_defaultContainer = FIELDNAMES_children;
+		break;
+		}
+		case NODE_Pyramid : {
+			struct X3D_Pyramid * tmp2;
+			tmp2 = (struct X3D_Pyramid *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->solid = TRUE;
+			tmp2->__ifsnode = 0;
+			tmp2->_defaultContainer = FIELDNAMES_geometry;
 		break;
 		}
 		case NODE_QuadSet : {
@@ -17007,7 +17032,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," baseColor (SFColor): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->baseColor.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," baseColorTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->baseColorTexture); 
+			spacer fprintf (fp," baseTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->baseTexture); 
 			spacer fprintf (fp," baseTextureChannel (SFInt32) \t%d\n",tmp->baseTextureChannel);
 			spacer fprintf (fp," metallic (SFFloat) \t%4.3f\n",tmp->metallic);
 			spacer fprintf (fp," metallicRoughnessTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->metallicRoughnessTexture); 
@@ -17386,6 +17411,15 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    if(allFields) {
 			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
+		    }
+		    break;
+		}
+		case NODE_Pyramid : {
+			struct X3D_Pyramid *tmp;
+			tmp = (struct X3D_Pyramid *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 		    break;
 		}
@@ -19003,6 +19037,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_ProjectionVolumeStyle: return X3DComposableVolumeRenderStyleNode; break;
 	case NODE_Proto: return X3DProtoInstance; break;
 	case NODE_ProximitySensor: return X3DEnvironmentalSensorNode; break;
+	case NODE_Pyramid: return X3DGeometryNode; break;
 	case NODE_QuadSet: return X3DComposedGeometryNode; break;
 	case NODE_ReceiverPdu: return X3DChildNode; break;
 	case NODE_Rectangle2D: return X3DGeometryNode; break;

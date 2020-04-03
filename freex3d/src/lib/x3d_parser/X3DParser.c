@@ -821,6 +821,10 @@ c) look at atts containerField, and if not null and not children, use it.
 				value->sfnode = node;
 				ADD_PARENT(node,parent);
 			}else if(type == FIELDTYPE_MFNode){
+				/*
+				// this was adding duplicats ie adding to addChildren (calls add_parent),
+				// then opengl utils startofloopnodeupdates was moving rootnode addchildren to __children, 
+				// triggering anohter add_parent
 				union anyVrml *valueadd = NULL;
 				ok = 0;
 				if(parent->_nodeType == NODE_Proto){
@@ -832,6 +836,7 @@ c) look at atts containerField, and if not null and not children, use it.
 				if(ok)
 					AddRemoveChildren(parent,&valueadd->mfnode,&node,1,1,__FILE__,__LINE__);
 				else
+				*/
 					AddRemoveChildren(parent,&value->mfnode,&node,1,1,__FILE__,__LINE__);
 			}
 		}else{

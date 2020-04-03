@@ -6972,7 +6972,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 							deep_copy_broto_body2(&pdeclare,&pinstance);
 							nnode = X3D_NODE(pinstance);
                 			AddRemoveChildren(X3D_NODE(node), &node->__children, &nnode, 1, 1,__FILE__,__LINE__);
-							add_parent(X3D_NODE(pinstance),X3D_NODE(node),__FILE__,__LINE__);
+							//add_parent(X3D_NODE(pinstance),X3D_NODE(node),__FILE__,__LINE__);
 							popInputResource();
 						} //if (pinstance != NULL) 
 					}

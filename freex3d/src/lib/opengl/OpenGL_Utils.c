@@ -203,7 +203,7 @@ void OpenGL_Utils_init(struct tOpenGL_Utils *t)
 		// userDefinedShaders - assume 0, unless the user is a geek.
 		p->userDefinedShaderCount = 0;
 
-		p->shadingStyle = 2; //0=flat, 1=gouraud (default), 2=phong, 3=wireframe
+		p->shadingStyle = 2; //0=flat, 1=gouraud, 2=phong, 3=wireframe
 		//ConsoleMessage ("setting usePhongShaders to true"); p->usePhongShaders=true;
 		p->maxStackUsed = 0;
 	}
@@ -2851,7 +2851,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
 	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
 	me->myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
-	me->myMaterialBackBaseColor = GET_UNIFORM(myProg,"fw_BaclMaterial.baseColor");
+	me->myMaterialBackBaseColor = GET_UNIFORM(myProg,"fw_BackMaterial.baseColor");
 	me->myMaterialBackMetallic = GET_UNIFORM(myProg,"fw_BackMaterial.metallic");
 	me->myMaterialBackRoughness = GET_UNIFORM(myProg,"fw_BackMaterial.roughness");
 	me->myMaterialBackType = GET_UNIFORM(myProg,"fw_BackMaterial.type");
@@ -3117,12 +3117,12 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 	/* for FillProperties */
 	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
-	me->hatchColour = GET_UNIFORM(myProg,"HatchColour");
-	me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
-	me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
-	me->filledBool = GET_UNIFORM(myProg,"filled");
-	me->hatchedBool = GET_UNIFORM(myProg,"hatched");
-	me->algorithm = GET_UNIFORM(myProg,"algorithm");
+	me->hatchColour = GET_UNIFORM(myProg,"fillprops.HatchColour");
+	//me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
+	//me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
+	me->filledBool = GET_UNIFORM(myProg,"fillprops.filled");
+	me->hatchedBool = GET_UNIFORM(myProg,"fillprops.hatched");
+	me->hatchAlgo = GET_UNIFORM(myProg,"fillprops.HatchAlgo");
 
 	me->fogColor = GET_UNIFORM(myProg,"fw_fogparams.fogColor");
 	me->fogvisibilityRange = GET_UNIFORM(myProg,"fw_fogparams.visibilityRange");
@@ -6996,17 +6996,17 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	mp->nt = nt;
 	//SEND_INT(myMaterialNt,mp->nt);
 
-	SEND_VEC3(myMaterialBackDiffuse,fw_BackMaterial->diffuse);
-	SEND_VEC3(myMaterialBackEmissive,fw_BackMaterial->emissive);
-	SEND_VEC3(myMaterialBackSpecular,fw_BackMaterial->specular);
-	SEND_VEC3(myMaterialBackBaseColor,fw_BackMaterial->baseColor);
-	SEND_FLOAT(myMaterialBackAmbient,fw_BackMaterial->ambient);
-	SEND_FLOAT(myMaterialBackShininess,fw_BackMaterial->shininess);
-	SEND_FLOAT(myMaterialBackTransparency,fw_BackMaterial->transparency);
-	SEND_FLOAT(myMaterialBackRoughness,fw_BackMaterial->roughness);
-	SEND_FLOAT(myMaterialBackMetallic,fw_BackMaterial->metallic);
-	SEND_INT(myMaterialBackType,fw_BackMaterial->type);
-	SEND_INT(myMaterialBackTransdex,fw_BackMaterial->transdex);
+	GLUNIFORM3FV(me->myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
+	GLUNIFORM3FV(me->myMaterialBackEmissive,1,fw_BackMaterial->emissive);
+	GLUNIFORM3FV(me->myMaterialBackSpecular,1,fw_BackMaterial->specular);
+	GLUNIFORM3FV(me->myMaterialBackBaseColor,1,fw_BackMaterial->baseColor);
+	GLUNIFORM1F(me->myMaterialBackAmbient,fw_BackMaterial->ambient);
+	GLUNIFORM1F(me->myMaterialBackShininess,fw_BackMaterial->shininess);
+	GLUNIFORM1F(me->myMaterialBackTransparency,fw_BackMaterial->transparency);
+	GLUNIFORM1F(me->myMaterialBackRoughness,fw_BackMaterial->roughness);
+	GLUNIFORM1F(me->myMaterialBackMetallic,fw_BackMaterial->metallic);
+	GLUNIFORM1I(me->myMaterialBackType,fw_BackMaterial->type);
+	GLUNIFORM1I(me->myMaterialBackTransdex,fw_BackMaterial->transdex);
 	mp = fw_BackMaterial;
 	nt = 0;
 	for(int i=0;i<5;i++){
@@ -7024,14 +7024,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
 				glUniform1i(me->textureUnit[kunit],tunit(kunit));
-				SEND_INT(myMaterialBackTindex[nt],mp->tindex[nt]);
+				GLUNIFORM1I(me->myMaterialBackTindex[nt],mp->tindex[nt]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
-		SEND_INT(myMaterialBackCindex[i],mp->cindex[i]);
-		SEND_INT(myMaterialBackTcount[i],mp->tcount[i]);
-		SEND_INT(myMaterialBackTstart[i],mp->tstart[i]);
+		GLUNIFORM1I(me->myMaterialBackCindex[i],mp->cindex[i]);
+		GLUNIFORM1I(me->myMaterialBackTcount[i],mp->tcount[i]);
+		GLUNIFORM1I(me->myMaterialBackTstart[i],mp->tstart[i]);
 	}
 	mp->nt = nt;
 	//SEND_INT(myMaterialBackNt,mp->nt);
@@ -7053,12 +7053,10 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 	profile_start("sendmat");
 	//ConsoleMessage ("rlp %d %d %d %d",me->hatchPercent,me->filledBool,me->hatchedBool,me->algorithm,me->hatchColour);
-	SEND_INT(filledBool,myap->filledBool);
-	SEND_INT(hatchedBool,myap->hatchedBool);
-	SEND_INT(algorithm,myap->algorithm);
+	GLUNIFORM1I(me->filledBool,myap->filledBool);
+	GLUNIFORM1I(me->hatchedBool,myap->hatchedBool);
+	GLUNIFORM1I(me->hatchAlgo,myap->hatchAlgo);
 	SEND_VEC4(hatchColour,myap->hatchColour);
-	SEND_VEC2(hatchScale,myap->hatchScale);
-	SEND_VEC2(hatchPercent,myap->hatchPercent);
 
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);

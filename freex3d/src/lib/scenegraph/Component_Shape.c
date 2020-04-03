@@ -82,7 +82,7 @@ void Component_Shape_init(struct tComponent_Shape *t){
 	t->prv = Component_Shape_constructor();
 	{
 		ppComponent_Shape p = (ppComponent_Shape)t->prv;
-		p->modulation = 1; //0 per specs 1 blend texture and mat 2 blend mat x cpv x texture
+		p->modulation = 0; //0 by scenefile spec version 1) v3.3(replace)- 2) v4.0+ (modulate everything)
 		p->isBackMaterial = 0;
 	}
 
@@ -348,6 +348,7 @@ void compile_Material (struct X3D_Material *node) {
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->diffuse,node->diffuseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	veccopy3f(q->specular,node->specularColor.c);
@@ -749,37 +750,28 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 
 /* now works with our pushing matricies (norm, proj, modelview) but not for complete shader appearance replacement */
 void render_FillProperties (struct X3D_FillProperties *node) {
-	GLfloat hatchX;
-	GLfloat hatchY;
+	// http://learnwebgl.brown37.net/10_surface_properties/texture_mapping_procedural.html 
+	// https://thebookofshaders.com/05/
+	// https://isotc.iso.org/livelink/livelink/fetch/-8916524/8916549/8916590/6208440/class_pages/hatchstyle.html
+	// Apr, 2020 change to procedural textures
+	// - just send the algo # to the frag shader
+	// - added hatchStyles 8-19
+	// = used texture coords for scale [0-1] with current coord being vert shader transformed and interpolated texture coord
+	// x X3D Text node - doesn't fill/hatch now H: we don't give vertex shader texture coords for Text 
+	// - ToDo (this means _you_: fix X3D Text so it can be textured and procedurally textured
+
 	GLint algor;
 	GLint hatched;
 	GLint filled;
 
 	struct matpropstruct *me= getAppearanceProperties();
 
-	hatchX = 0.80f; hatchY = 0.80f;
 	algor = node->hatchStyle; filled = node->filled; hatched = node->hatched;
-	switch (node->hatchStyle) {
-		case 0: break; /* bricking - not standard X3D */
-		case 1: hatchX = 1.0f; break; /* horizontal lines */
-		case 2: hatchY = 1.0f; break; /* vertical lines */
-		case 3: hatchY=1.0f; break; /* positive sloped lines */
-		case 4: hatchY=1.0f; break; /* negative sloped lines */
-		case 5: break; /* square pattern */
-		case 6: hatchY = 1.0f; break; /* diamond pattern */
 
-		default :{
-			node->hatched = FALSE; /* woops - something wrong here disable */
-		}
-	}
 
 	me->filledBool = filled;
 	me->hatchedBool = hatched;
-	me->hatchPercent[0] = hatchX;
-	me->hatchPercent[1] = hatchY;
-	me->hatchScale[0] = node->_hatchScale.c[0];
-	me->hatchScale[1] = node->_hatchScale.c[1];
-	me->algorithm = algor;
+	me->hatchAlgo = algor;
 	me->hatchColour[0]=node->hatchColor.c[0]; me->hatchColour[1]=node->hatchColor.c[1]; me->hatchColour[2] = node->hatchColor.c[2];
 	me->hatchColour[3] = 1.0;
 }
@@ -916,6 +908,8 @@ void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
 	memset(mat,0,sizeof(struct fw_MaterialParameters));
 	mat->ambient = .2f;
 	mat->shininess = .2f;
+	vecset3f(mat->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader if at 1
+	vecset3f(mat->baseColor,1.0f,1.0f,1.0f);
 	mat->type = MAT_NONE;
 }
 void initialize_front_and_back_material_params(){
@@ -956,7 +950,7 @@ void child_Shape (struct X3D_Shape *node) {
 
 	RECORD_DISTANCE
 
-	if((renderstate()->render_collision) || (renderstate()->render_sensitive)) {
+	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
 		render_node(tmpNG);
@@ -1014,7 +1008,7 @@ void child_Shape (struct X3D_Shape *node) {
 			// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
 			// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
 
-			int channels;
+			int channels,modulation,scenefile_specversion;
 			//modulation:
 			//- for Castle-style full-modulation of texture x CPV x mat.diffuse
 			//     and texalpha x (1-mat.trans), set 2
@@ -1025,26 +1019,31 @@ void child_Shape (struct X3D_Shape *node) {
 			// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
 			//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
 			//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
-			int modulation = p->modulation; //freewrl default 1 (dug9 Aug 27, 2016 interpretation of Lighting specs)
 			channels = getImageChannelCountFromTTI(node->appearance);
-
-			if(modulation == 0)
-				shader_requirements.base |= MAT_FIRST; //strict use of table 17-3, CPV can replace mat.diffuse, so texture > cpv > diffuse > 111
-
-			if(shader_requirements.base & COLOUR_MATERIAL_SHADER){
-				//printf("has a color node\n");
-				//lets turn it off, and see if we get texture
-				//shader_requirements &= ~(COLOUR_MATERIAL_SHADER);
-				if(modulation == 0) 
-					shader_requirements.base |= CPV_REPLACE_PRIOR;
+			// specversion <= 330 use v3.3 table 17-3
+			// specversion >= 400 modulate everything
+			scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
+			// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
+			
+			switch(fwl_get_modulation()){
+				case 0:
+					//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
+					modulation = scenefile_specversion >= 400 ? TRUE : FALSE; 
+					break;
+				case 1:
+					modulation = FALSE; break;
+				case 2:
+					modulation = TRUE; break;
+				default:
+					modulation = FALSE;
 			}
-
-			if(channels && (channels == 3 || channels == 4) && modulation < 2)
-				shader_requirements.base |= TEXTURE_REPLACE_PRIOR;
-			//if the image has a real alpha, we may want to turn off alpha modulation, 
-			// see comment about modulate in Compositing_Shaders.c
-			if(channels && (channels == 2 || channels == 4) && modulation == 0)
-				shader_requirements.base |= TEXALPHA_REPLACE_PRIOR;
+			if(modulation == TRUE){
+				shader_requirements.base |= MODULATE_TEXTURE; //web3d most browsers default: texture replaces prior by default
+			}
+			if(!channels || (channels == 1 || channels == 3))
+				shader_requirements.base |= MODULATE_ALPHA;  //A = (1-TM)
+			if(channels && (channels == 1 || channels == 2) )
+				shader_requirements.base |= MODULATE_COLOR;  //ODrgb = IT x ICrgb
 
 			//getShaderFlags() are from non-leaf-node shader influencers: 
 			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
@@ -1132,6 +1131,7 @@ void child_Shape (struct X3D_Shape *node) {
 		render_node(tmpNG);
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
+		//solid TRUE/FALSE on geom controls if backface culling
 		reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1258,6 +1258,7 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 	}
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->diffuse,node->diffuseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	veccopy3f(q->specular,node->specularColor.c);
@@ -1281,6 +1282,7 @@ void compile_TwoSidedMaterial (struct X3D_TwoSidedMaterial *node) {
 		}
 		memset(node->_backMaterial,0,sizeof(struct fw_MaterialParameters));
 		q = (struct fw_MaterialParameters *)node->_backMaterial;
+		vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
 		veccopy3f(q->diffuse,node->backDiffuseColor.c);
 		veccopy3f(q->emissive,node->backEmissiveColor.c);
 		veccopy3f(q->specular,node->backSpecularColor.c);
@@ -1327,6 +1329,8 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->baseColor,1.0f,1.0f,1.0f); //saves boolean math in shader
+	vecset3f(q->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	q->transparency = node->transparency;
 	q->type = MAT_UNLIT;
@@ -1370,7 +1374,11 @@ void render_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	{
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 		if (node != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			if(get_isBackMaterial()){
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}else{
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}
 		}
 	}
 }
@@ -1431,6 +1439,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	memset(node->_material,0,sizeof(struct fw_MaterialParameters));
 
 	q = (struct fw_MaterialParameters *)node->_material;
+	vecset3f(q->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->baseColor,node->baseColor.c);
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	q->metallic = node->metallic;
@@ -1450,9 +1459,9 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 	}
-	if(node->baseColorTexture)
+	if(node->baseTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseColorTexture,tnodes[2]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseTexture,tnodes[2]);
 	}
 	if(node->metallicRoughnessTexture)
 	{
@@ -1489,7 +1498,11 @@ void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	{
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 		if (node != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			if(get_isBackMaterial()){
+				memcpy (&p->appearanceProperties.fw_BackMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}else{
+				memcpy (&p->appearanceProperties.fw_FrontMaterial, node->_material, sizeof (struct fw_MaterialParameters));
+			}
 		}
 	}
 }

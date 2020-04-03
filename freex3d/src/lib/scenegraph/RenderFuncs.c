@@ -787,7 +787,7 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 		GLUNIFORM1I(me->lightType[j],p->lightType[i]);
     }
 	GLUNIFORM1I(me->lightcount,lightcount);
-
+	//printf("lightcount %d\n",lightcount);
 	profile_end("sendlight");
     PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
 }
@@ -1997,6 +1997,14 @@ void add_parent(struct X3D_Node *node, struct X3D_Node *parent, char *file, int 
 	parent->_renderFlags = parent->_renderFlags | node->_renderFlags;
 
 	/* add it to the parents list */
+	for(int i=0;i<node->_parentVector->n;i++)
+	{
+		struct X3D_Node * parent2 = vector_get(struct X3D_Node*,node->_parentVector,i);
+		if(parent == parent2){
+			//printf("ouch adding the same parent twice\n");
+			return;
+		}
+	}
 	vector_pushBack (struct X3D_Node*,node->_parentVector, parent);
 	/* tie in sensitive nodes */
 	itype = getTypeNode(node);
@@ -2077,7 +2085,7 @@ void push_globalRenderFlags(){
 		case 2: shaderflags.base |= SHADINGSTYLE_PHONG; break;
 		case 3: shaderflags.base |= SHADINGSTYLE_WIRE; break;
 		default:
-			shaderflags.base |= SHADINGSTYLE_GOURAUD; break;
+			shaderflags.base |= SHADINGSTYLE_PHONG; break;
 	}
 	if(tg->Component_PTM.globalProjector){
 		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
