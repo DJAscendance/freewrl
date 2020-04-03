@@ -662,7 +662,7 @@ void main(void) \n\
   #ifdef FILL \n\
   hatchPosition = fw_Vertex.xy; \n\
   #endif //FILL \n\
-  \n\
+  //\n\
   vec4 vertex_object = fw_Vertex; \n\
   #ifdef PARTICLE \n\
   if(fw_ParticleGeomType != 4){ \n\
@@ -777,6 +777,10 @@ void main(void) \n\
 	if(i < nTexCoordChannels) tc = tcoord[i]; \n\
 	fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
   } \n\
+  #ifdef FILL \n\
+  hatchPosition = fw_TexCoord[0].xy; \n\
+  #endif //FILL \n\
+  \n\
  // #endif //TEX \n\
   \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
@@ -924,18 +928,377 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 } \n\
 #endif //MTEX \n\
 //#endif //TEX \n\
+//literal string size break \n" "\
 #ifdef FILL \n\
-uniform vec4 HatchColour; \n\
-uniform bool hatched; uniform bool filled;\n\
+#ifdef FILL_OLD \n\
 uniform vec2 HatchScale; \n\
 uniform vec2 HatchPct; \n\
-uniform int algorithm; \n\
+#endif //FILL_OLD \n\
+struct fillproperties { \n\
+	vec4 HatchColour; \n\
+	int HatchAlgo; \n\
+	bool hatched; \n\
+	bool filled; \n\
+}; \n\
+uniform struct fillproperties fillprops; \n\
+//uniform vec4 HatchColour; \n\
+//uniform int HatchAlgo; \n\
+//uniform bool hatched; \n\
+//uniform bool filled;\n\
 varying vec2 hatchPosition; \n\
-void fillPropCalc(inout vec4 prevColour, vec2 MCposition, int algorithm) { \n\
+float either(float x, float y){ \n\
+	//returns 1 if either are > 0, else 0 \n\
+	return step(.5,x+y); \n\
+} \n\
+float inrange(float curpos, float fx, float linewidth){ \n\
+	//returns 1.0 if on line, else 0.0 \n\
+	//return step(fx-linewidth*.5,curpos) - step(fx+linewidth*.5,curpos);; \n\
+	//either in this cycle or (with +linewidth) the prior cycle \n\
+	float fxfloor = floor(fx+linewidth); \n\
+	//return step(ffx,curpos) - step(fract(ffx+linewidth),curpos); \n\
+	return either(step(fx,curpos) - step(fx+linewidth,curpos),step(fx-fxfloor,curpos) - step(fx-fxfloor+linewidth,curpos)); \n\
+	//return either(step(fx,curpos) - step(fx+linewidth,curpos),step(fx-1.0,curpos) - step(fx+linewidth-1.0,curpos)); \n\
+} \n\
+float inrange3(float curpos, float fx, float linewidth, float cycle_height){ \n\
+	//returns 1.0 if on line, else 0.0 \n\
+	float inside = 0.0; \n\
+	if(cycle_height < 1.0){ \n\
+		float ncycle = 1.0/cycle_height; \n\
+		int ny = int(ceil(ncycle)) +2; \n\
+		for(int i=0;i<ny;i++){ \n\
+			float ffx = fx + float(i-2)*cycle_height; \n\
+			inside = either(inside,step(ffx,curpos)-step(ffx+linewidth,curpos)); \n\
+		} \n\
+	}else if(cycle_height > 1.0){ \n\
+		float ncycle = cycle_height; \n\
+		int ny = int(ceil(ncycle)) +1; \n\
+		for(int i=0;i<ny;i++){ \n\
+			float ffx = fx - float(i); \n\
+			inside = either(inside,step(ffx,curpos)-step(ffx+linewidth,curpos)); \n\
+		} \n\
+	} else { \n\
+		inside = either(step(fx,curpos) - step(fx+linewidth,curpos),step(fx-1.0,curpos) - step(fx+linewidth-1.0,curpos)); \n\
+	} \n\
+	return inside; \n\
+} \n\
+//literal string size break \n" "\
+float rand(float n){return fract(sin(n) * 43758.5453123);} \n\
+float noise(float p){ \n\
+	float fl = floor(p); \n\
+  float fc = fract(p); \n\
+	return mix(rand(fl), rand(fl + 1.0), fc); \n\
+} \n\
+float rand(vec2 c){ \n\
+	return fract(sin(dot(c.xy ,vec2(12.9898,78.233))) * 43758.5453); \n\
+} \n\
+void fillPropCalc(inout vec4 prevColour, vec2 MCposition) { \n\
+	// written as procedural texture \n\
+	// http://learnwebgl.brown37.net/10_surface_properties/texture_mapping_procedural.html \n\
+	// https://thebookofshaders.com/05/ \n\
+	// https://isotc.iso.org/livelink/livelink/fetch/-8916524/8916549/8916590/6208440/class_pages/hatchstyle.html \n\
+	// instead of y = f(x), you set fx = f(current_x)); (where y would need to be, to be on the line) \n\
+	// then test if current_y is in range(fx-linewidth/2,fx+linewidth/2) \n\
+	// the x and y are more conveniently processed in cycle-space if you have a repeating pattern \n\
+	// so if your pattern repeats 10 times per 1 unit of texture coordinates, your cycle is 1/10 = .1 in size \n\
+	vec4 colour; \n\
+	vec2 position; // position in cycle, as cycle fraction \n\
+	float cyclesize; //in texcoords \n\
+	float linewidth; //in cycle space \n\
+	position = MCposition; // /HatchScale; \n\
+	vec2 percent = vec2(0); //fraction of background color to show, usually 1 or 0 \n\
+	float fx; // f(x) evaluated at x = cyclepostion.x \n\
+	float fxrange; //normally the pattern is square, if not fxrange is the height, assuming width is 1 \n\
+	\n\
+	switch(fillprops.HatchAlgo) { \n\
+	case 0: // horizontal lines \n\
+	case 1: \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 2: // vertical lines \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.x = 1.0 - inrange(position.x,fx,linewidth); \n\
+		break; \n\
+	case 3: // positive diagonals \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 4: //negative diagonals \n\
+		cyclesize = .1; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0-position.x; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 5: // # hv cross hatching \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = inrange(position.x,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x, percent.y); \n\
+		break; \n\
+	case 6: // diagonal crosshatch \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		fx = 1.0-position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 7: //7 positive diagonals wide \n\
+		cyclesize = .2; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = 1.0 - inrange(position.y,fx,linewidth); \n\
+		break; \n\
+	case 8: //8 double positive diagonals, candycane \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .25; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 9: //9 positive diagonal dash-diagonal \n\
+		//solid diagonal \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash it with negative diagonal \n\
+		cyclesize = .4; \n\
+		linewidth = .5; \n\
+		fx = 1.0 - position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//solid diagonal \n\
+		cyclesize = .4; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = either(percent.x,percent.y); \n\
+		break; \n\
+	case 10: //10 wide diagonal crosshatch \n\
+		cyclesize = .2; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		fx = 1.0-position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 11: //11 positive diagonal railroad \n\
+		//negative diagonal for railroad ties \n\
+		cyclesize = .2; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash it with positive diagonal \n\
+		cyclesize = .2; \n\
+		linewidth = .5; \n\
+		fx = position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//HV cross hatch to remove every second tie \n\
+		cyclesize = .2; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//add solid diagonals \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 12: // 12 4 +diag, 4 spaces \n\
+		//diagonal fill \n\
+		cyclesize = .1; \n\
+		linewidth = .4; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//remove diagonals \n\
+		cyclesize = .8; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - percent.x*percent.y; \n\
+		break; \n\
+	case 13: //13 cork horizontal dashes \n\
+		//horizontals \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash using +ve diags \n\
+		cyclesize = .3; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5 * position.x; \n\
+		fxrange = .5 * 1.0; \n\
+		percent.y = 1.0 - inrange3(position.y,fx,linewidth,fxrange); \n\
+		percent.x = 1.0 - percent.x*percent.y; \n\
+		break; \n\
+	case 14: //steps over +ve diags \n\
+		//HV grid for steps \n\
+		cyclesize = .1; \n\
+		linewidth = .25; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = .5; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = inrange(position.x,fx,linewidth); \n\
+		percent.x = either(percent.x, percent.y); \n\
+		//clear out parts of grid with +ve diag \n\
+		cyclesize = .2; \n\
+		linewidth = .45; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .52; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//add +ve diag over steps \n\
+		cyclesize = .2; \n\
+		linewidth = .15; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .2; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 15: // titaniaum diag diag-dash diag \n\
+		//diagonal for dashing \n\
+		cyclesize = .4; \n\
+		linewidth = .05; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x + .25; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash with negative diagonal \n\
+		cyclesize = .3; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - position.x; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		//solid diagonals \n\
+		cyclesize = .2; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 16: //marble diag-dash \n\
+		//diagonal for dashing \n\
+		cyclesize = .2; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		//dash with negative diagonal \n\
+		cyclesize = .2; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - position.x; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = 1.0 - percent.x*percent.y; \n\
+		break; \n\
+	case 17: //earth 5 diags erasing -ve diags \n\
+		//negaative diags \n\
+		cyclesize = .1; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = 1.0 - .5*position.x; \n\
+		fxrange = 1.0 - .5*1.0; \n\
+		percent.x = inrange3(position.y,fx,linewidth,fxrange); \n\
+		//clear gaps with thick +ve diags \n\
+		cyclesize = .5; \n\
+		linewidth = .4; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent.x = percent.x*percent.y; \n\
+		// add 5 diagonals in gap \n\
+		vec2 percent2 = vec2(0.0); \n\
+		//diagonal fill \n\
+		cyclesize = .05; \n\
+		linewidth = .2; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent2.x = inrange(position.y,fx,linewidth); \n\
+		//remove diagonals \n\
+		cyclesize = .5; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x +.5; \n\
+		percent2.y = 1.0 - inrange(position.y,fx,linewidth); \n\
+		percent2.x = percent2.x*percent2.y; \n\
+		percent.x = 1.0 - either(percent.x,percent2.x); \n\
+		break; \n\
+	case 18: //sand randcom dots \n\
+		cyclesize = 1.0; \n\
+		linewidth = .1; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = rand(position); \n\
+		position.x = linewidth*floor(position.x/linewidth); \n\
+		//fx = noise(position.x*position.y); \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		percent.y = inrange(position.x,fx,linewidth); \n\
+		percent.x = 1.0 - either(percent.x,percent.y); \n\
+		break; \n\
+	case 19: //repeating stanggerd rows of dots \n\
+		// use a find diagonal crosshatch \n\
+		cyclesize = .05; \n\
+		linewidth = .5; \n\
+		position = fract(MCposition/cyclesize); \n\
+		fx = position.x; \n\
+		percent.x = inrange(position.y,fx,linewidth); \n\
+		fx = 1.0-position.x; \n\
+		percent.y = inrange(position.y,fx,linewidth); \n\
+		percent.x = either(percent.x,percent.y); \n\
+		break; \n\
+	} \n\
+	\n\
+	if (fillprops.filled) {colour = prevColour;} else { colour=vec4(0.,0.,0.,0); }\n\
+	if (fillprops.hatched) { \n\
+		//colour = mix(fillprops.HatchColour, colour, useBrick.x * useBrick.y); \n\
+		colour = mix(fillprops.HatchColour, colour, percent.x ); \n\
+	} \n\
+	prevColour = colour; \n\
+} \n\
+#ifdef FILL_OLD \n\
+void fillPropCalc_OLD(inout vec4 prevColour, vec2 MCposition) { \n\
 	vec4 colour; \n\
 	vec2 position, useBrick; \n\
 	\n\
 	position = MCposition / HatchScale; \n\
+	int algorithm = HatchAlgo; \n\
 	\n\
 	if (algorithm == 0) {/* bricking  */ \n\
 		if (fract(position.y * 0.5) > 0.5) \n\
@@ -964,6 +1327,12 @@ void fillPropCalc(inout vec4 prevColour, vec2 MCposition, int algorithm) { \n\
 		} \n\
 	} \n\
 	\n\
+	if (algorithm == 7) { /* positive diagonals */ \n\
+		vec2 curpos = position; \n\
+		position.x -= curpos.y; \n\
+		//percent *= .5; \n\
+	} \n\
+	\n\
 	position = fract(position); \n\
 	\n\
 	useBrick = step(position, HatchPct); \n\
@@ -974,7 +1343,9 @@ void fillPropCalc(inout vec4 prevColour, vec2 MCposition, int algorithm) { \n\
 	} \n\
 	prevColour = colour; \n\
 } \n\
+#endif //FILL_OLD \n\
 #endif //FILL \n\
+//literal string size break \n" "\
 #ifdef FOG \n\
 struct fogParams \n\
 {  \n\
@@ -1419,7 +1790,7 @@ void main(void) \n\
 	#endif //PHONG \n\
 	\n\
 	#ifdef FILL \n\
-	fillPropCalc(fragment_color, hatchPosition, algorithm); \n\
+	fillPropCalc(fragment_color, hatchPosition); \n\
 	#endif //FILL \n\
 	\n\
 	#ifdef NOT_TEX \n\

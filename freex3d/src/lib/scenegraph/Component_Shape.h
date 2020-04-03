@@ -192,12 +192,12 @@ struct matpropstruct {
 						GL_ENABLE(GL_CULL_FACE), etc */
 
 	/* for FillProperties, and LineProperties, line type (NOT pointsize) */
-	int algorithm;
 	bool hatchedBool;
 	bool filledBool;
 	GLfloat hatchPercent[2];
-	GLfloat hatchScale[2];
+	GLfloat hatchScale[2]; //non-web3d standard but keep it for now
 	GLfloat hatchColour[4];
+	int hatchAlgo;
 
 	// points now specified in shader, not via an opengl call 
 	GLfloat pointSize;   

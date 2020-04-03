@@ -3117,12 +3117,12 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 	/* for FillProperties */
 	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
-	me->hatchColour = GET_UNIFORM(myProg,"HatchColour");
-	me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
-	me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
-	me->filledBool = GET_UNIFORM(myProg,"filled");
-	me->hatchedBool = GET_UNIFORM(myProg,"hatched");
-	me->algorithm = GET_UNIFORM(myProg,"algorithm");
+	me->hatchColour = GET_UNIFORM(myProg,"fillprops.HatchColour");
+	//me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
+	//me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
+	me->filledBool = GET_UNIFORM(myProg,"fillprops.filled");
+	me->hatchedBool = GET_UNIFORM(myProg,"fillprops.hatched");
+	me->hatchAlgo = GET_UNIFORM(myProg,"fillprops.HatchAlgo");
 
 	me->fogColor = GET_UNIFORM(myProg,"fw_fogparams.fogColor");
 	me->fogvisibilityRange = GET_UNIFORM(myProg,"fw_fogparams.visibilityRange");
@@ -7053,12 +7053,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 	profile_start("sendmat");
 	//ConsoleMessage ("rlp %d %d %d %d",me->hatchPercent,me->filledBool,me->hatchedBool,me->algorithm,me->hatchColour);
-	SEND_INT(filledBool,myap->filledBool);
-	SEND_INT(hatchedBool,myap->hatchedBool);
-	SEND_INT(algorithm,myap->algorithm);
+	GLUNIFORM1I(me->filledBool,myap->filledBool);
+	GLUNIFORM1I(me->hatchedBool,myap->hatchedBool);
+	GLUNIFORM1I(me->hatchAlgo,myap->hatchAlgo);
 	SEND_VEC4(hatchColour,myap->hatchColour);
 	SEND_VEC2(hatchScale,myap->hatchScale);
-	SEND_VEC2(hatchPercent,myap->hatchPercent);
+	//SEND_VEC2(hatchPercent,myap->hatchPercent);
 
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);

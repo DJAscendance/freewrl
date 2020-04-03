@@ -750,37 +750,43 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 
 /* now works with our pushing matricies (norm, proj, modelview) but not for complete shader appearance replacement */
 void render_FillProperties (struct X3D_FillProperties *node) {
-	GLfloat hatchX;
-	GLfloat hatchY;
+	// http://learnwebgl.brown37.net/10_surface_properties/texture_mapping_procedural.html 
+	// 2020 change to procedural textures
+	// - just send the algo # to the frag shader, and use texture coords
+
+	//GLfloat hatchX;
+	//GLfloat hatchY;
 	GLint algor;
 	GLint hatched;
 	GLint filled;
 
 	struct matpropstruct *me= getAppearanceProperties();
 
-	hatchX = 0.80f; hatchY = 0.80f;
+	//hatchX = 0.80f; hatchY = 0.80f;
 	algor = node->hatchStyle; filled = node->filled; hatched = node->hatched;
-	switch (node->hatchStyle) {
-		case 0: break; /* bricking - not standard X3D */
-		case 1: hatchX = 1.0f; break; /* horizontal lines */
-		case 2: hatchY = 1.0f; break; /* vertical lines */
-		case 3: hatchY=1.0f; break; /* positive sloped lines */
-		case 4: hatchY=1.0f; break; /* negative sloped lines */
-		case 5: break; /* square pattern */
-		case 6: hatchY = 1.0f; break; /* diamond pattern */
 
-		default :{
-			node->hatched = FALSE; /* woops - something wrong here disable */
-		}
-	}
+	//old way pre-2020 (2020 algo done all in shader)
+	//switch (node->hatchStyle) {
+	//	case 0: break; /* bricking - not standard X3D */
+	//	case 1: hatchX = 1.0f; break; /* horizontal lines */
+	//	case 2: hatchY = 1.0f; break; /* vertical lines */
+	//	case 3: hatchY=1.0f; break; /* positive sloped lines */
+	//	case 4: hatchY=1.0f; break; /* negative sloped lines */
+	//	case 5: break; /* square pattern */
+	//	case 6: hatchY = 1.0f; break; /* diamond pattern */
+	//	case 7: hatchY = 1.0f; break; // like 3 with bigger spacing
+	//	default :{
+	//		node->hatched = FALSE; /* woops - something wrong here disable */
+	//	}
+	//}
 
 	me->filledBool = filled;
 	me->hatchedBool = hatched;
-	me->hatchPercent[0] = hatchX;
-	me->hatchPercent[1] = hatchY;
-	me->hatchScale[0] = node->_hatchScale.c[0];
-	me->hatchScale[1] = node->_hatchScale.c[1];
-	me->algorithm = algor;
+	//me->hatchPercent[0] = hatchX; //old way
+	//me->hatchPercent[1] = hatchY; //old way
+	//me->hatchScale[0] = node->_hatchScale.c[0];
+	//me->hatchScale[1] = node->_hatchScale.c[1];
+	me->hatchAlgo = algor;
 	me->hatchColour[0]=node->hatchColor.c[0]; me->hatchColour[1]=node->hatchColor.c[1]; me->hatchColour[2] = node->hatchColor.c[2];
 	me->hatchColour[3] = 1.0;
 }
