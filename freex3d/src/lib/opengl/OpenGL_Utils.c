@@ -7057,8 +7057,6 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1I(me->hatchedBool,myap->hatchedBool);
 	GLUNIFORM1I(me->hatchAlgo,myap->hatchAlgo);
 	SEND_VEC4(hatchColour,myap->hatchColour);
-	SEND_VEC2(hatchScale,myap->hatchScale);
-	//SEND_VEC2(hatchPercent,myap->hatchPercent);
 
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);
