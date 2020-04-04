@@ -5749,10 +5749,10 @@ struct X3D_IndexedLineSet {
 	struct Multi_Int32 coordIndex;
 	void * __vertArr;
 	void * __vertIndx;
+	int __segCount;
 	void * __xcolours;
 	void * __vertices;
 	void * __vertexCount;
-	int __segCount;
 };
 extern struct X3D_Virt virt_IndexedLineSet;
 /***********************/

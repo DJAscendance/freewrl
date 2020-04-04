@@ -1310,22 +1310,19 @@ void main(void) \n\
 	vec3 N = getNormal(); \n\
 	\n\
 //STEP1 INITIALIZE \n\
+	vec4 fragment_color; \n\
 	#ifdef LINE \n\
 		vec4 dcolor = vec4(1.0); \n\
 		dcolor.rgb = getEmissive(); \n\
 		#ifdef CPV \n\
 		dcolor= getVertexColor(); \n\
 		#endif //CVP \n\
-		gl_FragColor = dcolor; \n\
-		return; \n\
-	#endif //LINE \n\
-	vec4 diffuseFactor = getDiffuseFactor(); \n\
-	vec4 fragment_color =  diffuseFactor; \n\
+		fragment_color = dcolor; \n\
+	#else //LINE \n\
+		vec4 diffuseFactor = getDiffuseFactor(); \n\
+		fragment_color =  diffuseFactor; \n\
 //STEP2 LIGHTS \n\
 	#ifndef PHONG \n\
-		//#ifdef LIT\n\
-		//fragment_color *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
-		//#endif //LIT \n\
 		fragment_color = getGouraudColor(); \n\
 	#endif //not PHONG \n\
 	#ifdef PHONG \n\
@@ -1414,7 +1411,7 @@ void main(void) \n\
 	}else if(mat.type > 1){ \n\
 		fragment_color.rgb += getEmissive(); \n\
 	} \n\
-	\n\
+	#endif //LINE \n\
 	#ifdef NOT_LINE \n\
 	fragment_color.rgb = getEmissive(); \n\
 	#endif //LINE \n\
@@ -1430,6 +1427,10 @@ void main(void) \n\
 	#endif //CPV \n\
 	\n\
 //STEP6 FOG \n\
+	#ifdef  NOT_FOG \n\
+		gl_FragColor = vec4(0.0,1.0,1.0,1.0); \n\
+		return; \n\
+	#endif //FOG \n\
 	/* PLUG: fog_apply (fragment_color, N) */ \n\
 	\n\
 	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
@@ -2423,21 +2424,25 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 // PLUG: fog_apply (fragment_color, normal_eye_fragment)
 static const GLchar *plug_fog_apply =	"\
 void PLUG_fog_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
-  float ff = 1.0; \n\
-  float depth = abs(castle_vertex_eye.z/castle_vertex_eye.w); \n\
-  if(fw_fogparams.fogType > 0){ \n\
-    ff = 0.0;  \n\
-    if(fw_fogparams.fogType == 1){ //FOGTYPE_LINEAR \n\
-      if(depth < fw_fogparams.visibilityRange) \n\
-        ff = (fw_fogparams.visibilityRange-depth)/fw_fogparams.visibilityRange; \n\
-    } else { //FOGTYPE_EXPONENTIAL \n\
-        if(depth < fw_fogparams.visibilityRange){ \n\
-          ff = exp(-depth/(fw_fogparams.visibilityRange -depth) ); \n\
-          ff = clamp(ff, 0.0, 1.0);  \n\
-        } \n\
+	float ff = 1.0; \n\
+	float depth = abs(castle_vertex_eye.z/castle_vertex_eye.w); \n\
+	if(fw_fogparams.fogType > 0){ \n\
+		ff = 0.0;  \n\
+		if(fw_fogparams.fogType == 1){ //FOGTYPE_LINEAR \n\
+		finalFrag = vec4(depth/100.0,depth/10.0,depth,1.0); \n\
+		return; \n\
+			if(depth < fw_fogparams.visibilityRange) \n\
+			ff = (fw_fogparams.visibilityRange-depth)/fw_fogparams.visibilityRange; \n\
+		} else { //FOGTYPE_EXPONENTIAL \n\
+		finalFrag = vec4(1.0,1.0,0.0,1.0); \n\
+		return; \n\
+			if(depth < fw_fogparams.visibilityRange){ \n\
+				ff = exp(-depth/(fw_fogparams.visibilityRange -depth) ); \n\
+				ff = clamp(ff, 0.0, 1.0);  \n\
+			} \n\
+		} \n\
+		finalFrag = mix(finalFrag,fw_fogparams.fogColor,1.0 - ff);  \n\
 	} \n\
-    finalFrag = mix(finalFrag,fw_fogparams.fogColor,1.0 - ff);  \n\
-  } \n\
 } \n\
 ";
 

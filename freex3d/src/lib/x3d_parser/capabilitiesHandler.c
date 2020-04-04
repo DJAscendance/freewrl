@@ -56,7 +56,7 @@ static const int capabilities[] = {
 	COM_Texturing,	3, 		/* May 12, 2009 */
 	COM_Geospatial,	2, 		/* May 12, 2009 */
 	COM_CADGeometry,	2, 	/* July 10 2013 */
-	COM_EnvironmentalEffects,	3, /* May 12, 2009 */
+	COM_EnvironmentalEffects,	4, /* May 12, 2009 */
 	COM_Shape,	4, 		/* May 12, 2009 */
 	COM_Texturing3D,	2, 	/* Sept 4, 2016 */
 	COM_PointDeviceSensor,	1, 	/* May 12, 2009 */
