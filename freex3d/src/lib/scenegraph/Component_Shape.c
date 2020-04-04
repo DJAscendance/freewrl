@@ -818,6 +818,29 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 	}
 }
 
+void compile_PointProperties ( struct X3D_PointProperties *node) {
+/*
+	_colormode //sfint32.
+	if(node->colorMode->p)
+["POINT_COLOR" | "TEXTURE_COLOR" | "TEXTURE_AND_POINT_COLOR"]
+enum {
+ACTION_WALK,
+ACTION_FLY2,
+ACTION_TILT,
+ACTION_BLANK
+} button_actions;
+
+struct pointprop_ {
+int action;
+char *help;
+} button_helps [] = {
+{ACTION_WALK, "WALK"},
+{ACTION_BLANK, NULL},
+*/
+};
+void render_PointProperties (struct X3D_PointProperties *node) {
+}
+
 textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 
 int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode ){

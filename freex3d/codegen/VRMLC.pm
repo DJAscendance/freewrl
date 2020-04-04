@@ -1019,6 +1019,7 @@ sub gen {
 	# create the virtual tables for each node.
 	push @str, "\n/* First, a generic struct, contains only the common elements - nicknames for convenience */\n".
 	"struct X3D_Node {\n". $interalNodeCommonFields .  "};\n".
+	"#define X3D_POINTPROPERTIES(node) ((struct X3D_PointProperties*)node)\n".
 	"#define X3D_LINEPROPERTIES(node) ((struct X3D_LineProperties*)node)\n".
 	"#define X3D_FILLPROPERTIES(node) ((struct X3D_FillProperties*)node)\n".
 	"#define X3D_TEXTURE_TRANSFORM(node) ((struct X3D_TextureTransform*)node)\n".
