@@ -1491,7 +1491,7 @@ void render_prepped_Background(struct X3D_Background *node){
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
 
-	if(1){
+	if(0){
 		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
 		moveBackgroundCentre();
 	}else if(1){
@@ -1734,7 +1734,7 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
-	if(1){
+	if(0){
 		moveBackgroundCentre();
 	}else if(1){
 		//March 2018 - this re-allows scene-file authored tilts to the background like other browsers
