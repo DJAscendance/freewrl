@@ -689,6 +689,21 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 		}
 	}
 
+	if (realAppearanceNode->lineProperties != NULL) {
+		struct X3D_Node *lp;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->lineProperties,lp);
+		if(lp){
+			if (lp->_nodeType != NODE_FillProperties) {
+				ConsoleMessage("getAppearanceShader, lineProperties has a node type of %s",stringNodeType(lp->_nodeType));
+			} else {
+				// is this a LineProperties node, but is it applied?
+				if (X3D_LINEPROPERTIES(lp)->applied){
+					if(X3D_LINEPROPERTIES(lp)->linetype > 1)
+						retval |= LINE_PROPERTIES_SHADER;
+				}
+			}
+		}
+	}
 
 	if (realAppearanceNode->texture != NULL) {
 		//printf ("getAppearanceShader - rap node is %s\n",stringNodeType(realAppearanceNode->texture->_nodeType));

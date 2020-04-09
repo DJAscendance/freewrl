@@ -102,6 +102,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__colours",
 	"__coneTriangles",
 	"__coneVBO",
+	"__counts",
 	"__ctex",
 	"__ctflag",
 	"__cylinderTriangles",
@@ -206,6 +207,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__solid",
 	"__sourceNumber",
 	"__specversion",
+	"__starts",
 	"__subTextures",
 	"__subcontexts",
 	"__t1",
@@ -5249,6 +5251,8 @@ const int OFFSETS_IndexedLineSet[] = {
 	(int) FIELDNAMES_coordIndex, (int) offsetof (struct X3D_IndexedLineSet, coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___vertArr, (int) offsetof (struct X3D_IndexedLineSet, __vertArr),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertIndx, (int) offsetof (struct X3D_IndexedLineSet, __vertIndx),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___starts, (int) offsetof (struct X3D_IndexedLineSet, __starts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___counts, (int) offsetof (struct X3D_IndexedLineSet, __counts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___segCount, (int) offsetof (struct X3D_IndexedLineSet, __segCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___xcolours, (int) offsetof (struct X3D_IndexedLineSet, __xcolours),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertices, (int) offsetof (struct X3D_IndexedLineSet, __vertices),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -5531,6 +5535,7 @@ const int OFFSETS_LineSet[] = {
 	(int) FIELDNAMES_vertexCount, (int) offsetof (struct X3D_LineSet, vertexCount),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___vertArr, (int) offsetof (struct X3D_LineSet, __vertArr),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertIndx, (int) offsetof (struct X3D_LineSet, __vertIndx),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___starts, (int) offsetof (struct X3D_LineSet, __starts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___segCount, (int) offsetof (struct X3D_LineSet, __segCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_LineSet, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -10562,6 +10567,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->coordIndex.n=0; tmp2->coordIndex.p=0;
 			tmp2->__vertArr = 0;
 			tmp2->__vertIndx = 0;
+			tmp2->__starts = 0;
+			tmp2->__counts = 0;
 			tmp2->__segCount = 0;
 			tmp2->__xcolours = 0;
 			tmp2->__vertices = 0;
@@ -10924,6 +10931,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->vertexCount.n=0; tmp2->vertexCount.p=0;
 			tmp2->__vertArr = 0;
 			tmp2->__vertIndx = 0;
+			tmp2->__starts = 0;
 			tmp2->__segCount = 0;
 			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = FIELDNAMES_geometry;

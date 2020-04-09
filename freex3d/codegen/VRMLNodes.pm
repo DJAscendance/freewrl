@@ -405,6 +405,8 @@ our %Nodes = (
 		coordIndex => ["MFInt32", [], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__vertArr  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertIndx  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__starts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__counts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__xcolours  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertices  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
@@ -421,6 +423,8 @@ our %Nodes = (
 		vertexCount => ["MFInt32",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__vertArr  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertIndx  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__starts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		#__counts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__linerep => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),

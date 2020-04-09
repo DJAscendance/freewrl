@@ -2689,6 +2689,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_FRAGMENT,"FILL",CompleteCode);		
 		Plug(SHADERPART_FRAGMENT,plug_fragment_fillProperties_apply,CompleteCode,&unique_int);
 	}
+	//LINETYPES
+	if(DESIRE(whichOne.base,LINE_PROPERTIES_SHADER)) {
+		AddDefine(SHADERPART_VERTEX,"LINETYPE",CompleteCode);		
+		AddDefine(SHADERPART_FRAGMENT,"LINETYPE",CompleteCode);		
+	}
 	//FOG
 	if(DESIRE(whichOne.base,FOG_APPEARANCE_SHADER)){
 		AddDefine(SHADERPART_VERTEX,"FOG",CompleteCode);		
