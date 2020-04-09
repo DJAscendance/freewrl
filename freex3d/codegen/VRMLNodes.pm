@@ -409,6 +409,7 @@ our %Nodes = (
 		__xcolours  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertices  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertexCount =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"LineSet" => new VRML::NodeType("LineSet", [
@@ -421,6 +422,7 @@ our %Nodes = (
 		__vertArr  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertIndx  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 
@@ -847,6 +849,7 @@ our %Nodes = (
 		startAngle => ["SFFloat", 0.0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
 		__points  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 	"ArcClose2D" => new VRML::NodeType("ArcClose2D", [
@@ -861,6 +864,7 @@ our %Nodes = (
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__simpleDisk => ["SFBool", "TRUE","initializeOnly", 0,0],#ff
 		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 
@@ -869,6 +873,7 @@ our %Nodes = (
 		radius => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff # see note top of file
 		__points  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 	"Disk2D" => new VRML::NodeType("Disk2D", [
@@ -886,6 +891,7 @@ our %Nodes = (
 	"Polyline2D" => new VRML::NodeType("Polyline2D", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		lineSegments => ["MFVec2f", [], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 	"Polypoint2D" => new VRML::NodeType("Polypoint2D", [

@@ -90,15 +90,21 @@ void compile_##myType (struct X3D_##myType *node){ \
 	MARK_NODE_COMPILED \
 }
 /***********************************************************************************/
+void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, struct SFColorRGBA *colorRgba, struct SFColor *color,
+	int nsegments, int *counts, int *starts);
+void clear_LineRep(void *_linerep);
+void render_LineRep(struct X3D_LineRep *linerep);
 
 void compile_Arc2D (struct X3D_Arc2D *node) {
        /*  have to regen the shape*/
 	struct SFVec2f *tmpptr_a, *tmpptr_b;
 	int tmpint;
+	static int start[1];
 
 	MARK_NODE_COMPILED
 	
 	tmpint = 0;
+	clear_LineRep(node->__linerep);
 	tmpptr_a = createLines (node->startAngle, node->endAngle, node->radius, NONE, &tmpint, node->_extent);
 
 	/* perform the switch - worry about threading here without locking */
@@ -108,6 +114,8 @@ void compile_Arc2D (struct X3D_Arc2D *node) {
 	node->__numPoints = tmpint;
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
+	start[0] = 0;
+	node->__linerep = set_LineRep(node->__linerep,NULL,node->__points.p,NULL,NULL,1,&node->__numPoints,start);
 	
 }
 
@@ -121,9 +129,12 @@ void render_Arc2D (struct X3D_Arc2D *node) {
 
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
+		if(1){
+			render_LineRep(node->__linerep);
+		}else{
+			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
         	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
+		}
 		tg->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
@@ -351,10 +362,11 @@ void render_ArcClose2D_LINE (struct X3D_ArcClose2D *node) {
 void compile_Circle2D (struct X3D_Circle2D *node) {
 	struct SFVec2f *tmpptr_a, *tmpptr_b;
 	int tmpint;
-
+	static int start[1];
        /*  have to regen the shape*/
 	MARK_NODE_COMPILED
-		
+	
+	clear_LineRep(node->__linerep);
 	tmpptr_a = createLines (0.0f, 0.0f, node->radius, NONE, &tmpint,node->_extent);
 
 	/* perform the switch - worry about threading here without locking */
@@ -364,6 +376,8 @@ void compile_Circle2D (struct X3D_Circle2D *node) {
 	node->__numPoints = tmpint;
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
+	start[0] = 0;
+	node->__linerep = set_LineRep(node->__linerep,NULL,node->__points.p,NULL,NULL,1,&node->__numPoints,start);
 }
 
 void render_Circle2D (struct X3D_Circle2D *node) {
@@ -376,9 +390,12 @@ void render_Circle2D (struct X3D_Circle2D *node) {
 
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
-
+		if(1){
+			render_LineRep(node->__linerep);
+		}else{
 		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
         	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
+		}
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
@@ -386,7 +403,15 @@ void render_Circle2D (struct X3D_Circle2D *node) {
 /***********************************************************************************/
 
 
-COMPILE_AND_GET_BOUNDS(Polyline2D,lineSegments)
+//COMPILE_AND_GET_BOUNDS(Polyline2D,lineSegments)
+float * extent6f_from_box2fn(float *extent6,float *p, int n);
+void compile_Polyline2D (struct X3D_Polyline2D *node){
+	static int start[1];
+	extent6f_from_box2fn(node->_extent,(float*)node->lineSegments.p,node->lineSegments.n);
+	MARK_NODE_COMPILED
+	start[0] = 0;
+	node->__linerep = set_LineRep(node->__linerep,NULL,node->lineSegments.p,NULL,NULL,1,&node->lineSegments.n,start);
+}
 
 void render_Polyline2D (struct X3D_Polyline2D *node){
 	ttglobal tg = gglobal();
@@ -400,9 +425,12 @@ void render_Polyline2D (struct X3D_Polyline2D *node){
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
 
-
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->lineSegments.p);
+		if(1){
+			render_LineRep(node->__linerep);
+		}else{
+			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->lineSegments.p);
         	sendArraysToGPU (GL_LINE_STRIP, 0, node->lineSegments.n);
+		}
 		gglobal()->Mainloop.trisThisLoop += node->lineSegments.n;
 	}
 }

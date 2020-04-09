@@ -619,6 +619,20 @@ float *extent6f_union_vec3f(float *extent6, float *p3){
 	}
 	return extent6;
 }
+float *extent6f_union_vec2f(float *extent6, float *p2){
+	int i,isa,isb;
+	isa = extent6f_isSet(extent6);
+	if(!isa)
+	for(i=0;i<2;i++){
+		extent6[i*2 + 1] = p2[i];
+		extent6[i*2 + 0] = p2[i];
+	}
+	for(i=0;i<2;i++){
+		extent6[i*2 + 1] = min(extent6[i*2 + 1], p2[i]);
+		extent6[i*2 + 0] = max(extent6[i*2 + 0], p2[i]);
+	}
+	return extent6;
+}
 void extent6f_to_box3f8(float *extent6, float *p3f8){
 	//generate 8 points from extent
 	int i,j,k,n;
@@ -640,6 +654,13 @@ float * extent6f_from_box3fn(float *extent6,float *p, int n){
 	extent6f_clear(extent6);
 	for(i=0;i<n;i++)
 		extent6f_union_vec3f(extent6,&p[i*3]);
+	return extent6;
+}
+float * extent6f_from_box2fn(float *extent6,float *p, int n){
+	int i,j;
+	extent6f_clear(extent6);
+	for(i=0;i<n;i++)
+		extent6f_union_vec2f(extent6,&p[i*2]);
 	return extent6;
 }
 float *extent6f_scale3f(float *eout6, float *ein6, float *s3){

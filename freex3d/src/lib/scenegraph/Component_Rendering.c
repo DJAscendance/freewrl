@@ -131,6 +131,78 @@ void render_TriangleSet (struct X3D_TriangleSet *node) {
 }
 
 
+struct X3D_LineRep {
+	// will hold commmon GL_LINE_STRIP parameters from
+	// PolyLine2D, Arc2D, ArcClose2D_LINE, Circle2D
+	// LineSet, IndexedLineSet
+	// analogous to PolyRep for triangle nodes
+	// motivation for this extra level of common abstraction for lines:
+	// - Appearance.LineProperties.linetype - dashed lines require extra prev,next vertices and other info sent
+	//   (glLineStipple not working with our shader system)
+	struct SFVec3f *point;
+	struct SFVec2f *point2D;
+	struct SFVec3f *cur;
+	struct SFVec3f *prev;
+	struct SFVec3f *next;
+	int nsegments;
+	int *start;
+	int *count;
+	float *fogcoord; 
+	struct SFColor *color; 
+	struct SFColorRGBA *colorRgba;
+};
+void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, struct SFColorRGBA *colorRgba, struct SFColor *color,
+	int nsegments, int *counts, int *starts){
+	//to be called from compile_Polyline2D, _Arc2D, _ArcClose2D, _Circle2D, _LineSet, _IndexedLineSet
+	if(!_linerep) _linerep = malloc(sizeof(struct X3D_LineRep));
+	struct X3D_LineRep *linerep = (struct X3D_LineRep *)_linerep;
+	linerep->point = points;
+	linerep->point2D = points2D;
+	linerep->colorRgba = colorRgba;
+	linerep->color = color;
+	linerep->count = counts;
+	linerep->start = starts;
+	linerep->nsegments = nsegments;
+	return linerep;
+}
+void clear_LineRep(void *_linerep){
+	if(_linerep){
+		struct X3D_LineRep *linerep = (struct X3D_LineRep *)_linerep;
+		//doesnt own these, caller does
+		//FREE_IF_NZ(linerep->point);
+		//FREE_IF_NZ(linerep->point2D);
+		//FREE_IF_NZ(linerep->colorRgba);
+		//FREE_IF_NZ(linerep->color);
+		//FREE_IF_NZ(linerep->start);
+		//owns this
+		//linerep->point = linerep->point2D = linerep->colorRgba = linerep->color = linerep->start = NULL;
+		//FREE_IF_NZ(linerep->count);
+	}
+}
+
+void render_LineRep(struct X3D_LineRep *linerep){
+	//to be called from render_Polyline2D, _Arc2D, _ArcClose2D, _Circle2D, _LineSet, _IndexedLineSet
+	if (linerep && linerep->nsegments > 0) {
+		if (linerep->color) {
+			FW_GL_COLOR_POINTER (3,GL_FLOAT,0,(float *)linerep->color);
+		} else if(linerep->colorRgba) {
+			FW_GL_COLOR_POINTER (4,GL_FLOAT,0,(float *)linerep->colorRgba);
+		}
+		if(linerep->point){
+			FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)linerep->point);
+		}else if(linerep->point2D){
+			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(float *)linerep->point2D);
+		}
+		for (int i=0; i<linerep->nsegments; i++) {
+			//sendElementsToGPU(GL_LINE_STRIP,count[i],indices[i]);
+			//https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawElements.xhtml
+			//sendElementsToGPU(GL_LINE_STRIP,linerep->count[i],linerep->start[i]);
+        	sendArraysToGPU (GL_LINE_STRIP, linerep->start[i], linerep->count[i]);
+
+		}
+	}
+}
+
 
 void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	int i, ivertex;		/* temporary */
@@ -146,14 +218,14 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	int ipoly;			/* for colours, !cpv, this is the color index 	*/
 	int nVertices;			/* how many vertices in the streamed set	*/
 	int segLength;			/* temporary					*/
-	ushort *vertCountPtr;		/* temporary, for vertexCount filling		*/
-	ushort **indxStartPtr;	/* temporary, for creating pointer to index arr */
+	int *vertCountPtr;		/* temporary, for vertexCount filling		*/
+	int **indxStartPtr;	/* temporary, for creating pointer to index arr */
 
-	ushort * pt;
+	int * pt;
 	int vtc;			/* temp counter - "vertex count"		*/
 	int curcolor;			/* temp for colorIndexing.			*/
 	int * colorIndInt;			/* used for streaming colors			*/
-	ushort * colorIndShort;			/* used for streaming colors			*/
+	int * colorIndShort;			/* used for streaming colors			*/
 
 	/* believe it or not - material emissiveColor can affect us... */
 	GLfloat defcolorRGBA[] = {1.0f, 1.0f, 1.0f,1.0f};
@@ -165,6 +237,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	MARK_NODE_COMPILED
 	nSegments = 0;
 	node->__segCount = 0;
+	clear_LineRep(node->__linerep);
 
 	/* ok, what we do is this. Although this is Indexed, colours and vertices can have
 	   different indexes; so we make them all the same. To do this, we create another
@@ -243,8 +316,8 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	   
    */
 	FREE_IF_NZ (node->__vertArr);
-	node->__vertArr = MALLOC (ushort *, sizeof(ushort)*(nVertices+1));
-	pt = (ushort *)node->__vertArr;
+	node->__vertArr = MALLOC (int *, sizeof(int)*(nVertices+1));
+	pt = (int *)node->__vertArr;
 
 	for (vtc = 0; vtc < nVertices; vtc++) {
 		*pt=vtc; pt++; /* ie, index n contains the number n */
@@ -256,13 +329,13 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 
 	FREE_IF_NZ (node->__vertIndx);
-	node->__vertIndx = MALLOC (ushort **,sizeof(ushort*)*(nSegments+2));
+	node->__vertIndx = MALLOC (int **,sizeof(int*)*(nSegments+2));
 	//printf("mallocing %d segnments at address %u\n",nSegments+2,node->__vertIndx);
 	FREE_IF_NZ (node->__vertices);
 	node->__vertices = MALLOC (struct SFVec3f *, sizeof(struct SFVec3f)*(nVertices+1));
 
 	FREE_IF_NZ (node->__vertexCount);
-	node->__vertexCount = MALLOC (ushort *,sizeof(ushort)*(nSegments+2));
+	node->__vertexCount = MALLOC (int *,sizeof(int)*(nSegments+2));
 
 	int *colorIndInt2 = NULL;
 
@@ -321,12 +394,12 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 
 
-	indxStartPtr = (ushort **)node->__vertIndx;
+	indxStartPtr = (int **)node->__vertIndx;
 	//printf("0 address %u\n",indxStartPtr);
 	newpoints = node->__vertices;
-	vertCountPtr = (ushort *) node->__vertexCount;
+	vertCountPtr = (int *) node->__vertexCount;
     
-	pt = (ushort *)node->__vertArr;
+	pt = (int *)node->__vertArr;
 
 	vtc=0;
 	segLength=0;
@@ -405,7 +478,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	/*
 	if(0){
 		int k=0;
-		vertCountPtr = (ushort *) node->__vertexCount;
+		vertCountPtr = (int *) node->__vertexCount;
 		newcolors = (struct SFColorRGBA *) node->__xcolours;
 		float * vert = node->__vertices;
 		printf("ipoly=%d \n",ipoly);
@@ -423,11 +496,12 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	*/
 	/* finish this for loop off... */
 	node->__segCount = nSegments; /* we passed, so we can render */
+	node->__linerep = set_LineRep(node->__linerep,node->__vertices,NULL,node->__xcolours,NULL,node->__segCount, node->__vertexCount,*(int**)node->__vertIndx);
 }
 
 void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
     ushort **indxStartPtr;
-	ushort *count;
+	int *count;
 	int i;
 	ttglobal tg = gglobal();
 
@@ -442,6 +516,9 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 
 	/* If we have segments... */
+if(1){
+	render_LineRep(node->__linerep);
+}else{
 	if (node->__segCount > 0) {
 		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,node->__vertices);
 
@@ -458,6 +535,7 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			sendElementsToGPU(GL_LINE_STRIP,(int)count[i],indxStartPtr[i]);
 		}
 	}
+}
 }
 
 void compile_PointSet (struct X3D_PointSet *node) {
@@ -548,6 +626,13 @@ void render_PointSet (struct X3D_PointSet *node) {
 	sendArraysToGPU(GL_POINTS,0,node->_npoints);
 }
 
+
+
+
+void setBits8(unsigned char *bitmask, int b7, int b6, int b5, int b4, int b3, int b2, int b1, int b0)
+{
+	*bitmask = b7 << 7 | b6 << 6 | b5 << 5 | b4 << 4 | b3 << 3 | b2 << 2 | b1 << 1 | b0;
+}
 void render_LineSet (struct X3D_LineSet *node) {
 
 	struct X3D_Color *cc;
@@ -567,6 +652,9 @@ void render_LineSet (struct X3D_LineSet *node) {
 			X3D_NODE(node));
 
 	/* now, actually draw array */
+if(1){
+	render_LineRep(node->__linerep);
+}else{
 	if (node->__segCount > 0) {
 		if (node->color) {
 			cc = (struct X3D_Color *) node->color;
@@ -595,9 +683,21 @@ void render_LineSet (struct X3D_LineSet *node) {
 			}
 		}
 			*/
+			if(0){
+				//something like this worked decades ago, according to JAS
+				//confirmed 2020 not working with our shader system, but linewidth is.
+				ushort pattern;
+				unsigned char *bits;
+				bits = (unsigned char *)&pattern;
+				setBits8(&bits[0],1,1,1,1,1,1,1,1);
+				setBits8(&bits[1],0,0,0,0,0,0,0,0);
+				pattern = 7;
+				glLineStipple(1,pattern);
+			}
 			sendElementsToGPU(GL_LINE_STRIP,count[i],indices[i]);
 		}
 	}
+}
 }
 
 
@@ -611,11 +711,12 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	int totVertexRequired;
 
 	struct X3D_Color *cc;
-	GLushort *pt;
-	ushort **vpt;
+	int *pt;
+	int **vpt;
 
 	MARK_NODE_COMPILED
 	node->__segCount = 0; /* assume this for now */
+	clear_LineRep(node->__linerep);
 
 
 	nvertexc = (node->vertexCount).n; vertexC = (node->vertexCount).p;
@@ -677,7 +778,7 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	   coordinates 0, 1, and 2 */
 	FREE_IF_NZ (node->__vertArr);
 	node->__vertArr = MALLOC (GLuint *, sizeof(GLuint)*(ncoord));
-	pt = (GLushort *)node->__vertArr;
+	pt = (int *)node->__vertArr;
 	for (vtc = 0; vtc < ncoord; vtc++) {
 		*pt=vtc; pt++; /* ie, index n contains the number n */
 	}
@@ -688,18 +789,19 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	   segment The LENGTH of each segment (good question) comes from the
 	   vertexCount parameter of the LineSet node */
 	FREE_IF_NZ (node->__vertIndx);
-	node->__vertIndx = MALLOC (ushort **, sizeof(ushort*)*(nvertexc));
+	node->__vertIndx = MALLOC (int **, sizeof(int*)*(nvertexc));
 	c = 0;
-	pt = (GLushort *)node->__vertArr;
-	vpt = (ushort**) node->__vertIndx;
+	pt = (int *)node->__vertArr;
+	vpt = (int**) node->__vertIndx;
 	for (vtc=0; vtc<nvertexc; vtc++) {
 		//printf ("in position %d of __vertIndx, we have put pointer to %u\n",vtc,*pt);
-		vpt[vtc] =  (ushort*) pt;
+		vpt[vtc] =  (int*) pt;
 		pt += vertexC[vtc];
 	}
 
 	/* if we made it this far, we are ok tell the rendering engine that we are ok */
 	node->__segCount = nvertexc;
+	node->__linerep = set_LineRep(node->__linerep,coord,NULL,NULL,NULL,nvertexc,vertexC,*vpt);
 }
 
 /* ClipPlane

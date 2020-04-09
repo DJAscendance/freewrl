@@ -632,6 +632,10 @@ void vertProjCalTexCoord(void) { \n\
 	} \n\
 } \n\
 #endif //PROJTEX \n\
+#ifdef LINE \n\
+//desktop glsl 330+ \n\
+flat out float f_distance_from_previous; \n\
+#endif //LINE \n\
  \n\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
 	vec4 tempv = vector; \n\
@@ -2536,8 +2540,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
 	}else{
 		//desktop, emulating GLES2
-		AddVersion(SHADERPART_VERTEX, 110, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 110, CompleteCode); //lower precision floats
+		AddVersion(SHADERPART_VERTEX, 150, CompleteCode); //lower precision floats
+		AddVersion(SHADERPART_FRAGMENT, 150, CompleteCode); //lower precision floats
 	}
 
 	// printBits(sizeof(int),&whichOne.base); //debugging _shaderflags
