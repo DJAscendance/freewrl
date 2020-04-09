@@ -229,6 +229,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__wireindices",
 	"__wireindicesVBO",
 	"__xcolours",
+	"__xfog",
 	"__xparams",
 	"_a0",
 	"_align",
@@ -5255,6 +5256,7 @@ const int OFFSETS_IndexedLineSet[] = {
 	(int) FIELDNAMES___counts, (int) offsetof (struct X3D_IndexedLineSet, __counts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___segCount, (int) offsetof (struct X3D_IndexedLineSet, __segCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___xcolours, (int) offsetof (struct X3D_IndexedLineSet, __xcolours),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___xfog, (int) offsetof (struct X3D_IndexedLineSet, __xfog),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertices, (int) offsetof (struct X3D_IndexedLineSet, __vertices),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertexCount, (int) offsetof (struct X3D_IndexedLineSet, __vertexCount),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_IndexedLineSet, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -10571,6 +10573,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__counts = 0;
 			tmp2->__segCount = 0;
 			tmp2->__xcolours = 0;
+			tmp2->__xfog = 0;
 			tmp2->__vertices = 0;
 			tmp2->__vertexCount = 0;
 			tmp2->__linerep = 0;

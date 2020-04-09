@@ -90,8 +90,9 @@ void compile_##myType (struct X3D_##myType *node){ \
 	MARK_NODE_COMPILED \
 }
 /***********************************************************************************/
-void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, struct SFColorRGBA *colorRgba, struct SFColor *color,
-	int nsegments, int *counts, int *starts);
+void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, 
+		struct SFColorRGBA *colorRgba, struct SFColor *color, float *fog,
+		int nsegments, int *counts, int *starts);
 void clear_LineRep(void *_linerep);
 void render_LineRep(struct X3D_LineRep *linerep);
 
@@ -115,7 +116,7 @@ void compile_Arc2D (struct X3D_Arc2D *node) {
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
 	start[0] = 0;
-	node->__linerep = set_LineRep(node->__linerep,NULL,node->__points.p,NULL,NULL,1,&node->__numPoints,start);
+	node->__linerep = set_LineRep(node->__linerep,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start);
 	
 }
 
@@ -372,7 +373,7 @@ void compile_Circle2D (struct X3D_Circle2D *node) {
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
 	start[0] = 0;
-	node->__linerep = set_LineRep(node->__linerep,NULL,node->__points.p,NULL,NULL,1,&node->__numPoints,start);
+	node->__linerep = set_LineRep(node->__linerep,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start);
 }
 
 void render_Circle2D (struct X3D_Circle2D *node) {
@@ -400,7 +401,7 @@ void compile_Polyline2D (struct X3D_Polyline2D *node){
 	extent6f_from_box2fn(node->_extent,(float*)node->lineSegments.p,node->lineSegments.n);
 	MARK_NODE_COMPILED
 	start[0] = 0;
-	node->__linerep = set_LineRep(node->__linerep,NULL,node->lineSegments.p,NULL,NULL,1,&node->lineSegments.n,start);
+	node->__linerep = set_LineRep(node->__linerep,NULL,node->lineSegments.p,NULL,NULL,NULL,1,&node->lineSegments.n,start);
 }
 
 void render_Polyline2D (struct X3D_Polyline2D *node){

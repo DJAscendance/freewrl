@@ -151,8 +151,10 @@ struct X3D_LineRep {
 	struct SFColor *color; 
 	struct SFColorRGBA *colorRgba;
 };
-void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, struct SFColorRGBA *colorRgba, struct SFColor *color,
-	int nsegments, int *counts, int *starts){
+void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, 
+		struct SFColorRGBA *colorRgba, struct SFColor *color, float *fog,
+		int nsegments, int *counts, int *starts)
+	{
 	//to be called from compile_Polyline2D, _Arc2D, _ArcClose2D, _Circle2D, _LineSet, _IndexedLineSet
 	if(!_linerep) _linerep = malloc(sizeof(struct X3D_LineRep));
 	struct X3D_LineRep *linerep = (struct X3D_LineRep *)_linerep;
@@ -160,6 +162,7 @@ void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points
 	linerep->point2D = points2D;
 	linerep->colorRgba = colorRgba;
 	linerep->color = color;
+	linerep->fogcoord = fog;
 	linerep->count = counts;
 	linerep->start = starts;
 	linerep->nsegments = nsegments;
@@ -191,6 +194,9 @@ void render_LineRep(struct X3D_LineRep *linerep){
 			FW_GL_COLOR_POINTER (3,GL_FLOAT,0,(float *)linerep->color);
 		} else if(linerep->colorRgba) {
 			FW_GL_COLOR_POINTER (4,GL_FLOAT,0,(float *)linerep->colorRgba);
+		}
+		if (linerep->fogcoord) {
+			FW_GL_FOG_POINTER (GL_FLOAT,0,(float*)linerep->fogcoord);
 		}
 		if(linerep->point){
 			FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)linerep->point);
@@ -224,6 +230,8 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	ushort **indxStartPtr;	/* temporary, for creating pointer to index arr */
 	//int *vertCountPtr;		/* temporary, for vertexCount filling		*/
 	//int **indxStartPtr;	/* temporary, for creating pointer to index arr */
+	float *fog, *newfog;
+	int nfog;
 
 	ushort * pt;
 	//int * pt;
@@ -407,7 +415,25 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 		}
 
 	}
-
+	fog = newfog = NULL;
+	nfog = 0;
+	if(node->fogCoord){
+		struct X3D_FogCoordinate *fc;
+		FREE_IF_NZ (node->__xfog);
+		node->__xfog = MALLOC (float *, sizeof(float)*(nVertices+1));
+		newfog = node->__xfog;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_FogCoordinate *, node->fogCoord,fc)
+		/* cc = (struct X3D_Color *) node->color; */
+		if(fc) {
+			if (fc->_nodeType != NODE_FogCoordinate) {
+				ConsoleMessage ("make_IndexedLineSet, fog node, expected %d got %d\n", NODE_FogCoordinate, fc->_nodeType);
+				return;
+			}
+			fog = fc->depth.p;
+			nfog = fc->depth.n;
+		}
+		//use node->coordindex.p to get a fog
+	}
 
 
 	indxStartPtr = (ushort **)node->__vertIndx;
@@ -456,6 +482,13 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			/* new vertex */
 			oldpoint = &points[node->coordIndex.p[i]];
 			memcpy (newpoints, oldpoint,sizeof(struct SFColor));
+			if(fog){
+				int index = node->coordIndex.p[i];
+				if(index < nfog)
+					newfog[ip] = fog[index];
+				else
+					newfog[ip] = fog[nfog-1];
+			}
 			if(node->color){
 				/* have a vertex, match colour  */
 				do {
@@ -523,10 +556,10 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	*/
 	/* finish this for loop off... */
 	node->__segCount = nSegments; /* we passed, so we can render */
-	for(int i=0;i<nSegments;i++){
-		printf("starts[%d] = %d counts %d\n",i,starts[i],counts[i]);
-	}
-	node->__linerep = set_LineRep(node->__linerep,node->__vertices,NULL,node->__xcolours,NULL,node->__segCount, (int *)node->__counts,(int*)node->__starts);
+	//for(int i=0;i<nSegments;i++){
+	//	printf("starts[%d] = %d counts %d\n",i,starts[i],counts[i]);
+	//}
+	node->__linerep = set_LineRep(node->__linerep,node->__vertices,NULL,node->__xcolours,NULL,node->__xfog,node->__segCount, (int *)node->__counts,(int*)node->__starts);
 }
 
 void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
@@ -776,7 +809,12 @@ void compile_LineSet (struct X3D_LineSet *node) {
 	//for(int i=0;i<node->__segCount;i++){
 	//	printf("[%d] start %d count %d\n",i,((int*)node->__starts)[i],vertexC[i]);
 	//}
-	node->__linerep = set_LineRep(node->__linerep,coord,NULL,NULL,NULL,nvertexc,vertexC,(int*)node->__starts);
+	float *fog = NULL;
+	if(node->fogCoord){
+		struct X3D_FogCoordinate *fogcoord = (struct X3D_FogCoordinate*)node->fogCoord;
+		fog = fogcoord->depth.p;
+	}
+	node->__linerep = set_LineRep(node->__linerep,coord,NULL,NULL,NULL,fog,nvertexc,vertexC,(int*)node->__starts);
 }
 
 /* ClipPlane

@@ -409,6 +409,7 @@ our %Nodes = (
 		__counts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__xcolours  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__xfog  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertices  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertexCount =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__linerep => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
