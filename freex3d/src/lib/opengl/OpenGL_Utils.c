@@ -3077,7 +3077,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix[3]");
 	me->nTexMatrix = GET_UNIFORM(myProg,"nTexMatrix");
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
-
+	me->nextVertex = GET_ATTRIB(myProg,"a_nextVertex");
+	me->prevVertex = GET_ATTRIB(myProg,"a_prevVertex");
 	me->Normals = GET_ATTRIB(myProg,"fw_Normal");
 	me->Colours = GET_ATTRIB(myProg,"fw_Color");
 	me->FogCoords = GET_ATTRIB(myProg,"fw_FogCoords");

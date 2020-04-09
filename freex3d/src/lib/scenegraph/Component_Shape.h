@@ -200,6 +200,8 @@ struct matpropstruct {
 	GLfloat hatchColour[4];
 	int hatchAlgo;
 
+	//linetypes
+	int linetype;
 	// points now specified in shader, not via an opengl call 
 	GLfloat pointSize;   
 

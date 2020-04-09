@@ -490,6 +490,12 @@ uniform mat4 fw_ModelViewInverseMatrix; \n\
 #endif //CUB \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
+#ifdef LINETYPE \n\
+//desktop glsl 330+ \n\
+//flat out float f_distance_from_previous; \n\
+attribute vec3 a_prevVertex; \n\
+attribute vec3 a_nextVertex; \n\
+#endif //LINETYPE \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
@@ -632,10 +638,6 @@ void vertProjCalTexCoord(void) { \n\
 	} \n\
 } \n\
 #endif //PROJTEX \n\
-#ifdef LINE \n\
-//desktop glsl 330+ \n\
-flat out float f_distance_from_previous; \n\
-#endif //LINE \n\
  \n\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
 	vec4 tempv = vector; \n\

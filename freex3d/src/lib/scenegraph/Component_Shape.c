@@ -809,6 +809,7 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 			glLineWidth(node->linewidthScaleFactor);
 			me= getAppearanceProperties();
 			me->pointSize = node->linewidthScaleFactor;
+			me->linetype = node->linetype;
 		}
 
 

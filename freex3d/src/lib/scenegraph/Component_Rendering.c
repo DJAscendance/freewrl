@@ -156,7 +156,10 @@ void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points
 		int nsegments, int *counts, int *starts)
 	{
 	//to be called from compile_Polyline2D, _Arc2D, _ArcClose2D, _Circle2D, _LineSet, _IndexedLineSet
-	if(!_linerep) _linerep = malloc(sizeof(struct X3D_LineRep));
+	if(!_linerep){
+		_linerep = MALLOC(struct X3D_LineRep*,sizeof(struct X3D_LineRep));
+		memset(_linerep,0,sizeof(struct X3D_LineRep));
+	}
 	struct X3D_LineRep *linerep = (struct X3D_LineRep *)_linerep;
 	linerep->point = points;
 	linerep->point2D = points2D;
@@ -186,8 +189,9 @@ void clear_LineRep(void *_linerep){
 		//FREE_IF_NZ(linerep->color);
 		//FREE_IF_NZ(linerep->start);
 		//owns this
-		//linerep->point = linerep->point2D = linerep->colorRgba = linerep->color = linerep->start = NULL;
-		//FREE_IF_NZ(linerep->count);
+		FREE_IF_NZ(linerep->prev);
+		FREE_IF_NZ(linerep->next);
+		memset(_linerep,0,sizeof(struct X3D_LineRep));
 	}
 }
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
@@ -207,7 +211,7 @@ void render_LineRep(struct X3D_LineRep *linerep){
 		}else if(linerep->point2D){
 			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(float *)linerep->point2D);
 		}
-		if(DESIRE(getShaderFlags().base,LINE_PROPERTIES_SHADER)){
+		if(getAppearanceProperties()->linetype > 1){
 			//uh-oh - glLineStipple broken and someone wants a dashed line. We'll make our own
 			//all the home-made dashed line algos send previous and next point as attribute arrays to vertex shader
 			if(!linerep->prev){
