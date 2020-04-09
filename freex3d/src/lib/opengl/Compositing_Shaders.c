@@ -2433,13 +2433,9 @@ void PLUG_fog_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
 	if(fw_fogparams.fogType > 0){ \n\
 		ff = 0.0;  \n\
 		if(fw_fogparams.fogType == 1){ //FOGTYPE_LINEAR \n\
-		finalFrag = vec4(depth/100.0,depth/10.0,depth,1.0); \n\
-		return; \n\
 			if(depth < fw_fogparams.visibilityRange) \n\
 			ff = (fw_fogparams.visibilityRange-depth)/fw_fogparams.visibilityRange; \n\
 		} else { //FOGTYPE_EXPONENTIAL \n\
-		finalFrag = vec4(1.0,1.0,0.0,1.0); \n\
-		return; \n\
 			if(depth < fw_fogparams.visibilityRange){ \n\
 				ff = exp(-depth/(fw_fogparams.visibilityRange -depth) ); \n\
 				ff = clamp(ff, 0.0, 1.0);  \n\

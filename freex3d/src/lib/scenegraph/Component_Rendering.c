@@ -139,9 +139,9 @@ struct X3D_LineRep {
 	// motivation for this extra level of common abstraction for lines:
 	// - Appearance.LineProperties.linetype - dashed lines require extra prev,next vertices and other info sent
 	//   (glLineStipple not working with our shader system)
+	int npoint;
 	struct SFVec3f *point;
 	struct SFVec2f *point2D;
-	struct SFVec3f *cur;
 	struct SFVec3f *prev;
 	struct SFVec3f *next;
 	int nsegments;
@@ -166,6 +166,10 @@ void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points
 	linerep->count = counts;
 	linerep->start = starts;
 	linerep->nsegments = nsegments;
+	linerep->npoint = 0;
+	for(int i=0;i<nsegments;i++){
+		linerep->npoint += counts[i];
+	}
 	printf("nseg %d",nsegments);
 	for(int i=0;i<nsegments;i++){
 		printf("[%d] count %d start %d\n",i,linerep->count[i],linerep->start[i]);
@@ -186,7 +190,7 @@ void clear_LineRep(void *_linerep){
 		//FREE_IF_NZ(linerep->count);
 	}
 }
-
+#define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 void render_LineRep(struct X3D_LineRep *linerep){
 	//to be called from render_Polyline2D, _Arc2D, _ArcClose2D, _Circle2D, _LineSet, _IndexedLineSet
 	if (linerep && linerep->nsegments > 0) {
@@ -203,6 +207,51 @@ void render_LineRep(struct X3D_LineRep *linerep){
 		}else if(linerep->point2D){
 			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(float *)linerep->point2D);
 		}
+		if(DESIRE(getShaderFlags().base,LINE_PROPERTIES_SHADER)){
+			//uh-oh - glLineStipple broken and someone wants a dashed line. We'll make our own
+			//all the home-made dashed line algos send previous and next point as attribute arrays to vertex shader
+			if(!linerep->prev){
+				linerep->prev = MALLOC(struct SFVec3f*,linerep->npoint*3*sizeof(float)); 
+				for(int i=1;i<linerep->npoint;i++){
+					if(linerep->point2D){
+						veccopy2f(linerep->prev[i].c,linerep->point2D[i-1].c);
+					}else if(linerep->point){
+						veccopy3f(linerep->prev[i].c,linerep->point[i-1].c);
+					}
+				}
+				if(linerep->point2D){
+					veccopy2f(linerep->prev[0].c,linerep->point2D[0].c);
+				}else if(linerep->point){
+					veccopy3f(linerep->prev[0].c,linerep->point[0].c);
+				}
+			}
+			if(!linerep->next){
+				linerep->next = MALLOC(struct SFVec3f*,linerep->npoint*3*sizeof(float)); 
+				for(int i=0;i<linerep->npoint-1;i++){
+					if(linerep->point2D){
+						veccopy2f(linerep->next[i].c,linerep->point2D[i+1].c);
+					}else if(linerep->point){
+						veccopy3f(linerep->next[i].c,linerep->point[i+1].c);
+					}
+				}
+				if(linerep->point2D){
+					veccopy2f(linerep->next[linerep->npoint-1].c,linerep->point2D[linerep->npoint-1].c);
+				}else if(linerep->point){
+					veccopy3f(linerep->next[linerep->npoint-1].c,linerep->point[linerep->npoint-1].c);
+				}
+			}
+		    s_shader_capabilities_t *me = getAppearanceProperties()->currentShaderProperties;
+			if (me->prevVertex != -1) {
+				glEnableVertexAttribArray(me->prevVertex);
+				glVertexAttribPointer(me->prevVertex, 3, GL_FLOAT, FALSE, 0, linerep->prev);
+			}
+			if (me->nextVertex != -1) {
+				glEnableVertexAttribArray(me->nextVertex);
+				glVertexAttribPointer(me->nextVertex, 3, GL_FLOAT, FALSE, 0, linerep->next);
+			}
+
+		}
+		
 		for (int i=0; i<linerep->nsegments; i++) {
 			//https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glDrawArrays.xhtml
         	sendArraysToGPU (GL_LINE_STRIP, linerep->start[i], linerep->count[i]);
