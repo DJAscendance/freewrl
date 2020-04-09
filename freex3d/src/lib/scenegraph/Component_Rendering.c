@@ -194,9 +194,7 @@ void render_LineRep(struct X3D_LineRep *linerep){
 			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(float *)linerep->point2D);
 		}
 		for (int i=0; i<linerep->nsegments; i++) {
-			//sendElementsToGPU(GL_LINE_STRIP,count[i],indices[i]);
-			//https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawElements.xhtml
-			//sendElementsToGPU(GL_LINE_STRIP,linerep->count[i],linerep->start[i]);
+			//https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glDrawArrays.xhtml
         	sendArraysToGPU (GL_LINE_STRIP, linerep->start[i], linerep->count[i]);
 
 		}
@@ -514,28 +512,7 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
 			X3D_NODE(node));
 
-
-	/* If we have segments... */
-if(1){
 	render_LineRep(node->__linerep);
-}else{
-	if (node->__segCount > 0) {
-		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,node->__vertices);
-
-		if (node->__xcolours) {
-			FW_GL_COLOR_POINTER (4,GL_FLOAT,0,node->__xcolours);
-		}
-
-		indxStartPtr = (ushort **)node->__vertIndx;
-		count  = node->__vertexCount;
-
-		for (i=0; i<node->__segCount; i++) {
-			// draw. Note the casting of the last param - it is ok, because we tell that
-			// we are sending in ushorts; it gets around a compiler warning.
-			sendElementsToGPU(GL_LINE_STRIP,(int)count[i],indxStartPtr[i]);
-		}
-	}
-}
 }
 
 void compile_PointSet (struct X3D_PointSet *node) {
@@ -626,13 +603,6 @@ void render_PointSet (struct X3D_PointSet *node) {
 	sendArraysToGPU(GL_POINTS,0,node->_npoints);
 }
 
-
-
-
-void setBits8(unsigned char *bitmask, int b7, int b6, int b5, int b4, int b3, int b2, int b1, int b0)
-{
-	*bitmask = b7 << 7 | b6 << 6 | b5 << 5 | b4 << 4 | b3 << 3 | b2 << 2 | b1 << 1 | b0;
-}
 void render_LineSet (struct X3D_LineSet *node) {
 
 	struct X3D_Color *cc;
@@ -651,53 +621,7 @@ void render_LineSet (struct X3D_LineSet *node) {
 			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
 			X3D_NODE(node));
 
-	/* now, actually draw array */
-if(1){
 	render_LineRep(node->__linerep);
-}else{
-	if (node->__segCount > 0) {
-		if (node->color) {
-			cc = (struct X3D_Color *) node->color;
-	/* is this a Color or ColorRGBA color node? */
-			if (cc->_nodeType == NODE_Color) {
-				FW_GL_COLOR_POINTER (3,GL_FLOAT,0,(float *)cc->color.p);
-			} else {
-				FW_GL_COLOR_POINTER (4,GL_FLOAT,0,(float *)cc->color.p);
-			}
-		}
-		points = getCoordinate(node->coord, "LineSet");
-
-		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)points->p);
-
-		indices = (ushort **)node->__vertIndx;
-		/* note the cast below - casting an int* to a GLsizei* seems to be ok on 32 and 64 bit systems */
-		count  = (GLsizei*) node->vertexCount.p;
-
-		for (i=0; i<node->__segCount; i++) {
-		/*
-		printf ("rendering segment %d of %d, count %d, have starting index of %hu\n",i,node->__segCount, count[i], *indices[i]);
-		{int j; ushort *pt = indices[i];
-			for (j=0; j<count[i]; j++) {
-				printf ("line segment %d, index %hu\n",i,*pt);
-				pt++;
-			}
-		}
-			*/
-			if(0){
-				//something like this worked decades ago, according to JAS
-				//confirmed 2020 not working with our shader system, but linewidth is.
-				ushort pattern;
-				unsigned char *bits;
-				bits = (unsigned char *)&pattern;
-				setBits8(&bits[0],1,1,1,1,1,1,1,1);
-				setBits8(&bits[1],0,0,0,0,0,0,0,0);
-				pattern = 7;
-				glLineStipple(1,pattern);
-			}
-			sendElementsToGPU(GL_LINE_STRIP,count[i],indices[i]);
-		}
-	}
-}
 }
 
 

@@ -127,14 +127,9 @@ void render_Arc2D (struct X3D_Arc2D *node) {
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-	        LIGHTING_OFF
-	        DISABLE_CULL_FACE
-		if(1){
-			render_LineRep(node->__linerep);
-		}else{
-			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
-        	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
-		}
+	    LIGHTING_OFF
+	    DISABLE_CULL_FACE
+		render_LineRep(node->__linerep);
 		tg->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
@@ -388,14 +383,9 @@ void render_Circle2D (struct X3D_Circle2D *node) {
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-	        LIGHTING_OFF
-	        DISABLE_CULL_FACE
-		if(1){
-			render_LineRep(node->__linerep);
-		}else{
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
-        	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
-		}
+	    LIGHTING_OFF
+	    DISABLE_CULL_FACE
+		render_LineRep(node->__linerep);
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
@@ -425,12 +415,7 @@ void render_Polyline2D (struct X3D_Polyline2D *node){
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
 
-		if(1){
-			render_LineRep(node->__linerep);
-		}else{
-			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->lineSegments.p);
-        	sendArraysToGPU (GL_LINE_STRIP, 0, node->lineSegments.n);
-		}
+		render_LineRep(node->__linerep);
 		gglobal()->Mainloop.trisThisLoop += node->lineSegments.n;
 	}
 }
