@@ -3118,6 +3118,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 	/* for FillProperties */
 	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
+	me->linetype = GET_UNIFORM(myProg,"u_linetype");
 	me->hatchColour = GET_UNIFORM(myProg,"fillprops.HatchColour");
 	//me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
 	//me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
@@ -7058,7 +7059,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1I(me->hatchedBool,myap->hatchedBool);
 	GLUNIFORM1I(me->hatchAlgo,myap->hatchAlgo);
 	SEND_VEC4(hatchColour,myap->hatchColour);
-
+	GLUNIFORM1I(me->linetype,myap->linetype);
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);
 	profile_end("sendmat");

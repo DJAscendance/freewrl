@@ -422,6 +422,7 @@ typedef struct s_shader_capabilities{
 	GLint FogCoords; //Aug 2016
 	GLint prevVertex; //for dashed lines
 	GLint nextVertex;
+	GLint linetype;
 	//shared PTM and PBR
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
 

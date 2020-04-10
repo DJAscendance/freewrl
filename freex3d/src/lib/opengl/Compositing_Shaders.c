@@ -475,6 +475,9 @@ define MAT if material is valid
 
 static const GLchar *genericVertexGLES2 = "\
 /* DEFINES */ \n\
+#ifndef LINETYPE \n\
+#define DEPRECATED \n\
+#endif \n\
 /* Generic GLSL vertex shader, used on OpenGL ES. */ \n\
 #ifdef MOBILE \n\
 // we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
@@ -488,25 +491,47 @@ uniform mat3 fw_NormalMatrix; \n\
 #ifdef CUB \n\
 uniform mat4 fw_ModelViewInverseMatrix; \n\
 #endif //CUB \n\
+#ifdef DEPRECATED \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
+#else //DEPRECATED \n\
+in vec4 fw_Vertex; \n\
+in vec3 fw_Normal; \n\
+#endif //DEPRECATED \n\
 #ifdef LINETYPE \n\
-//desktop glsl 330+ \n\
-//flat out float f_distance_from_previous; \n\
-attribute vec3 a_prevVertex; \n\
-attribute vec3 a_nextVertex; \n\
+//desktop glsl 330 \n\
+//glsl desktop version 130 can do flat instead of varying \n\
+//which allows the provoking vertex (for GL_LINE_STRIP its the second vertex in a pair) \n\
+//to output something to the frag that isnt interpolated - like .vert computed distance to prev \n\
+flat out vec2 f_prev; \n\
+flat out vec2 f_next; \n\
+out vec2 v_curr; \n\
+in vec3 a_prevVertex; \n\
+in vec3 a_nextVertex; \n\
+uniform int u_linetype; \n\
 #endif //LINETYPE \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
 uniform int nTexMatrix; \n\
+#ifdef DEPRECATED \n\
 attribute vec4 fw_MultiTexCoord0; \n\
 attribute vec4 fw_MultiTexCoord1; \n\
 attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
+#else //DEPRECATED \n\
+in vec4 fw_MultiTexCoord0; \n\
+in vec4 fw_MultiTexCoord1; \n\
+in vec4 fw_MultiTexCoord2; \n\
+in vec4 fw_MultiTexCoord3; \n\
+#endif //DEPRECATED \n\
 uniform int nTexCoordChannels; \n\
 //varying vec3 v_texC; \n\
+#ifdef DEPRECATED \n\
 varying vec3 fw_TexCoord[4]; \n\
+#else //DEPRECATED \n\
+out vec3 fw_TexCoord[4]; \n\
+#endif //DEPRECATED \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
@@ -526,13 +551,23 @@ uniform int tex3dUseVertex; \n\
 #endif //TGEN \n\
 //#endif //TEX \n\
 #ifdef FILL \n\
+#ifdef DEPRECATED \n\
 varying vec2 hatchPosition; \n\
+#else //DEPRECATED \n\
+out vec2 hatchPosition; \n\
+#endif //DEPRECATED \n\
 #endif //FILL \n\
 \n\
  \n\
+ #ifdef DEPRECATED \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
 varying vec4 castle_Color; //DA diffuse ambient term \n\
+#else //DEPRECATED \n\
+out vec4 castle_vertex_eye; \n\
+out vec3 castle_normal_eye; \n\
+out vec4 castle_Color; //DA diffuse ambient term \n\
+#endif //DEPRECATED \n\
  \n\
 //uniform float castle_MaterialDiffuseAlpha; \n\
 //uniform float castle_MaterialShininess; \n\
@@ -595,7 +630,11 @@ uniform fw_MaterialParameters fw_FrontMaterial; \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#endif //TWO \n\
 #ifdef LIT \n\
+#ifdef DEPRECATED \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
+#else //DEPRECATED \n\
+out vec3 castle_ColorES; \n\
+#endif //DEPRECATED \n\
 vec3 castle_Emissive; \n\
 #endif //LIT \n\
 #ifdef FOG \n\
@@ -639,6 +678,7 @@ void vertProjCalTexCoord(void) { \n\
 } \n\
 #endif //PROJTEX \n\
  \n\
+ //literal string size break \n" "\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
 	vec4 tempv = vector; \n\
 	if(tempv.w == 0.0) tempv.w = 1.0; \n\
@@ -691,6 +731,18 @@ void main(void) \n\
   #endif //CASTLE_BUGGY_GLSL_READ_VARYING \n\
   \n\
   castle_vertex_eye = fw_ModelViewMatrix * vertex_object; \n\
+  #ifdef LINETYPE \n\
+  if(u_linetype > 1){ \n\
+	//get curr, prev, next into screenspace \n\
+	//missing: screen aspect correction\n\
+	vec4 curr = fw_ProjectionMatrix * castle_vertex_eye; \n\
+	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
+	vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
+	f_prev = prev.xy; \n\
+	f_next = next.xy; \n\
+	v_curr = curr.xy; \n\
+  } \n\
+  #endif //LINETYPE \n\
   #ifdef PARTICLE \n\
   //sprite: align to viewer \n\
   if(fw_ParticleGeomType == 4){ \n\
@@ -713,7 +765,7 @@ void main(void) \n\
   castle_ColorES = castle_Emissive; \n\
   castle_Color = vec4(castle_SceneColor, 1.0); \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
-	vec3 E = -normalize(castle_vertex_eye.xyz); \n \
+	vec3 E = -normalize(castle_vertex_eye.xyz); \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	bool backFacing = (dot(N,E) < 0.0); \n\
 	if (backFacing) { \n\
@@ -935,6 +987,20 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 #endif //MTEX \n\
 //#endif //TEX \n\
 //literal string size break \n" "\
+#ifdef LINETYPE \n\
+uniform int u_linetype; \n\
+flat in vec2 f_prev; \n\
+flat in vec2 f_next; \n\
+varying vec2 v_curr; \n\
+bool on_linetype(){ \n\
+	bool on = true; \n\
+	float distance = length(v_curr - f_prev); \n\
+	//info about cycle length \n\
+	float cycle_pos = mod(distance,0.03); \n\
+	if(cycle_pos > .015) on = false; \n\
+	return on; \n\
+}\n\
+#endif \n\
 #ifdef FILL \n\
 struct fillproperties { \n\
 	vec4 HatchColour; \n\
@@ -1324,6 +1390,10 @@ void main(void) \n\
 		dcolor= getVertexColor(); \n\
 		#endif //CVP \n\
 		fragment_color = dcolor; \n\
+		#ifdef LINETYPE \n\
+		if(u_linetype > 2) \n\
+			if(!on_linetype()) discard; \n\
+		#endif //LINETYPE \n\
 	#else //LINE \n\
 		vec4 diffuseFactor = getDiffuseFactor(); \n\
 		fragment_color =  diffuseFactor; \n\

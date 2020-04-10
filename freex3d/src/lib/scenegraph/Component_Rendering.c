@@ -173,10 +173,10 @@ void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points
 	for(int i=0;i<nsegments;i++){
 		linerep->npoint += counts[i];
 	}
-	printf("nseg %d",nsegments);
-	for(int i=0;i<nsegments;i++){
-		printf("[%d] count %d start %d\n",i,linerep->count[i],linerep->start[i]);
-	}
+	//printf("nseg %d",nsegments);
+	//for(int i=0;i<nsegments;i++){
+	//	printf("[%d] count %d start %d\n",i,linerep->count[i],linerep->start[i]);
+	//}
 	return linerep;
 }
 void clear_LineRep(void *_linerep){
