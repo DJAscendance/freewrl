@@ -509,6 +509,7 @@ out vec2 v_curr; \n\
 in vec3 a_prevVertex; \n\
 in vec3 a_nextVertex; \n\
 uniform int u_linetype; \n\
+uniform vec2 u_screenresolution; \n\
 #endif //LINETYPE \n\
  \n\
 //#ifdef TEX \n\
@@ -738,9 +739,9 @@ void main(void) \n\
 	vec4 curr = fw_ProjectionMatrix * castle_vertex_eye; \n\
 	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
 	vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
-	f_prev = prev.xy; \n\
-	f_next = next.xy; \n\
-	v_curr = curr.xy; \n\
+	f_prev = (prev.xyz/prev.w).xy*u_screenresolution; \n\
+	f_next = (next.xyz/next.w).xy*u_screenresolution; \n\
+	v_curr = (curr.xyz/curr.w).xy*u_screenresolution; \n\
   } \n\
   #endif //LINETYPE \n\
   #ifdef PARTICLE \n\
@@ -996,8 +997,9 @@ bool on_linetype(){ \n\
 	bool on = true; \n\
 	float distance = length(v_curr - f_prev); \n\
 	//info about cycle length \n\
-	float cycle_pos = mod(distance,0.03); \n\
-	if(cycle_pos > .015) on = false; \n\
+	float period = 20.0; \n\
+	float phase = mod(distance,20.0); \n\
+	if(phase > 10.0) on = false; \n\
 	return on; \n\
 }\n\
 #endif \n\
