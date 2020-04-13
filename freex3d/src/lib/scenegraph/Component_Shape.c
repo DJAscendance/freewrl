@@ -993,13 +993,34 @@ void print_style1(){
 		once = 1;
 	}
 }
-static float *linetype_atlas = NULL;
-static int linetype_atlas_size = 0;
-static GLint linetype_atlas_textureID = -1;
+static float *linetype_atlas_uv = NULL;
+static float *linetype_atlas_tse = NULL;
 void make_linetype_atlas(struct matpropstruct *me){
-	linetype_atlas_size = 128;
-	linetype_atlas = MALLOCV(128*128*4*4); //4 floats per pixel
-	memset(linetype_atlas,0,128*128*4*4);
+/*
+	goal: make it easy for the frag shader to know what to do with each fragment
+	by creating a 128 screen pixel long (enough for pattern period) 5-compoent parameterization
+	terminology:
+	u,v axes (similar to texture coords) with u aligned to line swegment and v perpendicular
+	uu or u* - where the pattern centerline or reference point is for u
+	ubar or u_ - where the current fragment is, in u,v system (gl_FragCoord.xy transformed to uv system)
+	(dx,dy) = ubar - uu
+	pattern period - pattern length, in screen pixeels, sent separately as u_lineperiod
+	for each pixel along period:
+	1) reference point uu - where measuring dx distance ends from
+	2) subtype 0= gap, 1= endcap 2= dash body
+	3) subtype start (measured along u axis from start of pattern period)
+	4) subtype end
+	5) v of pattern centerline (normally 0, except for wiggle and zigzag patterns which vary with u)
+	one author sent all linetypes as one float texture, that didn't work for us
+	so we are sending 2 uniform arrays[128] every frame
+	uv - uu reference point, and v (normally 0) (vec2)
+	tse - subtype, start, end (vec3)
+*/
+	int nlinetypes = 20; //specs have 1-16 with 16 being user specified
+	linetype_atlas_uv = MALLOCV(128*sizeof(float)*2*nlinetypes); 
+	linetype_atlas_tse = MALLOCV(128*sizeof(float)*3*nlinetypes);
+	memset(linetype_atlas_uv,0,128*sizeof(float)*2*nlinetypes);
+	memset(linetype_atlas_tse,0,128*sizeof(float)*3*nlinetypes);
 	for(int i=0;i<15;i++){
 		//we're going to store some industrial strength floats in a texture
 		//and use  texture sampler to extract them in the frag shader.
@@ -1011,8 +1032,8 @@ void make_linetype_atlas(struct matpropstruct *me){
 		//A - dash end (or gap end if its a gap)
 		//Row 1
 		//R - v - for break line style 2 and 2 which zigzag off center
-		float * row = &linetype_atlas[128*4*(i*2)]; //2 rows per linetype
-		float * vrow = &linetype_atlas[128*4*(i*2 +1)]; //counldnt squeesze 5th number in RGBA so another row, well use R
+		float * uv_row = &linetype_atlas_uv[128*2*i]; //2 rows per linetype
+		float * tse_row = &linetype_atlas_tse[128*3*i]; //counldnt squeesze 5th number in RGBA so another row, well use R
 		struct lineinfo *lt = &linetypes[i];
 		float period = 0.0f;
 		for(int j=0;j<lt->ndash;j++)
@@ -1040,10 +1061,11 @@ void make_linetype_atlas(struct matpropstruct *me){
 				//if we're not in a gap, the we use a radius=linewidth/2 inclusion test to the current point along the centerline
 				uu = u_;
 			}
-			row[j*4] = uu;
-			row[j*4+1] = gap ? 0 : 2;
-			row[j*4+2] = curr_start;
-			row[j*4+3] = curr_end;
+			uv_row[j*2] = uu;
+			uv_row[j*2+1] = 0.0f; //v is normally 0 except zigzag lines
+			tse_row[j*3] = gap ? 0 : 2;
+			tse_row[j*3+1] = curr_start;
+			tse_row[j*3+2] = curr_end;
 			if(lt->nzig){
 				//find the sizgag segment we're on
 				for(int k=1;k<lt->nzig;k++){
@@ -1054,28 +1076,16 @@ void make_linetype_atlas(struct matpropstruct *me){
 						zigv = (u_ - d0.u)/(d1.u - d0.u) * (d1.v - d0.v) + d0.v;
 					}
 				}
-				vrow[j*4] = zigv;
+				uv_row[j*2+1] = zigv; //off-line-center v when zig-zagging
 			}
 		}
 	}
-	//memset(linetype_atlas,-1,128*128*4*4);
-	if(0)
-	for(int i=0;i<15*2;i++){
-		float *row = &linetype_atlas[i*128*4];
-		printf("row %d\n",i);
-		for(int j=0;j<16;j++){
-			printf("\t%d (%5.2f,%4.2f,%5.2f,%5.2f) \n",j,row[j*4],row[j*4+1],row[j*4+2],row[j*4+3]);
-		}
-	}
-
 }
 void send_linetype_atlas_to_shader(struct matpropstruct *me){
-	if(linetype_atlas){
-		int irow = (me->linetype-1)*2;
-		int irsize = 4*128;
-		me->linesample = &linetype_atlas[irow*irsize];
-		irow = irow + 1;
-		me->linev = &linetype_atlas[irow*irsize];
+	if(linetype_atlas_uv){
+		int irow = me->linetype-1;
+		me->linetype_uv = &linetype_atlas_uv[irow*2*128];
+		me->linetype_tse = &linetype_atlas_tse[irow*3*128];
 	}
 }
 void render_LineProperties (struct X3D_LineProperties *node) {
@@ -1122,17 +1132,7 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 		same logic as a) except curr == u_linestrip_start or _end
 	- then send boolean or round()able float 1/0 as flat, or using even/odd technqiue, to frag shader
 
-	
-
-
 */
-	#ifdef NEED_TO_ADD_TO_SHADER
-	much of this was working in older versions of FreeWRL,
-	before we went to 100% shader based code. Check FreeWRL
-	from (say) 2011 to see what the shader code looked like
-
-	GLushort pat;
-	#endif
 	//print_style1();
 	if (node->applied) {
 		//ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
@@ -1151,10 +1151,10 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 			me->linetype = node->linetype;
 			//if no atlas
 			// create atlas
-			if(linetype_atlas == NULL){
+			if(linetype_atlas_uv == NULL){
 				make_linetype_atlas(me);
 			}
-			if(linetype_atlas){
+			if(linetype_atlas_uv){
 				send_linetype_atlas_to_shader(me);
 			}
 			me->lineperiod = linetypes[node->linetype - 1].period;
@@ -1164,6 +1164,11 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 		}
 
 		#ifdef NEED_TO_ADD_TO_SHADER
+		// comments frmo year 2010? old/defunct glLineStiple patterns
+		//much of this was working in older versions of FreeWRL,
+		//before we went to 100% shader based code. Check FreeWRL
+		//from (say) 2011 to see what the shader code looked like
+		GLushort pat;
 		if (node->linetype > 1) {
 			pat = 0xffff; /* can not support fancy line types - this is the default */
 			switch (node->linetype) {

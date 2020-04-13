@@ -995,8 +995,8 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 uniform int u_linetype; \n\
 uniform float u_lineperiod; \n\
 uniform float u_linewidth; \n\
-uniform vec4 u_linesample[128]; \n\
-uniform vec4 u_linev[128]; \n\
+uniform vec2 u_linetype_uv[128]; \n\
+uniform vec3 u_linetype_tse[128]; \n\
 flat in vec2 f_prev; \n\
 flat in vec2 f_next; \n\
 in vec2 v_curr; \n\
@@ -1011,34 +1011,20 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		if(phase > 10.0) on = false; \n\
 	}else{ \n\
 		//parametric dashed line method \n\
-		//frag_color.b = 0.0; \n\
 		vec2 baseline = f_next - f_prev; \n\
-		//vec2 baseline = v_curr - f_prev; \n\
 		vec2 u_dir = normalize(baseline); \n\
 		vec2 v_dir = normalize(cross(vec3(0,0,1),vec3(u_dir,0.0)).xy); \n\
-		//vec2 v_dir = normalize(gl_FragCoord.xy - v_curr); \n\
 		vec2 ubar; \n\
-		//ubar.s = dot(v_curr - f_prev, u_dir); \n\
-		//ubar.t = dot(v_curr - f_prev, v_dir); \n\
 		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
 		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
-		//ubar.t = dot(gl_FragCoord.xy - f_prev, v_dir); \n\
-		//ubar.s = length(v_curr - f_prev); \n\
-		//ubar.t = length(gl_FragCoord.xy - v_curr); \n\
-		//frag_color.r = ubar.t*.3; \n\
 		float phase = mod(ubar.s, u_lineperiod); \n\
-		//frag_color.rg = clamp(vec2(phase/u_lineperiod,ubar.t/5.0),0.0,1.0); \n\
 		vec2 uu = vec2(0.0,0.0); \n\
 		bool gap = false; \n\
 		vec2 dash; \n\
-		vec4 color = u_linesample[int(phase)]; \n\
-		float v = u_linev[int(phase)].r; \n\
-		//frag_color.rg = vec2(phase/u_lineperiod); \n\
-		uu.s = color.r; \n\
-		uu.t = v; \n\
-		gap = int(color.g + .5) == 0; \n\
-		dash = vec2(color.b,color.a); \n\
-		//frag_color.rg = vec2(color.g * .5); \n\
+		vec3 tse = u_linetype_tse[int(phase)]; \n\
+		uu = u_linetype_uv[int(phase)]; \n\
+		gap = int(tse.x + .5) == 0; \n\
+		dash = vec2(tse.y,tse.z); \n\
 		vec2 ubarperiod = vec2(phase,ubar.t); \n\
 		if(gap){ \n\
 			on = false; \n\
@@ -1046,8 +1032,6 @@ bool on_linetype(inout vec4 frag_color){ \n\
 			if( abs(ubarperiod.t - uu.t) > u_linewidth  ) on = false; \n\
 			//if( length(ubarperiod-uu) > u_linewidth *.5 ) on = false; \n\
 		} \n\
-		//frag_color.r = u_linewidth*.3; \n\
-		//  \n\
 	}\n\
 	return on; \n\
 }\n\

@@ -426,8 +426,8 @@ typedef struct s_shader_capabilities{
 	GLint lineperiod;
 	GLint linewidth;
 	GLint screenresolution;
-	GLint linesample;
-	GLint linev;
+	GLint linetype_uv;
+	GLint linetype_tse;
 	//shared PTM and PBR
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
 
