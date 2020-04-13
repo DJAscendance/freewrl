@@ -426,7 +426,6 @@ typedef struct s_shader_capabilities{
 	GLint lineperiod;
 	GLint linewidth;
 	GLint screenresolution;
-	GLint linetype_atlas;
 	GLint linesample;
 	GLint linev;
 	//shared PTM and PBR

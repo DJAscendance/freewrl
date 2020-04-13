@@ -1000,16 +1000,17 @@ uniform vec4 u_linev[128]; \n\
 flat in vec2 f_prev; \n\
 flat in vec2 f_next; \n\
 in vec2 v_curr; \n\
-uniform sampler2D u_linetype_atlas; \n\
 bool on_linetype(inout vec4 frag_color){ \n\
 	bool on = true; \n\
 	if(false){ \n\
+		//procedural dashed line method (not used but works for simple dash)\n\
 		float distance = length(v_curr - f_prev); \n\
 		//info about cycle length \n\
 		float period = 20.0; \n\
 		float phase = mod(distance,20.0); \n\
 		if(phase > 10.0) on = false; \n\
 	}else{ \n\
+		//parametric dashed line method \n\
 		//frag_color.b = 0.0; \n\
 		vec2 baseline = f_next - f_prev; \n\
 		//vec2 baseline = v_curr - f_prev; \n\
@@ -1018,38 +1019,26 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		//vec2 v_dir = normalize(gl_FragCoord.xy - v_curr); \n\
 		vec2 ubar; \n\
 		//ubar.s = dot(v_curr - f_prev, u_dir); \n\
-		ubar.t = dot(v_curr - f_prev, v_dir); \n\
+		//ubar.t = dot(v_curr - f_prev, v_dir); \n\
 		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
 		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
 		//ubar.t = dot(gl_FragCoord.xy - f_prev, v_dir); \n\
 		//ubar.s = length(v_curr - f_prev); \n\
 		//ubar.t = length(gl_FragCoord.xy - v_curr); \n\
-		frag_color.r = ubar.t*.3; \n\
+		//frag_color.r = ubar.t*.3; \n\
 		float phase = mod(ubar.s, u_lineperiod); \n\
 		//frag_color.rg = clamp(vec2(phase/u_lineperiod,ubar.t/5.0),0.0,1.0); \n\
 		vec2 uu = vec2(0.0,0.0); \n\
 		bool gap = false; \n\
 		vec2 dash; \n\
-		if(false) { \n\
-			int index = (u_linetype -1)*2; // cpu put linetype 1 in row 0, and 2 rows per linetype\n\
-			vec2 tcoord = vec2(phase, float(127 - index))/128.0; \n\
-			vec4 color = texture2D(u_linetype_atlas,tcoord); \n\
-			frag_color.rg = tcoord.ss; //color.rgb; \n\
-			uu.s = color.r; \n\
-			tcoord = vec2(phase,float(127 - (index+1)))/128.0; \n\
-			uu.t = texture2D(u_linetype_atlas,tcoord).r; \n\
-			gap = int(color.g + .5) == 0; \n\
-			dash = vec2(color.b,color.a); \n\
-		}else{ \n\
-			vec4 color = u_linesample[int(phase)]; \n\
-			float v = u_linev[int(phase)].r; \n\
-			//frag_color.rg = vec2(phase/u_lineperiod); \n\
-			uu.s = color.r; \n\
-			uu.t = v; \n\
-			gap = int(color.g + .5) == 0; \n\
-			dash = vec2(color.b,color.a); \n\
-			//frag_color.rg = vec2(color.g * .5); \n\
-		} \n\
+		vec4 color = u_linesample[int(phase)]; \n\
+		float v = u_linev[int(phase)].r; \n\
+		//frag_color.rg = vec2(phase/u_lineperiod); \n\
+		uu.s = color.r; \n\
+		uu.t = v; \n\
+		gap = int(color.g + .5) == 0; \n\
+		dash = vec2(color.b,color.a); \n\
+		//frag_color.rg = vec2(color.g * .5); \n\
 		vec2 ubarperiod = vec2(phase,ubar.t); \n\
 		if(gap){ \n\
 			on = false; \n\

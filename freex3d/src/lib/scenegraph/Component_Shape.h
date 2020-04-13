@@ -204,7 +204,6 @@ struct matpropstruct {
 	int linetype;
 	float lineperiod;
 	float linewidth; //this goes direct to our frag shader
-	GLint linetype_atlas_textureID;
 	float * linesample;
 	float * linev;
 	// points now specified in shader, not via an opengl call 

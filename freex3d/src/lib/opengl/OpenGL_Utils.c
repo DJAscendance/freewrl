@@ -3122,7 +3122,6 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->linewidth = GET_UNIFORM(myProg,"u_linewidth");
 	me->lineperiod = GET_UNIFORM(myProg,"u_lineperiod");
 	me->screenresolution = GET_UNIFORM(myProg,"u_screenresolution");
-	me->linetype_atlas = GET_UNIFORM(myProg,"u_linetype_atlas");
 	me->linesample = GET_UNIFORM(myProg,"u_linesample");
 	me->linev = GET_UNIFORM(myProg,"u_linev");
 	me->hatchColour = GET_UNIFORM(myProg,"fillprops.HatchColour");
@@ -7069,7 +7068,6 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	{
 		ivec4 vp = get_current_viewport();
 		GLUNIFORM2F(me->screenresolution,(float)vp.W,(float)vp.H);
-		if(0) GLUNIFORM1I(me->linetype_atlas,myap->linetype_atlas_textureID);
 		if(myap->linesample)
 		GLUNIFORM4FV(me->linesample,128,myap->linesample);
 		if(myap->linev)
