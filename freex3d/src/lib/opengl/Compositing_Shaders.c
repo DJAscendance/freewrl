@@ -1058,16 +1058,29 @@ bool on_linetype(inout vec4 frag_color){ \n\
 			bool s_end = approx(floor(f_linestrip_end/2.0),1.0); \n\
 			if(s_start){ \n\
 				if(u_linestrip_start_style == 1) \n\
-					frag_color.r = 0.0; \n\
+					frag_color.r = 1.0; \n\
 				else if(u_linestrip_start_style == 2) \n\
-					frag_color.g = 0.0; \n\
+					frag_color.g = 1.0; \n\
 			} \n\
 			if(s_end){ \n\
+				vec2 uend = vec2(0.0); \n\
+				uend.s = dot(f_next - f_prev, u_dir); \n\
+				//uend.s = length(f_next - f_prev); \n\
 				//must be end 2.0 \n\
-				if(u_linestrip_end_style == 1) \n\
-					frag_color.r = 0.0; \n\
-				else if(u_linestrip_end_style == 2) \n\
-					frag_color.b = 0.0; \n\
+				if(u_linestrip_end_style == 1){ \n\
+					frag_color.r = 1.0; \n\
+				} else if(u_linestrip_end_style == 2){ \n\
+					//round end \n\
+					frag_color.gb = vec2(0.0); \n\
+					float radius = 6.0; \n\
+					vec2 center = vec2(0.0); \n\
+					center.s = (uend.s- radius); \n\
+					vec2 diameter = uend - vec2(2.0*radius,0.0); \n\
+					if(ubar.s > diameter.s){ \n\
+						on = false; \n\
+						if( length(ubar - center) <= radius ) on = true; \n\
+					} \n\
+				} \n\
 			} \n\
 		} \n\
 	}\n\
