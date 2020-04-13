@@ -740,11 +740,11 @@ void main(void) \n\
 	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
 	vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
 	//projected coords are in -1 to 1 range \n\
-	f_prev = ((prev.xyz/prev.w).xy*.5 + .5)*u_screenresolution; \n\
+	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
 	//f_next = (next.xyz/next.w).xy*u_screenresolution*.5; \n\
 	//using GL_LINE_STRIP the 2nd vertex is the provoking vertex so is next \n\
-	f_next = ((curr.xyz/curr.w).xy*.5 + .5)*u_screenresolution; \n\
-	v_curr = ((curr.xyz/curr.w).xy*.5 + .5)*u_screenresolution; \n\
+	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
   } \n\
   #endif //LINETYPE \n\
   #ifdef PARTICLE \n\
@@ -1011,8 +1011,8 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		if(phase > 10.0) on = false; \n\
 	}else{ \n\
 		//frag_color.b = 0.0; \n\
-		//vec2 baseline = f_next - f_prev; \n\
-		vec2 baseline = v_curr - f_prev; \n\
+		vec2 baseline = f_next - f_prev; \n\
+		//vec2 baseline = v_curr - f_prev; \n\
 		vec2 u_dir = normalize(baseline); \n\
 		vec2 v_dir = normalize(cross(vec3(0,0,1),vec3(u_dir,0.0)).xy); \n\
 		//vec2 v_dir = normalize(gl_FragCoord.xy - v_curr); \n\
@@ -1021,9 +1021,10 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		ubar.t = dot(v_curr - f_prev, v_dir); \n\
 		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
 		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
-		ubar.s = length(v_curr - f_prev); \n\
+		//ubar.t = dot(gl_FragCoord.xy - f_prev, v_dir); \n\
+		//ubar.s = length(v_curr - f_prev); \n\
 		//ubar.t = length(gl_FragCoord.xy - v_curr); \n\
-		//frag_color.r = ubar.t*.5; \n\
+		frag_color.r = ubar.t*.3; \n\
 		float phase = mod(ubar.s, u_lineperiod); \n\
 		//frag_color.rg = clamp(vec2(phase/u_lineperiod,ubar.t/5.0),0.0,1.0); \n\
 		vec2 uu = vec2(0.0,0.0); \n\
@@ -1053,7 +1054,7 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		if(gap){ \n\
 			on = false; \n\
 		} else { \n\
-			if( abs(ubarperiod.t - uu.t) > u_linewidth *.5 ) on = false; \n\
+			if( abs(ubarperiod.t - uu.t) > u_linewidth  ) on = false; \n\
 			//if( length(ubarperiod-uu) > u_linewidth *.5 ) on = false; \n\
 		} \n\
 		//frag_color.r = u_linewidth*.3; \n\
