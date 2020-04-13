@@ -1057,11 +1057,17 @@ bool on_linetype(inout vec4 frag_color){ \n\
 			bool s_start = approx(mod(f_linestrip_end,2.0),1.0); \n\
 			bool s_end = approx(floor(f_linestrip_end/2.0),1.0); \n\
 			if(s_start){ \n\
-				frag_color.r = 0.0; \n\
+				if(u_linestrip_start_style == 1) \n\
+					frag_color.r = 0.0; \n\
+				else if(u_linestrip_start_style == 2) \n\
+					frag_color.g = 0.0; \n\
 			} \n\
 			if(s_end){ \n\
 				//must be end 2.0 \n\
-				frag_color.g = 0.0; \n\
+				if(u_linestrip_end_style == 1) \n\
+					frag_color.r = 0.0; \n\
+				else if(u_linestrip_end_style == 2) \n\
+					frag_color.b = 0.0; \n\
 			} \n\
 		} \n\
 	}\n\
