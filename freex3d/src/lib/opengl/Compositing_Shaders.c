@@ -505,6 +505,7 @@ in vec3 fw_Normal; \n\
 //to output something to the frag that isnt interpolated - like .vert computed distance to prev \n\
 flat out vec2 f_prev; \n\
 flat out vec2 f_next; \n\
+flat out float f_linestrip_end; //0 middle, 1 start, 2 end segment\n\
 out vec2 v_curr; \n\
 in vec3 a_prevVertex; \n\
 in vec3 a_nextVertex; \n\
@@ -687,6 +688,10 @@ void vertProjCalTexCoord(void) { \n\
 	float winv = 1.0/temp.w; \n\
 	return temp.xyz * winv; \n\
  } \n\
+ bool approx(float a, float b){ \n\
+	if( abs(a - b) < .0001 )return true; \n\
+	return false; \n\
+ } \n\
 /* PLUG-DECLARATIONS */ \n\
 void main(void) \n\
 { \n\
@@ -738,13 +743,19 @@ void main(void) \n\
 	//missing: screen aspect correction\n\
 	vec4 curr = fw_ProjectionMatrix * castle_vertex_eye; \n\
 	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
-	vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
+	//vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
 	//projected coords are in -1 to 1 range \n\
 	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
 	//f_next = (next.xyz/next.w).xy*u_screenresolution*.5; \n\
 	//using GL_LINE_STRIP the 2nd vertex is the provoking vertex so is next \n\
 	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
 	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	//float index aka findex method of determining start/end of polyline \n\
+	float findex = a_nextVertex.x; \n\
+	float fcount = a_nextVertex.y; \n\
+	f_linestrip_end = 0; \n\
+	if(approx(findex -1,0.0)) f_linestrip_end = 1; \n\
+	if(approx(findex,fcount-1.0)) f_linestrip_end += 2; \n\
   } \n\
   #endif //LINETYPE \n\
   #ifdef PARTICLE \n\
@@ -995,11 +1006,18 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 uniform int u_linetype; \n\
 uniform float u_lineperiod; \n\
 uniform float u_linewidth; \n\
+uniform int u_linestrip_start_style; \n\
+uniform int u_linestrip_end_style; \n\
 uniform vec2 u_linetype_uv[128]; \n\
 uniform vec3 u_linetype_tse[128]; \n\
 flat in vec2 f_prev; \n\
 flat in vec2 f_next; \n\
+flat in float f_linestrip_end; \n\
 in vec2 v_curr; \n\
+bool approx(float a, float b){ \n\
+	if( abs(a-b) < .0001) return true; \n\
+	return false; \n\
+} \n\
 bool on_linetype(inout vec4 frag_color){ \n\
 	bool on = true; \n\
 	if(false){ \n\
@@ -1031,6 +1049,20 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		} else { \n\
 			if( abs(ubarperiod.t - uu.t) > u_linewidth  ) on = false; \n\
 			//if( length(ubarperiod-uu) > u_linewidth *.5 ) on = false; \n\
+		} \n\
+		//do fancy linestrip end if required and on linestrip end segment \n\
+		if( u_linestrip_end_style > 0 || u_linestrip_end_style > 0) \n\
+		if(!approx(f_linestrip_end,0.0)){ \n\
+			//a line can be both start and and of polyline \n\
+			bool s_start = approx(mod(f_linestrip_end,2.0),1.0); \n\
+			bool s_end = approx(floor(f_linestrip_end/2.0),1.0); \n\
+			if(s_start){ \n\
+				frag_color.r = 0.0; \n\
+			} \n\
+			if(s_end){ \n\
+				//must be end 2.0 \n\
+				frag_color.g = 0.0; \n\
+			} \n\
 		} \n\
 	}\n\
 	return on; \n\

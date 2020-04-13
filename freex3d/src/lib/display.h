@@ -425,6 +425,8 @@ typedef struct s_shader_capabilities{
 	GLint linetype;
 	GLint lineperiod;
 	GLint linewidth;
+	GLint linestrip_start_style;
+	GLint linestrip_end_style;
 	GLint screenresolution;
 	GLint linetype_uv;
 	GLint linetype_tse;

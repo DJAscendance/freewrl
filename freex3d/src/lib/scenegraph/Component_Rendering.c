@@ -230,27 +230,44 @@ void render_LineRep(struct X3D_LineRep *linerep){
 				}
 			}
 			//for GL_LINE_STRIP we don't need the nexts in the shader
-			if(0) if(!linerep->next){
+			if(1) if(!linerep->next){
 				linerep->next = MALLOC(struct SFVec3f*,linerep->npoint*3*sizeof(float)); 
-				for(int i=0;i<linerep->npoint-1;i++){
-					if(linerep->point2D){
-						veccopy2f(linerep->next[i].c,linerep->point2D[i+1].c);
-					}else if(linerep->point){
-						veccopy3f(linerep->next[i].c,linerep->point[i+1].c);
+				if(0){
+					//conventinoal next point like prev
+					for(int i=0;i<linerep->npoint-1;i++){
+						if(linerep->point2D){
+							veccopy2f(linerep->next[i].c,linerep->point2D[i+1].c);
+						}else if(linerep->point){
+							veccopy3f(linerep->next[i].c,linerep->point[i+1].c);
+						}
 					}
-				}
-				if(linerep->point2D){
-					veccopy2f(linerep->next[linerep->npoint-1].c,linerep->point2D[linerep->npoint-1].c);
-				}else if(linerep->point){
-					veccopy3f(linerep->next[linerep->npoint-1].c,linerep->point[linerep->npoint-1].c);
+					if(linerep->point2D){
+						veccopy2f(linerep->next[linerep->npoint-1].c,linerep->point2D[linerep->npoint-1].c);
+					}else if(linerep->point){
+						veccopy3f(linerep->next[linerep->npoint-1].c,linerep->point[linerep->npoint-1].c);
+					}
+				}else if(1){
+					//float (index,segmentcount) aka findex method for vertex shader to determine 
+					// if its on a starting or ending line of a polyline
+					// assumes vertexes are packed in order of segments. good luck
+					int knext = 0;
+					for (int i=0; i<linerep->nsegments; i++) {
+						for(int j=0;j<linerep->count[i];j++) {
+							linerep->next[knext].c[0] = (float)j;
+							linerep->next[knext].c[1] = (float)linerep->count[i];
+							knext++;
+						}
+					}
+					if(knext != linerep->npoint) printf("ouch in render_LineRep findexes %d points %d\n",knext,linerep->npoint);
 				}
 			}
+
 		    s_shader_capabilities_t *me = getAppearanceProperties()->currentShaderProperties;
 			if (me->prevVertex != -1) {
 				glEnableVertexAttribArray(me->prevVertex);
 				glVertexAttribPointer(me->prevVertex, 3, GL_FLOAT, FALSE, 0, linerep->prev);
 			}
-			if(0) if (me->nextVertex != -1) {
+			if (me->nextVertex != -1 && linerep->next) {
 				glEnableVertexAttribArray(me->nextVertex);
 				glVertexAttribPointer(me->nextVertex, 3, GL_FLOAT, FALSE, 0, linerep->next);
 			}

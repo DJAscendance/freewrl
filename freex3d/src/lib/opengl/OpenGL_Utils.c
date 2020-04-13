@@ -3120,6 +3120,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
 	me->linetype = GET_UNIFORM(myProg,"u_linetype");
 	me->linewidth = GET_UNIFORM(myProg,"u_linewidth");
+	me->linestrip_start_style = GET_UNIFORM(myProg,"u_linestrip_start_style");
+	me->linestrip_end_style = GET_UNIFORM(myProg,"u_linestrip_end_style");
 	me->lineperiod = GET_UNIFORM(myProg,"u_lineperiod");
 	me->screenresolution = GET_UNIFORM(myProg,"u_screenresolution");
 	me->linetype_uv = GET_UNIFORM(myProg,"u_linetype_uv");
@@ -7077,6 +7079,8 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLUNIFORM3FV(me->linetype_tse,128,myap->linetype_tse);
 		GLUNIFORM1F(me->lineperiod,myap->lineperiod);
 		GLUNIFORM1F(me->linewidth,myap->linewidth);
+		GLUNIFORM1I(me->linestrip_start_style,myap->linestrip_start_style);
+		GLUNIFORM1I(me->linestrip_end_style,myap->linestrip_end_style);
 	}
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);

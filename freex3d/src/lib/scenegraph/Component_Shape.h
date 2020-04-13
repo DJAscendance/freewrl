@@ -206,6 +206,8 @@ struct matpropstruct {
 	float linewidth; //this goes direct to our frag shader
 	float * linetype_uv;
 	float * linetype_tse;
+	int linestrip_start_style;
+	int linestrip_end_style;
 	// points now specified in shader, not via an opengl call 
 	GLfloat pointSize;   //this goes to old opengl internal geometry shader
 

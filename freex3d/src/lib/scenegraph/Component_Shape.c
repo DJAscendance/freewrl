@@ -1086,6 +1086,19 @@ void send_linetype_atlas_to_shader(struct matpropstruct *me){
 		int irow = me->linetype-1;
 		me->linetype_uv = &linetype_atlas_uv[irow*2*128];
 		me->linetype_tse = &linetype_atlas_tse[irow*3*128];
+		me->linestrip_end_style = 0;
+		int start_style, end_style;
+		start_style = end_style = 0;
+		switch(me->linetype){
+			case 6: end_style = 1; break;
+			case 7: end_style = 2; break;
+			case 8: start_style = 1;
+					end_style = 1; break;
+			default:
+				break;
+		}
+		me->linestrip_start_style = start_style;
+		me->linestrip_end_style = end_style;
 	}
 }
 void render_LineProperties (struct X3D_LineProperties *node) {
