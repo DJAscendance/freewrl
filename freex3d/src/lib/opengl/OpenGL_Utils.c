@@ -3119,7 +3119,12 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	/* for FillProperties */
 	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
 	me->linetype = GET_UNIFORM(myProg,"u_linetype");
+	me->linewidth = GET_UNIFORM(myProg,"u_linewidth");
+	me->lineperiod = GET_UNIFORM(myProg,"u_lineperiod");
 	me->screenresolution = GET_UNIFORM(myProg,"u_screenresolution");
+	me->linetype_atlas = GET_UNIFORM(myProg,"u_linetype_atlas");
+	me->linesample = GET_UNIFORM(myProg,"u_linesample");
+	me->linev = GET_UNIFORM(myProg,"u_linev");
 	me->hatchColour = GET_UNIFORM(myProg,"fillprops.HatchColour");
 	//me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
 	//me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
@@ -7064,7 +7069,13 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	{
 		ivec4 vp = get_current_viewport();
 		GLUNIFORM2F(me->screenresolution,(float)vp.W,(float)vp.H);
-
+		if(0) GLUNIFORM1I(me->linetype_atlas,myap->linetype_atlas_textureID);
+		if(myap->linesample)
+		GLUNIFORM4FV(me->linesample,128,myap->linesample);
+		if(myap->linev)
+		GLUNIFORM4FV(me->linev,128,myap->linev);
+		GLUNIFORM1F(me->lineperiod,myap->lineperiod);
+		GLUNIFORM1F(me->linewidth,myap->linewidth);
 	}
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);

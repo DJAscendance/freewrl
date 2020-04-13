@@ -229,7 +229,8 @@ void render_LineRep(struct X3D_LineRep *linerep){
 					veccopy3f(linerep->prev[0].c,linerep->point[0].c);
 				}
 			}
-			if(!linerep->next){
+			//for GL_LINE_STRIP we don't need the nexts in the shader
+			if(0) if(!linerep->next){
 				linerep->next = MALLOC(struct SFVec3f*,linerep->npoint*3*sizeof(float)); 
 				for(int i=0;i<linerep->npoint-1;i++){
 					if(linerep->point2D){
@@ -249,7 +250,7 @@ void render_LineRep(struct X3D_LineRep *linerep){
 				glEnableVertexAttribArray(me->prevVertex);
 				glVertexAttribPointer(me->prevVertex, 3, GL_FLOAT, FALSE, 0, linerep->prev);
 			}
-			if (me->nextVertex != -1) {
+			if(0) if (me->nextVertex != -1) {
 				glEnableVertexAttribArray(me->nextVertex);
 				glVertexAttribPointer(me->nextVertex, 3, GL_FLOAT, FALSE, 0, linerep->next);
 			}

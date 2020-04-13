@@ -739,9 +739,12 @@ void main(void) \n\
 	vec4 curr = fw_ProjectionMatrix * castle_vertex_eye; \n\
 	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
 	vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
-	f_prev = (prev.xyz/prev.w).xy*u_screenresolution; \n\
-	f_next = (next.xyz/next.w).xy*u_screenresolution; \n\
-	v_curr = (curr.xyz/curr.w).xy*u_screenresolution; \n\
+	//projected coords are in -1 to 1 range \n\
+	f_prev = ((prev.xyz/prev.w).xy*.5 + .5)*u_screenresolution; \n\
+	//f_next = (next.xyz/next.w).xy*u_screenresolution*.5; \n\
+	//using GL_LINE_STRIP the 2nd vertex is the provoking vertex so is next \n\
+	f_next = ((curr.xyz/curr.w).xy*.5 + .5)*u_screenresolution; \n\
+	v_curr = ((curr.xyz/curr.w).xy*.5 + .5)*u_screenresolution; \n\
   } \n\
   #endif //LINETYPE \n\
   #ifdef PARTICLE \n\
@@ -990,16 +993,72 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 //literal string size break \n" "\
 #ifdef LINETYPE \n\
 uniform int u_linetype; \n\
+uniform float u_lineperiod; \n\
+uniform float u_linewidth; \n\
+uniform vec4 u_linesample[128]; \n\
+uniform vec4 u_linev[128]; \n\
 flat in vec2 f_prev; \n\
 flat in vec2 f_next; \n\
-varying vec2 v_curr; \n\
-bool on_linetype(){ \n\
+in vec2 v_curr; \n\
+uniform sampler2D u_linetype_atlas; \n\
+bool on_linetype(inout vec4 frag_color){ \n\
 	bool on = true; \n\
-	float distance = length(v_curr - f_prev); \n\
-	//info about cycle length \n\
-	float period = 20.0; \n\
-	float phase = mod(distance,20.0); \n\
-	if(phase > 10.0) on = false; \n\
+	if(false){ \n\
+		float distance = length(v_curr - f_prev); \n\
+		//info about cycle length \n\
+		float period = 20.0; \n\
+		float phase = mod(distance,20.0); \n\
+		if(phase > 10.0) on = false; \n\
+	}else{ \n\
+		//frag_color.b = 0.0; \n\
+		//vec2 baseline = f_next - f_prev; \n\
+		vec2 baseline = v_curr - f_prev; \n\
+		vec2 u_dir = normalize(baseline); \n\
+		vec2 v_dir = normalize(cross(vec3(0,0,1),vec3(u_dir,0.0)).xy); \n\
+		//vec2 v_dir = normalize(gl_FragCoord.xy - v_curr); \n\
+		vec2 ubar; \n\
+		//ubar.s = dot(v_curr - f_prev, u_dir); \n\
+		ubar.t = dot(v_curr - f_prev, v_dir); \n\
+		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
+		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
+		ubar.s = length(v_curr - f_prev); \n\
+		//ubar.t = length(gl_FragCoord.xy - v_curr); \n\
+		//frag_color.r = ubar.t*.5; \n\
+		float phase = mod(ubar.s, u_lineperiod); \n\
+		//frag_color.rg = clamp(vec2(phase/u_lineperiod,ubar.t/5.0),0.0,1.0); \n\
+		vec2 uu = vec2(0.0,0.0); \n\
+		bool gap = false; \n\
+		vec2 dash; \n\
+		if(false) { \n\
+			int index = (u_linetype -1)*2; // cpu put linetype 1 in row 0, and 2 rows per linetype\n\
+			vec2 tcoord = vec2(phase, float(127 - index))/128.0; \n\
+			vec4 color = texture2D(u_linetype_atlas,tcoord); \n\
+			frag_color.rg = tcoord.ss; //color.rgb; \n\
+			uu.s = color.r; \n\
+			tcoord = vec2(phase,float(127 - (index+1)))/128.0; \n\
+			uu.t = texture2D(u_linetype_atlas,tcoord).r; \n\
+			gap = int(color.g + .5) == 0; \n\
+			dash = vec2(color.b,color.a); \n\
+		}else{ \n\
+			vec4 color = u_linesample[int(phase)]; \n\
+			float v = u_linev[int(phase)].r; \n\
+			//frag_color.rg = vec2(phase/u_lineperiod); \n\
+			uu.s = color.r; \n\
+			uu.t = v; \n\
+			gap = int(color.g + .5) == 0; \n\
+			dash = vec2(color.b,color.a); \n\
+			//frag_color.rg = vec2(color.g * .5); \n\
+		} \n\
+		vec2 ubarperiod = vec2(phase,ubar.t); \n\
+		if(gap){ \n\
+			on = false; \n\
+		} else { \n\
+			if( abs(ubarperiod.t - uu.t) > u_linewidth *.5 ) on = false; \n\
+			//if( length(ubarperiod-uu) > u_linewidth *.5 ) on = false; \n\
+		} \n\
+		//frag_color.r = u_linewidth*.3; \n\
+		//  \n\
+	}\n\
 	return on; \n\
 }\n\
 #endif \n\
@@ -1393,8 +1452,11 @@ void main(void) \n\
 		#endif //CVP \n\
 		fragment_color = dcolor; \n\
 		#ifdef LINETYPE \n\
-		if(u_linetype > 2) \n\
-			if(!on_linetype()) discard; \n\
+		if(u_linetype > 1) \n\
+			if(!on_linetype(fragment_color)){ \n\
+				discard; \n\
+				//fragment_color.a = 0.0; \n\
+			} \n\
 		#endif //LINETYPE \n\
 	#else //LINE \n\
 		vec4 diffuseFactor = getDiffuseFactor(); \n\

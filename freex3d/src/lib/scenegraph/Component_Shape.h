@@ -202,8 +202,13 @@ struct matpropstruct {
 
 	//linetypes
 	int linetype;
+	float lineperiod;
+	float linewidth; //this goes direct to our frag shader
+	GLint linetype_atlas_textureID;
+	float * linesample;
+	float * linev;
 	// points now specified in shader, not via an opengl call 
-	GLfloat pointSize;   
+	GLfloat pointSize;   //this goes to old opengl internal geometry shader
 
 	//TextureCoordinateGenerator value - a "TCGT_XXX" type
 	int texCoordGeneratorType;

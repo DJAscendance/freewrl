@@ -423,7 +423,12 @@ typedef struct s_shader_capabilities{
 	GLint prevVertex; //for dashed lines
 	GLint nextVertex;
 	GLint linetype;
+	GLint lineperiod;
+	GLint linewidth;
 	GLint screenresolution;
+	GLint linetype_atlas;
+	GLint linesample;
+	GLint linev;
 	//shared PTM and PBR
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
 

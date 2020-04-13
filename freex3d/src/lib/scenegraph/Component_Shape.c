@@ -791,8 +791,324 @@ void render_FillProperties (struct X3D_FillProperties *node) {
 	me->hatchColour[3] = 1.0;
 }
 
+void printBits(size_t const size, void const * const ptr);
+typedef struct vec2 {float u,v;} vec2;
 
+struct lineinfo {
+	//describes one cycle for a line pattern - for coords think in screen pixels
+	int type;
+	char * dscription;
+	int ndash; //counting both dash and gap
+	float dash[8]; //every 2nd x starts a gap ie dash-gap-dash-gap
+	float period; //sum of dash and gap length along u axis for 1 repeating cycle
+	vec2 zig[24];
+	int nzig;
+} linetypes [] = {
+{
+	1,
+	"solid",
+	1,
+	{48.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	2,
+	"dashed",
+	2,
+	{14.0f,10.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	3,
+	"dotted",
+	2,
+	{3.0f,11.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	4,
+	"dash-dotted",
+	4,
+	{10.0f,12.0f,2.0f,12.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	5,
+	"dash-dot-dot",
+	6,
+	{16.0f,10.0f,2.0f,9.0f,2.0f,9.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	6,
+	"single arrow",
+	1,
+	{24.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	7,
+	"single dot",
+	1,
+	{24.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	8,
+	"double arrow",
+	1,
+	{24.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	9,
+	"stitch line",
+	2,
+	{10.0f,10.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	10,
+	"chain line",
+	4,
+	{8.0f,4.0f,4.0f,4.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	11,
+	"cemter line",
+	2,
+	{8.0f,4.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	12,
+	"hidden line",
+	2,
+	{10.0f,4.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	13,
+	"phantom line",
+	6,
+	{24.0f,3.0f,6.0f,3.0f,6.0f,3.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	14,
+	"break line - style 1",
+	1,
+	{128.0f},
+	0.0f,
+	{{ 0.00f,0.0f},{ 9.60f,-1.44f},{12.80f,-1.28f},{14.72f,-2.40f},{19.20f,-1.76f},{24.32f,1.28f},{28.80f,2.24f},{36.96f,1.60f},{42.40f,2.24f},{48.00f,1.12f},{51.20f,-1.92f},{55.36f,-0.96f},{62.40f,1.28f},{76.80f,1.12f},{82.88f,-1.60f},{85.92f,-0.64f},{97.44f,4.32f},{101.12f,4.96f},{108.80f,1.12f},{112.16f,1.12f},{120.00f,0.00f},{125.12f,2.72f},{128.0f,0.0f}},
+	23,
+},
+{
+	15,
+	"break line - style 2",
+	1,
+	{36.0f},
+	0.0f,
+	{{0.f,0.f},{20.f,0.f},{24.f,4.f},{32.f,-4.f},{36.f,0.f},},
+	5,
+},
+
+};
+
+static float style1_measurements [] = {
+120,95,
+180,87,
+200,88,
+212,81,
+240,85,
+272,104,
+300,110,
+351,106,
+385,110,
+420,103,
+440,84,
+466,90,
+510,104,
+600,103,
+638,86,
+657,92,
+729,123,
+752,127,
+800,103,
+821,103,
+870,96,
+902,113,
+922,95,
+};
+/*
+23 entries
+922 - 120 = 802 u_range
+110 - 81 = 29 v_range
+29/2 = 15, 81+15 = 96 u_median
+Subtract 120 and scale 800 into about 128 range
+subtract 96 and scale v by 2.5
+*/
+void print_style1(){
+	static int once = 0;
+	if(!once){
+		for(int i=0;i<23;i++){
+			vec2 p;
+			p.u = style1_measurements[i*2];
+			p.v = style1_measurements[i*2 + 1];
+			p.u -= 120.0;
+			p.u *= 128.0/800.0;
+			p.v -= 96.0;
+			p.v *= 128.0/800.0;
+			//printf("%d %f %f\n",i,p.u,p.v);
+			printf("{%5.2ff,%4.2ff},",p.u,p.v);
+
+		}
+		once = 1;
+	}
+}
+static float *linetype_atlas = NULL;
+static int linetype_atlas_size = 0;
+static GLint linetype_atlas_textureID = -1;
+void make_linetype_atlas(struct matpropstruct *me){
+	linetype_atlas_size = 128;
+	linetype_atlas = MALLOCV(128*128*4*4); //4 floats per pixel
+	memset(linetype_atlas,0,128*128*4*4);
+	for(int i=0;i<15;i++){
+		//we're going to store some industrial strength floats in a texture
+		//and use  texture sampler to extract them in the frag shader.
+		// see FORMULA paper link below for more details.
+		//Row 0
+		//R - uu reference point for testing if a fragment is within linewidth/2 radius
+		//G - dash subtype: 0-gap 1-startcap 2-body 3-endcap
+		//B - dash start (or gap start if its a gap)
+		//A - dash end (or gap end if its a gap)
+		//Row 1
+		//R - v - for break line style 2 and 2 which zigzag off center
+		float * row = &linetype_atlas[128*4*(i*2)]; //2 rows per linetype
+		float * vrow = &linetype_atlas[128*4*(i*2 +1)]; //counldnt squeesze 5th number in RGBA so another row, well use R
+		struct lineinfo *lt = &linetypes[i];
+		float period = 0.0f;
+		for(int j=0;j<lt->ndash;j++)
+			period += lt->dash[j];
+		lt->period = period;
+		float u_ = 0.0f; //u bar
+		float uu = 0.0f; //u*
+		int idash = 0; //current dash or gap
+		float curr_start = 0.0f;
+		float curr_end = lt->dash[0];
+		int kzag = 0;
+		float zigv = 0.0f;
+		for(int j=0;j<(int)(period+.5);j++){
+			u_ = (float)j; //the current pixel relative to the starting pixel
+			if(u_ > curr_end){
+				curr_start = curr_end;
+				idash++;
+				curr_end = curr_start + lt->dash[idash];
+			}
+			int gap = idash % 2 != 0 ? TRUE: FALSE; //assumes all linetypes start solid
+			if(gap){
+				//if we're in a gap, the end-cap inclusion is tested against the closest dash end uu
+				uu = u_ - curr_start < (curr_end - u_) ? curr_start : curr_end;
+			}else{
+				//if we're not in a gap, the we use a radius=linewidth/2 inclusion test to the current point along the centerline
+				uu = u_;
+			}
+			row[j*4] = uu;
+			row[j*4+1] = gap ? 0 : 2;
+			row[j*4+2] = curr_start;
+			row[j*4+3] = curr_end;
+			if(lt->nzig){
+				//find the sizgag segment we're on
+				for(int k=1;k<lt->nzig;k++){
+					vec2 d1 = lt->zig[k];
+					vec2 d0 = lt->zig[k-1];
+					if(d0.u <= u_ && u_ < d1.u){
+						//... and linearly interpolate current pixel v (perpendicular to line u direction
+						zigv = (u_ - d0.u)/(d1.u - d0.u) * (d1.v - d0.v) + d0.v;
+					}
+				}
+				vrow[j*4] = zigv;
+			}
+		}
+	}
+	//memset(linetype_atlas,-1,128*128*4*4);
+	if(0)
+	for(int i=0;i<15*2;i++){
+		float *row = &linetype_atlas[i*128*4];
+		printf("row %d\n",i);
+		for(int j=0;j<16;j++){
+			printf("\t%d (%5.2f,%4.2f,%5.2f,%5.2f) \n",j,row[j*4],row[j*4+1],row[j*4+2],row[j*4+3]);
+		}
+	}
+
+}
+void send_linetype_atlas_to_shader(struct matpropstruct *me){
+	if(linetype_atlas){
+		if(FALSE){
+			glEnable(GL_TEXTURE_2D);
+			if(linetype_atlas_textureID == -1)
+				glGenTextures(1,&linetype_atlas_textureID);
+			glBindTexture(GL_TEXTURE_2D,linetype_atlas_textureID);
+			glPixelStorei( GL_UNPACK_ALIGNMENT, 1);
+			glPixelStorei( GL_PACK_ALIGNMENT, 1);
+			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+			glPixelTransferf( GL_ALPHA_SCALE, 1 );
+			glPixelTransferf( GL_ALPHA_BIAS, 0 );
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, linetype_atlas_size, linetype_atlas_size, 0, GL_RGBA, GL_FLOAT, linetype_atlas );
+				//dear frag shader: good luck sampling this float texture without loss
+	
+			me->linetype_atlas_textureID = linetype_atlas_textureID;
+		}else{
+			int irow = (me->linetype-1)*2;
+			int irsize = 4*128;
+			me->linesample = &linetype_atlas[irow*irsize];
+			irow = irow + 1;
+			me->linev = &linetype_atlas[irow*irsize];
+		}
+	}
+}
 void render_LineProperties (struct X3D_LineProperties *node) {
+/*
+	https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/shape.html#LineProperties
+	https://isotc.iso.org/livelink/livelink/fetch/-8916524/8916549/8916590/6208440/class_pages/linetype.html
+	- ISO linetypes referred to in specs
+	http://jcgt.org/published/0002/02/08/paper.pdf
+	http://jcgt.org/published/0002/02/08/ 
+	- FORMULA this researcher used an atlas to store / communicated linetype information to frag shader
+	x but doesn't show zig-zag lines
+	- we may free-load off desktop opengl linewidth 10 capability for GL_LINE_STRIP rather than sending our own mitered triangles
+
+*/
 	#ifdef NEED_TO_ADD_TO_SHADER
 	much of this was working in older versions of FreeWRL,
 	before we went to 100% shader based code. Check FreeWRL
@@ -800,18 +1116,35 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 
 	GLushort pat;
 	#endif
-
+	//print_style1();
 	if (node->applied) {
 		//ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
 		if (node->linewidthScaleFactor > 1.0) {
 			struct matpropstruct *me;
-			glLineWidth(node->linewidthScaleFactor);
 			me= getAppearanceProperties();
-			me->pointSize = node->linewidthScaleFactor;
-			me->linetype = node->linetype;
+			me->pointSize = node->linewidthScaleFactor ? node->linewidthScaleFactor : 1.0f;
+			//me->linetype = node->linetype;
+			glLineWidth(me->pointSize);
 		}
-
+		if(node->linetype > 1){
+			struct matpropstruct *me;
+			me= getAppearanceProperties();
+			//me->pointSize = node->linewidthScaleFactor;
+			me->linetype = node->linetype;
+			//if no atlas
+			// create atlas
+			if(linetype_atlas == NULL){
+				make_linetype_atlas(me);
+			}
+			if(linetype_atlas){
+				send_linetype_atlas_to_shader(me);
+			}
+			me->lineperiod = linetypes[node->linetype - 1].period;
+			me->linewidth = node->linewidthScaleFactor;
+			me->pointSize = 10.0f; //for GL_LINE_STRIP method, we let opengl make the triangles -plenty wide- and we discard frags to get linewidth
+			glLineWidth(me->pointSize);
+		}
 
 		#ifdef NEED_TO_ADD_TO_SHADER
 		if (node->linetype > 1) {
@@ -830,6 +1163,25 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 				default: {}
 			}
 		}
+		for(int i=1;i<14;i++){
+			ushort pat;
+			pat = 0xffff; /* can not support fancy line types - this is the default */
+			switch (i) {
+				case 2: pat = 0xff00; break; /* dashed */
+				case 3: pat = 0x4040; break; /* dotted */
+				case 4: pat = 0x04ff; break; /* dash dot */
+				case 5: pat = 0x44fe; break; /* dash dot dot */
+				case 6: pat = 0x0100; break; /* optional */
+				case 7: pat = 0x0100; break; /* optional */
+				case 10: pat = 0xaaaa; break; /* optional */
+				case 11: pat = 0x0170; break; /* optional */
+				case 12: pat = 0x0000; break; /* optional */
+				case 13: pat = 0x0000; break; /* optional */
+				default: {}
+			}
+			printBits(sizeof(ushort),&pat);
+		}
+		printf("\n");
 		#endif 
 	}
 }
