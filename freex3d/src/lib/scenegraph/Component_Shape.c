@@ -995,6 +995,7 @@ void print_style1(){
 }
 static float *linetype_atlas_uv = NULL;
 static float *linetype_atlas_tse = NULL;
+
 void make_linetype_atlas(struct matpropstruct *me){
 /*
 	goal: make it easy for the frag shader to know what to do with each fragment
@@ -1081,14 +1082,25 @@ void make_linetype_atlas(struct matpropstruct *me){
 		}
 	}
 }
-void send_linetype_atlas_to_shader(struct matpropstruct *me){
+struct style16{
+	float atlas_uv[256];
+	float atlas_tse[384];
+	float period;
+};
+void send_linetype_atlas_to_shader(struct X3D_LineProperties *node, struct matpropstruct *me){
 	if(linetype_atlas_uv){
-		int irow = me->linetype-1;
-		me->linetype_uv = &linetype_atlas_uv[irow*2*128];
-		me->linetype_tse = &linetype_atlas_tse[irow*3*128];
-		me->linestrip_end_style = 0;
+		if(me->linetype == 16 && node->__style16){
+			struct style16 *s16 = (struct style16 *)node->__style16;
+			me->linetype_uv =  &s16->atlas_uv[0];
+			me->linetype_tse = &s16->atlas_tse[0];
+		}else{
+			int irow = me->linetype-1;
+			me->linetype_uv = &linetype_atlas_uv[irow*2*128];
+			me->linetype_tse = &linetype_atlas_tse[irow*3*128];
+		}
 		int start_style, end_style;
-		start_style = end_style = 0;
+		start_style = node->__styleStart;
+		end_style = node->__styleEnd;
 		switch(me->linetype){
 			case 6: end_style = 1; break;
 			case 7: end_style = 2; break;
@@ -1100,6 +1112,79 @@ void send_linetype_atlas_to_shader(struct matpropstruct *me){
 		me->linestrip_start_style = start_style;
 		me->linestrip_end_style = end_style;
 	}
+}
+
+float make_linetype_atlas_row(float *dash, int ndash, vec2 *zig, int nzig,
+	float *uv_row, float *tse_row){
+	float period = 0.0f;
+	for(int j=0;j<ndash;j++)
+		period += dash[j];
+	float u_ = 0.0f; //u bar
+	float uu = 0.0f; //u*
+	int idash = 0; //current dash or gap
+	float curr_start = 0.0f;
+	float curr_end = dash[0];
+	int kzag = 0;
+	float zigv = 0.0f;
+	for(int j=0;j<(int)(period+.5);j++){
+		u_ = (float)j; //the current pixel relative to the starting pixel
+		if(u_ > curr_end){
+			curr_start = curr_end;
+			idash++;
+			curr_end = curr_start + dash[idash];
+		}
+		int gap = idash % 2 != 0 ? TRUE: FALSE; //assumes all linetypes start solid
+		if(gap){
+			//if we're in a gap, the end-cap inclusion is tested against the closest dash end uu
+			uu = u_ - curr_start < (curr_end - u_) ? curr_start : curr_end;
+		}else{
+			//if we're not in a gap, the we use a radius=linewidth/2 inclusion test to the current point along the centerline
+			uu = u_;
+		}
+		uv_row[j*2] = uu;
+		uv_row[j*2+1] = 0.0f; //v is normally 0 except zigzag lines
+		tse_row[j*3] = gap ? 0 : 2;
+		tse_row[j*3+1] = curr_start;
+		tse_row[j*3+2] = curr_end;
+		if(nzig){
+			//find the sizgag segment we're on
+			for(int k=1;k<nzig;k++){
+				vec2 d1 = zig[k];
+				vec2 d0 = zig[k-1];
+				if(d0.u <= u_ && u_ < d1.u){
+					//... and linearly interpolate current pixel v (perpendicular to line u direction
+					zigv = (u_ - d0.u)/(d1.u - d0.u) * (d1.v - d0.v) + d0.v;
+				}
+			}
+			uv_row[j*2+1] = zigv; //off-line-center v when zig-zagging
+		}
+	}
+	return period;
+}
+void compile_LineProperties(struct X3D_LineProperties *node) {
+	int start_style, end_style;
+	start_style = end_style = 0;
+	if(!strcmp(node->styleStart->strptr,"ARROW")) start_style = 1;
+	if(!strcmp(node->styleStart->strptr,"DOT")) start_style = 2;
+	if(!strcmp(node->styleEnd->strptr,"ARROW")) end_style = 1;
+	if(!strcmp(node->styleEnd->strptr,"DOT")) end_style = 2;
+	node->__styleStart = start_style;
+	node->__styleEnd = end_style;
+	if(node->type16dashes.n || node->type16wiggles.n){
+		if(node->__style16 == NULL){
+			node->__style16 = MALLOCV(sizeof(struct style16));
+			memset(node->__style16,0,sizeof(struct style16));
+		}
+		struct style16* s16 = node->__style16;
+		int ndash = node->type16dashes.n;
+		float *dash = node->type16dashes.p;
+		float *uv_row = s16->atlas_uv;
+		float *tse_row = s16->atlas_tse;
+		int nzig = node->type16wiggles.n;
+		vec2 *zig = (vec2 *)node->type16wiggles.p;
+		s16->period = make_linetype_atlas_row(dash,ndash,zig,nzig,uv_row,tse_row);
+	}
+	MARK_NODE_COMPILED
 }
 void render_LineProperties (struct X3D_LineProperties *node) {
 /*
@@ -1140,13 +1225,19 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 	-- and frag needs to choose the right one 
 	2) arrow / round ends > linestrip start/end segment flagging methods:
 	a) if sending both next and prev vertex attribute arrays
-		linestrip_start = curr == prev? start : curr == next ? end : middle
+		linestrip_start = curr == prev? start : curr == next ? end : middle 
+		x doesn't work - provoking vertex can't get at prev-prev
 	b) else if sending uniforms u_linestrip_start, u_linestrip_end 
-		same logic as a) except curr == u_linestrip_start or _end
+		same logic as a) except prev == u_linestrip_start or _curr == u_linestrip_end 
+		x the way we send linestrips in polyline chunks/segments makes this very awkward
+	c) else if using findex (float index, float count) => flat_start_end 
+		our chosem method - vertex shader checks findex == 1 ? start; if findex == count -1 ? end 
 	- then send boolean or round()able float 1/0 as flat, or using even/odd technqiue, to frag shader
 
 */
 	//print_style1();
+	COMPILE_IF_REQUIRED
+
 	if (node->applied) {
 		//ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
@@ -1168,7 +1259,7 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 				make_linetype_atlas(me);
 			}
 			if(linetype_atlas_uv){
-				send_linetype_atlas_to_shader(me);
+				send_linetype_atlas_to_shader(node,me);
 			}
 			me->lineperiod = linetypes[node->linetype - 1].period;
 			me->linewidth = node->linewidthScaleFactor;

@@ -208,6 +208,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__sourceNumber",
 	"__specversion",
 	"__starts",
+	"__style16",
+	"__styleEnd",
+	"__styleStart",
 	"__subTextures",
 	"__subcontexts",
 	"__t1",
@@ -999,6 +1002,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"stringInp",
 	"stripCount",
 	"style",
+	"styleEnd",
+	"styleStart",
 	"subcategory",
 	"summary",
 	"surface",
@@ -1059,6 +1064,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"trimmingContour",
 	"turbulence",
 	"type",
+	"type16dashes",
+	"type16wiggles",
 	"uClosed",
 	"uDimension",
 	"uKnot",
@@ -1681,6 +1688,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"stopTime",
 	"string",
 	"stringInp",
+	"styleEnd",
+	"styleStart",
 	"summary",
 	"surface",
 	"surfaceNormals",
@@ -1721,6 +1730,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"trimmingContour",
 	"turbulence",
 	"type",
+	"type16dashes",
+	"type16wiggles",
 	"uDimension",
 	"uOrder",
 	"uTessellation",
@@ -2899,7 +2910,8 @@ struct X3D_Virt virt_LayoutLayer = { (void *)prep_LayoutLayer,NULL,(void *)child
 struct X3D_Virt virt_LinePickSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_LineProperties(struct X3D_LineProperties *);
-struct X3D_Virt virt_LineProperties = { NULL,(void *)render_LineProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_LineProperties(struct X3D_LineProperties *);
+struct X3D_Virt virt_LineProperties = { NULL,(void *)render_LineProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_LineProperties};
 
 struct X3D_Virt virt_LineSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -5506,6 +5518,13 @@ const int OFFSETS_LineProperties[] = {
 	(int) FIELDNAMES_applied, (int) offsetof (struct X3D_LineProperties, applied),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linetype, (int) offsetof (struct X3D_LineProperties, linetype),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_linewidthScaleFactor, (int) offsetof (struct X3D_LineProperties, linewidthScaleFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_type16dashes, (int) offsetof (struct X3D_LineProperties, type16dashes),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_type16wiggles, (int) offsetof (struct X3D_LineProperties, type16wiggles),  (int) FIELDTYPE_MFVec2f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_styleStart, (int) offsetof (struct X3D_LineProperties, styleStart),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_styleEnd, (int) offsetof (struct X3D_LineProperties, styleEnd),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___styleStart, (int) offsetof (struct X3D_LineProperties, __styleStart),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___styleEnd, (int) offsetof (struct X3D_LineProperties, __styleEnd),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___style16, (int) offsetof (struct X3D_LineProperties, __style16),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LineProperties, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -10897,6 +10916,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->applied = TRUE;
 			tmp2->linetype = 1;
 			tmp2->linewidthScaleFactor = 0.0f;
+			tmp2->type16dashes.n=0; tmp2->type16dashes.p=0;
+			tmp2->type16wiggles.n=0; tmp2->type16wiggles.p=0;
+			tmp2->styleStart = newASCIIString("NONE");
+			tmp2->styleEnd = newASCIIString("NONE");
+			tmp2->__styleStart = 0;
+			tmp2->__styleEnd = 0;
+			tmp2->__style16 = 0;
 			tmp2->metadata = NULL;
 			tmp2->_defaultContainer = FIELDNAMES_lineProperties;
 		break;
@@ -16073,6 +16099,18 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," applied (SFBool) \t%d\n",tmp->applied);
 			spacer fprintf (fp," linetype (SFInt32) \t%d\n",tmp->linetype);
 			spacer fprintf (fp," linewidthScaleFactor (SFFloat) \t%4.3f\n",tmp->linewidthScaleFactor);
+			spacer fprintf (fp," type16dashes (MFFloat):\n");
+			for (i=0; i<tmp->type16dashes.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->type16dashes.p[i]); }
+			spacer fprintf (fp," type16wiggles (MFVec2f):\n");
+			for (i=0; i<tmp->type16wiggles.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f]\n",i,(tmp->type16wiggles.p[i]).c[0], (tmp->type16wiggles.p[i]).c[1]); }
+			spacer fprintf (fp," styleStart (SFString) \t%s\n",tmp->styleStart->strptr);
+			spacer fprintf (fp," styleEnd (SFString) \t%s\n",tmp->styleEnd->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," __styleStart (SFInt32) \t%d\n",tmp->__styleStart);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __styleEnd (SFInt32) \t%d\n",tmp->__styleEnd);
+		    }
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }

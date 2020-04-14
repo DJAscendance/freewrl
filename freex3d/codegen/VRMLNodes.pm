@@ -587,6 +587,13 @@ our %Nodes = (
 		applied => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linetype => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linewidthScaleFactor => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		type16dashes => ["MFFloat",0,"inputOutput", 0,0],#ff
+		type16wiggles => ["MFVec2f","NULL","inputOutput",0,0],#ff
+		styleStart => ["SFString","NONE","inputOutput",0,0],#ff
+		styleEnd => ["SFString","NONE","inputOutput",0,0],#ff
+		__styleStart => ["SFInt32",0,"inputOutput",0,0],#ff
+		__styleEnd => ["SFInt32",0,"inputOutput",0,0],#ff
+		__style16 => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DAppearanceChildNode"),
 
