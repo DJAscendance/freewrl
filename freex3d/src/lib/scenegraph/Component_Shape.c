@@ -228,7 +228,10 @@ void child_Appearance (struct X3D_Appearance *node) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->lineProperties,tmpN);
 		render_node(tmpN);
 	}
-	
+	if (node->pointProperties) {
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->pointProperties,tmpN);
+		render_node(tmpN);
+	}
 	if(node->texture) {
 		/* we have to do a glPush, then restore, later */
 		/* glPushAttrib(GL_ENABLE_BIT); */
@@ -705,6 +708,19 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 		}
 	}
 
+	if (realAppearanceNode->pointProperties != NULL) {
+		struct X3D_Node *pp;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->pointProperties,pp);
+		if(pp){
+			if (pp->_nodeType != NODE_PointProperties) {
+				ConsoleMessage("getAppearanceShader, pointProperties has a node type of %s",stringNodeType(pp->_nodeType));
+			} else {
+				if(X3D_POINTPROPERTIES(pp)->_colormode > 0)
+					retval |= POINT_PROPERTIES_SHADER;
+			}
+		}
+	}
+
 	if (realAppearanceNode->texture != NULL) {
 		//printf ("getAppearanceShader - rap node is %s\n",stringNodeType(realAppearanceNode->texture->_nodeType));
 		struct X3D_Node *tex;
@@ -805,144 +821,112 @@ struct lineinfo {
 	int nzig;
 } linetypes [] = {
 {
-	1,
-	"solid",
-	1,
+	1,"solid",1,
 	{48.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	2,
-	"dashed",
-	2,
+	2,"dashed",	2,
 	{14.0f,10.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	3,
-	"dotted",
-	2,
+	3,"dotted",2,
 	{3.0f,11.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	4,
-	"dash-dotted",
-	4,
+	4,"dash-dotted",4,
 	{10.0f,12.0f,2.0f,12.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	5,
-	"dash-dot-dot",
-	6,
+	5,"dash-dot-dot",6,
 	{16.0f,10.0f,2.0f,9.0f,2.0f,9.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	6,
-	"single arrow",
-	1,
+	6,"single arrow",1,
 	{24.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	7,
-	"single dot",
-	1,
+	7,"single dot",1,
 	{24.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	8,
-	"double arrow",
-	1,
+	8,"double arrow",1,
 	{24.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	9,
-	"stitch line",
-	2,
+	9,"stitch line",2,
 	{10.0f,10.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	10,
-	"chain line",
-	4,
+	10,"chain line",4,
 	{8.0f,4.0f,4.0f,4.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	11,
-	"cemter line",
-	2,
+	11,"cemter line",2,
 	{8.0f,4.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	12,
-	"hidden line",
-	2,
+	12,"hidden line",2,
 	{10.0f,4.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	13,
-	"phantom line",
-	6,
+	13,"phantom line",6,
 	{24.0f,3.0f,6.0f,3.0f,6.0f,3.0f},
 	0.0f,
 	{{0.0,0.0}},
 	0,
 },
 {
-	14,
-	"break line - style 1",
-	1,
+	14,"break line - style 1",1,
 	{128.0f},
 	0.0f,
 	{{ 0.00f,0.0f},{ 9.60f,-1.44f},{12.80f,-1.28f},{14.72f,-2.40f},{19.20f,-1.76f},{24.32f,1.28f},{28.80f,2.24f},{36.96f,1.60f},{42.40f,2.24f},{48.00f,1.12f},{51.20f,-1.92f},{55.36f,-0.96f},{62.40f,1.28f},{76.80f,1.12f},{82.88f,-1.60f},{85.92f,-0.64f},{97.44f,4.32f},{101.12f,4.96f},{108.80f,1.12f},{112.16f,1.12f},{120.00f,0.00f},{125.12f,2.72f},{128.0f,0.0f}},
 	23,
 },
 {
-	15,
-	"break line - style 2",
-	1,
+	15,"break line - style 2",1,
 	{36.0f},
 	0.0f,
 	{{0.f,0.f},{20.f,0.f},{24.f,4.f},{32.f,-4.f},{36.f,0.f},},
 	5,
 },
 {
-	16,
-	"fallback for user style 16",
-	1,
+	16,"fallback for user style 16",1,
 	{48.0f},
 	0.0f,
 	{{0.0,0.0}},
@@ -951,57 +935,7 @@ struct lineinfo {
 
 };
 
-static float style1_measurements [] = {
-120,95,
-180,87,
-200,88,
-212,81,
-240,85,
-272,104,
-300,110,
-351,106,
-385,110,
-420,103,
-440,84,
-466,90,
-510,104,
-600,103,
-638,86,
-657,92,
-729,123,
-752,127,
-800,103,
-821,103,
-870,96,
-902,113,
-922,95,
-};
-/*
-23 entries
-922 - 120 = 802 u_range
-110 - 81 = 29 v_range
-29/2 = 15, 81+15 = 96 u_median
-Subtract 120 and scale 800 into about 128 range
-subtract 96 and scale v by 2.5
-*/
-void print_style1(){
-	static int once = 0;
-	if(!once){
-		for(int i=0;i<23;i++){
-			vec2 p;
-			p.u = style1_measurements[i*2];
-			p.v = style1_measurements[i*2 + 1];
-			p.u -= 120.0;
-			p.u *= 128.0/800.0;
-			p.v -= 96.0;
-			p.v *= 128.0/800.0;
-			//printf("%d %f %f\n",i,p.u,p.v);
-			printf("{%5.2ff,%4.2ff},",p.u,p.v);
 
-		}
-		once = 1;
-	}
-}
 
 float make_linetype_atlas_row(float *dash, int ndash, vec2 *zig, int nzig,
 	float *uv_row, float *tse_row){
@@ -1080,18 +1014,8 @@ void make_linetype_atlas(struct matpropstruct *me){
 	memset(linetype_atlas_uv,0,128*sizeof(float)*2*nlinetypes);
 	memset(linetype_atlas_tse,0,128*sizeof(float)*3*nlinetypes);
 	for(int i=0;i<16;i++){
-		//we're going to store some industrial strength floats in a texture
-		//and use  texture sampler to extract them in the frag shader.
-		// see FORMULA paper link below for more details.
-		//Row 0
-		//R - uu reference point for testing if a fragment is within linewidth/2 radius
-		//G - dash subtype: 0-gap 1-startcap 2-body 3-endcap
-		//B - dash start (or gap start if its a gap)
-		//A - dash end (or gap end if its a gap)
-		//Row 1
-		//R - v - for break line style 2 and 2 which zigzag off center
-		float * uv_row = &linetype_atlas_uv[128*2*i]; //2 rows per linetype
-		float * tse_row = &linetype_atlas_tse[128*3*i]; //counldnt squeesze 5th number in RGBA so another row, well use R
+		float * uv_row = &linetype_atlas_uv[128*2*i]; 
+		float * tse_row = &linetype_atlas_tse[128*3*i]; 
 		struct lineinfo *lt = &linetypes[i];
 
 		int ndash = lt->ndash;
@@ -1184,6 +1108,7 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 	- send mitered, depth mapped, near-plane-clipped triangles (instead of GL_LINE_STRIP)
 		https://mattdesl.svbtle.com/drawing-lines-is-hard
 	- start-of-linesegment phase offset for pattern continuity across corners (as FORMULA author does
+	- shader anti-aliasing for finer rendering of thin lines (Apr 2020 did no anti-aliasing)
 	- test on mobile/GLESX/ANGLE for shader versioning
 
 	VERTEX SHADER details
@@ -1240,49 +1165,6 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 			me->pointSize = 10.0f; //for GL_LINE_STRIP method, we let opengl make the triangles -plenty wide- and we discard frags to get linewidth
 			glLineWidth(me->pointSize);
 		}
-
-		#ifdef NEED_TO_ADD_TO_SHADER
-		// comments frmo year 2010? old/defunct glLineStiple patterns
-		//much of this was working in older versions of FreeWRL,
-		//before we went to 100% shader based code. Check FreeWRL
-		//from (say) 2011 to see what the shader code looked like
-		GLushort pat;
-		if (node->linetype > 1) {
-			pat = 0xffff; /* can not support fancy line types - this is the default */
-			switch (node->linetype) {
-				case 2: pat = 0xff00; break; /* dashed */
-				case 3: pat = 0x4040; break; /* dotted */
-				case 4: pat = 0x04ff; break; /* dash dot */
-				case 5: pat = 0x44fe; break; /* dash dot dot */
-				case 6: pat = 0x0100; break; /* optional */
-				case 7: pat = 0x0100; break; /* optional */
-				case 10: pat = 0xaaaa; break; /* optional */
-				case 11: pat = 0x0170; break; /* optional */
-				case 12: pat = 0x0000; break; /* optional */
-				case 13: pat = 0x0000; break; /* optional */
-				default: {}
-			}
-		}
-		for(int i=1;i<14;i++){
-			ushort pat;
-			pat = 0xffff; /* can not support fancy line types - this is the default */
-			switch (i) {
-				case 2: pat = 0xff00; break; /* dashed */
-				case 3: pat = 0x4040; break; /* dotted */
-				case 4: pat = 0x04ff; break; /* dash dot */
-				case 5: pat = 0x44fe; break; /* dash dot dot */
-				case 6: pat = 0x0100; break; /* optional */
-				case 7: pat = 0x0100; break; /* optional */
-				case 10: pat = 0xaaaa; break; /* optional */
-				case 11: pat = 0x0170; break; /* optional */
-				case 12: pat = 0x0000; break; /* optional */
-				case 13: pat = 0x0000; break; /* optional */
-				default: {}
-			}
-			printBits(sizeof(ushort),&pat);
-		}
-		printf("\n");
-		#endif 
 	}
 }
 
@@ -1307,6 +1189,10 @@ char *help;
 */
 };
 void render_PointProperties (struct X3D_PointProperties *node) {
+	struct matpropstruct *me;
+	me= getAppearanceProperties();
+	me->pointSize = node->pointSizeScaleFactor > 0.0f ? node->pointSizeScaleFactor : 1.0f;
+	//glPointSize(me->pointSize); //sent later frmm opegl_utils.c
 }
 
 textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);

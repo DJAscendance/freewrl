@@ -625,6 +625,7 @@ our %CompileC = map {($_=>1)} qw/
 	PhysicalMaterial
 	TwoSidedMaterial
 	LineProperties
+	PointProperties
 	IndexedLineSet
 	LineSet
 	PointSet
