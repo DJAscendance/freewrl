@@ -258,6 +258,7 @@ static void texture_swap_B_R(textureTableIndexStruct_s* this_tex)
 	y = this_tex->y;
 	z = this_tex->z;
 	data = this_tex->texdata;
+	if(data) //can be null from generatedcubemap during startup
 	for(i=0;i<z;i++){
 		for(j=0;j<y;j++){
 			for(k=0;k<x;k++)

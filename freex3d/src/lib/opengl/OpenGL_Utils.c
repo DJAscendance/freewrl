@@ -3077,7 +3077,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix[3]");
 	me->nTexMatrix = GET_UNIFORM(myProg,"nTexMatrix");
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
-
+	me->nextVertex = GET_ATTRIB(myProg,"a_nextVertex");
+	me->prevVertex = GET_ATTRIB(myProg,"a_prevVertex");
 	me->Normals = GET_ATTRIB(myProg,"fw_Normal");
 	me->Colours = GET_ATTRIB(myProg,"fw_Color");
 	me->FogCoords = GET_ATTRIB(myProg,"fw_FogCoords");
@@ -3117,6 +3118,14 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 	/* for FillProperties */
 	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
+	me->linetype = GET_UNIFORM(myProg,"u_linetype");
+	me->linewidth = GET_UNIFORM(myProg,"u_linewidth");
+	me->linestrip_start_style = GET_UNIFORM(myProg,"u_linestrip_start_style");
+	me->linestrip_end_style = GET_UNIFORM(myProg,"u_linestrip_end_style");
+	me->lineperiod = GET_UNIFORM(myProg,"u_lineperiod");
+	me->screenresolution = GET_UNIFORM(myProg,"u_screenresolution");
+	me->linetype_uv = GET_UNIFORM(myProg,"u_linetype_uv");
+	me->linetype_tse = GET_UNIFORM(myProg,"u_linetype_tse");
 	me->hatchColour = GET_UNIFORM(myProg,"fillprops.HatchColour");
 	//me->hatchPercent = GET_UNIFORM(myProg,"HatchPct");
 	//me->hatchScale = GET_UNIFORM(myProg,"HatchScale");
@@ -7057,7 +7066,22 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1I(me->hatchedBool,myap->hatchedBool);
 	GLUNIFORM1I(me->hatchAlgo,myap->hatchAlgo);
 	SEND_VEC4(hatchColour,myap->hatchColour);
-
+	{
+		ivec4 vp = get_current_viewport();
+		GLUNIFORM2F(me->screenresolution,(float)vp.W,(float)vp.H);
+		if(myap->linetype_uv){
+			GLUNIFORM2FV(me->linetype_uv,128,myap->linetype_uv);
+			GLUNIFORM1I(me->linetype,myap->linetype);
+		}else{
+			GLUNIFORM1I(me->linetype,1); //keep it simple until all parts loaded
+		}
+		if(myap->linetype_tse)
+		GLUNIFORM3FV(me->linetype_tse,128,myap->linetype_tse);
+		GLUNIFORM1F(me->lineperiod,myap->lineperiod);
+		GLUNIFORM1F(me->linewidth,myap->linewidth);
+		GLUNIFORM1I(me->linestrip_start_style,myap->linestrip_start_style);
+		GLUNIFORM1I(me->linestrip_end_style,myap->linestrip_end_style);
+	}
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);
 	profile_end("sendmat");

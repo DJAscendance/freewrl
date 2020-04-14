@@ -475,6 +475,9 @@ define MAT if material is valid
 
 static const GLchar *genericVertexGLES2 = "\
 /* DEFINES */ \n\
+#ifndef LINETYPE \n\
+#define DEPRECATED \n\
+#endif \n\
 /* Generic GLSL vertex shader, used on OpenGL ES. */ \n\
 #ifdef MOBILE \n\
 // we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
@@ -488,19 +491,49 @@ uniform mat3 fw_NormalMatrix; \n\
 #ifdef CUB \n\
 uniform mat4 fw_ModelViewInverseMatrix; \n\
 #endif //CUB \n\
+#ifdef DEPRECATED \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
+#else //DEPRECATED \n\
+in vec4 fw_Vertex; \n\
+in vec3 fw_Normal; \n\
+#endif //DEPRECATED \n\
+#ifdef LINETYPE \n\
+//desktop glsl 330 \n\
+//glsl desktop version 130 can do flat instead of varying \n\
+//which allows the provoking vertex (for GL_LINE_STRIP its the second vertex in a pair) \n\
+//to output something to the frag that isnt interpolated - like .vert computed distance to prev \n\
+flat out vec2 f_prev; \n\
+flat out vec2 f_next; \n\
+flat out float f_linestrip_end; //0 middle, 1 start, 2 end segment\n\
+out vec2 v_curr; \n\
+in vec3 a_prevVertex; \n\
+in vec3 a_nextVertex; \n\
+uniform int u_linetype; \n\
+uniform vec2 u_screenresolution; \n\
+#endif //LINETYPE \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
 uniform int nTexMatrix; \n\
+#ifdef DEPRECATED \n\
 attribute vec4 fw_MultiTexCoord0; \n\
 attribute vec4 fw_MultiTexCoord1; \n\
 attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
+#else //DEPRECATED \n\
+in vec4 fw_MultiTexCoord0; \n\
+in vec4 fw_MultiTexCoord1; \n\
+in vec4 fw_MultiTexCoord2; \n\
+in vec4 fw_MultiTexCoord3; \n\
+#endif //DEPRECATED \n\
 uniform int nTexCoordChannels; \n\
 //varying vec3 v_texC; \n\
+#ifdef DEPRECATED \n\
 varying vec3 fw_TexCoord[4]; \n\
+#else //DEPRECATED \n\
+out vec3 fw_TexCoord[4]; \n\
+#endif //DEPRECATED \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
@@ -520,13 +553,23 @@ uniform int tex3dUseVertex; \n\
 #endif //TGEN \n\
 //#endif //TEX \n\
 #ifdef FILL \n\
+#ifdef DEPRECATED \n\
 varying vec2 hatchPosition; \n\
+#else //DEPRECATED \n\
+out vec2 hatchPosition; \n\
+#endif //DEPRECATED \n\
 #endif //FILL \n\
 \n\
  \n\
+ #ifdef DEPRECATED \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
 varying vec4 castle_Color; //DA diffuse ambient term \n\
+#else //DEPRECATED \n\
+out vec4 castle_vertex_eye; \n\
+out vec3 castle_normal_eye; \n\
+out vec4 castle_Color; //DA diffuse ambient term \n\
+#endif //DEPRECATED \n\
  \n\
 //uniform float castle_MaterialDiffuseAlpha; \n\
 //uniform float castle_MaterialShininess; \n\
@@ -589,7 +632,11 @@ uniform fw_MaterialParameters fw_FrontMaterial; \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#endif //TWO \n\
 #ifdef LIT \n\
+#ifdef DEPRECATED \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
+#else //DEPRECATED \n\
+out vec3 castle_ColorES; \n\
+#endif //DEPRECATED \n\
 vec3 castle_Emissive; \n\
 #endif //LIT \n\
 #ifdef FOG \n\
@@ -633,12 +680,17 @@ void vertProjCalTexCoord(void) { \n\
 } \n\
 #endif //PROJTEX \n\
  \n\
+ //literal string size break \n" "\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
 	vec4 tempv = vector; \n\
 	if(tempv.w == 0.0) tempv.w = 1.0; \n\
 	vec4 temp = matrix * tempv; \n\
 	float winv = 1.0/temp.w; \n\
 	return temp.xyz * winv; \n\
+ } \n\
+ bool approx(float a, float b){ \n\
+	if( abs(a - b) < .0001 )return true; \n\
+	return false; \n\
  } \n\
 /* PLUG-DECLARATIONS */ \n\
 void main(void) \n\
@@ -685,6 +737,27 @@ void main(void) \n\
   #endif //CASTLE_BUGGY_GLSL_READ_VARYING \n\
   \n\
   castle_vertex_eye = fw_ModelViewMatrix * vertex_object; \n\
+  #ifdef LINETYPE \n\
+  if(u_linetype > 1){ \n\
+	//get curr, prev, next into screenspace \n\
+	//missing: screen aspect correction\n\
+	vec4 curr = fw_ProjectionMatrix * castle_vertex_eye; \n\
+	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
+	//vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
+	//projected coords are in -1 to 1 range \n\
+	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	//f_next = (next.xyz/next.w).xy*u_screenresolution*.5; \n\
+	//using GL_LINE_STRIP the 2nd vertex is the provoking vertex so is next \n\
+	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	//float index aka findex method of determining start/end of polyline \n\
+	float findex = a_nextVertex.x; \n\
+	float fcount = a_nextVertex.y; \n\
+	f_linestrip_end = 0; \n\
+	if(approx(findex -1,0.0)) f_linestrip_end = 1; \n\
+	if(approx(findex,fcount-1.0)) f_linestrip_end += 2; \n\
+  } \n\
+  #endif //LINETYPE \n\
   #ifdef PARTICLE \n\
   //sprite: align to viewer \n\
   if(fw_ParticleGeomType == 4){ \n\
@@ -707,7 +780,7 @@ void main(void) \n\
   castle_ColorES = castle_Emissive; \n\
   castle_Color = vec4(castle_SceneColor, 1.0); \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
-	vec3 E = -normalize(castle_vertex_eye.xyz); \n \
+	vec3 E = -normalize(castle_vertex_eye.xyz); \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	bool backFacing = (dot(N,E) < 0.0); \n\
 	if (backFacing) { \n\
@@ -929,6 +1002,115 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 #endif //MTEX \n\
 //#endif //TEX \n\
 //literal string size break \n" "\
+#ifdef LINETYPE \n\
+uniform int u_linetype; \n\
+uniform float u_lineperiod; \n\
+uniform float u_linewidth; \n\
+uniform int u_linestrip_start_style; \n\
+uniform int u_linestrip_end_style; \n\
+uniform vec2 u_linetype_uv[128]; \n\
+uniform vec3 u_linetype_tse[128]; \n\
+flat in vec2 f_prev; \n\
+flat in vec2 f_next; \n\
+flat in float f_linestrip_end; \n\
+in vec2 v_curr; \n\
+bool approx(float a, float b){ \n\
+	if( abs(a-b) < .0001) return true; \n\
+	return false; \n\
+} \n\
+bool on_linetype(inout vec4 frag_color){ \n\
+	bool on = true; \n\
+	if(false){ \n\
+		//procedural dashed line method (not used but works for simple dash)\n\
+		float distance = length(v_curr - f_prev); \n\
+		//info about cycle length \n\
+		float period = 20.0; \n\
+		float phase = mod(distance,20.0); \n\
+		if(phase > 10.0) on = false; \n\
+	}else{ \n\
+		//parametric dashed line method \n\
+		vec2 baseline = f_next - f_prev; \n\
+		vec2 u_dir = normalize(baseline); \n\
+		vec2 v_dir = normalize(cross(vec3(0,0,1),vec3(u_dir,0.0)).xy); \n\
+		vec2 ubar; \n\
+		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
+		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
+		float phase = mod(ubar.s, u_lineperiod); \n\
+		vec2 uu = vec2(0.0,0.0); \n\
+		bool gap = false; \n\
+		vec2 dash; \n\
+		vec3 tse = u_linetype_tse[int(phase)]; \n\
+		uu = u_linetype_uv[int(phase)]; \n\
+		gap = int(tse.x + .5) == 0; \n\
+		dash = vec2(tse.y,tse.z); \n\
+		vec2 ubarperiod = vec2(phase,ubar.t); \n\
+		if(gap){ \n\
+			on = false; \n\
+		} else { \n\
+			if( abs(ubarperiod.t - uu.t) > u_linewidth  ) on = false; \n\
+			//if( length(ubarperiod-uu) > u_linewidth *.5 ) on = false; \n\
+		} \n\
+		//do fancy linestrip end if required and on linestrip end segment \n\
+		if( u_linestrip_start_style > 0 || u_linestrip_end_style > 0) \n\
+		if(!approx(f_linestrip_end,0.0)){ \n\
+			//a line can be both start and and of polyline \n\
+			bool s_start = approx(mod(f_linestrip_end,2.0),1.0); \n\
+			bool s_end = approx(floor(f_linestrip_end/2.0),1.0); \n\
+			if(s_start){ \n\
+				vec2 uend = vec2(0.0); \n\
+				if(u_linestrip_start_style == 1){ \n\
+					//arrow end \n\
+					float arrowlength = 14.0; \n\
+					vec2 head = vec2(uend.s + arrowlength,0.0); \n\
+					if(ubar.s < head.s){ \n\
+						on = false; \n\
+						vec2 range = head - ubar; \n\
+						float d = 2.0*range.t + range.s; \n\
+						if(d < arrowlength) on = true; \n\
+					} \n\
+				} else if(u_linestrip_start_style == 2){ \n\
+					//round end \n\
+					float radius = 6.0; \n\
+					vec2 center = vec2(0.0); \n\
+					center.s = (uend.s + radius); \n\
+					vec2 diameter = uend + vec2(2.0*radius,0.0); \n\
+					if(ubar.s < diameter.s){ \n\
+						on = false; \n\
+						if( length(ubar - center) <= radius ) on = true; \n\
+					} \n\
+				} \n\
+			} \n\
+			if(s_end){ \n\
+				vec2 uend = vec2(0.0); \n\
+				uend.s = dot(f_next - f_prev, u_dir); \n\
+				//must be end 2.0 \n\
+				if(u_linestrip_end_style == 1){ \n\
+					//arrow end \n\
+					float arrowlength = 14.0; \n\
+					vec2 head = vec2(uend.s - arrowlength,0.0); \n\
+					if(ubar.s > head.s){ \n\
+						on = false; \n\
+						vec2 range = ubar - head; \n\
+						float d = 2.0*range.t + range.s; \n\
+						if(d < arrowlength) on = true; \n\
+					} \n\
+				} else if(u_linestrip_end_style == 2){ \n\
+					//round end \n\
+					float radius = 6.0; \n\
+					vec2 center = vec2(0.0); \n\
+					center.s = (uend.s- radius); \n\
+					vec2 diameter = uend - vec2(2.0*radius,0.0); \n\
+					if(ubar.s > diameter.s){ \n\
+						on = false; \n\
+						if( length(ubar - center) <= radius ) on = true; \n\
+					} \n\
+				} \n\
+			} \n\
+		} \n\
+	}\n\
+	return on; \n\
+}\n\
+#endif \n\
 #ifdef FILL \n\
 struct fillproperties { \n\
 	vec4 HatchColour; \n\
@@ -1310,22 +1492,26 @@ void main(void) \n\
 	vec3 N = getNormal(); \n\
 	\n\
 //STEP1 INITIALIZE \n\
+	vec4 fragment_color; \n\
 	#ifdef LINE \n\
 		vec4 dcolor = vec4(1.0); \n\
 		dcolor.rgb = getEmissive(); \n\
 		#ifdef CPV \n\
 		dcolor= getVertexColor(); \n\
 		#endif //CVP \n\
-		gl_FragColor = dcolor; \n\
-		return; \n\
-	#endif //LINE \n\
-	vec4 diffuseFactor = getDiffuseFactor(); \n\
-	vec4 fragment_color =  diffuseFactor; \n\
+		fragment_color = dcolor; \n\
+		#ifdef LINETYPE \n\
+		if(u_linetype > 1) \n\
+			if(!on_linetype(fragment_color)){ \n\
+				discard; \n\
+				//fragment_color.a = 0.0; \n\
+			} \n\
+		#endif //LINETYPE \n\
+	#else //LINE \n\
+		vec4 diffuseFactor = getDiffuseFactor(); \n\
+		fragment_color =  diffuseFactor; \n\
 //STEP2 LIGHTS \n\
 	#ifndef PHONG \n\
-		//#ifdef LIT\n\
-		//fragment_color *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
-		//#endif //LIT \n\
 		fragment_color = getGouraudColor(); \n\
 	#endif //not PHONG \n\
 	#ifdef PHONG \n\
@@ -1414,7 +1600,7 @@ void main(void) \n\
 	}else if(mat.type > 1){ \n\
 		fragment_color.rgb += getEmissive(); \n\
 	} \n\
-	\n\
+	#endif //LINE \n\
 	#ifdef NOT_LINE \n\
 	fragment_color.rgb = getEmissive(); \n\
 	#endif //LINE \n\
@@ -1430,6 +1616,10 @@ void main(void) \n\
 	#endif //CPV \n\
 	\n\
 //STEP6 FOG \n\
+	#ifdef  NOT_FOG \n\
+		gl_FragColor = vec4(0.0,1.0,1.0,1.0); \n\
+		return; \n\
+	#endif //FOG \n\
 	/* PLUG: fog_apply (fragment_color, N) */ \n\
 	\n\
 	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
@@ -2423,21 +2613,21 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 // PLUG: fog_apply (fragment_color, normal_eye_fragment)
 static const GLchar *plug_fog_apply =	"\
 void PLUG_fog_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
-  float ff = 1.0; \n\
-  float depth = abs(castle_vertex_eye.z/castle_vertex_eye.w); \n\
-  if(fw_fogparams.fogType > 0){ \n\
-    ff = 0.0;  \n\
-    if(fw_fogparams.fogType == 1){ //FOGTYPE_LINEAR \n\
-      if(depth < fw_fogparams.visibilityRange) \n\
-        ff = (fw_fogparams.visibilityRange-depth)/fw_fogparams.visibilityRange; \n\
-    } else { //FOGTYPE_EXPONENTIAL \n\
-        if(depth < fw_fogparams.visibilityRange){ \n\
-          ff = exp(-depth/(fw_fogparams.visibilityRange -depth) ); \n\
-          ff = clamp(ff, 0.0, 1.0);  \n\
-        } \n\
+	float ff = 1.0; \n\
+	float depth = abs(castle_vertex_eye.z/castle_vertex_eye.w); \n\
+	if(fw_fogparams.fogType > 0){ \n\
+		ff = 0.0;  \n\
+		if(fw_fogparams.fogType == 1){ //FOGTYPE_LINEAR \n\
+			if(depth < fw_fogparams.visibilityRange) \n\
+			ff = (fw_fogparams.visibilityRange-depth)/fw_fogparams.visibilityRange; \n\
+		} else { //FOGTYPE_EXPONENTIAL \n\
+			if(depth < fw_fogparams.visibilityRange){ \n\
+				ff = exp(-depth/(fw_fogparams.visibilityRange -depth) ); \n\
+				ff = clamp(ff, 0.0, 1.0);  \n\
+			} \n\
+		} \n\
+		finalFrag = mix(finalFrag,fw_fogparams.fogColor,1.0 - ff);  \n\
 	} \n\
-    finalFrag = mix(finalFrag,fw_fogparams.fogColor,1.0 - ff);  \n\
-  } \n\
 } \n\
 ";
 
@@ -2531,8 +2721,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
 	}else{
 		//desktop, emulating GLES2
-		AddVersion(SHADERPART_VERTEX, 110, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 110, CompleteCode); //lower precision floats
+		AddVersion(SHADERPART_VERTEX, 150, CompleteCode); //lower precision floats
+		AddVersion(SHADERPART_FRAGMENT, 150, CompleteCode); //lower precision floats
 	}
 
 	// printBits(sizeof(int),&whichOne.base); //debugging _shaderflags
@@ -2679,6 +2869,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_VERTEX,"FILL",CompleteCode);		
 		AddDefine(SHADERPART_FRAGMENT,"FILL",CompleteCode);		
 		Plug(SHADERPART_FRAGMENT,plug_fragment_fillProperties_apply,CompleteCode,&unique_int);
+	}
+	//LINETYPES
+	if(DESIRE(whichOne.base,LINE_PROPERTIES_SHADER)) {
+		AddDefine(SHADERPART_VERTEX,"LINETYPE",CompleteCode);		
+		AddDefine(SHADERPART_FRAGMENT,"LINETYPE",CompleteCode);		
 	}
 	//FOG
 	if(DESIRE(whichOne.base,FOG_APPEARANCE_SHADER)){

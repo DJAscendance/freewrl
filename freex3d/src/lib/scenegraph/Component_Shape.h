@@ -112,6 +112,7 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 #define PARTICLE_SHADER			0X8000000
 #define HAVE_UNLIT_COLOR		0x10000000
 #define HAVE_PROJECTIVETEXTURE	0X20000000
+#define LINE_PROPERTIES_SHADER	0X40000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume
@@ -199,8 +200,16 @@ struct matpropstruct {
 	GLfloat hatchColour[4];
 	int hatchAlgo;
 
+	//linetypes
+	int linetype;
+	float lineperiod;
+	float linewidth; //this goes direct to our frag shader
+	float * linetype_uv;
+	float * linetype_tse;
+	int linestrip_start_style;
+	int linestrip_end_style;
 	// points now specified in shader, not via an opengl call 
-	GLfloat pointSize;   
+	GLfloat pointSize;   //this goes to old opengl internal geometry shader
 
 	//TextureCoordinateGenerator value - a "TCGT_XXX" type
 	int texCoordGeneratorType;

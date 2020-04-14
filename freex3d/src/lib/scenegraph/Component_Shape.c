@@ -689,6 +689,21 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 		}
 	}
 
+	if (realAppearanceNode->lineProperties != NULL) {
+		struct X3D_Node *lp;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, realAppearanceNode->lineProperties,lp);
+		if(lp){
+			if (lp->_nodeType != NODE_LineProperties) {
+				ConsoleMessage("getAppearanceShader, lineProperties has a node type of %s",stringNodeType(lp->_nodeType));
+			} else {
+				// is this a LineProperties node, but is it applied?
+				if (X3D_LINEPROPERTIES(lp)->applied){
+					if(X3D_LINEPROPERTIES(lp)->linetype > 1)
+						retval |= LINE_PROPERTIES_SHADER;
+				}
+			}
+		}
+	}
 
 	if (realAppearanceNode->texture != NULL) {
 		//printf ("getAppearanceShader - rap node is %s\n",stringNodeType(realAppearanceNode->texture->_nodeType));
@@ -776,28 +791,462 @@ void render_FillProperties (struct X3D_FillProperties *node) {
 	me->hatchColour[3] = 1.0;
 }
 
+void printBits(size_t const size, void const * const ptr);
+typedef struct vec2 {float u,v;} vec2;
 
+struct lineinfo {
+	//describes one cycle for a line pattern - for coords think in screen pixels
+	int type;
+	char * dscription;
+	int ndash; //counting both dash and gap
+	float dash[8]; //every 2nd x starts a gap ie dash-gap-dash-gap
+	float period; //sum of dash and gap length along u axis for 1 repeating cycle
+	vec2 zig[24];
+	int nzig;
+} linetypes [] = {
+{
+	1,
+	"solid",
+	1,
+	{48.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	2,
+	"dashed",
+	2,
+	{14.0f,10.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	3,
+	"dotted",
+	2,
+	{3.0f,11.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	4,
+	"dash-dotted",
+	4,
+	{10.0f,12.0f,2.0f,12.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	5,
+	"dash-dot-dot",
+	6,
+	{16.0f,10.0f,2.0f,9.0f,2.0f,9.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	6,
+	"single arrow",
+	1,
+	{24.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	7,
+	"single dot",
+	1,
+	{24.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	8,
+	"double arrow",
+	1,
+	{24.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	9,
+	"stitch line",
+	2,
+	{10.0f,10.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	10,
+	"chain line",
+	4,
+	{8.0f,4.0f,4.0f,4.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	11,
+	"cemter line",
+	2,
+	{8.0f,4.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	12,
+	"hidden line",
+	2,
+	{10.0f,4.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	13,
+	"phantom line",
+	6,
+	{24.0f,3.0f,6.0f,3.0f,6.0f,3.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+{
+	14,
+	"break line - style 1",
+	1,
+	{128.0f},
+	0.0f,
+	{{ 0.00f,0.0f},{ 9.60f,-1.44f},{12.80f,-1.28f},{14.72f,-2.40f},{19.20f,-1.76f},{24.32f,1.28f},{28.80f,2.24f},{36.96f,1.60f},{42.40f,2.24f},{48.00f,1.12f},{51.20f,-1.92f},{55.36f,-0.96f},{62.40f,1.28f},{76.80f,1.12f},{82.88f,-1.60f},{85.92f,-0.64f},{97.44f,4.32f},{101.12f,4.96f},{108.80f,1.12f},{112.16f,1.12f},{120.00f,0.00f},{125.12f,2.72f},{128.0f,0.0f}},
+	23,
+},
+{
+	15,
+	"break line - style 2",
+	1,
+	{36.0f},
+	0.0f,
+	{{0.f,0.f},{20.f,0.f},{24.f,4.f},{32.f,-4.f},{36.f,0.f},},
+	5,
+},
+{
+	16,
+	"fallback for user style 16",
+	1,
+	{48.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
+
+};
+
+static float style1_measurements [] = {
+120,95,
+180,87,
+200,88,
+212,81,
+240,85,
+272,104,
+300,110,
+351,106,
+385,110,
+420,103,
+440,84,
+466,90,
+510,104,
+600,103,
+638,86,
+657,92,
+729,123,
+752,127,
+800,103,
+821,103,
+870,96,
+902,113,
+922,95,
+};
+/*
+23 entries
+922 - 120 = 802 u_range
+110 - 81 = 29 v_range
+29/2 = 15, 81+15 = 96 u_median
+Subtract 120 and scale 800 into about 128 range
+subtract 96 and scale v by 2.5
+*/
+void print_style1(){
+	static int once = 0;
+	if(!once){
+		for(int i=0;i<23;i++){
+			vec2 p;
+			p.u = style1_measurements[i*2];
+			p.v = style1_measurements[i*2 + 1];
+			p.u -= 120.0;
+			p.u *= 128.0/800.0;
+			p.v -= 96.0;
+			p.v *= 128.0/800.0;
+			//printf("%d %f %f\n",i,p.u,p.v);
+			printf("{%5.2ff,%4.2ff},",p.u,p.v);
+
+		}
+		once = 1;
+	}
+}
+
+float make_linetype_atlas_row(float *dash, int ndash, vec2 *zig, int nzig,
+	float *uv_row, float *tse_row){
+	float period = 0.0f;
+	for(int j=0;j<ndash;j++)
+		period += dash[j];
+	float u_ = 0.0f; //u bar
+	float uu = 0.0f; //u*
+	int idash = 0; //current dash or gap
+	float curr_start = 0.0f;
+	float curr_end = dash[0];
+	int kzag = 0;
+	float zigv = 0.0f;
+	for(int j=0;j<(int)(period+.5);j++){
+		u_ = (float)j; //the current pixel relative to the starting pixel
+		if(u_ > curr_end){
+			curr_start = curr_end;
+			idash++;
+			curr_end = curr_start + dash[idash];
+		}
+		int gap = idash % 2 != 0 ? TRUE: FALSE; //assumes all linetypes start solid
+		if(gap){
+			//if we're in a gap, the end-cap inclusion is tested against the closest dash end uu
+			uu = u_ - curr_start < (curr_end - u_) ? curr_start : curr_end;
+		}else{
+			//if we're not in a gap, the we use a radius=linewidth/2 inclusion test to the current point along the centerline
+			uu = u_;
+		}
+		uv_row[j*2] = uu;
+		uv_row[j*2+1] = 0.0f; //v is normally 0 except zigzag lines
+		tse_row[j*3] = gap ? 0 : 2;
+		tse_row[j*3+1] = curr_start;
+		tse_row[j*3+2] = curr_end;
+		if(nzig){
+			//find the sizgag segment we're on
+			for(int k=1;k<nzig;k++){
+				vec2 d1 = zig[k];
+				vec2 d0 = zig[k-1];
+				if(d0.u <= u_ && u_ < d1.u){
+					//... and linearly interpolate current pixel v (perpendicular to line u direction
+					zigv = (u_ - d0.u)/(d1.u - d0.u) * (d1.v - d0.v) + d0.v;
+				}
+			}
+			uv_row[j*2+1] = zigv; //off-line-center v when zig-zagging
+		}
+	}
+	return period;
+}
+static float *linetype_atlas_uv = NULL;
+static float *linetype_atlas_tse = NULL;
+
+void make_linetype_atlas(struct matpropstruct *me){
+/*
+	goal: make it easy for the frag shader to know what to do with each fragment
+	by creating a 128 screen pixel long (enough for pattern period) 5-compoent parameterization
+	terminology:
+	u,v axes (similar to texture coords) with u aligned to line swegment and v perpendicular
+	uu or u* - where the pattern centerline or reference point is for u
+	ubar or u_ - where the current fragment is, in u,v system (gl_FragCoord.xy transformed to uv system)
+	(dx,dy) = ubar - uu
+	pattern period - pattern length, in screen pixeels, sent separately as u_lineperiod
+	for each pixel along period:
+	1) reference point uu - where measuring dx distance ends from
+	2) subtype 0= gap, 1= endcap 2= dash body
+	3) subtype start (measured along u axis from start of pattern period)
+	4) subtype end
+	5) v of pattern centerline (normally 0, except for wiggle and zigzag patterns which vary with u)
+	one author sent all linetypes as one float texture, that didn't work for us
+	so we are sending 2 uniform arrays[128] every frame
+	uv - uu reference point, and v (normally 0) (vec2)
+	tse - subtype, start, end (vec3)
+*/
+	int nlinetypes = 20; //specs have 1-16 with 16 being user specified
+	linetype_atlas_uv = MALLOCV(128*sizeof(float)*2*nlinetypes); 
+	linetype_atlas_tse = MALLOCV(128*sizeof(float)*3*nlinetypes);
+	memset(linetype_atlas_uv,0,128*sizeof(float)*2*nlinetypes);
+	memset(linetype_atlas_tse,0,128*sizeof(float)*3*nlinetypes);
+	for(int i=0;i<16;i++){
+		//we're going to store some industrial strength floats in a texture
+		//and use  texture sampler to extract them in the frag shader.
+		// see FORMULA paper link below for more details.
+		//Row 0
+		//R - uu reference point for testing if a fragment is within linewidth/2 radius
+		//G - dash subtype: 0-gap 1-startcap 2-body 3-endcap
+		//B - dash start (or gap start if its a gap)
+		//A - dash end (or gap end if its a gap)
+		//Row 1
+		//R - v - for break line style 2 and 2 which zigzag off center
+		float * uv_row = &linetype_atlas_uv[128*2*i]; //2 rows per linetype
+		float * tse_row = &linetype_atlas_tse[128*3*i]; //counldnt squeesze 5th number in RGBA so another row, well use R
+		struct lineinfo *lt = &linetypes[i];
+
+		int ndash = lt->ndash;
+		float *dash = lt->dash;
+		int nzig = lt->nzig;
+		vec2 *zig = (vec2 *)lt->zig;
+		lt->period = make_linetype_atlas_row(dash,ndash,zig,nzig,uv_row,tse_row);
+
+	}
+}
+struct style16{
+	float atlas_uv[256];
+	float atlas_tse[384];
+	float period;
+};
+void send_linetype_atlas_to_shader(struct X3D_LineProperties *node, struct matpropstruct *me){
+	if(linetype_atlas_uv){
+		if(me->linetype == 16 && node->__style16){
+			struct style16 *s16 = (struct style16 *)node->__style16;
+			me->linetype_uv =  &s16->atlas_uv[0];
+			me->linetype_tse = &s16->atlas_tse[0];
+		}else{
+			int irow = me->linetype-1;
+			me->linetype_uv = &linetype_atlas_uv[irow*2*128];
+			me->linetype_tse = &linetype_atlas_tse[irow*3*128];
+		}
+		int start_style, end_style;
+		start_style = node->__styleStart;
+		end_style = node->__styleEnd;
+		switch(me->linetype){
+			case 6: end_style = 1; break;
+			case 7: end_style = 2; break;
+			case 8: start_style = 1;
+					end_style = 1; break;
+			default:
+				break;
+		}
+		me->linestrip_start_style = start_style;
+		me->linestrip_end_style = end_style;
+	}
+}
+
+
+void compile_LineProperties(struct X3D_LineProperties *node) {
+	int start_style, end_style;
+	start_style = end_style = 0;
+	if(!strcmp(node->styleStart->strptr,"ARROW")) start_style = 1;
+	if(!strcmp(node->styleStart->strptr,"DOT")) start_style = 2;
+	if(!strcmp(node->styleEnd->strptr,"ARROW")) end_style = 1;
+	if(!strcmp(node->styleEnd->strptr,"DOT")) end_style = 2;
+	node->__styleStart = start_style;
+	node->__styleEnd = end_style;
+	if(node->type16dashes.n || node->type16wiggles.n){
+		if(node->__style16 == NULL){
+			node->__style16 = MALLOCV(sizeof(struct style16));
+			memset(node->__style16,0,sizeof(struct style16));
+		}
+		struct style16* s16 = node->__style16;
+		int ndash = node->type16dashes.n;
+		float *dash = node->type16dashes.p;
+		float *uv_row = s16->atlas_uv;
+		float *tse_row = s16->atlas_tse;
+		int nzig = node->type16wiggles.n;
+		vec2 *zig = (vec2 *)node->type16wiggles.p;
+		s16->period = make_linetype_atlas_row(dash,ndash,zig,nzig,uv_row,tse_row);
+	}
+	MARK_NODE_COMPILED
+}
 void render_LineProperties (struct X3D_LineProperties *node) {
-	#ifdef NEED_TO_ADD_TO_SHADER
-	much of this was working in older versions of FreeWRL,
-	before we went to 100% shader based code. Check FreeWRL
-	from (say) 2011 to see what the shader code looked like
+/*
+	Apr 2020 re-implementation
+	https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/shape.html#LineProperties
+	https://isotc.iso.org/livelink/livelink/fetch/-8916524/8916549/8916590/6208440/class_pages/linetype.html
+	- ISO linetypes referred to in specs
+	http://jcgt.org/published/0002/02/08/paper.pdf
+	http://jcgt.org/published/0002/02/08/ 
+	- FORMULA this researcher used an atlas to store / communicated linetype information to frag shader
+	x but doesn't show zig-zag lines
+	x doesn't show arrow, round start/ends - but has some formula for dash ends
+	* sends triangles
+	Our Modified approach Apr 2020:
+	- we free-load off desktop opengl GL_LINE_STRIP which internally generates triangles
+	- desktop maximum GL_LINE_STRIP linewidth is about 10 pixels
+	- 
+	- when doing a fancy line,we boost glLineWidth to 10, and frag shader discards unwanted fragments
+	- instead of texture atlas using full floats (x tried but didn't work), 
+		- we send linetype-specific float arrays as uniforms each frame render of a linetype
+	- frag programmatically adds arrow / round end according to uniforms and flat info
+	Future suggestions: 
+	- send mitered, depth mapped, near-plane-clipped triangles (instead of GL_LINE_STRIP)
+		https://mattdesl.svbtle.com/drawing-lines-is-hard
+	- start-of-linesegment phase offset for pattern continuity across corners (as FORMULA author does
+	- test on mobile/GLESX/ANGLE for shader versioning
 
-	GLushort pat;
-	#endif
+	VERTEX SHADER details
+	1) "FLAT INTERPOLATION QUALIFIER"
+	There's something called a Provoking Vertex and used with 'flat' interpolation qualfier in GLSL vertex shaders
+	https://www.khronos.org/opengl/wiki/Primitive#Provoking_vertex 
+	when using flat-shading on output variables,
+	every fragment generated by that primitive gets it's input from the output of the provoking vertex.
+	the default is GL_LAST_VERTEX_CONVENTION. 
+	- for GL_LINE_STRIP i+1 (means its the 2nd vertex's flat outputs that the frag shader gets along 1-2 line segment)
+	Alternate to using flat: even/odd (not attempted)
+	-- float index attributearray aka findex with even/odd mod/div in vertex shader so 2 varyings appear flat, 
+	-- and frag needs to choose the right one 
+	2) arrow / round ends > linestrip start/end segment flagging methods:
+	a) if sending both next and prev vertex attribute arrays
+		linestrip_start = curr == prev? start : curr == next ? end : middle 
+		x doesn't work - provoking vertex can't get at prev-prev
+	b) else if sending uniforms u_linestrip_start, u_linestrip_end 
+		same logic as a) except prev == u_linestrip_start or _curr == u_linestrip_end 
+		x the way we send linestrips in polyline chunks/segments makes this very awkward
+	c) else if using findex (float index, float count) => flat_start_end 
+		our chosem method - vertex shader checks findex == 1 ? start; if findex == count -1 ? end 
+	- then send boolean or round()able float 1/0 as flat, or using even/odd technqiue, to frag shader
+
+*/
+	//print_style1();
+	COMPILE_IF_REQUIRED
 
 	if (node->applied) {
 		//ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
 
 		if (node->linewidthScaleFactor > 1.0) {
 			struct matpropstruct *me;
-			glLineWidth(node->linewidthScaleFactor);
 			me= getAppearanceProperties();
-			me->pointSize = node->linewidthScaleFactor;
+			me->pointSize = node->linewidthScaleFactor ? node->linewidthScaleFactor : 1.0f;
+			//me->linetype = node->linetype;
+			glLineWidth(me->pointSize);
+		}
+		if(node->linetype > 1){
+			struct matpropstruct *me;
+			me= getAppearanceProperties();
+			//me->pointSize = node->linewidthScaleFactor;
+			me->linetype = node->linetype;
+			//if no atlas
+			// create atlas
+			if(linetype_atlas_uv == NULL){
+				make_linetype_atlas(me);
+			}
+			if(linetype_atlas_uv){
+				send_linetype_atlas_to_shader(node,me);
+			}
+			me->lineperiod = linetypes[node->linetype - 1].period;
+			me->linewidth = node->linewidthScaleFactor;
+			me->pointSize = 10.0f; //for GL_LINE_STRIP method, we let opengl make the triangles -plenty wide- and we discard frags to get linewidth
+			glLineWidth(me->pointSize);
 		}
 
-
 		#ifdef NEED_TO_ADD_TO_SHADER
+		// comments frmo year 2010? old/defunct glLineStiple patterns
+		//much of this was working in older versions of FreeWRL,
+		//before we went to 100% shader based code. Check FreeWRL
+		//from (say) 2011 to see what the shader code looked like
+		GLushort pat;
 		if (node->linetype > 1) {
 			pat = 0xffff; /* can not support fancy line types - this is the default */
 			switch (node->linetype) {
@@ -814,8 +1263,50 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 				default: {}
 			}
 		}
+		for(int i=1;i<14;i++){
+			ushort pat;
+			pat = 0xffff; /* can not support fancy line types - this is the default */
+			switch (i) {
+				case 2: pat = 0xff00; break; /* dashed */
+				case 3: pat = 0x4040; break; /* dotted */
+				case 4: pat = 0x04ff; break; /* dash dot */
+				case 5: pat = 0x44fe; break; /* dash dot dot */
+				case 6: pat = 0x0100; break; /* optional */
+				case 7: pat = 0x0100; break; /* optional */
+				case 10: pat = 0xaaaa; break; /* optional */
+				case 11: pat = 0x0170; break; /* optional */
+				case 12: pat = 0x0000; break; /* optional */
+				case 13: pat = 0x0000; break; /* optional */
+				default: {}
+			}
+			printBits(sizeof(ushort),&pat);
+		}
+		printf("\n");
 		#endif 
 	}
+}
+
+void compile_PointProperties ( struct X3D_PointProperties *node) {
+/*
+	_colormode //sfint32.
+	if(node->colorMode->p)
+["POINT_COLOR" | "TEXTURE_COLOR" | "TEXTURE_AND_POINT_COLOR"]
+enum {
+ACTION_WALK,
+ACTION_FLY2,
+ACTION_TILT,
+ACTION_BLANK
+} button_actions;
+
+struct pointprop_ {
+int action;
+char *help;
+} button_helps [] = {
+{ACTION_WALK, "WALK"},
+{ACTION_BLANK, NULL},
+*/
+};
+void render_PointProperties (struct X3D_PointProperties *node) {
 }
 
 textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);

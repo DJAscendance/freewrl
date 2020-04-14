@@ -1378,6 +1378,7 @@ void popnset_viewport();
 void render_bound_background();
 
 // called from MainLoop.c
+#include "../x3d_parser/Bindable.h"
 
 void generate_GeneratedCubeMapTextures(){
 	//call from mainloop once per frame:
@@ -1387,11 +1388,18 @@ void generate_GeneratedCubeMapTextures(){
 	//    render scene to fbo
 	//  convert fbo to regular cubemap texture
 	//clear cubegen list
+	double savebackmat[16];
 	Stack *gencube_stack;
 	ttglobal tg = gglobal();
 	ppComponent_CubeMapTexturing p = (ppComponent_CubeMapTexturing)tg->Component_CubeMapTexturing.prv;	
 	static int iframe = 0;
+	bindablestack *bstack;
+	bstack = getActiveBindableStacks(tg);
 
+	//set_viewmatrix();
+	//this function tampers with the normal background matrix, which has already been prepped for the mainloop rendering
+	//so save it, and restore after gencubemap loop of 6
+	memcpy(savebackmat,bstack->backgroundmatrix,16*sizeof(double));
 	iframe++;
 	gencube_stack = p->gencube_stack;
 	if(vectorSize(gencube_stack)){
@@ -1517,7 +1525,10 @@ void generate_GeneratedCubeMapTextures(){
 			popnset_framebuffer();
 			//compile_generatedcubemaptexture // convert to opengl
 		}
+
 		//clear cubegen list
 		gencube_stack->n = 0;
+		memcpy(bstack->backgroundmatrix,savebackmat,16*sizeof(double));
+
 	}
 }

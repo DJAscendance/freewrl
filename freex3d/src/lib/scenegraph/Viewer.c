@@ -192,6 +192,8 @@ void viewer_default0(X3D_Viewer *viewer, int vpnodetype) {
 	}else{
 		//all other viewpoint types - Viewpoint, GeoViewpoint ...
 		fwl_set_viewer_type0(viewer,VIEWER_EXAMINE);
+		viewer->nearPlane = 0.1;
+		viewer->farPlane = 210000.0;
 	}
 	viewer->LookatMode = 0;
 
@@ -212,6 +214,7 @@ X3D_Viewer *ViewerByLayerId(int layerid)
 		viewer = MALLOCV(sizeof(X3D_Viewer));
 		memset(viewer,0,sizeof(X3D_Viewer));
 		vpnodetype = bstack->nodetype == NODE_LayoutLayer ? NODE_OrthoViewpoint : NODE_Viewpoint;
+		//vpnodetype = bstack->nodetype == NODE_Layer ? NODE_OrthoViewpoint : vpnodetype;
 		viewer_default0(viewer,vpnodetype);
 		init_stereodefaults(viewer);
 		bstack->viewer = viewer;

@@ -405,11 +405,31 @@ our %Nodes = (
 		coordIndex => ["MFInt32", [], "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__vertArr  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertIndx  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__starts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__counts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__xcolours  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__xfog  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertices  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertexCount =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
+
+	"LineSet" => new VRML::NodeType("LineSet", [
+		attrib	=> ["MFNode", [], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		coord => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		fogCoord => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		vertexCount => ["MFInt32",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__vertArr  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__vertIndx  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__starts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		#__counts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+	],"X3DGeometryNode"),
+
 
 	"IndexedTriangleFanSet" => new VRML::NodeType("IndexedTriangleFanSet", [
 		set_index => ["MFInt32", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -463,18 +483,6 @@ our %Nodes = (
 		index => ["MFInt32", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		_coordIndex => ["MFInt32", [], "initializeOnly", 0,0],#ff
-	],"X3DGeometryNode"),
-
-	"LineSet" => new VRML::NodeType("LineSet", [
-		attrib	=> ["MFNode", [], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		color => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		coord => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		fogCoord => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		vertexCount => ["MFInt32",[],"inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		__vertArr  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		__vertIndx  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"Normal" => new VRML::NodeType("Normal", [
@@ -555,6 +563,7 @@ our %Nodes = (
 	"Appearance" => new VRML::NodeType ("Appearance", [
 		fillProperties => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		lineProperties => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pointProperties => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		material => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		backMaterial => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -578,7 +587,25 @@ our %Nodes = (
 		applied => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linetype => ["SFInt32", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		linewidthScaleFactor => ["SFFloat", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		type16dashes => ["MFFloat",0,"inputOutput", 0,0],#ff
+		type16wiggles => ["MFVec2f","NULL","inputOutput",0,0],#ff
+		styleStart => ["SFString","NONE","inputOutput",0,0],#ff
+		styleEnd => ["SFString","NONE","inputOutput",0,0],#ff
+		__styleStart => ["SFInt32",0,"inputOutput",0,0],#ff
+		__styleEnd => ["SFInt32",0,"inputOutput",0,0],#ff
+		__style16 => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+	],"X3DAppearanceChildNode"),
+
+	# v4 draft has PointProperties https://www.web3d.org/specifications/X3Dv4Draft/ISO-IEC19775-1v4-WD1/
+	"PointProperties" => new VRML::NodeType ("PointProperties", [
+		pointSizeScaleFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		pointSizeMinValue => ["SFFloat", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		pointSizeMaxValue => ["SFFloat", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		pointSizeAttenuation => ["MFFloat", [1,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		colorMode => ["SFString", "TEXTURE_AND_POINT_COLOR", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		_colormode =>["SFInt32", 0, "inputOutput",0,0]		
 	],"X3DAppearanceChildNode"),
 
 	# v4 https://github.com/michaliskambi/x3d-tests/wiki/X3D-version-4:-New-features-of-materials,-lights-and-textures#new-x3dmaterialnode-node-with-emissive-and-normalmap-textures
@@ -834,6 +861,7 @@ our %Nodes = (
 		startAngle => ["SFFloat", 0.0, "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
 		__points  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 	"ArcClose2D" => new VRML::NodeType("ArcClose2D", [
@@ -848,6 +876,7 @@ our %Nodes = (
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__simpleDisk => ["SFBool", "TRUE","initializeOnly", 0,0],#ff
 		__wireindices => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 
@@ -856,6 +885,7 @@ our %Nodes = (
 		radius => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff # see note top of file
 		__points  =>["MFVec2f",[],"initializeOnly", 0,0],#ff
 		__numPoints =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 	"Disk2D" => new VRML::NodeType("Disk2D", [
@@ -873,6 +903,7 @@ our %Nodes = (
 	"Polyline2D" => new VRML::NodeType("Polyline2D", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		lineSegments => ["MFVec2f", [], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		__linerep => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
  	],"X3DGeometryNode"),
 
 	"Polypoint2D" => new VRML::NodeType("Polypoint2D", [

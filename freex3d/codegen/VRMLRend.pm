@@ -148,6 +148,7 @@ our %defaultContainerType = (
 	PointSensor 		=>["children"],
 	PointLight 		=>["children"],
 	PointSet 		=>["geometry"],
+	PointProperties		=>["pointProperties"],
 	PositionInterpolator 	=>["children"],
 	PositionInterpolator2D 	=>["children"],
 	ProximitySensor 	=>["children"],
@@ -402,6 +403,7 @@ our %RendC = map {($_=>1)} qw/
 	Text
 	LineProperties
 	FillProperties
+	PointProperties
 	Material
 	UnlitMaterial
 	PhysicalMaterial
@@ -622,6 +624,7 @@ our %CompileC = map {($_=>1)} qw/
 	UnlitMaterial
 	PhysicalMaterial
 	TwoSidedMaterial
+	LineProperties
 	IndexedLineSet
 	LineSet
 	PointSet

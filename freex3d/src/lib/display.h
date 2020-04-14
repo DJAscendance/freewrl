@@ -420,7 +420,16 @@ typedef struct s_shader_capabilities{
 	GLint TexCoords[MAX_MULTITEXTURE];
 	GLint nTexCoordChannels;
 	GLint FogCoords; //Aug 2016
-	
+	GLint prevVertex; //for dashed lines
+	GLint nextVertex;
+	GLint linetype;
+	GLint lineperiod;
+	GLint linewidth;
+	GLint linestrip_start_style;
+	GLint linestrip_end_style;
+	GLint screenresolution;
+	GLint linetype_uv;
+	GLint linetype_tse;
 	//shared PTM and PBR
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
 

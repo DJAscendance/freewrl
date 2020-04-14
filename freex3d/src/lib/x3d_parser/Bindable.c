@@ -1563,7 +1563,7 @@ void render_prepped_Background(struct X3D_Background *node){
 	*/
 	didPerspective = FALSE;
 	
-	if(0){
+	if(1){
 		//we need to scale because somewhere else we set up a perspective transformation that 
 		//may have a big number for a nearPlane (ie with geo scenes stretching depth range)
 		//and the perspective transforms our z's into gl's 0 to 1 range for depth
@@ -1621,6 +1621,12 @@ void render_prepped_Background(struct X3D_Background *node){
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	if(didPerspective){
+		if(1) {
+			FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_POP_MATRIX();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		}
+		else
 		fw_depth_slice_pop();
 	}
 		
@@ -1778,7 +1784,7 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
 	didPerspective = FALSE;
 
-	if(0){
+	if(1){
 		bgscale = 1.0;
 		if( viewer->nearPlane > bgscale) bgscale = viewer->nearPlane;
 		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
@@ -1824,6 +1830,8 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	}
 	glEnable(GL_DEPTH_TEST);
 	if(didPerspective){
+		if(1){}
+		else
 		fw_depth_slice_pop();
 	}
 
