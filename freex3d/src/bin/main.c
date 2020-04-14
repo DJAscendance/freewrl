@@ -206,15 +206,14 @@ int main (int argc, char **argv)
 	//fwl_init_StereoDefaults();
 
     /* parse command line arguments */
+	start_url = NULL;
     if (fv_parseCommandLine(argc, argv,fv_params, &url_index)) {
-		if(argc > 1){
+		if(argc > 1 && url_index > -1){
 			start_url = argv[url_index];
 #ifdef _MSC_VER
 			if(start_url)
 				start_url = strBackslash2fore(start_url);
 #endif
-		}else{
-			start_url = NULL;
 		}
     }
 

@@ -119,7 +119,7 @@ void fv_usage()
 #ifdef HAVE_LIBCURL
 	    "  -C|--curl               Use libcurl instead of wget.\n"
 #endif
-	    ""
+	    "\n\n"
 	);
 }
 
