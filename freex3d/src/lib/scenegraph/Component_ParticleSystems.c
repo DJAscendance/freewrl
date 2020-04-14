@@ -1195,7 +1195,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 		//CREATE via emitters (implied dtime = 0, so no physics on first frame)
 		_particles->n = j;
-		if(node->createParticles && _particles->n < maxparticles){
+		if(node->createParticles && _particles->n < maxparticles && node->emitter){
 			//create new particles to reach maxparticles limit
 			int n_per_frame, n_needed, n_this_frame;
 			float particles_per_second, particles_per_frame;
