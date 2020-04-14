@@ -939,6 +939,15 @@ struct lineinfo {
 	{{0.f,0.f},{20.f,0.f},{24.f,4.f},{32.f,-4.f},{36.f,0.f},},
 	5,
 },
+{
+	16,
+	"fallback for user style 16",
+	1,
+	{48.0f},
+	0.0f,
+	{{0.0,0.0}},
+	0,
+},
 
 };
 
@@ -1022,7 +1031,7 @@ void make_linetype_atlas(struct matpropstruct *me){
 	linetype_atlas_tse = MALLOCV(128*sizeof(float)*3*nlinetypes);
 	memset(linetype_atlas_uv,0,128*sizeof(float)*2*nlinetypes);
 	memset(linetype_atlas_tse,0,128*sizeof(float)*3*nlinetypes);
-	for(int i=0;i<15;i++){
+	for(int i=0;i<16;i++){
 		//we're going to store some industrial strength floats in a texture
 		//and use  texture sampler to extract them in the frag shader.
 		// see FORMULA paper link below for more details.

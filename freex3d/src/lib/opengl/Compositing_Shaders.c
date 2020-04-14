@@ -1051,14 +1051,14 @@ bool on_linetype(inout vec4 frag_color){ \n\
 			//if( length(ubarperiod-uu) > u_linewidth *.5 ) on = false; \n\
 		} \n\
 		//do fancy linestrip end if required and on linestrip end segment \n\
-		if( u_linestrip_end_style > 0 || u_linestrip_end_style > 0) \n\
+		if( u_linestrip_start_style > 0 || u_linestrip_end_style > 0) \n\
 		if(!approx(f_linestrip_end,0.0)){ \n\
 			//a line can be both start and and of polyline \n\
 			bool s_start = approx(mod(f_linestrip_end,2.0),1.0); \n\
 			bool s_end = approx(floor(f_linestrip_end/2.0),1.0); \n\
 			if(s_start){ \n\
 				vec2 uend = vec2(0.0); \n\
-				if(u_linestrip_end_style == 1){ \n\
+				if(u_linestrip_start_style == 1){ \n\
 					//arrow end \n\
 					float arrowlength = 14.0; \n\
 					vec2 head = vec2(uend.s + arrowlength,0.0); \n\
@@ -1068,7 +1068,7 @@ bool on_linetype(inout vec4 frag_color){ \n\
 						float d = 2.0*range.t + range.s; \n\
 						if(d < arrowlength) on = true; \n\
 					} \n\
-				} else if(u_linestrip_end_style == 2){ \n\
+				} else if(u_linestrip_start_style == 2){ \n\
 					//round end \n\
 					float radius = 6.0; \n\
 					vec2 center = vec2(0.0); \n\
