@@ -1002,126 +1002,6 @@ void print_style1(){
 		once = 1;
 	}
 }
-static float *linetype_atlas_uv = NULL;
-static float *linetype_atlas_tse = NULL;
-
-void make_linetype_atlas(struct matpropstruct *me){
-/*
-	goal: make it easy for the frag shader to know what to do with each fragment
-	by creating a 128 screen pixel long (enough for pattern period) 5-compoent parameterization
-	terminology:
-	u,v axes (similar to texture coords) with u aligned to line swegment and v perpendicular
-	uu or u* - where the pattern centerline or reference point is for u
-	ubar or u_ - where the current fragment is, in u,v system (gl_FragCoord.xy transformed to uv system)
-	(dx,dy) = ubar - uu
-	pattern period - pattern length, in screen pixeels, sent separately as u_lineperiod
-	for each pixel along period:
-	1) reference point uu - where measuring dx distance ends from
-	2) subtype 0= gap, 1= endcap 2= dash body
-	3) subtype start (measured along u axis from start of pattern period)
-	4) subtype end
-	5) v of pattern centerline (normally 0, except for wiggle and zigzag patterns which vary with u)
-	one author sent all linetypes as one float texture, that didn't work for us
-	so we are sending 2 uniform arrays[128] every frame
-	uv - uu reference point, and v (normally 0) (vec2)
-	tse - subtype, start, end (vec3)
-*/
-	int nlinetypes = 20; //specs have 1-16 with 16 being user specified
-	linetype_atlas_uv = MALLOCV(128*sizeof(float)*2*nlinetypes); 
-	linetype_atlas_tse = MALLOCV(128*sizeof(float)*3*nlinetypes);
-	memset(linetype_atlas_uv,0,128*sizeof(float)*2*nlinetypes);
-	memset(linetype_atlas_tse,0,128*sizeof(float)*3*nlinetypes);
-	for(int i=0;i<16;i++){
-		//we're going to store some industrial strength floats in a texture
-		//and use  texture sampler to extract them in the frag shader.
-		// see FORMULA paper link below for more details.
-		//Row 0
-		//R - uu reference point for testing if a fragment is within linewidth/2 radius
-		//G - dash subtype: 0-gap 1-startcap 2-body 3-endcap
-		//B - dash start (or gap start if its a gap)
-		//A - dash end (or gap end if its a gap)
-		//Row 1
-		//R - v - for break line style 2 and 2 which zigzag off center
-		float * uv_row = &linetype_atlas_uv[128*2*i]; //2 rows per linetype
-		float * tse_row = &linetype_atlas_tse[128*3*i]; //counldnt squeesze 5th number in RGBA so another row, well use R
-		struct lineinfo *lt = &linetypes[i];
-		float period = 0.0f;
-		for(int j=0;j<lt->ndash;j++)
-			period += lt->dash[j];
-		lt->period = period;
-		float u_ = 0.0f; //u bar
-		float uu = 0.0f; //u*
-		int idash = 0; //current dash or gap
-		float curr_start = 0.0f;
-		float curr_end = lt->dash[0];
-		int kzag = 0;
-		float zigv = 0.0f;
-		for(int j=0;j<(int)(period+.5);j++){
-			u_ = (float)j; //the current pixel relative to the starting pixel
-			if(u_ > curr_end){
-				curr_start = curr_end;
-				idash++;
-				curr_end = curr_start + lt->dash[idash];
-			}
-			int gap = idash % 2 != 0 ? TRUE: FALSE; //assumes all linetypes start solid
-			if(gap){
-				//if we're in a gap, the end-cap inclusion is tested against the closest dash end uu
-				uu = u_ - curr_start < (curr_end - u_) ? curr_start : curr_end;
-			}else{
-				//if we're not in a gap, the we use a radius=linewidth/2 inclusion test to the current point along the centerline
-				uu = u_;
-			}
-			uv_row[j*2] = uu;
-			uv_row[j*2+1] = 0.0f; //v is normally 0 except zigzag lines
-			tse_row[j*3] = gap ? 0 : 2;
-			tse_row[j*3+1] = curr_start;
-			tse_row[j*3+2] = curr_end;
-			if(lt->nzig){
-				//find the sizgag segment we're on
-				for(int k=1;k<lt->nzig;k++){
-					vec2 d1 = lt->zig[k];
-					vec2 d0 = lt->zig[k-1];
-					if(d0.u <= u_ && u_ < d1.u){
-						//... and linearly interpolate current pixel v (perpendicular to line u direction
-						zigv = (u_ - d0.u)/(d1.u - d0.u) * (d1.v - d0.v) + d0.v;
-					}
-				}
-				uv_row[j*2+1] = zigv; //off-line-center v when zig-zagging
-			}
-		}
-	}
-}
-struct style16{
-	float atlas_uv[256];
-	float atlas_tse[384];
-	float period;
-};
-void send_linetype_atlas_to_shader(struct X3D_LineProperties *node, struct matpropstruct *me){
-	if(linetype_atlas_uv){
-		if(me->linetype == 16 && node->__style16){
-			struct style16 *s16 = (struct style16 *)node->__style16;
-			me->linetype_uv =  &s16->atlas_uv[0];
-			me->linetype_tse = &s16->atlas_tse[0];
-		}else{
-			int irow = me->linetype-1;
-			me->linetype_uv = &linetype_atlas_uv[irow*2*128];
-			me->linetype_tse = &linetype_atlas_tse[irow*3*128];
-		}
-		int start_style, end_style;
-		start_style = node->__styleStart;
-		end_style = node->__styleEnd;
-		switch(me->linetype){
-			case 6: end_style = 1; break;
-			case 7: end_style = 2; break;
-			case 8: start_style = 1;
-					end_style = 1; break;
-			default:
-				break;
-		}
-		me->linestrip_start_style = start_style;
-		me->linestrip_end_style = end_style;
-	}
-}
 
 float make_linetype_atlas_row(float *dash, int ndash, vec2 *zig, int nzig,
 	float *uv_row, float *tse_row){
@@ -1170,6 +1050,91 @@ float make_linetype_atlas_row(float *dash, int ndash, vec2 *zig, int nzig,
 	}
 	return period;
 }
+static float *linetype_atlas_uv = NULL;
+static float *linetype_atlas_tse = NULL;
+
+void make_linetype_atlas(struct matpropstruct *me){
+/*
+	goal: make it easy for the frag shader to know what to do with each fragment
+	by creating a 128 screen pixel long (enough for pattern period) 5-compoent parameterization
+	terminology:
+	u,v axes (similar to texture coords) with u aligned to line swegment and v perpendicular
+	uu or u* - where the pattern centerline or reference point is for u
+	ubar or u_ - where the current fragment is, in u,v system (gl_FragCoord.xy transformed to uv system)
+	(dx,dy) = ubar - uu
+	pattern period - pattern length, in screen pixeels, sent separately as u_lineperiod
+	for each pixel along period:
+	1) reference point uu - where measuring dx distance ends from
+	2) subtype 0= gap, 1= endcap 2= dash body
+	3) subtype start (measured along u axis from start of pattern period)
+	4) subtype end
+	5) v of pattern centerline (normally 0, except for wiggle and zigzag patterns which vary with u)
+	one author sent all linetypes as one float texture, that didn't work for us
+	so we are sending 2 uniform arrays[128] every frame
+	uv - uu reference point, and v (normally 0) (vec2)
+	tse - subtype, start, end (vec3)
+*/
+	int nlinetypes = 20; //specs have 1-16 with 16 being user specified
+	linetype_atlas_uv = MALLOCV(128*sizeof(float)*2*nlinetypes); 
+	linetype_atlas_tse = MALLOCV(128*sizeof(float)*3*nlinetypes);
+	memset(linetype_atlas_uv,0,128*sizeof(float)*2*nlinetypes);
+	memset(linetype_atlas_tse,0,128*sizeof(float)*3*nlinetypes);
+	for(int i=0;i<16;i++){
+		//we're going to store some industrial strength floats in a texture
+		//and use  texture sampler to extract them in the frag shader.
+		// see FORMULA paper link below for more details.
+		//Row 0
+		//R - uu reference point for testing if a fragment is within linewidth/2 radius
+		//G - dash subtype: 0-gap 1-startcap 2-body 3-endcap
+		//B - dash start (or gap start if its a gap)
+		//A - dash end (or gap end if its a gap)
+		//Row 1
+		//R - v - for break line style 2 and 2 which zigzag off center
+		float * uv_row = &linetype_atlas_uv[128*2*i]; //2 rows per linetype
+		float * tse_row = &linetype_atlas_tse[128*3*i]; //counldnt squeesze 5th number in RGBA so another row, well use R
+		struct lineinfo *lt = &linetypes[i];
+
+		int ndash = lt->ndash;
+		float *dash = lt->dash;
+		int nzig = lt->nzig;
+		vec2 *zig = (vec2 *)lt->zig;
+		lt->period = make_linetype_atlas_row(dash,ndash,zig,nzig,uv_row,tse_row);
+
+	}
+}
+struct style16{
+	float atlas_uv[256];
+	float atlas_tse[384];
+	float period;
+};
+void send_linetype_atlas_to_shader(struct X3D_LineProperties *node, struct matpropstruct *me){
+	if(linetype_atlas_uv){
+		if(me->linetype == 16 && node->__style16){
+			struct style16 *s16 = (struct style16 *)node->__style16;
+			me->linetype_uv =  &s16->atlas_uv[0];
+			me->linetype_tse = &s16->atlas_tse[0];
+		}else{
+			int irow = me->linetype-1;
+			me->linetype_uv = &linetype_atlas_uv[irow*2*128];
+			me->linetype_tse = &linetype_atlas_tse[irow*3*128];
+		}
+		int start_style, end_style;
+		start_style = node->__styleStart;
+		end_style = node->__styleEnd;
+		switch(me->linetype){
+			case 6: end_style = 1; break;
+			case 7: end_style = 2; break;
+			case 8: start_style = 1;
+					end_style = 1; break;
+			default:
+				break;
+		}
+		me->linestrip_start_style = start_style;
+		me->linestrip_end_style = end_style;
+	}
+}
+
+
 void compile_LineProperties(struct X3D_LineProperties *node) {
 	int start_style, end_style;
 	start_style = end_style = 0;
