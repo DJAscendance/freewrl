@@ -1167,28 +1167,21 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 		}
 	}
 }
-
-void compile_PointProperties ( struct X3D_PointProperties *node) {
-/*
-	_colormode //sfint32.
-	if(node->colorMode->p)
-["POINT_COLOR" | "TEXTURE_COLOR" | "TEXTURE_AND_POINT_COLOR"]
 enum {
-ACTION_WALK,
-ACTION_FLY2,
-ACTION_TILT,
-ACTION_BLANK
-} button_actions;
-
-struct pointprop_ {
-int action;
-char *help;
-} button_helps [] = {
-{ACTION_WALK, "WALK"},
-{ACTION_BLANK, NULL},
-*/
+PP_COLORMODE_POINT = 1,
+PP_COLORMODE_TEXTURE = 2,
+PP_COLORMODE_BOTH = 3, //specs default, perl default
+} pointproperties_colormodes;
+void compile_PointProperties ( struct X3D_PointProperties *node) {
+	node->_colormode = 3;
+	if(!strcmp(node->colorMode->strptr,"POINT_COLOR")) node->_colormode = PP_COLORMODE_POINT; //1
+	if(!strcmp(node->colorMode->strptr,"TEXTURE_COLOR")) node->_colormode = PP_COLORMODE_TEXTURE; //2
+	if(!strcmp(node->colorMode->strptr,"TEXTURE_AND_POINT_COLOR")) node->_colormode = PP_COLORMODE_BOTH; //3
+	MARK_NODE_COMPILED
 };
 void render_PointProperties (struct X3D_PointProperties *node) {
+	COMPILE_IF_REQUIRED
+
 	struct matpropstruct *me;
 	me= getAppearanceProperties();
 	me->pointSize = node->pointSizeScaleFactor > 0.0f ? node->pointSizeScaleFactor : 1.0f;

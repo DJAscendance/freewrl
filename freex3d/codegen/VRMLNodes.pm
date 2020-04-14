@@ -605,7 +605,7 @@ our %Nodes = (
 		pointSizeAttenuation => ["MFFloat", [1,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		colorMode => ["SFString", "TEXTURE_AND_POINT_COLOR", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		_colormode =>["SFInt32", 0, "inputOutput",0,0]		
+		_colormode =>["SFInt32", 3, "inputOutput",0,0]		
 	],"X3DAppearanceChildNode"),
 
 	# v4 https://github.com/michaliskambi/x3d-tests/wiki/X3D-version-4:-New-features-of-materials,-lights-and-textures#new-x3dmaterialnode-node-with-emissive-and-normalmap-textures

@@ -3180,7 +3180,8 @@ void other_PointPickSensor(struct X3D_PointPickSensor *);
 struct X3D_Virt virt_PointPickSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)other_PointPickSensor,NULL,NULL};
 
 void render_PointProperties(struct X3D_PointProperties *);
-struct X3D_Virt virt_PointProperties = { NULL,(void *)render_PointProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_PointProperties(struct X3D_PointProperties *);
+struct X3D_Virt virt_PointProperties = { NULL,(void *)render_PointProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_PointProperties};
 
 struct X3D_Virt virt_PointSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -12178,7 +12179,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->pointSizeAttenuation.n=3;;
 			tmp2->colorMode = newASCIIString("TEXTURE_AND_POINT_COLOR");
 			tmp2->metadata = NULL;
-			tmp2->_colormode = 0;
+			tmp2->_colormode = 3;
 			tmp2->_defaultContainer = FIELDNAMES_pointProperties;
 		break;
 		}
