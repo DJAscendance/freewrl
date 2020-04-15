@@ -240,6 +240,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_angularVelocity",
 	"_appliedParameters",
 	"_appliedParametersMask",
+	"_attenuation",
 	"_backMaterial",
 	"_bboxCenter",
 	"_bboxSize",
@@ -341,6 +342,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_signal",
 	"_pduchange_transmitter",
 	"_phaseFunction",
+	"_pointMethod",
 	"_pointsVBO",
 	"_portions",
 	"_position",
@@ -6500,6 +6502,8 @@ const int OFFSETS_PointProperties[] = {
 	(int) FIELDNAMES_colorMode, (int) offsetof (struct X3D_PointProperties, colorMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PointProperties, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__colormode, (int) offsetof (struct X3D_PointProperties, _colormode),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__attenuation, (int) offsetof (struct X3D_PointProperties, _attenuation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES__pointMethod, (int) offsetof (struct X3D_PointProperties, _pointMethod),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PointSensor[] = {
@@ -12182,6 +12186,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->colorMode = newASCIIString("TEXTURE_AND_POINT_COLOR");
 			tmp2->metadata = NULL;
 			tmp2->_colormode = 3;
+			tmp2->_attenuation.c[0] = 1.0f;tmp2->_attenuation.c[1] = 0.0f;tmp2->_attenuation.c[2] = 0.0f;
+			tmp2->_pointMethod = 3;
 			tmp2->_defaultContainer = FIELDNAMES_pointProperties;
 		break;
 		}
@@ -17303,6 +17309,14 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    if(allFields) {
 			spacer fprintf (fp," _colormode (SFInt32) \t%d\n",tmp->_colormode);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _attenuation (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->_attenuation.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _pointMethod (SFInt32) \t%d\n",tmp->_pointMethod);
 		    }
 		    break;
 		}

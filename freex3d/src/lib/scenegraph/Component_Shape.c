@@ -1177,6 +1177,18 @@ void compile_PointProperties ( struct X3D_PointProperties *node) {
 	if(!strcmp(node->colorMode->strptr,"POINT_COLOR")) node->_colormode = PP_COLORMODE_POINT; //1
 	if(!strcmp(node->colorMode->strptr,"TEXTURE_COLOR")) node->_colormode = PP_COLORMODE_TEXTURE; //2
 	if(!strcmp(node->colorMode->strptr,"TEXTURE_AND_POINT_COLOR")) node->_colormode = PP_COLORMODE_BOTH; //3
+	{
+		float *attenuation = node->_attenuation.c;
+		attenuation[0] = node->pointSizeAttenuation.n > 0 ? attenuation[0] = node->pointSizeAttenuation.p[0] : 1.0f;
+		attenuation[1] = node->pointSizeAttenuation.n > 1 ? attenuation[1] = node->pointSizeAttenuation.p[1] : 0.0f;
+		attenuation[2] = node->pointSizeAttenuation.n > 0 ? attenuation[2] = node->pointSizeAttenuation.p[2] : 0.0f;
+	}
+	{
+		int SCREENSCALE = APPROX(node->_attenuation.c[0],1.0f) && APPROX(node->_attenuation.c[1],0.0f) && APPROX(node->_attenuation.c[2],0.0f) ? TRUE : FALSE;  //no fancy attenuation
+		SCREENSCALE = SCREENSCALE && APPROX(node->pointSizeMinValue,node->pointSizeMaxValue); // min = max, no fancy scaling?
+		node->_pointMethod = SCREENSCALE && node->_colormode == 1 ? 0 : 1; //no fancy texturing?
+		
+	}
 	MARK_NODE_COMPILED
 };
 void render_PointProperties (struct X3D_PointProperties *node) {
@@ -1186,6 +1198,11 @@ void render_PointProperties (struct X3D_PointProperties *node) {
 	me= getAppearanceProperties();
 	me->pointSize = node->pointSizeScaleFactor > 0.0f ? node->pointSizeScaleFactor : 1.0f;
 	//glPointSize(me->pointSize); //sent later frmm opegl_utils.c
+	veccopy3f(me->pointsizeAttenuation,node->_attenuation.c);
+	me->pointColorMode = node->_colormode;
+	me->pointsizeRange[0] = node->pointSizeMinValue;
+	me->pointsizeRange[1] = node->pointSizeMaxValue;
+	me->pointMethod = node->_pointMethod;
 }
 
 textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);

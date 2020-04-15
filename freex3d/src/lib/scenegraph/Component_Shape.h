@@ -193,7 +193,7 @@ struct matpropstruct {
 	int 	cullFace;	/* is this single-sided or two-sided? Simply used to reduce calls to
 						GL_ENABLE(GL_CULL_FACE), etc */
 
-	/* for FillProperties, and LineProperties, line type (NOT pointsize) */
+	// FillProperties
 	bool hatchedBool;
 	bool filledBool;
 	GLfloat hatchPercent[2];
@@ -201,7 +201,7 @@ struct matpropstruct {
 	GLfloat hatchColour[4];
 	int hatchAlgo;
 
-	//linetypes
+	//LineProperties and linetypes
 	int linetype;
 	float lineperiod;
 	float linewidth; //this goes direct to our frag shader
@@ -209,8 +209,13 @@ struct matpropstruct {
 	float * linetype_tse;
 	int linestrip_start_style;
 	int linestrip_end_style;
-	// points now specified in shader, not via an opengl call 
+
+	//PointProperties and PointSet
 	GLfloat pointSize;   //this goes to old opengl internal geometry shader
+	int pointMethod; //0 = GL_POINTS (old, simple way) 1= GL_TRIANGLES (a quad per point sprite, like ParticleSystems)
+	float pointsizeRange[2];
+	float pointsizeAttenuation[3];
+	int pointColorMode;
 
 	//TextureCoordinateGenerator value - a "TCGT_XXX" type
 	int texCoordGeneratorType;

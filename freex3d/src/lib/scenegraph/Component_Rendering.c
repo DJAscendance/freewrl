@@ -770,8 +770,8 @@ void render_PointSet (struct X3D_PointSet *node) {
 		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
 	}
 	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
-
-	sendArraysToGPU(GL_POINTS,0,node->_npoints);
+	if(getAppearanceProperties()->pointMethod == 0)
+		sendArraysToGPU(GL_POINTS,0,node->_npoints);
 }
 
 void render_LineSet (struct X3D_LineSet *node) {
