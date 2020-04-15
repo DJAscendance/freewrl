@@ -710,6 +710,36 @@ void compile_PointSet (struct X3D_PointSet *node) {
 			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
 		}
 	}
+	if (node->fogCoord) {
+		struct X3D_FogCoordinate *fc = NULL;
+		float *fog = NULL;
+		int nfog = 0;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_FogCoordinate *, node->fogCoord,fc)
+		if(fc){
+			if (fc->_nodeType != NODE_FogCoordinate) {
+				ConsoleMessage ("make_PointSet fogCoord, expected %d got %d\n", NODE_FogCoordinate, fc->_nodeType);
+			} else {
+				nfog = fc->depth.n;
+				fog = fc->depth.p;
+			}
+		}
+
+
+		if(nfog && nfog < node->_npoints) {
+			ConsoleMessage ("PointSet has less fogcoord than points - removing fog\n");
+			nfog = 0;
+		} else {
+			if (node->_fogcoordVBO == 0) {
+				glGenBuffers(1,(GLuint *)&node->_fogcoordVBO);
+			}
+        
+			/* RGB or RGBA? */
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_fogcoordVBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*nfog, fog, GL_STATIC_DRAW);
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+		}
+	}
+
 }
 
 
@@ -733,6 +763,11 @@ void render_PointSet (struct X3D_PointSet *node) {
 	if (node->_coloursVBO != 0) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
 		FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
+	}
+	// do we have fogcoord?
+	if (node->_fogcoordVBO != 0) {
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_fogcoordVBO);
+		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
 	}
 	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
 

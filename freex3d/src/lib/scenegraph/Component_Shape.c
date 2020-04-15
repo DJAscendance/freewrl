@@ -715,7 +715,7 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 			if (pp->_nodeType != NODE_PointProperties) {
 				ConsoleMessage("getAppearanceShader, pointProperties has a node type of %s",stringNodeType(pp->_nodeType));
 			} else {
-				if(X3D_POINTPROPERTIES(pp)->_colormode > 0)
+				//if(X3D_POINTPROPERTIES(pp)->_colormode > 1)
 					retval |= POINT_PROPERTIES_SHADER;
 			}
 		}

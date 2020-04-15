@@ -498,8 +498,9 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_pointsVBO =>["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_coloursVBO =>["SFInt32", 0, "initializeOnly", 0,0],#ff
-		_npoints =>["SFInt32", 0, "initializeOnly", 0,0],#ff
-		_colourSize =>["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_fogcoordVBO =>["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_npoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_colourSize => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"TriangleFanSet" => new VRML::NodeType("TriangleFanSet", [
