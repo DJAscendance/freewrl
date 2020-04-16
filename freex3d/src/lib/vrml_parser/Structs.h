@@ -8688,6 +8688,7 @@ struct X3D_PointSet {
 	int _fogcoordVBO;
 	int _npoints;
 	int _colourSize;
+	void * _tris;
 };
 extern struct X3D_Virt virt_PointSet;
 /***********************/

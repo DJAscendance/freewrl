@@ -510,8 +510,10 @@ out vec2 v_curr; \n\
 in vec3 a_prevVertex; \n\
 in vec3 a_nextVertex; \n\
 uniform int u_linetype; \n\
-uniform vec2 u_screenresolution; \n\
 #endif //LINETYPE \n\
+#if defined(LINETYPE) || defined(POINTP) \n\
+uniform vec2 u_screenresolution; \n\
+#endif // LINETYPE POINTP \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
@@ -667,6 +669,14 @@ varying vec4 cpv_Color; \n\
 uniform vec3 particlePosition; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
+#ifdef POINTP \n\
+uniform float u_pointSize; \n\
+uniform vec3 u_pointAttenuation; \n\
+uniform vec2 u_pointSizeRange; \n\
+uniform int u_pointtColorMode; \n\
+uniform vec3 u_pointPosition; \n\
+uniform int u_pointMethod; \n\
+#endif //POINTP \n\
 #ifdef PROJTEX \n\
 uniform mat4 projTexGenMatCam[8]; \n\
 uniform int pCount; \n\
@@ -858,6 +868,33 @@ void main(void) \n\
   \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
   \n\
+  #ifdef POINTP \n\
+	if(u_pointMethod == 1) { \n\
+		//OBJECTSCALE - keep sprite-aligned but size fade with distance \n\
+		vec4 ppos = vec4(u_pointPosition,1.0); \n\
+		vec4 point_eye = fw_ModelViewMatrix * ppos; \n\
+		ppos.x += 1.0; \n\
+		vec4 point_eye1 = fw_ModelViewMatrix * ppos; \n\
+		float pscal = length(point_eye1.xyz - point_eye.xyz); \n\
+		castle_vertex_eye = point_eye + pscal*vertex_object*u_pointSize; \n\
+	  gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
+	}else { \n\
+		//u_pointMehod == 2, fancy attenuation \n\
+		vec4 ppos = vec4(u_pointPosition,1.0); \n\
+		vec4 castle_vertex_eye = fw_ModelViewMatrix * ppos; \n\
+		float zdist = castle_vertex_eye.z; \n\
+		vec4 view_position = fw_ProjectionMatrix * castle_vertex_eye; \n\
+		float pscal = u_pointAttenuation.x + zdist*u_pointAttenuation.y + zdist*zdist*u_pointAttenuation.z; \n\
+		if(pscal > 0.0) pscal = u_pointSize/pscal; \n\
+		else pscal = u_pointSize; \n\
+		pscal = max(pscal,u_pointSizeRange.x); \n\
+		pscal = min(pscal,u_pointSizeRange.y); \n\
+		//convert from screen pixel size to view coords \n\
+		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution) *vec2(2.0)* view_position.w; \n\
+		view_position.xy += view_point; \n\
+		gl_Position = view_position; \n\
+	} \n\
+  #endif //POINTP \n\
   #ifdef CUB \n\
   //cubemap \n\
   vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
@@ -1493,6 +1530,10 @@ void main(void) \n\
 	\n\
 //STEP1 INITIALIZE \n\
 	vec4 fragment_color; \n\
+	//#ifdef POINTP \n\
+	//	gl_FragColor = vec4(1.0); \n\
+	//	return; \n\
+	//#endif \n\
 	#ifdef LINE \n\
 		vec4 dcolor = vec4(1.0); \n\
 		dcolor.rgb = getEmissive(); \n\
@@ -2874,6 +2915,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if(DESIRE(whichOne.base,LINE_PROPERTIES_SHADER)) {
 		AddDefine(SHADERPART_VERTEX,"LINETYPE",CompleteCode);		
 		AddDefine(SHADERPART_FRAGMENT,"LINETYPE",CompleteCode);		
+	}
+	//POINT PROPERTIES 
+	if(DESIRE(whichOne.base,POINT_PROPERTIES_SHADER)) {
+		AddDefine(SHADERPART_VERTEX,"POINTP",CompleteCode);		
+		AddDefine(SHADERPART_FRAGMENT,"POINTP",CompleteCode);	
 	}
 	//FOG
 	if(DESIRE(whichOne.base,FOG_APPEARANCE_SHADER)){

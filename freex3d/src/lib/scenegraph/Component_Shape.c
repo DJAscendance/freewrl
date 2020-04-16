@@ -715,7 +715,7 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 			if (pp->_nodeType != NODE_PointProperties) {
 				ConsoleMessage("getAppearanceShader, pointProperties has a node type of %s",stringNodeType(pp->_nodeType));
 			} else {
-				//if(X3D_POINTPROPERTIES(pp)->_colormode > 1)
+				if(X3D_POINTPROPERTIES(pp)->_pointMethod > 0) //_colormode > 1)
 					retval |= POINT_PROPERTIES_SHADER;
 			}
 		}
@@ -1173,6 +1173,7 @@ PP_COLORMODE_TEXTURE = 2,
 PP_COLORMODE_BOTH = 3, //specs default, perl default
 } pointproperties_colormodes;
 void compile_PointProperties ( struct X3D_PointProperties *node) {
+	update_node(node); //should hit change flag of parents so they recompile
 	node->_colormode = 3;
 	if(!strcmp(node->colorMode->strptr,"POINT_COLOR")) node->_colormode = PP_COLORMODE_POINT; //1
 	if(!strcmp(node->colorMode->strptr,"TEXTURE_COLOR")) node->_colormode = PP_COLORMODE_TEXTURE; //2
@@ -1186,7 +1187,10 @@ void compile_PointProperties ( struct X3D_PointProperties *node) {
 	{
 		int SCREENSCALE = APPROX(node->_attenuation.c[0],1.0f) && APPROX(node->_attenuation.c[1],0.0f) && APPROX(node->_attenuation.c[2],0.0f) ? TRUE : FALSE;  //no fancy attenuation
 		SCREENSCALE = SCREENSCALE && APPROX(node->pointSizeMinValue,node->pointSizeMaxValue); // min = max, no fancy scaling?
-		node->_pointMethod = SCREENSCALE && node->_colormode == 1 ? 0 : 1; //no fancy texturing?
+		SCREENSCALE = SCREENSCALE && node->_colormode == 1; //no fancy texturing?
+		int OBJECTSCALE = APPROX(node->_attenuation.c[0],0.0f) && APPROX(node->_attenuation.c[1],1.0f) && APPROX(node->_attenuation.c[2],0.0f) ? TRUE : FALSE;  //attenuates with distance
+		OBJECTSCALE = OBJECTSCALE && APPROX(node->pointSizeMinValue,0.0F) &&  node->pointSizeScaleFactor && node->pointSizeMaxValue > 10.0f*node->pointSizeScaleFactor;
+		node->_pointMethod = SCREENSCALE ? 0 : OBJECTSCALE ? 1 : 2;
 		
 	}
 	MARK_NODE_COMPILED

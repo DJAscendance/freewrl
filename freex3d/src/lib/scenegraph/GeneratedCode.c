@@ -6535,6 +6535,7 @@ const int OFFSETS_PointSet[] = {
 	(int) FIELDNAMES__fogcoordVBO, (int) offsetof (struct X3D_PointSet, _fogcoordVBO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__npoints, (int) offsetof (struct X3D_PointSet, _npoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__colourSize, (int) offsetof (struct X3D_PointSet, _colourSize),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__tris, (int) offsetof (struct X3D_PointSet, _tris),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Polyline2D[] = {
@@ -12225,6 +12226,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_fogcoordVBO = 0;
 			tmp2->_npoints = 0;
 			tmp2->_colourSize = 0;
+			tmp2->_tris = 0;
 			tmp2->_defaultContainer = FIELDNAMES_geometry;
 		break;
 		}

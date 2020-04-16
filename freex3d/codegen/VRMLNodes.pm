@@ -501,6 +501,7 @@ our %Nodes = (
 		_fogcoordVBO =>["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_npoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_colourSize => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_tris => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"TriangleFanSet" => new VRML::NodeType("TriangleFanSet", [

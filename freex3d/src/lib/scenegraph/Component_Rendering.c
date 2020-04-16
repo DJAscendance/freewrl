@@ -742,6 +742,11 @@ void compile_PointSet (struct X3D_PointSet *node) {
 
 }
 
+//same as Particle system quads
+static GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
+static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
+static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
+
 
 void render_PointSet (struct X3D_PointSet *node) {
 	ttglobal tg = gglobal();
@@ -756,22 +761,70 @@ void render_PointSet (struct X3D_PointSet *node) {
 
 	if (node->_pointsVBO == 0) return;
     
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
-	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
-
-	// do we have colours?
-	if (node->_coloursVBO != 0) {
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
-		FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
-	}
 	// do we have fogcoord?
 	if (node->_fogcoordVBO != 0) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_fogcoordVBO);
 		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
 	}
 	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
-	if(getAppearanceProperties()->pointMethod == 0)
+	if(getAppearanceProperties()->pointMethod == 0){
+		//good old simple way - opengl does most of the work
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
+		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+
+		// do we have colours?
+		if (node->_coloursVBO != 0) {
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
+			FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
+		}
 		sendArraysToGPU(GL_POINTS,0,node->_npoints);
+	}else{
+		//PointProperties needs fancy scaling or sprite texturing - we send a ParticleSystem-like quad
+		// and send the vertex as a uniform, in a loop over the vertices.
+		struct Multi_Vec3f *dtmp;
+		dtmp = getCoordinate (node->coord, "PointSet");
+		s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
+
+
+		//send quad
+		if(node->_tris == NULL){
+			node->_tris = MALLOC(void *,18 * sizeof(float));
+			//memcpy(node->_tris,quadtris,18*sizeof(float));
+		}
+		float *vertices = (float*)(node->_tris);
+		//rescale vertices, in case scale changed
+		for(int i=0;i<6;i++){
+			float *vert, *vert0;
+			vert0 = &quadtris[i*3];
+			vert = &vertices[i*3];
+			vert[0] = vert0[0]*getAppearanceProperties()->pointSize;
+			vert[1] = vert0[1]*getAppearanceProperties()->pointSize;
+			vert[2] = vert0[2];
+		}
+
+
+
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)quadtris); //node->_tris); //quadtris);
+		FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
+		//FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,twotristex,0);
+		sendArraysToGPU (GL_TRIANGLES, 0, 6);
+		//sendArraysToGPU (GL_POINTS, 0, 6);
+		GLint ppos = GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
+
+		if(0){
+			glUniform3fv(ppos,1,dtmp->p[0].c);
+		}else{
+			for(int i=0;i<dtmp->n;i++){
+				//send uniform
+				glUniform3fv(ppos,1,dtmp->p[i].c);
+				//draw
+				reallyDrawOnce();
+			}
+			clearDraw();
+		}
+
+	}
 }
 
 void render_LineSet (struct X3D_LineSet *node) {
