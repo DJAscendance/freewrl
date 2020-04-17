@@ -433,9 +433,11 @@ typedef struct s_shader_capabilities{
 	GLint pointSize;
 	GLint pointAttenuation;
 	GLint pointRange;
-	GLint pointColor;
+	GLint pointColorMode;
 	GLint pointPosition;
 	GLint pointMethod;
+	GLint pointCPV;
+	GLint pointFogCoord;
 
 	//shared PTM and PBR
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]

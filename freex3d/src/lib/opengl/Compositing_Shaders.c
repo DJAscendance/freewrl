@@ -676,6 +676,8 @@ uniform vec2 u_pointSizeRange; \n\
 uniform int u_pointtColorMode; \n\
 uniform vec3 u_pointPosition; \n\
 uniform int u_pointMethod; \n\
+uniform float u_pointFogCoord; \n\
+uniform vec4 u_pointCPV; \n\
 #endif //POINTP \n\
 #ifdef PROJTEX \n\
 uniform mat4 projTexGenMatCam[8]; \n\
@@ -705,6 +707,9 @@ void vertProjCalTexCoord(void) { \n\
 /* PLUG-DECLARATIONS */ \n\
 void main(void) \n\
 { \n\
+  #ifdef FOGCOORD \n\
+  float fog_coord = fw_FogCoords; \n\
+  #endif //FOGCOORD \n\
   #ifdef LIT \n\
   fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
   castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
@@ -869,6 +874,13 @@ void main(void) \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
   \n\
   #ifdef POINTP \n\
+    //particle-system-like  PointSet points get special CPV, fogcoord handling, like pointPosition \n\
+    #ifdef FOGCOORD \n\
+	fog_coord = u_pointFogCoord; \n\
+	#endif //FOGCOORD \n\
+	#ifdef CPV \n\
+	cpv_Color = u_pointCPV; \n\
+	#endif //CPV \n\
 	if(u_pointMethod == 2) { \n\
 		//OBJECTSCALE - keep sprite-aligned but size fade with distance \n\
 		vec4 ppos = vec4(u_pointPosition,1.0); \n\
@@ -921,7 +933,7 @@ void main(void) \n\
   \n\
   #ifdef FOG \n\
   #ifdef FOGCOORD \n\
-  castle_vertex_eye.z = fw_FogCoords; \n\
+  castle_vertex_eye.z = fog_coord; \n\
   #endif //FOGCOORD \n\
   #endif //FOG \n\
   #ifdef UNLIT \n\

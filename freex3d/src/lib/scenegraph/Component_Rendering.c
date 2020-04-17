@@ -796,13 +796,41 @@ void render_PointSet (struct X3D_PointSet *node) {
 		sendArraysToGPU (GL_TRIANGLES, 0, 6);
 		//sendArraysToGPU (GL_POINTS, 0, 6);
 		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
+		GLint pcpv = mysp->pointCPV;
+		GLint pfog = mysp->pointFogCoord;
 
 		if(0){
 			glUniform3fv(ppos,1,dtmp->p[0].c);
 		}else{
+			float * colors = NULL;
+			int ncolors = 0;
+			if(node->color){
+				//POSSIBLE_PROTO_EXPANSIO
+				colors = (float*)((struct X3D_Color*)(node->color))->color.p;
+				ncolors = ((struct X3D_Color*)(node->color))->color.n;
+			}
+			float * fogcoord = NULL;
+			int nfog = 0;
+			if(node->fogCoord){
+				//POSSIBLE_PROTO_EXPANSION
+				fogcoord = ((struct X3D_FogCoordinate*)(node->fogCoord))->depth.p;
+				nfog = ((struct X3D_FogCoordinate*)(node->fogCoord))->depth.n;
+			}
+
 			for(int i=0;i<dtmp->n;i++){
 				//send uniform
 				glUniform3fv(ppos,1,dtmp->p[i].c);
+				if(pcpv > -1 && ncolors){
+					float rgba[4];
+					int j = min(i,ncolors-1);
+					rgba[3] = 1.0; //default opacity
+					memcpy(rgba,&colors[j*node->_colourSize],node->_colourSize*sizeof(float));
+					glUniform4fv(pcpv,1,rgba);
+				}
+				if(pfog > -1 && nfog){
+					int j = min(i,nfog-1);
+					glUniform1f(pfog,fogcoord[j]);
+				}
 				//draw
 				reallyDrawOnce();
 			}

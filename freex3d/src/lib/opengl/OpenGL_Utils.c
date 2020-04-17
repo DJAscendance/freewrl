@@ -3120,8 +3120,10 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->pointSize = GET_UNIFORM(myProg, "u_pointSize");
 	me->pointAttenuation = GET_UNIFORM(myProg, "u_pointAttenuation");
 	me->pointRange = GET_UNIFORM(myProg, "u_pointSizeRange");
-	me->pointColor = GET_UNIFORM(myProg, "u_pointColorMode");
+	me->pointColorMode = GET_UNIFORM(myProg, "u_pointColorMode");
 	me->pointPosition = GET_UNIFORM(myProg, "u_pointPosition");
+	me->pointCPV = GET_UNIFORM(myProg, "u_pointCPV");
+	me->pointFogCoord = GET_UNIFORM(myProg, "u_pointFogCoord");
 	me->pointMethod = GET_UNIFORM(myProg, "u_pointMethod");
 
 	me->linetype = GET_UNIFORM(myProg,"u_linetype");
@@ -7093,7 +7095,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLUNIFORM1F(me->pointSize,myap->pointSize);
 		GLUNIFORM3FV(me->pointAttenuation,1,myap->pointsizeAttenuation);
 		GLUNIFORM2FV(me->pointRange,1,myap->pointsizeRange);
-		GLUNIFORM1I(me->pointColor,myap->pointColorMode);
+		GLUNIFORM1I(me->pointColorMode,myap->pointColorMode);
 		GLUNIFORM1I(me->pointMethod,myap->pointMethod);
 	}
 	//TextureCoordinateGenerator
