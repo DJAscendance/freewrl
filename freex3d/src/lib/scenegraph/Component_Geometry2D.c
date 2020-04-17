@@ -423,6 +423,12 @@ void render_Polyline2D (struct X3D_Polyline2D *node){
 
 /***********************************************************************************/
 
+//same as Particle system quads and PointSet
+static GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
+static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
+static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
+
+
 COMPILE_AND_GET_BOUNDS(Polypoint2D,point)
 
 void render_Polypoint2D (struct X3D_Polypoint2D *node){
@@ -434,12 +440,36 @@ void render_Polypoint2D (struct X3D_Polypoint2D *node){
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-	        LIGHTING_OFF
-	        DISABLE_CULL_FACE
+		LIGHTING_OFF
+		DISABLE_CULL_FACE
 
+		if(getAppearanceProperties()->pointMethod == PM_NONE){
+			
+			FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->point.p);
+        		sendArraysToGPU (GL_POINTS, 0, node->point.n);
+		}else{
+			//see also render_PointSet
+			s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
+			FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)quadtris); //node->_tris); //quadtris);
+			FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
+			FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,twotristex,0);
+			glUniform1i(mysp->nTexCoordChannels,1);
+			sendArraysToGPU (GL_TRIANGLES, 0, 6);
+			struct Multi_Vec2f *dtmp = &node->point;
+			GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
+			float point[3];
+			point[2] = 0.0f;
 
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->point.p);
-        	sendArraysToGPU (GL_POINTS, 0, node->point.n);
+			for(int i=0;i<dtmp->n;i++){
+				//send uniform
+				veccopy2f(point,dtmp->p[i].c);
+				glUniform3fv(ppos,1,point);
+				//draw
+				reallyDrawOnce();
+			}
+			clearDraw(); //child_shape also does this, redundant>
+
+		}
 		gglobal()->Mainloop.trisThisLoop += node->point.n;
 	}
 }
