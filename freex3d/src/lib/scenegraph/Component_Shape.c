@@ -1173,7 +1173,14 @@ PP_COLORMODE_TEXTURE = 2,
 PP_COLORMODE_BOTH = 3, //specs default, perl default
 } pointproperties_colormodes;
 void compile_PointProperties ( struct X3D_PointProperties *node) {
-	update_node(node); //should hit change flag of parents so they recompile
+	//a few conditions for calling update_node() to set the change flag in parents:
+	//1) the change you are doing may need a different shader permuntation compiled
+	//2) its the parent who's change flag triggers a shader permutation selection
+	// both those conditions apply here - we may switch between OpnGL GL_POINTS rendering, and our own
+	//  GL_TRIANGLES approach, which needs a different shader permutation
+	//  and its the parent-parent - Shape - whose change flag triggers shape_compile which does the shader permutation.
+	update_node(X3D_NODE(node)); 
+
 	node->_colormode = 3;
 	if(!strcmp(node->colorMode->strptr,"POINT_COLOR")) node->_colormode = PP_COLORMODE_POINT; //1
 	if(!strcmp(node->colorMode->strptr,"TEXTURE_COLOR")) node->_colormode = PP_COLORMODE_TEXTURE; //2

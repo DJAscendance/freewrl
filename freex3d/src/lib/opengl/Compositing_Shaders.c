@@ -1460,7 +1460,7 @@ vec4 getDiffuseFactor() { \n\
 	#endif //CPV \n\
 	#ifdef TEX \n\
 		#ifndef MODC \n\
-		mixcpv = 0.0;; \n\
+		mixcpv = 0.0; \n\
 		#endif //MODC \n\
 	#endif //TEX \n\
 	vec4 IC = getVertexColor(); \n\
@@ -1530,10 +1530,6 @@ void main(void) \n\
 	\n\
 //STEP1 INITIALIZE \n\
 	vec4 fragment_color; \n\
-	//#ifdef POINTP \n\
-	//	gl_FragColor = vec4(1.0); \n\
-	//	return; \n\
-	//#endif \n\
 	#ifdef LINE \n\
 		vec4 dcolor = vec4(1.0); \n\
 		dcolor.rgb = getEmissive(); \n\
@@ -1541,6 +1537,9 @@ void main(void) \n\
 		dcolor= getVertexColor(); \n\
 		#endif //CVP \n\
 		fragment_color = dcolor; \n\
+		#ifdef POINTP \n\
+			fragment_color = getGouraudColor(); \n\
+		#endif //POINTP \n\
 		#ifdef LINETYPE \n\
 		if(u_linetype > 1) \n\
 			if(!on_linetype(fragment_color)){ \n\

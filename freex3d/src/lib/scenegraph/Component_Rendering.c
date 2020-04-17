@@ -785,32 +785,33 @@ void render_PointSet (struct X3D_PointSet *node) {
 		dtmp = getCoordinate (node->coord, "PointSet");
 		s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
 
-
-		//send quad
-		if(node->_tris == NULL){
-			node->_tris = MALLOC(void *,18 * sizeof(float));
-			//memcpy(node->_tris,quadtris,18*sizeof(float));
+		if(0){
+			//send quad
+			if(node->_tris == NULL){
+				node->_tris = MALLOC(void *,18 * sizeof(float));
+				//memcpy(node->_tris,quadtris,18*sizeof(float));
+			}
+			float *vertices = (float*)(node->_tris);
+			//rescale vertices, in case scale changed
+			for(int i=0;i<6;i++){
+				float *vert, *vert0;
+				vert0 = &quadtris[i*3];
+				vert = &vertices[i*3];
+				vert[0] = vert0[0]*getAppearanceProperties()->pointSize;
+				vert[1] = vert0[1]*getAppearanceProperties()->pointSize;
+				vert[2] = vert0[2];
+			}
 		}
-		float *vertices = (float*)(node->_tris);
-		//rescale vertices, in case scale changed
-		for(int i=0;i<6;i++){
-			float *vert, *vert0;
-			vert0 = &quadtris[i*3];
-			vert = &vertices[i*3];
-			vert[0] = vert0[0]*getAppearanceProperties()->pointSize;
-			vert[1] = vert0[1]*getAppearanceProperties()->pointSize;
-			vert[2] = vert0[2];
-		}
-
 
 
 		//textureCoord_send(&mtf);
 		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)quadtris); //node->_tris); //quadtris);
 		FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-		//FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,twotristex,0);
+		FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,twotristex,0);
+		glUniform1i(mysp->nTexCoordChannels,1);
 		sendArraysToGPU (GL_TRIANGLES, 0, 6);
 		//sendArraysToGPU (GL_POINTS, 0, 6);
-		GLint ppos = GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
+		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
 
 		if(0){
 			glUniform3fv(ppos,1,dtmp->p[0].c);
