@@ -3120,7 +3120,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->pointSize = GET_UNIFORM(myProg, "u_pointSize");
 	me->pointAttenuation = GET_UNIFORM(myProg, "u_pointAttenuation");
 	me->pointRange = GET_UNIFORM(myProg, "u_pointSizeRange");
-	me->pointColor = GET_UNIFORM(myProg, "u_pointtColorMode");
+	me->pointColor = GET_UNIFORM(myProg, "u_pointColorMode");
 	me->pointPosition = GET_UNIFORM(myProg, "u_pointPosition");
 	me->pointMethod = GET_UNIFORM(myProg, "u_pointMethod");
 

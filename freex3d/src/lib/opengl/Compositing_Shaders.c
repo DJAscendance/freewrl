@@ -1039,6 +1039,9 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 #endif //MTEX \n\
 //#endif //TEX \n\
 //literal string size break \n" "\
+#ifdef POINTP \n\
+uniform int u_pointColorMode; \n\
+#endif //POINTP \n\
 #ifdef LINETYPE \n\
 uniform int u_linetype; \n\
 uniform float u_lineperiod; \n\
@@ -1147,7 +1150,7 @@ bool on_linetype(inout vec4 frag_color){ \n\
 	}\n\
 	return on; \n\
 }\n\
-#endif \n\
+#endif //LINETYPE\n\
 #ifdef FILL \n\
 struct fillproperties { \n\
 	vec4 HatchColour; \n\
@@ -1536,10 +1539,22 @@ void main(void) \n\
 		#ifdef CPV \n\
 		dcolor= getVertexColor(); \n\
 		#endif //CVP \n\
-		fragment_color = dcolor; \n\
 		#ifdef POINTP \n\
-			fragment_color = getGouraudColor(); \n\
+			#ifdef TEX \n\
+			if(textureCount > 0){ \n\
+				vec3 N = getNormal(); \n\
+				vec4 tcolor = vec4(1); \n\
+				/* PLUG: texture_apply (tcolor, N) */ \n\
+				if(u_pointColorMode == 1) dcolor.a = tcolor.a; \n\
+				if(u_pointColorMode == 2) dcolor = tcolor; \n\
+				if(u_pointColorMode == 3) { \n\
+					dcolor.rgb += tcolor.rgb; \n\
+					dcolor.a = tcolor.a;; \n\
+				} \n\
+			} \n\
+			#endif //TEX \n\
 		#endif //POINTP \n\
+		fragment_color = dcolor; \n\
 		#ifdef LINETYPE \n\
 		if(u_linetype > 1) \n\
 			if(!on_linetype(fragment_color)){ \n\
