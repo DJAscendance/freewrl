@@ -869,7 +869,7 @@ void main(void) \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
   \n\
   #ifdef POINTP \n\
-	if(u_pointMethod == 1) { \n\
+	if(u_pointMethod == 2) { \n\
 		//OBJECTSCALE - keep sprite-aligned but size fade with distance \n\
 		vec4 ppos = vec4(u_pointPosition,1.0); \n\
 		vec4 point_eye = fw_ModelViewMatrix * ppos; \n\
@@ -879,16 +879,22 @@ void main(void) \n\
 		castle_vertex_eye = point_eye + pscal*vertex_object*u_pointSize; \n\
 	  gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
 	}else { \n\
-		//u_pointMehod == 2, fancy attenuation \n\
 		vec4 ppos = vec4(u_pointPosition,1.0); \n\
 		vec4 castle_vertex_eye = fw_ModelViewMatrix * ppos; \n\
-		float zdist = castle_vertex_eye.z; \n\
 		vec4 view_position = fw_ProjectionMatrix * castle_vertex_eye; \n\
-		float pscal = u_pointAttenuation.x + zdist*u_pointAttenuation.y + zdist*zdist*u_pointAttenuation.z; \n\
-		if(pscal > 0.0) pscal = u_pointSize/pscal; \n\
-		else pscal = u_pointSize; \n\
-		pscal = max(pscal,u_pointSizeRange.x); \n\
-		pscal = min(pscal,u_pointSizeRange.y); \n\
+		float pscal = 1.0; \n\
+		if(u_pointMethod == 1) { \n\
+			//simple screen scale \n\
+			pscal = u_pointSize; \n\
+		} else if(u_pointMethod == 3) { \n\
+			// fancy attenuation, screen scale \n\
+			float zdist = castle_vertex_eye.z; \n\
+			pscal = u_pointAttenuation.x + zdist*u_pointAttenuation.y + zdist*zdist*u_pointAttenuation.z; \n\
+			if(pscal > 0.0) pscal = u_pointSize/pscal; \n\
+			else pscal = u_pointSize; \n\
+			pscal = max(pscal,u_pointSizeRange.x); \n\
+			pscal = min(pscal,u_pointSizeRange.y); \n\
+		} \n\
 		//convert from screen pixel size to view coords \n\
 		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution) *vec2(2.0)* view_position.w; \n\
 		view_position.xy += view_point; \n\

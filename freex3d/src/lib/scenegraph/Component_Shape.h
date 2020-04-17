@@ -273,4 +273,12 @@ void setUserShaderNode(struct X3D_Node *me);
 			   ignore? Lets ignore, for now */ \
 		} \
 	}
+
+enum {
+PM_NONE = 0,  //reserve 0 for render_PointSet to thunk to opengl GL_POINTS when no PointProperties node
+PM_SCREEN = 1,
+PM_OBJECT = 2,
+PM_FANCY = 3,
+} pointproperties_pointmethod;
+
 #endif /* __FREEWRL_SCENEGRAPH_SHAPE_H__ */

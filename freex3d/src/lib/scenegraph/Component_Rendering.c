@@ -759,24 +759,27 @@ void render_PointSet (struct X3D_PointSet *node) {
 	LIGHTING_OFF
 	DISABLE_CULL_FACE
 
+
+	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
+	if(getAppearanceProperties()->pointMethod == PM_NONE){
 	if (node->_pointsVBO == 0) return;
     
-	// do we have fogcoord?
-	if (node->_fogcoordVBO != 0) {
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_fogcoordVBO);
-		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
-	}
-	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
-	if(getAppearanceProperties()->pointMethod == 0){
-		//good old simple way - opengl does most of the work
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
-		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+		// do we have fogcoord?
+		if (node->_fogcoordVBO != 0) {
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_fogcoordVBO);
+			FW_GL_FOG_POINTER(GL_FLOAT,0,0);
+		}
 
 		// do we have colours?
 		if (node->_coloursVBO != 0) {
 			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
 			FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
 		}
+
+		//good old simple way - opengl does most of the work
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
+		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+
 		sendArraysToGPU(GL_POINTS,0,node->_npoints);
 	}else{
 		//PointProperties needs fancy scaling or sprite texturing - we send a ParticleSystem-like quad
@@ -784,25 +787,6 @@ void render_PointSet (struct X3D_PointSet *node) {
 		struct Multi_Vec3f *dtmp;
 		dtmp = getCoordinate (node->coord, "PointSet");
 		s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
-
-		if(0){
-			//send quad
-			if(node->_tris == NULL){
-				node->_tris = MALLOC(void *,18 * sizeof(float));
-				//memcpy(node->_tris,quadtris,18*sizeof(float));
-			}
-			float *vertices = (float*)(node->_tris);
-			//rescale vertices, in case scale changed
-			for(int i=0;i<6;i++){
-				float *vert, *vert0;
-				vert0 = &quadtris[i*3];
-				vert = &vertices[i*3];
-				vert[0] = vert0[0]*getAppearanceProperties()->pointSize;
-				vert[1] = vert0[1]*getAppearanceProperties()->pointSize;
-				vert[2] = vert0[2];
-			}
-		}
-
 
 		//textureCoord_send(&mtf);
 		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)quadtris); //node->_tris); //quadtris);

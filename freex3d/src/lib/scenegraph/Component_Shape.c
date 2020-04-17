@@ -1168,10 +1168,17 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 	}
 }
 enum {
-PP_COLORMODE_POINT = 1,
+PP_COLORMODE_NONE = 0, //GL_POINTS - no texture coords or image sampler
+PP_COLORMODE_POINT = 1, //samples any texture for alpha
 PP_COLORMODE_TEXTURE = 2,
 PP_COLORMODE_BOTH = 3, //specs default, perl default
 } pointproperties_colormodes;
+//enum {
+//PM_NONE = 0,  //reserve 0 for render_PointSet to thunk to opengl GL_POINTS when no PointProperties node
+//PM_SCREEN = 1,
+//PM_OBJECT = 2,
+//PM_FANCY = 3,
+//} pointproperties_pointmethod;
 void compile_PointProperties ( struct X3D_PointProperties *node) {
 	//a few conditions for calling update_node() to set the change flag in parents:
 	//1) the change you are doing may need a different shader permuntation compiled
@@ -1197,12 +1204,14 @@ void compile_PointProperties ( struct X3D_PointProperties *node) {
 		SCREENSCALE = SCREENSCALE && node->_colormode == 1; //no fancy texturing?
 		int OBJECTSCALE = APPROX(node->_attenuation.c[0],0.0f) && APPROX(node->_attenuation.c[1],1.0f) && APPROX(node->_attenuation.c[2],0.0f) ? TRUE : FALSE;  //attenuates with distance
 		OBJECTSCALE = OBJECTSCALE && APPROX(node->pointSizeMinValue,0.0F) &&  node->pointSizeScaleFactor && node->pointSizeMaxValue > 10.0f*node->pointSizeScaleFactor;
-		node->_pointMethod = SCREENSCALE ? 0 : OBJECTSCALE ? 1 : 2;
+		node->_pointMethod = SCREENSCALE ? PM_SCREEN : OBJECTSCALE ? PM_OBJECT : PM_FANCY;
 		
 	}
 	MARK_NODE_COMPILED
 };
 void render_PointProperties (struct X3D_PointProperties *node) {
+	// https://www.web3d.org/specifications/X3Dv4Draft/ISO-IEC19775-1v4-WD1/
+	// - web3d v4 draft specs for new PointProperties node
 	COMPILE_IF_REQUIRED
 
 	struct matpropstruct *me;

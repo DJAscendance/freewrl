@@ -6535,7 +6535,6 @@ const int OFFSETS_PointSet[] = {
 	(int) FIELDNAMES__fogcoordVBO, (int) offsetof (struct X3D_PointSet, _fogcoordVBO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__npoints, (int) offsetof (struct X3D_PointSet, _npoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__colourSize, (int) offsetof (struct X3D_PointSet, _colourSize),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__tris, (int) offsetof (struct X3D_PointSet, _tris),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Polyline2D[] = {
@@ -12184,11 +12183,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->pointSizeAttenuation.p[1] = 0.0f;
 			tmp2->pointSizeAttenuation.p[2] = 0.0f;
 			tmp2->pointSizeAttenuation.n=3;;
-			tmp2->colorMode = newASCIIString("TEXTURE_AND_POINT_COLOR");
+			tmp2->colorMode = newASCIIString("POINT_COLOR");
 			tmp2->metadata = NULL;
-			tmp2->_colormode = 3;
+			tmp2->_colormode = 1;
 			tmp2->_attenuation.c[0] = 1.0f;tmp2->_attenuation.c[1] = 0.0f;tmp2->_attenuation.c[2] = 0.0f;
-			tmp2->_pointMethod = 3;
+			tmp2->_pointMethod = 1;
 			tmp2->_defaultContainer = FIELDNAMES_pointProperties;
 		break;
 		}
@@ -12226,7 +12225,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_fogcoordVBO = 0;
 			tmp2->_npoints = 0;
 			tmp2->_colourSize = 0;
-			tmp2->_tris = 0;
 			tmp2->_defaultContainer = FIELDNAMES_geometry;
 		break;
 		}

@@ -501,7 +501,6 @@ our %Nodes = (
 		_fogcoordVBO =>["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_npoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_colourSize => ["SFInt32", 0, "initializeOnly", 0,0],#ff
-		_tris => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"TriangleFanSet" => new VRML::NodeType("TriangleFanSet", [
@@ -605,11 +604,11 @@ our %Nodes = (
 		pointSizeMinValue => ["SFFloat", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		pointSizeMaxValue => ["SFFloat", 1, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		pointSizeAttenuation => ["MFFloat", [1,0,0], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		colorMode => ["SFString", "TEXTURE_AND_POINT_COLOR", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		colorMode => ["SFString", "POINT_COLOR", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		_colormode =>["SFInt32", 3, "inputOutput",0,0],#ff
+		_colormode =>["SFInt32", 1, "inputOutput",0,0],#ff
 		_attenuation => ["SFVec3f", [1,0,0], "inputOutput", 0,0],#ff
-		_pointMethod =>["SFInt32", 3, "inputOutput",0,0],#ff
+		_pointMethod =>["SFInt32", 1, "inputOutput",0,0],#ff
 	],"X3DAppearanceChildNode"),
 
 	# v4 https://github.com/michaliskambi/x3d-tests/wiki/X3D-version-4:-New-features-of-materials,-lights-and-textures#new-x3dmaterialnode-node-with-emissive-and-normalmap-textures
