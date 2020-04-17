@@ -3117,7 +3117,15 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 
 	/* for FillProperties */
-	me->myPointSize = GET_UNIFORM(myProg, "pointSize");
+	me->pointSize = GET_UNIFORM(myProg, "u_pointSize");
+	me->pointAttenuation = GET_UNIFORM(myProg, "u_pointAttenuation");
+	me->pointRange = GET_UNIFORM(myProg, "u_pointSizeRange");
+	me->pointColorMode = GET_UNIFORM(myProg, "u_pointColorMode");
+	me->pointPosition = GET_UNIFORM(myProg, "u_pointPosition");
+	me->pointCPV = GET_UNIFORM(myProg, "u_pointCPV");
+	me->pointFogCoord = GET_UNIFORM(myProg, "u_pointFogCoord");
+	me->pointMethod = GET_UNIFORM(myProg, "u_pointMethod");
+
 	me->linetype = GET_UNIFORM(myProg,"u_linetype");
 	me->linewidth = GET_UNIFORM(myProg,"u_linewidth");
 	me->linestrip_start_style = GET_UNIFORM(myProg,"u_linestrip_start_style");
@@ -7081,6 +7089,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLUNIFORM1F(me->linewidth,myap->linewidth);
 		GLUNIFORM1I(me->linestrip_start_style,myap->linestrip_start_style);
 		GLUNIFORM1I(me->linestrip_end_style,myap->linestrip_end_style);
+	}
+	{
+		//pointproperties
+		GLUNIFORM1F(me->pointSize,myap->pointSize);
+		GLUNIFORM3FV(me->pointAttenuation,1,myap->pointsizeAttenuation);
+		GLUNIFORM2FV(me->pointRange,1,myap->pointsizeRange);
+		GLUNIFORM1I(me->pointColorMode,myap->pointColorMode);
+		GLUNIFORM1I(me->pointMethod,myap->pointMethod);
 	}
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);

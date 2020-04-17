@@ -379,9 +379,9 @@ int lookup_geomtype(const char *name){
 	return iret;
 }
 //GLfloat quadtris [18] = {1.0f,1.0f,0.0f, -1.0f,1.0f,0.0f, -1.0f,-1.0f,0.0f,    1.0f,1.0f,0.0f, -1.0f,-1.0f,0.0f, 1.0f,-1.0f,0.0f};
-GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
-GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
-GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
+static GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
+static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
+static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
 
 void compile_Shape (struct X3D_Shape *node);
 // COMPILE PARTICLE SYSTEM
@@ -1195,7 +1195,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 		//CREATE via emitters (implied dtime = 0, so no physics on first frame)
 		_particles->n = j;
-		if(node->createParticles && _particles->n < maxparticles){
+		if(node->createParticles && _particles->n < maxparticles && node->emitter){
 			//create new particles to reach maxparticles limit
 			int n_per_frame, n_needed, n_this_frame;
 			float particles_per_second, particles_per_frame;

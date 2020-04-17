@@ -510,8 +510,10 @@ out vec2 v_curr; \n\
 in vec3 a_prevVertex; \n\
 in vec3 a_nextVertex; \n\
 uniform int u_linetype; \n\
-uniform vec2 u_screenresolution; \n\
 #endif //LINETYPE \n\
+#if defined(LINETYPE) || defined(POINTP) \n\
+uniform vec2 u_screenresolution; \n\
+#endif // LINETYPE POINTP \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
@@ -667,6 +669,16 @@ varying vec4 cpv_Color; \n\
 uniform vec3 particlePosition; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
+#ifdef POINTP \n\
+uniform float u_pointSize; \n\
+uniform vec3 u_pointAttenuation; \n\
+uniform vec2 u_pointSizeRange; \n\
+uniform int u_pointtColorMode; \n\
+uniform vec3 u_pointPosition; \n\
+uniform int u_pointMethod; \n\
+uniform float u_pointFogCoord; \n\
+uniform vec4 u_pointCPV; \n\
+#endif //POINTP \n\
 #ifdef PROJTEX \n\
 uniform mat4 projTexGenMatCam[8]; \n\
 uniform int pCount; \n\
@@ -695,6 +707,9 @@ void vertProjCalTexCoord(void) { \n\
 /* PLUG-DECLARATIONS */ \n\
 void main(void) \n\
 { \n\
+  #ifdef FOGCOORD \n\
+  float fog_coord = fw_FogCoords; \n\
+  #endif //FOGCOORD \n\
   #ifdef LIT \n\
   fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
   castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
@@ -858,6 +873,46 @@ void main(void) \n\
   \n\
   gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
   \n\
+  #ifdef POINTP \n\
+    //particle-system-like  PointSet points get special CPV, fogcoord handling, like pointPosition \n\
+    #ifdef FOGCOORD \n\
+	fog_coord = u_pointFogCoord; \n\
+	#endif //FOGCOORD \n\
+	#ifdef CPV \n\
+	cpv_Color = u_pointCPV; \n\
+	#endif //CPV \n\
+	if(u_pointMethod == 2) { \n\
+		//OBJECTSCALE - keep sprite-aligned but size fade with distance \n\
+		vec4 ppos = vec4(u_pointPosition,1.0); \n\
+		vec4 point_eye = fw_ModelViewMatrix * ppos; \n\
+		ppos.x += 1.0; \n\
+		vec4 point_eye1 = fw_ModelViewMatrix * ppos; \n\
+		float pscal = length(point_eye1.xyz - point_eye.xyz); \n\
+		castle_vertex_eye = point_eye + pscal*vertex_object*u_pointSize; \n\
+	  gl_Position = fw_ProjectionMatrix * castle_vertex_eye; \n\
+	}else { \n\
+		vec4 ppos = vec4(u_pointPosition,1.0); \n\
+		vec4 castle_vertex_eye = fw_ModelViewMatrix * ppos; \n\
+		vec4 view_position = fw_ProjectionMatrix * castle_vertex_eye; \n\
+		float pscal = 1.0; \n\
+		if(u_pointMethod == 1) { \n\
+			//simple screen scale \n\
+			pscal = u_pointSize; \n\
+		} else if(u_pointMethod == 3) { \n\
+			// fancy attenuation, screen scale \n\
+			float zdist = castle_vertex_eye.z; \n\
+			pscal = u_pointAttenuation.x + zdist*u_pointAttenuation.y + zdist*zdist*u_pointAttenuation.z; \n\
+			if(pscal > 0.0) pscal = u_pointSize/pscal; \n\
+			else pscal = u_pointSize; \n\
+			pscal = max(pscal,u_pointSizeRange.x); \n\
+			pscal = min(pscal,u_pointSizeRange.y); \n\
+		} \n\
+		//convert from screen pixel size to view coords \n\
+		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution) *vec2(2.0)* view_position.w; \n\
+		view_position.xy += view_point; \n\
+		gl_Position = view_position; \n\
+	} \n\
+  #endif //POINTP \n\
   #ifdef CUB \n\
   //cubemap \n\
   vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
@@ -878,7 +933,7 @@ void main(void) \n\
   \n\
   #ifdef FOG \n\
   #ifdef FOGCOORD \n\
-  castle_vertex_eye.z = fw_FogCoords; \n\
+  castle_vertex_eye.z = fog_coord; \n\
   #endif //FOGCOORD \n\
   #endif //FOG \n\
   #ifdef UNLIT \n\
@@ -1002,6 +1057,9 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 #endif //MTEX \n\
 //#endif //TEX \n\
 //literal string size break \n" "\
+#ifdef POINTP \n\
+uniform int u_pointColorMode; \n\
+#endif //POINTP \n\
 #ifdef LINETYPE \n\
 uniform int u_linetype; \n\
 uniform float u_lineperiod; \n\
@@ -1110,7 +1168,7 @@ bool on_linetype(inout vec4 frag_color){ \n\
 	}\n\
 	return on; \n\
 }\n\
-#endif \n\
+#endif //LINETYPE\n\
 #ifdef FILL \n\
 struct fillproperties { \n\
 	vec4 HatchColour; \n\
@@ -1423,7 +1481,7 @@ vec4 getDiffuseFactor() { \n\
 	#endif //CPV \n\
 	#ifdef TEX \n\
 		#ifndef MODC \n\
-		mixcpv = 0.0;; \n\
+		mixcpv = 0.0; \n\
 		#endif //MODC \n\
 	#endif //TEX \n\
 	vec4 IC = getVertexColor(); \n\
@@ -1499,6 +1557,21 @@ void main(void) \n\
 		#ifdef CPV \n\
 		dcolor= getVertexColor(); \n\
 		#endif //CVP \n\
+		#ifdef POINTP \n\
+			#ifdef TEX \n\
+			if(textureCount > 0){ \n\
+				vec3 N = getNormal(); \n\
+				vec4 tcolor = vec4(1); \n\
+				/* PLUG: texture_apply (tcolor, N) */ \n\
+				if(u_pointColorMode == 1) dcolor.a = tcolor.a; \n\
+				if(u_pointColorMode == 2) dcolor = tcolor; \n\
+				if(u_pointColorMode == 3) { \n\
+					dcolor.rgb += tcolor.rgb; \n\
+					dcolor.a = tcolor.a;; \n\
+				} \n\
+			} \n\
+			#endif //TEX \n\
+		#endif //POINTP \n\
 		fragment_color = dcolor; \n\
 		#ifdef LINETYPE \n\
 		if(u_linetype > 1) \n\
@@ -2874,6 +2947,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if(DESIRE(whichOne.base,LINE_PROPERTIES_SHADER)) {
 		AddDefine(SHADERPART_VERTEX,"LINETYPE",CompleteCode);		
 		AddDefine(SHADERPART_FRAGMENT,"LINETYPE",CompleteCode);		
+	}
+	//POINT PROPERTIES 
+	if(DESIRE(whichOne.base,POINT_PROPERTIES_SHADER)) {
+		AddDefine(SHADERPART_VERTEX,"POINTP",CompleteCode);		
+		AddDefine(SHADERPART_FRAGMENT,"POINTP",CompleteCode);	
 	}
 	//FOG
 	if(DESIRE(whichOne.base,FOG_APPEARANCE_SHADER)){

@@ -710,7 +710,42 @@ void compile_PointSet (struct X3D_PointSet *node) {
 			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
 		}
 	}
+	if (node->fogCoord) {
+		struct X3D_FogCoordinate *fc = NULL;
+		float *fog = NULL;
+		int nfog = 0;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_FogCoordinate *, node->fogCoord,fc)
+		if(fc){
+			if (fc->_nodeType != NODE_FogCoordinate) {
+				ConsoleMessage ("make_PointSet fogCoord, expected %d got %d\n", NODE_FogCoordinate, fc->_nodeType);
+			} else {
+				nfog = fc->depth.n;
+				fog = fc->depth.p;
+			}
+		}
+
+
+		if(nfog && nfog < node->_npoints) {
+			ConsoleMessage ("PointSet has less fogcoord than points - removing fog\n");
+			nfog = 0;
+		} else {
+			if (node->_fogcoordVBO == 0) {
+				glGenBuffers(1,(GLuint *)&node->_fogcoordVBO);
+			}
+        
+			/* RGB or RGBA? */
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_fogcoordVBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*nfog, fog, GL_STATIC_DRAW);
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+		}
+	}
+
 }
+
+//same as Particle system quads
+static GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
+static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
+static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
 
 
 void render_PointSet (struct X3D_PointSet *node) {
@@ -724,19 +759,81 @@ void render_PointSet (struct X3D_PointSet *node) {
 	LIGHTING_OFF
 	DISABLE_CULL_FACE
 
-	if (node->_pointsVBO == 0) return;
-    
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
-	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
 
-	// do we have colours?
-	if (node->_coloursVBO != 0) {
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
-		FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
-	}
 	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
+	if(getAppearanceProperties()->pointMethod == PM_NONE){
+		if (node->_pointsVBO == 0) return;
+		//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
+		// do we have fogcoord?
+		if (node->_fogcoordVBO != 0) {
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_fogcoordVBO);
+			FW_GL_FOG_POINTER(GL_FLOAT,0,0);
+		}
 
-	sendArraysToGPU(GL_POINTS,0,node->_npoints);
+		// do we have colours?
+		if (node->_coloursVBO != 0) {
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
+			FW_GL_COLOR_POINTER(node->_colourSize,GL_FLOAT,0,0);
+		}
+
+		//good old simple way - opengl does most of the work
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
+		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+
+		sendArraysToGPU(GL_POINTS,0,node->_npoints);
+	}else{
+		//PointProperties needs fancy scaling or sprite texturing 
+		//  we send a ParticleSystem-like quad
+		//  and send the vertex (and fogCoord, CPV) as a uniform, in a loop over the vertices.
+		// - see also render_Polypoint2D which uses a simpler version of below
+		struct Multi_Vec3f *dtmp;
+		dtmp = getCoordinate (node->coord, "PointSet");
+		s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
+
+		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)quadtris); //node->_tris); //quadtris);
+		FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
+		FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,twotristex,0);
+		glUniform1i(mysp->nTexCoordChannels,1);
+		sendArraysToGPU (GL_TRIANGLES, 0, 6);
+		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
+		GLint pcpv = mysp->pointCPV;
+		GLint pfog = mysp->pointFogCoord;
+
+		float * colors = NULL;
+		int ncolors = 0;
+		if(node->color){
+			//POSSIBLE_PROTO_EXPANSIO - maybe need more work in compile_?
+			colors = (float*)((struct X3D_Color*)(node->color))->color.p;
+			ncolors = ((struct X3D_Color*)(node->color))->color.n;
+		}
+		float * fogcoord = NULL;
+		int nfog = 0;
+		if(node->fogCoord){
+			//POSSIBLE_PROTO_EXPANSION
+			fogcoord = ((struct X3D_FogCoordinate*)(node->fogCoord))->depth.p;
+			nfog = ((struct X3D_FogCoordinate*)(node->fogCoord))->depth.n;
+		}
+
+		for(int i=0;i<dtmp->n;i++){
+			//send uniform
+			glUniform3fv(ppos,1,dtmp->p[i].c);
+			if(pcpv > -1 && ncolors){
+				float rgba[4];
+				int j = min(i,ncolors-1);
+				rgba[3] = 1.0; //default opacity
+				memcpy(rgba,&colors[j*node->_colourSize],node->_colourSize*sizeof(float));
+				glUniform4fv(pcpv,1,rgba);
+			}
+			if(pfog > -1 && nfog){
+				int j = min(i,nfog-1);
+				glUniform1f(pfog,fogcoord[j]);
+			}
+			//draw
+			reallyDrawOnce();
+		}
+		clearDraw(); //child_shape also does this, redundant>
+
+	}
 }
 
 void render_LineSet (struct X3D_LineSet *node) {
