@@ -1758,7 +1758,7 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 	FREE_IF_NZ(polyrep->tcindex);
 
 
-	/* make the node by calling the correct method */
+	/* make the node by calling the correct method see GenPolyRep.c > make_genericfaceset */
 	virt->mkpolyrep(node);
 
 	/* now, put the generic internal structure into OpenGL arrays for faster rendering */

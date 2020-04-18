@@ -1263,19 +1263,50 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 				/* Vertex Normal */
 				if(nnormals) {
+					int iwant,ihavei,ihaven;
 					if (norin) {
 						/* we have a NormalIndex */
 						if (npv) {
-							norindex[vert_ind] = orig_normalIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
+							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
+							ihavei = min(iwant, orig_normalIndex->n-1);
+							if(ihavei < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+								once ++;
+							}
+							iwant = orig_normalIndex->p[ihavei];
+							ihaven = min(nnormals-1,iwant);
+							if(ihaven < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normals have %d want %d \n",ihaven,iwant);
+								once++;
+							}
+							norindex[vert_ind] = ihaven;
+							// norindex[vert_ind] = orig_normalIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
 							/*  printf ("norm1, index %d\n",norindex[vert_ind]);*/
 						} else {
-							norindex[vert_ind] = orig_normalIndex->p[this_face];
+							iwant = this_face;
+							ihavei = min(iwant, orig_normalIndex->n-1);
+							if(ihavei < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+								once ++;
+							}
+							norindex[vert_ind] = ihavei; //orig_normalIndex->p[this_face];
 							/*  printf ("norm2, index %d\n",norindex[vert_ind]);*/
 						}
 					} else {
 						/* no normalIndex  - use the coordIndex */
 						if (npv) {
-							norindex[vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
+							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
+							ihavei = min(iwant, orig_normalIndex->n-1);
+							if(ihavei < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+								once ++;
+							}
+
+							norindex[vert_ind] = ihavei; // (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
 							/* printf ("norm3, index %d\n",norindex[vert_ind]); */
 						} else {
 							norindex[vert_ind] = this_face;
