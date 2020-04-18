@@ -533,6 +533,7 @@ void do_PositionChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1248,6 +1249,7 @@ void do_ColorChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1594,6 +1596,7 @@ void do_OrientationChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1911,6 +1914,7 @@ void do_CoordinateChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -2067,6 +2071,7 @@ void do_PositionChaser2DTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -2215,6 +2220,7 @@ void do_ScalarChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -2399,6 +2405,7 @@ void do_TexCoordChaser2DTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
