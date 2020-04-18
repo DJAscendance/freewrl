@@ -925,15 +925,17 @@ void apply_SurfaceEmitter(particle *pp, struct X3D_Node *emitter){
 	struct X3D_Node *node;
 
 	node = e->surface ? e->surface : e->geometry;
-	if(NODE_NEEDS_COMPILING){
-		compile_geometry(X3D_NODE(node));
-	}
 	if(node){
 		int index, ntri;
 		float fraction;
 		float speed;
 		float xyz[3], v1[3],v2[3],v3[3],e1[3],e2[3], normal[3], direction[3];
-		
+
+		if(NODE_NEEDS_COMPILING){
+			compile_geometry(X3D_NODE(node));
+		}
+
+
 		fraction = uniformRand();
 		ntri = getPolyrepTriangleCount(node);
 		if(ntri){
@@ -1086,7 +1088,9 @@ GLfloat linepts [6] = {-.5f,0.f,0.f, .5f,0.f,0.f};
 ushort lineindices[2] = {0,1};
 int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode );
 void update_effect_uniforms();
-
+void check_compile(struct X3D_Node* node){
+	COMPILE_IF_REQUIRED
+}
 void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	// 
 	// ParticleSystem 
@@ -1101,7 +1105,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	// static int once = 0;
    	ttglobal tg = gglobal();
 
-	COMPILE_IF_REQUIRED
+	//COMPILE_IF_REQUIRED
+	check_compile(node);
 
 	/* initialization. This will get overwritten if there is a texture in an Appearance
 	   node in this shape (see child_Appearance) */
