@@ -390,7 +390,7 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 	float *vertices; //*boxtris, 
 	Stack *_particles;
 
-	ConsoleMessage("compile_particlesystem\n");
+	//ConsoleMessage("compile_particlesystem\n");
 	//delegate to compile_shape - same order to appearance, geometry fields
 	compile_Shape((struct X3D_Shape*)node);
 
@@ -409,6 +409,7 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 		vert[1] = vert0[1]*node->particleSize.c[1];
 		vert[2] = vert0[2];
 	}
+
 	if(node->texCoordRamp){
 		int ml,mq,mt,n;
 		struct X3D_TextureCoordinate *tc = (struct X3D_TextureCoordinate *)node->texCoordRamp;
@@ -512,11 +513,16 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 		_particles->data = realloc(_particles->data,maxparticles);
 		_particles->allocn = maxparticles;
 	}
-	node->_lasttime = TickTime();
-	if(node->enabled){
+	if(!node->_lasttime || node->enabled && !node->_lastEnabled)
+		node->_lasttime = TickTime();
+	if(node->enabled && !node->_lastEnabled){
 		node->isActive = TRUE;
 		MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_ParticleSystem, isActive));
+	}else if(!node->enabled && node->_lastEnabled){
+		node->isActive = FALSE;
+		MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_ParticleSystem, isActive));
 	}
+	node->_lastEnabled = node->enabled;
 	MARK_NODE_COMPILED
 }
 
@@ -1105,8 +1111,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	// static int once = 0;
    	ttglobal tg = gglobal();
 
-	//COMPILE_IF_REQUIRED
-	check_compile(node);
+	COMPILE_IF_REQUIRED
+	//check_compile(node);
 
 	/* initialization. This will get overwritten if there is a texture in an Appearance
 	   node in this shape (see child_Appearance) */
