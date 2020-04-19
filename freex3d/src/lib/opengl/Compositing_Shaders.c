@@ -1506,7 +1506,7 @@ vec4 getDiffuseFactor() { \n\
 	return dcolor; \n\
 } \n\
 vec4 getGouraudColor() { \n\
-	vec4 dcolor = vec4(1.0); \n\
+	vec4 dcolor = castle_Color; \n\
 	#ifdef LIT\n\
 	dcolor *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
 	#endif //LIT \n\
