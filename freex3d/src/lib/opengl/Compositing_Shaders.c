@@ -475,9 +475,10 @@ define MAT if material is valid
 
 static const GLchar *genericVertexGLES2 = "\
 /* DEFINES */ \n\
-#ifndef LINETYPE \n\
-#define DEPRECATED \n\
-#endif \n\
+#ifndef MOBILE \n\
+#define attribute in \n\
+#define varying out \n\
+#endif //NOT MOBILE \n\
 /* Generic GLSL vertex shader, used on OpenGL ES. */ \n\
 #ifdef MOBILE \n\
 // we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
@@ -491,13 +492,8 @@ uniform mat3 fw_NormalMatrix; \n\
 #ifdef CUB \n\
 uniform mat4 fw_ModelViewInverseMatrix; \n\
 #endif //CUB \n\
-#ifdef DEPRECATED \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
-#else //DEPRECATED \n\
-in vec4 fw_Vertex; \n\
-in vec3 fw_Normal; \n\
-#endif //DEPRECATED \n\
 #ifdef LINETYPE \n\
 //desktop glsl 330 \n\
 //glsl desktop version 130 can do flat instead of varying \n\
@@ -518,24 +514,13 @@ uniform vec2 u_screenresolution; \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
 uniform int nTexMatrix; \n\
-#ifdef DEPRECATED \n\
 attribute vec4 fw_MultiTexCoord0; \n\
 attribute vec4 fw_MultiTexCoord1; \n\
 attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
-#else //DEPRECATED \n\
-in vec4 fw_MultiTexCoord0; \n\
-in vec4 fw_MultiTexCoord1; \n\
-in vec4 fw_MultiTexCoord2; \n\
-in vec4 fw_MultiTexCoord3; \n\
-#endif //DEPRECATED \n\
 uniform int nTexCoordChannels; \n\
 //varying vec3 v_texC; \n\
-#ifdef DEPRECATED \n\
 varying vec3 fw_TexCoord[4]; \n\
-#else //DEPRECATED \n\
-out vec3 fw_TexCoord[4]; \n\
-#endif //DEPRECATED \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
@@ -555,23 +540,13 @@ uniform int tex3dUseVertex; \n\
 #endif //TGEN \n\
 //#endif //TEX \n\
 #ifdef FILL \n\
-#ifdef DEPRECATED \n\
 varying vec2 hatchPosition; \n\
-#else //DEPRECATED \n\
-out vec2 hatchPosition; \n\
-#endif //DEPRECATED \n\
 #endif //FILL \n\
 \n\
  \n\
- #ifdef DEPRECATED \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
 varying vec4 castle_Color; //DA diffuse ambient term \n\
-#else //DEPRECATED \n\
-out vec4 castle_vertex_eye; \n\
-out vec3 castle_normal_eye; \n\
-out vec4 castle_Color; //DA diffuse ambient term \n\
-#endif //DEPRECATED \n\
  \n\
 //uniform float castle_MaterialDiffuseAlpha; \n\
 //uniform float castle_MaterialShininess; \n\
@@ -634,11 +609,7 @@ uniform fw_MaterialParameters fw_FrontMaterial; \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#endif //TWO \n\
 #ifdef LIT \n\
-#ifdef DEPRECATED \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
-#else //DEPRECATED \n\
-out vec3 castle_ColorES; \n\
-#endif //DEPRECATED \n\
 vec3 castle_Emissive; \n\
 #endif //LIT \n\
 #ifdef FOG \n\
