@@ -508,7 +508,7 @@ in vec3 a_nextVertex; \n\
 uniform int u_linetype; \n\
 #endif //LINETYPE \n\
 #if defined(LINETYPE) || defined(POINTP) \n\
-uniform vec2 u_screenresolution; \n\
+uniform vec4 u_screenresolution; \n\
 #endif // LINETYPE POINTP \n\
  \n\
 //#ifdef TEX \n\
@@ -731,11 +731,11 @@ void main(void) \n\
 	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
 	//vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
 	//projected coords are in -1 to 1 range \n\
-	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
-	//f_next = (next.xyz/next.w).xy*u_screenresolution*.5; \n\
+	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution.xy; \n\
+	//f_next = (next.xyz/next.w).xy*u_screenresolution.xy*.5; \n\
 	//using GL_LINE_STRIP the 2nd vertex is the provoking vertex so is next \n\
-	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
-	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution.xy; \n\
+	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution.xy; \n\
 	//float index aka findex method of determining start/end of polyline \n\
 	float findex = a_nextVertex.x; \n\
 	float fcount = a_nextVertex.y; \n\
@@ -879,7 +879,7 @@ void main(void) \n\
 			pscal = min(pscal,u_pointSizeRange.y); \n\
 		} \n\
 		//convert from screen pixel size to view coords \n\
-		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution) *vec2(2.0)* view_position.w; \n\
+		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution.xy) *vec2(2.0)* view_position.w; \n\
 		view_position.xy += view_point; \n\
 		gl_Position = view_position; \n\
 	} \n\
@@ -1039,6 +1039,8 @@ uniform int u_linestrip_start_style; \n\
 uniform int u_linestrip_end_style; \n\
 uniform vec2 u_linetype_uv[128]; \n\
 uniform vec3 u_linetype_tse[128]; \n\
+uniform vec4 u_screenresolution; \n\
+ \n\
 flat in vec2 f_prev; \n\
 flat in vec2 f_next; \n\
 flat in float f_linestrip_end; \n\
@@ -1062,8 +1064,10 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		vec2 u_dir = normalize(baseline); \n\
 		vec2 v_dir = normalize(cross(vec3(0,0,1),vec3(u_dir,0.0)).xy); \n\
 		vec2 ubar; \n\
-		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
-		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
+		//gl_FragCoord is relative to whole opengl window, we need viewport \n\
+		vec2 vpcoord = gl_FragCoord.xy - u_screenresolution.pq; \n\
+		ubar.s = dot(vpcoord.xy - f_prev, u_dir); \n\
+		ubar.t = dot(vpcoord.xy - v_curr, v_dir); \n\
 		float phase = mod(ubar.s, u_lineperiod); \n\
 		vec2 uu = vec2(0.0,0.0); \n\
 		bool gap = false; \n\
