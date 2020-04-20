@@ -1008,3 +1008,9 @@ void child_HAnimSite(struct X3D_HAnimSite *node) {
 
 }
 
+void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotion(struct X3D_HAnimMotion *node) {
+	COMPILE_IF_REQUIRED
+}
