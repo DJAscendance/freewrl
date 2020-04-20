@@ -290,6 +290,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_keyValueVBO",
 	"_knot",
 	"_knotrange",
+	"_lastEnabled",
 	"_lastframetime",
 	"_lastp0",
 	"_lastp0time",
@@ -6370,6 +6371,7 @@ const int OFFSETS_ParticleSystem[] = {
 	(int) FIELDNAMES__ltex, (int) offsetof (struct X3D_ParticleSystem, _ltex),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__particles, (int) offsetof (struct X3D_ParticleSystem, _particles),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__lasttime, (int) offsetof (struct X3D_ParticleSystem, _lasttime),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastEnabled, (int) offsetof (struct X3D_ParticleSystem, _lastEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__geometryType, (int) offsetof (struct X3D_ParticleSystem, _geometryType),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__remainder, (int) offsetof (struct X3D_ParticleSystem, _remainder),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -12023,6 +12025,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_ltex = NULL;
 			tmp2->_particles = NULL;
 			tmp2->_lasttime = 0;
+			tmp2->_lastEnabled = FALSE;
 			tmp2->_geometryType = 0;
 			tmp2->_remainder = 0.0f;
 			tmp2->_defaultContainer = FIELDNAMES_shape;
@@ -17134,6 +17137,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," particleSize (SFVec2f): \t");
 			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",tmp->particleSize.c[i]); }
 			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," _lastEnabled (SFBool) \t%d\n",tmp->_lastEnabled);
+		    }
 		    break;
 		}
 		case NODE_PhysicalMaterial : {

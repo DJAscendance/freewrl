@@ -4172,6 +4172,7 @@ our %Nodes = (
 		_ltex => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
 		_particles => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
 		_lasttime => ["SFDouble", 0.0, "initializeOnly", 0,0],#ff
+		_lastEnabled => ["SFBool", "FALSE","inputOutput", 0,0],#ff
 		_geometryType =>["SFInt32",0,"initializeOnly",0,0],#ff
 		_remainder =>["SFFloat",0.0,"initializeOnly",0,0],#ff
 	],"X3DShapeNode"),

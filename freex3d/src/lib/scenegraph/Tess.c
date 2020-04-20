@@ -226,7 +226,7 @@ void CALLBACK FW_tess_combine_polyrep_data (GLDOUBLE c[3], GLfloat *d[4], GLfloa
 		 }
 		}
 		 */
-		printf("$"); //debugging
+		//printf("$"); //debugging
 	}else{
 		//Aug 3, 2016 this doesn't work, didn't pick through polyrep, don't use.
 		/*	

@@ -475,9 +475,10 @@ define MAT if material is valid
 
 static const GLchar *genericVertexGLES2 = "\
 /* DEFINES */ \n\
-#ifndef LINETYPE \n\
-#define DEPRECATED \n\
-#endif \n\
+#ifndef MOBILE \n\
+#define attribute in \n\
+#define varying out \n\
+#endif //NOT MOBILE \n\
 /* Generic GLSL vertex shader, used on OpenGL ES. */ \n\
 #ifdef MOBILE \n\
 // we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
@@ -491,13 +492,8 @@ uniform mat3 fw_NormalMatrix; \n\
 #ifdef CUB \n\
 uniform mat4 fw_ModelViewInverseMatrix; \n\
 #endif //CUB \n\
-#ifdef DEPRECATED \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
-#else //DEPRECATED \n\
-in vec4 fw_Vertex; \n\
-in vec3 fw_Normal; \n\
-#endif //DEPRECATED \n\
 #ifdef LINETYPE \n\
 //desktop glsl 330 \n\
 //glsl desktop version 130 can do flat instead of varying \n\
@@ -512,30 +508,19 @@ in vec3 a_nextVertex; \n\
 uniform int u_linetype; \n\
 #endif //LINETYPE \n\
 #if defined(LINETYPE) || defined(POINTP) \n\
-uniform vec2 u_screenresolution; \n\
+uniform vec4 u_screenresolution; \n\
 #endif // LINETYPE POINTP \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
 uniform int nTexMatrix; \n\
-#ifdef DEPRECATED \n\
 attribute vec4 fw_MultiTexCoord0; \n\
 attribute vec4 fw_MultiTexCoord1; \n\
 attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
-#else //DEPRECATED \n\
-in vec4 fw_MultiTexCoord0; \n\
-in vec4 fw_MultiTexCoord1; \n\
-in vec4 fw_MultiTexCoord2; \n\
-in vec4 fw_MultiTexCoord3; \n\
-#endif //DEPRECATED \n\
 uniform int nTexCoordChannels; \n\
 //varying vec3 v_texC; \n\
-#ifdef DEPRECATED \n\
 varying vec3 fw_TexCoord[4]; \n\
-#else //DEPRECATED \n\
-out vec3 fw_TexCoord[4]; \n\
-#endif //DEPRECATED \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
@@ -555,23 +540,13 @@ uniform int tex3dUseVertex; \n\
 #endif //TGEN \n\
 //#endif //TEX \n\
 #ifdef FILL \n\
-#ifdef DEPRECATED \n\
 varying vec2 hatchPosition; \n\
-#else //DEPRECATED \n\
-out vec2 hatchPosition; \n\
-#endif //DEPRECATED \n\
 #endif //FILL \n\
 \n\
  \n\
- #ifdef DEPRECATED \n\
 varying vec4 castle_vertex_eye; \n\
 varying vec3 castle_normal_eye; \n\
 varying vec4 castle_Color; //DA diffuse ambient term \n\
-#else //DEPRECATED \n\
-out vec4 castle_vertex_eye; \n\
-out vec3 castle_normal_eye; \n\
-out vec4 castle_Color; //DA diffuse ambient term \n\
-#endif //DEPRECATED \n\
  \n\
 //uniform float castle_MaterialDiffuseAlpha; \n\
 //uniform float castle_MaterialShininess; \n\
@@ -634,11 +609,7 @@ uniform fw_MaterialParameters fw_FrontMaterial; \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#endif //TWO \n\
 #ifdef LIT \n\
-#ifdef DEPRECATED \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
-#else //DEPRECATED \n\
-out vec3 castle_ColorES; \n\
-#endif //DEPRECATED \n\
 vec3 castle_Emissive; \n\
 #endif //LIT \n\
 #ifdef FOG \n\
@@ -760,11 +731,11 @@ void main(void) \n\
 	vec4 prev = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_prevVertex,1.0); \n\
 	//vec4 next = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(a_nextVertex,1.0); \n\
 	//projected coords are in -1 to 1 range \n\
-	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
-	//f_next = (next.xyz/next.w).xy*u_screenresolution*.5; \n\
+	f_prev = ((prev.xyz/prev.w).xy*.5 + vec2(.5))*u_screenresolution.xy; \n\
+	//f_next = (next.xyz/next.w).xy*u_screenresolution.xy*.5; \n\
 	//using GL_LINE_STRIP the 2nd vertex is the provoking vertex so is next \n\
-	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
-	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution; \n\
+	f_next = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution.xy; \n\
+	v_curr = ((curr.xyz/curr.w).xy*.5 + vec2(.5))*u_screenresolution.xy; \n\
 	//float index aka findex method of determining start/end of polyline \n\
 	float findex = a_nextVertex.x; \n\
 	float fcount = a_nextVertex.y; \n\
@@ -908,7 +879,7 @@ void main(void) \n\
 			pscal = min(pscal,u_pointSizeRange.y); \n\
 		} \n\
 		//convert from screen pixel size to view coords \n\
-		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution) *vec2(2.0)* view_position.w; \n\
+		vec2 view_point = (vec2(pscal)*vertex_object.xy / u_screenresolution.xy) *vec2(2.0)* view_position.w; \n\
 		view_position.xy += view_point; \n\
 		gl_Position = view_position; \n\
 	} \n\
@@ -1068,6 +1039,8 @@ uniform int u_linestrip_start_style; \n\
 uniform int u_linestrip_end_style; \n\
 uniform vec2 u_linetype_uv[128]; \n\
 uniform vec3 u_linetype_tse[128]; \n\
+uniform vec4 u_screenresolution; \n\
+ \n\
 flat in vec2 f_prev; \n\
 flat in vec2 f_next; \n\
 flat in float f_linestrip_end; \n\
@@ -1091,8 +1064,10 @@ bool on_linetype(inout vec4 frag_color){ \n\
 		vec2 u_dir = normalize(baseline); \n\
 		vec2 v_dir = normalize(cross(vec3(0,0,1),vec3(u_dir,0.0)).xy); \n\
 		vec2 ubar; \n\
-		ubar.s = dot(gl_FragCoord.xy - f_prev, u_dir); \n\
-		ubar.t = dot(gl_FragCoord.xy - v_curr, v_dir); \n\
+		//gl_FragCoord is relative to whole opengl window, we need viewport \n\
+		vec2 vpcoord = gl_FragCoord.xy - u_screenresolution.pq; \n\
+		ubar.s = dot(vpcoord.xy - f_prev, u_dir); \n\
+		ubar.t = dot(vpcoord.xy - v_curr, v_dir); \n\
 		float phase = mod(ubar.s, u_lineperiod); \n\
 		vec2 uu = vec2(0.0,0.0); \n\
 		bool gap = false; \n\
@@ -1506,7 +1481,7 @@ vec4 getDiffuseFactor() { \n\
 	return dcolor; \n\
 } \n\
 vec4 getGouraudColor() { \n\
-	vec4 dcolor = vec4(1.0); \n\
+	vec4 dcolor = castle_Color; \n\
 	#ifdef LIT\n\
 	dcolor *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
 	#endif //LIT \n\

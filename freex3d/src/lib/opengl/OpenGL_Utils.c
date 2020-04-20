@@ -7076,7 +7076,9 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	SEND_VEC4(hatchColour,myap->hatchColour);
 	{
 		ivec4 vp = get_current_viewport();
-		GLUNIFORM2F(me->screenresolution,(float)vp.W,(float)vp.H);
+		//LINETYPE > gl_FragCoord is relattive to whole opengl window (not our vp) 
+		// so subtract our vp.X,vp.Y off gl_FragCoord to get vp-relative pixels.
+		GLUNIFORM4F(me->screenresolution,(float)vp.W,(float)vp.H,(float)vp.X,(float)vp.Y);
 		if(myap->linetype_uv){
 			GLUNIFORM2FV(me->linetype_uv,128,myap->linetype_uv);
 			GLUNIFORM1I(me->linetype,myap->linetype);
