@@ -796,6 +796,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"modulationTypeSystem",
 	"momentsOfInertia",
 	"motions",
+	"motionsEnabled",
 	"motor1Angle",
 	"motor1AngleRate",
 	"motor1Axis",
@@ -1582,6 +1583,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"modulationTypeSystem",
 	"momentsOfInertia",
 	"motions",
+	"motionsEnabled",
 	"multicastRelayHost",
 	"multicastRelayPort",
 	"munitionApplicationID",
@@ -5131,12 +5133,14 @@ const int OFFSETS_HAnimHumanoid[] = {
 	(int) FIELDNAMES_skinNormal, (int) offsetof (struct X3D_HAnimHumanoid, skinNormal),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_HAnimHumanoid, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_translation, (int) offsetof (struct X3D_HAnimHumanoid, translation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_motions, (int) offsetof (struct X3D_HAnimHumanoid, motions),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_version, (int) offsetof (struct X3D_HAnimHumanoid, version),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_viewpoints, (int) offsetof (struct X3D_HAnimHumanoid, viewpoints),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_HAnimHumanoid, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_HAnimHumanoid, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimHumanoid, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_motions, (int) offsetof (struct X3D_HAnimHumanoid, motions),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_motionsEnabled, (int) offsetof (struct X3D_HAnimHumanoid, motionsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimHumanoid, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__JT, (int) offsetof (struct X3D_HAnimHumanoid, _JT),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__PVI, (int) offsetof (struct X3D_HAnimHumanoid, _PVI),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__PVW, (int) offsetof (struct X3D_HAnimHumanoid, _PVW),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -10441,12 +10445,14 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->skinNormal = NULL;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
 			tmp2->translation.c[0] = 0.0f;tmp2->translation.c[1] = 0.0f;tmp2->translation.c[2] = 0.0f;
-			tmp2->motions.n=0; tmp2->motions.p=0;
 			tmp2->version = newASCIIString("");
 			tmp2->viewpoints.n=0; tmp2->viewpoints.p=0;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->metadata = NULL;
+			tmp2->motions.n=0; tmp2->motions.p=0;
+			tmp2->motionsEnabled.n=0; tmp2->motionsEnabled.p=0;
+			tmp2->loa = -1;
 			tmp2->_JT = 0;
 			tmp2->_PVI = 0;
 			tmp2->_PVW = 0;
@@ -15709,14 +15715,17 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," translation (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->translation.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," motions (MFNode):\n");
-			for (i=0; i<tmp->motions.n; i++) { dump_scene(fp,level+1,tmp->motions.p[i]); }
 			spacer fprintf (fp," version (SFString) \t%s\n",tmp->version->strptr);
 			spacer fprintf (fp," viewpoints (MFNode):\n");
 			for (i=0; i<tmp->viewpoints.n; i++) { dump_scene(fp,level+1,tmp->viewpoints.p[i]); }
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," motions (MFNode):\n");
+			for (i=0; i<tmp->motions.n; i++) { dump_scene(fp,level+1,tmp->motions.p[i]); }
+			spacer fprintf (fp," motionsEnabled (MFBool):\n");
+			for (i=0; i<tmp->motionsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->motionsEnabled.p[i]); }
+			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
 		    break;
 		}
 		case NODE_HAnimJoint : {
