@@ -243,7 +243,7 @@ on child_humanoid rendering call:
 typedef struct pComponent_HAnim{
 	struct X3D_HAnimHumanoid *HH;
 	double HHMatrix[16];
-
+	Stack *parent_stack;
 }* ppComponent_HAnim;
 void *Component_HAnim_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_HAnim));
@@ -257,17 +257,23 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		p->HH = NULL;
-
+		p->parent_stack = newStack(struct X3D_Node*);
 	}
 }
 void Component_HAnim_clear(struct tComponent_HAnim *t){
 	//public
 	//private
 	{
-		//ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
+		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
+		deleteStack(struct X3D_Node*,p->parent_stack);
 	}
 }
 //ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+
+
+
+
+
 
 
 void compile_HAnimJoint (struct X3D_HAnimJoint *node){
@@ -606,6 +612,21 @@ int vecsametol3f(float *a, float *b, float tol){
 		if(fabsf(a[i] - b[i]) > tol) isame = FALSE;
 	return isame;
 }
+
+void push_parent(struct X3D_Node *parent){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_push(struct X3D_Node*,p->parent_stack,parent);
+}
+void pop_parent(){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_pop(struct X3D_Node *,p->parent_stack);
+}
+struct X3D_Node * peek_parent(){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return stack_top(struct X3D_Node *, p->parent_stack);
+}
+
+
 void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
@@ -622,8 +643,11 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 			node->motionsEnabled.p = moe;
 			node->motionsEnabled.n = node->motions.n;
 		}
-		for(int i=0;i<node->motions.n;i++)
+		push_parent(X3D_NODE(node));
+		for(int i=0;i<node->motions.n;i++){
 			check_compile(node->motions.p[i]);
+		}
+		pop_parent();
 	}
 
 	int nsc = 0, nsn = 0;
@@ -708,10 +732,12 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		return;
 	}
 	if(node->motions.n){
+		push_parent(X3D_NODE(node));
 		for(int i=0;i<node->motions.n;i++){
 			if(node->motionsEnabled.p[i])
 				render_node(X3D_NODE(node->motions.p[i]));
 		}
+		pop_parent();
 	}
 
 	// segments, joints, sites are flat-lists for convenience
@@ -1221,6 +1247,9 @@ void parse_values(struct moframe *moframes,int framecount, int jointcount, int c
 		}
 	}
 }
+void map_motions_to_parent_humanoid (char** jointnames, int jointcount, struct X3D_HAnimHumanoid *parent){
+	struct X3D_HAnimJoint ** joints = (struct X3D_HAnimJoint **) parent->joints.p;
+}
 void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	//motion data
 	//parse jouint names
@@ -1255,6 +1284,12 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 				printf("%d %5.2f ",chan[j].channel[k],chan[j].channel[k] < 4 ? moj->v[k]*180.0/PI : moj->v[k]);
 			printf("\n");
 		}
+	}
+	//parent mapping
+	struct X3D_Node *par = peek_parent();
+	if(par && X3D_NODE(par)->_nodeType == NODE_HAnimHumanoid){
+		struct X3D_HAnimHumanoid *parent = (struct X3D_HAnimHumanoid*)par;
+		map_motions_to_parent_humanoid(jnames->data,jnames->n, parent);
 	}
 
 	//frame state

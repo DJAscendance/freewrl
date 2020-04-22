@@ -10573,7 +10573,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scaleO = 0;
 			tmp2->__do_scale = 0;
 			tmp2->__do_anything = 0;
-			tmp2->_defaultContainer = FIELDNAMES_sites;
+			tmp2->_defaultContainer = FIELDNAMES_sites + (FIELDNAMES_viewpoints << 10);
 		break;
 		}
 		case NODE_ImageBackdropBackground : {
