@@ -611,6 +611,21 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 	//check if the coordinate count is the same
 	INITIALIZE_EXTENT
 
+	if(node->motions.n){
+		if(node->motions.n > node->motionsEnabled.n){
+			int *moe = MALLOC(int*,node->motions.n * sizeof(int));
+			memset(moe,0,node->motions.n * sizeof(int));
+			memcpy(moe,node->motionsEnabled.p,node->motionsEnabled.n*sizeof(int));
+			for(int i=node->motionsEnabled.n;i<node->motions.n;i++)
+				moe[i] = TRUE;
+			FREE_IF_NZ(node->motionsEnabled.p);
+			node->motionsEnabled.p = moe;
+			node->motionsEnabled.n = node->motions.n;
+		}
+		for(int i=0;i<node->motions.n;i++)
+			check_compile(node->motions.p[i]);
+	}
+
 	int nsc = 0, nsn = 0;
 	float *psc = NULL, *psn = NULL;
 	if(node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate){
@@ -692,7 +707,12 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		normalChildren(node->viewpoints);
 		return;
 	}
-
+	if(node->motions.n){
+		for(int i=0;i<node->motions.n;i++){
+			if(node->motionsEnabled.p[i])
+				render_node(X3D_NODE(node->motions.p[i]));
+		}
+	}
 
 	// segments, joints, sites are flat-lists for convenience
 	// skeleton is the scenegraph-like transform hierarchy of joints and segments and sites
@@ -1008,7 +1028,239 @@ void child_HAnimSite(struct X3D_HAnimSite *node) {
 
 }
 
+int char_is_separator(char c, char *separators){
+	int is_sep = FALSE;
+	char *s = separators;
+	while(*s != 0){
+		if(c == *s){
+			is_sep = TRUE; break;
+		}
+		s++;
+	}
+	return is_sep;
+}
+//adapted from cson
+static int next_token( char const ** inp, char *separators, char const ** end )
+{
+    char const * pos = NULL;
+	if(!(inp && end && *inp))
+		printf("ouch\n");
+    assert( inp && end && *inp );
+    if( *inp == *end ) return 0;
+    pos = *inp;
+    if( !*pos )
+    {
+        *end = pos;
+        return 0;
+    }
+    for( ; *pos && ( char_is_separator(*pos,separators)); ++pos) { /* skip preceeding splitters */ }
+    *inp = pos;
+    for( ; *pos && ( !char_is_separator(*pos,separators)); ++pos) { /* find next splitter */ }
+    *end = pos;
+    return (pos > *inp) ? 1 : 0;
+}
+Stack* parse_joint_names(struct X3D_Node* node, char *joint_names){
+	char *sep = " \n\r\t,";
+	Stack* jnames = newStack(char*);
+	//adapted from cson >>
+	int len, rc;
+	char *beg, *end;
+    beg = joint_names;
+    end = NULL;
+    for(int i=0;; ++i, beg=end, end=NULL )
+    {
+        rc = next_token( &beg, sep, &end );
+        if(!rc) break;
+        assert( beg != end );
+        assert( end > beg );
+		//*end = '\0';
+        len = (unsigned int)(end - beg);
+		char *name = malloc(len+1);
+		register_node_gc(node,name);
+        //if( len > (BufSize-1) ) return cson_rc.RangeError;
+        //memset( buf, 0, len + 1 );
+        memcpy(name, beg, len );
+        name[len] = 0;
+		stack_push(char*,jnames,name);
+    }
+	//<< adapted from cson
+	return jnames;
+}
+enum {
+CHAN_RX = 1,
+CHAN_RY = 2,
+CHAN_RZ = 3,
+CHAN_TX = 4,
+CHAN_TY = 5,
+CHAN_TZ = 6,
+CHAN_NONE = 0,
+};
+struct chan_name {
+int iname;
+char *cname;
+} chan_names [] = {
+{CHAN_RX, "Xrotation"},
+{CHAN_RY, "Yrotation"},
+{CHAN_RZ, "Zrotation"},
+{CHAN_TX, "Xposition"},
+{CHAN_TY, "Yposition"},
+{CHAN_TZ, "Zposition"},
+{CHAN_NONE,NULL},
+};
+struct channellist {
+	int count;
+	int channel[6];
+};
+int chan_lookup(char *cname){
+	int i, iname;
+	struct chan_name *cn;
+	i = 0;
+	iname = 0;
+	do{
+		cn = &chan_names[i];
+		if(!strcmp(cn->cname,cname)){
+			iname = cn->iname;
+			break;
+		}
+		i++;
+	}while(cn->cname != NULL);
+	return iname;
+	
+}
+char *channame_lookup(int ichan){
+	int i;
+	struct chan_name *cn;
+	i = 0;
+	char * cname = NULL;
+	do{
+		cn = &chan_names[i];
+		if(cn->iname == ichan){
+			cname = cn->cname;
+			break;
+		}
+		i++;
+	}while(cn->iname != CHAN_NONE);
+	return cname;
+}
+char *next_buffer_token(char **beg, char* sep, char **end){
+	static char buffer[128];
+	int len, rc;
+	buffer[0] = '\0';
+    rc = next_token( beg, sep, end );
+    if(rc){
+		assert( *beg != *end );
+		assert( *end > *beg );
+		//*end = '\0';
+		len = (unsigned int)(*end - *beg);
+		len = min(len,127);
+		memcpy(buffer, *beg, len );
+		buffer[len] = 0;
+	}
+	return buffer;
+}
+int parse_channels(char *channelstring, int nentries, struct channellist* chan){
+	char *sep = " \n\r\t,";
+	//adapted from cson >>
+	int len, rc, count, totalcount;
+	char *beg, *end, *token;
+	totalcount = 0;
+    beg = channelstring;
+    end = NULL;
+    for(int i=0;i<nentries; ++i, beg=end, end=NULL )
+    {
+        token = next_buffer_token( &beg, sep, &end );
+		len = strlen(token);
+        if(!len) break;
+		sscanf_s(token,"%d",&count);
+		totalcount += count;
+		chan[i].count = count;
+		for(int j=0;j<count;j++){
+			beg=end; end=NULL;
+	        token = next_buffer_token( &beg, sep, &end );
+			int ichan = chan_lookup(token);
+			chan[i].channel[j] = ichan;
+		}
+    }
+	return totalcount;
+}
+struct mojoint {
+	float v[6];
+};
+struct moframe {
+	struct mojoint * mj;
+};
+float *parse_float_values(int n, char *str){
+	char *beg, *end, *token;
+	int len;
+	char *sep = " \n\r\t,";
+	float *fv = malloc(n*sizeof(float));
+    beg = str;
+    end = NULL;
+    for(int i=0;i<n; ++i, beg=end, end=NULL )
+    {
+        token = next_buffer_token( &beg, sep, &end );
+		len = (unsigned int)(*end - *beg);
+        if(!len) break;
+		sscanf_s(token,"%f",&fv[i]);
+    }
+	return fv;
+}
+void parse_values(struct moframe *moframes,int framecount, int jointcount, int channelcount, struct channellist* chan, char *values){
+	float *fvalues = parse_float_values(framecount * channelcount, values);
+	float *fv = fvalues;
+	for(int i=0;i<framecount;i++){
+		struct moframe *mof = &moframes[i];
+		for(int j=0;j<jointcount;j++){
+			struct mojoint *moj = &mof->mj[j];
+			for(int k=0;k<chan[j].count;k++){
+				moj->v[k] = *fv;
+				if(chan[j].channel[k] < 4)
+					moj->v[k] *= PI/180.0;
+				fv++;
+			}
+		}
+	}
+}
 void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
+	//motion data
+	//parse jouint names
+	struct Vector *jnames = parse_joint_names(X3D_NODE(node),node->joints->strptr);
+	printf("\n");
+	for(int i=0;i<jnames->n;i++)
+		printf("%d %s\n",i,vector_get(char*,jnames,i));
+	int njoints = jnames->n;
+
+	//parse channels
+	struct channellist *chan = malloc(njoints * sizeof(struct channellist));
+	int channelcount = parse_channels(node->channels->strptr,njoints,chan);
+	for(int i=0;i<njoints;i++){
+		printf("joint %d nchan %d ",i, chan[i].count);
+		for(int j=0;j<chan[i].count;j++){
+			printf("%s ",channame_lookup(chan[i].channel[j]));
+		}
+		printf("\n");
+	}
+	//parse values
+	struct moframe *moframes = malloc(node->frameCount *sizeof(struct moframe));
+	for(int i=0;i<node->frameCount;i++)
+		moframes[i].mj = malloc(njoints *sizeof(struct mojoint));
+	parse_values(moframes,node->frameCount,njoints,channelcount,chan,node->values->strptr);
+
+	for(int i=0;i<node->frameCount;i+=(node->frameCount-1)){
+		struct moframe *mof = &moframes[i];
+		for(int j=0;j<njoints;j++){
+			printf("%s %d \n",vector_get(char*,jnames,j),chan[j].count);
+			struct mojoint *moj = &mof->mj[j];
+			for(int k=0;k<chan[j].count;k++)
+				printf("%d %5.2f ",chan[j].channel[k],chan[j].channel[k] < 4 ? moj->v[k]*180.0/PI : moj->v[k]);
+			printf("\n");
+		}
+	}
+
+	//frame state
+
+
+
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {

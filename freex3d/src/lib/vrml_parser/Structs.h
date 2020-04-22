@@ -5587,7 +5587,7 @@ struct X3D_HAnimMotion {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Multi_String channels;
+	struct Uni_String *channels;
 	struct Multi_Bool channelsEnabled;
 	double cycleTime;
 	struct Uni_String *description;
@@ -5597,13 +5597,13 @@ struct X3D_HAnimMotion {
 	double frameDuration;
 	int frameIncrement;
 	int frameIndex;
-	struct Multi_String joints;
+	struct Uni_String *joints;
 	int loa;
 	int loop;
 	struct X3D_Node *metadata;
 	int next;
 	int previous;
-	struct Multi_Float values;
+	struct Uni_String *values;
 };
 extern struct X3D_Virt virt_HAnimMotion;
 /***********************/

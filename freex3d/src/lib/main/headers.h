@@ -206,7 +206,7 @@ extern double geoHeightinZAxis;
     if (myTCnode->_ichange == 0) return; \
 }
 
-
+void check_compile(struct X3D_Node* node);
 
 /* convert a PROTO node (which will be a Group node) into a node. eg, for Materials  - this is a possible child
 node for ANY node that takes something other than a Group */
