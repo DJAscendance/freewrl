@@ -2679,6 +2679,9 @@ extern const int NODES_COUNT;
 /* and now the structs for the nodetypes */ 
 const char *stringNodeType(int st);
 
+/* Table of defaultContainerFields for x3d parsing */
+extern const short NODE_DEFAULT_CONTAINER[][7];
+
 /* First, a generic struct, contains only the common elements - nicknames for convenience */
 struct X3D_Node {
        int _nodeType; /* unique integer for each type */ 

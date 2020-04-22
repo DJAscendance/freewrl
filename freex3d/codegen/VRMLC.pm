@@ -392,6 +392,8 @@ sub gen {
 
 	push @genFuncs1, "\n/* Table of built-in fieldIds */\n       const char *FIELDNAMES[] = {\n";
 
+	# push @str, "#define FIELDNAMES_NONE $fieldNameCount\n";
+	# $fieldNameCount ++;
 	foreach (sort keys %totalfields) {
 		#print "totalfields $_\n";
 		push @str, "#define FIELDNAMES_".$_."	$fieldNameCount\n";
@@ -998,7 +1000,7 @@ sub gen {
 	push @str, "\n/* Table of built-in nodeIds */\nextern const char *NODES[];\n";
 	push @str, "extern const int NODES_COUNT;\n";
 
-	push @genFuncs1, "\n/* Table of Node Types */\n       const char *NODES[] = {\n";
+	push @genFuncs1, "\n/* Table of Node Types */\nconst char *NODES[] = {\n";
 
         push @str, "\n/* and now the structs for the nodetypes */ \n";
 	for(@sortedNodeList) {
@@ -1013,6 +1015,34 @@ sub gen {
 		"	if ((st < 0) || (st >= NODES_COUNT)) return \"(node invalid)\"; \n".
 		"	return NODES[st];\n}\n\n";
 	push @str, "const char *stringNodeType(int st);\n";
+
+
+
+	# make table of containerFields (as hint for x3d parsing when scene file doesn't specific cnotainerField)
+	#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
+	#if (true) { #exists $VRML::Rend::defaultContainerType{$node} ) {
+		push @str, "\n/* Table of defaultContainerFields for x3d parsing */\nextern const short NODE_DEFAULT_CONTAINER[][7];\n";
+		push @genFuncs1, "const short NODE_DEFAULT_CONTAINER[][7] = {\n";
+		for(@sortedNodeList) {
+			my $containerCount = 0;
+			my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$_}});
+			my $nextchar = "{";
+			for(my $i=0; $i<7; $i++) {
+				push @genFuncs1, $nextchar;
+				if($i < $lencount) {
+					push @genFuncs1, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$_}[$i];
+				}else{
+					push @genFuncs1, "0";
+				}
+				$nextchar = ",";
+			}
+			push @genFuncs1, "},\n";
+		}
+		push @genFuncs1, "};\n";
+	# } else {
+		# print "defaultContainerType for $node missing\n";
+	# }
+
 
 
 	###################
@@ -1205,33 +1235,34 @@ sub gen {
 			push @genFuncs2, "\t\t\t$cf;\n";
 		}
 
-	# rig in the default container for X3D parsing.
-	#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
-	if (exists $VRML::Rend::defaultContainerType{$node} ) {
-		#push @genFuncs2, "\t\t\ttmp2->_defaultContainer = FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}.";\n";
-		push @genFuncs2, "\t\t\ttmp2->_defaultContainer = ";
-		my $containerCount = 0;
-		my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$node}});
-		#push @genFuncs2, "$lencount ";
-		for(my $i=0;$i<$lencount;$i++) {
-			if($i < 3) {  #just 1 or 2 for now
-				if ($i == 1 || $i == 2) {
-					push @genFuncs2, " + (";
-				}
-				push @genFuncs2, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}[$i];
-				if ($i == 1) {
-					push @genFuncs2, " << 10)";
-				}
-				if ($i == 2) {
-					push @genFuncs2, " << 20)"; #squeezing 3 into 32 bits, 10 bits each, so FIELDNAMES_ can only go up to 1023, currently ~960 jan 2017
-				}
-			}
-		}
-		#push @genFuncs2, $VRML::Rend::defaultContainerType{$node}[0];
-		push @genFuncs2, ";\n";
-	} else {
-		print "defaultContainerType for $node missing\n";
-	}
+		# rig in the default container for X3D parsing.
+		#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
+		# if (exists $VRML::Rend::defaultContainerType{$node} ) {
+			# #push @genFuncs2, "\t\t\ttmp2->_defaultContainer = FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}.";\n";
+			# push @genFuncs2, "\t\t\ttmp2->_defaultContainer = ";
+			# my $containerCount = 0;
+			# my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$node}});
+			# #push @genFuncs2, "$lencount ";
+			# for(my $i=0;$i<$lencount;$i++) {
+				# if($i < 3) {  #just 1 or 2 for now
+					# if ($i == 1 || $i == 2) {
+						# push @genFuncs2, " + (";
+					# }
+					# push @genFuncs2, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}[$i];
+					# if ($i == 1) {
+						# push @genFuncs2, " << 10)";
+					# }
+					# if ($i == 2) {
+						# push @genFuncs2, " << 20)"; #squeezing 3 into 32 bits, 10 bits each, so FIELDNAMES_ can only go up to 1023, currently ~960 jan 2017
+					# }
+				# }
+			# }
+			# #push @genFuncs2, $VRML::Rend::defaultContainerType{$node}[0];
+			# push @genFuncs2, ";\n";
+		# } else {
+			# print "defaultContainerType for $node missing\n";
+		# }
+		push @genFuncs2, "\t\t\ttmp2->_defaultContainer = 0;\n";
 
 		push @genFuncs2,"\t\tbreak;\n\t\t}\n";
 	}
