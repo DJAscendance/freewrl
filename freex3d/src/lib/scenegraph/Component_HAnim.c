@@ -241,9 +241,9 @@ on child_humanoid rendering call:
 //void *HANimSkinCoord = 0;
 //void *HAnimSkinNormal = 0;
 typedef struct pComponent_HAnim{
-	struct X3D_HAnimHumanoid *HH;
+	//struct X3D_HAnimHumanoid *HH;
 	double HHMatrix[16];
-	Stack *parent_stack;
+	Stack *humanoid_stack;
 }* ppComponent_HAnim;
 void *Component_HAnim_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_HAnim));
@@ -256,8 +256,8 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	t->prv = Component_HAnim_constructor();
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
-		p->HH = NULL;
-		p->parent_stack = newStack(struct X3D_Node*);
+		//p->HH = NULL;
+		p->humanoid_stack = newStack(struct X3D_HAnimHumanoid*);
 	}
 }
 void Component_HAnim_clear(struct tComponent_HAnim *t){
@@ -265,12 +265,26 @@ void Component_HAnim_clear(struct tComponent_HAnim *t){
 	//private
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
-		deleteStack(struct X3D_Node*,p->parent_stack);
+		deleteStack(struct X3D_HAnimHumanoid*,p->humanoid_stack);
 	}
 }
 //ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 
 
+// compile_HAnimHumanoid and render_ push and pop 
+// so accessory nodes when rendered can refer to HH = peek_humanoid() without passing down call stack
+void push_humanoid(struct X3D_HAnimHumanoid *HH){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_push(struct X3D_HAnimHumanoid*,p->humanoid_stack,HH);
+}
+void pop_humanoid(){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_pop(struct X3D_HAnimHumanoid *,p->humanoid_stack);
+}
+struct X3D_HAnimHumanoid * peek_humanoid(){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return stack_top(struct X3D_HAnimHumanoid *, p->humanoid_stack);
+}
 
 
 
@@ -515,6 +529,7 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
 	double modelviewMatrix[16]; //, mvmInverse[16];
+	struct X3D_HAnimHumanoid *HH;
 	JMATRIX jointMatrix;
 	Stack *JT;
 	float *PVW, *PVI;
@@ -522,88 +537,90 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	//printf ("rendering HAnimJoint %d\n",node); 
 	
+	HH = peek_humanoid();
+	if(HH){
+		JT = HH->_JT;
 
-	JT = p->HH->_JT;
+		//step 1, generate transform
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
+		if(HH->skinNormal){
+			//want 'inverse-transpose' 3x3 float for transforming normals
+			//(its almost the same as jointMatrix.mat except when shear due to assymetric scales)
+			float fmat4[16], fmat3[9],fmat3i[9]; //,fmat3it[9];
+			matdouble2float4(fmat4,jointMatrix.mat);
+			mat423f(fmat3,fmat4);
+			matinverse3f(fmat3i,fmat3);
+			mattranspose3f(jointMatrix.normat,fmat3i);
+			//printf("jm.normat[1] %f\n",jointMatrix.normat[1]);
+		}
 
-	//step 1, generate transform
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-	matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
-	if(p->HH->skinNormal){
-		//want 'inverse-transpose' 3x3 float for transforming normals
-		//(its almost the same as jointMatrix.mat except when shear due to assymetric scales)
-		float fmat4[16], fmat3[9],fmat3i[9]; //,fmat3it[9];
-		matdouble2float4(fmat4,jointMatrix.mat);
-		mat423f(fmat3,fmat4);
-		matinverse3f(fmat3i,fmat3);
-		mattranspose3f(jointMatrix.normat,fmat3i);
-		//printf("jm.normat[1] %f\n",jointMatrix.normat[1]);
-	}
-
-	if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
-		//convert to quaternion + position
-		//add to HH transform list
-	}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
-		//step 2, add transform to HH transform list, get its index in list
-		stack_push(JMATRIX,JT,jointMatrix);
-	}
-	//I'll let this index start at 1, and subtract 1 when retrieving with vector_get, 
-	//so I can use jointTransformIndex==0 as a sentinal value for 'no transform stored'
-	//to save me from having an extra .n transforms variable
-	jointTransformIndex = vectorSize(JT); 
+		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
+			//convert to quaternion + position
+			//add to HH transform list
+		}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+			//step 2, add transform to HH transform list, get its index in list
+			stack_push(JMATRIX,JT,jointMatrix);
+		}
+		//I'll let this index start at 1, and subtract 1 when retrieving with vector_get, 
+		//so I can use jointTransformIndex==0 as a sentinal value for 'no transform stored'
+		//to save me from having an extra .n transforms variable
+		jointTransformIndex = vectorSize(JT); 
 	
-	//step 3, add transform index and weight to each skin vertex
-	PVW = (float*)p->HH->_PVW;
-	PVI = (float*)p->HH->_PVI;
-	for(i=0;i<node->skinCoordIndex.n;i++){
-		int idx = node->skinCoordIndex.p[i];
-		float wt = node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)];
-		for(j=0;j<4;j++){
-			if(PVI[idx*4 + j] == 0.0f){
-				PVI[idx*4 +j] = (float)jointTransformIndex;
-				PVW[idx*4 +j] = wt;
+		//step 3, add transform index and weight to each skin vertex
+		PVW = (float*)HH->_PVW;
+		PVI = (float*)HH->_PVI;
+		for(i=0;i<node->skinCoordIndex.n;i++){
+			int idx = node->skinCoordIndex.p[i];
+			float wt = node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)];
+			for(j=0;j<4;j++){
+				if(PVI[idx*4 + j] == 0.0f){
+					PVI[idx*4 +j] = (float)jointTransformIndex;
+					PVW[idx*4 +j] = wt;
+				}
 			}
 		}
-	}
-	//step 4: add on any Displacer displacements
-	if(p->HH->skinCoord && node->displacers.n ){
-		int ni, i;
-		float *psc, *pdp;
-		int *ci;
-		struct X3D_Coordinate *nc = (struct X3D_Coordinate*)p->HH->skinCoord;
-		psc = (float*)nc->point.p;
-		// nsc = nc->point.n;
-		for(i=0;i<node->displacers.n;i++){
-			int index, j;
-			float *point, weight, wdisp[3];
-			struct X3D_HAnimDisplacer *dp = (struct X3D_HAnimDisplacer *)node->displacers.p[i];
+		//step 4: add on any Displacer displacements
+		if(HH->skinCoord && node->displacers.n ){
+			int ni, i;
+			float *psc, *pdp;
+			int *ci;
+			struct X3D_Coordinate *nc = (struct X3D_Coordinate*)HH->skinCoord;
+			psc = (float*)nc->point.p;
+			// nsc = nc->point.n;
+			for(i=0;i<node->displacers.n;i++){
+				int index, j;
+				float *point, weight, wdisp[3];
+				struct X3D_HAnimDisplacer *dp = (struct X3D_HAnimDisplacer *)node->displacers.p[i];
 				
-			weight = dp->weight;
-			//printf(" %f ",weight);
-			pdp = (float*)dp->displacements.p;
-			// ndp = dp->displacements.n;
+				weight = dp->weight;
+				//printf(" %f ",weight);
+				pdp = (float*)dp->displacements.p;
+				// ndp = dp->displacements.n;
 
-			ni = dp->coordIndex.n;
-			ci = dp->coordIndex.p;
-			for(j=0;j<ni;j++){
-				index = ci[j];
-				point = &psc[index*3];
-				vecscale3f(wdisp,&pdp[j*3],weight);
-				vecadd3f(point,point,wdisp);
+				ni = dp->coordIndex.n;
+				ci = dp->coordIndex.p;
+				for(j=0;j<ni;j++){
+					index = ci[j];
+					point = &psc[index*3];
+					vecscale3f(wdisp,&pdp[j*3],weight);
+					vecadd3f(point,point,wdisp);
+				}
 			}
-		}
-		if(0){ //this is done in child_HAnimHumanoid for the skinCoord parents
-			//force HAnimSegment.children[] shape nodes using segment->coord to recompile
-			int k;
-			Stack *parents;
-			p->HH->skinCoord->_change++;
-			parents = p->HH->skinCoord->_parentVector;
-			for(k=0;k<vectorSize(parents);k++){
-				struct X3D_Node *parent = vector_get(struct X3D_Node*,parents,k);
-				parent->_change++;
+			if(0){ //this is done in child_HAnimHumanoid for the skinCoord parents
+				//force HAnimSegment.children[] shape nodes using segment->coord to recompile
+				int k;
+				Stack *parents;
+				HH->skinCoord->_change++;
+				parents = HH->skinCoord->_parentVector;
+				for(k=0;k<vectorSize(parents);k++){
+					struct X3D_Node *parent = vector_get(struct X3D_Node*,parents,k);
+					parent->_change++;
+				}
 			}
-		}
 
-	}
+		}
+	} //if HH
 
 }
 int vecsametol3f(float *a, float *b, float tol){
@@ -613,41 +630,28 @@ int vecsametol3f(float *a, float *b, float tol){
 	return isame;
 }
 
-void push_parent(struct X3D_Node *parent){
-	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	stack_push(struct X3D_Node*,p->parent_stack,parent);
-}
-void pop_parent(){
-	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	stack_pop(struct X3D_Node *,p->parent_stack);
-}
-struct X3D_Node * peek_parent(){
-	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	return stack_top(struct X3D_Node *, p->parent_stack);
-}
-
 
 void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
 	INITIALIZE_EXTENT
 
+	push_humanoid(node);
 	if(node->motions.n){
 		if(node->motions.n > node->motionsEnabled.n){
+			// the default is to enable all motions
 			int *moe = MALLOC(int*,node->motions.n * sizeof(int));
 			memset(moe,0,node->motions.n * sizeof(int));
 			memcpy(moe,node->motionsEnabled.p,node->motionsEnabled.n*sizeof(int));
 			for(int i=node->motionsEnabled.n;i<node->motions.n;i++)
-				moe[i] = TRUE;
+				moe[i] = TRUE; //FALSE //not sure - specs don't say default, just empty [], I'll use TRUE while developing/debugging
 			FREE_IF_NZ(node->motionsEnabled.p);
 			node->motionsEnabled.p = moe;
 			node->motionsEnabled.n = node->motions.n;
 		}
-		push_parent(X3D_NODE(node));
 		for(int i=0;i<node->motions.n;i++){
 			check_compile(node->motions.p[i]);
 		}
-		pop_parent();
 	}
 
 	int nsc = 0, nsn = 0;
@@ -699,15 +703,17 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 		}
 	}
 	MARK_NODE_COMPILED
+	pop_humanoid();
+
 }
 
 void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
 	int nc;
 	//float *originalCoords;
+	struct X3D_HAnimHumanoid *HH;
 	Stack *JT;
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	COMPILE_IF_REQUIRED
-
 	//LOCAL_LIGHT_SAVE
 
 	/* any segments at all? */
@@ -725,6 +731,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		node->skeleton.n + node->skin.n;
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME 
+	push_humanoid(node);
 
 	if(renderstate()->render_vp){
 		/* Lets do viewpoints */
@@ -732,12 +739,10 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		return;
 	}
 	if(node->motions.n){
-		push_parent(X3D_NODE(node));
 		for(int i=0;i<node->motions.n;i++){
 			if(node->motionsEnabled.p[i])
 				render_node(X3D_NODE(node->motions.p[i]));
 		}
-		pop_parent();
 	}
 
 	// segments, joints, sites are flat-lists for convenience
@@ -772,7 +777,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	JT->n = 0;
 
 	//in theory, HH, HHMatrix could be a stack, so you could have an hanimhumaoid within an hanimhunaniod
-	p->HH = node;
+	HH = node;
 	{
 		double modelviewMatrix[16];
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
@@ -920,6 +925,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 	/* did we have that directionalLight? */
 	//LOCAL_LIGHT_OFF
+	pop_humanoid();
 }
 
 
@@ -1054,6 +1060,8 @@ void child_HAnimSite(struct X3D_HAnimSite *node) {
 
 }
 
+
+// ======== HAnimMotion >>>>>>>>>>>>>>
 int char_is_separator(char c, char *separators){
 	int is_sep = FALSE;
 	char *s = separators;
@@ -1286,10 +1294,9 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 		}
 	}
 	//parent mapping
-	struct X3D_Node *par = peek_parent();
-	if(par && X3D_NODE(par)->_nodeType == NODE_HAnimHumanoid){
-		struct X3D_HAnimHumanoid *parent = (struct X3D_HAnimHumanoid*)par;
-		map_motions_to_parent_humanoid(jnames->data,jnames->n, parent);
+	struct X3D_HAnimHumanoid *HH = peek_humanoid();
+	if(HH && HH->_nodeType == NODE_HAnimHumanoid){
+		map_motions_to_parent_humanoid(jnames->data,jnames->n, HH);
 	}
 
 	//frame state
@@ -1301,3 +1308,4 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
 	COMPILE_IF_REQUIRED
 }
+// <<<<<<<<< HAnimMotion ======================
