@@ -284,6 +284,7 @@ struct X3D_HAnimHumanoid * peek_humanoid(){
 
 
 
+void update_jointMatrixFromMotion(struct X3D_Node* HM, char *jname, double *jmatrix);
 
 
 void compile_HAnimJoint (struct X3D_HAnimJoint *node){
@@ -322,7 +323,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	//OCCLUSIONTEST
 
-	if(!renderstate()->render_vp) {
+
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
 
@@ -335,6 +336,24 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			/* CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+	if(!renderstate()->render_vp) {
+		//any motion nodes enabled? if so apply current frame transform
+		if(1){
+			struct X3D_HAnimHumanoid *HH = peek_humanoid();
+			if(HH->motions.n){
+				double modelviewMatrix[16];
+				for(int i=0;i<HH->motions.n;i++){
+					if(HH->motionsEnabled.p[i]){
+						//printmatrix(jointMatrix.mat);
+						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+						update_jointMatrixFromMotion(HH->motions.p[i],node->name->strptr,modelviewMatrix);
+						FW_GL_SETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+						//printmatrix(jointMatrix.mat);
+					}
+				}
+			}
+		}
+
 
 			/* ROTATION */
 			if (node->__do_rotation) {
@@ -521,7 +540,6 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	/* save the skinCoords and skinNormals for use in following HAnimJoints */
 	/* printf ("rendering HAnimHumanoid\n"); */
 }
-void update_jointMatrixFromMotion(struct X3D_Node* HM, char *jname, double *jmatrix);
 
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
@@ -543,7 +561,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
 
 		//any motion nodes enabled? if so apply current frame transform
-		if(HH->motions.n){
+		if(0) if(HH->motions.n){
 			for(int i=0;i<HH->motions.n;i++){
 				if(HH->motionsEnabled.p[i]){
 					//printmatrix(jointMatrix.mat);
@@ -1361,26 +1379,28 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion* HM, char *j
 	}
 	return jm;
 }
-void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *jmatrix){
+void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *jmatrix0){
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) HMnode;
 	if(HM && HM->_nodeType == NODE_HAnimMotion){
 		struct joint_frame_motion *jm = jointFrameMotion(HM,jname);
 		int debug = 0;
-		if(jm){
-			double mat1[16],mat2[16],xyz[3];
+		if(jm){ // && strcmp(jname,"HumanoidRoot")){
+			double mat1[16],jmatrix[16],xyz[3];
 			if(debug) printf("in update_jointMatrix\n");
-			if(debug) printmatrix(jmatrix);
-
-			if(debug) printf("%s ",jname);
+			if(debug) printmatrix(jmatrix0);
+			matidentity4d(jmatrix);
+			//if(debug) 
+			//printf("%s ",jname);
 			for(int i=0;i<jm->nchan;i++){
 				float value = jm->values[i];
-				if(debug) printf("%d %4.2f ",jm->ichan[i],value);
+				//if(debug) 
+				//printf("%d %4.2f ",jm->ichan[i],value);
 				// Q. what kind of angles are those 
 				// https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
 				matidentity4d(mat1);
 				switch(jm->ichan[i]){
 					case 1:
-						matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0,0.0);
+						matrixFromAxisAngle4d(mat1, (double)value, -1.0, 0.0,0.0);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
 						printf("case 1 mat1\n");
@@ -1390,7 +1410,8 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						}
 						break;
 					case 2: 
-						matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0,0.0);
+					break;
+						matrixFromAxisAngle4d(mat1, (double)value, 0.0, -1.0, 0.0);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
 						printf("case 2 mat1\n");
@@ -1399,8 +1420,9 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						printmatrix(jmatrix);
 						}
 						break;
+						break;
 					case 3:
-						matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0,0.0);
+						matrixFromAxisAngle4d(mat1, (double)value, 0.0, 0.0, -1.0);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
 						printf("case 3 mat1\n");
@@ -1444,7 +1466,10 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 				}
 			}
-			if(debug)printf("\n");
+			//matinverseAFFINE(mat1,jmatrix);
+			matmultiplyAFFINE(jmatrix0,jmatrix,jmatrix0);
+			//if(debug)
+			//printf("\n");
 		}
 	}
 }
