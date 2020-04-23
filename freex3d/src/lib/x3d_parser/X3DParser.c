@@ -771,7 +771,13 @@ c) look at atts containerField, and if not null and not children, use it.
 		ncontainer = 8;
 		for(i=0;i<ncontainer;i++){
 			if(i==0) iContainer = jContainer;
-			else iContainer = NODE_DEFAULT_CONTAINER[getTypeNode(node)->_nodeType][i-1];
+			else {
+				struct X3D_Node *typenode = getTypeNode(node);
+				if(typenode){
+					int nt = typenode->_nodeType;
+					iContainer = NODE_DEFAULT_CONTAINER[nt][i-1];
+				}
+			}
 			//iContainer = defaultContainer[i];
 			if(iContainer == FIELDNAMES_children) iContainer = 0;
 			value = NULL;
