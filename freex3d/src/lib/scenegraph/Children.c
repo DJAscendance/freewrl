@@ -103,7 +103,7 @@ void normalChildren(struct Multi_Node ch) {
 //void  update_renderFlagB (struct X3D_Node *p, int flag, char *fi, int li) {
 void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 	int i;
-
+	static int depth = 0;
 	/* send notification up the chain */
 	
 //JAS 	printf ("start of update_renderFlag from %d for %p (%s) flag %x parents %d\n",li,p, stringNodeType(p->_nodeType),
@@ -127,7 +127,6 @@ void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 	//	ConsoleMessage ("update_renderFlag, p NULL from %s:%d\n",fi,li);
 	//	return;
 	//}
-
 	p->_renderFlags = p->_renderFlags | flag;
 
 	if (p->_parentVector == NULL) {
@@ -156,41 +155,44 @@ void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 			markForDispose(p, TRUE);
 			return;
 		}
+		depth++;
+		if(depth < 50){
+			// printf ("node %d type %s has node %d  type %s for a parent\n",p,stringNodeType(p->_nodeType),me,stringNodeType(me->_nodeType));  
+			switch (me->_nodeType) {
 
-		// printf ("node %d type %s has node %d  type %s for a parent\n",p,stringNodeType(p->_nodeType),me,stringNodeType(me->_nodeType));  
-		switch (me->_nodeType) {
+				case NODE_Switch:
+					if (is_Switchchild_inrange(X3D_SWITCH(me),p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
 
-			case NODE_Switch:
-				if (is_Switchchild_inrange(X3D_SWITCH(me),p)) {
-					/* printf ("switch, this is the chosen node\n"); */
+				case NODE_LOD:
+					/* works for both X3D and VRML syntax; compare with the "_selected" field */
+					if (p == X3D_LODNODE(me)->_selected) {
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
+
+				case NODE_GeoLOD:
+					if (is_GeoLODchild_inrange(X3D_GEOLOD(me),p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
+
+				case NODE_CADLayer:
+					if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
+
+				default:
+
 					update_renderFlagB(me,flag, __LINE__);
-				}
-				break;
-
-			case NODE_LOD:
-				/* works for both X3D and VRML syntax; compare with the "_selected" field */
-				if (p == X3D_LODNODE(me)->_selected) {
-					update_renderFlagB(me,flag, __LINE__);
-				}
-				break;
-
-			case NODE_GeoLOD:
-				if (is_GeoLODchild_inrange(X3D_GEOLOD(me),p)) {
-					/* printf ("switch, this is the chosen node\n"); */
-					update_renderFlagB(me,flag, __LINE__);
-				}
-				break;
-
-			case NODE_CADLayer:
-                if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
-                    update_renderFlagB(me,flag, __LINE__);
-				}
-                break;
-
-			default:
-
-				update_renderFlagB(me,flag, __LINE__);
+			}
 		}
+		depth--;
 	} // referenceCount check
 	}
 	/* printf ("finished update_RenderFlag for %d\n",p); */
