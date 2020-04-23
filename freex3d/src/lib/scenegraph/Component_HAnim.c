@@ -521,6 +521,7 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	/* save the skinCoords and skinNormals for use in following HAnimJoints */
 	/* printf ("rendering HAnimHumanoid\n"); */
 }
+void update_jointMatrixFromMotion(struct X3D_Node* HM, char *jname, double *jmatrix);
 
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
@@ -540,6 +541,17 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
+
+		//any motion nodes enabled? if so apply current frame transform
+		if(HH->motions.n){
+			for(int i=0;i<HH->motions.n;i++){
+				if(HH->motionsEnabled.p[i]){
+					//printmatrix(jointMatrix.mat);
+					update_jointMatrixFromMotion(HH->motions.p[i],node->name->strptr,jointMatrix.mat);
+					//printmatrix(jointMatrix.mat);
+				}
+			}
+		}
 		if(HH->skinNormal){
 			//want 'inverse-transpose' 3x3 float for transforming normals
 			//(its almost the same as jointMatrix.mat except when shear due to assymetric scales)
@@ -1219,12 +1231,12 @@ int parse_channels(char *channelstring, int nentries, struct joint_frame_motion 
     }
 	return totalcount;
 }
-struct mojoint {
-	float v[6];
-};
-struct moframe {
-	struct mojoint * mj;
-};
+//struct mojoint {
+//	float v[6];
+//};
+//struct moframe {
+//	struct mojoint * mj;
+//};
 float *parse_float_values(int n, char *str){
 	char *beg, *end, *token;
 	int len;
@@ -1348,5 +1360,92 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion* HM, char *j
 		}
 	}
 	return jm;
+}
+void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *jmatrix){
+	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) HMnode;
+	if(HM && HM->_nodeType == NODE_HAnimMotion){
+		struct joint_frame_motion *jm = jointFrameMotion(HM,jname);
+		int debug = 0;
+		if(jm){
+			double mat1[16],mat2[16],xyz[3];
+			if(debug) printf("in update_jointMatrix\n");
+			if(debug) printmatrix(jmatrix);
+
+			if(debug) printf("%s ",jname);
+			for(int i=0;i<jm->nchan;i++){
+				float value = jm->values[i];
+				if(debug) printf("%d %4.2f ",jm->ichan[i],value);
+				// Q. what kind of angles are those 
+				// https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
+				matidentity4d(mat1);
+				switch(jm->ichan[i]){
+					case 1:
+						matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0,0.0);
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 1 mat1\n");
+						printmatrix(mat1);
+						printf("case 1 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 2: 
+						matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0,0.0);
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 2 mat1\n");
+						printmatrix(mat1);
+						printf("case 2 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 3:
+						matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0,0.0);
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 3 mat1\n");
+						printmatrix(mat1);
+						printf("case 3 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 4:
+						mattranslate4d(mat1,vecsetd(xyz,(double)value,0.0,0.0));
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 4 mat1\n");
+						printmatrix(mat1);
+						printf("case 4 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 5:
+						mattranslate4d(mat1,vecsetd(xyz,0.0,(double)value,0.0));
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 5 mat1\n");
+						printmatrix(mat1);
+						printf("case 5 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 6:
+						mattranslate4d(mat1,vecsetd(xyz,0.0,0.0,(double)value));
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 6 mat1\n");
+						printmatrix(mat1);
+						printf("case 6 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					default:
+						if(debug) printf("OUCH DEFAULT\n");
+						break;
+				}
+			}
+			if(debug)printf("\n");
+		}
+	}
 }
 // <<<<<<<<< HAnimMotion ======================

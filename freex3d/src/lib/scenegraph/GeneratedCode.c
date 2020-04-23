@@ -975,6 +975,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"sites",
 	"size",
 	"sizeUnits",
+	"skeletalConfiguration",
 	"skeleton",
 	"skin",
 	"skinCoord",
@@ -1681,6 +1682,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"sites",
 	"size",
 	"sizeUnits",
+	"skeletalConfiguration",
 	"skeleton",
 	"skin",
 	"skinCoord",
@@ -5425,6 +5427,7 @@ const int OFFSETS_HAnimHumanoid[] = {
 	(int) FIELDNAMES_info, (int) offsetof (struct X3D_HAnimHumanoid, info),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimHumanoid, joints),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_name, (int) offsetof (struct X3D_HAnimHumanoid, name),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_skeletalConfiguration, (int) offsetof (struct X3D_HAnimHumanoid, skeletalConfiguration),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_rotation, (int) offsetof (struct X3D_HAnimHumanoid, rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_scale, (int) offsetof (struct X3D_HAnimHumanoid, scale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_scaleOrientation, (int) offsetof (struct X3D_HAnimHumanoid, scaleOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
@@ -10742,6 +10745,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->info.n=0; tmp2->info.p=0;
 			tmp2->joints.n=0; tmp2->joints.p=0;
 			tmp2->name = newASCIIString("");
+			tmp2->skeletalConfiguration = newASCIIString("BASIC");
 			tmp2->rotation.c[0] = 0;tmp2->rotation.c[1] = 0;tmp2->rotation.c[2] = 1;tmp2->rotation.c[3] = 0;;
 			tmp2->scale.c[0] = 1.0f;tmp2->scale.c[1] = 1.0f;tmp2->scale.c[2] = 1.0f;
 			tmp2->scaleOrientation.c[0] = 0;tmp2->scaleOrientation.c[1] = 0;tmp2->scaleOrientation.c[2] = 1;tmp2->scaleOrientation.c[3] = 0;;
@@ -16002,6 +16006,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," joints (MFNode):\n");
 			for (i=0; i<tmp->joints.n; i++) { dump_scene(fp,level+1,tmp->joints.p[i]); }
 			spacer fprintf (fp," name (SFString) \t%s\n",tmp->name->strptr);
+			spacer fprintf (fp," skeletalConfiguration (SFString) \t%s\n",tmp->skeletalConfiguration->strptr);
 			spacer fprintf (fp," rotation (SFRotation): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->rotation.c[i]); }
 			fprintf (fp,"\n");
