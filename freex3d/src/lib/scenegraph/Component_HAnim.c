@@ -238,10 +238,7 @@ on child_humanoid rendering call:
 
 
 /* last HAnimHumanoid skinCoord and skinNormals */
-//void *HANimSkinCoord = 0;
-//void *HAnimSkinNormal = 0;
 typedef struct pComponent_HAnim{
-	//struct X3D_HAnimHumanoid *HH;
 	double HHMatrix[16];
 	Stack *humanoid_stack;
 }* ppComponent_HAnim;
@@ -256,7 +253,6 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	t->prv = Component_HAnim_constructor();
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
-		//p->HH = NULL;
 		p->humanoid_stack = newStack(struct X3D_HAnimHumanoid*);
 	}
 }
@@ -804,7 +800,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	}
-	if(1) normalChildren(node->skeleton);
+	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
 
 	if(node->skin.n){
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -1141,9 +1137,15 @@ char *cname;
 {CHAN_TZ, "Zposition"},
 {CHAN_NONE,NULL},
 };
-struct channellist {
-	int count;
-	int channel[6];
+//struct channellist {
+//	int count;
+//	int channel[6];
+//};
+struct joint_frame_motion {
+	char *jname;
+	int nchan;
+	int ichan[6];
+	float *values;
 };
 int chan_lookup(char *cname){
 	int i, iname;
@@ -1192,7 +1194,7 @@ char *next_buffer_token(char **beg, char* sep, char **end){
 	}
 	return buffer;
 }
-int parse_channels(char *channelstring, int nentries, struct channellist* chan){
+int parse_channels(char *channelstring, int nentries, struct joint_frame_motion * chan){
 	char *sep = " \n\r\t,";
 	//adapted from cson >>
 	int len, rc, count, totalcount;
@@ -1207,12 +1209,12 @@ int parse_channels(char *channelstring, int nentries, struct channellist* chan){
         if(!len) break;
 		sscanf_s(token,"%d",&count);
 		totalcount += count;
-		chan[i].count = count;
+		chan[i].nchan = count;
 		for(int j=0;j<count;j++){
 			beg=end; end=NULL;
 	        token = next_buffer_token( &beg, sep, &end );
 			int ichan = chan_lookup(token);
-			chan[i].channel[j] = ichan;
+			chan[i].ichan[j] = ichan;
 		}
     }
 	return totalcount;
@@ -1239,27 +1241,27 @@ float *parse_float_values(int n, char *str){
     }
 	return fv;
 }
-void parse_values(struct moframe *moframes,int framecount, int jointcount, int channelcount, struct channellist* chan, char *values){
-	float *fvalues = parse_float_values(framecount * channelcount, values);
-	float *fv = fvalues;
-	for(int i=0;i<framecount;i++){
-		struct moframe *mof = &moframes[i];
-		for(int j=0;j<jointcount;j++){
-			struct mojoint *moj = &mof->mj[j];
-			for(int k=0;k<chan[j].count;k++){
-				moj->v[k] = *fv;
-				if(chan[j].channel[k] < 4)
-					moj->v[k] *= PI/180.0;
-				fv++;
-			}
-		}
-	}
-}
-void map_motions_to_parent_humanoid (char** jointnames, int jointcount, struct X3D_HAnimHumanoid *parent){
-	struct X3D_HAnimJoint ** joints = (struct X3D_HAnimJoint **) parent->joints.p;
-}
+//void parse_values(struct moframe *moframes,int framecount, int jointcount, int channelcount, struct joint_frame_motion* chan, char *values){
+//	float *fvalues = parse_float_values(framecount * channelcount, values);
+//	float *fv = fvalues;
+//	for(int i=0;i<framecount;i++){
+//		struct moframe *mof = &moframes[i];
+//		for(int j=0;j<jointcount;j++){
+//			struct mojoint *moj = &mof->mj[j];
+//			for(int k=0;k<chan[j].count;k++){
+//				moj->v[k] = *fv;
+//				if(chan[j].channel[k] < 4)
+//					moj->v[k] *= PI/180.0;
+//				fv++;
+//			}
+//		}
+//	}
+//}
+#define RADIANS_PER_DEGREE (double)0.0174532925199432957692
+#define DEGREES_PER_RADIAN (double)57.2957795130823208768
 void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	//motion data
+
 	//parse jouint names
 	struct Vector *jnames = parse_joint_names(X3D_NODE(node),node->joints->strptr);
 	printf("\n");
@@ -1268,44 +1270,83 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	int njoints = jnames->n;
 
 	//parse channels
-	struct channellist *chan = malloc(njoints * sizeof(struct channellist));
+	struct joint_frame_motion *chan = malloc(njoints * sizeof(struct joint_frame_motion));
 	int channelcount = parse_channels(node->channels->strptr,njoints,chan);
+	//in theory channelcount is how many floats to advance in fvalues to get the next frame pointer.
+
+
 	for(int i=0;i<njoints;i++){
-		printf("joint %d nchan %d ",i, chan[i].count);
-		for(int j=0;j<chan[i].count;j++){
-			printf("%s ",channame_lookup(chan[i].channel[j]));
+		chan[i].jname = vector_get(char*,jnames,i);
+		printf("joint %d nchan %d ",i, chan[i].nchan);
+		for(int j=0;j<chan[i].nchan;j++){
+			printf("%s ",channame_lookup(chan[i].ichan[j]));
 		}
 		printf("\n");
 	}
-	//parse values
-	struct moframe *moframes = malloc(node->frameCount *sizeof(struct moframe));
-	for(int i=0;i<node->frameCount;i++)
-		moframes[i].mj = malloc(njoints *sizeof(struct mojoint));
-	parse_values(moframes,node->frameCount,njoints,channelcount,chan,node->values->strptr);
+	//parse float frame data
+	float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
 
-	for(int i=0;i<node->frameCount;i+=(node->frameCount-1)){
-		struct moframe *mof = &moframes[i];
+	//convert degrees to radians
+	for(int iframe=0;iframe<node->frameCount;iframe++){
+		float *fv = &fvalues[iframe * channelcount];
+		int kchan = 0;
 		for(int j=0;j<njoints;j++){
-			printf("%s %d \n",vector_get(char*,jnames,j),chan[j].count);
-			struct mojoint *moj = &mof->mj[j];
-			for(int k=0;k<chan[j].count;k++)
-				printf("%d %5.2f ",chan[j].channel[k],chan[j].channel[k] < 4 ? moj->v[k]*180.0/PI : moj->v[k]);
-			printf("\n");
+			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
+			for(int k=0;k<chan[j].nchan;k++){
+				if(chan[j].ichan[k] < 4)
+					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
+				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
+				kchan++;
+			}
+			//printf("\n");
 		}
 	}
-	//parent mapping
-	struct X3D_HAnimHumanoid *HH = peek_humanoid();
-	if(HH && HH->_nodeType == NODE_HAnimHumanoid){
-		map_motions_to_parent_humanoid(jnames->data,jnames->n, HH);
-	}
+
+	//we won't 'map' to parent during compile - we'll find the motion joint -if any- on the fly in HAnimJoint function(s)
 
 	//frame state
-
-
-
+	//?? anything to do?
+	node->_njoints = njoints;
+	node->_channelcount = channelcount;
+	node->_fvalues = fvalues;
+	node->_channels = chan;
+	node->_framevalues = fvalues;
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
+	//main job: set the frame pointer for the current time, increment, enabled state
 	COMPILE_IF_REQUIRED
+	int index = 0;
+	float *fvalues = (float*)node->_fvalues;
+	int channelcount = (int)node->_channelcount;
+	float *frame_values;
+	double now = TickTime();
+	//compute frame index from elapsed time, frameIncrement etc
+	node->frameIndex = index;
+	frame_values = &fvalues[node->frameIndex * channelcount];
+	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
+}
+
+struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion* HM, char *jname){
+	struct joint_frame_motion * jm = NULL;
+	if(HM){
+		if(HM->enabled){
+			//see if we have the joint
+			int njoints = (int)HM->_njoints;
+			struct joint_frame_motion * chan = HM->_channels;
+			float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
+			int kchan = 0;
+			for(int i=0;i<njoints;i++){
+				if(!strcmp(chan[i].jname,jname)){
+					//if so return the channel mapping and fvalue pointer
+					jm = &chan[i];
+					jm->values = &frame_values[kchan];
+					break;
+				}
+				kchan += chan[i].nchan;
+			}
+		}
+	}
+	return jm;
 }
 // <<<<<<<<< HAnimMotion ======================

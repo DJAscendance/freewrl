@@ -2239,6 +2239,11 @@ our %Nodes = (
 		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		values => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_fvalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DChildNode"),
 
 

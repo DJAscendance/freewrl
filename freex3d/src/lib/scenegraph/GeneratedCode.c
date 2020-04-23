@@ -249,6 +249,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_buffer",
 	"_bufferendtime",
 	"_change_count",
+	"_channelcount",
+	"_channels",
 	"_child",
 	"_class",
 	"_col",
@@ -269,6 +271,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_fogcoordVBO",
 	"_forceout",
 	"_frameSpeed",
+	"_framevalues",
+	"_fvalues",
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
@@ -305,6 +309,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_motor1",
 	"_motor2",
 	"_needs_gradient",
+	"_njoints",
 	"_normkey",
 	"_normkeyValue",
 	"_npoints",
@@ -5494,6 +5499,11 @@ const int OFFSETS_HAnimMotion[] = {
 	(int) FIELDNAMES_next, (int) offsetof (struct X3D_HAnimMotion, next),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_previous, (int) offsetof (struct X3D_HAnimMotion, previous),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotion, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotion, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotion, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotion, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotion, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotion, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimSegment[] = {
@@ -10816,6 +10826,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->next = FALSE;
 			tmp2->previous = FALSE;
 			tmp2->values = newASCIIString("");
+			tmp2->_fvalues = 0;
+			tmp2->_framevalues = 0;
+			tmp2->_channelcount = 0;
+			tmp2->_njoints = 0;
+			tmp2->_channels = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
