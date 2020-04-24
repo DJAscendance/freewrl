@@ -249,6 +249,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_buffer",
 	"_bufferendtime",
 	"_change_count",
+	"_channelcount",
+	"_channels",
 	"_child",
 	"_class",
 	"_col",
@@ -269,6 +271,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_fogcoordVBO",
 	"_forceout",
 	"_frameSpeed",
+	"_framevalues",
+	"_fvalues",
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
@@ -291,6 +295,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_knot",
 	"_knotrange",
 	"_lastEnabled",
+	"_lastenabled",
 	"_lastframetime",
 	"_lastp0",
 	"_lastp0time",
@@ -305,6 +310,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_motor1",
 	"_motor2",
 	"_needs_gradient",
+	"_njoints",
 	"_normkey",
 	"_normkeyValue",
 	"_npoints",
@@ -374,6 +380,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_smoothingDelta",
 	"_sortedChildren",
 	"_space",
+	"_startTime",
 	"_status",
 	"_steptime",
 	"_stringInpFIFO",
@@ -501,6 +508,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"centerOfMass",
 	"centerOfRotation",
 	"centerOfRotation_changed",
+	"channels",
+	"channelsEnabled",
 	"child1Url",
 	"child2Url",
 	"child3Url",
@@ -585,6 +594,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"encodingScheme",
 	"endAngle",
 	"endCap",
+	"endFrame",
 	"enterTime",
 	"enteredText",
 	"entities",
@@ -631,6 +641,10 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"forces",
 	"fovMode",
 	"fraction_changed",
+	"frameCount",
+	"frameDuration",
+	"frameIncrement",
+	"frameIndex",
 	"frequency",
 	"frictionCoefficients",
 	"frictionDirection",
@@ -745,6 +759,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"linewidthScaleFactor",
 	"listenfor",
 	"llimit",
+	"loa",
 	"load",
 	"loadTime",
 	"location",
@@ -788,6 +803,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"modulationTypeSpreadSpectrum",
 	"modulationTypeSystem",
 	"momentsOfInertia",
+	"motions",
+	"motionsEnabled",
 	"motor1Angle",
 	"motor1AngleRate",
 	"motor1Axis",
@@ -961,6 +978,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"sites",
 	"size",
 	"sizeUnits",
+	"skeletalConfiguration",
 	"skeleton",
 	"skin",
 	"skinCoord",
@@ -988,6 +1006,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"speedFactor",
 	"spine",
 	"startAngle",
+	"startFrame",
 	"startTime",
 	"stiffness",
 	"stop1Bounce",
@@ -1090,6 +1109,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"value",
 	"valueChanged",
 	"value_changed",
+	"values",
 	"variation",
 	"vector",
 	"version",
@@ -1163,6 +1183,7 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"focalPoint",
 	"fovMode",
 	"fraction_changed",
+	"frameCount",
 	"gcCoords_changed",
 	"geoCoord_changed",
 	"geoCoords_changed",
@@ -1371,6 +1392,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"center",
 	"centerOfMass",
 	"centerOfRotation",
+	"channels",
+	"channelsEnabled",
 	"children",
 	"choice",
 	"clipBoundary",
@@ -1428,6 +1451,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"enabled",
 	"enabledAxes",
 	"encodingScheme",
+	"endFrame",
 	"entities",
 	"entityCategory",
 	"entityCountry",
@@ -1463,6 +1487,9 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"forceOutput",
 	"forces",
 	"fovMode",
+	"frameDuration",
+	"frameIncrement",
+	"frameIndex",
 	"frequency",
 	"frictionCoefficients",
 	"frictionDirection",
@@ -1525,6 +1552,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"linewidthScaleFactor",
 	"listenfor",
 	"llimit",
+	"loa",
 	"load",
 	"location",
 	"loop",
@@ -1565,6 +1593,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"modulationTypeSpreadSpectrum",
 	"modulationTypeSystem",
 	"momentsOfInertia",
+	"motions",
+	"motionsEnabled",
 	"multicastRelayHost",
 	"multicastRelayPort",
 	"munitionApplicationID",
@@ -1657,6 +1687,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"sites",
 	"size",
 	"sizeUnits",
+	"skeletalConfiguration",
 	"skeleton",
 	"skin",
 	"skinCoord",
@@ -1676,6 +1707,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"specularShininessTextureChannel",
 	"specularTexture",
 	"speed",
+	"startFrame",
 	"startTime",
 	"stiffness",
 	"stop1Bounce",
@@ -1750,6 +1782,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"vOrder",
 	"vTessellation",
 	"value",
+	"values",
 	"variation",
 	"vector",
 	"version",
@@ -2236,7 +2269,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 
 
 /* Table of Node Types */
-       const char *NODES[] = {
+const char *NODES[] = {
 	"Anchor",
 	"Appearance",
 	"Arc2D",
@@ -2329,6 +2362,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 	"HAnimDisplacer",
 	"HAnimHumanoid",
 	"HAnimJoint",
+	"HAnimMotion",
 	"HAnimSegment",
 	"HAnimSite",
 	"ImageBackdropBackground",
@@ -2535,6 +2569,304 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 };
 const int NODES_COUNT = ARR_SIZE(NODES);
 
+const short NODE_DEFAULT_CONTAINER[][7] = {
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_appearance,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_source,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_physics,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_collidables,FIELDNAMES_geometry,FIELDNAMES_collidable,0,0,0,0},
+{FIELDNAMES_collidables,FIELDNAMES_geometry,FIELDNAMES_collidable,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_collider,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_collidables,0,0,0,0,0,0},
+{FIELDNAMES_color,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_color,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_shaders,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_trimmingContour,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_coord,FIELDNAMES_skinCoord,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_controlPoint,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_mapping,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_parts,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_fillProperties,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_fogCoord,0,0,0,0,0,0},
+{FIELDNAMES_fontStyle,0,0,0,0,0,0},
+{FIELDNAMES_physics,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_coord,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geoOrigin,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_displacers,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_motions,0,0,0,0,0,0},
+{FIELDNAMES_segments,0,0,0,0,0,0},
+{FIELDNAMES_sites,FIELDNAMES_viewpoints,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_texture,FIELDNAMES_diffuseTexture,FIELDNAMES_emissiveTexture,FIELDNAMES_normalTexture,FIELDNAMES_ambientTexture,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_layers,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_layout,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_layers,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_lineProperties,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_metadata,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_texture,FIELDNAMES_source,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_texCoord,0,0,0,0,0,0},
+{FIELDNAMES_textureTransform,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_normal,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_texCoord,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_shaders,0,0,0,0,0,0},
+{FIELDNAMES_shape,0,0,0,0,0,0},
+{FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_pointProperties,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_shaders,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_bodies,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_fontStyle,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_parts,0,0,0,0,0,0},
+{FIELDNAMES_programs,0,0,0,0,0,0},
+{FIELDNAMES_children,FIELDNAMES_shape,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_texCoord,0,0,0,0,0,0},
+{FIELDNAMES_texCoord,0,0,0,0,0,0},
+{FIELDNAMES_texCoord,0,0,0,0,0,0},
+{FIELDNAMES_texCoord,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_textureProperties,0,0,0,0,0,0},
+{FIELDNAMES_textureTransform,0,0,0,0,0,0},
+{FIELDNAMES_textureTransform,0,0,0,0,0,0},
+{FIELDNAMES_textureTransform,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_renderStyle,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_material,0,0,0,0,0,0},
+{FIELDNAMES_joints,0,0,0,0,0,0},
+{FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_viewport,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_physics,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+};
 /* Virtual tables for each node */
 
 void child_Anchor(struct X3D_Anchor *);
@@ -2830,6 +3162,10 @@ void child_HAnimJoint(struct X3D_HAnimJoint *);
 void fin_HAnimJoint(struct X3D_HAnimJoint *);
 void compile_HAnimJoint(struct X3D_HAnimJoint *);
 struct X3D_Virt virt_HAnimJoint = { (void *)prep_HAnimJoint,(void *)render_HAnimJoint,(void *)child_HAnimJoint,(void *)fin_HAnimJoint,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimJoint};
+
+void render_HAnimMotion(struct X3D_HAnimMotion *);
+void compile_HAnimMotion(struct X3D_HAnimMotion *);
+struct X3D_Virt virt_HAnimMotion = { NULL,(void *)render_HAnimMotion,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotion};
 
 void child_HAnimSegment(struct X3D_HAnimSegment *);
 struct X3D_Virt virt_HAnimSegment = { NULL,NULL,(void *)child_HAnimSegment,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -3541,6 +3877,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_HAnimDisplacer,
 	 &virt_HAnimHumanoid,
 	 &virt_HAnimJoint,
+	 &virt_HAnimMotion,
 	 &virt_HAnimSegment,
 	 &virt_HAnimSite,
 	 &virt_ImageBackdropBackground,
@@ -5096,6 +5433,7 @@ const int OFFSETS_HAnimHumanoid[] = {
 	(int) FIELDNAMES_info, (int) offsetof (struct X3D_HAnimHumanoid, info),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimHumanoid, joints),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_name, (int) offsetof (struct X3D_HAnimHumanoid, name),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_skeletalConfiguration, (int) offsetof (struct X3D_HAnimHumanoid, skeletalConfiguration),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_rotation, (int) offsetof (struct X3D_HAnimHumanoid, rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_scale, (int) offsetof (struct X3D_HAnimHumanoid, scale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_scaleOrientation, (int) offsetof (struct X3D_HAnimHumanoid, scaleOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
@@ -5112,6 +5450,9 @@ const int OFFSETS_HAnimHumanoid[] = {
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_HAnimHumanoid, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_HAnimHumanoid, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimHumanoid, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_motions, (int) offsetof (struct X3D_HAnimHumanoid, motions),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_motionsEnabled, (int) offsetof (struct X3D_HAnimHumanoid, motionsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimHumanoid, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__JT, (int) offsetof (struct X3D_HAnimHumanoid, _JT),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__PVI, (int) offsetof (struct X3D_HAnimHumanoid, _PVI),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__PVW, (int) offsetof (struct X3D_HAnimHumanoid, _PVW),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -5147,6 +5488,35 @@ const int OFFSETS_HAnimJoint[] = {
 	(int) FIELDNAMES___do_scaleO, (int) offsetof (struct X3D_HAnimJoint, __do_scaleO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_scale, (int) offsetof (struct X3D_HAnimJoint, __do_scale),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___do_anything, (int) offsetof (struct X3D_HAnimJoint, __do_anything),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_HAnimMotion[] = {
+	(int) FIELDNAMES_channels, (int) offsetof (struct X3D_HAnimMotion, channels),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_channelsEnabled, (int) offsetof (struct X3D_HAnimMotion, channelsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_cycleTime, (int) offsetof (struct X3D_HAnimMotion, cycleTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotion, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_elapsedTime, (int) offsetof (struct X3D_HAnimMotion, elapsedTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__startTime, (int) offsetof (struct X3D_HAnimMotion, _startTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_HAnimMotion, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastenabled, (int) offsetof (struct X3D_HAnimMotion, _lastenabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameCount, (int) offsetof (struct X3D_HAnimMotion, frameCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameDuration, (int) offsetof (struct X3D_HAnimMotion, frameDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameIncrement, (int) offsetof (struct X3D_HAnimMotion, frameIncrement),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameIndex, (int) offsetof (struct X3D_HAnimMotion, frameIndex),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_startFrame, (int) offsetof (struct X3D_HAnimMotion, startFrame),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_endFrame, (int) offsetof (struct X3D_HAnimMotion, endFrame),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotion, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimMotion, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_HAnimMotion, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotion, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_next, (int) offsetof (struct X3D_HAnimMotion, next),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_previous, (int) offsetof (struct X3D_HAnimMotion, previous),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotion, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotion, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotion, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotion, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotion, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotion, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimSegment[] = {
@@ -7911,6 +8281,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_HAnimDisplacer,
 	OFFSETS_HAnimHumanoid,
 	OFFSETS_HAnimJoint,
+	OFFSETS_HAnimMotion,
 	OFFSETS_HAnimSegment,
 	OFFSETS_HAnimSite,
 	OFFSETS_ImageBackdropBackground,
@@ -8464,6 +8835,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_HAnimDisplacer : {tmp = MALLOC (struct X3D_HAnimDisplacer *, sizeof (struct X3D_HAnimDisplacer)); break;}
 		case NODE_HAnimHumanoid : {tmp = MALLOC (struct X3D_HAnimHumanoid *, sizeof (struct X3D_HAnimHumanoid)); break;}
 		case NODE_HAnimJoint : {tmp = MALLOC (struct X3D_HAnimJoint *, sizeof (struct X3D_HAnimJoint)); break;}
+		case NODE_HAnimMotion : {tmp = MALLOC (struct X3D_HAnimMotion *, sizeof (struct X3D_HAnimMotion)); break;}
 		case NODE_HAnimSegment : {tmp = MALLOC (struct X3D_HAnimSegment *, sizeof (struct X3D_HAnimSegment)); break;}
 		case NODE_HAnimSite : {tmp = MALLOC (struct X3D_HAnimSite *, sizeof (struct X3D_HAnimSite)); break;}
 		case NODE_ImageBackdropBackground : {tmp = MALLOC (struct X3D_ImageBackdropBackground *, sizeof (struct X3D_ImageBackdropBackground)); break;}
@@ -8703,7 +9075,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->_parentResource = getInputResource();
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Appearance : {
@@ -8719,7 +9091,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->effects.n=0; tmp2->effects.p=0;
 			tmp2->texture = NULL;
 			tmp2->textureTransform = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_appearance;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Arc2D : {
@@ -8732,7 +9104,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
 			tmp2->__linerep = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ArcClose2D : {
@@ -8750,7 +9122,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__simpleDisk = TRUE;
 			tmp2->__wireindices = 0;
 			tmp2->__linerep = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_AudioClip : {
@@ -8775,7 +9147,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__sourceNumber = -1;
 			tmp2->__inittime = 0;
 			tmp2->__lasttime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_source;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BackdropBackground : {
@@ -8790,7 +9162,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__texture = 0;
 			tmp2->__VBO = 0;
 			tmp2->url.n=0; tmp2->url.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Background : {
@@ -8829,7 +9201,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__leftTexture = NULL;
 			tmp2->__rightTexture = NULL;
 			tmp2->__VBO = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BallJoint : {
@@ -8847,7 +9219,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_anchorPoint.c[0] = 0.0f;tmp2->__old_anchorPoint.c[1] = 0.0f;tmp2->__old_anchorPoint.c[2] = 0.0f;
 			tmp2->__old_body1 = NULL;
 			tmp2->__old_body2 = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Billboard : {
@@ -8862,7 +9234,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->metadata = NULL;
 			tmp2->_rotationAngle = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BlendedVolumeStyle : {
@@ -8886,7 +9258,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_fbohandles.n=3;;
 			tmp2->_weightFunction1 = 0;
 			tmp2->_weightFunction2 = 0;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BooleanFilter : {
@@ -8897,7 +9269,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->inputNegate = FALSE;
 			tmp2->inputTrue = TRUE;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BooleanSequencer : {
@@ -8911,7 +9283,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed = FALSE;
 			tmp2->metadata = NULL;
 			tmp2->_index = -1;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BooleanToggle : {
@@ -8920,7 +9292,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_boolean = 0;
 			tmp2->toggle = FALSE;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BooleanTrigger : {
@@ -8929,7 +9301,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_triggerTime = 0;
 			tmp2->triggerTrue = FALSE;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BoundaryEnhancementVolumeStyle : {
@@ -8940,7 +9312,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->boundaryOpacity = 0.9f;
 			tmp2->opacityFactor = 2.0f;
 			tmp2->retainedOpacity = 0.2f;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_BoundedPhysicsModel : {
@@ -8949,7 +9321,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->geometry = NULL;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_physics;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Box : {
@@ -8959,7 +9331,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->size.c[0] = 2.0f;tmp2->size.c[1] = 2.0f;tmp2->size.c[2] = 2.0f;
 			tmp2->solid = TRUE;
 			tmp2->__points.n=0; tmp2->__points.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CADAssembly : {
@@ -8974,7 +9346,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CADFace : {
@@ -8985,7 +9357,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->shape = NULL;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CADLayer : {
@@ -9000,7 +9372,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->visible.n=0; tmp2->visible.p=0;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CADPart : {
@@ -9026,7 +9398,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scale = FALSE;
 			tmp2->__do_anything = FALSE;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CalibratedCameraSensor : {
@@ -9041,7 +9413,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->fieldOfView = 0.0f;
 			tmp2->fovMode = newASCIIString("");
 			tmp2->aspectRatio = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CartoonVolumeStyle : {
@@ -9053,7 +9425,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->orthogonalColor.c[0] = 1;tmp2->orthogonalColor.c[1] = 1;tmp2->orthogonalColor.c[2] = 1;tmp2->orthogonalColor.c[3] = 1;;
 			tmp2->parallelColor.c[0] = 0;tmp2->parallelColor.c[1] = 0;tmp2->parallelColor.c[2] = 0;tmp2->parallelColor.c[3] = 1;;
 			tmp2->colorSteps = 4;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Circle2D : {
@@ -9064,7 +9436,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
 			tmp2->__linerep = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ClipPlane : {
@@ -9073,7 +9445,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
 			tmp2->plane.c[0] = 0;tmp2->plane.c[1] = 1;tmp2->plane.c[2] = 0;tmp2->plane.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CollidableOffset : {
@@ -9093,7 +9465,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initialTranslation.c[0] = 0.0f;tmp2->_initialTranslation.c[1] = 0.0f;tmp2->_initialTranslation.c[2] = 0.0f;
 			tmp2->_initialized = 0;
 			tmp2->_csensor = 0;
-			tmp2->_defaultContainer = FIELDNAMES_collidables + (FIELDNAMES_geometry << 10) + (FIELDNAMES_collidable << 20);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CollidableShape : {
@@ -9113,7 +9485,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initialTranslation.c[0] = 0.0f;tmp2->_initialTranslation.c[1] = 0.0f;tmp2->_initialTranslation.c[2] = 0.0f;
 			tmp2->_initialized = 0;
 			tmp2->_csensor = 0;
-			tmp2->_defaultContainer = FIELDNAMES_collidables + (FIELDNAMES_geometry << 10) + (FIELDNAMES_collidable << 20);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Collision : {
@@ -9131,7 +9503,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->collideTime = -1;
 			tmp2->metadata = NULL;
 			tmp2->__hit = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CollisionCollection : {
@@ -9151,7 +9523,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_class = 0;
 			tmp2->_csensor = 0;
 			tmp2->_appliedParametersMask = 0;
-			tmp2->_defaultContainer = FIELDNAMES_collider;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CollisionSensor : {
@@ -9163,7 +9535,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->intersections.n=0; tmp2->intersections.p=0;
 			tmp2->contacts.n=0; tmp2->contacts.p=0;
 			tmp2->isActive = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CollisionSpace : {
@@ -9176,7 +9548,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->_space = 0;
-			tmp2->_defaultContainer = FIELDNAMES_collidables;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Color : {
@@ -9184,7 +9556,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_Color *) tmp;
 			tmp2->color.n=0; tmp2->color.p=0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_color;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ColorChaser : {
@@ -9205,7 +9577,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_buffer = NULL;
 			tmp2->_previousvalue.c[0] = 0.0f;tmp2->_previousvalue.c[1] = 0.0f;tmp2->_previousvalue.c[2] = 0.0f;;
 			tmp2->_destination.c[0] = 0.0f;tmp2->_destination.c[1] = 0.0f;tmp2->_destination.c[2] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ColorDamper : {
@@ -9228,7 +9600,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value.c[0] = 0.0f;tmp2->set_value.c[1] = 0.0f;tmp2->set_value.c[2] = 0.0f;;
 			tmp2->_values = NULL;
 			tmp2->_input.c[0] = 0.0f;tmp2->_input.c[1] = 0.0f;tmp2->_input.c[2] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ColorInterpolator : {
@@ -9239,7 +9611,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
 			tmp2->value_changed.c[0] = 0.0f;tmp2->value_changed.c[1] = 0.0f;tmp2->value_changed.c[2] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ColorRGBA : {
@@ -9247,7 +9619,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_ColorRGBA *) tmp;
 			tmp2->color.n=0; tmp2->color.p=0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_color;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ComposedCubeMapTexture : {
@@ -9261,7 +9633,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->top = NULL;
 			tmp2->right = NULL;
 			tmp2->_parentResource = getInputResource();
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ComposedShader : {
@@ -9278,7 +9650,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_shaderUserNumber = -1;
 			tmp2->_shaderLoadThread = _THREAD_NULL_;
 			tmp2->_retrievedURLData = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_shaders;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ComposedTexture3D : {
@@ -9292,7 +9664,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->repeatR = FALSE;
 			tmp2->__textureTableIndex = 0;
 			tmp2->_parentResource = getInputResource();
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ComposedVolumeStyle : {
@@ -9301,7 +9673,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
 			tmp2->renderStyle.n=0; tmp2->renderStyle.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CompositeVolumeStyle : {
@@ -9310,7 +9682,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
 			tmp2->renderStyle.n=0; tmp2->renderStyle.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Cone : {
@@ -9328,7 +9700,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__coneVBO = 0;
 			tmp2->__coneTriangles = 0;
 			tmp2->__wireindices = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ConeEmitter : {
@@ -9342,7 +9714,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->variation = 0.25f;
 			tmp2->mass = 0.0f;
 			tmp2->surfaceArea = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_emitter;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Contact : {
@@ -9366,7 +9738,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->softnessErrorCorrection = 0.8f;
 			tmp2->surfaceSpeed.c[0] = 0.0f;tmp2->surfaceSpeed.c[1] = 0.0f;;
 			tmp2->_appliedParameters = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Contour2D : {
@@ -9377,7 +9749,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
 			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_trimmingContour;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ContourPolyline2D : {
@@ -9386,7 +9758,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->controlPoint.n=0; tmp2->controlPoint.p=0;
 			tmp2->point.n=0; tmp2->point.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Coordinate : {
@@ -9394,7 +9766,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_Coordinate *) tmp;
 			tmp2->point.n=0; tmp2->point.p=0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_coord + (FIELDNAMES_skinCoord << 10);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CoordinateChaser : {
@@ -9435,7 +9807,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_destination.p[0].c[1] = 0.0f; 
 			tmp2->_destination.p[0].c[2] = 0.0f; 
 			tmp2->_destination.n=1;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CoordinateDamper : {
@@ -9468,7 +9840,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value.n=0; tmp2->set_value.p=0;
 			tmp2->_values = NULL;
 			tmp2->_input.n=0; tmp2->_input.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CoordinateDouble : {
@@ -9476,7 +9848,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_CoordinateDouble *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_controlPoint;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CoordinateInterpolator : {
@@ -9491,7 +9863,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_CPU_Routes_out = 0;
 			tmp2->_keyVBO = 0;
 			tmp2->_keyValueVBO = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CoordinateInterpolator2D : {
@@ -9505,7 +9877,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed.p[0].c[0] = 0.0f; 
 			tmp2->value_changed.p[0].c[1] = 0.0f; 
 			tmp2->value_changed.n=1;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Cylinder : {
@@ -9523,7 +9895,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__cylinderVBO = 0;
 			tmp2->__cylinderTriangles = 0;
 			tmp2->__wireindices = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_CylinderSensor : {
@@ -9549,7 +9921,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_radius = 0.0f;
 			tmp2->_usingDisk = 0;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_DISEntityManager : {
@@ -9588,7 +9960,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_pduchange_create = 0;
 			tmp2->_pduchange_remove = 0;
 			tmp2->_pduchange_em_info = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_DISEntityTypeMapping : {
@@ -9604,7 +9976,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->specific = 0;
 			tmp2->extra = 0;
 			tmp2->_child = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_mapping;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_DirectionalLight : {
@@ -9620,7 +9992,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
 			tmp2->_col.c[0] = 0;tmp2->_col.c[1] = 0;tmp2->_col.c[2] = 0;tmp2->_col.c[3] = 0;;
 			tmp2->_amb.c[0] = 0;tmp2->_amb.c[1] = 0;tmp2->_amb.c[2] = 0;tmp2->_amb.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Disk2D : {
@@ -9635,7 +10007,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__numPoints = 0;
 			tmp2->__simpleDisk = TRUE;
 			tmp2->__wireindices = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_DoubleAxisHingeJoint : {
@@ -9677,7 +10049,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_motor1 = 0;
 			tmp2->_motor2 = 0;
 			tmp2->axis1Angle = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_EaseInEaseOut : {
@@ -9688,7 +10060,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->key.n=0; tmp2->key.p=0;
 			tmp2->metadata = NULL;
 			tmp2->modifiedFraction_changed = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_EdgeEnhancementVolumeStyle : {
@@ -9699,7 +10071,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->surfaceNormals = NULL;
 			tmp2->edgeColor.c[0] = 0;tmp2->edgeColor.c[1] = 0;tmp2->edgeColor.c[2] = 0;tmp2->edgeColor.c[3] = 1;;
 			tmp2->gradientThreshold = 0.4f;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Effect : {
@@ -9716,7 +10088,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_shaderUserNumber = -1;
 			tmp2->_shaderLoadThread = _THREAD_NULL_;
 			tmp2->_retrievedURLData = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_EffectPart : {
@@ -9729,7 +10101,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_parentResource = getInputResource();
 			tmp2->__loadResource = 0;
 			tmp2->_shaderUserDefinedFields = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_parts;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ElevationGrid : {
@@ -9753,7 +10125,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->zDimension = 0;
 			tmp2->zSpacing = 1.0f;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_EnvironmentLight : {
@@ -9767,7 +10139,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->color.c[0] = 1.0f;tmp2->color.c[1] = 1.0f;tmp2->color.c[2] = 1.0f;;
 			tmp2->diffuseTexture = NULL;
 			tmp2->specularTexture = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_EspduTransform : {
@@ -9895,7 +10267,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scale = FALSE;
 			tmp2->__do_anything = FALSE;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ExplosionEmitter : {
@@ -9907,7 +10279,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->variation = 0.25f;
 			tmp2->mass = 0.0f;
 			tmp2->surfaceArea = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_emitter;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Extrusion : {
@@ -9956,7 +10328,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spine.p[1].c[1] = 1.0f; 
 			tmp2->spine.p[1].c[2] = 0.0f; 
 			tmp2->spine.n=2;;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_FillProperties : {
@@ -9969,7 +10341,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->_enabled = TRUE;
 			tmp2->_hatchScale.c[0] = 0.1f;tmp2->_hatchScale.c[1] = 0.1f;;
-			tmp2->_defaultContainer = FIELDNAMES_fillProperties;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_FloatVertexAttribute : {
@@ -9979,7 +10351,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->numComponents = 4;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Fog : {
@@ -9995,7 +10367,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isBound = FALSE;
 			tmp2->_layerId = 0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_FogCoordinate : {
@@ -10003,7 +10375,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_FogCoordinate *) tmp;
 			tmp2->depth.n=0; tmp2->depth.p=0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_fogCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_FontStyle : {
@@ -10019,7 +10391,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spacing = 1.0f;
 			tmp2->style = newASCIIString("PLAIN");
 			tmp2->topToBottom = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_fontStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ForcePhysicsModel : {
@@ -10028,7 +10400,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->force.c[0] = 0.0f;tmp2->force.c[1] = -9.8f;tmp2->force.c[2] = 0.0f;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_physics;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeneratedCubeMapTexture : {
@@ -10042,7 +10414,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__regenSubTextures = FALSE;
 			tmp2->update = newASCIIString("NONE");
 			tmp2->size = 128;
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoConvert : {
@@ -10057,7 +10429,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__geoSystem = NULL;
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldgcCoords.c[0] = 0;tmp2->__oldgcCoords.c[1] = 0;tmp2->__oldgcCoords.c[2] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoCoordinate : {
@@ -10069,7 +10441,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedCoords.n=0; tmp2->__movedCoords.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_coord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoElevationGrid : {
@@ -10102,7 +10474,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__autoOffset.c[0] = 0;tmp2->__autoOffset.c[1] = 0;tmp2->__autoOffset.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
 			tmp2->__planets.n=0; tmp2->__planets.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoLOD : {
@@ -10134,7 +10506,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__childloadstatus = 0;
 			tmp2->__rooturlloadstatus = 0;
 			tmp2->__level = -1;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoLocation : {
@@ -10161,7 +10533,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldChildren.n=0; tmp2->__oldChildren.p=0;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoMetadata : {
@@ -10171,7 +10543,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->summary.n=0; tmp2->summary.p=0;
 			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoOrigin : {
@@ -10187,7 +10559,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldMFString.n=0; tmp2->__oldMFString.p=0;
 			tmp2->__rotyup.c[0] = 0;tmp2->__rotyup.c[1] = 1;tmp2->__rotyup.c[2] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_geoOrigin;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoPlanet : {
@@ -10204,7 +10576,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->planetId = 0;
 			tmp2->__oldChildren.n=0; tmp2->__oldChildren.p=0;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoPositionInterpolator : {
@@ -10222,7 +10594,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__movedValue.n=0; tmp2->__movedValue.p=0;
 			tmp2->__oldKeyPtr.n=0; tmp2->__oldKeyPtr.p=0;
 			tmp2->__oldKeyValuePtr.n=0; tmp2->__oldKeyValuePtr.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoProximitySensor : {
@@ -10252,7 +10624,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldEnabled = TRUE;
 			tmp2->__oldGeoCenter.c[0] = 0;tmp2->__oldGeoCenter.c[1] = 0;tmp2->__oldGeoCenter.c[2] = 0;;
 			tmp2->__oldSize.c[0] = 0.0f;tmp2->__oldSize.c[1] = 0.0f;tmp2->__oldSize.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoTouchSensor : {
@@ -10275,7 +10647,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_oldhitPoint.c[0] = 0.0f;tmp2->_oldhitPoint.c[1] = 0.0f;tmp2->_oldhitPoint.c[2] = 0.0f;
 			tmp2->_oldhitTexCoord.c[0] = 0.0f;tmp2->_oldhitTexCoord.c[1] = 0.0f;;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoTransform : {
@@ -10308,7 +10680,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldGeoCenter.c[0] = 0;tmp2->__oldGeoCenter.c[1] = 0;tmp2->__oldGeoCenter.c[2] = 0;;
 			tmp2->__oldChildren.n=0; tmp2->__oldChildren.p=0;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_GeoViewpoint : {
@@ -10348,7 +10720,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldHeadlight = TRUE;
 			tmp2->__oldJump = TRUE;
 			tmp2->__oldMFString.n=0; tmp2->__oldMFString.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Group : {
@@ -10362,7 +10734,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_HAnimDisplacer : {
@@ -10373,7 +10745,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->weight = 0.0f;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_displacers;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_HAnimHumanoid : {
@@ -10383,6 +10755,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->info.n=0; tmp2->info.p=0;
 			tmp2->joints.n=0; tmp2->joints.p=0;
 			tmp2->name = newASCIIString("");
+			tmp2->skeletalConfiguration = newASCIIString("BASIC");
 			tmp2->rotation.c[0] = 0;tmp2->rotation.c[1] = 0;tmp2->rotation.c[2] = 1;tmp2->rotation.c[3] = 0;;
 			tmp2->scale.c[0] = 1.0f;tmp2->scale.c[1] = 1.0f;tmp2->scale.c[2] = 1.0f;
 			tmp2->scaleOrientation.c[0] = 0;tmp2->scaleOrientation.c[1] = 0;tmp2->scaleOrientation.c[2] = 1;tmp2->scaleOrientation.c[3] = 0;;
@@ -10399,13 +10772,16 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->metadata = NULL;
+			tmp2->motions.n=0; tmp2->motions.p=0;
+			tmp2->motionsEnabled.n=0; tmp2->motionsEnabled.p=0;
+			tmp2->loa = -1;
 			tmp2->_JT = 0;
 			tmp2->_PVI = 0;
 			tmp2->_PVW = 0;
 			tmp2->_NV = 0;
 			tmp2->_origCoords = 0;
 			tmp2->_origNorms = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_HAnimJoint : {
@@ -10441,7 +10817,39 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scaleO = 0;
 			tmp2->__do_scale = 0;
 			tmp2->__do_anything = 0;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_HAnimMotion : {
+			struct X3D_HAnimMotion * tmp2;
+			tmp2 = (struct X3D_HAnimMotion *) tmp;
+			tmp2->channels = newASCIIString("");
+			tmp2->channelsEnabled.n=0; tmp2->channelsEnabled.p=0;
+			tmp2->cycleTime = 0;
+			tmp2->description = newASCIIString("");
+			tmp2->elapsedTime = 0;
+			tmp2->_startTime = 0;
+			tmp2->enabled = FALSE;
+			tmp2->_lastenabled = FALSE;
+			tmp2->frameCount = 0;
+			tmp2->frameDuration = 0.1;
+			tmp2->frameIncrement = 1;
+			tmp2->frameIndex = 0;
+			tmp2->startFrame = 0;
+			tmp2->endFrame = 0;
+			tmp2->joints = newASCIIString("");
+			tmp2->loa = -1;
+			tmp2->loop = FALSE;
+			tmp2->metadata = NULL;
+			tmp2->next = FALSE;
+			tmp2->previous = FALSE;
+			tmp2->values = newASCIIString("");
+			tmp2->_fvalues = 0;
+			tmp2->_framevalues = 0;
+			tmp2->_channelcount = 0;
+			tmp2->_njoints = 0;
+			tmp2->_channels = 0;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_HAnimSegment : {
@@ -10471,7 +10879,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->momentsOfInertia.n=9;;
 			tmp2->metadata = NULL;
 			tmp2->_origCoords = 0;
-			tmp2->_defaultContainer = FIELDNAMES_segments;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_HAnimSite : {
@@ -10496,7 +10904,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scaleO = 0;
 			tmp2->__do_scale = 0;
 			tmp2->__do_anything = 0;
-			tmp2->_defaultContainer = FIELDNAMES_sites;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ImageBackdropBackground : {
@@ -10511,7 +10919,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__texture = 0;
 			tmp2->__VBO = 0;
 			tmp2->image.n=3; tmp2->image.p=MALLOC (int *, sizeof(int)*3); tmp2->image.p[0] = 0; tmp2->image.p[1] = 0; tmp2->image.p[2] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ImageCubeMapTexture : {
@@ -10524,7 +10932,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__subTextures.n=0; tmp2->__subTextures.p=0;
 			tmp2->__regenSubTextures = FALSE;
 			tmp2->url.n=0; tmp2->url.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ImageTexture : {
@@ -10537,7 +10945,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->textureProperties = 0;
 			tmp2->__textureTableIndex = 0;
 			tmp2->_parentResource = getInputResource();
-			tmp2->_defaultContainer = FIELDNAMES_texture + (FIELDNAMES_diffuseTexture << 10) + (FIELDNAMES_emissiveTexture << 20);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ImageTexture3D : {
@@ -10552,7 +10960,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__textureTableIndex = 0;
 			tmp2->_parentResource = getInputResource();
 			tmp2->_needs_gradient = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IndexedFaceSet : {
@@ -10579,7 +10987,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalPerVertex = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->texCoordIndex.n=0; tmp2->texCoordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IndexedLineSet : {
@@ -10605,7 +11013,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__vertices = 0;
 			tmp2->__vertexCount = 0;
 			tmp2->__linerep = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IndexedQuadSet : {
@@ -10625,7 +11033,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalPerVertex = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IndexedTriangleFanSet : {
@@ -10645,7 +11053,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->solid = TRUE;
 			tmp2->index.n=0; tmp2->index.p=0;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IndexedTriangleSet : {
@@ -10665,7 +11073,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->solid = TRUE;
 			tmp2->index.n=0; tmp2->index.p=0;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IndexedTriangleStripSet : {
@@ -10685,7 +11093,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->solid = TRUE;
 			tmp2->index.n=0; tmp2->index.p=0;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Inline : {
@@ -10725,7 +11133,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldload = FALSE;
 			tmp2->__unitlengthfactor = 1;
 			tmp2->__specversion = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IntegerSequencer : {
@@ -10739,7 +11147,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed = 0;
 			tmp2->metadata = NULL;
 			tmp2->_index = -1;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IntegerTrigger : {
@@ -10749,7 +11157,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->integerKey = 0;
 			tmp2->triggerValue = 0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_IsoSurfaceVolumeData : {
@@ -10766,7 +11174,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->gradients = NULL;
 			tmp2->surfaceTolerance = 0.0f;
 			tmp2->surfaceValues.n=0; tmp2->surfaceValues.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_KeySensor : {
@@ -10783,7 +11191,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->shiftKey = TRUE;
 			tmp2->metadata = NULL;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LOD : {
@@ -10803,7 +11211,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->forceTransitions = FALSE;
 			tmp2->__isX3D = (inputFileVersion[0]==3);
 			tmp2->_selected = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Layer : {
@@ -10816,7 +11224,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->isPickable = TRUE;
 			tmp2->viewport = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_layers;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LayerSet : {
@@ -10828,7 +11236,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->order.p = MALLOC (int *, sizeof(int)*1);
 			tmp2->order.p[0] = 0;
 			tmp2->order.n=1;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Layout : {
@@ -10867,7 +11275,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_scale.p[0] = 1.0f;
 			tmp2->_scale.p[1] = 1.0f;
 			tmp2->_scale.n=2;;
-			tmp2->_defaultContainer = FIELDNAMES_layout;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LayoutGroup : {
@@ -10882,7 +11290,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxSize.c[0] = 0.0f;tmp2->bboxSize.c[1] = 0.0f;tmp2->bboxSize.c[2] = 0.0f;
 			tmp2->layout = NULL;
 			tmp2->viewport = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LayoutLayer : {
@@ -10896,7 +11304,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPickable = TRUE;
 			tmp2->viewport = NULL;
 			tmp2->layout = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_layers;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LinePickSensor : {
@@ -10916,7 +11324,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->pickedPoint.n=0; tmp2->pickedPoint.p=0;
 			tmp2->pickedNormal.n=0; tmp2->pickedNormal.p=0;
 			tmp2->pickedTextureCoordinate.n=0; tmp2->pickedTextureCoordinate.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LineProperties : {
@@ -10933,7 +11341,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__styleEnd = 0;
 			tmp2->__style16 = 0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_lineProperties;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LineSensor : {
@@ -10955,7 +11363,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_oldtranslation.c[0] = 0.0f;tmp2->_oldtranslation.c[1] = 0.0f;tmp2->_oldtranslation.c[2] = 0.0f;
 			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LineSet : {
@@ -10972,7 +11380,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__starts = 0;
 			tmp2->__segCount = 0;
 			tmp2->__linerep = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LoadSensor : {
@@ -10990,7 +11398,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__finishedloading = TRUE;
 			tmp2->__StartLoadTime = 0;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_LocalFog : {
@@ -11003,7 +11411,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__fogType = 1;
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Material : {
@@ -11027,7 +11435,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->shininess = 0.2f;
 			tmp2->specularShininessTexture = NULL;
 			tmp2->specularShininessTextureChannel = 0;
-			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Matrix3VertexAttribute : {
@@ -11036,7 +11444,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value.n=0; tmp2->value.p=0;
 			tmp2->name = newASCIIString("");
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Matrix4VertexAttribute : {
@@ -11045,7 +11453,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->value.n=0; tmp2->value.p=0;
 			tmp2->name = newASCIIString("");
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataBoolean : {
@@ -11055,7 +11463,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->reference = newASCIIString("");
 			tmp2->value.n=0; tmp2->value.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataDouble : {
@@ -11065,7 +11473,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->reference = newASCIIString("");
 			tmp2->value.n=0; tmp2->value.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataFloat : {
@@ -11075,7 +11483,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->reference = newASCIIString("");
 			tmp2->value.n=0; tmp2->value.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataInteger : {
@@ -11085,7 +11493,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->reference = newASCIIString("");
 			tmp2->value.n=0; tmp2->value.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFBool : {
@@ -11095,7 +11503,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFColor : {
@@ -11105,7 +11513,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFColorRGBA : {
@@ -11115,7 +11523,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFDouble : {
@@ -11125,7 +11533,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFFloat : {
@@ -11135,7 +11543,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFInt32 : {
@@ -11145,7 +11553,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFMatrix3d : {
@@ -11155,7 +11563,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFMatrix3f : {
@@ -11165,7 +11573,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFMatrix4d : {
@@ -11175,7 +11583,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFMatrix4f : {
@@ -11185,7 +11593,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFNode : {
@@ -11195,7 +11603,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFRotation : {
@@ -11205,7 +11613,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFString : {
@@ -11215,7 +11623,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFTime : {
@@ -11225,7 +11633,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFVec2d : {
@@ -11235,7 +11643,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFVec2f : {
@@ -11245,7 +11653,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFVec3d : {
@@ -11255,7 +11663,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFVec3f : {
@@ -11265,7 +11673,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFVec4d : {
@@ -11275,7 +11683,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataMFVec4f : {
@@ -11285,7 +11693,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=0; tmp2->valueChanged.p=0;
 			tmp2->setValue.n=0; tmp2->setValue.p=0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFBool : {
@@ -11295,7 +11703,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = FALSE;
 			tmp2->setValue = FALSE;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFColor : {
@@ -11305,7 +11713,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0.0f;tmp2->valueChanged.c[1] = 0.0f;tmp2->valueChanged.c[2] = 0.0f;;
 			tmp2->setValue.c[0] = 0.0f;tmp2->setValue.c[1] = 0.0f;tmp2->setValue.c[2] = 0.0f;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFColorRGBA : {
@@ -11315,7 +11723,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFDouble : {
@@ -11325,7 +11733,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = 0;
 			tmp2->setValue = 0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFFloat : {
@@ -11335,7 +11743,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = 0.0f;
 			tmp2->setValue = 0.0f;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFImage : {
@@ -11345,7 +11753,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.n=3; tmp2->valueChanged.p=MALLOC (int *, sizeof(int)*3); tmp2->valueChanged.p[0] = 0; tmp2->valueChanged.p[1] = 0; tmp2->valueChanged.p[2] = 0;;
 			tmp2->setValue.n=3; tmp2->setValue.p=MALLOC (int *, sizeof(int)*3); tmp2->setValue.p[0] = 0; tmp2->setValue.p[1] = 0; tmp2->setValue.p[2] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFInt32 : {
@@ -11355,7 +11763,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = 0;
 			tmp2->setValue = 0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFMatrix3d : {
@@ -11365,7 +11773,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;tmp2->valueChanged.c[4] = 0;tmp2->valueChanged.c[5] = 0;tmp2->valueChanged.c[6] = 0;tmp2->valueChanged.c[7] = 0;tmp2->valueChanged.c[8] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;tmp2->setValue.c[4] = 0;tmp2->setValue.c[5] = 0;tmp2->setValue.c[6] = 0;tmp2->setValue.c[7] = 0;tmp2->setValue.c[8] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFMatrix3f : {
@@ -11375,7 +11783,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;tmp2->valueChanged.c[4] = 0;tmp2->valueChanged.c[5] = 0;tmp2->valueChanged.c[6] = 0;tmp2->valueChanged.c[7] = 0;tmp2->valueChanged.c[8] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;tmp2->setValue.c[4] = 0;tmp2->setValue.c[5] = 0;tmp2->setValue.c[6] = 0;tmp2->setValue.c[7] = 0;tmp2->setValue.c[8] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFMatrix4d : {
@@ -11385,7 +11793,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;tmp2->valueChanged.c[4] = 0;tmp2->valueChanged.c[5] = 0;tmp2->valueChanged.c[6] = 0;tmp2->valueChanged.c[7] = 0;tmp2->valueChanged.c[8] = 0;tmp2->valueChanged.c[9] = 0;tmp2->valueChanged.c[10] = 0;tmp2->valueChanged.c[11] = 0;tmp2->valueChanged.c[12] = 0;tmp2->valueChanged.c[13] = 0;tmp2->valueChanged.c[14] = 0;tmp2->valueChanged.c[15] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;tmp2->setValue.c[4] = 0;tmp2->setValue.c[5] = 0;tmp2->setValue.c[6] = 0;tmp2->setValue.c[7] = 0;tmp2->setValue.c[8] = 0;tmp2->setValue.c[9] = 0;tmp2->setValue.c[10] = 0;tmp2->setValue.c[11] = 0;tmp2->setValue.c[12] = 0;tmp2->setValue.c[13] = 0;tmp2->setValue.c[14] = 0;tmp2->setValue.c[15] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFMatrix4f : {
@@ -11395,7 +11803,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;tmp2->valueChanged.c[4] = 0;tmp2->valueChanged.c[5] = 0;tmp2->valueChanged.c[6] = 0;tmp2->valueChanged.c[7] = 0;tmp2->valueChanged.c[8] = 0;tmp2->valueChanged.c[9] = 0;tmp2->valueChanged.c[10] = 0;tmp2->valueChanged.c[11] = 0;tmp2->valueChanged.c[12] = 0;tmp2->valueChanged.c[13] = 0;tmp2->valueChanged.c[14] = 0;tmp2->valueChanged.c[15] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;tmp2->setValue.c[4] = 0;tmp2->setValue.c[5] = 0;tmp2->setValue.c[6] = 0;tmp2->setValue.c[7] = 0;tmp2->setValue.c[8] = 0;tmp2->setValue.c[9] = 0;tmp2->setValue.c[10] = 0;tmp2->setValue.c[11] = 0;tmp2->setValue.c[12] = 0;tmp2->setValue.c[13] = 0;tmp2->setValue.c[14] = 0;tmp2->setValue.c[15] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFNode : {
@@ -11405,7 +11813,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = 0;
 			tmp2->setValue = 0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFRotation : {
@@ -11415,7 +11823,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFString : {
@@ -11425,7 +11833,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = newASCIIString("");
 			tmp2->setValue = newASCIIString("");
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFTime : {
@@ -11435,7 +11843,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged = 0;
 			tmp2->setValue = 0;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFVec2d : {
@@ -11445,7 +11853,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFVec2f : {
@@ -11455,7 +11863,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0.0f;tmp2->valueChanged.c[1] = 0.0f;;
 			tmp2->setValue.c[0] = 0.0f;tmp2->setValue.c[1] = 0.0f;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFVec3d : {
@@ -11465,7 +11873,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFVec3f : {
@@ -11475,7 +11883,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0.0f;tmp2->valueChanged.c[1] = 0.0f;tmp2->valueChanged.c[2] = 0.0f;
 			tmp2->setValue.c[0] = 0.0f;tmp2->setValue.c[1] = 0.0f;tmp2->setValue.c[2] = 0.0f;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFVec4d : {
@@ -11485,7 +11893,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSFVec4f : {
@@ -11495,7 +11903,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->valueChanged.c[0] = 0;tmp2->valueChanged.c[1] = 0;tmp2->valueChanged.c[2] = 0;tmp2->valueChanged.c[3] = 0;;
 			tmp2->setValue.c[0] = 0;tmp2->setValue.c[1] = 0;tmp2->setValue.c[2] = 0;tmp2->setValue.c[3] = 0;;
 			tmp2->tickTime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataSet : {
@@ -11505,7 +11913,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->reference = newASCIIString("");
 			tmp2->value.n=0; tmp2->value.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MetadataString : {
@@ -11515,7 +11923,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->name = newASCIIString("");
 			tmp2->reference = newASCIIString("");
 			tmp2->value.n=0; tmp2->value.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_metadata;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MotorJoint : {
@@ -11558,7 +11966,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_axis1Angle = 0.0f;
 			tmp2->__old_axis2Angle = 0.0f;
 			tmp2->__old_axis3Angle = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MovieTexture : {
@@ -11593,7 +12001,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__lowest = 0;
 			tmp2->__highest = 0;
 			tmp2->__fw_movie = 0;
-			tmp2->_defaultContainer = FIELDNAMES_texture + (FIELDNAMES_source << 10);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MultiTexture : {
@@ -11607,7 +12015,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->source.n=0; tmp2->source.p=0;
 			tmp2->texture.n=0; tmp2->texture.p=0;
 			tmp2->__xparams = 0;
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MultiTextureCoordinate : {
@@ -11615,7 +12023,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_MultiTextureCoordinate *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->texCoord.n=0; tmp2->texCoord.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_MultiTextureTransform : {
@@ -11623,7 +12031,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_MultiTextureTransform *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->textureTransform.n=0; tmp2->textureTransform.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_textureTransform;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NavigationInfo : {
@@ -11646,7 +12054,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->transitionTime = 1;
 			tmp2->transitionComplete = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Normal : {
@@ -11654,7 +12062,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_Normal *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->vector.n=0; tmp2->vector.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_normal;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NormalInterpolator : {
@@ -11665,7 +12073,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
 			tmp2->value_changed.n=0; tmp2->value_changed.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsCurve : {
@@ -11681,7 +12089,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_tscale = 1.0f;
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsCurve2D : {
@@ -11695,7 +12103,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->tessellation = 0;
 			tmp2->closed = FALSE;
 			tmp2->_tscale = 1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsOrientationInterpolator : {
@@ -11712,7 +12120,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_xyzw.n=0; tmp2->_xyzw.p=0;
 			tmp2->_OK = 0;
 			tmp2->_knotrange.c[0] = 0.0f;tmp2->_knotrange.c[1] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsPatchSurface : {
@@ -11734,7 +12142,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->texCoord = NULL;
 			tmp2->solid = TRUE;
 			tmp2->_tscale = 1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsPositionInterpolator : {
@@ -11751,7 +12159,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_xyzw.n=0; tmp2->_xyzw.p=0;
 			tmp2->_OK = 0;
 			tmp2->_knotrange.c[0] = 0.0f;tmp2->_knotrange.c[1] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsSet : {
@@ -11764,7 +12172,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->tessellationScale = 1.0f;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsSurfaceInterpolator : {
@@ -11786,7 +12194,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_vKnot.n=0; tmp2->_vKnot.p=0;
 			tmp2->_controlPoint.n=0; tmp2->_controlPoint.p=0;
 			tmp2->_OK = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsSweptSurface : {
@@ -11800,7 +12208,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->method = newASCIIString("FULL");
 			tmp2->_patch = NULL;
 			tmp2->_method = 2;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsSwungSurface : {
@@ -11812,7 +12220,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ccw = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->_patch = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsTextureCoordinate : {
@@ -11830,7 +12238,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_uKnot.n=0; tmp2->_uKnot.p=0;
 			tmp2->_vKnot.n=0; tmp2->_vKnot.p=0;
 			tmp2->_controlPoint.n=0; tmp2->_controlPoint.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_NurbsTrimmedSurface : {
@@ -11855,7 +12263,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->removeTrimmingContour.n=0; tmp2->removeTrimmingContour.p=0;
 			tmp2->trimmingContour.n=0; tmp2->trimmingContour.p=0;
 			tmp2->_tscale = 1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_OSC_Sensor : {
@@ -11884,7 +12292,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_floatOutFIFO = 0;
 			tmp2->_stringOutFIFO = 0;
 			tmp2->__oldmetadata = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_OpacityMapVolumeStyle : {
@@ -11893,7 +12301,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
 			tmp2->transferFunction = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_OrientationChaser : {
@@ -11914,7 +12322,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_buffer = NULL;
 			tmp2->_previousvalue.c[0] = 0;tmp2->_previousvalue.c[1] = 1;tmp2->_previousvalue.c[2] = 0;tmp2->_previousvalue.c[3] = 0;;
 			tmp2->_destination.c[0] = 0;tmp2->_destination.c[1] = 1;tmp2->_destination.c[2] = 0;tmp2->_destination.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_OrientationDamper : {
@@ -11937,7 +12345,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value.c[0] = 0;tmp2->set_value.c[1] = 1;tmp2->set_value.c[2] = 0;tmp2->set_value.c[3] = 0;;
 			tmp2->_values = NULL;
 			tmp2->_input.c[0] = 0;tmp2->_input.c[1] = 1;tmp2->_input.c[2] = 0;tmp2->_input.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_OrientationInterpolator : {
@@ -11948,7 +12356,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
 			tmp2->value_changed.c[0] = 0;tmp2->value_changed.c[1] = 0;tmp2->value_changed.c[2] = 1;tmp2->value_changed.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_OrthoViewpoint : {
@@ -11975,7 +12383,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PackagedShader : {
@@ -11992,7 +12400,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_shaderUserDefinedFields = NULL;
 			tmp2->_shaderLoadThread = _THREAD_NULL_;
 			tmp2->_retrievedURLData = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_shaders;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ParticleSystem : {
@@ -12028,7 +12436,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_lastEnabled = FALSE;
 			tmp2->_geometryType = 0;
 			tmp2->_remainder = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_shape;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PhysicalMaterial : {
@@ -12049,7 +12457,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metallicRoughnessTexture = NULL;
 			tmp2->metallicRoughnessTextureChannel = 0;
 			tmp2->roughness = 1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PickableGroup : {
@@ -12064,7 +12472,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->pickable = TRUE;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PixelTexture : {
@@ -12077,7 +12485,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->textureProperties = 0;
 			tmp2->_parentResource = getInputResource();
 			tmp2->__textureTableIndex = 0;
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PixelTexture3D : {
@@ -12092,7 +12500,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__textureTableIndex = 0;
 			tmp2->_parentResource = getInputResource();
 			tmp2->_needs_gradient = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_texture;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PlaneSensor : {
@@ -12115,7 +12523,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_oldtranslation.c[0] = 0.0f;tmp2->_oldtranslation.c[1] = 0.0f;tmp2->_oldtranslation.c[2] = 0.0f;
 			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PointEmitter : {
@@ -12128,7 +12536,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->variation = 0.25f;
 			tmp2->mass = 0.0f;
 			tmp2->surfaceArea = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_emitter;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PointLight : {
@@ -12146,7 +12554,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
 			tmp2->_col.c[0] = 0;tmp2->_col.c[1] = 0;tmp2->_col.c[2] = 0;tmp2->_col.c[3] = 0;;
 			tmp2->_amb.c[0] = 0;tmp2->_amb.c[1] = 0;tmp2->_amb.c[2] = 0;tmp2->_amb.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PointPickSensor : {
@@ -12172,7 +12580,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_bboxSize.c[0] = -1.0f;tmp2->_bboxSize.c[1] = -1.0f;tmp2->_bboxSize.c[2] = -1.0f;
 			tmp2->set_intersectionType = newASCIIString("");
 			tmp2->set_sortOrder = newASCIIString("");
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PointProperties : {
@@ -12191,7 +12599,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_colormode = 1;
 			tmp2->_attenuation.c[0] = 1.0f;tmp2->_attenuation.c[1] = 0.0f;tmp2->_attenuation.c[2] = 0.0f;
 			tmp2->_pointMethod = 1;
-			tmp2->_defaultContainer = FIELDNAMES_pointProperties;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PointSensor : {
@@ -12212,7 +12620,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_oldtranslation.c[0] = 0.0f;tmp2->_oldtranslation.c[1] = 0.0f;tmp2->_oldtranslation.c[2] = 0.0f;
 			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PointSet : {
@@ -12228,7 +12636,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_fogcoordVBO = 0;
 			tmp2->_npoints = 0;
 			tmp2->_colourSize = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Polyline2D : {
@@ -12237,7 +12645,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->lineSegments.n=0; tmp2->lineSegments.p=0;
 			tmp2->__linerep = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PolylineEmitter : {
@@ -12259,7 +12667,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_nseg = 0;
 			tmp2->_segs = NULL;
 			tmp2->_portions = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_emitter;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Polypoint2D : {
@@ -12267,7 +12675,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_Polypoint2D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PositionChaser : {
@@ -12288,7 +12696,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_buffer = NULL;
 			tmp2->_previousvalue.c[0] = 0.0f;tmp2->_previousvalue.c[1] = 0.0f;tmp2->_previousvalue.c[2] = 0.0f;
 			tmp2->_destination.c[0] = 0.0f;tmp2->_destination.c[1] = 0.0f;tmp2->_destination.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PositionChaser2D : {
@@ -12309,7 +12717,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_buffer = NULL;
 			tmp2->_previousvalue.c[0] = 0.0f;tmp2->_previousvalue.c[1] = 0.0f;;
 			tmp2->_destination.c[0] = 0.0f;tmp2->_destination.c[1] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PositionDamper : {
@@ -12332,7 +12740,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value.c[0] = 0.0f;tmp2->set_value.c[1] = 0.0f;tmp2->set_value.c[2] = 0.0f;
 			tmp2->_values = NULL;
 			tmp2->_input.c[0] = 0.0f;tmp2->_input.c[1] = 0.0f;tmp2->_input.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PositionDamper2D : {
@@ -12355,7 +12763,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value.c[0] = 0.0f;tmp2->set_value.c[1] = 0.0f;;
 			tmp2->_values = NULL;
 			tmp2->_input.c[0] = 0.0f;tmp2->_input.c[1] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PositionInterpolator : {
@@ -12366,7 +12774,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
 			tmp2->value_changed.c[0] = 0.0f;tmp2->value_changed.c[1] = 0.0f;tmp2->value_changed.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PositionInterpolator2D : {
@@ -12377,7 +12785,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
 			tmp2->value_changed.c[0] = 0.0f;tmp2->value_changed.c[1] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_PrimitivePickSensor : {
@@ -12394,7 +12802,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->sortOrder = newASCIIString("CLOSEST");
 			tmp2->matchCriterion = newASCIIString("MATCH_ANY");
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ProgramShader : {
@@ -12410,7 +12818,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_shaderUserNumber = -1;
 			tmp2->_shaderLoadThread = _THREAD_NULL_;
 			tmp2->_retrievedURLData = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_shaders;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ProjectionVolumeStyle : {
@@ -12421,7 +12829,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->intensityThreshold = 0.0f;
 			tmp2->type = newASCIIString("MAX");
 			tmp2->_type = 0;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Proto : {
@@ -12461,7 +12869,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldload = FALSE;
 			tmp2->__unitlengthfactor = 1;
 			tmp2->__specversion = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ProximitySensor : {
@@ -12481,7 +12889,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__t1.c[0] = 10000000.0f;tmp2->__t1.c[1] = 0.0f;tmp2->__t1.c[2] = 0.0f;
 			tmp2->__t2.c[0] = 0;tmp2->__t2.c[1] = 1;tmp2->__t2.c[2] = 0;tmp2->__t2.c[3] = 0;;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Pyramid : {
@@ -12490,7 +12898,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->solid = TRUE;
 			tmp2->__ifsnode = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_QuadSet : {
@@ -12508,7 +12916,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalPerVertex = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ReceiverPdu : {
@@ -12549,7 +12957,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transmitterSiteID = 0;
 			tmp2->transmitterRadioID = 0;
 			tmp2->_pduchange_receiver = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Rectangle2D : {
@@ -12560,7 +12968,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->solid = FALSE;
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_RigidBody : {
@@ -12598,7 +13006,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_orientation.c[0] = 0;tmp2->__old_orientation.c[1] = 0;tmp2->__old_orientation.c[2] = 1;tmp2->__old_orientation.c[3] = 0;;
 			tmp2->__old_position.c[0] = 0.0f;tmp2->__old_position.c[1] = 0.0f;tmp2->__old_position.c[2] = 0.0f;
 			tmp2->_geomIdentityTransform = 0;
-			tmp2->_defaultContainer = FIELDNAMES_bodies;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_RigidBodyCollection : {
@@ -12623,7 +13031,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->collider = NULL;
 			tmp2->_world = 0;
 			tmp2->_group = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ScalarChaser : {
@@ -12644,7 +13052,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_buffer = NULL;
 			tmp2->_previousvalue = 0.0f;
 			tmp2->_destination = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ScalarDamper : {
@@ -12667,7 +13075,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value = 0.0f;
 			tmp2->_values = NULL;
 			tmp2->_input = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ScalarInterpolator : {
@@ -12678,7 +13086,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->keyValue.n=0; tmp2->keyValue.p=0;
 			tmp2->metadata = NULL;
 			tmp2->value_changed = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ScreenFontStyle : {
@@ -12694,7 +13102,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spacing = 1.0f;
 			tmp2->style = newASCIIString("PLAIN");
 			tmp2->topToBottom = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_fontStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ScreenGroup : {
@@ -12707,7 +13115,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Script : {
@@ -12719,7 +13127,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->__scriptObj = 0;
 			tmp2->_parentResource = getInputResource();
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SegmentedVolumeData : {
@@ -12734,7 +13142,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->renderStyle.n=0; tmp2->renderStyle.p=0;
 			tmp2->segmentEnabled.n=0; tmp2->segmentEnabled.p=0;
 			tmp2->segmentIdentifiers = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ShadedVolumeStyle : {
@@ -12748,7 +13156,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->material = NULL;
 			tmp2->phaseFunction = newASCIIString("Henyey-Greenstein");
 			tmp2->_phaseFunction = 0;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ShaderPart : {
@@ -12761,7 +13169,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_parentResource = getInputResource();
 			tmp2->__loadResource = 0;
 			tmp2->_shaderUserDefinedFields = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_parts;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ShaderProgram : {
@@ -12774,7 +13182,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_parentResource = getInputResource();
 			tmp2->__loadResource = 0;
 			tmp2->_shaderUserDefinedFields = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_programs;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Shape : {
@@ -12791,7 +13199,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__visible = 0;
 			tmp2->__occludeCheckCount = -1;
 			tmp2->__Samples = -1;
-			tmp2->_defaultContainer = FIELDNAMES_children + (FIELDNAMES_shape << 10);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SignalPdu : {
@@ -12832,7 +13240,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->samples = 0;
 			tmp2->tdlType = 0;
 			tmp2->_pduchange_signal = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SilhouetteEnhancementVolumeStyle : {
@@ -12844,7 +13252,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->silhouetteBoundaryOpacity = 0.0f;
 			tmp2->silhouetteRetainedOpacity = 1.0f;
 			tmp2->silhouetteSharpness = 0.5f;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SingleAxisHingeJoint : {
@@ -12870,7 +13278,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_axis.c[0] = 0.0f;tmp2->__old_axis.c[1] = 0.0f;tmp2->__old_axis.c[2] = 0.0f;
 			tmp2->__old_body1 = NULL;
 			tmp2->__old_body2 = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SliderJoint : {
@@ -12893,7 +13301,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_axis.c[0] = 0.0f;tmp2->__old_axis.c[1] = 0.0f;tmp2->__old_axis.c[2] = 0.0f;
 			tmp2->__old_body1 = NULL;
 			tmp2->__old_body2 = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Sound : {
@@ -12913,7 +13321,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
 			tmp2->__lasttime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Sphere : {
@@ -12927,7 +13335,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__SphereIndxVBO = 0;
 			tmp2->__pindices = 0;
 			tmp2->__wireindicesVBO = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SphereSensor : {
@@ -12948,7 +13356,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_origNormalizedPoint.c[0] = 0.0f;tmp2->_origNormalizedPoint.c[1] = 0.0f;tmp2->_origNormalizedPoint.c[2] = 0.0f;
 			tmp2->_radius = 0.0f;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SplinePositionInterpolator : {
@@ -12964,7 +13372,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed.c[0] = 0.0f;tmp2->value_changed.c[1] = 0.0f;tmp2->value_changed.c[2] = 0.0f;
 			tmp2->_T0.n=0; tmp2->_T0.p=0;
 			tmp2->_T1.n=0; tmp2->_T1.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SplinePositionInterpolator2D : {
@@ -12980,7 +13388,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed.c[0] = 0.0f;tmp2->value_changed.c[1] = 0.0f;;
 			tmp2->_T0.n=0; tmp2->_T0.p=0;
 			tmp2->_T1.n=0; tmp2->_T1.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SplineScalarInterpolator : {
@@ -12996,7 +13404,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed = 0.0f;
 			tmp2->_T0.n=0; tmp2->_T0.p=0;
 			tmp2->_T1.n=0; tmp2->_T1.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SpotLight : {
@@ -13018,7 +13426,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
 			tmp2->_col.c[0] = 0;tmp2->_col.c[1] = 0;tmp2->_col.c[2] = 0;tmp2->_col.c[3] = 0;;
 			tmp2->_amb.c[0] = 0;tmp2->_amb.c[1] = 0;tmp2->_amb.c[2] = 0;tmp2->_amb.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SquadOrientationInterpolator : {
@@ -13033,7 +13441,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->value_changed.c[0] = 0;tmp2->value_changed.c[1] = 0;tmp2->value_changed.c[2] = 1;tmp2->value_changed.c[3] = 0;;
 			tmp2->_normkey.n=0; tmp2->_normkey.p=0;
 			tmp2->_normkeyValue.n=0; tmp2->_normkeyValue.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_StaticGroup : {
@@ -13047,7 +13455,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__transparency = -1;
 			tmp2->__solid = -1;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_StringSensor : {
@@ -13062,7 +13470,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->singleton = TRUE;
 			tmp2->_initialized = FALSE;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_SurfaceEmitter : {
@@ -13081,7 +13489,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->surfaceArea = 0.0f;
 			tmp2->geometry = NULL;
 			tmp2->_ifs = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_emitter;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Switch : {
@@ -13097,7 +13505,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->__isX3D = (inputFileVersion[0]==3);
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Teapot : {
@@ -13106,7 +13514,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->solid = TRUE;
 			tmp2->__ifsnode = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TexCoordChaser2D : {
@@ -13139,7 +13547,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_destination.p[0].c[0] = 0.0f; 
 			tmp2->_destination.p[0].c[1] = 0.0f; 
 			tmp2->_destination.n=1;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TexCoordDamper2D : {
@@ -13168,7 +13576,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_value.n=0; tmp2->set_value.p=0;
 			tmp2->_values = NULL;
 			tmp2->_input.n=0; tmp2->_input.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Text : {
@@ -13185,7 +13593,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->textBounds.c[0] = 0.0f;tmp2->textBounds.c[1] = 0.0f;;
 			tmp2->_isScreen = 0;
 			tmp2->_screendata = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureBackground : {
@@ -13219,7 +13627,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transparency.p = MALLOC (float *, sizeof(float)*1);
 			tmp2->transparency.p[0] = 0.0f;
 			tmp2->transparency.n=1;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureCoordinate : {
@@ -13227,7 +13635,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureCoordinate *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureCoordinate3D : {
@@ -13235,7 +13643,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureCoordinate3D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureCoordinate4D : {
@@ -13243,7 +13651,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureCoordinate4D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureCoordinateGenerator : {
@@ -13252,7 +13660,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->mode = newASCIIString("SPHERE");
 			tmp2->parameter.n=0; tmp2->parameter.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_texCoord;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureProjectorParallel : {
@@ -13279,7 +13687,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
 			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
 			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureProjectorPerspective : {
@@ -13301,7 +13709,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
 			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
 			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureProperties : {
@@ -13319,7 +13727,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->textureCompression = newASCIIString("FASTEST");
 			tmp2->texturePriority = 0.0f;
 			tmp2->generateMipMaps = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_textureProperties;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureTransform : {
@@ -13330,7 +13738,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->rotation = 0.0f;
 			tmp2->scale.c[0] = 1.0f;tmp2->scale.c[1] = 1.0f;;
 			tmp2->translation.c[0] = 0.0f;tmp2->translation.c[1] = 0.0f;;
-			tmp2->_defaultContainer = FIELDNAMES_textureTransform;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureTransform3D : {
@@ -13341,7 +13749,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->rotation.c[0] = 0;tmp2->rotation.c[1] = 0;tmp2->rotation.c[2] = 1;tmp2->rotation.c[3] = 0;;
 			tmp2->scale.c[0] = 1.0f;tmp2->scale.c[1] = 1.0f;tmp2->scale.c[2] = 1.0f;
 			tmp2->translation.c[0] = 0.0f;tmp2->translation.c[1] = 0.0f;tmp2->translation.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_textureTransform;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TextureTransformMatrix3D : {
@@ -13349,7 +13757,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureTransformMatrix3D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->matrix.c[0] = 1;tmp2->matrix.c[1] = 0;tmp2->matrix.c[2] = 0;tmp2->matrix.c[3] = 0;tmp2->matrix.c[4] = 0;tmp2->matrix.c[5] = 1;tmp2->matrix.c[6] = 0;tmp2->matrix.c[7] = 0;tmp2->matrix.c[8] = 0;tmp2->matrix.c[9] = 0;tmp2->matrix.c[10] = 1;tmp2->matrix.c[11] = 0;tmp2->matrix.c[12] = 0;tmp2->matrix.c[13] = 0;tmp2->matrix.c[14] = 0;tmp2->matrix.c[15] = 1;;
-			tmp2->_defaultContainer = FIELDNAMES_textureTransform;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TimeSensor : {
@@ -13373,7 +13781,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__ctflag = 10;
 			tmp2->__oldEnabled = TRUE;
 			tmp2->__lasttime = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TimeTrigger : {
@@ -13382,7 +13790,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->set_boolean = 0;
 			tmp2->triggerTime = 0;
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ToneMappedVolumeStyle : {
@@ -13393,7 +13801,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->surfaceNormals = NULL;
 			tmp2->coolColor.c[0] = 0;tmp2->coolColor.c[1] = 0;tmp2->coolColor.c[2] = 1;tmp2->coolColor.c[3] = 0;;
 			tmp2->warmColor.c[0] = 1;tmp2->warmColor.c[1] = 1;tmp2->warmColor.c[2] = 0;tmp2->warmColor.c[3] = 1;;
-			tmp2->_defaultContainer = FIELDNAMES_renderStyle;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TouchSensor : {
@@ -13412,7 +13820,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->touchTime = -1;
 			tmp2->metadata = NULL;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TrackingSensor : {
@@ -13426,7 +13834,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->isPositionAvailable = FALSE;
 			tmp2->isRotationAvailable = FALSE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Transform : {
@@ -13451,7 +13859,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__do_scale = FALSE;
 			tmp2->__do_anything = FALSE;
 			tmp2->_sortedChildren.n=0; tmp2->_sortedChildren.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TransformSensor : {
@@ -13471,7 +13879,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__t1.c[0] = 10000000.0f;tmp2->__t1.c[1] = 0.0f;tmp2->__t1.c[2] = 0.0f;
 			tmp2->__t2.c[0] = 0;tmp2->__t2.c[1] = 1;tmp2->__t2.c[2] = 0;tmp2->__t2.c[3] = 0;;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TransmitterPdu : {
@@ -13528,7 +13936,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->cryptoSystem = 0;
 			tmp2->cryptoKeyID = 0;
 			tmp2->_pduchange_transmitter = 0;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TriangleFanSet : {
@@ -13549,7 +13957,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalPerVertex = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TriangleSet : {
@@ -13567,7 +13975,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalPerVertex = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TriangleSet2D : {
@@ -13578,7 +13986,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->solid = FALSE;
 			tmp2->__texCoords.n=0; tmp2->__texCoords.p=0;
 			tmp2->__wireindices = 0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TriangleStripSet : {
@@ -13597,7 +14005,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalPerVertex = TRUE;
 			tmp2->solid = TRUE;
 			tmp2->_coordIndex.n=0; tmp2->_coordIndex.p=0;
-			tmp2->_defaultContainer = FIELDNAMES_geometry;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_TwoSidedMaterial : {
@@ -13619,7 +14027,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transparency = 0.0f;
 			tmp2->_material = 0;
 			tmp2->_backMaterial = 0;
-			tmp2->_defaultContainer = FIELDNAMES_material;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_UniversalJoint : {
@@ -13647,7 +14055,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__old_axis2.c[0] = 0.0f;tmp2->__old_axis2.c[1] = 0.0f;tmp2->__old_axis2.c[2] = 0.0f;
 			tmp2->__old_body1 = NULL;
 			tmp2->__old_body2 = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_joints;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_UnlitMaterial : {
@@ -13661,7 +14069,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->normalTextureChannel = 0;
 			tmp2->transparency = 0.0f;
 			tmp2->_material = 0;
-			tmp2->_defaultContainer = FIELDNAMES_material + (FIELDNAMES_backMaterial << 10);
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Viewpoint : {
@@ -13685,7 +14093,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_ViewpointGroup : {
@@ -13699,7 +14107,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->retainUserOffsets = FALSE;
 			tmp2->size.c[0] = 0.0f;tmp2->size.c[1] = 0.0f;tmp2->size.c[2] = 0.0f;
 			tmp2->__proxNode = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_Viewport : {
@@ -13713,7 +14121,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->clipBoundary.n=0; tmp2->clipBoundary.p=0;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
-			tmp2->_defaultContainer = FIELDNAMES_viewport;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_VisibilitySensor : {
@@ -13731,7 +14139,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__Samples = 0;
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_VolumeData : {
@@ -13744,7 +14152,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->_boxtris = NULL;
 			tmp2->renderStyle = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_VolumeEmitter : {
@@ -13764,7 +14172,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->mass = 0.0f;
 			tmp2->surfaceArea = 0.0f;
 			tmp2->_ifs = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_emitter;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_VolumePickSensor : {
@@ -13781,7 +14189,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->sortOrder = newASCIIString("CLOSEST");
 			tmp2->matchCriterion = newASCIIString("MATCH_ANY");
 			tmp2->__oldEnabled = TRUE;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_WindPhysicsModel : {
@@ -13794,7 +14202,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->speed = 0.1f;
 			tmp2->turbulence = 0.0f;
 			tmp2->_frameSpeed = 0.0f;
-			tmp2->_defaultContainer = FIELDNAMES_physics;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_WorldInfo : {
@@ -13803,7 +14211,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->info.n=0; tmp2->info.p=0;
 			tmp2->title = newASCIIString("");
 			tmp2->metadata = NULL;
-			tmp2->_defaultContainer = FIELDNAMES_children;
+			tmp2->_defaultContainer = 0;
 		break;
 		}
 	};
@@ -15612,6 +16020,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," joints (MFNode):\n");
 			for (i=0; i<tmp->joints.n; i++) { dump_scene(fp,level+1,tmp->joints.p[i]); }
 			spacer fprintf (fp," name (SFString) \t%s\n",tmp->name->strptr);
+			spacer fprintf (fp," skeletalConfiguration (SFString) \t%s\n",tmp->skeletalConfiguration->strptr);
 			spacer fprintf (fp," rotation (SFRotation): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->rotation.c[i]); }
 			fprintf (fp,"\n");
@@ -15644,6 +16053,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," motions (MFNode):\n");
+			for (i=0; i<tmp->motions.n; i++) { dump_scene(fp,level+1,tmp->motions.p[i]); }
+			spacer fprintf (fp," motionsEnabled (MFBool):\n");
+			for (i=0; i<tmp->motionsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->motionsEnabled.p[i]); }
+			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
 		    break;
 		}
 		case NODE_HAnimJoint : {
@@ -15690,6 +16104,32 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+		    break;
+		}
+		case NODE_HAnimMotion : {
+			struct X3D_HAnimMotion *tmp;
+			tmp = (struct X3D_HAnimMotion *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," channels (SFString) \t%s\n",tmp->channels->strptr);
+			spacer fprintf (fp," channelsEnabled (MFBool):\n");
+			for (i=0; i<tmp->channelsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->channelsEnabled.p[i]); }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+		    if(allFields) {
+			spacer fprintf (fp," _lastenabled (SFBool) \t%d\n",tmp->_lastenabled);
+		    }
+			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
+			spacer fprintf (fp," frameIncrement (SFInt32) \t%d\n",tmp->frameIncrement);
+			spacer fprintf (fp," frameIndex (SFInt32) \t%d\n",tmp->frameIndex);
+			spacer fprintf (fp," startFrame (SFInt32) \t%d\n",tmp->startFrame);
+			spacer fprintf (fp," endFrame (SFInt32) \t%d\n",tmp->endFrame);
+			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
+			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
+			spacer fprintf (fp," loop (SFBool) \t%d\n",tmp->loop);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
 		    break;
 		}
 		case NODE_HAnimSegment : {
@@ -19061,6 +19501,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_HAnimDisplacer: return X3DGeometricPropertyNode; break;
 	case NODE_HAnimHumanoid: return X3DChildNode; break;
 	case NODE_HAnimJoint: return X3DChildNode; break;
+	case NODE_HAnimMotion: return X3DChildNode; break;
 	case NODE_HAnimSegment: return X3DChildNode; break;
 	case NODE_HAnimSite: return X3DGroupingNode; break;
 	case NODE_ImageBackdropBackground: return X3DBackgroundNode; break;

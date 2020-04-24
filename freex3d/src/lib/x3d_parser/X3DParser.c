@@ -758,16 +758,27 @@ c) look at atts containerField, and if not null and not children, use it.
 		jContainer = typenode->_defaultContainer;
 		//Jan 2017 I squeezed 3 defaults into an int in generateCode.c, and extract them here
 		//but do I have the right endian math?
-		defaultContainer[0] = (jContainer << 22) >> 22; 
-		defaultContainer[1] = (jContainer << 12) >> 22;
-		defaultContainer[2] = (jContainer <<  2) >> 22; 
-		ncontainer = 1;
-		if(defaultContainer[1]) 
-			ncontainer = 2;
-		if(defaultContainer[2]) 
-			ncontainer = 3;
+		//APR 22, 2020 I moved nodetype defaultContainerFields to static short NODE_DEFAULT_CONTAINER[][7]
+		//this will expand limit to 8 - one _defaultContainer supplied by scene author, and up to 7 from perl
+		//defaultContainer[0] = (jContainer << 22) >> 22; 
+		//defaultContainer[1] = (jContainer << 12) >> 22;
+		//defaultContainer[2] = (jContainer <<  2) >> 22; 
+		//ncontainer = 1;
+		//if(defaultContainer[1]) 
+		//	ncontainer = 2;
+		//if(defaultContainer[2]) 
+		//	ncontainer = 3;
+		ncontainer = 8;
 		for(i=0;i<ncontainer;i++){
-			iContainer = defaultContainer[i];
+			if(i==0) iContainer = jContainer;
+			else {
+				struct X3D_Node *typenode = getTypeNode(node);
+				if(typenode){
+					int nt = typenode->_nodeType;
+					iContainer = NODE_DEFAULT_CONTAINER[nt][i-1];
+				}
+			}
+			//iContainer = defaultContainer[i];
 			if(iContainer == FIELDNAMES_children) iContainer = 0;
 			value = NULL;
 			fname = NULL;
@@ -821,7 +832,7 @@ c) look at atts containerField, and if not null and not children, use it.
 				value->sfnode = node;
 				ADD_PARENT(node,parent);
 			}else if(type == FIELDTYPE_MFNode){
-				/*
+				
 				// this was adding duplicats ie adding to addChildren (calls add_parent),
 				// then opengl utils startofloopnodeupdates was moving rootnode addchildren to __children, 
 				// triggering anohter add_parent
@@ -836,7 +847,7 @@ c) look at atts containerField, and if not null and not children, use it.
 				if(ok)
 					AddRemoveChildren(parent,&valueadd->mfnode,&node,1,1,__FILE__,__LINE__);
 				else
-				*/
+				
 					AddRemoveChildren(parent,&value->mfnode,&node,1,1,__FILE__,__LINE__);
 			}
 		}else{
@@ -1312,7 +1323,11 @@ static void startBuiltin_B(void *ud, int myNodeType, const xmlChar *name, char**
 			//so we'll keep the original as well, for linkNodeIn
 			//in theory we should call an update function here, and about 4 other places
 			// in x3dparser.c
-			node->_defaultContainer = (node->_defaultContainer << 10) + builtinField;  
+			//APR 22, 2020 CHANGE: nodetype default containerfields are in new 
+			//static array NODE_CONTAINER_DEFAULT[][7] and node->_defaultContainer should
+			// now have just x3d parsing scene file containerField='<some field name in parent>'
+			//node->_defaultContainer = (node->_defaultContainer << 10) + builtinField;  
+			node->_defaultContainer = builtinField;  
 			//printf("new defaultContainer=%u\n",(unsigned int)node->_defaultContainer);
 		}
 	}

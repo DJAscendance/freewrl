@@ -238,12 +238,9 @@ on child_humanoid rendering call:
 
 
 /* last HAnimHumanoid skinCoord and skinNormals */
-//void *HANimSkinCoord = 0;
-//void *HAnimSkinNormal = 0;
 typedef struct pComponent_HAnim{
-	struct X3D_HAnimHumanoid *HH;
 	double HHMatrix[16];
-
+	Stack *humanoid_stack;
 }* ppComponent_HAnim;
 void *Component_HAnim_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_HAnim));
@@ -256,18 +253,38 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	t->prv = Component_HAnim_constructor();
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
-		p->HH = NULL;
-
+		p->humanoid_stack = newStack(struct X3D_HAnimHumanoid*);
 	}
 }
 void Component_HAnim_clear(struct tComponent_HAnim *t){
 	//public
 	//private
 	{
-		//ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
+		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
+		deleteStack(struct X3D_HAnimHumanoid*,p->humanoid_stack);
 	}
 }
 //ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+
+
+// compile_HAnimHumanoid and render_ push and pop 
+// so accessory nodes when rendered can refer to HH = peek_humanoid() without passing down call stack
+void push_humanoid(struct X3D_HAnimHumanoid *HH){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_push(struct X3D_HAnimHumanoid*,p->humanoid_stack,HH);
+}
+void pop_humanoid(){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_pop(struct X3D_HAnimHumanoid *,p->humanoid_stack);
+}
+struct X3D_HAnimHumanoid * peek_humanoid(){
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return stack_top(struct X3D_HAnimHumanoid *, p->humanoid_stack);
+}
+
+
+
+void update_jointMatrixFromMotion(struct X3D_Node* HM, char *jname, double *jmatrix);
 
 
 void compile_HAnimJoint (struct X3D_HAnimJoint *node){
@@ -307,6 +324,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 	//OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
 
@@ -319,6 +337,23 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			/* CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+		//any motion nodes enabled? if so apply current frame transform
+		if(1){
+			struct X3D_HAnimHumanoid *HH = peek_humanoid();
+			if(HH->motions.n){
+				double modelviewMatrix[16];
+				for(int i=0;i<HH->motions.n;i++){
+					if(HH->motionsEnabled.p[i]){
+						//printmatrix(jointMatrix.mat);
+						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+						update_jointMatrixFromMotion(HH->motions.p[i],node->name->strptr,modelviewMatrix);
+						FW_GL_SETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+						//printmatrix(jointMatrix.mat);
+					}
+				}
+			}
+		}
+
 
 			/* ROTATION */
 			if (node->__do_rotation) {
@@ -509,6 +544,7 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
 	double modelviewMatrix[16]; //, mvmInverse[16];
+	struct X3D_HAnimHumanoid *HH;
 	JMATRIX jointMatrix;
 	Stack *JT;
 	float *PVW, *PVI;
@@ -516,88 +552,101 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	//printf ("rendering HAnimJoint %d\n",node); 
 	
+	HH = peek_humanoid();
+	if(HH){
+		JT = HH->_JT;
 
-	JT = p->HH->_JT;
+		//step 1, generate transform
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
 
-	//step 1, generate transform
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-	matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
-	if(p->HH->skinNormal){
-		//want 'inverse-transpose' 3x3 float for transforming normals
-		//(its almost the same as jointMatrix.mat except when shear due to assymetric scales)
-		float fmat4[16], fmat3[9],fmat3i[9]; //,fmat3it[9];
-		matdouble2float4(fmat4,jointMatrix.mat);
-		mat423f(fmat3,fmat4);
-		matinverse3f(fmat3i,fmat3);
-		mattranspose3f(jointMatrix.normat,fmat3i);
-		//printf("jm.normat[1] %f\n",jointMatrix.normat[1]);
-	}
+		//any motion nodes enabled? if so apply current frame transform
+		if(0) if(HH->motions.n){
+			for(int i=0;i<HH->motions.n;i++){
+				if(HH->motionsEnabled.p[i]){
+					//printmatrix(jointMatrix.mat);
+					update_jointMatrixFromMotion(HH->motions.p[i],node->name->strptr,jointMatrix.mat);
+					//printmatrix(jointMatrix.mat);
+				}
+			}
+		}
+		if(HH->skinNormal){
+			//want 'inverse-transpose' 3x3 float for transforming normals
+			//(its almost the same as jointMatrix.mat except when shear due to assymetric scales)
+			float fmat4[16], fmat3[9],fmat3i[9]; //,fmat3it[9];
+			matdouble2float4(fmat4,jointMatrix.mat);
+			mat423f(fmat3,fmat4);
+			matinverse3f(fmat3i,fmat3);
+			mattranspose3f(jointMatrix.normat,fmat3i);
+			//printf("jm.normat[1] %f\n",jointMatrix.normat[1]);
+		}
 
-	if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
-		//convert to quaternion + position
-		//add to HH transform list
-	}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
-		//step 2, add transform to HH transform list, get its index in list
-		stack_push(JMATRIX,JT,jointMatrix);
-	}
-	//I'll let this index start at 1, and subtract 1 when retrieving with vector_get, 
-	//so I can use jointTransformIndex==0 as a sentinal value for 'no transform stored'
-	//to save me from having an extra .n transforms variable
-	jointTransformIndex = vectorSize(JT); 
+		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
+			//convert to quaternion + position
+			//add to HH transform list
+		}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+			//step 2, add transform to HH transform list, get its index in list
+			stack_push(JMATRIX,JT,jointMatrix);
+		}
+		//I'll let this index start at 1, and subtract 1 when retrieving with vector_get, 
+		//so I can use jointTransformIndex==0 as a sentinal value for 'no transform stored'
+		//to save me from having an extra .n transforms variable
+		jointTransformIndex = vectorSize(JT); 
 	
-	//step 3, add transform index and weight to each skin vertex
-	PVW = (float*)p->HH->_PVW;
-	PVI = (float*)p->HH->_PVI;
-	for(i=0;i<node->skinCoordIndex.n;i++){
-		int idx = node->skinCoordIndex.p[i];
-		float wt = node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)];
-		for(j=0;j<4;j++){
-			if(PVI[idx*4 + j] == 0.0f){
-				PVI[idx*4 +j] = (float)jointTransformIndex;
-				PVW[idx*4 +j] = wt;
+		//step 3, add transform index and weight to each skin vertex
+		PVW = (float*)HH->_PVW;
+		PVI = (float*)HH->_PVI;
+		for(i=0;i<node->skinCoordIndex.n;i++){
+			int idx = node->skinCoordIndex.p[i];
+			float wt = node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)];
+			for(j=0;j<4;j++){
+				if(PVI[idx*4 + j] == 0.0f){
+					PVI[idx*4 +j] = (float)jointTransformIndex;
+					PVW[idx*4 +j] = wt;
+				}
 			}
 		}
-	}
-	//step 4: add on any Displacer displacements
-	if(p->HH->skinCoord && node->displacers.n ){
-		int ni, i;
-		float *psc, *pdp;
-		int *ci;
-		struct X3D_Coordinate *nc = (struct X3D_Coordinate*)p->HH->skinCoord;
-		psc = (float*)nc->point.p;
-		// nsc = nc->point.n;
-		for(i=0;i<node->displacers.n;i++){
-			int index, j;
-			float *point, weight, wdisp[3];
-			struct X3D_HAnimDisplacer *dp = (struct X3D_HAnimDisplacer *)node->displacers.p[i];
+		//step 4: add on any Displacer displacements
+		if(HH->skinCoord && node->displacers.n ){
+			int ni, i;
+			float *psc, *pdp;
+			int *ci;
+			struct X3D_Coordinate *nc = (struct X3D_Coordinate*)HH->skinCoord;
+			psc = (float*)nc->point.p;
+			// nsc = nc->point.n;
+			for(i=0;i<node->displacers.n;i++){
+				int index, j;
+				float *point, weight, wdisp[3];
+				struct X3D_HAnimDisplacer *dp = (struct X3D_HAnimDisplacer *)node->displacers.p[i];
 				
-			weight = dp->weight;
-			//printf(" %f ",weight);
-			pdp = (float*)dp->displacements.p;
-			// ndp = dp->displacements.n;
+				weight = dp->weight;
+				//printf(" %f ",weight);
+				pdp = (float*)dp->displacements.p;
+				// ndp = dp->displacements.n;
 
-			ni = dp->coordIndex.n;
-			ci = dp->coordIndex.p;
-			for(j=0;j<ni;j++){
-				index = ci[j];
-				point = &psc[index*3];
-				vecscale3f(wdisp,&pdp[j*3],weight);
-				vecadd3f(point,point,wdisp);
+				ni = dp->coordIndex.n;
+				ci = dp->coordIndex.p;
+				for(j=0;j<ni;j++){
+					index = ci[j];
+					point = &psc[index*3];
+					vecscale3f(wdisp,&pdp[j*3],weight);
+					vecadd3f(point,point,wdisp);
+				}
 			}
-		}
-		if(0){ //this is done in child_HAnimHumanoid for the skinCoord parents
-			//force HAnimSegment.children[] shape nodes using segment->coord to recompile
-			int k;
-			Stack *parents;
-			p->HH->skinCoord->_change++;
-			parents = p->HH->skinCoord->_parentVector;
-			for(k=0;k<vectorSize(parents);k++){
-				struct X3D_Node *parent = vector_get(struct X3D_Node*,parents,k);
-				parent->_change++;
+			if(0){ //this is done in child_HAnimHumanoid for the skinCoord parents
+				//force HAnimSegment.children[] shape nodes using segment->coord to recompile
+				int k;
+				Stack *parents;
+				HH->skinCoord->_change++;
+				parents = HH->skinCoord->_parentVector;
+				for(k=0;k<vectorSize(parents);k++){
+					struct X3D_Node *parent = vector_get(struct X3D_Node*,parents,k);
+					parent->_change++;
+				}
 			}
-		}
 
-	}
+		}
+	} //if HH
 
 }
 int vecsametol3f(float *a, float *b, float tol){
@@ -606,10 +655,30 @@ int vecsametol3f(float *a, float *b, float tol){
 		if(fabsf(a[i] - b[i]) > tol) isame = FALSE;
 	return isame;
 }
+
+
 void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
 	INITIALIZE_EXTENT
+
+	push_humanoid(node);
+	if(node->motions.n){
+		if(node->motions.n > node->motionsEnabled.n){
+			// the default is to enable all motions
+			int *moe = MALLOC(int*,node->motions.n * sizeof(int));
+			memset(moe,0,node->motions.n * sizeof(int));
+			memcpy(moe,node->motionsEnabled.p,node->motionsEnabled.n*sizeof(int));
+			for(int i=node->motionsEnabled.n;i<node->motions.n;i++)
+				moe[i] = TRUE; //FALSE //not sure - specs don't say default, just empty [], I'll use TRUE while developing/debugging
+			FREE_IF_NZ(node->motionsEnabled.p);
+			node->motionsEnabled.p = moe;
+			node->motionsEnabled.n = node->motions.n;
+		}
+		for(int i=0;i<node->motions.n;i++){
+			check_compile(node->motions.p[i]);
+		}
+	}
 
 	int nsc = 0, nsn = 0;
 	float *psc = NULL, *psn = NULL;
@@ -660,15 +729,17 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
 		}
 	}
 	MARK_NODE_COMPILED
+	pop_humanoid();
+
 }
 
 void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
 	int nc;
 	//float *originalCoords;
+	struct X3D_HAnimHumanoid *HH;
 	Stack *JT;
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	COMPILE_IF_REQUIRED
-
 	//LOCAL_LIGHT_SAVE
 
 	/* any segments at all? */
@@ -686,13 +757,19 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		node->skeleton.n + node->skin.n;
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME 
+	push_humanoid(node);
 
 	if(renderstate()->render_vp){
 		/* Lets do viewpoints */
 		normalChildren(node->viewpoints);
 		return;
 	}
-
+	if(node->motions.n){
+		for(int i=0;i<node->motions.n;i++){
+			if(node->motionsEnabled.p[i])
+				render_node(X3D_NODE(node->motions.p[i]));
+		}
+	}
 
 	// segments, joints, sites are flat-lists for convenience
 	// skeleton is the scenegraph-like transform hierarchy of joints and segments and sites
@@ -726,7 +803,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	JT->n = 0;
 
 	//in theory, HH, HHMatrix could be a stack, so you could have an hanimhumaoid within an hanimhunaniod
-	p->HH = node;
+	HH = node;
 	{
 		double modelviewMatrix[16];
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
@@ -753,7 +830,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	}
-	if(1) normalChildren(node->skeleton);
+	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
 
 	if(node->skin.n){
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -874,6 +951,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 	/* did we have that directionalLight? */
 	//LOCAL_LIGHT_OFF
+	pop_humanoid();
 }
 
 
@@ -1008,3 +1086,441 @@ void child_HAnimSite(struct X3D_HAnimSite *node) {
 
 }
 
+
+// ======== HAnimMotion >>>>>>>>>>>>>>
+int char_is_separator(char c, char *separators){
+	int is_sep = FALSE;
+	char *s = separators;
+	while(*s != 0){
+		if(c == *s){
+			is_sep = TRUE; break;
+		}
+		s++;
+	}
+	return is_sep;
+}
+//adapted from cson
+static int next_token( char const ** inp, char *separators, char const ** end )
+{
+    char const * pos = NULL;
+	if(!(inp && end && *inp))
+		printf("ouch\n");
+    assert( inp && end && *inp );
+    if( *inp == *end ) return 0;
+    pos = *inp;
+    if( !*pos )
+    {
+        *end = pos;
+        return 0;
+    }
+    for( ; *pos && ( char_is_separator(*pos,separators)); ++pos) { /* skip preceeding splitters */ }
+    *inp = pos;
+    for( ; *pos && ( !char_is_separator(*pos,separators)); ++pos) { /* find next splitter */ }
+    *end = pos;
+    return (pos > *inp) ? 1 : 0;
+}
+Stack* parse_joint_names(struct X3D_Node* node, char *joint_names){
+	char *sep = " \n\r\t,";
+	Stack* jnames = newStack(char*);
+	//adapted from cson >>
+	int len, rc;
+	char *beg, *end;
+    beg = joint_names;
+    end = NULL;
+    for(int i=0;; ++i, beg=end, end=NULL )
+    {
+        rc = next_token( &beg, sep, &end );
+        if(!rc) break;
+        assert( beg != end );
+        assert( end > beg );
+		//*end = '\0';
+        len = (unsigned int)(end - beg);
+		char *name = malloc(len+1);
+		register_node_gc(node,name);
+        //if( len > (BufSize-1) ) return cson_rc.RangeError;
+        //memset( buf, 0, len + 1 );
+        memcpy(name, beg, len );
+        name[len] = 0;
+		stack_push(char*,jnames,name);
+    }
+	//<< adapted from cson
+	return jnames;
+}
+enum {
+CHAN_RX = 1,
+CHAN_RY = 2,
+CHAN_RZ = 3,
+CHAN_TX = 4,
+CHAN_TY = 5,
+CHAN_TZ = 6,
+CHAN_NONE = 0,
+};
+struct chan_name {
+int iname;
+char *cname;
+} chan_names [] = {
+{CHAN_RX, "Xrotation"},
+{CHAN_RY, "Yrotation"},
+{CHAN_RZ, "Zrotation"},
+{CHAN_TX, "Xposition"},
+{CHAN_TY, "Yposition"},
+{CHAN_TZ, "Zposition"},
+{CHAN_NONE,NULL},
+};
+//struct channellist {
+//	int count;
+//	int channel[6];
+//};
+struct joint_frame_motion {
+	char *jname;
+	int nchan;
+	int ichan[6];
+	float *values;
+};
+int chan_lookup(char *cname){
+	int i, iname;
+	struct chan_name *cn;
+	i = 0;
+	iname = 0;
+	do{
+		cn = &chan_names[i];
+		if(!strcmp(cn->cname,cname)){
+			iname = cn->iname;
+			break;
+		}
+		i++;
+	}while(cn->cname != NULL);
+	return iname;
+	
+}
+char *channame_lookup(int ichan){
+	int i;
+	struct chan_name *cn;
+	i = 0;
+	char * cname = NULL;
+	do{
+		cn = &chan_names[i];
+		if(cn->iname == ichan){
+			cname = cn->cname;
+			break;
+		}
+		i++;
+	}while(cn->iname != CHAN_NONE);
+	return cname;
+}
+char *next_buffer_token(char **beg, char* sep, char **end){
+	static char buffer[128];
+	int len, rc;
+	buffer[0] = '\0';
+    rc = next_token( beg, sep, end );
+    if(rc){
+		assert( *beg != *end );
+		assert( *end > *beg );
+		//*end = '\0';
+		len = (unsigned int)(*end - *beg);
+		len = min(len,127);
+		memcpy(buffer, *beg, len );
+		buffer[len] = 0;
+	}
+	return buffer;
+}
+int parse_channels(char *channelstring, int nentries, struct joint_frame_motion * chan){
+	char *sep = " \n\r\t,";
+	//adapted from cson >>
+	int len, rc, count, totalcount;
+	char *beg, *end, *token;
+	totalcount = 0;
+    beg = channelstring;
+    end = NULL;
+    for(int i=0;i<nentries; ++i, beg=end, end=NULL )
+    {
+        token = next_buffer_token( &beg, sep, &end );
+		len = strlen(token);
+        if(!len) break;
+		sscanf_s(token,"%d",&count);
+		totalcount += count;
+		chan[i].nchan = count;
+		for(int j=0;j<count;j++){
+			beg=end; end=NULL;
+	        token = next_buffer_token( &beg, sep, &end );
+			int ichan = chan_lookup(token);
+			chan[i].ichan[j] = ichan;
+		}
+    }
+	return totalcount;
+}
+//struct mojoint {
+//	float v[6];
+//};
+//struct moframe {
+//	struct mojoint * mj;
+//};
+float *parse_float_values(int n, char *str){
+	char *beg, *end, *token;
+	int len;
+	char *sep = " \n\r\t,";
+	float *fv = malloc(n*sizeof(float));
+    beg = str;
+    end = NULL;
+    for(int i=0;i<n; ++i, beg=end, end=NULL )
+    {
+        token = next_buffer_token( &beg, sep, &end );
+		len = (unsigned int)(*end - *beg);
+        if(!len) break;
+		sscanf_s(token,"%f",&fv[i]);
+    }
+	return fv;
+}
+//void parse_values(struct moframe *moframes,int framecount, int jointcount, int channelcount, struct joint_frame_motion* chan, char *values){
+//	float *fvalues = parse_float_values(framecount * channelcount, values);
+//	float *fv = fvalues;
+//	for(int i=0;i<framecount;i++){
+//		struct moframe *mof = &moframes[i];
+//		for(int j=0;j<jointcount;j++){
+//			struct mojoint *moj = &mof->mj[j];
+//			for(int k=0;k<chan[j].count;k++){
+//				moj->v[k] = *fv;
+//				if(chan[j].channel[k] < 4)
+//					moj->v[k] *= PI/180.0;
+//				fv++;
+//			}
+//		}
+//	}
+//}
+#define RADIANS_PER_DEGREE (double)0.0174532925199432957692
+#define DEGREES_PER_RADIAN (double)57.2957795130823208768
+void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
+	//motion data
+
+	//parse jouint names
+	struct Vector *jnames = parse_joint_names(X3D_NODE(node),node->joints->strptr);
+	printf("\n");
+	for(int i=0;i<jnames->n;i++)
+		printf("%d %s\n",i,vector_get(char*,jnames,i));
+	int njoints = jnames->n;
+
+	//parse channels
+	struct joint_frame_motion *chan = malloc(njoints * sizeof(struct joint_frame_motion));
+	int channelcount = parse_channels(node->channels->strptr,njoints,chan);
+	//in theory channelcount is how many floats to advance in fvalues to get the next frame pointer.
+
+
+	for(int i=0;i<njoints;i++){
+		chan[i].jname = vector_get(char*,jnames,i);
+		printf("joint %d nchan %d ",i, chan[i].nchan);
+		for(int j=0;j<chan[i].nchan;j++){
+			printf("%s ",channame_lookup(chan[i].ichan[j]));
+		}
+		printf("\n");
+	}
+	//parse float frame data
+	float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+
+	//convert degrees to radians
+	for(int iframe=0;iframe<node->frameCount;iframe++){
+		float *fv = &fvalues[iframe * channelcount];
+		int kchan = 0;
+		for(int j=0;j<njoints;j++){
+			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
+			for(int k=0;k<chan[j].nchan;k++){
+				if(chan[j].ichan[k] < 4)
+					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
+				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
+				kchan++;
+			}
+			//printf("\n");
+		}
+	}
+
+	//we won't 'map' to parent during compile - we'll find the motion joint -if any- on the fly in HAnimJoint function(s)
+
+	//frame state
+	//?? anything to do?
+	node->_njoints = njoints;
+	node->_channelcount = channelcount;
+	node->_fvalues = fvalues;
+	node->_channels = chan;
+	node->_framevalues = fvalues;
+	node->startFrame = 0;
+	node->endFrame = node->frameCount -1;
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotion(struct X3D_HAnimMotion *node) {
+	//main job: set the frame pointer for the current time, increment, enabled state
+	COMPILE_IF_REQUIRED
+	int index = 0;
+	float *fvalues = (float*)node->_fvalues;
+	int channelcount = (int)node->_channelcount;
+	float *frame_values;
+	int isActive = FALSE;
+
+	int increment = node->frameIncrement;
+	if(increment == 0) return; //the official way to pause
+	index = node->frameIndex;
+	int fcount = node->frameCount;
+	index = max(0,min(index,fcount-1)); //iclamp
+
+	int starting = 0;
+	int stopping = 0;
+	isActive = node->enabled && ((node->loop && increment != 0) || (increment > 0 && index < fcount -1) || (increment < 0 && index > 0) );
+	if(node->enabled && !node->_lastenabled){
+		starting = TRUE;
+		node->_lastenabled = node->enabled;
+	}else if(!node->enabled && node->_lastenabled){
+		stopping = TRUE;
+		node->_lastenabled = node->enabled;
+	}
+	if(starting){
+		node->_startTime = TickTime();
+	}
+
+
+	if(node->next){
+		index = index + increment;
+		node->next = FALSE;
+	} else if(node->previous){
+		index = index - increment;
+		node->previous = FALSE;
+	} else if(node->enabled){
+		double dtime = TickTime() - node->_startTime;
+		index = node->frameIncrement * (int)( dtime / node->frameDuration);
+	}
+	int startingloop = 0;
+	if(node->loop){
+		int lindex = index % fcount;
+		startingloop = lindex != index;
+		index = lindex;
+	}
+	index = max(0,min(index,fcount-1)); //iclamp
+	if(starting && index == fcount -1 && increment > 0) index = 0;
+	if(starting && index == 0 && increment < 0) index = fcount -1;
+	if(starting || startingloop ){
+		node->cycleTime = TickTime();
+		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, cycleTime));
+	}
+	if(isActive){
+		node->elapsedTime = TickTime();
+		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, elapsedTime));
+	}
+	node->frameIndex = index;
+	frame_values = &fvalues[node->frameIndex * channelcount];
+	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
+}
+
+struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion* HM, char *jname){
+	struct joint_frame_motion * jm = NULL;
+	if(HM){
+		if(HM->enabled){
+			//see if we have the joint
+			int njoints = (int)HM->_njoints;
+			struct joint_frame_motion * chan = HM->_channels;
+			float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
+			int kchan = 0;
+			for(int i=0;i<njoints;i++){
+				if(!strcmp(chan[i].jname,jname)){
+					//if so return the channel mapping and fvalue pointer
+					jm = &chan[i];
+					jm->values = &frame_values[kchan];
+					break;
+				}
+				kchan += chan[i].nchan;
+			}
+		}
+	}
+	return jm;
+}
+void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *jmatrix0){
+	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) HMnode;
+	if(HM && HM->_nodeType == NODE_HAnimMotion){
+		struct joint_frame_motion *jm = jointFrameMotion(HM,jname);
+		int debug = 0;
+		if(jm){ // && strcmp(jname,"HumanoidRoot")){
+			double mat1[16],jmatrix[16],xyz[3];
+			if(debug) printf("in update_jointMatrix\n");
+			if(debug) printmatrix(jmatrix0);
+			matidentity4d(jmatrix);
+			//if(debug) 
+			//printf("%s ",jname);
+			for(int i=0;i<jm->nchan;i++){
+				float value = jm->values[i];
+				//if(debug) 
+				//printf("%d %4.2f ",jm->ichan[i],value);
+				// Q. what kind of angles are those 
+				// https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
+				matidentity4d(mat1);
+				switch(jm->ichan[i]){
+					case 1:
+						matrixFromAxisAngle4d(mat1, (double)value, -1.0, 0.0,0.0);
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 1 mat1\n");
+						printmatrix(mat1);
+						printf("case 1 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 2: 
+					break;
+						matrixFromAxisAngle4d(mat1, (double)value, 0.0, -1.0, 0.0);
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 2 mat1\n");
+						printmatrix(mat1);
+						printf("case 2 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+						break;
+					case 3:
+						matrixFromAxisAngle4d(mat1, (double)value, 0.0, 0.0, -1.0);
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 3 mat1\n");
+						printmatrix(mat1);
+						printf("case 3 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 4:
+						mattranslate4d(mat1,vecsetd(xyz,(double)value,0.0,0.0));
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 4 mat1\n");
+						printmatrix(mat1);
+						printf("case 4 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 5:
+						mattranslate4d(mat1,vecsetd(xyz,0.0,(double)value,0.0));
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 5 mat1\n");
+						printmatrix(mat1);
+						printf("case 5 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					case 6:
+						mattranslate4d(mat1,vecsetd(xyz,0.0,0.0,(double)value));
+						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(debug){
+						printf("case 6 mat1\n");
+						printmatrix(mat1);
+						printf("case 6 jmatrix\n");
+						printmatrix(jmatrix);
+						}
+						break;
+					default:
+						if(debug) printf("OUCH DEFAULT\n");
+						break;
+				}
+			}
+			//matinverseAFFINE(mat1,jmatrix);
+			matmultiplyAFFINE(jmatrix0,jmatrix,jmatrix0);
+			//if(debug)
+			//printf("\n");
+		}
+	}
+}
+// <<<<<<<<< HAnimMotion ======================

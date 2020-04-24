@@ -1427,7 +1427,12 @@ int pickrayHitsMBB(struct X3D_Node *node){
 
 void update_node(struct X3D_Node *node) {
 	int i;
-	
+	static int depth = 0;
+	depth++;
+	if(depth > 50){
+		depth--;
+		return;
+	}
 #ifdef VERBOSE
 	printf ("update_node for %d %s nparents %d renderflags %x\n",node, stringNodeType(node->_nodeType),node->_nparents, node->_renderFlags); 
 	if (node->_nparents == 0) {
@@ -1463,6 +1468,8 @@ void update_node(struct X3D_Node *node) {
 			update_node(n);
 		}
 	}
+	depth--;
+	return;
 }
 
 /*********************************************************************
