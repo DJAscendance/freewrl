@@ -295,6 +295,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_knot",
 	"_knotrange",
 	"_lastEnabled",
+	"_lastenabled",
 	"_lastframetime",
 	"_lastp0",
 	"_lastp0time",
@@ -379,6 +380,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_smoothingDelta",
 	"_sortedChildren",
 	"_space",
+	"_startTime",
 	"_status",
 	"_steptime",
 	"_stringInpFIFO",
@@ -592,6 +594,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"encodingScheme",
 	"endAngle",
 	"endCap",
+	"endFrame",
 	"enterTime",
 	"enteredText",
 	"entities",
@@ -1003,6 +1006,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"speedFactor",
 	"spine",
 	"startAngle",
+	"startFrame",
 	"startTime",
 	"stiffness",
 	"stop1Bounce",
@@ -1447,6 +1451,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"enabled",
 	"enabledAxes",
 	"encodingScheme",
+	"endFrame",
 	"entities",
 	"entityCategory",
 	"entityCountry",
@@ -1702,6 +1707,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"specularShininessTextureChannel",
 	"specularTexture",
 	"speed",
+	"startFrame",
 	"startTime",
 	"stiffness",
 	"stop1Bounce",
@@ -5490,11 +5496,15 @@ const int OFFSETS_HAnimMotion[] = {
 	(int) FIELDNAMES_cycleTime, (int) offsetof (struct X3D_HAnimMotion, cycleTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotion, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_elapsedTime, (int) offsetof (struct X3D_HAnimMotion, elapsedTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__startTime, (int) offsetof (struct X3D_HAnimMotion, _startTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_HAnimMotion, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastenabled, (int) offsetof (struct X3D_HAnimMotion, _lastenabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameCount, (int) offsetof (struct X3D_HAnimMotion, frameCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameDuration, (int) offsetof (struct X3D_HAnimMotion, frameDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameIncrement, (int) offsetof (struct X3D_HAnimMotion, frameIncrement),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameIndex, (int) offsetof (struct X3D_HAnimMotion, frameIndex),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_startFrame, (int) offsetof (struct X3D_HAnimMotion, startFrame),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_endFrame, (int) offsetof (struct X3D_HAnimMotion, endFrame),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotion, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimMotion, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_HAnimMotion, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
@@ -10818,11 +10828,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->cycleTime = 0;
 			tmp2->description = newASCIIString("");
 			tmp2->elapsedTime = 0;
+			tmp2->_startTime = 0;
 			tmp2->enabled = FALSE;
+			tmp2->_lastenabled = FALSE;
 			tmp2->frameCount = 0;
 			tmp2->frameDuration = 0.1;
 			tmp2->frameIncrement = 1;
 			tmp2->frameIndex = 0;
+			tmp2->startFrame = 0;
+			tmp2->endFrame = 0;
 			tmp2->joints = newASCIIString("");
 			tmp2->loa = -1;
 			tmp2->loop = FALSE;
@@ -16101,9 +16115,14 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->channelsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->channelsEnabled.p[i]); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+		    if(allFields) {
+			spacer fprintf (fp," _lastenabled (SFBool) \t%d\n",tmp->_lastenabled);
+		    }
 			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
 			spacer fprintf (fp," frameIncrement (SFInt32) \t%d\n",tmp->frameIncrement);
 			spacer fprintf (fp," frameIndex (SFInt32) \t%d\n",tmp->frameIndex);
+			spacer fprintf (fp," startFrame (SFInt32) \t%d\n",tmp->startFrame);
+			spacer fprintf (fp," endFrame (SFInt32) \t%d\n",tmp->endFrame);
 			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
 			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
 			spacer fprintf (fp," loop (SFBool) \t%d\n",tmp->loop);

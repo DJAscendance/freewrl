@@ -323,6 +323,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 	/* do we have any geometry visible, and are we doing anything with geometry? */
 	//OCCLUSIONTEST
 
+	if(!renderstate()->render_vp) {
 
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
@@ -336,7 +337,6 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			/* CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
-	if(!renderstate()->render_vp) {
 		//any motion nodes enabled? if so apply current frame transform
 		if(1){
 			struct X3D_HAnimHumanoid *HH = peek_humanoid();
@@ -1341,6 +1341,8 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	node->_fvalues = fvalues;
 	node->_channels = chan;
 	node->_framevalues = fvalues;
+	node->startFrame = 0;
+	node->endFrame = node->frameCount -1;
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
@@ -1350,8 +1352,56 @@ void render_HAnimMotion(struct X3D_HAnimMotion *node) {
 	float *fvalues = (float*)node->_fvalues;
 	int channelcount = (int)node->_channelcount;
 	float *frame_values;
-	double now = TickTime();
-	//compute frame index from elapsed time, frameIncrement etc
+	int isActive = FALSE;
+
+	int increment = node->frameIncrement;
+	if(increment == 0) return; //the official way to pause
+	index = node->frameIndex;
+	int fcount = node->frameCount;
+	index = max(0,min(index,fcount-1)); //iclamp
+
+	int starting = 0;
+	int stopping = 0;
+	isActive = node->enabled && ((node->loop && increment != 0) || (increment > 0 && index < fcount -1) || (increment < 0 && index > 0) );
+	if(node->enabled && !node->_lastenabled){
+		starting = TRUE;
+		node->_lastenabled = node->enabled;
+	}else if(!node->enabled && node->_lastenabled){
+		stopping = TRUE;
+		node->_lastenabled = node->enabled;
+	}
+	if(starting){
+		node->_startTime = TickTime();
+	}
+
+
+	if(node->next){
+		index = index + increment;
+		node->next = FALSE;
+	} else if(node->previous){
+		index = index - increment;
+		node->previous = FALSE;
+	} else if(node->enabled){
+		double dtime = TickTime() - node->_startTime;
+		index = node->frameIncrement * (int)( dtime / node->frameDuration);
+	}
+	int startingloop = 0;
+	if(node->loop){
+		int lindex = index % fcount;
+		startingloop = lindex != index;
+		index = lindex;
+	}
+	index = max(0,min(index,fcount-1)); //iclamp
+	if(starting && index == fcount -1 && increment > 0) index = 0;
+	if(starting && index == 0 && increment < 0) index = fcount -1;
+	if(starting || startingloop ){
+		node->cycleTime = TickTime();
+		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, cycleTime));
+	}
+	if(isActive){
+		node->elapsedTime = TickTime();
+		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, elapsedTime));
+	}
 	node->frameIndex = index;
 	frame_values = &fvalues[node->frameIndex * channelcount];
 	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
