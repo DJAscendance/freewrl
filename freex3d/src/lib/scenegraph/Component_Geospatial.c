@@ -3902,14 +3902,19 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
+	ttglobal tg = gglobal();
+	int saveActive = tg->Bindable.activeLayer;
+	tg->Bindable.activeLayer = node->_layerId;
 
 	calculateViewingSpeedB();
 	node->_resetRelativeHeight = !node->relativeHeight;
 
 	calculateExamineModeDistance();
-	setMenuStatusVP (node->description->strptr);
 	fwl_set_viewer_type (VIEWER_WALK);
 	fwl_setCollision(TRUE);
+	tg->Bindable.activeLayer = saveActive;
+	setMenuStatusVP (node->description->strptr);
+
 }
 
 
