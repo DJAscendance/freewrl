@@ -130,7 +130,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>$(LIBWIN)\freeALUT\include;$(LIBWIN)\openALsoft\include;$(SRC)\libminizip;$(LIBWIN)\js185\include;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\lib;$(SRCWIN);$(LIBWIN)\GThread\include;$(LIBWIN)\ODE;$(LIBWIN)\zlib\include;$(LIBWIN)\ffmpeg\x64\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;JAVASCRIPT_SM_no;JS_SMCPP_no_use_185;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_no;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;WITH_RBP;dIDEDOUBLE;WITH_DIS;MOVIETEXTURE_FFMPEG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;JAVASCRIPT_SM;JS_SMCPP_no_use_185;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_no;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;WITH_RBP;dIDEDOUBLE;WITH_DIS;MOVIETEXTURE_FFMPEG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level1</WarningLevel>

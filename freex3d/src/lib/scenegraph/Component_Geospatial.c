@@ -1105,6 +1105,9 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 	6:	GD: true if geoid height
 	7:	GD: TRUE: decimal degrees, FALSE radians
 */
+static void gdToWm3d(Geosys *geoSystem, double *gdcoords, double *wmcoords);
+static void Wm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc);
+
 static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords);
 static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords);
 static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
@@ -1221,6 +1224,18 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
 				U3tm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords); 
+			}
+			break;
+		case GEOSP_WM:
+			{
+				/* GD coords will be returned from the conversion process....*/
+				/* first, convert UTM to GC, then GD, then GD to GC */
+				/* see the compileGeosystem function for geoSystem fields */
+				Wm_Gd3d(geoSystem,inCoords,n, gdCoords);
 				if(geoSystem->geoid_height || geoSystem->relativeHeight)
 					for(i=0; i < n; i++)
 						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
@@ -1768,6 +1783,93 @@ static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
 	xtmcoords[2] = gdcoords[2];
 }
 
+/*
+WEB MERCATOR
+https://en.wikipedia.org/wiki/Web_Mercator_projection
+https://earth-info.nga.mil/GandG/wgs84/web_mercator/(U)%20NGA_SIG_0011_1.0.0_WEBMERC.pdf 
+-- refers to Map Projections---- A Working Manual, Synder, 1987, which I have.
+https://docs.mapbox.com/help/how-mapbox-works/mapbox-data/
+- mapbox uses 3857 (ellipsoidal)
+http://docs.openlayers.org/library/spherical_mercator.html 
+- openlayers calls it sphereical, but uses a,b
+<900913> +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs
+https://alastaira.wordpress.com/2011/01/23/the-google-maps-bing-maps-spherical-mercator-projection/ 
+- has code for sphereical, that google uses (not ellipsoidal)http://epsg.io/3857 
+- this has a Transform button - can check coords 
+- mercator formula doesn't look too bad, 
+-- and 3857 uses ellipsoid lat,lon projected in a spherical manner.
+More precisely, 
+- lat, lon are in wgs84 ellipsoidal coordinates (for commonly used EPSG:3857) 
+- then a spherical porjection is used to get x,y
+Our default WGS84 uses GRS80 ellipsoid with a= 6378137 (exact) as does WM, so default ellipsoid is correct - nothing for compile_geosystem to do.
+*/
+
+
+static void gdToWm3d(Geosys *geoSystem, double *gdcoords, double *wmcoords);
+static void Wm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc);
+static void gdToWm(double radius, double latitudeRadians, double longitudeRadians, double *x, double *y){
+  *x = longitudeRadians * radius;
+  *y = log(tan(.5*(PI*.5 + latitudeRadians)))*radius;
+
+}
+static void gdToWm3d(Geosys *geoSystem, double *gdcoords, double *wmcoords) {
+	//geographic to web mercator
+	double semimajor, flattening;
+	double gdradians[3];
+	int geotype, northing_first, latitude_first, is_degrees, *zone;
+	
+	geotype = geoSystem->ellipsoid; //ellipsoid index
+	//northing_first = geoSystem->xtm_northing_first;
+	northing_first = FALSE;
+	latitude_first = geoSystem->gd_latitude_first;
+	is_degrees = geoSystem->gd_degrees;
+	
+	if(is_degrees) vecscaled(gdradians,gdcoords,RADIANS_PER_DEGREE);
+	else veccopyd(gdradians,gdcoords);
+	if(!latitude_first) vecswizzle2d(gdradians);
+	
+	getEllipsoidParams(geotype,&semimajor,&flattening);
+
+	gdToWm(semimajor, gdradians[0],gdradians[1], &wmcoords[1], &wmcoords[0]);
+	
+	if(!northing_first) vecswizzle2d(wmcoords);
+	wmcoords[2] = gdcoords[2];
+}
+static void Wm_Gd3d0(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, double radius){
+	double lon,lat,x,y;
+	int latitude, longitude, elevation;
+	latitude=0; longitude=1;
+	if(geoSystem->gd_latitude_first == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
+	elevation = 2;
+	for(int i=0;i<n;i++){
+		outc[i].c[elevation] = inc[i].c[2]; //ELEVATION_OUT = ELEVATION_IN;
+		x = inc[i].c[0];
+		y = inc[i].c[1];
+		lon = x / radius;
+		lat = y / radius;
+		lat = 2.0*atan(exp(lat)) - .5*PI;
+		if(geoSystem->gd_degrees == FALSE){
+			//version 3.3+ works in angle base units (radians) by default
+			outc[i].c[latitude] = lat; //LATITUDE_OUT
+			outc[i].c[longitude] = lon; //LONGITUDE_OUT
+		}else{
+			//version 3.2- works in degrees by default
+			outc[i].c[latitude] = lat * DEGREES_PER_RADIAN;
+			outc[i].c[longitude] = lon * DEGREES_PER_RADIAN;
+		}
+	}
+}
+static void Wm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
+	double semimajor, flattening;
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+	Wm_Gd3d0(geoSystem, inc, n, outc, semimajor);
+}
+
+
+
 /* calculate the rotation needed to apply to this position on the GC coordinate location 
 	a) rotate from equatorial plane GC X,Y to TCS (topocentric coordinate system) plane
 	b) rotate from Z up to Y up
@@ -1902,6 +2004,7 @@ struct stringint lookup_spatialreferencesys [] = {
 	{"GD",GEOSP_GD},
 	{"UTM",GEOSP_UTM},
 	{"3TM",GEOSP_3TM},
+	{"WM",GEOSP_WM},
 	{NULL,-1},
 };
 
@@ -1968,7 +2071,7 @@ void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String
 	if (this_srf == GEOSP_GC) {
 		//srf->p[1] = INT_ID_UNDEFINED;
 		//nothing to do 
-	} else if (this_srf == GEOSP_GD || this_srf == GEOSP_3TM || this_srf == GEOSP_UTM) {
+	} else if (this_srf == GEOSP_GD || this_srf == GEOSP_3TM || this_srf == GEOSP_UTM || this_srf == GEOSP_WM) {
 		for (i=0; i<args->n; i++) {
 			if (i != this_srf_ind) {
 				int iellipse;
@@ -3902,14 +4005,19 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
+	ttglobal tg = gglobal();
+	int saveActive = tg->Bindable.activeLayer;
+	tg->Bindable.activeLayer = node->_layerId;
 
 	calculateViewingSpeedB();
 	node->_resetRelativeHeight = !node->relativeHeight;
 
 	calculateExamineModeDistance();
-	setMenuStatusVP (node->description->strptr);
 	fwl_set_viewer_type (VIEWER_WALK);
 	fwl_setCollision(TRUE);
+	tg->Bindable.activeLayer = saveActive;
+	setMenuStatusVP (node->description->strptr);
+
 }
 
 
@@ -4188,7 +4296,7 @@ void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoori
 			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
 		 
 			/* is this a GD? if so, go no further */ 
-			if (geoSystem->spatial_system == GEOSP_UTM || geoSystem->spatial_system == GEOSP_3TM ) { 
+			if (geoSystem->spatial_system == GEOSP_UTM || geoSystem->spatial_system == GEOSP_3TM || geoSystem->spatial_system == GEOSP_WM ) { 
 				/* convert this to UTM  or 3TM */ 
 				double dtemp[3];
 
@@ -4198,8 +4306,10 @@ void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoori
 				}else if(geoSystem->spatial_system == GEOSP_3TM) {
 					gdTo3tm3d(geoSystem,thisField->c, dtemp);
 					veccopyd(thisField->c,dtemp);
-				} 
- 
+				}else if(geoSystem->spatial_system == GEOSP_WM) {
+					gdToWm3d(geoSystem,thisField->c, dtemp);
+					veccopyd(thisField->c,dtemp);
+				}
 			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ 
 			}  
 		} 

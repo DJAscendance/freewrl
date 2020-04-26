@@ -1081,6 +1081,7 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	GD
 	UTM
 	3TM
+	WM
 	WGS84
 	R
 	A

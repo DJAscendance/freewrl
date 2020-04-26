@@ -288,6 +288,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_input",
 	"_int32InpFIFO",
 	"_int32OutFIFO",
+	"_isActive",
 	"_isScreen",
 	"_joint",
 	"_keyVBO",
@@ -2201,6 +2202,7 @@ const int GEOELLIPSOID_COUNT = ARR_SIZE(GEOELLIPSOID);
 	"R",
 	"UTM",
 	"WGS84",
+	"WM",
 	"coordinateSystem",
 	"copyright",
 	"dataFormat",
@@ -5499,6 +5501,7 @@ const int OFFSETS_HAnimMotion[] = {
 	(int) FIELDNAMES__startTime, (int) offsetof (struct X3D_HAnimMotion, _startTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_HAnimMotion, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__lastenabled, (int) offsetof (struct X3D_HAnimMotion, _lastenabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__isActive, (int) offsetof (struct X3D_HAnimMotion, _isActive),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameCount, (int) offsetof (struct X3D_HAnimMotion, frameCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameDuration, (int) offsetof (struct X3D_HAnimMotion, frameDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameIncrement, (int) offsetof (struct X3D_HAnimMotion, frameIncrement),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
@@ -10831,6 +10834,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_startTime = 0;
 			tmp2->enabled = FALSE;
 			tmp2->_lastenabled = FALSE;
+			tmp2->_isActive = FALSE;
 			tmp2->frameCount = 0;
 			tmp2->frameDuration = 0.1;
 			tmp2->frameIncrement = 1;
@@ -16117,6 +16121,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," _lastenabled (SFBool) \t%d\n",tmp->_lastenabled);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _isActive (SFBool) \t%d\n",tmp->_isActive);
 		    }
 			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
 			spacer fprintf (fp," frameIncrement (SFInt32) \t%d\n",tmp->frameIncrement);
