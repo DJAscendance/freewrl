@@ -1237,7 +1237,7 @@ int parse_channels(char *channelstring, int nentries, struct joint_frame_motion 
         token = next_buffer_token( &beg, sep, &end );
 		len = strlen(token);
         if(!len) break;
-		sscanf_s(token,"%d",&count);
+		sscanf(token,"%d",&count);
 		totalcount += count;
 		chan[i].nchan = count;
 		for(int j=0;j<count;j++){
@@ -1267,7 +1267,7 @@ float *parse_float_values(int n, char *str){
         token = next_buffer_token( &beg, sep, &end );
 		len = (unsigned int)(*end - *beg);
         if(!len) break;
-		sscanf_s(token,"%f",&fv[i]);
+		sscanf(token,"%f",&fv[i]);
     }
 	return fv;
 }
