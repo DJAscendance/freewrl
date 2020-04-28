@@ -260,7 +260,7 @@ int IFS_face_normals (
 				c2->c[0],c2->c[1],c2->c[2],
 				c3->c[0],c3->c[1],c3->c[2]);
 			*/
-			//printf ("normal %f %f %f\n\n",facenormals[i],facenormals[i],facenormals[i]);
+			//printf ("face %3d normal %5.2f %5.2f %5.2f\n",i,facenormals[i].c[0],facenormals[i].c[1],facenormals[i].c[2]);
 		
 			}
 			
@@ -413,7 +413,8 @@ void IFS_check_normal (
 	/* printf ("normal was %f %f %f\n\n",facenormals[this_face].x,*/
 	/* 	facenormals[this_face].y,facenormals[this_face].z);*/
 
-
+	//PROBLEM IF THE FIRST TRIANGLE OF A FACE IS DEGENERATE, THEN 
+	// WE GET A DEGENERATE NORMAL / NO NORMAL
 	/* first three coords give us the normal */
 	c1 = &(points[coordIndex->p[base+tg->Tess.global_IFS_Coords[0]]]);
 	if (ccw) {
@@ -443,7 +444,7 @@ void IFS_check_normal (
 
 	//if (APPROX(calc_vector_length (facenormals[this_face]),0.0)) {
 	if (APPROX(fnormlen,0.0f)) {
-		/* printf ("warning: Tesselated surface has invalid normal - if this is an IndexedFaceSet, check coordinates of ALL faces\n");*/
+		//printf ("warning: Tesselated surface has invalid normal - if this is an IndexedFaceSet, check coordinates of ALL faces\n");
 	} else {
 
 		//normalize_vector(&facenormals[this_face]);
@@ -453,10 +454,9 @@ void IFS_check_normal (
 		/* 	c1->c[0],c1->c[1],c1->c[2],*/
 		/* 	c2->c[0],c2->c[1],c2->c[2],*/
 		/* 	c3->c[0],c3->c[1],c3->c[2]);*/
-		/* printf ("normal %f %f %f\n\n",facenormals[this_face].x,*/
+		//printf ("face %3d normal %5.2f %5.2f %5.2f\n",this_face,facenormals[this_face].c[0],facenormals[this_face].c[1],facenormals[this_face].c[2]);
 		/* 	facenormals[this_face].y,facenormals[this_face].z);*/
 	}
-
 }
 
 

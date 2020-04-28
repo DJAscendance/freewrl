@@ -1087,6 +1087,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	for(i=0;i<faces;i++){
 		nvert = faceok[i].end - faceok[i].start +1;
 		ntri += 2*nvert-2-nvert;
+		//printf("face %d nvert %d start %d end %d\n",i,nvert,faceok[i].start,faceok[i].end);
 	}
 
 
@@ -1250,7 +1251,9 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 				verify_global_IFS_Coords(cin);
 
-				IFS_check_normal (facenormals,this_face,points, this_coord, orig_coordIndex, ccw);
+				// NOT SURE WHY WE WERE DOING THIS, we already have face normals I think, using 
+				// a more sophisticated method to avoid degenterate first 3 points.
+				//IFS_check_normal (facenormals,this_face,points, this_coord, orig_coordIndex, ccw);
 			}
 
 
