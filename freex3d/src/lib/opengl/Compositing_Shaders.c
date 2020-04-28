@@ -1151,7 +1151,7 @@ struct fillproperties { \n\
 	bool hatched; \n\
 	bool filled; \n\
 }; \n\
-uniform struct fillproperties fillprops; \n\
+uniform fillproperties fillprops; \n\
 varying vec2 hatchPosition; \n\
 #endif //FILL \n\
 //literal string size break \n" "\
@@ -1305,7 +1305,7 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 } \n\
 // << PhYSICAL LIGHTING \n\
 //GETTERS \n\
-fw_MaterialParameters mat; \n\
+fw_MaterialParameters mat = fw_FrontMaterial; \n\
 // material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
 vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	#ifdef NOT_MTEX //not working \n\
@@ -1325,7 +1325,33 @@ vec4 sample_map(int iunit, bool apply_gamma){ \n\
 		} \n\
 		nc = prev; \n\
 	#else //MTEX \n\
+	#define CONFORMANT 1 \n\
+	#ifdef CONFORMANT \n\
+	int index = mat.tindex[mat.tstart[iunit]]; \n\
+	vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+	vec4 nc = vec4(0); \n\
+	switch(index) { \n\
+		case 0: nc = texture2D(textureUnit[0],tc); break; \n\
+		case 1: nc = texture2D(textureUnit[1],tc); break; \n\
+		case 2: nc = texture2D(textureUnit[2],tc); break; \n\
+		case 3: nc = texture2D(textureUnit[3],tc); break; \n\
+		case 4: nc = texture2D(textureUnit[4],tc); break; \n\
+		case 5: nc = texture2D(textureUnit[5],tc); break; \n\
+		case 6: nc = texture2D(textureUnit[6],tc); break; \n\
+		case 7: nc = texture2D(textureUnit[7],tc); break; \n\
+		case 8: nc = texture2D(textureUnit[8],tc); break; \n\
+		case 9: nc = texture2D(textureUnit[9],tc); break; \n\
+		case 10: nc = texture2D(textureUnit[10],tc); break; \n\
+		case 11: nc = texture2D(textureUnit[11],tc); break; \n\
+		case 12: nc = texture2D(textureUnit[12],tc); break; \n\
+		case 13: nc = texture2D(textureUnit[13],tc); break; \n\
+		case 14: nc = texture2D(textureUnit[14],tc); break; \n\
+		case 15: nc = texture2D(textureUnit[15],tc); break; \n\
+		default: break; \n\
+	} \n\
+	#else //CONFORMANT \n\
 	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	#endif //CONVORMANT \n\
 	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
 	#endif //MTEX \n\
 	return nc; \n\
@@ -2769,8 +2795,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
 	}else{
 		//desktop, emulating GLES2
-		AddVersion(SHADERPART_VERTEX, 150, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 150, CompleteCode); //lower precision floats
+		AddVersion(SHADERPART_VERTEX, 130, CompleteCode); //lower precision floats
+		AddVersion(SHADERPART_FRAGMENT, 130, CompleteCode); //lower precision floats
 	}
 
 	// printBits(sizeof(int),&whichOne.base); //debugging _shaderflags
