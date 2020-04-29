@@ -608,6 +608,8 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DComposableVolumeRenderStyleNode 68
 #define X3DVolumeDataNode 69
 #define X3DTextureProjectorNode			70
+#define X3DAudioContextNode				71
+#define X3DAudioNode					72
 
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);
