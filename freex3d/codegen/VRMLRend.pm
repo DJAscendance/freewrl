@@ -350,6 +350,9 @@ our %defaultContainerType = (
 	TrackingSensor		=>["children"],
 	Effect			=>["children"],
 	EffectPart		=>["parts"],
+
+	AudioContext		=>["children"],
+
 );
 
 

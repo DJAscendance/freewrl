@@ -1025,7 +1025,10 @@ sub gen {
 		push @genFuncs1, "const short NODE_DEFAULT_CONTAINER[][7] = {\n";
 		for(@sortedNodeList) {
 			my $containerCount = 0;
-			my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$_}});
+			my $lencount = 0;
+			if(exists($VRML::Rend::defaultContainerType{$_})) {
+				$lencount = scalar(@ {$VRML::Rend::defaultContainerType{$_}});
+			}
 			my $nextchar = "{";
 			for(my $i=0; $i<7; $i++) {
 				push @genFuncs1, $nextchar;

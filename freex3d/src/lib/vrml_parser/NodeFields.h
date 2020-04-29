@@ -39,6 +39,15 @@ END_NODE(NodeName)
 */
 
 
+/* AnalyserNode node */
+BEGIN_NODE(AnalyserNode)
+EXPOSED_FIELD(AnalyserNode,fftSize,sfint32,fftSize,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AnalyserNode,frequencyBinCount,sfint32,frequencyBinCount,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AnalyserNode,minDecibels,sffloat,minDecibels,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AnalyserNode,maxDecibels,sffloat,maxDecibels,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AnalyserNode,smoothingTimeConstant,sffloat,smoothingTimeConstant,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(AnalyserNode)
+
 /* Anchor node */
 BEGIN_NODE(Anchor)
 EVENT_IN(Anchor,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
@@ -84,6 +93,23 @@ FIELD(ArcClose2D,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
 FIELD(ArcClose2D,startAngle,sffloat,startAngle,FIELDTYPE_SFFloat,UNCA_ANGLE)
 END_NODE(ArcClose2D)
 
+/* AudioBuffer node */
+BEGIN_NODE(AudioBuffer)
+EXPOSED_FIELD(AudioBuffer,sampleRate,sffloat,sampleRate,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioBuffer,length,sfint32,length,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AudioBuffer,duration,sffloat,duration,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioBuffer,numberOfChannels,sfint32,numberOfChannels,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(AudioBuffer)
+
+/* AudioBufferSourceNode node */
+BEGIN_NODE(AudioBufferSourceNode)
+EXPOSED_FIELD(AudioBufferSourceNode,buffer,sfnode,buffer,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(AudioBufferSourceNode,playbackRate,sffloat,playbackRate,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioBufferSourceNode,loop,sfbool,loop,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(AudioBufferSourceNode,loopStart,sffloat,loopStart,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioBufferSourceNode,loopEnd,sffloat,loopEnd,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(AudioBufferSourceNode)
+
 /* AudioClip node */
 BEGIN_NODE(AudioClip)
 EXPOSED_FIELD(AudioClip,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
@@ -100,6 +126,42 @@ EVENT_OUT(AudioClip,elapsedTime,sftime,elapsedTime,FIELDTYPE_SFTime)
 EVENT_OUT(AudioClip,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(AudioClip,isPaused,sfbool,isPaused,FIELDTYPE_SFBool)
 END_NODE(AudioClip)
+
+/* AudioContext node */
+BEGIN_NODE(AudioContext)
+EXPOSED_FIELD(AudioContext,currentTime,sffloat,currentTime,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioContext,destination,sfnode,destination,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(AudioContext,listener,sfnode,listener,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(AudioContext,sampleRate,sffloat,sampleRate,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioContext,mozAudioChannelType,sfnode,mozAudioChannelType,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(AudioContext)
+
+/* AudioDestinationNode node */
+BEGIN_NODE(AudioDestinationNode)
+EXPOSED_FIELD(AudioDestinationNode,maxChannelCount,sfint32,maxChannelCount,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(AudioDestinationNode)
+
+/* AudioListener node */
+BEGIN_NODE(AudioListener)
+EXPOSED_FIELD(AudioListener,dopplerFactor,sffloat,dopplerFactor,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioListener,speedOfSound,sffloat,speedOfSound,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(AudioListener)
+
+/* AudioNode node */
+BEGIN_NODE(AudioNode)
+EXPOSED_FIELD(AudioNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(AudioNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AudioNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AudioNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AudioNode,channelCountMode,sfstring,channelCountMode,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(AudioNode,channelInterpretation,sfstring,channelInterpretation,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(AudioNode)
+
+/* AudioParam node */
+BEGIN_NODE(AudioParam)
+EXPOSED_FIELD(AudioParam,value,sfint32,value,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(AudioParam,defaultValue,sfint32,defaultValue,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(AudioParam)
 
 /* BackdropBackground node */
 BEGIN_NODE(BackdropBackground)
@@ -152,6 +214,15 @@ FIELD(Billboard,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 FIELD(Billboard,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 EXPOSED_FIELD(Billboard,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(Billboard)
+
+/* BiquadFilterNode node */
+BEGIN_NODE(BiquadFilterNode)
+EXPOSED_FIELD(BiquadFilterNode,frequency,sfint32,frequency,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(BiquadFilterNode,detune,sffloat,detune,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(BiquadFilterNode,Q,sffloat,Q,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(BiquadFilterNode,gain,sffloat,gain,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(BiquadFilterNode,type,sfstring,type,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(BiquadFilterNode)
 
 /* BlendedVolumeStyle node */
 BEGIN_NODE(BlendedVolumeStyle)
@@ -295,6 +366,26 @@ EXPOSED_FIELD(CartoonVolumeStyle,orthogonalColor,sfcolorrgba,orthogonalColor,FIE
 EXPOSED_FIELD(CartoonVolumeStyle,parallelColor,sfcolorrgba,parallelColor,FIELDTYPE_SFColorRGBA,UNCA_NONE)
 EXPOSED_FIELD(CartoonVolumeStyle,colorSteps,sfint32,colorSteps,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(CartoonVolumeStyle)
+
+/* ChannelMergerNode node */
+BEGIN_NODE(ChannelMergerNode)
+EXPOSED_FIELD(ChannelMergerNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ChannelMergerNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelMergerNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelMergerNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelMergerNode,channelCountMode,sfstring,channelCountMode,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(ChannelMergerNode,channelInterpretation,sfstring,channelInterpretation,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(ChannelMergerNode)
+
+/* ChannelSplitterNode node */
+BEGIN_NODE(ChannelSplitterNode)
+EXPOSED_FIELD(ChannelSplitterNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ChannelSplitterNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSplitterNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSplitterNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSplitterNode,channelCountMode,sfstring,channelCountMode,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(ChannelSplitterNode,channelInterpretation,sfstring,channelInterpretation,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(ChannelSplitterNode)
 
 /* Circle2D node */
 BEGIN_NODE(Circle2D)
@@ -530,6 +621,12 @@ EXPOSED_FIELD(ContourPolyline2D,controlPoint,mfvec2d,controlPoint,FIELDTYPE_MFVe
 EXPOSED_FIELD(ContourPolyline2D,point,mfvec2f,point,FIELDTYPE_MFVec2f,UNCA_NONE)
 END_NODE(ContourPolyline2D)
 
+/* ConvolverNode node */
+BEGIN_NODE(ConvolverNode)
+EXPOSED_FIELD(ConvolverNode,buffer,sfnode,buffer,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ConvolverNode,normalize,sfbool,normalize,FIELDTYPE_SFBool,UNCA_NONE)
+END_NODE(ConvolverNode)
+
 /* Coordinate node */
 BEGIN_NODE(Coordinate)
 EXPOSED_FIELD(Coordinate,point,mfvec3f,point,FIELDTYPE_MFVec3f,UNCA_LENGTH)
@@ -657,6 +754,11 @@ FIELD(DISEntityTypeMapping,specific,sfint32,specific,FIELDTYPE_SFInt32,UNCA_NONE
 FIELD(DISEntityTypeMapping,extra,sfint32,extra,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(DISEntityTypeMapping)
 
+/* DelayNode node */
+BEGIN_NODE(DelayNode)
+EXPOSED_FIELD(DelayNode,delayTime,sfint32,delayTime,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(DelayNode)
+
 /* DirectionalLight node */
 BEGIN_NODE(DirectionalLight)
 EXPOSED_FIELD(DirectionalLight,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -706,6 +808,16 @@ EVENT_OUT(DoubleAxisHingeJoint,hinge2Angle,sffloat,hinge2Angle,FIELDTYPE_SFFloat
 EVENT_OUT(DoubleAxisHingeJoint,hinge2AngleRate,sffloat,hinge2AngleRate,FIELDTYPE_SFFloat)
 EXPOSED_FIELD(DoubleAxisHingeJoint,axis1Angle,sffloat,axis1Angle,FIELDTYPE_SFFloat,UNCA_ANGLE)
 END_NODE(DoubleAxisHingeJoint)
+
+/* DynamicsCompressorNode node */
+BEGIN_NODE(DynamicsCompressorNode)
+EXPOSED_FIELD(DynamicsCompressorNode,threshold,sffloat,threshold,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressorNode,knee,sfint32,knee,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressorNode,ratio,sfint32,ratio,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressorNode,reduction,sffloat,reduction,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressorNode,attack,sffloat,attack,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressorNode,release,sfint32,release,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(DynamicsCompressorNode)
 
 /* EaseInEaseOut node */
 BEGIN_NODE(EaseInEaseOut)
@@ -953,6 +1065,11 @@ EXPOSED_FIELD(ForcePhysicsModel,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NON
 EXPOSED_FIELD(ForcePhysicsModel,force,sfvec3f,force,FIELDTYPE_SFVec3f,UNCA_FORCE)
 EXPOSED_FIELD(ForcePhysicsModel,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(ForcePhysicsModel)
+
+/* GainNode node */
+BEGIN_NODE(GainNode)
+EXPOSED_FIELD(GainNode,gain,sfint32,gain,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GainNode)
 
 /* GeneratedCubeMapTexture node */
 BEGIN_NODE(GeneratedCubeMapTexture)
@@ -1652,6 +1769,26 @@ EXPOSED_FIELD(Matrix4VertexAttribute,metadata,sfnode,metadata,FIELDTYPE_SFNode,U
 EXPOSED_FIELD(Matrix4VertexAttribute,value,mfmatrix4f,value,FIELDTYPE_MFMatrix4f,UNCA_NONE)
 EXPOSED_FIELD(Matrix4VertexAttribute,name,sfstring,name,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(Matrix4VertexAttribute)
+
+/* MediaElementAudioSourceNode node */
+BEGIN_NODE(MediaElementAudioSourceNode)
+EXPOSED_FIELD(MediaElementAudioSourceNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MediaElementAudioSourceNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(MediaElementAudioSourceNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(MediaElementAudioSourceNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(MediaElementAudioSourceNode,channelCountMode,sfstring,channelCountMode,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MediaElementAudioSourceNode,channelInterpretation,sfstring,channelInterpretation,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(MediaElementAudioSourceNode)
+
+/* MediaStreamAudioDestinationNode node */
+BEGIN_NODE(MediaStreamAudioDestinationNode)
+EXPOSED_FIELD(MediaStreamAudioDestinationNode,stream,sfnode,stream,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(MediaStreamAudioDestinationNode)
+
+/* MediaStreamTrack node */
+BEGIN_NODE(MediaStreamTrack)
+EXPOSED_FIELD(MediaStreamTrack,stream,sfnode,stream,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(MediaStreamTrack)
 
 /* MetadataBoolean node */
 BEGIN_NODE(MetadataBoolean)
@@ -2354,6 +2491,13 @@ EXPOSED_FIELD(OrthoViewpoint,centerOfRotation,sfvec3f,centerOfRotation,FIELDTYPE
 EXPOSED_FIELD(OrthoViewpoint,retainUserOffsets,sfbool,retainUserOffsets,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(OrthoViewpoint)
 
+/* OscillatorNode node */
+BEGIN_NODE(OscillatorNode)
+EXPOSED_FIELD(OscillatorNode,frequency,sfint32,frequency,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(OscillatorNode,type,sfstring,type,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(OscillatorNode,detune,sffloat,detune,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(OscillatorNode)
+
 /* PackagedShader node */
 BEGIN_NODE(PackagedShader)
 EVENT_IN(PackagedShader,activate,sfbool,activate,FIELDTYPE_SFBool)
@@ -2363,6 +2507,21 @@ EVENT_OUT(PackagedShader,isSelected,sfbool,isSelected,FIELDTYPE_SFBool)
 EVENT_OUT(PackagedShader,isValid,sfbool,isValid,FIELDTYPE_SFBool)
 FIELD(PackagedShader,language,sfstring,language,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(PackagedShader)
+
+/* PannerNode node */
+BEGIN_NODE(PannerNode)
+EXPOSED_FIELD(PannerNode,position,sfvec3f,position,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,orientation,sfrotation,orientation,FIELDTYPE_SFRotation,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,velocity,sfvec3f,velocity,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,coneInnerAngle,sffloat,coneInnerAngle,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,coneOuterAngle,sffloat,coneOuterAngle,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,coneGain,sffloat,coneGain,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,distanceModel,sfstring,distanceModel,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,maxDistance,sffloat,maxDistance,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,panningModel,sfstring,panningModel,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,refDistance,sffloat,refDistance,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(PannerNode,rolloffFactor,sffloat,rolloffFactor,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(PannerNode)
 
 /* ParticleSystem node */
 BEGIN_NODE(ParticleSystem)
@@ -2386,6 +2545,13 @@ FIELD(ParticleSystem,physics,mfnode,physics,FIELDTYPE_MFNode,UNCA_NONE)
 FIELD(ParticleSystem,texCoordRamp,sfnode,texCoordRamp,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(ParticleSystem,texCoordKey,mffloat,texCoordKey,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(ParticleSystem)
+
+/* PeriodicWave node */
+BEGIN_NODE(PeriodicWave)
+EXPOSED_FIELD(PeriodicWave,frequency,sfint32,frequency,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(PeriodicWave,type,sfstring,type,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(PeriodicWave,detune,sffloat,detune,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(PeriodicWave)
 
 /* PhysicalMaterial node */
 BEGIN_NODE(PhysicalMaterial)
@@ -3611,6 +3777,12 @@ FIELD(VolumePickSensor,intersectionType,sfstring,intersectionType,FIELDTYPE_SFSt
 FIELD(VolumePickSensor,sortOrder,sfstring,sortOrder,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(VolumePickSensor,matchCriterion,sfstring,matchCriterion,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(VolumePickSensor)
+
+/* WaveShaperNode node */
+BEGIN_NODE(WaveShaperNode)
+EXPOSED_FIELD(WaveShaperNode,curve,sfint32,curve,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(WaveShaperNode,oversample,sfstring,oversample,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(WaveShaperNode)
 
 /* WindPhysicsModel node */
 BEGIN_NODE(WindPhysicsModel)
