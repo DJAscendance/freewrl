@@ -25,7 +25,7 @@ Thumbs.db
 .dirstamp
 .libs/
 Makefile
-Makefile.in
+#Makefile.in
 # linux_appimage folder
 *.AppDir
 *.AppImage

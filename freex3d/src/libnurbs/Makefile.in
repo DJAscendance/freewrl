@@ -1,0 +1,110 @@
+# libtess/Makefile
+
+TESS_LIB_NAME = libnurbs.a
+
+CC_SOURCES = \
+interface/bezierEval.cc \
+interface/bezierPatch.cc \
+interface/bezierPatchMesh.cc \
+interface/glcurveval.cc \
+interface/glinterface.cc \
+interface/glrenderer.cc \
+interface/glsurfeval.cc \
+interface/incurveeval.cc \
+interface/insurfeval.cc \
+internals/arc.cc \
+internals/arcsorter.cc \
+internals/arctess.cc \
+internals/backend.cc \
+internals/basiccrveval.cc \
+internals/basicsurfeval.cc \
+internals/bin.cc \
+internals/bufpool.cc \
+internals/cachingeval.cc \
+internals/ccw.cc \
+internals/coveandtiler.cc \
+internals/curve.cc \
+internals/curvelist.cc \
+internals/curvesub.cc \
+internals/dataTransform.cc \
+internals/displaylist.cc \
+internals/flist.cc \
+internals/flistsorter.cc \
+internals/hull.cc \
+internals/intersect.cc \
+internals/knotvector.cc \
+internals/mapdesc.cc \
+internals/mapdescv.cc \
+internals/maplist.cc \
+internals/mesher.cc \
+internals/monotonizer.cc \
+internals/monoTriangulationBackend.cc \
+internals/mycode.cc \
+internals/nurbsinterfac.cc \
+internals/nurbstess.cc \
+internals/patch.cc \
+internals/patchlist.cc \
+internals/quilt.cc \
+internals/reader.cc \
+internals/renderhints.cc \
+internals/slicer.cc \
+internals/sorter.cc \
+internals/splitarcs.cc \
+internals/subdivider.cc \
+internals/tobezier.cc \
+internals/trimline.cc \
+internals/trimregion.cc \
+internals/trimvertpool.cc \
+internals/uarray.cc \
+internals/varray.cc \
+nurbtess/directedLine.cc \
+nurbtess/gridWrap.cc \
+nurbtess/monoChain.cc \
+nurbtess/monoPolyPart.cc \
+nurbtess/monoTriangulation.cc \
+nurbtess/partitionX.cc \
+nurbtess/partitionY.cc \
+nurbtess/polyDBG.cc \
+nurbtess/polyUtil.cc \
+nurbtess/primitiveStream.cc \
+nurbtess/quicksort.cc \
+nurbtess/rectBlock.cc \
+nurbtess/sampleCompBot.cc \
+nurbtess/sampleComp.cc \
+nurbtess/sampleCompRight.cc \
+nurbtess/sampleCompTop.cc \
+nurbtess/sampledLine.cc \
+nurbtess/sampleMonoPoly.cc \
+nurbtess/searchTree.cc
+
+
+SOURCES = $(CC_SOURCES)
+
+C_OBJECTS = $(CC_SOURCES:.cc=.o)
+OBJECTS = $(C_OBJECTS) 
+CXXFLAGS=-I. -I../.. -Iinternals -Iinterface -Inurbtess
+
+##### RULES #####
+
+.cc.o:
+	$(CXX) -c $(CXXFLAGS) -DNDEBUG  $< -o $@
+
+##### TARGETS #####
+
+all-recursive: default
+
+all: default
+
+default:
+	$(MAKE) $(TESS_LIB_NAME)
+
+install:
+
+
+# Make the library:
+$(TESS_LIB_NAME): $(OBJECTS)
+	$(AR) -rvU $(TESS_LIB_NAME) $(OBJECTS)
+
+clean:
+	-rm -f *.o
+
