@@ -874,19 +874,19 @@ int is_Switchchild_inrange(struct X3D_Switch *node, struct X3D_Node *me) {
 
 
 /* does this current node actually display, according to the CADLayer scheme? */
-int is_CADLayerchild_inrange(struct X3D_CADLayer *node, struct X3D_Node *me) {
-    int i;
-    for (i=0; i<node->children.n; i++) {
-        
-        /* if we have more children than we have indexes into visible field, just return TRUE */
-        if ((i >= node->visible.n) && (node->children.p[i] == me)) return TRUE;
-        
-        /* if not, if it is in the visible field, return true */
-        else if ((node->visible.p[i]) && (node->children.p[i] == me)) return TRUE;
-        }
-    /* not visible, so return false */
-    return FALSE;
-}
+//int is_CADLayerchild_inrange(struct X3D_CADLayer *node, struct X3D_Node *me) {
+//    int i;
+//    for (i=0; i<node->children.n; i++) {
+//        
+//        /* if we have more children than we have indexes into visible field, just return TRUE */
+//        if ((i >= node->visible.n) && (node->children.p[i] == me)) return TRUE;
+//        
+//        /* if not, if it is in the visible field, return true */
+//        else if ((node->visible.p[i]) && (node->children.p[i] == me)) return TRUE;
+//        }
+//    /* not visible, so return false */
+//    return FALSE;
+//}
 
 /* does this current node actually fit in the GeoLOD rendering scheme? */
 int is_GeoLODchild_inrange (struct X3D_GeoLOD* gpnode, struct X3D_Node *me) {
@@ -1133,11 +1133,11 @@ void propagateExtent(struct X3D_Node *me) {
 			                PROP_EXTENT_CHECK;
         			}
                 break;
-            case NODE_CADLayer: 
-                if (is_CADLayerchild_inrange(X3D_CADLAYER(geomParent),me)) {
-                    PROP_EXTENT_CHECK;
-				}
-				break;
+    //        case NODE_CADLayer: 
+    //            if (is_CADLayerchild_inrange(X3D_CADLAYER(geomParent),me)) {
+    //                PROP_EXTENT_CHECK;
+				//}
+				//break;
 			default: {
 				PROP_EXTENT_CHECK;
 			}
