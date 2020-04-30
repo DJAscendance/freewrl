@@ -1015,42 +1015,42 @@ our %Nodes = (
 	],"X3DSoundSourceNode"),
 
 	# v4 Extra Nodes baed on WebAudio API, proposed
-	"AudioContext"  => new VRML::NodeType("Sound", [
+	"AudioContext"  => new VRML::NodeType("AudioContext", [
 		currentTime => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		destination => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		listener => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		sampleRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		mozAudioChannelType => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioContextNode"),
+	],"X3DSoundSourceNode"),
 
-	"AudioNode" => new VRML::NodeType("AudioContext", [
+	"AudioNode" => new VRML::NodeType("AudioNode", [
 		context => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		channelCount => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		channelCountMode => ["SFString", "max", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		channelInterpretation => ["SFString", "speakers", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
+	],"X3DAudioContextNode"),
 
-	"AudioParam" => new VRML::NodeType("AudioNode", [
+	"AudioParam" => new VRML::NodeType("AudioParam", [
 		value => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		defaultValue => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"OscillatorNode" => new VRML::NodeType("AudioNode", [
+	"OscillatorNode" => new VRML::NodeType("OscillatorNode", [
 		frequency => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		type => ["SFString", "square", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"AudioBuffer" => new VRML::NodeType("AudioNode", [
+	"AudioBuffer" => new VRML::NodeType("AudioBuffer", [
 		sampleRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		length => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		duration => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfChannels => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"AudioBufferSourceNode" => new VRML::NodeType("AudioNode", [
+	"AudioBufferSourceNode" => new VRML::NodeType("AudioBufferSourceNode", [
 		buffer => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		playbackRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		loop => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1058,7 +1058,7 @@ our %Nodes = (
 		loopEnd => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"MediaElementAudioSourceNode" => new VRML::NodeType("AudioNode", [
+	"MediaElementAudioSourceNode" => new VRML::NodeType("MediaElementAudioSourceNode", [
 		context => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1067,7 +1067,7 @@ our %Nodes = (
 		channelInterpretation => ["SFString", "speakders", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"BiquadFilterNode" => new VRML::NodeType("AudioNode", [
+	"BiquadFilterNode" => new VRML::NodeType("BiquadFilterNode", [
 		frequency => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		Q => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1075,16 +1075,16 @@ our %Nodes = (
 		type => ["SFString", "lowpass", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"ConvolverNode" => new VRML::NodeType("AudioNode", [
+	"ConvolverNode" => new VRML::NodeType("ConvolverNode", [
 		buffer => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		normalize => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"DelayNode" => new VRML::NodeType("AudioNode", [
+	"DelayNode" => new VRML::NodeType("DelayNode", [
 		delayTime => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"DynamicsCompressorNode" => new VRML::NodeType("AudioNode", [
+	"DynamicsCompressorNode" => new VRML::NodeType("DynamicsCompressorNode", [
 		threshold => ["SFFloat", 0.003, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		knee => ["SFInt32", 30, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		ratio => ["SFInt32", 12, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1093,34 +1093,34 @@ our %Nodes = (
 		release => ["SFInt32", -24, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"GainNode" => new VRML::NodeType("AudioNode", [
+	"GainNode" => new VRML::NodeType("GainNode", [
 		gain => ["SFInt32", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"WaveShaperNode" => new VRML::NodeType("AudioNode", [
+	"WaveShaperNode" => new VRML::NodeType("WaveShaperNode", [
 		curve => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		oversample => ["SFString", "none", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"PeriodicWave" => new VRML::NodeType("AudioNode", [
+	"PeriodicWave" => new VRML::NodeType("eriodicWave", [
 		frequency => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		type => ["SFString", "square", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"AudioDestinationNode" => new VRML::NodeType("AudioNode", [
+	"AudioDestinationNode" => new VRML::NodeType("AudioDestinationNode", [
 		maxChannelCount => ["SFInt32", 2, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"MediaStreamAudioDestinationNode" => new VRML::NodeType("AudioNode", [
+	"MediaStreamAudioDestinationNode" => new VRML::NodeType("MediaStreamAudioDestinationNode", [
 		stream => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"MediaStreamTrack" => new VRML::NodeType("AudioNode", [
+	"MediaStreamTrack" => new VRML::NodeType("MediaStreamTrack", [
 		stream => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"AnalyserNode" => new VRML::NodeType("AudioNode", [
+	"AnalyserNode" => new VRML::NodeType("AnalyserNode", [
 		fftSize => ["SFInt32", 2048, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		frequencyBinCount => ["SFInt32", 1024, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		minDecibels => ["SFFloat", -100, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1128,7 +1128,7 @@ our %Nodes = (
 		smoothingTimeConstant => ["SFFloat", .8, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"ChannelSplitterNode" => new VRML::NodeType("AudioNode", [
+	"ChannelSplitterNode" => new VRML::NodeType("ChannelSplitterNode", [
 		context => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1137,7 +1137,7 @@ our %Nodes = (
 		channelInterpretation => ["SFString", "speakers", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"ChannelMergerNode" => new VRML::NodeType("AudioNode", [
+	"ChannelMergerNode" => new VRML::NodeType("ChannelMergerNode", [
 		context => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1146,12 +1146,12 @@ our %Nodes = (
 		channelInterpretation => ["SFString", "speakers", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"AudioListener" => new VRML::NodeType("AudioNode", [
+	"AudioListener" => new VRML::NodeType("AudioListener", [
 		dopplerFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		speedOfSound => ["SFFloat", 343.3, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAudioNode"),
 
-	"PannerNode" => new VRML::NodeType("AudioNode", [
+	"PannerNode" => new VRML::NodeType("PannerNode", [
 		position => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		velocity => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff

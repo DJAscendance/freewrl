@@ -231,7 +231,7 @@ struct X3D_PolyRep * create_polyrep(){
 }
 
 
-
+#define NURBS_LIB 1
 #ifdef NURBS_LIB
 //START MIT LIC >>>>>>>>
 //some algorithms from "The Nurbs Book", Les Piegl et al
@@ -446,7 +446,10 @@ int SurfacePoint(int n,int p,float *U,
 #include <OpenGL/glu.h>
 #define CALLBACK
 #else
-#include <libnurbs2.h>
+#define CALLBACK
+#include <GL/glu.h>
+#include <../libnurbs/libnurbs2.h>
+#include <../libtess/libtess2.h>
 #endif
 static int DEBG = 0; //glu nurbs surface and trim calls
 static int DEBGC = 0; //curve calls

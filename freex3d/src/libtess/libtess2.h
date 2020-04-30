@@ -170,8 +170,9 @@ typedef GLUtesselator GLUtriangulatorObj;
 
 #define GLU_TESS_MAX_COORD 1.0e150
 
+#include <GL/glu.h>
 /* Internal convenience typedefs */
-typedef void (GLAPIENTRYP _GLUfuncptr)();
+//typedef void (GLAPIENTRYP _GLUfuncptr)();
 
 GLAPI void GLAPIENTRY gluBeginPolygon (GLUtesselator* tess);
 GLAPI GLboolean GLAPIENTRY gluCheckExtension (const GLubyte *extName, const GLubyte *extString);

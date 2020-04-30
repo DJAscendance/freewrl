@@ -20261,10 +20261,10 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_AudioBuffer: return X3DAudioNode; break;
 	case NODE_AudioBufferSourceNode: return X3DAudioNode; break;
 	case NODE_AudioClip: return X3DSoundSourceNode; break;
-	case NODE_AudioContext: return X3DAudioContextNode; break;
+	case NODE_AudioContext: return X3DSoundSourceNode; break;
 	case NODE_AudioDestinationNode: return X3DAudioNode; break;
 	case NODE_AudioListener: return X3DAudioNode; break;
-	case NODE_AudioNode: return X3DAudioNode; break;
+	case NODE_AudioNode: return X3DAudioContextNode; break;
 	case NODE_AudioParam: return X3DAudioNode; break;
 	case NODE_BackdropBackground: return X3DBackgroundNode; break;
 	case NODE_Background: return X3DBackgroundNode; break;
