@@ -475,10 +475,10 @@ define MAT if material is valid
 
 static const GLchar *genericVertexGLES2 = "\
 /* DEFINES */ \n\
-#ifndef MOBILE \n\
+#ifdef FULL \n\
 #define attribute in \n\
 #define varying out \n\
-#endif //NOT MOBILE \n\
+#endif //FULL \n\
 /* Generic GLSL vertex shader, used on OpenGL ES. */ \n\
 #ifdef MOBILE \n\
 // we index into sampler arrays, OK for desktop, mobile needs GLES 3.1 and: \n\
@@ -494,8 +494,8 @@ uniform mat4 fw_ModelViewInverseMatrix; \n\
 #endif //CUB \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
-#ifdef LINETYPE \n\
-//desktop glsl 330 \n\
+#if defined(LINETYPE) && defined(FULL) \n\
+//desktop glsl 130 \n\
 //glsl desktop version 130 can do flat instead of varying \n\
 //which allows the provoking vertex (for GL_LINE_STRIP its the second vertex in a pair) \n\
 //to output something to the frag that isnt interpolated - like .vert computed distance to prev \n\
@@ -723,7 +723,7 @@ void main(void) \n\
   #endif //CASTLE_BUGGY_GLSL_READ_VARYING \n\
   \n\
   castle_vertex_eye = fw_ModelViewMatrix * vertex_object; \n\
-  #ifdef LINETYPE \n\
+  #if defined(LINETYPE) && defined(FULL) \n\
   if(u_linetype > 1){ \n\
 	//get curr, prev, next into screenspace \n\
 	//missing: screen aspect correction\n\
@@ -1031,7 +1031,7 @@ void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func
 #ifdef POINTP \n\
 uniform int u_pointColorMode; \n\
 #endif //POINTP \n\
-#ifdef LINETYPE \n\
+#if defined(LINETYPE) && defined(FULL) \n\
 uniform int u_linetype; \n\
 uniform float u_lineperiod; \n\
 uniform float u_linewidth; \n\
@@ -1574,7 +1574,7 @@ void main(void) \n\
 			#endif //TEX \n\
 		#endif //POINTP \n\
 		fragment_color = dcolor; \n\
-		#ifdef LINETYPE \n\
+		#if defined(LINETYPE) && defined(FULL) \n\
 		if(u_linetype > 1) \n\
 			if(!on_linetype(fragment_color)){ \n\
 				discard; \n\
@@ -2759,7 +2759,8 @@ static int isMobile = TRUE;
 #else
 static int isMobile = FALSE;
 #endif
-
+static float glsl_version = 0.0f;
+static int max_shader_version = 130;
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne) 
 {
@@ -2770,11 +2771,18 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	int retval, unique_int;
 	char *CompleteCode[3];
 	char *vs, *fs;
+	static once = FALSE;
 	retval = FALSE;
 	if(whichOne.usershaders ) //& USER_DEFINED_SHADER_MASK) 
 		return retval; //not supported yet as of Aug 9, 2016
 	retval = TRUE;
-
+	if(!once){
+		const GLubyte * glsl_version_str = glGetString ( GL_SHADING_LANGUAGE_VERSION);
+		sscanf(glsl_version_str,"%f",&glsl_version);
+		max_shader_version = (int)(glsl_version * 100.0f + .4f);
+		printf("GLSL shader version support %s %4.2f %d\n", glsl_version_str, glsl_version, max_shader_version );
+		once = TRUE;
+	}
 	//generic
 	vs = strdup(getGenericVertex());
 	fs = strdup(getGenericFragment());
@@ -2794,9 +2802,15 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddVersion(SHADERPART_FRAGMENT, 100, CompleteCode); //lower precision floats
 		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
 	}else{
-		//desktop, emulating GLES2
-		AddVersion(SHADERPART_VERTEX, 130, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 130, CompleteCode); //lower precision floats
+		if(max_shader_version >= 130) {
+			AddVersion(SHADERPART_VERTEX, 130, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_FRAGMENT, 130, CompleteCode); //lower precision floats
+			AddDefine(SHADERPART_VERTEX,"FULL",CompleteCode); //lower precision floats
+			AddDefine(SHADERPART_FRAGMENT,"FULL",CompleteCode); //lower precision floats
+		}else{
+			AddVersion(SHADERPART_VERTEX, max_shader_version, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_FRAGMENT, max_shader_version, CompleteCode); //lower precision floats
+		}
 	}
 
 	// printBits(sizeof(int),&whichOne.base); //debugging _shaderflags
