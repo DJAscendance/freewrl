@@ -232,6 +232,7 @@ struct X3D_PolyRep * create_polyrep(){
 
 
 #define NURBS_LIB 1
+//#undef NURBS_LIB
 #ifdef NURBS_LIB
 //START MIT LIC >>>>>>>>
 //some algorithms from "The Nurbs Book", Les Piegl et al
@@ -446,8 +447,10 @@ int SurfacePoint(int n,int p,float *U,
 #include <OpenGL/glu.h>
 #define CALLBACK
 #else
+#ifndef _MSC_VER
 #define CALLBACK
 #include <GL/glu.h>
+#endif //__MSC_VER
 #include <../libnurbs/libnurbs2.h>
 #include <../libtess/libtess2.h>
 #endif
