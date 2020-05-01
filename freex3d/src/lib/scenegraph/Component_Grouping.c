@@ -459,8 +459,10 @@ void child_Transform (struct X3D_Transform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-
-	normalChildren(node->_sortedChildren);
+	if(renderstate()->render_geom && node->displayBBox) 
+		extent6f_draw(node->_extent);
+	if(renderstate()->render_geom && node->visible)
+		normalChildren(node->_sortedChildren);
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
