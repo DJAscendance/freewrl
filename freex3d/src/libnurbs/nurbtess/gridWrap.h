@@ -29,6 +29,9 @@
  */
 /*
 */
+#ifdef __unix__
+# define _glu_dprintf printf
+#endif
 
 #ifndef _GRIDWRAP_H
 #define _GRIDWRAP_H
