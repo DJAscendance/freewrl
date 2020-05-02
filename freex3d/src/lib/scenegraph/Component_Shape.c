@@ -1084,6 +1084,7 @@ void compile_LineProperties(struct X3D_LineProperties *node) {
 	}
 	MARK_NODE_COMPILED
 }
+int get_GLSL_max_version();
 void render_LineProperties (struct X3D_LineProperties *node) {
 /*
 	Apr 2020 re-implementation
@@ -1139,15 +1140,16 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 
 	if (node->applied) {
 		//ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		int linetype_capable_shader = get_GLSL_max_version() >= 130;
 
-		if (node->linewidthScaleFactor > 1.0) {
+		if (node->linewidthScaleFactor > 1.0 || !linetype_capable_shader) {
 			struct matpropstruct *me;
 			me= getAppearanceProperties();
 			me->pointSize = node->linewidthScaleFactor ? node->linewidthScaleFactor : 1.0f;
 			//me->linetype = node->linetype;
 			glLineWidth(me->pointSize);
 		}
-		if(node->linetype > 1){
+		if(node->linetype > 1 && linetype_capable_shader){
 			struct matpropstruct *me;
 			me= getAppearanceProperties();
 			//me->pointSize = node->linewidthScaleFactor;
