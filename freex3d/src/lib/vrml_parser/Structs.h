@@ -3879,6 +3879,8 @@ struct X3D_CollidableOffset {
 	struct SFVec3f translation;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 	int __do_trans;
 	int __do_rotation;
 	struct X3D_Node *collidable;
@@ -3911,6 +3913,8 @@ struct X3D_CollidableShape {
 	struct SFVec3f translation;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 	int __do_trans;
 	int __do_rotation;
 	struct X3D_Node *shape;
@@ -4031,6 +4035,8 @@ struct X3D_CollisionSpace {
 	int useGeometry;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 	void * _space;
 };
 extern struct X3D_Virt virt_CollisionSpace;
@@ -5704,6 +5710,8 @@ struct X3D_GeoPlanet {
 	struct X3D_Node *metadata;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 	struct Uni_String *description;
 	int planetId;
 	struct Multi_Node __oldChildren;
@@ -6786,6 +6794,8 @@ struct X3D_LayoutGroup {
 	struct X3D_Node *metadata;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 	struct X3D_Node *layout;
 	struct X3D_Node *viewport;
 };
@@ -8580,6 +8590,8 @@ struct X3D_NurbsSet {
 	float tessellationScale;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 };
 extern struct X3D_Virt virt_NurbsSet;
 /***********************/
@@ -9018,8 +9030,6 @@ struct X3D_ParticleSystem {
 	struct X3D_Node *appearance;
 	struct X3D_Node *geometry;
 	struct X3D_Node *metadata;
-	struct SFVec3f bboxCenter;
-	struct SFVec3f bboxSize;
 	int _shaderflags_base;
 	int _shaderflags_effects;
 	int _shaderflags_usershaders;
@@ -10179,6 +10189,8 @@ struct X3D_ScreenGroup {
 	struct X3D_Node *metadata;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
 };
 extern struct X3D_Virt virt_ScreenGroup;
 /***********************/

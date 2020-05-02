@@ -712,3 +712,11 @@ void extent6f_draw(float *extent)
 
 	restoreGlobalShader();
 }
+void draw_bbox(float *center, float *size){
+	float extent[6];
+	for(int i=0;i<3;i++){
+		extent[i*2] = center[i] - .5f*size[i];
+		extent[i*2+1] = center[i] + .5f*size[i];
+	}
+	extent6f_draw(extent);
+}

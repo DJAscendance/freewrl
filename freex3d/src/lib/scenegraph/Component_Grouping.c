@@ -418,7 +418,7 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 }
 
-
+void draw_bbox(float *center, float *size);
 void child_Transform (struct X3D_Transform *node) {
 	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
@@ -459,8 +459,10 @@ void child_Transform (struct X3D_Transform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	if(renderstate()->render_geom && node->displayBBox) 
-		extent6f_draw(node->_extent);
+	if(renderstate()->render_geom && node->displayBBox) {
+		//extent6f_draw(node->_extent);
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
 	if(renderstate()->render_geom && node->visible)
 		normalChildren(node->_sortedChildren);
 

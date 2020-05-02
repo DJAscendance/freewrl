@@ -2345,6 +2345,8 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		planetId => ["SFInt32", 0,"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
 		# "compiled" versions of strings above
@@ -2622,6 +2624,8 @@ our %Nodes = (
 		tessellationScale => ["SFFloat",1.0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DChildNode"),
 
 	"NurbsSurfaceInterpolator" => new VRML::NodeType("NurbsSurfaceInterpolator", [
@@ -3602,6 +3606,8 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		layout => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		viewport => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	], "X3DGroupingNode"),
@@ -3641,6 +3647,8 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	], "X3DGroupingNode"),
 
 	###################################################################################
@@ -3671,6 +3679,8 @@ our %Nodes = (
 		translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		__do_trans => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		__do_rotation => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		collidable => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -3688,6 +3698,8 @@ our %Nodes = (
 		translation => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		__do_trans => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		__do_rotation => ["SFInt32", "FALSE", "initializeOnly", 0,0],#ff
 		shape => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -3731,6 +3743,8 @@ our %Nodes = (
 		useGeometry => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bboxCenter => ["SFVec3f", [0,0,0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_space => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	], "X3DNBodyCollidableNode"),
 
@@ -4395,8 +4409,10 @@ our %Nodes = (
 		appearance => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		geometry => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
-		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		# bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		# bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		# visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		# displayBBox => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_shaderflags_base =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
 		_shaderflags_effects =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
 		_shaderflags_usershaders =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
