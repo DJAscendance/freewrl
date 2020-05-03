@@ -1365,6 +1365,7 @@ void child_Shape (struct X3D_Shape *node) {
 		render_node(tmpNG);
 		return;
 	}
+	if(!peek_group_visible()) return; //v4 X3DGroupingNode .visible 
 	p = (ppComponent_Shape)tg->Component_Shape.prv;
 
 	/* initialization. This will get overwritten if there is a texture in an Appearance
