@@ -46,6 +46,36 @@ X3D Grouping Component
 #include "Children.h"
 #include "../scenegraph/RenderFuncs.h"
 
+
+
+typedef struct pComponent_Grouping{
+	Stack *group_visible_stack;
+}* ppComponent_Grouping;
+void *Component_Grouping_constructor(){
+	void *v = MALLOCV(sizeof(struct pComponent_Grouping));
+	memset(v,0,sizeof(struct pComponent_Grouping));
+	return v;
+}
+void Component_Grouping_init(struct tComponent_Grouping *t){
+	//public
+
+	//private
+	t->prv = Component_Grouping_constructor();
+	{
+		ppComponent_Grouping p = (ppComponent_Grouping)t->prv;
+		p->group_visible_stack = newStack(int);
+		stack_push(int,p->group_visible_stack,TRUE); //need something/default to && with at top of stack
+	}
+}
+void Component_Grouping_clear(struct tComponent_Grouping *t){
+	ppComponent_Grouping p = (ppComponent_Grouping)t->prv;
+	deleteVector(struct X3D_Node*,p->group_visible_stack);
+}
+
+
+
+
+
 void compile_Transform (struct X3D_Transform *node) { 
 	INITIALIZE_EXTENT;
 
@@ -417,7 +447,19 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 }
-
+// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+void push_group_visible(int visible){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_push(int,p->group_visible_stack,visible);
+}
+void pop_group_visible(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(int,p->group_visible_stack);
+}
+int peek_group_visible(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return stack_top(int,p->group_visible_stack);
+}
 void draw_bbox(float *center, float *size);
 void child_Transform (struct X3D_Transform *node) {
 	//LOCAL_LIGHT_SAVE
@@ -459,13 +501,19 @@ void child_Transform (struct X3D_Transform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	//if(renderstate()->render_geom && node->displayBBox) {
-	//	//extent6f_draw(node->_extent);
-	//	draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	//}
+	if(renderstate()->render_geom && node->displayBBox) {
+		//extent6f_draw(node->_extent);
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
 	//if(renderstate()->render_geom && node->visible)
-		normalChildren(node->_sortedChildren);
-
+	static int once = FALSE;
+	if(!once){
+		printf("top of stack visibility= %d\n",peek_group_visible());
+		once = TRUE;
+	}
+	push_group_visible( node->visible && peek_group_visible());
+	normalChildren(node->_sortedChildren);
+	pop_group_visible();
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif

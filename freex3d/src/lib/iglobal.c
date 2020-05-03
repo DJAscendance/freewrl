@@ -93,6 +93,8 @@ void Component_Layering_clear(struct tComponent_Layering *t);
 void Component_Layout_clear(struct tComponent_Layout *t);
 void Component_VolumeRendering_init(struct tComponent_VolumeRendering *t);
 void Component_VolumeRendering_clear(struct tComponent_VolumeRendering *t);
+void Component_Grouping_init(struct tComponent_Grouping *t);
+void Component_Grouping_clear(struct tComponent_Grouping *t);
 
 void RenderFuncs_init(struct tRenderFuncs *t);
 void RenderFuncs_clear(struct tRenderFuncs *t);
@@ -340,6 +342,8 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 	Component_Sound_init(&iglobal->Component_Sound);
 	Component_Text_init(&iglobal->Component_Text);
     Component_VolumeRendering_init(&iglobal->Component_VolumeRendering);
+	Component_Grouping_init(&iglobal->Component_Grouping);
+
 	RenderFuncs_init(&iglobal->RenderFuncs);
 	StreamPoly_init(&iglobal->StreamPoly);
 	Tess_init(&iglobal->Tess);
@@ -417,6 +421,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	FREE_IF_NZ(tg->statusbar.prv);
 	FREE_IF_NZ(tg->Viewer.prv);
 	FREE_IF_NZ(tg->Tess.prv);
+	Component_Grouping_clear(&tg->Component_Grouping); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	Component_VolumeRendering_clear(&tg->Component_VolumeRendering); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	FREE_IF_NZ(tg->StreamPoly.prv);
 	FREE_IF_NZ(tg->Component_Sound.prv);
