@@ -2767,7 +2767,7 @@ int get_GLSL_max_version(){
 		const GLubyte * glsl_version_str = glGetString ( GL_SHADING_LANGUAGE_VERSION);
 		sscanf(glsl_version_str,"%f",&glsl_version);
 		max_shader_version = (int)(glsl_version * 100.0f + .4f);
-		printf("GLSL shader version support %s %4.2f %d\n", glsl_version_str, glsl_version, max_shader_version );
+		ConsoleMessage("GLSL shader max version support %s %d\n", glsl_version_str, max_shader_version );
 		once = TRUE;
 	}
 	return max_shader_version;
