@@ -714,9 +714,6 @@ void extent6f_draw(float *extent)
 }
 void draw_bbox(float *center, float *size){
 	float extent[6];
-	for(int i=0;i<3;i++){
-		extent[i*2] = center[i] - .5f*size[i];
-		extent[i*2+1] = center[i] + .5f*size[i];
-	}
+	bbox2extent6f(center,size,extent);
 	extent6f_draw(extent);
 }

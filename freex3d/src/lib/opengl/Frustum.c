@@ -797,6 +797,31 @@ float extent6f_get_maxsize(float *extent6){
 	}
 	return msize;
 }
+void extent6f2bbox(float *extent6, float* center, float *size){
+	//extent6: xmax,xmin,ymax,ymin,zmax,zmin
+	for(int i=0;i<3;i++){
+		if(extent6[2*i] >= extent6[2*i+1]){
+			center[i] = .5f*extent6[2*i] + .5f*extent6[2*i+1];
+			size[i] = extent6[2*i] - extent6[2*i+1];
+		}else{
+			center[i] = 0.0f;
+			size[i] = -1.0f;
+		}
+	}
+}
+void bbox2extent6f(float* center, float *size, float *extent6){
+	
+	for(int i=0;i<3;i++){
+		if(size[i] >= 0.0f){
+			extent6[2*i +0] = center[i] + .5f*size[i]; //max
+			extent6[2*i +1] = center[i] - .5f*size[i]; //min
+		}else{
+			extent6[2*i +0] = -10000.0f; //max
+			extent6[2*i +1] =  10000.0f; //min
+		}
+	}
+}
+
 float extent6f_get_maxradius(float *extent6){
 	
 	float radius, p3f8[8][3], pc[3], pd[3];

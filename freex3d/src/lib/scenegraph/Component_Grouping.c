@@ -93,6 +93,14 @@ void compile_Transform (struct X3D_Transform *node) {
 			node->__do_scaleO);
 
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	if(node->children.n){
+		float extent[6];
+		extent6f_clear(extent);
+		for(int i=0;i<node->children.n;i++){
+			extent6f_union_extent6f(extent,node->children.p[i]->_extent);
+		}
+		extent6f2bbox(extent,node->bboxCenter.c,node->bboxSize.c);
+	}
 	MARK_NODE_COMPILED
 }
 
@@ -502,14 +510,7 @@ void child_Transform (struct X3D_Transform *node) {
 		printf ("transform - doing normalChildren\n");
 	#endif
 	if(renderstate()->render_geom && node->displayBBox) {
-		//extent6f_draw(node->_extent);
 		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	//if(renderstate()->render_geom && node->visible)
-	static int once = FALSE;
-	if(!once){
-		printf("top of stack visibility= %d\n",peek_group_visible());
-		once = TRUE;
 	}
 	push_group_visible( node->visible && peek_group_visible());
 	normalChildren(node->_sortedChildren);
