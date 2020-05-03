@@ -424,7 +424,7 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry)
 			inxyz[num].z= (double) (me->EXTENT_##ZZ);
 
 
-void FRUSTUM_TRANSB(struct X3D_Node * me, float *minx, float *miny, float *minz, float *maxx, float *maxy, float *maxz)  {
+void FRUSTUM_TRANSB(struct X3D_Node * me) { //, float *minx, float *miny, float *minz, float *maxx, float *maxy, float *maxz)  {
 	if (me->_nodeType == NODE_Transform) {
 		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox,
 		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will
@@ -436,27 +436,30 @@ void FRUSTUM_TRANSB(struct X3D_Node * me, float *minx, float *miny, float *minz,
 			struct X3D_Transform *node;
 			Quaternion rq;
 			struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8];
+			float e6[6], p8in[24], p8out[24];
 			node = (struct X3D_Transform *)me;
 	
 			/* make up a "cube" with vertexes being our bounding box */
-			BBV(0,MAX_X,MAX_Y,MAX_Z);
-			BBV(1,MAX_X,MAX_Y,MIN_Z);
-			BBV(2,MAX_X,MIN_Y,MAX_Z);
-			BBV(3,MAX_X,MIN_Y,MIN_Z);
-			BBV(4,MIN_X,MAX_Y,MAX_Z);
-			BBV(5,MIN_X,MAX_Y,MIN_Z);
-			BBV(6,MIN_X,MIN_Y,MAX_Z);
-			BBV(7,MIN_X,MIN_Y,MIN_Z);
+			//BBV(0,MAX_X,MAX_Y,MAX_Z);
+			//BBV(1,MAX_X,MAX_Y,MIN_Z);
+			//BBV(2,MAX_X,MIN_Y,MAX_Z);
+			//BBV(3,MAX_X,MIN_Y,MIN_Z);
+			//BBV(4,MIN_X,MAX_Y,MAX_Z);
+			//BBV(5,MIN_X,MAX_Y,MIN_Z);
+			//BBV(6,MIN_X,MIN_Y,MAX_Z);
+			//BBV(7,MIN_X,MIN_Y,MIN_Z);
+			bbox2extent6f(node->bboxCenter.c,node->bboxSize.c,e6);
+			extent6f_to_box3f8(e6,p8in);
 	
 	        /* 1: REVERSE CENTER */
 	        if (node->__do_center) {
-				add_translation(inxyz,-node->center.c[0],-node->center.c[1],-node->center.c[2],8);
+				add_translation((struct point_XYZ*)p8in,-node->center.c[0],-node->center.c[1],-node->center.c[2],8);
 			}
 	
 	        /* 2: REVERSE SCALE ORIENTATION */
 	        if (node->__do_scaleO) {
 				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]);
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8);
+				quaternion_multi_rotation((struct point_XYZ*)p8out,&rq,(struct point_XYZ*)p8in,8);
 	
 				/* copy these points back out */
 				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
@@ -465,54 +468,55 @@ void FRUSTUM_TRANSB(struct X3D_Node * me, float *minx, float *miny, float *minz,
 	                /* 3: SCALE */
 	        if (node->__do_scale) {
                /* FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]); */
-				multiply_in_scale(inxyz,node->scale.c[0],node->scale.c[1],node->scale.c[2],8);
+				multiply_in_scale((struct point_XYZ*)p8in,node->scale.c[0],node->scale.c[1],node->scale.c[2],8);
 			}
 	
 	        /* 4: SCALEORIENTATION */
 	        if (node->__do_scaleO) {
 				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]);
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8);
+				quaternion_multi_rotation((struct point_XYZ*)p8out,&rq,(struct point_XYZ*)p8in,8);
 	
 				/* copy these points back out */
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ));
+				memcpy (p8in,p8out,8*sizeof(struct point_XYZ));
 	        }
 	
 	        /* 5: ROTATION */
 	        if (node->__do_rotation) {
 	                /* FW_GL_ROTATE_F(my_rotation, node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]); */
 				vrmlrot_to_quaternion(&rq,node->rotation.c[0], node->rotation.c[1], node->rotation.c[2], node->rotation.c[3]);
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8);
+				quaternion_multi_rotation((struct point_XYZ*)p8out,&rq,(struct point_XYZ*)p8in,8);
 	
 				/* copy these points back out */
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ));
+				memcpy (p8in,p8out,8*sizeof(struct point_XYZ));
 	        }
 	
 	                /* 6: CENTER */
 	        if (node->__do_center) {
 	            /* FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]); */
-				add_translation(inxyz,node->center.c[0],node->center.c[1],node->center.c[2],8);
+				add_translation((struct point_XYZ*)p8in,node->center.c[0],node->center.c[1],node->center.c[2],8);
 			}
 
 	        /* 7: TRANSLATION */
 	        if (node->__do_trans) {
 	            /* FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]); */
-				add_translation(inxyz,node->translation.c[0],node->translation.c[1],node->translation.c[2],8);
+				add_translation((struct point_XYZ*)p8in,node->translation.c[0],node->translation.c[1],node->translation.c[2],8);
 			}
 	
 	
 			/* work changes into extent */
             /* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too,
                 thus we do not bother to test against OLD max/min values */
-            *maxx = -FLT_MAX; *maxy = -FLT_MAX; *maxz = -FLT_MAX;
-            *minx = FLT_MAX; *miny = FLT_MAX; *minz = FLT_MAX;
-			for (int i=0; i<8; i++) {
-				if (inxyz[i].x > *maxx) *maxx =  (float)inxyz[i].x;
-				if (inxyz[i].y > *maxy) *maxy =  (float)inxyz[i].y;
-				if (inxyz[i].z > *maxz) *maxz =  (float)inxyz[i].z;
-				if (inxyz[i].x < *minx) *minx =  (float)inxyz[i].x;
-				if (inxyz[i].y < *miny) *miny =  (float)inxyz[i].y;
-				if (inxyz[i].z < *minz) *minz =  (float)inxyz[i].z;
-			}
+   //         *maxx = -FLT_MAX; *maxy = -FLT_MAX; *maxz = -FLT_MAX;
+   //         *minx = FLT_MAX; *miny = FLT_MAX; *minz = FLT_MAX;
+			//for (int i=0; i<8; i++) {
+			//	if (inxyz[i].x > *maxx) *maxx =  (float)inxyz[i].x;
+			//	if (inxyz[i].y > *maxy) *maxy =  (float)inxyz[i].y;
+			//	if (inxyz[i].z > *maxz) *maxz =  (float)inxyz[i].z;
+			//	if (inxyz[i].x < *minx) *minx =  (float)inxyz[i].x;
+			//	if (inxyz[i].y < *miny) *miny =  (float)inxyz[i].y;
+			//	if (inxyz[i].z < *minz) *minz =  (float)inxyz[i].z;
+			//}
+			extent6f_from_box3fn(node->_extent,p8in,8);
 		}
 	} 
 }
@@ -631,7 +635,27 @@ void FRUSTUM_GEO(struct X3D_Node *me){
 		} 
 	} 
 }
+void FRUSTUM_PREP(struct X3D_Node *me, float *e6in, float *e6out){
+	int i;
+	if (virtTable[me->_nodeType]->prep ) { 
+		float e[6];
+		double mat[16];
 
+		//push idenity
+		FW_GL_PUSH_MATRIX();
+		FW_GL_LOAD_IDENTITY();
+		//call prep
+		virtTable[me->_nodeType]->prep(me);
+		//scrape mat
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mat);
+		//call fin to pop
+		virtTable[me->_nodeType]->fin(me);
+		//pop to whatever was before identity
+		FW_GL_POP_MATRIX();
+		//transform extent with mat
+		extent6f_mattransform4d(e6out,e6in,mat);
+	} 
+}
 
 //extent6f {xmax,xmin,ymax,ymin,zmax,zmin}
 float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax){
@@ -641,6 +665,7 @@ float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,f
 }
 float *extent6f_clear(float *extent6){
 	float *e = extent6;
+	//s max,min y max,min, z max,min
 	e[0]=-10000.0; e[1]=10000.0; e[2]=-10000.0; e[3]=10000.0; e[4]=-10000.0; e[5]=10000.0;
 	return e;
 }
@@ -802,7 +827,7 @@ void extent6f2bbox(float *extent6, float* center, float *size){
 	for(int i=0;i<3;i++){
 		if(extent6[2*i] >= extent6[2*i+1]){
 			center[i] = .5f*extent6[2*i] + .5f*extent6[2*i+1];
-			size[i] = extent6[2*i] - extent6[2*i+1];
+			size[i] = extent6[2*i+0] - extent6[2*i+1];
 		}else{
 			center[i] = 0.0f;
 			size[i] = -1.0f;
@@ -886,7 +911,7 @@ float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4){
 } 
 void extent6f_printf(float *extent6){
 	float *e = extent6;
-	printf("min,max x:%lf,%lf y:%f,%f z:%f,%f ",e[1],e[0],e[3],e[2],e[5],e[4]);
+	printf("min,max x:%8.1f,%8.1f y:%8.1f,%8.1f z:%8.1f,%8.1f ",e[1],e[0],e[3],e[2],e[5],e[4]);
 }
 void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 	int i,j;

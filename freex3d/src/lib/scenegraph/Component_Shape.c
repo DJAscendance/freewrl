@@ -1365,7 +1365,6 @@ void child_Shape (struct X3D_Shape *node) {
 		render_node(tmpNG);
 		return;
 	}
-	if(!peek_group_visible()) return; //v4 X3DGroupingNode .visible 
 	p = (ppComponent_Shape)tg->Component_Shape.prv;
 
 	/* initialization. This will get overwritten if there is a texture in an Appearance
@@ -1542,7 +1541,8 @@ void child_Shape (struct X3D_Shape *node) {
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		//solid TRUE/FALSE on geom controls if backface culling
-		reallyDraw();
+		if(peek_group_visible())  //v4 X3DGroupingNode .visible 
+			reallyDraw();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		textureTransform_end();

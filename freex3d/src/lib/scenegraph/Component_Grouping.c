@@ -93,14 +93,6 @@ void compile_Transform (struct X3D_Transform *node) {
 			node->__do_scaleO);
 
 	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
-	if(node->children.n){
-		float extent[6];
-		extent6f_clear(extent);
-		for(int i=0;i<node->children.n;i++){
-			extent6f_union_extent6f(extent,node->children.p[i]->_extent);
-		}
-		extent6f2bbox(extent,node->bboxCenter.c,node->bboxSize.c);
-	}
 	MARK_NODE_COMPILED
 }
 
@@ -142,7 +134,8 @@ if ((node->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) print
 
 
 }
-
+void FRUSTUM_TRANSB(struct X3D_Node * me);
+void FRUSTUM_PREP(struct X3D_Node *me, float *e6in, float *e6out);
 /* do transforms, calculate the distance */
 void prep_Transform (struct X3D_Transform *node) {
 
@@ -198,6 +191,7 @@ void prep_Transform (struct X3D_Transform *node) {
 		RECORD_DISTANCE
 
 	}
+
 }
 
 
@@ -505,6 +499,28 @@ void child_Transform (struct X3D_Transform *node) {
 
 	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
 			node,node->_renderFlags,render_sensitive); */
+	if(0){
+		float extent[6];
+		if(node->children.n){
+			extent6f_clear(extent);
+			int show = node->children.n == 7;
+			for(int i=0;i<node->children.n;i++){
+				extent6f_union_extent6f(extent,node->children.p[i]->_extent);
+				if(show) {
+					printf("cumulative:\n");
+					extent6f_printf(extent); printf("\n");
+					printf("child %d\n",i);
+					extent6f_printf(node->children.p[i]->_extent);
+					printf("\n");
+				}
+			}
+			extent6f2bbox(extent,node->bboxCenter.c,node->bboxSize.c);
+			if(show)
+				printf("\n");
+		}
+		//FRUSTUM_TRANSB(X3D_NODE(node));
+		FRUSTUM_PREP(X3D_NODE(node),extent,node->_extent);
+	}
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
