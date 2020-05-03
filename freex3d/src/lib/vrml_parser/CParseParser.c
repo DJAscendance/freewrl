@@ -5853,7 +5853,8 @@ BOOL cbExactName(void *callbackData,struct X3D_Node* node,int jfield,union anyVr
 BOOL find_anyfield_by_name(struct VRMLLexer* lexer, struct X3D_Node* node, union anyVrml **anyptr, 
 			int *imode, int *itype, char* nodeFieldName, int *isource, void** fdecl, int *ifield)
 {
-	int found;
+	int found, prototest11_x3dv;
+	prototest11_x3dv = TRUE;
 	s_cbDataExactName cbd;
 	cbd.fname = nodeFieldName;
 	found = walk_fields(node,cbExactName,&cbd);
@@ -5863,6 +5864,42 @@ BOOL find_anyfield_by_name(struct VRMLLexer* lexer, struct X3D_Node* node, union
 		*itype = cbd.type;
 		*isource = cbd.source;
 		*ifield = cbd.jfield;
+	}else if(prototest11_x3dv){
+		int ln, hsn, hcn;
+		const char *nf;
+		nf = rootFieldName(nodeFieldName, &ln,&hcn,&hsn);
+
+		if(hsn){
+			//set_ prefix
+			cbd.fname = nf;
+			found = walk_fields(node,cbExactName,&cbd);
+			if(found){
+				*anyptr = cbd.fieldValue;
+				*imode = cbd.mode;
+				*itype = cbd.type;
+				*isource = cbd.source;
+				*ifield = cbd.jfield;
+			}
+		}
+		ln++;
+		if(hcn) {
+			//_changed suffix
+			char rootname[MAXJSVARIABLELENGTH];
+			strncpy(rootname,nodeFieldName,ln);
+			rootname[ln] = '\0';
+			cbd.fname = rootname;
+			found = walk_fields(node,cbExactName,&cbd);
+			if(found){
+				*anyptr = cbd.fieldValue;
+				*imode = cbd.mode;
+				*itype = cbd.type;
+				*isource = cbd.source;
+				*ifield = cbd.jfield;
+			}
+		}
+	}
+	if(!found){
+		printf("didn't find exact match for field name %s\n",nodeFieldName);
 	}
 	return found;
 }

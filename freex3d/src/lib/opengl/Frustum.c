@@ -1192,8 +1192,8 @@ void propagateExtent(struct X3D_Node *me) {
 	maxz = me->EXTENT_MAX_Z; minz = me->EXTENT_MIN_Z;
 
 	/* is this a transform? Should we add in the translated position?? */
-	//FRUSTUM_TRANS(Transform);
-	FRUSTUM_TRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
+	FRUSTUM_TRANS(Transform);
+	//FRUSTUM_TRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
 	//FRUSTUM_GEOTRANS;
 	//FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
 	FRUSTUM_GEO(me);
