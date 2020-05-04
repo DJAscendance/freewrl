@@ -913,6 +913,7 @@ void extent6f_printf(float *extent6){
 	float *e = extent6;
 	printf("min,max x:%8.1f,%8.1f y:%8.1f,%8.1f z:%8.1f,%8.1f ",e[1],e[0],e[3],e[2],e[5],e[4]);
 }
+void union_group_extent(float *e6);
 void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 	int i,j;
 	struct X3D_Node *shapeParent;
@@ -926,6 +927,10 @@ void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 
 	/* record this for ME for sorting purposes for sorting children fields */
 	extent6f_copy(me->_extent,e);
+	if(fwl_getDrawBoundingBoxes()==2){
+		union_group_extent(e); //May 4, 2020
+		return;  //May 4, 2020
+	}
 
 	if (me->_parentVector == NULL) {
 		#ifdef FRUSTUMVERBOSE
@@ -938,6 +943,8 @@ void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 	for (i=0; i<vectorSize(me->_parentVector); i++) {
 		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,i);
 		extent6f_copy(shapeParent->_extent,e);
+		//following is WRONG: if truly grouping node granparents, should update their bbox, not their extent
+		
 		for (j=0; j<vectorSize(shapeParent->_parentVector); j++) {
 			groupParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,j);
 			
@@ -946,6 +953,7 @@ void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 			extent6f_union_extent6f(groupParent->_extent,e);
 			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
 		}
+		
 	}
 }
 void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me){
@@ -1242,7 +1250,8 @@ void propagateExtent(struct X3D_Node *me) {
 	maxz = me->EXTENT_MAX_Z; minz = me->EXTENT_MIN_Z;
 
 	/* is this a transform? Should we add in the translated position?? */
-	FRUSTUM_TRANS(Transform);
+	if(fwl_getDrawBoundingBoxes() != 2)
+		FRUSTUM_TRANS(Transform);
 	//FRUSTUM_TRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
 	//FRUSTUM_GEOTRANS;
 	//FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);

@@ -1541,8 +1541,12 @@ void child_Shape (struct X3D_Shape *node) {
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		//solid TRUE/FALSE on geom controls if backface culling
-		if(peek_group_visible())  //v4 X3DGroupingNode .visible 
-			reallyDraw();
+		if(peek_group_visible()){  //v4 X3DGroupingNode .visible 
+			//reallyDraw();
+			reallyDrawOnce();
+		}
+		clearDraw();
+
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		textureTransform_end();

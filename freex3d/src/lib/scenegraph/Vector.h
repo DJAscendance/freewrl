@@ -145,6 +145,10 @@ typedef struct Vector Stack;
 #define stack_top(type, me) \
  vector_get(type, me, vectorSize(me)-1)
 
+#define stack_top_ptr(type, me) \
+ vector_get_ptr(type, me, vectorSize(me)-1)
+
+
 /* Is the stack empty? */
 #define stack_empty(me) \
  vector_empty(me)
