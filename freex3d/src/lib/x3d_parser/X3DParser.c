@@ -1763,7 +1763,7 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 	int nameIndex;
 	//int containerIndex;
 	//int containerField;
-	int defNameIndex;
+	int defNameIndex, visibleIndex, displayBBoxIndex;
 	//int protoTableIndex;
 	struct X3D_Proto *currentContext;
 	struct X3D_Node *node = NULL;
@@ -1773,6 +1773,7 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 
 	/* initialization */
 	nameIndex = INT_ID_UNDEFINED;
+	visibleIndex = displayBBoxIndex = nameIndex;
 	//containerIndex = INT_ID_UNDEFINED;
 	//containerField = INT_ID_UNDEFINED;
 	defNameIndex = INT_ID_UNDEFINED;
@@ -1792,6 +1793,10 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 			//ConsoleMessage ("field \"USE\" not currently used in a ProtoInstance parse.. sorry");
 			isUSE = TRUE;
 			defNameIndex = i+1;
+		} else if (strcmp("visible",atts[i]) == 0) {
+			visibleIndex = i+1;
+		} else if (strcmp("displayBBox",atts[i]) == 0) {
+			displayBBoxIndex = i+1;
 		}
 	}
 
@@ -1881,6 +1886,15 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 						node->_defaultContainer = builtinField;
 					}
 				}
+				if(visibleIndex != INT_ID_UNDEFINED){
+					if(!strcmp(atts[visibleIndex],"false")) 
+						X3D_PROTO(node)->visible = FALSE;
+				}
+				if(displayBBoxIndex != INT_ID_UNDEFINED){
+					if(!strcmp(atts[displayBBoxIndex],"true")) 
+						X3D_PROTO(node)->displayBBox = TRUE;
+				}
+
 				//linkNodeIn_B(ud);
 				//parseAttributes_B(ud,atts); //PI uses FieldValue
 			}else{
