@@ -1545,7 +1545,7 @@ void child_Shape (struct X3D_Shape *node) {
 			//reallyDraw();
 			reallyDrawOnce();
 		}
-		clearDraw();
+		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
 
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);

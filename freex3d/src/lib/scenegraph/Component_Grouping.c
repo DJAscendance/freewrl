@@ -189,11 +189,11 @@ void prep_Transform (struct X3D_Transform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
-		if(fwl_getDrawBoundingBoxes()==2) push_transform_local_identity();
+		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX(); //this one will persist till fin_Transform pops it
-			if(fwl_getDrawBoundingBoxes()==2){
+			if(fwl_getDrawBoundingBoxes()>1){
 				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
 				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 			}
@@ -227,7 +227,7 @@ void prep_Transform (struct X3D_Transform *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
-			if(fwl_getDrawBoundingBoxes()==2){
+			if(fwl_getDrawBoundingBoxes()>1){
 				double mat[16];
 
 				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -248,7 +248,7 @@ void fin_Transform (struct X3D_Transform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()==2)
+		if(fwl_getDrawBoundingBoxes()>1)
 			pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
@@ -604,7 +604,7 @@ void child_Transform (struct X3D_Transform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	if(fwl_getDrawBoundingBoxes()==2){
+	if(fwl_getDrawBoundingBoxes()>1){
 		push_group_extent_default();
 	}else if(renderstate()->render_geom && node->displayBBox) {
 		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
@@ -613,17 +613,15 @@ void child_Transform (struct X3D_Transform *node) {
 	push_group_visible( node->visible && peek_group_visible());
 	normalChildren(node->_sortedChildren);
 	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()==2){
+	if(fwl_getDrawBoundingBoxes()>1){
 		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && node->displayBBox) {
+		if(renderstate()->render_geom && node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1)) {
 			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
 		}
-		if(1){
-			//propagate bbox up one level
-			extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-			pop_group_extent(); // up where parents are
-			union_group_extent(node->_extent); //
-		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
 	}
 
 	#ifdef CHILDVERBOSE

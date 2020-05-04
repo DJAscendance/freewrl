@@ -421,7 +421,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	FREE_IF_NZ(tg->statusbar.prv);
 	FREE_IF_NZ(tg->Viewer.prv);
 	FREE_IF_NZ(tg->Tess.prv);
-	Component_Grouping_clear(&tg->Component_Grouping); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
+	Component_Grouping_clear(&tg->Component_Grouping); FREE_IF_NZ(tg->Component_Grouping.prv);
 	Component_VolumeRendering_clear(&tg->Component_VolumeRendering); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	FREE_IF_NZ(tg->StreamPoly.prv);
 	FREE_IF_NZ(tg->Component_Sound.prv);

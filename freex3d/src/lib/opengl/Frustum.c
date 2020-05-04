@@ -927,7 +927,7 @@ void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
 
 	/* record this for ME for sorting purposes for sorting children fields */
 	extent6f_copy(me->_extent,e);
-	if(fwl_getDrawBoundingBoxes()==2){
+	if(fwl_getDrawBoundingBoxes()>1){
 		union_group_extent(e); //May 4, 2020
 		return;  //May 4, 2020
 	}
@@ -1250,7 +1250,7 @@ void propagateExtent(struct X3D_Node *me) {
 	maxz = me->EXTENT_MAX_Z; minz = me->EXTENT_MIN_Z;
 
 	/* is this a transform? Should we add in the translated position?? */
-	if(fwl_getDrawBoundingBoxes() != 2)
+	if(fwl_getDrawBoundingBoxes()< 2)
 		FRUSTUM_TRANS(Transform);
 	//FRUSTUM_TRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
 	//FRUSTUM_GEOTRANS;

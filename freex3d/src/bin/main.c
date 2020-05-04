@@ -207,6 +207,7 @@ int main (int argc, char **argv)
 
     /* parse command line arguments */
 	start_url = NULL;
+	printf("-h for commandline use\n");
     if (fv_parseCommandLine(argc, argv,fv_params, &url_index)) {
 		if(argc > 1 && url_index > -1){
 			start_url = argv[url_index];
@@ -216,7 +217,7 @@ int main (int argc, char **argv)
 #endif
 		}
     }
-
+	fwl_setDrawBoundingBoxes(2); //new way May 2020
 
     /* doug- redirect stdout to a file - works, useful for sending bug reports */
     /*freopen("freopen.txt", "w", stdout ); */

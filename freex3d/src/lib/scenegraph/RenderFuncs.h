@@ -107,4 +107,7 @@ usehit * usehitB_next(struct X3D_Node *node, usehit* lasthit);
 Stack *getUseHitBStack();
 void usehitB_clear();
 bool setupShaderB();
+void push_group_extent_default();
+void pop_group_extent();
+
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */
