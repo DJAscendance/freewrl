@@ -1224,6 +1224,7 @@ void propagateExtent(struct X3D_Node *me) {
 	int touched;
 
 	if (me==NULL) return;
+	if(fwl_getDrawBoundingBoxes()< 2) return;
 
 
 	#ifdef FRUSTUMVERBOSE

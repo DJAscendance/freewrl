@@ -1378,6 +1378,12 @@ void child_Shape (struct X3D_Shape *node) {
 	if((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
 		return; //don't draw if this node uses a generatedcubemaptexture and its a cubemaptexture generation pass; is there more optimal place to do this?
 
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+
 	/* now, are we rendering blended nodes or normal nodes?*/
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 		int isUserShader; //colorSource, isLit, alphaSource, 
@@ -1537,7 +1543,14 @@ void child_Shape (struct X3D_Shape *node) {
 		resend_textureprojector_matrix();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
 		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
+
+		push_group_visible( node->visible && peek_group_visible());
+
 		render_node(tmpNG);
+			
+		pop_group_visible();
+
+
 
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		//solid TRUE/FALSE on geom controls if backface culling
@@ -1596,6 +1609,20 @@ void child_Shape (struct X3D_Shape *node) {
 
 	/* turn off face culling */
 	DISABLE_CULL_FACE;
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
+
 }
 
 void compile_Shape (struct X3D_Shape *node) {

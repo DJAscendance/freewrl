@@ -393,7 +393,29 @@ void child_Collision (struct X3D_Collision *node) {
 		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 		/* now, just render the non-directionalLight children */
+		if(fwl_getDrawBoundingBoxes()>1){
+			push_group_extent_default();
+		}else if(renderstate()->render_geom && node->displayBBox) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		push_group_visible( node->visible && peek_group_visible());
+
 		normalChildren(node->children);
+
+			
+		pop_group_visible();
+		if(fwl_getDrawBoundingBoxes()>1){
+			//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+			extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+			if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+			}
+			//propagate bbox up one level
+			extent6f_copy(node->_extent,peek_group_extent());
+			pop_group_extent(); // up where parents are
+			union_group_extent(node->_extent); //
+		}
+
 
 		#ifdef CHILDVERBOSE
 		printf("RENDER COLLISIONCHILD END %d\n",node);
