@@ -112,4 +112,9 @@ void pop_group_extent();
 void push_group_extent_default();
 float * peek_group_extent();
 void union_group_extent(float *e6);
+void push_transform_local(double *mat);
+void push_transform_local_identity();
+void pop_transform_local();
+double * peek_transform_local();
+void reset_transform_local(double *mat);
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */

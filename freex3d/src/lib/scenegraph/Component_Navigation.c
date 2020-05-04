@@ -126,10 +126,11 @@ void proximity_Billboard (struct X3D_Billboard *node) {
 void prep_Billboard (struct X3D_Billboard *node) {
 	if(1){
 		//Mar 14 2018 this works with geoViewpoint (GeoTouchSensorExampleB.x3d) and viewpoint (47.x3d)
-		double mod[16], modi[16], axis[3];
+		double mod[16], modi[16], matr[16], axis[3];
 		int align;
 
 		RECORD_DISTANCE
+		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
 
 		FW_GL_PUSH_MATRIX();
 		//to align with viewepoint, cancel/undo any rotations in modelview matrix
@@ -141,8 +142,8 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			// cancel/undo rotations of modelview matrix:
 			double modb[16], modbi[16];
 			matrixAFFINE2RotationMatrix(modb,mod);
-			matinverseAFFINE(modbi,modb);
-			FW_GL_TRANSFORM_D(modbi);
+			matinverseAFFINE(matr,modb);
+			FW_GL_TRANSFORM_D(matr);
 		}else{
 			// normal axisOfRotation
 			//we calculate an additional swing matrix around the axisOfRotation
@@ -151,7 +152,7 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			//3. cross axisOfRotation with zvec to get a perpendicular to both
 			//4. get a rotation difference matrix between those 2 perrp vectors 
 			//5. modify modelview by subtracting off the difference rotation
-			double vpos[3], zvec[3], perpa[3], perpb[3], matr[16];
+			double vpos[3], zvec[3], perpa[3], perpb[3];
 			//calculate position of viewpoint vp in billboard-local coords: vpos
 			vecsetd(vpos,0.0,0.0,0.0);
 			matinverseAFFINE(modi,mod);
@@ -166,6 +167,10 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			matrotate2vd(matr,perpa,perpb);
 			FW_GL_TRANSFORM_D(matr);
 		}
+		if(fwl_getDrawBoundingBoxes()>1){
+			reset_transform_local(matr);
+		}
+
 	}else{
 		// not sure why the old way looked at viewer Quat in case of axisOfRotation 0 0 0
 		// x didn't work with geoViewpoint
@@ -251,6 +256,9 @@ void prep_Billboard (struct X3D_Billboard *node) {
 
 void fin_Billboard (struct X3D_Billboard *node) {
 	UNUSED(node);
+	if(fwl_getDrawBoundingBoxes()>1)
+		pop_transform_local();
+
 	FW_GL_POP_MATRIX();
 }
 
@@ -272,11 +280,32 @@ void  child_Billboard (struct X3D_Billboard *node) {
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+
+	push_group_visible( node->visible && peek_group_visible());
+
 	normalChildren(node->children);
 
-	if (renderstate()->render_geom && (!renderstate()->render_blend)) {
-		EXTENTTOBBOX
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
 	}
+
+	//if (renderstate()->render_geom && (!renderstate()->render_blend)) {
+	//	EXTENTTOBBOX
+	//}
 
 	#ifdef CHILDVERBOSE
 	printf("RENDER BILLBOARD END %d\n",node);
