@@ -615,7 +615,7 @@ void child_Transform (struct X3D_Transform *node) {
 	pop_group_visible();
 	if(fwl_getDrawBoundingBoxes()>1){
 		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1)) {
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
 			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
 		}
 		//propagate bbox up one level

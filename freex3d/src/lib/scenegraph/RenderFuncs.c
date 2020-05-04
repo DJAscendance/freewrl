@@ -1834,7 +1834,8 @@ void render_node(struct X3D_Node *node) {
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
-		if(p->renderstate.render_boxes) extent6f_draw(node->_extent);
+		if(p->renderstate.render_boxes) 
+			extent6f_draw(node->_extent);
 
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
