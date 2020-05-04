@@ -45,6 +45,7 @@ X3D Navigation Component
 #include "../opengl/Frustum.h"
 #include "Children.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Frustum.h"
 #include "../scenegraph/RenderFuncs.h"
 
 
@@ -394,7 +395,30 @@ if ((selno->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) prin
 printf ("\n");
 }
 */
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
 	render_node(node->_selected);
+			
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
+
 }
 
 

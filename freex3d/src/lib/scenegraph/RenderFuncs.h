@@ -109,5 +109,7 @@ void usehitB_clear();
 bool setupShaderB();
 void push_group_extent_default();
 void pop_group_extent();
-
+void push_group_extent_default();
+float * peek_group_extent();
+void union_group_extent(float *e6);
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */

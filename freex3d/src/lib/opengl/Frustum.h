@@ -148,5 +148,4 @@ void extent6f_draw(float *extent); //in CursorDraw.c
 void bbox2extent6f(float* center, float *size, float *extent6);
 void extent6f2bbox(float *extent6, float* center, float *size);
 void draw_bbox(float *center, float *size);
-
 #endif /* __FREEWRL_FRUSTUM_H__ */
