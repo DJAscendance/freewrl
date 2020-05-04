@@ -84,7 +84,74 @@ void Component_Grouping_clear(struct tComponent_Grouping *t){
 
 
 
+// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+void push_group_visible(int visible){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_push(int,p->group_visible_stack,visible);
+}
+void pop_group_visible(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(int,p->group_visible_stack);
+}
+int peek_group_visible(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return stack_top(int,p->group_visible_stack);
+}
 
+// v4 bbox functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+// children - geometry - will union their extent with the stack top owned by group with bbox (or scene root)
+void push_group_extent(float *e6){
+	extent_t e;
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	memcpy(&e.e,e6,6*sizeof(float));
+	stack_push(extent_t,p->group_extent_stack,e);
+}
+void push_group_extent_default(){
+	float extent6[6];
+	extent6f_clear(extent6);
+	push_group_extent(extent6);
+}
+void pop_group_extent(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(extent_t,p->group_extent_stack);
+}
+float * peek_group_extent(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return (stack_top_ptr(extent_t,p->group_extent_stack))->e;
+}
+void union_group_extent(float *e6){
+	float *etop = peek_group_extent();
+	extent6f_union_extent6f(etop,e6);
+}
+void draw_bbox(float *center, float *size);
+
+
+// v4 bbox functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+// children - geometry - will union their extent with the stack top owned by group with bbox (or scene root)
+void push_transform_local(double *mat){
+	mat4x4_t m4;
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	memcpy(&m4.mat,mat,16*sizeof(double));
+	stack_push(mat4x4_t,p->transform_local_stack,m4);
+}
+void push_transform_local_identity(){
+	double m4[16];
+	matidentity4d(m4);
+	push_transform_local(m4);
+}
+void pop_transform_local(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(mat4x4_t,p->transform_local_stack);
+}
+double * peek_transform_local(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return (stack_top_ptr(mat4x4_t,p->transform_local_stack))->mat;
+}
+void reset_transform_local(double *mat){
+	//no push or pop here, assume already pushed
+	double *mattop = peek_transform_local();
+	memcpy(mattop,mat,16*sizeof(double));
+}
 
 void compile_Transform (struct X3D_Transform *node) { 
 	INITIALIZE_EXTENT;
@@ -144,35 +211,7 @@ if ((node->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) print
 
 
 }
-void FRUSTUM_TRANSB(struct X3D_Node * me);
-void FRUSTUM_PREP(struct X3D_Node *me, float *e6in, float *e6out);
 
-// v4 bbox functions, push & pop (to be) called from all X3DGroupingNode child_ functions
-// children - geometry - will union their extent with the stack top owned by group with bbox (or scene root)
-void push_transform_local(double *mat){
-	mat4x4_t m4;
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	memcpy(&m4.mat,mat,16*sizeof(double));
-	stack_push(mat4x4_t,p->transform_local_stack,m4);
-}
-void push_transform_local_identity(){
-	double m4[16];
-	matidentity4d(m4);
-	push_transform_local(m4);
-}
-void pop_transform_local(){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	stack_pop(mat4x4_t,p->transform_local_stack);
-}
-double * peek_transform_local(){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	return (stack_top_ptr(mat4x4_t,p->transform_local_stack))->mat;
-}
-void reset_transform_local(double *mat){
-	//no push or pop here, assume already pushed
-	double *mattop = peek_transform_local();
-	memcpy(mattop,mat,16*sizeof(double));
-}
 /* do transforms, calculate the distance */
 void prep_Transform (struct X3D_Transform *node) {
 
@@ -293,7 +332,29 @@ void child_Switch (struct X3D_Switch *node) {
 	if(n && pp){
 		if(wc >= 0 && wc < n){
 			void * p = pp[wc];
+
+			if(fwl_getDrawBoundingBoxes()>1){
+				push_group_extent_default();
+			}else if(renderstate()->render_geom && node->displayBBox) {
+				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+			}
+			push_group_visible( node->visible && peek_group_visible());
+
 			render_node(p);
+			
+			pop_group_visible();
+			if(fwl_getDrawBoundingBoxes()>1){
+				//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+				extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+				if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+					draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+				}
+				//propagate bbox up one level
+				extent6f_copy(node->_extent,peek_group_extent());
+				pop_group_extent(); // up where parents are
+				union_group_extent(node->_extent); //
+			}
+
 		}
 	}
 	//if (node->__isX3D ||  (node->children).n) {
@@ -412,7 +473,26 @@ void child_StaticGroup (struct X3D_StaticGroup *node) {
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
 	normalChildren(node->_sortedChildren);
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
 
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
@@ -492,7 +572,25 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
 	/* now, just render the non-directionalLight children */
 	// UNUSED renderFirstProtoChildOnlyAsPerSpecs = 0; //flux/vivaty render all children
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
 	normalChildren(node->_sortedChildren);
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
 
 
 //	LOCAL_LIGHT_OFF
@@ -500,46 +598,6 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 }
-// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
-void push_group_visible(int visible){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	stack_push(int,p->group_visible_stack,visible);
-}
-void pop_group_visible(){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	stack_pop(int,p->group_visible_stack);
-}
-int peek_group_visible(){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	return stack_top(int,p->group_visible_stack);
-}
-
-// v4 bbox functions, push & pop (to be) called from all X3DGroupingNode child_ functions
-// children - geometry - will union their extent with the stack top owned by group with bbox (or scene root)
-void push_group_extent(float *e6){
-	extent_t e;
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	memcpy(&e.e,e6,6*sizeof(float));
-	stack_push(extent_t,p->group_extent_stack,e);
-}
-void push_group_extent_default(){
-	float extent6[6];
-	extent6f_clear(extent6);
-	push_group_extent(extent6);
-}
-void pop_group_extent(){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	stack_pop(extent_t,p->group_extent_stack);
-}
-float * peek_group_extent(){
-	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
-	return (stack_top_ptr(extent_t,p->group_extent_stack))->e;
-}
-void union_group_extent(float *e6){
-	float *etop = peek_group_extent();
-	extent6f_union_extent6f(etop,e6);
-}
-void draw_bbox(float *center, float *size);
 
 
 void child_Transform (struct X3D_Transform *node) {
@@ -578,28 +636,6 @@ void child_Transform (struct X3D_Transform *node) {
 
 	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
 			node,node->_renderFlags,render_sensitive); */
-	if(0){
-		float extent[6];
-		if(node->children.n){
-			extent6f_clear(extent);
-			int show = node->children.n == 7;
-			for(int i=0;i<node->children.n;i++){
-				extent6f_union_extent6f(extent,node->children.p[i]->_extent);
-				if(show) {
-					printf("cumulative:\n");
-					extent6f_printf(extent); printf("\n");
-					printf("child %d\n",i);
-					extent6f_printf(node->children.p[i]->_extent);
-					printf("\n");
-				}
-			}
-			extent6f2bbox(extent,node->bboxCenter.c,node->bboxSize.c);
-			if(show)
-				printf("\n");
-		}
-		//FRUSTUM_TRANSB(X3D_NODE(node));
-		FRUSTUM_PREP(X3D_NODE(node),extent,node->_extent);
-	}
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
@@ -614,6 +650,7 @@ void child_Transform (struct X3D_Transform *node) {
 	normalChildren(node->_sortedChildren);
 	pop_group_visible();
 	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
 		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
 		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
 			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
