@@ -1169,6 +1169,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"visibilityLimit",
 	"visibilityRange",
 	"visible",
+	"visibles",
 	"voxels",
 	"warhead",
 	"warmColor",
@@ -1891,6 +1892,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"visibilityLimit",
 	"visibilityRange",
 	"visible",
+	"visibles",
 	"voxels",
 	"warhead",
 	"warmColor",
@@ -4603,6 +4605,7 @@ const int OFFSETS_CADLayer[] = {
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_CADLayer, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_CADLayer, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_name, (int) offsetof (struct X3D_CADLayer, name),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_visibles, (int) offsetof (struct X3D_CADLayer, visibles),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_CADLayer, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_CADLayer, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_visible, (int) offsetof (struct X3D_CADLayer, visible),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -9949,6 +9952,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->metadata = NULL;
 			tmp2->name = newASCIIString("");
+			tmp2->visibles.n=0; tmp2->visibles.p=0;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->visible = TRUE;
@@ -15471,6 +15475,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 			spacer fprintf (fp," name (SFString) \t%s\n",tmp->name->strptr);
+			spacer fprintf (fp," visibles (MFBool):\n");
+			for (i=0; i<tmp->visibles.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->visibles.p[i]); }
 			spacer fprintf (fp," visible (SFBool) \t%d\n",tmp->visible);
 			spacer fprintf (fp," displayBBox (SFBool) \t%d\n",tmp->displayBBox);
 		    break;

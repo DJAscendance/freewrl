@@ -115,8 +115,8 @@ void child_CADLayer (struct X3D_CADLayer *node) {
     int i;
 	if(node->visible)
     for (i=0; i<node->children.n; i++) {
-	//if (i >= node->visible.n) render_node(node->children.p[i]); 
-        //else if (node->visible.p[i]) 
+	if (i >= node->visibles.n) render_node(node->children.p[i]); 
+        else if (node->visibles.p[i]) 
 		render_node(node->children.p[i]);
     }
 }

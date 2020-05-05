@@ -1533,25 +1533,26 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_visibilityLimit	1098
 #define FIELDNAMES_visibilityRange	1099
 #define FIELDNAMES_visible	1100
-#define FIELDNAMES_voxels	1101
-#define FIELDNAMES_warhead	1102
-#define FIELDNAMES_warmColor	1103
-#define FIELDNAMES_watchList	1104
-#define FIELDNAMES_weight	1105
-#define FIELDNAMES_weightConstant1	1106
-#define FIELDNAMES_weightConstant2	1107
-#define FIELDNAMES_weightFunction1	1108
-#define FIELDNAMES_weightFunction2	1109
-#define FIELDNAMES_weightTransferFunction1	1110
-#define FIELDNAMES_weightTransferFunction2	1111
-#define FIELDNAMES_whichChoice	1112
-#define FIELDNAMES_whichGeometry	1113
-#define FIELDNAMES_writeInterval	1114
-#define FIELDNAMES_xDimension	1115
-#define FIELDNAMES_xSpacing	1116
-#define FIELDNAMES_yScale	1117
-#define FIELDNAMES_zDimension	1118
-#define FIELDNAMES_zSpacing	1119
+#define FIELDNAMES_visibles	1101
+#define FIELDNAMES_voxels	1102
+#define FIELDNAMES_warhead	1103
+#define FIELDNAMES_warmColor	1104
+#define FIELDNAMES_watchList	1105
+#define FIELDNAMES_weight	1106
+#define FIELDNAMES_weightConstant1	1107
+#define FIELDNAMES_weightConstant2	1108
+#define FIELDNAMES_weightFunction1	1109
+#define FIELDNAMES_weightFunction2	1110
+#define FIELDNAMES_weightTransferFunction1	1111
+#define FIELDNAMES_weightTransferFunction2	1112
+#define FIELDNAMES_whichChoice	1113
+#define FIELDNAMES_whichGeometry	1114
+#define FIELDNAMES_writeInterval	1115
+#define FIELDNAMES_xDimension	1116
+#define FIELDNAMES_xSpacing	1117
+#define FIELDNAMES_yScale	1118
+#define FIELDNAMES_zDimension	1119
+#define FIELDNAMES_zSpacing	1120
 
 const char *stringFieldType(int st);
 
@@ -2253,19 +2254,20 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_visibilityLimit	522
 #define EXPOSED_FIELD_visibilityRange	523
 #define EXPOSED_FIELD_visible	524
-#define EXPOSED_FIELD_voxels	525
-#define EXPOSED_FIELD_warhead	526
-#define EXPOSED_FIELD_warmColor	527
-#define EXPOSED_FIELD_watchList	528
-#define EXPOSED_FIELD_weight	529
-#define EXPOSED_FIELD_weightConstant1	530
-#define EXPOSED_FIELD_weightConstant2	531
-#define EXPOSED_FIELD_weightTransferFunction1	532
-#define EXPOSED_FIELD_weightTransferFunction2	533
-#define EXPOSED_FIELD_whichChoice	534
-#define EXPOSED_FIELD_whichGeometry	535
-#define EXPOSED_FIELD_writeInterval	536
-#define EXPOSED_FIELD_yScale	537
+#define EXPOSED_FIELD_visibles	525
+#define EXPOSED_FIELD_voxels	526
+#define EXPOSED_FIELD_warhead	527
+#define EXPOSED_FIELD_warmColor	528
+#define EXPOSED_FIELD_watchList	529
+#define EXPOSED_FIELD_weight	530
+#define EXPOSED_FIELD_weightConstant1	531
+#define EXPOSED_FIELD_weightConstant2	532
+#define EXPOSED_FIELD_weightTransferFunction1	533
+#define EXPOSED_FIELD_weightTransferFunction2	534
+#define EXPOSED_FIELD_whichChoice	535
+#define EXPOSED_FIELD_whichGeometry	536
+#define EXPOSED_FIELD_writeInterval	537
+#define EXPOSED_FIELD_yScale	538
 
 
 /* Table of built-in fieldIds */
@@ -3668,6 +3670,7 @@ struct X3D_CADLayer {
 	struct Multi_Node children;
 	struct X3D_Node *metadata;
 	struct Uni_String *name;
+	struct Multi_Bool visibles;
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
