@@ -3362,7 +3362,16 @@ void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	if(renderstate()->render_boxes) {
 		COMPILE_IF_REQUIRED 
 		geoprep(GEOSYS(node->__geoSystem),&node->center);
-		extent6f_draw(node->_extent);
+		float center[3];
+		double2float(center,node->center.c,3);
+		bbox2extent6f(center,node->size.c,node->_extent);
+		if(renderstate()->render_geom && fwl_getDrawBoundingBoxes() % 2 == 1) {
+			draw_bbox(center,node->size.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
+		union_group_extent(node->_extent); //
+		//extent6f_draw(node->_extent);
 		geofin(GEOSYS(node->__geoSystem),&node->center);
 	}
 }
