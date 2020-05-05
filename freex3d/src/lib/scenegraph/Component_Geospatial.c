@@ -2718,8 +2718,27 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	#ifdef CHILDVERBOSE
 		printf ("GeoLocation - doing normalChildren\n");
 	#endif
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
 
 	normalChildren(node->children);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
 
 	#ifdef CHILDVERBOSE
 		printf ("GeoLocation - done normalChildren\n");
@@ -3308,7 +3327,21 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
 			FW_GL_PUSH_MATRIX();
+			if(fwl_getDrawBoundingBoxes()>1){
+				push_transform_local_identity();
+				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+			}
 			geoprep0(geoSystem,userCoord);
+			if(fwl_getDrawBoundingBoxes()>1){
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		}
 	}
 }
@@ -3316,6 +3349,8 @@ void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
+			if(fwl_getDrawBoundingBoxes()>1)
+				pop_transform_local();
 			FW_GL_POP_MATRIX();
 		}else{
 			geoprepT0(geoSystem,userCoord);
