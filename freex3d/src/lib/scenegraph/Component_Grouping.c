@@ -152,7 +152,13 @@ void reset_transform_local(double *mat){
 	double *mattop = peek_transform_local();
 	memcpy(mattop,mat,16*sizeof(double));
 }
-
+void multiply_transform_local(double *mat){
+	//no push or pop here, assume already pushed
+	double matboth[16];
+	double *mattop = peek_transform_local();
+	matmultiplyAFFINE(matboth,mat,mattop);
+	memcpy(mattop,matboth,16*sizeof(double));
+}
 void compile_Transform (struct X3D_Transform *node) { 
 	INITIALIZE_EXTENT;
 

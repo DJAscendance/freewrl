@@ -937,7 +937,7 @@ bool setupShader() {
 }
 void sendFogToShader(s_shader_capabilities_t *me);
 void sendClipplanesToShader(s_shader_capabilities_t *me);
-bool setupShaderB() {
+int setupShaderB() {
 
 	s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
 
@@ -968,7 +968,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN setupShader");
 	sendMaterialsToShader(mysp);
 	sendMatriciesToShader(mysp);
 
-	return true;
+	return TRUE;
 }
 
 // for particlephysics component we want to be able to do:

@@ -1334,7 +1334,7 @@ void initialize_front_and_back_material_params(){
 shaderflagsstruct getShaderFlags();
 struct X3D_Node *getFogParams();
 void update_effect_uniforms();
-bool setupShaderB();
+int setupShaderB();
 void textureTransform_start();
 void reallyDraw();
 void resend_textureprojector_matrix();
