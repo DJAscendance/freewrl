@@ -476,19 +476,43 @@ void prep_Viewport(struct X3D_Node * node){
 
 }
 
-void child_Viewport(struct X3D_Node * node){
-	if(node && node->_nodeType == NODE_Viewport){
+void child_Viewport(struct X3D_Node * nodein){
+	if(nodein && nodein->_nodeType == NODE_Viewport){
 		Stack *vportstack;
-		struct X3D_Viewport * viewport;
+		struct X3D_Viewport * viewport, *node;
 		ttglobal tg;
 		tg = gglobal();
 
-		viewport = (struct X3D_Viewport *)node;
+		viewport = node = (struct X3D_Viewport *)nodein;
+
 		vportstack = (Stack *)tg->Mainloop._vportstack;
 
 		if(currentviewportvisible(vportstack)){
 			prep_sibAffectors((struct X3D_Node*)node,&viewport->__sibAffectors);
+
+			if(fwl_getDrawBoundingBoxes()>1){
+				push_group_extent_default();
+			}else if(renderstate()->render_geom && node->displayBBox) {
+				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+			}
+			push_group_visible( node->visible && peek_group_visible());
+
 			normalChildren(viewport->children);
+
+			pop_group_visible();
+			if(fwl_getDrawBoundingBoxes()>1){
+				//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+				extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+				if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+					draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+				}
+				//propagate bbox up one level
+				extent6f_copy(node->_extent,peek_group_extent());
+				pop_group_extent(); // up where parents are
+				union_group_extent(node->_extent); //
+			}
+
+
 			fin_sibAffectors((struct X3D_Node*)node,&viewport->__sibAffectors);
 		}
 	}
