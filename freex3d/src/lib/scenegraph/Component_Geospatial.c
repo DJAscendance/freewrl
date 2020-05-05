@@ -2767,7 +2767,7 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 }
 void fin_GeoLocation (struct X3D_GeoLocation *node) {
