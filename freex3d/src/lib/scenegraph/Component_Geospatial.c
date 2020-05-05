@@ -4251,6 +4251,7 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(!renderstate()->render_vp) {
 		FW_GL_PUSH_MATRIX();
 		if(fwl_getDrawBoundingBoxes()>1){
+			push_transform_local_identity();
 			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
 			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 		}
@@ -4261,7 +4262,7 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
 			FW_GL_POP_MATRIX();
 			FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
-			multiply_transform_local(mat);
+			reset_transform_local(mat);
 		}
 
 	}
@@ -4269,6 +4270,8 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 }
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(!renderstate()->render_vp) {
+		if(fwl_getDrawBoundingBoxes()>1)
+			pop_transform_local();
 		FW_GL_POP_MATRIX();
 	}else{
 		geoprep0(geoSystem,userCoord);
@@ -4310,7 +4313,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter);
+	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter); //bbox- we also push a local transform
 
 	if(fwl_getDrawBoundingBoxes()>1){
 		push_group_extent_default();
@@ -4329,12 +4332,17 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
 		}
 		//propagate bbox up one level
+		//1st step of 2-step extent transform
 		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
 		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
+		//union_group_extent(node->_extent); //
 	}
-
-	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter);
+	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter); //we also pop a local transform
+	if(fwl_getDrawBoundingBoxes()>1){
+		//2nd step of 2-step extent transform
+		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
+		union_group_extent(node->_extent);
+	}
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
