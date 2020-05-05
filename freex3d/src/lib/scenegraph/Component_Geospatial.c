@@ -2605,6 +2605,15 @@ int planetInPlanets(int planet, struct Multi_Int32 *planets){
 	return ifound > -1;
 }
 void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID);
+void setExtentGeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	if( extent6f_isSet(node->_extent)) {
+		float ef6[6];
+		extent6f_rotate4d(ef6, node->_extent, node->__localOrient.c);
+		extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
+		if(fwl_getDrawBoundingBoxes()>1)
+			union_group_extent(ef6); //May 2020
+	}
+}
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
 	checkX3DGeoElelvationGridFields *see function above
@@ -2628,6 +2637,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 		node->__planets.p[node->__planets.n] = planetID;
 		node->__planets.n++;
 	}
+	setExtentGeoElevationGrid(node);
 }
 
 /************************************************************************/
