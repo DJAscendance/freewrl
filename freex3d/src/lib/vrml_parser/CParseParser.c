@@ -5826,7 +5826,7 @@ BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(void *callbackData,
 #endif
 //=========== find any field by name via walk_fields
 typedef struct cbDataExactName {
-	char *fname;
+	const char *fname;
 	union anyVrml* fieldValue;
 	int mode;
 	int type;

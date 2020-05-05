@@ -80,8 +80,28 @@ void child_CADAssembly (struct X3D_CADAssembly *node) {
     /* do we have a DirectionalLight for a child? */
     //LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
     
     normalChildren(node->_sortedChildren);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
     
     //LOCAL_LIGHT_OFF
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
@@ -113,12 +133,33 @@ void compile_CADAssembly (struct X3D_CADAssembly *node) {
 
 void child_CADLayer (struct X3D_CADLayer *node) {
     int i;
-	if(node->visible)
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
+	// this kind of visiblility just blocks shape rendering, not picking or anything else// if(peek_group_visible())
     for (i=0; i<node->children.n; i++) {
 	if (i >= node->visibles.n) render_node(node->children.p[i]); 
         else if (node->visibles.p[i]) 
 		render_node(node->children.p[i]);
     }
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
 }
 
 /************************************************************************/
@@ -141,9 +182,14 @@ void prep_CADPart (struct X3D_CADPart *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
 		if (node->__do_anything) {
 
-		FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX();
+			if(fwl_getDrawBoundingBoxes()>1){
+				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+			}
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -172,10 +218,18 @@ void prep_CADPart (struct X3D_CADPart *node) {
 			if (node->__do_scaleO)
 				FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
 
-	                /* REVERSE CENTER */
-        	        if (node->__do_center)
-                	        FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
-              	  }
+	        /* REVERSE CENTER */
+        	if (node->__do_center)
+                	FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+            }
+			if(fwl_getDrawBoundingBoxes()>1){
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
 
 
 		RECORD_DISTANCE
@@ -206,14 +260,36 @@ void child_CADPart (struct X3D_CADPart *node) {
 		printf ("transform - doing normalChildren\n");
 	#endif
 
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
 	normalChildren(node->_sortedChildren);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
 
 	//LOCAL_LIGHT_OFF
-	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 }
 
 void compile_CADPart (struct X3D_CADPart *node) {
@@ -240,6 +316,8 @@ void fin_CADPart (struct X3D_CADPart *node) {
 	OCCLUSIONTEST
 
         if(!renderstate()->render_vp) {
+			if(fwl_getDrawBoundingBoxes()>1)
+				pop_transform_local();
             if (node->__do_anything) {
                 FW_GL_POP_MATRIX();
 
