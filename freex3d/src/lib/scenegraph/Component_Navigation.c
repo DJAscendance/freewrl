@@ -133,6 +133,7 @@ void prep_Billboard (struct X3D_Billboard *node) {
 		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
 
 		FW_GL_PUSH_MATRIX();
+
 		//to align with viewepoint, cancel/undo any rotations in modelview matrix
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
 		float2double(axis,node->axisOfRotation.c,3);

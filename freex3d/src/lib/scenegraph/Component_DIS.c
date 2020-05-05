@@ -4124,6 +4124,10 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			if(fwl_getDrawBoundingBoxes()>1){
+				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+			}
 
 			/* TRANSLATION */
 			if (node->__do_trans)

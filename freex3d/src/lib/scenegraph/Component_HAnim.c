@@ -324,11 +324,16 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 	//OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
 
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			if(fwl_getDrawBoundingBoxes()>1){
+				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+			}
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -377,6 +382,16 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+
+			if(fwl_getDrawBoundingBoxes()>1){
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
 
 		RECORD_DISTANCE
@@ -391,6 +406,8 @@ void fin_HAnimJoint (struct X3D_HAnimJoint *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		if(fwl_getDrawBoundingBoxes()>1)
+			pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -454,9 +471,15 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
+
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			if(fwl_getDrawBoundingBoxes()>1){
+				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+			}
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -488,6 +511,15 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+			if(fwl_getDrawBoundingBoxes()>1){
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
 
 		RECORD_DISTANCE
@@ -502,6 +534,8 @@ void fin_HAnimSite (struct X3D_HAnimSite *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		if(fwl_getDrawBoundingBoxes()>1)
+			pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -764,6 +798,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		normalChildren(node->viewpoints);
 		return;
 	}
+
 	if(node->motions.n){
 		for(int i=0;i<node->motions.n;i++){
 			if(node->motionsEnabled.p[i])
@@ -793,6 +828,15 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	if(0) normalChildren(node->sites);
 
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
+
 	/* Lets do skeleton fourth */
 	/* do we have to sort this node? */
 	/* now, just render the non-directionalLight skeleton */
@@ -830,7 +874,11 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	}
-	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
+
+
+
+	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here	pop_group_visible();
+
 
 	if(node->skin.n){
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -946,6 +994,19 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	} //if skin
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 
@@ -1053,7 +1114,29 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 				printf("\n");
 		}
 	}
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
 	normalChildren(node->children);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_copy(node->_extent,peek_group_extent());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
+
 	if(node->coord && node->displacers.n){
 		int nsc;
 		float *psc;
@@ -1077,8 +1160,29 @@ void child_HAnimSite(struct X3D_HAnimSite *node) {
 	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
 
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);

@@ -645,9 +645,10 @@ void child_Transform (struct X3D_Transform *node) {
 	}else if(renderstate()->render_geom && node->displayBBox) {
 		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
 	}
-
 	push_group_visible( node->visible && peek_group_visible());
+
 	normalChildren(node->_sortedChildren);
+
 	pop_group_visible();
 	if(fwl_getDrawBoundingBoxes()>1){
 		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
