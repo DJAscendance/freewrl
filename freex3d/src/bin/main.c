@@ -217,7 +217,7 @@ int main (int argc, char **argv)
 #endif
 		}
     }
-	fwl_setDrawBoundingBoxes(2); //TESTING new way May 2020
+fwl_setDrawBoundingBoxes(2); //TESTING new way May 2020
 
     /* doug- redirect stdout to a file - works, useful for sending bug reports */
     /*freopen("freopen.txt", "w", stdout ); */

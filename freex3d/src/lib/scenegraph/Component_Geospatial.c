@@ -4889,16 +4889,30 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 
 		planet = current_planet();
 		//we need to get the LCS to GC transform on the stack
+
 		FW_GL_PUSH_MATRIX();
+		if(fwl_getDrawBoundingBoxes()>1){
+			push_transform_local_identity();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+		}
 		veccopyd(ao,planet->autoOrigin.c);
 		veccopy4d(aoo,planet->autoOrient.c);
 		FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
 		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
 
+		if(fwl_getDrawBoundingBoxes()>1){
+			double mat[16];
+
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+			FW_GL_POP_MATRIX();
+			FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+			reset_transform_local(mat);
+		}
 
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 
 }
@@ -4914,7 +4928,28 @@ void child_GeoPlanet(struct X3D_GeoPlanet *node){
 	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
 	normalChildren(node->children);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
 
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
@@ -4924,6 +4959,8 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		if(fwl_getDrawBoundingBoxes()>1)
+			pop_transform_local();
 		FW_GL_POP_MATRIX();
 	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
