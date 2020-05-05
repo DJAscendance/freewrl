@@ -126,7 +126,7 @@ void child_CADAssembly (struct X3D_CADAssembly *node) {
 	}
     
     //LOCAL_LIGHT_OFF
-	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
 /* we compile the CADAssembly so that children are not continuously sorted */
@@ -217,9 +217,9 @@ void prep_CADPart (struct X3D_CADPart *node) {
 			if (node->__do_trans)
 				FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
 
-	                /* CENTER */
-        	        if (node->__do_center)
-                	        FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+	        /* CENTER */
+        	if (node->__do_center)
+                	FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
 
 
 			/* ROTATION */
@@ -243,7 +243,6 @@ void prep_CADPart (struct X3D_CADPart *node) {
 	        /* REVERSE CENTER */
         	if (node->__do_center)
                 	FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
-            }
 			if(fwl_getDrawBoundingBoxes()>1){
 				double mat[16];
 
@@ -253,10 +252,11 @@ void prep_CADPart (struct X3D_CADPart *node) {
 				reset_transform_local(mat);
 			}
 
+		}
 
 		RECORD_DISTANCE
-        }
     }
+}
 
 
 void child_CADPart (struct X3D_CADPart *node) {
@@ -337,32 +337,31 @@ void compile_CADPart (struct X3D_CADPart *node) {
 void fin_CADPart (struct X3D_CADPart *node) {
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-			if(fwl_getDrawBoundingBoxes()>1)
-				pop_transform_local();
-            if (node->__do_anything) {
-                FW_GL_POP_MATRIX();
-
-        } else {
-           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-                FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
-                );
-                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
-                );
-                FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
-                );
-                FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
-                );
-                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
-                );
-            }
-        }
-        }
+	if(!renderstate()->render_vp) {
+		if(fwl_getDrawBoundingBoxes()>1)
+			pop_transform_local();
+        if (node->__do_anything) {
+            FW_GL_POP_MATRIX();
+		} else {
+			/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+			if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+				FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
+				);
+				FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+				);
+				FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+				);
+				FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+				);
+				FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+				);
+				FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
+				);
+				FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+				);
+			}
+		}
+	}
 }
 
 
