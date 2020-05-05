@@ -1408,7 +1408,8 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	//assuming our triangles are defined CCW (normal)
 	//setting front-face to GL_CW should ensure only the far/back triangles are rendered
 	glFrontFace(GL_CW); 
-	glDrawArrays(GL_TRIANGLES,0,36);
+	if(peek_group_visible())
+		glDrawArrays(GL_TRIANGLES,0,36);
 	glDisable(GL_CULL_FACE);
 	if(voxels){
 		tg->RenderFuncs.textureStackTop = 0;
@@ -1435,6 +1436,14 @@ void child_SegmentedVolumeData(struct X3D_SegmentedVolumeData *node){
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 		int itexture = 1; //voxels=0,segmentIDs=1
 
+		if(fwl_getDrawBoundingBoxes()>1){
+			push_group_extent_default();
+		}else if(renderstate()->render_geom && node->displayBBox) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		push_group_visible( node->visible && peek_group_visible());
+
+
 		if(!once)
 			printf("child segmentedvolumedata \n");
 		//int nstyles = 0;
@@ -1446,6 +1455,23 @@ void child_SegmentedVolumeData(struct X3D_SegmentedVolumeData *node){
 		render_SEGMENTED_volume_data(caps,node->segmentIdentifiers,itexture,node);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,node->renderStyle.p,node->renderStyle.n,node->voxels,(struct X3D_VolumeData*)node );
+
+		pop_group_visible();
+		if(fwl_getDrawBoundingBoxes()>1){
+			//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+			extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+			if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+			}
+			//propagate bbox up one level
+			extent6f_copy(node->_extent,peek_group_extent());
+			pop_group_extent(); // up where parents are
+			union_group_extent(node->_extent); //
+		}
+
+
+
+
 		once = 1;
 	} //if VF_Blend
 
@@ -1506,6 +1532,14 @@ void child_IsoSurfaceVolumeData(struct X3D_IsoSurfaceVolumeData *node){
 		s_shader_capabilities_t *caps;
 		int MODE;
 
+		if(fwl_getDrawBoundingBoxes()>1){
+			push_group_extent_default();
+		}else if(renderstate()->render_geom && node->displayBBox) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		push_group_visible( node->visible && peek_group_visible());
+
+
 		if(!once)
 			printf("child segmentedvolumedata \n");
 		voldataflags = SHADERFLAGS_VOLUME_DATA_ISO;
@@ -1516,9 +1550,27 @@ void child_IsoSurfaceVolumeData(struct X3D_IsoSurfaceVolumeData *node){
 			voldataflags |= SHADERFLAGS_VOLUME_DATA_ISO_MODE3;
 		caps = getVolumeProgram(node->renderStyle.p,node->renderStyle.n, voldataflags);
 		//get and set ISO-specific uniforms
+
+
 		render_ISO_volume_data(caps,node);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,node->renderStyle.p,node->renderStyle.n,node->voxels,(struct X3D_VolumeData*)node );
+
+		pop_group_visible();
+		if(fwl_getDrawBoundingBoxes()>1){
+			//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+			extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+			if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+			}
+			//propagate bbox up one level
+			extent6f_copy(node->_extent,peek_group_extent());
+			pop_group_extent(); // up where parents are
+			union_group_extent(node->_extent); //
+		}
+
+
+
 		once = 1;
 	} //if VF_Blend
 }
@@ -1535,9 +1587,33 @@ void child_VolumeData(struct X3D_VolumeData *node){
 		if(!once)
 			printf("child volumedata \n");
 		if(node->renderStyle) nstyles = 1;
+
+
+		if(fwl_getDrawBoundingBoxes()>1){
+			push_group_extent_default();
+		}else if(renderstate()->render_geom && node->displayBBox) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		push_group_visible( node->visible && peek_group_visible());
+
+
 		caps = getVolumeProgram(&node->renderStyle,nstyles, SHADERFLAGS_VOLUME_DATA_BASIC);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,&node->renderStyle,nstyles,node->voxels,(struct X3D_VolumeData*)node );
+
+		pop_group_visible();
+		if(fwl_getDrawBoundingBoxes()>1){
+			//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+			extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+			if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+			}
+			//propagate bbox up one level
+			extent6f_copy(node->_extent,peek_group_extent());
+			pop_group_extent(); // up where parents are
+			union_group_extent(node->_extent); //
+		}
+
 		once = 1;
 	} //if VF_Blend
 
