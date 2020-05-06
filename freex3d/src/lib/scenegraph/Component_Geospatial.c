@@ -2492,7 +2492,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		
 			/* Make up a new vertex. Add the geoGridOrigin to every point */
 
-			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM)) {
+			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM) || (mySRF == GEOSP_WM)) {
 				/* GD - give it to em in Latitude/Longitude/Elevation order */
 				/* UTM- or give it to em in Northing/Easting/Elevation order */
 				/* latitude - range of -90 to +90 */
@@ -2567,15 +2567,20 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 
 	/* copy the resulting array back to the ElevationGrid */
-
+	//float extent6[6];
+	//extent6f_clear(extent6);
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
 			/* copy this coordinate into our ElevationGrid array */
 			int k = i+(j*nx);
 			double2float(newpoints,mOUT.p[k].c,3);
+			//extent6f_union_vec3f(extent6,newpoints);
 			newpoints += 3;
 		}
 	}
+	//extent6f_copy(node->_extent,extent6);
+	//printf("initial extent in LCS: \n");
+	//extent6f_printf(node->_extent);
 	#ifdef VERBOSE
 	printf ("points converted to mesh coords, xyz index:\n");
 	newpoints = rep->actualCoord;
