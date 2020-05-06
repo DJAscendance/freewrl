@@ -305,6 +305,7 @@ void compile_HAnimJoint (struct X3D_HAnimJoint *node){
 			node->__do_scaleO);
 
 	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	INITIALIZE_EXTENT
 	MARK_NODE_COMPILED
 
 }
@@ -451,6 +452,7 @@ void compile_HAnimSite (struct X3D_HAnimSite *node){
 			node->__do_scaleO);
 
 	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	INITIALIZE_EXTENT
 	MARK_NODE_COMPILED
 
 }
@@ -1028,7 +1030,34 @@ void child_HAnimJoint(struct X3D_HAnimJoint *node) {
 	/* do we have to sort this node? */
 
 	/* just render the non-directionalLight children */
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && node->displayBBox) {
+		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+	}
+	push_group_visible( node->visible && peek_group_visible());
+
+	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
+
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+
+
+	//LOCAL_LIGHT_OFF
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 
 }
@@ -1114,6 +1143,7 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 				printf("\n");
 		}
 	}
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	if(fwl_getDrawBoundingBoxes()>1){
 		push_group_extent_default();
 	}else if(renderstate()->render_geom && node->displayBBox) {
@@ -1135,7 +1165,7 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 		pop_group_extent(); // up where parents are
 		union_group_extent(node->_extent); //
 	}
-
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	if(node->coord && node->displacers.n){
 		int nsc;

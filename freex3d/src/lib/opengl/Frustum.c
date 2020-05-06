@@ -898,14 +898,17 @@ float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4){
 	float p3f[8][3];
 	double p3d[8][3];
 	Quaternion rq;
-
-	extent6f_to_box3f8(ein6,p3f[0]);
-	float2double(p3d[0],p3f[0],24);
-	for(i=0;i<8;i++){
-		transformAFFINEd(p3d[i],p3d[i],mat4); 
+	if(extent6f_isSet(ein6)){
+		extent6f_to_box3f8(ein6,p3f[0]);
+		float2double(p3d[0],p3f[0],24);
+		for(i=0;i<8;i++){
+			transformAFFINEd(p3d[i],p3d[i],mat4); 
+		}
+		double2float(p3f[0],p3d[0],24);
+		extent6f_from_box3fn(eout6,p3f[0],8);
+	}else{
+		extent6f_clear(eout6);
 	}
-	double2float(p3f[0],p3d[0],24);
-	extent6f_from_box3fn(eout6,p3f[0],8);
 	return eout6;
 	
 } 
