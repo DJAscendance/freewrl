@@ -1390,7 +1390,9 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	dim = GET_UNIFORM(myProg,"fw_dimensions");
 	dimensions = node->dimensions.c;
 	GLUNIFORM3F(dim,dimensions[0],dimensions[1],dimensions[2]);
-
+	float center[3];
+	bbox2extent6f(vecset3f(center,0.0f,0.0f,0.0f),dimensions,node->_extent);
+	extent6f_union_extent6f(peek_group_extent(),node->_extent);
 	if(!once) ConsoleMessage("dim %d vp %d \n",dim,vp );
 
 	//3.2 draw with shader

@@ -94,11 +94,11 @@ void remove_picksensor(struct X3D_Node * node) {}
 
 void push_pickablegroupdata(void *userdata);
 void pop_pickablegroupdata();
-void child_PickableGroup (struct X3D_Group *node) {
-	CHILDREN_COUNT
+void child_PickableGroup (struct X3D_PickableGroup *node) {
+	//CHILDREN_COUNT
+	int nc = node->children.n;
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 	/* printf("%s:%d child_PickableGroup\n",__FILE__,__LINE__); */
-
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	if(fwl_getDrawBoundingBoxes()>1){
