@@ -83,7 +83,13 @@ static void rendVisibilityBox (struct X3D_VisibilitySensor *node);
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void render_ProximitySensor (struct X3D_ProximitySensor *node) {
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	//equivalent ot setExtent:
+	bbox2extent6f(node->center.c,node->size.c,node->_extent);
+	if(renderstate()->render_geom && fwl_getDrawBoundingBoxes()) {
+		draw_bbox(node->center.c,node->size.c);
+	}
+	//propagate bbox up one level
+	union_group_extent(node->_extent); //
 }
 void proximity_ProximitySensor (struct X3D_ProximitySensor *node) {
 	/* Viewer pos = t_r2 */

@@ -2759,8 +2759,19 @@ static int isMobile = TRUE;
 #else
 static int isMobile = FALSE;
 #endif
-static float glsl_version = 0.0f;
-static int max_shader_version = 130;
+int get_GLSL_max_version(){
+	static int once = FALSE;
+	static float glsl_version = 0.0f;
+	static int max_shader_version = 130;
+	if(!once){
+		const GLubyte * glsl_version_str = glGetString ( GL_SHADING_LANGUAGE_VERSION);
+		sscanf(glsl_version_str,"%f",&glsl_version);
+		max_shader_version = (int)(glsl_version * 100.0f + .4f);
+		ConsoleMessage("GLSL shader max version %s %d\n", glsl_version_str, max_shader_version );
+		once = TRUE;
+	}
+	return max_shader_version;
+}
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne) 
 {
@@ -2771,17 +2782,18 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	int retval, unique_int;
 	char *CompleteCode[3];
 	char *vs, *fs;
-	static once = FALSE;
+	static int GLSL_max_version = 0;
 	retval = FALSE;
 	if(whichOne.usershaders ) //& USER_DEFINED_SHADER_MASK) 
 		return retval; //not supported yet as of Aug 9, 2016
 	retval = TRUE;
-	if(!once){
-		const GLubyte * glsl_version_str = glGetString ( GL_SHADING_LANGUAGE_VERSION);
-		sscanf(glsl_version_str,"%f",&glsl_version);
-		max_shader_version = (int)(glsl_version * 100.0f + .4f);
-		printf("GLSL shader version support %s %4.2f %d\n", glsl_version_str, glsl_version, max_shader_version );
-		once = TRUE;
+	if(!GLSL_max_version){
+		//const GLubyte * glsl_version_str = glGetString ( GL_SHADING_LANGUAGE_VERSION);
+		//sscanf(glsl_version_str,"%f",&glsl_version);
+		//max_shader_version = (int)(glsl_version * 100.0f + .4f);
+		//printf("GLSL shader version support %s %4.2f %d\n", glsl_version_str, glsl_version, max_shader_version );
+		//once = TRUE;
+		GLSL_max_version = get_GLSL_max_version();
 	}
 	//generic
 	vs = strdup(getGenericVertex());
@@ -2802,14 +2814,14 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddVersion(SHADERPART_FRAGMENT, 100, CompleteCode); //lower precision floats
 		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
 	}else{
-		if(max_shader_version >= 130) {
+		if(GLSL_max_version >= 130) {
 			AddVersion(SHADERPART_VERTEX, 130, CompleteCode); //lower precision floats
 			AddVersion(SHADERPART_FRAGMENT, 130, CompleteCode); //lower precision floats
 			AddDefine(SHADERPART_VERTEX,"FULL",CompleteCode); //lower precision floats
 			AddDefine(SHADERPART_FRAGMENT,"FULL",CompleteCode); //lower precision floats
 		}else{
-			AddVersion(SHADERPART_VERTEX, max_shader_version, CompleteCode); //lower precision floats
-			AddVersion(SHADERPART_FRAGMENT, max_shader_version, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_VERTEX, GLSL_max_version, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_FRAGMENT, GLSL_max_version, CompleteCode); //lower precision floats
 		}
 	}
 

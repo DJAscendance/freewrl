@@ -332,6 +332,9 @@ iOLDCODE	}Component_Networking;
 	struct tComponent_VolumeRendering{
 		void *prv;
 	}Component_VolumeRendering;
+	struct tComponent_Grouping{
+		void *prv;
+	}Component_Grouping;
 	struct tRenderFuncs{
 		#ifdef OLDCODE
 		OLDCODE char *OSX_last_world_url_for_reload;

@@ -45,6 +45,7 @@ X3D Navigation Component
 #include "../opengl/Frustum.h"
 #include "Children.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Frustum.h"
 #include "../scenegraph/RenderFuncs.h"
 
 
@@ -125,12 +126,14 @@ void proximity_Billboard (struct X3D_Billboard *node) {
 void prep_Billboard (struct X3D_Billboard *node) {
 	if(1){
 		//Mar 14 2018 this works with geoViewpoint (GeoTouchSensorExampleB.x3d) and viewpoint (47.x3d)
-		double mod[16], modi[16], axis[3];
+		double mod[16], modi[16], matr[16], axis[3];
 		int align;
 
 		RECORD_DISTANCE
+		push_transform_local_identity();
 
 		FW_GL_PUSH_MATRIX();
+
 		//to align with viewepoint, cancel/undo any rotations in modelview matrix
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
 		float2double(axis,node->axisOfRotation.c,3);
@@ -140,8 +143,8 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			// cancel/undo rotations of modelview matrix:
 			double modb[16], modbi[16];
 			matrixAFFINE2RotationMatrix(modb,mod);
-			matinverseAFFINE(modbi,modb);
-			FW_GL_TRANSFORM_D(modbi);
+			matinverseAFFINE(matr,modb);
+			FW_GL_TRANSFORM_D(matr);
 		}else{
 			// normal axisOfRotation
 			//we calculate an additional swing matrix around the axisOfRotation
@@ -150,7 +153,7 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			//3. cross axisOfRotation with zvec to get a perpendicular to both
 			//4. get a rotation difference matrix between those 2 perrp vectors 
 			//5. modify modelview by subtracting off the difference rotation
-			double vpos[3], zvec[3], perpa[3], perpb[3], matr[16];
+			double vpos[3], zvec[3], perpa[3], perpb[3];
 			//calculate position of viewpoint vp in billboard-local coords: vpos
 			vecsetd(vpos,0.0,0.0,0.0);
 			matinverseAFFINE(modi,mod);
@@ -165,6 +168,8 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			matrotate2vd(matr,perpa,perpb);
 			FW_GL_TRANSFORM_D(matr);
 		}
+		reset_transform_local(matr);
+
 	}else{
 		// not sure why the old way looked at viewer Quat in case of axisOfRotation 0 0 0
 		// x didn't work with geoViewpoint
@@ -250,39 +255,25 @@ void prep_Billboard (struct X3D_Billboard *node) {
 
 void fin_Billboard (struct X3D_Billboard *node) {
 	UNUSED(node);
+	pop_transform_local();
+
 	FW_GL_POP_MATRIX();
 }
 
 
 void  child_Billboard (struct X3D_Billboard *node) {
     int nc = node->children.n;
-	//LOCAL_LIGHT_SAVE
-
 
 	/* any children at all? */
 	if (nc==0) return;
 
-	#ifdef CHILDVERBOSE
-	printf("RENDER BILLBOARD START %d (%d)\n",node, nc);
-	#endif
-
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	/* now, just render the non-directionalLight children */
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->children);
-
-	if (renderstate()->render_geom && (!renderstate()->render_blend)) {
-		EXTENTTOBBOX
-	}
-
-	#ifdef CHILDVERBOSE
-	printf("RENDER BILLBOARD END %d\n",node);
-	#endif
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-	//LOCAL_LIGHT_OFF
 }
 
 
@@ -352,25 +343,15 @@ void child_Collision (struct X3D_Collision *node) {
 		}
 
 	} else { /*standard group behaviour*/
-		//LOCAL_LIGHT_SAVE
-
-		#ifdef CHILDVERBOSE
-		printf("RENDER COLLISIONCHILD START %d (%d)\n",node, nc);
-		#endif
 
 		/* do we have a local light for a child? */
-		//LOCAL_LIGHT_CHILDREN(node->children);
 		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 		/* now, just render the non-directionalLight children */
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
 		normalChildren(node->children);
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
-		#ifdef CHILDVERBOSE
-		printf("RENDER COLLISIONCHILD END %d\n",node);
-		#endif
-		//LOCAL_LIGHT_OFF
 		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	}
 }
 
@@ -394,7 +375,11 @@ if ((selno->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) prin
 printf ("\n");
 }
 */
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	render_node(node->_selected);
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 }
 
 

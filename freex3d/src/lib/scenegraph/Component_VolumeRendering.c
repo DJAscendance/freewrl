@@ -1390,7 +1390,9 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	dim = GET_UNIFORM(myProg,"fw_dimensions");
 	dimensions = node->dimensions.c;
 	GLUNIFORM3F(dim,dimensions[0],dimensions[1],dimensions[2]);
-
+	float center[3];
+	bbox2extent6f(vecset3f(center,0.0f,0.0f,0.0f),dimensions,node->_extent);
+	extent6f_union_extent6f(peek_group_extent(),node->_extent);
 	if(!once) ConsoleMessage("dim %d vp %d \n",dim,vp );
 
 	//3.2 draw with shader
@@ -1408,7 +1410,8 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	//assuming our triangles are defined CCW (normal)
 	//setting front-face to GL_CW should ensure only the far/back triangles are rendered
 	glFrontFace(GL_CW); 
-	glDrawArrays(GL_TRIANGLES,0,36);
+	if(peek_group_visible())
+		glDrawArrays(GL_TRIANGLES,0,36);
 	glDisable(GL_CULL_FACE);
 	if(voxels){
 		tg->RenderFuncs.textureStackTop = 0;
@@ -1435,6 +1438,8 @@ void child_SegmentedVolumeData(struct X3D_SegmentedVolumeData *node){
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 		int itexture = 1; //voxels=0,segmentIDs=1
 
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 		if(!once)
 			printf("child segmentedvolumedata \n");
 		//int nstyles = 0;
@@ -1446,6 +1451,9 @@ void child_SegmentedVolumeData(struct X3D_SegmentedVolumeData *node){
 		render_SEGMENTED_volume_data(caps,node->segmentIdentifiers,itexture,node);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,node->renderStyle.p,node->renderStyle.n,node->voxels,(struct X3D_VolumeData*)node );
+
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 		once = 1;
 	} //if VF_Blend
 
@@ -1506,6 +1514,8 @@ void child_IsoSurfaceVolumeData(struct X3D_IsoSurfaceVolumeData *node){
 		s_shader_capabilities_t *caps;
 		int MODE;
 
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 		if(!once)
 			printf("child segmentedvolumedata \n");
 		voldataflags = SHADERFLAGS_VOLUME_DATA_ISO;
@@ -1516,9 +1526,14 @@ void child_IsoSurfaceVolumeData(struct X3D_IsoSurfaceVolumeData *node){
 			voldataflags |= SHADERFLAGS_VOLUME_DATA_ISO_MODE3;
 		caps = getVolumeProgram(node->renderStyle.p,node->renderStyle.n, voldataflags);
 		//get and set ISO-specific uniforms
+
+
 		render_ISO_volume_data(caps,node);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,node->renderStyle.p,node->renderStyle.n,node->voxels,(struct X3D_VolumeData*)node );
+
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 		once = 1;
 	} //if VF_Blend
 }
@@ -1535,9 +1550,15 @@ void child_VolumeData(struct X3D_VolumeData *node){
 		if(!once)
 			printf("child volumedata \n");
 		if(node->renderStyle) nstyles = 1;
+
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 		caps = getVolumeProgram(&node->renderStyle,nstyles, SHADERFLAGS_VOLUME_DATA_BASIC);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,&node->renderStyle,nstyles,node->voxels,(struct X3D_VolumeData*)node );
+
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 		once = 1;
 	} //if VF_Blend
 

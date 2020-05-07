@@ -5397,7 +5397,6 @@ void startOfLoopNodeUpdates(void) {
 
 				/* Anchor is Mouse Sensitive, AND has Children nodes */
 				BEGIN_NODE(Anchor)
-					propagateExtent(X3D_NODE(node));
 					ANCHOR_SENSITIVE(Anchor)
 					CHILDREN_NODE(Anchor)
 				END_NODE
@@ -5408,7 +5407,6 @@ void startOfLoopNodeUpdates(void) {
 				END_NODE
 
 				BEGIN_NODE(CADLayer)
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(Switch)
 				END_NODE
 
@@ -5416,7 +5414,6 @@ void startOfLoopNodeUpdates(void) {
 				BEGIN_NODE(CADPart)
 					sortChildren (__LINE__,&X3D_CADPART(node)->children,&X3D_CADPART(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(CADPart)
 				END_NODE
 
@@ -5424,7 +5421,6 @@ void startOfLoopNodeUpdates(void) {
 				BEGIN_NODE(CADAssembly)
 					sortChildren (__LINE__,&X3D_CADASSEMBLY(node)->children,&X3D_CADASSEMBLY(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(CADAssembly)
 				END_NODE
 
@@ -5442,7 +5438,6 @@ void startOfLoopNodeUpdates(void) {
 					/* we should probably not do this, but... */
 					sortChildren (__LINE__,&X3D_STATICGROUP(node)->children,&X3D_STATICGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 				END_NODE
 
 
@@ -5450,28 +5445,24 @@ void startOfLoopNodeUpdates(void) {
 				BEGIN_NODE(Group)
 					sortChildren (__LINE__,&X3D_GROUP(node)->children,&X3D_GROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(Group)
 				END_NODE
 
 				BEGIN_NODE(PickableGroup)
 					//sortChildren (__LINE__,&X3D_PICKABLEGROUP(node)->children,&X3D_PICKABLEGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					//TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(PickableGroup)
 				END_NODE
 
 				BEGIN_NODE(Inline)
 					sortChildren (__LINE__,&X3D_INLINE(node)->__children,&X3D_INLINE(node)->_sortedChildren,node->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_ANY_NODE(Inline,__children)
 				END_NODE
 
 				BEGIN_NODE(Transform)
 					sortChildren (__LINE__,&X3D_TRANSFORM(node)->children,&X3D_TRANSFORM(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(Transform)
 				END_NODE
 
@@ -5498,23 +5489,19 @@ void startOfLoopNodeUpdates(void) {
 				END_NODE
 
 				BEGIN_NODE(Billboard)
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(Billboard)
 					update_renderFlag(pnode,VF_Proximity);
 				END_NODE
 
 				BEGIN_NODE(Collision)
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(Collision)
 				END_NODE
 
 				BEGIN_NODE(Switch)
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_SWITCH_NODE(Switch)
 				END_NODE
 
 				BEGIN_NODE(LOD)
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_LOD_NODE
 							update_renderFlag(pnode,VF_Proximity);
 				END_NODE
@@ -5597,25 +5584,21 @@ void startOfLoopNodeUpdates(void) {
 						handle_GeoLODRange(X3D_GEOLOD(node));
 					}
 					/* update_renderFlag(pnode,VF_Proximity); */
-					propagateExtent(X3D_NODE(node));
 				END_NODE
 
 				BEGIN_NODE (GeoTransform)
 					sortChildren (__LINE__,&X3D_GEOTRANSFORM(node)->children,&X3D_GEOTRANSFORM(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(GeoTransform)
 				END_NODE
 
 				BEGIN_NODE (GeoLocation)
 					sortChildren (__LINE__,&X3D_GEOLOCATION(node)->children,&X3D_GEOLOCATION(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
 					TURN_OFF_SHOULDSORTCHILDREN
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(GeoLocation)
 				END_NODE
 
 				BEGIN_NODE (EspduTransform)
-					propagateExtent(X3D_NODE(node));
 					CHILDREN_NODE(EspduTransform)
 				END_NODE
 

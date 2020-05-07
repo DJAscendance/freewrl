@@ -3707,18 +3707,6 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 
 }
-//void prep_EspduTransform0(struct X3D_EspduTransform *node){
-//	//if(!renderstate()->render_vp) {
-//		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
-//		/* did either we or the Viewpoint move since last time? */
-//		//RECORD_DISTANCE
-//		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
-//	//}
-//
-//}
-//void fin_EspduTransform0(struct X3D_EspduTransform *node){
-//	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-//}
 
 void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
@@ -4119,11 +4107,13 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
-
+		push_transform_local_identity();
 
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -4155,10 +4145,19 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
 
 		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 
 }
@@ -4168,6 +4167,7 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -4272,7 +4272,6 @@ void render_detonation(struct X3D_EspduTransform *node){
 }
 void dis_register_collide(struct X3D_Node* node,double *transform);
 void child_EspduTransform (struct X3D_EspduTransform *node) {
-	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
 
@@ -4285,38 +4284,19 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		dis_register_collide(X3D_NODE(node),modelviewMatrix);
 	}
-	//if(node->__sibAffectors.n)
-	//	printf("have transform sibaffectors\n");
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-
-	//profile_start("local_light_kids");
-	/* do we have a local light for a child? */
-//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
-	//profile_end("local_light_kids");
-	/* now, just render the non-directionalLight children */
-
-	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - doing normalChildren\n");
-	#endif
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->_sortedChildren);
-
 	//render munitions
 	render_munitions(node);
 	//render detonations
 	render_detonation(node);
 	//render collisions
 
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
-	#ifdef CHILDVERBOSE
-		printf ("transform - done normalChildren\n");
-	#endif
-
-//	LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
@@ -4345,21 +4325,18 @@ void child_TransmitterPdu (struct X3D_TransmitterPdu *node) {
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_SignalPdu (struct X3D_SignalPdu *node) { 
 	COMPILE_IF_REQUIRED
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_ReceiverPdu (struct X3D_ReceiverPdu *node) { 
 	COMPILE_IF_REQUIRED
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 
 //<< RADIO

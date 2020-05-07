@@ -435,6 +435,7 @@ void fwl_updateScreenDim(int wi, int he)
  * On all platforms, when we don't have GLEW, we simulate it.
  * In any case we setup the rdr_capabilities struct.
  */
+ int get_GLSL_max_version();
 bool initialize_rdr_caps()
 {
 	//s_renderer_capabilities_t *rdr_caps;
@@ -465,7 +466,7 @@ bool initialize_rdr_caps()
     FW_GL_GETBOOLEANV(GL_STEREO,&(p->rdr_caps.quadBuffer));
     //if (rdr_caps.quadBuffer) ConsoleMessage("INIT HAVE QUADBUFFER"); else ConsoleMessage("INIT_ NO QUADBUFFER");
     ConsoleMessage("openGL version %s\n",p->rdr_caps.version);
-
+	get_GLSL_max_version();
 	/* rdr_caps.version = "1.5.7"; //"1.4.1"; //for testing */
 	if (p->rdr_caps.version)
 		p->rdr_caps.versionf = (float) atof(p->rdr_caps.version); 

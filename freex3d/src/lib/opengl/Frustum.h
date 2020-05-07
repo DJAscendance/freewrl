@@ -111,7 +111,7 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry);
 void moveAndRotateThisPoint(struct point_XYZ *mypt, double x, double y, double z, double *MM);
 void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me);
 void printmatrix(GLDOUBLE* mat);
-void propagateExtent(struct X3D_Node *me);
+
 void record_ZBufferDistance(struct X3D_Node *node);
 void OcclusionStartofRenderSceneUpdateScene(void);
 void OcclusionCulling (void);
@@ -145,6 +145,7 @@ float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4);
 float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4);
 void extent6f_printf(float *extent6);
 void extent6f_draw(float *extent); //in CursorDraw.c
-
-
+void bbox2extent6f(float* center, float *size, float *extent6);
+void extent6f2bbox(float *extent6, float* center, float *size);
+void draw_bbox(float *center, float *size);
 #endif /* __FREEWRL_FRUSTUM_H__ */

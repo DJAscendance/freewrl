@@ -305,6 +305,7 @@ void compile_HAnimJoint (struct X3D_HAnimJoint *node){
 			node->__do_scaleO);
 
 	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	INITIALIZE_EXTENT
 	MARK_NODE_COMPILED
 
 }
@@ -324,11 +325,14 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 	//OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		push_transform_local_identity();
 
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -377,6 +381,16 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
 
 		RECORD_DISTANCE
@@ -391,6 +405,7 @@ void fin_HAnimJoint (struct X3D_HAnimJoint *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -434,6 +449,7 @@ void compile_HAnimSite (struct X3D_HAnimSite *node){
 			node->__do_scaleO);
 
 	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	INITIALIZE_EXTENT
 	MARK_NODE_COMPILED
 
 }
@@ -454,9 +470,13 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		push_transform_local_identity();
+
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -488,6 +508,15 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
 
 		RECORD_DISTANCE
@@ -502,6 +531,7 @@ void fin_HAnimSite (struct X3D_HAnimSite *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -764,6 +794,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		normalChildren(node->viewpoints);
 		return;
 	}
+
 	if(node->motions.n){
 		for(int i=0;i<node->motions.n;i++){
 			if(node->motionsEnabled.p[i])
@@ -793,6 +824,10 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	if(0) normalChildren(node->sites);
 
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+
 	/* Lets do skeleton fourth */
 	/* do we have to sort this node? */
 	/* now, just render the non-directionalLight skeleton */
@@ -830,7 +865,11 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	}
+
+
+
 	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
+
 
 	if(node->skin.n){
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -946,6 +985,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	} //if skin
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 
@@ -967,9 +1008,14 @@ void child_HAnimJoint(struct X3D_HAnimJoint *node) {
 	/* do we have to sort this node? */
 
 	/* just render the non-directionalLight children */
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
 
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 float *vecmix3f(float *out3, float* a3, float *b3, float fraction){
 	int i;
@@ -1053,7 +1099,14 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 				printf("\n");
 		}
 	}
+	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 	normalChildren(node->children);
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
 	if(node->coord && node->displacers.n){
 		int nsc;
 		float *psc;
@@ -1068,22 +1121,19 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 void child_HAnimSite(struct X3D_HAnimSite *node) {
 
 	//CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
 	//RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
 	/* do we have to sort this node? */
 
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
 
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-
 }
 
 

@@ -2492,7 +2492,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		
 			/* Make up a new vertex. Add the geoGridOrigin to every point */
 
-			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM)) {
+			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM) || (mySRF == GEOSP_WM)) {
 				/* GD - give it to em in Latitude/Longitude/Elevation order */
 				/* UTM- or give it to em in Northing/Easting/Elevation order */
 				/* latitude - range of -90 to +90 */
@@ -2567,15 +2567,20 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 
 	/* copy the resulting array back to the ElevationGrid */
-
+	//float extent6[6];
+	//extent6f_clear(extent6);
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
 			/* copy this coordinate into our ElevationGrid array */
 			int k = i+(j*nx);
 			double2float(newpoints,mOUT.p[k].c,3);
+			//extent6f_union_vec3f(extent6,newpoints);
 			newpoints += 3;
 		}
 	}
+	//extent6f_copy(node->_extent,extent6);
+	//printf("initial extent in LCS: \n");
+	//extent6f_printf(node->_extent);
 	#ifdef VERBOSE
 	printf ("points converted to mesh coords, xyz index:\n");
 	newpoints = rep->actualCoord;
@@ -2605,6 +2610,14 @@ int planetInPlanets(int planet, struct Multi_Int32 *planets){
 	return ifound > -1;
 }
 void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID);
+void setExtentGeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	if( extent6f_isSet(node->_extent)) {
+		float ef6[6];
+		extent6f_rotate4d(ef6, node->_extent, node->__localOrient.c);
+		extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
+		union_group_extent(ef6); //May 2020
+	}
+}
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
 	checkX3DGeoElelvationGridFields *see function above
@@ -2628,6 +2641,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 		node->__planets.p[node->__planets.n] = planetID;
 		node->__planets.n++;
 	}
+	setExtentGeoElevationGrid(node);
 }
 
 /************************************************************************/
@@ -2674,8 +2688,6 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 void child_GeoLocation (struct X3D_GeoLocation *node) {
 	CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
-	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	OCCLUSIONTEST
@@ -2697,27 +2709,12 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
 	/* do we have a local for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	/* now, just render the non-directionalLight children */
-
-	/* printf ("GeoLocation %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("GeoLocation - doing normalChildren\n");
-	#endif
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->children);
-
-	#ifdef CHILDVERBOSE
-		printf ("GeoLocation - done normalChildren\n");
-	#endif
-
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 }
 
 /* do transforms, calculate the distance */
@@ -2738,7 +2735,7 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 }
 void fin_GeoLocation (struct X3D_GeoLocation *node) {
@@ -2893,6 +2890,10 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 		printf ("hmmm - GeoLOD %p was level %d, now %d\n",node,node->__level, p->geoLodLevel);
 	}
 
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+
 	#ifdef VERBOSE
 	if ( node->__inRange) {
 		printf ("GeoLOD %u (level %d) closer\n",node,p->geoLodLevel);
@@ -2974,6 +2975,9 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 		p->geoLodLevel--;
 
 	}
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 }
 
 /************************************************************************/
@@ -3276,7 +3280,19 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
 			FW_GL_PUSH_MATRIX();
+			push_transform_local_identity();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 			geoprep0(geoSystem,userCoord);
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		}
 	}
 }
@@ -3284,6 +3300,7 @@ void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
+			pop_transform_local();
 			FW_GL_POP_MATRIX();
 		}else{
 			geoprepT0(geoSystem,userCoord);
@@ -3292,10 +3309,17 @@ void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 }
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) {
+	if(renderstate()->render_geom && fwl_getDrawBoundingBoxes()) {
 		COMPILE_IF_REQUIRED 
 		geoprep(GEOSYS(node->__geoSystem),&node->center);
-		extent6f_draw(node->_extent);
+		float center[3];
+		double2float(center,node->center.c,3);
+		bbox2extent6f(center,node->size.c,node->_extent);
+		draw_bbox(center,node->size.c);
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
+		union_group_extent(node->_extent); //
+		//extent6f_draw(node->_extent);
 		geofin(GEOSYS(node->__geoSystem),&node->center);
 	}
 }
@@ -4082,9 +4106,12 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		push_transform_local_identity();
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -4116,6 +4143,16 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
 
 		RECORD_DISTANCE
@@ -4128,6 +4165,7 @@ void fin_GeoTransform (struct X3D_GeoTransform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -4201,12 +4239,25 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	// to this node TCS (topocentric coordinate system
 	if(!renderstate()->render_vp) {
 		FW_GL_PUSH_MATRIX();
+		push_transform_local_identity();
+		FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+		FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 		geoprepT0(geoSystem,userCoord);
+		{
+			double mat[16];
+
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+			FW_GL_POP_MATRIX();
+			FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+			reset_transform_local(mat);
+		}
+
 	}
 
 }
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		FW_GL_POP_MATRIX();
 	}else{
 		geoprep0(geoSystem,userCoord);
@@ -4248,9 +4299,31 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter);
+	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter); //bbox- we also push a local transform
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 	normalChildren(node->children);
-	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter);
+
+	pop_group_visible();
+	{
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->displayBBox || fwl_getDrawBoundingBoxes() )) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		//1st step of 2-step extent transform
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		//union_group_extent(node->_extent); // NO UNION HERE, SEE +6 LINES
+	}
+	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter); //we also pop a local transform
+	{
+		//2nd step of 2-step extent transform
+		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
+		union_group_extent(node->_extent);
+	}
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
@@ -4361,6 +4434,7 @@ int geoelevationgrid_getGDHeight0(struct X3D_GeoElevationGrid *node, struct SFVe
 	//naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
 
 	nodeSystem = GEOSYS(node->__geoSystem);
+	if(!nodeSystem) return 0;
 	hit = -1; //caller: watch out, this can be -1 on return. only 1 means true hit
 	//get target node's gdCoord into GEG's gdcoord 
 	veccopyd(xxCoord.c,gdCoord->c); 
@@ -4753,33 +4827,45 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 
 		planet = current_planet();
 		//we need to get the LCS to GC transform on the stack
+
 		FW_GL_PUSH_MATRIX();
+		push_transform_local_identity();
+		FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+		FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+
 		veccopyd(ao,planet->autoOrigin.c);
 		veccopy4d(aoo,planet->autoOrient.c);
 		FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
 		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
 
+		{
+			double mat[16];
+
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+			FW_GL_POP_MATRIX();
+			FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+			reset_transform_local(mat);
+		}
 
 		/* did either we or the Viewpoint move since last time? */
 		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 
 }
 	
 void child_GeoPlanet(struct X3D_GeoPlanet *node){
 	CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
-	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 //	OCCLUSIONTEST
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->children);
 
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 void fin_GeoPlanet(struct X3D_GeoPlanet *node){
@@ -4788,6 +4874,7 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		FW_GL_POP_MATRIX();
 	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {

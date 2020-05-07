@@ -46,6 +46,119 @@ X3D Grouping Component
 #include "Children.h"
 #include "../scenegraph/RenderFuncs.h"
 
+typedef struct extent_type {
+float e[6];
+} extent_t;
+typedef struct mat4x4_type {
+	double mat[16];
+} mat4x4_t;
+typedef struct pComponent_Grouping{
+	Stack *group_visible_stack;
+	Stack *group_extent_stack;
+	Stack *transform_local_stack;
+}* ppComponent_Grouping;
+void *Component_Grouping_constructor(){
+	void *v = MALLOCV(sizeof(struct pComponent_Grouping));
+	memset(v,0,sizeof(struct pComponent_Grouping));
+	return v;
+}
+void Component_Grouping_init(struct tComponent_Grouping *t){
+	//public
+
+	//private
+	t->prv = Component_Grouping_constructor();
+	{
+		ppComponent_Grouping p = (ppComponent_Grouping)t->prv;
+		p->group_visible_stack = newStack(int);
+		stack_push(int,p->group_visible_stack,TRUE); //need something/default to && with at top of stack
+		p->group_extent_stack = newStack(extent_t);
+		p->transform_local_stack = newStack(mat4x4_t);
+	}
+}
+void Component_Grouping_clear(struct tComponent_Grouping *t){
+	ppComponent_Grouping p = (ppComponent_Grouping)t->prv;
+	deleteVector(struct X3D_Node*,p->transform_local_stack);
+	deleteVector(struct X3D_Node*,p->group_extent_stack);
+	deleteVector(struct X3D_Node*,p->group_visible_stack);
+}
+
+
+
+// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+void push_group_visible(int visible){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_push(int,p->group_visible_stack,visible);
+}
+void pop_group_visible(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(int,p->group_visible_stack);
+}
+int peek_group_visible(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return stack_top(int,p->group_visible_stack);
+}
+
+// v4 bbox functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+// children - geometry - will union their extent with the stack top owned by group with bbox (or scene root)
+void push_group_extent(float *e6){
+	extent_t e;
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	memcpy(&e.e,e6,6*sizeof(float));
+	stack_push(extent_t,p->group_extent_stack,e);
+}
+void push_group_extent_default(){
+	float extent6[6];
+	extent6f_clear(extent6);
+	push_group_extent(extent6);
+}
+void pop_group_extent(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(extent_t,p->group_extent_stack);
+}
+float * peek_group_extent(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return (stack_top_ptr(extent_t,p->group_extent_stack))->e;
+}
+void union_group_extent(float *e6){
+	float *etop = peek_group_extent();
+	extent6f_union_extent6f(etop,e6);
+}
+void draw_bbox(float *center, float *size);
+
+
+// v4 bbox functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+// children - geometry - will union their extent with the stack top owned by group with bbox (or scene root)
+void push_transform_local(double *mat){
+	mat4x4_t m4;
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	memcpy(&m4.mat,mat,16*sizeof(double));
+	stack_push(mat4x4_t,p->transform_local_stack,m4);
+}
+void push_transform_local_identity(){
+	double m4[16];
+	matidentity4d(m4);
+	push_transform_local(m4);
+}
+void pop_transform_local(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	stack_pop(mat4x4_t,p->transform_local_stack);
+}
+double * peek_transform_local(){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	return (stack_top_ptr(mat4x4_t,p->transform_local_stack))->mat;
+}
+void reset_transform_local(double *mat){
+	//no push or pop here, assume already pushed
+	double *mattop = peek_transform_local();
+	memcpy(mattop,mat,16*sizeof(double));
+}
+void multiply_transform_local(double *mat){
+	//no push or pop here, assume already pushed
+	double matboth[16];
+	double *mattop = peek_transform_local();
+	matmultiplyAFFINE(matboth,mat,mattop);
+	memcpy(mattop,matboth,16*sizeof(double));
+}
 void compile_Transform (struct X3D_Transform *node) { 
 	INITIALIZE_EXTENT;
 
@@ -121,9 +234,12 @@ void prep_Transform (struct X3D_Transform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		push_transform_local_identity();
 		if (node->__do_anything) {
 
-			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this one will persist till fin_Transform pops it
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -155,11 +271,20 @@ void prep_Transform (struct X3D_Transform *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
 		} 
 
 		RECORD_DISTANCE
 
 	}
+
 }
 
 
@@ -167,6 +292,7 @@ void fin_Transform (struct X3D_Transform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -210,7 +336,12 @@ void child_Switch (struct X3D_Switch *node) {
 	if(n && pp){
 		if(wc >= 0 && wc < n){
 			void * p = pp[wc];
+
+			prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 			render_node(p);
+		
+			fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 		}
 	}
 	//if (node->__isX3D ||  (node->children).n) {
@@ -311,6 +442,38 @@ void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
 	}
 }
 
+//WARNING all nodes that use prep_childrenBBox /fin_ musht have bbox fields in same order
+// (this is a way to avoid macros, and re-casting lookups)
+//struct BBoxFields {
+//	struct SFVec3f bboxCenter;
+//	struct SFVec3f bboxSize;
+//	int visible;
+//	int displayBBox;
+//
+//};
+void prep_BBox(struct BBoxFields *bfields){
+	push_group_extent_default();
+	push_group_visible( bfields->visible && peek_group_visible());
+}
+void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
+	pop_group_visible();
+	//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+	extent6f2bbox(peek_group_extent(),bfields->bboxCenter.c,bfields->bboxSize.c);
+	if(renderstate()->render_geom && (bfields->displayBBox || fwl_getDrawBoundingBoxes() )) {
+		draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
+	}
+	//propagate bbox up one level
+	if(transtype){
+		//for transform type nodes, we capture a matrix in prep_Transform (and pop it in fin_Transform)
+		//so we can transform the bbox up one level into parent space - so called 'propagating' extent
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+	}else{
+		//non-transforming grouping nodes - just copy bbox of children into parent space
+		extent6f_copy(node->_extent,peek_group_extent());
+	}
+	pop_group_extent(); // up where parents are
+	union_group_extent(node->_extent); //
+}
 void child_StaticGroup (struct X3D_StaticGroup *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
@@ -329,7 +492,9 @@ void child_StaticGroup (struct X3D_StaticGroup *node) {
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
@@ -409,8 +574,9 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
 	/* now, just render the non-directionalLight children */
 	// UNUSED renderFirstProtoChildOnlyAsPerSpecs = 0; //flux/vivaty render all children
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 //	LOCAL_LIGHT_OFF
 	
@@ -459,10 +625,10 @@ void child_Transform (struct X3D_Transform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	if(renderstate()->render_geom && node->displayBBox) 
-		extent6f_draw(node->_extent);
-	if(renderstate()->render_geom && node->visible)
-		normalChildren(node->_sortedChildren);
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+	normalChildren(node->_sortedChildren);
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
@@ -630,24 +796,9 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-		
-	/* do we have a DirectionalLight for a child? */
-	//if(nc){
-	//	LOCAL_LIGHT_CHILDREN(node->__children);
-	//}else{
-	//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
-	//}
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
-	/* printf ("chld_Group, for %u, protodef %d and FreeWRL_PROTOInterfaceNodes.n %d\n",
-		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
-	/* now, just render the non-directionalLight children */
-	//if ((node->FreeWRL__protoDef!=INT_ID_UNDEFINED) && renderstate()->render_geom) {
-	//	(node->children).n = 1;
-	//	normalChildren(node->children);
-	//	(node->children).n = nc;
-	//} else {
-	//	normalChildren(node->_sortedChildren);
-	//}
+
 	sceneflag = ciflag_get(node->__protoFlags,2);
 	renderFirstProtoChildOnlyAsPerSpecs = TRUE;  //FALSE is like flux / vivaty
 	//I don't think inline.children comes through here, just scene and protoInstance
@@ -666,7 +817,8 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 		}
 	}
 
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	fin_unitscale(node);
 }

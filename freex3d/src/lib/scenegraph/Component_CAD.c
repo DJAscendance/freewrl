@@ -53,7 +53,11 @@ X3D Rendering Component
 /************************************************************************/
 
 void child_CADFace (struct X3D_CADFace *node) {
+	
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	if (node->shape != NULL) render_node(node->shape);
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 }
 
 /************************************************************************/
@@ -73,18 +77,15 @@ void prep_CADAssembly (struct X3D_CADAssembly *node) {
 /*child_CADAssembly - check with child_Group for detailed explanations */
 void child_CADAssembly (struct X3D_CADAssembly *node) {
     CHILDREN_COUNT
-    //LOCAL_LIGHT_SAVE
-    
     RETURN_FROM_CHILD_IF_NOT_FOR_ME
     
-    /* do we have a DirectionalLight for a child? */
-    //LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-    
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+   
     normalChildren(node->_sortedChildren);
-    
-    //LOCAL_LIGHT_OFF
-	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
 /* we compile the CADAssembly so that children are not continuously sorted */
@@ -113,12 +114,16 @@ void compile_CADAssembly (struct X3D_CADAssembly *node) {
 
 void child_CADLayer (struct X3D_CADLayer *node) {
     int i;
-	if(node->visible)
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+	// this kind of visiblility just blocks shape rendering, not picking or anything else// if(peek_group_visible())
     for (i=0; i<node->children.n; i++) {
-	//if (i >= node->visible.n) render_node(node->children.p[i]); 
-        //else if (node->visible.p[i]) 
+	if (i >= node->visibles.n) render_node(node->children.p[i]); 
+        else if (node->visibles.p[i]) 
 		render_node(node->children.p[i]);
     }
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 }
 
 /************************************************************************/
@@ -141,17 +146,20 @@ void prep_CADPart (struct X3D_CADPart *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		push_transform_local_identity();
 		if (node->__do_anything) {
 
-		FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
 				FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]);
 
-	                /* CENTER */
-        	        if (node->__do_center)
-                	        FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
+	        /* CENTER */
+        	if (node->__do_center)
+                	FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]);
 
 
 			/* ROTATION */
@@ -172,19 +180,26 @@ void prep_CADPart (struct X3D_CADPart *node) {
 			if (node->__do_scaleO)
 				FW_GL_ROTATE_RADIANS(-node->scaleOrientation.c[3], node->scaleOrientation.c[0], node->scaleOrientation.c[1],node->scaleOrientation.c[2]);
 
-	                /* REVERSE CENTER */
-        	        if (node->__do_center)
-                	        FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
-              	  }
+	        /* REVERSE CENTER */
+        	if (node->__do_center)
+                	FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+			{
+				double mat[16];
 
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
+		}
 
 		RECORD_DISTANCE
-        }
     }
+}
 
 
 void child_CADPart (struct X3D_CADPart *node) {
-	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
 
@@ -194,26 +209,14 @@ void child_CADPart (struct X3D_CADPart *node) {
 	if (nc==0) return;
 
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	/* now, just render the non-directionalLight children */
-
-	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - doing normalChildren\n");
-	#endif
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
-	#ifdef CHILDVERBOSE
-		printf ("transform - done normalChildren\n");
-	#endif
+	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	//LOCAL_LIGHT_OFF
-	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
 void compile_CADPart (struct X3D_CADPart *node) {
@@ -239,30 +242,30 @@ void compile_CADPart (struct X3D_CADPart *node) {
 void fin_CADPart (struct X3D_CADPart *node) {
 	OCCLUSIONTEST
 
-        if(!renderstate()->render_vp) {
-            if (node->__do_anything) {
-                FW_GL_POP_MATRIX();
-
-        } else {
-           /*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-            if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
-                FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
-                );
-                FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
-                );
-                FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
-                );
-                FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
-                );
-                FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
-                );
-                FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
-                );
-            }
-        }
-        }
+	if(!renderstate()->render_vp) {
+		pop_transform_local();
+        if (node->__do_anything) {
+            FW_GL_POP_MATRIX();
+		} else {
+			/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
+			if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
+				FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
+				);
+				FW_GL_ROTATE_RADIANS(((node->scaleOrientation).c[3]),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+				);
+				FW_GL_SCALE_F((float)1.0/(((node->scale).c[0])),(float)1.0/(((node->scale).c[1])),(float)1.0/(((node->scale).c[2]))
+				);
+				FW_GL_ROTATE_RADIANS(-(((node->scaleOrientation).c[3])),((node->scaleOrientation).c[0]),((node->scaleOrientation).c[1]),((node->scaleOrientation).c[2])
+				);
+				FW_GL_ROTATE_RADIANS(-(((node->rotation).c[3])),((node->rotation).c[0]),((node->rotation).c[1]),((node->rotation).c[2])
+				);
+				FW_GL_TRANSLATE_F(-(((node->center).c[0])),-(((node->center).c[1])),-(((node->center).c[2]))
+				);
+				FW_GL_TRANSLATE_F(-(((node->translation).c[0])),-(((node->translation).c[1])),-(((node->translation).c[2]))
+				);
+			}
+		}
+	}
 }
 
 

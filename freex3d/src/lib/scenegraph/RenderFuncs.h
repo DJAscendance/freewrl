@@ -106,5 +106,27 @@ void usehitB_add2(struct X3D_Node *node, double *modelviewmatrix, void *userdata
 usehit * usehitB_next(struct X3D_Node *node, usehit* lasthit);
 Stack *getUseHitBStack();
 void usehitB_clear();
-bool setupShaderB();
+int setupShaderB();
+//we 'render' bounding boxes, so each geom does setExtent / union of extents on render_ pass
+void push_group_extent_default();
+void pop_group_extent();
+void push_group_extent_default();
+float * peek_group_extent();
+void union_group_extent(float *e6);
+struct BBoxFields {
+	struct SFVec3f bboxCenter;
+	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
+
+};
+void prep_BBox(struct BBoxFields *bfields);
+void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype);
+//transform-type grouping nodes need to convert children's bounding box into parent coordinate system _extent
+void push_transform_local(double *mat);
+void push_transform_local_identity();
+void pop_transform_local();
+double * peek_transform_local();
+void reset_transform_local(double *mat);
+void multiply_transform_local(double *mat);
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */

@@ -1084,6 +1084,7 @@ void compile_LineProperties(struct X3D_LineProperties *node) {
 	}
 	MARK_NODE_COMPILED
 }
+int get_GLSL_max_version();
 void render_LineProperties (struct X3D_LineProperties *node) {
 /*
 	Apr 2020 re-implementation
@@ -1139,15 +1140,16 @@ void render_LineProperties (struct X3D_LineProperties *node) {
 
 	if (node->applied) {
 		//ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		int linetype_capable_shader = get_GLSL_max_version() >= 130;
 
-		if (node->linewidthScaleFactor > 1.0) {
+		if (node->linewidthScaleFactor > 1.0 || !linetype_capable_shader) {
 			struct matpropstruct *me;
 			me= getAppearanceProperties();
 			me->pointSize = node->linewidthScaleFactor ? node->linewidthScaleFactor : 1.0f;
 			//me->linetype = node->linetype;
 			glLineWidth(me->pointSize);
 		}
-		if(node->linetype > 1){
+		if(node->linetype > 1 && linetype_capable_shader){
 			struct matpropstruct *me;
 			me= getAppearanceProperties();
 			//me->pointSize = node->linewidthScaleFactor;
@@ -1332,7 +1334,7 @@ void initialize_front_and_back_material_params(){
 shaderflagsstruct getShaderFlags();
 struct X3D_Node *getFogParams();
 void update_effect_uniforms();
-bool setupShaderB();
+int setupShaderB();
 void textureTransform_start();
 void reallyDraw();
 void resend_textureprojector_matrix();
@@ -1375,6 +1377,8 @@ void child_Shape (struct X3D_Shape *node) {
 
 	if((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
 		return; //don't draw if this node uses a generatedcubemaptexture and its a cubemaptexture generation pass; is there more optimal place to do this?
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	/* now, are we rendering blended nodes or normal nodes?*/
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
@@ -1535,11 +1539,18 @@ void child_Shape (struct X3D_Shape *node) {
 		resend_textureprojector_matrix();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
 		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
-		render_node(tmpNG);
 
+
+		render_node(tmpNG);
+			
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		//solid TRUE/FALSE on geom controls if backface culling
-		reallyDraw();
+		if(peek_group_visible()){  //v4 X3DGroupingNode .visible 
+			//reallyDraw();
+			reallyDrawOnce();
+		}
+		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
+
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		textureTransform_end();
@@ -1589,6 +1600,9 @@ void child_Shape (struct X3D_Shape *node) {
 
 	/* turn off face culling */
 	DISABLE_CULL_FACE;
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 }
 
 void compile_Shape (struct X3D_Shape *node) {

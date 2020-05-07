@@ -476,19 +476,22 @@ void prep_Viewport(struct X3D_Node * node){
 
 }
 
-void child_Viewport(struct X3D_Node * node){
-	if(node && node->_nodeType == NODE_Viewport){
+void child_Viewport(struct X3D_Node * nodein){
+	if(nodein && nodein->_nodeType == NODE_Viewport){
 		Stack *vportstack;
-		struct X3D_Viewport * viewport;
+		struct X3D_Viewport * viewport, *node;
 		ttglobal tg;
 		tg = gglobal();
 
-		viewport = (struct X3D_Viewport *)node;
+		viewport = node = (struct X3D_Viewport *)nodein;
+
 		vportstack = (Stack *)tg->Mainloop._vportstack;
 
 		if(currentviewportvisible(vportstack)){
 			prep_sibAffectors((struct X3D_Node*)node,&viewport->__sibAffectors);
+			prep_BBox((struct BBoxFields*)&node->bboxCenter);
 			normalChildren(viewport->children);
+			fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 			fin_sibAffectors((struct X3D_Node*)node,&viewport->__sibAffectors);
 		}
 	}
