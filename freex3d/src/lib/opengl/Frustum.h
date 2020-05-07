@@ -111,7 +111,7 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry);
 void moveAndRotateThisPoint(struct point_XYZ *mypt, double x, double y, double z, double *MM);
 void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me);
 void printmatrix(GLDOUBLE* mat);
-void propagateExtent(struct X3D_Node *me);
+
 void record_ZBufferDistance(struct X3D_Node *node);
 void OcclusionStartofRenderSceneUpdateScene(void);
 void OcclusionCulling (void);

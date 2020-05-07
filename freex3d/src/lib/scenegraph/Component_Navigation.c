@@ -130,7 +130,7 @@ void prep_Billboard (struct X3D_Billboard *node) {
 		int align;
 
 		RECORD_DISTANCE
-		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
+		push_transform_local_identity();
 
 		FW_GL_PUSH_MATRIX();
 
@@ -168,9 +168,7 @@ void prep_Billboard (struct X3D_Billboard *node) {
 			matrotate2vd(matr,perpa,perpb);
 			FW_GL_TRANSFORM_D(matr);
 		}
-		if(fwl_getDrawBoundingBoxes()>1){
-			reset_transform_local(matr);
-		}
+		reset_transform_local(matr);
 
 	}else{
 		// not sure why the old way looked at viewer Quat in case of axisOfRotation 0 0 0
@@ -257,8 +255,7 @@ void prep_Billboard (struct X3D_Billboard *node) {
 
 void fin_Billboard (struct X3D_Billboard *node) {
 	UNUSED(node);
-	if(fwl_getDrawBoundingBoxes()>1)
-		pop_transform_local();
+	pop_transform_local();
 
 	FW_GL_POP_MATRIX();
 }

@@ -2615,8 +2615,7 @@ void setExtentGeoElevationGrid(struct X3D_GeoElevationGrid *node){
 		float ef6[6];
 		extent6f_rotate4d(ef6, node->_extent, node->__localOrient.c);
 		extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
-		if(fwl_getDrawBoundingBoxes()>1)
-			union_group_extent(ef6); //May 2020
+		union_group_extent(ef6); //May 2020
 	}
 }
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
@@ -3281,13 +3280,11 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
 			FW_GL_PUSH_MATRIX();
-			if(fwl_getDrawBoundingBoxes()>1){
-				push_transform_local_identity();
-				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
-				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
-			}
+			push_transform_local_identity();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 			geoprep0(geoSystem,userCoord);
-			if(fwl_getDrawBoundingBoxes()>1){
+			{
 				double mat[16];
 
 				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -3303,8 +3300,7 @@ void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
-			if(fwl_getDrawBoundingBoxes()>1)
-				pop_transform_local();
+			pop_transform_local();
 			FW_GL_POP_MATRIX();
 		}else{
 			geoprepT0(geoSystem,userCoord);
@@ -4112,14 +4108,12 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
-		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
+		push_transform_local_identity();
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
-			if(fwl_getDrawBoundingBoxes()>1){
-				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
-				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
-			}
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -4152,7 +4146,7 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
 
-			if(fwl_getDrawBoundingBoxes()>1){
+			{
 				double mat[16];
 
 				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -4173,8 +4167,7 @@ void fin_GeoTransform (struct X3D_GeoTransform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()>1)
-			pop_transform_local();
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -4248,13 +4241,11 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	// to this node TCS (topocentric coordinate system
 	if(!renderstate()->render_vp) {
 		FW_GL_PUSH_MATRIX();
-		if(fwl_getDrawBoundingBoxes()>1){
-			push_transform_local_identity();
-			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
-			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
-		}
+		push_transform_local_identity();
+		FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+		FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 		geoprepT0(geoSystem,userCoord);
-		if(fwl_getDrawBoundingBoxes()>1){
+		{
 			double mat[16];
 
 			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -4268,8 +4259,7 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 }
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()>1)
-			pop_transform_local();
+		pop_transform_local();
 		FW_GL_POP_MATRIX();
 	}else{
 		geoprep0(geoSystem,userCoord);
@@ -4318,7 +4308,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	normalChildren(node->children);
 
 	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
+	{
 		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
 		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
 		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
@@ -4331,7 +4321,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 		//union_group_extent(node->_extent); // NO UNION HERE, SEE +6 LINES
 	}
 	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter); //we also pop a local transform
-	if(fwl_getDrawBoundingBoxes()>1){
+	{
 		//2nd step of 2-step extent transform
 		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
 		union_group_extent(node->_extent);
@@ -4841,17 +4831,16 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 		//we need to get the LCS to GC transform on the stack
 
 		FW_GL_PUSH_MATRIX();
-		if(fwl_getDrawBoundingBoxes()>1){
-			push_transform_local_identity();
-			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
-			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
-		}
+		push_transform_local_identity();
+		FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+		FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+
 		veccopyd(ao,planet->autoOrigin.c);
 		veccopy4d(aoo,planet->autoOrient.c);
 		FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
 		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
 
-		if(fwl_getDrawBoundingBoxes()>1){
+		{
 			double mat[16];
 
 			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -4887,8 +4876,7 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()>1)
-			pop_transform_local();
+		pop_transform_local();
 		FW_GL_POP_MATRIX();
 	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {

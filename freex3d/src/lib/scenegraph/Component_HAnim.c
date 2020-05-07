@@ -325,16 +325,14 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 	//OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
+		push_transform_local_identity();
 
 		/* do we actually have any thing to rotate/translate/scale?? */
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
-			if(fwl_getDrawBoundingBoxes()>1){
-				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
-				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
-			}
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -384,7 +382,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
 
-			if(fwl_getDrawBoundingBoxes()>1){
+			{
 				double mat[16];
 
 				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -407,8 +405,7 @@ void fin_HAnimJoint (struct X3D_HAnimJoint *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()>1)
-			pop_transform_local();
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -473,15 +470,13 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
-		if(fwl_getDrawBoundingBoxes()>1) push_transform_local_identity();
+		push_transform_local_identity();
 
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
-			if(fwl_getDrawBoundingBoxes()>1){
-				FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
-				FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
-			}
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -513,7 +508,7 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
-			if(fwl_getDrawBoundingBoxes()>1){
+			{
 				double mat[16];
 
 				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
@@ -536,8 +531,7 @@ void fin_HAnimSite (struct X3D_HAnimSite *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
-		if(fwl_getDrawBoundingBoxes()>1)
-			pop_transform_local();
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
