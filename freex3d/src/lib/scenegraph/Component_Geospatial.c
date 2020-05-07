@@ -3309,15 +3309,13 @@ void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 }
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) {
+	if(renderstate()->render_geom && fwl_getDrawBoundingBoxes()) {
 		COMPILE_IF_REQUIRED 
 		geoprep(GEOSYS(node->__geoSystem),&node->center);
 		float center[3];
 		double2float(center,node->center.c,3);
 		bbox2extent6f(center,node->size.c,node->_extent);
-		if(renderstate()->render_geom && fwl_getDrawBoundingBoxes() % 2 == 1) {
-			draw_bbox(center,node->size.c);
-		}
+		draw_bbox(center,node->size.c);
 		//propagate bbox up one level
 		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
 		union_group_extent(node->_extent); //
@@ -4311,7 +4309,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	{
 		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
 		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+		if(renderstate()->render_geom && (node->displayBBox || fwl_getDrawBoundingBoxes() )) {
 			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
 		}
 		//propagate bbox up one level

@@ -3707,18 +3707,6 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 
 }
-//void prep_EspduTransform0(struct X3D_EspduTransform *node){
-//	//if(!renderstate()->render_vp) {
-//		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
-//		/* did either we or the Viewpoint move since last time? */
-//		//RECORD_DISTANCE
-//		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
-//	//}
-//
-//}
-//void fin_EspduTransform0(struct X3D_EspduTransform *node){
-//	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-//}
 
 void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
@@ -4337,21 +4325,18 @@ void child_TransmitterPdu (struct X3D_TransmitterPdu *node) {
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_SignalPdu (struct X3D_SignalPdu *node) { 
 	COMPILE_IF_REQUIRED
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_ReceiverPdu (struct X3D_ReceiverPdu *node) { 
 	COMPILE_IF_REQUIRED
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 
 //<< RADIO

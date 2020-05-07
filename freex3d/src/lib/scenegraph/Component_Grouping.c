@@ -452,33 +452,27 @@ void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
 //
 //};
 void prep_BBox(struct BBoxFields *bfields){
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && bfields->displayBBox) {
-		draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
-	}
+	push_group_extent_default();
 	push_group_visible( bfields->visible && peek_group_visible());
 }
 void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
 	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),bfields->bboxCenter.c,bfields->bboxSize.c);
-		if(renderstate()->render_geom && (bfields->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
-		}
-		//propagate bbox up one level
-		if(transtype){
-			//for transform type nodes, we capture a matrix in prep_Transform (and pop it in fin_Transform)
-			//so we can transform the bbox up one level into parent space - so called 'propagating' extent
-			extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		}else{
-			//non-transforming grouping nodes - just copy bbox of children into parent space
-			extent6f_copy(node->_extent,peek_group_extent());
-		}
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
+	//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+	extent6f2bbox(peek_group_extent(),bfields->bboxCenter.c,bfields->bboxSize.c);
+	if(renderstate()->render_geom && (bfields->displayBBox || fwl_getDrawBoundingBoxes() )) {
+		draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
 	}
+	//propagate bbox up one level
+	if(transtype){
+		//for transform type nodes, we capture a matrix in prep_Transform (and pop it in fin_Transform)
+		//so we can transform the bbox up one level into parent space - so called 'propagating' extent
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+	}else{
+		//non-transforming grouping nodes - just copy bbox of children into parent space
+		extent6f_copy(node->_extent,peek_group_extent());
+	}
+	pop_group_extent(); // up where parents are
+	union_group_extent(node->_extent); //
 }
 void child_StaticGroup (struct X3D_StaticGroup *node) {
 	CHILDREN_COUNT
