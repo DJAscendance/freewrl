@@ -2689,8 +2689,6 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 void child_GeoLocation (struct X3D_GeoLocation *node) {
 	CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
-	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	OCCLUSIONTEST
@@ -2712,46 +2710,12 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
 	/* do we have a local for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	/* now, just render the non-directionalLight children */
-
-	/* printf ("GeoLocation %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("GeoLocation - doing normalChildren\n");
-	#endif
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->children);
-
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-	#ifdef CHILDVERBOSE
-		printf ("GeoLocation - done normalChildren\n");
-	#endif
-
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 }
 
 /* do transforms, calculate the distance */
@@ -2928,12 +2892,8 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 	}
 
 
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 
 	#ifdef VERBOSE
 	if ( node->__inRange) {
@@ -3017,18 +2977,7 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 
 	}
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 }
 
@@ -4364,12 +4313,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#endif
 	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter); //bbox- we also push a local transform
 
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->children);
 
@@ -4384,7 +4328,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 		//1st step of 2-step extent transform
 		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
 		pop_group_extent(); // up where parents are
-		//union_group_extent(node->_extent); //
+		//union_group_extent(node->_extent); // NO UNION HERE, SEE +6 LINES
 	}
 	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter); //we also pop a local transform
 	if(fwl_getDrawBoundingBoxes()>1){
@@ -4925,38 +4869,16 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 	
 void child_GeoPlanet(struct X3D_GeoPlanet *node){
 	CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
-	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 //	OCCLUSIONTEST
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->children);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 void fin_GeoPlanet(struct X3D_GeoPlanet *node){

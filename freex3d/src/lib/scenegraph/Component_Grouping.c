@@ -339,28 +339,11 @@ void child_Switch (struct X3D_Switch *node) {
 		if(wc >= 0 && wc < n){
 			void * p = pp[wc];
 
-			if(fwl_getDrawBoundingBoxes()>1){
-				push_group_extent_default();
-			}else if(renderstate()->render_geom && node->displayBBox) {
-				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-			}
-			push_group_visible( node->visible && peek_group_visible());
+			prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 			render_node(p);
-			
-			pop_group_visible();
-			if(fwl_getDrawBoundingBoxes()>1){
-				//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-				extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-				if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-					draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-				}
-				//propagate bbox up one level
-				extent6f_copy(node->_extent,peek_group_extent());
-				pop_group_extent(); // up where parents are
-				union_group_extent(node->_extent); //
-			}
-
+		
+			fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 		}
 	}
 	//if (node->__isX3D ||  (node->children).n) {
@@ -461,6 +444,44 @@ void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
 	}
 }
 
+//WARNING all nodes that use prep_childrenBBox /fin_ musht have bbox fields in same order
+// (this is a way to avoid macros, and re-casting lookups)
+//struct BBoxFields {
+//	struct SFVec3f bboxCenter;
+//	struct SFVec3f bboxSize;
+//	int visible;
+//	int displayBBox;
+//
+//};
+void prep_BBox(struct BBoxFields *bfields){
+	if(fwl_getDrawBoundingBoxes()>1){
+		push_group_extent_default();
+	}else if(renderstate()->render_geom && bfields->displayBBox) {
+		draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
+	}
+	push_group_visible( bfields->visible && peek_group_visible());
+}
+void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
+	pop_group_visible();
+	if(fwl_getDrawBoundingBoxes()>1){
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),bfields->bboxCenter.c,bfields->bboxSize.c);
+		if(renderstate()->render_geom && (bfields->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
+			draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
+		}
+		//propagate bbox up one level
+		if(transtype){
+			//for transform type nodes, we capture a matrix in prep_Transform (and pop it in fin_Transform)
+			//so we can transform the bbox up one level into parent space - so called 'propagating' extent
+			extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		}else{
+			//non-transforming grouping nodes - just copy bbox of children into parent space
+			extent6f_copy(node->_extent,peek_group_extent());
+		}
+		pop_group_extent(); // up where parents are
+		union_group_extent(node->_extent); //
+	}
+}
 void child_StaticGroup (struct X3D_StaticGroup *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
@@ -479,26 +500,9 @@ void child_StaticGroup (struct X3D_StaticGroup *node) {
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	/* now, just render the non-directionalLight children */
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
@@ -578,26 +582,9 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
 	/* now, just render the non-directionalLight children */
 	// UNUSED renderFirstProtoChildOnlyAsPerSpecs = 0; //flux/vivaty render all children
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 //	LOCAL_LIGHT_OFF
 	
@@ -646,27 +633,10 @@ void child_Transform (struct X3D_Transform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
 
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
-
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
@@ -834,32 +804,7 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-		
-	/* do we have a DirectionalLight for a child? */
-	//if(nc){
-	//	LOCAL_LIGHT_CHILDREN(node->__children);
-	//}else{
-	//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
-	//}
-
-	/* printf ("chld_Group, for %u, protodef %d and FreeWRL_PROTOInterfaceNodes.n %d\n",
-		node, node->FreeWRL__protoDef, node->FreeWRL_PROTOInterfaceNodes.n); */
-	/* now, just render the non-directionalLight children */
-	//if ((node->FreeWRL__protoDef!=INT_ID_UNDEFINED) && renderstate()->render_geom) {
-	//	(node->children).n = 1;
-	//	normalChildren(node->children);
-	//	(node->children).n = nc;
-	//} else {
-	//	normalChildren(node->_sortedChildren);
-	//}
-
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 
 	sceneflag = ciflag_get(node->__protoFlags,2);
@@ -880,21 +825,8 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 		}
 	}
 
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	fin_unitscale(node);
 }

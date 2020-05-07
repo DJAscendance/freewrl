@@ -54,27 +54,9 @@ X3D Rendering Component
 
 void child_CADFace (struct X3D_CADFace *node) {
 	
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	if (node->shape != NULL) render_node(node->shape);
-
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 }
 
@@ -95,37 +77,14 @@ void prep_CADAssembly (struct X3D_CADAssembly *node) {
 /*child_CADAssembly - check with child_Group for detailed explanations */
 void child_CADAssembly (struct X3D_CADAssembly *node) {
     CHILDREN_COUNT
-    //LOCAL_LIGHT_SAVE
-    
     RETURN_FROM_CHILD_IF_NOT_FOR_ME
     
-    /* do we have a DirectionalLight for a child? */
-    //LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
-    
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+   
     normalChildren(node->_sortedChildren);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-    
-    //LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
@@ -156,12 +115,7 @@ void compile_CADAssembly (struct X3D_CADAssembly *node) {
 void child_CADLayer (struct X3D_CADLayer *node) {
     int i;
 
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	// this kind of visiblility just blocks shape rendering, not picking or anything else// if(peek_group_visible())
     for (i=0; i<node->children.n; i++) {
@@ -169,19 +123,7 @@ void child_CADLayer (struct X3D_CADLayer *node) {
         else if (node->visibles.p[i]) 
 		render_node(node->children.p[i]);
     }
-
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 }
 
 /************************************************************************/
@@ -260,7 +202,6 @@ void prep_CADPart (struct X3D_CADPart *node) {
 
 
 void child_CADPart (struct X3D_CADPart *node) {
-	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
 
@@ -270,46 +211,12 @@ void child_CADPart (struct X3D_CADPart *node) {
 	if (nc==0) return;
 
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	/* now, just render the non-directionalLight children */
-
-	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - doing normalChildren\n");
-	#endif
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->_sortedChildren);
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - done normalChildren\n");
-	#endif
-
-	//LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 }

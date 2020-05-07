@@ -831,12 +831,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 
 	/* Lets do skeleton fourth */
@@ -879,7 +874,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 
 
-	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here	pop_group_visible();
+	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
 
 
 	if(node->skin.n){
@@ -997,18 +992,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		}
 	} //if skin
 
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 
@@ -1031,35 +1015,13 @@ void child_HAnimJoint(struct X3D_HAnimJoint *node) {
 
 	/* just render the non-directionalLight children */
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-
 }
 float *vecmix3f(float *out3, float* a3, float *b3, float fraction){
 	int i;
@@ -1144,27 +1106,11 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 		}
 	}
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->children);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 	if(node->coord && node->displacers.n){
@@ -1181,43 +1127,19 @@ void child_HAnimSegment(struct X3D_HAnimSegment *node) {
 void child_HAnimSite(struct X3D_HAnimSite *node) {
 
 	//CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
 	//RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
 	/* do we have to sort this node? */
 
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-
 }
 
 

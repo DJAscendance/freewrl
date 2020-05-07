@@ -113,6 +113,15 @@ void pop_group_extent();
 void push_group_extent_default();
 float * peek_group_extent();
 void union_group_extent(float *e6);
+struct BBoxFields {
+	struct SFVec3f bboxCenter;
+	struct SFVec3f bboxSize;
+	int visible;
+	int displayBBox;
+
+};
+void prep_BBox(struct BBoxFields *bfields);
+void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype);
 //transform-type grouping nodes need to convert children's bounding box into parent coordinate system _extent
 void push_transform_local(double *mat);
 void push_transform_local_identity();

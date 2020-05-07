@@ -4288,7 +4288,6 @@ void render_detonation(struct X3D_EspduTransform *node){
 }
 void dis_register_collide(struct X3D_Node* node,double *transform);
 void child_EspduTransform (struct X3D_EspduTransform *node) {
-	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
 
@@ -4301,30 +4300,9 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		dis_register_collide(X3D_NODE(node),modelviewMatrix);
 	}
-	//if(node->__sibAffectors.n)
-	//	printf("have transform sibaffectors\n");
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-
-	//profile_start("local_light_kids");
-	/* do we have a local light for a child? */
-//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
-	//profile_end("local_light_kids");
-	/* now, just render the non-directionalLight children */
-
-	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - doing normalChildren\n");
-	#endif
-
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->_sortedChildren);
 	//render munitions
@@ -4333,25 +4311,8 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 	render_detonation(node);
 	//render collisions
 
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - done normalChildren\n");
-	#endif
-
-//	LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 

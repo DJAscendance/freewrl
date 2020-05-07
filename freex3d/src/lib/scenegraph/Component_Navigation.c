@@ -266,54 +266,17 @@ void fin_Billboard (struct X3D_Billboard *node) {
 
 void  child_Billboard (struct X3D_Billboard *node) {
     int nc = node->children.n;
-	//LOCAL_LIGHT_SAVE
-
 
 	/* any children at all? */
 	if (nc==0) return;
 
-	#ifdef CHILDVERBOSE
-	printf("RENDER BILLBOARD START %d (%d)\n",node, nc);
-	#endif
-
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	/* now, just render the non-directionalLight children */
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-
-	push_group_visible( node->visible && peek_group_visible());
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->children);
-
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
-	//if (renderstate()->render_geom && (!renderstate()->render_blend)) {
-	//	EXTENTTOBBOX
-	//}
-
-	#ifdef CHILDVERBOSE
-	printf("RENDER BILLBOARD END %d\n",node);
-	#endif
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
-	//LOCAL_LIGHT_OFF
 }
 
 
@@ -383,47 +346,15 @@ void child_Collision (struct X3D_Collision *node) {
 		}
 
 	} else { /*standard group behaviour*/
-		//LOCAL_LIGHT_SAVE
-
-		#ifdef CHILDVERBOSE
-		printf("RENDER COLLISIONCHILD START %d (%d)\n",node, nc);
-		#endif
 
 		/* do we have a local light for a child? */
-		//LOCAL_LIGHT_CHILDREN(node->children);
 		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 		/* now, just render the non-directionalLight children */
-		if(fwl_getDrawBoundingBoxes()>1){
-			push_group_extent_default();
-		}else if(renderstate()->render_geom && node->displayBBox) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		push_group_visible( node->visible && peek_group_visible());
-
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
 		normalChildren(node->children);
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
-			
-		pop_group_visible();
-		if(fwl_getDrawBoundingBoxes()>1){
-			//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-			extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-			if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-				draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-			}
-			//propagate bbox up one level
-			extent6f_copy(node->_extent,peek_group_extent());
-			pop_group_extent(); // up where parents are
-			union_group_extent(node->_extent); //
-		}
-
-
-		#ifdef CHILDVERBOSE
-		printf("RENDER COLLISIONCHILD END %d\n",node);
-		#endif
-		//LOCAL_LIGHT_OFF
 		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	}
 }
 
@@ -448,28 +379,9 @@ printf ("\n");
 }
 */
 
-	if(fwl_getDrawBoundingBoxes()>1){
-		push_group_extent_default();
-	}else if(renderstate()->render_geom && node->displayBBox) {
-		draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-	}
-	push_group_visible( node->visible && peek_group_visible());
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	render_node(node->_selected);
-			
-	pop_group_visible();
-	if(fwl_getDrawBoundingBoxes()>1){
-		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
-		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || (fwl_getDrawBoundingBoxes() % 2 == 1))) {
-			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
-		}
-		//propagate bbox up one level
-		extent6f_copy(node->_extent,peek_group_extent());
-		pop_group_extent(); // up where parents are
-		union_group_extent(node->_extent); //
-	}
-
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
 }
 
