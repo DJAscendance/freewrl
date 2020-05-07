@@ -4502,6 +4502,7 @@ int geoelevationgrid_getGDHeight0(struct X3D_GeoElevationGrid *node, struct SFVe
 	//naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
 
 	nodeSystem = GEOSYS(node->__geoSystem);
+	if(!nodeSystem) return 0;
 	hit = -1; //caller: watch out, this can be -1 on return. only 1 means true hit
 	//get target node's gdCoord into GEG's gdcoord 
 	veccopyd(xxCoord.c,gdCoord->c); 
