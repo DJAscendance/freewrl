@@ -974,3 +974,12 @@ double return_Duration (struct X3D_AudioClip *node) {
 	}
 	return retval;
 }
+
+#ifdef HAVE_LABSOUND
+#include "fwlabsound.h"
+#endif //HAVE LABSOUND
+void compile_AudioContext(struct X3D_AudioContext *node){
+#ifdef HAVE_LABSOUND
+	void * context = flabsound_initialize();
+#endif //HAVE_LABSOUND	
+}
