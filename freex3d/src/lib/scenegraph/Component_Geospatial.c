@@ -59,7 +59,13 @@ X3D Geospatial Component
 #include "fwgeolib.h"
 #define GEOLIB
 #endif
-
+#ifdef HAVE_SRM
+#define _LIB 1
+#define SRM 1
+#include <stdio.h>
+#include <string.h>
+#include <srm.h>
+#endif
 int method_geolib(){
 #ifdef GEOLIB
 	return 0; //freewrl hand coded way, was working fine for more than decade
@@ -68,6 +74,15 @@ int method_geolib(){
 	return 0; //freewrl hand coded way
 #endif
 }
+int method_srm(){
+#ifdef SRM
+	//return 0; //freewrl hand coded way, was working fine for more than decade
+	return 1; //srm.lib from sedris.org
+#else
+	return 0; //freewrl hand coded way
+#endif
+}
+
 
 void push_planetId(int planetId);
 int current_planetId();
@@ -806,6 +821,78 @@ static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct
 		getchar();
 }
 #endif //GEOLIB
+#ifdef SRM
+static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
+    SRM_Coordinate_Valid_Region val_region;
+
+    SRM_Celestiocentric cc_srf;
+    SRM_Celestiodetic   cd_srf;
+    SRM_Coordinate3D    cc_coord;
+    SRM_Coordinate3D    cd_coord;
+    SRM_Long_Float      ord1,ord2,ord3;
+
+    printf( "Running SRM Sample test program...\n" );
+
+    if (SRM_CD_Create(SRM_ORMCOD_WGS_1984,
+                      SRM_RTCOD_WGS_1984_IDENTITY,
+                      &cd_srf) != SRM_STATCOD_SUCCESS)
+        printf("Failed to create CD SRF\n" );
+    else
+    {
+        if (SRM_CC_Create(SRM_ORMCOD_WGS_1984,
+                          SRM_RTCOD_WGS_1984_IDENTITY,
+                          &cc_srf ) != SRM_STATCOD_SUCCESS )
+            printf( "Failed to create CC SRF\n" );
+        else
+        {
+            if ( cd_srf.methods->CreateCoordinate3D( &cd_srf,
+                                                    0.0,
+                                                    0.785398163397,
+                                                    0.0,
+                                                   &cd_coord ) != SRM_STATCOD_SUCCESS )
+                printf( "Failed to create CD coordinate\n" );
+            else
+            {
+                if ( cc_srf.methods->CreateCoordinate3D( &cc_srf,
+                                                        0.0,
+                                                        0.0,
+                                                        0.0,
+                                                        &cc_coord ) != SRM_STATCOD_SUCCESS )
+                    printf( "Failed to create CC coordinate\n" );
+                else
+                {
+                    if ( cc_srf.methods->ChangeCoordinate3DSRF( &cc_srf,
+                                                                &cd_srf,
+                                                                &cd_coord,
+                                                                &cc_coord,
+                                                                &val_region)
+                         != SRM_STATCOD_SUCCESS )
+                        printf( "SRM_ChangeCoordinateSRF failed\n" );
+                    else
+                    {
+                        if ( cc_srf.methods->GetCoordinate3DValues( &cc_srf,
+                                                                    &cc_coord,
+                                                                    &ord1,
+                                                                    &ord2,
+                                                                    &ord3 ) != SRM_STATCOD_SUCCESS )
+                            printf( "Failed getting the CC coordinate values\n" );
+
+                        else
+                            printf("[ %lf, %lf, %lf ]\n\n", ord1, ord2, ord3 );
+                    }
+                    cc_srf.methods->DestroyCoordinate3D(&cc_srf,
+                                                        &cc_coord);
+                }
+                cd_srf.methods->DestroyCoordinate3D(&cd_srf,
+                                                    &cd_coord);
+            }
+            cc_srf.methods->Destroy(&cc_srf);
+        }
+        cd_srf.methods->Destroy(&cd_srf);
+    }
+    return;
+}
+#endif //SRM
 static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
 	int i;
 #ifdef GEOLIB
@@ -817,6 +904,15 @@ static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3
 		//}
 	}else
 #endif //GEOLIB
+#ifdef SRM
+	if(method_srm()){
+		Gd_Gc3d_srm(geoSystem,inc,n,outc);
+		printf("geolib gd:\n");
+		for(i=0;i<min(200,n);i++){
+			printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+		}
+	}else
+#endif //SRM
 	{
 		double semimajor, flattening;
 		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
