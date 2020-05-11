@@ -868,7 +868,7 @@ static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SF
 		//step 2b allocate a destination coordinate
 		SRM_Coordinate3D cc_3d_coord;
 
-		status = cc_srf.methods->CreateCoordinate3D(&cd_srf,
+		status = cc_srf.methods->CreateCoordinate3D(&cc_srf,
 													0.0,0.0,0.0,
 													&cc_3d_coord);
         if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
