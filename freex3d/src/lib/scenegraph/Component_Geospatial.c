@@ -825,27 +825,42 @@ static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct
 static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
 	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
 
+
+	//step 1a allocate source SRF
+	SRM_Celestiodetic   cd_srf;
+	SRM_Status_Code      status;
+
+	SRM_ORM_Code src_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code src_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(src_orm,src_rt,&cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1 ");
+
+	//step 1b allocate target SRF
+	SRM_Celestiocentric cc_srf;
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CC_Create(tgt_orm, tgt_rt, &cc_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2 ");
+
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D cd_3d_coord;
+		
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 3 ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D cc_3d_coord;
+
+	status = cc_srf.methods->CreateCoordinate3D(&cc_srf,
+												0.0,0.0,0.0,
+												&cc_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
 	for(int i=0;i<n;i++){
 
-		//step 1a allocate source SRF
-		SRM_Celestiodetic   cd_srf;
-		SRM_Status_Code      status;
-
-		SRM_ORM_Code src_orm = SRM_ORMCOD_WGS_1984;
-		SRM_RT_Code src_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
-		status = SRM_CD_Create(src_orm,src_rt,&cd_srf);
-        if(status != SRM_STATCOD_SUCCESS) printf("ouch 1 ");
-
-		//step 1b allocate target SRF
-		SRM_Celestiocentric cc_srf;
-		SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
-		SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
-		status = SRM_CC_Create(tgt_orm, tgt_rt, &cc_srf);
-        if(status != SRM_STATCOD_SUCCESS) printf("ouch 2 ");
-
-
-		//step 2a allocate a source coordinate
-		SRM_Coordinate3D cd_3d_coord;
 		double gd[3], gc[3];
 		veccopyd(gd,inc[i].c);
 		if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
@@ -857,21 +872,12 @@ static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SF
 		//if(gd[1] < 0.0) gd[1] += PI;
 		printf("swizzled and radians gd:\n");
 		printf("%d  %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
-		status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
-													longitude, latitude, ellipsoidal_height,
-													&cd_3d_coord);
-        if(status != SRM_STATCOD_SUCCESS) printf("ouch 3 ");
-		status = cd_srf.methods->SetCoordinate3DValues(&cd_srf,&cd_3d_coord, longitude, latitude, ellipsoidal_height);
+		status = cd_srf.methods->SetCoordinate3DValues(&cd_srf,&cd_3d_coord, 
+			gd[1],gd[0],gd[2]);
+			//longitude, latitude, ellipsoidal_height);
         if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
 
 
-		//step 2b allocate a destination coordinate
-		SRM_Coordinate3D cc_3d_coord;
-
-		status = cc_srf.methods->CreateCoordinate3D(&cc_srf,
-													0.0,0.0,0.0,
-													&cc_3d_coord);
-        if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
 
 		//step 3 convert
 		SRM_Coordinate_Valid_Region valid_region;
@@ -1677,10 +1683,92 @@ static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVe
 
 }
 #endif //GEOLIB
+#ifdef SRM
+static void gccToGdc_srm (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
+	double gd[3],gc[3], semimajor,flattening;
+	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
+
+
+	//step 1a allocate source SRF
+	SRM_Celestiocentric cc_srf;
+	SRM_Status_Code      status;
+
+	SRM_ORM_Code src_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code src_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CC_Create(src_orm,src_rt,&cc_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1 ");
+
+	//step 1b allocate target SRF
+	SRM_Celestiodetic   cd_srf;
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(tgt_orm, tgt_rt, &cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2 ");
+
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D cc_3d_coord;
+	status = cc_srf.methods->CreateCoordinate3D(&cc_srf,
+												0.0,0.0,0.0,
+												&cc_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D cd_3d_coord;
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 3 ");
+
+
+	status = cc_srf.methods->SetCoordinate3DValues(&cc_srf,&cc_3d_coord, 
+		gcc->c[0],gcc->c[1],gcc->c[2]);
+		//longitude, latitude, ellipsoidal_height);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
+
+
+	//step 3 convert
+	SRM_Coordinate_Valid_Region valid_region;
+
+	status = cd_srf.methods->ChangeCoordinate3DSRF(&cd_srf,
+												&cc_srf,
+												&cc_3d_coord,
+												&cd_3d_coord,
+												&valid_region);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 ");
+
+	SRM_Long_Float tgt_ord[3];
+	vecsetd(tgt_ord,0.0,0.0,0.0);
+	status = cd_srf.methods->GetCoordinate3DValues(&cd_srf,
+				&cd_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+	veccopyd(gd,tgt_ord);
+	if(geoSystem->gd_latitude_first) vecswizzle2d(gd);
+	if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		
+	SRM_Long_Float   latitude = gd[0];
+	SRM_Long_Float   longitude = gd[1];
+	SRM_Long_Float   ellipsoidal_height = gd[2];
+	//if(gd[1] < 0.0) gd[1] += PI;
+	printf("UNswizzled and maybe degrees gd:\n");
+	printf(" %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+
+	veccopyd(gdc->c,gd);
+
+}
+#endif //SRM
 static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
 #ifdef GEOLIB
 	if(method_geolib()){
 		gccToGdc_geolib(geoSystem,gcc,gdc);
+		//vecprint3db("gl gdc ",gdc->c,"\n");
+	}else
+#endif //GEOLIB
+#ifdef SRM
+	if(method_srm()){
+		gccToGdc_srm(geoSystem,gcc,gdc);
 		//vecprint3db("gl gdc ",gdc->c,"\n");
 	}else
 #endif //GEOLIB
