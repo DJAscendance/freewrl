@@ -3037,7 +3037,9 @@ struct X3D_Virt virt_AudioBufferSourceNode = { NULL,NULL,NULL,NULL,NULL,NULL,NUL
 void render_AudioClip(struct X3D_AudioClip *);
 struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_AudioContext = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioContext(struct X3D_AudioContext *);
+void compile_AudioContext(struct X3D_AudioContext *);
+struct X3D_Virt virt_AudioContext = { NULL,(void *)render_AudioContext,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioContext};
 
 struct X3D_Virt virt_AudioDestinationNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 

@@ -132,7 +132,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libFreeWRL.lib;glew32.lib;Opengl32.lib;pthread.lib;zlib.lib;/*mozjs-17.0.lib*/;mozjs-24.lib;libminizip.lib;gdiplus.lib;freetype252MT.lib;libxml2.lib;libnurbs.lib;alut.lib;OpenAL32.lib;ode_double.lib;avcodec.lib;swscale.lib;avformat.lib;avutil.lib;avfilter.lib;swresample.lib;avdevice.lib;Wininet.lib;ws2_32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libFreeWRL.lib;glew32.lib;Opengl32.lib;pthread.lib;zlib.lib;/*mozjs-17.0.lib*/;mozjs-24.lib;libminizip.lib;gdiplus.lib;freetype252MT.lib;libxml2.lib;libnurbs.lib;alut.lib;OpenAL32.lib;ode_double.lib;avcodec.lib;swscale.lib;avformat.lib;avutil.lib;avfilter.lib;swresample.lib;avdevice.lib;Wininet.lib;ws2_32.lib;shlwapi.lib;libsound.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(LIBWIN)\js24x64\lib;$(LIBWIN)\js17x64\lib_hide;$(LIBWIN)\js185\x64\lib_hide;$(LIBWIN)\glew\lib\Release\x64;$(LIBWIN)\GThread\x64\lib;$(LIBWIN)\freetype2\x64\lib;$(LIBWIN)\zlib\x64\lib;$(LIBWIN)\libxml2\x64\lib;$(LIBWIN)\freeALUT\x64\lib;$(LIBWIN)\openALsoft\x64\lib;$(LIBWIN)\ffmpeg\x64\lib;$(LIBWIN)\ODE\x64\lib;..\x64\Debug_glew;..\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>

@@ -444,6 +444,7 @@ our %RendC = map {($_=>1)} qw/
 	ImageTexture3D
 	GeoProximitySensor
 	ProximitySensor
+	AudioContext
 	
 /;
 
@@ -740,6 +741,8 @@ our %CompileC = map {($_=>1)} qw/
 	ReceiverPdu
 	SignalPdu
 	TransmitterPdu
+	
+	AudioContext
 	
 /;
 
