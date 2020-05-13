@@ -442,6 +442,10 @@ int vecapprox3f(float *a, float *b, float tol){
 	float tmp[3];
 	return veclength3f(vecdif3f(tmp,a,b)) < tol ? TRUE : FALSE;
 }
+int vecapprox2f(float *a, float *b, float tol){
+	float tmp[2];
+	return veclength2f(vecdif2f(tmp,a,b)) < tol ? TRUE : FALSE;
+}
 int vecsame3f(float *a, float *b){
 	int i,isame = TRUE;
 	for(i=0;i<3;i++)
