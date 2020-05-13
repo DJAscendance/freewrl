@@ -438,7 +438,10 @@ float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b)
     }
     return (float) acos(temp);
 }
-
+int vecapprox3f(float *a, float *b, float tol){
+	float tmp[3];
+	return veclength3f(vecdif3f(tmp,a,b)) < tol ? TRUE : FALSE;
+}
 int vecsame3f(float *a, float *b){
 	int i,isame = TRUE;
 	for(i=0;i<3;i++)

@@ -1204,6 +1204,93 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 	} 
 }
 #endif //GEOLIB
+#ifdef SRM
+static void Xtm_Gd3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, 
+	double radius, double flatten, 	double scaleFactor, double falseEasting, double falseNorthing, 
+	double zoneSize) {
+	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
+
+
+	//step 1a allocate source SRF
+	SRM_Status_Code         status;
+	SRM_SRFS_Code_Info      srfs_code_info;
+	SRM_TransverseMercator  *utm12_srf;
+
+	srfs_code_info.srfs_code       = SRM_SRFSCOD_UNIVERSAL_TRANSVERSE_MERCATOR;
+	srfs_code_info.value.srfsm_utm = SRM_SRFSMUTMCOD_ZONE_12_NORTHERN_HEMISPHERE;
+
+	status = SRM_CreateSRFSetMember(srfs_code_info,
+									SRM_ORMCOD_WGS_1984,
+									SRM_RTCOD_WGS_1984_IDENTITY,
+									(SRM_Object_Reference *)&utm12_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1a ");
+
+	//step 1b allocate target SRF
+	SRM_Celestiodetic   cd_srf;
+
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(tgt_orm,tgt_rt,&cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1b ");
+
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D xtm_3d_coord;
+	status = utm12_srf->methods->CreateCoordinate3D(utm12_srf,
+												500000.0,0.0,0.0,
+												&xtm_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2a ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D cd_3d_coord;
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2b ");
+
+
+
+	for(int i=0;i<n;i++){
+
+		status = utm12_srf->methods->SetCoordinate3DValues(utm12_srf,&xtm_3d_coord, 
+			inc->c[0], inc->c[1],inc->c[2]);
+			//longitude, latitude, ellipsoidal_height);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 2c ");
+
+
+
+		//step 3 convert
+		SRM_Coordinate_Valid_Region valid_region;
+
+		status = cd_srf.methods->ChangeCoordinate3DSRF(&cd_srf,
+												   utm12_srf,
+												   &xtm_3d_coord,
+												   &cd_3d_coord,
+												   &valid_region);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 ");
+
+		SRM_Long_Float tgt_ord[3];
+		vecsetd(tgt_ord,0.0,0.0,0.0);
+		status = cd_srf.methods->GetCoordinate3DValues(&cd_srf,
+				 &cd_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+
+
+		double gd[3];
+		veccopyd(gd,tgt_ord);
+		if(geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		
+		printf("UNswizzled and  MAYBE degrees gd:\n");
+		printf("%d  %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
+
+		veccopyd(outc[i].c,gd);
+	}
+
+    return;
+}
+#endif //SRM
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
 	1:	ellipsoid index (defaults to GEOSP_WE) 
@@ -1227,6 +1314,11 @@ static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec
 		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	else
 	#endif //GEOLIB
+	#ifdef SRM
+	if(method_srm())
+		Xtm_Gd3d_srm(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	else
+	#endif //SRM
 		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	if(0){
 		//round trip verification, want to convert a UTM -> GD -> (UTM, 3TM)
