@@ -1237,7 +1237,7 @@ static void Xtm_Gd3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct S
 	//step 2a allocate a source coordinate
 	SRM_Coordinate3D xtm_3d_coord;
 	status = utm12_srf->methods->CreateCoordinate3D(utm12_srf,
-												500000.0,0.0,0.0,
+												0.0,0.0,0.0,
 												&xtm_3d_coord);
     if(status != SRM_STATCOD_SUCCESS) printf("ouch 2a ");
 
@@ -1253,7 +1253,8 @@ static void Xtm_Gd3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct S
 	for(int i=0;i<n;i++){
 
 		status = utm12_srf->methods->SetCoordinate3DValues(utm12_srf,&xtm_3d_coord, 
-			inc->c[0], inc->c[1],inc->c[2]);
+			inc[i].c[0], inc[i].c[1],inc[i].c[2]);
+			printf("UTM inc[%d]= %lf %lf %lf\n",i,inc[i].c[0],inc[i].c[1],inc[i].c[2]);
 			//longitude, latitude, ellipsoidal_height);
         if(status != SRM_STATCOD_SUCCESS) printf("ouch 2c ");
 
@@ -1261,13 +1262,17 @@ static void Xtm_Gd3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct S
 
 		//step 3 convert
 		SRM_Coordinate_Valid_Region valid_region;
-
+		if(1)
 		status = cd_srf.methods->ChangeCoordinate3DSRF(&cd_srf,
 												   utm12_srf,
 												   &xtm_3d_coord,
 												   &cd_3d_coord,
 												   &valid_region);
-        if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 ");
+		if(0)
+		status = utm12_srf->methods->ChangeCoordinate3DSRF(&cd_srf,
+                utm12_srf, &xtm_3d_coord, &cd_3d_coord, &valid_region);
+
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 status=%d\n ",status);
 
 		SRM_Long_Float tgt_ord[3];
 		vecsetd(tgt_ord,0.0,0.0,0.0);
