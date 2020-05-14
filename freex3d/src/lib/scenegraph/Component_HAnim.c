@@ -1391,8 +1391,8 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	node->_fvalues = fvalues;
 	node->_channels = chan;
 	node->_framevalues = fvalues;
-	node->startFrame = 0;
-	node->endFrame = node->frameCount -1;
+	//node->startFrame = 0;
+	if(node->endFrame == 0) node->endFrame = node->frameCount -1;
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
@@ -1681,8 +1681,8 @@ void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 		}
 	}
 
-	node->startFrame = 0;
-	node->endFrame = motiondata->frameCount -1;
+	//node->startFrame = 0;
+	if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
 
 	MARK_NODE_COMPILED
 }
