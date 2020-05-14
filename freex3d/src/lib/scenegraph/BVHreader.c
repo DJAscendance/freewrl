@@ -1,6 +1,19 @@
 
 
 // license: MIT or similar permissive
+/*
+BVH includes some skeleton information X3D HAnim doesn't need / can't use:
+x length of bones aka OFFSET
+* HAnim supplies its own skeleton 
+x parenting heirarchy to help accumulate global transform for a limb
+* HAnim - we do transforms at each joint, so we need only local joint angles
+
+What X3D needs is HAnim2MotionData.
+
+*/
+
+
+
 
 #include <config.h>
 #include <system.h>

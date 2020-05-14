@@ -1576,13 +1576,24 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 // <<<<<<<<< HAnimMotion ======================
 
 
+//exprimental nodes not in specs: 
+// Motion = MotionPlay + (MotionData or MotionDataFile)
+// we still have v4 Motion, but also a MotionPlay:Motion which 
+// allows MotionData part to be DEF/USEd aka shared among charagers in a scene.
+// MotionPlay will have a frame index and timing info, so can stay 1:1 with HAnimHumanoid character
+// MotionData can be DEF/USED by multiple MotionPlay nodes
+// MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
 
-// >>>>> read BVH motion file
-#ifdef HAVE_BVHREADER
+void render_HAnimMotionData(struct X3D_HAnimMotionData *node){
+}
+void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
+}
+void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+}
+void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+}
+void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+}
+void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+}
 
-
-
-#endif HAVE_BVHREADER
-
-
-// <<<< read BVH motion file

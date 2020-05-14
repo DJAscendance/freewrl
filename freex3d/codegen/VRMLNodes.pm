@@ -2433,7 +2433,63 @@ our %Nodes = (
 		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-	],"X3DChildNode"),
+	],"X3DMotionNode"),
+
+	"HAnimMotionPlay" => new VRML::NodeType("HAnimMotionPlay", [
+		data => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		channelsEnabled => ["MFBool", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		cycleTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_startTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		enabled => ["SFBool","FALSE","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastenabled => ["SFBool","FALSE","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_isActive => ["SFBool","FALSE","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameIncrement => ["SFInt32",1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameIndex => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		startFrame => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		endFrame => ["SFInt32",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		loop => ["SFBool","FALSE","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DMotionNode"),
+
+	"HAnimMotionData" => new VRML::NodeType("HAnimMotionData", [
+		channels => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameCount => ["SFInt32",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameDuration => ["SFTime",.1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		joints => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		values => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_fvalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+	],"X3DMotionDataNode"),
+
+	"HAnimMotionDataFile" => new VRML::NodeType("HAnimMotionDataFile", [
+		channels => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameCount => ["SFInt32",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameDuration => ["SFTime",.1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		joints => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		values => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_fvalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__oldurl => ["MFString", [], "initializeOnly", 0,0],#ff
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
+	],"X3DMotionDataNode"),
+
 
 
 	"HAnimJoint" => new VRML::NodeType("HAnimJoint", [

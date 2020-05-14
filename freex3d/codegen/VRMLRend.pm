@@ -115,6 +115,9 @@ our %defaultContainerType = (
 	HAnimSegment		=>["segments"],
 	HAnimSite		=>["sites","viewpoints"],
 	HAnimMotion		=>["motions"],
+	HAnimMotionPlay		=>["motions"],
+	HAnimMotionData		=>["data"],
+	HAnimMotionDataFile	=>["data"],
 	ImageTexture 		=>["texture","diffuseTexture","emissiveTexture","normalTexture","ambientTexture"],
 	ImageCubeMapTexture 	=>["texture"],
 	GeneratedCubeMapTexture	=>["texture"],
@@ -433,6 +436,9 @@ our %RendC = map {($_=>1)} qw/
 	HAnimHumanoid
 	HAnimJoint
 	HAnimMotion
+	HAnimMotionPlay
+	HAnimMotionData
+	HAnimMotionDataFile
 	QuadSet
 	NurbsCurve
 	NurbsPatchSurface
@@ -736,6 +742,9 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimSite
 	HAnimHumanoid
 	HAnimMotion
+	HAnimMotionPlay
+	HAnimMotionData
+	HAnimMotionDataFile
 	EspduTransform
 	DISEntityManager
 	ReceiverPdu

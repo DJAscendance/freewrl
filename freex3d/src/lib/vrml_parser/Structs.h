@@ -217,216 +217,219 @@ typedef int indexT;
 #define NODE_HAnimHumanoid	105
 #define NODE_HAnimJoint	106
 #define NODE_HAnimMotion	107
-#define NODE_HAnimSegment	108
-#define NODE_HAnimSite	109
-#define NODE_ImageBackdropBackground	110
-#define NODE_ImageCubeMapTexture	111
-#define NODE_ImageTexture	112
-#define NODE_ImageTexture3D	113
-#define NODE_IndexedFaceSet	114
-#define NODE_IndexedLineSet	115
-#define NODE_IndexedQuadSet	116
-#define NODE_IndexedTriangleFanSet	117
-#define NODE_IndexedTriangleSet	118
-#define NODE_IndexedTriangleStripSet	119
-#define NODE_Inline	120
-#define NODE_IntegerSequencer	121
-#define NODE_IntegerTrigger	122
-#define NODE_IsoSurfaceVolumeData	123
-#define NODE_KeySensor	124
-#define NODE_LOD	125
-#define NODE_Layer	126
-#define NODE_LayerSet	127
-#define NODE_Layout	128
-#define NODE_LayoutGroup	129
-#define NODE_LayoutLayer	130
-#define NODE_LinePickSensor	131
-#define NODE_LineProperties	132
-#define NODE_LineSensor	133
-#define NODE_LineSet	134
-#define NODE_LoadSensor	135
-#define NODE_LocalFog	136
-#define NODE_Material	137
-#define NODE_Matrix3VertexAttribute	138
-#define NODE_Matrix4VertexAttribute	139
-#define NODE_MediaElementAudioSourceNode	140
-#define NODE_MediaStreamAudioDestinationNode	141
-#define NODE_MediaStreamTrack	142
-#define NODE_MetadataBoolean	143
-#define NODE_MetadataDouble	144
-#define NODE_MetadataFloat	145
-#define NODE_MetadataInteger	146
-#define NODE_MetadataMFBool	147
-#define NODE_MetadataMFColor	148
-#define NODE_MetadataMFColorRGBA	149
-#define NODE_MetadataMFDouble	150
-#define NODE_MetadataMFFloat	151
-#define NODE_MetadataMFInt32	152
-#define NODE_MetadataMFMatrix3d	153
-#define NODE_MetadataMFMatrix3f	154
-#define NODE_MetadataMFMatrix4d	155
-#define NODE_MetadataMFMatrix4f	156
-#define NODE_MetadataMFNode	157
-#define NODE_MetadataMFRotation	158
-#define NODE_MetadataMFString	159
-#define NODE_MetadataMFTime	160
-#define NODE_MetadataMFVec2d	161
-#define NODE_MetadataMFVec2f	162
-#define NODE_MetadataMFVec3d	163
-#define NODE_MetadataMFVec3f	164
-#define NODE_MetadataMFVec4d	165
-#define NODE_MetadataMFVec4f	166
-#define NODE_MetadataSFBool	167
-#define NODE_MetadataSFColor	168
-#define NODE_MetadataSFColorRGBA	169
-#define NODE_MetadataSFDouble	170
-#define NODE_MetadataSFFloat	171
-#define NODE_MetadataSFImage	172
-#define NODE_MetadataSFInt32	173
-#define NODE_MetadataSFMatrix3d	174
-#define NODE_MetadataSFMatrix3f	175
-#define NODE_MetadataSFMatrix4d	176
-#define NODE_MetadataSFMatrix4f	177
-#define NODE_MetadataSFNode	178
-#define NODE_MetadataSFRotation	179
-#define NODE_MetadataSFString	180
-#define NODE_MetadataSFTime	181
-#define NODE_MetadataSFVec2d	182
-#define NODE_MetadataSFVec2f	183
-#define NODE_MetadataSFVec3d	184
-#define NODE_MetadataSFVec3f	185
-#define NODE_MetadataSFVec4d	186
-#define NODE_MetadataSFVec4f	187
-#define NODE_MetadataSet	188
-#define NODE_MetadataString	189
-#define NODE_MotorJoint	190
-#define NODE_MovieTexture	191
-#define NODE_MultiTexture	192
-#define NODE_MultiTextureCoordinate	193
-#define NODE_MultiTextureTransform	194
-#define NODE_NavigationInfo	195
-#define NODE_Normal	196
-#define NODE_NormalInterpolator	197
-#define NODE_NurbsCurve	198
-#define NODE_NurbsCurve2D	199
-#define NODE_NurbsOrientationInterpolator	200
-#define NODE_NurbsPatchSurface	201
-#define NODE_NurbsPositionInterpolator	202
-#define NODE_NurbsSet	203
-#define NODE_NurbsSurfaceInterpolator	204
-#define NODE_NurbsSweptSurface	205
-#define NODE_NurbsSwungSurface	206
-#define NODE_NurbsTextureCoordinate	207
-#define NODE_NurbsTrimmedSurface	208
-#define NODE_OSC_Sensor	209
-#define NODE_OpacityMapVolumeStyle	210
-#define NODE_OrientationChaser	211
-#define NODE_OrientationDamper	212
-#define NODE_OrientationInterpolator	213
-#define NODE_OrthoViewpoint	214
-#define NODE_OscillatorNode	215
-#define NODE_PackagedShader	216
-#define NODE_PannerNode	217
-#define NODE_ParticleSystem	218
-#define NODE_PeriodicWave	219
-#define NODE_PhysicalMaterial	220
-#define NODE_PickableGroup	221
-#define NODE_PixelTexture	222
-#define NODE_PixelTexture3D	223
-#define NODE_PlaneSensor	224
-#define NODE_PointEmitter	225
-#define NODE_PointLight	226
-#define NODE_PointPickSensor	227
-#define NODE_PointProperties	228
-#define NODE_PointSensor	229
-#define NODE_PointSet	230
-#define NODE_Polyline2D	231
-#define NODE_PolylineEmitter	232
-#define NODE_Polypoint2D	233
-#define NODE_PositionChaser	234
-#define NODE_PositionChaser2D	235
-#define NODE_PositionDamper	236
-#define NODE_PositionDamper2D	237
-#define NODE_PositionInterpolator	238
-#define NODE_PositionInterpolator2D	239
-#define NODE_PrimitivePickSensor	240
-#define NODE_ProgramShader	241
-#define NODE_ProjectionVolumeStyle	242
-#define NODE_Proto	243
-#define NODE_ProximitySensor	244
-#define NODE_Pyramid	245
-#define NODE_QuadSet	246
-#define NODE_ReceiverPdu	247
-#define NODE_Rectangle2D	248
-#define NODE_RigidBody	249
-#define NODE_RigidBodyCollection	250
-#define NODE_ScalarChaser	251
-#define NODE_ScalarDamper	252
-#define NODE_ScalarInterpolator	253
-#define NODE_ScreenFontStyle	254
-#define NODE_ScreenGroup	255
-#define NODE_Script	256
-#define NODE_SegmentedVolumeData	257
-#define NODE_ShadedVolumeStyle	258
-#define NODE_ShaderPart	259
-#define NODE_ShaderProgram	260
-#define NODE_Shape	261
-#define NODE_SignalPdu	262
-#define NODE_SilhouetteEnhancementVolumeStyle	263
-#define NODE_SingleAxisHingeJoint	264
-#define NODE_SliderJoint	265
-#define NODE_Sound	266
-#define NODE_Sphere	267
-#define NODE_SphereSensor	268
-#define NODE_SplinePositionInterpolator	269
-#define NODE_SplinePositionInterpolator2D	270
-#define NODE_SplineScalarInterpolator	271
-#define NODE_SpotLight	272
-#define NODE_SquadOrientationInterpolator	273
-#define NODE_StaticGroup	274
-#define NODE_StringSensor	275
-#define NODE_SurfaceEmitter	276
-#define NODE_Switch	277
-#define NODE_Teapot	278
-#define NODE_TexCoordChaser2D	279
-#define NODE_TexCoordDamper2D	280
-#define NODE_Text	281
-#define NODE_TextureBackground	282
-#define NODE_TextureCoordinate	283
-#define NODE_TextureCoordinate3D	284
-#define NODE_TextureCoordinate4D	285
-#define NODE_TextureCoordinateGenerator	286
-#define NODE_TextureProjectorParallel	287
-#define NODE_TextureProjectorPerspective	288
-#define NODE_TextureProperties	289
-#define NODE_TextureTransform	290
-#define NODE_TextureTransform3D	291
-#define NODE_TextureTransformMatrix3D	292
-#define NODE_TimeSensor	293
-#define NODE_TimeTrigger	294
-#define NODE_ToneMappedVolumeStyle	295
-#define NODE_TouchSensor	296
-#define NODE_TrackingSensor	297
-#define NODE_Transform	298
-#define NODE_TransformSensor	299
-#define NODE_TransmitterPdu	300
-#define NODE_TriangleFanSet	301
-#define NODE_TriangleSet	302
-#define NODE_TriangleSet2D	303
-#define NODE_TriangleStripSet	304
-#define NODE_TwoSidedMaterial	305
-#define NODE_UniversalJoint	306
-#define NODE_UnlitMaterial	307
-#define NODE_Viewpoint	308
-#define NODE_ViewpointGroup	309
-#define NODE_Viewport	310
-#define NODE_VisibilitySensor	311
-#define NODE_VolumeData	312
-#define NODE_VolumeEmitter	313
-#define NODE_VolumePickSensor	314
-#define NODE_WaveShaperNode	315
-#define NODE_WindPhysicsModel	316
-#define NODE_WorldInfo	317
+#define NODE_HAnimMotionData	108
+#define NODE_HAnimMotionDataFile	109
+#define NODE_HAnimMotionPlay	110
+#define NODE_HAnimSegment	111
+#define NODE_HAnimSite	112
+#define NODE_ImageBackdropBackground	113
+#define NODE_ImageCubeMapTexture	114
+#define NODE_ImageTexture	115
+#define NODE_ImageTexture3D	116
+#define NODE_IndexedFaceSet	117
+#define NODE_IndexedLineSet	118
+#define NODE_IndexedQuadSet	119
+#define NODE_IndexedTriangleFanSet	120
+#define NODE_IndexedTriangleSet	121
+#define NODE_IndexedTriangleStripSet	122
+#define NODE_Inline	123
+#define NODE_IntegerSequencer	124
+#define NODE_IntegerTrigger	125
+#define NODE_IsoSurfaceVolumeData	126
+#define NODE_KeySensor	127
+#define NODE_LOD	128
+#define NODE_Layer	129
+#define NODE_LayerSet	130
+#define NODE_Layout	131
+#define NODE_LayoutGroup	132
+#define NODE_LayoutLayer	133
+#define NODE_LinePickSensor	134
+#define NODE_LineProperties	135
+#define NODE_LineSensor	136
+#define NODE_LineSet	137
+#define NODE_LoadSensor	138
+#define NODE_LocalFog	139
+#define NODE_Material	140
+#define NODE_Matrix3VertexAttribute	141
+#define NODE_Matrix4VertexAttribute	142
+#define NODE_MediaElementAudioSourceNode	143
+#define NODE_MediaStreamAudioDestinationNode	144
+#define NODE_MediaStreamTrack	145
+#define NODE_MetadataBoolean	146
+#define NODE_MetadataDouble	147
+#define NODE_MetadataFloat	148
+#define NODE_MetadataInteger	149
+#define NODE_MetadataMFBool	150
+#define NODE_MetadataMFColor	151
+#define NODE_MetadataMFColorRGBA	152
+#define NODE_MetadataMFDouble	153
+#define NODE_MetadataMFFloat	154
+#define NODE_MetadataMFInt32	155
+#define NODE_MetadataMFMatrix3d	156
+#define NODE_MetadataMFMatrix3f	157
+#define NODE_MetadataMFMatrix4d	158
+#define NODE_MetadataMFMatrix4f	159
+#define NODE_MetadataMFNode	160
+#define NODE_MetadataMFRotation	161
+#define NODE_MetadataMFString	162
+#define NODE_MetadataMFTime	163
+#define NODE_MetadataMFVec2d	164
+#define NODE_MetadataMFVec2f	165
+#define NODE_MetadataMFVec3d	166
+#define NODE_MetadataMFVec3f	167
+#define NODE_MetadataMFVec4d	168
+#define NODE_MetadataMFVec4f	169
+#define NODE_MetadataSFBool	170
+#define NODE_MetadataSFColor	171
+#define NODE_MetadataSFColorRGBA	172
+#define NODE_MetadataSFDouble	173
+#define NODE_MetadataSFFloat	174
+#define NODE_MetadataSFImage	175
+#define NODE_MetadataSFInt32	176
+#define NODE_MetadataSFMatrix3d	177
+#define NODE_MetadataSFMatrix3f	178
+#define NODE_MetadataSFMatrix4d	179
+#define NODE_MetadataSFMatrix4f	180
+#define NODE_MetadataSFNode	181
+#define NODE_MetadataSFRotation	182
+#define NODE_MetadataSFString	183
+#define NODE_MetadataSFTime	184
+#define NODE_MetadataSFVec2d	185
+#define NODE_MetadataSFVec2f	186
+#define NODE_MetadataSFVec3d	187
+#define NODE_MetadataSFVec3f	188
+#define NODE_MetadataSFVec4d	189
+#define NODE_MetadataSFVec4f	190
+#define NODE_MetadataSet	191
+#define NODE_MetadataString	192
+#define NODE_MotorJoint	193
+#define NODE_MovieTexture	194
+#define NODE_MultiTexture	195
+#define NODE_MultiTextureCoordinate	196
+#define NODE_MultiTextureTransform	197
+#define NODE_NavigationInfo	198
+#define NODE_Normal	199
+#define NODE_NormalInterpolator	200
+#define NODE_NurbsCurve	201
+#define NODE_NurbsCurve2D	202
+#define NODE_NurbsOrientationInterpolator	203
+#define NODE_NurbsPatchSurface	204
+#define NODE_NurbsPositionInterpolator	205
+#define NODE_NurbsSet	206
+#define NODE_NurbsSurfaceInterpolator	207
+#define NODE_NurbsSweptSurface	208
+#define NODE_NurbsSwungSurface	209
+#define NODE_NurbsTextureCoordinate	210
+#define NODE_NurbsTrimmedSurface	211
+#define NODE_OSC_Sensor	212
+#define NODE_OpacityMapVolumeStyle	213
+#define NODE_OrientationChaser	214
+#define NODE_OrientationDamper	215
+#define NODE_OrientationInterpolator	216
+#define NODE_OrthoViewpoint	217
+#define NODE_OscillatorNode	218
+#define NODE_PackagedShader	219
+#define NODE_PannerNode	220
+#define NODE_ParticleSystem	221
+#define NODE_PeriodicWave	222
+#define NODE_PhysicalMaterial	223
+#define NODE_PickableGroup	224
+#define NODE_PixelTexture	225
+#define NODE_PixelTexture3D	226
+#define NODE_PlaneSensor	227
+#define NODE_PointEmitter	228
+#define NODE_PointLight	229
+#define NODE_PointPickSensor	230
+#define NODE_PointProperties	231
+#define NODE_PointSensor	232
+#define NODE_PointSet	233
+#define NODE_Polyline2D	234
+#define NODE_PolylineEmitter	235
+#define NODE_Polypoint2D	236
+#define NODE_PositionChaser	237
+#define NODE_PositionChaser2D	238
+#define NODE_PositionDamper	239
+#define NODE_PositionDamper2D	240
+#define NODE_PositionInterpolator	241
+#define NODE_PositionInterpolator2D	242
+#define NODE_PrimitivePickSensor	243
+#define NODE_ProgramShader	244
+#define NODE_ProjectionVolumeStyle	245
+#define NODE_Proto	246
+#define NODE_ProximitySensor	247
+#define NODE_Pyramid	248
+#define NODE_QuadSet	249
+#define NODE_ReceiverPdu	250
+#define NODE_Rectangle2D	251
+#define NODE_RigidBody	252
+#define NODE_RigidBodyCollection	253
+#define NODE_ScalarChaser	254
+#define NODE_ScalarDamper	255
+#define NODE_ScalarInterpolator	256
+#define NODE_ScreenFontStyle	257
+#define NODE_ScreenGroup	258
+#define NODE_Script	259
+#define NODE_SegmentedVolumeData	260
+#define NODE_ShadedVolumeStyle	261
+#define NODE_ShaderPart	262
+#define NODE_ShaderProgram	263
+#define NODE_Shape	264
+#define NODE_SignalPdu	265
+#define NODE_SilhouetteEnhancementVolumeStyle	266
+#define NODE_SingleAxisHingeJoint	267
+#define NODE_SliderJoint	268
+#define NODE_Sound	269
+#define NODE_Sphere	270
+#define NODE_SphereSensor	271
+#define NODE_SplinePositionInterpolator	272
+#define NODE_SplinePositionInterpolator2D	273
+#define NODE_SplineScalarInterpolator	274
+#define NODE_SpotLight	275
+#define NODE_SquadOrientationInterpolator	276
+#define NODE_StaticGroup	277
+#define NODE_StringSensor	278
+#define NODE_SurfaceEmitter	279
+#define NODE_Switch	280
+#define NODE_Teapot	281
+#define NODE_TexCoordChaser2D	282
+#define NODE_TexCoordDamper2D	283
+#define NODE_Text	284
+#define NODE_TextureBackground	285
+#define NODE_TextureCoordinate	286
+#define NODE_TextureCoordinate3D	287
+#define NODE_TextureCoordinate4D	288
+#define NODE_TextureCoordinateGenerator	289
+#define NODE_TextureProjectorParallel	290
+#define NODE_TextureProjectorPerspective	291
+#define NODE_TextureProperties	292
+#define NODE_TextureTransform	293
+#define NODE_TextureTransform3D	294
+#define NODE_TextureTransformMatrix3D	295
+#define NODE_TimeSensor	296
+#define NODE_TimeTrigger	297
+#define NODE_ToneMappedVolumeStyle	298
+#define NODE_TouchSensor	299
+#define NODE_TrackingSensor	300
+#define NODE_Transform	301
+#define NODE_TransformSensor	302
+#define NODE_TransmitterPdu	303
+#define NODE_TriangleFanSet	304
+#define NODE_TriangleSet	305
+#define NODE_TriangleSet2D	306
+#define NODE_TriangleStripSet	307
+#define NODE_TwoSidedMaterial	308
+#define NODE_UniversalJoint	309
+#define NODE_UnlitMaterial	310
+#define NODE_Viewpoint	311
+#define NODE_ViewpointGroup	312
+#define NODE_Viewport	313
+#define NODE_VisibilitySensor	314
+#define NODE_VolumeData	315
+#define NODE_VolumeEmitter	316
+#define NODE_VolumePickSensor	317
+#define NODE_WaveShaperNode	318
+#define NODE_WindPhysicsModel	319
+#define NODE_WorldInfo	320
 
 
 /* Table of built-in fieldIds */
@@ -6119,6 +6122,106 @@ struct X3D_HAnimMotion {
 	void * _channels;
 };
 extern struct X3D_Virt virt_HAnimMotion;
+/***********************/
+struct X3D_HAnimMotionData {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_PolyRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	struct Uni_String *channels;
+	struct Uni_String *description;
+	int frameCount;
+	double frameDuration;
+	struct Uni_String *joints;
+	int loa;
+	struct X3D_Node *metadata;
+	struct Uni_String *values;
+	void * _fvalues;
+	void * _framevalues;
+	int _channelcount;
+	int _njoints;
+	void * _channels;
+};
+extern struct X3D_Virt virt_HAnimMotionData;
+/***********************/
+struct X3D_HAnimMotionDataFile {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_PolyRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	struct Uni_String *channels;
+	struct Uni_String *description;
+	int frameCount;
+	double frameDuration;
+	struct Uni_String *joints;
+	int loa;
+	struct X3D_Node *metadata;
+	struct Uni_String *values;
+	void * _fvalues;
+	void * _framevalues;
+	int _channelcount;
+	int _njoints;
+	void * _channels;
+	struct Multi_String url;
+	struct Multi_String __oldurl;
+	int __loadstatus;
+};
+extern struct X3D_Virt virt_HAnimMotionDataFile;
+/***********************/
+struct X3D_HAnimMotionPlay {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_PolyRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	struct X3D_Node *data;
+	struct Multi_Bool channelsEnabled;
+	double cycleTime;
+	struct Uni_String *description;
+	double elapsedTime;
+	double _startTime;
+	int enabled;
+	int _lastenabled;
+	int _isActive;
+	int frameIncrement;
+	int frameIndex;
+	int startFrame;
+	int endFrame;
+	int loop;
+	struct X3D_Node *metadata;
+	int next;
+	int previous;
+};
+extern struct X3D_Virt virt_HAnimMotionPlay;
 /***********************/
 struct X3D_HAnimSegment {
        int _nodeType; /* unique integer for each type */ 

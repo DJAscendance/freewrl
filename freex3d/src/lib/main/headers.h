@@ -610,7 +610,8 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DTextureProjectorNode			70
 #define X3DAudioContextNode				71
 #define X3DAudioNode					72
-
+#define X3DMotionNode					73
+#define X3DMotionDataNode				74
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);
 
