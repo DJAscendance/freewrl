@@ -2453,6 +2453,7 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DMotionNode"),
 
 	"HAnimMotionData" => new VRML::NodeType("HAnimMotionData", [
@@ -2465,10 +2466,10 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		values => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_fvalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__loadstatus =>["SFInt32",1,"initializeOnly", 0,0],#ff
 	],"X3DMotionDataNode"),
 
 	"HAnimMotionDataFile" => new VRML::NodeType("HAnimMotionDataFile", [
@@ -2481,13 +2482,12 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		values => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_fvalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__oldurl => ["MFString", [], "initializeOnly", 0,0],#ff
-		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
 	],"X3DMotionDataNode"),
 
 

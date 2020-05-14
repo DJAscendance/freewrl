@@ -6147,10 +6147,10 @@ struct X3D_HAnimMotionData {
 	struct X3D_Node *metadata;
 	struct Uni_String *values;
 	void * _fvalues;
-	void * _framevalues;
 	int _channelcount;
 	int _njoints;
 	void * _channels;
+	int __loadstatus;
 };
 extern struct X3D_Virt virt_HAnimMotionData;
 /***********************/
@@ -6178,13 +6178,12 @@ struct X3D_HAnimMotionDataFile {
 	struct X3D_Node *metadata;
 	struct Uni_String *values;
 	void * _fvalues;
-	void * _framevalues;
 	int _channelcount;
 	int _njoints;
 	void * _channels;
+	int __loadstatus;
 	struct Multi_String url;
 	struct Multi_String __oldurl;
-	int __loadstatus;
 };
 extern struct X3D_Virt virt_HAnimMotionDataFile;
 /***********************/
@@ -6220,6 +6219,7 @@ struct X3D_HAnimMotionPlay {
 	struct X3D_Node *metadata;
 	int next;
 	int previous;
+	void * _framevalues;
 };
 extern struct X3D_Virt virt_HAnimMotionPlay;
 /***********************/

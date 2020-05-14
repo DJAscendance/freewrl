@@ -5902,10 +5902,10 @@ const int OFFSETS_HAnimMotionData[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionData, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionData, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotionData, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionData, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotionData, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotionData, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotionData, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_HAnimMotionData, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionDataFile[] = {
@@ -5918,13 +5918,12 @@ const int OFFSETS_HAnimMotionDataFile[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionDataFile, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionDataFile, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotionDataFile, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionDataFile, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotionDataFile, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotionDataFile, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotionDataFile, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_HAnimMotionDataFile, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_url, (int) offsetof (struct X3D_HAnimMotionDataFile, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___oldurl, (int) offsetof (struct X3D_HAnimMotionDataFile, __oldurl),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_HAnimMotionDataFile, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionPlay[] = {
@@ -5945,6 +5944,7 @@ const int OFFSETS_HAnimMotionPlay[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionPlay, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_next, (int) offsetof (struct X3D_HAnimMotionPlay, next),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_previous, (int) offsetof (struct X3D_HAnimMotionPlay, previous),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionPlay, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimSegment[] = {
@@ -11618,10 +11618,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->values = newASCIIString("");
 			tmp2->_fvalues = 0;
-			tmp2->_framevalues = 0;
 			tmp2->_channelcount = 0;
 			tmp2->_njoints = 0;
 			tmp2->_channels = 0;
+			tmp2->__loadstatus = 1;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11637,13 +11637,12 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->values = newASCIIString("");
 			tmp2->_fvalues = 0;
-			tmp2->_framevalues = 0;
 			tmp2->_channelcount = 0;
 			tmp2->_njoints = 0;
 			tmp2->_channels = 0;
+			tmp2->__loadstatus = 0;
 			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->__oldurl.n=0; tmp2->__oldurl.p=0;
-			tmp2->__loadstatus = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11667,6 +11666,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->next = FALSE;
 			tmp2->previous = FALSE;
+			tmp2->_framevalues = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
