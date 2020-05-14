@@ -1584,16 +1584,23 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 // MotionData can be DEF/USED by multiple MotionPlay nodes
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
 
+
+void compile_HAnimMotionData(struct X3D_HAnimMotion *node){
+	MARK_NODE_COMPILED
+}
 void render_HAnimMotionData(struct X3D_HAnimMotionData *node){
-}
-void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
-}
-void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+	COMPILE_IF_REQUIRED
 }
 void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+	MARK_NODE_COMPILED
 }
-void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+	COMPILE_IF_REQUIRED
 }
 void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+	COMPILE_IF_REQUIRED
 }
 

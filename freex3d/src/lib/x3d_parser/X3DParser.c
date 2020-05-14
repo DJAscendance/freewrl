@@ -944,7 +944,9 @@ static void parseComponent(char **atts) {
 				return;
 			}
 		} else if (strcmp("name",atts[i]) == 0) {
-			myComponent = findFieldInCOMPONENTS(atts[i+1]);
+			char *comp_name = atts[i+1];
+			if(!strcmp(comp_name,"H-Anim")) comp_name = "HAnim";
+			myComponent = findFieldInCOMPONENTS(comp_name);
 			if (myComponent == INT_ID_UNDEFINED) {
 				ConsoleMessage("Line %d: Component statement, but component name not valid :%s:",LINE,atts[i+1]);
 				return;

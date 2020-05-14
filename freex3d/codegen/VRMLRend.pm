@@ -1012,7 +1012,7 @@ our %ComponentC = map {($_=>1)} qw/
 	Geometry3D
 	Geospatial
 	Grouping
-	H-Anim
+	HAnim
 	Interpolation
 	KeyDeviceSensor
 	Layering

@@ -2083,7 +2083,7 @@ const char *COMPONENTS[] = {
 	"Geometry3D",
 	"Geospatial",
 	"Grouping",
-	"H-Anim",
+	"HAnim",
 	"Interpolation",
 	"KeyDeviceSensor",
 	"Layering",
