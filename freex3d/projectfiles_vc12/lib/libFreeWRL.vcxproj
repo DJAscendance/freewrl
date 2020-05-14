@@ -177,6 +177,7 @@
     <ClCompile Include="$(SRC)\lib\scenegraph\Component_Time.c" />
     <ClCompile Include="$(SRC)\lib\scenegraph\Component_VolumeRendering.c" />
     <ClCompile Include="$(SRC)\lib\scenegraph\Component_VRML1.c" />
+    <ClCompile Include="$(SRC)\lib\scenegraph\BVHreader.c" />
     <ClCompile Include="$(SRC)\lib\main\ConsoleMessage.c" />
     <ClCompile Include="$(SRC)\lib\input\convert1To2.c" />
     <ClCompile Include="$(SRC)\lib\vrml_parser\CParse.c" />

@@ -1,4 +1,6 @@
 
+// license: MIT or equivalent permissive
+//
 
 #include "LabSound.h"
 #include <algorithm>
