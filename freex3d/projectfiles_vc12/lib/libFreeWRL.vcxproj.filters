@@ -408,6 +408,9 @@
     <ClCompile Include="..\..\src\lib\scenegraph\fwlabsound.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(SRC)\lib\scenegraph\BVHreader.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SRC)\lib\scenegraph\Component_Picking.h">

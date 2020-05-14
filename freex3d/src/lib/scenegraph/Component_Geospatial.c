@@ -2006,6 +2006,89 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 	#endif
 }
 #endif //GEOLIB
+#ifdef SRM
+//assumes LAT, LON in radians
+static void gdToXtm_srm(int geotype, double radius, double flattening, double latitude, double longitude, double scaleFactor, 
+	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
+{
+	//do we compute zone from lat, long, or take what comes in from geosystem?
+	//maybe there should be an 'auto' vairant?
+
+	//step 0 calculate utm zone from longitude (and lat)?
+	double dlon = longitude * DEGREES_PER_RADIAN;
+	if (*zone < 0) {
+		*zone = (int) (((dlon + 180.0)/zoneSize) + 1);
+		*zone = latitude >= 0.0 ? *zone : *zone + 60; 
+	}
+	//dlon0 = (*zone -1) * zoneSize - 180. + zoneSize*.5;
+
+
+
+	//step 1a allocate source SRF
+	SRM_Status_Code         status;
+	SRM_Celestiodetic   cd_srf;
+
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(tgt_orm,tgt_rt,&cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1b ");
+
+	//step 1b allocate target SRF
+	SRM_SRFS_Code_Info      srfs_code_info;
+	SRM_TransverseMercator  *utm12_srf;
+
+	srfs_code_info.srfs_code       = SRM_SRFSCOD_UNIVERSAL_TRANSVERSE_MERCATOR;
+	//SRF zone numbering 1-60 for northern hemispher, 61-120 for soutnerh (=northern + 60)
+	srfs_code_info.value.srfsm_utm = (SRM_SRFSM_UTM_Code) *zone; //SRM_SRFSMUTMCOD_ZONE_12_NORTHERN_HEMISPHERE;
+
+	status = SRM_CreateSRFSetMember(srfs_code_info,
+									SRM_ORMCOD_WGS_1984,
+									SRM_RTCOD_WGS_1984_IDENTITY,
+									(SRM_Object_Reference *)&utm12_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1a ");
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D cd_3d_coord;
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2b ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D xtm_3d_coord;
+	status = utm12_srf->methods->CreateCoordinate3D(utm12_srf,
+												0.0,0.0,0.0,
+												&xtm_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2a ");
+
+
+	status = cd_srf.methods->SetCoordinate3DValues(&cd_srf,&cd_3d_coord, 
+		longitude, latitude,0.0);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2c ");
+
+	//step 3 convert
+	SRM_Coordinate_Valid_Region valid_region;
+	status = utm12_srf->methods->ChangeCoordinate3DSRF(utm12_srf,
+												&cd_srf,
+												&cd_3d_coord,
+												&xtm_3d_coord,
+												&valid_region);
+
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 status=%d\n ",status);
+
+	SRM_Long_Float tgt_ord[3];
+	vecsetd(tgt_ord,0.0,0.0,0.0);
+	status = utm12_srf->methods->GetCoordinate3DValues(utm12_srf,
+				&xtm_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+	*easting = tgt_ord[0];
+	*northing = tgt_ord[1];
+	printf("easting = %lf northing = %lf \n",*easting, *northing);
+
+}
+#endif //SRM
+
 
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
@@ -2037,6 +2120,11 @@ static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
 #ifdef GEOLIB
 	if(method_geolib())
 		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	else
+#endif //GEOLIB
+#ifdef SRM
+	if(method_srm())
+		gdToXtm_srm(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	else
 #endif //GEOLIB
 		gdToXtm(semimajor,flattening, gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
