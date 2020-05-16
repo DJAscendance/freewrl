@@ -1585,7 +1585,7 @@ void stream_extrusion_texture_coords (struct X3D_PolyRep *rep_,
 	}
 }
 
-
+void set_tess_callbacks(int variant);
 void make_Extrusion(struct X3D_Extrusion *node) {
 
 	/*****begin of Member Extrusion	*/
@@ -1699,7 +1699,7 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 /*FIXME:
   to prevent a crash with script generated data
 */
-
+#define TOBIAS TRUE
 	if (nspi < 1) return;
 
 	/* is there anything to this Extrusion??? */
@@ -1721,25 +1721,30 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 
 			/* assume that it is not duplicated */
 			increment = 1;
-
-			for (temp_indx=0; temp_indx<currentlocn; temp_indx++) {
-				if ((APPROX(crossSection[currentlocn].c[0],crossSection[temp_indx].c[0])) &&
-				    (APPROX(crossSection[currentlocn].c[1],crossSection[temp_indx].c[1]))) {
-					/* maybe we have a closed curve, so points SHOULD be the same */
-					if ((temp_indx != 0) && (tmp1 != (nsec-1))) {
-						/* printf ("... breaking; increment = 0\n");*/
-						increment = 0;
-						break;
-					} else {
-						/* printf ("... we are tubular\n");*/
-						tubular = TRUE;
+			if(!TOBIAS){
+				for (temp_indx=0; temp_indx<currentlocn; temp_indx++) {
+					if ((APPROX(crossSection[currentlocn].c[0],crossSection[temp_indx].c[0])) &&
+						(APPROX(crossSection[currentlocn].c[1],crossSection[temp_indx].c[1]))) {
+						/* maybe we have a closed curve, so points SHOULD be the same */
+						if ((temp_indx != 0) && (tmp1 != (nsec-1))) {
+							/* printf ("... breaking; increment = 0\n");*/
+							increment = 0;
+							break;
+						} else {
+							/* printf ("... we are tubular\n");*/
+							tubular = TRUE;
+						}
 					}
 				}
 			}
+
 			/* increment the crossSection index, unless it was duplicated */
 			currentlocn += increment;
 		}
-
+		if(TOBIAS){
+			if(vecapprox3f(crossSection[0].c,crossSection[nsec-1].c,.001f))
+				tubular = TRUE;
+		}
 		#ifdef VERBOSE
 			printf ("we had nsec %d coords, but now we have %d\n",nsec,currentlocn);
 		#endif
@@ -2537,18 +2542,25 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 		GLDOUBLE tess_v[3];
 		int endpoint;
 		ttglobal tg = gglobal();
-
-		tess_vs=MALLOC(int *, sizeof(*(tess_vs)) * (nsec - 3 - ncolinear_at_end) * 3);
-
+		int max_combiner = 30;
+		tess_vs=MALLOC(int *, sizeof(*(tess_vs)) * (nsec - 3 - ncolinear_at_end + max_combiner) * 3);
+		int last_vertex = 2*nsec + (nspi-1)*nsec;
 		/* if not tubular, we need one more triangle */
 		if (tubular) endpoint = nsec-1-ncolinear_at_end;
 		else endpoint = nsec-ncolinear_at_end;
-
+		polyrep_combiner_data cbdata;
+		set_tess_callbacks(1);
+		cbdata.coords = rep_->actualCoord; // p->FW_rep_->actualCoord;
+		cbdata.counter = &last_vertex; //&tg->Tess.global_IFS_Coord_count;
+		cbdata.ria = tess_vs;
+		cbdata.riaindex = &x;
 
 		if (beginCap) {
 			tg->Tess.global_IFS_Coord_count = 0;
+			gluTessNormal(tg->Tess.text_tessobj,0.0,1.0,0.0);
+
 			//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
-			gluTessBeginPolygon( tg->Tess.global_tessobj, NULL); //&cbdata );
+			gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata );
 			gluTessBeginContour( tg->Tess.global_tessobj );
 
 			for(x=0+ncolinear_at_begin; x<endpoint; x++) {
@@ -2585,7 +2597,9 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 		if (endCap) {
 			tg->Tess.global_IFS_Coord_count = 0;
 			//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
-			gluTessBeginPolygon( tg->Tess.global_tessobj, NULL); //&cbdata ); //cbdata is for combiner
+			gluTessNormal(tg->Tess.text_tessobj,0.0,1.0,0.0);
+
+			gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata );
 			gluTessBeginContour( tg->Tess.global_tessobj );
 
 			for(x=0+ncolinear_at_begin; x<endpoint; x++) {
@@ -2612,6 +2626,8 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 
 			this_face++;
 		}
+		//tg->Tess.last_slot = NULL;
+		set_tess_callbacks(0);
 
 		/* get rid of MALLOCd memory  for tess */
 		FREE_IF_NZ (tess_vs);
