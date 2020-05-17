@@ -117,7 +117,7 @@ struct BBoxFields {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 
 };
 void prep_BBox(struct BBoxFields *bfields);

@@ -852,120 +852,120 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_baseTexture	414
 #define FIELDNAMES_baseTextureChannel	415
 #define FIELDNAMES_bboxCenter	416
-#define FIELDNAMES_bboxSize	417
-#define FIELDNAMES_beamWidth	418
-#define FIELDNAMES_beginCap	419
-#define FIELDNAMES_bindTime	420
-#define FIELDNAMES_bodies	421
-#define FIELDNAMES_body1	422
-#define FIELDNAMES_body1AnchorPoint	423
-#define FIELDNAMES_body1Axis	424
-#define FIELDNAMES_body2	425
-#define FIELDNAMES_body2AnchorPoint	426
-#define FIELDNAMES_body2Axis	427
-#define FIELDNAMES_borderColor	428
-#define FIELDNAMES_borderWidth	429
-#define FIELDNAMES_bottom	430
-#define FIELDNAMES_bottomRadius	431
-#define FIELDNAMES_bottomTexture	432
-#define FIELDNAMES_bottomUrl	433
-#define FIELDNAMES_bounce	434
-#define FIELDNAMES_boundaryModeR	435
-#define FIELDNAMES_boundaryModeS	436
-#define FIELDNAMES_boundaryModeT	437
-#define FIELDNAMES_boundaryOpacity	438
-#define FIELDNAMES_buffer	439
-#define FIELDNAMES_category	440
-#define FIELDNAMES_ccw	441
-#define FIELDNAMES_center	442
-#define FIELDNAMES_centerOfMass	443
-#define FIELDNAMES_centerOfRotation	444
-#define FIELDNAMES_centerOfRotation_changed	445
-#define FIELDNAMES_channelCount	446
-#define FIELDNAMES_channelCountMode	447
-#define FIELDNAMES_channelInterpretation	448
-#define FIELDNAMES_channels	449
-#define FIELDNAMES_channelsEnabled	450
-#define FIELDNAMES_child1Url	451
-#define FIELDNAMES_child2Url	452
-#define FIELDNAMES_child3Url	453
-#define FIELDNAMES_child4Url	454
-#define FIELDNAMES_children	455
-#define FIELDNAMES_choice	456
-#define FIELDNAMES_clipBoundary	457
-#define FIELDNAMES_closed	458
-#define FIELDNAMES_closureType	459
-#define FIELDNAMES_collidable	460
-#define FIELDNAMES_collidables	461
-#define FIELDNAMES_collide	462
-#define FIELDNAMES_collideTime	463
-#define FIELDNAMES_collider	464
-#define FIELDNAMES_collisionType	465
-#define FIELDNAMES_color	466
-#define FIELDNAMES_colorIndex	467
-#define FIELDNAMES_colorKey	468
-#define FIELDNAMES_colorMode	469
-#define FIELDNAMES_colorPerVertex	470
-#define FIELDNAMES_colorRamp	471
-#define FIELDNAMES_colorSteps	472
-#define FIELDNAMES_coneGain	473
-#define FIELDNAMES_coneInnerAngle	474
-#define FIELDNAMES_coneOuterAngle	475
-#define FIELDNAMES_connect	476
-#define FIELDNAMES_constantForceMix	477
-#define FIELDNAMES_contactNormal	478
-#define FIELDNAMES_contactSurfaceThickness	479
-#define FIELDNAMES_contacts	480
-#define FIELDNAMES_context	481
-#define FIELDNAMES_contourStepSize	482
-#define FIELDNAMES_controlKey	483
-#define FIELDNAMES_controlPoint	484
-#define FIELDNAMES_convex	485
-#define FIELDNAMES_coolColor	486
-#define FIELDNAMES_coord	487
-#define FIELDNAMES_coordIndex	488
-#define FIELDNAMES_country	489
-#define FIELDNAMES_creaseAngle	490
-#define FIELDNAMES_createParticles	491
-#define FIELDNAMES_crossSection	492
-#define FIELDNAMES_crossSectionCurve	493
-#define FIELDNAMES_cryptoKeyID	494
-#define FIELDNAMES_cryptoSystem	495
-#define FIELDNAMES_currentTime	496
-#define FIELDNAMES_curve	497
-#define FIELDNAMES_cutOffAngle	498
-#define FIELDNAMES_cycleInterval	499
-#define FIELDNAMES_cycleTime	500
-#define FIELDNAMES_data	501
-#define FIELDNAMES_dataLength	502
-#define FIELDNAMES_deadReckoning	503
-#define FIELDNAMES_defaultValue	504
-#define FIELDNAMES_delayTime	505
-#define FIELDNAMES_deletionAllowed	506
-#define FIELDNAMES_depth	507
-#define FIELDNAMES_description	508
-#define FIELDNAMES_desiredAngularVelocity1	509
-#define FIELDNAMES_desiredAngularVelocity2	510
-#define FIELDNAMES_destination	511
-#define FIELDNAMES_detonateTime	512
-#define FIELDNAMES_detonationLocation	513
-#define FIELDNAMES_detonationRelativeLocation	514
-#define FIELDNAMES_detonationResult	515
-#define FIELDNAMES_detune	516
-#define FIELDNAMES_diffuse	517
-#define FIELDNAMES_diffuseColor	518
-#define FIELDNAMES_diffuseTexture	519
-#define FIELDNAMES_diffuseTextureChannel	520
-#define FIELDNAMES_dimensions	521
-#define FIELDNAMES_directOutput	522
-#define FIELDNAMES_direction	523
-#define FIELDNAMES_disableAngularSpeed	524
-#define FIELDNAMES_disableLinearSpeed	525
-#define FIELDNAMES_disableTime	526
-#define FIELDNAMES_diskAngle	527
-#define FIELDNAMES_displacements	528
-#define FIELDNAMES_displacers	529
-#define FIELDNAMES_displayBBox	530
+#define FIELDNAMES_bboxDisplay	417
+#define FIELDNAMES_bboxSize	418
+#define FIELDNAMES_beamWidth	419
+#define FIELDNAMES_beginCap	420
+#define FIELDNAMES_bindTime	421
+#define FIELDNAMES_bodies	422
+#define FIELDNAMES_body1	423
+#define FIELDNAMES_body1AnchorPoint	424
+#define FIELDNAMES_body1Axis	425
+#define FIELDNAMES_body2	426
+#define FIELDNAMES_body2AnchorPoint	427
+#define FIELDNAMES_body2Axis	428
+#define FIELDNAMES_borderColor	429
+#define FIELDNAMES_borderWidth	430
+#define FIELDNAMES_bottom	431
+#define FIELDNAMES_bottomRadius	432
+#define FIELDNAMES_bottomTexture	433
+#define FIELDNAMES_bottomUrl	434
+#define FIELDNAMES_bounce	435
+#define FIELDNAMES_boundaryModeR	436
+#define FIELDNAMES_boundaryModeS	437
+#define FIELDNAMES_boundaryModeT	438
+#define FIELDNAMES_boundaryOpacity	439
+#define FIELDNAMES_buffer	440
+#define FIELDNAMES_category	441
+#define FIELDNAMES_ccw	442
+#define FIELDNAMES_center	443
+#define FIELDNAMES_centerOfMass	444
+#define FIELDNAMES_centerOfRotation	445
+#define FIELDNAMES_centerOfRotation_changed	446
+#define FIELDNAMES_channelCount	447
+#define FIELDNAMES_channelCountMode	448
+#define FIELDNAMES_channelInterpretation	449
+#define FIELDNAMES_channels	450
+#define FIELDNAMES_channelsEnabled	451
+#define FIELDNAMES_child1Url	452
+#define FIELDNAMES_child2Url	453
+#define FIELDNAMES_child3Url	454
+#define FIELDNAMES_child4Url	455
+#define FIELDNAMES_children	456
+#define FIELDNAMES_choice	457
+#define FIELDNAMES_clipBoundary	458
+#define FIELDNAMES_closed	459
+#define FIELDNAMES_closureType	460
+#define FIELDNAMES_collidable	461
+#define FIELDNAMES_collidables	462
+#define FIELDNAMES_collide	463
+#define FIELDNAMES_collideTime	464
+#define FIELDNAMES_collider	465
+#define FIELDNAMES_collisionType	466
+#define FIELDNAMES_color	467
+#define FIELDNAMES_colorIndex	468
+#define FIELDNAMES_colorKey	469
+#define FIELDNAMES_colorMode	470
+#define FIELDNAMES_colorPerVertex	471
+#define FIELDNAMES_colorRamp	472
+#define FIELDNAMES_colorSteps	473
+#define FIELDNAMES_coneGain	474
+#define FIELDNAMES_coneInnerAngle	475
+#define FIELDNAMES_coneOuterAngle	476
+#define FIELDNAMES_connect	477
+#define FIELDNAMES_constantForceMix	478
+#define FIELDNAMES_contactNormal	479
+#define FIELDNAMES_contactSurfaceThickness	480
+#define FIELDNAMES_contacts	481
+#define FIELDNAMES_context	482
+#define FIELDNAMES_contourStepSize	483
+#define FIELDNAMES_controlKey	484
+#define FIELDNAMES_controlPoint	485
+#define FIELDNAMES_convex	486
+#define FIELDNAMES_coolColor	487
+#define FIELDNAMES_coord	488
+#define FIELDNAMES_coordIndex	489
+#define FIELDNAMES_country	490
+#define FIELDNAMES_creaseAngle	491
+#define FIELDNAMES_createParticles	492
+#define FIELDNAMES_crossSection	493
+#define FIELDNAMES_crossSectionCurve	494
+#define FIELDNAMES_cryptoKeyID	495
+#define FIELDNAMES_cryptoSystem	496
+#define FIELDNAMES_currentTime	497
+#define FIELDNAMES_curve	498
+#define FIELDNAMES_cutOffAngle	499
+#define FIELDNAMES_cycleInterval	500
+#define FIELDNAMES_cycleTime	501
+#define FIELDNAMES_data	502
+#define FIELDNAMES_dataLength	503
+#define FIELDNAMES_deadReckoning	504
+#define FIELDNAMES_defaultValue	505
+#define FIELDNAMES_delayTime	506
+#define FIELDNAMES_deletionAllowed	507
+#define FIELDNAMES_depth	508
+#define FIELDNAMES_description	509
+#define FIELDNAMES_desiredAngularVelocity1	510
+#define FIELDNAMES_desiredAngularVelocity2	511
+#define FIELDNAMES_destination	512
+#define FIELDNAMES_detonateTime	513
+#define FIELDNAMES_detonationLocation	514
+#define FIELDNAMES_detonationRelativeLocation	515
+#define FIELDNAMES_detonationResult	516
+#define FIELDNAMES_detune	517
+#define FIELDNAMES_diffuse	518
+#define FIELDNAMES_diffuseColor	519
+#define FIELDNAMES_diffuseTexture	520
+#define FIELDNAMES_diffuseTextureChannel	521
+#define FIELDNAMES_dimensions	522
+#define FIELDNAMES_directOutput	523
+#define FIELDNAMES_direction	524
+#define FIELDNAMES_disableAngularSpeed	525
+#define FIELDNAMES_disableLinearSpeed	526
+#define FIELDNAMES_disableTime	527
+#define FIELDNAMES_diskAngle	528
+#define FIELDNAMES_displacements	529
+#define FIELDNAMES_displacers	530
 #define FIELDNAMES_displayed	531
 #define FIELDNAMES_distanceModel	532
 #define FIELDNAMES_domain	533
@@ -1800,89 +1800,89 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_baseColor	59
 #define EXPOSED_FIELD_baseTexture	60
 #define EXPOSED_FIELD_baseTextureChannel	61
-#define EXPOSED_FIELD_beamWidth	62
-#define EXPOSED_FIELD_bodies	63
-#define EXPOSED_FIELD_body1	64
-#define EXPOSED_FIELD_body2	65
-#define EXPOSED_FIELD_borderColor	66
-#define EXPOSED_FIELD_borderWidth	67
-#define EXPOSED_FIELD_bottom	68
-#define EXPOSED_FIELD_bottomTexture	69
-#define EXPOSED_FIELD_bottomUrl	70
-#define EXPOSED_FIELD_bounce	71
-#define EXPOSED_FIELD_boundaryModeR	72
-#define EXPOSED_FIELD_boundaryModeS	73
-#define EXPOSED_FIELD_boundaryModeT	74
-#define EXPOSED_FIELD_boundaryOpacity	75
-#define EXPOSED_FIELD_buffer	76
-#define EXPOSED_FIELD_center	77
-#define EXPOSED_FIELD_centerOfMass	78
-#define EXPOSED_FIELD_centerOfRotation	79
-#define EXPOSED_FIELD_channelCount	80
-#define EXPOSED_FIELD_channelCountMode	81
-#define EXPOSED_FIELD_channelInterpretation	82
-#define EXPOSED_FIELD_channels	83
-#define EXPOSED_FIELD_channelsEnabled	84
-#define EXPOSED_FIELD_children	85
-#define EXPOSED_FIELD_choice	86
-#define EXPOSED_FIELD_clipBoundary	87
-#define EXPOSED_FIELD_closed	88
-#define EXPOSED_FIELD_collidables	89
-#define EXPOSED_FIELD_collide	90
-#define EXPOSED_FIELD_collider	91
-#define EXPOSED_FIELD_collisionType	92
-#define EXPOSED_FIELD_color	93
-#define EXPOSED_FIELD_colorMode	94
-#define EXPOSED_FIELD_colorSteps	95
-#define EXPOSED_FIELD_coneGain	96
-#define EXPOSED_FIELD_coneInnerAngle	97
-#define EXPOSED_FIELD_coneOuterAngle	98
-#define EXPOSED_FIELD_connect	99
-#define EXPOSED_FIELD_constantForceMix	100
-#define EXPOSED_FIELD_contactNormal	101
-#define EXPOSED_FIELD_contactSurfaceThickness	102
-#define EXPOSED_FIELD_context	103
-#define EXPOSED_FIELD_contourStepSize	104
-#define EXPOSED_FIELD_controlPoint	105
-#define EXPOSED_FIELD_coolColor	106
-#define EXPOSED_FIELD_coord	107
-#define EXPOSED_FIELD_coordIndex	108
-#define EXPOSED_FIELD_createParticles	109
-#define EXPOSED_FIELD_crossSectionCurve	110
-#define EXPOSED_FIELD_cryptoKeyID	111
-#define EXPOSED_FIELD_cryptoSystem	112
-#define EXPOSED_FIELD_currentTime	113
-#define EXPOSED_FIELD_curve	114
-#define EXPOSED_FIELD_cutOffAngle	115
-#define EXPOSED_FIELD_cycleInterval	116
-#define EXPOSED_FIELD_data	117
-#define EXPOSED_FIELD_dataLength	118
-#define EXPOSED_FIELD_deadReckoning	119
-#define EXPOSED_FIELD_defaultValue	120
-#define EXPOSED_FIELD_delayTime	121
-#define EXPOSED_FIELD_deletionAllowed	122
-#define EXPOSED_FIELD_depth	123
-#define EXPOSED_FIELD_description	124
-#define EXPOSED_FIELD_desiredAngularVelocity1	125
-#define EXPOSED_FIELD_desiredAngularVelocity2	126
-#define EXPOSED_FIELD_destination	127
-#define EXPOSED_FIELD_detonationLocation	128
-#define EXPOSED_FIELD_detonationRelativeLocation	129
-#define EXPOSED_FIELD_detonationResult	130
-#define EXPOSED_FIELD_detune	131
-#define EXPOSED_FIELD_diffuse	132
-#define EXPOSED_FIELD_diffuseColor	133
-#define EXPOSED_FIELD_diffuseTexture	134
-#define EXPOSED_FIELD_diffuseTextureChannel	135
-#define EXPOSED_FIELD_dimensions	136
-#define EXPOSED_FIELD_direction	137
-#define EXPOSED_FIELD_disableAngularSpeed	138
-#define EXPOSED_FIELD_disableLinearSpeed	139
-#define EXPOSED_FIELD_disableTime	140
-#define EXPOSED_FIELD_diskAngle	141
-#define EXPOSED_FIELD_displacements	142
-#define EXPOSED_FIELD_displacers	143
-#define EXPOSED_FIELD_displayBBox	144
+#define EXPOSED_FIELD_bboxDisplay	62
+#define EXPOSED_FIELD_beamWidth	63
+#define EXPOSED_FIELD_bodies	64
+#define EXPOSED_FIELD_body1	65
+#define EXPOSED_FIELD_body2	66
+#define EXPOSED_FIELD_borderColor	67
+#define EXPOSED_FIELD_borderWidth	68
+#define EXPOSED_FIELD_bottom	69
+#define EXPOSED_FIELD_bottomTexture	70
+#define EXPOSED_FIELD_bottomUrl	71
+#define EXPOSED_FIELD_bounce	72
+#define EXPOSED_FIELD_boundaryModeR	73
+#define EXPOSED_FIELD_boundaryModeS	74
+#define EXPOSED_FIELD_boundaryModeT	75
+#define EXPOSED_FIELD_boundaryOpacity	76
+#define EXPOSED_FIELD_buffer	77
+#define EXPOSED_FIELD_center	78
+#define EXPOSED_FIELD_centerOfMass	79
+#define EXPOSED_FIELD_centerOfRotation	80
+#define EXPOSED_FIELD_channelCount	81
+#define EXPOSED_FIELD_channelCountMode	82
+#define EXPOSED_FIELD_channelInterpretation	83
+#define EXPOSED_FIELD_channels	84
+#define EXPOSED_FIELD_channelsEnabled	85
+#define EXPOSED_FIELD_children	86
+#define EXPOSED_FIELD_choice	87
+#define EXPOSED_FIELD_clipBoundary	88
+#define EXPOSED_FIELD_closed	89
+#define EXPOSED_FIELD_collidables	90
+#define EXPOSED_FIELD_collide	91
+#define EXPOSED_FIELD_collider	92
+#define EXPOSED_FIELD_collisionType	93
+#define EXPOSED_FIELD_color	94
+#define EXPOSED_FIELD_colorMode	95
+#define EXPOSED_FIELD_colorSteps	96
+#define EXPOSED_FIELD_coneGain	97
+#define EXPOSED_FIELD_coneInnerAngle	98
+#define EXPOSED_FIELD_coneOuterAngle	99
+#define EXPOSED_FIELD_connect	100
+#define EXPOSED_FIELD_constantForceMix	101
+#define EXPOSED_FIELD_contactNormal	102
+#define EXPOSED_FIELD_contactSurfaceThickness	103
+#define EXPOSED_FIELD_context	104
+#define EXPOSED_FIELD_contourStepSize	105
+#define EXPOSED_FIELD_controlPoint	106
+#define EXPOSED_FIELD_coolColor	107
+#define EXPOSED_FIELD_coord	108
+#define EXPOSED_FIELD_coordIndex	109
+#define EXPOSED_FIELD_createParticles	110
+#define EXPOSED_FIELD_crossSectionCurve	111
+#define EXPOSED_FIELD_cryptoKeyID	112
+#define EXPOSED_FIELD_cryptoSystem	113
+#define EXPOSED_FIELD_currentTime	114
+#define EXPOSED_FIELD_curve	115
+#define EXPOSED_FIELD_cutOffAngle	116
+#define EXPOSED_FIELD_cycleInterval	117
+#define EXPOSED_FIELD_data	118
+#define EXPOSED_FIELD_dataLength	119
+#define EXPOSED_FIELD_deadReckoning	120
+#define EXPOSED_FIELD_defaultValue	121
+#define EXPOSED_FIELD_delayTime	122
+#define EXPOSED_FIELD_deletionAllowed	123
+#define EXPOSED_FIELD_depth	124
+#define EXPOSED_FIELD_description	125
+#define EXPOSED_FIELD_desiredAngularVelocity1	126
+#define EXPOSED_FIELD_desiredAngularVelocity2	127
+#define EXPOSED_FIELD_destination	128
+#define EXPOSED_FIELD_detonationLocation	129
+#define EXPOSED_FIELD_detonationRelativeLocation	130
+#define EXPOSED_FIELD_detonationResult	131
+#define EXPOSED_FIELD_detune	132
+#define EXPOSED_FIELD_diffuse	133
+#define EXPOSED_FIELD_diffuseColor	134
+#define EXPOSED_FIELD_diffuseTexture	135
+#define EXPOSED_FIELD_diffuseTextureChannel	136
+#define EXPOSED_FIELD_dimensions	137
+#define EXPOSED_FIELD_direction	138
+#define EXPOSED_FIELD_disableAngularSpeed	139
+#define EXPOSED_FIELD_disableLinearSpeed	140
+#define EXPOSED_FIELD_disableTime	141
+#define EXPOSED_FIELD_diskAngle	142
+#define EXPOSED_FIELD_displacements	143
+#define EXPOSED_FIELD_displacers	144
 #define EXPOSED_FIELD_displayed	145
 #define EXPOSED_FIELD_distanceModel	146
 #define EXPOSED_FIELD_dopplerFactor	147
@@ -3013,7 +3013,7 @@ struct X3D_Anchor {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	void * _parentResource;
 };
 extern struct X3D_Virt virt_Anchor;
@@ -3399,7 +3399,7 @@ struct X3D_Billboard {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *metadata;
 	double _rotationAngle;
 };
@@ -3642,7 +3642,7 @@ struct X3D_CADAssembly {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct Multi_Node _sortedChildren;
 };
 extern struct X3D_Virt virt_CADAssembly;
@@ -3668,7 +3668,7 @@ struct X3D_CADFace {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 };
 extern struct X3D_Virt virt_CADFace;
 /***********************/
@@ -3697,7 +3697,7 @@ struct X3D_CADLayer {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 };
 extern struct X3D_Virt virt_CADLayer;
 /***********************/
@@ -3730,7 +3730,7 @@ struct X3D_CADPart {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int __do_center;
 	int __do_trans;
 	int __do_rotation;
@@ -3908,7 +3908,7 @@ struct X3D_CollidableOffset {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int __do_trans;
 	int __do_rotation;
 	struct X3D_Node *collidable;
@@ -3942,7 +3942,7 @@ struct X3D_CollidableShape {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int __do_trans;
 	int __do_rotation;
 	struct X3D_Node *shape;
@@ -3978,7 +3978,7 @@ struct X3D_Collision {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *proxy;
 	double collideTime;
 	struct X3D_Node *metadata;
@@ -4064,7 +4064,7 @@ struct X3D_CollisionSpace {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	void * _space;
 };
 extern struct X3D_Virt virt_CollisionSpace;
@@ -5232,7 +5232,7 @@ struct X3D_EspduTransform {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int __do_center;
 	int __do_trans;
 	int __do_rotation;
@@ -5614,7 +5614,7 @@ struct X3D_GeoLOD {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *__geoSystem;
 	struct SFVec3d __movedCoords;
 	int __inRange;
@@ -5655,7 +5655,7 @@ struct X3D_GeoLocation {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int relativeHeight;
 	double _gridHeight;
 	struct X3D_Node *__geoSystem;
@@ -5743,7 +5743,7 @@ struct X3D_GeoPlanet {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct Uni_String *description;
 	int planetId;
 	struct Multi_Node __oldChildren;
@@ -5887,7 +5887,7 @@ struct X3D_GeoTransform {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *geoOrigin;
 	struct Multi_String geoSystem;
 	int __do_center;
@@ -5980,7 +5980,7 @@ struct X3D_Group {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct Multi_Node _sortedChildren;
 };
 extern struct X3D_Virt virt_Group;
@@ -6044,7 +6044,7 @@ struct X3D_HAnimHumanoid {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *metadata;
 	struct Multi_Node motions;
 	struct Multi_Bool motionsEnabled;
@@ -6093,7 +6093,7 @@ struct X3D_HAnimJoint {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *metadata;
 	int __do_center;
 	int __do_trans;
@@ -6272,7 +6272,7 @@ struct X3D_HAnimSegment {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct SFVec3f centerOfMass;
 	struct X3D_Node *coord;
 	struct Multi_Node displacers;
@@ -6306,7 +6306,7 @@ struct X3D_HAnimSite {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct SFVec3f center;
 	struct SFRotation rotation;
 	struct SFVec3f scale;
@@ -6651,7 +6651,7 @@ struct X3D_Inline {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct Multi_Node _sortedChildren;
 	struct Multi_Node addChildren;
 	struct Multi_Node removeChildren;
@@ -6754,7 +6754,7 @@ struct X3D_IsoSurfaceVolumeData {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	void * _boxtris;
 	struct Multi_Node renderStyle;
 	float contourStepSize;
@@ -6818,7 +6818,7 @@ struct X3D_LOD {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *metadata;
 	int level_changed;
 	int forceTransitions;
@@ -6927,7 +6927,7 @@ struct X3D_LayoutGroup {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct X3D_Node *layout;
 	struct X3D_Node *viewport;
 };
@@ -8726,7 +8726,7 @@ struct X3D_NurbsSet {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 };
 extern struct X3D_Virt virt_NurbsSet;
 /***********************/
@@ -9275,7 +9275,7 @@ struct X3D_PickableGroup {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 };
 extern struct X3D_Virt virt_PickableGroup;
 /***********************/
@@ -9902,7 +9902,7 @@ struct X3D_Proto {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct Multi_Node _sortedChildren;
 	struct Multi_Node addChildren;
 	struct Multi_Node removeChildren;
@@ -10063,7 +10063,7 @@ struct X3D_ReceiverPdu {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int radioID;
 	int whichGeometry;
 	int receiverState;
@@ -10328,7 +10328,7 @@ struct X3D_ScreenGroup {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 };
 extern struct X3D_Virt virt_ScreenGroup;
 /***********************/
@@ -10377,7 +10377,7 @@ struct X3D_SegmentedVolumeData {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	void * _boxtris;
 	struct Multi_Node renderStyle;
 	struct Multi_Bool segmentEnabled;
@@ -10482,7 +10482,7 @@ struct X3D_Shape {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int _shaderflags_base;
 	int _shaderflags_effects;
 	int _shaderflags_usershaders;
@@ -10536,7 +10536,7 @@ struct X3D_SignalPdu {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int radioID;
 	int whichGeometry;
 	struct Multi_Int32 data;
@@ -10902,7 +10902,7 @@ struct X3D_StaticGroup {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	struct Multi_Node __sibAffectors;
 	int __transparency;
 	int __solid;
@@ -10991,7 +10991,7 @@ struct X3D_Switch {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int __isX3D;
 };
 extern struct X3D_Virt virt_Switch;
@@ -11563,7 +11563,7 @@ struct X3D_Transform {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int __do_center;
 	int __do_trans;
 	int __do_rotation;
@@ -11650,7 +11650,7 @@ struct X3D_TransmitterPdu {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	int radioID;
 	int whichGeometry;
 	int radioEntityTypeKind;
@@ -11980,7 +11980,7 @@ struct X3D_Viewport {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 };
 extern struct X3D_Virt virt_Viewport;
 /***********************/
@@ -12035,7 +12035,7 @@ struct X3D_VolumeData {
 	struct SFVec3f bboxCenter;
 	struct SFVec3f bboxSize;
 	int visible;
-	int displayBBox;
+	int bboxDisplay;
 	void * _boxtris;
 	struct X3D_Node *renderStyle;
 };
