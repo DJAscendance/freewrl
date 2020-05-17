@@ -1928,3 +1928,9 @@ void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	}
 }
 
+void compile_AcousticProperties (struct X3D_AcousticProperties *node){
+	MARK_NODE_COMPILED
+}
+void render_AcousticProperties (struct X3D_AcousticProperties *node){
+	COMPILE_IF_REQUIRED
+}

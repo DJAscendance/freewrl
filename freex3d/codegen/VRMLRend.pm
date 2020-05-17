@@ -354,6 +354,9 @@ our %defaultContainerType = (
 	Effect			=>["children"],
 	EffectPart		=>["parts"],
 
+	AcousticProperties	=>["acousticProperties"],
+
+
 	AudioContext		=>["children"],
 	AudioContext		=>["connect"],
 	AudioParam		=>["connect"],
@@ -472,6 +475,7 @@ our %RendC = map {($_=>1)} qw/
 	GeoProximitySensor
 	ProximitySensor
 	
+	AcousticProperties
 	AudioContext
 	AudioParam
 	OscillatorNode
@@ -792,6 +796,8 @@ our %CompileC = map {($_=>1)} qw/
 	ReceiverPdu
 	SignalPdu
 	TransmitterPdu
+
+	AcousticProperties
 	
 	AudioContext
 	AudioParam

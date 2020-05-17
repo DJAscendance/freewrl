@@ -405,6 +405,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_weightFunction2",
 	"_world",
 	"_xyzw",
+	"absorption",
+	"acousticProperties",
 	"actionKeyPress",
 	"actionKeyRelease",
 	"activate",
@@ -583,6 +585,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"detonationRelativeLocation",
 	"detonationResult",
 	"detune",
+	"diffuse",
 	"diffuseColor",
 	"diffuseTexture",
 	"diffuseTextureChannel",
@@ -940,6 +943,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"reduction",
 	"refDistance",
 	"reference",
+	"refraction",
 	"relativeAntennaLocation",
 	"relativeHeight",
 	"release",
@@ -1044,6 +1048,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"spacing",
 	"spatialize",
 	"specific",
+	"specular",
 	"specularColor",
 	"specularShininessTexture",
 	"specularShininessTextureChannel",
@@ -1370,6 +1375,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
        const char *EXPOSED_FIELD[] = {
 	"FIFOsize",
 	"Q",
+	"absorption",
+	"acousticProperties",
 	"activeLayer",
 	"address",
 	"align",
@@ -1498,6 +1505,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"detonationRelativeLocation",
 	"detonationResult",
 	"detune",
+	"diffuse",
 	"diffuseColor",
 	"diffuseTexture",
 	"diffuseTextureChannel",
@@ -1750,6 +1758,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"receiverState",
 	"reduction",
 	"refDistance",
+	"refraction",
 	"relativeAntennaLocation",
 	"release",
 	"renderStyle",
@@ -1799,6 +1808,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"softnessConstantForceMix",
 	"softnessErrorCorrection",
 	"source",
+	"specular",
 	"specularColor",
 	"specularShininessTexture",
 	"specularShininessTextureChannel",
@@ -2373,6 +2383,7 @@ const int FIELDTYPES_COUNT = ARR_SIZE(FIELDTYPES);
 
 /* Table of Node Types */
 const char *NODES[] = {
+	"AcousticProperties",
 	"AnalyserNode",
 	"Anchor",
 	"Appearance",
@@ -2697,6 +2708,7 @@ const char *NODES[] = {
 const int NODES_COUNT = ARR_SIZE(NODES);
 
 const short NODE_DEFAULT_CONTAINER[][7] = {
+{FIELDNAMES_acousticProperties,0,0,0,0,0,0},
 {FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_appearance,0,0,0,0,0,0},
@@ -3019,6 +3031,10 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 };
 /* Virtual tables for each node */
+
+void render_AcousticProperties(struct X3D_AcousticProperties *);
+void compile_AcousticProperties(struct X3D_AcousticProperties *);
+struct X3D_Virt virt_AcousticProperties = { NULL,(void *)render_AcousticProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AcousticProperties};
 
 void render_AnalyserNode(struct X3D_AnalyserNode *);
 void compile_AnalyserNode(struct X3D_AnalyserNode *);
@@ -4032,6 +4048,7 @@ struct X3D_Virt virt_WorldInfo = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 
 /* table containing pointers to every virtual struct for each node type */ 
 struct X3D_Virt* virtTable[] = { 
+	 &virt_AcousticProperties,
 	 &virt_AnalyserNode,
 	 &virt_Anchor,
 	 &virt_Appearance,
@@ -4355,6 +4372,13 @@ struct X3D_Virt* virtTable[] = {
 	NULL}; 
 
 
+const int OFFSETS_AcousticProperties[] = {
+	(int) FIELDNAMES_absorption, (int) offsetof (struct X3D_AcousticProperties, absorption),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_specular, (int) offsetof (struct X3D_AcousticProperties, specular),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_diffuse, (int) offsetof (struct X3D_AcousticProperties, diffuse),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_refraction, (int) offsetof (struct X3D_AcousticProperties, refraction),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_AnalyserNode[] = {
 	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AnalyserNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_fftSize, (int) offsetof (struct X3D_AnalyserNode, fftSize),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4384,6 +4408,7 @@ const int OFFSETS_Appearance[] = {
 	(int) FIELDNAMES_fillProperties, (int) offsetof (struct X3D_Appearance, fillProperties),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_lineProperties, (int) offsetof (struct X3D_Appearance, lineProperties),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_pointProperties, (int) offsetof (struct X3D_Appearance, pointProperties),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_acousticProperties, (int) offsetof (struct X3D_Appearance, acousticProperties),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_material, (int) offsetof (struct X3D_Appearance, material),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_backMaterial, (int) offsetof (struct X3D_Appearance, backMaterial),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_Appearance, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -4436,6 +4461,7 @@ const int OFFSETS_AudioBufferSourceNode[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioClip[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioClip, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_AudioClip, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_AudioClip, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_AudioClip, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8758,6 +8784,7 @@ const int OFFSETS_WorldInfo[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int *NODE_OFFSETS[] = {
+	OFFSETS_AcousticProperties,
 	OFFSETS_AnalyserNode,
 	OFFSETS_Anchor,
 	OFFSETS_Appearance,
@@ -9336,6 +9363,7 @@ void *createNewX3DNode0 (int nt) {
 
 	tmp = NULL;
 	switch (nt) {
+		case NODE_AcousticProperties : {tmp = MALLOC (struct X3D_AcousticProperties *, sizeof (struct X3D_AcousticProperties)); break;}
 		case NODE_AnalyserNode : {tmp = MALLOC (struct X3D_AnalyserNode *, sizeof (struct X3D_AnalyserNode)); break;}
 		case NODE_Anchor : {tmp = MALLOC (struct X3D_Anchor *, sizeof (struct X3D_Anchor)); break;}
 		case NODE_Appearance : {tmp = MALLOC (struct X3D_Appearance *, sizeof (struct X3D_Appearance)); break;}
@@ -9678,6 +9706,16 @@ void *createNewX3DNode0 (int nt) {
 	
 	/* now, fill in the node specific stuff here. the defaults are in VRMLNodes.pm */
 	switch (nt) {
+		case NODE_AcousticProperties : {
+			struct X3D_AcousticProperties * tmp2;
+			tmp2 = (struct X3D_AcousticProperties *) tmp;
+			tmp2->absorption = 0.0f;
+			tmp2->specular = 0.0f;
+			tmp2->diffuse = 0.0f;
+			tmp2->refraction = 0.0f;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_AnalyserNode : {
 			struct X3D_AnalyserNode * tmp2;
 			tmp2 = (struct X3D_AnalyserNode *) tmp;
@@ -9715,6 +9753,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->fillProperties = NULL;
 			tmp2->lineProperties = NULL;
 			tmp2->pointProperties = NULL;
+			tmp2->acousticProperties = NULL;
 			tmp2->material = NULL;
 			tmp2->backMaterial = NULL;
 			tmp2->metadata = NULL;
@@ -9782,6 +9821,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioClip : {
 			struct X3D_AudioClip * tmp2;
 			tmp2 = (struct X3D_AudioClip *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->description = newASCIIString("");
 			tmp2->loop = FALSE;
 			tmp2->metadata = NULL;
@@ -15252,6 +15292,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		spacer fprintf (fp,"L%d: node (%p) (DEF %s) type %s\n",level,node,nodeName,stringNodeType(node->_nodeType));
 	}
 	switch (node->_nodeType) {
+		case NODE_AcousticProperties : {
+			struct X3D_AcousticProperties *tmp;
+			tmp = (struct X3D_AcousticProperties *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," absorption (SFFloat) \t%4.3f\n",tmp->absorption);
+			spacer fprintf (fp," specular (SFFloat) \t%4.3f\n",tmp->specular);
+			spacer fprintf (fp," diffuse (SFFloat) \t%4.3f\n",tmp->diffuse);
+			spacer fprintf (fp," refraction (SFFloat) \t%4.3f\n",tmp->refraction);
+		    break;
+		}
 		case NODE_AnalyserNode : {
 			struct X3D_AnalyserNode *tmp;
 			tmp = (struct X3D_AnalyserNode *) node;
@@ -15294,6 +15344,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," fillProperties (SFNode):\n"); dump_scene(fp,level+1,tmp->fillProperties); 
 			spacer fprintf (fp," lineProperties (SFNode):\n"); dump_scene(fp,level+1,tmp->lineProperties); 
 			spacer fprintf (fp," pointProperties (SFNode):\n"); dump_scene(fp,level+1,tmp->pointProperties); 
+			spacer fprintf (fp," acousticProperties (SFNode):\n"); dump_scene(fp,level+1,tmp->acousticProperties); 
 			spacer fprintf (fp," material (SFNode):\n"); dump_scene(fp,level+1,tmp->material); 
 			spacer fprintf (fp," backMaterial (SFNode):\n"); dump_scene(fp,level+1,tmp->backMaterial); 
 		    if(allFields) {
@@ -15356,6 +15407,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioClip *tmp;
 			tmp = (struct X3D_AudioClip *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," loop (SFBool) \t%d\n",tmp->loop);
 		    if(allFields) {
@@ -20784,6 +20837,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 
 int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	switch (FreeWRLNodeType) {
+	case NODE_AcousticProperties: return X3DAppearanceChildNode; break;
 	case NODE_AnalyserNode: return X3DAudioNode; break;
 	case NODE_Anchor: return X3DGroupingNode; break;
 	case NODE_Appearance: return X3DAppearanceNode; break;

@@ -39,6 +39,14 @@ END_NODE(NodeName)
 */
 
 
+/* AcousticProperties node */
+BEGIN_NODE(AcousticProperties)
+EXPOSED_FIELD(AcousticProperties,absorption,sffloat,absorption,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AcousticProperties,specular,sffloat,specular,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AcousticProperties,diffuse,sffloat,diffuse,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(AcousticProperties,refraction,sffloat,refraction,FIELDTYPE_SFFloat,UNCA_NONE)
+END_NODE(AcousticProperties)
+
 /* AnalyserNode node */
 BEGIN_NODE(AnalyserNode)
 EXPOSED_FIELD(AnalyserNode,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
@@ -69,6 +77,7 @@ BEGIN_NODE(Appearance)
 EXPOSED_FIELD(Appearance,fillProperties,sfnode,fillProperties,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Appearance,lineProperties,sfnode,lineProperties,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Appearance,pointProperties,sfnode,pointProperties,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(Appearance,acousticProperties,sfnode,acousticProperties,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Appearance,material,sfnode,material,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Appearance,backMaterial,sfnode,backMaterial,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Appearance,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -117,6 +126,7 @@ END_NODE(AudioBufferSourceNode)
 
 /* AudioClip node */
 BEGIN_NODE(AudioClip)
+EXPOSED_FIELD(AudioClip,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
 EXPOSED_FIELD(AudioClip,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(AudioClip,loop,sfbool,loop,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(AudioClip,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
