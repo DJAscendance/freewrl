@@ -2083,7 +2083,7 @@ const char *COMPONENTS[] = {
 	"Geometry3D",
 	"Geospatial",
 	"Grouping",
-	"H-Anim",
+	"HAnim",
 	"Interpolation",
 	"KeyDeviceSensor",
 	"Layering",
@@ -2479,6 +2479,9 @@ const char *NODES[] = {
 	"HAnimHumanoid",
 	"HAnimJoint",
 	"HAnimMotion",
+	"HAnimMotionData",
+	"HAnimMotionDataFile",
+	"HAnimMotionPlay",
 	"HAnimSegment",
 	"HAnimSite",
 	"ImageBackdropBackground",
@@ -2801,6 +2804,9 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_joints,0,0,0,0,0,0},
 {FIELDNAMES_motions,0,0,0,0,0,0},
+{FIELDNAMES_data,0,0,0,0,0,0},
+{FIELDNAMES_data,0,0,0,0,0,0},
+{FIELDNAMES_motions,0,0,0,0,0,0},
 {FIELDNAMES_segments,0,0,0,0,0,0},
 {FIELDNAMES_sites,FIELDNAMES_viewpoints,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3037,7 +3043,9 @@ struct X3D_Virt virt_AudioBufferSourceNode = { NULL,NULL,NULL,NULL,NULL,NULL,NUL
 void render_AudioClip(struct X3D_AudioClip *);
 struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_AudioContext = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioContext(struct X3D_AudioContext *);
+void compile_AudioContext(struct X3D_AudioContext *);
+struct X3D_Virt virt_AudioContext = { NULL,(void *)render_AudioContext,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioContext};
 
 struct X3D_Virt virt_AudioDestinationNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3341,6 +3349,18 @@ struct X3D_Virt virt_HAnimJoint = { (void *)prep_HAnimJoint,(void *)render_HAnim
 void render_HAnimMotion(struct X3D_HAnimMotion *);
 void compile_HAnimMotion(struct X3D_HAnimMotion *);
 struct X3D_Virt virt_HAnimMotion = { NULL,(void *)render_HAnimMotion,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotion};
+
+void render_HAnimMotionData(struct X3D_HAnimMotionData *);
+void compile_HAnimMotionData(struct X3D_HAnimMotionData *);
+struct X3D_Virt virt_HAnimMotionData = { NULL,(void *)render_HAnimMotionData,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionData};
+
+void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *);
+void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *);
+struct X3D_Virt virt_HAnimMotionDataFile = { NULL,(void *)render_HAnimMotionDataFile,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionDataFile};
+
+void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *);
+void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *);
+struct X3D_Virt virt_HAnimMotionPlay = { NULL,(void *)render_HAnimMotionPlay,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionPlay};
 
 void child_HAnimSegment(struct X3D_HAnimSegment *);
 struct X3D_Virt virt_HAnimSegment = { NULL,NULL,(void *)child_HAnimSegment,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4082,6 +4102,9 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_HAnimHumanoid,
 	 &virt_HAnimJoint,
 	 &virt_HAnimMotion,
+	 &virt_HAnimMotionData,
+	 &virt_HAnimMotionDataFile,
+	 &virt_HAnimMotionPlay,
 	 &virt_HAnimSegment,
 	 &virt_HAnimSite,
 	 &virt_ImageBackdropBackground,
@@ -5867,6 +5890,61 @@ const int OFFSETS_HAnimMotion[] = {
 	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotion, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotion, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotion, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_HAnimMotionData[] = {
+	(int) FIELDNAMES_channels, (int) offsetof (struct X3D_HAnimMotionData, channels),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotionData, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameCount, (int) offsetof (struct X3D_HAnimMotionData, frameCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameDuration, (int) offsetof (struct X3D_HAnimMotionData, frameDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotionData, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimMotionData, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionData, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionData, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotionData, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotionData, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotionData, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotionData, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_HAnimMotionData, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_HAnimMotionDataFile[] = {
+	(int) FIELDNAMES_channels, (int) offsetof (struct X3D_HAnimMotionDataFile, channels),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotionDataFile, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameCount, (int) offsetof (struct X3D_HAnimMotionDataFile, frameCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameDuration, (int) offsetof (struct X3D_HAnimMotionDataFile, frameDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotionDataFile, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimMotionDataFile, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionDataFile, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionDataFile, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotionDataFile, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channelcount, (int) offsetof (struct X3D_HAnimMotionDataFile, _channelcount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__njoints, (int) offsetof (struct X3D_HAnimMotionDataFile, _njoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__channels, (int) offsetof (struct X3D_HAnimMotionDataFile, _channels),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_HAnimMotionDataFile, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_url, (int) offsetof (struct X3D_HAnimMotionDataFile, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___oldurl, (int) offsetof (struct X3D_HAnimMotionDataFile, __oldurl),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_HAnimMotionPlay[] = {
+	(int) FIELDNAMES_data, (int) offsetof (struct X3D_HAnimMotionPlay, data),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_channelsEnabled, (int) offsetof (struct X3D_HAnimMotionPlay, channelsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_cycleTime, (int) offsetof (struct X3D_HAnimMotionPlay, cycleTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotionPlay, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_elapsedTime, (int) offsetof (struct X3D_HAnimMotionPlay, elapsedTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__startTime, (int) offsetof (struct X3D_HAnimMotionPlay, _startTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_HAnimMotionPlay, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastenabled, (int) offsetof (struct X3D_HAnimMotionPlay, _lastenabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__isActive, (int) offsetof (struct X3D_HAnimMotionPlay, _isActive),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameIncrement, (int) offsetof (struct X3D_HAnimMotionPlay, frameIncrement),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_frameIndex, (int) offsetof (struct X3D_HAnimMotionPlay, frameIndex),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_startFrame, (int) offsetof (struct X3D_HAnimMotionPlay, startFrame),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_endFrame, (int) offsetof (struct X3D_HAnimMotionPlay, endFrame),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_HAnimMotionPlay, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionPlay, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_next, (int) offsetof (struct X3D_HAnimMotionPlay, next),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_previous, (int) offsetof (struct X3D_HAnimMotionPlay, previous),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionPlay, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimSegment[] = {
@@ -8739,6 +8817,9 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_HAnimHumanoid,
 	OFFSETS_HAnimJoint,
 	OFFSETS_HAnimMotion,
+	OFFSETS_HAnimMotionData,
+	OFFSETS_HAnimMotionDataFile,
+	OFFSETS_HAnimMotionPlay,
 	OFFSETS_HAnimSegment,
 	OFFSETS_HAnimSite,
 	OFFSETS_ImageBackdropBackground,
@@ -9315,6 +9396,9 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_HAnimHumanoid : {tmp = MALLOC (struct X3D_HAnimHumanoid *, sizeof (struct X3D_HAnimHumanoid)); break;}
 		case NODE_HAnimJoint : {tmp = MALLOC (struct X3D_HAnimJoint *, sizeof (struct X3D_HAnimJoint)); break;}
 		case NODE_HAnimMotion : {tmp = MALLOC (struct X3D_HAnimMotion *, sizeof (struct X3D_HAnimMotion)); break;}
+		case NODE_HAnimMotionData : {tmp = MALLOC (struct X3D_HAnimMotionData *, sizeof (struct X3D_HAnimMotionData)); break;}
+		case NODE_HAnimMotionDataFile : {tmp = MALLOC (struct X3D_HAnimMotionDataFile *, sizeof (struct X3D_HAnimMotionDataFile)); break;}
+		case NODE_HAnimMotionPlay : {tmp = MALLOC (struct X3D_HAnimMotionPlay *, sizeof (struct X3D_HAnimMotionPlay)); break;}
 		case NODE_HAnimSegment : {tmp = MALLOC (struct X3D_HAnimSegment *, sizeof (struct X3D_HAnimSegment)); break;}
 		case NODE_HAnimSite : {tmp = MALLOC (struct X3D_HAnimSite *, sizeof (struct X3D_HAnimSite)); break;}
 		case NODE_ImageBackdropBackground : {tmp = MALLOC (struct X3D_ImageBackdropBackground *, sizeof (struct X3D_ImageBackdropBackground)); break;}
@@ -11519,6 +11603,70 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_channelcount = 0;
 			tmp2->_njoints = 0;
 			tmp2->_channels = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_HAnimMotionData : {
+			struct X3D_HAnimMotionData * tmp2;
+			tmp2 = (struct X3D_HAnimMotionData *) tmp;
+			tmp2->channels = newASCIIString("");
+			tmp2->description = newASCIIString("");
+			tmp2->frameCount = 0;
+			tmp2->frameDuration = 0.1;
+			tmp2->joints = newASCIIString("");
+			tmp2->loa = -1;
+			tmp2->metadata = NULL;
+			tmp2->values = newASCIIString("");
+			tmp2->_fvalues = 0;
+			tmp2->_channelcount = 0;
+			tmp2->_njoints = 0;
+			tmp2->_channels = 0;
+			tmp2->__loadstatus = 1;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_HAnimMotionDataFile : {
+			struct X3D_HAnimMotionDataFile * tmp2;
+			tmp2 = (struct X3D_HAnimMotionDataFile *) tmp;
+			tmp2->channels = newASCIIString("");
+			tmp2->description = newASCIIString("");
+			tmp2->frameCount = 0;
+			tmp2->frameDuration = 0.1;
+			tmp2->joints = newASCIIString("");
+			tmp2->loa = -1;
+			tmp2->metadata = NULL;
+			tmp2->values = newASCIIString("");
+			tmp2->_fvalues = 0;
+			tmp2->_channelcount = 0;
+			tmp2->_njoints = 0;
+			tmp2->_channels = 0;
+			tmp2->__loadstatus = 0;
+			tmp2->url.n=0; tmp2->url.p=0;
+			tmp2->__oldurl.n=0; tmp2->__oldurl.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_HAnimMotionPlay : {
+			struct X3D_HAnimMotionPlay * tmp2;
+			tmp2 = (struct X3D_HAnimMotionPlay *) tmp;
+			tmp2->data = NULL;
+			tmp2->channelsEnabled.n=0; tmp2->channelsEnabled.p=0;
+			tmp2->cycleTime = 0;
+			tmp2->description = newASCIIString("");
+			tmp2->elapsedTime = 0;
+			tmp2->_startTime = 0;
+			tmp2->enabled = FALSE;
+			tmp2->_lastenabled = FALSE;
+			tmp2->_isActive = FALSE;
+			tmp2->frameIncrement = 1;
+			tmp2->frameIndex = 0;
+			tmp2->startFrame = 0;
+			tmp2->endFrame = 0;
+			tmp2->loop = FALSE;
+			tmp2->metadata = NULL;
+			tmp2->next = FALSE;
+			tmp2->previous = FALSE;
+			tmp2->_framevalues = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17101,6 +17249,63 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
 		    break;
 		}
+		case NODE_HAnimMotionData : {
+			struct X3D_HAnimMotionData *tmp;
+			tmp = (struct X3D_HAnimMotionData *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," channels (SFString) \t%s\n",tmp->channels->strptr);
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
+			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
+			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
+		    break;
+		}
+		case NODE_HAnimMotionDataFile : {
+			struct X3D_HAnimMotionDataFile *tmp;
+			tmp = (struct X3D_HAnimMotionDataFile *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," channels (SFString) \t%s\n",tmp->channels->strptr);
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
+			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
+			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
+			spacer fprintf (fp," url (MFString): \n");
+			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+		    break;
+		}
+		case NODE_HAnimMotionPlay : {
+			struct X3D_HAnimMotionPlay *tmp;
+			tmp = (struct X3D_HAnimMotionPlay *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," data (SFNode):\n"); dump_scene(fp,level+1,tmp->data); 
+			spacer fprintf (fp," channelsEnabled (MFBool):\n");
+			for (i=0; i<tmp->channelsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->channelsEnabled.p[i]); }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+		    if(allFields) {
+			spacer fprintf (fp," _lastenabled (SFBool) \t%d\n",tmp->_lastenabled);
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," _isActive (SFBool) \t%d\n",tmp->_isActive);
+		    }
+			spacer fprintf (fp," frameIncrement (SFInt32) \t%d\n",tmp->frameIncrement);
+			spacer fprintf (fp," frameIndex (SFInt32) \t%d\n",tmp->frameIndex);
+			spacer fprintf (fp," startFrame (SFInt32) \t%d\n",tmp->startFrame);
+			spacer fprintf (fp," endFrame (SFInt32) \t%d\n",tmp->endFrame);
+			spacer fprintf (fp," loop (SFBool) \t%d\n",tmp->loop);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_HAnimSegment : {
 			struct X3D_HAnimSegment *tmp;
 			tmp = (struct X3D_HAnimSegment *) node;
@@ -20600,7 +20805,10 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_HAnimDisplacer: return X3DGeometricPropertyNode; break;
 	case NODE_HAnimHumanoid: return X3DChildNode; break;
 	case NODE_HAnimJoint: return X3DChildNode; break;
-	case NODE_HAnimMotion: return X3DChildNode; break;
+	case NODE_HAnimMotion: return X3DMotionNode; break;
+	case NODE_HAnimMotionData: return X3DMotionDataNode; break;
+	case NODE_HAnimMotionDataFile: return X3DMotionDataNode; break;
+	case NODE_HAnimMotionPlay: return X3DMotionNode; break;
 	case NODE_HAnimSegment: return X3DChildNode; break;
 	case NODE_HAnimSite: return X3DGroupingNode; break;
 	case NODE_ImageBackdropBackground: return X3DBackgroundNode; break;

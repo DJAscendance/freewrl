@@ -974,3 +974,18 @@ double return_Duration (struct X3D_AudioClip *node) {
 	}
 	return retval;
 }
+
+#ifdef HAVE_LIBSOUND
+#include "../../libsound/libsound.h"
+//libsound is our /src/libsound C wrapper lib over 
+// LabSound https://github.com/LabSound/LabSound 
+#endif //HAVE LIBSOUND
+void compile_AudioContext(struct X3D_AudioContext *node){
+#ifdef HAVE_LIBSOUND
+	void * context = createContext();
+#endif //HAVE_LIBSOUND	
+	MARK_NODE_COMPILED
+}
+void render_AudioContext(struct X3D_AudioContext *node){
+	COMPILE_IF_REQUIRED
+}

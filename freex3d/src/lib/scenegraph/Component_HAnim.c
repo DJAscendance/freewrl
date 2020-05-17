@@ -1391,8 +1391,8 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	node->_fvalues = fvalues;
 	node->_channels = chan;
 	node->_framevalues = fvalues;
-	node->startFrame = 0;
-	node->endFrame = node->frameCount -1;
+	//node->startFrame = 0;
+	if(node->endFrame == 0) node->endFrame = node->frameCount -1;
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
@@ -1457,23 +1457,45 @@ void render_HAnimMotion(struct X3D_HAnimMotion *node) {
 	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
 }
 
-struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion* HM, char *jname){
+struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char *jname){
 	struct joint_frame_motion * jm = NULL;
-	if(HM){
-		if(HM->enabled){
-			//see if we have the joint
-			int njoints = (int)HM->_njoints;
-			struct joint_frame_motion * chan = HM->_channels;
-			float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
-			int kchan = 0;
-			for(int i=0;i<njoints;i++){
-				if(!strcmp(chan[i].jname,jname)){
-					//if so return the channel mapping and fvalue pointer
-					jm = &chan[i];
-					jm->values = &frame_values[kchan];
-					break;
+	if(node){
+		if(node->_nodeType == NODE_HAnimMotion){
+			struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) node;
+			if(HM->enabled){
+				//see if we have the joint
+				int njoints = (int)HM->_njoints;
+				struct joint_frame_motion * chan = HM->_channels;
+				float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
+				int kchan = 0;
+				for(int i=0;i<njoints;i++){
+					if(!strcmp(chan[i].jname,jname)){
+						//if so return the channel mapping and fvalue pointer
+						jm = &chan[i];
+						jm->values = &frame_values[kchan];
+						break;
+					}
+					kchan += chan[i].nchan;
 				}
-				kchan += chan[i].nchan;
+			}
+		}else if(node->_nodeType == NODE_HAnimMotionPlay){
+			struct X3D_HAnimMotionPlay* HM = (struct X3D_HAnimMotionPlay*) node;
+			struct X3D_HAnimMotionData *HD = (struct X3D_HAnimMotionData*) HM->data;
+			if(HM->enabled && HD){
+				//see if we have the joint
+				int njoints = (int)HD->_njoints;
+				struct joint_frame_motion * chan = HD->_channels;
+				float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
+				int kchan = 0;
+				for(int i=0;i<njoints;i++){
+					if(!strcmp(chan[i].jname,jname)){
+						//if so return the channel mapping and fvalue pointer
+						jm = &chan[i];
+						jm->values = &frame_values[kchan];
+						break;
+					}
+					kchan += chan[i].nchan;
+				}
 			}
 		}
 	}
@@ -1481,7 +1503,7 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion* HM, char *j
 }
 void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *jmatrix0){
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) HMnode;
-	if(HM && HM->_nodeType == NODE_HAnimMotion){
+	if(HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)){
 		struct joint_frame_motion *jm = jointFrameMotion(HM,jname);
 		int debug = 0;
 		if(jm){ // && strcmp(jname,"HumanoidRoot")){
@@ -1574,3 +1596,166 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 	}
 }
 // <<<<<<<<< HAnimMotion ======================
+
+
+//exprimental nodes not in specs: 
+// Motion = MotionPlay + (MotionData or MotionDataFile)
+// we still have v4 Motion, but also a MotionPlay:Motion which 
+// allows MotionData part to be DEF/USEd aka shared among charagers in a scene.
+// MotionPlay will have a frame index and timing info, so can stay 1:1 with HAnimHumanoid character
+// MotionData can be DEF/USED by multiple MotionPlay nodes
+// MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
+
+
+void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
+	//motion data
+
+	//parse jouint names
+	struct Vector *jnames = parse_joint_names(X3D_NODE(node),node->joints->strptr);
+	printf("\n");
+	for(int i=0;i<jnames->n;i++)
+		printf("%d %s\n",i,vector_get(char*,jnames,i));
+	int njoints = jnames->n;
+
+	//parse channels
+	struct joint_frame_motion *chan = malloc(njoints * sizeof(struct joint_frame_motion));
+	int channelcount = parse_channels(node->channels->strptr,njoints,chan);
+	//in theory channelcount is how many floats to advance in fvalues to get the next frame pointer.
+
+
+	for(int i=0;i<njoints;i++){
+		chan[i].jname = vector_get(char*,jnames,i);
+		printf("joint %d nchan %d ",i, chan[i].nchan);
+		for(int j=0;j<chan[i].nchan;j++){
+			printf("%s ",channame_lookup(chan[i].ichan[j]));
+		}
+		printf("\n");
+	}
+	//parse float frame data
+	float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+
+	//convert degrees to radians
+	for(int iframe=0;iframe<node->frameCount;iframe++){
+		float *fv = &fvalues[iframe * channelcount];
+		int kchan = 0;
+		for(int j=0;j<njoints;j++){
+			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
+			for(int k=0;k<chan[j].nchan;k++){
+				if(chan[j].ichan[k] < 4)
+					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
+				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
+				kchan++;
+			}
+			//printf("\n");
+		}
+	}
+
+	//we won't 'map' to parent during compile - we'll find the motion joint -if any- on the fly in HAnimJoint function(s)
+
+	//frame state
+	//?? anything to do?
+	node->_njoints = njoints;
+	node->_channelcount = channelcount;
+	node->_fvalues = fvalues;
+	node->_channels = chan;
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotionData(struct X3D_HAnimMotionData *node){
+	COMPILE_IF_REQUIRED
+}
+void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
+	COMPILE_IF_REQUIRED
+}
+void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+
+	struct X3D_HAnimMotionData *motiondata = NULL;
+
+	if(node->data){
+		if(node->data->_nodeType == NODE_HAnimMotionData || node->data->_nodeType == NODE_HAnimMotionDataFile ){
+			render_node(X3D_NODE(node->data));
+			motiondata = (struct X3D_HAnimMotionData*)node->data;
+			if(motiondata->__loadstatus == 0) return; 
+		}
+	}
+
+	//node->startFrame = 0;
+	if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
+	//main job: set the frame pointer for the current time, increment, enabled state
+	COMPILE_IF_REQUIRED
+	int index = 0;
+	struct X3D_HAnimMotionData *motiondata = NULL;
+
+	if(node->data){
+		if(node->data->_nodeType == NODE_HAnimMotionData || node->data->_nodeType == NODE_HAnimMotionDataFile ){
+			render_node(X3D_NODE(node->data));
+			motiondata = (struct X3D_HAnimMotionData*)node->data;
+			if(motiondata->__loadstatus == 0) return; 
+		}
+	}
+
+	float *fvalues = (float*)motiondata->_fvalues;
+	int channelcount = (int)motiondata->_channelcount;
+	float *frame_values;
+	int isActive = FALSE;
+
+	int increment = node->frameIncrement;
+	if(increment == 0) return; //the official way to pause
+	index = node->frameIndex;
+	int fcount = motiondata->frameCount;
+	index = max(0,min(index,fcount-1)); //iclamp
+
+	int starting = 0;
+	int stopping = 0;
+	isActive = node->enabled && ((node->loop && increment != 0) || (increment > 0 && index < fcount -1) || (increment < 0 && index > 0) );
+	if(node->enabled && !node->_lastenabled){
+		starting = TRUE;
+		node->_lastenabled = node->enabled;
+	}else if(!node->enabled && node->_lastenabled){
+		stopping = TRUE;
+		node->_lastenabled = node->enabled;
+	}
+	if(starting){
+		node->_startTime = TickTime();
+	}
+
+
+	if(node->next){
+		index = index + increment;
+		node->next = FALSE;
+	} else if(node->previous){
+		index = index - increment;
+		node->previous = FALSE;
+	} else if(node->enabled){
+		double dtime = TickTime() - node->_startTime;
+		index = node->frameIncrement * (int)( dtime / motiondata->frameDuration);
+	}
+	int startingloop = 0;
+	if(node->loop){
+		int lindex = index % fcount;
+		startingloop = lindex != index;
+		index = lindex;
+	}
+	index = max(0,min(index,fcount-1)); //iclamp
+	if(starting && index == fcount -1 && increment > 0) index = 0;
+	if(starting && index == 0 && increment < 0) index = fcount -1;
+	if(starting || startingloop ){
+		node->cycleTime = TickTime();
+		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, cycleTime));
+	}
+	if(isActive){
+		node->elapsedTime = TickTime();
+		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, elapsedTime));
+	}
+	node->frameIndex = index;
+	frame_values = &fvalues[node->frameIndex * channelcount];
+	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
+	COMPILE_IF_REQUIRED
+}
+

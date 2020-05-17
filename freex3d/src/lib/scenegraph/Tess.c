@@ -33,7 +33,7 @@
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
-
+#include "LinearAlgebra.h"
 
 
 #if defined(_MSC_VER)
@@ -192,6 +192,57 @@ void CALLBACK FW_tess_combine_text_data (GLDOUBLE c[3], GLfloat *d[4], GLfloat w
 	}
 }
 
+
+void CALLBACK FW_tess_combine_extrusion_data (GLDOUBLE c[3], GLfloat *d[4], GLfloat w[4], void **out,void *polygondata) {
+/*	Component_Text Combiner
+	printf("FW_tess_combine data\n"); 
+	 printf("combine c:%lf %lf %lf\ndw: %f %f %f %f\n\n",
+		c[0],c[1],c[2],w[0],w[1],w[2],w[3]); 
+	printf ("vertex 0 %lf %lf %lf, 1 %lf %lf %lf, 2 %lf %lf %lf, 3 %lf %lf %lf\n",
+		*d[0]->x,*d[0]->y,*d[0]->z,
+		*d[1]->x,*d[1]->y,*d[1]->z,
+		*d[2]->x,*d[2]->y,*d[2]->z,
+		*d[3]->x,*d[3]->y,*d[3]->z); 
+
+	printf ("d %d %d %d %d\n",d[0],d[1],d[2],d[3]);
+	printf ("d %f %f %f %f\n",*d[0],*d[1],*d[2],*d[3]);
+	printf ("new coord %d\n",nv);
+*/
+	if(0){
+		GLDOUBLE *nv = MALLOC(GLDOUBLE *, sizeof(GLDOUBLE)*3);
+
+		nv[0] = c[0];
+		nv[1] = c[1];
+		nv[2] = c[2];
+		*out = nv;
+	}else{
+		int FW_pointctr, RAI_indx;
+		polyrep_combiner_data *cbdata;
+		float *coords;
+		//GLDOUBLE *nv = MALLOC(GLDOUBLE *, sizeof(GLDOUBLE)*6);
+		ttglobal tg = gglobal();
+		cbdata = (polyrep_combiner_data*) polygondata;
+
+		//OpenGL Redbook says we must malloc a new point. 
+		//but in our Component_Text system, that just means adding it to our 
+		//over-malloced list of points actualCoords[]
+		// and to a few other lists of indexes etc as we do in FW_NewVertexPoint() in Component_Text
+		FW_pointctr = *(cbdata->counter);
+		RAI_indx = *(cbdata->riaindex);
+		tg->Tess.global_IFS_Coords[RAI_indx] = FW_pointctr;
+		coords = (float *)cbdata->coords;
+		coords[FW_pointctr*3+0] = (float)c[0];
+		coords[FW_pointctr*3+1] = (float)c[1];
+		coords[FW_pointctr*3+2] = (float)c[2];
+		cbdata->ria[(*cbdata->riaindex)] = FW_pointctr;
+		*out = &cbdata->ria[(*cbdata->riaindex)]; //tell FW_IFS_tess_vertex the index of the new point
+		//printf("combiner, out pointer = %p nv pointer = %p\n",out,*out);
+		//THE SECRET TO COMBINDER SUCCESS? *out == (p) in FW_IFS_tess_vertex(void *p)
+		*(cbdata->counter) = FW_pointctr + 1;
+		(*cbdata->riaindex)++;
+	}
+}
+
 void CALLBACK FW_tess_combine_polyrep_data (GLDOUBLE c[3], GLfloat *d[4], GLfloat w[4], void **out,void *polygondata) {
 /*	PolyRep Combiner (not properly implemented as of Aug 5, 2016)
 	printf("FW_tess_combine data\n"); 
@@ -208,11 +259,16 @@ void CALLBACK FW_tess_combine_polyrep_data (GLDOUBLE c[3], GLfloat *d[4], GLfloa
 	printf ("new coord %d\n",nv);
 */
 	if(1){
+		ttglobal tg = gglobal();
+
 		GLDOUBLE *nv = MALLOC(GLDOUBLE *, sizeof(GLDOUBLE)*3);
 
 		nv[0] = c[0];
 		nv[1] = c[1];
 		nv[2] = c[2];
+		//printf("combiner point %p %f %f %f\n",nv,nv[0],nv[1],nv[2]);
+		//tg->Tess.global_IFS_Coords[tg->Tess.global_IFS_Coord_count++] = *nv;
+
 		*out = nv;
 		// doesn't render right: http://dug9.users.sourceforge.net/web3d/tests/CAD/test_IFS_concave_combiner.x3d
 		/*
@@ -266,6 +322,34 @@ void CALLBACK FW_tess_combine_polyrep_data (GLDOUBLE c[3], GLfloat *d[4], GLfloa
 		*/
 		//polyrep_combiner_data *cbdata;
 	}
+}
+void CALLBACK FW_tess_combine_polyrep2_data (GLDOUBLE c[3], GLfloat *d[4], GLfloat w[4], void **out,void *polygondata) {
+	//2020 variant for make_polyrep > IFS
+	ttglobal tg = gglobal();
+	int FW_pointctr, RAI_indx;
+	polyrep_combiner_data *cbdata;
+	struct SFVec3f *coords;
+	cbdata = (polyrep_combiner_data*) polygondata;
+
+	//OpenGL Redbook says we must malloc a new point. 
+	//but in our Component_Text system, that just means adding it to our 
+	//over-malloced list of points actualCoords[]
+	// and to a few other lists of indexes etc as we do in FW_NewVertexPoint() in Component_Text
+	FW_pointctr = *(cbdata->counter);
+	RAI_indx = *(cbdata->riaindex);
+	tg->Tess.global_IFS_Coords[RAI_indx] = FW_pointctr;
+	coords = (struct SFVec3f *)cbdata->coords;
+	printf("combiner compute intersection %lf %lf %lf\n",c[0],c[1],c[2]);
+	double2float(coords[FW_pointctr].c, c, 3);
+	cbdata->ria[(*cbdata->riaindex)] = FW_pointctr;
+	*out = &cbdata->ria[(*cbdata->riaindex)]; //tell FW_IFS_tess_vertex the index of the new point
+	//printf("combiner, out pointer = %p nv pointer = %p\n",out,*out);
+	//THE SECRET TO COMBINDER SUCCESS? *out == (p) in FW_IFS_tess_vertex(void *p)
+	*(cbdata->counter) = FW_pointctr + 1;
+	(*cbdata->riaindex)++;
+
+
+
 }
 
 /* Some tesselators will give back garbage. Lets try and remove it */
@@ -366,6 +450,19 @@ void new_tessellation(void) {
 //	}
 //}
 /* next function should be called once at the end, but where?	*/
+void set_tess_callbacks(int variant){
+	ttglobal tg = gglobal();
+	if(variant == 1){
+		//make_extrusion
+		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_extrusion_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
+	} else if(variant == 2){
+		//make_polyrep > IFS > fancy
+		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_polyrep2_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
+	}else{
+		//make_polyrep > IFS - simple
+		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_polyrep_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
+	}
+}
 void destruct_tessellation(void) {
 	ttglobal tg = gglobal();
 	FW_GLU_DELETETESS(tg->Tess.global_tessobj);
