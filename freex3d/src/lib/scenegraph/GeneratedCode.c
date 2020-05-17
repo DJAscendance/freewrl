@@ -542,6 +542,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"coneGain",
 	"coneInnerAngle",
 	"coneOuterAngle",
+	"connect",
 	"constantForceMix",
 	"contactNormal",
 	"contactSurfaceThickness",
@@ -1464,6 +1465,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"coneGain",
 	"coneInnerAngle",
 	"coneOuterAngle",
+	"connect",
 	"constantForceMix",
 	"contactNormal",
 	"contactSurfaceThickness",
@@ -2382,7 +2384,6 @@ const char *NODES[] = {
 	"AudioContext",
 	"AudioDestinationNode",
 	"AudioListener",
-	"AudioNode",
 	"AudioParam",
 	"BackdropBackground",
 	"Background",
@@ -2696,24 +2697,23 @@ const char *NODES[] = {
 const int NODES_COUNT = ARR_SIZE(NODES);
 
 const short NODE_DEFAULT_CONTAINER[][7] = {
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_appearance,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_source,0,0,0,0,0,0},
-{FIELDNAMES_children,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_joints,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_renderStyle,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -2728,8 +2728,8 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_renderStyle,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_collidables,FIELDNAMES_geometry,FIELDNAMES_collidable,0,0,0,0},
@@ -2753,7 +2753,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_trimmingContour,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_coord,FIELDNAMES_skinCoord,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -2764,11 +2764,11 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_mapping,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_joints,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_renderStyle,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -2784,7 +2784,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_fogCoord,0,0,0,0,0,0},
 {FIELDNAMES_fontStyle,0,0,0,0,0,0},
 {FIELDNAMES_physics,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_texture,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_coord,0,0,0,0,0,0},
@@ -2839,9 +2839,9 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_metadata,0,0,0,0,0,0},
 {FIELDNAMES_metadata,0,0,0,0,0,0},
 {FIELDNAMES_metadata,0,0,0,0,0,0},
@@ -2914,11 +2914,11 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_shaders,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_shape,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_texture,0,0,0,0,0,0},
@@ -3014,13 +3014,15 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_emitter,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_connect,0,0,0,0,0,0},
 {FIELDNAMES_physics,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 };
 /* Virtual tables for each node */
 
-struct X3D_Virt virt_AnalyserNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AnalyserNode(struct X3D_AnalyserNode *);
+void compile_AnalyserNode(struct X3D_AnalyserNode *);
+struct X3D_Virt virt_AnalyserNode = { NULL,(void *)render_AnalyserNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AnalyserNode};
 
 void child_Anchor(struct X3D_Anchor *);
 struct X3D_Virt virt_Anchor = { NULL,NULL,(void *)child_Anchor,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -3036,9 +3038,13 @@ void render_ArcClose2D(struct X3D_ArcClose2D *);
 void compile_ArcClose2D(struct X3D_ArcClose2D *);
 struct X3D_Virt virt_ArcClose2D = { NULL,(void *)render_ArcClose2D,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ArcClose2D};
 
-struct X3D_Virt virt_AudioBuffer = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioBuffer(struct X3D_AudioBuffer *);
+void compile_AudioBuffer(struct X3D_AudioBuffer *);
+struct X3D_Virt virt_AudioBuffer = { NULL,(void *)render_AudioBuffer,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioBuffer};
 
-struct X3D_Virt virt_AudioBufferSourceNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioBufferSourceNode(struct X3D_AudioBufferSourceNode *);
+void compile_AudioBufferSourceNode(struct X3D_AudioBufferSourceNode *);
+struct X3D_Virt virt_AudioBufferSourceNode = { NULL,(void *)render_AudioBufferSourceNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioBufferSourceNode};
 
 void render_AudioClip(struct X3D_AudioClip *);
 struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -3047,13 +3053,17 @@ void render_AudioContext(struct X3D_AudioContext *);
 void compile_AudioContext(struct X3D_AudioContext *);
 struct X3D_Virt virt_AudioContext = { NULL,(void *)render_AudioContext,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioContext};
 
-struct X3D_Virt virt_AudioDestinationNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioDestinationNode(struct X3D_AudioDestinationNode *);
+void compile_AudioDestinationNode(struct X3D_AudioDestinationNode *);
+struct X3D_Virt virt_AudioDestinationNode = { NULL,(void *)render_AudioDestinationNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioDestinationNode};
 
-struct X3D_Virt virt_AudioListener = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioListener(struct X3D_AudioListener *);
+void compile_AudioListener(struct X3D_AudioListener *);
+struct X3D_Virt virt_AudioListener = { NULL,(void *)render_AudioListener,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioListener};
 
-struct X3D_Virt virt_AudioNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-
-struct X3D_Virt virt_AudioParam = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioParam(struct X3D_AudioParam *);
+void compile_AudioParam(struct X3D_AudioParam *);
+struct X3D_Virt virt_AudioParam = { NULL,(void *)render_AudioParam,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioParam};
 
 struct X3D_Virt virt_BackdropBackground = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3068,7 +3078,9 @@ void fin_Billboard(struct X3D_Billboard *);
 void proximity_Billboard(struct X3D_Billboard *);
 struct X3D_Virt virt_Billboard = { (void *)prep_Billboard,NULL,(void *)child_Billboard,(void *)fin_Billboard,NULL,NULL,(void *)proximity_Billboard,NULL,NULL,NULL};
 
-struct X3D_Virt virt_BiquadFilterNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_BiquadFilterNode(struct X3D_BiquadFilterNode *);
+void compile_BiquadFilterNode(struct X3D_BiquadFilterNode *);
+struct X3D_Virt virt_BiquadFilterNode = { NULL,(void *)render_BiquadFilterNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_BiquadFilterNode};
 
 struct X3D_Virt virt_BlendedVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3111,9 +3123,13 @@ struct X3D_Virt virt_CalibratedCameraSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NU
 
 struct X3D_Virt virt_CartoonVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_ChannelMergerNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_ChannelMergerNode(struct X3D_ChannelMergerNode *);
+void compile_ChannelMergerNode(struct X3D_ChannelMergerNode *);
+struct X3D_Virt virt_ChannelMergerNode = { NULL,(void *)render_ChannelMergerNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelMergerNode};
 
-struct X3D_Virt virt_ChannelSplitterNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_ChannelSplitterNode(struct X3D_ChannelSplitterNode *);
+void compile_ChannelSplitterNode(struct X3D_ChannelSplitterNode *);
+struct X3D_Virt virt_ChannelSplitterNode = { NULL,(void *)render_ChannelSplitterNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelSplitterNode};
 
 void render_Circle2D(struct X3D_Circle2D *);
 void compile_Circle2D(struct X3D_Circle2D *);
@@ -3181,7 +3197,9 @@ struct X3D_Virt virt_Contour2D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 void compile_ContourPolyline2D(struct X3D_ContourPolyline2D *);
 struct X3D_Virt virt_ContourPolyline2D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ContourPolyline2D};
 
-struct X3D_Virt virt_ConvolverNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_ConvolverNode(struct X3D_ConvolverNode *);
+void compile_ConvolverNode(struct X3D_ConvolverNode *);
+struct X3D_Virt virt_ConvolverNode = { NULL,(void *)render_ConvolverNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ConvolverNode};
 
 struct X3D_Virt virt_Coordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3209,7 +3227,9 @@ struct X3D_Virt virt_DISEntityManager = { NULL,NULL,(void *)child_DISEntityManag
 
 struct X3D_Virt virt_DISEntityTypeMapping = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_DelayNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_DelayNode(struct X3D_DelayNode *);
+void compile_DelayNode(struct X3D_DelayNode *);
+struct X3D_Virt virt_DelayNode = { NULL,(void *)render_DelayNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_DelayNode};
 
 void prep_DirectionalLight(struct X3D_DirectionalLight *);
 void render_DirectionalLight(struct X3D_DirectionalLight *);
@@ -3223,7 +3243,9 @@ struct X3D_Virt virt_Disk2D = { NULL,(void *)render_Disk2D,NULL,NULL,NULL,NULL,N
 
 struct X3D_Virt virt_DoubleAxisHingeJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_DynamicsCompressorNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_DynamicsCompressorNode(struct X3D_DynamicsCompressorNode *);
+void compile_DynamicsCompressorNode(struct X3D_DynamicsCompressorNode *);
+struct X3D_Virt virt_DynamicsCompressorNode = { NULL,(void *)render_DynamicsCompressorNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_DynamicsCompressorNode};
 
 struct X3D_Virt virt_EaseInEaseOut = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3269,7 +3291,9 @@ struct X3D_Virt virt_FontStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 
 struct X3D_Virt virt_ForcePhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_GainNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_GainNode(struct X3D_GainNode *);
+void compile_GainNode(struct X3D_GainNode *);
+struct X3D_Virt virt_GainNode = { NULL,(void *)render_GainNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GainNode};
 
 void render_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
 void compile_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
@@ -3467,11 +3491,17 @@ struct X3D_Virt virt_Matrix3VertexAttribute = { NULL,NULL,NULL,NULL,NULL,NULL,NU
 
 struct X3D_Virt virt_Matrix4VertexAttribute = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_MediaElementAudioSourceNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_MediaElementAudioSourceNode(struct X3D_MediaElementAudioSourceNode *);
+void compile_MediaElementAudioSourceNode(struct X3D_MediaElementAudioSourceNode *);
+struct X3D_Virt virt_MediaElementAudioSourceNode = { NULL,(void *)render_MediaElementAudioSourceNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_MediaElementAudioSourceNode};
 
-struct X3D_Virt virt_MediaStreamAudioDestinationNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_MediaStreamAudioDestinationNode(struct X3D_MediaStreamAudioDestinationNode *);
+void compile_MediaStreamAudioDestinationNode(struct X3D_MediaStreamAudioDestinationNode *);
+struct X3D_Virt virt_MediaStreamAudioDestinationNode = { NULL,(void *)render_MediaStreamAudioDestinationNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_MediaStreamAudioDestinationNode};
 
-struct X3D_Virt virt_MediaStreamTrack = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_MediaStreamTrack(struct X3D_MediaStreamTrack *);
+void compile_MediaStreamTrack(struct X3D_MediaStreamTrack *);
+struct X3D_Virt virt_MediaStreamTrack = { NULL,(void *)render_MediaStreamTrack,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_MediaStreamTrack};
 
 void compile_MetadataBoolean(struct X3D_MetadataBoolean *);
 struct X3D_Virt virt_MetadataBoolean = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_MetadataBoolean};
@@ -3685,19 +3715,25 @@ struct X3D_Virt virt_OrientationInterpolator = { NULL,NULL,NULL,NULL,NULL,NULL,N
 void prep_OrthoViewpoint(struct X3D_OrthoViewpoint *);
 struct X3D_Virt virt_OrthoViewpoint = { (void *)prep_OrthoViewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_OscillatorNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_OscillatorNode(struct X3D_OscillatorNode *);
+void compile_OscillatorNode(struct X3D_OscillatorNode *);
+struct X3D_Virt virt_OscillatorNode = { NULL,(void *)render_OscillatorNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_OscillatorNode};
 
 void render_PackagedShader(struct X3D_PackagedShader *);
 void compile_PackagedShader(struct X3D_PackagedShader *);
 struct X3D_Virt virt_PackagedShader = { NULL,(void *)render_PackagedShader,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_PackagedShader};
 
-struct X3D_Virt virt_PannerNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_PannerNode(struct X3D_PannerNode *);
+void compile_PannerNode(struct X3D_PannerNode *);
+struct X3D_Virt virt_PannerNode = { NULL,(void *)render_PannerNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_PannerNode};
 
 void child_ParticleSystem(struct X3D_ParticleSystem *);
 void compile_ParticleSystem(struct X3D_ParticleSystem *);
 struct X3D_Virt virt_ParticleSystem = { NULL,NULL,(void *)child_ParticleSystem,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ParticleSystem};
 
-struct X3D_Virt virt_PeriodicWave = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_PeriodicWave(struct X3D_PeriodicWave *);
+void compile_PeriodicWave(struct X3D_PeriodicWave *);
+struct X3D_Virt virt_PeriodicWave = { NULL,(void *)render_PeriodicWave,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_PeriodicWave};
 
 void render_PhysicalMaterial(struct X3D_PhysicalMaterial *);
 void compile_PhysicalMaterial(struct X3D_PhysicalMaterial *);
@@ -3986,7 +4022,9 @@ struct X3D_Virt virt_VolumeEmitter = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N
 
 struct X3D_Virt virt_VolumePickSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_WaveShaperNode = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_WaveShaperNode(struct X3D_WaveShaperNode *);
+void compile_WaveShaperNode(struct X3D_WaveShaperNode *);
+struct X3D_Virt virt_WaveShaperNode = { NULL,(void *)render_WaveShaperNode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_WaveShaperNode};
 
 struct X3D_Virt virt_WindPhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4005,7 +4043,6 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_AudioContext,
 	 &virt_AudioDestinationNode,
 	 &virt_AudioListener,
-	 &virt_AudioNode,
 	 &virt_AudioParam,
 	 &virt_BackdropBackground,
 	 &virt_Background,
@@ -4319,6 +4356,7 @@ struct X3D_Virt* virtTable[] = {
 
 
 const int OFFSETS_AnalyserNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AnalyserNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_fftSize, (int) offsetof (struct X3D_AnalyserNode, fftSize),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frequencyBinCount, (int) offsetof (struct X3D_AnalyserNode, frequencyBinCount),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_minDecibels, (int) offsetof (struct X3D_AnalyserNode, minDecibels),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4381,6 +4419,7 @@ const int OFFSETS_ArcClose2D[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioBuffer[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioBuffer, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_sampleRate, (int) offsetof (struct X3D_AudioBuffer, sampleRate),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_length, (int) offsetof (struct X3D_AudioBuffer, length),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_duration, (int) offsetof (struct X3D_AudioBuffer, duration),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4388,6 +4427,7 @@ const int OFFSETS_AudioBuffer[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioBufferSourceNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioBufferSourceNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_buffer, (int) offsetof (struct X3D_AudioBufferSourceNode, buffer),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_playbackRate, (int) offsetof (struct X3D_AudioBufferSourceNode, playbackRate),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_AudioBufferSourceNode, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4418,6 +4458,7 @@ const int OFFSETS_AudioClip[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioContext[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioContext, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_currentTime, (int) offsetof (struct X3D_AudioContext, currentTime),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_destination, (int) offsetof (struct X3D_AudioContext, destination),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_listener, (int) offsetof (struct X3D_AudioContext, listener),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4426,24 +4467,18 @@ const int OFFSETS_AudioContext[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioDestinationNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioDestinationNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_maxChannelCount, (int) offsetof (struct X3D_AudioDestinationNode, maxChannelCount),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioListener[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioListener, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_dopplerFactor, (int) offsetof (struct X3D_AudioListener, dopplerFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_speedOfSound, (int) offsetof (struct X3D_AudioListener, speedOfSound),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
-const int OFFSETS_AudioNode[] = {
-	(int) FIELDNAMES_context, (int) offsetof (struct X3D_AudioNode, context),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_numberOfInputs, (int) offsetof (struct X3D_AudioNode, numberOfInputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_numberOfOutputs, (int) offsetof (struct X3D_AudioNode, numberOfOutputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_AudioNode, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_channelCountMode, (int) offsetof (struct X3D_AudioNode, channelCountMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_channelInterpretation, (int) offsetof (struct X3D_AudioNode, channelInterpretation),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	-1, -1, -1, -1, -1, -1};
-
 const int OFFSETS_AudioParam[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_AudioParam, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_value, (int) offsetof (struct X3D_AudioParam, value),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_defaultValue, (int) offsetof (struct X3D_AudioParam, defaultValue),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -4521,6 +4556,7 @@ const int OFFSETS_Billboard[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_BiquadFilterNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_BiquadFilterNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frequency, (int) offsetof (struct X3D_BiquadFilterNode, frequency),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_detune, (int) offsetof (struct X3D_BiquadFilterNode, detune),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_Q, (int) offsetof (struct X3D_BiquadFilterNode, Q),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4682,6 +4718,7 @@ const int OFFSETS_CartoonVolumeStyle[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ChannelMergerNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_ChannelMergerNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_context, (int) offsetof (struct X3D_ChannelMergerNode, context),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_numberOfInputs, (int) offsetof (struct X3D_ChannelMergerNode, numberOfInputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_numberOfOutputs, (int) offsetof (struct X3D_ChannelMergerNode, numberOfOutputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4691,6 +4728,7 @@ const int OFFSETS_ChannelMergerNode[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ChannelSplitterNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_ChannelSplitterNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_context, (int) offsetof (struct X3D_ChannelSplitterNode, context),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_numberOfInputs, (int) offsetof (struct X3D_ChannelSplitterNode, numberOfInputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_numberOfOutputs, (int) offsetof (struct X3D_ChannelSplitterNode, numberOfOutputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4972,6 +5010,7 @@ const int OFFSETS_ContourPolyline2D[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ConvolverNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_ConvolverNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_buffer, (int) offsetof (struct X3D_ConvolverNode, buffer),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_normalize, (int) offsetof (struct X3D_ConvolverNode, normalize),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -5132,6 +5171,7 @@ const int OFFSETS_DISEntityTypeMapping[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DelayNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_DelayNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_delayTime, (int) offsetof (struct X3D_DelayNode, delayTime),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -5200,6 +5240,7 @@ const int OFFSETS_DoubleAxisHingeJoint[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_DynamicsCompressorNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_DynamicsCompressorNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_threshold, (int) offsetof (struct X3D_DynamicsCompressorNode, threshold),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_knee, (int) offsetof (struct X3D_DynamicsCompressorNode, knee),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_ratio, (int) offsetof (struct X3D_DynamicsCompressorNode, ratio),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -5489,6 +5530,7 @@ const int OFFSETS_ForcePhysicsModel[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GainNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_GainNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_GainNode, gain),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -6435,6 +6477,7 @@ const int OFFSETS_Matrix4VertexAttribute[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MediaElementAudioSourceNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_MediaElementAudioSourceNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_context, (int) offsetof (struct X3D_MediaElementAudioSourceNode, context),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_numberOfInputs, (int) offsetof (struct X3D_MediaElementAudioSourceNode, numberOfInputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_numberOfOutputs, (int) offsetof (struct X3D_MediaElementAudioSourceNode, numberOfOutputs),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -6444,10 +6487,12 @@ const int OFFSETS_MediaElementAudioSourceNode[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MediaStreamAudioDestinationNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_MediaStreamAudioDestinationNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_stream, (int) offsetof (struct X3D_MediaStreamAudioDestinationNode, stream),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MediaStreamTrack[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_MediaStreamTrack, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_stream, (int) offsetof (struct X3D_MediaStreamTrack, stream),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -7159,6 +7204,7 @@ const int OFFSETS_OrthoViewpoint[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_OscillatorNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_OscillatorNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frequency, (int) offsetof (struct X3D_OscillatorNode, frequency),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_type, (int) offsetof (struct X3D_OscillatorNode, type),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_detune, (int) offsetof (struct X3D_OscillatorNode, detune),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -7179,6 +7225,7 @@ const int OFFSETS_PackagedShader[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PannerNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_PannerNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_PannerNode, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_orientation, (int) offsetof (struct X3D_PannerNode, orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_velocity, (int) offsetof (struct X3D_PannerNode, velocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -7224,6 +7271,7 @@ const int OFFSETS_ParticleSystem[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PeriodicWave[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_PeriodicWave, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frequency, (int) offsetof (struct X3D_PeriodicWave, frequency),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_type, (int) offsetof (struct X3D_PeriodicWave, type),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_detune, (int) offsetof (struct X3D_PeriodicWave, detune),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -8688,6 +8736,7 @@ const int OFFSETS_VolumePickSensor[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_WaveShaperNode[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_WaveShaperNode, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_curve, (int) offsetof (struct X3D_WaveShaperNode, curve),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_oversample, (int) offsetof (struct X3D_WaveShaperNode, oversample),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -8720,7 +8769,6 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_AudioContext,
 	OFFSETS_AudioDestinationNode,
 	OFFSETS_AudioListener,
-	OFFSETS_AudioNode,
 	OFFSETS_AudioParam,
 	OFFSETS_BackdropBackground,
 	OFFSETS_Background,
@@ -9299,7 +9347,6 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioContext : {tmp = MALLOC (struct X3D_AudioContext *, sizeof (struct X3D_AudioContext)); break;}
 		case NODE_AudioDestinationNode : {tmp = MALLOC (struct X3D_AudioDestinationNode *, sizeof (struct X3D_AudioDestinationNode)); break;}
 		case NODE_AudioListener : {tmp = MALLOC (struct X3D_AudioListener *, sizeof (struct X3D_AudioListener)); break;}
-		case NODE_AudioNode : {tmp = MALLOC (struct X3D_AudioNode *, sizeof (struct X3D_AudioNode)); break;}
 		case NODE_AudioParam : {tmp = MALLOC (struct X3D_AudioParam *, sizeof (struct X3D_AudioParam)); break;}
 		case NODE_BackdropBackground : {tmp = MALLOC (struct X3D_BackdropBackground *, sizeof (struct X3D_BackdropBackground)); break;}
 		case NODE_Background : {tmp = MALLOC (struct X3D_Background *, sizeof (struct X3D_Background)); break;}
@@ -9634,6 +9681,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AnalyserNode : {
 			struct X3D_AnalyserNode * tmp2;
 			tmp2 = (struct X3D_AnalyserNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->fftSize = 2048;
 			tmp2->frequencyBinCount = 1024;
 			tmp2->minDecibels = -100.0f;
@@ -9711,6 +9759,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioBuffer : {
 			struct X3D_AudioBuffer * tmp2;
 			tmp2 = (struct X3D_AudioBuffer *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->sampleRate = 0.0f;
 			tmp2->length = 0;
 			tmp2->duration = 0.0f;
@@ -9721,6 +9770,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioBufferSourceNode : {
 			struct X3D_AudioBufferSourceNode * tmp2;
 			tmp2 = (struct X3D_AudioBufferSourceNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->buffer = NULL;
 			tmp2->playbackRate = 0.0f;
 			tmp2->loop = FALSE;
@@ -9757,6 +9807,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioContext : {
 			struct X3D_AudioContext * tmp2;
 			tmp2 = (struct X3D_AudioContext *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->currentTime = 1.0f;
 			tmp2->destination = NULL;
 			tmp2->listener = NULL;
@@ -9768,6 +9819,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioDestinationNode : {
 			struct X3D_AudioDestinationNode * tmp2;
 			tmp2 = (struct X3D_AudioDestinationNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->maxChannelCount = 2;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -9775,26 +9827,16 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioListener : {
 			struct X3D_AudioListener * tmp2;
 			tmp2 = (struct X3D_AudioListener *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->dopplerFactor = 1.0f;
 			tmp2->speedOfSound = 343.3f;
-			tmp2->_defaultContainer = 0;
-		break;
-		}
-		case NODE_AudioNode : {
-			struct X3D_AudioNode * tmp2;
-			tmp2 = (struct X3D_AudioNode *) tmp;
-			tmp2->context = NULL;
-			tmp2->numberOfInputs = 0;
-			tmp2->numberOfOutputs = 0;
-			tmp2->channelCount = 0;
-			tmp2->channelCountMode = newASCIIString("max");
-			tmp2->channelInterpretation = newASCIIString("speakers");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_AudioParam : {
 			struct X3D_AudioParam * tmp2;
 			tmp2 = (struct X3D_AudioParam *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->value = 0;
 			tmp2->defaultValue = 0;
 			tmp2->_defaultContainer = 0;
@@ -9892,6 +9934,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BiquadFilterNode : {
 			struct X3D_BiquadFilterNode * tmp2;
 			tmp2 = (struct X3D_BiquadFilterNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->frequency = 0;
 			tmp2->detune = 0.0f;
 			tmp2->Q = 0.0f;
@@ -10102,6 +10145,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ChannelMergerNode : {
 			struct X3D_ChannelMergerNode * tmp2;
 			tmp2 = (struct X3D_ChannelMergerNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->context = NULL;
 			tmp2->numberOfInputs = 0;
 			tmp2->numberOfOutputs = 0;
@@ -10114,6 +10158,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ChannelSplitterNode : {
 			struct X3D_ChannelSplitterNode * tmp2;
 			tmp2 = (struct X3D_ChannelSplitterNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->context = NULL;
 			tmp2->numberOfInputs = 0;
 			tmp2->numberOfOutputs = 0;
@@ -10467,6 +10512,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ConvolverNode : {
 			struct X3D_ConvolverNode * tmp2;
 			tmp2 = (struct X3D_ConvolverNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->buffer = NULL;
 			tmp2->normalize = FALSE;
 			tmp2->_defaultContainer = 0;
@@ -10693,6 +10739,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_DelayNode : {
 			struct X3D_DelayNode * tmp2;
 			tmp2 = (struct X3D_DelayNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->delayTime = 0;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -10773,6 +10820,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_DynamicsCompressorNode : {
 			struct X3D_DynamicsCompressorNode * tmp2;
 			tmp2 = (struct X3D_DynamicsCompressorNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->threshold = 0.003f;
 			tmp2->knee = 30;
 			tmp2->ratio = 12;
@@ -11138,6 +11186,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_GainNode : {
 			struct X3D_GainNode * tmp2;
 			tmp2 = (struct X3D_GainNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->gain = 1;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -12289,6 +12338,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MediaElementAudioSourceNode : {
 			struct X3D_MediaElementAudioSourceNode * tmp2;
 			tmp2 = (struct X3D_MediaElementAudioSourceNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->context = NULL;
 			tmp2->numberOfInputs = 0;
 			tmp2->numberOfOutputs = 0;
@@ -12301,6 +12351,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MediaStreamAudioDestinationNode : {
 			struct X3D_MediaStreamAudioDestinationNode * tmp2;
 			tmp2 = (struct X3D_MediaStreamAudioDestinationNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->stream = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -12308,6 +12359,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MediaStreamTrack : {
 			struct X3D_MediaStreamTrack * tmp2;
 			tmp2 = (struct X3D_MediaStreamTrack *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->stream = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -13247,6 +13299,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_OscillatorNode : {
 			struct X3D_OscillatorNode * tmp2;
 			tmp2 = (struct X3D_OscillatorNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->frequency = 0;
 			tmp2->type = newASCIIString("square");
 			tmp2->detune = 0.0f;
@@ -13273,6 +13326,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_PannerNode : {
 			struct X3D_PannerNode * tmp2;
 			tmp2 = (struct X3D_PannerNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->position.c[0] = 0.0f;tmp2->position.c[1] = 0.0f;tmp2->position.c[2] = 0.0f;
 			tmp2->orientation.c[0] = 0;tmp2->orientation.c[1] = 0;tmp2->orientation.c[2] = 1;tmp2->orientation.c[3] = 0;;
 			tmp2->velocity.c[0] = 0.0f;tmp2->velocity.c[1] = 0.0f;tmp2->velocity.c[2] = 0.0f;
@@ -13324,6 +13378,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_PeriodicWave : {
 			struct X3D_PeriodicWave * tmp2;
 			tmp2 = (struct X3D_PeriodicWave *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->frequency = 0;
 			tmp2->type = newASCIIString("square");
 			tmp2->detune = 0.0f;
@@ -15118,6 +15173,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_WaveShaperNode : {
 			struct X3D_WaveShaperNode * tmp2;
 			tmp2 = (struct X3D_WaveShaperNode *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
 			tmp2->curve = 0;
 			tmp2->oversample = newASCIIString("none");
 			tmp2->_defaultContainer = 0;
@@ -15200,6 +15256,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AnalyserNode *tmp;
 			tmp = (struct X3D_AnalyserNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," fftSize (SFInt32) \t%d\n",tmp->fftSize);
 			spacer fprintf (fp," frequencyBinCount (SFInt32) \t%d\n",tmp->frequencyBinCount);
 			spacer fprintf (fp," minDecibels (SFFloat) \t%4.3f\n",tmp->minDecibels);
@@ -15273,6 +15331,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioBuffer *tmp;
 			tmp = (struct X3D_AudioBuffer *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," sampleRate (SFFloat) \t%4.3f\n",tmp->sampleRate);
 			spacer fprintf (fp," length (SFInt32) \t%d\n",tmp->length);
 			spacer fprintf (fp," duration (SFFloat) \t%4.3f\n",tmp->duration);
@@ -15283,6 +15343,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioBufferSourceNode *tmp;
 			tmp = (struct X3D_AudioBufferSourceNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," buffer (SFNode):\n"); dump_scene(fp,level+1,tmp->buffer); 
 			spacer fprintf (fp," playbackRate (SFFloat) \t%4.3f\n",tmp->playbackRate);
 			spacer fprintf (fp," loop (SFBool) \t%d\n",tmp->loop);
@@ -15312,6 +15374,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioContext *tmp;
 			tmp = (struct X3D_AudioContext *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," currentTime (SFFloat) \t%4.3f\n",tmp->currentTime);
 			spacer fprintf (fp," destination (SFNode):\n"); dump_scene(fp,level+1,tmp->destination); 
 			spacer fprintf (fp," listener (SFNode):\n"); dump_scene(fp,level+1,tmp->listener); 
@@ -15323,6 +15387,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioDestinationNode *tmp;
 			tmp = (struct X3D_AudioDestinationNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," maxChannelCount (SFInt32) \t%d\n",tmp->maxChannelCount);
 		    break;
 		}
@@ -15330,26 +15396,18 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioListener *tmp;
 			tmp = (struct X3D_AudioListener *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," dopplerFactor (SFFloat) \t%4.3f\n",tmp->dopplerFactor);
 			spacer fprintf (fp," speedOfSound (SFFloat) \t%4.3f\n",tmp->speedOfSound);
-		    break;
-		}
-		case NODE_AudioNode : {
-			struct X3D_AudioNode *tmp;
-			tmp = (struct X3D_AudioNode *) node;
-			UNUSED(tmp); // compiler warning mitigation
-			spacer fprintf (fp," context (SFNode):\n"); dump_scene(fp,level+1,tmp->context); 
-			spacer fprintf (fp," numberOfInputs (SFInt32) \t%d\n",tmp->numberOfInputs);
-			spacer fprintf (fp," numberOfOutputs (SFInt32) \t%d\n",tmp->numberOfOutputs);
-			spacer fprintf (fp," channelCount (SFInt32) \t%d\n",tmp->channelCount);
-			spacer fprintf (fp," channelCountMode (SFString) \t%s\n",tmp->channelCountMode->strptr);
-			spacer fprintf (fp," channelInterpretation (SFString) \t%s\n",tmp->channelInterpretation->strptr);
 		    break;
 		}
 		case NODE_AudioParam : {
 			struct X3D_AudioParam *tmp;
 			tmp = (struct X3D_AudioParam *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," value (SFInt32) \t%d\n",tmp->value);
 			spacer fprintf (fp," defaultValue (SFInt32) \t%d\n",tmp->defaultValue);
 		    break;
@@ -15474,6 +15532,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_BiquadFilterNode *tmp;
 			tmp = (struct X3D_BiquadFilterNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," frequency (SFInt32) \t%d\n",tmp->frequency);
 			spacer fprintf (fp," detune (SFFloat) \t%4.3f\n",tmp->detune);
 			spacer fprintf (fp," Q (SFFloat) \t%4.3f\n",tmp->Q);
@@ -15699,6 +15759,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_ChannelMergerNode *tmp;
 			tmp = (struct X3D_ChannelMergerNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," context (SFNode):\n"); dump_scene(fp,level+1,tmp->context); 
 			spacer fprintf (fp," numberOfInputs (SFInt32) \t%d\n",tmp->numberOfInputs);
 			spacer fprintf (fp," numberOfOutputs (SFInt32) \t%d\n",tmp->numberOfOutputs);
@@ -15711,6 +15773,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_ChannelSplitterNode *tmp;
 			tmp = (struct X3D_ChannelSplitterNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," context (SFNode):\n"); dump_scene(fp,level+1,tmp->context); 
 			spacer fprintf (fp," numberOfInputs (SFInt32) \t%d\n",tmp->numberOfInputs);
 			spacer fprintf (fp," numberOfOutputs (SFInt32) \t%d\n",tmp->numberOfOutputs);
@@ -16070,6 +16134,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_ConvolverNode *tmp;
 			tmp = (struct X3D_ConvolverNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," buffer (SFNode):\n"); dump_scene(fp,level+1,tmp->buffer); 
 			spacer fprintf (fp," normalize (SFBool) \t%d\n",tmp->normalize);
 		    break;
@@ -16218,6 +16284,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_DelayNode *tmp;
 			tmp = (struct X3D_DelayNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," delayTime (SFInt32) \t%d\n",tmp->delayTime);
 		    break;
 		}
@@ -16308,6 +16376,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_DynamicsCompressorNode *tmp;
 			tmp = (struct X3D_DynamicsCompressorNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," threshold (SFFloat) \t%4.3f\n",tmp->threshold);
 			spacer fprintf (fp," knee (SFInt32) \t%d\n",tmp->knee);
 			spacer fprintf (fp," ratio (SFInt32) \t%d\n",tmp->ratio);
@@ -16644,6 +16714,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_GainNode *tmp;
 			tmp = (struct X3D_GainNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," gain (SFInt32) \t%d\n",tmp->gain);
 		    break;
 		}
@@ -17885,6 +17957,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_MediaElementAudioSourceNode *tmp;
 			tmp = (struct X3D_MediaElementAudioSourceNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," context (SFNode):\n"); dump_scene(fp,level+1,tmp->context); 
 			spacer fprintf (fp," numberOfInputs (SFInt32) \t%d\n",tmp->numberOfInputs);
 			spacer fprintf (fp," numberOfOutputs (SFInt32) \t%d\n",tmp->numberOfOutputs);
@@ -17897,6 +17971,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_MediaStreamAudioDestinationNode *tmp;
 			tmp = (struct X3D_MediaStreamAudioDestinationNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," stream (SFNode):\n"); dump_scene(fp,level+1,tmp->stream); 
 		    break;
 		}
@@ -17904,6 +17980,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_MediaStreamTrack *tmp;
 			tmp = (struct X3D_MediaStreamTrack *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," stream (SFNode):\n"); dump_scene(fp,level+1,tmp->stream); 
 		    break;
 		}
@@ -18767,6 +18845,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_OscillatorNode *tmp;
 			tmp = (struct X3D_OscillatorNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," frequency (SFInt32) \t%d\n",tmp->frequency);
 			spacer fprintf (fp," type (SFString) \t%s\n",tmp->type->strptr);
 			spacer fprintf (fp," detune (SFFloat) \t%4.3f\n",tmp->detune);
@@ -18787,6 +18867,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_PannerNode *tmp;
 			tmp = (struct X3D_PannerNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," position (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->position.c[i]); }
 			fprintf (fp,"\n");
@@ -18832,6 +18914,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_PeriodicWave *tmp;
 			tmp = (struct X3D_PeriodicWave *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," frequency (SFInt32) \t%d\n",tmp->frequency);
 			spacer fprintf (fp," type (SFString) \t%s\n",tmp->type->strptr);
 			spacer fprintf (fp," detune (SFFloat) \t%4.3f\n",tmp->detune);
@@ -20660,6 +20744,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_WaveShaperNode *tmp;
 			tmp = (struct X3D_WaveShaperNode *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," curve (SFInt32) \t%d\n",tmp->curve);
 			spacer fprintf (fp," oversample (SFString) \t%s\n",tmp->oversample->strptr);
 		    break;
@@ -20709,7 +20795,6 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_AudioContext: return X3DSoundSourceNode; break;
 	case NODE_AudioDestinationNode: return X3DAudioNode; break;
 	case NODE_AudioListener: return X3DAudioNode; break;
-	case NODE_AudioNode: return X3DAudioContextNode; break;
 	case NODE_AudioParam: return X3DAudioNode; break;
 	case NODE_BackdropBackground: return X3DBackgroundNode; break;
 	case NODE_Background: return X3DBackgroundNode; break;

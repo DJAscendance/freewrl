@@ -355,6 +355,27 @@ our %defaultContainerType = (
 	EffectPart		=>["parts"],
 
 	AudioContext		=>["children"],
+	AudioContext		=>["connect"],
+	AudioParam		=>["connect"],
+	OscillatorNode		=>["connect"],
+	AudioBuffer		=>["connect"],
+	AudioBufferSourceNode	=>["connect"],
+	MediaElementAudioSourceNode	=>["connect"],
+	BiquadFilterNode	=>["connect"],
+	ConvolverNode		=>["connect"],
+	DelayNode		=>["connect"],
+	DynamicsCompressorNode	=>["connect"],
+	GainNode		=>["connect"],
+	WaveShaperNode		=>["connect"],
+	PeriodicWave		=>["connect"],
+	AudioDestinationNode	=>["connect"],
+	MediaStreamAudioDestinationNode	=>["connect"],
+	MediaStreamTrack	=>["connect"],
+	AnalyserNode		=>["connect"],
+	ChannelSplitterNode	=>["connect"],
+	ChannelMergerNode	=>["connect"],
+	AudioListener		=>["connect"],
+	PannerNode		=>["connect"],
 
 );
 
@@ -450,7 +471,28 @@ our %RendC = map {($_=>1)} qw/
 	ImageTexture3D
 	GeoProximitySensor
 	ProximitySensor
+	
 	AudioContext
+	AudioParam
+	OscillatorNode
+	AudioBuffer
+	AudioBufferSourceNode
+	MediaElementAudioSourceNode
+	BiquadFilterNode
+	ConvolverNode
+	DelayNode
+	DynamicsCompressorNode
+	GainNode
+	WaveShaperNode
+	PeriodicWave
+	AudioDestinationNode
+	MediaStreamAudioDestinationNode
+	MediaStreamTrack
+	AnalyserNode
+	ChannelSplitterNode
+	ChannelMergerNode
+	AudioListener
+	PannerNode
 	
 /;
 
@@ -752,6 +794,26 @@ our %CompileC = map {($_=>1)} qw/
 	TransmitterPdu
 	
 	AudioContext
+	AudioParam
+	OscillatorNode
+	AudioBuffer
+	AudioBufferSourceNode
+	MediaElementAudioSourceNode
+	BiquadFilterNode
+	ConvolverNode
+	DelayNode
+	DynamicsCompressorNode
+	GainNode
+	WaveShaperNode
+	PeriodicWave
+	AudioDestinationNode
+	MediaStreamAudioDestinationNode
+	MediaStreamTrack
+	AnalyserNode
+	ChannelSplitterNode
+	ChannelMergerNode
+	AudioListener
+	PannerNode
 	
 /;
 
