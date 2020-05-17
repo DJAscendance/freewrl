@@ -389,9 +389,9 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			if(points) {
 				if (ind >= npoints) { 
 					/* bounds checking... */
-					r->minVals[j]=0.0f;
-					r->maxVals[j]=0.0f;
-					printf ("spv, warning, index %d >= npoints %d\n",ind,npoints);
+					//r->minVals[j]=0.0f;
+					//r->maxVals[j]=0.0f;
+					//printf ("spv, warning, index %d >= npoints %d\n",ind,npoints);
 				} else {
 					if (r->minVals[j] > points[ind].c[j]) r->minVals[j] = points[ind].c[j];
 					if (r->maxVals[j] < points[ind].c[j]) r->maxVals[j] = points[ind].c[j];

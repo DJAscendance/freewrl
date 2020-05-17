@@ -45,6 +45,9 @@ struct facepar {
 int OK;
 int start;
 int end;
+float normal[3];
+float color[3];
+float colorRGBA[3];
 };
 
 int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex, struct facepar *faceok);

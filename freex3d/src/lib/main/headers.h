@@ -978,5 +978,12 @@ typedef struct polyrep_combiner_data {
 	int *ria;
 	int *riaindex;
 } polyrep_combiner_data;
-
+struct combiner_point {
+	float c[3];
+	float n[3];
+	float uv[2];
+	float rgba[4];
+	float fog;
+};
+void set_tess_callbacks(int variant);
 #endif /* __FREEWRL_HEADERS_H__ */

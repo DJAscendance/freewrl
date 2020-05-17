@@ -985,11 +985,13 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 
 	/* texture coords IndexedFaceSet coords colors and normals */
+	int nextra = 100; //for tess combiner
 	if(co != NULL) {
 		struct Multi_Vec3f *dtmp;
 		dtmp = getCoordinate (X3D_NODE(co), "make FacedSet");
 		npoints = dtmp->n;
-		points = dtmp->p;
+		points = malloc((npoints + nextra)*sizeof(struct SFVec3f));
+		memcpy(points,dtmp->p,npoints*sizeof(struct SFVec3f));
 	}
 	if(fc != NULL){
 		//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/enveffects.html#FogCoordinate
@@ -1035,6 +1037,8 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		rep_->tcoordtype=0;
 	}
 
+
+
 	/* count the faces in this polyrep and allocate memory. */
 	faceok = MALLOC(struct facepar *, sizeof(struct facepar)*(cin/2+1));
 	faces = count_IFS_faces (cin,orig_coordIndex,faceok);
@@ -1059,6 +1063,20 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	facenormals = MALLOC(struct SFVec3f *, sizeof(struct SFVec3f)*faces); // sizeof(*facenormals)
 	pointfaces = MALLOC(int *, sizeof(int)*npoints*POINT_FACES); /* save max x points */ //sizeof(*pointfaces)
 
+
+
+    FREE_IF_NZ(rep_->cindex);
+    FREE_IF_NZ(rep_->colindex);
+    FREE_IF_NZ(rep_->norindex);
+    
+	cindex = MALLOC(GLuint *, sizeof(*(rep_->cindex)*(npoints + nextra)));
+	colindex = MALLOC(GLuint *, sizeof(*(rep_->colindex)*(npoints + nextra)));
+	norindex = MALLOC(GLuint *,sizeof(*(rep_->norindex)*(npoints + nextra)));
+	
+	/* zero the indexes */
+	bzero (colindex,sizeof(*(rep_->colindex))*3*(ntri));
+	bzero (norindex,sizeof(*(rep_->colindex))*3*(ntri));
+
 	/* generate the face-normals table, so for each face, we know the normal
 	   and for each point, we know the faces that it is in */
 	if (!IFS_face_normals (facenormals,faceok,pointfaces,faces,npoints,cin,points,orig_coordIndex,ccw)) {
@@ -1069,6 +1087,204 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 		return;
 	}
+
+
+	for(int i=0;i<faces;i++){
+		int vert_ind = i;
+		this_face = i;
+		if(nnormals) {
+			int iwant,ihavei,ihaven;
+			if (norin) {
+				// we have a NormalIndex 
+				if (!npv) {
+					iwant = this_face;
+					ihavei = min(iwant, orig_normalIndex->n-1);
+					if(ihavei < iwant) {
+						static int once = 0;
+						if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+						once ++;
+					}
+					norindex[vert_ind] = ihavei; //orig_normalIndex->p[this_face];
+					//  printf ("norm2, index %d\n",norindex[vert_ind]);
+				}
+			} else {
+				// no normalIndex  - use the coordIndex 
+				if (!npv) {
+					norindex[vert_ind] = this_face;
+					// printf ("norm4, index %d\n",norindex[vert_ind]);
+				}
+			}
+
+		} else {
+			if (fabs(creaseAngle) > 0.00001) {
+				// normalize each vertex 
+				if (normalArraySize != INT_ID_UNDEFINED) {
+					if (calc_normind*3 > normalArraySize) {
+						printf ("HMMM _ NORMAL OVERFLOW\n");
+					}
+				}
+
+				normalize_ifs_face (&rep_->normal[calc_normind*3],
+					facenormals, pointfaces, cindex[vert_ind],
+					this_face, creaseAngle);
+				rep_->norindex[vert_ind] = calc_normind++;
+			} else {
+				// use the calculated normals
+				//rep_->normal[vert_ind*3+0]=(float) facenormals[this_face].x;
+				//rep_->normal[vert_ind*3+1]=(float) facenormals[this_face].y;
+				//rep_->normal[vert_ind*3+2]=(float) facenormals[this_face].z;
+				veccopy3f(&rep_->normal[vert_ind*3+0],facenormals[this_face].c);
+				rep_->norindex[vert_ind] = vert_ind;
+				// printf ("using calculated normals %f %f %f for face %d, vert_ind %d\n",
+				//	rep_->normal[vert_ind*3+0],rep_->normal[vert_ind*3+1],
+				//	rep_->normal[vert_ind*3+2],this_face,rep_->norindex[vert_ind]);
+				
+			}
+		}
+
+		// Vertex Colours
+		if(ncolors) {
+            if (colin ) {
+				if(!cpv){
+					int tmpI;
+					// we have a colorIndex 
+					tmpI = this_face;
+						
+					if (tmpI >= orig_colorIndex->n) {
+						printf ("faceSet, colorIndex problem, %d >= %d\n", tmpI,orig_colorIndex->n);
+						colindex[vert_ind] = 0;
+					} else {
+						colindex[vert_ind] = orig_colorIndex->p[tmpI];
+					}
+					// printf ("col2, index %d\n",colindex[vert_ind]); 
+				}		
+			} else {
+				// no colorIndex  - use the coordIndex 
+				if (!cpv) {
+					colindex[vert_ind] = this_face;
+						// printf ("col4, index %d\n",colindex[vert_ind]); 
+				}
+                //ConsoleMessage ("color index is %d",colindex[vert_ind]);
+			}
+		}
+		
+	}
+
+
+
+
+
+	for(int i=0;i<npoints;i++){
+		int vert_ind = i;
+		if(nnormals) {
+			int iwant,ihavei,ihaven;
+			if (norin) {
+				// we have a NormalIndex 
+				if (npv) {
+					iwant = i;
+					ihavei = min(iwant, orig_normalIndex->n-1);
+					if(ihavei < iwant) {
+						static int once = 0;
+						if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+						once ++;
+					}
+					iwant = orig_normalIndex->p[ihavei];
+					ihaven = min(nnormals-1,iwant);
+					if(ihaven < iwant) {
+						static int once = 0;
+						if(!once) ConsoleMessage("not enough normals have %d want %d \n",ihaven,iwant);
+						once++;
+					}
+					norindex[vert_ind] = ihaven;
+					// norindex[vert_ind] = orig_normalIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
+					//  printf ("norm1, index %d\n",norindex[vert_ind]);
+				}
+			} else {
+				// no normalIndex  - use the coordIndex 
+				if (npv) {
+					iwant = i;
+					ihavei = min(iwant, orig_normalIndex->n-1);
+					if(ihavei < iwant) {
+						static int once = 0;
+						if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+						once ++;
+					}
+
+					norindex[vert_ind] = ihavei; // (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
+					// printf ("norm3, index %d\n",norindex[vert_ind]); 
+				}
+			}
+		} else {
+			if (fabs(creaseAngle) > 0.00001) {
+				// normalize each vertex 
+				if (normalArraySize != INT_ID_UNDEFINED) {
+					if (calc_normind*3 > normalArraySize) {
+						printf ("HMMM _ NORMAL OVERFLOW\n");
+					}
+				}
+				normalize_ifs_face (&rep_->normal[calc_normind*3],
+					facenormals, pointfaces, cindex[vert_ind],
+					this_face, creaseAngle);
+				rep_->norindex[vert_ind] = calc_normind++;
+			} else {
+				// use the calculated normals
+				//rep_->normal[vert_ind*3+0]=(float) facenormals[this_face].x;
+				//rep_->normal[vert_ind*3+1]=(float) facenormals[this_face].y;
+				//rep_->normal[vert_ind*3+2]=(float) facenormals[this_face].z;
+				veccopy3f(&rep_->normal[vert_ind*3+0],facenormals[this_face].c);
+				rep_->norindex[vert_ind] = vert_ind;
+				// printf ("using calculated normals %f %f %f for face %d, vert_ind %d\n",
+				//	rep_->normal[vert_ind*3+0],rep_->normal[vert_ind*3+1],
+				//	rep_->normal[vert_ind*3+2],this_face,rep_->norindex[vert_ind]);
+			}
+		}
+
+		// Vertex Colours
+		if(ncolors) {
+            if (colin) {
+				int tmpI;
+				// we have a colorIndex 
+				if (cpv) {
+					tmpI =i;
+						
+					if (tmpI >= orig_colorIndex->n) {
+						printf ("faceSet, colorIndex problem, %d >= %d\n", tmpI,orig_colorIndex->n);
+						colindex[vert_ind] = 0;
+					} else {
+						colindex[vert_ind] = orig_colorIndex->p[tmpI];
+					}
+					// printf ("col2, index %d\n",colindex[vert_ind]); 
+				}						
+			} else {
+				// no colorIndex  - use the coordIndex 
+				if (cpv) {
+					colindex[vert_ind] = (orig_coordIndex->p[i]);
+						// printf ("col3, index %d\n",colindex[vert_ind]); 
+				}
+                //ConsoleMessage ("color index is %d",colindex[vert_ind]);
+			}
+		}
+
+
+		// Texture Coordinates 
+		if (tcin) {
+			// bounds checking if we run out of texCoords, just fill in with 0 
+			if ((i) < tcin) {
+				tcindex[vert_ind] = orig_texCoordIndex->p[i];
+			} else {
+				tcindex[vert_ind] = 0;
+			}
+			// printf ("ntexCoords,tcin,  index %d\n",tcindex[vert_ind]);
+		} else {
+			// no texCoordIndex, use the Coord Index 
+			tcindex[vert_ind] = (orig_coordIndex->p[i]);
+			// printf ("ntexcoords, notcin, vertex %d point %d\n",vert_ind,tcindex[vert_ind]); 
+		}
+		// just use cindex: fogindex[vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
+
+
+	}
+
 
 	/* wander through to see how much memory needs allocating for triangles */
 	/*
@@ -1131,6 +1347,12 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 	this_coord = 0;
 	i = 0;
+	//struct combiner_point {
+	//	float c[3];
+	//	float n[3];
+	//	float uv[2];
+	//	float rgba[4];
+	//};
 	for (this_face=0; this_face<faces; this_face++) {
 		int relative_coord;		/* temp, used if not tesselating	*/
 		int tess_contour_start;		/* tess, for creating contours, maybe	*/
@@ -1140,21 +1362,16 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		tg->Tess.global_IFS_Coord_count = 0;
 		relative_coord = 0;
 		tess_contour_start = 0;
-		
+		polyrep_combiner_data cbdata;
+		int combiner_index = npoints;
+		set_tess_callbacks(2);
+		cbdata.coords = (float*)points; // p->FW_rep_->actualCoord;
+		cbdata.counter = &combiner_index; //&tg->Tess.global_IFS_Coord_count;
+		cbdata.ria = tess_vs;
+		cbdata.riaindex = &relative_coord;
+		gluTessNormal(tg->Tess.global_tessobj,0.0,0.0,0.0); //we dont know about any plane
 
 		if (faceok[this_face].OK) {
-		//	#ifdef VERBOSE
-		//	printf ("in generate of faces, face %d is invalid, skipping...\n",this_face);
-		//	#endif
-
-		//	/* skip past the seperator, except if we are t the end */
-
-		//	/*  skip to either end or the next -1*/
-		//	while ((this_coord < cin) && ((orig_coordIndex->p[this_coord]) != -1)) this_coord++;
-
-		//	/*  skip past the -1*/
-		//	if ((this_coord < (cin-1)) && ((orig_coordIndex->p[this_coord]) == -1)) this_coord++;
-		//} else {
 
 			#ifdef VERBOSE
 			printf ("working on face %d coord %d total coords %d coordIndex %d\n",
@@ -1177,7 +1394,6 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 			if (!convex) {
 				//register_Polyrep_combiner(); //default, Component_Text resets to this after compiling its text
 				//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
-				polyrep_combiner_data cbdata;
 				//not using combinder data right now
 				gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata); // //cbdata is for combiner
 				gluTessBeginContour( tg->Tess.global_tessobj );
@@ -1189,6 +1405,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 			i = (orig_coordIndex->p[ relative_coord + this_coord]);
 
 			while (i != -1) {
+
 				if (!convex) {
 					int ind;
 					int foundContour = FALSE;
@@ -1248,9 +1465,15 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 				/* Tesselated faces may have a different normal than calculated previously */
 				/* bounds check, once again */
-
-				verify_global_IFS_Coords(cin);
-
+				if(combiner_index > npoints){
+					printf("we have combiner points %d\n",combiner_index - npoints);
+					for(int kk=0;kk < combiner_index - npoints;kk++){
+						int jj = npoints + kk;
+						printf("%d %f %f %f\n",jj,points[jj].c[0],points[jj].c[1],points[jj].c[2]);
+					}
+					npoints = combiner_index;
+				}
+//				verify_global_IFS_Coords(cin);
 				// NOT SURE WHY WE WERE DOING THIS, we already have face normals I think, using 
 				// a more sophisticated method to avoid degenterate first 3 points.
 				//IFS_check_normal (facenormals,this_face,points, this_coord, orig_coordIndex, ccw);
@@ -1260,140 +1483,17 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 			/* now store this information for the whole of the polyrep */
 			for (i=0; i<tg->Tess.global_IFS_Coord_count; i++) {
 				/* Triangle Coordinate */
-				cindex [vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
+				int index = tg->Tess.global_IFS_Coords[i];
+				int itri = i/3;
+				//if(i % 3 == 0) printf("tri %d\n",itri);
+				//printf("index = %d orig %d\n", index, orig_coordIndex->p[this_coord+index]);
+				cindex [vert_ind] = this_coord + index; //(orig_coordIndex->p[this_coord+index]);
+				//cindex [vert_ind] = (orig_coordIndex->p[this_coord+index]);
 
 				/* printf ("vertex  %d  gic %d cindex %d\n",vert_ind,global_IFS_Coords[i],cindex[vert_ind]); */
 
 				/* Vertex Normal */
-				if(nnormals) {
-					int iwant,ihavei,ihaven;
-					if (norin) {
-						/* we have a NormalIndex */
-						if (npv) {
-							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
-							ihavei = min(iwant, orig_normalIndex->n-1);
-							if(ihavei < iwant) {
-								static int once = 0;
-								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
-								once ++;
-							}
-							iwant = orig_normalIndex->p[ihavei];
-							ihaven = min(nnormals-1,iwant);
-							if(ihaven < iwant) {
-								static int once = 0;
-								if(!once) ConsoleMessage("not enough normals have %d want %d \n",ihaven,iwant);
-								once++;
-							}
-							norindex[vert_ind] = ihaven;
-							// norindex[vert_ind] = orig_normalIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
-							/*  printf ("norm1, index %d\n",norindex[vert_ind]);*/
-						} else {
-							iwant = this_face;
-							ihavei = min(iwant, orig_normalIndex->n-1);
-							if(ihavei < iwant) {
-								static int once = 0;
-								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
-								once ++;
-							}
-							norindex[vert_ind] = ihavei; //orig_normalIndex->p[this_face];
-							/*  printf ("norm2, index %d\n",norindex[vert_ind]);*/
-						}
-					} else {
-						/* no normalIndex  - use the coordIndex */
-						if (npv) {
-							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
-							ihavei = min(iwant, orig_normalIndex->n-1);
-							if(ihavei < iwant) {
-								static int once = 0;
-								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
-								once ++;
-							}
-
-							norindex[vert_ind] = ihavei; // (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
-							/* printf ("norm3, index %d\n",norindex[vert_ind]); */
-						} else {
-							norindex[vert_ind] = this_face;
-							/* printf ("norm4, index %d\n",norindex[vert_ind]);*/
-						}
-					}
-
-				} else {
-					if (fabs(creaseAngle) > 0.00001) {
-						/* normalize each vertex */
-						if (normalArraySize != INT_ID_UNDEFINED) {
-							if (calc_normind*3 > normalArraySize) {
-								printf ("HMMM _ NORMAL OVERFLOW\n");
-							}
-						}
-
-						normalize_ifs_face (&rep_->normal[calc_normind*3],
-							facenormals, pointfaces, cindex[vert_ind],
-							this_face, creaseAngle);
-						rep_->norindex[vert_ind] = calc_normind++;
-					} else {
-						/* use the calculated normals */
-						//rep_->normal[vert_ind*3+0]=(float) facenormals[this_face].x;
-						//rep_->normal[vert_ind*3+1]=(float) facenormals[this_face].y;
-						//rep_->normal[vert_ind*3+2]=(float) facenormals[this_face].z;
-						veccopy3f(&rep_->normal[vert_ind*3+0],facenormals[this_face].c);
-						rep_->norindex[vert_ind] = vert_ind;
-						 /* printf ("using calculated normals %f %f %f for face %d, vert_ind %d\n",
-							rep_->normal[vert_ind*3+0],rep_->normal[vert_ind*3+1],
-							rep_->normal[vert_ind*3+2],this_face,rep_->norindex[vert_ind]);
-						*/
-					}
-				}
-
-				/* Vertex Colours */
-				if(ncolors) {
-                    if (colin) {
-						int tmpI;
-						/* we have a colorIndex */
-						if (cpv) tmpI = this_coord+tg->Tess.global_IFS_Coords[i];
-						else tmpI = this_face;
-						
-						if (tmpI >= orig_colorIndex->n) {
-							printf ("faceSet, colorIndex problem, %d >= %d\n", tmpI,orig_colorIndex->n);
-							colindex[vert_ind] = 0;
-						} else {
-							colindex[vert_ind] = orig_colorIndex->p[tmpI];
-						}
-						/* printf ("col2, index %d\n",colindex[vert_ind]); */
-						
-					} else {
-						/* no colorIndex  - use the coordIndex */
-						if (cpv) {
-							colindex[vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
-							  /* printf ("col3, index %d\n",colindex[vert_ind]); */
-						} else {
-							colindex[vert_ind] = this_face;
-							  /* printf ("col4, index %d\n",colindex[vert_ind]); */
-						}
-                        //ConsoleMessage ("color index is %d",colindex[vert_ind]);
-					}
-				}
-
-
-				/* Texture Coordinates */
-				if (tcin) {
-					/* bounds checking if we run out of texCoords, just fill in with 0 */
-					if ((this_coord+tg->Tess.global_IFS_Coords[i]) < tcin) {
-						tcindex[vert_ind] = orig_texCoordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
-					} else {
-						tcindex[vert_ind] = 0;
-					}
-					/* printf ("ntexCoords,tcin,  index %d\n",tcindex[vert_ind]); */
-				} else {
-					/* no texCoordIndex, use the Coord Index */
-					tcindex[vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
-					/* printf ("ntexcoords, notcin, vertex %d point %d\n",vert_ind,tcindex[vert_ind]); */
-				}
-				// just use cindex: fogindex[vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
-
-				/* increment index, but check for baaad errors.	 */
-				if (vert_ind < (ntri*3-1)) vert_ind++;
 			}
-
 			/* for the next face, we work from a new base */
 			this_coord += relative_coord;
 
@@ -1585,7 +1685,7 @@ void stream_extrusion_texture_coords (struct X3D_PolyRep *rep_,
 	}
 }
 
-void set_tess_callbacks(int variant);
+
 void make_Extrusion(struct X3D_Extrusion *node) {
 
 	/*****begin of Member Extrusion	*/
@@ -1699,7 +1799,6 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 /*FIXME:
   to prevent a crash with script generated data
 */
-#define TOBIAS TRUE
 	if (nspi < 1) return;
 
 	/* is there anything to this Extrusion??? */
@@ -1721,30 +1820,11 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 
 			/* assume that it is not duplicated */
 			increment = 1;
-			if(!TOBIAS){
-				for (temp_indx=0; temp_indx<currentlocn; temp_indx++) {
-					if ((APPROX(crossSection[currentlocn].c[0],crossSection[temp_indx].c[0])) &&
-						(APPROX(crossSection[currentlocn].c[1],crossSection[temp_indx].c[1]))) {
-						/* maybe we have a closed curve, so points SHOULD be the same */
-						if ((temp_indx != 0) && (tmp1 != (nsec-1))) {
-							/* printf ("... breaking; increment = 0\n");*/
-							increment = 0;
-							break;
-						} else {
-							/* printf ("... we are tubular\n");*/
-							tubular = TRUE;
-						}
-					}
-				}
-			}
-
 			/* increment the crossSection index, unless it was duplicated */
 			currentlocn += increment;
 		}
-		if(TOBIAS){
-			if(vecapprox3f(crossSection[0].c,crossSection[nsec-1].c,.001f))
-				tubular = TRUE;
-		}
+		if(vecapprox3f(crossSection[0].c,crossSection[nsec-1].c,.001f))
+			tubular = TRUE;
 		#ifdef VERBOSE
 			printf ("we had nsec %d coords, but now we have %d\n",nsec,currentlocn);
 		#endif

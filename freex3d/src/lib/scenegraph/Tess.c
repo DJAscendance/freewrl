@@ -323,6 +323,34 @@ void CALLBACK FW_tess_combine_polyrep_data (GLDOUBLE c[3], GLfloat *d[4], GLfloa
 		//polyrep_combiner_data *cbdata;
 	}
 }
+void CALLBACK FW_tess_combine_polyrep2_data (GLDOUBLE c[3], GLfloat *d[4], GLfloat w[4], void **out,void *polygondata) {
+	//2020 variant for make_polyrep > IFS
+	ttglobal tg = gglobal();
+	int FW_pointctr, RAI_indx;
+	polyrep_combiner_data *cbdata;
+	struct SFVec3f *coords;
+	cbdata = (polyrep_combiner_data*) polygondata;
+
+	//OpenGL Redbook says we must malloc a new point. 
+	//but in our Component_Text system, that just means adding it to our 
+	//over-malloced list of points actualCoords[]
+	// and to a few other lists of indexes etc as we do in FW_NewVertexPoint() in Component_Text
+	FW_pointctr = *(cbdata->counter);
+	RAI_indx = *(cbdata->riaindex);
+	tg->Tess.global_IFS_Coords[RAI_indx] = FW_pointctr;
+	coords = (struct SFVec3f *)cbdata->coords;
+	printf("combiner compute intersection %lf %lf %lf\n",c[0],c[1],c[2]);
+	double2float(coords[FW_pointctr].c, c, 3);
+	cbdata->ria[(*cbdata->riaindex)] = FW_pointctr;
+	*out = &cbdata->ria[(*cbdata->riaindex)]; //tell FW_IFS_tess_vertex the index of the new point
+	//printf("combiner, out pointer = %p nv pointer = %p\n",out,*out);
+	//THE SECRET TO COMBINDER SUCCESS? *out == (p) in FW_IFS_tess_vertex(void *p)
+	*(cbdata->counter) = FW_pointctr + 1;
+	(*cbdata->riaindex)++;
+
+
+
+}
 
 /* Some tesselators will give back garbage. Lets try and remove it */
 /* Text handles errors better itself, so this is just used for Extrusions and IndexedFaceSets */
@@ -425,8 +453,13 @@ void new_tessellation(void) {
 void set_tess_callbacks(int variant){
 	ttglobal tg = gglobal();
 	if(variant == 1){
+		//make_extrusion
 		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_extrusion_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
+	} else if(variant == 2){
+		//make_polyrep > IFS > fancy
+		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_polyrep2_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
 	}else{
+		//make_polyrep > IFS - simple
 		FW_GLU_TESS_CALLBACK(tg->Tess.global_tessobj, GLU_TESS_COMBINE_DATA,(_GLUfuncptr)FW_tess_combine_polyrep_data); //default combiner, Text must reset to this after doing its own FW_tess_combine_text_data
 	}
 }
