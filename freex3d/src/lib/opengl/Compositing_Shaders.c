@@ -2735,7 +2735,7 @@ void PLUG_fog_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
 
 
 //assumes little endian
-void printBits(size_t const size, void const * const ptr)
+void printBitsB(size_t const size, void const * const ptr)
 {
     unsigned char *b = (unsigned char*) ptr;
     unsigned char byte;
@@ -2825,7 +2825,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		}
 	}
 
-	// printBits(sizeof(int),&whichOne.base); //debugging _shaderflags
+	// printBitsB(sizeof(int),&whichOne.base); //debugging _shaderflags
 
 	unique_int = 0; //helps generate method name PLUG_xxx_<unique_int> to avoid clash when multiple PLUGs supplied for same PLUG point
 	//Add in:

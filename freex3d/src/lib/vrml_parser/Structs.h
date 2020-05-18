@@ -2840,6 +2840,7 @@ struct X3D_Node {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -2947,6 +2948,7 @@ struct X3D_AcousticProperties {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -2969,6 +2971,7 @@ struct X3D_AnalyserNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -2993,6 +2996,7 @@ struct X3D_Anchor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3024,6 +3028,7 @@ struct X3D_Appearance {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3053,6 +3058,7 @@ struct X3D_Arc2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3078,6 +3084,7 @@ struct X3D_ArcClose2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3108,6 +3115,7 @@ struct X3D_AudioBuffer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3131,6 +3139,7 @@ struct X3D_AudioBufferSourceNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3155,6 +3164,7 @@ struct X3D_AudioClip {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3193,6 +3203,7 @@ struct X3D_AudioContext {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3217,6 +3228,7 @@ struct X3D_AudioDestinationNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3237,6 +3249,7 @@ struct X3D_AudioListener {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3258,6 +3271,7 @@ struct X3D_AudioParam {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3279,6 +3293,7 @@ struct X3D_BackdropBackground {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3306,6 +3321,7 @@ struct X3D_Background {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3352,6 +3368,7 @@ struct X3D_BallJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3382,6 +3399,7 @@ struct X3D_Billboard {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3411,6 +3429,7 @@ struct X3D_BiquadFilterNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3435,6 +3454,7 @@ struct X3D_BlendedVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3467,6 +3487,7 @@ struct X3D_BooleanFilter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3490,6 +3511,7 @@ struct X3D_BooleanSequencer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3516,6 +3538,7 @@ struct X3D_BooleanToggle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3537,6 +3560,7 @@ struct X3D_BooleanTrigger {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3558,6 +3582,7 @@ struct X3D_BoundaryEnhancementVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3581,6 +3606,7 @@ struct X3D_BoundedPhysicsModel {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3602,6 +3628,7 @@ struct X3D_Box {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3624,6 +3651,7 @@ struct X3D_CADAssembly {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3653,6 +3681,7 @@ struct X3D_CADFace {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3678,6 +3707,7 @@ struct X3D_CADLayer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3707,6 +3737,7 @@ struct X3D_CADPart {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3747,6 +3778,7 @@ struct X3D_CalibratedCameraSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3774,6 +3806,7 @@ struct X3D_CartoonVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3798,6 +3831,7 @@ struct X3D_ChannelMergerNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3823,6 +3857,7 @@ struct X3D_ChannelSplitterNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3848,6 +3883,7 @@ struct X3D_Circle2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3871,6 +3907,7 @@ struct X3D_ClipPlane {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3892,6 +3929,7 @@ struct X3D_CollidableOffset {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3926,6 +3964,7 @@ struct X3D_CollidableShape {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3960,6 +3999,7 @@ struct X3D_Collision {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -3992,6 +4032,7 @@ struct X3D_CollisionCollection {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4024,6 +4065,7 @@ struct X3D_CollisionSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4048,6 +4090,7 @@ struct X3D_CollisionSpace {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4075,6 +4118,7 @@ struct X3D_Color {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4095,6 +4139,7 @@ struct X3D_ColorChaser {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4128,6 +4173,7 @@ struct X3D_ColorDamper {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4163,6 +4209,7 @@ struct X3D_ColorInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4186,6 +4233,7 @@ struct X3D_ColorRGBA {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4206,6 +4254,7 @@ struct X3D_ComposedCubeMapTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4232,6 +4281,7 @@ struct X3D_ComposedShader {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4261,6 +4311,7 @@ struct X3D_ComposedTexture3D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4287,6 +4338,7 @@ struct X3D_ComposedVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4308,6 +4360,7 @@ struct X3D_CompositeVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4329,6 +4382,7 @@ struct X3D_Cone {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4359,6 +4413,7 @@ struct X3D_ConeEmitter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4385,6 +4440,7 @@ struct X3D_Contact {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4421,6 +4477,7 @@ struct X3D_Contour2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4444,6 +4501,7 @@ struct X3D_ContourPolyline2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4465,6 +4523,7 @@ struct X3D_ConvolverNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4486,6 +4545,7 @@ struct X3D_Coordinate {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4506,6 +4566,7 @@ struct X3D_CoordinateChaser {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4539,6 +4600,7 @@ struct X3D_CoordinateDamper {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4574,6 +4636,7 @@ struct X3D_CoordinateDouble {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4594,6 +4657,7 @@ struct X3D_CoordinateInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4621,6 +4685,7 @@ struct X3D_CoordinateInterpolator2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4644,6 +4709,7 @@ struct X3D_Cylinder {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4674,6 +4740,7 @@ struct X3D_CylinderSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4712,6 +4779,7 @@ struct X3D_DISEntityManager {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4763,6 +4831,7 @@ struct X3D_DISEntityTypeMapping {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4791,6 +4860,7 @@ struct X3D_DelayNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4811,6 +4881,7 @@ struct X3D_DirectionalLight {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4839,6 +4910,7 @@ struct X3D_Disk2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4866,6 +4938,7 @@ struct X3D_DoubleAxisHingeJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4920,6 +4993,7 @@ struct X3D_DynamicsCompressorNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4945,6 +5019,7 @@ struct X3D_EaseInEaseOut {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4968,6 +5043,7 @@ struct X3D_EdgeEnhancementVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -4991,6 +5067,7 @@ struct X3D_Effect {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5020,6 +5097,7 @@ struct X3D_EffectPart {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5045,6 +5123,7 @@ struct X3D_ElevationGrid {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5081,6 +5160,7 @@ struct X3D_EnvironmentLight {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5107,6 +5187,7 @@ struct X3D_EspduTransform {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5249,6 +5330,7 @@ struct X3D_ExplosionEmitter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5273,6 +5355,7 @@ struct X3D_Extrusion {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5306,6 +5389,7 @@ struct X3D_FillProperties {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5331,6 +5415,7 @@ struct X3D_FloatVertexAttribute {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5353,6 +5438,7 @@ struct X3D_Fog {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5381,6 +5467,7 @@ struct X3D_FogCoordinate {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5401,6 +5488,7 @@ struct X3D_FontStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5429,6 +5517,7 @@ struct X3D_ForcePhysicsModel {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5450,6 +5539,7 @@ struct X3D_GainNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5470,6 +5560,7 @@ struct X3D_GeneratedCubeMapTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5496,6 +5587,7 @@ struct X3D_GeoConvert {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5523,6 +5615,7 @@ struct X3D_GeoCoordinate {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5547,6 +5640,7 @@ struct X3D_GeoElevationGrid {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5589,6 +5683,7 @@ struct X3D_GeoLOD {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5635,6 +5730,7 @@ struct X3D_GeoLocation {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5676,6 +5772,7 @@ struct X3D_GeoMetadata {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5698,6 +5795,7 @@ struct X3D_GeoOrigin {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5726,6 +5824,7 @@ struct X3D_GeoPlanet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5757,6 +5856,7 @@ struct X3D_GeoPositionInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5787,6 +5887,7 @@ struct X3D_GeoProximitySensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5829,6 +5930,7 @@ struct X3D_GeoTouchSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5864,6 +5966,7 @@ struct X3D_GeoTransform {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5911,6 +6014,7 @@ struct X3D_GeoViewpoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5963,6 +6067,7 @@ struct X3D_Group {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -5991,6 +6096,7 @@ struct X3D_HAnimDisplacer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6014,6 +6120,7 @@ struct X3D_HAnimHumanoid {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6064,6 +6171,7 @@ struct X3D_HAnimJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6110,6 +6218,7 @@ struct X3D_HAnimMotion {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6155,6 +6264,7 @@ struct X3D_HAnimMotionData {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6185,6 +6295,7 @@ struct X3D_HAnimMotionDataFile {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6219,6 +6330,7 @@ struct X3D_HAnimMotionPlay {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6255,6 +6367,7 @@ struct X3D_HAnimSegment {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6289,6 +6402,7 @@ struct X3D_HAnimSite {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6328,6 +6442,7 @@ struct X3D_ImageBackdropBackground {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6355,6 +6470,7 @@ struct X3D_ImageCubeMapTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6380,6 +6496,7 @@ struct X3D_ImageTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6405,6 +6522,7 @@ struct X3D_ImageTexture3D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6432,6 +6550,7 @@ struct X3D_IndexedFaceSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6471,6 +6590,7 @@ struct X3D_IndexedLineSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6509,6 +6629,7 @@ struct X3D_IndexedQuadSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6541,6 +6662,7 @@ struct X3D_IndexedTriangleFanSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6573,6 +6695,7 @@ struct X3D_IndexedTriangleSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6605,6 +6728,7 @@ struct X3D_IndexedTriangleStripSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6637,6 +6761,7 @@ struct X3D_Inline {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6691,6 +6816,7 @@ struct X3D_IntegerSequencer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6717,6 +6843,7 @@ struct X3D_IntegerTrigger {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6739,6 +6866,7 @@ struct X3D_IsoSurfaceVolumeData {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6770,6 +6898,7 @@ struct X3D_KeySensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6799,6 +6928,7 @@ struct X3D_LOD {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6833,6 +6963,7 @@ struct X3D_Layer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6858,6 +6989,7 @@ struct X3D_LayerSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6880,6 +7012,7 @@ struct X3D_Layout {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6910,6 +7043,7 @@ struct X3D_LayoutGroup {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6939,6 +7073,7 @@ struct X3D_LayoutLayer {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6965,6 +7100,7 @@ struct X3D_LinePickSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -6997,6 +7133,7 @@ struct X3D_LineProperties {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7026,6 +7163,7 @@ struct X3D_LineSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7060,6 +7198,7 @@ struct X3D_LineSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7089,6 +7228,7 @@ struct X3D_LoadSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7119,6 +7259,7 @@ struct X3D_LocalFog {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7144,6 +7285,7 @@ struct X3D_Material {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7180,6 +7322,7 @@ struct X3D_Matrix3VertexAttribute {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7201,6 +7344,7 @@ struct X3D_Matrix4VertexAttribute {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7222,6 +7366,7 @@ struct X3D_MediaElementAudioSourceNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7247,6 +7392,7 @@ struct X3D_MediaStreamAudioDestinationNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7267,6 +7413,7 @@ struct X3D_MediaStreamTrack {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7287,6 +7434,7 @@ struct X3D_MetadataBoolean {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7309,6 +7457,7 @@ struct X3D_MetadataDouble {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7331,6 +7480,7 @@ struct X3D_MetadataFloat {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7353,6 +7503,7 @@ struct X3D_MetadataInteger {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7375,6 +7526,7 @@ struct X3D_MetadataMFBool {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7397,6 +7549,7 @@ struct X3D_MetadataMFColor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7419,6 +7572,7 @@ struct X3D_MetadataMFColorRGBA {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7441,6 +7595,7 @@ struct X3D_MetadataMFDouble {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7463,6 +7618,7 @@ struct X3D_MetadataMFFloat {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7485,6 +7641,7 @@ struct X3D_MetadataMFInt32 {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7507,6 +7664,7 @@ struct X3D_MetadataMFMatrix3d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7529,6 +7687,7 @@ struct X3D_MetadataMFMatrix3f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7551,6 +7710,7 @@ struct X3D_MetadataMFMatrix4d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7573,6 +7733,7 @@ struct X3D_MetadataMFMatrix4f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7595,6 +7756,7 @@ struct X3D_MetadataMFNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7617,6 +7779,7 @@ struct X3D_MetadataMFRotation {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7639,6 +7802,7 @@ struct X3D_MetadataMFString {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7661,6 +7825,7 @@ struct X3D_MetadataMFTime {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7683,6 +7848,7 @@ struct X3D_MetadataMFVec2d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7705,6 +7871,7 @@ struct X3D_MetadataMFVec2f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7727,6 +7894,7 @@ struct X3D_MetadataMFVec3d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7749,6 +7917,7 @@ struct X3D_MetadataMFVec3f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7771,6 +7940,7 @@ struct X3D_MetadataMFVec4d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7793,6 +7963,7 @@ struct X3D_MetadataMFVec4f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7815,6 +7986,7 @@ struct X3D_MetadataSFBool {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7837,6 +8009,7 @@ struct X3D_MetadataSFColor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7859,6 +8032,7 @@ struct X3D_MetadataSFColorRGBA {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7881,6 +8055,7 @@ struct X3D_MetadataSFDouble {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7903,6 +8078,7 @@ struct X3D_MetadataSFFloat {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7925,6 +8101,7 @@ struct X3D_MetadataSFImage {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7947,6 +8124,7 @@ struct X3D_MetadataSFInt32 {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7969,6 +8147,7 @@ struct X3D_MetadataSFMatrix3d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -7991,6 +8170,7 @@ struct X3D_MetadataSFMatrix3f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8013,6 +8193,7 @@ struct X3D_MetadataSFMatrix4d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8035,6 +8216,7 @@ struct X3D_MetadataSFMatrix4f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8057,6 +8239,7 @@ struct X3D_MetadataSFNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8079,6 +8262,7 @@ struct X3D_MetadataSFRotation {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8101,6 +8285,7 @@ struct X3D_MetadataSFString {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8123,6 +8308,7 @@ struct X3D_MetadataSFTime {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8145,6 +8331,7 @@ struct X3D_MetadataSFVec2d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8167,6 +8354,7 @@ struct X3D_MetadataSFVec2f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8189,6 +8377,7 @@ struct X3D_MetadataSFVec3d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8211,6 +8400,7 @@ struct X3D_MetadataSFVec3f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8233,6 +8423,7 @@ struct X3D_MetadataSFVec4d {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8255,6 +8446,7 @@ struct X3D_MetadataSFVec4f {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8277,6 +8469,7 @@ struct X3D_MetadataSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8299,6 +8492,7 @@ struct X3D_MetadataString {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8321,6 +8515,7 @@ struct X3D_MotorJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8376,6 +8571,7 @@ struct X3D_MovieTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8423,6 +8619,7 @@ struct X3D_MultiTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8449,6 +8646,7 @@ struct X3D_MultiTextureCoordinate {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8469,6 +8667,7 @@ struct X3D_MultiTextureTransform {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8489,6 +8688,7 @@ struct X3D_NavigationInfo {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8520,6 +8720,7 @@ struct X3D_Normal {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8540,6 +8741,7 @@ struct X3D_NormalInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8563,6 +8765,7 @@ struct X3D_NurbsCurve {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8591,6 +8794,7 @@ struct X3D_NurbsCurve2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8617,6 +8821,7 @@ struct X3D_NurbsOrientationInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8646,6 +8851,7 @@ struct X3D_NurbsPatchSurface {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8680,6 +8886,7 @@ struct X3D_NurbsPositionInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8709,6 +8916,7 @@ struct X3D_NurbsSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8736,6 +8944,7 @@ struct X3D_NurbsSurfaceInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8770,6 +8979,7 @@ struct X3D_NurbsSweptSurface {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8796,6 +9006,7 @@ struct X3D_NurbsSwungSurface {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8820,6 +9031,7 @@ struct X3D_NurbsTextureCoordinate {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8850,6 +9062,7 @@ struct X3D_NurbsTrimmedSurface {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8887,6 +9100,7 @@ struct X3D_OSC_Sensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8928,6 +9142,7 @@ struct X3D_OpacityMapVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8949,6 +9164,7 @@ struct X3D_OrientationChaser {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -8982,6 +9198,7 @@ struct X3D_OrientationDamper {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9017,6 +9234,7 @@ struct X3D_OrientationInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9040,6 +9258,7 @@ struct X3D_OrthoViewpoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9074,6 +9293,7 @@ struct X3D_OscillatorNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9096,6 +9316,7 @@ struct X3D_PackagedShader {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9125,6 +9346,7 @@ struct X3D_PannerNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9155,6 +9377,7 @@ struct X3D_ParticleSystem {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9201,6 +9424,7 @@ struct X3D_PeriodicWave {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9223,6 +9447,7 @@ struct X3D_PhysicalMaterial {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9256,6 +9481,7 @@ struct X3D_PickableGroup {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9285,6 +9511,7 @@ struct X3D_PixelTexture {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9310,6 +9537,7 @@ struct X3D_PixelTexture3D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9337,6 +9565,7 @@ struct X3D_PlaneSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9372,6 +9601,7 @@ struct X3D_PointEmitter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9397,6 +9627,7 @@ struct X3D_PointLight {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9427,6 +9658,7 @@ struct X3D_PointPickSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9465,6 +9697,7 @@ struct X3D_PointProperties {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9492,6 +9725,7 @@ struct X3D_PointSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9525,6 +9759,7 @@ struct X3D_PointSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9553,6 +9788,7 @@ struct X3D_Polyline2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9574,6 +9810,7 @@ struct X3D_PolylineEmitter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9606,6 +9843,7 @@ struct X3D_Polypoint2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9626,6 +9864,7 @@ struct X3D_PositionChaser {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9659,6 +9898,7 @@ struct X3D_PositionChaser2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9692,6 +9932,7 @@ struct X3D_PositionDamper {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9727,6 +9968,7 @@ struct X3D_PositionDamper2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9762,6 +10004,7 @@ struct X3D_PositionInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9785,6 +10028,7 @@ struct X3D_PositionInterpolator2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9808,6 +10052,7 @@ struct X3D_PrimitivePickSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9837,6 +10082,7 @@ struct X3D_ProgramShader {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9865,6 +10111,7 @@ struct X3D_ProjectionVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9888,6 +10135,7 @@ struct X3D_Proto {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9942,6 +10190,7 @@ struct X3D_ProximitySensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9974,6 +10223,7 @@ struct X3D_Pyramid {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -9995,6 +10245,7 @@ struct X3D_QuadSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10025,6 +10276,7 @@ struct X3D_ReceiverPdu {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10082,6 +10334,7 @@ struct X3D_Rectangle2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10105,6 +10358,7 @@ struct X3D_RigidBody {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10155,6 +10409,7 @@ struct X3D_RigidBodyCollection {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10192,6 +10447,7 @@ struct X3D_ScalarChaser {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10225,6 +10481,7 @@ struct X3D_ScalarDamper {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10260,6 +10517,7 @@ struct X3D_ScalarInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10283,6 +10541,7 @@ struct X3D_ScreenFontStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10311,6 +10570,7 @@ struct X3D_ScreenGroup {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10338,6 +10598,7 @@ struct X3D_Script {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10362,6 +10623,7 @@ struct X3D_SegmentedVolumeData {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10391,6 +10653,7 @@ struct X3D_ShadedVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10417,6 +10680,7 @@ struct X3D_ShaderPart {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10442,6 +10706,7 @@ struct X3D_ShaderProgram {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10467,6 +10732,7 @@ struct X3D_Shape {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10498,6 +10764,7 @@ struct X3D_SignalPdu {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10555,6 +10822,7 @@ struct X3D_SilhouetteEnhancementVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10579,6 +10847,7 @@ struct X3D_SingleAxisHingeJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10617,6 +10886,7 @@ struct X3D_SliderJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10652,6 +10922,7 @@ struct X3D_Sound {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10684,6 +10955,7 @@ struct X3D_Sphere {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10710,6 +10982,7 @@ struct X3D_SphereSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10743,6 +11016,7 @@ struct X3D_SplinePositionInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10771,6 +11045,7 @@ struct X3D_SplinePositionInterpolator2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10799,6 +11074,7 @@ struct X3D_SplineScalarInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10827,6 +11103,7 @@ struct X3D_SpotLight {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10861,6 +11138,7 @@ struct X3D_SquadOrientationInterpolator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10888,6 +11166,7 @@ struct X3D_StaticGroup {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10916,6 +11195,7 @@ struct X3D_StringSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10943,6 +11223,7 @@ struct X3D_SurfaceEmitter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -10972,6 +11253,7 @@ struct X3D_Switch {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11002,6 +11284,7 @@ struct X3D_Teapot {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11023,6 +11306,7 @@ struct X3D_TexCoordChaser2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11056,6 +11340,7 @@ struct X3D_TexCoordDamper2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11091,6 +11376,7 @@ struct X3D_Text {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11120,6 +11406,7 @@ struct X3D_TextureBackground {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11159,6 +11446,7 @@ struct X3D_TextureCoordinate {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11179,6 +11467,7 @@ struct X3D_TextureCoordinate3D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11199,6 +11488,7 @@ struct X3D_TextureCoordinate4D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11219,6 +11509,7 @@ struct X3D_TextureCoordinateGenerator {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11240,6 +11531,7 @@ struct X3D_TextureProjectorParallel {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11274,6 +11566,7 @@ struct X3D_TextureProjectorPerspective {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11308,6 +11601,7 @@ struct X3D_TextureProperties {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11338,6 +11632,7 @@ struct X3D_TextureTransform {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11361,6 +11656,7 @@ struct X3D_TextureTransform3D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11384,6 +11680,7 @@ struct X3D_TextureTransformMatrix3D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11404,6 +11701,7 @@ struct X3D_TimeSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11440,6 +11738,7 @@ struct X3D_TimeTrigger {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11461,6 +11760,7 @@ struct X3D_ToneMappedVolumeStyle {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11484,6 +11784,7 @@ struct X3D_TouchSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11515,6 +11816,7 @@ struct X3D_TrackingSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11541,6 +11843,7 @@ struct X3D_Transform {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11580,6 +11883,7 @@ struct X3D_TransformSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11612,6 +11916,7 @@ struct X3D_TransmitterPdu {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11685,6 +11990,7 @@ struct X3D_TriangleFanSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11716,6 +12022,7 @@ struct X3D_TriangleSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11746,6 +12053,7 @@ struct X3D_TriangleSet2D {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11769,6 +12077,7 @@ struct X3D_TriangleStripSet {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11800,6 +12109,7 @@ struct X3D_TwoSidedMaterial {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11834,6 +12144,7 @@ struct X3D_UniversalJoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11874,6 +12185,7 @@ struct X3D_UnlitMaterial {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11900,6 +12212,7 @@ struct X3D_Viewpoint {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11936,6 +12249,7 @@ struct X3D_ViewpointGroup {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11962,6 +12276,7 @@ struct X3D_Viewport {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -11990,6 +12305,7 @@ struct X3D_VisibilitySensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -12020,6 +12336,7 @@ struct X3D_VolumeData {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -12047,6 +12364,7 @@ struct X3D_VolumeEmitter {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -12077,6 +12395,7 @@ struct X3D_VolumePickSensor {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -12106,6 +12425,7 @@ struct X3D_WaveShaperNode {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -12127,6 +12447,7 @@ struct X3D_WindPhysicsModel {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
@@ -12152,6 +12473,7 @@ struct X3D_WorldInfo {
        int _hit; 
        int _change; 
        int _ichange; 
+       char * _fieldchange; 
        struct Vector* _parentVector; 
        double _dist; /*sorting for blending */ 
        float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
