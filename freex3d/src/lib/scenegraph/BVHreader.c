@@ -252,7 +252,7 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 			}
             //channels = file_lines[lineIdx][2:]
 
-            struct BVH_Node *my_parent = stack_top(struct BVH_Node*,bvh_nodes_serial); //[-1];  // account for none
+            struct BVH_Node *my_parent = bvh_nodes_serial->n ? stack_top(struct BVH_Node*,bvh_nodes_serial) : NULL; //[-1];  // account for none
 			float rest_head_world[3];
             // Apply the parents offset accumulatively
             if( my_parent == NULL)
