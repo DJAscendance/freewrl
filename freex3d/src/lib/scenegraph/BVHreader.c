@@ -13,7 +13,7 @@ What X3D needs is HAnim2MotionData.
 */
 
 
-
+#define ASSERT
 
 #include <config.h>
 #include <system.h>
@@ -22,7 +22,7 @@ What X3D needs is HAnim2MotionData.
 
 // .H  >> 
 
-void read_bvh(char *file_path, char *rotate_mode, float global_scale,
+void read_bvh(char *file_path, float global_scale,
 	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count);
 
 // << .H
@@ -93,7 +93,7 @@ char * getline(char *line, int maxlen, char **position){
 	int len = min(end-cur,maxlen-1);
 	memcpy(line,cur,len);
 	line[len] = '\0';
-	*position = &cur[len];
+	*position = &cur[len+1];
 	return *position;
 }
 struct BVH_Node * init_BVH_Node( char *name, float * rest_head_world, float * rest_head_local, 
@@ -138,7 +138,7 @@ struct BVH_Node * init_BVH_Node( char *name, float * rest_head_world, float * re
 //}
 //
 
-void read_bvh_blob(char *blob, int len, char *rotate_mode, float global_scale,
+void read_bvh_blob(char *blob, int len, float global_scale,
 	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
@@ -478,10 +478,10 @@ void read_bvh_blob(char *blob, int len, char *rotate_mode, float global_scale,
     //return bvh_nodes, bvh_frame_time, bvh_frame_count
 }
 
-void read_bvh(char *file_path, char *rotate_mode, float global_scale,
-	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count){
-	char *blob;
-	int len;
-	if( load_file_blob(file_path, &blob, &len) )
-		read_bvh_blob(blob, len, rotate_mode, global_scale, bvh_nodes, bvh_frame_time, bvh_frame_count);
-}
+//void read_bvh(char *file_path, char *rotate_mode, float global_scale,
+//	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count){
+//	char *blob;
+//	int len;
+//	if( load_file_blob(file_path, &blob, &len) )
+//		read_bvh_blob(blob, len, rotate_mode, global_scale, bvh_nodes, bvh_frame_time, bvh_frame_count);
+//}
