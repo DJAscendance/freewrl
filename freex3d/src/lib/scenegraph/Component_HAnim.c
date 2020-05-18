@@ -1605,8 +1605,26 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 // MotionPlay will have a frame index and timing info, so can stay 1:1 with HAnimHumanoid character
 // MotionData can be DEF/USED by multiple MotionPlay nodes
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
+void read_bvh_blob(char *blob, int len, char *rotate_mode, float global_scale,
+	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count);
 
+void process_mocap(resource_item_t *res){
+	//a chance to do a bit of out-of-render-thread processing.
+	openned_file_t *of;
+	of = res->openned_files;
+	if (!of) {
+		/* error */
+		return;
+	}
 
+	char *blob = of->fileData;
+	int len = of->fileDataSize;
+
+	struct X3D_HAnimMotionDataFile * node = (struct X3D_HAnimMotionDataFile *) res->whereToPlaceData;
+
+	printf("process mocap\n");
+	//read_bvh_blob(res->)
+}
 void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
 	//motion data
 
@@ -1684,7 +1702,7 @@ void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
 			node->__loadstatus = LOADER_STABLE; /* a "do-nothing" approach */
 		} else {
 			res = resource_create_multi(&(node->url));
-			res->media_type = resm_external; //resm_fshader;
+			res->media_type = resm_mocap; //resm_fshader;
 			node->__loadstatus = LOADER_REQUEST_RESOURCE;
 			node->__loadResource = res;
 		}
@@ -1709,14 +1727,23 @@ void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
 		if(res->complete){
 			if (res->status == ress_loaded) {
 				//determined during load process by resource_identify_type(): res->media_type = resm_vrml; //resm_unknown;
-				//res->whereToPlaceData = X3D_NODE(node);
-				//res->offsetFromWhereToPlaceData = 0; 
-				//res->actions = resa_process;
-				node->__loadstatus = LOADER_PROCESSING; // a "do-nothing" approach 
-				res->complete = FALSE;
-				//send_resource_to_parser(res);
-				//send_resource_to_parser_if_available(res);
-				//resitem_enqueue(ml_new(res));
+				if(1){
+					//send it for out-of-display-thread-processing
+					res->whereToPlaceData = X3D_NODE(node);
+					//res->offsetFromWhereToPlaceData = 0; 
+					res->actions = resa_process;
+					node->__loadstatus = LOADER_PROCESSING; // a "do-nothing" approach 
+					res->complete = FALSE;
+					//send_resource_to_parser(res);
+					//send_resource_to_parser_if_available(res);
+					resitem_enqueue(ml_new(res));
+				}else{
+					//in-display-thread procesing
+					process_mocap(res);
+					node->__loadstatus = LOADER_STABLE; // a "do-nothing" approach 
+					res->complete = TRUE;
+
+				}
 			} else if ((res->status == ress_failed) || (res->status == ress_invalid)) {
 				//no hope left
 				printf ("resource failed to load\n");

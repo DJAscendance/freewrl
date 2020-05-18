@@ -1047,6 +1047,7 @@ char *resourceMediaTypeToString (int mt) {
 		case  resm_movie: return " resm_movie";
 		case  resm_pshader: return " resm_pshader";
 		case  resm_fshader: return " resm_fshader";
+		case  resm_mocap: return " resm_mocap";
 		case  resm_x3z: return " resm_x3z";
 		default: return "resource OUT OF RANGE";
 	}
