@@ -1634,6 +1634,8 @@ void process_mocap(resource_item_t *res){
 
 	printf("process mocap\n");
 	read_bvh_blob_to_node(node,blob,len);
+	res->complete = TRUE;
+	res->status = ress_parsed;
 }
 void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
 	//motion data
@@ -1750,7 +1752,7 @@ void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
 				}else{
 					//in-display-thread procesing
 					process_mocap(res);
-					node->__loadstatus = LOADER_STABLE; // a "do-nothing" approach 
+					node->__loadstatus = LOADER_LOADED; // a "do-nothing" approach 
 					res->complete = TRUE;
 
 				}
@@ -1791,22 +1793,25 @@ void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
 
 void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 
-	struct X3D_HAnimMotionData *motiondata = NULL;
+	struct X3D_HAnimMotionData *motiondata = (struct X3D_HAnimMotionData *)node->data;
 
-	if(node->data){
+	if(motiondata){
 		if(node->data->_nodeType == NODE_HAnimMotionData || node->data->_nodeType == NODE_HAnimMotionDataFile ){
 			render_node(X3D_NODE(node->data));
 			if(node->data->_nodeType == NODE_HAnimMotionDataFile){
 				struct X3D_HAnimMotionDataFile * motiondatafile = (struct X3D_HAnimMotionDataFile*)node->data;
-				if(motiondatafile->__loadstatus != LOADER_STABLE) return; 
+				if(motiondatafile->__loadstatus == LOADER_LOADED) return; 
+				//node->startFrame = 0;
+				if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+				MARK_NODE_COMPILED
+			}else{
+				//node->startFrame = 0;
+				if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+				MARK_NODE_COMPILED
 			}
 		}
 	}
 
-	//node->startFrame = 0;
-	if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
-
-	MARK_NODE_COMPILED
 }
 void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	//main job: set the frame pointer for the current time, increment, enabled state

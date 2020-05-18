@@ -73,8 +73,8 @@ struct BVH_Node {
 	Stack * children;  // a list of children of this type.
     float rest_head_world[3];  // worldspace rest location for the head of this node
     float rest_head_local[3];   // localspace rest location for the head of this node
-    float *rest_tail_world;  // worldspace rest location for the tail of this node
-    float *rest_tail_local;  // worldspace rest location for the tail of this node
+    float rest_tail_world[3];  // worldspace rest location for the tail of this node
+    float rest_tail_local[3];  // worldspace rest location for the tail of this node
 	float rest_tail_local_store[3];
 	int channels[7];  // list of 6 ints, -1 for an unused channel, otherwise an index for the BVH motion data lines, loc triple then rot triple
 	int rot_order[3];  // a triple of indices as to the order rotation is applied. [0,1,2] is x/y/z - [None, None, None] if no rotation.
@@ -104,7 +104,7 @@ struct BVH_Node * init_BVH_Node( char *name, float * rest_head_world, float * re
 	self->name = name;
 	veccopy3f(self->rest_head_world,rest_head_world);
 	veccopy3f(self->rest_head_local,rest_head_local);
-	self->rest_tail_world = NULL; //,-1.0f,-1.0f,-1.0f);
+	vecset3f(self->rest_tail_world,-1.0f,-1.0f,-1.0f);
 	vecset3f(self->rest_tail_local,-1.0f,-1.0f,-1.0f);
 	self->parent = parent;
 	memcpy(self->channels,channels,3*sizeof(int));
@@ -252,7 +252,7 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 			}
             //channels = file_lines[lineIdx][2:]
 
-            struct BVH_Node *my_parent = bvh_nodes_serial->n ? stack_top(struct BVH_Node*,bvh_nodes_serial) : NULL; //[-1];  // account for none
+            struct BVH_Node *my_parent = bvh_nodes_serial->n > 0 ? stack_top(struct BVH_Node*,bvh_nodes_serial) : NULL; //[-1];  // account for none
 			float rest_head_world[3];
             // Apply the parents offset accumulatively
             if( my_parent == NULL)
@@ -261,7 +261,7 @@ void read_bvh_blob(char *blob, int len, float global_scale,
                 vecadd3f(rest_head_world,my_parent->rest_head_world, rest_head_local);
 
 			struct BVH_Node *bvh_node;
-			int index = vectorSize(bvh_nodes_serial) -1;
+			int index = vectorSize(bvh_nodes_serial);
             bvh_node = init_BVH_Node(name, rest_head_world, rest_head_local, my_parent, my_channel, my_rot_order, index);
 			//bvh_nodes[name] = bvh_node
             // If we have another child then we can call ourselves a parent, else
@@ -269,7 +269,7 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 		}	
         // Account for an end node
         //if file_lines[lineIdx][0].lower() == 'end' and file_lines[lineIdx][1].lower() == 'site':  // There is sometimes a name after 'End Site' but we will ignore it.
-        if(!strcasecmp(token,"end") || !strcasecmp(strtok(NULL,delims),"joint")){  //End Site
+        if(!strcasecmp(token,"end") && !strcasecmp(strtok(NULL,delims),"site")){  //End Site
 			getline(line,2048,&pos); // {
 			getline(line,2048,&pos); // OFFSET 8.77824 4.35084 1.2192
             //lineIdx += 2  // Increment to the next line (Offset)
@@ -433,15 +433,15 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 			if(nchildren == 0){
                 // could just fail here, but rare BVH files have childless nodes
                 //bvh_node.rest_tail_world = Vector(bvh_node.rest_head_world)
-				bvh_node->rest_tail_world = bvh_node->rest_head_world;
-                bvh_node->rest_tail_local = bvh_node->rest_head_local;
+				veccopy3f(bvh_node->rest_tail_world,bvh_node->rest_head_world);
+                veccopy3f(bvh_node->rest_tail_local, bvh_node->rest_head_local);
             //elif len(bvh_node.children) == 1:
 			}else if(nchildren == 1){
 				struct BVH_Node *bvh_child0 = vector_get(struct BVH_Node*,bvh_node->children,0);
-                bvh_node->rest_tail_world = bvh_child0->rest_head_world; //[0]->rest_head_world;
+                veccopy3f(bvh_node->rest_tail_world, bvh_child0->rest_head_world); //[0]->rest_head_world;
                 //bvh_node->rest_tail_local = bvh_node.rest_head_local + bvh_node.children[0].rest_head_local
 
-                bvh_node->rest_tail_local = vecadd3f(bvh_node->rest_tail_local_store,bvh_node->rest_head_local,bvh_child0->rest_head_local);
+                veccopy3f(bvh_node->rest_tail_local, vecadd3f(bvh_node->rest_tail_local_store,bvh_node->rest_head_local,bvh_child0->rest_head_local));
             }else{
                 // allow this, see above
                 //if not bvh_node.children:
