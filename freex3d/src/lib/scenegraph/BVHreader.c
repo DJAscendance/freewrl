@@ -86,6 +86,16 @@ struct BVH_Node {
     float *temp;  // use this for whatever you want
 };
 
+char * getline(char *line, int maxlen, char **position){
+	char *cur = *position;
+	char *end = strstr(cur,"\n");
+	if(end == NULL) return NULL;
+	int len = min(end-cur,maxlen-1);
+	memcpy(line,cur,len);
+	line[len] = '\0';
+	*position = &cur[len];
+	return *position;
+}
 struct BVH_Node * init_BVH_Node( char *name, float * rest_head_world, float * rest_head_local, 
 	struct BVH_Node *parent, int *channels, int *rot_order, int index){
 	struct BVH_Node *self = (struct BVH_Node*)malloc(sizeof(struct BVH_Node));
@@ -128,18 +138,18 @@ struct BVH_Node * init_BVH_Node( char *name, float * rest_head_world, float * re
 //}
 //
 
-void read_bvh(char *file_path, char *rotate_mode, float global_scale,
+void read_bvh_blob(char *blob, int len, char *rotate_mode, float global_scale,
 	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
-    FILE *fp = fopen(file_path, "r");
 
     // Seperate into a list of lists, each line a list of words.
 	char *rv; 
-	char line [2048];
+	char line [2048], *pos;
 	char *token, *delims;
-	rv = fgets(line,2048,fp);
+	pos = blob;
+	rv = getline(line,2048,&pos);
 
     //char * file_lines = fread(file,file.readlines()
     //// Non standard carrage returns?
@@ -167,7 +177,7 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
 
     int lineIdx = 0;  // An index for the file.
     //while(lineIdx < len(file_lines) - 1){
-	while( fgets(line,2048,fp)){
+	while( getline(line,2048,&pos)){
         //...
 		token = strtok(line,delims);
         if(!strcasecmp(token,"root") || !strcasecmp(token,"joint")){
@@ -185,8 +195,8 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
 			}
             // MAY NEED TO SUPPORT MULTIPLE ROOTS HERE! Still unsure weather multiple roots are possible?
             //print '%snode: %s, parent: %s' % (len(bvh_nodes_serial) * '  ', name,  bvh_nodes_serial[-1])
-			fgets(line,2048,fp); // {
-			fgets(line,2048,fp); // OFFSET 8.77824 4.35084 1.2192
+			getline(line,2048,&pos); // {
+			getline(line,2048,&pos); // OFFSET 8.77824 4.35084 1.2192
             //lineIdx += 2  // Increment to the next line (Offset)
 			token = strtok(line,delims);
 			float rest_head_local[3];
@@ -196,7 +206,7 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
 			}
             //rest_head_local = Vector((float(file_lines[lineIdx][1]), float(file_lines[lineIdx][2]), float(file_lines[lineIdx][3]))) * global_scale
             //lineIdx += 1  // Increment to the next line (Channels)
-			fgets(line,2048,fp); //     CHANNELS 3 Zrotation Xrotation Yrotation
+			getline(line,2048,&pos); //     CHANNELS 3 Zrotation Xrotation Yrotation
             // newChannel[Xposition, Yposition, Zposition, Xrotation, Yrotation, Zrotation]
             // newChannel references indices to the motiondata,
             // if not assigned then -1 refers to the last value that will be added on loading at a value of zero, this is appended
@@ -260,8 +270,8 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
         // Account for an end node
         //if file_lines[lineIdx][0].lower() == 'end' and file_lines[lineIdx][1].lower() == 'site':  // There is sometimes a name after 'End Site' but we will ignore it.
         if(!strcasecmp(token,"end") || !strcasecmp(strtok(NULL,delims),"joint")){  //End Site
-			fgets(line,2048,fp); // {
-			fgets(line,2048,fp); // OFFSET 8.77824 4.35084 1.2192
+			getline(line,2048,&pos); // {
+			getline(line,2048,&pos); // OFFSET 8.77824 4.35084 1.2192
             //lineIdx += 2  // Increment to the next line (Offset)
 			token = strtok(line,delims);
 			float rest_tail[3];
@@ -299,7 +309,7 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
         //if len(file_lines[lineIdx]) == 1 and file_lines[lineIdx][0].lower() == 'motion':
         if(!strcasecmp(token,"motion") ){ //MOTION
             //lineIdx += 1  // Read frame count.
-			fgets(line,2048,fp); //Frames:	2752
+			getline(line,2048,&pos); //Frames:	2752
 			token = strtok(line,delims); //frames:
 			if(!strcasecmp(token,"frames:")){
 				token = strtok(NULL,delims); //2752
@@ -311,7 +321,7 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
             //    bvh_frame_count = int(file_lines[lineIdx][1])
 
             //lineIdx += 1  // Read frame rate. 
-			fgets(line,2048,fp); //Frame Time:	0.00833333
+			getline(line,2048,&pos); //Frame Time:	0.00833333
 			token = strtok(line,delims); //frame
 			if(!strcasecmp(token,"frame")){
 				token = strtok(line,delims); //time
@@ -327,11 +337,11 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
             //    bvh_frame_time = float(file_lines[lineIdx][2])
 
             //lineIdx += 1  // Set the cursor to the first frame
-			//fgets(line,2048,fp); // Set the cursor to the first frame
+			//getline(line,2048,&pos); // Set the cursor to the first frame
 
             break;
 		}
-		fgets(line,2048,fp); // Set the cursor to the first frame
+		getline(line,2048,&pos); // Set the cursor to the first frame
         //lineIdx += 1
 	} //end while lines
  // Remove the None value used for easy parent reference
@@ -348,7 +358,7 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
 	Stack *bvh_nodes_list = bvh_nodes_serial;
 	int nodecount = vectorSize(bvh_nodes_list);
     //while lineIdx < len(file_lines):
-	while(fgets(line,2048,fp)){
+	while(getline(line,2048,&pos)){
         //line = file_lines[lineIdx]
         for(int i=0;i<nodecount;i++){ // bvh_node in bvh_nodes_list:
             //for bvh_node in bvh_nodes_serial:
@@ -468,4 +478,10 @@ void read_bvh(char *file_path, char *rotate_mode, float global_scale,
     //return bvh_nodes, bvh_frame_time, bvh_frame_count
 }
 
-
+void read_bvh(char *file_path, char *rotate_mode, float global_scale,
+	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count){
+	char *blob;
+	int len;
+	if( load_file_blob(file_path, &blob, &len) )
+		read_bvh_blob(blob, len, rotate_mode, global_scale, bvh_nodes, bvh_frame_time, bvh_frame_count);
+}

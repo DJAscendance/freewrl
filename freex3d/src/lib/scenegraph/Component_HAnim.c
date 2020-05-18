@@ -1663,12 +1663,95 @@ void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
 void render_HAnimMotionData(struct X3D_HAnimMotionData *node){
 	COMPILE_IF_REQUIRED
 }
+
+
+enum{
+	LOADER_INITIAL_STATE=0,
+	LOADER_REQUEST_RESOURCE,
+	LOADER_FETCHING_RESOURCE,
+	LOADER_PROCESSING,
+	LOADER_LOADED,
+	LOADER_COMPILED,
+	LOADER_STABLE,
+};
 void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
-	MARK_NODE_COMPILED
+	resource_item_t *res;
+	int retval = FALSE;
+	switch (node->__loadstatus) {
+		case LOADER_INITIAL_STATE: /* nothing happened yet */
+
+		if (node->url.n == 0) {
+			node->__loadstatus = LOADER_STABLE; /* a "do-nothing" approach */
+		} else {
+			res = resource_create_multi(&(node->url));
+			res->media_type = resm_external; //resm_fshader;
+			node->__loadstatus = LOADER_REQUEST_RESOURCE;
+			node->__loadResource = res;
+		}
+		break;
+
+		case LOADER_REQUEST_RESOURCE:
+		res = node->__loadResource;
+		resource_identify(node->_parentResource, res);
+		/* printf ("load_Inline, we have type  %s  status %s\n",
+			resourceTypeToString(res->type), resourceStatusToString(res->status)); */
+		res->actions = resa_download | resa_load; //not resa_parse which we do below
+		resitem_enqueue(ml_new(res)); 
+		//frontenditem_enqueue(ml_new(res));
+		node->__loadstatus = LOADER_FETCHING_RESOURCE;
+		break;
+
+		case LOADER_FETCHING_RESOURCE:
+		res = node->__loadResource;
+		/* printf ("load_Inline, we have type  %s  status %s\n",
+			resourceTypeToString(res->type), resourceStatusToString(res->status)); */
+		// do we try the next url in the multi-url? 
+		if(res->complete){
+			if (res->status == ress_loaded) {
+				//determined during load process by resource_identify_type(): res->media_type = resm_vrml; //resm_unknown;
+				//res->whereToPlaceData = X3D_NODE(node);
+				//res->offsetFromWhereToPlaceData = 0; 
+				//res->actions = resa_process;
+				node->__loadstatus = LOADER_PROCESSING; // a "do-nothing" approach 
+				res->complete = FALSE;
+				//send_resource_to_parser(res);
+				//send_resource_to_parser_if_available(res);
+				//resitem_enqueue(ml_new(res));
+			} else if ((res->status == ress_failed) || (res->status == ress_invalid)) {
+				//no hope left
+				printf ("resource failed to load\n");
+				node->__loadstatus = LOADER_STABLE; // a "do-nothing" approach 
+			}
+		}
+		break;
+
+		case LOADER_PROCESSING:
+			res = node->__loadResource;
+
+			//printf ("inline parsing.... %s\n",resourceStatusToString(res->status));
+			//printf ("res complete %d\n",res->complete);
+			if(res->complete){
+				if (res->status == ress_parsed) {
+					node->__loadstatus = LOADER_LOADED;
+				}else{
+					node->__loadstatus = LOADER_STABLE;
+				}
+			}
+
+		break;
+		case LOADER_STABLE:
+		break;
+		case LOADER_LOADED:
+		case LOADER_COMPILED:
+		retval = TRUE;
+	}
+	if(node->__loadstatus == LOADER_STABLE)
+		MARK_NODE_COMPILED
 }
 void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
 	COMPILE_IF_REQUIRED
 }
+
 void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 
 	struct X3D_HAnimMotionData *motiondata = NULL;
@@ -1676,8 +1759,10 @@ void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	if(node->data){
 		if(node->data->_nodeType == NODE_HAnimMotionData || node->data->_nodeType == NODE_HAnimMotionDataFile ){
 			render_node(X3D_NODE(node->data));
-			motiondata = (struct X3D_HAnimMotionData*)node->data;
-			if(motiondata->__loadstatus == 0) return; 
+			if(node->data->_nodeType == NODE_HAnimMotionDataFile){
+				struct X3D_HAnimMotionDataFile * motiondatafile = (struct X3D_HAnimMotionDataFile*)node->data;
+				if(motiondatafile->__loadstatus != LOADER_STABLE) return; 
+			}
 		}
 	}
 
@@ -1695,8 +1780,10 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	if(node->data){
 		if(node->data->_nodeType == NODE_HAnimMotionData || node->data->_nodeType == NODE_HAnimMotionDataFile ){
 			render_node(X3D_NODE(node->data));
-			motiondata = (struct X3D_HAnimMotionData*)node->data;
-			if(motiondata->__loadstatus == 0) return; 
+			if(node->data->_nodeType == NODE_HAnimMotionDataFile){
+				struct X3D_HAnimMotionDataFile * motiondatafile = (struct X3D_HAnimMotionDataFile*)node->data;
+				if(motiondatafile->__loadstatus != LOADER_STABLE) return; 
+			}
 		}
 	}
 
