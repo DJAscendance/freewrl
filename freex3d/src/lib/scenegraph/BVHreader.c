@@ -35,6 +35,46 @@ void read_bvh(char *file_path, float global_scale,
 #define DEGREES_PER_RADIAN (double)57.2957795130823208768
 
 
+enum {
+CHAN_RX = 1,
+CHAN_RY = 2,
+CHAN_RZ = 3,
+CHAN_TX = 4,
+CHAN_TY = 5,
+CHAN_TZ = 6,
+CHAN_NONE = 0,
+};
+static struct chan_name {
+int iname;
+char *cname;
+} chan_names [] = {
+{CHAN_RX, "Xrotation"},
+{CHAN_RY, "Yrotation"},
+{CHAN_RZ, "Zrotation"},
+{CHAN_TX, "Xposition"},
+{CHAN_TY, "Yposition"},
+{CHAN_TZ, "Zposition"},
+{CHAN_NONE,NULL},
+};
+static int chan_lookup(char *cname){
+	int i, iname;
+	struct chan_name *cn;
+	i = 0;
+	iname = 0;
+	do{
+		cn = &chan_names[i];
+		if(!strcmp(cn->cname,cname)){
+			iname = cn->iname;
+			break;
+		}
+		i++;
+	}while(cn->cname != NULL);
+	return iname;
+	
+}
+
+
+
 #define TRUE 1
 #define FALSE 0
 struct eul_order {
@@ -145,8 +185,8 @@ struct joint_frame_motion {
 	int ichan[6];
 	float *values;
 };
-void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
-void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
+void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
@@ -156,160 +196,85 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_co
 	char line [4096], *pos;
 	char *token, *delims;
 	float global_scale = 1.0f;
-	//Stack *bvh_nodes;
-	//we don't know ahead of tim
-	//Stack * chans = newStack(struct joint_frame_motion); 
 
 	pos = blob;
 	rv = getline(line,2048,&pos);
 
-    //char * file_lines = fread(file,file.readlines()
-    //// Non standard carrage returns?
-    //if len(file_lines) == 1:
-    //    file_lines = file_lines[0].split('\r')
 
     // Split by whitespace.
-    //file_lines = [ll for ll in [l.split() for l in file_lines] if ll]
 	delims = " ,\r\n\t\"";
 	token = strtok(line,delims);
     // Create hierarchy as empties
-    //if file_lines[0][0].lower() == 'hierarchy':
 	if( strcasecmp(token,"hierarchy")){
 		printf("not a BVH file \n");
 		return;
 	}
 
- //   bvh_nodes = NULL;
-   // struct BVH_Nodes *bvh_nodes_serial = NULL;
-	Stack *bvh_nodes_serial = newStack(struct BVH_Nodes *);
     *bvh_frame_count = 0;
     *bvh_frame_time = 0.0;
 
 	int channelIndex = -1;
 	*channel_count = 0;
+	struct joint_frame_motion *cjoint, *cj, ccjoints[100];
+	cjoint = ccjoints; //malloc(100 * sizeof(struct joint_frame_motion));
+	memset(cjoint,0,100*sizeof(struct joint_frame_motion));
+	int mjoint = 0;
 	while( getline(line,2048,&pos)){
         //...
 		token = strtok(line,delims);
+		printf("token %s\n",token);
         if(!strcasecmp(token,"root") || !strcasecmp(token,"joint")){
 			char *nametokens[4];
 			char name[100];
 			int len=0;
 			memset(nametokens,0,4*sizeof(void*));
 			while(nametokens[len] = strtok(NULL,delims)) len++;
+			printf("len %d\n",len);
             // Join spaces into 1 word with underscores joining it.
 			strcpy(name,nametokens[0]);
+			printf("name=%s\n",name);
             // Make sure the names are unique - Object names will match joint names exactly and both will be unique.
 			for(int i=1;i<len-1;i++) {
 				strcat(name,"_");
 				strcat(name,nametokens[i]);
 			}
-            // MAY NEED TO SUPPORT MULTIPLE ROOTS HERE! Still unsure weather multiple roots are possible?
-            //print '%snode: %s, parent: %s' % (len(bvh_nodes_serial) * '  ', name,  bvh_nodes_serial[-1])
-			getline(line,2048,&pos); // {
-			getline(line,2048,&pos); // OFFSET 8.77824 4.35084 1.2192
-            //lineIdx += 2  // Increment to the next line (Offset)
-			token = strtok(line,delims);
-			float rest_head_local[3];
-			for(int i=0;i<3;i++){
-				token = strtok(NULL,delims);
-				sscanf(token,"%f",&rest_head_local[i]);
+			cj = &cjoint[mjoint];
+			mjoint++;
+			cj->mocap_name = strdup(name);
+		}
+		if(!strcasecmp(token,"OFFSET")){
+			if(0){
+				//get offset numbers
+				token = strtok(line,delims); //OFFSET
+				float rest_head_local[3];
+				for(int i=0;i<3;i++){
+					token = strtok(NULL,delims);
+					sscanf(token,"%f",&rest_head_local[i]);
+				}
 			}
-            //rest_head_local = Vector((float(file_lines[lineIdx][1]), float(file_lines[lineIdx][2]), float(file_lines[lineIdx][3]))) * global_scale
-            //lineIdx += 1  // Increment to the next line (Channels)
-			getline(line,2048,&pos); //     CHANNELS 3 Zrotation Xrotation Yrotation
-            // newChannel[Xposition, Yposition, Zposition, Xrotation, Yrotation, Zrotation]
-            // newChannel references indices to the motiondata,
-            // if not assigned then -1 refers to the last value that will be added on loading at a value of zero, this is appended
-            // We'll add a zero value onto the end of the MotionDATA so this always refers to a value.
-			int my_channel[6];
-			for(int i=0;i<6;i++)
-				my_channel[i] = -1;
-            //my_channel = [-1, -1, -1, -1, -1, -1]
-			int my_rot_order[3];
-			for(int i=0;i<3;i++)
-				my_rot_order[i] = -1;
-            //my_rot_order = [None, None, None]
-            int rot_count = 0;
-			token = strtok(line,delims); //CHANNELS
-			token = strtok(NULL,delims); //3
-			int channels;
+		}
+		if(!strcasecmp(token,"CHANNELS")){
+ 			int channels;
+			token = strtok(NULL,delims); //CHANNELS
 			sscanf(token,"%d",&channels);
 			*channel_count += channels;
+			cj->nchan = channels;
+
             //for channel in file_lines[lineIdx][2:]:
 			for(int i=0;i<channels;i++){
 				char *channel = strtok(NULL,delims); //Zrotation
-                //channel = channel.lower()
-                int channelIndex = i+1; // += 1  // So the index points to the right channel
-                if(!strcasecmp(channel,"xposition") )
-                    my_channel[0] = channelIndex;
-                else if(!strcasecmp(channel,"yposition") )
-                    my_channel[1] = channelIndex;
-                else if(!strcasecmp(channel,"zposition") )
-                    my_channel[2] = channelIndex;
+				int ichan = chan_lookup(channel);
+				cj->ichan[i] = ichan;
 
-                else if(!strcasecmp(channel,"xrotation")){
-                    my_channel[3] = channelIndex;
-                    my_rot_order[rot_count] = 0;
-                    rot_count += 1;
-                }else if(!strcasecmp(channel,"yrotation")){
-                    my_channel[4] = channelIndex;
-                    my_rot_order[rot_count] = 1;
-                    rot_count += 1;
-                }else if(!strcasecmp(channel,"zrotation")){
-                    my_channel[5] = channelIndex;
-                    my_rot_order[rot_count] = 2;
-                    rot_count += 1;
-				}
-			}
-            //channels = file_lines[lineIdx][2:]
-
-            struct BVH_Node *my_parent = bvh_nodes_serial->n > 0 ? stack_top(struct BVH_Node*,bvh_nodes_serial) : NULL; //[-1];  // account for none
-			float rest_head_world[3];
-            // Apply the parents offset accumulatively
-            if( my_parent == NULL)
-                veccopy3f(rest_head_world,rest_head_local);
-            else
-                vecadd3f(rest_head_world,my_parent->rest_head_world, rest_head_local);
-
-			struct BVH_Node *bvh_node;
-			int index = vectorSize(bvh_nodes_serial);
-            bvh_node = init_BVH_Node(name, rest_head_world, rest_head_local, my_parent, my_channel, my_rot_order, index);
-			//bvh_nodes[name] = bvh_node
-            // If we have another child then we can call ourselves a parent, else
-            stack_push(struct BVH_Node*,bvh_nodes_serial,bvh_node);
-		}	
+ 			}
+ 		}	
         // Account for an end node
         //if file_lines[lineIdx][0].lower() == 'end' and file_lines[lineIdx][1].lower() == 'site':  // There is sometimes a name after 'End Site' but we will ignore it.
-        if(!strcasecmp(token,"end") && !strcasecmp(strtok(NULL,delims),"site")){  //End Site
-			getline(line,2048,&pos); // {
-			getline(line,2048,&pos); // OFFSET 8.77824 4.35084 1.2192
-            //lineIdx += 2  // Increment to the next line (Offset)
-			token = strtok(line,delims);
-			float rest_tail[3];
-			for(int i=0;i<3;i++){
-				token = strtok(NULL,delims);
-				sscanf(token,"%f",&rest_tail[i]);
-			}
-			vecscale3f(rest_tail,rest_tail,global_scale);
-            //lineIdx += 2  // Increment to the next line (Offset)
-            //rest_tail = Vector((float(file_lines[lineIdx][1]), float(file_lines[lineIdx][2]), float(file_lines[lineIdx][3]))) * global_scale
-
-			struct BVH_Node *bvh_node;
-			int index = vectorSize(bvh_nodes_serial) -1;
-			bvh_node = vector_get(struct BVH_Node*,bvh_nodes_serial,index);
-			vecadd3f(bvh_node->rest_tail_world,bvh_node->rest_head_world,rest_tail);
-            //bvh_nodes_serial[-1].rest_tail_world = bvh_nodes_serial[-1].rest_head_world + rest_tail
-			vecadd3f(bvh_node->rest_tail_local,bvh_node->rest_head_local,rest_tail);
-            //bvh_nodes_serial[-1].rest_tail_local = bvh_nodes_serial[-1].rest_head_local + rest_tail
-
-            // Just so we can remove the Parents in a uniform way - End has kids
-            // so this is a placeholder
-            //bvh_nodes_serial.append(None)
-            stack_push(struct BVH_Node*,bvh_nodes_serial,NULL);
+        if(!strcasecmp(token,"end")){ // && !strcasecmp(strtok(NULL,delims),"site")){  //End Site
 		}
 		if(!strcmp(token,"}")){ //}
-            //bvh_nodes_serial.pop()  // Remove the last item
-			stack_pop(struct BVH_Nodes*,bvh_nodes_serial);
+		}
+		if(!strcmp(token,"{")){ //}
 		}
         // End of joint hierarchy.
         // start of motion channel float values, starting with:
@@ -317,27 +282,35 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_co
         //  Frames: n
         //  Frame Time: dt
         if(!strcasecmp(token,"motion") ){ //MOTION
-			getline(line,2048,&pos); //Frames:	2752
-			token = strtok(line,delims); //frames:
-			if(!strcasecmp(token,"frames:")){
-				token = strtok(NULL,delims); //2752
-				sscanf(token,"%d",bvh_frame_count);
-			}
-
-			getline(line,2048,&pos); //Frame Time:	0.00833333
-			token = strtok(line,delims); //frame
-			if(!strcasecmp(token,"frame")){
-				token = strtok(NULL,delims); //time
-				if(!strcasecmp(token,"time:")){
-					token = strtok(NULL,delims); //0.00833333
-					sscanf(token,"%f",bvh_frame_time);
-				}
-			}
             break; //get out of hierarchy loop 
 		}
-		getline(line,2048,&pos);
 	} //end while lines
- 
+
+	*njoint = mjoint;
+	getline(line,2048,&pos); //Frames:	2752
+	token = strtok(line,delims); //frames:
+	if(!strcasecmp(token,"frames:")){
+		token = strtok(NULL,delims); //2752
+		sscanf(token,"%d",bvh_frame_count);
+	}
+
+	getline(line,2048,&pos); //Frame Time:	0.00833333
+	token = strtok(line,delims); //frame
+	if(!strcasecmp(token,"frame")){
+		token = strtok(NULL,delims); //time
+		if(!strcasecmp(token,"time:")){
+			token = strtok(NULL,delims); //0.00833333
+			sscanf(token,"%f",bvh_frame_time);
+		}
+	}
+
+	printf("njoint %d \n",*njoint);
+	struct joint_frame_motion *cchan = malloc(*njoint *sizeof(struct joint_frame_motion));
+	*chan = cchan;
+	for(int i=0;i<*njoint;i++){
+		printf("%d\n",i);
+		memcpy(&cchan[i],&cjoint[i],sizeof(struct joint_frame_motion));
+	}
  
 	float * fvalues = malloc( (*channel_count) * (*bvh_frame_count) * sizeof(float));
 	*values = fvalues;

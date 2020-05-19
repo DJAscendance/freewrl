@@ -1205,7 +1205,7 @@ CHAN_TY = 5,
 CHAN_TZ = 6,
 CHAN_NONE = 0,
 };
-struct chan_name {
+static struct chan_name {
 int iname;
 char *cname;
 } chan_names [] = {
@@ -1217,18 +1217,7 @@ char *cname;
 {CHAN_TZ, "Zposition"},
 {CHAN_NONE,NULL},
 };
-//struct channellist {
-//	int count;
-//	int channel[6];
-//};
-struct joint_frame_motion {
-	char *jname;
-	char *mocap_name;
-	int nchan;
-	int ichan[6];
-	float *values;
-};
-int chan_lookup(char *cname){
+static int chan_lookup(char *cname){
 	int i, iname;
 	struct chan_name *cn;
 	i = 0;
@@ -1244,6 +1233,13 @@ int chan_lookup(char *cname){
 	return iname;
 	
 }
+struct joint_frame_motion {
+	char *jname;
+	char *mocap_name;
+	int nchan;
+	int ichan[6];
+	float *values;
+};
 char *channame_lookup(int ichan){
 	int i;
 	struct chan_name *cn;
@@ -1606,7 +1602,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 // MotionPlay will have a frame index and timing info, so can stay 1:1 with HAnimHumanoid character
 // MotionData can be DEF/USED by multiple MotionPlay nodes
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
-void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
 void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, int len){
 	//Stack *bvh_nodes = NULL;
 	float bvh_frame_time;
@@ -1615,9 +1611,11 @@ void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, in
 	struct joint_frame_motion * chan = NULL;
 	float *fvalues = NULL;
 	int channel_count;
-	read_bvh_blob(blob, &chan, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
+	int njoint;
+	read_bvh_blob(blob, &chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
 	node->frameCount = bvh_frame_count;
 	node->frameDuration = bvh_frame_time;
+	node->_njoints = njoint;
 	//node->_channels = 
 	//node->_channelcount = ;
 	//node->_fvalues = ;
