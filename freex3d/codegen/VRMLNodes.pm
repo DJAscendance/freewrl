@@ -2500,7 +2500,7 @@ our %Nodes = (
 		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		#__loadstatus =>["SFInt32",1,"initializeOnly", 0,0],#ff
+		__loadstatus =>["SFInt32",1,"initializeOnly", 0,0],#ff
 	],"X3DMotionDataNode"),
 
 	"HAnimMotionDataFile" => new VRML::NodeType("HAnimMotionDataFile", [
@@ -2516,8 +2516,8 @@ our %Nodes = (
 		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DMotionDataNode"),

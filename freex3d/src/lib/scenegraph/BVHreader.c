@@ -70,9 +70,6 @@ static int chan_lookup(char *cname){
 	
 }
 
-
-
-
 char * getline(char *line, int maxlen, char **position){
 	char *cur = *position;
 	char *end = strstr(cur,"\n");
@@ -130,6 +127,7 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 		token = strtok(line,delims);
 		printf("token %s\n",token);
         if(!strcasecmp(token,"root") || !strcasecmp(token,"joint")){
+			// JOINT name, start new joint
 			char *nametokens[4];
 			char name[100];
 			int len=0;
@@ -151,11 +149,10 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 		if(!strcasecmp(token,"OFFSET")){
 			if(0){
 				//get offset numbers
-				token = strtok(line,delims); //OFFSET
-				float rest_head_local[3];
+				float offset[3];
 				for(int i=0;i<3;i++){
 					token = strtok(NULL,delims);
-					sscanf(token,"%f",&rest_head_local[i]);
+					sscanf(token,"%f",&offset[i]);
 				}
 			}
 		}
@@ -174,25 +171,23 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 
  			}
  		}	
-        // Account for an end node
-        //if file_lines[lineIdx][0].lower() == 'end' and file_lines[lineIdx][1].lower() == 'site':  // There is sometimes a name after 'End Site' but we will ignore it.
-        if(!strcasecmp(token,"end")){ // && !strcasecmp(strtok(NULL,delims),"site")){  //End Site
+        if(!strcasecmp(token,"end")){
 		}
-		if(!strcmp(token,"}")){ //}
+		if(!strcmp(token,"}")){
 		}
-		if(!strcmp(token,"{")){ //}
+		if(!strcmp(token,"{")){
 		}
-        // End of joint hierarchy.
-        // start of motion channel float values, starting with:
-        //  MOTION
-        //  Frames: n
-        //  Frame Time: dt
         if(!strcasecmp(token,"motion") ){ //MOTION
+	        // End of joint hierarchy.
+	        //  MOTION
             break; //get out of hierarchy loop 
 		}
 	} //end while lines
 
 	*njoint = mjoint;
+    // start of motion channel float values, starting with:
+    //  Frames: n
+    //  Frame Time: dt
 	getline(line,2048,&pos); //Frames:	2752
 	token = strtok(line,delims); //frames:
 	if(!strcasecmp(token,"frames:")){
@@ -218,11 +213,11 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 	float * fvalues = malloc( (*channel_count) * (*bvh_frame_count) * sizeof(float));
 	*values = fvalues;
 	int k = 0;
-	char *delims2 = " ,\t\r\n";
+	//char *delims2 = " ,\t\r\n";
 	char *str = pos;
 	for(int iframe=0;iframe<*bvh_frame_count;iframe++){
         for(int i=0;i<*channel_count;i++){
-			token = strtok(str,delims2);
+			token = strtok(str,delims);
 			str = NULL; //so next strtok(NULL,...)
 			sscanf(token,"%f",&fvalues[k]);
 			k++;
@@ -247,22 +242,85 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 
 }
 
+
+// Mapping no	LOA-1 HAnim joints (18 joints)	motion-capture joints example (18 different joints)
+struct name_map {
+int no;
+char *jname;
+char *mocap_name[5];
+} loa1_mapping [] = {
+{1,"humanoid_root",{"Hips","hip",0,0,0}},
+{2,"sacroiliac",{0,0,0,0,0}},
+{3,"l_hip",{"LeftHip","lThigh",0,0,0}},
+{4,"l_knee",{"LeftKnee","lShin",0,0,0}},
+{5,"l_talocrural",{"LeftAnkle","lFoot",0,0,0}},
+{6,"l_metatarsophalangeal",{0,0,0,0,0}},
+{7,"r_hip",{"RightHip","rThigh",0,0,0}},
+{8,"r_knee",{"RightKnee","rShin",0,0,0}},
+{9,"r_talocrural",{"RightAnkle","rFoot",0,0,0}},
+{10,"r_metatarsophalangeal",{0,0,0,0,0}},
+{11,"vl5",{"Chest","abdomen",0,0,0}},
+{12,"skullbase",{"Neck","Head",0,0,0}},
+{13,"l_shoulder",{"LeftCollar","lCollar",0,0,0}},
+{13,"l_shoulder",{"LeftShoulder","lShldr",0,0,0}},
+{14,"l_elbow",{"LeftElbow","lForeArm",0,0,0}},
+{15,"l_radiocarpal",{"LeftWrist","lHand",0,0,0}},
+{16,"r_shoulder",{"RightCollar","rCollar",0,0,0}},
+{16,"r_shoulder",{"RightShoulder","rShldr",0,0,0}},
+{17,"r_elbow",{"RightElbow","rForeArm",0,0,0}},
+{18,"r_radiocarpal",{"RightWrist","rHand",0,0,0}},
+{0,NULL,{0,0,0,0,0}},
+};
+static char *ignore = "IGNORE";
+char * jname_lookup(char *mocap_name){
+	int i, iname;
+	char *jname = ignore;
+	struct name_map *nm;
+	i = 0;
+	iname = -1;
+	do{
+		nm = &loa1_mapping[i];
+		int j=0;
+		char *nm_mocap_name;
+		while(nm_mocap_name = nm->mocap_name[j]){
+			if(!strcasecmp(nm_mocap_name,mocap_name)){
+				//great built-in mapping!
+				iname = i;
+				break;
+			}
+			j++;
+		}
+		if(iname > -1) break;
+		i++;
+	}while(nm->no > 0);
+	if(iname > -1){
+		jname = loa1_mapping[iname].jname;
+	}
+	return jname;
+}
+
+
 void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int loa){
 
 	//map mocap joint names to HAnim2 loa joint names - see section 4.4.4 Joint mapping example
-	printf("=========\n");
+	printf("=====BEFORE MAPPING====\n");
 	for(int i=0;i<mjoint;i++){
 		//printf("%d %s\n",i,cjoint[i].mocap_name);
 		printf("%d %s\n",i,chan[i].mocap_name);
 	}
 	printf("=========\n");
 
+	if(loa == 1){
+		for(int i=0;i<mjoint;i++){
+			chan[i].jname = jname_lookup(chan[i].mocap_name);
+		}
+	}
+
+	printf("====AFTER MAPPING=====\n");
+	for(int i=0;i<mjoint;i++){
+		//printf("%d %s\n",i,cjoint[i].mocap_name);
+		printf("%d %s\n",i,chan[i].jname);
+	}
+	printf("=========\n");
 }
 
-//void read_bvh(char *file_path, char *rotate_mode, float global_scale,
-//	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count){
-//	char *blob;
-//	int len;
-//	if( load_file_blob(file_path, &blob, &len) )
-//		read_bvh_blob(blob, len, rotate_mode, global_scale, bvh_nodes, bvh_frame_time, bvh_frame_count);
-//}
