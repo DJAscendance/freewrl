@@ -138,16 +138,28 @@ struct BVH_Node * init_BVH_Node( char *name, float * rest_head_world, float * re
 //}
 //
 
-void read_bvh_blob(char *blob, int len, float global_scale,
-	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count)
+struct joint_frame_motion {
+	char *jname;
+	char *mocap_name;
+	int nchan;
+	int ichan[6];
+	float *values;
+};
+void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
 
     // Seperate into a list of lists, each line a list of words.
 	char *rv; 
-	char line [2048], *pos;
+	char line [4096], *pos;
 	char *token, *delims;
+	float global_scale = 1.0f;
+	//Stack *bvh_nodes;
+	//we don't know ahead of tim
+	//Stack * chans = newStack(struct joint_frame_motion); 
+
 	pos = blob;
 	rv = getline(line,2048,&pos);
 
@@ -158,7 +170,7 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 
     // Split by whitespace.
     //file_lines = [ll for ll in [l.split() for l in file_lines] if ll]
-	delims = " ,\r\n\\t\"";
+	delims = " ,\r\n\t\"";
 	token = strtok(line,delims);
     // Create hierarchy as empties
     //if file_lines[0][0].lower() == 'hierarchy':
@@ -167,16 +179,14 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 		return;
 	}
 
-    bvh_nodes = NULL;
+ //   bvh_nodes = NULL;
    // struct BVH_Nodes *bvh_nodes_serial = NULL;
 	Stack *bvh_nodes_serial = newStack(struct BVH_Nodes *);
     *bvh_frame_count = 0;
     *bvh_frame_time = 0.0;
 
 	int channelIndex = -1;
-
-    int lineIdx = 0;  // An index for the file.
-    //while(lineIdx < len(file_lines) - 1){
+	*channel_count = 0;
 	while( getline(line,2048,&pos)){
         //...
 		token = strtok(line,delims);
@@ -224,6 +234,7 @@ void read_bvh_blob(char *blob, int len, float global_scale,
 			token = strtok(NULL,delims); //3
 			int channels;
 			sscanf(token,"%d",&channels);
+			*channel_count += channels;
             //for channel in file_lines[lineIdx][2:]:
 			for(int i=0;i<channels;i++){
 				char *channel = strtok(NULL,delims); //Zrotation
@@ -296,186 +307,52 @@ void read_bvh_blob(char *blob, int len, float global_scale,
             //bvh_nodes_serial.append(None)
             stack_push(struct BVH_Node*,bvh_nodes_serial,NULL);
 		}
-        //if len(file_lines[lineIdx]) == 1 and file_lines[lineIdx][0] == '}':  // == ['}']
 		if(!strcmp(token,"}")){ //}
             //bvh_nodes_serial.pop()  // Remove the last item
 			stack_pop(struct BVH_Nodes*,bvh_nodes_serial);
 		}
-        // End of the hierarchy. Begin the animation section of the file with
-        // the following header.
+        // End of joint hierarchy.
+        // start of motion channel float values, starting with:
         //  MOTION
         //  Frames: n
         //  Frame Time: dt
-        //if len(file_lines[lineIdx]) == 1 and file_lines[lineIdx][0].lower() == 'motion':
         if(!strcasecmp(token,"motion") ){ //MOTION
-            //lineIdx += 1  // Read frame count.
 			getline(line,2048,&pos); //Frames:	2752
 			token = strtok(line,delims); //frames:
 			if(!strcasecmp(token,"frames:")){
 				token = strtok(NULL,delims); //2752
 				sscanf(token,"%d",bvh_frame_count);
 			}
-            //if (len(file_lines[lineIdx]) == 2 and
-            //    file_lines[lineIdx][0].lower() == 'frames:'):
 
-            //    bvh_frame_count = int(file_lines[lineIdx][1])
-
-            //lineIdx += 1  // Read frame rate. 
 			getline(line,2048,&pos); //Frame Time:	0.00833333
 			token = strtok(line,delims); //frame
 			if(!strcasecmp(token,"frame")){
-				token = strtok(line,delims); //time
-				if(!strcasecmp(token,"time")){
-					token = strtok(line,delims); //0.00833333
+				token = strtok(NULL,delims); //time
+				if(!strcasecmp(token,"time:")){
+					token = strtok(NULL,delims); //0.00833333
 					sscanf(token,"%f",bvh_frame_time);
 				}
 			}
-            //if (len(file_lines[lineIdx]) == 3 and
-            //    file_lines[lineIdx][0].lower() == 'frame' and
-            //    file_lines[lineIdx][1].lower() == 'time:'):
-
-            //    bvh_frame_time = float(file_lines[lineIdx][2])
-
-            //lineIdx += 1  // Set the cursor to the first frame
-			//getline(line,2048,&pos); // Set the cursor to the first frame
-
-            break;
+            break; //get out of hierarchy loop 
 		}
-		getline(line,2048,&pos); // Set the cursor to the first frame
-        //lineIdx += 1
+		getline(line,2048,&pos);
 	} //end while lines
- // Remove the None value used for easy parent reference
- // substitute needed
-
-    //del bvh_nodes[None]
-    // Dont use anymore
-    //del bvh_nodes_serial
-
-    // importing world with any order but nicer to maintain order
-    // second life expects it, which isn't to spec.
-    //bvh_nodes_list = sorted_nodes(bvh_nodes)
-
-	Stack *bvh_nodes_list = bvh_nodes_serial;
-	int nodecount = vectorSize(bvh_nodes_list);
-    //while lineIdx < len(file_lines):
-	while(getline(line,2048,&pos)){
-        //line = file_lines[lineIdx]
-        for(int i=0;i<nodecount;i++){ // bvh_node in bvh_nodes_list:
-            //for bvh_node in bvh_nodes_serial:
-			struct BVH_Node* bvh_node = vector_get(struct BVH_Node*,bvh_nodes_list,i);
-            float lx, ly, lz, rx, ry, rz;
-			struct anim_record record;
-			lx=ly=lz=rx=ry=rz = 0.0f;
-            int * channels = bvh_node->channels;
-            Stack *anim_data = bvh_node->anim_data;
-            //if( channels[0] != -1){
-			if(channels[0] != -1){
-				sscanf(strtok(line,delims),"%f",&lx);
-				lx *= global_scale;
-                //lx = global_scale * float(line[channels[0]])
-			}
-            //if channels[1] != -1:
-			if(channels[1] != -1){
-				sscanf(strtok(NULL,delims),"%f",&ly);
-				ly *= global_scale;
-                //ly = global_scale * float(line[channels[1]])
-			}
-            //if channels[2] != -1:
-			if(channels[2] != -1){
-				sscanf(strtok(NULL,delims),"%f",&lz);
-				lz *= global_scale;
-                //lz = global_scale * float(line[channels[2]])
-			}
-
-            //if channels[3] != -1 or channels[4] != -1 or channels[5] != -1:
-			if(channels[3] != -1 || channels[4] != -1 || channels[5] != -1){
-				//rx = radians(float(line[channels[3]]))
-				sscanf(strtok(NULL,delims),"%f",&rx);
-				rx *= (float)RADIANS_PER_DEGREE;
-				//ry = radians(float(line[channels[4]]))
-				sscanf(strtok(NULL,delims),"%f",&ry);
-				ry *= (float)RADIANS_PER_DEGREE;
-				//rz = radians(float(line[channels[5]]))
-				sscanf(strtok(NULL,delims),"%f",&rz);
-				rz *= (float)RADIANS_PER_DEGREE;
-			}
-            // Done importing motion data //
-			memset(&record,0,sizeof(struct anim_record));
-			record.lxyz[0] = lx;
-			record.lxyz[1] = ly;
-			record.lxyz[2] = lz;
-			record.rxyz[0] = rx;
-			record.rxyz[1] = ry;
-			record.rxyz[2] = rz;
-            //anim_data.append((lx, ly, lz, rx, ry, rz))
-			stack_push(struct anim_record,anim_data,record);
-		}
-        //lineIdx += 1
-	}
-
-    // Assign children
-    //for bvh_node in bvh_nodes_list:
-	for(int i=0;i<vectorSize(bvh_nodes_serial);i++){
-		struct BVH_Node *bvh_node = vector_get(struct BVH_Node*,bvh_nodes_serial,i);
-        struct BVH_Node *bvh_node_parent = bvh_node->parent;
-        if(bvh_node_parent)
-            stack_push(struct BVH_Node*,bvh_node_parent->children,bvh_node);
-	}
-    // Now set the tip of each bvh_node
-    //for bvh_node in bvh_nodes_list:
-	for(int i=0;i<vectorSize(bvh_nodes_serial);i++){
-		struct BVH_Node *bvh_node = vector_get(struct BVH_Node*,bvh_nodes_serial,i);
-
-        //if not bvh_node.rest_tail_world:
-		if(!bvh_node->rest_tail_world){
-            //if len(bvh_node.children) == 0:
-			int nchildren = vectorSize(bvh_node->children);
-			if(nchildren == 0){
-                // could just fail here, but rare BVH files have childless nodes
-                //bvh_node.rest_tail_world = Vector(bvh_node.rest_head_world)
-				veccopy3f(bvh_node->rest_tail_world,bvh_node->rest_head_world);
-                veccopy3f(bvh_node->rest_tail_local, bvh_node->rest_head_local);
-            //elif len(bvh_node.children) == 1:
-			}else if(nchildren == 1){
-				struct BVH_Node *bvh_child0 = vector_get(struct BVH_Node*,bvh_node->children,0);
-                veccopy3f(bvh_node->rest_tail_world, bvh_child0->rest_head_world); //[0]->rest_head_world;
-                //bvh_node->rest_tail_local = bvh_node.rest_head_local + bvh_node.children[0].rest_head_local
-
-                veccopy3f(bvh_node->rest_tail_local, vecadd3f(bvh_node->rest_tail_local_store,bvh_node->rest_head_local,bvh_child0->rest_head_local));
-            }else{
-                // allow this, see above
-                //if not bvh_node.children:
-                //	raise Exception("bvh node has no end and no children. bad file")
-
-                // Removed temp for now
-                float rest_tail_world[3]; // = Vector((0.0, 0.0, 0.0))
-				vecset3f(rest_tail_world,0.0f,0.0f,0.0f);
-                float rest_tail_local[3]; // = Vector((0.0, 0.0, 0.0))
-				vecset3f(rest_tail_local,0.0f,0.0f,0.0f);
-                //for bvh_node_child in bvh_node.children:
-				for(int j=0;j<nchildren;j++){
-					struct BVH_Node *bvh_child = vector_get(struct BVH_Node*,bvh_node->children,j);
-                    //rest_tail_world += bvh_node_child.rest_head_world
-					vecadd3f(rest_tail_world,rest_tail_world,bvh_child->rest_head_world);
-                    //rest_tail_local += bvh_node_child.rest_head_local
-					vecadd3f(rest_tail_local,rest_tail_local,bvh_child->rest_head_local);
-				}
-				vecscale3f(bvh_node->rest_tail_world,rest_tail_world,1.0f/(float)nchildren);
-                //bvh_node.rest_tail_world = rest_tail_world * (1.0 / len(bvh_node.children))
-				vecscale3f(bvh_node->rest_tail_local,rest_tail_local,1.0f/(float)nchildren);
-                //bvh_node.rest_tail_local = rest_tail_local * (1.0 / len(bvh_node.children))
-			}
-		}
-        // Make sure tail isn't the same location as the head.
-		if( vecapprox3f(bvh_node->rest_tail_local,bvh_node->rest_head_world,.001f*global_scale)){
-			//if (bvh_node.rest_tail_local - bvh_node.rest_head_local).length <= 0.001 * global_scale:
-            printf("\tzero length node found:", bvh_node->name);
-            bvh_node->rest_tail_local[1] += global_scale / 10.0f;
-            bvh_node->rest_tail_world[1] += global_scale / 10.0f;
+ 
+ 
+	float * fvalues = malloc( (*channel_count) * (*bvh_frame_count) * sizeof(float));
+	*values = fvalues;
+	int k = 0;
+	char *delims2 = " ,\t\r\n";
+	char *str = pos;
+	for(int iframe=0;iframe<*bvh_frame_count;iframe++){
+        for(int i=0;i<*channel_count;i++){
+			token = strtok(str,delims2);
+			str = NULL; //so next strtok(NULL,...)
+			sscanf(token,"%f",&fvalues[k]);
+			k++;
 		}
 	}
-	bvh_nodes = bvh_nodes_serial;
-    //return bvh_nodes, bvh_frame_time, bvh_frame_count
+
 }
 
 //void read_bvh(char *file_path, char *rotate_mode, float global_scale,

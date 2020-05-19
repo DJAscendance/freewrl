@@ -1223,6 +1223,7 @@ char *cname;
 //};
 struct joint_frame_motion {
 	char *jname;
+	char *mocap_name;
 	int nchan;
 	int ichan[6];
 	float *values;
@@ -1605,18 +1606,21 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 // MotionPlay will have a frame index and timing info, so can stay 1:1 with HAnimHumanoid character
 // MotionData can be DEF/USED by multiple MotionPlay nodes
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
-void read_bvh_blob(char *blob, int len, float global_scale,
-	Stack *bvh_nodes, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
 void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, int len){
-	Stack *bvh_nodes = NULL;
+	//Stack *bvh_nodes = NULL;
 	float bvh_frame_time;
 	int bvh_frame_count;
-	float global_scale = 1.0f;
-	read_bvh_blob(blob,len,global_scale,bvh_nodes,&bvh_frame_time,&bvh_frame_count);
+	//float global_scale = 1.0f;
+	struct joint_frame_motion * chan = NULL;
+	float *fvalues = NULL;
+	int channel_count;
+	read_bvh_blob(blob, &chan, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
 	node->frameCount = bvh_frame_count;
 	node->frameDuration = bvh_frame_time;
-	//node->channels = ;
-	//node->values = ;
+	//node->_channels = 
+	//node->_channelcount = ;
+	//node->_fvalues = ;
 }
 void process_mocap(resource_item_t *res){
 	//a chance to do a bit of out-of-render-thread processing.
@@ -1784,7 +1788,7 @@ void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
 		case LOADER_COMPILED:
 		retval = TRUE;
 	}
-	if(node->__loadstatus == LOADER_STABLE)
+	if(node->__loadstatus == LOADER_STABLE || node->__loadstatus == LOADER_LOADED)
 		MARK_NODE_COMPILED
 }
 void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *node){
