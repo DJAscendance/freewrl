@@ -6228,33 +6228,33 @@ struct X3D_HAnimMotion {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Uni_String *channels;
+	struct X3D_Node *metadata;
+	struct Uni_String *description;
 	struct Multi_Bool channelsEnabled;
 	double cycleTime;
-	struct Uni_String *description;
 	double elapsedTime;
 	double _startTime;
 	int enabled;
 	int _lastenabled;
 	int _isActive;
-	int frameCount;
-	double frameDuration;
 	int frameIncrement;
 	int frameIndex;
 	int startFrame;
 	int endFrame;
-	struct Uni_String *joints;
-	int loa;
 	int loop;
-	struct X3D_Node *metadata;
 	int next;
 	int previous;
-	struct Uni_String *values;
-	void * _fvalues;
 	void * _framevalues;
+	int loa;
+	int frameCount;
+	double frameDuration;
 	int _channelcount;
 	int _njoints;
 	void * _channels;
+	void * _fvalues;
+	struct Uni_String *channels;
+	struct Uni_String *joints;
+	struct Uni_String *values;
 };
 extern struct X3D_Virt virt_HAnimMotion;
 /***********************/
@@ -6274,19 +6274,19 @@ struct X3D_HAnimMotionData {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Uni_String *channels;
+	struct X3D_Node *metadata;
 	struct Uni_String *description;
+	int loa;
 	int frameCount;
 	double frameDuration;
-	struct Uni_String *joints;
-	int loa;
-	struct X3D_Node *metadata;
-	struct Uni_String *values;
-	void * _fvalues;
 	int _channelcount;
 	int _njoints;
 	void * _channels;
+	void * _fvalues;
 	int __loadstatus;
+	struct Uni_String *channels;
+	struct Uni_String *joints;
+	struct Uni_String *values;
 };
 extern struct X3D_Virt virt_HAnimMotionData;
 /***********************/
@@ -6306,18 +6306,15 @@ struct X3D_HAnimMotionDataFile {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Uni_String *channels;
+	struct X3D_Node *metadata;
 	struct Uni_String *description;
+	int loa;
 	int frameCount;
 	double frameDuration;
-	struct Uni_String *joints;
-	int loa;
-	struct X3D_Node *metadata;
-	struct Uni_String *values;
-	void * _fvalues;
 	int _channelcount;
 	int _njoints;
 	void * _channels;
+	void * _fvalues;
 	int __loadstatus;
 	struct Multi_String url;
 	void * _parentResource;
@@ -6341,10 +6338,10 @@ struct X3D_HAnimMotionPlay {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct X3D_Node *data;
+	struct X3D_Node *metadata;
+	struct Uni_String *description;
 	struct Multi_Bool channelsEnabled;
 	double cycleTime;
-	struct Uni_String *description;
 	double elapsedTime;
 	double _startTime;
 	int enabled;
@@ -6355,10 +6352,10 @@ struct X3D_HAnimMotionPlay {
 	int startFrame;
 	int endFrame;
 	int loop;
-	struct X3D_Node *metadata;
 	int next;
 	int previous;
 	void * _framevalues;
+	struct X3D_Node *data;
 };
 extern struct X3D_Virt virt_HAnimMotionPlay;
 /***********************/

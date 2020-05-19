@@ -310,7 +310,7 @@ void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int lo
 	}
 	printf("=========\n");
 
-	if(loa == 1){
+	if(loa == 1 || loa == -1){
 		for(int i=0;i<mjoint;i++){
 			chan[i].jname = jname_lookup(chan[i].mocap_name);
 		}

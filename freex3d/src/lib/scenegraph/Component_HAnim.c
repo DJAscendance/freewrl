@@ -1624,8 +1624,7 @@ void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, in
 	int channel_count;
 	int njoint;
 	read_bvh_blob(blob, &chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
-	int loa = 1;
-	map_mocap_to_hanim_loa(chan,njoint,loa);
+	map_mocap_to_hanim_loa(chan,njoint,node->loa);
 	node->frameCount = bvh_frame_count;
 	node->frameDuration = bvh_frame_time;
 	node->_njoints = njoint;
