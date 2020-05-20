@@ -69,7 +69,7 @@ our %defaultContainerType = (
 
 	Anchor 			=>["children"],
 	Appearance 		=>["appearance"],
-	AudioClip 		=>["source"],
+	AudioClip 		=>["source","connect"],
 	FloatMultiply           =>["children"],
 	Background 		=>["children"],
 	Billboard 		=>["children"],
@@ -371,7 +371,7 @@ our %defaultContainerType = (
 	GainNode		=>["connect"],
 	WaveShaperNode		=>["connect"],
 	PeriodicWave		=>["connect"],
-	AudioDestinationNode	=>["connect"],
+	AudioDestinationNode	=>["destination","connect"],
 	MediaStreamAudioDestinationNode	=>["connect"],
 	MediaStreamTrack	=>["connect"],
 	AnalyserNode		=>["connect"],

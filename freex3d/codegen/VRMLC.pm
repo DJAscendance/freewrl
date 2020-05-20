@@ -1111,6 +1111,7 @@ sub gen {
 	"#define X3D_VIEWPORT(node) ((struct X3D_Viewport*)node)\n".
 	"#define X3D_LAYOUT(node) ((struct X3D_Layout*)node)\n".
 	"#define X3D_LAYERSET(node) ((struct X3D_LayerSet*)node)\n".
+	"#define X3D_AUDIO(node) ((struct X3D_AudioNode*)node)\n",
 
 
 	"#define X3D_GEOORIGIN(node) ((struct X3D_GeoOrigin*)node)\n".

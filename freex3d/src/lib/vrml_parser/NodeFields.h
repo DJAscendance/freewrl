@@ -165,6 +165,11 @@ EXPOSED_FIELD(AudioListener,dopplerFactor,sffloat,dopplerFactor,FIELDTYPE_SFFloa
 EXPOSED_FIELD(AudioListener,speedOfSound,sffloat,speedOfSound,FIELDTYPE_SFFloat,UNCA_NONE)
 END_NODE(AudioListener)
 
+/* AudioNode node */
+BEGIN_NODE(AudioNode)
+EXPOSED_FIELD(AudioNode,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(AudioNode)
+
 /* AudioParam node */
 BEGIN_NODE(AudioParam)
 EXPOSED_FIELD(AudioParam,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
@@ -390,7 +395,6 @@ END_NODE(CartoonVolumeStyle)
 /* ChannelMergerNode node */
 BEGIN_NODE(ChannelMergerNode)
 EXPOSED_FIELD(ChannelMergerNode,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
-EXPOSED_FIELD(ChannelMergerNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(ChannelMergerNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelMergerNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelMergerNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)
@@ -401,7 +405,6 @@ END_NODE(ChannelMergerNode)
 /* ChannelSplitterNode node */
 BEGIN_NODE(ChannelSplitterNode)
 EXPOSED_FIELD(ChannelSplitterNode,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
-EXPOSED_FIELD(ChannelSplitterNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(ChannelSplitterNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelSplitterNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelSplitterNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)
@@ -1875,7 +1878,6 @@ END_NODE(Matrix4VertexAttribute)
 /* MediaElementAudioSourceNode node */
 BEGIN_NODE(MediaElementAudioSourceNode)
 EXPOSED_FIELD(MediaElementAudioSourceNode,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
-EXPOSED_FIELD(MediaElementAudioSourceNode,context,sfnode,context,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(MediaElementAudioSourceNode,numberOfInputs,sfint32,numberOfInputs,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(MediaElementAudioSourceNode,numberOfOutputs,sfint32,numberOfOutputs,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(MediaElementAudioSourceNode,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32,UNCA_NONE)

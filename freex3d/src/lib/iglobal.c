@@ -87,6 +87,7 @@ void Component_Rendering_init(struct tComponent_Rendering *t);
 void Component_Rendering_clear(struct tComponent_Rendering *t);
 void Component_Shape_init(struct tComponent_Shape *t);
 void Component_Sound_init(struct tComponent_Sound *t);
+void Component_Sound_clear(struct tComponent_Sound *t);
 void Component_Text_init(struct tComponent_Text *t);
 void Component_Text_clear(struct tComponent_Text *t);
 void Component_Layering_clear(struct tComponent_Layering *t);
@@ -427,6 +428,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	FREE_IF_NZ(tg->Component_Sound.prv);
 	RenderFuncs_clear(&tg->RenderFuncs); FREE_IF_NZ(tg->RenderFuncs.prv);
 	Component_Text_clear(&tg->Component_Text); FREE_IF_NZ(tg->Component_Text.prv);
+	Component_Sound_clear(&tg->Component_Sound); FREE_IF_NZ(tg->Component_Sound.prv);
 	FREE_IF_NZ(tg->Component_Shape.prv);
 	Component_Rendering_clear(&tg->Component_Rendering); FREE_IF_NZ(tg->Component_Rendering.prv);
 	FREE_IF_NZ(tg->Component_Picking.prv);

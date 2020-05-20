@@ -125,7 +125,7 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 	while( getline(line,2048,&pos)){
         //...
 		token = strtok(line,delims);
-		printf("token %s\n",token);
+		//printf("token %s\n",token);
         if(!strcasecmp(token,"root") || !strcasecmp(token,"joint")){
 			// JOINT name, start new joint
 			char *nametokens[4];
@@ -133,10 +133,10 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 			int len=0;
 			memset(nametokens,0,4*sizeof(void*));
 			while(nametokens[len] = strtok(NULL,delims)) len++;
-			printf("len %d\n",len);
+			//printf("len %d\n",len);
             // Join spaces into 1 word with underscores joining it.
 			strcpy(name,nametokens[0]);
-			printf("name=%s\n",name);
+			printf("%d name=%s ",mjoint, name);
             // Make sure the names are unique - Object names will match joint names exactly and both will be unique.
 			for(int i=1;i<len-1;i++) {
 				strcat(name,"_");
@@ -161,6 +161,7 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 			token = strtok(NULL,delims); //CHANNELS
 			sscanf(token,"%d",&channels);
 			*channel_count += channels;
+			printf(" channels %d totalchannels %d\n",channels,*channel_count );
 			cj->nchan = channels;
 
             //for channel in file_lines[lineIdx][2:]:
@@ -206,6 +207,7 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 	}
 
 	printf("njoint %d \n",*njoint);
+	printf("nchannel %d\n",*channel_count);
 	struct joint_frame_motion *cchan = malloc(*njoint *sizeof(struct joint_frame_motion));
 	*chan = cchan;
 	memcpy(cchan,cjoint,mjoint * sizeof(struct joint_frame_motion));
