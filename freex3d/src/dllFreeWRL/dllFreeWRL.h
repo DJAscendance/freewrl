@@ -55,6 +55,7 @@ public:
 		resm_fshader,
 		resm_audio,
 		resm_x3z,
+		resm_mocap,
 		resm_external, //June 2016 html > frontend anchoring
 	};
 

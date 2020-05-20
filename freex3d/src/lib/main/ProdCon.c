@@ -1382,6 +1382,9 @@ static bool parser_process_res(s_list_t *item)
 			process_x3z(res);
 			printf("processed x3z\n");
 			break;
+		case resm_mocap:
+			process_mocap(res);
+			break;
 		case resm_external:
 			// JAS - resm_external is part of this enum, but not handled here,
 			// so we get compiler warnings.

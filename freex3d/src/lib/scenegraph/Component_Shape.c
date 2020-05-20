@@ -807,7 +807,7 @@ void render_FillProperties (struct X3D_FillProperties *node) {
 	me->hatchColour[3] = 1.0;
 }
 
-void printBits(size_t const size, void const * const ptr);
+void printBitsB(size_t const size, void const * const ptr);
 typedef struct vec2 {float u,v;} vec2;
 
 struct lineinfo {
@@ -1928,3 +1928,9 @@ void render_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	}
 }
 
+void compile_AcousticProperties (struct X3D_AcousticProperties *node){
+	MARK_NODE_COMPILED
+}
+void render_AcousticProperties (struct X3D_AcousticProperties *node){
+	COMPILE_IF_REQUIRED
+}

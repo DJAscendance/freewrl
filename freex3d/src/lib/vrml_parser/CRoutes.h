@@ -126,4 +126,11 @@ void AddRemoveSFNodeFieldChild(
 void initializeAnyScripts();
 void cleanupDie(int num, const char *msg);
 
+void setBit(unsigned char *bitfield, int k);
+void clearBit(unsigned char *bitfield, int k);
+void toggleBit(unsigned char *bitfield, int k);
+int testBit(unsigned char *bitfield, int k);
+void printBits(unsigned char *bitfield, int nbytes);
+
+
 #endif /* __FREEWRL_CROUTES_H__ */

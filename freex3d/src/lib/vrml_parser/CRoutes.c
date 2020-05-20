@@ -2336,6 +2336,51 @@ const char *stringMode(int pkwmode, int cute){
 }
 void print_field_value(FILE *fp, int typeIndex, union anyVrml* value);
 
+//bit functions - don't care about endien-ness as long as we are consistent
+//0-based indexing ie k=0 sets the lowest bit to 1
+void setBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    bitfield[kbyte] = bitfield[kbyte] | (1 << kbit); 
+} 
+  
+void clearBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    bitfield[kbyte] = bitfield[kbyte] & (~(1 << kbit)); 
+} 
+  
+void toggleBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    bitfield[kbyte] = bitfield[kbyte] ^ (1 << kbit); 
+} 
+int testBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    return bitfield[kbyte] & (1 << kbit); 
+} 
+void printBits(unsigned char *bitfield, int nbytes){
+	int nbits = nbytes * 8;
+	for(int i=0;i<nbits;i++)
+		printf("%d", testBit(bitfield,i)?1:0);
+}
+
+void flag_fieldchange(struct X3D_Node * toNode,int toOffset){
+	//to help nodes in their compile_ determine which fields changed, we want to set a bit flag
+	//but to keep the math simple, and save some memeory, we assume all fields are some multiple 
+	// of 4 bytes in size ie float is 4, int 4, void* is 4 or 8, vec3f is 3x4, 
+	// so we take the  toOffset (in bytes, from start of node struct) and devide by 4 to get
+	// which bit flag to set (for a field thats 8 or 12 bytes we will waste / leave empty bits)
+	int bit = toOffset / 4; 
+	setBit(toNode->_fieldchange,bit);
+	//printf("%s\n",NODES[toNode->_nodeType]);
+}
+
 void propagate_events_B() {
 	int havinterp;
 	int counter;
@@ -2592,6 +2637,7 @@ void propagate_events_B() {
 					cleanFieldIfManaged(type,modeTo,1,toNode,toOffset); //see unlink_node/killNode policy
 
 					shallow_copy_field(type,fromAny,toAny);
+					flag_fieldchange(toNode,toOffset); //May 2020 - want to set a bit for the particular field that changed
 					//if(isMF && sftype == FIELDTYPE_SFNode)
 					//	add_mfparents(toNode,toAny,type);
 					registerParentIfManagedField(type,modeTo,1, toAny, toNode); //see unlink_node/killNode policy

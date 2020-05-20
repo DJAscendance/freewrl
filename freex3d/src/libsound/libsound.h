@@ -11,6 +11,14 @@
 #define EXPORT_DLL __declspec(dllimport)
 #endif
 #endif /* _WIN32 && EXPORT_DLL */
-
-EXPORT_DLL extern void* createContext();
-
+enum {
+	AN_AudioClip = 1,
+	AN_AudioBuffer,
+	AN_AudioBufferSourceNode,
+	AN_GainNode,
+	AN_OscillatorNode,
+	AN_AudioDestinationNode,
+};
+EXPORT_DLL extern void* libsound_createContext();
+EXPORT_DLL extern void* libsound_createNode(void *context, int type);
+EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);

@@ -4685,7 +4685,7 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	{
 		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
 		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
-		if(renderstate()->render_geom && (node->displayBBox || fwl_getDrawBoundingBoxes() )) {
+		if(renderstate()->render_geom && (node->bboxDisplay || fwl_getDrawBoundingBoxes() )) {
 			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
 		}
 		//propagate bbox up one level

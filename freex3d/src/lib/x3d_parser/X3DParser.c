@@ -1894,7 +1894,7 @@ static void parseProtoInstance_B(void *ud, char **atts) {
 				}
 				if(displayBBoxIndex != INT_ID_UNDEFINED){
 					if(!strcmp(atts[displayBBoxIndex],"true")) 
-						X3D_PROTO(node)->displayBBox = TRUE;
+						X3D_PROTO(node)->bboxDisplay = TRUE;
 				}
 
 				//linkNodeIn_B(ud);

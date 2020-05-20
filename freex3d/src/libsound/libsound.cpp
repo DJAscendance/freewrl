@@ -158,7 +158,7 @@ void Wait(Duration duration)
 extern "C" {
 #endif
 #include "libsound.h"
-    void* createContext()
+    void* libsound_createContext()
     {
         std::unique_ptr<lab::AudioContext> context;
         lab::AudioContext* ccontext;
@@ -203,7 +203,61 @@ extern "C" {
         return (void*)ccontext;
 
     }
+    void* libsound_createNode(void *ccontext, int type) {
+        void* node = NULL;
+        lab::AudioContext *context = (lab::AudioContext * )ccontext;
+        switch (type) {
+        case AN_AudioClip:
+        {
+            //auto musicClip = MakeBusFromSampleFile("samples/stereo-music-clip.wav", argc, argv);
+            std::string path = "C:/Users/Public/dev/source5/audio/LabSound-master/assets/samples/stereo-music-clip.wav";
+            AudioBus* bus = MakeBusFromFile(path, false).get();
+            auto musicClip = bus;
+            if (musicClip)
+                node = (void*)bus;
+        }
+        break;
+        case AN_AudioBuffer:
+        break;
+        case AN_AudioBufferSourceNode:
+        {
+            SampledAudioNode* musicClipNode;
+            ContextRenderLock r(context, "ex_simple");
+            //musicClipNode->setBus(r, musicClip);
+        }
+        break;
+        case AN_GainNode:
+        {
+            GainNode* gain = new GainNode();
+            gain->gain()->setValue(0.0625f);
+            node = (void*)gain;
+        }
+        break;
+        case AN_OscillatorNode:
+        {
+            OscillatorNode* oscillator;
+            oscillator = new OscillatorNode(context->sampleRate());
+            node = (void*)oscillator;
+        }
+        break;
+        case AN_AudioDestinationNode:
+        break;
+        default:
+        break;
+        }
+        return node;
+    }
+    void libsound_connect(void* ccontext, void* cdestination, void* csource) {
+        lab::AudioContext* context = (lab::AudioContext*)ccontext;
+        // even if I pass around a shared_ptr, how will it know its type
+        //    - don't the incoming paramters need to be strongly typed?
+        //std::shared_ptr < lab::AudioNode> destination = dynamic_cast<std::shared_ptr < void *>>cdestination;
+        //std::shared_ptr < lab::AudioNode> source = std::make_shared<lab::AudioNode>(csource);
+        //std::shared_ptr < lab::AudioNode> destination = std::(destination);
 
+        //context->connect(destination,source);
+
+    }
 
 #ifdef __cplusplus
 }
