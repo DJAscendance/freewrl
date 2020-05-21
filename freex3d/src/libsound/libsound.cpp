@@ -158,16 +158,86 @@ void Wait(Duration duration)
 extern "C" {
 #endif
 #include "libsound.h"
+    void libsound_testNoise()
+    {
+        std::unique_ptr<lab::AudioContext> context;
+         const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
+        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+
+        //auto musicClip = MakeBusFromSampleFile("samples/stereo-music-clip.wav", argc, argv);
+        const std::string path = "C:/Users/Public/dev/source5/audio/LabSound-master/assets/samples/stereo-music-clip.wav";
+        std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false);
+        auto musicClip = bus;
+        if (!musicClip)
+            return;
+
+        std::shared_ptr<OscillatorNode> oscillator;
+        std::shared_ptr<SampledAudioNode> musicClipNode;
+        std::shared_ptr<GainNode> gain;
+
+        oscillator = std::make_shared<OscillatorNode>(context->sampleRate());
+        gain = std::make_shared<GainNode>();
+        gain->gain()->setValue(0.0625f);
+
+        musicClipNode = std::make_shared<SampledAudioNode>();
+        {
+            ContextRenderLock r(context.get(), "ex_simple");
+            musicClipNode->setBus(r, musicClip);
+        }
+        context->connect(gain, musicClipNode, 0, 0);
+        musicClipNode->start(0.0f);
+
+        // osc -> gain -> destination
+        context->connect(gain, oscillator, 0, 0);
+        context->connect(context->device(), gain, 0, 0);
+
+        oscillator->frequency()->setValue(440.f);
+        oscillator->setType(OscillatorType::SINE);
+        oscillator->start(0.0f);
+
+        Wait(std::chrono::seconds(6));
+ 
+    }
+    struct variant_record {
+        int type; //see libsound.h for enum AN_AudioClip 1, AN_AudioBuffer 2, ...
+        void* value;
+    };
+    struct per_context_stuff {
+        lab::AudioContext *context;
+        std::vector < variant_record > nodes;
+    };
+    static std::vector<per_context_stuff> active_contexts;
     void* libsound_createContext()
     {
         std::unique_ptr<lab::AudioContext> context;
         lab::AudioContext* ccontext;
         const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        per_context_stuff stuff;
+        stuff.context = context.get(); //do context.release() ownership below so doesn't go out of scope.
 
+        /*
+        active_contexts.push_back(stuff);
+        
         //auto musicClip = MakeBusFromSampleFile("samples/stereo-music-clip.wav", argc, argv);
-        const std::string path = "C:/Users/Public/dev/source5/audio/LabSound-master/assets/samples/stereo-music-clip.wav";
-        std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false);
+        {
+        */
+            const std::string path = "C:/Users/Public/dev/source5/audio/LabSound-master/assets/samples/stereo-music-clip.wav";
+            std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false);
+        /*
+            variant_record vr;
+            vr.type = AN_AudioClip;
+            //vr.value = bus.get(); //static_cast<void*>(&bus)
+            //bus.use_count++; //tell it a non-shared_ptr pointer copy wants to keep it alive
+            vr.value = &bus;
+            stuff.nodes.push_back(vr);
+        }
+        variant_record vr2 = stuff.nodes.back();
+        void* val = vr2.value;
+        //lab::AudioBus *bus0 = static_cast<lab::AudioBus*>(val);
+        std::shared_ptr<lab::AudioBus> bus = static_cast<std::shared_ptr<lab::AudioBus>>(val);
+        */
+        //int index = stuff.nodes.at(.countsize() - 1;
         auto musicClip = bus;
         if (!musicClip)
             return NULL;
@@ -185,6 +255,10 @@ extern "C" {
             ContextRenderLock r(context.get(), "ex_simple");
             musicClipNode->setBus(r, musicClip);
         }
+        lab::GainNode *gain2 = gain.get();
+        gain = nullptr;
+        gain.reset(gain2);
+
         context->connect(gain, musicClipNode, 0, 0);
         musicClipNode->start(0.0f);
 

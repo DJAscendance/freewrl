@@ -6934,6 +6934,9 @@ const int OFFSETS_MotorJoint[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MovieTexture[] = {
+	(int) FIELDNAMES_connect, (int) offsetof (struct X3D_MovieTexture, connect),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__self, (int) offsetof (struct X3D_MovieTexture, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__context, (int) offsetof (struct X3D_MovieTexture, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MovieTexture, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_MovieTexture, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MovieTexture, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -13015,6 +13018,9 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MovieTexture : {
 			struct X3D_MovieTexture * tmp2;
 			tmp2 = (struct X3D_MovieTexture *) tmp;
+			tmp2->connect.n=0; tmp2->connect.p=0;
+			tmp2->_self = 0;
+			tmp2->_context = 0;
 			tmp2->description = newASCIIString("");
 			tmp2->loop = FALSE;
 			tmp2->metadata = NULL;
@@ -18594,6 +18600,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_MovieTexture *tmp;
 			tmp = (struct X3D_MovieTexture *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," connect (MFNode):\n");
+			for (i=0; i<tmp->connect.n; i++) { dump_scene(fp,level+1,tmp->connect.p[i]); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," loop (SFBool) \t%d\n",tmp->loop);
 		    if(allFields) {

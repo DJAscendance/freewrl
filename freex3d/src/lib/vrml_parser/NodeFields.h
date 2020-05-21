@@ -2306,6 +2306,7 @@ END_NODE(MotorJoint)
 
 /* MovieTexture node */
 BEGIN_NODE(MovieTexture)
+EXPOSED_FIELD(MovieTexture,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
 EXPOSED_FIELD(MovieTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(MovieTexture,loop,sfbool,loop,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(MovieTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)

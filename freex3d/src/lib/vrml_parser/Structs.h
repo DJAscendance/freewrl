@@ -8636,6 +8636,9 @@ struct X3D_MovieTexture {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct Multi_Node connect;
+	void * _self;
+	void * _context;
 	struct Uni_String *description;
 	int loop;
 	struct X3D_Node *metadata;

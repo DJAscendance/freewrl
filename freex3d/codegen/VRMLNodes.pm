@@ -995,6 +995,7 @@ our %Nodes = (
 	###################################################################################
 
 	"AudioClip" => new VRML::NodeType("AudioClip", [
+		#movietexture compatible SoundSource section
 		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
@@ -1346,6 +1347,9 @@ our %Nodes = (
 	
 
 	"MovieTexture" => new VRML::NodeType ("MovieTexture", [
+		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		#SoundSource / AudioClip compatible section, keep in same order as AudioClip
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		loop => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

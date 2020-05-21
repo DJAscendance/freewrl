@@ -19,6 +19,7 @@ enum {
 	AN_OscillatorNode,
 	AN_AudioDestinationNode,
 };
+EXPORT_DLL extern void libsound_testNoise();
 EXPORT_DLL extern void* libsound_createContext();
 EXPORT_DLL extern void* libsound_createNode(void *context, int type);
 EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);
