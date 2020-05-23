@@ -1676,7 +1676,40 @@ our %Nodes = (
 		# where we are at a press...
 		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
-	],"X3DPointingDeviceSensorNode"),
+	],"X3DDragSensorNode"),
+
+	# proposed for v4 - 2 finters on a drag sensor - you should get a rotation out
+	"MultitouchSensor" => new VRML::NodeType("MultitouchSensor", [
+		autoOffset => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		axisRotation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		maxPosition => ["SFVec2f", [-1, -1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		minPosition => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		offset => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isOver => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff # see note top of file
+		trackPoint_changed => ["SFVec3f", [0, 0, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		translation_changed => ["SFVec3f", [0, 0, 0], "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		sensorLocalOutput => ["SFBool", "FALSE", "initializeOnly", 0,"UNCA_NONE"],#ff
+		_oldtrackPoint => ["SFVec3f", [0, 0, 0], "outputOnly", 0,0],#ff
+		_oldtranslation => ["SFVec3f", [0, 0, 0], "outputOnly", 0,0],#ff
+		# where we are at a press...
+		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
+		
+		translationOffset => ["SFVec3f",[0, 0, 0], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		rotationOffset => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		scaleOffset => ["SFVec3f", [1, 1, 1], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		minScale => ["SFVec3f", [0.1, 0.1, 0.1], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		maxScale => ["SFVec3f", [10, 10, 10], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		#translation_changed SFVec3f [out] 
+		rotation_changed => ["SFRotation", [0, 0, 1, 0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		scale_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		
+	],"X3DDragSensorNode"),
 
 #
 # Experimental node: LineSensor
@@ -1699,7 +1732,7 @@ our %Nodes = (
 		# where we are at a press...
 		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
-	],"X3DPointingDeviceSensorNode"),
+	],"X3DDragSensorNode"),
 	
 #
 # Experimental node: PointSensor
@@ -1722,7 +1755,7 @@ our %Nodes = (
 		# where we are at a press...
 		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
-	],"X3DPointingDeviceSensorNode"),
+	],"X3DDragSensorNode"),
 
 	
 
@@ -1743,7 +1776,7 @@ our %Nodes = (
 		_origNormalizedPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
 		_radius => ["SFFloat", 0, "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
-	],"X3DPointingDeviceSensorNode"),
+	],"X3DDragSensorNode"),
 
 	"CylinderSensor" => new VRML::NodeType("CylinderSensor", [
 		autoOffset => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1767,7 +1800,7 @@ our %Nodes = (
 		_radius => ["SFFloat", 0, "initializeOnly", 0,0],#ff
 		_usingDisk => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
-	],"X3DPointingDeviceSensorNode"),
+	],"X3DDragSensorNode"),
 
 
 	###################################################################################
@@ -2116,6 +2149,13 @@ our %Nodes = (
 	###################################################################################
 
 
+	"GeoSystem" => new VRML::NodeType("GeoSystem", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
+	],"X3DChildNode"),
+	
+	
 	"GeoCoordinate" => new VRML::NodeType("GeoCoordinate", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		point => ["MFVec3d",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units # see note top of file

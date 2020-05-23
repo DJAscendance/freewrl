@@ -1695,6 +1695,129 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 }
 
+void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
+	struct X3D_MultitouchSensor *node;
+	float mult, nx, ny, trackpoint[3], inverserotation[4], *posn;
+	float tr[3];
+	int tmp, imethod;
+
+	ttglobal tg;
+	UNUSED(over);
+	node = (struct X3D_MultitouchSensor *)ptr;
+#ifdef SENSVERBOSE
+	ConsoleMessage("%lf: TS ",TickTime());
+	if (ev==ButtonPress) ConsoleMessage("ButtonPress ");
+	else if (ev==ButtonRelease) ConsoleMessage("ButtonRelease ");
+	else if (ev==KeyPress) ConsoleMessage("KeyPress ");
+	else if (ev==KeyRelease) ConsoleMessage("KeyRelease ");
+	else if (ev==MotionNotify) ConsoleMessage("MotionNotify ");
+	else ConsoleMessage("ev %d ",ev);
+	
+	if (but1) ConsoleMessage("but1 TRUE "); else ConsoleMessage("but1 FALSE ");
+	if (over) ConsoleMessage("over TRUE "); else ConsoleMessage("over FALSE ");
+	ConsoleMessage ("\n");
+#endif
+
+	/* if not enabled, do nothing */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node),offsetof (struct X3D_PlaneSensor, enabled));
+	}
+	if (!node->enabled) return;
+	tg = gglobal();
+
+	/* only do something when button pressed */
+	/* if (!but1) return; */
+	if (but1){
+		float v[3], t1[3];
+		float N[3] = { 0.0f, 0.0f, 1.0f }; //plane normal, in plane-local
+		float NS[3]; //plane normal, in sensor-local after axisRotation
+		//bearing (A,B) in sensor-local
+		// A=posn, B=norm - norm is a point. To get a direction vector v = (B - A)
+		//ConsoleMessage("hsp = %f %f %f \n", tg->RenderFuncs.hyp_save_posn[0], tg->RenderFuncs.hyp_save_posn[1], tg->RenderFuncs.hyp_save_posn[2]);
+		vecnormalize3f(v, vecdif3f(t1, tg->RenderFuncs.hyp_save_norm, tg->RenderFuncs.hyp_save_posn));
+		//rotate plane normal N, in plane-local to plane normal NS in sensor-local using axisRotation
+		axisangle_rotate3f(NS,N, node->axisRotation.c);
+		//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
+		// so we could use P={0,0,0} and P dot N = d = 0
+		posn = tg->RenderFuncs.hyp_save_posn;
+		if (!line_intersect_planed_3f(posn, v, NS, 0.0f, trackpoint, NULL))
+			return; //looking at plane edge-on / parallel, no intersection
+		//is rotating the trackpoint/translation_changed opposite sense to rotating the virtual geometry?
+		//-- we harmonize with x3dom and view3dscene 
+		veccopy4f(inverserotation,node->axisRotation.c);
+		inverserotation[3] = -inverserotation[3];
+		//axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
+	}
+
+	if ((ev==ButtonPress) && but1) {
+		/* record the current position from the saved position */
+		struct SFColor op;
+		float *posn;
+		posn = tg->RenderFuncs.hyp_save_posn;
+
+		veccopy3f(op.c, trackpoint);
+		memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
+		veccopy3f(node->_origPoint.c,op.c);
+
+		/* set isActive true */
+		node->isActive=TRUE;
+		MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+
+	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
+		/* hyperhit saved in render_hypersensitive phase */
+		nx = trackpoint[0]; ny = trackpoint[1];
+		#ifdef SEVERBOSE
+		ConsoleMessage ("now, mult %f nx %f ny %f op %f %f %f\n",mult,nx,ny,
+			node->_origPoint.c[0],node->_origPoint.c[1],
+			node->_origPoint.c[2]);
+		#endif
+
+		/* trackpoint changed */
+		if(!node->sensorLocalOutput){
+			axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
+		}
+
+		veccopy3f(node->_oldtrackPoint.c, trackpoint);
+		/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
+		if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
+			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, trackPoint_changed));
+
+		}
+
+		/* clamp translation to max/min position */
+		tr[0] = nx - node->_origPoint.c[0] + node->offset.c[0];
+		tr[1] = ny - node->_origPoint.c[1] + node->offset.c[1];
+		tr[2] = node->offset.c[2];
+
+		vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
+		if(!node->sensorLocalOutput){
+			axisangle_rotate3f(tr,tr, node->axisRotation.c);
+		}
+		veccopy3f(node->_oldtranslation.c,tr);
+
+		if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
+			veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
+			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, translation_changed));
+		}
+
+	} else if (ev==ButtonRelease) {
+		/* set isActive false */
+		node->isActive=FALSE;
+		MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+
+		/* autoOffset? */
+		if (node->autoOffset) {
+			veccopy3f(node->offset.c,node->translation_changed.c);
+
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
+		}
+	}
+
+}
 
 /* void do_Anchor (struct X3D_Anchor *node, int ev, int over) {*/
 void do_Anchor ( void *ptr, int ev, int but1, int over) {

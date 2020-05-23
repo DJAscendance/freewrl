@@ -715,6 +715,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hinge2AngleRate",
 	"hitGeoCoord_changed",
 	"hitNormal_changed",
+	"hitNormalizedCoord_changed",
 	"hitPoint_changed",
 	"hitTexCoord_changed",
 	"horizontal",
@@ -815,6 +816,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"maxFront",
 	"maxParticles",
 	"maxPosition",
+	"maxScale",
 	"maxSeparation",
 	"maxTorque1",
 	"maxTorque2",
@@ -830,6 +832,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"minDecibels",
 	"minFront",
 	"minPosition",
+	"minScale",
 	"minSeparation",
 	"minificationFilter",
 	"mode",
@@ -968,6 +971,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"rootUrl",
 	"rotateYUp",
 	"rotation",
+	"rotationOffset",
 	"rotation_changed",
 	"roughness",
 	"rtpHeaderExpected",
@@ -975,7 +979,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"samples",
 	"scale",
 	"scaleMode",
+	"scaleOffset",
 	"scaleOrientation",
+	"scale_changed",
 	"segmentEnabled",
 	"segmentIdentifiers",
 	"segments",
@@ -1128,6 +1134,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"transitionTime",
 	"transitionType",
 	"translation",
+	"translationOffset",
 	"translation_changed",
 	"transmitFrequencyBandwidth",
 	"transmitState",
@@ -1251,6 +1258,7 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"hinge2AngleRate",
 	"hitGeoCoord_changed",
 	"hitNormal_changed",
+	"hitNormalizedCoord_changed",
 	"hitPoint_changed",
 	"hitTexCoord_changed",
 	"image",
@@ -1301,6 +1309,7 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"removedEntities",
 	"rotation",
 	"rotation_changed",
+	"scale_changed",
 	"separation",
 	"separationRate",
 	"shiftKey",
@@ -1662,6 +1671,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"maxFront",
 	"maxParticles",
 	"maxPosition",
+	"maxScale",
 	"maxSeparation",
 	"maxTorque1",
 	"maxTorque2",
@@ -1676,6 +1686,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"minDecibels",
 	"minFront",
 	"minPosition",
+	"minScale",
 	"minSeparation",
 	"minificationFilter",
 	"mode",
@@ -1770,11 +1781,13 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"rightUrl",
 	"rolloffFactor",
 	"rotation",
+	"rotationOffset",
 	"roughness",
 	"sampleRate",
 	"samples",
 	"scale",
 	"scaleMode",
+	"scaleOffset",
 	"scaleOrientation",
 	"segmentEnabled",
 	"segmentIdentifiers",
@@ -1866,6 +1879,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"transitionTime",
 	"transitionType",
 	"translation",
+	"translationOffset",
 	"transmitFrequencyBandwidth",
 	"transmitState",
 	"transmitterApplicationID",
@@ -2484,6 +2498,7 @@ const char *NODES[] = {
 	"GeoPlanet",
 	"GeoPositionInterpolator",
 	"GeoProximitySensor",
+	"GeoSystem",
 	"GeoTouchSensor",
 	"GeoTransform",
 	"GeoViewpoint",
@@ -2582,6 +2597,7 @@ const char *NODES[] = {
 	"MultiTexture",
 	"MultiTextureCoordinate",
 	"MultiTextureTransform",
+	"MultitouchSensor",
 	"NavigationInfo",
 	"Normal",
 	"NormalInterpolator",
@@ -2810,6 +2826,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -2908,6 +2925,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_texture,0,0,0,0,0,0},
 {FIELDNAMES_texCoord,0,0,0,0,0,0},
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_normal,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3358,6 +3376,10 @@ void proximity_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 void compile_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 struct X3D_Virt virt_GeoProximitySensor = { NULL,(void *)render_GeoProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_GeoProximitySensor,NULL,NULL,(void *)compile_GeoProximitySensor};
 
+void render_GeoSystem(struct X3D_GeoSystem *);
+void compile_GeoSystem(struct X3D_GeoSystem *);
+struct X3D_Virt virt_GeoSystem = { NULL,(void *)render_GeoSystem,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoSystem};
+
 void compile_GeoTouchSensor(struct X3D_GeoTouchSensor *);
 struct X3D_Virt virt_GeoTouchSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoTouchSensor};
 
@@ -3675,6 +3697,8 @@ struct X3D_Virt virt_MultiTexture = { NULL,(void *)render_MultiTexture,NULL,NULL
 struct X3D_Virt virt_MultiTextureCoordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_MultiTextureTransform = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_MultitouchSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_NavigationInfo = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4153,6 +4177,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_GeoPlanet,
 	 &virt_GeoPositionInterpolator,
 	 &virt_GeoProximitySensor,
+	 &virt_GeoSystem,
 	 &virt_GeoTouchSensor,
 	 &virt_GeoTransform,
 	 &virt_GeoViewpoint,
@@ -4251,6 +4276,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_MultiTexture,
 	 &virt_MultiTextureCoordinate,
 	 &virt_MultiTextureTransform,
+	 &virt_MultitouchSensor,
 	 &virt_NavigationInfo,
 	 &virt_Normal,
 	 &virt_NormalInterpolator,
@@ -5793,6 +5819,12 @@ const int OFFSETS_GeoProximitySensor[] = {
 	(int) FIELDNAMES___oldSize, (int) offsetof (struct X3D_GeoProximitySensor, __oldSize),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_GeoSystem[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoSystem, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoSystem, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoSystem, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_GeoTouchSensor[] = {
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoTouchSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_GeoTouchSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -6987,6 +7019,34 @@ const int OFFSETS_MultiTextureCoordinate[] = {
 const int OFFSETS_MultiTextureTransform[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MultiTextureTransform, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_textureTransform, (int) offsetof (struct X3D_MultiTextureTransform, textureTransform),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MultitouchSensor[] = {
+	(int) FIELDNAMES_autoOffset, (int) offsetof (struct X3D_MultitouchSensor, autoOffset),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_axisRotation, (int) offsetof (struct X3D_MultitouchSensor, axisRotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_MultitouchSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxPosition, (int) offsetof (struct X3D_MultitouchSensor, maxPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_minPosition, (int) offsetof (struct X3D_MultitouchSensor, minPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_offset, (int) offsetof (struct X3D_MultitouchSensor, offset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_MultitouchSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isOver, (int) offsetof (struct X3D_MultitouchSensor, isOver),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MultitouchSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_trackPoint_changed, (int) offsetof (struct X3D_MultitouchSensor, trackPoint_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_translation_changed, (int) offsetof (struct X3D_MultitouchSensor, translation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MultitouchSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_MultitouchSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__oldtrackPoint, (int) offsetof (struct X3D_MultitouchSensor, _oldtrackPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldtranslation, (int) offsetof (struct X3D_MultitouchSensor, _oldtranslation),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__origPoint, (int) offsetof (struct X3D_MultitouchSensor, _origPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_MultitouchSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_translationOffset, (int) offsetof (struct X3D_MultitouchSensor, translationOffset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_rotationOffset, (int) offsetof (struct X3D_MultitouchSensor, rotationOffset),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_scaleOffset, (int) offsetof (struct X3D_MultitouchSensor, scaleOffset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_minScale, (int) offsetof (struct X3D_MultitouchSensor, minScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxScale, (int) offsetof (struct X3D_MultitouchSensor, maxScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_rotation_changed, (int) offsetof (struct X3D_MultitouchSensor, rotation_changed),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_scale_changed, (int) offsetof (struct X3D_MultitouchSensor, scale_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_hitNormalizedCoord_changed, (int) offsetof (struct X3D_MultitouchSensor, hitNormalizedCoord_changed),  (int) FIELDTYPE_MFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_NavigationInfo[] = {
@@ -8938,6 +8998,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_GeoPlanet,
 	OFFSETS_GeoPositionInterpolator,
 	OFFSETS_GeoProximitySensor,
+	OFFSETS_GeoSystem,
 	OFFSETS_GeoTouchSensor,
 	OFFSETS_GeoTransform,
 	OFFSETS_GeoViewpoint,
@@ -9036,6 +9097,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_MultiTexture,
 	OFFSETS_MultiTextureCoordinate,
 	OFFSETS_MultiTextureTransform,
+	OFFSETS_MultitouchSensor,
 	OFFSETS_NavigationInfo,
 	OFFSETS_Normal,
 	OFFSETS_NormalInterpolator,
@@ -9520,6 +9582,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_GeoPlanet : {tmp = MALLOC (struct X3D_GeoPlanet *, size = sizeof (struct X3D_GeoPlanet)); break;}
 		case NODE_GeoPositionInterpolator : {tmp = MALLOC (struct X3D_GeoPositionInterpolator *, size = sizeof (struct X3D_GeoPositionInterpolator)); break;}
 		case NODE_GeoProximitySensor : {tmp = MALLOC (struct X3D_GeoProximitySensor *, size = sizeof (struct X3D_GeoProximitySensor)); break;}
+		case NODE_GeoSystem : {tmp = MALLOC (struct X3D_GeoSystem *, size = sizeof (struct X3D_GeoSystem)); break;}
 		case NODE_GeoTouchSensor : {tmp = MALLOC (struct X3D_GeoTouchSensor *, size = sizeof (struct X3D_GeoTouchSensor)); break;}
 		case NODE_GeoTransform : {tmp = MALLOC (struct X3D_GeoTransform *, size = sizeof (struct X3D_GeoTransform)); break;}
 		case NODE_GeoViewpoint : {tmp = MALLOC (struct X3D_GeoViewpoint *, size = sizeof (struct X3D_GeoViewpoint)); break;}
@@ -9618,6 +9681,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MultiTexture : {tmp = MALLOC (struct X3D_MultiTexture *, size = sizeof (struct X3D_MultiTexture)); break;}
 		case NODE_MultiTextureCoordinate : {tmp = MALLOC (struct X3D_MultiTextureCoordinate *, size = sizeof (struct X3D_MultiTextureCoordinate)); break;}
 		case NODE_MultiTextureTransform : {tmp = MALLOC (struct X3D_MultiTextureTransform *, size = sizeof (struct X3D_MultiTextureTransform)); break;}
+		case NODE_MultitouchSensor : {tmp = MALLOC (struct X3D_MultitouchSensor *, size = sizeof (struct X3D_MultitouchSensor)); break;}
 		case NODE_NavigationInfo : {tmp = MALLOC (struct X3D_NavigationInfo *, size = sizeof (struct X3D_NavigationInfo)); break;}
 		case NODE_Normal : {tmp = MALLOC (struct X3D_Normal *, size = sizeof (struct X3D_Normal)); break;}
 		case NODE_NormalInterpolator : {tmp = MALLOC (struct X3D_NormalInterpolator *, size = sizeof (struct X3D_NormalInterpolator)); break;}
@@ -11556,6 +11620,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_GeoSystem : {
+			struct X3D_GeoSystem * tmp2;
+			tmp2 = (struct X3D_GeoSystem *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->__geoSystem = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_GeoTouchSensor : {
 			struct X3D_GeoTouchSensor * tmp2;
 			tmp2 = (struct X3D_GeoTouchSensor *) tmp;
@@ -13080,6 +13153,37 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_MultiTextureTransform *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->textureTransform.n=0; tmp2->textureTransform.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MultitouchSensor : {
+			struct X3D_MultitouchSensor * tmp2;
+			tmp2 = (struct X3D_MultitouchSensor *) tmp;
+			tmp2->autoOffset = TRUE;
+			tmp2->axisRotation.c[0] = 0;tmp2->axisRotation.c[1] = 0;tmp2->axisRotation.c[2] = 1;tmp2->axisRotation.c[3] = 0;;
+			tmp2->enabled = TRUE;
+			tmp2->maxPosition.c[0] = -1.0f;tmp2->maxPosition.c[1] = -1.0f;;
+			tmp2->minPosition.c[0] = 0.0f;tmp2->minPosition.c[1] = 0.0f;;
+			tmp2->offset.c[0] = 0.0f;tmp2->offset.c[1] = 0.0f;tmp2->offset.c[2] = 0.0f;
+			tmp2->isActive = FALSE;
+			tmp2->isOver = FALSE;
+			tmp2->description = newASCIIString("");
+			tmp2->trackPoint_changed.c[0] = 0.0f;tmp2->trackPoint_changed.c[1] = 0.0f;tmp2->trackPoint_changed.c[2] = 0.0f;
+			tmp2->translation_changed.c[0] = 0.0f;tmp2->translation_changed.c[1] = 0.0f;tmp2->translation_changed.c[2] = 0.0f;
+			tmp2->metadata = NULL;
+			tmp2->sensorLocalOutput = FALSE;
+			tmp2->_oldtrackPoint.c[0] = 0.0f;tmp2->_oldtrackPoint.c[1] = 0.0f;tmp2->_oldtrackPoint.c[2] = 0.0f;
+			tmp2->_oldtranslation.c[0] = 0.0f;tmp2->_oldtranslation.c[1] = 0.0f;tmp2->_oldtranslation.c[2] = 0.0f;
+			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
+			tmp2->__oldEnabled = TRUE;
+			tmp2->translationOffset.c[0] = 0.0f;tmp2->translationOffset.c[1] = 0.0f;tmp2->translationOffset.c[2] = 0.0f;
+			tmp2->rotationOffset.c[0] = 0;tmp2->rotationOffset.c[1] = 0;tmp2->rotationOffset.c[2] = 1;tmp2->rotationOffset.c[3] = 0;;
+			tmp2->scaleOffset.c[0] = 1.0f;tmp2->scaleOffset.c[1] = 1.0f;tmp2->scaleOffset.c[2] = 1.0f;
+			tmp2->minScale.c[0] = 0.1f;tmp2->minScale.c[1] = 0.1f;tmp2->minScale.c[2] = 0.1f;
+			tmp2->maxScale.c[0] = 10.0f;tmp2->maxScale.c[1] = 10.0f;tmp2->maxScale.c[2] = 10.0f;
+			tmp2->rotation_changed.c[0] = 0;tmp2->rotation_changed.c[1] = 0;tmp2->rotation_changed.c[2] = 1;tmp2->rotation_changed.c[3] = 0;;
+			tmp2->scale_changed.c[0] = 0.0f;tmp2->scale_changed.c[1] = 0.0f;tmp2->scale_changed.c[2] = 0.0f;
+			tmp2->hitNormalizedCoord_changed.n=0; tmp2->hitNormalizedCoord_changed.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17202,6 +17306,15 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_GeoSystem : {
+			struct X3D_GeoSystem *tmp;
+			tmp = (struct X3D_GeoSystem *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_GeoTouchSensor : {
 			struct X3D_GeoTouchSensor *tmp;
 			tmp = (struct X3D_GeoTouchSensor *) node;
@@ -18658,6 +18771,48 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," textureTransform (MFNode):\n");
 			for (i=0; i<tmp->textureTransform.n; i++) { dump_scene(fp,level+1,tmp->textureTransform.p[i]); }
+		    break;
+		}
+		case NODE_MultitouchSensor : {
+			struct X3D_MultitouchSensor *tmp;
+			tmp = (struct X3D_MultitouchSensor *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," autoOffset (SFBool) \t%d\n",tmp->autoOffset);
+			spacer fprintf (fp," axisRotation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->axisRotation.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+			spacer fprintf (fp," maxPosition (SFVec2f): \t");
+			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",tmp->maxPosition.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," minPosition (SFVec2f): \t");
+			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",tmp->minPosition.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," offset (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->offset.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
+		    }
+			spacer fprintf (fp," translationOffset (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->translationOffset.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," rotationOffset (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->rotationOffset.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," scaleOffset (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->scaleOffset.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," minScale (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->minScale.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," maxScale (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->maxScale.c[i]); }
+			fprintf (fp,"\n");
 		    break;
 		}
 		case NODE_NavigationInfo : {
@@ -21016,7 +21171,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_CoordinateInterpolator: return X3DInterpolatorNode; break;
 	case NODE_CoordinateInterpolator2D: return X3DInterpolatorNode; break;
 	case NODE_Cylinder: return X3DGeometryNode; break;
-	case NODE_CylinderSensor: return X3DPointingDeviceSensorNode; break;
+	case NODE_CylinderSensor: return X3DDragSensorNode; break;
 	case NODE_DISEntityManager: return X3DChildNode; break;
 	case NODE_DISEntityTypeMapping: return X3DInfoNode; break;
 	case NODE_DelayNode: return X3DAudioNode; break;
@@ -21051,6 +21206,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_GeoPlanet: return X3DGroupingNode; break;
 	case NODE_GeoPositionInterpolator: return X3DInterpolatorNode; break;
 	case NODE_GeoProximitySensor: return X3DEnvironmentalSensorNode; break;
+	case NODE_GeoSystem: return X3DChildNode; break;
 	case NODE_GeoTouchSensor: return X3DPointingDeviceSensorNode; break;
 	case NODE_GeoTransform: return X3DGroupingNode; break;
 	case NODE_GeoViewpoint: return X3DBindableNode; break;
@@ -21087,7 +21243,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_LayoutLayer: return X3DGroupingNode; break;
 	case NODE_LinePickSensor: return X3DSensorNode; break;
 	case NODE_LineProperties: return X3DAppearanceChildNode; break;
-	case NODE_LineSensor: return X3DPointingDeviceSensorNode; break;
+	case NODE_LineSensor: return X3DDragSensorNode; break;
 	case NODE_LineSet: return X3DGeometryNode; break;
 	case NODE_LoadSensor: return X3DNetworkSensorNode; break;
 	case NODE_LocalFog: return X3DChildNode; break;
@@ -21149,6 +21305,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_MultiTexture: return X3DTextureNode; break;
 	case NODE_MultiTextureCoordinate: return X3DTextureCoordinateNode; break;
 	case NODE_MultiTextureTransform: return X3DTextureTransformNode; break;
+	case NODE_MultitouchSensor: return X3DDragSensorNode; break;
 	case NODE_NavigationInfo: return X3DBindableNode; break;
 	case NODE_Normal: return X3DNormalNode; break;
 	case NODE_NormalInterpolator: return X3DInterpolatorNode; break;
@@ -21178,12 +21335,12 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_PickableGroup: return X3DGroupingNode; break;
 	case NODE_PixelTexture: return X3DTextureNode; break;
 	case NODE_PixelTexture3D: return X3DTextureNode; break;
-	case NODE_PlaneSensor: return X3DPointingDeviceSensorNode; break;
+	case NODE_PlaneSensor: return X3DDragSensorNode; break;
 	case NODE_PointEmitter: return X3DParticleEmitterNode; break;
 	case NODE_PointLight: return X3DLightNode; break;
 	case NODE_PointPickSensor: return X3DSensorNode; break;
 	case NODE_PointProperties: return X3DAppearanceChildNode; break;
-	case NODE_PointSensor: return X3DPointingDeviceSensorNode; break;
+	case NODE_PointSensor: return X3DDragSensorNode; break;
 	case NODE_PointSet: return X3DGeometryNode; break;
 	case NODE_Polyline2D: return X3DGeometryNode; break;
 	case NODE_PolylineEmitter: return X3DParticleEmitterNode; break;
@@ -21222,7 +21379,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_SliderJoint: return X3DRigidJointNode; break;
 	case NODE_Sound: return X3DSoundSourceNode; break;
 	case NODE_Sphere: return X3DGeometryNode; break;
-	case NODE_SphereSensor: return X3DPointingDeviceSensorNode; break;
+	case NODE_SphereSensor: return X3DDragSensorNode; break;
 	case NODE_SplinePositionInterpolator: return X3DInterpolatorNode; break;
 	case NODE_SplinePositionInterpolator2D: return X3DInterpolatorNode; break;
 	case NODE_SplineScalarInterpolator: return X3DInterpolatorNode; break;
