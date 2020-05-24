@@ -91,9 +91,9 @@ CXXFLAGS=-I. -I../.. -Iinternals -Iinterface -Inurbtess
 
 ##### TARGETS #####
 
-all-recursive: default
+all-recursive:
 
-all: default
+all:
 
 default:
 	$(MAKE) $(TESS_LIB_NAME)

@@ -14,8 +14,8 @@
 
 @SET_MAKE@
 
-# Main program: FreeWRL program
-# Uses libFreeWRL in ../lib
+# Helper program: FreeWRL sound server
+#
 #
 
 # -*-makefile-*-
@@ -103,9 +103,8 @@ host_triplet = @host@
 # Architecture dependent variables
 @OS_WIN32_TRUE@am__append_1 = -mno-cygwin -D_WIN32 -DWIN32
 @OS_LINUX_TRUE@am__append_2 = -D_GNU_SOURCE
-@OS_MAC_TRUE@am__append_3 = -fnested-functions
-bin_PROGRAMS = freewrl$(EXEEXT)
-subdir = src/bin
+bin_PROGRAMS = freewrl_snd$(EXEEXT)
+subdir = src/sound
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_dir.m4 \
 	$(top_srcdir)/m4/ac_find_motif.m4 \
@@ -126,10 +125,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_freewrl_OBJECTS = main.$(OBJEXT) options.$(OBJEXT) \
-	internal_version.$(OBJEXT)
-freewrl_OBJECTS = $(am_freewrl_OBJECTS)
-freewrl_DEPENDENCIES = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la
+am_freewrl_snd_OBJECTS = main.$(OBJEXT) mixer.$(OBJEXT) \
+	wavmaker.$(OBJEXT) internal_version.$(OBJEXT)
+freewrl_snd_OBJECTS = $(am_freewrl_snd_OBJECTS)
+freewrl_snd_DEPENDENCIES = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -150,7 +149,8 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/internal_version.Po \
-	./$(DEPDIR)/main.Po ./$(DEPDIR)/options.Po
+	./$(DEPDIR)/main.Po ./$(DEPDIR)/mixer.Po \
+	./$(DEPDIR)/wavmaker.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -170,8 +170,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(freewrl_SOURCES)
-DIST_SOURCES = $(freewrl_SOURCES)
+SOURCES = $(freewrl_snd_SOURCES)
+DIST_SOURCES = $(freewrl_snd_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -421,30 +421,29 @@ CXX_SPECIFIC = -fpermissive
 #LD_OPTS=-Wl,--as-needed
 
 # Define this globally
+AM_CPPFLAGS = $(CC_WARNINGS) $(CC_GENERAL) -I$(LIBFREEWRL_SRCDIR)
+AM_CFLAGS = $(DEBUG_FLAGS) $(am__append_1) $(am__append_2)
+AM_CXXFLAGS = $(AM_CFLAGS) $(CXX_SPECIFIC)
+AM_LDFLAGS = $(DEBUG_FLAGS) $(LD_OPTS)
 
 # Get global variables for Makefile defined by toplevel Makefile.globals
 
 # Just add variables tested and checked by troplevel configure
-AM_CPPFLAGS = $(CC_WARNINGS) $(CC_GENERAL) $(PTHREAD_CFLAGS) \
-	$(JAVASCRIPT_ENGINE_CFLAGS) $(X_CFLAGS) $(XAW_CFLAGS) \
-	$(MOTIF_CFLAGS) $(GL_CFLAGS) -I$(LIBFREEWRL_SRCDIR)
-AM_CFLAGS = $(DEBUG_FLAGS) $(am__append_1) $(am__append_2) \
-	$(am__append_3)
-AM_CXXFLAGS = $(AM_CFLAGS) $(CXX_SPECIFIC)
-AM_LDFLAGS = $(DEBUG_FLAGS) $(LD_OPTS)
-_EV = $(top_srcdir)/versions/FREEWRL
+
+# Embedded versioning
+_EV = $(top_srcdir)/versions/SOUNDMGR
 templ = $(top_srcdir)/versions/template/version.c.in
-component = freewrl
-FREEWRL_VERSION = `cat $$_EV`
+component = freewrl_snd
+FREEWRL_SND_VERSION = `cat $$_EV`
 # And add it to the list of files to clean
 CLEANFILES = internal_version.c
 
 # Compile/Link with FreeWRL library
 LIBFREEWRL_SRCDIR = $(top_srcdir)/src/lib
 LIBFREEWRL_BUILDDIR = $(top_builddir)/src/lib
-freewrl_LDADD = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la
-freewrl_SOURCES = main.c main.h internal.h system.h options.c \
-	options.h internal_version.c
+freewrl_snd_LDADD = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la
+freewrl_snd_SOURCES = main.c mixer.c wavmaker.c system.h soundheader.h \
+	internal.h internal_version.c
 all: all-am
 
 .SUFFIXES:
@@ -458,9 +457,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/Makefile.globals $(s
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/bin/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/sound/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/bin/Makefile
+	  $(AUTOMAKE) --gnu src/sound/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -529,9 +528,9 @@ clean-binPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-freewrl$(EXEEXT): $(freewrl_OBJECTS) $(freewrl_DEPENDENCIES) $(EXTRA_freewrl_DEPENDENCIES) 
-	@rm -f freewrl$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(freewrl_OBJECTS) $(freewrl_LDADD) $(LIBS)
+freewrl_snd$(EXEEXT): $(freewrl_snd_OBJECTS) $(freewrl_snd_DEPENDENCIES) $(EXTRA_freewrl_snd_DEPENDENCIES) 
+	@rm -f freewrl_snd$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(freewrl_snd_OBJECTS) $(freewrl_snd_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -541,7 +540,8 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/internal_version.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/options.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mixer.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wavmaker.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -709,7 +709,8 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/internal_version.Po
 	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f ./$(DEPDIR)/options.Po
+	-rm -f ./$(DEPDIR)/mixer.Po
+	-rm -f ./$(DEPDIR)/wavmaker.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -757,7 +758,8 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/internal_version.Po
 	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f ./$(DEPDIR)/options.Po
+	-rm -f ./$(DEPDIR)/mixer.Po
+	-rm -f ./$(DEPDIR)/wavmaker.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -794,19 +796,12 @@ uninstall-am: uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 
-
-# Mac OSX gcc does not support by default nested functions...
-@OS_MAC_TRUE@AM_CFLAGS ?= $(AM_CFLAGS)
 export
 
 # Generate the version source file
 internal_version.c: $(_EV)
 	$(top_builddir)/vtempl $(component) \
-	$(FREEWRL_VERSION) < $(templ) > $@
-
-newversion:
-	-rm -f internal_version.*
-	$(MAKE)
+	$(FREEWRL_SND_VERSION) < $(templ) > $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

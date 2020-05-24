@@ -890,6 +890,7 @@ doc/Makefile
 src/Makefile
 src/bin/Makefile
 src/lib/Makefile
+src/libnurbs/Makefile
 src/lib/libFreeWRL.pc
 src/plugin/Makefile
 src/libeai/Makefile

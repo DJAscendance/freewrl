@@ -14,9 +14,8 @@
 
 @SET_MAKE@
 
-# Main program: FreeWRL program
-# Uses libFreeWRL in ../lib
-#
+# Main program: training
+# Uses libtraining in ../lib
 
 # -*-makefile-*-
 #
@@ -24,6 +23,8 @@
 # 
 # Define global variable for Makefiles
 #
+
+
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -103,9 +104,41 @@ host_triplet = @host@
 # Architecture dependent variables
 @OS_WIN32_TRUE@am__append_1 = -mno-cygwin -D_WIN32 -DWIN32
 @OS_LINUX_TRUE@am__append_2 = -D_GNU_SOURCE
-@OS_MAC_TRUE@am__append_3 = -fnested-functions
-bin_PROGRAMS = freewrl$(EXEEXT)
-subdir = src/bin
+
+# X11 flags specific to x11 target (default on Linux -- optional on Mac)
+@WINDOW_USE_X11_TRUE@am__append_3 = \
+@WINDOW_USE_X11_TRUE@                                $(X_CFLAGS) \
+@WINDOW_USE_X11_TRUE@                                $(XAW_CFLAGS)
+
+@WINDOW_USE_X11_TRUE@am__append_4 = \
+@WINDOW_USE_X11_TRUE@                                $(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) \
+@WINDOW_USE_X11_TRUE@                                $(XAW_LIBS)
+
+
+# Motif flags specific to motif target (only on Linux at the moment)
+@WINDOW_USE_MOTIF_TRUE@am__append_5 = \
+@WINDOW_USE_MOTIF_TRUE@                                $(X_CFLAGS) \
+@WINDOW_USE_MOTIF_TRUE@                                $(XAW_CFLAGS) \
+@WINDOW_USE_MOTIF_TRUE@                                $(MOTIF_CFLAGS)
+
+@WINDOW_USE_MOTIF_TRUE@am__append_6 = \
+@WINDOW_USE_MOTIF_TRUE@				$(X_PRE_LIBS) \
+@WINDOW_USE_MOTIF_TRUE@                                $(MOTIF_LIBS) \
+@WINDOW_USE_MOTIF_TRUE@				$(X_LIBS) $(X_EXTRA_LIBS) \
+@WINDOW_USE_MOTIF_TRUE@                                $(XAW_LIBS)
+
+
+# I found this in spidermonkey build files: -Wall -Wno-format -no-cpp-precomp -fno-common -DJS_THREADSAFE -DXP_UNIX -DSVR4 -DSYSV -D_BSD_SOURCE -DPOSIX_SOURCE -DDARWIN  -UDEBUG -DNDEBUG -UDEBUG_root -DJS_THREADSAFE -DEDITLINE
+@OS_MAC_TRUE@am__append_7 = -Wno-format -no-cpp-precomp -fno-common 
+
+#
+# WINDOW_USE_* are exclusive
+#
+@WINDOW_USE_X11_TRUE@am__append_8 = -DTARGET_X11
+@WINDOW_USE_MOTIF_TRUE@am__append_9 = -DTARGET_MOTIF
+@WINDOW_USE_AQUA_TRUE@am__append_10 = -DTARGET_AQUA -DAQUA
+@WINDOW_USE_WIN32_TRUE@am__append_11 = -DTARGET_WIN32
+subdir = src/libeai
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_dir.m4 \
 	$(top_srcdir)/m4/ac_find_motif.m4 \
@@ -119,21 +152,70 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_dir.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(libFreeWRLEAIinclude_HEADERS) \
+	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = libFreeWRLEAI.pc
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)"
-PROGRAMS = $(bin_PROGRAMS)
-am_freewrl_OBJECTS = main.$(OBJEXT) options.$(OBJEXT) \
-	internal_version.$(OBJEXT)
-freewrl_OBJECTS = $(am_freewrl_OBJECTS)
-freewrl_DEPENDENCIES = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" \
+	"$(DESTDIR)$(libFreeWRLEAIincludedir)"
+LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+@WINDOW_USE_X11_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) \
+@WINDOW_USE_X11_TRUE@	$(am__DEPENDENCIES_1) \
+@WINDOW_USE_X11_TRUE@	$(am__DEPENDENCIES_1) \
+@WINDOW_USE_X11_TRUE@	$(am__DEPENDENCIES_1)
+@WINDOW_USE_MOTIF_TRUE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1) \
+@WINDOW_USE_MOTIF_TRUE@	$(am__DEPENDENCIES_1) \
+@WINDOW_USE_MOTIF_TRUE@	$(am__DEPENDENCIES_1) \
+@WINDOW_USE_MOTIF_TRUE@	$(am__DEPENDENCIES_1) \
+@WINDOW_USE_MOTIF_TRUE@	$(am__DEPENDENCIES_1)
+am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_3)
+libFreeWRLEAI_la_DEPENDENCIES = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la \
+	$(am__DEPENDENCIES_4)
+am_libFreeWRLEAI_la_OBJECTS = EAI_C_Advise.lo EAI_C_Control.lo \
+	EAI_C_Field.lo EAI_C_Internals.lo EAI_C_Node.lo \
+	EAI_C_ReWire.lo GeneratedCode.lo internal_version.lo
+libFreeWRLEAI_la_OBJECTS = $(am_libFreeWRLEAI_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+libFreeWRLEAI_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(libFreeWRLEAI_la_LDFLAGS) $(LDFLAGS) \
+	-o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -149,8 +231,11 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/internal_version.Po \
-	./$(DEPDIR)/main.Po ./$(DEPDIR)/options.Po
+am__depfiles_remade = ./$(DEPDIR)/EAI_C_Advise.Plo \
+	./$(DEPDIR)/EAI_C_Control.Plo ./$(DEPDIR)/EAI_C_Field.Plo \
+	./$(DEPDIR)/EAI_C_Internals.Plo ./$(DEPDIR)/EAI_C_Node.Plo \
+	./$(DEPDIR)/EAI_C_ReWire.Plo ./$(DEPDIR)/GeneratedCode.Plo \
+	./$(DEPDIR)/internal_version.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -170,13 +255,15 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(freewrl_SOURCES)
-DIST_SOURCES = $(freewrl_SOURCES)
+SOURCES = $(libFreeWRLEAI_la_SOURCES)
+DIST_SOURCES = $(libFreeWRLEAI_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+DATA = $(pkgconfig_DATA)
+HEADERS = $(libFreeWRLEAIinclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -197,7 +284,8 @@ am__define_uniq_tagged_files = \
 ETAGS = etags
 CTAGS = ctags
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.sources \
-	$(top_srcdir)/Makefile.globals $(top_srcdir)/config/depcomp
+	$(srcdir)/libFreeWRLEAI.pc.in $(top_srcdir)/Makefile.globals \
+	$(top_srcdir)/config/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALUT_CFLAGS = @ALUT_CFLAGS@
@@ -425,26 +513,47 @@ CXX_SPECIFIC = -fpermissive
 # Get global variables for Makefile defined by toplevel Makefile.globals
 
 # Just add variables tested and checked by troplevel configure
+
+# General libraries used with all platforms
 AM_CPPFLAGS = $(CC_WARNINGS) $(CC_GENERAL) $(PTHREAD_CFLAGS) \
-	$(JAVASCRIPT_ENGINE_CFLAGS) $(X_CFLAGS) $(XAW_CFLAGS) \
-	$(MOTIF_CFLAGS) $(GL_CFLAGS) -I$(LIBFREEWRL_SRCDIR)
-AM_CFLAGS = $(DEBUG_FLAGS) $(am__append_1) $(am__append_2) \
-	$(am__append_3)
+	$(FREETYPE_CFLAGS) $(EXPAT_CFLAGS) $(XML_CFLAGS) \
+	$(JAVASCRIPT_ENGINE_CFLAGS) $(GL_CFLAGS) $(PNG_CFLAGS) \
+	$(am__append_3) $(am__append_5) $(am__append_7) \
+	-DBUILD_TIMESTAMP=\"$(BUILD_TIMESTAMP)\" \
+	-I$(LIBFREEWRL_SRCDIR) -I$(LIBFREEWRL_SRCDIR)/input \
+	$(am__append_8) $(am__append_9) $(am__append_10) \
+	$(am__append_11)
+AM_CFLAGS = $(DEBUG_FLAGS) $(am__append_1) $(am__append_2)
 AM_CXXFLAGS = $(AM_CFLAGS) $(CXX_SPECIFIC)
 AM_LDFLAGS = $(DEBUG_FLAGS) $(LD_OPTS)
-_EV = $(top_srcdir)/versions/FREEWRL
+EXTERNAL_LIBS = $(FREETYPE_LIBS) $(JAVASCRIPT_ENGINE_LIBS) $(XML_LIBS) \
+	$(EXPAT_LIBS) $(GL_LIBS) $(JPEG_LIBS) $(PNG_LIBS) \
+	$(am__append_4) $(am__append_6)
+### -DSVR4 -D_BSD_SOURCE -DPOSIX_SOURCE -D_POSIX_C_SOURCE -DDARWIN
+_EV = $(top_srcdir)/versions/LIBFREEWRLEAI
+_EV2 = $(top_srcdir)/versions/LIBFREEWRLEAI_LTVERSION
 templ = $(top_srcdir)/versions/template/version.c.in
-component = freewrl
-FREEWRL_VERSION = `cat $$_EV`
+component = libFreeWRLEAI
+LIBFREEWRLEAI_VERSION = `cat $$_EV`
+LIBFREEWRLEAI_LTVERSION = `cat $$_EV2`
+BUILD_TIMESTAMP = `date +%F_%T`
 # And add it to the list of files to clean
 CLEANFILES = internal_version.c
-
-# Compile/Link with FreeWRL library
 LIBFREEWRL_SRCDIR = $(top_srcdir)/src/lib
 LIBFREEWRL_BUILDDIR = $(top_builddir)/src/lib
-freewrl_LDADD = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la
-freewrl_SOURCES = main.c main.h internal.h system.h options.c \
-	options.h internal_version.c
+
+# To be able to check for libFreeWRLEAI with pkg-config
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libFreeWRLEAI.pc
+lib_LTLIBRARIES = libFreeWRLEAI.la
+libFreeWRLEAI_la_LDFLAGS = -version-info $(LIBFREEWRLEAI_LTVERSION) $(AM_LDFLAGS)
+libFreeWRLEAI_la_LIBADD = $(LIBFREEWRL_BUILDDIR)/libFreeWRL.la $(EXTERNAL_LIBS)
+libFreeWRLEAIincludedir = $(includedir)/FreeWRLEAI
+libFreeWRLEAI_la_SOURCES = EAI_C_Advise.c EAI_C_Control.c \
+	EAI_C_Field.c EAI_C_Internals.c EAI_C_Node.c EAI_C_ReWire.c \
+	GeneratedCode.c internal_version.c
+libFreeWRLEAIinclude_HEADERS = EAI_C.h GeneratedHeaders.h X3DNode.h \
+	$(LIBFREEWRL_SRCDIR)/input/EAIHeaders.h
 all: all-am
 
 .SUFFIXES:
@@ -458,9 +567,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/Makefile.globals $(s
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/bin/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/libeai/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/bin/Makefile
+	  $(AUTOMAKE) --gnu src/libeai/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -479,59 +588,46 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-binPROGRAMS: $(bin_PROGRAMS)
+libFreeWRLEAI.pc: $(top_builddir)/config.status $(srcdir)/libFreeWRLEAI.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(bindir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(bindir)" || exit 1; \
-	fi; \
-	for p in $$list; do echo "$$p $$p"; done | \
-	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p \
-	 || test -f $$p1 \
-	  ; then echo "$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n;h' \
-	    -e 's|.*|.|' \
-	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
-	sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
-	    else { print "f", $$3 "/" $$4, $$1; } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	    test -z "$$files" || { \
-	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
-	    } \
-	; done
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
+	}
 
-uninstall-binPROGRAMS:
+uninstall-libLTLIBRARIES:
 	@$(NORMAL_UNINSTALL)
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
-	      -e 's/$$/$(EXEEXT)/' \
-	`; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	for p in $$list; do \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
+	done
 
-clean-binPROGRAMS:
-	@list='$(bin_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
 
-freewrl$(EXEEXT): $(freewrl_OBJECTS) $(freewrl_DEPENDENCIES) $(EXTRA_freewrl_DEPENDENCIES) 
-	@rm -f freewrl$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(freewrl_OBJECTS) $(freewrl_LDADD) $(LIBS)
+libFreeWRLEAI.la: $(libFreeWRLEAI_la_OBJECTS) $(libFreeWRLEAI_la_DEPENDENCIES) $(EXTRA_libFreeWRLEAI_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libFreeWRLEAI_la_LINK) -rpath $(libdir) $(libFreeWRLEAI_la_OBJECTS) $(libFreeWRLEAI_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -539,9 +635,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/internal_version.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/options.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EAI_C_Advise.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EAI_C_Control.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EAI_C_Field.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EAI_C_Internals.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EAI_C_Node.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EAI_C_ReWire.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GeneratedCode.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/internal_version.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -578,6 +679,48 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-pkgconfigDATA: $(pkgconfig_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(pkgconfig_DATA)'; test -n "$(pkgconfigdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgconfigdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pkgconfigdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkgconfigdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkgconfigdir)" || exit $$?; \
+	done
+
+uninstall-pkgconfigDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(pkgconfig_DATA)'; test -n "$(pkgconfigdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(pkgconfigdir)'; $(am__uninstall_files_from_dir)
+install-libFreeWRLEAIincludeHEADERS: $(libFreeWRLEAIinclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(libFreeWRLEAIinclude_HEADERS)'; test -n "$(libFreeWRLEAIincludedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libFreeWRLEAIincludedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libFreeWRLEAIincludedir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(libFreeWRLEAIincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(libFreeWRLEAIincludedir)" || exit $$?; \
+	done
+
+uninstall-libFreeWRLEAIincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(libFreeWRLEAIinclude_HEADERS)'; test -n "$(libFreeWRLEAIincludedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(libFreeWRLEAIincludedir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -666,9 +809,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(LTLIBRARIES) $(DATA) $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" "$(DESTDIR)$(libFreeWRLEAIincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -704,12 +847,18 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
+	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/internal_version.Po
-	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f ./$(DEPDIR)/options.Po
+		-rm -f ./$(DEPDIR)/EAI_C_Advise.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Control.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Field.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Internals.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Node.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_ReWire.Plo
+	-rm -f ./$(DEPDIR)/GeneratedCode.Plo
+	-rm -f ./$(DEPDIR)/internal_version.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -726,13 +875,14 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-libFreeWRLEAIincludeHEADERS \
+	install-pkgconfigDATA
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS
+install-exec-am: install-libLTLIBRARIES
 
 install-html: install-html-am
 
@@ -755,9 +905,14 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/internal_version.Po
-	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f ./$(DEPDIR)/options.Po
+		-rm -f ./$(DEPDIR)/EAI_C_Advise.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Control.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Field.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Internals.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_Node.Plo
+	-rm -f ./$(DEPDIR)/EAI_C_ReWire.Plo
+	-rm -f ./$(DEPDIR)/GeneratedCode.Plo
+	-rm -f ./$(DEPDIR)/internal_version.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -774,39 +929,43 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am: uninstall-libFreeWRLEAIincludeHEADERS \
+	uninstall-libLTLIBRARIES uninstall-pkgconfigDATA
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
-	clean-binPROGRAMS clean-generic clean-libtool cscopelist-am \
+	clean-generic clean-libLTLIBRARIES clean-libtool cscopelist-am \
 	ctags ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-binPROGRAMS \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
+	html-am info info-am install install-am install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-libFreeWRLEAIincludeHEADERS \
+	install-libLTLIBRARIES install-man install-pdf install-pdf-am \
+	install-pkgconfigDATA install-ps install-ps-am install-strip \
 	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
+	tags tags-am uninstall uninstall-am \
+	uninstall-libFreeWRLEAIincludeHEADERS uninstall-libLTLIBRARIES \
+	uninstall-pkgconfigDATA
 
 .PRECIOUS: Makefile
 
-
-# Mac OSX gcc does not support by default nested functions...
-@OS_MAC_TRUE@AM_CFLAGS ?= $(AM_CFLAGS)
 export
 
 # Generate the version source file
 internal_version.c: $(_EV)
 	$(top_builddir)/vtempl $(component) \
-	$(FREEWRL_VERSION) < $(templ) > $@
+	$(LIBFREEWRLEAI_VERSION) < $(templ) > $@
 
 newversion:
 	-rm -f internal_version.*
 	$(MAKE)
+
+GeneratedCode.c: $(top_srcdir)/codegen/VRMLC.pm
+	cd $(top_srcdir)/codegen && perl VRMLC.pm
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

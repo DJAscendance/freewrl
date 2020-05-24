@@ -1,0 +1,351 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* Path to internet browser */
+#undef BROWSER
+
+/* Directory for fonts. */
+#undef FONTS_DIR
+
+/* The FreeWRL message wrapper program name. */
+#undef FREEWRL_MESSAGE_WRAPPER
+
+/* The FreeWRL plugin shared object name. */
+#undef FREEWRL_PLUGIN
+
+/* The FreeWRL program name. */
+#undef FREEWRL_PROGRAM
+
+/* enable colorized thread console output (default=off) */
+#undef FREEWRL_THREAD_COLORIZED
+
+/* enable debugging (default=off) */
+#undef FW_DEBUG
+
+/* enable debugging (default=off) */
+#undef FW_DEBUG_PLUGIN
+
+/* enable doc generation (default=off) */
+#undef FW_DOCS
+
+/* Define if you have freeALUT installed. */
+#undef HAVE_ALUT
+
+/* Define to 1 if you have the `calloc' function. */
+#undef HAVE_CALLOC
+
+/* Define to 1 if you have the <CL/cl.h> header file. */
+#undef HAVE_CL_CL_H
+
+/* Define to 1 if you have the <ctype.h> header file. */
+#undef HAVE_CTYPE_H
+
+/* Define to 1 if you have the <dirent.h> header file. */
+#undef HAVE_DIRENT_H
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the <errno.h> header file. */
+#undef HAVE_ERRNO_H
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
+/* Define if you have fontconfig installed. */
+#undef HAVE_FONTCONFIG
+
+/* Define to 1 if you have the `fork' function. */
+#undef HAVE_FORK
+
+/* Define to 1 if you have the `getopt' function. */
+#undef HAVE_GETOPT
+
+/* Define to 1 if you have the <getopt.h> header file. */
+#undef HAVE_GETOPT_H
+
+/* Define to 1 if you have the `getopt_long' function. */
+#undef HAVE_GETOPT_LONG
+
+/* Define to 1 if you have the `getopt_long_only' function. */
+#undef HAVE_GETOPT_LONG_ONLY
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#undef HAVE_GETTIMEOFDAY
+
+/* Define if IMLIB2 exists */
+#undef HAVE_IMLIB2
+
+/* Define to 1 if the system has the type `int16'. */
+#undef HAVE_INT16
+
+/* Define to 1 if the system has the type `int32'. */
+#undef HAVE_INT32
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <jpeglib.h> header file. */
+#undef HAVE_JPEGLIB_H
+
+/* Define if you have the libcurl library. */
+#undef HAVE_LIBCURL
+
+/* Define to 1 if you have the `jpeg' library (-ljpeg). */
+#undef HAVE_LIBJPEG
+
+/* Define to 1 if you have the `z' library (-lz). */
+#undef HAVE_LIBZ
+
+/* Define to 1 if you have the <X11/extensions/Print.h> header file. */
+#undef HAVE_LIB_XP
+
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
+
+/* Define to 1 if you have the `malloc' function. */
+#undef HAVE_MALLOC
+
+/* Define to 1 if you have the <math.h> header file. */
+#undef HAVE_MATH_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have Motif. */
+#undef HAVE_MOTIF
+
+/* Define if you have nspr installed. */
+#undef HAVE_NSPR
+
+/* Define if you have OpenAL installed. */
+#undef HAVE_OPENAL
+
+/* We have the OpenCL library headers. */
+#undef HAVE_OPENCL
+
+/* Define if you have POSIX threads libraries and header files. */
+#undef HAVE_PTHREAD
+
+/* Define to 1 if you have the `pthread_cancel' function. */
+#undef HAVE_PTHREAD_CANCEL
+
+/* Define to 1 if you have the `realloc' function. */
+#undef HAVE_REALLOC
+
+/* Define to 1 if you have the <sched.h> header file. */
+#undef HAVE_SCHED_H
+
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
+
+/* Define to 1 if you have the <stdarg.h> header file. */
+#undef HAVE_STDARG_H
+
+/* Define to 1 if stdbool.h conforms to C99. */
+#undef HAVE_STDBOOL_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `strchr' function. */
+#undef HAVE_STRCHR
+
+/* Define to 1 if you have the `strdup' function. */
+#undef HAVE_STRDUP
+
+/* Define to 1 if you have the `strerror' function. */
+#undef HAVE_STRERROR
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strndup' function. */
+#undef HAVE_STRNDUP
+
+/* Define to 1 if you have the `strrchr' function. */
+#undef HAVE_STRRCHR
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/ipc.h> header file. */
+#undef HAVE_SYS_IPC_H
+
+/* Define to 1 if you have the <sys/msg.h> header file. */
+#undef HAVE_SYS_MSG_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#undef HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <time.h> header file. */
+#undef HAVE_TIME_H
+
+/* Define to 1 if the system has the type `uint16'. */
+#undef HAVE_UINT16
+
+/* Define to 1 if the system has the type `uint32'. */
+#undef HAVE_UINT32
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `usleep' function. */
+#undef HAVE_USLEEP
+
+/* Define to 1 if you have the `vfork' function. */
+#undef HAVE_VFORK
+
+/* Define to 1 if you have the <vfork.h> header file. */
+#undef HAVE_VFORK_H
+
+/* Define to 1 if `fork' works. */
+#undef HAVE_WORKING_FORK
+
+/* Define to 1 if `vfork' works. */
+#undef HAVE_WORKING_VFORK
+
+/* Define to 1 if you have the <X11/extensions/xf86vmode.h> header file. */
+#undef HAVE_X11_EXTENSIONS_XF86VMODE_H
+
+/* Define if you have the Xxf86vm library. */
+#undef HAVE_XF86_VMODE
+
+/* Define to 1 if you have the <zlib.h> header file. */
+#undef HAVE_ZLIB_H
+
+/* Define to 1 if the system has the type `_Bool'. */
+#undef HAVE__BOOL
+
+/* Imlib2 will save snapshots directly to png */
+#undef IMAGECONVERT
+
+/* Parse STL Files */
+#undef INCLUDE_STL_FILES
+
+/* Path to java archiver */
+#undef JAR
+
+/* Path to java compiler */
+#undef JAVAC
+
+/* Define for duktape js engine */
+#undef JAVASCRIPT_DUK
+
+/* Define for spidermonkey js engine */
+#undef JAVASCRIPT_SM
+
+/* Define for no javascript */
+#undef JAVASCRIPT_STUB
+
+/* Directory for java classes. */
+#undef JAVA_DIR
+
+/* enable Java support (default=off) */
+#undef JAVA_SUPPORT
+
+/* Define for spidermonkey c++ js engine >= 24 */
+#undef JS_SMCPP
+
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
+#undef LT_OBJDIR
+
+/* Define if you have ffmpeg libs installed. */
+#undef MOVIETEXTURE_FFMPEG
+
+/* Use Original Java Interface within plugin */
+#undef OJI
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Directory where to install browser plugin. */
+#undef PLUGIN_DIR
+
+/* Define to necessary symbol if this constant uses a non-standard name on
+   your system. */
+#undef PTHREAD_CREATE_JOINABLE
+
+/* Define as the return type of signal handlers (`int' or `void'). */
+#undef RETSIGTYPE
+
+/* always define .. for builtin menu */
+#undef STATUSBAR_HUD
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Path to zip decompressor */
+#undef UNZIP
+
+/* Define if you want snapshot testing */
+#undef USE_SNAPSHOT_TESTING
+
+/* Version number of package */
+#undef VERSION
+
+/* Install 2D overlay */
+#undef WANT_2D_OVER
+
+/* Define if liblo exists and OSC support wanted */
+#undef WANT_OSC
+
+/* Path to http fetcher */
+#undef WGET
+
+/* Define if DIS support wanted */
+#undef WITH_DIS
+
+/* Define if ODE exists and RBP support wanted */
+#undef WITH_RBP
+
+/* Define to 1 if the X Window System is missing or not being used. */
+#undef X_DISPLAY_MISSING
+
+/* Define to the type of a signed integer type of width exactly 32 bits if
+   such a type exists and the standard includes do not define it. */
+#undef int32_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
+
+/* Define as `fork' if `vfork' does not work. */
+#undef vfork
