@@ -34,6 +34,8 @@ all:
 
 install:
 
+uninstall:
+
 # Make the library:
 $(TESS_LIB_NAME): $(TESS_LIB_NAME)($(OBJECTS))
 
