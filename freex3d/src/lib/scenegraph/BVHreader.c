@@ -70,11 +70,11 @@ static int chan_lookup(char *cname){
 	
 }
 
-char * getline(char *line, int maxlen, char **position){
+char * getline2(char *line, int maxlen, char **position){
 	char *cur = *position;
 	char *end = strstr(cur,"\n");
 	if(end == NULL) return NULL;
-	int len = min(end-cur,maxlen-1);
+	int len = fmin(end-cur,maxlen-1);
 	memcpy(line,cur,len);
 	line[len] = '\0';
 	*position = &cur[len+1];
@@ -101,7 +101,7 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 	float global_scale = 1.0f;
 
 	pos = blob;
-	rv = getline(line,2048,&pos);
+	rv = getline2(line,2048,&pos);
 
 
     // Split by whitespace.
@@ -122,7 +122,7 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 	cjoint = ccjoints; //malloc(100 * sizeof(struct joint_frame_motion));
 	memset(cjoint,0,100*sizeof(struct joint_frame_motion));
 	int mjoint = 0;
-	while( getline(line,2048,&pos)){
+	while( getline2(line,2048,&pos)){
         //...
 		token = strtok(line,delims);
 		//printf("token %s\n",token);
@@ -189,14 +189,14 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
     // start of motion channel float values, starting with:
     //  Frames: n
     //  Frame Time: dt
-	getline(line,2048,&pos); //Frames:	2752
+	getline2(line,2048,&pos); //Frames:	2752
 	token = strtok(line,delims); //frames:
 	if(!strcasecmp(token,"frames:")){
 		token = strtok(NULL,delims); //2752
 		sscanf(token,"%d",bvh_frame_count);
 	}
 
-	getline(line,2048,&pos); //Frame Time:	0.00833333
+	getline2(line,2048,&pos); //Frame Time:	0.00833333
 	token = strtok(line,delims); //frame
 	if(!strcasecmp(token,"frame")){
 		token = strtok(NULL,delims); //time

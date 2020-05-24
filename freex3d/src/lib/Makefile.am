@@ -130,12 +130,12 @@ endif
 # WINDOW_USE_* are exclusive
 #
 if WINDOW_USE_X11
-libFreeWRL_la_SOURCES += ui/fwCommonX11.c ui/fwBareWindow.c ui/fwBareWindow.h
+libFreeWRL_la_SOURCES += ui/fwCommonX11.c ui/fwBareWindow.c ui/fwBareWindow.h scenegraph/BVHreader.c
 AM_CPPFLAGS+=-DTARGET_X11
 endif
 
 if WINDOW_USE_MOTIF
-libFreeWRL_la_SOURCES += ui/fwCommonX11.c ui/fwMotifWindow.c
+libFreeWRL_la_SOURCES += ui/fwCommonX11.c ui/fwMotifWindow.c 
 AM_CPPFLAGS+=-DTARGET_MOTIF
 endif
 

@@ -391,6 +391,10 @@ case "$TARGET" in
 	;;
      *)
         AC_FIND_OPENGL
+        GL_CFLAGS="-DANGLE=1"
+        AC_SUBST(GL_CFLAGS)
+        GL_LIBS="-lGLU -lGL"
+        AC_SUBST(GL_LIBS)
         ;;
 esac
 
@@ -892,8 +896,6 @@ src/libeai/Makefile
 src/libeai/libFreeWRLEAI.pc
 src/sound/Makefile
 src/java/Makefile
-src/libtess/Makefile
-src/libnurbs/Makefile
 src/message/Makefile])
 
 AC_OUTPUT
