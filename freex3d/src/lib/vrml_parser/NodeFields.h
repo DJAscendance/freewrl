@@ -1256,6 +1256,12 @@ FIELD(GeoProximitySensor,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoProximitySensor,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 END_NODE(GeoProximitySensor)
 
+/* GeoSystem node */
+BEGIN_NODE(GeoSystem)
+EXPOSED_FIELD(GeoSystem,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSystem,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+END_NODE(GeoSystem)
+
 /* GeoTouchSensor node */
 BEGIN_NODE(GeoTouchSensor)
 EXPOSED_FIELD(GeoTouchSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
@@ -2306,6 +2312,7 @@ END_NODE(MotorJoint)
 
 /* MovieTexture node */
 BEGIN_NODE(MovieTexture)
+EXPOSED_FIELD(MovieTexture,connect,mfnode,connect,FIELDTYPE_MFNode,UNCA_NONE)
 EXPOSED_FIELD(MovieTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(MovieTexture,loop,sfbool,loop,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(MovieTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -2347,6 +2354,31 @@ BEGIN_NODE(MultiTextureTransform)
 EXPOSED_FIELD(MultiTextureTransform,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(MultiTextureTransform,textureTransform,mfnode,textureTransform,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(MultiTextureTransform)
+
+/* MultitouchSensor node */
+BEGIN_NODE(MultitouchSensor)
+EXPOSED_FIELD(MultitouchSensor,autoOffset,sfbool,autoOffset,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,axisRotation,sfrotation,axisRotation,FIELDTYPE_SFRotation,UNCA_ANGLE)
+EXPOSED_FIELD(MultitouchSensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,maxPosition,sfvec2f,maxPosition,FIELDTYPE_SFVec2f,UNCA_LENGTH)
+EXPOSED_FIELD(MultitouchSensor,minPosition,sfvec2f,minPosition,FIELDTYPE_SFVec2f,UNCA_LENGTH)
+EXPOSED_FIELD(MultitouchSensor,offset,sfvec3f,offset,FIELDTYPE_SFVec3f,UNCA_LENGTH)
+EVENT_OUT(MultitouchSensor,isActive,sfbool,isActive,FIELDTYPE_SFBool)
+EVENT_OUT(MultitouchSensor,isOver,sfbool,isOver,FIELDTYPE_SFBool)
+EXPOSED_FIELD(MultitouchSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EVENT_OUT(MultitouchSensor,translation_changed,sfvec3f,translation_changed,FIELDTYPE_SFVec3f)
+EXPOSED_FIELD(MultitouchSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(MultitouchSensor,sensorLocalOutput,sfbool,sensorLocalOutput,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,translationOffset,sfvec3f,translationOffset,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,rotationOffset,sfrotation,rotationOffset,FIELDTYPE_SFRotation,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,scaleOffset,sfvec3f,scaleOffset,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,minScale,sfvec3f,minScale,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(MultitouchSensor,maxScale,sfvec3f,maxScale,FIELDTYPE_SFVec3f,UNCA_NONE)
+EVENT_OUT(MultitouchSensor,rotation_changed,sfrotation,rotation_changed,FIELDTYPE_SFRotation)
+EVENT_OUT(MultitouchSensor,scale_changed,sfvec3f,scale_changed,FIELDTYPE_SFVec3f)
+EVENT_OUT(MultitouchSensor,trackPoints_changed,mfvec3f,trackPoints_changed,FIELDTYPE_MFVec3f)
+EVENT_OUT(MultitouchSensor,touches_changed,mfint32,touches_changed,FIELDTYPE_MFInt32)
+END_NODE(MultitouchSensor)
 
 /* NavigationInfo node */
 BEGIN_NODE(NavigationInfo)

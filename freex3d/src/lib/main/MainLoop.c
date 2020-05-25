@@ -4221,7 +4221,7 @@ void emulate_multitouch(int mev, unsigned int button, int x, int ydown, int wind
 	   GRAB/MOVE a touch with LMB down and drag
 	   ID=0 reserved for 'normal' cursor
 	*/
-    int i,ifound,ID,y;
+    int i,ifound,ID,y, inoisy = 0;
 	struct Touch *touch;
 	static int buttons[4] = {0,0,0,0};
 	static int idone = 0;
@@ -4264,7 +4264,7 @@ void emulate_multitouch(int mev, unsigned int button, int x, int ydown, int wind
 			fwl_handle_mouse_multi_yup(ButtonRelease,LMB,x,y,ID,windex);
 			//delete
 			touch->ID = -1;
-			printf("delete ID=%d windex=%d\n",ID,windex);
+			if(inoisy) printf("delete ID=%d windex=%d\n",ID,windex);
 		}
 		//else create
 		if(!ifound){
@@ -4275,7 +4275,7 @@ void emulate_multitouch(int mev, unsigned int button, int x, int ydown, int wind
 					fwl_handle_mouse_multi_yup(mev, LMB, x, y, i,windex);
 					touch->rx = x;
 					touch->ry = y;
-					printf("create ID=%d windex=%d\n",i,windex);
+					if(inoisy) printf("create ID=%d windex=%d\n",i,windex);
 					break;
 				}
 			}
@@ -4356,7 +4356,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 	   GRAB/MOVE a touch with LMB down and drag
 	   ID=0 reserved for 'normal' cursor
 	*/
-    int i,ihandle;
+    int i,ihandle, inoisy=0;
 	struct Touch *touch;
 	static int idone = 0;
 	ppMainloop p;
@@ -4381,7 +4381,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 				if(touch->windex == windex ) //&& touch->stageId == current_stageId())
 				if((abs(x - touch->rx) < 10) && (abs(y - touch->ry) < 10)){
 					*IDD = i;
-					printf("drag found ID %d\n",*IDD);
+					if(inoisy) printf("drag found ID %d\n",*IDD);
 					break;
 				}
 			}
@@ -4400,7 +4400,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 				touch = &touchlist[*IDD];
 				touch->rx = x;
 				touch->ry = y;
-				printf("drag ID=%d \n",*IDD);
+				if(inoisy) printf("drag ID=%d \n",*IDD);
 			}
 		}else if(*mev == ButtonRelease){
 			*IDD = -1;
@@ -4417,7 +4417,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 				ihandle = -2;  //caller must propagate handle_mouse, then set ID = -1;
 				//delete
 				//touch->ID = -1; //this gets overwritten
-				printf("delete ID=%d windex=%d ihandle=%d\n",*IDD,windex,ihandle);
+				if(inoisy) printf("delete ID=%d windex=%d ihandle=%d\n",*IDD,windex,ihandle);
 			}
 			//else create
 			if(*IDD == -1){
@@ -4433,7 +4433,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 						touch->rx = x;
 						touch->ry = y;
 						touch->inUse = TRUE;
-						printf("create ID=%d windex=%d\n",i,windex);
+						if(inoisy) printf("create ID=%d windex=%d\n",i,windex);
 						break;
 					}
 				}
@@ -4933,7 +4933,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 	} else {
 		p->loop_count++;
 	}
-
+	tg->Mainloop.iframe++;
 	tg->Mainloop.trisThisLoop = 0;
 
 	if(p->slowloop_count == 1009) p->slowloop_count = 0 ;
@@ -5159,7 +5159,7 @@ void setup_picking(){
 			x = touch->x;
 			yup = touch->y;
 			if(touch->claimant == TOUCHCLAIMANT_SENSOR || (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)) {
-				//ConsoleMessage("setup_picking x %d y %d ID %d but %d mev %d\n",touch->x,touch->y,touch->ID,touch->buttonState[LMB],touch->mev);
+				//ConsoleMessage("setup_picking x %d y %d ID %d but %d mev %d\n",touch->x,touch->y,touch->ID,touch->buttonState,touch->mev);
 				if(setup_pickside(x,yup)){
 					// There can be multiple paths to a parent transform of a sensor node:
 					// touch 1:M path M:1 transform/parent 1:M SensorEvent M:1 Sensor
@@ -5228,7 +5228,7 @@ void setup_picking(){
 					#endif /* VERBOSE */
 
 					if(touch->claimant != TOUCHCLAIMANT_SENSOR) continue; //navigation touch
-
+					tg->RenderFuncs.touchID = touch->ID;
 					/* did we have a click of button 1? */
 					//if (p->ButDown[p->currentCursor][1] && (p->lastPressedOver==NULL)) {
 					//if (touch->buttonState[LMB] && (touch->lastPressedOver==NULL)) {
@@ -6721,6 +6721,7 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 		case NODE_LineSensor: myp = (void *)do_LineSensor; break;
 		case NODE_PointSensor: myp = (void *)do_PointSensor; break;
 		case NODE_PlaneSensor: myp = (void *)do_PlaneSensor; break;
+		case NODE_MultitouchSensor: myp = (void *)do_MultitouchSensor; break;
 		case NODE_CylinderSensor: myp = (void *)do_CylinderSensor; break;
 		case NODE_SphereSensor: myp = (void *)do_SphereSensor; break;
 		case NODE_ProximitySensor: /* it is time sensitive only, NOT render sensitive */ return; break;
@@ -8097,6 +8098,7 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
 					case NODE_LineSensor: ns = ((struct X3D_LineSensor *)se->datanode)->description->strptr; break;
 					case NODE_PointSensor: ns = ((struct X3D_PointSensor *)se->datanode)->description->strptr; break;
 					case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)se->datanode)->description->strptr; break;
+					case NODE_MultitouchSensor: ns = ((struct X3D_MultitouchSensor *)se->datanode)->description->strptr; break;
 					case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)se->datanode)->description->strptr; break;
 					case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)se->datanode)->description->strptr; break;
 					case NODE_GeoTouchSensor: ns = ((struct X3D_GeoTouchSensor *)se->datanode)->description->strptr; break;

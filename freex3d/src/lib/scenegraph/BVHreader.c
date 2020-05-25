@@ -20,7 +20,7 @@ What X3D needs is HAnim2MotionData.
 #include <malloc.h>
 #include <stdlib.h>
 #include "LinearAlgebra.h"
-
+#include <stdio.h>
 #define TRUE 1
 #define FALSE 0
 #define NULL ((void *)0)
@@ -217,14 +217,18 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 	int k = 0;
 	//char *delims2 = " ,\t\r\n";
 	char *str = pos;
+	//FILE * fout = fopen("single_row.bvh","w+");
 	for(int iframe=0;iframe<*bvh_frame_count;iframe++){
         for(int i=0;i<*channel_count;i++){
 			token = strtok(str,delims);
 			str = NULL; //so next strtok(NULL,...)
 			sscanf(token,"%f",&fvalues[k]);
+			//fprintf(fout,"%f ",fvalues[k]);
 			k++;
 		}
+		//fprintf(fout,"\n");
 	}
+	//fclose(fout);
 
 	//convert degrees to radians
 	for(int iframe=0;iframe< *bvh_frame_count;iframe++){

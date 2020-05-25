@@ -479,6 +479,8 @@ void locateAudioSource (struct X3D_AudioClip *node) {
 			} else if ((res->status == ress_failed) || (res->status == ress_invalid)) {
 				//no hope left
 				printf ("resource failed to load\n");
+				for(int ii=0;ii<node->url.n;ii++)
+					printf ("-- url[%d]=%s\n",ii,node->url.p[ii]);
 				node->__loadstatus = LOAD_STABLE; // a "do-nothing" approach 
 				node->__sourceNumber = BADAUDIOSOURCE;
 			} else	if (res->status == ress_parsed) {
@@ -1170,8 +1172,9 @@ void render_connections(struct X3D_AudioNode *source, struct Multi_Node *connect
 }
 
 void compile_AudioContext(struct X3D_AudioContext *node){
+	//libsound_testNoise();
 	void * context = libsound_createContext();
-	node->_context = context;
+	//node->_context = context;
 	MARK_NODE_COMPILED
 }
 void render_AudioContext(struct X3D_AudioContext *node){

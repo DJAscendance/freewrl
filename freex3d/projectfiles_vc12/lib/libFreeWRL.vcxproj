@@ -84,7 +84,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(LIBWIN)\freeALUT\include;$(LIBWIN)\openALsoft\include;$(SRC)\libminizip;$(LIBWIN)\js185\include;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\Lib;$(SRCWIN);$(LIBWIN)\pthreadS.2;$(LIBWIN)\zlib\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;$(LIBWIN)\ffmpeg\x86xp\include;$(LIBWIN)\ODE;$(LIBWIN)\srm\include;$(LIBWIN)\geographicLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_SM;JAVASCRIPT_DUK;XP_WIN;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;STATUSBAR_HUD;STATUSBAR_STD_no;STATUSBAR_NONE_no;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_not;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;USE_SNAPSHOT_TESTING_NO;MULTI_WINDOW;WITH_RBP;WITH_DIS;MOVIETEXTURE_FFMPEG;dIDEDOUBLE;HAVE_GEOLIB_no;HAVE_SRM_no;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_SM;JAVASCRIPT_DUK;XP_WIN;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;STATUSBAR_HUD;STATUSBAR_STD_no;STATUSBAR_NONE_no;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_not;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;USE_SNAPSHOT_TESTING_NO;MULTI_WINDOW;WITH_RBP;WITH_DIS;MOVIETEXTURE_FFMPEG;dIDEDOUBLE;HAVE_GEOLIB_no;HAVE_SRM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>

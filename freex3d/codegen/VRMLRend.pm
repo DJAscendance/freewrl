@@ -149,6 +149,7 @@ our %defaultContainerType = (
 	PickableGroup 		=>["children"],
 	PixelTexture 		=>["texture"],
 	PlaneSensor 		=>["children"],
+	MultitouchSensor 	=>["children"],
 	PointSensor 		=>["children"],
 	PointLight 		=>["children"],
 	PointSet 		=>["geometry"],
@@ -497,6 +498,7 @@ our %RendC = map {($_=>1)} qw/
 	ChannelMergerNode
 	AudioListener
 	PannerNode
+	GeoSystem
 	
 /;
 
@@ -820,7 +822,7 @@ our %CompileC = map {($_=>1)} qw/
 	ChannelMergerNode
 	AudioListener
 	PannerNode
-	
+	GeoSystem
 /;
 
 

@@ -1694,7 +1694,272 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	}
 
 }
+struct ID_point {
+int ID;
+float p[3];
+};
+int lookup_ID(struct ID_point* idp, int n, int touchID){
+	int j = -1;
+	for(int i=0;i<n;i++){
+		if(idp[i].ID == touchID) {
+			j = i; break;
+		}
+	}
+	return j;
+}
+void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
+	struct X3D_MultitouchSensor *node;
+	float nx, ny, trackpoint[3], inverserotation[4], *posn;
+	float tr[3];
+	int tmp, imethod, touchID;
 
+	ttglobal tg;
+	UNUSED(over);
+	node = (struct X3D_MultitouchSensor *)ptr;
+#ifdef SENSVERBOSE
+	ConsoleMessage("%lf: TS ",TickTime());
+	if (ev==ButtonPress) ConsoleMessage("ButtonPress ");
+	else if (ev==ButtonRelease) ConsoleMessage("ButtonRelease ");
+	else if (ev==KeyPress) ConsoleMessage("KeyPress ");
+	else if (ev==KeyRelease) ConsoleMessage("KeyRelease ");
+	else if (ev==MotionNotify) ConsoleMessage("MotionNotify ");
+	else ConsoleMessage("ev %d ",ev);
+	
+	if (but1) ConsoleMessage("but1 TRUE "); else ConsoleMessage("but1 FALSE ");
+	if (over) ConsoleMessage("over TRUE "); else ConsoleMessage("over FALSE ");
+	ConsoleMessage ("\n");
+#endif
+
+	/* if not enabled, do nothing */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node),offsetof (struct X3D_PlaneSensor, enabled));
+	}
+	if (!node->enabled) 
+		return;
+	tg = gglobal();
+	if(!node->_orig_points){
+		node->_orig_points = malloc(32 *sizeof(struct ID_point));
+		node->_drag_points = malloc(32 *sizeof(struct ID_point));
+	}
+	struct ID_point *op = (struct ID_point*)node->_orig_points;
+	struct ID_point *dp = (struct ID_point*)node->_drag_points;
+	touchID = tg->RenderFuncs.touchID;
+
+	/* only do something when button pressed */
+	/* if (!but1) return; */
+	if (but1){
+		float v[3], t1[3];
+		float N[3] = { 0.0f, 0.0f, 1.0f }; //plane normal, in plane-local
+		float NS[3]; //plane normal, in sensor-local after axisRotation
+
+		//STRATEGY FOR MULTITOUCH: 
+		//MARK EVENT for a single touch, then over-write it with 
+		// multitouch results if a second touch shows up on the swame rendering frame/loop
+		if(node->_drag_count > 31) 
+			return; //how many fingers you you have?
+		if(tg->Mainloop.iframe != node->_lastframe){
+			node->_drag_count = 0;
+			node->_lastframe = tg->Mainloop.iframe;
+		}
+		//bearing (A,B) in sensor-local
+		// A=posn, B=norm - norm is a point. To get a direction vector v = (B - A)
+		//ConsoleMessage("hsp = %f %f %f \n", tg->RenderFuncs.hyp_save_posn[0], tg->RenderFuncs.hyp_save_posn[1], tg->RenderFuncs.hyp_save_posn[2]);
+		vecnormalize3f(v, vecdif3f(t1, tg->RenderFuncs.hyp_save_norm, tg->RenderFuncs.hyp_save_posn));
+		//rotate plane normal N, in plane-local to plane normal NS in sensor-local using axisRotation
+		axisangle_rotate3f(NS,N, node->axisRotation.c);
+		//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
+		// so we could use P={0,0,0} and P dot N = d = 0
+		posn = tg->RenderFuncs.hyp_save_posn;
+		//printf("%d %f %f \n",tg->RenderFuncs.touchID,posn[0],posn[1]);
+		if (!line_intersect_planed_3f(posn, v, NS, 0.0f, trackpoint, NULL))
+			return; //looking at plane edge-on / parallel, no intersection
+		//is rotating the trackpoint/translation_changed opposite sense to rotating the virtual geometry?
+		//-- we harmonize with x3dom and view3dscene 
+		veccopy4f(inverserotation,node->axisRotation.c);
+		inverserotation[3] = -inverserotation[3];
+		//axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
+		veccopy3f(dp[node->_drag_count].p,trackpoint);
+		dp[node->_drag_count].ID = touchID;
+		node->_drag_count++;
+	}
+
+	if ((ev==ButtonPress) && but1) {
+		/* record the current position from the saved position */
+		//struct SFColor op;
+		float *posn;
+		posn = tg->RenderFuncs.hyp_save_posn;
+
+		//veccopy3f(op.c, trackpoint);
+		veccopy3f(op[node->_orig_count].p,trackpoint);
+		op[node->_orig_count].ID = touchID;
+		node->_orig_count++;
+		//veccopy3f(ip[*touchpoin])
+		//memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
+		//if(node->_touchcount == 1)
+		//	veccopy3f(node->_origPoint.c,op.c);
+		//else if(node->_touchcount == 2)
+		//	veccopy3f(node->_origPoint2.c,op.c);
+
+		//printf("but down\n");
+		/* set isActive true */
+		node->isActive=TRUE;
+		MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+
+	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
+		/* hyperhit saved in render_hypersensitive phase */
+		//the calling function setup_picking() in mainloop is in a tight loop 
+		// over the number of touches in the current frame, and sends one touch at 
+		// at a time. So we wait and accumulate all the ongoing/current-frame drags/touches
+		// before doing real work.
+		if(node->_drag_count == node->_orig_count) {
+			float rot4[4]= {0.0f, 0.0f, 1.0f, 0.0f};
+			float scale3[3] = {1.0f,1.0f,1.0f};
+
+			nx = trackpoint[0]; ny = trackpoint[1];
+			#ifdef SEVERBOSE
+			ConsoleMessage ("now, nx %f ny %f op %f %f %f\n",nx,ny,
+				node->_origPoint.c[0],node->_origPoint.c[1],
+				node->_origPoint.c[2]);
+			#endif
+
+			/* trackpoint changed */
+			int ndrag = node->_drag_count;
+			node->trackPoints_changed.p = realloc(node->trackPoints_changed.p, ndrag*(sizeof(struct SFVec3f)));
+			node->trackPoints_changed.n = ndrag;
+			node->touches_changed.p = realloc(node->touches_changed.p,ndrag*(sizeof(int)));
+			node->touches_changed.n = ndrag;
+
+			for(int i=0; i<ndrag; i++){
+				struct ID_point* dragp = &((struct ID_point*)node->_drag_points)[i];
+				struct SFVec3f* p = (struct SFVec3f*)&node->trackPoints_changed.p[i];
+				int *itouch = &(node->touches_changed.p[i]);
+				if(!node->sensorLocalOutput){
+					axisangle_rotate3f(p->c,dragp->p, inverserotation);
+				}
+				*itouch = dragp->ID;
+			}
+			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
+			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, trackPoints_changed));
+			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, touches_changed));
+
+
+			//compute any translation, rotation, scaling 
+			switch(node->_drag_count){
+				case 0: break;
+				case 1: //translation only
+				{
+					//printf("case1 ");
+					int j = lookup_ID(op,node->_orig_count,touchID);
+					//printf("%d ",j);
+					vecdif3f(tr,dp[0].p,op[j].p);
+				}
+				break;
+				case 2: //translation, rotation 1 scale (similarity)
+				case 3: //translation, rotation, 2 scale (affine) maybe using least squares
+				default:
+				{
+					//printf("case2\n");
+					//we'll use the first 2 points and solve for single scale, rotation, xy translation (4 param)
+					//but more gnerally you could use least squares, and solve a closest fit 
+					// affine (2 scalea, shear, rot, xytrans = 6param, needs 3+ touches)
+					// to any number of points/touches
+					int j0 = lookup_ID(op,node->_orig_count,dp[0].ID);
+					int j1 = lookup_ID(op,node->_orig_count,dp[1].ID);
+					//printf("j0,j1 %d %d ^ dp ID 0,1 %d %d $ op ID j01 %d %d ",j0,j1,dp[0].ID, dp[1].ID,op[j0].ID,op[j1].ID);
+					if(j0 > -1 && j1 > -1){
+						float dif0[3],dif1[3],dif[3];
+						float *drag1,*drag0,*orig1,*orig0;
+						drag1 = dp[1].p; drag0=dp[0].p;
+						orig1 = op[j1].p; orig0 = op[j0].p;
+
+						vecdif3f(dif0,drag0,orig0);
+						vecdif3f(dif1,drag1,orig1);
+						vecadd3f(dif,dif0,dif1);
+						vecscale3f(tr,dif,.5f);
+						float odif[3], ddif[3];
+						vecdif3f(odif,orig1,orig0);
+						vecdif3f(ddif,drag1,drag0);
+						float scale = veclength3f(ddif)/veclength3f(odif);
+						vecset3f(scale3,scale,scale,1.0f);
+						float angle = angleNormalized(atan2(ddif[1],ddif[0]) - atan2(odif[1],odif[0]));
+						rot4[3] = angle;
+					}
+				}
+				break;
+			}
+
+			//translation 
+			vecadd3f(tr,tr,node->offset.c);
+			/* clamp translation to max/min position */
+			vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(tr,tr, node->axisRotation.c);
+			}
+			veccopy3f(node->_oldtranslation.c,tr);
+
+			if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
+				veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, translation_changed));
+			}
+
+			//scale
+			vecmult3f(scale3,scale3,node->scaleOffset.c);
+			/* clamp scale to max/min scale */
+			vecclamp2f(scale3,node->minScale.c,node->maxScale.c);
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(scale3,scale3, node->axisRotation.c);
+			}
+			veccopy3f(node->_oldscale.c,scale3);
+
+			if(!approx3f(node->_oldscale.c,node->scale_changed.c)) {
+				veccopy3f(node->scale_changed.c, (void *) node->_oldscale.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, scale_changed));
+			}
+
+			//rotation
+			axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
+			veccopy4f(node->_oldrotation.c,rot4);
+
+			if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
+				veccopy4f(node->rotation_changed.c, (void *) node->_oldrotation.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, rotation_changed));
+			}
+
+
+/*
+		hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+*/
+
+		} //if drag_count == orig_count
+	} else if (ev==ButtonRelease) {
+		//delete released touch from orig_points
+		printf("R");
+		for(int i=0;i<node->_orig_count;i++){
+			if(op[i].ID == touchID){
+				for(int j=i+1;j<node->_orig_count;j++)
+					op[j-1] = op[j];
+				node->_orig_count--;
+				break;
+			}
+		}
+
+		/* set isActive false if no active touches left*/
+		if(node->_orig_count < 1){
+			node->isActive=FALSE;
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+		}
+		/* autoOffset? */
+		if (node->autoOffset) {
+			veccopy3f(node->offset.c,node->translation_changed.c);
+
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
+		}
+	}
+
+}
 
 /* void do_Anchor (struct X3D_Anchor *node, int ev, int over) {*/
 void do_Anchor ( void *ptr, int ev, int but1, int over) {

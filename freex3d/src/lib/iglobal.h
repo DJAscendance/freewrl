@@ -145,6 +145,7 @@ typedef struct iiglobal //InstanceGlobal
 		int HaveSensitive;// = FALSE;
 		int AllowNavDrag;
 		int trisThisLoop;
+		int iframe;
 		int clipPlane;// = 0;
 		int SHIFT; //state of shift key up = 0, down = 1
 		int CTRL; //state of ctrl key up = 0, down = 1
@@ -349,6 +350,7 @@ iOLDCODE	}Component_Networking;
 		float hyp_save_posn[3];
 		float hyp_save_norm[3];
 		float ray_save_posn[3]; //getRayHit() > last intersection of pickray/bearing with geometry, transformed into the coordinates of the geometry
+		int touchID;
 		float camera_axis[3];
 		void *hypersensitive;//= 0; 
 		int hyperhit;// = 0;
