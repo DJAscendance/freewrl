@@ -1708,7 +1708,13 @@ our %Nodes = (
 		rotation_changed => ["SFRotation", [0, 0, 1, 0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		scale_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		
+		_lastframe => ["SFInt32", 0, "outputOnly", 0,0],#ff
+		_drag_count => ["SFInt32", 0, "outputOnly", 0,0],#ff
+		_orig_count => ["SFInt32", 0, "outputOnly", 0,0],#ff
+		_orig_points => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_drag_points => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_oldrotation => ["SFRotation", [0, 0, 1, 0],"initializeOnly", 0,0],#ff
+		_oldscale => ["SFVec3f", [1, 1, 1], "initializeOnly", 0,0],#ff
 	],"X3DDragSensorNode"),
 
 #

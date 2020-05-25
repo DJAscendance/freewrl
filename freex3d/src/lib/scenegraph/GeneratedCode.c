@@ -265,6 +265,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_destination",
 	"_dir",
 	"_donethispass",
+	"_drag_count",
+	"_drag_points",
 	"_dsock",
 	"_enabled",
 	"_fbohandles",
@@ -299,6 +301,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_knotrange",
 	"_lastEnabled",
 	"_lastenabled",
+	"_lastframe",
 	"_lastframetime",
 	"_lastp0",
 	"_lastp0time",
@@ -328,6 +331,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_oldpickedGeometry",
 	"_oldpickedPoint",
 	"_oldrotation",
+	"_oldscale",
 	"_oldtrackPoint",
 	"_oldtranslation",
 	"_orientation",
@@ -335,6 +339,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_origNormalizedPoint",
 	"_origNorms",
 	"_origPoint",
+	"_orig_count",
+	"_orig_points",
 	"_p",
 	"_p0",
 	"_parentResource",
@@ -7047,6 +7053,13 @@ const int OFFSETS_MultitouchSensor[] = {
 	(int) FIELDNAMES_rotation_changed, (int) offsetof (struct X3D_MultitouchSensor, rotation_changed),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_scale_changed, (int) offsetof (struct X3D_MultitouchSensor, scale_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_hitNormalizedCoord_changed, (int) offsetof (struct X3D_MultitouchSensor, hitNormalizedCoord_changed),  (int) FIELDTYPE_MFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastframe, (int) offsetof (struct X3D_MultitouchSensor, _lastframe),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__drag_count, (int) offsetof (struct X3D_MultitouchSensor, _drag_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__orig_count, (int) offsetof (struct X3D_MultitouchSensor, _orig_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__orig_points, (int) offsetof (struct X3D_MultitouchSensor, _orig_points),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__drag_points, (int) offsetof (struct X3D_MultitouchSensor, _drag_points),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldrotation, (int) offsetof (struct X3D_MultitouchSensor, _oldrotation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldscale, (int) offsetof (struct X3D_MultitouchSensor, _oldscale),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_NavigationInfo[] = {
@@ -13184,6 +13197,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->rotation_changed.c[0] = 0;tmp2->rotation_changed.c[1] = 0;tmp2->rotation_changed.c[2] = 1;tmp2->rotation_changed.c[3] = 0;;
 			tmp2->scale_changed.c[0] = 0.0f;tmp2->scale_changed.c[1] = 0.0f;tmp2->scale_changed.c[2] = 0.0f;
 			tmp2->hitNormalizedCoord_changed.n=0; tmp2->hitNormalizedCoord_changed.p=0;
+			tmp2->_lastframe = 0;
+			tmp2->_drag_count = 0;
+			tmp2->_orig_count = 0;
+			tmp2->_orig_points = 0;
+			tmp2->_drag_points = 0;
+			tmp2->_oldrotation.c[0] = 0;tmp2->_oldrotation.c[1] = 0;tmp2->_oldrotation.c[2] = 1;tmp2->_oldrotation.c[3] = 0;;
+			tmp2->_oldscale.c[0] = 1.0f;tmp2->_oldscale.c[1] = 1.0f;tmp2->_oldscale.c[2] = 1.0f;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

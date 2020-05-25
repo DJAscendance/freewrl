@@ -425,7 +425,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	Component_Grouping_clear(&tg->Component_Grouping); FREE_IF_NZ(tg->Component_Grouping.prv);
 	Component_VolumeRendering_clear(&tg->Component_VolumeRendering); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	FREE_IF_NZ(tg->StreamPoly.prv);
-	FREE_IF_NZ(tg->Component_Sound.prv);
+	//FREE_IF_NZ(tg->Component_Sound.prv);
 	RenderFuncs_clear(&tg->RenderFuncs); FREE_IF_NZ(tg->RenderFuncs.prv);
 	Component_Text_clear(&tg->Component_Text); FREE_IF_NZ(tg->Component_Text.prv);
 	Component_Sound_clear(&tg->Component_Sound); FREE_IF_NZ(tg->Component_Sound.prv);
