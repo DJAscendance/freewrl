@@ -1330,6 +1330,7 @@ vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	int index = mat.tindex[mat.tstart[iunit]]; \n\
 	vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
 	vec4 nc = vec4(0); \n\
+	#ifdef FULL \n\
 	switch(index) { \n\
 		case 0: nc = texture2D(textureUnit[0],tc); break; \n\
 		case 1: nc = texture2D(textureUnit[1],tc); break; \n\
@@ -1349,6 +1350,62 @@ vec4 sample_map(int iunit, bool apply_gamma){ \n\
 		case 15: nc = texture2D(textureUnit[15],tc); break; \n\
 		default: break; \n\
 	} \n\
+	#else //FULL \n\
+		//glsl 1.20 that goes with opengl 2.1 has trouble with switch \n\
+		if(index < 8){ \n\
+			if(index < 4){ \n\
+				if(index < 2){ \n\
+					if(index == 1) \n\
+						nc = texture2D(textureUnit[1],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[0],tc); \n\
+				}else{ \n\
+					if(index == 3) \n\
+						nc = texture2D(textureUnit[3],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[2],tc); \n\
+				} \n\
+			}else{\n\
+				if(index < 6) { \n\
+					if(index == 5) \n\
+						nc = texture2D(textureUnit[5],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[4],tc); \n\
+				}else{ \n\
+					if(index == 7) \n\
+						nc = texture2D(textureUnit[7],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[6],tc); \n\
+				} \n\
+			}\n\
+		}else{ \n\
+			if(index < 12){\n\
+				if(index < 10){ \n\
+					if(index == 9) \n\
+						nc = texture2D(textureUnit[9],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[8],tc); \n\
+				}else{ \n\
+					if(index == 11) \n\
+						nc = texture2D(textureUnit[11],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[10],tc); \n\
+				} \n\
+			}else{ \n\
+				if(index < 14) { \n\
+					if(index == 13) \n\
+						nc = texture2D(textureUnit[13],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[12],tc); \n\
+				}else{ \n\
+					if(index == 15) \n\
+						nc = texture2D(textureUnit[15],tc); \n\
+					else \n\
+						nc = texture2D(textureUnit[14],tc); \n\
+				} \n\
+			} \n\
+		} \n\
+	#endif //FULL \n\
 	#else //CONFORMANT \n\
 	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
 	#endif //CONVORMANT \n\
