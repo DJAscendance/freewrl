@@ -2366,7 +2366,6 @@ EXPOSED_FIELD(MultitouchSensor,offset,sfvec3f,offset,FIELDTYPE_SFVec3f,UNCA_LENG
 EVENT_OUT(MultitouchSensor,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(MultitouchSensor,isOver,sfbool,isOver,FIELDTYPE_SFBool)
 EXPOSED_FIELD(MultitouchSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
-EVENT_OUT(MultitouchSensor,trackPoint_changed,sfvec3f,trackPoint_changed,FIELDTYPE_SFVec3f)
 EVENT_OUT(MultitouchSensor,translation_changed,sfvec3f,translation_changed,FIELDTYPE_SFVec3f)
 EXPOSED_FIELD(MultitouchSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(MultitouchSensor,sensorLocalOutput,sfbool,sensorLocalOutput,FIELDTYPE_SFBool,UNCA_NONE)
@@ -2377,7 +2376,8 @@ EXPOSED_FIELD(MultitouchSensor,minScale,sfvec3f,minScale,FIELDTYPE_SFVec3f,UNCA_
 EXPOSED_FIELD(MultitouchSensor,maxScale,sfvec3f,maxScale,FIELDTYPE_SFVec3f,UNCA_NONE)
 EVENT_OUT(MultitouchSensor,rotation_changed,sfrotation,rotation_changed,FIELDTYPE_SFRotation)
 EVENT_OUT(MultitouchSensor,scale_changed,sfvec3f,scale_changed,FIELDTYPE_SFVec3f)
-EVENT_OUT(MultitouchSensor,hitNormalizedCoord_changed,mfvec3f,hitNormalizedCoord_changed,FIELDTYPE_MFVec3f)
+EVENT_OUT(MultitouchSensor,trackPoints_changed,mfvec3f,trackPoints_changed,FIELDTYPE_MFVec3f)
+EVENT_OUT(MultitouchSensor,touches_changed,mfint32,touches_changed,FIELDTYPE_MFInt32)
 END_NODE(MultitouchSensor)
 
 /* NavigationInfo node */

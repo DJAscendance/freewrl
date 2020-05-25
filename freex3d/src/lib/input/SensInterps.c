@@ -1810,6 +1810,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
 		/* hyperhit saved in render_hypersensitive phase */
+		//the calling function setup_picking() in mainloop is in a tight loop 
+		// over the number of touches in the current frame, and sends one touch at 
+		// at a time. So we wait and accumulate all the ongoing/current-frame drags/touches
+		// before doing real work.
 		if(node->_drag_count == node->_orig_count) {
 			float rot4[4]= {0.0f, 0.0f, 1.0f, 0.0f};
 			float scale3[3] = {1.0f,1.0f,1.0f};
@@ -1820,21 +1824,27 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				node->_origPoint.c[0],node->_origPoint.c[1],
 				node->_origPoint.c[2]);
 			#endif
-			//printf("%d ",node->_touchcount);
-			//if(tg->RenderFuncs.touchID == 1) printf(".");
-			//if(tg->RenderFuncs.touchID == 2) printf("#");
+
 			/* trackpoint changed */
-			if(!node->sensorLocalOutput){
-				axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
-			}
+			int ndrag = node->_drag_count;
+			node->trackPoints_changed.p = realloc(node->trackPoints_changed.p, ndrag*(sizeof(struct SFVec3f)));
+			node->trackPoints_changed.n = ndrag;
+			node->touches_changed.p = realloc(node->touches_changed.p,ndrag*(sizeof(int)));
+			node->touches_changed.n = ndrag;
 
-			veccopy3f(node->_oldtrackPoint.c, trackpoint);
+			for(int i=0; i<ndrag; i++){
+				struct ID_point* dragp = &((struct ID_point*)node->_drag_points)[i];
+				struct SFVec3f* p = (struct SFVec3f*)&node->trackPoints_changed.p[i];
+				int *itouch = &(node->touches_changed.p[i]);
+				if(!node->sensorLocalOutput){
+					axisangle_rotate3f(p->c,dragp->p, inverserotation);
+				}
+				*itouch = dragp->ID;
+			}
 			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
-			if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
-				veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
-				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, trackPoint_changed));
+			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, trackPoints_changed));
+			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, touches_changed));
 
-			}
 
 			//compute any translation, rotation, scaling 
 			switch(node->_drag_count){
@@ -1848,8 +1858,14 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				}
 				break;
 				case 2: //translation, rotation 1 scale (similarity)
+				case 3: //translation, rotation, 2 scale (affine) maybe using least squares
+				default:
 				{
 					//printf("case2\n");
+					//we'll use the first 2 points and solve for single scale, rotation, xy translation (4 param)
+					//but more gnerally you could use least squares, and solve a closest fit 
+					// affine (2 scalea, shear, rot, xytrans = 6param, needs 3+ touches)
+					// to any number of points/touches
 					int j0 = lookup_ID(op,node->_orig_count,dp[0].ID);
 					int j1 = lookup_ID(op,node->_orig_count,dp[1].ID);
 					//printf("j0,j1 %d %d ^ dp ID 0,1 %d %d $ op ID j01 %d %d ",j0,j1,dp[0].ID, dp[1].ID,op[j0].ID,op[j1].ID);
@@ -1859,20 +1875,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						drag1 = dp[1].p; drag0=dp[0].p;
 						orig1 = op[j1].p; orig0 = op[j0].p;
 
-						//printf("drag1 %3.1f %3.1f\n",drag1[0],drag1[1]);
-						//printf("orig1 %3.1f %3.1f\n",orig1[0],orig1[1]);
-
-
 						vecdif3f(dif0,drag0,orig0);
 						vecdif3f(dif1,drag1,orig1);
 						vecadd3f(dif,dif0,dif1);
 						vecscale3f(tr,dif,.5f);
-						//printf("{\n");
-						//printf("dif0 %3.1f %3.1f\n",dif0[0],dif0[1]);
-						//printf("dif1 %3.1f %3.1f\n",dif1[0],dif1[1]);
-						//printf("dif  %3.1f %.1f\n",dif[0],dif[1]);
-						//printf("}\n");
-						//printf("%3.1f %3.1f / ",tr[0],tr[1]);
 						float odif[3], ddif[3];
 						vecdif3f(odif,orig1,orig0);
 						vecdif3f(ddif,drag1,drag0);
@@ -1880,15 +1886,8 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						vecset3f(scale3,scale,scale,1.0f);
 						float angle = angleNormalized(atan2(ddif[1],ddif[0]) - atan2(odif[1],odif[0]));
 						rot4[3] = angle;
-						//printf("angle %f scale %f\n",angle*180.0f/3.141596f,scale);
 					}
 				}
-				break;
-				case 3: //translation, rotation, 2 scale (affine)
-				break;
-				default: //more points than paramters to solve
-					//option 1 use first 3 points
-					//option 2 least squares
 				break;
 			}
 
@@ -1922,29 +1921,16 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 			//rotation
 			axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
-			if(!node->sensorLocalOutput){
-				axisangle_rotate3f(scale3,scale3, node->axisRotation.c);
-			}
 			veccopy4f(node->_oldrotation.c,rot4);
-			//printf("%3.1f %3.1f %3.1f %f\n",rot4[0],rot4[1],rot4[2],rot4[3]);
 
 			if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
 				veccopy4f(node->rotation_changed.c, (void *) node->_oldrotation.c);
 				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, rotation_changed));
-				//printf("%3.1f %3.1f %3.1f %f\n",node->rotation_changed.c);
 			}
 
+
 /*
-		rotationOffset => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		scaleOffset => ["SFVec3f", [1, 1, 1], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		minScale => ["SFVec3f", [0.1, 0.1, 0.1], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		maxScale => ["SFVec3f", [10, 10, 10], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		#translation_changed SFVec3f [out] 
-		rotation_changed => ["SFRotation", [0, 0, 1, 0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		scale_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		_oldrotation => ["SFRotation",[0 0 1 0],"initializeOnly", 0,0],#ff
-		_oldscale => ["SFVec3f", [1, 1, 1], "outputOnly", 0,0],#ff
 */
 
 		} //if drag_count == orig_count

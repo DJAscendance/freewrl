@@ -721,7 +721,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hinge2AngleRate",
 	"hitGeoCoord_changed",
 	"hitNormal_changed",
-	"hitNormalizedCoord_changed",
 	"hitPoint_changed",
 	"hitTexCoord_changed",
 	"horizontal",
@@ -1133,7 +1132,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"topUrl",
 	"torques",
 	"touchTime",
+	"touches_changed",
 	"trackPoint_changed",
+	"trackPoints_changed",
 	"trajectoryCurve",
 	"transferFunction",
 	"transitionComplete",
@@ -1264,7 +1265,6 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"hinge2AngleRate",
 	"hitGeoCoord_changed",
 	"hitNormal_changed",
-	"hitNormalizedCoord_changed",
 	"hitPoint_changed",
 	"hitTexCoord_changed",
 	"image",
@@ -1324,7 +1324,9 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"timestamp",
 	"toggle",
 	"touchTime",
+	"touches_changed",
 	"trackPoint_changed",
+	"trackPoints_changed",
 	"transitionComplete",
 	"translation_changed",
 	"triggerTime",
@@ -7037,7 +7039,6 @@ const int OFFSETS_MultitouchSensor[] = {
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_MultitouchSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isOver, (int) offsetof (struct X3D_MultitouchSensor, isOver),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MultitouchSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_trackPoint_changed, (int) offsetof (struct X3D_MultitouchSensor, trackPoint_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_translation_changed, (int) offsetof (struct X3D_MultitouchSensor, translation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MultitouchSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_MultitouchSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
@@ -7052,7 +7053,8 @@ const int OFFSETS_MultitouchSensor[] = {
 	(int) FIELDNAMES_maxScale, (int) offsetof (struct X3D_MultitouchSensor, maxScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_rotation_changed, (int) offsetof (struct X3D_MultitouchSensor, rotation_changed),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_scale_changed, (int) offsetof (struct X3D_MultitouchSensor, scale_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_hitNormalizedCoord_changed, (int) offsetof (struct X3D_MultitouchSensor, hitNormalizedCoord_changed),  (int) FIELDTYPE_MFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_trackPoints_changed, (int) offsetof (struct X3D_MultitouchSensor, trackPoints_changed),  (int) FIELDTYPE_MFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_touches_changed, (int) offsetof (struct X3D_MultitouchSensor, touches_changed),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__lastframe, (int) offsetof (struct X3D_MultitouchSensor, _lastframe),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__drag_count, (int) offsetof (struct X3D_MultitouchSensor, _drag_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orig_count, (int) offsetof (struct X3D_MultitouchSensor, _orig_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
@@ -13181,7 +13183,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isActive = FALSE;
 			tmp2->isOver = FALSE;
 			tmp2->description = newASCIIString("");
-			tmp2->trackPoint_changed.c[0] = 0.0f;tmp2->trackPoint_changed.c[1] = 0.0f;tmp2->trackPoint_changed.c[2] = 0.0f;
 			tmp2->translation_changed.c[0] = 0.0f;tmp2->translation_changed.c[1] = 0.0f;tmp2->translation_changed.c[2] = 0.0f;
 			tmp2->metadata = NULL;
 			tmp2->sensorLocalOutput = FALSE;
@@ -13196,7 +13197,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->maxScale.c[0] = 10.0f;tmp2->maxScale.c[1] = 10.0f;tmp2->maxScale.c[2] = 10.0f;
 			tmp2->rotation_changed.c[0] = 0;tmp2->rotation_changed.c[1] = 0;tmp2->rotation_changed.c[2] = 1;tmp2->rotation_changed.c[3] = 0;;
 			tmp2->scale_changed.c[0] = 0.0f;tmp2->scale_changed.c[1] = 0.0f;tmp2->scale_changed.c[2] = 0.0f;
-			tmp2->hitNormalizedCoord_changed.n=0; tmp2->hitNormalizedCoord_changed.p=0;
+			tmp2->trackPoints_changed.n=0; tmp2->trackPoints_changed.p=0;
+			tmp2->touches_changed.n=0; tmp2->touches_changed.p=0;
 			tmp2->_lastframe = 0;
 			tmp2->_drag_count = 0;
 			tmp2->_orig_count = 0;
