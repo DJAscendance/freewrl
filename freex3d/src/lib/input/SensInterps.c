@@ -1954,8 +1954,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		/* autoOffset? */
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
-
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
+			//please does this rot thing _have_ to be [4] - for plane its a single value. would be easier scalar.
+			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
+			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
 		}
 	}
 
