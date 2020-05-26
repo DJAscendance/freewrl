@@ -1497,8 +1497,14 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 				for(int i=0;i<njoints;i++){
 					if(!strcmp(chan[i].jname,jname)){
 						//if so return the channel mapping and fvalue pointer
+						//printf("%s ",jname);
 						jm = &chan[i];
 						jm->values = &frame_values[kchan];
+						//if(!strcmp(jname,"humanoid_root")){
+						//	printf("humanoid_root vals=");
+						//	for(int m=0;m<chan[i].nchan;m++) printf("%f ",jm->values[m]);
+						//	printf("\n");
+						//}
 						break;
 					}
 					kchan += chan[i].nchan;
@@ -1512,18 +1518,19 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) HMnode;
 	if(HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)){
 		struct joint_frame_motion *jm = jointFrameMotion(HM,jname);
-		int debug = 0;
+		int debug = FALSE;
+		//if(!strcmp(jname,"humanoid_root")) debug = TRUE;
 		if(jm){ // && strcmp(jname,"HumanoidRoot")){
 			double mat1[16],jmatrix[16],xyz[3];
 			if(debug) printf("in update_jointMatrix\n");
 			if(debug) printmatrix(jmatrix0);
 			matidentity4d(jmatrix);
-			//if(debug) 
-			//printf("%s ",jname);
+			if(debug) 
+				printf("%s ",jname);
 			for(int i=0;i<jm->nchan;i++){
 				float value = jm->values[i];
-				//if(debug) 
-				//printf("%d %4.2f ",jm->ichan[i],value);
+				if(debug) 
+				printf("%d %4.2f ",jm->ichan[i],value);
 				// Q. what kind of angles are those 
 				// https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
 				matidentity4d(mat1);
@@ -1539,7 +1546,6 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						}
 						break;
 					case 2: 
-					break;
 						matrixFromAxisAngle4d(mat1, (double)value, 0.0, -1.0, 0.0);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
@@ -1548,7 +1554,6 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						printf("case 2 jmatrix\n");
 						printmatrix(jmatrix);
 						}
-						break;
 						break;
 					case 3:
 						matrixFromAxisAngle4d(mat1, (double)value, 0.0, 0.0, -1.0);
