@@ -1697,6 +1697,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 struct ID_point {
 int ID;
 float p[3];
+int reset;
 };
 int lookup_ID(struct ID_point* idp, int n, int touchID){
 	int j = -1;
@@ -1795,6 +1796,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		//veccopy3f(op.c, trackpoint);
 		veccopy3f(op[node->_orig_count].p,trackpoint);
 		op[node->_orig_count].ID = touchID;
+		op[node->_orig_count].reset = FALSE;
 		node->_orig_count++;
 		//veccopy3f(ip[*touchpoin])
 		//memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
@@ -1854,7 +1856,13 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					//printf("case1 ");
 					int j = lookup_ID(op,node->_orig_count,touchID);
 					//printf("%d ",j);
-					vecdif3f(tr,dp[0].p,op[j].p);
+					if(j > -1){
+						if(op[j].reset){
+							veccopy3f(op[j].p,dp[0].p);
+							op[j].reset = FALSE;
+						}
+						vecdif3f(tr,dp[0].p,op[j].p);
+					}
 				}
 				break;
 				case 2: //translation, rotation 1 scale (similarity)
@@ -1874,6 +1882,15 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						float *drag1,*drag0,*orig1,*orig0;
 						drag1 = dp[1].p; drag0=dp[0].p;
 						orig1 = op[j1].p; orig0 = op[j0].p;
+						if(op[j0].reset){
+							veccopy3f(op[j0].p,dp[0].p);
+							op[j0].reset = FALSE;
+						}
+						if(op[j1].reset){
+							veccopy3f(op[j1].p,dp[1].p);
+							op[j1].reset = FALSE;
+						}
+
 
 						vecdif3f(dif0,drag0,orig0);
 						vecdif3f(dif1,drag1,orig1);
@@ -1935,6 +1952,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 		} //if drag_count == orig_count
 	} else if (ev==ButtonRelease) {
+		
 		//delete released touch from orig_points
 		printf("R");
 		for(int i=0;i<node->_orig_count;i++){
@@ -1945,6 +1963,12 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				break;
 			}
 		}
+		// reset orig_points = drag_points so they are 'starting over'
+		// (otherwise you'll see a jump as drag averages change wildly)
+		for(int i=0;i<node->_orig_count;i++){
+			op[i].reset = TRUE;
+		}
+		
 
 		/* set isActive false if no active touches left*/
 		if(node->_orig_count < 1){
@@ -1957,7 +1981,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
 			//please does this rot thing _have_ to be [4] - for plane its a single value. would be easier scalar.
 			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, rotationOffset));
 			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, scaleOffset));
+
 		}
 	}
 
