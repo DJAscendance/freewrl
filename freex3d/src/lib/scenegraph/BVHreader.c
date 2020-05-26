@@ -74,7 +74,7 @@ char * getline2(char *line, int maxlen, char **position){
 	char *cur = *position;
 	char *end = strstr(cur,"\n");
 	if(end == NULL) return NULL;
-	int len = fmin(end-cur,maxlen-1);
+	int len = (end-cur) < (maxlen-1) ? (end-cur) : (maxlen-1);
 	memcpy(line,cur,len);
 	line[len] = '\0';
 	*position = &cur[len+1];
