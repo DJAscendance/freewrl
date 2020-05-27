@@ -612,6 +612,11 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DAudioNode					72
 #define X3DMotionNode					73
 #define X3DMotionDataNode				74
+#define X3DGeoSRFTParametersNode		75
+#define X3DGeoSRFParametersNode			76
+#define X3DGeoSRFParametersInfoNode		77
+
+
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);
 

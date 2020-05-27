@@ -2420,18 +2420,6 @@ our %Nodes = (
 
 	],"X3DChildNode"),
 	
-	"GeoConvert" => new VRML::NodeType("GeoConvert", [
-		set_geoCoords => ["SFVec3d", [0, 0, 0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
-		set_gcCoords => ["SFVec3d", [0, 0, 0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
-		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
-		gcCoords_changed => ["SFVec3d", [0, 0, 0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
-		geoCoords_changed => ["SFVec3d", [0, 0, 0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
-		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
-		__oldgeoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
-		__oldgcCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
-	],"X3DInterpolatorNode"),
-	
 
 	"GeoLocation" => new VRML::NodeType("GeoLocation", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2461,7 +2449,7 @@ our %Nodes = (
 		_sortedChildren => ["MFNode", [], "inputOutput", 0,0],#ff
 	],"X3DGroupingNode"),
 
-
+	#non-spec nodes geoPlanet and geoConvert by dug9
 	"GeoPlanet" => new VRML::NodeType("GeoPlanet", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2478,6 +2466,172 @@ our %Nodes = (
 		__oldChildren => ["MFNode", [], "inputOutput", 0,0],#ff
 		_sortedChildren => ["MFNode", [], "inputOutput", 0,0],#ff
 	],"X3DGroupingNode"),
+
+	"GeoConvert" => new VRML::NodeType("GeoConvert", [
+		set_geoCoords => ["SFVec3d", [0, 0, 0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
+		set_gcCoords => ["SFVec3d", [0, 0, 0], "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
+		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_NONE"],#ff
+		gcCoords_changed => ["SFVec3d", [0, 0, 0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
+		geoCoords_changed => ["SFVec3d", [0, 0, 0], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 )","UNCA_GEO"],#ff #v3.2 GD degrees, v3.3 GD angle units
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		__oldgeoCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
+		__oldgcCoords => ["SFVec3d", [0, 0, 0], "inputOutput", 0,0],#ff
+	],"X3DInterpolatorNode"),
+	
+
+	# proposed v4 'PUK' nodes
+	# the PUK nodes generally are just to help you type - in theory all the parameters can go in geoSystem MFString
+	#1 top node / level - takes a 2nd level as parameter
+	"GeoReferenceSurfaceInfo" => new VRML::NodeType("GeoReferenceSurfaceInfo", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		dssCode => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		name => ["SFString", "", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srfParametersInfo => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DChildNode"),
+
+	# 2nd level - takes 3rd level as parameter
+	"GeoSRFParametersInfo" => new VRML::NodeType("GeoSRFParametersInfo", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		rtCode => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srfParameters => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff  #draft says srfParametersInfo but thats circular
+	],"X3DGeoSRFParametersInfoNode"),
+
+	# 3rd level #1
+	"GeoSRFSet" => new VRML::NodeType("GeoSRFSet", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ormCode => ["SFInt32", 250, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srfsCode => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srfsMember => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFParametersNode"),
+
+	# 3rd level #2
+ 	"GeoSRFInstance" => new VRML::NodeType("GeoSRFInstance", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		srfCode => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFParametersNode"),
+
+	# 3rd level #3 - takes 4th level as parameter
+	"GeoSRFTemplate" => new VRML::NodeType("GeoSRFTemplate", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ormCode => ["SFInt32", 250, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srftode => ["SFInt32", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srftParameters => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFParametersNode"),
+
+	# 4th level #1 EC
+	"GeoECParameters" => new VRML::NodeType("GeoECParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		centralScale => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseEasting => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseNorthing => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		srftode => ["SFString", "NORTH", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #2 LCC
+	"GeoLCCParameters" => new VRML::NodeType("GeoLCCParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		falseEasting => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseNorthing => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		latitude1 => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		latitude2 => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLatitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+ 	
+	# 4th level #3 M
+	"GeoMParameters" => new VRML::NodeType("GeoMParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		centralScale => ["SFDouble", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff  #spec draft had 0 as default
+		falseEasting => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseNorthing => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #4 OM ObliqueMercator
+	"GeoOMParameters" => new VRML::NodeType("GeoOMParameters", [				# spec draft had ObliqueMercator, we use OM
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		centralScale => ["SFDouble", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff  #spec draft had 0 as default
+		falseEasting => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseNorthing => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		longitude1 => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		latitude1 => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		longitude2 => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		latitude2 => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #5 PS polar stereographc
+	"GeoPSParameters" => new VRML::NodeType("GeoPSParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		centralScale => ["SFDouble", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff #spec draft had 0 as default
+		falseEasting => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseNorthing => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		polarAspect => ["SFString", "NORTH", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #6 TM Transverse Mercator
+	"GeoTMParameters" => new VRML::NodeType("GeoTMParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		centralScale => ["SFDouble", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff  #spec draft had 0 as default
+		falseEasting => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		falseNorthing => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		originLatitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #7 LocoCentric Euclidean - do we need?
+	"GeoLCE3DParameters" => new VRML::NodeType("GeoLCE3DParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		lococentre => ["SFVec3f",[0,0,0],"initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		primaryAxis => ["SFVec3f",[0,1,0],"initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		secondaryAxis => ["SFVec3f",[0,0,1],"initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #8 LSR3d local space rectangular - do we need?
+	"GeoLSR3DParameters" => new VRML::NodeType("GeoLSR3D3DParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		forwardDirection => ["SFInt32",2,"initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		upDirection => ["SFInt32",1,"initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #9 Local Tangent Space Euclidean
+	"GeoTMParameters" => new VRML::NodeType("GeoTMParameters", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		azimuth => ["SFDouble", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		geodeticLatitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff   # ?? is there a non-geodetic lat,lon?
+		geodeticLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		heightOffset => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		x_false_origin => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff 
+		y_false_origin => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
+
+	# 4th level #10 Local Tangent Paramters - used for both LTSAS local tangent space azimuthal spherical, and LTSC local tangent space cylindrical
+	"GeoLTParameters" => new VRML::NodeType("GeoLTParameters", [				# draft spec calls LocalTangent we call LT
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		azimuth => ["SFDouble", 1, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		geodeticLatitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff   # ?? is there a non-geodetic lat,lon?
+		geodeticLongitude => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		heightOffset => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		x_false_origin => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff 
+		y_false_origin => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFTParametersNode"),
 
 
 

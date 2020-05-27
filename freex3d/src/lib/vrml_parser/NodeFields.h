@@ -1136,6 +1136,17 @@ FIELD(GeoCoordinate,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoCoordinate,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 END_NODE(GeoCoordinate)
 
+/* GeoECParameters node */
+BEGIN_NODE(GeoECParameters)
+EXPOSED_FIELD(GeoECParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoECParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoECParameters,centralScale,sfdouble,centralScale,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoECParameters,falseEasting,sfdouble,falseEasting,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoECParameters,falseNorthing,sfdouble,falseNorthing,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoECParameters,originLongitude,sfdouble,originLongitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoECParameters,srftode,sfstring,srftode,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(GeoECParameters)
+
 /* GeoElevationGrid node */
 BEGIN_NODE(GeoElevationGrid)
 EVENT_IN(GeoElevationGrid,set_height,mfdouble,set_height,FIELDTYPE_MFDouble)
@@ -1159,6 +1170,27 @@ FIELD(GeoElevationGrid,zDimension,sfint32,zDimension,FIELDTYPE_SFInt32,UNCA_NONE
 FIELD(GeoElevationGrid,zSpacing,sfdouble,zSpacing,FIELDTYPE_SFDouble,UNCA_GEO)
 END_NODE(GeoElevationGrid)
 
+/* GeoLCCParameters node */
+BEGIN_NODE(GeoLCCParameters)
+EXPOSED_FIELD(GeoLCCParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoLCCParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoLCCParameters,falseEasting,sfdouble,falseEasting,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLCCParameters,falseNorthing,sfdouble,falseNorthing,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLCCParameters,latitude1,sfdouble,latitude1,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLCCParameters,latitude2,sfdouble,latitude2,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLCCParameters,originLongitude,sfdouble,originLongitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLCCParameters,originLatitude,sfdouble,originLatitude,FIELDTYPE_SFDouble,UNCA_NONE)
+END_NODE(GeoLCCParameters)
+
+/* GeoLCE3DParameters node */
+BEGIN_NODE(GeoLCE3DParameters)
+EXPOSED_FIELD(GeoLCE3DParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoLCE3DParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoLCE3DParameters,lococentre,sfvec3f,lococentre,FIELDTYPE_SFVec3f,UNCA_NONE)
+FIELD(GeoLCE3DParameters,primaryAxis,sfvec3f,primaryAxis,FIELDTYPE_SFVec3f,UNCA_NONE)
+FIELD(GeoLCE3DParameters,secondaryAxis,sfvec3f,secondaryAxis,FIELDTYPE_SFVec3f,UNCA_NONE)
+END_NODE(GeoLCE3DParameters)
+
 /* GeoLOD node */
 BEGIN_NODE(GeoLOD)
 EXPOSED_FIELD(GeoLOD,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -1180,6 +1212,26 @@ EXPOSED_FIELD(GeoLOD,visible,sfbool,visible,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(GeoLOD,bboxDisplay,sfbool,bboxDisplay,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(GeoLOD)
 
+/* GeoLSR3DParameters node */
+BEGIN_NODE(GeoLSR3DParameters)
+EXPOSED_FIELD(GeoLSR3DParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoLSR3DParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoLSR3DParameters,forwardDirection,sfint32,forwardDirection,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoLSR3DParameters,upDirection,sfint32,upDirection,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GeoLSR3DParameters)
+
+/* GeoLTParameters node */
+BEGIN_NODE(GeoLTParameters)
+EXPOSED_FIELD(GeoLTParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoLTParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoLTParameters,azimuth,sfdouble,azimuth,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLTParameters,geodeticLatitude,sfdouble,geodeticLatitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLTParameters,geodeticLongitude,sfdouble,geodeticLongitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLTParameters,heightOffset,sfdouble,heightOffset,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLTParameters,x_false_origin,sfdouble,x_false_origin,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoLTParameters,y_false_origin,sfdouble,y_false_origin,FIELDTYPE_SFDouble,UNCA_NONE)
+END_NODE(GeoLTParameters)
+
 /* GeoLocation node */
 BEGIN_NODE(GeoLocation)
 EVENT_IN(GeoLocation,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
@@ -1196,6 +1248,16 @@ EXPOSED_FIELD(GeoLocation,bboxDisplay,sfbool,bboxDisplay,FIELDTYPE_SFBool,UNCA_N
 FIELD(GeoLocation,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool,0)
 END_NODE(GeoLocation)
 
+/* GeoMParameters node */
+BEGIN_NODE(GeoMParameters)
+EXPOSED_FIELD(GeoMParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoMParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoMParameters,centralScale,sfdouble,centralScale,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoMParameters,falseEasting,sfdouble,falseEasting,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoMParameters,falseNorthing,sfdouble,falseNorthing,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoMParameters,originLongitude,sfdouble,originLongitude,FIELDTYPE_SFDouble,UNCA_NONE)
+END_NODE(GeoMParameters)
+
 /* GeoMetadata node */
 BEGIN_NODE(GeoMetadata)
 EXPOSED_FIELD(GeoMetadata,data,mfnode,data,FIELDTYPE_MFNode,UNCA_NONE)
@@ -1204,6 +1266,19 @@ EXPOSED_FIELD(GeoMetadata,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
 EXPOSED_FIELD(GeoMetadata,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(GeoMetadata)
 
+/* GeoOMParameters node */
+BEGIN_NODE(GeoOMParameters)
+EXPOSED_FIELD(GeoOMParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoOMParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoOMParameters,centralScale,sfdouble,centralScale,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoOMParameters,falseEasting,sfdouble,falseEasting,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoOMParameters,falseNorthing,sfdouble,falseNorthing,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoOMParameters,longitude1,sfdouble,longitude1,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoOMParameters,latitude1,sfdouble,latitude1,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoOMParameters,longitude2,sfdouble,longitude2,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoOMParameters,latitude2,sfdouble,latitude2,FIELDTYPE_SFDouble,UNCA_NONE)
+END_NODE(GeoOMParameters)
+
 /* GeoOrigin node */
 BEGIN_NODE(GeoOrigin)
 EXPOSED_FIELD(GeoOrigin,geoCoords,sfvec3d,geoCoords,FIELDTYPE_SFVec3d,UNCA_GEO)
@@ -1211,6 +1286,17 @@ FIELD(GeoOrigin,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 EXPOSED_FIELD(GeoOrigin,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoOrigin,rotateYUp,sfbool,rotateYUp,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(GeoOrigin)
+
+/* GeoPSParameters node */
+BEGIN_NODE(GeoPSParameters)
+EXPOSED_FIELD(GeoPSParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoPSParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoPSParameters,centralScale,sfdouble,centralScale,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoPSParameters,falseEasting,sfdouble,falseEasting,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoPSParameters,falseNorthing,sfdouble,falseNorthing,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoPSParameters,originLongitude,sfdouble,originLongitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoPSParameters,polarAspect,sfstring,polarAspect,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(GeoPSParameters)
 
 /* GeoPlanet node */
 BEGIN_NODE(GeoPlanet)
@@ -1256,11 +1342,65 @@ FIELD(GeoProximitySensor,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoProximitySensor,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 END_NODE(GeoProximitySensor)
 
+/* GeoReferenceSurfaceInfo node */
+BEGIN_NODE(GeoReferenceSurfaceInfo)
+EXPOSED_FIELD(GeoReferenceSurfaceInfo,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoReferenceSurfaceInfo,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoReferenceSurfaceInfo,dssCode,sfint32,dssCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoReferenceSurfaceInfo,name,sfstring,name,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeoReferenceSurfaceInfo,srfParametersInfo,sfnode,srfParametersInfo,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(GeoReferenceSurfaceInfo)
+
+/* GeoSRFInstance node */
+BEGIN_NODE(GeoSRFInstance)
+EXPOSED_FIELD(GeoSRFInstance,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoSRFInstance,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSRFInstance,srfCode,sfint32,srfCode,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GeoSRFInstance)
+
+/* GeoSRFParametersInfo node */
+BEGIN_NODE(GeoSRFParametersInfo)
+EXPOSED_FIELD(GeoSRFParametersInfo,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoSRFParametersInfo,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSRFParametersInfo,rtCode,sfint32,rtCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSRFParametersInfo,srfParameters,sfnode,srfParameters,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(GeoSRFParametersInfo)
+
+/* GeoSRFSet node */
+BEGIN_NODE(GeoSRFSet)
+EXPOSED_FIELD(GeoSRFSet,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoSRFSet,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSRFSet,ormCode,sfint32,ormCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSRFSet,srfsCode,sfint32,srfsCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSRFSet,srfsMember,sfint32,srfsMember,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GeoSRFSet)
+
+/* GeoSRFTemplate node */
+BEGIN_NODE(GeoSRFTemplate)
+EXPOSED_FIELD(GeoSRFTemplate,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoSRFTemplate,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSRFTemplate,ormCode,sfint32,ormCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSRFTemplate,srftode,sfint32,srftode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSRFTemplate,srftParameters,sfnode,srftParameters,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(GeoSRFTemplate)
+
 /* GeoSystem node */
 BEGIN_NODE(GeoSystem)
 EXPOSED_FIELD(GeoSystem,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoSystem,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
 END_NODE(GeoSystem)
+
+/* GeoTMParameters node */
+BEGIN_NODE(GeoTMParameters)
+EXPOSED_FIELD(GeoTMParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoTMParameters,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoTMParameters,azimuth,sfdouble,azimuth,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoTMParameters,geodeticLatitude,sfdouble,geodeticLatitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoTMParameters,geodeticLongitude,sfdouble,geodeticLongitude,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoTMParameters,heightOffset,sfdouble,heightOffset,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoTMParameters,x_false_origin,sfdouble,x_false_origin,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoTMParameters,y_false_origin,sfdouble,y_false_origin,FIELDTYPE_SFDouble,UNCA_NONE)
+END_NODE(GeoTMParameters)
 
 /* GeoTouchSensor node */
 BEGIN_NODE(GeoTouchSensor)

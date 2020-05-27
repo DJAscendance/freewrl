@@ -478,6 +478,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"axis3Torque",
 	"axisOfRotation",
 	"axisRotation",
+	"azimuth",
 	"back",
 	"backAmbientIntensity",
 	"backCull",
@@ -523,6 +524,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"centerOfMass",
 	"centerOfRotation",
 	"centerOfRotation_changed",
+	"centralScale",
 	"channelCount",
 	"channelCountMode",
 	"channelInterpretation",
@@ -610,6 +612,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"distanceModel",
 	"domain",
 	"dopplerFactor",
+	"dssCode",
 	"duration",
 	"duration_changed",
 	"easeInEaseOut",
@@ -644,6 +647,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"eventSiteID",
 	"exitTime",
 	"extra",
+	"falseEasting",
+	"falseNorthing",
 	"family",
 	"fanCount",
 	"farDistance",
@@ -671,6 +676,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"forceOutput",
 	"forceTransitions",
 	"forces",
+	"forwardDirection",
 	"fovMode",
 	"fraction_changed",
 	"frameCount",
@@ -696,6 +702,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"geoGridOrigin",
 	"geoOrigin",
 	"geoSystem",
+	"geodeticLatitude",
+	"geodeticLongitude",
 	"geometry",
 	"geometry1",
 	"geometry2",
@@ -715,6 +723,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hatched",
 	"headlight",
 	"height",
+	"heightOffset",
 	"hinge1Angle",
 	"hinge1AngleRate",
 	"hinge2Angle",
@@ -771,6 +780,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"knee",
 	"knot",
 	"language",
+	"latitude1",
+	"latitude2",
 	"layers",
 	"layout",
 	"left",
@@ -799,6 +810,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"load",
 	"loadTime",
 	"location",
+	"lococentre",
+	"longitude1",
+	"longitude2",
 	"loop",
 	"loopEnd",
 	"loopStart",
@@ -894,6 +908,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"orientation",
 	"orientation_changed",
 	"origin",
+	"originLatitude",
+	"originLongitude",
+	"ormCode",
 	"orthogonalColor",
 	"outerRadius",
 	"oversample",
@@ -924,12 +941,14 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"pointSizeMaxValue",
 	"pointSizeMinValue",
 	"pointSizeScaleFactor",
+	"polarAspect",
 	"port",
 	"position",
 	"position_changed",
 	"power",
 	"preferAccuracy",
 	"previous",
+	"primaryAxis",
 	"priority",
 	"profileCurve",
 	"programs",
@@ -979,6 +998,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"rotationOffset",
 	"rotation_changed",
 	"roughness",
+	"rtCode",
 	"rtpHeaderExpected",
 	"sampleRate",
 	"samples",
@@ -987,6 +1007,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"scaleOffset",
 	"scaleOrientation",
 	"scale_changed",
+	"secondaryAxis",
 	"segmentEnabled",
 	"segmentIdentifiers",
 	"segments",
@@ -1069,6 +1090,13 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"speedFactor",
 	"speedOfSound",
 	"spine",
+	"srfCode",
+	"srfParameters",
+	"srfParametersInfo",
+	"srfsCode",
+	"srfsMember",
+	"srftParameters",
+	"srftode",
 	"startAngle",
 	"startFrame",
 	"startTime",
@@ -1164,6 +1192,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"uOrder",
 	"uTessellation",
 	"ulimit",
+	"upDirection",
 	"upVector",
 	"update",
 	"url",
@@ -1207,7 +1236,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"writeInterval",
 	"xDimension",
 	"xSpacing",
+	"x_false_origin",
 	"yScale",
+	"y_false_origin",
 	"zDimension",
 	"zSpacing",
 };
@@ -1947,12 +1978,14 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 /* Table of FIELDs */
        const char *FIELD[] = {
 	"autoCalc",
+	"azimuth",
 	"bboxCenter",
 	"bboxSize",
 	"beginCap",
 	"bottomRadius",
 	"category",
 	"ccw",
+	"centralScale",
 	"child1Url",
 	"child2Url",
 	"child3Url",
@@ -1971,20 +2004,27 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"crossSection",
 	"directOutput",
 	"domain",
+	"dssCode",
 	"duration",
 	"emitter",
 	"endAngle",
 	"endCap",
 	"extra",
+	"falseEasting",
+	"falseNorthing",
 	"family",
 	"fanCount",
 	"forceTransitions",
+	"forwardDirection",
 	"generateMipMaps",
 	"geoGridOrigin",
 	"geoOrigin",
 	"geoSystem",
+	"geodeticLatitude",
+	"geodeticLongitude",
 	"geometryType",
 	"height",
+	"heightOffset",
 	"horizontal",
 	"index",
 	"info",
@@ -1996,18 +2036,29 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"kind",
 	"knot",
 	"language",
+	"latitude1",
+	"latitude2",
 	"leftToRight",
 	"lineSegments",
+	"lococentre",
+	"longitude1",
+	"longitude2",
 	"mass",
 	"mustEvaluate",
+	"name",
 	"normalIndex",
 	"normalPerVertex",
 	"numComponents",
 	"order",
+	"originLatitude",
+	"originLongitude",
+	"ormCode",
 	"outerRadius",
 	"phaseFunction",
 	"physics",
 	"planetId",
+	"polarAspect",
+	"primaryAxis",
 	"proxy",
 	"range",
 	"reference",
@@ -2018,7 +2069,9 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"rootNode",
 	"rootUrl",
 	"rotateYUp",
+	"rtCode",
 	"rtpHeaderExpected",
+	"secondaryAxis",
 	"sensorLocalOutput",
 	"shape",
 	"side",
@@ -2030,6 +2083,13 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"specific",
 	"speedFactor",
 	"spine",
+	"srfCode",
+	"srfParameters",
+	"srfParametersInfo",
+	"srfsCode",
+	"srfsMember",
+	"srftParameters",
+	"srftode",
 	"startAngle",
 	"stripCount",
 	"style",
@@ -2044,12 +2104,15 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"type",
 	"uClosed",
 	"uKnot",
+	"upDirection",
 	"vClosed",
 	"vKnot",
 	"weightFunction1",
 	"weightFunction2",
 	"xDimension",
 	"xSpacing",
+	"x_false_origin",
+	"y_false_origin",
 	"zDimension",
 	"zSpacing",
 };
@@ -2498,15 +2561,29 @@ const char *NODES[] = {
 	"GeneratedCubeMapTexture",
 	"GeoConvert",
 	"GeoCoordinate",
+	"GeoECParameters",
 	"GeoElevationGrid",
+	"GeoLCCParameters",
+	"GeoLCE3DParameters",
 	"GeoLOD",
+	"GeoLSR3DParameters",
+	"GeoLTParameters",
 	"GeoLocation",
+	"GeoMParameters",
 	"GeoMetadata",
+	"GeoOMParameters",
 	"GeoOrigin",
+	"GeoPSParameters",
 	"GeoPlanet",
 	"GeoPositionInterpolator",
 	"GeoProximitySensor",
+	"GeoReferenceSurfaceInfo",
+	"GeoSRFInstance",
+	"GeoSRFParametersInfo",
+	"GeoSRFSet",
+	"GeoSRFTemplate",
 	"GeoSystem",
+	"GeoTMParameters",
 	"GeoTouchSensor",
 	"GeoTransform",
 	"GeoViewpoint",
@@ -2826,14 +2903,28 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_texture,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_coord,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_geoOrigin,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3350,13 +3441,23 @@ struct X3D_Virt virt_GeoConvert = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 void compile_GeoCoordinate(struct X3D_GeoCoordinate *);
 struct X3D_Virt virt_GeoCoordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoCoordinate};
 
+struct X3D_Virt virt_GeoECParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 void render_GeoElevationGrid(struct X3D_GeoElevationGrid *);
 void compile_GeoElevationGrid(struct X3D_GeoElevationGrid *);
 struct X3D_Virt virt_GeoElevationGrid = { NULL,(void *)render_GeoElevationGrid,NULL,NULL,(void *)rendray_GeoElevationGrid,(void *)make_GeoElevationGrid,NULL,NULL,(void *)collide_GeoElevationGrid,(void *)compile_GeoElevationGrid};
 
+struct X3D_Virt virt_GeoLCCParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoLCE3DParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 void child_GeoLOD(struct X3D_GeoLOD *);
 void compile_GeoLOD(struct X3D_GeoLOD *);
 struct X3D_Virt virt_GeoLOD = { NULL,NULL,(void *)child_GeoLOD,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoLOD};
+
+struct X3D_Virt virt_GeoLSR3DParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoLTParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void prep_GeoLocation(struct X3D_GeoLocation *);
 void child_GeoLocation(struct X3D_GeoLocation *);
@@ -3364,11 +3465,17 @@ void fin_GeoLocation(struct X3D_GeoLocation *);
 void compile_GeoLocation(struct X3D_GeoLocation *);
 struct X3D_Virt virt_GeoLocation = { (void *)prep_GeoLocation,NULL,(void *)child_GeoLocation,(void *)fin_GeoLocation,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoLocation};
 
+struct X3D_Virt virt_GeoMParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 void compile_GeoMetadata(struct X3D_GeoMetadata *);
 struct X3D_Virt virt_GeoMetadata = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoMetadata};
 
+struct X3D_Virt virt_GeoOMParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 void compile_GeoOrigin(struct X3D_GeoOrigin *);
 struct X3D_Virt virt_GeoOrigin = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoOrigin};
+
+struct X3D_Virt virt_GeoPSParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void prep_GeoPlanet(struct X3D_GeoPlanet *);
 void child_GeoPlanet(struct X3D_GeoPlanet *);
@@ -3384,9 +3491,21 @@ void proximity_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 void compile_GeoProximitySensor(struct X3D_GeoProximitySensor *);
 struct X3D_Virt virt_GeoProximitySensor = { NULL,(void *)render_GeoProximitySensor,NULL,NULL,NULL,NULL,(void *)proximity_GeoProximitySensor,NULL,NULL,(void *)compile_GeoProximitySensor};
 
+struct X3D_Virt virt_GeoReferenceSurfaceInfo = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoSRFInstance = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoSRFParametersInfo = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoSRFSet = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoSRFTemplate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 void render_GeoSystem(struct X3D_GeoSystem *);
 void compile_GeoSystem(struct X3D_GeoSystem *);
 struct X3D_Virt virt_GeoSystem = { NULL,(void *)render_GeoSystem,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoSystem};
+
+struct X3D_Virt virt_GeoTMParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void compile_GeoTouchSensor(struct X3D_GeoTouchSensor *);
 struct X3D_Virt virt_GeoTouchSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoTouchSensor};
@@ -4177,15 +4296,29 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_GeneratedCubeMapTexture,
 	 &virt_GeoConvert,
 	 &virt_GeoCoordinate,
+	 &virt_GeoECParameters,
 	 &virt_GeoElevationGrid,
+	 &virt_GeoLCCParameters,
+	 &virt_GeoLCE3DParameters,
 	 &virt_GeoLOD,
+	 &virt_GeoLSR3DParameters,
+	 &virt_GeoLTParameters,
 	 &virt_GeoLocation,
+	 &virt_GeoMParameters,
 	 &virt_GeoMetadata,
+	 &virt_GeoOMParameters,
 	 &virt_GeoOrigin,
+	 &virt_GeoPSParameters,
 	 &virt_GeoPlanet,
 	 &virt_GeoPositionInterpolator,
 	 &virt_GeoProximitySensor,
+	 &virt_GeoReferenceSurfaceInfo,
+	 &virt_GeoSRFInstance,
+	 &virt_GeoSRFParametersInfo,
+	 &virt_GeoSRFSet,
+	 &virt_GeoSRFTemplate,
 	 &virt_GeoSystem,
+	 &virt_GeoTMParameters,
 	 &virt_GeoTouchSensor,
 	 &virt_GeoTransform,
 	 &virt_GeoViewpoint,
@@ -5665,6 +5798,16 @@ const int OFFSETS_GeoCoordinate[] = {
 	(int) FIELDNAMES___movedCoords, (int) offsetof (struct X3D_GeoCoordinate, __movedCoords),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_GeoECParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoECParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoECParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_centralScale, (int) offsetof (struct X3D_GeoECParameters, centralScale),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseEasting, (int) offsetof (struct X3D_GeoECParameters, falseEasting),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseNorthing, (int) offsetof (struct X3D_GeoECParameters, falseNorthing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_originLongitude, (int) offsetof (struct X3D_GeoECParameters, originLongitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srftode, (int) offsetof (struct X3D_GeoECParameters, srftode),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES_set_height, (int) offsetof (struct X3D_GeoElevationGrid, set_height),  (int) FIELDTYPE_MFDouble, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_GeoElevationGrid, color),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -5690,6 +5833,25 @@ const int OFFSETS_GeoElevationGrid[] = {
 	(int) FIELDNAMES___autoOffset, (int) offsetof (struct X3D_GeoElevationGrid, __autoOffset),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___localOrient, (int) offsetof (struct X3D_GeoElevationGrid, __localOrient),  (int) FIELDTYPE_SFVec4d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___planets, (int) offsetof (struct X3D_GeoElevationGrid, __planets),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoLCCParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoLCCParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoLCCParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseEasting, (int) offsetof (struct X3D_GeoLCCParameters, falseEasting),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseNorthing, (int) offsetof (struct X3D_GeoLCCParameters, falseNorthing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_latitude1, (int) offsetof (struct X3D_GeoLCCParameters, latitude1),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_latitude2, (int) offsetof (struct X3D_GeoLCCParameters, latitude2),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_originLongitude, (int) offsetof (struct X3D_GeoLCCParameters, originLongitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_originLatitude, (int) offsetof (struct X3D_GeoLCCParameters, originLatitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoLCE3DParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoLCE3DParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoLCE3DParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_lococentre, (int) offsetof (struct X3D_GeoLCE3DParameters, lococentre),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_primaryAxis, (int) offsetof (struct X3D_GeoLCE3DParameters, primaryAxis),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_secondaryAxis, (int) offsetof (struct X3D_GeoLCE3DParameters, secondaryAxis),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoLOD[] = {
@@ -5723,6 +5885,24 @@ const int OFFSETS_GeoLOD[] = {
 	(int) FIELDNAMES___level, (int) offsetof (struct X3D_GeoLOD, __level),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_GeoLSR3DParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoLSR3DParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoLSR3DParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_forwardDirection, (int) offsetof (struct X3D_GeoLSR3DParameters, forwardDirection),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_upDirection, (int) offsetof (struct X3D_GeoLSR3DParameters, upDirection),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoLTParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoLTParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoLTParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_azimuth, (int) offsetof (struct X3D_GeoLTParameters, azimuth),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_geodeticLatitude, (int) offsetof (struct X3D_GeoLTParameters, geodeticLatitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_geodeticLongitude, (int) offsetof (struct X3D_GeoLTParameters, geodeticLongitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_heightOffset, (int) offsetof (struct X3D_GeoLTParameters, heightOffset),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_x_false_origin, (int) offsetof (struct X3D_GeoLTParameters, x_false_origin),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_y_false_origin, (int) offsetof (struct X3D_GeoLTParameters, y_false_origin),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_GeoLocation[] = {
 	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_GeoLocation, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_GeoLocation, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -5749,11 +5929,32 @@ const int OFFSETS_GeoLocation[] = {
 	(int) FIELDNAMES__sortedChildren, (int) offsetof (struct X3D_GeoLocation, _sortedChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_GeoMParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoMParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoMParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_centralScale, (int) offsetof (struct X3D_GeoMParameters, centralScale),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseEasting, (int) offsetof (struct X3D_GeoMParameters, falseEasting),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseNorthing, (int) offsetof (struct X3D_GeoMParameters, falseNorthing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_originLongitude, (int) offsetof (struct X3D_GeoMParameters, originLongitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_GeoMetadata[] = {
 	(int) FIELDNAMES_data, (int) offsetof (struct X3D_GeoMetadata, data),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_summary, (int) offsetof (struct X3D_GeoMetadata, summary),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_url, (int) offsetof (struct X3D_GeoMetadata, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoMetadata, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoOMParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoOMParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoOMParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_centralScale, (int) offsetof (struct X3D_GeoOMParameters, centralScale),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseEasting, (int) offsetof (struct X3D_GeoOMParameters, falseEasting),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseNorthing, (int) offsetof (struct X3D_GeoOMParameters, falseNorthing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_longitude1, (int) offsetof (struct X3D_GeoOMParameters, longitude1),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_latitude1, (int) offsetof (struct X3D_GeoOMParameters, latitude1),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_longitude2, (int) offsetof (struct X3D_GeoOMParameters, longitude2),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_latitude2, (int) offsetof (struct X3D_GeoOMParameters, latitude2),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoOrigin[] = {
@@ -5767,6 +5968,16 @@ const int OFFSETS_GeoOrigin[] = {
 	(int) FIELDNAMES___oldgeoCoords, (int) offsetof (struct X3D_GeoOrigin, __oldgeoCoords),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldMFString, (int) offsetof (struct X3D_GeoOrigin, __oldMFString),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___rotyup, (int) offsetof (struct X3D_GeoOrigin, __rotyup),  (int) FIELDTYPE_SFVec4d, (int) KW_inputOutput, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoPSParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoPSParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoPSParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_centralScale, (int) offsetof (struct X3D_GeoPSParameters, centralScale),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseEasting, (int) offsetof (struct X3D_GeoPSParameters, falseEasting),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_falseNorthing, (int) offsetof (struct X3D_GeoPSParameters, falseNorthing),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_originLongitude, (int) offsetof (struct X3D_GeoPSParameters, originLongitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_polarAspect, (int) offsetof (struct X3D_GeoPSParameters, polarAspect),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoPlanet[] = {
@@ -5827,10 +6038,58 @@ const int OFFSETS_GeoProximitySensor[] = {
 	(int) FIELDNAMES___oldSize, (int) offsetof (struct X3D_GeoProximitySensor, __oldSize),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_GeoReferenceSurfaceInfo[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoReferenceSurfaceInfo, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoReferenceSurfaceInfo, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_dssCode, (int) offsetof (struct X3D_GeoReferenceSurfaceInfo, dssCode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_name, (int) offsetof (struct X3D_GeoReferenceSurfaceInfo, name),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srfParametersInfo, (int) offsetof (struct X3D_GeoReferenceSurfaceInfo, srfParametersInfo),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoSRFInstance[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoSRFInstance, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoSRFInstance, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_srfCode, (int) offsetof (struct X3D_GeoSRFInstance, srfCode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoSRFParametersInfo[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoSRFParametersInfo, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoSRFParametersInfo, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_rtCode, (int) offsetof (struct X3D_GeoSRFParametersInfo, rtCode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srfParameters, (int) offsetof (struct X3D_GeoSRFParametersInfo, srfParameters),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoSRFSet[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoSRFSet, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoSRFSet, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_ormCode, (int) offsetof (struct X3D_GeoSRFSet, ormCode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srfsCode, (int) offsetof (struct X3D_GeoSRFSet, srfsCode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srfsMember, (int) offsetof (struct X3D_GeoSRFSet, srfsMember),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoSRFTemplate[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoSRFTemplate, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoSRFTemplate, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_ormCode, (int) offsetof (struct X3D_GeoSRFTemplate, ormCode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srftode, (int) offsetof (struct X3D_GeoSRFTemplate, srftode),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_srftParameters, (int) offsetof (struct X3D_GeoSRFTemplate, srftParameters),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_GeoSystem[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoSystem, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoSystem, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoSystem, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoTMParameters[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoTMParameters, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoTMParameters, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_azimuth, (int) offsetof (struct X3D_GeoTMParameters, azimuth),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_geodeticLatitude, (int) offsetof (struct X3D_GeoTMParameters, geodeticLatitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_geodeticLongitude, (int) offsetof (struct X3D_GeoTMParameters, geodeticLongitude),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_heightOffset, (int) offsetof (struct X3D_GeoTMParameters, heightOffset),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_x_false_origin, (int) offsetof (struct X3D_GeoTMParameters, x_false_origin),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	(int) FIELDNAMES_y_false_origin, (int) offsetof (struct X3D_GeoTMParameters, y_false_origin),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoTouchSensor[] = {
@@ -9005,15 +9264,29 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_GeneratedCubeMapTexture,
 	OFFSETS_GeoConvert,
 	OFFSETS_GeoCoordinate,
+	OFFSETS_GeoECParameters,
 	OFFSETS_GeoElevationGrid,
+	OFFSETS_GeoLCCParameters,
+	OFFSETS_GeoLCE3DParameters,
 	OFFSETS_GeoLOD,
+	OFFSETS_GeoLSR3DParameters,
+	OFFSETS_GeoLTParameters,
 	OFFSETS_GeoLocation,
+	OFFSETS_GeoMParameters,
 	OFFSETS_GeoMetadata,
+	OFFSETS_GeoOMParameters,
 	OFFSETS_GeoOrigin,
+	OFFSETS_GeoPSParameters,
 	OFFSETS_GeoPlanet,
 	OFFSETS_GeoPositionInterpolator,
 	OFFSETS_GeoProximitySensor,
+	OFFSETS_GeoReferenceSurfaceInfo,
+	OFFSETS_GeoSRFInstance,
+	OFFSETS_GeoSRFParametersInfo,
+	OFFSETS_GeoSRFSet,
+	OFFSETS_GeoSRFTemplate,
 	OFFSETS_GeoSystem,
+	OFFSETS_GeoTMParameters,
 	OFFSETS_GeoTouchSensor,
 	OFFSETS_GeoTransform,
 	OFFSETS_GeoViewpoint,
@@ -9589,15 +9862,29 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_GeneratedCubeMapTexture : {tmp = MALLOC (struct X3D_GeneratedCubeMapTexture *, size = sizeof (struct X3D_GeneratedCubeMapTexture)); break;}
 		case NODE_GeoConvert : {tmp = MALLOC (struct X3D_GeoConvert *, size = sizeof (struct X3D_GeoConvert)); break;}
 		case NODE_GeoCoordinate : {tmp = MALLOC (struct X3D_GeoCoordinate *, size = sizeof (struct X3D_GeoCoordinate)); break;}
+		case NODE_GeoECParameters : {tmp = MALLOC (struct X3D_GeoECParameters *, size = sizeof (struct X3D_GeoECParameters)); break;}
 		case NODE_GeoElevationGrid : {tmp = MALLOC (struct X3D_GeoElevationGrid *, size = sizeof (struct X3D_GeoElevationGrid)); break;}
+		case NODE_GeoLCCParameters : {tmp = MALLOC (struct X3D_GeoLCCParameters *, size = sizeof (struct X3D_GeoLCCParameters)); break;}
+		case NODE_GeoLCE3DParameters : {tmp = MALLOC (struct X3D_GeoLCE3DParameters *, size = sizeof (struct X3D_GeoLCE3DParameters)); break;}
 		case NODE_GeoLOD : {tmp = MALLOC (struct X3D_GeoLOD *, size = sizeof (struct X3D_GeoLOD)); break;}
+		case NODE_GeoLSR3DParameters : {tmp = MALLOC (struct X3D_GeoLSR3DParameters *, size = sizeof (struct X3D_GeoLSR3DParameters)); break;}
+		case NODE_GeoLTParameters : {tmp = MALLOC (struct X3D_GeoLTParameters *, size = sizeof (struct X3D_GeoLTParameters)); break;}
 		case NODE_GeoLocation : {tmp = MALLOC (struct X3D_GeoLocation *, size = sizeof (struct X3D_GeoLocation)); break;}
+		case NODE_GeoMParameters : {tmp = MALLOC (struct X3D_GeoMParameters *, size = sizeof (struct X3D_GeoMParameters)); break;}
 		case NODE_GeoMetadata : {tmp = MALLOC (struct X3D_GeoMetadata *, size = sizeof (struct X3D_GeoMetadata)); break;}
+		case NODE_GeoOMParameters : {tmp = MALLOC (struct X3D_GeoOMParameters *, size = sizeof (struct X3D_GeoOMParameters)); break;}
 		case NODE_GeoOrigin : {tmp = MALLOC (struct X3D_GeoOrigin *, size = sizeof (struct X3D_GeoOrigin)); break;}
+		case NODE_GeoPSParameters : {tmp = MALLOC (struct X3D_GeoPSParameters *, size = sizeof (struct X3D_GeoPSParameters)); break;}
 		case NODE_GeoPlanet : {tmp = MALLOC (struct X3D_GeoPlanet *, size = sizeof (struct X3D_GeoPlanet)); break;}
 		case NODE_GeoPositionInterpolator : {tmp = MALLOC (struct X3D_GeoPositionInterpolator *, size = sizeof (struct X3D_GeoPositionInterpolator)); break;}
 		case NODE_GeoProximitySensor : {tmp = MALLOC (struct X3D_GeoProximitySensor *, size = sizeof (struct X3D_GeoProximitySensor)); break;}
+		case NODE_GeoReferenceSurfaceInfo : {tmp = MALLOC (struct X3D_GeoReferenceSurfaceInfo *, size = sizeof (struct X3D_GeoReferenceSurfaceInfo)); break;}
+		case NODE_GeoSRFInstance : {tmp = MALLOC (struct X3D_GeoSRFInstance *, size = sizeof (struct X3D_GeoSRFInstance)); break;}
+		case NODE_GeoSRFParametersInfo : {tmp = MALLOC (struct X3D_GeoSRFParametersInfo *, size = sizeof (struct X3D_GeoSRFParametersInfo)); break;}
+		case NODE_GeoSRFSet : {tmp = MALLOC (struct X3D_GeoSRFSet *, size = sizeof (struct X3D_GeoSRFSet)); break;}
+		case NODE_GeoSRFTemplate : {tmp = MALLOC (struct X3D_GeoSRFTemplate *, size = sizeof (struct X3D_GeoSRFTemplate)); break;}
 		case NODE_GeoSystem : {tmp = MALLOC (struct X3D_GeoSystem *, size = sizeof (struct X3D_GeoSystem)); break;}
+		case NODE_GeoTMParameters : {tmp = MALLOC (struct X3D_GeoTMParameters *, size = sizeof (struct X3D_GeoTMParameters)); break;}
 		case NODE_GeoTouchSensor : {tmp = MALLOC (struct X3D_GeoTouchSensor *, size = sizeof (struct X3D_GeoTouchSensor)); break;}
 		case NODE_GeoTransform : {tmp = MALLOC (struct X3D_GeoTransform *, size = sizeof (struct X3D_GeoTransform)); break;}
 		case NODE_GeoViewpoint : {tmp = MALLOC (struct X3D_GeoViewpoint *, size = sizeof (struct X3D_GeoViewpoint)); break;}
@@ -11446,6 +11733,19 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_GeoECParameters : {
+			struct X3D_GeoECParameters * tmp2;
+			tmp2 = (struct X3D_GeoECParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->centralScale = 0;
+			tmp2->falseEasting = 0;
+			tmp2->falseNorthing = 0;
+			tmp2->originLongitude = 0;
+			tmp2->srftode = newASCIIString("NORTH");
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_GeoElevationGrid : {
 			struct X3D_GeoElevationGrid * tmp2;
 			tmp2 = (struct X3D_GeoElevationGrid *) tmp;
@@ -11476,6 +11776,31 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__autoOffset.c[0] = 0;tmp2->__autoOffset.c[1] = 0;tmp2->__autoOffset.c[2] = 0;;
 			tmp2->__localOrient.c[0] = 0;tmp2->__localOrient.c[1] = 0;tmp2->__localOrient.c[2] = 1;;
 			tmp2->__planets.n=0; tmp2->__planets.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoLCCParameters : {
+			struct X3D_GeoLCCParameters * tmp2;
+			tmp2 = (struct X3D_GeoLCCParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->falseEasting = 0;
+			tmp2->falseNorthing = 0;
+			tmp2->latitude1 = 0;
+			tmp2->latitude2 = 0;
+			tmp2->originLongitude = 0;
+			tmp2->originLatitude = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoLCE3DParameters : {
+			struct X3D_GeoLCE3DParameters * tmp2;
+			tmp2 = (struct X3D_GeoLCE3DParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->lococentre.c[0] = 0.0f;tmp2->lococentre.c[1] = 0.0f;tmp2->lococentre.c[2] = 0.0f;
+			tmp2->primaryAxis.c[0] = 0.0f;tmp2->primaryAxis.c[1] = 1.0f;tmp2->primaryAxis.c[2] = 0.0f;
+			tmp2->secondaryAxis.c[0] = 0.0f;tmp2->secondaryAxis.c[1] = 0.0f;tmp2->secondaryAxis.c[2] = 1.0f;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11513,6 +11838,30 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_GeoLSR3DParameters : {
+			struct X3D_GeoLSR3DParameters * tmp2;
+			tmp2 = (struct X3D_GeoLSR3DParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->forwardDirection = 2;
+			tmp2->upDirection = 1;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoLTParameters : {
+			struct X3D_GeoLTParameters * tmp2;
+			tmp2 = (struct X3D_GeoLTParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->azimuth = 1;
+			tmp2->geodeticLatitude = 0;
+			tmp2->geodeticLongitude = 0;
+			tmp2->heightOffset = 0;
+			tmp2->x_false_origin = 0;
+			tmp2->y_false_origin = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_GeoLocation : {
 			struct X3D_GeoLocation * tmp2;
 			tmp2 = (struct X3D_GeoLocation *) tmp;
@@ -11542,6 +11891,18 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_GeoMParameters : {
+			struct X3D_GeoMParameters * tmp2;
+			tmp2 = (struct X3D_GeoMParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->centralScale = 1;
+			tmp2->falseEasting = 0;
+			tmp2->falseNorthing = 0;
+			tmp2->originLongitude = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_GeoMetadata : {
 			struct X3D_GeoMetadata * tmp2;
 			tmp2 = (struct X3D_GeoMetadata *) tmp;
@@ -11549,6 +11910,21 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->summary.n=0; tmp2->summary.p=0;
 			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->metadata = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoOMParameters : {
+			struct X3D_GeoOMParameters * tmp2;
+			tmp2 = (struct X3D_GeoOMParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->centralScale = 1;
+			tmp2->falseEasting = 0;
+			tmp2->falseNorthing = 0;
+			tmp2->longitude1 = 0;
+			tmp2->latitude1 = 0;
+			tmp2->longitude2 = 0;
+			tmp2->latitude2 = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11565,6 +11941,19 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldgeoCoords.c[0] = 0;tmp2->__oldgeoCoords.c[1] = 0;tmp2->__oldgeoCoords.c[2] = 0;;
 			tmp2->__oldMFString.n=0; tmp2->__oldMFString.p=0;
 			tmp2->__rotyup.c[0] = 0;tmp2->__rotyup.c[1] = 1;tmp2->__rotyup.c[2] = 0;;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoPSParameters : {
+			struct X3D_GeoPSParameters * tmp2;
+			tmp2 = (struct X3D_GeoPSParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->centralScale = 1;
+			tmp2->falseEasting = 0;
+			tmp2->falseNorthing = 0;
+			tmp2->originLongitude = 0;
+			tmp2->polarAspect = newASCIIString("NORTH");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11635,12 +12024,78 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_GeoReferenceSurfaceInfo : {
+			struct X3D_GeoReferenceSurfaceInfo * tmp2;
+			tmp2 = (struct X3D_GeoReferenceSurfaceInfo *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->dssCode = 0;
+			tmp2->name = newASCIIString("");
+			tmp2->srfParametersInfo = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoSRFInstance : {
+			struct X3D_GeoSRFInstance * tmp2;
+			tmp2 = (struct X3D_GeoSRFInstance *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->srfCode = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoSRFParametersInfo : {
+			struct X3D_GeoSRFParametersInfo * tmp2;
+			tmp2 = (struct X3D_GeoSRFParametersInfo *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->rtCode = 0;
+			tmp2->srfParameters = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoSRFSet : {
+			struct X3D_GeoSRFSet * tmp2;
+			tmp2 = (struct X3D_GeoSRFSet *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->ormCode = 250;
+			tmp2->srfsCode = 0;
+			tmp2->srfsMember = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoSRFTemplate : {
+			struct X3D_GeoSRFTemplate * tmp2;
+			tmp2 = (struct X3D_GeoSRFTemplate *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->ormCode = 250;
+			tmp2->srftode = 1;
+			tmp2->srftParameters = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_GeoSystem : {
 			struct X3D_GeoSystem * tmp2;
 			tmp2 = (struct X3D_GeoSystem *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
 			tmp2->__geoSystem = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoTMParameters : {
+			struct X3D_GeoTMParameters * tmp2;
+			tmp2 = (struct X3D_GeoTMParameters *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->azimuth = 1;
+			tmp2->geodeticLatitude = 0;
+			tmp2->geodeticLongitude = 0;
+			tmp2->heightOffset = 0;
+			tmp2->x_false_origin = 0;
+			tmp2->y_false_origin = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17057,6 +17512,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_GeoECParameters : {
+			struct X3D_GeoECParameters *tmp;
+			tmp = (struct X3D_GeoECParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_GeoElevationGrid : {
 			struct X3D_GeoElevationGrid *tmp;
 			tmp = (struct X3D_GeoElevationGrid *) node;
@@ -17068,6 +17533,26 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," normal (SFNode):\n"); dump_scene(fp,level+1,tmp->normal); 
 			spacer fprintf (fp," texCoord (SFNode):\n"); dump_scene(fp,level+1,tmp->texCoord); 
 			spacer fprintf (fp," yScale (SFFloat) \t%4.3f\n",tmp->yScale);
+		    break;
+		}
+		case NODE_GeoLCCParameters : {
+			struct X3D_GeoLCCParameters *tmp;
+			tmp = (struct X3D_GeoLCCParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoLCE3DParameters : {
+			struct X3D_GeoLCE3DParameters *tmp;
+			tmp = (struct X3D_GeoLCE3DParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
 		    break;
 		}
 		case NODE_GeoLOD : {
@@ -17113,6 +17598,26 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    if(allFields) {
 			spacer fprintf (fp," __level (SFInt32) \t%d\n",tmp->__level);
+		    }
+		    break;
+		}
+		case NODE_GeoLSR3DParameters : {
+			struct X3D_GeoLSR3DParameters *tmp;
+			tmp = (struct X3D_GeoLSR3DParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoLTParameters : {
+			struct X3D_GeoLTParameters *tmp;
+			tmp = (struct X3D_GeoLTParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 		    break;
 		}
@@ -17174,6 +17679,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_GeoMParameters : {
+			struct X3D_GeoMParameters *tmp;
+			tmp = (struct X3D_GeoMParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_GeoMetadata : {
 			struct X3D_GeoMetadata *tmp;
 			tmp = (struct X3D_GeoMetadata *) node;
@@ -17184,6 +17699,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->summary.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->summary.p[i]->strptr); }
 			spacer fprintf (fp," url (MFString): \n");
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoOMParameters : {
+			struct X3D_GeoOMParameters *tmp;
+			tmp = (struct X3D_GeoOMParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
@@ -17222,6 +17747,16 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," __rotyup (SFVec4d): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->__rotyup.c[i]); }
 			fprintf (fp,"\n");
+		    }
+		    break;
+		}
+		case NODE_GeoPSParameters : {
+			struct X3D_GeoPSParameters *tmp;
+			tmp = (struct X3D_GeoPSParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 		    break;
 		}
@@ -17328,10 +17863,70 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_GeoReferenceSurfaceInfo : {
+			struct X3D_GeoReferenceSurfaceInfo *tmp;
+			tmp = (struct X3D_GeoReferenceSurfaceInfo *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoSRFInstance : {
+			struct X3D_GeoSRFInstance *tmp;
+			tmp = (struct X3D_GeoSRFInstance *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoSRFParametersInfo : {
+			struct X3D_GeoSRFParametersInfo *tmp;
+			tmp = (struct X3D_GeoSRFParametersInfo *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoSRFSet : {
+			struct X3D_GeoSRFSet *tmp;
+			tmp = (struct X3D_GeoSRFSet *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoSRFTemplate : {
+			struct X3D_GeoSRFTemplate *tmp;
+			tmp = (struct X3D_GeoSRFTemplate *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_GeoSystem : {
 			struct X3D_GeoSystem *tmp;
 			tmp = (struct X3D_GeoSystem *) node;
 			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoTMParameters : {
+			struct X3D_GeoTMParameters *tmp;
+			tmp = (struct X3D_GeoTMParameters *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
@@ -21220,15 +21815,29 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_GeneratedCubeMapTexture: return X3DEnvironmentTextureNode; break;
 	case NODE_GeoConvert: return X3DInterpolatorNode; break;
 	case NODE_GeoCoordinate: return X3DCoordinateNode; break;
+	case NODE_GeoECParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoElevationGrid: return X3DGeometryNode; break;
+	case NODE_GeoLCCParameters: return X3DGeoSRFTParametersNode; break;
+	case NODE_GeoLCE3DParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoLOD: return X3DGroupingNode; break;
+	case NODE_GeoLSR3DParameters: return X3DGeoSRFTParametersNode; break;
+	case NODE_GeoLTParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoLocation: return X3DGroupingNode; break;
+	case NODE_GeoMParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoMetadata: return X3DChildNode; break;
+	case NODE_GeoOMParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoOrigin: return X3DChildNode; break;
+	case NODE_GeoPSParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoPlanet: return X3DGroupingNode; break;
 	case NODE_GeoPositionInterpolator: return X3DInterpolatorNode; break;
 	case NODE_GeoProximitySensor: return X3DEnvironmentalSensorNode; break;
+	case NODE_GeoReferenceSurfaceInfo: return X3DChildNode; break;
+	case NODE_GeoSRFInstance: return X3DGeoSRFParametersNode; break;
+	case NODE_GeoSRFParametersInfo: return X3DGeoSRFParametersInfoNode; break;
+	case NODE_GeoSRFSet: return X3DGeoSRFParametersNode; break;
+	case NODE_GeoSRFTemplate: return X3DGeoSRFParametersNode; break;
 	case NODE_GeoSystem: return X3DChildNode; break;
+	case NODE_GeoTMParameters: return X3DGeoSRFTParametersNode; break;
 	case NODE_GeoTouchSensor: return X3DPointingDeviceSensorNode; break;
 	case NODE_GeoTransform: return X3DGroupingNode; break;
 	case NODE_GeoViewpoint: return X3DBindableNode; break;
