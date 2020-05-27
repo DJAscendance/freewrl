@@ -2926,7 +2926,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_geoSRF,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},

@@ -5525,7 +5525,7 @@ void do_GeoConvert (void *px){
 
 #ifndef SRM
 //stubs
-void compile_GeoSSRF(struct X3D_GeoSRF *node){
+void compile_GeoSRF(struct X3D_GeoSRF *node){
 }
 void render_GeoSRF(struct X3D_GeoSRF *node){
 }

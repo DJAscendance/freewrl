@@ -380,7 +380,7 @@ our %defaultContainerType = (
 	ChannelMergerNode	=>["connect"],
 	AudioListener		=>["connect"],
 	PannerNode		=>["connect"],
-
+	GeoSRF			=>["geoSRF"],
 );
 
 
