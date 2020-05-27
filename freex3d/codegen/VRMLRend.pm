@@ -498,7 +498,7 @@ our %RendC = map {($_=>1)} qw/
 	ChannelMergerNode
 	AudioListener
 	PannerNode
-	GeoSystem
+	GeoSRF
 	
 /;
 
@@ -822,7 +822,7 @@ our %CompileC = map {($_=>1)} qw/
 	ChannelMergerNode
 	AudioListener
 	PannerNode
-	GeoSystem
+	GeoSRF
 /;
 
 

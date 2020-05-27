@@ -1123,6 +1123,7 @@ BEGIN_NODE(GeoConvert)
 EVENT_IN(GeoConvert,set_geoCoords,sfvec3d,set_geoCoords,FIELDTYPE_SFVec3d)
 EVENT_IN(GeoConvert,set_gcCoords,sfvec3d,set_gcCoords,FIELDTYPE_SFVec3d)
 FIELD(GeoConvert,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoConvert,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 EXPOSED_FIELD(GeoConvert,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EVENT_OUT(GeoConvert,gcCoords_changed,sfvec3d,gcCoords_changed,FIELDTYPE_SFVec3d)
 EVENT_OUT(GeoConvert,geoCoords_changed,sfvec3d,geoCoords_changed,FIELDTYPE_SFVec3d)
@@ -1134,6 +1135,7 @@ EXPOSED_FIELD(GeoCoordinate,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(GeoCoordinate,point,mfvec3d,point,FIELDTYPE_MFVec3d,UNCA_GEO)
 FIELD(GeoCoordinate,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoCoordinate,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoCoordinate,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 END_NODE(GeoCoordinate)
 
 /* GeoECParameters node */
@@ -1161,6 +1163,7 @@ FIELD(GeoElevationGrid,creaseAngle,sfdouble,creaseAngle,FIELDTYPE_SFDouble,UNCA_
 FIELD(GeoElevationGrid,geoGridOrigin,sfvec3d,geoGridOrigin,FIELDTYPE_SFVec3d,UNCA_GEO)
 FIELD(GeoElevationGrid,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoElevationGrid,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoElevationGrid,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 FIELD(GeoElevationGrid,height,mfdouble,height,FIELDTYPE_MFDouble,UNCA_LENGTH)
 FIELD(GeoElevationGrid,normalPerVertex,sfbool,normalPerVertex,FIELDTYPE_SFBool,UNCA_NONE)
 FIELD(GeoElevationGrid,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
@@ -1203,6 +1206,7 @@ FIELD(GeoLOD,child3Url,mfstring,child3Url,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoLOD,child4Url,mfstring,child4Url,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoLOD,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoLOD,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoLOD,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 FIELD(GeoLOD,range,sffloat,range,FIELDTYPE_SFFloat,UNCA_LENGTH)
 FIELD(GeoLOD,rootUrl,mfstring,rootUrl,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoLOD,rootNode,mfnode,rootNode,FIELDTYPE_MFNode,UNCA_NONE)
@@ -1241,6 +1245,7 @@ EXPOSED_FIELD(GeoLocation,geoCoords,sfvec3d,geoCoords,FIELDTYPE_SFVec3d,UNCA_GEO
 EXPOSED_FIELD(GeoLocation,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoLocation,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoLocation,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoLocation,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 FIELD(GeoLocation,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 FIELD(GeoLocation,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 EXPOSED_FIELD(GeoLocation,visible,sfbool,visible,FIELDTYPE_SFBool,UNCA_NONE)
@@ -1283,6 +1288,7 @@ END_NODE(GeoOMParameters)
 BEGIN_NODE(GeoOrigin)
 EXPOSED_FIELD(GeoOrigin,geoCoords,sfvec3d,geoCoords,FIELDTYPE_SFVec3d,UNCA_GEO)
 FIELD(GeoOrigin,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoOrigin,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 EXPOSED_FIELD(GeoOrigin,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoOrigin,rotateYUp,sfbool,rotateYUp,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(GeoOrigin)
@@ -1322,6 +1328,7 @@ EVENT_OUT(GeoPositionInterpolator,geovalue_changed,sfvec3d,geovalue_changed,FIEL
 EVENT_OUT(GeoPositionInterpolator,value_changed,sfvec3f,value_changed,FIELDTYPE_SFVec3f)
 FIELD(GeoPositionInterpolator,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoPositionInterpolator,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoPositionInterpolator,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 END_NODE(GeoPositionInterpolator)
 
 /* GeoProximitySensor node */
@@ -1340,6 +1347,7 @@ EVENT_OUT(GeoProximitySensor,orientation_changed,sfrotation,orientation_changed,
 EVENT_OUT(GeoProximitySensor,position_changed,sfvec3f,position_changed,FIELDTYPE_SFVec3f)
 FIELD(GeoProximitySensor,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoProximitySensor,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoProximitySensor,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 END_NODE(GeoProximitySensor)
 
 /* GeoReferenceSurfaceInfo node */
@@ -1350,6 +1358,14 @@ FIELD(GeoReferenceSurfaceInfo,dssCode,sfint32,dssCode,FIELDTYPE_SFInt32,UNCA_NON
 FIELD(GeoReferenceSurfaceInfo,name,sfstring,name,FIELDTYPE_SFString,UNCA_NONE)
 FIELD(GeoReferenceSurfaceInfo,srfParametersInfo,sfnode,srfParametersInfo,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(GeoReferenceSurfaceInfo)
+
+/* GeoSRF node */
+BEGIN_NODE(GeoSRF)
+EXPOSED_FIELD(GeoSRF,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSRF,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoSRF,geoKeyValue,mfstring,geoKeyValue,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoSRF,geoJson,sfstring,geoJson,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(GeoSRF)
 
 /* GeoSRFInstance node */
 BEGIN_NODE(GeoSRFInstance)
@@ -1384,12 +1400,6 @@ FIELD(GeoSRFTemplate,srftode,sfint32,srftode,FIELDTYPE_SFInt32,UNCA_NONE)
 FIELD(GeoSRFTemplate,srftParameters,sfnode,srftParameters,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(GeoSRFTemplate)
 
-/* GeoSystem node */
-BEGIN_NODE(GeoSystem)
-EXPOSED_FIELD(GeoSystem,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
-FIELD(GeoSystem,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
-END_NODE(GeoSystem)
-
 /* GeoTMParameters node */
 BEGIN_NODE(GeoTMParameters)
 EXPOSED_FIELD(GeoTMParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
@@ -1416,6 +1426,7 @@ EVENT_OUT(GeoTouchSensor,isOver,sfbool,isOver,FIELDTYPE_SFBool)
 EVENT_OUT(GeoTouchSensor,touchTime,sftime,touchTime,FIELDTYPE_SFTime)
 FIELD(GeoTouchSensor,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoTouchSensor,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoTouchSensor,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 END_NODE(GeoTouchSensor)
 
 /* GeoTransform node */
@@ -1436,6 +1447,7 @@ EXPOSED_FIELD(GeoTransform,visible,sfbool,visible,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(GeoTransform,bboxDisplay,sfbool,bboxDisplay,FIELDTYPE_SFBool,UNCA_NONE)
 FIELD(GeoTransform,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoTransform,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoTransform,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 END_NODE(GeoTransform)
 
 /* GeoViewpoint node */
@@ -1454,6 +1466,7 @@ EXPOSED_FIELD(GeoViewpoint,headlight,sfbool,headlight,FIELDTYPE_SFBool,UNCA_NONE
 EXPOSED_FIELD(GeoViewpoint,navType,mfstring,navType,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(GeoViewpoint,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(GeoViewpoint,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoViewpoint,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 FIELD(GeoViewpoint,speedFactor,sffloat,speedFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EVENT_IN(GeoViewpoint,retainUserOffsets,sfbool,retainUserOffsets,FIELDTYPE_SFBool)
 FIELD(GeoViewpoint,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool,0)
