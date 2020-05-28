@@ -1173,6 +1173,19 @@ FIELD(GeoElevationGrid,zDimension,sfint32,zDimension,FIELDTYPE_SFInt32,UNCA_NONE
 FIELD(GeoElevationGrid,zSpacing,sfdouble,zSpacing,FIELDTYPE_SFDouble,UNCA_GEO)
 END_NODE(GeoElevationGrid)
 
+/* GeoEllipsoid node */
+BEGIN_NODE(GeoEllipsoid)
+EXPOSED_FIELD(GeoEllipsoid,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoEllipsoid,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoEllipsoid,code,sfint32,code,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoEllipsoid,name,sfstring,name,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeoEllipsoid,A,sfdouble,A,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoEllipsoid,F,sfdouble,F,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoEllipsoid,B,sfdouble,B,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoEllipsoid,C,sfdouble,C,FIELDTYPE_SFDouble,UNCA_NONE)
+FIELD(GeoEllipsoid,axisCount,sfint32,axisCount,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(GeoEllipsoid)
+
 /* GeoLCCParameters node */
 BEGIN_NODE(GeoLCCParameters)
 EXPOSED_FIELD(GeoLCCParameters,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
@@ -1399,6 +1412,23 @@ FIELD(GeoSRFTemplate,ormCode,sfint32,ormCode,FIELDTYPE_SFInt32,UNCA_NONE)
 FIELD(GeoSRFTemplate,srftode,sfint32,srftode,FIELDTYPE_SFInt32,UNCA_NONE)
 FIELD(GeoSRFTemplate,srftParameters,sfnode,srftParameters,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(GeoSRFTemplate)
+
+/* GeoSpatialReferenceFrame node */
+BEGIN_NODE(GeoSpatialReferenceFrame)
+EXPOSED_FIELD(GeoSpatialReferenceFrame,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(GeoSpatialReferenceFrame,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSpatialReferenceFrame,dssCode,sfint32,dssCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSpatialReferenceFrame,name,sfstring,name,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeoSpatialReferenceFrame,rtCode,sfint32,rtCode,FIELDTYPE_SFInt32,UNCA_NONE)
+FIELD(GeoSpatialReferenceFrame,ellipsoid,sfnode,ellipsoid,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoSpatialReferenceFrame,systemParameters,sfnode,systemParameters,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(GeoSpatialReferenceFrame)
+
+/* GeoSystemParameters node */
+BEGIN_NODE(GeoSystemParameters)
+FIELD(GeoSystemParameters,paramterName,mfstring,paramterName,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoSystemParameters,paramterValue,mfdouble,paramterValue,FIELDTYPE_MFDouble,UNCA_NONE)
+END_NODE(GeoSystemParameters)
 
 /* GeoTMParameters node */
 BEGIN_NODE(GeoTMParameters)

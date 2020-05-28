@@ -381,6 +381,8 @@ our %defaultContainerType = (
 	AudioListener		=>["connect"],
 	PannerNode		=>["connect"],
 	GeoSRF			=>["geoSRF"],
+	GeoEllipsoid		=>["ellipsoid"],
+	GeoSystemParameters	=>["systemParameters"],
 );
 
 

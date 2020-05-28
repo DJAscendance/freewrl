@@ -2157,14 +2157,6 @@ our %Nodes = (
 	###################################################################################
 
 
-	"GeoSRF" => new VRML::NodeType("GeoSRF", [
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		geoKeyValue =>  ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		geoJson =>  ["SFString","","initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
-	],"X3DChildNode"),  #would/should be a X3DGeoSystemNode - later
-	
 	
 	"GeoCoordinate" => new VRML::NodeType("GeoCoordinate", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2493,9 +2485,53 @@ our %Nodes = (
 	],"X3DInterpolatorNode"),
 	
 
-	# proposed v4 'PUK' nodes
-	# the PUK nodes generally are just to help you type - in theory all the parameters can go in geoSystem MFString
+	# proposed v4 SRF nodes
+	# generally are just to help you type - in theory all the parameters can go in geoSystem MFString, the nodes don't 'do' anything
+	
+	# the SANDEN node
+	"GeoSRF" => new VRML::NodeType("GeoSRF", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		geoKeyValue =>  ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		geoJson =>  ["SFString","","initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff
+	],"X3DChildNode"),  #would/should be a X3DGeoSystemNode - later
+	
+	
+	# the BRUTZMAN nodes
+	"GeoEllipsoid" => new VRML::NodeType("GeoEllipsoid", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		code => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		name => ["SFString", "", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		A  => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		F => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		B  => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		C  => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		axisCount => ["SFInt32", 2, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DChildNode"),
+	
+	"GeoSystemParameters" => new VRML::NodeType("GeoSystemParameters", [
+		paramterName => ["MFString", [], "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		paramterValue => ["MFDouble", [], "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DGeoSRFParametersInfoNode"),
+	
+	"GeoSpatialReferenceFrame" => new VRML::NodeType("GeoSpatialReferenceFrame", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		dssCode => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		name => ["SFString", "", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		rtCode => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+		ellipsoid => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		systemParameters => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
+	],"X3DChildNode"),
+	
+	
+	
+	# the PUK nodes 
 	#1 top node / level - takes a 2nd level as parameter
+
+	
 	"GeoReferenceSurfaceInfo" => new VRML::NodeType("GeoReferenceSurfaceInfo", [
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
