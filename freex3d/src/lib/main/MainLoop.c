@@ -5145,20 +5145,22 @@ void setup_picking(){
 	/* handle_mouse events if clicked on a sensitive node */
 	if (tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
 		struct X3D_Node *sensornode;
-		int x,yup,ktouch,priorclaimants;
+		int x,yup,ktouch,priorclaimants, isOver;
 		struct Touch *touch;
-
 		priorclaimants = TOUCHCLAIMANT_PEDAL;
 		for(ktouch=0;ktouch<p->ntouch;ktouch++){
 			touch = &p->touchlist[ktouch];
-			if(!touch->inUse) continue;
+			if(!touch->inUse) {
+				continue;
+			}
 
 			if(touch->windex != windex) continue; //return;
 			if(touch->stageId != current_stageId()) continue;
-
 			x = touch->x;
 			yup = touch->y;
-			if(touch->claimant == TOUCHCLAIMANT_SENSOR || (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)) {
+			isOver = (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants);
+			//if(touch->claimant == TOUCHCLAIMANT_SENSOR || (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)) {
+			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver) {
 				//ConsoleMessage("setup_picking x %d y %d ID %d but %d mev %d\n",touch->x,touch->y,touch->ID,touch->buttonState,touch->mev);
 				if(setup_pickside(x,yup)){
 					// There can be multiple paths to a parent transform of a sensor node:
@@ -5227,7 +5229,10 @@ void setup_picking(){
 						printf("COS %d (%s)\n", (unsigned int) p->CursorOverSensitive, stringNodeType(p->CursorOverSensitive->_nodeType));
 					#endif /* VERBOSE */
 
-					if(touch->claimant != TOUCHCLAIMANT_SENSOR) continue; //navigation touch
+					if(touch->claimant != TOUCHCLAIMANT_SENSOR && !isOver) {
+					//if(touch->claimant != TOUCHCLAIMANT_SENSOR ) {
+						continue; //navigation touch
+					}
 					tg->RenderFuncs.touchID = touch->ID;
 					/* did we have a click of button 1? */
 					//if (p->ButDown[p->currentCursor][1] && (p->lastPressedOver==NULL)) {
@@ -5303,6 +5308,7 @@ void setup_picking(){
 					touch->hypersensitive = tg->RenderFuncs.hypersensitive;
 					touch->hyperhit = tg->RenderFuncs.hyperhit;
 				} //setup_pickside
+
 				if(touch->dragStart){
 					touch->dragStart = FALSE; //handled buttonPress above
 				}
@@ -5357,9 +5363,12 @@ void setup_picking(){
 		priorclaimants = TOUCHCLAIMANT_PEDAL;
 		for(ktouch=0;ktouch<p->ntouch;ktouch++){
 			touch = &p->touchlist[ktouch];
-			if(!touch->inUse) continue;
-			if(touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants)
+			if(!touch->inUse) {
+				continue;
+			}
+			if(touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants){
 				touch->passed |= TOUCHCLAIMANT_SENSOR;
+			}
 		}
 		//setArrowCursor();
 	}
@@ -7758,11 +7767,13 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 	}
 
 	/* save the current x and y positions for picking. */
-	if(mev == ButtonPress){
-		//welcome, a new touch / start of drag
-		//android multi_touch can send in two mev=4 and two mev=5 for the first touch when doing 2+ touches
-		// H: one is regular, and one POINTER
-		// if 2, then keep using the first one
+	//welcome, a new touch / start of drag
+	//android multi_touch can send in two mev=4 and two mev=5 for the first touch when doing 2+ touches
+	// H: one is regular, and one POINTER
+	// if 2, then keep using the first one
+	if(1){
+		//May 30, 2020 trying to get desktop isOver to work again without needing Hover button
+		//problem: DragCascade needs 2 clicks to drag
 		touch = GetTouch(ID);
 		if(!touch){
 			//if(touch) touch->inUse = FALSE;
@@ -7774,17 +7785,53 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 			}
 			touch->windex = windex;
 			touch->stageId = current_stageId();
+			//touch->buttonState = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
+			touch->claimant = claimant; 
+			touch->passed = passed;
+			//touch->dragEnd = FALSE;
+			//touch->dragStart = mev == ButtonPress ? TRUE : FALSE; //cleared by claimant when they've consumed the start
+		}
+		if(mev == ButtonPress){
 			touch->buttonState = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
 			touch->claimant = claimant; 
 			touch->passed = passed;
-			touch->dragStart = TRUE; //cleared by claimant when they've consumed the start
+			touch->dragEnd = FALSE;
+			touch->dragStart = TRUE;
+		}else{
+			//touch->passed = passed;
+			//touch->claimant = claimant;
+			touch->dragStart = FALSE; //cleared by claimant when they've consumed the start
 		}
 	}else{
-		touch = GetTouch(ID);
+		//this works for DragCascade, multitouch emu and Hover for desktop isOver
+		if(mev == ButtonPress){
+			touch = GetTouch(ID);
+			if(!touch){
+				//if(touch) touch->inUse = FALSE;
+				touch = AllocTouch(ID);
+				if(currentTouch()->ID == 0) {
+					//there is no other current touch that we are in the middle of,
+					//so this becomes the current touch
+					setCurrentTouchID(ID);
+				}
+				touch->windex = windex;
+				touch->stageId = current_stageId();
+				touch->buttonState = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
+				touch->claimant = claimant; 
+				touch->passed = passed;
+				touch->dragStart = mev == ButtonPress ? TRUE : FALSE; //cleared by claimant when they've consumed the start
+			}
+		}
+		if(mev == ButtonPress){
+				touch->dragStart = TRUE; //cleared by claimant when they've consumed the start
+		}else{
+			touch = GetTouch(ID);
+			//	touch->dragStart = FALSE; //cleared by claimant when they've consumed the start
+		}
 	}
 	if(touch == NULL){
 		//May 4, 2016 change: we now ignore mouse-up mouse moves / hovers / isOver
-		//ConsoleMessage("null touch ");
+		ConsoleMessage("null touch ");
 		return; 
 	}
 
@@ -7809,7 +7856,10 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 		if(touch->ID == ID)
 			p->currentTouch = 0;
 		touch->dragEnd = TRUE;
-		if(touch->claimant == TOUCHCLAIMANT_PEDAL) touch->inUse = FALSE;
+		if(touch->claimant == TOUCHCLAIMANT_PEDAL) {
+			//touch device - garbage collect down-drag
+			touch->inUse = FALSE;
+		}
 	}
 	return;
 }
