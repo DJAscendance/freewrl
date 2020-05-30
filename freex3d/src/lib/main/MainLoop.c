@@ -5906,6 +5906,7 @@ static void render()
 
 			/*  4. Nodes (not the blended ones)*/
 			profile_start("hier_geom");
+			push_group_extent_default();
 			render_hier(rootNode(), VF_Geom);
 			profile_end("hier_geom");
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
@@ -5916,6 +5917,10 @@ static void render()
 				render_hier(rootNode(), VF_Geom | VF_Blend);
 				PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
 			}
+			//extent6f_printf(peek_group_extent()); printf("\n");
+			extent6f_copy(rootNode()->_extent,peek_group_extent());
+			pop_group_extent();
+
 			fw_depth_slice_pop();
 		}
 		if (viewer->isStereo) {

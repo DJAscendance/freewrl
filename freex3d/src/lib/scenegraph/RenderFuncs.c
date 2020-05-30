@@ -2115,6 +2115,34 @@ void pop_globalRenderFlags(){
 	tg->Component_PTM.globalProjector = 0; //watch outL if you do ashort-cut stereo with 2 render_heir(geom) then this shoulod be zeroed after last one or on next frame start
 
 }
+struct what_string {
+int iwhat;
+char *cwhat;
+} what_strings [] = {
+{VF_Viewpoint,"Viewpoint"},
+{VF_Geom,"Geom"},
+{VF_globalLight,"globalLight"},
+{VF_Sensitive,"Sensitive"},
+{VF_Picking,"Picking"},
+{VF_Blend,"Blend"},
+{VF_Proximity,"Proximit"},
+{VF_Collision,"Collision"},
+{VF_Other,"Other"},
+{VF_Cube,"Cube"},
+{VF_Background,"Background"},
+{0,NULL},
+};
+void rwhat_printf(int rwhat){
+	struct what_string *ws;
+	int k = 0;
+	ws = &what_strings[k];
+	while(ws->cwhat){
+		if(rwhat & ws->iwhat) printf("%s \n",ws->cwhat);
+		k++;
+		ws = &what_strings[k];
+	}
+
+}
 void render_hier(struct X3D_Node *g, int rwhat) {
 	/// not needed now - see below struct point_XYZ upvec = {0,1,0};
 	/// not needed now - see below GLDOUBLE modelMatrix[16];
@@ -2167,9 +2195,8 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 		push_globalRenderFlags();
 	}
 	profile_start("render_hier");
-	push_group_extent_default();
 	render_node(X3D_NODE(g));
-	pop_group_extent();
+	//rwhat_printf(rwhat);
 	profile_end("render_hier");
 	if(rs->render_blend || rs->render_geom){
 		pop_globalRenderFlags();

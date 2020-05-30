@@ -282,7 +282,6 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		viewer->backgroundPlane = DEFAULT_BACKGROUNDPLANE;       /* where Background and TextureBackground nodes go */
 		viewer->fieldofview=45.0;
 		viewer->fovZoom = 1.0;
-
 		viewer->wasBound = FALSE;
 	}
 
@@ -3440,6 +3439,8 @@ void setup_viewpoint_slerp3(double* center, double pivot_radius, double vp_radiu
 	quaternion_multiply(&viewer->endSLERPQuat,&qtmp,&viewer->startSLERPQuat);
 }
 
+
+//Q. where do we 'visit' the viewpoint? H: render_viewpoint??
 void viewer_viewall(){
 	double dcenter[3], pivot_radius, vp_radius;
 	float extent6[6];
@@ -3451,21 +3452,37 @@ void viewer_viewall(){
 		double MM[16];
 		float vpf[3], center[3], vpoffset[3];
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+		//matinverse(MM2,MM);
 		extent6f_copy(extent6,rn->_extent);
+		//extent6f_printf(extent6);
 		extent6f_mattransform4d(extent6,extent6,MM);
 		//include currently bound viewpoint in scene_diameter? 
 		//-I think it already is part of rootNode extent, no need to add it
 		vecset3f(vpf,0.0f,0.0f,0.0f); 
 		extent6f_get_center3f(extent6,center);
 		float2double(dcenter,center,3);
-		vecdif3f(vpoffset,center,vpf);
 		pivot_radius = extent6f_get_maxradius(extent6);
-		vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
+		if(0){
+			vecdif3f(vpoffset,center,vpf);
+			vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
+		}else{
+			//assuming perspective camera
+			//theory (2D side view of scneario)
+			// if your viewer half-angle is alpha
+			// and the scene radious is R
+			// how far away D should you be from scene center?
+			// sin(alpha) = R/D, or D = R/sin(alpha)
+			//printf("\npivot_radius= %lf\n",pivot_radius);
+			//printf("fieldofview = %lf\n",viewer->fieldofview);
+			vp_radius = pivot_radius /sin(Viewer()->fieldofview *.5 * M_PI / 180.0);
+			//printf("vp_radius %lf\n",vp_radius);
+		}
 		Viewer()->Dist = vp_radius; //pivot_radius; // + scene_diameter;
 
 		setup_viewpoint_slerp3(dcenter,pivot_radius, vp_radius);
 	}
 }
+
 /* We have a Viewpoint node being bound. (not a GeoViewpoint node) */
 void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	Quaternion q_i;
