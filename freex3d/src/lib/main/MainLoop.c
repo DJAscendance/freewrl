@@ -5249,7 +5249,7 @@ void setup_picking(){
 
 					//double-check navigation, which may have already started
 					if(dragStart){
-						if(touch->CursorOverSensitive || fwl_getHover()){
+						if(touch->CursorOverSensitive){
 							touch->claimant = TOUCHCLAIMANT_SENSOR;
 						}else{
 							touch->passed |= TOUCHCLAIMANT_SENSOR;
@@ -5260,6 +5260,7 @@ void setup_picking(){
 			//tg->RenderFuncs.touchID = touch->ID;
 					/* for nodes that use an "isOver" eventOut... */
 					if (touch->lastOver != touch->CursorOverSensitive) {
+						printf(".");
 						#ifdef VERBOSE
 							printf ("%lf over changed, p->lastOver %u p->cursorOverSensitive %u, p->butDown1 %d\n",
 								TickTime(), (unsigned int) touch->lastOver, (unsigned int) touch->CursorOverSensitive,
@@ -5268,7 +5269,7 @@ void setup_picking(){
 						//ConsoleMessage("isOver changing\n");
 						//if (p->ButDown[p->currentCursor][1]==0) {
 						if (touch->frame_state.buttonState == 0) {  //touch->buttonState[LMB]==0) {
-
+							printf("|");
 							/* ok, when the user releases a button, cursorOverSensitive WILL BE NULL
 								until it gets sensed again. So, we use the lastOverButtonPressed flag to delay
 								sending this flag by one event loop loop. */
@@ -7901,7 +7902,7 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 		//touch->mev = mev; //recorded for testing later, but dragstart, dragend are the event signals.
 		if(imev == ButtonPress){
 			//touch->inUse = TRUE;
-			touch->state.buttonState = 1; //ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
+			touch->state.buttonState = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
 			touch->claimant = claimant; 
 			touch->passed = passed;
 			//touch->dragEnd = FALSE;
