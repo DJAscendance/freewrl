@@ -39,6 +39,7 @@
 #define ButtonPress     4
 #define ButtonRelease   5
 #define MotionNotify    6
+#define ButtonRecycle   7  //touch devices release + recycle / hide up-drags
 #define MapNotify       19
 #endif
 #endif

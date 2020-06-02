@@ -4429,7 +4429,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 			//if near an existing one, delete
 			if(*IDD > -1 && touch){
 				//fwl_handle_mouse_multi_yup(ButtonRelease,LMB,x,y,ID,windex);
-				*mev = ButtonRelease;
+				*mev = ButtonRecycle; //ButtonRelease;
 				*button = LMB;
 				*ID = *IDD;
 				ihandle = -2;  //caller must propagate handle_mouse, then set ID = -1;
@@ -7888,10 +7888,11 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 			touch->passed = passed;
 			//touch->dragEnd = FALSE;
 			//touch->dragStart = TRUE;
-		}else if(imev == ButtonRelease){
+		}else if(imev == ButtonRelease || imev == ButtonRecycle){
 			//if(touch->ID == ID)
 			//	p->currentTouch = 0;
 			//touch->dragEnd = TRUE;
+			if(imev == ButtonRecycle) touch->state.inUse = FALSE;
 			touch->state.buttonState = 0;
 			if(touch->claimant == TOUCHCLAIMANT_PEDAL) {
 				//touch device - garbage collect down-drag
