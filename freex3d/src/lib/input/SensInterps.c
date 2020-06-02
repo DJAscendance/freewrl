@@ -1569,14 +1569,28 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 	}
 
 }
-
+struct ID_point {
+int ID;
+float p[3];
+int reset;
+};
+int lookup_ID(struct ID_point* idp, int n, int touchID){
+	int j = -1;
+	for(int i=0;i<n;i++){
+		if(idp[i].ID == touchID) {
+			j = i; break;
+		}
+	}
+	return j;
+}
 /* void do_PlaneSensor (struct X3D_PlaneSensor *node, int ev, int over) {*/
 void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_PlaneSensor *node;
 	float mult, nx, ny, trackpoint[3], inverserotation[4], *posn;
 	float tr[3];
 	int tmp, imethod;
-
+	int touchID;
+	struct ID_point drag_point, *dp, *op;
 	ttglobal tg;
 	UNUSED(over);
 	node = (struct X3D_PlaneSensor *)ptr;
@@ -1604,6 +1618,17 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	if (!node->enabled) return;
 	tg = gglobal();
 
+	tg = gglobal();
+	if(!node->_orig_point){
+		node->_orig_point = malloc(1 *sizeof(struct ID_point));
+		memset(node->_orig_point,0,sizeof(struct ID_point));
+		op = (struct ID_point*)node->_orig_point;
+		op->reset = TRUE;
+	}
+	op = (struct ID_point*)node->_orig_point;
+	dp = &drag_point;
+	touchID = tg->RenderFuncs.touchID;
+
 	/* only do something when button pressed */
 	/* if (!but1) return; */
 	if (but1){
@@ -1625,89 +1650,78 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		//-- we harmonize with x3dom and view3dscene 
 		veccopy4f(inverserotation,node->axisRotation.c);
 		inverserotation[3] = -inverserotation[3];
+		veccopy3f(dp->p,trackpoint);
+		dp->ID = touchID;
 		//axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
 	}
 
 	if ((ev==ButtonPress) && but1) {
 		/* record the current position from the saved position */
-		struct SFColor op;
-		float *posn;
-		posn = tg->RenderFuncs.hyp_save_posn;
-
-		veccopy3f(op.c, trackpoint);
-		memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
-		veccopy3f(node->_origPoint.c,op.c);
-
-		/* set isActive true */
-		node->isActive=TRUE;
-		MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
+		if(touchID == op->ID || op->reset == TRUE ){
+			veccopy3f(op->p,trackpoint);
+			op->ID = touchID;
+			op->reset = TRUE; //FALSE;
+			/* set isActive true */
+			node->isActive=TRUE;
+			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
+		}
 
 	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
 		/* hyperhit saved in render_hypersensitive phase */
-		nx = trackpoint[0]; ny = trackpoint[1];
-		#ifdef SEVERBOSE
-		ConsoleMessage ("now, mult %f nx %f ny %f op %f %f %f\n",mult,nx,ny,
-			node->_origPoint.c[0],node->_origPoint.c[1],
-			node->_origPoint.c[2]);
-		#endif
+		if(dp->ID == op->ID){
+			/* trackpoint changed */
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
+			}
 
-		/* trackpoint changed */
-		if(!node->sensorLocalOutput){
-			axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
-		}
+			veccopy3f(node->_oldtrackPoint.c, trackpoint);
+			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
+			if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
+				veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, trackPoint_changed));
 
-		veccopy3f(node->_oldtrackPoint.c, trackpoint);
-		/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
-		if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
-			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
-			MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, trackPoint_changed));
+			}
 
-		}
+			if(op->reset){
+				veccopy3f(op->p,dp->p);
+				op->reset = FALSE;
+				printf("reset %d\n",op->ID);
+			}
+			vecdif3f(tr,dp->p,op->p);
 
-		/* clamp translation to max/min position */
-		tr[0] = nx - node->_origPoint.c[0] + node->offset.c[0];
-		tr[1] = ny - node->_origPoint.c[1] + node->offset.c[1];
-		tr[2] = node->offset.c[2];
+			//translation 
+			vecadd3f(tr,tr,node->offset.c);
+			/* clamp translation to max/min position */
+			vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(tr,tr, node->axisRotation.c);
+			}
+			veccopy3f(node->_oldtranslation.c,tr);
 
-		vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
-		if(!node->sensorLocalOutput){
-			axisangle_rotate3f(tr,tr, node->axisRotation.c);
-		}
-		veccopy3f(node->_oldtranslation.c,tr);
-
-		if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
-			veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
-			MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, translation_changed));
+			if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
+				veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, translation_changed));
+			}
 		}
 
 	} else if (ev==ButtonRelease) {
 		/* set isActive false */
-		node->isActive=FALSE;
-		MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
+		if(touchID == op->ID){
+			printf("release %d\n",touchID);
+			node->isActive=FALSE;
+			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
+			op->reset = TRUE;
+			/* autoOffset? */
+			if (node->autoOffset) {
+				veccopy3f(node->offset.c,node->translation_changed.c);
 
-		/* autoOffset? */
-		if (node->autoOffset) {
-			veccopy3f(node->offset.c,node->translation_changed.c);
-
-			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, offset));
+				MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, offset));
+			}
 		}
 	}
 
 }
-struct ID_point {
-int ID;
-float p[3];
-int reset;
-};
-int lookup_ID(struct ID_point* idp, int n, int touchID){
-	int j = -1;
-	for(int i=0;i<n;i++){
-		if(idp[i].ID == touchID) {
-			j = i; break;
-		}
-	}
-	return j;
-}
+
 void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_MultitouchSensor *node;
 	float nx, ny, trackpoint[3], inverserotation[4], *posn;

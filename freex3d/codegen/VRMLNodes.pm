@@ -1674,7 +1674,7 @@ our %Nodes = (
 		_oldtrackPoint => ["SFVec3f", [0, 0, 0], "outputOnly", 0,0],#ff
 		_oldtranslation => ["SFVec3f", [0, 0, 0], "outputOnly", 0,0],#ff
 		# where we are at a press...
-		_origPoint => ["SFVec3f", [0, 0, 0], "initializeOnly", 0,0],#ff
+		_orig_point => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 	],"X3DDragSensorNode"),
 

@@ -4434,7 +4434,7 @@ int emulate_multitouch2(struct TouchState2 *touchlist, int ntouch, int *IDD, int
 				touch = &touchlist[*IDD];
 				touch->rx = x;
 				touch->ry = y;
-				if(inoisy) printf("drag ID=%d \n",*IDD);
+				//if(inoisy) printf("drag ID=%d \n",*IDD);
 			}
 		}else if(*mev == ButtonRelease){
 			*IDD = -1;
@@ -5213,6 +5213,7 @@ void setup_picking(){
 			}
 			x = touch->frame_state.x;
 			yup = touch->frame_state.y;
+			tg->RenderFuncs.touchID = touch->ID;
 			int dragStart = touch->frame_state.buttonState == 1 && touch->last_state.buttonState == 0 ? TRUE : FALSE;
 			int dragEnd = touch->frame_state.buttonState == 0 && touch->last_state.buttonState == 1 ? TRUE : FALSE;
 			isOver = (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants);
@@ -5256,7 +5257,7 @@ void setup_picking(){
 					}
 					//if (p->CursorOverSensitive)
 					//	ConsoleMessage("setup_picking x %d y %d ID %d but %d mev %d\n", touch->x, touch->y, touch->ID, touch->buttonState[LMB], touch->mev);
-
+			//tg->RenderFuncs.touchID = touch->ID;
 					/* for nodes that use an "isOver" eventOut... */
 					if (touch->lastOver != touch->CursorOverSensitive) {
 						#ifdef VERBOSE
@@ -5290,7 +5291,7 @@ void setup_picking(){
 					//if(touch->claimant != TOUCHCLAIMANT_SENSOR ) {
 						continue; //navigation touch
 					}
-					tg->RenderFuncs.touchID = touch->ID;
+			//		tg->RenderFuncs.touchID = touch->ID;
 					/* did we have a click of button 1? */
 					//if (p->ButDown[p->currentCursor][1] && (p->lastPressedOver==NULL)) {
 					//if (touch->buttonState[LMB] && (touch->lastPressedOver==NULL)) {

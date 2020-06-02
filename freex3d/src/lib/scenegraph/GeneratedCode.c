@@ -344,6 +344,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_origNorms",
 	"_origPoint",
 	"_orig_count",
+	"_orig_point",
 	"_orig_points",
 	"_p",
 	"_p0",
@@ -7839,7 +7840,7 @@ const int OFFSETS_PlaneSensor[] = {
 	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_PlaneSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES__oldtrackPoint, (int) offsetof (struct X3D_PlaneSensor, _oldtrackPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__oldtranslation, (int) offsetof (struct X3D_PlaneSensor, _oldtranslation),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__origPoint, (int) offsetof (struct X3D_PlaneSensor, _origPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__orig_point, (int) offsetof (struct X3D_PlaneSensor, _orig_point),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_PlaneSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -14333,7 +14334,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->sensorLocalOutput = FALSE;
 			tmp2->_oldtrackPoint.c[0] = 0.0f;tmp2->_oldtrackPoint.c[1] = 0.0f;tmp2->_oldtrackPoint.c[2] = 0.0f;
 			tmp2->_oldtranslation.c[0] = 0.0f;tmp2->_oldtranslation.c[1] = 0.0f;tmp2->_oldtranslation.c[2] = 0.0f;
-			tmp2->_origPoint.c[0] = 0.0f;tmp2->_origPoint.c[1] = 0.0f;tmp2->_origPoint.c[2] = 0.0f;
+			tmp2->_orig_point = NULL;
 			tmp2->__oldEnabled = TRUE;
 			tmp2->_defaultContainer = 0;
 		break;
