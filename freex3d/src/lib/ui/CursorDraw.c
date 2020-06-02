@@ -258,6 +258,15 @@ static struct cline cur_over [] = {
 	{2,{.0f,.008f, .0f,.02f, .0f,.0f}},
 	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
 };
+static struct cline cur_circle [] = {
+	{3,{.1f,.00f, .0866f,.05f, .05f,.0866f}}, 
+	{3,{.05f,.0866f, .00f, .1f, -.05f, .0866f}},
+	{3,{-.05f, .0866f, -.0866f, .05f, -.1f, .00f}},
+	{3,{ -.1f, .00f, -.0866f, -.05f, -.05f, -.0866f}},
+	{3,{ -.05f, -.0866f, .00f, -.1f, .05f, -.0866f}},
+	{3,{ .05f, -.0866f, .0866f, -.05f, .1f, .00f }},
+	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
+};
 /* - in CursorDraw.h
 enum cursor_type {
 	CURSOR_UP = 0,
@@ -273,6 +282,7 @@ static struct cline *cursor_array [] = {
 	cur_hover,
 	cur_over,
 	cur_fiducials,
+	cur_circle,
 	NULL,
 };
 /* attempt to draw fiducials with lines - draws wrong place */

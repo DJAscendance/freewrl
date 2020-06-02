@@ -1368,7 +1368,8 @@ void multitouch_render(void *_self){
 		c = c->t1.next;
 	}
 	//render self last
-	// not needed - backend fiducialDraw works better //render_multitouch2(self->touchlist,self->ntouch);
+	// not needed - backend fiducialDraw works better //
+	render_multitouch2(self->touchlist,self->ntouch);
 	popnset_viewport();
 }
 int multitouch_pick(void *_self, int mev, int butnum, int mouseX, int mouseY, unsigned int ID, int windex){
@@ -4323,6 +4324,7 @@ void emulate_multitouch(int mev, unsigned int button, int x, int ydown, int wind
 //		}
 //    }
 //}
+void circle_draw(float *center, float radius);
 void render_multitouch2(struct Touch *touchlist, int ntouch){
 	ppMainloop p;
 	ttglobal tg = gglobal();
@@ -4331,35 +4333,38 @@ void render_multitouch2(struct Touch *touchlist, int ntouch){
 	if(p->touch_type == TOUCHTYPE_EMULATE_MULTITOUCH) {
 		int i;
 		for(i=0;i<ntouch;i++){
-			if(touchlist[i].ID > -1)
-				if(touchlist[i].windex == p->windex ) // && touchlist[i].stageId == current_stageId() )
+			int kd = touchlist[i].ID;
+			//printf("%d ",kd);
+			if(kd > 0){
+				//printf("in");
+				if(touchlist[i].windex == p->windex) // && touchlist[i].stageId == current_stageId() )
 				{
 					struct Touch *touch;
 					touch = &touchlist[i];
-					cursorDraw(touch->ID,touch->frame_state.rx,touch->frame_state.ry,touch->frame_state.angle);
+					//cursorDraw(touch->ID,touch->state.rx,touch->state.ry,touch->state.angle);
+					fiducialDrawB(CURSOR_CIRCLE,touch->state.rx,touch->state.ry);
 				}
+			}
 		}
     }
 }
+
 void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle){
 	struct Touch *touch;
-	//ppMainloop p;
-	//ttglobal tg = gglobal();
-	//p = (ppMainloop)tg->Mainloop.prv;
 
 	touch = &touchlist[ID];
 	if(ihandle == -2){
-		//touch->ID = -1;
-		touch->state.buttonState = 0;
+		touch->ID = -1;
+		touch->state.inUse = FALSE;
 	}else{
 		touch->state.rx = mouseX;
 		touch->state.ry = mouseY;
 		touch->windex = windex;
 		touch->stageId = current_stageId();
-		if(mev == ButtonPress)
+		//if(mev == ButtonPress)
 			touch->state.buttonState = mev == ButtonPress;
 		touch->ID = ID; /*will come in handy if we change from array[] to accordian list*/
-		//touch->mev = mev;
+		//touch->state.mev = mev;
 		touch->state.angle = 0.0f;
 		//p->currentTouch = ID;
 	}
@@ -4375,9 +4380,6 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
     int i,ihandle, inoisy=1;
 	struct Touch *touch;
 	static int idone = 0;
-	ppMainloop p;
-	ttglobal tg = gglobal();
-	p = (ppMainloop)tg->Mainloop.prv;
 	
 	if(!idone){
 		printf("Use RMB (right mouse button) to create and delete touches\n");
@@ -4438,7 +4440,7 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 			//else create
 			if(*IDD == -1){
 				//create!
-				for(i=1;i<p->ntouch;i++){
+				for(i=1;i<ntouch;i++){
 					touch = &touchlist[i];
 					if(touch->state.inUse == FALSE) {
 						//fwl_handle_mouse_multi_yup(mev, LMB, x, y, i,windex);

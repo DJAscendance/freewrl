@@ -39,7 +39,8 @@ enum cursor_type {
 	CURSOR_DOWN,
 	CURSOR_HOVER,
 	CURSOR_OVER,
-	CURSOR_FIDUCIALS
+	CURSOR_FIDUCIALS,
+	CURSOR_CIRCLE
 };
 #ifdef __cplusplus
 }

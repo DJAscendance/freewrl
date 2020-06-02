@@ -815,7 +815,8 @@ static void win32_clipboard_paste() {
 //touch >>
 // This function is used to return an index given an ID
 int GetContactIndex(int dwID, int *idLookup, int maxpoints){
-  for (int i=0; i < maxpoints; i++){
+	//starting at index 1 (0 reserved for mouse)
+  for (int i=1; i < maxpoints; i++){
     if (idLookup[i] == -1){
       idLookup[i] = dwID;
       return i;
