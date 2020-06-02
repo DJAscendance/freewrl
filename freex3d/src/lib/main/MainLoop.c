@@ -171,6 +171,7 @@ struct Touch
 	struct TouchState frame_state;
 	struct TouchState last_state;
 	int changed;
+	int updraw_none;
 	//int buttonState[4]; /*none down=0, LMB =1, MMB=2, RMB=3*/
 	//int mev; /* down/press=4, move/drag=6, up/release=5 */
 	unsigned int ID;  /* for multitouch: 0-20, represents one finger drag. Recycle after an up */
@@ -6001,7 +6002,8 @@ static void render()
 					if(touch->frame_state.buttonState == 0) cstyle = CURSOR_HOVER;
 					if(touch->lastOverButtonPressed || touch->CursorOverSensitive) 
 						cstyle = CURSOR_OVER; //could differentiate isOver from touching and picking
-					fiducialDrawB(cstyle,touch->frame_state.x,touch->frame_state.y);
+					if(touch->frame_state.buttonState > 0 || touch->updraw_none == FALSE)
+						fiducialDrawB(cstyle,touch->frame_state.x,touch->frame_state.y);
 				}
 			}
 		}
@@ -7892,7 +7894,7 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 			//if(touch->ID == ID)
 			//	p->currentTouch = 0;
 			//touch->dragEnd = TRUE;
-			if(imev == ButtonRecycle) touch->state.inUse = FALSE;
+			if(imev == ButtonRecycle) touch->updraw_none = TRUE;
 			touch->state.buttonState = 0;
 			if(touch->claimant == TOUCHCLAIMANT_PEDAL) {
 				//touch device - garbage collect down-drag

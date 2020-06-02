@@ -1211,7 +1211,7 @@ static int shiftState = 0;
 					ptInput.y = TOUCH_COORD_TO_PIXEL(ti.y);
 					ScreenToClient(hWnd, &ptInput);
 					touchAction = MotionNotify;
-					if (ti.dwFlags & TOUCHEVENTF_UP) touchAction = ButtonRelease;
+					if (ti.dwFlags & TOUCHEVENTF_UP) touchAction = ButtonRecycle; //ButtonRelease;
 					if (ti.dwFlags & TOUCHEVENTF_DOWN) touchAction = ButtonPress;
 					if (ti.dwFlags & TOUCHEVENTF_UP){
 						printf("touch up ID %d ",index);
