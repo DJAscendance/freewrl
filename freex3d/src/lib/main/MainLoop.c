@@ -1342,17 +1342,32 @@ contenttype *new_contenttype_layer(){
 	return (contenttype*)self;
 }
 
-int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex);
-void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle);
+
+//touch emulator has its own touchstate2 and touchlist - its own state machine -
+// and only communicates with downstream via pic/mouse/touch event calls.
+struct TouchState2 {
+	int buttonState; //0 up, 1 down. For ^ hover mode, buttonstate will be 0 even when touch down
+	int inUse; //flag for garbage collection/recycling = 0 not in use, else in use
+	float angle; /*some multitouch -like smarttech- track the angle of the finger */
+	int x; //coordinates as registered at scene level, after transformations in the contenttype stack
+	int y; //y-up
+	int rx,ry; //raw input coords at emulation level, for finding and dragging and rendering
+	unsigned int ID;  /* for multitouch: 0-20, represents one finger drag. Recycle after an up */
+	int windex; //multi_window window index 0=default for regular freewrl
+	void* stageId; //unique ID for a stage, should be same for pick and render passes, otherwise in render not-for-me
+};
+
+int emulate_multitouch2(struct TouchState2 *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex);
+void record_multitouch(struct TouchState2 *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle);
 //void render_multitouch();
-void render_multitouch2(struct Touch* touchlist, int ntouch);
+void render_multitouch2(struct TouchState2* touchlist, int ntouch);
 
 typedef struct contenttype_multitouch {
 	tcontenttype t1;
 	//clears zbuffer between contents, but not clearcolor
 	//example statusbarHud (SBH) over scene: 
 	//	scene rendered first, then SBH; mouse caught first by SBH, if not handled then scene
-	struct Touch touchlist[20]; //private touchlist here, separate from backend touchlist
+	struct TouchState2 touchlist[20]; //private touchlist here, separate from backend touchlist
 	int ntouch;
 	int IDD; //current drag ID - for LMB dragging a specific touch
 	int lastbut;
@@ -1416,7 +1431,7 @@ contenttype *new_contenttype_multitouch(){
 	self->t1.pick = multitouch_pick;
 	self->ntouch = 20;
 	//for(i=0;i<self->ntouch;i++) self->touchlist[i].ID = -1;
-	memset(self->touchlist,0,20*sizeof(struct Touch));
+	memset(self->touchlist,0,20*sizeof(struct TouchState2));
 	self->IDD = -1;
 	self->lastbut = 0;
 	return (contenttype*)self;
@@ -4326,7 +4341,7 @@ void emulate_multitouch(int mev, unsigned int button, int x, int ydown, int wind
 //    }
 //}
 void circle_draw(float *center, float radius);
-void render_multitouch2(struct Touch *touchlist, int ntouch){
+void render_multitouch2(struct TouchState2 *touchlist, int ntouch){
 	ppMainloop p;
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
@@ -4340,46 +4355,46 @@ void render_multitouch2(struct Touch *touchlist, int ntouch){
 				//printf("in");
 				if(touchlist[i].windex == p->windex) // && touchlist[i].stageId == current_stageId() )
 				{
-					struct Touch *touch;
+					struct TouchState2 *touch;
 					touch = &touchlist[i];
 					//cursorDraw(touch->ID,touch->state.rx,touch->state.ry,touch->state.angle);
-					fiducialDrawB(CURSOR_CIRCLE,touch->state.rx,touch->state.ry);
+					fiducialDrawB(CURSOR_CIRCLE,touch->rx,touch->ry);
 				}
 			}
 		}
     }
 }
 
-void record_multitouch(struct Touch *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle){
-	struct Touch *touch;
+void record_multitouch(struct TouchState2 *touchlist, int mev, int butnum, int mouseX, int mouseY, int ID, int windex, int ihandle){
+	struct TouchState2 *touch;
 
 	touch = &touchlist[ID];
 	if(ihandle == -2){
 		touch->ID = -1;
-		touch->state.inUse = FALSE;
+		touch->inUse = FALSE;
 	}else{
-		touch->state.rx = mouseX;
-		touch->state.ry = mouseY;
+		touch->rx = mouseX;
+		touch->ry = mouseY;
 		touch->windex = windex;
 		touch->stageId = current_stageId();
 		//if(mev == ButtonPress)
-			touch->state.buttonState = mev == ButtonPress;
+			touch->buttonState = mev == ButtonPress;
 		touch->ID = ID; /*will come in handy if we change from array[] to accordian list*/
 		//touch->state.mev = mev;
-		touch->state.angle = 0.0f;
+		touch->angle = 0.0f;
 		//p->currentTouch = ID;
 	}
 
 }
 
-int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex)
+int emulate_multitouch2(struct TouchState2 *touchlist, int ntouch, int *IDD, int *lastbut, int *mev, unsigned int *button, int x, int y, int *ID, int windex)
 {
 	/* CREATE/DELETE a touch with RMB down 
 	   GRAB/MOVE a touch with LMB down and drag
 	   ID=0 reserved for 'normal' cursor
 	*/
     int i,ihandle, inoisy=1;
-	struct Touch *touch;
+	struct TouchState2 *touch;
 	static int idone = 0;
 	
 	if(!idone){
@@ -4396,9 +4411,9 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 		*lastbut = *button;
 		for(i=0;i<ntouch;i++){
 			touch = &touchlist[i];
-			if(touch->state.inUse){
+			if(touch->inUse){
 				if(touch->windex == windex ) //&& touch->stageId == current_stageId())
-				if((abs(x - touch->state.rx) < 10) && (abs(y - touch->state.ry) < 10)){
+				if((abs(x - touch->rx) < 10) && (abs(y - touch->ry) < 10)){
 					*IDD = i;
 					if(inoisy) printf("drag found ID %d\n",*IDD);
 					break;
@@ -4417,8 +4432,8 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 				*ID = *IDD;
 				ihandle = -1;
 				touch = &touchlist[*IDD];
-				touch->state.rx = x;
-				touch->state.ry = y;
+				touch->rx = x;
+				touch->ry = y;
 				if(inoisy) printf("drag ID=%d \n",*IDD);
 			}
 		}else if(*mev == ButtonRelease){
@@ -4443,15 +4458,15 @@ int emulate_multitouch2(struct Touch *touchlist, int ntouch, int *IDD, int *last
 				//create!
 				for(i=1;i<ntouch;i++){
 					touch = &touchlist[i];
-					if(touch->state.inUse == FALSE) {
+					if(touch->inUse == FALSE) {
 						//fwl_handle_mouse_multi_yup(mev, LMB, x, y, i,windex);
 						*button = LMB;
 						*ID = i;
 						*IDD = i;
 						ihandle = -1;
-						touch->state.rx = x;
-						touch->state.ry = y;
-						touch->state.inUse = TRUE;
+						touch->rx = x;
+						touch->ry = y;
+						touch->inUse = TRUE;
 						if(inoisy) printf("create ID=%d windex=%d\n",i,windex);
 						break;
 					}
