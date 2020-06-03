@@ -7737,10 +7737,12 @@ void update_navigation(){
 					if(dragEnd) {
 						 imev = ButtonRelease;
 					}
-					handle(imev, ibut, curTouch->frame_state.fx,curTouch->frame_state.fy);
+					//walk mode wants a button 1 with ButtonRelease
+					handle(imev, 1, curTouch->frame_state.fx,curTouch->frame_state.fy);
 				} else {
 					imev = MotionNotify;
-					if(ibut){  //we don't navigate with button not down
+					if(ibut || TRUE){  //we don't navigate with button not down
+						printf("%d %d \n",ibut,imev);
 						handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy); 
 					}
 				}
