@@ -1812,6 +1812,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		op[node->_orig_count].ID = touchID;
 		op[node->_orig_count].reset = FALSE;
 		node->_orig_count++;
+
+		for(int k=0;k<node->_orig_count;k++){
+			op[k].reset = TRUE;
+		}
 		//veccopy3f(ip[*touchpoin])
 		//memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
 		//if(node->_touchcount == 1)
@@ -1910,13 +1914,60 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						vecdif3f(dif1,drag1,orig1);
 						vecadd3f(dif,dif0,dif1);
 						vecscale3f(tr,dif,.5f);
-						float odif[3], ddif[3];
-						vecdif3f(odif,orig1,orig0);
-						vecdif3f(ddif,drag1,drag0);
-						float scale = veclength3f(ddif)/veclength3f(odif);
-						vecset3f(scale3,scale,scale,1.0f);
-						float angle = angleNormalized(atan2(ddif[1],ddif[0]) - atan2(odif[1],odif[0]));
-						rot4[3] = angle;
+
+						if(0){
+							float odif[3], ddif[3];
+							vecdif3f(odif,orig1,orig0);
+							vecdif3f(ddif,drag1,drag0);
+							float scale = veclength3f(ddif)/veclength3f(odif);
+							vecset3f(scale3,scale,scale,1.0f);
+							float angle = angleNormalized(atan2(ddif[1],ddif[0]) - atan2(odif[1],odif[0]));
+							rot4[3] = angle;
+						}else if(0){
+							//scale
+							float dd00[3],dd01[3],dd10[3], dd11[3], dist0, dist1, scale0, scale1, scale;
+							dist0 = veclength3f(vecdif3f(dd00,orig0,tr));
+							dist1 = veclength3f(vecdif3f(dd01,drag0,tr));
+							scale0 = dist1 / dist0;
+							dist0 = veclength3f(vecdif3f(dd10,orig1,tr));
+							dist1 = veclength3f(vecdif3f(dd11,drag1,tr));
+							scale1 = dist1 / dist0;
+							scale = (scale0 + scale1)*.5f;
+							vecset3f(scale3,scale,scale,1.0f);
+							//angle
+							float angle00, angle01, angle10, angle11, angle0, angle1, angle;
+							angle00 = atan2(dd00[1],dd00[0]);
+							angle01 = atan2(dd01[1],dd01[0]);
+							angle10 = atan2(dd10[1],dd10[0]);
+							angle11 = atan2(dd11[1],dd11[0]);
+							angle0 = angleNormalized(angle01 - angle00);
+							angle1 = angleNormalized(angle11 - angle10);
+							angle = angleNormalized( (angle0 + angle1) *.5);
+							rot4[3] = angle;
+						}else {
+							// apply each value to intermediate coords before computing next
+							//scale
+							float dd00[3],dd01[3],dd10[3], dd11[3], dorig[3],ddrag[3], scale;
+							vecdif3f(dd00,orig0,tr);
+							vecdif3f(dd01,drag0,tr);
+							vecdif3f(dd10,orig1,tr);
+							vecdif3f(dd11,drag1,tr);
+							vecdif3f(dorig,orig1,orig0);
+							vecdif3f(ddrag,drag1,drag0);
+							scale = veclength3f(ddrag)/veclength3f(dorig);
+							
+							vecset3f(scale3,scale,scale,1.0f);
+
+							vecscale3f(dorig,dorig,scale);
+							vecscale3f(ddrag,ddrag,scale);
+
+							//angle
+							float angle00, angle01, angle10, angle11, angle0, angle1, angle;
+							angle0 = atan2(dorig[1],dorig[0]);
+							angle1 = atan2(ddrag[1],ddrag[0]);
+							angle = angleNormalized(angle1 - angle0);
+							rot4[3] = angle;
+						}
 					}
 				}
 				break;
@@ -1958,7 +2009,6 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				veccopy4f(node->rotation_changed.c, (void *) node->_oldrotation.c);
 				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, rotation_changed));
 			}
-
 
 /*
 		hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
