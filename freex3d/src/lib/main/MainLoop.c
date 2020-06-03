@@ -157,12 +157,11 @@ enum {
 };
 struct TouchState {
 	int buttonState; //0 up, 1 down. For ^ hover mode, buttonstate will be 0 even when touch down
-	int inUse; //flag for garbage collection/recycling = 0 not in use, else in use
+	int inUse; //flag if never used = 0 not in use, else in use
 	float angle; /*some multitouch -like smarttech- track the angle of the finger */
 	int x; //coordinates as registered at scene level, after transformations in the contenttype stack
 	int y; //y-up
 	float fx,fy; //normalized coordinates ie -1 to 1 or 0 to 1 for navigation
-	int rx,ry; //raw input coords at emulation level, for finding and dragging and rendering
 };
 struct Touch
 {
@@ -171,11 +170,7 @@ struct Touch
 	struct TouchState last_state;
 	int changed;
 	int updraw_none;
-	//int buttonState[4]; /*none down=0, LMB =1, MMB=2, RMB=3*/
-	//int mev; /* down/press=4, move/drag=6, up/release=5 */
 	unsigned int ID;  /* for multitouch: 0-20, represents one finger drag. Recycle after an up */
-	//int dragStart; //flag set generically on mouse down, and cleared by claimant when they've applied mousedown
-	//int dragEnd; //flag set generically on mouse up, and cleared by claimant after cleaning up their drag state
 	int windex; //multi_window window index 0=default for regular freewrl
 	void* stageId; //unique ID for a stage, should be same for pick and render passes, otherwise in render not-for-me
 	int claimant; // {unprocessed,pedal,sensor,navigation,none}
@@ -7744,7 +7739,6 @@ void update_navigation(){
 				} else {
 					imev = MotionNotify;
 					if(ibut || TRUE){  //we don't navigate with button not down
-						printf("%d %d \n",ibut,imev);
 						handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy); 
 					}
 				}
