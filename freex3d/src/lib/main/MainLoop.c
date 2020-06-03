@@ -5675,6 +5675,7 @@ int get_n_depth_slices();
 void get_depth_slice(int islice, double *znear, double *zfar);
 void fw_depth_slice_push(double nearplane, double farplane);
 void fw_depth_slice_pop();
+void clear_renderstate();
 static void render()
 {
 	//warning you must also maintain generate_GeneratedCubeMapTextures() which is a hacked clone of this function
@@ -5736,6 +5737,7 @@ static void render()
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 		projectorTable_clear();
 
+		clear_renderstate(); //setup_picking does a VF_Sensitive pass. render_background skips render_hier init of renderstate, so clear hear.
 		render_bound_background();
 
 		nslice = get_n_depth_slices();

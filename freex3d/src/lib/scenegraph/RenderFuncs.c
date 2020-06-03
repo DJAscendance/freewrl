@@ -2206,6 +2206,14 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 
 }
 
+void clear_renderstate(){
+	ppRenderFuncs p;
+	ttglobal tg = gglobal();
+	ttrenderstate rs;
+	p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	rs = renderstate();
+	memset(rs,0,sizeof(ttrenderstate));
+}
 
 /******************************************************************************
  *
