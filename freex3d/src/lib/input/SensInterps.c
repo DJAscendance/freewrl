@@ -1722,6 +1722,276 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 }
 
+#ifdef HAVE_NUMERICAL_RECIPES
+
+#include <math.h>
+#include "nrutil.h"
+
+#define TINY 1.0e-20 // A small number.
+void ludcmp(float **a, int n, int *indx, float *d)
+/*
+Given a matrix a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
+permutation of itself. a and n are input. a is output, arranged as in equation (2.3.14) above;
+indx[1..n] is an output vector that records the row permutation effected by the partial
+pivoting; d is output as ±1 depending on whether the number of row interchanges was even
+or odd, respectively. This routine is used in combination with lubksb to solve linear equations
+or invert a matrix.
+*/
+{
+	int i,imax,j,k;
+	float big,dum,sum,temp;
+	float *vv; //vv stores the implicit scaling of each row.
+	vv=vector(1,n);
+	big = 0.0;
+	*d=1.0; //No row interchanges yet.
+	for (i=1;i<=n;i++) {  //Loop over rows to get the implicit scaling informabig=0.0; tion.
+		for (j=1;j<=n;j++)
+			if ((temp=fabs(a[i][j])) > big) big=temp;
+		if (big == 0.0) nrerror("Singular matrix in routine ludcmp");
+		//No nonzero largest element.
+		vv[i]=1.0/big; // Save the scaling.
+	}
+	for (j=1;j<=n;j++) { // This is the loop over columns of Crout’s method.
+		for (i=1;i<j;i++) { // This is equation (2.3.12) except for i = j.
+			sum=a[i][j];
+			for (k=1;k<i;k++) sum -= a[i][k]*a[k][j];
+			a[i][j]=sum;
+		}
+		big=0.0; // Initialize for the search for largest pivot element.
+		for (i=j;i<=n;i++) { // This is i = j of equation (2.3.12) and i = j + 1 ...N
+			sum=a[i][j]; // of equation (2.3.13).
+			for (k=1;k<j;k++)
+				sum -= a[i][k]*a[k][j];
+			a[i][j]=sum;
+			if ( (dum=vv[i]*fabs(sum)) >= big) {
+				// Is the figure of merit for the pivot better than the best so far?
+				big=dum;
+				imax=i;
+			}
+		}
+		if (j != imax) { // Do we need to interchange rows?
+			for (k=1;k<=n;k++) { // Yes, do so...
+				dum=a[imax][k];
+				a[imax][k]=a[j][k];
+				a[j][k]=dum;
+			}
+			*d = -(*d); // ...and change the parity of d.
+			vv[imax]=vv[j]; // Also interchange the scale factor.
+		}
+		indx[j]=imax;
+		if (a[j][j] == 0.0) a[j][j]=TINY;
+		// If the pivot element is zero the matrix is singular (at least to the precision of the
+		// algorithm). For some applications on singular matrices, it is desirable to substitute
+		// TINY for zero.
+		if (j != n) { // Now, finally, divide by the pivot element.
+			dum=1.0/(a[j][j]);
+			for (i=j+1;i<=n;i++) a[i][j] *= dum;
+		}
+	} // Go back for the next column in the reduction.
+	free_vector(vv,1,n);
+}
+
+
+void lubksb(float **a, int n, int *indx, float b[])
+/* Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the matrix
+A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
+as the permutation vector returned by ludcmp. b[1..n] is input as the right-hand side vector
+B, and returns with the solution vector X. a, n, and indx are not modified by this routine
+and can be left in place for successive calls with different right-hand sides b. This routine takes
+into account the possibility that b will begin with many zero elements, so it is efficient for use
+in matrix inversion. */
+{
+	int i,ii=0,ip,j;
+	float sum;
+	for (i=1;i<=n;i++) { // When ii is set to a positive value, it will become the
+		// index of the first nonvanishing element of b. We now
+		// do the forward substitution, equation (2.3.6). The
+		// only new wrinkle is to unscramble the permutation
+		// as we go.
+		ip=indx[i];
+		sum=b[ip];
+		b[ip]=b[i];
+		if (ii)
+			for (j=ii;j<=i-1;j++) sum -= a[i][j]*b[j];
+		else if (sum) ii=i; // A nonzero element was encountered, so from now on we
+		b[i]=sum; // will have to do the sums in the loop above.
+	}
+	for (i=n;i>=1;i--) {  // Now we do the backsubstitution, equation (2.3.7).
+		sum=b[i];
+		for (j=i+1;j<=n;j++) sum -= a[i][j]*b[j];
+		b[i]=sum/a[i][i]; // Store a component of the solution vector X.
+	} // All done!
+}
+
+
+void mat_mul(float **r, float **a, int nra, int nca, float **b, int ncb){
+	for(int i = 1; i<= nra; i++){
+		for(int j=1; j<= ncb;j++){
+			r[i][j] = 0.0f;
+			for(int k=1;k<= nra;k++){
+				r[i][j] += a[i][k]* b[k][j];
+			}
+		}
+	}
+}
+void mat_transpose(float **r, float **a, int nra, int nca){
+	for(int i=1;i<=nra;i++){
+		for(int j=1;j<=nca;j++){
+			r[j][i] = a[i][j];
+		}
+	}
+}
+int least_squares_similarity2D(float *v0, float *v1, int np, float *param)
+{
+
+	// chapter 2 p.46-48
+	// solve Ax = b (via linear least sqaures)
+	float **a, *b, d;
+	int n, *indx;
+	int noisy = 0;
+	//allocate and populate your A and b
+	//b is usually simple vector of x,y,x,y,x,y... however many points you have
+	//A is usually some function of the other point source
+	//x is an implicit vector of unknows - lets call them a,b,c,d,e,f
+	// ie A[1]*x = f(x-,y') = a*x' + b*x'*y" + c*x'**2 + d*y'**2 or something like that
+	// but since you don't know your x [] parameters yet, you leave them out
+	// so that a row of A x column of x gives your formula
+	// we know A, and b.
+	// we want X
+	// AtA*X = At*b
+	// X = inverse(AtxA)*At*b
+	// LU lower upper solvers don't do a full inverse, but they give you what you want X
+
+	// and we have some known points b[] = [x1' y1' x2' y2' x3' y3' x4' y4']
+	// and we have some measured points [x1 y1 x2 y2 x3 y3 x4 y4 ...]
+	// affine 2D - from textbooks
+	//Digital Photogrammetry p.322 shows Affine as well - shows both similartiy and affine interpretation of 6 parameters
+	//Similarity 
+	//a11 = scale*cose 
+	//a12 = -scale*sin
+	//a21 = -a12
+	//a22 = a11
+	//Affine
+	//a11 = sx*cos  (skew mentioned)
+	//a12 = -sy*sin  (skew mentioned)
+	//a21 = sx*sin
+	//a22 = sy*cos
+	// here the similarity is 4 parameters (equivalent to a scale, a rotation, and x,y translation)
+	// let unknow parameters X = [a b c d]
+	// A[i  ]*X = x*a - y*b + 1*c + 0*d = b[0]
+	// A[i+1}*X = y*a + x*b + 0*c + 1*d = b[1] 
+	// OR
+	// A[i  ] = [x -y  1  0]
+	// A[i+1] = [y  x  0  1]
+	// with a = cos*scale, b = sin*scale
+	// and if you have 2 points, you'd have 4 rows in A[]
+
+	n = 2*np; //2 points, xy each = 4
+
+	float **p0 = matrix(1,np,1,2); //2 points, xy each
+	//p0[1][1] = 0.0f;
+	//p0[1][2] = 0.0f;
+	//p0[2][1] = 1.0f;
+	//p0[2][2] = 1.0f;
+	for(int i=0;i<np;i++){
+		p0[i+1][1] = v0[i*3 +0];
+		p0[i+1][2] = v0[i*3 +1];
+	}
+	float **p1 = matrix(1,n,1,1); // 2 points, xy each
+	p1[1][1] = 1.0f;
+	p1[2][1] = 1.0f;
+	p1[3][1] = 2.41420f;
+	p1[4][1] = 1.0f;
+	for(int i=0;i<np;i++){
+		int j=2*i + 1;
+		p1[j+0][1] = v1[3*i +0];
+		p1[j+1][1] = v1[3*i +1];
+	}
+
+	a = matrix(1,n,1,4); //4 rows, 4 coluns
+	for(int i=1;i<=np;i++){
+		int ii = i - 1;
+		a[2*ii + 1][1] = p0[i][1];
+		a[2*ii + 1][2] = -p0[i][2];
+		a[2*ii + 1][3] = 1.0f;
+		a[2*ii + 1][4] = 0.0f;
+		a[2*ii + 2][1] = p0[i][2];
+		a[2*ii + 2][2] = p0[i][1];
+		a[2*ii + 2][3] = 0.0f;
+		a[2*ii + 2][4] = 1.0f;
+	}
+	if(noisy){
+		printf("a=\n");
+		for(int i=1;i<=4;i++){
+			printf("[ ");
+			for(int j=1;j<=4;j++) printf("%f ",a[i][j]);
+			printf("]\n");
+		}
+	}
+
+	// now need to 'square up' for least squares
+	// A = at x a
+	// B = at x b
+	float **A = matrix(1,n,1,4);
+	float **at = matrix(1,4,1,n);
+	mat_transpose(at,a,n,4);
+	if(noisy){
+		printf("At\n");
+		for(int i=1;i<=n;i++){
+			printf("[ ");
+			for(int j=1;j<=4;j++) printf("%f ",at[i][j]);
+			printf(" ]\n");
+		}
+	}
+	mat_mul(A,at,4,n,a,4);
+	if(noisy){
+		printf("N\n");
+		for(int i=1;i<=4;i++){
+			printf("[ %f %f %f %f ]\n",A[i][1],A[i][2],A[i][3],A[i][4]);
+		}
+	}
+	float **B = matrix(1,n,1,1);
+	mat_mul(B,at,4,n,p1,1);
+	b = vector(1,4);
+	for(int i=1;i<=4;i++)
+		b[i] = B[i][1];
+	if(noisy){
+		printf("B=Atb\n");
+		for(int i=1;i<=4;i++)
+			printf("[%f] %f\n",B[i][1],b[i]);
+	}
+	indx = malloc(n * sizeof(int));
+	ludcmp(A,n,indx,&d);
+	lubksb(A,n,indx,b);
+
+	if(noisy)printf("solved a=%f b=%f c=%f d=%f\n",b[1],b[2],b[3],b[4]);
+	if(noisy)printf("should be 1 0 1 1\n");
+	float scale = sqrt(b[1]*b[1] + b[2]*b[2]);
+	float anglerad = atan2(b[2]/scale,b[1]/scale);
+	float angledeg = anglerad *180.0f/3.141596f;
+	if(noisy)printf("scale=%f angle=%f\n",scale,angledeg);
+	if(noisy)printf("translation x= %f y= %f \n",b[3],b[4]);
+	//x given back in output b, your original A is destroyed
+	param[0] = scale;
+	param[1] = anglerad;
+	param[2] = b[3];
+	param[3] = b[4];
+
+	//getchar();
+	// inverse by columns possible, not attempted
+	/*
+	for(j=1;j<=N;j++) { //Find inverse by columns.
+	for(i=1;i<=N;i++) col[i]=0.0;
+	col[j]=1.0;
+	lubksb(a,N,indx,col);
+	for(i=1;i<=N;i++) y[i][j]=col[i];
+	}
+	*/
+	return 0;
+}
+
+#endif //HAVE_NUMERICAL_RECIPES
+
 void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_MultitouchSensor *node;
 	float nx, ny, trackpoint[3], inverserotation[4], *posn;
@@ -1915,6 +2185,24 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						vecadd3f(dif,dif0,dif1);
 						vecscale3f(tr,dif,.5f);
 
+
+#ifdef HAVE_NUMERICAL_RECIPES
+						if(1) {
+							// least squares 
+							float v0[6], v1[6], param[4];
+							int np = 2;
+							veccopy3f(&v0[0*3 +0],orig0);
+							veccopy3f(&v0[1*3 +0],orig1);
+							veccopy3f(&v1[0*3 +0],drag0);
+							veccopy3f(&v1[1*3 +0],drag1);
+							least_squares_similarity2D(v0,v1,np,param);
+							rot4[3] = param[1];
+							float scale = param[0];
+							vecset3f(scale3,scale,scale,1.0f);
+							veccopy2f(tr,&param[2]);
+
+						} else
+#endif //HAVE_NUMERICAL_RECIPES
 						if(0){
 							float odif[3], ddif[3];
 							vecdif3f(odif,orig1,orig0);
@@ -1944,7 +2232,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							angle1 = angleNormalized(angle11 - angle10);
 							angle = angleNormalized( (angle0 + angle1) *.5);
 							rot4[3] = angle;
-						}else {
+						}else if(1) {
 							// apply each value to intermediate coords before computing next
 							//scale
 							float dd00[3],dd01[3],dd10[3], dd11[3], dorig[3],ddrag[3], scale;
@@ -1967,7 +2255,59 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							angle1 = atan2(ddrag[1],ddrag[0]);
 							angle = angleNormalized(angle1 - angle0);
 							rot4[3] = angle;
-						}
+
+							if(0){
+							// TRS = TxCxRxSx(-C)
+							// with C = (drag1 - drag0)/2 or (orig1 - orig0)/2
+							// then T = T + {C - RxS(-C)}
+							float center0[3], center[3], deltac[3];
+							vecadd3f(center,drag1,drag0);
+							//vecprint3fb("drag1",drag1," ");
+							//vecprint3fb("drag0",drag0,"\n");
+							//printf("scale %f ",scale);
+							vecscale3f(center0,center,.5f*scale);
+							//vecprint3fb("center scaled",center0," ");
+							axisangle_rotate3f(center0,center0,rot4);
+							//vecprint3fb("center rot4",center0,"\n");
+							vecdif3f(deltac,center,center0);
+							vecprint3fb("celtac",deltac,"\n");
+							vecadd3f(tr,tr,deltac);
+							}
+
+
+						} else if(0) {
+							// apply Scale, then Rotation, then Translation
+							// like going up the stack as shown in soecs transform sequence euivalent
+							// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform 
+							
+							//scale
+							float dd00[3],dd01[3],dd10[3], d0[3],d1[3], dd11[3], dorig[3],ddrag[3], scale;
+							vecdif3f(dorig,orig1,orig0);
+							vecdif3f(ddrag,drag1,drag0);
+							scale = veclength3f(ddrag)/veclength3f(dorig);
+							
+							vecset3f(scale3,scale,scale,1.0f);
+
+							vecscale3f(orig0,orig0,scale);
+							vecscale3f(orig1,orig1,scale);
+							vecdif3f(dorig,orig1,orig0);
+
+							//angle
+							float angle00, angle01, angle10, angle11, angle0, angle1, angle;
+							angle0 = atan2(dorig[1],dorig[0]);
+							angle1 = atan2(ddrag[1],ddrag[0]);
+							angle = angleNormalized(angle1 - angle0);
+							rot4[3] = angle;
+							axisangle_rotate3f(orig0,orig0,rot4);
+							axisangle_rotate3f(orig1,orig1,rot4);
+
+							//translation
+							vecdif3f(d0,drag0,orig0);
+							vecdif3f(d1,drag1,orig1);
+							vecadd3f(tr,d0,d1);
+							vecscale3f(tr,tr,.6f);
+
+						} 
 					}
 				}
 				break;
