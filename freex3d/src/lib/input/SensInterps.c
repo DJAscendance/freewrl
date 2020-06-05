@@ -1723,7 +1723,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 }
 
 #ifdef HAVE_NUMERICAL_RECIPES
-
+// MIT LIC or equivalent permissive for our contribution >>>>>>>>>>>>>>
 #include <math.h>
 #include "nrutil.h"
 
@@ -1989,9 +1989,9 @@ int least_squares_similarity2D(float *v0, float *v1, int np, float *param)
 	*/
 	return 0;
 }
-
+// <<<<<<<<<<<<<<<<<< MIT LIC or equivalent permissive for our contribution 
 #endif //HAVE_NUMERICAL_RECIPES
-
+#include "Decompose.h"
 void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_MultitouchSensor *node;
 	float nx, ny, trackpoint[3], inverserotation[4], *posn;
@@ -2179,7 +2179,6 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							op[j1].reset = FALSE;
 						}
 
-
 						vecdif3f(dif0,drag0,orig0);
 						vecdif3f(dif1,drag1,orig1);
 						vecadd3f(dif,dif0,dif1);
@@ -2200,6 +2199,41 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							float scale = param[0];
 							vecset3f(scale3,scale,scale,1.0f);
 							veccopy2f(tr,&param[2]);
+							if(1){
+								vecprint3fb("tr_comp",tr,"\n");
+								vecprint3fb("sc_comp",scale3,"\n");
+								vecprint4fb("rt_comp",rot4,"\n");
+							}
+							if(0){
+								// test using params computed above:
+								//   goal convert orig -> Tca -> drag using params
+								double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16];
+								double dd[3], dd0[3], scaled[3], rotd[4], trand[3], dangle;
+								float tca_orig[3], tr1[3];
+								//test: can we create a transform and transform origs to drags?
+								//Tcomputation_above
+								float2double(scaled,scale3,3);
+								matscale(temp1,scaled[0],scaled[1],scaled[2]);
+								float2double(rotd,rot4,4);
+								matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+								float2double(trand,tr,3);
+								mattranslate(temp3,trand[0],trand[1],trand[2]);
+
+								matmultiplyAFFINE(temp4,temp1,temp2);
+								matmultiplyAFFINE(Tca,temp4,temp3);
+								// orign -> Tca -> drag
+								float2double(dd0,orig0,3);
+								transformAFFINEd(dd,dd0,Tca);
+								double2float(tca_orig,dd,3);
+								vecprint3fb("torig0 ",tca_orig,"\n");
+								vecprint3fb("drag0  ",drag0,"\n");
+
+								float2double(dd0,orig1,3);
+								transformAFFINEd(dd,dd0,Tca);
+								double2float(tca_orig,dd,3);
+								vecprint3fb("torig1 ",tca_orig,"\n");
+								vecprint3fb("drag1  ",drag1,"\n");
+							}
 
 						} else
 #endif //HAVE_NUMERICAL_RECIPES
@@ -2313,8 +2347,91 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				break;
 			}
 
+			if(0){
+				//not working well for multitouch with rotation and scale
+				vecadd3f(tr,tr,node->offset.c);
+				vecmult3f(scale3,scale3,node->scaleOffset.c);
+				axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
+			}
+			else if(1){
+				// Tout = Tcomputed_above X TautoOffset
+				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
+				//TautoOffset
+				float2double(scaled,node->scaleOffset.c,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,node->rotationOffset.c,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,node->offset.c,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tao,temp4,temp3);
+
+				//Tcomputation_above
+				float2double(scaled,scale3,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,rot4,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,tr,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tca,temp4,temp3);
+
+				//Tout
+				matmultiply(Tout, Tca, Tao);
+
+				//break up / decompose matrix Tout into translation, rotation, scale
+				if(1){
+					//using Graphics Gems IV polar decomposition of affine matrices
+					// https://webdocs.cs.ualberta.ca/~graphics/books/GraphicsGems/gemsiv/polar_decomp/
+					HMatrix A;
+					double ToutTranspose[16];
+					mattranspose(ToutTranspose,Tout);
+					double2float(A[0],ToutTranspose,16);
+					AffineParts parts;
+					decomp_affine(A, &parts);
+					veccopy3f(tr,&parts.t.x);
+					veccopy3f(scale3,&parts.k.x);
+					Quaternion qq;
+					Quat q = parts.q;
+					qq.x = q.x; qq.y = q.y; qq.z = q.z; qq.w = q.w;
+					quaternion_to_vrmlrot4f(&qq,rot4);
+					rot4[3] = rot4[3];
+					if(1){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
+				}
+#ifdef HAVE_NUMERICAL_RECIPES				
+				else if(1){
+					// using least squares; by transforming 2 arbitrary points using Tout, 
+					// then using least squares to solve for combined 2D similatrity transform param (like we do above)
+					double d[3];
+					float p0[9], p1[9];
+					vecset3f(p0,0.0f,0.0f,0.0f);
+					vecset3f(&p0[3],1.0f,0.0f,0.0f);
+					vecset3f(&p0[6],0.0f,1.0f,0.0f);
+					for(int k=0;k<3;k++){
+						float2double(d,&p0[k*3],3);
+						transformAFFINEd(d,d,Tout);
+						double2float(&p1[k*3],d,3);
+					}
+					float param[4];
+					least_squares_similarity2D(p0,p1,2,param);
+					rot4[3] = param[1];
+					float scale = param[0];
+					if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
+					vecset3f(scale3,scale,scale,1.0f);
+					veccopy2f(tr,&param[2]);
+				}
+#endif // HAVE_NUMERICAL_RECIPES				
+						
+			}
+
+
 			//translation 
-			vecadd3f(tr,tr,node->offset.c);
+			//vecadd3f(tr,tr,node->offset.c);
 			/* clamp translation to max/min position */
 			vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
 			if(!node->sensorLocalOutput){
@@ -2325,10 +2442,12 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 			if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
 				veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
 				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, translation_changed));
+				//vecprint3fb("tran_chng ",node->translation_changed.c,"\n");
+				
 			}
 
 			//scale
-			vecmult3f(scale3,scale3,node->scaleOffset.c);
+			//vecmult3f(scale3,scale3,node->scaleOffset.c);
 			/* clamp scale to max/min scale */
 			vecclamp2f(scale3,node->minScale.c,node->maxScale.c);
 			if(!node->sensorLocalOutput){
@@ -2339,15 +2458,17 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 			if(!approx3f(node->_oldscale.c,node->scale_changed.c)) {
 				veccopy3f(node->scale_changed.c, (void *) node->_oldscale.c);
 				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, scale_changed));
+				//vecprint3fb("sca_chng ",node->scale_changed.c,"\n");
 			}
 
 			//rotation
-			axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
+			//axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
 			veccopy4f(node->_oldrotation.c,rot4);
 
 			if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
 				veccopy4f(node->rotation_changed.c, (void *) node->_oldrotation.c);
 				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, rotation_changed));
+				//vecprint4fb("rot_chg",node->rotation_changed.c,"\n");
 			}
 
 /*
