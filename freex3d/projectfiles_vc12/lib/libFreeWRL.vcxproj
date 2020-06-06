@@ -100,7 +100,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(LIBWIN)\freeALUT\include;$(LIBWIN)\openALsoft\include;$(SRC)\libminizip;$(LIBWIN)\js17x64\include_hide;$(LIBWIN)\js24x64\include;$(LIBWIN)\js185\include_hide;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\Lib;$(SRCWIN);$(LIBWIN)\GThread\include;$(LIBWIN)\ODE;$(LIBWIN)\zlib\include;$(LIBWIN)\ffmpeg\x64\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;$(LIBWIN)\LabSound\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;JAVASCRIPT_SM_no;JS_SMCPP;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_no;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;WITH_RBP;dIDEDOUBLE;WITH_DIS;MOVIETEXTURE_FFMPEG;HAVE_LIBSOUND;HAVE_SRM_not_yet;HAVE_NUMERICAL_RECIPES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;JAVASCRIPT_SM_no;JS_SMCPP;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_no;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;WITH_RBP;dIDEDOUBLE;WITH_DIS;MOVIETEXTURE_FFMPEG;HAVE_LIBSOUND;HAVE_SRM_not_yet;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <ProgramDataBaseFileName>$(OutDir)vc90.pdb</ProgramDataBaseFileName>
@@ -273,7 +273,6 @@
     <ClCompile Include="$(SRC)\lib\scenegraph\VeraMono_ttf.c" />
     <ClCompile Include="..\..\src\lib\DIS\DIS.c" />
     <ClCompile Include="..\..\src\lib\input\Decompose.c" />
-    <ClCompile Include="..\..\src\lib\input\nrutil.c" />
     <ClCompile Include="..\..\src\lib\scenegraph\Component_PTM.c" />
     <ClCompile Include="..\..\src\lib\scenegraph\fwlabsound.cpp" />
     <ClCompile Include="..\..\src\lib\scenegraph\fwgeolib.cpp">

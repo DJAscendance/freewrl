@@ -1722,133 +1722,189 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 }
 
-#ifdef HAVE_NUMERICAL_RECIPES
-// MIT LIC or equivalent permissive for our contribution >>>>>>>>>>>>>>
-#include <math.h>
-#include "nrutil.h"
+//MIT AND EQUIVALENT PERMISSIVE LICENSE >>>>>>>>>
+// original algos from LINPACK, typed in / transcribed from book LINPACK user's guide
+// to C, then reworked to C++, then reworked back to C
+// single precision float verion
+// matrices - storage interpetation: elements are stored contiguously along each _row_
 
-#define TINY 1.0e-20 // A small number.
-void ludcmp(float **a, int n, int *indx, float *d)
-/*
-Given a matrix a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
-permutation of itself. a and n are input. a is output, arranged as in equation (2.3.14) above;
-indx[1..n] is an output vector that records the row permutation effected by the partial
-pivoting; d is output as ±1 depending on whether the number of row interchanges was even
-or odd, respectively. This routine is used in combination with lubksb to solve linear equations
-or invert a matrix.
-*/
+void s_mat_multiply(float *r, float *a, int nra, int nca, float *b, int ncb){
+	for(int i = 0; i< nra; i++){
+		for(int j=0; j< ncb;j++){
+			r[i*ncb +j] = 0.0f;
+			for(int k= 0;k< nca;k++){
+				r[i*ncb +j] += a[i*nca +k]* b[k*ncb +j];
+			}
+		}
+	}
+}
+void s_mat_transpose(float *r, float *a, int nra, int nca){
+	for(int i=0;i<nra;i++){
+		for(int j=0;j<nca;j++){
+			r[j*nra +i] = a[i*nca +j];
+		}
+	}
+}
+static void saxpy( int n, float *sa, float *sx, float *sy )
+//constant times a vector plus a vector
 {
-	int i,imax,j,k;
-	float big,dum,sum,temp;
-	float *vv; //vv stores the implicit scaling of each row.
-	vv=vector(1,n);
-	big = 0.0;
-	*d=1.0; //No row interchanges yet.
-	for (i=1;i<=n;i++) {  //Loop over rows to get the implicit scaling informabig=0.0; tion.
-		for (j=1;j<=n;j++)
-			if ((temp=fabs(a[i][j])) > big) big=temp;
-		if (big == 0.0) nrerror("Singular matrix in routine ludcmp");
-		//No nonzero largest element.
-		vv[i]=1.0/big; // Save the scaling.
+	int i;
+
+	if( !n )return;
+	if( (*sa) == 0.0 )return;
+	for( i=0; i< n; i++ )
+	{
+		sy[i] = sy[i] + (*sa)*sx[i];
 	}
-	for (j=1;j<=n;j++) { // This is the loop over columns of Crout’s method.
-		for (i=1;i<j;i++) { // This is equation (2.3.12) except for i = j.
-			sum=a[i][j];
-			for (k=1;k<i;k++) sum -= a[i][k]*a[k][j];
-			a[i][j]=sum;
-		}
-		big=0.0; // Initialize for the search for largest pivot element.
-		for (i=j;i<=n;i++) { // This is i = j of equation (2.3.12) and i = j + 1 ...N
-			sum=a[i][j]; // of equation (2.3.13).
-			for (k=1;k<j;k++)
-				sum -= a[i][k]*a[k][j];
-			a[i][j]=sum;
-			if ( (dum=vv[i]*fabs(sum)) >= big) {
-				// Is the figure of merit for the pivot better than the best so far?
-				big=dum;
-				imax=i;
-			}
-		}
-		if (j != imax) { // Do we need to interchange rows?
-			for (k=1;k<=n;k++) { // Yes, do so...
-				dum=a[imax][k];
-				a[imax][k]=a[j][k];
-				a[j][k]=dum;
-			}
-			*d = -(*d); // ...and change the parity of d.
-			vv[imax]=vv[j]; // Also interchange the scale factor.
-		}
-		indx[j]=imax;
-		if (a[j][j] == 0.0) a[j][j]=TINY;
-		// If the pivot element is zero the matrix is singular (at least to the precision of the
-		// algorithm). For some applications on singular matrices, it is desirable to substitute
-		// TINY for zero.
-		if (j != n) { // Now, finally, divide by the pivot element.
-			dum=1.0/(a[j][j]);
-			for (i=j+1;i<=n;i++) a[i][j] *= dum;
-		}
-	} // Go back for the next column in the reduction.
-	free_vector(vv,1,n);
-}
+}     
 
-
-void lubksb(float **a, int n, int *indx, float b[])
-/* Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the matrix
-A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
-as the permutation vector returned by ludcmp. b[1..n] is input as the right-hand side vector
-B, and returns with the solution vector X. a, n, and indx are not modified by this routine
-and can be left in place for successive calls with different right-hand sides b. This routine takes
-into account the possibility that b will begin with many zero elements, so it is efficient for use
-in matrix inversion. */
+static float sdot( int n, float *sx, float *sy )
+//dot product
 {
-	int i,ii=0,ip,j;
-	float sum;
-	for (i=1;i<=n;i++) { // When ii is set to a positive value, it will become the
-		// index of the first nonvanishing element of b. We now
-		// do the forward substitution, equation (2.3.6). The
-		// only new wrinkle is to unscramble the permutation
-		// as we go.
-		ip=indx[i];
-		sum=b[ip];
-		b[ip]=b[i];
-		if (ii)
-			for (j=ii;j<=i-1;j++) sum -= a[i][j]*b[j];
-		else if (sum) ii=i; // A nonzero element was encountered, so from now on we
-		b[i]=sum; // will have to do the sums in the loop above.
+	float stemp;
+	int i;
+	stemp = 0.0;
+
+	if( !n ) return( 0.0 );
+	for( i=0; i< n; i++ )
+	{
+		stemp = stemp + sx[i]*sy[i];
 	}
-	for (i=n;i>=1;i--) {  // Now we do the backsubstitution, equation (2.3.7).
-		sum=b[i];
-		for (j=i+1;j<=n;j++) sum -= a[i][j]*b[j];
-		b[i]=sum/a[i][i]; // Store a component of the solution vector X.
-	} // All done!
+	return( stemp );
 }
 
+static void sscal( int n, float *sa, float *sx  )
+//scales a vector by a constant
+{
+	int i;
 
-void mat_mul(float **r, float **a, int nra, int nca, float **b, int ncb){
-	for(int i = 1; i<= nra; i++){
-		for(int j=1; j<= ncb;j++){
-			r[i][j] = 0.0f;
-			for(int k=1;k<= nra;k++){
-				r[i][j] += a[i][k]* b[k][j];
-			}
-		}
+	if( !n )return;
+	for( i=0; i< n; i++ )
+	{
+		sx[i] = (*sa)*sx[i];
 	}
 }
-void mat_transpose(float **r, float **a, int nra, int nca){
-	for(int i=1;i<=nra;i++){
-		for(int j=1;j<=nca;j++){
-			r[j][i] = a[i][j];
+
+void sprintnorm(float *N, float *B, int n)
+{
+	int i, j;
+	float *a;
+	printf(" NE.sz= %ld \n", n );
+	for( i=0; i< n; i++ )
+	{
+		a = &N[i*n];
+		for(j=0;j<n;j++) printf(" %4.0lf ", a[j] );
+		printf("\n");
+	}
+	for(j=0;j< n;j++) printf(" %4.0lf ", B[j] );
+		printf("\n");
+
+}
+
+int spofa(float *N, int n) {
+//n   - order of a
+//returns - a is upper triangular
+//info = 0 normal
+//     = k error at row k
+
+	float t, s, *a0, *a1;
+	int j, k;
+	int info;
+	   
+	for( j=0; j<n; j++ )
+	{
+		a0 = &N[j*n];
+		info = j+1;
+		s = 0.0f;
+		// note - this for loop should not execute when j=0 
+		for( k=0; k<j-1; k++ )
+		{
+			a1 = &N[k*n];
+			t = a0[k] - sdot( k, a1, a0 );
+			t = t / a1[k];
+			a0[k] = t;
+			s = s + t*t;
 		}
+		s = a0[j] - s;
+		if( s <= 0.0 ) return info;
+		a0[j] = (float)sqrt( s );
+	}
+	info = 0;
+	return info;
+}
+
+void sposl(float *N, int n, float *B) {
+//solves the system ax = b
+//a[1][n] - matrix column
+//b[n]   
+
+	float t, *a;
+	int k; 
+
+	for( k=0; k<n; k++ )
+	{
+		a = &N[k*n];
+		t= sdot( k, a, B );
+		B[k] = ( B[k] - t )/a[k];
+	}
+
+	for( k=n-1; k>(-1); k-- )
+	{
+		a = &N[k*n];
+		B[k] = B[k]/a[k];
+		t = -B[k];
+		saxpy( k, &t, a, B );
 	}
 }
-int least_squares_similarity2D(float *v0, float *v1, int np, float *param)
+
+void spodi(float *N, int n ) 
+//computes inverse - don't need unless doing statistical analysis on fit of data
+{
+	float t, *a0, *a1;
+	int j,k,nj,nk;
+
+	for( k=0; k<n; k++ )
+	{
+		a0 = &N[k*n];
+		a0[k] = 1.0f / a0[k];
+		t = -a0[k];
+		sscal( k, &t, a0 );
+		// note the following loop should not execute when k = n-1 
+		for( j=(k+1); j<n; j++ )
+		{
+			a1 = &N[j*n];
+			t = a1[k];
+			a1[k] = 0.0;
+			nk = k+1;  // takes acount of c starts on [0], and we want 1 elemnt
+			saxpy( nk, &t, a0, a1 );
+		}
+	}
+	// form inverse(r)*transpose(inverse(r)) 
+	for( j=0L; j<n; j++ )
+	{
+		a0 = &N[j*n];
+		// note the following loop should not execute when j =0 
+		for( k=0; k<j; k++ )
+		{
+			a1 = &N[k*n];
+			t = a0[k];
+			nk = k+1;  // takes acount of c starts on [0], and we want 1 elemnt
+			saxpy( nk, &t, a0, a1 );
+		}
+		t = a0[j];
+		nj = j+1;
+		sscal( nj, &t, a0 );
+	}
+}
+
+int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *param)
 {
 
 	// chapter 2 p.46-48
 	// solve Ax = b (via linear least sqaures)
-	float **a, *b, d;
-	int n, *indx;
-	int noisy = 0;
+	float *a;
+	int n, nu;
+	int noisy = 1;
 	//allocate and populate your A and b
 	//b is usually simple vector of x,y,x,y,x,y... however many points you have
 	//A is usually some function of the other point source
@@ -1886,96 +1942,122 @@ int least_squares_similarity2D(float *v0, float *v1, int np, float *param)
 	// with a = cos*scale, b = sin*scale
 	// and if you have 2 points, you'd have 4 rows in A[]
 
-	n = 2*np; //2 points, xy each = 4
-
-	float **p0 = matrix(1,np,1,2); //2 points, xy each
-	//p0[1][1] = 0.0f;
-	//p0[1][2] = 0.0f;
-	//p0[2][1] = 1.0f;
-	//p0[2][2] = 1.0f;
+	n = 2*np; //number of observations = number of points, x xy 2 each
+	nu = 4; //number of unknowns to solve: for a 2D similarity transform, its 4 unknows: 1 rotation, 1 scale, xy 2 translations
+	//float *p0 = malloc(n*sizeof(float)); //2 points, xy each
+	////p0[1][1] = 0.0f;
+	////p0[1][2] = 0.0f;
+	////p0[2][1] = 1.0f;
+	////p0[2][2] = 1.0f;
+	//for(int i=0;i<np;i++){
+	//	p0[i*2+0] = v0[i*3 +0];
+	//	p0[i*2+1] = v0[i*3 +1];
+	//}
+	float *p1 = malloc(n*sizeof(float)); // 2 points, xy each
 	for(int i=0;i<np;i++){
-		p0[i+1][1] = v0[i*3 +0];
-		p0[i+1][2] = v0[i*3 +1];
+		int j=2*i;
+		p1[j+0] = v1[3*i +0];
+		p1[j+1] = v1[3*i +1];
 	}
-	float **p1 = matrix(1,n,1,1); // 2 points, xy each
-	p1[1][1] = 1.0f;
-	p1[2][1] = 1.0f;
-	p1[3][1] = 2.41420f;
-	p1[4][1] = 1.0f;
-	for(int i=0;i<np;i++){
-		int j=2*i + 1;
-		p1[j+0][1] = v1[3*i +0];
-		p1[j+1][1] = v1[3*i +1];
+	printf("b=\n");
+	for(int i=0;i<n;i++){
+		printf("[ %f ]\n",p1[i]);
 	}
 
-	a = matrix(1,n,1,4); //4 rows, 4 coluns
-	for(int i=1;i<=np;i++){
-		int ii = i - 1;
-		a[2*ii + 1][1] = p0[i][1];
-		a[2*ii + 1][2] = -p0[i][2];
-		a[2*ii + 1][3] = 1.0f;
-		a[2*ii + 1][4] = 0.0f;
-		a[2*ii + 2][1] = p0[i][2];
-		a[2*ii + 2][2] = p0[i][1];
-		a[2*ii + 2][3] = 0.0f;
-		a[2*ii + 2][4] = 1.0f;
+	a = malloc(nu*n*sizeof(float)); //4 unknowns, n = 2 x np observations
+	// [p1.x] = A[ x -y 1 0] [a]
+	// [p1.y]    [y  x  0 1] [b]
+	//                       [c]
+	//                       [d]
+	// b = Ax
+	// x = inverse(AtA)*Atb
+	// 
+	for(int i=0;i < np; i++){
+		int ii,jj;
+		ii = (2*i+0)*4;
+		jj = (2*i+1)*4;
+		a[ii + 0] = v0[i*3 +0];  
+		a[ii + 1] = -v0[i*3 +1];
+		a[ii + 2] = 1.0f;
+		a[ii + 3] = 0.0f;
+		a[jj + 0] = v0[i*3 +1];
+		a[jj + 1] = v0[i*3 +0];
+		a[jj + 2] = 0.0f;
+		a[jj + 3] = 1.0f;
 	}
 	if(noisy){
 		printf("a=\n");
-		for(int i=1;i<=4;i++){
+		for(int i=0; i<n; i++){
 			printf("[ ");
-			for(int j=1;j<=4;j++) printf("%f ",a[i][j]);
+			for(int j=0; j<nu; j++) printf("%f ",a[i*nu +j]);
 			printf("]\n");
 		}
 	}
 
 	// now need to 'square up' for least squares
-	// A = at x a
+	// N = at x a
 	// B = at x b
-	float **A = matrix(1,n,1,4);
-	float **at = matrix(1,4,1,n);
-	mat_transpose(at,a,n,4);
+	float *N = malloc(nu*nu*sizeof(float));
+	float *at = malloc(n*nu*sizeof(float));
+	s_mat_transpose(at,a,n,nu);
+
+
 	if(noisy){
 		printf("At\n");
-		for(int i=1;i<=n;i++){
+		for(int i=0; i< nu;i++){
 			printf("[ ");
-			for(int j=1;j<=4;j++) printf("%f ",at[i][j]);
+			for(int j=0; j < n; j++) printf("%f ",at[i*n +j]);
 			printf(" ]\n");
 		}
 	}
-	mat_mul(A,at,4,n,a,4);
+	s_mat_multiply(N,at,nu,n,a,nu);
 	if(noisy){
 		printf("N\n");
-		for(int i=1;i<=4;i++){
-			printf("[ %f %f %f %f ]\n",A[i][1],A[i][2],A[i][3],A[i][4]);
+		for(int i=0;i<nu;i++){
+			printf("[ ");
+			for(int j=0;j<nu; j++)	printf("%f ",N[i*nu +j]);
+			printf(" ]\n");
 		}
 	}
-	float **B = matrix(1,n,1,1);
-	mat_mul(B,at,4,n,p1,1);
-	b = vector(1,4);
-	for(int i=1;i<=4;i++)
-		b[i] = B[i][1];
+	float *B = malloc(nu*sizeof(float));
+	s_mat_multiply(B,at,nu,n,p1,1);
 	if(noisy){
 		printf("B=Atb\n");
-		for(int i=1;i<=4;i++)
-			printf("[%f] %f\n",B[i][1],b[i]);
+		for(int i=0;i<nu;i++){
+			printf("[ ");
+			printf("%f ",B[i]);
+			printf(" ]\n");
+		}
 	}
-	indx = malloc(n * sizeof(int));
-	ludcmp(A,n,indx,&d);
-	lubksb(A,n,indx,b);
+	int info = spofa(N,nu);
+	if(info){
+		printf("spofa info %d\n",info);
+		return info;
+	}
+	if(noisy){
+		printf("N after spofa factirung\n");
+		for(int i=0;i<nu;i++){
+			printf("[ ");
+			for(int j=0;j<nu; j++)	printf("%f ",N[i*nu +j]);
+			printf(" ]\n");
+		}
+	}
 
-	if(noisy)printf("solved a=%f b=%f c=%f d=%f\n",b[1],b[2],b[3],b[4]);
-	if(noisy)printf("should be 1 0 1 1\n");
-	float scale = sqrt(b[1]*b[1] + b[2]*b[2]);
-	float anglerad = atan2(b[2]/scale,b[1]/scale);
+	sposl(N,nu,B);
+
+	if(noisy)printf("solved a=%f b=%f c=%f d=%f\n",B[0],B[1],B[2],B[3]);
+	//if(noisy)printf("should be 1 0 1 1\n");
+	float scale = sqrt(B[0]*B[0] + B[1]*B[1]);
+	float anglerad = atan2(B[1]/scale,B[0]/scale);
 	float angledeg = anglerad *180.0f/3.141596f;
 	if(noisy)printf("scale=%f angle=%f\n",scale,angledeg);
-	if(noisy)printf("translation x= %f y= %f \n",b[3],b[4]);
+	
+	if(noisy)printf("translation x= %f y= %f \n",B[2],B[3]);
 	//x given back in output b, your original A is destroyed
 	param[0] = scale;
 	param[1] = anglerad;
-	param[2] = b[3];
-	param[3] = b[4];
+	param[2] = B[2];
+	param[3] = B[3];
 
 	//getchar();
 	// inverse by columns possible, not attempted
@@ -1989,8 +2071,9 @@ int least_squares_similarity2D(float *v0, float *v1, int np, float *param)
 	*/
 	return 0;
 }
-// <<<<<<<<<<<<<<<<<< MIT LIC or equivalent permissive for our contribution 
-#endif //HAVE_NUMERICAL_RECIPES
+
+// <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
+
 #include "Decompose.h"
 void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_MultitouchSensor *node;
@@ -2185,7 +2268,6 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						vecscale3f(tr,dif,.5f);
 
 
-#ifdef HAVE_NUMERICAL_RECIPES
 						if(1) {
 							// least squares 
 							float v0[6], v1[6], param[4];
@@ -2194,7 +2276,12 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							veccopy3f(&v0[1*3 +0],orig1);
 							veccopy3f(&v1[0*3 +0],drag0);
 							veccopy3f(&v1[1*3 +0],drag1);
-							least_squares_similarity2D(v0,v1,np,param);
+							memset(param,0,4*sizeof(float));
+							param[0] = 1.0f;
+							for(int k=0;k<2;k++){
+								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
+							}
+							least_squares_similarity2D_linpack(v0,v1,np,param);
 							rot4[3] = param[1];
 							float scale = param[0];
 							vecset3f(scale3,scale,scale,1.0f);
@@ -2236,7 +2323,6 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							}
 
 						} else
-#endif //HAVE_NUMERICAL_RECIPES
 						if(0){
 							float odif[3], ddif[3];
 							vecdif3f(odif,orig1,orig0);
@@ -2396,14 +2482,13 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					qq.x = q.x; qq.y = q.y; qq.z = q.z; qq.w = q.w;
 					quaternion_to_vrmlrot4f(&qq,rot4);
 					rot4[3] = rot4[3];
-					if(1){
+					if(0){
 						vecprint3fb("tr_Tout",tr,"\n");
 						vecprint3fb("sc_Tout",scale3,"\n");
 						vecprint4fb("rt_Tout",rot4,"\n");
 					}
 
 				}
-#ifdef HAVE_NUMERICAL_RECIPES				
 				else if(1){
 					// using least squares; by transforming 2 arbitrary points using Tout, 
 					// then using least squares to solve for combined 2D similatrity transform param (like we do above)
@@ -2418,14 +2503,13 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						double2float(&p1[k*3],d,3);
 					}
 					float param[4];
-					least_squares_similarity2D(p0,p1,2,param);
+					least_squares_similarity2D_linpack(p0,p1,2,param);
 					rot4[3] = param[1];
 					float scale = param[0];
 					if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
 					vecset3f(scale3,scale,scale,1.0f);
 					veccopy2f(tr,&param[2]);
 				}
-#endif // HAVE_NUMERICAL_RECIPES				
 						
 			}
 
