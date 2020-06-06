@@ -1902,9 +1902,8 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 
 	// chapter 2 p.46-48
 	// solve Ax = b (via linear least sqaures)
-	float *a;
 	int n, nu;
-	int noisy = 1;
+	int noisy = 0;
 	//allocate and populate your A and b
 	//b is usually simple vector of x,y,x,y,x,y... however many points you have
 	//A is usually some function of the other point source
@@ -1944,27 +1943,29 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 
 	n = 2*np; //number of observations = number of points, x xy 2 each
 	nu = 4; //number of unknowns to solve: for a 2D similarity transform, its 4 unknows: 1 rotation, 1 scale, xy 2 translations
-	//float *p0 = malloc(n*sizeof(float)); //2 points, xy each
-	////p0[1][1] = 0.0f;
-	////p0[1][2] = 0.0f;
-	////p0[2][1] = 1.0f;
-	////p0[2][2] = 1.0f;
-	//for(int i=0;i<np;i++){
-	//	p0[i*2+0] = v0[i*3 +0];
-	//	p0[i*2+1] = v0[i*3 +1];
-	//}
-	float *p1 = malloc(n*sizeof(float)); // 2 points, xy each
+	static float *p1 = NULL;
+	static float *N = NULL;
+	static float *at = NULL;
+	static float *a = NULL;
+	static float *B = NULL;
+
+	p1 = realloc(p1, n*sizeof(float)); // 2 points, xy each
+	a = realloc(a, nu*n*sizeof(float)); //4 unknowns, n = 2 x np observations
+	at = realloc(at, n*nu*sizeof(float)); // A transpose
+	N = realloc(N, nu*nu*sizeof(float)); //normal equation Nu = B, u = inverse(N)xB
+	B = realloc(B, nu*sizeof(float));   // B = At x b
+
 	for(int i=0;i<np;i++){
 		int j=2*i;
 		p1[j+0] = v1[3*i +0];
 		p1[j+1] = v1[3*i +1];
 	}
-	printf("b=\n");
-	for(int i=0;i<n;i++){
-		printf("[ %f ]\n",p1[i]);
+	if(noisy){
+		printf("b=\n");
+		for(int i=0;i<n;i++){
+			printf("[ %f ]\n",p1[i]);
+		}
 	}
-
-	a = malloc(nu*n*sizeof(float)); //4 unknowns, n = 2 x np observations
 	// [p1.x] = A[ x -y 1 0] [a]
 	// [p1.y]    [y  x  0 1] [b]
 	//                       [c]
@@ -1997,8 +1998,6 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 	// now need to 'square up' for least squares
 	// N = at x a
 	// B = at x b
-	float *N = malloc(nu*nu*sizeof(float));
-	float *at = malloc(n*nu*sizeof(float));
 	s_mat_transpose(at,a,n,nu);
 
 
@@ -2019,7 +2018,6 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 			printf(" ]\n");
 		}
 	}
-	float *B = malloc(nu*sizeof(float));
 	s_mat_multiply(B,at,nu,n,p1,1);
 	if(noisy){
 		printf("B=Atb\n");
