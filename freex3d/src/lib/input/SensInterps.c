@@ -2320,37 +2320,14 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 								vecprint3fb("drag1  ",drag1,"\n");
 							}
 
-						} else
-						if(0){
-							float odif[3], ddif[3];
-							vecdif3f(odif,orig1,orig0);
-							vecdif3f(ddif,drag1,drag0);
-							float scale = veclength3f(ddif)/veclength3f(odif);
-							vecset3f(scale3,scale,scale,1.0f);
-							float angle = angleNormalized(atan2(ddif[1],ddif[0]) - atan2(odif[1],odif[0]));
-							rot4[3] = angle;
-						}else if(0){
-							//scale
-							float dd00[3],dd01[3],dd10[3], dd11[3], dist0, dist1, scale0, scale1, scale;
-							dist0 = veclength3f(vecdif3f(dd00,orig0,tr));
-							dist1 = veclength3f(vecdif3f(dd01,drag0,tr));
-							scale0 = dist1 / dist0;
-							dist0 = veclength3f(vecdif3f(dd10,orig1,tr));
-							dist1 = veclength3f(vecdif3f(dd11,drag1,tr));
-							scale1 = dist1 / dist0;
-							scale = (scale0 + scale1)*.5f;
-							vecset3f(scale3,scale,scale,1.0f);
-							//angle
-							float angle00, angle01, angle10, angle11, angle0, angle1, angle;
-							angle00 = atan2(dd00[1],dd00[0]);
-							angle01 = atan2(dd01[1],dd01[0]);
-							angle10 = atan2(dd10[1],dd10[0]);
-							angle11 = atan2(dd11[1],dd11[0]);
-							angle0 = angleNormalized(angle01 - angle00);
-							angle1 = angleNormalized(angle11 - angle10);
-							angle = angleNormalized( (angle0 + angle1) *.5);
-							rot4[3] = angle;
 						}else if(1) {
+							// did not work properly.
+							// what I should have done:
+							// TRS = TCRS=C like x3d transform breakout
+							// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform 
+							// tjem tp get the summary transform T from the TCRS-C
+							// would muliply all those to geterh as 4x4 transform
+							// then use matrix_decompose - see below.
 							// apply each value to intermediate coords before computing next
 							//scale
 							float dd00[3],dd01[3],dd10[3], dd11[3], dorig[3],ddrag[3], scale;
@@ -2393,39 +2370,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							}
 
 
-						} else if(0) {
-							// apply Scale, then Rotation, then Translation
-							// like going up the stack as shown in soecs transform sequence euivalent
-							// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform 
-							
-							//scale
-							float dd00[3],dd01[3],dd10[3], d0[3],d1[3], dd11[3], dorig[3],ddrag[3], scale;
-							vecdif3f(dorig,orig1,orig0);
-							vecdif3f(ddrag,drag1,drag0);
-							scale = veclength3f(ddrag)/veclength3f(dorig);
-							
-							vecset3f(scale3,scale,scale,1.0f);
-
-							vecscale3f(orig0,orig0,scale);
-							vecscale3f(orig1,orig1,scale);
-							vecdif3f(dorig,orig1,orig0);
-
-							//angle
-							float angle00, angle01, angle10, angle11, angle0, angle1, angle;
-							angle0 = atan2(dorig[1],dorig[0]);
-							angle1 = atan2(ddrag[1],ddrag[0]);
-							angle = angleNormalized(angle1 - angle0);
-							rot4[3] = angle;
-							axisangle_rotate3f(orig0,orig0,rot4);
-							axisangle_rotate3f(orig1,orig1,rot4);
-
-							//translation
-							vecdif3f(d0,drag0,orig0);
-							vecdif3f(d1,drag1,orig1);
-							vecadd3f(tr,d0,d1);
-							vecscale3f(tr,tr,.6f);
-
-						} 
+						}
 					}
 				}
 				break;
@@ -2577,7 +2522,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		// reset orig_points = drag_points so they are 'starting over'
 		// (otherwise you'll see a jump as drag averages change wildly)
 		for(int i=0;i<node->_orig_count;i++){
-	//		op[i].reset = TRUE;
+			op[i].reset = TRUE;
 			//mainloop_reset_touch_hyperhit(op[i].ID);
 			//printf("(P %d)",op[i].ID);
 		}
@@ -2596,6 +2541,9 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, scaleOffset));
 			if(1){
+				//if have 2 multitouch drags, and lift one, and we write the offsets
+				// then we need to update the hyperhit matrx for the remaining drag
+				// so it remains in sync with the offsets
 				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
 				//TautoOffset
 				float2double(scaled,node->scaleOffset.c,3);
