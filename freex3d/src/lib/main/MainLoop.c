@@ -186,7 +186,6 @@ struct Touch
 	int hyperhit;
 	double justModel[16];
 	struct point_XYZ hp;
-
 };
 
 //#ifdef ANGLEPROJECT
@@ -5012,6 +5011,19 @@ void snaapshot_touchstate_for_frame(){
 
 	}
 }
+void mainloop_update_touch_hyperhit_matrix(int touchID, double *transform){
+	int ktouch;
+	struct Touch *touch;
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	for(ktouch=0;ktouch<p->ntouch;ktouch++){
+		touch = &p->touchlist[ktouch];
+		if(touch->ID == touchID){
+			matmultiplyAFFINE(touch->justModel,transform,touch->justModel);
+			break;
+		}
+	}
+}
 void setup_picking(){
 	/*	Dec 15, 2015 update: variables have been vectorized in this function to match multi-touch.
 		June 2, 2020 fwl_handle_aqua_multiNORMAL is now a state machine, absorbing incoming mouse / touch events
@@ -5060,7 +5072,7 @@ void setup_picking(){
 					tg->RenderFuncs.hypersensitive = touch->hypersensitive;
 					tg->RenderFuncs.hyperhit = touch->hyperhit;
 					//new shortcut way, skips render_hier on hyper pass
-					if(!touch->hyperhit){
+					if(!touch->hyperhit ){
 						//sensor pass: on ButtonPress, and isOver
 						render_hier(rootNode(),VF_Sensitive  | VF_Geom); 
 						touch->CursorOverSensitive = getRayHit();
@@ -5089,7 +5101,6 @@ void setup_picking(){
 								touch->ButDown[p->currentCursor][1]);
 						#endif
 						if (touch->frame_state.buttonState == 0) {
-							printf("|");
 							/* ok, when the user releases a button, cursorOverSensitive WILL BE NULL
 								until it gets sensed again. So, we use the lastOverButtonPressed flag to delay
 								sending this flag by one event loop loop. */

@@ -2057,20 +2057,12 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 	param[2] = B[2];
 	param[3] = B[3];
 
-	//getchar();
-	// inverse by columns possible, not attempted
-	/*
-	for(j=1;j<=N;j++) { //Find inverse by columns.
-	for(i=1;i<=N;i++) col[i]=0.0;
-	col[j]=1.0;
-	lubksb(a,N,indx,col);
-	for(i=1;i<=N;i++) y[i][j]=col[i];
-	}
-	*/
 	return 0;
 }
 
 // <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
+
+void mainloop_update_touch_hyperhit_matrix(int touchID, double *transform);
 
 #include "Decompose.h"
 void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
@@ -2161,7 +2153,8 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		//veccopy3f(op.c, trackpoint);
 		veccopy3f(op[node->_orig_count].p,trackpoint);
 		op[node->_orig_count].ID = touchID;
-		op[node->_orig_count].reset = FALSE;
+		//op[node->_orig_count].reset = FALSE;
+		//printf("(A %d)",touchID);
 		node->_orig_count++;
 
 		for(int k=0;k<node->_orig_count;k++){
@@ -2229,8 +2222,15 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						if(op[j].reset){
 							veccopy3f(op[j].p,dp[0].p);
 							op[j].reset = FALSE;
+							//printf("(Q %d)",op[j].ID);
 						}
 						vecdif3f(tr,dp[0].p,op[j].p);
+						if(0){
+							vecprint3fb("tr_comp",tr,"\n");
+							vecprint3fb("sc_comp",scale3,"\n");
+							vecprint4fb("rt_comp",rot4,"\n");
+						}
+
 					}
 				}
 				break;
@@ -2276,7 +2276,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							veccopy3f(&v1[1*3 +0],drag1);
 							memset(param,0,4*sizeof(float));
 							param[0] = 1.0f;
-							for(int k=0;k<2;k++){
+							if(0) for(int k=0;k<2;k++){
 								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
 							}
 							least_squares_similarity2D_linpack(v0,v1,np,param);
@@ -2284,7 +2284,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 							float scale = param[0];
 							vecset3f(scale3,scale,scale,1.0f);
 							veccopy2f(tr,&param[2]);
-							if(1){
+							if(0){
 								vecprint3fb("tr_comp",tr,"\n");
 								vecprint3fb("sc_comp",scale3,"\n");
 								vecprint4fb("rt_comp",rot4,"\n");
@@ -2431,8 +2431,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				break;
 			}
 
+
+			// apply auto-offsets from last buttonRelease to current outputs
 			if(0){
-				//not working well for multitouch with rotation and scale
+				//not working well for multitouch with rotation and scale 
 				vecadd3f(tr,tr,node->offset.c);
 				vecmult3f(scale3,scale3,node->scaleOffset.c);
 				axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
@@ -2504,9 +2506,15 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					least_squares_similarity2D_linpack(p0,p1,2,param);
 					rot4[3] = param[1];
 					float scale = param[0];
-					if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
+					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
 					vecset3f(scale3,scale,scale,1.0f);
 					veccopy2f(tr,&param[2]);
+					if(0){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
 				}
 						
 			}
@@ -2553,29 +2561,26 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				//vecprint4fb("rot_chg",node->rotation_changed.c,"\n");
 			}
 
-/*
-		hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-*/
-
 		} //if drag_count == orig_count
 	} else if (ev==ButtonRelease) {
 		
 		//delete released touch from orig_points
-		printf("R");
 		for(int i=0;i<node->_orig_count;i++){
 			if(op[i].ID == touchID){
 				for(int j=i+1;j<node->_orig_count;j++)
 					op[j-1] = op[j];
 				node->_orig_count--;
+				//printf("(D %d)",touchID);
 				break;
 			}
 		}
 		// reset orig_points = drag_points so they are 'starting over'
 		// (otherwise you'll see a jump as drag averages change wildly)
 		for(int i=0;i<node->_orig_count;i++){
-			op[i].reset = TRUE;
+	//		op[i].reset = TRUE;
+			//mainloop_reset_touch_hyperhit(op[i].ID);
+			//printf("(P %d)",op[i].ID);
 		}
-		
 
 		/* set isActive false if no active touches left*/
 		if(node->_orig_count < 1){
@@ -2586,11 +2591,27 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
-			//please does this rot thing _have_ to be [4] - for plane its a single value. would be easier scalar.
 			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, rotationOffset));
 			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, scaleOffset));
+			if(1){
+				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
+				//TautoOffset
+				float2double(scaled,node->scaleOffset.c,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,node->rotationOffset.c,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,node->offset.c,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tao,temp4,temp3);
+
+				for(int i=0;i<node->_orig_count;i++){
+					mainloop_update_touch_hyperhit_matrix(op[i].ID,Tao);
+				}
+
+			}
 
 		}
 	}
