@@ -2519,6 +2519,15 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				break;
 			}
 		}
+		for(int i=0;i<node->_drag_count;i++){
+			if(dp[i].ID == touchID){
+				for(int j=i+1;j<node->_drag_count;j++)
+					dp[j-1] = dp[j];
+				node->_drag_count--;
+				//printf("(D %d)",touchID);
+				break;
+			}
+		}
 		// reset orig_points = drag_points so they are 'starting over'
 		// (otherwise you'll see a jump as drag averages change wildly)
 		for(int i=0;i<node->_orig_count;i++){
@@ -2581,33 +2590,25 @@ static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
 static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
 void extent6f_draw(float *extent);
 void render_MultitouchSensor(struct X3D_MultitouchSensor *node){
-	// how to see a sensor> how about drawing its touch points in sensor-space?
+	// how to 'see' a sensor> how about drawing its touch points in sensor-space?
 	if(0){
+		// draw small box for ButtonPress orig
 		if(1) if(node->_orig_count > 0){
 			float ee[6];
-			//FW_GL_DEPTHMASK(GL_FALSE);
-			//glDisable(GL_DEPTH_TEST);
 			struct ID_point *op = (struct ID_point*)node->_orig_points;
 			for(int i=0;i< node->_orig_count; i++){
 				extent6f_translate3f(ee,testextent,op[i].p);
-				//struct ID_point *dp = (struct ID_point*)node->_drag_points;
 				extent6f_draw(ee);
 			}
-			//glEnable(GL_DEPTH_TEST);
-			//FW_GL_DEPTHMASK(GL_TRUE);
 		}
+		// draw bigger box for MotionNotify drag
 		if(1) if(node->_drag_count > 0){
 			float ee[6];
-			//FW_GL_DEPTHMASK(GL_FALSE);
-			//glDisable(GL_DEPTH_TEST);
 			struct ID_point *dp = (struct ID_point*)node->_drag_points;
 			for(int i=0;i< node->_drag_count; i++){
 				extent6f_translate3f(ee,testextent2,dp[i].p);
-				//struct ID_point *dp = (struct ID_point*)node->_drag_points;
 				extent6f_draw(ee);
 			}
-			//glEnable(GL_DEPTH_TEST);
-			//FW_GL_DEPTHMASK(GL_TRUE);
 		}
 	}
 }
