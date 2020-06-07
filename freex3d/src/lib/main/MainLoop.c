@@ -5011,7 +5011,7 @@ void snaapshot_touchstate_for_frame(){
 
 	}
 }
-void mainloop_update_touch_hyperhit_matrix(int touchID, double *transform){
+void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao){
 	int ktouch;
 	struct Touch *touch;
 	ttglobal tg = gglobal();
@@ -5019,7 +5019,7 @@ void mainloop_update_touch_hyperhit_matrix(int touchID, double *transform){
 	for(ktouch=0;ktouch<p->ntouch;ktouch++){
 		touch = &p->touchlist[ktouch];
 		if(touch->ID == touchID){
-			matmultiplyAFFINE(touch->justModel,transform,touch->justModel);
+			matmultiplyAFFINE(touch->justModel,netTao,touch->justModel);
 			break;
 		}
 	}

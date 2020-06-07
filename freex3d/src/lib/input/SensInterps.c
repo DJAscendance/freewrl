@@ -2062,7 +2062,7 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 
 // <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
 
-void mainloop_update_touch_hyperhit_matrix(int touchID, double *transform);
+void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao);
 
 #include "Decompose.h"
 void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
@@ -2531,6 +2531,9 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		if(node->_orig_count < 1){
 			node->isActive=FALSE;
 			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+			if(node->_lastTao == NULL)
+				node->_lastTao = malloc(16*sizeof(double));
+			matidentity4d(node->_lastTao);
 		}
 		/* autoOffset? */
 		if (node->autoOffset) {
@@ -2554,10 +2557,17 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				mattranslate(temp3,trand[0],trand[1],trand[2]);
 				matmultiplyAFFINE(temp4,temp1,temp2);
 				matmultiplyAFFINE(Tao,temp4,temp3);
-
-				for(int i=0;i<node->_orig_count;i++){
-					mainloop_update_touch_hyperhit_matrix(op[i].ID,Tao);
+				if(node->_lastTao == NULL){
+					node->_lastTao = malloc(16*sizeof(double));
+					matidentity4d(node->_lastTao);
 				}
+				double lastTaoInv[16], netTao[16];
+				matinverseAFFINE(lastTaoInv,node->_lastTao);
+				matmultiplyAFFINE(netTao,lastTaoInv,Tao);
+				for(int i=0;i<node->_orig_count;i++){
+					mainloop_update_touch_hyperhit_matrix(op[i].ID,netTao);
+				}
+				memcpy(node->_lastTao,Tao,16*sizeof(double));
 
 			}
 

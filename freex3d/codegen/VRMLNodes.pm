@@ -1717,6 +1717,7 @@ our %Nodes = (
 		_drag_points => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		_oldrotation => ["SFRotation", [0, 0, 1, 0],"initializeOnly", 0,0],#ff
 		_oldscale => ["SFVec3f", [1, 1, 1], "initializeOnly", 0,0],#ff
+		_lastTao => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DDragSensorNode"),
 
 #
