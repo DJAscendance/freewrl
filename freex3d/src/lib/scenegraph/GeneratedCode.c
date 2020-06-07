@@ -13791,7 +13791,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->minScale.c[0] = 0.1f;tmp2->minScale.c[1] = 0.1f;tmp2->minScale.c[2] = 0.1f;
 			tmp2->maxScale.c[0] = 10.0f;tmp2->maxScale.c[1] = 10.0f;tmp2->maxScale.c[2] = 10.0f;
 			tmp2->rotation_changed.c[0] = 0;tmp2->rotation_changed.c[1] = 0;tmp2->rotation_changed.c[2] = 1;tmp2->rotation_changed.c[3] = 0;;
-			tmp2->scale_changed.c[0] = 0.0f;tmp2->scale_changed.c[1] = 0.0f;tmp2->scale_changed.c[2] = 0.0f;
+			tmp2->scale_changed.c[0] = 1.0f;tmp2->scale_changed.c[1] = 1.0f;tmp2->scale_changed.c[2] = 1.0f;
 			tmp2->trackPoints_changed.n=0; tmp2->trackPoints_changed.p=0;
 			tmp2->touches_changed.n=0; tmp2->touches_changed.p=0;
 			tmp2->_lastframe = 0;

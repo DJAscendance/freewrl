@@ -1706,7 +1706,7 @@ our %Nodes = (
 		maxScale => ["SFVec3f", [10, 10, 10], "inputOutput", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		#translation_changed SFVec3f [out] 
 		rotation_changed => ["SFRotation", [0, 0, 1, 0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
-		scale_changed => ["SFVec3f", [0,0,0], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
+		scale_changed => ["SFVec3f", [1,1,1], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		#hitNormalizedCoord_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		trackPoints_changed => ["MFVec3f", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff
 		touches_changed => ["MFInt32", [], "outputOnly", "(SPEC_X3D40)", "UNCA_NONE"],#ff

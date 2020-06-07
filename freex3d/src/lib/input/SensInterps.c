@@ -2119,7 +2119,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		if(node->_drag_count > 31) 
 			return; //how many fingers you you have?
 		if(tg->Mainloop.iframe != node->_lastframe){
-			node->_drag_count = 0;
+			node->_drag_count = 0; //we re-count drags on every frame
 			node->_lastframe = tg->Mainloop.iframe;
 		}
 		//bearing (A,B) in sensor-local
@@ -2150,22 +2150,67 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		float *posn;
 		posn = tg->RenderFuncs.hyp_save_posn;
 
-		//veccopy3f(op.c, trackpoint);
-		veccopy3f(op[node->_orig_count].p,trackpoint);
-		op[node->_orig_count].ID = touchID;
-		//op[node->_orig_count].reset = FALSE;
-		//printf("(A %d)",touchID);
-		node->_orig_count++;
-
-		for(int k=0;k<node->_orig_count;k++){
-			op[k].reset = TRUE;
-		}
+		//op[node->_orig_count].reset = TRUE;
 		//veccopy3f(ip[*touchpoin])
 		//memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
 		//if(node->_touchcount == 1)
 		//	veccopy3f(node->_origPoint.c,op.c);
 		//else if(node->_touchcount == 2)
 		//	veccopy3f(node->_origPoint2.c,op.c);
+
+		/* autoOffset? */
+		if (node->autoOffset) {
+			veccopy3f(node->offset.c,node->translation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
+			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, rotationOffset));
+			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, scaleOffset));
+			if(1){
+				//if have 2 multitouch drags, and lift one, and we write the offsets
+				// then we need to update the hyperhit matrx for the remaining drag
+				// so it remains in sync with the offsets
+				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
+				//TautoOffset
+				float2double(scaled,node->scaleOffset.c,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,node->rotationOffset.c,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,node->offset.c,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tao,temp4,temp3);
+				if(node->_lastTao == NULL){
+					node->_lastTao = malloc(16*sizeof(double));
+					matidentity4d(node->_lastTao);
+				}
+				double lastTaoInv[16], netTao[16];
+				matinverseAFFINE(lastTaoInv,node->_lastTao);
+				matmultiplyAFFINE(netTao,lastTaoInv,Tao);
+				for(int i=0;i<node->_orig_count;i++){
+					mainloop_update_touch_hyperhit_matrix(op[i].ID,netTao);
+				}
+				memcpy(node->_lastTao,Tao,16*sizeof(double));
+				if(1){
+					double dd[3];
+					float2double(dd,trackpoint,3);
+					transformAFFINEd(dd,dd,netTao);
+					double2float(trackpoint,dd,3);
+				}
+			}
+		}
+
+		//veccopy3f(op.c, trackpoint);
+		veccopy3f(op[node->_orig_count].p,trackpoint);
+		op[node->_orig_count].ID = touchID;
+		op[node->_orig_count].reset = FALSE; //TRUE;
+		//printf("(A %d)",touchID);
+		node->_orig_count++;
+
+		for(int k=0;k<node->_orig_count;k++){
+			op[k].reset = TRUE;
+		}
+
 
 		//printf("but down\n");
 		/* set isActive true */
@@ -2246,6 +2291,10 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					int j0 = lookup_ID(op,node->_orig_count,dp[0].ID);
 					int j1 = lookup_ID(op,node->_orig_count,dp[1].ID);
 					//printf("j0,j1 %d %d ^ dp ID 0,1 %d %d $ op ID j01 %d %d ",j0,j1,dp[0].ID, dp[1].ID,op[j0].ID,op[j1].ID);
+					if(j0 < 0 || j1 < 0){
+						printf("ouch missing a touch point we should have \n");
+						getchar();
+					}
 					if(j0 > -1 && j1 > -1){
 						float dif0[3],dif1[3],dif[3];
 						float *drag1,*drag0,*orig1,*orig0;
@@ -2254,10 +2303,12 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						if(op[j0].reset){
 							veccopy3f(op[j0].p,dp[0].p);
 							op[j0].reset = FALSE;
+							//printf("R1 ");
 						}
 						if(op[j1].reset){
 							veccopy3f(op[j1].p,dp[1].p);
 							op[j1].reset = FALSE;
+							//printf("R2 ");
 						}
 
 						vecdif3f(dif0,drag0,orig0);
