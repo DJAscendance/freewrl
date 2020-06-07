@@ -2303,12 +2303,12 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						if(op[j0].reset){
 							veccopy3f(op[j0].p,dp[0].p);
 							op[j0].reset = FALSE;
-							printf("R1 ");
+							//printf("R1 ");
 						}
 						if(op[j1].reset){
 							veccopy3f(op[j1].p,dp[1].p);
 							op[j1].reset = FALSE;
-							printf("R2 ");
+							//printf("R2 ");
 						}
 
 						vecdif3f(dif0,drag0,orig0);
@@ -2478,7 +2478,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					qq.x = q.x; qq.y = q.y; qq.z = q.z; qq.w = q.w;
 					quaternion_to_vrmlrot4f(&qq,rot4);
 					rot4[3] = rot4[3];
-					if(1){
+					if(0){
 						vecprint3fb("tr_Tout",tr,"\n");
 						vecprint3fb("sc_Tout",scale3,"\n");
 						vecprint4fb("rt_Tout",rot4,"\n");
@@ -2642,7 +2642,7 @@ static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
 void extent6f_draw(float *extent);
 void render_MultitouchSensor(struct X3D_MultitouchSensor *node){
 	// how to 'see' a sensor> how about drawing its touch points in sensor-space?
-	if(1){
+	if(0){
 		// draw small box for ButtonPress orig
 		if(1) if(node->_orig_count > 0){
 			float ee[6];
