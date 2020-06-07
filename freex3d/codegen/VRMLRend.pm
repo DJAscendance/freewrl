@@ -501,7 +501,7 @@ our %RendC = map {($_=>1)} qw/
 	AudioListener
 	PannerNode
 	GeoSRF
-	
+	MultitouchSensor
 /;
 
 #######################################################################

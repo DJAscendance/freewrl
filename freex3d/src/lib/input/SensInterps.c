@@ -2575,6 +2575,42 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 	}
 
 }
+float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
+float *extent6f_copy(float *eout6, float *ein6);
+static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
+static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
+void extent6f_draw(float *extent);
+void render_MultitouchSensor(struct X3D_MultitouchSensor *node){
+	// how to see a sensor> how about drawing its touch points in sensor-space?
+	if(0){
+		if(1) if(node->_orig_count > 0){
+			float ee[6];
+			//FW_GL_DEPTHMASK(GL_FALSE);
+			//glDisable(GL_DEPTH_TEST);
+			struct ID_point *op = (struct ID_point*)node->_orig_points;
+			for(int i=0;i< node->_orig_count; i++){
+				extent6f_translate3f(ee,testextent,op[i].p);
+				//struct ID_point *dp = (struct ID_point*)node->_drag_points;
+				extent6f_draw(ee);
+			}
+			//glEnable(GL_DEPTH_TEST);
+			//FW_GL_DEPTHMASK(GL_TRUE);
+		}
+		if(1) if(node->_drag_count > 0){
+			float ee[6];
+			//FW_GL_DEPTHMASK(GL_FALSE);
+			//glDisable(GL_DEPTH_TEST);
+			struct ID_point *dp = (struct ID_point*)node->_drag_points;
+			for(int i=0;i< node->_drag_count; i++){
+				extent6f_translate3f(ee,testextent2,dp[i].p);
+				//struct ID_point *dp = (struct ID_point*)node->_drag_points;
+				extent6f_draw(ee);
+			}
+			//glEnable(GL_DEPTH_TEST);
+			//FW_GL_DEPTHMASK(GL_TRUE);
+		}
+	}
+}
 
 /* void do_Anchor (struct X3D_Anchor *node, int ev, int over) {*/
 void do_Anchor ( void *ptr, int ev, int but1, int over) {
