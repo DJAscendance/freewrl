@@ -193,6 +193,8 @@ input/convert1To2.c \
 input/convertSTL.c \
 input/convertSTL.h \
 input/SCKHeaders.h \
+input/Decompose.c \
+input/Decompose.h \
  \
 opengl/RenderTextures.c \
 opengl/Textures.h \

@@ -305,24 +305,24 @@ float * extent6f_from_box2fn(float *extent6,float *p, int n){
 float *extent6f_scale3f(float *eout6, float *ein6, float *s3){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] *= s3[i];
-		eout6[i*2 + 1] *= s3[i];
+		eout6[i*2 + 0] = ein6[i*2 + 0] * s3[i];
+		eout6[i*2 + 1] = ein6[i*2 + 1] * s3[i];
 	}
 	return eout6;
 }
 float *extent6f_translate3f(float *eout6, float *ein6, float *p3){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] += p3[i];
-		eout6[i*2 + 1] += p3[i];
+		eout6[i*2 + 0] = ein6[i*2 + 0] + p3[i];
+		eout6[i*2 + 1] = ein6[i*2 + 1] + p3[i];
 	}
 	return eout6;
 }
 float *extent6f_translate3d(float *eout6, float *ein6, double *p3){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] += p3[i];
-		eout6[i*2 + 1] += p3[i];
+		eout6[i*2 + 0] = ein6[i*2 + 0] + p3[i];
+		eout6[i*2 + 1] = ein6[i*2 + 1] + p3[i];
 	}
 	return eout6;
 }

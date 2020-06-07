@@ -5525,10 +5525,9 @@ void do_GeoConvert (void *px){
 
 #ifndef SRM
 //stubs
-void compile_GeoSystem(struct X3D_GeoSystem *node){
+void compile_GeoSRF(struct X3D_GeoSRF *node){
 }
-void render_GeoSystem(struct X3D_GeoSystem *node){
-
+void render_GeoSRF(struct X3D_GeoSRF *node){
 }
 #else //SRM
 // OFF-SEPC there's no geosystem node in the specs, this is to help 
@@ -5536,11 +5535,11 @@ void render_GeoSystem(struct X3D_GeoSystem *node){
 // Goal: broaden the acceptance and implementation of ISO 18026 in web3d browsers
 //  - by making an MIT/permissive helper that takes an MFString set of SRF parameters
 //   and tells you what you did wrong, and what to type next.
-void compile_GeoSystem(struct X3D_GeoSystem *node){
-	printf("in cmopile_GeoSystem\n");
+void compile_GeoSRF(struct X3D_GeoSRF *node){
+	printf("in cmopile_GeoSRF\n");
 	MARK_NODE_COMPILED
 }
-void render_GeoSystem(struct X3D_GeoSystem *node){
+void render_GeoSRF(struct X3D_GeoSRF *node){
 	COMPILE_IF_REQUIRED
 
 }

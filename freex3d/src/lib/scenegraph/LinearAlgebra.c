@@ -603,7 +603,6 @@ double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat){
 	//result should be pure rotation matrix (with possible rare shear)
 	return rotmat; //we return it too, in case you want to do fancy chain multiplication 
 }
-
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat){
 	// r = a x mat
 	struct point_XYZ pa, pr;
@@ -1134,6 +1133,7 @@ GLDOUBLE* matscale(GLDOUBLE* r, double sx, double sy, double sz)
 	r[0] = sx;
 	r[5] = sy;
 	r[10] = sz;
+	r[15] = 1.0;
     return r;
 }
 

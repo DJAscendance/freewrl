@@ -321,7 +321,6 @@ float* matmultiply4f(float* r, float* mm , float* nn);
 float *axisangle2matrix4f(float *b, float *axisangle);
 float *matidentity4f(float *b);
 void matrixFromAxisAngle4d(double *mat, double rangle, double x, double y, double z);
-
 void scale_to_matrix (double *mat, struct point_XYZ *scale);
 void loadIdentityMatrix (double *mat);
 double *matcopy(double *r, double*mat);

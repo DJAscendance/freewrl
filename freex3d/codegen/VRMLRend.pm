@@ -380,7 +380,9 @@ our %defaultContainerType = (
 	ChannelMergerNode	=>["connect"],
 	AudioListener		=>["connect"],
 	PannerNode		=>["connect"],
-
+	GeoSRF			=>["geoSRF"],
+	GeoEllipsoid		=>["ellipsoid"],
+	GeoSystemParameters	=>["systemParameters"],
 );
 
 
@@ -498,8 +500,8 @@ our %RendC = map {($_=>1)} qw/
 	ChannelMergerNode
 	AudioListener
 	PannerNode
-	GeoSystem
-	
+	GeoSRF
+	MultitouchSensor
 /;
 
 #######################################################################
@@ -822,7 +824,7 @@ our %CompileC = map {($_=>1)} qw/
 	ChannelMergerNode
 	AudioListener
 	PannerNode
-	GeoSystem
+	GeoSRF
 /;
 
 
