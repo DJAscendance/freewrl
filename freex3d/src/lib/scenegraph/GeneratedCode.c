@@ -415,6 +415,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_v0",
 	"_vKnot",
 	"_values",
+	"_walkSurfacePriority",
 	"_weightFunction1",
 	"_weightFunction2",
 	"_world",
@@ -1236,6 +1237,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"visible",
 	"visibles",
 	"voxels",
+	"walkSurfacePriority",
+	"walkSurfaces",
 	"warhead",
 	"warmColor",
 	"watchList",
@@ -1974,6 +1977,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"visible",
 	"visibles",
 	"voxels",
+	"walkSurfacePriority",
+	"walkSurfaces",
 	"warhead",
 	"warmColor",
 	"watchList",
@@ -6252,6 +6257,9 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_GeoViewpoint, _position),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoViewpoint, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__resetRelativeHeight, (int) offsetof (struct X3D_GeoViewpoint, _resetRelativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_walkSurfacePriority, (int) offsetof (struct X3D_GeoViewpoint, walkSurfacePriority),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__walkSurfacePriority, (int) offsetof (struct X3D_GeoViewpoint, _walkSurfacePriority),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_walkSurfaces, (int) offsetof (struct X3D_GeoViewpoint, walkSurfaces),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__prepped_planet, (int) offsetof (struct X3D_GeoViewpoint, _prepped_planet),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -12323,6 +12331,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_position.c[0] = 0;tmp2->_position.c[1] = 0;tmp2->_position.c[2] = 0;;
 			tmp2->relativeHeight = FALSE;
 			tmp2->_resetRelativeHeight = TRUE;
+			tmp2->walkSurfacePriority.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->walkSurfacePriority.p[0] = newASCIIString("HIGHEST");tmp2->walkSurfacePriority.n=1; ;
+			tmp2->_walkSurfacePriority = 0;
+			tmp2->walkSurfaces.n=0; tmp2->walkSurfaces.p=0;
 			tmp2->_prepped_planet = 0;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedPosition.c[0] = 0;tmp2->__movedPosition.c[1] = 0;tmp2->__movedPosition.c[2] = 0;;
@@ -18193,6 +18204,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," headlight (SFBool) \t%d\n",tmp->headlight);
 			spacer fprintf (fp," navType (MFString): \n");
 			for (i=0; i<tmp->navType.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->navType.p[i]->strptr); }
+			spacer fprintf (fp," walkSurfacePriority (MFString): \n");
+			for (i=0; i<tmp->walkSurfacePriority.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->walkSurfacePriority.p[i]->strptr); }
+			spacer fprintf (fp," walkSurfaces (MFNode):\n");
+			for (i=0; i<tmp->walkSurfaces.n; i++) { dump_scene(fp,level+1,tmp->walkSurfaces.p[i]); }
 		    if(allFields) {
 			spacer fprintf (fp," __movedPosition (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__movedPosition.c[i]); }

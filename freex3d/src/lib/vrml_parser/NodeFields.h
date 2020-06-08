@@ -1500,6 +1500,8 @@ FIELD(GeoViewpoint,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 FIELD(GeoViewpoint,speedFactor,sffloat,speedFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EVENT_IN(GeoViewpoint,retainUserOffsets,sfbool,retainUserOffsets,FIELDTYPE_SFBool)
 FIELD(GeoViewpoint,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool,0)
+EXPOSED_FIELD(GeoViewpoint,walkSurfacePriority,mfstring,walkSurfacePriority,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(GeoViewpoint,walkSurfaces,mfnode,walkSurfaces,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(GeoViewpoint)
 
 /* Group node */

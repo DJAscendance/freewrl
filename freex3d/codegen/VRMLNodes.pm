@@ -2389,6 +2389,9 @@ our %Nodes = (
 		_position => ["SFVec3d",[0, 0, 0], "initializeOnly", 0,0],#ff
 		relativeHeight => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
 		_resetRelativeHeight => ["SFBool", "TRUE", "initializeOnly", 0,0],#ff
+		walkSurfacePriority => ["MFString", ["HIGHEST"], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_walkSurfacePriority => ["SFInt32", 0, "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		walkSurfaces => ["MFNode", [], "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff		
 		_prepped_planet => ["SFInt32",0,"initializeOnly",0,0],#ff
 		# "compiled" versions of strings above
 		__geoSystem => ["SFNode","NULL","initializeOnly", 0,0],#ff

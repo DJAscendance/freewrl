@@ -4001,6 +4001,14 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /************************************************************************/
 /* GeoViewpoint								*/
 /************************************************************************/
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+enum {
+	WALK_SURFACE_HIGHEST = 0,
+	WALK_SURFACE_LOWEST = 1,
+	WALK_SURFACE_PRIORITY = 2,
+};
 void calculateViewingSpeedB();
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	Geosys *gs;
@@ -4013,6 +4021,12 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	gc2gd(gs,&gcCoord,1,&node->__movedgd);
 	MARK_NODE_COMPILED
 	
+	node->_walkSurfacePriority = 0;
+	for(int i=0;i<node->walkSurfacePriority.n;i++){
+		if(!strcasecmp(node->walkSurfacePriority.p[i]->strptr,"HIGHEST")) node->_walkSurfacePriority |= WALK_SURFACE_HIGHEST;
+		if(!strcasecmp(node->walkSurfacePriority.p[i]->strptr,"LOWEST")) node->_walkSurfacePriority |= WALK_SURFACE_LOWEST;
+		if(!strcasecmp(node->walkSurfacePriority.p[i]->strptr,"PRIORITY")) node->_walkSurfacePriority |= WALK_SURFACE_PRIORITY;
+	}
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoViewpoint, metadata)) */
 	MARK_SFFLOAT_INOUT_EVENT(node->fieldOfView, node->__oldFieldOfView, offsetof (struct X3D_GeoViewpoint, fieldOfView))
@@ -5087,16 +5101,37 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 	int i,j,nfound;
 	struct Planet *planet;
 	double highest;
+	int n_walk_surface;
+	struct X3D_Node **walk_surface;
 	//find planet
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	ttglobal tg = gglobal();
+	ppComponent_Geospatial p = (ppComponent_Geospatial)tg->Component_Geospatial.prv;
+
+	int height_method = WALK_SURFACE_HIGHEST;
+	n_walk_surface = 0;
+	walk_surface = NULL;
 	highest = 0.0; //this means we can't go below ground. It also means if no GEG found, then we are relative to ellipsoid
 	if(!p->planet_stack) return highest; //no GEGs registered, stick to absolute height
+
+	if(1){
+		//June 2020 attempt at bathymetric walking
+		struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+
+		if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
+			struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
+			//COMPILE_IF_REQUIRED(X3D_NODE(node));
+			if(node->_ichange != node->_change) compile_GeoViewpoint(node);
+			height_method = node->_walkSurfacePriority;
+			n_walk_surface = node->walkSurfaces.n;
+			walk_surface = node->walkSurfaces.p;
+		}
+	}
 	nfound = 0;
 	planet = NULL;
 	for(i=0;i<vectorSize(p->planet_stack);i++){
 		planet = vector_get_ptr(struct Planet,p->planet_stack,i);
 		if(planet && planet->ID == planetID) {
-			if(!planet->gegs) return highest; //no gegs registered
+			if(!planet->gegs) break; //no gegs registered
 			for(j=0;j<vectorSize(planet->gegs);j++){
 				double gridheight;
 				struct X3D_GeoElevationGrid *geg = vector_get(struct X3D_GeoElevationGrid*,planet->gegs,j);
@@ -5105,11 +5140,37 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 					//make a list of hits, and pick the highest one, in case there are grid overlays etc.
 					nfound++;
 					if(nfound == 1) highest = gridheight;
-					highest = max(highest,gridheight);
+					if(height_method & WALK_SURFACE_HIGHEST)
+						highest = max(highest,gridheight);
+					else if(height_method &WALK_SURFACE_LOWEST)
+						highest = min(highest, gridheight);
 					//printf("p %d g %x h %lf\n",planetID,geg,highest);
 				}
 			}
 		}
+	}
+	if(n_walk_surface && height_method & WALK_SURFACE_PRIORITY){
+		int mfound = 0;
+		for(i=0;i<n_walk_surface;i++){
+			struct X3D_Node *node = walk_surface[i];
+			if(node->_nodeType == NODE_GeoElevationGrid){
+				double gridheight;
+				struct X3D_GeoElevationGrid *geg = (struct X3D_GeoElevationGrid *)node;
+				if(geg)
+				if( geoelevationgrid_getGDHeight0(geg,gdCoord,geoSystem,&gridheight) == 1){
+					//make a list of hits, and pick the highest one, in case there are grid overlays etc.
+					mfound++;
+					if(mfound == 1) highest = gridheight;
+
+					if(height_method & WALK_SURFACE_HIGHEST)
+						highest = max(highest,gridheight);
+					else if(height_method &WALK_SURFACE_LOWEST)
+						highest = min(highest, gridheight);
+				}
+
+			}
+		}
+
 	}
 	return highest;
 }
