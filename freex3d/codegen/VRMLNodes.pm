@@ -2796,7 +2796,7 @@ our %Nodes = (
 	"HAnimMotionData" => new VRML::NodeType("HAnimMotionData", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		#MotionPlay
+		#MotionData
 		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		frameCount => ["SFInt32",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		frameDuration => ["SFTime",.1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -2829,6 +2829,27 @@ our %Nodes = (
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 	],"X3DMotionDataNode"),
 
+	"HAnimMotionClip" => new VRML::NodeType("HAnimMotionClip", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		#MotionData
+		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameCount => ["SFInt32",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		frameDuration => ["SFTime",.1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_channelcount => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_njoints => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		_channels => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		_fvalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		#extra - DataFile
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		#extra - Data / inline
+		channels => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		joints => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		values => ["SFString","","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DMotionDataNode"),
 
 
 	"HAnimJoint" => new VRML::NodeType("HAnimJoint", [
