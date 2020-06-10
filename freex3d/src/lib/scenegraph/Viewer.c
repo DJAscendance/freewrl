@@ -3456,30 +3456,48 @@ void viewer_viewall(){
 		extent6f_copy(extent6,rn->_extent);
 		//extent6f_printf(extent6);
 		extent6f_mattransform4d(extent6,extent6,MM);
-		//include currently bound viewpoint in scene_diameter? 
-		//-I think it already is part of rootNode extent, no need to add it
-		vecset3f(vpf,0.0f,0.0f,0.0f); 
-		extent6f_get_center3f(extent6,center);
-		float2double(dcenter,center,3);
-		pivot_radius = extent6f_get_maxradius(extent6);
-		if(0){
-			vecdif3f(vpoffset,center,vpf);
-			vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
+		if(Viewer()->ortho){
+			//printf("got ourselves an orthoviewpoint in viewer_viewall\n");
+			//Viewer()->fieldOfView 
+			struct X3D_Node *boundvp = getActiveLayerBoundViewpoint();
+			if(boundvp->_nodeType == NODE_OrthoViewpoint){
+				struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint*)boundvp;
+				vp->fieldOfView.p[0] = extent6[1];
+				vp->fieldOfView.p[1] = extent6[3];
+				vp->fieldOfView.p[2] = extent6[0];
+				vp->fieldOfView.p[3] = extent6[2];
+				//Viewer()->orthoField[0] = extent6[1];
+				//Viewer()->orthoField[0] = extent6[3];
+				//Viewer()->orthoField[0] = extent6[0];
+				//Viewer()->orthoField[0] = extent6[2];
+				//Viewer()->SLERPing3 = 1;
+			}
 		}else{
-			//assuming perspective camera
-			//theory (2D side view of scneario)
-			// if your viewer half-angle is alpha
-			// and the scene radious is R
-			// how far away D should you be from scene center?
-			// sin(alpha) = R/D, or D = R/sin(alpha)
-			//printf("\npivot_radius= %lf\n",pivot_radius);
-			//printf("fieldofview = %lf\n",viewer->fieldofview);
-			vp_radius = pivot_radius /sin(Viewer()->fieldofview *.5 * M_PI / 180.0);
-			//printf("vp_radius %lf\n",vp_radius);
-		}
-		Viewer()->Dist = vp_radius; //pivot_radius; // + scene_diameter;
+			//include currently bound viewpoint in scene_diameter? 
+			//-I think it already is part of rootNode extent, no need to add it
+			vecset3f(vpf,0.0f,0.0f,0.0f); 
+			extent6f_get_center3f(extent6,center);
+			float2double(dcenter,center,3);
+			pivot_radius = extent6f_get_maxradius(extent6);
+			if(0){
+				vecdif3f(vpoffset,center,vpf);
+				vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
+			}else{
+				//assuming perspective camera
+				//theory (2D side view of scneario)
+				// if your viewer half-angle is alpha
+				// and the scene radious is R
+				// how far away D should you be from scene center?
+				// sin(alpha) = R/D, or D = R/sin(alpha)
+				//printf("\npivot_radius= %lf\n",pivot_radius);
+				//printf("fieldofview = %lf\n",viewer->fieldofview);
+				vp_radius = pivot_radius /sin(Viewer()->fieldofview *.5 * M_PI / 180.0);
+				//printf("vp_radius %lf\n",vp_radius);
+			}
+			Viewer()->Dist = vp_radius; //pivot_radius; // + scene_diameter;
 
-		setup_viewpoint_slerp3(dcenter,pivot_radius, vp_radius);
+			setup_viewpoint_slerp3(dcenter,pivot_radius, vp_radius);
+		}
 	}
 }
 

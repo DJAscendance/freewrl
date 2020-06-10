@@ -1500,6 +1500,8 @@ FIELD(GeoViewpoint,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
 FIELD(GeoViewpoint,speedFactor,sffloat,speedFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EVENT_IN(GeoViewpoint,retainUserOffsets,sfbool,retainUserOffsets,FIELDTYPE_SFBool)
 FIELD(GeoViewpoint,relativeHeight,sfbool,relativeHeight,FIELDTYPE_SFBool,0)
+EXPOSED_FIELD(GeoViewpoint,walkSurfacePriority,mfstring,walkSurfacePriority,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(GeoViewpoint,walkSurfaces,mfnode,walkSurfaces,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(GeoViewpoint)
 
 /* Group node */
@@ -1599,6 +1601,19 @@ EXPOSED_FIELD(HAnimMotion,channels,sfstring,channels,FIELDTYPE_SFString,UNCA_NON
 EXPOSED_FIELD(HAnimMotion,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotion,values,sfstring,values,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(HAnimMotion)
+
+/* HAnimMotionClip node */
+BEGIN_NODE(HAnimMotionClip)
+EXPOSED_FIELD(HAnimMotionClip,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,loa,sfint32,loa,FIELDTYPE_SFInt32,UNCA_NONE)
+EVENT_OUT(HAnimMotionClip,frameCount,sfint32,frameCount,FIELDTYPE_SFInt32)
+EXPOSED_FIELD(HAnimMotionClip,frameDuration,sftime,frameDuration,FIELDTYPE_SFTime,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,channels,sfstring,channels,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,values,sfstring,values,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(HAnimMotionClip)
 
 /* HAnimMotionData node */
 BEGIN_NODE(HAnimMotionData)
