@@ -670,8 +670,8 @@ void load_Inline (struct X3D_Inline *node) {
 
 		case INLINE_FETCHING_RESOURCE:
 		res = node->__loadResource;
-		printf ("load_Inline, we have type  %s  status %s\n",
-			resourceTypeToString(res->type), resourceStatusToString(res->status));
+		//printf ("load_Inline, we have type  %s  status %s\n",
+		//	resourceTypeToString(res->type), resourceStatusToString(res->status));
 		if(res->complete){
 			if (res->status == ress_loaded) {
 				//determined during load process by resource_identify_type(): res->media_type = resm_vrml; //resm_unknown;
@@ -827,26 +827,55 @@ void child_Inline (struct X3D_Inline *node) {
 }
 
 // GLTF
-#define IMPLEMENTATION
+//https://github.com/jkuhlmann/cgltf 
+//- include 100 line recursive json parser (how does data come out?) etc.
+//- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
+#define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
-int parser_process_res_gltf(resource_item_t *res){
-	//a chance to do a bit of out-of-render-thread processing.
-	openned_file_t *of;
-	of = res->openned_files;
-	if (!of) {
-		/* error */
-		return FALSE;
+//ret = X3DParse(ectx, X3D_NODE(nRn), (const char*)input);
+int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx, struct X3D_Node *nRn)
+{
+	// ectx - the context node - either Inline or Scene
+	// rNr temporary group container node where we'll put the new nodes as children (should have been struct MFNode * field of container)
+	int ret = FALSE;
+	cgltf_data* out_data = NULL;
+	cgltf_options options = {0};
+	cgltf_result result = cgltf_parse(	&options, (void*) input, len, &out_data);
+	if (result == cgltf_result_success)
+	{
+		/* TODO make awesome stuff */
+		printf("gltf parsed into cgltf scene struct\n");
+		cgltf_free(out_data);
+		ret = TRUE;
 	}
 
-	char *blob = of->fileData;
-	int len = of->fileDataSize;
+	return ret;
+}
 
-	//struct X3D_HAnimMotionDataFile * node = (struct X3D_HAnimMotionDataFile *) res->whereToPlaceData;
-
-	printf("process gltf\n");
-	//read_bvh_blob_to_node(node,blob,len);
-	res->complete = TRUE;
-	res->status = ress_parsed;
-	return TRUE;
+int parser_process_res_gltf(resource_item_t *res){
+	int parsedOk = FALSE;
+	switch(res->media_type){
+		case resm_gltf: 
+		case resm_glb:
+			//these media types generate x3d scene nodes and can be a scene unto themselves, or inline body
+			//they can also request more resources which are placed in their node fields.
+			parsedOk = parser_process_res_VRML_X3D(res);
+			break;
+		case resm_bin:
+			break;
+		//cesium related
+		case resm_json:
+			break;
+		case resm_b3dm:
+			break;
+		case resm_i3dm:
+			break;
+		case resm_pnts:
+			break;
+		case resm_cmpt:
+			break;
+	
+	}
+	return parsedOk;
 }
 

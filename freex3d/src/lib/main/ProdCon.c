@@ -742,8 +742,10 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 		nRnfree = nRn;
 		insert_node = X3D_NODE(res->whereToPlaceData); /* casting here for compiler */
 		offsetInNode = res->offsetFromWhereToPlaceData;
-
-		parsedOk = parser_do_parse_string((const char *)res->URLrequest,(const int)strlen(res->URLrequest), ectx, nRn);
+		if(res->media_type == resm_gltf || res->media_type == resm_glb)
+			parsedOk = parser_do_parse_gltf((const char *)res->URLrequest,(const int)strlen(res->URLrequest), ectx, nRn);
+		else
+			parsedOk = parser_do_parse_string((const char *)res->URLrequest,(const int)strlen(res->URLrequest), ectx, nRn);
 		//printf("after parse_string in EAI/SAI parsing\n");
 	} else {
 		/* standard file parsing */
@@ -836,7 +838,10 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 		}
 
 		/* ACTUALLY CALLS THE PARSER */
-		parsedOk = parser_do_parse_string(of->fileData, of->fileDataSize, ectx, nRn);
+		if(res->media_type == resm_gltf || res->media_type == resm_glb)
+			parsedOk = parser_do_parse_gltf(of->fileData, of->fileDataSize, ectx, nRn);
+		else
+			parsedOk = parser_do_parse_string(of->fileData, of->fileDataSize, ectx, nRn);
 		//printf("after parse_string in standard file parsing\n");
 		if ((res != (resource_item_t*)tg->resources.root_res) && ((!tg->resources.root_res) ||(!((resource_item_t*)tg->resources.root_res)->complete))) {
 			tg->CParse.globalParser = t->savedParser;
@@ -1246,8 +1251,8 @@ static bool parser_process_res(s_list_t *item)
 		return retval;
 
 	res = ml_elem(item);
-	printf("%s ",res->URLrequest);
-	printf("\nprocessing resource: type %s, status %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status));
+	//printf("%s ",res->URLrequest);
+	//printf("\nprocessing resource: type %s, status %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status));
 	switch (res->status) {
 
 	case ress_invalid:
