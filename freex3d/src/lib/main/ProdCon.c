@@ -1225,6 +1225,7 @@ void process_res_texitem(resource_item_t *res);
 bool parser_process_res_SHADER(resource_item_t *res);
 bool process_res_audio(resource_item_t *res);
 bool  process_res_movie(resource_item_t *res);
+int parser_process_res_gltf(resource_item_t *res);
 /**
  *   parser_process_res: for each resource state, advance the process of loading.
  *   this version assumes the item has been dequeued for processing,
@@ -1245,8 +1246,8 @@ static bool parser_process_res(s_list_t *item)
 		return retval;
 
 	res = ml_elem(item);
-
-	//printf("\nprocessing resource: type %s, status %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status));
+	printf("%s ",res->URLrequest);
+	printf("\nprocessing resource: type %s, status %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status));
 	switch (res->status) {
 
 	case ress_invalid:
@@ -1384,6 +1385,25 @@ static bool parser_process_res(s_list_t *item)
 			break;
 		case resm_mocap:
 			process_mocap(res);
+			break;
+		//Khronos gltf and derivitives
+		case resm_gltf:
+		case resm_glb:
+		case resm_bin:
+		//cesium derivitives related to gltf
+		case resm_json:
+		case resm_b3dm:
+		case resm_i3dm:
+		case resm_pnts:
+		case resm_cmpt:
+			if (parser_process_res_gltf(res)) {
+				DEBUG_MSG("parser successfull: %s\n", res->URLrequest);
+				res->status = ress_parsed;
+
+			} else {
+				ERROR_MSG("parser failed for resource: %s\n", res->URLrequest);
+				retval = FALSE;
+			}
 			break;
 		case resm_external:
 			// JAS - resm_external is part of this enum, but not handled here,

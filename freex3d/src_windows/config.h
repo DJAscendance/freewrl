@@ -297,12 +297,12 @@ char *getWgetPath();
 #ifdef WINAPI_FAMILY
 #include <winapifamily.h>
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#define SSR_SERVER 1
+//#define SSR_SERVER 1
 #elif WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 #define WINRT 1
 #endif
 #else
-#define SSR_SERVER 1
+//#define SSR_SERVER 1
 #endif
 #if (_MSC_VER > 1800) 
 #define HAVE_STRUCT_TIMESPEC 1

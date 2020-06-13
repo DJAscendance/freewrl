@@ -84,7 +84,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(LIBWIN)\freeALUT\include;$(LIBWIN)\openALsoft\include;$(SRC)\libminizip;$(LIBWIN)\js185\include;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\Lib;$(SRCWIN);$(LIBWIN)\pthreadS.2;$(LIBWIN)\zlib\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;$(LIBWIN)\ffmpeg\x86xp\include;$(LIBWIN)\ODE;$(LIBWIN)\srm\include;$(LIBWIN)\geographicLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_SM;JAVASCRIPT_DUK;XP_WIN;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;STATUSBAR_HUD;STATUSBAR_STD_no;STATUSBAR_NONE_no;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_not;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;USE_SNAPSHOT_TESTING_NO;MULTI_WINDOW;WITH_RBP;WITH_DIS;MOVIETEXTURE_FFMPEG;dIDEDOUBLE;HAVE_GEOLIB_no;HAVE_SRM;HAVE_XINPUT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_SM;JAVASCRIPT_DUK;XP_WIN;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;STATUSBAR_HUD;STATUSBAR_STD_no;STATUSBAR_NONE_no;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_not;HAVE_PTHREAD_CANCEL;SSR_SERVER_no;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;USE_SNAPSHOT_TESTING_NO;MULTI_WINDOW;WITH_RBP;WITH_DIS;MOVIETEXTURE_FFMPEG;dIDEDOUBLE;HAVE_GEOLIB_no;HAVE_SRM;HAVE_XINPUT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -100,7 +100,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(LIBWIN)\freeALUT\include;$(LIBWIN)\openALsoft\include;$(SRC)\libminizip;$(LIBWIN)\js17x64\include_hide;$(LIBWIN)\js24x64\include;$(LIBWIN)\js185\include_hide;$(SRC)\libtess;$(SRC)\libnurbs;$(SRC)\Lib;$(SRCWIN);$(LIBWIN)\GThread\include;$(LIBWIN)\ODE;$(LIBWIN)\zlib\include;$(LIBWIN)\ffmpeg\x64\include;$(LIBWIN)\jpeg\include;$(LIBWIN)\freetype2\include;$(LIBWIN)\png\include;$(LIBWIN)\glew\include;$(LIBWIN)\libxml2\include;$(LIBWIN)\LabSound\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;JAVASCRIPT_SM_no;JS_SMCPP;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_no;HAVE_PTHREAD_CANCEL;SSR_SERVER;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;WITH_RBP;dIDEDOUBLE;WITH_DIS;MOVIETEXTURE_FFMPEG;HAVE_LIBSOUND;HAVE_SRM_not_yet_try_x86;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NURBS_LIB;JAVASCRIPT_DUK;JAVASCRIPT_SM_no;JS_SMCPP;W_DEBUG;WIN32;_CRT_SECURE_NO_WARNINGS;XP_WIN;STATUSBAR_HUD;DO_COLLISION_GPU_no;STATIC_EXPORTABLE_JS_API_no;HAVE_PTHREAD_CANCEL;SSR_SERVER_no;HAVE_OPENAL;HAVE_ALUT;DEBUG_MALLOC_no;DEBUG_MALLOC_LIST_no;WITH_RBP;dIDEDOUBLE;WITH_DIS;MOVIETEXTURE_FFMPEG;HAVE_LIBSOUND;HAVE_SRM_not_yet_try_x86;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <ProgramDataBaseFileName>$(OutDir)vc90.pdb</ProgramDataBaseFileName>

@@ -670,8 +670,8 @@ void load_Inline (struct X3D_Inline *node) {
 
 		case INLINE_FETCHING_RESOURCE:
 		res = node->__loadResource;
-		/* printf ("load_Inline, we have type  %s  status %s\n",
-			resourceTypeToString(res->type), resourceStatusToString(res->status)); */
+		printf ("load_Inline, we have type  %s  status %s\n",
+			resourceTypeToString(res->type), resourceStatusToString(res->status));
 		if(res->complete){
 			if (res->status == ress_loaded) {
 				//determined during load process by resource_identify_type(): res->media_type = resm_vrml; //resm_unknown;
@@ -825,3 +825,28 @@ void child_Inline (struct X3D_Inline *node) {
 	//LOCAL_LIGHT_OFF
 
 }
+
+// GLTF
+#define IMPLEMENTATION
+#include "cgltf.h"
+int parser_process_res_gltf(resource_item_t *res){
+	//a chance to do a bit of out-of-render-thread processing.
+	openned_file_t *of;
+	of = res->openned_files;
+	if (!of) {
+		/* error */
+		return FALSE;
+	}
+
+	char *blob = of->fileData;
+	int len = of->fileDataSize;
+
+	//struct X3D_HAnimMotionDataFile * node = (struct X3D_HAnimMotionDataFile *) res->whereToPlaceData;
+
+	printf("process gltf\n");
+	//read_bvh_blob_to_node(node,blob,len);
+	res->complete = TRUE;
+	res->status = ress_parsed;
+	return TRUE;
+}
+

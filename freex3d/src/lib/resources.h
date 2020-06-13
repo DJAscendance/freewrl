@@ -84,6 +84,14 @@ typedef enum resource_media_type {
 	resm_audio,
 	resm_x3z,
 	resm_mocap,
+	resm_gltf,
+	resm_glb,
+	resm_bin,
+	resm_json,
+	resm_b3dm,
+	resm_i3dm,
+	resm_pnts,
+	resm_cmpt,
 	resm_external, //June 2016 html > frontend anchoring
 } resource_media_type_t;
 
