@@ -832,20 +832,80 @@ void child_Inline (struct X3D_Inline *node) {
 //- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
 #define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
+
+int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node){
+	//transform part
+	struct X3D_Transform *t = createNewX3DNode0(NODE_Transform);
+	if(node->has_matrix){
+	}else{
+		if(node->has_rotation){
+		}
+		if(node->has_scale){
+		}
+		if(node->has_translation){
+		}
+	}
+	//content part
+	if(node->camera){
+	}
+	if(node->light){
+	}
+	if(node->mesh){
+	}
+	if(node->skin){
+	}
+	if(node->weights_count){
+	}
+	size_t estart = node->extras.start_offset;
+	size_t eend = node->extras.end_offset;
+	//children part
+	int m = node->children_count;
+	if(m){
+		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		for(int i=0;i<m;i++){
+			parse_gltf_node(ectx,&t->children.p[i],data,node->children[i]);
+		}
+		t->children.n = m;
+	}
+	return TRUE;
+}
+
+int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data){
+	int n = data->scene[0].nodes_count;
+	spot->p = realloc(spot->p, n * sizeof(struct X3D_Node *));
+	for(int i=0;i<data->scene[0].nodes_count;i++){
+		parse_gltf_node(ectx,&spot->p[i],data,data->scene[0].nodes[i]);
+	}
+	spot->n = n;
+	int ret = TRUE;
+	return ret;
+}
+
+
 //ret = X3DParse(ectx, X3D_NODE(nRn), (const char*)input);
-int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx, struct X3D_Node *nRn)
+int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx, struct X3D_Node *myParent)
 {
 	// ectx - the context node - either Inline or Scene
 	// rNr temporary group container node where we'll put the new nodes as children (should have been struct MFNode * field of container)
 	int ret = FALSE;
-	cgltf_data* out_data = NULL;
+	cgltf_data* data = NULL;
 	cgltf_options options = {0};
-	cgltf_result result = cgltf_parse(	&options, (void*) input, len, &out_data);
+	cgltf_result result = cgltf_parse(	&options, (void*) input, len, &data);
 	if (result == cgltf_result_success)
 	{
-		/* TODO make awesome stuff */
 		printf("gltf parsed into cgltf scene struct\n");
-		cgltf_free(out_data);
+		/* TODO make awesome stuff */
+		// 1. go over struct, creating x3d nodes and nesting them
+		struct Multi_Node *spot;
+		if(myParent->_nodeType == NODE_Proto )
+			spot = &((struct X3D_Proto*)(myParent))->__children;
+		else
+			spot = &((struct X3D_Group*)(myParent))->children;
+		parse_gltf(ectx,spot,data);
+		// 2. for exta files send url request and have a place to put it in the x3d node created for it
+		// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
+		//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
+		cgltf_free(data);
 		ret = TRUE;
 	}
 
