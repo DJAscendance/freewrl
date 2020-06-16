@@ -838,7 +838,7 @@ struct X3D_Node * node;
 };
 static Stack *defs = NULL;
 struct X3D_Node *USE_node(char *name){
-	if(!defs) newStack(struct name_node);
+	if(!defs) defs = newStack(struct name_node);
 	struct name_node nn;
 	for(int i=0;i<defs->n;i++){
 		nn = vector_get(struct name_node,defs,i);
@@ -849,7 +849,7 @@ struct X3D_Node *USE_node(char *name){
 	return NULL;
  }
  struct X3D_Node *DEF_node(char *name, int nodetype){
-	if(!defs) newStack(struct name_node);
+	if(!defs) defs = newStack(struct name_node);
 	struct name_node nn;
 	struct X3D_Node *node = createNewX3DNode0(nodetype);
 	nn.name = name;
@@ -918,10 +918,14 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					case cgltf_primitive_type_line_strip:
 						break;
 					case cgltf_primitive_type_triangles:
+						printf("triangles\n");
 						break;
 					case cgltf_primitive_type_triangle_strip:
+						printf("triangle strip\n");
+						break;
 					case cgltf_primitive_type_triangle_fan:
-					break;
+						printf("triangle fan\n");
+						break;
 				}
 			}
 		}
@@ -966,25 +970,31 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 	// ectx - the context node - either Inline or Scene
 	// rNr temporary group container node where we'll put the new nodes as children (should have been struct MFNode * field of container)
 	int ret = FALSE;
+	cgltf_options options;
+	memset(&options, 0, sizeof(cgltf_options));
 	cgltf_data* data = NULL;
-	cgltf_options options = {0};
+
 	cgltf_result result = cgltf_parse(	&options, (void*) input, len, &data);
 	if (result == cgltf_result_success)
 	{
 		printf("gltf parsed into cgltf scene struct\n");
 		/* TODO make awesome stuff */
-		// 1. go over struct, creating x3d nodes and nesting them
-		struct Multi_Node *spot;
-		if(myParent->_nodeType == NODE_Proto )
-			spot = &((struct X3D_Proto*)(myParent))->__children;
-		else
-			spot = &((struct X3D_Group*)(myParent))->children;
-		parse_gltf(ectx,spot,data);
-		// 2. for exta files send url request and have a place to put it in the x3d node created for it
-		// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
-		//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
-		cgltf_free(data);
-		ret = TRUE;
+		result = cgltf_load_buffers(&options, data, "./");
+		if(result == cgltf_result_success){
+			// 1. go over struct, creating x3d nodes and nesting them
+			struct Multi_Node *spot;
+			if(myParent->_nodeType == NODE_Proto )
+				spot = &((struct X3D_Proto*)(myParent))->__children;
+			else
+				spot = &((struct X3D_Group*)(myParent))->children;
+			spot->p = NULL; spot->n = 0;
+			parse_gltf(ectx,spot,data);
+			// 2. for exta files send url request and have a place to put it in the x3d node created for it
+			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
+			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
+			cgltf_free(data);
+			ret = TRUE;
+		}
 	}
 
 	return ret;
@@ -1000,6 +1010,9 @@ int parser_process_res_gltf(resource_item_t *res){
 			parsedOk = parser_process_res_VRML_X3D(res);
 			break;
 		case resm_bin:
+			//gltf can be exported with separate binary buffer file
+			// the buffer needs to catch up to / join into the parsed gltf
+			// before we parse/convert gltf into our freewrl-type geometry nodes
 			break;
 		//cesium related
 		case resm_json:
