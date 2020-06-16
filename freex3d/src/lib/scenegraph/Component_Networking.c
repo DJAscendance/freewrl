@@ -832,41 +832,119 @@ void child_Inline (struct X3D_Inline *node) {
 //- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
 #define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
-
+struct name_node {
+char *name;
+struct X3D_Node * node;
+};
+static Stack *defs = NULL;
+struct X3D_Node *USE_node(char *name){
+	if(!defs) newStack(struct name_node);
+	struct name_node nn;
+	for(int i=0;i<defs->n;i++){
+		nn = vector_get(struct name_node,defs,i);
+		if(!strcmp(name,nn.name)){
+			return nn.node;
+		}
+	}
+	return NULL;
+ }
+ struct X3D_Node *DEF_node(char *name, int nodetype){
+	if(!defs) newStack(struct name_node);
+	struct name_node nn;
+	struct X3D_Node *node = createNewX3DNode0(nodetype);
+	nn.name = name;
+	nn.node = node;
+	stack_push(struct name_node,defs,nn);
+	return node;
+ }
 int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node){
 	//transform part
+	int m = 0;
 	struct X3D_Transform *t = createNewX3DNode0(NODE_Transform);
 	if(node->has_matrix){
+		//parse matrix into TRS
+		//
 	}else{
 		if(node->has_rotation){
+			veccopy3f(t->rotation.c,&node->rotation[1]); 
+			t->rotation.c[3] = node->rotation[0];
 		}
 		if(node->has_scale){
+			veccopy3f(t->scale.c,node->scale);
 		}
 		if(node->has_translation){
+			veccopy3f(t->translation.c,node->translation);
 		}
 	}
 	//content part
 	if(node->camera){
+		m++;
+		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
 	}
 	if(node->light){
+		m++;
+		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
 	}
 	if(node->mesh){
+		//gltf mesh is like our shape: it refers to material and to geometry/accessor
+		m++;
+		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name);
+		if(!sn){
+			sn = (struct X3D_Shape*) DEF_node(node->mesh->name,NODE_Shape);
+			for(int j=0;j<node->mesh->primitives_count;j++){
+				cgltf_primitive prim = node->mesh->primitives[j];
+				if(prim.material){
+					if(prim.material->unlit){
+						int mtype = NODE_UnlitMaterial;
+						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim.material->name);
+						if(!mat){
+							mat = (struct X3D_UnlitMaterial*) DEF_node(prim.material->name,mtype);
+							//fill in 
+						}
+					}else{
+						int mtype = NODE_PhysicalMaterial;
+						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim.material->name);
+						if(!mat){
+							mat = (struct X3D_PhysicalMaterial*) DEF_node(prim.material->name,mtype);
+						}
+					} 
+				}
+				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html
+				switch(prim.type){
+					case cgltf_primitive_type_points:
+					case cgltf_primitive_type_lines:
+					case cgltf_primitive_type_line_loop:
+					case cgltf_primitive_type_line_strip:
+						break;
+					case cgltf_primitive_type_triangles:
+						break;
+					case cgltf_primitive_type_triangle_strip:
+					case cgltf_primitive_type_triangle_fan:
+					break;
+				}
+			}
+		}
+		t->children.p[m-1] = X3D_NODE(sn);
 	}
 	if(node->skin){
+		m++;
+		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
 	}
 	if(node->weights_count){
 	}
 	size_t estart = node->extras.start_offset;
 	size_t eend = node->extras.end_offset;
 	//children part
-	int m = node->children_count;
-	if(m){
-		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
-		for(int i=0;i<m;i++){
-			parse_gltf_node(ectx,&t->children.p[i],data,node->children[i]);
+	int mc = node->children_count;
+	if(mc){
+		t->children.p = realloc(t->children.p,(mc+m)*sizeof(struct X3D_Node*));
+		for(int i=0;i<mc;i++){
+			parse_gltf_node(ectx,&t->children.p[i+m],data,node->children[i]);
 		}
-		t->children.n = m;
+		m += mc;
 	}
+	t->children.n = m;
 	return TRUE;
 }
 
