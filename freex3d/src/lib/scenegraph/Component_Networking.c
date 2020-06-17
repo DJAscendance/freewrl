@@ -952,6 +952,12 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								default: break;
 							}
 							printf("\n");
+							cgltf_float element_float[16];
+							for (cgltf_size index = 0; index < blob->count; index++)
+							{
+								cgltf_accessor_read_float(blob, index, element_float, 16);
+								printf("%d %f %f %f\n",index,element_float[0],element_float[1],element_float[2]);
+							}
 
 						}
 						for (int index = 0; index < count; index++)
