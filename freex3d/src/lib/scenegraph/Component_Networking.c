@@ -911,6 +911,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					} 
 				}
 				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html
+				// https://www.khronos.org/files/gltf20-reference-guide.pdf
+				struct X3D_Node *gn = NULL;
 				switch(prim.type){
 					case cgltf_primitive_type_points:
 					case cgltf_primitive_type_lines:
@@ -918,7 +920,47 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					case cgltf_primitive_type_line_strip:
 						break;
 					case cgltf_primitive_type_triangles:
+						{
 						printf("triangles\n");
+						cgltf_float element_float[16];
+						int count = prim.indices[0].count;
+						void * buf = prim.indices[0].buffer_view->buffer;
+						int offset = prim.indices[0].buffer_view->offset;
+						int stride = prim.indices[0].buffer_view->size;
+						int acount = prim.attributes_count;
+						for(int ii=0;ii<acount;ii++){
+							printf("attr %s indx %d ",prim.attributes[ii].name,prim.attributes[ii].index);
+							switch(prim.attributes[ii].type){
+								case cgltf_attribute_type_invalid: printf("invalid");break;
+								case cgltf_attribute_type_position: printf("position");break;
+								case cgltf_attribute_type_normal: printf("normal");break;
+								case cgltf_attribute_type_tangent: printf("tangent");break;
+								case cgltf_attribute_type_texcoord: printf("texcoord");break;
+								case cgltf_attribute_type_color: printf("color");break;
+								case cgltf_attribute_type_joints: printf("joints");break;
+								case cgltf_attribute_type_weights: printf("weights");break;
+								default: break;
+							}
+							
+							const cgltf_accessor* blob = prim.attributes[ii].data;
+							cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
+							printf(" nfloats = %d accessor type %d count %d ",nfloats,blob->type,blob->count);
+							switch(blob->type){
+								case cgltf_type_scalar: printf("SCALAR");break;
+								case cgltf_type_vec2: printf("VEC2");break;
+								case cgltf_type_vec3: printf("VEC3");break;
+								default: break;
+							}
+							printf("\n");
+
+						}
+						for (int index = 0; index < count; index++)
+						{
+							cgltf_accessor_read_float(buf, index, element_float, 16);
+						}
+						gn = createNewX3DNode0(NODE_TriangleSet);
+						//gn->_intern = 
+						}
 						break;
 					case cgltf_primitive_type_triangle_strip:
 						printf("triangle strip\n");
