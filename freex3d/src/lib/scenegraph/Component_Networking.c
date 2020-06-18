@@ -630,7 +630,6 @@ void update_weakRoutes(struct X3D_Proto *context){
 }
 struct X3D_Proto *hasContext(struct X3D_Node* node);
 
-
 int unload_broto(struct X3D_Proto* node);
 /* note that we get the resources in a couple of steps; this tries to keep the scenegraph running */
 void load_Inline (struct X3D_Inline *node) {
@@ -704,7 +703,6 @@ void load_Inline (struct X3D_Inline *node) {
 				if (res->status == ress_parsed) {
 					/* this might be a good place to populate parent context IMPORT table with our EXPORT nodes? */
 					node->__loadstatus = INLINE_IMPORTING; //INLINE_STABLE; 
-
 				} 
 			}
 
@@ -832,6 +830,7 @@ void child_Inline (struct X3D_Inline *node) {
 //- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
 #define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
+
 struct name_node {
 char *name;
 struct X3D_Node * node;
@@ -847,20 +846,25 @@ struct X3D_Node *USE_node(char *name){
 		}
 	}
 	return NULL;
- }
- struct X3D_Node *DEF_node(char *name, int nodetype){
+}
+struct X3D_Node *DEF_node(struct X3D_Node *ectx, char *name, int nodetype){
 	if(!defs) defs = newStack(struct name_node);
 	struct name_node nn;
-	struct X3D_Node *node = createNewX3DNode0(nodetype);
+	struct X3D_Node *node = createNewX3DNode(nodetype);
+	add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(node));
+
 	nn.name = name;
 	nn.node = node;
 	stack_push(struct name_node,defs,nn);
-	return node;
- }
+return node;
+}
+
+
+struct X3D_PolyRep * create_polyrep0();
 int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node){
 	//transform part
 	int m = 0;
-	struct X3D_Transform *t = createNewX3DNode0(NODE_Transform);
+	struct X3D_Transform *t = createNewX3DNode(NODE_Transform);
 	if(node->has_matrix){
 		//parse matrix into TRS
 		//
@@ -891,43 +895,43 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
 		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name);
 		if(!sn){
-			sn = (struct X3D_Shape*) DEF_node(node->mesh->name,NODE_Shape);
+			sn = (struct X3D_Shape*) DEF_node(ectx,node->mesh->name,NODE_Shape);
 			for(int j=0;j<node->mesh->primitives_count;j++){
-				cgltf_primitive prim = node->mesh->primitives[j];
-				if(prim.material){
-					if(prim.material->unlit){
+				cgltf_primitive *prim = &node->mesh->primitives[j];
+				if(prim->material){
+					if(prim->material->unlit){
 						int mtype = NODE_UnlitMaterial;
-						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim.material->name);
+						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name);
 						if(!mat){
-							mat = (struct X3D_UnlitMaterial*) DEF_node(prim.material->name,mtype);
+							mat = (struct X3D_UnlitMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							//fill in 
 						}
 					}else{
 						int mtype = NODE_PhysicalMaterial;
-						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim.material->name);
+						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim->material->name);
 						if(!mat){
-							mat = (struct X3D_PhysicalMaterial*) DEF_node(prim.material->name,mtype);
+							mat = (struct X3D_PhysicalMaterial*) DEF_node(ectx,prim->material->name,mtype);
 						}
 					} 
 				}
 				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html
 				// https://www.khronos.org/files/gltf20-reference-guide.pdf
 				struct X3D_Node *gn = NULL;
-				switch(prim.type){
+				switch(prim->type){
 					case cgltf_primitive_type_points:
 					case cgltf_primitive_type_lines:
 					case cgltf_primitive_type_line_loop:
 					case cgltf_primitive_type_line_strip:
 						break;
 					case cgltf_primitive_type_triangles:
-						{
+					{
 						cgltf_float element_float[16];
-						int acount = prim.attributes_count;
+						int acount = prim->attributes_count;
 						if(1){
 							printf("triangles\n");
 							for(int ii=0;ii<acount;ii++){
-								printf("attr %s indx %d ",prim.attributes[ii].name,prim.attributes[ii].index);
-								switch(prim.attributes[ii].type){
+								printf("attr %s indx %d ",prim->attributes[ii].name,prim->attributes[ii].index);
+								switch(prim->attributes[ii].type){
 									case cgltf_attribute_type_invalid: printf("invalid");break;
 									case cgltf_attribute_type_position: printf("position");break;
 									case cgltf_attribute_type_normal: printf("normal");break;
@@ -939,7 +943,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									default: break;
 								}
 							
-								const cgltf_accessor* blob = prim.attributes[ii].data;
+								const cgltf_accessor* blob = prim->attributes[ii].data;
 								cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
 								printf(" nfloats = %d accessor type %d count %d ",nfloats,blob->type,blob->count);
 								switch(blob->type){
@@ -955,13 +959,95 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									cgltf_accessor_read_float(blob, index, element_float, 16);
 									printf("%d %f %f %f\n",index,element_float[0],element_float[1],element_float[2]);
 								}
-
+							}
+							{
+								// indexes for indexedtriangleset
+								const cgltf_accessor* blob = prim->indices;
+								cgltf_uint element_int;
+								printf("triangle indices\n");
+								int ntri = blob->count / 3;
+								for (int i = 0; i < ntri; i++)
+								{
+									printf("%d [",i);
+									for(int j=0;j<3;j++){
+										int index = (i*3)+j;
+										cgltf_accessor_read_uint(blob, index, &element_int, 1);
+										printf("%d ",element_int);
+									}
+									printf("]\n");
+								}
 							}
 						}
-						gn = createNewX3DNode0(NODE_TriangleSet);
-						//gn->_intern = 
+						gn = createNewX3DNode(NODE_BufferGeometry); //NODE_TriangleSet);
+						add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(gn));
+						sn->geometry = gn;
+						{
+							enum {
+								GLTF_USE_BUFFER_COPY = 1,
+								GLTF_USE_RECOMPILE = 2,
+							};
+							//struct X3D_TriangleSet *ts = (struct X3D_TriangleSet*)gn;
+							struct X3D_BufferGeometry *ts = (struct X3D_BufferGeometry*)gn;
+							ts->_bufferdata = prim;
+							if(0){
+								int use_method = GLTF_USE_BUFFER_COPY;//GLTF_USE_RECOMPILE;
+								if(use_method == GLTF_USE_RECOMPILE){
+								}else if(use_method == GLTF_USE_BUFFER_COPY){
+									//struct X3D_PolyRep * r = create_polyrep0(); //does vertex and index genBuffer
+									//ts->_intern = r;
+									for(int ii=0;ii<acount;ii++){
+										const cgltf_accessor* blob = prim->attributes[ii].data;
+										size_t size = blob->count * cgltf_num_components(blob->type) * sizeof(float);
+										void *data = &blob->buffer_view->buffer[blob->buffer_view->offset];
+										switch(prim->attributes[ii].type){
+											case cgltf_attribute_type_position:
+											////copy to coord vbo
+											//r->ntri = blob->count / 3;
+											//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[VERTEX_VBO]);
+											//glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+											break;
+
+											//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,r->VBO_buffers[INDEX_VBO]);
+									
+											case cgltf_attribute_type_normal:
+											//copy to normals vbo
+											//glGenBuffers(1,&r->VBO_buffers[NORMAL_VBO]);
+											//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[NORMAL_VBO]);
+											//glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+											break;
+
+											case cgltf_attribute_type_texcoord:
+											//copy to texcoord
+											//glGenBuffers(1,&r->VBO_buffers[TEXTURE_VBO0]);
+											//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[TEXTURE_VBO0]);
+											//glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+											break;
+
+											//cooy to vertex color vbo
+											//if (r->color) {
+											//	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);            
+											//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
+											//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
+											//	// needed by recalculateColorField ... FREE_IF_NZ(r->color);
+											//}
+											//if (newfog) {
+											//	if (r->VBO_buffers[FOG_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[FOG_VBO]);            
+											//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
+											//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
+											//}
+
+
+
+											default:
+											break;
+										}
+									}
+									//r->streamed=TRUE;
+								}
+							}
 						}
-						break;
+					}
+					break;
 					case cgltf_primitive_type_triangle_strip:
 						printf("triangle strip\n");
 						break;
@@ -991,6 +1077,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		m += mc;
 	}
 	t->children.n = m;
+	add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(t));
+	*spot = X3D_NODE( t );
 	return TRUE;
 }
 
@@ -1012,30 +1100,34 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 	// ectx - the context node - either Inline or Scene
 	// rNr temporary group container node where we'll put the new nodes as children (should have been struct MFNode * field of container)
 	int ret = FALSE;
-	cgltf_options options;
-	memset(&options, 0, sizeof(cgltf_options));
-	cgltf_data* data = NULL;
-
-	cgltf_result result = cgltf_parse(	&options, (void*) input, len, &data);
-	if (result == cgltf_result_success)
 	{
-		printf("gltf parsed into cgltf scene struct\n");
-		/* TODO make awesome stuff */
-		result = cgltf_load_buffers(&options, data, "./");
-		if(result == cgltf_result_success){
-			// 1. go over struct, creating x3d nodes and nesting them
-			struct Multi_Node *spot;
-			if(myParent->_nodeType == NODE_Proto )
-				spot = &((struct X3D_Proto*)(myParent))->__children;
-			else
-				spot = &((struct X3D_Group*)(myParent))->children;
-			spot->p = NULL; spot->n = 0;
-			parse_gltf(ectx,spot,data);
-			// 2. for exta files send url request and have a place to put it in the x3d node created for it
-			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
-			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
-			cgltf_free(data);
-			ret = TRUE;
+		cgltf_options options;
+		memset(&options, 0, sizeof(cgltf_options));
+		cgltf_data* data = NULL;
+		char *floating_copy = malloc(len);
+		memcpy(floating_copy,input,len);
+		register_node_gc(ectx,floating_copy);
+		cgltf_result result = cgltf_parse(	&options, (void*) floating_copy, len, &data);
+		if (result == cgltf_result_success)
+		{
+			printf("gltf parsed into cgltf scene struct\n");
+			/* TODO make awesome stuff */
+			result = cgltf_load_buffers(&options, data, "./");
+			if(result == cgltf_result_success){
+				// 1. go over struct, creating x3d nodes and nesting them
+				struct Multi_Node *spot;
+				if(myParent->_nodeType == NODE_Proto || myParent->_nodeType == NODE_Inline )
+					spot = &((struct X3D_Proto*)(myParent))->__children;
+				else
+					spot = &((struct X3D_Group*)(myParent))->children;
+				spot->p = NULL; spot->n = 0;
+				parse_gltf(ectx,spot,data);
+				// 2. for exta files send url request and have a place to put it in the x3d node created for it
+				// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
+				//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
+				//cgltf_free(data);
+				ret = TRUE;
+			}
 		}
 	}
 
@@ -1071,4 +1163,188 @@ int parser_process_res_gltf(resource_item_t *res){
 	}
 	return parsedOk;
 }
+void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 
+}
+void render_BufferGeometry(struct X3D_BufferGeometry *node){
+
+	//CULL_FACE(node->solid)
+	if(!node->_bufferdata) return;
+	// taken from the OpenGL.org website:
+	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	cgltf_primitive *prim = (cgltf_primitive*)node->_bufferdata;
+	int acount = prim->attributes_count;
+	if(node->_vbo.p == NULL){
+		 node->_vbo.p = malloc(acount * sizeof(int));
+		 memset(node->_vbo.p,0,acount * sizeof(int));
+		 node->_vbo.n = acount;
+		 for(int i=0;i<acount;i++) node->_vbo.p[i] = -1;
+	}
+
+	if(prim && acount){
+		printf("render_BufferGeometry triangles\n");
+
+		for(int ii=0;ii<acount;ii++){
+			printf("attr %s indx %d ",prim->attributes[ii].name,prim->attributes[ii].index);
+			switch(prim->attributes[ii].type){
+				case cgltf_attribute_type_invalid: printf("invalid");break;
+				case cgltf_attribute_type_position: printf("position");break;
+				case cgltf_attribute_type_normal: printf("normal");break;
+				case cgltf_attribute_type_tangent: printf("tangent");break;
+				case cgltf_attribute_type_texcoord: printf("texcoord");break;
+				case cgltf_attribute_type_color: printf("color");break;
+				case cgltf_attribute_type_joints: printf("joints");break;
+				case cgltf_attribute_type_weights: printf("weights");break;
+				default: break;
+			}
+							
+			const cgltf_accessor* blob = prim->attributes[ii].data;
+			cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
+			printf(" nfloats = %d accessor type %d count %d ",nfloats,blob->type,blob->count);
+			switch(blob->type){
+				case cgltf_type_scalar: printf("SCALAR");break;
+				case cgltf_type_vec2: printf("VEC2");break;
+				case cgltf_type_vec3: printf("VEC3");break;
+				default: break;
+			}
+			printf("\n");
+			cgltf_float element_float[16];
+			for (cgltf_size index = 0; index < blob->count; index++)
+			{
+				cgltf_accessor_read_float(blob, index, element_float, 16);
+				printf("%d %f %f %f\n",index,element_float[0],element_float[1],element_float[2]);
+			}
+		}
+		{
+			// indexes for indexedtriangleset
+			const cgltf_accessor* blob = prim->indices;
+			cgltf_uint element_int;
+			printf("triangle indices\n");
+			int ntri = blob->count / 3;
+			for (int i = 0; i < ntri; i++)
+			{
+				printf("%d [",i);
+				for(int j=0;j<3;j++){
+					int index = (i*3)+j;
+					cgltf_accessor_read_uint(blob, index, &element_int, 1);
+					printf("%d ",element_int);
+				}
+				printf("]\n");
+			}
+		}
+	}
+
+return;
+	for(int ii=0;ii<acount;ii++){
+		const cgltf_accessor* blob = prim->attributes[ii].data;
+		int isize = cgltf_num_components(blob->type);
+		size_t size = blob->count * isize * sizeof(float);
+		void *data = &blob->buffer_view->buffer[blob->buffer_view->offset];
+		switch(prim->attributes[ii].type){
+			case cgltf_attribute_type_position:
+			////copy to coord vbo
+			if(node->_vbo.p[ii] == -1){
+				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
+			}
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+			glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(node->_vbo.p[ii]);
+			glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, FALSE, blob->stride, data);
+
+			break;
+
+			//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,r->VBO_buffers[INDEX_VBO]);
+									
+			case cgltf_attribute_type_normal:
+			//copy to normals vbo
+			if(node->_vbo.p[ii] == -1){
+				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
+			}
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+			glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(node->_vbo.p[ii]);
+			glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
+			break;
+
+			case cgltf_attribute_type_texcoord:
+			//copy to texcoord
+			if(node->_vbo.p[ii] == -1){
+				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
+			}
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+			glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(node->_vbo.p[ii]);
+			glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
+			break;
+
+			//cooy to vertex color vbo
+			//if (r->color) {
+			//	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);            
+			//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
+			//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
+			//	// needed by recalculateColorField ... FREE_IF_NZ(r->color);
+			//}
+			//if (newfog) {
+			//	if (r->VBO_buffers[FOG_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[FOG_VBO]);            
+			//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
+			//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
+			//}
+
+
+
+			default:
+			break;
+		}
+
+	}
+	if(acount && prim && prim->indices){
+		// indexes for indexedtriangleset
+		const cgltf_accessor* blob = prim->indices;
+		cgltf_uint element_int;
+		printf("triangle indices\n");
+		int ntri = blob->count / 3;
+		for (int i = 0; i < ntri; i++)
+		{
+			printf("%d [",i);
+			for(int j=0;j<3;j++){
+				int index = (i*3)+j;
+				cgltf_accessor_read_uint(blob, index, &element_int, 1);
+				printf("%d ",element_int);
+			}
+			printf("]\n");
+		}
+	}
+	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__cylinderVBO);
+
+	//FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei)sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));
+	//	//The starting point of the VBO, for the vertices
+	//if(DESIRE(getShaderFlags().base,SHADINGSTYLE_FLAT)){
+	//	//The starting point of normals, (3+3+2)*4  = 32 +  bytes away
+	//	FW_GL_NORMAL_POINTER(GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(32));   
+	//}else{
+	//	//The starting point of normals, 3*4  = 12 +  bytes away
+	//	FW_GL_NORMAL_POINTER(GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(12));   
+	//}
+	/* set up texture drawing for this guy */
+	//mtf.pre_canned_textureCoords = NULL;
+	//mtf.TC_size = 2;
+	//mtf.TC_type = GL_FLOAT;
+	//mtf.TC_stride = sizeof(struct MyVertex);
+	//mtf.TC_pointer = BUFFER_OFFSET(24);
+	//textureCoord_send(&mtf);
+	/* FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, ConeIndxVBO); */
+
+	//if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+	//	//wireframe triangles
+	//	sendElementsToGPU(GL_LINES,node->__cylinderTriangles *2,node->__wireindices);
+	//}else{
+		sendArraysToGPU(GL_TRIANGLES,0,node->_vbo.p[0]);
+	//}
+	/* turn off */
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	
+}
+void rendray_BufferGeometry(struct X3D_BufferGeometry *node){
+}
+void collide_BufferGeometry(struct X3D_BufferGeometry *node){
+}

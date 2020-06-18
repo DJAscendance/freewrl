@@ -384,6 +384,7 @@ our %defaultContainerType = (
 	GeoSRF			=>["geoSRF"],
 	GeoEllipsoid		=>["ellipsoid"],
 	GeoSystemParameters	=>["systemParameters"],
+	BufferGeometry 		=>["geometry"],
 );
 
 
@@ -504,6 +505,7 @@ our %RendC = map {($_=>1)} qw/
 	PannerNode
 	GeoSRF
 	MultitouchSensor
+	BufferGeometry
 /;
 
 #######################################################################
@@ -828,6 +830,7 @@ our %CompileC = map {($_=>1)} qw/
 	AudioListener
 	PannerNode
 	GeoSRF
+	BufferGoemtry
 /;
 
 
@@ -926,6 +929,7 @@ our %CollisionC = map {($_=>1)} qw/
 	NurbsSwungSurface
 	NurbsSweptSurface	
 	NurbsTrimmedSurface	
+	BufferGeometry
 /;
 
 #######################################################################
@@ -1023,6 +1027,7 @@ our %RendRayC = map {($_=>1)} qw/
 	NurbsSwungSurface
 	NurbsSweptSurface	
 	NurbsTrimmedSurface
+	BufferGeometry
 /;
 
 

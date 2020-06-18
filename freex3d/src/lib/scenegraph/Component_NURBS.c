@@ -192,7 +192,7 @@ void free_polyrep(struct X3D_PolyRep *rep){
 		FREE_IF_NZ(rep);
 	}
 }
-struct X3D_PolyRep * create_polyrep(){
+struct X3D_PolyRep * create_polyrep0(){
 	int i;
 	struct X3D_PolyRep *polyrep;
 
@@ -218,18 +218,15 @@ struct X3D_PolyRep * create_polyrep(){
 	for (i=0; i<VBO_COUNT; i++) 
 		polyrep->VBO_buffers[i] = 0;
 
+	return polyrep;
+}
+struct X3D_PolyRep * create_polyrep(){
+	struct X3D_PolyRep *polyrep = create_polyrep0();
 	/* printf ("generating buffers for node %p, type %s\n",p,stringNodeType(p->_nodeType)); */
 	glGenBuffers(1,&polyrep->VBO_buffers[VERTEX_VBO]);
 	glGenBuffers(1,&polyrep->VBO_buffers[INDEX_VBO]);
-	//glGenBuffers(1,&polyrep->VBO_buffers[NORMAL_VBO]);
-	//glGenBuffers(1,&polyrep->VBO_buffers[TEXTURE_VBO0+0]);
-
-
-
-	/* printf ("they are %u %u %u %u\n",polyrep->VBO_buffers[0],polyrep->VBO_buffers[1],polyrep->VBO_buffers[2],polyrep->VBO_buffers[3]); */
 	return polyrep;
 }
-
 
 #define NURBS_LIB 1
 //#undef NURBS_LIB
