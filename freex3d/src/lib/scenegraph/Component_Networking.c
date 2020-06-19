@@ -1175,10 +1175,10 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 	cgltf_primitive *prim = (cgltf_primitive*)node->_bufferdata;
 	int acount = prim->attributes_count;
 	if(node->_vbo.p == NULL){
-		 node->_vbo.p = malloc(acount * sizeof(int));
-		 memset(node->_vbo.p,0,acount * sizeof(int));
-		 node->_vbo.n = acount;
-		 for(int i=0;i<acount;i++) node->_vbo.p[i] = -1;
+		 node->_vbo.p = malloc((acount+1) * sizeof(int));
+		 memset(node->_vbo.p,0,(acount+1) * sizeof(int));
+		 node->_vbo.n = acount + 1;
+		 for(int i=0;i<(acount+1);i++) node->_vbo.p[i] = -1;
 	}
 
 	if(prim && acount){
@@ -1234,7 +1234,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		}
 	}
 
-return;
+//return;
 	for(int ii=0;ii<acount;ii++){
 		const cgltf_accessor* blob = prim->attributes[ii].data;
 		int isize = cgltf_num_components(blob->type);
@@ -1245,11 +1245,22 @@ return;
 			////copy to coord vbo
 			if(node->_vbo.p[ii] == -1){
 				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+				glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+				//glEnableVertexAttribArray( LOC );
+				cgltf_float element_float[16];
+				float *fdata = (float*) malloc(size);
+				for (cgltf_size index = 0; index < blob->count; index++)
+				{
+					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
+					printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
+				}
+				//glVertexAttribPointer( LOC   ,isize, GL_FLOAT, FALSE, blob->stride, fdata);
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 3*sizeof(float), fdata); 
+			}else{
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+				FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
 			}
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-			glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-			glEnableVertexAttribArray(node->_vbo.p[ii]);
-			glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, FALSE, blob->stride, data);
 
 			break;
 
@@ -1259,22 +1270,46 @@ return;
 			//copy to normals vbo
 			if(node->_vbo.p[ii] == -1){
 				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+				glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+				//glEnableVertexAttribArray( LOC );
+				float *fdata = (float*) malloc(size);
+				for (cgltf_size index = 0; index < blob->count; index++)
+				{
+					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
+					printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
+				}
+				FW_GL_NORMAL_POINTER(GL_FLOAT, 3*sizeof(float), fdata); 
+
+				//glVertexAttribPointer( LOC ,isize, GL_FLOAT, TRUE, blob->stride, fdata);
+			}else{
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+				FW_GL_NORMAL_POINTER(GL_FLOAT,0,0);
 			}
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-			glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-			glEnableVertexAttribArray(node->_vbo.p[ii]);
-			glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
+
 			break;
 
 			case cgltf_attribute_type_texcoord:
 			//copy to texcoord
 			if(node->_vbo.p[ii] == -1){
 				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+				glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
+				//glEnableVertexAttribArray(node->_vbo.p[ii]);
+				float *fdata = (float*) malloc(size);
+				for (cgltf_size index = 0; index < blob->count; index++)
+				{
+					cgltf_accessor_read_float(blob, index, &fdata[index*2], 2);
+					printf("%d %f %f \n", index, fdata[index*2 +0],fdata[index*2 +1]);
+				}
+				FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, 3*sizeof(float), fdata,0); 
+
+				//glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
+			}else{
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
+				FW_GL_TEXCOORD_POINTER(2,GL_FLOAT,0,0,0);
 			}
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-			glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-			glEnableVertexAttribArray(node->_vbo.p[ii]);
-			glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
+
 			break;
 
 			//cooy to vertex color vbo
@@ -1299,21 +1334,51 @@ return;
 	}
 	if(acount && prim && prim->indices){
 		// indexes for indexedtriangleset
-		const cgltf_accessor* blob = prim->indices;
-		cgltf_uint element_int;
-		printf("triangle indices\n");
-		int ntri = blob->count / 3;
-		for (int i = 0; i < ntri; i++)
-		{
-			printf("%d [",i);
-			for(int j=0;j<3;j++){
-				int index = (i*3)+j;
-				cgltf_accessor_read_uint(blob, index, &element_int, 1);
-				printf("%d ",element_int);
+			const cgltf_accessor* blob = prim->indices;
+			cgltf_uint element_int;
+			printf("triangle indices\n");
+			int ntri = blob->count / 3;
+			for (int i = 0; i < ntri; i++)
+			{
+				printf("%d [",i);
+				for(int j=0;j<3;j++){
+					int index = (i*3)+j;
+					cgltf_accessor_read_uint(blob, index, &element_int, 1);
+					printf("%d ",element_int);
+				}
+				printf("]\n");
 			}
-			printf("]\n");
-		}
+
 	}
+	{
+		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawElements.xhtml
+		const cgltf_accessor* blob = prim->indices;
+		int ntri = blob->count / 3;
+		//if(node->_vbo.p[acount] == -1){
+			cgltf_uint element_int;
+
+			unsigned int *indu = malloc(blob->count * sizeof(unsigned int));
+			for (int i = 0; i < ntri; i++)
+			{
+				for(int j=0;j<3;j++){
+					int index = (i*3)+j;
+					cgltf_accessor_read_uint(blob, index, &element_int, 1);
+					indu[index] = element_int;
+				}
+			}
+			//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo[acount]);
+
+			/*
+			glGenBuffers(1, &node->_vbo.p[acount]);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, blob->count  * sizeof(unsigned int), &indu[0], GL_STATIC_DRAW);
+		}else{
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
+		}		*/
+		sendArraysToGPU(GL_TRIANGLES,0,ntri*3);
+		//glDrawElements(	GL_TRIANGLES, ntri, GL_UNSIGNED_INT, indu);
+	}
+	printf("done render_BufferGeometry\n");
 	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__cylinderVBO);
 
 	//FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei)sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));
@@ -1338,7 +1403,7 @@ return;
 	//	//wireframe triangles
 	//	sendElementsToGPU(GL_LINES,node->__cylinderTriangles *2,node->__wireindices);
 	//}else{
-		sendArraysToGPU(GL_TRIANGLES,0,node->_vbo.p[0]);
+//		sendArraysToGPU(GL_TRIANGLES,0,node->_vbo.p[0]);
 	//}
 	/* turn off */
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
