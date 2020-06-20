@@ -1235,6 +1235,11 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 	}
 
 //return;
+//glEnableClientState(GL_VERTEX_ARRAY);             // activate vertex position array
+//glEnableClientState(GL_NORMAL_ARRAY);             // activate vertex normal array
+//glEnableClientState(GL_TEXTURE_COORD_ARRAY);      // activate texture coord array
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+
 	for(int ii=0;ii<acount;ii++){
 		const cgltf_accessor* blob = prim->attributes[ii].data;
 		int isize = cgltf_num_components(blob->type);
@@ -1246,7 +1251,6 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 			if(node->_vbo.p[ii] == -1){
 				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
 				//glEnableVertexAttribArray( LOC );
 				cgltf_float element_float[16];
 				float *fdata = (float*) malloc(size);
@@ -1256,7 +1260,9 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 					printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
 				}
 				//glVertexAttribPointer( LOC   ,isize, GL_FLOAT, FALSE, blob->stride, fdata);
-				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 3*sizeof(float), fdata); 
+				//FW_GL_VERTEX_POINTER(3, GL_FLOAT,size, fdata); 
+				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
+
 			}else{
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
 				FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
@@ -1271,7 +1277,6 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 			if(node->_vbo.p[ii] == -1){
 				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
 				//glEnableVertexAttribArray( LOC );
 				float *fdata = (float*) malloc(size);
 				for (cgltf_size index = 0; index < blob->count; index++)
@@ -1279,7 +1284,10 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
 					printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
 				}
-				FW_GL_NORMAL_POINTER(GL_FLOAT, 3*sizeof(float), fdata); 
+				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+
+				//FW_GL_NORMAL_POINTER(GL_FLOAT, size, fdata); 
 
 				//glVertexAttribPointer( LOC ,isize, GL_FLOAT, TRUE, blob->stride, fdata);
 			}else{
@@ -1302,7 +1310,10 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 					cgltf_accessor_read_float(blob, index, &fdata[index*2], 2);
 					printf("%d %f %f \n", index, fdata[index*2 +0],fdata[index*2 +1]);
 				}
-				FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, 3*sizeof(float), fdata,0); 
+				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
+				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+
+				//FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, size, fdata,0); 
 
 				//glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
 			}else{
@@ -1354,7 +1365,11 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawElements.xhtml
 		const cgltf_accessor* blob = prim->indices;
 		int ntri = blob->count / 3;
-		//if(node->_vbo.p[acount] == -1){
+		static int *indexs = NULL;
+		int isize = 1;
+		size_t size = blob->count * isize * sizeof(int);
+
+		if(node->_vbo.p[acount] == -1){
 			cgltf_uint element_int;
 
 			unsigned int *indu = malloc(blob->count * sizeof(unsigned int));
@@ -1366,8 +1381,17 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 					indu[index] = element_int;
 				}
 			}
-			//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo[acount]);
+			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo.p[acount]);
+			indexs = indu;
+ 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indu, GL_STATIC_DRAW);
+			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+		}else{
+			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo.p[acount]);
+ 			//glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, 0,0);
+			//FW_GL_ELEMENT_POINTER(2,GL_FLOAT,0,0,0);
+			
+		}
 			/*
 			glGenBuffers(1, &node->_vbo.p[acount]);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
@@ -1375,8 +1399,12 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		}else{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
 		}		*/
-		sendArraysToGPU(GL_TRIANGLES,0,ntri*3);
-		//glDrawElements(	GL_TRIANGLES, ntri, GL_UNSIGNED_INT, indu);
+		//sendArraysToGPU(GL_TRIANGLES,0,ntri*3);
+		//sendArraysToGPU(GL_TRIANGLES,0,0);
+		//sendElementsToGPU(GL_TRIANGLES,ntri*3,NULL);
+		//sendElementsToGPU(GL_TRIANGLES,0,NULL);
+
+		glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs);
 	}
 	printf("done render_BufferGeometry\n");
 	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__cylinderVBO);
@@ -1407,7 +1435,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 	//}
 	/* turn off */
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	
+//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);	
 }
 void rendray_BufferGeometry(struct X3D_BufferGeometry *node){
 }
