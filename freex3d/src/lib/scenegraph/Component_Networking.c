@@ -1366,6 +1366,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		const cgltf_accessor* blob = prim->indices;
 		int ntri = blob->count / 3;
 		static int *indexs = NULL;
+		static unsigned short *uindexs = NULL;
 		int isize = 1;
 		size_t size = blob->count * isize * sizeof(int);
 
@@ -1373,12 +1374,14 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 			cgltf_uint element_int;
 
 			unsigned int *indu = malloc(blob->count * sizeof(unsigned int));
+			uindexs = malloc(blob->count * sizeof(unsigned short));
 			for (int i = 0; i < ntri; i++)
 			{
 				for(int j=0;j<3;j++){
 					int index = (i*3)+j;
 					cgltf_accessor_read_uint(blob, index, &element_int, 1);
 					indu[index] = element_int;
+					uindexs[index] = element_int;
 				}
 			}
 			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo.p[acount]);
@@ -1401,10 +1404,10 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		}		*/
 		//sendArraysToGPU(GL_TRIANGLES,0,ntri*3);
 		//sendArraysToGPU(GL_TRIANGLES,0,0);
-		//sendElementsToGPU(GL_TRIANGLES,ntri*3,NULL);
+		sendElementsToGPU(GL_TRIANGLES,ntri*3,uindexs);  //WORKS
 		//sendElementsToGPU(GL_TRIANGLES,0,NULL);
 
-		glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs);
+		//glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs); //WORKS
 	}
 	printf("done render_BufferGeometry\n");
 	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__cylinderVBO);
