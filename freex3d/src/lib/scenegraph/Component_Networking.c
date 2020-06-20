@@ -904,13 +904,55 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name);
 						if(!mat){
 							mat = (struct X3D_UnlitMaterial*) DEF_node(ectx,prim->material->name,mtype);
-							//fill in 
-						}
-					}else{
+							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
+							//mat->emissiveTextureChannel 
+							if(prim->material->emissive_texture.texture->image->buffer_view->buffer->data){
+								printf("image loaded for us\n");
+							}else{
+								printf("image not loaded uri = %s\n",prim->material->emissive_texture.texture->image->uri);
+							}
+							/*
+typedef struct cgltf_material
+{
+	char* name;
+	cgltf_bool has_pbr_metallic_roughness;
+	cgltf_bool has_pbr_specular_glossiness;
+	cgltf_bool has_clearcoat;
+	cgltf_pbr_metallic_roughness pbr_metallic_roughness;
+	cgltf_pbr_specular_glossiness pbr_specular_glossiness;
+	cgltf_clearcoat clearcoat;
+	cgltf_texture_view normal_texture;
+	cgltf_texture_view occlusion_texture;
+	cgltf_texture_view emissive_texture;
+	cgltf_float emissive_factor[3];
+	cgltf_alpha_mode alpha_mode;
+	cgltf_float alpha_cutoff;
+	cgltf_bool double_sided;
+	cgltf_bool unlit;
+	cgltf_extras extras;
+} cgltf_material;					
+*/	}
+					}else if(prim->material->has_pbr_metallic_roughness){
 						int mtype = NODE_PhysicalMaterial;
 						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim->material->name);
 						if(!mat){
+							cgltf_pbr_metallic_roughness *pbr = &prim->material->pbr_metallic_roughness;
 							mat = (struct X3D_PhysicalMaterial*) DEF_node(ectx,prim->material->name,mtype);
+							
+							if(pbr->base_color_texture.texture){
+								if(pbr->base_color_texture.texture->image->buffer_view->buffer->data){
+									printf("image loaded for us\n");
+								}else{
+									printf("image not loaded uri = %s\n",pbr->base_color_texture.texture->image->uri);
+								}
+							}
+
+						}
+					}else if(prim->material->has_pbr_specular_glossiness){
+						int mtype = NODE_Material;
+						struct X3D_Material* mat = (struct X3D_Material*) USE_node(prim->material->name);
+						if(!mat){
+							mat = (struct X3D_Material*) DEF_node(ectx,prim->material->name,mtype);
 						}
 					} 
 				}
@@ -1127,6 +1169,8 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 				//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
 				//cgltf_free(data);
 				ret = TRUE;
+			}else if(result == cgltf_result_file_not_found){
+				printf("gltf .bin file not found\n");
 			}
 		}
 	}
