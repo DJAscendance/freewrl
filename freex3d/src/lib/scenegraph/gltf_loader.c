@@ -41,6 +41,7 @@ typedef struct gltf_unit {
 	int bin_len;
 	unsigned char *blob;//.glb blob includes .bin and textures, .gltf blob only json text and possible inlined textures
 	int blob_len;
+	Stack *bin_file_list;
 } gltf_unit;
 
 typedef struct pgltf_loader{
@@ -146,7 +147,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							mat = (struct X3D_UnlitMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
 							//mat->emissiveTextureChannel 
-							if(prim->material->emissive_texture.texture->image->buffer_view->buffer->data){
+							if(prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
 								printf("image loaded for us\n");
 							}else{
 								printf("image not loaded uri = %s\n",prim->material->emissive_texture.texture->image->uri);
@@ -180,7 +181,7 @@ typedef struct cgltf_material
 							mat = (struct X3D_PhysicalMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							
 							if(pbr->base_color_texture.texture){
-								if(pbr->base_color_texture.texture->image->buffer_view->buffer->data){
+								if(pbr->base_color_texture.texture->image->buffer_view){ //->buffer->data){
 									printf("image loaded for us\n");
 								}else{
 									printf("image not loaded uri = %s\n",pbr->base_color_texture.texture->image->uri);
@@ -376,74 +377,6 @@ int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data
 	return ret;
 }
 
-
-//ret = X3DParse(ectx, X3D_NODE(nRn), (const char*)input);
-int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx, struct X3D_Node *myParent)
-{
-	// ectx - the context node - either Inline or Scene
-	// rNr temporary group container node where we'll put the new nodes as children (should have been struct MFNode * field of container)
-	int ret = FALSE;
-	{
-		cgltf_options options;
-		memset(&options, 0, sizeof(cgltf_options));
-		cgltf_data* data = NULL;
-		ppgltf_loader p = (ppgltf_loader)gglobal()->gltf_loader.prv;
-		gltf_unit *unit = malloc(sizeof(gltf_unit));
-		memset(unit,0,sizeof(gltf_unit));
-		stack_push(gltf_unit*,p->gltf_units,unit);
-		
-		unit->blob = malloc(len);
-		unit->blob_len = len;
-		memcpy(unit->blob,input,len);  //resource process garbage collects input. For .glb we need to keep blob
-		cgltf_result result = cgltf_parse(	&options, (void*) unit->blob, unit->blob_len, &data);
-		unit->data = data;
-		if (result == cgltf_result_success)
-		{
-			printf("gltf parsed into cgltf scene struct\n");
-			/* TODO make awesome stuff */
-			//char *local_path = getContext ectx->_
-			result = cgltf_load_buffers(&options, data, "./");
-			if(result == cgltf_result_success){
-				unit->bin_loaded = TRUE;
-			}else if(result == cgltf_result_file_not_found){
-				printf("gltf .bin file not found ... yet\n");
-				//generate a resource to fetch .bin
-			}
-			// 1. go over struct, creating x3d nodes and nesting them
-			struct Multi_Node *spot;
-			if(myParent->_nodeType == NODE_Proto || myParent->_nodeType == NODE_Inline )
-				spot = &((struct X3D_Proto*)(myParent))->__children;
-			else
-				spot = &((struct X3D_Group*)(myParent))->children;
-			spot->p = NULL; spot->n = 0;
-			parse_gltf(ectx,spot,data,unit);
-			// 2. for exta files send url request and have a place to put it in the x3d node created for it
-			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
-			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
-			//cgltf_free(data);
-			ret = TRUE;
-		}
-	}
-
-	return ret;
-}
-// .glb has the .bin binary buffers inside and we can load and parse in one shot
-// .glTF refers to a separate .bin file, and we can parse into x3d nodes until we have it.
-// - and we don't know if and what nane the .bin is until we parse glTF into cgltf nodes
-// - that means we need 2 steps:
-// 1. parse into cgltf nodes, get the uri of the .bin 
-// if there is a separate .bin
-// 2. schedule the .bin with resources so it can download/load into a blob
-// 3. wait for the bins to show up
-// 4. paste the bins in to .data
-// 5. continue on to x3d node parsing
-struct resm_gltf_stuff {
-	int gltf_parsed;
-	//int num_bin;
-	//int j_bin;
-	cgltf_data* data;
-	Stack *file_list;
-};
 struct uri_data {
 	char *uri;
 	void **data;
@@ -514,49 +447,108 @@ cgltf_result cgltf_load_buffers_except_files(const cgltf_options* options, cgltf
 
 	return cgltf_result_success;
 }
-int gltf_parse_to_cgltf(resource_item_t *res){
-	struct resm_gltf_stuff * stuff = (struct resm_gltf_stuff *)res->resm_specific;
-	if(!stuff){
-		res->resm_specific = stuff = malloc(sizeof(struct resm_gltf_stuff));
-		memset(stuff,0,sizeof(struct resm_gltf_stuff));
-	}
-	if(!stuff->gltf_parsed){
+
+
+//ret = X3DParse(ectx, X3D_NODE(nRn), (const char*)input);
+int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx, struct X3D_Node *myParent)
+{
+	// ectx - the context node - either Inline or Scene
+	// rNr temporary group container node where we'll put the new nodes as children (should have been struct MFNode * field of container)
+	int ret = FALSE;
+	{
 		cgltf_options options;
 		memset(&options, 0, sizeof(cgltf_options));
 		cgltf_data* data = NULL;
-		openned_file_t *of = res->openned_files;
-		int len = of->fileDataSize;
-		char * input = of->fileData;
-		char *floating_copy = malloc(len);
-		memcpy(floating_copy,input,len);
-		register_node_gc(res->ectx,floating_copy);
-		cgltf_result result = cgltf_parse(	&options, (void*) floating_copy, len, &data);
-
+		ppgltf_loader p = (ppgltf_loader)gglobal()->gltf_loader.prv;
+		gltf_unit *unit = malloc(sizeof(gltf_unit));
+		memset(unit,0,sizeof(gltf_unit));
+		stack_push(gltf_unit*,p->gltf_units,unit);
+		
+		unit->blob = malloc(len);
+		unit->blob_len = len;
+		memcpy(unit->blob,input,len);  //resource process garbage collects input. For .glb we need to keep blob
+		cgltf_result result = cgltf_parse(	&options, (void*) unit->blob, unit->blob_len, &data);
+		unit->data = data;
 		if (result == cgltf_result_success)
 		{
 			printf("gltf parsed into cgltf scene struct\n");
-			stuff->gltf_parsed = TRUE;
-			stuff->data = data;
-			//check if we need to load bins, and get that started
+			/* TODO make awesome stuff */
+			//char *local_path = getContext ectx->_
+			//result = cgltf_load_buffers(&options, data, "./");
 			Stack *file_list = newStack(struct uri_data);
 			result = cgltf_load_buffers_except_files(&options, data,file_list);
-			if(file_list->n > 0){ 
-				stuff->file_list = file_list;
+
+			if(result == cgltf_result_success && file_list->n == 0){
+				unit->bin_loaded = TRUE;
+			}else if(result == cgltf_result_file_not_found){
+				printf("gltf .bin file not found ... yet\n");
+				//generate a resource to fetch .bin
+			}else if(file_list->n){
+				resource_item_t *res;
+				struct X3D_Proto *context = X3D_PROTO(ectx);
+
+				//compact file list?
+				//spawn resource(s) to fetch>
+				unit->bin_file_list = file_list;
+				struct uri_data * ud = vector_get_ptr(struct uri_data,file_list,0);
+				char * uri = ud->uri;
+				res = resource_create_single(uri);
+				res->media_type = resm_unknown; // resm_bin;
+				res->resm_specific = unit;
+				resource_identify(context->_parentResource, res);
+				res->actions = resa_download | resa_load | resa_process;
+				resitem_enqueue(ml_new(res));
 			}
+			// 1. go over struct, creating x3d nodes and nesting them
+			struct Multi_Node *spot;
+			if(myParent->_nodeType == NODE_Proto || myParent->_nodeType == NODE_Inline )
+				spot = &((struct X3D_Proto*)(myParent))->__children;
+			else
+				spot = &((struct X3D_Group*)(myParent))->children;
+			spot->p = NULL; spot->n = 0;
+			parse_gltf(ectx,spot,data,unit);
+			// 2. for exta files send url request and have a place to put it in the x3d node created for it
+			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
+			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
+			//cgltf_free(data);
+			ret = TRUE;
 		}
-
 	}
-	return 3;
-}
-int gltf_load_bin(resource_item_t *res){
-	struct resm_gltf_stuff * stuff = (struct resm_gltf_stuff *)res->resm_specific;
-	if(stuff && stuff->file_list && stuff->file_list->n > 0){
-		//swap urls to load next part
-		//thunk down to resm_download | _load or copy, retire, and launch new resource
 
+	return ret;
+}
+
+// .glb has the .bin binary buffers inside and we can load and parse in one shot
+// .glTF refers to a separate .bin file
+// 1 we parse either to cgltf nodes
+// 2 then check if bin loaded as part of glb, and if so apply
+// 3 else we spawn a resource loader to fetch .bin (should work also over http)
+// 4 we parse into x3d nodes either way, putting gltf_unit* in nodes that need the bin data
+// 5 nodes check gltf_unit, and delay compile_ until .bin loaded flag set 
+// 6 when .bin resource loads here, we apply bin to cgltf nodes buffer.data and set the gltf_unit-loaded flag
+
+int gltf_load_bin(resource_item_t *res){
+	gltf_unit * unit = res->resm_specific;
+	if(unit && !unit->bin_loaded){
+		openned_file_t *of = res->openned_files;
+		int len = of->fileDataSize;
+		char * input = of->fileData;
+		unit->bin = malloc(len);
+		memcpy(unit->bin,input,len);
+		unit->bin_len = of->fileDataSize;
+		Stack *file_list = unit->bin_file_list;
+		struct uri_data *ud;
+		for(int i=0;i<vectorSize(file_list); i++){
+			ud = vector_get_ptr(struct uri_data,file_list,i);
+			*ud->data = unit->bin;
+			ud->data_size = unit->bin_len;
+			//result = cgltf_load_buffers_from_files(&options, data,file_list);
+		}
+		unit->bin_loaded = TRUE;
 	}
 	return FALSE;
 }
+
 int parser_process_res_gltf(resource_item_t *res){
 	//these media types (require us to) generate x3d scene nodes and can be a scene unto themselves, 
 	// or inline body
@@ -565,19 +557,11 @@ int parser_process_res_gltf(resource_item_t *res){
 	int parsedOk = FALSE;
 	switch(res->media_type){
 		case resm_glb:
+		case resm_gltf:
 			// .bin gl buffers and images are packed into one .glb file
-			parsedOk = parser_process_res_VRML_X3D(res);
-			break;
-		case resm_gltf: {
 			//text/json gltf file can inline some .bin and img buffers as text
 			// but more normally separate .bin binary buffer file and image urls
-				int idone = gltf_parse_to_cgltf(res);
-				if(idone){
-					parsedOk = gltf_load_bin(res);
-					if(parsedOk) 
-						parsedOk = parser_process_res_VRML_X3D(res);
-				}
-			}
+			parsedOk = parser_process_res_VRML_X3D(res);
 			break;
 		case resm_bin:
 			//gltf can be exported with separate binary buffer file
