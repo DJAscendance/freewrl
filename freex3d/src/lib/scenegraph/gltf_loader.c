@@ -23,13 +23,46 @@
 #include <list.h>
 #include <io_http.h>
 
-
 // GLTF
 //https://github.com/jkuhlmann/cgltf 
 //- include 100 line recursive json parser (how does data come out?) etc.
 //- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
 #define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
+
+typedef struct gltf_unit {
+	cgltf_data *data;
+	int bin_loaded;
+	unsigned char *cgltf_bin;
+} gltf_unit;
+
+typedef struct pgltf_loader{
+	Stack *gltf_units;
+}* ppgltf_loader;
+void *gltf_loader_constructor(){
+	void *v = MALLOCV(sizeof(struct pgltf_loader));
+	memset(v,0,sizeof(struct pgltf_loader));
+	return v;
+}
+void gltf_loader_init(struct tgltf_loader *t){
+	//public
+	//private
+	t->prv = gltf_loader_constructor();
+	{
+		ppgltf_loader p = (ppgltf_loader)t->prv;
+		p->gltf_units = newStack(struct gltf_unit*);
+	}
+}
+void gltf_loader_clear(struct tgltf_loader *t){
+	//public
+	//private
+	{
+		ppgltf_loader p = (ppgltf_loader)t->prv;
+		deleteStack(struct gltf_unit*,p->gltf_units);
+	}
+}
+//ppgltf_loader p = (ppgltf_loader)gglobal()->gltf_loader.prv;
+
 
 struct name_node {
 char *name;
@@ -502,15 +535,25 @@ int gltf_load_bin(resource_item_t *res){
 	struct resm_gltf_stuff * stuff = (struct resm_gltf_stuff *)res->resm_specific;
 	if(stuff && stuff->file_list && stuff->file_list->n > 0){
 		//swap urls to load next part
-		//thunk down to resm_download | _load
+		//thunk down to resm_download | _load or copy, retire, and launch new resource
 
 	}
 	return FALSE;
 }
 int parser_process_res_gltf(resource_item_t *res){
+	//these media types (require us to) generate x3d scene nodes and can be a scene unto themselves, 
+	// or inline body
+	//some embed needed resources, others request more resources which are placed in their node fields.
+
 	int parsedOk = FALSE;
 	switch(res->media_type){
+		case resm_glb:
+			// .bin gl buffers and images are packed into one .glb file
+			parsedOk = parser_process_res_VRML_X3D(res);
+			break;
 		case resm_gltf: {
+			//text/json gltf file can inline some .bin and img buffers as text
+			// but more normally separate .bin binary buffer file and image urls
 				int idone = gltf_parse_to_cgltf(res);
 				if(idone){
 					parsedOk = gltf_load_bin(res);
@@ -519,15 +562,13 @@ int parser_process_res_gltf(resource_item_t *res){
 				}
 			}
 			break;
-		case resm_glb:
-			//these media types generate x3d scene nodes and can be a scene unto themselves, or inline body
-			//they can also request more resources which are placed in their node fields.
-			parsedOk = parser_process_res_VRML_X3D(res);
-			break;
 		case resm_bin:
 			//gltf can be exported with separate binary buffer file
 			// the buffer needs to catch up to / join into the parsed gltf
 			// before we parse/convert gltf into our freewrl-type geometry nodes
+					parsedOk = gltf_load_bin(res);
+					if(parsedOk) 
+						parsedOk = parser_process_res_VRML_X3D(res);
 			break;
 		//cesium related
 		case resm_json:

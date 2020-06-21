@@ -285,6 +285,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
+	"_gltf_unit",
 	"_gridHeight",
 	"_group",
 	"_hatchScale",
@@ -4922,6 +4923,7 @@ const int OFFSETS_Box[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_BufferGeometry[] = {
+	(int) FIELDNAMES__gltf_unit, (int) offsetof (struct X3D_BufferGeometry, _gltf_unit),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__bufferdata, (int) offsetof (struct X3D_BufferGeometry, _bufferdata),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__vbo, (int) offsetof (struct X3D_BufferGeometry, _vbo),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -10678,6 +10680,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BufferGeometry : {
 			struct X3D_BufferGeometry * tmp2;
 			tmp2 = (struct X3D_BufferGeometry *) tmp;
+			tmp2->_gltf_unit = -1;
 			tmp2->_bufferdata = 0;
 			tmp2->_vbo.n=0; tmp2->_vbo.p=0;
 			tmp2->_defaultContainer = 0;

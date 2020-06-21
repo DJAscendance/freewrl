@@ -130,6 +130,8 @@ void Bindable_clear(struct tBindable *t);
 
 void X3DParser_init(struct tX3DParser *t);
 void X3DParser_clear(struct tX3DParser *t);
+void gltf_loader_init(struct tgltf_loader *t);
+void gltf_loader_clear(struct tgltf_loader *t);
 
 void common_init(struct tcommon *t);
 void common_clear(struct tcommon *t);
@@ -367,6 +369,7 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 #endif //JAVASCRIPT_DUK
 	Bindable_init(&iglobal->Bindable);
 	X3DParser_init(&iglobal->X3DParser);
+	gltf_loader_init(&iglobal->gltf_loader);
 	common_init(&iglobal->common);
 #ifndef DISABLER	
 	CursorDraw_init(&iglobal->CursorDraw);
@@ -399,6 +402,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	//call individual destructors in reverse order to constructor
 	FREE_IF_NZ(tg->CursorDraw.prv);
 	common_clear(&tg->common); FREE_IF_NZ(tg->common.prv);
+	gltf_loader_clear(&tg->gltf_loader); FREE_IF_NZ(tg->gltf_loader.prv);
 	X3DParser_clear(&tg->X3DParser); FREE_IF_NZ(tg->X3DParser.prv);
 	Bindable_clear(&tg->Bindable); FREE_IF_NZ(tg->Bindable.prv);
 
