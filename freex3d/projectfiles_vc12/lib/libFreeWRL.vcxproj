@@ -278,6 +278,7 @@
     <ClCompile Include="..\..\src\lib\scenegraph\fwgeolib.cpp">
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug_glew|Win32'">EditAndContinue</DebugInformationFormat>
     </ClCompile>
+    <ClCompile Include="..\..\src\lib\scenegraph\gltf_loader.c" />
     <ClCompile Include="..\..\src\lib\scenegraph\socketutils.c" />
     <ClCompile Include="..\..\src\lib\ui\freewrl_wingding_ttf.c" />
     <ClCompile Include="..\..\src\lib\world_script\JScript_sm.cpp" />
