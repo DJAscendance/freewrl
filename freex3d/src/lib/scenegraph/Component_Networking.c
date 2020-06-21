@@ -1177,11 +1177,148 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 
 	return ret;
 }
+// .glb has the .bin binary buffers inside and we can load and parse in one shot
+// .glTF refers to a separate .bin file, and we can parse into x3d nodes until we have it.
+// - and we don't know if and what nane the .bin is until we parse glTF into cgltf nodes
+// - that means we need 2 steps:
+// 1. parse into cgltf nodes, get the uri of the .bin 
+// if there is a separate .bin
+// 2. schedule the .bin with resources so it can download/load into a blob
+// 3. wait for the bins to show up
+// 4. paste the bins in to .data
+// 5. continue on to x3d node parsing
+struct resm_gltf_stuff {
+	int gltf_parsed;
+	//int num_bin;
+	//int j_bin;
+	cgltf_data* data;
+	Stack *file_list;
+};
+struct uri_data {
+	char *uri;
+	void **data;
+	int data_size;
+};
+cgltf_result cgltf_load_buffers_except_file(const cgltf_options* options, cgltf_data* data, Stack *file_list)
+{
+	if (options == NULL)
+	{
+		return cgltf_result_invalid_options;
+	}
 
+	if (data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin)
+	{
+		if (data->bin_size < data->buffers[0].size)
+		{
+			return cgltf_result_data_too_short;
+		}
+
+		data->buffers[0].data = (void*)data->bin;
+	}
+
+	for (cgltf_size i = 0; i < data->buffers_count; ++i)
+	{
+		if (data->buffers[i].data)
+		{
+			continue;
+		}
+
+		const char* uri = data->buffers[i].uri;
+
+		if (uri == NULL)
+		{
+			continue;
+		}
+
+		if (strncmp(uri, "data:", 5) == 0)
+		{
+			const char* comma = strchr(uri, ',');
+
+			if (comma && comma - uri >= 7 && strncmp(comma - 7, ";base64", 7) == 0)
+			{
+				cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, comma + 1, &data->buffers[i].data);
+
+				if (res != cgltf_result_success)
+				{
+					return res;
+				}
+			}
+			else
+			{
+				return cgltf_result_unknown_format;
+			}
+		}
+		else if (strstr(uri, "://") == NULL )
+		{
+			struct uri_data ud;
+			ud.uri = uri;
+			ud.data = &data->buffers[i].data;
+			ud.data_size = data->buffers[i].size;
+			stack_push(struct uri_data,file_list,ud);
+		}
+		else
+		{
+			return cgltf_result_unknown_format;
+		}
+	}
+
+	return cgltf_result_success;
+}
+int gltf_parse_to_cgltf(resource_item_t *res){
+	struct resm_gltf_stuff * stuff = (struct resm_gltf_stuff *)res->resm_specific;
+	if(!stuff){
+		res->resm_specific = stuff = malloc(sizeof(struct resm_gltf_stuff));
+		memset(stuff,0,sizeof(struct resm_gltf_stuff));
+	}
+	if(!stuff->gltf_parsed){
+		cgltf_options options;
+		memset(&options, 0, sizeof(cgltf_options));
+		cgltf_data* data = NULL;
+		openned_file_t *of = res->openned_files;
+		int len = of->fileDataSize;
+		char * input = of->fileData;
+		char *floating_copy = malloc(len);
+		memcpy(floating_copy,input,len);
+		register_node_gc(res->ectx,floating_copy);
+		cgltf_result result = cgltf_parse(	&options, (void*) floating_copy, len, &data);
+
+		if (result == cgltf_result_success)
+		{
+			printf("gltf parsed into cgltf scene struct\n");
+			stuff->gltf_parsed = TRUE;
+			stuff->data = data;
+			//check if we need to load bins, and get that started
+			Stack *file_list = newStack(struct uri_data);
+			result = cgltf_load_buffers_except_files(&options, data,file_list);
+			if(file_list->n > 0){ 
+				stuff->file_list = file_list;
+			}
+		}
+
+	}
+	return 3;
+}
+int gltf_load_bin(resource_item_t *res){
+	struct resm_gltf_stuff * stuff = (struct resm_gltf_stuff *)res->resm_specific;
+	if(stuff && stuff->file_list && stuff->file_list->n > 0){
+		//swap urls to load next part
+		//thunk down to resm_download | _load
+
+	}
+	return FALSE;
+}
 int parser_process_res_gltf(resource_item_t *res){
 	int parsedOk = FALSE;
 	switch(res->media_type){
-		case resm_gltf: 
+		case resm_gltf: {
+				int idone = gltf_parse_to_cgltf(res);
+				if(idone){
+					parsedOk = gltf_load_bin(res);
+					if(parsedOk) 
+						parsedOk = parser_process_res_VRML_X3D(res);
+				}
+			}
+			break;
 		case resm_glb:
 			//these media types generate x3d scene nodes and can be a scene unto themselves, or inline body
 			//they can also request more resources which are placed in their node fields.

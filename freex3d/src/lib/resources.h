@@ -199,6 +199,7 @@ typedef struct resource_item {
 	pthread_t *_loadThread; //pthread_t * used for async_loading in middleLayer ML
 	void *tg; //gglobal context
 	int (*_loadFunc)(void *); //used for some experiments where the backend loads, but the frontend injects a load function
+	void *resm_specific; // use for anything a specific resm_ type needs
 } resource_item_t;
 
 extern resource_item_t *root_res;
