@@ -30,10 +30,17 @@
 #define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
 
+
+// a list of loaded gltf file units, with one unit representing one .glb or one (.gltf,.bin)
+// in theory this list should be per-execution_context (Scene, Inline, ProtoBody)
+// as should texture unit array. For now, will be per freewrl main-scene-gglobal.
 typedef struct gltf_unit {
-	cgltf_data *data;
-	int bin_loaded;
-	unsigned char *cgltf_bin;
+	cgltf_data *data;	//parsed to cgltf nodes
+	int bin_loaded;		// spawned x3d nodes that need buffer.data check this to know when they can 'compile'
+	unsigned char *bin;	//where to place data for .bin resource loader, not used for .glb
+	int bin_len;
+	unsigned char *blob;//.glb blob includes .bin and textures, .gltf blob only json text and possible inlined textures
+	int blob_len;
 } gltf_unit;
 
 typedef struct pgltf_loader{
@@ -94,7 +101,7 @@ return node;
 
 
 struct X3D_PolyRep * create_polyrep0();
-int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node){
+int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node, gltf_unit *unit){
 	//transform part
 	int m = 0;
 	struct X3D_Transform *t = createNewX3DNode(NODE_Transform);
@@ -263,6 +270,7 @@ typedef struct cgltf_material
 							};
 							//struct X3D_TriangleSet *ts = (struct X3D_TriangleSet*)gn;
 							struct X3D_BufferGeometry *ts = (struct X3D_BufferGeometry*)gn;
+							ts->_gltf_unit = unit;
 							ts->_bufferdata = prim;
 							if(0){
 								int use_method = GLTF_USE_BUFFER_COPY;//GLTF_USE_RECOMPILE;
@@ -347,7 +355,7 @@ typedef struct cgltf_material
 	if(mc){
 		t->children.p = realloc(t->children.p,(mc+m)*sizeof(struct X3D_Node*));
 		for(int i=0;i<mc;i++){
-			parse_gltf_node(ectx,&t->children.p[i+m],data,node->children[i]);
+			parse_gltf_node(ectx,&t->children.p[i+m],data,node->children[i],unit);
 		}
 		m += mc;
 	}
@@ -357,11 +365,11 @@ typedef struct cgltf_material
 	return TRUE;
 }
 
-int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data){
+int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data, gltf_unit *unit){
 	int n = data->scene[0].nodes_count;
 	spot->p = realloc(spot->p, n * sizeof(struct X3D_Node *));
 	for(int i=0;i<data->scene[0].nodes_count;i++){
-		parse_gltf_node(ectx,&spot->p[i],data,data->scene[0].nodes[i]);
+		parse_gltf_node(ectx,&spot->p[i],data,data->scene[0].nodes[i], unit);
 	}
 	spot->n = n;
 	int ret = TRUE;
@@ -379,32 +387,41 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 		cgltf_options options;
 		memset(&options, 0, sizeof(cgltf_options));
 		cgltf_data* data = NULL;
-		char *floating_copy = malloc(len);
-		memcpy(floating_copy,input,len);
-		register_node_gc(ectx,floating_copy);
-		cgltf_result result = cgltf_parse(	&options, (void*) floating_copy, len, &data);
+		ppgltf_loader p = (ppgltf_loader)gglobal()->gltf_loader.prv;
+		gltf_unit *unit = malloc(sizeof(gltf_unit));
+		memset(unit,0,sizeof(gltf_unit));
+		stack_push(gltf_unit*,p->gltf_units,unit);
+		
+		unit->blob = malloc(len);
+		unit->blob_len = len;
+		memcpy(unit->blob,input,len);  //resource process garbage collects input. For .glb we need to keep blob
+		cgltf_result result = cgltf_parse(	&options, (void*) unit->blob, unit->blob_len, &data);
+		unit->data = data;
 		if (result == cgltf_result_success)
 		{
 			printf("gltf parsed into cgltf scene struct\n");
 			/* TODO make awesome stuff */
+			//char *local_path = getContext ectx->_
 			result = cgltf_load_buffers(&options, data, "./");
 			if(result == cgltf_result_success){
-				// 1. go over struct, creating x3d nodes and nesting them
-				struct Multi_Node *spot;
-				if(myParent->_nodeType == NODE_Proto || myParent->_nodeType == NODE_Inline )
-					spot = &((struct X3D_Proto*)(myParent))->__children;
-				else
-					spot = &((struct X3D_Group*)(myParent))->children;
-				spot->p = NULL; spot->n = 0;
-				parse_gltf(ectx,spot,data);
-				// 2. for exta files send url request and have a place to put it in the x3d node created for it
-				// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
-				//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
-				//cgltf_free(data);
-				ret = TRUE;
+				unit->bin_loaded = TRUE;
 			}else if(result == cgltf_result_file_not_found){
-				printf("gltf .bin file not found\n");
+				printf("gltf .bin file not found ... yet\n");
+				//generate a resource to fetch .bin
 			}
+			// 1. go over struct, creating x3d nodes and nesting them
+			struct Multi_Node *spot;
+			if(myParent->_nodeType == NODE_Proto || myParent->_nodeType == NODE_Inline )
+				spot = &((struct X3D_Proto*)(myParent))->__children;
+			else
+				spot = &((struct X3D_Group*)(myParent))->children;
+			spot->p = NULL; spot->n = 0;
+			parse_gltf(ectx,spot,data,unit);
+			// 2. for exta files send url request and have a place to put it in the x3d node created for it
+			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
+			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
+			//cgltf_free(data);
+			ret = TRUE;
 		}
 	}
 
@@ -564,11 +581,11 @@ int parser_process_res_gltf(resource_item_t *res){
 			break;
 		case resm_bin:
 			//gltf can be exported with separate binary buffer file
-			// the buffer needs to catch up to / join into the parsed gltf
-			// before we parse/convert gltf into our freewrl-type geometry nodes
-					parsedOk = gltf_load_bin(res);
-					if(parsedOk) 
-						parsedOk = parser_process_res_VRML_X3D(res);
+			// like loading image textures, the bin needs to catch-up to the 
+			// parsed x3d node, so after applying binary to parsed cgltf nodes,
+			// sets a flag that previously spawned x3d nodes can check to see 
+			// when binary gl buffer data has been loaded and applied to primitives
+			parsedOk = gltf_load_bin(res);
 			break;
 		//cesium related
 		case resm_json:
@@ -589,6 +606,11 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 
 }
 void render_BufferGeometry(struct X3D_BufferGeometry *node){
+
+	if(!node->_gltf_unit) return;
+	gltf_unit *unit = node->_gltf_unit;
+	if(!unit->bin_loaded) return;
+
 
 	//CULL_FACE(node->solid)
 	if(!node->_bufferdata) return;

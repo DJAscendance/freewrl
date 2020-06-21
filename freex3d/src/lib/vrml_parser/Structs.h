@@ -3845,7 +3845,7 @@ struct X3D_BufferGeometry {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	int _gltf_unit;
+	void * _gltf_unit;
 	void * _bufferdata;
 	struct Multi_Int32 _vbo;
 };
