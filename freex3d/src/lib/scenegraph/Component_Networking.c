@@ -630,7 +630,6 @@ void update_weakRoutes(struct X3D_Proto *context){
 }
 struct X3D_Proto *hasContext(struct X3D_Node* node);
 
-
 int unload_broto(struct X3D_Proto* node);
 /* note that we get the resources in a couple of steps; this tries to keep the scenegraph running */
 void load_Inline (struct X3D_Inline *node) {
@@ -670,8 +669,8 @@ void load_Inline (struct X3D_Inline *node) {
 
 		case INLINE_FETCHING_RESOURCE:
 		res = node->__loadResource;
-		/* printf ("load_Inline, we have type  %s  status %s\n",
-			resourceTypeToString(res->type), resourceStatusToString(res->status)); */
+		//printf ("load_Inline, we have type  %s  status %s\n",
+		//	resourceTypeToString(res->type), resourceStatusToString(res->status));
 		if(res->complete){
 			if (res->status == ress_loaded) {
 				//determined during load process by resource_identify_type(): res->media_type = resm_vrml; //resm_unknown;
@@ -704,7 +703,6 @@ void load_Inline (struct X3D_Inline *node) {
 				if (res->status == ress_parsed) {
 					/* this might be a good place to populate parent context IMPORT table with our EXPORT nodes? */
 					node->__loadstatus = INLINE_IMPORTING; //INLINE_STABLE; 
-
 				} 
 			}
 
@@ -825,3 +823,4 @@ void child_Inline (struct X3D_Inline *node) {
 	//LOCAL_LIGHT_OFF
 
 }
+

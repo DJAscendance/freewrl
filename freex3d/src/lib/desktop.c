@@ -357,11 +357,17 @@ void frontend_dequeue_get_enqueue(void *tg){
 	//fwl_clearCurrentHandle(); don't unset, in case we are in a BE/ML thread ie _displayThread
 }
 
-#ifdef SSR_SERVER
-void SSR_reply(void * tg);
-void dequeue_SSR_request(void * tg);
+
+
+//platoforms: linux, mac, win32 
+// - do any game controllers, mouse queue flushing, tablets: poll any IMU interial masuring unit, grivimeter 
+#ifdef _MSC_VER
+void platform_initialize_input_devices(); 
+void platform_poll_input_devices();
+#else
+void platform_initialize_input_devices(){};
+void platform_poll_input_devices(){}
 #endif
-char *get_key_val(char *key);
 void _displayThread(void *globalcontext)
 {
 	/* C CONTROLLER - used in configurations such as C main programs, and browser plugins with no loop of their own
@@ -380,43 +386,13 @@ void _displayThread(void *globalcontext)
 	*/
 	int more;
 
-#ifdef SSR_SERVER
-	int run_ssr;
-	run_ssr = FALSE;
-#endif //SSR_SERVER
-
 	fwl_setCurrentHandle(globalcontext, __FILE__, __LINE__);
 	ENTER_THREAD("display");
-#ifdef SSR_SERVER
-	if(!run_ssr) {
-		//if this is ssr server running, it does a few quirky things like doing slow looping
-		char *running_ssr = get_key_val("SSR");
-		if(running_ssr)
-			if(!strcmp(running_ssr,"true"))
-				run_ssr = TRUE;
-		//printf("in desktop.c run_ssr = %d\n",run_ssr);
-	}
-#endif
+	platform_initialize_input_devices();
 	do{
-		//if(frontendGetsFiles()==2) 
-#ifdef SSR_SERVER
-		if(run_ssr){
-			SSR_reply(globalcontext);
-			dequeue_SSR_request(globalcontext);
-		}
-#endif
-#ifdef _MSC_VER
-		//win32 message pump - works here for desktop freewrl and npapi, ActiveX plugins, 
-		// because those all use _DisplayThread here. 
-		// (winGLES2 project which uses EGL 'front end' has its own win32 message pump, 
-		// and doesn't call this _displayThread)
-		fwMessageLoop(); 
-#endif
+		platform_poll_input_devices(); //game controllers can send events down fwl_ mousee event quueue.
 		frontend_dequeue_get_enqueue(globalcontext); //this is non-blocking (returns immediately) if queue empty
 		more = fwl_draw();
-		/* swap the rendering area */
-		if(more)
-			if(0) FW_GL_SWAPBUFFERS;
 	} while (more);
 	// moved to fwl_draw for disabler finalizeRenderSceneUpdateScene(); //Model end
 	//printf("Ending display thread gracefully\n");
@@ -435,15 +411,6 @@ void fwl_initializeDisplayThread()
 	fflush(stderr);
 	sync();
 	ASSERT(TEST_NULL_THREAD(gglobal()->threads.DispThrd));
-
-
-	///* Initialize all mutex/condition variables ... */ //moved to resource and texture thread inits
-	//pthread_mutex_init( &tg->threads.mutex_resource_tree, NULL );
-	//pthread_mutex_init( &tg->threads.mutex_resource_list, NULL );
-	//pthread_mutex_init( &tg->threads.mutex_texture_list, NULL );
-	//pthread_cond_init( &tg->threads.resource_list_condition, NULL );
-	//pthread_cond_init( &tg->threads.texture_list_condition, NULL );
-	//pthread_mutex_init(&tg->threads.mutex_frontend_list,NULL);
 
 
 	ret = pthread_create(&tg->threads.DispThrd, NULL, (void *) _displayThread, tg);
@@ -467,21 +434,13 @@ void fwl_initializeDisplayThread()
 #endif
 }
 
-//#endif /* FRONTEND_HANDLES_DISPLAY_THREAD */
-
-
 //desktop plugin
 void fwl_spawnRenderingThread(void *globalcontext){
-	//if(!params->frontend_handles_display_thread){
-		/* OK the display is now initialized,
-		   create the display thread and wait for it
-		   to complete initialization */
-		fwl_initializeDisplayThread();
 
-		//usleep(50);
-		//set_thread2global(tg,tg->threads.DispThrd ,"display thread");
-	//}
-
+	/* OK the display is now initialized,
+		create the display thread and wait for it
+		to complete initialization */
+	fwl_initializeDisplayThread();
 }
 
 //desktop console
@@ -492,12 +451,6 @@ void fwl_startFreeWRL(const char *url)
 
 	/* Give the main argument to the resource handler */
 	if (url != NULL) {
-		//char* suff = NULL;
-		//char* local_name = NULL;
-		//splitpath_local_suffix(url, &local_name, &suff);
-		//if(url) tg->Mainloop.url = strdup(url);
-		//tg->Mainloop.scene_name = local_name;
-		//tg->Mainloop.scene_suff = suff;
 
 		fwl_resource_push_single_request(url);
 		DEBUG_MSG("request sent to parser thread, main thread joining display thread...\n");

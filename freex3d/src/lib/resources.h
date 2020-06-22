@@ -84,6 +84,14 @@ typedef enum resource_media_type {
 	resm_audio,
 	resm_x3z,
 	resm_mocap,
+	resm_gltf,
+	resm_glb,
+	resm_bin,
+	resm_json,
+	resm_b3dm,
+	resm_i3dm,
+	resm_pnts,
+	resm_cmpt,
 	resm_external, //June 2016 html > frontend anchoring
 } resource_media_type_t;
 
@@ -191,6 +199,7 @@ typedef struct resource_item {
 	pthread_t *_loadThread; //pthread_t * used for async_loading in middleLayer ML
 	void *tg; //gglobal context
 	int (*_loadFunc)(void *); //used for some experiments where the backend loads, but the frontend injects a load function
+	void *resm_specific; // use for anything a specific resm_ type needs
 } resource_item_t;
 
 extern resource_item_t *root_res;

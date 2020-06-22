@@ -568,6 +568,11 @@ our %Nodes = (
 		_coordIndex => ["MFInt32", [], "initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
+	"BufferGeometry" => new VRML::NodeType("BufferGeometry", [
+		_gltf_unit => ["FreeWRLPTR", 0, "initializeOnly", 0,0,],#ff
+		_bufferdata => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_vbo  => ["MFInt32", [], "initializeOnly", 0,0],#ff
+	],"X3DGeometryNode"),
 
 	###################################################################################
 

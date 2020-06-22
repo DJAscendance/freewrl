@@ -128,6 +128,7 @@ void render_TriangleSet (struct X3D_TriangleSet *node) {
 	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
 	CULL_FACE(node->solid)
 	render_polyrep(node);
+	printf(",");
 }
 
 

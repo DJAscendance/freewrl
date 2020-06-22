@@ -462,6 +462,9 @@ iOLDCODE	}Component_Networking;
 		int CDATA_Text_curlen;// = 0;
 		void *prv;
 	}X3DParser;
+	struct tgltf_loader{
+		void *prv;
+	}gltf_loader;
 	struct tcommon{
 		void *prv;
 	}common;

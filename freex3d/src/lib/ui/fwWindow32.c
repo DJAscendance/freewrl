@@ -1552,4 +1552,88 @@ int fv_create_main_window2(freewrl_params_t * d, freewrl_params_t *share) //int 
 	return TRUE;
 }
 
+#ifdef HAVE_XINPUT
+// windows xinput game controller 
+// https://docs.microsoft.com/en-us/windows/win32/xinput/xinput-game-controller-apis-portal
+#include <xinput.h>
+void poll_game_controllers(){
+	DWORD dwResult;    
+	for (DWORD i=0; i< XUSER_MAX_COUNT; i++ )
+	{
+		XINPUT_STATE state;
+		ZeroMemory( &state, sizeof(XINPUT_STATE) );
+
+		// Simply get the state of the controller from XInput.
+		dwResult = XInputGetState( i, &state );
+
+		if( dwResult == ERROR_SUCCESS )
+		{
+			// Controller is connected 
+				static int once = 0;
+				if(!once)
+					printf("game controller connected!\n");
+				once = 1;
+
+		}
+		else
+		{
+				// Controller is not connected 
+				static int once = 0;
+				if(!once)
+					printf("no game controller\n");
+				once = 1;
+		}
+	}
+}
+#else //HAVE_XINPUT
+void poll_game_controllers(){}
+#endif //HAVE_XINPUT
+
+
+char *get_key_val(char *key);
+#ifdef SSR_SERVER
+void SSR_reply(void * tg);
+void dequeue_SSR_request(void * tg);
+static int run_ssr;
+static run_ssr = FALSE;
+
+#endif
+void initialize_ssr_server(){
+#ifdef SSR_SERVER
+	if(!run_ssr) {
+		//if this is ssr server running, it does a few quirky things like doing slow looping
+		char *running_ssr = get_key_val("SSR");
+		if(running_ssr)
+			if(!strcmp(running_ssr,"true"))
+				run_ssr = TRUE;
+		//printf("in desktop.c run_ssr = %d\n",run_ssr);
+	}
+#endif //SSR_SERVER
+}
+void poll_ssr_server(){
+#ifdef SSR_SERVER
+		if(run_ssr){
+			SSR_reply(gglobal());
+			dequeue_SSR_request(gglobal());
+		}
+#endif
+}
+
+void platform_initialize_input_devices(){
+	initialize_ssr_server();
+
+}
+void platform_poll_input_devices(){
+	//win32 message pump - works here for desktop freewrl and npapi, ActiveX plugins, 
+	// because those all use _DisplayThread here. 
+	// (winGLES2 project which uses EGL 'front end' has its own win32 message pump, 
+	// and doesn't call this _displayThread)
+
+	poll_ssr_server();
+	fwMessageLoop(); 
+	poll_game_controllers();
+
+}
+
+
 #endif /* _MSC_VER */

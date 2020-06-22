@@ -61,7 +61,7 @@ X3D Geospatial Component
 #endif
 #ifdef HAVE_SRM
 #define _LIB 1
-#define SRM 1
+#define SRMLIB 1
 #include <stdio.h>
 #include <string.h>
 #include <srm.h>
@@ -75,12 +75,12 @@ int method_geolib(){
 #endif
 }
 int method_srm(){
-#ifdef SRM
+#ifdef SRMLIB
 	//return 0; //freewrl hand coded way, was working fine for more than decade
 	return 1; //srm.lib from sedris.org
-#else
+#else //SRMLIB
 	return 0; //freewrl hand coded way
-#endif
+#endif //SRMLIB
 }
 
 
@@ -821,7 +821,7 @@ static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct
 		getchar();
 }
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
 	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
 
@@ -900,7 +900,7 @@ static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SF
 
     return;
 }
-#endif //SRM
+#endif //SRMLIB
 static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
 	int i;
 #ifdef GEOLIB
@@ -912,7 +912,7 @@ static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3
 		//}
 	}else
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 	if(method_srm()){
 		Gd_Gc3d_srm(geoSystem,inc,n,outc);
 		printf("srm gd2gc:\n");
@@ -921,7 +921,7 @@ static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3
 			printf("gc %d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
 		}
 	}else
-#endif //SRM
+#endif //SRMLIB
 	{
 		double semimajor, flattening;
 		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
@@ -944,14 +944,14 @@ static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3
 		else
 		{
 			Gd_Gc3d_fw(geoSystem,inc,n,outc);
-			#ifdef SRM
+			#ifdef SRMLIB
 			printf("regular gd2gc:\n");
 			for(i=0;i<min(5,n);i++){
 				printf("gd %d %lf %lf %lf\n",i,inc[i].c[0],inc[i].c[1],inc[i].c[2]);
 				printf("gc %d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
 
 			}
-			#endif //SRM
+			#endif //SRMLIB
 			//printf("\n");
 		}
 	}
@@ -1204,7 +1204,7 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 	} 
 }
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 static void Xtm_Gd3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, 
 	double radius, double flatten, 	double scaleFactor, double falseEasting, double falseNorthing, 
 	double zoneSize) {
@@ -1319,11 +1319,11 @@ static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec
 		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	else
 	#endif //GEOLIB
-	#ifdef SRM
+	#ifdef SRMLIB
 	if(method_srm())
 		Xtm_Gd3d_srm(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	else
-	#endif //SRM
+	#endif //SRMLIB
 		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	if(0){
 		//round trip verification, want to convert a UTM -> GD -> (UTM, 3TM)
@@ -1780,7 +1780,7 @@ static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVe
 
 }
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 static void gccToGdc_srm (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
 	double gd[3],gc[3], semimajor,flattening;
 	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
@@ -1855,7 +1855,7 @@ static void gccToGdc_srm (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d
 	veccopyd(gdc->c,gd);
 
 }
-#endif //SRM
+#endif //SRMLIB
 static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
 #ifdef GEOLIB
 	if(method_geolib()){
@@ -1863,12 +1863,12 @@ static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gd
 		//vecprint3db("gl gdc ",gdc->c,"\n");
 	}else
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 	if(method_srm()){
 		gccToGdc_srm(geoSystem,gcc,gdc);
 		//vecprint3db("gl gdc ",gdc->c,"\n");
 	}else
-#endif //GEOLIB
+#endif //SRNLIB
 	{
 		double semimajor, flattening;
 		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
@@ -2006,7 +2006,7 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 	#endif
 }
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 //assumes LAT, LON in radians
 static void gdToXtm_srm(int geotype, double radius, double flattening, double latitude, double longitude, double scaleFactor, 
 	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
@@ -2087,7 +2087,7 @@ static void gdToXtm_srm(int geotype, double radius, double flattening, double la
 	printf("easting = %lf northing = %lf \n",*easting, *northing);
 
 }
-#endif //SRM
+#endif //SRMLIB
 
 
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
@@ -2122,11 +2122,11 @@ static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
 		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	else
 #endif //GEOLIB
-#ifdef SRM
+#ifdef SRMLIB
 	if(method_srm())
 		gdToXtm_srm(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	else
-#endif //GEOLIB
+#endif //SRMLIB
 		gdToXtm(semimajor,flattening, gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	
 	if(!northing_first) vecswizzle2d(xtmcoords);

@@ -252,6 +252,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_body",
 	"_boxtris",
 	"_buffer",
+	"_bufferdata",
 	"_bufferendtime",
 	"_change_count",
 	"_channelcount",
@@ -284,6 +285,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_geom",
 	"_geomIdentityTransform",
 	"_geometryType",
+	"_gltf_unit",
 	"_gridHeight",
 	"_group",
 	"_hatchScale",
@@ -415,6 +417,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_v0",
 	"_vKnot",
 	"_values",
+	"_vbo",
 	"_walkSurfacePriority",
 	"_weightFunction1",
 	"_weightFunction2",
@@ -2528,6 +2531,7 @@ const char *NODES[] = {
 	"BoundaryEnhancementVolumeStyle",
 	"BoundedPhysicsModel",
 	"Box",
+	"BufferGeometry",
 	"CADAssembly",
 	"CADFace",
 	"CADLayer",
@@ -2873,6 +2877,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_renderStyle,0,0,0,0,0,0},
 {FIELDNAMES_physics,0,0,0,0,0,0},
+{FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3279,6 +3284,11 @@ void rendray_Box(struct X3D_Box *);
 void collide_Box(struct X3D_Box *);
 void compile_Box(struct X3D_Box *);
 struct X3D_Virt virt_Box = { NULL,(void *)render_Box,NULL,NULL,(void *)rendray_Box,NULL,NULL,NULL,(void *)collide_Box,(void *)compile_Box};
+
+void render_BufferGeometry(struct X3D_BufferGeometry *);
+void rendray_BufferGeometry(struct X3D_BufferGeometry *);
+void collide_BufferGeometry(struct X3D_BufferGeometry *);
+struct X3D_Virt virt_BufferGeometry = { NULL,(void *)render_BufferGeometry,NULL,NULL,(void *)rendray_BufferGeometry,NULL,NULL,NULL,(void *)collide_BufferGeometry,NULL};
 
 void prep_CADAssembly(struct X3D_CADAssembly *);
 void child_CADAssembly(struct X3D_CADAssembly *);
@@ -4282,6 +4292,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_BoundaryEnhancementVolumeStyle,
 	 &virt_BoundedPhysicsModel,
 	 &virt_Box,
+	 &virt_BufferGeometry,
 	 &virt_CADAssembly,
 	 &virt_CADFace,
 	 &virt_CADLayer,
@@ -4909,6 +4920,12 @@ const int OFFSETS_Box[] = {
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_Box, size),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_solid, (int) offsetof (struct X3D_Box, solid),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___points, (int) offsetof (struct X3D_Box, __points),  (int) FIELDTYPE_MFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_BufferGeometry[] = {
+	(int) FIELDNAMES__gltf_unit, (int) offsetof (struct X3D_BufferGeometry, _gltf_unit),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__bufferdata, (int) offsetof (struct X3D_BufferGeometry, _bufferdata),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__vbo, (int) offsetof (struct X3D_BufferGeometry, _vbo),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_CADAssembly[] = {
@@ -9317,6 +9334,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_BoundaryEnhancementVolumeStyle,
 	OFFSETS_BoundedPhysicsModel,
 	OFFSETS_Box,
+	OFFSETS_BufferGeometry,
 	OFFSETS_CADAssembly,
 	OFFSETS_CADFace,
 	OFFSETS_CADLayer,
@@ -9919,6 +9937,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BoundaryEnhancementVolumeStyle : {tmp = MALLOC (struct X3D_BoundaryEnhancementVolumeStyle *, size = sizeof (struct X3D_BoundaryEnhancementVolumeStyle)); break;}
 		case NODE_BoundedPhysicsModel : {tmp = MALLOC (struct X3D_BoundedPhysicsModel *, size = sizeof (struct X3D_BoundedPhysicsModel)); break;}
 		case NODE_Box : {tmp = MALLOC (struct X3D_Box *, size = sizeof (struct X3D_Box)); break;}
+		case NODE_BufferGeometry : {tmp = MALLOC (struct X3D_BufferGeometry *, size = sizeof (struct X3D_BufferGeometry)); break;}
 		case NODE_CADAssembly : {tmp = MALLOC (struct X3D_CADAssembly *, size = sizeof (struct X3D_CADAssembly)); break;}
 		case NODE_CADFace : {tmp = MALLOC (struct X3D_CADFace *, size = sizeof (struct X3D_CADFace)); break;}
 		case NODE_CADLayer : {tmp = MALLOC (struct X3D_CADLayer *, size = sizeof (struct X3D_CADLayer)); break;}
@@ -10655,6 +10674,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->size.c[0] = 2.0f;tmp2->size.c[1] = 2.0f;tmp2->size.c[2] = 2.0f;
 			tmp2->solid = TRUE;
 			tmp2->__points.n=0; tmp2->__points.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_BufferGeometry : {
+			struct X3D_BufferGeometry * tmp2;
+			tmp2 = (struct X3D_BufferGeometry *) tmp;
+			tmp2->_gltf_unit = 0;
+			tmp2->_bufferdata = 0;
+			tmp2->_vbo.n=0; tmp2->_vbo.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16587,6 +16615,12 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 		    break;
 		}
+		case NODE_BufferGeometry : {
+			struct X3D_BufferGeometry *tmp;
+			tmp = (struct X3D_BufferGeometry *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    break;
+		}
 		case NODE_CADAssembly : {
 			struct X3D_CADAssembly *tmp;
 			tmp = (struct X3D_CADAssembly *) node;
@@ -21998,6 +22032,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_BoundaryEnhancementVolumeStyle: return X3DComposableVolumeRenderStyleNode; break;
 	case NODE_BoundedPhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_Box: return X3DGeometryNode; break;
+	case NODE_BufferGeometry: return X3DGeometryNode; break;
 	case NODE_CADAssembly: return X3DGroupingNode; break;
 	case NODE_CADFace: return X3DProductStructureChildNode; break;
 	case NODE_CADLayer: return X3DGroupingNode; break;

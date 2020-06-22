@@ -313,6 +313,10 @@ EXPOSED_FIELD(Box,size,sfvec3f,size,FIELDTYPE_SFVec3f,UNCA_LENGTH)
 FIELD(Box,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(Box)
 
+/* BufferGeometry node */
+BEGIN_NODE(BufferGeometry)
+END_NODE(BufferGeometry)
+
 /* CADAssembly node */
 BEGIN_NODE(CADAssembly)
 EVENT_IN(CADAssembly,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
