@@ -32,7 +32,7 @@
 
 
 // a list of loaded gltf file units, with one unit representing one .glb or one (.gltf,.bin)
-// in theory this list should be per-execution_context (Scene, Inline, ProtoBody)
+// June 22, 2020: in theory this list should be per-execution_context (Scene, Inline, ProtoBody)
 // as should texture unit array. For now, will be per freewrl main-scene-gglobal.
 typedef struct gltf_unit {
 	cgltf_data *data;	//parsed to cgltf nodes
@@ -66,6 +66,8 @@ void gltf_loader_clear(struct tgltf_loader *t){
 	//private
 	{
 		ppgltf_loader p = (ppgltf_loader)t->prv;
+		//june 22, 2020 not done: detailed cleanup
+		//cgltf_free(data);
 		deleteStack(struct gltf_unit*,p->gltf_units);
 	}
 }
@@ -107,7 +109,11 @@ return node;
 
 struct X3D_PolyRep * create_polyrep0();
 int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node, gltf_unit *unit){
+// june 22, 2020 not done: skinned / rigged animated charactors, points, lines and various things noted below.
+// generally we got glb and gltf+bin to load and render a bit - a proof of concept.
+// biggest thing left: inline and in-bin textures - do we need a BufferTexture node (to bypass freewrl spaghetti code)?
 	//transform part
+	int show = FALSE; //TRUE for some printfs
 	int m = 0;
 	struct X3D_Transform *t = createNewX3DNode(NODE_Transform);
 	if(node->has_matrix){
@@ -129,10 +135,13 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 	if(node->camera){
 		m++;
 		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		//june 22, 2020 not done: add viewpoint here
 	}
 	if(node->light){
 		m++;
 		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		// june 22, 2020 not done: add punctual (directional, point, spot) light here
+		// - not done and not supported yet EnvironmentLight
 	}
 	if(node->mesh){
 		//gltf mesh is like our shape: it refers to material and to geometry/accessor
@@ -162,7 +171,9 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					//	cgltf_bool double_sided;
 					//	cgltf_bool unlit;
 					//	cgltf_extras extras;
-					//} cgltf_material;					
+					//} cgltf_material;		
+					// june 22, 2020: not done: normal texture (supported by freewrl), occlusion texture (not supported)
+					// - and see below for material-type=specific not-dones.
 					if(prim->material->unlit){
 						int mtype = NODE_UnlitMaterial;
 						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name);
@@ -171,9 +182,9 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
 							//mat->emissiveTextureChannel 
 							if(prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
-								printf("image loaded for us\n");
+								if(show) printf("image loaded for us\n");
 							}else{
-								printf("image not loaded uri = %s\n",prim->material->emissive_texture.texture->image->uri);
+								if(show) printf("image not loaded uri = %s\n",prim->material->emissive_texture.texture->image->uri);
 							}
 						}
 						sn->appearance = createNewX3DNode(NODE_Appearance);
@@ -193,6 +204,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							//
 							//	cgltf_extras extras;
 							//} cgltf_pbr_metallic_roughness;
+							// june 22, 2020 done: url loaded texture
+							// - not done: inline (base64 for gltf) / in-bin textures (for .glb)
 							cgltf_pbr_metallic_roughness *pbr = &prim->material->pbr_metallic_roughness;
 							mat = (struct X3D_PhysicalMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
@@ -202,9 +215,9 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							mat->roughness = pbr->roughness_factor;
 							if(pbr->base_color_texture.texture){
 								if(pbr->base_color_texture.texture->image->buffer_view){ //->buffer->data){
-									printf("image loaded for us\n");
+									if(show) printf("image loaded for us\n");
 								}else{
-									printf("image not loaded uri = %s\n",pbr->base_color_texture.texture->image->uri);
+									if(show) printf("image not loaded uri = %s\n",pbr->base_color_texture.texture->image->uri);
 									struct X3D_Node *image = USE_node(pbr->base_color_texture.texture->image->name);
 									if(!image){
 										 image = DEF_node(ectx,pbr->base_color_texture.texture->image->name,NODE_ImageTexture);
@@ -233,6 +246,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							//	cgltf_float specular_factor[3];
 							//	cgltf_float glossiness_factor;
 							//} cgltf_pbr_specular_glossiness;
+							// june 22, 2020 not done: textures for diffuse and specular_glossiness
+							// neither url nor inline / in-bin handled
 							mat = (struct X3D_Material*) DEF_node(ectx,prim->material->name,mtype);
 							cgltf_pbr_specular_glossiness *pbr = &prim->material->pbr_specular_glossiness;
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
@@ -259,7 +274,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					{
 						cgltf_float element_float[16];
 						int acount = prim->attributes_count;
-						if(1){
+						if(show){
+							//printout to help get the idea of whats in the structs
 							printf("triangles\n");
 							for(int ii=0;ii<acount;ii++){
 								printf("attr %s indx %d ",prim->attributes[ii].name,prim->attributes[ii].index);
@@ -313,75 +329,15 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						gn = createNewX3DNode(NODE_BufferGeometry); //NODE_TriangleSet);
 						add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(gn));
 						sn->geometry = gn;
-						{
-							enum {
-								GLTF_USE_BUFFER_COPY = 1,
-								GLTF_USE_RECOMPILE = 2,
-							};
-							//struct X3D_TriangleSet *ts = (struct X3D_TriangleSet*)gn;
-							struct X3D_BufferGeometry *ts = (struct X3D_BufferGeometry*)gn;
-							ts->_gltf_unit = unit;
-							ts->_bufferdata = prim;
-							if(0){
-								int use_method = GLTF_USE_BUFFER_COPY;//GLTF_USE_RECOMPILE;
-								if(use_method == GLTF_USE_RECOMPILE){
-								}else if(use_method == GLTF_USE_BUFFER_COPY){
-									//struct X3D_PolyRep * r = create_polyrep0(); //does vertex and index genBuffer
-									//ts->_intern = r;
-									for(int ii=0;ii<acount;ii++){
-										const cgltf_accessor* blob = prim->attributes[ii].data;
-										size_t size = blob->count * cgltf_num_components(blob->type) * sizeof(float);
-										void *data = &blob->buffer_view->buffer[blob->buffer_view->offset];
-										switch(prim->attributes[ii].type){
-											case cgltf_attribute_type_position:
-											////copy to coord vbo
-											//r->ntri = blob->count / 3;
-											//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[VERTEX_VBO]);
-											//glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-											break;
-
-											//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,r->VBO_buffers[INDEX_VBO]);
-									
-											case cgltf_attribute_type_normal:
-											//copy to normals vbo
-											//glGenBuffers(1,&r->VBO_buffers[NORMAL_VBO]);
-											//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[NORMAL_VBO]);
-											//glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-											break;
-
-											case cgltf_attribute_type_texcoord:
-											//copy to texcoord
-											//glGenBuffers(1,&r->VBO_buffers[TEXTURE_VBO0]);
-											//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[TEXTURE_VBO0]);
-											//glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-											break;
-
-											//cooy to vertex color vbo
-											//if (r->color) {
-											//	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);            
-											//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
-											//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
-											//	// needed by recalculateColorField ... FREE_IF_NZ(r->color);
-											//}
-											//if (newfog) {
-											//	if (r->VBO_buffers[FOG_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[FOG_VBO]);            
-											//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
-											//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
-											//}
-
-
-
-											default:
-											break;
-										}
-									}
-									//r->streamed=TRUE;
-								}
-							}
-						}
+						struct X3D_BufferGeometry *ts = (struct X3D_BufferGeometry*)gn;
+						ts->_gltf_unit = unit;
+						ts->_bufferdata = prim;
 					}
 					break;
 					case cgltf_primitive_type_triangle_strip:
+						//June 22, 2020 possible in gltf format, but not implemented here
+						// hypothesis: one BufferGeometry node (above) can handle all geom types
+						// including points and lines
 						printf("triangle strip\n");
 						break;
 					case cgltf_primitive_type_triangle_fan:
@@ -556,10 +512,8 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 				spot = &((struct X3D_Group*)(myParent))->children;
 			spot->p = NULL; spot->n = 0;
 			parse_gltf(ectx,spot,data,unit);
-			// 2. for exta files send url request and have a place to put it in the x3d node created for it
 			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
 			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
-			//cgltf_free(data);
 			ret = TRUE;
 		}
 	}
@@ -577,6 +531,7 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 // 6 when .bin resource loads here, we apply bin to cgltf nodes buffer.data and set the gltf_unit-loaded flag
 
 int gltf_load_bin(resource_item_t *res){
+	// late arriving .bin (for .gltf separated unit)
 	gltf_unit * unit = res->resm_specific;
 	if(unit && !unit->bin_loaded){
 		openned_file_t *of = res->openned_files;
@@ -588,14 +543,14 @@ int gltf_load_bin(resource_item_t *res){
 		Stack *file_list = unit->bin_file_list;
 		struct uri_data *ud;
 		for(int i=0;i<vectorSize(file_list); i++){
+			// june 22, 2020: I'm not properly handling multiple .bin or whatever the loop is for
 			ud = vector_get_ptr(struct uri_data,file_list,i);
 			*ud->data = unit->bin;
 			ud->data_size = unit->bin_len;
-			//result = cgltf_load_buffers_from_files(&options, data,file_list);
 		}
 		unit->bin_loaded = TRUE;
 	}
-	return FALSE;
+	return TRUE;
 }
 
 int parser_process_res_gltf(resource_item_t *res){
@@ -620,7 +575,7 @@ int parser_process_res_gltf(resource_item_t *res){
 			// when binary gl buffer data has been loaded and applied to primitives
 			parsedOk = gltf_load_bin(res);
 			break;
-		//cesium related
+		//cesium related - for future geo/cesium work
 		case resm_json:
 			break;
 		case resm_b3dm:
@@ -636,14 +591,16 @@ int parser_process_res_gltf(resource_item_t *res){
 	return parsedOk;
 }
 void compile_BufferGeometry(struct X3D_BufferGeometry *node){
-
+	// june 22, 2020 - some of the stuff below -with -1 vbo- in render_ could bw moved here
 }
 void render_BufferGeometry(struct X3D_BufferGeometry *node){
-
+	
+	//we lazy-load .bin binary buffer part for .gltf, so have to wait 
+	// till its loaded. .glb loads in one shot 
 	if(!node->_gltf_unit) return;
 	gltf_unit *unit = node->_gltf_unit;
 	if(!unit->bin_loaded) return;
-
+	int show = FALSE; //TRUE for printfs below
 
 	//CULL_FACE(node->solid)
 	if(!node->_bufferdata) return;
@@ -658,7 +615,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		 for(int i=0;i<(acount+1);i++) node->_vbo.p[i] = -1;
 	}
 
-	if(prim && acount){
+	if(show && prim && acount){
 		printf("render_BufferGeometry triangles\n");
 
 		for(int ii=0;ii<acount;ii++){
@@ -711,10 +668,6 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		}
 	}
 
-//return;
-//glEnableClientState(GL_VERTEX_ARRAY);             // activate vertex position array
-//glEnableClientState(GL_NORMAL_ARRAY);             // activate vertex normal array
-//glEnableClientState(GL_TEXTURE_COORD_ARRAY);      // activate texture coord array
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
 
 	for(int ii=0;ii<acount;ii++){
@@ -734,7 +687,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 				for (cgltf_size index = 0; index < blob->count; index++)
 				{
 					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
-					printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
+					if(show)printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
 				}
 				//glVertexAttribPointer( LOC   ,isize, GL_FLOAT, FALSE, blob->stride, fdata);
 				//FW_GL_VERTEX_POINTER(3, GL_FLOAT,size, fdata); 
@@ -759,7 +712,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 				for (cgltf_size index = 0; index < blob->count; index++)
 				{
 					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
-					printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
+					if(show) printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
 				}
 				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
@@ -785,7 +738,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 				for (cgltf_size index = 0; index < blob->count; index++)
 				{
 					cgltf_accessor_read_float(blob, index, &fdata[index*2], 2);
-					printf("%d %f %f \n", index, fdata[index*2 +0],fdata[index*2 +1]);
+					if(show) printf("%d %f %f \n", index, fdata[index*2 +0],fdata[index*2 +1]);
 				}
 				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
@@ -820,7 +773,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		}
 
 	}
-	if(acount && prim && prim->indices){
+	if(show && acount && prim && prim->indices){
 		// indexes for indexedtriangleset
 			const cgltf_accessor* blob = prim->indices;
 			cgltf_uint element_int;
@@ -872,50 +825,14 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 			//FW_GL_ELEMENT_POINTER(2,GL_FLOAT,0,0,0);
 			
 		}
-			/*
-			glGenBuffers(1, &node->_vbo.p[acount]);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, blob->count  * sizeof(unsigned int), &indu[0], GL_STATIC_DRAW);
-		}else{
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
-		}		*/
-		//sendArraysToGPU(GL_TRIANGLES,0,ntri*3);
-		//sendArraysToGPU(GL_TRIANGLES,0,0);
 		sendElementsToGPU(GL_TRIANGLES,ntri*3,uindexs);  //WORKS
-		//sendElementsToGPU(GL_TRIANGLES,0,NULL);
-
 		//glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs); //WORKS
 	}
-	printf("done render_BufferGeometry\n");
-	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__cylinderVBO);
+	if(show) printf("done render_BufferGeometry\n");
 
-	//FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei)sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));
-	//	//The starting point of the VBO, for the vertices
-	//if(DESIRE(getShaderFlags().base,SHADINGSTYLE_FLAT)){
-	//	//The starting point of normals, (3+3+2)*4  = 32 +  bytes away
-	//	FW_GL_NORMAL_POINTER(GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(32));   
-	//}else{
-	//	//The starting point of normals, 3*4  = 12 +  bytes away
-	//	FW_GL_NORMAL_POINTER(GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(12));   
-	//}
-	/* set up texture drawing for this guy */
-	//mtf.pre_canned_textureCoords = NULL;
-	//mtf.TC_size = 2;
-	//mtf.TC_type = GL_FLOAT;
-	//mtf.TC_stride = sizeof(struct MyVertex);
-	//mtf.TC_pointer = BUFFER_OFFSET(24);
-	//textureCoord_send(&mtf);
-	/* FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, ConeIndxVBO); */
-
-	//if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
-	//	//wireframe triangles
-	//	sendElementsToGPU(GL_LINES,node->__cylinderTriangles *2,node->__wireindices);
-	//}else{
-//		sendArraysToGPU(GL_TRIANGLES,0,node->_vbo.p[0]);
-	//}
 	/* turn off */
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);	
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);	
 }
 void rendray_BufferGeometry(struct X3D_BufferGeometry *node){
 }
