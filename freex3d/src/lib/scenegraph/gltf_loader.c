@@ -78,12 +78,14 @@ struct X3D_Node * node;
 };
 static Stack *defs = NULL;
 struct X3D_Node *USE_node(char *name){
-	if(!defs) defs = newStack(struct name_node);
-	struct name_node nn;
-	for(int i=0;i<defs->n;i++){
-		nn = vector_get(struct name_node,defs,i);
-		if(!strcmp(name,nn.name)){
-			return nn.node;
+	if(name){
+		if(!defs) defs = newStack(struct name_node);
+		struct name_node nn;
+		for(int i=0;i<defs->n;i++){
+			nn = vector_get(struct name_node,defs,i);
+			if(!strcmp(name,nn.name)){
+				return nn.node;
+			}
 		}
 	}
 	return NULL;
@@ -93,10 +95,12 @@ struct X3D_Node *DEF_node(struct X3D_Node *ectx, char *name, int nodetype){
 	struct name_node nn;
 	struct X3D_Node *node = createNewX3DNode(nodetype);
 	add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(node));
+	if(name){
+		nn.name = name;
+		nn.node = node;
+		stack_push(struct name_node,defs,nn);
+	}
 
-	nn.name = name;
-	nn.node = node;
-	stack_push(struct name_node,defs,nn);
 return node;
 }
 
@@ -140,6 +144,25 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 			for(int j=0;j<node->mesh->primitives_count;j++){
 				cgltf_primitive *prim = &node->mesh->primitives[j];
 				if(prim->material){
+					//typedef struct cgltf_material
+					//{
+					//	char* name;
+					//	cgltf_bool has_pbr_metallic_roughness;
+					//	cgltf_bool has_pbr_specular_glossiness;
+					//	cgltf_bool has_clearcoat;
+					//	cgltf_pbr_metallic_roughness pbr_metallic_roughness;
+					//	cgltf_pbr_specular_glossiness pbr_specular_glossiness;
+					//	cgltf_clearcoat clearcoat;
+					//	cgltf_texture_view normal_texture;
+					//	cgltf_texture_view occlusion_texture;
+					//	cgltf_texture_view emissive_texture;
+					//	cgltf_float emissive_factor[3];
+					//	cgltf_alpha_mode alpha_mode;
+					//	cgltf_float alpha_cutoff;
+					//	cgltf_bool double_sided;
+					//	cgltf_bool unlit;
+					//	cgltf_extras extras;
+					//} cgltf_material;					
 					if(prim->material->unlit){
 						int mtype = NODE_UnlitMaterial;
 						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name);
@@ -152,49 +175,75 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							}else{
 								printf("image not loaded uri = %s\n",prim->material->emissive_texture.texture->image->uri);
 							}
-							/*
-typedef struct cgltf_material
-{
-	char* name;
-	cgltf_bool has_pbr_metallic_roughness;
-	cgltf_bool has_pbr_specular_glossiness;
-	cgltf_bool has_clearcoat;
-	cgltf_pbr_metallic_roughness pbr_metallic_roughness;
-	cgltf_pbr_specular_glossiness pbr_specular_glossiness;
-	cgltf_clearcoat clearcoat;
-	cgltf_texture_view normal_texture;
-	cgltf_texture_view occlusion_texture;
-	cgltf_texture_view emissive_texture;
-	cgltf_float emissive_factor[3];
-	cgltf_alpha_mode alpha_mode;
-	cgltf_float alpha_cutoff;
-	cgltf_bool double_sided;
-	cgltf_bool unlit;
-	cgltf_extras extras;
-} cgltf_material;					
-*/	}
+						}
+						sn->appearance = createNewX3DNode(NODE_Appearance);
+						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					}else if(prim->material->has_pbr_metallic_roughness){
 						int mtype = NODE_PhysicalMaterial;
 						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim->material->name);
 						if(!mat){
+							//typedef struct cgltf_pbr_metallic_roughness
+							//{
+							//	cgltf_texture_view base_color_texture;
+							//	cgltf_texture_view metallic_roughness_texture;
+							//
+							//	cgltf_float base_color_factor[4];
+							//	cgltf_float metallic_factor;
+							//	cgltf_float roughness_factor;
+							//
+							//	cgltf_extras extras;
+							//} cgltf_pbr_metallic_roughness;
 							cgltf_pbr_metallic_roughness *pbr = &prim->material->pbr_metallic_roughness;
 							mat = (struct X3D_PhysicalMaterial*) DEF_node(ectx,prim->material->name,mtype);
-							
+							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
+							veccopy3f(mat->baseColor.c,pbr->base_color_factor);
+							mat->transparency = 1.0f - pbr->base_color_factor[3];
+							mat->metallic = pbr->metallic_factor;
+							mat->roughness = pbr->roughness_factor;
 							if(pbr->base_color_texture.texture){
 								if(pbr->base_color_texture.texture->image->buffer_view){ //->buffer->data){
 									printf("image loaded for us\n");
 								}else{
 									printf("image not loaded uri = %s\n",pbr->base_color_texture.texture->image->uri);
+									struct X3D_Node *image = USE_node(pbr->base_color_texture.texture->image->name);
+									if(!image){
+										 image = DEF_node(ectx,pbr->base_color_texture.texture->image->name,NODE_ImageTexture);
+										 struct X3D_ImageTexture *it = (struct X3D_ImageTexture*)image;
+										 it->url.p = malloc(sizeof(void*));
+										 it->url.p[0] = newASCIIString(pbr->base_color_texture.texture->image->uri);
+										 it->url.n = 1;
+									}
+									mat->baseTexture = image;
 								}
 							}
 
 						}
+						sn->appearance = createNewX3DNode(NODE_Appearance);
+						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					}else if(prim->material->has_pbr_specular_glossiness){
 						int mtype = NODE_Material;
 						struct X3D_Material* mat = (struct X3D_Material*) USE_node(prim->material->name);
 						if(!mat){
+							//typedef struct cgltf_pbr_specular_glossiness
+							//{
+							//	cgltf_texture_view diffuse_texture;
+							//	cgltf_texture_view specular_glossiness_texture;
+							//
+							//	cgltf_float diffuse_factor[4];
+							//	cgltf_float specular_factor[3];
+							//	cgltf_float glossiness_factor;
+							//} cgltf_pbr_specular_glossiness;
 							mat = (struct X3D_Material*) DEF_node(ectx,prim->material->name,mtype);
+							cgltf_pbr_specular_glossiness *pbr = &prim->material->pbr_specular_glossiness;
+							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
+							veccopy3f(mat->diffuseColor.c,pbr->diffuse_factor);
+							veccopy3f(mat->specularColor.c,pbr->specular_factor);
+							mat->shininess = pbr->glossiness_factor;
+							mat->transparency = 1.0f - pbr->diffuse_factor[3];
+
 						}
+						sn->appearance = createNewX3DNode(NODE_Appearance);
+						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					} 
 				}
 				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/rendering.html
