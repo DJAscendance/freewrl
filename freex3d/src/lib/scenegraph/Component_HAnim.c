@@ -233,6 +233,15 @@ on child_humanoid rendering call:
 			in shader if SKELETAL && GPU
 				apply weighted transforms
 
+June 24, 2020 Note: glTF skinning shows vertex shader formula
+- you pass shader a skin mesh in standing pose
+- and (an array of) matrices and skin vertex weights
+- and vertex shader does the math
+https://www.khronos.org/gltf/ 
+https://www.khronos.org/files/gltf20-reference-guide.pdf
+- reference guide shows vertex shader code for weighted matrix blending for skinning
+- freewrl needs this 
+x currenlty we are transforming mesh vertices in CPU on each frame - all CPU
 
 */
 
