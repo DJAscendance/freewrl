@@ -333,6 +333,35 @@ extern "C" {
 
     }
 
+
 #ifdef __cplusplus
 }
 #endif
+
+
+// June 22, 2020 - the above is a prototype I,
+// proposed prototype II:
+// 1) create_context launches a worker thread per context
+//    the worker thread is in C++ and holds smart pointer variables 
+// 2) the worker thread loops, and once per loop waits on a condition variable
+// 3) once per rendering frame, the browser render_context(node context) sets the condition variable
+// 4) if first time, the context worker thread creates all the labsound nodes and connects them
+//    to match the x3d declared context and connected child nodes
+// 5) the subsequent frames, if any field has been changed on the x3d audio nodes, 
+//    the condition varible is set and the worker thread updates the changed fields on
+//    the labsound nodes
+// 6) at end of program run, the condition variable is set and the worker does an exit,
+//    triggering garbage collection of smart pointer variables
+// 
+// https://en.cppreference.com/w/cpp/thread/condition_variable 
+// -shows std::condition_variable and thread.
+// But there's a web3d difference between SpatializedSound and SoundEffect nodes:
+// SoundEffects
+// - may not make the June30 cutoff for v4, but SpatializedSound will
+// - have a competing method: a script method, like a script node,
+// - with webAudio equivalnet api exposed to the js engine for scripting
+// I have no idea how hard it would be to expose labsound api to js.
+// - H0: brutal, like nothing we've ever done before
+// - H1: routine copy and paste from webAudio implementations
+// - H2: much like exposing to scengraph rendering - same deal
+//
