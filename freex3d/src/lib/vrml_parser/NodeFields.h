@@ -618,8 +618,8 @@ EXPOSED_FIELD(ConeEmitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(ConeEmitter,position,sfvec3f,position,FIELDTYPE_SFVec3f,UNCA_LENGTH)
 EXPOSED_FIELD(ConeEmitter,speed,sffloat,speed,FIELDTYPE_SFFloat,UNCA_SPEED)
 EXPOSED_FIELD(ConeEmitter,variation,sffloat,variation,FIELDTYPE_SFFloat,UNCA_NONE)
-FIELD(ConeEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
-FIELD(ConeEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
+EXPOSED_FIELD(ConeEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(ConeEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 END_NODE(ConeEmitter)
 
 /* Contact node */
@@ -1030,8 +1030,8 @@ EXPOSED_FIELD(ExplosionEmitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NO
 EXPOSED_FIELD(ExplosionEmitter,position,sfvec3f,position,FIELDTYPE_SFVec3f,UNCA_LENGTH)
 EXPOSED_FIELD(ExplosionEmitter,speed,sffloat,speed,FIELDTYPE_SFFloat,UNCA_SPEED)
 EXPOSED_FIELD(ExplosionEmitter,variation,sffloat,variation,FIELDTYPE_SFFloat,UNCA_NONE)
-FIELD(ExplosionEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
-FIELD(ExplosionEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
+EXPOSED_FIELD(ExplosionEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(ExplosionEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 END_NODE(ExplosionEmitter)
 
 /* Extrusion node */
@@ -2972,8 +2972,8 @@ EXPOSED_FIELD(PointEmitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PointEmitter,position,sfvec3f,position,FIELDTYPE_SFVec3f,UNCA_LENGTH)
 EXPOSED_FIELD(PointEmitter,speed,sffloat,speed,FIELDTYPE_SFFloat,UNCA_SPEED)
 EXPOSED_FIELD(PointEmitter,variation,sffloat,variation,FIELDTYPE_SFFloat,UNCA_NONE)
-FIELD(PointEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
-FIELD(PointEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
+EXPOSED_FIELD(PointEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(PointEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 END_NODE(PointEmitter)
 
 /* PointLight node */
@@ -3056,8 +3056,8 @@ EXPOSED_FIELD(PolylineEmitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NON
 EXPOSED_FIELD(PolylineEmitter,speed,sffloat,speed,FIELDTYPE_SFFloat,UNCA_SPEED)
 EXPOSED_FIELD(PolylineEmitter,variation,sffloat,variation,FIELDTYPE_SFFloat,UNCA_LENGTH)
 FIELD(PolylineEmitter,coordIndex,mfint32,coordIndex,FIELDTYPE_MFInt32,UNCA_NONE)
-FIELD(PolylineEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
-FIELD(PolylineEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
+EXPOSED_FIELD(PolylineEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(PolylineEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 END_NODE(PolylineEmitter)
 
 /* Polypoint2D node */
@@ -3634,9 +3634,9 @@ EXPOSED_FIELD(SurfaceEmitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE
 EXPOSED_FIELD(SurfaceEmitter,speed,sffloat,speed,FIELDTYPE_SFFloat,UNCA_SPEED)
 EXPOSED_FIELD(SurfaceEmitter,variation,sffloat,variation,FIELDTYPE_SFFloat,UNCA_LENGTH)
 FIELD(SurfaceEmitter,coordIndex,mfint32,coordIndex,FIELDTYPE_MFInt32,UNCA_NONE)
-FIELD(SurfaceEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(SurfaceEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(SurfaceEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 EXPOSED_FIELD(SurfaceEmitter,surface,sfnode,surface,FIELDTYPE_SFNode,UNCA_NONE)
-FIELD(SurfaceEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 EXPOSED_FIELD(SurfaceEmitter,geometry,sfnode,geometry,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(SurfaceEmitter)
 
@@ -4136,8 +4136,8 @@ EXPOSED_FIELD(VolumeEmitter,speed,sffloat,speed,FIELDTYPE_SFFloat,UNCA_SPEED)
 EXPOSED_FIELD(VolumeEmitter,variation,sffloat,variation,FIELDTYPE_SFFloat,UNCA_LENGTH)
 FIELD(VolumeEmitter,coordIndex,mfint32,coordIndex,FIELDTYPE_MFInt32,UNCA_NONE)
 EXPOSED_FIELD(VolumeEmitter,internal,sfbool,internal,FIELDTYPE_SFBool,UNCA_NONE)
-FIELD(VolumeEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
-FIELD(VolumeEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
+EXPOSED_FIELD(VolumeEmitter,mass,sffloat,mass,FIELDTYPE_SFFloat,UNCA_MASS)
+EXPOSED_FIELD(VolumeEmitter,surfaceArea,sffloat,surfaceArea,FIELDTYPE_SFFloat,UNCA_AREA)
 END_NODE(VolumeEmitter)
 
 /* VolumePickSensor node */

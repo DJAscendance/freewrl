@@ -4802,8 +4802,8 @@ our %Nodes = (
 		position  => ["SFVec3f", [0,0,0],"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
-		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
+		mass  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		surfaceArea  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 	],"X3DParticleEmitterNode"),
 	
 	# 40.4.3 ExplosionEmitter
@@ -4812,8 +4812,8 @@ our %Nodes = (
 		position  => ["SFVec3f", [0,0,0],"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
-		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
+		mass  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		surfaceArea  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 	],"X3DParticleEmitterNode"),
 	
 	# 40.4.4 ForcePhysicsModel
@@ -4869,8 +4869,8 @@ our %Nodes = (
 		position  => ["SFVec3f", [0,0,0],"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
-		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
+		mass  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		surfaceArea  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 	],"X3DParticleEmitterNode"),
 	
 	# 40.4.7 PolylineEmitter
@@ -4883,8 +4883,8 @@ our %Nodes = (
 		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		coordIndex => ["MFInt32", [-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
-		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
+		mass  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		surfaceArea  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 		_method =>["SFInt32",0,"initializeOnly",0,0],#ff
 		_nseg =>["SFInt32",0,"initializeOnly",0,0],#ff
 		_segs => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
@@ -4899,9 +4899,9 @@ our %Nodes = (
 		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
 		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		coordIndex => ["MFInt32", [-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		mass  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		surfaceArea  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 		surface => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 		geometry => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_ifs => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
 	],"X3DParticleEmitterNode"),
@@ -4917,8 +4917,8 @@ our %Nodes = (
 		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		coordIndex => ["MFInt32", [-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		internal  => ["SFBool", "TRUE","inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		mass  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
-		surfaceArea  => ["SFFloat", 0,"initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
+		mass  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_MASS"],#ff
+		surfaceArea  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_AREA"],#ff
 		_ifs => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
 	],"X3DParticleEmitterNode"),
 	

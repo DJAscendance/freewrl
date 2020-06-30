@@ -1910,6 +1910,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"styleStart",
 	"summary",
 	"surface",
+	"surfaceArea",
 	"surfaceNormals",
 	"surfaceSpeed",
 	"surfaceTolerance",
@@ -2076,7 +2077,6 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"lococentre",
 	"longitude1",
 	"longitude2",
-	"mass",
 	"mustEvaluate",
 	"name",
 	"normalIndex",
@@ -2129,7 +2129,6 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"stripCount",
 	"style",
 	"subcategory",
-	"surfaceArea",
 	"systemParameters",
 	"texCoordIndex",
 	"texCoordKey",
@@ -5267,8 +5266,8 @@ const int OFFSETS_ConeEmitter[] = {
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_ConeEmitter, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_ConeEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_ConeEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_ConeEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
-	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_ConeEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
+	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_ConeEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_ConeEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Contact[] = {
@@ -5756,8 +5755,8 @@ const int OFFSETS_ExplosionEmitter[] = {
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_ExplosionEmitter, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_ExplosionEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_ExplosionEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_ExplosionEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
-	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_ExplosionEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
+	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_ExplosionEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_ExplosionEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Extrusion[] = {
@@ -7904,8 +7903,8 @@ const int OFFSETS_PointEmitter[] = {
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_PointEmitter, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_PointEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_PointEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_PointEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
-	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_PointEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
+	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_PointEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_PointEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PointLight[] = {
@@ -8004,8 +8003,8 @@ const int OFFSETS_PolylineEmitter[] = {
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_PolylineEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_PolylineEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_coordIndex, (int) offsetof (struct X3D_PolylineEmitter, coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_PolylineEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
-	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_PolylineEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
+	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_PolylineEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_PolylineEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	(int) FIELDNAMES__method, (int) offsetof (struct X3D_PolylineEmitter, _method),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__nseg, (int) offsetof (struct X3D_PolylineEmitter, _nseg),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__segs, (int) offsetof (struct X3D_PolylineEmitter, _segs),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -8711,9 +8710,9 @@ const int OFFSETS_SurfaceEmitter[] = {
 	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_SurfaceEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_SurfaceEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_coordIndex, (int) offsetof (struct X3D_SurfaceEmitter, coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_SurfaceEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_SurfaceEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_SurfaceEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	(int) FIELDNAMES_surface, (int) offsetof (struct X3D_SurfaceEmitter, surface),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_SurfaceEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	(int) FIELDNAMES_geometry, (int) offsetof (struct X3D_SurfaceEmitter, geometry),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__ifs, (int) offsetof (struct X3D_SurfaceEmitter, _ifs),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -9263,8 +9262,8 @@ const int OFFSETS_VolumeEmitter[] = {
 	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_VolumeEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_coordIndex, (int) offsetof (struct X3D_VolumeEmitter, coordIndex),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_internal, (int) offsetof (struct X3D_VolumeEmitter, internal),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_VolumeEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
-	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_VolumeEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
+	(int) FIELDNAMES_mass, (int) offsetof (struct X3D_VolumeEmitter, mass),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_MASS,
+	(int) FIELDNAMES_surfaceArea, (int) offsetof (struct X3D_VolumeEmitter, surfaceArea),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_AREA,
 	(int) FIELDNAMES__ifs, (int) offsetof (struct X3D_VolumeEmitter, _ifs),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -15409,8 +15408,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->coordIndex.p[0] = -1;
 			tmp2->coordIndex.n=1;;
 			tmp2->mass = 0.0f;
-			tmp2->surface = NULL;
 			tmp2->surfaceArea = 0.0f;
+			tmp2->surface = NULL;
 			tmp2->geometry = NULL;
 			tmp2->_ifs = NULL;
 			tmp2->_defaultContainer = 0;
@@ -17047,6 +17046,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
+			spacer fprintf (fp," mass (SFFloat) \t%4.3f\n",tmp->mass);
+			spacer fprintf (fp," surfaceArea (SFFloat) \t%4.3f\n",tmp->surfaceArea);
 		    break;
 		}
 		case NODE_Contact : {
@@ -17594,6 +17595,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
+			spacer fprintf (fp," mass (SFFloat) \t%4.3f\n",tmp->mass);
+			spacer fprintf (fp," surfaceArea (SFFloat) \t%4.3f\n",tmp->surfaceArea);
 		    break;
 		}
 		case NODE_Extrusion : {
@@ -20252,6 +20255,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
+			spacer fprintf (fp," mass (SFFloat) \t%4.3f\n",tmp->mass);
+			spacer fprintf (fp," surfaceArea (SFFloat) \t%4.3f\n",tmp->surfaceArea);
 		    break;
 		}
 		case NODE_PointLight : {
@@ -20388,6 +20393,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
+			spacer fprintf (fp," mass (SFFloat) \t%4.3f\n",tmp->mass);
+			spacer fprintf (fp," surfaceArea (SFFloat) \t%4.3f\n",tmp->surfaceArea);
 		    break;
 		}
 		case NODE_Polypoint2D : {
@@ -21204,6 +21211,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
+			spacer fprintf (fp," mass (SFFloat) \t%4.3f\n",tmp->mass);
+			spacer fprintf (fp," surfaceArea (SFFloat) \t%4.3f\n",tmp->surfaceArea);
 			spacer fprintf (fp," surface (SFNode):\n"); dump_scene(fp,level+1,tmp->surface); 
 			spacer fprintf (fp," geometry (SFNode):\n"); dump_scene(fp,level+1,tmp->geometry); 
 		    break;
@@ -21940,6 +21949,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
 			spacer fprintf (fp," internal (SFBool) \t%d\n",tmp->internal);
+			spacer fprintf (fp," mass (SFFloat) \t%4.3f\n",tmp->mass);
+			spacer fprintf (fp," surfaceArea (SFFloat) \t%4.3f\n",tmp->surfaceArea);
 		    break;
 		}
 		case NODE_VolumePickSensor : {
