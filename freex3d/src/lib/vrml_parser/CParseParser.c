@@ -2426,7 +2426,47 @@ static BOOL parser_field(struct VRMLParser* me, struct X3D_Node* node)
 {
 	return parser_field_B(me,node);
 }
+static union anyVrml ignore_field;
+static BOOL found_ignore_field(struct VRMLParser* me, struct X3D_Node* node)
+{
+    int mode;
+    int type;
+	int source;
+	int ifield;
+	char *nodeFieldName;
+	DECLAREUP
+	union anyVrml *targetVal;
+	void *fdecl;
 
+	//get the fieldname
+	SAVEUP //save the lexer spot so if it's not a 'fieldname <fieldValue>' we can backup
+	/* get nodeFieldName */
+	if(!lexer_setCurID(me->lexer)) return FALSE;
+	ASSERT(me->lexer->curID);
+	nodeFieldName = STRDUP(me->lexer->curID);
+		
+	FREE_IF_NZ(me->lexer->curID);
+
+	//retrieve field mode, type
+	targetVal = &ignore_field;
+	if(strcmp(nodeFieldName,"_xy")){
+		BACKUP
+		FREE_IF_NZ(nodeFieldName);
+		return FALSE; //couldn't find field in user or builtin fields anywhere
+	}
+	type = FIELDTYPE_SFVec2f;
+	if (!parseType(me, type, targetVal)) {
+		/* Invalid default value parsed.  Delete the proto or script declaration. */
+		CPARSE_ERROR_CURID("Expected default value for field!");
+		//if(pdecl) deleteProtoFieldDecl(pdecl);
+		//if(sdecl) deleteScriptFieldDecl(sdecl);
+		FREE_IF_NZ(nodeFieldName);
+		return FALSE;
+	}
+	FREEUP
+	FREE_IF_NZ(nodeFieldName);
+    return TRUE;
+}
 
 /* ************************************************************************** */
 /* MF* field values */
@@ -3204,6 +3244,9 @@ static BOOL parser_node_B(struct VRMLParser* me, vrmlNodeT* ret, int ind) {
 #ifdef CPARSERVERBOSE
 			printf("parser_node: try parsing field ... \n");
 #endif
+			if( found_ignore_field(me,node)){
+				continue;
+			}
 			/* check for IS - can be any mode, and builtin or user field on builtin node or usernode/protoInstance */
 			if( found_IS_field(me,node) ){
 				continue;
