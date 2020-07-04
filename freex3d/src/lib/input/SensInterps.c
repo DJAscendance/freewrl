@@ -1685,7 +1685,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 			if(op->reset){
 				veccopy3f(op->p,dp->p);
 				op->reset = FALSE;
-				printf("reset %d\n",op->ID);
+				//printf("reset %d\n",op->ID);
 			}
 			vecdif3f(tr,dp->p,op->p);
 
@@ -1707,7 +1707,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	} else if (ev==ButtonRelease) {
 		/* set isActive false */
 		if(touchID == op->ID){
-			printf("release %d\n",touchID);
+			//printf("release %d\n",touchID);
 			node->isActive=FALSE;
 			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
 			op->reset = TRUE;

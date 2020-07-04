@@ -1124,7 +1124,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
-	if(node->isActive){
+	if(TRUE){ //node->isActive){
 		int i,j,k,maxparticles;
 		double ttime;
 		float dtime;
