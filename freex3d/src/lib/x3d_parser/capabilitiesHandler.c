@@ -60,7 +60,7 @@ static const int capabilities[] = {
 	COM_Shape,	4, 		/* May 12, 2009 */
 	COM_Texturing3D,	2, 	/* Sept 4, 2016 */
 	COM_PointDeviceSensor,	1, 	/* May 12, 2009 */
-	COM_HAnim,	1, 		/* Nov 2016 */
+	COM_HAnim,	2, 		/* Nov 2020 */
 	COM_RigidBodyPhysics,	2, 	/* Nov 2016 */
 	COM_Core,		2,	/* October 29, 2008 */
 	COM_Layout,	2, 		/* Jan 2016 */
@@ -123,7 +123,7 @@ static const int FullProfile[] = {
 	COM_EnvironmentalSensor,	3,
 	COM_EnvironmentalEffects,	4,
 	COM_Geospatial,			2,
-	COM_HAnim,			1,
+	COM_HAnim,			2,
 	COM_NURBS,			4,
 	COM_DIS,			2,
 	COM_Scripting,			1,
