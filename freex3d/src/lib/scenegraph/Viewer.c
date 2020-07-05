@@ -1262,6 +1262,21 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 }
 
 
+void handle_geo_pan(const int mev, const unsigned int button, float x, float y) {
+
+printf("geo_pan ");
+}
+
+
+void handle_geo_zoom(const int mev, const unsigned int button, float x, float y) {
+
+printf("geo_zoom ");
+}
+
+void handle_geo_turntable(const int mev, const unsigned int button, float x, float y) {
+printf("geo_ttable ");
+}
+
 void increment_pos0(struct point_XYZ *vec);
 void handle_tick_fly2(double dtime) {
 	ttglobal tg;
@@ -1520,6 +1535,8 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_TURNTABLE:
 		case VIEWER_EXAMINE:
 		case VIEWER_DIST:
+		case VIEWER_PAN:
+		case VIEWER_ZOOM:
 			viewer_fetch_user_offsets0(viewer);break;
 		default:
 			viewer_fetch_LCS(viewer);break;
@@ -1570,6 +1587,12 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	case VIEWER_DIST:
 		handle_dist(mev,button,(float)x,(float)yup);
 		break;
+	case VIEWER_PAN:
+		handle_geo_pan(mev,button,(float)x,(float)yup);
+		break;
+	case VIEWER_ZOOM:
+		handle_geo_zoom(mev,button,(float)x,(float)yup);
+		break;
 	default:
 		break;
 	}
@@ -1580,6 +1603,8 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_TURNTABLE:
 		case VIEWER_EXAMINE:
 		case VIEWER_DIST:
+		case VIEWER_PAN:
+		case VIEWER_ZOOM:
 			viewer_update_user_offsets0(viewer);break;
 		default:
 			viewer_update_LCS(viewer);break;
