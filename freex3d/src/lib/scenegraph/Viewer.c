@@ -522,6 +522,8 @@ struct navmode {
 	{"YAWPITCH",VIEWER_YAWPITCH},
 	{"ROLL",VIEWER_ROLL},
 	{"DIST",VIEWER_DIST},
+	{"PAN",VIEWER_PAN},
+	{"ZOOM",VIEWER_ZOOM},
 	{NULL,0},
 };
 char * lookup_navmodestring(int navmode){

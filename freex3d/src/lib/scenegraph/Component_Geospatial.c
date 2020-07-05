@@ -4022,10 +4022,10 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	MARK_NODE_COMPILED
 	
 	node->_walkSurfacePriority = 0;
-	for(int i=0;i<node->walkSurfacePriority.n;i++){
-		if(!strcasecmp(node->walkSurfacePriority.p[i]->strptr,"HIGHEST")) node->_walkSurfacePriority |= WALK_SURFACE_HIGHEST;
-		if(!strcasecmp(node->walkSurfacePriority.p[i]->strptr,"LOWEST")) node->_walkSurfacePriority |= WALK_SURFACE_LOWEST;
-		if(!strcasecmp(node->walkSurfacePriority.p[i]->strptr,"PRIORITY")) node->_walkSurfacePriority |= WALK_SURFACE_PRIORITY;
+	for(int i=0;i<node->walkSurface.n;i++){
+		if(!strcasecmp(node->walkSurface.p[i]->strptr,"HIGHEST")) node->_walkSurfacePriority |= WALK_SURFACE_HIGHEST;
+		if(!strcasecmp(node->walkSurface.p[i]->strptr,"LOWEST")) node->_walkSurfacePriority |= WALK_SURFACE_LOWEST;
+		if(!strcasecmp(node->walkSurface.p[i]->strptr,"PRIORITY")) node->_walkSurfacePriority |= WALK_SURFACE_PRIORITY;
 	}
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoViewpoint, metadata)) */
@@ -5122,8 +5122,8 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 			//COMPILE_IF_REQUIRED(X3D_NODE(node));
 			if(node->_ichange != node->_change) compile_GeoViewpoint(node);
 			height_method = node->_walkSurfacePriority;
-			n_walk_surface = node->walkSurfaces.n;
-			walk_surface = node->walkSurfaces.p;
+			n_walk_surface = node->prioritySurfaces.n;
+			walk_surface = node->prioritySurfaces.p;
 		}
 	}
 	nfound = 0;

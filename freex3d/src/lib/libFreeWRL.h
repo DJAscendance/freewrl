@@ -145,6 +145,9 @@ bool Anchor_ReplaceWorld();
 #define VIEWER_YAWPITCH 15
 #define VIEWER_ROLL 16
 #define VIEWER_DIST 17
+//Geo variants, TTABLE above OK
+#define VIEWER_PAN  18
+#define VIEWER_ZOOM 19
 
 #define CHORD_YAWZ 0
 #define CHORD_YAWPITCH 1

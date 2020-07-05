@@ -132,7 +132,7 @@ struct sCollisionGPU {
 
 
 
-#define VIEWER_WALK 2
+//#define VIEWER_WALK 2
 //int viewer_type = VIEWER_WALK; // force to walking
 struct sFallInfo
 {
