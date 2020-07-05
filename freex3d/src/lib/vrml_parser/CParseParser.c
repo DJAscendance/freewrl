@@ -1096,7 +1096,9 @@ static BOOL parser_componentStatement(struct VRMLParser* me) {
 				clevel = &cfullname[i+1];
 				break;
 			}
-			myComponent = findFieldInCOMPONENTS(cname);
+			char *cname1 = cname;
+			if(!strcmp(cname,"H-Anim")) cname1 = "HAnim";
+			myComponent = findFieldInCOMPONENTS(cname1);
 			myLevel = 0;
 			if(clevel) myLevel = atoi(clevel);
 	}
