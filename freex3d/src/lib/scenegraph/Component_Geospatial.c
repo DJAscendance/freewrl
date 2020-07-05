@@ -4021,6 +4021,9 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	gc2gd(gs,&gcCoord,1,&node->__movedgd);
 	MARK_NODE_COMPILED
 	
+
+
+
 	node->_walkSurfacePriority = 0;
 	for(int i=0;i<node->walkSurface.n;i++){
 		if(!strcasecmp(node->walkSurface.p[i]->strptr,"HIGHEST")) node->_walkSurfacePriority |= WALK_SURFACE_HIGHEST;
@@ -4297,6 +4300,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			A.the window can be resized on any frame. so can't do it once in compile_geoviewpoint 
 			 -and analogously we do it in prep_viewpoint and prep_orthoviewpoint
 		*/
+
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		if(viewPort[2] > viewPort[3]) {
 			a1=0;
@@ -4382,7 +4386,37 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		veccopyd(node->position.c,node->_position.c);
 		veccopy4f(node->orientation.c,node->_orientation.c);
 	}
+	fwl_set_viewer_type (VIEWER_WALK);
+	struct Uni_String **svptr;
+	char *typeptr;
+	svptr = node->navigationType.p;
+	for (int i = 0; i < node->navigationType.n; i++) {
+		/*  get the string pointer */
+		typeptr = svptr[i]->strptr;
 
+		if (strcmp(typeptr, "PAN") == 0) {
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_PAN);
+		}
+		if (strcmp(typeptr, "ZOOM") == 0) {
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_ZOOM);
+		}
+		if (strcmp(typeptr, "ANY") == 0) {
+			viewer->oktypes[VIEWER_EXAMINE] = TRUE;
+			viewer->oktypes[VIEWER_WALK] = TRUE;
+			viewer->oktypes[VIEWER_EXFLY] = TRUE;
+			viewer->oktypes[VIEWER_FLY] = TRUE;
+			viewer->oktypes[VIEWER_EXPLORE] = TRUE;
+			viewer->oktypes[VIEWER_LOOKAT] = TRUE;
+			viewer->oktypes[VIEWER_SPHERICAL] = TRUE;
+			viewer->oktypes[VIEWER_TURNTABLE] = TRUE;
+			viewer->oktypes[VIEWER_DIST] = TRUE;
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_WALK); /*  just choose one */
+		}
+	}
 
 	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
 		//save the previous vp pose, in root space, for future slerps
@@ -4427,7 +4461,6 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	node->_resetRelativeHeight = !node->relativeHeight;
 
 	calculateExamineModeDistance();
-	fwl_set_viewer_type (VIEWER_WALK);
 	fwl_setCollision(TRUE);
 	tg->Bindable.activeLayer = saveActive;
 	setMenuStatusVP (node->description->strptr);

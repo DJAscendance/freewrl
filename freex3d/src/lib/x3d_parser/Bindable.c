@@ -280,6 +280,14 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 			viewer->oktypes[VIEWER_DIST] = TRUE;
 			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_DIST);
 		}
+		if (strcmp(typeptr, "PAN") == 0) {
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_PAN);
+		}
+		if (strcmp(typeptr, "ZOOM") == 0) {
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_ZOOM);
+		}
 
 		if (strcmp(typeptr, "ANY") == 0) {
 			viewer->oktypes[VIEWER_EXAMINE] = TRUE;
@@ -291,6 +299,8 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 			viewer->oktypes[VIEWER_SPHERICAL] = TRUE;
 			viewer->oktypes[VIEWER_TURNTABLE] = TRUE;
 			viewer->oktypes[VIEWER_DIST] = TRUE;
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
 			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_WALK); /*  just choose one */
 		}
 	}

@@ -417,6 +417,8 @@ void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type) {
 	case VIEWER_TURNTABLE:
 	case VIEWER_DIST:
 	case VIEWER_FLY:
+	case VIEWER_PAN:
+	case VIEWER_ZOOM:
 		viewer->type = type;
 		break;
 	case VIEWER_SPHERICAL:
