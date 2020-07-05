@@ -1173,13 +1173,39 @@ static int shiftState = 0;
 	 * There should be no internal forwarding of the message, 
 	 * since DefWindowProc propagates it up the parent chain 
 	 * until it finds a window that processes it.
+	 * https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousewheel
 	 */
-	if(!(wParam & (MK_SHIFT | MK_CONTROL))) {
+	if(1) { //if(!(wParam & (MK_SHIFT | MK_CONTROL))) {
+		int fwKeys, zDelta;
+		fwKeys = GET_KEYSTATE_WPARAM(wParam);
+		//we might not want wheel and MMB at the same time:
+		// user might mean just MMB but accidently wheel it too
+		//if(fwKeys & MK_MBUTTON) break;
+		zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 	    /* gcWheelDelta -= (short) HIWORD(wParam); windows snippet */
-	    gcWheelDelta = (short) HIWORD(wParam);
+	    //gcWheelDelta = (short) HIWORD(wParam);
 	    mev = MotionNotify;
-	    break;
+		//printf("wheel %d \n",(int)zDelta);
+		if(0){
+			int xPos, yPos;
+			fwKeys = GET_KEYSTATE_WPARAM(wParam);
+			zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+			xPos = GET_X_LPARAM(lParam); 
+			yPos = GET_Y_LPARAM(lParam);
+			printf("wheel delta %d CTRL=%c SHFT=%c xyPos %d %d BUT %c%c%c X%c%c\n",zDelta,
+			fwKeys & MK_CONTROL ? 'C' : '_', 
+			fwKeys & MK_SHIFT ? 'S' : '_', 
+			//fwKeys & MK_ALT ? 'A' : '_', //doesnt work, and docs don't show it
+			xPos, yPos, 
+			fwKeys & MK_LBUTTON ? 'L' : '_', 
+			fwKeys & MK_MBUTTON ? 'M' : '_', 
+			fwKeys & MK_RBUTTON ? 'R' : '_', 
+			fwKeys & MK_XBUTTON1 ? 'X' : '_',
+			fwKeys & MK_XBUTTON2 ? 'X' : '_'
+			);
+		}
 	}
+    break;
 
 	//WM_TOUCH needs capable device and minimum windows 7 and one way to tell: is it x64 (we're in windows code) - that's vista and beyond. close enough,
 	// although there are x86 versions of windows 8.1 etc.
