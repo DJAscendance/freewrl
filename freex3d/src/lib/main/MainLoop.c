@@ -157,7 +157,6 @@ enum {
 };
 struct TouchState {
 	int buttonState[4]; //0 up, 1 down. For ^ hover mode, buttonstate will be 0 even when touch down
-	int netweheel; // wheel-up - wheel-down since last state
 	int inUse; //flag if never used = 0 not in use, else in use
 	float angle; /*some multitouch -like smarttech- track the angle of the finger */
 	int x; //coordinates as registered at scene level, after transformations in the contenttype stack
@@ -170,6 +169,8 @@ struct Touch
 	struct TouchState frame_state;
 	struct TouchState last_state;
 	int changed;
+	int netweheel; // wheel-up - wheel-down - set to 0 when used once.
+
 	int updraw_none;
 	unsigned int ID;  /* for multitouch: 0-20, represents one finger drag. Recycle after an up */
 	int windex; //multi_window window index 0=default for regular freewrl
@@ -7690,9 +7691,9 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 	}else if(imev == MotionNotify) {
 		//MotionNotify - nothing to do
 		if(ibutton == 4) //wheel up
-			touch->state.netweheel += 1;
+			touch->netweheel += 1;
 		if(ibutton == 5) //wheel down
-			touch->state.netweheel -= 1;
+			touch->netweheel -= 1;
 	}
 
 	if(fwl_getPedal()){
@@ -7724,6 +7725,7 @@ void update_navigation(){
 	lastframe = tg->Mainloop.iframe;
 
 	for(i=0;i<p->ntouch;i++){
+		int imev, ibut;
 		curTouch = &p->touchlist[i];
 		if(curTouch->frame_state.inUse && curTouch->changed){
 			//yes incoming touch _is_ the current touch
@@ -7737,7 +7739,7 @@ void update_navigation(){
 					curTouch->passed |= TOUCHCLAIMANT_NAVIGATION;
 			}
 			if(curTouch->claimant == TOUCHCLAIMANT_NAVIGATION){
-				int imev, ibut, ibutstate, dragStart, dragEnd;
+				int ibutstate, dragStart, dragEnd;
 				//static int lastmev = 5;
 				for(int j=3; j>0; j--){
 					ibut = 0;
@@ -7766,15 +7768,18 @@ void update_navigation(){
 					break; //only do one mouse button at a time, no 'button chords' for freewrl, as of July 6, 2020, maybe in the future?
 					//lastmev = imev;
 				}
-				int netwheel = curTouch->frame_state.netweheel;
-				if(0)if(netwheel != 0){
-					imev = MotionNotify;
-					ibut = netwheel < 0 ? 5 : 4;
-					for(int j=0;j<i<abs(netwheel);j++)
-						handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy);
-				}
 			}
 		}
+		int netwheel = curTouch->netweheel;
+		if(netwheel != 0){
+			imev = MotionNotify;
+			ibut = netwheel < 0 ? 5 : 4;
+			int nwheel = netwheel < 0 ? -netwheel : netwheel;
+			for(int j=0;j<nwheel;j++)
+				handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy);
+			curTouch->netweheel = 0;
+		}
+
 	}
 }
 
