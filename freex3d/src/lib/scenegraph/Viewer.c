@@ -1264,7 +1264,8 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 
 void handle_geo_pan(const int mev, const unsigned int button, float x, float y) {
 
-printf("geo_pan ");
+printf("geo_pan button=%d mev=%d ",button,mev);
+
 }
 
 
@@ -1527,7 +1528,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 {
 	X3D_Viewer *viewer;
 	viewer = Viewer();
-
+	printf("handle0 button=%d mev=%d \n",button,mev);
 	switch(viewer->type){
 		case VIEWER_WALK:
 		case VIEWER_FLY:

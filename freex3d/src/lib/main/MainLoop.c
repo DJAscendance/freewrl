@@ -156,7 +156,8 @@ enum {
 	TOUCHCLAIMANT_NONE = 8, //means something like hover
 };
 struct TouchState {
-	int buttonState; //0 up, 1 down. For ^ hover mode, buttonstate will be 0 even when touch down
+	int buttonState[4]; //0 up, 1 down. For ^ hover mode, buttonstate will be 0 even when touch down
+	int netweheel; // wheel-up - wheel-down since last state
 	int inUse; //flag if never used = 0 not in use, else in use
 	float angle; /*some multitouch -like smarttech- track the angle of the finger */
 	int x; //coordinates as registered at scene level, after transformations in the contenttype stack
@@ -4203,7 +4204,7 @@ int fwl_handle_mouse_multi_yup(int mev, int butnum, int mouseX, int yup, unsigne
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
 
-	if (mev == MotionNotify) butnum = 0; //a freewrl handle...multiNORMAL convention
+//	if (mev == MotionNotify) butnum = 0; //a freewrl handle...multiNORMAL convention
 
 	t = &p->cwindows[windex];
 	s = (stage*)t->stage;
@@ -5054,8 +5055,8 @@ void setup_picking(){
 			x = touch->frame_state.x;
 			yup = touch->frame_state.y;
 			tg->RenderFuncs.touchID = touch->ID;
-			int dragStart = touch->frame_state.buttonState == 1 && touch->last_state.buttonState == 0 ? TRUE : FALSE;
-			int dragEnd = touch->frame_state.buttonState == 0 && touch->last_state.buttonState == 1 ? TRUE : FALSE;
+			int dragStart = touch->frame_state.buttonState[1] == 1 && touch->last_state.buttonState[1] == 0 ? TRUE : FALSE;
+			int dragEnd = touch->frame_state.buttonState[1] == 0 && touch->last_state.buttonState[1] == 1 ? TRUE : FALSE;
 			isOver = (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants);
 			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver) {
 				if(setup_pickside(x,yup)){
@@ -5132,7 +5133,7 @@ void setup_picking(){
 						//this shuts off hypersensitive
 						/* send an event of ButtonRelease and isOver=true;
 							an isOver=false event will be sent below if required */
-						sendSensorEvents(touch->lastPressedOver, ButtonRelease, touch->frame_state.buttonState, TRUE);
+						sendSensorEvents(touch->lastPressedOver, ButtonRelease, touch->frame_state.buttonState[1], TRUE);
 						touch->lastPressedOver = NULL;
 					}
 
@@ -5144,10 +5145,10 @@ void setup_picking(){
 						//  we won't have a mouse event but the view matrix will change, causing the pickray
 						//  to move with respect to the dragsensor - in which case the sensor should emit events.
 						/* TouchSensor hitPoint_changed needs to know if we are over a sensitive node or not */
-						sendSensorEvents(touch->CursorOverSensitive,MotionNotify, touch->frame_state.buttonState, TRUE); //p->ButDown[p->currentCursor][1], TRUE);
+						sendSensorEvents(touch->CursorOverSensitive,MotionNotify, touch->frame_state.buttonState[1], TRUE); //p->ButDown[p->currentCursor][1], TRUE);
 
 						/* PlaneSensors, etc, take the last sensitive node pressed over, and a mouse movement */
-						sendSensorEvents(touch->lastPressedOver,MotionNotify, touch->frame_state.buttonState, TRUE); //p->ButDown[p->currentCursor][1], TRUE);
+						sendSensorEvents(touch->lastPressedOver,MotionNotify, touch->frame_state.buttonState[1], TRUE); //p->ButDown[p->currentCursor][1], TRUE);
 					}
 
 					/* do we need to re-define cursor style? */
@@ -5159,15 +5160,15 @@ void setup_picking(){
 						/* is this a new node that we are now over?
 							don't change the node pointer if we are clicked down */
 						if ((touch->lastPressedOver==NULL) && (touch->CursorOverSensitive != touch->oldCOS)) {
-							sendSensorEvents(touch->oldCOS,MapNotify,touch->frame_state.buttonState, FALSE);
-							sendSensorEvents(touch->CursorOverSensitive,MapNotify,touch->frame_state.buttonState, TRUE);
+							sendSensorEvents(touch->oldCOS,MapNotify,touch->frame_state.buttonState[1], FALSE);
+							sendSensorEvents(touch->CursorOverSensitive,MapNotify,touch->frame_state.buttonState[1], TRUE);
 							 touch->oldCOS = touch->CursorOverSensitive;
 						}
 					} else {
 						/* hold off on cursor change if dragging a sensor */
 						/* were we over a sensitive node? */
-						if ((touch->oldCOS != NULL)  && touch->frame_state.buttonState == 0) {
-							sendSensorEvents(touch->oldCOS, MapNotify, touch->frame_state.buttonState, FALSE);
+						if ((touch->oldCOS != NULL)  && touch->frame_state.buttonState[1] == 0) {
+							sendSensorEvents(touch->oldCOS, MapNotify, touch->frame_state.buttonState[1], FALSE);
 							/* remove any display on-screen */
 							touch->oldCOS = NULL;
 						}
@@ -7616,15 +7617,15 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 	ppMainloop p;
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
-
-	if(button == RMB){
-		//May 2016 - officially no more RMB for any kind of navigation
-		//for fun, lets use desktop RMB to change fly chord
-		if(mev == ButtonPress){
-			viewer_setNextDragChord();
-		}
-		return;
-	}
+	
+	//if(button == RMB){
+	//	//May 2016 - officially no more RMB for any kind of navigation
+	//	//for fun, lets use desktop RMB to change fly chord
+	//	if(mev == ButtonPress){
+	//		viewer_setNextDragChord();
+	//	}
+	//	return;
+	//}
 
 	ibutton = button;
 	int imev = mev;
@@ -7669,25 +7670,29 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 		//touch->dragStart = mev == ButtonPress ? TRUE : FALSE; //cleared by claimant when they've consumed the start
 	}
 	//touch->mev = mev; //recorded for testing later, but dragstart, dragend are the event signals.
-	if(imev == ButtonPress){
+	if(imev == ButtonPress && ibutton < 4){
 		//touch->inUse = TRUE;
-		touch->state.buttonState = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
+		touch->state.buttonState[ibutton] = ibutton ? 1 : 0; //mev == ButtonPress; 0=hover/isOver/up-drag mode, 1=normal down-drag, stays constant for whole drag
 		touch->claimant = claimant; 
 		touch->passed = passed;
 		//touch->dragEnd = FALSE;
 		//touch->dragStart = TRUE;
-	}else if(imev == ButtonRelease || imev == ButtonRecycle){
+	}else if((imev == ButtonRelease || imev == ButtonRecycle) && ibutton < 4){
 		//if(touch->ID == ID)
 		//	p->currentTouch = 0;
 		//touch->dragEnd = TRUE;
 		if(imev == ButtonRecycle) touch->updraw_none = TRUE;
-		touch->state.buttonState = 0;
+		touch->state.buttonState[ibutton] = 0;
 		if(touch->claimant == TOUCHCLAIMANT_PEDAL) {
 			//touch device - garbage collect down-drag
 			//touch->state.inUse = FALSE;
 		}
-	}else{
+	}else if(imev == MotionNotify) {
 		//MotionNotify - nothing to do
+		if(ibutton == 4) //wheel up
+			touch->state.netweheel += 1;
+		if(ibutton == 5) //wheel down
+			touch->state.netweheel -= 1;
 	}
 
 	if(fwl_getPedal()){
@@ -7732,28 +7737,39 @@ void update_navigation(){
 					curTouch->passed |= TOUCHCLAIMANT_NAVIGATION;
 			}
 			if(curTouch->claimant == TOUCHCLAIMANT_NAVIGATION){
-				int imev, ibut, dragStart, dragEnd;
-				static int lastmev = 5;
-				ibut = curTouch->frame_state.buttonState;
-				dragStart = ibut == 1 && curTouch->last_state.buttonState == 0;
-				dragEnd = ibut == 0 && curTouch->last_state.buttonState == 1;
-				if (dragStart || (dragEnd)) {
-					if(dragStart) {
-						imev = ButtonPress;
-						//if(lastmev != 5 && curTouch->last_state.buttonState == 1) printf("ouch missing ButtonReleaswe event\n");
+				int imev, ibut, ibutstate, dragStart, dragEnd;
+				//static int lastmev = 5;
+				for(int j=1; j<4; j++){
+					ibut = 0;
+					ibutstate = curTouch->frame_state.buttonState[j];
+					dragStart = ibutstate == 1 && curTouch->last_state.buttonState[j] == 0;
+					dragEnd = ibutstate == 0 && curTouch->last_state.buttonState[j] == 1;
+					if (dragStart || (dragEnd)) {
+						ibut = j;
+						if(dragStart) {
+							imev = ButtonPress;
+							//if(lastmev != 5 && curTouch->last_state.buttonState == 1) printf("ouch missing ButtonReleaswe event\n");
+						}
+						if(dragEnd) {
+							 imev = ButtonRelease;
+						}
+						//walk mode wants a button 1 with ButtonRelease
+						handle(imev, ibut, curTouch->frame_state.fx,curTouch->frame_state.fy);
+					} else {
+						imev = MotionNotify;
+						if(ibut || TRUE){  //we don't navigate with button not down
+							handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy); 
+						}
 					}
-					if(dragEnd) {
-						 imev = ButtonRelease;
-					}
-					//walk mode wants a button 1 with ButtonRelease
-					handle(imev, 1, curTouch->frame_state.fx,curTouch->frame_state.fy);
-				} else {
-					imev = MotionNotify;
-					if(ibut || TRUE){  //we don't navigate with button not down
-						handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy); 
-					}
+					//lastmev = imev;
 				}
-				lastmev = imev;
+				int netwheel = curTouch->frame_state.netweheel;
+				if(0)if(netwheel != 0){
+					imev = MotionNotify;
+					ibut = netwheel < 0 ? 5 : 4;
+					for(int j=0;j<i<abs(netwheel);j++)
+						handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy);
+				}
 			}
 		}
 	}
@@ -8035,7 +8051,7 @@ void resetSensorEvents(void) {
 		touch = &p->touchlist[ktouch];
 		if(touch->state.inUse){
 			if (touch->oldCOS != NULL)
-			sendSensorEvents(touch->oldCOS,MapNotify,touch->state.buttonState, FALSE);
+			sendSensorEvents(touch->oldCOS,MapNotify,touch->state.buttonState[1], FALSE);
 			//sendSensorEvents(p->oldCOS,MapNotify,p->ButDown[p->currentCursor][1], FALSE);
 		}
 		/* remove any display on-screen */

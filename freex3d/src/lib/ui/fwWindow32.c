@@ -1185,6 +1185,10 @@ static int shiftState = 0;
 	    /* gcWheelDelta -= (short) HIWORD(wParam); windows snippet */
 	    //gcWheelDelta = (short) HIWORD(wParam);
 	    mev = MotionNotify;
+		//linux convention 
+		butnum = 0;
+		if( zDelta < 0 ) butnum = 4; //scroll wheel up (in linux)
+		else if(zDelta > 0) butnum  = 5; //scroll wheel down
 		//printf("wheel %d \n",(int)zDelta);
 		if(0){
 			int xPos, yPos;
