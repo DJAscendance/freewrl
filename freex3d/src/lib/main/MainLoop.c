@@ -7753,6 +7753,7 @@ void update_navigation(){
 						if(dragEnd) {
 							 imev = ButtonRelease;
 						}
+						ibut = j; //buttonUp needs button num
 						//walk mode wants a button 1 with ButtonRelease
 						handle(imev, ibut, curTouch->frame_state.fx,curTouch->frame_state.fy);
 					} else {
