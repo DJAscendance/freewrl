@@ -7739,13 +7739,13 @@ void update_navigation(){
 			if(curTouch->claimant == TOUCHCLAIMANT_NAVIGATION){
 				int imev, ibut, ibutstate, dragStart, dragEnd;
 				//static int lastmev = 5;
-				for(int j=1; j<4; j++){
+				for(int j=3; j>0; j--){
 					ibut = 0;
 					ibutstate = curTouch->frame_state.buttonState[j];
+					if(ibutstate) ibut = j;
 					dragStart = ibutstate == 1 && curTouch->last_state.buttonState[j] == 0;
 					dragEnd = ibutstate == 0 && curTouch->last_state.buttonState[j] == 1;
 					if (dragStart || (dragEnd)) {
-						ibut = j;
 						if(dragStart) {
 							imev = ButtonPress;
 							//if(lastmev != 5 && curTouch->last_state.buttonState == 1) printf("ouch missing ButtonReleaswe event\n");
@@ -7756,11 +7756,13 @@ void update_navigation(){
 						//walk mode wants a button 1 with ButtonRelease
 						handle(imev, ibut, curTouch->frame_state.fx,curTouch->frame_state.fy);
 					} else {
+						if(j>1 && !ibut) continue; //only do isOver with but1
 						imev = MotionNotify;
 						if(ibut || TRUE){  //we don't navigate with button not down
 							handle (imev, ibut, curTouch->frame_state.fx, curTouch->frame_state.fy); 
 						}
 					}
+					break; //only do one mouse button at a time, no 'button chords' for freewrl, as of July 6, 2020, maybe in the future?
 					//lastmev = imev;
 				}
 				int netwheel = curTouch->frame_state.netweheel;
