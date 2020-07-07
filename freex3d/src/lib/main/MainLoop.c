@@ -5059,6 +5059,10 @@ void setup_picking(){
 			int dragStart = touch->frame_state.buttonState[1] == 1 && touch->last_state.buttonState[1] == 0 ? TRUE : FALSE;
 			int dragEnd = touch->frame_state.buttonState[1] == 0 && touch->last_state.buttonState[1] == 1 ? TRUE : FALSE;
 			isOver = (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants);
+			if(!isOver) {
+				if(! (touch->claimant == TOUCHCLAIMANT_UNCLAIMED))printf("?");
+				if(! ( touch->passed == priorclaimants))printf("v");
+				}
 			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver) {
 				if(setup_pickside(x,yup)){
 					// There can be multiple paths to a parent transform of a sensor node:
@@ -5136,6 +5140,8 @@ void setup_picking(){
 							an isOver=false event will be sent below if required */
 						sendSensorEvents(touch->lastPressedOver, ButtonRelease, touch->frame_state.buttonState[1], TRUE);
 						touch->lastPressedOver = NULL;
+						touch->claimant = TOUCHCLAIMANT_UNCLAIMED;
+
 					}
 
 					if (TRUE) { // || p->lastMouseEvent[ID] == MotionNotify) {
@@ -7763,6 +7769,8 @@ void update_navigation(){
 						}
 						if(dragEnd) {
 							 imev = ButtonRelease;
+							 curTouch->claimant = TOUCHCLAIMANT_UNCLAIMED;
+							 curTouch->passed =  TOUCHCLAIMANT_PEDAL;
 						}
 						ibut = j; //buttonUp needs button num
 						//walk mode wants a button 1 with ButtonRelease
