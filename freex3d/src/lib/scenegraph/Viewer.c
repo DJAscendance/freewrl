@@ -1261,15 +1261,125 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 	
 }
 
+#include "RenderFuncs.h"
+ivec4 get_current_viewport();
+void handle_pan(const int mev, const unsigned int button, float x, float y) {
+struct X3D_Node* getRayHit();
+printf("PAN button=%d mev=%d ",button,mev);
+	/*
+	Like handle_spherical, except:
+	move the viewer->Pos in the opposite direction from where we are looking
+	*/
+	int ctrl;
+	X3D_Viewer *viewer;
+	ttglobal tg = gglobal();
+	viewer = Viewer();
 
-void handle_geo_pan(const int mev, const unsigned int button, float x, float y) {
+	if(button)
+	switch(mev){
+		case  ButtonPress:
+			//trigger a node pick in mainloop, followed by viewpoint transition
+			if(0){
+			int ix, iy;
+			//convert viewport floats -1 to 1 to viewport coords int y-up
+			ivec4 ivport;
+			Stack *vportstack;
+			vportstack = (Stack *)gglobal()->Mainloop._vportstack;
+			ivport = get_current_viewport();
+			ix = ivport.W * (x + 1.0f)*.5f + ivport.X;
+			iy = ivport.H * (y + 1.0f)*.5f + ivport.Y;
+			if(setup_pickside(ix,iy)){ 
+				setup_projection();
+				setup_pickray(ix,iy); 
+				setup_viewpoint();
+				set_viewmatrix();
+				render_hier(rootNode(), VF_Geom | VF_Sensitive);
 
-printf("geo_pan button=%d mev=%d ",button,mev);
+				//getRayHitAndSetLookatTarget();
 
+				if(tg->RenderFuncs.hitPointDist >= 0) {
+					//struct X3D_Node * node = getRayHit(); 
+					struct currayhit * rh = (struct currayhit *)tg->RenderFuncs.rayHit;
+
+					/* is the sensitive node not NULL? */
+					if (rh->hitNode == NULL) {
+					//if(node == NULL){
+						//Viewer()->LookatMode = 0; //give up, turn off lookat cursor
+					}else{
+						//GLDOUBLE matTarget[16];
+						double center[3], radius; //pos[3], 
+						pointxyz2double(center,tg->RenderFuncs.hp);
+						transformAFFINEd(center,center,getPickrayMatrix(0));
+						double2float(Viewer()->pin_point,center,3);
+						//Viewer()->LookatMode = 3; //go to viewpiont transition mode
+					}
+				}
+			}
+			}
+			//viewer->LookatMode = 2;
+			break;
+		case MotionNotify:
+			//drag viewer in ground XZ plane
+			//if(viewer->LookatMode == 3){
+			//}
+			//viewer->LookatMode = 0; //VIEWER_EXPLORE
+			// as pointing device moves, move the viewer 
+			// in particular, the viewer.position should be updated
+			// so that the pointing device stays over the same pin_point
+			// Q. how to do that? 
+			if(0){
+				double d3[3];
+				float N[3], v[3], trackpoint[3];
+				vecset3f(N,0.0f,1.0f,0.0f); //normal to ground
+				{
+					double mvident[16], pickMatrix[16], pmi[16], proj[16], R1[16], R2[16], R3[16], T[16];
+					int viewport[4];
+					double A[3], B[3], C[3], a[3], b[3];
+					double yaw, pitch, yy,xx;
+
+					loadIdentityMatrix(mvident);
+					FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+					FW_GL_GETINTEGERV(GL_VIEWPORT,viewport);
+					//yy = (float)viewport[3]  -y + bottom +top;
+					//glu_unproject will subtract the viewport from the x,y, if they're all in y-up screen coords
+					//yy = (float)(tg->display.screenHeight - y); //y-up - bottom
+					yy = (float)y; //yup
+					xx = (float)x;
+					//printf("vp = %d %d %d %d\n",viewport[0],viewport[1],viewport[2],viewport[3]);
+					//printf("yy %lf vp3 %d y %d vp1 %d sh %d\n",
+					//	yy, viewport[3], y, viewport[1], tg->display.screenHeight);
+					//nearside point
+					a[0] = xx; a[1] = yy;  a[2] = 0.0;
+					FW_GLU_UNPROJECT(a[0], a[1], a[2], mvident, proj, viewport,
+							&A[0],&A[1],&A[2]);
+					mattranslate(T,A[0],A[1],A[2]);
+					//farside point
+					b[0] = xx; b[1] = yy;  b[2] = 1.0;
+					FW_GLU_UNPROJECT(b[0], b[1], b[2], mvident, proj, viewport,
+							&B[0],&B[1],&B[2]);
+					vecdifd(C,B,A);
+					vecnormald(C,C);
+					double2float(v,C,3);
+				}
+
+
+				printf("pin_point %f %f %f\n",viewer->pin_point[0],viewer->pin_point[1],viewer->pin_point[2]);
+	
+				if (!line_intersect_planed_3f(viewer->pin_point, v, N, 0.0f, trackpoint, NULL))
+					return; //looking at plane edge-on / parallel, no intersection
+				printf("trackpoint %f %f %f\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+				double2pointxyz(&viewer->Pos,float2double(d3,trackpoint,3));
+			}
+			break;
+		case ButtonRelease:
+			//viewer->lookatmode should == 3 coming in here
+
+		break;
+	}
 }
 
 
-void handle_geo_zoom(const int mev, const unsigned int button, float x, float y) {
+void handle_zoom(const int mev, const unsigned int button, float x, float y) {
 
 printf("geo_zoom ");
 }
@@ -1589,10 +1699,10 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		handle_dist(mev,button,(float)x,(float)yup);
 		break;
 	case VIEWER_PAN:
-		handle_geo_pan(mev,button,(float)x,(float)yup);
+		handle_pan(mev,button,(float)x,(float)yup);
 		break;
 	case VIEWER_ZOOM:
-		handle_geo_zoom(mev,button,(float)x,(float)yup);
+		handle_zoom(mev,button,(float)x,(float)yup);
 		break;
 	default:
 		break;

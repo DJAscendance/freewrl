@@ -3359,7 +3359,7 @@ int slerp_viewpoint2();
 int slerp_viewpoint3();
 static void render_pre(void);
 
-static int setup_pickside(int x, int y);
+int setup_pickside(int x, int y);
 void setup_projection();
 void setup_pickray(int x, int y);
 struct X3D_Node*  getRayHit(void);
@@ -5359,7 +5359,7 @@ int setup_pickside0(int x, int y, int *iside, ivec4 *vportleft, ivec4 *vportrigh
 	if(!ieither) *iside = userPreferredPickSide;
 	return sideleft || sideright; //if the mouse is outside graphics window, stop tracking it
 }
-static int setup_pickside(int x, int y){
+int setup_pickside(int x, int y){
 	ivec4 vpleft, vpright;
 	int iside, inside;
 	iside = 0;
@@ -5699,8 +5699,8 @@ static void render()
 	generate_GeneratedCubeMapTextures();
 	setup_projection();
 	set_viewmatrix();
-	//update_navigation();
 	setup_picking();
+	//update_navigation();
 	viewer = Viewer();
 	doglClearColor();
 
@@ -6474,6 +6474,8 @@ int getRayHitAndSetLookatTarget() {
 				pivot_radius = 0.0;
 				//vp_radius = dradius;
 
+				Viewer()->LookatMode = 3; //go to viewpiont transition mode
+				setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
 			} else if(Viewer()->type == VIEWER_EXPLORE){
 				//use the pickpoint (think of a large, continuous geospatial terrain shape,
 				// and you want to examine a specific geographic point on that shape)
@@ -6481,9 +6483,16 @@ int getRayHitAndSetLookatTarget() {
 				transformAFFINEd(center,center,getPickrayMatrix(0));
 				pivot_radius = 0.0;
 				vp_radius = .8 * veclengthd(center);
+				Viewer()->LookatMode = 3; //go to viewpiont transition mode
+				setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
+			} else if(Viewer()->type == VIEWER_PAN){
+				//use the pickpoint (think of a large, continuous geospatial terrain shape,
+				// and you want to examine a specific geographic point on that shape)
+				pointxyz2double(center,tg->RenderFuncs.hp);
+				transformAFFINEd(center,center,getPickrayMatrix(0));
+				double2float(Viewer()->pin_point,center,3);
+				Viewer()->LookatMode = 3; //go to viewpiont transition mode
 			}
-			Viewer()->LookatMode = 3; //go to viewpiont transition mode
-			setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
 		}
     }
     return Viewer()->LookatMode;
