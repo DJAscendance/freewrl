@@ -5059,10 +5059,10 @@ void setup_picking(){
 			int dragStart = touch->frame_state.buttonState[1] == 1 && touch->last_state.buttonState[1] == 0 ? TRUE : FALSE;
 			int dragEnd = touch->frame_state.buttonState[1] == 0 && touch->last_state.buttonState[1] == 1 ? TRUE : FALSE;
 			isOver = (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants);
-			if(!isOver) {
-				if(! (touch->claimant == TOUCHCLAIMANT_UNCLAIMED))printf("?");
-				if(! ( touch->passed == priorclaimants))printf("v");
-				}
+			//if(!isOver) {
+			//	if(! (touch->claimant == TOUCHCLAIMANT_UNCLAIMED))printf("?");
+			//	if(! ( touch->passed == priorclaimants))printf("v");
+			//	}
 			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver) {
 				if(setup_pickside(x,yup)){
 					// There can be multiple paths to a parent transform of a sensor node:
@@ -5087,8 +5087,8 @@ void setup_picking(){
 					}else{
 						//hyperhit pass: already buttondown on a dragsensor and touch or viewpoint moves
 						touch->CursorOverSensitive = NULL; //hyper pass
-						memcpy(((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, touch->justModel, 16 * sizeof(double));
-						memcpy(  tg->RenderFuncs.hp, &touch->hp, sizeof(struct point_XYZ));
+						//memcpy(((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, touch->justModel, 16 * sizeof(double));
+						//memcpy(  tg->RenderFuncs.hp, &touch->hp, sizeof(struct point_XYZ));
 					}
 
 					//double-check navigation, which may have already started
@@ -5106,7 +5106,7 @@ void setup_picking(){
 								TickTime(), (unsigned int) touch->lastOver, (unsigned int) touch->CursorOverSensitive,
 								touch->ButDown[p->currentCursor][1]);
 						#endif
-						if (touch->frame_state.buttonState == 0) {
+						if (touch->frame_state.buttonState[1] == 0) {
 							/* ok, when the user releases a button, cursorOverSensitive WILL BE NULL
 								until it gets sensed again. So, we use the lastOverButtonPressed flag to delay
 								sending this flag by one event loop loop. */
@@ -5129,7 +5129,7 @@ void setup_picking(){
 						continue; //navigation touch
 					}
 					/* did we have a click of button 1? */
-					if (dragStart && touch->frame_state.buttonState && (touch->lastPressedOver==NULL)) {
+					if (dragStart && touch->frame_state.buttonState[1] && (touch->lastPressedOver==NULL)) {
 						/* send an event of ButtonPress and isOver=true */
 						touch->lastPressedOver = touch->CursorOverSensitive;
 						sendSensorEvents(touch->lastPressedOver, ButtonPress, dragStart, TRUE);
