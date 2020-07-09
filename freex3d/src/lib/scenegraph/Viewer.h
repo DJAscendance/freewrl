@@ -159,7 +159,11 @@ typedef struct viewer_fly {
 	double lasttime;
 } X3D_Viewer_Fly;
 
-
+typedef struct viewer_pan {
+	float pin_point_plane[3];
+	int have_pin_point;
+	double down_pos[3];
+} X3D_Viewer_Pan;
 
 typedef struct viewer {
 	struct point_XYZ currentPosInModel;
@@ -202,7 +206,7 @@ typedef struct viewer {
 	X3D_Viewer_Fly fly;
 	X3D_Viewer_Spherical ypz;
 	X3D_Viewer_InPlane inplane;
-
+	X3D_Viewer_Pan pan;
 	struct point_XYZ VPvelocity;
 
 	int SLERPing2;
