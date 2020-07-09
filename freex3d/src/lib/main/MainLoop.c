@@ -188,6 +188,10 @@ struct Touch
 	int hyperhit;
 	double justModel[16];
 	struct point_XYZ hp;
+	//navigation uses projected touch points
+	double hitPointDist;
+	double pin_point[3];
+	double ray[6]; //start of ray, end of ray
 };
 
 //#ifdef ANGLEPROJECT
@@ -5040,7 +5044,8 @@ void setup_picking(){
 
 	windex = p->windex;
 	/* handle_mouse events if clicked on a sensitive node */
-	if (tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
+	//if (tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
+	if (!Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
 		struct X3D_Node *sensornode;
 		int x,yup,ktouch,priorclaimants, isOver;
 		struct Touch *touch;
@@ -5063,7 +5068,7 @@ void setup_picking(){
 			//	if(! (touch->claimant == TOUCHCLAIMANT_UNCLAIMED))printf("?");
 			//	if(! ( touch->passed == priorclaimants))printf("v");
 			//	}
-			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver) {
+			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver || dragStart || touch->claimant == TOUCHCLAIMANT_NAVIGATION) {
 				if(setup_pickside(x,yup)){
 					// There can be multiple paths to a parent transform of a sensor node:
 					// touch 1:M path M:1 transform/parent 1:M SensorEvent M:1 Sensor
@@ -5079,16 +5084,33 @@ void setup_picking(){
 					tg->RenderFuncs.hyperhit = touch->hyperhit;
 					//new shortcut way, skips render_hier on hyper pass
 					if(!touch->hyperhit ){
-						//sensor pass: on ButtonPress, and isOver
+						int ku = 0;
+						//sensor pass: on ButtonPress, and isOver, (July 2020) and navigation dragStart for PAH
+						if(ku)printf("doing picking pass dragstart=%d\n",dragStart ? 1 : 0);
 						render_hier(rootNode(),VF_Sensitive  | VF_Geom); 
 						touch->CursorOverSensitive = getRayHit();
+						if(ku)printf("hpdist = %lf\n",(double)tg->RenderFuncs.hitPointDist);
+						touch->hitPointDist = tg->RenderFuncs.hitPointDist;
+						struct currayhit * rh = (struct currayhit *)tg->RenderFuncs.rayHit;
+						if(ku)printf("hitNode %d ", rh->hitNode != NULL ? 1 : 0);
+						double center[3];
+						pointxyz2double(center,tg->RenderFuncs.hp);
+						transformAFFINEd(&touch->ray[3],center,getPickrayMatrix(0)); //far point of ray where hits geom
+						center[2] = .1;
+						transformAFFINEd(touch->ray,center,getPickrayMatrix(0)); //near point of ray, needed for ortho
+						if(dragStart) veccopyd(touch->pin_point,&touch->ray[3]);  //for Nav PAN, ZOOM, TURN there's a pin point on the ground we need to 'remember' for the whole drag
+
+						if(ku)printf("pin %lf %lf %lf\n",touch->pin_point[0],touch->pin_point[1],touch->pin_point[2]);
 						memcpy( touch->justModel, ((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, 16 * sizeof(double));
 						memcpy( &touch->hp, tg->RenderFuncs.hp, sizeof(struct point_XYZ));
 					}else{
 						//hyperhit pass: already buttondown on a dragsensor and touch or viewpoint moves
 						touch->CursorOverSensitive = NULL; //hyper pass
-						//memcpy(((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, touch->justModel, 16 * sizeof(double));
-						//memcpy(  tg->RenderFuncs.hp, &touch->hp, sizeof(struct point_XYZ));
+						//there could be some functions not using touch - using the singleton renderfuncs
+						//and with multitouch, it would be invalid part of the time, so we freshen up here for each touch
+						// only helpful temporarily in this touch loop
+						memcpy(((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, touch->justModel, 16 * sizeof(double));
+						memcpy(  tg->RenderFuncs.hp, &touch->hp, sizeof(struct point_XYZ));
 					}
 
 					//double-check navigation, which may have already started
@@ -6491,14 +6513,15 @@ int getRayHitAndSetLookatTarget() {
 				vp_radius = .8 * veclengthd(center);
 				Viewer()->LookatMode = 3; //go to viewpiont transition mode
 				setup_viewpoint_slerp3(center,pivot_radius,vp_radius);
-			} else if(Viewer()->type == VIEWER_PAN){
-				//use the pickpoint (think of a large, continuous geospatial terrain shape,
-				// and you want to examine a specific geographic point on that shape)
-				pointxyz2double(center,tg->RenderFuncs.hp);
-				transformAFFINEd(center,center,getPickrayMatrix(0));
-				double2float(Viewer()->pin_point,center,3);
-				Viewer()->LookatMode = 3; //go to viewpiont transition mode
-			}
+			} 
+			//else if(Viewer()->type == VIEWER_PAN){
+			//	//use the pickpoint (think of a large, continuous geospatial terrain shape,
+			//	// and you want to examine a specific geographic point on that shape)
+			//	pointxyz2double(center,tg->RenderFuncs.hp);
+			//	transformAFFINEd(center,center,getPickrayMatrix(0));
+			//	double2float(Viewer()->pin_point,center,3);
+			//	Viewer()->LookatMode = 3; //go to viewpiont transition mode
+			//}
 		}
     }
     return Viewer()->LookatMode;
@@ -7725,6 +7748,26 @@ void fwl_handle_aqua_multiNORMAL(const int mev, const unsigned int button, int x
 	touch->state.angle = 0.0f;
 	return;
 }
+static struct Touch *static_touch = NULL;
+void set_static_touch(struct Touch *touch){
+	static_touch = touch;
+}
+//a few functions called from viewer.c for navigations like PAN, ZOOM, TURN, (LOOKAT?)
+double * get_touch_pin_point(){
+	double *ppoint = NULL;
+	if(static_touch) ppoint = static_touch->pin_point;
+	return ppoint;
+}
+double * get_touch_ray(){
+	double *ray = NULL;
+	if(static_touch) ray = static_touch->ray;
+	return ray;
+}
+double get_touch_hitPointDist(){
+	double hpd = -1.0;
+	if(static_touch) hpd = static_touch->hitPointDist;
+	return hpd;
+}
 void update_navigation(){
 	//update_navigation - this will be for unclaimed touches from last iteration
 	//this code should be called from a function once per frame (not once per event)
@@ -7742,6 +7785,7 @@ void update_navigation(){
 	for(i=0;i<p->ntouch;i++){
 		int imev, ibut;
 		curTouch = &p->touchlist[i];
+		set_static_touch(curTouch); //in future wo could pass touch or other extras struct down callstack to viewer handele_ functions
 		if(curTouch->frame_state.inUse && curTouch->changed){
 			//yes incoming touch _is_ the current touch
 			//nav always uses current touch //ID==0
@@ -7756,6 +7800,9 @@ void update_navigation(){
 			if(curTouch->claimant == TOUCHCLAIMANT_NAVIGATION){
 				int ibutstate, dragStart, dragEnd;
 				//static int lastmev = 5;
+				//memcpy(((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, curTouch->justModel, 16 * sizeof(double));
+				//memcpy(  tg->RenderFuncs.hp, &curTouch->hp, sizeof(struct point_XYZ));
+
 				for(int j=3; j>0; j--){
 					ibut = 0;
 					ibutstate = curTouch->frame_state.buttonState[j];

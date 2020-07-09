@@ -246,7 +246,6 @@ typedef struct viewer {
 	GLDOUBLE fieldofview;
 	GLDOUBLE fovZoom ;
 	int wasBound; /* 0 for default viewpoint, 1 thereafter (for no-slerp startup) */
-	float pin_point[3]; //2020 VIEWER_PAN - point on the terrain picked for dragging or turntable or to zoom toward
 
 } X3D_Viewer;
 X3D_Viewer *ViewerByLayerId(int layerid);
