@@ -5055,7 +5055,6 @@ void setup_picking(){
 			if(!touch->frame_state.inUse) {
 				continue;
 			}
-
 			if(touch->windex != windex) continue; //return;
 			if(touch->stageId != current_stageId()) continue;
 			x = touch->frame_state.x;
@@ -5063,12 +5062,14 @@ void setup_picking(){
 			tg->RenderFuncs.touchID = touch->ID;
 			int dragStart = touch->frame_state.buttonState[1] == 1 && touch->last_state.buttonState[1] == 0 ? TRUE : FALSE;
 			int dragEnd = touch->frame_state.buttonState[1] == 0 && touch->last_state.buttonState[1] == 1 ? TRUE : FALSE;
+			int dragStart2 = touch->frame_state.buttonState[2] == 1 && touch->last_state.buttonState[2] == 0 ? TRUE : FALSE;
+			int dragEnd2 = touch->frame_state.buttonState[2] == 0 && touch->last_state.buttonState[2] == 1 ? TRUE : FALSE;
 			isOver = (touch->claimant == TOUCHCLAIMANT_UNCLAIMED && touch->passed == priorclaimants);
 			//if(!isOver) {
 			//	if(! (touch->claimant == TOUCHCLAIMANT_UNCLAIMED))printf("?");
 			//	if(! ( touch->passed == priorclaimants))printf("v");
 			//	}
-			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver || dragStart || touch->claimant == TOUCHCLAIMANT_NAVIGATION) {
+			if(touch->claimant == TOUCHCLAIMANT_SENSOR || isOver || dragStart || dragStart2 || touch->claimant == TOUCHCLAIMANT_NAVIGATION) {
 				if(setup_pickside(x,yup)){
 					// There can be multiple paths to a parent transform of a sensor node:
 					// touch 1:M path M:1 transform/parent 1:M SensorEvent M:1 Sensor
@@ -5098,7 +5099,7 @@ void setup_picking(){
 						transformAFFINEd(&touch->ray[3],center,getPickrayMatrix(0)); //far point of ray where hits geom
 						center[2] = .1;
 						transformAFFINEd(touch->ray,center,getPickrayMatrix(0)); //near point of ray, needed for ortho
-						if(dragStart) veccopyd(touch->pin_point,&touch->ray[3]);  //for Nav PAN, ZOOM, TURN there's a pin point on the ground we need to 'remember' for the whole drag
+						if(dragStart || dragStart2) veccopyd(touch->pin_point,&touch->ray[3]);  //for Nav PAN, ZOOM, TURN there's a pin point on the ground we need to 'remember' for the whole drag
 
 						if(ku)printf("pin %lf %lf %lf\n",touch->pin_point[0],touch->pin_point[1],touch->pin_point[2]);
 						memcpy( touch->justModel, ((struct currayhit *)(tg->RenderFuncs.rayHit))->justModel, 16 * sizeof(double));
@@ -5114,7 +5115,7 @@ void setup_picking(){
 					}
 
 					//double-check navigation, which may have already started
-					if(dragStart){
+					if(dragStart || dragStart2){
 						if(touch->CursorOverSensitive){
 							touch->claimant = TOUCHCLAIMANT_SENSOR;
 						}else{
@@ -7809,6 +7810,7 @@ void update_navigation(){
 					if(ibutstate) ibut = j;
 					dragStart = ibutstate == 1 && curTouch->last_state.buttonState[j] == 0;
 					dragEnd = ibutstate == 0 && curTouch->last_state.buttonState[j] == 1;
+
 					if (dragStart || (dragEnd)) {
 						if(dragStart) {
 							imev = ButtonPress;
