@@ -624,6 +624,14 @@ double vecangle2(struct point_XYZ* V1, struct point_XYZ* V2, struct point_XYZ* r
 	vecnormal(rotaxis,&cross);
 	return angle;
 }
+double vecangle2d(double* v1, double* v2, double* rotaxis) {
+	struct point_XYZ V1, V2, rotax;
+	double2pointxyz(&V1,v1);
+	double2pointxyz(&V2,v2);
+	double angle = vecangle2(&V1,&V2,&rotax);
+	pointxyz2double(rotaxis,&rotax);
+	return angle;
+}
 void avatar2BoundViewpointVerticalAvatar(GLDOUBLE *matA2BVVA, GLDOUBLE *matBVVA2A)
 {
 	/* goal: make 2 transform matrices to go back and forth from Avatar A to 
@@ -1291,6 +1299,25 @@ double * get_touch_pin_point();
 double get_touch_hitPointDist();
 double * get_touch_ray();
 
+void quaternion_split_tilt_yaw(Quaternion *Qyaw, Quaternion *Qtilt, Quaternion *Qfull, double *up){
+	//split full quaterion (representing viewer.rotation) into tilts and yaw
+	//for walk-derivitive nav types, Tranform - bound-viewpoint - Pos/position - yaw - tilts - avatarView - pickray
+	// X DOES NOT WORK - Q ROTATING IN WRONG PLANE
+	double down[3], tilted[3], rotaxis[3],angle;
+	Quaternion Qtilt_inverse, Qfull_inverse, Qyaw_inverse;
+	vecscaled(down,up,-1.0);
+	quaternion_inverse(&Qfull_inverse,Qfull);
+	quaternion_rotationd(tilted, &Qfull_inverse, down);
+	//tilted is in avatar space.
+	angle = vecangle2d(down,tilted,rotaxis);
+	//if( APPROX(angle,0.0) ) return; //we're level already
+	vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], -angle );
+	quaternion_normalize(Qtilt);
+	quaternion_inverse(&Qtilt_inverse,Qtilt);
+	quaternion_multiply(Qyaw,&Qtilt_inverse,&Qfull_inverse);
+	//quaternion_inverse(Qyaw,&Qyaw_inverse);
+}
+
 void handle_pan(const int mev, const unsigned int button, float x, float y) {
 //struct X3D_Node* getRayHit();
 printf("PAN button=%d mev=%d ",button,mev);
@@ -1310,22 +1337,29 @@ printf("PAN button=%d mev=%d ",button,mev);
 		//static int have_pin_point = FALSE;
 		//static double down_pos[3];
 		struct point_XYZ downvec, tilted, rotaxis;
-		Quaternion Quat,q;
+		Quaternion Qfull, Qtilt, Qyaw;
 		int k = 0;
 
 		viewer_fetch_user_offsets0(viewer);
 
-		pointxyz2double(pp,&viewer->Up);
-		vecscaled(pp,pp,-1.0);
-		double2pointxyz(&downvec,pp);
-		Quat = viewer->Quat;
-		//AntiQuat = Viewer.AntiQuat;
-		quaternion_rotation(&tilted, &Quat, &downvec);
-		//tilted is in avatar space.
-		angle = vecangle2(&downvec,&tilted,&rotaxis);
-		//if( APPROX(angle,0.0) ) return; //we're level already
-		vrmlrot_to_quaternion(&q, rotaxis.x, rotaxis.y, rotaxis.z, -angle );
-		quaternion_normalize(&q);
+		//split full quaterion (representing viewer.rotation) into tilts and yaw
+		Qfull = viewer->Quat;
+		if(0){
+			pointxyz2double(pp,&viewer->Up);
+			vecscaled(pp,pp,-1.0);
+			double2pointxyz(&downvec,pp);
+			//AntiQuat = Viewer.AntiQuat;
+			quaternion_rotation(&tilted, &Qfull, &downvec);
+			//tilted is in avatar space.
+			angle = vecangle2(&downvec,&tilted,&rotaxis);
+			//if( APPROX(angle,0.0) ) return; //we're level already
+			vrmlrot_to_quaternion(&Qtilt, rotaxis.x, rotaxis.y, rotaxis.z, -angle );
+			quaternion_normalize(&Qtilt);
+		}else{
+			double dtemp[3];
+			quaternion_split_tilt_yaw(&Qyaw,&Qtilt,&Qfull,pointxyz2double(dtemp,&viewer->Up));
+		}
+		//vecsetd()
 
 		X3D_Viewer_Spherical *ypz;
 		ypz = &viewer->ypz; //just a place to store last mouse xy during drag
@@ -1462,7 +1496,10 @@ printf("PAN button=%d mev=%d ",button,mev);
 								vecscale3f(v,v, .25f); //zoom out
 							float2double(ddelta,v,3);
 							pointxyz2double(dpos,&viewer->Pos);
-							quaternion_rotationd(ddelta,&q,ddelta);
+							quaternion_rotationd(ddelta,&Qtilt,ddelta);
+							printf("before yaw %lf %lf %lf\n",ddelta[0],ddelta[1],ddelta[2]);
+							quaternion_rotationd(ddelta,&Qyaw,ddelta);
+							printf("after  yaw %lf %lf %lf\n",ddelta[0],ddelta[1],ddelta[2]);
 							vecaddd(dpos,dpos,ddelta);
 							double2pointxyz(&viewer->Pos,dpos);
 						}
@@ -1494,7 +1531,7 @@ printf("PAN button=%d mev=%d ",button,mev);
 								printf("delta %f %f %f\n",delta[0], delta[1], delta[2]);
 								float2double(ddelta,delta,3);
 								//pointxyz2double(dpos,&viewer->Pos);
-								quaternion_rotationd(ddelta,&q,ddelta);
+								quaternion_rotationd(ddelta,&Qtilt,ddelta);
 								vecaddd(dpos,viewer->pan.down_pos,ddelta);
 								double2pointxyz(&viewer->Pos,dpos);
 							}
@@ -1525,7 +1562,7 @@ printf("PAN button=%d mev=%d ",button,mev);
 								vecdif3f(delta,viewer->pan.pin_point_plane,trackpoint);
 								printf("delta %f %f %f\n",delta[0], delta[1], delta[2]);
 								float2double(ddelta,delta,3);
-								quaternion_rotationd(ddelta,&q,ddelta);
+								quaternion_rotationd(ddelta,&Qtilt,ddelta);
 								vecaddd(dpos,viewer->pan.down_pos,ddelta);
 								double2pointxyz(&viewer->Pos,dpos);
 							}
