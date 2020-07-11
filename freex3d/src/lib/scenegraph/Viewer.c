@@ -1308,49 +1308,21 @@ void quaternion_split_tilt_yaw(Quaternion *Qyaw, Quaternion *Qtilt, Quaternion *
 	double down[3], tilted[3], rotaxis[3],angle;
 	Quaternion Qtilt_inverse, Qfull_inverse, Qyaw_inverse;
 	vecscaled(down,up,-1.0);
-	if(1){
-		quaternion_inverse(&Qfull_inverse,Qfull);
-		quaternion_rotationd(tilted, &Qfull_inverse, down);
-		//tilted is in avatar space.
-		angle = vecangle2d(down,tilted,rotaxis);
-		//if( APPROX(angle,0.0) ) return; //we're level already
-		vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], angle );
-		quaternion_normalize(Qtilt);
-		quaternion_inverse(&Qtilt_inverse,Qtilt);
-		quaternion_multiply(Qyaw,&Qtilt_inverse,Qfull);
-		Quaternion Qtest;
-		quaternion_multiply(&Qtest,Qtilt,Qyaw);
-		quaternion_print(&Qtest,"Qtilt x Qyaw 2");
-		quaternion_print(Qfull,"Qfull ");
+
+	quaternion_inverse(&Qfull_inverse,Qfull);
+	quaternion_rotationd(tilted, &Qfull_inverse, down);
+	//tilted is in avatar space.
+	angle = vecangle2d(down,tilted,rotaxis);
+	//if( APPROX(angle,0.0) ) return; //we're level already
+	vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], angle );
+	quaternion_normalize(Qtilt);
+	quaternion_inverse(&Qtilt_inverse,Qtilt);
+	quaternion_multiply(Qyaw,&Qtilt_inverse,Qfull);
+	Quaternion Qtest;
+	quaternion_multiply(&Qtest,Qtilt,Qyaw);
+	//quaternion_print(&Qtest,"Qtilt x Qyaw 2");
+	//quaternion_print(Qfull,"Qfull ");
 		
-	}else{
-		quaternion_inverse(&Qfull_inverse,Qfull);
-		quaternion_rotationd(tilted, &Qfull_inverse, down);
-		//tilted is in avatar space.
-		angle = vecangle2d(down,tilted,rotaxis);
-		//if( APPROX(angle,0.0) ) return; //we're level already
-		if(1){
-			vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], -angle );
-			quaternion_normalize(Qtilt);
-			quaternion_inverse(&Qtilt_inverse,Qtilt);
-			quaternion_multiply(Qyaw,&Qtilt_inverse,&Qfull_inverse);
-			Quaternion Qtest, Qtest2;
-			quaternion_multiply(&Qtest,Qyaw,Qtilt);
-			quaternion_inverse(&Qtest2,&Qtest);
-			quaternion_print(&Qtest2,"Qtilt x Qyaw 2");
-			quaternion_print(Qfull,"Qfull ");
-		}else{
-			vrmlrot_to_quaternion(&Qtilt_inverse, rotaxis[0], rotaxis[1], rotaxis[2], -angle );
-			quaternion_normalize(&Qtilt_inverse);
-			quaternion_inverse(Qtilt,&Qtilt_inverse);
-			quaternion_multiply(Qyaw,Qtilt,&Qfull_inverse);
-			Quaternion Qtest;
-			quaternion_multiply(&Qtest,Qtilt,Qyaw);
-			quaternion_print(&Qtest,"Qtilt x Qyaw 2");
-			quaternion_print(Qfull,"Qfull ");
-		}
-		//quaternion_inverse(Qyaw,&Qyaw_inverse);
-	}
 }
 
 void handle_pan(const int mev, const unsigned int button, float x, float y) {
@@ -1367,7 +1339,6 @@ printf("PAN button=%d mev=%d ",button,mev);
 		viewer = Viewer();
 		float f3[3];
 		double *pin_point, *ray, d3[3], pp[3], angle;
-		float trackpoint[3];
 		//static float pin_point_plane[3];
 		//static int have_pin_point = FALSE;
 		//static double down_pos[3];
@@ -1491,87 +1462,141 @@ printf("PAN button=%d mev=%d ",button,mev);
 					pin_point = get_touch_pin_point();
 					ray = get_touch_ray();
 					if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
-						viewer->pan.have_pin_point = TRUE;
-						if(k)printf("pin_point %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
-						if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
-						if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
-						float v[3], p[3],p2[3], N[3], pin[3], dd;
-						double2float(p,ray,3);
-						double2float(p2,&ray[3],3);
-						vecdif3f(v,p2,p);
-						vecnormalize3f(v,v);
-						double2float(pin,pin_point,3);
+						if(0){
+							viewer->pan.have_pin_point = TRUE;
+							if(k)printf("pin_point %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
+							if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
+							if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
+							float v[3], p[3],p2[3], N[3], pin[3], dd;
+							float trackpoint[3];
 
-						vecset3f(N,0.0f,1.0f,0.0f); //plane is XZ plane of boud viewpoint, assuming viewpoint bound looking at horizon
-						dd = -vecdot3f(N,pin);
-						if(k)printf("dd= %f \n",dd);
-						if (!line_intersect_planed_3f(p, v, N, dd, trackpoint, NULL))
-							return; //looking at plane edge-on / parallel, no intersection
-						if(k)printf("trackpoint %f %f %f\n",trackpoint[0],trackpoint[1],trackpoint[2]);
-						veccopy3f(viewer->pan.pin_point_plane,trackpoint);
-						//double2pointxyz(&viewer->Pos,float2double(d3,trackpoint,3));
-						if(k)printf("hows that>\n");
-						pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
+							double2float(p,ray,3);
+							double2float(p2,&ray[3],3);
+							vecdif3f(v,p2,p);
+							vecnormalize3f(v,v);
+							double2float(pin,pin_point,3);
+
+							vecset3f(N,0.0f,1.0f,0.0f); //plane is XZ plane of boud viewpoint, assuming viewpoint bound looking at horizon
+							dd = -vecdot3f(N,pin);
+							if(k)printf("dd= %f \n",dd);
+							if (!line_intersect_planed_3f(p, v, N, dd, trackpoint, NULL))
+								return; //looking at plane edge-on / parallel, no intersection
+							if(k)printf("trackpoint %f %f %f\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+							veccopy3f(viewer->pan.pin_point_plane,trackpoint);
+							//double2pointxyz(&viewer->Pos,float2double(d3,trackpoint,3));
+							if(k)printf("hows that>\n");
+							pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
+						}else{
+							double v[3], p[3],p2[3], N[3], pin[3], dd;
+							double trackpoint[3];
+							k=1;
+							vecdifd(v,&ray[3],ray);
+							vecnormald(v,v);
+							vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of boud viewpoint, assuming viewpoint bound looking at horizon
+							dd = -vecdotd(N,pin_point);
+							if(k)printf("dd= %f \n",dd);
+							if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
+								return; //looking at plane edge-on / parallel, no intersection
+							if(k)printf("trackpoint %lf %lf %lf\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+							veccopyd(viewer->pan.pin_point_planed,trackpoint);
+							//double2pointxyz(&viewer->Pos,float2double(d3,trackpoint,3));
+							if(k)printf("hows that>\n");
+							pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
+
+						}
 					}
 					break;
 				case MotionNotify:
-					if(button == 4 || button == 5){
-						//wheel == zoom for PAN mode, and mouse button isn't down - its an on-wheel-notify activity
-						ray = get_touch_ray();
-						if(get_touch_hitPointDist() > 0.0 && ray) {
-							double ddelta[3],dpos[3],vv[3];
-							vecdifd(vv,&ray[3],ray);
-							if(button == 4)
-								vecscaled(ddelta,vv, -.2); //zoom in
-							if(button ==5)
-								vecscaled(ddelta,vv, .25); //zoom out
-							pointxyz2double(dpos,&viewer->Pos);
-							if(0){
-							Quaternion Qtilt_inverse, Qyaw_inverse;
-							quaternion_inverse(&Qtilt_inverse,&Qtilt);
-							quaternion_inverse(&Qyaw_inverse,&Qyaw);
-							quaternion_rotationd(ddelta,&Qtilt_inverse,ddelta);
-							quaternion_rotationd(ddelta,&Qyaw_inverse,ddelta);
-							}else{
-								quaternion_rotationd(ddelta,&Qfull_inverse,ddelta);
-							}
-							vecaddd(dpos,dpos,ddelta);
-							//vecdifd(dpos,dpos,ddelta);
-							double2pointxyz(&viewer->Pos,dpos);
-						}
-					}else if(button < 4){
+					if(button < 4){
 						viewer->pan.have_pin_point = FALSE;
 						pin_point = get_touch_pin_point();
 						ray = get_touch_ray();
 						if(button == 1){
 							//PAN
 							if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
-								viewer->pan.have_pin_point = TRUE;
-								if(k)printf("pin_point %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
-								if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
-								if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
-								float v[3], p[3],p2[3], N[3], pin[3], dd, delta[3];
-								double ddelta[3],dpos[3];
-								double2float(p,ray,3);
-								double2float(p2,&ray[3],3);
-								vecdif3f(v,p2,p);
-								vecnormalize3f(v,v);
-								double2float(pin,pin_point,3);
-								vecset3f(N,0.0f,1.0f,0.0f); //plane is XZ plane of boud viewpoint, assuming viewpoint bound looking at horizon
-								dd = -vecdot3f(N,pin);
-								if(k)printf("dd= %f \n",dd);
-								if (!line_intersect_planed_3f(p, v, N, dd, trackpoint, NULL))
-									return; //looking at plane edge-on / parallel, no intersection
-								if(k)printf("trackpoint %f %f %f\n",trackpoint[0],trackpoint[1],trackpoint[2]);
-								vecdif3f(delta,viewer->pan.pin_point_plane,trackpoint);
-								printf("delta %f %f %f\n",delta[0], delta[1], delta[2]);
-								float2double(ddelta,delta,3);
-								//pointxyz2double(dpos,&viewer->Pos);
-								quaternion_rotationd(ddelta,&Qtilt,ddelta);
-								vecaddd(dpos,viewer->pan.down_pos,ddelta);
+								if(1){
+									k=1;
+									viewer->pan.have_pin_point = TRUE;
+									if(k)printf("pin_point %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
+									if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
+									if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
+									double v[3], p[3],p2[3], N[3], dd, delta[3];
+									double trackpoint[3];
+
+									double ddelta[3],dpos[3];
+									vecdifd(v,&ray[3],ray);
+									vecnormald(v,v);
+									vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of boud viewpoint, assuming viewpoint bound looking at horizon
+									dd = -vecdotd(N,pin_point);
+									if(k)printf("dd= %f \n",dd);
+									if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
+										return; //looking at plane edge-on / parallel, no intersection
+									if(k)printf("trackpoint %lf %lf %lf\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+									vecdifd(delta,viewer->pan.pin_point_planed,trackpoint);
+									printf("delta %lf %lf %lf\n",delta[0], delta[1], delta[2]);
+									quaternion_rotationd(ddelta,&Qtilt,delta);
+
+									vecaddd(dpos,viewer->pan.down_pos,ddelta);
+									double2pointxyz(&viewer->Pos,dpos);
+								}else{
+									viewer->pan.have_pin_point = TRUE;
+									if(k)printf("pin_point %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
+									if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
+									if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
+									float v[3], p[3],p2[3], N[3], pin[3], dd, delta[3];
+									float trackpoint[3];
+
+									double ddelta[3],dpos[3];
+									double2float(p,ray,3);
+									double2float(p2,&ray[3],3);
+									vecdif3f(v,p2,p);
+									vecnormalize3f(v,v);
+									double2float(pin,pin_point,3);
+									vecset3f(N,0.0f,1.0f,0.0f); //plane is XZ plane of boud viewpoint, assuming viewpoint bound looking at horizon
+									dd = -vecdot3f(N,pin);
+									if(k)printf("dd= %f \n",dd);
+									if (!line_intersect_planed_3f(p, v, N, dd, trackpoint, NULL))
+										return; //looking at plane edge-on / parallel, no intersection
+									if(k)printf("trackpoint %f %f %f\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+									vecdif3f(delta,viewer->pan.pin_point_plane,trackpoint);
+									printf("delta %f %f %f\n",delta[0], delta[1], delta[2]);
+									float2double(ddelta,delta,3);
+									//pointxyz2double(dpos,&viewer->Pos);
+									quaternion_rotationd(ddelta,&Qtilt,ddelta);
+
+									//quaternion_rotationd(ddelta,&Qyaw,ddelta);
+									//quaternion_rotationd(ddelta,&Qfull,ddelta);
+									vecaddd(dpos,viewer->pan.down_pos,ddelta);
+									double2pointxyz(&viewer->Pos,dpos);
+								}
+							}
+						}else if(button == 4 || button == 5){
+							//wheel == zoom for PAN mode, and mouse button isn't down - its an on-wheel-notify activity
+							ray = get_touch_ray();
+							if(get_touch_hitPointDist() > 0.0 && ray) {
+								double ddelta[3],dpos[3],vv[3];
+								vecdifd(vv,&ray[3],ray);
+								if(button == 4)
+									vecscaled(ddelta,vv, -.2); //zoom in
+								if(button ==5)
+									vecscaled(ddelta,vv, .25); //zoom out
+								pointxyz2double(dpos,&viewer->Pos);
+								if(0){
+								Quaternion Qtilt_inverse, Qyaw_inverse;
+								quaternion_inverse(&Qtilt_inverse,&Qtilt);
+								quaternion_inverse(&Qyaw_inverse,&Qyaw);
+								quaternion_rotationd(ddelta,&Qtilt_inverse,ddelta);
+								quaternion_rotationd(ddelta,&Qyaw_inverse,ddelta);
+								}else{
+									quaternion_rotationd(ddelta,&Qfull_inverse,ddelta);
+								}
+								vecaddd(dpos,dpos,ddelta);
+								//vecdifd(dpos,dpos,ddelta);
 								double2pointxyz(&viewer->Pos,dpos);
 							}
-						}else if(button == 2){
+						} 
+						/*
+						else if(button == 2){
 							//TURNTABLE (x-drag) or TILT (y-drag)
 							//TURNTABLE is around pin_point, 1/2 a turn (around ground verticle) per scren-width drag
 							//TILT - is around hinge axis going through pin_point, and perpendicular to viewpoint Z, 1/4 turn per screenheight drag
@@ -1602,7 +1627,7 @@ printf("PAN button=%d mev=%d ",button,mev);
 								vecaddd(dpos,viewer->pan.down_pos,ddelta);
 								double2pointxyz(&viewer->Pos,dpos);
 							}
-						}
+						}*/
 					}
 
 					break;

@@ -236,6 +236,8 @@ float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngle
 int line_intersect_line_3f(float *p1, float *v1, float *p2, float *v2, float *t, float *s, float *x1, float *x2);
 int line_intersect_planed_3f(float *p, float *v, float *N, float d, float *pi, float *t);
 int line_intersect_plane_3f(float *p, float *v, float *N, float *pp, float *pi, float *t);
+int line_intersect_planed_3d(double *p, double *v, double *N, double d, double *pi, double *t);
+int line_intersect_plane_3d(double *p, double *v, double *N, double *pp, double *pi, double *t);
 int line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi);
 
 void vecprint4fb(char *name, float *p, char *eol);
