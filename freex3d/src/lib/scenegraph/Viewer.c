@@ -1480,13 +1480,9 @@ printf("PAN button=%d mev=%d ",button,mev);
 					break;
 				case MotionNotify:
 					if(button == 4 || button == 5){
-						//wheel == zoom for PAN mode, and mouse button isn't down - its an isOver activity
-						printf("wheel zoom %c\n", button==4? '+' : '-');
+						//wheel == zoom for PAN mode, and mouse button isn't down - its an on-wheel-notify activity
 						ray = get_touch_ray();
 						if(get_touch_hitPointDist() > 0.0 && ray) {
-							if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
-							if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
-							float v[3], p[3],p2[3], N[3], pin[3], dd, delta[3];
 							double ddelta[3],dpos[3],vv[3];
 							vecdifd(vv,&ray[3],ray);
 							if(button == 4)
@@ -1495,9 +1491,7 @@ printf("PAN button=%d mev=%d ",button,mev);
 								vecscaled(ddelta,vv, .25); //zoom out
 							pointxyz2double(dpos,&viewer->Pos);
 							quaternion_rotationd(ddelta,&Qtilt,ddelta);
-							printf("before yaw %lf %lf %lf\n",ddelta[0],ddelta[1],ddelta[2]);
 							quaternion_rotationd(ddelta,&Qyaw,ddelta);
-							printf("after  yaw %lf %lf %lf\n",ddelta[0],ddelta[1],ddelta[2]);
 							vecaddd(dpos,dpos,ddelta);
 							double2pointxyz(&viewer->Pos,dpos);
 						}
