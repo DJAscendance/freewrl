@@ -1302,20 +1302,55 @@ double * get_touch_ray();
 void quaternion_split_tilt_yaw(Quaternion *Qyaw, Quaternion *Qtilt, Quaternion *Qfull, double *up){
 	//split full quaterion (representing viewer.rotation) into tilts and yaw
 	//for walk-derivitive nav types, Tranform - bound-viewpoint - Pos/position - yaw - tilts - avatarView - pickray
+	// Qfull = Qyaw x Qtilt
+	// Qyaw = Qtilt.inverse x Qfull
 	// X DOES NOT WORK - Q ROTATING IN WRONG PLANE
 	double down[3], tilted[3], rotaxis[3],angle;
 	Quaternion Qtilt_inverse, Qfull_inverse, Qyaw_inverse;
 	vecscaled(down,up,-1.0);
-	quaternion_inverse(&Qfull_inverse,Qfull);
-	quaternion_rotationd(tilted, &Qfull_inverse, down);
-	//tilted is in avatar space.
-	angle = vecangle2d(down,tilted,rotaxis);
-	//if( APPROX(angle,0.0) ) return; //we're level already
-	vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], -angle );
-	quaternion_normalize(Qtilt);
-	quaternion_inverse(&Qtilt_inverse,Qtilt);
-	quaternion_multiply(Qyaw,&Qtilt_inverse,&Qfull_inverse);
-	//quaternion_inverse(Qyaw,&Qyaw_inverse);
+	if(1){
+		quaternion_inverse(&Qfull_inverse,Qfull);
+		quaternion_rotationd(tilted, &Qfull_inverse, down);
+		//tilted is in avatar space.
+		angle = vecangle2d(down,tilted,rotaxis);
+		//if( APPROX(angle,0.0) ) return; //we're level already
+		vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], angle );
+		quaternion_normalize(Qtilt);
+		quaternion_inverse(&Qtilt_inverse,Qtilt);
+		quaternion_multiply(Qyaw,&Qtilt_inverse,Qfull);
+		Quaternion Qtest;
+		quaternion_multiply(&Qtest,Qtilt,Qyaw);
+		quaternion_print(&Qtest,"Qtilt x Qyaw 2");
+		quaternion_print(Qfull,"Qfull ");
+		
+	}else{
+		quaternion_inverse(&Qfull_inverse,Qfull);
+		quaternion_rotationd(tilted, &Qfull_inverse, down);
+		//tilted is in avatar space.
+		angle = vecangle2d(down,tilted,rotaxis);
+		//if( APPROX(angle,0.0) ) return; //we're level already
+		if(1){
+			vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], -angle );
+			quaternion_normalize(Qtilt);
+			quaternion_inverse(&Qtilt_inverse,Qtilt);
+			quaternion_multiply(Qyaw,&Qtilt_inverse,&Qfull_inverse);
+			Quaternion Qtest, Qtest2;
+			quaternion_multiply(&Qtest,Qyaw,Qtilt);
+			quaternion_inverse(&Qtest2,&Qtest);
+			quaternion_print(&Qtest2,"Qtilt x Qyaw 2");
+			quaternion_print(Qfull,"Qfull ");
+		}else{
+			vrmlrot_to_quaternion(&Qtilt_inverse, rotaxis[0], rotaxis[1], rotaxis[2], -angle );
+			quaternion_normalize(&Qtilt_inverse);
+			quaternion_inverse(Qtilt,&Qtilt_inverse);
+			quaternion_multiply(Qyaw,Qtilt,&Qfull_inverse);
+			Quaternion Qtest;
+			quaternion_multiply(&Qtest,Qtilt,Qyaw);
+			quaternion_print(&Qtest,"Qtilt x Qyaw 2");
+			quaternion_print(Qfull,"Qfull ");
+		}
+		//quaternion_inverse(Qyaw,&Qyaw_inverse);
+	}
 }
 
 void handle_pan(const int mev, const unsigned int button, float x, float y) {
@@ -1337,13 +1372,14 @@ printf("PAN button=%d mev=%d ",button,mev);
 		//static int have_pin_point = FALSE;
 		//static double down_pos[3];
 		struct point_XYZ downvec, tilted, rotaxis;
-		Quaternion Qfull, Qtilt, Qyaw;
+		Quaternion Qfull, Qfull_inverse, Qtilt, Qyaw;
 		int k = 0;
 
 		viewer_fetch_user_offsets0(viewer);
 
 		//split full quaterion (representing viewer.rotation) into tilts and yaw
 		Qfull = viewer->Quat;
+		quaternion_inverse(&Qfull_inverse,&Qfull);
 		if(0){
 			pointxyz2double(pp,&viewer->Up);
 			vecscaled(pp,pp,-1.0);
@@ -1490,9 +1526,17 @@ printf("PAN button=%d mev=%d ",button,mev);
 							if(button ==5)
 								vecscaled(ddelta,vv, .25); //zoom out
 							pointxyz2double(dpos,&viewer->Pos);
-							quaternion_rotationd(ddelta,&Qtilt,ddelta);
-							quaternion_rotationd(ddelta,&Qyaw,ddelta);
+							if(0){
+							Quaternion Qtilt_inverse, Qyaw_inverse;
+							quaternion_inverse(&Qtilt_inverse,&Qtilt);
+							quaternion_inverse(&Qyaw_inverse,&Qyaw);
+							quaternion_rotationd(ddelta,&Qtilt_inverse,ddelta);
+							quaternion_rotationd(ddelta,&Qyaw_inverse,ddelta);
+							}else{
+								quaternion_rotationd(ddelta,&Qfull_inverse,ddelta);
+							}
 							vecaddd(dpos,dpos,ddelta);
+							//vecdifd(dpos,dpos,ddelta);
 							double2pointxyz(&viewer->Pos,dpos);
 						}
 					}else if(button < 4){
