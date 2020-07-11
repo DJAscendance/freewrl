@@ -1450,6 +1450,7 @@ printf("PAN button=%d mev=%d ",button,mev);
 			// LMB > PAN and WHEEL > ZOOM
 			switch(mev){
 				case  ButtonPress:
+					//button 1 or 2 LMB, MMB
 					viewer->pan.have_pin_point = FALSE;
 					pin_point = get_touch_pin_point();
 					ray = get_touch_ray();
@@ -1486,15 +1487,12 @@ printf("PAN button=%d mev=%d ",button,mev);
 							if(k)printf("ray0 %lf %lf %lf\n",ray[0],ray[1],ray[2]);
 							if(k)printf("ray1 %lf %lf %lf\n",ray[3],ray[4],ray[5]);
 							float v[3], p[3],p2[3], N[3], pin[3], dd, delta[3];
-							double ddelta[3],dpos[3];
-							double2float(p,ray,3);
-							double2float(p2,&ray[3],3);
-							vecdif3f(v,p2,p);
+							double ddelta[3],dpos[3],vv[3];
+							vecdifd(vv,&ray[3],ray);
 							if(button == 4)
-								vecscale3f(v,v, -.2f); //zoom in
+								vecscaled(ddelta,vv, -.2); //zoom in
 							if(button ==5)
-								vecscale3f(v,v, .25f); //zoom out
-							float2double(ddelta,v,3);
+								vecscaled(ddelta,vv, .25); //zoom out
 							pointxyz2double(dpos,&viewer->Pos);
 							quaternion_rotationd(ddelta,&Qtilt,ddelta);
 							printf("before yaw %lf %lf %lf\n",ddelta[0],ddelta[1],ddelta[2]);
