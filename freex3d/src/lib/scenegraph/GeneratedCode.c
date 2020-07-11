@@ -664,6 +664,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"falseNorthing",
 	"family",
 	"fanCount",
+	"farClippingPlane",
 	"farDistance",
 	"fftSize",
 	"fieldOfView",
@@ -900,6 +901,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"mustEvaluate",
 	"name",
 	"navType",
+	"navigationType",
+	"nearClippingPlane",
 	"nearDistance",
 	"networkMode",
 	"next",
@@ -968,6 +971,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"previous",
 	"primaryAxis",
 	"priority",
+	"prioritySurfaces",
 	"profileCurve",
 	"programs",
 	"progress",
@@ -1190,6 +1194,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"translation",
 	"translationOffset",
 	"translation_changed",
+	"translucency",
+	"translucencyRange",
+	"translucencySurfaces",
 	"transmitFrequencyBandwidth",
 	"transmitState",
 	"transmitterApplicationID",
@@ -1240,8 +1247,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"visible",
 	"visibles",
 	"voxels",
-	"walkSurfacePriority",
-	"walkSurfaces",
+	"walkSurface",
 	"warhead",
 	"warmColor",
 	"watchList",
@@ -1615,6 +1621,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"eventEntityID",
 	"eventNumber",
 	"eventSiteID",
+	"farClippingPlane",
 	"farDistance",
 	"fftSize",
 	"fieldOfView",
@@ -1768,6 +1775,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"munitionStartPoint",
 	"name",
 	"navType",
+	"navigationType",
+	"nearClippingPlane",
 	"nearDistance",
 	"networkMode",
 	"normal",
@@ -1812,6 +1821,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"power",
 	"preferAccuracy",
 	"priority",
+	"prioritySurfaces",
 	"profileCurve",
 	"programs",
 	"protocol",
@@ -1941,6 +1951,9 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"transitionType",
 	"translation",
 	"translationOffset",
+	"translucency",
+	"translucencyRange",
+	"translucencySurfaces",
 	"transmitFrequencyBandwidth",
 	"transmitState",
 	"transmitterApplicationID",
@@ -1981,8 +1994,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"visible",
 	"visibles",
 	"voxels",
-	"walkSurfacePriority",
-	"walkSurfaces",
+	"walkSurface",
 	"warhead",
 	"warmColor",
 	"watchList",
@@ -6280,9 +6292,15 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_GeoViewpoint, _position),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoViewpoint, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__resetRelativeHeight, (int) offsetof (struct X3D_GeoViewpoint, _resetRelativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_walkSurfacePriority, (int) offsetof (struct X3D_GeoViewpoint, walkSurfacePriority),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_walkSurface, (int) offsetof (struct X3D_GeoViewpoint, walkSurface),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__walkSurfacePriority, (int) offsetof (struct X3D_GeoViewpoint, _walkSurfacePriority),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_walkSurfaces, (int) offsetof (struct X3D_GeoViewpoint, walkSurfaces),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_prioritySurfaces, (int) offsetof (struct X3D_GeoViewpoint, prioritySurfaces),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_translucencySurfaces, (int) offsetof (struct X3D_GeoViewpoint, translucencySurfaces),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_translucencyRange, (int) offsetof (struct X3D_GeoViewpoint, translucencyRange),  (int) FIELDTYPE_SFVec2d, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_translucency, (int) offsetof (struct X3D_GeoViewpoint, translucency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_navigationType, (int) offsetof (struct X3D_GeoViewpoint, navigationType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_nearClippingPlane, (int) offsetof (struct X3D_GeoViewpoint, nearClippingPlane),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_farClippingPlane, (int) offsetof (struct X3D_GeoViewpoint, farClippingPlane),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__prepped_planet, (int) offsetof (struct X3D_GeoViewpoint, _prepped_planet),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___geoSystem, (int) offsetof (struct X3D_GeoViewpoint, __geoSystem),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___movedPosition, (int) offsetof (struct X3D_GeoViewpoint, __movedPosition),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -12386,9 +12404,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_position.c[0] = 0;tmp2->_position.c[1] = 0;tmp2->_position.c[2] = 0;;
 			tmp2->relativeHeight = FALSE;
 			tmp2->_resetRelativeHeight = TRUE;
-			tmp2->walkSurfacePriority.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->walkSurfacePriority.p[0] = newASCIIString("HIGHEST");tmp2->walkSurfacePriority.n=1; ;
+			tmp2->walkSurface.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->walkSurface.p[0] = newASCIIString("HIGHEST");tmp2->walkSurface.n=1; ;
 			tmp2->_walkSurfacePriority = 0;
-			tmp2->walkSurfaces.n=0; tmp2->walkSurfaces.p=0;
+			tmp2->prioritySurfaces.n=0; tmp2->prioritySurfaces.p=0;
+			tmp2->translucencySurfaces.n=0; tmp2->translucencySurfaces.p=0;
+			tmp2->translucencyRange.c[0] = 0;tmp2->translucencyRange.c[1] = 0;;
+			tmp2->translucency = 0.0f;
+			tmp2->navigationType.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->navigationType.p[0] = newASCIIString("WALK");tmp2->navigationType.p[1] = newASCIIString("ANY");tmp2->navigationType.n=2; ;
+			tmp2->nearClippingPlane = -1.0f;
+			tmp2->farClippingPlane = -1.0f;
 			tmp2->_prepped_planet = 0;
 			tmp2->__geoSystem = NULL;
 			tmp2->__movedPosition.c[0] = 0;tmp2->__movedPosition.c[1] = 0;tmp2->__movedPosition.c[2] = 0;;
@@ -18291,10 +18315,20 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," headlight (SFBool) \t%d\n",tmp->headlight);
 			spacer fprintf (fp," navType (MFString): \n");
 			for (i=0; i<tmp->navType.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->navType.p[i]->strptr); }
-			spacer fprintf (fp," walkSurfacePriority (MFString): \n");
-			for (i=0; i<tmp->walkSurfacePriority.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->walkSurfacePriority.p[i]->strptr); }
-			spacer fprintf (fp," walkSurfaces (MFNode):\n");
-			for (i=0; i<tmp->walkSurfaces.n; i++) { dump_scene(fp,level+1,tmp->walkSurfaces.p[i]); }
+			spacer fprintf (fp," walkSurface (MFString): \n");
+			for (i=0; i<tmp->walkSurface.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->walkSurface.p[i]->strptr); }
+			spacer fprintf (fp," prioritySurfaces (MFNode):\n");
+			for (i=0; i<tmp->prioritySurfaces.n; i++) { dump_scene(fp,level+1,tmp->prioritySurfaces.p[i]); }
+			spacer fprintf (fp," translucencySurfaces (MFNode):\n");
+			for (i=0; i<tmp->translucencySurfaces.n; i++) { dump_scene(fp,level+1,tmp->translucencySurfaces.p[i]); }
+			spacer fprintf (fp," translucencyRange (SFVec2d): \t");
+			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",tmp->translucencyRange.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," translucency (SFFloat) \t%4.3f\n",tmp->translucency);
+			spacer fprintf (fp," navigationType (MFString): \n");
+			for (i=0; i<tmp->navigationType.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->navigationType.p[i]->strptr); }
+			spacer fprintf (fp," nearClippingPlane (SFFloat) \t%4.3f\n",tmp->nearClippingPlane);
+			spacer fprintf (fp," farClippingPlane (SFFloat) \t%4.3f\n",tmp->farClippingPlane);
 		    if(allFields) {
 			spacer fprintf (fp," __movedPosition (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__movedPosition.c[i]); }

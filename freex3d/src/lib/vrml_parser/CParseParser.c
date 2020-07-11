@@ -3246,9 +3246,9 @@ static BOOL parser_node_B(struct VRMLParser* me, vrmlNodeT* ret, int ind) {
 #ifdef CPARSERVERBOSE
 			printf("parser_node: try parsing field ... \n");
 #endif
-			if( found_ignore_field(me,node)){
-				continue;
-			}
+			//if( found_ignore_field(me,node)){
+			//	continue;
+			//}
 			/* check for IS - can be any mode, and builtin or user field on builtin node or usernode/protoInstance */
 			if( found_IS_field(me,node) ){
 				continue;
