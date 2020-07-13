@@ -507,6 +507,8 @@ our %RendC = map {($_=>1)} qw/
 	MultitouchSensor
 	BufferGeometry
 	Viewpoint
+	OrthoViewpoint
+	GeoViewpoint
 /;
 
 #######################################################################

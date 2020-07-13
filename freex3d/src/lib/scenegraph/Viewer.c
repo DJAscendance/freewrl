@@ -1295,6 +1295,49 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 //    }
 //	return iret;
 //}
+void show_pin_point(double  *pin_point){
+	struct X3D_Node *boundvp = (struct X3D_Node*)getActiveLayerBoundViewpoint(); 
+	if(boundvp){
+		switch(boundvp->_nodeType){
+		case NODE_Viewpoint: {
+			struct X3D_Viewpoint *vp = (struct X3D_Viewpoint *)boundvp;
+			veccopyd(vp->_pin_point.c,pin_point);
+			vp->_show_pin_point = TRUE; }
+			break;
+		case NODE_OrthoViewpoint: {
+			struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint *)boundvp;
+			veccopyd(vp->_pin_point.c,pin_point);
+			vp->_show_pin_point = TRUE; }
+			break;
+		case NODE_GeoViewpoint: {
+			struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint *)boundvp;
+			veccopyd(vp->_pin_point.c,pin_point);
+			vp->_show_pin_point = TRUE; }
+			break;
+		
+		}
+	}
+}
+void unshow_pin_point(){
+	struct X3D_Node *boundvp = (struct X3D_Node*)getActiveLayerBoundViewpoint(); 
+	if(boundvp){
+		switch(boundvp->_nodeType){
+		case NODE_Viewpoint: {
+			struct X3D_Viewpoint *vp = (struct X3D_Viewpoint *)boundvp;
+			vp->_show_pin_point = FALSE; }
+			break;
+		case NODE_OrthoViewpoint: {
+			struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint *)boundvp;
+			vp->_show_pin_point = FALSE; }
+			break;
+		case NODE_GeoViewpoint: {
+			struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint *)boundvp;
+			vp->_show_pin_point = FALSE; }
+			break;
+		
+		}
+	}
+}
 double * get_touch_pin_point();
 double get_touch_hitPointDist();
 double * get_touch_ray();
@@ -1325,12 +1368,14 @@ void quaternion_split_tilt_yaw(Quaternion *Qyaw, Quaternion *Qtilt, Quaternion *
 		
 }
 void handle_pan(const int mev, const unsigned int button, float x, float y) {
-//struct X3D_Node* getRayHit();
-//printf("PAN button=%d mev=%d ",button,mev);
-	/*
-	Like handle_spherical, except:
-	move the viewer->Pos in the opposite direction from where we are looking
-	*/
+/* July 2020 PAN, ZOOM, TURN using 'pin point' in preparation for geospatial equivalent
+	PAN - LMB drag 
+	ZOOM - WHEEL
+	TURN - MMB drag; like turntable
+	pin_point - a point on the 'terrain' that stays under the cursor during PAN/ZOOM/TURN
+	- can't navigate dragging sky / background / empty space
+	- complex action-filter in setup_picking gets a ray-hit on terrain when needed
+*/
 
 	if(button){
 		X3D_Viewer *viewer;
@@ -1378,10 +1423,7 @@ void handle_pan(const int mev, const unsigned int button, float x, float y) {
 					pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
 					//printf("trackpoint %lf %lf %lf\n",trackpoint[0],trackpoint[1],trackpoint[2]);
 					//printf("pin_point  %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
-					struct X3D_Viewpoint *boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint(); 
-					if(boundvp){
-						veccopyd(boundvp->_pin_point.c,trackpoint);
-					}
+					show_pin_point(trackpoint);
 
 				}
 				ypz->x = x;
@@ -1493,7 +1535,7 @@ void handle_pan(const int mev, const unsigned int button, float x, float y) {
 				break;
 			case ButtonRelease:
 				//viewer->lookatmode should == 3 coming in here
-
+				unshow_pin_point();
 			break;
 		}
 		viewer_update_user_offsets0(viewer);

@@ -4320,7 +4320,19 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		#endif
 	}
 }
-
+void render_GeoViewpoint (struct X3D_GeoViewpoint *node) {
+	float center[3],size[3];
+	if(node->_show_pin_point || fwl_getShowViewpoints())
+		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,.4f,.4f,.4f));
+	if(fwl_getShowViewpoints()){
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSLATE_D(node->_position.c[0],node->_position.c[1],node->_position.c[2]);
+		FW_GL_ROTATE_RADIANS( node->_orientation.c[3],node->_orientation.c[0],node->_orientation.c[1],
+				node->_orientation.c[2]);
+		draw_bbox(vecset3f(center,0.0,0.0,0.0),vecset3f(size,.4f,.4f,1.2f));
+		FW_GL_POP_MATRIX();
+	}
+}
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
 void calculateViewingSpeedB() {
 	/* the current position is the GC coordinate */
