@@ -1337,7 +1337,7 @@ void handle_pan(const int mev, const unsigned int button, float x, float y) {
 		ttglobal tg = gglobal();
 		viewer = Viewer();
 		float f3[3];
-		double *pin_point, *ray, d3[3], pp[3], angle;
+		double *pin_point, *ray, d3[3], pp[3], angle, Dpos[3];
 		struct point_XYZ downvec, tilted, rotaxis;
 		Quaternion Qfull, Qfull_inverse, Qtilt, Qyaw;
 		int k = 0;
@@ -1349,15 +1349,15 @@ void handle_pan(const int mev, const unsigned int button, float x, float y) {
 		quaternion_inverse(&Qfull_inverse,&Qfull);
 		double dtemp[3];
 		quaternion_split_tilt_yaw(&Qyaw,&Qtilt,&Qfull,pointxyz2double(dtemp,&viewer->Up));
+		pointxyz2double(Dpos,&viewer->Pos);
 
 		X3D_Viewer_Spherical *ypz;
 		ypz = &viewer->ypz; //just a place to store last mouse xy during drag
 
-		if(button == 2 && FALSE){
-			//MMB
-			if (mev == ButtonPress) {
-				ypz->x = x;
-				ypz->y = y;
+		// LMB > PAN and WHEEL > ZOOM
+		switch(mev){
+			case  ButtonPress:
+				//button 1 or 2 LMB, MMB
 				pin_point = get_touch_pin_point();
 				ray = get_touch_ray();
 				if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
@@ -1365,6 +1365,8 @@ void handle_pan(const int mev, const unsigned int button, float x, float y) {
 					double v[3], N[3], dd, trackpoint[3];
 					quaternion_rotationd(ray,&Qfull_inverse,ray);
 					quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
+					vecaddd(ray,ray,Dpos);
+					vecaddd(&ray[3],&ray[3],Dpos);
 					vecdifd(v,&ray[3],ray);
 					vecnormald(v,v);
 					vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of bound viewpoint, assuming viewpoint bound looking at horizon
@@ -1374,442 +1376,139 @@ void handle_pan(const int mev, const unsigned int button, float x, float y) {
 						return; //looking at plane edge-on / parallel, no intersection
 					veccopyd(viewer->pan.pin_point_planed,trackpoint);
 					pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
-				}
-
-			}
-			else if (mev == MotionNotify) 
-			{
-				Quaternion qyaw, qpitch;
-				double dyaw, dpitch, v[3];
-				struct point_XYZ pp, pp2, yaxis;
-				double yaw, pitch; //dist,
-				Quaternion quat;
-
-				yaw = pitch = 0.0;
-				struct point_XYZ dd,ddr,xx,xxr;
-				double dist;
-				yaxis = viewer->Up;
-				ray = get_touch_ray();
-				vecdifd(v,&ray[3],ray);
-				vecscaled(v,v,-1.0);
-				double2pointxyz(&dd,v);
-			//double2pointxyz(&dd,viewer->pan.down_pos);
-			//vecdiff(&dd,&viewer->Pos,&dd);
-			//quaternion_rotation(&dd,&Qfull,&dd);
-			dd.x = dd.y = 0.0; dd.z = viewer->Dist; //exploreDist;
-				xx.y = xx.z = 0.0; xx.x = 1.0;
-				quat = viewer->Quat;
-				quaternion_inverse(&quat,&quat);
-				quaternion_rotation(&ddr, &quat, &dd);
-				quaternion_rotation(&xxr, &quat, &xx);
-				vecdiff(&viewer->examine.Origin,&viewer->Pos,&ddr);
-
-				//printf("ddr %f %f, ",ddr.x,ddr.z);
-				pp = ddr;
-				vecnormal(&pp, &pp);
-				pitch = -(acos(dclamp(vecdot(&pp, &yaxis),-1.0,1.0)) - PI*.5);
-				//euler angles are unstable at pitch 90, when calculated from a verticle ray
-				//as a trick we switch our yaw calculation above pitch 45 degrees to use a horizontal ray
-				if(fabs(pitch) > PI*.25){
-					xxr.y = 0.0;
-					vecnormal(&xxr,&xxr);
-					yaw = atan2(xxr.z,xxr.x);
-					//printf("xx %lf %lf %lf ",xxr.x,xxr.y,xxr.z);
-					//printf("y1 %lf ",yaw);
-
-				}else{
-					pp2 = pp;
-					pp2.y = 0.0;
-					dist = veclength(pp2);
-					if(dist > 0.0 && fabs(pitch) < (PI *.5 - .001)){
-						vecnormal(&pp2,&pp2);
-						yaw = -atan2(pp2.x, pp2.z);
-						//printf("y1 %lf ",yaw);
+					printf("trackpoint %lf %lf %lf\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+					printf("pin_point  %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
+					struct X3D_Viewpoint *boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint(); 
+					if(boundvp){
+						veccopyd(boundvp->_pin_point.c,trackpoint);
 					}
+
 				}
-				dyaw = 0.0; //-(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
-				dpitch =0.0; // (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
-
-				dyaw = -(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
-				dpitch = (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
-				yaw += dyaw;
-				pitch += dpitch;
-
-				//printf("y4= %lf \n",yaw);
-				vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, yaw);
-				vrmlrot_to_quaternion(&qpitch, 1.0, 0.0, 0.0, pitch);
-				quaternion_multiply(&quat, &qpitch, &qyaw);
-				quaternion_normalize(&quat);
-
-				quaternion_set(&(viewer->Quat), &quat);
-				//move the viewer->pos in the opposite direction that we are looking
-				quaternion_inverse(&quat, &quat);
-				pp.x = 0.0;
-				pp.y = 0.0;
-				pp.z = viewer->Dist; //dist;
-			//double2pointxyz(&pp,v);
-				//vecscaled(v,v,-1.0);
-				quaternion_rotation(&(viewer->Pos), &quat, &pp);
-				//remember the last drag coords for next motion
-				vecadd(&viewer->Pos,&viewer->examine.Origin,&viewer->Pos);
 				ypz->x = x;
 				ypz->y = y;
-			}else if(mev == ButtonRelease) {
-			}		
-		}else{
-			// LMB > PAN and WHEEL > ZOOM
-			switch(mev){
-				case  ButtonPress:
-					//button 1 or 2 LMB, MMB
-					pin_point = get_touch_pin_point();
-					ray = get_touch_ray();
-					if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
-						//early transform of ray to BV bound viewpoint
-						double v[3], N[3], dd, trackpoint[3];
-						quaternion_rotationd(ray,&Qfull_inverse,ray);
-						quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
-						vecdifd(v,&ray[3],ray);
-						vecnormald(v,v);
-						vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of bound viewpoint, assuming viewpoint bound looking at horizon
-
-						dd = -vecdotd(N,&ray[3]);
-						if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
-							return; //looking at plane edge-on / parallel, no intersection
-						veccopyd(viewer->pan.pin_point_planed,trackpoint);
-						pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
-					}
-					ypz->x = x;
-					ypz->y = y;
-
-					break;
-				case MotionNotify:
-					if(button < 4){
-						pin_point = get_touch_pin_point();
-						ray = get_touch_ray();
-						if(button == 1){
-							//PAN
-							if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
-								//early transform of ray to BV bound viewpoint
-								double v[3], N[3], dd, delta[3], trackpoint[3];
-
-								double ddelta[3],dpos[3];
-								quaternion_rotationd(ray,&Qfull_inverse,ray);
-								quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
-
-								vecdifd(v,&ray[3],ray);
-								vecnormald(v,v);
-								vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of bound viewpoint, assuming viewpoint bound looking at horizon
-								dd = -vecdotd(N,viewer->pan.pin_point_planed);
-								if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
-									return; //looking at plane edge-on / parallel, no intersection
-								vecdifd(delta,viewer->pan.pin_point_planed,trackpoint);
-								vecaddd(dpos,viewer->pan.down_pos,delta);
-								double2pointxyz(&viewer->Pos,dpos);
-							}
-						}else if(button == 4 || button == 5){
-							//wheel == zoom for PAN mode, and mouse button isn't down - its an on-wheel-notify activity
-							ray = get_touch_ray();
-							if(get_touch_hitPointDist() > 0.0 && ray) {
-								double ddelta[3],dpos[3],vv[3];
-								vecdifd(vv,&ray[3],ray);
-								if(button == 4)
-									vecscaled(ddelta,vv, -.2); //zoom in
-								if(button ==5)
-									vecscaled(ddelta,vv, .25); //zoom out
-								pointxyz2double(dpos,&viewer->Pos);
-								quaternion_rotationd(ddelta,&Qfull_inverse,ddelta);
-								vecaddd(dpos,dpos,ddelta);
-								double2pointxyz(&viewer->Pos,dpos);
-							}
-						} else if(button == 2){
-							//TURNTABLE (x-drag) or TILT (y-drag)
-							//TURNTABLE is around pin_point, 1/2 a turn (around ground verticle) per scren-width drag
-							//TILT - is around hinge axis going through pin_point, and perpendicular to viewpoint Z, 1/4 turn per screenheight drag
-							if(1){
-								//Steps
-								//1. get the pin_point in bound-viewpoint coords
-								//2. get the difference between Pos and pin_point -> turntable vector
-								//3. get the viewer yaw, so delta ptich can be wrt viewer X axis and pin_point
-								//4. get mouse and compute some drag induced yaw and pitch changes
-								//5. combine delta yaw and pitch into a turntable delta quat
-								//6. rotate the turntable vector by delta turntable_quat => turntable2 vector
-								//7. rotate viewer quat by delta turntable_quat
-								//8. get diff (examine2 - examine) = delta_examine
-								//9. add delta_examine to viewer.Pos
-								if(get_touch_hitPointDist() > 0.0 && pin_point ) {
-									Quaternion qyaw, qpitch, qttable;
-									double dyaw, dpitch, v[3], v2[3], pin[3],dpos[3], xaxis[3], yaxis[3], ddr[3], xx[3],pp[3],pp2[3],delta[3],vlength;
-									double yaw;
-									dyaw = dpitch = 0.0;
-									//struct point_XYZ dd,ddr,xx,xxr;
-									double dist;
-									pointxyz2double(yaxis,&viewer->Up);
-									ray = get_touch_ray();
-									pointxyz2double(dpos,&viewer->Pos);
-									//1. get the pin_point in bound-viewpoint coords
-									veccopyd(pin,viewer->pan.pin_point_planed);
-									//2. get the difference between Pos and pin_point -> turntable vector, in bound-viewpoint coords
-									vecdifd(v,pin,dpos);
-									vlength = veclengthd(v);
-									//3. get the viewer yaw, so delta ptich can be wrt viewer X axis and pin_point
-									vecsetd(xaxis,1.0,0.0,0.0);
-									quaternion_rotationd(xaxis,&Qfull_inverse,xaxis);
-									//xaxis[1] = 0.0; // yaw vector
-									//yaw = atan2(xaxis[2],xaxis[0]);
-									//	printf("viewer yaw %lf \n",yaw * 180.0/PI);
-
-									//4. get mouse and compute some drag induced yaw and pitch changes
-									dyaw = -(ypz->x - x) * .5 * PI;
-									dpitch = (ypz->y - y) * .5 * PI;
-									//5. combine new yaw and pitch into a turntable quat
-									vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, dyaw);
-									vrmlrot_to_quaternion(&qpitch, xaxis[0],xaxis[1],xaxis[2], dpitch);
-									quaternion_multiply(&qttable, &qpitch, &qyaw);
-									quaternion_normalize(&qttable);
-									//7. rotate viewer quat by turntable_quat
-									quaternion_multiply(&viewer->Quat,&viewer->Quat,&qttable);
-									if(1){
-										//6. rotate the turntable vector by turntable_quat => turntable2 vector
-										//quaternion_inverse(&qttable,&qttable);
-										quaternion_rotationd(v2,&qttable,v);
-										printf("tvec before %lf %lf %lf\n",v[0],v[1],v[2]);
-										printf("tvec aftere %lf %lf %lf\n",v2[0],v2[1],v2[2]);
-										//8. get diff (examine2 - examine) = delta_examine
-										vecdifd(delta,v2,v);
-										//9. add delta_examine to viewer.Pos
-										vecaddd(dpos,dpos,delta);
-										//vecaddd(dpos,pin,v2);
-										double2pointxyz(&viewer->Pos,dpos);
-									}else{
-										//like normal turntable, we rotate the vector, add it to the pivot
-										// and replace .Pos
-										Quaternion qttable_inverse;
-										quaternion_inverse(&qttable_inverse,&qttable);
-										quaternion_rotationd(v2,&qttable_inverse,v);
-										vecaddd(dpos,pin_point,v2);
-										double2pointxyz(&viewer->Pos,dpos);
-									}
-									ypz->x = x;
-									ypz->y = y;
-								}
-							}else if(1){
-								//Steps
-								//1. get the pin_point in bound-viewpoint coords
-								//2. get the difference between Pos and pin_point -> turntable vector
-								//4. get mouse and compute some drag induced yaw and pitch changes
-								//5. combine delta yaw and pitch into a turntable delta quat
-								//6. rotate the turntable vector by delta turntable_quat => turntable2 vector
-								//7. rotate viewer quat by delta turntable_quat
-								//8. get diff (examine2 - examine) = delta_examine
-								//9. add delta_examine to viewer.Pos
-								if(get_touch_hitPointDist() > 0.0 && pin_point ) {
-									Quaternion qyaw, qpitch, qttable;
-									double dyaw, dpitch, v[3], v2[3], pin[3],dpos[3], yaxis[3], ddr[3], xx[3],pp[3],pp2[3],delta[3],vlength;
-
-									dyaw = dpitch = 0.0;
-									//struct point_XYZ dd,ddr,xx,xxr;
-									double dist;
-									pointxyz2double(yaxis,&viewer->Up);
-									ray = get_touch_ray();
-									pointxyz2double(dpos,&viewer->Pos);
-									//1. get the pin_point in bound-viewpoint coords
-									veccopyd(pin,viewer->pan.pin_point_planed);
-									//2. get the difference between Pos and pin_point -> turntable vector
-									vecdifd(v,pin,dpos);
-									vlength = veclengthd(v);
-									dyaw = -(ypz->x - x) * .25 * PI;
-									dpitch = (ypz->y - y) * .25 * PI;
-
-									//5. combine new yaw and pitch into a turntable quat
-									vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, dyaw);
-									vrmlrot_to_quaternion(&qpitch, 1.0, 0.0, 0.0, dpitch);
-									quaternion_multiply(&qttable, &qpitch, &qyaw);
-									quaternion_normalize(&qttable);
-									//6. rotate the turntable vector by turntable_quat => turntable2 vector
-									quaternion_rotationd(v2,&qttable,v);
-									printf("tvec before %lf %lf %lf\n",v[0],v[1],v[2]);
-									printf("tvec aftere %lf %lf %lf\n",v2[0],v2[1],v2[2]);
-									//7. rotate viewer quat by turntable_quat
-									quaternion_multiply(&viewer->Quat,&viewer->Quat,&qttable);
-									//8. get diff (examine2 - examine) = delta_examine
-									vecdifd(delta,v2,v);
-									//9. add delta_examine to viewer.Pos
-									vecaddd(dpos,dpos,delta);
-									double2pointxyz(&viewer->Pos,dpos);
-									ypz->x = x;
-									ypz->y = y;
-								}
-							}else if(0){
-								//double version
-								//Steps
-								//1. get the pin_point in bound-viewpoint coords
-								//2. get the difference between Pos and pin_point -> turntable vector
-								//3. get the pitch and yaw from turntable vector
-								//4. get mouse and compute some drag induced yaw and pitch changes
-								//5. combine new yaw and pitch into a turntable quat
-								//6. rotate the turntable vector by turntable_quat => turntable2 vector
-								//7. rotate viewer quat by turntable_quat
-								//8. get diff (examine2 - examine) = delta_examine
-								//9. add delta_examine to viewer.Pos
-
-								if(get_touch_hitPointDist() > 0.0 && pin_point ) {
-									Quaternion qyaw, qpitch, qttable;
-									double dyaw, dpitch, v[3], v2[3], pin[3],dpos[3], yaxis[3], ddr[3], xx[3],pp[3],pp2[3],delta[3],vlength;
-									//struct point_XYZ pp, pp2, yaxis;
-									double yaw, pitch; //dist,
-
-									yaw = pitch = 0.0;
-									//struct point_XYZ dd,ddr,xx,xxr;
-									double dist;
-									pointxyz2double(yaxis,&viewer->Up);
-									ray = get_touch_ray();
-									pointxyz2double(dpos,&viewer->Pos);
-									//1. get the pin_point in bound-viewpoint coords
-									veccopyd(pin,viewer->pan.pin_point_planed);
-									//2. get the difference between Pos and pin_point -> turntable vector
-									vecdifd(v,pin,dpos);
-									vlength = veclengthd(v);
-									//3. get the pitch and yaw from turntable vector
-									veccopyd(pp,v);
-									vecnormald(pp,pp);
-									pitch = -(acos(dclamp(vecdotd(pp, yaxis),-1.0,1.0)) - PI*.5);
-									printf("pitch1 %lf ", pitch * 180.0 / PI);
-									//euler angles are unstable at pitch 90, when calculated from a verticle ray
-									//as a trick we switch our yaw calculation above pitch 45 degrees to use a horizontal ray
-									veccopyd(pp2,pp);
-									pp2[1] = 0.0; // yaw vector
-									if(fabs(pitch) > PI*.25){
-										yaw = atan2(pp2[2],pp2[0]);
-										printf("yaw11 %lf \n",yaw * 180.0/PI);
-									}else{
-										dist = veclengthd(pp2);
-										if(dist > 0.0 && fabs(pitch) < (PI *.5 - .001)){
-											vecnormald(pp2,pp2);
-											yaw = atan2(pp2[0],pp2[2]);
-											printf("yaw12 %lf \n",yaw * 180.0/PI);
-										}
-									}
-									dyaw = 0.0; //-(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
-									dpitch =0.0; // (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
-
-									//dyaw = -(ypz->x - x) * .25 * PI;
-									//dpitch = (ypz->y - y) * .25 * PI;
-									yaw += dyaw;
-									pitch += dpitch;
-
-									//5. combine new yaw and pitch into a turntable quat
-									vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, yaw);
-									vrmlrot_to_quaternion(&qpitch, 1.0, 0.0, 0.0, pitch);
-									quaternion_multiply(&qttable, &qpitch, &qyaw);
-									quaternion_normalize(&qttable);
-									//6. rotate the turntable vector by turntable_quat => turntable2 vector
-									vecsetd(v2,0.0,0.0,vlength);
-									quaternion_rotationd(v2,&qttable,v2);
-									printf("tvec before %lf %lf %lf\n",v[0],v[1],v[2]);
-									printf("tvec aftere %lf %lf %lf\n",v2[0],v2[1],v2[2]);
-									if(1){
-									//7. rotate viewer quat by turntable_quat
-									quaternion_multiply(&viewer->Quat,&viewer->Quat,&qttable);
-									//8. get diff (examine2 - examine) = delta_examine
-									vecdifd(delta,v2,v);
-									//9. add delta_examine to viewer.Pos
-									vecaddd(dpos,dpos,delta);
-									double2pointxyz(&viewer->Pos,dpos);
-									}
-									ypz->x = x;
-									ypz->y = y;
-								}
-							}else{
-								if(get_touch_hitPointDist() > 0.0 && pin_point ) {
-									Quaternion qyaw, qpitch, quat;
-									double dyaw, dpitch, v[3], pin[3],dpos[3];
-									struct point_XYZ pp, pp2, yaxis;
-									double yaw, pitch; //dist,
-
-									yaw = pitch = 0.0;
-									struct point_XYZ dd,ddr,xx,xxr;
-									double dist;
-									yaxis = viewer->Up;
-									ray = get_touch_ray();
-									//rotate ray into bound-viewpoint vertical space
-									//quaternion_rotationd(ray,&Qfull_inverse,ray);
-									//quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
-									pointxyz2double(dpos,&viewer->Pos);
-									veccopyd(pin,viewer->pan.pin_point_planed);
-									//vecdifd(v,&ray[3],ray);
-									vecdifd(v,pin,dpos);
-									//vecscaled(v,dd,1.0);
-									//vecnoramld(v,dd);
-									double2pointxyz(&ddr,v);
-								//dd.x = dd.y = 0.0; dd.z = viewer->Dist; //exploreDist;
-									xx.y = xx.z = 0.0; xx.x = 1.0;
-									//quaternion_rotation(&ddr, &Qfull_inverse, &dd);
-									//quaternion_rotation(&xxr, &Qfull_inverse, &xx);
-
-									double2pointxyz(&viewer->examine.Origin,pin);
-									//vecdiff(&viewer->examine.Origin,&viewer->Pos,&ddr);
-									//printf("ddr %f %f, ",ddr.x,ddr.z);
-									pp = ddr;
-									vecnormal(&pp, &pp);
-									pitch = -(acos(dclamp(vecdot(&pp, &yaxis),-1.0,1.0)) - PI*.5);
-									printf("pitch1 %lf ", pitch * 180.0 / PI);
-									//euler angles are unstable at pitch 90, when calculated from a verticle ray
-									//as a trick we switch our yaw calculation above pitch 45 degrees to use a horizontal ray
-									if(fabs(pitch) > PI*.25){
-										xxr.y = 0.0;
-										vecnormal(&xxr,&xxr);
-										yaw = atan2(xxr.z,xxr.x);
-										//printf("xx %lf %lf %lf ",xxr.x,xxr.y,xxr.z);
-										//printf("y1 %lf ",yaw);
-
-									}else{
-										pp2 = pp;
-										pp2.y = 0.0;
-										dist = veclength(pp2);
-										if(dist > 0.0 && fabs(pitch) < (PI *.5 - .001)){
-											vecnormal(&pp2,&pp2);
-											yaw = -atan2(pp2.x, pp2.z);
-											printf("yaw1 %lf \n",yaw * 180.0/PI);
-										}
-									}
-									dyaw = 0.0; //-(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
-									dpitch =0.0; // (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
-
-									//dyaw = -(ypz->x - x) * viewer->fieldofview*PI / 180.0*viewer->fovZoom * display_screenRatio(); //tg->display.screenRatio;
-									//dpitch = (ypz->y - y) * viewer->fieldofview*PI / 180.0*viewer->fovZoom;
-									yaw += dyaw;
-									pitch += dpitch;
-
-									//printf("y4= %lf \n",yaw);
-									vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, yaw);
-									vrmlrot_to_quaternion(&qpitch, 1.0, 0.0, 0.0, pitch);
-									quaternion_multiply(&quat, &qpitch, &qyaw);
-									quaternion_normalize(&quat);
-
-								if(1){
-									quaternion_set(&(viewer->Quat), &quat);
-									//move the viewer->pos in the opposite direction that we are looking
-									quaternion_inverse(&quat, &quat);
-									pp.x = 0.0;
-									pp.y = 0.0;
-									pp.z = viewer->Dist; //dist;
-									quaternion_rotation(&(viewer->Pos), &quat, &ddr); //&pp);
-									//remember the last drag coords for next motion
-									//vecadd(&viewer->Pos,&viewer->examine.Origin,&viewer->Pos);
-									ypz->x = x;
-									ypz->y = y;
-								}
-								}
-							}
-						}
-					}
-
-					break;
-				case ButtonRelease:
-					//viewer->lookatmode should == 3 coming in here
 
 				break;
-			}
+			case MotionNotify:
+				if(button < 4){
+					pin_point = get_touch_pin_point();
+					ray = get_touch_ray();
+					if(button == 1){
+						//PAN
+						if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
+							//early transform of ray to BV bound viewpoint
+							double v[3], N[3], dd, delta[3], trackpoint[3];
+
+							double ddelta[3],dpos[3];
+							quaternion_rotationd(ray,&Qfull_inverse,ray);
+							quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
+							vecaddd(ray,ray,Dpos);
+							vecaddd(&ray[3],&ray[3],Dpos);
+
+							vecdifd(v,&ray[3],ray);
+							vecnormald(v,v);
+							vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of bound viewpoint, assuming viewpoint bound looking at horizon
+							dd = -vecdotd(N,viewer->pan.pin_point_planed);
+							if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
+								return; //looking at plane edge-on / parallel, no intersection
+							vecdifd(delta,viewer->pan.pin_point_planed,trackpoint);
+							//vecaddd(dpos,viewer->pan.down_pos,delta);
+							vecaddd(dpos,Dpos,delta);
+							double2pointxyz(&viewer->Pos,dpos);
+
+						}
+					}else if(button == 4 || button == 5){
+						//wheel == zoom for PAN mode, and mouse button isn't down - its an on-wheel-notify activity
+						ray = get_touch_ray();
+							printf("W");
+						if(get_touch_hitPointDist() > 0.0 && ray) {
+							double ddelta[3],dpos[3],vv[3];
+							vecdifd(vv,&ray[3],ray);
+							if(button == 4)
+								vecscaled(ddelta,vv, -.2); //zoom in
+							if(button ==5)
+								vecscaled(ddelta,vv, .25); //zoom out
+							pointxyz2double(dpos,&viewer->Pos);
+							quaternion_rotationd(ddelta,&Qfull_inverse,ddelta);
+							vecaddd(dpos,dpos,ddelta);
+							double2pointxyz(&viewer->Pos,dpos);
+						}
+					} else if(button == 2){
+						//TURNTABLE (x-drag) or TILT (y-drag)
+						//TURNTABLE is around pin_point, 1/2 a turn (around ground verticle) per scren-width drag
+						//TILT - is around hinge axis going through pin_point, and perpendicular to viewpoint Z, 1/4 turn per screenheight drag
+						//Steps
+						//1. get the pin_point in bound-viewpoint coords
+						//2. get the difference between Pos and pin_point -> turntable vector
+						//3. get the viewer yaw, so delta ptich can be wrt viewer X axis and pin_point
+						//4. get mouse and compute some drag induced yaw and pitch changes
+						//5. combine delta yaw and pitch into a turntable delta quat
+						//6. rotate the turntable vector by delta turntable_quat => turntable2 vector
+						//7. rotate viewer quat by delta turntable_quat
+						//8. get diff (examine2 - examine) = delta_examine
+						//9. add delta_examine to viewer.Pos
+						if(get_touch_hitPointDist() > 0.0 && pin_point ) {
+							Quaternion qyaw, qpitch, qttable;
+							double dyaw, dpitch, v[3], v2[3], pin[3],dpos[3], xaxis[3], yaxis[3], ddr[3], xx[3],pp[3],pp2[3],delta[3],vlength;
+							double yaw;
+							dyaw = dpitch = 0.0;
+							//struct point_XYZ dd,ddr,xx,xxr;
+							double dist;
+							pointxyz2double(yaxis,&viewer->Up);
+							ray = get_touch_ray();
+							pointxyz2double(dpos,&viewer->Pos);
+							//1. get the pin_point in bound-viewpoint coords
+							veccopyd(pin,viewer->pan.pin_point_planed);
+							//2. get the difference between Pos and pin_point -> turntable vector, in bound-viewpoint coords
+							vecdifd(v,pin,dpos);
+							vlength = veclengthd(v);
+							//3. get the viewer yaw, so delta ptich can be wrt viewer X axis and pin_point
+							vecsetd(xaxis,1.0,0.0,0.0);
+							quaternion_rotationd(xaxis,&Qfull_inverse,xaxis);
+							//xaxis[1] = 0.0; // yaw vector
+							//yaw = atan2(xaxis[2],xaxis[0]);
+							//	printf("viewer yaw %lf \n",yaw * 180.0/PI);
+							//4. get mouse and compute some drag induced yaw and pitch changes
+							dyaw = -(ypz->x - x) * .5 * PI;
+							dpitch = (ypz->y - y) * .5 * PI;
+							//5. combine new yaw and pitch into a turntable quat
+							vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, dyaw);
+							vrmlrot_to_quaternion(&qpitch, xaxis[0],xaxis[1],xaxis[2], dpitch);
+							quaternion_multiply(&qttable, &qpitch, &qyaw);
+							quaternion_normalize(&qttable);
+							//7. rotate viewer quat by turntable_quat
+							quaternion_multiply(&viewer->Quat,&viewer->Quat,&qttable);
+							if(1){
+								//6. rotate the turntable vector by turntable_quat => turntable2 vector
+								//quaternion_inverse(&qttable,&qttable);
+								quaternion_rotationd(v2,&qttable,v);
+								printf("tvec before %lf %lf %lf\n",v[0],v[1],v[2]);
+								printf("tvec aftere %lf %lf %lf\n",v2[0],v2[1],v2[2]);
+								//8. get diff (examine2 - examine) = delta_examine
+								vecdifd(delta,v2,v);
+								//9. add delta_examine to viewer.Pos
+								vecaddd(dpos,dpos,delta);
+								//vecaddd(dpos,pin,v2);
+								double2pointxyz(&viewer->Pos,dpos);
+							}else{
+								//like normal turntable, we rotate the vector, add it to the pivot
+								// and replace .Pos
+								Quaternion qttable_inverse;
+								quaternion_inverse(&qttable_inverse,&qttable);
+								quaternion_rotationd(v2,&qttable_inverse,v);
+								vecaddd(dpos,pin_point,v2);
+								double2pointxyz(&viewer->Pos,dpos);
+							}
+							ypz->x = x;
+							ypz->y = y;
+						}
+					}
+				}
+
+				break;
+			case ButtonRelease:
+				//viewer->lookatmode should == 3 coming in here
+
+			break;
 		}
 		viewer_update_user_offsets0(viewer);
 	}

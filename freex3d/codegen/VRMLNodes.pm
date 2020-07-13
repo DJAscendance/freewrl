@@ -1999,6 +1999,7 @@ our %Nodes = (
 		_initializedOnce => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
 		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
 		_position => ["SFVec3f",[0, 0, 0], "initializeOnly", 0,0],#ff
+		_pin_point => ["SFVec3d", [0,0,0],  "initializeOnly", 0,0],#ff 
 	],"X3DBindableNode"),
 
 	"OrthoViewpoint" => new VRML::NodeType("OrthoViewpoint", [
@@ -2020,6 +2021,7 @@ our %Nodes = (
 		_initializedOnce => ["SFBool", "FALSE", "inputOnly", 0,0],#ff
 		_orientation => ["SFRotation", [0, 0, 1, 0], "initializeOnly", 0,0],#ff
 		_position => ["SFVec3f",[0, 0, 0], "initializeOnly", 0,0],#ff
+		_pin_point => ["SFVec3d", [0,0,0],  "initializeOnly", 0,0],#ff 
 	],"X3DBindableNode"),
 
 

@@ -87,7 +87,17 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	}
 	// printf ("render_Viewpoint, bound to %d, fieldOfView %f \n",node,node->fieldOfView); 
 }
+void render_Viewpoint (struct X3D_Viewpoint *node) {
+	float center[3],size[3];
+	draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,.4f,.4f,.4f));
+	FW_GL_PUSH_MATRIX();
+	FW_GL_TRANSLATE_D(node->_position.c[0],node->_position.c[1],node->_position.c[2]);
+	FW_GL_ROTATE_RADIANS( node->_orientation.c[3],node->_orientation.c[0],node->_orientation.c[1],
+			node->_orientation.c[2]);
+	draw_bbox(vecset3f(center,0.0,0.0,0.0),vecset3f(size,.4f,.4f,1.2f));
+	FW_GL_POP_MATRIX();
 
+}
 
 void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 	int ind;
