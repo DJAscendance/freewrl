@@ -400,6 +400,8 @@ typedef struct {
 } FXY;
 #include <list.h>
 static ivec4 defaultViewport = {0,0,400,400};
+#define LENOPTIONS 40
+
 typedef struct pstatusbar{
 	int loopcount;// = 0;
 	int hadString;// = 0;
@@ -433,7 +435,7 @@ typedef struct pstatusbar{
 	char messagebar[200];
 	int bmfontsize;// = 2; /* 0,1 or 2 */
 	int optionsLoaded;// = 0;
-	char * optionsVal[35];
+	char * optionsVal[LENOPTIONS]; //lenOptions
 	int osystem;// = 3; //mac 1btn = 0, mac nbutton = 1, linux game descent = 2, windows =3
 	XY bmWH;// = {10,15}; /* simple bitmap font from redbook above, width and height in pixels */
 	int bmScale; //1 or 2 for the hud pixel fonts, changes between ..ForOptions and ..Regular 
@@ -541,7 +543,8 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 33;
+static int lenOptions   = 34;
+
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -946,6 +949,7 @@ char * optionsText[] = {
 "shading style:",
 "  flat  gouraud  phong  wire",
 "  draw bounding boxes",
+"  show viewpoints",
 "depth slices  auto  1   2   3",
 "  allow DIS",
 "texture modulate or replace mat.diffuse:",
@@ -977,6 +981,7 @@ int fwl_getOrientation();
 int fwl_getOrientation2();
 void fwl_setOrientation2(int degrees);
 int fwl_getShadingStyle();
+
 void initOptionsVal()
 {
 	int i,j,k,m, iside, ieither, shadingStyle;
@@ -1056,27 +1061,30 @@ void initOptionsVal()
 	p->optionsVal[28][0] = 034; //[]
 	if(fwl_getDrawBoundingBoxes())
 		p->optionsVal[28][0] = 035; //[*] '*';
+	p->optionsVal[29][0] = 034; //[]
+	if(fwl_getShowViewpoints())
+		p->optionsVal[29][0] = 035; //[*] '*';
 	m = fwl_get_depth_slices();
-	p->optionsVal[29][13] = p->optionsVal[29][19] = p->optionsVal[29][23] = p->optionsVal[29][27] =034;
+	p->optionsVal[30][13] = p->optionsVal[30][19] = p->optionsVal[30][23] = p->optionsVal[30][27] =034;
 	switch(m){
 		// 012345678901234567890123456789  13 19 23 27
-		case 0: p->optionsVal[29][13] = 035; break; //[*]
-		case 1: p->optionsVal[29][19] = 035; break; //[*]
-		case 2: p->optionsVal[29][23] = 035; break; //[*]
-		case 3: p->optionsVal[29][27] = 035; break; //[*]
+		case 0: p->optionsVal[30][13] = 035; break; //[*]
+		case 1: p->optionsVal[30][19] = 035; break; //[*]
+		case 2: p->optionsVal[30][23] = 035; break; //[*]
+		case 3: p->optionsVal[30][27] = 035; break; //[*]
 	}
-	p->optionsVal[30][0] = 034; //[]
+	p->optionsVal[31][0] = 034; //[]
 	if(fwl_get_allow_DIS())
-		p->optionsVal[30][0] = 035; //[*] '*';
+		p->optionsVal[31][0] = 035; //[*] '*';
 	m = fwl_get_modulation();
 	//"eeeee            ffffffff          ggggggg",
 	// 0123456789 123456789 123456789 123456789 123456789 	123456789 
 	//"  by file_version   v3.3- replace   v4.0+ modulate",
-	p->optionsVal[32][0] = p->optionsVal[32][19] = p->optionsVal[32][35] =034;
+	p->optionsVal[33][0] = p->optionsVal[33][19] = p->optionsVal[33][35] =034;
 	switch(m){
-		case 0: p->optionsVal[32][0] = 035; break; //[*]
-		case 1: p->optionsVal[32][19] = 035; break; //[*]
-		case 2: p->optionsVal[32][35] = 035; break; //[*]
+		case 0: p->optionsVal[33][0] = 035; break; //[*]
+		case 1: p->optionsVal[33][19] = 035; break; //[*]
+		case 2: p->optionsVal[33][35] = 035; break; //[*]
 	}
 	p->optionsLoaded = 1;
 }
@@ -1117,6 +1125,7 @@ char * optionsCase[] = {
 " ",
 "RR    SS       TT     UU",
 "VVVVVVVVVV",
+"XXXXXXXXXX",
 "            aa    bb  cc  dd",
 "WWWWWWWWWW",
 " ",
@@ -1377,6 +1386,10 @@ int handleOptionPress(int mouseX, int mouseY)
 		break;
 	case 'V': {
 		fwl_setDrawBoundingBoxes(1 - fwl_getDrawBoundingBoxes());
+		break;
+		}
+	case 'X': {
+		fwl_setShowViewpoints(1 - fwl_getShowViewpoints());
 		break;
 		}
 	case 'a':

@@ -366,6 +366,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_signal",
 	"_pduchange_transmitter",
 	"_phaseFunction",
+	"_pin_point",
 	"_pointMethod",
 	"_pointsVBO",
 	"_portions",
@@ -392,6 +393,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_shaderflags_base",
 	"_shaderflags_effects",
 	"_shaderflags_usershaders",
+	"_show_pin_point",
 	"_sideVBO",
 	"_sizeUnits",
 	"_smoothingCount",
@@ -3585,8 +3587,9 @@ void compile_GeoTransform(struct X3D_GeoTransform *);
 struct X3D_Virt virt_GeoTransform = { (void *)prep_GeoTransform,NULL,(void *)child_GeoTransform,(void *)fin_GeoTransform,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoTransform};
 
 void prep_GeoViewpoint(struct X3D_GeoViewpoint *);
+void render_GeoViewpoint(struct X3D_GeoViewpoint *);
 void compile_GeoViewpoint(struct X3D_GeoViewpoint *);
-struct X3D_Virt virt_GeoViewpoint = { (void *)prep_GeoViewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoViewpoint};
+struct X3D_Virt virt_GeoViewpoint = { (void *)prep_GeoViewpoint,(void *)render_GeoViewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoViewpoint};
 
 void prep_Group(struct X3D_Group *);
 void child_Group(struct X3D_Group *);
@@ -3957,7 +3960,8 @@ struct X3D_Virt virt_OrientationDamper = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NU
 struct X3D_Virt virt_OrientationInterpolator = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void prep_OrthoViewpoint(struct X3D_OrthoViewpoint *);
-struct X3D_Virt virt_OrthoViewpoint = { (void *)prep_OrthoViewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_OrthoViewpoint(struct X3D_OrthoViewpoint *);
+struct X3D_Virt virt_OrthoViewpoint = { (void *)prep_OrthoViewpoint,(void *)render_OrthoViewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_OscillatorNode(struct X3D_OscillatorNode *);
 void compile_OscillatorNode(struct X3D_OscillatorNode *);
@@ -4244,7 +4248,8 @@ void compile_UnlitMaterial(struct X3D_UnlitMaterial *);
 struct X3D_Virt virt_UnlitMaterial = { NULL,(void *)render_UnlitMaterial,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_UnlitMaterial};
 
 void prep_Viewpoint(struct X3D_Viewpoint *);
-struct X3D_Virt virt_Viewpoint = { (void *)prep_Viewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_Viewpoint(struct X3D_Viewpoint *);
+struct X3D_Virt virt_Viewpoint = { (void *)prep_Viewpoint,(void *)render_Viewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void child_ViewpointGroup(struct X3D_ViewpointGroup *);
 void compile_ViewpointGroup(struct X3D_ViewpointGroup *);
@@ -6290,6 +6295,8 @@ const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__initializedOnce, (int) offsetof (struct X3D_GeoViewpoint, _initializedOnce),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_GeoViewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_GeoViewpoint, _position),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pin_point, (int) offsetof (struct X3D_GeoViewpoint, _pin_point),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__show_pin_point, (int) offsetof (struct X3D_GeoViewpoint, _show_pin_point),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_relativeHeight, (int) offsetof (struct X3D_GeoViewpoint, relativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__resetRelativeHeight, (int) offsetof (struct X3D_GeoViewpoint, _resetRelativeHeight),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_walkSurface, (int) offsetof (struct X3D_GeoViewpoint, walkSurface),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -7759,6 +7766,8 @@ const int OFFSETS_OrthoViewpoint[] = {
 	(int) FIELDNAMES__initializedOnce, (int) offsetof (struct X3D_OrthoViewpoint, _initializedOnce),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_OrthoViewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_OrthoViewpoint, _position),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pin_point, (int) offsetof (struct X3D_OrthoViewpoint, _pin_point),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__show_pin_point, (int) offsetof (struct X3D_OrthoViewpoint, _show_pin_point),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_OscillatorNode[] = {
@@ -9217,6 +9226,8 @@ const int OFFSETS_Viewpoint[] = {
 	(int) FIELDNAMES__initializedOnce, (int) offsetof (struct X3D_Viewpoint, _initializedOnce),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__orientation, (int) offsetof (struct X3D_Viewpoint, _orientation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__position, (int) offsetof (struct X3D_Viewpoint, _position),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__pin_point, (int) offsetof (struct X3D_Viewpoint, _pin_point),  (int) FIELDTYPE_SFVec3d, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__show_pin_point, (int) offsetof (struct X3D_Viewpoint, _show_pin_point),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ViewpointGroup[] = {
@@ -12402,6 +12413,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0;tmp2->_position.c[1] = 0;tmp2->_position.c[2] = 0;;
+			tmp2->_pin_point.c[0] = 0;tmp2->_pin_point.c[1] = 0;tmp2->_pin_point.c[2] = 0;;
+			tmp2->_show_pin_point = FALSE;
 			tmp2->relativeHeight = FALSE;
 			tmp2->_resetRelativeHeight = TRUE;
 			tmp2->walkSurface.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->walkSurface.p[0] = newASCIIString("HIGHEST");tmp2->walkSurface.n=1; ;
@@ -14268,6 +14281,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
+			tmp2->_pin_point.c[0] = 0;tmp2->_pin_point.c[1] = 0;tmp2->_pin_point.c[2] = 0;;
+			tmp2->_show_pin_point = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16048,6 +16063,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_initializedOnce = FALSE;
 			tmp2->_orientation.c[0] = 0;tmp2->_orientation.c[1] = 0;tmp2->_orientation.c[2] = 1;tmp2->_orientation.c[3] = 0;;
 			tmp2->_position.c[0] = 0.0f;tmp2->_position.c[1] = 0.0f;tmp2->_position.c[2] = 0.0f;
+			tmp2->_pin_point.c[0] = 0;tmp2->_pin_point.c[1] = 0;tmp2->_pin_point.c[2] = 0;;
+			tmp2->_show_pin_point = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

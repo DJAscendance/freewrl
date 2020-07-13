@@ -2195,9 +2195,9 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 		push_globalRenderFlags();
 	}
 	profile_start("render_hier");
-	push_group_extent_default();
+	//push_group_extent_default();
 	render_node(X3D_NODE(g));
-	pop_group_extent(); // up where parents are
+	//pop_group_extent(); // up where parents are
 	//rwhat_printf(rwhat);
 	profile_end("render_hier");
 	if(rs->render_blend || rs->render_geom){

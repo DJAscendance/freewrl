@@ -83,6 +83,7 @@ typedef struct pcommon{
 	int jsengine;
 	int jsengine_variant;
 	int draw_bounding_boxes;
+	int show_viewpoints;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -112,6 +113,8 @@ void common_init(struct tcommon *t){
 		p->pedal = 0; //pedal mode moves in-scene cursor by drag amount ie indirect/offset drag
 		p->hover = 0; //hover mode means your drags only do isOver -no navigation or sensor click
 		p->jsengine = JSENGINE_STUB;
+		p->draw_bounding_boxes = FALSE;
+		p->show_viewpoints = FALSE;
 #ifdef JAVASCRIPT_DUK
 		p->jsengine = JSENGINE_DUK;
 #endif
@@ -121,7 +124,6 @@ void common_init(struct tcommon *t){
 #ifdef JAVASCRIPT_ENGINE_VARIANT
 		p->jsengine_variant = JAVASCRIPT_ENGINE_VARIANT;  //1= pre-2018 SM1 2= 2018+ SM2
 #endif
-		p->draw_bounding_boxes = FALSE;
 #endif
 	}
 }
@@ -889,4 +891,12 @@ void fwl_setDrawBoundingBoxes(int drawbb){
 int fwl_getDrawBoundingBoxes(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->draw_bounding_boxes; //0 means off, 1 means on
+}
+void fwl_setShowViewpoints(int show){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->show_viewpoints = show; //0 means off, 1 means on
+}
+int fwl_getShowViewpoints(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->show_viewpoints; //0 means off, 1 means on
 }

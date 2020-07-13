@@ -111,6 +111,7 @@ void fv_usage()
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
+		"  -X|--viewpoints         Show viewpointss\n"
 	    "\nInternal options:\n"
 	    "  -i|--plugin <string>    Called from plugin.\n"
 	    "  -j|--fd <number>        Pipe to command the program.\n"
@@ -184,6 +185,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"DIS",no_argument,0,'D'},
 	{"javascript",required_argument,0,'J'},
 	{"boxes",no_argument,0,'x'},
+	{"viewpoints",no_argument,0,'X'},
 	{0, 0, 0, 0}
     };
 
@@ -405,6 +407,9 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 
 	case 'x': /* bounding boxes */
 	    fwl_setDrawBoundingBoxes(1);
+	    break;
+	case 'X': /* viewpoints */
+	    fwl_setShowViewpoints(1);
 	    break;
 
 	case 't': /* --stereo, required argument: float */

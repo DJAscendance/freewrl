@@ -161,7 +161,7 @@ typedef struct viewer_fly {
 
 typedef struct viewer_pan {
 	float pin_point_plane[3];
-	int have_pin_point;
+	double pin_point_planed[3];
 	double down_pos[3];
 } X3D_Viewer_Pan;
 

@@ -287,6 +287,7 @@ static struct cline *cursor_array [] = {
 };
 /* attempt to draw fiducials with lines - draws wrong place */
 s_shader_capabilities_t *getMyShader(unsigned int rq_cap0);
+
 void fiducialDrawB(int cursortype, int x, int y)
 {
 	XY xy;
@@ -726,4 +727,91 @@ void draw_bbox(float *center, float *size){
 	float extent[6];
 	bbox2extent6f(center,size,extent);
 	extent6f_draw(extent);
+}
+void draw_viewpoint(int type, float *fov, float aspect)
+{
+	//assumes 0,0,0 is the perspective center, and -Z the look direction
+	int i,j,k,n;
+	GLint  positionLoc;
+	GLfloat p[24][3];
+	struct cline *cur, *line;
+	s_shader_capabilities_t *scap;
+	ttglobal tg = gglobal();
+
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	n = 0;
+	if(type == NODE_Viewpoint || type == NODE_GeoViewpoint){
+		//regular viewpoint 
+		float d,w,h;
+		d = 1.0 * cos(*fov);
+		w = sin(*fov); //half-width
+		h = aspect *w; //half-height
+		//sides
+		vecset3f(p[0],0.0f,0.0f,0.0f);
+		vecset3f(p[1],w,h,-d);
+		vecset3f(p[2],0.0f,0.0f,0.0f);
+		vecset3f(p[3],-w,h,-d);
+		vecset3f(p[4],0.0f,0.0f,0.0f);
+		vecset3f(p[5],-w,-h,-d);
+		vecset3f(p[6],0.0f,0.0f,0.0f);
+		vecset3f(p[7],w,-h,-d);
+		//opening
+		vecset3f(p[8],-w,-h,-d);
+		vecset3f(p[9],w,-h,-d);
+		vecset3f(p[10],w,-h,-d);
+		vecset3f(p[11],w,h,-d);
+		vecset3f(p[12],w,h,-d);
+		vecset3f(p[13],-w,h,-d);
+		vecset3f(p[14],-w,h,-d);
+		vecset3f(p[15],-w,-h,-d);
+		n = 16;
+
+	}
+
+	if(type == NODE_OrthoViewpoint){
+		//regular viewpoint 
+		float w1,w2,h1,h2,d = 1.0f;
+
+		//printf("ortho fov %f %f %f %f\n",fov[0],fov[1],fov[2],fov[3]);
+		w1=fov[0];
+		w2=fov[2];
+		h1=fov[1];
+		h2=fov[3];
+		vecset3f(p[0],w1,h1,d);
+		vecset3f(p[1],w2,h1,d);
+		vecset3f(p[2],w2,h1,d);
+		vecset3f(p[3],w2,h2,d);
+		vecset3f(p[4],w2,h2,d);
+		vecset3f(p[5],w1,h2,d);
+		vecset3f(p[6],w1,h2,d);
+		vecset3f(p[7],w1,h1,d);
+
+		vecset3f(p[8 ],w1,h1,-d);
+		vecset3f(p[9 ],w2,h1,-d);
+		vecset3f(p[10],w2,h1,-d);
+		vecset3f(p[11],w2,h2,-d);
+		vecset3f(p[12],w2,h2,-d);
+		vecset3f(p[13],w1,h2,-d);
+		vecset3f(p[14],w1,h2,-d);
+		vecset3f(p[15],w1,h1,-d);
+
+		n = 16;
+	}
+
+	//FW_GL_VERTEX_POINTER(2, GL_FLOAT, 0, (GLfloat *)p);
+	//sendArraysToGPU(GL_LINE_STRIP, 0, 3);
+	positionLoc =  scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	sendArraysToGPU (GL_LINES, 0, n);
+	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,p[0]);
+	reallyDrawOnce();
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+
 }

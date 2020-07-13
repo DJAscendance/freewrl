@@ -836,6 +836,27 @@ BOOL line_intersect_plane_3f(float *p, float *v, float *N, float *pp, float *pi,
 	return line_intersect_planed_3f(p, v, N, d, pi, t);
 }
 
+BOOL line_intersect_planed_3d(double *p, double *v, double *N, double d, double *pi, double *t)
+{
+	//from graphics gems I, p.391 http://inis.jinr.ru/sl/vol1/CMC/Graphics_Gems_1,ed_A.Glassner.pdf
+	// V dot N = d = const for points on a plane, or N dot P + d = 0
+	// line/ray P1 + v1*t = P2 (intersection point)
+	// combining t = -(d + N dot P1)/(N dot v1)
+	double t1[3], t2[3], nd, tt;
+	nd = vecdotd(N, v);
+	if (APPROX(nd, 0.0)) return FALSE;
+	tt = -(d + vecdotd(N, p)) / nd;
+	vecaddd(t2, p, vecscaled(t1, v, tt));
+	if (t) *t = tt;
+	if (pi) veccopyd(pi, t2);
+	return TRUE;
+}
+BOOL line_intersect_plane_3d(double *p, double *v, double *N, double *pp, double *pi, double *t)
+{
+	double d;
+	d = vecdotd(N, pp);
+	return line_intersect_planed_3d(p, v, N, d, pi, t);
+}
 BOOL line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi)
 {
 	//from rendray_Cylinder
