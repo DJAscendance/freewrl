@@ -287,6 +287,7 @@ static struct cline *cursor_array [] = {
 };
 /* attempt to draw fiducials with lines - draws wrong place */
 s_shader_capabilities_t *getMyShader(unsigned int rq_cap0);
+
 void fiducialDrawB(int cursortype, int x, int y)
 {
 	XY xy;
