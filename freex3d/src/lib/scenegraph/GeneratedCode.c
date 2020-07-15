@@ -1078,6 +1078,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"shape",
 	"shiftKey",
 	"shininess",
+	"showContent",
 	"side",
 	"silhouetteBoundaryOpacity",
 	"silhouetteRetainedOpacity",
@@ -1873,6 +1874,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"shadows",
 	"shape",
 	"shininess",
+	"showContent",
 	"silhouetteBoundaryOpacity",
 	"silhouetteRetainedOpacity",
 	"silhouetteSharpness",
@@ -8986,6 +8988,7 @@ const int OFFSETS_Tile[] = {
 	(int) FIELDNAMES_content, (int) offsetof (struct X3D_Tile, content),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_geometricError, (int) offsetof (struct X3D_Tile, geometricError),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_refine, (int) offsetof (struct X3D_Tile, refine),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_showContent, (int) offsetof (struct X3D_Tile, showContent),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TimeSensor[] = {
@@ -15815,6 +15818,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->content = NULL;
 			tmp2->geometricError = 0.0f;
 			tmp2->refine = newASCIIString("REPLACE");
+			tmp2->showContent = TRUE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -21667,6 +21671,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 			spacer fprintf (fp," content (SFNode):\n"); dump_scene(fp,level+1,tmp->content); 
+			spacer fprintf (fp," showContent (SFBool) \t%d\n",tmp->showContent);
 		    break;
 		}
 		case NODE_TimeSensor : {

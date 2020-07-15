@@ -3850,6 +3850,7 @@ EXPOSED_FIELD(Tile,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Tile,content,sfnode,content,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(Tile,geometricError,sffloat,geometricError,FIELDTYPE_SFFloat,UNCA_NONE)
 FIELD(Tile,refine,sfstring,refine,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(Tile,showContent,sfbool,showContent,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(Tile)
 
 /* TimeSensor node */

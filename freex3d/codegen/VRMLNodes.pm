@@ -1957,6 +1957,7 @@ our %Nodes = (
 		content => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		geometricError => ["SFFloat", 0, "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		refine => ["SFString", "REPLACE", "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		showContent => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DGroupingNode"),
 
 

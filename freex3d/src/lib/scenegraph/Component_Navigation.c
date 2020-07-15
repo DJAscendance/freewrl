@@ -584,11 +584,11 @@ void child_Tile(struct X3D_Tile *node){
 	
 	int refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
 	if(!strcasecmp(node->refine->strptr,"REPLACE")) refine = TILE_REFINE_REPLACE;
-	else if(!strcasecmp(node->refine->strptr,"ADD")) refine = TILE_REFINE_REPLACE;
+	else if(!strcasecmp(node->refine->strptr,"ADD")) refine = TILE_REFINE_ADD;
 
 	//adapted from proximit_LOD
 	{
-		double mod[16],modi[16], proj[16], orig[3], vec[3], vec4[4], range, viewspace_error, nearplane_error;
+		double mod[16],modi[16], proj[16], orig[3], origb[3], vec[3],vecb[3], vec4[4], range, viewspace_error, nearplane_error;
 		int viewPort[10];
 		/* calculate which one to display */
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
@@ -600,21 +600,40 @@ void child_Tile(struct X3D_Tile *node){
 		//printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
 		//printf("\n");
 		range = veclengthd(vec);
-		vecsetd(vec,node->geometricError,0.0,0.0);
+		//printf("range= %lf\n",range);
+
+		vecsetd(vec,node->geometricError,0.0,-range);
 		transformAFFINEd(orig,vec,mod);
-		viewspace_error = veclengthd(orig);
+		vecsetd(vec,0.0,0.0,-range);
+		transformAFFINEd(origb,vec,mod);
+		vecdifd(vec,orig,origb);
+		viewspace_error = veclengthd(vec);
 		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
-		vecsetd(vec4,viewspace_error,0.0,0.0);
+		veccopyd(vec4,orig);
 		vec4[3] = 1.0;
 		transformFULL4d(vec4,vec4,proj);
-		vecscaled(vec4,vec4,1.0/vec4[3]);
-		nearplane_error = veclengthd(vec4); 
+		vecscaled(orig,vec4,1.0/vec4[3]);
+		veccopyd(vec4,origb);
+		vec4[3] = 1.0;
+		transformFULL4d(vec4,vec4,proj);
+		vecscaled(origb,vec4,1.0/vec4[3]);
+		vecdifd(vec,orig,origb);
+		nearplane_error = veclengthd(vec); 
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		screenspace_error = nearplane_error / 2.0 * (double) viewPort[2];
-
+		//printf("screen %lf near %lf view %lf\n",screenspace_error,nearplane_error,viewspace_error);
 	}
 	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD){
 		render_node(node->content);
+		if(node->showContent == FALSE){
+			node->showContent = TRUE;
+			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
+		}
+	}else{
+		if(node->showContent == TRUE){
+			node->showContent = FALSE;
+			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
+		}
 	}
 	if(screenspace_error > screespace_allowed_error && node->children.n > 0 ){
 		//adapted from child_Group:
