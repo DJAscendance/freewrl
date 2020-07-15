@@ -1940,6 +1940,26 @@ our %Nodes = (
 		_selected =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGroupingNode"),
 
+
+	"Tile"  => new VRML::NodeType("Tile", [	
+		# grouping interface
+		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		__sibAffectors => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		center => ["SFVec3f", [0, 0, 0],  "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		bboxCenter => ["SFVec3f", [0, 0, 0], "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly","(SPEC_X3D40)","UNCA_NONE"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		bboxDisplay => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		#tile interface
+		content => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		geometricError => ["SFFloat", 0, "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		refine => ["SFString", "REPLACE", "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DGroupingNode"),
+
+
 	"Billboard" => new VRML::NodeType("Billboard", [
 		addChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removeChildren => ["MFNode", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

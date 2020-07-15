@@ -385,6 +385,7 @@ our %defaultContainerType = (
 	GeoEllipsoid		=>["ellipsoid"],
 	GeoSystemParameters	=>["systemParameters"],
 	BufferGeometry 		=>["geometry"],
+	Tile			=>["children"],
 );
 
 
@@ -577,6 +578,7 @@ our %PrepC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape
 	EspduTransform
+	Tile
 /;
 
 #######################################################################
@@ -667,6 +669,7 @@ our %ChildC = map {($_=>1)} qw/
 	TransmitterPdu
 	SignalPdu
 	DISEntityManager
+	Tile
 /;
 
 
@@ -834,6 +837,7 @@ our %CompileC = map {($_=>1)} qw/
 	PannerNode
 	GeoSRF
 	BufferGoemtry
+	Tile
 /;
 
 
@@ -850,6 +854,7 @@ our %ProximityC = map {($_=>1)} qw/
 	LOD
 	Billboard
 	GeoProximitySensor
+	Tile
 /;
 
 #######################################################################

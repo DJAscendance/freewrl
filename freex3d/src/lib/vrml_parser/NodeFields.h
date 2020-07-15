@@ -1446,6 +1446,19 @@ FIELD(GeoTMParameters,x_false_origin,sfdouble,x_false_origin,FIELDTYPE_SFDouble,
 FIELD(GeoTMParameters,y_false_origin,sfdouble,y_false_origin,FIELDTYPE_SFDouble,UNCA_NONE)
 END_NODE(GeoTMParameters)
 
+/* GeoTile node */
+BEGIN_NODE(GeoTile)
+EXPOSED_FIELD(GeoTile,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(GeoTile)
+
+/* GeoTileSet node */
+BEGIN_NODE(GeoTileSet)
+EXPOSED_FIELD(GeoTileSet,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoTileSet,geoOrigin,sfnode,geoOrigin,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(GeoTileSet,geoSystem,mfstring,geoSystem,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(GeoTileSet,geoSRF,sfnode,geoSRF,FIELDTYPE_SFNode,0)
+END_NODE(GeoTileSet)
+
 /* GeoTouchSensor node */
 BEGIN_NODE(GeoTouchSensor)
 EXPOSED_FIELD(GeoTouchSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
@@ -3822,6 +3835,22 @@ BEGIN_NODE(TextureTransformMatrix3D)
 EXPOSED_FIELD(TextureTransformMatrix3D,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(TextureTransformMatrix3D,matrix,sfmatrix4f,matrix,FIELDTYPE_SFMatrix4f,UNCA_NONE)
 END_NODE(TextureTransformMatrix3D)
+
+/* Tile node */
+BEGIN_NODE(Tile)
+EVENT_IN(Tile,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
+EVENT_IN(Tile,removeChildren,mfnode,removeChildren,FIELDTYPE_MFNode)
+EXPOSED_FIELD(Tile,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+EXPOSED_FIELD(Tile,center,sfvec3f,center,FIELDTYPE_SFVec3f,UNCA_NONE)
+FIELD(Tile,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_NONE)
+FIELD(Tile,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(Tile,visible,sfbool,visible,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(Tile,bboxDisplay,sfbool,bboxDisplay,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(Tile,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(Tile,content,sfnode,content,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(Tile,geometricError,sffloat,geometricError,FIELDTYPE_SFFloat,UNCA_NONE)
+FIELD(Tile,refine,sfstring,refine,FIELDTYPE_SFString,UNCA_NONE)
+END_NODE(Tile)
 
 /* TimeSensor node */
 BEGIN_NODE(TimeSensor)

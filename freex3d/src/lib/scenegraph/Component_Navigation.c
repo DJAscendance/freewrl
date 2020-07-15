@@ -563,4 +563,80 @@ void child_ViewpointGroup (struct X3D_ViewpointGroup *node) {
         }
 
 }
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif //_MSC_VER
 
+static double screespace_allowed_error = 5.0; //pixles?
+void compile_Tile(struct X3D_Tile *node){
+
+}
+void prep_Tile(struct X3D_Tile *node){
+
+}
+enum {
+	TILE_REFINE_DEFAULT = 0,
+	TILE_REFINE_REPLACE = 1,
+	TILE_REFINE_ADD = 2,
+};
+void child_Tile(struct X3D_Tile *node){
+	double screenspace_error = 1.e+06;
+	
+	int refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
+	if(!strcasecmp(node->refine->strptr,"REPLACE")) refine = TILE_REFINE_REPLACE;
+	else if(!strcasecmp(node->refine->strptr,"ADD")) refine = TILE_REFINE_REPLACE;
+
+	//adapted from proximit_LOD
+	{
+		double mod[16],modi[16], proj[16], orig[3], vec[3], vec4[4], range, viewspace_error, nearplane_error;
+		int viewPort[10];
+		/* calculate which one to display */
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		//feature-AFFINE_GLU_UNPROJECT
+		//this is centered on the avatar (correct)
+		vecsetd(orig,0.0,0.0,0.0); //viewpoint
+		matinverseAFFINE(modi,mod);
+		transformAFFINEd(vec,orig,modi);
+		//printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
+		//printf("\n");
+		range = veclengthd(vec);
+		vecsetd(vec,node->geometricError,0.0,0.0);
+		transformAFFINEd(orig,vec,mod);
+		viewspace_error = veclengthd(orig);
+		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+		vecsetd(vec4,viewspace_error,0.0,0.0);
+		vec4[3] = 1.0;
+		transformFULL4d(vec4,vec4,proj);
+		vecscaled(vec4,vec4,1.0/vec4[3]);
+		nearplane_error = veclengthd(vec4); 
+		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
+		screenspace_error = nearplane_error / 2.0 * (double) viewPort[2];
+
+	}
+	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD){
+		render_node(node->content);
+	}
+	if(screenspace_error > screespace_allowed_error && node->children.n > 0 ){
+		//adapted from child_Group:
+		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+		normalChildren(node->children);
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	}
+}
+void proximity_Tile(struct X3D_Tile *node){
+	//double mod[16],modi[16], orig[3], vec[3];
+
+	///* calculate which one to display */
+	//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+	////feature-AFFINE_GLU_UNPROJECT
+	////this is centered on the avatar (correct)
+	//vecsetd(orig,0,.0,0.0,0.0);
+	//matinverseAFFINE(modi,mod);
+	//transformAFFINEd(vec,orig,modi);
+	////printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
+	////printf("\n");
+
+
+}
