@@ -5725,6 +5725,8 @@ static void render()
 	ttglobal tg = gglobal();
 	p = (ppMainloop)tg->Mainloop.prv;
 
+	push_group_extent_default(); //we don't need the extent on this but don'e want it to bomb
+
 	generate_GeneratedCubeMapTextures();
 	setup_projection();
 	set_viewmatrix();
@@ -5733,6 +5735,7 @@ static void render()
 	viewer = Viewer();
 	doglClearColor();
 
+	pop_group_extent();
 
 	for (count = 0; count < p->maxbuffers; count++) {
 
@@ -5791,15 +5794,16 @@ static void render()
 
 			/*  Other lights*/
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
-
+			push_group_extent_default(); //we don't need the extent on this but don'e want it to bomb
 			render_hier(rootNode(), VF_globalLight ); //also do global TextureProjectors: TextureProjectorPerspective global=true, TextureProjectorParallel global=true
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
 			render_hier(rootNode(), VF_Other );
+			pop_group_extent();
 
 
 			/*  4. Nodes (not the blended ones)*/
 			profile_start("hier_geom");
-			push_group_extent_default();
+			push_group_extent_default(); //need the extent on geom
 			render_hier(rootNode(), VF_Geom);
 			profile_end("hier_geom");
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
