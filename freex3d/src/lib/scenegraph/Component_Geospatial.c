@@ -4324,7 +4324,7 @@ void draw_viewpoint(int type, float *fov, float aspect);
 void render_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	float center[3],size[3];
 	if(node->_show_pin_point || fwl_getShowViewpoints())
-		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,.4f,.4f,.4f));
+		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,400000.f,400000.f,400000.f));
 	if(fwl_getShowViewpoints()){
 		FW_GL_PUSH_MATRIX();
 		FW_GL_TRANSLATE_D(node->_position.c[0],node->_position.c[1],node->_position.c[2]);

@@ -2706,6 +2706,18 @@ our %Nodes = (
 		y_false_origin => ["SFDouble", 0, "initializeOnly", "(SPEC_X3D40 )","UNCA_NONE"],#ff
 	],"X3DGeoSRFTParametersNode"),
 
+	# geo tiles
+	"GeoTile"  => new VRML::NodeType("GeoTile", [	
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DGroupingNode"),
+
+	"GeoTileSet"  => new VRML::NodeType("GeoTileSet", [	
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		geoOrigin => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D32)","UNCA_NONE"],#ff
+		geoSystem => ["MFString",["GD","WE"],"initializeOnly", "(SPEC_X3D33)","UNCA_NONE"],#ff
+		geoSRF => ["SFNode","NULL","initializeOnly", 0,0],#ff
+		
+	],"X3DChildNode"),
 
 
 	###################################################################################
