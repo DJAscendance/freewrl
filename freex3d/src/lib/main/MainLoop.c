@@ -6227,6 +6227,7 @@ char lookup_fly_key(int key);
 //#endif
 void dump_scenegraph(int method);
 void fps_histo_toggle();
+void toggleTileViewFrozen();
 void fwl_do_keyPress0(int key, int type) {
 	int lkp;
 	ppMainloop p;
@@ -6297,10 +6298,10 @@ void fwl_do_keyPress0(int key, int type) {
 				case 'H': { fps_histo_toggle(); break; }
 				case '/': { print_viewer(); break; }
 				//case '\\': { dump_scenegraph(); break; }
-				case '\\': { dump_scenegraph(1); break; }
-				case '|': { dump_scenegraph(2); break; }
-				case '=': { dump_scenegraph(3); break; }
-				case '+': { dump_scenegraph(4); break; }
+				//case '\\': { dump_scenegraph(1); break; }
+				//case '|': { dump_scenegraph(2); break; }
+				//case '=': { dump_scenegraph(3); break; }
+				//case '+': { dump_scenegraph(4); break; }
 				case '-': { dump_scenegraph(5); break; }
 				case '`': { toggleLogfile(); break; }
 				case '$': resource_tree_dump(0, (resource_item_t*)tg->resources.root_res); break;
@@ -6316,6 +6317,7 @@ void fwl_do_keyPress0(int key, int type) {
 				case '.': {profile_print_all(); break;}
 				case ' ': p->keywait = TRUE; ConsoleMessage("\n%c",':'); p->keywaitstring[0] = '\0'; break;
 				case ',': toggle_debugging_trigger(); break; 
+				case '=': toggleTileViewFrozen(); break; 
 #if !defined(FRONTEND_DOES_SNAPSHOTS)
 				case 'x': {Snapshot(); break;} /* thanks to luis dias mas dec16,09 */
 #endif //FRONTEND_DOES_SNAPSHOTS

@@ -572,7 +572,14 @@ void compile_Tile(struct X3D_Tile *node){
 
 }
 void prep_Tile(struct X3D_Tile *node){
-
+}
+static int tile_view_frozen = FALSE;
+int getTileViewFrozen(){
+return tile_view_frozen;
+}
+void toggleTileViewFrozen(){
+//July 2020 currently hooked to '=' key
+tile_view_frozen = 1 - tile_view_frozen;
 }
 enum {
 	TILE_REFINE_DEFAULT = 0,
@@ -585,17 +592,26 @@ void child_Tile(struct X3D_Tile *node){
 // https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
 //
 	double screenspace_error = 1.e+06;
+	static double mod[16], proj[16];
+	static int have_mod = FALSE;
 	
+	if( !getTileViewFrozen() || !have_mod){
+		//for texting we need a way to freeze the viewpoint used for 
+		// computing screenspace error and frustun 
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+		have_mod = TRUE;
+	}
+
 	int refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
 	if(!strcasecmp(node->refine->strptr,"REPLACE")) refine = TILE_REFINE_REPLACE;
 	else if(!strcasecmp(node->refine->strptr,"ADD")) refine = TILE_REFINE_ADD;
 
 	//adapted from proximit_LOD
 	{
-		double mod[16],modi[16], proj[16], orig[3], origb[3], vec[3],vecb[3], vec4[4], range, viewspace_error, nearplane_error;
+		double modi[16], orig[3], origb[3], vec[3],vecb[3], vec4[4], range, viewspace_error, nearplane_error;
 		int viewPort[10];
 		/* calculate which one to display */
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
 		//feature-AFFINE_GLU_UNPROJECT
 		//this is centered on the avatar (correct)
 		vecsetd(orig,0.0,0.0,0.0); //viewpoint
@@ -619,7 +635,6 @@ void child_Tile(struct X3D_Tile *node){
 		transformAFFINEd(origb,vec,mod);
 		vecdifd(vec,orig,origb);
 		viewspace_error = veclengthd(vec);
-		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
 		veccopyd(vec4,orig);
 		vec4[3] = 1.0;
 		transformFULL4d(vec4,vec4,proj);
@@ -636,6 +651,7 @@ void child_Tile(struct X3D_Tile *node){
 	}
 	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD){
 		render_node(node->content);
+		//content > Inline may need signal to load or unload
 		if(node->showContent == FALSE){
 			node->showContent = TRUE;
 			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
