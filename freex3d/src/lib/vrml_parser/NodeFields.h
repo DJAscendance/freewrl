@@ -3851,6 +3851,10 @@ EXPOSED_FIELD(Tile,content,sfnode,content,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(Tile,geometricError,sffloat,geometricError,FIELDTYPE_SFFloat,UNCA_NONE)
 FIELD(Tile,refine,sfstring,refine,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(Tile,showContent,sfbool,showContent,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(Tile,boundingVolume,mfdouble,boundingVolume,FIELDTYPE_MFDouble,UNCA_NONE)
+FIELD(Tile,boundingVolumeType,sfstring,boundingVolumeType,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(Tile,contentVolume,mfdouble,contentVolume,FIELDTYPE_MFDouble,UNCA_NONE)
+FIELD(Tile,contentVolumeType,sfstring,contentVolumeType,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(Tile)
 
 /* TimeSensor node */

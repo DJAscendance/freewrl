@@ -586,6 +586,12 @@ enum {
 	TILE_REFINE_REPLACE = 1,
 	TILE_REFINE_ADD = 2,
 };
+enum {
+	BOUNDING_VOLUME_NONE = 0,
+	BOUNDING_VOLUME_BBOX = 1,
+	BOUNDING_VOLUME_SPHERE = 2,
+	BOUNDING_VOLUME_REGION = 3,
+};
 void child_Tile(struct X3D_Tile *node){
 //
 // similar to Tiles3D?
@@ -602,10 +608,23 @@ void child_Tile(struct X3D_Tile *node){
 		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
 		have_mod = TRUE;
 	}
-
-	int refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
+	int refine, cbvtype, bvtype;
+	refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
 	if(!strcasecmp(node->refine->strptr,"REPLACE")) refine = TILE_REFINE_REPLACE;
 	else if(!strcasecmp(node->refine->strptr,"ADD")) refine = TILE_REFINE_ADD;
+
+	//for bounding volumes we want good 'lazy defaults' and that's to not do frustum culling ==NONE 
+	// if no boundingVolume is specified, or no boundingVolumeType is specified.
+	cbvtype = BOUNDING_VOLUME_NONE;
+	if(!strcasecmp(node->contentVolumeType->strptr,"BBOX")) cbvtype = BOUNDING_VOLUME_BBOX;
+	else if(!strcasecmp(node->contentVolumeType->strptr,"SPHERE")) cbvtype = BOUNDING_VOLUME_SPHERE;
+	else if(!strcasecmp(node->contentVolumeType->strptr,"REGION")) cbvtype = BOUNDING_VOLUME_REGION;
+	if(node->contentVolume.n == 0) cbvtype = BOUNDING_VOLUME_NONE;
+	bvtype = BOUNDING_VOLUME_NONE;
+	if(!strcasecmp(node->boundingVolumeType->strptr,"BBOX")) bvtype = BOUNDING_VOLUME_BBOX;
+	else if(!strcasecmp(node->boundingVolumeType->strptr,"SPHERE")) bvtype = BOUNDING_VOLUME_SPHERE;
+	else if(!strcasecmp(node->boundingVolumeType->strptr,"REGION")) bvtype = BOUNDING_VOLUME_REGION;
+	if(node->boundingVolume.n == 0) bvtype = BOUNDING_VOLUME_NONE;
 
 	//adapted from proximit_LOD
 	{
@@ -649,7 +668,10 @@ void child_Tile(struct X3D_Tile *node){
 		screenspace_error = nearplane_error / 2.0 * (double) viewPort[2];
 		//printf("screen %lf near %lf view %lf\n",screenspace_error,nearplane_error,viewspace_error);
 	}
-	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD){
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+	if(cbvtype == BOUNDING_VOLUME_NONE)
+	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD ){
 		render_node(node->content);
 		//content > Inline may need signal to load or unload
 		if(node->showContent == FALSE){
@@ -662,14 +684,16 @@ void child_Tile(struct X3D_Tile *node){
 			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
 		}
 	}
+	if(bvtype == BOUNDING_VOLUME_NONE)
 	if(screenspace_error > screespace_allowed_error && node->children.n > 0 ){
 		//adapted from child_Group:
 		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+		//prep_BBox((struct BBoxFields*)&node->bboxCenter);
 		normalChildren(node->children);
-		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+		//fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 }
 void proximity_Tile(struct X3D_Tile *node){
 	//double mod[16],modi[16], orig[3], vec[3];

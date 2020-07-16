@@ -530,6 +530,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"boundaryModeS",
 	"boundaryModeT",
 	"boundaryOpacity",
+	"boundingVolume",
+	"boundingVolumeType",
 	"buffer",
 	"category",
 	"ccw",
@@ -575,6 +577,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"contactSurfaceThickness",
 	"contacts",
 	"content",
+	"contentVolume",
+	"contentVolumeType",
 	"contourStepSize",
 	"controlKey",
 	"controlPoint",
@@ -1532,6 +1536,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"boundaryModeS",
 	"boundaryModeT",
 	"boundaryOpacity",
+	"boundingVolume",
 	"buffer",
 	"center",
 	"centerOfMass",
@@ -1560,6 +1565,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"contactNormal",
 	"contactSurfaceThickness",
 	"content",
+	"contentVolume",
 	"contourStepSize",
 	"controlPoint",
 	"coolColor",
@@ -2032,6 +2038,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"bboxSize",
 	"beginCap",
 	"bottomRadius",
+	"boundingVolumeType",
 	"category",
 	"ccw",
 	"centralScale",
@@ -2047,6 +2054,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"colorKey",
 	"colorPerVertex",
 	"colorRamp",
+	"contentVolumeType",
 	"convex",
 	"coordIndex",
 	"country",
@@ -8989,6 +8997,10 @@ const int OFFSETS_Tile[] = {
 	(int) FIELDNAMES_geometricError, (int) offsetof (struct X3D_Tile, geometricError),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_refine, (int) offsetof (struct X3D_Tile, refine),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_showContent, (int) offsetof (struct X3D_Tile, showContent),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_boundingVolume, (int) offsetof (struct X3D_Tile, boundingVolume),  (int) FIELDTYPE_MFDouble, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_boundingVolumeType, (int) offsetof (struct X3D_Tile, boundingVolumeType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_contentVolume, (int) offsetof (struct X3D_Tile, contentVolume),  (int) FIELDTYPE_MFDouble, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_contentVolumeType, (int) offsetof (struct X3D_Tile, contentVolumeType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TimeSensor[] = {
@@ -15819,6 +15831,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->geometricError = 0.0f;
 			tmp2->refine = newASCIIString("REPLACE");
 			tmp2->showContent = TRUE;
+			tmp2->boundingVolume.n=0; tmp2->boundingVolume.p=0;
+			tmp2->boundingVolumeType = newASCIIString("NONE");
+			tmp2->contentVolume.n=0; tmp2->contentVolume.p=0;
+			tmp2->contentVolumeType = newASCIIString("NONE");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -21672,6 +21688,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," content (SFNode):\n"); dump_scene(fp,level+1,tmp->content); 
 			spacer fprintf (fp," showContent (SFBool) \t%d\n",tmp->showContent);
+			spacer fprintf (fp," boundingVolume (MFDouble):\n");
+			for (i=0; i<tmp->boundingVolume.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->boundingVolume.p[i]); }
+			spacer fprintf (fp," contentVolume (MFDouble):\n");
+			for (i=0; i<tmp->contentVolume.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->contentVolume.p[i]); }
 		    break;
 		}
 		case NODE_TimeSensor : {
