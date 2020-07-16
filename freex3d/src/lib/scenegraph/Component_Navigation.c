@@ -580,6 +580,10 @@ enum {
 	TILE_REFINE_ADD = 2,
 };
 void child_Tile(struct X3D_Tile *node){
+//
+// similar to Tiles3D?
+// https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+//
 	double screenspace_error = 1.e+06;
 	
 	int refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
@@ -602,6 +606,13 @@ void child_Tile(struct X3D_Tile *node){
 		range = veclengthd(vec);
 		//printf("range= %lf\n",range);
 
+
+		// Tiles3D S.1 screen space error:
+		// sse = (geometricError * screenHeight) / (tileDistance* 2*tan(fovy/2))
+		// our method: transform 2 points from tile space to screen space
+		// - in tile space they are geometricError distance apart
+		// - in screen space they will be SSE apart
+		// - should work for orthoViewpoint as well as perspective
 		vecsetd(vec,node->geometricError,0.0,-range);
 		transformAFFINEd(orig,vec,mod);
 		vecsetd(vec,0.0,0.0,-range);
