@@ -566,6 +566,11 @@ void child_ViewpointGroup (struct X3D_ViewpointGroup *node) {
 #ifdef _MSC_VER
 #define strcasecmp stricmp
 #endif //_MSC_VER
+float *orientedBBox_mattransformAFFINE4d(float *p3fn24, float *obb12, double *mat4);
+float * extent6f_from_box3fn(float *extent6,float *p, int n);
+float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax);
+float *extent6f_intersect_extent6f(float *extent6, float *eina, float *einb);
+int extent6f_isSet(float *extent6);
 
 static double screespace_allowed_error = 5.0; //pixles?
 void compile_Tile(struct X3D_Tile *node){
@@ -575,11 +580,13 @@ void prep_Tile(struct X3D_Tile *node){
 }
 static int tile_view_frozen = FALSE;
 int getTileViewFrozen(){
-return tile_view_frozen;
+	return tile_view_frozen;
 }
 void toggleTileViewFrozen(){
-//July 2020 currently hooked to '=' key
-tile_view_frozen = 1 - tile_view_frozen;
+	//July 2020 currently hooked to '=' key
+	tile_view_frozen = 1 - tile_view_frozen;
+	if(tile_view_frozen) printf("freezing tile view\n");
+	else printf("unfreezing tile view\n");
 }
 enum {
 	TILE_REFINE_DEFAULT = 0,
@@ -600,12 +607,19 @@ void child_Tile(struct X3D_Tile *node){
 	double screenspace_error = 1.e+06;
 	static double mod[16], proj[16];
 	static int have_mod = FALSE;
+	static int child_tile = FALSE;
+	int root_tile = FALSE;
+	if(!child_tile) root_tile = TRUE;
+
 	
-	if( !getTileViewFrozen() || !have_mod){
+	if( (!getTileViewFrozen() || !have_mod) && root_tile){
 		//for texting we need a way to freeze the viewpoint used for 
 		// computing screenspace error and frustun 
+		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		//FW_GL_MATRIX_MODE(GL_PROJECTION);
 		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		have_mod = TRUE;
 	}
 	int refine, cbvtype, bvtype;
@@ -626,6 +640,8 @@ void child_Tile(struct X3D_Tile *node){
 	else if(!strcasecmp(node->boundingVolumeType->strptr,"REGION")) bvtype = BOUNDING_VOLUME_REGION;
 	if(node->boundingVolume.n == 0) bvtype = BOUNDING_VOLUME_NONE;
 
+	int inview_content, inview_tile;
+	inview_content = inview_tile = TRUE;
 	//adapted from proximit_LOD
 	{
 		double modi[16], orig[3], origb[3], vec[3],vecb[3], vec4[4], range, viewspace_error, nearplane_error;
@@ -667,11 +683,58 @@ void child_Tile(struct X3D_Tile *node){
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		screenspace_error = nearplane_error / 2.0 * (double) viewPort[2];
 		//printf("screen %lf near %lf view %lf\n",screenspace_error,nearplane_error,viewspace_error);
-	}
 
+		//transform volume into cuboid and test
+		if(cbvtype == BOUNDING_VOLUME_BBOX  && node->contentVolume.n == 12)
+		{
+			float p3fn24[24], extent6[6], cuboid[6], overlap[6];
+			double mvproj[16];
+			matmultiplyAFFINE(mvproj,proj,mod);
+			orientedBBox_mattransformAFFINE4d(p3fn24, node->contentVolume.p, mvproj);
+			extent6f_from_box3fn(extent6,p3fn24, 8);
+			extent6f_constructor(cuboid,-1.0f,1.0f,-1.0f,1.0f,-1.0f,1.0f);
+			extent6f_intersect_extent6f(overlap, cuboid, extent6);
+			inview_content = extent6f_isSet(overlap);
+		}
+		if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12)
+		{
+			float p3fn24[24], extent6[6], cuboid[6], overlap[6];
+			double mvproj[16];
+			matmultiplyAFFINE(mvproj,proj,mod);
+			orientedBBox_mattransformAFFINE4d(p3fn24, node->boundingVolume.p, mvproj);
+			extent6f_from_box3fn(extent6,p3fn24, 8);
+			extent6f_constructor(cuboid,-1.0f,1.0f,-1.0f,1.0f,-1.0f,1.0f);
+			extent6f_intersect_extent6f(overlap, cuboid, extent6);
+			inview_tile = extent6f_isSet(overlap);
+		}
+	}
+	static int already_cuboidal = FALSE;
+	static int want_cuboidal = TRUE;
+	int draw_cuboidal;
+	draw_cuboidal = want_cuboidal && !already_cuboidal;
+	if(draw_cuboidal){
+		double cproj[16], cmat[16];
+		FW_GL_PUSH_MATRIX(); //this one will persist till fin_Transform pops it
+		memcpy(cproj,proj,16*sizeof(double));
+		cproj[4] = cproj[8] = cproj[12] = 0.0;
+		//matmultiplyAFFINE(cmat,cproj,mod);
+		matmultiplyAFFINE(cmat,mod,cproj);
+		//matmultiplyFULL(cmat,cproj,mod);
+		FW_GL_TRANSFORM_D(cmat); //now apply the above to prep for child_Tranform
+		already_cuboidal = TRUE;
+		float center[3],size[3],w;
+		double zero4[4];
+		vecset4d(zero4,1.0,1.0,1.0,1.0);
+		transformFULL4d(zero4,zero4,cmat);
+		w = (float)fabs(zero4[3]); //instead of scaling coords down to -1 to 1 cuboid, we'll scale cuboid up to w.
+		draw_bbox(vecset3f(center,0.0f,0.0f,0.0f),vecset3f(size,w,w,w)); //cuboid scaled to w
+	}
+	if(root_tile) child_tile = TRUE;
+	int no_sse_cull = FALSE;
+	int no_bv_cull = FALSE;
 	prep_BBox((struct BBoxFields*)&node->bboxCenter);
-	if(cbvtype == BOUNDING_VOLUME_NONE)
-	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD ){
+	if(cbvtype == BOUNDING_VOLUME_NONE || cbvtype == BOUNDING_VOLUME_BBOX && inview_content || no_bv_cull)
+	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD || no_sse_cull){
 		render_node(node->content);
 		//content > Inline may need signal to load or unload
 		if(node->showContent == FALSE){
@@ -684,8 +747,8 @@ void child_Tile(struct X3D_Tile *node){
 			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
 		}
 	}
-	if(bvtype == BOUNDING_VOLUME_NONE)
-	if(screenspace_error > screespace_allowed_error && node->children.n > 0 ){
+	if(bvtype == BOUNDING_VOLUME_NONE || bvtype == BOUNDING_VOLUME_BBOX && inview_tile || no_bv_cull)
+	if(screenspace_error > screespace_allowed_error && node->children.n > 0 || no_sse_cull){
 		//adapted from child_Group:
 		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 		//prep_BBox((struct BBoxFields*)&node->bboxCenter);
@@ -694,6 +757,13 @@ void child_Tile(struct X3D_Tile *node){
 		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	}
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+	if(root_tile) child_tile = FALSE;
+
+	if(draw_cuboidal){
+		FW_GL_POP_MATRIX();
+		already_cuboidal = FALSE;
+	}
+
 }
 void proximity_Tile(struct X3D_Tile *node){
 	//double mod[16],modi[16], orig[3], vec[3];

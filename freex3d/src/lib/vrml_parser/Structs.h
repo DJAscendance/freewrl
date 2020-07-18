@@ -12588,9 +12588,9 @@ struct X3D_Tile {
 	float geometricError;
 	struct Uni_String *refine;
 	int showContent;
-	struct Multi_Double boundingVolume;
+	struct Multi_Float boundingVolume;
 	struct Uni_String *boundingVolumeType;
-	struct Multi_Double contentVolume;
+	struct Multi_Float contentVolume;
 	struct Uni_String *contentVolumeType;
 };
 extern struct X3D_Virt virt_Tile;

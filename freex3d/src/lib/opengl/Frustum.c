@@ -431,7 +431,83 @@ float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4){
 	}
 	return eout6;
 	
-} 
+}
+float *orientedBBox2extent6f(float *extent6, float *obb12){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	float *center = &obb12[0];
+	float *hx = &obb12[3];
+	float *hy = &obb12[6];
+	float *hz = &obb12[9];
+	float p3f[8][3], temp[3], temp2[3];
+	int ijk = 0;
+	for(int i=0;i<2;i++)
+		for(int j=0;j<2;j++)
+			for(int k=0;k<2;k++){
+				veccopy3f(temp,center);
+				vecadd3f(temp,temp,vecscale3f(temp2,hx,i?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hy,j?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hz,k?1.0f:-1.0f));
+				veccopy3f(p3f[ijk], temp);
+				ijk++;
+			}
+	extent6f_from_box3fn(extent6,p3f[0], 8);
+	return extent6;
+}
+float *orientedBBox2vec3fn(float *p3fn24, float *obb12){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	float *center = &obb12[0];
+	float *hx = &obb12[3];
+	float *hy = &obb12[6];
+	float *hz = &obb12[9];
+	float *p3f[8], temp[3], temp2[3];
+	for(int i=0;i<8;i++) p3f[i] = &p3fn24[3*i];
+	int ijk = 0;
+	for(int i=0;i<2;i++)
+		for(int j=0;j<2;j++)
+			for(int k=0;k<2;k++){
+				veccopy3f(temp,center);
+				vecadd3f(temp,temp,vecscale3f(temp2,hx,i?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hy,j?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hz,k?1.0f:-1.0f));
+				veccopy3f(p3f[ijk], temp);
+				ijk++;
+			}
+	return p3fn24;
+}
+float *orientedBBox_mattransform4d(float *out12, float *obb12, double *mat4){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	//H when transforming an OBB, the half- vector parts shall be transformed like normals are:
+	// using the transpose inverse
+	float fmat4[16], fmat3[9],fmat3i[9],normat[9];
+	matdouble2float4(fmat4,mat4);
+	mat423f(fmat3,fmat4);
+	matinverse3f(fmat3i,fmat3);
+	mattranspose3f(normat,fmat3i);
+	//transform half-vectors
+	for(int i=0;i<3;i++)
+		transform3x3f(&out12[(i+1)*3],&obb12[(i+1)*3],normat);
+	//transform the center
+	transformf(out12,obb12,mat4);
+	return out12;
+	
+}
+float *orientedBBox_mattransformAFFINE4d(float *p3fn24, float *obb12, double *mat4){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	//goal: transform into cuboid space using (modelview x projction) but don't divide by perspectives
+	// I think that's coboid space -1 to 1 on 3 axes
+	// then its easier to do extent checks.
+	float *p3f[8];
+	double d1[3],d2[3];
+	for(int i=0;i<8;i++) p3f[i] = &p3fn24[3*i];
+
+	orientedBBox2vec3fn(p3f[0],obb12);
+	for(int i=0;i<8;i++){
+		float2double(d1,p3f[i],3);
+		transformAFFINEd(d2,d1,mat4);
+		double2float(p3f[i],d2,3);
+	}
+	return p3fn24;
+}
 void extent6f_printf(float *extent6){
 	float *e = extent6;
 	printf("min,max x:%8.1f,%8.1f y:%8.1f,%8.1f z:%8.1f,%8.1f ",e[1],e[0],e[3],e[2],e[5],e[4]);

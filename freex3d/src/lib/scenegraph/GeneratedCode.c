@@ -8997,9 +8997,9 @@ const int OFFSETS_Tile[] = {
 	(int) FIELDNAMES_geometricError, (int) offsetof (struct X3D_Tile, geometricError),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_refine, (int) offsetof (struct X3D_Tile, refine),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_showContent, (int) offsetof (struct X3D_Tile, showContent),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_boundingVolume, (int) offsetof (struct X3D_Tile, boundingVolume),  (int) FIELDTYPE_MFDouble, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_boundingVolume, (int) offsetof (struct X3D_Tile, boundingVolume),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_boundingVolumeType, (int) offsetof (struct X3D_Tile, boundingVolumeType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_contentVolume, (int) offsetof (struct X3D_Tile, contentVolume),  (int) FIELDTYPE_MFDouble, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_contentVolume, (int) offsetof (struct X3D_Tile, contentVolume),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_contentVolumeType, (int) offsetof (struct X3D_Tile, contentVolumeType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -21688,9 +21688,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," content (SFNode):\n"); dump_scene(fp,level+1,tmp->content); 
 			spacer fprintf (fp," showContent (SFBool) \t%d\n",tmp->showContent);
-			spacer fprintf (fp," boundingVolume (MFDouble):\n");
+			spacer fprintf (fp," boundingVolume (MFFloat):\n");
 			for (i=0; i<tmp->boundingVolume.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->boundingVolume.p[i]); }
-			spacer fprintf (fp," contentVolume (MFDouble):\n");
+			spacer fprintf (fp," contentVolume (MFFloat):\n");
 			for (i=0; i<tmp->contentVolume.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->contentVolume.p[i]); }
 		    break;
 		}
