@@ -592,15 +592,15 @@ int imat(int irow, int icol){
 void setFrustumPlanes(double *mvpMatrix, struct Planed *pl) {
 	double *m = mvpMatrix;
 	planed_setCoefficients(&pl[NEARP],
-				 -m[imat(3,1)] + m[imat(4,1)],
-				 -m[imat(3,2)] + m[imat(4,2)],
-				 -m[imat(3,3)] + m[imat(4,3)],
-				 -m[imat(3,4)] + m[imat(4,4)]);
+				 m[imat(3,1)] + m[imat(4,1)],
+				 m[imat(3,2)] + m[imat(4,2)],
+				 m[imat(3,3)] + m[imat(4,3)],
+				 m[imat(3,4)] + m[imat(4,4)]);
 	planed_setCoefficients(&pl[FARP],
-				m[imat(3,1)] + m[imat(4,1)],
-				m[imat(3,2)] + m[imat(4,2)],
-				m[imat(3,3)] + m[imat(4,3)],
-				m[imat(3,4)] + m[imat(4,4)]);
+				-m[imat(3,1)] + m[imat(4,1)],
+				-m[imat(3,2)] + m[imat(4,2)],
+				-m[imat(3,3)] + m[imat(4,3)],
+				-m[imat(3,4)] + m[imat(4,4)]);
 	planed_setCoefficients(&pl[BOTTOM],
 				 m[imat(2,1)] + m[imat(4,1)],
 				 m[imat(2,2)] + m[imat(4,2)],
@@ -669,9 +669,10 @@ int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, 
 	vecscaled(ptemp2,veccrossd(ptemp1,p1->normal,p2->normal),vecdotd(p3->p,p3->normal));
 	vecaddd(pi,pi,ptemp2);
 	detval = det3d(p1->normal,p2->normal,p3->normal);
-	if( detval != 0,9){
+	if( detval != 0.0){
 		intersection = TRUE;
-		vecscaled(point,pi,1.0/detval);
+		vecscaled(point,pi,-1.0/detval);
+		printf("> %lf %lf %lf\n",pi[0],pi[1],pi[2]);
 	}
 	return intersection;
 }
@@ -706,13 +707,14 @@ int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n){
 			jj = order[j];
 			k = j+1;
 			kk = order[k % 4];
-			if(!plane_intersect_plane_intersect_plane(&frustum_planes[i],&frustum_planes[jj],&frustum_planes[kk],pi)) return FALSE;
+			if(!plane_intersect_plane_intersect_plane(&frustum_planes[i],&frustum_planes[jj],&frustum_planes[kk],pi)) 
+				return FALSE;
 			double2float(&pf24n[n*3],pi,3);
 			n++;
 		}
 	}
 	for(int i=0;i<n;i++)
-		printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[(i+1)*3],pf24n[(i+2)*3]);
+		printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[i*3+1],pf24n[i*3+2]);
 	return TRUE;
 }
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){

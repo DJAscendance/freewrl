@@ -826,12 +826,15 @@ void draw_frustum(float *corners)
 	ttglobal tg = gglobal();
 
 	n = 0;
-	for(int i=0;i<8;i++){
-		veccopy3f(p[n],&corners[i*3]);
-		veccopy3f(p[n+1],&corners[(i+1)*3]);
+	for(int j=0;j<2;j++)
+	for(int i=0;i<4;i++){
+		int k = j*4 + i;
+		int m = j*4 + (i+1) % 4;
+		veccopy3f(p[n],&corners[k*3]);
+		veccopy3f(p[n+1],&corners[m*3]);
 		n+=2;
 	}
-	for(int i=1;i<4;i++){
+	for(int i=0;i<4;i++){
 		veccopy3f(p[n],&corners[i*3]);
 		veccopy3f(p[n+1],&corners[(i+4)*3]);
 		n+=2;

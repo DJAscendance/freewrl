@@ -618,7 +618,7 @@ void child_Tile(struct X3D_Tile *node){
 		//FW_GL_MATRIX_MODE(GL_PROJECTION);
 		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
 		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
-		matmultiplyFULL(mvproj,proj,mod);
+		matmultiplyFULL(mvproj,mod,proj);
 		setFrustumPlanes(mvproj,frustum_planes);
 		have_frustum_corners = frustum_generate_corner_points(frustum_planes, frustum_corners);
 		have_mod = TRUE;
