@@ -156,6 +156,7 @@ int extent6f_point_inside(float *extent6, float *pd);
 
 struct Planed {
 	double normal[3];
+	double p[3]; //redundant but convenient
 	double d;
 };
 enum {
@@ -168,5 +169,7 @@ enum {
 };
 void setFrustumPlanes(double *mvpMatrix, struct Planed *pl);
 int frustum_point_inside(struct Planed *frustum_planes, double *p);
+int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n);
+int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, struct Planed *p3, double *point);
 
 #endif /* __FREEWRL_FRUSTUM_H__ */

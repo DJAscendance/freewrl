@@ -582,6 +582,7 @@ void planed_setCoefficients(struct Planed* p, double a, double b, double c, doub
 	vecscaled(p->normal,p->normal,1.0/length);
 	// and divide d by th length as well
 	p->d = d/length;
+	vecscaled(p->p,p->normal,p->d);
 }
 int imat(int irow, int icol){
 	//int index = (irow-1)*4 + (icol-1);
@@ -654,20 +655,27 @@ int frustum_boxInFrustum(struct Planed *frustum, float *abb) {
 	}
 	return(result);
 }
-
+*/
 int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, struct Planed *p3, double *point){
 	//Granphics Gems I p.305
-	double pi[3], ptemp[3], detval;
-	struct Planed *planes[3];
-	planes[0] = p1;
-	planes[1] = p2;
-	planes[2] = p3;
+	// computes point of intersection of 3 planes, if it exists returns TRUE and point, else FALSE
+	int intersection = FALSE;
+	double pi[3], ptemp1[3], ptemp2[3], detval;
 	vecsetd(pi,0.0,0.0,0.0);
-	for(int i=0;i<3;i++){
-		
+	vecscaled(ptemp2,veccrossd(ptemp1,p2->normal,p3->normal),vecdotd(p1->p,p1->normal));
+	vecaddd(pi,pi,ptemp2);
+	vecscaled(ptemp2,veccrossd(ptemp1,p3->normal,p1->normal),vecdotd(p2->p,p2->normal));
+	vecaddd(pi,pi,ptemp2);
+	vecscaled(ptemp2,veccrossd(ptemp1,p1->normal,p2->normal),vecdotd(p3->p,p3->normal));
+	vecaddd(pi,pi,ptemp2);
+	detval = det3d(p1->normal,p2->normal,p3->normal);
+	if( detval != 0,9){
+		intersection = TRUE;
+		vecscaled(point,pi,1.0/detval);
 	}
+	return intersection;
 }
-*/
+
 double plane_distance_to_point(struct Planed *plane, double *p){
 	//assumes plane is normalized
 	double dist= vecdotd(plane->normal,p);
@@ -684,6 +692,28 @@ int frustum_point_inside(struct Planed *frustum_planes, double *p) {
 			return OUTSIDE;
 	}
 	return(result);
+}
+int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n){
+	//generates frusum corner points from planes,
+	//near plane clockwise starting wtih upper left, then far plane same order
+	//returns TRUE
+	int n=0;
+	int order [] = {LEFT,TOP,RIGHT,BOTTOM};
+	for(int i=0;i<2;i++){
+		for(int j=0;j<4;j++){
+			double pi[3];
+			int jj,kk,k;
+			jj = order[j];
+			k = j+1;
+			kk = order[k % 4];
+			if(!plane_intersect_plane_intersect_plane(&frustum_planes[i],&frustum_planes[jj],&frustum_planes[kk],pi)) return FALSE;
+			double2float(&pf24n[n*3],pi,3);
+			n++;
+		}
+	}
+	for(int i=0;i<n;i++)
+		printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[(i+1)*3],pf24n[(i+2)*3]);
+	return TRUE;
 }
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	int i;

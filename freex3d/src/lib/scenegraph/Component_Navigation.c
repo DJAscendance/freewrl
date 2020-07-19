@@ -566,7 +566,7 @@ void child_ViewpointGroup (struct X3D_ViewpointGroup *node) {
 #ifdef _MSC_VER
 #define strcasecmp stricmp
 #endif //_MSC_VER
-
+void draw_frustum(float *corners);
 static double screespace_allowed_error = 5.0; //pixles?
 void compile_Tile(struct X3D_Tile *node){
 
@@ -602,6 +602,8 @@ void child_Tile(struct X3D_Tile *node){
 	double screenspace_error = 1.e+06;
 	static double mod[16], proj[16], mvproj[16];
 	static struct Planed frustum_planes[6];
+	static float frustum_corners[24];
+	static int have_frustum_corners;
 	static int have_mod = FALSE;
 	static int child_tile = FALSE;
 	int root_tile = FALSE;
@@ -618,7 +620,11 @@ void child_Tile(struct X3D_Tile *node){
 		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		matmultiplyFULL(mvproj,proj,mod);
 		setFrustumPlanes(mvproj,frustum_planes);
+		have_frustum_corners = frustum_generate_corner_points(frustum_planes, frustum_corners);
 		have_mod = TRUE;
+	}
+	if(have_frustum_corners && root_tile){
+		draw_frustum(frustum_corners);
 	}
 	int refine, cbvtype, bvtype;
 	refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.

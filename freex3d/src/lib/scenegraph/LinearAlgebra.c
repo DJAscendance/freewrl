@@ -524,7 +524,12 @@ float det3f(float *a, float *b, float *c)
 	float temp[3];
 	return vecdot3f(a,veccross3f(temp,b, c));
 }
-
+double det3d(double *a, double *b, double *c)
+{
+	/*FLOPs 9 float: dot 3, cross 6 */
+	double temp[3];
+	return vecdotd(a,veccrossd(temp,b, c));
+}
 struct point_XYZ* transform(struct point_XYZ* r, const struct point_XYZ* a, const GLDOUBLE* b)
 {
 	//FLOPs 9 double
