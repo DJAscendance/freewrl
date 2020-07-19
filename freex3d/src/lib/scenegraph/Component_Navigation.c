@@ -566,11 +566,6 @@ void child_ViewpointGroup (struct X3D_ViewpointGroup *node) {
 #ifdef _MSC_VER
 #define strcasecmp stricmp
 #endif //_MSC_VER
-float *orientedBBox_mattransformAFFINE4d(float *p3fn24, float *obb12, double *mat4);
-float * extent6f_from_box3fn(float *extent6,float *p, int n);
-float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax);
-float *extent6f_intersect_extent6f(float *extent6, float *eina, float *einb);
-int extent6f_isSet(float *extent6);
 
 static double screespace_allowed_error = 5.0; //pixles?
 void compile_Tile(struct X3D_Tile *node){
@@ -605,7 +600,8 @@ void child_Tile(struct X3D_Tile *node){
 // https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
 //
 	double screenspace_error = 1.e+06;
-	static double mod[16], proj[16];
+	static double mod[16], proj[16], mvproj[16];
+	static struct Planed frustum_planes[6];
 	static int have_mod = FALSE;
 	static int child_tile = FALSE;
 	int root_tile = FALSE;
@@ -620,6 +616,8 @@ void child_Tile(struct X3D_Tile *node){
 		//FW_GL_MATRIX_MODE(GL_PROJECTION);
 		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
 		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		matmultiplyFULL(mvproj,proj,mod);
+		setFrustumPlanes(mvproj,frustum_planes);
 		have_mod = TRUE;
 	}
 	int refine, cbvtype, bvtype;
@@ -688,46 +686,108 @@ void child_Tile(struct X3D_Tile *node){
 		if(cbvtype == BOUNDING_VOLUME_BBOX  && node->contentVolume.n == 12)
 		{
 			float p3fn24[24], extent6[6], cuboid[6], overlap[6];
-			double mvproj[16];
-			matmultiplyAFFINE(mvproj,proj,mod);
-			orientedBBox_mattransformAFFINE4d(p3fn24, node->contentVolume.p, mvproj);
-			extent6f_from_box3fn(extent6,p3fn24, 8);
+			//orientedBBox_mattransformAFFINE4d(p3fn24, node->contentVolume.p, mod); //mvproj);
+			//matmultiplyAFFINE(mvproj,mod,proj);
+			orientedBBox2vec3fn(p3fn24, node->contentVolume.p);
+
+			//extent6f_from_box3fn(extent6,p3fn24, 8);
 			extent6f_constructor(cuboid,-1.0f,1.0f,-1.0f,1.0f,-1.0f,1.0f);
-			extent6f_intersect_extent6f(overlap, cuboid, extent6);
-			inview_content = extent6f_isSet(overlap);
+			//extent6f_intersect_extent6f(overlap, cuboid, extent6);
+			inview_content = FALSE; //extent6f_isSet(overlap);
+			// http://www.lighthouse3d.com/tutorials/view-frustum-culling/ 
+			//if(inview_content){
+			if(0){
+				//CLIP-SPACE / CUBOID SPACE CULL (doesn't work July 18, 2020
+				double dd[4];
+				float ff[3];
+				int inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					dd[3] = 1.0;
+					transformFULL4d(dd,dd,mvproj);
+					vecscaled(dd,dd,1.0/dd[3]);
+					double2float(ff,dd,3);
+					inside = inside || extent6f_point_inside(cuboid,ff);
+				}
+				float2double(dd,node->contentVolume.p,3); //center point
+				dd[3] = 1.0;
+				transformFULL4d(dd,dd,mvproj);
+				vecscaled(dd,dd,1.0/dd[3]);
+				double2float(ff,dd,3);
+				inside = inside || extent6f_point_inside(cuboid,ff);
+
+				inview_content = inside;
+			}
+			if(1){
+				//geometric cull in viewer space
+				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
+				double dd[3];
+				float ff[3];
+				int inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					transformAFFINEd(dd,dd,mod);
+					inside = inside || frustum_point_inside(frustum_planes,dd);
+				}
+				float2double(dd,node->contentVolume.p,3); //center point
+				transformAFFINEd(dd,dd,mod);
+				inside = inside || frustum_point_inside(frustum_planes,dd);
+
+				inview_content = inside;
+
+			}
 		}
 		if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12)
 		{
 			float p3fn24[24], extent6[6], cuboid[6], overlap[6];
 			double mvproj[16];
-			matmultiplyAFFINE(mvproj,proj,mod);
-			orientedBBox_mattransformAFFINE4d(p3fn24, node->boundingVolume.p, mvproj);
-			extent6f_from_box3fn(extent6,p3fn24, 8);
+			matmultiplyFULL(mvproj,proj,mod);
+			orientedBBox2vec3fn(p3fn24, node->boundingVolume.p);
 			extent6f_constructor(cuboid,-1.0f,1.0f,-1.0f,1.0f,-1.0f,1.0f);
-			extent6f_intersect_extent6f(overlap, cuboid, extent6);
-			inview_tile = extent6f_isSet(overlap);
+			inview_tile = FALSE; // extent6f_isSet(overlap);
+			// http://www.lighthouse3d.com/tutorials/view-frustum-culling/ 
+			//if(inview_tile)
+			if(0){
+				//CLIP-SPACE / CUBOID SPACE CULL (doesn't work July 18, 2020
+				double dd[4];
+				float ff[3];
+				int inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					dd[3] = 1.0;
+					transformFULL4d(dd,dd,mvproj);
+					vecscaled(dd,dd,1.0/dd[3]);
+					double2float(ff,dd,3);
+					inside = inside || extent6f_point_inside(cuboid,ff);
+				}
+				float2double(dd,node->boundingVolume.p,3); //center point
+				dd[3] = 1.0;
+				transformFULL4d(dd,dd,mvproj);
+				vecscaled(dd,dd,1.0/dd[3]);
+				double2float(ff,dd,3);
+				inside = inside || extent6f_point_inside(cuboid,ff);
+
+				inview_tile = inside;
+			}
+			if(1){
+				//geometric cull in viewer space
+				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
+				double dd[3];
+				float ff[3];
+				int inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					transformAFFINEd(dd,dd,mod);
+					inside = inside || frustum_point_inside(frustum_planes,dd);
+				}
+				float2double(dd,node->boundingVolume.p,3); //center point
+				transformAFFINEd(dd,dd,mod);
+				inside = inside || frustum_point_inside(frustum_planes,dd);
+
+				inview_content = inside;
+			}
+
 		}
-	}
-	static int already_cuboidal = FALSE;
-	static int want_cuboidal = TRUE;
-	int draw_cuboidal;
-	draw_cuboidal = want_cuboidal && !already_cuboidal;
-	if(draw_cuboidal){
-		double cproj[16], cmat[16];
-		FW_GL_PUSH_MATRIX(); //this one will persist till fin_Transform pops it
-		memcpy(cproj,proj,16*sizeof(double));
-		cproj[4] = cproj[8] = cproj[12] = 0.0;
-		//matmultiplyAFFINE(cmat,cproj,mod);
-		matmultiplyAFFINE(cmat,mod,cproj);
-		//matmultiplyFULL(cmat,cproj,mod);
-		FW_GL_TRANSFORM_D(cmat); //now apply the above to prep for child_Tranform
-		already_cuboidal = TRUE;
-		float center[3],size[3],w;
-		double zero4[4];
-		vecset4d(zero4,1.0,1.0,1.0,1.0);
-		transformFULL4d(zero4,zero4,cmat);
-		w = (float)fabs(zero4[3]); //instead of scaling coords down to -1 to 1 cuboid, we'll scale cuboid up to w.
-		draw_bbox(vecset3f(center,0.0f,0.0f,0.0f),vecset3f(size,w,w,w)); //cuboid scaled to w
 	}
 	if(root_tile) child_tile = TRUE;
 	int no_sse_cull = FALSE;
@@ -759,10 +819,6 @@ void child_Tile(struct X3D_Tile *node){
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	if(root_tile) child_tile = FALSE;
 
-	if(draw_cuboidal){
-		FW_GL_POP_MATRIX();
-		already_cuboidal = FALSE;
-	}
 
 }
 void proximity_Tile(struct X3D_Tile *node){

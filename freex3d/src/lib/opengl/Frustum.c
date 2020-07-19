@@ -258,6 +258,14 @@ float *extent6f_union_vec3f(float *extent6, float *p3){
 	}
 	return extent6;
 }
+int extent6f_point_inside(float *extent6, float *pd){
+	int inside = TRUE;
+	for(int i=0;i<3;i++){
+		inside = inside && extent6[i*2 + 1] < pd[i];
+		inside = inside && pd[i] < extent6[i*2 + 0];
+	}
+	return inside;
+}
 float *extent6f_union_vec2f(float *extent6, float *p2){
 	int i,isa,isb;
 	isa = extent6f_isSet(extent6);
@@ -550,6 +558,132 @@ void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me){
 			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
 		}
 	}
+}
+//struct Planed {
+//	double normal[3];
+//	double d;
+//};
+//enum {
+//	NEARP =0,
+//	FARP,
+//	BOTTOM,
+//	TOP,
+//	LEFT,
+//	RIGHT,
+//};
+//static struct Planed pl[6];
+void planed_setCoefficients(struct Planed* p, double a, double b, double c, double d) {
+
+	// set the normal vector
+	vecsetd(p->normal,a,b,c);
+	//compute the lenght of the vector
+	double length = veclengthd(p->normal);
+	// normalize the vector
+	vecscaled(p->normal,p->normal,1.0/length);
+	// and divide d by th length as well
+	p->d = d/length;
+}
+int imat(int irow, int icol){
+	//int index = (irow-1)*4 + (icol-1);
+	int index = (icol-1)*4 + (irow-1);
+	return index;
+}
+void setFrustumPlanes(double *mvpMatrix, struct Planed *pl) {
+	double *m = mvpMatrix;
+	planed_setCoefficients(&pl[NEARP],
+				 -m[imat(3,1)] + m[imat(4,1)],
+				 -m[imat(3,2)] + m[imat(4,2)],
+				 -m[imat(3,3)] + m[imat(4,3)],
+				 -m[imat(3,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[FARP],
+				m[imat(3,1)] + m[imat(4,1)],
+				m[imat(3,2)] + m[imat(4,2)],
+				m[imat(3,3)] + m[imat(4,3)],
+				m[imat(3,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[BOTTOM],
+				 m[imat(2,1)] + m[imat(4,1)],
+				 m[imat(2,2)] + m[imat(4,2)],
+				 m[imat(2,3)] + m[imat(4,3)],
+				 m[imat(2,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[TOP],
+				-m[imat(2,1)] + m[imat(4,1)],
+				-m[imat(2,2)] + m[imat(4,2)],
+				-m[imat(2,3)] + m[imat(4,3)],
+				-m[imat(2,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[LEFT],
+				 m[imat(1,1)] + m[imat(4,1)],
+				 m[imat(1,2)] + m[imat(4,2)],
+				 m[imat(1,3)] + m[imat(4,3)],
+				 m[imat(1,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[RIGHT],
+				-m[imat(1,1)] + m[imat(4,1)],
+				-m[imat(1,2)] + m[imat(4,2)],
+				-m[imat(1,3)] + m[imat(4,3)],
+				-m[imat(1,4)] + m[imat(4,4)]);
+	for(int i=0;i<6;i++){
+		printf("plane[%d]= %lf %lf %lf, %lf\n",i,pl[i].normal[0],pl[i].normal[1],pl[i].normal[2],pl[i].d);
+	}
+}
+enum {
+	OUTSIDE = 0,
+	INSIDE = 1,
+	INTERSECT = 2,
+};
+/*
+float *getVertexP(float *p, float *v, float *normal){
+	p = (xmin,ymin,zmin)
+	if (normal.x >= 0)
+		p.x = xmax;
+	if (normal.y >=0))
+		p.y = ymax;
+	if (normal.z >= 0)
+		p.z = zmax:
+}
+int frustum_boxInFrustum(struct Planed *frustum, float *abb) {
+	// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
+	int result = INSIDE;
+	//for each plane do ...
+	for(int i=0; i < 6; i++) {
+
+		// is the positive vertex outside?
+		if (pl[i].distance(b.getVertexP(pl[i].normal)) < 0)
+			return OUTSIDE;
+		// is the negative vertex outside?
+		else if (pl[i].distance(b.getVertexN(pl[i].normal)) < 0)
+			result =  INTERSECT;
+	}
+	return(result);
+}
+
+int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, struct Planed *p3, double *point){
+	//Granphics Gems I p.305
+	double pi[3], ptemp[3], detval;
+	struct Planed *planes[3];
+	planes[0] = p1;
+	planes[1] = p2;
+	planes[2] = p3;
+	vecsetd(pi,0.0,0.0,0.0);
+	for(int i=0;i<3;i++){
+		
+	}
+}
+*/
+double plane_distance_to_point(struct Planed *plane, double *p){
+	//assumes plane is normalized
+	double dist= vecdotd(plane->normal,p);
+	dist -= plane->d;
+	return dist;
+}
+int frustum_point_inside(struct Planed *frustum_planes, double *p) {
+	//assumes 6 planes around frustum
+	int result = INSIDE;
+
+	for(int i=0; i < 6; i++) {
+		if(i==1) continue; //H: far plane not far enough
+		if(plane_distance_to_point(&frustum_planes[i],p) < 0.0)
+			return OUTSIDE;
+	}
+	return(result);
 }
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	int i;

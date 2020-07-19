@@ -148,4 +148,25 @@ void extent6f_draw(float *extent); //in CursorDraw.c
 void bbox2extent6f(float* center, float *size, float *extent6);
 void extent6f2bbox(float *extent6, float* center, float *size);
 void draw_bbox(float *center, float *size);
+
+float *orientedBBox_mattransformAFFINE4d(float *p3fn24, float *obb12, double *mat4);
+float *orientedBBox2vec3fn(float *p3fn24, float *obb12);
+int extent6f_point_inside(float *extent6, float *pd);
+
+
+struct Planed {
+	double normal[3];
+	double d;
+};
+enum {
+	NEARP =0,
+	FARP,
+	BOTTOM,
+	TOP,
+	LEFT,
+	RIGHT,
+};
+void setFrustumPlanes(double *mvpMatrix, struct Planed *pl);
+int frustum_point_inside(struct Planed *frustum_planes, double *p);
+
 #endif /* __FREEWRL_FRUSTUM_H__ */
