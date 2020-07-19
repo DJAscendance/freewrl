@@ -621,9 +621,9 @@ void setFrustumPlanes(double *mvpMatrix, struct Planed *pl) {
 				-m[imat(1,2)] + m[imat(4,2)],
 				-m[imat(1,3)] + m[imat(4,3)],
 				-m[imat(1,4)] + m[imat(4,4)]);
-	for(int i=0;i<6;i++){
-		printf("plane[%d]= %lf %lf %lf, %lf\n",i,pl[i].normal[0],pl[i].normal[1],pl[i].normal[2],pl[i].d);
-	}
+	//for(int i=0;i<6;i++){
+	//	printf("plane[%d]= %lf %lf %lf, %lf\n",i,pl[i].normal[0],pl[i].normal[1],pl[i].normal[2],pl[i].d);
+	//}
 }
 enum {
 	OUTSIDE = 0,
@@ -672,7 +672,7 @@ int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, 
 	if( detval != 0.0){
 		intersection = TRUE;
 		vecscaled(point,pi,-1.0/detval);
-		printf("> %lf %lf %lf\n",pi[0],pi[1],pi[2]);
+		//printf("> %lf %lf %lf\n",pi[0],pi[1],pi[2]);
 	}
 	return intersection;
 }
@@ -680,7 +680,7 @@ int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, 
 double plane_distance_to_point(struct Planed *plane, double *p){
 	//assumes plane is normalized
 	double dist= vecdotd(plane->normal,p);
-	dist -= plane->d;
+	dist += plane->d;
 	return dist;
 }
 int frustum_point_inside(struct Planed *frustum_planes, double *p) {
@@ -688,7 +688,7 @@ int frustum_point_inside(struct Planed *frustum_planes, double *p) {
 	int result = INSIDE;
 
 	for(int i=0; i < 6; i++) {
-		if(i==1) continue; //H: far plane not far enough
+		//if(i==1) continue; //H: far plane not far enough
 		if(plane_distance_to_point(&frustum_planes[i],p) < 0.0)
 			return OUTSIDE;
 	}
@@ -713,8 +713,8 @@ int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n){
 			n++;
 		}
 	}
-	for(int i=0;i<n;i++)
-		printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[i*3+1],pf24n[i*3+2]);
+	//for(int i=0;i<n;i++)
+	//	printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[i*3+1],pf24n[i*3+2]);
 	return TRUE;
 }
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){

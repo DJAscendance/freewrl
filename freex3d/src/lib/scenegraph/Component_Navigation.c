@@ -732,11 +732,11 @@ void child_Tile(struct X3D_Tile *node){
 				int inside = FALSE;
 				for(int i=0;i<8;i++){
 					float2double(dd,&p3fn24[3*i],3);
-					transformAFFINEd(dd,dd,mod);
+					//transformAFFINEd(dd,dd,mod);
 					inside = inside || frustum_point_inside(frustum_planes,dd);
 				}
 				float2double(dd,node->contentVolume.p,3); //center point
-				transformAFFINEd(dd,dd,mod);
+				//transformAFFINEd(dd,dd,mod);
 				inside = inside || frustum_point_inside(frustum_planes,dd);
 
 				inview_content = inside;
@@ -783,11 +783,11 @@ void child_Tile(struct X3D_Tile *node){
 				int inside = FALSE;
 				for(int i=0;i<8;i++){
 					float2double(dd,&p3fn24[3*i],3);
-					transformAFFINEd(dd,dd,mod);
+					//transformAFFINEd(dd,dd,mod);
 					inside = inside || frustum_point_inside(frustum_planes,dd);
 				}
 				float2double(dd,node->boundingVolume.p,3); //center point
-				transformAFFINEd(dd,dd,mod);
+				//transformAFFINEd(dd,dd,mod);
 				inside = inside || frustum_point_inside(frustum_planes,dd);
 
 				inview_content = inside;
