@@ -480,6 +480,8 @@ float *orientedBBox2vec3fn(float *p3fn24, float *obb12){
 				veccopy3f(p3f[ijk], temp);
 				ijk++;
 			}
+	//for(int i=0;i<8;i++)
+	//	printf("bvcoord %d %f %f %f\n",i,p3fn24[i*3],p3fn24[i*3+1],p3fn24[i*3+2]);
 	return p3fn24;
 }
 float *orientedBBox_mattransform4d(float *out12, float *obb12, double *mat4){
