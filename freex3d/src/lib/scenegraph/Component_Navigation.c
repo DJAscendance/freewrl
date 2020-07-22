@@ -589,7 +589,7 @@ enum {
 	TILE_REFINE_ADD = 2,
 };
 enum {
-	BOUNDING_VOLUME_NONE = 0,
+	BOUNDING_VOLUME_NONE = 0, //can't have NONE because we need a range for SSE calc, and get it from BBOX etc
 	BOUNDING_VOLUME_BBOX = 1,
 	BOUNDING_VOLUME_SPHERE = 2,
 	BOUNDING_VOLUME_REGION = 3,
@@ -657,41 +657,20 @@ void child_Tile(struct X3D_Tile *node){
 		// - in tile space they are geometricError distance apart
 		// - in screen space they will be SSE apart
 		// - should work for orthoViewpoint as well as perspective
-		if(0){
-			
-			vecsetd(orig,0.0,0.0,0.0); //viewpoint
-			matinverseAFFINE(modi,mod);
-			transformAFFINEd(vec,orig,modi);
-			//printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
-			//printf("\n");
-			range = veclengthd(vec);
-
-			vecsetd(vec,node->geometricError,0.0,-range);
-			transformAFFINEd(orig,vec,mod);
-			vecsetd(vec,0.0,0.0,-range);
-			transformAFFINEd(origb,vec,mod);
-			vecdifd(vec,orig,origb);
-			viewspace_error = veclengthd(vec);
-			veccopyd(vec4,orig);
-			vec4[3] = 1.0;
-			transformFULL4d(vec4,vec4,proj);
-			vecscaled(orig,vec4,1.0/vec4[3]);
-			veccopyd(vec4,origb);
-			vec4[3] = 1.0;
-			transformFULL4d(vec4,vec4,proj);
-			vecscaled(origb,vec4,1.0/vec4[3]);
-			vecdifd(vec,orig,origb);
-			nearplane_error = veclengthd(vec); 
-			FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
-			screenspace_error = nearplane_error / 2.0 * (double) viewPort[2];
-		}else{
-			//1) get distance-to-tile
-			if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12)
-			{
-				float2double(orig,node->boundingVolume.p,3);
-				transformAFFINEd(vec,orig,mod);
-				range = veclengthd(vec);
-
+		{
+				//1) get distance-to-tile
+				if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12){
+					//for X3D could have separate OBB oriented bounding box and BBOX standard bounding box
+					float2double(orig,node->boundingVolume.p,3);
+					transformAFFINEd(vec,orig,mod);
+					range = veclengthd(vec);
+				}else if(bvtype == BOUNDING_VOLUME_SPHERE && node->boundingVolume.n == 4){
+					float2double(orig,node->boundingVolume.p,3);
+					transformAFFINEd(vec,orig,mod);
+					range = veclengthd(vec);
+				}else if(bvtype == BOUNDING_VOLUME_REGION && node->boundingVolume.n == 6){
+				}
+				//2) transform 2 points geometricError apart in X, into screenspace
 				vecsetd(vec4,node->geometricError,0.0,-range);
 				vec4[3] = 1.0;
 				transformFULL4d(vec4,vec4,proj);
@@ -702,17 +681,16 @@ void child_Tile(struct X3D_Tile *node){
 				transformFULL4d(vec4,vec4,proj);
 				vecscaled(origb,vec4,1.0/vec4[3]);
 				
-				vecsetd(vec,0.0,0.0,-range);
-
+				//3) get the 2 points distance apart in screen space
 				vecdifd(vec,orig,origb);
 				nearplane_error = veclengthd(vec); 
 				FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 				screenspace_error = (nearplane_error / 2.0) * (double) viewPort[2];
-			}
+
 		}
 		//printf("screen %lf near %lf view %lf\n",screenspace_error,nearplane_error,viewspace_error);
 
-		//transform volume into cuboid and test
+		//test bounding volume against view frustum
 		if(cbvtype == BOUNDING_VOLUME_BBOX  && node->contentVolume.n == 12)
 		{
 			float p3fn24[24], extent6[6], cuboid[6], overlap[6];
@@ -749,7 +727,7 @@ void child_Tile(struct X3D_Tile *node){
 				inview_content = inside;
 			}
 			if(1){
-				//geometric cull in viewer space
+				//geometric cull in viewer space, works July 22, 2020
 				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
 				double dd[3];
 				float ftemp[3];
@@ -759,13 +737,13 @@ void child_Tile(struct X3D_Tile *node){
 					//transformAFFINEd(dd,dd,mod);
 					inpoint = frustum_point_inside(frustum_planes,dd);
 					inside = inside || inpoint;
-					if(inpoint && child_tile) draw_bbox(&p3fn24[3*i],vecset3f(ftemp,30.0f,30.0f,30.0f));
+					//if(inpoint && child_tile) draw_bbox(&p3fn24[3*i],vecset3f(ftemp,30.0f,30.0f,30.0f));
 				}
 				float2double(dd,node->contentVolume.p,3); //center point
 				//transformAFFINEd(dd,dd,mod);
 				inpoint = frustum_point_inside(frustum_planes,dd);
 				inside = inside || inpoint;
-				if(inpoint && child_tile) draw_bbox(node->contentVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
+				//if(inpoint && child_tile) draw_bbox(node->contentVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
 
 				inview_content = inside;
 
@@ -804,7 +782,7 @@ void child_Tile(struct X3D_Tile *node){
 				inview_tile = inside;
 			}
 			if(1){
-				//geometric cull in viewer space
+				//geometric cull in viewer space works July 22, 2020
 				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
 				double dd[3];
 				float ftemp[3];
@@ -814,7 +792,7 @@ void child_Tile(struct X3D_Tile *node){
 					//transformAFFINEd(dd,dd,mod);
 					inpoint = frustum_point_inside(frustum_planes,dd);
 					inside = inside || inpoint;
-					if(inpoint && child_tile) draw_bbox(&p3fn24[3*i],vecset3f(ftemp,30.0f,30.0f,30.0f));
+					//if(inpoint && child_tile) draw_bbox(&p3fn24[3*i],vecset3f(ftemp,30.0f,30.0f,30.0f));
 					//printf("bvcoord %d %f %f %f\n",i,p3fn24[i*3],p3fn24[i*3+1],p3fn24[i*3+2]);
 
 
@@ -823,7 +801,7 @@ void child_Tile(struct X3D_Tile *node){
 				//transformAFFINEd(dd,dd,mod);
 				inpoint = frustum_point_inside(frustum_planes,dd);
 				inside = inside || inpoint;
-				if(inpoint && child_tile) draw_bbox(node->boundingVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
+				//if(inpoint && child_tile) draw_bbox(node->boundingVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
 
 				inview_tile = inside;
 			}

@@ -15832,9 +15832,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->refine = newASCIIString("REPLACE");
 			tmp2->showContent = TRUE;
 			tmp2->boundingVolume.n=0; tmp2->boundingVolume.p=0;
-			tmp2->boundingVolumeType = newASCIIString("NONE");
+			tmp2->boundingVolumeType = newASCIIString("BBOX");
 			tmp2->contentVolume.n=0; tmp2->contentVolume.p=0;
-			tmp2->contentVolumeType = newASCIIString("NONE");
+			tmp2->contentVolumeType = newASCIIString("BBOX");
 			tmp2->_defaultContainer = 0;
 		break;
 		}

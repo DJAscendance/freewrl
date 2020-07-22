@@ -1964,9 +1964,9 @@ our %Nodes = (
 		refine => ["SFString", "REPLACE", "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		showContent => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		boundingVolume => ["MFFloat",[],"inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		boundingVolumeType => ["SFString","NONE","initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		boundingVolumeType => ["SFString","BBOX","initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		contentVolume => ["MFFloat",[],"inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		contentVolumeType => ["SFString","NONE","initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		contentVolumeType => ["SFString","BBOX","initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DGroupingNode"),
 
 
