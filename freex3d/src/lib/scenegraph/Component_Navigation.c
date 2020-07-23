@@ -563,4 +563,302 @@ void child_ViewpointGroup (struct X3D_ViewpointGroup *node) {
         }
 
 }
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif //_MSC_VER
+void draw_frustum(float *corners);
+static double screespace_allowed_error = 5.0; //pixles?
+void compile_Tile(struct X3D_Tile *node){
 
+}
+void prep_Tile(struct X3D_Tile *node){
+}
+static int tile_view_frozen = FALSE;
+int getTileViewFrozen(){
+	return tile_view_frozen;
+}
+void toggleTileViewFrozen(){
+	//July 2020 currently hooked to '=' key
+	tile_view_frozen = 1 - tile_view_frozen;
+	if(tile_view_frozen) printf("FREEZING tile view\n");
+	else printf("UN-FREEZING tile view\n");
+}
+enum {
+	TILE_REFINE_DEFAULT = 0,
+	TILE_REFINE_REPLACE = 1,
+	TILE_REFINE_ADD = 2,
+};
+enum {
+	BOUNDING_VOLUME_NONE = 0, //can't have NONE because we need a range for SSE calc, and get it from BBOX etc
+	BOUNDING_VOLUME_BBOX = 1,
+	BOUNDING_VOLUME_SPHERE = 2,
+	BOUNDING_VOLUME_REGION = 3,
+};
+void child_Tile(struct X3D_Tile *node){
+//
+// similar to Tiles3D?
+// https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+//
+	double screenspace_error = 1.e+06;
+	static double mod[16], proj[16], mvproj[16];
+	static struct Planed frustum_planes[6];
+	static float frustum_corners[24];
+	static int have_frustum_corners;
+	static int have_mod = FALSE;
+	static int child_tile = FALSE;
+	static int once = FALSE;
+	int root_tile = FALSE;
+	if(!child_tile) root_tile = TRUE;
+
+	if(!once){
+		printf("Press '=' key to FREEZE / UNFREEZE Tile computational Viewpoint\n");
+		once = TRUE;
+	}
+	
+	if( (!getTileViewFrozen() || !have_mod) && root_tile){
+		//for texting we need a way to freeze the viewpoint used for 
+		// computing screenspace error and frustun 
+		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+		//FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_GETDOUBLEV(GL_PROJECTION_MATRIX, proj);
+		//FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		matmultiplyFULL(mvproj,mod,proj);
+		setFrustumPlanes(mvproj,frustum_planes);
+		have_frustum_corners = frustum_generate_corner_points(frustum_planes, frustum_corners);
+		have_mod = TRUE;
+	}
+	if(have_frustum_corners && root_tile){
+		draw_frustum(frustum_corners);
+	}
+	int refine, cbvtype, bvtype;
+	refine = TILE_REFINE_DEFAULT; //we should get it from a stack, so top one dominates.
+	if(!strcasecmp(node->refine->strptr,"REPLACE")) refine = TILE_REFINE_REPLACE;
+	else if(!strcasecmp(node->refine->strptr,"ADD")) refine = TILE_REFINE_ADD;
+
+	//for bounding volumes we want good 'lazy defaults' and that's to not do frustum culling ==NONE 
+	// if no boundingVolume is specified, or no boundingVolumeType is specified.
+	cbvtype = BOUNDING_VOLUME_NONE;
+	if(!strcasecmp(node->contentVolumeType->strptr,"BBOX")) cbvtype = BOUNDING_VOLUME_BBOX;
+	else if(!strcasecmp(node->contentVolumeType->strptr,"SPHERE")) cbvtype = BOUNDING_VOLUME_SPHERE;
+	else if(!strcasecmp(node->contentVolumeType->strptr,"REGION")) cbvtype = BOUNDING_VOLUME_REGION;
+	if(node->contentVolume.n == 0) cbvtype = BOUNDING_VOLUME_NONE;
+	bvtype = BOUNDING_VOLUME_NONE;
+	if(!strcasecmp(node->boundingVolumeType->strptr,"BBOX")) bvtype = BOUNDING_VOLUME_BBOX;
+	else if(!strcasecmp(node->boundingVolumeType->strptr,"SPHERE")) bvtype = BOUNDING_VOLUME_SPHERE;
+	else if(!strcasecmp(node->boundingVolumeType->strptr,"REGION")) bvtype = BOUNDING_VOLUME_REGION;
+	if(node->boundingVolume.n == 0) bvtype = BOUNDING_VOLUME_NONE;
+
+	int inview_content, inview_tile;
+	inview_content = inview_tile = TRUE;
+	//adapted from proximit_LOD
+	{
+		double modi[16], orig[3], origb[3], vec[3],vecb[3], vec4[4], range, viewspace_error, nearplane_error;
+		int viewPort[10];
+		/* calculate which one to display */
+		// Tiles3D S.1 screen space error:
+		// sse = (geometricError * screenHeight) / (tileDistance* 2*tan(fovy/2))
+		// our method: transform 2 points from tile space to screen space
+		// - in tile space they are geometricError distance apart
+		// - in screen space they will be SSE apart
+		// - should work for orthoViewpoint as well as perspective
+		{
+			range = 100.0;
+			//1) get distance-to-tile
+			if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12){
+				//for X3D could have separate OBB oriented bounding box and BBOX standard bounding box
+				float2double(orig,node->boundingVolume.p,3);
+				transformAFFINEd(vec,orig,mod);
+				range = veclengthd(vec);
+			}else if(bvtype == BOUNDING_VOLUME_SPHERE && node->boundingVolume.n == 4){
+				float2double(orig,node->boundingVolume.p,3);
+				transformAFFINEd(vec,orig,mod);
+				range = veclengthd(vec);
+			}else if(bvtype == BOUNDING_VOLUME_REGION && node->boundingVolume.n == 6){
+			}
+			//2) transform 2 points geometricError apart in X, into screenspace
+			vecsetd(vec4,node->geometricError,0.0,-range);
+			vec4[3] = 1.0;
+			transformFULL4d(vec4,vec4,proj);
+			vecscaled(orig,vec4,1.0/vec4[3]);
+
+			vecsetd(vec4,0.0,0.0,-range);
+			vec4[3] = 1.0;
+			transformFULL4d(vec4,vec4,proj);
+			vecscaled(origb,vec4,1.0/vec4[3]);
+				
+			//3) get the 2 points distance apart in screen space
+			vecdifd(vec,orig,origb);
+			nearplane_error = veclengthd(vec); 
+			FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
+			screenspace_error = (nearplane_error / 2.0) * (double) viewPort[2];
+
+		}
+		//printf("screen %lf near %lf view %lf\n",screenspace_error,nearplane_error,viewspace_error);
+
+		//test bounding volume against view frustum
+		if(cbvtype == BOUNDING_VOLUME_BBOX  && node->contentVolume.n == 12)
+		{
+			float p3fn24[24], extent6[6], overlap[6];
+			orientedBBox2vec3fn(p3fn24, node->contentVolume.p);
+
+			inview_content = FALSE;
+			// http://www.lighthouse3d.com/tutorials/view-frustum-culling/ 
+			if(0){
+				//CLIP-SPACE / CUBOID SPACE CULL (doesn't work July 18, 2020
+				double dd[4];
+				float ff[3], cuboid[6];
+				int inside = FALSE;
+				extent6f_constructor(cuboid,-1.0f,1.0f,-1.0f,1.0f,-1.0f,1.0f);
+
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					dd[3] = 1.0;
+					transformFULL4d(dd,dd,mvproj);
+					vecscaled(dd,dd,1.0/dd[3]);
+					double2float(ff,dd,3);
+					inside = inside || extent6f_point_inside(cuboid,ff);
+				}
+				float2double(dd,node->contentVolume.p,3); //center point
+				dd[3] = 1.0;
+				transformFULL4d(dd,dd,mvproj);
+				vecscaled(dd,dd,1.0/dd[3]);
+				double2float(ff,dd,3);
+				inside = inside || extent6f_point_inside(cuboid,ff);
+
+				inview_content = inside;
+			}
+			if(0){
+				//geometric cull - simple corner point cull - in viewer space, works a bit July 22, 2020
+				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
+				double dd[3];
+				float ftemp[3];
+				int inpoint, inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					//transformAFFINEd(dd,dd,mod);
+					inpoint = frustum_point_inside(frustum_planes,dd);
+					inside = inside || inpoint;
+					//if(inpoint && child_tile) draw_bbox(&p3fn24[3*i],vecset3f(ftemp,30.0f,30.0f,30.0f));
+				}
+				float2double(dd,node->contentVolume.p,3); //center point
+				inpoint = frustum_point_inside(frustum_planes,dd);
+				inside = inside || inpoint;
+				//if(inpoint && child_tile) draw_bbox(node->contentVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
+
+				inview_content = inside;
+			}
+			if(1){
+				//geometric cull - box corners vs frustum - works July 23, 2020
+				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes/
+				inview_content = frustum_box_inside(frustum_planes,p3fn24,8);
+			}
+		}
+		if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12)
+		{
+			float p3fn24[24], extent6[6], overlap[6];
+			double mvproj[16];
+			matmultiplyFULL(mvproj,proj,mod);
+			orientedBBox2vec3fn(p3fn24, node->boundingVolume.p);
+			inview_tile = FALSE;
+			// http://www.lighthouse3d.com/tutorials/view-frustum-culling/ 
+			if(0){
+				//CLIP-SPACE / CUBOID SPACE CULL (doesn't work July 18, 2020
+				double dd[4];
+				float ff[3], cuboid[6];
+				extent6f_constructor(cuboid,-1.0f,1.0f,-1.0f,1.0f,-1.0f,1.0f);
+				int inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					dd[3] = 1.0;
+					transformFULL4d(dd,dd,mvproj);
+					vecscaled(dd,dd,1.0/dd[3]);
+					double2float(ff,dd,3);
+					inside = inside || extent6f_point_inside(cuboid,ff);
+				}
+				float2double(dd,node->boundingVolume.p,3); //center point
+				dd[3] = 1.0;
+				transformFULL4d(dd,dd,mvproj);
+				vecscaled(dd,dd,1.0/dd[3]);
+				double2float(ff,dd,3);
+				inside = inside || extent6f_point_inside(cuboid,ff);
+
+				inview_tile = inside;
+			}
+			if(0){
+				//geometric cull - simple corner point cull - in viewer space, works a bit July 22, 2020
+				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
+				double dd[3];
+				float ftemp[3];
+				int inpoint, inside = FALSE;
+				for(int i=0;i<8;i++){
+					float2double(dd,&p3fn24[3*i],3);
+					inpoint = frustum_point_inside(frustum_planes,dd);
+					inside = inside || inpoint;
+					//if(inpoint && child_tile) draw_bbox(&p3fn24[3*i],vecset3f(ftemp,30.0f,30.0f,30.0f));
+					//printf("bvcoord %d %f %f %f\n",i,p3fn24[i*3],p3fn24[i*3+1],p3fn24[i*3+2]);
+
+
+				}
+				float2double(dd,node->boundingVolume.p,3); //center point
+				inpoint = frustum_point_inside(frustum_planes,dd);
+				inside = inside || inpoint;
+				//if(inpoint && child_tile) draw_bbox(node->boundingVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
+
+				inview_tile = inside;
+			}
+			if(1){
+				//geometric cull - box corners vs frustum - works July 23, 2020
+				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes/
+				inview_tile = frustum_box_inside(frustum_planes,p3fn24,8);
+			}
+
+		}
+	}
+	if(root_tile) child_tile = TRUE;
+	int no_sse_cull = FALSE;
+	int no_bv_cull = FALSE;
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+	if(cbvtype == BOUNDING_VOLUME_NONE || cbvtype == BOUNDING_VOLUME_BBOX && inview_content || no_bv_cull)
+	if(screenspace_error <= screespace_allowed_error || node->children.n == 0 || refine == TILE_REFINE_ADD || no_sse_cull){
+		render_node(node->content);
+		//content > Inline may need signal to load or unload
+		if(node->showContent == FALSE){
+			node->showContent = TRUE;
+			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
+		}
+	}else{
+		if(node->showContent == TRUE){
+			node->showContent = FALSE;
+			MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_Tile, showContent));
+		}
+	}
+	if(bvtype == BOUNDING_VOLUME_NONE || bvtype == BOUNDING_VOLUME_BBOX && inview_tile || no_bv_cull)
+	if(screenspace_error > screespace_allowed_error && node->children.n > 0 || no_sse_cull){
+		//adapted from child_Group:
+		prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+		//prep_BBox((struct BBoxFields*)&node->bboxCenter);
+		normalChildren(node->children);
+		//fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+		fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	}
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+	if(root_tile) child_tile = FALSE;
+
+
+}
+void proximity_Tile(struct X3D_Tile *node){
+	//double mod[16],modi[16], orig[3], vec[3];
+
+	///* calculate which one to display */
+	//FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mod);
+	////feature-AFFINE_GLU_UNPROJECT
+	////this is centered on the avatar (correct)
+	//vecsetd(orig,0,.0,0.0,0.0);
+	//matinverseAFFINE(modi,mod);
+	//transformAFFINEd(vec,orig,modi);
+	////printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);
+	////printf("\n");
+
+
+}

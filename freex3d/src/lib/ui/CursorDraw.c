@@ -815,3 +815,45 @@ void draw_viewpoint(int type, float *fov, float aspect)
 	restoreGlobalShader();
 
 }
+void draw_frustum(float *corners)
+{
+	//assumes 0,0,0 is the perspective center, and -Z the look direction
+	int i,j,k,n;
+	GLint  positionLoc;
+	GLfloat p[24][3];
+	struct cline *cur, *line;
+	s_shader_capabilities_t *scap;
+	ttglobal tg = gglobal();
+
+	n = 0;
+	for(int j=0;j<2;j++)
+	for(int i=0;i<4;i++){
+		int k = j*4 + i;
+		int m = j*4 + (i+1) % 4;
+		veccopy3f(p[n],&corners[k*3]);
+		veccopy3f(p[n+1],&corners[m*3]);
+		n+=2;
+	}
+	for(int i=0;i<4;i++){
+		veccopy3f(p[n],&corners[i*3]);
+		veccopy3f(p[n+1],&corners[(i+4)*3]);
+		n+=2;
+	}
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	//FW_GL_VERTEX_POINTER(2, GL_FLOAT, 0, (GLfloat *)p);
+	//sendArraysToGPU(GL_LINE_STRIP, 0, 3);
+	positionLoc =  scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	sendArraysToGPU (GL_LINES, 0, n);
+	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,p[0]);
+	reallyDrawOnce();
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+
+}

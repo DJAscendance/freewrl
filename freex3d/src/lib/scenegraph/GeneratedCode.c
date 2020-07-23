@@ -530,6 +530,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"boundaryModeS",
 	"boundaryModeT",
 	"boundaryOpacity",
+	"boundingVolume",
+	"boundingVolumeType",
 	"buffer",
 	"category",
 	"ccw",
@@ -574,6 +576,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"contactNormal",
 	"contactSurfaceThickness",
 	"contacts",
+	"content",
+	"contentVolume",
+	"contentVolumeType",
 	"contourStepSize",
 	"controlKey",
 	"controlPoint",
@@ -723,6 +728,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"geoSystem",
 	"geodeticLatitude",
 	"geodeticLongitude",
+	"geometricError",
 	"geometry",
 	"geometry1",
 	"geometry2",
@@ -995,6 +1001,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"reduction",
 	"refDistance",
 	"reference",
+	"refine",
 	"refraction",
 	"relativeAntennaLocation",
 	"relativeHeight",
@@ -1075,6 +1082,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"shape",
 	"shiftKey",
 	"shininess",
+	"showContent",
 	"side",
 	"silhouetteBoundaryOpacity",
 	"silhouetteRetainedOpacity",
@@ -1528,6 +1536,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"boundaryModeS",
 	"boundaryModeT",
 	"boundaryOpacity",
+	"boundingVolume",
 	"buffer",
 	"center",
 	"centerOfMass",
@@ -1555,6 +1564,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"constantForceMix",
 	"contactNormal",
 	"contactSurfaceThickness",
+	"content",
+	"contentVolume",
 	"contourStepSize",
 	"controlPoint",
 	"coolColor",
@@ -1869,6 +1880,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"shadows",
 	"shape",
 	"shininess",
+	"showContent",
 	"silhouetteBoundaryOpacity",
 	"silhouetteRetainedOpacity",
 	"silhouetteSharpness",
@@ -2026,6 +2038,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"bboxSize",
 	"beginCap",
 	"bottomRadius",
+	"boundingVolumeType",
 	"category",
 	"ccw",
 	"centralScale",
@@ -2041,6 +2054,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"colorKey",
 	"colorPerVertex",
 	"colorRamp",
+	"contentVolumeType",
 	"convex",
 	"coordIndex",
 	"country",
@@ -2070,6 +2084,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"geoSystem",
 	"geodeticLatitude",
 	"geodeticLongitude",
+	"geometricError",
 	"geometryType",
 	"height",
 	"heightOffset",
@@ -2111,6 +2126,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"proxy",
 	"range",
 	"reference",
+	"refine",
 	"relativeHeight",
 	"repeatR",
 	"repeatS",
@@ -2637,6 +2653,8 @@ const char *NODES[] = {
 	"GeoSpatialReferenceFrame",
 	"GeoSystemParameters",
 	"GeoTMParameters",
+	"GeoTile",
+	"GeoTileSet",
 	"GeoTouchSensor",
 	"GeoTransform",
 	"GeoViewpoint",
@@ -2835,6 +2853,7 @@ const char *NODES[] = {
 	"TextureTransform",
 	"TextureTransform3D",
 	"TextureTransformMatrix3D",
+	"Tile",
 	"TimeSensor",
 	"TimeTrigger",
 	"ToneMappedVolumeStyle",
@@ -2983,6 +3002,8 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
 {FIELDNAMES_systemParameters,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3182,6 +3203,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_renderStyle,0,0,0,0,0,0},
@@ -3576,6 +3598,10 @@ struct X3D_Virt virt_GeoSpatialReferenceFrame = { NULL,NULL,NULL,NULL,NULL,NULL,
 struct X3D_Virt virt_GeoSystemParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_GeoTMParameters = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoTile = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_GeoTileSet = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void compile_GeoTouchSensor(struct X3D_GeoTouchSensor *);
 struct X3D_Virt virt_GeoTouchSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeoTouchSensor};
@@ -4201,6 +4227,12 @@ struct X3D_Virt virt_TextureTransform3D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,N
 
 struct X3D_Virt virt_TextureTransformMatrix3D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_Tile(struct X3D_Tile *);
+void child_Tile(struct X3D_Tile *);
+void proximity_Tile(struct X3D_Tile *);
+void compile_Tile(struct X3D_Tile *);
+struct X3D_Virt virt_Tile = { (void *)prep_Tile,NULL,(void *)child_Tile,NULL,NULL,NULL,(void *)proximity_Tile,NULL,NULL,(void *)compile_Tile};
+
 struct X3D_Virt virt_TimeSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_TimeTrigger = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4401,6 +4433,8 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_GeoSpatialReferenceFrame,
 	 &virt_GeoSystemParameters,
 	 &virt_GeoTMParameters,
+	 &virt_GeoTile,
+	 &virt_GeoTileSet,
 	 &virt_GeoTouchSensor,
 	 &virt_GeoTransform,
 	 &virt_GeoViewpoint,
@@ -4599,6 +4633,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_TextureTransform,
 	 &virt_TextureTransform3D,
 	 &virt_TextureTransformMatrix3D,
+	 &virt_Tile,
 	 &virt_TimeSensor,
 	 &virt_TimeTrigger,
 	 &virt_ToneMappedVolumeStyle,
@@ -6216,6 +6251,17 @@ const int OFFSETS_GeoTMParameters[] = {
 	(int) FIELDNAMES_heightOffset, (int) offsetof (struct X3D_GeoTMParameters, heightOffset),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_x_false_origin, (int) offsetof (struct X3D_GeoTMParameters, x_false_origin),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_y_false_origin, (int) offsetof (struct X3D_GeoTMParameters, y_false_origin),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoTile[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoTile, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeoTileSet[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeoTileSet, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_geoOrigin, (int) offsetof (struct X3D_GeoTileSet, geoOrigin),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32), (int) UNCA_NONE,
+	(int) FIELDNAMES_geoSystem, (int) offsetof (struct X3D_GeoTileSet, geoSystem),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_geoSRF, (int) offsetof (struct X3D_GeoTileSet, geoSRF),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoTouchSensor[] = {
@@ -8936,6 +8982,27 @@ const int OFFSETS_TextureTransformMatrix3D[] = {
 	(int) FIELDNAMES_matrix, (int) offsetof (struct X3D_TextureTransformMatrix3D, matrix),  (int) FIELDTYPE_SFMatrix4f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_Tile[] = {
+	(int) FIELDNAMES_addChildren, (int) offsetof (struct X3D_Tile, addChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_Tile, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_Tile, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_Tile, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_center, (int) offsetof (struct X3D_Tile, center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_Tile, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_Tile, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_visible, (int) offsetof (struct X3D_Tile, visible),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bboxDisplay, (int) offsetof (struct X3D_Tile, bboxDisplay),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_Tile, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_content, (int) offsetof (struct X3D_Tile, content),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_geometricError, (int) offsetof (struct X3D_Tile, geometricError),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_refine, (int) offsetof (struct X3D_Tile, refine),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_showContent, (int) offsetof (struct X3D_Tile, showContent),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_boundingVolume, (int) offsetof (struct X3D_Tile, boundingVolume),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_boundingVolumeType, (int) offsetof (struct X3D_Tile, boundingVolumeType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_contentVolume, (int) offsetof (struct X3D_Tile, contentVolume),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_contentVolumeType, (int) offsetof (struct X3D_Tile, contentVolumeType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_TimeSensor[] = {
 	(int) FIELDNAMES_cycleInterval, (int) offsetof (struct X3D_TimeSensor, cycleInterval),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_TimeSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9455,6 +9522,8 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_GeoSpatialReferenceFrame,
 	OFFSETS_GeoSystemParameters,
 	OFFSETS_GeoTMParameters,
+	OFFSETS_GeoTile,
+	OFFSETS_GeoTileSet,
 	OFFSETS_GeoTouchSensor,
 	OFFSETS_GeoTransform,
 	OFFSETS_GeoViewpoint,
@@ -9653,6 +9722,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_TextureTransform,
 	OFFSETS_TextureTransform3D,
 	OFFSETS_TextureTransformMatrix3D,
+	OFFSETS_Tile,
 	OFFSETS_TimeSensor,
 	OFFSETS_TimeTrigger,
 	OFFSETS_ToneMappedVolumeStyle,
@@ -10058,6 +10128,8 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_GeoSpatialReferenceFrame : {tmp = MALLOC (struct X3D_GeoSpatialReferenceFrame *, size = sizeof (struct X3D_GeoSpatialReferenceFrame)); break;}
 		case NODE_GeoSystemParameters : {tmp = MALLOC (struct X3D_GeoSystemParameters *, size = sizeof (struct X3D_GeoSystemParameters)); break;}
 		case NODE_GeoTMParameters : {tmp = MALLOC (struct X3D_GeoTMParameters *, size = sizeof (struct X3D_GeoTMParameters)); break;}
+		case NODE_GeoTile : {tmp = MALLOC (struct X3D_GeoTile *, size = sizeof (struct X3D_GeoTile)); break;}
+		case NODE_GeoTileSet : {tmp = MALLOC (struct X3D_GeoTileSet *, size = sizeof (struct X3D_GeoTileSet)); break;}
 		case NODE_GeoTouchSensor : {tmp = MALLOC (struct X3D_GeoTouchSensor *, size = sizeof (struct X3D_GeoTouchSensor)); break;}
 		case NODE_GeoTransform : {tmp = MALLOC (struct X3D_GeoTransform *, size = sizeof (struct X3D_GeoTransform)); break;}
 		case NODE_GeoViewpoint : {tmp = MALLOC (struct X3D_GeoViewpoint *, size = sizeof (struct X3D_GeoViewpoint)); break;}
@@ -10256,6 +10328,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_TextureTransform : {tmp = MALLOC (struct X3D_TextureTransform *, size = sizeof (struct X3D_TextureTransform)); break;}
 		case NODE_TextureTransform3D : {tmp = MALLOC (struct X3D_TextureTransform3D *, size = sizeof (struct X3D_TextureTransform3D)); break;}
 		case NODE_TextureTransformMatrix3D : {tmp = MALLOC (struct X3D_TextureTransformMatrix3D *, size = sizeof (struct X3D_TextureTransformMatrix3D)); break;}
+		case NODE_Tile : {tmp = MALLOC (struct X3D_Tile *, size = sizeof (struct X3D_Tile)); break;}
 		case NODE_TimeSensor : {tmp = MALLOC (struct X3D_TimeSensor *, size = sizeof (struct X3D_TimeSensor)); break;}
 		case NODE_TimeTrigger : {tmp = MALLOC (struct X3D_TimeTrigger *, size = sizeof (struct X3D_TimeTrigger)); break;}
 		case NODE_ToneMappedVolumeStyle : {tmp = MALLOC (struct X3D_ToneMappedVolumeStyle *, size = sizeof (struct X3D_ToneMappedVolumeStyle)); break;}
@@ -12325,6 +12398,23 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->heightOffset = 0;
 			tmp2->x_false_origin = 0;
 			tmp2->y_false_origin = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoTile : {
+			struct X3D_GeoTile * tmp2;
+			tmp2 = (struct X3D_GeoTile *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeoTileSet : {
+			struct X3D_GeoTileSet * tmp2;
+			tmp2 = (struct X3D_GeoTileSet *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->geoOrigin = NULL;
+			tmp2->geoSystem.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->geoSystem.p[0] = newASCIIString("GD");tmp2->geoSystem.p[1] = newASCIIString("WE");tmp2->geoSystem.n=2; ;
+			tmp2->geoSRF = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -15724,6 +15814,30 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_Tile : {
+			struct X3D_Tile * tmp2;
+			tmp2 = (struct X3D_Tile *) tmp;
+			tmp2->addChildren.n=0; tmp2->addChildren.p=0;
+			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
+			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
+			tmp2->children.n=0; tmp2->children.p=0;
+			tmp2->center.c[0] = 0.0f;tmp2->center.c[1] = 0.0f;tmp2->center.c[2] = 0.0f;
+			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
+			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
+			tmp2->visible = TRUE;
+			tmp2->bboxDisplay = FALSE;
+			tmp2->metadata = NULL;
+			tmp2->content = NULL;
+			tmp2->geometricError = 0.0f;
+			tmp2->refine = newASCIIString("REPLACE");
+			tmp2->showContent = TRUE;
+			tmp2->boundingVolume.n=0; tmp2->boundingVolume.p=0;
+			tmp2->boundingVolumeType = newASCIIString("BBOX");
+			tmp2->contentVolume.n=0; tmp2->contentVolume.p=0;
+			tmp2->contentVolumeType = newASCIIString("BBOX");
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_TimeSensor : {
 			struct X3D_TimeSensor * tmp2;
 			tmp2 = (struct X3D_TimeSensor *) tmp;
@@ -18233,6 +18347,24 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_GeoTMParameters *) node;
 			UNUSED(tmp); // compiler warning mitigation
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoTile : {
+			struct X3D_GeoTile *tmp;
+			tmp = (struct X3D_GeoTile *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
+		case NODE_GeoTileSet : {
+			struct X3D_GeoTileSet *tmp;
+			tmp = (struct X3D_GeoTileSet *) node;
+			UNUSED(tmp); // compiler warning mitigation
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
@@ -21536,6 +21668,32 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 		    break;
 		}
+		case NODE_Tile : {
+			struct X3D_Tile *tmp;
+			tmp = (struct X3D_Tile *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," __sibAffectors (MFNode):\n");
+			for (i=0; i<tmp->__sibAffectors.n; i++) { dump_scene(fp,level+1,tmp->__sibAffectors.p[i]); }
+		    }
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+			spacer fprintf (fp," center (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->center.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," visible (SFBool) \t%d\n",tmp->visible);
+			spacer fprintf (fp," bboxDisplay (SFBool) \t%d\n",tmp->bboxDisplay);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," content (SFNode):\n"); dump_scene(fp,level+1,tmp->content); 
+			spacer fprintf (fp," showContent (SFBool) \t%d\n",tmp->showContent);
+			spacer fprintf (fp," boundingVolume (MFFloat):\n");
+			for (i=0; i<tmp->boundingVolume.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->boundingVolume.p[i]); }
+			spacer fprintf (fp," contentVolume (MFFloat):\n");
+			for (i=0; i<tmp->contentVolume.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->contentVolume.p[i]); }
+		    break;
+		}
 		case NODE_TimeSensor : {
 			struct X3D_TimeSensor *tmp;
 			tmp = (struct X3D_TimeSensor *) node;
@@ -22187,6 +22345,8 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_GeoSpatialReferenceFrame: return X3DChildNode; break;
 	case NODE_GeoSystemParameters: return X3DGeoSRFParametersInfoNode; break;
 	case NODE_GeoTMParameters: return X3DGeoSRFTParametersNode; break;
+	case NODE_GeoTile: return X3DGroupingNode; break;
+	case NODE_GeoTileSet: return X3DChildNode; break;
 	case NODE_GeoTouchSensor: return X3DPointingDeviceSensorNode; break;
 	case NODE_GeoTransform: return X3DGroupingNode; break;
 	case NODE_GeoViewpoint: return X3DBindableNode; break;
@@ -22385,6 +22545,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_TextureTransform: return X3DTextureTransformNode; break;
 	case NODE_TextureTransform3D: return X3DTextureTransformNode; break;
 	case NODE_TextureTransformMatrix3D: return X3DTextureTransformNode; break;
+	case NODE_Tile: return X3DGroupingNode; break;
 	case NODE_TimeSensor: return X3DSensorNode; break;
 	case NODE_TimeTrigger: return X3DTriggerNode; break;
 	case NODE_ToneMappedVolumeStyle: return X3DComposableVolumeRenderStyleNode; break;
