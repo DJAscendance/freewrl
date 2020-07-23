@@ -723,7 +723,7 @@ void child_Tile(struct X3D_Tile *node){
 
 				inview_content = inside;
 			}
-			if(1){
+			if(0){
 				//geometric cull - simple corner point cull - in viewer space, works a bit July 22, 2020
 				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
 				double dd[3];
@@ -742,13 +742,12 @@ void child_Tile(struct X3D_Tile *node){
 				//if(inpoint && child_tile) draw_bbox(node->contentVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
 
 				inview_content = inside;
-
 			}
-			if(0){
+			if(1){
+				//geometric cull - box corners vs frustum - works July 23, 2020
 				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes/
 				inview_content = frustum_box_inside(frustum_planes,p3fn24,8);
 			}
-
 		}
 		if(bvtype == BOUNDING_VOLUME_BBOX && node->boundingVolume.n == 12)
 		{
@@ -781,7 +780,7 @@ void child_Tile(struct X3D_Tile *node){
 
 				inview_tile = inside;
 			}
-			if(1){
+			if(0){
 				//geometric cull - simple corner point cull - in viewer space, works a bit July 22, 2020
 				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
 				double dd[3];
@@ -803,14 +802,9 @@ void child_Tile(struct X3D_Tile *node){
 
 				inview_tile = inside;
 			}
-			if(0){
+			if(1){
+				//geometric cull - box corners vs frustum - works July 23, 2020
 				// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes/
-				double dd[3];
-				float ftemp[3];
-				float2double(dd,node->boundingVolume.p,3); //center point
-				int	inpoint = frustum_point_inside(frustum_planes,dd);
-				if(inpoint && root_tile) draw_bbox(node->boundingVolume.p,vecset3f(ftemp,10.0f,50.0f,10.0f));
-
 				inview_tile = frustum_box_inside(frustum_planes,p3fn24,8);
 			}
 

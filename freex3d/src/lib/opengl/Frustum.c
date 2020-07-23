@@ -725,7 +725,7 @@ int frustum_box_inside(struct Planed *frustum_planes, float *corners3f, int np) 
 	int result = INSIDE, out,in;
 
 	// for each plane do ...
-	for(int i=0; i < np; i++) {
+	for(int i=0; i < 6; i++) {
 
 		// reset counters for corners in and out
 		out=0;in=0;
