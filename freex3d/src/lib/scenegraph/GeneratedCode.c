@@ -2754,7 +2754,7 @@ const char *NODES[] = {
 	"MultiTexture",
 	"MultiTextureCoordinate",
 	"MultiTextureTransform",
-	"MultitouchSensor",
+	"MultiTouchSensor",
 	"NavigationInfo",
 	"Normal",
 	"NormalInterpolator",
@@ -3926,8 +3926,8 @@ struct X3D_Virt virt_MultiTextureCoordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NU
 
 struct X3D_Virt virt_MultiTextureTransform = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-void render_MultitouchSensor(struct X3D_MultitouchSensor *);
-struct X3D_Virt virt_MultitouchSensor = { NULL,(void *)render_MultitouchSensor,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_MultiTouchSensor(struct X3D_MultiTouchSensor *);
+struct X3D_Virt virt_MultiTouchSensor = { NULL,(void *)render_MultiTouchSensor,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_NavigationInfo = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4534,7 +4534,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_MultiTexture,
 	 &virt_MultiTextureCoordinate,
 	 &virt_MultiTextureTransform,
-	 &virt_MultitouchSensor,
+	 &virt_MultiTouchSensor,
 	 &virt_NavigationInfo,
 	 &virt_Normal,
 	 &virt_NormalInterpolator,
@@ -7493,40 +7493,40 @@ const int OFFSETS_MultiTextureTransform[] = {
 	(int) FIELDNAMES_textureTransform, (int) offsetof (struct X3D_MultiTextureTransform, textureTransform),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
-const int OFFSETS_MultitouchSensor[] = {
-	(int) FIELDNAMES_autoOffset, (int) offsetof (struct X3D_MultitouchSensor, autoOffset),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_axisRotation, (int) offsetof (struct X3D_MultitouchSensor, axisRotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
-	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_MultitouchSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_maxPosition, (int) offsetof (struct X3D_MultitouchSensor, maxPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_minPosition, (int) offsetof (struct X3D_MultitouchSensor, minPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_offset, (int) offsetof (struct X3D_MultitouchSensor, offset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_MultitouchSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_isOver, (int) offsetof (struct X3D_MultitouchSensor, isOver),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MultitouchSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_translation_changed, (int) offsetof (struct X3D_MultitouchSensor, translation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MultitouchSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_MultitouchSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
-	(int) FIELDNAMES__oldtrackPoint, (int) offsetof (struct X3D_MultitouchSensor, _oldtrackPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldtranslation, (int) offsetof (struct X3D_MultitouchSensor, _oldtranslation),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__origPoint, (int) offsetof (struct X3D_MultitouchSensor, _origPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_MultitouchSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
-	(int) FIELDNAMES_translationOffset, (int) offsetof (struct X3D_MultitouchSensor, translationOffset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_rotationOffset, (int) offsetof (struct X3D_MultitouchSensor, rotationOffset),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_scaleOffset, (int) offsetof (struct X3D_MultitouchSensor, scaleOffset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_minScale, (int) offsetof (struct X3D_MultitouchSensor, minScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_maxScale, (int) offsetof (struct X3D_MultitouchSensor, maxScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_rotation_changed, (int) offsetof (struct X3D_MultitouchSensor, rotation_changed),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_scale_changed, (int) offsetof (struct X3D_MultitouchSensor, scale_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_trackPoints_changed, (int) offsetof (struct X3D_MultitouchSensor, trackPoints_changed),  (int) FIELDTYPE_MFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_touches_changed, (int) offsetof (struct X3D_MultitouchSensor, touches_changed),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__lastframe, (int) offsetof (struct X3D_MultitouchSensor, _lastframe),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__drag_count, (int) offsetof (struct X3D_MultitouchSensor, _drag_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__orig_count, (int) offsetof (struct X3D_MultitouchSensor, _orig_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__orig_points, (int) offsetof (struct X3D_MultitouchSensor, _orig_points),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__drag_points, (int) offsetof (struct X3D_MultitouchSensor, _drag_points),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldrotation, (int) offsetof (struct X3D_MultitouchSensor, _oldrotation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__oldscale, (int) offsetof (struct X3D_MultitouchSensor, _oldscale),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__lastTao, (int) offsetof (struct X3D_MultitouchSensor, _lastTao),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+const int OFFSETS_MultiTouchSensor[] = {
+	(int) FIELDNAMES_autoOffset, (int) offsetof (struct X3D_MultiTouchSensor, autoOffset),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_axisRotation, (int) offsetof (struct X3D_MultiTouchSensor, axisRotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_MultiTouchSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxPosition, (int) offsetof (struct X3D_MultiTouchSensor, maxPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_minPosition, (int) offsetof (struct X3D_MultiTouchSensor, minPosition),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_offset, (int) offsetof (struct X3D_MultiTouchSensor, offset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_MultiTouchSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_isOver, (int) offsetof (struct X3D_MultiTouchSensor, isOver),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MultiTouchSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_translation_changed, (int) offsetof (struct X3D_MultiTouchSensor, translation_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MultiTouchSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_sensorLocalOutput, (int) offsetof (struct X3D_MultiTouchSensor, sensorLocalOutput),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__oldtrackPoint, (int) offsetof (struct X3D_MultiTouchSensor, _oldtrackPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldtranslation, (int) offsetof (struct X3D_MultiTouchSensor, _oldtranslation),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__origPoint, (int) offsetof (struct X3D_MultiTouchSensor, _origPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_MultiTouchSensor, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_translationOffset, (int) offsetof (struct X3D_MultiTouchSensor, translationOffset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_rotationOffset, (int) offsetof (struct X3D_MultiTouchSensor, rotationOffset),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_scaleOffset, (int) offsetof (struct X3D_MultiTouchSensor, scaleOffset),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_minScale, (int) offsetof (struct X3D_MultiTouchSensor, minScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxScale, (int) offsetof (struct X3D_MultiTouchSensor, maxScale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_rotation_changed, (int) offsetof (struct X3D_MultiTouchSensor, rotation_changed),  (int) FIELDTYPE_SFRotation, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_scale_changed, (int) offsetof (struct X3D_MultiTouchSensor, scale_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_trackPoints_changed, (int) offsetof (struct X3D_MultiTouchSensor, trackPoints_changed),  (int) FIELDTYPE_MFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_touches_changed, (int) offsetof (struct X3D_MultiTouchSensor, touches_changed),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastframe, (int) offsetof (struct X3D_MultiTouchSensor, _lastframe),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__drag_count, (int) offsetof (struct X3D_MultiTouchSensor, _drag_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__orig_count, (int) offsetof (struct X3D_MultiTouchSensor, _orig_count),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__orig_points, (int) offsetof (struct X3D_MultiTouchSensor, _orig_points),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__drag_points, (int) offsetof (struct X3D_MultiTouchSensor, _drag_points),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldrotation, (int) offsetof (struct X3D_MultiTouchSensor, _oldrotation),  (int) FIELDTYPE_SFRotation, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__oldscale, (int) offsetof (struct X3D_MultiTouchSensor, _oldscale),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastTao, (int) offsetof (struct X3D_MultiTouchSensor, _lastTao),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_NavigationInfo[] = {
@@ -9623,7 +9623,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_MultiTexture,
 	OFFSETS_MultiTextureCoordinate,
 	OFFSETS_MultiTextureTransform,
-	OFFSETS_MultitouchSensor,
+	OFFSETS_MultiTouchSensor,
 	OFFSETS_NavigationInfo,
 	OFFSETS_Normal,
 	OFFSETS_NormalInterpolator,
@@ -10229,7 +10229,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MultiTexture : {tmp = MALLOC (struct X3D_MultiTexture *, size = sizeof (struct X3D_MultiTexture)); break;}
 		case NODE_MultiTextureCoordinate : {tmp = MALLOC (struct X3D_MultiTextureCoordinate *, size = sizeof (struct X3D_MultiTextureCoordinate)); break;}
 		case NODE_MultiTextureTransform : {tmp = MALLOC (struct X3D_MultiTextureTransform *, size = sizeof (struct X3D_MultiTextureTransform)); break;}
-		case NODE_MultitouchSensor : {tmp = MALLOC (struct X3D_MultitouchSensor *, size = sizeof (struct X3D_MultitouchSensor)); break;}
+		case NODE_MultiTouchSensor : {tmp = MALLOC (struct X3D_MultiTouchSensor *, size = sizeof (struct X3D_MultiTouchSensor)); break;}
 		case NODE_NavigationInfo : {tmp = MALLOC (struct X3D_NavigationInfo *, size = sizeof (struct X3D_NavigationInfo)); break;}
 		case NODE_Normal : {tmp = MALLOC (struct X3D_Normal *, size = sizeof (struct X3D_Normal)); break;}
 		case NODE_NormalInterpolator : {tmp = MALLOC (struct X3D_NormalInterpolator *, size = sizeof (struct X3D_NormalInterpolator)); break;}
@@ -13981,9 +13981,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
-		case NODE_MultitouchSensor : {
-			struct X3D_MultitouchSensor * tmp2;
-			tmp2 = (struct X3D_MultitouchSensor *) tmp;
+		case NODE_MultiTouchSensor : {
+			struct X3D_MultiTouchSensor * tmp2;
+			tmp2 = (struct X3D_MultiTouchSensor *) tmp;
 			tmp2->autoOffset = TRUE;
 			tmp2->axisRotation.c[0] = 0;tmp2->axisRotation.c[1] = 0;tmp2->axisRotation.c[2] = 1;tmp2->axisRotation.c[3] = 0;;
 			tmp2->enabled = TRUE;
@@ -19859,9 +19859,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->textureTransform.n; i++) { dump_scene(fp,level+1,tmp->textureTransform.p[i]); }
 		    break;
 		}
-		case NODE_MultitouchSensor : {
-			struct X3D_MultitouchSensor *tmp;
-			tmp = (struct X3D_MultitouchSensor *) node;
+		case NODE_MultiTouchSensor : {
+			struct X3D_MultiTouchSensor *tmp;
+			tmp = (struct X3D_MultiTouchSensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
 			spacer fprintf (fp," autoOffset (SFBool) \t%d\n",tmp->autoOffset);
 			spacer fprintf (fp," axisRotation (SFRotation): \t");
@@ -22446,7 +22446,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_MultiTexture: return X3DTextureNode; break;
 	case NODE_MultiTextureCoordinate: return X3DTextureCoordinateNode; break;
 	case NODE_MultiTextureTransform: return X3DTextureTransformNode; break;
-	case NODE_MultitouchSensor: return X3DDragSensorNode; break;
+	case NODE_MultiTouchSensor: return X3DDragSensorNode; break;
 	case NODE_NavigationInfo: return X3DBindableNode; break;
 	case NODE_Normal: return X3DNormalNode; break;
 	case NODE_NormalInterpolator: return X3DInterpolatorNode; break;

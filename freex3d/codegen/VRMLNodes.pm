@@ -1684,7 +1684,7 @@ our %Nodes = (
 	],"X3DDragSensorNode"),
 
 	# proposed for v4 - 2 finters on a drag sensor - you should get a rotation out
-	"MultitouchSensor" => new VRML::NodeType("MultitouchSensor", [
+	"MultiTouchSensor" => new VRML::NodeType("MultiTouchSensor", [
 		autoOffset => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		axisRotation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
 		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

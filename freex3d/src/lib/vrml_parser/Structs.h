@@ -330,7 +330,7 @@ typedef int indexT;
 #define NODE_MultiTexture	218
 #define NODE_MultiTextureCoordinate	219
 #define NODE_MultiTextureTransform	220
-#define NODE_MultitouchSensor	221
+#define NODE_MultiTouchSensor	221
 #define NODE_NavigationInfo	222
 #define NODE_Normal	223
 #define NODE_NormalInterpolator	224
@@ -9485,7 +9485,7 @@ struct X3D_MultiTextureTransform {
 };
 extern struct X3D_Virt virt_MultiTextureTransform;
 /***********************/
-struct X3D_MultitouchSensor {
+struct X3D_MultiTouchSensor {
        int _nodeType; /* unique integer for each type */ 
        int _renderFlags; /*sensitive, etc */ 
        int _hit; 
@@ -9535,7 +9535,7 @@ struct X3D_MultitouchSensor {
 	struct SFVec3f _oldscale;
 	void * _lastTao;
 };
-extern struct X3D_Virt virt_MultitouchSensor;
+extern struct X3D_Virt virt_MultiTouchSensor;
 /***********************/
 struct X3D_NavigationInfo {
        int _nodeType; /* unique integer for each type */ 

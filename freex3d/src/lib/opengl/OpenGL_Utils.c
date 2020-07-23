@@ -5390,7 +5390,7 @@ void startOfLoopNodeUpdates(void) {
 				BEGIN_NODE(LineSensor) SIBLING_SENSITIVE(LineSensor) END_NODE
 				BEGIN_NODE(PointSensor) SIBLING_SENSITIVE(PointSensor) END_NODE
 				BEGIN_NODE(PlaneSensor) SIBLING_SENSITIVE(PlaneSensor) END_NODE
-				BEGIN_NODE(MultitouchSensor) SIBLING_SENSITIVE(MultitouchSensor) END_NODE
+				BEGIN_NODE(MultiTouchSensor) SIBLING_SENSITIVE(MultiTouchSensor) END_NODE
 				BEGIN_NODE(SphereSensor) SIBLING_SENSITIVE(SphereSensor) END_NODE
 				BEGIN_NODE(CylinderSensor) SIBLING_SENSITIVE(CylinderSensor) END_NODE
 				BEGIN_NODE(TouchSensor) SIBLING_SENSITIVE(TouchSensor) END_NODE
