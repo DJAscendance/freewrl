@@ -719,6 +719,39 @@ int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n){
 	//	printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[i*3+1],pf24n[i*3+2]);
 	return TRUE;
 }
+
+int frustum_box_inside(struct Planed *frustum_planes, float *corners3f, int np) {
+	// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes/
+	int result = INSIDE, out,in;
+
+	// for each plane do ...
+	for(int i=0; i < np; i++) {
+
+		// reset counters for corners in and out
+		out=0;in=0;
+		// for each corner of the box do ...
+		// get out of the cycle as soon as a box as corners
+		// both inside and out of the frustum
+		for (int k = 0; k < np && (in==0 || out==0); k++) {
+			double corner[3];
+			// is the corner outside or inside
+			float2double(corner,&corners3f[k*3],3);
+			if( plane_distance_to_point(&frustum_planes[i], corner) < 0.0)
+				out++;
+			else
+				in++;
+		}
+		//if all corners are out
+		if (!in)
+			return (OUTSIDE);
+		// if some corners are out and others are in
+		else if (out)
+			result = INTERSECT;
+	}
+	return(result);
+ }
+
+
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	int i;
 	if (me->_nodeType == NODE_GeoElevationGrid) { 

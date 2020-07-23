@@ -171,5 +171,5 @@ void setFrustumPlanes(double *mvpMatrix, struct Planed *pl);
 int frustum_point_inside(struct Planed *frustum_planes, double *p);
 int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n);
 int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, struct Planed *p3, double *point);
-
+int frustum_box_inside(struct Planed *frustum_planes, float *corners3f, int np);
 #endif /* __FREEWRL_FRUSTUM_H__ */
