@@ -580,8 +580,8 @@ int getTileViewFrozen(){
 void toggleTileViewFrozen(){
 	//July 2020 currently hooked to '=' key
 	tile_view_frozen = 1 - tile_view_frozen;
-	if(tile_view_frozen) printf("freezing tile view\n");
-	else printf("unfreezing tile view\n");
+	if(tile_view_frozen) printf("FREEZING tile view\n");
+	else printf("UN-FREEZING tile view\n");
 }
 enum {
 	TILE_REFINE_DEFAULT = 0,
@@ -606,9 +606,14 @@ void child_Tile(struct X3D_Tile *node){
 	static int have_frustum_corners;
 	static int have_mod = FALSE;
 	static int child_tile = FALSE;
+	static int once = FALSE;
 	int root_tile = FALSE;
 	if(!child_tile) root_tile = TRUE;
 
+	if(!once){
+		printf("Press '=' key to FREEZE / UNFREEZE Tile computational Viewpoint\n");
+		once = TRUE;
+	}
 	
 	if( (!getTileViewFrozen() || !have_mod) && root_tile){
 		//for texting we need a way to freeze the viewpoint used for 
