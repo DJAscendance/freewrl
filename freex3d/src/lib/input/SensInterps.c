@@ -2064,7 +2064,7 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 // <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
 int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *minScale, float *maxScale){
 	//v0 has origs, v1 has drags
-	float p0[3], p1[3], delta_orig[3], delta_drag[3], scale_orig, scale_drag, scale, angle, drag0[3], drag1[3];
+	float p0[3], p1[3], delta_orig[3], delta_drag[3], angle, drag0[3], drag1[3], scale[2], iso_scale;
 	float v0[6],v1[6];
 	veccopy3f(p0,v00);
 	for(int i=0;i<2;i++){
@@ -2075,22 +2075,38 @@ int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *mi
 	vecdif3f(delta_drag,&v1[3],v1);
 	vecdif3f(drag0,v1,v0);
 	vecdif3f(drag1,&v1[3],&v0[3]);
-	scale_orig = veclength2f(delta_orig);
-	scale_drag = veclength2f(delta_drag);
-	scale = scale_drag / scale_orig;
-	scale = max(minScale[0],scale);
-	scale = min(maxScale[0],scale);
-	param[0] = scale;
-	param[1] = scale;
+	{
+		//isotropic scale
+		float scale_orig, scale_drag, scale;
+		scale_orig = veclength2f(delta_orig);
+		scale_drag = veclength2f(delta_drag);
+		iso_scale = scale_drag / scale_orig;
+	}
+	scale[0] = min(maxScale[0],max(minScale[0],iso_scale));
+	scale[1] = min(maxScale[1],max(minScale[1],iso_scale));
+	//int need_aniso = scale[0] != scale[1]? TRUE : FALSE;
+	//if(need_aniso){
+	//	//anisotropic scale
+	//	float scale_orig[2], scale_drag[2], scale[2];
+	//	scale_orig = veclength2f(delta_orig);
+	//	scale_drag = veclength2f(delta_drag);
+	//	scale = scale_drag / scale_orig;
+	//	scale = max(minScale[0],scale);
+	//	scale = min(maxScale[0],scale);
+	//	param[0] = scale;
+	//	param[1] = scale;
+	//}
 
 	angle = vecangle2f(delta_orig,delta_drag);
 	float x,y, xx, yy;
 	xx = p0[0];
 	yy = p0[1];
-	xx = xx*scale;
-	yy = yy*scale;
+	xx = xx*scale[0];
+	yy = yy*scale[1];
 	x =  (cos(angle)*xx - sin(angle)*yy);
 	y =  (sin(angle)*xx + cos(angle)*yy);
+	param[0] = scale[0];
+	param[1] = scale[1];
 	param[2] = angle;
 	param[3] = -( x- p0[0]);
 	param[4] = -( y- p0[1]);
