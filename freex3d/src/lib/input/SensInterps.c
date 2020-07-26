@@ -2084,19 +2084,17 @@ int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *mi
 	}
 	scale[0] = min(maxScale[0],max(minScale[0],iso_scale));
 	scale[1] = min(maxScale[1],max(minScale[1],iso_scale));
-	//int need_aniso = scale[0] != scale[1]? TRUE : FALSE;
-	//if(need_aniso){
-	//	//anisotropic scale
-	//	float scale_orig[2], scale_drag[2], scale[2];
-	//	scale_orig = veclength2f(delta_orig);
-	//	scale_drag = veclength2f(delta_drag);
-	//	scale = scale_drag / scale_orig;
-	//	scale = max(minScale[0],scale);
-	//	scale = min(maxScale[0],scale);
-	//	param[0] = scale;
-	//	param[1] = scale;
-	//}
-
+	int need_aniso = scale[0] != scale[1]? TRUE : FALSE;
+	if(need_aniso){
+		//anisotropic scale
+		float scale_orig[2], scale_drag[2], scale[2];
+		scale[0] = delta_drag[0] / delta_orig[0];
+		scale[1] = delta_drag[1] / delta_orig[1];
+		scale[0] = min(maxScale[0],max(minScale[0],scale[0]));
+		scale[1] = min(maxScale[1],max(minScale[1],scale[1]));
+	}
+	delta_drag[0] *= 1.0/scale[0];
+	delta_drag[1] *= 1.0/scale[1];
 	angle = vecangle2f(delta_orig,delta_drag);
 	float x,y, xx, yy;
 	xx = p0[0];
@@ -2105,6 +2103,10 @@ int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *mi
 	yy = yy*scale[1];
 	x =  (cos(angle)*xx - sin(angle)*yy);
 	y =  (sin(angle)*xx + cos(angle)*yy);
+	xx = x; yy = y;
+	//xx = xx*scale[0];
+	//yy = yy*scale[1];
+
 	param[0] = scale[0];
 	param[1] = scale[1];
 	param[2] = angle;
