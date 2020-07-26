@@ -2061,6 +2061,52 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 }
 
 // <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
+int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *minScale, float *maxScale){
+	//v0 has origs, v1 has drags
+	float p0[3], p1[3], delta_orig[3], delta_drag[3], scale_orig, scale_drag, scale, angle, drag0[3], drag1[3];
+	float v0[6],v1[6];
+	veccopy3f(p0,v00);
+	for(int i=0;i<2;i++){
+		vecdif3f(&v0[i*3],&v00[i*3],p0);
+		vecdif3f(&v1[i*3],&v11[i*3],p0);
+	}
+	vecdif3f(delta_orig,&v0[3],v0);
+	vecdif3f(delta_drag,&v1[3],v1);
+	vecdif3f(drag0,v1,v0);
+	vecdif3f(drag1,&v1[3],&v0[3]);
+	scale_orig = veclength2f(delta_orig);
+	scale_drag = veclength2f(delta_drag);
+	scale = scale_drag / scale_orig;
+	scale = max(minScale[0],scale);
+	scale = min(maxScale[0],scale);
+	param[0] = scale;
+	//printf("dorig %f %f %f\n",delta_orig[0],delta_orig[1]);
+	//printf("ddrag %f %f %f\n",delta_drag[0],delta_drag[1]);
+	//for(int i=0;i<2;i++)
+	//	vecscale2f(&v0[i*3],&v0[i*3],scale);
+	//vecdif3f(delta_orig,&v0[3],v0);
+	//vecdif3f(delta_drag,&v1[3],v1);
+	//vecdif3f(drag0,v1,v0);
+	//vecdif3f(drag1,&v1[3],&v0[3]);
+
+	//angle = -calc_angle_between_two_vectors3f(v1[1],v0[1]);
+	angle = vecangle2f(delta_orig,delta_drag);
+	float x,y;
+	x =  (cos(angle)*p0[0] - sin(angle)*p0[1]);
+	y =  (sin(angle)*p0[0] + cos(angle)*p0[1]);
+	x *= scale;
+	y *= scale;
+	param[1] = angle;
+	//printf("scale %f angle %f\n",scale,angle); // * 180.0f/ PI);
+	//getchar();
+	//param[2] = x - p0[0];
+	//param[3] = y - p0[1];
+	//printf("p0 %f %f %f\n",p0[0],p0[1],p0[2]);
+	//printf("xy %f %f \n",x,y);
+	param[2] = -( x- p0[0]); //0.0f;
+	param[3] = -( y- p0[1]); //0.0f;
+	return 1;
+}
 
 void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao);
 
@@ -2330,7 +2376,11 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 							if(0) for(int k=0;k<2;k++){
 								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
 							}
-							least_squares_similarity2D_linpack(v0,v1,np,param);
+							if(0){
+								least_squares_similarity2D_linpack(v0,v1,np,param);
+							}else{
+								scale_constrained_2D(v0,v1,np,param,node->minScale.c,node->maxScale.c);
+							}
 							rot4[3] = param[1];
 							float scale = param[0];
 							vecset3f(scale3,scale,scale,1.0f);

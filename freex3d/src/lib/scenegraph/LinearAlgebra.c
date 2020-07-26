@@ -386,6 +386,14 @@ double vecangle(struct point_XYZ* V1, struct point_XYZ* V2) {
     return acos((V1->x*V2->x + V1->y*V2->y +V1->z*V2->z) /
 		sqrt( (V1->x*V1->x + V1->y*V1->y + V1->z*V1->z)*(V2->x*V2->x + V2->y*V2->y + V2->z*V2->z) )  );
 };
+float vecangle2f(float * V1, float * V2) {
+	//full circle angele between 2 2D vectors
+    float det, dot, angle;
+	dot = V1[0]*V2[0] + V1[1]*V2[1];  // dot product
+	det = V1[0]*V2[1] - V1[1]*V2[0];  // determinant
+	angle = atan2(det, dot);  // atan2(y, x) or atan2(sin, cos)
+	return angle;
+};
 
 float *veccopy4f(float *b, float *a)
 {
