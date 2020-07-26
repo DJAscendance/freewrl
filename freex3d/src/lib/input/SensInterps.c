@@ -2116,6 +2116,7 @@ int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *mi
 }
 
 void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao);
+void mainloop_reset_touch_hyperhit(int touchID);
 
 #include "Decompose.h"
 void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
@@ -2621,6 +2622,8 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 		
 		//delete released touch from orig_points
 		for(int i=0;i<node->_orig_count;i++){
+			//if(op[i].ID != touchID) mainloop_reset_touch_hyperhit(op[i].ID);
+
 			if(op[i].ID == touchID){
 				for(int j=i+1;j<node->_orig_count;j++)
 					op[j-1] = op[j];
@@ -2645,6 +2648,7 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 			//mainloop_reset_touch_hyperhit(op[i].ID);
 			//printf("(P %d)",op[i].ID);
 		}
+		//tg->RenderFuncs.hyperhit = FALSE;
 
 		/* set isActive false if no active touches left*/
 		if(node->_orig_count < 1){

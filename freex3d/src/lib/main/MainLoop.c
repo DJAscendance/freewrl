@@ -5030,6 +5030,18 @@ void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao){
 		}
 	}
 }
+//void mainloop_reset_touch_hyperhit(int touchID){
+//	int ktouch;
+//	struct Touch *touch;
+//	ttglobal tg = gglobal();
+//	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+//	for(ktouch=0;ktouch<p->ntouch;ktouch++){
+//		touch = &p->touchlist[ktouch];
+//		if(touch->ID == touchID){
+//			touch->hyperhit = 2;
+//		}
+//	}
+//}
 void setup_picking(){
 	/*	Dec 15, 2015 update: variables have been vectorized in this function to match multi-touch.
 		June 2, 2020 fwl_handle_aqua_multiNORMAL is now a state machine, absorbing incoming mouse / touch events
