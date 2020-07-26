@@ -2052,10 +2052,11 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 	
 	if(noisy)printf("translation x= %f y= %f \n",B[2],B[3]);
 	//x given back in output b, your original A is destroyed
-	param[0] = scale;
-	param[1] = anglerad;
-	param[2] = B[2];
-	param[3] = B[3];
+	param[0] = scale; //x scale
+	param[1] = scale; //y scale
+	param[2] = anglerad;
+	param[3] = B[2];
+	param[4] = B[3];
 
 	return 0;
 }
@@ -2080,31 +2081,19 @@ int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *mi
 	scale = max(minScale[0],scale);
 	scale = min(maxScale[0],scale);
 	param[0] = scale;
-	//printf("dorig %f %f %f\n",delta_orig[0],delta_orig[1]);
-	//printf("ddrag %f %f %f\n",delta_drag[0],delta_drag[1]);
-	//for(int i=0;i<2;i++)
-	//	vecscale2f(&v0[i*3],&v0[i*3],scale);
-	//vecdif3f(delta_orig,&v0[3],v0);
-	//vecdif3f(delta_drag,&v1[3],v1);
-	//vecdif3f(drag0,v1,v0);
-	//vecdif3f(drag1,&v1[3],&v0[3]);
+	param[1] = scale;
 
-	//angle = -calc_angle_between_two_vectors3f(v1[1],v0[1]);
 	angle = vecangle2f(delta_orig,delta_drag);
-	float x,y;
-	x =  (cos(angle)*p0[0] - sin(angle)*p0[1]);
-	y =  (sin(angle)*p0[0] + cos(angle)*p0[1]);
-	x *= scale;
-	y *= scale;
-	param[1] = angle;
-	//printf("scale %f angle %f\n",scale,angle); // * 180.0f/ PI);
-	//getchar();
-	//param[2] = x - p0[0];
-	//param[3] = y - p0[1];
-	//printf("p0 %f %f %f\n",p0[0],p0[1],p0[2]);
-	//printf("xy %f %f \n",x,y);
-	param[2] = -( x- p0[0]); //0.0f;
-	param[3] = -( y- p0[1]); //0.0f;
+	float x,y, xx, yy;
+	xx = p0[0];
+	yy = p0[1];
+	xx = xx*scale;
+	yy = yy*scale;
+	x =  (cos(angle)*xx - sin(angle)*yy);
+	y =  (sin(angle)*xx + cos(angle)*yy);
+	param[2] = angle;
+	param[3] = -( x- p0[0]);
+	param[4] = -( y- p0[1]);
 	return 1;
 }
 
@@ -2365,14 +2354,14 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 
 						if(1) {
 							// least squares 
-							float v0[6], v1[6], param[4];
+							float v0[6], v1[6], param[5];
 							int np = 2;
 							veccopy3f(&v0[0*3 +0],orig0);
 							veccopy3f(&v0[1*3 +0],orig1);
 							veccopy3f(&v1[0*3 +0],drag0);
 							veccopy3f(&v1[1*3 +0],drag1);
-							memset(param,0,4*sizeof(float));
-							param[0] = 1.0f;
+							memset(param,0,5*sizeof(float));
+							param[0] = param[1] = 1.0f;
 							if(0) for(int k=0;k<2;k++){
 								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
 							}
@@ -2381,10 +2370,11 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 							}else{
 								scale_constrained_2D(v0,v1,np,param,node->minScale.c,node->maxScale.c);
 							}
-							rot4[3] = param[1];
-							float scale = param[0];
-							vecset3f(scale3,scale,scale,1.0f);
-							veccopy2f(tr,&param[2]);
+							rot4[3] = param[2];
+							float scalex = param[0];
+							float scaley = param[1];
+							vecset3f(scale3,scalex,scaley,1.0f);
+							veccopy2f(tr,&param[3]);
 							if(0){
 								vecprint3fb("tr_comp",tr,"\n");
 								vecprint3fb("sc_comp",scale3,"\n");
@@ -2548,13 +2538,14 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 						transformAFFINEd(d,d,Tout);
 						double2float(&p1[k*3],d,3);
 					}
-					float param[4];
+					float param[5];
 					least_squares_similarity2D_linpack(p0,p1,2,param);
-					rot4[3] = param[1];
-					float scale = param[0];
+					rot4[3] = param[2];
+					float scalex = param[0];
+					float scaley = param[1];
 					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
-					vecset3f(scale3,scale,scale,1.0f);
-					veccopy2f(tr,&param[2]);
+					vecset3f(scale3,scalex,scaley,1.0f);
+					veccopy2f(tr,&param[3]);
 					if(0){
 						vecprint3fb("tr_Tout",tr,"\n");
 						vecprint3fb("sc_Tout",scale3,"\n");
