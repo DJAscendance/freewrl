@@ -2104,14 +2104,15 @@ int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *mi
 	x =  (cos(angle)*xx - sin(angle)*yy);
 	y =  (sin(angle)*xx + cos(angle)*yy);
 	xx = x; yy = y;
-	//xx = xx*scale[0];
-	//yy = yy*scale[1];
+	xx -= v1[0];
+	yy -= v1[1];
 
 	param[0] = scale[0];
 	param[1] = scale[1];
 	param[2] = angle;
-	param[3] = -( x- p0[0]);
-	param[4] = -( y- p0[1]);
+	param[3] = -( xx- p0[0]);
+	param[4] = -( yy- p0[1]);
+
 	return 1;
 }
 
@@ -2544,7 +2545,7 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 					}
 
 				}
-				else if(1){
+				else if(0){
 					// using least squares; by transforming 2 arbitrary points using Tout, 
 					// then using least squares to solve for combined 2D similatrity transform param (like we do above)
 					double d[3];
@@ -2572,6 +2573,38 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 					}
 
 				}
+				else if(1){
+					// using direct method; by transforming 2 arbitrary points using Tout, 
+					// then direct metho to solve for combined 2D similatrity transform param (like we do above)
+					// works a bit
+					double d[3];
+					float p0[9], p1[9];
+					vecset3f(p0,0.0f,0.0f,0.0f);
+					vecset3f(&p0[3],1.0f,0.0f,0.0f);
+					vecset3f(&p0[6],0.0f,1.0f,0.0f);
+					for(int k=0;k<3;k++){
+						float2double(d,&p0[k*3],3);
+						transformAFFINEd(d,d,Tout);
+						double2float(&p1[k*3],d,3);
+						printf("p0[%d] %f %f %f p1[] %f %f %f\n",k,p0[k*3+0],p0[k*3+1],p0[k*3+2],p1[k*3+0],p1[k*3+1],p1[k*3+2]);
+					}
+					float param[5];
+					scale_constrained_2D(p0,p1,2,param,node->minScale.c,node->maxScale.c);
+
+					rot4[3] = param[2];
+					float scalex = param[0];
+					float scaley = param[1];
+					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
+					vecset3f(scale3,scalex,scaley,1.0f);
+					veccopy2f(tr,&param[3]);
+					if(0){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
+				}
+
 						
 			}
 
