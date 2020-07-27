@@ -2753,7 +2753,7 @@ void render_MultiTouchSensor(struct X3D_MultiTouchSensor *node){
 			for(int i=0;i< node->_drag_count; i++){
 				//extent6f_translate3f(ee,testextent2,dp[i].p);
 				//extent6f_draw(ee);
-				draw_bbox(dp[i].p,vecset3f(size,.4f,.4f,.4f));
+				draw_bbox(dp[i].p,vecset3f(size,.8f,.8f,.2f));
 			}
 		}
 	}
