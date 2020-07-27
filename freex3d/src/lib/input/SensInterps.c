@@ -2198,7 +2198,6 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 		dp[node->_drag_count].ID = touchID;
 		node->_drag_count++;
 	}
-
 	if ((ev==ButtonPress) && but1) {
 		/* record the current position from the saved position */
 		//struct SFColor op;
@@ -2517,7 +2516,6 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 				mattranslate(temp3,trand[0],trand[1],trand[2]);
 				matmultiplyAFFINE(temp4,temp1,temp2);
 				matmultiplyAFFINE(Tca,temp4,temp3);
-
 				//Tout
 				matmultiply(Tout, Tca, Tao);
 
@@ -2586,7 +2584,6 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 						float2double(d,&p0[k*3],3);
 						transformAFFINEd(d,d,Tout);
 						double2float(&p1[k*3],d,3);
-						printf("p0[%d] %f %f %f p1[] %f %f %f\n",k,p0[k*3+0],p0[k*3+1],p0[k*3+2],p1[k*3+0],p1[k*3+1],p1[k*3+2]);
 					}
 					float param[5];
 					scale_constrained_2D(p0,p1,2,param,node->minScale.c,node->maxScale.c);
@@ -2726,35 +2723,37 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 				memcpy(node->_lastTao,Tao,16*sizeof(double));
 
 			}
-
 		}
 	}
 
 }
-float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
-float *extent6f_copy(float *eout6, float *ein6);
-static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
-static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
-void extent6f_draw(float *extent);
+//float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
+//float *extent6f_copy(float *eout6, float *ein6);
+//static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
+//static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
+//void extent6f_draw(float *extent);
+void draw_bbox(float *center, float *size);
 void render_MultiTouchSensor(struct X3D_MultiTouchSensor *node){
 	// how to 'see' a sensor> how about drawing its touch points in sensor-space?
-	if(0){
+	if(1){
 		// draw small box for ButtonPress orig
 		if(1) if(node->_orig_count > 0){
-			float ee[6];
+			float size[3]; //ee[6];
 			struct ID_point *op = (struct ID_point*)node->_orig_points;
 			for(int i=0;i< node->_orig_count; i++){
-				extent6f_translate3f(ee,testextent,op[i].p);
-				extent6f_draw(ee);
+				//extent6f_translate3f(ee,testextent,op[i].p);
+				//extent6f_draw(ee);
+				draw_bbox(op[i].p,vecset3f(size,.2f,.2f,.2f));
 			}
 		}
 		// draw bigger box for MotionNotify drag
 		if(1) if(node->_drag_count > 0){
-			float ee[6];
+			float size[3]; //ee[6];
 			struct ID_point *dp = (struct ID_point*)node->_drag_points;
 			for(int i=0;i< node->_drag_count; i++){
-				extent6f_translate3f(ee,testextent2,dp[i].p);
-				extent6f_draw(ee);
+				//extent6f_translate3f(ee,testextent2,dp[i].p);
+				//extent6f_draw(ee);
+				draw_bbox(dp[i].p,vecset3f(size,.4f,.4f,.4f));
 			}
 		}
 	}

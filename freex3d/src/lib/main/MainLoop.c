@@ -5025,7 +5025,7 @@ void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao){
 	for(ktouch=0;ktouch<p->ntouch;ktouch++){
 		touch = &p->touchlist[ktouch];
 		if(touch->ID == touchID){
-			matmultiplyAFFINE(touch->justModel,touch->justModel,netTao);
+			matmultiplyAFFINE(touch->justModel,netTao,touch->justModel);
 			break;
 		}
 	}
