@@ -5053,7 +5053,9 @@ void setup_picking(){
 	int windex;
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
-
+	static int loop_count = 0;
+	loop_count++;
+	if(loop_count < 5) return; //bbombs on rendray_teapot since change to PAN dragStart earlier in program run cycle. This stalls a second.
 	windex = p->windex;
 	/* handle_mouse events if clicked on a sensitive node */
 	//if (tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
