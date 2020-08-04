@@ -2384,7 +2384,7 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 							if(0) for(int k=0;k<2;k++){
 								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
 							}
-							if(0){
+							if(1){
 								least_squares_similarity2D_linpack(v0,v1,np,param);
 							}else{
 								scale_constrained_2D(v0,v1,np,param,node->minScale.c,node->maxScale.c);
@@ -2735,7 +2735,7 @@ void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
 void draw_bbox(float *center, float *size);
 void render_MultiTouchSensor(struct X3D_MultiTouchSensor *node){
 	// how to 'see' a sensor> how about drawing its touch points in sensor-space?
-	if(1){
+	if(0){
 		// draw small box for ButtonPress orig
 		if(1) if(node->_orig_count > 0){
 			float size[3]; //ee[6];
