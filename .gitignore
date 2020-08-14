@@ -21,6 +21,7 @@ Thumbs.db
 *.lo
 *.la
 *.pc
+*.in
 .deps/
 .dirstamp
 .libs/
