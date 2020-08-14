@@ -5025,11 +5025,23 @@ void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao){
 	for(ktouch=0;ktouch<p->ntouch;ktouch++){
 		touch = &p->touchlist[ktouch];
 		if(touch->ID == touchID){
-			matmultiplyAFFINE(touch->justModel,touch->justModel,netTao);
+			matmultiplyAFFINE(touch->justModel,netTao,touch->justModel);
 			break;
 		}
 	}
 }
+//void mainloop_reset_touch_hyperhit(int touchID){
+//	int ktouch;
+//	struct Touch *touch;
+//	ttglobal tg = gglobal();
+//	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+//	for(ktouch=0;ktouch<p->ntouch;ktouch++){
+//		touch = &p->touchlist[ktouch];
+//		if(touch->ID == touchID){
+//			touch->hyperhit = 2;
+//		}
+//	}
+//}
 void setup_picking(){
 	/*	Dec 15, 2015 update: variables have been vectorized in this function to match multi-touch.
 		June 2, 2020 fwl_handle_aqua_multiNORMAL is now a state machine, absorbing incoming mouse / touch events
@@ -5041,7 +5053,9 @@ void setup_picking(){
 	int windex;
 	ttglobal tg = gglobal();
 	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
-
+	static int loop_count = 0;
+	loop_count++;
+	if(loop_count < 5) return; //bbombs on rendray_teapot since change to PAN dragStart earlier in program run cycle. This stalls a second.
 	windex = p->windex;
 	/* handle_mouse events if clicked on a sensitive node */
 	//if (tg->Mainloop.HaveSensitive && !Viewer()->LookatMode && !tg->Mainloop.SHIFT) {
@@ -6636,7 +6650,7 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 		case NODE_LineSensor: myp = (void *)do_LineSensor; break;
 		case NODE_PointSensor: myp = (void *)do_PointSensor; break;
 		case NODE_PlaneSensor: myp = (void *)do_PlaneSensor; break;
-		case NODE_MultitouchSensor: myp = (void *)do_MultitouchSensor; break;
+		case NODE_MultiTouchSensor: myp = (void *)do_MultiTouchSensor; break;
 		case NODE_CylinderSensor: myp = (void *)do_CylinderSensor; break;
 		case NODE_SphereSensor: myp = (void *)do_SphereSensor; break;
 		case NODE_ProximitySensor: /* it is time sensitive only, NOT render sensitive */ return; break;
@@ -8102,7 +8116,7 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
 					case NODE_LineSensor: ns = ((struct X3D_LineSensor *)se->datanode)->description->strptr; break;
 					case NODE_PointSensor: ns = ((struct X3D_PointSensor *)se->datanode)->description->strptr; break;
 					case NODE_PlaneSensor: ns = ((struct X3D_PlaneSensor *)se->datanode)->description->strptr; break;
-					case NODE_MultitouchSensor: ns = ((struct X3D_MultitouchSensor *)se->datanode)->description->strptr; break;
+					case NODE_MultiTouchSensor: ns = ((struct X3D_MultiTouchSensor *)se->datanode)->description->strptr; break;
 					case NODE_SphereSensor: ns = ((struct X3D_SphereSensor *)se->datanode)->description->strptr; break;
 					case NODE_TouchSensor: ns = ((struct X3D_TouchSensor *)se->datanode)->description->strptr; break;
 					case NODE_GeoTouchSensor: ns = ((struct X3D_GeoTouchSensor *)se->datanode)->description->strptr; break;

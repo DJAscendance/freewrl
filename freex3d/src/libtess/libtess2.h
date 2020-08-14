@@ -169,7 +169,7 @@ typedef GLUtesselator GLUtesselatorObj;
 typedef GLUtesselator GLUtriangulatorObj;
 
 #define GLU_TESS_MAX_COORD 1.0e150
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(ANDROIDNDK)
 #include <GL/glu.h>
 #else
 /* Internal convenience typedefs */

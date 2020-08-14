@@ -150,7 +150,7 @@ our %defaultContainerType = (
 	PickableGroup 		=>["children"],
 	PixelTexture 		=>["texture"],
 	PlaneSensor 		=>["children"],
-	MultitouchSensor 	=>["children"],
+	MultiTouchSensor 	=>["children"],
 	PointSensor 		=>["children"],
 	PointLight 		=>["children"],
 	PointSet 		=>["geometry"],
@@ -505,7 +505,7 @@ our %RendC = map {($_=>1)} qw/
 	AudioListener
 	PannerNode
 	GeoSRF
-	MultitouchSensor
+	MultiTouchSensor
 	BufferGeometry
 	Viewpoint
 	OrthoViewpoint

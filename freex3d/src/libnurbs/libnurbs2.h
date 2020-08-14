@@ -350,7 +350,7 @@ typedef GLUtesselator GLUtriangulatorObj;
 
 /* Internal convenience typedefs */
 //typedef void (GLAPIENTRYP _GLUfuncptr)(void);
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(ANDROIDNDK)
 typedef void (GLAPIENTRYP _GLUfuncptr)();
 #endif
 

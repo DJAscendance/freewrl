@@ -2052,28 +2052,83 @@ int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *para
 	
 	if(noisy)printf("translation x= %f y= %f \n",B[2],B[3]);
 	//x given back in output b, your original A is destroyed
-	param[0] = scale;
-	param[1] = anglerad;
-	param[2] = B[2];
-	param[3] = B[3];
+	param[0] = scale; //x scale
+	param[1] = scale; //y scale
+	param[2] = anglerad;
+	param[3] = B[2];
+	param[4] = B[3];
 
 	return 0;
 }
 
 // <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
+int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *minScale, float *maxScale){
+	//v0 has origs, v1 has drags
+	float p0[3], p1[3], delta_orig[3], delta_drag[3], angle, drag0[3], drag1[3], scale[2], iso_scale;
+	float v0[6],v1[6];
+	veccopy3f(p0,v00);
+	for(int i=0;i<2;i++){
+		vecdif3f(&v0[i*3],&v00[i*3],p0);
+		vecdif3f(&v1[i*3],&v11[i*3],p0);
+	}
+	vecdif3f(delta_orig,&v0[3],v0);
+	vecdif3f(delta_drag,&v1[3],v1);
+	vecdif3f(drag0,v1,v0);
+	vecdif3f(drag1,&v1[3],&v0[3]);
+	{
+		//isotropic scale
+		float scale_orig, scale_drag, scale;
+		scale_orig = veclength2f(delta_orig);
+		scale_drag = veclength2f(delta_drag);
+		iso_scale = scale_drag / scale_orig;
+	}
+	scale[0] = min(maxScale[0],max(minScale[0],iso_scale));
+	scale[1] = min(maxScale[1],max(minScale[1],iso_scale));
+	int need_aniso = scale[0] != scale[1]? TRUE : FALSE;
+	if(need_aniso){
+		//anisotropic scale
+		float scale_orig[2], scale_drag[2], scale[2];
+		scale[0] = delta_drag[0] / delta_orig[0];
+		scale[1] = delta_drag[1] / delta_orig[1];
+		scale[0] = min(maxScale[0],max(minScale[0],scale[0]));
+		scale[1] = min(maxScale[1],max(minScale[1],scale[1]));
+	}
+	delta_drag[0] *= 1.0/scale[0];
+	delta_drag[1] *= 1.0/scale[1];
+	angle = vecangle2f(delta_orig,delta_drag);
+	float x,y, xx, yy;
+	xx = p0[0];
+	yy = p0[1];
+	xx = xx*scale[0];
+	yy = yy*scale[1];
+	x =  (cos(angle)*xx - sin(angle)*yy);
+	y =  (sin(angle)*xx + cos(angle)*yy);
+	xx = x; yy = y;
+	xx -= v1[0];
+	yy -= v1[1];
+
+	param[0] = scale[0];
+	param[1] = scale[1];
+	param[2] = angle;
+	param[3] = -( xx- p0[0]);
+	param[4] = -( yy- p0[1]);
+
+	return 1;
+}
 
 void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao);
+void mainloop_reset_touch_hyperhit(int touchID);
 
 #include "Decompose.h"
-void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
-	struct X3D_MultitouchSensor *node;
+void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
+	struct X3D_MultiTouchSensor *node;
 	float nx, ny, trackpoint[3], inverserotation[4], *posn;
 	float tr[3];
 	int tmp, imethod, touchID;
 
 	ttglobal tg;
 	UNUSED(over);
-	node = (struct X3D_MultitouchSensor *)ptr;
+	node = (struct X3D_MultiTouchSensor *)ptr;
 #ifdef SENSVERBOSE
 	ConsoleMessage("%lf: TS ",TickTime());
 	if (ev==ButtonPress) ConsoleMessage("ButtonPress ");
@@ -2143,7 +2198,6 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		dp[node->_drag_count].ID = touchID;
 		node->_drag_count++;
 	}
-
 	if ((ev==ButtonPress) && but1) {
 		/* record the current position from the saved position */
 		//struct SFColor op;
@@ -2161,11 +2215,11 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		/* autoOffset? */
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, offset));
 			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, rotationOffset));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, rotationOffset));
 			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, scaleOffset));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, scaleOffset));
 			if(1){
 				//if have 2 multitouch drags, and lift one, and we write the offsets
 				// then we need to update the hyperhit matrx for the remaining drag
@@ -2215,7 +2269,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		//printf("but down\n");
 		/* set isActive true */
 		node->isActive=TRUE;
-		MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+		MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, isActive));
 
 	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
 		/* hyperhit saved in render_hypersensitive phase */
@@ -2251,8 +2305,8 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				*itouch = dragp->ID;
 			}
 			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
-			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, trackPoints_changed));
-			MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, touches_changed));
+			MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, trackPoints_changed));
+			MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, touches_changed));
 
 
 			//compute any translation, rotation, scaling 
@@ -2319,22 +2373,27 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 						if(1) {
 							// least squares 
-							float v0[6], v1[6], param[4];
+							float v0[6], v1[6], param[5];
 							int np = 2;
 							veccopy3f(&v0[0*3 +0],orig0);
 							veccopy3f(&v0[1*3 +0],orig1);
 							veccopy3f(&v1[0*3 +0],drag0);
 							veccopy3f(&v1[1*3 +0],drag1);
-							memset(param,0,4*sizeof(float));
-							param[0] = 1.0f;
+							memset(param,0,5*sizeof(float));
+							param[0] = param[1] = 1.0f;
 							if(0) for(int k=0;k<2;k++){
 								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
 							}
-							least_squares_similarity2D_linpack(v0,v1,np,param);
-							rot4[3] = param[1];
-							float scale = param[0];
-							vecset3f(scale3,scale,scale,1.0f);
-							veccopy2f(tr,&param[2]);
+							if(1){
+								least_squares_similarity2D_linpack(v0,v1,np,param);
+							}else{
+								scale_constrained_2D(v0,v1,np,param,node->minScale.c,node->maxScale.c);
+							}
+							rot4[3] = param[2];
+							float scalex = param[0];
+							float scaley = param[1];
+							vecset3f(scale3,scalex,scaley,1.0f);
+							veccopy2f(tr,&param[3]);
 							if(0){
 								vecprint3fb("tr_comp",tr,"\n");
 								vecprint3fb("sc_comp",scale3,"\n");
@@ -2457,7 +2516,6 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				mattranslate(temp3,trand[0],trand[1],trand[2]);
 				matmultiplyAFFINE(temp4,temp1,temp2);
 				matmultiplyAFFINE(Tca,temp4,temp3);
-
 				//Tout
 				matmultiply(Tout, Tca, Tao);
 
@@ -2485,7 +2543,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					}
 
 				}
-				else if(1){
+				else if(0){
 					// using least squares; by transforming 2 arbitrary points using Tout, 
 					// then using least squares to solve for combined 2D similatrity transform param (like we do above)
 					double d[3];
@@ -2498,13 +2556,14 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 						transformAFFINEd(d,d,Tout);
 						double2float(&p1[k*3],d,3);
 					}
-					float param[4];
+					float param[5];
 					least_squares_similarity2D_linpack(p0,p1,2,param);
-					rot4[3] = param[1];
-					float scale = param[0];
+					rot4[3] = param[2];
+					float scalex = param[0];
+					float scaley = param[1];
 					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
-					vecset3f(scale3,scale,scale,1.0f);
-					veccopy2f(tr,&param[2]);
+					vecset3f(scale3,scalex,scaley,1.0f);
+					veccopy2f(tr,&param[3]);
 					if(0){
 						vecprint3fb("tr_Tout",tr,"\n");
 						vecprint3fb("sc_Tout",scale3,"\n");
@@ -2512,6 +2571,37 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 					}
 
 				}
+				else if(1){
+					// using direct method; by transforming 2 arbitrary points using Tout, 
+					// then direct metho to solve for combined 2D similatrity transform param (like we do above)
+					// works a bit
+					double d[3];
+					float p0[9], p1[9];
+					vecset3f(p0,0.0f,0.0f,0.0f);
+					vecset3f(&p0[3],1.0f,0.0f,0.0f);
+					vecset3f(&p0[6],0.0f,1.0f,0.0f);
+					for(int k=0;k<3;k++){
+						float2double(d,&p0[k*3],3);
+						transformAFFINEd(d,d,Tout);
+						double2float(&p1[k*3],d,3);
+					}
+					float param[5];
+					scale_constrained_2D(p0,p1,2,param,node->minScale.c,node->maxScale.c);
+
+					rot4[3] = param[2];
+					float scalex = param[0];
+					float scaley = param[1];
+					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
+					vecset3f(scale3,scalex,scaley,1.0f);
+					veccopy2f(tr,&param[3]);
+					if(0){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
+				}
+
 						
 			}
 
@@ -2527,7 +2617,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 			if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
 				veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
-				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, translation_changed));
+				MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, translation_changed));
 				//vecprint3fb("tran_chng ",node->translation_changed.c,"\n");
 				
 			}
@@ -2543,7 +2633,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 			if(!approx3f(node->_oldscale.c,node->scale_changed.c)) {
 				veccopy3f(node->scale_changed.c, (void *) node->_oldscale.c);
-				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, scale_changed));
+				MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, scale_changed));
 				//vecprint3fb("sca_chng ",node->scale_changed.c,"\n");
 			}
 
@@ -2553,7 +2643,7 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 
 			if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
 				veccopy4f(node->rotation_changed.c, (void *) node->_oldrotation.c);
-				MARK_EVENT(ptr, offsetof (struct X3D_MultitouchSensor, rotation_changed));
+				MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, rotation_changed));
 				//vecprint4fb("rot_chg",node->rotation_changed.c,"\n");
 			}
 
@@ -2562,6 +2652,8 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		
 		//delete released touch from orig_points
 		for(int i=0;i<node->_orig_count;i++){
+			//if(op[i].ID != touchID) mainloop_reset_touch_hyperhit(op[i].ID);
+
 			if(op[i].ID == touchID){
 				for(int j=i+1;j<node->_orig_count;j++)
 					op[j-1] = op[j];
@@ -2586,11 +2678,12 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 			//mainloop_reset_touch_hyperhit(op[i].ID);
 			//printf("(P %d)",op[i].ID);
 		}
+		//tg->RenderFuncs.hyperhit = FALSE;
 
 		/* set isActive false if no active touches left*/
 		if(node->_orig_count < 1){
 			node->isActive=FALSE;
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, isActive));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, isActive));
 			if(node->_lastTao == NULL)
 				node->_lastTao = malloc(16*sizeof(double));
 			matidentity4d(node->_lastTao);
@@ -2598,11 +2691,11 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 		/* autoOffset? */
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, offset));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, offset));
 			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, rotationOffset));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, rotationOffset));
 			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
-			MARK_EVENT (ptr, offsetof (struct X3D_MultitouchSensor, scaleOffset));
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, scaleOffset));
 			if(1){
 				//if have 2 multitouch drags, and lift one, and we write the offsets
 				// then we need to update the hyperhit matrx for the remaining drag
@@ -2630,35 +2723,37 @@ void do_MultitouchSensor ( void *ptr, int ev, int but1, int over) {
 				memcpy(node->_lastTao,Tao,16*sizeof(double));
 
 			}
-
 		}
 	}
 
 }
-float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
-float *extent6f_copy(float *eout6, float *ein6);
-static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
-static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
-void extent6f_draw(float *extent);
-void render_MultitouchSensor(struct X3D_MultitouchSensor *node){
+//float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
+//float *extent6f_copy(float *eout6, float *ein6);
+//static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
+//static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
+//void extent6f_draw(float *extent);
+void draw_bbox(float *center, float *size);
+void render_MultiTouchSensor(struct X3D_MultiTouchSensor *node){
 	// how to 'see' a sensor> how about drawing its touch points in sensor-space?
 	if(0){
 		// draw small box for ButtonPress orig
 		if(1) if(node->_orig_count > 0){
-			float ee[6];
+			float size[3]; //ee[6];
 			struct ID_point *op = (struct ID_point*)node->_orig_points;
 			for(int i=0;i< node->_orig_count; i++){
-				extent6f_translate3f(ee,testextent,op[i].p);
-				extent6f_draw(ee);
+				//extent6f_translate3f(ee,testextent,op[i].p);
+				//extent6f_draw(ee);
+				draw_bbox(op[i].p,vecset3f(size,.2f,.2f,.2f));
 			}
 		}
 		// draw bigger box for MotionNotify drag
 		if(1) if(node->_drag_count > 0){
-			float ee[6];
+			float size[3]; //ee[6];
 			struct ID_point *dp = (struct ID_point*)node->_drag_points;
 			for(int i=0;i< node->_drag_count; i++){
-				extent6f_translate3f(ee,testextent2,dp[i].p);
-				extent6f_draw(ee);
+				//extent6f_translate3f(ee,testextent2,dp[i].p);
+				//extent6f_draw(ee);
+				draw_bbox(dp[i].p,vecset3f(size,.8f,.8f,.2f));
 			}
 		}
 	}

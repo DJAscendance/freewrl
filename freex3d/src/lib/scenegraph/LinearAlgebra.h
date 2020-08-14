@@ -170,7 +170,7 @@ double vecnormal(struct point_XYZ*r, struct point_XYZ* v);
 float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b);
 float calc_angle_between_two_vectors3f(float * a, float * b);
 double vecangle(struct point_XYZ* V1, struct point_XYZ* V2);
-
+float vecangle2f(float * V1, float * V2);
 
 #define calc_vector_product(a,b,c) veccross(c,a,b);
 
