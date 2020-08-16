@@ -1086,8 +1086,8 @@ void do_MovieTextureTick( void *ptr) {
 	/* can we possibly have started yet? */
 	if (!node) return;
 
-	if(node->__inittime == 0.0)
-		node->__inittime = TickTime();
+	if(node->__init_time == 0.0)
+		node->__init_time = TickTime();
 
 	if(TickTime() < node->startTime) {
 		return;
@@ -1101,7 +1101,7 @@ void do_MovieTextureTick( void *ptr) {
 
 	oldstatus = node->isActive;
 	do_active_inactive (
-		&node->isActive, &node->__inittime, &node->startTime,
+		&node->isActive, &node->__init_time, &node->startTime,
 		&node->stopTime,node->loop,duration,
 		speed,node->elapsedTime);
 
@@ -1109,7 +1109,7 @@ void do_MovieTextureTick( void *ptr) {
 		if (node->isActive == 1) {
 			/* force code below to generate event */
 			//node->__ctflag = 10.0;
-			node->__lasttime = TickTime();
+			node->__last_time = TickTime();
 			node->elapsedTime = 0.0;
 		}
 		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_MovieTexture, isActive));
@@ -1122,15 +1122,15 @@ void do_MovieTextureTick( void *ptr) {
 				MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_MovieTexture, isPaused));
 			}else if(node->resumeTime > node->pauseTime && node->isPaused){
 				node->isPaused = FALSE;
-				node->__lasttime = TickTime();
+				node->__last_time = TickTime();
 				MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_MovieTexture, isPaused));
 			}
 		}
 	}
 	if(node->isActive && node->isPaused == FALSE) {
 		double dtime = TickTime();
-		node->elapsedTime += dtime - node->__lasttime;
-		node->__lasttime = dtime; 
+		node->elapsedTime += dtime - node->__last_time;
+		node->__last_time = dtime; 
 		
 		//frac = node->__ctex;
 
