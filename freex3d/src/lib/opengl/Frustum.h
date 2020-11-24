@@ -36,12 +36,6 @@ Global includes.
 #define EXTENT_MAX_Z _extent[4]
 #define EXTENT_MIN_Z _extent[5]
 
-#define RECORD_DISTANCE \
-	{\
-	ttrenderstate rs = renderstate();\
-	if (rs->render_geom && (!rs->render_blend)) {record_ZBufferDistance (X3D_NODE(node)); }\
-	}
-
 /* no occlusion queries right now - need to work on the shader implementation 
     of occlusion culling */ 
 
@@ -112,7 +106,7 @@ void moveAndRotateThisPoint(struct point_XYZ *mypt, double x, double y, double z
 void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me);
 void printmatrix(GLDOUBLE* mat);
 
-void record_ZBufferDistance(struct X3D_Node *node);
+void record_ZBufferDistance(struct X3D_Node *, void *);
 void OcclusionStartofRenderSceneUpdateScene(void);
 void OcclusionCulling (void);
 void zeroOcclusion(void);

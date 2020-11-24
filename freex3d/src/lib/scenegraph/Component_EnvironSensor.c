@@ -497,7 +497,6 @@ void other_VisibilitySensor (struct X3D_VisibilitySensor *node) {
 		}
 
 		rs = renderstate();
-		RECORD_DISTANCE
 
 		if (rs->render_blend) { 
 

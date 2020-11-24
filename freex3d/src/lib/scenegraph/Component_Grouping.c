@@ -175,14 +175,14 @@ void compile_Transform (struct X3D_Transform *node) {
 			node->__do_rotation ||
 			node->__do_scaleO);
 
-	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
 }
 
 
 /* we compile the Group so that children are not continuously sorted */
 void compile_Group(struct X3D_Group *node) {
-	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	/*
 	{
 		int i;
@@ -196,8 +196,8 @@ void compile_Group(struct X3D_Group *node) {
 
 /* prep_Group - we need this so that distance (and, thus, distance sorting) works for Groups */
 void prep_Group (struct X3D_Group *node) {
+	// printf ("prep_Group start dist %f\n",node->_dist);
 	COMPILE_IF_REQUIRED
-	RECORD_DISTANCE
 
 /* 
 printf ("prepGroup %p (root %p), flags %x children %d ",node,rootNode,node->_renderFlags,node->children.n);
@@ -214,13 +214,10 @@ if ((node->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) print
 /*if ((node->_renderFlags & VF_inPickableGroup) == VF_inPickableGroup) printf ("VF_inPickableGroup "); */
 /* printf ("\n"); */
 
-
-
 }
 
 /* do transforms, calculate the distance */
 void prep_Transform (struct X3D_Transform *node) {
-
 	COMPILE_IF_REQUIRED
 
 	/* rendering the viewpoint means doing the inverse transformations in reverse order (while poping stack),
@@ -280,11 +277,7 @@ void prep_Transform (struct X3D_Transform *node) {
 				reset_transform_local(mat);
 			}
 		} 
-
-		RECORD_DISTANCE
-
 	}
-
 }
 
 
@@ -455,10 +448,38 @@ void prep_BBox(struct BBoxFields *bfields){
 	push_group_extent_default();
 	push_group_visible( bfields->visible && peek_group_visible());
 }
+
+//#define VERBOSE
 void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
+	#ifdef VERBOSE
+	printf ("\nstart fin_BBox\n");
+	printf ("... node %p type %s\n",node, stringNodeType(node->_nodeType));
+	printf ("... center %4.3f %4.3f %4.3f, size %4.3f %4.3f %4.3f\n",
+		bfields->bboxCenter.c[0],
+		bfields->bboxCenter.c[1],
+		bfields->bboxCenter.c[2],
+		bfields->bboxSize.c[0],
+		bfields->bboxSize.c[1],
+		bfields->bboxSize.c[2]);
+		
+	#endif //VERBOSE
+
 	pop_group_visible();
 	//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
 	extent6f2bbox(peek_group_extent(),bfields->bboxCenter.c,bfields->bboxSize.c);
+
+	#ifdef VERBOSE
+	printf ("step1 fin_BBox\n");
+	printf ("... node %p type %s\n",node, stringNodeType(node->_nodeType));
+	printf ("... center %4.3f %4.3f %4.3f, size %4.3f %4.3f %4.3f\n",
+		bfields->bboxCenter.c[0],
+		bfields->bboxCenter.c[1],
+		bfields->bboxCenter.c[2],
+		bfields->bboxSize.c[0],
+		bfields->bboxSize.c[1],
+		bfields->bboxSize.c[2]);
+	#endif //VERBOSE
+
 	if(renderstate()->render_geom && (bfields->bboxDisplay || fwl_getDrawBoundingBoxes() )) {
 		draw_bbox(bfields->bboxCenter.c,bfields->bboxSize.c);
 	}
@@ -471,9 +492,39 @@ void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
 		//non-transforming grouping nodes - just copy bbox of children into parent space
 		extent6f_copy(node->_extent,peek_group_extent());
 	}
+
+
+	#ifdef VERBOSE
+	printf ("step2 fin_BBox\n");
+	printf ("... node %p type %s\n",node, stringNodeType(node->_nodeType));
+	printf ("... center %4.3f %4.3f %4.3f, size %4.3f %4.3f %4.3f\n",
+		bfields->bboxCenter.c[0],
+		bfields->bboxCenter.c[1],
+		bfields->bboxCenter.c[2],
+		bfields->bboxSize.c[0],
+		bfields->bboxSize.c[1],
+		bfields->bboxSize.c[2]);
+	#endif //VERBOSE
+
 	pop_group_extent(); // up where parents are
 	union_group_extent(node->_extent); //
+
+	record_ZBufferDistance(node,bfields);
+
+	#ifdef VERBOSE
+	printf ("node %p %s extent ",node,stringNodeType(node->_nodeType));
+	int i;
+	for (i=0; i<6; i++) printf ("%4.3f ",node->_extent[i]); printf ("\n");
+	printf ("recording Z_BufferDistance at %s:%d\n",__FILE__,__LINE__);
+	#endif //VERBOSE
+
+	#ifdef VERBOSE
+	printf ("fin fin_BBox\n");
+	#endif //VERBOSE
 }
+#undef VERBOSE
+
+
 void child_StaticGroup (struct X3D_StaticGroup *node) {
 	CHILDREN_COUNT
 	//LOCAL_LIGHT_SAVE
@@ -563,10 +614,6 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 	}
 #endif //VERBOSE
 
-
-
-
-		
 	/* do we have a DirectionalLight for a child? */
 //	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
 
@@ -578,14 +625,32 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 	normalChildren(node->_sortedChildren);
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 
+	#ifdef VERBOSE
+	printf ("child_Group ");
+	//WARNING all nodes that use prep_childrenBBox /fin_ musht have bbox fields in same order
+	// (this is a way to avoid macros, and re-casting lookups)
+	//struct BBoxFields {
+	//      struct SFVec3f bboxCenter;
+	//      struct SFVec3f bboxSize;
+	//      int visible;
+	//      int displayBBox;
+	//
+	//};
+	printf ("bboxCenter %4.3f %4.3f %4.3f ",node->bboxCenter.c[0],node->bboxCenter.c[1],node->bboxCenter.c[2]);
+	printf ("bboxSize %4.3f %4.3f %4.3f ",node->bboxSize.c[0],node->bboxSize.c[1],node->bboxSize.c[2]);
+	printf ("visible %d displayBox %d\n",node->visible,node->bboxDisplay);
+	#endif //VERBOSE
+
+
+
 //	LOCAL_LIGHT_OFF
 	
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 }
 
 
 void child_Transform (struct X3D_Transform *node) {
+	// printf ("start child_Transform, dist %f\n",node->_dist);
 	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
@@ -636,6 +701,7 @@ void child_Transform (struct X3D_Transform *node) {
 
 //	LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	//printf ("fin child_Transform, dist %f\n",node->_dist);
 }
 
 

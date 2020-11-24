@@ -3110,7 +3110,6 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	if(!renderstate()->render_vp) {
 		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 		/* did either we or the Viewpoint move since last time? */
-		RECORD_DISTANCE
 		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 }
@@ -4591,9 +4590,6 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 			}
 
 		} 
-
-		RECORD_DISTANCE
-
 	}
 }
 
@@ -5332,7 +5328,6 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 		}
 
 		/* did either we or the Viewpoint move since last time? */
-		RECORD_DISTANCE
 		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 

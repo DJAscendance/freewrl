@@ -157,7 +157,6 @@ void prep_Billboard (struct X3D_Billboard *node) {
 		double mod[16], modi[16], matr[16], axis[3];
 		int align;
 
-		RECORD_DISTANCE
 		push_transform_local_identity();
 
 		FW_GL_PUSH_MATRIX();
@@ -210,8 +209,6 @@ void prep_Billboard (struct X3D_Billboard *node) {
 		int align;
 		double len, len2, angle;
 		int sign;
-
-		RECORD_DISTANCE
 
 		ax.x = node->axisOfRotation.c[0];
 		ax.y = node->axisOfRotation.c[1];

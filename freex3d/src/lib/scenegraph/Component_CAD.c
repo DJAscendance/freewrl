@@ -70,7 +70,6 @@ void child_CADFace (struct X3D_CADFace *node) {
 /* refer to prep_Group for detailed explanations */
 void prep_CADAssembly (struct X3D_CADAssembly *node) {
     COMPILE_IF_REQUIRED
-    RECORD_DISTANCE
 
 }
 
@@ -193,8 +192,6 @@ void prep_CADPart (struct X3D_CADPart *node) {
 			}
 
 		}
-
-		RECORD_DISTANCE
     }
 }
 
