@@ -153,6 +153,8 @@ struct fw_MaterialParameters {
 	float ambient;      //MAT_REGULAR
 	float shininess;    //MAT_REGULAR
 	float transparency; 
+	float normal; // normalScale 1, all
+	float occlusion; // occlusionStrength MAT_REGULAR, MAT_PHYSICAL
 	float baseColor[3]; //MAT_PHYSICAL
 	float metallic;     //MAT_PHYSICAL
 	float roughness;    //MAT_PHYSICAL 
@@ -165,11 +167,12 @@ struct fw_MaterialParameters {
 	int source[10]; //multitexture modulate mode
 	int func[10]; //multitexture modulate mode
 	int nt; // number of single texture maps 0 if none
-	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
-	struct X3D_Node *textures[5]; //ambient,normal,diffuse,specularshiny or roughnessmetallic,emissive,
-	int tcount[5]; // for material.textureXXX if its a single texture 1, if multitexture n
-	int tstart[5]; // where in tindex to start looping
-	int cindex[5]; //texture coordinate channel
+	//// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
+	struct X3D_Node *textures[7]; //emissive,normal,[occlusion,{diffuse,ambient,specular,shininess}, or {base,smetallic}]
+	int tcount[7]; // for material.textureXXX if its a single texture 1, if multitexture n
+	int tstart[7]; // where in tindex to start looping
+	int cindex[7]; //texture coordinate channel
 	//int mtex[5];   //flag = 1 if it's a multitexture / needs multitexture functionality applied
 	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
 };

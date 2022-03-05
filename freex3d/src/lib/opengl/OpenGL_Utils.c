@@ -6969,7 +6969,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	mp = fw_FrontMaterial;
 	nt = 0;
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		mp->tcount[i] = 0;
 		mp->tstart[i] = nt;
 		if(mp->textures[i]){
@@ -7010,7 +7010,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1I(me->myMaterialBackTransdex,fw_BackMaterial->transdex);
 	mp = fw_BackMaterial;
 	nt = 0;
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		mp->tcount[i] = 0;
 		mp->tstart[i] = nt;
 		if(mp->textures[i]){

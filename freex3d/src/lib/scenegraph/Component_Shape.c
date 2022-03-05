@@ -361,9 +361,10 @@ void compile_Material (struct X3D_Material *node) {
 	q->type = MAT_REGULAR;
 
 	//new v4 textures
-	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	//// [0] normal [1] emissive [2] diffuse OR base [3] specular/shiny OR metallic/roughness [4] ambient
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR baseColor [4] shininess OR metallicRoughness [5] specular [6] ambient
 	tnodes = q->textures;
-	memset(tnodes,0,5*sizeof(void *));
+	memset(tnodes,0,7*sizeof(void *));
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
@@ -372,26 +373,36 @@ void compile_Material (struct X3D_Material *node) {
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 	}
+	if(node->occlusionTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->occlusionTexture,tnodes[2]);
+	}
 	if(node->diffuseTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->diffuseTexture,tnodes[2]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->diffuseTexture,tnodes[3]);
 	}
-	if(node->specularShininessTexture)
+	if(node->shininessTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->specularShininessTexture,tnodes[3]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->shininessTexture,tnodes[4]);
 	}
-	if(node->ambientTexture)
+	if(node->specularTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->ambientTexture,tnodes[4]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->specularTexture,tnodes[5]);
 	}
+	if (node->ambientTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->ambientTexture, tnodes[6]);
+	}
+
 	int *cindex = q->cindex;
-	cindex[0] = node->normalTextureChannel;
-	cindex[1] = node->emissiveTextureChannel;
-	cindex[2] = node->diffuseTextureChannel;
-	cindex[3] = node->specularShininessTextureChannel;
-	cindex[4] = node->ambientTextureChannel;
+	for (int i = 0; i < 7; i++) cindex[i] = 0;
+	//cindex[0] = 0; //node->normalTextureChannel;
+	//cindex[1] = 0; //node->emissiveTextureChannel;
+	//cindex[2] = node->diffuseTextureChannel;
+	//cindex[3] = node->specularShininessTextureChannel;
+	//cindex[4] = node->ambientTextureChannel;
 	q->nt = 0; //assume no material.texturexxx to start
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		q->tcount[i] = 0; //default: no texture for this material function
 		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
 		if(tnodes[i]){
@@ -1757,9 +1768,9 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	q->type = MAT_UNLIT;
 
 	//new v4 textures
-	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
 	tnodes = q->textures;
-	memset(tnodes,0,5*sizeof(void *));
+	memset(tnodes,0,7*sizeof(void *));
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
@@ -1769,10 +1780,11 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 	}
 	int *cindex = q->cindex;
-	cindex[0] = node->normalTextureChannel;
-	cindex[1] = node->emissiveTextureChannel;
+	for (int i = 0; i < 7; i++) cindex[i] = 0;
+	//cindex[0] = 0; //node->normalTextureChannel;
+	//cindex[1] = 0; //node->emissiveTextureChannel;
 	q->nt = 0; //assume no material.texturexxx to start
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		q->tcount[i] = 0; //default: no texture for this material function
 		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
 		if(tnodes[i]){
@@ -1841,6 +1853,20 @@ Gross: 7
 max needed: 4 (assuming physics channel packing): normal, emissive, baseColor, occlusion-metallic-roughness
 possible Array-ization assuming same widthxheight for all:
 1 samplerArray for the physics, 1 sampler2D for baseColorTexture
+https://www.web3d.org/specifications/X3Dv4Draft/ISO-IEC19775-1v4-CD1/Part01/components/shape.html 
+12.4.5 Material
+texture channels-start-at
+diffuse 0 (rgb)
+emissive 0 (rgb)
+specular 0 (rgb)
+shininess 3 (.a, typically of specular texture)
+occlusion 0 (.r single channel)
+12.4.6 PhysicalMaterial
+texture channels-start-at
+MetalicRoughness 2 (.b for metalic)
+MetalicRoughness 1 (.g for roughness)
+base 3 (.a) opacity
+In this case you don't supply separate texture node for each field. Its assumed partly packed, the roughness, and metalic, in one image
 
 */
 void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
@@ -1869,9 +1895,10 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	q->type = MAT_PHYSICAL;
 
 	//new v4 textures   
-	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	///// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
 	tnodes = q->textures;
-	memset(tnodes,0,5*sizeof(void *)); 
+	memset(tnodes,0,7*sizeof(void *)); 
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
@@ -1880,21 +1907,26 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 	}
+	if(node->occlusionTexture)
+	{
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->occlusionTexture,tnodes[2]);
+	}
 	if(node->baseTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseTexture,tnodes[2]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseTexture,tnodes[3]);
 	}
 	if(node->metallicRoughnessTexture)
 	{
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->metallicRoughnessTexture,tnodes[3]);
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->metallicRoughnessTexture,tnodes[4]);
 	}
 	int *cindex = q->cindex;
-	cindex[0] = node->normalTextureChannel;
-	cindex[1] = node->emissiveTextureChannel;
-	cindex[2] = node->baseTextureChannel;
-	cindex[3] = node->metallicRoughnessTextureChannel;
+	for (int i = 0; i < 7; i++) cindex[i] = 0;
+	//cindex[0] = 0; //node->normalTextureChannel;
+	//cindex[1] = 0; //node->emissiveTextureChannel;
+	//cindex[2] = node->baseTextureChannel;
+	//cindex[3] = node->metallicRoughnessTextureChannel;
 	q->nt = 0; //assume no material.texturexxx to start
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		q->tcount[i] = 0; //default: no texture for this material function
 		q->tstart[i] = q->nt; //shader: start looping over tindex where we left off, for tcount loops
 		if(tnodes[i]){

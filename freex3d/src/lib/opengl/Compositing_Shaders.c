@@ -599,10 +599,10 @@ struct fw_MaterialParameters { \n\
   int source[10]; \n\
   int func[10]; \n\
   int nt; //total single textures \n\
-  // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
-  int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
-  int tstart[5]; // where in packed tindex list to start looping \n\
-  int cindex[5]; // which geometry multitexcoord channel 0=default \n\
+  //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+  int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+  int tstart[7]; // where in packed tindex list to start looping \n\
+  int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\
@@ -983,6 +983,17 @@ uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;
 #ifdef CPV \n\
 varying vec4 cpv_Color; \n\
 #endif //CPV \n\
+struct MaterialInfo \n\
+{ \n\
+    float perceptualRoughness;    // roughness value, as authored by the model creator (input to shader) \n\
+    vec3 reflectance0;            // full reflectance color (normal incidence angle) \n\
+	 \n\
+    float alphaRoughness;         // roughness mapped to a more linear change in the roughness (proposed by [2]) \n\
+    vec3 diffuseColor;            // color contribution from diffuse lighting \n\
+	 \n\
+    vec3 reflectance90;           // reflectance color at grazing angle \n\
+    vec3 specularColor;           // color contribution from specular lighting \n\
+}; \n\
 \n\
 /* PLUG-DECLARATIONS */ \n\
 //#ifdef TEX \n\
@@ -1194,10 +1205,10 @@ struct fw_MaterialParameters { \n\
 	int source[10]; \n\
 	int func[10]; \n\
 	int nt; //total single textures \n\
-	// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
-	int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
-	int tstart[5]; // where in packed tindex list to start looping \n\
-	int cindex[5]; // which geometry multitexcoord channel 0=default \n\
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+	int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+	int tstart[7]; // where in packed tindex list to start looping \n\
+	int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\
@@ -1280,17 +1291,6 @@ vec4 mtex_diffuse; \n\
 //PHYSICAL LIGHTING >> \n\
 // https://github.com/KhronosGroup/glTF-Sample-Viewer \n\
 const float M_PI = 3.141592653589793; \n\
-struct MaterialInfo \n\
-{ \n\
-    float perceptualRoughness;    // roughness value, as authored by the model creator (input to shader) \n\
-    vec3 reflectance0;            // full reflectance color (normal incidence angle) \n\
-	 \n\
-    float alphaRoughness;         // roughness mapped to a more linear change in the roughness (proposed by [2]) \n\
-    vec3 diffuseColor;            // color contribution from diffuse lighting \n\
-	 \n\
-    vec3 reflectance90;           // reflectance color at grazing angle \n\
-    vec3 specularColor;           // color contribution from specular lighting \n\
-}; \n\
 // sRGB to linear approximation \n\
 const float GAMMA = 2.2; \n\
 vec4 SRGBtoLINEAR(vec4 srgbIn) \n\
@@ -1306,7 +1306,7 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 // << PhYSICAL LIGHTING \n\
 //GETTERS \n\
 fw_MaterialParameters mat = fw_FrontMaterial; \n\
-// material.maps: [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
+// material.maps: iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
 vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	#ifdef NOT_MTEX //not working \n\
 		vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
@@ -1414,13 +1414,14 @@ vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	return nc; \n\
 } \n\
 vec3 getNormal(){ \n\
+	int normal_image = 0; \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	if (!gl_FrontFacing) //backFacing \n\
 		N = -N; \n\
-	if(mat.tcount[0] > 0){ \n\
+	if(mat.tcount[normal_image] > 0){ \n\
 		// https://learnopengl.com/Advanced-Lighting/Normal-Mapping  \n\
 		//texture transform applied in vertex shader \n\
-		vec2 UV = fw_TexCoord[mat.cindex[0]].xy; \n\
+		vec2 UV = fw_TexCoord[mat.cindex[normal_image]].xy; \n\
 			\n\
 		// Retrieve the tangent space matrix \n\
 		vec3 pos_dx = dFdx(castle_vertex_eye.xyz); \n\
@@ -1432,84 +1433,104 @@ vec3 getNormal(){ \n\
 		t = normalize(t - N * dot(N, t)); \n\
 		vec3 b = normalize(cross(N, t)); \n\
 		mat3 tbn = mat3(t, b, N); \n\
-		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[0]].xy); \n\
-		vec4 nc = sample_map(0,false); \n\
+		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[normal_image]].xy); \n\
+		vec4 nc = sample_map(normal_image,false); \n\
 		N = normalize(tbn * (2.0 * nc.xyz - 1.0)); \n\
 	} \n\
 	return N; \n\
 } \n\
+vec3 getEmissive(){ \n\
+	vec3 E = mat.emissive; \n\
+	int emissive_image = 1; \n\
+	if(mat.type > 0 && mat.tcount[emissive_image] > 0){ \n\
+		vec4 ec = sample_map(emissive_image,true); \n\
+		E.rgb *= ec.rgb; \n\
+	} \n\
+	return E; \n\
+} \n\
 float getAlpha(){ \n\
-	float A = 1.0 - mat.transparency; \n\
+	float A = 1.0; \n\
 	if(mat.type > 0) { \n\
-		int main_image = 2; \n\
-		if(mat.type == 1) main_image = 1; \n\
-		if(mat.tcount[main_image] > 0) { \n\
-			vec4 dc = sample_map(main_image,false); \n\
+		A -= mat.transparency; \n\
+		int transparency_image = 3; //diffuse or base image \n\
+		if(mat.type == 1) transparency_image = 1; //emissive image \n\
+		if(mat.tcount[transparency_image] > 0) { \n\
+			vec4 dc = sample_map(transparency_image,false); \n\
 			A *= dc.a; \n\
 		} \n\
 	} \n\
 	return A; \n\
 } \n\
+float getOcclusion(){ \n\
+	float occ = 1.0; \n\
+	if(mat.type > 0) { \n\
+		int occlusion_image = 2; \n\
+		if(mat.tcount[occlusion_image] > 0) { \n\
+			vec4 oc = sample_map(occlusion_image,false); \n\
+			occ *= oc.r; //only the red \n\
+		} \n\
+	} \n\
+	return occ; \n\
+} \n\
 vec3 getDiffuse(){ \n\
 	vec3 D = mat.diffuse; \n\
-	if(mat.type == 2 && mat.tcount[2] > 0){ \n\
-		vec4 dc = sample_map(2,true); \n\
+	int diffuse_image = 3; \n\
+	if(mat.type == 2 && mat.tcount[diffuse_image] > 0){ \n\
+		vec4 dc = sample_map(diffuse_image,true); \n\
 		D.rgb *= dc.rgb; \n\
 	} \n\
 	return D; \n\
 } \n\
-vec3 getSpecular() { \n\
-	vec3 S = mat.specular; \n\
-	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = sample_map(3,true); \n\
-		S.rgb *= sc.rgb; \n\
-	} \n\
-	return S; \n\
-} \n\
 float getShininess() { \n\
 	float S = mat.shininess; \n\
-	if(mat.type == 2 && mat.tcount[3] > 0){ \n\
-		vec4 sc = sample_map(3,false); \n\
+	int shininess_image = 4; \n\
+	if(mat.type == 2 && mat.tcount[shininess_image] > 0){ \n\
+		vec4 sc = sample_map(shininess_image,false); \n\
 		S *= sc.a; \n\
 	} \n\
 	return S; \n\
 } \n\
-vec3 getEmissive(){ \n\
-	vec3 E = mat.emissive; \n\
-	if(mat.type > 0 && mat.tcount[1] > 0){ \n\
-		vec4 ec = sample_map(1,true); \n\
-		E.rgb *= ec.rgb; \n\
+vec3 getSpecular() { \n\
+	vec3 S = mat.specular; \n\
+	int specular_image = 5; \n\
+	if(mat.type == 2 && mat.tcount[specular_image] > 0){ \n\
+		vec4 sc = sample_map(specular_image,true); \n\
+		S.rgb *= sc.rgb; \n\
 	} \n\
-	return E; \n\
+	return S; \n\
 } \n\
 float getAmbient(){ \n\
 	float amb = mat.ambient; \n\
-	if(mat.type == 2 && mat.tcount[4] > 0){ \n\
-		vec4 ac = sample_map(1,true); \n\
+	int ambient_image = 6; \n\
+	if(mat.type == 2 && mat.tcount[ambient_image] > 0){ \n\
+		vec4 ac = sample_map(ambient_image,true); \n\
 		amb *= ac.r; \n\
 	} \n\
 	return amb; \n\
 } \n\
 vec3 getBaseColor(){ \n\
 	vec3 B = mat.baseColor; \n\
-	if(mat.type == 3 && mat.tcount[2] > 0){ \n\
-		vec4 bc = sample_map(2,true); \n\
+	int base_image = 3; \n\
+	if(mat.type == 3 && mat.tcount[base_image] > 0){ \n\
+		vec4 bc = sample_map(base_image,true); \n\
 		B.rgb *= bc.rgb; \n\
 	} \n\
 	return B; \n\
 } \n\
 float getMetallic(){ \n\
 	float met = mat.metallic; \n\
-	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
-		vec4 mr = sample_map(3,false); \n\
+	int metallic_image = 4; \n\
+	if(mat.type == 3 && mat.tcount[metallic_image] > 0){ \n\
+		vec4 mr = sample_map(metallic_image,false); \n\
 		met *= mr.b; \n\
 	} \n\
 	return met; \n\
 } \n\
 float getRoughness(){ \n\
 	float rou = mat.roughness; \n\
-	if(mat.type == 3 && mat.tcount[3] > 0){ \n\
-		vec4 mr = sample_map(3,false); \n\
+	int roughness_image = 4; //same as metallic \n\
+	if(mat.type == 3 && mat.tcount[roughness_image] > 0){ \n\
+		vec4 mr = sample_map(roughness_image,false); \n\
 		rou *= mr.g; \n\
 	} \n\
 	return rou; \n\
@@ -3257,8 +3278,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		if(GLSL_max_version >= 130) {
 			AddVersion(SHADERPART_VERTEX, 130, CompleteCode); //lower precision floats
 			AddVersion(SHADERPART_FRAGMENT, 130, CompleteCode); //lower precision floats
-			AddDefine(SHADERPART_VERTEX,"FULL",CompleteCode); //lower precision floats
-			AddDefine(SHADERPART_FRAGMENT,"FULL",CompleteCode); //lower precision floats
+			AddDefine(SHADERPART_VERTEX, "FULL", CompleteCode); //lower precision floats
+			AddDefine(SHADERPART_FRAGMENT, "FULL", CompleteCode); //lower precision floats
 		}else{
 			AddVersion(SHADERPART_VERTEX, GLSL_max_version, CompleteCode); //lower precision floats
 			AddVersion(SHADERPART_FRAGMENT, GLSL_max_version, CompleteCode); //lower precision floats
@@ -3266,6 +3287,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	}
 
 	// printBitsB(sizeof(int),&whichOne.base); //debugging _shaderflags
+
 
 	unique_int = 0; //helps generate method name PLUG_xxx_<unique_int> to avoid clash when multiple PLUGs supplied for same PLUG point
 	//Add in:
@@ -4135,10 +4157,10 @@ struct fw_MaterialParameters { \n\
   int source[10]; \n\
   int func[10]; \n\
   int nt; //total single textures \n\
-  // [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient \n\
-  int tcount[5]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
-  int tstart[5]; // where in packed tindex list to start looping \n\
-  int cindex[5]; // which geometry multitexcoord channel 0=default \n\
+  //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+  int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+  int tstart[7]; // where in packed tindex list to start looping \n\
+  int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 #ifdef TWO \n\

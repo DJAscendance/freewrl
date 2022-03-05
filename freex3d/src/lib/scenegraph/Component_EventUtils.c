@@ -144,8 +144,10 @@ void do_BooleanToggle (void *node){
 
 	oldBoolean = px->toggle;
 
-	if (px->set_boolean == TRUE) px->toggle = FALSE; 
-	else px->toggle = TRUE; 
+	if (px->set_boolean == TRUE) {
+		px->toggle = !px->toggle; // FALSE;
+		//else px->toggle = TRUE; 
+	}
 	if (oldBoolean != px->toggle) MARK_EVENT (node, offsetof (struct X3D_BooleanToggle, toggle));
 }
 
