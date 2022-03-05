@@ -2895,7 +2895,7 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 		it = 0;
 		for(i=0;i<mtessv1;i++){
 			//insert oriented xsection at T(v)
-			float mat [9], matt[9];
+			float mat[9], matt[9];
 			int j;
 			//set up 3x3 rotation by using 3 perpendicular local unit vectors as rot mat rows
 			//http://renderdan.blogspot.ca/2006/05/rotation-matrix-from-axis-vectors.html
@@ -2915,12 +2915,20 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 			}
 			matmultiply3f(mat,matt,matB0);
 			for(j=0;j<mtessu1;j++){
-				float pp[3], norm[3];
+				float pp[3], norm[3], qq[3];
 				matmultvec3f(pp, mat, &Qu[j*3] ); //orient profile point
+				//matmultvec3f(norm,mat,&Nu[j*3]); //didn't work
+				//compute norm as difference of 2 transformed points
+				vecadd3f(qq, &Nu[j * 3], &Qu[j * 3]);
+				matmultvec3f(qq, mat, qq);
+				vecdif3f(norm, pp, qq);
+				vecnormalize3f(norm, norm);
+				veccopy3f(&normals[ic * 3], norm);
+
+				//shift rotated point to trajectory point
 				vecadd3f(pp,pp,&Tv[i*3]); //add on trajectory point
 				veccopy3f(&pts[ic*3],pp);
-				matmultvec3f(norm,mat,&Nu[j*3]);
-				veccopy3f(&normals[ic*3],norm);
+
 				ic++;
 			}
 			//connect to last xsection with triangles
