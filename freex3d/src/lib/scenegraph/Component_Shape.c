@@ -358,6 +358,7 @@ void compile_Material (struct X3D_Material *node) {
 	q->ambient = node->ambientIntensity;
 	q->shininess = node->shininess;
 	q->transparency = node->transparency;
+	q->occlusion = node->occlusionStrength;
 	q->type = MAT_REGULAR;
 
 	//new v4 textures

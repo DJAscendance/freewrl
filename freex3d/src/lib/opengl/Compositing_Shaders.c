@@ -588,6 +588,7 @@ struct fw_MaterialParameters { \n\
   vec3 specular; \n\
   float ambient; \n\
   float shininess; \n\
+  float occlusion; \n\
   float transparency; \n\
   vec3 baseColor; \n\
   float metallic; \n\
@@ -1194,6 +1195,7 @@ struct fw_MaterialParameters { \n\
 	vec3 specular; \n\
 	float ambient; \n\
 	float shininess; \n\
+    float occlusion; \n\
 	float transparency; \n\
 	vec3 baseColor; \n\
 	float metallic; \n\
@@ -1462,10 +1464,11 @@ float getAlpha(){ \n\
 	return A; \n\
 } \n\
 float getOcclusion(){ \n\
-	float occ = 1.0; \n\
-	if(mat.type > 0) { \n\
+	float occ = 0.0; \n\
+	if(mat.type == 2 || mat.type == 3) { \n\
 		int occlusion_image = 2; \n\
 		if(mat.tcount[occlusion_image] > 0) { \n\
+			occ = mat.occlusion; //occlusionStrength  \n\
 			vec4 oc = sample_map(occlusion_image,false); \n\
 			occ *= oc.r; //only the red \n\
 		} \n\
@@ -1679,8 +1682,10 @@ void main(void) \n\
 		vec3 diffy = diffuseFactor.rgb; //getDiffuse(); \n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
-		/* PLUG: add_light_contribution2 (cumulative_diffuse, cumulative_specular, castle_vertex_eye, normy, shiny, amby, diffy, specy ) */ \n\
+		float occlusion = getOcclusion(); \n\
+		/* PLUG: add_light_contribution2 (cumulative_diffuse, cumulative_specular, castle_vertex_eye, normy, shiny, amby, diffy, specy) */ \n\
 		fragment_color.rgb = cumulative_diffuse + cumulative_specular; \n\
+		fragment_color.rgb *= (1.0 - occlusion); \n\
 		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
 	} else if(mat.type == 3){ \n\
@@ -1714,8 +1719,10 @@ void main(void) \n\
 		vec3 color = vec3(0.0, 0.0, 0.0); \n\
 		vec3 normal = getNormal(); \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
+		float occlusion = getOcclusion(); \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
 		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, normal, materialInfo ) */  \n\
+		color *= (1.0 - occlusion); \n\
 		fragment_color.rgb = color; \n\
 		#endif //LITE \n\
 	} \n\
@@ -4146,6 +4153,7 @@ struct fw_MaterialParameters { \n\
   vec3 specular; \n\
   float ambient; \n\
   float shininess; \n\
+  float occlusion; \n\
   float transparency; \n\
   vec3 baseColor; \n\
   float metallic; \n\
