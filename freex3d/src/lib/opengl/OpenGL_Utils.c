@@ -2816,6 +2816,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialSpecular = GET_UNIFORM(myProg,"fw_FrontMaterial.specular");
 	me->myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
 	me->myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
+	me->myMaterialOcclusion = GET_UNIFORM(myProg, "fw_FrontMaterial.occlusion");
 	me->myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
 	me->myMaterialBaseColor = GET_UNIFORM(myProg,"fw_FrontMaterial.baseColor");
 	me->myMaterialMetallic = GET_UNIFORM(myProg,"fw_FrontMaterial.metallic");
@@ -2850,6 +2851,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->myMaterialBackSpecular = GET_UNIFORM(myProg,"fw_BackMaterial.specular");
 	me->myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
 	me->myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
+	me->myMaterialBackOcclusion = GET_UNIFORM(myProg, "fw_BackMaterial.occlusion");
 	me->myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
 	me->myMaterialBackBaseColor = GET_UNIFORM(myProg,"fw_BackMaterial.baseColor");
 	me->myMaterialBackMetallic = GET_UNIFORM(myProg,"fw_BackMaterial.metallic");

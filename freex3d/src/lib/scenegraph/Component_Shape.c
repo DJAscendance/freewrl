@@ -339,6 +339,7 @@ void compile_Material (struct X3D_Material *node) {
 	/* verify that the numbers are within range */
 	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
 	node->shininess = fclamp(node->shininess,0.0f,1.0f);
+	node->occlusionStrength = fclamp(node->occlusionStrength, 0.0f, 1.0f);
 	node->transparency = fclamp(node->transparency,0.0f,1.0f);
 	fvecclamp3f(node->diffuseColor.c,0.0f,1.0f);
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
@@ -1877,6 +1878,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	node->roughness = fclamp(node->roughness,0.0f,1.0f);
 	node->metallic = fclamp(node->metallic,0.0f,1.0f);
 	node->transparency = fclamp(node->transparency,0.0f,1.0f);
+	node->occlusionStrength = fclamp(node->occlusionStrength, 0.0f, 1.0f);
 	fvecclamp3f(node->baseColor.c,0.0f,1.0f);
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
 
@@ -1893,6 +1895,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	q->metallic = node->metallic;
 	q->roughness = node->roughness;
 	q->transparency = node->transparency;
+	q->occlusion = node->occlusionStrength;
 	q->type = MAT_PHYSICAL;
 
 	//new v4 textures   

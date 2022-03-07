@@ -1682,10 +1682,10 @@ void main(void) \n\
 		vec3 diffy = diffuseFactor.rgb; //getDiffuse(); \n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
-		float occlusion = getOcclusion(); \n\
+		float occy = getOcclusion(); \n\
 		/* PLUG: add_light_contribution2 (cumulative_diffuse, cumulative_specular, castle_vertex_eye, normy, shiny, amby, diffy, specy) */ \n\
 		fragment_color.rgb = cumulative_diffuse + cumulative_specular; \n\
-		fragment_color.rgb *= (1.0 - occlusion); \n\
+		fragment_color.rgb *= (1.0 - occy); \n\
 		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
 	} else if(mat.type == 3){ \n\
@@ -1719,10 +1719,10 @@ void main(void) \n\
 		vec3 color = vec3(0.0, 0.0, 0.0); \n\
 		vec3 normal = getNormal(); \n\
 		vec3 view = normalize(- castle_vertex_eye.xyz); //hunh?? thought our v_Position was already in Eye space \n\
-		float occlusion = getOcclusion(); \n\
+		float occy = getOcclusion(); \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
 		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, normal, materialInfo ) */  \n\
-		color *= (1.0 - occlusion); \n\
+		color *= (1.0 - occy); \n\
 		fragment_color.rgb = color; \n\
 		#endif //LITE \n\
 	} \n\
