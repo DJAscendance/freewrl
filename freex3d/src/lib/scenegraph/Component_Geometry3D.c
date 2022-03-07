@@ -2736,17 +2736,18 @@ void compile_Teapot (struct X3D_Teapot *tnode){
 		make_IndexedFaceSet(tnode->__ifsnode);
 	}
 }
-void rendray_Teapot (struct X3D_Teapot *node){
-	if(node->__ifsnode == NULL) compile_Teapot(node);
-	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
-
-}
 void render_Teapot (struct X3D_Teapot *node){
 	if(node->__ifsnode == NULL) compile_Teapot(node);
 	render_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
+void rendray_Teapot(struct X3D_Teapot* node) {
+	if (node->__ifsnode == NULL) return;
+	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+
+}
+
 void collide_Teapot (struct X3D_Teapot *node){
-	if(node->__ifsnode == NULL) compile_Teapot(node);
+	if (node->__ifsnode == NULL) return;
 	collide_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
 
