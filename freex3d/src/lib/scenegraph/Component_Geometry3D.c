@@ -2741,7 +2741,7 @@ void render_Teapot (struct X3D_Teapot *node){
 	render_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
 void rendray_Teapot(struct X3D_Teapot* node) {
-	if (node->__ifsnode == NULL) return;
+	if (node->__ifsnode == NULL) return; //compile on render pass
 	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 
 }
@@ -2793,7 +2793,7 @@ void compile_Pyramid (struct X3D_Pyramid *tnode){
 	}
 }
 void rendray_Pyramid (struct X3D_Pyramid *node){
-	if(node->__ifsnode == NULL) compile_Pyramid(node);
+	if (node->__ifsnode == NULL) return;
 	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 
 }
@@ -2802,7 +2802,7 @@ void render_Pyramid (struct X3D_Pyramid *node){
 	render_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
 void collide_Pyramid (struct X3D_Pyramid *node){
-	if(node->__ifsnode == NULL) compile_Pyramid(node);
+	if(node->__ifsnode == NULL) return;
 	collide_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
 
