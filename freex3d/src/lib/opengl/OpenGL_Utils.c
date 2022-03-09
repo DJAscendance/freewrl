@@ -2835,7 +2835,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		sprintf(line,"fw_FrontMaterial.func[%d]",i);
 		me->myMaterialFunc[i] = GET_UNIFORM(myProg,line);
 	}
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		char line[200];
 		sprintf(line,"fw_FrontMaterial.cindex[%d]",i);
 		me->myMaterialCindex[i] = GET_UNIFORM(myProg,line);
@@ -2870,7 +2870,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		sprintf(line,"fw_BackMaterial.func[%d]",i);
 		me->myMaterialBackFunc[i] = GET_UNIFORM(myProg,line);
 	}
-	for(int i=0;i<5;i++){
+	for(int i=0;i<7;i++){
 		char line[200];
 		sprintf(line,"fw_BackMaterial.cindex[%d]",i);
 		me->myMaterialBackCindex[i] = GET_UNIFORM(myProg,line);
@@ -6969,6 +6969,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1F(me->myMaterialMetallic,fw_FrontMaterial->metallic);
 	GLUNIFORM1I(me->myMaterialType,fw_FrontMaterial->type);
 	GLUNIFORM1I(me->myMaterialTransdex,fw_FrontMaterial->transdex);
+	PRINT_GL_ERROR_IF_ANY("#2 sendMaterialsToShader");
 	mp = fw_FrontMaterial;
 	nt = 0;
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
@@ -6999,6 +7000,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	}
 	mp->nt = nt;
 	//SEND_INT(myMaterialNt,mp->nt);
+	PRINT_GL_ERROR_IF_ANY("#3 sendMaterialsToShader");
 
 	GLUNIFORM3FV(me->myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
 	GLUNIFORM3FV(me->myMaterialBackEmissive,1,fw_BackMaterial->emissive);
@@ -7012,6 +7014,8 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1F(me->myMaterialBackMetallic,fw_BackMaterial->metallic);
 	GLUNIFORM1I(me->myMaterialBackType,fw_BackMaterial->type);
 	GLUNIFORM1I(me->myMaterialBackTransdex,fw_BackMaterial->transdex);
+	PRINT_GL_ERROR_IF_ANY("#4 sendMaterialsToShader");
+
 	mp = fw_BackMaterial;
 	nt = 0;
 	for(int i=0;i<7;i++){
@@ -7024,12 +7028,15 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 			mp->tcount[i] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
 				int kunit = share_or_next_material_sampler_index(textures[j]);
+
 				mp->tindex[nt] = kunit;
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
+
 				glUniform1i(me->textureUnit[kunit],tunit(kunit));
 				GLUNIFORM1I(me->myMaterialBackTindex[nt],mp->tindex[nt]);
+
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
@@ -7038,6 +7045,8 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLUNIFORM1I(me->myMaterialBackTcount[i],mp->tcount[i]);
 		GLUNIFORM1I(me->myMaterialBackTstart[i],mp->tstart[i]);
 	}
+	PRINT_GL_ERROR_IF_ANY("#5 sendMaterialsToShader");
+
 	mp->nt = nt;
 	//SEND_INT(myMaterialBackNt,mp->nt);
 
@@ -7062,6 +7071,8 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1I(me->hatchedBool,myap->hatchedBool);
 	GLUNIFORM1I(me->hatchAlgo,myap->hatchAlgo);
 	SEND_VEC4(hatchColour,myap->hatchColour);
+	PRINT_GL_ERROR_IF_ANY("#6 sendMaterialsToShader");
+
 	{
 		ivec4 vp = get_current_viewport();
 		//LINETYPE > gl_FragCoord is relattive to whole opengl window (not our vp) 
@@ -7080,6 +7091,8 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLUNIFORM1I(me->linestrip_start_style,myap->linestrip_start_style);
 		GLUNIFORM1I(me->linestrip_end_style,myap->linestrip_end_style);
 	}
+	PRINT_GL_ERROR_IF_ANY("#7 sendMaterialsToShader");
+
 	{
 		//pointproperties
 		GLUNIFORM1F(me->pointSize,myap->pointSize);
@@ -7088,6 +7101,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLUNIFORM1I(me->pointColorMode,myap->pointColorMode);
 		GLUNIFORM1I(me->pointMethod,myap->pointMethod);
 	}
+	PRINT_GL_ERROR_IF_ANY("#8 sendMaterialsToShader");
 	//TextureCoordinateGenerator
 	SEND_INT(texCoordGenType,myap->texCoordGeneratorType);
 	profile_end("sendmat");

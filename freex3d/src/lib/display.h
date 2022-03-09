@@ -363,9 +363,9 @@ typedef struct s_shader_capabilities{
 	GLint myMaterialMode[10];
 	GLint myMaterialSource[10];
 	GLint myMaterialFunc[10];
-	GLint myMaterialTcount[5];
-	GLint myMaterialTstart[5];
-	GLint myMaterialCindex[5];
+	GLint myMaterialTcount[7];
+	GLint myMaterialTstart[7];
+	GLint myMaterialCindex[7];
 
 	GLint myMaterialBackDiffuse;
 	GLint myMaterialBackEmissive;
@@ -384,9 +384,9 @@ typedef struct s_shader_capabilities{
 	GLint myMaterialBackMode[10];
 	GLint myMaterialBackSource[10];
 	GLint myMaterialBackFunc[10];
-	GLint myMaterialBackTcount[5];
-	GLint myMaterialBackTstart[5];
-	GLint myMaterialBackCindex[5];
+	GLint myMaterialBackTcount[7];
+	GLint myMaterialBackTstart[7];
+	GLint myMaterialBackCindex[7];
 
 	GLint myPointSize;
     
@@ -631,7 +631,7 @@ void getMotifWindowedGLwin(Window *win);
  * General : all systems
  */
 
-#if defined (FW_DEBUG)
+#if defined (FW_DEBUG_GL)
 
 	#if defined(_ANDROID)
 		#define PRINT_GL_ERROR_IF_ANY(_where) { \

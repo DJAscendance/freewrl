@@ -490,15 +490,6 @@ static void myTexImage2D (int generateMipMaps, GLenum target, GLint level, GLint
 	/* first, base image */
 
 	FW_GL_TEXIMAGE2D(target,level,internalformat,width,height,border,format,type,pixels);
-	{
-		GLenum err;
-		err = glGetError();
-		switch(err){
-			case GL_NO_ERROR: break;
-			default:
-				ConsoleMessage("glError %d in glTexImage2D\n",(int)err);
-		}
-	}
 	if (!generateMipMaps) return;
 	if ((width <=1) && (height <=1)) return;
 
@@ -526,6 +517,7 @@ static void myTexImage2D (int generateMipMaps, GLenum target, GLint level, GLint
 	}
 
 	FREE_IF_NZ(newImage);
+
 }
 
 
@@ -1093,6 +1085,8 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 /* load in a texture, if possible */
 void loadTextureNode (struct X3D_Node *node, void *vparam)
 {
+	PRINT_GL_ERROR_IF_ANY("loadTextureNode")
+
     //printf ("loadTextureNode, node %p, params %p",node,param);
     if (NODE_NEEDS_COMPILING) {
 
@@ -1149,7 +1143,8 @@ void loadTextureNode (struct X3D_Node *node, void *vparam)
 	    }
 	}
 
-    new_bind_image (X3D_NODE(node), (struct multiTexParams *)vparam);
+	new_bind_image (X3D_NODE(node), (struct multiTexParams *)vparam);
+
 	return;
 }
 

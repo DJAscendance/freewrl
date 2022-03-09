@@ -725,8 +725,7 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 	//GLUNIFORM1IV(me->lightState,MAX_LIGHTS,p->lightOnOff); //don't need with lightcount
 	//GLUNIFORM1IV(me->lightType,MAX_LIGHTS,p->lightType); //need to pack into light struct
     //GLUNIFORM1FV(me->lightRadius,MAX_LIGHTS,p->light_radius); //need to pack into lightstruct
-	PRINT_GL_ERROR_IF_ANY("MIDDLE1 sendLightInfo");
-    
+   
     // send in lighting info, but only for lights that are "on"
 	// reason: at 1100+ bytes per shape for 8 lights, it takes up 11.2% of mainloop activity on an old pentium
 	// so this cuts it down to about 200 bytes per shape if you have a headlight and another light.
