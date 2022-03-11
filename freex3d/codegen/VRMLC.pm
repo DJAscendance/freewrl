@@ -8,9 +8,9 @@
 use strict;
 use warnings;
 
-require 'VRMLFields.pm';
-require 'VRMLNodes.pm';
-require 'VRMLRend.pm';
+require './VRMLFields.pm';
+require './VRMLNodes.pm';
+require './VRMLRend.pm';
 
 
 sub open_codegen_file(*;$)

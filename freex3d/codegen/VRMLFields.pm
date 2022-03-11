@@ -236,7 +236,7 @@ our @ISA="VRML::Field::Multi";
 sub cInitialize {
 	my ($this,$field,$val) = @_;
 	my $count = ref $val eq "ARRAY" ? @{$val} : 0;
-	my $retstr;
+	my $retstr = "";
 	my $tmp;
 
 	#print "MFDouble field $field val @{$val} has $count INIT\n";
@@ -277,7 +277,7 @@ our @ISA="VRML::Field::Multi";
 sub cInitialize {
 	my ($this,$field,$val) = @_;
 	my $count = ref $val eq "ARRAY" ? @{$val} : 0;
-	my $retstr;
+	my $retstr = "";
 	my $tmp;
 
 	if ($count > 0) {
@@ -343,7 +343,7 @@ our @ISA="VRML::Field::Multi";
 sub cInitialize {
 	my ($this,$field,$val) = @_;
 	my $count = ref $val eq "ARRAY" ? @{$val} : 0;
-	my $retstr;
+	my $retstr = "";
 	my $tmp;
 	#print "MFINT32 field $field val @{$val} has $count INIT\n";
 	if (!defined $val) {$count=0} # inputOnlys, set it to any value
@@ -682,7 +682,7 @@ our @ISA="VRML::Field::Multi";
 sub cInitialize {
 	my ($this,$field,$val) = @_;
 	my $count = @{$val};
-	my $retstr;
+	my $retstr = "";
 	my $tmp;
 
 	if (!defined $val) {$count=0} # inputOnlys, set it to any value
