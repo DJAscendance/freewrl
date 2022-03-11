@@ -617,6 +617,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"detonationResult",
 	"detune",
 	"diffuse",
+	"diffuseCoefficients",
 	"diffuseColor",
 	"diffuseTexture",
 	"diffuseeTextureMapping",
@@ -1089,6 +1090,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"set_triggerTime",
 	"set_value",
 	"shaders",
+	"shadowIntensity",
 	"shadows",
 	"shape",
 	"shiftKey",
@@ -1610,6 +1612,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"detonationResult",
 	"detune",
 	"diffuse",
+	"diffuseCoefficients",
 	"diffuseColor",
 	"diffuseTexture",
 	"diffuseeTextureMapping",
@@ -1901,6 +1904,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"segments",
 	"separateBackColor",
 	"shaders",
+	"shadowIntensity",
 	"shadows",
 	"shape",
 	"shininess",
@@ -5570,6 +5574,8 @@ const int OFFSETS_DirectionalLight[] = {
 	(int) FIELDNAMES_ambientIntensity, (int) offsetof (struct X3D_DirectionalLight, ambientIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_DirectionalLight, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_DirectionalLight, color),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadows, (int) offsetof (struct X3D_DirectionalLight, shadows),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadowIntensity, (int) offsetof (struct X3D_DirectionalLight, shadowIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_DirectionalLight, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__dir, (int) offsetof (struct X3D_DirectionalLight, _dir),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__col, (int) offsetof (struct X3D_DirectionalLight, _col),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -5707,6 +5713,11 @@ const int OFFSETS_EnvironmentLight[] = {
 	(int) FIELDNAMES_ambientIntensity, (int) offsetof (struct X3D_EnvironmentLight, ambientIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_EnvironmentLight, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_EnvironmentLight, color),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadows, (int) offsetof (struct X3D_EnvironmentLight, shadows),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadowIntensity, (int) offsetof (struct X3D_EnvironmentLight, shadowIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_rotation, (int) offsetof (struct X3D_EnvironmentLight, rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_ANGLE,
+	(int) FIELDNAMES_diffuse, (int) offsetof (struct X3D_EnvironmentLight, diffuse),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_diffuseCoefficients, (int) offsetof (struct X3D_EnvironmentLight, diffuseCoefficients),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_diffuseTexture, (int) offsetof (struct X3D_EnvironmentLight, diffuseTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_specularTexture, (int) offsetof (struct X3D_EnvironmentLight, specularTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -8087,6 +8098,8 @@ const int OFFSETS_PointLight[] = {
 	(int) FIELDNAMES_ambientIntensity, (int) offsetof (struct X3D_PointLight, ambientIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_PointLight, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_PointLight, color),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadows, (int) offsetof (struct X3D_PointLight, shadows),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadowIntensity, (int) offsetof (struct X3D_PointLight, shadowIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_attenuation, (int) offsetof (struct X3D_PointLight, attenuation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_location, (int) offsetof (struct X3D_PointLight, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_radius, (int) offsetof (struct X3D_PointLight, radius),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
@@ -8843,6 +8856,8 @@ const int OFFSETS_SpotLight[] = {
 	(int) FIELDNAMES_ambientIntensity, (int) offsetof (struct X3D_SpotLight, ambientIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_SpotLight, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_SpotLight, color),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadows, (int) offsetof (struct X3D_SpotLight, shadows),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadowIntensity, (int) offsetof (struct X3D_SpotLight, shadowIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_attenuation, (int) offsetof (struct X3D_SpotLight, attenuation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_beamWidth, (int) offsetof (struct X3D_SpotLight, beamWidth),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_cutOffAngle, (int) offsetof (struct X3D_SpotLight, cutOffAngle),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
@@ -11639,6 +11654,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ambientIntensity = 0.0f;
 			tmp2->intensity = 1.0f;
 			tmp2->color.c[0] = 1.0f;tmp2->color.c[1] = 1.0f;tmp2->color.c[2] = 1.0f;;
+			tmp2->shadows = FALSE;
+			tmp2->shadowIntensity = 1.0f;
 			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = -1.0f;
 			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
 			tmp2->_col.c[0] = 0;tmp2->_col.c[1] = 0;tmp2->_col.c[2] = 0;tmp2->_col.c[3] = 0;;
@@ -11803,6 +11820,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ambientIntensity = 0.0f;
 			tmp2->intensity = 1.0f;
 			tmp2->color.c[0] = 1.0f;tmp2->color.c[1] = 1.0f;tmp2->color.c[2] = 1.0f;;
+			tmp2->shadows = FALSE;
+			tmp2->shadowIntensity = 1.0f;
+			tmp2->rotation.c[0] = 0;tmp2->rotation.c[1] = 0;tmp2->rotation.c[2] = 1;tmp2->rotation.c[3] = 0;;
+			tmp2->diffuse = NULL;
+			tmp2->diffuseCoefficients.n=0; tmp2->diffuseCoefficients.p=0;
 			tmp2->diffuseTexture = NULL;
 			tmp2->specularTexture = NULL;
 			tmp2->_defaultContainer = 0;
@@ -14779,6 +14801,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ambientIntensity = 0.0f;
 			tmp2->intensity = 1.0f;
 			tmp2->color.c[0] = 1.0f;tmp2->color.c[1] = 1.0f;tmp2->color.c[2] = 1.0f;;
+			tmp2->shadows = FALSE;
+			tmp2->shadowIntensity = 1.0f;
 			tmp2->attenuation.c[0] = 1.0f;tmp2->attenuation.c[1] = 0.0f;tmp2->attenuation.c[2] = 0.0f;
 			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 0.0f;
 			tmp2->radius = 100.0f;
@@ -15679,6 +15703,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ambientIntensity = 0.0f;
 			tmp2->intensity = 1.0f;
 			tmp2->color.c[0] = 1.0f;tmp2->color.c[1] = 1.0f;tmp2->color.c[2] = 1.0f;;
+			tmp2->shadows = FALSE;
+			tmp2->shadowIntensity = 1.0f;
 			tmp2->attenuation.c[0] = 1.0f;tmp2->attenuation.c[1] = 0.0f;tmp2->attenuation.c[2] = 0.0f;
 			tmp2->beamWidth = 1.570796f;
 			tmp2->cutOffAngle = 0.785398f;
@@ -17676,6 +17702,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," color (SFColor): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->color.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
+			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
 			spacer fprintf (fp," direction (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->direction.c[i]); }
 			fprintf (fp,"\n");
@@ -17839,6 +17867,14 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," color (SFColor): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->color.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
+			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
+			spacer fprintf (fp," rotation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->rotation.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," diffuse (SFNode):\n"); dump_scene(fp,level+1,tmp->diffuse); 
+			spacer fprintf (fp," diffuseCoefficients (MFFloat):\n");
+			for (i=0; i<tmp->diffuseCoefficients.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->diffuseCoefficients.p[i]); }
 			spacer fprintf (fp," diffuseTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->diffuseTexture); 
 			spacer fprintf (fp," specularTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->specularTexture); 
 		    break;
@@ -20742,6 +20778,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," color (SFColor): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->color.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
+			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
 			spacer fprintf (fp," attenuation (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->attenuation.c[i]); }
 			fprintf (fp,"\n");
@@ -21608,6 +21646,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," color (SFColor): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->color.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
+			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
 			spacer fprintf (fp," attenuation (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->attenuation.c[i]); }
 			fprintf (fp,"\n");
