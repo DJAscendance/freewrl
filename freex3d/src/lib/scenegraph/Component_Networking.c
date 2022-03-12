@@ -296,10 +296,10 @@ int loadstatus_AudioClip(struct X3D_AudioClip *node);
 int loadstatus_Script(struct X3D_Script *script);
 int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
 void render_LoadSensor (struct X3D_LoadSensor *node) {
-	int count;
+	int count, nwatch;
 	int nowLoading;
 	int nowFinished;
-	struct X3D_Node *cnode;
+	struct X3D_Node *cnode, **watchlist;
 	// HAVE TO RECODE MovieTexture struct X3D_MovieTexture *mnode;
 	
 	/* if not enabled, do nothing */
@@ -324,10 +324,19 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	}
 
 	/* do we actually have any nodes to watch? */
-	if (node->watchList.n<=0) return;
+	nwatch = 0;
+	if (node->watchList.n) {
+		nwatch = node->watchList.n;
+		watchlist = node->watchList.p;
+	}
+	else if (node->children.n) {
+		nwatch = node->children.n;
+		watchlist = node->children.p;
+	}
+	if (nwatch <=0) return;
 
 	/* are all nodes loaded? */
-	if (node->__finishedloading == node->watchList.n) return;
+	if (node->__finishedloading == nwatch) return;
 
 	/* our current status... */
 	nowLoading = 0;
@@ -335,9 +344,9 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 
 	/* go through node list, and check to see what the status is */
 	/* printf ("have %d nodes to watch\n",node->watchList.n); */
-	for (count = 0; count < node->watchList.n; count ++) {
+	for (count = 0; count < nwatch; count ++) {
 
-		cnode = node->watchList.p[count];
+		cnode = watchlist[count];
 
 		/* printf ("node type of node %d is %d\n",count,tnode->_nodeType); */
 		switch (cnode->_nodeType) {
@@ -422,7 +431,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 		
 
 	/* ok, are we NOW finished loading? */
-	if (nowFinished == node->watchList.n) {
+	if (nowFinished == nwatch) {
 		node->isActive = 0;
 		MARK_EVENT (X3D_NODE(node), offsetof (struct X3D_LoadSensor, isActive));
 
@@ -448,7 +457,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	
 	/* what is our progress? */
 	if (node->isActive == 1) {
-		node->progress = (float)(nowFinished)/(float)(node->watchList.n);
+		node->progress = (float)(nowFinished)/(float)(nwatch);
 		MARK_EVENT (X3D_NODE(node), offsetof (struct X3D_LoadSensor, progress));
 	}
 
@@ -469,7 +478,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 				MARK_EVENT (X3D_NODE(node), offsetof (struct X3D_LoadSensor, isActive));
 
 				/* and, we will just assume that we have loaded everything next iteration */
-				node->__finishedloading = node->watchList.n;
+				node->__finishedloading = nwatch;
 			}
 		}
 	}

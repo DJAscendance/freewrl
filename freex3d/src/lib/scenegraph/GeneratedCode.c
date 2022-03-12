@@ -7076,6 +7076,7 @@ const int OFFSETS_LoadSensor[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LoadSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_timeOut, (int) offsetof (struct X3D_LoadSensor, timeOut),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_watchList, (int) offsetof (struct X3D_LoadSensor, watchList),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_LoadSensor, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_LoadSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isLoaded, (int) offsetof (struct X3D_LoadSensor, isLoaded),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_loadTime, (int) offsetof (struct X3D_LoadSensor, loadTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -13494,6 +13495,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->timeOut = 0;
 			tmp2->watchList.n=0; tmp2->watchList.p=0;
+			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->isActive = TRUE;
 			tmp2->isLoaded = TRUE;
 			tmp2->loadTime = 0;
@@ -19542,6 +19544,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," timeOut (SFTime) \t%4.3f\n",tmp->timeOut);
 			spacer fprintf (fp," watchList (MFNode):\n");
 			for (i=0; i<tmp->watchList.n; i++) { dump_scene(fp,level+1,tmp->watchList.p[i]); }
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
 		    if(allFields) {
 			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
 		    }

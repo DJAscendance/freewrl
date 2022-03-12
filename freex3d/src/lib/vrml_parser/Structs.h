@@ -8123,6 +8123,7 @@ struct X3D_LoadSensor {
 	struct X3D_Node *metadata;
 	double timeOut;
 	struct Multi_Node watchList;
+	struct Multi_Node children;
 	int isActive;
 	int isLoaded;
 	double loadTime;
