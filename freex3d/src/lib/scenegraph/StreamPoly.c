@@ -142,7 +142,10 @@ static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA) 
 
 
 void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void *normal, struct X3D_TextureCoordinate *texCoordNode) {
-    
+/* takes indexes from make_genericFaceSet -there are 3x number of triangles indexes- 
+   and iterates over the indexes, duplicating the shared vertices, so that vertices count is 3x ntri 
+   -- as is normal count, texcoord count, vertex color count
+*/
 	struct X3D_Node *node;
 	struct X3D_PolyRep *r;
 	int i, j, k, nmtexcoord;
