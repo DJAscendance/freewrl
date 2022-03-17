@@ -661,6 +661,7 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 			if(p){
 				if(p->nt) texture = TRUE;
 				if(p->mt) multitex = TRUE;
+				//twosided = TRUE; //uncomment if you don't want backMaterial NULL to render front material
 			}
 			if(q){
 				if(q->nt) texture = TRUE;
