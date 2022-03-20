@@ -38,7 +38,7 @@ Render the children of nodes.
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
-
+#include "Polyrep.h"
 #include "LinearAlgebra.h"
 #ifdef HAVE_OPENCL
 #include "../opencl/OpenCL_Utils.h"

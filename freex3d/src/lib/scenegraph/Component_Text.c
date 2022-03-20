@@ -443,7 +443,8 @@ void render_Text (struct X3D_Text * node)
 		if(node->_isScreen){
 			render_screentext(node);
 		}else{
-			COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL);
+			//COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL);
+			if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
 			//DISABLE_CULL_FACE;
 			CULL_FACE(node->solid)
 			render_polyrep(node);
@@ -1954,8 +1955,8 @@ void collide_Text (struct X3D_Text *node)
     if (node->_intern)
         change = node->_intern->irep_change;
 
-    COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL);
-
+    //COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL);
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
     if (node->_intern)
         node->_intern->irep_change = change;
 

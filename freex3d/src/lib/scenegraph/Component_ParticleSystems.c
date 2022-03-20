@@ -565,7 +565,8 @@ void compile_geometry(struct X3D_Node *gnode){
 		case NODE_IndexedFaceSet:
 		{
 			struct X3D_IndexedFaceSet *node = (struct X3D_IndexedFaceSet *)gnode;
-			COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+			//COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+			if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
 		}
 		break;
 		default:

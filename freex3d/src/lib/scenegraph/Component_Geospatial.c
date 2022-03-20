@@ -3006,7 +3006,9 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	int planetID = 0; 
 	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 	planetID = current_planetId();
-	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
+	//COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
+	if (!compile_poly_if_required(node, NULL, NULL, node->color, node->normal, node->texCoord))return;
+
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 	if(!planetInPlanets(planetID,&node->__planets)){

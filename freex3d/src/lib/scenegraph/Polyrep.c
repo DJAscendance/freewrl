@@ -46,7 +46,15 @@
 #include "LinearAlgebra.h"
 #include "Tess.h"
 
-
+void * compile_poly_if_required(void* node, void* coord, void* fogCoord, void* color, void* normal, void* texCoord) {
+//#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e)
+//if(!compile_poly_if_required(node,a,b,c,d,e))return;
+	struct X3D_Node* nd = X3D_NODE(node);
+	if(!nd->_intern || nd->_change != ((struct X3D_PolyRep *)(nd->_intern))->irep_change) { \
+		compileNode ((void *)compile_polyrep,node,coord,fogCoord,color,normal,texCoord);
+	}
+	return nd->_intern;
+}
 
 /* How many faces are in this IndexedFaceSet?			*/
 
@@ -753,25 +761,26 @@ void do_glNormal3fv(struct SFVec3f *dest, GLfloat *param) {
  ********************************************************************/
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 
-void render_polyrep(void *node) {
+
+void render_polyrep(void* node) {
 	//struct X3D_Virt *virt;
-	struct X3D_Node *renderedNodePtr;
-	struct X3D_PolyRep *pr;
+	struct X3D_Node* renderedNodePtr;
+	struct X3D_PolyRep* pr;
 	int hasc;
 
 
 	ttglobal tg = gglobal();
-	
+
 	renderedNodePtr = X3D_NODE(node);
 	//virt = virtTable[renderedNodePtr->_nodeType];
 	pr = renderedNodePtr->_intern;
-    
-	#ifdef TEXVERBOSE
-	printf ("\nrender_polyrep, _nodeType %s\n",stringNodeType(renderedNodePtr->_nodeType)); 
-	printf ("ntri %d\n",pr->ntri);
-	#endif
 
-	if (pr->ntri==0) {
+#ifdef TEXVERBOSE
+	printf("\nrender_polyrep, _nodeType %s\n", stringNodeType(renderedNodePtr->_nodeType));
+	printf("ntri %d\n", pr->ntri);
+#endif
+
+	if (pr->ntri == 0) {
 		/* no triangles */
 		return;
 	}
@@ -780,105 +789,110 @@ void render_polyrep(void *node) {
 	if ((pr->VBO_buffers[VERTEX_VBO]) == 0) return;
 
 	if (!pr->streamed) {
-		printf ("render_polyrep, not streamed, returning\n");
+		printf("render_polyrep, not streamed, returning\n");
 		return;
 	}
-    
+
 	/* save these values for streaming the texture coordinates later */
 	tg->Textures.global_tcin = pr->tcindex;
-	tg->Textures.global_tcin_count = pr->ntri*3;
+	tg->Textures.global_tcin_count = pr->ntri * 3;
 	tg->Textures.global_tcin_lastParent = node;
 
 	/* we take the geometry here, and push it up the stream. */
-	if(0){
+	if (0) {
 		static int count = 0;
-		if(count < 3)
-			{extent6f_printf(renderedNodePtr->_extent);printf(" r_p\n");}
+		if (count < 3)
+		{
+			extent6f_printf(renderedNodePtr->_extent); printf(" r_p\n");
+		}
 		count++;
 	}
-    if(1)     setExtent( renderedNodePtr->EXTENT_MAX_X, renderedNodePtr->EXTENT_MIN_X, renderedNodePtr->EXTENT_MAX_Y,
-                renderedNodePtr->EXTENT_MIN_Y, renderedNodePtr->EXTENT_MAX_Z, renderedNodePtr->EXTENT_MIN_Z,
-                renderedNodePtr);
+	if (1)     setExtent(renderedNodePtr->EXTENT_MAX_X, renderedNodePtr->EXTENT_MIN_X, renderedNodePtr->EXTENT_MAX_Y,
+		renderedNodePtr->EXTENT_MIN_Y, renderedNodePtr->EXTENT_MAX_Z, renderedNodePtr->EXTENT_MIN_Z,
+		renderedNodePtr);
 
 	/*  clockwise or not?*/
-	if (!pr->ccw) { 
+	if (!pr->ccw) {
 		//FW_GL_FRONTFACE(GL_CW);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 	}
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#t-Litcolourandalpha
 	//if lit, use colors if colornode and (intensity or no texture)
- 	hasc = ((pr->VBO_buffers[COLOR_VBO]!=0) || pr->color);
+	hasc = ((pr->VBO_buffers[COLOR_VBO] != 0) || pr->color);
 
- 	/* Do we have any colours? Are textures, if present, not RGB? */
- 	if(hasc){
- 		LIGHTING_ON
-    }
+	/* Do we have any colours? Are textures, if present, not RGB? */
+	if (hasc) {
+		LIGHTING_ON
+	}
 
 	/*  status bar, text do not have normals*/
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-	if (pr->VBO_buffers[NORMAL_VBO]!=0 ) { 
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	if (pr->VBO_buffers[NORMAL_VBO] != 0) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[NORMAL_VBO]);
-		FW_GL_NORMAL_POINTER(GL_FLOAT,0,0);
-		if(DESIRE(getShaderFlags().base,SHADINGSTYLE_FLAT) ) {
-			if(pr->last_normal_type != 1) 
-				glBufferData(GL_ARRAY_BUFFER,sizeof (GLfloat)*3*pr->ntri*3,pr->flat_normal,GL_STATIC_DRAW); /* OpenGL-ES */
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, 0);
+		if (DESIRE(getShaderFlags().base, SHADINGSTYLE_FLAT)) {
+			if (pr->last_normal_type != 1)
+				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * pr->ntri * 3, pr->flat_normal, GL_STATIC_DRAW); /* OpenGL-ES */
 			pr->last_normal_type = 1;
-		}else {
-			if(pr->last_normal_type != 0)
-				glBufferData(GL_ARRAY_BUFFER,sizeof (GLfloat)*3*pr->ntri*3,pr->normal,GL_STATIC_DRAW); /* OpenGL-ES */
+		}
+		else {
+			if (pr->last_normal_type != 0)
+				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * pr->ntri * 3, pr->normal, GL_STATIC_DRAW); /* OpenGL-ES */
 			pr->last_normal_type = 0;
 		}
-    }
+	}
 
-	if (pr->VBO_buffers[FOG_VBO]!=0) {
+	if (pr->VBO_buffers[FOG_VBO] != 0) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[FOG_VBO]);
-		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
-    } 
+		FW_GL_FOG_POINTER(GL_FLOAT, 0, 0);
+	}
 
 	/* colours? */
 	if (hasc) {
-		
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,pr->VBO_buffers[COLOR_VBO]);
-		FW_GL_COLOR_POINTER(4,GL_FLOAT,0,0);
+
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[COLOR_VBO]);
+		FW_GL_COLOR_POINTER(4, GL_FLOAT, 0, 0);
 	}
 
-        
+
 	/*  textures?*/
 	if (pr->VBO_buffers[TEXTURE_VBO0] != 0) {
 		int k;
-		struct textureVertexInfo mtf[4] = {{NULL,2,GL_FLOAT,0, NULL,NULL},  
-			{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL}};  
-		for(k=0;k<max(1,pr->ntcoord);k++){
+		struct textureVertexInfo mtf[4] = { {NULL,2,GL_FLOAT,0, NULL,NULL},
+			{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL} };
+		for (k = 0; k < max(1, pr->ntcoord); k++) {
 			//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,pr->VBO_buffers[TEXTURE_VBO0+k]);
-			mtf[k].VBO = pr->VBO_buffers[TEXTURE_VBO0+k];
+			mtf[k].VBO = pr->VBO_buffers[TEXTURE_VBO0 + k];
 			mtf[k].TC_size = pr->ntexdim[k];
-			if(k > 0) mtf[k-1].next = &mtf[k];
+			if (k > 0) mtf[k - 1].next = &mtf[k];
 		}
 		textureCoord_send(mtf);
-	} else {
-        ConsoleMessage("skipping tds of textures");
+	}
+	else {
+		ConsoleMessage("skipping tds of textures");
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[VERTEX_VBO]);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,pr->VBO_buffers[INDEX_VBO]);
-	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, pr->VBO_buffers[INDEX_VBO]);
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, 0);
 
-	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+	if (DESIRE(getShaderFlags().base, SHADINGSTYLE_WIRE)) {
 		//wireframe triangles
-		if(pr->last_index_type != 1)
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3*2,pr->wire_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		if (pr->last_index_type != 1)
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * pr->ntri * 3 * 2, pr->wire_indices, GL_STATIC_DRAW); /* OpenGL-ES */
 		pr->last_index_type = 1;
 		//if (setupShader())
 		//	glDrawElements(GL_LINES, pr->ntri*3*2, GL_UNSIGNED_SHORT, NULL);
-		sendElementsToGPU(GL_LINES,pr->ntri*3*2,NULL);
-	}else{
+		sendElementsToGPU(GL_LINES, pr->ntri * 3 * 2, NULL);
+	}
+	else {
 		//surface triangles 
 		//glDrawArrays(GL_TRIANGLES,,,) doesn't use indices - its glDrawElements that does
 		//if(pr->last_index_type != 0)
 		//	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3,pr->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
 		pr->last_index_type = 0;
-		sendArraysToGPU(GL_TRIANGLES,0,pr->ntri*3);
+		sendArraysToGPU(GL_TRIANGLES, 0, pr->ntri * 3);
 	}
 
 	/* turn VBOs off for now */
@@ -889,41 +903,41 @@ void render_polyrep(void *node) {
 
 
 
-PRINT_GL_ERROR_IF_ANY("");
+	PRINT_GL_ERROR_IF_ANY("");
 
 	if (!pr->ccw) {
 		//FW_GL_FRONTFACE(GL_CCW);
 		glCullFace(GL_BACK); //restore to default
-		glDisable(GL_CULL_FACE); 
+		glDisable(GL_CULL_FACE);
 	}
 
-	#ifdef TEXVERBOSE
+#ifdef TEXVERBOSE
 	{
 		int i;
-		int *cin;
-		float *cod;
-		float *tcod;
+		int* cin;
+		float* cod;
+		float* tcod;
 		tcod = pr->GeneratedTexCoords;
 		cod = pr->actualCoord;
 		cin = pr->cindex;
-		printf ("\n\nrender_polyrep:\n");
-		for (i=0; i<pr->ntri*3; i++) {
-			printf ("i %d cindex %d vertex %f %f %f",i,cin[i],
-				cod[cin[i]*3+0],
-				cod[cin[i]*3+1],
-				cod[cin[i]*3+2]);
+		printf("\n\nrender_polyrep:\n");
+		for (i = 0; i < pr->ntri * 3; i++) {
+			printf("i %d cindex %d vertex %f %f %f", i, cin[i],
+				cod[cin[i] * 3 + 0],
+				cod[cin[i] * 3 + 1],
+				cod[cin[i] * 3 + 2]);
 
 			if (tcod != 0) {
-			printf (" tex %f %f",
-				tcod[cin[i]*2+0],
-				tcod[cin[i]*2+1]);
+				printf(" tex %f %f",
+					tcod[cin[i] * 2 + 0],
+					tcod[cin[i] * 2 + 1]);
 			}
-			printf ("\n");
+			printf("\n");
 		}
 	}
-	#endif
+#endif
 
-PRINT_GL_ERROR_IF_ANY("");
+	PRINT_GL_ERROR_IF_ANY("");
 
 
 }

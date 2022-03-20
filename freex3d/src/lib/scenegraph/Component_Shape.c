@@ -44,7 +44,7 @@ X3D Shape Component
 #include "Component_Shape.h"
 #include "RenderFuncs.h"
 #include "LinearAlgebra.h"
-
+#include "Polyrep.h"
 #define NOTHING 0
 
 enum {

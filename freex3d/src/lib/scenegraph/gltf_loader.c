@@ -293,7 +293,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							
 								const cgltf_accessor* blob = prim->attributes[ii].data;
 								cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
-								printf(" nfloats = %d accessor type %d count %d ",nfloats,blob->type,blob->count);
+								printf(" nfloats = %d accessor type %d count %d ",(int)nfloats,blob->type, (int)blob->count);
 								switch(blob->type){
 									case cgltf_type_scalar: printf("SCALAR");break;
 									case cgltf_type_vec2: printf("VEC2");break;
@@ -305,7 +305,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								for (cgltf_size index = 0; index < blob->count; index++)
 								{
 									cgltf_accessor_read_float(blob, index, element_float, 16);
-									printf("%d %f %f %f\n",index,element_float[0],element_float[1],element_float[2]);
+									printf("%d %f %f %f\n",(int)index,element_float[0],element_float[1],element_float[2]);
 								}
 							}
 							{
@@ -634,7 +634,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 							
 			const cgltf_accessor* blob = prim->attributes[ii].data;
 			cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
-			printf(" nfloats = %d accessor type %d count %d ",nfloats,blob->type,blob->count);
+			printf(" nfloats = %d accessor type %d count %d ",(int)nfloats,blob->type,(int)blob->count);
 			switch(blob->type){
 				case cgltf_type_scalar: printf("SCALAR");break;
 				case cgltf_type_vec2: printf("VEC2");break;
@@ -646,7 +646,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 			for (cgltf_size index = 0; index < blob->count; index++)
 			{
 				cgltf_accessor_read_float(blob, index, element_float, 16);
-				printf("%d %f %f %f\n",index,element_float[0],element_float[1],element_float[2]);
+				printf("%d %f %f %f\n",(int)index,element_float[0],element_float[1],element_float[2]);
 			}
 		}
 		{
@@ -687,7 +687,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 				for (cgltf_size index = 0; index < blob->count; index++)
 				{
 					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
-					if(show)printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
+					if(show)printf("%d %f %f %f\n", (int)index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
 				}
 				//glVertexAttribPointer( LOC   ,isize, GL_FLOAT, FALSE, blob->stride, fdata);
 				//FW_GL_VERTEX_POINTER(3, GL_FLOAT,size, fdata); 
@@ -712,7 +712,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 				for (cgltf_size index = 0; index < blob->count; index++)
 				{
 					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
-					if(show) printf("%d %f %f %f\n", index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
+					if(show) printf("%d %f %f %f\n", (int)index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
 				}
 				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
@@ -738,7 +738,7 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 				for (cgltf_size index = 0; index < blob->count; index++)
 				{
 					cgltf_accessor_read_float(blob, index, &fdata[index*2], 2);
-					if(show) printf("%d %f %f \n", index, fdata[index*2 +0],fdata[index*2 +1]);
+					if(show) printf("%d %f %f \n", (int)index, fdata[index*2 +0],fdata[index*2 +1]);
 				}
 				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
 				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);

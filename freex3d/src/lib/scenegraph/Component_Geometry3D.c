@@ -1016,21 +1016,25 @@ void render_IndexedFaceSet (struct X3D_IndexedFaceSet *node) {
 	//	else printf("[.%d",count);
 	//	count++;
 	//}
-	COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
-	if (!node->_intern) return;
+	//COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
+	//if (!node->_intern) return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 	//if(print_names) printf("]");
 }
 
 void render_ElevationGrid (struct X3D_ElevationGrid *node) {
-	COMPILE_POLY_IF_REQUIRED (NULL, node->fogCoord, node->color, node->normal, node->texCoord)
+	//COMPILE_POLY_IF_REQUIRED (NULL, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, NULL, node->fogCoord, node->color, node->normal, node->texCoord))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
 
 void render_Extrusion (struct X3D_Extrusion *node) {
-	COMPILE_POLY_IF_REQUIRED (NULL,NULL,NULL,NULL,NULL)
+	//COMPILE_POLY_IF_REQUIRED (NULL,NULL,NULL,NULL,NULL)
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
+
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
@@ -1132,8 +1136,8 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 
 	/*save changed state.*/
 	if(node->_intern) change = node->_intern->irep_change;
-	COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL)
-
+	//COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL)
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
 
 	if(node->_intern) node->_intern->irep_change = change;
 	/*restore changes state, invalidates mk_polyrep work done, so it can be done
@@ -2161,7 +2165,9 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 
 	/*save changed state.*/
 	if(node->_intern) change = node->_intern->irep_change;
-	COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL)
+	//COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL)
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
+
 	if(node->_intern) node->_intern->irep_change = change;
 	/*restore changes state, invalidates compile_polyrep work done, so it can be done
 	correclty in the RENDER pass */

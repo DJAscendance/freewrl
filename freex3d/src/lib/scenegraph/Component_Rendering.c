@@ -94,38 +94,44 @@ static void findExtentInCoord (struct X3D_Node *node, int count, struct SFVec3f*
 }
 
 void render_IndexedTriangleFanSet (struct X3D_IndexedTriangleFanSet *node) {
-	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	//COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
 
 void render_IndexedTriangleSet (struct X3D_IndexedTriangleSet *node) {
-	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	//COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 
 }
 
 void render_IndexedTriangleStripSet (struct X3D_IndexedTriangleStripSet *node) {
-	COMPILE_POLY_IF_REQUIRED( node->coord, node->fogCoord, node->color, node->normal, NULL)
+	//COMPILE_POLY_IF_REQUIRED( node->coord, node->fogCoord, node->color, node->normal, NULL)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, NULL))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
 
 void render_TriangleFanSet (struct X3D_TriangleFanSet *node) {
-		COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+		//COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+		if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord)) return;
 		CULL_FACE(node->solid)
 		render_polyrep(node);
 }
 
 void render_TriangleStripSet (struct X3D_TriangleStripSet *node) {
-	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	//COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
 
 void render_TriangleSet (struct X3D_TriangleSet *node) {
-	COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	//COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }

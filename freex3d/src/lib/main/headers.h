@@ -168,12 +168,12 @@ extern double geoHeightinZAxis;
 
 
 #define NODE_CHANGE_INIT_VAL 153	/* node->_change is set to this when created */
-#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e) \
-                if(!node->_intern || node->_change != (node->_intern)->irep_change) { \
-                        compileNode ((void *)compile_polyrep, node, a,b,c,d,e); \
-		} \
-		if (!node->_intern) return;
-
+//#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e) \
+//                if(!node->_intern || node->_change != (node->_intern)->irep_change) { \
+//                        compileNode ((void *)compile_polyrep, node, a,b,c,d,e); \
+//		} \
+//		if (!node->_intern) return;
+void* compile_poly_if_required(void* node, void* coord, void* fogCoord, void* color, void* normal, void* texCoord);
 #define COMPILE_IF_REQUIRED { struct X3D_Virt *v; \
 	if (node->_ichange != node->_change) { \
 		v = virtTable[node->_nodeType]; \
