@@ -1925,7 +1925,7 @@ void collide_Text (struct X3D_Text *node)
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth,atop,abottom,astep,modelMatrix[16];
     struct point_XYZ delta = {0,0,-1};
-    struct X3D_PolyRep pr;
+    struct X3D_PolyRep *pr;
 	ttglobal tg;
     int change = 0;
 	tg = gglobal();
@@ -1946,27 +1946,25 @@ void collide_Text (struct X3D_Text *node)
       so, if there is no need to calculate normals..., why do it? */
 
     /* JAS - first pass, intern is probably zero */
-    if (node->_intern == NULL) return;
-
+    if (node->_intern == NULL || node->_intern->itype != 2) return;
+	pr = (struct X3D_PolyRep*)node->_intern;
     /* JAS - no triangles in this text structure */
-    if (node->_intern->ntri == 0) return;
+    if (pr->ntri == 0) return;
 
     /*save changed state.*/
-    if (node->_intern)
-        change = node->_intern->irep_change;
+    change = pr->irep_change;
 
     //COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL);
 	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
-    if (node->_intern)
-        node->_intern->irep_change = change;
+    pr->irep_change = change;
 
     /* restore changes state, invalidates compile_polyrep work done, so it can be done
        correclty in the RENDER pass */
 
-    pr = *(node->_intern);
+    pr = (struct X3D_PolyRep*)node->_intern;
 
     /* do the triangle test again, now that we may have compiled the node. */
-    if (pr.ntri == 0) {
+    if (pr->ntri == 0) {
         /* printf ("TRIANGLE NOW HAS ZERO NODES...\n"); */
         return;
     }
@@ -1976,7 +1974,7 @@ void collide_Text (struct X3D_Text *node)
 	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision);
 	//dug9july2011 matmultiply(modelMatrix,FallInfo()->avatar2collision,modelMatrix);
 
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix,pr.minVals,pr.maxVals) )return;
+	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix,pr->minVals,pr->maxVals) )return;
     delta = planar_polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,PR_DOUBLESIDED,delta);
     /* delta used as zero */
 
@@ -1995,7 +1993,7 @@ void collide_Text (struct X3D_Text *node)
 
 void make_Text (struct X3D_Text *node)
 {
-	struct X3D_PolyRep *rep_ = node->_intern;
+	struct X3D_PolyRep *rep_ = (struct X3D_PolyRep*)node->_intern;
 	double spacing = 1.0;
 	double size = 1.0;
 	int isScreenFontStyle;

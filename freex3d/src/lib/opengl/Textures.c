@@ -910,7 +910,7 @@ void unRegisterTexture(struct X3D_Node *tmp) {
 	registerTexture0(0,tmp);
 }
 
-void free_polyrep(struct X3D_PolyRep *rep);
+void free_polyrep(struct X3D_GeomRep *rep);
 
 void unRegisterPolyRep(struct X3D_Node *tmp)
 {

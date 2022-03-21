@@ -1776,7 +1776,7 @@ static int counter = 0;
 	  Walk: Bound-Viewpoint-Vertical-aligned Avatar-centric BVVA space.
  flags - 
 */
-struct point_XYZ polyrep_disp2(struct X3D_PolyRep pr, GLDOUBLE* mat, prflags flags) {
+struct point_XYZ polyrep_disp2(struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags flags) {
     int i;
     unsigned int maxc;
 	ppcollision pp = (ppcollision)gglobal()->collision.prv;
@@ -1833,8 +1833,8 @@ struct point_XYZ polyrep_disp2(struct X3D_PolyRep pr, GLDOUBLE* mat, prflags fla
 	pp->res.x=0.0; pp->res.y=0.0; pp->res.z=0.0;
 	maxc = 0; /*  highest cindex, used to point into prd_newc_floats structure.*/
 
-	for(i = 0; i < pr.ntri*3; i++) {
-		if (pr.cindex[i] > maxc) {maxc = pr.cindex[i];}
+	for(i = 0; i < pr->ntri*3; i++) {
+		if (pr->cindex[i] > maxc) {maxc = pr->cindex[i];}
 	}
 
 	/*transform all points from raw shape to viewer(fly) or BVAAC(walk) space */
@@ -1844,29 +1844,29 @@ struct point_XYZ polyrep_disp2(struct X3D_PolyRep pr, GLDOUBLE* mat, prflags fla
 	}
 
 
-	for(i = 0; i < pr.ntri*3; i++) {
-		transformf(&pp->prd_newc_floats[pr.cindex[i]*3],&pr.actualCoord[pr.cindex[i]*3],mat);
+	for(i = 0; i < pr->ntri*3; i++) {
+		transformf(&pp->prd_newc_floats[pr->cindex[i]*3],&pr->actualCoord[pr->cindex[i]*3],mat);
 	}
 
-	pr.actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
+	pr->actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
 
  
 	/*pre-calculate face normals */
-	if (pr.ntri> pp->prd_normals_size) {
-		pp->prd_normals = REALLOC(pp->prd_normals,pr.ntri*sizeof(struct point_XYZ));
-		pp->prd_normals_size = pr.ntri;
+	if (pr->ntri> pp->prd_normals_size) {
+		pp->prd_normals = REALLOC(pp->prd_normals,pr->ntri*sizeof(struct point_XYZ));
+		pp->prd_normals_size = pr->ntri;
 	}
 
-	for(i = 0; i < pr.ntri; i++) {
-		polynormalf(&pp->prd_normals[i],&pr.actualCoord[pr.cindex[i*3]*3],
-			&pr.actualCoord[pr.cindex[i*3+1]*3],&pr.actualCoord[pr.cindex[i*3+2]*3]);
+	for(i = 0; i < pr->ntri; i++) {
+		polynormalf(&pp->prd_normals[i],&pr->actualCoord[pr->cindex[i*3]*3],
+			&pr->actualCoord[pr->cindex[i*3+1]*3],&pr->actualCoord[pr->cindex[i*3+2]*3]);
 	}
 
-	pp->res = polyrep_disp_rec2(&pr,pp->prd_normals,pp->res,flags); //polyrep_disp_rec(y1,y2,ystep,r,&pr,prd_normals,res,flags);
+	pp->res = polyrep_disp_rec2(pr,pp->prd_normals,pp->res,flags); //polyrep_disp_rec(y1,y2,ystep,r,&pr,prd_normals,res,flags);
 
 	/* printf ("polyrep_disp_rec2 tells us to move: %f %f %f\n",pp->res.x, pp->res.y, pp->res.z); */
 
-	pr.actualCoord = 0;
+	pr->actualCoord = 0;
 
 #ifdef POLYREP_DISP2_PERFORMANCE
 	stopTime = Time1970sec();
@@ -1949,7 +1949,7 @@ static struct point_XYZ planar_polyrep_disp_rec(double y1, double y2, double yst
 }
 
 
-struct point_XYZ planar_polyrep_disp(double y1, double y2, double ystep, double r, struct X3D_PolyRep pr, GLDOUBLE* mat, prflags flags, struct point_XYZ n) {
+struct point_XYZ planar_polyrep_disp(double y1, double y2, double ystep, double r, struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags flags, struct point_XYZ n) {
     int i;
     unsigned int maxc;
 	ppcollision pp = (ppcollision)gglobal()->collision.prv;
@@ -1958,8 +1958,8 @@ struct point_XYZ planar_polyrep_disp(double y1, double y2, double ystep, double 
     pp->res.x=0.0; pp->res.y=0.0; pp->res.z=0.0;
     maxc = 0; /*  highest cindex, used to point into newc structure.*/
 
-    for(i = 0; i < pr.ntri*3; i++) {
-	if (pr.cindex[i] > maxc) {maxc = pr.cindex[i];}
+    for(i = 0; i < pr->ntri*3; i++) {
+	if (pr->cindex[i] > maxc) {maxc = pr->cindex[i];}
     }
 
     /*transform all points to viewer space */
@@ -1968,18 +1968,18 @@ struct point_XYZ planar_polyrep_disp(double y1, double y2, double ystep, double 
 		pp->prd_newc_floats_size = maxc;
     }
 
-    for(i = 0; i < pr.ntri*3; i++) {
-	transformf(&pp->prd_newc_floats[pr.cindex[i]*3],&pr.actualCoord[pr.cindex[i]*3],mat);
+    for(i = 0; i < pr->ntri*3; i++) {
+	transformf(&pp->prd_newc_floats[pr->cindex[i]*3],&pr->actualCoord[pr->cindex[i]*3],mat);
     }
-    pr.actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
+    pr->actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
 
     /*if normal not speced, calculate it */
     /* if(n.x == 0 && n.y == 0 && n.z == 0.) */
     if(APPROX(n.x, 0) && APPROX(n.y, 0) && APPROX(n.z, 0)) {
-	polynormalf(&n,&pr.actualCoord[pr.cindex[0]*3],&pr.actualCoord[pr.cindex[1]*3],&pr.actualCoord[pr.cindex[2]*3]);
+	polynormalf(&n,&pr->actualCoord[pr->cindex[0]*3],&pr->actualCoord[pr->cindex[1]*3],&pr->actualCoord[pr->cindex[2]*3]);
     }
 
-    pp->res = planar_polyrep_disp_rec(y1,y2,ystep,r,&pr,n,pp->res,flags);
+    pp->res = planar_polyrep_disp_rec(y1,y2,ystep,r,pr,n,pp->res,flags);
 
     return pp->res;
 }

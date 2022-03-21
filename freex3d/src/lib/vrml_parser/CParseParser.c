@@ -7161,7 +7161,7 @@ void remove_picksensor(struct X3D_Node * node);
 void delete_first(struct X3D_Node *node);
 void removeNodeFromKeySensorList(struct X3D_Node* node);
 int	unInitializeScript(struct X3D_Node *node);
-void delete_polyrep(struct X3D_Node *node);
+void delete_geomrep(struct X3D_Node* node);
 void unRegisterPolyRep(struct X3D_Node *node);
 void delete_glbuffers(struct X3D_Node *node);
 void unRegisterGeoElevationGrid(struct X3D_Node *node);
@@ -7214,7 +7214,7 @@ int unRegisterX3DAnyNode(struct X3D_Node *node){
 	unInitializeScript(node);
 
 	//only live scenery has polyreps prepared, remove the polyrep
-	delete_polyrep(node);
+	delete_geomrep(node);
 	delete_glbuffers(node);
 	return TRUE;
 }

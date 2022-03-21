@@ -184,7 +184,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 
 	/* get internal structures */
 	node = X3D_NODE(innode);
-	r = node->_intern;
+	r = (struct X3D_PolyRep*) node->_intern;
 	r->actualFog = NULL;
     
 	#ifdef STREAM_POLY_VERBOSE

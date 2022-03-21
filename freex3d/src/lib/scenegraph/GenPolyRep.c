@@ -124,7 +124,7 @@ int checkX3DElevationGridFields (struct X3D_ElevationGrid *this_, float **points
 	float *height = ((this_->height).p);
 	int ntri = (nx && nz ? 2 * (nx-1) * (nz-1) : 0);
 	int nh = ((this_->height).n);
-	struct X3D_PolyRep *rep = this_->_intern;
+	struct X3D_PolyRep *rep = (struct X3D_PolyRep*) this_->_intern;
 
 	float *newpoints;
 	float newPoint[3];
@@ -673,7 +673,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
     
 	struct SFVec3f *points = NULL;
 	float *fogdepths = NULL;
-	struct X3D_PolyRep *rep_ = node->_intern;
+	struct X3D_PolyRep *rep_ = (struct X3D_PolyRep*) node->_intern;
 
 	struct Multi_Int32 *orig_coordIndex = NULL;
 	struct Multi_Int32 *orig_texCoordIndex = NULL;
@@ -1619,7 +1619,7 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 	struct SFVec2f *curve =node->crossSection.p;	/* vector of 2D curve points	*/
 	struct SFRotation *orientation=node->orientation.p;/*vector of SCP rotations*/
 
-	struct X3D_PolyRep *rep_=node->_intern;/*internal rep, we want to fill*/
+	struct X3D_PolyRep *rep_= (struct X3D_PolyRep*) node->_intern;/*internal rep, we want to fill*/
 
 	/* the next variables will point at members of *rep		*/
 	GLuint   *cindex;				/* field containing indices into

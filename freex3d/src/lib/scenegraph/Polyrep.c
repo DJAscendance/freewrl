@@ -773,7 +773,7 @@ void render_polyrep(void* node) {
 
 	renderedNodePtr = X3D_NODE(node);
 	//virt = virtTable[renderedNodePtr->_nodeType];
-	pr = renderedNodePtr->_intern;
+	pr = (struct X3D_PolyRep*) renderedNodePtr->_intern;
 
 #ifdef TEXVERBOSE
 	printf("\nrender_polyrep, _nodeType %s\n", stringNodeType(renderedNodePtr->_nodeType));
@@ -1004,9 +1004,9 @@ void render_ray_polyrep_A(void *node) {
 		return;
 	}
 
-	polyRep = genericNodePtr->_intern;
-
-	/*	
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
+	if (!polyRep->ntri || !polyRep->actualCoord) return;
+	/*
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
 		genericNodePtr->_change, polyRep->_change, polyRep->ntri);
 	*/
@@ -1143,7 +1143,7 @@ void render_ray_polyrep_B(void *node) {
 		return;
 	}
 
-	polyRep = genericNodePtr->_intern;
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
 
 	/*	
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
@@ -1323,7 +1323,7 @@ int intersect_polyrep(struct X3D_Node *node, float *p1, float *p2, float *neares
 		return 0;
 	}
 
-	polyRep = genericNodePtr->_intern;
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
 
 	/*	
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
@@ -1526,7 +1526,7 @@ int intersect_polyrep2(struct X3D_Node *node, float *p1, float *p2, Stack *inter
 		return 0;
 	}
 
-	polyRep = genericNodePtr->_intern;
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
 
 	/*	
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
@@ -1716,9 +1716,11 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 
 		int i;
 
-		node->_intern = MALLOC(struct X3D_PolyRep *, sizeof(struct X3D_PolyRep));
+		node->_intern = MALLOC(struct X3D_GeomRep *, sizeof(struct X3D_PolyRep));
 		memset(node->_intern,0,sizeof(struct X3D_PolyRep));
-		polyrep = node->_intern;
+		polyrep = (struct X3D_PolyRep*) node->_intern;
+		polyrep->itype = 2; //0 points 1 lines 2 mesh
+		polyrep->mode = 4; //4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
 		polyrep->ntri = -1;
 		//polyrep->cindex = 0; polyrep->actualCoord = 0; polyrep->colindex = 0; polyrep->color = 0;
 		//polyrep->norindex = 0; polyrep->normal = 0; polyrep->flat_normal = 0; polyrep->GeneratedTexCoords = 0;
@@ -1748,7 +1750,7 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 
 	}
 
-	polyrep = node->_intern;
+	polyrep = (struct X3D_PolyRep*) node->_intern;
 
 	/* Android, for instance, needs the VBO_buffers re-created. Check to see if this is the case here */
 	if (polyrep->VBO_buffers[VERTEX_VBO] == 0) {
@@ -1787,35 +1789,51 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 
 }
 
-void delete_polyrep(struct X3D_Node *node){
+void delete_geomrep(struct X3D_Node *node){
 	// see if node has _intern, if so it's live scenery
 	// delete opengl buffers used by polyrep
 	// delete internal malloced items in polyrep
 	// delete polyrep
 	// null node's _intern field
-	struct X3D_PolyRep *pr;
 	if(!node) return;
-	pr = node->_intern;
-	if(pr){
-		// ? apr 2015 I think the node->_intern = polyrep will only be populated 
-		// in the case of live scenery, not in ProtoDeclares, so if we are in here, 
-		// we should have live scenery, and that means gl buffers were assigned
-		glDeleteBuffers(VBO_COUNT,pr->VBO_buffers);
+	if (!node->_intern) return;
+	switch(node->_intern->itype){
+	case 0: //points
+		break;
+	case 1: //lines
+		{
+			struct X3D_LineRep* lr;
+			lr = (struct X3D_LineRep*)node->_intern;
+			//not implemented yet
+		}
+		break;
+	case 2: //mesh
+		{
+			struct X3D_PolyRep* pr;
+			pr = (struct X3D_PolyRep*)node->_intern;
+			// ? apr 2015 I think the node->_intern = polyrep will only be populated 
+			// in the case of live scenery, not in ProtoDeclares, so if we are in here, 
+			// we should have live scenery, and that means gl buffers were assigned
+			glDeleteBuffers(VBO_COUNT, pr->VBO_buffers);
 
-		/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
-		FREE_IF_NZ(pr->cindex);   /* triples (per triangle) */
-		FREE_IF_NZ(pr->colindex);   /* triples (per triangle) */
-		FREE_IF_NZ(pr->norindex);
-		FREE_IF_NZ(pr->tcindex); /* triples or null */
-		FREE_IF_NZ(pr->tri_indices);
-		FREE_IF_NZ(pr->wire_indices);
-		FREE_IF_NZ(pr->actualCoord); /* triples (per point) */
-		FREE_IF_NZ(pr->actualFog); /* float (per point) */
-		FREE_IF_NZ(pr->color); /* triples or null */
-		FREE_IF_NZ(pr->normal); /* triples or null */
-		FREE_IF_NZ(pr->flat_normal);
-		FREE_IF_NZ(pr->GeneratedTexCoords[0]);	/* triples (per triangle) of texture coords if there is no texCoord node */
-		FREE_IF_NZ(pr);
-		node->_intern = NULL;
+			/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
+			FREE_IF_NZ(pr->cindex);   /* triples (per triangle) */
+			FREE_IF_NZ(pr->colindex);   /* triples (per triangle) */
+			FREE_IF_NZ(pr->norindex);
+			FREE_IF_NZ(pr->tcindex); /* triples or null */
+			FREE_IF_NZ(pr->tri_indices);
+			FREE_IF_NZ(pr->wire_indices);
+			FREE_IF_NZ(pr->actualCoord); /* triples (per point) */
+			FREE_IF_NZ(pr->actualFog); /* float (per point) */
+			FREE_IF_NZ(pr->color); /* triples or null */
+			FREE_IF_NZ(pr->normal); /* triples or null */
+			FREE_IF_NZ(pr->flat_normal);
+			FREE_IF_NZ(pr->GeneratedTexCoords[0]);	/* triples (per triangle) of texture coords if there is no texCoord node */
+			FREE_IF_NZ(pr);
+			node->_intern = NULL;
+		}
+		break;
+	default:
+		break;
 	}
 };

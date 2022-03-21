@@ -1124,22 +1124,23 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 	#ifdef RENDERVERBOSE
 	struct point_XYZ t_orig = {0,0,0};
 	#endif
-	struct X3D_PolyRep pr;
+	struct X3D_PolyRep* pr;
 	prflags flags = 0;
 	int change = 0;
 
 	/* JAS - first pass, intern is probably zero */
-	if (node->_intern == NULL) return;
+	if (!node->_intern || node->_intern->itype != 2) return;
+	pr = (struct X3D_PolyRep*) node->_intern;
 
 	/* JAS - no triangles in this text structure */
-	if (node->_intern->ntri == 0) return;
+	if (pr->ntri == 0) return;
 
 	/*save changed state.*/
-	if(node->_intern) change = node->_intern->irep_change;
+	change = pr->irep_change;
 	//COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL)
 	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
 
-	if(node->_intern) node->_intern->irep_change = change;
+	pr->irep_change = change;
 	/*restore changes state, invalidates mk_polyrep work done, so it can be done
 		correclty in the RENDER pass */
 
@@ -1147,18 +1148,15 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 		flags = flags | PR_DOUBLESIDED;
 	}
 
-	pr = *(node->_intern);
-
-
 	/* IndexedFaceSets are "different", in that the user specifies points, among
 		other things.  The rendering pass takes these external points, and streams
 		them to make rendering much faster on hardware accel. We have to check to
 		see whether we have got here before the first rendering of a possibly new
 		IndexedFaceSet */
-	if (!pr.actualCoord) {
+	if (!pr->actualCoord) {
 		struct Multi_Vec3f* tmp;
 		tmp = getCoordinate(node->coord,"Collision");
-		pr.actualCoord = (float *) tmp->p;
+		pr->actualCoord = (float *) tmp->p;
 	}
 
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
@@ -1226,7 +1224,7 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 		- pr.actualCoord - these are Shape space coordinates
 		They will be transformed into CollisionSpace coordinates by the modelMatrix transform.
 	*/
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
+	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr->minVals, pr->maxVals))return;
 	/* passed fast test. Now for gruelling test */
 
 	delta = polyrep_disp2(pr,modelMatrix,flags); //polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,flags);
@@ -2154,21 +2152,22 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 	#ifdef RENDERVERBOSE
 	struct point_XYZ t_orig = {0,0,0};
 	#endif
-	struct X3D_PolyRep pr;
+	struct X3D_PolyRep *pr;
 	prflags flags = 0;
 	int change = 0;
 
 	/* JAS - first pass, intern is probably zero */
-	if (node->_intern == NULL) return;
+	if (node->_intern == NULL || node->_intern->itype != 2) return;
+	pr = (struct X3D_PolyRep*) node->_intern;
 	/* JAS - no triangles in this text structure */
-	if (node->_intern->ntri == 0) return;
+	if (pr->ntri == 0) return;
 
 	/*save changed state.*/
-	if(node->_intern) change = node->_intern->irep_change;
+	change = pr->irep_change;
 	//COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL)
 	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
 
-	if(node->_intern) node->_intern->irep_change = change;
+	pr->irep_change = change;
 	/*restore changes state, invalidates compile_polyrep work done, so it can be done
 	correclty in the RENDER pass */
 
@@ -2176,7 +2175,6 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 		flags = flags | PR_DOUBLESIDED;
 	}
 	/*	printf("_PolyRep = %d\n",node->_intern);*/
-	pr = *(node->_intern);
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 
 	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
@@ -2188,7 +2186,7 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 	t_orig.z = modelMatrix[14];
 	#endif
 
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
+	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr->minVals, pr->maxVals))return;
 	delta = polyrep_disp2(pr,modelMatrix,flags); 
 	vecscale(&delta,&delta,-1);
 	accumulate_disp(CollisionInfo(),delta);
@@ -2726,7 +2724,7 @@ void compile_Teapot (struct X3D_Teapot *tnode){
 	if(tnode->__ifsnode == NULL){
 		if(teapotifs == NULL){
 			teapotifs = createNewX3DNode0(NODE_IndexedFaceSet); //IIRC createnewX3DNode0 doesn't add to nodelist or garbage collection
-			teapotifs->_intern = create_polyrep();
+			teapotifs->_intern = (struct X3D_GeomRep*) create_polyrep();
 			teapot_coord = createNewX3DNode0(NODE_Coordinate);
 			teapotifs->creaseAngle = (float)PI;
 			teapotifs->normalPerVertex = FALSE;
@@ -2775,7 +2773,7 @@ void compile_Pyramid (struct X3D_Pyramid *tnode){
 	if(tnode->__ifsnode == NULL){
 		if(pyramidifs == NULL){
 			pyramidifs = createNewX3DNode0(NODE_IndexedFaceSet); //IIRC createnewX3DNode0 doesn't add to nodelist or garbage collection
-			pyramidifs->_intern = create_polyrep();
+			pyramidifs->_intern = (struct X3D_GeomRep*) create_polyrep();
 			pyramid_coord = createNewX3DNode0(NODE_Coordinate);
 			pyramid_texcoord = createNewX3DNode0(NODE_TextureCoordinate);
 			pyramidifs->creaseAngle = 0.0F; //(float)PI;

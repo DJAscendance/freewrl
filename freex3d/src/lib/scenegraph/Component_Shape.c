@@ -1485,9 +1485,10 @@ void child_Shape (struct X3D_Shape *node) {
 		//enableGlobalShader (getMyShader(shader_requirements)); //node->_shaderTableEntry));
 
 		//see if we have to set up a TextureCoordinateGenerator type here
-		if (tmpNG && tmpNG->_intern) {
-			if (tmpNG->_intern->tcoordtype == NODE_TextureCoordinateGenerator) {
-				getAppearanceProperties()->texCoordGeneratorType = tmpNG->_intern->texgentype;
+		if (tmpNG && tmpNG->_intern && tmpNG->_intern->itype == 2) {
+			struct X3D_PolyRep* tmppr = (struct X3D_PolyRep*) tmpNG->_intern;
+			if (tmppr->tcoordtype == NODE_TextureCoordinateGenerator) {
+				getAppearanceProperties()->texCoordGeneratorType = tmppr->texgentype;
 				//ConsoleMessage("shape, matprop val %d, geom val %d",getAppearanceProperties()->texCoordGeneratorType, node->geometry->_intern->texgentype);
 			}
 		}

@@ -198,6 +198,8 @@ struct X3D_PolyRep * create_polyrep0(){
 
 	polyrep = MALLOC(struct X3D_PolyRep *, sizeof(struct X3D_PolyRep));
 	memset(polyrep,0,sizeof(struct X3D_PolyRep));
+	polyrep->itype = 2; //0 points 1 lines 2 mesh
+	polyrep->mode = 4; //4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
 	polyrep->ntri = -1;
 	//polyrep->cindex = 0; polyrep->actualCoord = 0; polyrep->colindex = 0; polyrep->color = 0;
 	//polyrep->norindex = 0; polyrep->normal = 0; polyrep->flat_normal = 0; polyrep->GeneratedTexCoords = 0;
@@ -1028,7 +1030,7 @@ void convert_strips_to_polyrep(struct Vector * strips,struct X3D_NurbsTrimmedSur
 
 	/* first time through; make the intern structure for this polyrep node */
 	if(node->_intern){
-		polyrep = node->_intern;
+		polyrep = (struct X3D_PolyRep*)node->_intern;
 		FREE_IF_NZ(polyrep->cindex);
 		FREE_IF_NZ(polyrep->actualCoord);
 		FREE_IF_NZ(polyrep->GeneratedTexCoords[0]);
@@ -1042,9 +1044,9 @@ void convert_strips_to_polyrep(struct Vector * strips,struct X3D_NurbsTrimmedSur
 		//glDeleteBuffers(VBO_COUNT,polyrep->VBO_buffers); //streampoly checks if 0 before doing a new one
 	}
 	if(!node->_intern) 
-		node->_intern = create_polyrep();
+		node->_intern = (struct X3D_GeomRep*) create_polyrep();
 
-	rep_ = polyrep = node->_intern;
+	rep_ = polyrep = (struct X3D_PolyRep*) node->_intern;
 
 
 	/* if multithreading, tell the rendering loop that we are regenning this one */
@@ -2542,7 +2544,7 @@ void convert_mesh_to_polyrep(float *xyz, int npts, float *nxyz, int* tindex, int
 
 	/* first time through; make the intern structure for this polyrep node */
 	if(node->_intern){
-		polyrep = node->_intern;
+		polyrep = (struct X3D_PolyRep*) node->_intern;
 		FREE_IF_NZ(polyrep->cindex);
 		FREE_IF_NZ(polyrep->actualCoord);
 		FREE_IF_NZ(polyrep->GeneratedTexCoords[0]);
@@ -2554,9 +2556,9 @@ void convert_mesh_to_polyrep(float *xyz, int npts, float *nxyz, int* tindex, int
 		FREE_IF_NZ(polyrep->tcindex);
 	}
 	if(!node->_intern) 
-		node->_intern = create_polyrep();
+		node->_intern = (struct X3D_GeomRep*) create_polyrep();
 
-	rep_ = polyrep = node->_intern;
+	rep_ = polyrep = (struct X3D_PolyRep*) node->_intern;
 
 
 	/* if multithreading, tell the rendering loop that we are regenning this one */

@@ -137,26 +137,7 @@ void render_TriangleSet (struct X3D_TriangleSet *node) {
 }
 
 
-struct X3D_LineRep {
-	// will hold commmon GL_LINE_STRIP parameters from
-	// PolyLine2D, Arc2D, ArcClose2D_LINE, Circle2D
-	// LineSet, IndexedLineSet
-	// analogous to PolyRep for triangle nodes
-	// motivation for this extra level of common abstraction for lines:
-	// - Appearance.LineProperties.linetype - dashed lines require extra prev,next vertices and other info sent
-	//   (glLineStipple not working with our shader system)
-	int npoint;
-	struct SFVec3f *point;
-	struct SFVec2f *point2D;
-	struct SFVec3f *prev;
-	struct SFVec3f *next;
-	int nsegments;
-	int *start;
-	int *count;
-	float *fogcoord; 
-	struct SFColor *color; 
-	struct SFColorRGBA *colorRgba;
-};
+
 void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, 
 		struct SFColorRGBA *colorRgba, struct SFColor *color, float *fog,
 		int nsegments, int *counts, int *starts)
@@ -167,6 +148,8 @@ void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points
 		memset(_linerep,0,sizeof(struct X3D_LineRep));
 	}
 	struct X3D_LineRep *linerep = (struct X3D_LineRep *)_linerep;
+	linerep->itype = 1; //0 points 1 lines 2 mesh
+	linerep->mode = 1; //1 LINES 	2 LINE_LOOP 3 LINE_STRIP
 	linerep->point = points;
 	linerep->point2D = points2D;
 	linerep->colorRgba = colorRgba;
