@@ -1638,25 +1638,26 @@ dispsum.xyz - output - sum of collision displacement vectors - a mean will be co
 flags - doublesided, front/back facing hints, no-stepping (?)
 */
 //struct point_XYZ polyrep_disp_rec(double y1, double y2, double ystep, double r, struct X3D_PolyRep* pr, struct point_XYZ* n,  struct point_XYZ dispsum, prflags flags) {
-static struct point_XYZ polyrep_disp_rec2(struct X3D_PolyRep* pr, struct point_XYZ* n,  struct point_XYZ dispsum, prflags flags) {
-    struct point_XYZ p[3];
+//static struct point_XYZ polyrep_disp_rec2(struct X3D_PolyRep* pr, struct point_XYZ* n,  struct point_XYZ dispsum, prflags flags) {
+static struct point_XYZ polyrep_disp_rec2(float *coord, int* cindex, int ntri, int ccw, struct point_XYZ* n, struct point_XYZ dispsum, prflags flags) {
+	struct point_XYZ p[3];
     double maxdisp = 0;
     struct point_XYZ maxdispv = {0,0,0};
     double disp;
     struct point_XYZ dispv;
     int i;
     int frontfacing;
-    int ccw;
+    //int ccw;
 
-    ccw = pr->ccw;
+    //ccw = pr->ccw;
 
 //printf ("start polyrep_disp_rec2\n");
 
-    for(i = 0; i < pr->ntri; i++) 
+    for(i = 0; i < ntri; i++) 
 	{
-		p[0].x = pr->actualCoord[pr->cindex[i*3]*3]    +dispsum.x;
-		p[0].y = pr->actualCoord[pr->cindex[i*3]*3+1]  +dispsum.y;
-		p[0].z = pr->actualCoord[pr->cindex[i*3]*3+2]  +dispsum.z;
+		p[0].x = coord[cindex[i*3]*3]    +dispsum.x;
+		p[0].y = coord[cindex[i*3]*3+1]  +dispsum.y;
+		p[0].z = coord[cindex[i*3]*3+2]  +dispsum.z;
 
 		if (ccw) frontfacing = (vecdot(&n[i],&p[0]) < 0);	/*if normal facing avatar. avatar is at 0,0,0. If vector P going opposite direction to N, P*N will be negative */
 		else frontfacing = (vecdot(&n[i],&p[0]) >= 0);		/*if ccw facing avatar */
@@ -1678,12 +1679,12 @@ static struct point_XYZ polyrep_disp_rec2(struct X3D_PolyRep* pr, struct point_X
 		{
 
 			struct point_XYZ nused;
-			p[1].x = pr->actualCoord[pr->cindex[i*3+1]*3]    +dispsum.x;
-			p[1].y = pr->actualCoord[pr->cindex[i*3+1]*3+1]  +dispsum.y;
-			p[1].z = pr->actualCoord[pr->cindex[i*3+1]*3+2]  +dispsum.z;
-			p[2].x = pr->actualCoord[pr->cindex[i*3+2]*3]    +dispsum.x;
-			p[2].y = pr->actualCoord[pr->cindex[i*3+2]*3+1]  +dispsum.y;
-			p[2].z = pr->actualCoord[pr->cindex[i*3+2]*3+2]  +dispsum.z;
+			p[1].x = coord[cindex[i*3+1]*3]    +dispsum.x;
+			p[1].y = coord[cindex[i*3+1]*3+1]  +dispsum.y;
+			p[1].z = coord[cindex[i*3+1]*3+2]  +dispsum.z;
+			p[2].x = coord[cindex[i*3+2]*3]    +dispsum.x;
+			p[2].y = coord[cindex[i*3+2]*3+1]  +dispsum.y;
+			p[2].z = coord[cindex[i*3+2]*3+2]  +dispsum.z;
 
 			if(frontfacing) 
 			{
@@ -1848,7 +1849,7 @@ struct point_XYZ polyrep_disp2(struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags fl
 		transformf(&pp->prd_newc_floats[pr->cindex[i]*3],&pr->actualCoord[pr->cindex[i]*3],mat);
 	}
 
-	pr->actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
+	//pr->actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
 
  
 	/*pre-calculate face normals */
@@ -1858,15 +1859,15 @@ struct point_XYZ polyrep_disp2(struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags fl
 	}
 
 	for(i = 0; i < pr->ntri; i++) {
-		polynormalf(&pp->prd_normals[i],&pr->actualCoord[pr->cindex[i*3]*3],
-			&pr->actualCoord[pr->cindex[i*3+1]*3],&pr->actualCoord[pr->cindex[i*3+2]*3]);
+		polynormalf(&pp->prd_normals[i],&pp->prd_newc_floats[pr->cindex[i*3]*3],
+			&pp->prd_newc_floats[pr->cindex[i*3+1]*3],&pp->prd_newc_floats[pr->cindex[i*3+2]*3]);
 	}
 
-	pp->res = polyrep_disp_rec2(pr,pp->prd_normals,pp->res,flags); //polyrep_disp_rec(y1,y2,ystep,r,&pr,prd_normals,res,flags);
-
+	//pp->res = polyrep_disp_rec2(pr,pp->prd_normals,pp->res,flags); //polyrep_disp_rec(y1,y2,ystep,r,&pr,prd_normals,res,flags);
+	pp->res = polyrep_disp_rec2(pp->prd_newc_floats, pr->cindex, pr->ntri, pr->ccw, pp->prd_normals, pp->res, flags);
 	/* printf ("polyrep_disp_rec2 tells us to move: %f %f %f\n",pp->res.x, pp->res.y, pp->res.z); */
 
-	pr->actualCoord = 0;
+	//pr->actualCoord = 0;
 
 #ifdef POLYREP_DISP2_PERFORMANCE
 	stopTime = Time1970sec();
@@ -1893,7 +1894,7 @@ struct point_XYZ polyrep_disp2(struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags fl
   planar_polyrep_disp computes the normal using the first polygon, if no normal is specified (if it is zero).
   JAS - Normal is always specified now. (see VRMLRend.pm for invocation)
 */
-static struct point_XYZ planar_polyrep_disp_rec(double y1, double y2, double ystep, double r, struct X3D_PolyRep* pr, struct point_XYZ n, struct point_XYZ dispsum, prflags flags) {
+static struct point_XYZ planar_polyrep_disp_rec(double y1, double y2, double ystep, double r, float *coord, int *cindex, int ntri, struct point_XYZ n, struct point_XYZ dispsum, prflags flags) {
     struct point_XYZ p[3];
     double lmaxdisp = 0;
     struct point_XYZ maxdispv = {0,0,0};
@@ -1904,9 +1905,9 @@ static struct point_XYZ planar_polyrep_disp_rec(double y1, double y2, double yst
     int frontfacing;
 	ppcollision pp = (ppcollision)gglobal()->collision.prv;
 
-    p[0].x = pr->actualCoord[pr->cindex[0]*3]    +dispsum.x;
-    p[0].y = pr->actualCoord[pr->cindex[0]*3+1]  +dispsum.y;
-    p[0].z = pr->actualCoord[pr->cindex[0]*3+2]  +dispsum.z;
+    p[0].x = coord[cindex[0]*3]    +dispsum.x;
+    p[0].y = coord[cindex[0]*3+1]  +dispsum.y;
+    p[0].z = coord[cindex[0]*3+2]  +dispsum.z;
 
     frontfacing = (vecdot(&n,&p[0]) < 0);	/*if normal facing avatar */
 
@@ -1914,16 +1915,16 @@ static struct point_XYZ planar_polyrep_disp_rec(double y1, double y2, double yst
 
     if(!frontfacing) vecscale(&n,&n,-1.0);
 
-    for(i = 0; i < pr->ntri; i++) {
-	p[0].x = pr->actualCoord[pr->cindex[i*3]*3]    +dispsum.x;
-	p[0].y = pr->actualCoord[pr->cindex[i*3]*3+1]  +dispsum.y;
-	p[0].z = pr->actualCoord[pr->cindex[i*3]*3+2]  +dispsum.z;
-	p[1].x = pr->actualCoord[pr->cindex[i*3+1]*3]    +dispsum.x;
-	p[1].y = pr->actualCoord[pr->cindex[i*3+1]*3+1]  +dispsum.y;
-	p[1].z = pr->actualCoord[pr->cindex[i*3+1]*3+2]  +dispsum.z;
-	p[2].x = pr->actualCoord[pr->cindex[i*3+2]*3]    +dispsum.x;
-	p[2].y = pr->actualCoord[pr->cindex[i*3+2]*3+1]  +dispsum.y;
-	p[2].z = pr->actualCoord[pr->cindex[i*3+2]*3+2]  +dispsum.z;
+    for(i = 0; i < ntri; i++) {
+	p[0].x = coord[cindex[i*3]*3]    +dispsum.x;
+	p[0].y = coord[cindex[i*3]*3+1]  +dispsum.y;
+	p[0].z = coord[cindex[i*3]*3+2]  +dispsum.z;
+	p[1].x = coord[cindex[i*3+1]*3]    +dispsum.x;
+	p[1].y = coord[cindex[i*3+1]*3+1]  +dispsum.y;
+	p[1].z = coord[cindex[i*3+1]*3+2]  +dispsum.z;
+	p[2].x = coord[cindex[i*3+2]*3]    +dispsum.x;
+	p[2].y = coord[cindex[i*3+2]*3+1]  +dispsum.y;
+	p[2].z = coord[cindex[i*3+2]*3+2]  +dispsum.z;
 
 	//dispv = get_poly_disp(y1,y2,ystep, r, p, 3, n);
 	dispv = get_poly_disp_2(p, 3, n);
@@ -1971,15 +1972,15 @@ struct point_XYZ planar_polyrep_disp(double y1, double y2, double ystep, double 
     for(i = 0; i < pr->ntri*3; i++) {
 	transformf(&pp->prd_newc_floats[pr->cindex[i]*3],&pr->actualCoord[pr->cindex[i]*3],mat);
     }
-    pr->actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
+    //pr->actualCoord = pp->prd_newc_floats; /*remember, coords are only replaced in our local copy of PolyRep */
 
     /*if normal not speced, calculate it */
     /* if(n.x == 0 && n.y == 0 && n.z == 0.) */
     if(APPROX(n.x, 0) && APPROX(n.y, 0) && APPROX(n.z, 0)) {
-	polynormalf(&n,&pr->actualCoord[pr->cindex[0]*3],&pr->actualCoord[pr->cindex[1]*3],&pr->actualCoord[pr->cindex[2]*3]);
+	polynormalf(&n,&pp->prd_newc_floats[pr->cindex[0]*3],&pp->prd_newc_floats[pr->cindex[1]*3],&pp->prd_newc_floats[pr->cindex[2]*3]);
     }
 
-    pp->res = planar_polyrep_disp_rec(y1,y2,ystep,r,pr,n,pp->res,flags);
+    pp->res = planar_polyrep_disp_rec(y1,y2,ystep,r,pp->prd_newc_floats,pr->cindex,pr->ntri,n,pp->res,flags);
 
     return pp->res;
 }

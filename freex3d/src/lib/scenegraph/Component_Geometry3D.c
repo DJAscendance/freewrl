@@ -1153,11 +1153,12 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 		them to make rendering much faster on hardware accel. We have to check to
 		see whether we have got here before the first rendering of a possibly new
 		IndexedFaceSet */
-	if (!pr->actualCoord) {
-		struct Multi_Vec3f* tmp;
-		tmp = getCoordinate(node->coord,"Collision");
-		pr->actualCoord = (float *) tmp->p;
-	}
+	if (!pr->actualCoord) return;
+	//{
+	//	struct Multi_Vec3f* tmp;
+	//	tmp = getCoordinate(node->coord,"Collision");
+	//	pr->actualCoord = (float *) tmp->p;
+	//}
 
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 	/* 
@@ -2166,6 +2167,7 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 	change = pr->irep_change;
 	//COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL)
 	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
+	if (pr->actualCoord == NULL) return; //not compiled yet
 
 	pr->irep_change = change;
 	/*restore changes state, invalidates compile_polyrep work done, so it can be done
