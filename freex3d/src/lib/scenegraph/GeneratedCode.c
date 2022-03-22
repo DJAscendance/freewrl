@@ -138,7 +138,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__lasttime",
 	"__leftTexture",
 	"__level",
-	"__linerep",
 	"__loadResource",
 	"__loading",
 	"__loadstatus",
@@ -4752,7 +4751,6 @@ const int OFFSETS_Arc2D[] = {
 	(int) FIELDNAMES_startAngle, (int) offsetof (struct X3D_Arc2D, startAngle),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES___points, (int) offsetof (struct X3D_Arc2D, __points),  (int) FIELDTYPE_MFVec2f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___numPoints, (int) offsetof (struct X3D_Arc2D, __numPoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_Arc2D, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ArcClose2D[] = {
@@ -4767,7 +4765,6 @@ const int OFFSETS_ArcClose2D[] = {
 	(int) FIELDNAMES___numPoints, (int) offsetof (struct X3D_ArcClose2D, __numPoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___simpleDisk, (int) offsetof (struct X3D_ArcClose2D, __simpleDisk),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___wireindices, (int) offsetof (struct X3D_ArcClose2D, __wireindices),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_ArcClose2D, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioBuffer[] = {
@@ -5125,7 +5122,6 @@ const int OFFSETS_Circle2D[] = {
 	(int) FIELDNAMES_radius, (int) offsetof (struct X3D_Circle2D, radius),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES___points, (int) offsetof (struct X3D_Circle2D, __points),  (int) FIELDTYPE_MFVec2f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___numPoints, (int) offsetof (struct X3D_Circle2D, __numPoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_Circle2D, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ClipPlane[] = {
@@ -6765,7 +6761,6 @@ const int OFFSETS_IndexedLineSet[] = {
 	(int) FIELDNAMES___xfog, (int) offsetof (struct X3D_IndexedLineSet, __xfog),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertices, (int) offsetof (struct X3D_IndexedLineSet, __vertices),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___vertexCount, (int) offsetof (struct X3D_IndexedLineSet, __vertexCount),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_IndexedLineSet, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_IndexedQuadSet[] = {
@@ -7068,7 +7063,6 @@ const int OFFSETS_LineSet[] = {
 	(int) FIELDNAMES___vertIndx, (int) offsetof (struct X3D_LineSet, __vertIndx),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___starts, (int) offsetof (struct X3D_LineSet, __starts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___segCount, (int) offsetof (struct X3D_LineSet, __segCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_LineSet, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_LoadSensor[] = {
@@ -8179,7 +8173,6 @@ const int OFFSETS_PointSet[] = {
 const int OFFSETS_Polyline2D[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_Polyline2D, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_lineSegments, (int) offsetof (struct X3D_Polyline2D, lineSegments),  (int) FIELDTYPE_MFVec2f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES___linerep, (int) offsetof (struct X3D_Polyline2D, __linerep),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PolylineEmitter[] = {
@@ -10590,7 +10583,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->startAngle = 0.0f;
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
-			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -10608,7 +10600,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__numPoints = 0;
 			tmp2->__simpleDisk = TRUE;
 			tmp2->__wireindices = 0;
-			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11068,7 +11059,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->radius = 1.0f;
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
-			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -13101,7 +13091,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__xfog = 0;
 			tmp2->__vertices = 0;
 			tmp2->__vertexCount = 0;
-			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -13484,7 +13473,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__vertIndx = 0;
 			tmp2->__starts = 0;
 			tmp2->__segCount = 0;
-			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -14902,7 +14890,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_Polyline2D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->lineSegments.n=0; tmp2->lineSegments.p=0;
-			tmp2->__linerep = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

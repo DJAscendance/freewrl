@@ -313,7 +313,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	MARK_NODE_COMPILED
 	nSegments = 0;
 	node->__segCount = 0;
-	clear_LineRep(node->__linerep);
+	clear_LineRep(node->_intern);
 
 	/* ok, what we do is this. Although this is Indexed, colours and vertices can have
 	   different indexes; so we make them all the same. To do this, we create another
@@ -619,7 +619,7 @@ void compile_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 	//for(int i=0;i<nSegments;i++){
 	//	printf("starts[%d] = %d counts %d\n",i,starts[i],counts[i]);
 	//}
-	node->__linerep = set_LineRep(node->__linerep,node->__vertices,NULL,node->__xcolours,NULL,node->__xfog,node->__segCount, (int *)node->__counts,(int*)node->__starts);
+	node->_intern = set_LineRep(node->_intern,node->__vertices,NULL,node->__xcolours,NULL,node->__xfog,node->__segCount, (int *)node->__counts,(int*)node->__starts);
 }
 
 void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
@@ -637,7 +637,7 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
 			X3D_NODE(node));
 
-	render_LineRep(node->__linerep);
+	render_LineRep((struct X3D_LineRep*)node->_intern);
 }
 
 void compile_PointSet (struct X3D_PointSet *node) {
@@ -843,7 +843,7 @@ void render_LineSet (struct X3D_LineSet *node) {
 			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
 			X3D_NODE(node));
 
-	render_LineRep(node->__linerep);
+	render_LineRep((struct X3D_LineRep*)node->_intern);
 }
 
 
@@ -865,7 +865,7 @@ void compile_LineSet (struct X3D_LineSet *node) {
 
 	MARK_NODE_COMPILED
 	node->__segCount = 0; /* assume this for now */
-	clear_LineRep(node->__linerep);
+	clear_LineRep(node->_intern);
 
 
 	nvertexc = (node->vertexCount).n; vertexC = (node->vertexCount).p;
@@ -971,7 +971,7 @@ void compile_LineSet (struct X3D_LineSet *node) {
 		struct X3D_FogCoordinate *fogcoord = (struct X3D_FogCoordinate*)node->fogCoord;
 		fog = fogcoord->depth.p;
 	}
-	node->__linerep = set_LineRep(node->__linerep,coord,NULL,NULL,NULL,fog,nvertexc,vertexC,(int*)node->__starts);
+	node->_intern = set_LineRep(node->_intern,coord,NULL,NULL,NULL,fog,nvertexc,vertexC,(int*)node->__starts);
 }
 
 /* ClipPlane
