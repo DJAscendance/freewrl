@@ -1799,6 +1799,26 @@ void delete_geomrep(struct X3D_Node *node){
 	if (!node->_intern) return;
 	switch(node->_intern->itype){
 	case 0: //points
+		{
+			struct X3D_PointRep* pr;
+			GLuint VBOBuffers[3];
+			if (node->_nodeType != NODE_PointSet && node->_nodeType != NODE_Polypoint2D) {
+				printf("attempting to delete PointRep for nodetype %s\n", stringNodeType(node->_nodeType));
+				break;
+			}
+			pr = (struct X3D_PointRep*)node->_intern;
+			VBOBuffers[0] = pr->coordVBO;
+			VBOBuffers[1] = pr->colorVBO;
+			VBOBuffers[2] = pr->fogVBO;
+			glDeleteBuffers(1, VBOBuffers);
+
+			/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
+			FREE_IF_NZ(pr->coord); /* triples (per point) */
+			FREE_IF_NZ(pr->fog); /* float (per point) */
+			FREE_IF_NZ(pr->color); /* triples or null */
+			FREE_IF_NZ(pr);
+			node->_intern = NULL;
+		}
 		break;
 	case 1: //lines
 		{

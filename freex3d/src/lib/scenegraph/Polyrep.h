@@ -90,6 +90,13 @@ struct X3D_GeomRep {
 struct X3D_PointRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
+	float *coord;
+	float *color;
+	float *fog;
+	int ncoord;
+	GLuint coordVBO;
+	GLuint colorVBO;
+	GLuint fogVBO;
 };
 struct X3D_LineRep {
 	// will hold commmon GL_LINE_STRIP parameters from

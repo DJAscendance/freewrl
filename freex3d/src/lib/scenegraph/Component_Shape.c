@@ -211,6 +211,7 @@ void child_Appearance (struct X3D_Appearance *node) {
 	   printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	   render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 	/* Render the material node... */
+
 	RENDER_MATERIAL_SUBNODES(node->material);
 	if(node->backMaterial){
 		push_isBackMaterial();
@@ -1343,6 +1344,10 @@ void initialize_front_and_back_material_params(){
 	initialize_fw_MaterialParameters(&p->appearanceProperties.fw_FrontMaterial);
 	initialize_fw_MaterialParameters(&p->appearanceProperties.fw_BackMaterial);
 }
+void initialize_non_material_appearance_parameters() {
+	//zero /clear from last draw (so appearance of one node doesnt show up in another node)
+	memset(getAppearanceProperties(), 0, sizeof(struct matpropstruct));
+}
 
 //unsigned int getShaderFlags();
 shaderflagsstruct getShaderFlags();
@@ -1387,6 +1392,7 @@ void child_Shape (struct X3D_Shape *node) {
 	tg->RenderFuncs.shapenode = node;
 	
 	/* copy the material stuff in preparation for copying all to the shader */
+	initialize_non_material_appearance_parameters(); //zero /clear from last draw
 	initialize_front_and_back_material_params();
 
 	if((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
