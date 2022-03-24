@@ -80,6 +80,10 @@ void findExtentInCoord0 (struct X3D_Node *node, int count, float* coord, int dim
 
 	if (!coord || count < 1 || dimensions < 1) return;
 	//assume dimensions > dimension are zero ie for 2D assume 3rd dimension is extent 0,0
+	if (dimensions < 3)
+		node->EXTENT_MAX_Z = node->EXTENT_MIN_Z = 0.0f;
+	if (dimensions < 2)
+		node->EXTENT_MAX_Y = node->EXTENT_MIN_Y = 0.0f;
 	for (i=0; i<count; i++) {
 		float* point = &coord[i * dimensions];
 		if (point[0] > node->EXTENT_MAX_X) node->EXTENT_MAX_X = point[0];
@@ -91,12 +95,6 @@ void findExtentInCoord0 (struct X3D_Node *node, int count, float* coord, int dim
 				if (point[2] > node->EXTENT_MAX_Z) node->EXTENT_MAX_Z = point[2];
 				if (point[2] < node->EXTENT_MIN_Z) node->EXTENT_MIN_Z = point[2];
 			}
-			else {
-				node->EXTENT_MAX_Z = node->EXTENT_MIN_Z = 0.0f;
-			}
-		}
-		else {
-			node->EXTENT_MAX_Y = node->EXTENT_MIN_Y = 0.0f;
 		}
 	}
 	/* printf ("extents %f %f, %f %f, %f %f\n",node->EXTENT_MIN_X, node->EXTENT_MAX_X,
@@ -852,6 +850,22 @@ void render_PointRep(void* _pointrep) {
 		}
 		clearDraw(); //child_shape also does this, redundant>
 	}
+}
+
+void delete_PointRep(void* _pointrep) {
+	struct X3D_PointRep* pr;
+	GLuint VBOBuffers[3];
+	pr = (struct X3D_PointRep*)_pointrep;
+	VBOBuffers[0] = pr->coordVBO;
+	VBOBuffers[1] = pr->colorVBO;
+	VBOBuffers[2] = pr->fogVBO;
+	glDeleteBuffers(1, VBOBuffers);
+
+	/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
+	FREE_IF_NZ(pr->coord); /* triples (per point) */
+	FREE_IF_NZ(pr->fog); /* float (per point) */
+	FREE_IF_NZ(pr->color); /* triples or null */
+	FREE_IF_NZ(pr);
 }
 void render_PointSet (struct X3D_PointSet *node) {
 	struct X3D_PointRep* pointrep;

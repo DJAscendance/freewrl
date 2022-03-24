@@ -101,6 +101,8 @@ struct X3D_PointRep {
 void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 	float* color, int colorSize, int ncolor, float* fog, int nfog);
 void render_PointRep(void* pointrep);
+void delete_PointRep(void* pointrep);
+
 struct X3D_LineRep {
 	// will hold commmon GL_LINE_STRIP parameters from
 	// PolyLine2D, Arc2D, ArcClose2D_LINE, Circle2D
