@@ -779,7 +779,8 @@ static GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .
 static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
 static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
 
-void render_PointRep(struct X3D_PointRep* pointrep) {
+void render_PointRep(void* _pointrep) {
+	struct X3D_PointRep* pointrep = (struct X3D_PointRep*)_pointrep;
 	if (getAppearanceProperties()->pointMethod == PM_NONE) {
 		//old style simple only, see render_PointSet for fancy.
 		if (pointrep->coordVBO == 0) return;
