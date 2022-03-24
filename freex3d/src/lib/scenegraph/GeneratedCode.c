@@ -262,8 +262,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_class",
 	"_col",
 	"_colormode",
-	"_colourSize",
-	"_coloursVBO",
 	"_context",
 	"_controlPoint",
 	"_coordIndex",
@@ -278,7 +276,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_fbohandles",
 	"_floatInpFIFO",
 	"_floatOutFIFO",
-	"_fogcoordVBO",
 	"_forceout",
 	"_frameSpeed",
 	"_framevalues",
@@ -327,7 +324,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_njoints",
 	"_normkey",
 	"_normkeyValue",
-	"_npoints",
 	"_nseg",
 	"_offsetUnits",
 	"_oldState",
@@ -369,7 +365,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_phaseFunction",
 	"_pin_point",
 	"_pointMethod",
-	"_pointsVBO",
 	"_portions",
 	"_position",
 	"_prepped_planet",
@@ -8163,11 +8158,6 @@ const int OFFSETS_PointSet[] = {
 	(int) FIELDNAMES_fogCoord, (int) offsetof (struct X3D_PointSet, fogCoord),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PointSet, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_normal, (int) offsetof (struct X3D_PointSet, normal),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__pointsVBO, (int) offsetof (struct X3D_PointSet, _pointsVBO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__coloursVBO, (int) offsetof (struct X3D_PointSet, _coloursVBO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__fogcoordVBO, (int) offsetof (struct X3D_PointSet, _fogcoordVBO),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__npoints, (int) offsetof (struct X3D_PointSet, _npoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__colourSize, (int) offsetof (struct X3D_PointSet, _colourSize),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Polyline2D[] = {
@@ -14877,11 +14867,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->fogCoord = NULL;
 			tmp2->metadata = NULL;
 			tmp2->normal = NULL;
-			tmp2->_pointsVBO = 0;
-			tmp2->_coloursVBO = 0;
-			tmp2->_fogcoordVBO = 0;
-			tmp2->_npoints = 0;
-			tmp2->_colourSize = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

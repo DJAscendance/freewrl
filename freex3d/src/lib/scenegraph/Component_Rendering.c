@@ -718,7 +718,7 @@ void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 	}
 	return pointrep;
 }
-static int pointmethod = 1;
+
 void compile_PointSet (struct X3D_PointSet *node) {
 	int ncolor = 0, nfog = 0, npoint = 0, colorSize = 3;
 	struct X3D_Color *cc;
@@ -726,17 +726,9 @@ void compile_PointSet (struct X3D_PointSet *node) {
 	float* points = NULL;
 	float* colors = NULL; // , * colorRGBA = NULL;
 
-	if (pointmethod == 1) {
-		if (node->_pointsVBO == 0) {
-			glGenBuffers(1, (GLuint*)&node->_pointsVBO);
-		}
-	}
-
 	/* do nothing, except get the extents here */
 	MARK_NODE_COMPILED
 
-	node->_npoints = 0;
-    
 	if (node->coord) {
 		struct Multi_Vec3f *dtmp;
 		dtmp = getCoordinate (node->coord, "PointSet");
@@ -746,12 +738,7 @@ void compile_PointSet (struct X3D_PointSet *node) {
 			findExtentInCoord(X3D_NODE(node), dtmp->n, dtmp->p);
 
 			if (dtmp->n == 0) return;
-			if (pointmethod == 1) {
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint)node->_pointsVBO);
-				glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFVec3f) * dtmp->n, dtmp->p, GL_STATIC_DRAW);
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-			}
-			node->_npoints = dtmp->n;
+			npoint = dtmp->n;
 		}
 	}
 
@@ -771,30 +758,6 @@ void compile_PointSet (struct X3D_PointSet *node) {
 				ncolor = 0;
 			}
 		}
-
-
-		if(ncolor && ncolor < node->_npoints) {
-			ConsoleMessage ("PointSet has less colors than points - removing color\n");
-			ncolor = 0;
-			colors = NULL;
-			//colorRGBA = NULL;
-		} else 
-		if(pointmethod == 1) {
-			if (node->_coloursVBO == 0) {
-				glGenBuffers(1,(GLuint *)&node->_coloursVBO);
-			}
-        
-			/* RGB or RGBA? */
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_coloursVBO);
-			if (cc->_nodeType == NODE_Color) {
-				glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFColor)*ncolor, colors, GL_STATIC_DRAW);
-				node->_colourSize = 3;
-			} else {
-				glBufferData(GL_ARRAY_BUFFER, sizeof(struct SFColorRGBA)*ncolor, colors, GL_STATIC_DRAW);
-				node->_colourSize = 4;
-			}
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-		}
 	}
 	if (node->fogCoord) {
 		struct X3D_FogCoordinate *fc = NULL;
@@ -807,27 +770,8 @@ void compile_PointSet (struct X3D_PointSet *node) {
 				fog = fc->depth.p;
 			}
 		}
-
-
-		if(nfog && nfog < node->_npoints) {
-			ConsoleMessage ("PointSet has less fogcoord than points - removing fog\n");
-			nfog = 0;
-			fog = NULL;
-		} else 
-		if(pointmethod == 1) {
-			if (node->_fogcoordVBO == 0) {
-				glGenBuffers(1,(GLuint *)&node->_fogcoordVBO);
-			}
-        
-			/* RGB or RGBA? */
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, (GLuint) node->_fogcoordVBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*nfog, fog, GL_STATIC_DRAW);
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-		}
 	}
-	if(pointmethod == 0)
-		node->_intern = set_PointRep(node->_intern, points, 3, node->_npoints, colors, colorSize, ncolor, fog, nfog);
-
+	node->_intern = set_PointRep(node->_intern, points, 3, npoint, colors, colorSize, ncolor, fog, nfog);
 }
 
 //same as Particle system quads
@@ -836,27 +780,65 @@ static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.
 static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
 
 void render_PointRep(struct X3D_PointRep* pointrep) {
-	//old style simple only, see render_PointSet for fancy.
-	if (pointrep->coordVBO == 0) return;
-	//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
-	// do we have fogcoord?
-	if (pointrep->fogVBO != 0) {
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pointrep->fogVBO);
-		FW_GL_FOG_POINTER(GL_FLOAT, 0, 0);
+	if (getAppearanceProperties()->pointMethod == PM_NONE) {
+		//old style simple only, see render_PointSet for fancy.
+		if (pointrep->coordVBO == 0) return;
+		//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
+		// do we have fogcoord?
+		if (pointrep->fogVBO != 0) {
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pointrep->fogVBO);
+			FW_GL_FOG_POINTER(GL_FLOAT, 0, 0);
+		}
+
+		// do we have colours?
+		if (pointrep->colorVBO != 0) {
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pointrep->colorVBO);
+			FW_GL_COLOR_POINTER(4, GL_FLOAT, 0, 0);
+		}
+
+		//good old simple way - opengl does most of the work
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pointrep->coordVBO);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, 0);
+
+		sendArraysToGPU(GL_POINTS, 0, pointrep->ncoord);
+	} else {
+		//PointProperties needs fancy scaling or sprite texturing 
+		//  we send a ParticleSystem-like quad
+		//  and send the vertex (and fogCoord, CPV) as a uniform, in a loop over the vertices.
+		// - see also render_Polypoint2D which uses a simpler version of below
+		s_shader_capabilities_t* mysp = getAppearanceProperties()->currentShaderProperties;
+
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)quadtris); //node->_tris); //quadtris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, 0, twotristex, 0);
+		glUniform1i(mysp->nTexCoordChannels, 1);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
+		GLint pcpv = mysp->pointCPV;
+		GLint pfog = mysp->pointFogCoord;
+		float* colors = pointrep->color;
+		float* points = pointrep->coord;
+		float* fog = pointrep->fog;
+		int npoint = pointrep->ncoord;
+
+		for (int i = 0; i < npoint; i++) {
+			//send uniform
+			float point[3];
+			memcpy(point, &points[i * 3], 3 * sizeof(float));
+			glUniform3fv(ppos, 1, point);
+			if (pcpv > -1 && colors) {
+				float rgba[4];
+				memcpy(rgba, &colors[i * 4], 4 * sizeof(float));
+				glUniform4fv(pcpv, 1, rgba);
+			}
+			if (pfog > -1 && fog) {
+				glUniform1f(pfog, fog[i]);
+			}
+			//draw
+			reallyDrawOnce();
+		}
+		clearDraw(); //child_shape also does this, redundant>
 	}
-
-	// do we have colours?
-	if (pointrep->colorVBO != 0) {
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pointrep->colorVBO);
-		FW_GL_COLOR_POINTER(4, GL_FLOAT, 0, 0);
-	}
-
-	//good old simple way - opengl does most of the work
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pointrep->coordVBO);
-	FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, 0);
-
-	sendArraysToGPU(GL_POINTS, 0, pointrep->ncoord);
-
 }
 void render_PointSet (struct X3D_PointSet *node) {
 	struct X3D_PointRep* pointrep;
@@ -864,7 +846,7 @@ void render_PointSet (struct X3D_PointSet *node) {
 	COMPILE_IF_REQUIRED
 		
 	pointrep = (struct X3D_PointRep*)node->_intern;
-	if(pointmethod ==0) if (!pointrep)return;
+	if (!pointrep)return;
 
 	setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
 			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
@@ -873,111 +855,7 @@ void render_PointSet (struct X3D_PointSet *node) {
 	LIGHTING_OFF
 	DISABLE_CULL_FACE
 
-
-	//printf ("ps is %d, vbo %d\n",node->_npoints, node->_pointsVBO);
-	if(getAppearanceProperties()->pointMethod == PM_NONE){
-		if (pointmethod == 1) {
-			if (node->_pointsVBO == 0) return;
-			//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
-			// do we have fogcoord?
-			if (node->_fogcoordVBO != 0) {
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_fogcoordVBO);
-				FW_GL_FOG_POINTER(GL_FLOAT, 0, 0);
-			}
-
-			// do we have colours?
-			if (node->_coloursVBO != 0) {
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_coloursVBO);
-				FW_GL_COLOR_POINTER(node->_colourSize, GL_FLOAT, 0, 0);
-			}
-
-			//good old simple way - opengl does most of the work
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_pointsVBO);
-			FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, 0);
-
-			sendArraysToGPU(GL_POINTS, 0, node->_npoints);
-		}
-		else if (pointmethod == 0) {
-			render_PointRep(pointrep);
-		}
-	}else{
-		//PointProperties needs fancy scaling or sprite texturing 
-		//  we send a ParticleSystem-like quad
-		//  and send the vertex (and fogCoord, CPV) as a uniform, in a loop over the vertices.
-		// - see also render_Polypoint2D which uses a simpler version of below
-		struct Multi_Vec3f *dtmp;
-		dtmp = getCoordinate (node->coord, "PointSet");
-		s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
-
-		FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)quadtris); //node->_tris); //quadtris);
-		FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-		FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,twotristex,0);
-		glUniform1i(mysp->nTexCoordChannels,1);
-		sendArraysToGPU (GL_TRIANGLES, 0, 6);
-		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
-		GLint pcpv = mysp->pointCPV;
-		GLint pfog = mysp->pointFogCoord;
-
-		if (pointmethod == 1) {
-			float* colors = NULL;
-			int ncolors = 0;
-			if (node->color) {
-				//POSSIBLE_PROTO_EXPANSIO - maybe need more work in compile_?
-				colors = (float*)((struct X3D_Color*)(node->color))->color.p;
-				ncolors = ((struct X3D_Color*)(node->color))->color.n;
-			}
-			float* fogcoord = NULL;
-			int nfog = 0;
-			if (node->fogCoord) {
-				//POSSIBLE_PROTO_EXPANSION
-				fogcoord = ((struct X3D_FogCoordinate*)(node->fogCoord))->depth.p;
-				nfog = ((struct X3D_FogCoordinate*)(node->fogCoord))->depth.n;
-			}
-
-			for (int i = 0; i < dtmp->n; i++) {
-				//send uniform
-				glUniform3fv(ppos, 1, dtmp->p[i].c);
-				if (pcpv > -1 && ncolors) {
-					float rgba[4];
-					int j = min(i, ncolors - 1);
-					rgba[3] = 1.0; //default opacity
-					memcpy(rgba, &colors[j * node->_colourSize], node->_colourSize * sizeof(float));
-					glUniform4fv(pcpv, 1, rgba);
-				}
-				if (pfog > -1 && nfog) {
-					int j = min(i, nfog - 1);
-					glUniform1f(pfog, fogcoord[j]);
-				}
-				//draw
-				reallyDrawOnce();
-			}
-		}
-		else if (pointmethod == 0) {
-			float* colors = pointrep->color;
-			float* points = pointrep->coord;
-			float* fog = pointrep->fog;
-			int npoint = pointrep->ncoord;
-
-			for (int i = 0; i < npoint; i++) {
-				//send uniform
-				float point[3];
-				memcpy(point, &points[i * 3], 3 * sizeof(float));
-				glUniform3fv(ppos, 1, point);
-				if (pcpv > -1 && colors) {
-					float rgba[4];
-					memcpy(rgba, &colors[i * 4], 4 * sizeof(float));
-					glUniform4fv(pcpv, 1, rgba);
-				}
-				if (pfog > -1 && fog) {
-					glUniform1f(pfog, fog[i]);
-				}
-				//draw
-				reallyDrawOnce();
-			}
-		}
-		clearDraw(); //child_shape also does this, redundant>
-
-	}
+	render_PointRep(pointrep);
 }
 
 void render_LineSet (struct X3D_LineSet *node) {
