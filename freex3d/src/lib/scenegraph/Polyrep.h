@@ -97,6 +97,16 @@ struct X3D_PointRep {
 	GLuint coordVBO;
 	GLuint colorVBO;
 	GLuint fogVBO;
+	//blob method, for fun and for gltf .bin blob preparation
+	GLuint blobVBO;
+	float* blob;
+	int blobSize;
+	int coordSize;
+	int colorOffset;
+	int colorSize;
+	int fogOffset;
+	int floatStride;
+
 };
 void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 	float* color, int colorSize, int ncolor, float* fog, int nfog);
