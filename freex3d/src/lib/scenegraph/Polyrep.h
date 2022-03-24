@@ -161,7 +161,7 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	int isRGBAcolorNode;		/* color was originally an RGBA, DO NOT re-write if transparency changes */
 	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
 };
-
+void findExtentInCoord0(struct X3D_Node* node, int count, float* coord, int dimensions);
 
 /* transformed ray */
 //extern struct point_XYZ t_r1;

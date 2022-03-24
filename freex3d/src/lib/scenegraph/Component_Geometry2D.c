@@ -431,13 +431,12 @@ void compile_Polypoint2D(struct X3D_Polypoint2D* node) {
 	/* do nothing, except get the extents here */
 	MARK_NODE_COMPILED
 	if (node->point.n > 0) {
-		/* for BoundingBox calculations */
-		setExtent(node->EXTENT_MAX_X, node->EXTENT_MIN_X,
-			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f, 0.0f, X3D_NODE(node));
 		points = (float *)node->point.p;
 		npoint = node->point.n;
 	}
-	node->_intern = set_PointRep(node->_intern, points, 2, npoint, NULL, 4,0,NULL,0);
+	findExtentInCoord0(X3D_NODE(node), npoint, points, 2);
+	if(npoint)
+		node->_intern = set_PointRep(node->_intern, points, 2, npoint, NULL, 4,0,NULL,0);
 }
 
 void render_Polypoint2D (struct X3D_Polypoint2D *node){
@@ -445,8 +444,11 @@ void render_Polypoint2D (struct X3D_Polypoint2D *node){
 
 	COMPILE_IF_REQUIRED
 
-	LIGHTING_OFF
-	DISABLE_CULL_FACE
+		LIGHTING_OFF
+		DISABLE_CULL_FACE
+	setExtent(node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
+			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
+			X3D_NODE(node));
 
 	if (!node->_intern) return;
 	render_PointRep(node->_intern);

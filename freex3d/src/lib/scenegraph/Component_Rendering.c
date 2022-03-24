@@ -73,26 +73,38 @@ void Component_Rendering_clear(struct tComponent_Rendering *t){
 
 
 /* find a bounding box that fits the coord structure. save it in the common-node area for extents.*/
-static void findExtentInCoord (struct X3D_Node *node, int count, struct SFVec3f* coord) {
+void findExtentInCoord0 (struct X3D_Node *node, int count, float* coord, int dimensions) {
 	int i;
 
 	INITIALIZE_EXTENT
 
-	if (!coord) return;
-
+	if (!coord || count < 1 || dimensions < 1) return;
+	//assume dimensions > dimension are zero ie for 2D assume 3rd dimension is extent 0,0
 	for (i=0; i<count; i++) {
-		if (coord->c[0] > node->EXTENT_MAX_X) node->EXTENT_MAX_X = coord->c[0];
-		if (coord->c[0] < node->EXTENT_MIN_X) node->EXTENT_MIN_X = coord->c[0];
-		if (coord->c[1] > node->EXTENT_MAX_Y) node->EXTENT_MAX_Y = coord->c[1];
-		if (coord->c[1] < node->EXTENT_MIN_Y) node->EXTENT_MIN_Y = coord->c[1];
-		if (coord->c[2] > node->EXTENT_MAX_Z) node->EXTENT_MAX_Z = coord->c[2];
-		if (coord->c[2] < node->EXTENT_MIN_Z) node->EXTENT_MIN_Z = coord->c[2];
-		coord++;
+		float* point = &coord[i * dimensions];
+		if (point[0] > node->EXTENT_MAX_X) node->EXTENT_MAX_X = point[0];
+		if (point[0] < node->EXTENT_MIN_X) node->EXTENT_MIN_X = point[0];
+		if (dimensions > 1) {
+			if (point[1] > node->EXTENT_MAX_Y) node->EXTENT_MAX_Y = point[1];
+			if (point[1] < node->EXTENT_MIN_Y) node->EXTENT_MIN_Y = point[1];
+			if (dimensions > 2) {
+				if (point[2] > node->EXTENT_MAX_Z) node->EXTENT_MAX_Z = point[2];
+				if (point[2] < node->EXTENT_MIN_Z) node->EXTENT_MIN_Z = point[2];
+			}
+			else {
+				node->EXTENT_MAX_Z = node->EXTENT_MIN_Z = 0.0f;
+			}
+		}
+		else {
+			node->EXTENT_MAX_Y = node->EXTENT_MIN_Y = 0.0f;
+		}
 	}
 	/* printf ("extents %f %f, %f %f, %f %f\n",node->EXTENT_MIN_X, node->EXTENT_MAX_X,
 	  node->EXTENT_MIN_Y, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z, node->EXTENT_MAX_Z); */
 }
-
+void findExtentInCoord(struct X3D_Node* node, int count, struct SFVec3f* coord) {
+	findExtentInCoord0(node, count, (float*)coord, 3);
+}
 void render_IndexedTriangleFanSet (struct X3D_IndexedTriangleFanSet *node) {
 	//COMPILE_POLY_IF_REQUIRED(node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
 	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
