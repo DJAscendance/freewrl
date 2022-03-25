@@ -850,18 +850,12 @@ void render_PointRep(void* _pointrep) {
 
 void delete_PointRep(void* _pointrep) {
 	struct X3D_PointRep* pr;
-	GLuint VBOBuffers[4];
+	GLuint VBOBuffers[1];
 	pr = (struct X3D_PointRep*)_pointrep;
-	VBOBuffers[0] = pr->coordVBO;
-	VBOBuffers[1] = pr->colorVBO;
-	VBOBuffers[2] = pr->fogVBO;
-	VBOBuffers[3] = pr->blobVBO;
+	VBOBuffers[0] = pr->blobVBO;
 	glDeleteBuffers(1, VBOBuffers);
 
 	/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
-	FREE_IF_NZ(pr->coord); /* triples (per point) */
-	FREE_IF_NZ(pr->fog); /* float (per point) */
-	FREE_IF_NZ(pr->color); /* triples or null */
 	FREE_IF_NZ(pr->blob);
 	FREE_IF_NZ(pr);
 }

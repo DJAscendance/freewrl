@@ -90,14 +90,7 @@ struct X3D_GeomRep {
 struct X3D_PointRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
-	float *coord;
-	float *color;
-	float *fog;
 	int ncoord;
-	GLuint coordVBO;
-	GLuint colorVBO;
-	GLuint fogVBO;
-	//blob method, for fun and for gltf .bin blob preparation
 	GLuint blobVBO;
 	float* blob;
 	int blobSize;
