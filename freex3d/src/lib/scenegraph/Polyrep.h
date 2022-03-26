@@ -35,50 +35,32 @@ Polyrep ???
 #include "../main/headers.h"
 #include "LinearAlgebra.h"
 
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-//gltf componentTypes
-#define GLTF_BYTE 5120
-#define GLTF_UNSIGNED_BYTE 5121
-#define GLTF_SHORT 5122 
-#define GLTF_UNSIGNED_SHORT 5123 //– used with SCALAR for indices
-#define GLTF_UNSIGNED_INT 5125 
-#define GLTF_FLOAT 5126 //– used with VEC3 for POSITIONand NORMALand with VEC2and TEXCOORD_0
-//gltf targets
-#define GLTF_ARRAY_BUFFER 34962
-#define GLTF_ELEMENT_ARRAY_BUFFER 34963
-
-//gltf types "SCALAR" "VEC2" "VEC3" "VEC4" "MATRIX2" "MATRIX3" "MATRIX4"
-#define GLTF_SCALAR 0
-#define GLTF_VEC2 1
-#define GLTF_VEC3 2
-#define GLTF_VEC4 3
-#define GLTF_MATRIX2 4
-#define GLTF_MATRIX3 5
-#define GLTF_MATRIX4 6
 //buffer list is per context (Scene, Proto, Inline) 
 // ..so buffer can be shared between shape nodes in same context, 
 //..unloaded when inline or scene unloaded or users = 0
-struct buffer {
-	void* address; //if not NULL then owns it
-	int size;
-	int loaded; //FALSE until data copied in, even if allocated
+struct geomBuffer {
+	char* address; //owns it
+	int byteSize;
+	int loaded; //FALSE until data copied in, even if allocated, alows delay-loading
 	int users; //when falls to zero, free()
+	GLuint VBO;
 };
 //in gltf the valance isn't accessor 1:1 bufferView
 // in freewrl we assume 1:1 and deep copy the bufferAccess for each GeomRep when m:1
-struct bufferAccess {
+struct bufAccess {
+	int in_use; //1= have attribute (fog, UV, ColorPerVertex) 0= don't have.
 	//untyped access, like gltf bufferView
-	char* byteAddress; //computed once from buffer.address + byteOffset for convenience
-	int byteStride; //position, normal, color-per-vertex, UV[4] can be per-vertex, index by itself
 	int byteOffset; //multiple arrays and even multiple shapes can share same blob buffer.
-	int buffer; //0 1 2 .. some indirection so shape can check if buffer loaded
+	int byteStride; //position, normal, color-per-vertex, UV[4] can be per-vertex, index by itself
 	//typed access, like gltf accessor
-	int componentType; //BYTE 5120, SHORT, FLOAT ..
-	int type; // 0-SCALAR, 1-VEC2..
-	int count;
-	GLuint VBO;
+	int dataType; // componentType GL_BYTE 5120, GL_SHORT, GL_INT, GL_FLOAT. GL_DOUBLE.
+	int dataSize; // type 1-SCALAR, 2-VEC2 3 VEC3 4 VEC4 9 MAT3 16 MAT4
+	int byteSize; // = sizeof(dataType) x dataSize
 };
-struct bufferAccess buffers[VBO_COUNT];
+
+
 
 
 
@@ -86,6 +68,7 @@ struct bufferAccess buffers[VBO_COUNT];
 struct X3D_GeomRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
+	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
 };
 struct X3D_PointRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
@@ -99,7 +82,10 @@ struct X3D_PointRep {
 	int colorSize;
 	int fogOffset;
 	int floatStride;
-
+	//shared buffer approach
+	//int buffer; //indirection to sharable, delay-loadable buffer list
+	struct geomBuffer* buffer;
+	struct bufAccess attrib[3]; //vertex coord, color per vertex, fog per vertex
 };
 void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 	float* color, int colorSize, int ncolor, float* fog, int nfog);
@@ -116,7 +102,7 @@ struct X3D_LineRep {
 	//   (glLineStipple not working with our shader system)
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh: 1 LINES 	2 LINE_LOOP 3 LINE_STRIP
-
+	void* ectx; //execution context (scene, proto, inline)
 	int npoint;
 	struct SFVec3f* point;
 	struct SFVec2f* point2D;
@@ -136,6 +122,7 @@ struct X3D_LineRep {
 struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh: 4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
+	void* ectx; //execution context (scene, proto, inline)
 	int irep_change;
 	int ccw;	/* ccw field for single faced structures */
 	int ntri; /* number of triangles */

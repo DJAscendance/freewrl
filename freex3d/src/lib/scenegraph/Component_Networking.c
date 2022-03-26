@@ -819,6 +819,7 @@ void child_Inline (struct X3D_Inline *node) {
 	//LOCAL_LIGHT_SAVE
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
+	push_executionContext(X3D_NODE(node));
 	prep_unitscale(X3D_PROTO(node));
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
@@ -829,6 +830,7 @@ void child_Inline (struct X3D_Inline *node) {
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	fin_unitscale(X3D_PROTO(node));
+	pop_executionContext();
 	//LOCAL_LIGHT_OFF
 
 }

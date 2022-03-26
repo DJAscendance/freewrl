@@ -649,64 +649,211 @@ void render_IndexedLineSet (struct X3D_IndexedLineSet *node) {
 
 	render_LineRep((struct X3D_LineRep*)node->_intern);
 }
+static struct dataType_byteSize {
+	int dataType;
+	int byteSize;
+} dataTypeSize_lookup[] = {
+	{GL_BYTE, 1},
+	{GL_SHORT, 2},
+	{GL_FLOAT, 4},
+	{GL_DOUBLE,8},
+	{-1,0},
+};
+static int dataTypeSizes_handled = 4;
 
+int lookup_dataType_size(int dataType) {
+	struct dataType_byteSize* typeSize;
+	int byteSize = 0;
+	int index = -1;
+	typeSize = NULL;
+	for(index = 0; index < dataTypeSizes_handled; index++) {
+		if (dataType == dataTypeSize_lookup[index].dataType) {
+			byteSize = dataTypeSize_lookup[index].byteSize;
+			break;
+		}
+	}
+
+	return byteSize;
+}
+void add_buffer_to_broto_context(void *buffer) {
+	struct X3D_Proto* context = X3D_PROTO(get_executionContext());
+	if (context) {
+		Stack* __GC;
+		if (!context->__GC)
+			context->__GC = newVector(struct X3D_Node*, 4);
+		__GC = context->__GC;
+		stack_push(void *, __GC, buffer);
+	}
+}
+void remove_buffer_from_broto_context(void * buffer) {
+	struct X3D_Proto* context = X3D_PROTO(get_executionContext());
+	if (context) {
+		if (context->__GC) {
+			int i;
+			for (i = 0; i < vectorSize(context->__GC); i++) {
+				void* ns = vector_get(void *, context->__GC, i);
+				if (ns == buffer) {
+					vector_remove_elem(void *, context->__GC, i);
+					break; //assumes its not added twice or more.
+				}
+			}
+		}
+	}
+}
+
+struct geomBuffer* add_geomBuffer(int buffersize, int users) {
+	struct geomBuffer* gb = MALLOC(struct geomBuffer*, sizeof(struct geomBuffer));
+	memset(gb, 0, sizeof(struct geomBuffer));
+	gb->address = malloc(buffersize);
+	memset(gb->address, 0, buffersize);
+	gb->byteSize = buffersize;
+	gb->users = users;
+	add_buffer_to_broto_context(gb); //do we need to track buffers allocated? If so, adding to broto context might help
+	return gb;
+}
+void set_geomBuffer(struct geomBuffer* gb) {
+	if (gb->VBO < 1) {
+		glGenBuffers(1, (GLuint*)&gb->VBO);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)gb->VBO);
+	glBufferData(GL_ARRAY_BUFFER, gb->byteSize, gb->address, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void update_geomBufferSize(struct geomBuffer* gb, int buffersize) {
+	gb->address = realloc(gb->address,buffersize);
+	memset(gb->address, 0, buffersize);
+	gb->byteSize = buffersize;
+	set_geomBuffer(gb);
+}
+void remove_geomBuffer(struct geomBuffer *gb) {
+	glDeleteBuffers(1, &gb->VBO);
+	remove_buffer_from_broto_context(gb); //do we need to track?
+	FREE_IF_NZ(gb->address);
+	FREE_IF_NZ(gb);
+}
+void subtract_geomBufferUser(struct geomBuffer* gb) {
+	gb->users--;
+	if (gb->users < 1) remove_geomBuffer(gb);
+}
+int set_Attrib(struct bufAccess* ba, int dataSize, int dataType, int byteOffset) {
+	int byteSize;
+	ba->dataSize = dataSize;
+	ba->in_use = 1;
+	ba->dataType = dataType;
+	ba->byteOffset = byteOffset;
+	byteSize = ba->byteSize = ba->dataSize * lookup_dataType_size(ba->dataType);
+	return byteSize;
+}
+char* get_Attribi(struct bufAccess* ba, struct geomBuffer *gb, int index) {
+	return &gb->address[ba->byteOffset + index * ba->byteStride];
+}
+static int buffer_method = 1;
 void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 	float* color, int colorSize, int ncolor, float* fog, int nfog)
 {
+	struct X3D_PointRep* pointrep = NULL;
 	//to be called from compile_PolyPoint2D, compile_PointSet
 	//deep copies points, colors, fog. X3D_PointRep owns the copies
+	if (!points || npoint == 0) return NULL;
+
 	if (!_pointrep) {
 		_pointrep = MALLOC(struct X3D_PointRep*, sizeof(struct X3D_PointRep));
 		memset(_pointrep, 0, sizeof(struct X3D_PointRep));
 	}
-	struct X3D_PointRep* pointrep = (struct X3D_PointRep*)_pointrep;
+	pointrep = (struct X3D_PointRep*)_pointrep;
 	pointrep->itype = 0; //0 pointrep 1 linerep 2 polyrep
 	pointrep->mode = 0; //0 points
-	if (!points || npoint == 0) return NULL;
+	if (buffer_method) {
 
-	//experiment to see if we can do it all with one buffer, with striding and offsets, like glTF
-	pointrep->coordSize = pointSize;
-	pointrep->colorSize = colorSize;
-	int nfloat_per_point = pointrep->coordSize;
-	if (color) {
-		pointrep->colorOffset = nfloat_per_point;
-		nfloat_per_point += pointrep->colorSize;
-	}
-	if (fog) {
-		pointrep->fogOffset = nfloat_per_point;
-		nfloat_per_point++;
-	}
-	pointrep->floatStride = nfloat_per_point;
-	pointrep->ncoord = npoint;
-	pointrep->blobSize = pointrep->floatStride * sizeof(float) * pointrep->ncoord;
-	pointrep->blob = REALLOC(pointrep->blob, pointrep->blobSize );
-	memset(pointrep->blob, 0, pointrep->blobSize);
-	for (int i = 0; i < pointrep->ncoord; i++)
-		memcpy(&pointrep->blob[i * pointrep->floatStride], &points[i * pointSize], pointSize * sizeof(float));
-
-	if (color) {
-		for (int i = 0; i < pointrep->ncoord; i++) {
-			float* rgba = &pointrep->blob[pointrep->colorOffset + i*pointrep->floatStride];
-			int j = min(i, ncolor - 1);
-			//rgba[3] = 1.0; //default opacity
-			memcpy(rgba, &color[j * colorSize], colorSize * sizeof(float));
+		//experiment to see if we can do it all with sharable buffer, like glTF
+		int nbyte_per_point = set_Attrib(&pointrep->attrib[0], pointSize, GL_FLOAT, 0);
+		if (color) {
+			nbyte_per_point += set_Attrib(&pointrep->attrib[1], colorSize, GL_FLOAT, nbyte_per_point);
 		}
-	}
-
-	if (fog) {
-		for (int i = 0; i < pointrep->ncoord; i++) {
-			float* fogpoint = &pointrep->blob[pointrep->fogOffset + i * pointrep->floatStride];
-			int j = min(i, nfog - 1);
-			*fogpoint = fog[j];
+		if (fog) {
+			nbyte_per_point += set_Attrib(&pointrep->attrib[2], 1, GL_FLOAT, nbyte_per_point);
 		}
-	}
-	if (pointrep->blobVBO == 0) {
-		glGenBuffers(1, (GLuint*)&pointrep->blobVBO);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)pointrep->blobVBO);
-	glBufferData(GL_ARRAY_BUFFER, pointrep->blobSize * sizeof(float), pointrep->blob, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+		//we have a certain way of packing attributes here,
+		// but gltf can have them packed separately with separate strides
+		for (int i = 0; i < 3; i++) pointrep->attrib[i].byteStride = nbyte_per_point;
+		//pointrep->attribByteStride = nbyte_per_point;
+		pointrep->ncoord = npoint;
+		int buffersize = nbyte_per_point * pointrep->ncoord;
+		if (!pointrep->buffer)
+			pointrep->buffer = add_geomBuffer(buffersize,1);
+		else
+			update_geomBufferSize(pointrep->buffer, buffersize);
+		struct geomBuffer* gb = pointrep->buffer;
+		struct bufAccess* ba = &pointrep->attrib[0];
+		for (int i = 0; i < pointrep->ncoord; i++) {
+			char* target = get_Attribi(ba, gb, i);
+			memcpy(target, &points[i * pointSize], pointSize * sizeof(float));
+		}
 
+		if (color) {
+			ba = &pointrep->attrib[1];
+			for (int i = 0; i < pointrep->ncoord; i++) {
+				char* target = get_Attribi(ba, gb, i);
+				int j = min(i, ncolor - 1);
+				//rgba[3] = 1.0; //default opacity, don't need if respect dataSize
+				memcpy(target, &color[j * colorSize], colorSize * sizeof(float));
+			}
+		}
+
+		if (fog) {
+			ba = &pointrep->attrib[2];
+			for (int i = 0; i < pointrep->ncoord; i++) {
+				char* target = get_Attribi(ba, gb, i);
+				int j = min(i, nfog - 1);
+				memcpy(target, &fog[j], sizeof(float));
+			}
+		}
+		set_geomBuffer(pointrep->buffer);
+
+	} else {
+		pointrep->coordSize = pointSize;
+		pointrep->colorSize = colorSize;
+		int nfloat_per_point = pointrep->coordSize;
+		if (color) {
+			pointrep->colorOffset = nfloat_per_point;
+			nfloat_per_point += pointrep->colorSize;
+		}
+		if (fog) {
+			pointrep->fogOffset = nfloat_per_point;
+			nfloat_per_point++;
+		}
+		pointrep->floatStride = nfloat_per_point;
+		pointrep->ncoord = npoint;
+		pointrep->blobSize = pointrep->floatStride * sizeof(float) * pointrep->ncoord;
+		pointrep->blob = REALLOC(pointrep->blob, pointrep->blobSize);
+		memset(pointrep->blob, 0, pointrep->blobSize);
+		for (int i = 0; i < pointrep->ncoord; i++)
+			memcpy(&pointrep->blob[i * pointrep->floatStride], &points[i * pointSize], pointSize * sizeof(float));
+
+		if (color) {
+			for (int i = 0; i < pointrep->ncoord; i++) {
+				float* rgba = &pointrep->blob[pointrep->colorOffset + i * pointrep->floatStride];
+				int j = min(i, ncolor - 1);
+				//rgba[3] = 1.0; //default opacity
+				memcpy(rgba, &color[j * colorSize], colorSize * sizeof(float));
+			}
+		}
+
+		if (fog) {
+			for (int i = 0; i < pointrep->ncoord; i++) {
+				float* fogpoint = &pointrep->blob[pointrep->fogOffset + i * pointrep->floatStride];
+				int j = min(i, nfog - 1);
+				*fogpoint = fog[j];
+			}
+		}
+		if (pointrep->blobVBO == 0) {
+			glGenBuffers(1, (GLuint*)&pointrep->blobVBO);
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, (GLuint)pointrep->blobVBO);
+		glBufferData(GL_ARRAY_BUFFER, pointrep->blobSize * sizeof(float), pointrep->blob, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	}
 	return pointrep;
 }
 
@@ -774,41 +921,96 @@ void render_PointRep(void* _pointrep) {
 	struct X3D_PointRep* pointrep = (struct X3D_PointRep*)_pointrep;
 	if (getAppearanceProperties()->pointMethod == PM_NONE) {
 		//old style simple only, see render_PointSet for fancy.
-		if (pointrep->blobVBO == 0) return;
-		//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
+		if (buffer_method) {
+			struct geomBuffer *gb = pointrep->buffer;
+			if (!gb || gb->VBO < 1) return;
+			//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
 
-		glBindBuffer(GL_ARRAY_BUFFER, pointrep->blobVBO);
-		#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-		GLsizei bytestride = (GLsizei)(pointrep->floatStride * sizeof(float));
-		FW_GL_VERTEX_POINTER(pointrep->coordSize, GL_FLOAT,bytestride, (GLfloat*)BUFFER_OFFSET(0)); //dataSize, dataType, stride, pointer
+			glBindBuffer(GL_ARRAY_BUFFER, gb->VBO);
+			struct bufAccess* ba = &pointrep->attrib[0];
+			FW_GL_VERTEX_POINTER(ba->dataSize, ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset)); //dataSize, dataType, stride, pointer
+			//sendAttribToGPU(FW_VERTEX_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer, 0, __FILE__, __LINE__);
 
-		// do we have fogcoord?
-		if (pointrep->fogOffset != 0) {
-			FW_GL_FOG_POINTER(GL_FLOAT, pointrep->floatStride * sizeof(float), (GLfloat*)BUFFER_OFFSET(pointrep->fogOffset * sizeof(float))); //dataType, stride, pointer
+			// do we have colours?
+			ba = &pointrep->attrib[1];
+			if (ba->in_use) {
+				FW_GL_COLOR_POINTER(ba->dataSize, ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset)); //dataSize, dataType, stride, pointer
+			}
+			// do we have fogcoord?
+			ba = &pointrep->attrib[2];
+			if (ba->in_use) {
+				FW_GL_FOG_POINTER(ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset)); //dataType, stride, pointer
+			}
+			sendArraysToGPU(GL_POINTS, 0, pointrep->ncoord);
+			//printf for debugging accessors.
+			if (0) {
+				char* paddress;
+				for (int i = 0; i < pointrep->ncoord; i++) {
+					printf("%d [", i);
+					ba = &pointrep->attrib[0]; //point
+					paddress = get_Attribi(ba, gb, i);;
+					float* ai = (float*)paddress;
+					for (int j = 0; j < ba->dataSize; j++) {
+						printf("%f ", ai[j]);
+					}
+					printf("]");
+					ba = &pointrep->attrib[1]; //color
+					if (ba->in_use) {
+						paddress = get_Attribi(ba, gb, i);;
+						float* ai = (float*)paddress;
+						printf(" [");
+						for (int j = 0; j < ba->dataSize; j++)
+							printf("%f ", ai[j]);
+						printf("]");
+					}
+					ba = &pointrep->attrib[2]; //fog
+					if (ba->in_use) {
+						paddress = get_Attribi(ba, gb, i);;
+						float* ai = (float*)paddress;
+						printf(" [");
+						for (int j = 0; j < ba->dataSize; j++)
+							printf("%f ", ai[j]);
+						printf("]");
+					}
+
+					printf("\n");
+				}
+				printf("");
+			}
+		} else {
+			if (pointrep->blobVBO == 0) return;
+			//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
+
+			glBindBuffer(GL_ARRAY_BUFFER, pointrep->blobVBO);
+			GLsizei bytestride = (GLsizei)(pointrep->floatStride * sizeof(float));
+			FW_GL_VERTEX_POINTER(pointrep->coordSize, GL_FLOAT, bytestride, (GLfloat*)BUFFER_OFFSET(0)); //dataSize, dataType, stride, pointer
+
+			// do we have fogcoord?
+			if (pointrep->fogOffset != 0) {
+				FW_GL_FOG_POINTER(GL_FLOAT, pointrep->floatStride * sizeof(float), (GLfloat*)BUFFER_OFFSET(pointrep->fogOffset * sizeof(float))); //dataType, stride, pointer
+			}
+
+			// do we have colours?
+			if (pointrep->colorOffset != 0) {
+				FW_GL_COLOR_POINTER(pointrep->colorSize, GL_FLOAT, pointrep->floatStride * sizeof(float), (GLfloat*)BUFFER_OFFSET(pointrep->colorOffset * sizeof(float))); //dataSize, dataType, stride, pointer
+			}
+
+			//good old simple way - opengl does most of the work
+			//for (int i = 0; i < pointrep->ncoord; i++) {
+			//	printf("%d [", i);
+			//	for (int j = 0; j < pointrep->coordSize; j++)
+			//		printf("%f ", pointrep->blob[i * pointrep->floatStride + j]);
+			//	printf("]");
+			//	if (pointrep->colorOffset) {
+			//		printf(" [");
+			//		for (int j = 0; j < pointrep->colorSize; j++)
+			//			printf("%f ", pointrep->blob[i * pointrep->floatStride + pointrep->colorOffset + j]);
+			//		printf("]");
+			//	}
+			//	printf("\n");
+			//}
+			sendArraysToGPU(GL_POINTS, 0, pointrep->ncoord);
 		}
-
-		// do we have colours?
-		if (pointrep->colorOffset != 0) {
-			FW_GL_COLOR_POINTER(pointrep->colorSize, GL_FLOAT, pointrep->floatStride * sizeof(float), (GLfloat*)BUFFER_OFFSET(pointrep->colorOffset *sizeof(float))); //dataSize, dataType, stride, pointer
-		}
-
-		//good old simple way - opengl does most of the work
-		//for (int i = 0; i < pointrep->ncoord; i++) {
-		//	printf("%d [", i);
-		//	for (int j = 0; j < pointrep->coordSize; j++)
-		//		printf("%f ", pointrep->blob[i * pointrep->floatStride + j]);
-		//	printf("]");
-		//	if (pointrep->colorOffset) {
-		//		printf(" [");
-		//		for (int j = 0; j < pointrep->colorSize; j++)
-		//			printf("%f ", pointrep->blob[i * pointrep->floatStride + pointrep->colorOffset + j]);
-		//		printf("]");
-		//	}
-		//	printf("\n");
-
-		//}
-		sendArraysToGPU(GL_POINTS, 0, pointrep->ncoord);
-
 	} else {
 		//PointProperties needs fancy scaling or sprite texturing 
 		//  we send a ParticleSystem-like quad
@@ -829,16 +1031,42 @@ void render_PointRep(void* _pointrep) {
 			//send uniform
 			float point[3];
 			memset(point, 0, 3 * sizeof(float));
-			memcpy(point, &pointrep->blob[i * pointrep->floatStride], pointrep->coordSize * sizeof(float));
-			glUniform3fv(ppos, 1, point);
-			if (pcpv > -1 && pointrep->colorOffset) {
-				float rgba[4];
-				rgba[3] = 1.0;
-				memcpy(rgba, &pointrep->blob[i * pointrep->floatStride + pointrep->colorOffset], pointrep->colorSize * sizeof(float));
-				glUniform4fv(pcpv, 1, rgba);
-			}
-			if (pfog > -1 && pointrep->fogOffset) {
-				glUniform1f(pfog, pointrep->blob[i * pointrep->floatStride + pointrep->fogOffset]);
+			if (buffer_method) {
+				struct bufAccess* ba;
+				char *paddress;
+				struct geomBuffer* gb = pointrep->buffer;
+				ba = &pointrep->attrib[0];
+				paddress = get_Attribi(ba, gb, i);;
+				memcpy(point, paddress, ba->byteSize);
+				glUniform3fv(ppos, 1, point);
+				ba = &pointrep->attrib[1];
+				if (pcpv > -1 && ba->in_use) {
+					float rgba[4];
+					rgba[3] = 1.0;
+					paddress = get_Attribi(ba, gb, i);;
+					memcpy(rgba, paddress, ba->byteSize);
+					glUniform4fv(pcpv, 1, rgba);
+				}
+				ba = &pointrep->attrib[2];
+				if (pfog > -1 && ba->in_use) {
+					float fog;
+					paddress = get_Attribi(ba, gb, i);;
+					memcpy(&fog, paddress, ba->byteSize);
+					glUniform1f(pfog, fog );
+				}
+
+			}else{
+				memcpy(point, &pointrep->blob[i * pointrep->floatStride], pointrep->coordSize * sizeof(float));
+				glUniform3fv(ppos, 1, point);
+				if (pcpv > -1 && pointrep->colorOffset) {
+					float rgba[4];
+					rgba[3] = 1.0;
+					memcpy(rgba, &pointrep->blob[i * pointrep->floatStride + pointrep->colorOffset], pointrep->colorSize * sizeof(float));
+					glUniform4fv(pcpv, 1, rgba);
+				}
+				if (pfog > -1 && pointrep->fogOffset) {
+					glUniform1f(pfog, pointrep->blob[i * pointrep->floatStride + pointrep->fogOffset]);
+				}
 			}
 			//draw
 			reallyDrawOnce();
@@ -850,14 +1078,19 @@ void render_PointRep(void* _pointrep) {
 
 void delete_PointRep(void* _pointrep) {
 	struct X3D_PointRep* pr;
-	GLuint VBOBuffers[1];
 	pr = (struct X3D_PointRep*)_pointrep;
-	VBOBuffers[0] = pr->blobVBO;
-	glDeleteBuffers(1, VBOBuffers);
+	if (buffer_method) {
+		subtract_geomBufferUser(pr->buffer);
+	}
+	else {
+		GLuint VBOBuffers[1];
+		VBOBuffers[0] = pr->blobVBO;
+		glDeleteBuffers(1, VBOBuffers);
 
-	/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
-	FREE_IF_NZ(pr->blob);
-	FREE_IF_NZ(pr);
+		/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
+		FREE_IF_NZ(pr->blob);
+		FREE_IF_NZ(pr);
+	}
 }
 void render_PointSet (struct X3D_PointSet *node) {
 	struct X3D_PointRep* pointrep;

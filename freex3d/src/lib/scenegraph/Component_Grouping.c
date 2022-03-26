@@ -765,6 +765,7 @@ printf ("\n");
 */
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 	//if(node->__loadstatus != LOAD_STABLE) return; #define LOAD_STABLE 10
+	push_executionContext(X3D_NODE(node));
 	prep_unitscale(node);
 
 #ifdef VERBOSE
@@ -794,7 +795,6 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 
 
-
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
@@ -821,5 +821,7 @@ printf ("child_Group,  children.n %d sortedChildren.n %d\n",node->children.n, no
 
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	fin_unitscale(node);
+	pop_executionContext();
+
 }
 

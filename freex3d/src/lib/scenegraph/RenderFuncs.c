@@ -129,6 +129,7 @@ typedef struct pRenderFuncs{
 	Stack *ray_stack;
 	Stack *shaderflags_stack;
 	Stack *fog_stack;
+	Stack* ectx_stack; //executionContext
 	Stack *localLight_stack;
 
 	//struct point_XYZ t_r1,t_r2,t_r3; /* transformed ray */
@@ -190,6 +191,7 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		p->pickablegroupdata_stack = newStack(void*);
 		p->shaderflags_stack = newStack(shaderflagsstruct); //newStack(unsigned int);
 		p->fog_stack = newStack(struct X3D_Node*);
+		p->ectx_stack = newStack(struct X3D_Node*);
 		p->localLight_stack = newStack(int);
 		p->draw_call_params_stack = newStack(draw_call_params);
 		//t->t_r123 = (void *)&p->t_r123;
@@ -1608,6 +1610,29 @@ void popShaderFlags(){
 	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
 	//stack_pop(unsigned int,p->shaderflags_stack);
 	stack_pop(shaderflagsstruct,p->shaderflags_stack);
+
+}
+struct X3D_Node* get_executionContext() {
+	//return top-of-stack executionContext
+	struct X3D_Node* retval = NULL;
+	ttglobal tg = gglobal();
+	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	if (p->ectx_stack->n)
+		retval = stack_top(struct X3D_Node*, p->ectx_stack);
+	return retval;
+}
+void push_executionContext(struct X3D_Node* broto) {
+	//push when entering child_broto (child_proto which is also child_scene, or child_inline), pop on exit
+	ttglobal tg = gglobal();
+	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	stack_push(struct X3D_Node*, p->ectx_stack, broto);
+
+}
+void pop_executionContext() {
+	//
+	ttglobal tg = gglobal();
+	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	stack_pop(struct X3D_Node*, p->ectx_stack);
 
 }
 struct X3D_Node *getFogParams(){

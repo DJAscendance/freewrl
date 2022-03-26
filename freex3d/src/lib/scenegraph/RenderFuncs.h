@@ -129,4 +129,7 @@ void pop_transform_local();
 double * peek_transform_local();
 void reset_transform_local(double *mat);
 void multiply_transform_local(double *mat);
+struct X3D_Node* get_executionContext();
+void push_executionContext(struct X3D_Node* broto);
+void pop_executionContext();
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */
