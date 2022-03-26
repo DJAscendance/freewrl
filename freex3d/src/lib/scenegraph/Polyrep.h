@@ -74,16 +74,8 @@ struct X3D_PointRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
 	int ncoord;
-	GLuint blobVBO;
-	float* blob;
-	int blobSize;
-	int coordSize;
-	int colorOffset;
-	int colorSize;
-	int fogOffset;
-	int floatStride;
-	//shared buffer approach
-	//int buffer; //indirection to sharable, delay-loadable buffer list
+	//shared buffer approach:
+	// indirection to sharable, delay-loadable buffer
 	struct geomBuffer* buffer;
 	struct bufAccess attrib[3]; //vertex coord, color per vertex, fog per vertex
 };
