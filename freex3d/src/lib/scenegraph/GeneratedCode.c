@@ -3349,7 +3349,8 @@ struct X3D_Virt virt_Box = { NULL,(void *)render_Box,NULL,NULL,(void *)rendray_B
 void render_BufferGeometry(struct X3D_BufferGeometry *);
 void rendray_BufferGeometry(struct X3D_BufferGeometry *);
 void collide_BufferGeometry(struct X3D_BufferGeometry *);
-struct X3D_Virt virt_BufferGeometry = { NULL,(void *)render_BufferGeometry,NULL,NULL,(void *)rendray_BufferGeometry,NULL,NULL,NULL,(void *)collide_BufferGeometry,NULL};
+void compile_BufferGeometry(struct X3D_BufferGeometry *);
+struct X3D_Virt virt_BufferGeometry = { NULL,(void *)render_BufferGeometry,NULL,NULL,(void *)rendray_BufferGeometry,NULL,NULL,NULL,(void *)collide_BufferGeometry,(void *)compile_BufferGeometry};
 
 void prep_CADAssembly(struct X3D_CADAssembly *);
 void child_CADAssembly(struct X3D_CADAssembly *);

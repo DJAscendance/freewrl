@@ -700,6 +700,26 @@ void remove_buffer_from_broto_context(void * buffer) {
 		}
 	}
 }
+struct geomBuffer * find_buffer_in_broto_context_from_cgltf_buffer(void *ectx, void* cgltf_buffer) {
+	struct geomBuffer* found = NULL;
+	struct X3D_Proto* context = X3D_PROTO(ectx);
+	if (context) {
+		if (context->__GC) {
+			int i;
+			for (i = 0; i < vectorSize(context->__GC); i++) {
+				void* ns = vector_get(void*, context->__GC, i);
+				if (ns) {
+					struct geomBuffer* gb = (struct geomBuffer*)ns;
+					if (gb->cgltf_buffer == cgltf_buffer) {
+						found = gb;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return found;
+}
 
 struct geomBuffer* add_geomBuffer(int buffersize, int users) {
 	struct geomBuffer* gb = MALLOC(struct geomBuffer*, sizeof(struct geomBuffer));
@@ -718,6 +738,7 @@ void set_geomBuffer(struct geomBuffer* gb) {
 	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)gb->VBO);
 	glBufferData(GL_ARRAY_BUFFER, gb->byteSize, gb->address, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	gb->loaded = 2;
 }
 void update_geomBufferSize(struct geomBuffer* gb, int buffersize) {
 	gb->address = realloc(gb->address,buffersize);
@@ -734,6 +755,9 @@ void remove_geomBuffer(struct geomBuffer *gb) {
 void subtract_geomBufferUser(struct geomBuffer* gb) {
 	gb->users--;
 	if (gb->users < 1) remove_geomBuffer(gb);
+}
+void add_geomBufferUser(struct geomBuffer* gb) {
+	gb->users++;
 }
 int set_Attrib(struct bufAccess* ba, int dataSize, int dataType, int byteOffset) {
 	int byteSize;

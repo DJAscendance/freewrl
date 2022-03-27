@@ -18,7 +18,7 @@
 #include "Component_Networking.h"
 #include "Children.h"
 #include "../scenegraph/RenderFuncs.h"
-
+#include "Polyrep.h"
 #include <libFreeWRL.h>
 #include <list.h>
 #include <io_http.h>
@@ -107,7 +107,118 @@ return node;
 }
 
 
-struct X3D_PolyRep * create_polyrep0();
+void* set_MeshRep(void* _meshrep) {
+	struct X3D_MeshRep* meshrep = NULL;
+	//to be called from compile_BufferGeometry
+	if (!_meshrep) {
+		_meshrep = MALLOC(struct X3D_MeshRep*, sizeof(struct X3D_MeshRep));
+		memset(_meshrep, 0, sizeof(struct X3D_MeshRep));
+	}
+	meshrep = (struct X3D_MeshRep*)_meshrep;
+	meshrep->itype = 3; //0 meshrep 1 linerep 2 polyrep 3 meshrep
+	meshrep->mode = 4; //0 Meshs 1-3 lines 4-6 mesh: 4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
+	//buffer(buffersize) - unlike PointRep for x3d/x3dv nodes, PointSet 1:1 PointRep 1:1 geomBuffer
+	// for gltf we assume BufferGeometry 1:1 MeshRep m:1 geomBuffer
+	//npoints,attrib[]
+	//nindex,index
+	//set_geomBuffer(Meshrep->buffer);
+	return meshrep;
+}
+void render_MeshRep(void* _meshrep) {
+	//like render_PointRep
+	struct X3D_MeshRep* meshrep = (struct X3D_MeshRep*)_meshrep;
+	struct geomBuffer* gb = meshrep->buffer;
+	if (!gb || gb->VBO < 1) return;
+	//old-stile GL_POINTS rendering - opengl generates point triangles in geometry shader automatically
+
+	glBindBuffer(GL_ARRAY_BUFFER, gb->VBO);
+	struct bufAccess* ba = &meshrep->attrib[0];
+	FW_GL_VERTEX_POINTER(ba->dataSize, ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset)); //dataSize, dataType, stride, pointer
+	//sendAttribToGPU(FW_VERTEX_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer, 0, __FILE__, __LINE__);
+
+	// do we have colours?
+	ba = &meshrep->attrib[1];
+	if (ba->in_use) {
+		FW_GL_COLOR_POINTER(ba->dataSize, ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset)); //dataSize, dataType, stride, pointer
+	}
+
+	// do we have fogcoord?
+	ba = &meshrep->attrib[2];
+	if (ba->in_use) {
+		FW_GL_FOG_POINTER(ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset)); //dataType, stride, pointer
+	}
+	// do we have normals?
+	ba = &meshrep->attrib[3];
+	if (ba->in_use) {
+		FW_GL_NORMAL_POINTER(ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset));
+	}
+
+	// do we have UV?
+	for (int j = 0; j < 4; j++) {
+		ba = &meshrep->attrib[4 + j];
+		if (ba->in_use) {
+			FW_GL_TEXCOORD_POINTER(ba->dataSize, ba->dataType, ba->byteStride, (GLfloat*)BUFFER_OFFSET(ba->byteOffset),j); //dataSize, dataType, stride, pointer, texID
+		}
+	}
+	// do we have indexes?
+	ba = &meshrep->index;
+	// don't send indexes as arrays - wait till draw command and pass as parameter
+	//where do normals-per-face live?
+	if (ba->in_use) {
+		unsigned short* indices = meshrep->buffer->address + ba->byteOffset;
+		saveElementsForGPU(GL_TRIANGLES, meshrep->nindex, indices);
+	}
+	else {
+		saveArraysForGPU(GL_TRIANGLES, 0, meshrep->ncoord);
+		sendArraysToGPU(GL_TRIANGLES, 0, meshrep->ncoord);
+	}
+	reallyDrawOnce();
+
+	//printf for debugging accessors.
+	if (0) {
+		char* paddress;
+		for (int i = 0; i < meshrep->ncoord; i++) {
+			printf("%d [", i);
+			ba = &meshrep->attrib[0]; //point
+			paddress = get_Attribi(ba, gb, i);;
+			float* ai = (float*)paddress;
+			for (int j = 0; j < ba->dataSize; j++) {
+				printf("%f ", ai[j]);
+			}
+			printf("]");
+			ba = &meshrep->attrib[1]; //color
+			if (ba->in_use) {
+				paddress = get_Attribi(ba, gb, i);;
+				float* ai = (float*)paddress;
+				printf(" [");
+				for (int j = 0; j < ba->dataSize; j++)
+					printf("%f ", ai[j]);
+				printf("]");
+			}
+			ba = &meshrep->attrib[2]; //fog
+			if (ba->in_use) {
+				paddress = get_Attribi(ba, gb, i);;
+				float* ai = (float*)paddress;
+				printf(" [");
+				for (int j = 0; j < ba->dataSize; j++)
+					printf("%f ", ai[j]);
+				printf("]");
+			}
+
+			printf("\n");
+		}
+		printf("");
+	}
+}
+void delete_MeshRep(void* meshrep) {
+	//like delete_PointRep
+	struct X3D_MeshRep* mr;
+	mr = (struct X3D_MeshRep*)meshrep;
+	subtract_geomBufferUser(mr->buffer);
+	FREE_IF_NZ(mr);
+}
+
+static int meshrep_method = 1;
 int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node, gltf_unit *unit){
 // june 22, 2020 not done: skinned / rigged animated charactors, points, lines and various things noted below.
 // generally we got glb and gltf+bin to load and render a bit - a proof of concept.
@@ -330,8 +441,85 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(gn));
 						sn->geometry = gn;
 						struct X3D_BufferGeometry *ts = (struct X3D_BufferGeometry*)gn;
-						ts->_gltf_unit = unit;
-						ts->_bufferdata = prim;
+						if (meshrep_method) {
+							int lookup_attrib_index[] = {
+								//typedef enum cgltf_attribute_type
+								//{
+							-1,	//	cgltf_attribute_type_invalid, //0
+							0,	//	cgltf_attribute_type_position, //1
+							3,	//	cgltf_attribute_type_normal, //2
+							-1,	//	cgltf_attribute_type_tangent, //3
+							4,	//4-7	cgltf_attribute_type_texcoord, //4
+							1,	//	cgltf_attribute_type_color, //5
+							-1,	//	cgltf_attribute_type_joints, //6
+							-1,	//	cgltf_attribute_type_weights, //7
+							2, //fog not mentioned in cgltf
+							};
+							int lookup_GL_type[] = {
+							-1,					//0	 cgltf_component_type_invalid,
+							GL_BYTE,			//1	cgltf_component_type_r_8, /* BYTE */
+							GL_UNSIGNED_BYTE,	//2 cgltf_component_type_r_8u, /* UNSIGNED_BYTE */
+							GL_SHORT,			//3	cgltf_component_type_r_16, /* SHORT */
+							GL_UNSIGNED_SHORT,	//4	cgltf_component_type_r_16u, /* UNSIGNED_SHORT */
+							GL_UNSIGNED_INT,	//5	cgltf_component_type_r_32u, /* UNSIGNED_INT */
+							GL_FLOAT,			//6	cgltf_component_type_r_32f, /* FLOAT */
+							GL_DOUBLE,			//7 not convered by cgltf
+							};
+							struct X3D_MeshRep* mr;
+							mr = set_MeshRep(NULL);
+							ts->_intern = (struct X3D_GeomRep*)mr;
+							//set per-vertex attributes (coord, color, fog, normal, UV[0-4]) 
+							int acount = prim->attributes_count;
+							for (int ii = 0; ii < acount; ii++) {
+								const cgltf_accessor* blob = prim->attributes[ii].data;
+								int iat = lookup_attrib_index[prim->attributes[ii].type];
+								if (iat < 0) continue;
+								if (iat == 0) {
+									//vertex accessor, take the vertex count
+									mr->ncoord = blob->count;
+								}
+								struct bufAccess* ba = &mr->attrib[iat];
+								//Q. which buffer? It might already be allocated. 
+								// in freewrl we allocate once
+
+								mr->buffer = find_buffer_in_broto_context_from_cgltf_buffer(ectx, blob->buffer_view->buffer);
+								if (!mr->buffer) {
+									//first use of buffer, allocate
+									mr->buffer = add_geomBuffer(blob->buffer_view->buffer->size, 1);
+									if (blob->buffer_view->buffer->data) {
+										memcpy(mr->buffer->address, blob->buffer_view->buffer->data, blob->buffer_view->buffer->size);
+										mr->buffer->loaded = 1;
+										mr->buffer->cgltf_buffer = (char*) blob->buffer_view->buffer;
+										// can't do in this thread, wait for compile_BufferGeometry set_geomBuffer(mr->buffer);
+									} else {
+										//how / where do we connect this to uri loading via resource fetch?
+									}
+								} else {
+									add_geomBufferUser(mr->buffer);
+								}
+								ba->byteOffset = blob->buffer_view->offset;
+								ba->dataSize = cgltf_num_components(blob->type);
+								ba->dataType = lookup_GL_type[blob->component_type];
+								ba->byteStride = blob->stride; //the bufferView also has a stride
+								ba->byteSize = ba->dataSize * lookup_dataType_size(ba->dataType);
+								ba->in_use = 1;
+							}
+							{
+								// indexes for indexedtriangleset
+								const cgltf_accessor* blob = prim->indices;
+								struct bufAccess* ba = &mr->index;
+								ba->byteOffset = blob->buffer_view->offset;
+								ba->dataSize = cgltf_num_components(blob->type);
+								ba->dataType = blob->component_type;
+								ba->byteStride = blob->stride; //the bufferView also has a stride
+								ba->byteSize = ba->dataSize * lookup_dataType_size(ba->dataType);
+								ba->in_use = 1;
+								mr->nindex = blob->count;
+							}
+						} else {
+							ts->_gltf_unit = unit;
+							ts->_bufferdata = prim;
+						}
 					}
 					break;
 					case cgltf_primitive_type_triangle_strip:
@@ -591,65 +779,206 @@ int parser_process_res_gltf(resource_item_t *res){
 	return parsedOk;
 }
 void compile_BufferGeometry(struct X3D_BufferGeometry *node){
-	// june 22, 2020 - some of the stuff below -with -1 vbo- in render_ could bw moved here
+	if (meshrep_method) {
+		struct X3D_MeshRep* mr = (struct X3D_MeshRep*) node->_intern;
+		if (mr) {
+			if (mr->buffer->loaded == 1)
+				set_geomBuffer(mr->buffer);
+			if(mr->buffer->loaded == 2)
+				MARK_NODE_COMPILED
+		}
+	} else {
+		// june 22, 2020 - some of the stuff below -with -1 vbo- in render_ could bw moved here
+	}
 }
 void render_BufferGeometry(struct X3D_BufferGeometry *node){
 	
 	//we lazy-load .bin binary buffer part for .gltf, so have to wait 
 	// till its loaded. .glb loads in one shot 
-	if(!node->_gltf_unit) return;
-	gltf_unit *unit = node->_gltf_unit;
-	if(!unit->bin_loaded) return;
-	int show = FALSE; //TRUE for printfs below
+	if (meshrep_method) {
+		COMPILE_IF_REQUIRED;
+		render_MeshRep(node->_intern);
+	} else {
+		if (!node->_gltf_unit) return;
+		gltf_unit* unit = node->_gltf_unit;
+		if (!unit->bin_loaded) return;
+		int show = FALSE; //TRUE for printfs below
 
-	//CULL_FACE(node->solid)
-	if(!node->_bufferdata) return;
-	// taken from the OpenGL.org website:
-	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-	cgltf_primitive *prim = (cgltf_primitive*)node->_bufferdata;
-	int acount = prim->attributes_count;
-	if(node->_vbo.p == NULL){
-		 node->_vbo.p = malloc((acount+1) * sizeof(int));
-		 memset(node->_vbo.p,0,(acount+1) * sizeof(int));
-		 node->_vbo.n = acount + 1;
-		 for(int i=0;i<(acount+1);i++) node->_vbo.p[i] = -1;
-	}
+		//CULL_FACE(node->solid)
+		if (!node->_bufferdata) return;
+		// taken from the OpenGL.org website:
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+		cgltf_primitive* prim = (cgltf_primitive*)node->_bufferdata;
+		int acount = prim->attributes_count;
+		if (node->_vbo.p == NULL) {
+			node->_vbo.p = malloc((acount + 1) * sizeof(int));
+			memset(node->_vbo.p, 0, (acount + 1) * sizeof(int));
+			node->_vbo.n = acount + 1;
+			for (int i = 0; i < (acount + 1); i++) node->_vbo.p[i] = -1;
+		}
 
-	if(show && prim && acount){
-		printf("render_BufferGeometry triangles\n");
+		if (show && prim && acount) {
+			printf("render_BufferGeometry triangles\n");
 
-		for(int ii=0;ii<acount;ii++){
-			printf("attr %s indx %d ",prim->attributes[ii].name,prim->attributes[ii].index);
-			switch(prim->attributes[ii].type){
-				case cgltf_attribute_type_invalid: printf("invalid");break;
-				case cgltf_attribute_type_position: printf("position");break;
-				case cgltf_attribute_type_normal: printf("normal");break;
-				case cgltf_attribute_type_tangent: printf("tangent");break;
-				case cgltf_attribute_type_texcoord: printf("texcoord");break;
-				case cgltf_attribute_type_color: printf("color");break;
-				case cgltf_attribute_type_joints: printf("joints");break;
-				case cgltf_attribute_type_weights: printf("weights");break;
+			for (int ii = 0; ii < acount; ii++) {
+				printf("attr %s indx %d ", prim->attributes[ii].name, prim->attributes[ii].index);
+				switch (prim->attributes[ii].type) {
+				case cgltf_attribute_type_invalid: printf("invalid"); break;
+				case cgltf_attribute_type_position: printf("position"); break;
+				case cgltf_attribute_type_normal: printf("normal"); break;
+				case cgltf_attribute_type_tangent: printf("tangent"); break;
+				case cgltf_attribute_type_texcoord: printf("texcoord"); break;
+				case cgltf_attribute_type_color: printf("color"); break;
+				case cgltf_attribute_type_joints: printf("joints"); break;
+				case cgltf_attribute_type_weights: printf("weights"); break;
 				default: break;
-			}
-							
-			const cgltf_accessor* blob = prim->attributes[ii].data;
-			cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
-			printf(" nfloats = %d accessor type %d count %d ",(int)nfloats,blob->type,(int)blob->count);
-			switch(blob->type){
-				case cgltf_type_scalar: printf("SCALAR");break;
-				case cgltf_type_vec2: printf("VEC2");break;
-				case cgltf_type_vec3: printf("VEC3");break;
+				}
+
+				const cgltf_accessor* blob = prim->attributes[ii].data;
+				cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
+				printf(" nfloats = %d accessor type %d count %d ", (int)nfloats, blob->type, (int)blob->count);
+				switch (blob->type) {
+				case cgltf_type_scalar: printf("SCALAR"); break;
+				case cgltf_type_vec2: printf("VEC2"); break;
+				case cgltf_type_vec3: printf("VEC3"); break;
 				default: break;
+				}
+				printf("\n");
+				cgltf_float element_float[16];
+				for (cgltf_size index = 0; index < blob->count; index++)
+				{
+					cgltf_accessor_read_float(blob, index, element_float, 16);
+					printf("%d %f %f %f\n", (int)index, element_float[0], element_float[1], element_float[2]);
+				}
 			}
-			printf("\n");
-			cgltf_float element_float[16];
-			for (cgltf_size index = 0; index < blob->count; index++)
 			{
-				cgltf_accessor_read_float(blob, index, element_float, 16);
-				printf("%d %f %f %f\n",(int)index,element_float[0],element_float[1],element_float[2]);
+				// indexes for indexedtriangleset
+				const cgltf_accessor* blob = prim->indices;
+				cgltf_uint element_int;
+				printf("triangle indices\n");
+				int ntri = blob->count / 3;
+				for (int i = 0; i < ntri; i++)
+				{
+					printf("%d [", i);
+					for (int j = 0; j < 3; j++) {
+						int index = (i * 3) + j;
+						cgltf_accessor_read_uint(blob, index, &element_int, 1);
+						printf("%d ", element_int);
+					}
+					printf("]\n");
+				}
 			}
 		}
-		{
+
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+
+		for (int ii = 0; ii < acount; ii++) {
+			const cgltf_accessor* blob = prim->attributes[ii].data;
+			int isize = cgltf_num_components(blob->type);
+			size_t size = blob->count * isize * sizeof(float);
+			void* data = &blob->buffer_view->buffer[blob->buffer_view->offset];
+			switch (prim->attributes[ii].type) {
+			case cgltf_attribute_type_position:
+				////copy to coord vbo
+				if (node->_vbo.p[ii] == -1) {
+					glGenBuffers(1, (GLuint*)&node->_vbo.p[ii]);
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_vbo.p[ii]);
+					//glEnableVertexAttribArray( LOC );
+					cgltf_float element_float[16];
+					float* fdata = (float*)malloc(size);
+					for (cgltf_size index = 0; index < blob->count; index++)
+					{
+						cgltf_accessor_read_float(blob, index, &fdata[index * 3], 3);
+						if (show)printf("%d %f %f %f\n", (int)index, fdata[index * 3 + 0], fdata[index * 3 + 1], fdata[index * 3 + 2]);
+					}
+					//glVertexAttribPointer( LOC   ,isize, GL_FLOAT, FALSE, blob->stride, fdata);
+					//FW_GL_VERTEX_POINTER(3, GL_FLOAT,size, fdata); 
+					glBufferData(GL_ARRAY_BUFFER, size, fdata, GL_STATIC_DRAW);
+
+				}
+				else {
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_vbo.p[ii]);
+					FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, 0);
+				}
+
+				break;
+
+				//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,r->VBO_buffers[INDEX_VBO]);
+
+			case cgltf_attribute_type_normal:
+				//copy to normals vbo
+				if (node->_vbo.p[ii] == -1) {
+					glGenBuffers(1, (GLuint*)&node->_vbo.p[ii]);
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_vbo.p[ii]);
+					//glEnableVertexAttribArray( LOC );
+					float* fdata = (float*)malloc(size);
+					for (cgltf_size index = 0; index < blob->count; index++)
+					{
+						cgltf_accessor_read_float(blob, index, &fdata[index * 3], 3);
+						if (show) printf("%d %f %f %f\n", (int)index, fdata[index * 3 + 0], fdata[index * 3 + 1], fdata[index * 3 + 2]);
+					}
+					glBufferData(GL_ARRAY_BUFFER, size, fdata, GL_STATIC_DRAW);
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+
+					//FW_GL_NORMAL_POINTER(GL_FLOAT, size, fdata); 
+
+					//glVertexAttribPointer( LOC ,isize, GL_FLOAT, TRUE, blob->stride, fdata);
+				}
+				else {
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_vbo.p[ii]);
+					FW_GL_NORMAL_POINTER(GL_FLOAT, 0, 0);
+				}
+
+				break;
+
+			case cgltf_attribute_type_texcoord:
+				//copy to texcoord
+				if (node->_vbo.p[ii] == -1) {
+					glGenBuffers(1, (GLuint*)&node->_vbo.p[ii]);
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_vbo.p[ii]);
+					glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+					//glEnableVertexAttribArray(node->_vbo.p[ii]);
+					float* fdata = (float*)malloc(size);
+					for (cgltf_size index = 0; index < blob->count; index++)
+					{
+						cgltf_accessor_read_float(blob, index, &fdata[index * 2], 2);
+						if (show) printf("%d %f %f \n", (int)index, fdata[index * 2 + 0], fdata[index * 2 + 1]);
+					}
+					glBufferData(GL_ARRAY_BUFFER, size, fdata, GL_STATIC_DRAW);
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+
+					//FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, size, fdata,0); 
+
+					//glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
+				}
+				else {
+					FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->_vbo.p[ii]);
+					FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, 0, 0, 0);
+				}
+
+				break;
+
+				//cooy to vertex color vbo
+				//if (r->color) {
+				//	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);            
+				//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
+				//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
+				//	// needed by recalculateColorField ... FREE_IF_NZ(r->color);
+				//}
+				//if (newfog) {
+				//	if (r->VBO_buffers[FOG_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[FOG_VBO]);            
+				//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
+				//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
+				//}
+
+
+
+			default:
+				break;
+			}
+
+		}
+		if (show && acount && prim && prim->indices) {
 			// indexes for indexedtriangleset
 			const cgltf_accessor* blob = prim->indices;
 			cgltf_uint element_int;
@@ -657,182 +986,60 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 			int ntri = blob->count / 3;
 			for (int i = 0; i < ntri; i++)
 			{
-				printf("%d [",i);
-				for(int j=0;j<3;j++){
-					int index = (i*3)+j;
+				printf("%d [", i);
+				for (int j = 0; j < 3; j++) {
+					int index = (i * 3) + j;
 					cgltf_accessor_read_uint(blob, index, &element_int, 1);
-					printf("%d ",element_int);
+					printf("%d ", element_int);
 				}
 				printf("]\n");
 			}
+
 		}
-	}
-
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-
-	for(int ii=0;ii<acount;ii++){
-		const cgltf_accessor* blob = prim->attributes[ii].data;
-		int isize = cgltf_num_components(blob->type);
-		size_t size = blob->count * isize * sizeof(float);
-		void *data = &blob->buffer_view->buffer[blob->buffer_view->offset];
-		switch(prim->attributes[ii].type){
-			case cgltf_attribute_type_position:
-			////copy to coord vbo
-			if(node->_vbo.p[ii] == -1){
-				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				//glEnableVertexAttribArray( LOC );
-				cgltf_float element_float[16];
-				float *fdata = (float*) malloc(size);
-				for (cgltf_size index = 0; index < blob->count; index++)
-				{
-					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
-					if(show)printf("%d %f %f %f\n", (int)index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
-				}
-				//glVertexAttribPointer( LOC   ,isize, GL_FLOAT, FALSE, blob->stride, fdata);
-				//FW_GL_VERTEX_POINTER(3, GL_FLOAT,size, fdata); 
-				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
-
-			}else{
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
-			}
-
-			break;
-
-			//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,r->VBO_buffers[INDEX_VBO]);
-									
-			case cgltf_attribute_type_normal:
-			//copy to normals vbo
-			if(node->_vbo.p[ii] == -1){
-				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				//glEnableVertexAttribArray( LOC );
-				float *fdata = (float*) malloc(size);
-				for (cgltf_size index = 0; index < blob->count; index++)
-				{
-					cgltf_accessor_read_float(blob, index, &fdata[index*3], 3);
-					if(show) printf("%d %f %f %f\n", (int)index, fdata[index*3 +0],fdata[index*3 +1],fdata[index*3 +2]);
-				}
-				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-
-				//FW_GL_NORMAL_POINTER(GL_FLOAT, size, fdata); 
-
-				//glVertexAttribPointer( LOC ,isize, GL_FLOAT, TRUE, blob->stride, fdata);
-			}else{
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				FW_GL_NORMAL_POINTER(GL_FLOAT,0,0);
-			}
-
-			break;
-
-			case cgltf_attribute_type_texcoord:
-			//copy to texcoord
-			if(node->_vbo.p[ii] == -1){
-				glGenBuffers(1,(GLuint*) &node->_vbo.p[ii]);
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				glBufferData(GL_ARRAY_BUFFER,size,data, GL_STATIC_DRAW);
-				//glEnableVertexAttribArray(node->_vbo.p[ii]);
-				float *fdata = (float*) malloc(size);
-				for (cgltf_size index = 0; index < blob->count; index++)
-				{
-					cgltf_accessor_read_float(blob, index, &fdata[index*2], 2);
-					if(show) printf("%d %f %f \n", (int)index, fdata[index*2 +0],fdata[index*2 +1]);
-				}
-				glBufferData(GL_ARRAY_BUFFER,size,fdata, GL_STATIC_DRAW);
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-
-				//FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, size, fdata,0); 
-
-				//glVertexAttribPointer(node->_vbo.p[ii],isize, GL_FLOAT, TRUE, blob->stride, data);
-			}else{
-				FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->_vbo.p[ii]);
-				FW_GL_TEXCOORD_POINTER(2,GL_FLOAT,0,0,0);
-			}
-
-			break;
-
-			//cooy to vertex color vbo
-			//if (r->color) {
-			//	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);            
-			//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
-			//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
-			//	// needed by recalculateColorField ... FREE_IF_NZ(r->color);
-			//}
-			//if (newfog) {
-			//	if (r->VBO_buffers[FOG_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[FOG_VBO]);            
-			//	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
-			//	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
-			//}
-
-
-
-			default:
-			break;
-		}
-
-	}
-	if(show && acount && prim && prim->indices){
-		// indexes for indexedtriangleset
+		{
+			// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawElements.xhtml
 			const cgltf_accessor* blob = prim->indices;
-			cgltf_uint element_int;
-			printf("triangle indices\n");
 			int ntri = blob->count / 3;
-			for (int i = 0; i < ntri; i++)
-			{
-				printf("%d [",i);
-				for(int j=0;j<3;j++){
-					int index = (i*3)+j;
-					cgltf_accessor_read_uint(blob, index, &element_int, 1);
-					printf("%d ",element_int);
+			static int* indexs = NULL;
+			static unsigned short* uindexs = NULL;
+			int isize = 1;
+			size_t size = blob->count * isize * sizeof(int);
+
+			if (node->_vbo.p[acount] == -1) {
+				cgltf_uint element_int;
+
+				unsigned int* indu = malloc(blob->count * sizeof(unsigned int));
+				uindexs = malloc(blob->count * sizeof(unsigned short));
+				for (int i = 0; i < ntri; i++)
+				{
+					for (int j = 0; j < 3; j++) {
+						int index = (i * 3) + j;
+						cgltf_accessor_read_uint(blob, index, &element_int, 1);
+						indu[index] = element_int;
+						uindexs[index] = element_int;
+					}
 				}
-				printf("]\n");
+				FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
+				indexs = indu;
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indu, GL_STATIC_DRAW);
+				FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 			}
+			else {
+				FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->_vbo.p[acount]);
+				//glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, 0,0);
+				//FW_GL_ELEMENT_POINTER(2,GL_FLOAT,0,0,0);
 
-	}
-	{
-		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawElements.xhtml
-		const cgltf_accessor* blob = prim->indices;
-		int ntri = blob->count / 3;
-		static int *indexs = NULL;
-		static unsigned short *uindexs = NULL;
-		int isize = 1;
-		size_t size = blob->count * isize * sizeof(int);
-
-		if(node->_vbo.p[acount] == -1){
-			cgltf_uint element_int;
-
-			unsigned int *indu = malloc(blob->count * sizeof(unsigned int));
-			uindexs = malloc(blob->count * sizeof(unsigned short));
-			for (int i = 0; i < ntri; i++)
-			{
-				for(int j=0;j<3;j++){
-					int index = (i*3)+j;
-					cgltf_accessor_read_uint(blob, index, &element_int, 1);
-					indu[index] = element_int;
-					uindexs[index] = element_int;
-				}
 			}
-			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo.p[acount]);
-			indexs = indu;
- 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indu, GL_STATIC_DRAW);
-			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		}else{
-			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,node->_vbo.p[acount]);
- 			//glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, 0,0);
-			//FW_GL_ELEMENT_POINTER(2,GL_FLOAT,0,0,0);
-			
+			sendElementsToGPU(GL_TRIANGLES, ntri * 3, uindexs);  //WORKS
+			//glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs); //WORKS
 		}
-		sendElementsToGPU(GL_TRIANGLES,ntri*3,uindexs);  //WORKS
-		//glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs); //WORKS
-	}
-	if(show) printf("done render_BufferGeometry\n");
+		if (show) printf("done render_BufferGeometry\n");
 
-	/* turn off */
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);	
+		/* turn off */
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);	
+	}
 }
 void rendray_BufferGeometry(struct X3D_BufferGeometry *node){
 }

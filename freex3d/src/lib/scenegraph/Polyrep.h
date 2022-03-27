@@ -42,6 +42,7 @@ Polyrep ???
 //..unloaded when inline or scene unloaded or users = 0
 struct geomBuffer {
 	char* address; //owns it
+	char* cgltf_buffer; //used during parsing for detecting shared buffer
 	int byteSize;
 	int loaded; //FALSE until data copied in, even if allocated, alows delay-loading
 	int users; //when falls to zero, free()
@@ -66,7 +67,7 @@ struct bufAccess {
 
 
 struct X3D_GeomRep {
-	int itype; //0 PointRep 1 LineRep 2 PolyRep
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
 	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
 };
@@ -79,10 +80,37 @@ struct X3D_PointRep {
 	struct geomBuffer* buffer;
 	struct bufAccess attrib[3]; //vertex coord, color per vertex, fog per vertex
 };
+int lookup_dataType_size(int dataType); //GL_FLOAT -> 4 GL_SHORT - 2
+int set_Attrib(struct bufAccess* ba, int dataSize, int dataType, int byteOffset);
+char* get_Attribi(struct bufAccess* ba, struct geomBuffer* gb, int index);
+struct geomBuffer* add_geomBuffer(int buffersize, int users);
+void set_geomBuffer(struct geomBuffer* gb);
+void update_geomBufferSize(struct geomBuffer* gb, int buffersize);
+void remove_geomBuffer(struct geomBuffer* gb);
+void subtract_geomBufferUser(struct geomBuffer* gb);
+void add_geomBufferUser(struct geomBuffer* gb);
+struct geomBuffer* find_buffer_in_broto_context_from_cgltf_buffer(void* ectx, void* cgltf_buffer);
 void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 	float* color, int colorSize, int ncolor, float* fog, int nfog);
 void render_PointRep(void* pointrep);
 void delete_PointRep(void* pointrep);
+
+//MeshRep - for BufferGeometry node used by gltf_loader to load generic geometry via Inline url .gltf or .glb
+struct X3D_MeshRep {
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep
+	int mode;  //0 Points 1-3 lines 4-6 mesh
+	int ncoord;
+	int nuv; //number of texture coordinate channels
+	//shared buffer approach:
+	// indirection to sharable, delay-loadable buffer
+	struct geomBuffer* buffer;
+	struct bufAccess attrib[8]; //vertex coord, color per vertex, fog per vertex, normal per vertex, UV per vertex (up to nuv=4)
+	int nindex;
+	struct bufAccess index;
+};
+void* set_MeshRep(void* _meshrep);
+void render_MeshRep(void* meshrep);
+void delete_MeshRep(void* meshrep);
 
 struct X3D_LineRep {
 	// will hold commmon GL_LINE_STRIP parameters from

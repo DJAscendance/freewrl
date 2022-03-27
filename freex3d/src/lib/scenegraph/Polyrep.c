@@ -1841,6 +1841,17 @@ void delete_geomrep(struct X3D_Node *node){
 			node->_intern = NULL;
 		}
 		break;
+	case 3: //MeshRep for gltf_loader.c
+		{
+			if (node->_nodeType != NODE_BufferGeometry) {
+				printf("attempting to delete MeshRep for nodetype %s\n", stringNodeType(node->_nodeType));
+				break;
+			}
+			delete_MeshRep(node->_intern);
+			node->_intern = NULL;
+
+		}
+		break;
 	default:
 		break;
 	}

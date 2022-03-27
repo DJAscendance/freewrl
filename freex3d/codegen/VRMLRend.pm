@@ -836,7 +836,7 @@ our %CompileC = map {($_=>1)} qw/
 	AudioListener
 	PannerNode
 	GeoSRF
-	BufferGoemtry
+	BufferGeometry
 	Tile
 /;
 
