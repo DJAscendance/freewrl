@@ -79,8 +79,8 @@ union {
 	struct elements {
 		int elements_mode;
 		int elements_count;
-		//GLenum elements_type;
-		ushort *elements_indices;
+		GLenum elements_type;
+		void *elements_indices;
 	} elements;
 };
 } draw_call_params;
@@ -992,7 +992,7 @@ void saveArraysForGPU(int mode, int first, int count){
 }
 
 
-void saveElementsForGPU(int mode, int count, ushort *indices){
+void saveElementsForGPU0(int mode, int count, int type, void *indices){
 	//we use a vector/stack because IndexedLineSet and LineSet call several times
 	// for one polyline vbo
 	draw_call_params params;
@@ -1004,9 +1004,12 @@ void saveElementsForGPU(int mode, int count, ushort *indices){
 	params.elements.elements_count = count;
 	params.elements.elements_mode = mode;
 	params.elements.elements_indices = indices;
+	params.elements.elements_type = GL_UNSIGNED_SHORT;
 	stack_push(draw_call_params,p->draw_call_params_stack,params);
 }
-
+//void saveElementsForGPU(int mode, int count, ushort* indices) {
+//	saveElementsForGPU0(mode, count, GL_UNSIGNED_SHORT,indices);
+//}
 void reallyDrawOnce(){
 	//particle system will call this
 	//H: this might be a bit like glDrawMultiElements - a list of more primitive triangle fans etc that would make up a 3D shape
@@ -1036,7 +1039,7 @@ void reallyDrawOnce(){
 			glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
 			#endif
 		}else if(params->calltype == 2){
-			glDrawElements(params->elements.elements_mode,params->elements.elements_count,GL_UNSIGNED_SHORT,params->elements.elements_indices);
+			glDrawElements(params->elements.elements_mode,params->elements.elements_count, params->elements.elements_type,params->elements.elements_indices);
 		}
 	}
 	//p->draw_call_params_stack->n = 0;
@@ -1091,7 +1094,7 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 	if (setupShader()){
 		profile_start("draw_el");
 //        glDrawElements(mode,count,GL_UNSIGNED_SHORT,indices);
-		saveElementsForGPU(mode,count,indices);
+		saveElementsForGPU0(mode,count,GL_UNSIGNED_SHORT, indices);
 		profile_end("draw_el");
 	}
 

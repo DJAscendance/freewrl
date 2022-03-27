@@ -165,12 +165,14 @@ void render_MeshRep(void* _meshrep) {
 	// don't send indexes as arrays - wait till draw command and pass as parameter
 	//where do normals-per-face live?
 	if (ba->in_use) {
-		unsigned short* indices = meshrep->buffer->address + ba->byteOffset;
-		saveElementsForGPU(GL_TRIANGLES, meshrep->nindex, indices);
+		char* indices = meshrep->buffer->address + ba->byteOffset;
+		//sendElementsToGPU(GL_TRIANGLES, ntri * 3, uindexs);  //WORKS
+		//glDrawElements(	GL_TRIANGLES, ntri*3, GL_UNSIGNED_INT, indexs); //WORKS
+		saveElementsForGPU0(GL_TRIANGLES, meshrep->nindex, ba->dataType, indices);
 	}
 	else {
 		saveArraysForGPU(GL_TRIANGLES, 0, meshrep->ncoord);
-		sendArraysToGPU(GL_TRIANGLES, 0, meshrep->ncoord);
+		//sendArraysToGPU(GL_TRIANGLES, 0, meshrep->ncoord);
 	}
 	reallyDrawOnce();
 
@@ -782,12 +784,12 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 	if (meshrep_method) {
 		struct X3D_MeshRep* mr = (struct X3D_MeshRep*) node->_intern;
 		if (mr) {
-			if (1) {
-				printf("compile_BufferGeometry context = %p\n", get_executionContext());
-				struct geomBuffer* gb = find_buffer_in_broto_context_from_cgltf_buffer(get_executionContext(), mr->buffer->cgltf_buffer);
-				if (gb) printf("found geomBuffer in this thread executionContext\n");
-				else printf("didn't find geombuffer in this thread executionContext\n");
-			}
+			//if (0) {
+			//	printf("compile_BufferGeometry context = %p\n", get_executionContext());
+			//	struct geomBuffer* gb = find_buffer_in_broto_context_from_cgltf_buffer(get_executionContext(), mr->buffer->cgltf_buffer);
+			//	if (gb) printf("found geomBuffer in this thread executionContext\n");
+			//	else printf("didn't find geombuffer in this thread executionContext\n");
+			//}
 			if (mr->buffer->loaded == 1)
 				set_geomBuffer(mr->buffer);
 			if(mr->buffer->loaded == 2)

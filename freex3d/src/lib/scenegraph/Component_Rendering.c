@@ -677,7 +677,7 @@ int lookup_dataType_size(int dataType) {
 }
 void add_buffer_to_broto_context0(void *ectx, void* buffer) {
 	struct X3D_Proto* context = X3D_PROTO(ectx);
-	printf("add_buffer_to_broto_context context = %p\n", context);
+	//printf("add_buffer_to_broto_context context = %p\n", context);
 	if (context) {
 		Stack* __GC;
 		if (!context->__GC)
@@ -708,7 +708,7 @@ void remove_buffer_from_broto_context(void * buffer) {
 struct geomBuffer * find_buffer_in_broto_context_from_cgltf_buffer(void *ectx, void* cgltf_buffer) {
 	struct geomBuffer* found = NULL;
 	struct X3D_Proto* context = X3D_PROTO(ectx);
-	printf("find_buffer_in_broto_context_from_cgltf_buffer context = %p\n", context);
+	//printf("find_buffer_in_broto_context_from_cgltf_buffer context = %p\n", context);
 
 	if (context) {
 		if (context->__GC) {
