@@ -84,6 +84,7 @@ int lookup_dataType_size(int dataType); //GL_FLOAT -> 4 GL_SHORT - 2
 int set_Attrib(struct bufAccess* ba, int dataSize, int dataType, int byteOffset);
 char* get_Attribi(struct bufAccess* ba, struct geomBuffer* gb, int index);
 struct geomBuffer* add_geomBuffer(int buffersize, int users);
+struct geomBuffer* add_geomBuffer0(void* ectx, int buffersize, int users);
 void set_geomBuffer(struct geomBuffer* gb);
 void update_geomBufferSize(struct geomBuffer* gb, int buffersize);
 void remove_geomBuffer(struct geomBuffer* gb);

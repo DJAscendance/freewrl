@@ -675,15 +675,20 @@ int lookup_dataType_size(int dataType) {
 
 	return byteSize;
 }
-void add_buffer_to_broto_context(void *buffer) {
-	struct X3D_Proto* context = X3D_PROTO(get_executionContext());
+void add_buffer_to_broto_context0(void *ectx, void* buffer) {
+	struct X3D_Proto* context = X3D_PROTO(ectx);
+	printf("add_buffer_to_broto_context context = %p\n", context);
 	if (context) {
 		Stack* __GC;
 		if (!context->__GC)
 			context->__GC = newVector(struct X3D_Node*, 4);
 		__GC = context->__GC;
-		stack_push(void *, __GC, buffer);
+		stack_push(void*, __GC, buffer);
 	}
+}
+void add_buffer_to_broto_context(void *buffer) {
+	struct X3D_Proto* context = X3D_PROTO(get_executionContext());
+	add_buffer_to_broto_context0(context, buffer);
 }
 void remove_buffer_from_broto_context(void * buffer) {
 	struct X3D_Proto* context = X3D_PROTO(get_executionContext());
@@ -703,6 +708,8 @@ void remove_buffer_from_broto_context(void * buffer) {
 struct geomBuffer * find_buffer_in_broto_context_from_cgltf_buffer(void *ectx, void* cgltf_buffer) {
 	struct geomBuffer* found = NULL;
 	struct X3D_Proto* context = X3D_PROTO(ectx);
+	printf("find_buffer_in_broto_context_from_cgltf_buffer context = %p\n", context);
+
 	if (context) {
 		if (context->__GC) {
 			int i;
@@ -721,15 +728,19 @@ struct geomBuffer * find_buffer_in_broto_context_from_cgltf_buffer(void *ectx, v
 	return found;
 }
 
-struct geomBuffer* add_geomBuffer(int buffersize, int users) {
+struct geomBuffer* add_geomBuffer0(void *ectx, int buffersize, int users) {
 	struct geomBuffer* gb = MALLOC(struct geomBuffer*, sizeof(struct geomBuffer));
 	memset(gb, 0, sizeof(struct geomBuffer));
 	gb->address = malloc(buffersize);
 	memset(gb->address, 0, buffersize);
 	gb->byteSize = buffersize;
 	gb->users = users;
-	add_buffer_to_broto_context(gb); //do we need to track buffers allocated? If so, adding to broto context might help
+	add_buffer_to_broto_context0(ectx,gb); //do we need to track buffers allocated? If so, adding to broto context might help
 	return gb;
+}
+struct geomBuffer* add_geomBuffer(int buffersize, int users) {
+	struct X3D_Proto* context = X3D_PROTO(get_executionContext());
+	return add_geomBuffer0(context, buffersize, users);
 }
 void set_geomBuffer(struct geomBuffer* gb) {
 	if (gb->VBO < 1) {

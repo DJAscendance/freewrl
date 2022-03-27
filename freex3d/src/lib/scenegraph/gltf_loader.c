@@ -485,7 +485,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								mr->buffer = find_buffer_in_broto_context_from_cgltf_buffer(ectx, blob->buffer_view->buffer);
 								if (!mr->buffer) {
 									//first use of buffer, allocate
-									mr->buffer = add_geomBuffer(blob->buffer_view->buffer->size, 1);
+									mr->buffer = add_geomBuffer0(ectx,blob->buffer_view->buffer->size, 1);
 									if (blob->buffer_view->buffer->data) {
 										memcpy(mr->buffer->address, blob->buffer_view->buffer->data, blob->buffer_view->buffer->size);
 										mr->buffer->loaded = 1;
@@ -782,6 +782,12 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 	if (meshrep_method) {
 		struct X3D_MeshRep* mr = (struct X3D_MeshRep*) node->_intern;
 		if (mr) {
+			if (1) {
+				printf("compile_BufferGeometry context = %p\n", get_executionContext());
+				struct geomBuffer* gb = find_buffer_in_broto_context_from_cgltf_buffer(get_executionContext(), mr->buffer->cgltf_buffer);
+				if (gb) printf("found geomBuffer in this thread executionContext\n");
+				else printf("didn't find geombuffer in this thread executionContext\n");
+			}
 			if (mr->buffer->loaded == 1)
 				set_geomBuffer(mr->buffer);
 			if(mr->buffer->loaded == 2)
