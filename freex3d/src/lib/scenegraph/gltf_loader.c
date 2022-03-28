@@ -76,16 +76,17 @@ void gltf_loader_clear(struct tgltf_loader *t){
 
 struct name_node {
 char *name;
+int nodeclass;
 struct X3D_Node * node;
 };
 static Stack *defs = NULL;
-struct X3D_Node *USE_node(char *name){
+struct X3D_Node *USE_node(char *name, int nodeclass){
 	if(name){
 		if(!defs) defs = newStack(struct name_node);
 		struct name_node nn;
 		for(int i=0;i<defs->n;i++){
 			nn = vector_get(struct name_node,defs,i);
-			if(!strcmp(name,nn.name)){
+			if(!strcmp(name,nn.name) && nodeclass == nn.nodeclass){
 				return nn.node;
 			}
 		}
@@ -99,6 +100,7 @@ struct X3D_Node *DEF_node(struct X3D_Node *ectx, char *name, int nodetype){
 	add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(node));
 	if(name){
 		nn.name = name;
+		nn.nodeclass = getSAI_X3DNodeType(nodetype);
 		nn.node = node;
 		stack_push(struct name_node,defs,nn);
 	}
@@ -244,7 +246,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		//we unconditionally add a Shape node, even if appearance and geometry are null
 		m++;
 		p = realloc(p,m*sizeof(struct X3D_Node*));
-		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name);
+		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name,X3DBoundedObject);
 		if(!sn){
 			sn = (struct X3D_Shape*) DEF_node(ectx,node->mesh->name,NODE_Shape);
 			for(int j=0;j<node->mesh->primitives_count;j++){
@@ -273,7 +275,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					// - and see below for material-type=specific not-dones.
 					if(prim->material->unlit){
 						int mtype = NODE_UnlitMaterial;
-						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name);
+						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name,X3DMaterialNode);
 						if(!mat){
 							mat = (struct X3D_UnlitMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
@@ -288,7 +290,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					}else if(prim->material->has_pbr_metallic_roughness){
 						int mtype = NODE_PhysicalMaterial;
-						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim->material->name);
+						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim->material->name,X3DMaterialNode);
 						if(!mat){
 							//typedef struct cgltf_pbr_metallic_roughness
 							//{
@@ -315,7 +317,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									if(show) printf("image loaded for us\n");
 								}else{
 									if(show) printf("image not loaded uri = %s\n",pbr->base_color_texture.texture->image->uri);
-									struct X3D_Node *image = USE_node(pbr->base_color_texture.texture->image->name);
+									struct X3D_Node *image = USE_node(pbr->base_color_texture.texture->image->name,X3DTextureNode);
 									if(!image){
 										 image = DEF_node(ectx,pbr->base_color_texture.texture->image->name,NODE_ImageTexture);
 										 struct X3D_ImageTexture *it = (struct X3D_ImageTexture*)image;
@@ -332,7 +334,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					}else if(prim->material->has_pbr_specular_glossiness){
 						int mtype = NODE_Material;
-						struct X3D_Material* mat = (struct X3D_Material*) USE_node(prim->material->name);
+						struct X3D_Material* mat = (struct X3D_Material*) USE_node(prim->material->name,X3DMaterialNode);
 						if(!mat){
 							//typedef struct cgltf_pbr_specular_glossiness
 							//{
