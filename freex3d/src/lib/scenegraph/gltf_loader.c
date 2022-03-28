@@ -496,7 +496,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							struct bufAccess* ba = &mr->index;
 							ba->byteOffset = blob->buffer_view->offset;
 							ba->dataSize = cgltf_num_components(blob->type);
-							ba->dataType = blob->component_type;
+							ba->dataType = lookup_GL_type[blob->component_type];
 							ba->byteStride = blob->stride; //the bufferView also has a stride
 							ba->byteSize = ba->dataSize * lookup_dataType_size(ba->dataType);
 							ba->in_use = 1;

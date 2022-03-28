@@ -655,18 +655,21 @@ static struct dataType_byteSize {
 } dataTypeSize_lookup[] = {
 	{GL_BYTE, 1},
 	{GL_SHORT, 2},
+	{GL_UNSIGNED_SHORT,2},
+	{GL_INT,4},
+	{GL_UNSIGNED_INT,4},
 	{GL_FLOAT, 4},
 	{GL_DOUBLE,8},
 	{-1,0},
 };
-static int dataTypeSizes_handled = 4;
 
 int lookup_dataType_size(int dataType) {
 	struct dataType_byteSize* typeSize;
 	int byteSize = 0;
 	int index = -1;
 	typeSize = NULL;
-	for(index = 0; index < dataTypeSizes_handled; index++) {
+	for(index = 0;; index++) {
+		if (dataTypeSize_lookup[index].dataType < 0) break;
 		if (dataType == dataTypeSize_lookup[index].dataType) {
 			byteSize = dataTypeSize_lookup[index].byteSize;
 			break;

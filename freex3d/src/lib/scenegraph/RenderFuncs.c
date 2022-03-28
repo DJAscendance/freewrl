@@ -1004,7 +1004,7 @@ void saveElementsForGPU0(int mode, int count, int type, void *indices){
 	params.elements.elements_count = count;
 	params.elements.elements_mode = mode;
 	params.elements.elements_indices = indices;
-	params.elements.elements_type = GL_UNSIGNED_SHORT;
+	params.elements.elements_type = type; //can be UNSIGNED_INT or GL_UNSIGNED_SHORT;
 	stack_push(draw_call_params,p->draw_call_params_stack,params);
 }
 //void saveElementsForGPU(int mode, int count, ushort* indices) {
