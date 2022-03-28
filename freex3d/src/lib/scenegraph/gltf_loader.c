@@ -486,6 +486,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							if (!mr->buffer) {
 								//first use of buffer, allocate
 								mr->buffer = add_geomBuffer0(ectx,blob->buffer_view->buffer->size, 1);
+								mr->buffer->cgltf_buffer = (char*)blob->buffer_view->buffer;
 								if (blob->buffer_view->buffer->data) {
 									memcpy(mr->buffer->address, blob->buffer_view->buffer->data, blob->buffer_view->buffer->size);
 									mr->buffer->loaded = 1;
@@ -565,11 +566,12 @@ int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data
 	int ret = TRUE;
 	return ret;
 }
-
+static int geombuffer_method = 1;
 struct uri_data {
 	char *uri;
 	void **data;
 	int data_size;
+	void* cdata;
 };
 cgltf_result cgltf_load_buffers_except_files(const cgltf_options* options, cgltf_data* data, Stack *file_list)
 {
@@ -624,7 +626,12 @@ cgltf_result cgltf_load_buffers_except_files(const cgltf_options* options, cgltf
 		{
 			struct uri_data ud;
 			ud.uri = uri;
-			ud.data = &data->buffers[i].data;
+			if (geombuffer_method) {
+				ud.cdata = &data->buffers[i]; //after phase 2 parse, we will look up geombuffer from this buffer address
+			}
+			else {
+				ud.data = &data->buffers[i].data;
+			}
 			ud.data_size = data->buffers[i].size;
 			stack_push(struct uri_data,file_list,ud);
 		}
@@ -679,14 +686,24 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 				//compact file list?
 				//spawn resource(s) to fetch>
 				unit->bin_file_list = file_list;
-				struct uri_data * ud = vector_get_ptr(struct uri_data,file_list,0);
-				char * uri = ud->uri;
-				res = resource_create_single(uri);
-				res->media_type = resm_unknown; // resm_bin;
-				res->resm_specific = unit;
-				resource_identify(context->_parentResource, res);
-				res->actions = resa_download | resa_load | resa_process;
-				resitem_enqueue(ml_new(res));
+				int nn = 1;
+				if(geombuffer_method) nn = file_list->n;
+				for (int k = 0; k < nn; k++) {
+					struct uri_data* ud = vector_get_ptr(struct uri_data, file_list, k);
+					char* uri = ud->uri;
+					res = resource_create_single(uri);
+					res->ectx = ectx;
+					res->media_type = resm_unknown; // resm_bin;
+					if (geombuffer_method) {
+						res->resm_specific = ud->cdata;
+					}
+					else {
+						res->resm_specific = unit;
+					}
+					resource_identify(context->_parentResource, res);
+					res->actions = resa_download | resa_load | resa_process;
+					resitem_enqueue(ml_new(res));
+				}
 			}
 			// 1. go over struct, creating x3d nodes and nesting them
 			struct Multi_Node *spot;
@@ -716,23 +733,38 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 
 int gltf_load_bin(resource_item_t *res){
 	// late arriving .bin (for .gltf separated unit)
-	gltf_unit * unit = res->resm_specific;
-	if(unit && !unit->bin_loaded){
-		openned_file_t *of = res->openned_files;
-		int len = of->fileDataSize;
-		char * input = of->fileData;
-		unit->bin = malloc(len);
-		memcpy(unit->bin,input,len);
-		unit->bin_len = of->fileDataSize;
-		Stack *file_list = unit->bin_file_list;
-		struct uri_data *ud;
-		for(int i=0;i<vectorSize(file_list); i++){
-			// june 22, 2020: I'm not properly handling multiple .bin or whatever the loop is for
-			ud = vector_get_ptr(struct uri_data,file_list,i);
-			*ud->data = unit->bin;
-			ud->data_size = unit->bin_len;
+	if (geombuffer_method) {
+		cgltf_buffer* buffer = res->resm_specific;
+		if (buffer) {
+			struct geomBuffer *gb = find_buffer_in_broto_context_from_cgltf_buffer(res->ectx, buffer);
+			if (gb) {
+				openned_file_t* of = res->openned_files;
+				int len = of->fileDataSize;
+				char* input = of->fileData;
+				memcpy(gb->address, input, len);
+				gb->loaded = 1;
+			}
 		}
-		unit->bin_loaded = TRUE;
+	}
+	else {
+		gltf_unit* unit = res->resm_specific;
+		if (unit && !unit->bin_loaded) {
+			openned_file_t* of = res->openned_files;
+			int len = of->fileDataSize;
+			char* input = of->fileData;
+			unit->bin = malloc(len);
+			memcpy(unit->bin, input, len);
+			unit->bin_len = of->fileDataSize;
+			Stack* file_list = unit->bin_file_list;
+			struct uri_data* ud;
+			for (int i = 0; i < vectorSize(file_list); i++) {
+				// june 22, 2020: I'm not properly handling multiple .bin or whatever the loop is for
+				ud = vector_get_ptr(struct uri_data, file_list, i);
+				*ud->data = unit->bin;
+				ud->data_size = unit->bin_len;
+			}
+			unit->bin_loaded = TRUE;
+		}
 	}
 	return TRUE;
 }
