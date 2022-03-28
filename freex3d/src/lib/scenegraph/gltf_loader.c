@@ -224,41 +224,26 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 // june 22, 2020 not done: skinned / rigged animated charactors, points, lines and various things noted below.
 // generally we got glb and gltf+bin to load and render a bit - a proof of concept.
 // biggest thing left: inline and in-bin textures - do we need a BufferTexture node (to bypass freewrl spaghetti code)?
-	//transform part
-	int show = FALSE; //TRUE for some printfs
-	int m = 0;
-	struct X3D_Transform *t = createNewX3DNode(NODE_Transform);
-	if(node->has_matrix){
-		//parse matrix into TRS
-		//
-	}else{
-		if(node->has_rotation){
-			veccopy3f(t->rotation.c,&node->rotation[1]); 
-			t->rotation.c[3] = node->rotation[0];
-		}
-		if(node->has_scale){
-			veccopy3f(t->scale.c,node->scale);
-		}
-		if(node->has_translation){
-			veccopy3f(t->translation.c,node->translation);
-		}
-	}
 	//content part
+	int show = FALSE;
+	int m = 0;
+	struct X3D_Node** p = NULL;
 	if(node->camera){
-		m++;
-		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		//m++;
+		//p = realloc(p,m*sizeof(struct X3D_Node*));
 		//june 22, 2020 not done: add viewpoint here
 	}
 	if(node->light){
-		m++;
-		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		//m++;
+		//p = realloc(p,m*sizeof(struct X3D_Node*));
 		// june 22, 2020 not done: add punctual (directional, point, spot) light here
 		// - not done and not supported yet EnvironmentLight
 	}
 	if(node->mesh){
 		//gltf mesh is like our shape: it refers to material and to geometry/accessor
+		//we unconditionally add a Shape node, even if appearance and geometry are null
 		m++;
-		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		p = realloc(p,m*sizeof(struct X3D_Node*));
 		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name);
 		if(!sn){
 			sn = (struct X3D_Shape*) DEF_node(ectx,node->mesh->name,NODE_Shape);
@@ -531,11 +516,11 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				}
 			}
 		}
-		t->children.p[m-1] = X3D_NODE(sn);
+		p[m-1] = X3D_NODE(sn);
 	}
 	if(node->skin){
-		m++;
-		t->children.p = realloc(t->children.p,m*sizeof(struct X3D_Node*));
+		//m++;
+		//p = realloc(p,m*sizeof(struct X3D_Node*));
 	}
 	if(node->weights_count){
 	}
@@ -544,23 +529,49 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 	//children part
 	int mc = node->children_count;
 	if(mc){
-		t->children.p = realloc(t->children.p,(mc+m)*sizeof(struct X3D_Node*));
+		int nn = 0;
+		p = realloc(p,(mc+m)*sizeof(struct X3D_Node*));
 		for(int i=0;i<mc;i++){
-			parse_gltf_node(ectx,&t->children.p[i+m],data,node->children[i],unit);
+			if( parse_gltf_node(ectx,&p[i+m],data,node->children[i],unit)) nn++;
 		}
-		m += mc;
+		m += nn;
 	}
-	t->children.n = m;
-	add_node_to_broto_context(X3D_PROTO(ectx),X3D_NODE(t));
-	*spot = X3D_NODE( t );
-	return TRUE;
+	int got_something = FALSE;
+	if (m) {
+		//transform part: gltf has a flat scenegraph, with each node having a transform and a thing, with thing being mesh, camera. Like Blender.
+		struct X3D_Transform* t = createNewX3DNode(NODE_Transform);
+		if (node->has_matrix) {
+			//parse matrix into TRS
+			//
+		}
+		else {
+			if (node->has_rotation) {
+				veccopy3f(t->rotation.c, &node->rotation[1]);
+				t->rotation.c[3] = node->rotation[0];
+			}
+			if (node->has_scale) {
+				veccopy3f(t->scale.c, node->scale);
+			}
+			if (node->has_translation) {
+				veccopy3f(t->translation.c, node->translation);
+			}
+		}
+
+		t->children.n = m;
+		t->children.p = p;
+		add_node_to_broto_context(X3D_PROTO(ectx), X3D_NODE(t));
+		*spot = X3D_NODE(t);
+		got_something = TRUE;
+	}
+	return got_something;
 }
 
 int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data, gltf_unit *unit){
 	int n = data->scene[0].nodes_count;
 	spot->p = realloc(spot->p, n * sizeof(struct X3D_Node *));
+	n = 0; //we may not know how to parse them all, so don't count ones we don't parse.
 	for(int i=0;i<data->scene[0].nodes_count;i++){
-		parse_gltf_node(ectx,&spot->p[i],data,data->scene[0].nodes[i], unit);
+		if( parse_gltf_node(ectx,&spot->p[i],data,data->scene[0].nodes[i], unit) ) n++;
 	}
 	spot->n = n;
 	int ret = TRUE;
