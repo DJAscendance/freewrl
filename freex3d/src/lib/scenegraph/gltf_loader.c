@@ -157,7 +157,7 @@ void render_MeshRep(void* _meshrep) {
 	}
 
 	// do we have UV?
-	if(1) {
+	{
 		//see also textureCoord_send 
 		int kuv = 0;
 		s_shader_capabilities_t* me;
@@ -194,50 +194,17 @@ void render_MeshRep(void* _meshrep) {
 		char* paddress;
 		for (int i = 0; i < meshrep->ncoord; i++) {
 			printf("%d [", i);
-			ba = &meshrep->attrib[0]; //point
-			paddress = get_Attribi(ba, gb, i);;
-			float* ai = (float*)paddress;
-			for (int j = 0; j < ba->dataSize; j++) {
-				printf("%f ", ai[j]);
+			for (int k = 0; k < 8; k++) {
+				ba = &meshrep->attrib[k]; //point
+				if (ba->in_use) {
+					paddress = get_Attribi(ba, gb, i);;
+					float* ai = (float*)paddress;
+					printf(" [");
+					for (int j = 0; j < ba->dataSize; j++)
+						printf("%f ", ai[j]);
+					printf("]");
+				}
 			}
-			printf("]");
-			ba = &meshrep->attrib[1]; //color
-			if (ba->in_use) {
-				paddress = get_Attribi(ba, gb, i);;
-				float* ai = (float*)paddress;
-				printf(" [");
-				for (int j = 0; j < ba->dataSize; j++)
-					printf("%f ", ai[j]);
-				printf("]");
-			}
-			ba = &meshrep->attrib[2]; //fog
-			if (ba->in_use) {
-				paddress = get_Attribi(ba, gb, i);;
-				float* ai = (float*)paddress;
-				printf(" [");
-				for (int j = 0; j < ba->dataSize; j++)
-					printf("%f ", ai[j]);
-				printf("]");
-			}
-			ba = &meshrep->attrib[3]; 
-			if (ba->in_use) {
-				paddress = get_Attribi(ba, gb, i);;
-				float* ai = (float*)paddress;
-				printf(" [");
-				for (int j = 0; j < ba->dataSize; j++)
-					printf("%f ", ai[j]);
-				printf("]");
-			}
-			ba = &meshrep->attrib[4]; //UV_0
-			if (ba->in_use) {
-				paddress = get_Attribi(ba, gb, i);;
-				float* ai = (float*)paddress;
-				printf(" [");
-				for (int j = 0; j < ba->dataSize; j++)
-					printf("%f ", ai[j]);
-				printf("]");
-			}
-
 			printf("\n");
 		}
 		printf("");
