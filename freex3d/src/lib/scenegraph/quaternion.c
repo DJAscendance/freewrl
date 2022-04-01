@@ -476,18 +476,39 @@ quaternion_to_vrmlrot(const Quaternion *quat, double *x, double *y, double *z, d
 	//no - the problem now is sqrt(0) comes out -1.#IND
 	// or more preciesly MSVC gives NaN if value is negative, and ours might be 
 	// a tiny tiny bit negative.
-	s2 = 1.0 - qn.w;
-	if (APPROX(s2, 0.0) || s2 < 0.0) {
-		*x = 0;
-		*y = 0;
-		*z = 1;
-		*a = 0;
+	static int oldway = 0;
+	if (oldway) {
+		s2 = 1.0 - qn.w;
+		if (APPROX(s2, 0.0) || s2 < 0.0) {
+			*x = 0;
+			*y = 0;
+			*z = 1;
+			*a = 0;
+		}
+		else {
+			scale = sqrt(1.0 - qn.w);
+			*x = qn.x / scale;
+			*y = qn.y / scale;
+			*z = qn.z / scale;
+			*a = 2.0 * acos(qn.w);
+		}
 	} else {
-		scale = sqrt(1.0 - qn.w);
-		*x = qn.x / scale;
-		*y = qn.y / scale;
-		*z = qn.z / scale;
-		*a = 2.0 * acos(qn.w);
+		//http://euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm 
+		//2022 a bit different
+		if (qn.w > 1.0) quaternion_normalize(&qn);
+		double angle = 2.0 * acos(qn.w);
+		double scale = sqrt(1.0 - qn.w * qn.w);
+		if (scale < 0.001) {
+			*x = 0.0;
+			*y = 0.0;
+			*z = 1.0;
+			*a = angle;
+		} else {
+			*x = qn.x / scale;
+			*y = qn.y / scale;
+			*z = qn.z / scale;
+			*a = angle;
+		}
 	}
 }
 void quaternion_to_vrmlrot4d(const Quaternion *quat, double *xyza){

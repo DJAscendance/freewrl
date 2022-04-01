@@ -1819,7 +1819,8 @@ void render_node(struct X3D_Node *node) {
 	//if (renderstate()->render_vp == VF_Viewpoint) { 
 	if (p->renderstate.render_vp == VF_Viewpoint) { 
 		//if(tg->Bindable.activeLayer == 0)  //no Layerset nodes
-		if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint) { 
+		//if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint && virt->children == NULL) { 
+		if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint ) {
 			#ifdef RENDERVERBOSE
 			printf ("doing Viewpoint, but this  node is not for us - just returning\n"); 
 			p->renderLevel--;

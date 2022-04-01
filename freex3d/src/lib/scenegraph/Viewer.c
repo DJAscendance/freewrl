@@ -309,7 +309,7 @@ void printStats()
 	printStatsRoutes();
 	printStatsBindingStacks();
 }
-
+char* fwl_currentBoundVPname();
 void
 print_viewer()
 {
@@ -324,6 +324,7 @@ print_viewer()
 	ConsoleMessage("\tQuaternion[%.4f, %.4f, %.4f, %.4f]\n", (viewer->Quat).w, (viewer->Quat).x, (viewer->Quat).y, (viewer->Quat).z);
 	ConsoleMessage("\tOrientation[%.4f, %.4f, %.4f, %.4f]\n", ori.x, ori.y, ori.z, ori.a);
 	ConsoleMessage("}\n");
+	ConsoleMessage("vp description %s\n", fwl_currentBoundVPname());
 	getCurrentPosInModelB();
 	ConsoleMessage("World Coordinates of Avatar [%.4f, %.4f %.4f]\n",viewer->currentPosInModel.x,viewer->currentPosInModel.y,viewer->currentPosInModel.z);
 	printStats();

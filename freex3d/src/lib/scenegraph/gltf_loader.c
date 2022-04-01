@@ -22,6 +22,7 @@
 #include <libFreeWRL.h>
 #include <list.h>
 #include <io_http.h>
+#include "quaternion.h"
 
 // GLTF
 //https://github.com/jkuhlmann/cgltf 
@@ -230,6 +231,34 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		//m++;
 		//p = realloc(p,m*sizeof(struct X3D_Node*));
 		//june 22, 2020 not done: add viewpoint here
+		struct X3D_Node* viewpoint = NULL;
+		cgltf_camera* camera = node->camera;
+		viewpoint = (struct X3D_Node*)USE_node(camera->name, X3DBindableNode);
+		if (!viewpoint) {
+			if (camera->type == cgltf_camera_type_perspective) {
+				struct X3D_Viewpoint* vp = (struct X3D_Viewpoint*)DEF_node(ectx, camera->name, NODE_Viewpoint);
+				cgltf_camera_perspective perspective = camera->data.perspective;
+				vp->fieldOfView = perspective.yfov;
+				vp->aspectRatio = perspective.aspect_ratio > 0.0f ? perspective.aspect_ratio : .75;
+				vp->farClippingPlane = perspective.zfar;
+				vp->nearClippingPlane = perspective.znear;
+				vp->description = newASCIIString(camera->name);
+				vecset3f(vp->position.c, 0.0f, 0.0f, 0.0f); //let the transform position (default is 0 0 10)
+				//vp->navigationInfo = createNewX3DNode(NODE_NavigationInfo);
+				viewpoint = X3D_NODE(vp);
+				//printf("vp desc %s", vp->description->strptr);
+			}
+			else if (camera->type == cgltf_camera_type_orthographic) {
+				printf("orth");
+			}
+		}
+		if (viewpoint) {
+			m++;
+			p = realloc(p,m*sizeof(struct X3D_Node*));
+			p[m - 1] = viewpoint;
+			//printf("adding viewpoint\n");
+		}
+
 	}
 	if(node->light){
 		//m++;
@@ -721,6 +750,11 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							ba->in_use = 1;
 							mr->nindex = blob->count;
 						}
+						if (prim->attributes->data->has_max && prim->attributes->data->has_min) {
+							float *emin = prim->attributes->data->min;
+							float* emax = prim->attributes->data->max;
+							extent6f_constructor(ts->_extent, emin[0], emin[1], emin[2], emax[0], emax[1], emax[2]);
+						}
 					}
 					break;
 					case cgltf_primitive_type_triangle_strip:
@@ -735,6 +769,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				}
 			}
 		}
+		//printf("adding shape\n");
+
 		p[m-1] = X3D_NODE(sn);
 	}
 	if(node->skin){
@@ -748,12 +784,15 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 	//children part
 	int mc = node->children_count;
 	if(mc){
+
 		int nn = 0;
 		p = realloc(p,(mc+m)*sizeof(struct X3D_Node*));
 		for(int i=0;i<mc;i++){
-			if( parse_gltf_node(ectx,&p[i+m],data,node->children[i],unit)) nn++;
+			if( parse_gltf_node(ectx,&p[m+nn],data,node->children[i],unit)) nn++;
 		}
 		m += nn;
+		//printf("adding children\n");
+
 	}
 	int got_something = FALSE;
 	if (m) {
@@ -762,23 +801,48 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		if (node->has_matrix) {
 			//parse matrix into TRS
 			//
+			printf("gltf_loader not parsing matrix yet\n");
 		}
 		else {
-			if (node->has_rotation) {
-				veccopy3f(t->rotation.c, &node->rotation[1]);
-				t->rotation.c[3] = node->rotation[0];
+			vecset3f(t->translation.c, 0.0f, 0.0f, 0.0f);
+			vecset3f(t->scale.c, 1.0f, 1.0f, 1.0f);
+			vecset4f(t->rotation.c, 0.0f, 1.0f, 0.0f, 0.0f);
+			if (node->has_rotation ) {
+				float* r = t->rotation.c;
+				double rd[4];
+				Quaternion q;
+				q.x = node->rotation[0];
+				q.y = node->rotation[1];
+				q.z = node->rotation[2];
+				q.w = node->rotation[3];
+				quaternion_normalize(&q);
+				quaternion_to_vrmlrot(&q, &rd[0], &rd[1], &rd[2], &rd[3]);
+				double2float(r, rd, 4);
+				//r[3] = -r[3];
 			}
-			if (node->has_scale) {
+			if (node->has_scale ) {
 				veccopy3f(t->scale.c, node->scale);
+				//printf("scale %f %f %f\n", t->scale.c[0], t->scale.c[1], t->scale.c[2]);
 			}
-			if (node->has_translation) {
+			if (node->has_translation ) {
 				veccopy3f(t->translation.c, node->translation);
 			}
 		}
-
 		t->children.n = m;
 		t->children.p = p;
+		if (0) {
+			printf("translation %f %f %f\n", t->translation.c[0], t->translation.c[1], t->translation.c[2]);
+			printf("scale %f %f %f\n", t->scale.c[0], t->scale.c[1], t->scale.c[2]);
+			printf("rotation %f %f %f %f\n", t->rotation.c[0], t->rotation.c[1], t->rotation.c[2], t->rotation.c[3]);
+			printf("number of children %d\n", m);
+			for (int k = 0; k < m; k++)
+				printf("   %d %s\n", k, stringNodeType(t->children.p[k]->_nodeType));
+		}
+		for (int i = 0; i < m; ++i) {
+			ADD_PARENT(p[i], X3D_NODE(t));
+		}
 		add_node_to_broto_context(X3D_PROTO(ectx), X3D_NODE(t));
+
 		*spot = X3D_NODE(t);
 		got_something = TRUE;
 	}
@@ -790,9 +854,10 @@ int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data
 	spot->p = realloc(spot->p, n * sizeof(struct X3D_Node *));
 	n = 0; //we may not know how to parse them all, so don't count ones we don't parse.
 	for(int i=0;i<data->scene[0].nodes_count;i++){
-		if( parse_gltf_node(ectx,&spot->p[i],data,data->scene[0].nodes[i], unit) ) n++;
+		if( parse_gltf_node(ectx,&spot->p[n],data,data->scene[0].nodes[i], unit) ) n++;
 	}
 	spot->n = n;
+	//printf("got %d children\n", n);
 	int ret = TRUE;
 	return ret;
 }
@@ -943,6 +1008,8 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 				spot = &((struct X3D_Group*)(myParent))->children;
 			spot->p = NULL; spot->n = 0;
 			parse_gltf(ectx,spot,data,unit);
+			for(int j=0;j<spot->n;j++)
+				ADD_PARENT(X3D_NODE(spot->p[j]), X3D_NODE(ectx));
 			// documentation: """Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. 
 			//	You'll need to read these files yourself using URIs from data.buffers[] or data.images[] respectively. """
 			ret = TRUE;
@@ -1036,6 +1103,32 @@ int parser_process_res_gltf(resource_item_t *res){
 	}
 	return parsedOk;
 }
+float* extent6f_fromBufferAccess(float* e6, struct geomBuffer* gb, struct bufAccess* ba, int ncoord) {
+	extent6f_clear(e6);
+	float point[3];
+	double* dp;
+	float* fp;
+	char* paddress;
+	memset(point, 0, 3 * sizeof(float));
+	for (int i = 0; i < ncoord; i++) {
+		paddress = get_Attribi(ba, gb, i);
+		if (ba->dataType == GL_FLOAT) {
+			fp = (float*)paddress;
+			for (int j = 0; j < ba->dataSize; j++) {
+				point[j] = fp[j];
+			}
+		}
+		else if (ba->dataType == GL_DOUBLE) {
+			dp = (double*)paddress;
+			double2float(point, dp, ba->dataSize);
+			//for (int j = 0; j < ba->dataSize; j++) {
+			//	point[j] = (float)dp[j];
+			//}
+		}
+		extent6f_union_vec3f(e6, point);
+	}
+	return e6;
+}
 void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 	struct X3D_MeshRep* mr = (struct X3D_MeshRep*) node->_intern;
 	if (mr) {
@@ -1047,8 +1140,54 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 		//}
 		if (mr->buffer->loaded == 1)
 			set_geomBuffer(mr->buffer);
-		if(mr->buffer->loaded == 2)
+		if (mr->buffer->loaded == 2) {
+			float e6[6];
+			extent6f_clear(e6);
+
 			MARK_NODE_COMPILED
+			if (mr->attrib[0].in_use) {
+				//update extent if not set
+				if (!extent6f_isSet(node->_extent)) {
+					if(1)
+						extent6f_fromBufferAccess(e6, mr->buffer, &mr->attrib[0], mr->ncoord);
+					else {
+						float point[3];
+						double* dp;
+						float* fp;
+						char* paddress;
+						struct geomBuffer* gb = mr->buffer;
+						struct bufAccess* ba;
+						ba = &mr->attrib[0];
+						memset(point, 0, 3 * sizeof(float));
+						for (int i = 0; i < mr->ncoord; i++) {
+							paddress = get_Attribi(ba, gb, i);
+							if (ba->dataType == GL_FLOAT) {
+								fp = (float*)paddress;
+								for (int j = 0; j < ba->dataSize; j++) {
+									point[j] = fp[j];
+								}
+							}
+							else if (ba->dataType == GL_DOUBLE) {
+								dp = (double*)paddress;
+								double2float(point, dp, ba->dataSize);
+								//for (int j = 0; j < ba->dataSize; j++) {
+								//	point[j] = (float)dp[j];
+								//}
+							}
+							extent6f_union_vec3f(e6, point);
+						}
+					}
+				}
+			}
+			if (0) {
+				extent6f_printf(node->_extent);
+				printf("cgltf min,max\n");
+				extent6f_printf(e6);
+				printf("compile_BufferGeometry extent\n");
+			}
+			if(extent6f_isSet(e6))
+				extent6f_copy(node->_extent, e6);
+		}
 	}
 }
 void render_BufferGeometry(struct X3D_BufferGeometry *node){
@@ -1056,6 +1195,9 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 	//we lazy-load .bin binary buffer part for .gltf, so have to wait 
 	// till its loaded. .glb loads in one shot 
 	COMPILE_IF_REQUIRED;
+	setExtent(node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
+		node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
+		X3D_NODE(node));
 	render_MeshRep(node->_intern);
 }
 void rendray_BufferGeometry(struct X3D_BufferGeometry *node){

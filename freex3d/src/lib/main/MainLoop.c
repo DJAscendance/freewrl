@@ -6312,10 +6312,10 @@ void fwl_do_keyPress0(int key, int type) {
 				case 'H': { fps_histo_toggle(); break; }
 				case '/': { print_viewer(); break; }
 				//case '\\': { dump_scenegraph(); break; }
-				//case '\\': { dump_scenegraph(1); break; }
-				//case '|': { dump_scenegraph(2); break; }
+				case '\\': { dump_scenegraph(1); break; }
+				case '|': { dump_scenegraph(2); break; }
 				//case '=': { dump_scenegraph(3); break; }
-				//case '+': { dump_scenegraph(4); break; }
+				case '+': { dump_scenegraph(4); break; }
 				case '-': { dump_scenegraph(5); break; }
 				case '`': { toggleLogfile(); break; }
 				case '$': resource_tree_dump(0, (resource_item_t*)tg->resources.root_res); break;
@@ -6889,7 +6889,8 @@ static int moreThanOneValidViewpoint( void) {
 	int count;
 	struct tProdCon *t = &gglobal()->ProdCon;
 
-	if (vectorSize(t->viewpointNodes)<=1) return FALSE;
+	if (vectorSize(t->viewpointNodes)<=1) 
+		return FALSE;
 
 	for (count=0; count < vectorSize(t->viewpointNodes); count++) {
 		if (count != t->currboundvpno) {
@@ -6913,7 +6914,7 @@ static int moreThanOneValidViewpoint( void) {
 			}
 		}
 	}
-	return FALSE;
+	return TRUE; // FALSE;
 }
 
 
@@ -6963,7 +6964,28 @@ void fwl_Last_ViewPoint() {
 }
 
 
+char* fwl_currentBoundVPname() {
+	char* retval = NULL;
+	struct tProdCon* t = &gglobal()->ProdCon;
+	if (t->viewpointNodes && t->viewpointNodes->n > 0) {
+		struct X3D_Node* cn = vector_get(struct X3D_Node*, t->viewpointNodes, t->currboundvpno);
+		if (cn->_nodeType == NODE_Viewpoint)
+		{
+			struct X3D_Viewpoint* vp = (struct X3D_Viewpoint*)cn;
+			retval = vp->description->strptr;
+		}
+		else if (cn->_nodeType == NODE_OrthoViewpoint) {
+			struct X3D_OrthoViewpoint* vp = (struct X3D_OrthoViewpoint*)cn;
+			retval = vp->description->strptr;
 
+		}
+		else if (cn->_nodeType == NODE_GeoViewpoint) {
+			struct X3D_GeoViewpoint* vp = (struct X3D_GeoViewpoint*)cn;
+			retval = vp->description->strptr;
+		}
+	}
+	return retval;
+}
 /* go to the first viewpoint */
 void fwl_First_ViewPoint() {
 	if (moreThanOneValidViewpoint()) {
@@ -7068,11 +7090,12 @@ void fwl_Next_ViewPoint() {
 		   have to skip one or more if they are in a ViewpointGroup that is
 		   out of proxy */
 		vp_to_go_to = t->currboundvpno;
+		printf("number of vp nodes %d\n", vectorSize(t->viewpointNodes));
 		for (ind = 0; ind < vectorSize(t->viewpointNodes); ind++) {
 			struct X3D_Node *cn;
 
 			vp_to_go_to++;
-                	if (vp_to_go_to>=vectorSize(t->viewpointNodes)) vp_to_go_to=0;
+			if (vp_to_go_to>=vectorSize(t->viewpointNodes)) vp_to_go_to=0;
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, vector_get(
 				struct X3D_Node*, t->viewpointNodes,vp_to_go_to),cn);
 
@@ -7086,13 +7109,17 @@ void fwl_Next_ViewPoint() {
 				/* set the initial viewpoint for this file */
 				t->setViewpointBindInRender = vector_get(
 					struct X3D_Node*,t->viewpointNodes,vp_to_go_to);
-                		t->currboundvpno = vp_to_go_to;
-                		if (t->currboundvpno>=vectorSize(t->viewpointNodes)) t->currboundvpno=0;
+                	t->currboundvpno = vp_to_go_to;
+                	if (t->currboundvpno>=vectorSize(t->viewpointNodes)) 
+						t->currboundvpno=0;
 
-			return;
+				return;
 			}
 		}
-        }
+	}
+	else {
+		printf("only one valid Viewpoint\n");
+	}
 }
 
 /* initialization for the OpenGL render, event processing sequence. Should be done in threat that has the OpenGL context */

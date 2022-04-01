@@ -353,7 +353,7 @@ int layerFromBindable(struct X3D_Node *node){
 void send_bind_to(struct X3D_Node *node, int value) {
 	int layerId;
 	ttglobal tg = gglobal();
-	/* printf ("\n%lf: send_bind_to, nodetype %s node %u value %d\n",TickTime(),stringNodeType(node->_nodeType),node,value);  */
+	//printf ("\n%lf: send_bind_to, nodetype %s node %p value %d\n",TickTime(),stringNodeType(node->_nodeType),node,value);  
 
 	layerId = layerFromBindable(node);
 	switch (node->_nodeType) {

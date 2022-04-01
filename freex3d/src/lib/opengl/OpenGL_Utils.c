@@ -5748,9 +5748,11 @@ void startOfLoopNodeUpdates(void) {
 
 	/* now, we can go and tell the grouping nodes which ones are the lucky ones that contain the current Viewpoint node */
 	foundbound = FALSE;
+	//printf("size of bstacks=%d\n", vectorSize(tg->Bindable.bstacks));
 	for(k=0;k<vectorSize(tg->Bindable.bstacks);k++){
 		bindablestack *bstack = vector_get(bindablestack*,tg->Bindable.bstacks,k);
 		//if (vectorSize(getActiveBindableStacks(tg)->viewpoint) > 0) {
+		//printf("size of bstack->viewpoint %d\n", vectorSize(bstack->viewpoint));
 		if( vectorSize(bstack->viewpoint) > 0){
 			//ConsoleMessage ("going to updateRF on viewpoint, stack is %d in size\n", vectorSize(tg->Bindable.viewpoint_stack));
 
