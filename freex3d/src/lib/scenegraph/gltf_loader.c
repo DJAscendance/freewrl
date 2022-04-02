@@ -211,6 +211,151 @@ void render_MeshRep(void* _meshrep) {
 		printf("");
 	}
 }
+void rendray_MeshRep(void* _meshrep) {
+	struct X3D_MeshRep* mr = (struct X3D_MeshRep*)_meshrep;
+	if (!mr) return;
+	if (!mr->ncoord) return;
+
+	struct geomBuffer* gb = mr->buffer;
+	if (!gb || gb->loaded < 2) return;
+
+	//this doesn't work with large pick rays for geo size scenes
+	//struct X3D_Virt *virt;
+	struct X3D_Node* genericNodePtr;
+	int pt;
+	float point[3][3];
+	int cindex[3];
+	struct point_XYZ v1, v2, v3;
+	float pt1, pt2, pt3;
+	struct point_XYZ hitpoint;
+	float tmp1, tmp2;
+	float v1len, v2len, v3len;
+	float v12pt;
+	struct point_XYZ t_r1, t_r2;
+	struct bufAccess* bai, * ba;
+	char* paddress;
+
+	get_current_ray(&t_r1, &t_r2);
+	bai = &mr->index;
+	ba = &mr->attrib[0];
+
+	int ntri = mr->ncoord / 3;
+	if (mr->index.in_use) {
+		bai = &mr->index;
+		ntri = mr->nindex / 3;
+		for (int i = 0, j=0; i < ntri; i++) {
+			if (mr->index.in_use) {
+				for (int k = 0; k < 3; k++) {
+					paddress = get_Attribi(bai, gb, i * 3 + k);
+					int ic;
+					if (bai->dataType == GL_UNSIGNED_SHORT) {
+						unsigned short* ip = (unsigned short*)paddress;
+						ic = (int)(*ip);
+					}
+					else {
+						int* ip = (int*)paddress;
+						ic = (int)(*ip);
+					}
+					cindex[k] = ic;
+				}
+			}
+			else {
+				for (int k = 0; k < 3; k++)
+					cindex[k] = i * 3 + k;
+
+			}
+			for (int k = 0; k < 3; k++) {
+				paddress = get_Attribi(ba, gb, cindex[k]);
+				veccopy3f(point[k], (float*)paddress);
+			}
+			//intersect ray with triangle
+
+			/*
+			printf ("have points (%f %f %f) (%f %f %f) (%f %f %f)\n",
+				point[0][0],point[0][1],point[0][2],
+				point[1][0],point[1][1],point[1][2],
+				point[2][0],point[2][1],point[2][2]);
+			*/
+
+			/* First we need to project our point to the surface */
+			/* Poss. 1: */
+			/* Solve s1xs2 dot ((1-r)r1 + r r2 - pt0)  ==  0 */
+			/* I.e. calculate s1xs2 and ... */
+			v1.x = point[1][0] - point[0][0];
+			v1.y = point[1][1] - point[0][1];
+			v1.z = point[1][2] - point[0][2];
+			v2.x = point[2][0] - point[0][0];
+			v2.y = point[2][1] - point[0][1];
+			v2.z = point[2][2] - point[0][2];
+			v1len = (float)sqrt(VECSQ(v1)); VECSCALE(v1, 1 / v1len);
+			v2len = (float)sqrt(VECSQ(v2)); VECSCALE(v2, 1 / v2len);
+			v12pt = (float)VECPT(v1, v2);
+
+			/* this will get around a divide by zero further on JAS */
+			if (fabs(v12pt - 1.0) < 0.00001) continue;
+
+			/* if we have a degenerate triangle, we can't compute a normal, so skip */
+			if ((fabs(v1len) > 0.00001) && (fabs(v2len) > 0.00001)) {
+
+				/* v3 is our normal to the surface */
+				VECCP(v1, v2, v3);
+				v3len = (float)sqrt(VECSQ(v3)); VECSCALE(v3, 1 / v3len);
+				pt1 = (float)VECPT(t_r1, v3);
+				pt2 = (float)VECPT(t_r2, v3);
+				pt3 = (float)(v3.x * point[0][0] + v3.y * point[0][1] + v3.z * point[0][2]);
+				/* Now we have (1-r)pt1 + r pt2 - pt3 = 0
+				 * r * (pt1 - pt2) = pt1 - pt3
+				 */
+				tmp1 = pt1 - pt2;
+				if (!APPROX(tmp1, 0)) {
+					float ra, rb;
+					float k, l;
+					struct point_XYZ p0h;
+
+					tmp2 = (float)((pt1 - pt3) / (pt1 - pt2));
+					hitpoint.x = MRATX(tmp2);
+					hitpoint.y = MRATY(tmp2);
+					hitpoint.z = MRATZ(tmp2);
+					/* Now we want to see if we are in the triangle */
+					/* Projections to the two triangle sides */
+					p0h.x = hitpoint.x - point[0][0];
+					p0h.y = hitpoint.y - point[0][1];
+					p0h.z = hitpoint.z - point[0][2];
+					ra = (float)VECPT(v1, p0h);
+					if (ra < 0.0f) { continue; }
+					rb = (float)VECPT(v2, p0h);
+					if (rb < 0.0f) { continue; }
+					/* Now, the condition for the point to
+					 * be inside
+					 * (ka + lb = p)
+					 * (k + l b.a = p.a)
+					 * (k b.a + l = p.b)
+					 * (k - (b.a)**2 k = p.a - (b.a)*p.b)
+					 * k = (p.a - (b.a)*(p.b)) / (1-(b.a)**2)
+					 */
+					k = (ra - v12pt * rb) / (1 - v12pt * v12pt);
+					l = (rb - v12pt * ra) / (1 - v12pt * v12pt);
+					k /= v1len; l /= v2len;
+					if (k + l > 1 || k < 0 || l < 0) {
+						continue;
+					}
+					rayhit(((float)(tmp2)),
+						((float)(hitpoint.x)),
+						((float)(hitpoint.y)),
+						((float)(hitpoint.z)),
+						((float)(v3.x)),
+						((float)(v3.y)),
+						((float)(v3.z)),
+						((float)-1), ((float)-1), "polyrep");
+				}
+				/*
+				} else {
+					printf ("render_ray_polyrep, skipping degenerate triangle\n");
+				*/
+			}
+		}
+	}
+}
 void delete_MeshRep(void* meshrep) {
 	//like delete_PointRep
 	struct X3D_MeshRep* mr;
@@ -1179,6 +1324,20 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 					}
 				}
 			}
+			if(0) if (mr->attrib[4].in_use) {
+				//experiment to reverse UV V coordinate to see if freewrl textures are upside down
+				float* fp;
+				char* paddress;
+				struct geomBuffer* gb = mr->buffer;
+				struct bufAccess* ba;
+				ba = &mr->attrib[0];
+
+				for (int i = 0; i < mr->ncoord; i++) {
+					paddress = get_Attribi(ba, gb, i);
+					fp = (float*)paddress;
+					fp[1] = 1.0f - fp[1];
+				}
+			}
 			if (0) {
 				extent6f_printf(node->_extent);
 				printf("cgltf min,max\n");
@@ -1200,7 +1359,17 @@ void render_BufferGeometry(struct X3D_BufferGeometry *node){
 		X3D_NODE(node));
 	render_MeshRep(node->_intern);
 }
-void rendray_BufferGeometry(struct X3D_BufferGeometry *node){
+void rendray_BufferGeometry(struct X3D_BufferGeometry* node) {
+	/* is this structure still loading? */
+	if (!node) return;
+	/* is this structure still loading? */
+	if (!(node->_intern)) {
+		return;
+	}
+	if (node->_ichange == 0) return; //not compiled yet
+
+	rendray_MeshRep(node->_intern);
 }
+
 void collide_BufferGeometry(struct X3D_BufferGeometry *node){
 }
