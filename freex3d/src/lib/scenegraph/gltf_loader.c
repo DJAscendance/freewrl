@@ -405,11 +405,70 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		}
 
 	}
-	if(node->light){
+	if (node->light) {
 		//m++;
 		//p = realloc(p,m*sizeof(struct X3D_Node*));
 		// june 22, 2020 not done: add punctual (directional, point, spot) light here
 		// - not done and not supported yet EnvironmentLight
+		//cgltf_light_type_invalid, 0
+		//cgltf_light_type_directional, 1
+		//cgltf_light_type_point, 2
+		//cgltf_light_type_spot, 3
+
+		struct X3D_Node* light = NULL;
+		cgltf_light* plight = node->light;
+		light = (struct X3D_Node*)USE_node(plight->name, X3DLightNode);
+		if (!light) {
+			if (node->light->type > cgltf_light_type_invalid) {
+				//cgltf_light
+				//char* name;
+				//cgltf_float color[3];
+				//cgltf_float intensity;
+				//cgltf_light_type type;
+				//cgltf_float range;
+				//cgltf_float spot_inner_cone_angle;
+				//cgltf_float spot_outer_cone_angle;
+
+				switch (node->light->type) {
+				case cgltf_light_type_directional:
+				{
+					struct X3D_DirectionalLight* dl = (struct X3D_DirectionalLight*)DEF_node(ectx, plight->name, NODE_DirectionalLight);
+					veccopy3f(dl->color.c, plight->color);
+					dl->intensity = plight->intensity;
+					light = X3D_NODE(dl);
+				}
+				break;
+				case cgltf_light_type_point:
+				{
+					struct X3D_PointLight* pl = (struct X3D_PointLight*)DEF_node(ectx, plight->name, NODE_PointLight);
+					veccopy3f(pl->color.c, plight->color);
+					pl->intensity = plight->intensity;
+					pl->radius = plight->range;
+					light = X3D_NODE(pl);
+				}
+				break;
+				case cgltf_light_type_spot:
+				{
+					struct X3D_SpotLight* sl = (struct X3D_SpotLight*)DEF_node(ectx, plight->name, NODE_SpotLight);
+					veccopy3f(sl->color.c, plight->color);
+					sl->intensity = plight->intensity;
+					sl->radius = plight->range;
+					sl->beamWidth = plight->spot_inner_cone_angle;
+					sl->cutOffAngle = plight->spot_outer_cone_angle;
+					light = X3D_NODE(sl);
+				}
+
+				default:
+					break;
+				}
+			}
+			if (light) {
+				m++;
+				p = realloc(p, m * sizeof(struct X3D_Node*));
+				p[m - 1] = light;
+				//printf("adding light\n");
+			}
+		}
 	}
 	if(node->mesh){
 		//gltf mesh is like our shape: it refers to material and to geometry/accessor
