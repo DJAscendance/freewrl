@@ -370,11 +370,11 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 // biggest thing left: inline and in-bin textures - do we need a BufferTexture node (to bypass freewrl spaghetti code)?
 	//content part
 	int show = FALSE;
-	int m = 0;
-	struct X3D_Node** p = NULL;
+	struct Vector vector;
+	struct Vector* pp = &vector;
+	memset(pp, 0, sizeof(struct Vector));
+
 	if(node->camera){
-		//m++;
-		//p = realloc(p,m*sizeof(struct X3D_Node*));
 		//june 22, 2020 not done: add viewpoint here
 		struct X3D_Node* viewpoint = NULL;
 		cgltf_camera* camera = node->camera;
@@ -398,9 +398,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 			}
 		}
 		if (viewpoint) {
-			m++;
-			p = realloc(p,m*sizeof(struct X3D_Node*));
-			p[m - 1] = viewpoint;
+			vector_pushBack(struct X3D_Node*, pp, viewpoint);
 			//printf("adding viewpoint\n");
 		}
 
@@ -463,9 +461,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				}
 			}
 			if (light) {
-				m++;
-				p = realloc(p, m * sizeof(struct X3D_Node*));
-				p[m - 1] = light;
+				vector_pushBack(struct X3D_Node*, pp, light);
 				//printf("adding light\n");
 			}
 		}
@@ -473,8 +469,6 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 	if(node->mesh){
 		//gltf mesh is like our shape: it refers to material and to geometry/accessor
 		//we unconditionally add a Shape node, even if appearance and geometry are null
-		m++;
-		p = realloc(p,m*sizeof(struct X3D_Node*));
 		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name,X3DBoundedObject);
 		if(!sn){
 			sn = (struct X3D_Shape*) DEF_node(ectx,node->mesh->name,NODE_Shape);
@@ -974,12 +968,10 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 			}
 		}
 		//printf("adding shape\n");
-
-		p[m-1] = X3D_NODE(sn);
+		vector_pushBack(void *, pp, sn);
 	}
 	if(node->skin){
-		//m++;
-		//p = realloc(p,m*sizeof(struct X3D_Node*));
+		//vector_pushBack(void *, pp, skin);
 	}
 	if(node->weights_count){
 	}
@@ -989,17 +981,16 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 	int mc = node->children_count;
 	if(mc){
 
-		int nn = 0;
-		p = realloc(p,(mc+m)*sizeof(struct X3D_Node*));
+		struct X3D_Node* pn;
 		for(int i=0;i<mc;i++){
-			if( parse_gltf_node(ectx,&p[m+nn],data,node->children[i],unit)) nn++;
+			if (parse_gltf_node(ectx, &pn, data, node->children[i], unit)) {
+				vector_pushBack(struct X3D_Node*, pp, pn);
+			}
 		}
-		m += nn;
 		//printf("adding children\n");
-
 	}
 	int got_something = FALSE;
-	if (m) {
+	if (pp->n) {
 		//transform part: gltf has a flat scenegraph, with each node having a transform and a thing, with thing being mesh, camera. Like Blender.
 		struct X3D_Transform* t = createNewX3DNode(NODE_Transform);
 		if (node->has_matrix) {
@@ -1032,18 +1023,18 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				veccopy3f(t->translation.c, node->translation);
 			}
 		}
-		t->children.n = m;
-		t->children.p = p;
+		t->children.n = pp->n;
+		t->children.p = pp->data;
 		if (0) {
 			printf("translation %f %f %f\n", t->translation.c[0], t->translation.c[1], t->translation.c[2]);
 			printf("scale %f %f %f\n", t->scale.c[0], t->scale.c[1], t->scale.c[2]);
 			printf("rotation %f %f %f %f\n", t->rotation.c[0], t->rotation.c[1], t->rotation.c[2], t->rotation.c[3]);
-			printf("number of children %d\n", m);
-			for (int k = 0; k < m; k++)
+			printf("number of children %d\n", t->children.n);
+			for (int k = 0; k < t->children.n; k++)
 				printf("   %d %s\n", k, stringNodeType(t->children.p[k]->_nodeType));
 		}
-		for (int i = 0; i < m; ++i) {
-			ADD_PARENT(p[i], X3D_NODE(t));
+		for (int i = 0; i < t->children.n; ++i) {
+			ADD_PARENT(t->children.p[i], X3D_NODE(t));
 		}
 		add_node_to_broto_context(X3D_PROTO(ectx), X3D_NODE(t));
 
@@ -1065,7 +1056,7 @@ int parse_gltf(struct X3D_Node *ectx, struct Multi_Node *spot, cgltf_data * data
 	int ret = TRUE;
 	return ret;
 }
-static int geombuffer_method = 1;
+
 struct uri_data {
 	char *uri;
 	void **data;
@@ -1125,12 +1116,7 @@ cgltf_result cgltf_load_buffers_except_files(const cgltf_options* options, cgltf
 		{
 			struct uri_data ud;
 			ud.uri = uri;
-			if (geombuffer_method) {
-				ud.cdata = &data->buffers[i]; //after phase 2 parse, we will look up geombuffer from this buffer address
-			}
-			else {
-				ud.data = &data->buffers[i].data;
-			}
+			ud.cdata = &data->buffers[i]; //after phase 2 parse, we will look up geombuffer from this buffer address
 			ud.data_size = data->buffers[i].size;
 			stack_push(struct uri_data,file_list,ud);
 		}
@@ -1186,19 +1172,14 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 				//spawn resource(s) to fetch>
 				unit->bin_file_list = file_list;
 				int nn = 1;
-				if(geombuffer_method) nn = file_list->n;
+				nn = file_list->n;
 				for (int k = 0; k < nn; k++) {
 					struct uri_data* ud = vector_get_ptr(struct uri_data, file_list, k);
 					char* uri = ud->uri;
 					res = resource_create_single(uri);
 					res->ectx = ectx;
 					res->media_type = resm_unknown; // resm_bin;
-					if (geombuffer_method) {
-						res->resm_specific = ud->cdata;
-					}
-					else {
-						res->resm_specific = unit;
-					}
+					res->resm_specific = ud->cdata;
 					resource_identify(context->_parentResource, res);
 					res->actions = resa_download | resa_load | resa_process;
 					resitem_enqueue(ml_new(res));
@@ -1234,39 +1215,18 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 
 int gltf_load_bin(resource_item_t *res){
 	// late arriving .bin (for .gltf separated unit)
-	if (geombuffer_method) {
-		cgltf_buffer* buffer = res->resm_specific;
-		if (buffer) {
-			struct geomBuffer *gb = find_buffer_in_broto_context_from_cgltf_buffer(res->ectx, buffer);
-			if (gb) {
-				openned_file_t* of = res->openned_files;
-				int len = of->fileDataSize;
-				char* input = of->fileData;
-				memcpy(gb->address, input, len);
-				gb->loaded = 1;
-			}
-		}
-	}
-	else {
-		gltf_unit* unit = res->resm_specific;
-		if (unit && !unit->bin_loaded) {
+	cgltf_buffer* buffer = res->resm_specific;
+	if (buffer) {
+		struct geomBuffer *gb = find_buffer_in_broto_context_from_cgltf_buffer(res->ectx, buffer);
+		if (gb) {
 			openned_file_t* of = res->openned_files;
 			int len = of->fileDataSize;
 			char* input = of->fileData;
-			unit->bin = malloc(len);
-			memcpy(unit->bin, input, len);
-			unit->bin_len = of->fileDataSize;
-			Stack* file_list = unit->bin_file_list;
-			struct uri_data* ud;
-			for (int i = 0; i < vectorSize(file_list); i++) {
-				// june 22, 2020: I'm not properly handling multiple .bin or whatever the loop is for
-				ud = vector_get_ptr(struct uri_data, file_list, i);
-				*ud->data = unit->bin;
-				ud->data_size = unit->bin_len;
-			}
-			unit->bin_loaded = TRUE;
+			memcpy(gb->address, input, len);
+			gb->loaded = 1;
 		}
 	}
+
 	return TRUE;
 }
 
@@ -1325,9 +1285,6 @@ float* extent6f_fromBufferAccess(float* e6, struct geomBuffer* gb, struct bufAcc
 		else if (ba->dataType == GL_DOUBLE) {
 			dp = (double*)paddress;
 			double2float(point, dp, ba->dataSize);
-			//for (int j = 0; j < ba->dataSize; j++) {
-			//	point[j] = (float)dp[j];
-			//}
 		}
 		extent6f_union_vec3f(e6, point);
 	}
@@ -1352,35 +1309,7 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 			if (mr->attrib[0].in_use) {
 				//update extent if not set
 				if (!extent6f_isSet(node->_extent)) {
-					if(1)
-						extent6f_fromBufferAccess(e6, mr->buffer, &mr->attrib[0], mr->ncoord);
-					else {
-						float point[3];
-						double* dp;
-						float* fp;
-						char* paddress;
-						struct geomBuffer* gb = mr->buffer;
-						struct bufAccess* ba;
-						ba = &mr->attrib[0];
-						memset(point, 0, 3 * sizeof(float));
-						for (int i = 0; i < mr->ncoord; i++) {
-							paddress = get_Attribi(ba, gb, i);
-							if (ba->dataType == GL_FLOAT) {
-								fp = (float*)paddress;
-								for (int j = 0; j < ba->dataSize; j++) {
-									point[j] = fp[j];
-								}
-							}
-							else if (ba->dataType == GL_DOUBLE) {
-								dp = (double*)paddress;
-								double2float(point, dp, ba->dataSize);
-								//for (int j = 0; j < ba->dataSize; j++) {
-								//	point[j] = (float)dp[j];
-								//}
-							}
-							extent6f_union_vec3f(e6, point);
-						}
-					}
+					extent6f_fromBufferAccess(e6, mr->buffer, &mr->attrib[0], mr->ncoord);
 				}
 			}
 			if(0) if (mr->attrib[4].in_use) {
