@@ -394,7 +394,20 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				//printf("vp desc %s", vp->description->strptr);
 			}
 			else if (camera->type == cgltf_camera_type_orthographic) {
-				printf("orth");
+				struct X3D_OrthoViewpoint* vp = (struct X3D_OrthoViewpoint*)DEF_node(ectx, camera->name, NODE_OrthoViewpoint);
+				cgltf_camera_orthographic ortho = camera->data.orthographic;
+				vp->fieldOfView.p[0] *= ortho.xmag;
+				vp->fieldOfView.p[1] *= ortho.ymag;
+				vp->fieldOfView.p[2] *= ortho.xmag;
+				vp->fieldOfView.p[3] *= ortho.ymag;
+				vp->farClippingPlane = ortho.zfar;
+				vp->nearClippingPlane = ortho.znear;
+				vp->description = newASCIIString(camera->name);
+				vecset3f(vp->position.c, 0.0f, 0.0f, 0.0f); //let the transform position (default is 0 0 10)
+				//vp->navigationInfo = createNewX3DNode(NODE_NavigationInfo);
+				viewpoint = X3D_NODE(vp);
+				//printf("vp desc %s", vp->description->strptr);
+				//printf("orth");
 			}
 		}
 		if (viewpoint) {
@@ -590,6 +603,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->metallicRoughnessTexture = image;
+									mat->metallicRoughnessTextureMapping = newASCIIString("one");
+
 								}
 							}
 							if (prim->material->emissive_texture.texture) {
@@ -609,6 +624,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->emissiveTexture = image;
+									mat->emissiveTextureMapping = newASCIIString("one");
+
 								}
 							}
 							if (prim->material->normal_texture.texture) {
@@ -628,6 +645,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->normalTexture = image;
+									mat->normalTextureMapping = newASCIIString("one");
+
 								}
 							}
 							if (prim->material->occlusion_texture.texture) {
@@ -647,6 +666,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->occlusionTexture = image;
+									mat->occlusionTextureMapping = newASCIIString("one");
+
 								}
 							}
 
@@ -695,6 +716,9 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									}
 									mat->specularTexture = image;
 									mat->shininessTexture = image;
+									mat->specularTextureMapping = newASCIIString("one");
+									mat->shininessTextureMapping = newASCIIString("one");
+
 								}
 							}
 
@@ -715,6 +739,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->diffuseTexture = image;
+									mat->diffuseTextureMapping = newASCIIString("one");
+
 								}
 							}
 
@@ -735,6 +761,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->emissiveTexture = image;
+									mat->emissiveTextureMapping = newASCIIString("one");
+
 								}
 							}
 
@@ -755,6 +783,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->normalTexture = image;
+									mat->normalTextureMapping = newASCIIString("one");
+
 								}
 							}
 
@@ -775,6 +805,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->occlusionTexture = image;
+									mat->occlusionTextureMapping = newASCIIString("one");
+
 								}
 							}
 							if (prim->material->emissive_texture.texture) {
@@ -794,13 +826,23 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->emissiveTexture = image;
+									mat->emissiveTextureMapping = newASCIIString("one");
 								}
 							}
+
 
 
 						}
 						sn->appearance = createNewX3DNode(NODE_Appearance);
 						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
+						if (0) {
+							//experiment to flip texture vertically
+							struct X3D_TextureTransform* tt = createNewX3DNode(NODE_TextureTransform);
+							vecset2f(tt->scale.c, 1.0f, -1.0f);
+							tt->mapping = newASCIIString("one");
+							X3D_APPEARANCE(sn->appearance)->textureTransform = X3D_NODE(tt);
+						}
+
 					} 
 
 				}

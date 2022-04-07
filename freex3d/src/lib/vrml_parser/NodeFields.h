@@ -2129,7 +2129,7 @@ EXPOSED_FIELD(Material,ambientTexture,sfnode,ambientTexture,FIELDTYPE_SFNode,UNC
 EXPOSED_FIELD(Material,ambientTextureMapping,sfstring,ambientTextureMapping,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(Material,diffuseColor,sfcolor,diffuseColor,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(Material,diffuseTexture,sfnode,diffuseTexture,FIELDTYPE_SFNode,UNCA_NONE)
-EXPOSED_FIELD(Material,diffuseeTextureMapping,sfstring,diffuseeTextureMapping,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(Material,diffuseTextureMapping,sfstring,diffuseTextureMapping,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(Material,shininess,sffloat,shininess,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Material,shininessTexture,sfnode,shininessTexture,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(Material,shininessTextureMapping,sfstring,shininessTextureMapping,FIELDTYPE_SFString,UNCA_NONE)

@@ -611,7 +611,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"diffuseCoefficients",
 	"diffuseColor",
 	"diffuseTexture",
-	"diffuseeTextureMapping",
+	"diffuseTextureMapping",
 	"dimensions",
 	"directOutput",
 	"direction",
@@ -1606,7 +1606,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"diffuseCoefficients",
 	"diffuseColor",
 	"diffuseTexture",
-	"diffuseeTextureMapping",
+	"diffuseTextureMapping",
 	"dimensions",
 	"direction",
 	"disableAngularSpeed",
@@ -7099,7 +7099,7 @@ const int OFFSETS_Material[] = {
 	(int) FIELDNAMES_ambientTextureMapping, (int) offsetof (struct X3D_Material, ambientTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_diffuseColor, (int) offsetof (struct X3D_Material, diffuseColor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_diffuseTexture, (int) offsetof (struct X3D_Material, diffuseTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_diffuseeTextureMapping, (int) offsetof (struct X3D_Material, diffuseeTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_diffuseTextureMapping, (int) offsetof (struct X3D_Material, diffuseTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_shininess, (int) offsetof (struct X3D_Material, shininess),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_shininessTexture, (int) offsetof (struct X3D_Material, shininessTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_shininessTextureMapping, (int) offsetof (struct X3D_Material, shininessTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -13510,7 +13510,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ambientTextureMapping = newASCIIString("");
 			tmp2->diffuseColor.c[0] = 0.8f;tmp2->diffuseColor.c[1] = 0.8f;tmp2->diffuseColor.c[2] = 0.8f;;
 			tmp2->diffuseTexture = NULL;
-			tmp2->diffuseeTextureMapping = newASCIIString("");
+			tmp2->diffuseTextureMapping = newASCIIString("");
 			tmp2->shininess = 0.2f;
 			tmp2->shininessTexture = NULL;
 			tmp2->shininessTextureMapping = newASCIIString("");
@@ -19559,7 +19559,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->diffuseColor.c[i]); }
 			fprintf (fp,"\n");
 			spacer fprintf (fp," diffuseTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->diffuseTexture); 
-			spacer fprintf (fp," diffuseeTextureMapping (SFString) \t%s\n",tmp->diffuseeTextureMapping->strptr);
+			spacer fprintf (fp," diffuseTextureMapping (SFString) \t%s\n",tmp->diffuseTextureMapping->strptr);
 			spacer fprintf (fp," shininess (SFFloat) \t%4.3f\n",tmp->shininess);
 			spacer fprintf (fp," shininessTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->shininessTexture); 
 			spacer fprintf (fp," shininessTextureMapping (SFString) \t%s\n",tmp->shininessTextureMapping->strptr);

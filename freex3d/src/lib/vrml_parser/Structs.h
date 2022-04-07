@@ -967,7 +967,7 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_diffuseCoefficients	540
 #define FIELDNAMES_diffuseColor	541
 #define FIELDNAMES_diffuseTexture	542
-#define FIELDNAMES_diffuseeTextureMapping	543
+#define FIELDNAMES_diffuseTextureMapping	543
 #define FIELDNAMES_dimensions	544
 #define FIELDNAMES_directOutput	545
 #define FIELDNAMES_direction	546
@@ -1960,7 +1960,7 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_diffuseCoefficients	136
 #define EXPOSED_FIELD_diffuseColor	137
 #define EXPOSED_FIELD_diffuseTexture	138
-#define EXPOSED_FIELD_diffuseeTextureMapping	139
+#define EXPOSED_FIELD_diffuseTextureMapping	139
 #define EXPOSED_FIELD_dimensions	140
 #define EXPOSED_FIELD_direction	141
 #define EXPOSED_FIELD_disableAngularSpeed	142
@@ -8141,7 +8141,7 @@ struct X3D_Material {
 	struct Uni_String *ambientTextureMapping;
 	struct SFColor diffuseColor;
 	struct X3D_Node *diffuseTexture;
-	struct Uni_String *diffuseeTextureMapping;
+	struct Uni_String *diffuseTextureMapping;
 	float shininess;
 	struct X3D_Node *shininessTexture;
 	struct Uni_String *shininessTextureMapping;
