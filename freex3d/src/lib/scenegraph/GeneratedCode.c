@@ -498,7 +498,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"backUrl",
 	"baseColor",
 	"baseTexture",
-	"baseeTextureMapping",
+	"baseTextureMapping",
 	"bboxCenter",
 	"bboxDisplay",
 	"bboxSize",
@@ -1528,7 +1528,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"backUrl",
 	"baseColor",
 	"baseTexture",
-	"baseeTextureMapping",
+	"baseTextureMapping",
 	"bboxDisplay",
 	"beamWidth",
 	"bodies",
@@ -8003,7 +8003,7 @@ const int OFFSETS_PhysicalMaterial[] = {
 	(int) FIELDNAMES_occlusionTextureMapping, (int) offsetof (struct X3D_PhysicalMaterial, occlusionTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_baseColor, (int) offsetof (struct X3D_PhysicalMaterial, baseColor),  (int) FIELDTYPE_SFColor, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_baseTexture, (int) offsetof (struct X3D_PhysicalMaterial, baseTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_baseeTextureMapping, (int) offsetof (struct X3D_PhysicalMaterial, baseeTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_baseTextureMapping, (int) offsetof (struct X3D_PhysicalMaterial, baseTextureMapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metallic, (int) offsetof (struct X3D_PhysicalMaterial, metallic),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_roughness, (int) offsetof (struct X3D_PhysicalMaterial, roughness),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metallicRoughnessTexture, (int) offsetof (struct X3D_PhysicalMaterial, metallicRoughnessTexture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
@@ -14675,7 +14675,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->occlusionTextureMapping = newASCIIString("");
 			tmp2->baseColor.c[0] = 1.0f;tmp2->baseColor.c[1] = 1.0f;tmp2->baseColor.c[2] = 1.0f;;
 			tmp2->baseTexture = NULL;
-			tmp2->baseeTextureMapping = newASCIIString("");
+			tmp2->baseTextureMapping = newASCIIString("");
 			tmp2->metallic = 1.0f;
 			tmp2->roughness = 1.0f;
 			tmp2->metallicRoughnessTexture = NULL;
@@ -20637,7 +20637,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->baseColor.c[i]); }
 			fprintf (fp,"\n");
 			spacer fprintf (fp," baseTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->baseTexture); 
-			spacer fprintf (fp," baseeTextureMapping (SFString) \t%s\n",tmp->baseeTextureMapping->strptr);
+			spacer fprintf (fp," baseTextureMapping (SFString) \t%s\n",tmp->baseTextureMapping->strptr);
 			spacer fprintf (fp," metallic (SFFloat) \t%4.3f\n",tmp->metallic);
 			spacer fprintf (fp," roughness (SFFloat) \t%4.3f\n",tmp->roughness);
 			spacer fprintf (fp," metallicRoughnessTexture (SFNode):\n"); dump_scene(fp,level+1,tmp->metallicRoughnessTexture); 

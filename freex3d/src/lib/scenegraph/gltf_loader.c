@@ -485,6 +485,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name,X3DBoundedObject);
 		if(!sn){
 			sn = (struct X3D_Shape*) DEF_node(ectx,node->mesh->name,NODE_Shape);
+			int do_mapping = FALSE;
 			for(int j=0;j<node->mesh->primitives_count;j++){
 				cgltf_primitive *prim = &node->mesh->primitives[j];
 				if(prim->material){
@@ -537,6 +538,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 											it->url.n = 1;
 										}
 										mat->emissiveTexture = image;
+										if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+
 									}
 								}
 
@@ -584,6 +587,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->baseTexture = image;
+									if (do_mapping) mat->baseTextureMapping = newASCIIString("one");
+
 								}
 							}
 							if (pbr->metallic_roughness_texture.texture) {
@@ -603,7 +608,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->metallicRoughnessTexture = image;
-									mat->metallicRoughnessTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -624,7 +629,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->emissiveTexture = image;
-									mat->emissiveTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -645,7 +650,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->normalTexture = image;
-									mat->normalTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->normalTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -666,7 +671,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->occlusionTexture = image;
-									mat->occlusionTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -716,8 +721,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									}
 									mat->specularTexture = image;
 									mat->shininessTexture = image;
-									mat->specularTextureMapping = newASCIIString("one");
-									mat->shininessTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->specularTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->shininessTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -739,7 +744,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->diffuseTexture = image;
-									mat->diffuseTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -761,7 +766,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->emissiveTexture = image;
-									mat->emissiveTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -783,7 +788,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->normalTexture = image;
-									mat->normalTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->normalTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -805,7 +810,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->occlusionTexture = image;
-									mat->occlusionTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
 
 								}
 							}
@@ -826,7 +831,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 										it->url.n = 1;
 									}
 									mat->emissiveTexture = image;
-									mat->emissiveTextureMapping = newASCIIString("one");
+									if(do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
 								}
 							}
 

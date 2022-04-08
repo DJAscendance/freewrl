@@ -854,7 +854,7 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_backUrl	427
 #define FIELDNAMES_baseColor	428
 #define FIELDNAMES_baseTexture	429
-#define FIELDNAMES_baseeTextureMapping	430
+#define FIELDNAMES_baseTextureMapping	430
 #define FIELDNAMES_bboxCenter	431
 #define FIELDNAMES_bboxDisplay	432
 #define FIELDNAMES_bboxSize	433
@@ -1882,7 +1882,7 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_backUrl	58
 #define EXPOSED_FIELD_baseColor	59
 #define EXPOSED_FIELD_baseTexture	60
-#define EXPOSED_FIELD_baseeTextureMapping	61
+#define EXPOSED_FIELD_baseTextureMapping	61
 #define EXPOSED_FIELD_bboxDisplay	62
 #define EXPOSED_FIELD_beamWidth	63
 #define EXPOSED_FIELD_bodies	64
@@ -10389,7 +10389,7 @@ struct X3D_PhysicalMaterial {
 	struct Uni_String *occlusionTextureMapping;
 	struct SFColor baseColor;
 	struct X3D_Node *baseTexture;
-	struct Uni_String *baseeTextureMapping;
+	struct Uni_String *baseTextureMapping;
 	float metallic;
 	float roughness;
 	struct X3D_Node *metallicRoughnessTexture;
