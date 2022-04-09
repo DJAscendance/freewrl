@@ -309,12 +309,12 @@ void printStats()
 	printStatsRoutes();
 	printStatsBindingStacks();
 }
-char* fwl_currentBoundVPname();
+char* fwl_requestedVPname(int *is_bound, int *is_reachable, int *count, int *index);
 void
 print_viewer()
 {
 	X3D_Viewer *viewer;
-
+	int reachable, bound, count, index;
 	struct orient_XYZA ori;
 	viewer = Viewer();
 
@@ -324,7 +324,8 @@ print_viewer()
 	ConsoleMessage("\tQuaternion[%.4f, %.4f, %.4f, %.4f]\n", (viewer->Quat).w, (viewer->Quat).x, (viewer->Quat).y, (viewer->Quat).z);
 	ConsoleMessage("\tOrientation[%.4f, %.4f, %.4f, %.4f]\n", ori.x, ori.y, ori.z, ori.a);
 	ConsoleMessage("}\n");
-	ConsoleMessage("vp description %s\n", fwl_currentBoundVPname());
+	ConsoleMessage("requested vp description %s ", fwl_requestedVPname(&bound,&reachable,&count,&index));
+	ConsoleMessage("bound %c reachable %c index %d/%d\n", bound ? 'T' : 'F', reachable ? 'T' : 'F',index,count);
 	getCurrentPosInModelB();
 	ConsoleMessage("World Coordinates of Avatar [%.4f, %.4f %.4f]\n",viewer->currentPosInModel.x,viewer->currentPosInModel.y,viewer->currentPosInModel.z);
 	printStats();
@@ -3497,7 +3498,7 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 	*/
 
 	viewer_lastP_clear();
-	setMenuStatusVP (vp->description->strptr);
+	//setMenuStatusVP (vp->description->strptr);
 
 }
 
@@ -4040,7 +4041,7 @@ world coords > [Transform stack] > bound Viewpoint > [Viewer.Pos,.Quat] > avatar
 	*/
 
 	viewer_lastP_clear();
-	setMenuStatusVP (vp->description->strptr);
+	//setMenuStatusVP (vp->description->strptr);
 
 }
 

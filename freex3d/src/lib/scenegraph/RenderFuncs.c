@@ -2171,6 +2171,7 @@ void rwhat_printf(int rwhat){
 	}
 
 }
+void clear_vp_reachable_flags();
 void render_hier(struct X3D_Node *g, int rwhat) {
 	/// not needed now - see below struct point_XYZ upvec = {0,1,0};
 	/// not needed now - see below GLDOUBLE modelMatrix[16];
@@ -2222,6 +2223,8 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	if(rs->render_blend || rs->render_geom){
 		push_globalRenderFlags();
 	}
+	if(rs->render_geom)
+		clear_vp_reachable_flags();
 	profile_start("render_hier");
 	//push_group_extent_default();
 	render_node(X3D_NODE(g));

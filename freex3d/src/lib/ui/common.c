@@ -259,10 +259,6 @@ void setMenuStatus3(char* status3)
 	if (!pp) pp = "";
 	snprintf(p->myMenuStatus, MAXSTAT-1, "%s", pp);
 }
-void setMenuStatus(char *stattext)
-{
-	setMenuStatus3(stattext);
-}
 void setMenuStatusVP(char *stattext)
 {
 	setMenuStatus3(stattext);

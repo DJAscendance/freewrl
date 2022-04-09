@@ -2070,6 +2070,7 @@ our %Nodes = (
 		#generic Viewpoint fields
 		_layerId => ["SFInt32",0,"initializeOnly",0,0],#ff
 		_donethispass => ["SFInt32",0,"initializeOnly",0,0],#ff
+		_reachablethispass => ["SFInt32",0,"initializeOnly",0,0],#ff
 		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2102,6 +2103,7 @@ our %Nodes = (
 		#generic Viewpoint fields
 		_layerId => ["SFInt32",0,"initializeOnly",0,0],#ff
 		_donethispass => ["SFInt32",0,"initializeOnly",0,0],#ff
+		_reachablethispass => ["SFInt32",0,"initializeOnly",0,0],#ff
 		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -2475,6 +2477,7 @@ our %Nodes = (
 		# generic Viewpoint fields - except watch it, the position is double (vs viewpoint and orthoviewpoint - single)
 		_layerId => ["SFInt32",0,"initializeOnly",0,0],#ff
 		_donethispass => ["SFInt32",0,"initializeOnly",0,0],#ff
+		_reachablethispass => ["SFInt32",0,"initializeOnly",0,0],#ff
 		set_bind => ["SFBool", 100, "inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		bindTime => ["SFTime", -1, "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isBound => ["SFBool", "FALSE", "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

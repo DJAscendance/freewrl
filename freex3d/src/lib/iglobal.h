@@ -169,7 +169,7 @@ typedef struct iiglobal //InstanceGlobal
 	} Mainloop;
 	struct tProdCon{
 		struct Vector *viewpointNodes;// = NULL;
-		int currboundvpno;//=0;
+		int requestedvpno;//=0;
 		/* bind nodes in display loop, NOT in parsing threadthread */
 		struct X3D_Node *setViewpointBindInRender;// = NULL;
 		struct X3D_Node *setFogBindInRender;// = NULL;

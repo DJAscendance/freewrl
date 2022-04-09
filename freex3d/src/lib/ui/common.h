@@ -31,7 +31,6 @@ int fwl_getTrap();
 /* Status update functions */
 
 void setMenuFps(float fps);
-void setMenuStatus(char *stat);
 void setMenuStatusVP(char *stat);
 char* getMenuStatus();
 void setMessageBar();

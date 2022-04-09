@@ -4349,7 +4349,6 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 
 	/* tell the statusbar that it needs to reinitialize */
 	//kill_status();
-	setMenuStatus(NULL);
 
 	/* any user defined Shader nodes - ComposedShader, PackagedShader, ProgramShader?? */
 	kill_userDefinedShaders();
@@ -4389,7 +4388,6 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 
 	/* tell statusbar that we have none */
 	//viewer_default();
-	setMenuStatus("NONE");
 }
 void unload_globalParser() {
 	// unload any string tables, and signal to any replacworld scene that it needs a new parser+lexer struct

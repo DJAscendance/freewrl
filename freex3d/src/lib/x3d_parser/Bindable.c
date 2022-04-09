@@ -373,10 +373,10 @@ void send_bind_to(struct X3D_Node *node, int value) {
 
 	case NODE_OrthoViewpoint: {
 		struct X3D_OrthoViewpoint *ovp = (struct X3D_OrthoViewpoint *) node;
-		ovp->set_bind = value;
-		setMenuStatusVP(ovp->description->strptr);
+		ovp->set_bind = ovp->_reachablethispass ? value : 0;
+		//setMenuStatusVP(ovp->description->strptr);
 		bind_node (node, getBindableStacksByLayer(tg,ovp->_layerId)->viewpoint);
-		if (value==1) {
+		if (ovp->set_bind > 0) { //value==1) {
 			bind_OrthoViewpoint (ovp);
 		}
 		break;
@@ -384,10 +384,10 @@ void send_bind_to(struct X3D_Node *node, int value) {
 
 	case NODE_Viewpoint:  {
 		struct X3D_Viewpoint* vp = (struct X3D_Viewpoint *) node;
-		vp->set_bind = value;
-		setMenuStatusVP (vp->description->strptr);
+		vp->set_bind = vp->_reachablethispass ? value : 0;
+		//setMenuStatusVP (vp->description->strptr);
 		bind_node (node, getBindableStacksByLayer(tg,vp->_layerId)->viewpoint);
-		if (value==1) {
+		if (vp->set_bind > 0) { //value==1) {
 			bind_Viewpoint (vp);
 		}
 		break;
@@ -395,10 +395,10 @@ void send_bind_to(struct X3D_Node *node, int value) {
 
 	case NODE_GeoViewpoint:  {
 		struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *) node;
-		gvp->set_bind = value;
-		setMenuStatusVP (gvp->description->strptr);
+		gvp->set_bind = gvp->_reachablethispass ? value : 0;
+		//setMenuStatusVP (gvp->description->strptr);
 		bind_node (node, getBindableStacksByLayer(tg,gvp->_layerId)->viewpoint);
-		if (value==1) {
+		if (gvp->set_bind > 0) { //value==1) {
 			bind_GeoViewpoint (gvp);
 		}
 		break;

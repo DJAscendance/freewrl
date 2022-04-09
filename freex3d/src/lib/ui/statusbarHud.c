@@ -3115,6 +3115,7 @@ int statusbar_getClipPlane(){
 
 }
 char *getDistBar();
+char* fwl_requestedVPname(int* is_bound, int* is_reachable, int *count, int *index);
 void drawStatusBar() 
 {
 	/* drawStatusBar() is called just before swapbuffers in mainloop so anything that you want to render 2D
@@ -3245,40 +3246,47 @@ M       void toggle_collision()                             //"
 				p->hadString = 1;
 			}
 			{
-				int len, istart,istart1,ilen,lenk,lenkk;
+				int len, istart, istart1, ilen, lenk, lenkk, bound, reachable, count, index;
 				char *strfps, *strdist, *strstatus, *strAkeys;
-				
+				static char statusplus[100], splus[20];
 				//squeeze status and optionally keychord into remaining space
 				strAkeys = fwl_getKeyChord(); //keychord like YAWZ or YAWPITCH
 				lenkk = lenk = strlen(strAkeys); //9 maximum
 
-				strstatus = getMenuStatus(); //viewpoint name, other status
-				len = strlen(strstatus);
-				ilen = len;
+				//strstatus = getMenuStatus(); //viewpoint name, other status
+				strstatus = fwl_requestedVPname(&bound, &reachable,&count,&index);
+				if (strstatus) {
+					len = strlen(strstatus);
+					memcpy(statusplus, strstatus, len + 1);
+					sprintf(splus, " %c%c %d/%d", bound ? 'B' : '_', reachable ? 'R' : '_', index, count);
+					strcat(statusplus, splus);
+					len = strlen(statusplus);
+					ilen = len;
 
-				istart1 = sslen +1; //minimum start location
-				if(max(istart1,35) + len + 9 < sblen) {
-					lenkk = 9; //lots of room for keychord and status
-					istart = max(istart1,35);
-				}else if(istart1 + len + 9 < sblen){
-					lenkk = 9;
-					istart = istart1;
-				}else if(istart1 + len + lenkk < sblen){
-					istart = istart1;
-					lenkk= lenkk;
-				}else if(p->buttonRows == 2){
-					istart = istart1;
-					lenkk = 0; //mobile portrait, don't need keychord
-					ilen = sblen - istart;
-				}else{
-					istart = istart1;
-					lenkk = lenkk;
-					ilen = sblen - istart - lenkk;
+					istart1 = sslen +1; //minimum start location
+					if(max(istart1,35) + len + 9 < sblen) {
+						lenkk = 9; //lots of room for keychord and status
+						istart = max(istart1,35);
+					}else if(istart1 + len + 9 < sblen){
+						lenkk = 9;
+						istart = istart1;
+					}else if(istart1 + len + lenkk < sblen){
+						istart = istart1;
+						lenkk= lenkk;
+					}else if(p->buttonRows == 2){
+						istart = istart1;
+						lenkk = 0; //mobile portrait, don't need keychord
+						ilen = sblen - istart;
+					}else{
+						istart = istart1;
+						lenkk = lenkk;
+						ilen = sblen - istart - lenkk;
+					}
+					//istart2 = min(35,sblen - len);
+					//istart = max(istart1, istart2);
+					//ilen = max(0,min(len,sblen-istart));
+					printString3(-1.0f + xy.x*istart, side_bottom_f, statusplus,ilen);
 				}
-				//istart2 = min(35,sblen - len);
-				//istart = max(istart1, istart2);
-				//ilen = max(0,min(len,sblen-istart));
-				printString3(-1.0f + xy.x*istart, side_bottom_f, strstatus,ilen);
 
 				if(lenkk){
 					//on mobile, you tend not to use keychords - just touch, and in portrait, with statusBarRows == 1 its too crowded

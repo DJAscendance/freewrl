@@ -369,6 +369,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_previousvalue",
 	"_r0",
 	"_radius",
+	"_reachablethispass",
 	"_registered",
 	"_remainder",
 	"_resetRelativeHeight",
@@ -6355,6 +6356,7 @@ const int OFFSETS_GeoTransform[] = {
 const int OFFSETS_GeoViewpoint[] = {
 	(int) FIELDNAMES__layerId, (int) offsetof (struct X3D_GeoViewpoint, _layerId),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__donethispass, (int) offsetof (struct X3D_GeoViewpoint, _donethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__reachablethispass, (int) offsetof (struct X3D_GeoViewpoint, _reachablethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_bind, (int) offsetof (struct X3D_GeoViewpoint, set_bind),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bindTime, (int) offsetof (struct X3D_GeoViewpoint, bindTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isBound, (int) offsetof (struct X3D_GeoViewpoint, isBound),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7879,6 +7881,7 @@ const int OFFSETS_OrientationInterpolator[] = {
 const int OFFSETS_OrthoViewpoint[] = {
 	(int) FIELDNAMES__layerId, (int) offsetof (struct X3D_OrthoViewpoint, _layerId),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__donethispass, (int) offsetof (struct X3D_OrthoViewpoint, _donethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__reachablethispass, (int) offsetof (struct X3D_OrthoViewpoint, _reachablethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_bind, (int) offsetof (struct X3D_OrthoViewpoint, set_bind),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bindTime, (int) offsetof (struct X3D_OrthoViewpoint, bindTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isBound, (int) offsetof (struct X3D_OrthoViewpoint, isBound),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9390,6 +9393,7 @@ const int OFFSETS_UnlitMaterial[] = {
 const int OFFSETS_Viewpoint[] = {
 	(int) FIELDNAMES__layerId, (int) offsetof (struct X3D_Viewpoint, _layerId),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__donethispass, (int) offsetof (struct X3D_Viewpoint, _donethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__reachablethispass, (int) offsetof (struct X3D_Viewpoint, _reachablethispass),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_set_bind, (int) offsetof (struct X3D_Viewpoint, set_bind),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bindTime, (int) offsetof (struct X3D_Viewpoint, bindTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isBound, (int) offsetof (struct X3D_Viewpoint, isBound),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -12612,6 +12616,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_GeoViewpoint *) tmp;
 			tmp2->_layerId = 0;
 			tmp2->_donethispass = 0;
+			tmp2->_reachablethispass = 0;
 			tmp2->set_bind = 100;
 			tmp2->bindTime = -1;
 			tmp2->isBound = FALSE;
@@ -14528,6 +14533,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_OrthoViewpoint *) tmp;
 			tmp2->_layerId = 0;
 			tmp2->_donethispass = 0;
+			tmp2->_reachablethispass = 0;
 			tmp2->set_bind = 100;
 			tmp2->bindTime = -1;
 			tmp2->isBound = FALSE;
@@ -16369,6 +16375,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_Viewpoint *) tmp;
 			tmp2->_layerId = 0;
 			tmp2->_donethispass = 0;
+			tmp2->_reachablethispass = 0;
 			tmp2->set_bind = 100;
 			tmp2->bindTime = -1;
 			tmp2->isBound = FALSE;

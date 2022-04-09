@@ -122,10 +122,10 @@ void goToViewpoint(char *vp) {
 			if (localNode == vector_get(struct X3D_Node *,t->viewpointNodes,flen)) {
 				struct X3D_Viewpoint *vp;
 				/* unbind current, and bind this one */
-				vp = (struct X3D_Viewpoint*)vector_get(struct X3D_Node *,t->viewpointNodes,t->currboundvpno);
+				vp = (struct X3D_Viewpoint*)vector_get(struct X3D_Node *,t->viewpointNodes,t->requestedvpno);
 				send_bind_to((struct X3D_Node*)vp,0);
-				t->currboundvpno=flen;
-				vp = (struct X3D_Viewpoint *)vector_get(struct X3D_Node *,t->viewpointNodes,t->currboundvpno);
+				t->requestedvpno=flen;
+				vp = (struct X3D_Viewpoint *)vector_get(struct X3D_Node *,t->viewpointNodes,t->requestedvpno);
 				send_bind_to((struct X3D_Node*)vp,1);
 				return;
 			}

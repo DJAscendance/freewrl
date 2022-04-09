@@ -4325,6 +4325,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 void draw_viewpoint(int type, float *fov, float aspect);
 void render_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	float center[3],size[3];
+	node->_reachablethispass = TRUE;
 	if(node->_show_pin_point || fwl_getShowViewpoints())
 		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,400000.f,400000.f,400000.f));
 	if(fwl_getShowViewpoints()){
@@ -4479,7 +4480,7 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	calculateExamineModeDistance();
 	fwl_setCollision(TRUE);
 	tg->Bindable.activeLayer = saveActive;
-	setMenuStatusVP (node->description->strptr);
+	//setMenuStatusVP (node->description->strptr);
 
 }
 
