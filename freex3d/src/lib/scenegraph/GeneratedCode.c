@@ -557,7 +557,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"color",
 	"colorIndex",
 	"colorKey",
-	"colorMode",
 	"colorPerVertex",
 	"colorRamp",
 	"colorSteps",
@@ -840,6 +839,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"loopStart",
 	"magnificationFilter",
 	"mapping",
+	"markerType",
 	"marking",
 	"mass",
 	"massDensityModel",
@@ -968,7 +968,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"point",
 	"pointProperties",
 	"pointSize",
-	"pointSizeAttenuation",
 	"pointSizeMaxValue",
 	"pointSizeMinValue",
 	"pointSizeScaleFactor",
@@ -1563,7 +1562,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"collider",
 	"collisionType",
 	"color",
-	"colorMode",
 	"colorSteps",
 	"coneGain",
 	"coneInnerAngle",
@@ -1746,6 +1744,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"loopStart",
 	"magnificationFilter",
 	"mapping",
+	"markerType",
 	"marking",
 	"mass",
 	"massDensityModel",
@@ -1842,7 +1841,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"point",
 	"pointProperties",
 	"pointSize",
-	"pointSizeAttenuation",
 	"pointSizeMaxValue",
 	"pointSizeMinValue",
 	"pointSizeScaleFactor",
@@ -8120,8 +8118,8 @@ const int OFFSETS_PointProperties[] = {
 	(int) FIELDNAMES_pointSizeScaleFactor, (int) offsetof (struct X3D_PointProperties, pointSizeScaleFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_pointSizeMinValue, (int) offsetof (struct X3D_PointProperties, pointSizeMinValue),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_pointSizeMaxValue, (int) offsetof (struct X3D_PointProperties, pointSizeMaxValue),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_pointSizeAttenuation, (int) offsetof (struct X3D_PointProperties, pointSizeAttenuation),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_colorMode, (int) offsetof (struct X3D_PointProperties, colorMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_attenuation, (int) offsetof (struct X3D_PointProperties, attenuation),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_markerType, (int) offsetof (struct X3D_PointProperties, markerType),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PointProperties, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__colormode, (int) offsetof (struct X3D_PointProperties, _colormode),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES__attenuation, (int) offsetof (struct X3D_PointProperties, _attenuation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
@@ -14816,12 +14814,12 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->pointSizeScaleFactor = 1.0f;
 			tmp2->pointSizeMinValue = 1.0f;
 			tmp2->pointSizeMaxValue = 1.0f;
-			tmp2->pointSizeAttenuation.p = MALLOC (float *, sizeof(float)*3);
-			tmp2->pointSizeAttenuation.p[0] = 1.0f;
-			tmp2->pointSizeAttenuation.p[1] = 0.0f;
-			tmp2->pointSizeAttenuation.p[2] = 0.0f;
-			tmp2->pointSizeAttenuation.n=3;;
-			tmp2->colorMode = newASCIIString("POINT_COLOR");
+			tmp2->attenuation.p = MALLOC (float *, sizeof(float)*3);
+			tmp2->attenuation.p[0] = 1.0f;
+			tmp2->attenuation.p[1] = 0.0f;
+			tmp2->attenuation.p[2] = 0.0f;
+			tmp2->attenuation.n=3;;
+			tmp2->markerType = 1;
 			tmp2->metadata = NULL;
 			tmp2->_colormode = 1;
 			tmp2->_attenuation.c[0] = 1.0f;tmp2->_attenuation.c[1] = 0.0f;tmp2->_attenuation.c[2] = 0.0f;
@@ -20789,9 +20787,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," pointSizeScaleFactor (SFFloat) \t%4.3f\n",tmp->pointSizeScaleFactor);
 			spacer fprintf (fp," pointSizeMinValue (SFFloat) \t%4.3f\n",tmp->pointSizeMinValue);
 			spacer fprintf (fp," pointSizeMaxValue (SFFloat) \t%4.3f\n",tmp->pointSizeMaxValue);
-			spacer fprintf (fp," pointSizeAttenuation (MFFloat):\n");
-			for (i=0; i<tmp->pointSizeAttenuation.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->pointSizeAttenuation.p[i]); }
-			spacer fprintf (fp," colorMode (SFString) \t%s\n",tmp->colorMode->strptr);
+			spacer fprintf (fp," attenuation (MFFloat):\n");
+			for (i=0; i<tmp->attenuation.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->attenuation.p[i]); }
+			spacer fprintf (fp," markerType (SFInt32) \t%d\n",tmp->markerType);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }

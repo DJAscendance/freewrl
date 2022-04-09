@@ -5944,7 +5944,7 @@ BOOL find_anyfield_by_name(struct VRMLLexer* lexer, struct X3D_Node* node, union
 		}
 	}
 	if(!found){
-		printf("didn't find exact match for field name %s\n",nodeFieldName);
+		//printf("didn't find exact match for field name %s\n",nodeFieldName);
 	}
 	return found;
 }

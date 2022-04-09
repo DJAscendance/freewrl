@@ -1196,6 +1196,7 @@ PP_COLORMODE_BOTH = 3, //specs default, perl default
 //PM_OBJECT = 2,
 //PM_FANCY = 3,
 //} pointproperties_pointmethod;
+//markerType == 1 GL_POINTS, else draw a rectangle with texture
 void compile_PointProperties ( struct X3D_PointProperties *node) {
 	//a few conditions for calling update_node() to set the change flag in parents:
 	//1) the change you are doing may need a different shader permuntation compiled
@@ -1205,20 +1206,24 @@ void compile_PointProperties ( struct X3D_PointProperties *node) {
 	//  and its the parent-parent - Shape - whose change flag triggers shape_compile which does the shader permutation.
 	update_node(X3D_NODE(node)); 
 
-	node->_colormode = 3;
-	if(!strcmp(node->colorMode->strptr,"POINT_COLOR")) node->_colormode = PP_COLORMODE_POINT; //1
-	if(!strcmp(node->colorMode->strptr,"TEXTURE_COLOR")) node->_colormode = PP_COLORMODE_TEXTURE; //2
-	if(!strcmp(node->colorMode->strptr,"TEXTURE_AND_POINT_COLOR")) node->_colormode = PP_COLORMODE_BOTH; //3
+	node->_colormode = PP_COLORMODE_BOTH; // PP_COLORMODE_POINT; // 3;
+	//H: we are now supposed to bootstrap _colormode from available appearance nodes, such as ColorNode? Fog? Texture?
+	//if(!strcmp(node->colorMode->strptr,"POINT_COLOR")) node->_colormode = PP_COLORMODE_POINT; //1 default POINT_COLOR
+	//if(!strcmp(node->colorMode->strptr,"TEXTURE_COLOR")) node->_colormode = PP_COLORMODE_TEXTURE; //2
+	//if(!strcmp(node->colorMode->strptr,"TEXTURE_AND_POINT_COLOR")) node->_colormode = PP_COLORMODE_BOTH; //3
 	{
 		float *attenuation = node->_attenuation.c;
-		attenuation[0] = node->pointSizeAttenuation.n > 0 ? attenuation[0] = node->pointSizeAttenuation.p[0] : 1.0f;
-		attenuation[1] = node->pointSizeAttenuation.n > 1 ? attenuation[1] = node->pointSizeAttenuation.p[1] : 0.0f;
-		attenuation[2] = node->pointSizeAttenuation.n > 0 ? attenuation[2] = node->pointSizeAttenuation.p[2] : 0.0f;
+		//attenuation[0] = node->pointSizeAttenuation.n > 0 ? attenuation[0] = node->pointSizeAttenuation.p[0] : 1.0f;
+		//attenuation[1] = node->pointSizeAttenuation.n > 1 ? attenuation[1] = node->pointSizeAttenuation.p[1] : 0.0f;
+		//attenuation[2] = node->pointSizeAttenuation.n > 0 ? attenuation[2] = node->pointSizeAttenuation.p[2] : 0.0f;
+		attenuation[0] = node->attenuation.n > 0 ? attenuation[0] = node->attenuation.p[0] : 1.0f;
+		attenuation[1] = node->attenuation.n > 1 ? attenuation[1] = node->attenuation.p[1] : 0.0f;
+		attenuation[2] = node->attenuation.n > 0 ? attenuation[2] = node->attenuation.p[2] : 0.0f;
 	}
 	{
 		int SCREENSCALE = APPROX(node->_attenuation.c[0],1.0f) && APPROX(node->_attenuation.c[1],0.0f) && APPROX(node->_attenuation.c[2],0.0f) ? TRUE : FALSE;  //no fancy attenuation
 		SCREENSCALE = SCREENSCALE && APPROX(node->pointSizeMinValue,node->pointSizeMaxValue); // min = max, no fancy scaling?
-		SCREENSCALE = SCREENSCALE && node->_colormode == 1; //no fancy texturing?
+		//SCREENSCALE = SCREENSCALE && node->_colormode == 1; //no fancy texturing?
 		int OBJECTSCALE = APPROX(node->_attenuation.c[0],0.0f) && APPROX(node->_attenuation.c[1],1.0f) && APPROX(node->_attenuation.c[2],0.0f) ? TRUE : FALSE;  //attenuates with distance
 		OBJECTSCALE = OBJECTSCALE && APPROX(node->pointSizeMinValue,0.0F) &&  node->pointSizeScaleFactor && node->pointSizeMaxValue > 10.0f*node->pointSizeScaleFactor;
 		node->_pointMethod = SCREENSCALE ? PM_SCREEN : OBJECTSCALE ? PM_OBJECT : PM_FANCY;

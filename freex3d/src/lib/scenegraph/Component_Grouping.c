@@ -327,12 +327,16 @@ void child_Switch (struct X3D_Switch *node) {
 	/* is this VRML, or X3D?? */
 	n = 0;
 	pp = NULL;
-	if(node->children.n){
-		pp = node->children.p;
-		n = node->children.n;
-	} else if(node->choice.n){
+	//if(node->children.n){
+	//if (node->__isX3D) {
+	int spec = X3D_PROTO(node->_executionContext)->__specversion;
+	if (spec < 300 || node->choice.n){
 		pp = node->choice.p;
 		n = node->choice.n;
+	} else {
+		pp = node->children.p;
+		n = node->children.n;
+		//} else if(node->choice.n){
 	}
 	if(n && pp){
 		if(wc >= 0 && wc < n){

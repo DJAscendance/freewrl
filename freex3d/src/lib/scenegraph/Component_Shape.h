@@ -216,6 +216,7 @@ struct matpropstruct {
 	//PointProperties and PointSet
 	GLfloat pointSize;   //this goes to old opengl internal geometry shader
 	int pointMethod; //0 = GL_POINTS (old, simple way) 1= GL_TRIANGLES (a quad per point sprite, like ParticleSystems)
+	int markerType; //1=Dot 2+ various compiled-in crosses and circles
 	float pointsizeRange[2];
 	float pointsizeAttenuation[3];
 	int pointColorMode;

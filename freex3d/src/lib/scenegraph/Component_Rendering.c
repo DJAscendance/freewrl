@@ -983,6 +983,12 @@ void render_PointRep(void* _pointrep) {
 		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
 		GLint pcpv = mysp->pointCPV;
 		GLint pfog = mysp->pointFogCoord;
+		int markertype = getAppearanceProperties()->markerType;
+		markertype = markertype > 1 && markertype < 27 ? markertype : 0;
+		if (markertype) {
+			//push built-in marker texture
+			printf("push marker texture/");
+		}
 
 		for (int i = 0; i < pointrep->ncoord; i++) {
 			//send uniform
@@ -1014,7 +1020,10 @@ void render_PointRep(void* _pointrep) {
 			//draw
 			reallyDrawOnce();
 		}
-
+		if (markertype) {
+			//pop built-in marker texture
+			printf("pop marker texture/");
+		}
 		clearDraw(); //child_shape also does this, redundant>
 	}
 }

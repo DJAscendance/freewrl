@@ -4806,15 +4806,33 @@ void zeroVisibilityFlag(void) {
 
 #define CHILDREN_SWITCH_NODE(thistype) \
 			addChildren = NULL; removeChildren = NULL; \
-			offsetOfChildrenPtr = offsetof (struct X3D_##thistype, choice); \
-			if (((struct X3D_##thistype *)node)->addChildren.n > 0) { \
-				addChildren = &((struct X3D_##thistype *)node)->addChildren; \
-				childrenPtr = &((struct X3D_##thistype *)node)->choice; \
+			int spec = X3D_PROTO(node->_executionContext)->__specversion; \
+			if (spec < 300 || ((struct X3D_##thistype*)node)->choice.n) { \
+				offsetOfChildrenPtr = offsetof(struct X3D_##thistype, choice); \
+				childrenPtr = &((struct X3D_##thistype*)node)->choice; \
+			} else {  \
+				offsetOfChildrenPtr = offsetof(struct X3D_##thistype, children); \
+				childrenPtr = &((struct X3D_##thistype*)node)->children; \
 			} \
-			if (((struct X3D_##thistype *)node)->removeChildren.n > 0) { \
-				removeChildren = &((struct X3D_##thistype *)node)->removeChildren; \
-				childrenPtr = &((struct X3D_##thistype *)node)->choice; \
-			}
+			if (((struct X3D_##thistype*)node)->addChildren.n > 0) \
+				addChildren = &((struct X3D_##thistype*)node)->addChildren; \
+			if (((struct X3D_##thistype*)node)->removeChildren.n > 0) \
+				removeChildren = &((struct X3D_##thistype*)node)->removeChildren;
+
+//addChildren = NULL; removeChildren = NULL; \
+//offsetOfChildrenPtr = offsetof(struct X3D_##thistype, choice); \
+//if (((struct X3D_##thistype*)node)->addChildren.n > 0) {
+//	\
+//		addChildren = &((struct X3D_##thistype*)node)->addChildren; \
+//		childrenPtr = &((struct X3D_##thistype*)node)->choice; \
+//} \
+//if (((struct X3D_##thistype*)node)->removeChildren.n > 0) {
+//	\
+//		removeChildren = &((struct X3D_##thistype*)node)->removeChildren; \
+//		childrenPtr = &((struct X3D_##thistype*)node)->choice; \
+//}
+
+
 
 #define CHILDREN_LOD_NODE \
 			addChildren = NULL; removeChildren = NULL; \
@@ -5502,6 +5520,19 @@ void startOfLoopNodeUpdates(void) {
 
 				BEGIN_NODE(Switch)
 					CHILDREN_SWITCH_NODE(Switch)
+					//addChildren = NULL; removeChildren = NULL;
+					//int spec = X3D_PROTO(node->_executionContext)->__specversion;
+					//if (spec < 300 || ((struct X3D_Switch*)node)->choice.n) {
+					//	offsetOfChildrenPtr = offsetof(struct X3D_Switch, choice);
+					//	childrenPtr = &((struct X3D_Switch*)node)->choice;
+					//}else{
+					//	offsetOfChildrenPtr = offsetof(struct X3D_Switch, children);
+					//	childrenPtr = &((struct X3D_Switch*)node)->children;
+					//}
+					//if (((struct X3D_Switch*)node)->addChildren.n > 0) 
+					//	addChildren = &((struct X3D_Switch*)node)->addChildren;
+					//if (((struct X3D_Switch*)node)->removeChildren.n > 0)
+					//	removeChildren = &((struct X3D_Switch*)node)->removeChildren;
 				END_NODE
 
 				BEGIN_NODE(LOD)

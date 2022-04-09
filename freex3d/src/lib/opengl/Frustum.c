@@ -768,11 +768,13 @@ void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 
 
 /* does this current node actually fit in the Switch rendering scheme? */
-int is_Switchchild_inrange(struct X3D_Switch *node, struct X3D_Node *me) {
-        int wc = node->whichChoice;
+int is_Switchchild_inrange(struct X3D_Switch* node, struct X3D_Node* me) {
+	int wc = node->whichChoice;
 
-        /* is this VRML, or X3D?? */
-        if (node->__isX3D == 0) {
+	/* is this VRML, or X3D?? */
+	int spec = X3D_PROTO(node->_executionContext)->__specversion;
+	if (spec < 300 || (node->choice).n) {
+			//if (node->__isX3D == 0) {
                 if(wc >= 0 && wc < ((node->choice).n)) {
                         void *p = ((node->choice).p[wc]);
                         return (X3D_NODE(p)==me);
