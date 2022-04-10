@@ -421,6 +421,7 @@ typedef struct s_shader_capabilities{
 	GLint Colours;
 	GLint TexCoords[MAX_MULTITEXTURE];
 	GLint nTexCoordChannels;
+	GLint flipuv;
 	GLint FogCoords; //Aug 2016
 	GLint prevVertex; //for dashed lines
 	GLint nextVertex;

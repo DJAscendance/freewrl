@@ -102,6 +102,7 @@ struct X3D_MeshRep {
 	int mode;  //0 Points 1-3 lines 4-6 mesh
 	int ncoord;
 	int nuv; //number of texture coordinate channels
+	int flipuv; // 0=uvs are y-up (x3d default), 1=uvs are y-down (gltf) 
 	//shared buffer approach:
 	// indirection to sharable, delay-loadable buffer
 	struct geomBuffer* buffer;

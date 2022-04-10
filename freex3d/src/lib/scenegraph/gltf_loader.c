@@ -172,6 +172,7 @@ void render_MeshRep(void* _meshrep) {
 		}
 		me = getAppearanceProperties()->currentShaderProperties;
 		glUniform1i(me->nTexCoordChannels, kuv);  //PBR: send all you got, and say how many (channels)
+		if(meshrep->flipuv) glUniform1i(me->flipuv, 1);
 	}
 
 	// do we have indexes?
@@ -947,6 +948,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						mr = set_MeshRep(NULL);
 						ts->_intern = (struct X3D_GeomRep*)mr;
 						//set per-vertex attributes (coord, color, fog, normal, UV[0-4]) 
+						mr->flipuv = TRUE; //somewhere else flip UV y, see: http://web3d.org/pipermail/x3d-public_web3d.org/2022-April/017117.html 
 						acount = prim->attributes_count;
 						for (int ii = 0; ii < acount; ii++) {
 							const cgltf_accessor* blob = prim->attributes[ii].data;

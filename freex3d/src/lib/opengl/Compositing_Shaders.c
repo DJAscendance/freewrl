@@ -519,6 +519,13 @@ attribute vec4 fw_MultiTexCoord1; \n\
 attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
 uniform int nTexCoordChannels; \n\
+uniform int flipuv; \n\
+vec4 yupuv(in vec4 uv){ \n\
+  //gltf uv are y-down, so we flag and send the flag here \n\
+  vec4 yup = uv; \n\
+  if(flipuv==1) yup.y = 1.0 - yup.y; \n\
+  return yup; \n\
+} \n\
 //varying vec3 v_texC; \n\
 varying vec3 fw_TexCoord[4]; \n\
 #ifdef TEX3D \n\
@@ -791,7 +798,7 @@ void main(void) \n\
   #endif //CPV \n\
   \n\
   //#ifdef TEX \n\
-  vec4 texcoord = fw_MultiTexCoord0; \n\
+  vec4 texcoord = yupuv(fw_MultiTexCoord0); \n\
   #ifdef TEX3D \n\
   //to re-use vertex coords as texturecoords3D, we need them in 0-1 range: CPU calc of fw_TextureMatrix0 \n\
   if(tex3dUseVertex == 1) \n\
@@ -826,9 +833,9 @@ void main(void) \n\
   #endif //TGEN \n\
   vec4 tcoord[4]; \n\
   tcoord[0] = texcoord; //fw_MultiTexCoord0; \n\
-  tcoord[1] = fw_MultiTexCoord1; \n\
-  tcoord[2] = fw_MultiTexCoord2; \n\
-  tcoord[3] = fw_MultiTexCoord3; \n\
+  tcoord[1] = yupuv(fw_MultiTexCoord1); \n\
+  tcoord[2] = yupuv(fw_MultiTexCoord2); \n\
+  tcoord[3] = yupuv(fw_MultiTexCoord3); \n\
   mat4 ttrans = mat4(1.0); \n\
   vec4 tc = vec4(0.0,0.0,0.0,1.0); \n\
   for(int i=0;i<4;i++){ \n\

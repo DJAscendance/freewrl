@@ -3092,6 +3092,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->TexCoords[2] = GET_ATTRIB(myProg,"fw_MultiTexCoord2");
 	me->TexCoords[3] = GET_ATTRIB(myProg,"fw_MultiTexCoord3");
 	me->nTexCoordChannels = GET_UNIFORM(myProg,"nTexCoordChannels");
+	me->flipuv = GET_UNIFORM(myProg, "flipuv");
 
 	for (i=0; i<MAX_MULTITEXTURE; i++) {
 		char line[200];
