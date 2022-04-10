@@ -1471,7 +1471,7 @@ float getAlpha(){ \n\
 	return A; \n\
 } \n\
 float getOcclusion(){ \n\
-	float occ = 0.0; \n\
+	float occ = 1.0; //1=not occluded, 0=occluded\n\
 	if(mat.type == 2 || mat.type == 3) { \n\
 		int occlusion_image = 2; \n\
 		if(mat.tcount[occlusion_image] > 0) { \n\
@@ -1692,7 +1692,7 @@ void main(void) \n\
 		float occy = getOcclusion(); \n\
 		/* PLUG: add_light_contribution2 (cumulative_diffuse, cumulative_specular, castle_vertex_eye, normy, shiny, amby, diffy, specy) */ \n\
 		fragment_color.rgb = cumulative_diffuse + cumulative_specular; \n\
-		fragment_color.rgb *= (1.0 - occy); \n\
+		fragment_color.rgb *= occy; \n\
 		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
 	} else if(mat.type == 3){ \n\
@@ -1729,7 +1729,7 @@ void main(void) \n\
 		float occy = getOcclusion(); \n\
 		//color += apply_lights_physical( materialInfo, normal, view ); \n\
 		/* PLUG: add_light_physical (color, castle_vertex_eye.xyz, normal, materialInfo ) */  \n\
-		color *= (1.0 - occy); \n\
+		color *= occy; \n\
 		fragment_color.rgb = color; \n\
 		#endif //LITE \n\
 	} \n\
