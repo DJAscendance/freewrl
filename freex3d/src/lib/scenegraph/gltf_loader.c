@@ -485,12 +485,15 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 	if(node->mesh){
 		//gltf mesh is like our shape: it refers to material and to geometry/accessor
 		//we unconditionally add a Shape node, even if appearance and geometry are null
-		struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name,X3DBoundedObject);
-		if(!sn){
-			sn = (struct X3D_Shape*) DEF_node(ectx,node->mesh->name,NODE_Shape);
+		//struct X3D_Shape *sn = (struct X3D_Shape*) USE_node(node->mesh->name,X3DBoundedObject);
+		struct X3D_Group* gr = (struct X3D_Group*)USE_node(node->mesh->name, X3DGroupingNode);
+		if(!gr){
+			gr = (struct X3D_Group*) DEF_node(ectx,node->mesh->name,NODE_Group);
 			int do_mapping = FALSE;
 			for(int j=0;j<node->mesh->primitives_count;j++){
 				cgltf_primitive *prim = &node->mesh->primitives[j];
+				struct X3D_Shape* sn = (struct X3D_Shape*)DEF_node(ectx, NULL, NODE_Shape);
+
 				if(prim->material){
 					//typedef struct cgltf_material
 					//{
@@ -994,10 +997,13 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 						printf("triangle fan\n");
 						break;
 				}
+				printf("adding shape to mesh group\n");
+				//vector_pushBack(void *, &gr->children, sn);
+				AddRemoveChildren(X3D_NODE(gr), offsetPointer_deref(void*, gr, offsetof(struct X3D_Group, children)), &X3D_NODE(sn), 1, 1, __FILE__, __LINE__);
 			}
 		}
-		//printf("adding shape\n");
-		vector_pushBack(void *, pp, sn);
+		printf("adding mesh\n");
+		vector_pushBack(void *, pp, gr);
 	}
 	if(node->skin){
 		//vector_pushBack(void *, pp, skin);
