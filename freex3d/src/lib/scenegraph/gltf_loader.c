@@ -130,6 +130,8 @@ void* set_MeshRep(void* _meshrep) {
 #include "Component_Shape.h"
 void render_MeshRep(void* _meshrep) {
 	//like render_PointRep
+	s_shader_capabilities_t* me = NULL;
+
 	struct X3D_MeshRep* meshrep = (struct X3D_MeshRep*)_meshrep;
 	struct geomBuffer* gb = meshrep->buffer;
 	if (!gb || gb->VBO < 1) return;
@@ -161,7 +163,6 @@ void render_MeshRep(void* _meshrep) {
 	{
 		//see also textureCoord_send 
 		int kuv = 0;
-		s_shader_capabilities_t* me;
 		for (int j = 0; j < 4; j++) {
 			ba = &meshrep->attrib[4 + j];
 
@@ -190,6 +191,7 @@ void render_MeshRep(void* _meshrep) {
 		//sendArraysToGPU(GL_TRIANGLES, 0, meshrep->ncoord);
 	}
 	reallyDrawOnce();
+
 
 	//printf for debugging accessors.
 	if (0) {

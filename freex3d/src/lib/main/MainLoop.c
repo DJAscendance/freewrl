@@ -2687,6 +2687,7 @@ void render_texturegrid(void *_self){
 	texCoordLoc = scap->TexCoords[0];
 	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
 	glUniform1i(scap->nTexCoordChannels,1);
+	glUniform1i(scap->flipuv, 0);
 	glEnableVertexAttribArray (positionLoc );
 	glEnableVertexAttribArray ( texCoordLoc);
 
@@ -2957,7 +2958,7 @@ void render_orientation(void *_self){
 	texCoordLoc = scap->TexCoords[0];
 	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
 	glUniform1i(scap->nTexCoordChannels,1);
-
+	glUniform1i(scap->flipuv, 0);
 	glEnableVertexAttribArray (positionLoc );
 	glEnableVertexAttribArray ( texCoordLoc);
 

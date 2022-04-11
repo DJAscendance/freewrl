@@ -538,4 +538,5 @@ void textureCoord_send(struct textureVertexInfo *genTex) {
 		c++;
 	}
 	glUniform1i(me->nTexCoordChannels,c);  //PBR: send all you got, and say how many (channels)
+	glUniform1i(me->flipuv, 0);
 }

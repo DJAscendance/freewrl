@@ -979,6 +979,7 @@ void render_PointRep(void* _pointrep) {
 		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
 		FW_GL_TEXCOORD_POINTER(2, GL_FLOAT, 0, twotristex, 0);
 		glUniform1i(mysp->nTexCoordChannels, 1);
+		glUniform1i(mysp->flipuv, 0);
 		sendArraysToGPU(GL_TRIANGLES, 0, 6);
 		GLint ppos = mysp->pointPosition; //GET_UNIFORM(mysp->myShaderProgram,"u_pointPosition");
 		GLint pcpv = mysp->pointCPV;

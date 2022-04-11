@@ -1468,6 +1468,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		if(haveTexcoordRamp){
 			//glUniform1i(scap->nTexMatrix,0);
 			glUniform1i(scap->nTexCoordChannels,1);
+			glUniform1i(scap->flipuv, 0)
 			//glUniform1i(scap->textureCount,1);
 		}
 		for(i=0;i<vectorSize(_particles);i++){
