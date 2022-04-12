@@ -77,6 +77,7 @@ typedef enum resource_media_type {
 	resm_vrml,
 	resm_x3d,
 	resm_image,
+	resm_image_buffer,
 	resm_movie,
 	resm_script,
 	resm_pshader,
@@ -199,7 +200,8 @@ typedef struct resource_item {
 	pthread_t *_loadThread; //pthread_t * used for async_loading in middleLayer ML
 	void *tg; //gglobal context
 	int (*_loadFunc)(void *); //used for some experiments where the backend loads, but the frontend injects a load function
-	void *resm_specific; // use for anything a specific resm_ type needs
+	char *resm_specific; // use for anything a specific resm_ type needs
+	int resm_specific2; 
 } resource_item_t;
 
 extern resource_item_t *root_res;

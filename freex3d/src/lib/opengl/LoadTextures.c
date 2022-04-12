@@ -65,7 +65,7 @@ Dec 6, 2016 tti->data now always in RGBA
 #include "Textures.h"
 #include "LoadTextures.h"
 #include "../scenegraph/Component_CubeMapTexturing.h"
-
+#include "../scenegraph/Polyrep.h"
 #include <list.h>
 #include <io_files.h>
 #include <io_http.h>
@@ -187,7 +187,45 @@ static int sniffImageFileHeader(char *filename) {
 
 	return iret;
 }
+static int sniffImageHeader(char* header) {
+	// return value:
+	// 0 unknown
+	// 1 png
+	// 2 jpeg
+	// 3 gif
+	//filenames coming in can be temp file names - scrambled
+	//there are 3 ways to tell in the backend what type of image file:
+	//a) .xxx original filename suffix
+	//b) MIME type 
+	//c) file signature https://en.wikipedia.org/wiki/List_of_file_signatures
+	// right now we aren't passing in the .xxx or mime or signature bytes
+	// except through the file conents we can get the signature
 
+	int iret;
+	iret = IMAGETYPE_UNKNOWN;
+	if (!strncmp(&header[1], "PNG", 3))
+		iret = IMAGETYPE_PNG;
+
+	if (!strncmp(header, "ÿØÿ", 3)) //JPEG
+		iret = IMAGETYPE_JPEG;
+
+	if (!strncmp(header, "GIF", 3))
+		iret = IMAGETYPE_GIF;
+
+	if (!strncmp(header, "DDS ", 4)) // MS .dds cubemap and 3d textures
+		iret = IMAGETYPE_DDS;
+
+	if (!strncmp(header, "web3dit", 7)) //.web3dit dug9/freewrl invention
+		iret = IMAGETYPE_WEB3DIT;
+
+	if (!strncmp(header, "NRRD", 4))  //.nrrd 3D volume texture
+		iret = IMAGETYPE_NRRD;
+
+	if (!strncmp(header, "vol", 3)) //.vol 3D volume
+		iret = IMAGETYPE_VOL;
+
+	return iret;
+}
 static int sniffImageChannels_bruteForce(unsigned char *imageblob, int width, int height){
 	//iterates over entire 4byte-per-pixel RGBA image blob, or until it knows the answer,
 	// and returns number of channels 1=Luminance, 2=Lum-alpha 3=rgb 4=rgba
@@ -2268,13 +2306,70 @@ static void __reallyloadImageTexture(textureTableIndexStruct_s* this_tex, char *
 
 #endif // ANDROIDNDK
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename); 
+int texture_load_from_buffer(textureTableIndexStruct_s* this_tex, char* buffer, int len) {
+	//the image data is already loaded in memory as a blob, for example gltf .bin / .glb buffer
+	// still packed in image file format / mime_type .jpg, .png etc
+	// so needs to be unpacked into regular texture array here
+	int ret, imtype;
+	char* data = NULL;
+	int x, y, nchannels;
+	imtype = sniffImageHeader(buffer);
 
+	ret = FALSE;
+	switch (imtype) {
+	case IMAGETYPE_PNG:
+	case IMAGETYPE_JPEG:
+	case IMAGETYPE_GIF:
+		stbi_set_flip_vertically_on_load(TRUE);
+		data = stbi_load_from_memory(buffer, len, &x, &y, &nchannels, 4);
+		int bpp = 4;
+		if (data) {
+			this_tex->channels = nchannels;
+			this_tex->x = x;
+			this_tex->y = y;
+			this_tex->frames = 1;
+			this_tex->texdata = data;
+			this_tex->hasAlpha = nchannels == 2 || nchannels == 4 ? 1 : 0;
+			this_tex->status = TEX_NEEDSBINDING;
+			//unsigned char* dataflipped = flipImageVerticallyB(image_data, this_tex->y, this_tex->x, bpp);
 
+			ret = TRUE;
+		}
+		//{
+		//	int nchan;
+		//	if (imtype == IMAGETYPE_JPEG) {
+		//		nchan = 3; //jpeg always rgb, no alpha
+		//	}
+		//	else {
+		//		nchan = sniffImageChannels_bruteForce(this_tex->texdata, this_tex->x, this_tex->y);
+		//	}
+		//	if (nchan > -1) this_tex->channels = nchan;
+		//}
+		break;
+	//case IMAGETYPE_DDS:
+	//	ret = textureIsDDS(this_tex, fname); break;
+	//case IMAGETYPE_WEB3DIT:
+	//	ret = loadImage_web3dit(this_tex, fname); break;
+	//case IMAGETYPE_NRRD:
+	//	ret = loadImage_nrrd(this_tex, fname); break;
+	//case IMAGETYPE_VOL:
+	//	ret = loadImage3DVol(this_tex, fname); break;
+	case IMAGETYPE_UNKNOWN:
+	default:
+		ret = FALSE;
+	}
+
+	return (ret != 0);
+
+}
 /**
  *   texture_load_from_file: a local filename has been found / downloaded,
  *                           load it now.
  */
-int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename); 
+
 int texture_load_from_file(textureTableIndexStruct_s* this_tex, char *filename)
 {
 
@@ -2587,6 +2682,19 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 		restype = resm_image;
 		break;
 
+	case NODE_BufferTexture:
+		restype = resm_image_buffer;
+		struct X3D_TextureRep* tr = (struct X3D_TextureRep*)((struct X3D_BufferTexture*)entry->scenegraphNode)->_intern;
+		if (tr && tr->buffer->loaded) {
+			char *address = tr->buffer->address + tr->byteOffset; //buffer
+			int len = tr->byteSize; //buffer len
+			texture_load_from_buffer(entry, address, len);
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+		break;
+
 	case NODE_ImageTexture3D:
 		url = & (((struct X3D_ImageTexture3D *)entry->scenegraphNode)->url);
 		parentPath = (resource_item_t *)(((struct X3D_ImageTexture3D *)entry->scenegraphNode)->_parentResource);
@@ -2621,7 +2729,7 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 
 	//TEX_LOADING
 	res = resource_create_multi(url);
-	res->type=rest_multi;
+	res->type = rest_multi;
 	res->media_type = restype; //resm_image; /* quick hack */
 	resource_identify(parentPath, res);
 	res->whereToPlaceData = entry;

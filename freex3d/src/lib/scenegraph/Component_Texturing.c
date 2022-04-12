@@ -40,6 +40,7 @@ X3D Texturing Component
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
+#include "../scenegraph/Polyrep.h"
 #include "LinearAlgebra.h"
 
 
@@ -47,7 +48,29 @@ void render_PixelTexture (struct X3D_PixelTexture *node) {
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 }
-
+void* set_TextureRep(void* _texrep) {
+	struct X3D_TextureRep* texrep = NULL;
+	//to be called from compile_BufferTexture
+	if (!_texrep) {
+		_texrep = MALLOC(struct X3D_TextureRep*, sizeof(struct X3D_TextureRep));
+		memset(_texrep, 0, sizeof(struct X3D_TextureRep));
+	}
+	texrep = (struct X3D_TextureRep*)_texrep;
+	texrep->itype = 4; //0 meshrep 1 linerep 2 polyrep 3 meshrep 4 texturerep
+	return texrep;
+}
+void render_BufferTexture(struct X3D_BufferTexture* node) {
+	//check if buffer loaded
+	if (node->_intern) {
+		struct X3D_TextureRep* tr = (struct X3D_TextureRep*)node->_intern;
+		if (tr->buffer->loaded) {
+			if (1) {
+				loadTextureNode(X3D_NODE(node), NULL);
+				gglobal()->RenderFuncs.textureStackTop = 1; /* not multitexture - should have saved to boundTextureStack[0] */
+			}
+		}
+	}
+}
 
 void render_ImageTexture (struct X3D_ImageTexture *node) {
 	loadTextureNode(X3D_NODE(node),NULL); //이미지 텍스처

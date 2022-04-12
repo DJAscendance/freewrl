@@ -112,6 +112,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__ctflag",
 	"__cylinderTriangles",
 	"__cylinderVBO",
+	"__delegate",
 	"__do_anything",
 	"__do_center",
 	"__do_rotation",
@@ -2583,6 +2584,7 @@ const char *NODES[] = {
 	"BoundedPhysicsModel",
 	"Box",
 	"BufferGeometry",
+	"BufferTexture",
 	"CADAssembly",
 	"CADFace",
 	"CADLayer",
@@ -2933,6 +2935,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_physics,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3347,6 +3350,9 @@ void rendray_BufferGeometry(struct X3D_BufferGeometry *);
 void collide_BufferGeometry(struct X3D_BufferGeometry *);
 void compile_BufferGeometry(struct X3D_BufferGeometry *);
 struct X3D_Virt virt_BufferGeometry = { NULL,(void *)render_BufferGeometry,NULL,NULL,(void *)rendray_BufferGeometry,NULL,NULL,NULL,(void *)collide_BufferGeometry,(void *)compile_BufferGeometry};
+
+void render_BufferTexture(struct X3D_BufferTexture *);
+struct X3D_Virt virt_BufferTexture = { NULL,(void *)render_BufferTexture,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void prep_CADAssembly(struct X3D_CADAssembly *);
 void child_CADAssembly(struct X3D_CADAssembly *);
@@ -4364,6 +4370,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_BoundedPhysicsModel,
 	 &virt_Box,
 	 &virt_BufferGeometry,
+	 &virt_BufferTexture,
 	 &virt_CADAssembly,
 	 &virt_CADFace,
 	 &virt_CADLayer,
@@ -4998,6 +5005,17 @@ const int OFFSETS_Box[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_BufferGeometry[] = {
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_BufferTexture[] = {
+	(int) FIELDNAMES_image, (int) offsetof (struct X3D_BufferTexture, image),  (int) FIELDTYPE_SFImage, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_BufferTexture, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_repeatS, (int) offsetof (struct X3D_BufferTexture, repeatS),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_repeatT, (int) offsetof (struct X3D_BufferTexture, repeatT),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_textureProperties, (int) offsetof (struct X3D_BufferTexture, textureProperties),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_BufferTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_BufferTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___delegate, (int) offsetof (struct X3D_BufferTexture, __delegate),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_CADAssembly[] = {
@@ -9551,6 +9569,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_BoundedPhysicsModel,
 	OFFSETS_Box,
 	OFFSETS_BufferGeometry,
+	OFFSETS_BufferTexture,
 	OFFSETS_CADAssembly,
 	OFFSETS_CADFace,
 	OFFSETS_CADLayer,
@@ -10157,6 +10176,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BoundedPhysicsModel : {tmp = MALLOC (struct X3D_BoundedPhysicsModel *, size = sizeof (struct X3D_BoundedPhysicsModel)); break;}
 		case NODE_Box : {tmp = MALLOC (struct X3D_Box *, size = sizeof (struct X3D_Box)); break;}
 		case NODE_BufferGeometry : {tmp = MALLOC (struct X3D_BufferGeometry *, size = sizeof (struct X3D_BufferGeometry)); break;}
+		case NODE_BufferTexture : {tmp = MALLOC (struct X3D_BufferTexture *, size = sizeof (struct X3D_BufferTexture)); break;}
 		case NODE_CADAssembly : {tmp = MALLOC (struct X3D_CADAssembly *, size = sizeof (struct X3D_CADAssembly)); break;}
 		case NODE_CADFace : {tmp = MALLOC (struct X3D_CADFace *, size = sizeof (struct X3D_CADFace)); break;}
 		case NODE_CADLayer : {tmp = MALLOC (struct X3D_CADLayer *, size = sizeof (struct X3D_CADLayer)); break;}
@@ -10903,6 +10923,20 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BufferGeometry : {
 			struct X3D_BufferGeometry * tmp2;
 			tmp2 = (struct X3D_BufferGeometry *) tmp;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_BufferTexture : {
+			struct X3D_BufferTexture * tmp2;
+			tmp2 = (struct X3D_BufferTexture *) tmp;
+			tmp2->image.n=3; tmp2->image.p=MALLOC (int *, sizeof(int)*3); tmp2->image.p[0] = 0; tmp2->image.p[1] = 0; tmp2->image.p[2] = 0;;
+			tmp2->metadata = NULL;
+			tmp2->repeatS = TRUE;
+			tmp2->repeatT = TRUE;
+			tmp2->textureProperties = 0;
+			tmp2->_parentResource = getInputResource();
+			tmp2->__textureTableIndex = 0;
+			tmp2->__delegate = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16999,6 +17033,17 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			UNUSED(tmp); // compiler warning mitigation
 		    break;
 		}
+		case NODE_BufferTexture : {
+			struct X3D_BufferTexture *tmp;
+			tmp = (struct X3D_BufferTexture *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," image (SFImage): (not dumped)\t");
+			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_CADAssembly : {
 			struct X3D_CADAssembly *tmp;
 			tmp = (struct X3D_CADAssembly *) node;
@@ -22571,6 +22616,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_BoundedPhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_Box: return X3DGeometryNode; break;
 	case NODE_BufferGeometry: return X3DGeometryNode; break;
+	case NODE_BufferTexture: return X3DTextureNode; break;
 	case NODE_CADAssembly: return X3DGroupingNode; break;
 	case NODE_CADFace: return X3DProductStructureChildNode; break;
 	case NODE_CADLayer: return X3DGroupingNode; break;

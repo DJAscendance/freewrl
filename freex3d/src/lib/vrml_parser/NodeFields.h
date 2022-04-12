@@ -320,6 +320,15 @@ END_NODE(Box)
 BEGIN_NODE(BufferGeometry)
 END_NODE(BufferGeometry)
 
+/* BufferTexture node */
+BEGIN_NODE(BufferTexture)
+EXPOSED_FIELD(BufferTexture,image,sfimage,image,FIELDTYPE_SFImage,UNCA_NONE)
+EXPOSED_FIELD(BufferTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(BufferTexture,repeatS,sfbool,repeatS,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(BufferTexture,repeatT,sfbool,repeatT,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(BufferTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(BufferTexture)
+
 /* CADAssembly node */
 BEGIN_NODE(CADAssembly)
 EVENT_IN(CADAssembly,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)

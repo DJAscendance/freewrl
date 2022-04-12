@@ -7162,7 +7162,6 @@ void delete_first(struct X3D_Node *node);
 void removeNodeFromKeySensorList(struct X3D_Node* node);
 int	unInitializeScript(struct X3D_Node *node);
 void delete_geomrep(struct X3D_Node* node);
-void unRegisterPolyRep(struct X3D_Node *node);
 void delete_glbuffers(struct X3D_Node *node);
 void unRegisterGeoElevationGrid(struct X3D_Node *node);
 

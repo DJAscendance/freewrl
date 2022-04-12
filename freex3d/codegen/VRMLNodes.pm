@@ -1476,6 +1476,17 @@ our %Nodes = (
 		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	],"X3DTextureNode"),
 
+	"BufferTexture" => new VRML::NodeType("BufferTexture", [
+		image => ["SFImage", "0, 0, 0", "inputOutput", 0,"UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		repeatS => ["SFBool", "TRUE", "initializeOnly", 0,"UNCA_NONE"],#ff
+		repeatT => ["SFBool", "TRUE", "initializeOnly", 0,"UNCA_NONE"],#ff
+		textureProperties => ["SFNode", 0, "initializeOnly", 0,"UNCA_NONE"],#ff
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0,0],#ff
+		__delegate => ["SFNode", "NULL", "initializeOnly", 0,0],#ff
+	],"X3DTextureNode"),
+
 	"TextureCoordinate" => new VRML::NodeType("TextureCoordinate", [
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		mapping => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff

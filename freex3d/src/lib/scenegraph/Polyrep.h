@@ -67,10 +67,22 @@ struct bufAccess {
 
 
 struct X3D_GeomRep {
-	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
-	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
+//	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
 };
+struct X3D_TextureRep {
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
+	int decoded;  //0=still .jgp/.png/.gif 1=parsed into rectangular rgba texture blob
+	int byteOffset; //multiple arrays and even multiple shapes can share same blob buffer.
+	int byteSize; //..and the image stored is compressed png/jpeg etc blob, needs to be parsed to get rectangular image
+	char* mimeType; //"image/png", "image/jpg" etc so correct image parser can be applied
+	//shared buffer approach:
+	// indirection to sharable, delay-loadable buffer
+	struct geomBuffer* buffer;
+	//struct bufAccess image; //
+};
+void* set_TextureRep(void* _texrep);
 struct X3D_PointRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh

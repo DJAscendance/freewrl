@@ -493,7 +493,6 @@ bool imagery_load(resource_item_t *res){
 	return retval;
 }
 
-
 /**
  *   resource_load: load the actual file into memory, add it to openned files list.
  */
@@ -1093,6 +1092,7 @@ char *resourceMediaTypeToString (int mt) {
 		case  resm_vrml: return " resm_vrml";
 		case  resm_x3d: return " resm_x3d";
 		case  resm_image: return " resm_image";
+		case  resm_image_buffer: return " resm_image_buffer";
 		case  resm_movie: return " resm_movie";
 		case  resm_pshader: return " resm_pshader";
 		case  resm_fshader: return " resm_fshader";

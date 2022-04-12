@@ -366,6 +366,48 @@ void delete_MeshRep(void* meshrep) {
 	subtract_geomBufferUser(mr->buffer);
 	FREE_IF_NZ(mr);
 }
+struct geomBuffer* find_or_create_buffer_add_user(void* ectx, const cgltf_buffer_view* bv) {
+	struct geomBuffer* buffer = find_buffer_in_broto_context_from_cgltf_buffer(ectx, bv->buffer);
+	if (!buffer) {
+		//first use of buffer, allocate
+		buffer = add_geomBuffer0(ectx, bv->buffer->size, 1);
+		buffer->cgltf_buffer = (char*)bv->buffer;
+		if (bv->buffer->data) {
+			memcpy(buffer->address, bv->buffer->data, bv->buffer->size); //deep copy, do we need deep?
+			buffer->loaded = 1;
+			buffer->cgltf_buffer = (char*)bv->buffer; //simpler address copy
+		}
+	}
+	else {
+		add_geomBufferUser(buffer);
+	}
+	return buffer;
+}
+
+struct X3D_Node *x3dtexture_from_cgltf_texture(struct X3D_Node *ectx, cgltf_texture* texture ){
+	char* iname = texture->image->name;
+	struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+	if (!image) {
+		if (texture->image->buffer_view) { //->buffer->data){
+			image = DEF_node(ectx, iname, NODE_BufferTexture);
+			struct X3D_TextureRep* tr = set_TextureRep(NULL);
+			tr->buffer = find_or_create_buffer_add_user(ectx, texture->image->buffer_view);
+			tr->byteOffset = texture->image->buffer_view->offset;
+			tr->byteSize = texture->image->buffer_view->size;
+			image->_intern = (void*)tr;
+		}
+		else {
+			char* iuri = texture->image->uri;
+			image = DEF_node(ectx, iname, NODE_ImageTexture);
+			struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+			it->url.p = malloc(sizeof(void*));
+			it->url.p[0] = newASCIIString(iuri);
+			it->url.n = 1;
+		}
+	}
+	return image;
+}
+
 
 int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node, gltf_unit *unit){
 // june 22, 2020 not done: skinned / rigged animated charactors, points, lines and various things noted below.
@@ -490,6 +532,8 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 		if(!gr){
 			gr = (struct X3D_Group*) DEF_node(ectx,node->mesh->name,NODE_Group);
 			int do_mapping = FALSE;
+			static int new_way = 1;
+
 			for(int j=0;j<node->mesh->primitives_count;j++){
 				cgltf_primitive *prim = &node->mesh->primitives[j];
 				struct X3D_Shape* sn = (struct X3D_Shape*)DEF_node(ectx, NULL, NODE_Shape);
@@ -523,32 +567,66 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							mat = (struct X3D_UnlitMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
 							//mat->emissiveTextureChannel 
-							if(prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
-								if(show) printf("image loaded for us\n");
-							}else{
-								if(show) printf("image not loaded uri = %s\n",prim->material->emissive_texture.texture->image->uri);
+							if (prim->material->emissive_texture.texture) {
 								if (prim->material->emissive_texture.texture) {
-									if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
-										if (show) printf("image loaded for us - in theory a PixelTexture\n");
-									}
-									else {
-										char* iname = prim->material->emissive_texture.texture->image->name;
-										char* iuri = prim->material->emissive_texture.texture->image->uri;
-										if (show) printf("image not loaded uri = %s\n", iuri);
-										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-										if (!image) {
-											image = DEF_node(ectx, iname, NODE_ImageTexture);
-											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-											it->url.p = malloc(sizeof(void*));
-											it->url.p[0] = newASCIIString(iuri);
-											it->url.n = 1;
-										}
+
+									if (new_way) {
+										struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->emissive_texture.texture);
+
+										//char* iname = prim->material->emissive_texture.texture->image->name;
+										//struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										//if (!image) {
+										//	if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
+										//		if (show) printf("image loaded for us - in theory a PixelTexture\n");
+										//		image = DEF_node(ectx, iname, NODE_BufferTexture);
+										//		struct X3D_TextureRep* tr = set_TextureRep(NULL);
+										//		tr->buffer = find_or_create_buffer_add_user(ectx, prim->material->emissive_texture.texture->image->buffer_view);
+										//		image->_intern = (void*)tr;
+										//	}
+										//	else {
+										//		char* iuri = prim->material->emissive_texture.texture->image->uri;
+										//		image = DEF_node(ectx, iname, NODE_ImageTexture);
+										//		struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+										//		it->url.p = malloc(sizeof(void*));
+										//		it->url.p[0] = newASCIIString(iuri);
+										//		it->url.n = 1;
+										//	}
+										//}
 										mat->emissiveTexture = image;
 										if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+									}
+									else { //old_way
 
+
+										if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
+											if (show) printf("image loaded for us\n");
+										}
+										else {
+											if (show) printf("image not loaded uri = %s\n", prim->material->emissive_texture.texture->image->uri);
+											if (prim->material->emissive_texture.texture) {
+												if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
+													if (show) printf("image loaded for us - in theory a PixelTexture\n");
+												}
+												else {
+													char* iname = prim->material->emissive_texture.texture->image->name;
+													char* iuri = prim->material->emissive_texture.texture->image->uri;
+													if (show) printf("image not loaded uri = %s\n", iuri);
+													struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+													if (!image) {
+														image = DEF_node(ectx, iname, NODE_ImageTexture);
+														struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+														it->url.p = malloc(sizeof(void*));
+														it->url.p[0] = newASCIIString(iuri);
+														it->url.n = 1;
+													}
+													mat->emissiveTexture = image;
+													if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+
+												}
+											}
+										}
 									}
 								}
-
 							}
 						}
 						sn->appearance = createNewX3DNode(NODE_Appearance);
@@ -578,108 +656,149 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							mat->metallic = pbr->metallic_factor;
 							mat->roughness = pbr->roughness_factor;
 							if(pbr->base_color_texture.texture ){
-								if(pbr->base_color_texture.texture->image->buffer_view){ //->buffer->data){
-									if(show) printf("image loaded for us\n");
-								}else{
-									char* iname = pbr->base_color_texture.texture->image->name;
-									char* iuri = pbr->base_color_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->base_color_texture.texture);
 									mat->baseTexture = image;
 									if (do_mapping) mat->baseTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (pbr->base_color_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us\n");
+									}
+									else {
+										char* iname = pbr->base_color_texture.texture->image->name;
+										char* iuri = pbr->base_color_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->baseTexture = image;
+										if (do_mapping) mat->baseTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 							if (pbr->metallic_roughness_texture.texture ) {
-								if (pbr->metallic_roughness_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = pbr->metallic_roughness_texture.texture->image->name;
-									char* iuri = pbr->metallic_roughness_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->metallic_roughness_texture.texture);
 									mat->metallicRoughnessTexture = image;
-									if(do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (pbr->metallic_roughness_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = pbr->metallic_roughness_texture.texture->image->name;
+										char* iuri = pbr->metallic_roughness_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->metallicRoughnessTexture = image;
+										if (do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 							if (prim->material->emissive_texture.texture ) {
-								if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = prim->material->emissive_texture.texture->image->name;
-									char* iuri = prim->material->emissive_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->emissive_texture.texture);
 									mat->emissiveTexture = image;
-									if(do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = prim->material->emissive_texture.texture->image->name;
+										char* iuri = prim->material->emissive_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->emissiveTexture = image;
+										if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 							if (prim->material->normal_texture.texture ) {
-								if (prim->material->normal_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = prim->material->normal_texture.texture->image->name;
-									char* iuri = prim->material->normal_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->normal_texture.texture);
 									mat->normalTexture = image;
-									if(do_mapping) mat->normalTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (prim->material->normal_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = prim->material->normal_texture.texture->image->name;
+										char* iuri = prim->material->normal_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->normalTexture = image;
+										if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
-							if (prim->material->occlusion_texture.texture ) {
-								if (prim->material->occlusion_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = prim->material->occlusion_texture.texture->image->name;
-									char* iuri = prim->material->occlusion_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+							if (prim->material->occlusion_texture.texture) {
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->occlusion_texture.texture);
 									mat->occlusionTexture = image;
-									mat->occlusionStrength = prim->material->occlusion_texture.scale;
-									if(do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (prim->material->occlusion_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = prim->material->occlusion_texture.texture->image->name;
+										char* iuri = prim->material->occlusion_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->occlusionTexture = image;
+										mat->occlusionStrength = prim->material->occlusion_texture.scale;
+										if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 
@@ -711,115 +830,157 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							mat->transparency = 1.0f - pbr->diffuse_factor[3];
 
 							if (pbr->specular_glossiness_texture.texture) {
-								if (pbr->diffuse_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = pbr->specular_glossiness_texture.texture->image->name;
-									char* iuri = pbr->specular_glossiness_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->specular_glossiness_texture.texture);
 									mat->specularTexture = image;
 									mat->shininessTexture = image;
-									if(do_mapping) mat->specularTextureMapping = newASCIIString("one");
-									if(do_mapping) mat->shininessTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->specularTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->shininessTextureMapping = newASCIIString("one");
+								} else { //old_way
+									if (pbr->specular_glossiness_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+										//struct X3D_BufferTexture *bt = (struct X3D_BufferTexture*)
+										//mr->buffer = find_or_create_buffer_add_user(ectx, blob);
 
+									}
+									else {
+										char* iname = pbr->specular_glossiness_texture.texture->image->name;
+										char* iuri = pbr->specular_glossiness_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->specularTexture = image;
+										mat->shininessTexture = image;
+										if (do_mapping) mat->specularTextureMapping = newASCIIString("one");
+										if (do_mapping) mat->shininessTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 
 							if (pbr->diffuse_texture.texture) {
-								if (pbr->diffuse_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = pbr->diffuse_texture.texture->image->name;
-									char* iuri = pbr->diffuse_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->diffuse_texture.texture);
 									mat->diffuseTexture = image;
-									if(do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (pbr->diffuse_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = pbr->diffuse_texture.texture->image->name;
+										char* iuri = pbr->diffuse_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->diffuseTexture = image;
+										if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 
 							if (prim->material->emissive_texture.texture) {
-								if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->emissive_texture.texture);
+									mat->diffuseTexture = image;
+									if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
 								}
-								else {
-									char* iname = prim->material->emissive_texture.texture->image->name;
-									char* iuri = prim->material->emissive_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
-									mat->emissiveTexture = image;
-									if(do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+								else { //old_way
 
+									if (prim->material->emissive_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = prim->material->emissive_texture.texture->image->name;
+										char* iuri = prim->material->emissive_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->emissiveTexture = image;
+										if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 
 							if (prim->material->normal_texture.texture) {
-								if (prim->material->normal_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = prim->material->normal_texture.texture->image->name;
-									char* iuri = prim->material->normal_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->normal_texture.texture);
 									mat->normalTexture = image;
-									if(do_mapping) mat->normalTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
 
+									if (prim->material->normal_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = prim->material->normal_texture.texture->image->name;
+										char* iuri = prim->material->normal_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->normalTexture = image;
+										if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+
+									}
 								}
 							}
 
 							if (prim->material->occlusion_texture.texture) {
-								if (prim->material->occlusion_texture.texture->image->buffer_view) { //->buffer->data){
-									if (show) printf("image loaded for us - in theory a PixelTexture\n");
-								}
-								else {
-									char* iname = prim->material->occlusion_texture.texture->image->name;
-									char* iuri = prim->material->occlusion_texture.texture->image->uri;
-									if (show) printf("image not loaded uri = %s\n", iuri);
-									struct X3D_Node* image = USE_node(iname, X3DTextureNode);
-									if (!image) {
-										image = DEF_node(ectx, iname, NODE_ImageTexture);
-										struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
-										it->url.p = malloc(sizeof(void*));
-										it->url.p[0] = newASCIIString(iuri);
-										it->url.n = 1;
-									}
+								if (new_way) {
+									struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->occlusion_texture.texture);
 									mat->occlusionTexture = image;
-									mat->occlusionStrength = prim->material->occlusion_texture.scale;
-									if(do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+									if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+								}
+								else { //old_way
+									if (prim->material->occlusion_texture.texture->image->buffer_view) { //->buffer->data){
+										if (show) printf("image loaded for us - in theory a PixelTexture\n");
+									}
+									else {
+										char* iname = prim->material->occlusion_texture.texture->image->name;
+										char* iuri = prim->material->occlusion_texture.texture->image->uri;
+										if (show) printf("image not loaded uri = %s\n", iuri);
+										struct X3D_Node* image = USE_node(iname, X3DTextureNode);
+										if (!image) {
+											image = DEF_node(ectx, iname, NODE_ImageTexture);
+											struct X3D_ImageTexture* it = (struct X3D_ImageTexture*)image;
+											it->url.p = malloc(sizeof(void*));
+											it->url.p[0] = newASCIIString(iuri);
+											it->url.n = 1;
+										}
+										mat->occlusionTexture = image;
+										mat->occlusionStrength = prim->material->occlusion_texture.scale;
+										if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
 
+									}
 								}
 							}
 
@@ -947,22 +1108,24 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							//Q. which buffer? It might already be allocated. 
 							// in freewrl we allocate once
 
-							mr->buffer = find_buffer_in_broto_context_from_cgltf_buffer(ectx, blob->buffer_view->buffer);
-							if (!mr->buffer) {
-								//first use of buffer, allocate
-								mr->buffer = add_geomBuffer0(ectx,blob->buffer_view->buffer->size, 1);
-								mr->buffer->cgltf_buffer = (char*)blob->buffer_view->buffer;
-								if (blob->buffer_view->buffer->data) {
-									memcpy(mr->buffer->address, blob->buffer_view->buffer->data, blob->buffer_view->buffer->size);
-									mr->buffer->loaded = 1;
-									mr->buffer->cgltf_buffer = (char*) blob->buffer_view->buffer;
-									// can't do in this thread, wait for compile_BufferGeometry set_geomBuffer(mr->buffer);
-								} else {
-									//how / where do we connect this to uri loading via resource fetch?
-								}
-							} else {
-								add_geomBufferUser(mr->buffer);
-							}
+							//mr->buffer = find_buffer_in_broto_context_from_cgltf_buffer(ectx, blob->buffer_view->buffer);
+							//if (!mr->buffer) {
+							//	//first use of buffer, allocate
+							//	mr->buffer = add_geomBuffer0(ectx,blob->buffer_view->buffer->size, 1);
+							//	mr->buffer->cgltf_buffer = (char*)blob->buffer_view->buffer;
+							//	if (blob->buffer_view->buffer->data) {
+							//		memcpy(mr->buffer->address, blob->buffer_view->buffer->data, blob->buffer_view->buffer->size);
+							//		mr->buffer->loaded = 1;
+							//		mr->buffer->cgltf_buffer = (char*) blob->buffer_view->buffer;
+							//		// can't do in this thread, wait for compile_BufferGeometry set_geomBuffer(mr->buffer);
+							//	} else {
+							//		//how / where do we connect this to uri loading via resource fetch?
+							//	}
+							//} else {
+							//	add_geomBufferUser(mr->buffer);
+							//}
+							mr->buffer = find_or_create_buffer_add_user(ectx, blob->buffer_view);
+
 							ba->byteOffset = blob->buffer_view->offset;
 							ba->dataSize = cgltf_num_components(blob->type);
 							ba->dataType = lookup_GL_type[blob->component_type];
@@ -1252,7 +1415,7 @@ int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx
 
 int gltf_load_bin(resource_item_t *res){
 	// late arriving .bin (for .gltf separated unit)
-	cgltf_buffer* buffer = res->resm_specific;
+	cgltf_buffer* buffer = (void*)res->resm_specific;
 	if (buffer) {
 		struct geomBuffer *gb = find_buffer_in_broto_context_from_cgltf_buffer(res->ectx, buffer);
 		if (gb) {
