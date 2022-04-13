@@ -2690,7 +2690,8 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 		node->_method = 2;
 	if(!strcmp(node->method->strptr,"TRANSLATE"))
 		node->_method = 1;
-	if(node->_method == 1){
+	if(false && node->_method == 1){
+		//xx broken, April 2022, don't use this _method == 1 section (go through _method == 2 below with _method == 1 modifications)
 		//ALGO 1 Suv = T(v) + C(u)
 		struct X3D_NurbsPatchSurface *patch;
 		struct X3D_Coordinate *controlPoint;
@@ -2770,7 +2771,7 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 		}
 		compile_NurbsPatchSurface((struct X3D_NurbsPatchSurface*)node->_patch);
 	} //end method == 1
-	if(node->_method == 2){
+	if(true || node->_method == 2){
 		//ALGO 2 skinning like extrusion
 		int mtessv, mtessu, nku, nkv;
 		int i,DBGSW;
@@ -2913,9 +2914,15 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 				//your crosssection plane perpendicular to the start of your trajectory)
 				//and subsequent are rotated with respect to first
 				//Looks good
+				if (node->_method == 1) {
+					matidentity3f(mat);
+				}
 				memcpy(matB0,mat,9*sizeof(float));
 			}
 			matmultiply3f(mat,matt,matB0);
+			if (node->_method == 1) {
+				matidentity3f(mat);
+			}
 			for(j=0;j<mtessu1;j++){
 				float pp[3], norm[3], qq[3];
 				matmultvec3f(pp, mat, &Qu[j*3] ); //orient profile point
@@ -2930,7 +2937,24 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 				//shift rotated point to trajectory point
 				vecadd3f(pp,pp,&Tv[i*3]); //add on trajectory point
 				veccopy3f(&pts[ic*3],pp);
+				if (node->_method == 1) {
+					float tt[3], ee[3], ff[3], ii[3]; //method 1 normal computation vectors
 
+					//compute normal as ii = ee x ff (edge normal cross face normal)
+					//norm = ii x tt (tt is direction of travel vector)
+					//x-section face normal, assume x-section in xy plane
+					vecset3f(ff, 0.0f, 0.0f, 1.0f); //assumed normal to x-section face
+					//edge normal - in plane of x-section, at vertex of x-section point
+					veccopy3f(ee, &Nu[j * 3]);
+					//travel vector along profile
+					if (i == 0) vecdif3f(tt, &Tv[(i+1) * 3], &Tv[i * 3]);  //vecset3f(tt, 0.0f, 0.0f, -1.0f);
+					else vecdif3f(tt, &Tv[i * 3], &Tv[(i - 1) * 3]);
+					//printf("tt[%d] %f %f %f\n", j, tt[0], tt[1], tt[2]);
+					veccross3f(ii, ff, ee);
+					veccross3f(norm, ii, tt);
+					vecnormalize3f(norm, norm);
+					veccopy3f(&normals[ic * 3], norm);
+				}
 				ic++;
 			}
 			//connect to last xsection with triangles
@@ -3007,7 +3031,7 @@ void collide_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 
 void render_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 	COMPILE_IF_REQUIRED
-	if(node->_method == 1){
+	if(false && node->_method == 1){
 		struct X3D_NurbsPatchSurface *patch;
 		if (!node->_patch->_intern) 
 			return;
@@ -3015,7 +3039,7 @@ void render_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 		CULL_FACE(patch->solid)
 		render_polyrep(patch);
 	}
-	if(node->_method == 2){
+	if(true || node->_method == 2){
 		if (!node->_intern) 
 			return;
 		//CULL_FACE(node->solid)
