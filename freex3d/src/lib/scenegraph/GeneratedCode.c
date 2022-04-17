@@ -302,7 +302,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_keyValueVBO",
 	"_knot",
 	"_knotrange",
-	"_lastDist",
 	"_lastEnabled",
 	"_lastMethod",
 	"_lastTao",
@@ -6946,7 +6945,6 @@ const int OFFSETS_LOD[] = {
 	(int) FIELDNAMES_level_changed, (int) offsetof (struct X3D_LOD, level_changed),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_forceTransitions, (int) offsetof (struct X3D_LOD, forceTransitions),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__lastMethod, (int) offsetof (struct X3D_LOD, _lastMethod),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__lastDist, (int) offsetof (struct X3D_LOD, _lastDist),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__selected, (int) offsetof (struct X3D_LOD, _selected),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -13318,7 +13316,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->level_changed = 0;
 			tmp2->forceTransitions = FALSE;
 			tmp2->_lastMethod = 0;
-			tmp2->_lastDist = 0.0f;
 			tmp2->_selected = 0;
 			tmp2->_defaultContainer = 0;
 		break;

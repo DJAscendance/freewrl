@@ -484,7 +484,6 @@ void proximity_LOD (struct X3D_LOD *node) {
 
 	if (n > 0) {
 		if (i >= n) i = n - 1;
-		//if(!is_vp_new_way()) 
 		if (node->_lastMethod > 0) {
 			if (Viewer()->SLERPing || Viewer()->SLERPing2 || Viewer()->SLERPing3)
 				node->_lastMethod = 1;
