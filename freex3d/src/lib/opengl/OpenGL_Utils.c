@@ -4805,7 +4805,7 @@ void zeroVisibilityFlag(void) {
 
 #define CHILDREN_SWITCH_NODE(thistype) \
 			addChildren = NULL; removeChildren = NULL; \
-			int spec = X3D_PROTO(node->_executionContext)->__specversion; \
+			spec = X3D_PROTO(node->_executionContext)->__specversion; \
 			if (spec < 300 || ((struct X3D_##thistype*)node)->choice.n) { \
 				offsetOfChildrenPtr = offsetof(struct X3D_##thistype, choice); \
 				childrenPtr = &((struct X3D_##thistype*)node)->choice; \
@@ -4833,19 +4833,36 @@ void zeroVisibilityFlag(void) {
 
 
 
-#define CHILDREN_LOD_NODE \
+//#define CHILDREN_LOD_NODE \
+//			addChildren = NULL; removeChildren = NULL; \
+//			offsetOfChildrenPtr = offsetof (struct X3D_LOD, children); \
+//			if (X3D_LODNODE(node)->addChildren.n > 0) { \
+//				addChildren = &X3D_LODNODE(node)->addChildren; \
+//				if (X3D_LODNODE(node)->__isX3D == 0) childrenPtr = &X3D_LODNODE(node)->level; \
+//				else childrenPtr = &X3D_LODNODE(node)->children; \
+//			} \
+//			if (X3D_LODNODE(node)->removeChildren.n > 0) { \
+//				removeChildren = &X3D_LODNODE(node)->removeChildren; \
+//				if (X3D_LODNODE(node)->__isX3D == 0) childrenPtr = &X3D_LODNODE(node)->level; \
+//				else childrenPtr = &X3D_LODNODE(node)->children; \
+//			}
+#define CHILDREN_LOD_NODE(thistype) \
 			addChildren = NULL; removeChildren = NULL; \
-			offsetOfChildrenPtr = offsetof (struct X3D_LOD, children); \
+			spec = X3D_PROTO(node->_executionContext)->__specversion; \
+			if (spec < 300 || ((struct X3D_##thistype*)node)->level.n) { \
+				offsetOfChildrenPtr = offsetof(struct X3D_##thistype, level); \
+				childrenPtr = &((struct X3D_##thistype*)node)->level; \
+			} else {  \
+				offsetOfChildrenPtr = offsetof(struct X3D_##thistype, children); \
+				childrenPtr = &((struct X3D_##thistype*)node)->children; \
+			} \
 			if (X3D_LODNODE(node)->addChildren.n > 0) { \
 				addChildren = &X3D_LODNODE(node)->addChildren; \
-				if (X3D_LODNODE(node)->__isX3D == 0) childrenPtr = &X3D_LODNODE(node)->level; \
-				else childrenPtr = &X3D_LODNODE(node)->children; \
 			} \
 			if (X3D_LODNODE(node)->removeChildren.n > 0) { \
 				removeChildren = &X3D_LODNODE(node)->removeChildren; \
-				if (X3D_LODNODE(node)->__isX3D == 0) childrenPtr = &X3D_LODNODE(node)->level; \
-				else childrenPtr = &X3D_LODNODE(node)->children; \
 			}
+
 
 #define CHILDREN_ANY_NODE(thistype,thischildren) \
 			addChildren = NULL; removeChildren = NULL; \
@@ -5125,7 +5142,7 @@ void startOfLoopNodeUpdates(void) {
 	struct X3D_Anchor* anchorPtr;
 	struct Vector *parentVector;
 	int nParents;
-	int i,j,k,foundbound;
+	int i, j, k, foundbound, spec;
 	int* setBindPtr;
 
 	struct Multi_Node *addChildren;
@@ -5535,8 +5552,8 @@ void startOfLoopNodeUpdates(void) {
 				END_NODE
 
 				BEGIN_NODE(LOD)
-					CHILDREN_LOD_NODE
-							update_renderFlag(pnode,VF_Proximity);
+					CHILDREN_LOD_NODE(LOD)
+					update_renderFlag(pnode,VF_Proximity);
 				END_NODE
 
 				/* Material - transparency of materials */

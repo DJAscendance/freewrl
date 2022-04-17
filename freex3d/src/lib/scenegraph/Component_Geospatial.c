@@ -4243,14 +4243,16 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 	
 }
-
+struct X3D_Node* getSelectedViewpoint();
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	struct Planet *planet;
 	double a1;
 	GLint viewPort[10];
 	if (!renderstate()->render_vp) return;
 
-	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	node->_reachablethispass = TRUE;
+	//if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	if((struct X3D_Node*)node == getSelectedViewpoint() && !node->_donethispass){
 		X3D_Viewer *viewer = Viewer();
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 		COMPILE_IF_REQUIRED

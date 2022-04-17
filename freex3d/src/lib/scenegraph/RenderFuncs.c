@@ -1749,9 +1749,10 @@ void pop_sensor(){
 
 }
 int getWindex();
-int render_foundLayerViewpoint();
+int render_foundSelectedViewpoint();
 void extent6f_draw(float *extent);
 static int draw_extents = TRUE;
+int is_vp_new_way();
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
 
@@ -1820,14 +1821,19 @@ void render_node(struct X3D_Node *node) {
 	if (p->renderstate.render_vp == VF_Viewpoint) { 
 		//if(tg->Bindable.activeLayer == 0)  //no Layerset nodes
 		//if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint && virt->children == NULL) { 
-		if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint ) {
-			#ifdef RENDERVERBOSE
-			printf ("doing Viewpoint, but this  node is not for us - just returning\n"); 
-			p->renderLevel--;
-			#endif
-			return; 
-		} 
-		if(p->renderstate.render_vp == VF_Viewpoint && render_foundLayerViewpoint()){ 
+		if (!is_vp_new_way()) {
+			//mystery renderflags not propagated up chain with new way
+			// and we're planning do breadth searches when boundvp != selectedvp (including unreachable LOD children)
+			// so we'll try without this
+			if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint) {
+#ifdef RENDERVERBOSE
+				printf("doing Viewpoint, but this  node is not for us - just returning\n");
+				p->renderLevel--;
+#endif
+				return;
+			}
+		}
+		if(p->renderstate.render_vp == VF_Viewpoint && render_foundSelectedViewpoint()){ 
 			//on vp pass, just find first DEF/USE of bound viewpoint
 			return;
 		}

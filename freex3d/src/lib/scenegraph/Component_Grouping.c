@@ -298,7 +298,7 @@ void fin_Transform (struct X3D_Transform *node) {
 		}
 	} else {
 		/*Rendering the viewpoint only means finding it, and calculating the reverse WorldView matrix.*/
-		//if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) 
+		if((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) 
 		{
 			FW_GL_TRANSLATE_F(((node->center).c[0]),((node->center).c[1]),((node->center).c[2])
 			);

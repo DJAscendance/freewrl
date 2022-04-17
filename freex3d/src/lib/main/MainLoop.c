@@ -3104,6 +3104,7 @@ typedef struct pMainloop{
 	int hyper_case[4];
 	int nwindow;
 	int windex; //current window index into twoindows array, valid during render()
+	void* selectedViewpoint;
 	Stack *_vportstack;
 	Stack *_stagestack;
 	Stack *_framebufferstack;
@@ -3202,6 +3203,7 @@ void Mainloop_init(struct tMainloop *t){
 		p->targets_initialized = 0;
 		for(i=0;i<4;i++) init_targetwindow(&p->cwindows[i]);
 		//t->twindows = p->twindows;
+		p->selectedViewpoint = NULL;
 		p->_vportstack = newStack(ivec4);
 		t->_vportstack = (void *)p->_vportstack; //represents screen pixel area being drawn to
 		p->_stagestack = newStack(void*);
@@ -4641,6 +4643,11 @@ void setup_projection();
 void rbp_run_physics();
 void fwl_sendreceive_DIS();
 void fps_histo_collect();
+
+static int vp_new_way = 1; //see setup_viewpoint_part2 and elsewhere, Apr 14, 2022
+int is_vp_new_way() {
+	return vp_new_way;
+}
 void fwl_RenderSceneUpdateScene0(double dtime) {
 	//Nov 2015 change: just viewport-independent, once-per-frame-scene-updates here
 	//-functionality relying on a viewport -setup_projection(), setup_picking()- has been 
@@ -4912,7 +4919,8 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 
 	if (p->doEvents) {
 		/* and just parsed nodes needing binding? */
-		SEND_BIND_IF_REQUIRED(tg->ProdCon.setViewpointBindInRender)
+		if(!is_vp_new_way()) 
+			SEND_BIND_IF_REQUIRED(tg->ProdCon.setViewpointBindInRender)
 		SEND_BIND_IF_REQUIRED(tg->ProdCon.setFogBindInRender)
 		SEND_BIND_IF_REQUIRED(tg->ProdCon.setBackgroundBindInRender)
 		SEND_BIND_IF_REQUIRED(tg->ProdCon.setNavigationBindInRender)
@@ -5989,6 +5997,25 @@ struct X3D_Node *getActiveLayerBoundViewpoint(){
 	}
 	return boundvp; //should be Viewpoint, OrthoViewpoint, or GeoViewpoint
 }
+struct X3D_Node* getSelectedViewpoint() {
+	if (is_vp_new_way()) {
+
+		ttglobal tg = gglobal();
+		ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+		if(p->selectedViewpoint)
+			return p->selectedViewpoint;
+		else
+			return getActiveLayerBoundViewpoint();
+	}
+	else {
+		return getActiveLayerBoundViewpoint();
+	}
+}
+void setSelectedViewpoint(void* viewpoint) {
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+	p->selectedViewpoint = viewpoint;
+}
 int render_foundLayerViewpoint(){
 	//on render_VP pass we want to come out of render_hier as soon as we find our VP
 	//that will save embarrassing 'adding' effect when bound VP is DEF/USED in multiple 
@@ -6009,6 +6036,19 @@ int render_foundLayerViewpoint(){
 		iret = boundvp->_donethispass;
 	return iret;
 }
+int render_foundSelectedViewpoint() {
+	int iret = 0;
+	if (is_vp_new_way()) {
+		struct X3D_Viewpoint* selectedvp = (struct X3D_Viewpoint*)getSelectedViewpoint();
+		if(selectedvp)
+			iret = selectedvp->_donethispass;
+	}
+	else {
+		iret = render_foundLayerViewpoint();
+	}
+	return iret;
+}
+int  update_renderFlagC(struct X3D_Node* p, int flag, int setaction);
 void setup_viewpoint_part2() {
 /*
 	 Computes view part of modelview matrix and leaves it in modelview.
@@ -6038,34 +6078,83 @@ void setup_viewpoint_part2() {
 	//so we'll set a flag on the viewpoint node, and if its already updated, we'll skip 2nd, third etc instances.
 	//printf("\npart2>>>\n");
 	boundvp = (struct X3D_Viewpoint*)getActiveLayerBoundViewpoint();
-	//char sflag[12];
-	//memset(sflag, 0, 12);
-	//sflag[0] = '[';
-	//sflag[1] = '_';
-	if (boundvp) {
-		boundvp->_donethispass = 0; //used in prep_Viewpoint
-		//sflag[1] = 'b';
-	}
-	render_hier(rootNode(), VF_Viewpoint | VF_Background);
-	//sflag[2] = '_';
-	//sflag[3] = '_';
-	if (boundvp) {
-		//sflag[2] = 'b';
-		//sflag[3] = 'F';
-		if (!boundvp->_donethispass) {
-			//viewpoint unreachable (could be in unchosen switch or LOD child)
-			//.. specs say you should unbind if un-reachable
-			//sflag[3] = '?';
-			struct tProdCon* t = &gglobal()->ProdCon;
-			send_bind_to(X3D_NODE(boundvp), 0);
-			//t->setViewpointBindInRender = NULL;
-		}
-		boundvp->_donethispass = 0; //used in prep_Viewpoint
-	}
-	//sflag[4] = ']';
-	//printf(sflag);
-	//printf("\n<<<part2\n");
+	if (is_vp_new_way()) {
+		struct tProdCon* t = &gglobal()->ProdCon;
 
+		struct X3D_Viewpoint *requestedvp, *selectedvp;
+		selectedvp = NULL;
+		requestedvp = NULL;
+		if(t->viewpointNodes && vectorSize(t->viewpointNodes))
+			requestedvp = (struct X3D_Viewpoint*)vector_get(struct X3D_Node*, t->viewpointNodes, t->requestedvpno);
+		if (boundvp == requestedvp) 
+			selectedvp = boundvp;
+		else {
+			int iret_old, iret_new;
+			iret_old = 0, iret_new = 0;
+			selectedvp = requestedvp;
+			if(boundvp)
+				iret_old = update_renderFlagC(X3D_NODE(boundvp), VF_Viewpoint, 0);
+			if (selectedvp) {
+				//printf("part2 selected new vp %p\n", selectedvp);
+				iret_new = update_renderFlagC(X3D_NODE(selectedvp), VF_Viewpoint, 1);
+				if (iret_new) {
+					selectedvp->_reachablethispass = 1;
+					send_bind_to(X3D_NODE(selectedvp), TRUE);
+				}
+			}
+			if (!iret_new && iret_old) {
+				//reject requested
+				update_renderFlagC(X3D_NODE(boundvp), VF_Viewpoint, 1);
+				selectedvp = boundvp;
+			}
+			//printf("selected vp %s search\n", selectedvp->description->strptr);
+		}
+		if(selectedvp)
+			selectedvp->_donethispass = 0;
+		setSelectedViewpoint(selectedvp);
+		render_hier(rootNode(), VF_Viewpoint | VF_Background);
+		if (selectedvp) {
+			if (!selectedvp->_donethispass) {
+				//selected is unreachable 
+				//printf("unreachable\n");
+				if (selectedvp == boundvp) {
+					//bound vp has become unreachable on this frame, for example Switch choice changed to different child
+					//unbind from unreachable
+					send_bind_to(X3D_NODE(selectedvp), FALSE);
+					//or better yet find another one to bind thats reachable
+				}
+				else {
+					//newly selected vp is unreachable
+					//go back to using old vp
+					setSelectedViewpoint(boundvp);
+					//should we be in a loop to try them all, and handle disappointment, exit loop on success or penultimate failure?
+					render_hier(rootNode(), VF_Viewpoint | VF_Background);
+				}
+			}
+		}
+		setSelectedViewpoint(NULL); //just used for above code
+	}
+	else {
+		//old way worked before April 14, 2022
+		if (boundvp) {
+			boundvp->_donethispass = 0; //used in prep_Viewpoint
+			//sflag[1] = 'b';
+		}
+		render_hier(rootNode(), VF_Viewpoint | VF_Background);
+
+		if (boundvp) {
+			//sflag[2] = 'b';
+			//sflag[3] = 'F';
+			if (!boundvp->_donethispass) {
+				//viewpoint unreachable (could be in unchosen switch or LOD child)
+				//.. specs say you should unbind if un-reachable
+				struct tProdCon* t = &gglobal()->ProdCon;
+				send_bind_to(X3D_NODE(boundvp), 0);
+				//t->setViewpointBindInRender = NULL;
+			}
+			boundvp->_donethispass = 0; //used in prep_Viewpoint
+		}
+	}
 	profile_end("vp_hier");
 
 }

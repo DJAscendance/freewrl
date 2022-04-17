@@ -50,6 +50,7 @@ X3D Navigation Component
 
 
 struct X3D_Node *getActiveLayerBoundViewpoint();
+struct X3D_Node* getSelectedViewpoint();
 void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	double a1;
 	GLint viewPort[10];
@@ -61,7 +62,9 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
 	*/
-	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	node->_reachablethispass = TRUE;
+	//if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	if ((struct X3D_Node*)node == getSelectedViewpoint() && !node->_donethispass) {
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 								 // this test takes the first one (and helps exit render_node early around virt->children)
 
@@ -128,8 +131,9 @@ void prep_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 	   doing this test can screw us up, so DO NOT do this test!
 			if(!node->isBound) return;
 	*/
-	
-	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	node->_reachablethispass = TRUE;
+	//if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	if((struct X3D_Node*)node == getSelectedViewpoint() && !node->_donethispass){
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 	
 
@@ -419,21 +423,30 @@ void proximity_LOD (struct X3D_LOD *node) {
 	GLDOUBLE proj[16];
 	struct point_XYZ vec;
 	double dist;
+	struct X3D_Node** pp;
+	int n;
+
 	int nran = (node->range).n;
-	int nnod = (node->level).n;
-	int xnod = (node->children).n;
 
 	int i;
+	n = 0;
+	pp = NULL;
+	int spec = X3D_PROTO(node->_executionContext)->__specversion;
+	if (spec < 300 || node->level.n) {
+		pp = node->level.p;
+		n = node->level.n;
+	}
+	else {
+		pp = node->children.p;
+		n = node->children.n;
+	}
 
 	/* no range, display the first node, if it exists */
 	if(!nran) {
-		if (node->__isX3D)  {
-			if (nnod > 0) node->_selected = (node->children).p[0];
-			else node->_selected = NULL;
-		} else {
-			if (xnod > 0) node->_selected = (node->level).p[0];
-			else node->_selected = NULL;
-		}
+		if (n > 0)
+			node->_selected = pp[0];
+		else
+			node->_selected = NULL;
 		return;
 	}
 
@@ -468,23 +481,22 @@ void proximity_LOD (struct X3D_LOD *node) {
 		i++;
 	}
 
-	/* is this VRML or X3D? */
-	if (node->__isX3D) {
-		if (xnod > 0) {
-			/* X3D "children" field */
-			if(i >= xnod) i = xnod-1;
-				node->_selected = (node->children).p[i];
-				/* printf ("selecting X3D nod %d \n",i); */
-		} else node->_selected = NULL;
-		
-	} else {
-		if (nnod > 0) {
-			/* VRML "range" field */
-			if(i >= nnod) i = nnod-1;
-			node->_selected = (node->level).p[i];
-			/* printf ("selecting vrml nod\n"); */
-		} else { node->_selected = NULL; }
+
+	if (n > 0) {
+		if (i >= n) i = n - 1;
+		//if(!is_vp_new_way()) 
+		if (node->_lastMethod > 0) {
+			if (Viewer()->SLERPing || Viewer()->SLERPing2 || Viewer()->SLERPing3)
+				node->_lastMethod = 1;
+			else
+				node->_lastMethod = 0; //last time it was user selecting VP. skip one frame to get new distance established
+		}
+		else {
+			node->_selected = pp[i];
+		}
 	}
+	else { node->_selected = NULL; }
+
 	if(i != node->level_changed){
 		node->level_changed = i;
 		MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_LOD,level_changed));
