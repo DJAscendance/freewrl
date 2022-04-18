@@ -596,6 +596,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						GLint myMaterialAmbient;
 						GLint myMaterialShininess;
 						GLint myMaterialOcclusion;
+						GLint myMaterialNormalScale;
 						GLint myMaterialTransparency;
 
 						GLint myMaterialBackDiffuse;
@@ -603,6 +604,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						GLint myMaterialBackSpecular;
 						GLint myMaterialBackShininess;
 						GLint myMaterialBackOcclusion;
+						GLint myMaterialBackNormalScale;
 						GLint myMaterialBackAmbient;
 						GLint myMaterialBackTransparency;
 						struct matpropstruct *myap = getAppearanceProperties();
@@ -648,6 +650,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
 						myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
 						myMaterialOcclusion = GET_UNIFORM(myProg, "fw_FrontMaterial.occlusion");
+						myMaterialNormalScale = GET_UNIFORM(myProg, "fw_FrontMaterial.normalScale");
 						myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
 
 						myMaterialBackDiffuse = GET_UNIFORM(myProg,"fw_BackMaterial.diffuse");
@@ -656,6 +659,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
 						myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
 						myMaterialBackOcclusion = GET_UNIFORM(myProg, "fw_BackMaterial.occlusion");
+						myMaterialBackNormalScale = GET_UNIFORM(myProg, "fw_BackMaterial.normalScale");
 						myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
 
 
@@ -666,6 +670,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						GLUNIFORM1F(myMaterialAmbient,fw_FrontMaterial->ambient);
 						GLUNIFORM1F(myMaterialShininess,fw_FrontMaterial->shininess);
 						GLUNIFORM1F(myMaterialOcclusion, fw_FrontMaterial->occlusion);
+						GLUNIFORM1F(myMaterialNormalScale, fw_FrontMaterial->normalScale);
 						GLUNIFORM1F(myMaterialTransparency,fw_FrontMaterial->transparency);
 
 						GLUNIFORM3FV(myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
@@ -674,6 +679,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						GLUNIFORM1F(myMaterialBackAmbient,fw_BackMaterial->ambient);
 						GLUNIFORM1F(myMaterialBackShininess,fw_BackMaterial->shininess);
 						GLUNIFORM1F(myMaterialBackOcclusion, fw_BackMaterial->occlusion);
+						GLUNIFORM1F(myMaterialBackNormalScale, fw_BackMaterial->normalScale);
 						GLUNIFORM1F(myMaterialBackTransparency,fw_BackMaterial->transparency);
 						profile_end("sendvec");
 

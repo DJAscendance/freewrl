@@ -153,7 +153,7 @@ struct fw_MaterialParameters {
 	float ambient;      //MAT_REGULAR
 	float shininess;    //MAT_REGULAR
 	float transparency; 
-	float normal; // normalScale 1, all
+	float normalScale; // normalScale 1, all
 	float occlusion; // occlusionStrength MAT_REGULAR, MAT_PHYSICAL
 	float baseColor[3]; //MAT_PHYSICAL
 	float metallic;     //MAT_PHYSICAL

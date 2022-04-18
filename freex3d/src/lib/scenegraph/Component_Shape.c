@@ -341,6 +341,7 @@ void compile_Material (struct X3D_Material *node) {
 	node->ambientIntensity = fclamp(node->ambientIntensity,0.0f,1.0f);
 	node->shininess = fclamp(node->shininess,0.0f,1.0f);
 	node->occlusionStrength = fclamp(node->occlusionStrength, 0.0f, 1.0f);
+	node->normalScale = fclamp(node->normalScale, 1.0f, 1.e9f); //one to infinity
 	node->transparency = fclamp(node->transparency,0.0f,1.0f);
 	fvecclamp3f(node->diffuseColor.c,0.0f,1.0f);
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
@@ -361,6 +362,7 @@ void compile_Material (struct X3D_Material *node) {
 	q->shininess = node->shininess;
 	q->transparency = node->transparency;
 	q->occlusion = node->occlusionStrength;
+	q->normalScale = node->normalScale;
 	q->type = MAT_REGULAR;
 
 	//new v4 textures
@@ -1768,7 +1770,7 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	/* verify that the numbers are within range */
 	node->transparency = fclamp(node->transparency,0.0f,1.0f);
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
-
+	node->normalScale = fclamp(node->normalScale, 1.0f, 1.e9f); //1 to infinity
 	if(!node->_material){
 		node->_material = malloc(sizeof(struct fw_MaterialParameters));
 		register_node_gc(node,node->_material);
@@ -1780,6 +1782,7 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	vecset3f(q->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader
 	veccopy3f(q->emissive,node->emissiveColor.c);
 	q->transparency = node->transparency;
+	q->normalScale = node->normalScale;
 	q->type = MAT_UNLIT;
 
 	//new v4 textures
@@ -1892,6 +1895,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	node->metallic = fclamp(node->metallic,0.0f,1.0f);
 	node->transparency = fclamp(node->transparency,0.0f,1.0f);
 	node->occlusionStrength = fclamp(node->occlusionStrength, 0.0f, 1.0f);
+	node->normalScale = fclamp(node->normalScale, 1.0f, 1.e9f); //one to infinity
 	fvecclamp3f(node->baseColor.c,0.0f,1.0f);
 	fvecclamp3f(node->emissiveColor.c,0.0f,1.0f);
 
@@ -1909,6 +1913,7 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	q->roughness = node->roughness;
 	q->transparency = node->transparency;
 	q->occlusion = node->occlusionStrength;
+	q->normalScale = node->normalScale;
 	q->type = MAT_PHYSICAL;
 
 	//new v4 textures   

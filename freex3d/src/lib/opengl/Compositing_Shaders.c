@@ -596,6 +596,7 @@ struct fw_MaterialParameters { \n\
   float ambient; \n\
   float shininess; \n\
   float occlusion; \n\
+  float normalScale; \n\
   float transparency; \n\
   vec3 baseColor; \n\
   float metallic; \n\
@@ -1203,6 +1204,7 @@ struct fw_MaterialParameters { \n\
 	float ambient; \n\
 	float shininess; \n\
     float occlusion; \n\
+    float normalScale; \n\
 	float transparency; \n\
 	vec3 baseColor; \n\
 	float metallic; \n\
@@ -1444,7 +1446,13 @@ vec3 getNormal(){ \n\
 		mat3 tbn = mat3(t, b, N); \n\
 		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[normal_image]].xy); \n\
 		vec4 nc = sample_map(normal_image,false); \n\
-		N = normalize(tbn * (2.0 * nc.xyz - 1.0)); \n\
+		vec3 ncn = normalize(vec3(nc.x * 2.0 - 1.0, nc.y*2.0 -1.0, nc.z)); //-1 to 1, -1 to 1, 0 to 1 \n\
+        vec3 ncns = normalize(ncn*vec3(mat.normalScale,mat.normalScale,1.0)); \n\
+		//normal.xyz = normalize((textureSample(normalTexture).rgb * vec3(2,2,2) - vec3(1,1,1)) * vec3(normalScale, normalScale, 1)) \n\
+        //vec3 nscaled = normalize(nc.xyz*vec3(2.0,2.0,2.0) - vec3(1.0,1.0,1.0)*vec3(mat.normalScale,mat.normalScale,1.0)); \n\
+		//N = normalize(tbn * (2.0 * nc.xyz - 1.0)); \n\
+		//N = normalize(tbn * (2.0 * nc.xyz - vec3(mat.normalScale,mat.normalScale,1.0))); \n\
+        N = normalize(tbn * ncns); \n\
 	} \n\
 	return N; \n\
 } \n\
