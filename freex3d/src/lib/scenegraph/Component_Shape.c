@@ -233,6 +233,11 @@ void child_Appearance (struct X3D_Appearance *node) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->pointProperties,tmpN);
 		render_node(tmpN);
 	}
+	if (node->textureTransform) {
+		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+		// is there a TextureTransform? even if no texture in appearance, might be in new style material nodes
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->textureTransform, p->this_textureTransform);
+	}
 	if(node->texture) {
 		/* we have to do a glPush, then restore, later */
 		/* glPushAttrib(GL_ENABLE_BIT); */
@@ -240,8 +245,8 @@ void child_Appearance (struct X3D_Appearance *node) {
 		ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;    
 
 
-		/* is there a TextureTransform? if no texture, fugutaboutit */
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->textureTransform,p->this_textureTransform);
+		///* is there a TextureTransform? if no texture, fugutaboutit */
+		//POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->textureTransform,p->this_textureTransform);
 		
 		/* now, render the texture */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
