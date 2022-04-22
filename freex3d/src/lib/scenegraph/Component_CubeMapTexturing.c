@@ -315,6 +315,7 @@ void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
 
 				gglobal()->RenderFuncs.textureStackTop = 0;
 				/* render the proper texture */
+				gglobal()->RenderFuncs.texturenode = thistex;
 				render_node((void *)thistex);
 			} 
 		}
@@ -954,6 +955,7 @@ void render_ImageCubeMapTexture (struct X3D_ImageCubeMapTexture *node) {
 
 			/* go through these, back, front, top, bottom, right left */
 			iface = lookup_xxyyzz_face_from_count[count];
+			gglobal()->RenderFuncs.texturenode = node->__subTextures.p[iface];
 			render_node(node->__subTextures.p[iface]);
 		}
 	}

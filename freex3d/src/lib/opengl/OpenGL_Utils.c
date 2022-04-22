@@ -1265,7 +1265,7 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 
 	/* GL_ES_VERSION_2_0 has GL_SHADER_COMPILER */
 	#ifdef GL_SHADER_COMPILER
-	GLboolean b;
+	GLboolean bbb[10];
 	static bool haveDoneThis = false;
 	#endif
 	//unsigned int rq_cap;
@@ -1275,7 +1275,7 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 
 	ppOpenGL_Utils p = gglobal()->OpenGL_Utils.prv;
 	struct Vector *myShaderTable = p->myShaderTable;
-	struct shaderTableEntry *new = NULL;
+	struct shaderTableEntry *ste = NULL;
 
 	rq_cap = rq_cap0;
 	//rq_cap = NO_APPEARANCE_SHADER; //for thunking to simplest when debugging
@@ -1310,10 +1310,10 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 
 	/* GL_ES_VERSION_2_0 has GL_SHADER_COMPILER */
 #ifdef GL_SHADER_COMPILER
-		glGetBooleanv(GL_SHADER_COMPILER,&b);
+		glGetBooleanv(GL_SHADER_COMPILER,bbb);
 		if (!haveDoneThis) {
 			haveDoneThis = true;
-			if (!b) {
+			if (!bbb[0]) {
 			//I found desktop openGL version 2.1.2  comes in here, but does still render OK
 			//ConsoleMessage("NO SHADER COMPILER - have to sometime figure out binary shader distros");
 			ConsoleMessage("no shader compiler\n");
@@ -1368,19 +1368,19 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 #endif // #ifdef GL_ES_VERSION_2_0 specific debugging
 #endif //VERBOSE
 
-	new = MALLOC(struct shaderTableEntry *, sizeof (struct shaderTableEntry));
+	ste = MALLOC(struct shaderTableEntry *, sizeof (struct shaderTableEntry));
 
-	new ->whichOne = rq_cap;
-	new->myCapabilities = MALLOC(s_shader_capabilities_t*, sizeof (s_shader_capabilities_t));
+	ste->whichOne = rq_cap;
+	ste->myCapabilities = MALLOC(s_shader_capabilities_t*, sizeof (s_shader_capabilities_t));
 
 	//ConsoleMessage ("going to compile new shader for %x",rq_cap);
-	makeAndCompileShader(new);
+	makeAndCompileShader(ste);
 
-	vector_pushBack(struct shaderTableEntry*, myShaderTable, new);
+	vector_pushBack(struct shaderTableEntry*, myShaderTable, ste);
 
-	//ConsoleMessage ("going to return new %p",new);
-	//ConsoleMessage ("... myCapabilities is %p",new->myCapabilities);
-	return new->myCapabilities;
+	//ConsoleMessage ("going to return new %p",ste);
+	//ConsoleMessage ("... myCapabilities is %p",ste->myCapabilities);
+	return ste->myCapabilities;
 }
 
 s_shader_capabilities_t *getMyShader(unsigned int rq_cap0) {
@@ -6943,6 +6943,13 @@ void sendClipplanesToShader(s_shader_capabilities_t *me){
 	GLUNIFORM1I(me->nclipplanes,nsend);
 }
 
+// ubershader has uniform sampler2D textureUnit[16] array
+// this array of samplers is shared between 3 uses:
+// 1) appearance.texture, 2) (front&back) material.xxxTextures and 3) PTM projective texture mapping
+// - all of these .texture can be multitextures requiring their own sampler for each sub-texture
+// To efficiently pack textures into the shader textureUnit[] array, while not conflicting between the 3 uses,
+// we keep track of which units are claimed already on a given rendering pass on child_Shape
+// child_Shape order: material(s).textures get the first crack, then PTM.texture, then appearance.texture
 
 static int nunit = 0;
 static int unit[32];
@@ -6953,6 +6960,7 @@ int sampler_units_used(){
 	return nunit;
 }
 void clear_material_samplers(){
+	//called early in child_shape, before the 3 uses start claiming textureUnits
 	nunit = 0;
 }
 int share_or_next_material_sampler_index(GLint texture){
@@ -6976,6 +6984,8 @@ GLint tunit(int index){
 	return unit[index];
 }
 
+
+int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height);
 void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct matpropstruct *myap = getAppearanceProperties();
 	struct fw_MaterialParameters *fw_FrontMaterial, *mp;
@@ -7025,14 +7035,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	mp = fw_FrontMaterial;
 	nt = 0;
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
-	for(int i=0;i<7;i++){
-		mp->tcount[i] = 0;
-		mp->tstart[i] = nt;
-		if(mp->textures[i]){
+	for(int iuse=0;iuse<7;iuse++){
+		//mp->tcount[i] = 0; //textureTransform_start apppearance.texture if populated will already set this to non-zero, don't lose it
+		mp->tstart[iuse] = nt;
+		if(mp->textures[iuse]){
 			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
-			render_node(mp->textures[i]);
-			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
-			mp->tcount[i] = ntdesc;
+			render_node(mp->textures[iuse]);
+			int ntdesc = getTextureDescriptors(mp->textures[iuse],textures, modes,sources, funcs, width, height);
+			mp->tcount[iuse] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
 				int kunit = share_or_next_material_sampler_index(textures[j]);
 				mp->tindex[nt] = kunit;
@@ -7040,15 +7050,18 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
 				int iunit = tunit(kunit);
-				glUniform1i(me->textureUnit[kunit],iunit); //tunit(kunit));
-				GLUNIFORM1I(me->myMaterialTindex[nt],mp->tindex[nt]);
+				glUniform1i(me->textureUnit[kunit],iunit);
+				glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
+				glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
+				glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
+				glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
-		GLUNIFORM1I(me->myMaterialCindex[i],mp->cindex[i]);
-		GLUNIFORM1I(me->myMaterialTcount[i],mp->tcount[i]);
-		GLUNIFORM1I(me->myMaterialTstart[i],mp->tstart[i]);
+		GLUNIFORM1I(me->myMaterialCindex[iuse],mp->cindex[iuse]);
+		GLUNIFORM1I(me->myMaterialTcount[iuse],mp->tcount[iuse]);
+		GLUNIFORM1I(me->myMaterialTstart[iuse],mp->tstart[iuse]);
 	}
 	mp->nt = nt;
 	//SEND_INT(myMaterialNt,mp->nt);
@@ -7071,14 +7084,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 	mp = fw_BackMaterial;
 	nt = 0;
-	for(int i=0;i<7;i++){
-		mp->tcount[i] = 0;
-		mp->tstart[i] = nt;
-		if(mp->textures[i]){
+	for(int iuse=0;iuse<7;iuse++){
+		mp->tcount[iuse] = 0;
+		mp->tstart[iuse] = nt;
+		if(mp->textures[iuse]){
 			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
-			render_node(mp->textures[i]);
-			int ntdesc = getTextureDescriptors(mp->textures[i],textures, modes,sources, funcs, width, height);
-			mp->tcount[i] = ntdesc;
+			render_node(mp->textures[iuse]);
+			int ntdesc = getTextureDescriptors(mp->textures[iuse],textures, modes,sources, funcs, width, height);
+			mp->tcount[iuse] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
 				int kunit = share_or_next_material_sampler_index(textures[j]);
 
@@ -7086,17 +7099,19 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
-
-				glUniform1i(me->textureUnit[kunit],tunit(kunit));
-				GLUNIFORM1I(me->myMaterialBackTindex[nt],mp->tindex[nt]);
-
+				int iunit = tunit(kunit);
+				glUniform1i(me->textureUnit[kunit], iunit);
+				glUniform1i(me->myMaterialBackTindex[nt], mp->tindex[nt]);
+				glUniform1i(me->myMaterialBackMode[nt], mp->mode[nt]);
+				glUniform1i(me->myMaterialBackSource[nt], mp->source[nt]);
+				glUniform1i(me->myMaterialBackFunc[nt], mp->func[nt]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
-		GLUNIFORM1I(me->myMaterialBackCindex[i],mp->cindex[i]);
-		GLUNIFORM1I(me->myMaterialBackTcount[i],mp->tcount[i]);
-		GLUNIFORM1I(me->myMaterialBackTstart[i],mp->tstart[i]);
+		GLUNIFORM1I(me->myMaterialBackCindex[iuse],mp->cindex[iuse]);
+		GLUNIFORM1I(me->myMaterialBackTcount[iuse],mp->tcount[iuse]);
+		GLUNIFORM1I(me->myMaterialBackTstart[iuse],mp->tstart[iuse]);
 	}
 	PRINT_GL_ERROR_IF_ANY("#5 sendMaterialsToShader");
 

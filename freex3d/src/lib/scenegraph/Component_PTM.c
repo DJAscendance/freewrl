@@ -266,7 +266,7 @@ void resend_textureprojector_matrix()
 				int itextureunit = tunit(ksamp);
 				glUniform1i(me->textureUnit[ksamp],itextureunit); //tunit(kkunit));
 				GLUNIFORM1I(me->tunits[kdesc],ksamp); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
-				glActiveTexture(GL_TEXTURE0);
+				//glActiveTexture(GL_TEXTURE0);
 
 				GLUNIFORM1I(me->modes[kdesc],modes[j]);
 				GLUNIFORM1I(me->sources[kdesc],sources[j]);

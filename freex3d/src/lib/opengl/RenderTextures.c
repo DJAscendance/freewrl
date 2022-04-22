@@ -303,12 +303,13 @@ int isTex3D(struct X3D_Node *node);
 
 
 
-
+int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height);
+GLint tunit(int index);
 void textureTransform_start() {
 	int c;
 	int i, isStrict, isMulti, isIdentity,ntransforms[2];
 	GLint texUnit[MAX_MULTITEXTURE];
-	GLint tunit[MAX_MULTITEXTURE];
+	//GLint tunit[MAX_MULTITEXTURE];
 	GLint texMode[MAX_MULTITEXTURE];
 	s_shader_capabilities_t *me;
 	struct X3D_Node *tnode;
@@ -332,6 +333,8 @@ void textureTransform_start() {
 		//and you give it a single textureTransform instead of multitexturetransform 
 		//it should ignore the singleTextureTransform and use identities. 
 		//strict: This is a change of functionality for freewrl Aug 31, 2016
+	static int new_way = 1; //April 2022 attempt to harmonize appearance.texture, material.xxxTexture, PTM.texture
+
 	isIdentity = TRUE;
 	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH,&ntransforms[0]);
 	for (c=0; c<tg->RenderFuncs.textureStackTop; c++) {
@@ -427,25 +430,32 @@ void textureTransform_start() {
 						}
 					}
 				}
-
-				texture = tg->RenderFuncs.boundTextureStack[c];
-				// SET_TEXTURE_UNIT_AND_BIND
-				if(1){
-					if (getAppearanceProperties()->cubeFace==0) {
-						tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_2D,texture);
-					} else {
-						tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_CUBE_MAP,texture);
-					}
-				}else{
-					glActiveTexture(GL_TEXTURE0+c); 
-					//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
-					//printf("active texture %d texture %d c %d\n",GL_TEXTURE0+c,texture,c);
-					if (getAppearanceProperties()->cubeFace==0) {
-						glBindTexture(GL_TEXTURE_2D,texture); 
-					} else {
-						glBindTexture(GL_TEXTURE_CUBE_MAP,texture); 
-					}
-				}
+				//new way defers to loop below
+				//if (!new_way) {
+				//	texture = tg->RenderFuncs.boundTextureStack[c];
+				//	// SET_TEXTURE_UNIT_AND_BIND
+				//	if (1) {
+				//		if (getAppearanceProperties()->cubeFace == 0) {
+				//			tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_2D, texture);
+				//		}
+				//		else {
+				//			tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_CUBE_MAP, texture);
+				//		}
+				//	}
+				//	else {
+				//		glActiveTexture(GL_TEXTURE0 + c);
+				//		//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
+				//		//printf("active texture %d texture %d c %d\n",GL_TEXTURE0+c,texture,c);
+				//		if (getAppearanceProperties()->cubeFace == 0) {
+				//			glBindTexture(GL_TEXTURE_2D, texture);
+				//		}
+				//		else {
+				//			glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+				//		}
+				//	}
+				//}
+				if (getAppearanceProperties()->cubeFace != 0) 
+					printf("ouch cubeface in texturetransform_start\n");
 			}
 		}
 	}
@@ -466,28 +476,64 @@ void textureTransform_start() {
 				glUniform4f(me->multitextureColor,mtnode->color.c[0],mtnode->color.c[1],mtnode->color.c[2],mtnode->alpha);
 			}
 		}
-		for (i=0; i<tg->RenderFuncs.textureStackTop; i++) {
-			//static int once = 0;
-			//if(once < 10) {
-			//printf (" sending in i%d tu %d mode %d src %d fnc %d\n",i,i,
-			//	p->textureParameterStack[i].multitex_mode,
-			//	p->textureParameterStack[i].multitex_source,
-			//	p->textureParameterStack[i].multitex_function);
-			//	once++;
-			//}
-			if(1)
-				glUniform1i(me->TextureUnit[i],tunit[i]);
-			else
-				glUniform1i(me->TextureUnit[i],i);
+		if (new_way && tg->RenderFuncs.textureStackTop) {
+			struct matpropstruct* myap = getAppearanceProperties();
+			struct fw_MaterialParameters* mp;
 
-			//the 2i wasn't working for me even with ivec2 in shader
-			glUniform2i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0], p->textureParameterStack[i].multitex_mode[1]);
-			glUniform2i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0], p->textureParameterStack[i].multitex_source[1]);
-			//glUniform1i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0]);
-			//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
-			glUniform1i(me->TextureFunction[i],p->textureParameterStack[i].multitex_function);
+			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+			GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+			int ntdesc = getTextureDescriptors(tnode, textures, modes, sources, funcs, width, height);
+			// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient 
+			int iuse = 3;
+			int nt = 0;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
+			mp = &myap->fw_FrontMaterial;
+			mp->type = 2; //0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
+			mp->tcount[iuse] = ntdesc;
+			mp->tstart[iuse] = nt;
+			mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
+				// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
+			for (int j = 0; j < ntdesc; j++) {
+				int kunit = share_or_next_material_sampler_index(textures[j]);
+				mp->tindex[nt] = kunit;
+				mp->source[nt] = sources[j];
+				mp->mode[nt] = modes[j];
+				mp->func[nt] = funcs[j];
+				int iunit = tunit(kunit);
+				glUniform1i(me->textureUnit[kunit], iunit);
+				glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
+				glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
+				glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
+				glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
+				nt++;
+			}
+			GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
+			GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
+			GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
 
+			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
+		//else { //old way
+		//	for (i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
+		//		//static int once = 0;
+		//		//if(once < 10) {
+		//		//printf (" sending in i%d tu %d mode %d src %d fnc %d\n",i,i,
+		//		//	p->textureParameterStack[i].multitex_mode,
+		//		//	p->textureParameterStack[i].multitex_source,
+		//		//	p->textureParameterStack[i].multitex_function);
+		//		//	once++;
+		//		//}
+		//		if (1)
+		//			glUniform1i(me->TextureUnit[i], tunit[i]);
+		//		else
+		//			glUniform1i(me->TextureUnit[i], i);
+		//		//the 2i wasn't working for me even with ivec2 in shader
+		//		glUniform2i(me->TextureMode[i], p->textureParameterStack[i].multitex_mode[0], p->textureParameterStack[i].multitex_mode[1]);
+		//		glUniform2i(me->TextureSource[i], p->textureParameterStack[i].multitex_source[0], p->textureParameterStack[i].multitex_source[1]);
+		//		//glUniform1i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0]);
+		//		//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
+		//		glUniform1i(me->TextureFunction[i], p->textureParameterStack[i].multitex_function);
+		//	}
+		//}
 	#ifdef TEXVERBOSE
 	} else {
 		printf (" NOT sending in %d i+tu+mode because currentShaderProperties is NULL\n",tg->RenderFuncs.textureStackTop);

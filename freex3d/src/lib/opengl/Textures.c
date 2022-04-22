@@ -998,6 +998,9 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			gglobal()->RenderFuncs.textureStackTop = 0;
 			/* render the proper texture */
 			push_render_geom(1);
+			//POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->texture, tmpN);
+			//tg->RenderFuncs.texturenode = (void*)tmpN;
+			gglobal()->RenderFuncs.texturenode = (void*)thistex; //textureTransform_start needs the node
 			render_node(X3D_NODE(thistex));
 			pop_render_geom();
 		    //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
@@ -1404,6 +1407,7 @@ int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *mode
 		struct multiTexParams *xparam;
 		struct X3D_MultiTexture* pt = (struct X3D_MultiTexture*) textureNode;
 		xparam = (struct multiTexParams *)pt->__xparams;
+		if (!xparam) return 0;
 		ntexture = pt->texture.n;
 		for(int i=0;i<ntexture;i++){
 			int iret, ixyz[3];

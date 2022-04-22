@@ -338,7 +338,7 @@ void Plug( int EffectPartType, const char *PlugValue, char **CompleteCode, int *
 	CompleteCode[EffectPartType] = strdup(Code);
 } //end
 
-void AddVersion( int EffectPartType, int versionNumber, char **CompleteCode){
+void AddVersion0( int EffectPartType, int versionNumber, char *versionSuffix, char **CompleteCode){
 	//puts #version <number> at top of shader, first line
 	char Code[SBUFSIZE], line[1000];
 	char *found;
@@ -351,11 +351,33 @@ void AddVersion( int EffectPartType, int versionNumber, char **CompleteCode){
 
 	found = Code;
 	if (found) {
-		sprintf(line, "#version %d \n", versionNumber);
+		sprintf(line, "#version %d %s\n", versionNumber, versionSuffix);
 		insertBefore(found, line, Code, SBUFSIZE);
 		FREE_IF_NZ(CompleteCode[EffectPartType]);
 		CompleteCode[EffectPartType] = strdup(Code);
 	}
+}
+void AddExtension(int EffectPartType, char* extensionName, char* behavior, char** CompleteCode) {
+	//puts #version <number> at top of shader, first line
+	char Code[SBUFSIZE], line[1000];
+	char* found;
+	int err;
+
+	UNUSED(err);
+
+	if (!CompleteCode[EffectPartType]) return;
+	err = fw_strcpy_s(Code, SBUFSIZE, CompleteCode[EffectPartType]);
+
+    found = strstr(Code, "/*EXTENSIONS");
+	if (found) {
+		sprintf(line, "#extension %s : %s\n", extensionName, behavior);
+		insertBefore(found, line, Code, SBUFSIZE);
+		FREE_IF_NZ(CompleteCode[EffectPartType]);
+		CompleteCode[EffectPartType] = strdup(Code);
+	}
+}
+void AddVersion(int EffectPartType, int versionNumber, char** CompleteCode) {
+	AddVersion0(EffectPartType, versionNumber, "", CompleteCode);
 }
 void AddDefine0( int EffectPartType, const char *defineName, int defineValue, char **CompleteCode)
 {
@@ -474,6 +496,7 @@ define MAT if material is valid
 */
 
 static const GLchar *genericVertexGLES2 = "\
+/*EXTENSIONS*/ \n\
 /* DEFINES */ \n\
 #ifdef FULL \n\
 #define attribute in \n\
@@ -955,6 +978,7 @@ void main(void) \n\
 
 
 static const GLchar *genericFragmentGLES2 = "\
+/*EXTENSIONS*/ \n\
 /* DEFINES */ \n\
 #ifdef MOBILE \n\
 precision mediump float; \n\
@@ -1024,7 +1048,7 @@ uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
 //uniform int textureCount; \n\
 #endif //TEX3DLAY \n\
-#if defined(MTEX) || defined(PROJTEX) \n\
+#if defined(MTEXA) || defined(PROJTEX) \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
@@ -1041,11 +1065,16 @@ uniform int fw_Texture_function1;  \n\
 uniform int fw_Texture_function2;  \n\
 uniform int fw_Texture_function3;  \n\
 //uniform int textureCount; \n\
-uniform vec4 mt_Color; \n\
 void finalColCalcA(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord){ \n\
 	/* PLUG: finalColCalc ( prevColour, mode, modea, func, tex, texcoord ) */ \n\
 } \n\
-#endif //MTEX \n\
+#endif //defined(MTEXA) || defined(PROJTEX) \n\
+#if defined(MTEX) || defined(PROJTEX) \n\
+uniform vec4 mt_Color; \n\
+void finalColCalcB(inout vec4 prevColour, in int mode, in int modea, in int func, in vec4 currentColor){ \n\
+	/* PLUG: finalColCalc0 ( prevColour, mode, modea, func, currentColor ) */ \n\
+} \n\
+#endif //defined(MTEX) || defined(PROJTEX) \n\
 //#endif //TEX \n\
 //literal string size break \n" "\
 #ifdef POINTP \n\
@@ -1318,24 +1347,7 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 //GETTERS \n\
 fw_MaterialParameters mat = fw_FrontMaterial; \n\
 // material.maps: iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
-vec4 sample_map(int iunit, bool apply_gamma){ \n\
-	#ifdef NOT_MTEX //not working \n\
-		vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
-		//vec4 nc = vec4(0.0,0.0,0.0,1.0); \n\
-		int istart = mat.tstart[iunit];\n\
-		int ndesc = mat.tcount[iunit]; \n\
-		vec4 prev = nc; \n\
-		for(int k=istart;k<(istart+ndesc);k++){ \n\
-			int kk = mat.tindex[k]; \n\
-			int modea = int(mat.mode[k] / 100); \n\
-			int mode = mat.mode[k] - 100*modea; \n\
-			vec3 ptex = fw_TexCoord[mat.cindex[iunit]]; \n\
-			finalColCalcA(prev, mode, modea, mat.func[k], textureUnit[kk], ptex.xy); \n\
-			//vec4 ncc = texture2D(textureUnit[kk],ptex.xy); \n\
-			//prev.rgb = clamp(prev.rgb + ncc.rgb,0.0,1.0); \n\
-		} \n\
-		nc = prev; \n\
-	#else //MTEX \n\
+vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 	#define CONFORMANT 1 \n\
 	#ifdef CONFORMANT \n\
 	int index = mat.tindex[mat.tstart[iunit]]; \n\
@@ -1421,7 +1433,44 @@ vec4 sample_map(int iunit, bool apply_gamma){ \n\
 	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
 	#endif //CONVORMANT \n\
 	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
-	#endif //MTEX \n\
+	return nc; \n\
+} \n\
+vec4 sample_map(int iunit, bool apply_gamma){ \n\
+	vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
+	//#ifdef MTEX //not working \n\
+	//vec4 nc = vec4(0.0,0.0,0.0,1.0); \n\
+	int ndesc = mat.tcount[iunit]; \n\
+    if(ndesc > 1){ //multitex \n\
+		int istart = mat.tstart[iunit];\n\
+		//// vec4 prev = nc; \n\
+		//int index = mat.tindex[mat.tstart[iunit]]; \n\
+		//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+		vec4 prev = nc; \n\
+		int k=istart; \n\
+		vec2 ptex = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+		for(int j=0;j<ndesc;j++,k++){ \n\
+            //if(j==ndesc) break; \n\
+			int kk = mat.tindex[k]; \n\
+			int modea = int(mat.mode[k] / 100); \n\
+			int mode = mat.mode[k] - 100*modea; \n\
+            //vec4 cur = sample_map0(kk,false); \n\
+            vec4 cur = texture2D(textureUnit[kk],ptex); \n\
+            #ifdef MTEX \n\
+			finalColCalcB(prev, mode, modea, mat.func[k], cur); \n\
+			#else //MTEX \n\
+            prev = cur; \n\
+		    #endif //MTEX \n\
+            //prev = cur; \n\
+			//vec4 ncc = texture2D(textureUnit[kk],ptex.xy); \n\
+			//prev.rgb = clamp(prev.rgb + ncc.rgb,0.0,1.0); \n\
+		} \n\
+		//prev = vec4(0.5,1.0,0.5,1.0); \n\
+		nc = prev; \n\
+	//#else //MTEX \n\
+    } else { //MTEX \n\
+      nc = sample_map0(iunit, apply_gamma); \n\
+    } //MTEX \n\
+	//#endif //MTEX \n\
 	return nc; \n\
 } \n\
 vec3 getNormal(){ \n\
@@ -2566,13 +2615,12 @@ static const GLchar *plug_finalColCalc = "\
 #define MTFN_COMPLEMENT	1 \n\
 #define MT_DEFAULT -1 \n\
 \n\
-void PLUG_finalColCalc(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord) { \n\
-  vec4 texel = texture2D(tex,texcoord); \n\
+void PLUG_finalColCalc0(inout vec4 prevColour, in int mode, in int modea, in int func, in vec4 texel) { \n\
   vec4 rv = vec4(1.,0.,1.,1.);   \n\
   if (mode==MTMODE_OFF) {  \n\
     rv = vec4(prevColour); \n\
   } else if (mode==MTMODE_REPLACE) { \n\
-    rv = vec4(texture2D(tex, texcoord)); \n\
+    rv = texel; \n\
   }else if (mode==MTMODE_MODULATE) {  \n\
     vec3 ct,cf;  \n\
     float at,af;  \n\
@@ -2671,6 +2719,12 @@ void PLUG_finalColCalc(inout vec4 prevColour, in int mode, in int modea, in int 
 	rv = vec4(rv.a,rv.a,rv.a,rv.a); \n\
   } \n\
   prevColour = rv;  \n\
+} \n\
+#endif //defined(MTEX) || defined(PROJTEX) \n\
+#if defined(MTEXA) || defined(PROJTEX) \n\
+void PLUG_finalColCalc(inout vec4 prevColour, in int mode, in int modea, in int func, in sampler2D tex, in vec2 texcoord) { \n\
+  vec4 texel = texture2D(tex,texcoord); \n\
+  PLUG_finalColCalc0(prevColour, mode, modea, func, texel); \n\
 } \n\
 #endif //defined(MTEX) || defined(PROJTEX) \n";
 
@@ -2843,93 +2897,89 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 //MULTITEXTURE
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture
   /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */
+/*
+ mat.
+	int tindex[10]; \n\
+	int mode[10]; \n\
+	int source[10]; \n\
+	int func[10]; \n\
+	int nt; //total single textures \n\
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+	int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+	int tstart[7]; // where in packed tindex list to start looping \n\
+	int cindex[7]; // which geometry multitexcoord channel 0=default \n\
+
+		int ndesc = mat.tcount[iunit]; \n\
+	if(ndesc > 1){ //multitex \n\
+		int istart = mat.tstart[iunit];\n\
+		//// vec4 prev = nc; \n\
+		//int index = mat.tindex[mat.tstart[iunit]]; \n\
+		//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+		vec4 prev = nc; \n\
+		int k=istart; \n\
+		vec2 ptex = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+		for(int j=0;j<ndesc;j++,k++){ \n\
+			//if(j==ndesc) break; \n\
+			int kk = mat.tindex[k]; \n\
+			int modea = int(mat.mode[k] / 100); \n\
+			int mode = mat.mode[k] - 100*modea; \n\
+			//vec4 cur = sample_map0(kk,false); \n\
+			vec4 cur = texture2D(textureUnit[kk],ptex); \n\
+			#ifdef MTEX \n\
+			finalColCalcB(prev, mode, modea, mat.func[k], cur); \n\
+			#else //MTEX \n\
+			prev = cur; \n\
+			#endif //MTEX \n\
+			//prev = cur; \n\
+			//vec4 ncc = texture2D(textureUnit[kk],ptex.xy); \n\
+			//prev.rgb = clamp(prev.rgb + ncc.rgb,0.0,1.0); \n\
+		} \n\
+		//prev = vec4(0.5,1.0,0.5,1.0); \n\
+		nc = prev; \n\
+
+
+*/
 static const GLchar *plug_fragment_texture_apply =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
  \n\
   #ifdef MTEX \n\
-  vec4 source; \n\
-  int isource,iasource, mode; \n\
-  //vec4 matdiff_color = finalFrag; \n\
-  //finalFrag = texture2D(fw_Texture_unit0, fw_TexCoord[0].st) * finalFrag; \n\
-  if(textureCount>0){ \n\
-    if(fw_Texture_mode0[0] != MTMODE_OFF) { \n\
-      isource = fw_Texture_source0[0]; //castle-style dual sources \n\
-      iasource = fw_Texture_source0[1]; \n\
-      if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
-      else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
-      if(iasource != 0){ \n\
-        if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
-        else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
-        else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
+  int iunit = 3; //appearance.texture or material.diffuseTexture texture \n\
+  int ndesc = mat.tcount[iunit]; \n\
+  if(ndesc > 1){ //multitex \n\
+    vec4 source; \n\
+    int isource,iasource, mode, modea, k; \n\
+    for(k=0;k<ndesc;k++){ \n\
+      modea = int(mat.mode[k] / 100); \n\
+      mode = mat.mode[k] - 100*modea; \n\
+      if(mode != MTMODE_OFF) { \n\
+        iasource = int(mat.source[k] / 100); \n\
+        isource = mat.source[k] - 100*iasource; \n\
+        if(isource == MT_DEFAULT) source = finalFrag; \n\
+        else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
+        else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
+        else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
+        if(iasource != 0){ \n\
+          if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
+          else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
+          else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
+          else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
+        } \n\
+        vec4 cur = texture2D(textureUnit[k],fw_TexCoord[k].st); \n\
+        finalColCalcB(source,mode,modea,mat.func[k], cur); \n\
+        finalFrag = source; \n\
       } \n\
-      finalColCalcA(source,fw_Texture_mode0[0],fw_Texture_mode0[1],fw_Texture_function0, fw_Texture_unit0,fw_TexCoord[0].st); \n\
-      finalFrag = source; \n\
     } \n\
-  } \n\
-  if(textureCount>1){ \n\
-    if(fw_Texture_mode1[0] != MTMODE_OFF) { \n\
-      isource = fw_Texture_source1[0]; //castle-style dual sources \n\
-      iasource = fw_Texture_source1[1]; \n\
-      if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
-      else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
-      if(iasource != 0){ \n\
-        if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
-        else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
-        else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
-      } \n\
-      finalColCalcA(source,fw_Texture_mode1[0],fw_Texture_mode1[1],fw_Texture_function1, fw_Texture_unit1,fw_TexCoord[1].st); \n\
-      finalFrag = source; \n\
-    } \n\
-  } \n\
-  if(textureCount>2){ \n\
-    if(fw_Texture_mode2[0] != MTMODE_OFF) { \n\
-      isource = fw_Texture_source2[0]; //castle-style dual sources \n\
-      iasource = fw_Texture_source2[1]; \n\
-      if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
-      else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
-      if(iasource != 0){ \n\
-        if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
-        else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
-        else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
-      } \n\
-      finalColCalcA(source,fw_Texture_mode2[0],fw_Texture_mode2[1],fw_Texture_function2,fw_Texture_unit2,fw_TexCoord[2].st); \n\
-      finalFrag = source; \n\
-    } \n\
-  } \n\
-  if(textureCount>3){ \n\
-    if(fw_Texture_mode3[0] != MTMODE_OFF) { \n\
-      isource = fw_Texture_source3[0]; //castle-style dual sources \n\
-      iasource = fw_Texture_source3[1]; \n\
-      if(isource == MT_DEFAULT) source = finalFrag; \n\
-      else if(isource == MTSRC_DIFFUSE) source = mtex_diffuse; \n\
-      else if(isource == MTSRC_SPECULAR) source = vec4(mtex_specular,1.0); \n\
-      else if(isource == MTSRC_FACTOR) source = mt_Color; \n\
-      if(iasource != 0){ \n\
-        if(iasource == MT_DEFAULT) source.a = finalFrag.a; \n\
-        else if(iasource == MTSRC_DIFFUSE) source.a = mtex_diffuse.a; \n\
-        else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
-        else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
-      } \n\
-      finalColCalcA(source,fw_Texture_mode3[0],fw_Texture_mode3[1],fw_Texture_function3,fw_Texture_unit3,fw_TexCoord[3].st); \n\
-      finalFrag = source; \n\
-    } \n\
+  } else { \n\
+    /* ONE TEXTURE */ \n\
+    finalFrag = texture2D(textureUnit[0], fw_TexCoord[0].st) * finalFrag; \n\
   } \n\
   #else //MTEX \n\
-  /* ONE TEXTURE */ \n\
-  #ifdef CUB \n\
-  finalFrag = textureCube(fw_Texture_unit0, fw_TexCoord[0]) * finalFrag; \n\
-  #else //CUB \n\
-  finalFrag = texture2D(fw_Texture_unit0, fw_TexCoord[0].st) * finalFrag; \n\
-  #endif //CUB \n\
+    /* ONE TEXTURE */ \n\
+    #ifdef CUB \n\
+    finalFrag = textureCube(fw_Texture_unit0, fw_TexCoord[0]) * finalFrag; \n\
+    #else //CUB \n\
+    finalFrag = texture2D(textureUnit[0], fw_TexCoord[0].st) * finalFrag; \n\
+    #endif //CUB \n\
   #endif //MTEX \n\
   \n\
 }\n";
@@ -3256,6 +3306,7 @@ int get_GLSL_max_version(){
 	return max_shader_version;
 }
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
+static int GLSL_max_version = 0;
 int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne) 
 {
 	//for building the Builtin (similar to fixed-function pipeline, except from shader parts)
@@ -3265,7 +3316,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	int retval, unique_int;
 	char *CompleteCode[3];
 	char *vs, *fs;
-	static int GLSL_max_version = 0;
+	
 	retval = FALSE;
 	if(whichOne.usershaders ) //& USER_DEFINED_SHADER_MASK) 
 		return retval; //not supported yet as of Aug 9, 2016
@@ -3293,13 +3344,23 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	// - and internally, we can do a few permutations with PLUGs too
 
 	if(isMobile){
-		AddVersion(SHADERPART_VERTEX, 100, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 100, CompleteCode); //lower precision floats
+		int iver = 100;
+		char* aver = "";
+		// https://en.wikipedia.org/wiki/OpenGL_Shading_Language#Versions 
+		// 100 300 es 310 es 410 es
+		// iver = 320;
+		// aver = "es";
+		AddVersion0(SHADERPART_VERTEX, iver, aver, CompleteCode); //lower precision floats
+		AddVersion0(SHADERPART_FRAGMENT, iver, aver, CompleteCode); //lower precision floats
 		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
 	}else{
 		if(GLSL_max_version >= 130) {
-			AddVersion(SHADERPART_VERTEX, 130, CompleteCode); //lower precision floats
-			AddVersion(SHADERPART_FRAGMENT, 130, CompleteCode); //lower precision floats
+			int iver = 130; //testing for shader being able to run on low capability machines elsewhere
+			//https://en.wikipedia.org/wiki/OpenGL_Shading_Language#Versions 
+			// 110 120 130 140 150  330  400 410 420 430 440 450 460
+			iver = GLSL_max_version; //for maximizing capabilities
+			AddVersion(SHADERPART_VERTEX, iver, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_FRAGMENT, iver, CompleteCode); //lower precision floats
 			AddDefine(SHADERPART_VERTEX, "FULL", CompleteCode); //lower precision floats
 			AddDefine(SHADERPART_FRAGMENT, "FULL", CompleteCode); //lower precision floats
 		}else{
@@ -3434,6 +3495,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			if(DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE)){
 				AddDefine(SHADERPART_VERTEX,"CUB",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"CUB",CompleteCode);
+				//AddExtension(SHADERPART_FRAGMENT, "GL_NV_","enable", CompleteCode);
 			} else if(DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
 				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture 
 				//- source can be DIFFUSE or SPECULAR, from Gauraud (vertex) lighting
@@ -3553,6 +3615,7 @@ void main(void) \n\
 
 /* Generic GLSL fragment shader, used on OpenGL ES. */
 static const GLchar *volumeFragmentGLES2 = " \n\
+/*EXTENSIONS*/ \n\
 /* DEFINES */ \n\
 #ifdef MOBILE \n\
 //precision highp float; \n\
@@ -4421,15 +4484,41 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 	// UberShader: one giant shader peppered with #ifdefs, and you add #defines at the top for permutations
 	// CastlePlugs: allows users to add effects on to uberShader with PLUGs
 	// - and internally, we can do a few permutations with PLUGs too
+	if (!GLSL_max_version) {
+		//const GLubyte * glsl_version_str = glGetString ( GL_SHADING_LANGUAGE_VERSION);
+		//sscanf(glsl_version_str,"%f",&glsl_version);
+		//max_shader_version = (int)(glsl_version * 100.0f + .4f);
+		//printf("GLSL shader version support %s %4.2f %d\n", glsl_version_str, glsl_version, max_shader_version );
+		//once = TRUE;
+		GLSL_max_version = get_GLSL_max_version();
+	}
 
-	if(isMobile){
-		AddVersion(SHADERPART_VERTEX, 100, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 100, CompleteCode); //lower precision floats
-		AddDefine(SHADERPART_FRAGMENT,"MOBILE",CompleteCode); //lower precision floats
-	}else{
-		//desktop, emulating GLES2
-		AddVersion(SHADERPART_VERTEX, 110, CompleteCode); //lower precision floats
-		AddVersion(SHADERPART_FRAGMENT, 110, CompleteCode); //lower precision floats
+	if (isMobile) {
+		int iver = 100;
+		char* aver = "";
+		// https://en.wikipedia.org/wiki/OpenGL_Shading_Language#Versions 
+		// 100 300 es 310 es 410 es
+		// iver = 320;
+		// aver = "es";
+		AddVersion0(SHADERPART_VERTEX, iver, aver, CompleteCode); //lower precision floats
+		AddVersion0(SHADERPART_FRAGMENT, iver, aver, CompleteCode); //lower precision floats
+		AddDefine(SHADERPART_FRAGMENT, "MOBILE", CompleteCode); //lower precision floats
+	}
+	else {
+		if (GLSL_max_version >= 130) {
+			int iver = 130; //testing for shader being able to run on low capability machines elsewhere
+			//https://en.wikipedia.org/wiki/OpenGL_Shading_Language#Versions 
+			// 110 120 130 140 150  330  400 410 420 430 440 450 460
+			iver = GLSL_max_version; //for maximizing capabilities
+			AddVersion(SHADERPART_VERTEX, iver, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_FRAGMENT, iver, CompleteCode); //lower precision floats
+			AddDefine(SHADERPART_VERTEX, "FULL", CompleteCode); //lower precision floats
+			AddDefine(SHADERPART_FRAGMENT, "FULL", CompleteCode); //lower precision floats
+		}
+		else {
+			AddVersion(SHADERPART_VERTEX, GLSL_max_version, CompleteCode); //lower precision floats
+			AddVersion(SHADERPART_FRAGMENT, GLSL_max_version, CompleteCode); //lower precision floats
+		}
 	}
 
 	if(whichOne.volume == SHADERFLAGS_VOLUME_STYLE_BLENDED << 4){
