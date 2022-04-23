@@ -279,11 +279,18 @@ static int lookup_xxyyzz_face_from_count [] = {0,1,2,3,4,5}; // {1,0,2,3,5,4}; /
  *
  ****************************************************************************/
 
+static int cubetextureID = 0;
+
 void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
 	int count, iface;
 	struct X3D_Node *thistex = 0;
-
         //printf ("render_ComposedCubeMapTexture\n");
+	if (0) {
+		if (!cubetextureID) {
+			glGenTextures(1, &cubetextureID);
+		}
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
+	}
 	for (count=0; count<6; count++) {
 
 		/* set up the appearanceProperties to indicate a CubeMap */
@@ -315,13 +322,17 @@ void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
 
 				gglobal()->RenderFuncs.textureStackTop = 0;
 				/* render the proper texture */
-				gglobal()->RenderFuncs.texturenode = thistex;
 				render_node((void *)thistex);
 			} 
 		}
 	}
-    
+	if (0) {
+		gglobal()->RenderFuncs.textureStackTop = 1;
+		gglobal()->RenderFuncs.boundTextureStack[0] = cubetextureID;
+		gglobal()->RenderFuncs.texturenode = node;
+	}
     /* set this back for "normal" textures. */
+
      getAppearanceProperties()->cubeFace = 0;
 }
 
@@ -933,34 +944,114 @@ void compile_ImageCubeMapTexture (struct X3D_ImageCubeMapTexture *node) {
 	node->__regenSubTextures = TRUE;
 	MARK_NODE_COMPILED
 }
-
-
-void render_ImageCubeMapTexture (struct X3D_ImageCubeMapTexture *node) {
+textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
+static int cubemap_loaded = 0;
+static int imethod = 0; //0= pre April 2022 1= April 2022 experiment 1 2= experiment 2
+// they all work, with imethod 2 being best of both worlds: texture colors and text flipped right thanks to send_texture_to_opengl
+// and just one initialization round, don't have to rebind the subtextures on each frame. (parent is bound in texturetransform_start
+void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 	int count, iface;
 
 	COMPILE_IF_REQUIRED
+		glActiveTexture(GL_TEXTURE0);
 
 	/* do we have to split this CubeMap raw data apart? */
 	if (node->__regenSubTextures) {
 		/* Yes! Get the image data from the file, and split it apart */
-		loadTextureNode(X3D_NODE(node),NULL);
-	} else {
+		if (imethod) {
+			if (!cubetextureID) {
+				glGenTextures(1, &cubetextureID);
+			}
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
+		}
+		loadTextureNode(X3D_NODE(node), NULL);
+	}
+	{
 		/* we have the 6 faces from the image, just go through and render them as a cube */
 		if (node->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
+		//patience - wait for main image to load and be split into 6 in move_texture_to_opengl 
+		//  which will signal when sub-images are parsed with tti->status = TEXT_LOADED
+		int OK = TRUE;
+		if (imethod) {
+			textureTableIndexStruct_s* tti;
+			tti = getTableTableFromTextureNode(X3D_NODE(node));
+			OK = FALSE;
+			if (tti && tti->status >= TEX_LOADED && !cubemap_loaded)
+			{
+				glEnable(GL_TEXTURE_CUBE_MAP);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
+				OK = TRUE;
+			}
+		}else {
+			textureTableIndexStruct_s* tti;
+			tti = getTableTableFromTextureNode(X3D_NODE(node));
+			OK = FALSE;
+			if (tti && tti->status >= TEX_LOADED) //&& !cubemap_loaded)
+			{
+				//glEnable(GL_TEXTURE_CUBE_MAP);
+				//glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
+				OK = TRUE;
+			}
+		}
 
-		for (count=0; count<6; count++) {
+		if (OK) {
 
-			/* set up the appearanceProperties to indicate a CubeMap */
-			getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT+count;
+			for (count = 0; count < 6; count++) {
+				if (imethod != 1) {
+					/* set up the appearanceProperties to indicate a CubeMap */
+					getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT + count;
 
-			/* go through these, back, front, top, bottom, right left */
-			iface = lookup_xxyyzz_face_from_count[count];
-			gglobal()->RenderFuncs.texturenode = node->__subTextures.p[iface];
-			render_node(node->__subTextures.p[iface]);
+					/* go through these, back, front, top, bottom, right left */
+					iface = lookup_xxyyzz_face_from_count[count];
+					//gglobal()->RenderFuncs.texturenode = node->__subTextures.p[iface];
+
+					render_node(node->__subTextures.p[iface]);
+					gglobal()->RenderFuncs.textureStackTop = 0;
+				}
+				else {
+					// these images come out color-backward etc, prefer the move_textures_to_opengl method
+					struct X3D_PixelTexture* pt = (struct X3D_PixelTexture*)node->__subTextures.p[count];
+					int width = pt->image.p[0];
+					int height = pt->image.p[1];
+					int next = pt->image.p[2];
+					unsigned char* q = (unsigned char*)&pt->image.p[3];
+					q++;
+					if (0) {
+						printf("side %d width %d height %d  next %d 10 rows of 10:\n", count, width, height, next);
+						for (int i = 0; i < 10; i++) {
+							for (int j = 0; j < 10; j++) {
+								int k = (i * width + j) * 4;
+								printf("%3d %3d %3d %3d | ", q[k], q[k + 1], q[k + 2], q[k + 3]);
+							}
+							printf("\n");
+						}
+					}
+					glTexImage2D(
+						GL_TEXTURE_CUBE_MAP_POSITIVE_X + count,
+						0, GL_RGBA, pt->image.p[0], pt->image.p[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)q
+					);
+
+				}
+
+			}
+			if (imethod) {
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+				if(imethod == 1) cubemap_loaded = TRUE;
+			}
 		}
 	}
-    /* Finished rendering CubeMap, set it back for normal textures */
-    getAppearanceProperties()->cubeFace = 0; 
+	/* Finished rendering CubeMap, set it back for normal textures */
+	getAppearanceProperties()->cubeFace = 0;
+	if (imethod) {
+		gglobal()->RenderFuncs.textureStackTop = 1;
+		gglobal()->RenderFuncs.boundTextureStack[0] = cubetextureID;
+		/* set this back for "normal" textures. */
+		gglobal()->RenderFuncs.texturenode = node;
+	}
 
 }
 

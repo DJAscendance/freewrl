@@ -971,8 +971,18 @@ void main(void) \n\
 
 
 
-
-
+static const GLchar* genericFragmentCube = "\
+#version 450 core \n\
+out vec4 FragColor;  \n\
+in vec3 fw_TexCoord[4]; \n\
+ \n\
+uniform samplerCube fw_Texture_unit0; \n\
+ \n\
+void main() \n\
+{ \n\
+	FragColor = vec4(texture(fw_Texture_unit0, fw_TexCoord[0]).rgb, 1.0); \n\
+} \n\
+\n";
 
 
 
@@ -2976,7 +2986,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   #else //MTEX \n\
     /* ONE TEXTURE */ \n\
     #ifdef CUB \n\
-    finalFrag = textureCube(fw_Texture_unit0, fw_TexCoord[0]) * finalFrag; \n\
+    finalFrag = texture(fw_Texture_unit0, fw_TexCoord[0]) * finalFrag; \n\
     #else //CUB \n\
     finalFrag = texture2D(textureUnit[0], fw_TexCoord[0].st) * finalFrag; \n\
     #endif //CUB \n\
@@ -3558,6 +3568,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	// dug9 hacked py3 for shader pre-processing: http://dug9.users.sourceforge.net/web3d/tests/largetexture/preprocessor_dug9_3T.py
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
+	if(1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE))
+		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
 	//printf("size of finished fragment shader %d bytes\n",strlen(*fragmentSource));
 //#define DEBUGSHADER 1

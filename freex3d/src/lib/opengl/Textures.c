@@ -995,7 +995,7 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			}
 
 			/* we have an image specified for this face */
-			gglobal()->RenderFuncs.textureStackTop = 0;
+			//gglobal()->RenderFuncs.textureStackTop = 0;
 			/* render the proper texture */
 			push_render_geom(1);
 			//POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->texture, tmpN);

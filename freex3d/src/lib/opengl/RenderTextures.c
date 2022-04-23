@@ -302,7 +302,23 @@ textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *texture
 int isTex3D(struct X3D_Node *node);
 
 
+int is_cubeMap(struct X3D_Node* node) {
+	int iret = 0;
+	if (node) {
+		switch (node->_nodeType) {
+		case NODE_ComposedCubeMapTexture:
+		case NODE_ImageCubeMapTexture:
+		case NODE_GeneratedCubeMapTexture:
+			iret = TRUE;
+			break;
+		default:
+			iret = FALSE;
+			break;
+		}
 
+	}
+	return iret;
+}
 int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height);
 GLint tunit(int index);
 void textureTransform_start() {
@@ -477,40 +493,52 @@ void textureTransform_start() {
 			}
 		}
 		if (new_way && tg->RenderFuncs.textureStackTop) {
-			struct matpropstruct* myap = getAppearanceProperties();
-			struct fw_MaterialParameters* mp;
-
-			int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
-			GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
-			int ntdesc = getTextureDescriptors(tnode, textures, modes, sources, funcs, width, height);
-			// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient 
-			int iuse = 3;
-			int nt = 0;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
-			mp = &myap->fw_FrontMaterial;
-			mp->type = 2; //0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
-			mp->tcount[iuse] = ntdesc;
-			mp->tstart[iuse] = nt;
-			mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
-				// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
-			for (int j = 0; j < ntdesc; j++) {
-				int kunit = share_or_next_material_sampler_index(textures[j]);
-				mp->tindex[nt] = kunit;
-				mp->source[nt] = sources[j];
-				mp->mode[nt] = modes[j];
-				mp->func[nt] = funcs[j];
-				int iunit = tunit(kunit);
-				glUniform1i(me->textureUnit[kunit], iunit);
-				glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
-				glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
-				glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
-				glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
-				nt++;
+			static int imethod = 0; //0= pre April 2022 1=post
+			if (imethod == 1 && is_cubeMap(tnode)) {
+				PRINT_GL_ERROR_IF_ANY("tt_start before bind cube");
+				glActiveTexture(GL_TEXTURE0);
+				glEnable(GL_TEXTURE_CUBE_MAP);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, tg->RenderFuncs.boundTextureStack[0]);
+				glUniform1i(me->TextureUnit[0], 0);
+				PRINT_GL_ERROR_IF_ANY("tt_start after uniform");
 			}
-			GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
-			GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
-			GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
+			else 
+			if(!is_cubeMap(tnode)) {
+				struct matpropstruct* myap = getAppearanceProperties();
+				struct fw_MaterialParameters* mp;
 
-			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
+				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+				GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+				int ntdesc = getTextureDescriptors(tnode, textures, modes, sources, funcs, width, height);
+				// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient 
+				int iuse = 3;
+				int nt = 0;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
+				mp = &myap->fw_FrontMaterial;
+				mp->type = 2; //0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
+				mp->tcount[iuse] = ntdesc;
+				mp->tstart[iuse] = nt;
+				mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
+					// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
+				for (int j = 0; j < ntdesc; j++) {
+					int kunit = share_or_next_material_sampler_index(textures[j]);
+					mp->tindex[nt] = kunit;
+					mp->source[nt] = sources[j];
+					mp->mode[nt] = modes[j];
+					mp->func[nt] = funcs[j];
+					int iunit = tunit(kunit);
+					glUniform1i(me->textureUnit[kunit], iunit);
+					glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
+					glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
+					glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
+					glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
+					nt++;
+				}
+				GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
+				GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
+				GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
+
+				tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
+			}
 		}
 		//else { //old way
 		//	for (i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
@@ -542,7 +570,7 @@ void textureTransform_start() {
 
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
 
-	PRINT_GL_ERROR_IF_ANY("");
+	PRINT_GL_ERROR_IF_ANY("TT_start_finish");
 }
 
 void textureCoord_send(struct textureVertexInfo *genTex) {
