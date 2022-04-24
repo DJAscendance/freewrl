@@ -942,6 +942,8 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 	struct textureVertexInfo mtf = {boxtex,2,GL_FLOAT,0,NULL,NULL};
 	thisurl.n = 0; thisurl.p = NULL;
 	thistex = NULL;
+	s_shader_capabilities_t* me;
+	me = getAppearanceProperties()->currentShaderProperties;
 
 	for (count=0; count<6; count++) {
 		/* go through these, back, front, top, bottom, right left */
@@ -995,7 +997,10 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			}
 
 			/* we have an image specified for this face */
-			//gglobal()->RenderFuncs.textureStackTop = 0;
+			clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+			clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+
+			gglobal()->RenderFuncs.textureStackTop = 0;
 			/* render the proper texture */
 			push_render_geom(1);
 			//POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->texture, tmpN);
@@ -1005,6 +1010,7 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			pop_render_geom();
 		    //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
 			textureTransform_start();
+			//glUniform1i(me->TextureUnit[0], 0);
 			setupShaderB();
 
         	textureCoord_send(&mtf);
