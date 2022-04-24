@@ -1093,17 +1093,31 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 					break;
 				};
 
+
+				clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+				clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+
 				gglobal()->RenderFuncs.textureStackTop = 0;
 				/* render the proper texture */
-				render_node((void *)thistex);
-		                //OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
+				push_render_geom(1);
+				//POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->texture, tmpN);
+				//tg->RenderFuncs.texturenode = (void*)tmpN;
+				gglobal()->RenderFuncs.texturenode = (void*)thistex; //textureTransform_start needs the node
+				render_node(X3D_NODE(thistex));
+				pop_render_geom();
+				//OLDCODE FW_GL_COLOR3D(1.0,1.0,1.0);
+				textureTransform_start();
+				//glUniform1i(me->TextureUnit[0], 0);
+				setupShaderB();
 
-        		textureCoord_send(&mtf);
-        		FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,BackgroundVert);
-        		FW_GL_NORMAL_POINTER(GL_FLOAT,0,Backnorms);
+				textureCoord_send(&mtf);
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, BackgroundVert);
+				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, Backnorms);
 
-        		sendArraysToGPU (GL_TRIANGLES, count*6, 6);
+				sendArraysToGPU(GL_TRIANGLES, count * 6, 6);
 				reallyDraw();
+				textureTransform_end();
+
 			}
 		}
 	}
