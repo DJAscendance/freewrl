@@ -3568,9 +3568,18 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	// dug9 hacked py3 for shader pre-processing: http://dug9.users.sourceforge.net/web3d/tests/largetexture/preprocessor_dug9_3T.py
 
 	*fragmentSource = CompleteCode[SHADERPART_FRAGMENT]; //original_fragment; //fs;
-	if(1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE))
-		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
 	*vertexSource = CompleteCode[SHADERPART_VERTEX]; //original_vertex; //vs;
+
+//SHADER OVERWRITE SECTION, FOR TEMPORARY TESTING 
+// allows substitution of simpler shaders when debugging ("is it the shader, or CPU-side code?") 
+// or exploring new features before integration into ubershader
+// (but won't allow creative permutations with other effects, for that ubershader integration needed)
+	// CUB / cubemap - not working in Ubershader / genericFragmentGLES2 April 2022 so made a genericFragmentCube that's dead simple
+	// if becomes permanent, then make a CUBEMAP_MATERIAL_APPEARANCE_SHADER entry above?
+	if (1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE))
+		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
+
+
 	//printf("size of finished fragment shader %d bytes\n",strlen(*fragmentSource));
 //#define DEBUGSHADER 1
 #ifdef DEBUGSHADER

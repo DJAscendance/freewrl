@@ -205,7 +205,7 @@ void textureTransform_end(void) {
 	ttglobal tg = gglobal();
     
 #ifdef TEXVERBOSE
-	printf ("start of textureDraw_end\n");
+	printf ("start of textureTransform_end\n");
 #endif
 
 	/* DISABLE_TEXTURES */
@@ -354,7 +354,7 @@ void textureTransform_start() {
 	isIdentity = TRUE;
 	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH,&ntransforms[0]);
 	for (c=0; c<tg->RenderFuncs.textureStackTop; c++) {
-		FW_GL_PUSH_MATRIX(); //POPPED in textureDraw_end
+		FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 		FW_GL_LOAD_IDENTITY();
 		//printf ("passedInGenTex, c=%d\n",c);
 		/* are we ok with this texture yet? */
