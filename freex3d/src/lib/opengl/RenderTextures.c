@@ -41,7 +41,7 @@ texture enabling - works for single texture, for multitexture.
 #include "../scenegraph/Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "../scenegraph/LinearAlgebra.h"
-
+#include "../scenegraph/PolyRep.h"
 #include "Textures.h"
 #include "Material.h"
 
@@ -212,7 +212,10 @@ void textureTransform_end(void) {
 	/* setting this ENSURES that items, like the HUD, that are not within the normal
 	   rendering path do not try and use textures... */
 	FW_GL_MATRIX_MODE(GL_TEXTURE);
-	for(j=0;j<tg->RenderFuncs.textureStackTop;j++)
+	int ntransforms;
+	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH, &ntransforms);
+	//for(j=0;j<tg->RenderFuncs.textureStackTop;j++)
+	for (j = 0; j < ntransforms; j++)
 		FW_GL_POP_MATRIX(); //pushed in passedInGenTex
 
 	tg->RenderFuncs.textureStackTop = 0;
@@ -221,12 +224,13 @@ void textureTransform_end(void) {
 }
 
 /* did we have a TextureTransform in the Appearance node? */
-void do_textureTransform (struct X3D_Node *textureNode, int ttnum) {
-
+void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap) {
+	*tmap = NULL;
 	/* is this a simple TextureTransform? */
 	if (textureNode->_nodeType == NODE_TextureTransform) {
 		//ConsoleMessage ("do_textureTransform, node is indeed a NODE_TextureTransform");
 		struct X3D_TextureTransform  *ttt = (struct X3D_TextureTransform *) textureNode;
+		*tmap = ttt->mapping ? ttt->mapping->strptr : NULL;
 		/*  Render transformations according to spec.*/
 		//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#TextureTransform
 		//specs say 'translate, rotate, then scale'
@@ -242,6 +246,8 @@ void do_textureTransform (struct X3D_Node *textureNode, int ttnum) {
 			struct X3D_TextureTransform *ttt = (struct X3D_TextureTransform *) mtt->textureTransform.p[ttnum];
 			/* is this a simple TextureTransform? */
 			if (ttt->_nodeType == NODE_TextureTransform) {
+				*tmap = ttt->mapping ? ttt->mapping->strptr : NULL;
+
 				/*  Render transformations according to spec.*/
 				FW_GL_TRANSLATE_F(-((ttt->center).c[0]),-((ttt->center).c[1]), 0);		/*  5*/
 				FW_GL_SCALE_F(((ttt->scale).c[0]),((ttt->scale).c[1]),1);			/*  4*/
@@ -266,6 +272,8 @@ void do_textureTransform (struct X3D_Node *textureNode, int ttnum) {
 	} else if (textureNode->_nodeType == NODE_TextureTransform3D) {
 		//ConsoleMessage ("do_textureTransform, node is indeed a NODE_TextureTransform");
 		struct X3D_TextureTransform3D  *ttt = (struct X3D_TextureTransform3D *) textureNode;
+		*tmap = ttt->mapping ? ttt->mapping->strptr : NULL;
+
 		/*  Render transformations according to spec.*/
 		FW_GL_TRANSLATE_F(-((ttt->center).c[0]),-((ttt->center).c[1]), -((ttt->center).c[2]));		/*  5*/
 		FW_GL_SCALE_F(((ttt->scale).c[0]),((ttt->scale).c[1]),((ttt->scale).c[2]));			/*  4*/
@@ -277,6 +285,8 @@ void do_textureTransform (struct X3D_Node *textureNode, int ttnum) {
 		int i;
 		double mat[16];
 		struct X3D_TextureTransformMatrix3D  *ttt = (struct X3D_TextureTransformMatrix3D *) textureNode;
+		*tmap = ttt->mapping ? ttt->mapping->strptr : NULL;
+
 		for(i=0;i<16;i++)
 			mat[i] = (double)ttt->matrix.c[i];
 		FW_GL_SETDOUBLEV(GL_TEXTURE_MATRIX,mat);
@@ -290,7 +300,10 @@ void do_textureTransform (struct X3D_Node *textureNode, int ttnum) {
 
 	//FW_GL_MATRIX_MODE(GL_MODELVIEW);
 }
-
+void do_textureTransform(struct X3D_Node* textureNode, int ttnum) {
+	char *tmap;
+	do_textureTransform0(textureNode, ttnum, &tmap);
+}
 /***********************************************************************************/
 int isMultiTexture(struct X3D_Node *node){
 	int ret = FALSE;
@@ -323,160 +336,308 @@ int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* mode
 GLint tunit(int index);
 void textureTransform_start() {
 	int c;
-	int i, isStrict, isMulti, isIdentity,ntransforms[2];
+	int i, isStrict, isMulti, isIdentity, ntransforms[2];
 	GLint texUnit[MAX_MULTITEXTURE];
 	//GLint tunit[MAX_MULTITEXTURE];
 	GLint texMode[MAX_MULTITEXTURE];
-	s_shader_capabilities_t *me;
-	struct X3D_Node *tnode;
-
+	s_shader_capabilities_t* me;
+	struct X3D_Node* tnode;
+	int itmap[MAX_MULTITEXTURE];
+	int immap[MAX_MULTITEXTURE];
+	char* tmap[MAX_MULTITEXTURE];
 	ppRenderTextures p;
 	ttglobal tg = gglobal();
 	p = (ppRenderTextures)tg->RenderTextures.prv;
 	tnode = tg->RenderFuncs.texturenode;
 
-    me = getAppearanceProperties()->currentShaderProperties;
+	me = getAppearanceProperties()->currentShaderProperties;
 
-	#ifdef TEXVERBOSE
-	printf ("passedInGenTex, using passed in genTex, textureStackTop %d\n",tg->RenderFuncs.textureStackTop);
-	printf ("passedInGenTex, cubeFace %d\n",getAppearanceProperties()->cubeFace);
-	#endif 
+#ifdef TEXVERBOSE
+	printf("passedInGenTex, using passed in genTex, textureStackTop %d\n", tg->RenderFuncs.textureStackTop);
+	printf("passedInGenTex, cubeFace %d\n", getAppearanceProperties()->cubeFace);
+#endif 
 
-    FW_GL_MATRIX_MODE(GL_TEXTURE);
+	FW_GL_MATRIX_MODE(GL_TEXTURE);
+	for (int i = 0; i < MAX_MULTITEXTURE; i++) immap[i] = 0;
 
-    //printf ("passedInGenTex, B\n");
+	//printf ("passedInGenTex, B\n");
 	isStrict = 1;  //web3d specs say if its a multitexture, 
 		//and you give it a single textureTransform instead of multitexturetransform 
 		//it should ignore the singleTextureTransform and use identities. 
 		//strict: This is a change of functionality for freewrl Aug 31, 2016
 	static int new_way = 1; //April 2022 attempt to harmonize appearance.texture, material.xxxTexture, PTM.texture
 
-	isIdentity = TRUE;
-	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH,&ntransforms[0]);
-	for (c=0; c<tg->RenderFuncs.textureStackTop; c++) {
-		FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
-		FW_GL_LOAD_IDENTITY();
-		//printf ("passedInGenTex, c=%d\n",c);
-		/* are we ok with this texture yet? */
-		if (tg->RenderFuncs.boundTextureStack[c]!=0) {
-			isMulti = isMultiTexture(tg->RenderFuncs.texturenode);
-			//printf ("passedInGenTex, C, boundTextureStack %d\n",tg->RenderFuncs.boundTextureStack[c]);
-			if (setActiveTexture(c,texUnit,texMode)) {
-				//printf ("passedInGenTex, going to bind to texture %d\n",tg->RenderFuncs.boundTextureStack[c]);
-				GLuint texture;
-				struct X3D_Node *tt = getThis_textureTransform();
-				if (tt!=NULL) {
-					int match = FALSE;
-					match = isMulti && (tt->_nodeType == NODE_MultiTextureTransform);
-					match = match || (!isMulti && (tt->_nodeType != NODE_MultiTextureTransform));
-					if(isStrict){
-						if(match){
-							 do_textureTransform(tt,c);
-							 isIdentity = FALSE;
-						}
-					}else{
-						do_textureTransform(tt,c);
-						 isIdentity = FALSE;
+	if (new_way) {
+		struct matpropstruct *matprop;
+		struct X3D_Node* gn = NULL;
+		int ntcoord = 0;
+		char** ccmap = NULL;
+		struct X3D_Shape* sn = (struct X3D_Shape*)tg->RenderFuncs.shapenode;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, sn->geometry, gn);
+		if (gn && gn->_intern) {
+			ccmap = ((struct X3D_PolyRep*)(gn->_intern))->map;
+			ntcoord = ((struct X3D_PolyRep*)(gn->_intern))->ntcoord;
+			//for (int i = 0; i < 4; i++)
+			//	printf("gn.map[%d]=%p\n", i, ((struct X3D_PolyRep*)(gn->_intern))->map[i]);
+		}
+		//if(ccmap) for (int i = 0; i < 4; i++)
+		//	printf("ccmap[%d]=%p\n", i, ccmap[i]);
+		matprop = getAppearanceProperties();
+		//unconditionally load any supplied texture transforms
+		for (int i = 0; i < MAX_MULTITEXTURE; i++) {
+			itmap[i] = 0; //default matrix index
+			tmap[i] = NULL;
+		}
+		struct X3D_Node* tt = getThis_textureTransform();
+		int ntrans = 0;
+		if (tt != NULL) {
+			switch (tt->_nodeType) {
+			case NODE_TextureTransform:
+			case NODE_TextureTransform3D:
+			case NODE_TextureTransformMatrix3D:
+				ntrans = 1;
+				break;
+			case NODE_MultiTextureTransform:
+				ntrans = ((struct X3D_MultiTextureTransform*)(tt))->textureTransform.n;
+				break;
+			default:
+				ntrans = 0;
+			}
+			for (int i = 0; i < ntrans; i++) {
+				FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+				FW_GL_LOAD_IDENTITY();
+				do_textureTransform0(tt, i, &tmap[i]);
+			}
+		}
+		//add any computed 3D texture matrices
+		if (isTex3D(tnode) && !ntrans) {
+			if (tg->RenderFuncs.shapenode ) {
+				//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
+				//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
+				//_then_ bounding box of shape, in local coordinates, is used to scale/translate
+				//geometry vertices into 0-1 range on each axis for re-use as default texture3D coordinates
+				float bbox[6], * bmin, * bmax;
+				if (gn) {
+					//first vec3 is minimum xyz
+					bmin = bbox;
+					bmax = &bbox[3];
+					for (i = 0; i < 3; i++) {
+						bmin[i] = gn->_extent[i * 2 + 1];
+						bmax[i] = gn->_extent[i * 2];
 					}
-				} 
-				//TEXTURE 3D
-				if(isTex3D(tnode)){
-					textureTableIndexStruct_s *tti = getTableTableFromTextureNode(tnode);
-					if(tnode->_nodeType != NODE_ComposedTexture3D){
-						//pixelTexture3D, imageTexture3D (but not composedTexture3D which uses textureCount above)
-						if(me){
-							if(tti){
-								glUniform1iv(me->tex3dTiles,3,tti->tiles);
-							}
-						}
+					//second vec3 is 1/size - so can be applied directly in vertex shader
+					vecdif3f(bmax, bmax, bmin);
+					for (i = 0; i < 3; i++) {
+						if (bmax[i] != 0.0f)
+							bmax[i] = 1.0f / bmax[i];
+						else
+							bmax[i] = 1.0f;
 					}
-					//all texture3d
-					if(tg->RenderFuncs.shapenode && isIdentity ) { //&& genTexPtr->TC_size < 3){
-						//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
-						//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
-						//_then_ bounding box of shape, in local coordinates, is used to scale/translate
-						//geometry vertices into 0-1 range on each axis for re-use as default texture3D coordinates
-						float bbox[6], *bmin, *bmax;
-						struct X3D_Node *gn;
-						struct X3D_Shape *sn = (struct X3D_Shape *)tg->RenderFuncs.shapenode;
-						POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,sn->geometry,gn);
-						if(gn){
-							//first vec3 is minimum xyz
-							bmin = bbox;
-							bmax = &bbox[3];
-							for(i=0;i<3;i++){
-								bmin[i] = gn->_extent[i*2 + 1];
-								bmax[i] = gn->_extent[i*2];
-							}
-							//second vec3 is 1/size - so can be applied directly in vertex shader
-							vecdif3f(bmax,bmax,bmin);
-							for(i=0;i<3;i++){
-								if(bmax[i] != 0.0f)
-									bmax[i] = 1.0f/bmax[i];
-								else
-									bmax[i] = 1.0f;
-							}
-							//if(fabs(bmin[0]) > 10.0f)
-							//	printf("bbox shift [%f %f %f] scale [%f %f %f]\n",bmin[0],bmin[1],bmin[2],bmax[0],bmax[1],bmax[2]);
-							
-							//special default texture transform for 3D textures posing as 2D textures
+					//if(fabs(bmin[0]) > 10.0f)
+					//	printf("bbox shift [%f %f %f] scale [%f %f %f]\n",bmin[0],bmin[1],bmin[2],bmax[0],bmax[1],bmax[2]);
 
-							//the order of applying transform elements seems reversed for texture transforms
-							//H: related to order of operands in mat * vec in shader:
-							//   fw_TexCoord[0] = vec3(fw_TextureMatrix0 *vec4(texcoord,1.0)); 
-							// but sign on elements is what you expect
-							//flip z from RHS to LHS in fragment shader plug_tex3d apply
-							//printf("default tt\n");
-							FW_GL_SCALE_F(bmax[0],bmax[1],bmax[2]);  
-							FW_GL_TRANSLATE_F(-bmin[0],-bmin[1],-bmin[2]);
-						}
-					}
-					if(me){
-						if(tg->RenderFuncs.shapenode ) { //&& genTexPtr->TC_size < 3){
-							//3D but no 3D coords supplied - gen from vertex in vertex shader
-							glUniform1i(me->tex3dUseVertex,1); //vertex shader flag to over-ride texCoords with vertex
-						}else{
-							glUniform1i(me->tex3dUseVertex,0); 
-						}
-						if(tti){
-							if(me->repeatSTR > -1)
-								glUniform1iv(me->repeatSTR,3,tti->repeatSTR);
-							if(me->magFilter > -1)
-								glUniform1i(me->magFilter,tti->magFilter);
+					//special default texture transform for 3D textures posing as 2D textures
+
+					//the order of applying transform elements seems reversed for texture transforms
+					//H: related to order of operands in mat * vec in shader:
+					//   fw_TexCoord[0] = vec3(fw_TextureMatrix0 *vec4(texcoord,1.0)); 
+					// but sign on elements is what you expect
+					//flip z from RHS to LHS in fragment shader plug_tex3d apply
+					//printf("default tt\n");
+					FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+					FW_GL_LOAD_IDENTITY();
+					ntrans++;
+					FW_GL_SCALE_F(bmax[0], bmax[1], bmax[2]);
+					FW_GL_TRANSLATE_F(-bmin[0], -bmin[1], -bmin[2]);
+				}
+			}
+		}
+		// I think vertex shader pads out to 4 matrices, and send_matricies_to_shader might too
+		// might need at least one identity matrix so can refer to it by index?
+		// pad out for appearance.texture multitexture
+		int mtrans = ntrans;
+		if (ntrans < ntcoord) {
+			for (int i = ntrans; i < ntcoord; i++) {
+				mtrans++;
+				FW_GL_PUSH_MATRIX();
+				FW_GL_LOAD_IDENTITY();
+			}
+		}
+		ntrans = mtrans;
+		glUniform1i(me->nTexMatrix, ntrans);
+		//printf("ntrans %d nTexMatrix uniform %d\n", ntrans, me->nTexMatrix);
+		// pair textrans to texcoords 
+		// itmap: given a texcoord[index] which transform should we apply frag_texcoord[i] = transform[itmap[i]]xtexcoord[i]?
+		// defaults for appearance.multitexture:
+		for (int i = 0; i < ntrans; i++) {
+			itmap[i] = max(0,min(ntcoord-1,i)); // specs say maintain same order
+		}
+		// by TextureCoordinate.mapping and TextureTransform.mapping if available
+		if (ntrans && ccmap) {
+			for (int i = 0; i < ntrans; i++) {
+				for (int j = 0; j < ntcoord; j++) {
+					if (ccmap[j] && tmap[i]) {
+						if (strcmp(ccmap[j], tmap[i]) == 0) {
+							itmap[j] = i;
 						}
 					}
 				}
-				//new way defers to loop below
-				//if (!new_way) {
-				//	texture = tg->RenderFuncs.boundTextureStack[c];
-				//	// SET_TEXTURE_UNIT_AND_BIND
-				//	if (1) {
-				//		if (getAppearanceProperties()->cubeFace == 0) {
-				//			tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_2D, texture);
-				//		}
-				//		else {
-				//			tunit[c] = bind_or_share_next_textureUnit(GL_TEXTURE_CUBE_MAP, texture);
-				//		}
-				//	}
-				//	else {
-				//		glActiveTexture(GL_TEXTURE0 + c);
-				//		//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
-				//		//printf("active texture %d texture %d c %d\n",GL_TEXTURE0+c,texture,c);
-				//		if (getAppearanceProperties()->cubeFace == 0) {
-				//			glBindTexture(GL_TEXTURE_2D, texture);
-				//		}
-				//		else {
-				//			glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-				//		}
-				//	}
-				//}
-				if (getAppearanceProperties()->cubeFace != 0) 
-					printf("ouch cubeface in texturetransform_start\n");
+			}
+		}
+		//send results to vertex shader, so it applies the right transform to each texcoord[4]
+		//printf("ntrans %d itmap:\n", ntrans);
+		for (int i = 0; i < ntrans; i++) {
+			//itmap[i] = i;
+			//printf("itmap[%d] = %d uniform %d\n", i, itmap[i], me->tmap[i]);
+			glUniform1i(me->tmap[i], itmap[i]);
+		}
+
+		//pair appearance.textures with texture coordinates
+		int ntextures = tg->RenderFuncs.textureStackTop;
+		// defaults for appearance.multitexture:
+		for (int i = 0; i < ntextures; i++) {
+			immap[i] = max(0,min(i,ntcoord-1));
+		}
+		// by TextureCoordinate.mapping and material.xxxTextureMapping if they exist
+		char** mmapf = matprop->fw_FrontMaterial.map;
+		char** mmapb = matprop->fw_BackMaterial.map;
+		if(ccmap)
+		for (int i = 0; i < 7; i++) {
+			for (int j = 0; j < ntcoord; j++) {
+				// front material
+				// zero default assumed
+				if (ccmap[j] && mmapf[i]) {
+					if (strcmp(ccmap[j], mmapf[i]) == 0) {
+						//should go in material
+						// and be sent to frag shader when materials are sent
+						matprop->fw_FrontMaterial.cmap[i] = j;
+					}
+				}
+				//back material
+				// zero default assumed
+				if (ccmap[j] && mmapb[i]) {
+					if (strcmp(ccmap[j], mmapb[i]) == 0) {
+						//should go in material
+						// and be sent to frag shader when materials are sent
+						matprop->fw_BackMaterial.cmap[i] = j;
+					}
+				}
 			}
 		}
 	}
-	fw_glGetInteger(GL_TEXTURE_STACK_DEPTH,&ntransforms[1]);
-	glUniform1i(me->nTexMatrix, ntransforms[1]-ntransforms[0]);
+	else {
+		isIdentity = TRUE;
+		fw_glGetInteger(GL_TEXTURE_STACK_DEPTH, &ntransforms[0]);
+		for (c = 0; c < tg->RenderFuncs.textureStackTop; c++) {
+			FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+			FW_GL_LOAD_IDENTITY();
+			//printf ("passedInGenTex, c=%d\n",c);
+			/* are we ok with this texture yet? */
+			if (tg->RenderFuncs.boundTextureStack[c] != 0) {
+				isMulti = isMultiTexture(tg->RenderFuncs.texturenode);
+				//printf ("passedInGenTex, C, boundTextureStack %d\n",tg->RenderFuncs.boundTextureStack[c]);
+				if (setActiveTexture(c, texUnit, texMode)) {
+					//printf ("passedInGenTex, going to bind to texture %d\n",tg->RenderFuncs.boundTextureStack[c]);
+					GLuint texture;
+					struct X3D_Node* tt = getThis_textureTransform();
+					if (tt != NULL) {
+						int match = FALSE;
+						match = isMulti && (tt->_nodeType == NODE_MultiTextureTransform);
+						match = match || (!isMulti && (tt->_nodeType != NODE_MultiTextureTransform));
+						if (isStrict) {
+							if (match) {
+								do_textureTransform(tt, c);
+								isIdentity = FALSE;
+							}
+						}
+						else {
+							do_textureTransform(tt, c);
+							isIdentity = FALSE;
+						}
+					}
+					//TEXTURE 3D
+					if (isTex3D(tnode)) {
+						textureTableIndexStruct_s* tti = getTableTableFromTextureNode(tnode);
+						if (tnode->_nodeType != NODE_ComposedTexture3D) {
+							//pixelTexture3D, imageTexture3D (but not composedTexture3D which uses textureCount above)
+							if (me) {
+								if (tti) {
+									glUniform1iv(me->tex3dTiles, 3, tti->tiles);
+								}
+							}
+						}
+						//all texture3d
+						if (tg->RenderFuncs.shapenode && isIdentity) { //&& genTexPtr->TC_size < 3){
+							//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
+							//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
+							//_then_ bounding box of shape, in local coordinates, is used to scale/translate
+							//geometry vertices into 0-1 range on each axis for re-use as default texture3D coordinates
+							float bbox[6], * bmin, * bmax;
+							struct X3D_Node* gn;
+							struct X3D_Shape* sn = (struct X3D_Shape*)tg->RenderFuncs.shapenode;
+							POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, sn->geometry, gn);
+							if (gn) {
+								//first vec3 is minimum xyz
+								bmin = bbox;
+								bmax = &bbox[3];
+								for (i = 0; i < 3; i++) {
+									bmin[i] = gn->_extent[i * 2 + 1];
+									bmax[i] = gn->_extent[i * 2];
+								}
+								//second vec3 is 1/size - so can be applied directly in vertex shader
+								vecdif3f(bmax, bmax, bmin);
+								for (i = 0; i < 3; i++) {
+									if (bmax[i] != 0.0f)
+										bmax[i] = 1.0f / bmax[i];
+									else
+										bmax[i] = 1.0f;
+								}
+								//if(fabs(bmin[0]) > 10.0f)
+								//	printf("bbox shift [%f %f %f] scale [%f %f %f]\n",bmin[0],bmin[1],bmin[2],bmax[0],bmax[1],bmax[2]);
+
+								//special default texture transform for 3D textures posing as 2D textures
+
+								//the order of applying transform elements seems reversed for texture transforms
+								//H: related to order of operands in mat * vec in shader:
+								//   fw_TexCoord[0] = vec3(fw_TextureMatrix0 *vec4(texcoord,1.0)); 
+								// but sign on elements is what you expect
+								//flip z from RHS to LHS in fragment shader plug_tex3d apply
+								//printf("default tt\n");
+								FW_GL_SCALE_F(bmax[0], bmax[1], bmax[2]);
+								FW_GL_TRANSLATE_F(-bmin[0], -bmin[1], -bmin[2]);
+							}
+						}
+						if (me) {
+							if (tg->RenderFuncs.shapenode) { //&& genTexPtr->TC_size < 3){
+								//3D but no 3D coords supplied - gen from vertex in vertex shader
+								glUniform1i(me->tex3dUseVertex, 1); //vertex shader flag to over-ride texCoords with vertex
+							}
+							else {
+								glUniform1i(me->tex3dUseVertex, 0);
+							}
+							if (tti) {
+								if (me->repeatSTR > -1)
+									glUniform1iv(me->repeatSTR, 3, tti->repeatSTR);
+								if (me->magFilter > -1)
+									glUniform1i(me->magFilter, tti->magFilter);
+							}
+						}
+					}
+					if (getAppearanceProperties()->cubeFace != 0)
+						printf("ouch cubeface in texturetransform_start\n");
+				}
+			}
+		}
+		fw_glGetInteger(GL_TEXTURE_STACK_DEPTH, &ntransforms[1]);
+		glUniform1i(me->nTexMatrix, ntransforms[1] - ntransforms[0]);
+		//new_way bandaid for 2nd section of texturetransform_start below
+		if (me->TextureMatrix) {
+			for (int i = 0; i < MAX_MULTITEXTURE; i++) {
+				itmap[i] = i;
+				glUniform1i(me->tmap[i], itmap[i]);
+			}
+		}
+	}
 
 	/* set up the selected shader for this texture(s) config */
 	if (me != NULL) {
@@ -492,7 +653,7 @@ void textureTransform_start() {
 				glUniform4f(me->multitextureColor,mtnode->color.c[0],mtnode->color.c[1],mtnode->color.c[2],mtnode->alpha);
 			}
 		}
-		if (new_way && tg->RenderFuncs.textureStackTop) {
+		if (tg->RenderFuncs.textureStackTop) {
 			static int imethod = 0; //0= pre April 2022 1=post
 			if (imethod == 1 && is_cubeMap(tnode)) {
 				PRINT_GL_ERROR_IF_ANY("tt_start before bind cube");
@@ -525,6 +686,7 @@ void textureTransform_start() {
 					mp->source[nt] = sources[j];
 					mp->mode[nt] = modes[j];
 					mp->func[nt] = funcs[j];
+					mp->cmap[nt] = immap[j];
 					int iunit = tunit(kunit);
 					glUniform1i(me->textureUnit[kunit], iunit);
 					glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
@@ -540,28 +702,6 @@ void textureTransform_start() {
 				tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 			}
 		}
-		//else { //old way
-		//	for (i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
-		//		//static int once = 0;
-		//		//if(once < 10) {
-		//		//printf (" sending in i%d tu %d mode %d src %d fnc %d\n",i,i,
-		//		//	p->textureParameterStack[i].multitex_mode,
-		//		//	p->textureParameterStack[i].multitex_source,
-		//		//	p->textureParameterStack[i].multitex_function);
-		//		//	once++;
-		//		//}
-		//		if (1)
-		//			glUniform1i(me->TextureUnit[i], tunit[i]);
-		//		else
-		//			glUniform1i(me->TextureUnit[i], i);
-		//		//the 2i wasn't working for me even with ivec2 in shader
-		//		glUniform2i(me->TextureMode[i], p->textureParameterStack[i].multitex_mode[0], p->textureParameterStack[i].multitex_mode[1]);
-		//		glUniform2i(me->TextureSource[i], p->textureParameterStack[i].multitex_source[0], p->textureParameterStack[i].multitex_source[1]);
-		//		//glUniform1i(me->TextureMode[i],p->textureParameterStack[i].multitex_mode[0]);
-		//		//glUniform1i(me->TextureSource[i],p->textureParameterStack[i].multitex_source[0]);
-		//		glUniform1i(me->TextureFunction[i], p->textureParameterStack[i].multitex_function);
-		//	}
-		//}
 	#ifdef TEXVERBOSE
 	} else {
 		printf (" NOT sending in %d i+tu+mode because currentShaderProperties is NULL\n",tg->RenderFuncs.textureStackTop);
@@ -612,5 +752,6 @@ void textureCoord_send(struct textureVertexInfo *genTex) {
 		c++;
 	}
 	glUniform1i(me->nTexCoordChannels,c);  //PBR: send all you got, and say how many (channels)
+	//printf("nTexCoordChannels = %d uniform= %d\n", c, me->nTexCoordChannels);
 	glUniform1i(me->flipuv, 0);
 }

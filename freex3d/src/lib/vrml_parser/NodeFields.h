@@ -3834,12 +3834,14 @@ END_NODE(TextureCoordinate)
 BEGIN_NODE(TextureCoordinate3D)
 EXPOSED_FIELD(TextureCoordinate3D,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(TextureCoordinate3D,point,mfvec3f,point,FIELDTYPE_MFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureCoordinate3D,mapping,sfstring,mapping,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(TextureCoordinate3D)
 
 /* TextureCoordinate4D node */
 BEGIN_NODE(TextureCoordinate4D)
 EXPOSED_FIELD(TextureCoordinate4D,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(TextureCoordinate4D,point,mfvec4f,point,FIELDTYPE_MFVec4f,UNCA_NONE)
+EXPOSED_FIELD(TextureCoordinate4D,mapping,sfstring,mapping,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(TextureCoordinate4D)
 
 /* TextureCoordinateGenerator node */
@@ -3917,12 +3919,14 @@ EXPOSED_FIELD(TextureTransform3D,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_
 EXPOSED_FIELD(TextureTransform3D,rotation,sfrotation,rotation,FIELDTYPE_SFRotation,UNCA_ANGLE)
 EXPOSED_FIELD(TextureTransform3D,scale,sfvec3f,scale,FIELDTYPE_SFVec3f,UNCA_NONE)
 EXPOSED_FIELD(TextureTransform3D,translation,sfvec3f,translation,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(TextureTransform3D,mapping,sfstring,mapping,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(TextureTransform3D)
 
 /* TextureTransformMatrix3D node */
 BEGIN_NODE(TextureTransformMatrix3D)
 EXPOSED_FIELD(TextureTransformMatrix3D,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(TextureTransformMatrix3D,matrix,sfmatrix4f,matrix,FIELDTYPE_SFMatrix4f,UNCA_NONE)
+EXPOSED_FIELD(TextureTransformMatrix3D,mapping,sfstring,mapping,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(TextureTransformMatrix3D)
 
 /* Tile node */

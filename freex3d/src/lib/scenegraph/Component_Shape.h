@@ -166,6 +166,7 @@ struct fw_MaterialParameters {
 	int mode[10];  //multitexture modulate mode
 	int source[10]; //multitexture modulate mode
 	int func[10]; //multitexture modulate mode
+	int cmap[10]; //index of appropriate varying vec3 texCoord[cmap] to use in frag shader
 	int nt; // number of single texture maps 0 if none
 	//// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
@@ -173,6 +174,7 @@ struct fw_MaterialParameters {
 	int tcount[7]; // for material.textureXXX if its a single texture 1, if multitexture n
 	int tstart[7]; // where in tindex to start looping
 	int cindex[7]; //texture coordinate channel
+	char* map[7]; //xxxTextureMapping (pointer / shallow copy, don't free)
 	//int mtex[5];   //flag = 1 if it's a multitexture / needs multitexture functionality applied
 	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
 };

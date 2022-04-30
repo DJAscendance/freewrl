@@ -9026,11 +9026,13 @@ const int OFFSETS_TextureCoordinate[] = {
 const int OFFSETS_TextureCoordinate3D[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureCoordinate3D, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_point, (int) offsetof (struct X3D_TextureCoordinate3D, point),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_TextureCoordinate3D, mapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureCoordinate4D[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureCoordinate4D, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_point, (int) offsetof (struct X3D_TextureCoordinate4D, point),  (int) FIELDTYPE_MFVec4f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_TextureCoordinate4D, mapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureCoordinateGenerator[] = {
@@ -9108,11 +9110,13 @@ const int OFFSETS_TextureTransform3D[] = {
 	(int) FIELDNAMES_rotation, (int) offsetof (struct X3D_TextureTransform3D, rotation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLE,
 	(int) FIELDNAMES_scale, (int) offsetof (struct X3D_TextureTransform3D, scale),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_translation, (int) offsetof (struct X3D_TextureTransform3D, translation),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_TextureTransform3D, mapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureTransformMatrix3D[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureTransformMatrix3D, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_matrix, (int) offsetof (struct X3D_TextureTransformMatrix3D, matrix),  (int) FIELDTYPE_SFMatrix4f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_TextureTransformMatrix3D, mapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Tile[] = {
@@ -15942,6 +15946,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureCoordinate3D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
+			tmp2->mapping = newASCIIString("");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -15950,6 +15955,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureCoordinate4D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->point.n=0; tmp2->point.p=0;
+			tmp2->mapping = newASCIIString("");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16050,6 +16056,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->rotation.c[0] = 0;tmp2->rotation.c[1] = 0;tmp2->rotation.c[2] = 1;tmp2->rotation.c[3] = 0;;
 			tmp2->scale.c[0] = 1.0f;tmp2->scale.c[1] = 1.0f;tmp2->scale.c[2] = 1.0f;
 			tmp2->translation.c[0] = 0.0f;tmp2->translation.c[1] = 0.0f;tmp2->translation.c[2] = 0.0f;
+			tmp2->mapping = newASCIIString("");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16058,6 +16065,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureTransformMatrix3D *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->matrix.c[0] = 1;tmp2->matrix.c[1] = 0;tmp2->matrix.c[2] = 0;tmp2->matrix.c[3] = 0;tmp2->matrix.c[4] = 0;tmp2->matrix.c[5] = 1;tmp2->matrix.c[6] = 0;tmp2->matrix.c[7] = 0;tmp2->matrix.c[8] = 0;tmp2->matrix.c[9] = 0;tmp2->matrix.c[10] = 1;tmp2->matrix.c[11] = 0;tmp2->matrix.c[12] = 0;tmp2->matrix.c[13] = 0;tmp2->matrix.c[14] = 0;tmp2->matrix.c[15] = 1;;
+			tmp2->mapping = newASCIIString("");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -21871,6 +21879,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," point (MFVec3f):\n");
 			for (i=0; i<tmp->point.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,(tmp->point.p[i]).c[0], (tmp->point.p[i]).c[1],(tmp->point.p[i]).c[2]); }
+			spacer fprintf (fp," mapping (SFString) \t%s\n",tmp->mapping->strptr);
 		    break;
 		}
 		case NODE_TextureCoordinate4D : {
@@ -21882,6 +21891,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," point (MFVec4f):\n");
 			for (i=0; i<tmp->point.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f, %4.3f]\n",i,(tmp->point.p[i]).c[0], (tmp->point.p[i]).c[1],(tmp->point.p[i]).c[2],(tmp->point.p[i]).c[3]); }
+			spacer fprintf (fp," mapping (SFString) \t%s\n",tmp->mapping->strptr);
 		    break;
 		}
 		case NODE_TextureCoordinateGenerator : {
@@ -22012,6 +22022,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," translation (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->translation.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," mapping (SFString) \t%s\n",tmp->mapping->strptr);
 		    break;
 		}
 		case NODE_TextureTransformMatrix3D : {
@@ -22024,6 +22035,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," matrix (SFMatrix4f): \t");
 			for (i=0; i<16; i++) { fprintf (fp,"%4.3f  ",tmp->matrix.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," mapping (SFString) \t%s\n",tmp->mapping->strptr);
 		    break;
 		}
 		case NODE_Tile : {

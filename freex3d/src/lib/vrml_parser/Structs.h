@@ -12448,6 +12448,7 @@ struct X3D_TextureCoordinate3D {
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
 	struct Multi_Vec3f point;
+	struct Uni_String *mapping;
 };
 extern struct X3D_Virt virt_TextureCoordinate3D;
 /***********************/
@@ -12469,6 +12470,7 @@ struct X3D_TextureCoordinate4D {
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
 	struct Multi_Vec4f point;
+	struct Uni_String *mapping;
 };
 extern struct X3D_Virt virt_TextureCoordinate4D;
 /***********************/
@@ -12642,6 +12644,7 @@ struct X3D_TextureTransform3D {
 	struct SFRotation rotation;
 	struct SFVec3f scale;
 	struct SFVec3f translation;
+	struct Uni_String *mapping;
 };
 extern struct X3D_Virt virt_TextureTransform3D;
 /***********************/
@@ -12663,6 +12666,7 @@ struct X3D_TextureTransformMatrix3D {
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
 	struct SFMatrix4f matrix;
+	struct Uni_String *mapping;
 };
 extern struct X3D_Virt virt_TextureTransformMatrix3D;
 /***********************/

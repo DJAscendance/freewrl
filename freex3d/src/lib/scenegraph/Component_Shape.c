@@ -378,34 +378,41 @@ void compile_Material (struct X3D_Material *node) {
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
+		if (tnodes[0]) q->map[0] = node->normalTextureMapping ? node->normalTextureMapping->strptr : NULL;
 	}
 	if(node->emissiveTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
+		if (tnodes[1]) q->map[1] = node->emissiveTextureMapping ? node->emissiveTextureMapping->strptr : NULL;
 	}
 	if(node->occlusionTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->occlusionTexture,tnodes[2]);
+		if (tnodes[2]) q->map[2] = node->occlusionTextureMapping ? node->occlusionTextureMapping->strptr : NULL;
 	}
 	if(node->diffuseTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->diffuseTexture,tnodes[3]);
+		if (tnodes[3]) q->map[3] = node->diffuseTextureMapping ? node->diffuseTextureMapping->strptr : NULL;
 	}
 	if(node->shininessTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->shininessTexture,tnodes[4]);
+		if (tnodes[4]) q->map[4] = node->shininessTextureMapping ? node->shininessTextureMapping->strptr : NULL;
 	}
 	if(node->specularTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->specularTexture,tnodes[5]);
+		if (tnodes[5]) q->map[5] = node->specularTextureMapping ? node->specularTextureMapping->strptr : NULL;
 	}
 	if (node->ambientTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->ambientTexture, tnodes[6]);
+		if (tnodes[6]) q->map[6] = node->ambientTextureMapping ? node->ambientTextureMapping->strptr : NULL;
 	}
 
 	int *cindex = q->cindex;
-	for (int i = 0; i < 7; i++) cindex[i] = 0;
+	for (int i = 0; i < 7; i++) cindex[i] = 0; //can't do this here, because texCoord.mapping order is dominant, and don't have geom node access here.
 	//cindex[0] = 0; //node->normalTextureChannel;
 	//cindex[1] = 0; //node->emissiveTextureChannel;
 	//cindex[2] = node->diffuseTextureChannel;
@@ -1797,15 +1804,20 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
+		if (tnodes[0]) q->map[0] = node->normalTextureMapping ? node->normalTextureMapping->strptr : NULL;
 	}
 	if(node->emissiveTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
+		if (tnodes[1]) q->map[1] = node->emissiveTextureMapping ? node->emissiveTextureMapping->strptr : NULL;
 	}
 	int *cindex = q->cindex;
-	for (int i = 0; i < 7; i++) cindex[i] = 0;
-	//cindex[0] = 0; //node->normalTextureChannel;
-	//cindex[1] = 0; //node->emissiveTextureChannel;
+	for (int i = 0; i < 7; i++) {
+		cindex[i] = 0;
+		
+		//cindex[0] = 0; //node->normalTextureChannel;
+		//cindex[1] = 0; //node->emissiveTextureChannel;
+	}
 	q->nt = 0; //assume no material.texturexxx to start
 	for(int i=0;i<7;i++){
 		q->tcount[i] = 0; //default: no texture for this material function
@@ -1929,22 +1941,32 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 	if(node->normalTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->normalTexture,tnodes[0]);
+		if (tnodes[0]) q->map[0] = node->normalTextureMapping ? node->normalTextureMapping->strptr : NULL;
+
 	}
 	if(node->emissiveTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
+		if (tnodes[1]) q->map[1] = node->emissiveTextureMapping ? node->emissiveTextureMapping->strptr : NULL;
+
 	}
 	if(node->occlusionTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->occlusionTexture,tnodes[2]);
+		if (tnodes[2]) q->map[2] = node->occlusionTextureMapping ? node->occlusionTextureMapping->strptr : NULL;
+
 	}
 	if(node->baseTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->baseTexture,tnodes[3]);
+		if (tnodes[3]) q->map[3] = node->baseTextureMapping ? node->baseTextureMapping->strptr : NULL;
+
 	}
 	if(node->metallicRoughnessTexture)
 	{
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->metallicRoughnessTexture,tnodes[4]);
+		if (tnodes[4]) q->map[4] = node->metallicRoughnessTextureMapping ? node->metallicRoughnessTextureMapping->strptr : NULL;
+
 	}
 	int *cindex = q->cindex;
 	for (int i = 0; i < 7; i++) cindex[i] = 0;

@@ -536,6 +536,7 @@ uniform vec4 u_screenresolution; \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
+uniform int fw_tmap[4]; \n\
 uniform int nTexMatrix; \n\
 attribute vec4 fw_MultiTexCoord0; \n\
 attribute vec4 fw_MultiTexCoord1; \n\
@@ -630,6 +631,7 @@ struct fw_MaterialParameters { \n\
   int mode[10]; \n\
   int source[10]; \n\
   int func[10]; \n\
+  int cmap[10]; \n\
   int nt; //total single textures \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
@@ -862,12 +864,19 @@ void main(void) \n\
   tcoord[3] = yupuv(fw_MultiTexCoord3); \n\
   mat4 ttrans = mat4(1.0); \n\
   vec4 tc = vec4(0.0,0.0,0.0,1.0); \n\
+  // loop over output (transformed) texcoord \n\
   for(int i=0;i<4;i++){ \n\
-	//spec rules: not enough transforms use identity, not enough coords use last ones\n\
-	if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
-	if(i < nTexCoordChannels) tc = tcoord[i]; \n\
-	fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
+    int itmap = fw_tmap[i]; \n\
+    //spec rules: not enough transforms use identity, not enough coords use last ones\n\
+    ttrans = mat4(1.0); \n\
+    tc = tcoord[min(i,nTexCoordChannels-1)]; \n\
+    //if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
+    if(itmap < nTexMatrix) ttrans = fw_TextureMatrix[itmap]; \n\
+    //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
+    fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
   } \n\
+  //fw_TexCoord[0] = dehomogenize(fw_TextureMatrix[fw_tmap[1]], tcoord[0]); \n\
+  //fw_TexCoord[1] = dehomogenize(fw_TextureMatrix[fw_tmap[0]], tcoord[1]); \n\
   #ifdef FILL \n\
   hatchPosition = fw_TexCoord[0].xy; \n\
   #endif //FILL \n\
@@ -1254,6 +1263,7 @@ struct fw_MaterialParameters { \n\
 	int mode[10]; \n\
 	int source[10]; \n\
 	int func[10]; \n\
+    int cmap[10]; \n\
 	int nt; //total single textures \n\
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
 	int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
@@ -1361,7 +1371,9 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 	#define CONFORMANT 1 \n\
 	#ifdef CONFORMANT \n\
 	int index = mat.tindex[mat.tstart[iunit]]; \n\
-	vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+	//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+	//vec2 tc = fw_TexCoord[mat.cmap[iunit]].xy; \n\
+    vec2 tc = fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy; \n\
 	vec4 nc = vec4(0); \n\
 	#ifdef FULL \n\
 	switch(index) { \n\
@@ -1440,7 +1452,8 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 		} \n\
 	#endif //FULL \n\
 	#else //CONFORMANT \n\
-	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
+	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy); \n\
 	#endif //CONVORMANT \n\
 	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
 	return nc; \n\
@@ -1457,7 +1470,8 @@ vec4 sample_map(int iunit, bool apply_gamma){ \n\
 		//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
 		vec4 prev = nc; \n\
 		int k=istart; \n\
-		vec2 ptex = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+		//vec2 ptex = fw_TexCoord[mat.cindex[iunit]].xy; \n\
+		vec2 ptex = fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy; \n\
 		for(int j=0;j<ndesc;j++,k++){ \n\
             //if(j==ndesc) break; \n\
 			int kk = mat.tindex[k]; \n\
@@ -1491,7 +1505,7 @@ vec3 getNormal(){ \n\
 	if(mat.tcount[normal_image] > 0){ \n\
 		// https://learnopengl.com/Advanced-Lighting/Normal-Mapping  \n\
 		//texture transform applied in vertex shader \n\
-		vec2 UV = fw_TexCoord[mat.cindex[normal_image]].xy; \n\
+		vec2 UV = fw_TexCoord[mat.cmap[mat.tstart[normal_image]]].xy; \n\
 			\n\
 		// Retrieve the tangent space matrix \n\
 		vec3 pos_dx = dFdx(castle_vertex_eye.xyz); \n\
@@ -2974,7 +2988,8 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
           else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
           else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
         } \n\
-        vec4 cur = texture2D(textureUnit[k],fw_TexCoord[k].st); \n\
+        //vec4 cur = texture2D(textureUnit[k],fw_TexCoord[k].st); \n\
+        vec4 cur = texture2D(textureUnit[k],fw_TexCoord[mat.cmap[k]].st); \n\
         finalColCalcB(source,mode,modea,mat.func[k], cur); \n\
         finalFrag = source; \n\
       } \n\

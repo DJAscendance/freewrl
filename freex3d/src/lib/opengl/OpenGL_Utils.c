@@ -2835,6 +2835,9 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		me->myMaterialSource[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"fw_FrontMaterial.func[%d]",i);
 		me->myMaterialFunc[i] = GET_UNIFORM(myProg,line);
+		sprintf(line, "fw_FrontMaterial.cmap[%d]", i);
+		me->myMaterialCmap[i] = GET_UNIFORM(myProg, line);
+
 	}
 	for(int i=0;i<7;i++){
 		char line[200];
@@ -2871,6 +2874,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		me->myMaterialBackSource[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"fw_BackMaterial.func[%d]",i);
 		me->myMaterialBackFunc[i] = GET_UNIFORM(myProg,line);
+		sprintf(line, "fw_BackMaterial.cmap[%d]", i);
+		me->myMaterialBackCmap[i] = GET_UNIFORM(myProg, line);
 	}
 	for(int i=0;i<7;i++){
 		char line[200];
@@ -3079,6 +3084,10 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->TextureMatrix[1] = GET_UNIFORM(myProg,"fw_TextureMatrix[1]");
 	me->TextureMatrix[2] = GET_UNIFORM(myProg,"fw_TextureMatrix[2]");
 	me->TextureMatrix[3] = GET_UNIFORM(myProg,"fw_TextureMatrix[3]");
+	me->tmap[0] = GET_UNIFORM(myProg, "fw_tmap[0]");
+	me->tmap[1] = GET_UNIFORM(myProg, "fw_tmap[1]");
+	me->tmap[2] = GET_UNIFORM(myProg, "fw_tmap[2]");
+	me->tmap[3] = GET_UNIFORM(myProg, "fw_tmap[3]");
 	me->nTexMatrix = GET_UNIFORM(myProg,"nTexMatrix");
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
 	me->nextVertex = GET_ATTRIB(myProg,"a_nextVertex");
@@ -7032,9 +7041,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 	GLUNIFORM1I(me->myMaterialType,fw_FrontMaterial->type);
 	GLUNIFORM1I(me->myMaterialTransdex,fw_FrontMaterial->transdex);
 	PRINT_GL_ERROR_IF_ANY("#2 sendMaterialsToShader");
+	//printf("send materials to shader - FRONT CMAP \n");
 	mp = fw_FrontMaterial;
 	nt = 0;
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+	// material.maps: iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+	//old-style appearance.texture comes in here on iuse=3 (diffuse)
 	for(int iuse=0;iuse<7;iuse++){
 		//mp->tcount[i] = 0; //textureTransform_start apppearance.texture if populated will already set this to non-zero, don't lose it
 		mp->tstart[iuse] = nt;
@@ -7055,6 +7067,8 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
 				glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
 				glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
+				glUniform1i(me->myMaterialCmap[nt], mp->cmap[iuse]);
+				//printf(" cmap[%d] = %d uniform %d\n", iuse, mp->cmap[iuse], me->myMaterialCmap[nt]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
@@ -7105,6 +7119,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				glUniform1i(me->myMaterialBackMode[nt], mp->mode[nt]);
 				glUniform1i(me->myMaterialBackSource[nt], mp->source[nt]);
 				glUniform1i(me->myMaterialBackFunc[nt], mp->func[nt]);
+				glUniform1i(me->myMaterialBackCmap[nt], mp->cmap[iuse]);
 				nt++;
 			}
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up

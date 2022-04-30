@@ -175,10 +175,12 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	bool temp_points = FALSE;
     struct Multi_Vec2f *textureCoordPoint[MAX_MULTITEXTURE];
 	int ntexdim[MAX_MULTITEXTURE];
+	char* map[MAX_MULTITEXTURE];
 	for(k=0;k<MAX_MULTITEXTURE;k++){
 		textureCoordPoint[k] = NULL;
 		newTexCoords[k] = NULL;
 		ntexdim[k] = 2;
+		map[k] = NULL; //TextureCoordinate.mapping added in web3d v4
 	}
 	nmtexcoord = 0; //number of multitextureCoordinates 0-4
 
@@ -280,6 +282,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] = &(texCoordNode->point);
 			nmtexcoord = 1;
 			ntexdim[0] = 2;
+			map[0] = texCoordNode->mapping->strptr ? texCoordNode->mapping->strptr : NULL;
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate3D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -288,6 +291,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] = (struct Multi_Vec2f*) &(tcn->point);
 			nmtexcoord = 1;
 			ntexdim[0] = 3;
+			map[0] = tcn->mapping->strptr ? tcn->mapping->strptr : NULL;
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate4D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -296,6 +300,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] =(struct Multi_Vec2f*) &(tcn->point); 
 			nmtexcoord = 1;
 			ntexdim[0] = 4;
+			map[0] = tcn->mapping->strptr ? tcn->mapping->strptr : NULL;
 		}
 
 		if (r->tcoordtype == NODE_MultiTextureCoordinate) {
@@ -308,6 +313,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 						struct X3D_TextureCoordinate * ttcc = (struct X3D_TextureCoordinate*)mtc->texCoord.p[k];
 						textureCoordPoint[k] = &(ttcc->point);
 						ntexdim[k] = 2;
+						map[k] = ttcc->mapping->strptr ? ttcc->mapping->strptr : NULL;
 						nmtexcoord++;
 					}
 				}
@@ -317,8 +323,10 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
      
 		// TextureCoordinateGenerator, make the r->texgentype match the TCGT_ definition of the field 
 		if (r->tcoordtype == NODE_TextureCoordinateGenerator) {
-			r->texgentype = findFieldInARR(((struct X3D_TextureCoordinateGenerator *)texCoordNode)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);    
+			struct X3D_TextureCoordinateGenerator* tcg = (struct X3D_TextureCoordinateGenerator*)texCoordNode;
+			r->texgentype = findFieldInARR((tcg)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);    
 			//ConsoleMessage("have texgen, type %d",r->texgentype);
+			map[0] = tcg->mapping->strptr ? tcg->mapping->strptr : NULL;
 		}
 	}
 
@@ -345,9 +353,10 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 
 	// some nodes will generate our tex coords for us, eg GeoElevationGrid
 	if (!r->GeneratedTexCoords[0]) {
-		newTexCoords[0] = MALLOC (float *, sizeof (float)*ntexdim[0]*r->ntri*3); //always malloc at least one
-		for(k=1;k<nmtexcoord;k++)
-			newTexCoords[k] = MALLOC (float *, sizeof (float)*ntexdim[k]*r->ntri*3);
+		newTexCoords[0] = MALLOC(float*, sizeof(float) * ntexdim[0] * r->ntri * 3); //always malloc at least one
+		for (k = 1; k < nmtexcoord; k++){
+			newTexCoords[k] = MALLOC(float*, sizeof(float) * ntexdim[k] * r->ntri * 3);
+		}
 	}
     
 	newcolors=0;	/*  only if we have colours*/
@@ -653,6 +662,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	}
 	r->ntcoord = nmtexcoord;
 	memcpy(r->ntexdim,ntexdim,4*sizeof(int));
+	memcpy(r->map, map, 4 * sizeof(char*));
 	FREE_IF_NZ(r->color);
 	FREE_IF_NZ(r->colindex);
 

@@ -63,14 +63,13 @@ struct bufAccess {
 
 
 
-
-
-
-struct X3D_GeomRep {
+// structs that go in void * node->_intern field
+struct X3D_InternalRep {
+	//abstract type for all that go in _intern
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
-	int mode;  //0 Points 1-3 lines 4-6 mesh
-//	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
 };
+
+
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 	int decoded;  //0=still .jgp/.png/.gif 1=parsed into rectangular rgba texture blob
@@ -83,9 +82,53 @@ struct X3D_TextureRep {
 	//struct bufAccess image; //
 };
 void* set_TextureRep(void* _texrep);
-struct X3D_PointRep {
-	int itype; //0 PointRep 1 LineRep 2 PolyRep
+
+struct X3D_GeomRep {
+	//abstract type for geometry node types node. _intern field
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
+//	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
+};
+
+struct X3D_LineRep {
+	// used for node._intern field by linetype geometry nodes
+	// will hold commmon GL_LINE_STRIP parameters from
+	// PolyLine2D, Arc2D, ArcClose2D_LINE, Circle2D
+	// LineSet, IndexedLineSet
+	// analogous to PolyRep for triangle nodes
+	// motivation for this extra level of common abstraction for lines:
+	// - Appearance.LineProperties.linetype - dashed lines require extra prev,next vertices and other info sent
+	//   (glLineStipple not working with our shader system)
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
+	int mode;  //0 Points 1-3 lines 4-6 mesh: 1 LINES 	2 LINE_LOOP 3 LINE_STRIP
+	void* ectx; //execution context (scene, proto, inline)
+	int npoint;
+	struct SFVec3f* point;
+	struct SFVec2f* point2D;
+	struct SFVec3f* prev;
+	struct SFVec3f* next;
+	int nsegments;
+	int* start;
+	int* count;
+	float* fogcoord;
+	struct SFColor* color;
+	struct SFColorRGBA* colorRgba;
+};
+
+struct X3D_TexturableGeomRep {
+	//abstract type for geometry node types node. _intern field where geometry can be textured
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
+	int mode;  //0 Points 1-3 lines 4-6 mesh
+	char* map[4]; //strings from TextureCoordinate.mapping field, or null if .mapping is null or type-of-geometry node had no explicit TextureCoordinate field
+//	void* ectx; //execution context (scene, proto, inline) - where to store shareable buffers
+};
+
+struct X3D_PointRep {
+	// node._intern field for Polypoint2D and PointSet geometry nodes
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
+	int mode;  //0 Points 1-3 lines 4-6 mesh
+	//for pointrep the map field applies to splat multitexture from appearance.texture field
+	char* map[4]; //strings from TextureCoordinate.mapping field, or null if .mapping is null or type-of-geometry node had no explicit TextureCoordinate field
 	int ncoord;
 	//shared buffer approach:
 	// indirection to sharable, delay-loadable buffer
@@ -108,10 +151,11 @@ void* set_PointRep(void* _pointrep, float* points, int pointSize, int npoint,
 void render_PointRep(void* pointrep);
 void delete_PointRep(void* pointrep);
 
-//MeshRep - for BufferGeometry node used by gltf_loader to load generic geometry via Inline url .gltf or .glb
 struct X3D_MeshRep {
-	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep
+	//MeshRep node._intern for BufferGeometry node used by gltf_loader to load generic geometry via Inline url .gltf or .glb
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh
+	char* map[4]; //strings from TextureCoordinate.mapping field, or null if .mapping is null or type-of-geometry node had no explicit TextureCoordinate field
 	int ncoord;
 	int nuv; //number of texture coordinate channels
 	int flipuv; // 0=uvs are y-up (x3d default), 1=uvs are y-down (gltf) 
@@ -126,36 +170,14 @@ void* set_MeshRep(void* _meshrep);
 void render_MeshRep(void* meshrep);
 void delete_MeshRep(void* meshrep);
 
-struct X3D_LineRep {
-	// will hold commmon GL_LINE_STRIP parameters from
-	// PolyLine2D, Arc2D, ArcClose2D_LINE, Circle2D
-	// LineSet, IndexedLineSet
-	// analogous to PolyRep for triangle nodes
-	// motivation for this extra level of common abstraction for lines:
-	// - Appearance.LineProperties.linetype - dashed lines require extra prev,next vertices and other info sent
-	//   (glLineStipple not working with our shader system)
-	int itype; //0 PointRep 1 LineRep 2 PolyRep
-	int mode;  //0 Points 1-3 lines 4-6 mesh: 1 LINES 	2 LINE_LOOP 3 LINE_STRIP
-	void* ectx; //execution context (scene, proto, inline)
-	int npoint;
-	struct SFVec3f* point;
-	struct SFVec2f* point2D;
-	struct SFVec3f* prev;
-	struct SFVec3f* next;
-	int nsegments;
-	int* start;
-	int* count;
-	float* fogcoord;
-	struct SFColor* color;
-	struct SFColorRGBA* colorRgba;
-};
 /* Internal representation of IndexedFaceSet, Text, Extrusion & ElevationGrid:
  * set of triangles.
  * done so that we get rid of concave polygons etc.
  */
 struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
-	int itype; //0 PointRep 1 LineRep 2 PolyRep
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 	int mode;  //0 Points 1-3 lines 4-6 mesh: 4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
+	char* map[4]; //strings from TextureCoordinate.mapping field, or null if .mapping is null or type-of-geometry node had no explicit TextureCoordinate field
 	void* ectx; //execution context (scene, proto, inline)
 	int irep_change;
 	int ccw;	/* ccw field for single faced structures */
