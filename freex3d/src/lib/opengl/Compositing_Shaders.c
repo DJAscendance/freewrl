@@ -3647,8 +3647,6 @@ void main(void) \n\
 
 
 
-
-
 /* Generic GLSL fragment shader, used on OpenGL ES. */
 static const GLchar *volumeFragmentGLES2 = " \n\
 /*EXTENSIONS*/ \n\
@@ -4545,7 +4543,8 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 			int iver = 130; //testing for shader being able to run on low capability machines elsewhere
 			//https://en.wikipedia.org/wiki/OpenGL_Shading_Language#Versions 
 			// 110 120 130 140 150  330  400 410 420 430 440 450 460
-			iver = GLSL_max_version; //for maximizing capabilities
+			// May 1, 2022 volume rendering did not render with iver latest, but rendered with 130
+			//iver = GLSL_max_version; //for maximizing capabilities
 			AddVersion(SHADERPART_VERTEX, iver, CompleteCode); //lower precision floats
 			AddVersion(SHADERPART_FRAGMENT, iver, CompleteCode); //lower precision floats
 			AddDefine(SHADERPART_VERTEX, "FULL", CompleteCode); //lower precision floats
