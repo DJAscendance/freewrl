@@ -367,6 +367,7 @@ void textureTransform_start() {
 		//strict: This is a change of functionality for freewrl Aug 31, 2016
 	static int new_way = 1; //April 2022 attempt to harmonize appearance.texture, material.xxxTexture, PTM.texture
 
+	if(tg->RenderFuncs.shapenode) //May 1 2022 annoying Background comes through here - please fix
 	if (new_way) {
 		struct matpropstruct *matprop;
 		struct X3D_Node* gn = NULL;
