@@ -251,11 +251,19 @@ void rendray_MeshRep(void* _meshrep) {
 				for (int k = 0; k < 3; k++) {
 					paddress = get_Attribi(bai, gb, i * 3 + k);
 					int ic;
-					if (bai->dataType == GL_UNSIGNED_SHORT) {
-						unsigned short* ip = (unsigned short*)paddress;
+					if (bai->dataType == GL_UNSIGNED_BYTE) {
+						unsigned char* ip = (unsigned char*)paddress;
 						ic = (int)(*ip);
 					}
-					else {
+					else if (bai->dataType == GL_UNSIGNED_SHORT) {
+						unsigned short* ip = (unsigned short*)paddress;
+						ic = (int)(*ip);
+
+					}else if (bai->dataType == GL_SHORT) {
+						short* ip = (short*)paddress;
+						ic = (int)(*ip);
+					}
+					else { //LONG
 						int* ip = (int*)paddress;
 						ic = (int)(*ip);
 					}
