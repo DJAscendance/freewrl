@@ -47,12 +47,12 @@ X3D Shape Component
 #include "Polyrep.h"
 #define NOTHING 0
 
-enum {
-	MAT_NONE = 0,
-	MAT_UNLIT = 1,
-	MAT_REGULAR = 2,
-	MAT_PHYSICAL = 3,
-};
+//enum {
+//	MAT_NONE = 0,
+//	MAT_UNLIT = 1,
+//	MAT_REGULAR = 2,
+//	MAT_PHYSICAL = 3,
+//};
 
 typedef struct pComponent_Shape{
 
@@ -253,6 +253,10 @@ void child_Appearance (struct X3D_Appearance *node) {
 		tg->RenderFuncs.texturenode = (void*)tmpN;
 
 		render_node(tmpN);
+		if (!node->material) {
+			struct matpropstruct* mat = getAppearanceProperties();
+			mat->fw_FrontMaterial.type = MAT_UNLIT; //MAT_NONE is default, we need unlit if textures and no material node, will end up as emissive texture
+		}
 	}
 
 	/* shaders here/supported?? */
@@ -365,8 +369,11 @@ void compile_Material (struct X3D_Material *node) {
 	veccopy3f(q->specular,node->specularColor.c);
 	q->ambient = node->ambientIntensity;
 	q->shininess = node->shininess;
-	q->transparency = node->transparency;
-	q->occlusion = node->occlusionStrength;
+	int oldway = 0;
+	if (!oldway) {
+		q->transparency = node->transparency;
+		q->occlusion = node->occlusionStrength;
+	}
 	q->normalScale = node->normalScale;
 	q->type = MAT_REGULAR;
 
@@ -704,6 +711,12 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 				retval |= UNLIT_MATERIAL_APPEARANCE_SHADER;
 			}
 		}
+	}
+	else {
+		//v4 specs section 12.2.5 Coexistence of textures (appearance and material) >
+		// 4. if material appearance.material is NULL and appearance.textures, use UNLIT and put textures in UNLIT emissive texture
+		if(realAppearanceNode->texture != NULL)
+			retval |= UNLIT_MATERIAL_APPEARANCE_SHADER; 
 	}
 
 
@@ -1353,7 +1366,10 @@ void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
 	mat->shininess = .2f;
 	vecset3f(mat->diffuse,1.0f,1.0f,1.0f); //saves boolean math in shader if at 1
 	vecset3f(mat->baseColor,1.0f,1.0f,1.0f);
-	mat->type = MAT_NONE;
+	mat->occlusion = 1.0f;
+	mat->normalScale = 1.0f;
+	vecset3f(mat->emissive, 1.0f, .8f, 1.0f);
+	mat->type = MAT_NONE; //Q MAT_UNLIT; //change from MAT_NONE may 3, 2022
 }
 void initialize_front_and_back_material_params(){
 	ppComponent_Shape p;

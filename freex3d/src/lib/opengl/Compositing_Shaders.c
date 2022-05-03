@@ -536,13 +536,15 @@ uniform vec4 u_screenresolution; \n\
  \n\
 //#ifdef TEX \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
-uniform int fw_tmap[4]; \n\
 uniform int nTexMatrix; \n\
 attribute vec4 fw_MultiTexCoord0; \n\
 attribute vec4 fw_MultiTexCoord1; \n\
 attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
 uniform int nTexCoordChannels; \n\
+uniform int fw_tmap[6]; \n\
+uniform int fw_cmap[6]; \n\
+uniform int fw_ntexcombo; \n\
 uniform int flipuv; \n\
 vec4 yupuv(in vec4 uv){ \n\
   //gltf uv are y-down, so we flag and send the flag here \n\
@@ -551,7 +553,7 @@ vec4 yupuv(in vec4 uv){ \n\
   return yup; \n\
 } \n\
 //varying vec3 v_texC; \n\
-varying vec3 fw_TexCoord[4]; \n\
+varying vec3 fw_TexCoord[6]; \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
@@ -865,16 +867,49 @@ void main(void) \n\
   mat4 ttrans = mat4(1.0); \n\
   vec4 tc = vec4(0.0,0.0,0.0,1.0); \n\
   // loop over output (transformed) texcoord \n\
-  for(int i=0;i<4;i++){ \n\
-    int itmap = fw_tmap[i]; \n\
+//#define OLDWAY 1 \n\
+//#define MIDWAY 1 \n\
+#ifdef OLDWAY \n\
+	for (int i = 0; i < 4; i++) {	\n\
+			int itmap = fw_tmap[i]; \n\
+			//spec rules: not enough transforms use identity, not enough coords use last ones\n\
+		    ttrans = mat4(1.0); \n\
+		    tc = tcoord[min(i,nTexCoordChannels-1)]; \n\
+		    //if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
+		    if(itmap < nTexMatrix) ttrans = fw_TextureMatrix[itmap]; \n\
+		    //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
+		    fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
+  } \n\
+#elif MIDWAY //OLDWAY \n\
+  for(int i=0;i<6;i++){ \n\
+    int itmap = i > fw_ntexcombo ? -1 : fw_tmap[i]; \n\
+    int icmap = i > fw_ntexcombo ? -1 : fw_cmap[i]; \n\
+icmap = min(i,nTexCoordChannels-1); \n\
+itmap = min(i,nTexMatrix-1); \n\
     //spec rules: not enough transforms use identity, not enough coords use last ones\n\
     ttrans = mat4(1.0); \n\
-    tc = tcoord[min(i,nTexCoordChannels-1)]; \n\
+	if(icmap < 0) icmap = min(i,nTexCoordChannels-1); \n\
+    tc = tcoord[max(icmap,0)]; \n\
     //if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
-    if(itmap < nTexMatrix) ttrans = fw_TextureMatrix[itmap]; \n\
+    if(itmap > -1) ttrans = fw_TextureMatrix[itmap]; \n\
     //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
     fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
   } \n\
+#else //NEW WAY \n\
+  //for(int i=0;i<fw_ntexcombo;i++){ \n\
+  for(int i=0;i<6;i++){ \n\
+    int itmap = i > fw_ntexcombo ? -1 : fw_tmap[i]; \n\
+    int icmap = i > fw_ntexcombo ? -1 : fw_cmap[i]; \n\
+    //spec rules: not enough transforms use identity, not enough coords use last ones\n\
+    ttrans = mat4(1.0); \n\
+	if(icmap < 0) icmap = min(i,nTexCoordChannels-1); \n\
+    tc = tcoord[max(icmap,0)]; \n\
+    //if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
+    if(itmap > -1) ttrans = fw_TextureMatrix[itmap]; \n\
+    //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
+    fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
+  } \n\
+#endif //OLDWAY \n\
   //fw_TexCoord[0] = dehomogenize(fw_TextureMatrix[fw_tmap[1]], tcoord[0]); \n\
   //fw_TexCoord[1] = dehomogenize(fw_TextureMatrix[fw_tmap[0]], tcoord[1]); \n\
   #ifdef FILL \n\
@@ -1055,7 +1090,7 @@ uniform samplerCube fw_Texture_unit0; \n\
 #else //CUB \n\
 uniform sampler2D fw_Texture_unit0; \n\
 #endif //CUB \n\
-varying vec3 fw_TexCoord[4]; \n\
+varying vec3 fw_TexCoord[6]; \n\
 #ifdef TEX3D \n\
 uniform int tex3dTiles[3]; \n\
 uniform int repeatSTR[3]; \n\

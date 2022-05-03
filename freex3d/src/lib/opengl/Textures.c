@@ -943,8 +943,9 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 	thisurl.n = 0; thisurl.p = NULL;
 	thistex = NULL;
 	s_shader_capabilities_t* me;
-	me = getAppearanceProperties()->currentShaderProperties;
-
+	struct matpropstruct * mat = getAppearanceProperties();
+	me = mat->currentShaderProperties;
+	mat->fw_FrontMaterial.type = MAT_UNLIT;
 	for (count=0; count<6; count++) {
 		/* go through these, back, front, top, bottom, right left */
 		switch (count) {
@@ -1030,6 +1031,8 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 	struct X3D_TextureProperties *thistp = NULL;
 	int count;
 	struct textureVertexInfo mtf = {boxtex,2,GL_FLOAT,0,NULL,NULL};
+	struct matpropstruct* mat = getAppearanceProperties();
+	mat->fw_FrontMaterial.type = MAT_UNLIT;
 
 	for (count=0; count<6; count++) {
 		/* go through these, back, front, top, bottom, right left */

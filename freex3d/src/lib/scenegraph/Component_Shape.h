@@ -68,7 +68,12 @@ int volume;
 
 shaderflagsstruct getShaderFlags();
 s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
-
+enum {
+	MAT_NONE = 0,
+	MAT_UNLIT = 1,
+	MAT_REGULAR = 2,
+	MAT_PHYSICAL = 3,
+};
 
 
 #define NO_APPEARANCE_SHADER 0x0001

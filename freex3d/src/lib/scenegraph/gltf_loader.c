@@ -416,6 +416,44 @@ struct X3D_Node *x3dtexture_from_cgltf_texture(struct X3D_Node *ectx, cgltf_text
 	return image;
 }
 
+struct X3D_TextureTransform* add_texture_transform(cgltf_texture_view ctexture, int ntextrans) {
+	char scratch[20];
+	struct X3D_TextureTransform* ttrans = createNewX3DNode(NODE_TextureTransform);
+	veccopy2f(ttrans->translation.c, ctexture.transform.offset);
+	ttrans->rotation = ctexture.transform.rotation;
+	veccopy2f(ttrans->scale.c, ctexture.transform.scale);
+	sprintf(scratch, "%d", ntextrans);
+	ttrans->mapping = newASCIIString(scratch);
+	return ttrans;
+}
+void save_texture_transforms(struct X3D_Node* appearance, int ntextrans, struct X3D_TextureTransform** textrans) {
+	struct X3D_Appearance* appear = X3D_APPEARANCE(appearance);
+	if (ntextrans > 1) {
+		struct X3D_MultiTextureTransform* mtrans = createNewX3DNode(NODE_MultiTextureTransform);
+		mtrans->textureTransform.p = malloc(ntextrans * sizeof(struct X3D_MultiTextureTransform*));
+		mtrans->textureTransform.n = ntextrans;
+		for (int k = 0; k < ntextrans; k++)
+			mtrans->textureTransform.p[k] = X3D_NODE(textrans[k]);
+		appear->textureTransform = X3D_NODE(mtrans);
+	}
+	else {
+		appear->textureTransform = X3D_NODE(textrans[0]);
+	}
+}
+struct Uni_String* set_mat_mapping(cgltf_texture_view ctexture, int itextrans) {
+	char scratch[20], ctemp[10];
+	//sprintf(scratch, "%d%d", itextrans, ctexture.texcoord);
+	scratch[0] = '\0';
+	if (ctexture.texcoord > -1) {
+		sprintf(ctemp, "C%1d", ctexture.texcoord);
+		strcat(scratch, ctemp);
+	}
+	if (ctexture.has_transform) {
+		sprintf(ctemp, "T%1d", itextrans); //just refer to the textrans by name, and take the default texcoord
+		strcat(scratch, ctemp);
+	}
+	return newASCIIString(scratch);
+}
 
 int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * data, cgltf_node *node, gltf_unit *unit){
 // june 22, 2020 not done: skinned / rigged animated charactors, points, lines and various things noted below.
@@ -544,8 +582,12 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 			for(int j=0;j<node->mesh->primitives_count;j++){
 				cgltf_primitive *prim = &node->mesh->primitives[j];
 				struct X3D_Shape* sn = (struct X3D_Shape*)DEF_node(ectx, NULL, NODE_Shape);
+				struct X3D_TextureTransform* textrans[4];
+				int ntextrans;
+				char scratch[20];
 
 				if(prim->material){
+
 					//typedef struct cgltf_material
 					//{
 					//	char* name;
@@ -570,6 +612,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 					if(prim->material->unlit){
 						int mtype = NODE_UnlitMaterial;
 						struct X3D_UnlitMaterial* mat = (struct X3D_UnlitMaterial*) USE_node(prim->material->name,X3DMaterialNode);
+						ntextrans = 0;
 						if(!mat){
 							mat = (struct X3D_UnlitMaterial*) DEF_node(ectx,prim->material->name,mtype);
 							veccopy3f(mat->emissiveColor.c,prim->material->emissive_factor);
@@ -598,15 +641,22 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									//	}
 									//}
 									mat->emissiveTexture = image;
-									if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+									mat->emissiveTextureMapping = set_mat_mapping(prim->material->emissive_texture, ntextrans);
+									if (prim->material->emissive_texture.has_transform) {
+										textrans[ntextrans++] = add_texture_transform(prim->material->emissive_texture, ntextrans);
+									}
 								}
 							}
 						}
 						sn->appearance = createNewX3DNode(NODE_Appearance);
+						if (ntextrans > 0) {
+							save_texture_transforms(sn->appearance, ntextrans, textrans);
+						}
 						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					}else if(prim->material->has_pbr_metallic_roughness){
 						int mtype = NODE_PhysicalMaterial;
 						struct X3D_PhysicalMaterial* mat = (struct X3D_PhysicalMaterial*) USE_node(prim->material->name,X3DMaterialNode);
+						ntextrans = 0;
 						if(!mat){
 							//typedef struct cgltf_pbr_metallic_roughness
 							//{
@@ -631,34 +681,58 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 							if(pbr->base_color_texture.texture ){
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->base_color_texture.texture);
 								mat->baseTexture = image;
-								if (do_mapping) mat->baseTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->baseTextureMapping = newASCIIString("one");
+								mat->baseTextureMapping = set_mat_mapping(pbr->base_color_texture, ntextrans);
+								if (pbr->base_color_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(pbr->base_color_texture, ntextrans);
+								}
 							}
 							if (pbr->metallic_roughness_texture.texture ) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->metallic_roughness_texture.texture);
 								mat->metallicRoughnessTexture = image;
-								if (do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
+								mat->metallicRoughnessTextureMapping = set_mat_mapping(pbr->metallic_roughness_texture, ntextrans);
+								if (pbr->metallic_roughness_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(pbr->metallic_roughness_texture, ntextrans);
+								}
 							}
 							if (prim->material->emissive_texture.texture ) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->emissive_texture.texture);
 								mat->emissiveTexture = image;
-								if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+								mat->emissiveTextureMapping = set_mat_mapping(prim->material->emissive_texture, ntextrans);
+								if (prim->material->emissive_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(prim->material->emissive_texture, ntextrans);
+								}
 							}
 							if (prim->material->normal_texture.texture ) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->normal_texture.texture);
 								mat->normalTexture = image;
-								if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+								mat->normalTextureMapping = set_mat_mapping(prim->material->normal_texture, ntextrans);
+								if (prim->material->normal_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(prim->material->normal_texture, ntextrans);
+								}
 							}
 							if (prim->material->occlusion_texture.texture) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->occlusion_texture.texture);
 								mat->occlusionTexture = image;
-								if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+								mat->occlusionTextureMapping = set_mat_mapping(prim->material->occlusion_texture, ntextrans);
+								if (prim->material->occlusion_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(prim->material->occlusion_texture, ntextrans);
+								}
 							}
 						}
 						sn->appearance = createNewX3DNode(NODE_Appearance);
+						if (ntextrans > 0) {
+							save_texture_transforms(sn->appearance, ntextrans, textrans);
+						}
 						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					}else if(prim->material->has_pbr_specular_glossiness){
 						int mtype = NODE_Material;
 						struct X3D_Material* mat = (struct X3D_Material*) USE_node(prim->material->name,X3DMaterialNode);
+						ntextrans = 0;
 						if(!mat){
 							//typedef struct cgltf_pbr_specular_glossiness
 							//{
@@ -683,44 +757,61 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->specular_glossiness_texture.texture);
 								mat->specularTexture = image;
 								mat->shininessTexture = image;
-								if (do_mapping) mat->specularTextureMapping = newASCIIString("one");
-								if (do_mapping) mat->shininessTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->specularTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->shininessTextureMapping = newASCIIString("one");
+								mat->specularTextureMapping = set_mat_mapping(pbr->specular_glossiness_texture, ntextrans);
+								mat->shininessTextureMapping = set_mat_mapping(pbr->specular_glossiness_texture, ntextrans);
+								if (pbr->specular_glossiness_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(pbr->specular_glossiness_texture, ntextrans);
+								}
+
 							}
 
 							if (pbr->diffuse_texture.texture) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, pbr->diffuse_texture.texture);
 								mat->diffuseTexture = image;
-								if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
+								mat->diffuseTextureMapping = set_mat_mapping(pbr->diffuse_texture, ntextrans);
+								if (pbr->diffuse_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(pbr->diffuse_texture, ntextrans);
+								}
 							}
 
 							if (prim->material->emissive_texture.texture) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->emissive_texture.texture);
-								mat->diffuseTexture = image;
-								if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
+								mat->emissiveTexture = image;
+								//if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
+								mat->emissiveTextureMapping = set_mat_mapping(prim->material->emissive_texture, ntextrans);
+								if (prim->material->emissive_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(prim->material->emissive_texture, ntextrans);
+								}
 							}
 
 							if (prim->material->normal_texture.texture) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->normal_texture.texture);
 								mat->normalTexture = image;
-								if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
+								mat->normalTextureMapping = set_mat_mapping(prim->material->normal_texture, ntextrans);
+								if (prim->material->normal_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(prim->material->normal_texture, ntextrans);
+								}
 							}
 
 							if (prim->material->occlusion_texture.texture) {
 								struct X3D_Node* image = x3dtexture_from_cgltf_texture(ectx, prim->material->occlusion_texture.texture);
 								mat->occlusionTexture = image;
-								if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+								//if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
+								mat->occlusionTextureMapping = set_mat_mapping(prim->material->occlusion_texture, ntextrans);
+								if (prim->material->occlusion_texture.has_transform) {
+									textrans[ntextrans++] = add_texture_transform(prim->material->occlusion_texture, ntextrans);
+								}
 							}
 						}
 						sn->appearance = createNewX3DNode(NODE_Appearance);
-						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
-						if (0) {
-							//experiment to flip texture vertically
-							struct X3D_TextureTransform* tt = createNewX3DNode(NODE_TextureTransform);
-							vecset2f(tt->scale.c, 1.0f, -1.0f);
-							tt->mapping = newASCIIString("one");
-							X3D_APPEARANCE(sn->appearance)->textureTransform = X3D_NODE(tt);
+						if (ntextrans > 0) {
+							save_texture_transforms(sn->appearance, ntextrans, textrans);
 						}
-
+						X3D_APPEARANCE(sn->appearance)->material = X3D_NODE(mat);
 					} 
 
 				}
@@ -1238,20 +1329,10 @@ void compile_BufferGeometry(struct X3D_BufferGeometry *node){
 					extent6f_fromBufferAccess(e6, mr->buffer, &mr->attrib[0], mr->ncoord);
 				}
 			}
-			if(0) if (mr->attrib[4].in_use) {
-				//experiment to reverse UV V coordinate to see if freewrl textures are upside down
-				float* fp;
-				char* paddress;
-				struct geomBuffer* gb = mr->buffer;
-				struct bufAccess* ba;
-				ba = &mr->attrib[0];
-
-				for (int i = 0; i < mr->ncoord; i++) {
-					paddress = get_Attribi(ba, gb, i);
-					fp = (float*)paddress;
-					fp[1] = 1.0f - fp[1];
-				}
-			}
+			int nuv = 0;
+			for (int j = 0; j < 4; j++)
+				if (mr->attrib[4 + j].in_use) nuv++;
+			mr->nuv = nuv;
 			if (0) {
 				extent6f_printf(node->_extent);
 				printf("cgltf min,max\n");

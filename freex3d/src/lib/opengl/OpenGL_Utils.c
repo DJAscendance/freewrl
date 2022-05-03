@@ -3088,6 +3088,15 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->tmap[1] = GET_UNIFORM(myProg, "fw_tmap[1]");
 	me->tmap[2] = GET_UNIFORM(myProg, "fw_tmap[2]");
 	me->tmap[3] = GET_UNIFORM(myProg, "fw_tmap[3]");
+	me->tmap[4] = GET_UNIFORM(myProg, "fw_tmap[4]");
+	me->tmap[5] = GET_UNIFORM(myProg, "fw_tmap[5]");
+	me->cmap[0] = GET_UNIFORM(myProg, "fw_cmap[0]");
+	me->cmap[1] = GET_UNIFORM(myProg, "fw_cmap[1]");
+	me->cmap[2] = GET_UNIFORM(myProg, "fw_cmap[2]");
+	me->cmap[3] = GET_UNIFORM(myProg, "fw_cmap[3]");
+	me->cmap[4] = GET_UNIFORM(myProg, "fw_cmap[4]");
+	me->cmap[5] = GET_UNIFORM(myProg, "fw_cmap[5]");
+	me->ntexcombo = GET_UNIFORM(myProg, "fw_ntexcombo");
 	me->nTexMatrix = GET_UNIFORM(myProg,"nTexMatrix");
 	me->Vertices = GET_ATTRIB(myProg,"fw_Vertex");
 	me->nextVertex = GET_ATTRIB(myProg,"a_nextVertex");
