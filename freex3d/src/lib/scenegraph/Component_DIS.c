@@ -4156,8 +4156,6 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 			}
 
 		} 
-
-		RECORD_DISTANCE
 	}
 
 }

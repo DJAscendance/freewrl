@@ -1143,41 +1143,10 @@ void fwl_set_MaterialFloatValue(struct Vector **shapeNodes, int whichEntry, int 
 
 #endif //ANDROID
 
+//JAS Nov 23 2020 - Doug's changes for extents and bounding box propagation moved things
+//JAS around a bit, changing the order of operations. tests/20.wrl will not render properly,
+//JAS if not sorted. For now, we are sorting all kids, as this line is commented out below.
 #define TURN_OFF_SHOULDSORTCHILDREN node->_renderFlags = node->_renderFlags & (0xFFFF^ VF_shouldSortChildren);
-
-
-#ifdef OLDCODE
-OLDCODE/******************************************************************/
-OLDCODE/* textureTransforms of all kinds */
-OLDCODE
-OLDCODE/* change the clear colour, selected from the GUI, but do the command in the
-OLDCODE   OpenGL thread */
-OLDCODE
-OLDCODEvoid fwl_set_glClearColor (float red , float green , float blue , float alpha) {
-OLDCODE	ppOpenGL_Utils p;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-OLDCODE	p->cc_red = red; p->cc_green = green ; p->cc_blue = blue ; p->cc_alpha = alpha ;
-OLDCODE	tg->OpenGL_Utils.cc_changed = TRUE;
-OLDCODE}
-OLDCODE
-OLDCODEvoid setglClearColor (float *val) {
-OLDCODE	ppOpenGL_Utils p;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-OLDCODE	p->cc_red = *val; val++;
-OLDCODE	p->cc_green = *val; val++;
-OLDCODE	p->cc_blue = *val;
-OLDCODE
-OLDCODE// OLD_IPHONE_AQUA #ifdef AQUA
-OLDCODE// OLD_IPHONE_AQUA 	val++;
-OLDCODE// OLD_IPHONE_AQUA 	p->cc_alpha = *val;
-OLDCODE// OLD_IPHONE_AQUA #endif
-OLDCODE
-OLDCODE	tg->OpenGL_Utils.cc_changed = TRUE;
-OLDCODE}
-OLDCODE
-#endif //OLDCODE
 
 void fwl_setShadingStyle(int val) {
 	//0=flat 1=gouraud 2=phong 3=wireframe
@@ -1192,26 +1161,6 @@ int fwl_getShadingStyle() {
 	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
 	return p->shadingStyle;
 }
-
-#ifdef OLDCODE
-OLDCODE
-OLDCODE// use phong shading - better light reflectivity if set to true
-OLDCODEvoid fwl_set_phongShading (int val) {
-OLDCODE	ppOpenGL_Utils p;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-OLDCODE	if(val) fwl_setShadingStyle(2);
-OLDCODE	else fwl_setShadingStyle(1);
-OLDCODE}
-OLDCODE
-OLDCODEint fwl_get_phongShading () {
-OLDCODE	ppOpenGL_Utils p;
-OLDCODE	ttglobal tg = gglobal();
-OLDCODE	p = (ppOpenGL_Utils)tg->OpenGL_Utils.prv;
-OLDCODE	return fwl_getShadingStyle() == 2 ? TRUE : FALSE;
-OLDCODE}
-#endif //OLDCODE
-
 
 
 /**************************************************************************************
@@ -3262,77 +3211,6 @@ cx*cx+cy*cy+cz*cz,node->range*node->range,cx,cy,cz); */
 	}
 }
 
-#ifdef DEBUGGING_CODE
-/* draw a simple bounding box around an object */
-void drawBBOX(struct X3D_Node *node) {
-
-/* debugging */	FW_GL_COLOR3F((float)1.0,(float)0.6,(float)0.6);
-/* debugging */
-/* debugging */	/* left group */
-/* debugging */	glBegin(GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MIN_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MIN_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MIN_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MAX_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MIN_Y, node->EXTENT_MAX_Z);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MAX_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	/* right group */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MIN_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MIN_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MIN_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MAX_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MIN_Y, node->EXTENT_MAX_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MAX_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	/* joiners */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MIN_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MIN_Y, node->EXTENT_MIN_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MIN_Y, node->EXTENT_MAX_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MIN_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MAX_Y, node->EXTENT_MIN_Z);
-/* debugging */	glEnd();
-/* debugging */
-/* debugging */	glBegin (GL_LINES);
-/* debugging */	glVertex3d(node->EXTENT_MIN_X, node->EXTENT_MAX_Y, node->EXTENT_MAX_Z);
-/* debugging */	glVertex3d(node->EXTENT_MAX_X, node->EXTENT_MAX_Y, node->EXTENT_MAX_Z);
-/* debugging */	glEnd();
-
-}
-#endif //DEBUGGING_CODE
 struct depth_slice {
 	double znear, zfar;
 };
@@ -4655,7 +4533,8 @@ void doNotRegisterThisNodeForDestroy(struct X3D_Node * nodePtr){
 	3) the first pass shows that nodes are out of order
 */
 
-static void sortChildren (int line, struct Multi_Node *ch, struct Multi_Node *sortedCh, int sortForDistance) {
+//#define VERBOSE
+static void sortChildren (struct Multi_Node *ch, struct Multi_Node *sortedCh, int sortForDistance) {
 	int i,j;
 	int nc;
 	int noswitch;
@@ -4670,7 +4549,7 @@ static void sortChildren (int line, struct Multi_Node *ch, struct Multi_Node *so
 	nc = ch->n; //ATOMIC OP - saves the instantaneous size of ch, which may keep growing
 
 	#ifdef VERBOSE
-	printf ("sortChildren line %d nc %d ",line,nc);
+	printf ("start sortChildren line %d nc %d ",line,nc);
 		if (sortForDistance) printf ("sortForDistance ");
 		printf ("\n");
 	#endif //VERBOSE
@@ -4678,19 +4557,20 @@ static void sortChildren (int line, struct Multi_Node *ch, struct Multi_Node *so
 
 	/* has this changed size? */
 	if (nc != sortedCh->n) {
+		//printf ("sortChildren, reinitializing sorted children here cause %d and %d\n",nc,sortedCh->n);
 		FREE_IF_NZ(sortedCh->p); //Mar 11, 2014:
 		sortedCh->p = MALLOC(void *, sizeof (struct X3DNode *) * nc);
 		memcpy(sortedCh->p, ch->p, sizeof(struct X3DNode *) * nc); //ATOMIC-OP - ch->p gets realloced frequently, we need a snapshot which may be bigger than nc above
 		sortedCh->n = nc;
 	}
 
-	#ifdef VERBOSE
-	printf ("sortChildren start, %d, chptr %u\n",nc,ch);
-	#endif
-
 	/* do we care about rendering order? */
 
-	if (!sortForDistance) return;
+	if (!sortForDistance) {
+		//printf ("sortChildren from %d, NOT doing sortForDistance\n",line);
+		return;
+	}
+
 	if (nc < 2) return;
 	/* simple, inefficient bubble sort */
 	/* this is a fast sort when nodes are already sorted;
@@ -4698,17 +4578,42 @@ static void sortChildren (int line, struct Multi_Node *ch, struct Multi_Node *so
 	move around a lot. (Bubblesort is bad when nodes
 	have to be totally reversed) */
 
+	#ifdef VERBOSE
+	for(i=0; i<nc; i++) {
+		a = X3D_NODE(sortedCh->p[i]);
+		printf ("sortChildren, child %d of %d, is a %p %s dist %f rf %x ",i,nc,
+			a, stringNodeType (a->_nodeType),a->_dist,a->_renderFlags);
+	//if ((a->_renderFlags & VF_Viewpoint) == VF_Viewpoint) printf ("VF_Viewpoint ");
+	//if ((a->_renderFlags & VF_Geom) == VF_Geom) printf ("VF_Geom ");
+	//if ((a->_renderFlags & VF_localLight) == VF_localLight) printf ("VF_localLight ");
+	//if ((a->_renderFlags & VF_Sensitive) == VF_Sensitive) printf ("VF_Sensitive ");
+	//if ((a->_renderFlags & VF_Blend) == VF_Blend) printf ("VF_Blend ");
+	//if ((a->_renderFlags & VF_Proximity) == VF_Proximity) printf ("VF_Proximity ");
+	//if ((a->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision ");
+	//if ((a->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
+	//if ((a->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
+	//if ((a->_renderFlags & VF_shouldSortChildren) == VF_shouldSortChildren) printf ("VF_shouldSortChildren ");
+	printf ("\n");
+
+	}
+
+	#endif //VERBOSE
+
 	for(i=0; i<nc; i++) {
 		noswitch = TRUE;
 		for (j=(nc-1); j>i; j--) {
-			/* printf ("comparing %d %d\n",i,j); */
+			/* printf ("comparing %d %d \n",i,j); */
 			a = X3D_NODE(sortedCh->p[j-1]);
 			b = X3D_NODE(sortedCh->p[j]);
 
 			/* check to see if a child is NULL - if so, skip it */
 			if (a && b) {
 				if (a->_dist > b->_dist) {
-					// printf ("sortChildren at %lf, have to switch %d %d dists %lf %lf\n",TickTime(),i,j,a->_dist, b->_dist); 
+					#ifdef VERBOSE
+					printf ("sortChildren at %lf, have to switch %d %d dists %lf %lf ",TickTime(),i,j,a->_dist, b->_dist); 
+					printf ("a %p %s, b %p %s\n",a,stringNodeType(a->_nodeType),b,stringNodeType(b->_nodeType));
+					#endif //VERBOSE
+
 					c = a;
 					sortedCh->p[j-1] = b;
 					sortedCh->p[j] = c;
@@ -4724,15 +4629,15 @@ static void sortChildren (int line, struct Multi_Node *ch, struct Multi_Node *so
 	}
 
 	#ifdef VERBOSE
-	printf ("sortChildren returning.\n");
+	printf ("sortChildren returning:");
 	for(i=0; i<nc; i++) {
 		b = sortedCh->p[i];
 		if (b)
-			printf ("child %d %u %f %s",i,b,b->_dist,stringNodeType(b->_nodeType));
+			printf ("sortChildren child %d %p %f %s",i,b,b->_dist,stringNodeType(b->_nodeType));
 		else
 			printf ("no child %d", i);
 		b = ch->p[i];
-		printf (" unsorted %u\n",b);
+		printf (" unsorted %p\n",b);
 	}
 	#endif
 }
@@ -4952,7 +4857,7 @@ gglobal()->RenderFuncs.have_transparency = TRUE; \
 
 #define CHECK_IMAGETEXTURE_TRANSPARENCY \
 	if (isTextureAlpha(((struct X3D_ImageTexture *)node)->__textureTableIndex)) { \
-		/* printf ("node %d IMAGETEXTURE HAS TRANSPARENCY\n", node); */ \
+		/* printf ("node %p IMAGETEXTURE HAS TRANSPARENCY\n", node); */ \
 		update_renderFlag(X3D_NODE(pnode),VF_Blend | VF_shouldSortChildren);\
 		gglobal()->RenderFuncs.have_transparency = TRUE; \
 	}
@@ -5215,11 +5120,14 @@ void startOfLoopNodeUpdates(void) {
 				vector_set(struct X3D_Node *,p->linearNodeTable,i,NULL);
 			} else {
 				/* turn OFF these flags */
+//printf ("startOfLoopNodeUpdates, NOT zeroing flags for now\n");
+
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_Sensitive);
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_Viewpoint);
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_localLight);
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_globalLight);
 				node->_renderFlags = node->_renderFlags & (0xFFFF^VF_Blend);
+
 //JAS - move this within the ELSE statement as node is free'd by this time.
 			if(hasSiblingAffectorField(node,__LINE__)){
 				zeroSibAffectors(node);
@@ -5229,12 +5137,15 @@ void startOfLoopNodeUpdates(void) {
 	}
 	/* turn OFF these flags */
 	{
+//printf ("startOfLoopNodeUpdates, NOT zeroing flags for now\n");
+
 		struct X3D_Node* rn = rootNode();
 		rn->_renderFlags = rn->_renderFlags & (0xFFFF^VF_Sensitive);
 		rn->_renderFlags = rn->_renderFlags & (0xFFFF^VF_Viewpoint);
 		rn->_renderFlags = rn->_renderFlags & (0xFFFF^VF_localLight);
 		rn->_renderFlags = rn->_renderFlags & (0xFFFF^VF_globalLight);
 		rn->_renderFlags = rn->_renderFlags & (0xFFFF^VF_Blend);
+
 	}
 
 	/* sort the rootNode, if it is Not NULL */
@@ -5253,7 +5164,9 @@ void startOfLoopNodeUpdates(void) {
 			children = &X3D_GROUP(node)->children;
 			_sortedChildren = &X3D_GROUP(node)->_sortedChildren;
 		}
-		sortChildren (__LINE__,children, _sortedChildren,rootNode()->_renderFlags & VF_shouldSortChildren);
+		// printf ("calling sortChildren, rootNode %p \n",rootNode());
+
+		sortChildren (children, _sortedChildren,rootNode()->_renderFlags & VF_shouldSortChildren);
 		rootNode()->_renderFlags=rootNode()->_renderFlags & (0xFFFF^VF_shouldSortChildren);
 		if(node->_nodeType == NODE_Proto){
 			//CHILDREN_NODE(Proto)
@@ -5469,15 +5382,15 @@ void startOfLoopNodeUpdates(void) {
 
 
 				BEGIN_NODE(CADPart)
-					sortChildren (__LINE__,&X3D_CADPART(node)->children,&X3D_CADPART(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_CADPART(node)->children,&X3D_CADPART(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(CADPart)
 				END_NODE
 
 
 				BEGIN_NODE(CADAssembly)
-					sortChildren (__LINE__,&X3D_CADASSEMBLY(node)->children,&X3D_CADASSEMBLY(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_CADASSEMBLY(node)->children,&X3D_CADASSEMBLY(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(CADAssembly)
 				END_NODE
 
@@ -5493,33 +5406,34 @@ void startOfLoopNodeUpdates(void) {
 
 				BEGIN_NODE(StaticGroup)
 					/* we should probably not do this, but... */
-					sortChildren (__LINE__,&X3D_STATICGROUP(node)->children,&X3D_STATICGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_STATICGROUP(node)->children,&X3D_STATICGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 				END_NODE
 
 
 				/* does this one possibly have add/removeChildren? */
 				BEGIN_NODE(Group)
-					sortChildren (__LINE__,&X3D_GROUP(node)->children,&X3D_GROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_GROUP(node)->children,&X3D_GROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(Group)
 				END_NODE
 
 				BEGIN_NODE(PickableGroup)
-					//sortChildren (__LINE__,&X3D_PICKABLEGROUP(node)->children,&X3D_PICKABLEGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					//TURN_OFF_SHOULDSORTCHILDREN
+					//sortChildren (&X3D_PICKABLEGROUP(node)->children,&X3D_PICKABLEGROUP(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					////JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(PickableGroup)
 				END_NODE
 
 				BEGIN_NODE(Inline)
-					sortChildren (__LINE__,&X3D_INLINE(node)->__children,&X3D_INLINE(node)->_sortedChildren,node->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_INLINE(node)->__children,&X3D_INLINE(node)->_sortedChildren,node->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_ANY_NODE(Inline,__children)
 				END_NODE
 
 				BEGIN_NODE(Transform)
-					sortChildren (__LINE__,&X3D_TRANSFORM(node)->children,&X3D_TRANSFORM(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					// printf ("calling sortChildren from Transform %p\n",node);
+					sortChildren (&X3D_TRANSFORM(node)->children,&X3D_TRANSFORM(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(Transform)
 				END_NODE
 
@@ -5657,14 +5571,14 @@ void startOfLoopNodeUpdates(void) {
 				END_NODE
 
 				BEGIN_NODE (GeoTransform)
-					sortChildren (__LINE__,&X3D_GEOTRANSFORM(node)->children,&X3D_GEOTRANSFORM(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_GEOTRANSFORM(node)->children,&X3D_GEOTRANSFORM(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(GeoTransform)
 				END_NODE
 
 				BEGIN_NODE (GeoLocation)
-					sortChildren (__LINE__,&X3D_GEOLOCATION(node)->children,&X3D_GEOLOCATION(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
-					TURN_OFF_SHOULDSORTCHILDREN
+					sortChildren (&X3D_GEOLOCATION(node)->children,&X3D_GEOLOCATION(node)->_sortedChildren,pnode->_renderFlags & VF_shouldSortChildren);
+					//JAS - revisit this for efficiency TURN_OFF_SHOULDSORTCHILDREN
 					CHILDREN_NODE(GeoLocation)
 				END_NODE
 

@@ -1411,8 +1411,6 @@ void child_Shape (struct X3D_Shape *node) {
 
 	if(!(node->geometry)) { return; }
 
-	RECORD_DISTANCE
-
 	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);

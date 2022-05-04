@@ -2043,7 +2043,6 @@ void prep_CollidableShape(struct X3D_Node *_node){
 				if (node->__do_rotation) {
 					FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
 				}
-				RECORD_DISTANCE
 			}
 		}
 	}

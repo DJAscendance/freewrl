@@ -778,8 +778,6 @@ void prep_Inline (struct X3D_Inline *node) {
 	if ((node->__loadstatus != INLINE_STABLE && node->load) || (node->__loadstatus != INLINE_INITIAL_STATE && !node->load)) {
 		load_Inline(node);
 	}
-	RECORD_DISTANCE
-
 }
 /* not sure why we would compile */
 void compile_Inline(struct X3D_Inline *node) {

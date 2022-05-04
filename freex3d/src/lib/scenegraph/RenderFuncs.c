@@ -2191,6 +2191,21 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	memset(&shaderflags,0,sizeof(shaderflagsstruct));
 	pushShaderFlags(shaderflags);
 
+	
+	/*
+	printf ("start of render_hier, rwhat %x, node has %x ",rwhat, g->_renderFlags);
+	if ((g->_renderFlags & VF_Viewpoint) == VF_Viewpoint) printf ("VF_Viewpoint ");
+	if ((g->_renderFlags & VF_Geom) == VF_Geom) printf ("VF_Geom ");
+	if ((g->_renderFlags & VF_localLight) == VF_localLight) printf ("VF_localLight ");
+	if ((g->_renderFlags & VF_Sensitive) == VF_Sensitive) printf ("VF_Sensitive ");
+	if ((g->_renderFlags & VF_Blend) == VF_Blend) printf ("VF_Blend ");
+	if ((g->_renderFlags & VF_Proximity) == VF_Proximity) printf ("VF_Proximity ");
+	if ((g->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision ");
+	if ((g->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
+	if ((g->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
+	printf ("\n");
+	*/
+
 	rs->render_vp = rwhat & VF_Viewpoint;
 	rs->render_geom =  rwhat & VF_Geom;
 	rs->render_light = rwhat & VF_globalLight;
@@ -2202,6 +2217,9 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	rs->render_other = rwhat & VF_Other;
 	rs->render_cube = rwhat & VF_Cube;
 	rs->render_background = rwhat & VF_Background;
+
+	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
+
 	//p->nextFreeLight = 0;
 	p->lastShader = -1; //in sendLights,and optimization
 	tg->RenderFuncs.hitPointDist = -1;

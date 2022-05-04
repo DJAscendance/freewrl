@@ -106,15 +106,17 @@ void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 	static int depth = 0;
 	/* send notification up the chain */
 	
-//JAS 	printf ("start of update_renderFlag from %d for %p (%s) flag %x parents %d\n",li,p, stringNodeType(p->_nodeType),
-//JAS 			flag, vectorSize(p->_parentVector)); 
-//JAS if (p->_nodeType == NODE_Shape) {
-//JAS printf ("... and this one is our Shape...\n");
-//JAS 	for (i = 0; i < vectorSize(p->_parentVector); i++) {
-//JAS 		struct X3D_Node *me = vector_get(struct X3D_Node *,p->_parentVector, i);
-//JAS 		printf ("Shape parent %d is %p, type %s\n",i,me,stringNodeType(me->_nodeType));
-//JAS 	}
-//JAS }
+	#ifdef VERBOSE
+ 	printf ("start of update_renderFlag from %d for %p (%s) flag %x parents %d\n",li,p, stringNodeType(p->_nodeType),
+ 	 		flag, vectorSize(p->_parentVector)); 
+ 	if (p->_nodeType == NODE_Shape) {
+	 printf ("... and this one is our Shape...\n");
+ 	    for (i = 0; i < vectorSize(p->_parentVector); i++) {
+ 		struct X3D_Node *me = vector_get(struct X3D_Node *,p->_parentVector, i);
+ 		printf ("Shape parent %d is %p, type %s\n",i,me,stringNodeType(me->_nodeType));
+ 	    }
+ 	}
+	#endif //VERBOSE
 
 
 	
