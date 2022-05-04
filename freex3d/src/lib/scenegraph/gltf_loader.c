@@ -24,10 +24,24 @@
 #include <io_http.h>
 #include "quaternion.h"
 
-// GLTF
-//https://github.com/jkuhlmann/cgltf 
-//- include 100 line recursive json parser (how does data come out?) etc.
-//- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
+/* GLTF
+https://github.com/jkuhlmann/cgltf 
+- include 100 line recursive json parser (how does data come out?) etc.
+- first 600 lines of header is API. next 4000 lines is CGLTF_IMPLEMENTATION
+ see also:
+ https://github.com/michaliskambi/x3d-tests/wiki/Converting-glTF-to-X3D
+ https://github.com/KhronosGroup/glTF/tree/master/specification/2.0 
+ https://github.com/KhronosGroup/3DC-Certification/tree/main/models 
+ https://github.com/KhronosGroup/3DC-Certification 
+ -see Commerce Viewer https ://github.khronos.org/3DC-Sample-Viewer/ 
+-source code for it https ://github.com/KhronosGroup/glTF-Sample-Viewer can drag & drop glb
+State as of May 4, 2022: working not too bad:
+a) can load .glb and .gltf directly or via Inline
+b) the khronos samples render, except GreenChair wood texture not aligned like their
+ sample renderer, I tried flipping the textureTransform.translation.c[1] (y) and even scaling it by the 
+ texture transform scale[1], but still not quite aligned.
+c) HAnim not done - I think Michalis has some comments on that, I have no samples
+*/
 #define  CGLTF_IMPLEMENTATION 1
 #include "cgltf.h"
 

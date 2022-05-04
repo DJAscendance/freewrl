@@ -437,6 +437,8 @@ void textureTransform_start() {
 
 	me = getAppearanceProperties()->currentShaderProperties;
 
+	//PRINT_GL_ERROR_IF_ANY("TT_start_start");
+
 #ifdef TEXVERBOSE
 	printf("passedInGenTex, using passed in genTex, textureStackTop %d\n", tg->RenderFuncs.textureStackTop);
 	printf("passedInGenTex, cubeFace %d\n", getAppearanceProperties()->cubeFace);
@@ -453,355 +455,193 @@ void textureTransform_start() {
 		//and you give it a single textureTransform instead of multitexturetransform 
 		//it should ignore the singleTextureTransform and use identities. 
 		//strict: This is a change of functionality for freewrl Aug 31, 2016
-	if (oldway) {
-		if (tg->RenderFuncs.shapenode) //May 1 2022 annoying Background comes through here - please fix
-		{
-			//cases not handled: .mapping to 2 textrans, but only one texcoord or vice versa
-			// tests\multitexture\multimap_material_2trans_1coord.x3dv
-			struct matpropstruct* matprop;
-			struct X3D_Node* gn = NULL;
-			int ntcoord = 0;
-			char** ccmap = NULL;
-			struct X3D_Shape* sn = (struct X3D_Shape*)tg->RenderFuncs.shapenode;
-			POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, sn->geometry, gn);
-			if (gn && gn->_intern) {
-				ccmap = ((struct X3D_PolyRep*)(gn->_intern))->map;
-				ntcoord = ((struct X3D_PolyRep*)(gn->_intern))->ntcoord;
+
+	if (!tg->RenderFuncs.shapenode) {
+		//May 1 2022 annoying Background comes through here - please fix
+		//we still use ubershader on background textures, send de-minimus uniforms to vertex shader
+		glUniform1i(me->cmap[0], icombo[0][0]);
+		glUniform1i(me->tmap[0], icombo[0][1]);
+		glUniform1i(me->ntexcombo, ncombo);
+	}
+	else
+	{
+		// April 29, 2022: cases not handled: .mapping to 2 textrans, but only one texcoord or vice versa
+		// khronos gltf GreenChair has one texcoord, and multiple textrans 
+		// https://github.com/KhronosGroup/3DC-Certification/tree/main/models 
+		// https://github.khronos.org/3DC-Sample-Viewer/
+		// tests\multitexture\multimap_material_2trans_1coord.x3dv
+		// May 2, 2022 change of concept of operations
+		// vertex shader produces out fw_TexCoord[4] from combinations of input texcoord and textrans
+		// frag shader / material.texture needs to know which combination, by index, for use in sample_map()
+		// here we prepare combinations, up to one for each texture, from given and default textrans and texcoords
+		// we store the combo index in the material.texture.cmap, 
+		// and send vertex shader 2 values for each combo: index to texcoord or -1, index to textran or -1
+		// -1 means default: for texcoord that's texcoord[0], for textrans that's identity
+		// benefit over old concept: frag fw_TexCoord[] length and index is decoupled from geometry.texcoord[] order, length and index
+		//  allowing more combinations of textrans and texcoords
+		struct matpropstruct* matprop;
+		struct X3D_Node* gn = NULL;
+		int ntcoord = 0;
+		char** ccmap = NULL;
+		struct X3D_Shape* sn = (struct X3D_Shape*)tg->RenderFuncs.shapenode;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, sn->geometry, gn);
+
+		//step 1 get all the texcoords from geometry, and their ccmap names, and ntcoord count
+		ntcoord = 1;
+		if (gn && gn->_intern) {
+			struct X3D_GeomRep* gr = (struct X3D_GeomRep*)gn->_intern;
+			if (gr->itype == 2) {
+				struct X3D_PolyRep* prep = (struct X3D_PolyRep*)gn->_intern;
+				ccmap = prep->map;
+				ntcoord = prep->ntcoord;
 				//for (int i = 0; i < 4; i++)
-				//	printf("gn.map[%d]=%p\n", i, ((struct X3D_PolyRep*)(gn->_intern))->map[i]);
+				//	printf("gn.map[%d]=%p\n", i, (prep->map[i]);
 			}
-			//if(ccmap) for (int i = 0; i < 4; i++)
-			//	printf("ccmap[%d]=%p\n", i, ccmap[i]);
-			matprop = getAppearanceProperties();
-			//unconditionally load any supplied texture transforms
-			for (int i = 0; i < MAX_MULTITEXTURE; i++) {
-				itmap[i] = 0; //default matrix index
-				tmap[i] = NULL;
+			else if (gr->itype == 3) {
+				// gltf_loader puts geometry in BufferGeometry._intern = MeshRep
+				struct X3D_MeshRep* mrep = (struct X3D_MeshRep*)gn->_intern;
+				ntcoord = mrep->nuv;
+				static char* mrallmap[] = { "0","1","2","3" }; //gltf_loader uses texcoord index as map string
+				static char* nullmap[4] = { NULL,NULL,NULL,NULL };
+				static char* usemap[4];
+				memcpy(usemap, nullmap, 4 * sizeof(char*));
+				ccmap = usemap;
+				for (int i = 0; i < ntcoord; i++)
+					ccmap[i] = mrallmap[i];
 			}
-			struct X3D_Node* tt = getThis_textureTransform();
-			int ntrans = 0;
-			if (tt != NULL) {
-				switch (tt->_nodeType) {
-				case NODE_TextureTransform:
-				case NODE_TextureTransform3D:
-				case NODE_TextureTransformMatrix3D:
-					ntrans = 1;
-					break;
-				case NODE_MultiTextureTransform:
-					ntrans = ((struct X3D_MultiTextureTransform*)(tt))->textureTransform.n;
-					break;
-				default:
-					ntrans = 0;
-				}
-				for (int i = 0; i < ntrans; i++) {
+		}
+		//if(ccmap) for (int i = 0; i < 4; i++)
+		//	printf("ccmap[%d]=%p\n", i, ccmap[i]);
+
+		//step 2 get all the textrans, and their tmap names and ntrans count
+		matprop = getAppearanceProperties();
+		//unconditionally load any supplied texture transforms
+		for (int i = 0; i < MAX_MULTITEXTURE; i++) {
+			tmap[i] = NULL;
+		}
+		struct X3D_Node* tt = getThis_textureTransform();
+		int ntrans = 0;
+		if (tt != NULL) {
+			switch (tt->_nodeType) {
+			case NODE_TextureTransform:
+			case NODE_TextureTransform3D:
+			case NODE_TextureTransformMatrix3D:
+				ntrans = 1;
+				break;
+			case NODE_MultiTextureTransform:
+				ntrans = ((struct X3D_MultiTextureTransform*)(tt))->textureTransform.n;
+				break;
+			default:
+				ntrans = 0;
+			}
+			for (int i = 0; i < ntrans; i++) {
+				FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+				FW_GL_LOAD_IDENTITY();
+				do_textureTransform0(tt, i, &tmap[i]);
+			}
+		}
+		//add any computed 3D texture matrices
+		if (isTex3D(tnode) && !ntrans) {
+			if (tg->RenderFuncs.shapenode) {
+				//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
+				//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
+				//_then_ bounding box of shape, in local coordinates, is used to scale/translate
+				//geometry vertices into 0-1 range on each axis for re-use as default texture3D coordinates
+				float bbox[6], * bmin, * bmax;
+				if (gn) {
+					//first vec3 is minimum xyz
+					bmin = bbox;
+					bmax = &bbox[3];
+					for (i = 0; i < 3; i++) {
+						bmin[i] = gn->_extent[i * 2 + 1];
+						bmax[i] = gn->_extent[i * 2];
+					}
+					//second vec3 is 1/size - so can be applied directly in vertex shader
+					vecdif3f(bmax, bmax, bmin);
+					for (i = 0; i < 3; i++) {
+						if (bmax[i] != 0.0f)
+							bmax[i] = 1.0f / bmax[i];
+						else
+							bmax[i] = 1.0f;
+					}
+					//if(fabs(bmin[0]) > 10.0f)
+					//	printf("bbox shift [%f %f %f] scale [%f %f %f]\n",bmin[0],bmin[1],bmin[2],bmax[0],bmax[1],bmax[2]);
+
+					//special default texture transform for 3D textures posing as 2D textures
+
+					//the order of applying transform elements seems reversed for texture transforms
+					//H: related to order of operands in mat * vec in shader:
+					//   fw_TexCoord[0] = vec3(fw_TextureMatrix0 *vec4(texcoord,1.0)); 
+					// but sign on elements is what you expect
+					//flip z from RHS to LHS in fragment shader plug_tex3d apply
+					//printf("default tt\n");
 					FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 					FW_GL_LOAD_IDENTITY();
-					do_textureTransform0(tt, i, &tmap[i]);
+					ntrans++;
+					FW_GL_SCALE_F(bmax[0], bmax[1], bmax[2]);
+					FW_GL_TRANSLATE_F(-bmin[0], -bmin[1], -bmin[2]);
 				}
 			}
-			//add any computed 3D texture matrices
-			if (isTex3D(tnode) && !ntrans) {
-				if (tg->RenderFuncs.shapenode) {
-					//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
-					//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
-					//_then_ bounding box of shape, in local coordinates, is used to scale/translate
-					//geometry vertices into 0-1 range on each axis for re-use as default texture3D coordinates
-					float bbox[6], * bmin, * bmax;
-					if (gn) {
-						//first vec3 is minimum xyz
-						bmin = bbox;
-						bmax = &bbox[3];
-						for (i = 0; i < 3; i++) {
-							bmin[i] = gn->_extent[i * 2 + 1];
-							bmax[i] = gn->_extent[i * 2];
-						}
-						//second vec3 is 1/size - so can be applied directly in vertex shader
-						vecdif3f(bmax, bmax, bmin);
-						for (i = 0; i < 3; i++) {
-							if (bmax[i] != 0.0f)
-								bmax[i] = 1.0f / bmax[i];
-							else
-								bmax[i] = 1.0f;
-						}
-						//if(fabs(bmin[0]) > 10.0f)
-						//	printf("bbox shift [%f %f %f] scale [%f %f %f]\n",bmin[0],bmin[1],bmin[2],bmax[0],bmax[1],bmax[2]);
+		}
+		glUniform1i(me->nTexMatrix, ntrans);
 
-						//special default texture transform for 3D textures posing as 2D textures
+		//Step 3 go over appearance and/or material textures, and generate up to 1 combo (texcoord,textrans) for each
 
-						//the order of applying transform elements seems reversed for texture transforms
-						//H: related to order of operands in mat * vec in shader:
-						//   fw_TexCoord[0] = vec3(fw_TextureMatrix0 *vec4(texcoord,1.0)); 
-						// but sign on elements is what you expect
-						//flip z from RHS to LHS in fragment shader plug_tex3d apply
-						//printf("default tt\n");
-						FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
-						FW_GL_LOAD_IDENTITY();
-						ntrans++;
-						FW_GL_SCALE_F(bmax[0], bmax[1], bmax[2]);
-						FW_GL_TRANSLATE_F(-bmin[0], -bmin[1], -bmin[2]);
-					}
-				}
+		//pair appearance.textures with texture coordinates
+		int ntextures = tg->RenderFuncs.textureStackTop;
+		// defaults for appearance.multitexture:
+		ncombo = 0;
+		if (tnode && X3D_APPEARANCE(sn->appearance)->texture == tnode) {
+			//texture is coming from appearance.texture
+			for (int i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
+				int itrans = min(i, ntrans - 1);
+				int icoord = min(i, ntcoord - 1);
+				int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
+				matprop->fw_FrontMaterial.cmap[i] = jcombo;
 			}
-			// I think vertex shader pads out to 4 matrices, and send_matricies_to_shader might too
-			// might need at least one identity matrix so can refer to it by index?
-			// pad out for appearance.texture multitexture
-			int mtrans = ntrans;
-			if (ntrans < ntcoord) {
-				for (int i = ntrans; i < ntcoord; i++) {
-					mtrans++;
-					FW_GL_PUSH_MATRIX();
-					FW_GL_LOAD_IDENTITY();
-				}
-			}
-			ntrans = mtrans;
-			glUniform1i(me->nTexMatrix, ntrans);
-			//printf("ntrans %d nTexMatrix uniform %d\n", ntrans, me->nTexMatrix);
-			// pair textrans to texcoords 
-			// itmap: given a texcoord[index] which transform should we apply frag_texcoord[i] = transform[itmap[i]]xtexcoord[i]?
-			// defaults for appearance.multitexture:
-			for (int i = 0; i < ntrans; i++) {
-				itmap[i] = max(0, min(ntcoord - 1, i)); // specs say maintain same order
-			}
-			// by TextureCoordinate.mapping and TextureTransform.mapping if available
-			if (ntrans && ccmap) {
-				for (int i = 0; i < ntrans; i++) {
-					for (int j = 0; j < ntcoord; j++) {
-						if (ccmap[j] && tmap[i]) {
-							if (strcmp(ccmap[j], tmap[i]) == 0) {
-								itmap[j] = i;
-							}
-						}
-					}
-				}
-			}
-			//send results to vertex shader, so it applies the right transform to each texcoord[4]
-			//printf("ntrans %d itmap:\n", ntrans);
-			for (int i = 0; i < ntrans; i++) {
-				//itmap[i] = i;
-				//printf("itmap[%d] = %d uniform %d\n", i, itmap[i], me->tmap[i]);
-				glUniform1i(me->tmap[i], itmap[i]);
-			}
-
-			//pair appearance.textures with texture coordinates
-			int ntextures = tg->RenderFuncs.textureStackTop;
-			// defaults for appearance.multitexture:
-			for (int i = 0; i < ntextures; i++) {
-				immap[i] = max(0, min(i, ntcoord - 1));
-			}
+		}
+		else {
 			// by TextureCoordinate.mapping and material.xxxTextureMapping if they exist
 			char** mmapf = matprop->fw_FrontMaterial.map;
 			char** mmapb = matprop->fw_BackMaterial.map;
-			if (ccmap)
-				for (int i = 0; i < 7; i++) {
-					for (int j = 0; j < ntcoord; j++) {
-						// front material
-						// zero default assumed
-						if (ccmap[j] && mmapf[i]) {
-							if (strcmp(ccmap[j], mmapf[i]) == 0) {
-								//should go in material
-								// and be sent to frag shader when materials are sent
-								matprop->fw_FrontMaterial.cmap[i] = j;
-							}
-						}
-						//back material
-						// zero default assumed
-						if (ccmap[j] && mmapb[i]) {
-							if (strcmp(ccmap[j], mmapb[i]) == 0) {
-								//should go in material
-								// and be sent to frag shader when materials are sent
-								matprop->fw_BackMaterial.cmap[i] = j;
-							}
-						}
-					}
-				}
-		}
-
-	}
-	else {
-		if (!tg->RenderFuncs.shapenode) {
-			//May 1 2022 annoying Background comes through here - please fix
-			//we still use ubershader on background textures, send de-minimus uniforms to vertex shader
-			glUniform1i(me->cmap[0], icombo[0][0]);
-			glUniform1i(me->tmap[0], icombo[0][1]);
-			glUniform1i(me->ntexcombo, ncombo);
-		}
-		else
-		{
-			// April 29, 2022: cases not handled: .mapping to 2 textrans, but only one texcoord or vice versa
-			// khronos gltf GreenChair has one texcoord, and multiple textrans 
-			// https://github.com/KhronosGroup/3DC-Certification/tree/main/models 
-			// https://github.khronos.org/3DC-Sample-Viewer/
-			// tests\multitexture\multimap_material_2trans_1coord.x3dv
-			// May 2, 2022 change of concept of operations
-			// vertex shader produces out fw_TexCoord[4] from combinations of input texcoord and textrans
-			// frag shader / material.texture needs to know which combination, by index, for use in sample_map()
-			// here we prepare combinations, up to one for each texture, from given and default textrans and texcoords
-			// we store the combo index in the material.texture.cmap, 
-			// and send vertex shader 2 values for each combo: index to texcoord or -1, index to textran or -1
-			// -1 means default: for texcoord that's texcoord[0], for textrans that's identity
-			// benefit over old concept: frag fw_TexCoord[] length and index is decoupled from geometry.texcoord[] order, length and index
-			//  allowing more combinations of textrans and texcoords
-			struct matpropstruct* matprop;
-			struct X3D_Node* gn = NULL;
-			int ntcoord = 0;
-			char** ccmap = NULL;
-			struct X3D_Shape* sn = (struct X3D_Shape*)tg->RenderFuncs.shapenode;
-			POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, sn->geometry, gn);
-
-			//step 1 get all the texcoords from geometry, and their ccmap names, and ntcoord count
-			ntcoord = 1;
-			if (gn && gn->_intern) {
-				struct X3D_GeomRep* gr = (struct X3D_GeomRep*)gn->_intern;
-				if (gr->itype == 2) {
-					struct X3D_PolyRep* prep = (struct X3D_PolyRep*)gn->_intern;
-					ccmap = prep->map;
-					ntcoord = prep->ntcoord;
-					//for (int i = 0; i < 4; i++)
-					//	printf("gn.map[%d]=%p\n", i, (prep->map[i]);
-				}
-				else if (gr->itype == 3) {
-					// gltf_loader puts geometry in BufferGeometry._intern = MeshRep
-					struct X3D_MeshRep* mrep = (struct X3D_MeshRep*)gn->_intern;
-					ntcoord = mrep->nuv;
-					static char* mrallmap[] = { "0","1","2","3" }; //gltf_loader uses texcoord index as map string
-					static char* nullmap[4] = { NULL,NULL,NULL,NULL };
-					static char* usemap[4];
-					memcpy(usemap, nullmap, 4 * sizeof(char*));
-					ccmap = usemap;
-					for (int i = 0; i < ntcoord; i++)
-						ccmap[i] = mrallmap[i];
-				}
-			}
-			//if(ccmap) for (int i = 0; i < 4; i++)
-			//	printf("ccmap[%d]=%p\n", i, ccmap[i]);
-
-			//step 2 get all the textrans, and their tmap names and ntrans count
-			matprop = getAppearanceProperties();
-			//unconditionally load any supplied texture transforms
-			for (int i = 0; i < MAX_MULTITEXTURE; i++) {
-				tmap[i] = NULL;
-			}
-			struct X3D_Node* tt = getThis_textureTransform();
-			int ntrans = 0;
-			if (tt != NULL) {
-				switch (tt->_nodeType) {
-				case NODE_TextureTransform:
-				case NODE_TextureTransform3D:
-				case NODE_TextureTransformMatrix3D:
-					ntrans = 1;
-					break;
-				case NODE_MultiTextureTransform:
-					ntrans = ((struct X3D_MultiTextureTransform*)(tt))->textureTransform.n;
-					break;
-				default:
-					ntrans = 0;
-				}
-				for (int i = 0; i < ntrans; i++) {
-					FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
-					FW_GL_LOAD_IDENTITY();
-					do_textureTransform0(tt, i, &tmap[i]);
-				}
-			}
-			//add any computed 3D texture matrices
-			if (isTex3D(tnode) && !ntrans) {
-				if (tg->RenderFuncs.shapenode) {
-					//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
-					//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
-					//_then_ bounding box of shape, in local coordinates, is used to scale/translate
-					//geometry vertices into 0-1 range on each axis for re-use as default texture3D coordinates
-					float bbox[6], * bmin, * bmax;
-					if (gn) {
-						//first vec3 is minimum xyz
-						bmin = bbox;
-						bmax = &bbox[3];
-						for (i = 0; i < 3; i++) {
-							bmin[i] = gn->_extent[i * 2 + 1];
-							bmax[i] = gn->_extent[i * 2];
-						}
-						//second vec3 is 1/size - so can be applied directly in vertex shader
-						vecdif3f(bmax, bmax, bmin);
-						for (i = 0; i < 3; i++) {
-							if (bmax[i] != 0.0f)
-								bmax[i] = 1.0f / bmax[i];
-							else
-								bmax[i] = 1.0f;
-						}
-						//if(fabs(bmin[0]) > 10.0f)
-						//	printf("bbox shift [%f %f %f] scale [%f %f %f]\n",bmin[0],bmin[1],bmin[2],bmax[0],bmax[1],bmax[2]);
-
-						//special default texture transform for 3D textures posing as 2D textures
-
-						//the order of applying transform elements seems reversed for texture transforms
-						//H: related to order of operands in mat * vec in shader:
-						//   fw_TexCoord[0] = vec3(fw_TextureMatrix0 *vec4(texcoord,1.0)); 
-						// but sign on elements is what you expect
-						//flip z from RHS to LHS in fragment shader plug_tex3d apply
-						//printf("default tt\n");
-						FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
-						FW_GL_LOAD_IDENTITY();
-						ntrans++;
-						FW_GL_SCALE_F(bmax[0], bmax[1], bmax[2]);
-						FW_GL_TRANSLATE_F(-bmin[0], -bmin[1], -bmin[2]);
-					}
-				}
-			}
-			glUniform1i(me->nTexMatrix, ntrans);
-
-			//Step 3 go over appearance and/or material textures, and generate up to 1 combo (texcoord,textrans) for each
-
-			//pair appearance.textures with texture coordinates
-			int ntextures = tg->RenderFuncs.textureStackTop;
-			// defaults for appearance.multitexture:
-			ncombo = 0;
-			if (tnode && X3D_APPEARANCE(sn->appearance)->texture == tnode) {
-				//texture is coming from appearance.texture
-				for (int i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
-					int itrans = min(i, ntrans - 1);
-					int icoord = min(i, ntcoord - 1);
-					int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
+			for (int i = 0; i < 7; i++) {
+				char scratch1[20], scratch2[20];
+				char* trans_name;
+				char* coord_name;
+				int jcombo;
+				// front material
+				if (mmapf && mmapf[i]) {
+					trans_name = trans_name_from_texture_mapping(mmapf[i], scratch1);
+					coord_name = coord_name_from_texture_mapping(mmapf[i], scratch2);
+					jcombo = find_or_make_combo(trans_name, coord_name, ccmap, ntcoord,
+						tmap, ntrans, &icombo[0], &ncombo);
 					matprop->fw_FrontMaterial.cmap[i] = jcombo;
 				}
-			}
-			else {
-				// by TextureCoordinate.mapping and material.xxxTextureMapping if they exist
-				char** mmapf = matprop->fw_FrontMaterial.map;
-				char** mmapb = matprop->fw_BackMaterial.map;
-				for (int i = 0; i < 7; i++) {
-					char scratch1[20], scratch2[20];
-					char* trans_name;
-					char* coord_name;
-					int jcombo;
-					// front material
-					if (mmapf && mmapf[i]) {
-						trans_name = trans_name_from_texture_mapping(mmapf[i], scratch1);
-						coord_name = coord_name_from_texture_mapping(mmapf[i], scratch2);
-						jcombo = find_or_make_combo(trans_name, coord_name, ccmap, ntcoord,
-							tmap, ntrans, &icombo[0], &ncombo);
-						matprop->fw_FrontMaterial.cmap[i] = jcombo;
-					}
-					//back material
-					if (mmapb && mmapb[i]) {
-						trans_name = trans_name_from_texture_mapping(mmapb[i], scratch1);
-						coord_name = coord_name_from_texture_mapping(mmapb[i], scratch2);
-						jcombo = find_or_make_combo(trans_name, coord_name, ccmap, ntcoord,
-							tmap, ntrans, icombo, &ncombo);
-						matprop->fw_BackMaterial.cmap[i] = jcombo;
-					}
+				//back material
+				if (mmapb && mmapb[i]) {
+					trans_name = trans_name_from_texture_mapping(mmapb[i], scratch1);
+					coord_name = coord_name_from_texture_mapping(mmapb[i], scratch2);
+					jcombo = find_or_make_combo(trans_name, coord_name, ccmap, ntcoord,
+						tmap, ntrans, icombo, &ncombo);
+					matprop->fw_BackMaterial.cmap[i] = jcombo;
 				}
 			}
-			for (int i = 0; i < ncombo; i++) {
-				//itmap[i] = i;
-				printf("icmap[%d] = %d uniform %d\n", i, icombo[i][0], me->cmap[i]);
-				printf("itmap[%d] = %d uniform %d\n", i, icombo[i][1], me->tmap[i]);
-				glUniform1i(me->cmap[i], icombo[i][0]);
-				glUniform1i(me->tmap[i], icombo[i][1]);
-			}
-			glUniform1i(me->ntexcombo, ncombo);
-			printf("ncombo=%d\n", ncombo);
-
 		}
+		for (int i = 0; i < ncombo; i++) {
+			//itmap[i] = i;
+			//printf("icmap[%d] = %d uniform %d\n", i, icombo[i][0], me->cmap[i]);
+			//printf("itmap[%d] = %d uniform %d\n", i, icombo[i][1], me->tmap[i]);
+			glUniform1i(me->cmap[i], icombo[i][0]);
+			glUniform1i(me->tmap[i], icombo[i][1]);
+		}
+		glUniform1i(me->ntexcombo, ncombo);
+		//printf("ncombo=%d\n", ncombo);
+
 	}
+
 	/* set up the selected shader for this texture(s) config */
+	//PRINT_GL_ERROR_IF_ANY("TT_start_middle");
+
 	if (me != NULL) {
 		tnode = tg->RenderFuncs.texturenode;
 		//printf ("passedInGenTex, we have tts %d tc %d\n",tg->RenderFuncs.textureStackTop, me->textureCount);
