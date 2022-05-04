@@ -420,6 +420,7 @@ struct X3D_TextureTransform* add_texture_transform(cgltf_texture_view ctexture, 
 	char scratch[20];
 	struct X3D_TextureTransform* ttrans = createNewX3DNode(NODE_TextureTransform);
 	veccopy2f(ttrans->translation.c, ctexture.transform.offset);
+	ttrans->translation.c[1] =  (1.0f - ttrans->translation.c[1])* ctexture.transform.scale[1]; //flip yoffset ? closer but not perfect
 	ttrans->rotation = ctexture.transform.rotation;
 	veccopy2f(ttrans->scale.c, ctexture.transform.scale);
 	sprintf(scratch, "%d", ntextrans);
