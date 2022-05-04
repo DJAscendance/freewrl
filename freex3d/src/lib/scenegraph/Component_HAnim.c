@@ -402,7 +402,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 
 		} 
 
-		RECORD_DISTANCE
+		//RECORD_DISTANCE
 
 	}
 
@@ -528,7 +528,7 @@ void prep_HAnimSite (struct X3D_HAnimSite *node) {
 
 		} 
 
-		RECORD_DISTANCE
+		//RECORD_DISTANCE
 
 	}
 

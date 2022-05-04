@@ -273,7 +273,7 @@
     <ClCompile Include="$(SRC)\lib\scenegraph\VeraMono_ttf.c" />
     <ClCompile Include="..\..\src\lib\DIS\DIS.c" />
     <ClCompile Include="..\..\src\lib\input\Decompose.c" />
-    <ClCompile Include="..\..\src\lib\scenegraph\Component_PTM.c" />
+    <ClCompile Include="..\..\src\lib\scenegraph\Component_TextureProjector.c" />
     <ClCompile Include="..\..\src\lib\scenegraph\fwlabsound.cpp" />
     <ClCompile Include="..\..\src\lib\scenegraph\fwgeolib.cpp">
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug_glew|Win32'">EditAndContinue</DebugInformationFormat>

@@ -2126,7 +2126,7 @@ void push_globalRenderFlags(){
 		default:
 			shaderflags.base |= SHADINGSTYLE_PHONG; break;
 	}
-	if(tg->Component_PTM.globalProjector){
+	if(tg->Component_TextureProjector.globalProjector){
 		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
 	}
 	pushShaderFlags(shaderflags); //push nodified copy
@@ -2146,7 +2146,7 @@ void pop_globalRenderFlags(){
 			popFogParams();
 		}
 	}
-	tg->Component_PTM.globalProjector = 0; //watch outL if you do ashort-cut stereo with 2 render_heir(geom) then this shoulod be zeroed after last one or on next frame start
+	tg->Component_TextureProjector.globalProjector = 0; //watch outL if you do ashort-cut stereo with 2 render_heir(geom) then this shoulod be zeroed after last one or on next frame start
 
 }
 struct what_string {

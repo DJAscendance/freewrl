@@ -86,7 +86,7 @@ struct projector_tuple {
 	struct X3D_Node * textureNode;
 };
 
-typedef struct pComponent_PTM{
+typedef struct pComponent_TextureProjector{
 	struct Vector *projector_stack; //activeProjectiveTextureTable;
 	//textureTableIndexStruct_s* loadThisProjectiveTexture;
 
@@ -94,21 +94,21 @@ typedef struct pComponent_PTM{
 	int currentlyWorkingOn;// = -1;
 	int textureInProcess;// = -1;
 	struct projective_Texdata data[4];
-}* ppComponent_PTM;
+}* ppComponent_TextureProjector;
 
-void *Component_PTM_constructor(){
-	void *v = malloc(sizeof(struct pComponent_PTM));
-	memset(v,0,sizeof(struct pComponent_PTM));
+void *Component_TextureProjector_constructor(){
+	void *v = malloc(sizeof(struct pComponent_TextureProjector));
+	memset(v,0,sizeof(struct pComponent_TextureProjector));
 	return v;
 }
-void Component_PTM_init(struct tComponent_PTM *t){
+void Component_TextureProjector_init(struct tComponent_TextureProjector *t){
 	//public
 
 	//private 
 	
-	t->prv = Component_PTM_constructor();
+	t->prv = Component_TextureProjector_constructor();
 	{
-		ppComponent_PTM p = (ppComponent_PTM)t->prv;
+		ppComponent_TextureProjector p = (ppComponent_TextureProjector)t->prv;
 		//p->activeProjectiveTextureTable = NULL;
 		p->projector_stack = newStack(struct projector_tuple);
 
@@ -120,11 +120,11 @@ void Component_PTM_init(struct tComponent_PTM *t){
 	}
 }
 
-void Component_PTM_clear(struct tComponent_PTM *t){
+void Component_TextureProjector_clear(struct tComponent_TextureProjector *t){
 	//public
 	//private
 	{
-		ppComponent_PTM p = (ppComponent_PTM)t->prv;
+		ppComponent_TextureProjector p = (ppComponent_TextureProjector)t->prv;
 	}
 }
 
@@ -132,17 +132,17 @@ void Component_PTM_clear(struct tComponent_PTM *t){
 void projectorTable_clear(){
 	//called once per frame, before the search for global=true projectors
 	//will clear any global=true projectors from last frame
-	ppComponent_PTM p;
+	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
-	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	clearStack(p->projector_stack);
 }
 void projectorTable_push(struct projector_tuple *ptuple ){
 	//called when we find a global=true, on=true projector, and
 	//called in sib_prep for a global=false, on=false projector
-	ppComponent_PTM p;
+	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
-	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	//we need a deep copy because the ptm node can't hold it
 	// because it can be DEF/USED with different transform each use
 	stack_push(struct projector_tuple,p->projector_stack,*ptuple);
@@ -150,9 +150,9 @@ void projectorTable_push(struct projector_tuple *ptuple ){
 }
 void projectorTable_pop(){
 	//called in sib_fin for a global=false, on=true projector
-	ppComponent_PTM p;
+	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
-	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	if(p->projector_stack->n < 1)
 		printf("ouch from projectorTable_opo()\n");
 	stack_pop(struct projector_tuple,p->projector_stack);
@@ -187,9 +187,9 @@ void resend_textureprojector_matrix()
 	int pcount,tcount;
 	s_shader_capabilities_t *me;
 	struct projective_Texdata *data;
-	ppComponent_PTM p;
+	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
-	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	data = p->data;
 
     me = getAppearanceProperties()->currentShaderProperties;
@@ -319,9 +319,9 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 	GLDOUBLE ProjMat[16];
 	GLint tex1;
 	struct projective_Texdata *data;
-	ppComponent_PTM p;
+	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
-	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	data = p->data;
 	//data = (struct projective_Texdata*)tg->Component_PTM.data;
 	
@@ -334,7 +334,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
 		struct X3D_Node *tmpN = NULL;
 
-		if(node->global) tg->Component_PTM.globalProjector = TRUE;
+		if(node->global) tg->Component_TextureProjector.globalProjector = TRUE;
 
 		//A. COMPUTE NODE-POSE MATRIX FOR: .position, .dir, .upVector
 		//glMatrixMode(GL_MODELVIEW);
@@ -479,9 +479,9 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 	GLDOUBLE orthoMat[16];
 	GLint tex1;
 	struct projective_Texdata *data;
-	ppComponent_PTM p;
+	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
-	p = (ppComponent_PTM)tg->Component_PTM.prv;
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	data = p->data;
 	//data = (struct projective_Texdata*)tg->Component_PTM.data;
 	
@@ -494,7 +494,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
 		struct X3D_Node *tmpN = NULL;
 
-		if(node->global) tg->Component_PTM.globalProjector = TRUE;
+		if(node->global) tg->Component_TextureProjector.globalProjector = TRUE;
 
 		//A. COMPUTE NODE-POSE MATRIX FOR: .position, .dir, .upVector
 		//glMatrixMode(GL_MODELVIEW);

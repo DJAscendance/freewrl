@@ -402,7 +402,7 @@
     <ClCompile Include="..\..\src\lib\world_script\jsVRMLClasses_sm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\lib\scenegraph\Component_PTM.c">
+    <ClCompile Include="..\..\src\lib\scenegraph\Component_TextureProjector.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\lib\scenegraph\fwlabsound.cpp">

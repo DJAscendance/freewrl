@@ -201,7 +201,7 @@ printf(" tComponent_Layout %d\n", (int)sizeof(struct tComponent_Layout));
 printf(" tComponent_NURBS %d\n", (int)sizeof(struct tComponent_NURBS));
 printf(" tComponent_ParticleSystems %d\n", (int)sizeof(struct tComponent_ParticleSystems));
 printf(" tComponent_ProgrammableShaders %d\n", (int)sizeof(struct tComponent_ProgrammableShaders));
-printf(" tComponent_PTM %d\n",(int)sizeof(struct tComponent_PTM));
+printf(" tComponent_PTM %d\n",(int)sizeof(struct tComponent_TextureProjector));
 printf(" tComponent_RigidBodyPhysics %d\n", (int)sizeof(struct tComponent_RigidBodyPhysics));
 printf(" tComponent_Followers %d\n", (int)sizeof(struct tComponent_Followers));
 printf(" tComponent_KeyDevice %d\n", (int)sizeof(struct tComponent_KeyDevice));
@@ -315,7 +315,7 @@ ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID..
 	//RasterFont_init(&iglobal->RasterFont);
 	RenderTextures_init(&iglobal->RenderTextures);
 	Textures_init(&iglobal->Textures);
-	Component_PTM_init(&iglobal->Component_PTM);
+	Component_TextureProjector_init(&iglobal->Component_TextureProjector);
 #ifndef DISABLER	
 #ifndef NO_PLUGINSOCKET
 	PluginSocket_init(&iglobal->PluginSocket);
@@ -455,7 +455,7 @@ OLDCODE	FREE_IF_NZ(tg->Component_Networking.prv);
 	collision_clear(&tg->collision); FREE_IF_NZ(tg->collision.prv);
 	FREE_IF_NZ(tg->pluginUtils.prv);
 	FREE_IF_NZ(tg->PluginSocket.prv);
-	Component_PTM_clear(&tg->Component_PTM); FREE_IF_NZ(tg->Component_PTM.prv);
+	Component_TextureProjector_clear(&tg->Component_TextureProjector); FREE_IF_NZ(tg->Component_TextureProjector.prv);
 	Textures_clear(&tg->Textures); FREE_IF_NZ(tg->Textures.prv);
 	FREE_IF_NZ(tg->RenderTextures.prv);
 	//FREE_IF_NZ(tg->RasterFont.prv);
