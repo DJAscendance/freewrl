@@ -415,6 +415,12 @@ our %Nodes = (
 
 	],"X3DCoordinateNode"),
 
+	"CoordinateDouble" => new VRML::NodeType("CoordinateDouble", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		point => ["MFVec3d", [], "inputOutput","(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+	],"X3DCoordinateNode"),
+
+
 	"IndexedLineSet" => new VRML::NodeType("IndexedLineSet", [
 		set_colorIndex => ["MFInt32", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		set_coordIndex => ["MFInt32", undef, "inputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -3117,10 +3123,6 @@ our %Nodes = (
 		point => ["MFVec2f", [], "inputOutput","(SPEC_X3D30 )","UNCA_NONE"],#ff #...from this, because point not in specs
 	],"X3DNurbsControlCurveNode"),
 
-	"CoordinateDouble" => new VRML::NodeType("CoordinateDouble", [
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		point => ["MFVec3d", [], "inputOutput","(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-	],"X3DCoordinateNode"),
 
 	"NurbsCurve" => new VRML::NodeType("NurbsCurve", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
