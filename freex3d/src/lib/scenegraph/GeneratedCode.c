@@ -4699,7 +4699,9 @@ const int OFFSETS_AcousticProperties[] = {
 	(int) FIELDNAMES_specular, (int) offsetof (struct X3D_AcousticProperties, specular),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_diffuse, (int) offsetof (struct X3D_AcousticProperties, diffuse),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_refraction, (int) offsetof (struct X3D_AcousticProperties, refraction),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_AcousticProperties, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_AcousticProperties, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_AcousticProperties, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_AcousticProperties, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AnalyserNode[] = {
@@ -10533,6 +10535,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->diffuse = 0.0f;
 			tmp2->refraction = 0.0f;
 			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->enabled = TRUE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16642,6 +16646,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    break;
 		}
 		case NODE_AnalyserNode : {

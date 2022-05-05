@@ -46,6 +46,8 @@ EXPOSED_FIELD(AcousticProperties,specular,sffloat,specular,FIELDTYPE_SFFloat,UNC
 EXPOSED_FIELD(AcousticProperties,diffuse,sffloat,diffuse,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(AcousticProperties,refraction,sffloat,refraction,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(AcousticProperties,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(AcousticProperties,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(AcousticProperties,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(AcousticProperties)
 
 /* AnalyserNode node */

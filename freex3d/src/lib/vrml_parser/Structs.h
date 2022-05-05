@@ -3130,6 +3130,8 @@ struct X3D_AcousticProperties {
 	float diffuse;
 	float refraction;
 	struct X3D_Node *metadata;
+	struct Uni_String *description;
+	int enabled;
 };
 extern struct X3D_Virt virt_AcousticProperties;
 /***********************/

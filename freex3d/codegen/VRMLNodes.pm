@@ -608,7 +608,9 @@ our %Nodes = (
 		specular => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		diffuse => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		refraction => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DAppearanceChildNode"),
 
 	"FillProperties" => new VRML::NodeType ("FillProperties", [
