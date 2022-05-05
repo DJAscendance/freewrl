@@ -4312,7 +4312,7 @@ END_NODE(WindPhysicsModel)
 
 /* WorldInfo node */
 BEGIN_NODE(WorldInfo)
-FIELD(WorldInfo,info,mfstring,info,FIELDTYPE_MFString,UNCA_NONE)
-FIELD(WorldInfo,title,sfstring,title,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(WorldInfo,info,mfstring,info,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(WorldInfo,title,sfstring,title,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(WorldInfo,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(WorldInfo)

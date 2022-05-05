@@ -1701,6 +1701,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"image",
 	"index",
 	"inertia",
+	"info",
 	"inputSource",
 	"int32Inp",
 	"integerKey",
@@ -1978,6 +1979,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"textureTransform",
 	"threshold",
 	"timeOut",
+	"title",
 	"tolerance",
 	"top",
 	"topTexture",
@@ -2188,7 +2190,6 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"texCoordKey",
 	"texCoordRamp",
 	"textureProperties",
-	"title",
 	"topToBottom",
 	"type",
 	"uClosed",
@@ -9540,8 +9541,8 @@ const int OFFSETS_WindPhysicsModel[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_WorldInfo[] = {
-	(int) FIELDNAMES_info, (int) offsetof (struct X3D_WorldInfo, info),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_title, (int) offsetof (struct X3D_WorldInfo, title),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_info, (int) offsetof (struct X3D_WorldInfo, info),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_title, (int) offsetof (struct X3D_WorldInfo, title),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_WorldInfo, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -22587,6 +22588,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_WorldInfo *tmp;
 			tmp = (struct X3D_WorldInfo *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," info (MFString): \n");
+			for (i=0; i<tmp->info.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->info.p[i]->strptr); }
+			spacer fprintf (fp," title (SFString) \t%s\n",tmp->title->strptr);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
