@@ -7078,6 +7078,7 @@ const int OFFSETS_LineSet[] = {
 const int OFFSETS_LoadSensor[] = {
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_LoadSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LoadSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_LoadSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_timeOut, (int) offsetof (struct X3D_LoadSensor, timeOut),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_watchList, (int) offsetof (struct X3D_LoadSensor, watchList),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_LoadSensor, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40 ), (int) UNCA_NONE,
@@ -13506,6 +13507,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_LoadSensor *) tmp;
 			tmp2->enabled = FALSE;
 			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
 			tmp2->timeOut = 0;
 			tmp2->watchList.n=0; tmp2->watchList.p=0;
 			tmp2->children.n=0; tmp2->children.p=0;
@@ -19565,6 +19567,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," timeOut (SFTime) \t%4.3f\n",tmp->timeOut);
 			spacer fprintf (fp," watchList (MFNode):\n");
 			for (i=0; i<tmp->watchList.n; i++) { dump_scene(fp,level+1,tmp->watchList.p[i]); }

@@ -8100,6 +8100,7 @@ struct X3D_LoadSensor {
  	/*** node specific data: *****/
 	int enabled;
 	struct X3D_Node *metadata;
+	struct Uni_String *description;
 	double timeOut;
 	struct Multi_Node watchList;
 	struct Multi_Node children;
