@@ -53,14 +53,14 @@ bool is_url(const char *url)
 
 	int i;
 	char *pat;
-	unsigned long delta = 0;
+	ptrdiff_t delta = 0;
 
 	pat = strstr(url, "://");
 	if (!pat) {
 		return FALSE;
 	}
 
-	delta = (long)pat - (long)url;
+	delta = pat - url;
 	if (delta > 5) {
 		return FALSE;
 	}

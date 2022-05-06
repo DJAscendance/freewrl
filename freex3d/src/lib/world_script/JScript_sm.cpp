@@ -45,6 +45,7 @@ Javascript C language binding.
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
 
 #define JS_VERSION 187
+static int js_run_version = JS_VERSION; //may be over-ridden below when more info avail
 //#define JS_THREADSAFE 1 //by default in 186+
 
 #define STRING_SIZE 256
@@ -443,8 +444,14 @@ void sm_JSCreateScriptContext(int num) {
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
 	//JS_SetErrorReporter(_context, reportError);
-	
+
 	JSContext *cx = _context;
+	static int once = 0;
+	if (!once) {
+		js_run_version = (long)JS_GetVersion(cx);
+		once = 1;
+	}
+
 	{ //scope A
 		JSAutoRequest ar(cx); // In practice, you would want to exit this any
 							// time you're spinning the event loop
@@ -2371,8 +2378,11 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 			while ((*strp > '\0') && (*strp <= ' ')) strp ++;
 
 			/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
-
+#ifndef _x64
 			mynode = X3D_NODE(atol(strp));
+#else
+			mynode = X3D_NODE(atoll(strp));
+#endif
 			JS_free(scriptContext,strpp);
 
 			/* printf ("mynode is %p %d, \n",mynode,mynode);
@@ -2539,7 +2549,11 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 
 			/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
+#ifndef _x64
 			mynode = X3D_NODE(atol(strp));
+#else
+			mynode = X3D_NODE(atoll(strp));
+#endif
 			JS_free(scriptContext,strpp);
 
 			/* printf ("mynode is %p %d, \n",mynode,mynode);
@@ -3450,7 +3464,7 @@ int sm_runQueuedDirectOutputs(){
 	static int doneOnce = 0;
 	if(!doneOnce){
 		//	printf("in runQueuedDirectOutputs\n");
-		printf("javascript engine spidermonkey version %ld %s\n", (long)JS_VERSION, SM_method() == 2? "SM2" : "SM1");
+		printf("javascript engine spidermonkey version %ld %s\n", (long)js_run_version, SM_method() == 2? "SM2" : "SM1");
 		doneOnce++;
 	}
 

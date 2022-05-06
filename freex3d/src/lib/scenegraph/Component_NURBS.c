@@ -120,6 +120,8 @@ There is some source for it:
 	http://mesa3d.org/
 	ftp://ftp.freedesktop.org/pub/mesa/glu/
 	http://oss.sgi.com/projects/ogl-sample/
+Here's a blog complaining glu won't render some example nurbs curves
+	https://www.codeproject.com/articles/996281/nurbs-curve-made-easy
 So we're left to re-implement the hard way.
 I find nurbs libs are always disappointing in documentation. 
 I think that's because there's not a lot to nurbs, mostly plumbing and little meat: 

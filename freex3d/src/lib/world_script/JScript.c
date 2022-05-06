@@ -2609,7 +2609,11 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 
 				/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
+#ifndef _x64
 				mynode = X3D_NODE(atol(strp));
+#else
+				mynode = X3D_NODE(atoll(strp));
+#endif
 #if JS_VERSION >= 185
 				JS_free(scriptContext,strpp);
 #endif
@@ -2824,7 +2828,11 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 
 				/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
+#ifndef _x64
 				mynode = X3D_NODE(atol(strp));
+#else
+				mynode = X3D_NODE(atoll(strp));
+#endif
 #if JS_VERSION >= 185
 				JS_free(scriptContext,strpp);
 #endif
